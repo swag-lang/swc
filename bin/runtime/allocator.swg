@@ -218,7 +218,7 @@ impl Allocator
 
     mtd setup()
     {
-        @memset(me, 0, #sizeof(Allocator))
+        @init(me, 1)
         .installMagic = InstalledMagic
         .configure(false, true, false, false, false)
     }
@@ -542,7 +542,7 @@ impl Allocator
             }
             else do
                 prev = heap
-            heap     = next
+            heap = next
         }
     }
 
@@ -637,7 +637,7 @@ impl Allocator
         header.next = .firstAlloc
         if header.next do
             header.next.prev = header
-        .firstAlloc          = header
+        .firstAlloc = header
     }
 
     mtd unlinkFree(header: *AllocatorHeader)
@@ -686,7 +686,7 @@ impl Allocator
         header.next = .firstFree
         if .firstFree do
             .firstFree.prev = header
-        .firstFree          = header
+        .firstFree = header
         if !.lastFree do
             .lastFree = header
 
@@ -700,9 +700,9 @@ impl Allocator
             header.nextFree = cls.firstFree
             if cls.firstFree do
                 cls.firstFree.prevFree = header
-            cls.firstFree              = header
-            cls.cachedCount            += 1
-            cls.cachedBytes            += header.blockSize
+            cls.firstFree   = header
+            cls.cachedCount += 1
+            cls.cachedBytes += header.blockSize
             .statAdd(&.sizeCached, header.blockSize)
         }
     }
@@ -1069,7 +1069,7 @@ impl Allocator
         .releaseRetiredHeaps()
         .mutex.unlock()
 
-        @memset(me, 0, #sizeof(Allocator))
+        @init(me, 1)
     }
 
     mtd opDrop()

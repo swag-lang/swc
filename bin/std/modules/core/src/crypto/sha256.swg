@@ -1,13 +1,17 @@
 #global namespace Hash
 #global #[Swag.Safety(.Overflow, false)]
 
-// Represents sha256.
+// Computes a SHA-256 digest incrementally.
 public struct Sha256
 {
-    data:    [64] u8     // Data associated with this value.
-    state:   [8] u32     // State associated with this value.
-    datalen: u32         // Datalen associated with this value.
-    bitlen:  u64         // Bitlen associated with this value.
+    internal
+    {
+        data:  [64] u8
+        state: [8] u32 = [0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A,
+                                0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19]
+        dataLength: u32
+        bitLength:  u64
+    }
 }
 
 impl Sha256
@@ -90,14 +94,16 @@ impl Sha256
 
 public impl Sha256
 {
-    // Names the digest type.
+    // Stores a SHA-256 digest as eight 32-bit words.
     alias Digest = [8] u32
 
-    // Finalize the computation
-    mtd final(result: Digest)
+    // Finalizes the current sequence and returns its 256-bit digest.
+    // Call [[reset]] before reusing this value after finalization.
+    mtd finalize()->Digest
     {
-        var i = .datalen
-        if .datalen < 56
+        var result: retval
+        var i = .dataLength
+        if .dataLength < 56
         {
             .data[i] = 0x80
             i        += 1
@@ -127,22 +133,23 @@ public impl Sha256
             }
         }
 
-        .bitlen   += .datalen * 8
-        .data[63] = cast(u8) .bitlen
-        .data[62] = cast(u8) (.bitlen >> 8)
-        .data[61] = cast(u8) (.bitlen >> 16)
-        .data[60] = cast(u8) (.bitlen >> 24)
-        .data[59] = cast(u8) (.bitlen >> 32)
-        .data[58] = cast(u8) (.bitlen >> 40)
-        .data[57] = cast(u8) (.bitlen >> 48)
-        .data[56] = cast(u8) (.bitlen >> 56)
+        .bitLength += .dataLength * 8
+        .data[63]  = cast(u8) .bitLength
+        .data[62]  = cast(u8) (.bitLength >> 8)
+        .data[61]  = cast(u8) (.bitLength >> 16)
+        .data[60]  = cast(u8) (.bitLength >> 24)
+        .data[59]  = cast(u8) (.bitLength >> 32)
+        .data[58]  = cast(u8) (.bitLength >> 40)
+        .data[57]  = cast(u8) (.bitLength >> 48)
+        .data[56]  = cast(u8) (.bitLength >> 56)
         .transform(.data)
 
         Memory.copy(result, &.state[0], #sizeof(.state))
+        return result
     }
 
-    // Initialize the hashing sequence
-    mtd init()
+    // Resets the sequence to the standard SHA-256 initial state.
+    mtd reset()
     {
         @init(me, 1)
         .state[0] = 0x6A09E667
@@ -155,35 +162,31 @@ public impl Sha256
         .state[7] = 0x5BE0CD19
     }
 
-    // Update the hash value with 'buffer' content
+    // Includes `buffer` in the running digest.
     mtd update(buffer: const [..] u8)
     {
-        Debug.assert(@countof(buffer) <= Swag.U32.Max)
         let buf = @dataof(buffer)
-        let len = cast(u32) @countof(buffer)
+        let len = @countof(buffer)
 
         for [i] in len
         {
-            .data[.datalen] = buf[i]
-            .datalen        += 1
-            if .datalen == 64
+            .data[.dataLength] = buf[i]
+            .dataLength        += 1
+            if .dataLength == 64
             {
                 .transform(.data)
-                .bitlen  += 512
-                .datalen = 0
+                .bitLength  += 512
+                .dataLength = 0
             }
         }
     }
 
-    // Returns the sha256 value for the given buffer
+    // Computes the SHA-256 digest of `buffer` in one operation.
     func compute(buffer: const [..] u8)->Digest
     {
         var v: Sha256
-        v.init()
+        v.reset()
         v.update(buffer)
-
-        var result: retval
-        v.final(result)
-        return result
+        return v.finalize()
     }
 }

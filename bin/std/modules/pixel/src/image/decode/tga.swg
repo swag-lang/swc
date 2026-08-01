@@ -26,21 +26,21 @@ struct Header
     originY:        u16
     width:          u16
     height:         u16
-    bpp:            u8
+    bitsPerPixel:   u8
     descriptorByte: u8
 }
 
 struct Palette
 {
-    data:  #null const [*] u8
-    first: u16
-    count: u16
-    bpp:   u8
-    bpp8:  u8
+    data:          #null const [*] u8
+    first:         u16
+    count:         u16
+    bitsPerPixel:  u8
+    bytesPerPixel: u8
 }
 
 // Decodes mapped, grayscale, and true-color TGA images with optional RLE.
-public struct Decoder {}
+internal struct Decoder {}
 
 func checkBuffer(ptr, last: const [*] u8, size: u64) fail
 {
@@ -72,24 +72,24 @@ func sourcePixelBytes(header: Header)->u8 fail
 {
     if isMappedType(header.imageTypeCode)
     {
-        if header.bpp != 8 and header.bpp != 16 do
+        if header.bitsPerPixel != 8 and header.bitsPerPixel != 16 do
             fail UnsupportedFormatError{"unsupported bit depth"}
-        return header.bpp / 8
+        return header.bitsPerPixel / 8
     }
 
     if isMonoType(header.imageTypeCode)
     {
-        if header.bpp != 8 and header.bpp != 16 do
+        if header.bitsPerPixel != 8 and header.bitsPerPixel != 16 do
             fail UnsupportedFormatError{"unsupported bit depth"}
-        return header.bpp / 8
+        return header.bitsPerPixel / 8
     }
 
     if isRgbType(header.imageTypeCode)
     {
-        if header.bpp == 15 or header.bpp == 16 do
+        if header.bitsPerPixel == 15 or header.bitsPerPixel == 16 do
             return 2
-        if header.bpp == 24 or header.bpp == 32 do
-            return header.bpp / 8
+        if header.bitsPerPixel == 24 or header.bitsPerPixel == 32 do
+            return header.bitsPerPixel / 8
         fail UnsupportedFormatError{"unsupported bit depth"}
     }
 
@@ -111,19 +111,19 @@ func pixelFormat(header: Header, palette: Palette)->PixelFormat fail
 {
     if isMappedType(header.imageTypeCode)
     {
-        if palette.bpp == 16 or palette.bpp == 32 do
+        if palette.bitsPerPixel == 16 or palette.bitsPerPixel == 32 do
             return .BGRA8
-        if palette.bpp == 15 or palette.bpp == 24 do
+        if palette.bitsPerPixel == 15 or palette.bitsPerPixel == 24 do
             return .BGR8
         fail UnsupportedFormatError{"unsupported palette bit depth"}
     }
 
     if isMonoType(header.imageTypeCode) do
-        return header.bpp == 16 ? .BGRA8 : .BGR8
+        return header.bitsPerPixel == 16 ? .BGRA8 : .BGR8
 
-    if header.bpp == 16 or header.bpp == 32 do
+    if header.bitsPerPixel == 16 or header.bitsPerPixel == 32 do
         return .BGRA8
-    if header.bpp == 15 or header.bpp == 24 do
+    if header.bitsPerPixel == 15 or header.bitsPerPixel == 24 do
         return .BGR8
     fail UnsupportedFormatError{"unsupported bit depth"}
 }
@@ -166,7 +166,7 @@ func dstPixel(result: *Image, header: Header, pixelIndex: u64)->[*] u8
     let srcY = cast(s32) (pixelIndex / header.width)
     let dstX = header.descriptorByte & DESC_ORIGIN_RIGHT ? result.width - srcX - 1 : srcX
     let dstY = header.descriptorByte & DESC_ORIGIN_TOP ? result.height - srcY - 1 : srcY
-    return cast([*] u8) (notnull result.pixels.buffer) + cast(u64) dstY * result.width8 + cast(u64) dstX * result.bpp8
+    return cast([*] u8) (notnull result.pixels.buffer) + cast(u64) dstY * result.rowStride + cast(u64) dstX * result.bytesPerPixel
 }
 
 func paletteIndex(src: const [*] u8, bpp: u8)->u32
@@ -182,8 +182,8 @@ func writePalettePixel(dst: [*] u8, palette: Palette, index: u32) fail
         fail InvalidFormatError{"invalid palette index"}
 
     let paletteData = cast(const [*] u8) (notnull palette.data)
-    let entry       = paletteData + cast(u64) (index - palette.first) * palette.bpp8
-    switch palette.bpp
+    let entry       = paletteData + cast(u64) (index - palette.first) * palette.bytesPerPixel
+    switch palette.bitsPerPixel
     {
     case 15: writeTga16Pixel(dst, dref cast(const *u16) entry, false, false)
     case 16: writeTga16Pixel(dst, dref cast(const *u16) entry, true, true)
@@ -198,21 +198,21 @@ func writeSourcePixel(result: *Image, header: Header, palette: Palette, pixelInd
 
     if isMappedType(header.imageTypeCode)
     {
-        writePalettePixel(dst, palette, paletteIndex(src, header.bpp))
+        writePalettePixel(dst, palette, paletteIndex(src, header.bitsPerPixel))
         return
     }
 
     if isMonoType(header.imageTypeCode)
     {
         let gray = src[0]
-        if header.bpp == 16 do
+        if header.bitsPerPixel == 16 do
             writeBgraPixel(dst, gray, gray, gray, src[1])
         else do
             writeBgrPixel(dst, gray, gray, gray)
         return
     }
 
-    switch header.bpp
+    switch header.bitsPerPixel
     {
     case 15: writeTga16Pixel(dst, dref cast(const *u16) src, false, false)
     case 16: writeTga16Pixel(dst, dref cast(const *u16) src, true, (header.descriptorByte & DESC_ALPHA_MASK) != 0)
@@ -271,11 +271,11 @@ func decodeRle(result: *Image, header: Header, palette: Palette, src, last: cons
     }
 }
 
-public impl IImageDecoder for Decoder
+internal impl IImageDecoder for Decoder
 {
     func impl canDecode(me, fileName: string)->bool
     {
-        return Path.getExtensionLowerCase(fileName) == ".tga"
+        return Path.lowercaseExtension(fileName) == ".tga"
     }
 
     func impl decode(me, buffer: const [..] u8, options: DecodeOptions)->Image fail
@@ -302,13 +302,13 @@ public impl IImageDecoder for Decoder
         var palette: Palette
         if header.colorMapType
         {
-            palette.first = header.colorMapFirst
-            palette.count = header.colorMapLength
-            palette.bpp   = header.colorMapBpp
-            palette.bpp8  = palettePixelBytes(header.colorMapBpp)
-            palette.data  = dataof
-            checkBuffer(dataof, last, cast(u64) palette.count * palette.bpp8)
-            dataof += cast(u64) palette.count * palette.bpp8
+            palette.first         = header.colorMapFirst
+            palette.count         = header.colorMapLength
+            palette.bitsPerPixel  = header.colorMapBpp
+            palette.bytesPerPixel = palettePixelBytes(header.colorMapBpp)
+            palette.data          = dataof
+            checkBuffer(dataof, last, cast(u64) palette.count * palette.bytesPerPixel)
+            dataof += cast(u64) palette.count * palette.bytesPerPixel
         }
 
         if isMappedType(header.imageTypeCode) and !palette.count do

@@ -50,7 +50,7 @@ using Core
 
 func day9A()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "9.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "9.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     var sum, val: Array's32

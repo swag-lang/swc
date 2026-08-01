@@ -72,7 +72,7 @@ func updateCollisions()->bool
 
 func updateSnakePosition()
 {
-    let curTime = Time.nowMilliseconds()
+    let curTime = Time.monotonicMilliseconds()
     if curTime - g_Time < SnakeTime do
         return
 
@@ -89,7 +89,7 @@ func updateSnakePosition()
 
 func updateSpeed(wnd: *Wnd)
 {
-    let kb = wnd.getApp().getKeyboard()
+    let kb = wnd.app().keyboardRef()
 
     if kb.isKeyJustPressed(.Up)
     {
@@ -152,12 +152,12 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     switch evt
     {
     case CreateEvent:
-        g_Rect = wnd.getClientRect()
+        g_Rect = wnd.clientRect()
         startGame()
 
     case PaintEvent as paintEvt:
         let painter = paintEvt.bc.painter
-        g_Rect = wnd.getClientRect()
+        g_Rect = wnd.clientRect()
 
         updateSnakePosition()
         updateSpeed(wnd)

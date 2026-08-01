@@ -47,7 +47,7 @@ impl GizmoRect
 
         switch evt.kind
         {
-        case .MousePressed:
+        case .Pressed:
             if .moving or .rotating do
                 return true
             if evt.button != .Left do
@@ -85,7 +85,7 @@ impl GizmoRect
             view.captureMouse()
             return true
 
-        case .MouseReleased:
+        case .Released:
             if .rotating
             {
                 if evt.button == .Left
@@ -123,14 +123,14 @@ impl GizmoRect
                 return true
             }
 
-        case .MouseLeave:
+        case .Leave:
             if .hotAnchor != Swag.U32.Max
             {
                 .hotAnchor = Swag.U32.Max
                 return true
             }
 
-        case .MouseMove:
+        case .Move:
             if .rotating
             {
                 var deg = .rotateStartValue + (.computeRotate(pos) - .rotateStartAngle)
@@ -148,7 +148,7 @@ impl GizmoRect
                     .sigRotate(me, .firstRotating, false, deg)
                 .firstRotating = false
 
-                view.getApp().setFrameCursor(Cursor.from(.Hand))
+                view.app().setFrameCursor(Cursor.from(.Hand))
                 return true
             }
 
@@ -262,15 +262,15 @@ impl GizmoRect
 
             switch .hotAnchor
             {
-            case 0, 7: view.getApp().setFrameCursor(Cursor.from(.SizeNWSE))
-            case 1, 6: view.getApp().setFrameCursor(Cursor.from(.SizeNS))
-            case 2, 5: view.getApp().setFrameCursor(Cursor.from(.SizeNESW))
-            case 3, 4: view.getApp().setFrameCursor(Cursor.from(.SizeWE))
+            case 0, 7: view.app().setFrameCursor(Cursor.from(.ResizeNorthwestSoutheast))
+            case 1, 6: view.app().setFrameCursor(Cursor.from(.ResizeVertical))
+            case 2, 5: view.app().setFrameCursor(Cursor.from(.ResizeNortheastSouthwest))
+            case 3, 4: view.app().setFrameCursor(Cursor.from(.ResizeHorizontal))
             }
 
             if .rotateHot
             {
-                view.getApp().setFrameCursor(Cursor.from(.Hand))
+                view.app().setFrameCursor(Cursor.from(.Hand))
                 return true
             }
 
@@ -326,7 +326,7 @@ impl GizmoRect
     {
         let anchorSize2 = .anchorSize * 0.5
 
-        let color = Color.getBlend(Argb.Black, col, hot ? 0.8 : 1)
+        let color = Color.lerp(Argb.Black, col, hot ? 0.8 : 1)
 
         // Rotate the whole gizmo (box + anchors + handle) around the box center.
         // Anchors are kept axis-aligned in storage; hit-testing un-rotates the mouse.
@@ -336,7 +336,7 @@ impl GizmoRect
         if ang != 0
         {
             painter.pushTransform()
-            let sc = painter.getTransform().transformPoint({.rect.horzCenter(), .rect.vertCenter()})
+            let sc = painter.transform().transformPoint({.rect.horzCenter(), .rect.vertCenter()})
             painter.rotateTransform(ang, sc.x, sc.y)
         }
 
@@ -504,7 +504,7 @@ impl GizmoRect
 
         let undo = capture.newUndo(.SetTypedValue)
         undo.valU32 = cast #bit (u32) angle
-        undo.valRef = notnull Reflection.getField(BaseForm, #nameof(BaseForm.rotate))
+        undo.valRef = notnull Reflection.findField(BaseForm, #nameof(BaseForm.rotate))
         capture.pushUndo(undo)
 
         let main = (notnull capture.editView).main

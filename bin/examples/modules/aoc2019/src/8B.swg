@@ -34,7 +34,7 @@ using Core
 
 func day8B()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "8.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "8.txt")
 
     const S = 25 * 6
     var pix: [S] rune

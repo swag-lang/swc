@@ -1,13 +1,19 @@
-using Core, Win32
+using Core, Core.Errors, Win32
 
 // Groups voices in a controllable submix.
 //
 // Route one or more [[Audio.Voice]] instances through a bus with
-// [[Audio.Voice.setRooting]]. Volume changes apply to every routed voice. Buses
+// [[Audio.Voice.setRouting]]. Volume changes apply to every routed voice. Buses
 // may target a parent bus to form a mixing graph.
 public struct Bus
 {
-    handle: BusHandle     // Backend-owned submix handle, or `null` after destruction.
+    readonly
+    {
+        channelCount: u32            // Number of channels mixed by this bus.
+        parent:       #null *Bus     // Parent bus, or `null` for the mastering output.
+    }
+
+    internal handle: #null *void     // Backend-owned submix handle.
 }
 
 public impl Bus
@@ -17,12 +23,21 @@ public impl Bus
     // When `parent` is non-null, this bus sends its output to that bus;
     // otherwise it sends to the mastering output. The caller owns the returned
     // allocation and must eventually call [[Audio.Bus.destroy]]. The parent
-    // must outlive this bus.
-    func create(numChannels: u32, parent: #null *Bus = null)->#null *Bus fail
+    // must outlive this bus. Success returns a non-null pointer.
+    func create(channelCount: u32, parent: #null *Bus = null)->#null *Bus fail
     {
+        if !g_Driver.isCreated do
+            fail BadParameterError{"audio engine is not created"}
+        if channelCount == 0 do
+            fail BadParameterError{"bus channel count must be greater than zero"}
+        if parent and !parent.handle do
+            fail BadParameterError{"parent bus is not valid"}
+
         let bus = Memory.new'Bus()
         defer #fail Memory.delete(bus)
-        createNative(bus, numChannels, parent)
+        createNative(bus, channelCount, parent)
+        bus.channelCount = channelCount
+        bus.parent       = parent
 
         Sync.scopedLock(&g_Driver.mutexBuses)
         g_Driver.buses.add(bus)
@@ -33,7 +48,7 @@ public impl Bus
     //
     // Voices and child buses must be rerouted or destroyed first. The pointer
     // is invalid after this method returns.
-    mtd destroy() fail
+    mtd destroy()
     {
         .destroyNative()
 
@@ -44,15 +59,15 @@ public impl Bus
 
     // Sets the bus gain in decibels.
     //
-    // `batchID` is forwarded to backends that support deferred operation sets.
-    mtd setVolumeDB(volumeDB: f32, batchID: u32 = 0) fail
+    // `batchId` is forwarded to backends that support deferred operation sets.
+    mtd setVolumeDb(decibels: f32, batchId: u32 = 0) fail
     {
-        .setVolume(convertDBToPercent(volumeDB), batchID)
+        .setVolume(decibelsToLinearGain(decibels), batchId)
     }
 
     // Returns the current bus gain in decibels.
-    mtd getVolumeDB()->f32 fail
+    mtd volumeDb()->f32 fail
     {
-        return convertPercentToDB(.getVolume())
+        return linearGainToDecibels(.volume())
     }
 }

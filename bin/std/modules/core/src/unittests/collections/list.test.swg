@@ -71,6 +71,26 @@ func visitStructListReverse(values: &List'ListStructProbe)->s32
 #test
 {
     var values: List's32
+    let first  = values.addBack(1)
+    let middle = values.addBack(2)
+    discard values.addBack(3)
+
+    @assert(@countof(values) == 3)
+    values.remove(middle)
+    @assert(@countof(values) == 2)
+    @assert(values.head == first)
+    @assert((notnull values.head).next == values.tail)
+
+    values.remove(first)
+    @assert(@countof(values) == 1)
+    values.remove(notnull values.tail)
+    @assert(values.isEmpty())
+    @assert(values.head == null and values.tail == null)
+}
+
+#test
+{
+    var values: List's32
     let one = values.addBack(1)
     let two = values.insertAfter(one, 2)
     discard values.insertAfter(two, 4)

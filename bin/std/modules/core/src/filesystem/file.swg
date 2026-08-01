@@ -100,7 +100,7 @@ func readAllBytes(fullname: string)->Array'u8 fail
     var stream = openRead(fullname)
 
     var result: retval
-    let len = stream.getSize()
+    let len = stream.size()
     result.reserve(len)
     result.count = stream.read(result.buffer, len)
     return result
@@ -122,7 +122,7 @@ func writeAllBytes(fullname: string, buffer: ConcatBuffer)->u64 fail
 
     var total = 0'u64
     for p in buffer do
-        total += stream.write(p.datas, p.count)
+        total += stream.write(p.data, p.count)
 
     return total
 }
@@ -148,17 +148,4 @@ func duplicate(newName, oldName: string) fail
 {
     var res = readAllBytes(oldName)
     writeAllBytes(newName, res.toSlice())
-}
-
-// Retrieves information about a specific file
-func getFileInfo(fullName: string)->FileInfo fail
-{
-    var options: Directory.EnumerationOptions
-    options.matchFileName   = Path.getFileName(fullName)
-    options.wantDirectories = false
-    options.recurse         = false
-    let file = Directory.enumerate(Path.getDirectoryName(fullName), options)
-    if file.isEmpty() do
-        fail FileNotFoundError{fileName: Errors.mkString(fullName)}
-    return file[0]
 }

@@ -10,9 +10,9 @@ impl FileAttributes
     {
         using FileAttributes
         if attributes == 0xFFFFFFFF do
-            return Zero
+            return None
 
-        var result: FileAttributes = Zero
+        var result: FileAttributes = None
         if attributes & FILE_ATTRIBUTE_READONLY do
             result |= ReadOnly
         if attributes & FILE_ATTRIBUTE_HIDDEN do
@@ -45,8 +45,8 @@ impl FileAttributes
     }
 }
 
-// Returns attributes associated to the given filename
-func getAttributes(fullName: string)->FileAttributes fail
+// Returns the operating-system attributes of `fullName`.
+func attributes(fullName: string)->FileAttributes fail
 {
     let winPath    = Utf16.toZeroTerminated(fullName)
     let attributes = catch GetFileAttributesW(@dataof(winPath)) as err

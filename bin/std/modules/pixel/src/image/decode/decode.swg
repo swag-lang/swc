@@ -11,7 +11,7 @@ public struct DecodeOptions
 {
     decodePixels = true     // Decode pixel storage; disable for metadata and geometry probing.
 
-    decodeMetaDatas = true     // Preserve supported format metadata in `Image.metaDatas`.
+    decodeMetadata = true     // Preserve supported format metadata in `Image.metadata`.
 }
 
 // Defines a decoder selected by filename extension and applied to encoded bytes.
@@ -67,10 +67,13 @@ impl Image
 // Load an image from file
 public impl Image
 {
-    // Register an image decoder
-    func(T) addDecoder()
+    // Registers a decoder type unless it is already present.
+    func(T) registerDecoder()
     {
         #assert(Reflection.hasInterface(#typeof(T), IImageDecoder))
+
+        for &decoder in decoders where decoder.type == #typeof(T) do
+            return
 
         var decoder: ImageDecoder = undefined
         decoder.type = #typeof(T)
@@ -115,12 +118,12 @@ public impl Image
 // Initialize predefined decoders
 #init
 {
-    Image.addDecoder'(Bmp.Decoder)()
-    Image.addDecoder'(Tga.Decoder)()
-    Image.addDecoder'(Jpg.Decoder)()
-    Image.addDecoder'(Png.Decoder)()
-    Image.addDecoder'(Gif.Decoder)()
-    Image.addDecoder'(Tiff.Decoder)()
-    Image.addDecoder'(Ico.Decoder)()
-    Image.addDecoder'(Webp.Decoder)()
+    Image.registerDecoder'(Bmp.Decoder)()
+    Image.registerDecoder'(Tga.Decoder)()
+    Image.registerDecoder'(Jpg.Decoder)()
+    Image.registerDecoder'(Png.Decoder)()
+    Image.registerDecoder'(Gif.Decoder)()
+    Image.registerDecoder'(Tiff.Decoder)()
+    Image.registerDecoder'(Ico.Decoder)()
+    Image.registerDecoder'(Webp.Decoder)()
 }

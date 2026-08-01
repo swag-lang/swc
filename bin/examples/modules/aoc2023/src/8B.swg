@@ -50,7 +50,7 @@ struct Node
 
 func day8B()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "8.txt")
+    let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "8.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     var instructions: string = ""
@@ -105,7 +105,7 @@ func day8B()
                 curNode[i] = nodes[c].left
             else do
                 curNode[i] = nodes[c].right
-            onEnd[i]       += 1
+            onEnd[i] += 1
             if nodes[curNode[i]].name[2] == 'Z' do
                 break
         }

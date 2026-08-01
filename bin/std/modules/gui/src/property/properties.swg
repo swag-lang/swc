@@ -90,62 +90,72 @@ interface IPropertyNotify
     }
 }
 
-// Selects properties kind.
+// Selects the layout density and presentation of a property editor.
 enum PropertiesKind
 {
-    List          // This is a flat list
-    Grid          // This is a more compact property grid
-    Condensed     // A dense, classic property grid: thin rows, compact controls
-    Panel         // A tool panel: full-width self-labeled rows (labeled slider, labeled combo,
-// check button...), no name column, no descriptions; categories paint as
-// thin separators. The look of an editor's side panel.
+    List          // Uses vertically stacked names, descriptions, and editors.
+    Grid          // Uses separate name and value columns.
+    Condensed     // Uses a compact classic grid with thin rows and controls.
+    Panel         // Uses full-width self-labelled controls and separator categories.
 }
 
 // Height of the inner value editors in condensed mode, so they fit the thin rows.
-const PropCondensedControlHeight = 20'f32
+internal const PropCondensedControlHeight = 20'f32
 
-// Represents properties.
+// Builds and edits reflected structure fields with validation, filtering, defaults, and undo support.
 struct Properties
 {
     using frameWnd: FrameWnd     // Embedded frame wnd state.
 
-    kind = PropertiesKind.List     // Kind associated with this value.
+    // Construction options are read-only to callers. Use the setters below when a value has to
+    // change so cached layout state remains synchronized.
+    readonly
+    {
+        kind             = PropertiesKind.List     // Presentation selected at creation.
+        editorWidth: s32 = 200                     // Preferred maximum width of value editors.
 
-    sizeEditValue: s32 = 200     // Size edit value associated with this value.
+        // Affects rows added after the option changes.
+        usingFieldsLast: bool
 
-    // Walk the 'using' base structs after the struct's own fields, so a derived type
-    // edits its most specific fields first (see addStructInternal). The language forces
-    // the base to be declared first; this inverts the generated row order only.
-    usingFieldsLast: bool     // Using fields last associated with this value.
+        // Whether modified fields expose the reset-to-default affordance.
+        revertButtonsVisible: bool = true
+    }
 
-    // For grid kind
-    gridLineHeight:    f32 = 35      // Grid line height associated with this value.
-    gridLineMargin:    s32 = 12      // Grid line margin associated with this value.
-    gridColumnSize:    s32 = 150     // Grid column size associated with this value.
-    gridColumnSizeReq: s32 = 150     // Requested column size, re-clamped to the current width on resize
-    gridMarginColumn:  s32 = 16      // Grid margin column associated with this value.
-    gridIndentSize:    s32 = 14      // Per-nesting-level indent of the name label + disclosure triangle
+    // Theme-derived implementation metrics. They remain private to the control so callers do not
+    // have to coordinate dependent geometry manually.
+    internal
+    {
+        // Grid and condensed presentation metrics.
+        gridLineHeight:    f32 = 35
+        gridLineMargin:    s32 = 12
+        gridColumnSize:    s32 = 150
+        gridColumnSizeReq: s32 = 150     // Requested width, re-clamped on resize.
+        gridMarginColumn:  s32 = 16
+        gridIndentSize:    s32 = 14
 
-    // For list kind
-    listNameMarginBefore: s32 = 20     // List name margin before associated with this value.
-    listNameMarginAfter:  s32 = 0      // List name margin after associated with this value.
-    listDescMarginAfter:  s32 = 5      // List desc margin after associated with this value.
+        // List and panel presentation metrics.
+        listNameMarginBefore: s32 = 20
+        listNameMarginAfter:  s32 = 0
+        listDescMarginAfter:  s32 = 5
 
-    // Inline validation message bar (info/warning/error)
-    valBarGlyphWidth: f32 = 32     // left room reserved for the severity icon
-    valBarIconSize:   f32 = 18     // size of the severity icon
-    valBarPaddingX:   f32 = 12     // horizontal text inset from the colored background
-    valBarPaddingY:   f32 = 7      // vertical breathing room added around the text
-    valBarGap:        f32 = 7      // gap between the row editor and the bar
-    valBarRadius:     f32 = 6      // corner radius of the colored background
+        // Inline validation message-bar metrics.
+        valBarGlyphWidth: f32 = 32
+        valBarIconSize:   f32 = 18
+        valBarPaddingX:   f32 = 12
+        valBarPaddingY:   f32 = 7
+        valBarGap:        f32 = 7
+        valBarRadius:     f32 = 6
 
-    sigChanged: SigArray'func||(*Properties, #null *PropertiesItem)     // Signal emitted when changed.
+        leftMargin:  s32 = 15
+        rightMargin: s32 = 15
 
-    leftMargin:   s32 = 15       // Left margin associated with this value.
-    rightMargin:  s32 = 15       // Right margin associated with this value.
-    fontSection:  FontFamily     // Font section associated with this value.
-    fontCategory: FontFamily     // Font category associated with this value.
-    fontName:     FontFamily     // Font name associated with this value.
+        fontSection:  FontFamily
+        fontCategory: FontFamily
+        fontName:     FontFamily
+    }
+
+    sigValueChanged: SigArray'func||(*Properties, #null *PropertiesItem)     // Emitted after an edited value changes; item is null for detached undo/redo.
+
     // What the grid currently shows. Rows are produced by 'addStruct' and friends and the
     // selection moves with the keyboard and the mouse; a host reads both to follow the grid.
     readonly
@@ -185,28 +195,26 @@ struct Properties
         defaultRoots: Array'PropDefaultRoot     // One default-constructed instance per added struct.
     }
 
-    showReverts: bool = true     // Whether the revert markers are shown.
-
     // Row the context menu currently operates on. Read by the ActionProperties commands (and
     // any keyboard/toolbar trigger of the same commands); kept set across the async command
     // dispatch that follows doModal.
-    menuItem: #null *PropertiesItem     // Menu item associated with this value.
+    internal menuItem: #null *PropertiesItem
 
-    // Undo/redo (propertiesundo.swg). Every field edit that goes through hasChanged records one
+    // Undo/redo (propertiesundo.swg). Every field edit committed through commitItemChange records
     // command into undoMgr (unless undoEnabled is off). applyingUndo guards against re-recording
     // while a command is restoring a value. externUndoMgr, when set, receives the commands
     // instead, so the grid shares the host's undo timeline. dragItem/dragCmd coalesce the moves
     // of one slider drag into a single command. generation stamps the grid content: it bumps on
-    // clearStructs so commands recorded against dropped rows skip their row refresh.
-    externUndoMgr: #null *UndoManager     // Undo timeline of the host, when it shares one.
-    undoEnabled:   bool = true            // Whether edits record undo commands.
+    // clear so commands recorded against dropped rows skip their row refresh.
+    internal externUndoMgr: #null *UndoManager     // Undo timeline of the host, when it shares one.
+    internal undoEnabled:   bool = true            // Whether edits record undo commands.
 
     // Recording state of the undo timeline the grid owns.
     internal
     {
         undoMgr:      UndoManager                // Commands recorded by this grid.
         applyingUndo: bool                       // Whether a command is restoring a value right now.
-        generation:   u64                        // Content stamp, bumped by 'clearStructs'.
+        generation:   u64                        // Content stamp, bumped by 'clear'.
         dragItem:     #null *PropertiesItem      // Row of the slider drag being coalesced.
         dragCmd:      #null *PropUndoCommand     // Command the drag accumulates into.
     }
@@ -215,11 +223,11 @@ struct Properties
     // per-struct IPropertyNotify implementations bound at build time. This is how a host that
     // does not own the displayed structs (an editor panel showing a document's objects) plugs
     // dynamic visibility, validation and change reactions.
-    hostNtfy: #null IPropertyNotify     // Host ntfy associated with this value.
+    internal hostNtfy: #null IPropertyNotify
 
     // Build-time state of the opt-in mode (addStructMulti 'onlyNamed'): only fields carrying an
     // explicit Properties.Name attribute get a row.
-    buildOnlyNamed: bool     // Build only named associated with this value.
+    internal buildOnlyNamed: bool
 }
 
 // The control's own IWnd events. Swag does not allow a split interface impl, so both entry points
@@ -227,9 +235,9 @@ struct Properties
 // properties.paint, the notify dispatch below refreshes via refreshItem).
 impl IWnd for Properties
 {
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaint(evt: *PaintEvent)
     {
-        let colorBar = .cursorSet ? .getThemeColors().splitView_BarHot : .getThemeColors().prop_GridColumn
+        let colorBar = .cursorSet ? .themeColors().splitView_BarHot : .themeColors().prop_GridColumn
         .aniBar.apply(me, colorBar)
     }
 
@@ -243,7 +251,7 @@ impl IWnd for Properties
 
     // The validation bar's icon + colors are manually-set Label fields (not theme styles), so they
     // do not follow a theme switch on their own. Re-apply them from the current theme here (exactly
-    // like EmbInfoCtrl re-runs setColors on ThemeChanged) — otherwise a bar built under one theme
+    // like InfoBar reapplies colors on ThemeChanged) — otherwise a bar built under one theme
     // keeps stale colors under the next (e.g. dark-theme light text nearly invisible on the light
     // pastel background).
     mtd impl onThemeEvent(evt: *ThemeEvent)
@@ -276,7 +284,7 @@ impl IWnd for Properties
             if scan.ntfyItf and scan.ntfyItf.onPopupCommand(me, notnull item, notnull evt.id)
             {
                 .refreshItem(item)
-                .hasChanged(item)
+                .commitItemChange(item)
                 evt.accepted = true
                 return
             }
@@ -290,7 +298,7 @@ impl IWnd for Properties
 // value editors can call them, but they are not part of the public API.
 internal impl Properties
 {
-    mtd getItemState(item: *PropertiesItem)->{ visible, enable: bool }
+    mtd itemState(item: *PropertiesItem)->{ visible, enable: bool }
     {
         var result: retval = {true, true}
 
@@ -372,25 +380,26 @@ impl Properties
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, kind = PropertiesKind.List, id: #null WndId = null)->*Properties
     {
+        Debug.assert(parent)
         let ed = Wnd.create'Properties(parent, "", position, id)
 
         with ed
         {
             .kind = kind
 
-            .scrollWnd                = .createView'ScrollWnd()
-            .scrollWnd.dockStyle      = .Center
-            .scrollWnd.focusStrategy  = .None
-            .scrollWnd.padding        = 0
-            .scrollWnd.scrollWndFlags |= .TransparentBar
+            .scrollWnd               = .createView'ScrollWnd()
+            .scrollWnd.dockStyle     = .Center
+            .scrollWnd.focusStrategy = .None
+            .scrollWnd.padding       = 0
+            .scrollWnd.updateFlags(.TransparentBars)
 
-            .edView            = .scrollWnd.createView'PropertiesView()
-            .edView.ed         = ed
-            .edView.layoutKind = .Top
-            .edView.spacing    = 0
-            .edView.wndFlags   |= .NoScroll
+            .edView          = .scrollWnd.createView'PropertiesView()
+            .edView.ed       = ed
+            .edView.mode     = .Top
+            .edView.spacing  = 0
+            .edView.wndFlags |= .NoScroll
 
-            let theme = parent.getTheme()
+            let theme = parent.theme()
 
             if kind == .List
             {
@@ -447,16 +456,43 @@ impl Properties
     // Set the host-level notify interface, consulted for every row in addition to the
     // per-struct implementations. Lets a host that does not own the displayed structs plug
     // dynamic visibility/enabling, read-only state and change reactions.
-    mtd setNotify(itf: IPropertyNotify)
+    mtd setNotify(itf: #null IPropertyNotify)
     {
         .hostNtfy = itf
+    }
+
+    // Sets the preferred maximum width of value editors and refreshes the current layout.
+    mtd setEditorWidth(width: s32)
+    {
+        Debug.assert(width > 0)
+        if .editorWidth == width do
+            return
+        .editorWidth = width
+        .updateStates()
+    }
+
+    // Controls whether reflected `using` fields are appended after the struct's own fields.
+    // The option applies to structures added after this call.
+    mtd setUsingFieldsLast(enabled: bool)
+    {
+        .usingFieldsLast = enabled
+    }
+
+    // Shows or hides reset-to-default affordances for modified values.
+    mtd setRevertButtonsVisible(visible: bool)
+    {
+        if .revertButtonsVisible == visible do
+            return
+        .revertButtonsVisible = visible
+        discard .updateDefaults()
+        .invalidate()
     }
 
     // Drop every displayed struct and row, keeping the widget alive so a new content can be
     // bound with addStruct/addStructMulti (an editor panel re-targeting the current selection).
     // The undo history recorded so far survives on an external manager (its commands are
     // detached from the rows); the internal one is cleared with the content it refers to.
-    mtd clearStructs()
+    mtd clear()
     {
         if !.externUndoMgr do
             .undoMgr.clear()
@@ -478,6 +514,7 @@ impl Properties
         .sections.clear()
         .gridLevelHasMark.clear()
         .currentSectionIndex = Swag.U32.Max
+        .updateStates()
     }
 
     // Add a new struct to display.
@@ -526,7 +563,7 @@ impl Properties
         else
         {
             let v: Swag.TypeValue
-            item = .addItem(v, null, null, 0, .Zero)
+            item = .addItem(v, null, null, 0, .None)
             item.flags.add(.Section | .NoSeparator | .Expanded | .NoFocus)
             item.valueCellHeight                   = 0
             item.line.position.height              = 0
@@ -557,7 +594,7 @@ impl Properties
     // Each field sits at a fixed offset from its struct base, so its address in instance
     // k is `base[k] + (item.data - base[0])`. Items under a dynamic array keep a single
     // address (their element storage is not at a fixed struct offset).
-    mtd assignInstances(fromIdx: u64, bases: [..] *u8)
+    internal mtd assignInstances(fromIdx: u64, bases: [..] *u8)
     {
         if @countof(bases) <= 1 do
             return
@@ -589,8 +626,10 @@ impl Properties
             .refreshItem(notnull it)
     }
 
-    // To be called when a value has changed.
-    mtd hasChanged(item: *PropertiesItem)
+    // Commits a value written by an editor, including propagation, undo, refresh, validation,
+    // layout and notifications. Custom IPropertyEditor implementations call this once per
+    // logical edit after updating the bound data.
+    mtd commitItemChange(item: *PropertiesItem)
     {
         // Multi-selection: the editor wrote the new value into instance 0; mirror it into
         // the other edited instances so they all change together. Composite editors that
@@ -604,12 +643,12 @@ impl Properties
         if !.applyingUndo do
             .recordUndo(item)
 
-        .postChange(item)
+        .finishItemChange(item)
     }
 
-    // The refresh/relayout/notify tail shared by a user edit (hasChanged) and by an undo/redo
+    // The refresh/relayout/notify tail shared by a user edit and by an undo/redo
     // restore (applyUndoValue) — everything except propagation and undo recording.
-    mtd postChange(item: *PropertiesItem)
+    internal mtd finishItemChange(item: *PropertiesItem)
     {
         .refresh()
 
@@ -625,7 +664,7 @@ impl Properties
             .scrollWnd.view.sendResizeEvent()
         }
 
-        .sigChanged.call(me, item)
+        .sigValueChanged.call(me, item)
 
         // Notify the host, then all the hierarchy
         if .hostNtfy do
@@ -644,7 +683,7 @@ impl Properties
     }
 
     // Show hidden content depending on the input 'filter'.
-    mtd setStringFilter(filter: string)
+    mtd setFilter(filter: string)
     {
         if .stringFilter == filter do
             return
@@ -690,7 +729,7 @@ impl Properties
     }
 
     // Returns true if the given item can be changed (edited / pasted into)
-    mtd canChangeItem(item: *PropertiesItem)->bool
+    internal mtd canChangeItem(item: *PropertiesItem)->bool
     {
         if !item.data or !item.type do
             return false
@@ -710,7 +749,7 @@ impl Properties
     }
 
     // Update the state of the given item
-    mtd updateItemState(item: *PropertiesItem)
+    internal mtd updateItemState(item: *PropertiesItem)
     {
         var mustShow   = false
         var mustEnable = false
@@ -725,7 +764,7 @@ impl Properties
             if mustShow do
             {
                 mustShow, mustEnable
-            } = .getItemState(item)
+            } = .itemState(item)
         }
 
         item.line.show(mustShow)
@@ -739,12 +778,12 @@ impl Properties
         if @isset(item.editBox)
         {
             if readOnly do
-                item.editBox.editBoxFlags.add(.ReadOnly)
+                item.editBox.updateFlags(.ReadOnly)
             else do
-                item.editBox.editBoxFlags.remove(.ReadOnly)
+                item.editBox.updateFlags(remove: .ReadOnly)
         }
 
-        for c in item.line.childs
+        for c in item.line.children
         {
             if @isset(item.label) and c == item.label do
                 continue
@@ -771,7 +810,7 @@ impl Properties
             {
                 scan.line.show()
 
-                {?, mustEnable} = .getItemState(scan)
+                {?, mustEnable} = .itemState(scan)
                 scan.line.enable(mustEnable)
 
                 scan = scan.parent
@@ -780,7 +819,7 @@ impl Properties
     }
 
     // Update the show/hide state of all content
-    mtd updateStates()
+    internal mtd updateStates()
     {
         // Refresh which depths reserve a triangle slot before the layout below re-syncs the label
         // paddings (syncColumnLabels, via applyLayout -> resize) that depend on it.

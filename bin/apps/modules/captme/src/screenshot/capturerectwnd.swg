@@ -30,7 +30,7 @@ impl IWnd for CaptureRectWnd
 {
     mtd testAutoGrab()
     {
-        let pt = Input.getMousePos()
+        let pt = Input.mousePosition()
         let r  = screenToDesktopRect(getWndRectAtPos(notnull .surface, pt.x, pt.y))
         if !r.isEmpty()
         {
@@ -43,7 +43,7 @@ impl IWnd for CaptureRectWnd
 
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
-        if evt.kind == .KeyPressed and evt.key == .Escape do
+        if evt.kind == .Pressed and evt.key == .Escape do
             g_Exit = true
 
         .invalidate()
@@ -53,18 +53,18 @@ impl IWnd for CaptureRectWnd
     {
         switch evt.kind
         {
-        case .MousePressed where evt.button == .Right:
+        case .Pressed where evt.button == .Right:
             .startGrab    = false
             .tryStartGrab = false
             .cancelGrab   = true
             .autoGrab     = true     // Return to auto grab mode
 
-        case .MousePressed where evt.button == .Left:
+        case .Pressed where evt.button == .Left:
             .tryStartGrab    = true
             .clickStartPos.x = evt.surfacePos.x
             .clickStartPos.y = evt.surfacePos.y
 
-        case .MouseReleased where evt.button == .Left:
+        case .Released where evt.button == .Left:
             if .cancelGrab
             {
                 .cancelGrab = false
@@ -85,7 +85,7 @@ impl IWnd for CaptureRectWnd
                 g_Exit     = true
             }
 
-        case .MouseMove where .tryStartGrab:
+        case .Move where .tryStartGrab:
             g_EndGrabX = evt.surfacePos.x
             g_EndGrabY = evt.surfacePos.y
 
@@ -103,12 +103,12 @@ impl IWnd for CaptureRectWnd
                 g_StartGrabY = .clickStartPos.y
             }
 
-        case .MouseMove where .startGrab:
+        case .Move where .startGrab:
             g_EndGrabX = evt.surfacePos.x
             g_EndGrabY = evt.surfacePos.y
             .invalidate()
 
-        case .MouseMove:
+        case .Move:
 
             // Auto grab is always active when not dragging
             if !.startGrab
@@ -120,7 +120,7 @@ impl IWnd for CaptureRectWnd
         }
     }
 
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaint(evt: *PaintEvent)
     {
         var grabRect = getGrabRect()
 
@@ -142,7 +142,7 @@ impl IWnd for CaptureRectWnd
             .lerpGrab = grabRect
         }
 
-        let painter = evt.bc.painter
+        let painter = evt.paintContext.painter
         painter.setInterpolationMode(.Linear)
 
         // Dim the whole desktop in a single opaque, tinted texture draw. The shader
@@ -163,7 +163,7 @@ impl IWnd for CaptureRectWnd
             painter.drawTexture(grabRect, srcRect, g_DesktopTexture)
         }
 
-        let col = .getThemeColors().hilight
+        let col = .themeColors().hilight
         painter.drawRect(grabRect, col, 2)
 
         // Crosshair guides - only in manual grab mode. The cursor sits on the dragged
@@ -182,7 +182,7 @@ impl IWnd for CaptureRectWnd
         // Dimensions
         if grabRect.width > 0 and grabRect.height > 0
         {
-            let fontR = captmeFont(.getFont().regular)
+            let fontR = captmeFont(.font().regular)
             let str   = Format.toString("% x %", grabRect.width, grabRect.height)
             var xx    = grabRect.x + 4
             var yy    = grabRect.y - fontR.height - 8

@@ -63,7 +63,7 @@ using Core
 
 func day10B()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "10.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "10.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     struct Pos
@@ -102,7 +102,7 @@ func day10B()
                 {
                     if k == i or k == j do
                         continue
-                    let f = Math.Geometry.distanceToSegment(arr[k].pos, v0, v1)
+                    let f = Math.Geometry.distanceFromPointToSegment(arr[k].pos, v0, v1)
                     if Math.isZeroEpsilon(f)
                     {
                         hit = true

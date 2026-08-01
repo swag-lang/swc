@@ -2,34 +2,41 @@
 
 using Core, Pixel
 
-// Represents popup list ctrl item.
+// Stores one selectable item or separator in a popup list.
 struct PopupListCtrlItem
 {
-    using base:  Item     // Embedded base state.
-    isSeparator: bool     // Whether this value is separator.
+    using base:  Item     // Embedded label, icon, identifier, and user data.
+    isSeparator: bool     // Whether this entry separates groups and cannot be selected.
 }
 
-// Represents popup list ctrl.
+// Displays a temporary list that commits one highlighted item or reports cancellation.
 struct PopupListCtrl
 {
-    using frameWnd:   FrameWnd      // Embedded frame wnd state.
-    heightItem:       f32 = 30      // Height item associated with this value.
-    heightSeparator:  f32 = 15      // Height separator associated with this value.
-    minWidthPopup:    f32 = 100     // Min width popup associated with this value.
-    maxHeightPopup:   f32 = 300     // Max height popup associated with this value.
-    simFitX, simFitY: bool          // Sim fit x associated with this value.
+    using frameWnd: FrameWnd     // Embedded framed-window behavior and presentation.
 
-    sigSelected: #null func||(*PopupListCtrl, u32)     // Signal emitted when selected.
+    itemHeight:      f32 = 30      // Height of selectable rows in logical units.
+    separatorHeight: f32 = 15      // Height of separator rows in logical units.
+    minimumWidth:    f32 = 100     // Minimum popup width in logical units.
+    maximumHeight:   f32 = 300     // Maximum popup height in logical units.
+    fitHorizontally: bool          // Whether fitting may mirror horizontal placement around the owner.
+    fitVertically:   bool          // Whether fitting may mirror vertical placement around the owner.
 
-    items: ArrayPtr'PopupListCtrlItem     // Items associated with this value.
-    selectedIdx = Swag.U32.Max            // Index of selected.
-    #[Swag.Late]
-    scrollWnd:   *ScrollWnd     // Scroll wnd associated with this value.
-    maxIconSize: s32            // Max icon size associated with this value.
+    // Emitted when the popup closes; the index is U32.Max when the action was canceled.
+    sigClosed: #null func||(*PopupListCtrl, u32)
+
+    readonly
+    {
+        items: ArrayPtr'PopupListCtrlItem     // Entries in display order.
+        selectedIndex = Swag.U32.Max          // Initially highlighted item, or U32.Max.
+        #[Swag.Late]
+        scrollWnd: *ScrollWnd     // Scrollable viewport owned by the popup.
+    }
+
+    internal maxIconSize: s32     // Widest item icon, used to align labels.
 }
 
-// Represents popup list view.
-struct PopupListView
+// Implements painting and input inside a popup list.
+internal struct PopupListView
 {
     using wnd: Wnd     // Embedded wnd state.
     #[Swag.Late]
@@ -38,13 +45,13 @@ struct PopupListView
     closing: bool                   // Closing associated with this value.
 }
 
-impl IWnd for PopupListView
+internal impl IWnd for PopupListView
 {
     mtd impl onFocusEvent(evt: *FocusEvent)
     {
         switch evt.kind
         {
-        case .KillFocus:
+        case .Lost:
 
             // The focus left the popup (clicked elsewhere, another window, ...):
             // dismiss it.
@@ -59,7 +66,7 @@ impl IWnd for PopupListView
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
         evt.accepted = false
-        if evt.kind != .KeyPressed do
+        if evt.kind != .Pressed do
             return
 
         switch evt.key
@@ -78,7 +85,7 @@ impl IWnd for PopupListView
 
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
-        let mouseInRect = .getSurfaceRect().contains(evt.surfacePos)
+        let mouseInRect = .surfaceRect().contains(evt.surfacePos)
         let pos         = .surfaceToLocal(evt.surfacePos)
         let hit         = mouseInRect ? .hitAt(pos) : Swag.U32.Max
 
@@ -86,14 +93,14 @@ impl IWnd for PopupListView
         // even when the cursor is still. Only let the mouse move the highlight when it
         // actually moves over the popup, otherwise a keyboard-driven highlight would
         // be wiped each frame.
-        let mouseMoved = evt.move.x != 0 or evt.move.y != 0
-        if evt.kind == .MouseMove and mouseMoved and mouseInRect and hit != .hotIdx
+        let mouseMoved = evt.delta.x != 0 or evt.delta.y != 0
+        if evt.kind == .Move and mouseMoved and mouseInRect and hit != .hotIdx
         {
             .hotIdx = hit
             .invalidate()
         }
 
-        if evt.kind == .MousePressed and evt.button == .Left
+        if evt.kind == .Pressed and evt.button == .Left
         {
             // Click inside selects the item under the cursor; click outside cancels.
             if mouseInRect
@@ -102,14 +109,14 @@ impl IWnd for PopupListView
                 return
             }
 
-            if !(notnull .parent).getSurfaceRect().contains(evt.surfacePos)
+            if !(notnull .parent).surfaceRect().contains(evt.surfacePos)
             {
                 .close(Swag.U32.Max)
                 return
             }
         }
 
-        evt.accepted = evt.kind == .MouseLeave
+        evt.accepted = evt.kind == .Leave
     }
 
     // Item index under a local position, or U32.Max when over a separator or empty
@@ -120,7 +127,7 @@ impl IWnd for PopupListView
         for vIt, [i] in .list.items
         {
             let v = notnull vIt
-            let h = v.isSeparator ? .list.heightSeparator : .list.heightItem
+            let h = v.isSeparator ? .list.separatorHeight : .list.itemHeight
             if y <= h
             {
                 if v.isSeparator do
@@ -134,16 +141,16 @@ impl IWnd for PopupListView
         return Swag.U32.Max
     }
 
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaint(evt: *PaintEvent)
     {
-        let painter = evt.bc.painter
+        let painter = evt.paintContext.painter
 
-        let theme   = .getTheme()
-        let colors  = .getThemeColors()
-        let metrics = .getThemeMetrics()
-        let rects   = .getThemeRects()
+        let theme   = .theme()
+        let colors  = .themeColors()
+        let metrics = .themeMetrics()
+        let rects   = .themeRects()
 
-        var clientRect = .getClientRect()
+        var clientRect = .clientRect()
         clientRect.offset(.scrollPos)
 
         var labelPos:  Math.Rectangle = undefined
@@ -156,7 +163,7 @@ impl IWnd for PopupListView
             labelPos.x      = clientRect.x
             labelPos.y      = y
             labelPos.width  = clientRect.width
-            labelPos.height = .list.heightItem
+            labelPos.height = .list.itemHeight
 
             var format: RichStringFormat
             colorText = colors.popupList_Text
@@ -164,9 +171,9 @@ impl IWnd for PopupListView
             // Separator
             if it.isSeparator
             {
-                labelPos.height = .list.heightSeparator
+                labelPos.height = .list.separatorHeight
                 painter.drawLine(labelPos.x + metrics.popupList_SeparatorPadding, labelPos.vertCenter(), labelPos.right() - metrics.popupList_SeparatorPadding, labelPos.vertCenter(), colors.popupList_Separator)
-                y += .list.heightSeparator
+                y += .list.separatorHeight
                 continue
             }
 
@@ -193,8 +200,8 @@ impl IWnd for PopupListView
             if .list.maxIconSize do
                 labelPos.moveLeft(.list.maxIconSize + metrics.popupList_IconTextMargin)
 
-            let fntHeight = (notnull .getFont().regular).height
-            if idx == .list.selectedIdx do
+            let fntHeight = (notnull .font().regular).height
+            if idx == .list.selectedIndex do
                 labelPos.setRight(labelPos.right() - fntHeight - metrics.popupList_IconTextMargin)
 
             // Text
@@ -202,11 +209,11 @@ impl IWnd for PopupListView
             format.horzAlignment = .Left
             format.vertAlignment = .Center
             format.flags         = .Clip
-            format.font          = .getFont()
+            format.font          = .font()
             painter.drawRichString(labelPos, &it.name, format)
 
             // Check mark
-            if idx == .list.selectedIdx
+            if idx == .list.selectedIndex
             {
                 labelPos.x      = labelPos.right()
                 labelPos.y      = labelPos.vertCenter() - (fntHeight * 0.5)
@@ -215,7 +222,7 @@ impl IWnd for PopupListView
                 theme.drawSubRect(painter, labelPos, &rects.btnCheck_CheckedMark, colorCheck)
             }
 
-            y += .list.heightItem
+            y += .list.itemHeight
         }
     }
 }
@@ -229,13 +236,14 @@ private impl PopupListView
             return
         .closing = true
 
-        if .getApp().mouseCaptureWnd == cast(*Wnd) me do
+        if .app().mouseCaptureWnd == cast(*Wnd) me do
             .releaseMouse()
 
-        if .list.sigSelected do
-            .list.sigSelected(notnull .list, idx)
+        let list = .list
+        if list.sigClosed do
+            list.sigClosed(list, idx)
         else do
-            .list.destroy()
+            list.destroy()
     }
 
     // Move the highlight by 'dir' (+1/-1), skipping separators and clamping. Starts
@@ -248,8 +256,8 @@ private impl PopupListView
         var idx: s64
         if .hotIdx >= .list.items.count
         {
-            if .list.selectedIdx < .list.items.count do
-                idx = cast(s64) .list.selectedIdx
+            if .list.selectedIndex < .list.items.count do
+                idx = cast(s64) .list.selectedIndex
             else do
                 idx = dir > 0 ? -1 : cast(s64) .list.items.count
         }
@@ -300,19 +308,19 @@ private impl PopupListView
 
 impl PopupListCtrl
 {
-    // Create the popup list, but: not display it
+    // Creates a hidden popup list owned by the top view of `owner`.
     func create(owner: *Wnd)->*PopupListCtrl
     {
-        let popup = Wnd.create'PopupListCtrl(owner.getTopView(), owner.position, owner.id)
+        let popup = Wnd.create'PopupListCtrl(owner.topView(), owner.position, owner.id)
 
         with popup
         {
             .setFrameFlags(.SmallShadow)
             .setFrameForm(.Square)
-            .scrollWnd                = .createView'ScrollWnd()
-            .scrollWnd.dockStyle      = .Center
-            .scrollWnd.focusStrategy  = .None
-            .scrollWnd.scrollWndFlags |= .SmallBar
+            .scrollWnd               = .createView'ScrollWnd()
+            .scrollWnd.dockStyle     = .Center
+            .scrollWnd.focusStrategy = .None
+            .scrollWnd.updateFlags(.CompactBars)
             let popupView = .scrollWnd.createView'PopupListView()
             popupView.list = popup
         }
@@ -320,67 +328,69 @@ impl PopupListCtrl
         return popup
     }
 
-    // Keyboard control forwarded by a host that keeps the focus (e.g. the property
-    // grid drives the popup while keeping its own navigation focus, so the keys
-    // never leave the page).
-    mtd keyMove(dir: s32)
+    // Moves the highlighted item by a signed distance, skipping separators.
+    mtd moveHighlight(direction: s32)
     {
         let view = notnull cast(#null *PopupListView) .scrollWnd.view
-        view.moveHot(dir)
+        view.moveHot(direction)
     }
 
-    // Performs the key home operation.
-    mtd keyHome()
+    // Highlights the first selectable item.
+    mtd highlightFirst()
     {
         let view = notnull cast(#null *PopupListView) .scrollWnd.view
         view.moveHotEdge(forward: true)
     }
 
-    // Performs the key end operation.
-    mtd keyEnd()
+    // Highlights the last selectable item.
+    mtd highlightLast()
     {
         let view = notnull cast(#null *PopupListView) .scrollWnd.view
         view.moveHotEdge(forward: false)
     }
 
-    // Performs the key cancel operation.
-    mtd keyCancel()
+    // Closes the popup and reports cancellation.
+    mtd cancel()
     {
         let view = notnull cast(#null *PopupListView) .scrollWnd.view
         view.close(Swag.U32.Max)
     }
 
-    // Performs the key commit operation.
-    mtd keyCommit()
+    // Closes the popup and commits the highlighted item, if any.
+    mtd commitHighlighted()
     {
         let view = notnull cast(#null *PopupListView) .scrollWnd.view
         view.close(view.hotIdx)
     }
 
-    // Show popup
+    // Shows the popup at the supplied surface coordinates and requested width.
     mtd show(x, y: f32, width: f32 = 10)
     {
-        .scrollWnd.setScrollSize(0, cast(f32) .items.count * .heightItem)
+        var contentHeight: f32
+        for item in .items do
+            contentHeight += (notnull item).isSeparator ? .separatorHeight : .itemHeight
+        .scrollWnd.setScrollSize(0, contentHeight)
 
         // Highlight the current selection as the keyboard starting point.
         let startView = notnull cast(#null *PopupListView) .scrollWnd.view
-        startView.hotIdx = .selectedIdx
+        startView.hotIdx = .selectedIndex
 
         let pt  = (notnull .parent).surfaceToLocal({x, y})
         var pos = Math.Rectangle{pt.x, pt.y, 0, 0}
-        pos.width  = Math.max(width, .minWidthPopup)
-        pos.height = Math.min(.scrollWnd.scrollSize.y, .maxHeightPopup)
+        pos.width  = Math.max(width, Math.max(.minimumWidth, 0))
+        pos.height = Math.min(.scrollWnd.scrollSize.y, Math.max(.maximumHeight, 0))
         pos.height += .padding.y + .padding.w
         .setPosition(pos)
-        let sdw = .getThemeMetrics().frameWnd_SmallShadowSize
-        .fitPosInParent(sdw.z, sdw.w, .simFitX, .simFitY)
+        let sdw = .themeMetrics().frameWnd_SmallShadowSize
+        .fitPosInParent(sdw.z, sdw.w, .fitHorizontally, .fitVertically)
         .scrollWnd.view.captureMouse()
     }
 
-    // Add a new item in the list
-    mtd addItem(name: string, id: #null WndId = null, icon: Icon = {}, userData0: #null *void = null, userData1: #null *void = null)
+    // Appends a selectable item and returns its stable heap object.
+    #[Swag.Discardable]
+    mtd addItem(name: string, id: #null WndId = null, icon: Icon = {}, userData0: #null *void = null, userData1: #null *void = null)->*PopupListCtrlItem
     {
-        let item = .items.newPtr()
+        let item = .items.allocate()
         with item
         {
             .name      = name
@@ -393,13 +403,23 @@ impl PopupListCtrl
         if item.icon.isValid() do
             .maxIconSize = Math.max(.maxIconSize, cast(s32) item.icon.sizeX)
         .items.add(item)
+        return item
     }
 
-    // Add a separator
-    mtd addSeparator()
+    // Appends a non-selectable separator and returns its stable heap object.
+    #[Swag.Discardable]
+    mtd addSeparator()->*PopupListCtrlItem
     {
-        let item = .items.newPtr()
+        let item = .items.allocate()
         item.isSeparator = true
         .items.add(item)
+        return item
+    }
+
+    // Sets the item highlighted when the popup opens, or clears it with U32.Max.
+    mtd setSelectedIndex(index: u32)
+    {
+        Debug.assert(index == Swag.U32.Max or index < .items.count and !(notnull .items[index]).isSeparator)
+        .selectedIndex = index
     }
 }

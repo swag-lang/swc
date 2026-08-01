@@ -315,22 +315,22 @@ impl Rectangle
 
     // Test if this rectangle intersects with another rectangle.
     // Returns true if there is any overlap between the two rectangles.
-    mtd const intersectWith(rect: Rectangle)->bool
+    mtd const intersects(rect: Rectangle)->bool
     {
         return (rect.x < .right()) and (.x < rect.right()) and (rect.y < .bottom()) and (.y < rect.bottom())
     }
 
     // Set this rectangle to the union with another rectangle.
     // Modifies this rectangle to be the smallest rectangle containing both this and 'other'.
-    mtd setUnion(other: Rectangle)
+    mtd combine(other: Rectangle)
     {
         let current: Rectangle = me
-        me = getUnion(current, other)
+        me = combined(current, other)
     }
 
     // Create a rectangle representing the union of two rectangles.
     // Returns the smallest rectangle that completely contains both 'a' and 'b'.
-    func getUnion(a, b: Rectangle)->Rectangle
+    func combined(a, b: Rectangle)->Rectangle
     {
         let x1 = min(a.x, b.x)
         let x2 = max(a.right(), b.right())
@@ -383,7 +383,7 @@ impl Rectangle
 
     // Get a normalized copy of the rectangle.
     // Returns a new rectangle with positive width and height without modifying the original.
-    mtd const toNormalized()->Rectangle
+    mtd const normalized()->Rectangle
     {
         var result: retval = me
         result.normalize()
@@ -474,7 +474,7 @@ impl Rectangle
 
     // Create a rectangle that fits within bounds while maintaining aspect ratio.
     // Returns a new rectangle scaled to fit inside 'bounds' without distortion.
-    func createFittedWithin(rect: Rectangle, bounds: Rectangle)->Rectangle
+    func fittedWithin(rect: Rectangle, bounds: Rectangle)->Rectangle
     {
         var result = rect
         result.fitWithin(bounds)

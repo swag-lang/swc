@@ -3,12 +3,12 @@
 using Core, Pixel
 
 // Rendering of the property control: the per-row background/focus/hot chrome, the grid borders
-// and column separator, the disclosure icon. The control-level onPaintEvent (separator-color
+// and column separator, the disclosure icon. The control-level onPaint (separator-color
 // animation) is in properties.swg with the other IWnd events; the inline validation bar this
 // draws lives in validation.swg (paintValidationBar).
 internal impl Properties
 {
-    mtd getDisclosureIconPosition(item: *PropertiesItem, r: Math.Rectangle, icon: Icon)->Math.Point
+    mtd disclosureIconPosition(item: *PropertiesItem, r: Math.Rectangle, icon: Icon)->Math.Point
     {
         const OpticalTextCenterY = -2'f32
 
@@ -25,7 +25,7 @@ internal impl Properties
 
         var colBkBk, colBk, colBorder: Color
 
-        let colors = .wnd.getThemeColors()
+        let colors = .wnd.themeColors()
         if item == .selItem
         {
             colBk     = colors.prop_FocusBk
@@ -40,8 +40,8 @@ internal impl Properties
         item.aniFocusBk.apply(wndItem, colBk)
         item.aniFocusBorder.apply(wndItem, colBorder)
 
-        var r = wndItem.getClientRect()
-        r.moveTop(wndItem.childs.front().position.y)
+        var r = wndItem.clientRect()
+        r.moveTop(wndItem.children.front().position.y)
 
         // Content rectangle of the row, before the focus inflation: anything painted from
         // it stays inside the line window and is never clipped by the neighbours.
@@ -102,7 +102,7 @@ internal impl Properties
 
             if !item.flags.has(.NoSeparator)
             {
-                let x    = .getColumnX() - item.line.position.x
+                let x    = .columnPosition() - item.line.position.x
                 let size = .cursorSet ? 4 : 1
                 let rect = Math.Rectangle{x - size * 0.5, r1.y, size, valueCellBottom - r1.y}
                 painter.fillRect(rect, .aniBar.cur())
@@ -120,7 +120,7 @@ internal impl Properties
         // small vertical accent bar along the row's left edge (the VSCode settings look).
         // Sized from the un-inflated content rect so the bar's rounded caps are never
         // clipped by the row window. Grid keeps its revert-arrow column instead.
-        if !.isGridLike() and item.isModified and .showReverts
+        if !.isGridLike() and item.isModified and .revertButtonsVisible
         {
             let bar = Math.Rectangle{1, rowRect.y + 1, 3, Math.max(rowRect.height - 2, 4.0)}
             painter.fillRoundRect(bar, 1.5, 1.5, colors.prop_FocusBorder)
@@ -133,9 +133,9 @@ internal impl Properties
         // Expand/Collapse icon
         if .isGridLike() and item.numChilds
         {
-            let expand    = .getTheme().getIcon24(item.flags.has(.Expanded) ? .Expanded : .Collapsed)
+            let expand    = .theme().icon24(item.flags.has(.Expanded) ? .Expanded : .Collapsed)
             let iconColor = item.line.isDisabled() ? colors.label_DisabledIcon : colors.label_Icon
-            let iconPos   = .getDisclosureIconPosition(item, r, expand)
+            let iconPos   = .disclosureIconPosition(item, r, expand)
             expand.paint(painter, iconPos.x, iconPos.y, iconColor)
         }
     }

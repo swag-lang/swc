@@ -4,11 +4,11 @@ internal
 {
     struct ToolTipVal
     {
-        owner:      *Wnd = undefined     // Owner associated with this value.
-        surfacePos: Math.Point           // Surface pos associated with this value.
-        str:        String               // Str associated with this value.
-        delay:      f32                  // Delay associated with this value.
-        startDelay: f32                  // Start delay associated with this value.
+        owner:      *Wnd = undefined     // Window that requested the tooltip.
+        surfacePos: Math.Point           // Anchor in surface coordinates.
+        str:        String               // Text to display.
+        delay:      f32                  // Remaining delay in seconds.
+        startDelay: f32                  // Full delay restored after pointer movement.
     }
 
     var g_Pending:      #null *ToolTipVal
@@ -18,7 +18,7 @@ internal
 
 #drop
 {
-    hide()
+    ToolTip.hide()
 }
 
 func update(dt: f32)
@@ -36,7 +36,7 @@ func update(dt: f32)
     }
 }
 
-// Hide the current tooltip, if visible
+// Hides the current or pending tooltip.
 public func hide()
 {
     let current = g_Current
@@ -55,9 +55,9 @@ func hide(owner: *Wnd)
 {
     let pending = g_Pending
     if pending and pending.owner == owner do
-        hide()
+        ToolTip.hide()
     elif owner == g_CurrentOwner do
-        hide()
+        ToolTip.hide()
 }
 
 // Reset timer
@@ -71,13 +71,13 @@ func resetTimer(mousePos: Math.Point)
     }
 }
 
-// Show a tooltip
+// Shows `str` near `surfacePos`, after `delay`, for `owner`.
 public func show(owner: *Wnd, surfacePos: Math.Point, str: #null string, delay: Time.Duration = 500'ms)
 {
     if str == null or @countof(str) == 0 do
         return
 
-    if !g_Current and delay.timeInSeconds > 0
+    if !g_Current and delay.seconds > 0
     {
         if !g_Pending do
             g_Pending = Memory.new'ToolTipVal()
@@ -85,13 +85,13 @@ public func show(owner: *Wnd, surfacePos: Math.Point, str: #null string, delay: 
         pending.owner      = owner
         pending.surfacePos = surfacePos
         pending.str        = str
-        pending.startDelay = delay.timeInSeconds
-        pending.delay      = delay.timeInSeconds
+        pending.startDelay = cast(f32) delay.seconds
+        pending.delay      = cast(f32) delay.seconds
         return
     }
 
     let copy: String = str
-    hide()
+    ToolTip.hide()
 
     let top = (notnull owner.surface).wnd
     var pos = top.surfaceToLocal(surfacePos)
@@ -112,12 +112,12 @@ public func show(owner: *Wnd, surfacePos: Math.Point, str: #null string, delay: 
     view.backgroundStyle = .Transparent
     view.margin          = 0
 
-    let colors  = top.getThemeColors()
-    let metrics = top.getThemeMetrics()
+    let colors  = top.themeColors()
+    let metrics = top.themeMetrics()
 
     // Rich edit
     let edit = RichEditCtrl.create(view)
-    edit.setRichEdFlags(.WordWrap)
+    edit.setFlags(.WordWrap)
     edit.setForm(.Edit)
     edit.styles[0].colFg = colors.toolTip_Text
     cur.sendResizeEvent()
@@ -131,5 +131,5 @@ public func show(owner: *Wnd, surfacePos: Math.Point, str: #null string, delay: 
     h += 2 * metrics.toolTip_Padding
     cur.setPosition(Math.Rectangle{pos.x, pos.y, w, h})
     cur.fitPosInParent()
-    cur.bringToTop()
+    cur.bringToFront()
 }

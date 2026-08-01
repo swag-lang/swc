@@ -12,11 +12,38 @@ public enum GlyphFormat
 // Values use 26.6 fixed-point pixels.
 public struct GlyphMetrics
 {
-    width:              s32     // Width of the outline control box.
-    height:             s32     // Height of the outline control box.
-    horizontalBearingX: s32     // Offset from the pen to the left outline bound.
-    horizontalBearingY: s32     // Offset from the baseline to the top outline bound.
-    horizontalAdvance:  s32     // Recommended horizontal pen advance.
+    readonly
+    {
+        width:              s32     // Width of the outline control box.
+        height:             s32     // Height of the outline control box.
+        horizontalBearingX: s32     // Offset from the pen to the left outline bound.
+        horizontalBearingY: s32     // Offset from the baseline to the top outline bound.
+        horizontalAdvance:  s32     // Recommended horizontal pen advance.
+    }
+}
+
+impl GlyphMetrics
+{
+    internal mtd clearBounds()
+    {
+        .width              = 0
+        .height             = 0
+        .horizontalBearingX = 0
+        .horizontalBearingY = 0
+    }
+
+    internal mtd setBounds(minX, minY, maxX, maxY: s32)
+    {
+        .width              = maxX - minX
+        .height             = maxY - minY
+        .horizontalBearingX = minX
+        .horizontalBearingY = maxY
+    }
+
+    internal mtd setHorizontalAdvance(value: s32)
+    {
+        .horizontalAdvance = value
+    }
 }
 
 // Holds the outline, metrics, and bitmap of the most recently loaded glyph.
@@ -26,16 +53,23 @@ public struct GlyphMetrics
 // Copy owned data before loading another glyph when it must outlive the operation.
 public struct GlyphSlot
 {
-    #[Swag.Late]
-    face:       *Face                              // Borrowed pointer to the owning face.
-    index:      u32                                // Glyph index represented by this slot.
-    metrics:    GlyphMetrics                       // Scaled measurements for the glyph.
-    advance:    Vector                             // Pen displacement after drawing this glyph.
-    format:     GlyphFormat = GlyphFormat.None     // Active representation.
-    bitmap:     Bitmap                             // Borrowed pixels from the most recent render.
-    bitmapLeft: s32                                // Bitmap left edge relative to the pen, in pixels.
-    bitmapTop:  s32                                // Bitmap top edge above the baseline, in pixels.
-    outline:    Outline                            // Borrowed scalable outline for the glyph.
+    // Outline transformations intentionally mutate the current glyph in place.
+    outline: Outline     // Borrowed scalable outline for the glyph.
+
+    // Loading and rendering replace the slot atomically. Use the public methods to
+    // mutate its outline instead of assigning derived state directly.
+    readonly
+    {
+        #[Swag.Late]
+        face:       *Face                              // Borrowed pointer to the owning face.
+        index:      u32                                // Glyph index represented by this slot.
+        metrics:    GlyphMetrics                       // Scaled measurements for the glyph.
+        advance:    Vector                             // Pen displacement after drawing this glyph.
+        format:     GlyphFormat = GlyphFormat.None     // Active representation.
+        bitmap:     Bitmap                             // Borrowed pixels from the most recent render.
+        bitmapLeft: s32                                // Bitmap left edge relative to the pen, in pixels.
+        bitmapTop:  s32                                // Bitmap top edge above the baseline, in pixels.
+    }
 }
 
 public impl GlyphSlot
@@ -55,28 +89,50 @@ public impl GlyphSlot
 
         updateSlotMetrics(me)
     }
+
+    internal mtd initialize(face: *Face)
+    {
+        .face   = face
+        .format = .None
+        .bitmap.reset()
+    }
+
+    internal mtd beginLoad(index: u32)
+    {
+        .index  = index
+        .format = .Outline
+    }
+
+    internal mtd setAdvance(horizontal: s32)
+    {
+        .advance.x = horizontal
+        .advance.y = 0
+        .metrics.setHorizontalAdvance(horizontal)
+    }
+
+    internal mtd resetBitmap()
+    {
+        .bitmap.reset()
+        .bitmapLeft = 0
+        .bitmapTop  = 0
+    }
+
+    internal mtd setBitmap(rows, width: u32, pitch: s32, buffer: #null [*] u8, pixelMode: PixelMode, left, top: s32)
+    {
+        .bitmap.set(rows, width, pitch, buffer, pixelMode)
+        .bitmapLeft = left
+        .bitmapTop  = top
+    }
 }
 
 func clearOutline(slot: *GlyphSlot)
 {
-    slot.outline.contourCount = 0
-    slot.outline.pointCount   = 0
-    slot.outline.points       = null
-    slot.outline.tags         = null
-    slot.outline.contours     = null
-    slot.outline.flags        = 0
+    slot.outline.reset()
 }
 
 func clearBitmap(slot: *GlyphSlot)
 {
-    slot.bitmap.rows      = 0
-    slot.bitmap.width     = 0
-    slot.bitmap.pitch     = 0
-    slot.bitmap.buffer    = null
-    slot.bitmap.pixelMode = .Gray
-    slot.bitmap.grayCount = 256
-    slot.bitmapLeft       = 0
-    slot.bitmapTop        = 0
+    slot.resetBitmap()
 }
 
 func computeOutlineBounds(outline: const *Outline)->{ minX: s32, minY: s32, maxX: s32, maxY: s32 }
@@ -108,12 +164,9 @@ func updateSlotMetrics(slot: *GlyphSlot)
     let bounds = computeOutlineBounds(&slot.outline)
     if slot.outline.pointCount <= 0
     {
-        slot.metrics = {}
+        slot.metrics.clearBounds()
         return
     }
 
-    slot.metrics.width              = bounds.maxX - bounds.minX
-    slot.metrics.height             = bounds.maxY - bounds.minY
-    slot.metrics.horizontalBearingX = bounds.minX
-    slot.metrics.horizontalBearingY = bounds.maxY
+    slot.metrics.setBounds(bounds.minX, bounds.minY, bounds.maxX, bounds.maxY)
 }

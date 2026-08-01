@@ -2,49 +2,40 @@
 
 using Core, Pixel
 
-// Selects circular flags.
+// Configures circular-slider value behavior.
 #[Swag.EnumFlags]
 enum CircularFlags
 {
-    Zero = 0     // No flags are enabled.
-    Range        // Enables range.
-    Integer      // Enables integer.
+    None = 0     // No flags are enabled.
+    Range        // Displays independent lower and upper markers.
+    Integer      // Snaps values to integers when no explicit step is configured.
 }
 
-// Selects circular step form.
+// Selects how discrete positions are drawn around the track.
 enum CircularStepForm
 {
     None = 0     // No option is selected.
-    Dot          // Uses the dot form.
-    Tick         // Uses the tick form.
+    Dot          // Draws a dot at each indicated position.
+    Tick         // Draws a radial tick at each indicated position.
 }
 
-// Selects circular marker form.
+// Selects how current values are marked on the track.
 enum CircularMarkerForm
 {
     None = 0     // No option is selected.
-    Circle       // Uses the circle form.
-    Needle       // Uses the needle form.
+    Circle       // Draws a circular thumb centered on the track.
+    Needle       // Draws a radial needle from the center.
 }
 
-// Represents circular.
+// Provides a circular single-value or range slider.
 struct Circular
 {
     using wnd: Wnd     // Embedded wnd state.
 
-    // Main values (0.0 to 1.0 range)
-    value1: f32     // Primary value (or left value in range mode)
-    value2: f32     // Secondary value (right value in range mode)
-
-    // Value range (like in linear slider)
-    min:   f32           // Minimum value
-    max:   f32 = 1.0     // Maximum value
-    steps: f32           // Step size (0 = no stepping)
-
     // Configuration flags and visual settings
-    circularFlags: CircularFlags                    // Control behavior flags (Range, Integer, etc.)
-    stepForm:      CircularStepForm   = .Tick       // Visual form of step indicators (None, Dot, Tick)
-    markerForm:    CircularMarkerForm = .Circle     // Visual form of value markers (None, Circle, Needle)
+    flags:      CircularFlags                    // Active value-behavior flags.
+    stepForm:   CircularStepForm   = .Tick       // Visual form of step indicators (None, Dot, Tick)
+    markerForm: CircularMarkerForm = .Circle     // Visual form of value markers (None, Circle, Needle)
 
     // Angular configuration (in radians)
     startAngle: f32 = 0                       // Starting angle of the circular range (0 = top)
@@ -66,14 +57,20 @@ struct Circular
 
     internal
     {
+        lowerRatio: f32         // Lower value normalized to the closed range 0 through 1.
+        upperRatio: f32 = 1     // Upper value normalized to the closed range 0 through 1.
+        min:        f32         // Inclusive value-space minimum.
+        max:        f32 = 1     // Inclusive value-space maximum.
+        steps:      f32         // Configured step normalized to the value range.
+
         // Internal state tracking
-        isMoving:   bool     // True when user is dragging a marker
-        isPressed1: bool     // True when primary marker is being pressed
-        isPressed2: bool     // True when secondary marker is being pressed
-        isHot1:     bool     // True when mouse is hovering over primary marker
-        isHot2:     bool     // True when mouse is hovering over secondary marker
-        hasValue1:  bool     // True if primary value has been set
-        hasValue2:  bool     // True if secondary value has been set
+        isMoving:       bool     // True when user is dragging a marker
+        isLowerPressed: bool     // True when primary marker is being pressed
+        isUpperPressed: bool     // True when secondary marker is being pressed
+        isLowerHot:     bool     // True when mouse is hovering over primary marker
+        isUpperHot:     bool     // True when mouse is hovering over secondary marker
+        hasLowerValue:  bool     // True if primary value has been set
+        hasUpperValue:  bool     // True if secondary value has been set
 
         // Calculated geometry (updated in updateGeometry())
         radius:       f32     // Radius of the main circular track
@@ -82,18 +79,18 @@ struct Circular
         correcMoving: f32     // Movement correction factor
 
         // Animation blending for smooth color transitions
-        aniMark1: BlendColor     // Color animation for primary marker
-        aniMark2: BlendColor     // Color animation for secondary marker
-        aniStep:  BlendColor     // Color animation for step indicators
+        lowerMarkerAnimation: BlendColor     // Color animation for primary marker
+        upperMarkerAnimation: BlendColor     // Color animation for secondary marker
+        aniStep:              BlendColor     // Color animation for step indicators
     }
 }
 
 impl IWnd for Circular
 {
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaint(evt: *PaintEvent)
     {
-        let bc     = evt.bc
-        let colors = .getThemeColors()
+        let bc     = evt.paintContext
+        let colors = .themeColors()
 
         var colorBk:     Color = undefined
         var colorCircle: Color = undefined
@@ -115,16 +112,16 @@ impl IWnd for Circular
             colorCircle = colors.circular_Circle
             colorStep   = colors.circular_Step
 
-            if .isPressed1 do
+            if .isLowerPressed do
                 colorMark1 = colors.circular_PressedMark
-            elif .isHot1 do
+            elif .isLowerHot do
                 colorMark1 = colors.circular_HotMark
             else do
                 colorMark1 = colors.circular_Mark
 
-            if .isPressed2 do
+            if .isUpperPressed do
                 colorMark2 = colors.circular_PressedMark
-            elif .isHot2 do
+            elif .isUpperHot do
                 colorMark2 = colors.circular_HotMark
             else do
                 colorMark2 = colors.circular_Mark
@@ -135,7 +132,7 @@ impl IWnd for Circular
         bc.painter.setAntialiased(true)
 
         // Draw range arc if enabled
-        if .circularFlags.has(.Range) do
+        if .flags.has(.Range) do
             .drawRangeArc(bc.painter)
 
         // Draw circular track
@@ -146,14 +143,14 @@ impl IWnd for Circular
             .drawSteps(bc.painter, colorStep)
 
         // Draw value1 marker
-        .aniMark1.apply(me, colorMark1)
-        .drawValueMarker(bc.painter, .aniMark1.cur(), .value1)
+        .lowerMarkerAnimation.apply(me, colorMark1)
+        .drawValueMarker(bc.painter, .lowerMarkerAnimation.cur(), .lowerRatio)
 
         // Draw value2 marker if range mode
-        if .circularFlags.has(.Range)
+        if .flags.has(.Range)
         {
-            .aniMark2.apply(me, colorMark2)
-            .drawValueMarker(bc.painter, .aniMark2.cur(), .value2)
+            .upperMarkerAnimation.apply(me, colorMark2)
+            .drawValueMarker(bc.painter, .upperMarkerAnimation.cur(), .upperRatio)
         }
     }
 
@@ -164,70 +161,70 @@ impl IWnd for Circular
 
         switch evt.kind
         {
-        case .MouseWheel:
+        case .Wheel:
             evt.accepted = false
             return
 
-        case .MouseLeave:
-            .isHot1, .isHot2 = false
+        case .Leave:
+            .isLowerHot, .isUpperHot = false
             .invalidate()
 
-        case .MouseMove:
+        case .Move:
             if !.isMoving
             {
                 .hitTest(evt.surfacePos)
                 break
             }
 
-            let angle           = .getAngleFromPosition(pos)
+            let angle           = .angleAt(pos)
             let normalizedValue = .angleToValue(angle)
 
-            if .isPressed1 do
-                .setValue1(normalizedValue)
-            elif .isPressed2 do
-                .setValue2(normalizedValue)
+            if .isLowerPressed do
+                .setLowerRatio(normalizedValue)
+            elif .isUpperPressed do
+                .setUpperRatio(normalizedValue)
             .invalidate()
 
-        case .MousePressed:
+        case .Pressed:
             if evt.button == .Left
             {
                 .isMoving = true
                 .startChange()
 
-                let angle           = .getAngleFromPosition(pos)
+                let angle           = .angleAt(pos)
                 let normalizedValue = .angleToValue(angle)
 
-                if .isHot1
+                if .isLowerHot
                 {
-                    .isPressed1   = true
-                    .correcMoving = 0
+                    .isLowerPressed = true
+                    .correcMoving   = 0
                 }
-                elif .isHot2
+                elif .isUpperHot
                 {
-                    .isPressed2   = true
-                    .correcMoving = 0
+                    .isUpperPressed = true
+                    .correcMoving   = 0
                 }
-                elif !.circularFlags.has(.Range)
+                elif !.flags.has(.Range)
                 {
-                    .correcMoving = 0
-                    .isPressed1   = true
-                    .setValue1(normalizedValue)
+                    .correcMoving   = 0
+                    .isLowerPressed = true
+                    .setLowerRatio(normalizedValue)
                 }
                 else
                 {
                     .correcMoving = 0
 
                     // Determine which marker is closest
-                    let m = (.value1 + .value2) * 0.5
+                    let m = (.lowerRatio + .upperRatio) * 0.5
                     if normalizedValue <= m
                     {
-                        .isPressed1 = true
-                        .setValue1(normalizedValue)
+                        .isLowerPressed = true
+                        .setLowerRatio(normalizedValue)
                     }
                     else
                     {
-                        .isPressed2 = true
-                        .setValue2(normalizedValue)
+                        .isUpperPressed = true
+                        .setUpperRatio(normalizedValue)
                     }
                 }
 
@@ -235,11 +232,11 @@ impl IWnd for Circular
                 .invalidate()
             }
 
-        case .MouseReleased:
+        case .Released:
             if .isMoving and evt.button == .Left
             {
                 .releaseMouse()
-                .isPressed1, .isPressed2, .isMoving = false
+                .isLowerPressed, .isUpperPressed, .isMoving = false
                 .hitTest(evt.surfacePos)
                 .invalidate()
                 .endChange()
@@ -252,7 +249,7 @@ private impl Circular
 {
     mtd updateGeometry()
     {
-        let clientRect = .getClientRect()
+        let clientRect = .clientRect()
         .centerX = clientRect.x + clientRect.width * 0.5
         .centerY = clientRect.y + clientRect.height * 0.5
         .radius  = Math.min(clientRect.width, clientRect.height) * 0.5
@@ -293,7 +290,7 @@ private impl Circular
         return .startAngle + (val * totalAngle)
     }
 
-    mtd getAngleFromPosition(pos: Math.Point)->f32
+    mtd angleAt(pos: Math.Point)->f32
     {
         let dx = pos.x - .centerX
         let dy = pos.y - .centerY
@@ -314,27 +311,24 @@ private impl Circular
         return angle
     }
 
-    mtd getPositionFromAngle(angle: f32)->Math.Vector2
+    mtd positionAtAngle(angle: f32)->Math.Vector2
     {
-        // Add startAngle to return to global coordinate system
-        let adjustedAngle = angle + .startAngle
-
         var result: retval
 
         // For 0° pointing up: x = sin(angle), y = -cos(angle)
-        result.x = .centerX + Math.sin(adjustedAngle) * .radius
-        result.y = .centerY - Math.cos(adjustedAngle) * .radius
+        result.x = .centerX + Math.sin(angle) * .radius
+        result.y = .centerY - Math.cos(angle) * .radius
         return result
     }
 
     // Range arc drawing
     mtd drawRangeArc(painter: *Painter)
     {
-        let color    = .rangeColor.a ? .rangeColor : .getThemeColors().circular_RangeArc
+        let color    = .rangeColor.a ? .rangeColor : .themeColors().circular_RangeArc
         let penSize  = .circleGap ? .circleGap : 4.0
         let pen      = Pen.createSolid(color, penSize)
-        let startArc = .valueToAngle(.value1)
-        let endArc   = .valueToAngle(.value2)
+        let startArc = .valueToAngle(.lowerRatio)
+        let endArc   = .valueToAngle(.upperRatio)
         painter.drawArc(.centerX, .centerY, .radius, startArc, endArc, pen)
     }
 
@@ -353,8 +347,8 @@ private impl Circular
     mtd drawCircleMarker(painter: *Painter, color: Color, value: f32)
     {
         let angle        = .valueToAngle(value)
-        let pos          = .getPositionFromAngle(angle)
-        let markerRadius = .getThemeMetrics().circular_MarkerSize
+        let pos          = .positionAtAngle(angle)
+        let markerRadius = .themeMetrics().circular_MarkerSize
 
         let brush = Brush.createSolid(color)
         let pen   = Pen.createSolid(color, 1.5)
@@ -368,7 +362,7 @@ private impl Circular
     mtd drawNeedleMarker(painter: *Painter, color: Color, value: f32)
     {
         let angle     = .valueToAngle(value)
-        let trackPos  = .getPositionFromAngle(angle)
+        let trackPos  = .positionAtAngle(angle)
         let centerPos = Math.Vector2{.centerX, .centerY}
 
         // Create gradient pen for nice visual effect
@@ -452,44 +446,44 @@ private impl Circular
 
     mtd clamp(f: f32)->f32
     {
+        let normalized = Math.clamp(f, 0, 1)
         if .steps > 0
         {
-            let r = cast(s32) ((f / .steps) + 0.5)
-            return r * .steps
+            let r = cast(s32) ((normalized / .steps) + 0.5)
+            return Math.clamp(r * .steps, 0, 1)
         }
 
-        if .circularFlags.has(.Integer)
+        if .flags.has(.Integer)
         {
-            let val = Math.round((.min + (.max - .min) * f))
+            let val = Math.round((.min + (.max - .min) * normalized))
             return (val - .min) / (.max - .min)
         }
 
-        return f
+        return normalized
     }
 
-    // Modified setValue methods that use the new clamp method:
-    mtd setValue1(f: f32)
+    mtd setLowerRatio(f: f32)
     {
         var fc = .clamp(f)
-        if .circularFlags.has(.Range) do
-            fc = Math.min(fc, .value2)
-        if fc == .value1 and .hasValue1 do
+        if .flags.has(.Range) do
+            fc = Math.min(fc, .upperRatio)
+        if fc == .lowerRatio and .hasLowerValue do
             return
-        .hasValue1 = true
-        .value1    = fc
+        .hasLowerValue = true
+        .lowerRatio    = fc
         .sigChanged.call(me)
         .invalidate()
     }
 
-    mtd setValue2(f: f32)
+    mtd setUpperRatio(f: f32)
     {
         var fc = .clamp(f)
-        if .circularFlags.has(.Range) do
-            fc = Math.max(fc, .value1)
-        if fc == .value2 and .hasValue2 do
+        if .flags.has(.Range) do
+            fc = Math.max(fc, .lowerRatio)
+        if fc == .upperRatio and .hasUpperValue do
             return
-        .hasValue2 = true
-        .value2    = fc
+        .hasUpperValue = true
+        .upperRatio    = fc
         .sigChanged.call(me)
         .invalidate()
     }
@@ -499,39 +493,39 @@ private impl Circular
         let pos = .surfaceToLocal(surfacePos)
         .updateGeometry()
 
-        if .isHot1 or .isHot2
+        if .isLowerHot or .isUpperHot
         {
             .invalidate()
-            .isHot1, .isHot2 = false
+            .isLowerHot, .isUpperHot = false
         }
 
         // Check value2 first if range mode (like in horizontal slider)
-        if .circularFlags.has(.Range)
+        if .flags.has(.Range)
         {
-            let rect = .getPosBox2()
+            let rect = .secondThumbRect()
             if rect.contains(pos)
             {
-                .isHot2 = true
+                .isUpperHot = true
                 .invalidate()
                 return
             }
         }
 
         // Check value1
-        let rect = .getPosBox1()
+        let rect = .firstThumbRect()
         if rect.contains(pos)
         {
-            .isHot1 = true
+            .isLowerHot = true
             .invalidate()
         }
     }
 
-    mtd getPosBoxAt(val, size: f32)->Math.Rectangle
+    mtd thumbRectAt(val, size: f32)->Math.Rectangle
     {
         .updateGeometry()
 
         let angle = .valueToAngle(val)
-        let pos   = .getPositionFromAngle(angle)
+        let pos   = .positionAtAngle(angle)
         var result: retval
         result.x      = pos.x - size
         result.y      = pos.y - size
@@ -540,14 +534,14 @@ private impl Circular
         return result
     }
 
-    mtd getPosBox1()->Math.Rectangle
+    mtd firstThumbRect()->Math.Rectangle
     {
-        return .getPosBoxAt(.value1, .getThemeMetrics().circular_MarkerSize)
+        return .thumbRectAt(.lowerRatio, .themeMetrics().circular_MarkerSize)
     }
 
-    mtd getPosBox2()->Math.Rectangle
+    mtd secondThumbRect()->Math.Rectangle
     {
-        return .getPosBoxAt(.value2, .getThemeMetrics().circular_MarkerSize)
+        return .thumbRectAt(.upperRatio, .themeMetrics().circular_MarkerSize)
     }
 
     mtd startChange()
@@ -563,78 +557,102 @@ private impl Circular
 
 impl Circular
 {
-    // Returns value.
-    mtd const getValue()->f32 => .getValueLeft()
+    // Returns the single value, or the lower value in range mode.
+    mtd const value()->f32 => .lowerValue()
 
-    // Returns value left.
-    mtd const getValueLeft()->f32 => .min + (.max - .min) * .value1
+    // Returns the lower value in configured value-space units.
+    mtd const lowerValue()->f32 => .min + (.max - .min) * .lowerRatio
 
-    // Returns value right.
-    mtd const getValueRight()->f32 => .min + (.max - .min) * .value2
+    // Returns the upper value in configured value-space units.
+    mtd const upperValue()->f32 => .min + (.max - .min) * .upperRatio
 
-    // Sets value.
+    // Returns the inclusive minimum accepted by the control.
+    mtd const minimum()->f32 => .min
+
+    // Returns the inclusive maximum accepted by the control.
+    mtd const maximum()->f32 => .max
+
+    // Returns the configured value-space step, or zero for continuous values.
+    mtd const step()->f32 => .steps * (.max - .min)
+
+    // Sets the single value, emitting start/change/end signals as one transaction.
     mtd setValue(f: f32)
     {
-        .setValueLeft(f)
+        .setLowerValue(f)
     }
 
-    // Sets value no change.
-    mtd setValueNoChange(f: f32)
+    // Sets the single value without emitting start/end transaction signals.
+    //
+    // [sigChanged] is still emitted when the effective value changes.
+    mtd setValueWithoutGesture(f: f32)
     {
-        .setValue1((f - .min) / (.max - .min))
+        .setLowerRatio((f - .min) / (.max - .min))
     }
 
-    // Set the left value (in case of a range).
-    mtd setValueLeft(f: f32)
+    // Sets the lower value and emits one start/change/end transaction.
+    mtd setLowerValue(f: f32)
     {
         .startChange()
-        .setValueNoChange(f)
+        .setValueWithoutGesture(f)
         .endChange()
     }
 
-    // Set the right value (in case of a range)
-    mtd setValueRight(f: f32)
+    // Sets the upper value and emits one start/change/end transaction.
+    mtd setUpperValue(f: f32)
     {
         .startChange()
-        .setValue2((f - .min) / (.max - .min))
+        .setUpperRatio((f - .min) / (.max - .min))
         .endChange()
     }
 
-    // Set left and right values, for a range
-    mtd setRangeValues(left, right: f32)
+    // Sets both range endpoints and emits at most one change notification.
+    mtd setRange(lower, upper: f32)
     {
-        Debug.assert(left < right)
-        Debug.assert(.circularFlags.has(.Range))
-        let diff = .max - .min
-        .value1 = (left - .min) / diff
-        .value2 = (right - .min) / diff
-        .setValue1(.value1)
-        .setValue2(.value2)
+        Debug.assert(lower <= upper)
+        Debug.assert(.flags.has(.Range))
+        let diff     = .max - .min
+        let newLower = .clamp((lower - .min) / diff)
+        let newUpper = .clamp((upper - .min) / diff)
+        Debug.assert(newLower <= newUpper)
+
+        let changed = !.hasLowerValue or !.hasUpperValue or newLower != .lowerRatio or newUpper != .upperRatio
+        .hasLowerValue, .hasUpperValue = true
+        .lowerRatio                    = newLower
+        .upperRatio                    = newUpper
+        if changed
+        {
+            .startChange()
+            .sigChanged.call(me)
+            .invalidate()
+            .endChange()
+        }
     }
 
-    // Set the min and max values, and optional steps
-    func setMinMax(me, min, max: f32, steps: f32 = 0)
+    // Configures inclusive bounds and an optional value-space step.
+    func setBounds(me, min, max: f32, steps: f32 = 0)
     {
         Debug.assert(min < max)
-        Debug.assert(steps < (max - min))
+        Debug.assert(steps >= 0 and steps < (max - min))
         .min = min
         .max = max
         if steps > 0 do
             .steps = steps / (max - min)     // Convert to normalized step size
         else do
             .steps = 0
+        .invalidate()
     }
 
-    // Set the angular range of the circular slider
+    // Configures the clockwise angular span used for the value range.
     func setAngleRange(me, startAngle, endAngle: Math.Angle)
     {
-        Debug.assert(endAngle.rad > startAngle.rad)
-        Debug.assert((endAngle.rad - startAngle.rad) <= Math.ConstF32.TwoPi)
-        .startAngle = startAngle.rad
-        .endAngle   = endAngle.rad
+        Debug.assert(endAngle.radians > startAngle.radians)
+        Debug.assert((endAngle.radians - startAngle.radians) <= Math.ConstF32.TwoPi)
+        .startAngle = startAngle.radians
+        .endAngle   = endAngle.radians
+        .invalidate()
     }
 
-    // Set the display stepForm (None, Dot, or Tick)
+    // Changes the visual form of step indicators.
     mtd setStepForm(form: CircularStepForm)
     {
         if .stepForm != form
@@ -644,7 +662,7 @@ impl Circular
         }
     }
 
-    // Set the number of step indicators to display (only applies when stepForm is Dot or Tick)
+    // Changes the number of dot or tick step indicators.
     mtd setStepCount(count: u32)
     {
         if .tickCount != count
@@ -654,7 +672,7 @@ impl Circular
         }
     }
 
-    // Performs the create operation.
+    // Creates a circular slider, optionally with independent range markers.
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null, range = false)->*Circular
     {
@@ -662,13 +680,13 @@ impl Circular
         var pos = position
 
         if pos.width == 0 do
-            pos.width = parent.getThemeMetrics().circular_Size
+            pos.width = parent.themeMetrics().circular_Size
         if pos.height == 0 do
             pos.height = pos.width
 
         let res = Wnd.create'Circular(parent, null, pos, id)
         if range do
-            res.circularFlags.add(.Range)
+            res.flags.add(.Range)
         return res
     }
 }

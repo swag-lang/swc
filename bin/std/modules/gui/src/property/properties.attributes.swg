@@ -20,25 +20,25 @@ impl Properties
     // Decorator: insert an informational note bar above the field.
     attr HelpBox(text: string)
 
-    // Change the field display name
+    // Replaces the reflected field name with a presentation label.
     attr Name(name: string)
 
-    // Add a description
+    // Adds explanatory text below the field label.
     attr Description(desc: string)
 
-    // The width of the edition widget
+    // Sets the preferred width of the field editor.
     attr EditSize(size: s32)
 
-    // If the value changed, need to recompute the properties layout
+    // Recomputes the property layout after this field changes.
     attr RecalcLayout()
 
-    // Value edition with an editbox, min and max values
+    // Constrains numeric editing to an inclusive minimum and maximum.
     attr MinMax(min, max: s64)
 
-    // Value edition with an editbox, show a unit string
+    // Displays a unit suffix beside the field editor.
     attr Unit(value: string)
 
-    // Float edition, edit width a slider instead of an editbox
+    // Edits a floating-point value with a slider over the supplied range.
     attr SliderMinMax(min, max: f32)
 
     // Bool edition with a two-entries combo box instead of a check box; 'off' is the
@@ -52,10 +52,10 @@ impl Properties
     // the theme's default font and stores an empty string.
     attr FontName()
 
-    // Color edition, force an opaque color
+    // Restricts color editing to opaque colors.
     attr Opaque()
 
-    // Color edition, keep the original alpha value
+    // Preserves the field's alpha channel while editing its color.
     attr KeepAlpha()
 
     // Mark a field read-only: it is shown but its editor is grayed and non-editable, and the

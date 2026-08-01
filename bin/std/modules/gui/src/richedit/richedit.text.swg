@@ -2,7 +2,7 @@ using Core, Pixel
 
 impl RichEditCtrl
 {
-    mtd getTextPrivate(start, end: RichEditCursor)->{ text: Array'rune, styles: Array'u8 }
+    mtd textRangeData(start, end: RichEditCursor)->{ text: Array'rune, styles: Array'u8 }
     {
         var result: retval
 
@@ -76,7 +76,7 @@ impl RichEditCtrl
             while li <= end.lineIndex
             {
                 var rankBeg, rankEnd: u64
-                if .getSelectionRectRange(li, &rankBeg, &rankEnd)
+                if .selectionRectRange(li, &rankBeg, &rankEnd)
                 {
                     for [i] in rankEnd - rankBeg
                     {
@@ -96,7 +96,7 @@ impl RichEditCtrl
 
     mtd unwrap(lineIndex: u64)
     {
-        if !(.richEdFlags & .WordWrap) do
+        if !(.flags & .WordWrap) do
             return
 
         // Make one single line with current wrapped lines
@@ -135,10 +135,10 @@ impl RichEditCtrl
 
     mtd wrap(lineIndex: u64)
     {
-        if !(.richEdFlags & .WordWrap) do
+        if !(.flags & .WordWrap) do
             return
 
-        let fontR = .getFont().getFont(.styles[0].fontMode)
+        let fontR = .font().getFont(.styles[0].fontMode)
         if !fontR do
             return
         let font = nnFont(fontR)
@@ -146,8 +146,8 @@ impl RichEditCtrl
         // Do the wrap
         var curLine    = lineIndex
         var i          = 0'u64
-        var clientRect = .edView.getClientRect()
-        clientRect.width -= .getMarginRight()
+        var clientRect = .edView.clientRect()
+        clientRect.width -= .rightMargin()
 
         var str: String
 
@@ -163,7 +163,7 @@ impl RichEditCtrl
 
             if cutAti > 1
             {
-                let x = .getMarginLeft() + Painter.measureString(str, font).width
+                let x = .leftMargin() + Painter.measureString(str, font).width
                 if x > clientRect.right()
                 {
                     if cutAti and cutAti == i + 1 do
@@ -220,7 +220,7 @@ impl RichEditCtrl
             cp.lineIndex     += 1
             cp.charPosInLine = 0
         }
-        elif c == '\t' and (.richEdFlags & .TabToSpaces)
+        elif c == '\t' and (.flags & .TabToSpaces)
         {
             let line = notnull .lines[cp.lineIndex]
             for .tabSize
@@ -365,7 +365,7 @@ impl RichEditCtrl
             while li <= pe.lineIndex
             {
                 var rankBeg, rankEnd: u64
-                if .getSelectionRectRange(li, &rankBeg, &rankEnd)
+                if .selectionRectRange(li, &rankBeg, &rankEnd)
                 {
                     let ln = notnull .lines[li]
                     ln.removeRunes(rankBeg, rankEnd - rankBeg)
@@ -406,7 +406,7 @@ public impl RichEditCtrl
 
         // Ownership moved to the free list above: detach without freeing,
         // otherwise the recycled pointers in .freeLines would dangle.
-        .lines.clearNoDelete()
+        .lines.detachAll()
         .countVisibleLines    = 0
         .cursorPos            = {}
         .selBeg               = {}
@@ -415,37 +415,37 @@ public impl RichEditCtrl
         .lastVisibleLineView  = 0
     }
 
-    // Get the selected text
-    mtd getSelectedText()->String
+    // Returns the selected plain text.
+    mtd selectedText()->String
     {
-        let res = .getTextPrivate(.getBegSelection(), .getEndSelection())
+        let res = .textRangeData(.selectionStart(), .selectionEnd())
         let txt = Utf8.fromUnicode(res.text.toSlice())
         return txt
     }
 
-    // Get the full text
-    mtd getText()->String
+    // Returns the complete plain text.
+    mtd text()->String
     {
         var sel0: RichEditCursor
         var sel1: RichEditCursor
         .moveCursorStartFile(&sel0)
         .moveCursorEndFile(&sel1)
-        let res = .getTextPrivate(sel0, sel1)
+        let res = .textRangeData(sel0, sel1)
         let txt = Utf8.fromUnicode(res.text.toSlice())
         return txt
     }
 
-    // Get the full text with the associated styles per character
-    mtd getTextAndStyles()->{ text: Core.Array'rune, styles: Core.Array'u8 }
+    // Returns the complete text and one style reference per rune.
+    mtd textAndStyles()->{ text: Core.Array'rune, styles: Core.Array'u8 }
     {
         var sel0: RichEditCursor
         var sel1: RichEditCursor
         .moveCursorStartFile(&sel0)
         .moveCursorEndFile(&sel1)
-        return .getTextPrivate(sel0, sel1)
+        return .textRangeData(sel0, sel1)
     }
 
-    // Set the text content
+    // Replaces the complete document text and clears incompatible cursor state.
     mtd setText(text: string)
     {
         .clear()
@@ -507,8 +507,8 @@ public impl RichEditCtrl
         .setModified(true)
     }
 
-    // Get the rune at the given cursor pos
-    mtd getRune(cp: RichEditCursor)->{ char: rune, style: RichEditStyleRef }
+    // Returns the rune and style at a document cursor.
+    mtd runeAt(cp: RichEditCursor)->{ char: rune, style: RichEditStyleRef }
     {
         var result: retval
         if cp.lineIndex >= .lines.count do
@@ -596,7 +596,7 @@ public impl RichEditCtrl
             {
                 if .cursorPos.charPosInLine != (notnull .lines[.cursorPos.lineIndex]).length()
                 {
-                    let r = .getRune(.cursorPos)
+                    let r = .runeAt(.cursorPos)
                     pundo.runes.add(r.char)
                     pundo.styles.add(r.style)
                     discard .moveCursorRight(&pundo.selBeg)
@@ -622,8 +622,8 @@ public impl RichEditCtrl
         // Do action
         if .hasSelRect
         {
-            let sb = .getBegSelection()
-            let se = .getEndSelection()
+            let sb = .selectionStart()
+            let se = .selectionEnd()
             for [caretI] in sb.lineIndex to se.lineIndex
             {
                 var cp = se
@@ -652,8 +652,8 @@ public impl RichEditCtrl
     {
         var first = true
 
-        var beg = .getBegSelection()
-        let end = .getEndSelection()
+        var beg = .selectionStart()
+        let end = .selectionEnd()
 
         var savepos0 = .selBeg
         var savepos1 = .cursorPos
@@ -706,8 +706,8 @@ public impl RichEditCtrl
         var arrR   = Unicode.fromUtf8(txt)
         var first  = true
         let lenTxt = arrR.count
-        var beg    = .getBegSelection()
-        let end    = .getEndSelection()
+        var beg    = .selectionStart()
+        let end    = .selectionEnd()
 
         if !lastLine
         {
@@ -720,7 +720,7 @@ public impl RichEditCtrl
         }
 
         let multiline = beg.lineIndex == end.lineIndex ? false : true
-        let size      = .getXExtent()
+        let size      = .xGlyphSize()
         var savepos0  = .selBeg
         var savepos1  = .cursorPos
 
@@ -748,17 +748,17 @@ public impl RichEditCtrl
                 if Unicode.isSpace(line.chars[beg.charPosInLine - 1])
                 {
                     // X is the request position
-                    var charPt = .getCursorDisplayPos(beg)
-                    var x      = cast(f32) .getTabOffset(cast(s32) charPt.x)
+                    var charPt = .cursorDisplayPosition(beg)
+                    var x      = cast(f32) .tabAdvance(cast(s32) charPt.x)
                     x = (.tabSize * size.x) - x
                     if x == 0 do
                         x = .tabSize * size.x
-                    x     = charPt.x - x
+                    x = charPt.x - x
 
                     while charPt.x > x and beg.charPosInLine and Unicode.isSpace(line.chars[beg.charPosInLine - 1])
                     {
                         beg.charPosInLine -= 1
-                        charPt            = .getCursorDisplayPos(beg)
+                        charPt            = .cursorDisplayPosition(beg)
                     }
                 }
             }
@@ -769,7 +769,7 @@ public impl RichEditCtrl
                 .pushUndo()
                 if !first do
                     .serialUndo -= 1
-                .selBeg         = beg
+                .selBeg = beg
                 .setCursorPos(beg1)
                 .deleteSelectionPrivate(beg, beg1, false)
                 .popUndo()
@@ -811,25 +811,25 @@ public impl RichEditCtrl
     {
         var result: retval
 
-        let x = .getXExtent()
+        let x = .xGlyphSize()
 
         result.h = cast(f32) (.lines.count * x.y)
 
-        let fontR = .getFont().getFont(.styles[0].fontMode)
+        let fontR = .font().getFont(.styles[0].fontMode)
         if fontR
         {
             let font = nnFont(fontR)
             for l in .lines
             {
-                let arr     = Painter.getGlyphs((notnull l).chars, font)
+                let arr     = Painter.glyphs((notnull l).chars, font)
                 let measure = Painter.measureString(arr, font)
                 result.w = Math.max(result.w, measure.width)
             }
         }
 
-        result.w += .getMarginLeft() + .getMarginRight()
-        result.h += .getThemeMetrics().richEdit_Padding * 2
-        result.w += .getThemeMetrics().richEdit_Padding * 2
+        result.w += .leftMargin() + .rightMargin()
+        result.h += .themeMetrics().richEdit_Padding * 2
+        result.w += .themeMetrics().richEdit_Padding * 2
         return result
     }
 }

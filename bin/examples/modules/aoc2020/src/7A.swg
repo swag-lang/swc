@@ -48,7 +48,7 @@ that bug is fixed: 'assume' was removed, and this call wants 'expect' like 'day7
 
 func day7A0()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "7.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "7.txt")
     let lines    = assume File.readAllLines(dataPath)
 
     var id: HashTable'(string, Array'(string))
@@ -114,7 +114,7 @@ func day7A0()
 /////////////////////////////////////////////////////////////////
 func day7A1()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "7.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "7.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     var id: HashTable'(string, Array'(string))

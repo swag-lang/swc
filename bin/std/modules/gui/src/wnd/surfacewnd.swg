@@ -4,14 +4,14 @@ using Core, Pixel, Serialization
 #[Swag.EnumFlags]
 public enum SizingBorder
 {
-    Zero = 0     // No flags are enabled.
+    None = 0     // No flags are enabled.
     Left         // Selects left.
     Top          // Selects top.
     Right        // Selects right.
     Bottom       // Selects bottom.
 }
 
-// Represents surface wnd.
+// Provides the root GUI frame and native caption controls for a [[Gui.Surface]].
 public struct SurfaceWnd
 {
     using base:    FrameWnd                // Embedded base state.
@@ -20,7 +20,7 @@ public struct SurfaceWnd
     maximizeBtn:   #null *IconButton       // Maximize btn associated with this value.
     closeBtn:      #null *IconButton       // Close btn associated with this value.
     movingSurface: bool                    // Moving surface associated with this value.
-    sizingBorder:  SizingBorder = Zero     // Sizing border associated with this value.
+    sizingBorder:  SizingBorder = None     // Sizing border associated with this value.
 }
 
 impl IWnd for SurfaceWnd
@@ -30,40 +30,40 @@ impl IWnd for SurfaceWnd
         let srfn = notnull .surface
         switch evt.kind
         {
-        case .MousePressed:
+        case .Pressed:
             if evt.button != .Left do
                 break
-            srfn.bringToTop()
+            srfn.bringToFront()
             if srfn.isMaximized do
                 break
-            if srfn.flags.has(.Sizeable) do
+            if srfn.flags.has(.Resizable) do
                 .sizingBorder = .hitTestBorders(evt.surfacePos)
             else do
-                .sizingBorder = .Zero
-            if .sizingBorder == .Zero and !.hitTestCaption(evt.surfacePos) do
+                .sizingBorder = .None
+            if .sizingBorder == .None and !.hitTestCaption(evt.surfacePos) do
                 break
             .captureMouse()
             .movingSurface = true
 
-        case .MouseLeave:
-            .sizingBorder = .Zero
+        case .Leave:
+            .sizingBorder = .None
 
-        case .MouseReleased:
+        case .Released:
             if evt.button != .Left do
                 break
 
             .releaseMouse()
             .movingSurface = false
-            .sizingBorder  = .Zero
+            .sizingBorder  = .None
             fallthrough
 
-        case .MouseMove:
+        case .Move:
             if srfn.isMaximized do
                 break
-            if .getApp().mouseEnterWnd != me do
+            if .app().mouseEnterWnd != me do
                 break
 
-            if !.movingSurface and srfn.flags.has(.Sizeable)
+            if !.movingSurface and srfn.flags.has(.Resizable)
             {
                 let newSizingBorder = .hitTestBorders(evt.surfacePos)
                 if newSizingBorder != .sizingBorder do
@@ -72,10 +72,10 @@ impl IWnd for SurfaceWnd
 
             switch .sizingBorder
             {
-            case .Left, .Right:              srfn.app.setFrameCursor(Cursor.from(.SizeWE))
-            case .Top, .Bottom:              srfn.app.setFrameCursor(Cursor.from(.SizeNS))
-            case Right | Bottom, Left | Top: srfn.app.setFrameCursor(Cursor.from(.SizeNWSE))
-            case Right | Top, Left | Bottom: srfn.app.setFrameCursor(Cursor.from(.SizeNESW))
+            case .Left, .Right:              srfn.app.setFrameCursor(Cursor.from(.ResizeHorizontal))
+            case .Top, .Bottom:              srfn.app.setFrameCursor(Cursor.from(.ResizeVertical))
+            case Right | Bottom, Left | Top: srfn.app.setFrameCursor(Cursor.from(.ResizeNorthwestSoutheast))
+            case Right | Top, Left | Bottom: srfn.app.setFrameCursor(Cursor.from(.ResizeNortheastSouthwest))
             }
 
             if !.movingSurface do
@@ -86,33 +86,33 @@ impl IWnd for SurfaceWnd
 
             if .sizingBorder & .Left
             {
-                pos.x      += evt.move.x
-                pos.width  -= evt.move.x
+                pos.x      += evt.delta.x
+                pos.width  -= evt.delta.x
                 hasChanged = true
             }
 
             if .sizingBorder & .Top
             {
-                pos.y      += evt.move.y
-                pos.height -= evt.move.y
+                pos.y      += evt.delta.y
+                pos.height -= evt.delta.y
                 hasChanged = true
             }
 
             if .sizingBorder & .Right
             {
-                pos.width  += evt.move.x
+                pos.width  += evt.delta.x
                 hasChanged = true
             }
 
             if .sizingBorder & .Bottom
             {
-                pos.height += evt.move.y
+                pos.height += evt.delta.y
                 hasChanged = true
             }
 
-            if .sizingBorder == .Zero
+            if .sizingBorder == .None
             {
-                pos.offset(evt.move.x, evt.move.y)
+                pos.offset(evt.delta.x, evt.delta.y)
                 hasChanged = true
             }
 
@@ -145,8 +145,8 @@ impl IWnd for SurfaceWnd
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         let srfn       = notnull .surface
-        let clientRect = .getClientRect()
-        let metrics    = .getThemeMetrics()
+        let clientRect = .clientRect()
+        let metrics    = .themeMetrics()
 
         var pos = clientRect
         pos.height = Math.max(0, srfn.wnd.padding.y - 2 * metrics.wnd_CaptionButtonMargin)
@@ -175,18 +175,18 @@ impl IWnd for SurfaceWnd
         .base.IWnd.onResizeEvent(evt)
     }
 
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaint(evt: *PaintEvent)
     {
         let srfn = notnull .surface
         if .isPendingDestroy do
             return
-        let bc      = evt.bc
-        let theme   = .getTheme()
-        let colors  = .getThemeColors()
-        let metrics = .getThemeMetrics()
+        let bc      = evt.paintContext
+        let theme   = .theme()
+        let colors  = .themeColors()
+        let metrics = .themeMetrics()
 
-        let clientRect = .getClientRect()
-        let radius     = srfn.getCornerRadius()
+        let clientRect = .clientRect()
+        let radius     = srfn.cornerRadius()
 
         if radius > 0 and metrics.surfaceWnd_ShadowSize > 0 do
             bc.painter.fillRoundRect(clientRect, radius, radius, colors.wnd_Bk)
@@ -194,14 +194,14 @@ impl IWnd for SurfaceWnd
             bc.painter.fillRect(clientRect, colors.wnd_Bk)
 
         var posCaption = clientRect
-        if srfn.flags.has(.BigCaption) do
+        if srfn.flags.has(.LargeCaption) do
             posCaption.height = srfn.wnd.padding.y
 
         if srfn.flags.has(.SmallCaption) do
             posCaption.height = srfn.wnd.padding.y
 
         let captionColor = srfn.app.isActivated ? colors.wnd_CaptionBk : colors.wnd_CaptionBkNotActived
-        if srfn.flags.has(.BigCaption | .SmallCaption) do
+        if srfn.flags.has(.LargeCaption | .SmallCaption) do
             bc.painter.fillRect(posCaption, captionColor)
 
         if srfn.flags.has(.Border) and metrics.surfaceWnd_ShadowSize > 0
@@ -214,16 +214,16 @@ impl IWnd for SurfaceWnd
                 bc.painter.drawRect(clientRect, pen)
         }
 
-        if srfn.flags.has(.BigCaption | .SmallCaption)
+        if srfn.flags.has(.LargeCaption | .SmallCaption)
         {
             posCaption.x += theme.metrics.wnd_CaptionMarginTitle
 
             var posClip = posCaption
-            if srfn.flags.has(.MinimizeBtn) do
+            if srfn.flags.has(.MinimizeButton) do
                 posClip.setRight((notnull .minimizeBtn).position.x)
-            elif srfn.flags.has(.MaximizeBtn) do
+            elif srfn.flags.has(.MaximizeButton) do
                 posClip.setRight((notnull .maximizeBtn).position.x)
-            elif srfn.flags.has(.CloseBtn) do
+            elif srfn.flags.has(.CloseButton) do
                 posClip.setRight((notnull .closeBtn).position.x)
             bc.painter.pushClippingRect(posClip)
             defer bc.painter.popClippingRect()
@@ -237,7 +237,7 @@ impl IWnd for SurfaceWnd
 
             var sf: Pixel.RichStringFormat
             sf.vertAlignment = .Center
-            sf.font          = .getFont()
+            sf.font          = .font()
             sf.palette[0]    = captionTextColor
             bc.painter.drawRichString(posCaption, &.name, sf)
         }
@@ -261,7 +261,7 @@ impl SurfaceWnd
     mtd hitTestCaption(surfacePos: Math.Point)->bool
     {
         let srfn = notnull .surface
-        if !srfn.flags.has(.BigCaption | .SmallCaption) do
+        if !srfn.flags.has(.LargeCaption | .SmallCaption) do
             return false
         if .hitTestCaptionButton(surfacePos) do
             return false
@@ -272,7 +272,7 @@ impl SurfaceWnd
         if pos.y < 0 or pos.y >= srfn.wnd.padding.y do
             return false
 
-        let target = .getWndAt(pos.x, pos.y, true)
+        let target = .windowAt(pos.x, pos.y, true)
         if target and target != me
         {
             if target.type == MenuCtrl
@@ -291,11 +291,11 @@ impl SurfaceWnd
     mtd hitTestBorders(surfacePos: Math.Point)->SizingBorder
     {
         let srfn    = notnull .surface
-        let metrics = .getThemeMetrics()
+        let metrics = .themeMetrics()
         let sdw     = metrics.surfaceWnd_ShadowSize
 
-        var newSizingBorder = SizingBorder.Zero
-        if srfn.flags.has(.Sizeable)
+        var newSizingBorder = SizingBorder.None
+        if srfn.flags.has(.Resizable)
         {
             let SizeBorder    = metrics.wnd_SizingBorderSize
             let TopSizeBorder = Math.min(SizeBorder, metrics.wnd_TopSizingBorderSize)
@@ -360,16 +360,16 @@ impl SurfaceWnd
     {
         let srfn  = notnull .surface
         let theme = srfn.app.theme
-        if !theme.intialized do
+        if !theme.initialized do
             return
 
-        if srfn.flags.has(.MinimizeBtn)
+        if srfn.flags.has(.MinimizeButton)
         {
             if !.minimizeBtn
             {
-                with me.minimizeBtn = IconButton.create(me, theme.getIcon24(ThemeIcons24.WndMinimize), {0, 0, 0, 0})
+                with me.minimizeBtn = IconButton.create(me, theme.icon24(ThemeIcons24.WndMinimize), {0, 0, 0, 0})
                 {
-                    .form          = .RoundSquare
+                    .setForm(.RoundedRectangle)
                     .focusStrategy = .None
                     .sigPressed    += &onMinimize
                 }
@@ -381,13 +381,13 @@ impl SurfaceWnd
             .minimizeBtn = null
         }
 
-        if srfn.flags.has(.MaximizeBtn)
+        if srfn.flags.has(.MaximizeButton)
         {
             if !.maximizeBtn
             {
-                with me.maximizeBtn = IconButton.create(me, theme.getIcon24(ThemeIcons24.WndMaximize), {0, 0, 0, 0})
+                with me.maximizeBtn = IconButton.create(me, theme.icon24(ThemeIcons24.WndMaximize), {0, 0, 0, 0})
                 {
-                    .form          = .RoundSquare
+                    .setForm(.RoundedRectangle)
                     .focusStrategy = .None
                     .sigPressed    += &onMaximize
                 }
@@ -399,13 +399,13 @@ impl SurfaceWnd
             .maximizeBtn = null
         }
 
-        if srfn.flags.has(.CloseBtn)
+        if srfn.flags.has(.CloseButton)
         {
             if !.closeBtn
             {
-                with me.closeBtn = IconButton.create(me, theme.getIcon24(ThemeIcons24.WndClose), {0, 0, 0, 0})
+                with me.closeBtn = IconButton.create(me, theme.icon24(ThemeIcons24.WndClose), {0, 0, 0, 0})
                 {
-                    .form          = .RoundSquare
+                    .setForm(.RoundedRectangle)
                     .focusStrategy = .None
                     .sigPressed    += &onClose
                     .style.addStyleSheetColors(#nameof(ThemeColors.btnIcon_HotBk) ++ " $" ++ #nameof(ThemeColors.wnd_BtnCloseBk))

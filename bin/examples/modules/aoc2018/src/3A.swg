@@ -53,7 +53,7 @@ func day3A()
 /////////////////////////////////////////////////////////////////
 func day3A0()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "3.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "3.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     var r = expect Parser.RegExp.create(#raw "#\d+ @ (\d+),(\d+): (\d+)x(\d+)")
@@ -85,7 +85,7 @@ func day3A0()
 /////////////////////////////////////////////////////////////////
 func day3A1()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "3.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "3.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     var count: Array's32

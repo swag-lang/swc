@@ -13,7 +13,7 @@ impl ILogWriter for MemoryLogWriter
     {
         if me.count < @countof(me.lines) do
             me.lines[me.count] = text
-        me.count               += 1
+        me.count += 1
     }
 }
 
@@ -26,7 +26,7 @@ func makeExpectedShortLine(prefix: string, loc: Swag.SourceCodeLocation, text: s
         result.append(" ")
     }
 
-    result.append(Path.getFileName(loc.fileName))
+    result.append(Path.fileName(loc.fileName))
     result.append(":")
     result.appendFormat("%", loc.lineStart + 1)
     result.append(" ")
@@ -67,8 +67,8 @@ func currentLocation(loc = #callerlocation)->Swag.SourceCodeLocation => loc
 
     @assert(writer.count == 1)
     @assert(writer.lines[0].toString() == makeExpectedShortLine("CORE", loc, "hello").toString())
-    @assert(log.getPrefix() == "CORE")
-    @assert(log.getFlags() == (LogFlags.Prefix | LogFlags.ShortFileName | LogFlags.Line))
+    @assert(log.prefix() == "CORE")
+    @assert(log.flags() == (LogFlags.Prefix | LogFlags.ShortFileName | LogFlags.Line))
 }
 
 #test
@@ -107,7 +107,7 @@ func currentLocation(loc = #callerlocation)->Swag.SourceCodeLocation => loc
 
     @assert(writer.count == 1)
     var expected: String
-    expected.append(Path.getFileName(secondLoc.fileName))
+    expected.append(Path.fileName(secondLoc.fileName))
     expected.append(" ")
     expected.append("second")
     @assert(writer.lines[0].toString() == expected.toString())

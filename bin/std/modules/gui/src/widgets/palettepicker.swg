@@ -2,169 +2,267 @@
 
 using Core, Pixel
 
-// Represents palette picker.
+// Displays a wrapping palette and lets the user select one color.
 struct PalettePicker
 {
-    using wnd:     Wnd                                 // Embedded wnd state.
-    selectedColor: Color                               // Selected color associated with this value.
-    pal:           Array'Color                         // Pal associated with this value.
-    boxSize:       s32 = 24                            // Box size associated with this value.
-    boxMargin:     s32 = 3                             // Box margin associated with this value.
-    sigChanged:    SigArray'func||(*PalettePicker)     // Signal emitted when changed.
+    using wnd: Wnd     // Embedded window behavior and presentation.
 
-    // Box placement recomputed by the layout, and the box under the mouse.
+    sigSelectionChanged: SigArray'func||(*PalettePicker)     // Emitted after the selected color changes.
+
+    readonly
+    {
+        colors:        Array'Color            // Colors displayed in insertion order.
+        selectedColor: Color                  // Selected color, or transparent black when no item is selected.
+        selectedIndex: s32 = Swag.S32.Max     // Selected color index, or `Swag.S32.Max` when absent.
+        itemSize:      s32 = 24               // Width and height of each color item, in logical units.
+        spacing:       s32 = 3                // Gap between adjacent color items, in logical units.
+    }
+
     internal
     {
-        palPos: Array'Math.Rectangle     // Rectangle of each color box.
-        hotIdx: s32 = Swag.S32.Max       // Box under the mouse.
+        itemRects: Array'Math.Rectangle     // Current hit-test rectangle for every color.
+        hotIndex:  s32 = Swag.S32.Max       // Item under the pointer, or `Swag.S32.Max`.
+    }
+}
+
+private impl PalettePicker
+{
+    mtd updateItemRects()
+    {
+        let rect = .paddedClientRect()
+        .itemRects.resize(.colors.count)
+
+        var x = rect.x
+        var y = rect.y
+        for [i] in @countof(.colors)
+        {
+            .itemRects[i] = {x, y, cast(f32) .itemSize, cast(f32) .itemSize}
+            x             += .itemSize + .spacing
+            if x + .itemSize > rect.right()
+            {
+                x = rect.x
+                y += .itemSize + .spacing
+            }
+        }
+    }
+
+    mtd columnCount()->s32
+    {
+        let width  = Math.max(.paddedClientRect().width, cast(f32) .itemSize)
+        let stride = .itemSize + .spacing
+        return Math.max(1, cast(s32) ((width + .spacing) / stride))
     }
 }
 
 impl IWnd for PalettePicker
 {
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaint(evt: *PaintEvent)
     {
-        let bc      = evt.bc
-        let painter = bc.painter
-        let colors  = .getThemeColors()
+        .updateItemRects()
 
-        var colorBorder: Color = undefined
+        let painter = evt.paintContext.painter
+        let colors  = .themeColors()
 
-        let clientRect = .getClientRectPadding()
-        .palPos.resize(.pal.count)
-
-        var x = clientRect.x
-        var y = clientRect.y
-        for c, [i] in .pal
+        for color, [i] in .colors
         {
-            if .hotIdx == i do
-                colorBorder = colors.palPicker_HotBorder
-            else do
-                colorBorder = colors.palPicker_Border
-
-            var posBox = Math.Rectangle{x, y, .boxSize, .boxSize}
-            .palPos[i] = posBox
+            var itemRect = .itemRects[i]
+            let border   = i == .hotIndex or i == .selectedIndex ? colors.palPicker_HotBorder : colors.palPicker_Border
 
             painter.setParams(.Antialiased)
-            posBox.inflate(-2)
-            if c.a != 255 do
-                painter.fillRoundRect(posBox, 5, 5, Brush.createHatch(.CheckBoardLarge, colors.colorPicker_BackAlpha))
-            painter.fillRoundRect(posBox, 5, 5, c)
-            posBox.inflate(1)
-            painter.drawRoundRect(posBox, 5, 5, colorBorder, 2)
-
-            x += .boxSize + .boxMargin
-            if x + .boxSize > clientRect.right()
-            {
-                x = clientRect.x
-                y += .boxSize + .boxMargin
-            }
+            itemRect.inflate(-2)
+            if color.a != 255 do
+                painter.fillRoundRect(itemRect, 5, 5, Brush.createHatch(.CheckBoardLarge, colors.colorPicker_BackAlpha))
+            painter.fillRoundRect(itemRect, 5, 5, color)
+            itemRect.inflate(1)
+            painter.drawRoundRect(itemRect, 5, 5, border, 2)
         }
     }
 
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
+        .updateItemRects()
         let pos = .surfaceToLocal(evt.surfacePos)
         evt.accepted = false
 
-        // Hit test
-        var newHotIdx = Swag.S32.Max
-        for [i] in @countof(.palPos)
+        var newHotIndex = Swag.S32.Max
+        for [i] in @countof(.itemRects)
         {
-            if .palPos[i].contains(pos)
+            if .itemRects[i].contains(pos)
             {
-                newHotIdx = cast() i
+                newHotIndex = cast() i
                 break
             }
         }
 
-        if newHotIdx != .hotIdx
+        if newHotIndex != .hotIndex
         {
-            .hotIdx = newHotIdx
+            .hotIndex = newHotIndex
             .invalidate()
         }
 
         switch evt.kind
         {
-        case .MousePressed:
-            if evt.button == .Left and .hotIdx != Swag.S32.Max
+        case .Pressed:
+            if evt.button == .Left and .hotIndex != Swag.S32.Max
             {
-                .selectedColor = .pal[.hotIdx]
-                .sigChanged.call(me)
+                .setSelectedIndex(.hotIndex)
                 evt.accepted = true
             }
 
-        case .MouseLeave:
-            if .hotIdx != Swag.S32.Max
+        case .Leave:
+            if .hotIndex != Swag.S32.Max
             {
-                .hotIdx = Swag.S32.Max
+                .hotIndex = Swag.S32.Max
                 .invalidate()
             }
         }
+    }
+
+    mtd impl onKeyEvent(evt: *KeyEvent)
+    {
+        evt.accepted = false
+        if evt.kind != .Pressed or .colors.isEmpty() do
+            return
+
+        var index = .selectedIndex == Swag.S32.Max ? 0 : .selectedIndex
+        switch evt.key
+        {
+        case .Left:           index = Math.max(0, index - 1)
+        case .Right:          index = Math.min(cast(s32) .colors.count - 1, index + 1)
+        case .Up:             index = Math.max(0, index - .columnCount())
+        case .Down:           index = Math.min(cast(s32) .colors.count - 1, index + .columnCount())
+        case .Home:           index = 0
+        case .End:            index = cast(s32) .colors.count - 1
+        case .Space, .Return: break
+        default:              return
+        }
+
+        .setSelectedIndex(index)
+        evt.accepted = true
     }
 }
 
 impl PalettePicker
 {
-    // Performs the create operation.
+    // Creates an empty palette picker.
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*PalettePicker
     {
         Debug.assert(parent != null)
-        let ret = Wnd.create'PalettePicker(parent, null, position, id)
-        return ret
+        let result = Wnd.create'PalettePicker(parent, null, position, id)
+        result.focusStrategy = .OnMousePress
+        return result
     }
 
-    // Add a range of changing 'hue'
-    mtd addHueColors(numColors: s32, sat, lum: f32)
+    // Changes color-item size and spacing.
+    mtd setItemMetrics(size: s32, spacing: s32)
     {
-        for [i] in numColors
+        Debug.assert(size > 0, "palette item size must be positive")
+        Debug.assert(spacing >= 0, "palette spacing cannot be negative")
+        if .itemSize == size and .spacing == spacing do
+            return
+        .itemSize = size
+        .spacing  = spacing
+        .updateItemRects()
+        .invalidate()
+    }
+
+    // Selects one color by index and optionally emits [[Gui.PalettePicker.sigSelectionChanged]].
+    mtd setSelectedIndex(index: s32, notify = true)
+    {
+        Debug.assert(index >= 0 and index < .colors.count, "palette color index is out of range")
+        if .selectedIndex == index do
+            return
+        .selectedIndex = index
+        .selectedColor = .colors[index]
+        .invalidate()
+        if notify do
+            .sigSelectionChanged.call(me)
+    }
+
+    // Clears the current selection and optionally emits [[Gui.PalettePicker.sigSelectionChanged]].
+    mtd clearSelection(notify = true)
+    {
+        if .selectedIndex == Swag.S32.Max do
+            return
+        .selectedIndex = Swag.S32.Max
+        @init(&.selectedColor, 1)
+        .invalidate()
+        if notify do
+            .sigSelectionChanged.call(me)
+    }
+
+    // Removes every color and clears the selection without notification.
+    mtd clear()
+    {
+        .colors.clear()
+        .itemRects.clear()
+        .hotIndex      = Swag.S32.Max
+        .selectedIndex = Swag.S32.Max
+        @init(&.selectedColor, 1)
+        .invalidate()
+    }
+
+    // Appends evenly spaced hues without duplicating the circular endpoint.
+    mtd addHueRamp(count: s32, saturation, lightness: f32)
+    {
+        Debug.assert(count >= 0, "palette color count cannot be negative")
+        Debug.assert(saturation >= 0 and saturation <= 1, "saturation must be between zero and one")
+        Debug.assert(lightness >= 0 and lightness <= 1, "lightness must be between zero and one")
+        for [i] in count
         {
-            var c: Color
-            c.setHsl(i / cast(f32) numColors, sat, lum)
-            c.a = 255
-            .pal.add(c)
+            var color = Color.fromHsl(i / cast(f32) count, saturation, lightness)
+            color.a = 255
+            .colors.add(color)
         }
 
         .invalidate()
     }
 
-    // Add a range of changing 'luminance'
-    mtd addLumColors(numColors: s32, base: Color)
+    // Appends a lightness ramp that includes both endpoints when possible.
+    mtd addLightnessRamp(count: s32, base: Color)
     {
-        let {h, s, ?} = base.toHsl()
-
-        for [i] in numColors
+        Debug.assert(count >= 0, "palette color count cannot be negative")
+        let {hue, saturation, ?} = base.toHsl()
+        for [i] in count
         {
-            var c: Color
-            c.setHsl(h, s, i / cast(f32) numColors)
-            c.a = 255
-            .pal.add(c)
+            let lightness = count <= 1 ? 0.5 : i / cast(f32) (count - 1)
+            var color     = Color.fromHsl(hue, saturation, lightness)
+            color.a = 255
+            .colors.add(color)
         }
 
         .invalidate()
     }
 
-    // Add a range of changing 'saturation'
-    mtd addSatColors(numColors: s32, base: Color, lum: f32 = 0.5)
+    // Appends a saturation ramp that includes both endpoints when possible.
+    mtd addSaturationRamp(count: s32, base: Color, lightness: f32 = 0.5)
     {
-        let {h, ?, ?} = base.toHsl()
-
-        for [i] in numColors
+        Debug.assert(count >= 0, "palette color count cannot be negative")
+        Debug.assert(lightness >= 0 and lightness <= 1, "lightness must be between zero and one")
+        let {hue, ?, ?} = base.toHsl()
+        for [i] in count
         {
-            var c: Color
-            c.setHsl(h, i / cast(f32) numColors, lum)
-            c.a = 255
-            .pal.add(c)
+            let saturation = count <= 1 ? 0 : i / cast(f32) (count - 1)
+            var color      = Color.fromHsl(hue, saturation, lightness)
+            color.a = 255
+            .colors.add(color)
         }
 
         .invalidate()
     }
 
-    // Add a color
-    mtd addColor(c: Color)
+    // Appends one color.
+    mtd addColor(color: Color)
     {
-        .pal.add(c)
+        .colors.add(color)
+        .invalidate()
+    }
+
+    // Appends all colors in insertion order.
+    mtd addColors(colors: Array'Color)
+    {
+        .colors.add(colors.toSlice())
         .invalidate()
     }
 }

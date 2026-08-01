@@ -2,7 +2,8 @@
 
 using Win32
 
-// Represents native cursor.
+// Dependency-visible Windows storage embedded by `Cursor`.
+#[Swag.Opaque, Swag.NoDoc]
 public struct NativeCursor
 {
     cursor: HCURSOR     // Cursor associated with this value.
@@ -16,36 +17,36 @@ impl NativeCursor
 #init
 {
     using NativeCursor, CursorShape
-    defaultCursors[Arrow].cursor    = LoadCursorA(null, MAKEINTRESOURCEA(IDC_ARROW))
-    defaultCursors[SizeWE].cursor   = LoadCursorA(null, MAKEINTRESOURCEA(IDC_SIZEWE))
-    defaultCursors[SizeNS].cursor   = LoadCursorA(null, MAKEINTRESOURCEA(IDC_SIZENS))
-    defaultCursors[SizeNWSE].cursor = LoadCursorA(null, MAKEINTRESOURCEA(IDC_SIZENWSE))
-    defaultCursors[SizeNESW].cursor = LoadCursorA(null, MAKEINTRESOURCEA(IDC_SIZENESW))
-    defaultCursors[SizeAll].cursor  = LoadCursorA(null, MAKEINTRESOURCEA(IDC_SIZEALL))
-    defaultCursors[Cross].cursor    = LoadCursorA(null, MAKEINTRESOURCEA(IDC_CROSS))
-    defaultCursors[Help].cursor     = LoadCursorA(null, MAKEINTRESOURCEA(IDC_HELP))
-    defaultCursors[Hand].cursor     = LoadCursorA(null, MAKEINTRESOURCEA(IDC_HAND))
-    defaultCursors[IBeam].cursor    = LoadCursorA(null, MAKEINTRESOURCEA(IDC_IBEAM))
-    defaultCursors[No].cursor       = LoadCursorA(null, MAKEINTRESOURCEA(IDC_NO))
-    defaultCursors[Wait].cursor     = LoadCursorA(null, MAKEINTRESOURCEA(IDC_WAIT))
+    defaultCursors[Arrow].cursor                    = LoadCursorA(null, MAKEINTRESOURCEA(IDC_ARROW))
+    defaultCursors[ResizeHorizontal].cursor         = LoadCursorA(null, MAKEINTRESOURCEA(IDC_SIZEWE))
+    defaultCursors[ResizeVertical].cursor           = LoadCursorA(null, MAKEINTRESOURCEA(IDC_SIZENS))
+    defaultCursors[ResizeNorthwestSoutheast].cursor = LoadCursorA(null, MAKEINTRESOURCEA(IDC_SIZENWSE))
+    defaultCursors[ResizeNortheastSouthwest].cursor = LoadCursorA(null, MAKEINTRESOURCEA(IDC_SIZENESW))
+    defaultCursors[Move].cursor                     = LoadCursorA(null, MAKEINTRESOURCEA(IDC_SIZEALL))
+    defaultCursors[Cross].cursor                    = LoadCursorA(null, MAKEINTRESOURCEA(IDC_CROSS))
+    defaultCursors[Help].cursor                     = LoadCursorA(null, MAKEINTRESOURCEA(IDC_HELP))
+    defaultCursors[Hand].cursor                     = LoadCursorA(null, MAKEINTRESOURCEA(IDC_HAND))
+    defaultCursors[IBeam].cursor                    = LoadCursorA(null, MAKEINTRESOURCEA(IDC_IBEAM))
+    defaultCursors[No].cursor                       = LoadCursorA(null, MAKEINTRESOURCEA(IDC_NO))
+    defaultCursors[Wait].cursor                     = LoadCursorA(null, MAKEINTRESOURCEA(IDC_WAIT))
 }
 
 impl Cursor
 {
-    // Performs the from operation.
+    // Returns the shared native cursor for a standard cursor shape.
     public func from(shape: CursorShape)->Cursor
     {
         return NativeCursor.defaultCursors[shape]
     }
 
-    // Removes all content.
+    // Restores an invalid cursor descriptor without destroying the shared system cursor.
     public mtd clear()
     {
         .cursor = null
     }
 
-    // Performs the apply operation.
-    public func apply(cursor: Cursor)
+    // Activates the cursor for the current thread.
+    public func activate(cursor: Cursor)
     {
         SetCursor(cursor.native.cursor)
     }

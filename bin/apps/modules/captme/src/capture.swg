@@ -300,7 +300,7 @@ impl Capture
             return
         let zoom = Math.min(PreviewWidth / .width, PreviewHeight / .height)
         .preview = .toImage(zoom)
-        .preview.applyKernel(.GaussianBlur3x3A)
+        .preview.applyKernel(.GaussianBlur3x3Light)
         .changed = true
     }
 
@@ -311,9 +311,9 @@ impl Capture
         let rect = Math.Rectangle{width: .width * zoom, height: .height * zoom}
         var painter: Pixel.Painter
 
-        let render = g_App.getRenderer()
+        let render = g_App.rendererRef()
         let srf    = notnull (notnull .editView).surface
-        render.begin(srf.getRenderingContext())
+        render.begin(srf.renderingContext())
         painter.begin()
 
         var layer: Layer
@@ -355,7 +355,7 @@ impl Capture
         render.end()
 
         let rt     = notnull layer.contentTarget
-        var buffer = render.getTexturePixels(rt.colorBuffer, .BGRA8)
+        var buffer = render.readTexturePixels(rt.colorBuffer, .BGRA8)
         result = Image.create(rt.colorBuffer.width, rt.colorBuffer.height, .BGRA8, buffer.toSlice())
         result.crop(0, 0, cast(s32) rect.width, cast(s32) rect.height)
         render.releaseRenderTarget(rt)
@@ -439,7 +439,7 @@ impl Capture
 
     mtd copyAll()
     {
-        Cursor.wait()
+        Cursor.activateWait()
         Clipboard.addImage(.toImage())
     }
 
@@ -535,14 +535,14 @@ impl Capture
             if idx == 0 do
                 boundRect = bound
             else do
-                boundRect.setUnion(bound)
+                boundRect.combine(bound)
         }
 
         undo.oldForms = res
 
         // Move around mouse
         let editView = notnull .editView
-        var pt       = editView.getApp().mouse.getPosition()
+        var pt       = editView.app().mouse.position()
         pt   = editView.screenToSurface(pt)
         pt   = editView.surfaceToLocal(pt)
         pt   += editView.scrollPos
@@ -693,7 +693,7 @@ impl Capture
     mtd paintBackImage(painter: *Painter, x, y: f32, z: f32)
     {
         let editView = notnull .editView
-        let renderer = editView.getApp().getRenderer()
+        let renderer = editView.app().rendererRef()
 
         // Background image
         if !.backTexture.isValid() and .backImg.width > 0
@@ -789,10 +789,11 @@ impl Capture
         // re-rendering all of them (with their supersampled layers + shadow blur) every
         // frame. On a full repaint the painter clip is the whole view, so nothing changes.
         var cullClip = clip
-        if painter.curState.clippingRectOn
+        if painter.hasClippingRect()
         {
-            var pc = painter.getClippingRect()
-            pc.offset(-painter.curState.transform.tx, -painter.curState.transform.ty)
+            var pc        = painter.clippingRect()
+            let transform = painter.transform()
+            pc.offset(-transform.tx, -transform.ty)
             cullClip.intersect(pc)
         }
 
@@ -814,7 +815,7 @@ impl Capture
             cull.inflate(FormPaintOverdraw)
             cull = cull * zoom
             cull.offset(rect.x, rect.y)
-            if !cull.intersectWith(cullClip) do
+            if !cull.intersects(cullClip) do
                 continue
 
             if f.mustClipToBound()
@@ -976,8 +977,8 @@ impl Capture
             .snapY = -1
 
         let editView    = notnull .editView
-        let keyb        = &editView.getApp().keyb
-        let ctrlPressed = keyb.isKeyPressed(.Control) or keyb.isKeyPressed(.RControl) or keyb.isKeyPressed(.LControl)
+        let keyboard    = &editView.app().keyboard
+        let ctrlPressed = keyboard.isKeyPressed(.Control) or keyboard.isKeyPressed(.RControl) or keyboard.isKeyPressed(.LControl)
         if !editView.main.snap and !ctrlPressed do
             return
 
@@ -1169,13 +1170,13 @@ impl Capture
 
     mtd mouse(view: *EditView, evt: *MouseEvent)->bool
     {
-        let app = view.getApp()
+        let app = view.app()
 
         // When a form drag/resize ends, commit the GUI refresh that hasChanged()
         // deferred during the interactive move (runs on every exit of this handler).
         defer
         {
-            if evt.kind == .MouseReleased do
+            if evt.kind == .Released do
                 me.endInteractiveMove()
         }
 
@@ -1192,7 +1193,7 @@ impl Capture
             {
                 view.invalidate()
                 evt.accepted = true
-                if evt.kind != .MouseLeave do
+                if evt.kind != .Leave do
                     return true
             }
 
@@ -1206,20 +1207,20 @@ impl Capture
                     if selForm.mouse(view, localPos, evt)
                     {
                         evt.accepted = true
-                        if evt.kind != .MouseLeave do
+                        if evt.kind != .Leave do
                             return true
                     }
                 }
             }
 
             // Popup
-            if evt.kind == .MousePressed and evt.button == .Right
+            if evt.kind == .Pressed and evt.button == .Right
             {
                 .popupMenu(view, evt.surfacePos)
                 return true
             }
 
-            if evt.kind == .MouseLeave
+            if evt.kind == .Leave
             {
                 .hotForm = Swag.U64.Max
             }
@@ -1242,7 +1243,7 @@ impl Capture
         }
 
         if .hotForm != Swag.U64.Max do
-            app.setFrameCursor(Cursor.from(.SizeAll))
+            app.setFrameCursor(Cursor.from(.Move))
 
         let shiftPressed = cast(bool) (evt.modifiers & .Shift)
         let ctrlPressed  = cast(bool) (evt.modifiers & .Control)
@@ -1251,7 +1252,7 @@ impl Capture
         ///////////////////////
         if .mouseMode == .None and evt.button == .Left
         {
-            if evt.kind == .MousePressed or evt.kind == .MouseDoubleClick
+            if evt.kind == .Pressed or evt.kind == .DoubleClick
             {
                 // Ctrl+Shift force the selection mode
                 if (shiftPressed and ctrlPressed) or view.main.editMode == .Selection
@@ -1267,7 +1268,7 @@ impl Capture
                 {
                     // Double-click on a grouped form enters the group: select just that
                     // child so it can be moved/edited on its own (standard "enter group").
-                    if evt.kind == .MouseDoubleClick and .hotForm != Swag.U64.Max and formOuterGroup(.forms[.hotForm]) != 0
+                    if evt.kind == .DoubleClick and .hotForm != Swag.U64.Max and formOuterGroup(.forms[.hotForm]) != 0
                     {
                         .selection.clear()
                         .selection.add(.hotForm)
@@ -1296,8 +1297,8 @@ impl Capture
                         .lastSelectHit += 1
                         if .lastSelectHit >= res.count do
                             .lastSelectHit = 0
-                        .hotForm           = res[.lastSelectHit]
-                        here               = .selection.contains(.hotForm)
+                        .hotForm = res[.lastSelectHit]
+                        here     = .selection.contains(.hotForm)
                     }
                     elif !evt.modifiers.has(.Control) and !here and .selection.count
                     {
@@ -1337,7 +1338,7 @@ impl Capture
 
         // End of mode
         ///////////////////////
-        if evt.kind == .MouseReleased and evt.button == .Left
+        if evt.kind == .Released and evt.button == .Left
         {
             .snapX, .snapY = -1
 
@@ -1385,7 +1386,7 @@ impl Capture
             for f, [idx] in .forms
             {
                 let pp = f.boundRect() * view.zoom
-                if pp.intersectWith(r) and !newSel.contains(idx) do
+                if pp.intersects(r) and !newSel.contains(idx) do
                     newSel.add(idx)
             }
 
@@ -1510,7 +1511,7 @@ impl Capture
     {
         // Holding 'O' makes the mouse ignore every form, so a click can start a
         // lasso or create a new form on top of existing ones.
-        if (notnull .editView).getApp().keyb.isKeyPressed(Input.Key.O) do
+        if (notnull .editView).app().keyboard.isKeyPressed(Input.Key.O) do
             return Swag.U64.Max
         let res = .hitTests(localPos, true)
         if res.isEmpty() do

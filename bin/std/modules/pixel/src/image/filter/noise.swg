@@ -2,13 +2,13 @@ using Core
 
 impl Image
 {
-    // Fill the image with a noise.
-    public mtd noise(noise: *Noise.FastNoise)
+    // Replaces the image's RGB channels with samples from `generator`.
+    public mtd fillNoise(generator: *Noise.FastNoise)
     {
-        .visitPixels(noise)
+        .visitPixels(generator)
         {
             let params = cast(*Noise.FastNoise) (notnull userData)
-            let v      = params.noise(x, y)
+            let v      = params.sample(x, y)
             let light  = cast(u8) Math.map(v, -1.0, 1.0, 0, 255.0)
             pix[0] = light
             pix[1] = light

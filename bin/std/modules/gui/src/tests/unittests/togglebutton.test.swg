@@ -22,18 +22,18 @@ func toggleButtonHeadlessChanged(btn: *ToggleButton)
     ToggleButtonHeadlessChangedCount = 0
 
     let toggle = ToggleButton.create(&host.root, {20, 20, 60, 30}, ToggleButtonHeadless_Command)
-    toggle.sigChanged = &toggleButtonHeadlessChanged
+    toggle.sigChanged += &toggleButtonHeadlessChanged
 
-    @assert(!toggle.isToggled)
+    @assert(!toggle.isChecked())
 
     host.click({40, 35})
-    @assert(toggle.isToggled)
+    @assert(toggle.isChecked())
     @assert(ToggleButtonHeadlessChangedCount == 1)
     @assert(host.commandCount == 1)
     @assert(host.lastCommand == ToggleButtonHeadless_Command)
 
     host.click({40, 35})
-    @assert(!toggle.isToggled)
+    @assert(!toggle.isChecked())
     @assert(ToggleButtonHeadlessChangedCount == 2)
     @assert(host.commandCount == 2)
 
@@ -49,16 +49,38 @@ func toggleButtonHeadlessChanged(btn: *ToggleButton)
     ToggleButtonHeadlessChangedCount = 0
 
     let toggle = ToggleButton.create(&host.root, {20, 20, 60, 30})
-    toggle.sigChanged = &toggleButtonHeadlessChanged
+    toggle.sigChanged += &toggleButtonHeadlessChanged
 
     host.mouseDown({40, 35})
     host.moveMouse({200, 100})
     host.mouseUp({200, 100})
 
-    @assert(!toggle.isToggled)
+    @assert(!toggle.isChecked())
     @assert(ToggleButtonHeadlessChangedCount == 0)
     @assert(host.commandCount == 0)
     @assert(host.app.mouseCaptureWnd == null)
+
+    host.shutdown()
+}
+
+// Programmatic changes are silent; keyboard activation follows pointer activation.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 120)
+    host.recordCommands()
+    ToggleButtonHeadlessChangedCount = 0
+
+    let toggle = ToggleButton.create(&host.root, {20, 20, 60, 30}, ToggleButtonHeadless_Command)
+    toggle.sigChanged += &toggleButtonHeadlessChanged
+    toggle.setChecked(true)
+    @assert(toggle.isChecked())
+    @assert(ToggleButtonHeadlessChangedCount == 0 and host.commandCount == 0)
+
+    host.focus(toggle)
+    host.keyPress(Input.Key.Space)
+    @assert(!toggle.isChecked())
+    @assert(ToggleButtonHeadlessChangedCount == 1 and host.commandCount == 1)
 
     host.shutdown()
 }

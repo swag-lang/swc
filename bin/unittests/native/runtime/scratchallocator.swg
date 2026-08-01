@@ -476,6 +476,73 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     scratch.release()
 }
 
+// Alignment applies to both buffer and overflow allocations
+#test
+{
+    var alloc:   Allocator
+    var scratch: ScratchAllocator
+    let itf = makeScratchAllocator(&scratch, &alloc)
+
+    var prefix: AllocatorRequest
+    prefix.size = 1
+    itf.alloc(&prefix)
+
+    var buffered: AllocatorRequest
+    buffered.size      = 32
+    buffered.alignment = 64
+    itf.alloc(&buffered)
+    @assert(cast(u64) buffered.address % 64 == 0)
+
+    var overflow: AllocatorRequest
+    overflow.size      = BufSize
+    overflow.alignment = 128
+    itf.alloc(&overflow)
+    @assert(cast(u64) overflow.address % 128 == 0)
+
+    overflow.size = BufSize
+    itf.free(&overflow)
+    @assert(scratch.totalLeak == 0)
+
+    scratch.release()
+}
+
+// Reallocating an overflow allocation copies only the retained bytes and frees the old block
+#test
+{
+    var alloc:   Allocator
+    var scratch: ScratchAllocator
+    let itf = makeScratchAllocator(&scratch, &alloc)
+
+    var fill: AllocatorRequest
+    fill.size = BufSize
+    itf.alloc(&fill)
+
+    var req: AllocatorRequest
+    req.size = 128
+    itf.alloc(&req)
+    let oldAddress = req.address
+    let data       = cast([*] u8) notnull req.address
+    for [i] in 128 do
+        data[i] = cast(u8) i
+
+    req.oldSize = 128
+    req.size    = 32
+    itf.realloc(&req)
+
+    @assert(req.address != null)
+    @assert(req.address != oldAddress)
+    @assert(scratch.totalLeak == 32)
+    let resized = cast([*] u8) notnull req.address
+    for [i] in 32 do
+        @assert(resized[i] == cast(u8) i)
+
+    req.size = 32
+    itf.free(&req)
+    @assert(scratch.totalLeak == 0)
+
+    scratch.release()
+}
+
 // Release frees the buffer
 #test
 {
@@ -490,6 +557,8 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     scratch.release()
     @assert(scratch.block == null)
     @assert(scratch.used == 0)
+    @assert(scratch.capacity == 0)
+    @assert(scratch.allocator == null)
 }
 
 // Realloc with size 0 frees

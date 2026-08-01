@@ -1,13 +1,18 @@
 #global public
 #global namespace Time
 
-// Names the timer handle type.
+// Internal native timer handle required by the public value layout.
+#[Swag.NoDoc]
 alias TimerHandle = #null const *void
 
-// Represents timer.
+// Owns an operating-system timer that invokes a callback on a worker thread.
+#[Swag.NoCopy]
 struct Timer
 {
-    userLambda: #null func(Timer)     // User lambda associated with this value.
-    handle:     TimerHandle           // Handle associated with this value.
-    context:    Swag.Context          // Context associated with this value.
+    internal
+    {
+        callback: #null func(*Timer)
+        handle:   TimerHandle
+        context:  Swag.Context
+    }
 }

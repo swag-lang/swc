@@ -18,9 +18,9 @@ impl IActionUI for ActionOptions
         switch cxt.id
         {
         case .Options:
-            evt.setFlags |= .Name | .Icon
-            evt.name     = "Options..."
-            evt.icon     = main.getTheme().getIcon24(.Options)
+            evt.updatedFields |= .Name | .Icon
+            evt.name          = "Options..."
+            evt.icon          = main.theme().icon24(.Options)
         }
 
         return true
@@ -31,17 +31,17 @@ impl IActionUI for ActionOptions
         let main = cast(*MainWnd) notnull cxt.wnd
         let view = main.editWnd.editView
 
-        let dlg = Dialog.createDialog(notnull view.surface, 800, 600, title: "Options", flags: .Border | .CloseBtn | .Sizeable)
+        let dlg = Dialog.create(notnull view.surface, 800, 600, title: "Options", flags: .Border | .CloseButton | .Resizable)
         dlg.addButton("Close", Dialog.BtnYes)
 
-        let opt = PropertiesCtrl.create(dlg.getView(), flags: .SectionFilter | .FindBar)
+        let opt = PropertiesCtrl.create(dlg.view(), flags: .SectionTabs | .SearchBar)
         opt.setAllMargins(10)
         opt.dockStyle = .Center
         opt.addStruct(main.captureOptions, "Capture")
         opt.addStruct(main.editorOptions, "Editor")
-        opt.addStruct(main.getApp().options, "Application")
+        opt.addStruct(main.app().options, "Application")
 
-        opt.prop.sigChanged += func|main|(opt, item)
+        opt.properties.sigValueChanged += func|main|(opt, item)
         {
             main.setTheme()
             main.setTopBarHeight()

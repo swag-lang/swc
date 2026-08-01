@@ -5,7 +5,7 @@ using Swag
 
 // Returns true if this is a struct of the given 'name'.
 #[ConstExpr]
-func isStructOfName(type: #null typeinfo, name: #null string)->bool
+func isNamedStruct(type: #null typeinfo, name: #null string)->bool
 {
     if !isStruct(type) do
         return false
@@ -17,7 +17,7 @@ func isStructOfName(type: #null typeinfo, name: #null string)->bool
 // Get information about a specific method in a given struct.
 // Returns null if the method does not exist
 #[ConstExpr]
-func getMethod(type: #null typeinfo, name: #null string)->#null const *TypeValue
+func findMethod(type: #null typeinfo, name: #null string)->#null const *TypeValue
 {
     if !isStruct(type) do
         return null
@@ -31,7 +31,7 @@ func getMethod(type: #null typeinfo, name: #null string)->#null const *TypeValue
 // Get information about a specific field in a given struct
 // Returns null if the field does not exist
 #[ConstExpr]
-func getField(type: #null typeinfo, name: #null string)->#null const *TypeValue
+func findField(type: #null typeinfo, name: #null string)->#null const *TypeValue
 {
     if !isStruct(type) do
         return null
@@ -48,97 +48,39 @@ func getField(type: #null typeinfo, name: #null string)->#null const *TypeValue
 #[ConstExpr]
 func fieldCrc(type: typeinfo, name: string)->u32
 {
-    let f = getField(type, name)
+    let f = findField(type, name)
     return f ? f.crc : 0
 }
 
 // Get a field value with a given runtime type.
 #[ConstExpr]
-func getFieldValue(dest: #null *void, type: #null const *TypeValue, src: #null *void, hardCast: bool = false)
+func readFieldValue(destination: #null *void, field: #null const *TypeValue, source: #null *void)
 {
-    if !dest or !type or !src do
+    if !destination or !field or !source do
         return
 
-    let nnType = type
-    let patch  = cast([*] u8) (src) + nnType.offset
-    let nnDest = dest
-    switch nnType.pointedType
-    {
-    case s8, u8, bool:
-        dref cast(*u8) nnDest = dref cast(*u8) patch
-
-    case s16, u16:
-        dref cast(*u16) nnDest = dref cast(*u16) patch
-
-    case s32, u32, f32, rune:
-        dref cast(*u32) nnDest = dref cast(*u32) patch
-
-    case s64, u64, f64:
-        dref cast(*u64) nnDest = dref cast(*u64) patch
-
-    case string:
-        dref cast(*#null string) nnDest = dref cast(*#null string) patch
-
-    default:
-        if !hardCast do
-            Debug.assert(false, "unsupported getFieldValue type")
-        let pointedType = notnull nnType.pointedType
-        switch pointedType.sizeof
-        {
-        case 1:  dref cast(*u8) nnDest = dref cast(*u8) patch
-        case 2:  dref cast(*u16) nnDest = dref cast(*u16) patch
-        case 4:  dref cast(*u32) nnDest = dref cast(*u32) patch
-        case 8:  dref cast(*u64) nnDest = dref cast(*u64) patch
-        default: Debug.assert(false, "unsupported getFieldValue type")
-        }
-    }
+    let fieldType = field.pointedType
+    if !fieldType do
+        return
+    Reflection.assign(destination, cast([*] u8) source + field.offset, fieldType)
 }
 
-// Set a field value with a given runtime type.
+// Assigns a value to a reflected field while preserving its lifecycle semantics.
 #[ConstExpr]
-func setFieldValue(dest: *void, type: #null const *TypeValue, src: const *void, hardCast: bool = false)
+func writeFieldValue(destination: #null *void, field: #null const *TypeValue, source: #null const *void)
 {
-    if !dest or !type or !src do
+    if !destination or !field or !source do
         return
 
-    let nnType = type
-    var patch  = cast([*] u8) (dest) + nnType.offset
-    let nnSrc  = src
-    switch nnType.pointedType
-    {
-    case s8, u8, bool:
-        dref cast(*u8) patch = dref cast(const *u8) nnSrc
-
-    case s16, u16:
-        dref cast(*u16) patch = dref cast(const *u16) nnSrc
-
-    case s32, u32, f32, rune:
-        dref cast(*u32) patch = dref cast(const *u32) nnSrc
-
-    case s64, u64, f64:
-        dref cast(*u64) patch = dref cast(const *u64) nnSrc
-
-    case string:
-        dref cast(*#null string) patch = dref cast(const *#null string) nnSrc
-
-    default:
-        if !hardCast do
-            Debug.assert(false, "unsupported setFieldValue type")
-        let pointedType = notnull nnType.pointedType
-        switch pointedType.sizeof
-        {
-        case 1:  dref cast(*u8) patch = dref cast(const *u8) nnSrc
-        case 2:  dref cast(*u16) patch = dref cast(const *u16) nnSrc
-        case 4:  dref cast(*u32) patch = dref cast(const *u32) nnSrc
-        case 8:  dref cast(*u64) patch = dref cast(const *u64) nnSrc
-        default: Debug.assert(false, "unsupported setFieldValue type")
-        }
-    }
+    let fieldType = field.pointedType
+    if !fieldType do
+        return
+    Reflection.assign(cast([*] u8) destination + field.offset, source, fieldType)
 }
 
 // Helper function to know if a struct has a special method
 #[ConstExpr]
-func hasMethod(type: #null typeinfo, name: #null string)->bool => getMethod(type, name) != null
+func hasMethod(type: #null typeinfo, name: #null string)->bool => findMethod(type, name) != null
 
 // Returns true if values of that type can use the default '<=>' comparison.
 #[ConstExpr]

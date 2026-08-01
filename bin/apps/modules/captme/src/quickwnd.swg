@@ -178,7 +178,7 @@ impl IWnd for QuickWnd
 {
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
-        if evt.kind == .MousePressed and evt.button == .Right
+        if evt.kind == .Pressed and evt.button == .Right
         {
             .btnPopup(null, evt.surfacePos)
             evt.accepted = true
@@ -192,7 +192,7 @@ impl IWnd for QuickWnd
     {
         catch
         {
-            with evt.ser
+            with evt.serializer
             {
                 .serialize("QuickWnd.qsArrow", &me.qsArrow)
                 .serialize("QuickWnd.qsShape", &me.qsShape)
@@ -287,7 +287,7 @@ impl QuickWnd
         with let quick = Wnd.create'QuickWnd(parent, {0, 0, 0, 300})
         {
             .backgroundStyle = .Window
-            .scrollWndFlags  |= .ForceVertical | .SmallBar | .TransparentBar
+            .updateFlags(.AlwaysShowVertical | .CompactBars | .TransparentBars)
 
             .layout         = WrapLayoutCtrl.create(quick)
             .layout.padding = 6
@@ -312,7 +312,7 @@ impl QuickWnd
             if startSize != 0 do
                 form.beginCap = startCap
             if endSize != 0 do
-                form.endCap  = .ArrowAnchor
+                form.endCap = .ArrowAnchor
             form.borderColor = color
             addStyleForm(&.qsArrow, form)
         }
@@ -641,9 +641,9 @@ impl QuickWnd
         // button is ever hidden), so form 'i' maps directly to child 'i'.
         for it, [i] in .currentStyle.forms
         {
-            let btn = cast(*IconButton) .layout.childs[i]
+            let btn = cast(*IconButton) .layout.children[i]
             let mdl = .main.modelFor(@kindof(it))
-            btn.isChecked = mode == MainWnd.formToEditMode(it) and it.isSame(cast(*BaseForm) @dataof(mdl))
+            btn.setChecked(mode == MainWnd.formToEditMode(it) and it.isSame(cast(*BaseForm) @dataof(mdl)))
 
             if btn.isChecked do
                 done = true
@@ -651,16 +651,16 @@ impl QuickWnd
 
         // The model button is optional (canAddModel), so the child list can be
         // empty; guard back() against an out-of-bounds read.
-        if .layout.childs.count
+        if .layout.children.count
         {
-            let curMdl = cast(*IconButton) .layout.childs.back()
+            let curMdl = cast(*IconButton) .layout.children.back()
             if curMdl.userData
             {
                 curMdl.show(!done)
                 if !done do
-                    curMdl.isChecked = true
+                    curMdl.setChecked(true)
                 .layout.computeLayout()
-                .setScrollSize(0, .layout.resultHeight)
+                .setScrollSize(0, .layout.contentHeight)
             }
         }
 
@@ -714,7 +714,7 @@ impl QuickWnd
             {
                 let textColor = g_App.theme.colors.btnIcon_Text
                 let rect      = (notnull paintForm.itf).boundRect()
-                painter.drawStringCenter(rect.horzCenter(), rect.bottom(), paintForm.title, captmeFont(btnp.getFont().regular), textColor)
+                painter.drawStringCenter(rect.horzCenter(), rect.bottom(), paintForm.title, captmeFont(btnp.font().regular), textColor)
             }
         }
 
@@ -765,33 +765,33 @@ impl QuickWnd
         // recreating every button is only needed when the style set itself changed;
         // check states and the model button repaint from live data.
         let wantBtns = .currentStyle.forms.count + (canAddModel ? 1 : 0)
-        if !forceRebuild and .currentStyle == prevStyle and .layout.childs.count == wantBtns
+        if !forceRebuild and .currentStyle == prevStyle and .layout.children.count == wantBtns
         {
             .updateSelection()
             return
         }
 
-        for c in .layout.childs do
+        for c in .layout.children do
             c.destroy()
 
         for it in .currentStyle.forms
         {
             let btn = Wnd.create'QuickButton(.layout, null, {0, 0, 64, 64})
-            btn.iconBtnFlags.add(.Checkable)
-            btn.setForm(.RoundSquare)
+            btn.updateFlags(.Radio)
+            btn.setForm(.RoundedRectangle)
             btn.formItf  = it
             btn.quickWnd = me
 
-            btn.sigPaintIcon = func(btn, bc, pos, flags) { paintForm(bc.painter, cast(*QuickButton) btn) }
+            btn.iconPainter = func(btn, bc, pos, flags) { paintForm(bc.painter, cast(*QuickButton) btn) }
 
             btn.sigRightPressed += func(btn)
             {
-                var rect     = btn.getSurfaceRect()
+                var rect     = btn.surfaceRect()
                 let quickBtn = cast(*QuickButton) btn
                 quickBtn.quickWnd.btnPopup(btn, rect.center())
             }
 
-            btn.sigCheckChanged += func(btn)
+            btn.sigCheckedChanged += func(btn)
             {
                 let quickBtn = cast(*QuickButton) btn
                 let quick    = quickBtn.quickWnd
@@ -822,34 +822,35 @@ impl QuickWnd
         if canAddModel
         {
             let btn = Wnd.create'QuickButton(.layout, null, {0, 0, 64, 64})
+            btn.updateFlags(.Radio)
             btn.userData = cast(*void) 1'u64     // This is the model button
             btn.formItf  = formItf
-            btn.setForm(.RoundSquare)
+            btn.setForm(.RoundedRectangle)
             btn.style.addStyleSheetColors("btnIcon_Bk          0x0")
             btn.style.addStyleSheetColors("btnIcon_HotBk       0x0")
             btn.style.addStyleSheetColors("btnIcon_PressedBk   0x0")
             .layout.sendResizeEvent()
 
-            btn.sigPaintIcon = func(btn, bc, pos, flags)
+            btn.iconPainter = func(btn, bc, pos, flags)
             {
                 paintForm(bc.painter, cast(*QuickButton) btn)
-                var rect = btn.getClientRect()
+                var rect = btn.clientRect()
                 rect.inflate(-2, -2)
                 bc.painter.setParams(.Antialiased)
                 bc.painter.drawRoundRect(rect, 5, 5, Pen.createDash(.Dash, Argb.White, 2))
             }
 
             // Button to add a new style
-            let ico  = .getTheme().getIcon24(.Plus)
+            let ico  = .theme().icon24(.Plus)
             let btn1 = IconButton.create(btn, ico, {64 - 26, 2, 24, 24})
             btn1.style.addStyleSheetColors("btnIcon_Bk          $hilight")
             btn1.style.addStyleSheetColors("btnIcon_HotBk       $hilightLight")
             btn1.style.addStyleSheetColors("btnIcon_PressedBk   $hilightDark")
             btn1.style.addStyleSheetColors("btnIcon_Icon        $hilightLightContrast")
-            btn1.setForm(.Round)
+            btn1.setForm(.Circle)
 
             .layout.sendResizeEvent()
-            .setScrollSize(0, .layout.resultHeight)
+            .setScrollSize(0, .layout.contentHeight)
 
             btn1.sigPressed += func|quickWnd = me|(btn)
             {

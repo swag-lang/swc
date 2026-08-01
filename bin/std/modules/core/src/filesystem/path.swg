@@ -3,29 +3,29 @@
 
 using Swag
 
-const DirectorySeparatorChar    = '/'u8      // Default directory separator character
-const AltDirectorySeparatorChar = '\\'u8     // Alternate directory separator character
-const VolumeSeparatorChar       = ':'u8      // Volume separator character (e.g., 'C:')
+const DirectorySeparator    = '/'u8      // Preferred directory separator.
+const AltDirectorySeparator = '\\'u8     // Accepted alternate directory separator.
+const VolumeSeparator       = ':'u8      // Volume separator, as in `C:`.
 
 // Returns true if the given character is a directory separator
 #[Inline, ConstExpr]
 func isDirectorySeparator(c: u8)->bool
 {
-    return c == DirectorySeparatorChar or c == AltDirectorySeparatorChar
+    return c == DirectorySeparator or c == AltDirectorySeparator
 }
 
 // Returns the root part of the path, null if not found
 #[ConstExpr]
-func getRootName(fullname: #null string)->#null string
+func rootName(fullname: #null string)->#null string
 {
     if fullname == null do
         return null
     let path = fullname
     Debug.assert(isValidPathName(path))
-    let rootLength = getRootLength(path)
-    if !rootLength do
+    let length = rootLength(path)
+    if !length do
         return null
-    return cast() @mkslice(@dataof(path), cast(u64) rootLength)
+    return cast() @mkslice(@dataof(path), cast(u64) length)
 }
 
 // Returns true if the given path is rooted (starts with a separator or a drive letter and colon)
@@ -39,14 +39,14 @@ func isRooted(fullname: #null string)->bool
     let countof = @countof(path)
     if countof >= 1 and isDirectorySeparator(path[0]) do
         return true
-    if countof >= 2 and path[1] == VolumeSeparatorChar do
+    if countof >= 2 and path[1] == VolumeSeparator do
         return true
     return false
 }
 
 // Returns the directory part of the path, null if not found
 #[ConstExpr]
-func getDirectoryName(fullname: #null string)->#null string
+func directoryName(fullname: #null string)->#null string
 {
     if fullname == null do
         return null
@@ -63,7 +63,7 @@ func getDirectoryName(fullname: #null string)->#null string
         {
             if cpt == 0 do
                 return null
-            if cpt == 2 and path[1] == VolumeSeparatorChar do
+            if cpt == 2 and path[1] == VolumeSeparator do
                 return null
             return cast() @mkslice(@dataof(path), cast(u64) cpt)
         }
@@ -74,7 +74,7 @@ func getDirectoryName(fullname: #null string)->#null string
 
 // Returns the file name part of the path, null if not found
 #[ConstExpr]
-func getFileName(fullname: #null string)->#null string
+func fileName(fullname: #null string)->#null string
 {
     if fullname == null do
         return null
@@ -87,7 +87,7 @@ func getFileName(fullname: #null string)->#null string
     {
         cpt -= 1
         let c = path[cpt]
-        if isDirectorySeparator(c) or c == VolumeSeparatorChar
+        if isDirectorySeparator(c) or c == VolumeSeparator
         {
             if cpt == countof - 1 do
                 return null
@@ -100,7 +100,7 @@ func getFileName(fullname: #null string)->#null string
 
 // Returns the file name without its extension, null if not found
 #[ConstExpr]
-func getFileNameWithoutExtension(fullname: #null string)->#null string
+func fileNameWithoutExtension(fullname: #null string)->#null string
 {
     if fullname == null do
         return null
@@ -116,7 +116,7 @@ func getFileNameWithoutExtension(fullname: #null string)->#null string
         let c = path[cpt]
         if c == '.' and last == countof do
             last = cpt
-        elif isDirectorySeparator(c) or c == VolumeSeparatorChar
+        elif isDirectorySeparator(c) or c == VolumeSeparator
         {
             if cpt == countof - 1 do
                 return null
@@ -132,7 +132,7 @@ func getFileNameWithoutExtension(fullname: #null string)->#null string
 // Returns the file name extension, including the '.' character
 // Returns null if no extension was found
 #[ConstExpr]
-func getExtension(fullname: #null string)->#null string
+func extension(fullname: #null string)->#null string
 {
     if fullname == null do
         return null
@@ -146,7 +146,7 @@ func getExtension(fullname: #null string)->#null string
         let c = path[cpt]
         if c == '.' do
             return cast() @mkslice(@dataof(path) + cpt, cast(u64) @countof(path) - cpt)
-        if isDirectorySeparator(c) or c == VolumeSeparatorChar do
+        if isDirectorySeparator(c) or c == VolumeSeparator do
             break
     }
 
@@ -155,15 +155,15 @@ func getExtension(fullname: #null string)->#null string
 
 // Returns the file name extension in lower case, including the '.' character
 // Returns null if no extension was found
-func getExtensionLowerCase(fullname: #null string)->String
+func lowercaseExtension(fullname: #null string)->String
 {
-    return String.toLower(getExtension(fullname))
+    return String.toLower(extension(fullname))
 }
 
 // Returns true if the given file has the specified extension (case-insensitive)
-func isExtension(fullname, extension: string)->bool
+func hasExtension(fullname, expectedExtension: string)->bool
 {
-    return getExtensionLowerCase(fullname) == String.toLower(extension)
+    return lowercaseExtension(fullname) == String.toLower(expectedExtension)
 }
 
 // Returns true if the file name contains an extension
@@ -182,7 +182,7 @@ func hasExtension(fullname: #null string)->bool
         let c = path[cpt]
         if c == '.' do
             return true
-        if isDirectorySeparator(c) or c == VolumeSeparatorChar do
+        if isDirectorySeparator(c) or c == VolumeSeparator do
             break
     }
 
@@ -203,7 +203,7 @@ func combine(fullnames: #null string...)->String
         {
             let c = result.back()
             if !isDirectorySeparator(c) do
-                result += DirectorySeparatorChar
+                result += DirectorySeparator
         }
 
         result += part

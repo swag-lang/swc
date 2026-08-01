@@ -60,8 +60,8 @@ func splitLines(src: string)->Array'(string)
         result.add(onestr)
         if cpt < countof - 1 and dref end == '\r' and end[1] == '\n' do
             end, cpt += 1
-        end, cpt     += 1
-        dataof       = end
+        end, cpt += 1
+        dataof   = end
     }
 
     return result
@@ -193,8 +193,8 @@ func splitAny(src: string, separators: const [..] rune, maxSplit: u32 = 0, remov
     return result
 }
 
-// Returns the first substring of 'str' stopping at the first whitespace character
-func getToSpace(str: string)->string
+// Returns the prefix before the first Latin-1 whitespace character.
+func prefixToWhitespace(str: string)->string
 {
     let countof = @countof(str)
     var cpt     = 0'u64
@@ -203,8 +203,8 @@ func getToSpace(str: string)->string
     return @mkstring(@dataof(str), cpt)
 }
 
-// Returns the first substring of 'str' that contains only alphanumeric characters
-func getWhileAlnum(str: string)->string
+// Returns the leading Latin-1 alphanumeric characters.
+func alphanumericPrefix(str: string)->string
 {
     let countof = @countof(str)
     var cpt     = 0'u64
@@ -213,15 +213,16 @@ func getWhileAlnum(str: string)->string
     return @mkstring(@dataof(str), cpt)
 }
 
-// Returns a substring of 'src' starting at 'startByteIndex' and ending at the first occurrence of 'delimiter'
-// Includes the delimiter if 'includeDelimiter' is true
-func getTo(src: string, delimiter: u8, startByteIndex = 0'u64, includeDelimiter = true)->string
+// Returns bytes from `startByteIndex` through the next `delimiter`.
+//
+// The delimiter is omitted when `includeDelimiter` is false. When no delimiter
+// remains, the result extends to the end of `source`.
+func sliceToDelimiter(source: string, delimiter: u8, startByteIndex = 0'u64, includeDelimiter = true)->string
 {
-    var dataof = @dataof(src)
-    var length = @countof(src)
-    if !length do
+    var dataof = @dataof(source)
+    var length = @countof(source)
+    if startByteIndex >= length do
         return @mkstring(dataof, 0)
-    Debug.assert(startByteIndex < length, "invalid 'startByteIndex'")
 
     length -= startByteIndex
     dataof += startByteIndex
@@ -239,5 +240,5 @@ func getTo(src: string, delimiter: u8, startByteIndex = 0'u64, includeDelimiter 
         length -= 1
     }
 
-    return @mkstring(dataof, 0)
+    return @mkstring(dataof, cast(u64) (scan - dataof))
 }

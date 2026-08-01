@@ -21,34 +21,34 @@ impl IActionUI for ActionLibSort
         switch cxt.id
         {
         case .Recent:
-            evt.setFlags      |= .Name | .Checked | .RenderingHint
+            evt.updatedFields |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = "Write Time"
             evt.checked       = libWnd.sortMethod == .Recent
 
         case .FileSize:
-            evt.setFlags      |= .Name | .Checked | .RenderingHint
+            evt.updatedFields |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = "File Size"
             evt.checked       = libWnd.sortMethod == .FileSize
 
         case .Similar:
-            evt.setFlags      |= .Name | .Checked | .RenderingHint
+            evt.updatedFields |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = "Similarity"
             evt.checked       = libWnd.sortMethod == .Similar
 
         case .Invert:
-            evt.setFlags |= .Name | .Checked
+            evt.updatedFields |= .Name | .Checked
             if libWnd.sortMethod == .Recent do
                 evt.name = "Oldest First"
             elif libWnd.sortMethod == .FileSize do
                 evt.name = "Smaller First"
             else
             {
-                evt.setFlags |= .Disabled
-                evt.disabled = true
-                evt.name     = "Invert Order"
+                evt.updatedFields |= .Disabled
+                evt.disabled      = true
+                evt.name          = "Invert Order"
             }
 
             evt.checked = libWnd.invertSort

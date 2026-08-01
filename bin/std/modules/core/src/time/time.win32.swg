@@ -11,7 +11,7 @@ var g_PerfCounterFreq: u64
 }
 
 // Get current time precise value
-public func nowPrecise()->u64
+public func monotonicTicks()->u64
 {
     var counter: u64 = undefined
     QueryPerformanceCounter(cast() &counter)
@@ -19,7 +19,7 @@ public func nowPrecise()->u64
 }
 
 // The frequency of the precise counter, in ticks per second
-public func preciseFrequency()->u64
+public func monotonicFrequency()->u64
 {
     return g_PerfCounterFreq
 }

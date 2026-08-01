@@ -189,7 +189,8 @@ public func perlin(x, y, z: f32, seed: s32 = 1337)->f32
 
 // Value noise in 2D.
 // Result range is [-1, 1]
-func value(x, y: f32, seed: s32 = 1337)->f32
+// Value noise in two dimensions. The result is in the range -1 through 1.
+public func value(x, y: f32, seed: s32 = 1337)->f32
 {
     var x0 = cast(s32) Math.floor(x)
     var y0 = cast(s32) Math.floor(y)
@@ -210,7 +211,8 @@ func value(x, y: f32, seed: s32 = 1337)->f32
 
 // Value noise in 3D.
 // Result range is [-1, 1]
-func value(x, y, z: f32, seed: s32 = 1337)->f32
+// Value noise in three dimensions. The result is in the range -1 through 1.
+public func value(x, y, z: f32, seed: s32 = 1337)->f32
 {
     var x0 = cast(s32) Math.floor(x)
     var y0 = cast(s32) Math.floor(y)

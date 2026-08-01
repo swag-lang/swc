@@ -5,237 +5,236 @@ using Core, Pixel
 // Names the hook event type.
 alias HookEvent = func||(*Wnd, IEvent)->bool
 
-// Automatic placement and size of the window in the parent client rectangle
+// Selects automatic placement within the parent's padded client rectangle.
 enum DockStyle
 {
-    None                   // No option is selected.
-    Top                    // Stack to the top, keeping the vertical size
-    Left                   // Stack to the left, keeping the horizontal size
-    Right                  // Stack to the right, keeping the horizontal size
-    Bottom                 // Stack to the bottom, keeping the vertical size
-    Center                 // Fill the remaining parent rect
-    CenterKeepSizeVert     // Fill the remaining parent rect horizontally, but keep the vertical size
+    None                   // Leaves the explicit position unchanged.
+    Top                    // Takes the remaining top strip and keeps its height.
+    Left                   // Takes the remaining left strip and keeps its width.
+    Right                  // Takes the remaining right strip and keeps its width.
+    Bottom                 // Takes the remaining bottom strip and keeps its height.
+    Center                 // Fills the remaining rectangle.
+    CenterKeepSizeVert     // Fills remaining width while preserving and centering its height.
 }
 
-// Selects anchor style.
+// Selects which edges or dimensions follow a parent's size delta.
 #[Swag.EnumFlags]
 enum AnchorStyle
 {
-    None       // No option is selected.
-    X          // Selects x.
-    Y          // Selects y.
-    Width      // Selects width.
-    Height     // Selects height.
+    None       // Keeps the explicit rectangle unchanged.
+    Right      // Preserves the distance from the parent's right edge.
+    Bottom     // Preserves the distance from the parent's bottom edge.
+    Width      // Adds the parent's horizontal size delta to the width.
+    Height     // Adds the parent's vertical size delta to the height.
 }
 
-// Selects background style.
+// Selects a semantic theme background for a window.
 enum BackgroundStyle
 {
-    Transparent     // Selects transparent.
-    Window          // Selects window.
-    Dialog          // Selects dialog.
-    DialogBar       // Selects dialog bar.
-    View            // Selects view.
+    Transparent     // Leaves the background transparent.
+    Window          // Uses the standard top-level window background.
+    Dialog          // Uses the dialog content background.
+    DialogBar       // Uses the dialog command-bar background.
+    View            // Uses the document or content-view background.
 }
 
-// Selects focus stategy.
-enum FocusStategy
+// Selects how pointer interaction changes keyboard focus.
+enum FocusStrategy
 {
-    None             // No option is selected.
-    MousePressed     // Selects mouse pressed.
+    None             // Pointer interaction does not change keyboard focus.
+    OnMousePress     // Focus the window when a mouse button is pressed over it.
 }
 
-// Selects size policy.
+// Selects how a layout container may size a window along one axis.
 enum SizePolicy
 {
-    Fixed       // Selects fixed.
-    Content     // Selects content.
-    Fill        // Selects fill.
-    Expand      // Selects expand.
+    Fixed       // Forces minimum and maximum to the preferred size.
+    Content     // Keeps the preferred size unless explicit bounds clamp it.
+    Expand      // May shrink toward minimum or receive weighted surplus space.
 }
 
-// Selects layout align.
+// Selects placement within the cross-axis space assigned by a container.
 enum LayoutAlign
 {
-    Start       // Selects start.
-    Center      // Selects center.
-    End         // Selects end.
-    Stretch     // Selects stretch.
+    Start       // Aligns to the leading edge.
+    Center      // Centers without changing the measured size.
+    End         // Aligns to the trailing edge.
+    Stretch     // Stretches to the available cross-axis size within bounds.
 }
 
-// Represents size hint.
+// Describes the minimum, preferred, and maximum size produced by measurement.
 struct SizeHint
 {
-    min:       Math.Point                                    // Min associated with this value.
-    preferred: Math.Point                                    // Preferred associated with this value.
-    max:       Math.Point = {Swag.F32.Max, Swag.F32.Max}     // Max associated with this value.
+    min:       Math.Point                                    // Smallest valid width and height.
+    preferred: Math.Point                                    // Natural width and height before surplus distribution.
+    max:       Math.Point = {Swag.F32.Max, Swag.F32.Max}     // Largest valid width and height.
 }
 
-// Represents layout spec.
+// Configures container-driven sizing and alignment for one child window.
 struct LayoutSpec
 {
-    policyX: SizePolicy  = SizePolicy.Content      // Policy x associated with this value.
-    policyY: SizePolicy  = SizePolicy.Content      // Policy y associated with this value.
-    weightX: f32         = 1                       // Weight x associated with this value.
-    weightY: f32         = 1                       // Weight y associated with this value.
-    alignX:  LayoutAlign = LayoutAlign.Stretch     // Align x associated with this value.
-    alignY:  LayoutAlign = LayoutAlign.Stretch     // Align y associated with this value.
-    margin:  Math.Vector4                          // Margin associated with this value.
+    policyX: SizePolicy  = SizePolicy.Content      // Horizontal size policy.
+    policyY: SizePolicy  = SizePolicy.Content      // Vertical size policy.
+    weightX: f32         = 1                       // Relative horizontal share of surplus space.
+    weightY: f32         = 1                       // Relative vertical share of surplus space.
+    alignX:  LayoutAlign = LayoutAlign.Stretch     // Horizontal alignment inside assigned space.
+    alignY:  LayoutAlign = LayoutAlign.Stretch     // Vertical alignment inside assigned space.
+    margin:  Math.Vector4                          // Additional left, top, right, and bottom layout margins.
 }
 
-// Represents layout debug info.
+// Records the most recent measure and arrange decisions for diagnostics.
 struct LayoutDebugInfo
 {
-    measuredMin:       Math.Point         // Measured min associated with this value.
-    measuredPreferred: Math.Point         // Measured preferred associated with this value.
-    measuredMax:       Math.Point         // Measured max associated with this value.
-    arrangedRect:      Math.Rectangle     // Arranged rect associated with this value.
-    clippedX:          bool               // Clipped x associated with this value.
-    clippedY:          bool               // Clipped y associated with this value.
-    clampedByMinX:     bool               // Clamped by min x associated with this value.
-    clampedByMinY:     bool               // Clamped by min y associated with this value.
-    clampedByMaxX:     bool               // Clamped by max x associated with this value.
-    clampedByMaxY:     bool               // Clamped by max y associated with this value.
+    measuredMin:       Math.Point         // Minimum size reported by measurement.
+    measuredPreferred: Math.Point         // Preferred size reported by measurement.
+    measuredMax:       Math.Point         // Maximum size reported by measurement.
+    arrangedRect:      Math.Rectangle     // Rectangle requested by the container after clamping.
+    clippedX:          bool               // Whether assigned width was below the measured minimum.
+    clippedY:          bool               // Whether assigned height was below the measured minimum.
+    clampedByMinX:     bool               // Whether minimum width enlarged the requested rectangle.
+    clampedByMinY:     bool               // Whether minimum height enlarged the requested rectangle.
+    clampedByMaxX:     bool               // Whether maximum width reduced the requested rectangle.
+    clampedByMaxY:     bool               // Whether maximum height reduced the requested rectangle.
 }
 
-// Represents key shortcut.
+// Routes a key combination to a command identifier and optional target window.
 struct KeyShortcut
 {
-    mdf:    Input.KeyModifiers = Zero          // Mdf associated with this value.
-    key:    Input.Key          = None          // Key associated with this value.
-    id:     WndId              = undefined     // Id associated with this value.
-    target: #null *Wnd                         // Target associated with this value.
+    modifiers: Input.KeyModifiers = None          // Required modifier-key combination.
+    key:       Input.Key          = None          // Required non-modifier key.
+    id:        WndId              = undefined     // Command identifier sent on a match.
+    target:    #null *Wnd                         // Explicit command target, or `null` to use normal routing.
 }
 
-// Defines the operations supported by i wnd.
+// Receives lifecycle, input, paint, command, and notification events for a [Wnd].
 interface IWnd
 {
-    // Performs the on event operation.
+    // Dispatches an arbitrary event to its typed callback.
     mtd onEvent(evt: IEvent)
 
-    // Performs the on hook event operation.
+    // Observes an event registered through the application's global hook list.
     mtd onHookEvent(evt: IEvent)
 
-    // Performs the on create event operation.
+    // Handles attachment to a surface and completion of construction.
     mtd onCreateEvent(evt: *CreateEvent)
 
-    // Performs the on destroy event operation.
+    // Handles destruction before owned resources and storage are released.
     mtd onDestroyEvent(evt: *DestroyEvent)
 
-    // Performs the on state event operation.
+    // Handles visibility or enabled-state changes.
     mtd onStateEvent(evt: *StateEvent)
 
-    // Performs the on resize event operation.
+    // Handles a change to the window's logical size.
     mtd onResizeEvent(evt: *ResizeEvent)
 
-    // Performs the on pre paint event operation.
-    mtd onPrePaintEvent(evt: *PaintEvent)
+    // Paints content scheduled before child windows.
+    mtd onBeforePaint(evt: *PaintEvent)
 
-    // Performs the on paint event operation.
-    mtd onPaintEvent(evt: *PaintEvent)
+    // Paints the window's primary content.
+    mtd onPaint(evt: *PaintEvent)
 
-    // Performs the on post paint event operation.
-    mtd onPostPaintEvent(evt: *PaintEvent)
+    // Paints overlays scheduled after child windows.
+    mtd onAfterPaint(evt: *PaintEvent)
 
-    // Performs the on key event operation.
+    // Handles keyboard presses, releases, and character input.
     mtd onKeyEvent(evt: *KeyEvent)
 
-    // Performs the on mouse event operation.
+    // Handles pointer buttons, movement, wheel input, and cursor queries.
     mtd onMouseEvent(evt: *MouseEvent)
 
-    // Performs the on sys command event operation.
+    // Handles a platform window-system command.
     mtd onSysCommandEvent(evt: *SysCommandEvent)
 
-    // Performs the on sys user event operation.
+    // Handles an application-defined platform message.
     mtd onSysUserEvent(evt: *SysUserEvent)
 
-    // Performs the on theme event operation.
+    // Handles a resolved-theme change.
     mtd onThemeEvent(evt: *ThemeEvent)
 
-    // Performs the on timer event operation.
+    // Handles expiration of a timer owned by this window.
     mtd onTimerEvent(evt: *TimerEvent)
 
-    // Performs the on focus event operation.
+    // Handles keyboard-focus negotiation and changes.
     mtd onFocusEvent(evt: *FocusEvent)
 
-    // Performs the on command event operation.
+    // Handles a command not consumed by an attached action.
     mtd onCommandEvent(evt: *CommandEvent)
 
-    // Performs the on compute state event operation.
+    // Supplies current enabled, checked, visible, and text state for a command.
     mtd onComputeStateEvent(evt: *CommandStateEvent)
 
-    // Performs the on apply state event operation.
+    // Applies command state to a presentation window.
     mtd onApplyStateEvent(evt: *CommandStateEvent)
 
-    // Performs the on frame event operation.
+    // Handles the start of a rendered application frame.
     mtd onFrameEvent(evt: *FrameEvent)
 
-    // Performs the on serialize state event operation.
+    // Reads or writes persistent UI state through the supplied serializer.
     mtd onSerializeStateEvent(evt: *SerializeStateEvent)
 
-    // Performs the on notify event operation.
+    // Handles framework notifications such as theme changes.
     mtd onNotifyEvent(evt: *NotifyEvent)
 }
 
-// Selects wnd flags.
+// Configures window state, clipping, paint order, and sibling ordering.
 #[Swag.EnumFlags]
 enum WndFlags
 {
-    Zero = 0            // No flags are enabled.
-    NoScroll            // Enables no scroll.
-    ClipChildren        // Enables clip children.
-    Disabled            // Enables disabled.
-    Hidden              // Enables hidden.
-    PreChildsPaint      // Enables pre childs paint.
-    PostChildsPaint     // Enables post childs paint.
-    TopMost             // Enables top most.
+    None = 0                // No flags are enabled.
+    NoScroll                // Ignores ancestor scroll offsets when computing surface coordinates.
+    ClipChildren            // Clips child painting to this window's client rectangle.
+    Disabled                // Rejects user input and uses disabled presentation.
+    Hidden                  // Excludes the window from painting, input, and layout visibility.
+    BeforeChildrenPaint     // Enables the before-children paint phase.
+    AfterChildrenPaint      // Enables the after-children overlay paint phase.
+    TopMost                 // Keeps the window after normal siblings in paint order.
 }
 
-// Represents wnd.
+// Forms one node in a retained GUI tree and provides layout, event, and painting services.
 struct Wnd
 {
     #[Swag.Late]
-    itf: IWnd     // Itf associated with this value.
+    itf: IWnd     // Dynamic event receiver implemented by the concrete window type.
     #[Swag.Late]
-    type:     typeinfo                   // Type associated with this value.
-    surface:  #null *Surface             // Surface associated with this value.
-    style:    ThemeStyle                 // Style associated with this value.
-    wndFlags = WndFlags.ClipChildren     // Wnd flags associated with this value.
-    userData: #null *void                // User data associated with this value.
+    type:     typeinfo                   // Runtime type of the concrete window allocation.
+    surface:  #null *Surface             // Surface containing this window, or `null` while detached.
+    style:    ThemeStyle                 // Local style and inherited theme reference.
+    wndFlags = WndFlags.ClipChildren     // Active state, clipping, and paint-order flags.
+    userData: #null *void                // Opaque application-owned payload; never dereferenced by GUI.
 
-    position:      Math.Rectangle     // Position associated with this value.
-    preferredSize: Math.Point         // Preferred size associated with this value.
-    minSize:       Math.Point         // Min size associated with this value.
-    maxSize:       Math.Point         // Max size associated with this value.
-    scrollPos:     Math.Point         // Scroll pos associated with this value.
+    position:      Math.Rectangle     // Logical rectangle relative to the parent client origin.
+    preferredSize: Math.Point         // Natural layout size; non-positive components fall back to `position`.
+    minSize:       Math.Point         // Inclusive minimum layout size.
+    maxSize:       Math.Point         // Inclusive maximum layout size; zero components mean unbounded.
+    scrollPos:     Math.Point         // Logical content offset applied to descendants.
 
-    invalidatePadding: Math.Vector4     // Invalidate padding associated with this value.
+    invalidatePadding: Math.Vector4     // Extra repaint extent around the logical rectangle.
 
-    parent: #null *Wnd     // Parent associated with this value.
-    owner:  #null *Wnd     // Owner associated with this value.
+    parent: #null *Wnd     // Structural parent responsible for position, layout, and lifetime.
+    owner:  #null *Wnd     // Logical owner used by popup and command routing when distinct from `parent`.
 
-    // The child list is maintained by the window itself: add and remove children through
-    // 'addChild' and 'removeChild' so parent links and layout state stay consistent.
-    readonly childs: Array'(*Wnd)
+    // The child list is maintained by the window itself: attach through [setParent] and
+    // detach through [detachChild] so parent, surface, style, and layout state stay consistent.
+    readonly children: Array'(*Wnd)
 
-    name:    RichString      // Name associated with this value.
-    id:      #null WndId     // Id associated with this value.
-    cursor:  Cursor          // Cursor associated with this value.
-    toolTip: String          // Tool tip associated with this value.
+    name:    RichString      // Display text with optional rich spans.
+    id:      #null WndId     // Optional stable command, lookup, and persistence identifier.
+    cursor:  Cursor          // Cursor requested while the pointer is over this window.
+    toolTip: String          // Plain tooltip text; empty disables the tooltip.
 
-    keyShortcuts: Array'KeyShortcut     // Key shortcuts associated with this value.
-    actions:      Array'IActionUI       // Actions associated with this value.
+    keyShortcuts: Array'KeyShortcut     // Key combinations routed from this subtree.
+    actions:      Array'IActionUI       // Command actions exposed or consumed by this window.
 
-    margin:      Math.Vector4           // Margin associated with this value.
-    padding:     Math.Vector4           // Padding associated with this value.
-    dockStyle:   DockStyle   = None     // Dock style associated with this value.
-    anchorStyle: AnchorStyle = None     // Anchor style associated with this value.
-    layoutSpec:  LayoutSpec             // Layout spec associated with this value.
+    margin:      Math.Vector4           // Left, top, right, and bottom spacing outside the window.
+    padding:     Math.Vector4           // Left, top, right, and bottom inset of the client area.
+    dockStyle:   DockStyle   = None     // Legacy parent-relative docking behavior.
+    anchorStyle: AnchorStyle = None     // Legacy response to parent-size deltas.
+    layoutSpec:  LayoutSpec             // Container-driven measurement and arrangement policy.
 
-    focusStrategy: FocusStategy = MousePressed     // Focus strategy associated with this value.
+    focusStrategy: FocusStrategy = OnMousePress     // Pointer-to-keyboard focus policy.
 
-    backgroundStyle: BackgroundStyle = Transparent     // Background style associated with this value.
-    isAllocated:     bool                              // Whether this value is allocated.
+    backgroundStyle: BackgroundStyle = Transparent     // Semantic theme background painted before content.
+    internal isAllocated: bool                         // Whether destruction must release this allocation.
 
     // Layout bookkeeping. The layout pass owns it: reading it tells what the window is doing,
     // writing it from outside would desynchronize the pass from the tree.
@@ -259,7 +258,7 @@ struct Wnd
 
 impl IWnd for Wnd
 {
-    // Performs the on event operation.
+    // Routes each concrete event to the corresponding typed callback.
     mtd impl onEvent(evt: IEvent)
     {
         switch evt
@@ -276,14 +275,14 @@ impl IWnd for Wnd
         case ResizeEvent as ptr:
             .itf.onResizeEvent(ptr)
 
-        case PaintEvent as ptr where ptr.kind == .PrePaint:
-            .itf.onPrePaintEvent(ptr)
+        case PaintEvent as ptr where ptr.kind == .Before:
+            .itf.onBeforePaint(ptr)
 
-        case PaintEvent as ptr where ptr.kind == .Paint:
-            .itf.onPaintEvent(ptr)
+        case PaintEvent as ptr where ptr.kind == .Content:
+            .itf.onPaint(ptr)
 
-        case PaintEvent as ptr where ptr.kind == .PostPaint:
-            .itf.onPostPaintEvent(ptr)
+        case PaintEvent as ptr where ptr.kind == .After:
+            .itf.onAfterPaint(ptr)
 
         case SysCommandEvent as ptr:
             .itf.onSysCommandEvent(ptr)
@@ -294,7 +293,7 @@ impl IWnd for Wnd
         case KeyEvent as ptr:
             .itf.onKeyEvent(ptr)
 
-        case MouseEvent as ptr where ptr.kind != .MouseAccept:
+        case MouseEvent as ptr where ptr.kind != .Accept:
             .itf.onMouseEvent(ptr)
 
         case ThemeEvent as ptr:
@@ -310,11 +309,11 @@ impl IWnd for Wnd
             if !.executeAction(ptr) do
                 .itf.onCommandEvent(ptr)
 
-        case CommandStateEvent as ptr where ptr.kind == .ComputeCommandState:
+        case CommandStateEvent as ptr where ptr.kind == .Compute:
             if !.updateAction(ptr) do
                 .itf.onComputeStateEvent(ptr)
 
-        case CommandStateEvent as ptr where ptr.kind == .ApplyCommandState:
+        case CommandStateEvent as ptr where ptr.kind == .Apply:
             .itf.onApplyStateEvent(cast(*CommandStateEvent) evt)
 
         case FrameEvent as ptr:
@@ -328,95 +327,95 @@ impl IWnd for Wnd
         }
     }
 
-    // Performs the on hook event operation.
+    // Ignores global hook events by default.
     mtd impl onHookEvent(evt: IEvent) {}
 
-    // Performs the on create event operation.
+    // Performs no additional creation work by default.
     mtd impl onCreateEvent(evt: *CreateEvent) {}
 
-    // Performs the on destroy event operation.
+    // Releases no additional resources by default.
     mtd impl onDestroyEvent(evt: *DestroyEvent) {}
 
-    // Performs the on state event operation.
+    // Ignores state changes by default.
     mtd impl onStateEvent(evt: *StateEvent) {}
 
-    // Performs the on resize event operation.
+    // Ignores size changes by default.
     mtd impl onResizeEvent(evt: *ResizeEvent) {}
 
-    // Performs the on pre paint event operation.
-    mtd impl onPrePaintEvent(evt: *PaintEvent) {}
+    // Paints no before-children content by default.
+    mtd impl onBeforePaint(evt: *PaintEvent) {}
 
-    // Performs the on paint event operation.
-    mtd impl onPaintEvent(evt: *PaintEvent) {}
+    // Paints no primary content by default.
+    mtd impl onPaint(evt: *PaintEvent) {}
 
-    // Performs the on post paint event operation.
-    mtd impl onPostPaintEvent(evt: *PaintEvent) {}
+    // Paints no after-children overlay by default.
+    mtd impl onAfterPaint(evt: *PaintEvent) {}
 
-    // Performs the on theme event operation.
+    // Invalidates painting and requests layout after a theme change.
     mtd impl onThemeEvent(evt: *ThemeEvent)
     {
         .invalidate()
         .sendResizeEvent()
     }
 
-    // Performs the on timer event operation.
+    // Ignores timers by default.
     mtd impl onTimerEvent(evt: *TimerEvent) {}
 
-    // Performs the on serialize state event operation.
+    // Declines state serialization by default.
     mtd impl onSerializeStateEvent(evt: *SerializeStateEvent) {}
 
-    // Performs the on frame event operation.
+    // Ignores frame callbacks by default.
     mtd impl onFrameEvent(evt: *FrameEvent) {}
 
-    // Performs the on sys command event operation.
+    // Declines platform commands by default.
     mtd impl onSysCommandEvent(evt: *SysCommandEvent)
     {
         evt.accepted = false
     }
 
-    // Performs the on sys user event operation.
+    // Declines application-defined platform messages by default.
     mtd impl onSysUserEvent(evt: *SysUserEvent)
     {
         evt.accepted = false
     }
 
-    // Performs the on key event operation.
+    // Declines keyboard input by default.
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
         evt.accepted = false
     }
 
-    // Performs the on mouse event operation.
+    // Declines pointer input by default.
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
         evt.accepted = false
     }
 
-    // Performs the on focus event operation.
+    // Declines focus events by default.
     mtd impl onFocusEvent(evt: *FocusEvent)
     {
         evt.accepted = false
     }
 
-    // Performs the on command event operation.
+    // Declines unhandled commands by default.
     mtd impl onCommandEvent(evt: *CommandEvent)
     {
         evt.accepted = false
     }
 
-    // Performs the on compute state event operation.
+    // Declines command-state computation by default.
     mtd impl onComputeStateEvent(evt: *CommandStateEvent)
     {
         evt.accepted = false
     }
 
-    // Performs the on apply state event operation.
+    // Declines command-state application by default.
     mtd impl onApplyStateEvent(evt: *CommandStateEvent)
     {
         evt.accepted = false
     }
 
-    // Performs the on notify event operation.
+    // Declines framework notifications by default.
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
         evt.accepted = false
@@ -431,36 +430,35 @@ impl Wnd
 
     #[Swag.Inline]
     {
-        // Returns app.
-        mtd getApp() => (notnull .surface).app
+        // Returns the application that owns this window.
+        mtd app() => (notnull .surface).app
 
-        // Returns top view.
-        mtd getTopView() => (notnull .surface).wnd.view
+        // Returns the root content view of this window's surface.
+        mtd topView() => (notnull .surface).wnd.view
 
-        // Returns top wnd.
-        mtd getTopWnd() => (notnull .surface).wnd
+        // Returns the root surface window.
+        mtd topWindow() => (notnull .surface).wnd
 
-        // Returns theme.
-        mtd getTheme() => (notnull .style.refr).theme
+        // Returns the resolved theme.
+        mtd theme() => (notnull .style.refr).theme
 
-        // Returns theme metrics.
-        mtd getThemeMetrics() => &(notnull .style.refr).theme.metrics
+        // Returns the resolved theme metrics.
+        mtd themeMetrics() => &(notnull .style.refr).theme.metrics
 
-        // Returns theme colors.
-        mtd getThemeColors() => &(notnull .style.refr).theme.colors
+        // Returns the resolved theme colors.
+        mtd themeColors() => &(notnull .style.refr).theme.colors
 
-        // Returns theme rects.
-        mtd getThemeRects() => &(notnull .style.refr).theme.rects
+        // Returns the resolved theme image rectangles.
+        mtd themeRects() => &(notnull .style.refr).theme.rects
 
-        // Returns timing.
-        mtd getTiming() => &(notnull .surface).app.timing
+        // Returns the current frame timing.
+        mtd timing() => &(notnull .surface).app.timing
 
-        // Returns font.
-        mtd getFont() => .style.getFont()
+        // Returns the resolved font family.
+        mtd font() => .style.resolvedFont()
     }
 
-    // Performs the create operation.
-    // Performs the create operation.
+    // Allocates a concrete window with an empty name and rectangle.
     #[Swag.Inline]
     func(T) create(parent: #null *Wnd = null, id: #null WndId = null, hook: #null HookEvent = null)->*T
     {
@@ -468,6 +466,7 @@ impl Wnd
     }
 
     #[Swag.Inline]
+    // Allocates a concrete window with an empty name at `position`.
     func(T) create(parent: #null *Wnd, position: Math.Rectangle, id: #null WndId = null, hook: #null HookEvent = null)->*T
     {
         return create'T(parent, "", position, id, hook)
@@ -502,10 +501,10 @@ impl Wnd
         let srfn = notnull .surface
         Debug.assert(!.isPendingDestroy)
 
-        // Each child's destroyWnd removes it from '.childs': iterating the array while it
+        // Each child's destroyWnd removes it from '.children': iterating the array while it
         // shrinks would skip every other child, so always consume the back one.
-        while .childs.count do
-            .childs.back().destroyNow()
+        while .children.count do
+            .children.back().destroyNow()
 
         srfn.app.destroyWnd(me)
     }
@@ -518,7 +517,7 @@ impl Wnd
         if .isPendingDestroy do
             return
         .isPendingDestroy = true
-        for c in .childs do
+        for c in .children do
             c.destroy()
         srfn.app.postDestroy.add(me)
         .invalidate()
@@ -529,7 +528,7 @@ impl Wnd
 
     private mtd firstTopMostIndex()->u64
     {
-        for c, [i] in .childs
+        for c, [i] in .children
         {
             if c.wndFlags.has(.TopMost) do
                 return i
@@ -538,44 +537,69 @@ impl Wnd
         return Swag.U64.Max
     }
 
-    // Set window parent
-    mtd setParent(who: *Wnd)
+    private mtd assignSurface(surface: #null *Surface)
     {
-        Debug.assert(who != null)
+        .surface = surface
+        for child in .children do
+            child.assignSurface(surface)
+    }
+
+    // Reparents this window, or detaches it when `who` is `null`.
+    //
+    // The complete subtree follows the new surface. Cycles are rejected.
+    mtd setParent(who: #null *Wnd)
+    {
         if who == .parent do
             return
 
-        Debug.assert(!.parent)
-        .parent = who
         if who
         {
-            .surface = who.surface
+            Debug.assert(who != me)
+            Debug.assert(!.isAncestorOf(who), "cannot parent a window to its descendant")
+        }
+
+        if .parent
+        {
+            let oldParent = notnull .parent
+            let detached  = oldParent.detachChild(me)
+            Debug.assert(detached)
+        }
+
+        if who
+        {
+            .parent = who
+            .assignSurface(who.surface)
 
             // Add the window at the back, or before the first topmost window
-            if !who.childs.count do
-                who.childs.add(me)
+            if !who.children.count do
+                who.children.add(me)
             else
             {
-                var idxToInsert = who.childs.count
+                var idxToInsert = who.children.count
                 if !(.wndFlags & .TopMost)
                 {
                     idxToInsert = who.firstTopMostIndex()
                     if idxToInsert == Swag.U64.Max do
-                        idxToInsert = who.childs.count
+                        idxToInsert = who.children.count
                 }
 
-                who.childs.insertAt(idxToInsert, me)
+                who.children.insertAt(idxToInsert, me)
             }
 
             who.invalidate()
+        }
+        else
+        {
+            .parent = null
+            .assignSurface(null)
         }
 
         .computeStyle()
         .sendCreateEvent()
     }
 
-    // Get the owner of the window
-    mtd getOwner()->#null *Wnd
+    // Returns the explicit owner when present, otherwise the structural parent.
+    mtd ownerOrParent()->#null *Wnd
     {
         return .owner orelse .parent
     }
@@ -607,7 +631,7 @@ impl Wnd
             return
         .sendHideStateEvent()
         .wndFlags.add(.Hidden)
-        .getApp().unregisterWnd(me)
+        .app().unregisterWnd(me)
         let parent = notnull .parent
         parent.invalidate()
     }
@@ -629,9 +653,9 @@ impl Wnd
             .wndFlags.add(.Disabled)
 
             // Check global state
-            if .getApp().keybFocusWnd == me do
-                .getTopView().setFocus()
-            .getApp().clearWndInputState(me)
+            if .app().keyboardFocusWnd == me do
+                .topView().setFocus()
+            .app().clearWndInputState(me)
         }
 
         .invalidate()
@@ -643,51 +667,45 @@ impl Wnd
         .enable(false)
     }
 
-    // Returns true if window and all its parents are visible
-    mtd isVisible(onlyMe = false)->bool
+    // Reports whether this window and every structural ancestor are visible.
+    mtd isVisible()->bool
     {
         var toCheck: #null *Wnd = &me
         while toCheck
         {
             if toCheck.wndFlags.has(.Hidden) do
                 return false
-            if onlyMe do
-                return true
             toCheck = toCheck.parent
         }
 
         return true
     }
 
-    // Returns true if window, or one of its parent, is hidden
+    // Reports whether this window or a structural ancestor is hidden.
     mtd isHidden()->bool => !.isVisible()
 
-    // Returns true if the window has the visible state.
-    // Will return true even if one of the parent is hidden.
-    mtd isVisibleState()->bool => !.wndFlags.has(.Hidden)
+    // Reports this window's own visibility flag, independently of its ancestors.
+    mtd isLocallyVisible()->bool => !.wndFlags.has(.Hidden)
 
-    // Returns true if window, and all its parents, are enabled
-    mtd isEnabled(onlyMe = false)->bool
+    // Reports whether this window and every structural ancestor are enabled.
+    mtd isEnabled()->bool
     {
         var toCheck: #null *Wnd = &me
         while toCheck
         {
             if toCheck.wndFlags.has(.Disabled) do
                 return false
-            if onlyMe do
-                return true
             toCheck = toCheck.parent
         }
 
         return true
     }
 
-    // Returns true if window, or one of its parent, is disabled
+    // Reports whether this window or a structural ancestor is disabled.
     mtd isDisabled()->bool => !.isEnabled()
 
-    // Returns true if the window has the enabled state.
-    // Will return true even if one of the parent is hidden.
-    mtd isEnabledState()->bool => !.wndFlags.has(.Hidden)
+    // Reports this window's own enabled flag, independently of its ancestors.
+    mtd isLocallyEnabled()->bool => !.wndFlags.has(.Disabled)
 
     //////////////////////////////////////////////
     // Paint
@@ -701,7 +719,7 @@ impl Wnd
             .style.compute(me, &srf.app.style)
     }
 
-    // Performs the paint operation.
+    // Paints this window and its visible descendants into `bc` in z-order.
     mtd paint(bc: *PaintContext)
     {
         let painter = bc.painter
@@ -711,13 +729,13 @@ impl Wnd
         // Recompute style if necessary
         .computeStyle()
 
-        // Transmit disabled state to childs
+        // Transmit disabled state to children
         let lastDisabled = bc.isDisabled
         if .wndFlags.has(.Disabled) do
             bc.isDisabled = true
 
         // Background
-        let theme = .getTheme()
+        let theme = .theme()
         switch .backgroundStyle
         {
         case .Window:    painter.fillRect(.position, theme.colors.wnd_Bk)
@@ -727,14 +745,14 @@ impl Wnd
         }
 
         painter.translateTransform(.position.x, .position.y)
-        let curTrs = painter.getTransform()
+        let curTrs = painter.transform()
         var evt    = PaintEvent{}
-        evt.bc = bc
+        evt.paintContext = bc
 
         // Pre paint. Clipping is parent. No scroll
-        if .wndFlags.has(.PreChildsPaint)
+        if .wndFlags.has(.BeforeChildrenPaint)
         {
-            evt.kind = .PrePaint
+            evt.kind = .Before
             painter.pushState()
             .sendEvent(&evt)
             painter.popState()
@@ -742,21 +760,21 @@ impl Wnd
 
         // Clipping
         if .wndFlags.has(.ClipChildren) do
-            painter.pushClippingRect(.getClientRect())
+            painter.pushClippingRect(.clientRect())
 
         if !painter.isEmptyClippingRect()
         {
             // Me
             if !.wndFlags.has(.NoScroll) do
                 painter.translateTransform(-.scrollPos.x, -.scrollPos.y)
-            evt.kind = .Paint
+            evt.kind = .Content
             painter.pushState()
             .sendEvent(&evt)
             painter.popState()
             painter.setTransform(curTrs)
 
             // Childs
-            for c in .childs
+            for c in .children
             {
                 if c.wndFlags.has(.Hidden) do
                     continue
@@ -770,7 +788,7 @@ impl Wnd
 
             if .managedByLayout and .surface and (.surface).app.options.showLayoutRects
             {
-                painter.drawRect(.getClientRect(), Color.fromArgb(0x66FFCC00), 1)
+                painter.drawRect(.clientRect(), Color.fromArgb(0x66FFCC00), 1)
             }
         }
 
@@ -779,10 +797,10 @@ impl Wnd
             painter.popClippingRect()
 
         // Post paint. Clipping is parent. No scroll
-        if .wndFlags.has(.PostChildsPaint)
+        if .wndFlags.has(.AfterChildrenPaint)
         {
             painter.setTransform(curTrs)
-            evt.kind = .PostPaint
+            evt.kind = .After
             painter.pushState()
             .sendEvent(&evt)
             painter.popState()
@@ -795,7 +813,7 @@ impl Wnd
     // Force the window to be repainted
     mtd invalidate()
     {
-        var rect = .getSurfaceRect()
+        var rect = .surfaceRect()
         rect.applyPadding(.invalidatePadding)
         rect.applyPadding({-32, -32, -32, -32})
         let srf = .surface
@@ -803,7 +821,7 @@ impl Wnd
             srf.invalidateRect(rect)
     }
 
-    // Force o local position to be repainted
+    // Invalidates one local rectangle after converting it to surface coordinates.
     mtd invalidateRect(rect: Math.Rectangle)
     {
         let srf = .surface
@@ -815,7 +833,7 @@ impl Wnd
     // Layout sizing contract
     //////////////////////////////////////////////
 
-    // Performs the invalidate layout operation.
+    // Marks cached measurement dirty and propagates the invalidation to the root.
     mtd invalidateLayout()
     {
         .layoutDirty = true
@@ -823,13 +841,13 @@ impl Wnd
             .parent.invalidateLayout()
     }
 
-    // Returns layout margin.
-    mtd getLayoutMargin()->Math.Vector4
+    // Returns the component-wise sum of legacy and container layout margins.
+    mtd layoutMargin()->Math.Vector4
     {
         return .margin + .layoutSpec.margin
     }
 
-    // Performs the measure operation.
+    // Resolves minimum, preferred, and maximum size for the available space.
     mtd measure(available: Math.Point)->SizeHint
     {
         discard available
@@ -876,7 +894,7 @@ impl Wnd
         return result
     }
 
-    // Performs the arrange operation.
+    // Clamps and applies a container-assigned rectangle, recording diagnostics.
     mtd arrange(rect: Math.Rectangle)
     {
         var pos    = rect
@@ -895,7 +913,7 @@ impl Wnd
         .layoutDebug.clampedByMaxY = before.height > pos.height
     }
 
-    // Performs the dump layout tree operation.
+    // Prints this subtree's last measure and arrange decisions when diagnostics are enabled.
     mtd dumpLayoutTree()
     {
         let srf = .surface
@@ -921,7 +939,7 @@ impl Wnd
             " clampMin=", .layoutDebug.clampedByMinX, "/", .layoutDebug.clampedByMinY,
             " clampMax=", .layoutDebug.clampedByMaxX, "/", .layoutDebug.clampedByMaxY)
 
-        for c in .childs do
+        for c in .children do
             c.dumpLayoutTreeNode(depth + 1)
     }
 
@@ -964,40 +982,40 @@ impl Wnd
     // Convert a surface coordinate to a local coordinate (relative to me)
     mtd const surfaceToLocal(pos: Math.Point)->Math.Point
     {
-        let r = .getSurfaceRect()
+        let r = .surfaceRect()
         return {pos.x - r.x, pos.y - r.y}
     }
 
     // Convert a local coordinate to a surface coordinate
     mtd const localToSurface(pos: Math.Point)->Math.Point
     {
-        let r = .getSurfaceRect()
+        let r = .surfaceRect()
         return {pos.x + r.x, pos.y + r.y}
     }
 
     // Convert a local coordinate to a surface coordinate
     mtd const localToSurface(pos: Math.Rectangle)->Math.Rectangle
     {
-        let r = .getSurfaceRect()
+        let r = .surfaceRect()
         return {pos.x + r.x, pos.y + r.y, pos.width, pos.height}
     }
 
-    // Returns the client area
-    mtd const getClientRect()->Math.Rectangle
+    // Returns the unpadded local client rectangle.
+    mtd const clientRect()->Math.Rectangle
     {
         return {0, 0, .position.width, .position.height}
     }
 
-    // Returns the client area, with 'padding' applied
-    mtd const getClientRectPadding()->Math.Rectangle
+    // Returns the local client rectangle inset by [padding].
+    mtd const paddedClientRect()->Math.Rectangle
     {
-        var result: retval = .getClientRect()
+        var result: retval = .clientRect()
         result.applyPadding(.padding)
         return result
     }
 
-    // Get the wnd position in the surface
-    mtd const getSurfaceRect()->Math.Rectangle
+    // Returns this window's rectangle in surface coordinates.
+    mtd const surfaceRect()->Math.Rectangle
     {
         var result: retval = .position
         var p              = .parent
@@ -1013,8 +1031,8 @@ impl Wnd
         return result
     }
 
-    // Get the wnd position relative to a given parent
-    mtd const getRectIn(wnd: #null *Wnd)->Math.Rectangle
+    // Returns this window's rectangle relative to `wnd`, or to the root when `null`.
+    mtd const rectRelativeTo(wnd: #null *Wnd)->Math.Rectangle
     {
         var result: retval = .position
         var p              = .parent
@@ -1028,8 +1046,7 @@ impl Wnd
         return result
     }
 
-    // Set margin for childs
-    // If a value is Swag.F32.Inf, then it won't be changed
+    // Updates selected outer margins; `Swag.F32.Inf` leaves an edge unchanged.
     mtd setMargin(left, top, right, bottom: f32 = Swag.F32.Inf)
     {
         with me.margin
@@ -1048,14 +1065,13 @@ impl Wnd
             .parent.sendResizeEvent()
     }
 
-    // Sets all margins.
+    // Replaces all four margins with `value`.
     mtd setAllMargins(value: f32) => .setMargin(value, value, value, value)
 
-    // Sets all margins.
+    // Replaces the left, top, right, and bottom margins from `value`.
     mtd setAllMargins(value: Math.Vector4) => .setMargin(value.x, value.y, value.z, value.w)
 
-    // Set padding for childs
-    // If a value is Swag.F32.Inf, then it won't be changed
+    // Updates selected inner paddings; `Swag.F32.Inf` leaves an edge unchanged.
     mtd setPadding(left, top, right, bottom: f32 = Swag.F32.Inf)
     {
         with me.padding
@@ -1073,10 +1089,10 @@ impl Wnd
         .sendResizeEvent()
     }
 
-    // Sets all paddings.
+    // Replaces all four paddings with `value`.
     mtd setAllPaddings(value: f32) => .setPadding(value, value, value, value)
 
-    // Sets all paddings.
+    // Replaces the left, top, right, and bottom paddings from `value`.
     mtd setAllPaddings(value: Math.Vector4) => .setPadding(value.x, value.y, value.z, value.w)
 
     // Removes a child from this window's child list without destroying it.
@@ -1084,52 +1100,56 @@ impl Wnd
     // The caller keeps ownership of `child`. Returns whether the child was in the list.
     mtd detachChild(child: *Wnd)->bool
     {
-        let idx = Slice.findLinear(.childs.toSlice(), child)
+        let idx = Slice.findLinear(.children.toSlice(), child)
         if idx == Swag.U64.Max do
             return false
-        .childs.removeAtOrdered(idx)
+        .children.removeAtOrdered(idx)
+        child.parent = null
+        child.assignSurface(null)
+        .invalidateLayout()
+        .invalidate()
         return true
     }
 
     // Moves the last `count` children to `index`, keeping their relative order.
     //
     // Children built by appending can be placed at their final position in one step.
-    mtd moveLastChildsTo(index: u64, count: u64)
+    mtd moveLastChildrenTo(index: u64, count: u64)
     {
-        Debug.assert(count <= .childs.count)
-        Debug.assert(index + count <= .childs.count)
+        Debug.assert(count <= .children.count)
+        Debug.assert(index + count <= .children.count)
 
         for [i] in count do
-            .childs.insertAt(index + i, .childs[.childs.count - count + i])
-        .childs.count -= count
+            .children.insertAt(index + i, .children[.children.count - count + i])
+        .children.count -= count
     }
 
-    // Force the window to be the first painted (before all siblings)
+    // Moves this window before all siblings so it is painted behind them.
+    mtd sendToBack()
+    {
+        let parent = notnull .parent
+        if parent.children.front() == me do
+            return
+
+        let idx = Slice.findLinear(parent.children.toSlice(), me)
+        Debug.assert(idx != Swag.U64.Max)
+
+        parent.children.removeAtOrdered(idx)
+        parent.children.insertAt(0, me)
+    }
+
+    // Moves this window after normal siblings so it is painted in front of them.
     mtd bringToFront()
     {
         let parent = notnull .parent
-        if parent.childs.front() == me do
+        if parent.children.back() == me do
             return
 
-        let idx = Slice.findLinear(parent.childs.toSlice(), me)
-        Debug.assert(idx != Swag.U64.Max)
-
-        parent.childs.removeAtOrdered(idx)
-        parent.childs.insertAt(0, me)
-    }
-
-    // Force the window to be the last painted (on top of siblings)
-    mtd bringToTop()
-    {
-        let parent = notnull .parent
-        if parent.childs.back() == me do
-            return
-
-        let idx = Slice.findLinear(parent.childs.toSlice(), me)
+        let idx = Slice.findLinear(parent.children.toSlice(), me)
         Debug.assert(idx != Swag.U64.Max)
 
         // Put the window at the back, or just before the first topmost window
-        var idxToReplace = parent.childs.count - 1
+        var idxToReplace = parent.children.count - 1
         if !.wndFlags.has(.TopMost)
         {
             let firstTopMost = parent.firstTopMostIndex()
@@ -1140,7 +1160,7 @@ impl Wnd
         if idx == idxToReplace do
             return
 
-        swap((notnull parent.childs.buffer) + idx, (notnull parent.childs.buffer) + idxToReplace)
+        swap((notnull parent.children.buffer) + idx, (notnull parent.children.buffer) + idxToReplace)
     }
 
     // Move and size the wnd
@@ -1207,7 +1227,7 @@ impl Wnd
             .applyLayout(evt.oldSize)
     }
 
-    // Apply the current layout (childs constraints)
+    // Apply the current layout (children constraints)
     mtd applyLayout()
     {
         .applyLayout({.position.width, .position.height})
@@ -1215,24 +1235,24 @@ impl Wnd
 
     mtd applyLayout(oldSize: Math.Point)
     {
-        var clientRect = .getClientRectPadding()
+        var clientRect = .paddedClientRect()
 
         var centerLayout: Array'(*Wnd)
         var oldSizes:     Array'Math.Point
 
-        for c in .childs
+        for c in .children
         {
             if c.anchorStyle == .None do
                 continue
 
             var pos = c.position
-            if c.anchorStyle & .X and oldSize.x > 0
+            if c.anchorStyle & .Right and oldSize.x > 0
             {
                 let oldM = oldSize.x - c.position.x
                 pos.x = .position.width - oldM
             }
 
-            if c.anchorStyle & .Y and oldSize.y > 0
+            if c.anchorStyle & .Bottom and oldSize.y > 0
             {
                 let oldM = oldSize.y - c.position.y
                 pos.y = .position.height - oldM
@@ -1252,10 +1272,10 @@ impl Wnd
             c.setPosition(pos, false)
         }
 
-        for c in .childs
+        for c in .children
         {
             oldSizes.add({c.position.width, c.position.height})
-            if !c.isVisibleState() do
+            if !c.isLocallyVisible() do
                 continue
             switch c.dockStyle
             {
@@ -1264,7 +1284,7 @@ impl Wnd
                 pos.x = clientRect.x + c.margin.x
                 pos.y = clientRect.y + c.margin.y
                 pos.setBottom(clientRect.bottom() - c.margin.w)
-                if c.maxSize.y > 0 and c.maxSize.y < pos.height and !(c.anchorStyle & .Y) do
+                if c.maxSize.y > 0 and c.maxSize.y < pos.height and !(c.anchorStyle & .Bottom) do
                     pos.y = clientRect.vertCenter() - c.maxSize.y * 0.5
                 c.setPosition(pos, false)
                 let diff = c.margin.x + pos.width + c.margin.z
@@ -1276,7 +1296,7 @@ impl Wnd
                 pos.x = clientRect.right() - pos.width - c.margin.z
                 pos.y = clientRect.y + c.margin.y
                 pos.setBottom(clientRect.bottom() - c.margin.w)
-                if c.maxSize.y > 0 and c.maxSize.y < pos.height and !(c.anchorStyle & .Y) do
+                if c.maxSize.y > 0 and c.maxSize.y < pos.height and !(c.anchorStyle & .Bottom) do
                     pos.y = clientRect.vertCenter() - c.maxSize.y * 0.5
                 c.setPosition(pos, false)
                 let diff = c.margin.x + pos.width + c.margin.z
@@ -1287,7 +1307,7 @@ impl Wnd
                 pos.x = clientRect.x + c.margin.x
                 pos.y = clientRect.y + c.margin.y
                 pos.setRight(clientRect.right() - c.margin.z)
-                if c.maxSize.x > 0 and c.maxSize.x < pos.width and !(c.anchorStyle & .X) do
+                if c.maxSize.x > 0 and c.maxSize.x < pos.width and !(c.anchorStyle & .Right) do
                     pos.x = clientRect.horzCenter() - c.maxSize.x * 0.5
                 c.setPosition(pos, false)
                 let diff = c.margin.y + pos.height + c.margin.w
@@ -1299,7 +1319,7 @@ impl Wnd
                 pos.x = clientRect.x + c.margin.x
                 pos.y = clientRect.bottom() - c.margin.w - pos.height
                 pos.setRight(clientRect.right() - c.margin.z)
-                if c.maxSize.x > 0 and c.maxSize.x < pos.width and !(c.anchorStyle & .X) do
+                if c.maxSize.x > 0 and c.maxSize.x < pos.width and !(c.anchorStyle & .Right) do
                     pos.x = clientRect.horzCenter() - c.maxSize.x * 0.5
                 c.setPosition(pos, false)
                 let diff = c.margin.w + pos.height + c.margin.y
@@ -1330,7 +1350,7 @@ impl Wnd
             c.setPosition(pos, false)
         }
 
-        for c, [i] in .childs
+        for c, [i] in .children
         {
             if !c.isVisible() do
                 continue
@@ -1338,9 +1358,8 @@ impl Wnd
         }
     }
 
-    // Get the child window at the given coordinate
-    // Coordinate is expressed in the parent system
-    mtd getWndAt(x, y: f32, getDisabled, getHidden = false)->#null *Wnd
+    // Returns the topmost descendant at parent-space coordinates.
+    mtd windowAt(x, y: f32, includeDisabled, includeHidden = false)->#null *Wnd
     {
         if !.position.contains(x, y) do
             return null
@@ -1348,18 +1367,18 @@ impl Wnd
         // Top level window is the last one painted, so it's the last
         // in the array.
         // So we must visit in reverse order
-        for var i = cast(s32) .childs.count - 1; i >= 0; i -= 1
+        for var i = cast(s32) .children.count - 1; i >= 0; i -= 1
         {
-            let c = .childs[i]
-            if c.wndFlags.has(.Hidden) and !getHidden do
+            let c = .children[i]
+            if c.wndFlags.has(.Hidden) and !includeHidden do
                 continue
-            if c.wndFlags.has(.Disabled) and !getDisabled do
+            if c.wndFlags.has(.Disabled) and !includeDisabled do
                 continue
 
             var pt = Math.Point{x - .position.x, y - .position.y}
             if !c.wndFlags.has(.NoScroll) do
                 pt += .scrollPos
-            let res = c.getWndAt(pt.x, pt.y, getDisabled, getHidden)
+            let res = c.windowAt(pt.x, pt.y, includeDisabled, includeHidden)
             if res do
                 return res
         }
@@ -1367,8 +1386,8 @@ impl Wnd
         return me
     }
 
-    // Returns true if 'child' is in the child hieararchy of 'me'
-    mtd isParentOf(child: #null *Wnd)->bool
+    // Reports whether `child` is a structural descendant of this window.
+    mtd isAncestorOf(child: #null *Wnd)->bool
     {
         if !child do
             return false
@@ -1383,30 +1402,30 @@ impl Wnd
         return false
     }
 
-    // Returns true if 'child' is in the owner/child hieararchy of 'me'
+    // Reports whether `child` reaches this window through owner-or-parent routing.
     mtd isOwnerOf(child: #null *Wnd)->bool
     {
         if !child do
             return false
-        var p = child.getOwner()
+        var p = child.ownerOrParent()
         while p
         {
             if p == me do
                 return true
-            p = p.getOwner()
+            p = p.ownerOrParent()
         }
 
         return false
     }
 
     // Retrieve the child with the given id
-    mtd getChildById(childId: string)->#null *Wnd
+    mtd childById(childId: string)->#null *Wnd
     {
-        for c in .childs
+        for c in .children
         {
             if c.id == childId do
                 return c
-            let res = c.getChildById(childId)
+            let res = c.childById(childId)
             if res do
                 return res
         }
@@ -1415,7 +1434,7 @@ impl Wnd
     }
 
     // Retrieve the parent with the given id
-    mtd getParentById(parentId: string)->#null *Wnd
+    mtd ancestorById(parentId: string)->#null *Wnd
     {
         var p = .parent
         while p
@@ -1432,46 +1451,46 @@ impl Wnd
     // Mouse
     //////////////////////////////////////////////
 
-    // Performs the capture mouse operation.
+    // Captures platform pointer input for this window.
     mtd captureMouse()
     {
         let srfn = notnull .surface
         srfn.app.captureMouse(me)
     }
 
-    // Performs the release mouse operation.
+    // Releases the application's current pointer capture.
     mtd releaseMouse()
     {
         let srfn = notnull .surface
         srfn.app.releaseMouse()
     }
 
-    // Returns mouse capture.
-    mtd getMouseCapture()->#null *Wnd
+    // Returns the window that currently owns pointer capture.
+    mtd mouseCapture()->#null *Wnd
     {
         let srfn = notnull .surface
-        return srfn.app.getMouseCapture()
+        return srfn.app.mouseCapture()
     }
 
     //////////////////////////////////////////////
     // Keyboard
     //////////////////////////////////////////////
 
-    // Set the keyboard focus
+    // Requests keyboard focus after both the old and new windows approve the transition.
     mtd setFocus()
     {
         let srfn = notnull .surface
-        if srfn.app.keybFocusWnd == me do
+        if srfn.app.keyboardFocusWnd == me do
             return
         if !.isEnabled() do
             return
 
-        let last = srfn.app.keybFocusWnd
+        let last = srfn.app.keyboardFocusWnd
 
         // Ask the window with the current focus if we can steal it
         if last
         {
-            var evt = FocusEvent{kind: FocusEvent.Kind.CanKillFocus, other: me}
+            var evt = FocusEvent{kind: FocusEvent.Kind.CanLose, other: me}
             last.sendEvent(&evt)
             if !evt.canChangeFocus do
                 return
@@ -1479,7 +1498,7 @@ impl Wnd
 
         // Ask the new window if it wants the focus
         {
-            var evt = FocusEvent{kind: FocusEvent.Kind.CanSetFocus, other: last}
+            var evt = FocusEvent{kind: FocusEvent.Kind.CanGain, other: last}
             .sendEvent(&evt)
             if !evt.canChangeFocus do
                 return
@@ -1487,7 +1506,7 @@ impl Wnd
 
         if last
         {
-            var evt = FocusEvent{kind: FocusEvent.Kind.KillFocus, other: me}
+            var evt = FocusEvent{kind: FocusEvent.Kind.Lost, other: me}
             last.sendEvent(&evt)
             last.invalidate()
 
@@ -1496,78 +1515,78 @@ impl Wnd
 
         srfn.setFocus()
 
-        var evt = FocusEvent{kind: FocusEvent.Kind.SetFocus, other: last}
-        srfn.app.keybFocusWnd = me
+        var evt = FocusEvent{kind: FocusEvent.Kind.Gained, other: last}
+        srfn.app.keyboardFocusWnd = me
         .sendEvent(&evt)
         .invalidate()
 
         .ownerNotifyEvent(.ChildFocusChanged)
     }
 
-    // Get the window with the keyboard focus
-    mtd getFocus()->#null *Wnd
+    // Returns the keyboard-focused window on this surface, if any.
+    mtd focusedWindow()->#null *Wnd
     {
         let surface = .surface
         if !surface do
             return null
-        return surface.app.keybFocusWnd
+        return surface.app.keyboardFocusWnd
     }
 
-    // Returns true if the window has the keyboard focus
+    // Reports whether this window currently owns keyboard focus.
     mtd hasFocus()->bool
     {
         let surface = .surface
         if !surface do
             return false
-        return surface.app.keybFocusWnd == me
+        return surface.app.keyboardFocusWnd == me
     }
 
-    // Register a keyboard shortcut
-    mtd registerKeyShortcut(mdf: Input.KeyModifiers, key: Input.Key, wndId: WndId)
+    // Registers or replaces a keyboard shortcut on this routing node.
+    mtd registerKeyShortcut(modifiers: Input.KeyModifiers, key: Input.Key, wndId: WndId)
     {
         for &c in .keyShortcuts
         {
-            if c.mdf == mdf and c.key == key
+            if c.modifiers == modifiers and c.key == key
             {
                 c.id = wndId
                 return
             }
         }
 
-        .keyShortcuts.add({mdf, key, wndId})
+        .keyShortcuts.add({modifiers, key, wndId})
     }
 
-    // Get the id associated with a shortcut. null if none
-    mtd getKeyShortcut(mdf: Input.KeyModifiers, key: Input.Key)->#null WndId
+    // Resolves a shortcut locally, then through the owner or parent chain.
+    mtd keyShortcut(modifiers: Input.KeyModifiers, key: Input.Key)->#null WndId
     {
         for c in .keyShortcuts
         {
-            if c.mdf == mdf and c.key == key do
+            if c.modifiers == modifiers and c.key == key do
                 return c.id
         }
 
-        let p = .getOwner()
+        let p = .ownerOrParent()
         if p do
-            return p.getKeyShortcut(mdf, key)
+            return p.keyShortcut(modifiers, key)
         return null
     }
 
-    // Get the name associated with a given id shortcut
-    mtd getKeyShortcutNameFor(wndId: WndId)->String
+    // Formats the first shortcut associated with `wndId` in the routing chain.
+    mtd keyShortcutName(wndId: WndId)->String
     {
         var result: retval
         for c in .keyShortcuts
         {
             if c.id == wndId
             {
-                result = Input.getKeyName(c.mdf, c.key)
+                result = Input.formatKeyShortcut(c.modifiers, c.key)
                 return result
             }
         }
 
-        let p = .getOwner()
+        let p = .ownerOrParent()
         if p do
-            return p.getKeyShortcutNameFor(wndId)
+            return p.keyShortcutName(wndId)
         return result
     }
 
@@ -1578,7 +1597,13 @@ impl Wnd
     // Register a new timer for the given 'target'
     mtd addTimer(time: Time.Duration)->*Timer
     {
-        return .getApp().addTimer(time, me)
+        return .app().addTimer(time, me)
+    }
+
+    // Removes a timer previously created for this window.
+    mtd removeTimer(timer: *Timer)
+    {
+        .app().removeTimer(timer)
     }
 
     // Posts quit event.
@@ -1624,9 +1649,9 @@ impl Wnd
     mtd sendHideStateEvent()
     {
         .sendStateEvent(.Hide)
-        for c in .childs
+        for c in .children
         {
-            if c.isVisibleState() do
+            if c.isLocallyVisible() do
                 c.sendHideStateEvent()
         }
     }
@@ -1635,9 +1660,9 @@ impl Wnd
     mtd sendDisableStateEvent()
     {
         .sendStateEvent(.Disable)
-        for c in .childs
+        for c in .children
         {
-            if c.isVisibleState() do
+            if c.isLocallyVisible() do
                 c.sendDisableStateEvent()
         }
     }
@@ -1682,7 +1707,7 @@ impl Wnd
         .postEvent(evt)
     }
 
-    // Performs the process event operation.
+    // Invokes the local hook, then dispatches the event unless the hook consumes it.
     mtd processEvent(evt: IEvent)
     {
         var eat = false
@@ -1696,14 +1721,14 @@ impl Wnd
     mtd notifyEvent(kind: NotifyEvent.Kind)
     {
         var ntfy = NotifyEvent{}
-        ntfy.ntfyKind = kind
+        ntfy.kind = kind
         .sendEvent(&ntfy)
     }
 
     // Send a notification event
     mtd ownerNotifyEvent(kind: NotifyEvent.Kind)
     {
-        let p = .getOwner()
+        let p = .ownerOrParent()
         if !p do
             return
         p.notifyEvent(kind)
@@ -1714,23 +1739,23 @@ impl Wnd
     //////////////////////////////////////////////
 
     // Main function to update command state of various windows/widgets.
-    // This will update the state of this window, and all of its childs
+    // This will update the state of this window, and all of its children
     mtd updateCommandState()
     {
         var evtState = .sendComputeCommandStateEvent(.id)
         if evtState.accepted
         {
-            evtState.kind = .ApplyCommandState
+            evtState.kind = .Apply
             .sendEvent(&evtState)
             return
         }
 
-        for c in .childs do
+        for c in .children do
             c.updateCommandState()
     }
 
     // Send the command state event with the given id to the window.
-    // Returns the updated command state.
+    // Computes and returns presentation state for `cmdId`, including resolved shortcuts.
     mtd sendComputeCommandStateEvent(cmdId: #null WndId)->CommandStateEvent
     {
         if cmdId == null do
@@ -1744,18 +1769,18 @@ impl Wnd
         @init(&evtState.toolTip, 1)
 
         // User will fill the state
-        evtState.kind   = .ComputeCommandState
+        evtState.kind   = .Compute
         evtState.id     = safeCmdId
         evtState.source = me
         .sendEvent(&evtState)
 
         // Is there a keyboard shortcut or a global hot key ?
-        var sk = .getKeyShortcutNameFor(safeCmdId)
+        var sk = .keyShortcutName(safeCmdId)
         if !sk.length do
-            sk = .getApp().getHotKeyShortcutNameFor(safeCmdId)
+            sk = .app().hotKeyShortcutName(safeCmdId)
         if sk.length
         {
-            evtState.setFlags.add(.Shortcut)
+            evtState.updatedFields.add(.Shortcut)
             evtState.shortcut = sk
         }
 
@@ -1776,12 +1801,12 @@ impl Wnd
         @init(&evtState.longName, 1)
         @init(&evtState.shortcut, 1)
         @init(&evtState.toolTip, 1)
-        evtState.kind = .ComputeCommandState
+        evtState.kind = .Compute
         evtState.id   = safeCmdId
         .sendEvent(&evtState)
 
         // If it's not disabled, then we can send
-        if !evtState.setFlags.has(.Disabled) or !evtState.disabled
+        if !evtState.updatedFields.has(.Disabled) or !evtState.disabled
         {
             var evtc = CommandEvent{}
             evtc.id = safeCmdId
@@ -1838,18 +1863,18 @@ impl Wnd
     // Serialization
     //////////////////////////////////////////////
 
-    // Performs the serialize state operation.
+    // Offers persistent-state serialization to this window, then recursively to children if declined.
     mtd serializeState(ser: *Serialization.Serializer) fail
     {
         var evt: SerializeStateEvent
-        evt.accepted = false
-        evt.ser      = ser
-        evt.target   = me
+        evt.accepted   = false
+        evt.serializer = ser
+        evt.target     = me
         .processEvent(&evt)
 
         if !evt.accepted
         {
-            for c in .childs do
+            for c in .children do
                 c.serializeState(ser)
         }
     }

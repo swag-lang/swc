@@ -2,7 +2,8 @@
 
 using Win32, Core, Pixel, Gdi32
 
-// Represents application native.
+// Dependency-visible Windows storage embedded by [[Application]].
+#[Swag.Opaque, Swag.NoDoc]
 public struct ApplicationNative
 {
     fileSmallIconsImage:     Image                       // File small icons image associated with this value.
@@ -18,6 +19,7 @@ public struct ApplicationNative
 
 impl Application
 {
+    // Samples the desktop pixel currently under the mouse cursor.
     func pickColorAtMouse()->Color
     {
         let awareness = Win32.SetThreadDpiAwarenessContext(Win32.DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)
@@ -33,59 +35,77 @@ impl Application
         return Color.fromAbgr(col)
     }
 
-    mtd captureMouse(wnd: *Wnd)
+    internal mtd captureMouse(wnd: *Wnd)
     {
         .mouseCaptureWnd = wnd
         SetCapture((notnull wnd.surface).native.hWnd)
     }
 
-    mtd releaseMouse()
+    internal mtd releaseMouse()
     {
         .mouseCaptureWnd = null
         ReleaseCapture()
     }
 
-    func registerHotKey(mdf: Input.KeyModifiers, key: Input.Key) fail
+    private func hotKeyNativeId(modifiers: Input.KeyModifiers, key: Input.Key)->s32
     {
         var mod: u32
-        if mdf & .Alt do
+        if modifiers & .Alt do
             mod |= MOD_ALT
-        if mdf & .Control do
+        if modifiers & .Control do
             mod |= MOD_CONTROL
-        if mdf & .Shift do
+        if modifiers & .Shift do
             mod |= MOD_SHIFT
-        var winkey = Input.Keyboard.keyToVirtualKey(key)
+        let winKey = Input.Keyboard.keyToVirtualKey(key)
 
-        // We need to have a unique id per shortcut
         var crc32: Hash.Crc32
         crc32.update(@mkslice(cast(const [*] u8) &mod, 4))
-        crc32.update(@mkslice(cast(const [*] u8) &winkey, 4))
-        crc32.crc &= 0x7FFFFFFF
-
-        catch UnregisterHotKey(null, crc32.crc)
-        RegisterHotKey(null, crc32.crc, mod, winkey)
+        crc32.update(@mkslice(cast(const [*] u8) &winKey, 4))
+        return cast(s32) (crc32.value() & 0x7FFFFFFF)
     }
 
-    mtd sendHotKey(msg: MSG)
+    internal func registerNativeHotKey(modifiers: Input.KeyModifiers, key: Input.Key) fail
+    {
+        let hotKeyId = hotKeyNativeId(modifiers, key)
+        let winKey   = Input.Keyboard.keyToVirtualKey(key)
+
+        var mod: u32
+        if modifiers & .Alt do
+            mod |= MOD_ALT
+        if modifiers & .Control do
+            mod |= MOD_CONTROL
+        if modifiers & .Shift do
+            mod |= MOD_SHIFT
+
+        catch UnregisterHotKey(null, hotKeyId)
+        RegisterHotKey(null, hotKeyId, mod, winKey)
+    }
+
+    internal func unregisterNativeHotKey(modifiers: Input.KeyModifiers, key: Input.Key)
+    {
+        catch UnregisterHotKey(null, hotKeyNativeId(modifiers, key))
+    }
+
+    internal mtd sendHotKey(msg: MSG)
     {
         if .hotKeysDisabled do
             return
         using Input
-        var mdf: KeyModifiers
+        var modifiers: KeyModifiers
         if msg.lParam & MOD_ALT do
-            mdf |= .Alt
+            modifiers |= .Alt
         if msg.lParam & MOD_CONTROL do
-            mdf |= .Control
+            modifiers |= .Control
         if msg.lParam & MOD_SHIFT do
-            mdf |= .Shift
+            modifiers |= .Shift
         let key = Keyboard.virtualKeyToKey(cast() (msg.lParam >> 16))
 
-        let {id, target} = .getHotKeyShortcut(mdf, key)
+        let {id, target} = .hotKeyShortcut(modifiers, key)
         if id and target do
             target.sendCommandEvent(id)
     }
 
-    mtd sendSystemEvents()
+    internal mtd sendSystemEvents()
     {
         if .renderer.headless do
             return
@@ -103,7 +123,7 @@ impl Application
         }
     }
 
-    mtd getSurfaceAt(x, y: f32)->#null *Surface
+    internal mtd surfaceAt(x, y: f32)->#null *Surface
     {
         if .renderer.headless
         {
@@ -138,7 +158,7 @@ impl Application
         return null
     }
 
-    mtd addIconToImageList(name: string, hIcon: HICON, small: bool)->Icon
+    internal mtd addIconToImageList(name: string, hIcon: HICON, small: bool)->Icon
     {
         var result: retval
 
@@ -177,16 +197,16 @@ impl Application
         nimage.mix(img, sizeIcon * index, 0)
         dref curImg = nimage
 
-        curImgList.releaseTexture(&.renderer)
+        curImgList.release(&.renderer)
         curImgList.set(.renderer.addImage(curImg), sizeIcon, sizeIcon)
 
         return Icon.from(curImgList, index)
     }
 
-    mtd getSpecialDirectoryIcon(what: Env.SpecialDirectory, small = true)->Icon
+    internal mtd specialDirectoryIcon(what: Env.SpecialDirectory, small = true)->Icon
     {
         var val  = what
-        let name = Reflection.getEnumName(Env.SpecialDirectory, &val).toString()
+        let name = Reflection.enumName(Env.SpecialDirectory, &val).toString()
 
         if small
         {
@@ -222,16 +242,16 @@ impl Application
         return .addIconToImageList(name, sgi.hIcon, small)
     }
 
-    mtd getFileDirectoryIcon(name: string, isDirectory: bool, small = true)->Icon
+    internal mtd fileOrDirectoryIcon(name: string, isDirectory: bool, small = true)->Icon
     {
         var result: retval
         if !@countof(name) do
             return result
 
-        var ext = Path.getExtension(name)
+        var ext = Path.extension(name)
 
         var extractFromFile = false
-        if isDirectory and name[@countof(name) - 1] == Path.VolumeSeparatorChar do
+        if isDirectory and name[@countof(name) - 1] == Path.VolumeSeparator do
             ext = "c:"
         elif isDirectory do
             ext = "c:/temp"
@@ -262,7 +282,7 @@ impl Application
             catch ExtractIconExA(@dataof(ext), 0, null, &sfi.hIcon, 1)
             if !sfi.hIcon
             {
-                ext = Path.getExtension(name)
+                ext = Path.extension(name)
                 if ext == null do
                     ext = ".txt"
                 if small

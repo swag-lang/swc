@@ -19,7 +19,7 @@ using Swag
 // nothing can be driven from the command line.
 #test
 {
-    @assert(@countof(Env.getArgs()) != 0)
-    @assert(Env.hasArg("swag.test"))
-    @assert(@countof(Env.getExe()) != 0)
+    @assert(@countof(Env.arguments()) != 0)
+    @assert(Env.hasArgument("swag.test"))
+    @assert(@countof(Env.executablePath()) != 0)
 }

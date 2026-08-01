@@ -22,9 +22,9 @@ func assertIntArrayPtr(values: &ArrayPtr's32, expected: const [..] s32)->bool
 #test
 {
     var values: ArrayPtr's32
-    dref values.addNewPtr() = 1
-    dref values.addNewPtr() = 2
-    dref values.addNewPtr() = 3
+    dref values.addNew() = 1
+    dref values.addNew() = 2
+    dref values.addNew() = 3
 
     var copy = values
     @assert(assertIntArrayPtr(&copy, [1, 2, 3]))
@@ -46,9 +46,9 @@ func assertIntArrayPtr(values: &ArrayPtr's32, expected: const [..] s32)->bool
 #test
 {
     var values: ArrayPtr's32
-    dref values.addNewPtr() = 7
+    dref values.addNew() = 7
     values.add(cast(#null *s32) null)
-    dref values.addNewPtr() = 9
+    dref values.addNew() = 9
 
     var copy = values
 
@@ -86,13 +86,13 @@ impl ApTracked
     var arr: ArrayPtr'ApTracked
     for [i] in 5
     {
-        let p = arr.addNewPtr()
+        let p = arr.addNew()
         p.id = cast(s32) i
     }
 
     @assert(arr.count == 5)
-    @assert((notnull arr.getFirst()).id == 0)
-    @assert((notnull arr.getLast()).id == 4)
+    @assert((notnull arr.first()).id == 0)
+    @assert((notnull arr.last()).id == 4)
 
     let third = arr[2]
     @assert(arr.indexOf(third) == 2)
@@ -109,7 +109,7 @@ impl ApTracked
     // deleteBack drops the last: -> [0,2,3].
     arr.deleteBack()
     @assert(arr.count == 3 and g_ApDropCount == 2)
-    @assert((notnull arr.getLast()).id == 3)
+    @assert((notnull arr.last()).id == 3)
 
     // deleteAtUnordered swaps the last into the hole: remove index 0 (id 0) -> [3,2].
     arr.deleteAtUnordered(0)
@@ -118,7 +118,7 @@ impl ApTracked
     @assert(b0.id == 3 and b1.id == 2)
 
     // insertNewPtr allocates and inserts at the index.
-    let ins = arr.insertNewPtr(1)
+    let ins = arr.insertNew(1)
     ins.id = 99
     @assert(arr.count == 3)
     let c1 = notnull arr[1]

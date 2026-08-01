@@ -4,58 +4,59 @@
 #foreignlib("dwmapi")
 using Core, Win32
 
-#[Swag.Foreign("dwmapi")]
+private #[Swag.Foreign("dwmapi")]
 {
     // Performs the dwm set window attribute operation.
     func DwmSetWindowAttribute(hWnd: HWND, dwAttribute: DWORD, pvAttribute: LPCVOID, cbAttribute: DWORD)->s32
 }
 
 // Defines dwmwa window corner preference.
-const DWMWA_WINDOW_CORNER_PREFERENCE = 33'u32
+private const DWMWA_WINDOW_CORNER_PREFERENCE = 33'u32
 
 // Defines dwmwa border color.
-const DWMWA_BORDER_COLOR = 34'u32
+private const DWMWA_BORDER_COLOR = 34'u32
 
 // Defines dwmwa color none.
-const DWMWA_COLOR_NONE = 0xFFFFFFFE'u32
+private const DWMWA_COLOR_NONE = 0xFFFFFFFE'u32
 
 // Defines dwmwcp donotround.
-const DWMWCP_DONOTROUND = 1'u32
+private const DWMWCP_DONOTROUND = 1'u32
 
 // Defines dwmwcp round.
-const DWMWCP_ROUND = 2'u32
+private const DWMWCP_ROUND = 2'u32
 
 // Defines htclient.
-const HTCLIENT = 1
+private const HTCLIENT = 1
 
 // Defines htcaption.
-const HTCAPTION = 2
+private const HTCAPTION = 2
 
 // Defines htleft.
-const HTLEFT = 10
+private const HTLEFT = 10
 
 // Defines htright.
-const HTRIGHT = 11
+private const HTRIGHT = 11
 
 // Defines httop.
-const HTTOP = 12
+private const HTTOP = 12
 
 // Defines httopleft.
-const HTTOPLEFT = 13
+private const HTTOPLEFT = 13
 
 // Defines httopright.
-const HTTOPRIGHT = 14
+private const HTTOPRIGHT = 14
 
 // Defines htbottom.
-const HTBOTTOM = 15
+private const HTBOTTOM = 15
 
 // Defines htbottomleft.
-const HTBOTTOMLEFT = 16
+private const HTBOTTOMLEFT = 16
 
 // Defines htbottomright.
-const HTBOTTOMRIGHT = 17
+private const HTBOTTOMRIGHT = 17
 
-// Represents native surface.
+// Dependency-visible Windows storage embedded by `Surface`.
+#[Swag.Opaque, Swag.NoDoc]
 #[Swag.NoCopy]
 struct NativeSurface
 {
@@ -66,7 +67,7 @@ struct NativeSurface
 }
 
 // Fixed notification-area icon id. A surface owns at most one tray icon.
-const TrayIconID = 1
+private const TrayIconID = 1
 
 private func postSurfaceSysCommand(surface: *Surface, kind: SysCommandEvent.Kind)
 {
@@ -94,7 +95,7 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
         if msg >= WM_USER
         {
             var evt = SysUserEvent{}
-            evt.userMsg = msg
+            evt.message = msg
             evt.param0  = wParam
             evt.param1  = lParam
             surface.wnd.view.sendEvent(&evt)
@@ -284,7 +285,7 @@ private impl Surface
         #[Swag.Global]
         var doneClass: bool
         let className16   = Utf16.toZeroTerminated("Swag.Gui.Surface")
-        let surfaceName16 = Utf16.toZeroTerminated(result.surfaceID)
+        let surfaceName16 = Utf16.toZeroTerminated(result.surfaceId)
         let className     = @dataof(className16)
         let surfaceName   = @dataof(surfaceName16)
         if !doneClass
@@ -293,7 +294,7 @@ private impl Surface
 
             var hIcon: HICON
             if app.appIcon.isValid() do
-                hIcon = app.appIcon.toHICON()
+                hIcon = app.appIcon.toHicon()
 
             var wc: WNDCLASSW
             wc.hInstance     = GetModuleHandleW(null)
@@ -310,7 +311,7 @@ private impl Surface
         winFlags |= WS_POPUP | WS_CLIPCHILDREN
 
         var winFlagsEx = 0'u32
-        if flags & .Secondary do
+        if flags & .ToolWindow do
             winFlagsEx |= WS_EX_TOOLWINDOW
         if flags & .TopMost
         {
@@ -328,29 +329,22 @@ private impl Surface
 
     mtd destroyNative()
     {
-        if .app.renderer.headless do
+        if .app.renderer.headless or !.hWnd do
             return
 
-        if .trayIcon
-        {
-            var tnid: NOTIFYICONDATAA
-            tnid.cbSize = #sizeof(NOTIFYICONDATAA)
-            tnid.hWnd   = .hWnd
-            tnid.uID    = TrayIconID
-            catch Shell_NotifyIconA(NIM_DELETE, &tnid)
-            catch DestroyIcon(.trayIcon)
-            .trayIcon = null
-        }
-
+        .removeTrayIcon()
         catch DestroyWindow(.hWnd)
     }
 }
 
 impl Surface
 {
+    // Returns the Win32 window handle owned by this surface.
+    mtd const win32Handle()->HWND => .hWnd
+
     private mtd applyNativeDwmStyle()
     {
-        var cornerPreference = .getCornerRadius() > 0 ? DWMWCP_ROUND : DWMWCP_DONOTROUND
+        var cornerPreference = .cornerRadius() > 0 ? DWMWCP_ROUND : DWMWCP_DONOTROUND
         discard DwmSetWindowAttribute(.hWnd, DWMWA_WINDOW_CORNER_PREFERENCE, cast(LPCVOID) &cornerPreference, #sizeof(cornerPreference))
 
         var borderColor = DWMWA_COLOR_NONE
@@ -369,8 +363,16 @@ impl Surface
     // layout and is intentionally not used.
     mtd setTrayIcon(icon: Pixel.Image, tip: #null string = null)
     {
-        var img = icon
-        .trayIcon = catch img.toHICON()
+        if .app.renderer.headless do
+            return
+
+        var img     = icon
+        let newIcon = catch img.toHicon()
+        if !newIcon do
+            return
+
+        .removeTrayIcon()
+        .trayIcon = newIcon
 
         var tnid: NOTIFYICONDATAA
         tnid.cbSize           = #sizeof(NOTIFYICONDATAA)
@@ -390,38 +392,83 @@ impl Surface
         catch Shell_NotifyIconA(NIM_ADD, &tnid)
     }
 
-    // Performs the request close operation.
+    // Removes the notification-area icon owned by this surface, if any.
+    mtd removeTrayIcon()
+    {
+        if !.trayIcon do
+            return
+
+        if !.app.renderer.headless
+        {
+            var tnid: NOTIFYICONDATAA
+            tnid.cbSize = #sizeof(NOTIFYICONDATAA)
+            tnid.hWnd   = .hWnd
+            tnid.uID    = TrayIconID
+            catch Shell_NotifyIconA(NIM_DELETE, &tnid)
+        }
+
+        catch DestroyIcon(.trayIcon)
+        .trayIcon = null
+    }
+
+    // Requests a close through the regular system-command event path.
     mtd requestClose()
     {
+        if .app.renderer.headless
+        {
+            postSurfaceSysCommand(me, .Close)
+            return
+        }
+
         catch PostMessageW(.hWnd, WM_CLOSE, 0, 0)
     }
 
-    // Performs the request minimize operation.
+    // Requests minimization through the regular system-command event path.
     mtd requestMinimize()
     {
+        if .app.renderer.headless
+        {
+            postSurfaceSysCommand(me, .Minimize)
+            return
+        }
+
         catch PostMessageW(.hWnd, WM_SYSCOMMAND, SC_MINIMIZE, 0)
     }
 
-    // Performs the request maximize operation.
+    // Requests maximization through the regular system-command event path.
     mtd requestMaximize()
     {
+        if .app.renderer.headless
+        {
+            postSurfaceSysCommand(me, .Maximize)
+            return
+        }
+
         catch PostMessageW(.hWnd, WM_SYSCOMMAND, SC_MAXIMIZE, 0)
     }
 
-    // Performs the request restore operation.
+    // Requests restoration through the regular system-command event path.
     mtd requestRestore()
     {
+        if .app.renderer.headless
+        {
+            postSurfaceSysCommand(me, .Restore)
+            return
+        }
+
         catch PostMessageW(.hWnd, WM_SYSCOMMAND, SC_RESTORE, 0)
     }
 
-    // Applies native surface flags.
-    mtd applyNativeSurfaceFlags()
+    internal mtd applyNativeSurfaceFlags()
     {
-        if .app.renderer.headless do
+        let shouldBeTopMost = .flags.has(.TopMost)
+        .topMost = shouldBeTopMost
+
+        if .app.renderer.headless or !.hWnd do
             return
 
         var exStyle = cast(u64) GetWindowLongPtrA(.hWnd, GWL_EXSTYLE)
-        if .flags & .Secondary do
+        if .flags & .ToolWindow do
             exStyle |= WS_EX_TOOLWINDOW
         else do
             exStyle &= ~WS_EX_TOOLWINDOW
@@ -430,20 +477,21 @@ impl Surface
         else do
             exStyle &= ~WS_EX_TOPMOST
         SetWindowLongPtrA(.hWnd, GWL_EXSTYLE, cast(LONG_PTR) exStyle)
+        catch SetWindowPos(.hWnd, shouldBeTopMost ? HWND_TOPMOST : HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE)
         .applyNativeDwmStyle()
     }
 
-    // Send a custom message to the surface application with name 'surfaceID'
-    func sendCustomMessage(surfaceID: string, id: u32, param: u64)->bool
+    // Send a custom message to the surface application with name 'surfaceId'
+    func sendCustomMessage(surfaceId: string, id: u32, param: u64)->bool
     {
-        let hwnd = Win32.FindWindowA(@dataof("Swag.Gui.Surface"), @dataof(surfaceID))
+        let hwnd = Win32.FindWindowA(@dataof("Swag.Gui.Surface"), @dataof(surfaceId))
         if !hwnd do
             return false
         discard SendMessageA(hwnd, WM_USER + id, 0, param)
         return true
     }
 
-    // Set the surface position
+    // Sets the surface bounds in screen coordinates, clamped to [[Gui.Surface.minSize]] and [[Gui.Surface.maxSize]].
     mtd setPosition(pos: Math.Rectangle)
     {
         var clampPos = pos
@@ -467,27 +515,24 @@ impl Surface
         catch SetWindowPos(.hWnd, null, cast(s32) clampPos.x, cast(s32) clampPos.y, cast(s32) clampPos.width, cast(s32) clampPos.height, SWP_NOCOPYBITS | SWP_DEFERERASE | SWP_NOREDRAW | SWP_NOSENDCHANGING)
     }
 
-    // Set the window as a topmost window (above all non topmost)
-    mtd setTopMost()
+    // Enables or disables placement above all non-topmost windows.
+    mtd setTopMost(enabled = true)
     {
-        if .app.renderer.headless
-        {
-            .topMost = true
-            return
-        }
-
-        catch SetWindowPos(.hWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE)
-        .topMost = true
+        if enabled do
+            .flags.add(.TopMost)
+        else do
+            .flags.remove(.TopMost)
+        .applyNativeSurfaceFlags()
     }
 
-    // Returns whether top most.
-    mtd isTopMost()->bool
+    // Returns whether the surface belongs to the topmost Z-order group.
+    mtd const isTopMost()->bool
     {
         return .topMost
     }
 
-    // Bring the surface at the top of the Z order
-    mtd bringToTop()
+    // Brings the surface to the front of its current Z-order group.
+    mtd bringToFront()
     {
         if .app.renderer.headless do
             return
@@ -495,7 +540,7 @@ impl Surface
         BringWindowToTop(.hWnd)
     }
 
-    // Enable the surface
+    // Enables input for the surface.
     mtd enable()
     {
         if !.isDisabled do
@@ -510,7 +555,7 @@ impl Surface
         EnableWindow(.hWnd, TRUE)
     }
 
-    // Enable the surface
+    // Disables input for the surface.
     mtd disable()
     {
         if .isDisabled do
@@ -525,7 +570,7 @@ impl Surface
         EnableWindow(.hWnd, FALSE)
     }
 
-    // Show the surface
+    // Shows the surface and emits its one-time initialization event when needed.
     mtd show()
     {
         if !.isHidden do
@@ -556,8 +601,8 @@ impl Surface
 
         if .app.renderer.headless
         {
-            let curFocus = .wnd.view.getFocus()
-            if !curFocus or !.wnd.isParentOf(curFocus) do
+            let curFocus = .wnd.view.focusedWindow()
+            if !curFocus or !.wnd.isAncestorOf(curFocus) do
                 .wnd.view.setFocus()
             .wnd.view.sendStateEvent(.Show)
             return
@@ -566,8 +611,8 @@ impl Surface
         ShowWindow(.hWnd, SW_SHOW)
         .applyNativeDwmStyle()
 
-        let curFocus = .wnd.view.getFocus()
-        if !curFocus or !.wnd.isParentOf(curFocus) do
+        let curFocus = .wnd.view.focusedWindow()
+        if !curFocus or !.wnd.isAncestorOf(curFocus) do
             .wnd.view.setFocus()
         SetActiveWindow(.hWnd)
         SetFocus(.hWnd)
@@ -575,7 +620,7 @@ impl Surface
         .wnd.view.sendStateEvent(.Show)
     }
 
-    // Hide the surface
+    // Hides the surface without destroying it.
     mtd hide()
     {
         if .isHidden do
@@ -592,14 +637,14 @@ impl Surface
         .wnd.view.sendStateEvent(.Hide)
     }
 
-    // Show the surface as maximized
+    // Shows the surface maximized and preserves its previous bounds for restoration.
     mtd showMaximized()
     {
         if .isMaximized do
             return
-        .isMaximized          = true
-        .isMinimized          = false
-        .positionNotMaximized = .position
+        .isMaximized      = true
+        .isMinimized      = false
+        .restoredPosition = .position
         if .app.renderer.headless
         {
             .invalidate()
@@ -610,7 +655,7 @@ impl Surface
         ShowWindow(.hWnd, SW_SHOWMAXIMIZED)
     }
 
-    // Show the surface in its default state
+    // Restores a minimized or maximized surface to its normal bounds.
     mtd showNormal()
     {
         if !.isMaximized and !.isMinimized do
@@ -619,7 +664,7 @@ impl Surface
         .isMinimized = false
         if .app.renderer.headless
         {
-            .setPosition(.positionNotMaximized)
+            .setPosition(.restoredPosition)
             .invalidate()
             return
         }
@@ -628,7 +673,7 @@ impl Surface
         ShowWindow(.hWnd, SW_RESTORE)
     }
 
-    // Show the surface as minimized
+    // Shows the surface minimized.
     mtd showMinimized()
     {
         if .isMinimized do
@@ -643,7 +688,7 @@ impl Surface
         ShowWindow(.hWnd, SW_SHOWMINIMIZED)
     }
 
-    // Transform a point in screen space relative to the surface
+    // Converts `pt` in place from screen coordinates to surface coordinates.
     mtd screenToSurface(pt: *Math.Point)
     {
         if .app.renderer.headless
@@ -659,7 +704,7 @@ impl Surface
         pt.y = wpt.y
     }
 
-    // Transform a point relative to the surface in screen space
+    // Converts `pt` in place from surface coordinates to screen coordinates.
     mtd surfaceToScreen(pt: *Math.Point)
     {
         if .app.renderer.headless

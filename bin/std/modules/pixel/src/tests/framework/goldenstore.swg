@@ -66,7 +66,7 @@ private
     // move together and a module owns its own corpus.
     func goldenPath(name: string, loc: Swag.SourceCodeLocation)->String
     {
-        let dir    = Path.getDirectoryName(loc.fileName)
+        let dir    = Path.directoryName(loc.fileName)
         let folder = Path.combine(dir, "goldens")
 
         var file = String.from(name)
@@ -87,7 +87,7 @@ private
     // whatever the platform default is.
     func writeText(path: string, text: string)
     {
-        let dir = Path.getDirectoryName(path)
+        let dir = Path.directoryName(path)
         if dir != null and !Directory.exists(dir)
         {
             catch Directory.create(dir) as errDir

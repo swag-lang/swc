@@ -35,11 +35,10 @@ var g_Color:       Color = Argb.CornflowerBlue
 
 func setLabelTextStyle(label: *Label, horizontal = StringHorzAlignment.Left, vertical = StringVertAlignment.Center)
 {
-    label.horzAlignmentText = horizontal
-    label.vertAlignmentText = vertical
+    label.setTextAlignment(horizontal, vertical)
 }
 
-func createText(parent: *Wnd, text: string, rect: Math.Rectangle, flags = LabelFlags.Zero)->*Label
+func createText(parent: *Wnd, text: string, rect: Math.Rectangle, flags = LabelFlags.None)->*Label
 {
     let label = Label.create(parent, text, rect, null, flags)
     setLabelTextStyle(label, .Left, .Center)
@@ -48,8 +47,8 @@ func createText(parent: *Wnd, text: string, rect: Math.Rectangle, flags = LabelF
 
 func createHelpText(parent: *Wnd, text: string, rect: Math.Rectangle)->*Label
 {
-    let label = createText(parent, text, rect, .WordWrap | .LightText)
-    label.vertAlignmentText = .Top
+    let label = createText(parent, text, rect, .WordWrap | .SecondaryText)
+    label.setTextVerticalAlignment(.Top)
     return label
 }
 
@@ -68,12 +67,12 @@ func createPanel(parent: *Wnd, title, subtitle: string, rect: Math.Rectangle)->*
 func createCaption(parent: *Wnd, text: string, x, y, width: f32)
 {
     let label = createText(parent, text, {x, y, width, 22})
-    label.labelFlags.add(.LightText)
+    label.updateFlags(.SecondaryText)
 }
 
 func getPagePanelLayout(parent: *Wnd)->PagePanelLayout
 {
-    let rect         = parent.getClientRect()
+    let rect         = parent.clientRect()
     let width        = Math.max(rect.width, 1.0)
     let height       = Math.max(rect.height, TopPanelHeight + PanelGap + MinBottomPanelHeight)
     let halfWidth    = (width - PanelGap) * 0.5
@@ -153,7 +152,7 @@ func applyTheme()
         app.theme.colors.setLight()
 
     updateThemeButton()
-    app.themeHasChanged()
+    app.notifyThemeChanged()
 }
 
 func toggleTheme(_btn: *Button)
@@ -205,10 +204,9 @@ func createQuickPalette(parent: *Wnd, rect: Math.Rectangle, title: string, keepA
 {
     createCaption(parent, title, rect.x, rect.y - 28, rect.width)
     let picker = PalettePicker.create(parent, rect)
-    picker.boxSize   = 30
-    picker.boxMargin = 6
+    picker.setItemMetrics(30, 6)
     addPaletteColors(picker, makePickerPalette())
-    picker.sigChanged += func|title, keepAlpha|(palette) { selectPaletteColor(palette, title, keepAlpha) }
+    picker.sigSelectionChanged += func|title, keepAlpha|(palette) { selectPaletteColor(palette, title, keepAlpha) }
     return picker
 }
 
@@ -219,7 +217,7 @@ func createModePicker(parent: *Wnd, title: string, rect: Math.Rectangle, mode: C
     let picker = ColorPicker.create(parent, rect)
     picker.setMode(mode)
     picker.setColor(g_Color)
-    picker.sigChanged += func(picker) { setSelectedColor(picker.getColor(), "ColorPicker") }
+    picker.sigColorChanged += func(picker) { setSelectedColor(picker.color(), "ColorPicker") }
     return picker
 }
 
@@ -227,23 +225,22 @@ func createPaletteRamp(parent: *Wnd, title: string, rect: Math.Rectangle, mode: 
 {
     createCaption(parent, title, rect.x, rect.y - 28, rect.width)
     let picker = PalettePicker.create(parent, rect)
-    picker.boxSize   = 29
-    picker.boxMargin = 5
+    picker.setItemMetrics(29, 5)
 
     switch mode
     {
     case 0:
-        picker.addHueColors(10, 0.86, 0.52)
-        picker.addHueColors(10, 0.54, 0.36)
+        picker.addHueRamp(10, 0.86, 0.52)
+        picker.addHueRamp(10, 0.54, 0.36)
 
     case 1:
-        picker.addLumColors(12, base)
+        picker.addLightnessRamp(12, base)
         picker.addColor(Argb.Black)
         picker.addColor(Argb.White)
 
     case 2:
-        picker.addSatColors(12, base)
-        picker.addColor(base.getComplementary())
+        picker.addSaturationRamp(12, base)
+        picker.addColor(base.complementary())
         picker.addColor(base.adjustSaturation(-0.70))
 
     case 3:
@@ -256,7 +253,7 @@ func createPaletteRamp(parent: *Wnd, title: string, rect: Math.Rectangle, mode: 
         picker.addColor(base.withAlpha(255'u8))
     }
 
-    picker.sigChanged += func|title, keepAlpha|(palette) { selectPaletteColor(palette, title, keepAlpha) }
+    picker.sigSelectionChanged += func|title, keepAlpha|(palette) { selectPaletteColor(palette, title, keepAlpha) }
 
     return picker
 }
@@ -284,10 +281,10 @@ func drawSwatch(painter: *Painter, rect: Math.Rectangle, label: string, color: C
 func drawLiveCard(painter: *Painter, rect: Math.Rectangle, colors: *ThemeColors)
 {
     let view      = notnull g_View
-    let titleFont = view.getTheme().createDefaultFont(24, .Bold)
-    let bodyFont  = view.getTheme().createDefaultFont(14)
-    let textColor = g_Color.getContrasting()
-    let accent    = g_Color.getComplementary()
+    let titleFont = view.theme().createDefaultFont(24, .Bold)
+    let bodyFont  = view.theme().createDefaultFont(14)
+    let textColor = g_Color.contrasting()
+    let accent    = g_Color.complementary()
 
     painter.fillRoundRect(rect, 22, 22, Brush.createHatch(.CheckBoardLarge, colors.colorPicker_BackAlpha))
     painter.fillRoundRect(rect, 22, 22, g_Color)
@@ -295,7 +292,7 @@ func drawLiveCard(painter: *Painter, rect: Math.Rectangle, colors: *ThemeColors)
 
     let tag = Math.Rectangle{rect.x + 24, rect.y + 24, 118, 32}
     painter.fillRoundRect(tag, 16, 16, accent.withAlpha(220'u8))
-    painter.drawStringCenter(tag.horzCenter(), tag.vertCenter(), "accent", bodyFont, accent.getContrasting())
+    painter.drawStringCenter(tag.horzCenter(), tag.vertCenter(), "accent", bodyFont, accent.contrasting())
 
     painter.drawString(rect.x + 24, rect.y + 82, "Live swatch", titleFont, textColor)
     drawWrappedText(painter, {rect.x + 24, rect.y + 118, rect.width - 48, 48}, "Every picker and palette page feeds this shared selected color.", bodyFont, textColor.withAlpha(220'u8), 2)
@@ -325,10 +322,10 @@ func onLivePreviewEvent(view: *Wnd, evt: IEvent)->bool
     switch evt
     {
     case PaintEvent as paintEvt:
-        let painter = paintEvt.bc.painter
-        let rect    = view.getClientRect()
-        let colors  = view.getThemeColors()
-        let font    = view.getTheme().createDefaultFont(14)
+        let painter = paintEvt.paintContext.painter
+        let rect    = view.clientRect()
+        let colors  = view.themeColors()
+        let font    = view.theme().createDefaultFont(14)
 
         painter.fillRect(rect, colors.view_Bk)
 
@@ -341,9 +338,9 @@ func onLivePreviewEvent(view: *Wnd, evt: IEvent)->bool
 
             let y     = card.bottom() + 28
             let width = Math.max((rect.width - 96) / 4, 70.0)
-            drawSwatch(painter, {24, y, width, 40}, "lighter", Color.getLighter(g_Color, 0.34), font, colors)
-            drawSwatch(painter, {24 + width + 16, y, width, 40}, "darker", Color.getDarker(g_Color, 0.34), font, colors)
-            drawSwatch(painter, {24 + (width + 16) * 2, y, width, 40}, "complement", g_Color.getComplementary(), font, colors)
+            drawSwatch(painter, {24, y, width, 40}, "lighter", Color.lighter(g_Color, 0.34), font, colors)
+            drawSwatch(painter, {24 + width + 16, y, width, 40}, "darker", Color.darker(g_Color, 0.34), font, colors)
+            drawSwatch(painter, {24 + (width + 16) * 2, y, width, 40}, "complement", g_Color.complementary(), font, colors)
             drawSwatch(painter, {24 + (width + 16) * 3, y, width, 40}, "muted", g_Color.adjustSaturation(-0.55), font, colors)
         }
         else
@@ -351,9 +348,9 @@ func onLivePreviewEvent(view: *Wnd, evt: IEvent)->bool
             var names: Array'(string)
             var cols:  Array'Color
             names.add("selected");   cols.add(g_Color)
-            names.add("lighter");    cols.add(Color.getLighter(g_Color, 0.34))
-            names.add("darker");     cols.add(Color.getDarker(g_Color, 0.34))
-            names.add("complement"); cols.add(g_Color.getComplementary())
+            names.add("lighter");    cols.add(Color.lighter(g_Color, 0.34))
+            names.add("darker");     cols.add(Color.darker(g_Color, 0.34))
+            names.add("complement"); cols.add(g_Color.complementary())
             names.add("muted");      cols.add(g_Color.adjustSaturation(-0.55))
             drawColorRow(painter, rect, font, colors, names, cols)
         }
@@ -367,10 +364,10 @@ func onDerivedPreviewEvent(view: *Wnd, evt: IEvent)->bool
     switch evt
     {
     case PaintEvent as paintEvt:
-        let painter = paintEvt.bc.painter
-        let rect    = view.getClientRect()
-        let colors  = view.getThemeColors()
-        let font    = view.getTheme().createDefaultFont(14)
+        let painter = paintEvt.paintContext.painter
+        let rect    = view.clientRect()
+        let colors  = view.themeColors()
+        let font    = view.theme().createDefaultFont(14)
 
         painter.fillRect(rect, colors.view_Bk)
 
@@ -381,7 +378,7 @@ func onDerivedPreviewEvent(view: *Wnd, evt: IEvent)->bool
         names.add("analog +30"); cols.add(g_Color.rotateHue(30))
         names.add("triad +120"); cols.add(g_Color.rotateHue(120))
         names.add("triad -120"); cols.add(g_Color.rotateHue(-120))
-        names.add("gray");       cols.add(g_Color.getGrayscale())
+        names.add("gray");       cols.add(g_Color.grayscale())
 
         // Two rows of three when there is height for it, otherwise a single fitted
         // row so the bottom row is never clipped.
@@ -413,17 +410,17 @@ func onContrastPreviewEvent(view: *Wnd, evt: IEvent)->bool
     switch evt
     {
     case PaintEvent as paintEvt:
-        let painter   = paintEvt.bc.painter
-        let rect      = view.getClientRect()
-        let colors    = view.getThemeColors()
-        let font      = view.getTheme().createDefaultFont(14)
-        let titleFont = view.getTheme().createDefaultFont(18, .Bold)
+        let painter   = paintEvt.paintContext.painter
+        let rect      = view.clientRect()
+        let colors    = view.themeColors()
+        let font      = view.theme().createDefaultFont(14)
+        let titleFont = view.theme().createDefaultFont(18, .Bold)
 
         painter.fillRect(rect, colors.view_Bk)
 
         let left  = Math.Rectangle{24, 28, Math.max((rect.width - 72) * 0.5, 120.0), Math.max(rect.height - 56, 80.0)}
         let right = Math.Rectangle{left.right() + 24, 28, left.width, left.height}
-        let text  = g_Color.getContrasting()
+        let text  = g_Color.contrasting()
 
         // Fit the body text to whatever height the card actually has.
         let bodyTop = 50.0
@@ -432,7 +429,7 @@ func onContrastPreviewEvent(view: *Wnd, evt: IEvent)->bool
         painter.fillRoundRect(left, 18, 18, g_Color)
         painter.drawRoundRect(left, 18, 18, Color.fromArgb(80'u8, Argb.Black), 1)
         painter.drawString(left.x + 24, left.y + 20, "Contrast pick", titleFont, text)
-        drawWrappedText(painter, {left.x + 24, left.y + bodyTop, left.width - 48, left.height - bodyTop - 12}, "Foreground uses Color.getContrasting() on the selected color.", font, text.withAlpha(220'u8), lines)
+        drawWrappedText(painter, {left.x + 24, left.y + bodyTop, left.width - 48, left.height - bodyTop - 12}, "Foreground uses Color.contrasting() on the selected color.", font, text.withAlpha(220'u8), lines)
 
         painter.fillRoundRect(right, 18, 18, Brush.createHatch(.CheckBoardLarge, colors.colorPicker_BackAlpha))
         painter.fillRoundRect(right, 18, 18, g_Color.withAlpha(145'u8))
@@ -454,7 +451,7 @@ func createPreview(parent: *Wnd, rect: Math.Rectangle, hook: func(view: *Wnd, ev
 func clearPage()
 {
     let pageView = notnull g_PageView
-    for child in pageView.childs
+    for child in pageView.children
     {
         let c = notnull child
         c.destroy()
@@ -488,7 +485,7 @@ func layoutRootView()
     let view     = notnull g_View
     let pageView = notnull g_PageView
 
-    let rect         = view.getClientRect()
+    let rect         = view.clientRect()
     let contentWidth = Math.max(rect.width - 2 * RootMargin, 1.0)
     let pageHeight   = Math.max(rect.height - PageTop - PageBottomMargin, TopPanelHeight + PanelGap + MinBottomPanelHeight)
     let footerY      = Math.max(rect.height - 42.0, PageTop + pageHeight + 6.0)
@@ -543,7 +540,7 @@ func previousPage()
 
 func updateTestMode()
 {
-    if !Env.hasArg("swag.test") or !g_Surface do
+    if !Env.hasArgument("swag.test") or !g_Surface do
         return
 
     g_TestFrame += 1
@@ -568,11 +565,11 @@ func canUsePageArrows()->bool
     let view2     = notnull g_View
     let pageView2 = notnull g_PageView
 
-    let focus = view2.getFocus()
+    let focus = view2.focusedWindow()
     if !focus or focus == g_View do
         return true
 
-    return !pageView2.isParentOf(notnull focus)
+    return !pageView2.isAncestorOf(notnull focus)
 }
 
 func onFrame(app: *Application)
@@ -580,7 +577,7 @@ func onFrame(app: *Application)
     if !g_Surface or !g_View or !g_PageView do
         return
 
-    if app.keyb.isKeyJustPressed(.F1) do
+    if app.keyboard.isKeyJustPressed(.F1) do
         nextPage()
 
     updateTestMode()
@@ -588,23 +585,23 @@ func onFrame(app: *Application)
 
 func createRootView()
 {
-    let view = (notnull g_Surface).getView()
+    let view = (notnull g_Surface).view()
     g_View               = view
     view.backgroundStyle = .View
 
     let title = Label.create(view, "", {})
     g_Title = title
     setLabelTextStyle(title, .Left, .Center)
-    title.style.setFont(view.getTheme().createDefaultFont(28), .Regular)
+    title.style.setFont(view.theme().createDefaultFont(28), .Regular)
 
-    let subTitle = Label.create(view, "", {}, null, .WordWrap | .LightText)
+    let subTitle = Label.create(view, "", {}, null, .WordWrap | .SecondaryText)
     g_SubTitle = subTitle
     setLabelTextStyle(subTitle, .Left, .Top)
 
     let themeButton = PushButton.create(view, "", {})
-    g_ThemeButton          = themeButton
-    themeButton.form       = .Flat
-    themeButton.icon       = app.theme.getIcon24(ThemeIcons24.Picker, 18)
+    g_ThemeButton = themeButton
+    themeButton.setForm(.Flat)
+    themeButton.setIcon(app.theme.icon24(ThemeIcons24.Picker, 18))
     themeButton.sigPressed += &toggleTheme
 
     let pageView = Wnd.create'Wnd(view, {})
@@ -614,7 +611,7 @@ func createRootView()
     let footer = Label.create(view, "", {})
     g_Footer = footer
     setLabelTextStyle(footer, .Left, .Center)
-    footer.labelFlags.add(.LightText)
+    footer.updateFlags(.SecondaryText)
 
     layoutRootView()
     view.hookOnEvent = &onRootEvent
@@ -622,17 +619,17 @@ func createRootView()
 
 #main
 {
-    let flags   = SurfaceFlags.BigCaption | SurfaceFlags.MinimizeBtn | SurfaceFlags.CloseBtn | SurfaceFlags.Border
+    let flags   = SurfaceFlags.LargeCaption | SurfaceFlags.MinimizeButton | SurfaceFlags.CloseButton | SurfaceFlags.Border
     let surface = notnull (try app.createSurface(100, 50, W - 46, H - 31, flags))
     g_Surface = surface
     surface.setTitle("GUI5 color widgets")
-    surface.setIcon(app.theme.getIcon24(ThemeIcons24.Picker, 18))
+    surface.setIcon(app.theme.icon24(ThemeIcons24.Picker, 18))
 
     createRootView()
     buildPage()
 
     app.sigFrame += &onFrame
-    if Env.hasArg("swag.test") do
+    if Env.hasArgument("swag.test") do
         app.maxRunFrame = cast(u32) MaxPages * cast(u32) TestFramesPerPage + 10
 
     surface.show()

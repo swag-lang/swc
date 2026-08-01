@@ -26,18 +26,19 @@ values.
 
 Use [[Pixel.PixelFormat]] `RGBA8` for general-purpose color with alpha and `RGB8`
 when opacity is guaranteed. Grayscale formats are useful
-for masks and image analysis. Query [[Pixel.PixelFormat.bpp]],
+for masks and image analysis. Query [[Pixel.PixelFormat.bitsPerPixel]],
 [[Pixel.PixelFormat.channels]], and [[Pixel.PixelFormat.hasAlpha]] when generic code
 must adapt to the encoding.
 
 | Field | Meaning |
 |---|---|
 | `width`, `height` | Image extent in pixels |
-| `width8` | Byte stride of one tightly packed row |
+| `rowStride` | Byte stride of one tightly packed row |
 | `pixels` | Owned row-major bytes |
-| `metaDatas` | Codec metadata preserved when supported |
+| `metadata` | Codec metadata preserved when supported |
 
-> WARNING: Low-level access through `pixels` must honor `pf`, `bpp8`, and `width8`.
+> WARNING: Low-level access through `pixels` must honor `pixelFormat`,
+> `bytesPerPixel`, and `rowStride`.
 > Prefer the typed image operations unless direct byte access is required.
 
 ## Encoding options

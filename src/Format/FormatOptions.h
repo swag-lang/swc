@@ -113,6 +113,13 @@ enum class FormatCaseBlankStyle : uint8_t
     MultiLine, // Blank around multi-line arms; one-line arms stay tight
 };
 
+enum class FormatBlankLineStyle : uint8_t
+{
+    Preserve, // Keep the source as written
+    Never,    // Remove blank lines at the target boundary
+    Always,   // Ensure one blank line at the target boundary
+};
+
 struct FormatOptions
 {
     // -----------------------------------------------------------------------
@@ -123,13 +130,13 @@ struct FormatOptions
     std::optional<bool> insertFinalNewline;                // Ensure the file ends with a single newline
     std::optional<bool> trimTrailingNewlines;              // Collapse multiple trailing newlines to one
     std::optional<bool> trimLeadingBlankLines;             // Remove blank lines at the very start of the file
-    uint32_t            maxConsecutiveEmptyLines = 2;      // Max blank lines in a row (0 = no limit)
-    std::optional<bool> keepEmptyLinesAtStartOfBlock;      // Preserve blank lines right after `{`
-    std::optional<bool> keepEmptyLinesAtEndOfBlock;        // Preserve blank lines right before `}`
-    uint32_t            minBlankLinesBetweenFunctions = 0; // Minimum blank lines before a multi-line function definition (0 = preserve)
-    uint32_t            minBlankLinesBetweenTypes     = 0; // Minimum blank lines before a multi-line type / impl / namespace definition (0 = preserve)
-    uint32_t            minBlankLinesBeforeComments   = 0; // Minimum blank lines before a whole-line comment block that follows code (0 = preserve)
-    uint32_t            minBlankLinesAfterBlocks      = 0; // Minimum blank lines after a multi-line `{ ... }` block followed by another statement (0 = preserve)
+    uint32_t             maxConsecutiveEmptyLines             = 0;                              // Max blank lines in a row (0 = no limit)
+    FormatBlankLineStyle blankLineAfterOpeningBrace           = FormatBlankLineStyle::Preserve; // Blank line immediately after a multi-line `{`
+    FormatBlankLineStyle blankLineBeforeClosingBrace          = FormatBlankLineStyle::Preserve; // Blank line immediately before a multi-line `}`
+    FormatBlankLineStyle blankLineBeforeFunctionDefinition    = FormatBlankLineStyle::Preserve; // Blank line before a multi-line function definition
+    FormatBlankLineStyle blankLineBeforeTypeDefinition        = FormatBlankLineStyle::Preserve; // Blank line before a multi-line type / impl / namespace definition
+    FormatBlankLineStyle blankLineBeforeCommentBlock          = FormatBlankLineStyle::Preserve; // Blank line before a whole-line comment block that follows code
+    FormatBlankLineStyle blankLineAfterStandaloneClosingBrace = FormatBlankLineStyle::Preserve; // Blank line after a standalone `}` followed by code
 
     // -----------------------------------------------------------------------
     // End-of-line
@@ -261,10 +268,10 @@ struct FormatOptions
     // -----------------------------------------------------------------------
     // Imports / using
     // -----------------------------------------------------------------------
-    FormatSortOrder     sortUsingStatements = FormatSortOrder::Preserve; // Sort order for top-of-file `using` statements
-    std::optional<bool> mergeUsingStatements;                            // Collapse adjacent `using` onto one line
-    std::optional<bool> blankLineAfterUsingBlock;                        // Guarantee a blank line after the initial `using` block
-    std::optional<bool> blankLineAfterGlobalBlock;                       // Guarantee a blank line after the leading `#global` directives
+    FormatSortOrder      sortUsingStatements       = FormatSortOrder::Preserve;       // Sort order for top-of-file `using` statements
+    std::optional<bool>  mergeUsingStatements;                                        // Collapse adjacent `using` onto one line
+    FormatBlankLineStyle blankLineAfterUsingBlock  = FormatBlankLineStyle::Preserve; // Blank line after the initial `using` block
+    FormatBlankLineStyle blankLineAfterGlobalBlock = FormatBlankLineStyle::Preserve; // Blank line after the leading `#global` directives
 
     // -----------------------------------------------------------------------
     // Numeric literals

@@ -20,16 +20,16 @@ impl IActionUI for ActionUndo
         switch cxt.id
         {
         case .DoUndo:
-            evt.setFlags |= .Disabled | .Name | .Icon
-            evt.name     = "Undo"
-            evt.disabled = !capture or !capture.canUndo()
-            evt.icon     = main.getTheme().getIcon24(.Undo)
+            evt.updatedFields |= .Disabled | .Name | .Icon
+            evt.name          = "Undo"
+            evt.disabled      = !capture or !capture.canUndo()
+            evt.icon          = main.theme().icon24(.Undo)
 
         case .DoRedo:
-            evt.setFlags |= .Disabled | .Name | .Icon
-            evt.name     = "Redo"
-            evt.disabled = !capture or !capture.canRedo()
-            evt.icon     = main.getTheme().getIcon24(.Redo)
+            evt.updatedFields |= .Disabled | .Name | .Icon
+            evt.name          = "Redo"
+            evt.disabled      = !capture or !capture.canRedo()
+            evt.icon          = main.theme().icon24(.Redo)
         }
 
         return true

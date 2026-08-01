@@ -214,9 +214,6 @@ struct Painter
         vertexBuffer:  Array'VertexLayout     // Packed vertices referenced by draw commands.
     }
 
-    curState: PaintState     // Current mutable drawing state.
-    fake:     bool           // Record layout without emitting render commands when true.
-
     // Reusable workspaces. They only hold intermediate results of the call in progress.
     private
     {
@@ -263,8 +260,10 @@ struct Painter
         curTextureFontAtlas: s32 = -1        // Zero-based bound atlas index, or `-1`.
 
         drawingBegin:   bool            // Whether a `begin`/`end` recording scope is active.
+        layoutOnly:     bool            // Whether text layout skips rendering commands.
         overlapMode:    bool            // Whether overlap-safe alpha rendering is active.
         canSetTexture0: bool = true     // Whether drawing operations may change the brush texture.
+        curState:       PaintState      // Current mutable drawing state.
     }
 }
 
@@ -572,7 +571,7 @@ impl Painter
         // Outward normal: perpendicular to the edge, pointing away from the centroid.
         let centroid = (v0[0].pos + v0[1].pos + v0[2].pos) * (1.0 / 3.0)
         var n        = Vector2{q.y - p.y, p.x - q.x}
-        n.normalizeSafe()
+        n.normalizeOrZero()
         let mid = (p + q) * 0.5
         if n.dot(mid - centroid) < 0 do
             n = -n
@@ -641,7 +640,8 @@ impl Painter
     // Starts a fresh recording scope and resets drawing state.
     //
     // A previous scope must have ended. Existing commands and vertices are discarded.
-    mtd begin()
+    // Set `layoutOnly` to compute layout without emitting text geometry.
+    mtd begin(layoutOnly = false)
     {
         Debug.assert(.drawingBegin == false)
 
@@ -649,6 +649,7 @@ impl Painter
         .vertexBuffer.clear()
 
         .drawingBegin   = true
+        .layoutOnly     = layoutOnly
         .canSetTexture0 = true
         .overlapMode    = false
         .hasFontEffect  = false
@@ -709,6 +710,13 @@ impl Painter
         }
     }
 
+    // Returns a copy of the complete current drawing state.
+    mtd const state()->PaintState
+    {
+        var result: retval = .curState
+        return result
+    }
+
     // Pushes a copy of the current drawing state.
     mtd pushState()
     {
@@ -752,11 +760,11 @@ impl Painter
 
     // Returns the currently enabled painter behavior flags.
     #[Swag.Inline]
-    mtd getParams() => .curState.paintParams
+    mtd const params() => .curState.paintParams
 
     // Returns the current curve tessellation quality.
     #[Swag.Inline]
-    mtd getQuality() => .curState.paintQuality
+    mtd const quality() => .curState.paintQuality
 
     // Sets the curve tessellation quality for subsequent paths.
     mtd setQuality(quality: PaintQuality)
@@ -777,9 +785,9 @@ impl Painter
     // Appends a rotation around the path-space origin.
     mtd rotateTransform(angle: Math.Angle)
     {
-        if isZeroEpsilon(angle.rad) do
+        if isZeroEpsilon(angle.radians) do
             return
-        let tr = Transform2.createRotation(angle.rad, 0, 0)
+        let tr = Transform2.createRotation(angle.radians, 0, 0)
         .curState.transform.multiply(tr)
         .setTransform(.curState.transform)
     }
@@ -787,9 +795,9 @@ impl Painter
     // Appends a rotation around the specified path-space center.
     mtd rotateTransform(angle: Math.Angle, centerX, centerY: f32)
     {
-        if isZeroEpsilon(angle.rad) do
+        if isZeroEpsilon(angle.radians) do
             return
-        let tr = Transform2.createRotation(angle.rad, centerX, centerY)
+        let tr = Transform2.createRotation(angle.radians, centerX, centerY)
         .curState.transform.multiply(tr)
         .setTransform(.curState.transform)
     }
@@ -798,9 +806,9 @@ impl Painter
     // Will rotate around the current transformation position.
     mtd rotateTransformInPlace(angle: Math.Angle)
     {
-        if isZeroEpsilon(angle.rad) do
+        if isZeroEpsilon(angle.radians) do
             return
-        let tr = Transform2.createRotation(angle.rad, .curState.transform.tx, .curState.transform.ty)
+        let tr = Transform2.createRotation(angle.radians, .curState.transform.tx, .curState.transform.ty)
         .curState.transform.multiply(tr)
         .setTransform(.curState.transform)
     }
@@ -853,7 +861,7 @@ impl Painter
     }
 
     // Returns the current path-to-surface transform.
-    mtd getTransform()->Transform2
+    mtd const transform()->Transform2
     {
         var result: retval = .curState.transform
         return result
@@ -867,7 +875,7 @@ impl Painter
 
     // Returns the current texture interpolation mode.
     #[Swag.Inline]
-    mtd getInterpolationMode() => .curState.interpolationMode
+    mtd const interpolationMode() => .curState.interpolationMode
 
     // Set the current clipping rectangle
     mtd setClippingRect(x, y, width, height: f32)
@@ -940,16 +948,19 @@ impl Painter
         }
     }
 
-    // Get the current clipping rectangle
-    mtd getClippingRect()->Math.Rectangle
+    // Returns the current clipping rectangle, or an unbounded rectangle when clipping is disabled.
+    mtd const clippingRect()->Math.Rectangle
     {
         if .curState.clippingRectOn do
             return .curState.clippingRect
         return {0, 0, Swag.F32.Max, Swag.F32.Max}
     }
 
+    // Reports whether rectangular clipping is currently enabled.
+    mtd const hasClippingRect()->bool => .curState.clippingRectOn
+
     // Reports whether rectangular clipping currently rejects all drawing.
-    mtd isEmptyClippingRect()->bool
+    mtd const isEmptyClippingRect()->bool
     {
         return .curState.clippingRectOn and .curState.clippingRect.isEmpty()
     }

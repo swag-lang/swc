@@ -62,7 +62,7 @@ impl IForm for FormLine
         .xb += xbu
         .yb += ybu
 
-        if evt.kind == .MouseReleased and evt.button == .Left do
+        if evt.kind == .Released and evt.button == .Left do
             return false
         return true
     }
@@ -121,7 +121,7 @@ impl IForm for FormLine
                 return .cacheBv
             .cacheCoords  = newCoords
             .cacheCoords2 = newCoords2
-            .cacheBv      = Math.Curve.getBezierBoundingBox({.xa, .ya}, {.xb, .yb}, {.xa + .xc, .ya + .yc})
+            .cacheBv      = Math.Curve.bezierBounds({.xa, .ya}, {.xb, .yb}, {.xa + .xc, .ya + .yc})
         }
         else
         {
@@ -181,7 +181,7 @@ impl IForm for FormLine
             {
                 var v = Math.Vector2{.xb, .yb} - Math.Vector2{.xa, .ya}
                 v *= 0.5
-                var vn = v.cross(1).toNormalizedSafe()
+                var vn = v.cross(1).normalizedOrZero()
                 vn  *= v.length() * 0.25
                 .xc = v.x + vn.x
                 .yc = v.y + vn.y

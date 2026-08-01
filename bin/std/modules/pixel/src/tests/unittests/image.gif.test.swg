@@ -18,11 +18,11 @@ func encodeGif(result: *ConcatBuffer, image: Image) fail
 
 func assertGifPixelAt(img: Image, x, yFromBottom: s32, r, g, b, a: u8)
 {
-    let idx = cast(u64) (yFromBottom * img.width + x) * img.bpp8
+    let idx = cast(u64) (yFromBottom * img.width + x) * img.bytesPerPixel
     @assert((notnull img.pixels.buffer)[idx] == r)
     @assert((notnull img.pixels.buffer)[idx + 1] == g)
     @assert((notnull img.pixels.buffer)[idx + 2] == b)
-    if img.bpp8 == 4 do
+    if img.bytesPerPixel == 4 do
         @assert((notnull img.pixels.buffer)[idx + 3] == a)
 }
 
@@ -52,8 +52,8 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     @assert(err2 == null)
     @assert(img.width == src.width)
     @assert(img.height == src.height)
-    @assert(img.pf == expectedPf)
-    @assert(img.pixels.count == cast(u64) src.width * src.height * img.bpp8)
+    @assert(img.pixelFormat == expectedPf)
+    @assert(img.pixels.count == cast(u64) src.width * src.height * img.bytesPerPixel)
 }
 
 // Decoder and encoder registries recognise GIF files.
@@ -74,7 +74,7 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     @assert(rgb.isValid())
     @assert(rgb.width == 439)
     @assert(rgb.height == 341)
-    @assert(rgb.pf == .RGBA8)
+    @assert(rgb.pixelFormat == .RGBA8)
     assertGifPixelAt(rgb, 0, 0, 183'u8, 107'u8, 3'u8, 255'u8)
 
     var rgba: Image
@@ -83,7 +83,7 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     @assert(rgba.isValid())
     @assert(rgba.width == 250)
     @assert(rgba.height == 261)
-    @assert(rgba.pf == .RGBA8)
+    @assert(rgba.pixelFormat == .RGBA8)
     assertGifPixelAt(rgba, 0, 0, 0'u8, 0'u8, 0'u8, 0'u8)
 }
 
@@ -94,19 +94,14 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     @assert(err5 == null)
 
     var dec: Gif.Decoder
-    catch dec.init(nnBytes(bytes.toSlice()), true) as err6
+    catch dec.open(nnBytes(bytes.toSlice())) as err6
     @assert(err6 == null)
 
-    let numFrames = catch dec.getNumFrames() as err7
+    let numFrames = catch dec.frameCount() as err7
     @assert(err7 == null)
     @assert(numFrames == 21)
 
     var frame: Image
-    dec.getFrame(&frame)
-    @assert(frame.width == 439)
-    @assert(frame.height == 341)
-    @assert(frame.pf == .RGBA8)
-
     var count = 0
     for
     {
@@ -118,6 +113,9 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     }
 
     @assert(count == 21)
+    @assert(frame.width == 439)
+    @assert(frame.height == 341)
+    @assert(frame.pixelFormat == .RGBA8)
 }
 
 // Decode with decodePixels=false: metadata fields are populated but no pixel buffer is allocated.
@@ -134,7 +132,7 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     @assert(err10 == null)
     @assert(img.width == 250)
     @assert(img.height == 261)
-    @assert(img.pf == .RGBA8)
+    @assert(img.pixelFormat == .RGBA8)
     @assert(!img.isValid())
 }
 
@@ -177,7 +175,7 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     var img: Image
     img = catch Image.decode("rgb.gif", nnBytes(cb.toSlice()), {}) as err15
     @assert(err15 == null)
-    @assert(img.pf == .RGB8)
+    @assert(img.pixelFormat == .RGB8)
     @assert(Memory.compare(src.pixels.buffer, img.pixels.buffer, src.pixels.count) == 0)
 }
 
@@ -266,7 +264,7 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     @assert(err23 == null)
     @assert(img.width == 17)
     @assert(img.height == 17)
-    @assert(img.pf == .RGB8)
+    @assert(img.pixelFormat == .RGB8)
     assertGifPixelAt(img, 0, 0, 0'u8, 0'u8, 0'u8, 255'u8)
 }
 

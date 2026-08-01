@@ -506,8 +506,8 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     switch evt
     {
     case CreateEvent:
-        Res.font      = wnd.getTheme().createDefaultFont(20)
-        Res.smallfont = wnd.getTheme().createDefaultFont(12)
+        Res.font      = wnd.theme().createDefaultFont(20)
+        Res.smallfont = wnd.theme().createDefaultFont(12)
         initGame()
         initCells()
 
@@ -519,7 +519,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
             wnd.invalidate()
         }
 
-    case MouseEvent as mouseEvt where mouseEvt.kind == .MousePressed:
+    case MouseEvent as mouseEvt where mouseEvt.kind == .Pressed:
         if mouseEvt.button == .Left
         {
             let pos  = wnd.surfaceToLocal(mouseEvt.surfacePos)
@@ -568,26 +568,26 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     var app: Gui.Application
     app.applyTestArgs()
 
-    let surface = notnull (try app.createSurface(100, 100, 978, 993, flags: (.OverlappedWindow & ~.Sizeable), hook: &onEvent))
+    let surface = notnull (try app.createSurface(100, 100, 978, 993, flags: (.StandardWindow & ~.Resizable), hook: &onEvent))
     surface.setTitle("Chess")
 
-    var dataPath: String = Path.getDirectoryName(#curlocation.fileName)
+    var dataPath: String = Path.directoryName(#curlocation.fileName)
     dataPath = Path.combine(dataPath, "datas")
     dataPath = Path.combine(dataPath, "chess")
     dataPath = Path.combine(dataPath, "pieces.png")
     let img = expect Image.load(dataPath)
 
-    let rdr = surface.app.getRenderer()
+    let rdr = surface.app.rendererRef()
     var y   = 0
     for [i] in 2
     {
         using Res
-        piecesTexture[i, cast(s8) PiecesEnum.King - 1]   = rdr.addImage(img.toCrop(0, y, 128, 128))
-        piecesTexture[i, cast(s8) PiecesEnum.Queen - 1]  = rdr.addImage(img.toCrop(128, y, 128, 128))
-        piecesTexture[i, cast(s8) PiecesEnum.Bishop - 1] = rdr.addImage(img.toCrop(256, y, 128, 128))
-        piecesTexture[i, cast(s8) PiecesEnum.Knight - 1] = rdr.addImage(img.toCrop(384, y, 128, 128))
-        piecesTexture[i, cast(s8) PiecesEnum.Rook - 1]   = rdr.addImage(img.toCrop(512, y, 128, 128))
-        piecesTexture[i, cast(s8) PiecesEnum.Pawn - 1]   = rdr.addImage(img.toCrop(640, y, 128, 128))
+        piecesTexture[i, cast(s8) PiecesEnum.King - 1]   = rdr.addImage(img.cropped(0, y, 128, 128))
+        piecesTexture[i, cast(s8) PiecesEnum.Queen - 1]  = rdr.addImage(img.cropped(128, y, 128, 128))
+        piecesTexture[i, cast(s8) PiecesEnum.Bishop - 1] = rdr.addImage(img.cropped(256, y, 128, 128))
+        piecesTexture[i, cast(s8) PiecesEnum.Knight - 1] = rdr.addImage(img.cropped(384, y, 128, 128))
+        piecesTexture[i, cast(s8) PiecesEnum.Rook - 1]   = rdr.addImage(img.cropped(512, y, 128, 128))
+        piecesTexture[i, cast(s8) PiecesEnum.Pawn - 1]   = rdr.addImage(img.cropped(640, y, 128, 128))
         y                                                = 128
     }
 

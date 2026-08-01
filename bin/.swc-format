@@ -30,28 +30,32 @@ trim-leading-blank-lines = true
 # Maximum blank lines allowed in a row (0 disables the limit).
 max-consecutive-empty-lines = 1
 
-# Keep blank lines at the start of a `{ ... }` block.
-keep-empty-lines-at-start-of-block = false
+# Blank line immediately after a multi-line opening brace.
+# Possible values: preserve, never, always
+blank-line-after-opening-brace = never
 
-# Keep blank lines at the end of a `{ ... }` block.
-keep-empty-lines-at-end-of-block = false
+# Blank line immediately before a multi-line closing brace.
+# Possible values: preserve, never, always
+blank-line-before-closing-brace = never
 
-# Minimum blank lines before a multi-line function definition (0 keeps the
-# source as written). Prototypes and one-line `=>` forms keep stacking.
-min-blank-lines-between-functions = 1
+# Blank line before a multi-line function definition. Prototypes and one-line
+# `=>` forms keep stacking.
+# Possible values: preserve, never, always
+blank-line-before-function-definition = always
 
-# Minimum blank lines before a multi-line struct / union / enum / interface /
-# impl / namespace definition (0 keeps the source as written).
-min-blank-lines-between-types = 1
+# Blank line before a multi-line struct / union / enum / interface / impl /
+# namespace definition.
+# Possible values: preserve, never, always
+blank-line-before-type-definition = always
 
-# Minimum blank lines before a whole-line comment block that follows code
-# (0 keeps the source as written).
-min-blank-lines-before-comments = 1
+# Blank line before a whole-line comment block that follows code.
+# Possible values: preserve, never, always
+blank-line-before-comment-block = always
 
-# Minimum blank lines after a multi-line `{ ... }` block when another
-# statement follows (0 keeps the source as written). `else` and `case` stay
-# attached.
-min-blank-lines-after-blocks = 1
+# Blank line after a standalone `}` when code follows. `else`, `case`, and
+# another closing brace stay attached.
+# Possible values: preserve, never, always
+blank-line-after-standalone-closing-brace = always
 
 # ----------------------------------------------------------------------------
 # End-of-line
@@ -385,11 +389,13 @@ sort-using-statements = ascending
 # Collapse adjacent `using` statements onto a single line when possible.
 merge-using-statements = false
 
-# Guarantee a blank line after the initial `using` block.
-blank-line-after-using-block = true
+# Blank line after the initial `using` block.
+# Possible values: preserve, never, always
+blank-line-after-using-block = always
 
-# Guarantee a blank line after the leading `#global` directives.
-blank-line-after-global-block = true
+# Blank line after the leading `#global` directives.
+# Possible values: preserve, never, always
+blank-line-after-global-block = always
 
 # ----------------------------------------------------------------------------
 # Numeric literals

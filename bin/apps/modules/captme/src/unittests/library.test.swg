@@ -193,7 +193,7 @@ using Swag, Core, File
     @assert(err == null)
     g_Library.files.clear()
     g_Library.loaded = true
-    g_Library.onDeleteFile.arr.clear()
+    g_Library.onDeleteFile.clear()
 
     let lib  = f.setupLibraryWnd()
     let view = notnull lib.view
@@ -205,7 +205,7 @@ using Swag, Core, File
         {
             if it.fi.fullname == file
             {
-                libWnd.view.selModel.select(cast() i, false)
+                libWnd.view.selModel.unselect(cast() i)
                 libWnd.view.items.removeAtOrdered(i)
                 break
             }
@@ -238,18 +238,18 @@ using Swag, Core, File
         for p in paths
         {
             discard catch File.delete(p)
-            discard catch File.delete(Path.combine(Library.getTrashFolder(), Path.getFileName(p)))
+            discard catch File.delete(Path.combine(Library.getTrashFolder(), Path.fileName(p)))
         }
 
         g_Library.files.clear()
-        g_Library.onDeleteFile.arr.clear()
+        g_Library.onDeleteFile.clear()
     }
 
     @assert(view.items.count == 3)
     @assert(g_Library.files.count == 3)
 
     for [idx] in view.items.count do
-        view.selModel.select(cast() idx, true)
+        view.selModel.select(cast() idx)
 
     lib.removeSelected()
 
@@ -260,7 +260,7 @@ using Swag, Core, File
     for p in paths
     {
         @assert(!File.exists(p))
-        @assert(File.exists(Path.combine(Library.getTrashFolder(), Path.getFileName(p))))
+        @assert(File.exists(Path.combine(Library.getTrashFolder(), Path.fileName(p))))
     }
 
     f.shutdown()
@@ -337,17 +337,17 @@ using Swag, Core, File
     fi.lastWriteTime.day   = 2
     g_Library.files.add(fi)
 
-    @assert(libWnd.listCtrl.getLineCount() == 0)
+    @assert(libWnd.listCtrl.lineCount() == 0)
     libWnd.fill()
 
     // Root lines only: "All Captures" + the 2024 and 2023 year groups (months and
     // days are children of their year/month lines).
-    @assert(libWnd.listCtrl.getLineCount() == 3)
+    @assert(libWnd.listCtrl.lineCount() == 3)
     @assert(libWnd.view.items.count == 3)
 
     // A second fill with lines already present must keep the sidebar as is.
     libWnd.fill()
-    @assert(libWnd.listCtrl.getLineCount() == 3)
+    @assert(libWnd.listCtrl.lineCount() == 3)
 
     libWnd.view.thread.safeForceEnd()
     libWnd.view.thread.wait()

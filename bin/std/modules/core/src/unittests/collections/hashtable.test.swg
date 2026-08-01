@@ -50,7 +50,7 @@ func assertReverseIntTableIteration(table: const &HashTable'(s32, s32))->bool
     @assert(table.count == 2)
     @assert(table.contains(1))
     @assert(table.contains(3))
-    @assert(table.get(9, 99) == 99)
+    @assert(table.getOrDefault(9, 99) == 99)
     @assert(table[1] == 11)
     @assert(table[3] == 30)
 }

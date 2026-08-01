@@ -4,7 +4,7 @@ using Core, Pixel
 
 // Undo/redo for the property grid, built on the generic gui UndoManager (undomgr.swg).
 //
-// Every field edit funnels through Properties.hasChanged. There, the new value is diffed
+// Every field edit funnels through Properties.commitItemChange. There, the new value is diffed
 // against a per-row snapshot (PropertiesItem.undoValue) captured at build; when it differs a
 // PropUndoCommand holding the old and new value (across all edited instances) is pushed. undo
 // and redo restore the recorded value with the same content-aware copy the "reset to default"
@@ -17,9 +17,10 @@ using Core, Pixel
 // A captured copy of one field's value across every edited instance. Strings are copied by
 // content (they own a heap buffer); every other supported type is copied as raw bytes.
 // The per-instance addresses are captured too, so a value can be restored without the row
-// it was recorded against: undo commands stay valid across a grid rebuild (clearStructs +
+// it was recorded against: undo commands stay valid across a grid rebuild (clear +
 // addStruct), as long as the edited instances themselves are still alive.
-struct PropFieldValue
+#[Swag.NoDoc]
+public struct PropFieldValue
 {
     valid:    bool                  // Valid associated with this value.
     isString: bool                  // Whether this value is string.
@@ -30,7 +31,7 @@ struct PropFieldValue
     strings:  Array'String          // n strings (String case)
 }
 
-impl PropFieldValue
+internal impl PropFieldValue
 {
     // True for the types the grid can snapshot/restore safely: dynamic String (by content) or
     // any POD value (native/enum/bool/color/vector/POD struct/static array of POD).
@@ -148,7 +149,8 @@ impl PropFieldValue
 // captured on. The command does not reference the row it came from: 'generation' records
 // the grid content it was built against, so a command replayed after a rebuild silently
 // skips the row refresh (the values still land at the right addresses).
-struct PropUndoCommand
+#[Swag.NoDoc]
+public struct PropUndoCommand
 {
     #[Swag.Late]
     prop:       *Properties        // Prop associated with this value.
@@ -157,16 +159,16 @@ struct PropUndoCommand
     newVal:     PropFieldValue     // New val associated with this value.
 }
 
-impl IUndoCommand for PropUndoCommand
+internal impl IUndoCommand for PropUndoCommand
 {
-    // Performs the redo operation.
+    // Restores the edited value and refreshes its property grid.
     mtd impl redo()
     {
         .newVal.restore()
         .prop.postUndoRefresh(.generation)
     }
 
-    // Performs the undo operation.
+    // Restores the previous value and refreshes its property grid.
     mtd impl undo()
     {
         .oldVal.restore()
@@ -253,7 +255,7 @@ internal impl Properties
 
         // Item-agnostic notification: the restored command may span rows that no longer exist,
         // so the signal and the host notify are called without a row.
-        .sigChanged.call(me, null)
+        .sigValueChanged.call(me, null)
         if .hostNtfy do
             .hostNtfy.itemHasChanged(me, null)
 
@@ -299,13 +301,13 @@ public impl Properties
         return .activeUndoMgr().canRedo()
     }
 
-    // Performs the undo operation.
+    // Reverts the latest recorded property edit when possible.
     mtd undo()
     {
         .activeUndoMgr().undo()
     }
 
-    // Performs the redo operation.
+    // Reapplies the latest reverted property edit when possible.
     mtd redo()
     {
         .activeUndoMgr().redo()

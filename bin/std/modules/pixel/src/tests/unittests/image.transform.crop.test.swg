@@ -10,7 +10,7 @@ using Swag, Core
         ]
 
     let src = makeImage(3, 2, .RGBA8, pixels)
-    let out = src.toCrop(1, 0, 2, 2)
+    let out = src.cropped(1, 0, 2, 2)
     assertImage(out, 2, 2, .RGBA8)
 
     assertPixel(out, 0, 1, Color.fromArgb(80'u8, 50'u8, 60'u8, 70'u8))

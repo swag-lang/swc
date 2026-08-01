@@ -65,7 +65,7 @@ namespace Platform.Win32
     {
         var result: retval
         result.window = &window
-        result.hDC    = window.getDC()
+        result.hDC    = window.acquireDeviceContext()
 
         var pfd: PIXELFORMATDESCRIPTOR
         pfd.nSize      = #sizeof(pfd)
@@ -108,7 +108,7 @@ namespace Platform.Win32
             catch wglDeleteContext(.hRC)
 
             if .window and .hDC do
-                .window.releaseDC(.hDC)
+                .window.releaseDeviceContext(.hDC)
 
             .hRC    = null
             .hDC    = null

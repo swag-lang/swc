@@ -2,28 +2,28 @@
 
 using Core, Pixel, Serialization
 
-// Represents surface state.
+// Serializable placement and display state of a surface.
 struct SurfaceState
 {
-    position:             Math.Rectangle     // Position associated with this value.
-    positionNotMaximized: Math.Rectangle     // Position not maximized associated with this value.
-    isMaximized:          bool               // Whether this value is maximized.
+    position:         Math.Rectangle     // Current surface bounds in screen coordinates.
+    restoredPosition: Math.Rectangle     // Bounds restored after leaving a maximized state.
+    isMaximized:      bool               // Whether the surface is maximized.
 }
 
-// Represents surface.
+// Top-level drawable window managed by an [[Application]].
 struct Surface
 {
-    using native: NativeSurface                // Embedded native state.
-    app:          *Application = undefined     // App associated with this value.
-    wnd:          *SurfaceWnd  = undefined     // Wnd associated with this value.
-    userData:     #null *void                  // User data associated with this value.
-    surfaceID:    String                       // Surface id associated with this value.
+    using native: NativeSurface                // Platform-specific window state.
+    app:          *Application = undefined     // Application that owns the surface.
+    wnd:          *SurfaceWnd  = undefined     // Root window containing the surface view.
+    userData:     #null *void                  // Optional caller-owned data.
+    surfaceId:    String                       // Identifier used by cross-process custom messages.
 
-    minSize: Math.Point     // Min size associated with this value.
-    maxSize: Math.Point     // Max size associated with this value.
+    minSize: Math.Point     // Minimum allowed width and height; zero disables a dimension limit.
+    maxSize: Math.Point     // Maximum allowed width and height; zero disables a dimension limit.
 
-    flags:         SurfaceFlags = Zero     // Flags associated with this value.
-    colorDisabled: Color                   // Color disabled associated with this value.
+    flags:         SurfaceFlags = None     // Current presentation and window-manager flags.
+    colorDisabled: Color                   // Animated tint used while the surface is disabled.
 
     // What the surface is made of and where it stands. The application creates surfaces and
     // the event loop moves them between these states; reading them tells what is on screen.
@@ -32,14 +32,14 @@ struct Surface
         painter: Painter          // Painter recording the surface's frame.
         rt:      RenderTarget     // Render target the frame is drawn into.
 
-        isHidden:      bool = true     // Whether the surface is hidden.
-        isInitialized: bool            // Whether the platform window exists.
-        isDisabled:    bool            // Whether input is refused, as under a modal.
-        isMinimized:   bool            // Whether the platform window is minimized.
+        isHidden:      bool = true     // Whether the surface is not visible.
+        isInitialized: bool            // Whether the surface has received its one-time initialization event.
+        isDisabled:    bool            // Whether the surface refuses input, for example during a modal operation.
+        isMinimized:   bool            // Whether the surface is minimized.
     }
 
     // Drawable and viewport of the surface, plus repaint bookkeeping. The platform layer and
-    // the paint loop own them; callers reach the drawable with 'getRenderingContext'.
+    // the paint loop own them; callers reach the drawable with 'renderingContext'.
     internal
     {
         rc:        RenderingContext                                        // Drawable and viewport the frame targets.
@@ -47,28 +47,28 @@ struct Surface
         isDirty:   bool                                                    // Whether a repaint is pending.
     }
 
-    using state: SurfaceState     // Embedded state state.
+    using state: SurfaceState     // Serializable placement and maximized state.
 }
 
-// Selects surface flags.
+// Configures a surface's native chrome, resize behavior, and Z-order class.
 #[Swag.EnumFlags]
 enum SurfaceFlags
 {
-    Zero = 0     // No flags are enabled.
+    None = 0     // Creates a frameless, non-resizable surface.
 
-    BigCaption       // Enables big caption.
-    SmallCaption     // Enables small caption.
-    MinimizeBtn      // Enables minimize btn.
-    MaximizeBtn      // Enables maximize btn.
-    CloseBtn         // Enables close btn.
-    Border           // Enables border.
-    Sizeable         // Enables sizeable.
+    LargeCaption       // Uses the standard large title bar.
+    SmallCaption       // Uses the compact tool-window title bar.
+    MinimizeButton     // Displays a minimize button in the title bar.
+    MaximizeButton     // Displays a maximize button in the title bar.
+    CloseButton        // Displays a close button in the title bar.
+    Border             // Draws the themed window border.
+    Resizable          // Allows the user to resize the surface by dragging its border.
 
-    Secondary     // Enables secondary.
-    TopMost       // Enables top most.
-    NoShadow      // Enables no shadow.
+    ToolWindow     // Creates a secondary tool window that does not appear in the taskbar.
+    TopMost        // Keeps the surface above non-topmost windows.
+    NoShadow       // Disables the themed shadow around the surface.
 
-    OverlappedWindow = BigCaption | MinimizeBtn | MaximizeBtn | CloseBtn | Border | Sizeable     // Enables overlapped window.
+    StandardWindow = LargeCaption | MinimizeButton | MaximizeButton | CloseButton | Border | Resizable     // Standard resizable application window.
 }
 
 impl Surface
@@ -77,16 +77,19 @@ impl Surface
     //
     // Pass it to [[Pixel.RenderOgl.begin]] to draw into this surface with an own painter, as a
     // capture or an export pass does.
-    mtd const getRenderingContext()->Pixel.RenderingContext
+    mtd const renderingContext()->Pixel.RenderingContext
     {
         return .rc
     }
 
-    // Change flag surfaces
-    mtd setSurfaceFlags(add, remove = SurfaceFlags.Zero)
+    // Adds and removes runtime-changeable surface flags.
+    //
+    // [[SurfaceFlags.ToolWindow]] is fixed when the native window is created and cannot be
+    // changed with this method.
+    mtd updateFlags(add: SurfaceFlags = .None, remove = SurfaceFlags.None)
     {
         // Cannot be changed at runtime
-        Debug.assert(!(add & .Secondary) and !(remove & .Secondary))
+        Debug.assert(!(add & .ToolWindow) and !(remove & .ToolWindow))
 
         .flags.add(add)
         .flags.remove(remove)
@@ -95,7 +98,7 @@ impl Surface
 
     private mtd applySurfaceFlags()
     {
-        if .flags.has(.BigCaption) do
+        if .flags.has(.LargeCaption) do
             .wnd.padding.y = .app.theme.metrics.wnd_BigCaptionCY
         elif .flags.has(.SmallCaption) do
             .wnd.padding.y = .app.theme.metrics.wnd_SmallCaptionCY
@@ -122,8 +125,7 @@ impl Surface
         .wnd.sendResizeEvent()
     }
 
-    // Creates the surface
-    func create(surface: *Surface, x, y, width, height: s32, flags: SurfaceFlags, mainSurface: #null *Surface) fail
+    internal func create(surface: *Surface, x, y, width, height: s32, flags: SurfaceFlags, mainSurface: #null *Surface) fail
     {
         with surface
         {
@@ -139,12 +141,7 @@ impl Surface
         }
 
         let app = surface.app
-        if app.renderer.headless
-        {
-            if flags & .TopMost do
-                surface.topMost = true
-        }
-        else do
+        if !app.renderer.headless do
             try createNative(app, surface, x, y, width, height, flags, mainSurface)
 
         surface.minSize = {128, 128}
@@ -154,40 +151,40 @@ impl Surface
         surface.sendResizeEvent(w, h)
     }
 
-    // Destroy the surface
+    // Schedules the surface and its complete window tree for destruction.
     mtd destroy()
     {
         .wnd.destroy()
         .hide()
     }
 
-    // Returns inside view
-    mtd getView()->*Wnd
+    // Returns the root user view displayed by the surface.
+    mtd const view()->*Wnd
     {
         return .wnd.view
     }
 
-    // Set the surface icon
+    // Changes the icon displayed in the surface title bar.
     mtd setIcon(icon: Icon)
     {
         .wnd.icon = icon
         .invalidate()
     }
 
-    // Set the surface title
+    // Changes the surface title, or clears it when `name` is `null`.
     mtd setTitle(name: #null string)
     {
         .wnd.name.set(name)
         .invalidate()
     }
 
-    // Invalidate the full surface to be painted
+    // Schedules the complete surface for repainting.
     mtd invalidate()
     {
         .invalidateRect({0, 0, .position.width, .position.height})
     }
 
-    // Invalidate one part of the surface to be painted
+    // Adds a rectangle in surface coordinates to the pending repaint region.
     mtd invalidateRect(rect: Math.Rectangle)
     {
         if !.isDirty
@@ -205,7 +202,7 @@ impl Surface
         .dirtyRect.setBottom(Math.max(b, rect.bottom()))
     }
 
-    // Center this surface relative to 'from'
+    // Centers this surface over `from` without changing its size.
     mtd center(from: *Surface)
     {
         var pos = .position
@@ -216,27 +213,30 @@ impl Surface
         .setPosition(pos)
     }
 
-    // Constraint a window position to be inside the closest monitor
-    mtd constaintPositionToScreen(topLeft, bottomRight = true, margin = 0'f32)
+    // Moves the surface inside the closest monitor's bounds.
+    //
+    // `topLeft` and `bottomRight` select which corners are constrained. `margin` keeps the
+    // selected edges that many pixels away from the monitor boundary.
+    mtd constrainPositionToScreen(topLeft, bottomRight = true, margin = 0'f32)
     {
         if .isMaximized or .isMinimized do
             return
 
-        let monitor = Env.getMonitorForPoint({.position.x, .position.y})
+        let monitor = Env.monitorForPoint({.position.x, .position.y})
         var np      = .position
 
         if topLeft
         {
-            np.x = Math.max(np.x, monitor.rect.x + margin)
-            np.x = Math.min(np.x, monitor.rect.right() - margin)
-            np.y = Math.max(np.y, monitor.rect.y + margin)
-            np.y = Math.min(np.y, monitor.rect.bottom() - margin)
+            np.x = Math.max(np.x, monitor.bounds.x + margin)
+            np.x = Math.min(np.x, monitor.bounds.right() - margin)
+            np.y = Math.max(np.y, monitor.bounds.y + margin)
+            np.y = Math.min(np.y, monitor.bounds.bottom() - margin)
         }
 
         if bottomRight
         {
-            np.x = Math.min(np.x, monitor.rect.right() - margin - .position.width)
-            np.y = Math.min(np.y, monitor.rect.bottom() - margin - .position.height)
+            np.x = Math.min(np.x, monitor.bounds.right() - margin - .position.width)
+            np.y = Math.min(np.y, monitor.bounds.bottom() - margin - .position.height)
         }
 
         .setPosition(np)
@@ -244,7 +244,7 @@ impl Surface
 
     private mtd createRT()
     {
-        if !.rt.colorBuffer.valid or .rt.colorBuffer.width < .rc.width or .rt.colorBuffer.height < .rc.height
+        if !.rt.colorBuffer.isValid() or .rt.colorBuffer.width < .rc.width or .rt.colorBuffer.height < .rc.height
         {
             .app.renderer.deleteRenderTarget(&.rt)
             let w = Math.roundUpToPowerOf2(cast(u32) .rc.width)
@@ -254,8 +254,7 @@ impl Surface
         }
     }
 
-    // Main surface paint function
-    mtd paint()
+    internal mtd paint()
     {
         .createRT()
 
@@ -280,7 +279,7 @@ impl Surface
         .paintShadow()
 
         // Hierarchy paint
-        .painter.pushClippingRect(.wnd.getSurfaceRect())
+        .painter.pushClippingRect(.wnd.surfaceRect())
         .painter.setColorMaskColor()
         .wnd.paint(&cxt)
         .painter.resetTransform()
@@ -317,7 +316,7 @@ impl Surface
         var color: Color
         if .isDisabled and .app.fadeDisabledSurface
         {
-            .colorDisabled = Color.getBlend(.colorDisabled, .app.theme.colors.surfaceDisabled, .app.getDt())
+            .colorDisabled = Color.lerp(.colorDisabled, .app.theme.colors.surfaceDisabled, .app.deltaSeconds())
             color          = .colorDisabled
             .isDirty       = true
             .dirtyRect.clear()
@@ -347,8 +346,8 @@ impl Surface
         .wnd.setPosition({sdw, sdw, width - 2 * sdw, height - 2 * sdw})
     }
 
-    // Returns corner radius.
-    mtd getCornerRadius()->f32
+    // Returns the themed corner radius, or zero when rounding is disabled by the surface state.
+    mtd const cornerRadius()->f32
     {
         if .isMaximized or .flags.has(.NoShadow) do
             return 0
@@ -365,7 +364,7 @@ impl Surface
         if layers == 0 or metrics.surfaceWnd_ShadowSpread <= 0 or .app.theme.colors.wnd_Shadow.a == 0 do
             return
 
-        var bodyRect = .wnd.getSurfaceRect()
+        var bodyRect = .wnd.surfaceRect()
         bodyRect.offset(metrics.surfaceWnd_ShadowOffsetX, metrics.surfaceWnd_ShadowOffsetY)
 
         let baseAlpha = cast(f32) .app.theme.colors.wnd_Shadow.a
@@ -380,7 +379,7 @@ impl Surface
             let spread = metrics.surfaceWnd_ShadowSpread * t
             var rect   = bodyRect
             rect.inflate(spread)
-            let radius = .getCornerRadius() + spread
+            let radius = .cornerRadius() + spread
             .painter.fillRoundRect(rect, radius, radius, .app.theme.colors.wnd_Shadow.withAlpha(alpha))
         }
     }
@@ -390,7 +389,7 @@ impl Surface
         if .app.theme.metrics.surfaceWnd_ShadowSize <= 0 do
             return
 
-        let radius = .getCornerRadius()
+        let radius = .cornerRadius()
         if radius <= 0 do
             return
 
@@ -399,7 +398,7 @@ impl Surface
         .painter.startClippingRegion()
         .painter.fillRect(surfaceRect, Argb.White)
         .painter.setClippingRegionMode(.Clear)
-        .painter.fillRoundRect(.wnd.getSurfaceRect(), radius, radius, Argb.White)
+        .painter.fillRoundRect(.wnd.surfaceRect(), radius, radius, Argb.White)
         .painter.endClippingRegion()
         .paintShadow()
         .painter.resetClippingRegion()
@@ -407,7 +406,7 @@ impl Surface
 
     private mtd paintAlphaMask()
     {
-        let rect = .wnd.getSurfaceRect()
+        let rect = .wnd.surfaceRect()
 
         .painter.resetTransform()
         .painter.setColorMaskAlpha()
@@ -417,18 +416,21 @@ impl Surface
             return
         }
 
-        let radius = .getCornerRadius()
+        let radius = .cornerRadius()
         if radius > 0 do
             .painter.fillRoundRect(rect, radius, radius, Argb.Black)
         else do
             .painter.fillRect(rect, Argb.Black)
     }
 
-    // Sets view.
+    // Replaces and destroys the current user view, then attaches `view` to this surface.
     mtd setView(view: *Wnd)
     {
+        if @isset(.wnd.view) and .wnd.view == view do
+            return
         if @isset(.wnd.view) do
             .wnd.view.destroy()
+        view.setParent(.wnd)
         .wnd.view = view
         .wnd.sendResizeEvent()
     }
@@ -443,7 +445,7 @@ impl Surface
             {
                 if .isMaximized
                 {
-                    .setPosition(.positionNotMaximized)
+                    .setPosition(.restoredPosition)
                     .isMaximized = false
                     .showMaximized()
                 }

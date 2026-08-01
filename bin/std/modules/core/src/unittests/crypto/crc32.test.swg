@@ -31,12 +31,12 @@ func assertCrc32(buffer: const [..] u8, seed: u32 = 0)
         @assert(Hash.Crc32.compute(buffer) == expected)
 
     var crc: Hash.Crc32
-    crc.init(seed)
+    crc.reset(seed)
     crc.update(buffer)
-    @assert(crc.crc == expected)
+    @assert(crc.value() == expected)
 
     crc.update("")
-    @assert(crc.crc == expected)
+    @assert(crc.value() == expected)
 }
 
 func fillCrc32Pattern(buffer: [..] u8)
@@ -60,10 +60,10 @@ func fillCrc32Pattern(buffer: [..] u8)
     assertCrc32("123456789")
 
     var crc: Hash.Crc32
-    crc.init(0x12345678)
+    crc.reset(0x12345678)
     crc.update("dirty")
-    crc.init()
-    @assert(crc.crc == 0'u32)
+    crc.reset()
+    @assert(crc.value() == 0'u32)
 
     var data: [257] u8
     fillCrc32Pattern(data)
@@ -79,18 +79,18 @@ func fillCrc32Pattern(buffer: [..] u8)
     assertCrc32(data[1 until 130])
 
     var split: Hash.Crc32
-    split.init()
+    split.reset()
     split.update(data[until 1])
     split.update(data[1 until 64])
     split.update(data[64 until 129])
     split.update(data[129 until 257])
-    @assert(split.crc == Hash.Crc32.compute(data))
+    @assert(split.value() == Hash.Crc32.compute(data))
 
     assertCrc32(data[until 257], 0x12345678)
 
     var seeded: Hash.Crc32
-    seeded.init(0x12345678)
+    seeded.reset(0x12345678)
     seeded.update(data[until 128])
     seeded.update(data[128 until 257])
-    @assert(seeded.crc == crc32Reference(data, 0x12345678))
+    @assert(seeded.value() == crc32Reference(data, 0x12345678))
 }

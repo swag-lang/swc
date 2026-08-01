@@ -2,53 +2,50 @@
 
 using Swag
 
-// Enum
-//////////////////////////////////////////////
-
-// Performs the has operation.
+// Returns whether every bit in value is present in flags.
 #[Inline]
 func(T) has(flags, value: T)->bool
-    where Reflection.isEnumFlags(T)
+    where Reflection.isEnum(T)
 {
     return flags & value != 0
 }
 
-// Performs the equals operation.
+// Returns whether flags contains exactly value.
 #[Inline]
 func(T) equals(flags, value: T)->bool
-    where Reflection.isEnumFlags(T)
+    where Reflection.isEnum(T)
 {
     return flags == value
 }
 
-// Performs the add operation.
+// Adds value to a flag set.
 #[Inline]
 func(T) add(flags: &T, value: T)
-    where Reflection.isEnumFlags(T)
+    where Reflection.isEnum(T)
 {
     flags |= value
 }
 
-// Performs the remove operation.
+// Removes value from a flag set.
 #[Inline]
 func(T) remove(flags: &T, value: T)
-    where Reflection.isEnumFlags(T)
+    where Reflection.isEnum(T)
 {
     flags &= ~value
 }
 
-// Performs the set operation.
+// Replaces a flag set with value.
 #[Inline]
 func(T) set(flags: &T, value: T)
-    where Reflection.isEnumFlags(T)
+    where Reflection.isEnum(T)
 {
     flags = value
 }
 
-// Performs the toggle operation.
+// Toggles value in a flag set.
 #[Inline]
 func(T) toggle(flags: &T, value: T)
-    where Reflection.isEnumFlags(T)
+    where Reflection.isEnum(T)
 {
     flags ^= value
 }

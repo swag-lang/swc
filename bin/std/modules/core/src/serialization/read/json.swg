@@ -3,22 +3,25 @@
 
 using Swag, Core.Errors
 
-/*
-A simple JSON reader.
-In the case of a struct, the JSON file must represent the structure layout (order of fields matters).
-*/
-public struct JSon
+// Reads JSON objects whose property order matches the serialized Swag type.
+//
+// Strings support the complete JSON escape set, including UTF-16 surrogate
+// pairs in `\uXXXX` escapes. Unknown, missing, and reordered properties fail.
+public struct Json
 {
-    stream:    ByteStream     // Stream associated with this value.
-    line, col: u64 = 1        // Line associated with this value.
-    propName:  String         // Prop name associated with this value.
+    internal
+    {
+        stream:    ByteStream     // Input cursor.
+        line, col: u64 = 1        // One-based source position.
+        propName:  String         // Reusable decoded property name.
+    }
 }
 
-public impl JSon
+public impl Json
 {
     // Returns version.
     #[Warning("Wrn0006", WarningLevel.Disable)]
-    mtd getVersion()->u32
+    mtd version()->u32
     {
         return 0
     }
@@ -30,8 +33,7 @@ public impl JSon
         return true
     }
 
-    // Returns error.
-    mtd getError(val: string)->SyntaxError
+    internal mtd getError(val: string)->SyntaxError
     {
         var err: retval
         err.message = val
@@ -41,13 +43,91 @@ public impl JSon
         return err
     }
 
-    // Performs the zap blanks operation.
-    mtd zapBlanks()
+    internal mtd readHexQuad()->u32 fail
+    {
+        var value = 0'u32
+        for 4
+        {
+            let c = .stream.readU8()
+            if !Latin1.isHexDigit(c) do
+                fail .getError("JSON Unicode escape needs four hexadecimal digits")
+
+            value <<= 4
+            if Latin1.isDigit(c) do
+                value += c - '0'u8
+            elif c <= 'F'u8 do
+                value += 10 + c - 'A'u8
+            else do
+                value += 10 + c - 'a'u8
+        }
+
+        return value
+    }
+
+    internal mtd readUnicodeEscape()->u32 fail
+    {
+        let first = .readHexQuad()
+        if first >= 0xDC00 and first <= 0xDFFF do
+            fail .getError("JSON Unicode escape contains an unpaired low surrogate")
+        if first < 0xD800 or first > 0xDBFF do
+            return first
+
+        if .stream.readU8() != '\\' or .stream.readU8() != 'u' do
+            fail .getError("JSON Unicode escape is missing the low surrogate")
+
+        let second = .readHexQuad()
+        if second < 0xDC00 or second > 0xDFFF do
+            fail .getError("JSON Unicode escape contains an invalid low surrogate")
+        return 0x10000 + ((first - 0xD800) << 10) + second - 0xDC00
+    }
+
+    internal mtd readString(result: *String) fail
+    {
+        if .stream.readU8() != '"' do
+            fail .getError("JSON string is missing its opening quote")
+
+        result.clear()
+        while true
+        {
+            let c = .stream.readU8()
+            if !c do
+                fail .getError("JSON string is missing its closing quote")
+            if c == '"' do
+                return
+            if c < 0x20 do
+                fail .getError("JSON string contains an unescaped control character")
+
+            if c != '\\'
+            {
+                result.append(c)
+                continue
+            }
+
+            let escaped = .stream.readU8()
+            switch escaped
+            {
+            case '"':  result.append('"'u8)
+            case '\\': result.append('\\'u8)
+            case '/':  result.append('/'u8)
+            case 'b':  result.append('\b'u8)
+            case 'f':  result.append('\f'u8)
+            case 'n':  result.append('\n'u8)
+            case 'r':  result.append('\r'u8)
+            case 't':  result.append('\t'u8)
+            case 'u':  result.append(cast(rune) .readUnicodeEscape())
+            default:   fail .getError("JSON string contains an unknown escape sequence")
+            }
+        }
+
+        unreachable
+    }
+
+    internal mtd zapBlanks()
     {
         var c = .stream.peekU8()
         while c and Latin1.isSpace(c)
         {
-            .stream.moveSeek()
+            .stream.advance()
             if c == '\n'
             {
                 .line += 1
@@ -55,7 +135,7 @@ public impl JSon
             }
             else do
                 .col += 1
-            c        = .stream.peekU8()
+            c = .stream.peekU8()
         }
     }
 
@@ -63,6 +143,9 @@ public impl JSon
     mtd startRead(input: const [..] u8)
     {
         .stream = ByteStream.openRead(input)
+        .line   = 1
+        .col    = 1
+        .propName.clear()
     }
 
     // Begins sequence.
@@ -135,26 +218,13 @@ public impl JSon
     mtd beginElement(val: TypeValue)->bool fail
     {
         .zapBlanks()
-        var c = .stream.readU8()
-        if c != '"' do
-            fail .getError("malformed property name, missing opening [[\"]]")
-
-        .propName.clear()
-        c = .stream.readU8()
-        while c and c != '"'
-        {
-            .propName += c
-            c         = .stream.readU8()
-        }
+        .readString(&.propName)
 
         if .propName != val.name do
-            fail .getError("invalid property name")
-
-        if c != '"' do
-            fail .getError("malformed property name, missing closing [[\"]]")
+            fail .getError("JSON property name does not match the serialized field")
 
         .zapBlanks()
-        c = .stream.readU8()
+        let c = .stream.readU8()
         if c != ':' do
             fail .getError("malformed property, missing [[:]] after name")
 
@@ -175,7 +245,7 @@ public impl JSon
         .zapBlanks()
         let c = .stream.peekU8()
         if c == ',' do
-            .stream.moveSeek()
+            .stream.advance()
     }
 
     /////////////////////////////////
@@ -189,90 +259,72 @@ public impl JSon
         #static switch NT
         {
         case bool:
-            let val = StrConv.parseBool(.stream.remainReadToString())
-            .stream.moveSeek(val.eat)
+            let val = StrConv.parseBool(.stream.remainingString())
+            .stream.advance(val.eat)
             return val.value
 
         case f32:
-            let val = StrConv.parseF32(.stream.remainReadToString())
-            .stream.moveSeek(val.eat)
+            let val = StrConv.parseF32(.stream.remainingString())
+            .stream.advance(val.eat)
             return val.value
 
         case f64:
-            let val = StrConv.parseF64(.stream.remainReadToString())
-            .stream.moveSeek(val.eat)
+            let val = StrConv.parseF64(.stream.remainingString())
+            .stream.advance(val.eat)
             return val.value
 
         case s8:
-            let val = StrConv.parseS8(.stream.remainReadToString())
-            .stream.moveSeek(val.eat)
+            let val = StrConv.parseS8(.stream.remainingString())
+            .stream.advance(val.eat)
             return val.value
 
         case s16:
-            let val = StrConv.parseS16(.stream.remainReadToString())
-            .stream.moveSeek(val.eat)
+            let val = StrConv.parseS16(.stream.remainingString())
+            .stream.advance(val.eat)
             return val.value
 
         case s32:
-            let val = StrConv.parseS32(.stream.remainReadToString())
-            .stream.moveSeek(val.eat)
+            let val = StrConv.parseS32(.stream.remainingString())
+            .stream.advance(val.eat)
             return val.value
 
         case s64:
-            let val = StrConv.parseS64(.stream.remainReadToString())
-            .stream.moveSeek(val.eat)
+            let val = StrConv.parseS64(.stream.remainingString())
+            .stream.advance(val.eat)
             return val.value
 
         case u8:
-            let val = StrConv.parseU8(.stream.remainReadToString())
-            .stream.moveSeek(val.eat)
+            let val = StrConv.parseU8(.stream.remainingString())
+            .stream.advance(val.eat)
             return val.value
 
         case u16:
-            let val = StrConv.parseU16(.stream.remainReadToString())
-            .stream.moveSeek(val.eat)
+            let val = StrConv.parseU16(.stream.remainingString())
+            .stream.advance(val.eat)
             return val.value
 
         case u32:
-            let val = StrConv.parseU32(.stream.remainReadToString())
-            .stream.moveSeek(val.eat)
+            let val = StrConv.parseU32(.stream.remainingString())
+            .stream.advance(val.eat)
             return val.value
 
         case u64:
-            let val = StrConv.parseU64(.stream.remainReadToString())
-            .stream.moveSeek(val.eat)
+            let val = StrConv.parseU64(.stream.remainingString())
+            .stream.advance(val.eat)
             return val.value
 
         case Core.String:
-            var result: retval
-
             .zapBlanks()
-            var c = .stream.readU8()
-            if c != '"'
+            if .stream.peekU8() == 'n'
             {
-                if c == 'n' and
-                   .stream.readU8() == 'u' and
-                   .stream.readU8() == 'l' and
-                   .stream.readU8() == 'l'
-                {
-                    return result
-                }
-
-                fail .getError("malformed string, missing opening [[\"]]")
+                if .stream.readU8() != 'n' or .stream.readU8() != 'u' or .stream.readU8() != 'l' or .stream.readU8() != 'l' do
+                    fail .getError("JSON null literal is incomplete")
+                var result: retval
+                return result
             }
 
-            c = .stream.peekU8()
-            while c and c != '"'
-            {
-                c      = .stream.readU8()
-                result += c
-                c      = .stream.peekU8()
-            }
-
-            c = .stream.readU8()
-            if c != '"' do
-                fail .getError("malformed string, missing closing [[\"]]")
-
+            var result: retval
+            .readString(&result)
             return result
 
         default:

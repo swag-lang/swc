@@ -22,7 +22,7 @@ private func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = 
     var bc:      PaintContext
 
     bc.painter  = &painter
-    bc.renderer = host.app.getRenderer()
+    bc.renderer = host.app.rendererRef()
 
     painter.begin()
     host.root.paint(&bc)
@@ -127,7 +127,7 @@ private func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = 
     host.setup(240, 60)
 
     let bar = ProgressBar.create(&host.root, {20, 20, 200, 20})
-    bar.setProgression(0.5)
+    bar.setValue(0.5)
     assertPaintGolden(&host, "widget.progressbar.half")
 }
 

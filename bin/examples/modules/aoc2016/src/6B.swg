@@ -13,7 +13,7 @@ using Core
 
 func day6B()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "6.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "6.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     var freq: [8, 26] u32

@@ -119,11 +119,11 @@ internal impl Properties
         if .fieldIsMixed(item)
         {
             ed.setText("")
-            ed.setNote(PropMixedText)
+            ed.setPlaceholder(PropMixedText)
             return true
         }
 
-        ed.setNote("")
+        ed.setPlaceholder("")
         return false
     }
 
@@ -153,11 +153,11 @@ internal impl Properties
         if .subFieldIsMixed(item, byteOffset, sz)
         {
             ed.setText("")
-            ed.setNote(PropMixedText)
+            ed.setPlaceholder(PropMixedText)
             return true
         }
 
-        ed.setNote("")
+        ed.setPlaceholder("")
         return false
     }
 

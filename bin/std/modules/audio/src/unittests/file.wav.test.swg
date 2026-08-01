@@ -13,48 +13,35 @@ using Swag, Core
     let file = catch SoundFile.load(path) as err2
     @assert(err2 == null)
     @assert(file.encoding == .Pcm16)
-    @assert(file.frequency == 44100)
+    @assert(file.sampleRate == 44100)
     @assert(file.channelCount == 2)
     @assert(file.bitsPerSample == 16)
-    @assert(file.sampleCount == 2)
+    @assert(file.frameCount == 2)
     @assert(file.dataSize == 8)
-    @assert(file.dataSeek == 44)
-    @assert(file.datas.count == 8)
-    @assert(file.validity.has(.Format))
-    @assert(file.validity.has(.Frequency))
-    @assert(file.validity.has(.ChannelCount))
-    @assert(file.validity.has(.BitsPerSample))
-    @assert(file.validity.has(.Data))
-    @assert(file.validity.has(.SampleCount))
-    @assert(file.validity.has(.Duration))
-    audioAssertFloat(file.duration, 2.0 / 44100.0, 0.000001)
-    @assert(audioAssertBytes(file.datas.toSlice(), [0x00, 0x80, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0x7F]))
+    @assert(file.dataOffset == 44)
+    @assert(file.data.count == 8)
+    @assert(file.availableFields.has(.Format))
+    @assert(file.availableFields.has(.SampleRate))
+    @assert(file.availableFields.has(.ChannelCount))
+    @assert(file.availableFields.has(.BitsPerSample))
+    @assert(file.availableFields.has(.Data))
+    @assert(file.availableFields.has(.FrameCount))
+    @assert(file.availableFields.has(.Duration))
+    audioAssertFloat(file.durationSeconds, 2.0 / 44100.0, 0.000001)
+    @assert(audioAssertBytes(file.data.toSlice(), [0x00, 0x80, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0x7F]))
 }
 
 #test
 {
     let path = audioGetTestDataPath("pcm16_stereo.wav")
 
-    let file = catch SoundFile.load(path, loadDatas: false) as err3
+    let file = catch SoundFile.load(path, preloadData: false) as err3
     @assert(err3 == null)
     @assert(file.encoding == .Pcm16)
     @assert(file.dataSize == 8)
-    @assert(file.dataSeek == 44)
-    @assert(file.datas.count == 0)
-    @assert(file.sampleCount == 2)
-}
-
-#test
-{
-    let path = audioGetTestDataPath("pcm16_stereo.wav")
-
-    let file = catch SoundFile.load(path, loadDatas: false, loadMetaDatas: true) as err4
-    @assert(err4 == null)
-    @assert(file.encoding == .Pcm16)
-    @assert(file.dataSize == 8)
-    @assert(file.datas.count == 0)
-    @assert(file.sampleCount == 2)
-    @assert(file.validity.has(.Duration))
+    @assert(file.dataOffset == 44)
+    @assert(file.data.count == 0)
+    @assert(file.frameCount == 2)
 }
 
 #test
@@ -64,14 +51,14 @@ using Swag, Core
     let file = catch SoundFile.load(path) as err5
     @assert(err5 == null)
     @assert(file.encoding == .Pcm8)
-    @assert(file.frequency == 8000)
+    @assert(file.sampleRate == 8000)
     @assert(file.channelCount == 1)
     @assert(file.bitsPerSample == 8)
-    @assert(file.sampleCount == 3)
+    @assert(file.frameCount == 3)
     @assert(file.dataSize == 3)
-    @assert(file.dataSeek == 44)
-    audioAssertFloat(file.duration, 3.0 / 8000.0, 0.000001)
-    @assert(audioAssertBytes(file.datas.toSlice(), [0'u8, 128'u8, 255'u8]))
+    @assert(file.dataOffset == 44)
+    audioAssertFloat(file.durationSeconds, 3.0 / 8000.0, 0.000001)
+    @assert(audioAssertBytes(file.data.toSlice(), [0'u8, 128'u8, 255'u8]))
 }
 
 #test
@@ -81,16 +68,16 @@ using Swag, Core
     let file = catch SoundFile.load(path) as err6
     @assert(err6 == null)
     @assert(file.encoding == .Pcm24)
-    @assert(file.frequency == 48000)
+    @assert(file.sampleRate == 48000)
     @assert(file.channelCount == 2)
     @assert(file.bitsPerSample == 24)
     @assert(file.validBitsPerSample == 20)
     @assert(file.channelMask == 3)
-    @assert(file.sampleCount == 2)
+    @assert(file.frameCount == 2)
     @assert(file.dataSize == 12)
-    @assert(file.validity.has(.ValidBitsPerSample))
-    @assert(file.validity.has(.ChannelMask))
-    @assert(audioAssertBytes(file.datas.toSlice(), [0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x7F, 0x34, 0x12, 0x00]))
+    @assert(file.availableFields.has(.ValidBitsPerSample))
+    @assert(file.availableFields.has(.ChannelMask))
+    @assert(audioAssertBytes(file.data.toSlice(), [0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x7F, 0x34, 0x12, 0x00]))
 }
 
 #test
@@ -100,15 +87,15 @@ using Swag, Core
     let file = catch SoundFile.load(path) as err7
     @assert(err7 == null)
     @assert(file.encoding == .Float32)
-    @assert(file.frequency == 22050)
+    @assert(file.sampleRate == 22050)
     @assert(file.channelCount == 1)
     @assert(file.bitsPerSample == 32)
     @assert(file.validBitsPerSample == 32)
     @assert(file.channelMask == 4)
-    @assert(file.sampleCount == 2)
+    @assert(file.frameCount == 2)
     @assert(file.dataSize == 8)
-    @assert(file.validity.has(.ValidBitsPerSample))
-    @assert(file.validity.has(.ChannelMask))
+    @assert(file.availableFields.has(.ValidBitsPerSample))
+    @assert(file.availableFields.has(.ChannelMask))
 }
 
 #test
@@ -118,13 +105,13 @@ using Swag, Core
     let file = catch SoundFile.load(path) as err8
     @assert(err8 == null)
     @assert(file.encoding == .Pcm16)
-    @assert(file.frequency == 44100)
+    @assert(file.sampleRate == 44100)
     @assert(file.channelCount == 1)
     @assert(file.bitsPerSample == 16)
-    @assert(file.sampleCount == 2)
+    @assert(file.frameCount == 2)
     @assert(file.dataSize == 4)
-    @assert(file.dataSeek == 56)
-    @assert(audioAssertBytes(file.datas.toSlice(), [0x34, 0x12, 0xFE, 0xFF]))
+    @assert(file.dataOffset == 56)
+    @assert(audioAssertBytes(file.data.toSlice(), [0x34, 0x12, 0xFE, 0xFF]))
 }
 
 #test

@@ -2,7 +2,7 @@ using Core, Gui, Pixel
 
 func addSimpleTreeBranch(tree: *ListCtrl, rootName: string, rootIcon: ThemeIcons24, childCount: s32)->*ListLine
 {
-    let root = tree.createLine(rootName, app.theme.getIcon24(rootIcon, 16))
+    let root = tree.createLine(rootName, app.theme.icon24(rootIcon, 16))
     for [i] in childCount
     {
         let child = tree.createLine(Format.toString("node %.%", rootName, i + 1), sampleIcon(i), parentLine: root)
@@ -21,8 +21,8 @@ func createTreesPage(parent: *Wnd)
     let tree = ListCtrl.createSimple(left, {18, 92, layout.left.width - 36, layout.left.height - 112})
     tree.setFrameForm(.Round)
     tree.frameFlags.add(.FocusBorder)
-    tree.selectionMode = .Single
-    tree.iconSize      = 16
+    tree.setSelectionMode(.Single)
+    tree.setIconSize(16)
     let docs   = addSimpleTreeBranch(tree, "Documents", .OpenFile, 4)
     let assets = addSimpleTreeBranch(tree, "Assets", .Picker, 3)
     discard addSimpleTreeBranch(tree, "Build", .Options, 3)
@@ -33,11 +33,11 @@ func createTreesPage(parent: *Wnd)
     let right = createPanel(parent, "Tree table", "Nested rows can still carry column data and sortable headers.", layout.right)
     let table = ListCtrl.createMultiColumns(right, {18, 92, layout.right.width - 36, layout.right.height - 112})
     table.setFrameForm(.Round)
-    table.selectionMode      = .Multi
-    table.iconSize           = 16
-    table.iconMarginFirstCol = false
+    table.setSelectionMode(.Multi)
+    table.setIconSize(16)
+    table.setFirstColumnIconMargin(false)
     addListFlags(table)
-    table.addColumn("Item", 210, app.theme.getIcon24(.SortArrowRight, 16))
+    table.addColumn("Item", 210, app.theme.icon24(.SortArrowRight, 16))
     table.addColumn("State", 110)
     table.addColumn("Size", 90)
     table.addColumn("Owner", 100)
@@ -66,14 +66,14 @@ func createTreesPage(parent: *Wnd)
     let bottom    = createPanel(parent, "Collapsed branch states", "Tree controls preserve expansion, selection and check state independently.", layout.bottom)
     let stateTree = ListCtrl.createSimple(bottom, {18, 92, layout.bottom.width - 36, layout.bottom.height - 112})
     stateTree.setFrameForm(.Square)
-    stateTree.selectionMode = .Multi
-    stateTree.iconSize      = 16
-    stateTree.listFlags.add(.ForceMarginExpandMark)
+    stateTree.setSelectionMode(.Multi)
+    stateTree.setIconSize(16)
+    stateTree.updateFlags(.ReserveExpandMargin)
     let openRoot   = addSimpleTreeBranch(stateTree, "Expanded branch", .Plus, 2)
     let closedRoot = addSimpleTreeBranch(stateTree, "Collapsed branch", .Minimize, 2)
     stateTree.expand(openRoot)
     openRoot.canCheck   = true
     closedRoot.canCheck = true
-    stateTree.checkModel.select(openRoot.index, true)
+    stateTree.setLineChecked(openRoot, notify: false)
     stateTree.computeLayout()
 }

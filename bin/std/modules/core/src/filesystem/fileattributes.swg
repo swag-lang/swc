@@ -5,7 +5,7 @@
 // Attributes that define file or directory characteristics
 enum FileAttributes
 {
-    Zero = 0              // No attributes set
+    None = 0              // No attributes are set.
     ReadOnly              // File is read-only
     Hidden                // File is hidden
     System                // File is part of the operating system

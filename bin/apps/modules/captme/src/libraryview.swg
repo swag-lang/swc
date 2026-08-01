@@ -50,18 +50,18 @@ impl IWnd for LibraryView
 {
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
-        if evt.kind == .MouseLeave
+        if evt.kind == .Leave
         {
             .hotItem = Swag.U32.Max
             .invalidate()
             return
         }
 
-        if evt.kind == .MouseWheel do
+        if evt.kind == .Wheel do
             evt.accepted = false
 
         var pos = .surfaceToLocal(evt.surfacePos)
-        pos += .scrollWnd.getScrollPos()
+        pos += .scrollWnd.scrollPosition()
 
         // Hit test
         var ht = Swag.U32.Max
@@ -83,24 +83,24 @@ impl IWnd for LibraryView
         let shiftPressed = cast(bool) (evt.modifiers & .Shift)
         let ctrlPressed  = cast(bool) (evt.modifiers & .Control)
 
-        if evt.kind == .MouseReleased and .hotItem != Swag.U32.Max and evt.button == .Left
+        if evt.kind == .Released and .hotItem != Swag.U32.Max and evt.button == .Left
         {
             if !ctrlPressed and !shiftPressed do
-                .selModel.unselectAll()
+                .selModel.clear()
 
             if shiftPressed and .focusItem < .items.count do
-                .selModel.select(.hotItem, .focusItem, true)
+                .selModel.selectRange(.hotItem, .focusItem)
             elif ctrlPressed and .selModel.isSelected(.hotItem) do
-                .selModel.select(.hotItem, false)
+                .selModel.unselect(.hotItem)
             else do
-                .selModel.select(.hotItem, true)
+                .selModel.select(.hotItem)
 
             .focusItem = .hotItem
             .invalidate()
             .setFocus()
         }
 
-        if evt.kind == .MouseDoubleClick and .focusItem < .items.count and evt.button == .Left
+        if evt.kind == .DoubleClick and .focusItem < .items.count and evt.button == .Left
         {
             // Trashed captures are not editable; they must be restored first.
             if .libWnd.trashMode do
@@ -120,7 +120,7 @@ impl IWnd for LibraryView
             .mainWnd.updateState()
         }
 
-        if evt.kind == .MousePressed and evt.button == .Right and .focusItem < .items.count
+        if evt.kind == .Pressed and evt.button == .Right and .focusItem < .items.count
         {
             with let menu = MenuCtrl.createPopup(me)
             {
@@ -148,13 +148,13 @@ impl IWnd for LibraryView
         }
     }
 
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaint(evt: *PaintEvent)
     {
         if !g_UpdatingLib do
             .imgSpin.hide()
 
-        let painter    = evt.bc.painter
-        let clientRect = .getClientRectPadding()
+        let painter    = evt.paintContext.painter
+        let clientRect = .paddedClientRect()
 
         var x = clientRect.x
         var y = clientRect.y
@@ -166,7 +166,7 @@ impl IWnd for LibraryView
             .filter()
         }
 
-        let spos = .scrollWnd.getScrollPos()
+        let spos = .scrollWnd.scrollPosition()
         for it, [i] in .items
         {
             it.visible = true
@@ -184,7 +184,7 @@ impl IWnd for LibraryView
             // actually has a preview image; a preview-less capture just shows the
             // hour-glass placeholder below).
             if capture and !it.texture.isValid() and capture.preview.isValid() do
-                it.texture = evt.bc.renderer.addImage(capture.preview)
+                it.texture = evt.paintContext.renderer.addImage(capture.preview)
 
             it.rect = Math.Rectangle{x, y, w, h}
             let selected = .selModel.isSelected(cast() i)
@@ -207,7 +207,7 @@ impl IWnd for LibraryView
             // shadow so it stays readable over any background.
             if capture and !capture.title.isEmpty()
             {
-                let font  = captmeFont(me.getFont().regular)
+                let font  = captmeFont(me.font().regular)
                 let title = capture.title.toString()
                 let cx    = it.rect.horzCenter()
                 let by    = it.rect.bottom() - 8
@@ -218,7 +218,7 @@ impl IWnd for LibraryView
             // Waiting for texture
             if !it.texture.isValid()
             {
-                let icon  = .getTheme().getIcon64(.HourGlass, 48)
+                let icon  = .theme().icon64(.HourGlass, 48)
                 let color = Color.fromArgb(50, Argb.White)
                 icon.paint(painter, it.rect.horzCenter() - icon.sizeX * 0.5, it.rect.vertCenter() - icon.sizeY * 0.5, color)
             }
@@ -241,7 +241,7 @@ impl LibraryView
     mtd const numImagesPerLine()->u32
     {
         let {w, ?}     = .getPreviewSize()
-        let clientRect = .getClientRectPadding()
+        let clientRect = .paddedClientRect()
         let n          = clientRect.width / (w + ItemMargin)
         return cast(u32) n
     }
@@ -276,8 +276,8 @@ impl LibraryView
             {
                 if it.capture and it.texture.isValid()
                 {
-                    .getApp().getRenderer().removeTexture(&it.texture)
-                    it.texture = .getApp().getRenderer().addImage(capture.preview)
+                    .app().rendererRef().removeTexture(&it.texture)
+                    it.texture = .app().rendererRef().addImage(capture.preview)
                 }
 
                 break
@@ -356,7 +356,7 @@ impl LibraryView
         // that actually have a preview; the rest simply don't take part in similarity sort.
         if capture.preview.isValid() do
             capture.haar = ImageStatistics.quickExtractHaarFeatures(capture.preview, 32)
-        g_DirtyList      = true
+        g_DirtyList = true
 
         .mutexLoaded.lock()
         it.capture = capture
@@ -480,7 +480,7 @@ impl LibraryView
         if .items.isEmpty() do
             return
 
-        Cursor.wait()
+        Cursor.activateWait()
 
         if .libWnd.sortMethod == .Similar do
             .sortSimilar()
@@ -521,7 +521,7 @@ impl LibraryView
             res = catch Directory.enumerateFiles(cf, ".captme")
         }
 
-        let renderer = .getApp().getRenderer()
+        let renderer = .app().rendererRef()
 
         // Release textures over the full set, not just the filtered '.items': items
         // filtered out are absent from '.items' and would leak their GPU texture
@@ -534,7 +534,7 @@ impl LibraryView
         .allItems.reserve(res.count)
         for fi in res
         {
-            let ptr = .allItems.addNewPtr()
+            let ptr = .allItems.addNew()
             ptr.fi = fi
         }
 
@@ -560,14 +560,14 @@ impl LibraryView
     mtd clearSelection()
     {
         .focusItem = Swag.U32.Max
-        .selModel.unselectAll()
+        .selModel.clear()
     }
 
     mtd setFocusItem(focus: u32)
     {
-        .selModel.unselectAll()
+        .selModel.clear()
         .focusItem = focus
-        .selModel.select(.focusItem, .focusItem, true)
+        .selModel.select(.focusItem)
         .invalidate()
     }
 

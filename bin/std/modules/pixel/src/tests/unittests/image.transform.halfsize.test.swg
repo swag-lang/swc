@@ -12,7 +12,7 @@ using Swag, Core
         ]
 
     let src = makeImage(4, 4, .RGBA8, pixels)
-    let out = src.toHalfSize()
+    let out = src.halved()
     assertImage(out, 2, 2, .RGBA8)
 
     assertPixel(out, 0, 1, Color.fromArgb(65'u8, 35'u8, 45'u8, 55'u8))

@@ -8,7 +8,7 @@ using Swag
     var state: Input.KeyboardState
 
     for [i] in @countof(Input.Key) do
-        state.pressed[i] = true
+        state.setPressed(cast(Input.Key) i, true)
 
     state.clear()
 

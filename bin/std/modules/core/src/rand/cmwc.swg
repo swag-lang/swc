@@ -2,24 +2,28 @@
 #global public
 
 // George Marsaglia's CMWC (Complementary Multiply With Carry) 4096 random number generator.
-struct CMWC4096
+#[Swag.Opaque]
+struct ComplementaryMultiplyWithCarry4096
 {
-    q: [4096] u32     // State array of 4096 32-bit unsigned integers
-    c: u32            // Carry value
-    i: u32 = 4096     // Current index into the state array (initialized to an invalid value to trigger seeding)
+    internal
+    {
+        state: [4096] u32
+        carry: u32
+        index: u32 = 4096
+    }
 }
 
-impl CMWC4096
+impl ComplementaryMultiplyWithCarry4096
 {
     // Seeds the generator with a 32-bit unsigned value.
     mtd seedU32(value: u32)
     {
-        var rng: MWC
-        rng.seedU32(value)
-        for [idx] in @countof(.q) do
-            .q[idx] = rng.nextU32()
-        .i          = 4095
-        .c          = value % 809430660
+        var generator: MultiplyWithCarry32
+        generator.seedU32(value)
+        for [stateIndex] in @countof(.state) do
+            .state[stateIndex] = generator.nextU32()
+        .index = 4095
+        .carry = value % 809430660
     }
 
     // Generates the next 32-bit unsigned random number.
@@ -30,17 +34,17 @@ impl CMWC4096
         const r = 0xFFFFFFFE
 
         // Be sure we have seeded
-        if .i > 4095 do
+        if .index > 4095 do
             .seedU32(362436)
 
-        .i = (.i + 1) & 4095
-        let t = a * .q[.i] + .c
-        .c = cast(u32) (t >> 32)
-        var x = t + .c
-        if x < .c do
-            x, .c += 1
+        .index = (.index + 1) & 4095
+        let t = a * .state[.index] + .carry
+        .carry = cast(u32) (t >> 32)
+        var x = t + .carry
+        if x < .carry do
+            x, .carry += 1
         let v = cast(u32) (r - x)
-        .q[.i] = v
+        .state[.index] = v
         return v
     }
 }

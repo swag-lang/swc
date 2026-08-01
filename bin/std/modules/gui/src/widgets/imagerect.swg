@@ -2,34 +2,46 @@
 
 using Core, Pixel
 
-// Represents image rect.
+// Displays a texture, sprite-sheet animation, or animated GIF inside a window.
 struct ImageRect
 {
-    using wnd:    Wnd         // Embedded wnd state.
-    movie:        Movie       // Movie associated with this value.
-    textureFrame: Texture     // Texture frame associated with this value.
+    using wnd: Wnd     // Embedded window behavior and presentation.
+
+    sigFrameChanged: SigArray'func||(*ImageRect)     // Emitted after the visible animation frame changes.
+
+    readonly
+    {
+        movie: Movie     // Playback state for the current content.
+    }
+
+    internal uploadedTexture: Texture     // Renderer texture owned by this window, if any.
 }
 
 impl IWnd for ImageRect
 {
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onDestroyEvent(evt: *DestroyEvent)
+    {
+        .clear()
+    }
+
+    mtd impl onPaint(evt: *PaintEvent)
     {
         if !.movie.isValid() do
             return
 
-        // Update movie, and update resulting texture frame if necessary
-        if .movie.update(.getApp().timing.dt)
+        // Advance playback and upload a newly decoded GIF frame when necessary.
+        if .movie.update(.app().timing.deltaSeconds)
         {
             if .movie.source != .SpriteSheet
             {
-                .getApp().renderer.updateTexture(.textureFrame, nnPixels(.movie.frame.pixels.buffer))
+                .app().renderer.updateTexture(.uploadedTexture, nnPixels(.movie.frame.pixels.buffer))
             }
         }
 
-        let painter = evt.bc.painter
-        let rect    = .getClientRectPadding()
+        let painter = evt.paintContext.painter
+        let rect    = .paddedClientRect()
 
-        let color = .getThemeColors().imageRect_Fg
+        let color = .themeColors().imageRect_Fg
 
         switch #complete .movie.source
         {
@@ -41,68 +53,115 @@ impl IWnd for ImageRect
             icon.paint(painter, rect.x, rect.y, color)
 
         case .Gif:
-            painter.drawTexture(rect, .textureFrame, color)
+            painter.drawTexture(rect, .uploadedTexture, color)
         }
 
-        if !.movie.numFrames or .movie.numFrames > 1 do
+        if .movie.frameCount > 1 and !.movie.isPaused do
             .invalidate()
     }
 }
 
 impl ImageRect
 {
-    // Performs the create operation.
+    // Creates an empty image window.
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*ImageRect
     {
         Debug.assert(parent != null)
-        let res = Wnd.create'ImageRect(parent, null, position, id)
-        return res
+        let result = Wnd.create'ImageRect(parent, null, position, id)
+        result.movie.sigFrameChanged += func|result|(movie)
+        {
+            result.sigFrameChanged.call(result)
+            result.invalidate()
+        }
+        return result
     }
 
-    // Removes all content.
+    // Releases renderer-owned content and restores an empty image window.
     mtd clear()
     {
-        .getApp().renderer.removeTexture(&.textureFrame)
-    }
-
-    // Set movie as an image list
-    mtd setMovie(image: ImageList)
-    {
-        .clear()
-        .movie.set(image)
+        if .uploadedTexture.isValid() do
+            .app().renderer.removeTexture(&.uploadedTexture)
+        .movie.clear()
         .invalidate()
     }
 
-    // Associate image
-    mtd setImage(image: ImageList)
+    // Uses a borrowed image-list atlas as an animated sprite sheet.
+    mtd setSpriteSheet(imageList: ImageList)
     {
-        .setImage(image.texture)
+        .clear()
+        .movie.setSpriteSheet(imageList)
+        .movie.setPaused(false)
+        .invalidate()
     }
 
-    // Associate image
+    // Displays the first frame of a borrowed image-list atlas without animation.
+    mtd setImageList(imageList: ImageList)
+    {
+        .clear()
+        .movie.setSpriteSheet(imageList)
+        .movie.setPaused(true)
+        .invalidate()
+    }
+
+    // Displays a borrowed renderer texture as one frame.
     //
     // The whole texture becomes one frame: an image rectangle shows a picture, not an animation.
-    mtd setImage(image: Texture)
+    mtd setTexture(texture: Texture)
     {
         .clear()
-        var tmp: ImageList
-        tmp.set(image)
-        .movie.set(tmp)
+        .movie.setSpriteSheet(ImageList.create(texture))
+        .movie.setPaused(true)
+        .invalidate()
     }
 
-    // Associate image
+    // Uploads and displays an owned copy of an image.
     mtd setImage(image: Image)
     {
-        .setImage(.getApp().renderer.addImage(image))
+        .clear()
+        .uploadedTexture = .app().renderer.addImage(image)
+        .movie.setSpriteSheet(ImageList.create(.uploadedTexture))
+        .movie.setPaused(true)
+        .invalidate()
     }
 
-    // Load and set movie
-    mtd setFile(fileName: string) fail
+    // Selects a frame, clamping the index to the available range.
+    mtd setFrameIndex(index: s32)
     {
-        .clear()
-        try .movie.set(fileName)
-        .textureFrame = .getApp().renderer.addImage(.movie.frame)
+        .movie.setFrameIndex(index)
+        .invalidate()
+    }
+
+    // Pauses or resumes time-based playback.
+    mtd setPaused(paused: bool)
+    {
+        if .movie.isPaused == paused do
+            return
+        .movie.setPaused(paused)
+        .invalidate()
+    }
+
+    // Changes the duration of every frame, in seconds.
+    mtd setFrameDuration(seconds: f32)
+    {
+        Debug.assert(seconds > 0, "frame duration must be positive")
+        .movie.frameDurationSeconds = seconds
+    }
+
+    // Enables or disables restart after the final frame.
+    mtd setLooping(looping: bool)
+    {
+        .movie.loops = looping
+    }
+
+    // Loads and displays an animated GIF without changing the current content on failure.
+    mtd loadGif(fileName: string) fail
+    {
+        try .movie.load(fileName)
+        .movie.setPaused(false)
+        if .uploadedTexture.isValid() do
+            .app().renderer.removeTexture(&.uploadedTexture)
+        .uploadedTexture = .app().renderer.addImage(.movie.frame)
         .invalidate()
     }
 }

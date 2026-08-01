@@ -7,7 +7,7 @@ using Core
 
 #ast
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "7.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "7.txt")
 
     var result: String
     var r:      Parser.RegExp

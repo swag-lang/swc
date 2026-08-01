@@ -15,8 +15,8 @@ func assertOnlyFileAttribute(value: u32, expected: File.FileAttributes)
 {
     using File.FileAttributes
 
-    @assert(File.FileAttributes.fromDWORD(0) == Zero)
-    @assert(File.FileAttributes.fromDWORD(0xFFFF_FFFF'u32) == Zero)
+    @assert(File.FileAttributes.fromDWORD(0) == None)
+    @assert(File.FileAttributes.fromDWORD(0xFFFF_FFFF'u32) == None)
 
     assertOnlyFileAttribute(0x0000_0001, ReadOnly)
     assertOnlyFileAttribute(0x0000_0002, Hidden)

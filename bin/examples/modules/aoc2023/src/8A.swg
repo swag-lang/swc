@@ -35,7 +35,7 @@ using Core
 
 func day8A()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "8.txt")
+    let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "8.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     var instructions: string = ""
@@ -81,7 +81,7 @@ func day8A()
                 curNode = nodes[curNode].left
             else do
                 curNode = nodes[curNode].right
-            total       += 1
+            total += 1
             if curNode == endNode do
                 break
         }

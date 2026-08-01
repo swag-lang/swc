@@ -12,14 +12,25 @@ using Swag, Core
     let header = Header.create(&host.root, {10, 10, 300, 24})
     @assert(header.items.count == 0)
 
-    header.addItem("Name", 120)
-    header.addItem("Size", 80)
+    header.addColumn("Name", 120)
+    header.addColumn("Size", 80)
     @assert(header.items.count == 2)
 
-    @assert(header.getItem(0).name.raw == "Name")
-    @assert(header.getItem(1).name.raw == "Size")
-    @assert(Math.abs(header.getItem(0).width - 120) < 0.01)
-    @assert(header.getItem(1).column == 1)
+    @assert(header.itemAt(0).name.raw == "Name")
+    @assert(header.itemAt(1).name.raw == "Size")
+    @assert(Math.abs(header.itemWidthAt(0) - 120) < 0.01)
+    @assert(header.itemForColumn(1) == header.itemAt(1))
+
+    header.setItemWidthLimits(0, 100, 140)
+    header.setItemWidth(0, 20)
+    @assert(header.itemWidthAt(0) == 100)
+    header.setItemWidthForColumn(0, 300)
+    @assert(header.itemWidthAt(0) == 140)
+
+    header.setSortIndicator(1, .Descending)
+    @assert(header.sortColumn == 1 and header.sortDirection == .Descending)
+    header.clearSortIndicator()
+    @assert(header.sortColumn == Swag.U32.Max and header.sortDirection == .None)
 
     host.shutdown()
 }

@@ -36,7 +36,7 @@ impl StringBuilder
     // Append a end of line
     mtd appendEOL()
     {
-        .buffer.addBytes(Env.EndLine)
+        .buffer.addBytes(Env.LineEnding)
     }
 
     // Append a rune
@@ -61,9 +61,9 @@ impl StringBuilder
     // Force a ending 0
     mtd zeroTerminate()
     {
-        let seek = .buffer.getSeek()
+        let seek = .buffer.position()
         .buffer.addNative(0'u8)
-        .buffer.setEndSeek(seek)
+        .buffer.truncate(seek)
     }
 
     // Return the content as a string

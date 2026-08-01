@@ -2,14 +2,14 @@
 #global namespace Slice
 
 // Insertion sort algorithm (slow)
-func(T) insertionSort(values: [..] T, cb: func||(T, T)->s32)
+private func(T) insertionSort(values: [..] T, compare: func||(T, T)->s32)
 {
     var buffer = @dataof(values)
     let count  = @countof(values)
 
-    for var i = 1'u32; i < count; i += 1
+    for var i = 1'u64; i < count; i += 1
     {
-        for var j = i; j > 0 and cb(buffer[j], buffer[j - 1]) < 0; j -= 1
+        for var j = i; j > 0 and compare(buffer[j], buffer[j - 1]) < 0; j -= 1
         {
             swap(&buffer[j], &buffer[j - 1])
         }
@@ -17,7 +17,7 @@ func(T) insertionSort(values: [..] T, cb: func||(T, T)->s32)
 }
 
 // Quick sort algorithm
-func(T) quickSort(values: [..] T, cb: func||(T, T)->s32)
+private func(T) quickSort(values: [..] T, compare: func||(T, T)->s32)
 {
     let count = cast(s64) @countof(values)
     if count == 0 do
@@ -32,7 +32,7 @@ func(T) quickSort(values: [..] T, cb: func||(T, T)->s32)
         // If range is too small, simple sort
         if end - begin <= 10
         {
-            insertionSort(@mkslice(buffer + begin, (end - begin) + 1), cb)
+            insertionSort(@mkslice(buffer + begin, (end - begin) + 1), compare)
             return
         }
 
@@ -41,9 +41,9 @@ func(T) quickSort(values: [..] T, cb: func||(T, T)->s32)
         var high  = end
         for
         {
-            while low < high and cb(buffer[low], buffer[pivot]) <= 0 do
+            while low < high and compare(buffer[low], buffer[pivot]) <= 0 do
                 low += 1
-            while cb(buffer[high], buffer[pivot]) > 0 do
+            while compare(buffer[high], buffer[pivot]) > 0 do
                 high -= 1
             if low >= high do
                 break
@@ -72,7 +72,7 @@ func(T) quickSort(values: [..] T, cb: func||(T, T)->s32)
                 end   = high - 1
             }
 
-            quickSort(@mkslice(buffer + first, (last - first) + 1), cb)
+            quickSort(@mkslice(buffer + first, (last - first) + 1), compare)
         }
         elif set1 > 0 do
             end = high - 1
@@ -85,10 +85,10 @@ func(T) quickSort(values: [..] T, cb: func||(T, T)->s32)
 
 // Sort the slice, by picking the right algorithm depending on the type and the
 // number of elements
-func(T) sort(values: [..] T, bigFirst = false)
+func(T) sort(values: [..] T, descending = false)
     where Reflection.canCompare(T)
 {
-    if bigFirst do
+    if descending do
         sort(values, func(x, y: T)->s32 => y <=> x)
     else do
         sort(values, func(x, y: T)->s32 => x <=> y)
@@ -96,13 +96,13 @@ func(T) sort(values: [..] T, bigFirst = false)
 
 // Sort the slice, by picking the right algorithm depending on the type and the
 // number of elements
-func(T) sort(values: [..] T, cb: func||(T, T)->s32)
+func(T) sort(values: [..] T, compare: func||(T, T)->s32)
 {
-    Debug.assert(cb != null)
+    Debug.assert(compare != null)
     if @countof(values) <= 10 do
-        insertionSort(values, cb)
+        insertionSort(values, compare)
     else do
-        quickSort(values, cb)
+        quickSort(values, compare)
 }
 
 // Returns true if the slice is sorted
@@ -113,16 +113,16 @@ func(T) isSorted(values: const [..] T)->bool
 }
 
 // Returns true if the slice is sorted
-func(T) isSorted(values: const [..] T, cb: func||(T, T)->s32)->bool
+func(T) isSorted(values: const [..] T, compare: func||(T, T)->s32)->bool
 {
-    Debug.assert(cb != null)
+    Debug.assert(compare != null)
     let countof = @countof(values)
     if countof <= 1 do
         return true
 
     for [i] in countof - 1
     {
-        if cb(values[i], values[i + 1]) > 0 do
+        if compare(values[i], values[i + 1]) > 0 do
             return false
     }
 

@@ -21,7 +21,7 @@ func day4A()
 {
     expect
     {
-        let dataPath = Path.combine(Path.getDirectoryName(#file), "4.txt")
+        let dataPath = Path.combine(Path.directoryName(#file), "4.txt")
         let lines    = File.readAllLines(dataPath)
 
         var total = 0's64
@@ -33,7 +33,7 @@ func day4A()
             {
                 if l[idx] != '-' do
                     count[l[idx] - 'a'] += 1
-                idx                     += 1
+                idx += 1
             }
 
             let res = StrConv.parseS64(l[idx to])

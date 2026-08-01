@@ -24,7 +24,7 @@ internal var rootNodeTotal = 0
 //#[Swag.Sanity(Swag.SafetyWhat.All, false)]
 func day8B()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "8.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "8.txt")
     let values   = Tokenize.split(expect File.readAllText(dataPath), ' 'u8)
     let nums     = Slice.map(values.toSlice(), func(v) => expect StrConv.toS32(v))
 
@@ -42,20 +42,20 @@ func day8B()
             return {start + nm, sum}
         }
 
-        var childs: Array'u32
+        var children: Array'u32
         for nc
         {
             var sum: u32
             {start, sum} = read(n, start)
-            childs.add(sum)
+            children.add(sum)
         }
 
         var sum: u32
         for [i] in nm
         {
             let idx = n[start + i]
-            if idx and idx - 1 < childs.count do
-                sum += childs[idx - 1]
+            if idx and idx - 1 < children.count do
+                sum += children[idx - 1]
         }
 
         return {start + nm, sum}

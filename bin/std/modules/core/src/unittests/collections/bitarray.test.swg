@@ -57,7 +57,7 @@ func assertBitArray(values: const &BitArray, expected: const [..] bool)->bool
 #test
 {
     var values: BitArray
-    values.reserve(33, false)
+    values.resize(33)
     values.invert()
 
     var expected: [33] bool
@@ -73,11 +73,11 @@ func assertBitArray(values: const &BitArray, expected: const [..] bool)->bool
 #test
 {
     var lhs: BitArray
-    lhs.reserve(33, false)
+    lhs.resize(33)
     lhs[0] = true
 
     var rhs: BitArray
-    rhs.reserve(33, false)
+    rhs.resize(33)
     rhs[32] = true
 
     var orResult = lhs
@@ -98,4 +98,15 @@ func assertBitArray(values: const &BitArray, expected: const [..] bool)->bool
     var andResult = orResult
     andResult.andWith(rhs)
     @assert(andResult == rhs)
+}
+
+#test
+{
+    var values: BitArray
+    values.resize(65, true)
+    values.resize(0)
+    @assert(values.count == 0)
+
+    values.resize(3, true)
+    @assert(values[0] and values[1] and values[2])
 }

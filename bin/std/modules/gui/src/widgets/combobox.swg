@@ -2,47 +2,46 @@
 
 using Core, Pixel
 
-// Selects combo box kind.
-enum ComboBoxKind
+// Selects whether a combo box displays a selection or editable text.
+enum ComboBoxMode
 {
-    Select       // Selects the select kind.
-    Edit         // Selects the edit kind.
-    CheckBox     // Selects the check box kind.
+    Selection     // Displays one selected list item.
+    Editable      // Embeds an editor and mirrors selected item text into it.
 }
 
-// Optional behaviour modifiers for the ComboBox.
+// Configures combo box presentation.
 #[Swag.EnumFlags]
 enum ComboBoxFlags
 {
-    Zero = 0     // No flags
-    Flat         // Borderless cell style: only paints background/border when hot or open (e.g. property grids)
+    None = 0     // Always paints the field background and border.
+    Flat         // Paints the background and border only while hovered or open.
 }
 
-// Represents combo box item.
+// Stores one selectable item or separator in a combo box.
 struct ComboBoxItem
 {
-    using base:  Item     // Embedded base state.
-    isSeparator: bool     // Whether this value is separator.
+    using base:  Item     // Embedded label, icon, identifier, and user data.
+    isSeparator: bool     // Whether this entry separates groups and cannot be selected.
 }
 
-// Represents combo box.
+// Displays a compact selection field with a drop-down list.
 struct ComboBox
 {
-    using wnd: Wnd     // Embedded wnd state.
+    using wnd: Wnd     // Embedded window behavior and presentation.
 
-    kind                = ComboBoxKind.Select           // Kind associated with this value.
-    comboBoxFlags       = ComboBoxFlags.Zero            // Active behaviour flags
-    minWidthPopup:  f32 = 100                           // Min width popup associated with this value.
-    maxHeightPopup: f32 = 300                           // Max height popup associated with this value.
-    sigChanged:     SigArray'func||(*ComboBox, u32)     // Signal emitted when changed.
+    minimumPopupWidth:  f32 = 100                           // Minimum drop-down width in logical units.
+    maximumPopupHeight: f32 = 300                           // Maximum drop-down height in logical units.
+    sigChanged:         SigArray'func||(*ComboBox, u32)     // Emitted after a notifying selection change.
 
     // What the combo shows. Add items through the methods, which keep the popup and the
     // measured icon width in step, and select through 'setSelected'.
     readonly
     {
-        items:       ArrayPtr'ComboBoxItem     // Items of the list, in display order.
-        selectedIdx = Swag.U32.Max             // Index of the selected item.
-        editBox:     #null *EditBox            // Edit box of an editable combo, if any.
+        mode          = ComboBoxMode.Selection     // Text interaction mode chosen at creation.
+        flags         = ComboBoxFlags.None         // Active presentation options.
+        items:   ArrayPtr'ComboBoxItem             // Entries in display order.
+        selectedIndex = Swag.U32.Max               // Selected item index, or U32.Max when empty.
+        editBox: #null *EditBox                    // Embedded editor in editable mode, otherwise null.
     }
 
     // Hover state, the open popup, and the color animations of the painted parts.
@@ -64,23 +63,23 @@ impl IWnd for ComboBox
     {
         if .editBox
         {
-            let metrics    = .getThemeMetrics()
-            var clientRect = .getClientRect()
+            let metrics    = .themeMetrics()
+            var clientRect = .clientRect()
             clientRect.width -= metrics.comboBox_RightMargin
             clientRect.moveLeft(metrics.comboBox_Padding)
             .editBox.setPosition(clientRect)
         }
     }
 
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaint(evt: *PaintEvent)
     {
-        let bc      = evt.bc
-        let painter = evt.bc.painter
+        let bc      = evt.paintContext
+        let painter = evt.paintContext.painter
 
-        let theme   = .getTheme()
-        let colors  = .getThemeColors()
-        let metrics = .getThemeMetrics()
-        let rects   = .getThemeRects()
+        let theme   = .theme()
+        let colors  = .themeColors()
+        let metrics = .themeMetrics()
+        let rects   = .themeRects()
 
         var subRectBk:     #null *ThemeImageRect
         var subRectBorder: #null *ThemeImageRect
@@ -118,21 +117,21 @@ impl IWnd for ComboBox
         .aniBorder.apply(me, colorBorder)
         .aniText.apply(me, colorText)
 
-        let clientRect = .getClientRect()
+        let clientRect = .clientRect()
 
         // In flat (cell) mode the background and border are only painted when the
         // control is hot or its popup is open, so at rest it blends into the cell.
-        if !.comboBoxFlags.has(.Flat) or .isHot or .popup
+        if !.flags.has(.Flat) or .isHot or .popup
         {
             theme.drawSubRect(painter, clientRect, subRectBk, .aniBk.cur())
             theme.drawSubRect(painter, clientRect, subRectBorder, .aniBorder.cur())
         }
 
         // Item
-        if !.editBox and .selectedIdx < .items.count
+        if !.editBox and .selectedIndex < .items.count
         {
             var format: RichStringFormat
-            let item     = notnull .items[.selectedIdx]
+            let item     = notnull .items[.selectedIndex]
             var itemRect = clientRect
             itemRect.width -= metrics.comboBox_RightMargin
             itemRect.moveLeft(metrics.comboBox_Padding)
@@ -150,11 +149,11 @@ impl IWnd for ComboBox
             format.horzAlignment = .Left
             format.vertAlignment = .Center
             format.flags         = .Clip
-            format.font          = .getFont()
+            format.font          = .font()
             painter.drawRichString(itemRect, &item.name, format)
         }
 
-        let icon = theme.getIcon24(ThemeIcons24.BottomPopupArrow)
+        let icon = theme.icon24(ThemeIcons24.BottomPopupArrow)
         icon.paint(painter, clientRect.right() - metrics.comboBox_RightMargin, clientRect.vertCenter() - icon.sizeY * 0.5, colorText)
     }
 
@@ -162,11 +161,11 @@ impl IWnd for ComboBox
     {
         switch evt.kind
         {
-        case .MouseWheel:
+        case .Wheel:
             evt.accepted = false
             return
 
-        case .MousePressed:
+        case .Pressed:
             if evt.button != .Left do
                 break
             if .popup do
@@ -174,11 +173,11 @@ impl IWnd for ComboBox
             else do
                 .showPopup()
 
-        case .MouseEnter:
+        case .Enter:
             .isHot = true
             .invalidate()
 
-        case .MouseLeave:
+        case .Leave:
             .isHot = false
             .invalidate()
         }
@@ -190,7 +189,7 @@ impl IWnd for ComboBox
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
         evt.accepted = false
-        if evt.kind != .KeyPressed do
+        if evt.kind != .Pressed do
             return
 
         let alt = cast(bool) (evt.modifiers & .Alt)
@@ -200,12 +199,12 @@ impl IWnd for ComboBox
         {
             switch evt.key
             {
-            case .Up:             .popup.keyMove(-1)
-            case .Down:           .popup.keyMove(1)
-            case .Home:           .popup.keyHome()
-            case .End:            .popup.keyEnd()
-            case .Return, .Space: .popup.keyCommit()
-            case .Escape:         .popup.keyCancel()
+            case .Up:             .popup.moveHighlight(-1)
+            case .Down:           .popup.moveHighlight(1)
+            case .Home:           .popup.highlightFirst()
+            case .End:            .popup.highlightLast()
+            case .Return, .Space: .popup.commitHighlighted()
+            case .Escape:         .popup.cancel()
             default:              return
             }
 
@@ -238,10 +237,10 @@ private impl ComboBox
             return
 
         var idx: s32
-        if .selectedIdx >= .items.count do
+        if .selectedIndex >= .items.count do
             idx = dir > 0 ? -1 : cast(s32) .items.count
         else do
-            idx = cast(s32) .selectedIdx
+            idx = cast(s32) .selectedIndex
 
         for
         {
@@ -252,7 +251,7 @@ private impl ComboBox
                 break
         }
 
-        .selectItem(cast(u32) idx)
+        .setSelectedIndex(cast(u32) idx)
     }
 
     // Select the first (forward) or last (backward) non-separator item.
@@ -264,7 +263,7 @@ private impl ComboBox
             {
                 if !(notnull item).isSeparator
                 {
-                    .selectItem(cast(u32) idx)
+                    .setSelectedIndex(cast(u32) idx)
                     return
                 }
             }
@@ -275,7 +274,7 @@ private impl ComboBox
             {
                 if !(notnull .items[i]).isSeparator
                 {
-                    .selectItem(cast(u32) i)
+                    .setSelectedIndex(cast(u32) i)
                     return
                 }
             }
@@ -284,12 +283,11 @@ private impl ComboBox
 
     mtd showPopup()
     {
-        let popup = PopupListCtrl.create(me)
-        .popup               = popup
-        popup.minWidthPopup  = .minWidthPopup
-        popup.maxHeightPopup = .maxHeightPopup
-        popup.simFitY        = true
-        popup.selectedIdx    = .selectedIdx
+        let popup = PopupListCtrl.create(cast(*Wnd) me)
+        .popup              = popup
+        popup.minimumWidth  = .minimumPopupWidth
+        popup.maximumHeight = .maximumPopupHeight
+        popup.fitVertically = true
 
         for itemIt in .items
         {
@@ -300,14 +298,16 @@ private impl ComboBox
                 popup.addItem(item.name.raw, item.id, item.icon, item.userData0, item.userData1)
         }
 
-        popup.sigSelected = func|combo = me|(list, idx)
+        popup.setSelectedIndex(.selectedIndex)
+
+        popup.sigClosed = func|combo = me|(list, idx)
         {
             if idx != Swag.U32.Max do
-                combo.selectItem(idx)
+                combo.setSelectedIndex(idx)
             combo.hidePopup()
         }
 
-        let rect = .getSurfaceRect()
+        let rect = .surfaceRect()
         popup.show(rect.x, rect.bottom(), rect.width)
     }
 
@@ -323,42 +323,45 @@ private impl ComboBox
 
 impl ComboBox
 {
-    // Performs the create operation.
+    // Creates a selection or editable combo box with optional presentation flags.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null, kind = ComboBoxKind.Select)->*ComboBox
+    func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null, mode = ComboBoxMode.Selection, flags = ComboBoxFlags.None)->*ComboBox
     {
         Debug.assert(parent != null)
         var pos = position
         if pos.height == 0 do
-            pos.height = parent.getThemeMetrics().comboBox_Height
+            pos.height = parent.themeMetrics().comboBox_Height
         if pos.width == 0 do
-            pos.width = parent.getThemeMetrics().comboBox_Width
-        let res = Wnd.create'ComboBox(parent, null, pos, id)
+            pos.width = parent.themeMetrics().comboBox_Width
+        let result = Wnd.create'ComboBox(parent, null, pos, id)
 
-        res.kind = kind
-        if res.kind == .Edit
+        result.mode  = mode
+        result.flags = flags
+        if result.mode == .Editable
         {
-            res.editBox = EditBox.create(res, null, {})
-            res.editBox.setForm(EditBoxForm.Transparent)
+            result.editBox = EditBox.create(result, null, {})
+            result.editBox.setForm(EditBoxForm.Transparent)
         }
 
-        res.sendResizeEvent()
-        return res
+        result.sendResizeEvent()
+        return result
     }
 
-    // Remove all items
+    // Removes every item and silently clears the selection and editable text.
     mtd clear()
     {
+        .hidePopup()
         .maxIconSize = 0
         .items.clear()
+        .applySelectedIndex(Swag.U32.Max, notify: false)
         .invalidate()
     }
 
-    // Add a new item
+    // Appends a selectable item and returns its stable heap object.
     #[Swag.Discardable]
     mtd addItem(name: #null string, id: #null WndId = null, icon: Icon = {}, userData0: #null *void = null, userData1: #null *void = null)->*ComboBoxItem
     {
-        let item = .items.newPtr()
+        let item = .items.allocate()
         with item
         {
             .name.set(name)
@@ -371,66 +374,111 @@ impl ComboBox
         if item.icon.isValid() do
             .maxIconSize = Math.max(.maxIconSize, cast(s32) item.icon.sizeX)
         .items.add(item)
+        .hidePopup()
+        .invalidate()
         return item
     }
 
-    // Add a separator
-    mtd addSeparator()
+    // Appends a non-selectable separator and returns its stable heap object.
+    #[Swag.Discardable]
+    mtd addSeparator()->*ComboBoxItem
     {
-        let item = .items.newPtr()
+        let item = .items.allocate()
         item.isSeparator = true
         .items.add(item)
+        .hidePopup()
+        .invalidate()
+        return item
     }
 
-    // Returns the selected item
-    mtd getSelectedItem()->#null *ComboBoxItem
+    // Removes one item while preserving order and adjusts the selection silently.
+    mtd removeItemAt(index: u32)
     {
-        Debug.assert(.selectedIdx < .items.count)
-        return .items[.selectedIdx]
+        Debug.assert(index < .items.count)
+        .hidePopup()
+        .items.deleteAt(index)
+        .recomputeMaximumIconWidth()
+
+        if .selectedIndex == index do
+            .applySelectedIndex(Swag.U32.Max, notify: false)
+        elif .selectedIndex > index and .selectedIndex != Swag.U32.Max do
+            .selectedIndex -= 1
+        .invalidate()
     }
 
-    // Open the drop-down without moving the keyboard focus. The caller keeps the
-    // focus and drives the popup (Up/Down/Enter/Escape) through it, so the keys
-    // never leak elsewhere. Standalone, the combo's own onKeyEvent forwards them.
+    // Returns the selected item, or null when the combo box has no selection.
+    mtd const selectedItem()->#null *ComboBoxItem
+    {
+        if .selectedIndex >= .items.count do
+            return null
+        return .items[.selectedIndex]
+    }
+
+    // Opens the drop-down without moving keyboard focus away from the combo box.
     mtd openPopup()
     {
         if !.popup do
             .showPopup()
     }
 
-    // Set the selected item index
-    mtd selectItem(idx: u32)
+    // Selects one selectable item and optionally emits the change signal and command.
+    mtd setSelectedIndex(index: u32, notify = true)
     {
-        var newIdx = .selectedIdx
-        if idx >= .items.count do
-            newIdx = Swag.U32.Max
-        else do
-            newIdx = idx
-        if newIdx == .selectedIdx do
+        Debug.assert(index < .items.count)
+        Debug.assert(!(notnull .items[index]).isSeparator)
+        .applySelectedIndex(index, notify)
+    }
+
+    // Removes the current selection and optionally emits the change signal.
+    mtd clearSelection(notify = true)
+    {
+        .applySelectedIndex(Swag.U32.Max, notify)
+    }
+
+    // Adds and removes presentation options, then repaints the combo box.
+    mtd updateFlags(add: ComboBoxFlags = .None, remove = ComboBoxFlags.None)
+    {
+        .flags.add(add)
+        .flags.remove(remove)
+        .invalidate()
+    }
+}
+
+private impl ComboBox
+{
+    mtd applySelectedIndex(index: u32, notify: bool)
+    {
+        if index == .selectedIndex do
             return
 
-        .selectedIdx = newIdx
-
-        // Notify
-        if .selectedIdx < .items.count
-        {
-            .sigChanged.call(me, .selectedIdx)
-            .postCommandEvent((notnull .items[.selectedIdx]).id)
-        }
-        else
-        {
-            .sigChanged.call(me, Swag.U32.Max)
-        }
-
+        .selectedIndex = index
         let editBox = .editBox
         if editBox
         {
-            if .selectedIdx < .items.count do
-                editBox.setText((notnull .items[.selectedIdx]).name.raw)
+            if .selectedIndex < .items.count do
+                editBox.setText((notnull .items[.selectedIndex]).name.raw)
             else do
                 editBox.setText("")
         }
 
+        if notify
+        {
+            .sigChanged.call(me, .selectedIndex)
+            if .selectedIndex < .items.count do
+                .postCommandEvent((notnull .items[.selectedIndex]).id)
+        }
+
         .invalidate()
+    }
+
+    mtd recomputeMaximumIconWidth()
+    {
+        .maxIconSize = 0
+        for item in .items
+        {
+            let current = notnull item
+            if current.icon.isValid() do
+                .maxIconSize = Math.max(.maxIconSize, cast(s32) current.icon.sizeX)
+        }
     }
 }

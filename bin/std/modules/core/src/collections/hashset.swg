@@ -5,8 +5,8 @@ using Swag
 // Represents a single entry within a HashSet.
 struct(K) HashSetEntry
 {
-    hash: u32     // The cached hash of the key.
-    key:  K       // The key itself.
+    internal hash: u32
+    readonly key:  K     // The key itself.
 }
 
 // A hash set implemented with an open-addressing hash table.
@@ -14,11 +14,14 @@ struct(K) HashSetEntry
 struct(K) HashSet
 {
     // Special hash values to indicate the state of a slot in the table.
-    const HASH_FREE    = 0'u32     // The slot is empty and has never been used.
-    const HASH_DELETED = 1'u32     // The slot was previously occupied but has been deleted.
-    const HASH_FIRST   = 2'u32     // The first possible valid hash value.
+    #[Swag.NoDoc]
+    const HASH_FREE = 0'u32
+    #[Swag.NoDoc]
+    const HASH_DELETED = 1'u32
+    #[Swag.NoDoc]
+    const HASH_FIRST = 2'u32
 
-    allocator: #null IAllocator     // The allocator used for memory operations.
+    internal allocator: #null IAllocator
 
     // Sizes are reported, never set: the set grows itself when it needs to.
     readonly
@@ -38,6 +41,7 @@ struct(K) HashSet
 
 impl HashSet
 {
+    #[Swag.NoDoc]
     func normalizeCapacity(newCapacity: u64)->u64
     {
         var result = 32'u64
@@ -47,11 +51,13 @@ impl HashSet
         return result
     }
 
+    #[Swag.NoDoc]
     mtd tablePtr()->[*] HashSetEntry
     {
         return .table orelse cast([*] HashSetEntry'(K)) 1'u64
     }
 
+    #[Swag.NoDoc]
     mtd const constTablePtr()->const [*] HashSetEntry
     {
         return cast(const [*] HashSetEntry'(K)) (.table orelse cast([*] HashSetEntry'(K)) 1'u64)
@@ -155,7 +161,7 @@ impl HashSet
     // Only the two reserved values are lifted, never a whole bit: forcing a bit on
     // would make every starting probe index share it, so half of the slots could
     // only ever be reached by probing.
-    #[Inline]
+    #[Inline, Swag.NoDoc]
     func hashKey(key: K)->u32
     {
         let hashVal = Hash.hash32(key)
@@ -187,6 +193,7 @@ impl HashSet
 
     // Checks if the me.table needs to be resized and triggers it if necessary.
     // Growth happens when the load factor (including me.deleted slots) exceeds 50%.
+    #[Swag.NoDoc]
     mtd grow()
     {
         // Linear probing degrades sharply past half full: a failed lookup averages
@@ -211,7 +218,7 @@ impl HashSet
 
         if !.allocator do
             .allocator = @getcontext().allocator
-        .table         = cast([*] HashSetEntry'(K)) Memory.alloc(newCapacityBytes, .allocator)
+        .table = cast([*] HashSetEntry'(K)) Memory.alloc(newCapacityBytes, .allocator)
         let table = .tablePtr()
 
         // Be sure hash entry is 0
@@ -243,6 +250,7 @@ impl HashSet
     // Both loops test the cached hash first: an occupied slot that does not match is by far
     // the most frequent outcome, and it must cost a single compare. A set that has never seen
     // a removal takes the shorter loop, which has no deleted slot to remember.
+    #[Swag.NoDoc]
     mtd getNewIndex(key: K, idx: u64, hashVal: u64)->u64
     {
         let mask  = .capacity - 1
@@ -309,7 +317,7 @@ impl HashSet
         else
         {
             if table[index].hash == HashSet.HASH_DELETED do
-                .deleted     -= 1
+                .deleted -= 1
             table[index].key = #fwd key
         }
 
@@ -319,7 +327,7 @@ impl HashSet
     }
 
     // Internal helper to add a new element with a pre-computed hash.
-    #[Discardable]
+    #[Discardable, Swag.NoDoc]
     mtd emplaceInternal(hashVal: u32, key: &K)->*HashSetEntry
         where Reflection.canCopy(#typeof(K))
     {
@@ -353,7 +361,7 @@ impl HashSet
     // The key is copied when inserted; pass it with '#move' to move it instead.
     // Returns 'true' if the key is present after the operation, or 'false' if it was removed.
     #[Discardable]
-    public mtd toggleKey(key: #fwd K)->bool
+    public mtd toggle(key: #fwd K)->bool
     {
         .grow()
 
@@ -465,7 +473,7 @@ impl HashSet
                 if hashval == HashSet.HASH_DELETED do
                     .deleted -= 1
                 elif hashval >= HashSet.HASH_FIRST do
-                    .count    -= 1
+                    .count -= 1
                 table[i].hash = HashSet.HASH_FREE
 
                 // We are done if there's no more valid value, and no more me.deleted value

@@ -8,7 +8,7 @@ using Swag
 const TagBinVersion = 0xFAFAFAFA
 
 // Signatures used to tag different sections and elements in the binary serialization format
-enum TagBinSignatures: u32
+enum TagBinSignature: u32
 {
     Root     = 0xC0DE0000     // Root element of the serialization structure
     Fat      = 0xC0DE0001     // FAT table identifier for unordered sections
@@ -22,16 +22,16 @@ enum TagBinSignatures: u32
 #[Swag.EnumFlags]
 enum TagBinValueFlags: u8
 {
-    Zero           // No flags are enabled.
+    None = 0       // No value option is enabled.
     Compressed     // Enables compressed.
 }
 
 // Internal state for a binary serialization section
 struct TagBinSection
 {
-    startSeek: ConcatBufferSeek                      // Seek position in the output buffer where the section starts
-    mapSeek:   HashTable'(u32, ConcatBufferSeek)     // Maps CRC keys to their position in the output buffer
-    kind:      SectionKind                           // Type of section (e.g., Raw or Unordered)
+    startSeek: ConcatBufferPosition                      // Position in the output buffer where the section starts.
+    mapSeek:   HashTable'(u32, ConcatBufferPosition)     // Maps CRC keys to their position in the output buffer.
+    kind:      SectionKind                               // Type of section (e.g., Raw or Unordered)
 }
 
 // Binary writer for serialized data with support for structured and raw output
@@ -68,7 +68,7 @@ private impl TagBin
             return ptr
         }
 
-        return .sections.addNewPtr()
+        return .sections.addNew()
     }
 
     // Releases the most recently added section and recycles it
@@ -87,7 +87,7 @@ private impl TagBin
             return b
         }
 
-        return .freeTmpBuf.newPtr()
+        return .freeTmpBuf.allocate()
     }
 
     mtd releaseTmpBuf(b: *ConcatBuffer)
@@ -119,7 +119,7 @@ impl TagBin
     mtd beginRoot()
     {
         let output = notnull .output
-        output.addNative(TagBinSignatures.Root)
+        output.addNative(TagBinSignature.Root)
         output.addNative(TagBinVersion)
     }
 
@@ -138,8 +138,8 @@ impl TagBin
         if sec.kind == .Unordered
         {
             let output = notnull .output
-            output.addNative(TagBinSignatures.Fat)
-            sec.startSeek = output.getSeek()
+            output.addNative(TagBinSignature.Fat)
+            sec.startSeek = output.position()
             output.addNative(0'u64)     // Will store the fat offset here
             output.addNative(0'u64)     // Will store the fat count here
         }
@@ -154,18 +154,18 @@ impl TagBin
         {
             // Patch fat table seek and count
             let output  = notnull .output
-            let curSeek = output.getSeek()
-            output.setSeek(sec.startSeek)
-            output.addNative(ConcatBuffer.getOffset(curSeek))
+            let curSeek = output.position()
+            output.setPosition(sec.startSeek)
+            output.addNative(ConcatBuffer.offsetOf(curSeek))
             output.addNative(sec.mapSeek.count)
-            output.setSeek(curSeek)
+            output.setPosition(curSeek)
 
             // Write fat table
-            output.addNative(TagBinSignatures.Fat)
+            output.addNative(TagBinSignature.Fat)
             for k, [v] in sec.mapSeek
             {
-                output.addNative(k)                             // Crc
-                output.addNative(ConcatBuffer.getOffset(v))     // Linear seek inside the buffer
+                output.addNative(k)                            // Crc
+                output.addNative(ConcatBuffer.offsetOf(v))     // Linear seek inside the buffer
             }
         }
 
@@ -179,14 +179,14 @@ impl TagBin
         let output   = notnull .output
         if pod
         {
-            output.addNative(TagBinSignatures.Raw)
+            output.addNative(TagBinSignature.Raw)
             .beginSection(.Raw)
         }
         else
         {
             // Struct version
-            output.addNative(TagBinSignatures.Version)
-            let version = Reflection.getAttributeValue(structType, Serialization.Version, "v")
+            output.addNative(TagBinSignature.Version)
+            let version = Reflection.attributeValue(structType, Serialization.Version, "v")
             if version == null do
                 output.addNative(0'u32)
             else do
@@ -221,14 +221,14 @@ impl TagBin
         {
             let crcName = getTypeValueCrc(val)
             Debug.assert(!sec.mapSeek.contains(crcName))
-            sec.mapSeek.add(crcName, output.getSeek())
+            sec.mapSeek.add(crcName, output.position())
         }
 
         // Write element signature
         output.addNative(getTypeValueCrc(val))
         output.addNative(getTypeInfoCrc(val.pointedType))
 
-        var valSig: TagBinValueFlags = .Zero
+        var valSig: TagBinValueFlags = .None
         if Reflection.hasAttribute(val, Compress) or Reflection.hasAttribute(val.pointedType, Compress) do
             valSig.add(TagBinValueFlags.Compressed)
         output.addNative(valSig)
@@ -310,19 +310,19 @@ impl TagBin
     mtd beginSequence(typeElem: #null typeinfo, data: #null const *void, countElem: u64)->bool
     {
         let output = notnull .output
-        output.addNative(TagBinSignatures.Sequence)
+        output.addNative(TagBinSignature.Sequence)
         output.addNative(countElem)
 
         // Dynamic array of raw serializable types
         // Just write them in one batch
-        if Reflection.isStructArray(typeElem)
+        if Reflection.isDynamicArray(typeElem)
         {
-            let valueType     = Reflection.getStructArrayType(typeElem)
+            let valueType     = Reflection.dynamicArrayElementType(typeElem)
             let {raw, sizeof} = isPodFinal(valueType)
 
             if raw
             {
-                output.addNative(TagBinSignatures.Raw)
+                output.addNative(TagBinSignature.Raw)
                 if !data do
                     return true
                 let bufArr = cast(const *Array'u8) data
@@ -331,7 +331,7 @@ impl TagBin
             }
             else
             {
-                output.addNative(TagBinSignatures.UnRaw)
+                output.addNative(TagBinSignature.UnRaw)
             }
         }
 
@@ -341,7 +341,7 @@ impl TagBin
             let {raw, sizeof} = isPodFinal(typeElem)
             if raw
             {
-                output.addNative(TagBinSignatures.Raw)
+                output.addNative(TagBinSignature.Raw)
                 if !data do
                     return true
                 output.addBytes(@mkslice(cast(const [*] u8) data, countElem * sizeof))
@@ -349,7 +349,7 @@ impl TagBin
             }
             else
             {
-                output.addNative(TagBinSignatures.UnRaw)
+                output.addNative(TagBinSignature.UnRaw)
             }
         }
 

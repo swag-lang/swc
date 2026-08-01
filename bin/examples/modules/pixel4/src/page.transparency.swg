@@ -8,7 +8,7 @@ func drawBlobSurface(painter: *Pixel.Painter, rect: Math.Rectangle)
 
     let flattened     = blob.flattenedPolygon()
     let outlineOffset = flattened.isClockwise ? 3.0 : -3.0
-    var outline       = flattened.getOffset(outlineOffset, JoinStyle.Round)
+    var outline       = flattened.offsetPaths(outlineOffset, JoinStyle.Round)
 
     var pen = Pen.createSolid(Color.fromArgb(136, Argb.MediumPurple), 6)
     pen.begCapStyle = .None

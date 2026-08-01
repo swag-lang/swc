@@ -3,9 +3,9 @@ using Core, Pixel
 // Editor of a Pixel.FontFamilyStyle field: two toggle buttons (Bold / Italic) writing the
 // Regular/Bold/Italic/BoldItalic combination back into the field. Registered as a builtin
 // through the editor registry, exactly like the Color and vector editors.
-struct FontStyleEditor {}
+internal struct FontStyleEditor {}
 
-impl IPropertyEditor for FontStyleEditor
+internal impl IPropertyEditor for FontStyleEditor
 {
     mtd impl canEdit(type: #null typeinfo)->bool
     {
@@ -21,30 +21,30 @@ impl IPropertyEditor for FontStyleEditor
         let style = cast(#null *FontFamilyStyle) data
 
         const BtnW = 34
-        let lineH = list.getThemeMetrics().btnPush_Height
+        let lineH = list.themeMetrics().btnPush_Height
 
         // Grid mode packs the pair left in the value column; the panel/list modes center
         // it as its own full-width row.
-        with let line = StackLayoutCtrl.create(item.line, list.isGridLike() ? .HorzFit : .HorzCenter, {0, 0, 0, lineH})
+        with let line = StackLayoutCtrl.create(item.line, list.isGridLike() ? .HorizontalFit : .HorizontalCenter, {0, 0, 0, lineH})
         {
-            .anchorStyle = .X
+            .anchorStyle = .Right
             .spacing     = 4
         }
 
-        // CheckableToggle, not Checkable: bold/italic are independent on/off switches, so a
-        // click on a checked button must uncheck it (Checkable ignores clicks when checked).
+        // Toggle, not Radio: bold/italic are independent on/off switches, so a
+        // click on a checked button must uncheck it (Radio remains checked).
         with let btnBold = IconButton.create(line, {}, {0, 0, BtnW, lineH})
         {
             .name = "B"
-            .setForm(.RoundSquare)
-            .iconBtnFlags.add(.CheckableToggle)
+            .setForm(.RoundedRectangle)
+            .updateFlags(.Toggle)
         }
 
         with let btnItalic = IconButton.create(line, {}, {0, 0, BtnW, lineH})
         {
             .name = "I"
-            .setForm(.RoundSquare)
-            .iconBtnFlags.add(.CheckableToggle)
+            .setForm(.RoundedRectangle)
+            .updateFlags(.Toggle)
         }
 
         func writeStyle(list: *Properties, item: *PropertiesItem, style: #null *FontFamilyStyle, btnBold, btnItalic: *IconButton)
@@ -61,20 +61,18 @@ impl IPropertyEditor for FontStyleEditor
                 dref style = .Italic
             else do
                 dref style = .Regular
-            list.hasChanged(item)
+            list.commitItemChange(item)
         }
 
-        btnBold.sigCheckChanged += func|list, item, style, btnBold, btnItalic|(btn) { writeStyle(list, item, style, btnBold, btnItalic) }
+        btnBold.sigCheckedChanged += func|list, item, style, btnBold, btnItalic|(btn) { writeStyle(list, item, style, btnBold, btnItalic) }
 
-        btnItalic.sigCheckChanged += func|list, item, style, btnBold, btnItalic|(btn) { writeStyle(list, item, style, btnBold, btnItalic) }
+        btnItalic.sigCheckedChanged += func|list, item, style, btnBold, btnItalic|(btn) { writeStyle(list, item, style, btnBold, btnItalic) }
 
         item.sigRefresh += func|style, btnBold, btnItalic|(item)
         {
             let s = dref notnull style
-            btnBold.isChecked   = s == .Bold or s == .BoldItalic
-            btnItalic.isChecked = s == .Italic or s == .BoldItalic
-            btnBold.invalidate()
-            btnItalic.invalidate()
+            btnBold.setChecked(s == .Bold or s == .BoldItalic)
+            btnItalic.setChecked(s == .Italic or s == .BoldItalic)
         }
 
         item.sigRefresh.call(item)

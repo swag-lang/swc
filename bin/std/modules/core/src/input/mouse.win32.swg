@@ -5,7 +5,8 @@
 using Win32, Math
 
 // Returns the current mouse position
-func getMousePos()->Point
+// Returns the cursor position in physical desktop pixels.
+func mousePosition()->Point
 {
     var pt: POINT = undefined
     GetCursorPos(&pt)
@@ -13,12 +14,14 @@ func getMousePos()->Point
 }
 
 // Set the current mouse position
-func setMousePos(x, y: s32)
+// Moves the cursor to the given position in physical desktop pixels.
+func setMousePosition(x, y: s32)
 {
     SetCursorPos(x, y)
 }
 
 // Shoud or hide the mouse cursor
+// Shows or hides the system cursor.
 func showMouseCursor(show: bool)
 {
     ShowCursor(cast(BOOL) show)

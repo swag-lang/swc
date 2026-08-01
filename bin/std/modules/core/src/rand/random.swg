@@ -1,7 +1,7 @@
 #global namespace Random
 
 #[Swag.Tls]
-private var g_SharedRng: Rng'MWC
+private var g_SharedGenerator: Generator'MultiplyWithCarry32
 
-// Get the default per thread random generator
-public func shared()->*Rng'MWC => &g_SharedRng
+// Returns the default generator for the current thread.
+public func shared()->*Generator'MultiplyWithCarry32 => &g_SharedGenerator

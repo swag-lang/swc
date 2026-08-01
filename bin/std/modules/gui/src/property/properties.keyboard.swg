@@ -24,7 +24,7 @@ public impl Properties
 {
     // Give the keyboard focus to the grid in navigation mode. Selects the first
     // navigable row when none is selected yet.
-    mtd focusNav(fallbackToFirst = true)
+    mtd focusNavigation(fallbackToFirst = true)
     {
         if !@isset(.edView) do
             return
@@ -47,7 +47,7 @@ internal impl Properties
     mtd navKeyEvent(evt: *KeyEvent)
     {
         evt.accepted = false
-        if evt.kind != .KeyPressed do
+        if evt.kind != .Pressed do
             return
 
         // Undo/redo shortcuts, available in navigation mode (an editor with the focus keeps
@@ -79,12 +79,12 @@ internal impl Properties
             let popup = .selItem.comboBox.popup
             switch evt.key
             {
-            case .Up:             popup.keyMove(-1)
-            case .Down:           popup.keyMove(1)
-            case .Home:           popup.keyHome()
-            case .End:            popup.keyEnd()
-            case .Return, .Space: popup.keyCommit()
-            case .Escape:         popup.keyCancel()
+            case .Up:             popup.moveHighlight(-1)
+            case .Down:           popup.moveHighlight(1)
+            case .Home:           popup.highlightFirst()
+            case .End:            popup.highlightLast()
+            case .Return, .Space: popup.commitHighlighted()
+            case .Escape:         popup.cancel()
             default:              return
             }
 
@@ -214,7 +214,7 @@ private impl Properties
     // True when the grid currently has a focused row editor.
     mtd isEditing()->bool
     {
-        let f = .getFocus()
+        let f = .focusedWindow()
         if !f or f == cast(#null *Wnd) .edView do
             return false
         return .isEditorWnd(f)
@@ -226,7 +226,7 @@ private impl Properties
     {
         if !wnd do
             return null
-        for c in wnd.childs
+        for c in wnd.children
         {
             if .isEditorWnd(c) do
                 return c
@@ -341,7 +341,7 @@ private impl Properties
     mtd pageMove(dir: s32)
     {
         let lh    = .isGridLike() ? .gridLineHeight : 40.0
-        let viewH = .scrollWnd.getClientRect().height
+        let viewH = .scrollWnd.clientRect().height
         let count = cast(u32) Math.max(1.0, Math.floor(viewH / Math.max(lh, 1.0)))
         for count do
             .moveSel(dir)
@@ -403,7 +403,7 @@ private impl Properties
 
     // Commit the current edition and return to navigation mode. Moving the focus
     // back to edView makes the editor lose focus, which runs its commit/validate
-    // path (e.g. EditBox.sigLoseFocus -> validateNative).
+    // path (e.g. EditBox.sigFocusLost -> validateNative).
     mtd commitEdit()
     {
         if @isset(.edView) do
@@ -418,8 +418,8 @@ private impl Properties
 
         let lineTop       = item.line.position.y
         let lineBottom    = item.line.position.bottom()
-        let sc            = .scrollWnd.getScrollPos()
-        let viewH         = .scrollWnd.getClientRect().height
+        let sc            = .scrollWnd.scrollPosition()
+        let viewH         = .scrollWnd.clientRect().height
         let visibleBottom = sc.y + viewH
 
         if lineTop >= sc.y and lineBottom <= visibleBottom do

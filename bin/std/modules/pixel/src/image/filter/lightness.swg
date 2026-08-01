@@ -6,7 +6,7 @@ impl Image
     public mtd lightness(factor: f32 = 0.5)
     {
         // unsupported pixel format
-        if .pf.channels() < 3 or .pf.bitDepth() != 8 do
+        if .pixelFormat.channels() < 3 or .pixelFormat.bitDepth() != 8 do
             return
 
         let level             = cast(s32) (Math.clamp(factor, -1.0, 1.0) * 255.0)

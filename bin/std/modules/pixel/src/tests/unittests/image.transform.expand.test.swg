@@ -11,7 +11,7 @@ using Swag, Core
 
     let src     = makeImage(2, 2, .RGBA8, pixels)
     let bgColor = Color.fromArgb(255'u8, 1'u8, 2'u8, 3'u8)
-    let grown   = src.toExpand(1, 1, 1, 0, bgColor)
+    let grown   = src.expanded(1, 1, 1, 0, bgColor)
     assertImage(grown, 4, 3, .RGBA8)
 
     assertPixel(grown, 0, 2, bgColor)
@@ -26,4 +26,14 @@ using Swag, Core
     assertImage(trimmed, 1, 2, .RGBA8)
     assertPixel(trimmed, 0, 1, Color.fromArgb(80'u8, 50'u8, 60'u8, 70'u8))
     assertPixel(trimmed, 0, 0, Color.fromArgb(160'u8, 130'u8, 140'u8, 150'u8))
+
+    // Trimming the complete source is valid when positive padding still leaves
+    // a non-empty result; the output then contains only the fill color.
+    let paddedOnly = src.expanded(-3, 0, 4, 0, bgColor)
+    assertImage(paddedOnly, 3, 2, .RGBA8)
+    for [x] in paddedOnly.width
+    {
+        assertPixel(paddedOnly, x, 0, bgColor)
+        assertPixel(paddedOnly, x, 1, bgColor)
+    }
 }

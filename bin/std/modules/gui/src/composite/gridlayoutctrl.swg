@@ -2,50 +2,50 @@
 
 using Core
 
-// Selects grid layout ctrl flags.
+// Configures sizing policies applied by a grid layout.
 #[Swag.EnumFlags]
-enum GridLayoutCtrlFlags
+enum GridLayoutFlags
 {
-    Zero = 0               // No flags are enabled.
-    AdaptSizeToContent     // Enables adapt size to content.
-    AdaptColWidth          // Enables adapt col width.
-    AdaptRowHeight         // Enables adapt row height.
+    None = 0              // Uses the configured track definitions and keeps the control size.
+    FitToContent          // Resizes the control to the laid-out content bounds.
+    EqualColumnWidths     // Divides the available width equally between all columns.
+    EqualRowHeights       // Divides the available height equally between all rows.
 }
 
-// Selects grid track kind.
+// Selects how a grid row or column obtains its size.
 enum GridTrackKind
 {
-    Fixed        // Selects the fixed kind.
-    Content      // Selects the content kind.
-    Fraction     // Selects the fraction kind.
-    Fill         // Selects the fill kind.
+    Fixed        // Uses the configured pixel value.
+    Content      // Uses the largest preferred size of non-spanning content.
+    Fraction     // Receives a weighted fraction of remaining space.
 }
 
-// Represents grid track.
+// Defines one row or column of a [[GridLayoutCtrl]].
 struct GridTrack
 {
-    kind       = GridTrackKind.Fixed     // Kind associated with this value.
-    value: f32 = 100                     // Value associated with this value.
-    min:   f32                           // Min associated with this value.
-    max:   f32                           // Max associated with this value.
+    kind         = GridTrackKind.Fixed     // Sizing policy.
+    value:   f32 = 100                     // Pixel size for `Fixed`, or weight for `Fraction`.
+    minimum: f32                           // Minimum track size in logical pixels.
+    maximum: f32                           // Maximum track size, or zero for no upper bound.
 }
 
-// Represents grid layout ctrl.
+// Arranges child windows in configurable rows, columns, and spanning cells.
 struct GridLayoutCtrl
 {
     using wnd: Wnd     // Embedded wnd state.
 
-    gridLayoutFlags  = GridLayoutCtrlFlags.Zero     // Grid layout flags associated with this value.
-    numColumns:  s32                                // Num columns associated with this value.
-    numRows:     s32                                // Num rows associated with this value.
-    spacingHorz: f32 = 5                            // Spacing horz associated with this value.
-    spacingVert: f32 = 5                            // Spacing vert associated with this value.
+    flags                  = GridLayoutFlags.None     // Active grid sizing options.
+    numColumns:        s32                            // Number of columns.
+    numRows:           s32                            // Number of rows.
+    horizontalSpacing: f32 = 5                        // Gap between adjacent columns.
+    verticalSpacing:   f32 = 5                        // Gap between adjacent rows.
 
-    layout:    Array'(#null *Wnd)     // Layout associated with this value.
-    colSizes:  Array'f32              // Col sizes associated with this value.
-    rowSizes:  Array'f32              // Row sizes associated with this value.
-    colTracks: Array'GridTrack        // Col tracks associated with this value.
-    rowTracks: Array'GridTrack        // Row tracks associated with this value.
+    internal
+    {
+        layout:       Array'(#null *Wnd)     // Window assigned to each cell.
+        columnTracks: Array'GridTrack        // Column definitions.
+        rowTracks:    Array'GridTrack        // Row definitions.
+    }
 }
 
 impl IWnd for GridLayoutCtrl
@@ -70,36 +70,21 @@ private impl GridLayoutCtrl
         if .layout.count != cells do
             .layout.resize(cells)
 
-        while .colSizes.count < cols do
-            .colSizes.add(100)
-        while .rowSizes.count < rows do
-            .rowSizes.add(30)
-        if .colSizes.count > cols do
-            .colSizes.resize(cols)
-        if .rowSizes.count > rows do
-            .rowSizes.resize(rows)
+        while .columnTracks.count < cols do
+            .columnTracks.add({kind: GridTrackKind.Fixed, value: 100})
 
-        while .colTracks.count < cols
-        {
-            let idx = .colTracks.count
-            .colTracks.add({kind: GridTrackKind.Fixed, value: .colSizes[idx]})
-        }
+        while .rowTracks.count < rows do
+            .rowTracks.add({kind: GridTrackKind.Fixed, value: 30})
 
-        while .rowTracks.count < rows
-        {
-            let idx = .rowTracks.count
-            .rowTracks.add({kind: GridTrackKind.Fixed, value: .rowSizes[idx]})
-        }
-
-        if .colTracks.count > cols do
-            .colTracks.resize(cols)
+        if .columnTracks.count > cols do
+            .columnTracks.resize(cols)
         if .rowTracks.count > rows do
             .rowTracks.resize(rows)
     }
 
     mtd trackMax(track: GridTrack)->f32
     {
-        return track.max > 0 ? track.max : Swag.F32.Max
+        return track.maximum > 0 ? track.maximum : Swag.F32.Max
     }
 
     mtd computeTrackSize(track: GridTrack, content: f32)->f32
@@ -107,12 +92,12 @@ private impl GridLayoutCtrl
         var result: retval
         switch track.kind
         {
-        case .Fixed:           result = track.value
-        case .Content:         result = content
-        case .Fraction, .Fill: result = track.min
+        case .Fixed:    result = track.value
+        case .Content:  result = content
+        case .Fraction: result = track.minimum
         }
 
-        result = Math.max(result, track.min)
+        result = Math.max(result, track.minimum)
         result = Math.min(result, .trackMax(track))
         return result
     }
@@ -159,7 +144,7 @@ private impl GridLayoutCtrl
             result.add(0)
 
         var done: Array'(#null *Wnd)
-        let client = .getClientRectPadding()
+        let client = .paddedClientRect()
         for [row] in .numRows
         {
             for [col] in .numColumns
@@ -170,14 +155,14 @@ private impl GridLayoutCtrl
                     continue
                 if done.contains(child) do
                     continue
-                if !child.isVisibleState() do
+                if !child.isLocallyVisible() do
                     continue
                 done.add(child)
 
                 let sh     = .spanH(col, row, child)
                 let sv     = .spanV(col, row, child)
                 let hint   = child.measure({client.width, client.height})
-                let margin = child.getLayoutMargin()
+                let margin = child.layoutMargin()
                 if columns
                 {
                     if sh == 1 do
@@ -217,42 +202,62 @@ private impl GridLayoutCtrl
             let size = .computeTrackSize(tracks[i], content[i])
             result.add(size)
             total += size
-            if tracks[i].kind == GridTrackKind.Fraction or tracks[i].kind == GridTrackKind.Fill
+            if tracks[i].kind == GridTrackKind.Fraction
             {
                 var trackWeight = 1'f32
                 if tracks[i].value > 0 do
                     trackWeight = tracks[i].value
-                weight          += trackWeight
+                weight += trackWeight
             }
         }
 
-        var extra = available - total
+        let extra = available - total
         if extra > 0 and weight > 0
         {
-            for [i] in count
+            var remaining = extra
+            while remaining > 0.001
             {
-                if tracks[i].kind != GridTrackKind.Fraction and tracks[i].kind != GridTrackKind.Fill do
-                    continue
+                var activeWeight = 0'f32
+                for [i] in count
+                {
+                    if tracks[i].kind == GridTrackKind.Fraction and result[i] < .trackMax(tracks[i]) do
+                        activeWeight += tracks[i].value > 0 ? tracks[i].value : 1
+                }
 
-                let w   = tracks[i].value > 0 ? tracks[i].value : 1
-                let add = extra * w / weight
-                result[i] = Math.min(result[i] + add, .trackMax(tracks[i]))
+                if activeWeight <= 0 do
+                    break
+
+                var distributed = 0'f32
+                for [i] in count
+                {
+                    if tracks[i].kind != GridTrackKind.Fraction or result[i] >= .trackMax(tracks[i]) do
+                        continue
+                    let w      = tracks[i].value > 0 ? tracks[i].value : 1
+                    let share  = remaining * w / activeWeight
+                    let actual = Math.min(share, .trackMax(tracks[i]) - result[i])
+                    result[i]   += actual
+                    distributed += actual
+                }
+
+                if distributed <= 0.001 do
+                    break
+                remaining -= distributed
             }
         }
         elif extra < 0
         {
             var shrinkPool = 0'f32
             for [i] in count do
-                shrinkPool += Math.max(result[i] - tracks[i].min, 0)
+                shrinkPool += Math.max(result[i] - tracks[i].minimum, 0)
 
             if shrinkPool > 0
             {
                 let shortage = -extra
                 for [i] in count
                 {
-                    let shrink = Math.max(result[i] - tracks[i].min, 0)
+                    let shrink = Math.max(result[i] - tracks[i].minimum, 0)
                     result[i] -= shortage * shrink / shrinkPool
-                    result[i] = Math.max(result[i], tracks[i].min)
+                    result[i] = Math.max(result[i], tracks[i].minimum)
                 }
             }
         }
@@ -279,7 +284,7 @@ private impl GridLayoutCtrl
         {
             if i do
                 result += spacing
-            result     += sizes[idx + i]
+            result += sizes[idx + i]
         }
 
         return result
@@ -288,7 +293,7 @@ private impl GridLayoutCtrl
 
 impl GridLayoutCtrl
 {
-    // Create a layout control
+    // Creates an empty grid with `numColumns` columns and `numRows` rows.
     func create(parent: *Wnd, numColumns, numRows: s32, position: Math.Rectangle = {})->*GridLayoutCtrl
     {
         Debug.assert(numColumns > 0 and numRows > 0)
@@ -301,18 +306,18 @@ impl GridLayoutCtrl
         return res
     }
 
-    // Recompute layout of all childs
+    // Recomputes track sizes and arranges every assigned child.
     mtd computeLayout()
     {
-        if !.childs.count do
+        if !.children.count do
             return
         .ensureStorage()
 
-        let client     = .getClientRectPadding()
+        let client     = .paddedClientRect()
         let colContent = .computeContentSizes(true)
         let rowContent = .computeContentSizes(false)
-        let colWidths  = .computeTrackSizes(.colTracks.toSlice(), colContent.toSlice(), client.width, .spacingHorz, .gridLayoutFlags.has(.AdaptColWidth))
-        let rowHeights = .computeTrackSizes(.rowTracks.toSlice(), rowContent.toSlice(), client.height, .spacingVert, .gridLayoutFlags.has(.AdaptRowHeight))
+        let colWidths  = .computeTrackSizes(.columnTracks.toSlice(), colContent.toSlice(), client.width, .horizontalSpacing, .flags.has(.EqualColumnWidths))
+        let rowHeights = .computeTrackSizes(.rowTracks.toSlice(), rowContent.toSlice(), client.height, .verticalSpacing, .flags.has(.EqualRowHeights))
 
         var done: Array'(#null *Wnd)
         var maxW, maxH = 0'f32
@@ -326,7 +331,7 @@ impl GridLayoutCtrl
                     continue
                 if done.contains(child) do
                     continue
-                if !child.isVisibleState() do
+                if !child.isLocallyVisible() do
                     continue
 
                 done.add(child)
@@ -334,20 +339,20 @@ impl GridLayoutCtrl
                 let sv = .spanV(col, row, child)
 
                 var rect = Math.Rectangle{
-                    client.x + .trackOffset(colWidths.toSlice(), col, .spacingHorz),
-                    client.y + .trackOffset(rowHeights.toSlice(), row, .spacingVert),
-                    .trackSpanSize(colWidths.toSlice(), col, sh, .spacingHorz),
-                    .trackSpanSize(rowHeights.toSlice(), row, sv, .spacingVert)
+                    client.x + .trackOffset(colWidths.toSlice(), col, .horizontalSpacing),
+                    client.y + .trackOffset(rowHeights.toSlice(), row, .verticalSpacing),
+                    .trackSpanSize(colWidths.toSlice(), col, sh, .horizontalSpacing),
+                    .trackSpanSize(rowHeights.toSlice(), row, sv, .verticalSpacing)
                     }
 
-                rect.applyPadding(child.getLayoutMargin())
+                rect.applyPadding(child.layoutMargin())
                 child.arrange(rect)
                 maxW = Math.max(maxW, rect.right() + .padding.z)
                 maxH = Math.max(maxH, rect.bottom() + .padding.w)
             }
         }
 
-        if .gridLayoutFlags.has(.AdaptSizeToContent)
+        if .flags.has(.FitToContent)
         {
             .position.width  = maxW
             .position.height = maxH
@@ -355,56 +360,66 @@ impl GridLayoutCtrl
         }
     }
 
-    // Set size, in pixel, of a given column
-    mtd setColSize(col: s32, size: f32)
+    // Sets one column to a fixed pixel size.
+    mtd setColumnSize(column: s32, size: f32)
     {
         .ensureStorage()
-        Debug.assert(col >= 0 and col < .numColumns)
-        .colSizes[col] = size
-        .setColTrack(col, GridTrackKind.Fixed, size)
+        Debug.assert(column >= 0 and column < .numColumns)
+        .setColumnTrack(column, GridTrackKind.Fixed, size)
     }
 
-    // Set size, in pixel, of a given row
+    // Sets one row to a fixed pixel size.
     mtd setRowSize(row: s32, size: f32)
     {
         .ensureStorage()
         Debug.assert(row >= 0 and row < .numRows)
-        .rowSizes[row] = size
         .setRowTrack(row, GridTrackKind.Fixed, size)
     }
 
-    // Sets col track.
-    mtd setColTrack(col: s32, kind: GridTrackKind, value: f32 = 1, min: f32 = 0, max: f32 = 0)
+    // Configures one column track.
+    mtd setColumnTrack(column: s32, kind: GridTrackKind, value: f32 = 1, minimum: f32 = 0, maximum: f32 = 0)
     {
         .ensureStorage()
-        Debug.assert(col >= 0 and col < .numColumns)
-        .colTracks[col] = {kind: kind, value: value, min: min, max: max}
+        Debug.assert(column >= 0 and column < .numColumns)
+        Debug.assert(minimum >= 0 and (maximum == 0 or maximum >= minimum))
+        .columnTracks[column] = {kind: kind, value: value, minimum: minimum, maximum: maximum}
     }
 
-    // Sets row track.
-    mtd setRowTrack(row: s32, kind: GridTrackKind, value: f32 = 1, min: f32 = 0, max: f32 = 0)
+    // Configures one row track.
+    mtd setRowTrack(row: s32, kind: GridTrackKind, value: f32 = 1, minimum: f32 = 0, maximum: f32 = 0)
     {
         .ensureStorage()
         Debug.assert(row >= 0 and row < .numRows)
-        .rowTracks[row] = {kind: kind, value: value, min: min, max: max}
+        Debug.assert(minimum >= 0 and (maximum == 0 or maximum >= minimum))
+        .rowTracks[row] = {kind: kind, value: value, minimum: minimum, maximum: maximum}
     }
 
-    // Set the wnd associated with the given 'col' and 'row'.
-    // Window can cover multiple columns and rows.
-    mtd setColRowChild(child: *Wnd, col, row: s32, spanH, spanV: s32 = 1)
+    // Assigns `child` to a cell and optional column/row span.
+    //
+    // Reassigning a child moves it from its previous cells. Overlap with another assigned
+    // child is rejected.
+    mtd setCell(child: *Wnd, column, row: s32, columnSpan, rowSpan: s32 = 1)
     {
         .ensureStorage()
         Debug.assert(child.parent == me)
-        Debug.assert(col + spanH <= .numColumns and row + spanV <= .numRows)
-        Debug.assert(spanH and spanV)
+        Debug.assert(column >= 0 and row >= 0)
+        Debug.assert(column + columnSpan <= .numColumns and row + rowSpan <= .numRows)
+        Debug.assert(columnSpan > 0 and rowSpan > 0)
 
-        for [i] in spanH
+        for [idx] in .layout.count
         {
-            var x = col + (row * .numColumns)
+            if .layout[idx] == child do
+                .layout[idx] = null
+        }
+
+        for [i] in columnSpan
+        {
+            var x = column + (row * .numColumns)
             x += i
-            for [j] in spanV
+            for [j] in rowSpan
             {
                 let x1 = x + (j * .numColumns)
+                Debug.assert(!.layout[x1], "grid cell is already assigned")
                 .layout[x1] = child
             }
         }

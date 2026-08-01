@@ -2,42 +2,36 @@
 
 using Core, File, Directory
 
-// A reusable file-browsing composite control: a shortcut/drive tree, a file
-// list, a path combo and a name/type row. It is a plain window that can be
-// embedded anywhere (a dialog, a side panel, a tab...) independently of FileDlg.
-// FileDlg is just a thin modal wrapper around this control.
-//
-// Reuses the public option types declared by FileDlg (FileDlgOptions/Mode/State)
-// so existing callers keep working; the dialog-only fields (title, btnOkName)
-// are simply ignored here.
+// Embeds location navigation, a sortable file list, and name and type editors.
 struct FileBrowserCtrl
 {
     using wnd: Wnd     // Embedded wnd state.
 
-    treeCtrl:    #null *ListCtrl     // Tree ctrl associated with this value.
-    treePathStr: Array'String        // Tree path str associated with this value.
-    #[Swag.Late]
-    listCtrl: *ListCtrl     // List ctrl associated with this value.
-    #[Swag.Late]
-    comboPath:    *ComboBox        // Combo path associated with this value.
-    comboPathStr: Array'String     // Combo path str associated with this value.
-    #[Swag.Late]
-    editFile: *EditBox     // Edit file associated with this value.
-    #[Swag.Late]
-    comboType: *ComboBox          // Combo type associated with this value.
-    options:   FileDlgOptions     // Options associated with this value.
+    readonly
+    {
+        treeCtrl:      #null *ListCtrl     // Optional shortcuts and drives list.
+        options:       FileDlgOptions      // Effective browsing and selection options.
+        currentFolder: String              // Normalized folder currently displayed.
 
-    curFolder: String             // Cur folder associated with this value.
-    curList:   Array'FileInfo     // Cur list associated with this value.
+        #[Swag.Late]
+        {
+            listCtrl:  *ListCtrl     // Sortable file and folder list.
+            comboPath: *ComboBox     // Current-folder and ancestor selector.
+            editFile:  *EditBox      // File or folder name editor.
+            comboType: *ComboBox     // Active file-type filter selector.
+        }
+    }
 
-    // A file/folder was activated (double-click or Enter on a non-directory).
-    sigAccept: SigArray'func||(*FileBrowserCtrl)     // Signal emitted when accept.
+    sigAccepted:           SigArray'func||(*FileBrowserCtrl)     // Emitted when the current selection is activated.
+    sigFolderChanged:      SigArray'func||(*FileBrowserCtrl)     // Emitted after [[Gui.FileBrowserCtrl.currentFolder]] changes.
+    sigNewFolderRequested: SigArray'func||(*FileBrowserCtrl)     // Emitted when the user requests a new folder.
 
-    // The current folder changed.
-    sigFolderChanged: SigArray'func||(*FileBrowserCtrl)     // Signal emitted when folder changed.
-
-    // The user requested the creation of a new folder (host shows the prompt).
-    sigNewFolder: SigArray'func||(*FileBrowserCtrl)     // Signal emitted when new folder.
+    internal
+    {
+        treePathStr:    Array'String       // Folder paths backing `treeCtrl` rows.
+        comboPathStr:   Array'String       // Folder paths backing `comboPath` entries.
+        currentEntries: Array'FileInfo     // Filesystem entries backing visible rows.
+    }
 }
 
 impl IWnd for FileBrowserCtrl
@@ -46,12 +40,10 @@ impl IWnd for FileBrowserCtrl
     {
         if .options.state
         {
-            with me.options.state
-            {
-                .curFolder           = me.curFolder
-                .columnWidthName     = cast() me.listCtrl.header.getItemWidthByCol(0)
-                .columnWidthModified = cast() me.listCtrl.header.getItemWidthByCol(1)
-            }
+            let state = notnull me.options.state
+            state.currentFolder       = me.currentFolder
+            state.nameColumnWidth     = cast() me.listCtrl.header.itemWidthForColumn(0)
+            state.modifiedColumnWidth = cast() me.listCtrl.header.itemWidthForColumn(1)
         }
     }
 }
@@ -61,7 +53,7 @@ private impl FileBrowserCtrl
     mtd folderUp()
     {
         if .comboPathStr.count > 1 do
-            .setCurFolder(.comboPathStr[1].toString())
+            .setCurrentFolder(.comboPathStr[1].toString())
     }
 
     mtd fillComboPath()
@@ -69,7 +61,7 @@ private impl FileBrowserCtrl
         .comboPath.clear()
         .comboPathStr.clear()
 
-        let all = Tokenize.split(.curFolder.toString(), '/'rune)
+        let all = Tokenize.split(.currentFolder.toString(), '/'rune)
         for #reverse [i] in @countof(all)
         {
             var str: String
@@ -82,12 +74,12 @@ private impl FileBrowserCtrl
             .comboPathStr.add(str)
 
             let one  = all[i]
-            var icon = .getApp().getDirectoryIcon(one)
+            var icon = .app().directoryIcon(one)
             icon.color = Pixel.Argb.White
             .comboPath.addItem(one, icon: icon)
         }
 
-        .comboPath.selectItem(0)
+        .comboPath.setSelectedIndex(0, notify: false)
     }
 
     mtd fillFileListFolders()
@@ -99,7 +91,7 @@ private impl FileBrowserCtrl
         for v in .options.shortcuts
         {
             let c    = Env.getSpecialDirectory(v.type)
-            var icon = .getApp().getSpecialDirectoryIcon(v.type, true)
+            var icon = .app().specialDirectoryIcon(v.type, true)
             icon.color       = Pixel.Argb.White
             l                = treeCtrl.createLine(v.name, icon)
             l.userData0      = cast(#null *void) .treePathStr.count
@@ -110,11 +102,11 @@ private impl FileBrowserCtrl
         l           = treeCtrl.createLine("Drives")
         l.separator = true
 
-        let volumes = catch Directory.getDrives()
+        let volumes = catch Directory.drives()
         for &v in volumes
         {
             v.removeBack()
-            var icon = .getApp().getDirectoryIcon(v, true)
+            var icon = .app().directoryIcon(v, true)
             icon.color       = Pixel.Argb.White
             l                = treeCtrl.createLine(v.toString(), icon)
             l.userData0      = cast(#null *void) .treePathStr.count
@@ -122,13 +114,13 @@ private impl FileBrowserCtrl
             .treePathStr.add(v)
         }
 
-        treeCtrl.sigSelChanged += func|fileBrowser = me|(list)
+        treeCtrl.sigSelectionChanged += func|fileBrowser = me|(list)
         {
-            var line = list.getSelectedLine()
+            var line = list.selectedLine()
             if !line do
                 return
             var idx = cast(u64) line.userData0
-            fileBrowser.setCurFolder(fileBrowser.treePathStr[idx].toString())
+            fileBrowser.setCurrentFolder(fileBrowser.treePathStr[idx].toString())
         }
     }
 
@@ -136,17 +128,17 @@ private impl FileBrowserCtrl
     {
         with me.listCtrl = ListCtrl.createMultiColumns(view)
         {
-            .selectionMode   = me.options.mode == .SelectMultiFiles ? .Multi : .Single
-            .dockStyle       = .Center
-            .margin.z        = 10
-            .listFlags       |= .HotTrack
+            .setSelectionMode(me.options.mode == FileDlgMode.SelectFiles ? ListSelectionMode.Multi : ListSelectionMode.Single)
+            .dockStyle = .Center
+            .margin.z  = 10
+            .updateFlags(.HotTrack)
             .backgroundStyle = .View
 
             // NOTE: both branches are kept explicitly f32. A runtime conditional
             // whose unified result is integer, fed to an f32 parameter, is currently
             // mis-lowered to a bit-reinterpret (see reference_conditional_int_to_float_miscompile).
-            .addColumn("Name", me.options.state ? cast(f32) me.options.state.columnWidthName : 200.0)
-            .addColumn("Modified", me.options.state ? cast(f32) me.options.state.columnWidthModified : 150.0)
+            .addColumn("Name", me.options.state ? cast(f32) me.options.state.nameColumnWidth : 200.0)
+            .addColumn("Modified", me.options.state ? cast(f32) me.options.state.modifiedColumnWidth : 150.0)
             .header.form = .Transparent
             .header.style.addStyleSheetColors("headerItem_Separator $lighterMedium")
             .scrollWnd.style.addStyleSheetColors("scrollBar_Bk $view_Bk")
@@ -158,40 +150,40 @@ private impl FileBrowserCtrl
                     fileBrowser.folderUp()
 
                 case .Enter:
-                    let l = list.getFocusLine()
+                    let l = list.focusedLine()
                     if !l do
                         break
                     let fi = notnull cast(#null const *FileInfo) l.userData0
                     if fi.isDirectory()
                     {
-                        fileBrowser.setCurFolder(fi.fullname)
+                        fileBrowser.setCurrentFolder(fi.fullname)
                     }
                     elif fileBrowser.options.mode != .SelectFolder
                     {
-                        fileBrowser.sigAccept.call(fileBrowser)
+                        fileBrowser.sigAccepted.call(fileBrowser)
                         list.setFocus()
                     }
                 }
             }
-            .sigLeftDoubleClick += func|fileBrowser = me|(list, pt)
+            .sigLeftDoubleClicked += func|fileBrowser = me|(list, pt)
             {
-                var l = list.getSelectedLine()
+                var l = list.selectedLine()
                 if !l do
                     return
                 var fi = notnull cast(#null const *FileInfo) l.userData0
                 if fi.isDirectory()
                 {
-                    fileBrowser.setCurFolder(fi.fullname)
+                    fileBrowser.setCurrentFolder(fi.fullname)
                 }
                 elif fileBrowser.options.mode != .SelectFolder
                 {
-                    fileBrowser.sigAccept.call(fileBrowser)
+                    fileBrowser.sigAccepted.call(fileBrowser)
                     list.setFocus()
                 }
             }
-            .sigSelChanged += func|fileBrowser = me|(list)
+            .sigSelectionChanged += func|fileBrowser = me|(list)
             {
-                var sel = list.getSelectedLines()
+                var sel = list.selectedLines()
                 var txt: String
                 for l in sel
                 {
@@ -209,13 +201,13 @@ private impl FileBrowserCtrl
 
                     if !txt.isEmpty() do
                         txt += ";"
-                    txt     += Path.getFileName(fi.fullname)
+                    txt += Path.fileName(fi.fullname)
                 }
 
                 if !txt.isEmpty() do
                     fileBrowser.editFile.setText(txt)
             }
-            .sigSort = func(l1, l2, col, down)
+            .compareLines = func(l1, l2, col, down)
             {
                 if !l1 or !l2 do
                     return 0
@@ -240,23 +232,25 @@ private impl FileBrowserCtrl
 
 impl FileBrowserCtrl
 {
-    // Creates the file browser composite inside 'parent'.
+    // Creates an embedded file browser inside `parent`.
+    #[Swag.Discardable]
     func create(parent: *Wnd, opt: FileDlgOptions = {}, position: Math.Rectangle = {})->*FileBrowserCtrl
     {
+        Debug.assert(parent != null)
         let fileBrowser = Wnd.create'FileBrowserCtrl(parent, "", position)
         fileBrowser.options         = opt
         fileBrowser.backgroundStyle = .Window
 
         // Panes
         ////////////////////////
-        if opt.drivePane
+        if opt.showLocationsPane
         {
             with fileBrowser.treeCtrl = ListCtrl.createSimple(fileBrowser, {0, 0, 170})
             {
-                .dockStyle       = .Left
-                .listFlags       |= .HotTrack
-                .lineHeight      = 28
-                .leftTextMargin  = 8
+                .dockStyle = .Left
+                .updateFlags(.HotTrack)
+                .setLineHeight(28)
+                .setLeftTextMargin(8)
                 .backgroundStyle = .Dialog
                 .scrollWnd.style.addStyleSheetColors("scrollBar_Bk $view_Bk")
                 fileBrowser.fillFileListFolders()
@@ -286,14 +280,14 @@ impl FileBrowserCtrl
             {
                 .dockStyle  = .Right
                 .margin.x   = 10
-                .sigPressed += func|fileBrowser|(btn) { fileBrowser.sigNewFolder.call(fileBrowser) }
+                .sigPressed += func|fileBrowser|(btn) { fileBrowser.sigNewFolderRequested.call(fileBrowser) }
             }
         }
 
         with fileBrowser.comboPath = ComboBox.create(viewTop)
         {
             .dockStyle  = .Center
-            .sigChanged += func|fileBrowser|(combo, idx) { fileBrowser.setCurFolder(fileBrowser.comboPathStr[idx]) }
+            .sigChanged += func|fileBrowser|(combo, idx) { fileBrowser.setCurrentFolder(fileBrowser.comboPathStr[idx]) }
         }
 
         // Bottom
@@ -316,26 +310,24 @@ impl FileBrowserCtrl
             else do
                 for f, [idx] in opt.filters do
                     .addItem(f.name, userData0: cast(#null *void) idx)
-            .selectItem(0)
+            .setSelectedIndex(0)
             .sigChanged += func|fileBrowser|(c, idx) { fileBrowser.fillFileList() }
         }
 
         let nameLbl0 = opt.mode == .SelectFolder ? "Folder Name" : "File Name"
         let label0   = Label.create(viewBottom, nameLbl0, {5, 10, 80, fileBrowser.editFile.position.height})
-        label0.horzAlignmentText = .Right
-        label0.vertAlignmentText = .Center
+        label0.setTextAlignment(.Right, .Center)
         let label1 = Label.create(viewBottom, "Type", {5, 45, 80, fileBrowser.comboType.position.height})
-        label1.horzAlignmentText = .Right
-        label1.vertAlignmentText = .Center
+        label1.setTextAlignment(.Right, .Center)
 
         with fileBrowser
         {
-            if opt.openFolder do
-                .setCurFolder(opt.openFolder)
-            elif opt.state and !opt.state.curFolder.isEmpty() do
-                .setCurFolder(opt.state.curFolder)
+            if opt.initialFolder do
+                .setCurrentFolder(opt.initialFolder)
+            elif opt.state and !opt.state.currentFolder.isEmpty() do
+                .setCurrentFolder(opt.state.currentFolder)
             .listCtrl.sort(0)
-            .editFile.setText(opt.editName)
+            .editFile.setText(opt.initialName)
             if opt.mode == .CreateFile
             {
                 .editFile.selectAll()
@@ -346,27 +338,33 @@ impl FileBrowserCtrl
         }
 
         // Default to the first shortcut/drive when nothing else selected a folder.
-        if fileBrowser.curFolder.isEmpty() and fileBrowser.treeCtrl do
+        if fileBrowser.currentFolder.isEmpty() and fileBrowser.treeCtrl do
             fileBrowser.treeCtrl.selectLine(0)
 
         return fileBrowser
     }
 
-    // Navigate to the given folder.
-    mtd setCurFolder(folder: string)
+    // Navigates to `folder`; returns false when it does not name an existing directory.
+    #[Swag.Discardable]
+    mtd setCurrentFolder(folder: string)->bool
     {
         if !@countof(folder) or !Directory.exists(notnull folder) do
-            return
+            return false
 
-        .curFolder = folder
-        Path.normalize(&.curFolder)
+        var normalized = String.from(folder)
+        Path.normalize(&normalized)
 
-        if .curFolder.back() == '/' do
-            .curFolder.removeBack()
+        if normalized.back() == '/' do
+            normalized.removeBack()
+        if .currentFolder == normalized do
+            return true
+
+        .currentFolder = #move normalized
 
         .fillFileList()
         .fillComboPath()
         .sigFolderChanged.call(me)
+        return true
     }
 
     // Refresh the file list of the current folder.
@@ -375,8 +373,8 @@ impl FileBrowserCtrl
         .fillFileList()
     }
 
-    // Fill the file list from the current folder, applying the active filter.
-    mtd fillFileList()
+    // Fills the file list from the current folder, applying the active filter.
+    private mtd fillFileList()
     {
         .listCtrl.clear()
 
@@ -388,14 +386,14 @@ impl FileBrowserCtrl
             .recurse         = false
         }
 
-        .curList = catch Directory.enumerate(.curFolder, options)
+        .currentEntries = catch Directory.enumerate(.currentFolder, options)
 
         // SelectFolder mode has no file filters (it lists folders only): avoid
         // indexing the empty 'filters' array.
         var filterExtensions: #null string
         if me.options.mode != .SelectFolder and .options.filters.count
         {
-            let item        = notnull .comboType.getSelectedItem()
+            let item        = notnull .comboType.selectedItem()
             let filterIndex = cast(u64) item.userData0
             if filterIndex < .options.filters.count do
                 filterExtensions = .options.filters[filterIndex].extensions
@@ -403,9 +401,9 @@ impl FileBrowserCtrl
 
         let tokens = Tokenize.split(filterExtensions orelse "", ';'rune)
 
-        for &fi in .curList
+        for &fi in .currentEntries
         {
-            let fname = notnull Path.getFileName(fi.fullname)
+            let fname = notnull Path.fileName(fi.fullname)
 
             // Filter
             var show = true
@@ -414,7 +412,7 @@ impl FileBrowserCtrl
                 show = false
                 for t in tokens
                 {
-                    if Path.isExtension(fname, t)
+                    if Path.hasExtension(fname, t)
                     {
                         show = true
                         break
@@ -426,7 +424,7 @@ impl FileBrowserCtrl
                 continue
 
             // Content
-            var icon = .getApp().getFileDirectoryIcon(fname, fi.isDirectory())
+            var icon = .app().fileOrDirectoryIcon(fname, fi.isDirectory())
             icon.color = Pixel.Argb.White
             let line = .listCtrl.createLine(fname, icon)
             line.userData0 = fi
@@ -437,27 +435,38 @@ impl FileBrowserCtrl
         .listCtrl.sort()
     }
 
-    // Create a folder inside the current folder; returns true on success.
+    // Creates a folder inside [[Gui.FileBrowserCtrl.currentFolder]] and refreshes the list on success.
     mtd createFolder(name: string)->bool
     {
-        let path = Path.combine(.curFolder, name)
+        if .currentFolder.isEmpty() or !Path.isValidFileName(name) do
+            return false
+        let path = Path.combine(.currentFolder, name)
         catch Directory.create(path) else do
             return false
         .fillFileList()
         return true
     }
 
-    // Get the first selection (full path)
-    mtd getSelectedName()->String
+    // Changes the contents of the file or folder name editor.
+    mtd setFileName(name: #null string)
     {
-        let sel = .getSelectedNames()
+        .editFile.setText(name)
+    }
+
+    // Returns the current contents of the file or folder name editor.
+    mtd fileName()->string => .editFile.text()
+
+    // Returns the first selected full path, or an empty string when selection is invalid.
+    mtd selectedPath()->String
+    {
+        let sel = .selectedPaths()
         if sel.isEmpty() do
             return String.from("")
         return sel.front()
     }
 
-    // Get all selections (full paths)
-    mtd getSelectedNames()->Array'String
+    // Returns all selected full paths in display order.
+    mtd selectedPaths()->Array'String
     {
         var result: retval
 
@@ -465,13 +474,13 @@ impl FileBrowserCtrl
         var filterExtensions: #null string
         if me.options.mode != .SelectFolder and .options.filters.count
         {
-            let item        = notnull .comboType.getSelectedItem()
+            let item        = notnull .comboType.selectedItem()
             let filterIndex = cast(u64) item.userData0
             if filterIndex < .options.filters.count do
                 filterExtensions = .options.filters[filterIndex].extensions
         }
 
-        let tokens = Tokenize.split(.editFile.text, ';'rune)
+        let tokens = Tokenize.split(.editFile.text(), ';'rune)
         for t in tokens
         {
             // Be sure this is a valid file/folder name
@@ -485,10 +494,10 @@ impl FileBrowserCtrl
                 continue
 
             // Get the full name
-            var val = Path.combine(.curFolder, t1.toString())
+            var val = Path.combine(.currentFolder, t1.toString())
 
             // Append extension if not done by the user
-            if .options.mode != .SelectFolder and @countof(filterExtensions) and !Path.isExtension(val, notnull filterExtensions)
+            if .options.mode != .SelectFolder and @countof(filterExtensions) and !Path.hasExtension(val, notnull filterExtensions)
             {
                 let exts = Tokenize.split(notnull filterExtensions, ';'rune)
                 val += exts[0]

@@ -10,9 +10,9 @@ using Swag, Core
         ]
 
     let src  = makeImage(3, 2, .RGBA8, pixels)
-    let t90  = src.toTurn(.T90)
-    let t180 = src.toTurn(.T180)
-    let t270 = src.toTurn(.T270)
+    let t90  = src.rotated(.Clockwise90)
+    let t180 = src.rotated(.HalfTurn)
+    let t270 = src.rotated(.Clockwise270)
 
     assertImage(t90, 2, 3, .RGBA8)
     assertPixel(t90, 0, 2, Color.fromArgb(33'u8, 30'u8, 31'u8, 32'u8))

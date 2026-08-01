@@ -47,8 +47,8 @@ func enumerate(dirName: #null string, options: EnumerationOptions)->Array'(File.
     while !stackPath.isEmpty()
     {
         var toScan = stackPath.popBack()
-        if toScan.back() == Path.VolumeSeparatorChar do
-            toScan += Path.DirectorySeparatorChar
+        if toScan.back() == Path.VolumeSeparator do
+            toScan += Path.DirectorySeparator
         let searchPath = Path.combine(toScan.toString(), "*")
 
         let winPath = Utf16.toZeroTerminated(searchPath)
@@ -89,14 +89,14 @@ func enumerate(dirName: #null string, options: EnumerationOptions)->Array'(File.
 
                     fi.size = findfile.nFileSizeLow + (cast(u64) findfile.nFileSizeHigh << 32)
                     catch FileTimeToSystemTime(&findfile.ftCreationTime, &fileTime)
-                    fi.creationTime.setSYSTEMTIME(fileTime)
+                    fi.creationTime.setSystemTime(fileTime)
                     catch FileTimeToSystemTime(&findfile.ftLastAccessTime, &fileTime)
-                    fi.lastAccessTime.setSYSTEMTIME(fileTime)
+                    fi.lastAccessTime.setSystemTime(fileTime)
                     catch FileTimeToSystemTime(&findfile.ftLastWriteTime, &fileTime)
-                    fi.lastWriteTime.setSYSTEMTIME(fileTime)
+                    fi.lastWriteTime.setSystemTime(fileTime)
 
                     mustAdd = false
-                    if options.matchExtension and Path.isExtension(fi.fullname, options.matchExtension orelse "") do
+                    if options.matchExtension and Path.hasExtension(fi.fullname, options.matchExtension orelse "") do
                         mustAdd = true
                     elif options.matchFileName and filename == options.matchFileName do
                         mustAdd = true
@@ -125,7 +125,7 @@ func enumerate(dirName: #null string, options: EnumerationOptions)->Array'(File.
 }
 
 // Returns the current directory
-func getCurrent()->String fail
+func currentPath()->String fail
 {
     var result: retval
     let length = GetCurrentDirectoryW(0, null)
@@ -140,7 +140,7 @@ func getCurrent()->String fail
 }
 
 // Set the current directory
-func setCurrent(dirName: string) fail
+func setCurrentPath(dirName: string) fail
 {
     let winPath = Utf16.toZeroTerminated(dirName)
     catch SetCurrentDirectoryW(@dataof(winPath)) as err
@@ -148,7 +148,7 @@ func setCurrent(dirName: string) fail
 }
 
 // Get the list of logical drives
-func getDrives()->Array'String fail
+func drives()->Array'String fail
 {
     var result:  retval
     var volName: [MAX_PATH] u8
@@ -169,7 +169,7 @@ func getDrives()->Array'String fail
 }
 
 // Get the list of volumes
-func getVolumes()->Array'String fail
+func volumes()->Array'String fail
 {
     var result: retval
 

@@ -9,9 +9,9 @@ impl Painter
     {
         if radius == 0 or color.a == 0 do
             return
-        if Math.isZeroEpsilon(endAngle.rad - startAngle.rad) do
+        if Math.isZeroEpsilon(endAngle.radians - startAngle.radians) do
             return
-        Debug.assert(endAngle.rad > startAngle.rad)
+        Debug.assert(endAngle.radians > startAngle.radians)
 
         let pen = Pen.createSolid(color, penSize)
         .sharedLinePath.setArc(centerX, centerY, radius, startAngle, endAngle)
@@ -22,7 +22,7 @@ impl Painter
     {
         if radius == 0 or !pen.brush.hasVisibleAlpha() do
             return
-        if Math.isZeroEpsilon(endAngle.rad - startAngle.rad) do
+        if Math.isZeroEpsilon(endAngle.radians - startAngle.radians) do
             return
         .sharedLinePath.setArc(centerX, centerY, radius, startAngle, endAngle)
         .drawPath(&.sharedLinePath, pen)

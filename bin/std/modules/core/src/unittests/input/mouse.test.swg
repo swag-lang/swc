@@ -17,9 +17,9 @@ using Swag
         @assert(!mouse.isButtonDoubleClick(button))
     }
 
-    @assert(mouse.getPreviousPos() == Math.Point.Zero)
-    @assert(mouse.getPosition() == Math.Point.Zero)
-    @assert(mouse.getMove() == Math.Point.Zero)
+    @assert(mouse.previousPosition() == Math.Point.Zero)
+    @assert(mouse.position() == Math.Point.Zero)
+    @assert(mouse.movement() == Math.Point.Zero)
 }
 
 #test
@@ -30,9 +30,7 @@ using Swag
     {
         let button = cast(Input.MouseButton) i
 
-        mouse.currentState.pressed[button]  = true
-        mouse.previousState.pressed[button] = false
-        mouse.dblClk[button]                = true
+        mouse.setButtonStates(button, false, true, true)
 
         @assert(mouse.isButtonPressed(button))
         @assert(!mouse.isButtonReleased(button))
@@ -40,15 +38,14 @@ using Swag
         @assert(!mouse.isButtonJustReleased(button))
         @assert(mouse.isButtonDoubleClick(button))
 
-        mouse.previousState.pressed[button] = true
+        mouse.setButtonStates(button, true, true, true)
 
         @assert(mouse.isButtonPressed(button))
         @assert(!mouse.isButtonReleased(button))
         @assert(!mouse.isButtonJustPressed(button))
         @assert(!mouse.isButtonJustReleased(button))
 
-        mouse.currentState.pressed[button] = false
-        mouse.dblClk[button]               = false
+        mouse.setButtonStates(button, true, false, false)
 
         @assert(!mouse.isButtonPressed(button))
         @assert(mouse.isButtonReleased(button))
@@ -62,10 +59,26 @@ using Swag
 {
     var mouse: Input.Mouse
 
-    mouse.previousState.position = Math.Point{3, -4}
-    mouse.currentState.position  = Math.Point{10, 6}
+    mouse.setPositions({3, -4}, {10, 6})
 
-    @assert(mouse.getPreviousPos() == Math.Point{3, -4})
-    @assert(mouse.getPosition() == Math.Point{10, 6})
-    @assert(mouse.getMove() == Math.Point{7, 10})
+    @assert(mouse.previousPosition() == Math.Point{3, -4})
+    @assert(mouse.position() == Math.Point{10, 6})
+    @assert(mouse.movement() == Math.Point{7, 10})
+}
+
+#test
+{
+    var mouse: Input.Mouse
+    mouse.setButtonStates(.Left, true, true, true)
+    mouse.setPressMetadata(.Left, 12, 34, {1, 2}, {3, 4})
+
+    mouse.clear()
+
+    @assert(!mouse.previousState.pressed[Input.MouseButton.Left])
+    @assert(!mouse.currentState.pressed[Input.MouseButton.Left])
+    @assert(mouse.previousState.pressedTime[Input.MouseButton.Left] == 0)
+    @assert(mouse.currentState.pressedTime[Input.MouseButton.Left] == 0)
+    @assert(mouse.previousState.pressedPos[Input.MouseButton.Left] == Math.Point.Zero)
+    @assert(mouse.currentState.pressedPos[Input.MouseButton.Left] == Math.Point.Zero)
+    @assert(!mouse.isButtonDoubleClick(.Left))
 }

@@ -1,4 +1,4 @@
-impl Properties
+internal impl Properties
 {
     func setDescEditBox(item: *PropertiesItem)
     {
@@ -8,7 +8,7 @@ impl Properties
 
     mtd reconstructArray(item: *PropertiesItem)
     {
-        let valueType        = notnull Reflection.getStructArrayType(item.type)
+        let valueType        = notnull Reflection.dynamicArrayElementType(item.type)
         let arrData          = notnull cast(#null *Array'u8) item.data
         let countItemsBefore = .items.count
         let itemIdx          = Slice.findLinear(.items.toSlice(), item)
@@ -31,14 +31,14 @@ impl Properties
             .items.insertAt(insertItemIdx + i, .items[.items.count - numAddedChilds + i])
         .items.count -= numAddedChilds
 
-        .edView.moveLastChildsTo(insertItemIdx, numAddedChilds)
+        .edView.moveLastChildrenTo(insertItemIdx, numAddedChilds)
 
-        // Remove all old items and childs
+        // Remove all old items and children
         for [i] in item.numChilds
         {
-            .items.deletePtr(.items[itemIdx + 1])
+            .items.destroy(.items[itemIdx + 1])
             .items.removeAtOrdered(itemIdx + 1)
-            .edView.childs[itemIdx + 1].destroyNow()
+            .edView.children[itemIdx + 1].destroyNow()
         }
 
         // Update state of all newly added items
@@ -61,24 +61,24 @@ impl Properties
 
     mtd clearArray(item: *PropertiesItem)
     {
-        let valueType = notnull Reflection.getStructArrayType(item.type)
-        Reflection.clearStructArray(item.data, valueType)
+        let valueType = notnull Reflection.dynamicArrayElementType(item.type)
+        Reflection.clearDynamicArray(item.data, valueType)
         .refreshArray(item)
-        .hasChanged(item)
+        .commitItemChange(item)
     }
 
     // True when 'item' wraps an array value: a fixed-size [N]T or a dynamic Core.Array.
     mtd isArrayItem(item: *PropertiesItem)->bool
     {
-        return item.type and (Reflection.isStaticArray(item.type) or Reflection.isStructArray(item.type))
+        return item.type and (Reflection.isStaticArray(item.type) or Reflection.isDynamicArray(item.type))
     }
 
     // Buffer base, element type and element count of an array item (static or dynamic).
     mtd arrayElementInfo(arrayItem: *PropertiesItem)->{ base: #null [*] u8, valueType: #null typeinfo, count: u64 }
     {
-        if Reflection.isStructArray(arrayItem.type)
+        if Reflection.isDynamicArray(arrayItem.type)
         {
-            let vt  = notnull Reflection.getStructArrayType(arrayItem.type)
+            let vt  = notnull Reflection.dynamicArrayElementType(arrayItem.type)
             let arr = notnull cast(#null *Array'u8) arrayItem.data
             return {arr.buffer, vt, arr.count}
         }
@@ -129,30 +129,30 @@ impl Properties
         if target < 0 or target >= cast(s64) info.count do
             return
 
-        Reflection.swapValues(info.base, info.valueType, idx, cast(u64) target)
-        .hasChanged(notnull arrayItem)
+        Reflection.swapRuntimeValues(info.base, info.valueType, idx, cast(u64) target)
+        .commitItemChange(notnull arrayItem)
     }
 
     mtd removeArrayValue(item: *PropertiesItem)
     {
         let parentItem = notnull item.parent
-        let valueType  = notnull Reflection.getStructArrayType(parentItem.type)
+        let valueType  = notnull Reflection.dynamicArrayElementType(parentItem.type)
         let removeIdx  = .arrayElementIndex(item)
 
-        Reflection.removeValueStructArray(parentItem.data, valueType, removeIdx)
+        Reflection.removeDynamicArrayElement(parentItem.data, valueType, removeIdx)
 
         .refreshArray(notnull parentItem)
-        .hasChanged(notnull parentItem)
+        .commitItemChange(notnull parentItem)
     }
 
     mtd appendArrayValue(item: *PropertiesItem)
     {
-        let valueType = notnull Reflection.getStructArrayType(item.type)
+        let valueType = notnull Reflection.dynamicArrayElementType(item.type)
 
-        discard Reflection.appendValueStructArray(item.data, valueType)
+        discard Reflection.appendDynamicArrayElement(item.data, valueType)
 
         .refreshArray(item)
-        .hasChanged(item)
+        .commitItemChange(item)
     }
 
     mtd constructArray(value: Swag.TypeValue, data: #null *u8, parentItem: #null *PropertiesItem)
@@ -161,7 +161,7 @@ impl Properties
         let numItemsBefore = .items.count
         item.flags.add(.NoSeparator)
 
-        let valueType = notnull Reflection.getStructArrayType(item.type)
+        let valueType = notnull Reflection.dynamicArrayElementType(item.type)
         let arrData   = notnull cast(#null *Array'u8) data
         var newData   = arrData.buffer
 
@@ -177,15 +177,15 @@ impl Properties
         }
 
         let parentForBtn = .isGridLike() ? item.line : cast(#null *Wnd) item.label
-        let addBtn       = IconButton.create(notnull parentForBtn, .getTheme().getIcon24(ThemeIcons24.Plus, 20), {0, 0, 24, 24})
+        let addBtn       = IconButton.create(notnull parentForBtn, .theme().icon24(ThemeIcons24.Plus, 20), {0, 0, 24, 24})
         addBtn.dockStyle = .isGridLike() ? .Right : .None
-        addBtn.setForm(IconButtonForm.Round)
+        addBtn.setForm(IconButtonForm.Circle)
         item.arrayAddButton = addBtn
         if !.isGridLike() do
             item.label.wndFlags.remove(.ClipChildren)
         addBtn.sigPressed += func|prop = me, item|(btn) { prop.appendArrayValue(item) }
 
-        with item.editBox = EditBox.create(item.line, "")
+        with let editBox = EditBox.create(item.line, "")
         {
             // Grid rows dock the read-only count field to the left of the cell; list
             // rows stack it under the name label (the row is a StackLayoutCtrl), where
@@ -194,12 +194,14 @@ impl Properties
                 .dockStyle = .Left
             else
             {
-                .anchorStyle = .X
+                .anchorStyle = .Right
             }
 
             .setForm(.Transparent)
             .enable(false)
         }
+
+        item.assignEditBox(editBox)
 
         setDescEditBox(item)
         item.numChilds += cast(u32) (.items.count - numItemsBefore)

@@ -23,7 +23,7 @@ using Core
 
 func day2B()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "2.txt")
+    let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "2.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     var prg: Array's32
@@ -44,7 +44,7 @@ func day2B()
                 op[op[ip + 3]] = op[op[ip + 1]] + op[op[ip + 2]]
             else do
                 op[op[ip + 3]] = op[op[ip + 1]] * op[op[ip + 2]]
-            ip                 += 4
+            ip += 4
         }
 
         if op[0] == 19690720 do

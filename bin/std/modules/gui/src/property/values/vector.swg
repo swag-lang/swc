@@ -1,6 +1,6 @@
 using Core, Core.Math, Pixel
 
-impl Properties
+internal impl Properties
 {
     mtd constructVector(value: Swag.TypeValue, typeStruct: const *Swag.TypeInfoStruct, data: #null [*] u8, parentItem: *PropertiesItem)->*PropertiesItem
     {
@@ -13,11 +13,11 @@ impl Properties
         var width = .position.width
         if !.isGridLike()
         {
-            width = cast(f32) Reflection.getAttributeValue(value, .EditSize, "size", .sizeEditValue)
+            width = cast(f32) Reflection.attributeValue(value, .EditSize, "size", .editorWidth)
             width = .listContentWidthFromUseful(width)
         }
 
-        let line = Wnd.create'Wnd(item.line, {0, 0, width, .getThemeMetrics().editBox_Height})
+        let line = Wnd.create'Wnd(item.line, {0, 0, width, .themeMetrics().editBox_Height})
         if !.isGridLike() do
             line.maxSize.x = width
 
@@ -36,19 +36,19 @@ impl Properties
 
             with let label = Label.create(line, (notnull v.name)[0 to 0], {0, 0, item.line.position.height})
             {
-                .dockStyle         = .Left
-                .horzAlignmentText = .Center
+                .dockStyle = .Left
+                .setTextHorizontalAlignment(.Center)
             }
 
             with let ed = EditBox.create(line, "", {0, 0, item.line.position.height * 2})
             {
                 .dockStyle = .Left
-                .setInputF64()
-                .sigLoseFocus += func|prop = me, item, fieldOffset|(ed)
+                .setFloatingPointRange()
+                .sigFocusLost += func|prop = me, item, fieldOffset|(ed)
                 {
                     // Write this component into every edited instance, leaving the others.
-                    prop.writeFloatComponent(item, fieldOffset, catch StrConv.toF32(ed.text))
-                    prop.hasChanged(item)
+                    prop.writeFloatComponent(item, fieldOffset, catch StrConv.toF32(ed.text()))
+                    prop.commitItemChange(item)
                 }
             }
 
@@ -69,9 +69,9 @@ impl Properties
 // claims five related types — exactly the family-matching a type-keyed map could not express.
 // constructVector only needs the field type's struct layout, which is value.pointedType, so the
 // same editor serves them all.
-struct VectorEditor {}
+internal struct VectorEditor {}
 
-impl IPropertyEditor for VectorEditor
+internal impl IPropertyEditor for VectorEditor
 {
     mtd impl canEdit(type: #null typeinfo)->bool
     {

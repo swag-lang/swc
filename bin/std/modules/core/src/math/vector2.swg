@@ -194,14 +194,14 @@ impl Vector2
 
     // Returns true if this vector is zero within an epsilon tolerance.
     // Uses 'eps' parameter to handle floating-point precision issues.
-    mtd const isZeroEpsilon(eps = cast(f32) ConstF64.Epsilon)->bool
+    mtd const isZeroEpsilon(eps = ConstF32.Epsilon)->bool
     {
         return Math.isZeroEpsilon(.x, eps) and Math.isZeroEpsilon(.y, eps)
     }
 
     // Returns true if this vector is equal to 'other' within an epsilon tolerance.
     // Compares each component separately using the specified 'eps' tolerance.
-    mtd const isEqualEpsilon(other: Vector2, eps = cast(f32) ConstF64.Epsilon)->bool
+    mtd const isEqualEpsilon(other: Vector2, eps = ConstF32.Epsilon)->bool
     {
         return Math.isEqualEpsilon(.x, other.x, eps) and Math.isEqualEpsilon(.y, other.y, eps)
     }
@@ -217,7 +217,7 @@ impl Vector2
 
     // Returns the squared distance between this vector and 'dest'.
     // Faster than 'distance()' when only comparing distances since it avoids the square root operation.
-    mtd const distanceToSquared(dest: Vector2)->f32
+    mtd const distanceSquaredTo(dest: Vector2)->f32
     {
         let xn = (.x - dest.x)
         let yn = (.y - dest.y)
@@ -237,7 +237,7 @@ impl Vector2
 
     // Returns this vector normalized to unit length without modifying the original.
     // Creates a new vector with length 1 in the same direction. Asserts that the vector is not zero.
-    mtd const toNormalized()->Vector2
+    mtd const normalized()->Vector2
     {
         var norm = sqrt((.x * .x) + (.y * .y))
         Debug.assert(!Math.isZeroEpsilon(norm))
@@ -247,9 +247,9 @@ impl Vector2
 
     // Set the vector to the specified length safely.
     // First normalizes the vector safely, then scales it to 'newLength'. Handles zero-length vectors.
-    mtd setLengthSafe(newLength: f32)
+    mtd setLengthOrZero(newLength: f32)
     {
-        .normalizeSafe()
+        .normalizeOrZero()
         .x *= newLength
         .y *= newLength
     }
@@ -265,7 +265,7 @@ impl Vector2
 
     // Normalize this vector in-place safely.
     // Sets the vector to unit length, or to zero if the original length is near zero.
-    mtd normalizeSafe()
+    mtd normalizeOrZero()
     {
         var norm = sqrt((.x * .x) + (.y * .y))
         if Math.isZeroEpsilon(norm)
@@ -281,7 +281,7 @@ impl Vector2
 
     // Returns this vector normalized safely without modifying the original.
     // Returns a unit vector in the same direction, or the zero vector if length is near zero.
-    mtd const toNormalizedSafe()->Vector2
+    mtd const normalizedOrZero()->Vector2
     {
         var norm = sqrt((.x * .x) + (.y * .y))
         if Math.isZeroEpsilon(norm) do
@@ -338,8 +338,8 @@ impl Vector2
     // Uses standard 2D rotation matrix transformation with the specified 'angle'.
     mtd rotateBy(angle: Math.Angle)
     {
-        let s  = Math.sin(angle.rad)
-        let c  = Math.cos(angle.rad)
+        let s  = Math.sin(angle.radians)
+        let c  = Math.cos(angle.radians)
         let tx = .x
         let ty = .y
         .x = (c * tx) - (s * ty)
@@ -348,7 +348,7 @@ impl Vector2
 
     // Returns the cosine of the angle between this vector and 'other'.
     // Calculated using the dot product formula: dot(a,b) / (|a| * |b|).
-    mtd const cosAngleTo(other: Vector2)->f32
+    mtd const angleCosineTo(other: Vector2)->f32
     {
         return .dot(other) / (.length() * other.length())
     }
@@ -357,14 +357,14 @@ impl Vector2
     // The result is in the range [0, π] using the arc cosine of the normalized dot product.
     mtd const angleTo(other: Vector2)->f32
     {
-        return Math.acos(.cosAngleTo(other))
+        return Math.acos(.angleCosineTo(other))
     }
 
     // Returns the angle between this vector and 'other' in the range [0, 2π].
     // Uses the cross product to determine the sign and adjust the angle accordingly.
-    mtd const angle0To2Pi(other: Vector2)->f32
+    mtd const orientedAngleTo(other: Vector2)->f32
     {
-        var angle = Math.acos(.cosAngleTo(other))
+        var angle = Math.acos(.angleCosineTo(other))
         let sign  = (.x * other.y) - (.y * other.x)
         if sign < 0 do
             angle = ConstF32.TwoPi - angle
@@ -374,11 +374,11 @@ impl Vector2
     // Perform linear interpolation between two vectors.
     // Interpolates each component separately using the given 'factor' (0.0 to 1.0).
     // When 'factor' is 0.0, returns 'src'; when 1.0, returns 'dst'.
-    mtd const lerpTo(dst: Vector2, factor: f32)->Vector2
+    func lerp(src, dst: Vector2, factor: f32)->Vector2
     {
         var result: retval = undefined
-        result.x = Math.lerp(.x, dst.x, factor)
-        result.y = Math.lerp(.y, dst.y, factor)
+        result.x = Math.lerp(src.x, dst.x, factor)
+        result.y = Math.lerp(src.y, dst.y, factor)
         return result
     }
 
@@ -392,7 +392,7 @@ impl Vector2
 
     // Returns a new vector with components clamped between 'min' and 'max' values.
     // Each component is independently clamped to stay within the specified range.
-    mtd const toClamped(min, max: Vector2)->Vector2
+    mtd const clamped(min, max: Vector2)->Vector2
     {
         return Vector2{Math.clamp(.x, min.x, max.x), Math.clamp(.y, min.y, max.y)}
     }
@@ -414,22 +414,22 @@ impl Vector2
     {
         let len = .length()
         if len < minLength do
-            return .toNormalized() * minLength
+            return .normalized() * minLength
         elif len > maxLength do
-            return .toNormalized() * maxLength
+            return .normalized() * maxLength
         return me
     }
 
     // Returns the absolute value of each component.
     // Creates a new vector where each component is its absolute value.
-    mtd const toAbs()->Vector2
+    mtd const absolute()->Vector2
     {
         return Vector2{Math.abs(.x), Math.abs(.y)}
     }
 
     // Apply absolute value to both components in-place.
     // Makes both components positive by removing their sign.
-    mtd makeAbs()
+    mtd makeAbsolute()
     {
         .x = Math.abs(.x)
         .y = Math.abs(.y)
@@ -437,21 +437,21 @@ impl Vector2
 
     // Returns a vector perpendicular to this one (rotated 90 degrees counter-clockwise).
     // The perpendicular vector has the same length but is rotated 90° CCW.
-    mtd const toPerp()->Vector2
+    mtd const perpendicular()->Vector2
     {
         return Vector2{-.y, .x}
     }
 
     // Returns a vector perpendicular to this one (rotated 90 degrees clockwise).
     // The perpendicular vector has the same length but is rotated 90° CW.
-    mtd const toPerpCW()->Vector2
+    mtd const perpendicularClockwise()->Vector2
     {
         return Vector2{.y, -.x}
     }
 
     // Project this vector onto 'other' vector.
     // Returns the component of this vector in the direction of 'other'.
-    mtd const toProject(other: Vector2)->Vector2
+    mtd const projectedOnto(other: Vector2)->Vector2
     {
         let dotProduct    = .dot(other)
         let otherLengthSq = other.lengthSquared()
@@ -462,7 +462,7 @@ impl Vector2
 
     // Reflect this vector across a surface with the given 'normal'.
     // The 'normal' should be a unit vector pointing away from the surface.
-    mtd const toReflect(normal: Vector2)->Vector2
+    mtd const reflected(normal: Vector2)->Vector2
     {
         let scale = 2.0 * .dot(normal)
         return Vector2{.x - normal.x * scale, .y - normal.y * scale}
@@ -470,7 +470,7 @@ impl Vector2
 
     // Returns the component-wise sign of the vector (-1, 0, or 1 for each component).
     // Each component becomes -1 if negative, 0 if zero, or 1 if positive.
-    mtd const toSign()->Vector2
+    mtd const sign()->Vector2
     {
         return Vector2{Math.sign(.x), Math.sign(.y)}
     }
@@ -503,7 +503,7 @@ impl Vector2
 
     // Returns a vector moved towards 'target' by a maximum distance of 'maxDistance'.
     // If the distance to 'target' is less than 'maxDistance', returns the target directly.
-    mtd const toMovedTowards(target: Vector2, maxDistance: f32)->Vector2
+    mtd const movedTowards(target: Vector2, maxDistance: f32)->Vector2
     {
         let dir  = target - me
         let dist = dir.length()

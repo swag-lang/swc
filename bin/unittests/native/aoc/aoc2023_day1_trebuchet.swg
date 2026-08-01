@@ -111,7 +111,7 @@ func calibrationValueDigitOnly(line: const [..] u8)->u32
             let d = digitValue(ch)
             if first < 0 do
                 first = d
-            last      = d
+            last = d
         }
     }
 
@@ -139,7 +139,7 @@ func calibrationValueWithWords(line: const [..] u8)->u32
         {
             if first < 0 do
                 first = d
-            last      = d
+            last = d
         }
     }
 

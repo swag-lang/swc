@@ -19,13 +19,13 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->#null string f
     var one   = Tokenize.eatSpaces(buf)
 
     // Dynamic Core.Array
-    let valueType = Reflection.getStructArrayType(type)
+    let valueType = Reflection.dynamicArrayElementType(type)
     if valueType
     {
         let safeValueType = valueType
         while @countof(one) and one[0] != '#'
         {
-            let addrVal = Reflection.appendValueStructArray(addr, safeValueType)
+            let addrVal = Reflection.appendDynamicArrayElement(addr, safeValueType)
             one = (parseValue(notnull addrVal, safeValueType, one) orelse "")
             one = Tokenize.eatSpaces(one)
         }
@@ -65,7 +65,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->#null string f
         {
             one = Tokenize.eatSpaces(one)
             let id = parseIdentifier(one) orelse ""
-            let v  = Reflection.getEnumValue(type, id)
+            let v  = Reflection.enumValue(type, id)
             if !v do
                 fail InvalidFormatError{Errors.mkString(Format.toString("unknown enum value [[%]]", id))}
             let enumValue = notnull v.value

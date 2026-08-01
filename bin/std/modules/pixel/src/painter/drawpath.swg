@@ -79,7 +79,7 @@ impl Painter
         var p = p1
         let d = d1 * sx
         var n = Math.Vector2{d.y * sens, -d.x * sens}
-        n.setLengthSafe(d.length() * sy)
+        n.setLengthOrZero(d.length() * sy)
         p -= n * 0.5
 
         let v0 = Math.Vector2{p.x + d.x, p.y + d.y}
@@ -113,7 +113,7 @@ impl Painter
         var p  = p1
         let d  = d1 * sx
         let n  = Math.Vector2{d.y * sens * sy, -d.x * sens * sy}
-        let n1 = n.toNormalized()
+        let n1 = n.normalized()
         p -= n
 
         {
@@ -267,7 +267,7 @@ impl Painter
             let angle = (.sharedRoundTmp[i].factor + .sharedRoundTmp[i + 1].factor) * 0.5
             point.x = center.x + (Math.cos(angle) * radius)
             point.y = center.y + (Math.sin(angle) * radius)
-            let dist = Math.Geometry.distanceToLine(point, .sharedRoundTmp[i].pos, .sharedRoundTmp[i + 1].pos)
+            let dist = Math.Geometry.distanceFromPointToLine(point, .sharedRoundTmp[i].pos, .sharedRoundTmp[i + 1].pos)
             if dist < minDist do
                 continue
 
@@ -514,10 +514,10 @@ impl Painter
         cxt.patternTotalLen = 0
         for [i] in cxt.patternCount do
             cxt.patternTotalLen += Math.max(cxt.pattern[i], 0.01)
-        cxt.patternTotalLen     *= cxt.pen.size
+        cxt.patternTotalLen *= cxt.pen.size
 
-        let repeatCount = cast(s32) (cxt.path.polygon.totalLen / cxt.patternTotalLen)
-        cxt.error = cxt.path.polygon.totalLen - (repeatCount * cxt.patternTotalLen)
+        let repeatCount = cast(s32) (cxt.path.polygon.perimeter / cxt.patternTotalLen)
+        cxt.error = cxt.path.polygon.perimeter - (repeatCount * cxt.patternTotalLen)
 
         // We must dispatch error at each blank in the pattern. So "divError" is the
         // number of blanks to add at each 'move', between solid patterns
@@ -544,7 +544,7 @@ impl Painter
 
         var v               = pos - cxt.prev
         var remainingSegLen = v.length()
-        v.normalizeSafe()
+        v.normalizeOrZero()
 
         // True when we are "drawing" blanks
         var blankPatternIdx = cxt.patternIndex & 1 ? true : false
@@ -660,12 +660,12 @@ impl Painter
 
         if start
         {
-            let startPoint = cxt.path.polygon.getPoint(0, cxt.offsetPath)
+            let startPoint = cxt.path.polygon.offsetPointAt(0, cxt.offsetPath)
             var lastPoint  = startPoint
 
             for [i] in 1 until pointCount
             {
-                let currentPoint = cxt.path.polygon.getPoint(i, cxt.offsetPath)
+                let currentPoint = cxt.path.polygon.offsetPointAt(i, cxt.offsetPath)
                 let segmentVec   = currentPoint - lastPoint
                 let segmentLen   = segmentVec.length()
 
@@ -689,12 +689,12 @@ impl Painter
         }
         else
         {
-            let endPoint  = cxt.path.polygon.getPoint(pointCount - 1, cxt.offsetPath)
+            let endPoint  = cxt.path.polygon.offsetPointAt(pointCount - 1, cxt.offsetPath)
             var lastPoint = endPoint
 
             for #reverse [i] in 0 to pointCount - 2
             {
-                let currentPoint = cxt.path.polygon.getPoint(i, cxt.offsetPath)
+                let currentPoint = cxt.path.polygon.offsetPointAt(i, cxt.offsetPath)
                 let segmentVec   = lastPoint - currentPoint
                 let segmentLen   = segmentVec.length()
 
@@ -736,8 +736,8 @@ impl Painter
         let beginSkipInfo = getAnchorSkipInfo(cxt, cxt.pen.begCapStyle, true)
         let endSkipInfo   = getAnchorSkipInfo(cxt, cxt.pen.endCapStyle, false)
 
-        var actualStartPoint = cxt.path.polygon.getPoint(0, cxt.offsetPath)
-        var actualEndPoint   = cxt.path.polygon.getPoint(cxt.path.polygon.points.count - 1, cxt.offsetPath)
+        var actualStartPoint = cxt.path.polygon.offsetPointAt(0, cxt.offsetPath)
+        var actualEndPoint   = cxt.path.polygon.offsetPointAt(cxt.path.polygon.points.count - 1, cxt.offsetPath)
         var startPointIndex  = 0'u64
         var endPointIndex    = cxt.path.polygon.points.count - 1
 
@@ -763,10 +763,10 @@ impl Painter
             // Draw begin cap
             if cxt.pen.begCapStyle != .None
             {
-                let v1 = cxt.path.polygon.getPoint(0, cxt.offsetPath)
-                let v2 = beginSkipInfo.hasAdjustment ? actualStartPoint : cxt.path.polygon.getPoint(1, cxt.offsetPath)
+                let v1 = cxt.path.polygon.offsetPointAt(0, cxt.offsetPath)
+                let v2 = beginSkipInfo.hasAdjustment ? actualStartPoint : cxt.path.polygon.offsetPointAt(1, cxt.offsetPath)
                 var n  = v2 - v1
-                n.normalizeSafe()
+                n.normalizeOrZero()
                 var c = n.cross(1)
                 c *= cxt.penSize2
                 .drawLineCap(cxt.pen.begCapStyle, v1, c, 1.0, dref cxt.pen, true)
@@ -775,10 +775,10 @@ impl Painter
             // Draw end cap
             if cxt.pen.endCapStyle != .None
             {
-                let v1 = cxt.path.polygon.getPoint(cxt.path.polygon.points.count - 1, cxt.offsetPath)
-                let v2 = endSkipInfo.hasAdjustment ? actualEndPoint : cxt.path.polygon.getPoint(cxt.path.polygon.points.count - 2, cxt.offsetPath)
+                let v1 = cxt.path.polygon.offsetPointAt(cxt.path.polygon.points.count - 1, cxt.offsetPath)
+                let v2 = endSkipInfo.hasAdjustment ? actualEndPoint : cxt.path.polygon.offsetPointAt(cxt.path.polygon.points.count - 2, cxt.offsetPath)
                 var n  = v1 - v2
-                n.normalizeSafe()
+                n.normalizeOrZero()
                 var c = n.cross(1)
                 c *= cxt.penSize2
                 .drawLineCap(cxt.pen.endCapStyle, v1, c, -1.0, dref cxt.pen, false)
@@ -794,7 +794,7 @@ impl Painter
                 // Draw from adjusted start to the appropriate next point
                 if startPointIndex < cxt.path.polygon.points.count
                 {
-                    let nextPoint = cxt.path.polygon.getPoint(startPointIndex, cxt.offsetPath)
+                    let nextPoint = cxt.path.polygon.offsetPointAt(startPointIndex, cxt.offsetPath)
                     let startTo   = actualStartPoint - nextPoint
                     if startTo.length() > 0.01 do
                         .drawLine(cxt, nextPoint)
@@ -804,13 +804,13 @@ impl Painter
                 {
                     if i < cxt.path.polygon.points.count
                     {
-                        let p = cxt.path.polygon.getPoint(i, cxt.offsetPath)
+                        let p = cxt.path.polygon.offsetPointAt(i, cxt.offsetPath)
                         .drawLine(cxt, p)
                     }
                 }
 
                 // Draw final segment to adjusted end point if needed
-                let endTo = actualEndPoint - cxt.path.polygon.getPoint(endPointIndex, cxt.offsetPath)
+                let endTo = actualEndPoint - cxt.path.polygon.offsetPointAt(endPointIndex, cxt.offsetPath)
                 if endTo.length() > 0.01
                 {
                     .drawLine(cxt, actualEndPoint)
@@ -852,7 +852,7 @@ public impl Painter
     mtd drawPath(path: *LinePath, pen: Pen)
     {
         path.flatten(.curState.paintQuality)
-        if Math.isZeroEpsilon(path.polygon.totalLen) do
+        if Math.isZeroEpsilon(path.polygon.perimeter) do
             return
 
         var cxt: Context
@@ -861,8 +861,8 @@ public impl Painter
         if pen.dashStyle != .None do
             preparePattern(&cxt)
 
-        var bvMin = path.bvMin
-        var bvMax = path.bvMax
+        var bvMin = path.minBounds
+        var bvMax = path.maxBounds
         bvMin -= pen.size / 2
         bvMax += pen.size / 2
         .setTexture0(bvMin, bvMax, pen.brush)
@@ -887,8 +887,8 @@ public impl Painter
 
         pathList.flatten(.curState.paintQuality)
 
-        var bvMin = pathList.bvMin
-        var bvMax = pathList.bvMax
+        var bvMin = pathList.minBounds
+        var bvMax = pathList.maxBounds
         bvMin -= pen.size / 2
         bvMax += pen.size / 2
         .setTexture0(bvMin, bvMax, pen.brush)

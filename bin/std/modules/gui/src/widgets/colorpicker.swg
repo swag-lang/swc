@@ -2,228 +2,175 @@
 
 using Core, Pixel
 
-// Enumeration of different color picker display modes.
-// Defines how color components are mapped to the 2D picker area or 1D sliders.
+// Selects the color components mapped to the picker's horizontal and vertical axes.
 enum ColorPickerMode
 {
-    SaturationLightness     // Selects saturation lightness mode.
-    HueSaturation           // Selects hue saturation mode.
-    HueLightness            // Selects hue lightness mode.
-    GreenBlue               // Selects green blue mode.
-    RedBlue                 // Selects red blue mode.
-    RedGreen                // Selects red green mode.
-    HueVert                 // Selects hue vert mode.
-    HueHorz                 // Selects hue horz mode.
-    LightnessVert           // Selects lightness vert mode.
-    LightnessHorz           // Selects lightness horz mode.
-    SaturationVert          // Selects saturation vert mode.
-    SaturationHorz          // Selects saturation horz mode.
-    AlphaHorz               // Selects alpha horz mode.
-    AlphaVert               // Selects alpha vert mode.
-    RedHorz                 // Selects red horz mode.
-    RedVert                 // Selects red vert mode.
-    GreenHorz               // Selects green horz mode.
-    GreenVert               // Selects green vert mode.
-    BlueHorz                // Selects blue horz mode.
-    BlueVert                // Selects blue vert mode.
+    SaturationLightness      // Maps saturation horizontally and lightness vertically.
+    HueSaturation            // Maps hue horizontally and saturation vertically.
+    HueLightness             // Maps hue horizontally and lightness vertically.
+    GreenBlue                // Maps green horizontally and blue vertically.
+    RedBlue                  // Maps red horizontally and blue vertically.
+    RedGreen                 // Maps red horizontally and green vertically.
+    HueVertical              // Maps hue from top to bottom.
+    HueHorizontal            // Maps hue from left to right.
+    LightnessVertical        // Maps lightness from top to bottom.
+    LightnessHorizontal      // Maps lightness from left to right.
+    SaturationVertical       // Maps saturation from top to bottom.
+    SaturationHorizontal     // Maps saturation from left to right.
+    AlphaHorizontal          // Maps alpha from left to right.
+    AlphaVertical            // Maps alpha from top to bottom.
+    RedHorizontal            // Maps red from left to right.
+    RedVertical              // Maps red from top to bottom.
+    GreenHorizontal          // Maps green from left to right.
+    GreenVertical            // Maps green from top to bottom.
+    BlueHorizontal           // Maps blue from left to right.
+    BlueVertical             // Maps blue from top to bottom.
 }
 
-// Represents color picker.
+// Selects a color component or component pair from a rendered gradient.
 struct ColorPicker
 {
-    using wnd:     Wnd                               // Embedded wnd state.
-    hue, sat, lum: f32                               // Hue associated with this value.
-    a, r, g, b:    f32                               // A associated with this value.
-    mode = ColorPickerMode.SaturationLightness       // Mode associated with this value.
-    sigChanged:    SigArray'func||(*ColorPicker)     // Signal emitted when changed.
+    using wnd: Wnd     // Embedded window behavior and presentation.
+
+    sigColorChanged: SigArray'func||(*ColorPicker)     // Emitted after the selected color changes.
+
+    readonly
+    {
+        hue, saturation, lightness: f32                // Current HSL components in the closed interval [0, 1].
+        alpha, red, green, blue:    f32                // Current ARGB components in the closed interval [0, 1].
+        mode = ColorPickerMode.SaturationLightness     // Current component mapping.
+    }
 
     internal
     {
-        dirty:      bool = true
-        isMoving:   bool
-        img:        Image
-        texture:    Texture
-        xCur, yCur: s32
+        dirty:            bool = true
+        isDragging:       bool
+        image:            Image
+        texture:          Texture
+        cursorX, cursorY: s32
     }
 }
 
 impl IWnd for ColorPicker
 {
-    mtd computeXY()
+    mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
-        let clientRect = .getClientRect()
+        if .texture.isValid() do
+            .app().renderer.removeTexture(&.texture)
+    }
 
-        switch #complete .mode
+    mtd impl onResizeEvent(evt: *ResizeEvent)
+    {
+        .dirty = true
+    }
+
+    mtd impl onStateEvent(evt: *StateEvent)
+    {
+        if (evt.kind == .Hide or evt.kind == .Disable) and .isDragging
         {
-        case .SaturationLightness:
-            .xCur = cast() (.sat * clientRect.width)
-            let l1 = Math.lerp(1, 0.5, .sat)
-            var l2 = 1 - (.lum / l1)
-            if l2 < 0
-            {
-                l2    = -l2
-                l2    = 1 - l2
-                .yCur = 0
-                .xCur = cast() (l2 * clientRect.width)
-            }
-            else
-            {
-                .yCur = cast() (l2 * clientRect.height)
-            }
-
-        case .HueSaturation:
-            .xCur = cast() (.hue * clientRect.width)
-            .yCur = cast() ((1 - .sat) * clientRect.height)
-
-        case .HueLightness:
-            .xCur = cast() (.hue * clientRect.width)
-            .yCur = cast() ((1 - .lum) * clientRect.height)
-
-        case .GreenBlue:
-            .xCur = cast() (.g * clientRect.width)
-            .yCur = cast() (.b * clientRect.height)
-
-        case .RedBlue:
-            .xCur = cast() (.r * clientRect.width)
-            .yCur = cast() (.b * clientRect.height)
-
-        case .RedGreen:
-            .xCur = cast() (.r * clientRect.width)
-            .yCur = cast() (.g * clientRect.height)
-
-        case .HueVert:
-            .yCur = cast() (.hue * clientRect.height)
-
-        case .HueHorz:
-            .xCur = cast() (.hue * clientRect.width)
-
-        case .LightnessVert:
-            .yCur = cast() (.lum * clientRect.height)
-
-        case .LightnessHorz:
-            .xCur = cast() (.lum * clientRect.width)
-
-        case .SaturationVert:
-            .yCur = cast() (.sat * clientRect.height)
-
-        case .SaturationHorz:
-            .xCur = cast() (.sat * clientRect.width)
-
-        case .AlphaHorz:
-            .xCur = cast() (.a * clientRect.width)
-
-        case .AlphaVert:
-            .yCur = cast() (.a * clientRect.height)
-
-        case .RedHorz:
-            .xCur = cast() (.r * clientRect.width)
-
-        case .RedVert:
-            .yCur = cast() (.r * clientRect.height)
-
-        case .GreenHorz:
-            .xCur = cast() (.g * clientRect.width)
-
-        case .GreenVert:
-            .yCur = cast() (.g * clientRect.height)
-
-        case .BlueHorz:
-            .xCur = cast() (.b * clientRect.width)
-
-        case .BlueVert:
-            .yCur = cast() (.b * clientRect.height)
+            .isDragging = false
+            .releaseMouse()
         }
     }
 
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaint(evt: *PaintEvent)
     {
-        let bc         = evt.bc
+        let bc         = evt.paintContext
         let painter    = bc.painter
-        let clientRect = .getClientRect()
-        let theme      = .getTheme()
-        let rects      = .getThemeRects()
-        let colors     = .getThemeColors()
+        let clientRect = .clientRect()
+        let theme      = .theme()
+        let rects      = .themeRects()
+        let colors     = .themeColors()
 
         // Reconstruct image
         if .dirty
         {
             .dirty = false
-            if !.img.pixels.buffer do
-                .img = Image.create(cast(s32) clientRect.width, cast(s32) clientRect.height, .RGBA8)
+            let imageWidth  = cast(s32) Math.max(clientRect.width, 1)
+            let imageHeight = cast(s32) Math.max(clientRect.height, 1)
+            if !.image.isValid() or .image.width != imageWidth or .image.height != imageHeight
+            {
+                .image = Image.create(imageWidth, imageHeight, .RGBA8)
+                if .texture.isValid()
+                {
+                    .app().renderer.removeTexture(&.texture)
+                    @init(&.texture, 1)
+                }
+            }
 
             var modeFill: Image.FillHslType = undefined
 
-            if .mode == .AlphaHorz
+            if .mode == .AlphaHorizontal
             {
-                let c  = Color.fromHsl(.hue, .sat, .lum)
+                let c  = Color.fromHsl(.hue, .saturation, .lightness)
                 var c1 = c
                 c1.a = 0
                 var c2 = c
                 c2.a = 255
-                .img.fillGradient2(c1, c2)
+                .image.fillGradient(c1, c2)
             }
-            elif .mode == .AlphaVert
+            elif .mode == .AlphaVertical
             {
-                let c  = Color.fromHsl(.hue, .sat, .lum)
+                let c  = Color.fromHsl(.hue, .saturation, .lightness)
                 var c1 = c
                 c1.a = 255
                 var c2 = c
                 c2.a = 0
-                .img.fillGradient4(c1, c1, c2, c2)
+                .image.fillGradient(c1, c1, c2, c2)
             }
-            elif .mode == .RedHorz
+            elif .mode == .RedHorizontal
             {
-                let c  = Color.fromRgbf(.r, .g, .b)
+                let c  = Color.fromRgbF32(.red, .green, .blue)
                 var c1 = c
                 c1.r = 0
                 var c2 = c
                 c2.r = 255
-                .img.fillGradient2(c1, c2)
+                .image.fillGradient(c1, c2)
             }
-            elif .mode == .RedVert
+            elif .mode == .RedVertical
             {
-                let c  = Color.fromRgbf(.r, .g, .b)
+                let c  = Color.fromRgbF32(.red, .green, .blue)
                 var c1 = c
                 c1.r = 255
                 var c2 = c
                 c2.r = 0
-                .img.fillGradient4(c1, c1, c2, c2)
+                .image.fillGradient(c1, c1, c2, c2)
             }
-            elif .mode == .GreenHorz
+            elif .mode == .GreenHorizontal
             {
-                let c  = Color.fromRgbf(.r, .g, .b)
+                let c  = Color.fromRgbF32(.red, .green, .blue)
                 var c1 = c
                 c1.g = 0
                 var c2 = c
                 c2.g = 255
-                .img.fillGradient2(c1, c2)
+                .image.fillGradient(c1, c2)
             }
-            elif .mode == .GreenVert
+            elif .mode == .GreenVertical
             {
-                let c  = Color.fromRgbf(.r, .g, .b)
+                let c  = Color.fromRgbF32(.red, .green, .blue)
                 var c1 = c
                 c1.g = 255
                 var c2 = c
                 c2.g = 0
-                .img.fillGradient4(c1, c1, c2, c2)
+                .image.fillGradient(c1, c1, c2, c2)
             }
-            elif .mode == .BlueHorz
+            elif .mode == .BlueHorizontal
             {
-                let c  = Color.fromRgbf(.r, .g, .b)
+                let c  = Color.fromRgbF32(.red, .green, .blue)
                 var c1 = c
                 c1.b = 0
                 var c2 = c
                 c2.b = 255
-                .img.fillGradient2(c1, c2)
+                .image.fillGradient(c1, c2)
             }
-            elif .mode == .BlueVert
+            elif .mode == .BlueVertical
             {
-                let c  = Color.fromRgbf(.r, .g, .b)
+                let c  = Color.fromRgbF32(.red, .green, .blue)
                 var c1 = c
                 c1.b = 255
                 var c2 = c
                 c2.b = 0
-                .img.fillGradient4(c1, c1, c2, c2)
+                .image.fillGradient(c1, c1, c2, c2)
             }
             else
             {
@@ -247,22 +194,22 @@ impl IWnd for ColorPicker
                 case .RedGreen:
                     modeFill = .RedGreen
 
-                case .HueVert:
+                case .HueVertical:
                     modeFill = .HueVert
 
-                case .HueHorz:
+                case .HueHorizontal:
                     modeFill = .HueHorz
 
-                case .LightnessVert:
+                case .LightnessVertical:
                     modeFill = .LightnessVert
 
-                case .LightnessHorz:
+                case .LightnessHorizontal:
                     modeFill = .LightnessHorz
 
-                case .SaturationVert:
+                case .SaturationVertical:
                     modeFill = .SaturationVert
 
-                case .SaturationHorz:
+                case .SaturationHorizontal:
                     modeFill = .SaturationHorz
 
                 default:
@@ -271,13 +218,13 @@ impl IWnd for ColorPicker
                     unreachable
                 }
 
-                .img.fillHsl(modeFill, Color.fromHsl(.hue, .sat, .lum))
+                .image.fillHsl(modeFill, Color.fromHsl(.hue, .saturation, .lightness))
             }
 
-            if .texture.valid do
-                .getApp().renderer.updateTexture(.texture, nnPixels(.img.pixels.buffer))
+            if .texture.isValid() do
+                .app().renderer.updateTexture(.texture, nnPixels(.image.pixels.buffer))
             else do
-                .texture = .getApp().renderer.addImage(.img)
+                .texture = .app().renderer.addImage(.image)
             .computeXY()
         }
 
@@ -287,7 +234,7 @@ impl IWnd for ColorPicker
         painter.endClippingRegion()
 
         // Image
-        if .mode == .AlphaHorz or .mode == .AlphaVert do
+        if .mode == .AlphaHorizontal or .mode == .AlphaVertical do
             painter.fillRect(clientRect, Brush.createHatch(.CheckBoardLarge, colors.colorPicker_BackAlpha))
         painter.drawTexture(clientRect, .texture)
         painter.resetClippingRegion()
@@ -296,43 +243,31 @@ impl IWnd for ColorPicker
         theme.drawSubRect(painter, clientRect, &rects.colorPicker_Border, colors.colorPicker_Border)
     }
 
-    private mtd computeRGB()
+    mtd impl onAfterPaint(evt: *PaintEvent)
     {
-        let c = Color.fromHsl(.hue, .sat, .lum)
-        {.r, .g, .b} = c.toRgbf()
-    }
-
-    private mtd computeHsl()
-    {
-        let c = Color.fromRgbf(.r, .g, .b)
-        {.hue, .sat, .lum} = c.toHsl()
-    }
-
-    mtd impl onPostPaintEvent(evt: *PaintEvent)
-    {
-        let bc         = evt.bc
+        let bc         = evt.paintContext
         let painter    = bc.painter
-        let theme      = .getTheme()
-        let rects      = .getThemeRects()
-        let clientRect = .getClientRect()
-        let metrics    = .getThemeMetrics()
-        let colors     = .getThemeColors()
+        let theme      = .theme()
+        let rects      = .themeRects()
+        let clientRect = .clientRect()
+        let metrics    = .themeMetrics()
+        let colors     = .themeColors()
 
         switch #complete .mode
         {
         case .SaturationLightness, .HueSaturation, .HueLightness, .GreenBlue, .RedBlue, .RedGreen:
             let size = metrics.colorPicker_RoundPick
-            let rect = Math.Rectangle{.xCur - size, .yCur - size, 2 * size, 2 * size}
+            let rect = Math.Rectangle{.cursorX - size, .cursorY - size, 2 * size, 2 * size}
             theme.drawSubRect(painter, rect, &rects.colorPicker_RoundPick, colors.colorPicker_Mark)
 
-        case .RedVert, .GreenVert, .BlueVert, .AlphaVert, .HueVert, .LightnessVert, .SaturationVert:
+        case .RedVertical, .GreenVertical, .BlueVertical, .AlphaVertical, .HueVertical, .LightnessVertical, .SaturationVertical:
             let size = metrics.colorPicker_SquarePick
-            let rect = Math.Rectangle{clientRect.horzCenter() - size, .yCur - size, 2 * size, 2 * size}
+            let rect = Math.Rectangle{clientRect.horzCenter() - size, .cursorY - size, 2 * size, 2 * size}
             theme.drawSubRect(painter, rect, &rects.colorPicker_SquarePick, colors.colorPicker_Mark)
 
-        case .RedHorz, .GreenHorz, .BlueHorz, .AlphaHorz, .HueHorz, .LightnessHorz, .SaturationHorz:
+        case .RedHorizontal, .GreenHorizontal, .BlueHorizontal, .AlphaHorizontal, .HueHorizontal, .LightnessHorizontal, .SaturationHorizontal:
             let size = metrics.colorPicker_SquarePick
-            let rect = Math.Rectangle{.xCur - size, clientRect.vertCenter() - size, 2 * size, 2 * size}
+            let rect = Math.Rectangle{.cursorX - size, clientRect.vertCenter() - size, 2 * size, 2 * size}
             theme.drawSubRect(painter, rect, &rects.colorPicker_SquarePick, colors.colorPicker_Mark)
         }
     }
@@ -340,23 +275,23 @@ impl IWnd for ColorPicker
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
         var pos        = .surfaceToLocal(evt.surfacePos)
-        let clientRect = .getClientRect()
+        let clientRect = .clientRect()
         pos.x = Math.clamp(pos.x, 0, clientRect.width)
         pos.y = Math.clamp(pos.y, 0, clientRect.height)
 
         switch evt.kind
         {
-        case .MousePressed:
+        case .Pressed:
             if evt.button == .Left
             {
-                .isMoving = true
+                .isDragging = true
                 .captureMouse()
                 .invalidate()
                 fallthrough
             }
 
-        case .MouseMove:
-            if .isMoving
+        case .Move:
+            if .isDragging and clientRect.width > 0 and clientRect.height > 0
             {
                 let x = Math.clamp(pos.x / clientRect.width, 0, 1)
                 let y = Math.clamp(pos.y / clientRect.height, 0, 1)
@@ -364,99 +299,100 @@ impl IWnd for ColorPicker
                 switch #complete .mode
                 {
                 case .SaturationLightness:
-                    .sat = Math.clamp(x, 0, 1)
-                    let l1 = Math.lerp(1, 0.5, .sat)
-                    .lum = Math.lerp(l1, 0, y)
+                    .saturation = Math.clamp(x, 0, 1)
+                    let l1 = Math.lerp(1, 0.5, .saturation)
+                    .lightness = Math.lerp(l1, 0, y)
+                    .computeRGB()
 
                 case .HueSaturation:
-                    .hue = x
-                    .sat = 1 - y
+                    .hue        = x
+                    .saturation = 1 - y
                     .computeRGB()
 
                 case .HueLightness:
-                    .hue = x
-                    .lum = 1 - y
+                    .hue       = x
+                    .lightness = 1 - y
                     .computeRGB()
 
                 case .GreenBlue:
-                    .g = x
-                    .b = y
+                    .green = x
+                    .blue  = y
                     .computeHsl()
 
                 case .RedBlue:
-                    .r = x
-                    .b = y
+                    .red  = x
+                    .blue = y
                     .computeHsl()
 
                 case .RedGreen:
-                    .r = x
-                    .g = y
+                    .red   = x
+                    .green = y
                     .computeHsl()
 
-                case .HueHorz:
+                case .HueHorizontal:
                     .hue = x
                     .computeRGB()
 
-                case .HueVert:
+                case .HueVertical:
                     .hue = y
                     .computeRGB()
 
-                case .LightnessHorz:
-                    .lum = x
+                case .LightnessHorizontal:
+                    .lightness = x
                     .computeRGB()
 
-                case .LightnessVert:
-                    .lum = y
+                case .LightnessVertical:
+                    .lightness = y
                     .computeRGB()
 
-                case .SaturationHorz:
-                    .sat = x
+                case .SaturationHorizontal:
+                    .saturation = x
                     .computeRGB()
 
-                case .SaturationVert:
-                    .sat = y
+                case .SaturationVertical:
+                    .saturation = y
                     .computeRGB()
 
-                case .AlphaHorz:
-                    .a = x
+                case .AlphaHorizontal:
+                    .alpha = x
 
-                case .AlphaVert:
-                    .a = y
+                case .AlphaVertical:
+                    .alpha = y
 
-                case .RedHorz:
-                    .r = x
+                case .RedHorizontal:
+                    .red = x
                     .computeHsl()
 
-                case .RedVert:
-                    .r = y
+                case .RedVertical:
+                    .red = y
                     .computeHsl()
 
-                case .GreenHorz:
-                    .g = x
+                case .GreenHorizontal:
+                    .green = x
                     .computeHsl()
 
-                case .GreenVert:
-                    .g = y
+                case .GreenVertical:
+                    .green = y
                     .computeHsl()
 
-                case .BlueHorz:
-                    .b = x
+                case .BlueHorizontal:
+                    .blue = x
                     .computeHsl()
 
-                case .BlueVert:
-                    .b = y
+                case .BlueVertical:
+                    .blue = y
                     .computeHsl()
                 }
 
                 .computeXY()
-                .sigChanged.call(me)
+                .sigColorChanged.call(me)
                 .invalidate()
             }
 
-        case .MouseReleased:
-            if evt.button == .Left and .isMoving
+        case .Released:
+            if evt.button == .Left and .isDragging
             {
-                .isMoving = false
+                .isDragging = false
                 .releaseMouse()
                 .invalidate()
             }
@@ -464,77 +400,177 @@ impl IWnd for ColorPicker
     }
 }
 
+private impl ColorPicker
+{
+    mtd computeXY()
+    {
+        let clientRect = .clientRect()
+
+        switch #complete .mode
+        {
+        case .SaturationLightness:
+            .cursorX = cast() (.saturation * clientRect.width)
+            let l1 = Math.lerp(1, 0.5, .saturation)
+            var l2 = 1 - (.lightness / l1)
+            if l2 < 0
+            {
+                l2       = -l2
+                l2       = 1 - l2
+                .cursorY = 0
+                .cursorX = cast() (l2 * clientRect.width)
+            }
+            else do
+                .cursorY = cast() (l2 * clientRect.height)
+
+        case .HueSaturation:
+            .cursorX = cast() (.hue * clientRect.width)
+            .cursorY = cast() ((1 - .saturation) * clientRect.height)
+
+        case .HueLightness:
+            .cursorX = cast() (.hue * clientRect.width)
+            .cursorY = cast() ((1 - .lightness) * clientRect.height)
+
+        case .GreenBlue:
+            .cursorX = cast() (.green * clientRect.width)
+            .cursorY = cast() (.blue * clientRect.height)
+
+        case .RedBlue:
+            .cursorX = cast() (.red * clientRect.width)
+            .cursorY = cast() (.blue * clientRect.height)
+
+        case .RedGreen:
+            .cursorX = cast() (.red * clientRect.width)
+            .cursorY = cast() (.green * clientRect.height)
+
+        case .HueVertical:
+            .cursorY = cast() (.hue * clientRect.height)
+
+        case .HueHorizontal:
+            .cursorX = cast() (.hue * clientRect.width)
+
+        case .LightnessVertical:
+            .cursorY = cast() (.lightness * clientRect.height)
+
+        case .LightnessHorizontal:
+            .cursorX = cast() (.lightness * clientRect.width)
+
+        case .SaturationVertical:
+            .cursorY = cast() (.saturation * clientRect.height)
+
+        case .SaturationHorizontal:
+            .cursorX = cast() (.saturation * clientRect.width)
+
+        case .AlphaHorizontal:
+            .cursorX = cast() (.alpha * clientRect.width)
+
+        case .AlphaVertical:
+            .cursorY = cast() (.alpha * clientRect.height)
+
+        case .RedHorizontal:
+            .cursorX = cast() (.red * clientRect.width)
+
+        case .RedVertical:
+            .cursorY = cast() (.red * clientRect.height)
+
+        case .GreenHorizontal:
+            .cursorX = cast() (.green * clientRect.width)
+
+        case .GreenVertical:
+            .cursorY = cast() (.green * clientRect.height)
+
+        case .BlueHorizontal:
+            .cursorX = cast() (.blue * clientRect.width)
+
+        case .BlueVertical:
+            .cursorY = cast() (.blue * clientRect.height)
+        }
+    }
+
+    mtd computeRGB()
+    {
+        let color = Color.fromHsl(.hue, .saturation, .lightness)
+        {.red, .green, .blue} = color.toRgbF32()
+    }
+
+    mtd computeHsl()
+    {
+        let color = Color.fromRgbF32(.red, .green, .blue)
+        {.hue, .saturation, .lightness} = color.toHsl()
+    }
+}
+
 impl ColorPicker
 {
-    // Performs the create operation.
+    // Creates a saturation-lightness picker initialized to opaque red.
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*ColorPicker
     {
         Debug.assert(parent != null)
-        let ret = Wnd.create'ColorPicker(parent, null, position, id)
-        ret.wndFlags |= .PostChildsPaint
-        ret.setColor(Argb.Red)
-        ret.invalidatePadding = {-32, -32, -32, -32}
-        return ret
+        let result = Wnd.create'ColorPicker(parent, null, position, id)
+        result.wndFlags |= .AfterChildrenPaint
+        result.setColor(Argb.Red, false)
+        result.invalidatePadding = {-32, -32, -32, -32}
+        return result
     }
 
-    // Change one component, HSL or alpha
-    mtd change(h, s, l, a: f32 = -1)
+    // Replaces the HSL and alpha components, clamped to [0, 1].
+    mtd setHsla(hue, saturation, lightness, alpha: f32, notify = true)
     {
-        var changed = false
-        if h >= 0 and h != .hue
-        {
-            .hue    = h
-            changed = true
-        }
+        let newHue        = Math.clamp(hue, 0, 1)
+        let newSaturation = Math.clamp(saturation, 0, 1)
+        let newLightness  = Math.clamp(lightness, 0, 1)
+        let newAlpha      = Math.clamp(alpha, 0, 1)
+        if .hue == newHue and .saturation == newSaturation and .lightness == newLightness and .alpha == newAlpha do
+            return
 
-        if s >= 0 and s != .sat
-        {
-            .sat    = s
-            changed = true
-        }
-
-        if l >= 0 and l != .lum
-        {
-            .lum    = l
-            changed = true
-        }
-
-        if a >= 0 and .a != a
-        {
-            .a      = a
-            changed = true
-        }
-
-        if changed
-        {
-            .dirty = true
-            .invalidate()
-            .sigChanged.call(me)
-        }
-    }
-
-    // Set the base color, and repaint
-    mtd setColor(col: Color)
-    {
-        {.hue, .sat, .lum} = col.toHsl()
-        {.a, .r, .g, .b}   = col.toArgbf()
-        .dirty             = true
+        .hue        = newHue
+        .saturation = newSaturation
+        .lightness  = newLightness
+        .alpha      = newAlpha
+        .computeRGB()
+        .dirty = true
+        .computeXY()
         .invalidate()
-        .sigChanged.call(me)
+        if notify do
+            .sigColorChanged.call(me)
     }
 
-    // Returns the selected color
-    mtd getColor()->Color
+    // Replaces the HSL components while preserving alpha.
+    mtd setHsl(hue, saturation, lightness: f32, notify = true)
     {
-        return Color.fromArgbf(.a, .r, .g, .b)
+        .setHsla(hue, saturation, lightness, .alpha, notify)
     }
 
-    // Set the color picker box mode
+    // Replaces the selected color.
+    mtd setColor(color: Color, notify = true)
+    {
+        let {newAlpha, newRed, newGreen, newBlue} = color.toArgbF32()
+        if .alpha == newAlpha and .red == newRed and .green == newGreen and .blue == newBlue do
+            return
+
+        {.alpha, .red, .green, .blue} = {newAlpha, newRed, newGreen, newBlue}
+        .computeHsl()
+        .dirty = true
+        .computeXY()
+        .invalidate()
+        if notify do
+            .sigColorChanged.call(me)
+    }
+
+    // Returns the selected color.
+    mtd const color()->Color
+    {
+        return Color.fromArgbF32(.alpha, .red, .green, .blue)
+    }
+
+    // Changes the component mapping without changing the selected color.
     mtd setMode(mode: ColorPickerMode)
     {
+        if .mode == mode do
+            return
         .mode  = mode
         .dirty = true
+        .computeXY()
         .invalidate()
     }
 }

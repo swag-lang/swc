@@ -7,7 +7,7 @@ func buildDetailCropImage(source: const &Image)->Image
     let w = cast(s32) (cast(f32) source.width * 0.38)
     let h = cast(s32) (cast(f32) source.height * 0.52)
 
-    var result = source.toCrop(x, y, w, h)
+    var result = source.cropped(x, y, w, h)
     result.expand(14, 14, 14, 14, Color.fromArgb(255, 245, 240, 230))
     return result
 }
@@ -19,7 +19,7 @@ func buildPanoramaCropImage(source: const &Image)->Image
     let w = cast(s32) (cast(f32) source.width * 0.58)
     let h = cast(s32) (cast(f32) source.height * 0.30)
 
-    var result = source.toCrop(x, y, w, h)
+    var result = source.cropped(x, y, w, h)
     result.expand(12, 12, 12, 12, Color.fromArgb(255, 240, 244, 248))
     return result
 }
@@ -38,9 +38,9 @@ func buildFlippedImage(source: const &Image)->Image
     return result
 }
 
-func buildTurnedImage(source: const &Image, angle: Image.TurnAngle)->Image
+func buildRotatedImage(source: const &Image, angle: Image.Rotation)->Image
 {
-    return source.toTurn(angle)
+    return source.rotated(angle)
 }
 
 func buildExpandedImage(source: const &Image)->Image
@@ -52,13 +52,13 @@ func buildExpandedImage(source: const &Image)->Image
 
 func buildTransformCards(source: const &Image)
 {
-    setImageCard(&g_TransformCards[0], "Detail crop", "toCrop(...) + expand(...)", buildDetailCropImage(source))
-    setImageCard(&g_TransformCards[1], "Wide crop", "toCrop(...) + expand(...)", buildPanoramaCropImage(source))
+    setImageCard(&g_TransformCards[0], "Detail crop", "cropped(...) + expand(...)", buildDetailCropImage(source))
+    setImageCard(&g_TransformCards[1], "Wide crop", "cropped(...) + expand(...)", buildPanoramaCropImage(source))
     setImageCard(&g_TransformCards[2], "Mirror", "mirror()", buildMirroredImage(source))
     setImageCard(&g_TransformCards[3], "Flip", "flip()", buildFlippedImage(source))
-    setImageCard(&g_TransformCards[4], "Turn 90", "toTurn(.T90)", buildTurnedImage(source, .T90))
-    setImageCard(&g_TransformCards[5], "Turn 180", "toTurn(.T180)", buildTurnedImage(source, .T180))
-    setImageCard(&g_TransformCards[6], "Turn 270", "toTurn(.T270)", buildTurnedImage(source, .T270))
+    setImageCard(&g_TransformCards[4], "Rotate 90", "rotated(.Clockwise90)", buildRotatedImage(source, .Clockwise90))
+    setImageCard(&g_TransformCards[5], "Rotate 180", "rotated(.HalfTurn)", buildRotatedImage(source, .HalfTurn))
+    setImageCard(&g_TransformCards[6], "Rotate 270", "rotated(.Clockwise270)", buildRotatedImage(source, .Clockwise270))
     setImageCard(&g_TransformCards[7], "Expand frame", "expand(30, 18, 30, 18)", buildExpandedImage(source))
 }
 

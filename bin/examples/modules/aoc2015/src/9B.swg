@@ -15,7 +15,7 @@ func day9B()
 {
     // Time.Stopwatch.scopeMeasure()
 
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "9.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "9.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     var r = expect Parser.RegExp.create(#raw "(\w+) to (\w+) = (\d+)")
@@ -41,7 +41,7 @@ func day9B()
         var calc = 0'u64
         for [i] in cast(s64) combi.count - 1 do
             calc += dist.find(combi[i] << 32 | combi[i + 1]).value
-        total    = Math.max(total, calc)
+        total = Math.max(total, calc)
         if !Slice.nextPermutation(combi.toSlice()) do
             break
     }

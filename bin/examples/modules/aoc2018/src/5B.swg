@@ -27,7 +27,7 @@ func day5B()
 /////////////////////////////////////////////////////////////////
 func day5B0()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "5.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "5.txt")
     let read     = expect File.readAllText(dataPath)
 
     var best = Swag.U64.Max
@@ -70,7 +70,7 @@ func day5B0()
 /////////////////////////////////////////////////////////////////
 func day5B1()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "5.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "5.txt")
     let read     = expect File.readAllText(dataPath)
 
     var best = Swag.U64.Max

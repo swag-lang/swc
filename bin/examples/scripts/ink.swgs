@@ -71,6 +71,8 @@ impl Drop
             let root = sqrt(1 + (otherr / p.lengthSquared()))
             v = (p * root) + other.center
         }
+
+        .lp.recomputeFlattenedPolygon()
     }
 
     mtd show(painter: *Painter)
@@ -102,18 +104,18 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     case CreateEvent:
         break
 
-    case MouseEvent as mouseEvt where mouseEvt.kind == .MouseMove or mouseEvt.kind == .MousePressed:
+    case MouseEvent as mouseEvt where mouseEvt.kind == .Move or mouseEvt.kind == .Pressed:
         return true
 
     case PaintEvent as paintEvt:
         let painter = paintEvt.bc.painter
 
-        var leftPressed = wnd.getApp().mouse.isButtonPressed(.Left) or Env.hasArg("swag.test")
-        var mousePos    = wnd.getApp().mouse.getPosition()
+        var leftPressed = wnd.app().mouse.isButtonPressed(.Left) or Env.hasArgument("swag.test")
+        var mousePos    = wnd.app().mouse.getPosition()
         mousePos = wnd.screenToSurface(mousePos)
         mousePos = wnd.surfaceToLocal(mousePos)
 
-        if Env.hasArg("swag.test")
+        if Env.hasArgument("swag.test")
         {
             leftPressed = true
             mousePos.x  = 100

@@ -12,6 +12,8 @@ struct Driver
 {
     using native: DriverNative
 
+    isCreated: bool
+
     updateTh:            Threading.Thread
     wakeupUpdate:        Sync.Event
     mutexVoicesToUpdate: Sync.Mutex
@@ -101,6 +103,7 @@ impl Driver
 {
     mtd create(kind: DriverKind = .Default) fail
     {
+        Debug.assert(!.isCreated)
         .driverIsClosing = false
 
         // Pin the shared command list to the creating context's allocator: its
@@ -113,10 +116,13 @@ impl Driver
         .wakeupUpdate.init()
         .updateTh.init(&updateThreadProc)
         .updateTh.start()
+        .isCreated = true
     }
 
     mtd destroy()
     {
+        if !.isCreated do
+            return
         .driverIsClosing = true
 
         // Halt the backend's audio processing thread first: from here on no mixer
@@ -166,13 +172,20 @@ impl Driver
 
         // Destroy buses
         ////////////////
-        for bus in .buses do
-            catch bus.destroy()
+        for bus in .buses
+        {
+            bus.destroyNative()
+            Memory.delete(bus)
+        }
+
         .buses.clear()
 
         // Then destroy native driver
         ////////////////
         .destroyNative()
+
+        @drop(me, 1)
+        @init(me, 1)
     }
 
     mtd updateVoice(voice: *Voice, cmd: UpdateCommand)
@@ -207,5 +220,5 @@ impl Driver
 
     mtd setOutputVolume(volume: f32) fail => .native.setOutputVolumeNative(volume)
 
-    mtd getOutputVolume()->f32 => .native.getOutputVolumeNative()
+    mtd outputVolume()->f32 => .native.outputVolumeNative()
 }

@@ -50,7 +50,7 @@ func day5A()
 /////////////////////////////////////////////////////////////////
 func day5A0()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "5.txt")
+    let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "5.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     var total: s32
@@ -88,7 +88,7 @@ func day5A0()
 /////////////////////////////////////////////////////////////////
 func day5A1()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "5.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "5.txt")
 
     var seats: Array'u64
     for &l in expect File.readAllLines(dataPath)

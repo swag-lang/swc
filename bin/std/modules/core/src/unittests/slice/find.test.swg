@@ -33,11 +33,12 @@ using Swag
 {
     let values: [7] s32 = [1, 2, 3, 4, 5, 6, 7]
 
-    @assert(Slice.findSlice(values, [1, 2]) == 0)
-    @assert(Slice.findSlice(values, [3, 4, 5]) == 2)
-    @assert(Slice.findSlice(values, [6, 7]) == 5)
-    @assert(Slice.findSlice(values, [7, 8]) == Swag.U32.Max)
-    @assert(Slice.findSlice(values, values) == 0)
+    @assert(Slice.findSubslice(values, [1, 2]) == 0)
+    @assert(Slice.findSubslice(values, [3, 4, 5]) == 2)
+    @assert(Slice.findSubslice(values, [6, 7]) == 5)
+    @assert(Slice.findSubslice(values, [7, 8]) == Swag.U64.Max)
+    @assert(Slice.findSubslice(values, values) == 0)
+    @assert(Slice.findSubslice(values, @mkslice(@dataof(values), 0)) == 0)
 }
 
 #test

@@ -33,16 +33,16 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     host.setup(240, 120)
 
     host.theme.metrics.surfaceWnd_CornerRadius = 18
-    host.surface.flags                         = SurfaceFlags.OverlappedWindow
+    host.surface.flags                         = SurfaceFlags.StandardWindow
 
-    @assert(host.surface.getCornerRadius() == 18)
+    @assert(host.surface.cornerRadius() == 18)
 
     host.surface.flags.add(.NoShadow)
-    @assert(host.surface.getCornerRadius() == 0)
+    @assert(host.surface.cornerRadius() == 0)
 
     host.surface.flags.remove(.NoShadow)
     host.surface.isMaximized = true
-    @assert(host.surface.getCornerRadius() == 0)
+    @assert(host.surface.cornerRadius() == 0)
 
     host.shutdown()
 }
@@ -69,7 +69,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     @assert(timerCount == 1)
     @assert(host.app.timers.count == 1)
 
-    host.app.deleteTimer(timer)
+    host.app.removeTimer(timer)
     host.pumpTimerQueues()
     @assert(host.app.timers.count == 0)
 
@@ -81,20 +81,42 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     var host: Testing.HeadlessHost
     host.setup(320, 200)
 
-    let surface = notnull expect host.app.createSurface(20, 30, 180, 100, SurfaceFlags.Secondary | SurfaceFlags.TopMost | SurfaceFlags.NoShadow)
-    let button  = PushButton.create(surface.getView(), "OK", {20, 20, 80, 30}, GuiHeadlessSmoke_ModalExit)
-    button.sigPressed += func(btn) { btn.getApp().exitModal(btn.id orelse "") }
+    let surface            = notnull expect host.app.createSurface(20, 30, 180, 100, SurfaceFlags.ToolWindow | SurfaceFlags.TopMost | SurfaceFlags.NoShadow)
+    let background         = notnull expect host.app.createSurface(0, 0, 100, 80, SurfaceFlags.None)
+    let disabledBackground = notnull expect host.app.createSurface(100, 0, 100, 80, SurfaceFlags.None)
+    background.show()
+    disabledBackground.show()
+    disabledBackground.disable()
 
     @assert(surface.app == &host.app)
     @assert(surface.position.x == 20)
     @assert(surface.position.y == 30)
     @assert(surface.isTopMost())
+    @assert(surface.flags.has(.TopMost))
     @assert(surface.isHidden)
+
+    surface.setTopMost(false)
+    @assert(!surface.isTopMost())
+    @assert(!surface.flags.has(.TopMost))
+    surface.setTopMost()
+    @assert(surface.isTopMost())
+    @assert(surface.flags.has(.TopMost))
+
+    let replacement  = Wnd.create'Wnd()
+    let previousView = surface.view()
+    surface.setView(replacement)
+    @assert(surface.view() == replacement)
+    @assert(replacement.parent == surface.wnd)
+    @assert(replacement.surface == surface)
+    @assert(previousView.isPendingDestroy)
+
+    let button = PushButton.create(surface.view(), "OK", {20, 20, 80, 30}, GuiHeadlessSmoke_ModalExit)
+    button.sigPressed += func(btn) { btn.app().exitModal(btn.id orelse "") }
 
     surface.show()
     @assert(!surface.isHidden)
     @assert(surface.isInitialized)
-    @assert(host.app.getSurfaceAt(40, 50) == surface)
+    @assert(host.app.surfaceAt(40, 50) == surface)
 
     var frameCount: u32
     var didClick:   bool
@@ -111,8 +133,35 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     @assert(result == GuiHeadlessSmoke_ModalExit)
     @assert(frameCount == 1)
     @assert(didClick)
+    @assert(!background.isDisabled)
+    @assert(disabledBackground.isDisabled)
+    host.pump()
+    @assert(host.app.surfaces.count == 2)
+
+    background.destroy()
+    disabledBackground.destroy()
     host.pump()
     @assert(host.app.surfaces.count == 0)
+
+    host.shutdown()
+}
+
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(160, 90)
+
+    var frameCallbacks: u32
+    host.app.sigFrame    += func|count = &frameCallbacks|(app) { dref count += 1 }
+    host.app.maxRunFrame = 2
+
+    host.app.runFrame()
+    @assert(!host.app.mustQuit)
+    host.app.runFrame()
+
+    @assert(host.app.mustQuit)
+    @assert(host.app.timing.frameCount == 2)
+    @assert(frameCallbacks == 2)
 
     host.shutdown()
 }
@@ -125,7 +174,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.wnd_SizingBorderSize    = 8
     host.theme.metrics.wnd_TopSizingBorderSize = 7
-    host.surface.flags                         = SurfaceFlags.OverlappedWindow
+    host.surface.flags                         = SurfaceFlags.StandardWindow
     host.surface.position                      = {10, 20, 240, 120}
     host.surface.wnd.padding.y                 = host.theme.metrics.wnd_BigCaptionCY
 
@@ -147,7 +196,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     captionMenu.destroy()
     host.pump()
 
-    @assert(host.surfaceWnd.hitTestBorders({30, 15}) == SizingBorder.Zero)
+    @assert(host.surfaceWnd.hitTestBorders({30, 15}) == SizingBorder.None)
     @assert(host.surfaceWnd.hitTestBorders({30, 1}) & SizingBorder.Top)
 
     host.surfaceWnd.itf           = cast(IWnd) &host.surfaceWnd
@@ -156,14 +205,14 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     host.surfaceWnd.focusStrategy = .None
     host.app.mouseEnterWnd        = &host.surfaceWnd
 
-    var evt = MouseEvent{kind: .MousePressed}
+    var evt = MouseEvent{kind: .Pressed}
     evt.button     = .Left
     evt.surfacePos = {30, 15}
     host.surfaceWnd.sendEvent(&evt)
 
-    evt.kind       = .MouseMove
+    evt.kind       = .Move
     evt.surfacePos = {50, 20}
-    evt.move       = {20, 5}
+    evt.delta      = {20, 5}
     host.surfaceWnd.sendEvent(&evt)
 
     @assert(host.surface.position.x == 30)
@@ -171,23 +220,23 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     @assert(host.surface.position.width == 240)
     @assert(host.surface.position.height == 120)
 
-    evt.kind       = .MouseReleased
+    evt.kind       = .Released
     evt.surfacePos = {50, 20}
     host.surfaceWnd.sendEvent(&evt)
 
     host.surface.position         = {10, 20, 240, 120}
     host.surfaceWnd.movingSurface = false
-    host.surfaceWnd.sizingBorder  = .Zero
+    host.surfaceWnd.sizingBorder  = .None
     host.app.mouseEnterWnd        = &host.surfaceWnd
 
-    evt.kind       = .MousePressed
+    evt.kind       = .Pressed
     evt.surfacePos = {30, 1}
-    evt.move       = {}
+    evt.delta      = {}
     host.surfaceWnd.sendEvent(&evt)
 
-    evt.kind       = .MouseMove
+    evt.kind       = .Move
     evt.surfacePos = {30, 11}
-    evt.move       = {0, 10}
+    evt.delta      = {0, 10}
     host.surfaceWnd.sendEvent(&evt)
 
     @assert(host.surface.position.x == 10)
@@ -195,7 +244,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     @assert(host.surface.position.width == 240)
     @assert(host.surface.position.height == 110)
 
-    evt.kind = .MouseReleased
+    evt.kind = .Released
     host.surfaceWnd.sendEvent(&evt)
 
     host.shutdown()

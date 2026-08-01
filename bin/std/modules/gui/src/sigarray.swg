@@ -2,11 +2,14 @@
 
 using Core
 
-// Represents sig array.
+// Ordered collection of callbacks that can be suspended as a nested scope.
 struct(T) SigArray
 {
-    arr:      Array'T     // Arr associated with this value.
-    disabled: s32         // Disabled associated with this value.
+    internal
+    {
+        callbacks:    Array'T     // Registered callbacks in invocation order.
+        suspendDepth: u32         // Number of unmatched `disable` calls.
+    }
 }
 
 impl SigArray
@@ -14,35 +17,54 @@ impl SigArray
     mtd(op: Swag.Operator) opAssign(fn: T)
     {
         #assert(op == .AddAssign)
-        .arr.add(fn)
+        .add(fn)
     }
 
-    // Disable the calls.
+    // Registers a callback at the end of the invocation order.
+    mtd add(fn: T)
+    {
+        .callbacks.add(fn)
+    }
+
+    // Suspends callback invocation until every nested disable is matched by `enable`.
     mtd disable()
     {
-        .disabled += 1
+        .suspendDepth += 1
     }
 
-    // Enable the calls.
+    // Ends one nested callback suspension.
     mtd enable()
     {
-        Debug.assert(.disabled > 0)
-        .disabled -= 1
+        Debug.assert(.suspendDepth > 0, "signal is not disabled")
+        .suspendDepth -= 1
     }
 
-    // Returns 'true' if the array is empty.
-    mtd const isEmpty()->bool => .arr.isEmpty()
+    // Returns the number of registered callbacks.
+    mtd const count()->u64 => .callbacks.count
 
-    // Call all registered lambdas.
+    // Reports whether no callback is registered.
+    mtd const isEmpty()->bool => .callbacks.isEmpty()
+
+    // Reports whether callback invocation is currently suspended.
+    mtd const isDisabled()->bool => .suspendDepth != 0
+
+    // Removes every callback and restores the enabled state.
+    mtd clear()
+    {
+        @drop(me, 1)
+        @init(me, 1)
+    }
+
+    // Invokes all registered callbacks in registration order unless disabled.
     mtd call(params: ...)
     {
-        if .disabled do
+        if .suspendDepth do
             return
 
         // Be sure the call has the right number of arguments
         Debug.assert(@countof(params) == @countof(#typeof(T).parameters))
 
-        for fn in .arr
+        for fn in .callbacks
         {
             #ast
             {

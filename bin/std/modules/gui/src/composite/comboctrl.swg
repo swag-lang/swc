@@ -2,17 +2,22 @@
 
 using Core, Pixel
 
-// Represents combo ctrl.
+// Pairs a descriptive label with a combo box in one horizontal row.
 struct ComboCtrl
 {
-    using frameWnd: FrameWnd     // Embedded frame wnd state.
-    labelSize:      f32 = 60     // Label size associated with this value.
-    comboSize:      f32 = 60     // 0 to fit to parent size
+    using frameWnd: FrameWnd     // Embedded framed-window behavior and presentation.
 
-    #[Swag.Late]
-    label: *Label     // Label associated with this value.
-    #[Swag.Late]
-    combo: *ComboBox     // Combo associated with this value.
+    readonly
+    {
+        labelWidth: f32 = 60     // Width reserved for the label.
+        comboWidth: f32 = 60     // Combo width, or zero to fill remaining space.
+        spacing:    f32 = 5      // Gap between label and combo box.
+
+        #[Swag.Late]
+        label: *Label     // Descriptive label owned by this control.
+        #[Swag.Late]
+        combo: *ComboBox     // Combo box owned by this control.
+    }
 }
 
 impl IWnd for ComboCtrl
@@ -22,21 +27,23 @@ impl IWnd for ComboCtrl
         if !@isset(.label) do
             return
 
-        let rect    = .getClientRect()
-        let metrics = .getThemeMetrics()
-
-        .label.setPosition(0, 0, .labelSize, metrics.comboBox_Height)
-        let comboW = .comboSize == 0 ? .position.width - 5 - .labelSize : .comboSize
-        .combo.setPosition(.label.position.right() + 5, rect.vertCenter() - metrics.comboBox_Height / 2, comboW, metrics.comboBox_Height)
+        let rect   = .clientRect()
+        let height = .themeMetrics().comboBox_Height
+        let y      = rect.vertCenter() - height * 0.5
+        let width  = .comboWidth == 0 ? Math.max(rect.width - .spacing - .labelWidth, 0) : .comboWidth
+        .label.setPosition(0, y, .labelWidth, height)
+        .combo.setPosition(.label.position.right() + .spacing, y, width, height)
     }
 }
 
 impl ComboCtrl
 {
-    // Performs the create operation.
-    func create(parent: *Wnd, name: string, position: Math.Rectangle = {}, id: #null WndId = null)->*ComboCtrl
+    // Creates a labelled combo box.
+    #[Swag.Discardable]
+    func create(parent: *Wnd, name: #null string, position: Math.Rectangle = {}, id: #null WndId = null)->*ComboCtrl
     {
-        let metrics = parent.getThemeMetrics()
+        Debug.assert(parent != null)
+        let metrics = parent.themeMetrics()
         var pos     = position
         if pos.width == 0 do
             pos.width = metrics.comboBox_Width * 2
@@ -45,14 +52,24 @@ impl ComboCtrl
 
         with let ctrl = Wnd.create'ComboCtrl(parent, pos, id)
         {
-            .label                   = Label.create(ctrl, name)
-            .label.horzAlignmentText = .Right
-
+            .label = Label.create(ctrl, name)
+            .label.setTextHorizontalAlignment(.Right)
             .combo = ComboBox.create(ctrl)
-
             .sendResizeEvent()
         }
 
         return ctrl
+    }
+
+    // Changes label width, combo width, and spacing, then reapplies layout.
+    mtd setLayoutMetrics(labelWidth, comboWidth, spacing: f32 = 5)
+    {
+        Debug.assert(labelWidth >= 0 and comboWidth >= 0 and spacing >= 0, "layout metrics cannot be negative")
+        if .labelWidth == labelWidth and .comboWidth == comboWidth and .spacing == spacing do
+            return
+        .labelWidth = labelWidth
+        .comboWidth = comboWidth
+        .spacing    = spacing
+        .sendResizeEvent()
     }
 }

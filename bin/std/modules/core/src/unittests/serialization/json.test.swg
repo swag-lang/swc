@@ -22,6 +22,11 @@ struct JsonPayload
     transient: s32
 }
 
+struct JsonStringPayload
+{
+    text: String
+}
+
 func makeJsonPayload()->JsonPayload
 {
     var result: retval
@@ -68,7 +73,7 @@ func assertJsonPayload(value: const &JsonPayload)->bool
 {
     let payload = makeJsonPayload()
 
-    var encoder: Serialization.Encoder'Serialization.Write.JSon
+    var encoder: Serialization.Encoder'Serialization.Write.Json
     encoder.serializer.options.saveBlanks = false
 
     var buffer: ConcatBuffer
@@ -79,7 +84,7 @@ func assertJsonPayload(value: const &JsonPayload)->bool
     @assert(json == "{\"id\":7,\"active\":true,\"name\":\"core\",\"counts\":[-1,0,4],\"pair\":{\"x\":3,\"y\":-2},\"fixed\":[1,2,3]}")
     @assert(json.indexOf("transient") == Swag.U64.Max)
 
-    var decoder: Serialization.Decoder'Serialization.Read.JSon
+    var decoder: Serialization.Decoder'Serialization.Read.Json
     let decoded = notnull catch decoder.readAll'JsonPayload(json.toSlice()) as err2
     @assert(err2 == null)
     @assert(assertJsonPayload(dref decoded))
@@ -92,7 +97,7 @@ func assertJsonPayload(value: const &JsonPayload)->bool
 {
     let payload = makeJsonPayload()
 
-    var encoder: Serialization.Encoder'Serialization.Write.JSon
+    var encoder: Serialization.Encoder'Serialization.Write.Json
     encoder.serializer.options.saveBlanks  = true
     encoder.serializer.options.indentLevel = 2
 
@@ -108,7 +113,7 @@ func assertJsonPayload(value: const &JsonPayload)->bool
 {
     let json: String = "{\n  \"id\": 8,\n  \"active\": false,\n  \"name\": null,\n  \"counts\": [9, 8],\n  \"pair\": {\"x\": -1, \"y\": 2},\n  \"fixed\": [5, 6, 7]\n}"
 
-    var decoder: Serialization.Decoder'Serialization.Read.JSon
+    var decoder: Serialization.Decoder'Serialization.Read.Json
     let decoded = notnull catch decoder.readAll'JsonPayload(json.toSlice()) as err4
     @assert(err4 == null)
 
@@ -130,8 +135,37 @@ func assertJsonPayload(value: const &JsonPayload)->bool
 {
     let invalid: String = "{\"id\":7,\"active\":true,\"wrong\":\"core\",\"counts\":[-1,0,4],\"pair\":{\"x\":3,\"y\":-2},\"fixed\":[1,2,3]}"
 
-    var decoder: Serialization.Decoder'Serialization.Read.JSon
+    var decoder: Serialization.Decoder'Serialization.Read.Json
     let decoded = catch decoder.readAll'JsonPayload(invalid.toSlice()) as errjson
     @assert(decoded == null)
     @assert(errjson != null)
+}
+
+#test
+{
+    var payload: JsonStringPayload
+    payload.text = "quote=\" slash=\\ controls=\b\f\n\r\t caf\u00E9 \U0001F642"
+
+    var encoder: Serialization.Encoder'Serialization.Write.Json
+    var buffer:  ConcatBuffer
+    catch encoder.writeAll(&buffer, payload) as errEscape
+    @assert(errEscape == null)
+    @assert(buffer.toString() == "{\"text\":\"quote=\\\" slash=\\\\ controls=\\b\\f\\n\\r\\t caf\u00E9 \U0001F642\"}")
+
+    var decoder: Serialization.Decoder'Serialization.Read.Json
+    let decoded = notnull catch decoder.readAll'JsonStringPayload(notnull buffer.toSlice()) as errRoundTrip
+    @assert(errRoundTrip == null)
+    @assert(decoded.text == payload.text)
+    Memory.delete(decoded)
+
+    let escaped: String = #raw """{"text":"A\u00E9\uD83D\uDE42"}"""
+    let unicode = notnull catch decoder.readAll'JsonStringPayload(escaped.toSlice()) as errUnicode
+    @assert(errUnicode == null)
+    @assert(unicode.text == "A\u00E9\U0001F642")
+    Memory.delete(unicode)
+
+    let invalidEscape: String = #raw """{"text":"\q"}"""
+    let rejected = catch decoder.readAll'JsonStringPayload(invalidEscape.toSlice()) as errInvalidEscape
+    @assert(rejected == null)
+    @assert(errInvalidEscape != null)
 }

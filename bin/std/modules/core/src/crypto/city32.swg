@@ -7,10 +7,10 @@
 
 #global namespace Hash
 
-// Represents city32.
+// Provides one-shot CityHash32 computation.
 public struct City32
 {
-    crc: u32     // Crc associated with this value.
+    internal currentValue: u32
 }
 
 impl City32
@@ -22,7 +22,7 @@ impl City32
     #[Swag.Safety(.Overflow, false)]
     mtd len0to4(data: const [..] u8)
     {
-        var b = .crc
+        var b = .currentValue
         var c = 9'u32
         for v in data
         {
@@ -30,7 +30,7 @@ impl City32
             c ^= b
         }
 
-        .crc = murmur3(murmur3(b, murmur3(cast(u32) @countof(data), c)))
+        .currentValue = murmur3(murmur3(b, murmur3(cast(u32) @countof(data), c)))
     }
 
     #[Swag.Safety(.Overflow, false)]
@@ -38,14 +38,14 @@ impl City32
     {
         let s   = @dataof(data)
         let len = cast(u32) @countof(data)
-        var a   = len + .crc
+        var a   = len + .currentValue
         var b   = len * 5
         var c   = 9'u32
         let d   = b
-        a    += fetch(s)
-        b    += fetch(s + len - 4)
-        c    += fetch(s + ((len >> 1) & 4))
-        .crc = murmur3(murmur3(c, murmur3(b, murmur3(a, d))))
+        a             += fetch(s)
+        b             += fetch(s + len - 4)
+        c             += fetch(s + ((len >> 1) & 4))
+        .currentValue = murmur3(murmur3(c, murmur3(b, murmur3(a, d))))
     }
 
     #[Swag.Safety(.Overflow, false)]
@@ -59,19 +59,19 @@ impl City32
         let d   = fetch(s + (len >> 1))
         let e   = fetch(s)
         let f   = fetch(s + len - 4)
-        let h   = .crc + len
-        .crc = murmur3(murmur3(f, murmur3(e, murmur3(d, murmur3(c, murmur3(b, murmur3(a, h)))))))
+        let h   = .currentValue + len
+        .currentValue = murmur3(murmur3(f, murmur3(e, murmur3(d, murmur3(c, murmur3(b, murmur3(a, h)))))))
     }
 
-    // Initialize the hashing sequence
-    public mtd init()
+    mtd reset(seed: u32)
     {
-        .crc = 0
+        .currentValue = seed
     }
 
-    // Update the hash value with 'buffer' content
+    // CityHash32 is not an incremental algorithm. Keep this mutating operation
+    // internal so callers cannot mistake successive calls for concatenation.
     #[Swag.Safety(.Overflow, false)]
-    public mtd update(data: const [..] u8)
+    mtd update(data: const [..] u8)
     {
         let len = cast(u32) @countof(data)
 
@@ -82,7 +82,7 @@ impl City32
         case len <= 24: return .len13to24(data)
         }
 
-        let seed = .crc
+        let seed = .currentValue
         var s    = @dataof(data)
         var h    = len + seed
         var g    = C1 * len
@@ -139,26 +139,26 @@ impl City32
             s += 20
         }
 
-        g    = Math.ror(g, 11) * C1
-        g    = Math.ror(g, 17) * C1
-        f    = Math.ror(f, 11) * C1
-        f    = Math.ror(f, 17) * C1
-        h    = Math.ror(h + g, 19)
-        h    = h * 5 + 0xE6546B64
-        h    = Math.ror(h, 17) * C1
-        h    = Math.ror(h + f, 19)
-        h    = h * 5 + 0xE6546B64
-        h    = Math.ror(h, 17) * C1
-        .crc = h
+        g             = Math.ror(g, 11) * C1
+        g             = Math.ror(g, 17) * C1
+        f             = Math.ror(f, 11) * C1
+        f             = Math.ror(f, 17) * C1
+        h             = Math.ror(h + g, 19)
+        h             = h * 5 + 0xE6546B64
+        h             = Math.ror(h, 17) * C1
+        h             = Math.ror(h + f, 19)
+        h             = h * 5 + 0xE6546B64
+        h             = Math.ror(h, 17) * C1
+        .currentValue = h
     }
 
-    // Returns the hash value for the given buffer
+    // Computes CityHash32 for `buffer`, optionally mixed with `seed`.
     #[Swag.ConstExpr]
-    public func compute(buffer: const [..] u8)->u32
+    public func compute(buffer: const [..] u8, seed: u32 = 0)->u32
     {
         var v: City32
-        v.init()
+        v.reset(seed)
         v.update(buffer)
-        return v.crc
+        return v.currentValue
     }
 }

@@ -87,7 +87,7 @@ func longestLineLength(csv: string)->u32
         {
             if current > best do
                 best = current
-            current  = 0
+            current = 0
         }
         else
         {

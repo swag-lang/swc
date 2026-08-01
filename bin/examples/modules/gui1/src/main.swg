@@ -11,7 +11,7 @@ func centerButton(view: *Wnd)
     if !button do
         return
 
-    let clientRect = view.getClientRect()
+    let clientRect = view.clientRect()
     let x          = clientRect.horzCenter() - button.position.width * 0.5
     let y          = clientRect.vertCenter() - button.position.height * 0.5
     button.setPosition({x, y, button.position.width, button.position.height})
@@ -29,15 +29,15 @@ func onEvent(view: *Wnd, evt: IEvent)->bool
 
 #main
 {
-    let surface = notnull (try app.createSurface(100, 100, 594, 449, SurfaceFlags.OverlappedWindow))
+    let surface = notnull (try app.createSurface(100, 100, 594, 449, SurfaceFlags.StandardWindow))
     surface.setTitle("GUI example")
 
-    let view = surface.getView()
+    let view = surface.view()
     view.hookOnEvent = &onEvent
     g_Button         = PushButton.create(view, "Push Button")
     centerButton(view)
 
-    if Env.hasArg("swag.test") do
+    if Env.hasArgument("swag.test") do
         app.maxRunFrame = TestFrames
 
     surface.show()

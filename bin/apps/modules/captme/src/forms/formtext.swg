@@ -92,7 +92,7 @@ impl IForm for FormText
         let xb = cast(s32) (localPos.x / zoom)
         let yb = cast(s32) (localPos.y / zoom)
         .setBaseForm(xa, ya, xb - xa, yb - ya)
-        if evt.kind == .MouseReleased and evt.button == .Left do
+        if evt.kind == .Released and evt.button == .Left do
             return false
         return true
     }
@@ -187,7 +187,7 @@ impl IForm for FormText
                 .typeFace = null
             else
             {
-                let en = FontFamily.getFromOs(.fontName)
+                let en = FontFamily.findSystemFont(.fontName)
                 .typeFace = catch FontFamily.createTypeFace(en, .fontStyle)
             }
         }
@@ -238,14 +238,14 @@ impl IForm for FormText
             for t, [idx] in tokens
             {
                 let pathl = &.paths[idx]
-                expect (notnull face).getStringOutline(pathl, t, cast() fSize, cast() sSize)
+                expect (notnull face).buildStringOutline(pathl, t, cast() fSize, cast() sSize)
                 pathl.flatten(.High)
                 pathl.clean()
 
                 let borderPath = &.borderPaths[idx]
                 if !Math.isZeroEpsilon(bSize) and .borderColor.a
                 {
-                    expect (notnull face).getStringOutline(borderPath, t, cast() fSize, cast() sSize)
+                    expect (notnull face).buildStringOutline(borderPath, t, cast() fSize, cast() sSize)
                     borderPath.flatten(.Normal)
                     borderPath.clean()
                     borderPath.offset(bSize, .joinStyle, 0.25)
@@ -253,10 +253,10 @@ impl IForm for FormText
                 }
 
                 // With no border, the line is as tall as the glyph outline itself.
-                if borderPath.paths.count do
-                    .totalY += (borderPath.bvMax.y - borderPath.bvMin.y)
+                if borderPath.count() do
+                    .totalY += (borderPath.maxBounds.y - borderPath.minBounds.y)
                 else do
-                    .totalY += (pathl.bvMax.y - pathl.bvMin.y)
+                    .totalY += (pathl.maxBounds.y - pathl.minBounds.y)
             }
         }
 
@@ -271,7 +271,7 @@ impl IForm for FormText
         var totalYZ = 0'f32
         for &pathl in .borderPaths
         {
-            totalYZ += (pathl.bvMax.y - pathl.bvMin.y) * zscale
+            totalYZ += (pathl.maxBounds.y - pathl.minBounds.y) * zscale
         }
 
         if count > 1 do
@@ -289,8 +289,8 @@ impl IForm for FormText
         for &pathl, [idx] in .paths
         {
             let borderPath = &.borderPaths[idx]
-            let wt         = (borderPath.bvMax.x - borderPath.bvMin.x) * zscale
-            let ht         = (borderPath.bvMax.y - borderPath.bvMin.y) * zscale
+            let wt         = (borderPath.maxBounds.x - borderPath.minBounds.x) * zscale
+            let ht         = (borderPath.maxBounds.y - borderPath.minBounds.y) * zscale
 
             var x0 = 0'f32
             switch aH
@@ -300,13 +300,15 @@ impl IForm for FormText
             case .RightBottom: x0 = pp.right() - (wt + addSize)
             }
 
-            let tt    = painter.curState.transform
-            let drawX = x0 - (borderPath.bvMin.x * zscale)
-            let drawY = y0 - (borderPath.bvMin.y * zscale)
+            let tt    = painter.transform()
+            let drawX = x0 - (borderPath.minBounds.x * zscale)
+            let drawY = y0 - (borderPath.minBounds.y * zscale)
 
             painter.pushTransform()
-            painter.curState.transform.tx = 0
-            painter.curState.transform.ty = 0
+            var localTransform = tt
+            localTransform.tx = 0
+            localTransform.ty = 0
+            painter.setTransform(localTransform)
             painter.scaleTransform(pscale, pscale)
             painter.translateTransform(tt.tx, tt.ty)
             painter.translateTransform(drawX * rscale, drawY * rscale)

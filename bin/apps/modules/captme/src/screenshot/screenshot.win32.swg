@@ -54,7 +54,7 @@ func getWndRectAtPos(srf: *Surface, x, y: f32)->Math.Rectangle
     g_HitTest.y = cast() y
 
     g_Hit    = null
-    g_Ignore = srf.hWnd
+    g_Ignore = srf.win32Handle()
     EnumWindows(cast() &enumProc, 0)
     if !g_Hit do
         return {}
@@ -123,10 +123,10 @@ func drawCursorInto(memDC: HDC, offsetX, offsetY: s32)
 
 func getDesktopImage(drawCursor: bool)->Image fail
 {
-    let x = Env.getMetric(.DesktopX)
-    let y = Env.getMetric(.DesktopY)
-    let w = Env.getMetric(.DesktopWidth)
-    let h = Env.getMetric(.DesktopHeight)
+    let x = Env.getSystemMetric(.DesktopX)
+    let y = Env.getSystemMetric(.DesktopY)
+    let w = Env.getSystemMetric(.DesktopWidth)
+    let h = Env.getSystemMetric(.DesktopHeight)
     return getScreenRectImage(drawCursor, x, y, w, h)
 }
 
@@ -185,6 +185,6 @@ func getScreenRectImage(drawCursor: bool, x, y, w, h: s32)->Image fail
     GdiFlush()
 
     var result = Image.create(w, h, PixelFormat.BGRA8)
-    Memory.copy(result.pixels.buffer, bits, result.size)
+    Memory.copy(result.pixels.buffer, bits, result.byteCount)
     return result
 }

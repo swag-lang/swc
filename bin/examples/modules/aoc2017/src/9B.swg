@@ -18,7 +18,7 @@ using Core
 
 func day9B()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "9.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "9.txt")
     let line     = expect File.readAllText(dataPath)
 
     var garbage, group, score, count = 0

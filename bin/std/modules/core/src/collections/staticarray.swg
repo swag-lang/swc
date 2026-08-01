@@ -35,7 +35,7 @@ impl StaticArray
 
     // Allows the array to be implicitly cast to an immutable slice.
     #[Inline]
-    mtd opCast()->const [..] T
+    mtd const opCast()->const [..] T
     {
         return .toSlice()
     }
@@ -176,6 +176,13 @@ impl StaticArray
         return @mkslice(&.buffer[0], .count)
     }
 
+    // Returns an immutable slice containing all valid elements of the array.
+    #[Inline]
+    mtd const toSlice()->const [..] T
+    {
+        return @mkslice(&.buffer[0], .count)
+    }
+
     // Changes the number of elements in the array to 'newCount'.
     // Asserts if 'newCount' exceeds the static capacity.
     mtd resize(newCount: u64)
@@ -274,7 +281,7 @@ impl StaticArray
         }
         else
         {
-            Memory.copyOver(&.buffer[index + 1], &.buffer[index], #sizeof(T) * (.count - 1 - index))
+            Memory.copyOverlapping(&.buffer[index + 1], &.buffer[index], #sizeof(T) * (.count - 1 - index))
         }
 
         .buffer[index] = #nodrop #fwd value
@@ -310,7 +317,7 @@ impl StaticArray
         }
         else
         {
-            Memory.copyOver(&.buffer[index + sliceCount], &.buffer[index], #sizeof(T) * (.count - sliceCount - index))
+            Memory.copyOverlapping(&.buffer[index + sliceCount], &.buffer[index], #sizeof(T) * (.count - sliceCount - index))
         }
 
         #static if Reflection.hasPostCopy(T)
@@ -355,7 +362,7 @@ impl StaticArray
         }
         else
         {
-            Memory.copyOver(&.buffer[index + @countof(values)], &.buffer[index], #sizeof(T) * (.count - sliceCount - index))
+            Memory.copyOverlapping(&.buffer[index + @countof(values)], &.buffer[index], #sizeof(T) * (.count - sliceCount - index))
         }
 
         #static if Reflection.hasPostMove(T)
@@ -418,7 +425,7 @@ impl StaticArray
 
         #static if !Reflection.hasPostMove(T) and !Reflection.hasDrop(T)
         {
-            Memory.copyOver(cast([*] T) &.buffer[0] + index, cast([*] T) &.buffer[0] + index + num, shiftCount * #sizeof(T))
+            Memory.copyOverlapping(cast([*] T) &.buffer[0] + index, cast([*] T) &.buffer[0] + index + num, shiftCount * #sizeof(T))
         }
         else
         {
@@ -512,7 +519,7 @@ impl StaticArray
         }
         else
         {
-            Memory.copyOver(&.buffer[index], &.buffer[index + numValues], #sizeof(T) * (.count - index))
+            Memory.copyOverlapping(&.buffer[index], &.buffer[index + numValues], #sizeof(T) * (.count - index))
         }
 
         #static if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)

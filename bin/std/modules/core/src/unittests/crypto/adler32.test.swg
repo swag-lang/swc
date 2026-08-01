@@ -25,14 +25,14 @@ func assertAdler32(buffer: const [..] u8)
     @assert(Hash.Adler32.compute(buffer) == expected)
 
     var adler: Hash.Adler32
-    adler.init()
+    adler.reset()
     adler.update(buffer)
-    @assert(adler.adler == expected)
+    @assert(adler.value() == expected)
 
-    adler.init()
+    adler.reset()
     adler.update("")
     adler.update(buffer)
-    @assert(adler.adler == expected)
+    @assert(adler.value() == expected)
 }
 
 func fillAdlerPattern(buffer: [..] u8)
@@ -60,8 +60,8 @@ func fillAdlerPattern(buffer: [..] u8)
 
     var adler: Hash.Adler32
     adler.update("dirty")
-    adler.init()
-    @assert(adler.adler == 1'u32)
+    adler.reset()
+    @assert(adler.value() == 1'u32)
 
     var data: [11121] u8
     fillAdlerPattern(data)
@@ -80,10 +80,10 @@ func fillAdlerPattern(buffer: [..] u8)
     assertAdler32(data[until 11121])
 
     var split: Hash.Adler32
-    split.init()
+    split.reset()
     split.update(data[until 1])
     split.update(data[1 until 16])
     split.update(data[16 until 5552])
     split.update(data[5552 until 11121])
-    @assert(split.adler == Hash.Adler32.compute(data))
+    @assert(split.value() == Hash.Adler32.compute(data))
 }

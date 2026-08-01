@@ -3,9 +3,9 @@
 
 using Swag
 
-// Transform an enum type to its underling real native type
+// Returns an enum's underlying native type, or the input type when it is not an enum.
 #[ConstExpr]
-func makeConcreteEnum(type: typeinfo)->typeinfo
+func enumUnderlyingType(type: typeinfo)->typeinfo
 {
     if !isEnum(type) do
         return type
@@ -14,10 +14,9 @@ func makeConcreteEnum(type: typeinfo)->typeinfo
     return notnull enumType.rawType
 }
 
-// Get information about a specific value in a given enum
-// Returns null if the value does not exist
+// Returns reflected information for a named enum value, or null.
 #[ConstExpr]
-func getEnumValue(type: #null typeinfo, name: #null string)->#null const *TypeValue
+func enumValue(type: #null typeinfo, name: #null string)->#null const *TypeValue
 {
     if !isEnum(type) do
         return null
@@ -28,16 +27,15 @@ func getEnumValue(type: #null typeinfo, name: #null string)->#null const *TypeVa
     return null
 }
 
-// Returns the enum value name corresponding to the value pointed by 'valueAddr'
-// Can have multiple names if the enum is tagged with #[Swag.EnumFlags]
+// Returns the enum name for a value. Flag values can produce multiple names.
 #[ConstExpr]
-func getEnumName(type: #null typeinfo, valueAddr: #null const *void, fullname = true)->String
+func enumName(type: #null typeinfo, valueAddress: #null const *void, fullyQualified = true)->String
 {
     var result: String
-    if !isEnum(type) or !valueAddr do
+    if !isEnum(type) or !valueAddress do
         return result
     let safeType  = notnull type
-    let safeValue = valueAddr
+    let safeValue = valueAddress
     let typeEnum  = cast(const *TypeInfoEnum) safeType
     let rawType   = notnull typeEnum.rawType
     let isFlags   = hasAttribute(type, EnumFlags)
@@ -78,7 +76,7 @@ func getEnumName(type: #null typeinfo, valueAddr: #null const *void, fullname = 
         // For a normal enum, stop if this is a match
         if !isFlags and val1 == val2 and val1s == val2s
         {
-            if fullname
+            if fullyQualified
             {
                 result += simpleName
                 result += "."
@@ -94,7 +92,7 @@ func getEnumName(type: #null typeinfo, valueAddr: #null const *void, fullname = 
             if !result.isEmpty() do
                 result += " | "
 
-            if fullname
+            if fullyQualified
             {
                 result += simpleName
                 result += "."

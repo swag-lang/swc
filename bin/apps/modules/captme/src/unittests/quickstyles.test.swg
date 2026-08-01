@@ -46,17 +46,17 @@ using Swag, Core
 
     with f.main.quickStyleBar = SplitterCtrl.create(f.main, {600, 0, 300, 650}, vertical: true)
     {
-        .splitterFlags.add(.HideBars)
+        .flags.add(.HideDividers)
     }
 
     f.main.quickWnd = QuickWnd.create(f.main.quickStyleBar, f.main)
     f.main.propWnd  = PropWnd.create(f.main.quickStyleBar, f.main)
-    with let quickPane = f.main.quickStyleBar.addPane(f.main.quickWnd, title: true)
+    with let quickPane = f.main.quickStyleBar.addPane(f.main.quickWnd, showTitle: true)
     {
-        .tryPreserveSize = true
+        .preserveSize = true
     }
 
-    discard f.main.quickStyleBar.addPane(f.main.propWnd, title: true)
+    discard f.main.quickStyleBar.addPane(f.main.propWnd, showTitle: true)
     f.main.quickStyleBar.setPaneSize(0, 300)
 
     f.main.quickWnd.setDefault()
@@ -86,7 +86,7 @@ using Swag, Core
     let sliderCtrlPosBefore  = sliderBefore.position
     let sliderTrackPosBefore = sliderBefore.slider.position
     let sliderEditPosBefore  = sliderBefore.edit.position
-    let propChildCountBefore = f.main.propWnd.topLayout.childs.count
+    let propChildCountBefore = f.main.propWnd.topLayout.children.count
     var didDismiss           = false
 
     f.gui.app.sigFrame += func|host = &f.gui, dismissed = &didDismiss|(app)
@@ -98,7 +98,7 @@ using Swag, Core
         dref dismissed = true
     }
 
-    f.gui.clickWnd(f.main.quickWnd.layout.childs[0], Input.MouseButton.Right)
+    f.gui.clickWnd(f.main.quickWnd.layout.children[0], Input.MouseButton.Right)
     f.gui.pump()
 
     @assert(didDismiss)
@@ -110,7 +110,7 @@ using Swag, Core
     @assert(sliderBefore.position == sliderCtrlPosBefore)
     @assert(sliderBefore.slider.position == sliderTrackPosBefore)
     @assert(sliderBefore.edit.position == sliderEditPosBefore)
-    @assert(f.main.propWnd.topLayout.childs.count == propChildCountBefore)
+    @assert(f.main.propWnd.topLayout.children.count == propChildCountBefore)
 
     f.shutdown()
 }
@@ -226,7 +226,7 @@ using Swag, Core
     f.gui.clickPopupMenuItemWhenShown(ActionQuickStyle.Reset)
     f.gui.thenClickModalButton(Dialog.BtnYes)
 
-    f.gui.clickWnd(quick.layout.childs[0], Input.MouseButton.Right)
+    f.gui.clickWnd(quick.layout.children[0], Input.MouseButton.Right)
 
     @assert(f.gui.autoHandled)
     @assert(f.gui.app.surfaces.count == 0)

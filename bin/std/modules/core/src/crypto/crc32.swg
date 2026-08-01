@@ -1,9 +1,9 @@
 #global namespace Hash
 
-// Represents crc32.
+// Computes a CRC-32 checksum incrementally.
 public struct Crc32
 {
-    crc: u32     // Crc associated with this value.
+    internal currentValue: u32
 }
 
 impl Crc32
@@ -495,12 +495,13 @@ impl Crc32
 public impl Crc32
 {
     // Initialize the hashing sequence
-    mtd init(seed: u32 = 0)
+    // Resets the checksum to `seed`.
+    mtd reset(seed: u32 = 0)
     {
-        .crc = seed
+        .currentValue = seed
     }
 
-    // Update the hash value with 'buffer' content
+    // Includes `data` in the running checksum.
     mtd update(data: #null const [..] u8)
     {
         var length = @countof(data)
@@ -508,7 +509,7 @@ public impl Crc32
             return
         var current = notnull cast(#null const [*] u32) @dataof(data)
 
-        var cur = ~.crc
+        var cur = ~.currentValue
         const unroll      = 4
         const bytesAtOnce = 16 * unroll
         while length >= bytesAtOnce
@@ -564,16 +565,19 @@ public impl Crc32
             length      -= 1
         }
 
-        .crc = ~cur
+        .currentValue = ~cur
     }
 
-    // Returns the hash value for the given buffer
+    // Returns the checksum accumulated since construction or the latest [[reset]].
+    mtd value() => .currentValue
+
+    // Computes the CRC-32 checksum of `buffer` in one operation.
     #[Swag.ConstExpr]
     func compute(buffer: const [..] u8)->u32
     {
         var v: Crc32
-        v.init()
+        v.reset()
         v.update(buffer)
-        return v.crc
+        return v.value()
     }
 }

@@ -242,23 +242,20 @@ func loadGlyphInternal(face: *Face, glyphIndex: u32) fail
     faceData.outlineTags.clear()
     faceData.outlineContours.clear()
 
-    slot.index  = glyphIndex
-    slot.format = .Outline
+    slot.beginLoad(glyphIndex)
 
     let xPpem = Math.max(1'u32, face.size.metrics.xPpem)
     let yPpem = Math.max(1'u32, face.size.metrics.yPpem)
     appendGlyph(faceData, glyphIndex, xPpem, yPpem)
 
-    slot.outline.pointCount   = cast(s16) faceData.outlinePoints.count
-    slot.outline.contourCount = cast(s16) faceData.outlineContours.count
-    slot.outline.points       = faceData.outlinePoints.count ? faceData.outlinePoints.buffer : null
-    slot.outline.tags         = faceData.outlineTags.count ? faceData.outlineTags.buffer : null
-    slot.outline.contours     = faceData.outlineContours.count ? faceData.outlineContours.buffer : null
-    slot.outline.flags        = 0
+    slot.outline.setView(
+        faceData.outlinePoints.count ? faceData.outlinePoints.buffer : null,
+        faceData.outlineTags.count ? faceData.outlineTags.buffer : null,
+        faceData.outlineContours.count ? faceData.outlineContours.buffer : null,
+        cast(s16) faceData.outlinePoints.count,
+        cast(s16) faceData.outlineContours.count)
 
     let metric = faceData.glyphMetrics[glyphIndex]
-    slot.advance.x                 = scale26_6(metric.advanceWidth, xPpem, faceData.unitsPerEm)
-    slot.advance.y                 = 0
-    slot.metrics.horizontalAdvance = slot.advance.x
+    slot.setAdvance(scale26_6(metric.advanceWidth, xPpem, faceData.unitsPerEm))
     updateSlotMetrics(slot)
 }

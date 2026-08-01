@@ -9,6 +9,11 @@ namespace
 {
     constexpr std::string_view FORMAT_CONFIG_FILE = ".swc-format";
 
+    void addBlankLineStyle(StructConfigSchema& schema, const std::string_view name, FormatBlankLineStyle* target, const std::string_view description)
+    {
+        schema.addEnum(name, target, {{"preserve", FormatBlankLineStyle::Preserve}, {"never", FormatBlankLineStyle::Never}, {"always", FormatBlankLineStyle::Always}}, description);
+    }
+
     void bindFileLevelSchema(StructConfigSchema& schema, FormatOptions& options)
     {
         schema.add("preserve-bom", &options.preserveBom, "Preserve UTF-8 BOM markers");
@@ -17,12 +22,12 @@ namespace
         schema.add("trim-trailing-newlines", &options.trimTrailingNewlines, "Collapse multiple trailing newlines into one");
         schema.add("trim-leading-blank-lines", &options.trimLeadingBlankLines, "Remove blank lines at the very start of the file");
         schema.add("max-consecutive-empty-lines", &options.maxConsecutiveEmptyLines, "Set the maximum consecutive blank lines; use 0 to disable the limit");
-        schema.add("keep-empty-lines-at-start-of-block", &options.keepEmptyLinesAtStartOfBlock, "Keep blank lines at the start of a `{ ... }` block");
-        schema.add("keep-empty-lines-at-end-of-block", &options.keepEmptyLinesAtEndOfBlock, "Keep blank lines at the end of a `{ ... }` block");
-        schema.add("min-blank-lines-between-functions", &options.minBlankLinesBetweenFunctions, "Set the minimum blank lines before a multi-line function definition; use 0 to keep the source as written");
-        schema.add("min-blank-lines-between-types", &options.minBlankLinesBetweenTypes, "Set the minimum blank lines before a multi-line type, impl, or namespace definition; use 0 to keep the source as written");
-        schema.add("min-blank-lines-before-comments", &options.minBlankLinesBeforeComments, "Set the minimum blank lines before a whole-line comment block that follows code; use 0 to keep the source as written");
-        schema.add("min-blank-lines-after-blocks", &options.minBlankLinesAfterBlocks, "Set the minimum blank lines after a multi-line block followed by another statement; use 0 to keep the source as written");
+        addBlankLineStyle(schema, "blank-line-after-opening-brace", &options.blankLineAfterOpeningBrace, "Choose the blank-line policy immediately after a multi-line `{`");
+        addBlankLineStyle(schema, "blank-line-before-closing-brace", &options.blankLineBeforeClosingBrace, "Choose the blank-line policy immediately before a multi-line `}`");
+        addBlankLineStyle(schema, "blank-line-before-function-definition", &options.blankLineBeforeFunctionDefinition, "Choose the blank-line policy before a multi-line function definition");
+        addBlankLineStyle(schema, "blank-line-before-type-definition", &options.blankLineBeforeTypeDefinition, "Choose the blank-line policy before a multi-line type, impl, or namespace definition");
+        addBlankLineStyle(schema, "blank-line-before-comment-block", &options.blankLineBeforeCommentBlock, "Choose the blank-line policy before a whole-line comment block that follows code");
+        addBlankLineStyle(schema, "blank-line-after-standalone-closing-brace", &options.blankLineAfterStandaloneClosingBrace, "Choose the blank-line policy after a standalone `}` followed by code");
     }
 
     void bindEndOfLineSchema(StructConfigSchema& schema, FormatOptions& options)
@@ -176,8 +181,8 @@ namespace
         schema.addEnum("sort-using-statements", &options.sortUsingStatements, {{"preserve", FormatSortOrder::Preserve}, {"ascending", FormatSortOrder::Ascending}, {"ascending-ci", FormatSortOrder::CaseInsensitiveAscending}}, "Choose the sort order of leading `using` statements");
 
         schema.add("merge-using-statements", &options.mergeUsingStatements, "Collapse adjacent `using` statements onto one line when possible");
-        schema.add("blank-line-after-using-block", &options.blankLineAfterUsingBlock, "Keep a blank line after the initial `using` block");
-        schema.add("blank-line-after-global-block", &options.blankLineAfterGlobalBlock, "Keep a blank line after the leading `#global` directives");
+        addBlankLineStyle(schema, "blank-line-after-using-block", &options.blankLineAfterUsingBlock, "Choose the blank-line policy after the initial `using` block");
+        addBlankLineStyle(schema, "blank-line-after-global-block", &options.blankLineAfterGlobalBlock, "Choose the blank-line policy after the leading `#global` directives");
     }
 
     void bindLiteralSchema(StructConfigSchema& schema, FormatOptions& options)

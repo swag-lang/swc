@@ -22,8 +22,8 @@ using Swag, Core
     @assert((notnull splitter.items[1]).view == pane1)
     @assert(pane1.parent == splitter)
 
-    let client  = splitter.getClientRectPadding()
-    let barSize = splitter.getThemeMetrics().splitView_BarSize
+    let client  = splitter.paddedClientRect()
+    let barSize = splitter.themeMetrics().splitView_BarSize
     let total   = (notnull splitter.items[0]).size + (notnull splitter.items[1]).size + barSize
     @assert(Math.abs(total - client.width) < 1.5)
 
@@ -42,15 +42,15 @@ using Swag, Core
     splitter.addPane(pane0)
     splitter.addPane(pane1, 100)
 
-    splitter.showPane(1, false)
+    splitter.setPaneVisible(1, false)
     @assert(!splitter.isPaneVisible(1))
     @assert(splitter.numVisiblePanes == 1)
-    @assert(!pane1.isVisibleState())
+    @assert(!pane1.isLocallyVisible())
 
-    splitter.showPane(1, true)
+    splitter.setPaneVisible(1, true)
     @assert(splitter.isPaneVisible(1))
     @assert(splitter.numVisiblePanes == 2)
-    @assert(pane1.isVisibleState())
+    @assert(pane1.isLocallyVisible())
 
     host.shutdown()
 }
@@ -68,9 +68,39 @@ using Swag, Core
     splitter.addPane(pane1, 100)
 
     let pane0It = notnull splitter.items[0]
-    pane0It.minSize = 20
+    pane0It.minimumSize = 20
     splitter.setPaneSize(0, -50)
     @assert(pane0It.size >= 20)
+
+    host.shutdown()
+}
+
+// Hidden panes do not absorb size transferred between visible neighbors.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(340, 220)
+
+    let splitter = SplitterCtrl.create(&host.root, {0, 0, 320, 200})
+    let pane0    = Wnd.create'Wnd(splitter)
+    let pane1    = Wnd.create'Wnd(splitter)
+    let pane2    = Wnd.create'Wnd(splitter)
+    let item0    = splitter.addPane(pane0)
+    let item1    = splitter.addPane(pane1, 90, showTitle: true)
+    let item2    = splitter.addPane(pane2, 90)
+
+    splitter.setPaneVisible(1, false)
+    @assert(!pane1.isLocallyVisible())
+    @assert(item1.label and !item1.label.isLocallyVisible())
+
+    let middleSize = item1.size
+    let total      = item0.size + item2.size
+    let requested  = item0.size + 30
+    splitter.setPaneSize(0, requested)
+
+    @assert(Math.abs(item0.size - requested) < 0.01)
+    @assert(Math.abs(item0.size + item2.size - total) < 0.01)
+    @assert(item1.size == middleSize)
 
     host.shutdown()
 }

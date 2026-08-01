@@ -234,8 +234,8 @@ impl BaseForm
         if !bound.contains(pos.x, pos.y) do
             return false
 
-        var painter = Painter{fake: true}
-        painter.begin()
+        var painter: Painter
+        painter.begin(layoutOnly: true)
 
         var cxt: FormPaintContext
         cxt.z       = z
@@ -254,7 +254,7 @@ impl BaseForm
                 let xx0 = painter.vertexBuffer[tri].pos
                 let xx1 = painter.vertexBuffer[tri + 1].pos
                 let xx2 = painter.vertexBuffer[tri + 2].pos
-                if Math.Geometry.isInTriangle(pos, xx0, xx1, xx2) do
+                if Math.Geometry.triangleContainsPoint(pos, xx0, xx1, xx2) do
                     return true
             }
         }

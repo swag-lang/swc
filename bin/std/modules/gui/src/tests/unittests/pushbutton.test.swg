@@ -32,6 +32,27 @@ func pushButtonHeadlessResetCounters()
     PushButtonHeadlessRightPressedCount = 0
 }
 
+// Space and Enter activate the focused button with the same signal and command as a click.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 120)
+    host.recordCommands()
+    pushButtonHeadlessResetCounters()
+
+    let button = PushButton.create(&host.root, "Run", {20, 20, 90, 30}, PushButtonHeadless_Command, .Default)
+    button.sigPressed += &pushButtonHeadlessPressed
+    host.focus(button)
+
+    host.keyPress(Input.Key.Space)
+    host.keyPress(Input.Key.Return)
+    @assert(PushButtonHeadlessPressedCount == 2)
+    @assert(host.commandCount == 2 and host.lastCommand == PushButtonHeadless_Command)
+    @assert(button.form == .Default)
+
+    host.shutdown()
+}
+
 #test
 {
     var host: Testing.HeadlessHost

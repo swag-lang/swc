@@ -4,7 +4,7 @@
 #[Swag.EnumFlags]
 enum LogFlags
 {
-    Zero = 0                                                    // No flags set.
+    None = 0                                                    // No optional header component.
     Prefix                                                      // Include custom prefix in log output.
     Date                                                        // Include date (YYYY/MM/DD).
     Time                                                        // Include time (HH:MM:SS:ms).
@@ -18,19 +18,22 @@ enum LogFlags
 // Interface for writing log output.
 interface ILogWriter
 {
-    // Performs the print operation.
-    mtd print(text: string)     // Print a string to the log destination.
+    // Writes one fully formatted log message to the destination.
+    mtd print(text: string)
 }
 
 // A thread-safe logger that supports multiple output writers and customizable formatting.
 struct Log
 {
-    lock:    Sync.Mutex                // Lock for thread-safe access.
-    buf:     StrConv.StringBuilder     // Internal buffer for building log messages.
-    dt:      Time.DateTime             // Cached date/time at the moment of log call.
-    writers: Array'ILogWriter          // Registered writer interfaces.
-    prefix:  #null string              // Optional prefix added to each log line.
-    flags:   LogFlags = Default        // Bitwise flags controlling output format.
+    internal
+    {
+        lock:        Sync.Mutex                // Protects configuration, writers, and output.
+        buf:         StrConv.StringBuilder     // Reused message buffer.
+        dt:          Time.DateTime             // Timestamp captured for the current message.
+        writers:     Array'ILogWriter          // Registered borrowed writer interfaces.
+        prefixText:  String                    // Owned prefix added to each line.
+        formatFlags: LogFlags = Default        // Enabled header components.
+    }
 }
 
 impl Log
@@ -38,39 +41,39 @@ impl Log
     // Build the formatted log message header based on the current flags.
     private mtd buildHeader(loc: Swag.SourceCodeLocation)
     {
-        if .flags & .Prefix and @countof(.prefix)
+        if .formatFlags & .Prefix and @countof(.prefixText)
         {
-            .buf.appendString(.prefix)
+            .buf.appendString(.prefixText)
             .buf.appendString(" ")
         }
 
-        if .flags & .Date
+        if .formatFlags & .Date
         {
             .buf.appendFormat("%/%{D02}/%{D02} ", .dt.year, .dt.month, .dt.day)
         }
 
-        if .flags & .Time
+        if .formatFlags & .Time
         {
             .buf.appendFormat("%{D02}:%{D02}:%{D02}:%{D03} ", .dt.hour, .dt.minute, .dt.second, .dt.millisecond)
         }
 
-        if .flags & .ShortFileName
+        if .formatFlags & .ShortFileName
         {
-            .buf.appendString(Path.getFileName(loc.fileName))
-            .buf.appendString(.flags & (.Line | .FullLoc) ? ":" : " ")
+            .buf.appendString(Path.fileName(loc.fileName))
+            .buf.appendString(.formatFlags & (.Line | .FullLoc) ? ":" : " ")
         }
-        elif .flags & .LongFileName
+        elif .formatFlags & .LongFileName
         {
             .buf.appendString(loc.fileName)
-            .buf.appendString(.flags & (.Line | .FullLoc) ? ":" : " ")
+            .buf.appendString(.formatFlags & (.Line | .FullLoc) ? ":" : " ")
         }
 
-        if .flags & .Line
+        if .formatFlags & .Line
         {
             .buf.appendAny(loc.lineStart + 1)
             .buf.appendString(" ")
         }
-        elif .flags & .FullLoc
+        elif .formatFlags & .FullLoc
         {
             .buf.appendFormat("%:%:%:% ", loc.lineStart + 1, loc.colStart + 1, loc.lineEnd + 1, loc.colEnd + 1)
         }
@@ -83,35 +86,35 @@ impl Log
         return result
     }
 
-    // Set the logger prefix.
+    // Replaces the owned prefix prepended to log messages.
     mtd setPrefix(prefix: string)
     {
         Sync.scopedLock(&.lock)
-        .prefix = prefix
+        .prefixText = prefix
     }
 
-    // Get the logger prefix.
-    mtd getPrefix()->#null string
+    // Returns an owned snapshot of the current prefix.
+    mtd prefix()->String
     {
         Sync.scopedLock(&.lock)
-        return .prefix
+        return .prefixText
     }
 
     // Set the logger flags.
     mtd setFlags(flags: LogFlags)
     {
         Sync.scopedLock(&.lock)
-        .flags = flags
+        .formatFlags = flags
     }
 
-    // Get the logger flags.
-    mtd getFlags()->LogFlags
+    // Returns the current formatting flags.
+    mtd flags()->LogFlags
     {
         Sync.scopedLock(&.lock)
-        return .flags
+        return .formatFlags
     }
 
-    // Register a new writer interface.
+    // Registers a borrowed writer that must outlive its registration.
     mtd addWriter(writer: ILogWriter)
     {
         Sync.scopedLock(&.lock)
@@ -129,7 +132,7 @@ impl Log
     mtd print(text: string, loc = #callerlocation)
     {
         // Get this first, to have the time of the call, before the lock
-        if .flags & (.Date | .Time) do
+        if .formatFlags & (.Date | .Time) do
             .dt = Time.DateTime.now()
 
         Sync.scopedLock(&.lock)

@@ -2,7 +2,7 @@
 
 using Core, Pixel
 
-// Represents theme style ref.
+// Shares one owned theme between copied window styles.
 struct ThemeStyleRef
 {
     #[Swag.Late]
@@ -10,7 +10,7 @@ struct ThemeStyleRef
     count: u32        // Count associated with this value.
 }
 
-// Represents theme style.
+// Applies local font, color, and metric overrides on top of a shared theme.
 struct ThemeStyle
 {
     styleSheetMetrics: String         // Style sheet metrics associated with this value.
@@ -82,7 +82,7 @@ impl ThemeStyle
         .own(theme)
     }
 
-    // Create a specific style based on the parent
+    // Creates a private theme copy from a parent style.
     mtd create(parent: *ThemeStyle)
     {
         .free()
@@ -149,7 +149,7 @@ impl ThemeStyle
         }
     }
 
-    // Performs the clear style sheet colors operation.
+    // Removes every local color override.
     mtd clearStyleSheetColors()
     {
         .styleSheetColors.clear()
@@ -186,8 +186,8 @@ impl ThemeStyle
         .dirty = true
     }
 
-    // Returns font.
-    mtd const getFont()->FontFamily
+    // Returns the local font slots with missing faces inherited from the theme default.
+    mtd const resolvedFont()->FontFamily
     {
         var result: retval
         let df = &(notnull .refr).theme.res.fontDefault
@@ -212,7 +212,7 @@ impl ThemeStyle
         .dirty = true
     }
 
-    // Performs the clear font operation.
+    // Removes every local font-face override.
     mtd clearFont()
     {
         @init(&.font, 1)

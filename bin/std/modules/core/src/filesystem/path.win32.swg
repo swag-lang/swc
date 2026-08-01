@@ -68,7 +68,7 @@ func isValidFileName(fullname: string)->bool
 }
 
 // Returns the length of the root part of the path
-func getRootLength(fullname: string)->u32
+func rootLength(fullname: string)->u32
 {
     if fullname == null do
         return 0
@@ -147,7 +147,7 @@ func getRootLength(fullname: string)->u32
             }
         }
     }
-    elif pathLength >= volumeSeparatorLength and fullname[volumeSeparatorLength - 1] == VolumeSeparatorChar
+    elif pathLength >= volumeSeparatorLength and fullname[volumeSeparatorLength - 1] == VolumeSeparator
     {
         // Path is at least longer than where we expect a colon, and has a colon (\\?\A:, A:)
         // If the colon is followed by a directory separator, #move past it
@@ -160,7 +160,7 @@ func getRootLength(fullname: string)->u32
 }
 
 // Transform 'fullname' to an absolute path
-func getAbsolute(fullname: string)->String fail
+func absolute(fullname: string)->String fail
 {
     var result: retval
 

@@ -270,8 +270,8 @@ func appendCommandInvoke(buffer: [*] u8, start: u64, contractName, handlerName: 
     len = appendAst(buffer, len, "\n{\n    ")
     if !returnsVoid do
         len = appendAst(buffer, len, "return ")
-    len     = appendAst(buffer, len, handlerName)
-    len     = appendAst(buffer, len, "(")
+    len = appendAst(buffer, len, handlerName)
+    len = appendAst(buffer, len, "(")
 
     for parameter, [index] in typeFunc.parameters
     {

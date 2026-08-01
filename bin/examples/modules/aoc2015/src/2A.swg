@@ -44,7 +44,7 @@ internal func day2EnsurePresents()
     if day2PresentsLoaded do
         return
 
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "2.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "2.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     day2Presents.reserve(lines.count)

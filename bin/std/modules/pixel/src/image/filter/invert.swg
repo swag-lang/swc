@@ -6,7 +6,7 @@ impl Image
     public mtd invert()
     {
         // unsupported pixel format
-        if .pf.channels() < 3 or .pf.bitDepth() != 8 do
+        if .pixelFormat.channels() < 3 or .pixelFormat.bitDepth() != 8 do
             return
 
         var convArr: [256] u8 = undefined

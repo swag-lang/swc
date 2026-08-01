@@ -125,7 +125,7 @@ using Core
 
 func day10B()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "10.txt")
+    let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "10.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     #[Swag.Mixin]
@@ -135,7 +135,7 @@ func day10B()
             let tt = cycle % 40
             if x >= tt - 1 and x <= tt + 1 do
                 crt[cycle] = '#'u8
-            cycle          += 1
+            cycle += 1
         }
     }
 

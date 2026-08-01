@@ -71,7 +71,7 @@ func countBits(value: u32)->u32
     {
         if (bits & 1'u32) != 0'u32 do
             result += 1
-        bits       >>= 1
+        bits >>= 1
     }
 
     return result

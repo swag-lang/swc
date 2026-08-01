@@ -30,7 +30,7 @@ using Core
 
 func day10B()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "10.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "10.txt")
     var nums     = expect File.readAllText(dataPath)
     nums += [17, 31, 73, 47, 23]
 
@@ -49,8 +49,8 @@ func day10B()
             Slice.reverse(tmp.toSlice())
             for v, [i] in tmp do
                 arr[(cur + i) % 256] = v
-            cur                      = (cur + n + skip) % 256
-            skip                     += 1
+            cur  = (cur + n + skip) % 256
+            skip += 1
         }
     }
 
@@ -61,7 +61,7 @@ func day10B()
         var v = arr[i * 16]
         for [j] in 15 do
             v ^= arr[(i * 16) + j + 1]
-        res   += Format.toString("%{X}", v)
+        res += Format.toString("%{X}", v)
     }
 
     @assert(res == "62E2204D2CA4F4924F6E7A80F1288786")

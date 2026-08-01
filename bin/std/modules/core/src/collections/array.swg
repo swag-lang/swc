@@ -224,6 +224,7 @@ impl Array
 
     // Reallocates the private me.buffer to a new capacity.
     // This is a low-level memory operation that handles moving existing elements.
+    #[Swag.NoDoc]
     mtd realloc(newCapacity: u64)
     {
         if !.allocator do
@@ -291,6 +292,7 @@ impl Array
     mtd const toSlice()->const [..] T => @mkslice(.buffer, .count)
 
     #[Inline]
+    #[Swag.NoDoc]
     mtd initNewSlots(index, num: u64)
     {
         if !num do
@@ -305,6 +307,7 @@ impl Array
     // Ensures the array has enough capacity to store at least 'newCount' elements.
     // If the current capacity is insufficient, it will be increased.
     // The element me.count remains unchanged. See also [[reserve]].
+    #[Swag.NoDoc]
     mtd grow(newCount: u64)
     {
         if newCount <= .capacity do
@@ -451,7 +454,7 @@ impl Array
         }
         else
         {
-            Memory.copyOver(buffer + index + 1, buffer + index, #sizeof(T) * (.count - 1 - index))
+            Memory.copyOverlapping(buffer + index + 1, buffer + index, #sizeof(T) * (.count - 1 - index))
         }
 
         buffer[index] = #nodrop #fwd value
@@ -491,7 +494,7 @@ impl Array
         }
         else
         {
-            Memory.copyOver(buffer + index + sliceCount, buffer + index, #sizeof(T) * (.count - sliceCount - index))
+            Memory.copyOverlapping(buffer + index + sliceCount, buffer + index, #sizeof(T) * (.count - sliceCount - index))
         }
 
         #static if Reflection.hasPostCopy(T)
@@ -539,7 +542,7 @@ impl Array
         }
         else
         {
-            Memory.copyOver(buffer + index + @countof(values), buffer + index, #sizeof(T) * (.count - sliceCount - index))
+            Memory.copyOverlapping(buffer + index + @countof(values), buffer + index, #sizeof(T) * (.count - sliceCount - index))
         }
 
         #static if Reflection.hasPostMove(T)
@@ -614,7 +617,7 @@ impl Array
 
         #static if !Reflection.hasPostMove(T) and !Reflection.hasDrop(T)
         {
-            Memory.copyOver(.buffer + index, .buffer + index + num, shiftCount * #sizeof(T))
+            Memory.copyOverlapping(.buffer + index, .buffer + index + num, shiftCount * #sizeof(T))
         }
         else
         {
@@ -692,7 +695,7 @@ impl Array
         }
         else
         {
-            Memory.copyOver(.buffer + index, .buffer + index + numValues, #sizeof(T) * (.count - index))
+            Memory.copyOverlapping(.buffer + index, .buffer + index + numValues, #sizeof(T) * (.count - index))
         }
     }
 

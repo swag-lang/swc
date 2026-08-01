@@ -5,10 +5,10 @@ using Swag
 
 #test
 {
-    var rng: Random.CMWC4096
+    var rng: Random.ComplementaryMultiplyWithCarry4096
 
-    @assert(rng.i == 4096)
-    @assert(rng.c == 0)
+    @assert(rng.index == 4096)
+    @assert(rng.carry == 0)
 
     @assert(rng.nextU32() == 0xC2B9C7E2'u32)
     @assert(rng.nextU32() == 0x9B459F2F'u32)
@@ -19,14 +19,14 @@ using Swag
 
 #test
 {
-    var rng: Random.CMWC4096
+    var rng: Random.ComplementaryMultiplyWithCarry4096
     rng.seedU32(362436)
 
-    @assert(rng.i == 4095)
-    @assert(rng.c == 362436)
-    @assert(rng.q[0] == 0x45D10545'u32)
-    @assert(rng.q[1] == 0x7945A8DA'u32)
-    @assert(rng.q[4095] == 0xF7A65156'u32)
+    @assert(rng.index == 4095)
+    @assert(rng.carry == 362436)
+    @assert(rng.state[0] == 0x45D10545'u32)
+    @assert(rng.state[1] == 0x7945A8DA'u32)
+    @assert(rng.state[4095] == 0xF7A65156'u32)
 
     @assert(rng.nextU32() == 0xC2B9C7E2'u32)
     @assert(rng.nextU32() == 0x9B459F2F'u32)
@@ -37,14 +37,14 @@ using Swag
 
 #test
 {
-    var rng: Random.CMWC4096
+    var rng: Random.ComplementaryMultiplyWithCarry4096
     rng.seedU32(123456789)
 
-    @assert(rng.i == 4095)
-    @assert(rng.c == 123456789 % 809430660)
-    @assert(rng.q[0] == 0x58DADBEB'u32)
-    @assert(rng.q[1] == 0xB43A33C3'u32)
-    @assert(rng.q[4095] == 0xC6A605B4'u32)
+    @assert(rng.index == 4095)
+    @assert(rng.carry == 123456789 % 809430660)
+    @assert(rng.state[0] == 0x58DADBEB'u32)
+    @assert(rng.state[1] == 0xB43A33C3'u32)
+    @assert(rng.state[4095] == 0xC6A605B4'u32)
 
     @assert(rng.nextU32() == 0xEF915628'u32)
     @assert(rng.nextU32() == 0x39DE1647'u32)
@@ -55,14 +55,14 @@ using Swag
 
 #test
 {
-    var rng: Random.CMWC4096
+    var rng: Random.ComplementaryMultiplyWithCarry4096
     rng.seedU32(0)
 
-    @assert(rng.i == 4095)
-    @assert(rng.c == 0)
-    @assert(rng.q[0] == 0x30ED45A2'u32)
-    @assert(rng.q[1] == 0x8AF31F06'u32)
-    @assert(rng.q[4095] == 0xEF8BEF6E'u32)
+    @assert(rng.index == 4095)
+    @assert(rng.carry == 0)
+    @assert(rng.state[0] == 0x30ED45A2'u32)
+    @assert(rng.state[1] == 0x8AF31F06'u32)
+    @assert(rng.state[4095] == 0xEF8BEF6E'u32)
 
     @assert(rng.nextU32() == 0x60052E7D'u32)
     @assert(rng.nextU32() == 0xA6E1AFF3'u32)

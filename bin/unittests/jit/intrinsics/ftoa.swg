@@ -72,7 +72,7 @@ func ftoaCopy(result: [*] u8, value: f64)
         fpart *= 10
         if fpart < 1 do
             leadingZeros += 1
-        afterPoint       -= 1
+        afterPoint -= 1
     }
 
     if leadingZeros == AfterFracN do

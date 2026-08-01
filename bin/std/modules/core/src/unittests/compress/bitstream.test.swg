@@ -23,20 +23,20 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     let start         = cast(const [*] u8) @dataof(input)
 
     var stream: Compress.BitStream
-    stream.init(input)
+    stream.reset(input)
 
     @assert(stream.size() == 3)
-    @assert(stream.startPtr() == start)
-    @assert(stream.curPtr() == start)
+    @assert(stream.currentPointer() == start)
+    @assert(stream.bytePosition() == 0)
 
     @assert(stream.peekBits(4) == 0xA)
     @assert(stream.readBits(4) == 0xA)
-    @assert(stream.peekBitsNoRefill(4) == 0xC)
-    @assert(stream.readBitsNoRefill(4) == 0xC)
+    @assert(stream.peekBitsUnchecked(4) == 0xC)
+    @assert(stream.readBitsUnchecked(4) == 0xC)
     @assert(stream.readBits(8) == 0x74)
     @assert(stream.readBits(8) == 0x05)
-    @assert(stream.curPtr() == start + 3)
-    @assert(stream.eof)
+    @assert(stream.currentPointer() == start + 3)
+    @assert(stream.isEof())
 }
 
 #test
@@ -48,7 +48,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
         input[i] = cast #bit (u8) (i * 173 + 41)
 
     var stream: Compress.BitStream
-    stream.init(input)
+    stream.reset(input)
 
     let widths: [8] u8 = [1, 3, 5, 7, 9, 11, 13, 2]
     var bitPos         = 0'u64
@@ -80,7 +80,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     let input: [2] u8 = [0b11010110, 0xAB]
 
     var stream: Compress.BitStream
-    stream.init(input)
+    stream.reset(input)
 
     @assert(stream.readBits(3) == 6)
     stream.discardToNextByte()
@@ -93,13 +93,13 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     let start         = cast(const [*] u8) @dataof(input)
 
     var stream: Compress.BitStream
-    stream.init(input)
+    stream.reset(input)
     stream.refill(8)
 
-    @assert(stream.readBitsNoRefill(8) == 0xAA)
+    @assert(stream.readBitsUnchecked(8) == 0xAA)
     stream.revert()
 
-    @assert(stream.curPtr() == start + 1)
+    @assert(stream.currentPointer() == start + 1)
     @assert(stream.readBits(8) == 0xBB)
     @assert(stream.readBits(8) == 0xCC)
 }
@@ -109,7 +109,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     let input: [5] u8 = [0x10, 0x20, 0x30, 0x40, 0x50]
 
     var stream: Compress.BitStream
-    stream.init(input)
+    stream.reset(input)
 
     let expected: [3] u8 = [0x10, 0x20, 0x30]
     var bytes:    [3] u8
@@ -125,14 +125,14 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     let input: [4] u8 = [0x10, 0x20, 0x30, 0x40]
 
     var littleEndianView: Compress.BitStream
-    littleEndianView.init(input)
+    littleEndianView.reset(input)
     let expectedDirect: [4] u8 = [0x10, 0x20, 0x30, 0x40]
     var direct:         [4] u8
     littleEndianView.peek32(&direct[0])
     @assert(assertBytes(direct, expectedDirect))
 
     var bigEndianView: Compress.BitStream
-    bigEndianView.init(input)
+    bigEndianView.reset(input)
     var converted: [4] u8
     bigEndianView.peek32Be(&converted[0])
 

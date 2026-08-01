@@ -1112,7 +1112,7 @@ public impl MathExpression
     }
 
     // Original TeX-like source.
-    mtd const getSource()->string => .source.toString()
+    mtd const sourceText()->string => .source.toString()
 
     // Number of parsed nodes, useful for diagnostics and cache accounting.
     mtd const nodeCount()->u64 => .nodes.count

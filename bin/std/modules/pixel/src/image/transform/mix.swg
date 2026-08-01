@@ -6,12 +6,12 @@ impl Image
     public enum MixMode
     {
         Copy           // Replace destination pixels with source pixels.
-        AlphaBlend     // Interpolate color channels using source alpha.
+        SourceOver     // Composite straight-alpha source pixels over the destination.
     }
 
     mtd const doMix(dstImage: *Image, srcImage: Image, x, y: s32, mode = MixMode.Copy)
     {
-        Debug.assert(srcImage.pf.hasAlpha() or mode != .AlphaBlend)
+        Debug.assert(srcImage.pixelFormat.hasAlpha() or mode != .SourceOver)
 
         let mec = cast #unconst (*Image) me
         var f   = {dstImage: dstImage, srcImage: &srcImage, x: x, y: y, mode: mode}
@@ -25,8 +25,8 @@ impl Image
                 let dstImage = cast(*Image) params.dstImage
                 let srcImage = cast(const *Image) params.srcImage
 
-                var pixDst = (notnull dstImage.pixels.buffer) + x * image.bpp8
-                pixDst += cast(u64) (y * (image.width * image.bpp8))
+                var pixDst = (notnull dstImage.pixels.buffer) + x * image.bytesPerPixel
+                pixDst += cast(u64) (y * (image.width * image.bytesPerPixel))
 
                 // fast path: outside blit rect, keep pixel as-is
                 if x < params.x or y < params.y or
@@ -39,31 +39,44 @@ impl Image
                 {
                     let x1     = x - params.x
                     let y1     = y - params.y
-                    var pixSrc = (notnull srcImage.pixels.buffer) + x1 * srcImage.bpp8
-                    pixSrc += cast(u64) (y1 * (srcImage.width * srcImage.bpp8))
+                    var pixSrc = (notnull srcImage.pixels.buffer) + x1 * srcImage.bytesPerPixel
+                    pixSrc += cast(u64) (y1 * (srcImage.width * srcImage.bytesPerPixel))
 
                     switch #complete params.mode
                     {
                     case .Copy:
                         copyPixelDirect'BPP(notnull pixDst, notnull pixSrc)
 
-                    case .AlphaBlend:
+                    case .SourceOver:
                         if BPP != 32 do
                             copyPixelDirect'BPP(notnull pixDst, notnull pixSrc)
                         else
                         {
-                            let bf = pixSrc[3] / 255.0
-                            pixDst[0] = cast(u8) Math.lerp(cast(f32) pix[0], cast(f32) pixSrc[0], bf)
-                            pixDst[1] = cast(u8) Math.lerp(cast(f32) pix[1], cast(f32) pixSrc[1], bf)
-                            pixDst[2] = cast(u8) Math.lerp(cast(f32) pix[2], cast(f32) pixSrc[2], bf)
-                            pixDst[3] = pix[3]
+                            let sourceAlpha      = pixSrc[3] / 255.0
+                            let destinationAlpha = pix[3] / 255.0
+                            let outputAlpha      = sourceAlpha + destinationAlpha * (1.0 - sourceAlpha)
+                            if Math.isZeroEpsilon(outputAlpha)
+                            {
+                                dref cast(*u32) pixDst = 0
+                            }
+                            else
+                            {
+                                let destinationFactor = destinationAlpha * (1.0 - sourceAlpha)
+                                for [channel] in 3
+                                {
+                                    let value = (pixSrc[channel] * sourceAlpha + pix[channel] * destinationFactor) / outputAlpha
+                                    pixDst[channel] = cast(u8) Math.round(value)
+                                }
+
+                                pixDst[3] = cast(u8) Math.round(outputAlpha * 255.0)
+                            }
                         }
                     }
                 }
             }
         }
 
-        switch .bpp
+        switch .bitsPerPixel
         {
         case 24: doIt'24()
         case 32: doIt'32()
@@ -74,7 +87,7 @@ impl Image
     // Mix with another image
     public mtd mix(srcImage: Image, x, y: s32, mode = MixMode.Copy)
     {
-        Debug.assert(.pf == srcImage.pf, "mismatched pixel format")
+        Debug.assert(.pixelFormat == srcImage.pixelFormat, "mismatched pixel format")
         Debug.assert(.pixels.buffer != null)
         .allocWorkingBuffer()
         .doMix(.safeWorkingBuffer(), srcImage, x, y, mode)
@@ -82,11 +95,11 @@ impl Image
     }
 
     // Mix with another image
-    public mtd const toMix(srcImage: Image, x, y: s32, mode = MixMode.Copy)->Image
+    public mtd const mixed(srcImage: Image, x, y: s32, mode = MixMode.Copy)->Image
     {
         Debug.assert(.pixels.buffer != null)
-        Debug.assert(.pf == srcImage.pf, "mismatched pixel format")
-        var result: retval = create(.width, .height, .pf)
+        Debug.assert(.pixelFormat == srcImage.pixelFormat, "mismatched pixel format")
+        var result: retval = create(.width, .height, .pixelFormat)
         .doMix(&result, srcImage, x, y, mode)
         return result
     }

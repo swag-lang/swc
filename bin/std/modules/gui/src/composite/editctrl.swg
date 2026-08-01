@@ -2,17 +2,22 @@
 
 using Core, Pixel
 
-// Represents edit ctrl.
+// Pairs a descriptive label with a single-line edit box in one horizontal row.
 struct EditCtrl
 {
-    using frameWnd: FrameWnd     // Embedded frame wnd state.
-    labelSize:      f32 = 60     // Label size associated with this value.
-    editSize:       f32 = 60     // 0 to fit to parent size
+    using frameWnd: FrameWnd     // Embedded framed-window behavior and presentation.
 
-    #[Swag.Late]
-    label: *Label     // Label associated with this value.
-    #[Swag.Late]
-    edit: *EditBox     // Edit associated with this value.
+    readonly
+    {
+        labelWidth: f32 = 60     // Width reserved for the label.
+        editWidth:  f32 = 60     // Edit width, or zero to fill remaining space.
+        spacing:    f32 = 5      // Gap between label and edit box.
+
+        #[Swag.Late]
+        label: *Label     // Descriptive label owned by this control.
+        #[Swag.Late]
+        edit: *EditBox     // Edit box owned by this control.
+    }
 }
 
 impl IWnd for EditCtrl
@@ -22,24 +27,23 @@ impl IWnd for EditCtrl
         if !@isset(.label) do
             return
 
-        let rect    = .getClientRect()
-        let metrics = .getThemeMetrics()
-
-        let y = rect.vertCenter() - metrics.editBox_Height / 2
-        .label.setPosition(0, y, .labelSize, metrics.editBox_Height)
-        if .editSize == 0 do
-            .edit.setPosition(.label.position.right() + 5, y, .position.width - 5 - .labelSize, metrics.editBox_Height)
-        else do
-            .edit.setPosition(.label.position.right() + 5, y, .editSize, metrics.editBox_Height)
+        let rect   = .clientRect()
+        let height = .themeMetrics().editBox_Height
+        let y      = rect.vertCenter() - height * 0.5
+        let width  = .editWidth == 0 ? Math.max(rect.width - .spacing - .labelWidth, 0) : .editWidth
+        .label.setPosition(0, y, .labelWidth, height)
+        .edit.setPosition(.label.position.right() + .spacing, y, width, height)
     }
 }
 
 impl EditCtrl
 {
-    // Create the popup list, but: not display it
-    func create(parent: *Wnd, name: string, text: string, position: Math.Rectangle = {}, id: #null WndId = null, flags: EditBoxFlags = Zero)->*EditCtrl
+    // Creates a labelled single-line edit box.
+    #[Swag.Discardable]
+    func create(parent: *Wnd, name: #null string, text: #null string, position: Math.Rectangle = {}, id: #null WndId = null, flags: EditBoxFlags = .None)->*EditCtrl
     {
-        let metrics = parent.getThemeMetrics()
+        Debug.assert(parent != null)
+        let metrics = parent.themeMetrics()
         var pos     = position
         if pos.width == 0 do
             pos.width = metrics.editBox_Width * 2
@@ -48,12 +52,24 @@ impl EditCtrl
 
         with let ctrl = Wnd.create'EditCtrl(parent, pos, id)
         {
-            .label                   = Label.create(ctrl, name, {})
-            .label.horzAlignmentText = .Right
-            .edit                    = EditBox.create(ctrl, text, {}, flags: flags)
+            .label = Label.create(ctrl, name)
+            .label.setTextHorizontalAlignment(.Right)
+            .edit = EditBox.create(ctrl, text, flags: flags)
             .sendResizeEvent()
         }
 
         return ctrl
+    }
+
+    // Changes label width, edit width, and spacing, then reapplies layout.
+    mtd setLayoutMetrics(labelWidth, editWidth, spacing: f32 = 5)
+    {
+        Debug.assert(labelWidth >= 0 and editWidth >= 0 and spacing >= 0, "layout metrics cannot be negative")
+        if .labelWidth == labelWidth and .editWidth == editWidth and .spacing == spacing do
+            return
+        .labelWidth = labelWidth
+        .editWidth  = editWidth
+        .spacing    = spacing
+        .sendResizeEvent()
     }
 }

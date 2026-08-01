@@ -25,7 +25,7 @@ struct TgaH
     originY:        u16
     width:          u16
     height:         u16
-    bpp:            u8
+    bitsPerPixel:   u8
     descriptorByte: u8
 }
 
@@ -49,7 +49,7 @@ func addTgaImageHeader(cb: *ConcatBuffer, imageType, bpp, descriptor: u8, width,
     h.imageTypeCode  = imageType
     h.width          = width
     h.height         = height
-    h.bpp            = bpp
+    h.bitsPerPixel   = bpp
     h.descriptorByte = descriptor
     cb.addStruct(h)
 }
@@ -94,7 +94,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(err2 == null)
     @assert(img.width == 2)
     @assert(img.height == 2)
-    @assert(img.pf == .BGR8)
+    @assert(img.pixelFormat == .BGR8)
     @assert((notnull img.pixels.buffer)[0] == 10'u8)
     @assert((notnull img.pixels.buffer)[1] == 20'u8)
     @assert((notnull img.pixels.buffer)[2] == 30'u8)
@@ -112,7 +112,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(rgb.isValid())
     @assert(rgb.width == 660)
     @assert(rgb.height == 441)
-    @assert(rgb.pf == .BGR8)
+    @assert(rgb.pixelFormat == .BGR8)
     @assert(rgb.pixels.count == 873180)
     @assert((notnull rgb.pixels.buffer)[0] == 201'u8)
     @assert((notnull rgb.pixels.buffer)[1] == 205'u8)
@@ -124,7 +124,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(rgba.isValid())
     @assert(rgba.width == 660)
     @assert(rgba.height == 441)
-    @assert(rgba.pf == .BGRA8)
+    @assert(rgba.pixelFormat == .BGRA8)
     @assert(rgba.pixels.count == 1164240)
     @assert((notnull rgba.pixels.buffer)[0] == 201'u8)
     @assert((notnull rgba.pixels.buffer)[1] == 205'u8)
@@ -141,7 +141,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(rle24.isValid())
     @assert(rle24.width == 660)
     @assert(rle24.height == 441)
-    @assert(rle24.pf == .BGR8)
+    @assert(rle24.pixelFormat == .BGR8)
     @assert((notnull rle24.pixels.buffer)[0] == 201'u8)
     @assert((notnull rle24.pixels.buffer)[1] == 205'u8)
     @assert((notnull rle24.pixels.buffer)[2] == 194'u8)
@@ -152,7 +152,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(rle32.isValid())
     @assert(rle32.width == 660)
     @assert(rle32.height == 441)
-    @assert(rle32.pf == .BGRA8)
+    @assert(rle32.pixelFormat == .BGRA8)
     @assert((notnull rle32.pixels.buffer)[0] == 201'u8)
     @assert((notnull rle32.pixels.buffer)[1] == 205'u8)
     @assert((notnull rle32.pixels.buffer)[2] == 194'u8)
@@ -174,7 +174,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     h.imageTypeCode = TGA_TYPE_RGB
     h.width         = 1'u16
     h.height        = 1'u16
-    h.bpp           = 24'u8
+    h.bitsPerPixel  = 24'u8
     cb.addStruct(h)
     cb.addNative(73'u8)
     cb.addNative(68'u8)
@@ -270,7 +270,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     var img: Image
     img = catch Image.load(path.toString()) as err14
     @assert(err14 == null)
-    @assert(img.pf == .BGRA8)
+    @assert(img.pixelFormat == .BGRA8)
     @assert((notnull img.pixels.buffer)[0] == 0'u8)
     @assert((notnull img.pixels.buffer)[1] == 0'u8)
     @assert((notnull img.pixels.buffer)[2] == 255'u8)
@@ -300,7 +300,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     var img: Image
     img = catch Image.load(path.toString()) as err16
     @assert(err16 == null)
-    @assert(img.pf == .BGR8)
+    @assert(img.pixelFormat == .BGR8)
     @assert((notnull img.pixels.buffer)[0] == 5'u8)
     @assert((notnull img.pixels.buffer)[1] == 5'u8)
     @assert((notnull img.pixels.buffer)[2] == 5'u8)
@@ -327,7 +327,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     h.colorMapBpp    = 24'u8
     h.width          = 2'u16
     h.height         = 1'u16
-    h.bpp            = 8'u8
+    h.bitsPerPixel   = 8'u8
     cb.addStruct(h)
     addTgaPaletteColor(&cb, 10, 20, 30)
     addTgaPaletteColor(&cb, 40, 50, 60)
@@ -339,7 +339,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     var img: Image
     img = catch Image.load(path.toString()) as err18
     @assert(err18 == null)
-    @assert(img.pf == .BGR8)
+    @assert(img.pixelFormat == .BGR8)
     @assert((notnull img.pixels.buffer)[0] == 10'u8)
     @assert((notnull img.pixels.buffer)[1] == 20'u8)
     @assert((notnull img.pixels.buffer)[2] == 30'u8)
@@ -365,7 +365,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     h.colorMapBpp    = 32'u8
     h.width          = 1'u16
     h.height         = 1'u16
-    h.bpp            = 8'u8
+    h.bitsPerPixel   = 8'u8
     cb.addStruct(h)
     cb.addNative(3'u8); cb.addNative(4'u8); cb.addNative(5'u8); cb.addNative(6'u8)
     cb.addNative(0'u8)
@@ -376,7 +376,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     var img: Image
     img = catch Image.load(path.toString()) as err20
     @assert(err20 == null)
-    @assert(img.pf == .BGRA8)
+    @assert(img.pixelFormat == .BGRA8)
     @assert((notnull img.pixels.buffer)[0] == 3'u8)
     @assert((notnull img.pixels.buffer)[1] == 4'u8)
     @assert((notnull img.pixels.buffer)[2] == 5'u8)
@@ -426,7 +426,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     h.colorMapBpp    = 24'u8
     h.width          = 3'u16
     h.height         = 1'u16
-    h.bpp            = 8'u8
+    h.bitsPerPixel   = 8'u8
     cb.addStruct(h)
     addTgaPaletteColor(&cb, 1, 2, 3)
     addTgaPaletteColor(&cb, 4, 5, 6)
@@ -484,7 +484,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(err27 == null)
     @assert(img.width == 2)
     @assert(img.height == 2)
-    @assert(img.pf == .BGR8)
+    @assert(img.pixelFormat == .BGR8)
     @assert(!img.isValid())
 }
 
@@ -568,7 +568,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     var img: Image
     img = catch Image.load(path.toString()) as err35
     @assert(err35 == null)
-    @assert(img.pf == .BGR8)
+    @assert(img.pixelFormat == .BGR8)
     @assert((notnull img.pixels.buffer)[0] == 30'u8)
     @assert((notnull img.pixels.buffer)[1] == 20'u8)
     @assert((notnull img.pixels.buffer)[2] == 10'u8)
@@ -598,7 +598,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(bytes != null)
     let h = cast(const *TgaH) @dataof(bytes)
     @assert(h.imageTypeCode == TGA_TYPE_RGB)
-    @assert(h.bpp == 32'u8)
+    @assert(h.bitsPerPixel == 32'u8)
     @assert(h.descriptorByte == 8'u8)
 
     discard catch File.writeAllBytes(path.toString(), cb) as err37
@@ -607,7 +607,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     var img: Image
     img = catch Image.load(path.toString()) as err38
     @assert(err38 == null)
-    @assert(img.pf == .BGRA8)
+    @assert(img.pixelFormat == .BGRA8)
     @assert((notnull img.pixels.buffer)[0] == 3'u8)
     @assert((notnull img.pixels.buffer)[1] == 2'u8)
     @assert((notnull img.pixels.buffer)[2] == 1'u8)
@@ -649,7 +649,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     var img = catch Image.decode("encoded-rle.tga", bytes, {}) as err40
     @assert(err40 == null)
-    @assert(img.pf == .BGR8)
+    @assert(img.pixelFormat == .BGR8)
     @assert(Memory.compare(src.pixels.buffer, img.pixels.buffer, src.pixels.count) == 0)
 }
 
@@ -680,7 +680,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     let img = catch Image.decode("encoded-rle-alpha.tga", bytes, {}) as err42
     @assert(err42 == null)
-    @assert(img.pf == .BGRA8)
+    @assert(img.pixelFormat == .BGRA8)
     @assert((notnull img.pixels.buffer)[0] == 3'u8)
     @assert((notnull img.pixels.buffer)[1] == 2'u8)
     @assert((notnull img.pixels.buffer)[2] == 1'u8)

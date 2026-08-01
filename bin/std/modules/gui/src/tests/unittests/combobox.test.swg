@@ -17,6 +17,30 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
     ComboHeadlessLastIdx      = idx
 }
 
+// Removing items preserves order, adjusts later selections, and clears a removed selection.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 80)
+
+    let combo = ComboBox.create(&host.root, {20, 20, 160, 26}, mode: .Editable)
+    combo.addItem("One")
+    combo.addItem("Two")
+    combo.addItem("Three")
+    combo.setSelectedIndex(2, notify: false)
+
+    combo.removeItemAt(0)
+    @assert(combo.items.count == 2 and combo.selectedIndex == 1)
+    @assert((notnull combo.selectedItem()).name.raw == "Three")
+    @assert((notnull combo.editBox).text() == "Three")
+
+    combo.removeItemAt(1)
+    @assert(combo.items.count == 1 and combo.selectedIndex == Swag.U32.Max)
+    @assert(combo.selectedItem() == null and @countof((notnull combo.editBox).text()) == 0)
+
+    host.shutdown()
+}
+
 // Selecting an item emits sigChanged + a command carrying the item id.
 #test
 {
@@ -33,27 +57,27 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
     combo.addItem("Three", ComboHeadless_Item3)
 
     @assert(combo.items.count == 3)
-    @assert(combo.selectedIdx == Swag.U32.Max)
+    @assert(combo.selectedIndex == Swag.U32.Max)
 
-    combo.selectItem(1)
+    combo.setSelectedIndex(1)
     host.pump()
-    @assert(combo.selectedIdx == 1)
+    @assert(combo.selectedIndex == 1)
     @assert(ComboHeadlessChangedCount == 1)
     @assert(ComboHeadlessLastIdx == 1)
-    @assert((notnull combo.getSelectedItem()).name.raw == "Two")
+    @assert((notnull combo.selectedItem()).name.raw == "Two")
     @assert(host.commandCount == 1)
     @assert(host.lastCommand == ComboHeadless_Item2)
 
     // Selecting the same index again is a no-op.
-    combo.selectItem(1)
+    combo.setSelectedIndex(1)
     host.pump()
     @assert(ComboHeadlessChangedCount == 1)
     @assert(host.commandCount == 1)
 
-    // Out-of-range index deselects (signal with U32.Max, no command).
-    combo.selectItem(99)
+    // Clearing the selection emits U32.Max without posting an item command.
+    combo.clearSelection()
     host.pump()
-    @assert(combo.selectedIdx == Swag.U32.Max)
+    @assert(combo.selectedIndex == Swag.U32.Max)
     @assert(ComboHeadlessChangedCount == 2)
     @assert(ComboHeadlessLastIdx == Swag.U32.Max)
     @assert(host.commandCount == 1)
@@ -61,7 +85,7 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
     host.shutdown()
 }
 
-// clear() empties the item list.
+// clear() empties the item list and resets all selection state silently.
 #test
 {
     var host: Testing.HeadlessHost
@@ -70,10 +94,13 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
     let combo = ComboBox.create(&host.root, {20, 20, 160, 26})
     combo.addItem("One")
     combo.addItem("Two")
+    combo.setSelectedIndex(1)
     @assert(combo.items.count == 2)
 
     combo.clear()
     @assert(combo.items.count == 0)
+    @assert(combo.selectedIndex == Swag.U32.Max)
+    @assert(combo.selectedItem() == null)
 
     host.shutdown()
 }
@@ -84,14 +111,14 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
     var host: Testing.HeadlessHost
     host.setup(240, 80)
 
-    let combo = ComboBox.create(&host.root, {20, 20, 160, 26}, null, ComboBoxKind.Edit)
+    let combo = ComboBox.create(&host.root, {20, 20, 160, 26}, null, ComboBoxMode.Editable)
     @assert(combo.editBox != null)
     combo.addItem("Alpha")
     combo.addItem("Beta")
 
-    combo.selectItem(1)
+    combo.setSelectedIndex(1)
     host.pump()
-    @assert((notnull combo.editBox).getText() == "Beta")
+    @assert((notnull combo.editBox).text() == "Beta")
 
     host.shutdown()
 }
@@ -113,27 +140,27 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
 
     // First Down selects the first item.
     host.keyPress(Input.Key.Down)
-    @assert(combo.selectedIdx == 0)
+    @assert(combo.selectedIndex == 0)
 
     host.keyPress(Input.Key.Down)
-    @assert(combo.selectedIdx == 1)
+    @assert(combo.selectedIndex == 1)
 
     // Down skips the separator at index 2 and lands on index 3.
     host.keyPress(Input.Key.Down)
-    @assert(combo.selectedIdx == 3)
+    @assert(combo.selectedIndex == 3)
 
     // No wrap-around at the end.
     host.keyPress(Input.Key.Down)
-    @assert(combo.selectedIdx == 3)
+    @assert(combo.selectedIndex == 3)
 
     // Up skips the separator back to index 1.
     host.keyPress(Input.Key.Up)
-    @assert(combo.selectedIdx == 1)
+    @assert(combo.selectedIndex == 1)
 
     host.keyPress(Input.Key.Home)
-    @assert(combo.selectedIdx == 0)
+    @assert(combo.selectedIndex == 0)
     host.keyPress(Input.Key.End)
-    @assert(combo.selectedIdx == 3)
+    @assert(combo.selectedIndex == 3)
 
     host.shutdown()
 }

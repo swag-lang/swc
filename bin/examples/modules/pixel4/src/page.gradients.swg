@@ -84,7 +84,7 @@ func drawGradientTextCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 
     let back      = Math.Rectangle{body.x + 26, body.y + 18, body.width - 52, body.height - 42}
     var backBrush = Brush.createLinearGradient(back.x, back.y, back.right(), back.bottom(), Argb.DeepSkyBlue, Argb.Goldenrod)
-    backBrush.setOpacityf(0.32)
+    backBrush.setOpacityF32(0.32)
     painter.fillRoundRect(back, 22, 22, backBrush)
 
     let glowCenter = Math.Vector2{body.horzCenter(), body.vertCenter()}
@@ -96,7 +96,7 @@ func drawGradientTextCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     brush.addGradientStop(0.45, Argb.Goldenrod)
     brush.multiplyTint(Color.fromArgb(235'u8, Argb.White))
     painter.drawString(x, y, text, notnull g_TitleFont, brush)
-    painter.drawString(body.x + 22, body.bottom() - 28, "setOpacityf + multiplyTint + drawString", notnull g_HelpFont, Argb.DimGray)
+    painter.drawString(body.x + 22, body.bottom() - 28, "setOpacityF32 + multiplyTint + drawString", notnull g_HelpFont, Argb.DimGray)
 }
 
 func drawGradientsPage(painter: *Pixel.Painter)

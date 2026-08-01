@@ -44,7 +44,7 @@ impl Decoder
                 {
                     if p[Zag[cast(u32) i]] do
                         p[Zag[cast(u32) i]] *= q[cast(u32) i]
-                    i                       -= 1
+                    i -= 1
                 }
 
                 rowBlock += 1
@@ -573,7 +573,7 @@ impl Decoder
                 }
 
                 if (cde & 0x8000) == 0 do
-                    currentEntry           -= 1
+                    currentEntry -= 1
                 hs.tree[-currentEntry - 1] = i
             }
 

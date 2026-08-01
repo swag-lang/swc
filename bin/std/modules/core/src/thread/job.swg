@@ -2,30 +2,34 @@
 
 using Threading, Swag
 
-// Selects job state.
+// Tracks internal scheduler state for one job.
 #[Swag.EnumFlags]
-public enum JobState
+enum JobState
 {
-    Zero      = 0x00000000     // No flags are enabled.
-    InPending = 0x00000001     // Selects in pending.
-    Done      = 0x00000002     // Selects done.
+    Zero    = 0x00000000
+    Pending = 0x00000001
+    Done    = 0x00000002
 }
 
-// Represents job.
+// Describes one callback that can be submitted to the global job scheduler.
+//
+// Keep the value alive until [[Core.Jobs.wait]] or [[Core.Jobs.waitAll]] has
+// completed. The scheduler borrows both the job and `data`; it owns neither.
 public struct Job
 {
-    lambda: #null func(#null *void)     // Lambda associated with this value.
-    data:   #null *void                 // Data associated with this value.
+    lambda: #null func(#null *void)     // Callback invoked once, or `null` for a no-op job.
+    data:   #null *void                 // Opaque caller-owned context passed to `lambda`.
 
     // Scheduling state, owned by the job manager that runs the job.
     internal
     {
-        state:        JobState = .Zero            // Where the job is in its lifecycle.
-        pendingIndex: u32      = Swag.U32.Max     // Slot of the job in the pending list.
+        state:        u32 = 0                // Encoded scheduler state.
+        pendingIndex: u32 = Swag.U32.Max     // Slot of the job in the pending list.
     }
 }
 
-// Represents slice job.
+// Expansion-only storage used by [[Core.Jobs.parallelVisit]].
+#[Swag.NoDoc]
 public struct(T) SliceJob
 {
     using base:  Job                    // Embedded base state.
@@ -34,7 +38,8 @@ public struct(T) SliceJob
     contextData: #null *void            // Context data associated with this value.
 }
 
-// Represents for job.
+// Expansion-only storage used by [[Core.Jobs.parallelFor]].
+#[Swag.NoDoc]
 public struct ForJob
 {
     using base:  Job             // Embedded base state.
@@ -45,7 +50,7 @@ public struct ForJob
 
 var g_Allocator:        #null Swag.IAllocator
 var g_mustEnd:          bool
-var g_numWorkers:       s32
+var g_workerCount:      s32
 var g_workers:          Array'Thread
 var g_pendingJobs:      Array'(*Job)
 var g_mutexPendingJobs: Sync.Mutex
@@ -55,11 +60,11 @@ var g_totalJobs:        u32
 
 #drop
 {
-    if g_numWorkers
+    if g_workerCount
     {
         g_mustEnd = true
         g_eventPendingJobs.signal()
-        while Atomic.get(&g_numWorkers) {}
+        while Atomic.get(&g_workerCount) {}
 
         for &th in g_workers do
             th.wait()
@@ -76,7 +81,7 @@ func workerEntry(_th: Thread)
         g_eventPendingJobs.wait()
     }
 
-    Atomic.add(&g_numWorkers, -1)
+    Atomic.add(&g_workerCount, -1)
     g_eventPendingJobs.signal()
 }
 
@@ -91,7 +96,7 @@ func runJob(job: *Job)
 
     // Done
     Sync.scopedLock(&g_mutexPendingJobs)
-    setState(job, JobState.Done)
+    setState(job, .Done)
     Debug.assert(g_totalJobs != 0)
     g_totalJobs -= 1
     if g_totalJobs == 0 do
@@ -113,8 +118,8 @@ func getJobToExec()->#null *Job
     if g_pendingJobs.isEmpty() do
         return null
     let job = g_pendingJobs.popBack()
-    Debug.assert(job.testState(JobState.InPending))
-    job.clearState(JobState.InPending)
+    Debug.assert(job.testState(.Pending))
+    job.clearState(.Pending)
     return job
 }
 
@@ -123,26 +128,29 @@ func removeJobNoLock(job: *Job)
     g_pendingJobs.removeAt(cast(u64) job.pendingIndex)
     if job.pendingIndex < g_pendingJobs.count do
         g_pendingJobs[job.pendingIndex].pendingIndex = job.pendingIndex
-    job.pendingIndex                                 = Swag.U32.Max
-    job.clearState(JobState.InPending)
+    job.pendingIndex = Swag.U32.Max
+    job.clearState(.Pending)
 }
 
 #[Swag.Discardable]
-func clearState(job: *Job, state: JobState) => Atomic.logicAnd(cast(*u32) &job.state, cast(u32) ~state)
+func clearState(job: *Job, state: JobState) => Atomic.logicAnd(&job.state, ~cast(u32) state)
 #[Swag.Discardable]
-func setState(job: *Job, state: JobState)  => Atomic.logicOr(cast(*u32) &job.state, cast(u32) state)
-func testState(job: *Job, state: JobState) => Atomic.get(cast(*u32) &job.state) & cast(u32) state != 0
+func setState(job: *Job, state: JobState)  => Atomic.logicOr(&job.state, cast(u32) state)
+func testState(job: *Job, state: JobState) => Atomic.get(&job.state) & cast(u32) state != 0
 
-// Returns true is the job system has been initialized
-public func isSynchrone()->bool => g_numWorkers == 0
+// Returns whether jobs execute synchronously on a waiting thread.
+public func isSynchronous()->bool => g_workerCount == 0
 
-// Returns number of threads in the job system
-public func getNumWorkers()->u32 => cast(u32) g_numWorkers
+// Returns the number of active worker threads.
+public func workerCount()->u32 => cast(u32) g_workerCount
 
-// Set the number of worker threads. Must be done once
-public func setNumWorkers(numWorkers: u32 = 0) fail
+// Initializes the global scheduler with a fixed worker count.
+//
+// Pass zero to use the host processor count. Call this once, before submitting
+// jobs; otherwise the scheduler remains synchronous.
+public func initialize(workerCount: u32 = 0) fail
 {
-    Debug.assert(g_numWorkers == 0)
+    Debug.assert(g_workerCount == 0)
 
     g_Allocator             = @getcontext().allocator
     g_workers.allocator     = g_Allocator
@@ -151,20 +159,20 @@ public func setNumWorkers(numWorkers: u32 = 0) fail
     g_eventPendingJobs.init()
     g_eventDone.init(true, true)
 
-    g_numWorkers = numWorkers != 0 ? numWorkers : Hardware.getProcessorCount()
-    g_workers.resize(cast(u64) g_numWorkers)
+    g_workerCount = workerCount != 0 ? workerCount : Hardware.processorCount()
+    g_workers.resize(cast(u64) g_workerCount)
     for &th in g_workers do
         try th.init(&workerEntry)
     for &th in g_workers do
         try th.start()
 }
 
-// Schedule a job to execute
-public func scheduleJob(job: *Job)
+// Submits a borrowed job for one execution.
+public func schedule(job: *Job)
 {
     Sync.scopedLock(&g_mutexPendingJobs)
-    job.clearState(JobState.Done)
-    job.setState(JobState.InPending)
+    job.clearState(.Done)
+    job.setState(.Pending)
     g_totalJobs += 1
     g_eventDone.reset()
     job.pendingIndex = cast(u32) g_pendingJobs.count
@@ -172,24 +180,24 @@ public func scheduleJob(job: *Job)
     g_eventPendingJobs.signal()
 }
 
-// Wait for all registered jobs to be finished
-public func waitDone()
+// Executes available work and waits until every submitted job has completed.
+public func waitAll()
 {
     while peekExecJob() {}
     g_eventDone.wait()
 }
 
-// Wait for a given job to be finished
-public func waitJob(job: *Job)
+// Executes available work and waits until `job` has completed.
+public func wait(job: *Job)
 {
     // Fast exit, without lock
-    if job.testState(JobState.Done) do
+    if job.testState(.Done) do
         return
 
     g_mutexPendingJobs.lock()
 
     // Job already done
-    if job.testState(JobState.Done)
+    if job.testState(.Done)
     {
         g_mutexPendingJobs.unlock()
         return
@@ -197,7 +205,7 @@ public func waitJob(job: *Job)
 
     // Job still in pending list, we can execute it right away
     // and leave
-    if job.testState(JobState.InPending)
+    if job.testState(.Pending)
     {
         removeJobNoLock(job)
         g_mutexPendingJobs.unlock()
@@ -208,7 +216,7 @@ public func waitJob(job: *Job)
     // Here, job is being processed by another thread, so we participate
     // to job execution until done flag is set
     g_mutexPendingJobs.unlock()
-    while !job.testState(JobState.Done)
+    while !job.testState(.Done)
     {
         discard peekExecJob()
     }
@@ -247,23 +255,23 @@ public func(T) parallelVisit(range: [..] T, offset: u32 = 1, contextData: #null 
     }
 
     // Force synchronous execution if range is too small
-    let wh         = @countof(range) / offset
-    let numWorkers = Math.min(getNumWorkers(), cast(u32) wh)
-    if isSynchrone() or numWorkers <= 1
+    let wh      = @countof(range) / offset
+    let workers = Math.min(workerCount(), cast(u32) wh)
+    if isSynchronous() or workers <= 1
     {
         visitSlice(range, offset, contextData)
         return
     }
 
     // Compute size of each chunk (and size of the last one)
-    var splitSize     = wh / numWorkers
-    var lastSplitSize = splitSize + (wh - (splitSize * numWorkers))
+    var splitSize     = wh / workers
+    var lastSplitSize = splitSize + (wh - (splitSize * workers))
     splitSize     *= offset
     lastSplitSize *= offset
 
     // Launch jobs
     var sliceJobs: Array'(SliceJob'T)
-    sliceJobs.resize(cast(u64) numWorkers)
+    sliceJobs.resize(cast(u64) workers)
 
     var ptr = @dataof(range)
     for &j in sliceJobs
@@ -277,12 +285,12 @@ public func(T) parallelVisit(range: [..] T, offset: u32 = 1, contextData: #null 
         j.buffer      = @mkslice(ptr, sizeSlice)
         ptr           += sizeSlice
 
-        scheduleJob(j)
+        schedule(j)
     }
 
     // Sync
     for &j in sliceJobs do
-        waitJob(j)
+        wait(j)
 }
 
 // Do a for in parallel chunks.
@@ -313,20 +321,20 @@ public func parallelFor(count: u32, contextData: #null *void = null, stmt: #code
     }
 
     // Force synchronous execution if range is too small
-    let numWorkers = Math.min(getNumWorkers(), count)
-    if isSynchrone() or numWorkers <= 1
+    let workers = Math.min(workerCount(), count)
+    if isSynchronous() or workers <= 1
     {
         visitFor(0, count - 1, contextData)
         return
     }
 
     // Compute size of each chunk (and size of the last one)
-    let splitSize     = count / numWorkers
-    let lastSplitSize = splitSize + (count - (splitSize * numWorkers))
+    let splitSize     = count / workers
+    let lastSplitSize = splitSize + (count - (splitSize * workers))
 
     // Launch jobs
     var sliceJobs: Array'ForJob
-    sliceJobs.resize(cast(u64) numWorkers)
+    sliceJobs.resize(cast(u64) workers)
 
     var startIndex = 0'u32
     for &j in sliceJobs
@@ -340,10 +348,10 @@ public func parallelFor(count: u32, contextData: #null *void = null, stmt: #code
         j.contextData = contextData
         startIndex    += sizeSlice
 
-        scheduleJob(j)
+        schedule(j)
     }
 
     // Sync
     for &j in sliceJobs do
-        waitJob(j)
+        wait(j)
 }

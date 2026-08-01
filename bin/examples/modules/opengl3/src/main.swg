@@ -130,7 +130,7 @@ impl Mat4
             {
                 var sum = 0'f32
                 for [k] in 4 do
-                    sum            += a.m[k * 4 + row] * b.m[col * 4 + k]
+                    sum += a.m[k * 4 + row] * b.m[col * 4 + k]
                 r.m[col * 4 + row] = sum
             }
         }
@@ -228,7 +228,7 @@ func createProgram()
 
 func display()
 {
-    g_Angle += g_Frame.dt
+    g_Angle += g_Frame.deltaSeconds
 
     glViewport(0, 0, g_Width, g_Height)
     glClearColor(0.06, 0.07, 0.10, 1)

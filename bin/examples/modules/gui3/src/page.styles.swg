@@ -77,7 +77,7 @@ func createStylesPage(parent: *Wnd)
 
     let left = createPanel(parent, "Narrative spans", "Foreground, background, weight and underline can all be mixed in one flowing document.", layout.left)
     {
-        let rect = left.getClientRect()
+        let rect = left.clientRect()
         let ed   = createDocumentEditor(left, {18, 88, rect.width - 36, rect.height - 106}, "", .ShowFocusSel | .WordWrap)
         ed.lineSpacing = 2
         fillNarrativeEditor(ed)
@@ -85,7 +85,7 @@ func createStylesPage(parent: *Wnd)
 
     let right = createPanel(parent, "Semantic palette", "Read-only rich text is handy for summaries, diagnostics and inline metadata.", layout.right)
     {
-        let rect = right.getClientRect()
+        let rect = right.clientRect()
         let ed   = createDemoEditor(right, {18, 88, rect.width - 36, rect.height - 106}, .ShowFocusSel | .ReadOnly | .WordWrap, .Edit)
         ed.marginLeft  = 18
         ed.marginRight = 18
@@ -95,7 +95,7 @@ func createStylesPage(parent: *Wnd)
 
     let bottom = createPanel(parent, "Styled log", "A single document can read like a live stream once styles are assigned meaningful roles.", layout.bottom)
     {
-        let rect = bottom.getClientRect()
+        let rect = bottom.clientRect()
         let ed   = createDemoEditor(bottom, {20, 92, rect.width - 40, rect.height - 112}, .ShowFocusSel | .ReadOnly | .WordWrap)
         ed.marginLeft  = 18
         ed.marginRight = 18

@@ -46,7 +46,7 @@ func day6B()
 /////////////////////////////////////////////////////////////////
 func day6B0()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "6.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "6.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     var count:      [26] s32
@@ -86,7 +86,7 @@ Disabled in the examples workspace. Two things must be fixed before re-enabling 
 
 func day6B1()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "6.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "6.txt")
     let lines    = assume File.readAllLines(dataPath)
 
     var total:    u64

@@ -1,19 +1,19 @@
-// Represents action context.
+// Identifies the window and command currently evaluated by an action.
 public struct ActionContext
 {
-    wnd: #null *Wnd     // Wnd associated with this value.
-    id:  WndId          // Id associated with this value.
+    wnd: #null *Wnd     // Window receiving the command, when available.
+    id:  WndId          // Command identifier.
 }
 
-// Defines the operations supported by i action ui.
+// Handles command discovery, presentation-state updates, and execution.
 public interface IActionUI
 {
-    // Performs the accept operation.
+    // Reports whether this action handles the command in `context`.
     mtd accept(cxt: ActionContext)->bool
 
-    // Performs the update operation.
+    // Updates presentation state for an accepted command.
     mtd update(cxt: ActionContext, evt: *CommandStateEvent)->bool
 
-    // Performs the execute operation.
+    // Executes an accepted command.
     mtd execute(cxt: ActionContext)->bool
 }

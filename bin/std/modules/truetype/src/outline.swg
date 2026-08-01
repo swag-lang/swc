@@ -29,16 +29,52 @@ public struct OutlineCommand
 // by the next glyph load.
 public struct Outline
 {
-    contourCount: s16                  // Number of closed contours.
-    pointCount:   s16                  // Total number of outline points.
-    points:       #null [*] Vector     // Borrowed point array, or null when empty.
-    tags:         #null [*] u8         // Borrowed point-tag array, or null when empty.
-    contours:     #null [*] s16        // Borrowed inclusive contour-end indices.
-    flags:        s32                  // Reserved outline flags; currently zero.
+    // The face owns the arrays and their shape. Public outline methods may mutate
+    // the pointed-to coordinates without allowing callers to replace the view.
+    readonly
+    {
+        contourCount: s16                  // Number of closed contours.
+        pointCount:   s16                  // Total number of outline points.
+        points:       #null [*] Vector     // Borrowed point array, or null when empty.
+        tags:         #null [*] u8         // Borrowed point-tag array, or null when empty.
+        contours:     #null [*] s16        // Borrowed inclusive contour-end indices.
+        flags:        s32                  // Reserved outline flags; currently zero.
+    }
 }
 
 public impl Outline
 {
+    internal func borrowed(points: #null [*] Vector, tags: #null [*] u8, contours: #null [*] s16, pointCount, contourCount: s16)->Outline
+    {
+        var result: retval
+        result.points       = points
+        result.tags         = tags
+        result.contours     = contours
+        result.pointCount   = pointCount
+        result.contourCount = contourCount
+        return result
+    }
+
+    internal mtd reset()
+    {
+        .contourCount = 0
+        .pointCount   = 0
+        .points       = null
+        .tags         = null
+        .contours     = null
+        .flags        = 0
+    }
+
+    internal mtd setView(points: #null [*] Vector, tags: #null [*] u8, contours: #null [*] s16, pointCount, contourCount: s16)
+    {
+        .points       = points
+        .tags         = tags
+        .contours     = contours
+        .pointCount   = pointCount
+        .contourCount = contourCount
+        .flags        = 0
+    }
+
     // Translates every point by a 26.6 fixed-point offset.
     mtd translate(xOffset, yOffset: s32)
     {

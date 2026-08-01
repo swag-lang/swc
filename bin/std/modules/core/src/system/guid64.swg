@@ -1,11 +1,13 @@
 #global public
 
-// Thread-local storage for random number generation and GUID counter.
+using Core.Errors
+
+// Thread-local storage for identifier generation.
 #[Swag.Tls]
 {
-    private var g_Rng: Random.Mt64     // Mersenne Twister 64-bit random number generator
-    private var g_RngInit: bool        // Flag indicating whether the RNG has been initialized
-    private var g_Counter: u32         // Thread-local counter for timestamp-based GUIDs
+    private var g_Rng: Random.MersenneTwister64     // Mersenne Twister 64-bit random number generator
+    private var g_RngInit: bool                     // Flag indicating whether the RNG has been initialized
+    private var g_Counter: u32                      // Thread-local counter for timestamp-based GUIDs
 }
 
 // Initialize the random number generator with high-entropy seed.
@@ -16,37 +18,40 @@ private func initRng()
     if !g_RngInit
     {
         var seed: [3] u64 = undefined
-        seed[0] = Time.nowMilliseconds()
-        seed[1] = Time.nowMicroseconds()
-        seed[2] = Hardware.getMacAddress()
+        seed[0] = Time.monotonicMilliseconds()
+        seed[1] = Time.monotonicMicroseconds()
+        seed[2] = Hardware.macAddress()
         g_Rng.seedU64(seed)
         g_RngInit = true
     }
 }
 
-// A 64-bit Globally Unique Identifier structure.
-// Provides compact GUID generation with multiple entropy strategies for different use cases.
+// Stores a compact 64-bit identifier.
+//
+// Unlike [[Core.Guid128]], a random `Guid64` cannot provide UUID-level collision
+// resistance. Use it for local object identities and temporary names, not as a
+// security token or a globally coordinated database key.
 #[Swag.Operators(opEquals)]
-struct GUID64
+struct Guid64
 {
-    guid: u64     // 64-bit unique identifier value
+    readonly value: u64     // Raw 64-bit representation.
 }
 
-impl GUID64
+impl Guid64
 {
-    // Get a timestamp-based GUID64 with minimal collision risk
-    // Structure: 32-bit timestamp + 16-bit microseconds + 12-bit counter + 4-bit random
-    func getTimestamp()->GUID64
+    // Creates an identifier containing seconds, milliseconds, a thread-local counter, and randomness.
+    func timestamped()->Guid64
     {
         initRng()
 
         var result: retval = undefined
-        let nowMs          = Time.nowMilliseconds()
-        let nowUs          = Time.nowMicroseconds()
+        let now            = Time.DateTime.now()
 
         // Extract components
-        let timestamp = cast(u32) (nowMs / 1000)               // 32-bit Unix timestamp
-        let microsec  = cast(u16) (nowUs % 1000000 / 1000)     // 16-bit milliseconds component
+        let dateTicks = Time.dateToTicks(now.year, now.month, now.day) +
+                        Time.timeToTicks(now.hour, now.minute, now.second, now.millisecond)
+        let timestamp   = cast(u32) ((dateTicks - Time.DaysTo1970 * Time.TicksPerDay) / Time.TicksPerSecond)
+        let millisecond = now.millisecond
 
         // Thread-local counter with overflow protection
         g_Counter = (g_Counter + 1) & 0xFFF     // 12-bit counter (0-4095)
@@ -54,59 +59,59 @@ impl GUID64
         let random4 = cast(u8) (g_Rng.nextU64() & 0xF)     // 4-bit random
 
         // Combine all components
-        result.guid = 0
-        result.guid |= cast(u64) timestamp << 32     // Upper 32 bits: timestamp
-        result.guid |= cast(u64) microsec << 16      // Next 16 bits: milliseconds
-        result.guid |= cast(u64) g_Counter << 4      // Next 12 bits: counter
-        result.guid |= cast(u64) random4             // Lower 4 bits: random
+        result.value = 0
+        result.value |= cast(u64) timestamp << 32       // Upper 32 bits: timestamp
+        result.value |= cast(u64) millisecond << 16     // Next 16 bits: milliseconds
+        result.value |= cast(u64) g_Counter << 4        // Next 12 bits: counter
+        result.value |= cast(u64) random4               // Lower 4 bits: random
 
         return result
     }
 
-    // Get a fully random GUID64 using MT64
-    func getRandom()->GUID64
+    // Creates a pseudorandom 64-bit identifier.
+    func random()->Guid64
     {
         initRng()
 
         var result: retval = undefined
-        result.guid = g_Rng.nextU64()
+        result.value = g_Rng.nextU64()
         return result
     }
 
-    // Get a high-entropy GUID64 using multiple entropy sources
-    func getHighEntropy()->GUID64
+    // Creates an identifier by mixing pseudorandom, clock, process, and thread state.
+    func highEntropy()->Guid64
     {
         initRng()
 
         var result: retval = undefined
-        let nowMs          = Time.nowMilliseconds()
-        let nowUs          = Time.nowMicroseconds()
-        let pid            = cast(u64) Env.Process.getProcessId()
-        let tid            = cast(u64) Env.Process.getThreadId()
+        let nowMs          = Time.monotonicMilliseconds()
+        let nowUs          = Time.monotonicMicroseconds()
+        let pid            = cast(u64) Env.Process.currentProcessId()
+        let tid            = cast(u64) Env.Process.currentThreadId()
 
         // Mix multiple entropy sources using XOR
-        result.guid = g_Rng.nextU64()
-        result.guid ^= nowMs
-        result.guid ^= (nowUs << 16)
-        result.guid ^= (pid << 32)
-        result.guid ^= (tid << 8)
+        result.value = g_Rng.nextU64()
+        result.value ^= nowMs
+        result.value ^= (nowUs << 16)
+        result.value ^= (pid << 32)
+        result.value ^= (tid << 8)
 
         return result
     }
 
-    // Clear GUID
+    // Resets the identifier to its null value.
     mtd clear()
     {
-        .guid = 0
+        .value = 0
     }
 
-    // Check if GUID is null/empty
+    // Returns whether all bits are zero.
     mtd isNull()->bool
     {
-        return .guid == 0
+        return .value == 0
     }
 
-    // Convert GUID64 to hexadecimal string
+    // Writes exactly 16 uppercase hexadecimal digits to `result`.
     mtd const toString(result: [..] u8)
     {
         Debug.assert(@countof(result) == 16)
@@ -115,7 +120,7 @@ impl GUID64
 
         // Convert each nibble to hex, starting from most significant
         // Unroll the loop for better performance
-        var idx = .guid
+        var idx = .value
         result[15] = Tbl[idx & 0xF]; idx >>= 4
         result[14] = Tbl[idx & 0xF]; idx >>= 4
         result[13] = Tbl[idx & 0xF]; idx >>= 4
@@ -134,8 +139,8 @@ impl GUID64
         result[0]  = Tbl[idx & 0xF]
     }
 
-    // Convert guid to a string
-    mtd const getString()->String
+    // Returns 16 uppercase hexadecimal digits.
+    mtd const toString()->String
     {
         var result: retval
         result.reserve(16)
@@ -144,22 +149,30 @@ impl GUID64
         return result
     }
 
-    // Parse GUID64 from hex string (with or without 0x prefix)
-    func parse(str: string)->GUID64
+    // Parses exactly 16 hexadecimal digits, with an optional `0x` prefix.
+    func parse(str: string)->Guid64 fail
     {
-        var result: retval = undefined
-        var startIdx       = 0
+        var result: retval
+        if !tryParse(str, &result) do
+            fail InvalidFormatError{"invalid 64-bit identifier"}
+        return result
+    }
 
-        // Skip "0x" prefix if present
+    // Tries to parse exactly 16 hexadecimal digits, with an optional `0x` prefix.
+    func tryParse(str: string, result: *Guid64)->bool
+    {
+        var startIndex = 0'u64
+
         if @countof(str) >= 2 and str[0] == '0' and (str[1] == 'x' or str[1] == 'X') do
-            startIdx = 2
+            startIndex = 2
+        if @countof(str) - startIndex != 16 do
+            return false
 
-        // Parse hex digits
         var value: u64 = 0
-        for [i] in Math.min(16, @countof(str) - startIdx)
+        for [i] in 16
         {
-            let c          = str[startIdx + i]
-            var digit: u64 = 0
+            let c = str[startIndex + i]
+            var digit: u64
 
             if c >= '0' and c <= '9' do
                 digit = cast(u64) (c - '0')
@@ -168,36 +181,36 @@ impl GUID64
             elif c >= 'a' and c <= 'f' do
                 digit = cast(u64) (c - 'a' + 10)
             else do
-                break     // Invalid character, stop parsing
+                return false
 
             value = (value << 4) | digit
         }
 
-        result.guid = value
-        return result
+        result.value = value
+        return true
     }
 }
 
-// String conversion interface implementation for GUID64.
+// String conversion interface implementation for Guid64.
 // Enables automatic string conversion in formatting contexts.
-impl StrConv.IConvert for GUID64
+impl StrConv.IConvert for Guid64
 {
     // Convert the GUID to its hexadecimal string representation.
     // Produces a 16-character uppercase hex string without separators.
     mtd const impl convert(buf: *ConcatBuffer, convFmt: StrConv.ConvertFormat, strFormat: #null string)
     {
-        buf.addBytes(.getString())
+        buf.addBytes(.toString())
     }
 }
 
-// Hash interface implementation for GUID64.
-// Enables use of GUID64 as keys in hash tables and sets.
-impl Hash.IHash32 for GUID64
+// Hash interface implementation for Guid64.
+// Enables use of Guid64 as keys in hash tables and sets.
+impl Hash.IHash32 for Guid64
 {
     // Compute a 32-bit hash value for the GUID.
     // Uses CRC32 algorithm on the 8-byte GUID data for consistent hashing.
     mtd const impl compute()->u32
     {
-        return Hash.Crc32.compute(@mkslice(cast(const [*] u8) &.guid, #sizeof(u64)))
+        return Hash.Crc32.compute(@mkslice(cast(const [*] u8) &.value, #sizeof(u64)))
     }
 }

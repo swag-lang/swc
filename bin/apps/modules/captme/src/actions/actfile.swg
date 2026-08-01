@@ -32,83 +32,83 @@ impl IActionUI for ActionFile
         switch cxt.id
         {
         case .NewImage:
-            evt.setFlags |= .Name
-            evt.name     = "New Image"
+            evt.updatedFields |= .Name
+            evt.name          = "New Image"
 
         case .NewFromClipboard:
-            evt.setFlags |= .Name | .Disabled
-            evt.name     = "New From Clipboard"
-            evt.disabled = !Clipboard.hasImage()
+            evt.updatedFields |= .Name | .Disabled
+            evt.name          = "New From Clipboard"
+            evt.disabled      = !Clipboard.hasImage()
 
         case .SaveAsImage:
-            evt.setFlags |= .Name | .Disabled | .Icon
-            evt.name     = "Save As Image..."
-            evt.disabled = !capture
-            evt.icon     = main.getTheme().getIcon24(.SaveAs)
+            evt.updatedFields |= .Name | .Disabled | .Icon
+            evt.name          = "Save As Image..."
+            evt.disabled      = !capture
+            evt.icon          = main.theme().icon24(.SaveAs)
 
         case .SaveAsLinkedImage:
-            evt.setFlags |= .Name | .Disabled | .Icon
-            evt.name     = "Save As Linked Image..."
-            evt.disabled = !capture
-            evt.icon     = main.getTheme().getIcon24(.Export)
+            evt.updatedFields |= .Name | .Disabled | .Icon
+            evt.name          = "Save As Linked Image..."
+            evt.disabled      = !capture
+            evt.icon          = main.theme().icon24(.Export)
 
         case .OpenImage:
-            evt.setFlags |= .Name | .Icon
-            evt.name     = "Open Image..."
-            evt.icon     = main.getTheme().getIcon24(.OpenFile)
+            evt.updatedFields |= .Name | .Icon
+            evt.name          = "Open Image..."
+            evt.icon          = main.theme().icon24(.OpenFile)
 
         case .UpdateLinkedImage:
-            evt.setFlags |= .Name | .Disabled | .Icon
-            evt.name     = "Update Linked Image"
-            evt.disabled = !capture
-            evt.icon     = main.getTheme().getIcon24(.Update)
+            evt.updatedFields |= .Name | .Disabled | .Icon
+            evt.name          = "Update Linked Image"
+            evt.disabled      = !capture
+            evt.icon          = main.theme().icon24(.Update)
 
         case .UnlinkImage:
-            evt.setFlags |= .Name | .Disabled
-            evt.name     = "Unlink Image"
-            evt.disabled = !capture or capture.linkedImage.length == 0
+            evt.updatedFields |= .Name | .Disabled
+            evt.name          = "Unlink Image"
+            evt.disabled      = !capture or capture.linkedImage.length == 0
 
         case .DeleteCapture:
-            evt.setFlags |= .Name | .Disabled | .Icon
-            evt.name     = "Delete"
+            evt.updatedFields |= .Name | .Disabled | .Icon
+            evt.name          = "Delete"
             if main.libraryMode do
                 evt.disabled = !main.libWnd.hasSelected()
             else do
                 evt.disabled = !capture
-            evt.icon         = main.getTheme().getIcon24(.Remove)
+            evt.icon = main.theme().icon24(.Remove)
 
         case .DupCapture:
-            evt.setFlags |= .Name | .Disabled | .Icon
-            evt.name     = "Duplicate"
-            evt.disabled = !capture
-            evt.icon     = main.getTheme().getIcon24(.Duplicate)
+            evt.updatedFields |= .Name | .Disabled | .Icon
+            evt.name          = "Duplicate"
+            evt.disabled      = !capture
+            evt.icon          = main.theme().icon24(.Duplicate)
 
         case .RenameCapture:
-            evt.setFlags |= .Name | .Disabled
-            evt.name     = "Rename..."
-            evt.disabled = !capture
+            evt.updatedFields |= .Name | .Disabled
+            evt.name          = "Rename..."
+            evt.disabled      = !capture
 
         case .CopyImage:
-            evt.setFlags |= .Name | .Disabled | .Icon
-            evt.name     = "Copy Image to Clipboard"
-            evt.disabled = !capture
-            evt.icon     = main.getTheme().getIcon24(.Copy)
+            evt.updatedFields |= .Name | .Disabled | .Icon
+            evt.name          = "Copy Image to Clipboard"
+            evt.disabled      = !capture
+            evt.icon          = main.theme().icon24(.Copy)
 
         case .CaptureFileLocation:
-            evt.setFlags |= .Name | .Disabled | .Icon
-            evt.name     = "Locate Capture File"
-            evt.disabled = !capture
-            evt.icon     = main.getTheme().getIcon24(.OpenFile)
+            evt.updatedFields |= .Name | .Disabled | .Icon
+            evt.name          = "Locate Capture File"
+            evt.disabled      = !capture
+            evt.icon          = main.theme().icon24(.OpenFile)
 
         case .LinkedFileLocation:
-            evt.setFlags |= .Name | .Disabled | .Icon
-            evt.name     = "Locate Linked Image"
-            evt.disabled = !capture or capture.linkedImage.isEmpty()
-            evt.icon     = main.getTheme().getIcon24(.Link)
+            evt.updatedFields |= .Name | .Disabled | .Icon
+            evt.name          = "Locate Linked Image"
+            evt.disabled      = !capture or capture.linkedImage.isEmpty()
+            evt.icon          = main.theme().icon24(.Link)
 
         case .FileDetails:
-            evt.setFlags |= .Name | .Disabled
-            evt.name     = "File Details"
+            evt.updatedFields |= .Name | .Disabled
+            evt.name          = "File Details"
             if main.libraryMode do
                 evt.disabled = !main.libWnd.hasSelected()
             else do
@@ -175,9 +175,9 @@ impl IActionUI for ActionFile
                 txt += Format.toString("<i>%</i>", capture.linkedImage)
 
                 var opt: MessageDlgOptions
-                opt.sigCreate = func|main|(dlg)
+                opt.onCreated = func|main|(dlg)
                 {
-                    let chk = CheckButton.create((notnull dlg.surface).getView(), "Do not ask again", {0, 0, 100, 40})
+                    let chk = CheckButton.create((notnull dlg.surface).view(), "Do not ask again", {0, 0, 100, 40})
                     chk.sigChanged += func|main|(btn) { main.editorOptions.confirmLinkedOverwrite = !btn.isChecked() }
                     dlg.setExtension(chk)
                 }
@@ -186,7 +186,7 @@ impl IActionUI for ActionFile
                     break
             }
 
-            Cursor.wait()
+            Cursor.activateWait()
             var img = capture.toImage()
             main.doSaveImage(capture, &img, capture.linkedImage)
 
@@ -201,7 +201,7 @@ impl IActionUI for ActionFile
             }
 
         case .DupCapture:
-            Cursor.wait()
+            Cursor.activateWait()
             main.saveCapture(capture)
 
             let file = Library.newFileName()
@@ -238,11 +238,11 @@ impl IActionUI for ActionFile
             dlg.setText(capture.title)
             dlg.edit?.selectAll()
 
-            // EditDlg.createSingleLine (unlike Dialog.createDialog) does not center itself;
+            // EditDlg.createSingleLine (unlike Dialog.create) does not center itself;
             // do it here now the surface has its final size, so the box opens centered.
             dlg.surface?.center(notnull main.surface)
             if dlg.doModal() == Dialog.BtnOk do
-                main.setCaptureTitle(file, dlg.getText())
+                main.setCaptureTitle(file, dlg.text())
 
         case .CopyImage:
             if main.libraryMode do
@@ -251,11 +251,11 @@ impl IActionUI for ActionFile
                 capture.copyAll()
 
         case .CaptureFileLocation:
-            if !Env.locateInExplorer(capture.file) do
+            if !Env.showInFileExplorer(capture.file) do
                 MessageDlg.error(notnull main.surface, "Failed to locate capture file")
 
         case .LinkedFileLocation:
-            if !Env.locateInExplorer(capture.linkedImage) do
+            if !Env.showInFileExplorer(capture.linkedImage) do
                 MessageDlg.error(notnull main.surface, "Failed to locate linked image")
 
         case .FileDetails:
@@ -263,15 +263,15 @@ impl IActionUI for ActionFile
             func addLine(lt: *Wnd, title, val: String)
             {
                 let wnd = Wnd.create'StackLayoutCtrl(lt)
-                wnd.layoutKind      = .Left
+                wnd.mode            = .Left
                 wnd.position.height = 20
                 let lbl1 = Label.create(wnd, title, {0, 0, 100, 0})
-                lbl1.horzAlignmentText = .Left
+                lbl1.setTextHorizontalAlignment(.Left)
                 let lbl2 = Label.create(wnd, val, {0, 0, 1000, 0})
-                lbl2.horzAlignmentText = .Left
+                lbl2.setTextHorizontalAlignment(.Left)
             }
 
-            let dlg = Dialog.createDialog(notnull main.surface, 600, 400, title: "Details", flags: .Border | .CloseBtn | .Sizeable)
+            let dlg = Dialog.create(notnull main.surface, 600, 400, title: "Details", flags: .Border | .CloseButton | .Resizable)
             dlg.addButton("OK", Dialog.BtnOk, true)
             let lt = StackLayoutCtrl.create(dlg)
             lt.dockStyle = .Center
@@ -280,7 +280,7 @@ impl IActionUI for ActionFile
             if capture.linkedImage != null do
                 addLine(lt, "<b>Linked Image</b>", Format.toString("%", capture.linkedImage))
             addLine(lt, "<b>Image Size</b>", Format.toString("%x%", capture.width, capture.height))
-            addLine(lt, "<b>File Size</b>", StrConv.toDisplaySize(catch File.getInfo(capture.file).size))
+            addLine(lt, "<b>File Size</b>", StrConv.toDisplaySize(catch File.info(capture.file).size))
             lt.computeLayout()
             discard dlg.doModal()
         }
@@ -296,10 +296,10 @@ impl MainWnd
         var opt: FileDlgOptions
         with opt
         {
-            .state     = &me.fileDlgState
-            .mode      = .SelectOneFile
-            .title     = "Load Image"
-            .btnOkName = "Load"
+            .state             = &me.fileDlgState
+            .mode              = .SelectFile
+            .title             = "Load Image"
+            .confirmButtonText = "Load"
             .shortcuts.add({Env.SpecialDirectory.Desktop, "Desktop"})
             .shortcuts.add({Env.SpecialDirectory.UserPictures, "My Images"})
             .shortcuts.add({Env.SpecialDirectory.CommonPictures, "Images"})
@@ -313,11 +313,11 @@ impl MainWnd
         if dlg.doModal() != Dialog.BtnOk do
             return
 
-        let img = catch Image.load(dlg.getSelectedName()) as err
+        let img = catch Image.load(dlg.selectedPath()) as err
         if err != null do
             MessageDlg.error(notnull .surface, "Failed to load image", err)
         else do
-            .newCapture(img, dlg.getSelectedName())
+            .newCapture(img, dlg.selectedPath())
     }
 
     mtd doSaveImage(capture: *Capture, img: *Image, nameFile: String)
@@ -326,22 +326,22 @@ impl MainWnd
         var optPng: Png.EncodeOptions
         var optJpg: Jpg.EncodeOptions
 
-        if Path.getExtensionLowerCase(nameFile) == ".png"
+        if Path.lowercaseExtension(nameFile) == ".png"
         {
             optPng.compressionLevel = Core.Compress.Deflate.CompressionLevel.BestSpeed
             optPng.filtering        = false
             optImg                  = optPng
         }
-        elif Path.getExtensionLowerCase(nameFile) == ".jpg"
+        elif Path.lowercaseExtension(nameFile) == ".jpg"
         {
             optJpg.quality = 95
             optImg         = optJpg
         }
 
-        var md: ImageMetaData
+        var md: ImageMetadata
         md.tag   = "Captme.File"
         md.value = capture.file.toSlice()
-        img.metaDatas.add(md)
+        img.metadata.add(md)
 
         catch img.save(nameFile, optImg) else
         {
@@ -356,8 +356,8 @@ impl MainWnd
             .recentWnd.updateRecent()
 
         let txt = Format.toString("Image <url>%</url> has been saved", nameFile)
-        let emb = EmbInfoCtrl.create(notnull .editWnd.view, txt, .Information, flags: .Bottom | .AutoHide)
-        emb.label.sigUrlClicked += func(lbl, msg) { Env.locateInExplorer(msg) }
+        let emb = InfoBar.create(notnull .editWnd.view, txt, .Information, flags: .Bottom | .AutoDismiss)
+        emb.label.sigLinkActivated += func(lbl, msg) { Env.showInFileExplorer(msg) }
     }
 
     mtd saveAsImage(linked = false)
@@ -375,14 +375,14 @@ impl MainWnd
         var opt: FileDlgOptions
         with opt
         {
-            .state     = &me.fileDlgState
-            .mode      = .CreateFile
-            .title     = "Save As Image"
-            .btnOkName = "Save"
+            .state             = &me.fileDlgState
+            .mode              = .CreateFile
+            .title             = "Save As Image"
+            .confirmButtonText = "Save"
             .shortcuts.add({Env.SpecialDirectory.Desktop, "Desktop"})
             .shortcuts.add({Env.SpecialDirectory.UserPictures, "My Images"})
             .shortcuts.add({Env.SpecialDirectory.CommonPictures, "Images"})
-            .editName = Path.getFileNameWithoutExtension(capture.file) orelse ""
+            .initialName = Path.fileNameWithoutExtension(capture.file) orelse ""
             .filters.add({"PNG - Portable Network Graphics (*.png)", ".png"})
             .filters.add({"JPG - JPEG Image (*.jpg)", ".jpg"})
             .filters.add({"BMP - Windows Bitmap (*.bmp)", ".bmp"})
@@ -394,13 +394,13 @@ impl MainWnd
             dlg.surface?.setTopMost()
         if dlg.doModal() != Dialog.BtnOk do
             return ""
-        return dlg.getSelectedName()
+        return dlg.selectedPath()
     }
 
     mtd doSaveAsImage(fileName: String, linked = false)
     {
         let capture = notnull .getCapture()
-        Cursor.wait()
+        Cursor.activateWait()
         var img = capture.toImage()
         if linked do
             capture.linkedImage = fileName
@@ -409,18 +409,18 @@ impl MainWnd
 
     mtd newImage()
     {
-        let dlg = Dialog.createDialog(notnull .surface, 350, 235, title: "New Image")
+        let dlg = Dialog.create(notnull .surface, 350, 235, title: "New Image")
         dlg.addButton("Create", Dialog.BtnOk, true)
         dlg.addButton("Cancel", Dialog.BtnCancel)
-        let edit0 = EditCtrl.create(dlg, "Width", "512", {90, 12}, flags: .RightAlign)
-        let edit1 = EditCtrl.create(dlg, "Height", "512", {90, 47}, flags: .RightAlign)
-        edit0.edit.setInputU64(16, 4096)
-        edit1.edit.setInputU64(16, 4096)
+        let edit0 = EditCtrl.create(dlg, "Width", "512", {90, 12}, flags: .RightAligned)
+        let edit1 = EditCtrl.create(dlg, "Height", "512", {90, 47}, flags: .RightAligned)
+        edit0.edit.setUnsignedIntegerRange(16, 4096)
+        edit1.edit.setUnsignedIntegerRange(16, 4096)
         if dlg.doModal() != Dialog.BtnOk do
             return
 
-        let {w, ?, ?} = catch StrConv.parseS32(edit0.edit.text)
-        let {h, ?, ?} = catch StrConv.parseS32(edit1.edit.text)
+        let {w, ?, ?} = catch StrConv.parseS32(edit0.edit.text())
+        let {h, ?, ?} = catch StrConv.parseS32(edit1.edit.text())
         var img       = Image.create(w != 0 ? w : 512, h != 0 ? h : 512, .RGB8)
         img.fill(Argb.White)
         .newCapture(img)

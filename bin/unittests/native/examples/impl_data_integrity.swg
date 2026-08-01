@@ -129,7 +129,7 @@ impl Adler32
             s1 += cast(u32) input[0]
             if s1 >= Base do
                 s1 -= Base
-            s2     += s1
+            s2 += s1
             if s2 >= Base do
                 s2 -= Base
         }
@@ -143,7 +143,7 @@ impl Adler32
 
             if s1 >= Base do
                 s1 -= Base
-            s2     %= Base
+            s2 %= Base
         }
         else
         {
@@ -239,7 +239,7 @@ func analyze(data: const [..] u8)->IntegrityReport
                    cast(u32) ptr[i + 3] << 24
         if hasZeroByte(word) do
             report.zeroBytesFound += 1
-        i                         += 4
+        i += 4
     }
 
     for b in data do

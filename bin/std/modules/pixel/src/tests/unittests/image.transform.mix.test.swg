@@ -19,7 +19,7 @@ using Swag, Core
 
     let dst     = makeImage(3, 2, .RGBA8, dstPixels)
     let srcCopy = makeImage(2, 1, .RGBA8, copyPixels)
-    let copied  = dst.toMix(srcCopy, 1, 0, .Copy)
+    let copied  = dst.mixed(srcCopy, 1, 0, .Copy)
     assertImage(copied, 3, 2, .RGBA8)
 
     assertPixel(copied, 0, 1, Color.fromArgb(200'u8, 10'u8, 20'u8, 30'u8))
@@ -28,10 +28,10 @@ using Swag, Core
     assertPixel(copied, 0, 0, Color.fromArgb(203'u8, 100'u8, 110'u8, 120'u8))
 
     let srcBlend = makeImage(2, 1, .RGBA8, blendPixels)
-    let blended  = dst.toMix(srcBlend, 0, 1, .AlphaBlend)
+    let blended  = dst.mixed(srcBlend, 0, 1, .SourceOver)
     assertImage(blended, 3, 2, .RGBA8)
 
-    assertPixel(blended, 0, 0, Color.fromArgb(203'u8, 150'u8, 160'u8, 170'u8))
-    assertPixel(blended, 1, 0, Color.fromArgb(204'u8, 97'u8, 107'u8, 117'u8))
+    assertPixel(blended, 0, 0, Color.fromArgb(229'u8, 156'u8, 166'u8, 176'u8))
+    assertPixel(blended, 1, 0, Color.fromArgb(217'u8, 92'u8, 102'u8, 112'u8))
     assertPixel(blended, 2, 0, Color.fromArgb(205'u8, 160'u8, 170'u8, 180'u8))
 }

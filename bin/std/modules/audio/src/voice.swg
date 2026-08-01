@@ -1,20 +1,19 @@
-using Core, Win32
+using Core, Core.Errors, Win32
 
 // Selects optional backend capabilities for a new voice.
 #[Swag.EnumFlags]
 public enum VoiceCreateFlags
 {
-    Zero = 0                                  // Requests no optional capability.
-    AcceptPitch                               // Allows playback frequency changes.
-    AcceptFilters                             // Reserves backend support for voice filters.
-    Default = AcceptFilters | AcceptPitch     // Enables all supported optional capabilities.
+    None = 0                   // Requests no optional capability.
+    PitchControl               // Allows playback frequency changes.
+    Default = PitchControl     // Enables all supported optional capabilities.
 }
 
 // Controls one playback run and its end-of-playback lifetime.
 #[Swag.EnumFlags]
 public enum VoicePlayFlags
 {
-    Zero = 0                    // Plays once and leaves the voice allocated when it stops.
+    None = 0                    // Plays once and leaves the voice allocated when it stops.
     Loop                        // Restarts at the beginning when the source reaches its end.
     DestroyOnStop               // Schedules the voice for destruction when playback stops.
     Default = DestroyOnStop     // Uses fire-and-forget lifetime without looping.
@@ -22,9 +21,10 @@ public enum VoicePlayFlags
 
 // Reports internal playback and destruction state.
 #[Swag.EnumFlags]
+#[Swag.NoDoc]
 public enum VoiceState
 {
-    Zero = 0           // The voice has not started playback.
+    None = 0           // The voice has not started playback.
     PlayedOnce         // At least one playback run has initialized its source buffers.
     Playing            // The backend is currently advancing this voice.
     PendingDestroy     // Destruction has been requested and will complete asynchronously.
@@ -46,7 +46,7 @@ public struct Voice
     // voice through its methods; touching this state from outside the module races the driver.
     internal
     {
-        handle: VoiceHandle          // Identity of the voice inside the driver.
+        handle: #null *void          // Identity of the voice inside the driver.
         file:   #null *SoundFile     // Borrowed source, alive for the voice's lifetime.
 
         requestedEncoding = SoundFileEncoding.Unknown     // Encoding the caller asked to decode to.
@@ -68,8 +68,8 @@ private impl Voice
     mtd recycle()
     {
         .file              = null
-        .playFlags         = .Zero
-        .state             = .Zero
+        .playFlags         = .None
+        .state             = .None
         .idxInList         = 0
         .streamCurSeek     = 0
         .decodedBufferIdx  = 0
@@ -106,10 +106,21 @@ public impl Voice
     // Multiple voices may borrow the same [[Audio.SoundFile]]. `file` must
     // outlive the returned voice. The caller owns the voice and must call
     // [[Audio.Voice.destroy]] unless a later playback uses
-    // [[Audio.VoicePlayFlags.DestroyOnStop]].
+    // [[Audio.VoicePlayFlags.DestroyOnStop]]. Success returns a non-null pointer.
     func create(file: *SoundFile, createFlags = VoiceCreateFlags.Default)->#null *Voice fail
     {
+        if !g_Driver.isCreated do
+            fail BadParameterError{"audio engine is not created"}
+        if !file.availableFields.has(.Data) do
+            fail BadParameterError{"sound file has no audio data"}
+
         let voice = g_Driver.createVoice()
+        defer #fail
+        {
+            voice.destroyNative()
+            Memory.delete(voice)
+        }
+
         voice.file = file
 
         voice.createNative(createFlags)
@@ -127,6 +138,7 @@ public impl Voice
     func play(file: *SoundFile, createFlags = VoiceCreateFlags.Default, playFlags = VoicePlayFlags.Default)->#null *Voice fail
     {
         let voice = notnull create(file, createFlags)
+        defer #fail voice.destroy()
         voice.play(playFlags)
         return voice
     }
@@ -137,7 +149,7 @@ public impl Voice
     // [[Audio.VoicePlayFlags.DestroyOnStop]] for automatic cleanup, or call
     // [[Audio.Voice.destroy]] explicitly. Calling this while already playing
     // has no effect.
-    mtd play(playFlags = VoicePlayFlags.Zero) fail
+    mtd play(playFlags = VoicePlayFlags.None) fail
     {
         if .hasState(.Playing) do
             return
@@ -163,16 +175,19 @@ public impl Voice
         .resetState(.Playing)
     }
 
-    // Stops playback at the current stream position.
+    // Stops playback, discards queued backend buffers, and rewinds to the beginning.
     //
     // If the active play flags include
     // [[Audio.VoicePlayFlags.DestroyOnStop]], this also schedules destruction.
     mtd stop() fail
     {
-        if !.hasState(.Playing) do
+        if !.hasState(.PlayedOnce) do
             return
-        .stopNative()
-        .resetState(.Playing)
+        if .hasState(.Playing) do
+            .stopNative()
+        .resetNative()
+        .closeBuffer()
+        .resetState(.Playing | .PlayedOnce)
         if .playFlags.has(.DestroyOnStop) do
             .destroy()
     }
@@ -199,15 +214,15 @@ public impl Voice
 
     // Sets this voice's gain in decibels.
     //
-    // `batchID` is forwarded to backends that support deferred operation sets.
-    mtd setVolumeDB(volumeDB: f32, batchID: u32 = 0) fail
+    // `batchId` is forwarded to backends that support deferred operation sets.
+    mtd setVolumeDb(decibels: f32, batchId: u32 = 0) fail
     {
-        .setVolume(convertDBToPercent(volumeDB), batchID)
+        .setVolume(decibelsToLinearGain(decibels), batchId)
     }
 
     // Returns this voice's current gain in decibels.
-    mtd getVolumeDB()->f32 fail
+    mtd volumeDb()->f32 fail
     {
-        return convertPercentToDB(.getVolume())
+        return linearGainToDecibels(.volume())
     }
 }

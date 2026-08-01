@@ -5,7 +5,7 @@ using Core, Pixel
 // Layout geometry of the property control: grid/condensed column metrics, list useful/content
 // widths, and the condensed-cell adaptations. Split out of properties.swg so the geometry lives
 // in one place. See also properties.paint.swg and the two-pass resize loop in propertiesview.swg.
-impl Properties
+internal impl Properties
 {
     // The window into which a row's trailing action widgets are placed. Grid docks them on the row
     // cell; list places them on the name label in local content coordinates. Null for rows with no
@@ -29,7 +29,7 @@ impl Properties
     // In condensed mode the value editors fill the whole value cell (both axes):
     // the grid lines already provide the visual structure, so the editor stays
     // flat and edge-to-edge instead of floating as a smaller bordered box.
-    mtd adaptCondensedControl(wnd: *Wnd)
+    internal mtd adaptCondensedControl(wnd: *Wnd)
     {
         if .kind != .Condensed do
             return
@@ -40,7 +40,7 @@ impl Properties
     // Flatten an edit box for the condensed cell look: no background/border at
     // rest (only when invalid), with a small horizontal padding so the text does
     // not touch the column separator.
-    mtd flattenCondensedEdit(ed: *EditBox)
+    internal mtd flattenCondensedEdit(ed: *EditBox)
     {
         if .kind != .Condensed do
             return
@@ -48,21 +48,21 @@ impl Properties
         ed.setAllPaddings(Math.Vector4{8, 0, 8, 0})
     }
 
-    // Set the grid mode column size
-    mtd setColumnSize(size: s32)
+    // Sets the requested label-column width in grid layouts.
+    mtd setNameColumnWidth(width: s32)
     {
         if !.isGridLike() do
             return
 
-        .gridColumnSizeReq = size
-        .gridColumnSize    = .clampColumnSize(size)
+        .gridColumnSizeReq = width
+        .gridColumnSize    = .clampColumnSize(width)
         .syncColumnLabels()
         .applyLayout()
         .invalidate()
     }
 
-    // Performs the refresh grid column layout operation.
-    mtd refreshGridColumnLayout()
+    // Re-clamps the grid label column to the current control width.
+    internal mtd refreshGridColumnLayout()
     {
         if !.isGridLike() do
             return
@@ -75,14 +75,14 @@ impl Properties
 internal impl Properties
 {
     // List/Panel geometry: rows, labels and descriptions span the whole control, so the
-    // useful row width (selection/hot/hit-test) tracks the live view width; sizeEditValue
+    // useful row width (selection/hot/hit-test) tracks the live view width; editorWidth
     // is only the build-time fallback, before the first layout has sized the view. The
-    // value editors keep their own cap (sizeEditValue / the EditSize attribute), so only
+    // value editors keep their own cap (editorWidth / the EditSize attribute), so only
     // the texts stretch — the look of an editor's settings page.
     mtd listUsefulWidth()->f32
     {
         Debug.assert(!.isGridLike())
-        var width = cast(f32) .sizeEditValue
+        var width = cast(f32) .editorWidth
         if .edView and .edView.position.width > 0 do
             width = .edView.position.width
         return Math.max(width, cast(f32) (.leftMargin + .rightMargin) + 1.0)
@@ -108,11 +108,11 @@ internal impl Properties
     }
 
     // Right edge (in row-content coordinates) of the revert/action column: anchored to
-    // the value column (sizeEditValue), not to the full row width, so the arrows stay
+    // the value column (editorWidth), not to the full row width, so the arrows stay
     // lined up with the editors whatever the control width.
     mtd listActionRight()->f32
     {
-        return .listContentWidthFromUseful(cast(f32) .sizeEditValue) - PropRevertGap
+        return .listContentWidthFromUseful(cast(f32) .editorWidth) - PropRevertGap
     }
 
     mtd positionListActionButton(item: *PropertiesItem, btn: #null *IconButton)
@@ -137,7 +137,7 @@ internal impl Properties
         return .isGridLike() and item.flags.has(.Section | .Category | .Header)
     }
 
-    mtd getGridHeaderLabelWidth(item: *PropertiesItem)->f32
+    mtd gridHeaderLabelWidth(item: *PropertiesItem)->f32
     {
         var width = .edView.position.width
         if width <= 0 do
@@ -220,13 +220,17 @@ internal impl Properties
 
         if .isGridHeader(item)
         {
+            var textPadding = item.label.textPadding
+            textPadding.x = cast(f32) .leftMargin + .itemIndent(item)
+            item.label.setTextPadding(textPadding)
             item.label.margin.z       = 0
-            item.label.paddingText.x  = cast(f32) .leftMargin + .itemIndent(item)
-            item.label.position.width = .getGridHeaderLabelWidth(item)
+            item.label.position.width = .gridHeaderLabelWidth(item)
         }
         else
         {
-            item.label.paddingText.x  = .itemIndent(item) + .itemLabelGutter(item)
+            var textPadding = item.label.textPadding
+            textPadding.x = .itemIndent(item) + .itemLabelGutter(item)
+            item.label.setTextPadding(textPadding)
             item.label.position.width = .gridColumnSize
         }
     }
@@ -237,7 +241,7 @@ internal impl Properties
             .syncColumnLabel(notnull item)
     }
 
-    mtd getColumnX()->f32
+    mtd columnPosition()->f32
     {
         return .gridColumnSize + .gridMarginColumn * 0.5
     }

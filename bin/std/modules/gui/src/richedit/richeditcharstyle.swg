@@ -5,7 +5,7 @@ using Core, Pixel
 // Names the rich edit style ref type.
 alias RichEditStyleRef = u8
 
-// Represents rich edit rune style.
+// Describes foreground, background, face, and underline styling for one text run.
 struct RichEditRuneStyle
 {
     colBk: Color                            // Col bk associated with this value.

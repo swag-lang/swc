@@ -33,14 +33,14 @@ func expectDateTime(value: Time.DateTime, year, month, day, hour, minute, second
 
 #test
 {
-    @assert(Time.TicksPerMilliSecond == 10_000'u64)
+    @assert(Time.TicksPerMillisecond == 10_000'u64)
     @assert(Time.TicksPerSecond == 10_000_000'u64)
     @assert(Time.TicksPerMinute == 600_000_000'u64)
     @assert(Time.TicksPerHour == 36_000_000_000'u64)
     @assert(Time.TicksPerDay == 864_000_000_000'u64)
 
     @assert(Time.timeToTicks(0, 0, 0, 0) == 0'u64)
-    @assert(Time.timeToTicks(0, 0, 0, 1) == Time.TicksPerMilliSecond)
+    @assert(Time.timeToTicks(0, 0, 0, 1) == Time.TicksPerMillisecond)
     @assert(Time.timeToTicks(0, 0, 1, 0) == Time.TicksPerSecond)
     @assert(Time.timeToTicks(0, 1, 0, 0) == Time.TicksPerMinute)
     @assert(Time.timeToTicks(1, 0, 0, 0) == Time.TicksPerHour)
@@ -48,7 +48,7 @@ func expectDateTime(value: Time.DateTime, year, month, day, hour, minute, second
     @assert(Time.timeToTicks(23, 59, 59, 999) == 863_999_990_000'u64)
 
     expectTime(0, 0, 0, 0, 0)
-    expectTime(Time.TicksPerMilliSecond, 0, 0, 0, 1)
+    expectTime(Time.TicksPerMillisecond, 0, 0, 0, 1)
     expectTime(Time.TicksPerSecond, 0, 0, 1, 0)
     expectTime(Time.TicksPerMinute, 0, 1, 0, 0)
     expectTime(Time.TicksPerHour, 1, 0, 0, 0)
@@ -116,39 +116,39 @@ func expectDateTime(value: Time.DateTime, year, month, day, hour, minute, second
 
 #test
 {
-    let span = Time.TimeSpan.from(Time.DateTime{2024, 2, 29, 1, 2, 3, 4})
+    let span = Time.Timestamp.fromDateTime(Time.DateTime{2024, 2, 29, 1, 2, 3, 4})
     @assert(span.ticks == Time.dateToTicks(2024, 2, 29) + Time.timeToTicks(1, 2, 3, 4))
     let dateTime = span.toDateTime()
     @assert(dateTime.month == 2)
     expectDateTime(dateTime, 2024, 2, 29, 1, 2, 3, 4)
 
-    let twoDays = Time.TimeSpan{Time.TicksPerDay * 2}
+    let twoDays = Time.Timestamp.fromTicks(Time.TicksPerDay * 2)
     @assert(twoDays.totalDays() == 2)
     @assert(twoDays.totalHours() == 48)
     @assert(twoDays.totalMinutes() == 2880)
     @assert(twoDays.totalSeconds() == 172800)
-    @assert(twoDays.totalMilliSeconds() == 172800000)
+    @assert(twoDays.totalMilliseconds() == 172800000)
 
-    @assert((Time.TimeSpan{1} <=> Time.TimeSpan{1}) == 0)
-    @assert(Time.TimeSpan{1} < Time.TimeSpan{2})
-    @assert(Time.TimeSpan{2} > Time.TimeSpan{1})
-    @assert(Time.TimeSpan{2} >= Time.TimeSpan{2})
-    @assert(Time.TimeSpan{1} <= Time.TimeSpan{1})
+    @assert((Time.Timestamp.fromTicks(1) <=> Time.Timestamp.fromTicks(1)) == 0)
+    @assert(Time.Timestamp.fromTicks(1) < Time.Timestamp.fromTicks(2))
+    @assert(Time.Timestamp.fromTicks(2) > Time.Timestamp.fromTicks(1))
+    @assert(Time.Timestamp.fromTicks(2) >= Time.Timestamp.fromTicks(2))
+    @assert(Time.Timestamp.fromTicks(1) <= Time.Timestamp.fromTicks(1))
 }
 
 #test
 {
-    var span = Time.TimeSpan.from(Time.DateTime{2020, 1, 1, 0, 0, 0, 0})
+    var span = Time.Timestamp.fromDateTime(Time.DateTime{2020, 1, 1, 0, 0, 0, 0})
     span.addDays(1)
     span.addHours(2)
     span.addMinutes(3)
     span.addSeconds(4)
-    span.addMilliSeconds(5)
+    span.addMilliseconds(5)
     var dateTime = span.toDateTime()
     @assert(dateTime.month == 1)
     expectDateTime(dateTime, 2020, 1, 2, 2, 3, 4, 5)
 
-    span.addMilliSeconds(-5)
+    span.addMilliseconds(-5)
     span.addSeconds(-4)
     span.addMinutes(-3)
     span.addHours(-2)
@@ -157,8 +157,8 @@ func expectDateTime(value: Time.DateTime, year, month, day, hour, minute, second
     @assert(dateTime.month == 1)
     expectDateTime(dateTime, 2020, 1, 1, 0, 0, 0, 0)
 
-    span = Time.TimeSpan.from(Time.DateTime{2020, 2, 28, 23, 59, 59, 999})
-    span.addMilliSeconds(1)
+    span = Time.Timestamp.fromDateTime(Time.DateTime{2020, 2, 28, 23, 59, 59, 999})
+    span.addMilliseconds(1)
     dateTime = span.toDateTime()
     @assert(dateTime.month == 2)
     expectDateTime(dateTime, 2020, 2, 29, 0, 0, 0, 0)
@@ -166,49 +166,49 @@ func expectDateTime(value: Time.DateTime, year, month, day, hour, minute, second
 
 #test
 {
-    var span = Time.TimeSpan.from(Time.DateTime{2020, 1, 31, 12, 0, 0, 0})
+    var span = Time.Timestamp.fromDateTime(Time.DateTime{2020, 1, 31, 12, 0, 0, 0})
     span.addMonths(1)
     var dateTime = span.toDateTime()
     @assert(dateTime.month == 2)
     expectDateTime(dateTime, 2020, 2, 29, 12, 0, 0, 0)
 
-    span = Time.TimeSpan.from(Time.DateTime{2019, 3, 31, 12, 0, 0, 0})
+    span = Time.Timestamp.fromDateTime(Time.DateTime{2019, 3, 31, 12, 0, 0, 0})
     span.addMonths(-1)
     dateTime = span.toDateTime()
     @assert(dateTime.month == 2)
     expectDateTime(dateTime, 2019, 2, 28, 12, 0, 0, 0)
 
-    span = Time.TimeSpan.from(Time.DateTime{2020, 1, 31, 12, 0, 0, 0})
+    span = Time.Timestamp.fromDateTime(Time.DateTime{2020, 1, 31, 12, 0, 0, 0})
     span.addMonths(-1)
     dateTime = span.toDateTime()
     @assert(dateTime.month == 12)
     expectDateTime(dateTime, 2019, 12, 31, 12, 0, 0, 0)
 
-    span = Time.TimeSpan.from(Time.DateTime{2020, 10, 31, 12, 0, 0, 0})
+    span = Time.Timestamp.fromDateTime(Time.DateTime{2020, 10, 31, 12, 0, 0, 0})
     span.addMonths(5)
     dateTime = span.toDateTime()
     @assert(dateTime.month == 3)
     expectDateTime(dateTime, 2021, 3, 31, 12, 0, 0, 0)
 
-    span = Time.TimeSpan.from(Time.DateTime{2020, 12, 31, 12, 0, 0, 0})
+    span = Time.Timestamp.fromDateTime(Time.DateTime{2020, 12, 31, 12, 0, 0, 0})
     span.addMonths(2)
     dateTime = span.toDateTime()
     @assert(dateTime.month == 2)
     expectDateTime(dateTime, 2021, 2, 28, 12, 0, 0, 0)
 
-    span = Time.TimeSpan.from(Time.DateTime{2020, 2, 29, 12, 0, 0, 0})
+    span = Time.Timestamp.fromDateTime(Time.DateTime{2020, 2, 29, 12, 0, 0, 0})
     span.addYears(1)
     dateTime = span.toDateTime()
     @assert(dateTime.month == 2)
     expectDateTime(dateTime, 2021, 2, 28, 12, 0, 0, 0)
 
-    span = Time.TimeSpan.from(Time.DateTime{2020, 2, 29, 12, 0, 0, 0})
+    span = Time.Timestamp.fromDateTime(Time.DateTime{2020, 2, 29, 12, 0, 0, 0})
     span.addYears(-1)
     dateTime = span.toDateTime()
     @assert(dateTime.month == 2)
     expectDateTime(dateTime, 2019, 2, 28, 12, 0, 0, 0)
 
-    span = Time.TimeSpan.from(Time.DateTime{2020, 2, 29, 12, 0, 0, 0})
+    span = Time.Timestamp.fromDateTime(Time.DateTime{2020, 2, 29, 12, 0, 0, 0})
     span.addYears(4)
     dateTime = span.toDateTime()
     @assert(dateTime.month == 2)

@@ -70,7 +70,7 @@ struct Masks
 }
 
 // Decodes Windows BMP/DIB images, including palettes, bitfields, and RLE data.
-public struct Decoder {}
+internal struct Decoder {}
 
 func checkBuffer(ptr, last: const [*] u8, size: u64) fail
 {
@@ -143,11 +143,11 @@ func makeDefaultMasks(bitCount: u16, compression: u32)->Masks
     return result
 }
 
-public impl IImageDecoder for Decoder
+internal impl IImageDecoder for Decoder
 {
     mtd impl canDecode(fileName: string)->bool
     {
-        return Path.getExtensionLowerCase(fileName) == ".bmp"
+        return Path.lowercaseExtension(fileName) == ".bmp"
     }
 
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail

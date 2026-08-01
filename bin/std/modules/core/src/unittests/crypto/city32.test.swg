@@ -17,10 +17,7 @@ func assertCity32(buffer: const [..] u8, expected: u32)
 {
     @assert(Hash.City32.compute(buffer) == expected)
 
-    var city: Hash.City32
-    city.init()
-    city.update(buffer)
-    @assert(city.crc == expected)
+    @assert(Hash.City32.compute(buffer) == expected)
 }
 
 #test
@@ -33,14 +30,7 @@ func assertCity32(buffer: const [..] u8, expected: u32)
     @assert(Hash.City32.compute("123456789012345678901234") == 0x088921D1'u32)
     @assert(Hash.City32.compute("1234567890123456789012345") == 0x60CACDAD'u32)
 
-    var city: Hash.City32
-    city.update("dirty")
-    city.init()
-    @assert(city.crc == 0'u32)
-
-    city.crc = 0x12345678'u32
-    city.update("abc")
-    @assert(city.crc == 0xD30EC8CC'u32)
+    @assert(Hash.City32.compute("abc", 0x12345678'u32) == 0xD30EC8CC'u32)
 
     const expected: [81] u32 = [
         0xDC56D17A, 0x58F6C2CD, 0x971FA0E9, 0x50B13F74, 0x8B94C7AB, 0xCC8588FC, 0x97C13711, 0x7AE4CC55,

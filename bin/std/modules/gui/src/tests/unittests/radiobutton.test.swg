@@ -24,17 +24,17 @@ func radioButtonHeadlessChanged(btn: *RadioButton)
     let radio = RadioButton.create(&host.root, "A", {20, 20, 120, 30}, RadioButtonHeadless_Command)
     radio.sigChanged += &radioButtonHeadlessChanged
 
-    @assert(!radio.checked)
+    @assert(!radio.isChecked())
 
     host.click({40, 35})
-    @assert(radio.checked)
+    @assert(radio.isChecked())
     @assert(RadioButtonHeadlessChangedCount == 1)
     @assert(host.commandCount == 1)
     @assert(host.lastCommand == RadioButtonHeadless_Command)
 
     // Already checked: no new signal/command.
     host.click({40, 35})
-    @assert(radio.checked)
+    @assert(radio.isChecked())
     @assert(RadioButtonHeadlessChangedCount == 1)
     @assert(host.commandCount == 1)
 
@@ -53,9 +53,9 @@ func radioButtonHeadlessChanged(btn: *RadioButton)
     radio.sigChanged += &radioButtonHeadlessChanged
 
     radio.setChecked(true)
-    @assert(radio.checked)
+    @assert(radio.isChecked())
     radio.setChecked(false)
-    @assert(!radio.checked)
+    @assert(!radio.isChecked())
     @assert(RadioButtonHeadlessChangedCount == 0)
     @assert(host.commandCount == 0)
 
@@ -77,12 +77,12 @@ func radioButtonHeadlessChanged(btn: *RadioButton)
     @assert(host.wndAt({40, 75}) == b)
 
     host.click({40, 35})
-    @assert(a.checked)
-    @assert(!b.checked)
+    @assert(a.isChecked())
+    @assert(!b.isChecked())
 
     // Ungrouped: both can be checked at once (grouping stays opt-in).
     b.setChecked(true)
-    @assert(a.checked and b.checked)
+    @assert(a.isChecked() and b.isChecked())
 
     host.shutdown()
 }
@@ -97,24 +97,24 @@ func radioButtonHeadlessChanged(btn: *RadioButton)
     let a = RadioButton.create(&host.root, "A", {20, 20, 160, 30})
     let b = RadioButton.create(&host.root, "B", {20, 60, 160, 30})
     let c = RadioButton.create(&host.root, "C", {20, 100, 160, 30})
-    a.group, b.group, c.group = "density"
+    a.groupId, b.groupId, c.groupId = "density"
 
     a.setChecked(true)
-    @assert(a.checked and !b.checked and !c.checked)
+    @assert(a.isChecked() and !b.isChecked() and !c.isChecked())
 
     // Clicking b checks it and unchecks a automatically.
     host.click({40, 75})
-    @assert(!a.checked and b.checked and !c.checked)
+    @assert(!a.isChecked() and b.isChecked() and !c.isChecked())
 
     // A separate group under the same parent is not disturbed.
     let d = RadioButton.create(&host.root, "D", {20, 140, 160, 30})
     let e = RadioButton.create(&host.root, "E", {20, 180, 160, 30})
-    d.group, e.group = "align"
+    d.groupId, e.groupId = "align"
 
     d.setChecked(true)
-    @assert(d.checked and b.checked)
+    @assert(d.isChecked() and b.isChecked())
     e.setChecked(true)
-    @assert(!d.checked and e.checked and b.checked)
+    @assert(!d.isChecked() and e.isChecked() and b.isChecked())
 
     host.shutdown()
 }

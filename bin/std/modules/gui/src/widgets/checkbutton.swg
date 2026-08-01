@@ -2,43 +2,47 @@
 
 using Core, Pixel
 
-// Selects button check state.
-enum ButtonCheckState
+// Selects the unchecked, checked, or indeterminate state displayed by a check button.
+enum CheckState
 {
-    UnChecked     // Selects un checked.
-    Checked       // Selects checked.
-    Undefined     // Selects undefined.
+    Unchecked         // The option is not selected.
+    Checked           // The option is selected.
+    Indeterminate     // The represented values have mixed states.
 }
 
-// Selects check button flags.
+// Configures check button interaction and marker placement.
 #[Swag.EnumFlags]
 enum CheckButtonFlags
 {
-    Zero = 0       // No flags are enabled.
-    ThreeState     // Enables three state.
-    RightAlign     // Enables right align.
+    None = 0         // Uses a two-state button with a left-aligned marker.
+    TriState         // Includes the indeterminate state in the user toggle cycle.
+    RightAligned     // Places the marker at the right edge.
 }
 
-// Represents check button.
+// Lets the user enable an option or choose among three check states.
 struct CheckButton
 {
-    using button: Button     // Embedded button state.
+    using button: Button     // Embedded button behavior and presentation.
 
-    checked          = ButtonCheckState.UnChecked     // Checked associated with this value.
-    checkButtonFlags = CheckButtonFlags.Zero          // Check button flags associated with this value.
-    sigChanged: SigArray'func||(*CheckButton)         // Signal emitted when changed.
+    readonly
+    {
+        state = CheckState.Unchecked      // Current displayed state.
+        flags = CheckButtonFlags.None     // Active interaction and placement options.
+    }
+
+    sigChanged: SigArray'func||(*CheckButton)     // Emitted after a user action changes the state.
 }
 
 impl IWnd for CheckButton
 {
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaint(evt: *PaintEvent)
     {
-        let bc      = evt.bc
+        let bc      = evt.paintContext
         let painter = bc.painter
-        let theme   = .getTheme()
-        let metrics = .getThemeMetrics()
-        let colors  = .getThemeColors()
-        let rects   = .getThemeRects()
+        let theme   = .theme()
+        let metrics = .themeMetrics()
+        let colors  = .themeColors()
+        let rects   = .themeRects()
 
         var subRectBk:     #null *ThemeImageRect
         var subRectBorder: #null *ThemeImageRect
@@ -68,7 +72,7 @@ impl IWnd for CheckButton
             colorMark   = colors.btnCheck_HotMark
             colorText   = colors.btnCheck_HotText
 
-        case .checked == .Checked or .checked == .Undefined:
+        case .state == .Checked or .state == .Indeterminate:
             colorBk     = colors.btnCheck_CheckedBk
             colorText   = colors.btnCheck_CheckedText
             colorBorder = colors.btnCheck_CheckedBorder
@@ -81,9 +85,9 @@ impl IWnd for CheckButton
             colorText   = colors.btnCheck_Text
         }
 
-        switch .checked
+        switch .state
         {
-        case .UnChecked:
+        case .Unchecked:
             subRectBk     = &rects.btnCheck_Normal
             subRectBorder = &rects.btnCheck_NormalBorder
 
@@ -92,19 +96,19 @@ impl IWnd for CheckButton
             subRectBorder = &rects.btnCheck_CheckedBorder
             subRectMark   = &rects.btnCheck_CheckedMark
 
-        case .Undefined:
+        case .Indeterminate:
             subRectBk     = &rects.btnCheck_Undefined
             subRectBorder = &rects.btnCheck_UndefinedBorder
             subRectMark   = &rects.btnCheck_UndefinedMark
         }
 
         // Box
-        let clientRect = .getClientRect()
+        let clientRect = .clientRect()
         var posBox     = clientRect
         posBox.height = metrics.btnCheck_Size
         posBox.y      = clientRect.vertCenter() - (posBox.height * 0.5)
         posBox.width  = posBox.height
-        if .checkButtonFlags.has(.RightAlign) do
+        if .flags.has(.RightAligned) do
             posBox.x = clientRect.right() - posBox.width
         theme.drawSubRect(painter, posBox, subRectBk, colorBk)
         theme.drawSubRect(painter, posBox, subRectBorder, colorBorder)
@@ -113,15 +117,15 @@ impl IWnd for CheckButton
         // Content
         var format: RichStringFormat
         theme.setTextColors(&format, colorText)
-        if .checkButtonFlags.has(.RightAlign) do
+        if .flags.has(.RightAligned) do
             format.horzAlignment = .Right
         else do
             format.horzAlignment = .Left
-        format.vertAlignment     = .Center
-        format.flags             = .Clip
-        format.font              = .getFont()
+        format.vertAlignment = .Center
+        format.flags         = .Clip
+        format.font          = .font()
         var labelPos = clientRect
-        if !.checkButtonFlags.has(.RightAlign) do
+        if !.flags.has(.RightAligned) do
             labelPos.x += posBox.width + metrics.btnCheck_Padding
         labelPos.width -= posBox.width + metrics.btnCheck_Padding
         Theme.drawIconText(painter, labelPos, .icon, &.name, format, metrics.iconText_Margin)
@@ -137,7 +141,7 @@ impl IWnd for CheckButton
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
         evt.accepted = false
-        if evt.kind != .KeyPressed do
+        if evt.kind != .Pressed do
             return
 
         switch evt.key
@@ -151,35 +155,56 @@ impl IWnd for CheckButton
 
 impl CheckButton
 {
-    // Performs the create operation.
+    // Creates a check button with an optional command identifier and initial options.
     #[Swag.Discardable]
-    func create(parent: *Wnd, name: string, position: Math.Rectangle = {}, id: #null WndId = null)->*CheckButton
+    func create(parent: *Wnd, name: string, position: Math.Rectangle = {}, id: #null WndId = null, flags = CheckButtonFlags.None)->*CheckButton
     {
         Debug.assert(parent != null)
         var pos = position
         if pos.height == 0 do
-            pos.height = parent.getThemeMetrics().btnPush_Height
+            pos.height = parent.themeMetrics().btnPush_Height
         if pos.width == 0 do
-            pos.width = parent.getThemeMetrics().btnPush_Width
-        return Wnd.create'CheckButton(parent, name, pos, id)
+            pos.width = parent.themeMetrics().btnPush_Width
+        let result = Wnd.create'CheckButton(parent, name, pos, id)
+        result.flags = flags
+        return result
     }
 
-    // Toggle the button state
-    public mtd toggle()
+    // Advances to the next state and emits the same notifications as a user action.
+    mtd toggle()
     {
-        if .checked == .UnChecked and .checkButtonFlags.has(.ThreeState) do
-            .checked = .Undefined
-        elif .checked == .Checked do
-            .checked = .UnChecked
-        else do
-            .checked = .Checked
+        switch .state
+        {
+        case .Unchecked:     .state = .Checked
+        case .Checked:       .state = .flags.has(.TriState) ? .Indeterminate : .Unchecked
+        case .Indeterminate: .state = .Unchecked
+        }
+
+        .invalidate()
         .sigChanged.call(me)
         .postCommandEvent(.id)
     }
 
-    // Returns 'true' if the button is checked
-    public mtd const isChecked()->bool => .checked == .Checked
+    // Changes the displayed state without emitting a change signal or command.
+    mtd setState(newState: CheckState)
+    {
+        if .state == newState do
+            return
+        .state = newState
+        .invalidate()
+    }
 
-    // Returns 'true' if the button is undefined
-    public mtd const isUndefined()->bool => .checked == .Undefined
+    // Adds and removes interaction and placement options, then repaints the button.
+    mtd updateFlags(add: CheckButtonFlags = .None, remove = CheckButtonFlags.None)
+    {
+        .flags.add(add)
+        .flags.remove(remove)
+        .invalidate()
+    }
+
+    // Reports whether the option is selected.
+    mtd const isChecked()->bool => .state == .Checked
+
+    // Reports whether the represented values have mixed states.
+    mtd const isIndeterminate()->bool => .state == .Indeterminate
 }

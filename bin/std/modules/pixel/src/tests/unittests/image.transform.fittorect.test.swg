@@ -10,10 +10,7 @@ using Swag, Core
         ]
 
     var src = makeImage(4, 2, .RGBA8, pixels)
-    var rect: Math.Rectangle
-    rect.width  = 2
-    rect.height = 2
-    src.fitToRect(rect)
+    src.cover(2, 2)
     assertImage(src, 2, 2, .RGBA8)
 
     assertPixel(src, 0, 1, Color.fromArgb(23'u8, 20'u8, 21'u8, 22'u8))
@@ -28,8 +25,10 @@ using Swag, Core
         10'u8, 11'u8, 12'u8, 13'u8,      20'u8, 21'u8, 22'u8, 23'u8,
         ]
 
-    var tall = makeImage(2, 4, .RGBA8, tallPixels)
-    tall.fitToRect(rect)
+    var tall    = makeImage(2, 4, .RGBA8, tallPixels)
+    var covered = tall.covered(2, 2)
+    assertImage(tall, 2, 4, .RGBA8)
+    tall = #move covered
     assertImage(tall, 2, 2, .RGBA8)
     assertPixel(tall, 0, 1, Color.fromArgb(53'u8, 50'u8, 51'u8, 52'u8))
     assertPixel(tall, 1, 1, Color.fromArgb(63'u8, 60'u8, 61'u8, 62'u8))

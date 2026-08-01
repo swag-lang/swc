@@ -1,32 +1,38 @@
 using Core, Pixel
 
-// Represents edit dlg.
+// Prompts for either a single line or a block of rich text.
 public struct EditDlg
 {
     using dialog: Dialog     // Embedded dialog state.
-    #[Swag.Late]
-    label:    *Label                  // Label associated with this value.
-    edit:     #null *EditBox          // Edit associated with this value.
-    richEdit: #null *RichEditCtrl     // Rich edit associated with this value.
+    readonly
+    {
+        #[Swag.Late]
+        label:    *Label                  // Optional explanatory message.
+        edit:     #null *EditBox          // Single-line editor, when created in single-line mode.
+        richEdit: #null *RichEditCtrl     // Rich editor, when created in multi-line mode.
+    }
 }
 
 public impl EditDlg
 {
-    // Creates the message box
+    // Creates a single-line text prompt.
+    #[Swag.Discardable]
     func createSingleLine(from: *Surface)->*EditDlg
     {
+        Debug.assert(from != null)
         let dlg     = Wnd.create'EditDlg()
-        let metrics = from.wnd.getThemeMetrics()
+        let metrics = from.wnd.themeMetrics()
         let srf     = dlg.createSurface(from, 0, 0, 450, 210)
+        srf.center(from)
 
-        dlg.edit = EditBox.create(srf.getView(), "")
+        dlg.edit = EditBox.create(srf.view(), "")
         with dlg.edit
         {
             .dockStyle = .Bottom
             .margin    = metrics.dialog_Padding
             .style.addStyleSheetColors("edit_Bk $dlg_BtnBarBk")
             .style.addStyleSheetColors("edit_FocusBk $dlg_BtnBarBk")
-            .setForm(.Round)
+            .setForm(.RoundedRectangle)
             .setFocus()
         }
 
@@ -36,23 +42,27 @@ public impl EditDlg
         return dlg
     }
 
-    // Creates the message box
-    func createMultiLine(from: *Surface, heightEdit = 150)->*EditDlg
+    // Creates a resizable multi-line text prompt.
+    #[Swag.Discardable]
+    func createMultiLine(from: *Surface, editorHeight: s32 = 150)->*EditDlg
     {
+        Debug.assert(from != null)
+        Debug.assert(editorHeight > 0, "editor height must be positive")
         let dlg     = Wnd.create'EditDlg()
-        let metrics = from.wnd.getThemeMetrics()
-        let srf     = dlg.createSurface(from, 0, 0, 500, 180 + heightEdit, .Sizeable)
+        let metrics = from.wnd.themeMetrics()
+        let srf     = dlg.createSurface(from, 0, 0, 500, 180 + editorHeight, .Resizable)
+        srf.center(from)
         srf.minSize.x = 500
-        srf.minSize.y = 180 + heightEdit
+        srf.minSize.y = 180 + editorHeight
 
-        dlg.richEdit = RichEditCtrl.create(srf.getView(), {0, 0, 0, heightEdit})
+        dlg.richEdit = RichEditCtrl.create(srf.view(), {0, 0, 0, editorHeight})
         with dlg.richEdit
         {
-            .anchorStyle  = .Height
-            .dockStyle    = .Bottom
-            .margin       = metrics.dialog_Padding
-            .richEdFlags  |= .AutoLoseFocus
-            .bkColorModel = "$dlg_BtnBarBk"
+            .anchorStyle = .Height
+            .dockStyle   = .Bottom
+            .margin      = metrics.dialog_Padding
+            .setFlags(.flags | .AutoLoseFocus)
+            .backgroundColorModel = "$dlg_BtnBarBk"
             .setForm(.Edit)
             .setFrameForm(.Round)
             .setFrameFlags(.FocusBorder)
@@ -65,7 +75,7 @@ public impl EditDlg
         return dlg
     }
 
-    // Set the text
+    // Replaces the editor contents.
     mtd setText(text: string)
     {
         let edit = .edit
@@ -78,26 +88,26 @@ public impl EditDlg
         }
     }
 
-    // Get the text
-    mtd getText()->String
+    // Returns a copy of the editor contents.
+    mtd text()->String
     {
         let edit = .edit
         if edit do
-            return edit.text
-        return (notnull .richEdit).getText()
+            return edit.text()
+        return (notnull .richEdit).text()
     }
 
-    // Associate a message above the editbox
+    // Creates or updates an explanatory message above the editor.
     mtd setMessage(message: string, height: s32 = 40)
     {
+        Debug.assert(height > 0, "message height must be positive")
         if !@isset(.label)
         {
-            .label = Label.create((notnull .surface).getView(), message, {0, 0, 0, height})
+            .label = Label.create((notnull .surface).view(), message, {0, 0, 0, height})
             with me.label
             {
-                .dockStyle         = .Center
-                .vertAlignmentText = .Center
-                .horzAlignmentText = .Center
+                .dockStyle = .Center
+                .setTextAlignment(.Center, .Center)
             }
 
             let edit2 = .edit

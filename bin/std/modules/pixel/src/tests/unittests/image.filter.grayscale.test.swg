@@ -9,7 +9,7 @@ using Swag, Core
         ]
 
     var img = makeImage(2, 1, .RGBA8, pixels)
-    img.grayScale()
+    img.grayscale()
     assertImage(img, 2, 1, .RGBA8)
 
     assertPixel(img, 0, 0, Color.fromArgb(77'u8, 56'u8, 56'u8, 56'u8))

@@ -25,10 +25,25 @@ namespace
         model.setGapBreak(pieceIndex, newlines, indent.view());
     }
 
+    void applyBlankLineStyle(FormatModel& model, const uint32_t pieceIndex, const FormatBlankLineStyle style)
+    {
+        switch (style)
+        {
+            case FormatBlankLineStyle::Preserve:
+                break;
+            case FormatBlankLineStyle::Never:
+                forceGapNewlines(model, pieceIndex, 1, true);
+                break;
+            case FormatBlankLineStyle::Always:
+                forceGapNewlines(model, pieceIndex, 2, false);
+                break;
+        }
+    }
+
     void applyBlankLineAfterUsingBlock(FormatModel& model)
     {
         const FormatOptions& options = model.options();
-        if (!options.blankLineAfterUsingBlock)
+        if (options.blankLineAfterUsingBlock == FormatBlankLineStyle::Preserve)
             return;
 
         // Locate the initial run of top-level `using` statements; leading
@@ -60,8 +75,7 @@ namespace
                 return; // first code is not a using: nothing to do
 
             // First non-using code line after the block.
-            const uint32_t wanted = *options.blankLineAfterUsingBlock ? 2u : 1u;
-            forceGapNewlines(model, lineStart, wanted, !*options.blankLineAfterUsingBlock);
+            applyBlankLineStyle(model, lineStart, options.blankLineAfterUsingBlock);
             return;
         }
     }
@@ -69,7 +83,7 @@ namespace
     void applyBlankLineAfterGlobalBlock(FormatModel& model)
     {
         const FormatOptions& options = model.options();
-        if (!options.blankLineAfterGlobalBlock)
+        if (options.blankLineAfterGlobalBlock == FormatBlankLineStyle::Preserve)
             return;
 
         // Locate the initial run of top-level `#global` directives.
@@ -98,8 +112,7 @@ namespace
                 return; // first code is not a `#global`: nothing to do
 
             // First code line after the directives.
-            const uint32_t wanted = *options.blankLineAfterGlobalBlock ? 2u : 1u;
-            forceGapNewlines(model, lineStart, wanted, !*options.blankLineAfterGlobalBlock);
+            applyBlankLineStyle(model, lineStart, options.blankLineAfterGlobalBlock);
             return;
         }
     }
@@ -127,7 +140,7 @@ namespace
         return target;
     }
 
-    void applyBlankBeforeDeclGroup(FormatModel& model, const uint32_t declLineStart, const uint32_t minBlank)
+    void applyBlankBeforeDeclGroup(FormatModel& model, const uint32_t declLineStart, const FormatBlankLineStyle style)
     {
         const uint32_t target = declGroupStart(model, declLineStart);
         const uint32_t prev   = model.prevPiece(target);
@@ -138,7 +151,7 @@ namespace
         if (model.piece(prev).is(TokenId::SymLeftCurly))
             return;
 
-        forceGapNewlines(model, target, minBlank + 1, false);
+        applyBlankLineStyle(model, target, style);
     }
 
     bool blockSpansLines(const FormatModel& model, const FormatBlock& block)
@@ -150,10 +163,10 @@ namespace
     // `=>` short forms, and one-line bodies keep stacking as written.
     void applyBlankLinesBetweenDefinitions(FormatModel& model)
     {
-        const FormatOptions& options   = model.options();
-        const uint32_t       wantFuncs = options.minBlankLinesBetweenFunctions;
-        const uint32_t       wantTypes = options.minBlankLinesBetweenTypes;
-        if (wantFuncs == 0 && wantTypes == 0)
+        const FormatOptions&       options = model.options();
+        const FormatBlankLineStyle funcs = options.blankLineBeforeFunctionDefinition;
+        const FormatBlankLineStyle types = options.blankLineBeforeTypeDefinition;
+        if (funcs == FormatBlankLineStyle::Preserve && types == FormatBlankLineStyle::Preserve)
             return;
 
         for (const FormatBlock& block : model.blocks())
@@ -161,26 +174,26 @@ namespace
             if (block.exprLevel || !blockSpansLines(model, block))
                 continue;
 
-            uint32_t want = 0;
+            FormatBlankLineStyle style = FormatBlankLineStyle::Preserve;
             switch (block.kind)
             {
                 case FormatBlockKind::Function:
-                    want = wantFuncs;
+                    style = funcs;
                     break;
                 case FormatBlockKind::Struct:
                 case FormatBlockKind::Enum:
                 case FormatBlockKind::Interface:
                 case FormatBlockKind::Impl:
                 case FormatBlockKind::Namespace:
-                    want = wantTypes;
+                    style = types;
                     break;
                 default:
                     break;
             }
-            if (want == 0)
+            if (style == FormatBlankLineStyle::Preserve)
                 continue;
 
-            applyBlankBeforeDeclGroup(model, model.lineStartOf(block.headPiece), want);
+            applyBlankBeforeDeclGroup(model, model.lineStartOf(block.headPiece), style);
         }
     }
 
@@ -189,7 +202,7 @@ namespace
     void applyBlankLinesBeforeComments(FormatModel& model)
     {
         const FormatOptions& options = model.options();
-        if (options.minBlankLinesBeforeComments == 0)
+        if (options.blankLineBeforeCommentBlock == FormatBlankLineStyle::Preserve)
             return;
 
         std::vector<uint32_t> lineStarts;
@@ -225,7 +238,7 @@ namespace
                                          FormatRoleE::FuncDeclStart, FormatRoleE::TypeDeclStart}))
                 continue;
 
-            forceGapNewlines(model, lineStart, options.minBlankLinesBeforeComments + 1, false);
+            applyBlankLineStyle(model, lineStart, options.blankLineBeforeCommentBlock);
         }
     }
 
@@ -291,18 +304,37 @@ namespace
         }
     }
 
-    // Blank line after the `}` of a multi-line block when another statement
-    // follows: separates the block from the next "paragraph". `else`, `case`,
-    // and closing braces stay attached.
-    void applyBlankLinesAfterBlocks(FormatModel& model)
+    void applyBlankLinesAtBlockEdges(FormatModel& model)
     {
         const FormatOptions& options = model.options();
-        if (options.minBlankLinesAfterBlocks == 0)
+        if (options.blankLineAfterOpeningBrace == FormatBlankLineStyle::Preserve &&
+            options.blankLineBeforeClosingBrace == FormatBlankLineStyle::Preserve)
             return;
 
         for (const FormatBlock& block : model.blocks())
         {
-            if (block.exprLevel || !blockSpansLines(model, block))
+            if (!blockSpansLines(model, block))
+                continue;
+
+            const uint32_t first = model.nextPiece(block.openPiece);
+            if (first != INVALID_PIECE && first < block.closePiece)
+                applyBlankLineStyle(model, first, options.blankLineAfterOpeningBrace);
+            applyBlankLineStyle(model, block.closePiece, options.blankLineBeforeClosingBrace);
+        }
+    }
+
+    // A standalone closing brace ends a structural paragraph. Braces followed
+    // by `else`, `case`, or another closing brace stay attached.
+    void applyBlankLineAfterStandaloneClosingBraces(FormatModel& model)
+    {
+        const FormatOptions& options = model.options();
+        if (options.blankLineAfterStandaloneClosingBrace == FormatBlankLineStyle::Preserve)
+            return;
+
+        for (const FormatBlock& block : model.blocks())
+        {
+            if (block.exprLevel || !blockSpansLines(model, block) || model.lineStartOf(block.closePiece) != block.closePiece ||
+                FormatPassUtil::lineEndOf(model, block.closePiece) != block.closePiece)
                 continue;
 
             const uint32_t next = model.nextPiece(block.closePiece);
@@ -317,7 +349,7 @@ namespace
                                          FormatRoleE::TypeDeclStart}))
                 continue;
 
-            forceGapNewlines(model, next, options.minBlankLinesAfterBlocks + 1, false);
+            applyBlankLineStyle(model, next, options.blankLineAfterStandaloneClosingBrace);
         }
     }
 }
@@ -326,12 +358,13 @@ namespace FormatPass
 {
     void blanks(FormatModel& model)
     {
+        applyBlankLineAfterStandaloneClosingBraces(model);
         applyBlankLineAfterGlobalBlock(model);
         applyBlankLineAfterUsingBlock(model);
         applyBlankLinesBetweenDefinitions(model);
         applyBlankLinesBeforeComments(model);
         applyBlankLinesBetweenCases(model);
-        applyBlankLinesAfterBlocks(model);
+        applyBlankLinesAtBlockEdges(model);
     }
 }
 

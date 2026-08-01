@@ -7,6 +7,15 @@ const Menu_New  = "Menu.New"
 const Menu_Open = "Menu.Open"
 const Menu_Quit = "Menu.Quit"
 
+var MenuSelectedCount: u32
+
+func menuCommandSelected(menu: *MenuCtrl, id: WndId)
+{
+    discard menu
+    if id == Menu_Open do
+        MenuSelectedCount += 1
+}
+
 // A menu bar holds items; a popup menu holds items, separators and disabled entries.
 #test
 {
@@ -29,6 +38,12 @@ const Menu_Quit = "Menu.Quit"
     @assert((notnull sub.items[1]).separator)
     @assert((notnull sub.items[2]).disabled)
     @assert((notnull sub.items[2]).name.raw == "Quit")
+    @assert(sub.itemAt(2).id == Menu_Quit)
+
+    sub.removeItemAt(1)
+    @assert(sub.items.count == 2)
+    sub.clear()
+    @assert(sub.items.isEmpty())
 
     host.shutdown()
 }
@@ -42,6 +57,8 @@ const Menu_Quit = "Menu.Quit"
     let popup = MenuCtrl.createPopup(&host.root)
     popup.addItem("Open", Menu_Open)
     popup.addItem("Quit", Menu_Quit)
+    MenuSelectedCount        = 0
+    popup.sigCommandSelected += &menuCommandSelected
 
     var frameCount: u32
     var didClick:   bool
@@ -50,7 +67,7 @@ const Menu_Quit = "Menu.Quit"
         dref frames += 1
         if !dref didClick
         {
-            @assert(host.getCapturedPopupMenu() == popup)
+            @assert(host.capturedPopupMenu() == popup)
             @assert(host.clickPopupMenuItem(Menu_Open))
             dref didClick = true
         }
@@ -59,6 +76,7 @@ const Menu_Quit = "Menu.Quit"
     let result = popup.doModal({40, 40}, autoDestroy: true)
 
     @assert(result == Menu_Open)
+    @assert(MenuSelectedCount == 1)
     @assert(frameCount == 1)
     @assert(didClick)
     @assert(host.app.mouseCaptureWnd == null)
@@ -224,7 +242,7 @@ const Menu_Quit = "Menu.Quit"
     var host: Testing.HeadlessHost
     host.setup(320, 200)
 
-    let metrics   = host.root.getThemeMetrics()
+    let metrics   = host.root.themeMetrics()
     let barHeight = metrics.menuBar_Height + 12
     let bar       = MenuCtrl.createBar(&host.root, {0, 0, 300, barHeight})
     let sub       = MenuCtrl.createPopup(&host.root)
@@ -255,7 +273,7 @@ const Menu_Quit = "Menu.Quit"
     var host: Testing.HeadlessHost
     host.setup(320, 200)
 
-    let metrics = host.root.getThemeMetrics()
+    let metrics = host.root.themeMetrics()
     let bar     = MenuCtrl.createBar(&host.root, {0, 0, 300, 0})
     let sub     = MenuCtrl.createPopup(&host.root)
     sub.addItem("Open", Menu_Open)

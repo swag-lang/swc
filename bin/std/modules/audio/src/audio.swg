@@ -1,4 +1,4 @@
-using Core
+using Core, Core.Errors
 
 var g_Driver: Driver
 
@@ -10,6 +10,8 @@ var g_Driver: Driver
 // been released.
 public func createEngine(kind: DriverKind = .Default) fail
 {
+    if g_Driver.isCreated do
+        fail BadParameterError{"audio engine is already created"}
     g_Driver.create(kind)
 }
 
@@ -25,14 +27,32 @@ public func createNoSoundEngine() fail => createEngine(.NoSound)
 // All voices and buses must have finished or been destroyed before this call.
 public func destroyEngine()
 {
+    if !g_Driver.isCreated do
+        return
     g_Driver.destroy()
 }
+
+// Returns whether the process-wide audio engine is currently available.
+public func isEngineCreated()->bool => g_Driver.isCreated
+
+// Returns the resolved backend of the current engine, or `Default` before creation.
+public func activeDriverKind()->DriverKind => g_Driver.kind
 
 // Sets the mastering output gain.
 //
 // `volume` is a linear gain. Backend implementations may clamp it to their
 // supported range.
-public func setOutputVolume(volume: f32) fail => g_Driver.setOutputVolume(volume)
+public func setOutputVolume(volume: f32) fail
+{
+    if !g_Driver.isCreated do
+        fail BadParameterError{"audio engine is not created"}
+    g_Driver.setOutputVolume(volume)
+}
 
 // Returns the current mastering output gain as a linear value.
-public func getOutputVolume()->f32 => g_Driver.getOutputVolume()
+public func outputVolume()->f32 fail
+{
+    if !g_Driver.isCreated do
+        fail BadParameterError{"audio engine is not created"}
+    return g_Driver.outputVolume()
+}

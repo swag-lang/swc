@@ -15,8 +15,8 @@ using Swag, Core, File
     host.setup(640, 460)
 
     var opt: FileDlgOptions
-    opt.mode      = .SelectOneFile
-    opt.drivePane = false
+    opt.mode              = .SelectFile
+    opt.showLocationsPane = false
     opt.filters.add({"Text", ".txt"})
 
     let fb = FileBrowserCtrl.create(&host.root, opt, {0, 0, 600, 400})
@@ -27,21 +27,24 @@ using Swag, Core, File
 
     // The file list is multi-column with fixed default widths.
     @assert(fb.listCtrl.header.items.count == 2)
-    @assert(Math.abs(fb.listCtrl.header.getItemWidth(0) - 200) < 0.5)
-    @assert(Math.abs(fb.listCtrl.header.getItemWidth(1) - 150) < 0.5)
+    @assert(Math.abs(fb.listCtrl.header.itemWidthAt(0) - 200) < 0.5)
+    @assert(Math.abs(fb.listCtrl.header.itemWidthAt(1) - 150) < 0.5)
 
-    // getSelectedName combines the folder + typed name and appends the active
+    // selectedPath combines the folder + typed name and appends the active
     // filter extension when missing.
-    fb.editFile.setText("notes")
-    let name     = fb.getSelectedName()
-    let fileName = notnull Path.getFileName(name.toString())
+    fb.setFileName("notes")
+    @assert(fb.fileName() == "notes")
+    let name     = fb.selectedPath()
+    let fileName = notnull Path.fileName(name.toString())
     @assert(fileName == "notes.txt")
 
     // A name that already carries the extension is kept as-is.
-    fb.editFile.setText("report.txt")
-    let name2     = fb.getSelectedName()
-    let fileName2 = notnull Path.getFileName(name2.toString())
+    fb.setFileName("report.txt")
+    let name2     = fb.selectedPath()
+    let fileName2 = notnull Path.fileName(name2.toString())
     @assert(fileName2 == "report.txt")
+    @assert(!fb.setCurrentFolder("this-folder-does-not-exist"))
+    @assert(!fb.createFolder("bad/name"))
 
     host.shutdown()
 }
@@ -53,17 +56,17 @@ using Swag, Core, File
     host.setup(640, 460)
 
     var opt: FileDlgOptions
-    opt.mode      = .SelectFolder
-    opt.drivePane = false
+    opt.mode              = .SelectFolder
+    opt.showLocationsPane = false
 
     let fb = FileBrowserCtrl.create(&host.root, opt, {0, 0, 600, 400})
     @assert(fb.comboType.items.count == 1)
     @assert(@isset(fb.editFile))
 
-    // getSelectedName must not index the (empty) filter list in SelectFolder mode.
-    fb.editFile.setText("myfolder")
-    let name     = fb.getSelectedName()
-    let fileName = notnull Path.getFileName(name.toString())
+    // selectedPath must not index the (empty) filter list in SelectFolder mode.
+    fb.setFileName("myfolder")
+    let name     = fb.selectedPath()
+    let fileName = notnull Path.fileName(name.toString())
     @assert(fileName == "myfolder")
 
     host.shutdown()

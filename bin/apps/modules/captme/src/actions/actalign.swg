@@ -41,28 +41,28 @@ impl IActionUI for ActionAlign
         switch cxt.id
         {
         case .SendToFront:
-            evt.setFlags |= .Disabled | .Icon | .Name
-            evt.name     = "Send To Front"
-            evt.disabled = !hasSel or (notnull capture).selection.contains((notnull capture).forms.count - 1)
-            evt.icon     = main.getTheme().getIcon24(.BringToFront)
+            evt.updatedFields |= .Disabled | .Icon | .Name
+            evt.name          = "Send To Front"
+            evt.disabled      = !hasSel or (notnull capture).selection.contains((notnull capture).forms.count - 1)
+            evt.icon          = main.theme().icon24(.BringToFront)
 
         case .SendToBack:
-            evt.setFlags |= .Disabled | .Icon | .Name
-            evt.name     = "Send To Back"
-            evt.disabled = !hasSel or (notnull capture).selection.contains(0)
-            evt.icon     = main.getTheme().getIcon24(.SendToBack)
+            evt.updatedFields |= .Disabled | .Icon | .Name
+            evt.name          = "Send To Back"
+            evt.disabled      = !hasSel or (notnull capture).selection.contains(0)
+            evt.icon          = main.theme().icon24(.SendToBack)
 
         case .MoveForward:
-            evt.setFlags |= .Disabled | .Icon | .Name
-            evt.name     = "Move Forward"
-            evt.disabled = !hasSel or (notnull capture).selection.contains((notnull capture).forms.count - 1)
-            evt.icon     = main.getTheme().getIcon24(.BringForward)
+            evt.updatedFields |= .Disabled | .Icon | .Name
+            evt.name          = "Move Forward"
+            evt.disabled      = !hasSel or (notnull capture).selection.contains((notnull capture).forms.count - 1)
+            evt.icon          = main.theme().icon24(.BringForward)
 
         case .MoveBackward:
-            evt.setFlags |= .Disabled | .Icon | .Name
-            evt.name     = "Move Backward"
-            evt.disabled = !hasSel or (notnull capture).selection.contains(0)
-            evt.icon     = main.getTheme().getIcon24(.SendBackward)
+            evt.updatedFields |= .Disabled | .Icon | .Name
+            evt.name          = "Move Backward"
+            evt.disabled      = !hasSel or (notnull capture).selection.contains(0)
+            evt.icon          = main.theme().icon24(.SendBackward)
         }
 
         return true

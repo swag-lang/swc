@@ -48,7 +48,7 @@ func isValue(oneArg: string, typeField: typeinfo, options: ParseOptions)->bool
     if !isOption(oneArg, options) do
         return true
 
-    let concreteType = Reflection.makeConcreteAlias(typeField)
+    let concreteType = Reflection.resolveAliases(typeField)
 
     if !Reflection.isInteger(concreteType) and !Reflection.isFloat(concreteType) do
         return false
@@ -145,7 +145,7 @@ func getField(typeStruct: const *Swag.TypeInfoStruct, name: string)->FieldResult
         }
 
         // Test name alias
-        let aliasName = Reflection.getAttributeValue(it, ArgParams, "nameAlias", cast(#null string) null)
+        let aliasName = Reflection.attributeValue(it, ArgParams, "nameAlias", cast(#null string) null)
         if aliasName == name
         {
             result.field = it
@@ -224,9 +224,9 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
         }
 
         // Dynamic array of values
-        elif Reflection.isStructArray(typeField)
+        elif Reflection.isDynamicArray(typeField)
         {
-            let arrayType = Reflection.getStructArrayType(typeField) orelse #typeof(u8)
+            let arrayType = Reflection.dynamicArrayElementType(typeField) orelse #typeof(u8)
             try checkNext(arrayType)
 
             // If it's an array of strings, we will need to add string delimiters

@@ -4,19 +4,19 @@ using Core, Pixel
 
 impl Theme
 {
-    // Performs the draw sub rect operation.
+    // Draws a themed image region, using its optional nine-slice margins.
     mtd drawSubRect(painter: *Painter, dstRect: Math.Rectangle, subRect: #null *ThemeImageRect, color: Color, center = true, interpol = InterpolationMode.Linear)
     {
         drawSubRect(painter, .res.imgWidgets, dstRect, subRect, color, center, interpol)
     }
 
-    // Performs the draw sub rect operation.
+    // Draws a texture region, preserving its optional nine-slice borders.
     func drawSubRect(painter: *Painter, texture: Texture, dstRect: Math.Rectangle, subRect: #null *ThemeImageRect, color: Color, center = true, interpol = InterpolationMode.Linear)
     {
         if !subRect or subRect.rect.isEmpty() or dstRect.isEmpty() or color.a == 0 do
             return
 
-        let oldInterpol = painter.getInterpolationMode()
+        let oldInterpol = painter.interpolationMode()
         painter.setInterpolationMode(interpol)
         defer painter.setInterpolationMode(oldInterpol)
 
@@ -114,7 +114,7 @@ impl Theme
         }
     }
 
-    // Performs the draw icon text operation.
+    // Draws rich text with an optional leading icon inside `position`.
     func drawIconText(painter: *Painter, position: Math.Rectangle, icon: Icon, name: *RichString, stringFormat: RichStringFormat, iconMargin = 4'f32)
     {
         let count = @countof(dref name)

@@ -15,21 +15,21 @@ using Swag, Core, Core.Serialization
 // ```
 struct Image
 {
-    pixels:    Array'u8                // Owned, row-major pixel bytes.
-    metaDatas: Array'ImageMetaData     // Format-specific metadata preserved by compatible codecs.
+    pixels:   Array'u8                // Owned, row-major pixel bytes.
+    metadata: Array'ImageMetadata     // Format-specific metadata preserved by compatible codecs.
 
     // Geometry and encoding of the pixel buffer. They are established together by 'create' and
     // the decoders, and every one of them is derived from the others: writing one on its own
     // would describe a buffer that does not exist.
     readonly
     {
-        size:   u64             // Total pixel-buffer size, in bytes.
-        width:  s32             // Image width, in pixels.
-        height: s32             // Image height, in pixels.
-        width8: s32             // Byte stride of one tightly packed row.
-        pf:     PixelFormat     // Encoding of each pixel.
-        bpp:    u8              // Number of bits per pixel.
-        bpp8:   u8              // Number of bytes per pixel.
+        byteCount:     u64             // Total pixel-buffer size, in bytes.
+        width:         s32             // Image width, in pixels.
+        height:        s32             // Image height, in pixels.
+        rowStride:     s32             // Byte stride of one tightly packed row.
+        pixelFormat:   PixelFormat     // Encoding of each pixel.
+        bitsPerPixel:  u8              // Number of bits per pixel.
+        bytesPerPixel: u8              // Number of bytes per pixel.
     }
 
     // Reusable scratch image owned by this image, allocated on demand by the transforms.
@@ -45,9 +45,8 @@ impl Image
 
     // Creates a tightly packed image with positive dimensions.
     //
-    // When `buffer` is provided, its bytes are copied into the new image. The slice
-    // must not be larger than the computed image size; bytes not supplied by a shorter
-    // slice remain uninitialized.
+    // When `buffer` is provided, its bytes are copied into the new image. Its length
+    // must exactly match the byte count implied by the dimensions and format.
     //
     // ## Example
     //
@@ -55,15 +54,19 @@ impl Image
     // let pixels: [4] u8 = {255, 0, 0, 255}
     // let image = Image.create(1, 1, .RGBA8, pixels)
     // ```
-    func create(width, height: s32, pf: PixelFormat, buffer: #null const [..] u8 = null)->Image
+    func create(width, height: s32, pixelFormat: PixelFormat, buffer: #null const [..] u8 = null)->Image
     {
         Debug.assert(width > 0 and height > 0, "invalid dimensions")
 
         var result: retval
-        result.init(width, height, pf)
+        result.init(width, height, pixelFormat)
         result.allocPixels()
-        if buffer do
+        if buffer
+        {
+            Debug.assert(@countof(buffer) == result.byteCount, "pixel buffer size does not match image geometry")
             Memory.copy(cast([*] u8) (notnull result.pixels.buffer), @dataof(buffer), @countof(buffer))
+        }
+
         return result
     }
 
@@ -92,7 +95,7 @@ impl Image
         {
             #inject(stmt, pixel = scan, index = @index)
 
-            scan += bpp8
+            scan += bytesPerPixel
         }
     }
 
@@ -100,65 +103,68 @@ impl Image
     //
     // This resets `pixels`, metadata, and temporary storage. Call [[Image.allocPixels]]
     // afterward, or supply storage through a higher-level creation operation.
-    mtd init(width, height: s32, pf: PixelFormat)
+    internal mtd init(width, height: s32, pixelFormat: PixelFormat)
     {
-        .pixels        = {}
-        .metaDatas     = {}
-        .workingBuffer = null
+        Debug.assert(width > 0 and height > 0, "invalid dimensions")
+        let bitsPerPixel  = pixelFormat.bitsPerPixel()
+        let bytesPerPixel = cast(u8) (bitsPerPixel >> 3)
+        Debug.assert(width <= 0x7FFFFFFF's32 / cast(s32) bytesPerPixel, "image row is too large")
+
+        .release()
         .width         = width
         .height        = height
-        .pf            = pf
-        .bpp           = .pf.bpp()
-        .bpp8          = cast(u8) (.bpp >> 3)
-        .width8        = .width * .bpp8
-        .size          = cast(u64) (.width * .height * .bpp8)
+        .pixelFormat   = pixelFormat
+        .bitsPerPixel  = bitsPerPixel
+        .bytesPerPixel = bytesPerPixel
+        .rowStride     = .width * .bytesPerPixel
+        .byteCount     = cast(u64) .rowStride * cast(u64) .height
     }
 
     // Allocates the pixel buffer without initializing its bytes.
-    mtd allocPixels()
+    internal mtd allocPixels()
     {
-        Debug.assert(.size != 0)
+        Debug.assert(.byteCount != 0)
 
         // Do not use pixels.resize to avoid initializing all the pixels
         // Pixels are not defined after a call to 'allocPixels', as design
-        .pixels.grow(.size)
-        .pixels.count = .size
+        .pixels.grow(.byteCount)
+        .pixels.count = .byteCount
     }
 
     // Allocates reusable working storage with the current geometry and pixel format.
-    mtd allocWorkingBuffer()
+    internal mtd allocWorkingBuffer()
     {
-        .allocWorkingBuffer(.width, .height, .pf)
+        .allocWorkingBuffer(.width, .height, .pixelFormat)
     }
 
     // Allocates reusable working storage with the requested geometry and format.
     //
     // An existing compatible buffer is retained; an incompatible one is released.
-    mtd allocWorkingBuffer(newWidth, newHeight: s32, newPf: PixelFormat)
+    internal mtd allocWorkingBuffer(newWidth, newHeight: s32, newPixelFormat: PixelFormat)
     {
         if .workingBuffer and
            newWidth == .workingBuffer.width and
            newHeight == .workingBuffer.height and
-           newPf == .workingBuffer.pf
+           newPixelFormat == .workingBuffer.pixelFormat
         {
             return
         }
 
         .freeWorkingBuffer()
         .workingBuffer      = Memory.new'Image()
-        dref .workingBuffer = Image.create(newWidth, newHeight, newPf)
+        dref .workingBuffer = Image.create(newWidth, newHeight, newPixelFormat)
     }
 
     // Returns the allocated working image.
     //
     // The caller must have called an `allocWorkingBuffer` overload first.
-    mtd safeWorkingBuffer()->*Image
+    internal mtd safeWorkingBuffer()->*Image
     {
         return notnull .workingBuffer
     }
 
     // Releases the working image, if any.
-    mtd freeWorkingBuffer()
+    internal mtd freeWorkingBuffer()
     {
         Memory.delete(.workingBuffer)
         .workingBuffer = null
@@ -168,17 +174,17 @@ impl Image
     //
     // Working storage must already be allocated. Metadata remains attached to the
     // current image.
-    mtd applyWorkingBuffer()
+    internal mtd applyWorkingBuffer()
     {
         let wb = notnull .workingBuffer
-        swap(&.pf, &wb.pf)
+        swap(&.pixelFormat, &wb.pixelFormat)
         swap(&.pixels, &wb.pixels)
         swap(&.width, &wb.width)
         swap(&.height, &wb.height)
-        swap(&.bpp, &wb.bpp)
-        swap(&.bpp8, &wb.bpp8)
-        swap(&.size, &wb.size)
-        swap(&.width8, &wb.width8)
+        swap(&.bitsPerPixel, &wb.bitsPerPixel)
+        swap(&.bytesPerPixel, &wb.bytesPerPixel)
+        swap(&.byteCount, &wb.byteCount)
+        swap(&.rowStride, &wb.rowStride)
     }
 
     // Visits pixels in parallel using chunks separated by `stride` pixels.
@@ -198,13 +204,13 @@ impl Image
 
         let self: const &Image = me
         var p                  = {image: self, userData: pixelUserData}
-        Jobs.parallelVisit(@mkslice(cast([*] u8) (notnull self.pixels.buffer), self.pixels.count), cast(u32) (.bpp8 * stride), &p)
+        Jobs.parallelVisit(@mkslice(cast([*] u8) (notnull self.pixels.buffer), self.pixels.count), cast(u32) (.bytesPerPixel * stride), &p)
         {
             if !data do
                 return
             let p        = cast(*#decltype(p)) (data)
             let pixPtr   = cast([*] u8) buffer
-            let pixIndex = cast(u64) (pixPtr - cast([*] u8) (notnull p.image.pixels.buffer)) / p.image.bpp8
+            let pixIndex = cast(u64) (pixPtr - cast([*] u8) (notnull p.image.pixels.buffer)) / p.image.bytesPerPixel
 
             #inject(stmt,
                     pix = pixPtr,
@@ -226,13 +232,14 @@ impl Image
     // Sets every byte of the pixel buffer to zero.
     mtd clear()
     {
+        Debug.assert(.isValid(), "image is invalid")
         let pixels = notnull .pixels.buffer
-        Memory.clear(pixels, .size)
+        Memory.clear(pixels, .byteCount)
     }
 
     // Copies one 24-bit or 32-bit pixel between non-null addresses.
     #[Swag.Inline]
-    func(BPP: u8) copyPixelDirect(pixDst, pixSrc: [*] u8)
+    internal func(BPP: u8) copyPixelDirect(pixDst, pixSrc: [*] u8)
     {
         #static switch BPP
         {
@@ -249,7 +256,7 @@ impl Image
     }
 
     // Writes RGBA components to `pixDst` using the compile-time pixel format.
-    func(PF: PixelFormat) convertToRGBA8(pixDst: [*] u8, r, g, b, a: u8)
+    internal func(PF: PixelFormat) convertToRGBA8(pixDst: [*] u8, r, g, b, a: u8)
     {
         #static if PF == .BGR8
         {
@@ -282,9 +289,9 @@ impl Image
         }
     }
 
-    // Set pixel values depending on pixel format
+    // Reads one clamped pixel using the compile-time pixel format.
     #[Swag.Inline]
-    mtd(PF: PixelFormat) const getPixelColorDirect(pixX, pixY: s32)->Color
+    internal mtd(PF: PixelFormat) const pixelColorDirect(pixX, pixY: s32)->Color
     {
         var result: retval
         let x = Math.clamp(pixX, 0, .width - 1)
@@ -325,28 +332,30 @@ impl Image
         return result
     }
 
-    // Returns the color at the given coordinate
-    mtd const getPixelColor(pixX, pixY: s32)->Color
+    // Returns the color at the given coordinate, clamped to the image bounds.
+    mtd const pixelColor(pixX, pixY: s32)->Color
     {
-        switch #complete .pf
+        Debug.assert(.isValid(), "image is invalid")
+        switch #complete .pixelFormat
         {
-        case .RGBA8: return .getPixelColorDirect'RGBA8(pixX, pixY)
-        case .RGB8:  return .getPixelColorDirect'RGB8(pixX, pixY)
-        case .BGRA8: return .getPixelColorDirect'BGRA8(pixX, pixY)
-        case .BGR8:  return .getPixelColorDirect'BGR8(pixX, pixY)
+        case .RGBA8: return .pixelColorDirect'RGBA8(pixX, pixY)
+        case .RGB8:  return .pixelColorDirect'RGB8(pixX, pixY)
+        case .BGRA8: return .pixelColorDirect'BGRA8(pixX, pixY)
+        case .BGR8:  return .pixelColorDirect'BGR8(pixX, pixY)
         }
 
         Debug.assert(false)
         return Color.fromArgb(0'u32)
     }
 
-    // Returns the image aspect ratio
-    mtd const getAspectRatio()->f32
+    // Returns the width divided by the height.
+    mtd const aspectRatio()->f32
     {
+        Debug.assert(.isValid(), "image is invalid")
         return cast(f32) .width / cast(f32) .height
     }
 
-    // Returns true if the image is square
+    // Reports whether the image has equal width and height.
     mtd const isSquare()->bool
     {
         if !.isValid() do

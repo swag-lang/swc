@@ -35,11 +35,10 @@ var g_DarkTheme:   bool
 
 func setLabelTextStyle(label: *Label, horizontal = StringHorzAlignment.Left, vertical = StringVertAlignment.Center)
 {
-    label.horzAlignmentText = horizontal
-    label.vertAlignmentText = vertical
+    label.setTextAlignment(horizontal, vertical)
 }
 
-func createText(parent: *Wnd, text: string, rect: Math.Rectangle, flags = LabelFlags.Zero)->*Label
+func createText(parent: *Wnd, text: string, rect: Math.Rectangle, flags = LabelFlags.None)->*Label
 {
     let label = Label.create(parent, text, rect, null, flags)
     setLabelTextStyle(label, .Left, .Center)
@@ -49,8 +48,8 @@ func createText(parent: *Wnd, text: string, rect: Math.Rectangle, flags = LabelF
 func createHelpText(parent: *Wnd, text: string, rect: Math.Rectangle)->*Label
 {
     let label = createText(parent, text, rect, .WordWrap)
-    label.labelFlags.add(.LightText)
-    label.vertAlignmentText = .Top
+    label.updateFlags(.SecondaryText)
+    label.setTextVerticalAlignment(.Top)
     return label
 }
 
@@ -69,12 +68,12 @@ func createPanel(parent: *Wnd, title, subtitle: string, rect: Math.Rectangle)->*
 func createCaption(parent: *Wnd, text: string, x, y, width: f32)
 {
     let label = createText(parent, text, {x, y, width, 24})
-    label.labelFlags.add(.LightText)
+    label.updateFlags(.SecondaryText)
 }
 
 func getPagePanelLayout(parent: *Wnd)->PagePanelLayout
 {
-    let rect         = parent.getClientRect()
+    let rect         = parent.clientRect()
     let width        = Math.max(rect.width, 1.0)
     let height       = Math.max(rect.height, TopPanelHeight + PanelGap + MinBottomPanelHeight)
     let halfWidth    = (width - PanelGap) * 0.5
@@ -154,7 +153,7 @@ func applyTheme()
         app.theme.colors.setLight()
 
     updateThemeButton()
-    app.themeHasChanged()
+    app.notifyThemeChanged()
 }
 
 func toggleTheme(btn: *Button)
@@ -167,7 +166,7 @@ func clearPage()
 {
     g_Progress = null
     let pageView = notnull g_PageView
-    for child in pageView.childs
+    for child in pageView.children
     {
         let c = notnull child
         c.destroy()
@@ -204,7 +203,7 @@ func layoutRootView()
     let view     = notnull g_View
     let pageView = notnull g_PageView
 
-    let rect         = view.getClientRect()
+    let rect         = view.clientRect()
     let contentWidth = Math.max(rect.width - 2 * RootMargin, 1.0)
     let pageHeight   = Math.max(rect.height - PageTop - PageBottomMargin, TopPanelHeight + PanelGap + MinBottomPanelHeight)
     let footerY      = Math.max(rect.height - 42.0, PageTop + pageHeight + 6.0)
@@ -261,7 +260,7 @@ func previousPage()
 
 func updateTestMode()
 {
-    if !Env.hasArg("swag.test") or !g_Surface do
+    if !Env.hasArgument("swag.test") or !g_Surface do
         return
 
     g_TestFrame += 1
@@ -286,11 +285,11 @@ func canUsePageArrows()->bool
     let view     = notnull g_View
     let pageView = notnull g_PageView
 
-    let focus = view.getFocus()
+    let focus = view.focusedWindow()
     if !focus or focus == g_View do
         return true
 
-    return !pageView.isParentOf(notnull focus)
+    return !pageView.isAncestorOf(notnull focus)
 }
 
 func onFrame(app: *Application)
@@ -298,14 +297,14 @@ func onFrame(app: *Application)
     if !g_Surface or !g_View or !g_PageView do
         return
 
-    if app.keyb.isKeyJustPressed(.F1) do
+    if app.keyboard.isKeyJustPressed(.F1) do
         nextPage()
 
     let progress = g_Progress
     if progress
     {
-        let value = progress.progression + app.getDt() * 0.35
-        progress.setProgression(value > 1 ? 0 : value)
+        let value = progress.value + app.deltaSeconds() * 0.35
+        progress.setValue(value > 1 ? 0 : value)
     }
 
     updateTestMode()
@@ -313,23 +312,23 @@ func onFrame(app: *Application)
 
 func createRootView()
 {
-    let view = (notnull g_Surface).getView()
+    let view = (notnull g_Surface).view()
     g_View               = view
     view.backgroundStyle = .View
 
     let title = Label.create(view, "", {})
     g_Title = title
     setLabelTextStyle(title, .Left, .Center)
-    title.style.setFont(view.getTheme().createDefaultFont(28), .Regular)
+    title.style.setFont(view.theme().createDefaultFont(28), .Regular)
 
-    let subTitle = Label.create(view, "", {}, null, .WordWrap | .LightText)
+    let subTitle = Label.create(view, "", {}, null, .WordWrap | .SecondaryText)
     g_SubTitle = subTitle
     setLabelTextStyle(subTitle, .Left, .Top)
 
     let themeButton = PushButton.create(view, "", {})
-    g_ThemeButton          = themeButton
-    themeButton.form       = .Flat
-    themeButton.icon       = app.theme.getIcon24(ThemeIcons24.Picker, 18)
+    g_ThemeButton = themeButton
+    themeButton.setForm(.Flat)
+    themeButton.setIcon(app.theme.icon24(ThemeIcons24.Picker, 18))
     themeButton.sigPressed += &toggleTheme
 
     let pageView = Wnd.create'Wnd(view, {})
@@ -339,7 +338,7 @@ func createRootView()
     let footer = Label.create(view, "", {})
     g_Footer = footer
     setLabelTextStyle(footer, .Left, .Center)
-    footer.labelFlags.add(.LightText)
+    footer.updateFlags(.SecondaryText)
 
     layoutRootView()
     view.hookOnEvent = &onRootEvent
@@ -347,17 +346,17 @@ func createRootView()
 
 #main
 {
-    let flags   = SurfaceFlags.BigCaption | SurfaceFlags.MinimizeBtn | SurfaceFlags.CloseBtn | SurfaceFlags.Border
+    let flags   = SurfaceFlags.LargeCaption | SurfaceFlags.MinimizeButton | SurfaceFlags.CloseButton | SurfaceFlags.Border
     let surface = notnull (try app.createSurface(100, 100, W - 46, H - 31, flags))
     g_Surface = surface
     surface.setTitle("GUI2 widget showcase")
-    surface.setIcon(app.theme.getIcon24(ThemeIcons24.Options, 18))
+    surface.setIcon(app.theme.icon24(ThemeIcons24.Options, 18))
 
     createRootView()
     buildPage()
 
     app.sigFrame += &onFrame
-    if Env.hasArg("swag.test") do
+    if Env.hasArgument("swag.test") do
         app.maxRunFrame = cast(u32) MaxPages * cast(u32) TestFramesPerPage + 10
 
     surface.show()

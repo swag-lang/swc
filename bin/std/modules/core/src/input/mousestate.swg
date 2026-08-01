@@ -3,22 +3,41 @@
 
 using Math
 
-// Represents one mouse state
+// Captures cursor position and button state at one update.
 struct MouseState
 {
-    pressed:     [MouseButton] bool      // Pressed associated with this value.
-    pressedTime: [MouseButton] u32       // Pressed time associated with this value.
-    pressedPos:  [MouseButton] Point     // Pressed pos associated with this value.
-    position:    Point                   // Position associated with this value.
+    readonly
+    {
+        pressed:     [MouseButton] bool      // Whether each button is pressed.
+        pressedTime: [MouseButton] u64       // Monotonic millisecond timestamp of the latest press.
+        pressedPos:  [MouseButton] Point     // Cursor position of the latest press.
+        position:    Point                   // Cursor position in physical desktop pixels.
+    }
 }
 
 // Represents a mouse state with cursor position and button press information
 impl MouseState
 {
+    internal mtd setPressed(button: MouseButton, pressed: bool)
+    {
+        .pressed[button] = pressed
+    }
+
+    internal mtd setPosition(position: Point)
+    {
+        .position = position
+    }
+
+    internal mtd setPressMetadata(button: MouseButton, timeMs: u64, position: Point)
+    {
+        .pressedTime[button] = timeMs
+        .pressedPos[button]  = position
+    }
+
     // Compute the actual state of the mouse
     mtd update()
     {
-        .position = getMousePos()
+        .position = mousePosition()
 
         for v in MouseButton
         {
@@ -26,7 +45,7 @@ impl MouseState
             .pressed[v] = Mouse.isButtonPressed(v)
             if !b and .pressed[v]
             {
-                .pressedTime[v] = Time.nowMilliseconds()
+                .pressedTime[v] = Time.monotonicMilliseconds()
                 .pressedPos[v]  = .position
             }
         }
@@ -35,7 +54,7 @@ impl MouseState
     // Reset the state to its default value
     mtd clear()
     {
-        Memory.clear(&.pressed, #sizeof(.pressed))
-        .position = getMousePos()
+        @init(me, 1)
+        .position = mousePosition()
     }
 }

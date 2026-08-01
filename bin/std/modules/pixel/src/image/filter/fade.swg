@@ -6,14 +6,14 @@ impl Image
     public mtd fade(color: Color, factor: f32 = 0.5)
     {
         // unsupported pixel format
-        if .pf.channels() < 3 or .pf.bitDepth() != 8 do
+        if .pixelFormat.channels() < 3 or .pixelFormat.bitDepth() != 8 do
             return
 
         var convArrR: [256] u8 = undefined
         var convArrG: [256] u8 = undefined
         var convArrB: [256] u8 = undefined
 
-        if .pf == .BGR8 or .pf == .BGRA8
+        if .pixelFormat == .BGR8 or .pixelFormat == .BGRA8
         {
             for [i] in 256
             {
@@ -22,7 +22,7 @@ impl Image
                 convArrB[i] = cast(u8) Math.lerp(cast(f32) i, cast(f32) color.r, factor)
             }
         }
-        elif .pf == .RGB8 or .pf == .RGBA8
+        elif .pixelFormat == .RGB8 or .pixelFormat == .RGBA8
         {
             for [i] in 256
             {

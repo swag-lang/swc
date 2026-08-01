@@ -360,7 +360,7 @@ func inlineInjectedPointerOffset(buffer: [*] u8)
     var image = InlinePixelProbe{buffer: buffer, bpp8: 2, width: 4}
     image.visit()
     {
-        let pixDst = image.buffer + x * image.bpp8 + y * image.width
+        let pixDst = image.buffer + x * image.bytesPerPixel + y * image.width
         pixDst[0] = 91
     }
 }
@@ -372,7 +372,7 @@ func inlineInjectedPointerOffsetShadow(dstImage: *InlinePixelProbe)
     image.visitWithUserData(dstImage)
     {
         let dstImage = cast(*InlineCrossAstCall.InlinePixelProbe) userData
-        let pixDst   = dstImage.buffer + x * dstImage.bpp8 + y * dstImage.width
+        let pixDst   = dstImage.buffer + x * dstImage.bytesPerPixel + y * dstImage.width
         pixDst[0] = 103
     }
 }
@@ -384,7 +384,7 @@ func inlineInjectedContextDataShadow(dstImage: *InlinePixelProbe)
     image.visitParallelLike(dstImage)
     {
         let dstImage = cast(*InlineCrossAstCall.InlinePixelProbe) userData
-        let pixDst   = dstImage.buffer + x * dstImage.bpp8 + y * dstImage.width
+        let pixDst   = dstImage.buffer + x * dstImage.bytesPerPixel + y * dstImage.width
         pixDst[0] = 117
     }
 }
@@ -396,7 +396,7 @@ func inlineInjectedLocalContextDataShadow(dstImage: *InlinePixelProbe)
     image.visitParallelLocalLike(dstImage)
     {
         let dstImage = cast(*InlineCrossAstCall.InlinePixelProbe) userData
-        let pixDst   = dstImage.buffer + x * dstImage.bpp8 + y * dstImage.width
+        let pixDst   = dstImage.buffer + x * dstImage.bytesPerPixel + y * dstImage.width
         pixDst[0] = 119
     }
 }
@@ -409,7 +409,7 @@ func inlineGenericParallelContextDataShadow(dstImage: *InlinePixelProbe)
         let dstImage = cast(*InlineCrossAstCall.InlinePixelProbe) notnull data
         let x        = 1
         let y        = 1
-        let pixDst   = dstImage.buffer + x * dstImage.bpp8 + y * dstImage.width
+        let pixDst   = dstImage.buffer + x * dstImage.bytesPerPixel + y * dstImage.width
         pixDst[0] = 121
     }
 }

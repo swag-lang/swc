@@ -2,7 +2,7 @@
 
 using Core
 
-// Represents theme image rect.
+// Describes a scalable region in the theme atlas.
 struct ThemeImageRect
 {
     rect:   Math.Rectangle      // Theme atlas region used for rect.
@@ -10,7 +10,7 @@ struct ThemeImageRect
     keepBordersRatio = true     // Theme atlas region used for keep borders ratio.
 }
 
-// Represents theme image rects.
+// Maps GUI parts to scalable regions in the theme atlas.
 struct ThemeImageRects
 {
     surfaceWnd_Shadow: ThemeImageRect = {{189, 1, 66, 66}, 24}     // Theme atlas region used for surface wnd shadow.

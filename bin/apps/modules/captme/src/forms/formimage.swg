@@ -52,7 +52,7 @@ impl FormImage
 
     mtd backCaptureMask(mask: *Image)
     {
-        let renderer = g_App.getRenderer()
+        let renderer = g_App.rendererRef()
 
         .image.visitPixels(mask)
         {
@@ -64,12 +64,12 @@ impl FormImage
         }
 
         renderer.removeTexture(&.texture)
-        .texture = g_App.getRenderer().addImage(.image)
+        .texture = g_App.rendererRef().addImage(.image)
     }
 
     mtd backCapture()
     {
-        let renderer = g_App.getRenderer()
+        let renderer = g_App.rendererRef()
         let capture  = notnull .capture
         let x1       = cast(s32) (.x - capture.backImagePos.x)
         let y1       = cast(s32) (.y - capture.backImagePos.y)
@@ -80,12 +80,12 @@ impl FormImage
             .dirty            = false
             .textureKind      = .kind
             renderer.removeTexture(&.texture)
-            .image   = capture.backImg.toCrop(x1, y1, .w, .h)
-            .texture = g_App.getRenderer().addImage(.image)
+            .image   = capture.backImg.cropped(x1, y1, .w, .h)
+            .texture = g_App.rendererRef().addImage(.image)
         }
         elif .image.isValid()
         {
-            .texture = g_App.getRenderer().addImage(.image)
+            .texture = g_App.rendererRef().addImage(.image)
         }
     }
 }
@@ -126,7 +126,7 @@ impl IForm for FormImage
         let xb = cast(s32) (localPos.x / zoom)
         let yb = cast(s32) (localPos.y / zoom)
         .setBaseForm(xa, ya, xb - xa, yb - ya)
-        if evt.kind == .MouseReleased and evt.button == .Left
+        if evt.kind == .Released and evt.button == .Left
         {
             .isReadyToCapture = true
             return false
@@ -213,7 +213,7 @@ impl IForm for FormImage
     {
         if .kind == .Image and
            .place == .Free and
-           evt.kind == .MouseDoubleClick and
+           evt.kind == .DoubleClick and
            evt.button == .Left and
            .image.isValid()
         {
@@ -282,7 +282,7 @@ impl IForm for FormImage
 
         if !cxt.quickMode
         {
-            let renderer = g_App.getRenderer()
+            let renderer = g_App.rendererRef()
             let capture  = notnull .capture
             let x1       = cast(s32) (.x - capture.backImagePos.x)
             let y1       = cast(s32) (.y - capture.backImagePos.y)
@@ -328,13 +328,13 @@ impl IForm for FormImage
                         .wc          = .w
                         .hc          = .h
                         renderer.removeTexture(&.texture)
-                        var img = capture.backImg.toCrop(x1, y1, .w, .h)
+                        var img = capture.backImg.cropped(x1, y1, .w, .h)
                         let st  = Math.map(cast(f32) .strength, 0, 100, 1, 16)
                         let nw  = Math.max(cast(s32) (img.width / st), 4)
                         let nh  = Math.max(cast(s32) (img.height / st), 4)
                         img.resize(nw, nh, .Quadratic)
-                        img.resize(.w, .h, .kind == .Pixelate ? .Raw : .Quadratic)
-                        .texture = g_App.getRenderer().addImage(img)
+                        img.resize(.w, .h, .kind == .Pixelate ? .Nearest : .Quadratic)
+                        .texture = g_App.rendererRef().addImage(img)
                     }
                 }
 
@@ -360,9 +360,9 @@ impl IForm for FormImage
                         const ZoomFactor = 2.5
                         let stw = cast(s32) Math.map(cast(f32) .strength, 0, 100, 1, .w / ZoomFactor)
                         let sth = cast(s32) Math.map(cast(f32) .strength, 0, 100, 1, .h / ZoomFactor)
-                        var img = capture.backImg.toCrop(x1 + stw, y1 + sth, .w - stw * 2, .h - sth * 2)
-                        img.resize(.w, .h, .Raw)
-                        .texture = g_App.getRenderer().addImage(img)
+                        var img = capture.backImg.cropped(x1 + stw, y1 + sth, .w - stw * 2, .h - sth * 2)
+                        img.resize(.w, .h, .Nearest)
+                        .texture = g_App.rendererRef().addImage(img)
                     }
                 }
             }

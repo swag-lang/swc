@@ -8,12 +8,6 @@ public enum DriverKind
     XAudio2     // Uses the Windows XAudio2 backend and fails where it is unavailable.
 }
 
-// Stores an opaque backend handle for a voice.
-public alias VoiceHandle = #null *void
-
-// Stores an opaque backend handle for a bus.
-public alias BusHandle = #null *void
-
 struct DriverNative
 {
     kind:    DriverKind
@@ -98,17 +92,17 @@ impl DriverNative
         }
     }
 
-    mtd getOutputVolumeNative()->f32
+    mtd outputVolumeNative()->f32
     {
         switch .kind
         {
         case .NoSound:
-            return .noSound.getOutputVolumeNoSound()
+            return .noSound.outputVolumeNoSound()
 
         case .XAudio2:
             #static if #os == Swag.TargetOs.Windows
             {
-                return .xAudio2.getOutputVolumeXAudio2()
+                return .xAudio2.outputVolumeXAudio2()
             }
         }
 
@@ -187,34 +181,52 @@ impl Voice
         return false
     }
 
-    mtd playNative(batchID: u32 = 0) fail
+    mtd playNative(batchId: u32 = 0) fail
     {
         switch g_Driver.kind
         {
         case .NoSound:
-            .playNoSound(batchID)
+            .playNoSound(batchId)
 
         case .XAudio2:
             #static if #os == Swag.TargetOs.Windows
             {
-                .playXAudio2(batchID)
+                .playXAudio2(batchId)
             }
             else do
                 fail UnsupportedFormatError{"XAudio2 is not available"}
         }
     }
 
-    mtd stopNative(batchID: u32 = 0) fail
+    mtd stopNative(batchId: u32 = 0) fail
     {
         switch g_Driver.kind
         {
         case .NoSound:
-            .stopNoSound(batchID)
+            .stopNoSound(batchId)
 
         case .XAudio2:
             #static if #os == Swag.TargetOs.Windows
             {
-                .stopXAudio2(batchID)
+                .stopXAudio2(batchId)
+            }
+            else do
+                fail UnsupportedFormatError{"XAudio2 is not available"}
+        }
+    }
+
+    // Discards backend buffers after a full stop. Pause deliberately does not call this.
+    mtd resetNative() fail
+    {
+        switch g_Driver.kind
+        {
+        case .NoSound:
+            .resetNoSound()
+
+        case .XAudio2:
+            #static if #os == Swag.TargetOs.Windows
+            {
+                .resetXAudio2()
             }
             else do
                 fail UnsupportedFormatError{"XAudio2 is not available"}
@@ -226,19 +238,21 @@ public impl Voice
 {
     // Sets this voice's linear gain.
     //
-    // `volume` is clamped to the range `0` through `1`. `batchID` is forwarded
+    // `volume` is clamped to the range `0` through `1`. `batchId` is forwarded
     // to backends that support deferred operation sets.
-    mtd setVolume(volume: f32, batchID: u32 = 0) fail
+    mtd setVolume(volume: f32, batchId: u32 = 0) fail
     {
+        if !.handle do
+            fail BadParameterError{"voice is not valid"}
         switch g_Driver.kind
         {
         case .NoSound:
-            .setVolumeNoSound(volume, batchID)
+            .setVolumeNoSound(volume, batchId)
 
         case .XAudio2:
             #static if #os == Swag.TargetOs.Windows
             {
-                .setVolumeXAudio2(volume, batchID)
+                .setVolumeXAudio2(volume, batchId)
             }
             else do
                 fail UnsupportedFormatError{"XAudio2 is not available"}
@@ -246,17 +260,19 @@ public impl Voice
     }
 
     // Returns this voice's current linear gain.
-    mtd getVolume()->f32 fail
+    mtd volume()->f32 fail
     {
+        if !.handle do
+            fail BadParameterError{"voice is not valid"}
         switch g_Driver.kind
         {
         case .NoSound:
-            return .getVolumeNoSound()
+            return .volumeNoSound()
 
         case .XAudio2:
             #static if #os == Swag.TargetOs.Windows
             {
-                return .getVolumeXAudio2()
+                return .volumeXAudio2()
             }
             else do
                 fail UnsupportedFormatError{"XAudio2 is not available"}
@@ -269,39 +285,73 @@ public impl Voice
     //
     // `1` preserves the source pitch, values below `1` lower it, and values
     // above `1` raise it. Create the voice with
-    // [[Audio.VoiceCreateFlags.AcceptPitch]] before changing this value.
-    mtd setFrequencyRatio(ratio: f32, batchID: u32 = 0) fail
+    // [[Audio.VoiceCreateFlags.PitchControl]] before changing this value.
+    mtd setFrequencyRatio(ratio: f32, batchId: u32 = 0) fail
     {
+        if !.handle do
+            fail BadParameterError{"voice is not valid"}
+        if ratio <= 0 do
+            fail BadParameterError{"frequency ratio must be greater than zero"}
         switch g_Driver.kind
         {
         case .NoSound:
-            .setFrequencyRatioNoSound(ratio, batchID)
+            .setFrequencyRatioNoSound(ratio, batchId)
 
         case .XAudio2:
             #static if #os == Swag.TargetOs.Windows
             {
-                .setFrequencyRatioXAudio2(ratio, batchID)
+                .setFrequencyRatioXAudio2(ratio, batchId)
             }
             else do
                 fail UnsupportedFormatError{"XAudio2 is not available"}
         }
     }
 
-    // Replaces the buses that receive this voice.
-    //
-    // An empty slice routes directly to the mastering output. Every bus must be
-    // valid and must outlive this routing relationship.
-    mtd setRooting(buses: const [..] *Bus) fail
+    // Returns the current playback frequency ratio.
+    mtd frequencyRatio()->f32 fail
     {
+        if !.handle do
+            fail BadParameterError{"voice is not valid"}
         switch g_Driver.kind
         {
         case .NoSound:
-            .setRootingNoSound(buses)
+            return .frequencyRatioNoSound()
 
         case .XAudio2:
             #static if #os == Swag.TargetOs.Windows
             {
-                .setRootingXAudio2(buses)
+                return .frequencyRatioXAudio2()
+            }
+            else do
+                fail UnsupportedFormatError{"XAudio2 is not available"}
+        }
+
+        return 0
+    }
+
+    // Replaces the buses that receive this voice.
+    //
+    // An empty slice routes directly to the mastering output. Every bus must be
+    // valid and must outlive this routing relationship.
+    mtd setRouting(buses: const [..] *Bus) fail
+    {
+        if !.handle do
+            fail BadParameterError{"voice is not valid"}
+        for bus in buses
+        {
+            if !bus or !bus.handle do
+                fail BadParameterError{"routing contains an invalid bus"}
+        }
+
+        switch g_Driver.kind
+        {
+        case .NoSound:
+            .setRoutingNoSound(buses)
+
+        case .XAudio2:
+            #static if #os == Swag.TargetOs.Windows
+            {
+                .setRoutingXAudio2(buses)
             }
             else do
                 fail UnsupportedFormatError{"XAudio2 is not available"}
@@ -351,19 +401,21 @@ public impl Bus
 {
     // Sets this bus's linear gain.
     //
-    // `volume` is clamped to the range `0` through `1`. `batchID` is forwarded
+    // `volume` is clamped to the range `0` through `1`. `batchId` is forwarded
     // to backends that support deferred operation sets.
-    mtd setVolume(volume: f32, batchID: u32 = 0) fail
+    mtd setVolume(volume: f32, batchId: u32 = 0) fail
     {
+        if !.handle do
+            fail BadParameterError{"bus is not valid"}
         switch g_Driver.kind
         {
         case .NoSound:
-            .setVolumeNoSound(volume, batchID)
+            .setVolumeNoSound(volume, batchId)
 
         case .XAudio2:
             #static if #os == Swag.TargetOs.Windows
             {
-                .setVolumeXAudio2(volume, batchID)
+                .setVolumeXAudio2(volume, batchId)
             }
             else do
                 fail UnsupportedFormatError{"XAudio2 is not available"}
@@ -371,17 +423,19 @@ public impl Bus
     }
 
     // Returns this bus's current linear gain.
-    mtd getVolume()->f32 fail
+    mtd volume()->f32 fail
     {
+        if !.handle do
+            fail BadParameterError{"bus is not valid"}
         switch g_Driver.kind
         {
         case .NoSound:
-            return .getVolumeNoSound()
+            return .volumeNoSound()
 
         case .XAudio2:
             #static if #os == Swag.TargetOs.Windows
             {
-                return .getVolumeXAudio2()
+                return .volumeXAudio2()
             }
             else do
                 fail UnsupportedFormatError{"XAudio2 is not available"}

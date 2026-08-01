@@ -2,62 +2,63 @@
 
 using Core, Pixel
 
-// Selects slider flags.
+// Configures linear-slider behavior and presentation.
 #[Swag.EnumFlags]
 enum SliderFlags
 {
-    Zero = 0       // No flags are enabled.
-    Range          // Enables range.
-    HilightBar     // Enables hilight bar.
-    Vertical       // Enables vertical.
-    Integer        // Enables integer.
-    ShowSteps      // Display steps if defined
+    None = 0       // No flags are enabled.
+    Range          // Displays independent lower and upper thumbs.
+    HilightBar     // Highlights the selected portion of the track.
+    Vertical       // Lays out the track from top to bottom.
+    Integer        // Snaps values to integers when no explicit step is configured.
+    ShowSteps      // Draws explicit step markers when a step is configured.
 }
 
-// Represents slider.
+// Provides a linear single-value or range slider.
 struct Slider
 {
     using wnd: Wnd     // Embedded wnd state.
 
-    value1:         f32                              // Value1 associated with this value.
-    value2:         f32                              // Value2 associated with this value.
-    min:            f32                              // Min associated with this value.
-    max:            f32 = 1.0                        // Max associated with this value.
-    steps:          f32                              // Steps associated with this value.
-    sliderFlags         = SliderFlags.HilightBar     // Slider flags associated with this value.
-    sigStartChange: SigArray'func||(*Slider)         // Signal emitted when start change.
-    sigChanged:     SigArray'func||(*Slider)         // Signal emitted when changed.
-    sigEndChange:   SigArray'func||(*Slider)         // Signal emitted when end change.
+    flags = SliderFlags.HilightBar               // Active behavior and presentation flags.
+    sigStartChange: SigArray'func||(*Slider)     // Emitted when a user-style change transaction starts.
+    sigChanged:     SigArray'func||(*Slider)     // Emitted after either value changes.
+    sigEndChange:   SigArray'func||(*Slider)     // Emitted when a user-style change transaction ends.
 
     // Drag and hover state of the two markers, and the color animations that follow it. The
     // mouse and keyboard events maintain all of it; connect to the signals to react to a change.
     internal
     {
-        isMoving:     bool     // Whether a drag gesture is in progress.
-        isPressed1:   bool     // Whether the first marker is held down.
-        isPressed2:   bool     // Whether the second marker is held down.
-        isHot1:       bool     // Whether the mouse is over the first marker.
-        isHot2:       bool     // Whether the mouse is over the second marker.
-        hasValue1:    bool     // Whether the first value was established.
-        hasValue2:    bool     // Whether the second value was established.
-        correcMoving: f32      // Grab offset inside the marker, kept for the drag.
+        lowerRatio: f32         // Lower value normalized to the closed range 0 through 1.
+        upperRatio: f32 = 1     // Upper value normalized to the closed range 0 through 1.
+        min:        f32         // Inclusive value-space minimum.
+        max:        f32 = 1     // Inclusive value-space maximum.
+        steps:      f32         // Configured step normalized to the value range.
 
-        aniMark1: BlendColor     // Color animation of the first marker.
-        aniMark2: BlendColor     // Color animation of the second marker.
-        aniStep1: BlendColor     // Color animation of the first step indicator.
-        aniStep2: BlendColor     // Color animation of the second step indicator.
+        isMoving:       bool     // Whether a drag gesture is in progress.
+        isLowerPressed: bool     // Whether the first marker is held down.
+        isUpperPressed: bool     // Whether the second marker is held down.
+        isLowerHot:     bool     // Whether the mouse is over the first marker.
+        isUpperHot:     bool     // Whether the mouse is over the second marker.
+        hasLowerValue:  bool     // Whether the first value was established.
+        hasUpperValue:  bool     // Whether the second value was established.
+        correcMoving:   f32      // Grab offset inside the marker, kept for the drag.
+
+        lowerMarkerAnimation: BlendColor     // Color animation of the first marker.
+        upperMarkerAnimation: BlendColor     // Color animation of the second marker.
+        lowerStepAnimation:   BlendColor     // Color animation of the first step indicator.
+        upperStepAnimation:   BlendColor     // Color animation of the second step indicator.
     }
 }
 
 impl IWnd for Slider
 {
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaint(evt: *PaintEvent)
     {
-        let bc      = evt.bc
-        let theme   = .getTheme()
-        let metrics = .getThemeMetrics()
-        let colors  = .getThemeColors()
-        let rects   = .getThemeRects()
+        let bc      = evt.paintContext
+        let theme   = .theme()
+        let metrics = .themeMetrics()
+        let colors  = .themeColors()
+        let rects   = .themeRects()
 
         var colorBkLeft:   Color = undefined
         var colorBkMiddle: Color = undefined
@@ -70,9 +71,9 @@ impl IWnd for Slider
             colorBkLeft   = colors.slider_DisabledBk
             colorBkMiddle = colors.slider_DisabledBk
             colorBkRight  = colors.slider_DisabledBk
-            if .sliderFlags.has(.HilightBar)
+            if .flags.has(.HilightBar)
             {
-                if .sliderFlags.has(.Range) do
+                if .flags.has(.Range) do
                     colorBkMiddle = colors.slider_DisabledHilightBk
                 else do
                     colorBkLeft = colors.slider_DisabledHilightBk
@@ -84,52 +85,52 @@ impl IWnd for Slider
         else
         {
             colorBkRight = colors.slider_BkRight
-            if !.sliderFlags.has(.Range) and .sliderFlags.has(.HilightBar) do
+            if !.flags.has(.Range) and .flags.has(.HilightBar) do
                 colorBkLeft = colors.slider_HilightBk
             else do
                 colorBkLeft = colors.slider_BkLeft
-            if .sliderFlags.has(.Range) and .sliderFlags.has(.HilightBar) do
+            if .flags.has(.Range) and .flags.has(.HilightBar) do
                 colorBkMiddle = colors.slider_HilightBk
             else do
                 colorBkMiddle = colors.slider_BkMiddle
 
-            if .isPressed1 do
+            if .isLowerPressed do
                 colorMark1 = colors.slider_PressedMark
-            elif .isHot1 do
+            elif .isLowerHot do
                 colorMark1 = colors.slider_HotMark
             else do
                 colorMark1 = colors.slider_Mark
 
-            if .isPressed2 do
+            if .isUpperPressed do
                 colorMark2 = colors.slider_PressedMark
-            elif .isHot2 do
+            elif .isUpperHot do
                 colorMark2 = colors.slider_HotMark
             else do
                 colorMark2 = colors.slider_Mark
         }
 
         // Pos box
-        let posBox1 = .getPosBox1()
-        let posBox2 = .getPosBox2()
+        let posBox1 = .firstThumbRect()
+        let posBox2 = .secondThumbRect()
 
-        let isVertical = .sliderFlags.has(.Vertical)
-        let trackRect  = .getTrackRect()
+        let isVertical = .flags.has(.Vertical)
+        let trackRect  = .trackRect()
 
         // Bar left
         var left = trackRect
         if isVertical
         {
-            left.height = (trackRect.height * .value1)
+            left.height = (trackRect.height * .lowerRatio)
             theme.drawSubRect(bc.painter, left, &rects.slider_BkLeftVert, colorBkLeft)
         }
         else
         {
-            left.width = (trackRect.width * .value1)
+            left.width = (trackRect.width * .lowerRatio)
             theme.drawSubRect(bc.painter, left, &rects.slider_BkLeft, colorBkLeft)
         }
 
         // Bar right
-        let valueRight = .sliderFlags.has(.Range) ? .value2 : .value1
+        let valueRight = .flags.has(.Range) ? .upperRatio : .lowerRatio
         var right      = trackRect
         if isVertical
         {
@@ -145,7 +146,7 @@ impl IWnd for Slider
         }
 
         // Bar middle
-        if .sliderFlags.has(.Range)
+        if .flags.has(.Range)
         {
             var middle = trackRect
             if isVertical
@@ -163,69 +164,69 @@ impl IWnd for Slider
         }
 
         // Display steps
-        if .steps > 0 and .sliderFlags.has(.ShowSteps)
+        if .steps > 0 and .flags.has(.ShowSteps)
         {
-            if .isHot1 or .isHot2 or .isMoving
+            if .isLowerHot or .isUpperHot or .isMoving
             {
-                .aniStep1.apply(me, colors.slider_HotStepBk)
-                .aniStep2.apply(me, colors.slider_HotStepBk)
+                .lowerStepAnimation.apply(me, colors.slider_HotStepBk)
+                .upperStepAnimation.apply(me, colors.slider_HotStepBk)
             }
             else
             {
-                .aniStep1.apply(me, colors.slider_StepBk)
-                .aniStep2.apply(me, colors.slider_HilightStepBk)
+                .lowerStepAnimation.apply(me, colors.slider_StepBk)
+                .upperStepAnimation.apply(me, colors.slider_HilightStepBk)
             }
 
             for var x = 0'f32; x < 1 + .steps; x += .steps
             {
-                let posStep = .getPosBoxAt(x, metrics.slider_StepSize)
+                let posStep = .thumbRectAt(x, metrics.slider_StepSize)
 
                 var colorStep: Color = undefined
-                if x <= .value1 and .sliderFlags.has(.HilightBar) do
-                    colorStep = .aniStep2.cur()
-                elif x >= .value1 and x <= .value2 and .sliderFlags.has(.HilightBar) and .sliderFlags.has(.Range) do
-                    colorStep = .aniStep2.cur()
+                if x <= .lowerRatio and .flags.has(.HilightBar) do
+                    colorStep = .upperStepAnimation.cur()
+                elif x >= .lowerRatio and x <= .upperRatio and .flags.has(.HilightBar) and .flags.has(.Range) do
+                    colorStep = .upperStepAnimation.cur()
                 else do
-                    colorStep = .aniStep1.cur()
+                    colorStep = .lowerStepAnimation.cur()
                 theme.drawSubRect(bc.painter, posStep, &rects.slider_Step, colorStep)
             }
         }
 
         // Box value1
-        .aniMark1.apply(me, colorMark1)
-        theme.drawSubRect(bc.painter, posBox1, &rects.slider_Mark, .aniMark1.cur())
+        .lowerMarkerAnimation.apply(me, colorMark1)
+        theme.drawSubRect(bc.painter, posBox1, &rects.slider_Mark, .lowerMarkerAnimation.cur())
 
         // Box value2
-        if .sliderFlags.has(.Range)
+        if .flags.has(.Range)
         {
-            .aniMark2.apply(me, colorMark2)
-            theme.drawSubRect(bc.painter, posBox2, &rects.slider_Mark, .aniMark2.cur())
+            .upperMarkerAnimation.apply(me, colorMark2)
+            theme.drawSubRect(bc.painter, posBox2, &rects.slider_Mark, .upperMarkerAnimation.cur())
         }
     }
 
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
         let pos        = .surfaceToLocal(evt.surfacePos)
-        let isVertical = .sliderFlags.has(.Vertical)
+        let isVertical = .flags.has(.Vertical)
 
         switch evt.kind
         {
-        case .MouseWheel:
+        case .Wheel:
             evt.accepted = false
             return
 
-        case .MouseLeave:
-            .isHot1, .isHot2 = false
+        case .Leave:
+            .isLowerHot, .isUpperHot = false
             .invalidate()
 
-        case .MouseMove:
+        case .Move:
             if !.isMoving
             {
                 .hitTest(evt.surfacePos)
                 break
             }
 
-            let clientRect = .getOffsetedClientRect()
+            let clientRect = .offsetClientRect()
             var f: f32
             if isVertical
             {
@@ -238,55 +239,55 @@ impl IWnd for Slider
                 f = diff / clientRect.width
             }
 
-            if .isPressed1 do
-                .setValue1(f)
-            elif .isPressed2 do
-                .setValue2(f)
+            if .isLowerPressed do
+                .setLowerRatio(f)
+            elif .isUpperPressed do
+                .setUpperRatio(f)
             .invalidate()
 
-        case .MousePressed:
+        case .Pressed:
             if evt.button == .Left
             {
                 .isMoving = true
                 .startChange()
-                if .isHot1
+                if .isLowerHot
                 {
-                    .isPressed1 = true
-                    let posBox = .getPosBox1()
+                    .isLowerPressed = true
+                    let posBox = .firstThumbRect()
                     if isVertical do
                         .correcMoving = pos.y - posBox.vertCenter()
                     else do
                         .correcMoving = pos.x - posBox.horzCenter()
                 }
-                elif .isHot2
+                elif .isUpperHot
                 {
-                    .isPressed2 = true
-                    let posBox = .getPosBox2()
+                    .isUpperPressed = true
+                    let posBox = .secondThumbRect()
                     if isVertical do
                         .correcMoving = pos.y - posBox.vertCenter()
                     else do
                         .correcMoving = pos.x - posBox.horzCenter()
                 }
-                elif !.sliderFlags.has(.Range)
+                elif !.flags.has(.Range)
                 {
-                    .correcMoving = 0
-                    .isPressed1   = true
-                    let clientRect = .getOffsetedClientRect()
+                    .correcMoving   = 0
+                    .isLowerPressed = true
+                    let clientRect = .offsetClientRect()
                     if isVertical
                     {
                         let diff = pos.y - clientRect.y
-                        .setValue1(diff / clientRect.height)
+                        .setLowerRatio(diff / clientRect.height)
                     }
                     else
                     {
                         let diff = pos.x - clientRect.x
-                        .setValue1(diff / clientRect.width)
+                        .setLowerRatio(diff / clientRect.width)
                     }
                 }
                 else
                 {
                     .correcMoving = 0
-                    let clientRect = .getOffsetedClientRect()
+                    let clientRect = .offsetClientRect()
                     var f: f32
                     if isVertical
                     {
@@ -299,16 +300,16 @@ impl IWnd for Slider
                         f = diff / clientRect.width
                     }
 
-                    let m = (.value1 + .value2) * 0.5
+                    let m = (.lowerRatio + .upperRatio) * 0.5
                     if f <= m
                     {
-                        .isPressed1 = true
-                        .setValue1(f)
+                        .isLowerPressed = true
+                        .setLowerRatio(f)
                     }
                     else
                     {
-                        .isPressed2 = true
-                        .setValue2(f)
+                        .isUpperPressed = true
+                        .setUpperRatio(f)
                     }
                 }
 
@@ -316,11 +317,11 @@ impl IWnd for Slider
                 .invalidate()
             }
 
-        case .MouseReleased:
+        case .Released:
             if .isMoving and evt.button == .Left
             {
                 .releaseMouse()
-                .isPressed1, .isPressed2, .isMoving = false
+                .isLowerPressed, .isUpperPressed, .isMoving = false
                 .hitTest(evt.surfacePos)
                 .invalidate()
                 .endChange()
@@ -335,7 +336,7 @@ impl IWnd for Slider
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
         evt.accepted = false
-        if evt.kind != .KeyPressed do
+        if evt.kind != .Pressed do
             return
 
         let bigBy = Math.max(.keyStep() * 5, 0.1)
@@ -344,10 +345,10 @@ impl IWnd for Slider
         {
         case .Left, .Down: .stepBy(-1)
         case .Right, .Up:  .stepBy(1)
-        case .PageDown:    .stepValue1(-bigBy)
-        case .PageUp:      .stepValue1(bigBy)
-        case .Home:        .stepValue1To(0)
-        case .End:         .stepValue1To(1)
+        case .PageDown:    .stepActiveValue(-bigBy)
+        case .PageUp:      .stepActiveValue(bigBy)
+        case .Home:        .setActiveRatio(0)
+        case .End:         .setActiveRatio(1)
         default:           return
         }
 
@@ -363,7 +364,7 @@ private impl Slider
     {
         if .steps > 0 do
             return .steps
-        if .sliderFlags.has(.Integer) and .max > .min do
+        if .flags.has(.Integer) and .max > .min do
             return 1.0 / (.max - .min)
         return 0.05
     }
@@ -371,66 +372,67 @@ private impl Slider
     // Adjust the active value by a normalized delta. For a range slider the right
     // mark is moved, mirroring the convention that the rightmost mark is the one a
     // user most often tweaks; otherwise the single value is moved.
-    mtd stepValue1(delta: f32)
+    mtd stepActiveValue(delta: f32)
     {
         .startChange()
-        if .sliderFlags.has(.Range) do
-            .setValue2(.value2 + delta)
+        if .flags.has(.Range) do
+            .setUpperRatio(.upperRatio + delta)
         else do
-            .setValue1(.value1 + delta)
+            .setLowerRatio(.lowerRatio + delta)
         .endChange()
     }
 
-    // Set the active value to a normalized absolute position.
-    mtd stepValue1To(f: f32)
+    // Maps a normalized track position to the active value and optionally notifies listeners.
+    mtd setActiveRatio(f: f32)
     {
         .startChange()
-        if .sliderFlags.has(.Range) do
-            .setValue2(f)
+        if .flags.has(.Range) do
+            .setUpperRatio(f)
         else do
-            .setValue1(f)
+            .setLowerRatio(f)
         .endChange()
     }
 
     mtd clamp(f: f32)->f32
     {
+        let normalized = Math.clamp(f, 0, 1)
         if .steps > 0
         {
-            let r = cast(s32) ((f / .steps) + 0.5)
-            return r * .steps
+            let r = cast(s32) ((normalized / .steps) + 0.5)
+            return Math.clamp(r * .steps, 0, 1)
         }
 
-        if .sliderFlags.has(.Integer)
+        if .flags.has(.Integer)
         {
-            let val = Math.round((.min + (.max - .min) * f))
+            let val = Math.round((.min + (.max - .min) * normalized))
             return (val - .min) / (.max - .min)
         }
 
-        return f
+        return normalized
     }
 
-    mtd setValue1(f: f32)
+    mtd setLowerRatio(f: f32)
     {
-        var fc = .clamp(Math.clamp(f, 0, 1))
-        if .sliderFlags.has(.Range) do
-            fc = Math.min(fc, .value2)
-        if fc == .value1 and .hasValue1 do
+        var fc = .clamp(f)
+        if .flags.has(.Range) do
+            fc = Math.min(fc, .upperRatio)
+        if fc == .lowerRatio and .hasLowerValue do
             return
-        .hasValue1 = true
-        .value1    = fc
+        .hasLowerValue = true
+        .lowerRatio    = fc
         .sigChanged.call(me)
         .invalidate()
     }
 
-    mtd setValue2(f: f32)
+    mtd setUpperRatio(f: f32)
     {
-        var fc = .clamp(Math.clamp(f, 0, 1))
-        if .sliderFlags.has(.Range) do
-            fc = Math.max(fc, .value1)
-        if fc == .value2 and .hasValue2 do
+        var fc = .clamp(f)
+        if .flags.has(.Range) do
+            fc = Math.max(fc, .lowerRatio)
+        if fc == .upperRatio and .hasUpperValue do
             return
-        .hasValue2 = true
-        .value2    = fc
+        .hasUpperValue = true
+        .upperRatio    = fc
         .sigChanged.call(me)
         .invalidate()
     }
@@ -438,37 +440,37 @@ private impl Slider
     mtd hitTest(surfacePos: Math.Point)
     {
         let pos = .surfaceToLocal(surfacePos)
-        if .isHot1 or .isHot2
+        if .isLowerHot or .isUpperHot
         {
             .invalidate()
-            .isHot1, .isHot2 = false
+            .isLowerHot, .isUpperHot = false
         }
 
-        if .sliderFlags.has(.Range)
+        if .flags.has(.Range)
         {
-            let rect = .getPosBox2()
+            let rect = .secondThumbRect()
             if rect.contains(pos)
             {
-                .isHot2 = true
+                .isUpperHot = true
                 .invalidate()
                 return
             }
         }
 
-        let rect = .getPosBox1()
+        let rect = .firstThumbRect()
         if rect.contains(pos)
         {
-            .isHot1 = true
+            .isLowerHot = true
             .invalidate()
         }
     }
 
-    mtd getOffsetedClientRect()->Math.Rectangle
+    mtd offsetClientRect()->Math.Rectangle
     {
-        var result: retval = .getClientRect()
-        let boxSize        = .getThemeMetrics().slider_BoxSize
+        var result: retval = .clientRect()
+        let boxSize        = .themeMetrics().slider_BoxSize
 
-        if .sliderFlags.has(.Vertical)
+        if .flags.has(.Vertical)
         {
             result.y      += (boxSize * 0.5)
             result.height -= boxSize
@@ -482,12 +484,12 @@ private impl Slider
         return result
     }
 
-    mtd getTrackRect()->Math.Rectangle
+    mtd trackRect()->Math.Rectangle
     {
-        var result: retval = .getOffsetedClientRect()
-        let trackSize      = .getThemeMetrics().slider_TrackSize
+        var result: retval = .offsetClientRect()
+        let trackSize      = .themeMetrics().slider_TrackSize
 
-        if .sliderFlags.has(.Vertical)
+        if .flags.has(.Vertical)
         {
             result.x     = result.horzCenter() - (trackSize * 0.5)
             result.width = trackSize
@@ -501,11 +503,11 @@ private impl Slider
         return result
     }
 
-    mtd getPosBoxAt(val, size: f32)->Math.Rectangle
+    mtd thumbRectAt(val, size: f32)->Math.Rectangle
     {
-        var result: retval = .getOffsetedClientRect()
+        var result: retval = .offsetClientRect()
 
-        if .sliderFlags.has(.Vertical)
+        if .flags.has(.Vertical)
         {
             result.y += result.height * val
             result.y -= (size * 0.5)
@@ -522,14 +524,14 @@ private impl Slider
         return result
     }
 
-    mtd getPosBox1()->Math.Rectangle
+    mtd firstThumbRect()->Math.Rectangle
     {
-        return .getPosBoxAt(.value1, .getThemeMetrics().slider_BoxSize)
+        return .thumbRectAt(.lowerRatio, .themeMetrics().slider_BoxSize)
     }
 
-    mtd getPosBox2()->Math.Rectangle
+    mtd secondThumbRect()->Math.Rectangle
     {
-        return .getPosBoxAt(.value2, .getThemeMetrics().slider_BoxSize)
+        return .thumbRectAt(.upperRatio, .themeMetrics().slider_BoxSize)
     }
 
     mtd startChange()
@@ -550,72 +552,95 @@ impl Slider
     mtd stepBy(dir: s32)
     {
         let s = .keyStep()
-        .stepValue1(dir > 0 ? s : -s)
+        .stepActiveValue(dir > 0 ? s : -s)
     }
 
-    // Returns value.
-    mtd const getValue()->f32 => .getValueLeft()
+    // Returns the single value, or the lower value in range mode.
+    mtd const value()->f32 => .lowerValue()
 
-    // Returns value left.
-    mtd const getValueLeft()->f32 => .min + (.max - .min) * .value1
+    // Returns the lower value in configured value-space units.
+    mtd const lowerValue()->f32 => .min + (.max - .min) * .lowerRatio
 
-    // Returns value right.
-    mtd const getValueRight()->f32 => .min + (.max - .min) * .value2
+    // Returns the upper value in configured value-space units.
+    mtd const upperValue()->f32 => .min + (.max - .min) * .upperRatio
 
-    // Sets value.
+    // Returns the inclusive minimum accepted by the slider.
+    mtd const minimum()->f32 => .min
+
+    // Returns the inclusive maximum accepted by the slider.
+    mtd const maximum()->f32 => .max
+
+    // Returns the configured value-space step, or zero for continuous values.
+    mtd const step()->f32 => .steps * (.max - .min)
+
+    // Sets the single value, emitting start/change/end signals as one transaction.
     mtd setValue(f: f32)
     {
-        .setValueLeft(f)
+        .setLowerValue(f)
     }
 
-    // Sets value no change.
-    mtd setValueNoChange(f: f32)
+    // Sets the single value without emitting start/end transaction signals.
+    //
+    // [sigChanged] is still emitted when the effective value changes.
+    mtd setValueWithoutGesture(f: f32)
     {
-        .setValue1((f - .min) / (.max - .min))
+        .setLowerRatio((f - .min) / (.max - .min))
     }
 
-    // Set the left value (in case of a range).
-    mtd setValueLeft(f: f32)
+    // Sets the lower value and emits one start/change/end transaction.
+    mtd setLowerValue(f: f32)
     {
         .startChange()
-        .setValueNoChange(f)
+        .setValueWithoutGesture(f)
         .endChange()
     }
 
-    // Set the right value (in case of a range)
-    mtd setValueRight(f: f32)
+    // Sets the upper value and emits one start/change/end transaction.
+    mtd setUpperValue(f: f32)
     {
         .startChange()
-        .setValue2((f - .min) / (.max - .min))
+        .setUpperRatio((f - .min) / (.max - .min))
         .endChange()
     }
 
-    // Set the 'min', 'max' and 'steps' values
-    func setMinMax(me, min, max: f32, steps: f32 = 0)
+    // Configures inclusive bounds and an optional value-space step.
+    func setBounds(me, min, max: f32, steps: f32 = 0)
     {
         Debug.assert(min < max)
-        Debug.assert(steps < (max - min))
+        Debug.assert(steps >= 0 and steps < (max - min))
         .min = min
         .max = max
         if steps > 0 do
             .steps = steps / (max - min)     // Convert to normalized step size
         else do
             .steps = 0
+        .invalidate()
     }
 
-    // Set left and right values, for a range
-    mtd setRangeValues(left, right: f32)
+    // Sets both range endpoints and emits at most one change notification.
+    mtd setRange(lower, upper: f32)
     {
-        Debug.assert(left < right)
-        Debug.assert(.sliderFlags.has(.Range))
-        let diff = .max - .min
-        .value1 = (left - .min) / diff
-        .value2 = (right - .min) / diff
-        .setValue1(.value1)
-        .setValue2(.value2)
+        Debug.assert(lower <= upper)
+        Debug.assert(.flags.has(.Range))
+        let diff     = .max - .min
+        let newLower = .clamp((lower - .min) / diff)
+        let newUpper = .clamp((upper - .min) / diff)
+        Debug.assert(newLower <= newUpper)
+
+        let changed = !.hasLowerValue or !.hasUpperValue or newLower != .lowerRatio or newUpper != .upperRatio
+        .hasLowerValue, .hasUpperValue = true
+        .lowerRatio                    = newLower
+        .upperRatio                    = newUpper
+        if changed
+        {
+            .startChange()
+            .sigChanged.call(me)
+            .invalidate()
+            .endChange()
+        }
     }
 
-    // Performs the create operation.
+    // Creates a horizontal slider, optionally configured for ranges or vertical layout.
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null, range = false, vertical = false)->*Slider
     {
@@ -625,24 +650,24 @@ impl Slider
         if pos.height == 0
         {
             if vertical do
-                pos.height = parent.getThemeMetrics().slider_Width
+                pos.height = parent.themeMetrics().slider_Width
             else do
-                pos.height = parent.getThemeMetrics().slider_Height
+                pos.height = parent.themeMetrics().slider_Height
         }
 
         if pos.width == 0
         {
             if vertical do
-                pos.width = parent.getThemeMetrics().slider_Height
+                pos.width = parent.themeMetrics().slider_Height
             else do
-                pos.width = parent.getThemeMetrics().slider_Width
+                pos.width = parent.themeMetrics().slider_Width
         }
 
         let res = Wnd.create'Slider(parent, null, pos, id)
         if range do
-            res.sliderFlags.add(.Range)
+            res.flags.add(.Range)
         if vertical do
-            res.sliderFlags.add(.Vertical)
+            res.flags.add(.Vertical)
         return res
     }
 }

@@ -22,7 +22,7 @@ impl IActionUI for ActionCaptureDelay
         switch cxt.id
         {
         case .Delay:
-            evt.setFlags |= .Name
+            evt.updatedFields |= .Name
             switch main.captureOptions.delay
             {
             case 0: evt.name = "Delay Before Capture"
@@ -33,31 +33,31 @@ impl IActionUI for ActionCaptureDelay
             }
 
         case .Delay0:
-            evt.setFlags      |= .Name | .Checked | .RenderingHint
+            evt.updatedFields |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = "No Delay"
             evt.checked       = main.captureOptions.delay == 0
 
         case .Delay1:
-            evt.setFlags      |= .Name | .Checked | .RenderingHint
+            evt.updatedFields |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = "1 second"
             evt.checked       = main.captureOptions.delay == 1
 
         case .Delay2:
-            evt.setFlags      |= .Name | .Checked | .RenderingHint
+            evt.updatedFields |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = "2 seconds"
             evt.checked       = main.captureOptions.delay == 2
 
         case .Delay5:
-            evt.setFlags      |= .Name | .Checked | .RenderingHint
+            evt.updatedFields |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = "5 seconds"
             evt.checked       = main.captureOptions.delay == 5
 
         case .Delay9:
-            evt.setFlags      |= .Name | .Checked | .RenderingHint
+            evt.updatedFields |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = "9 seconds"
             evt.checked       = main.captureOptions.delay == 9

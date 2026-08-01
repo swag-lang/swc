@@ -21,7 +21,7 @@ public interface IPropertyEditor
     // Build the editor row(s) for 'value' (the field at 'data') under 'parent' and return the
     // created item — exactly like the built-in construct* methods. The recipe: call
     // list.addItem(value, data, parent), create the editor widget(s) under item.line, wire their
-    // change callbacks to list.hasChanged(item), and add an item.sigRefresh handler that pushes
+    // change callbacks to list.commitItemChange(item), and add an item.sigRefresh handler that pushes
     // the current value back into the widget(s). See values/color.swg and values/vector.swg.
     //
     // An editor is a stateless singleton: it is invoked on a null instance (like canEdit), so
@@ -33,7 +33,8 @@ public interface IPropertyEditor
 // One registered editor: the implementing type (used to instantiate a fresh editor per field)
 // plus a null-pointer interface used only for the canEdit capability query. Same shape as
 // ImageDecoder / ImageEncoder.
-struct PropertyEditorReg
+#[Swag.NoDoc]
+public struct PropertyEditorReg
 {
     type: const *Swag.TypeInfoStruct     // Type associated with this value.
     itf:  IPropertyEditor                // Itf associated with this value.
@@ -43,7 +44,7 @@ impl Properties
 {
     // Process-wide registry of custom editors, consulted by every grid before the built-in
     // editors. Mirrors Image.decoders / Image.encoders.
-    var editors: Array'PropertyEditorReg
+    internal var editors: Array'PropertyEditorReg
 
     // Register a custom editor type T (which must implement IPropertyEditor) for ALL grids.
     // Call once, typically from a #init block — mirrors Image.addDecoder / Image.addEncoder.
@@ -59,6 +60,7 @@ impl Properties
 
     // Append a {type, itf} entry to the registry. Public so the generic registerEditor above can
     // call it from any module; the 'editors' static itself stays module-internal.
+    #[Swag.NoDoc]
     func addEditor(type: const *Swag.TypeInfoStruct, itf: IPropertyEditor)
     {
         var reg: PropertyEditorReg = undefined
@@ -70,7 +72,7 @@ impl Properties
     // Find the editor that claims 'type', or null. Scans newest-first so a later registration
     // overrides an earlier one for the same type — this is what lets a user editor replace a
     // built-in (Color/vector) editor, which all live in this one registry.
-    func findEditor(type: #null typeinfo)->#null *PropertyEditorReg
+    internal func findEditor(type: #null typeinfo)->#null *PropertyEditorReg
     {
         var found: #null *PropertyEditorReg
         var i = Properties.editors.count

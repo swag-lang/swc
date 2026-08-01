@@ -39,22 +39,22 @@ func audioAssertSamples(actual: const [..] u8, expected: const [..] s16)
 // 'Path.combine' results are dropped (caught by the owner-view escape analysis).
 func audioGetTestDataPath(fileName: string, loc = #callerlocation)->String
 {
-    let dir  = Path.getDirectoryName(loc.fileName)
+    let dir  = Path.directoryName(loc.fileName)
     var path = Path.combine(dir, "datas", fileName)
     @assert(File.exists(path))
     return path
 }
 
-func audioDecodePcmToPcm16(srcEncoding: SoundFileEncoding, src: [..] u8, destCapacity: u64)->{ dest: Array'u8, used: { write, read: u64 } } fail
+func audioDecodePcmToPcm16(sourceEncoding: SoundFileEncoding, source: [..] u8, destinationCapacity: u64)->{ destination: Array'u8, progress: CodecProgress } fail
 {
     var codec: CodecPcmToPcm16
-    codec.srcEncoding = srcEncoding
-    codec.dstEncoding = .Pcm16
+    codec.sourceEncoding      = sourceEncoding
+    codec.destinationEncoding = .Pcm16
 
     var result: retval
-    result.dest.resize(destCapacity)
-    let itf        = @mkinterface(&codec, #typeof(CodecPcmToPcm16), ICodec)
-    let destBuffer = notnull result.dest.buffer
-    result.used = itf.decode(destBuffer, result.dest.count, @dataof(src), @countof(src))
+    result.destination.resize(destinationCapacity)
+    let itf               = @mkinterface(&codec, #typeof(CodecPcmToPcm16), ICodec)
+    let destinationBuffer = notnull result.destination.buffer
+    result.progress = itf.decode(destinationBuffer, result.destination.count, @dataof(source), @countof(source))
     return result
 }

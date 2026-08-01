@@ -32,7 +32,7 @@ func sigArrayTestAppendA(value: *s32)
     signal += &sigArrayTestAdd
     signal += func(value: *s32) { discard value; SigArrayTestTotal += 10 }
     @assert(!signal.isEmpty())
-    @assert(signal.arr.count == 2)
+    @assert(signal.count() == 2)
 
     var value = 3
     SigArrayTestTotal = 0
@@ -41,18 +41,22 @@ func sigArrayTestAppendA(value: *s32)
 
     signal.disable()
     signal.disable()
-    @assert(signal.disabled == 2)
+    @assert(signal.isDisabled())
     signal.call(&value)
     @assert(SigArrayTestTotal == 11)
 
     signal.enable()
-    @assert(signal.disabled == 1)
+    @assert(signal.isDisabled())
 
     signal.enable()
-    @assert(signal.disabled == 0)
+    @assert(!signal.isDisabled())
     value = 4
     signal.call(&value)
     @assert(SigArrayTestTotal == 22)
+
+    signal.clear()
+    @assert(signal.isEmpty())
+    @assert(!signal.isDisabled())
 }
 
 #test

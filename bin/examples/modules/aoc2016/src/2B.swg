@@ -22,7 +22,7 @@ using Core
 
 func day2B()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "2.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "2.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     const pad: [7, 7] s32 = [

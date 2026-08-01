@@ -78,8 +78,8 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
         var x = i
         if first == -1 do
             first = cast(s32) i
-        last      = cast(s32) i
-        sum       += cast(s32) i
+        last = cast(s32) i
+        sum  += cast(s32) i
     }
     @assert(first == 2)
     @assert(last == 0)
@@ -254,8 +254,8 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
         var x = i
         if first == -1 do
             first = cast(s32) i
-        last      = cast(s32) i
-        sum       += cast(s32) i
+        last = cast(s32) i
+        sum  += cast(s32) i
     }
     @assert(first == 5)
     @assert(last == 1)
@@ -272,8 +272,8 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
         var x = i
         if first == -1 do
             first = cast(s32) i
-        last      = cast(s32) i
-        sum       += cast(s32) i
+        last = cast(s32) i
+        sum  += cast(s32) i
     }
     @assert(first == 4)
     @assert(last == 1)
@@ -365,8 +365,8 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
         var x = i
         if first == -1 do
             first = cast(s32) i
-        last      = cast(s32) i
-        count     += 1
+        last  = cast(s32) i
+        count += 1
     }
     @assert(first == 4)
     @assert(last == 0)

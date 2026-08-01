@@ -43,7 +43,7 @@ struct DibHeader
 }
 
 // Decodes Windows icon containers and selects their embedded BMP or PNG image.
-public struct Decoder {}
+internal struct Decoder {}
 
 func checkBuffer(ptr, last: const [*] u8, size: u64) fail
 {
@@ -153,7 +153,7 @@ func decodeDib(result: *Image, dib: DibHeader, src, last: const [*] u8) fail
     {
         let xorRow = xorData + xorStride * cast(u64) y
         let andRow = andData + andStride * cast(u64) y
-        var dst    = cast([*] u8) (notnull result.pixels.buffer) + cast(u64) y * result.width8
+        var dst    = cast([*] u8) (notnull result.pixels.buffer) + cast(u64) y * result.rowStride
 
         for [x] in width
         {
@@ -198,11 +198,11 @@ func decodeDib(result: *Image, dib: DibHeader, src, last: const [*] u8) fail
     }
 }
 
-public impl IImageDecoder for Decoder
+internal impl IImageDecoder for Decoder
 {
     mtd impl canDecode(fileName: string)->bool
     {
-        let ext = Path.getExtensionLowerCase(fileName)
+        let ext = Path.lowercaseExtension(fileName)
         return ext == ".ico" or ext == ".cur"
     }
 

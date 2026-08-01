@@ -5,16 +5,19 @@ using Swag
 
 #test
 {
-    var guid: GUID64
+    var guid: Guid64
     @assert(guid.isNull())
 
-    guid.guid = 0x0123456789ABCDEF'u64
+    @assert(Guid64.tryParse("0123456789ABCDEF", &guid))
     @assert(!guid.isNull())
-    @assert(guid.getString() == "0123456789ABCDEF")
-    @assert(GUID64.parse("0123456789ABCDEF") == guid)
-    @assert(GUID64.parse("0x0123456789ABCDEF") == guid)
-    @assert(GUID64.parse("A1zz").guid == 0xA1'u64)
-    @assert(Hash.hash32(guid) == Hash.Crc32.compute(@mkslice(cast(const [*] u8) &guid.guid, #sizeof(u64))))
+    @assert(guid.value == 0x0123456789ABCDEF'u64)
+    @assert(guid.toString() == "0123456789ABCDEF")
+    @assert((expect Guid64.parse("0123456789ABCDEF")) == guid)
+    @assert((expect Guid64.parse("0x0123456789ABCDEF")) == guid)
+    @assert(!Guid64.tryParse("A1zz", &guid))
+    @assert(!Guid64.tryParse("0123456789ABCDE", &guid))
+    @assert(!Guid64.tryParse("0123456789ABCDEG", &guid))
+    @assert(Hash.hash32(guid) == Hash.Crc32.compute(@mkslice(cast(const [*] u8) &guid.value, #sizeof(u64))))
 
     guid.clear()
     @assert(guid.isNull())
@@ -22,24 +25,26 @@ using Swag
 
 #test
 {
-    var guid: GUID128
-    guid.val8 = [0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF, 0x10, 0x32, 0x54, 0x76, 0x98, 0xBA, 0xDC, 0xFE]
+    var guid: Guid128
+    @assert(Guid128.tryParse("01234567-89ab-cdef-1032-547698badcfe", &guid))
 
-    @assert(guid.getString() == "01234567-89ab-cdef-1032-547698badcfe")
-    @assert(Hash.hash32(guid) == Hash.Crc32.compute(@mkslice(&guid.val8[0], 16)))
+    @assert(guid.toString() == "01234567-89ab-cdef-1032-547698badcfe")
+    @assert((expect Guid128.parse("01234567-89AB-CDEF-1032-547698BADCFE")) == guid)
+    @assert(!Guid128.tryParse("0123456789ab-cdef-1032-547698badcfe", &guid))
+    @assert(!Guid128.tryParse("01234567-89ab-cdef-1032-547698badcfz", &guid))
+    @assert(Hash.hash32(guid) == Hash.Crc32.compute(@mkslice(&guid.bytes[0], 16)))
 
     var copy = guid
     @assert(copy == guid)
 
     copy.clear()
     @assert(copy != guid)
-    @assert(copy.val64[0] == 0)
-    @assert(copy.val64[1] == 0)
+    @assert(copy.isNull())
 }
 
 #test
 {
-    let guid = GUID128.getRandom()
-    @assert((guid.val8[6] & 0xF0) == 0x40)
-    @assert((guid.val8[8] & 0xC0) == 0x80)
+    let guid = Guid128.random()
+    @assert((guid.bytes[6] & 0xF0) == 0x40)
+    @assert((guid.bytes[8] & 0xC0) == 0x80)
 }

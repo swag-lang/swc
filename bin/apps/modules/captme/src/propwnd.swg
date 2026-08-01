@@ -97,9 +97,9 @@ impl PropWnd
         if !capture or !capture.selection.count
         {
             let form   = .getSelectedBaseForm()
-            let field  = notnull Reflection.getField(type, name)
+            let field  = notnull Reflection.findField(type, name)
             var valU32 = val
-            Reflection.setFieldValue(form, field, &valU32, true)
+            Reflection.writeFieldValue(form, field, &valU32)
         }
 
         // Change selection
@@ -111,7 +111,7 @@ impl PropWnd
             undo.valU32 = val
             if !common do
                 undo.mdlType = type
-            undo.valRef      = notnull Reflection.getField(type, name)
+            undo.valRef = notnull Reflection.findField(type, name)
             capture.pushUndo(undo)
         }
 
@@ -123,17 +123,17 @@ impl PropWnd
     {
         with let btn = IconButton.create(stack, {}, {0, 0, w, h})
         {
-            .setForm(.RoundSquare)
+            .setForm(.RoundedRectangle)
             .style.addStyleSheetColors("btnIcon_Bk                  $lighterMedium")
             .style.addStyleSheetColors("btnIcon_HotBk               $lighterBig")
             .style.addStyleSheetColors("btnIcon_PressedBk           $lighterVeryBig")
             .style.addStyleSheetColors("btnIcon_CheckedPressedIcon  $btnIcon_Text")
             .style.addStyleSheetColors("btnIcon_CheckedPressedText  $btnIcon_Text")
 
-            .iconBtnFlags.add(.Popup | .CheckableToggle)
-            .arrowPos    = .Bottom
-            .textPos     = .Top
-            .checkedForm = .None
+            .updateFlags(.Popup | .Toggle)
+            .setArrowPosition(.Bottom)
+            .setTextPosition(.Top)
+            .setCheckIndicator(.None)
         }
 
         return btn
@@ -166,25 +166,25 @@ impl PropWnd
     {
         let frame  = btn.createAnchorPopup(180, 66)
         let layout = frame.createView'WrapLayoutCtrl()
-        layout.wrapWidth, layout.wrapHeight = 48
+        layout.itemWidth, layout.itemHeight = 48
         layout.padding                      = 4
 
         func selectedKind(prop: *PropWnd, type: typeinfo, fieldName: String)->FormShapeKind
         {
             var val: u32
-            let field = notnull Reflection.getField(type, fieldName)
-            Reflection.getFieldValue(&val, field, prop.getSelectedBaseForm(), true)
+            let field = notnull Reflection.findField(type, fieldName)
+            Reflection.readFieldValue(&val, field, prop.getSelectedBaseForm())
             return cast(FormShapeKind) val
         }
 
         func updateBtnState(prop: *PropWnd, layout: *Wnd, type: typeinfo, fieldName: String)
         {
             let cur = selectedKind(prop, type, fieldName)
-            for c in layout.childs
+            for c in layout.children
             {
                 let btn  = cast(*IconButton) c
                 let kind = enumFromUserData'FormShapeKind(btn.userData)
-                btn.isChecked = cur == kind
+                btn.setChecked(cur == kind)
                 btn.invalidate()
             }
         }
@@ -195,14 +195,15 @@ impl PropWnd
         {
             let btn0 = IconButton.create(notnull frame.view, {})
             btn0.userData = enumToUserData(i)
-            btn0.setForm(.RoundSquare)
+            btn0.setForm(.RoundedRectangle)
+            btn0.updateFlags(.Radio)
             if cur == i do
-                btn0.isChecked = true
+                btn0.setChecked(true)
 
-            btn0.sigPaintIcon = func(btn, bc, pos, flags)
+            btn0.iconPainter = func(btn, bc, pos, flags)
             {
                 bc.painter.setParams(.Antialiased)
-                let color = flags & .Checked ? btn.getThemeColors().btnIcon_CheckedIcon : btn.getThemeColors().btnIcon_Icon
+                let color = flags & .Checked ? btn.themeColors().btnIcon_CheckedIcon : btn.themeColors().btnIcon_Icon
                 drawShapeGlyph(bc.painter, enumFromUserData'FormShapeKind(btn.userData), pos, color)
             }
 
@@ -236,11 +237,11 @@ impl PropWnd
         func updateBtnState(prop: *PropWnd, layout: *Wnd, begin: bool)
         {
             let cur = selectedCap(prop, begin)
-            for c in layout.childs
+            for c in layout.children
             {
                 let btn = cast(*IconButton) c
                 let cap = enumFromUserData'LineCapStyle(btn.userData)
-                btn.isChecked = cur == cap
+                btn.setChecked(cur == cap)
                 btn.invalidate()
             }
         }
@@ -250,16 +251,17 @@ impl PropWnd
         {
             let btn0 = IconButton.create(layout, {}, {0, 0, 0, 40})
             btn0.userData = enumToUserData(i)
-            btn0.setForm(.RoundSquare)
-            btn0.isChecked = cur == i
+            btn0.setForm(.RoundedRectangle)
+            btn0.updateFlags(.Radio)
+            btn0.setChecked(cur == i)
 
-            btn0.sigPaintIcon = func|begin|(btn, bc, pos, flags)
+            btn0.iconPainter = func|begin|(btn, bc, pos, flags)
             {
                 bc.painter.setParams(.Antialiased)
                 var rect = pos
                 rect.inflate(-9, -9)
                 let cap   = enumFromUserData'LineCapStyle(btn.userData)
-                let color = flags & .Checked ? btn.getThemeColors().btnIcon_CheckedIcon : btn.getThemeColors().btnIcon_Icon
+                let color = flags & .Checked ? btn.themeColors().btnIcon_CheckedIcon : btn.themeColors().btnIcon_Icon
                 var pen   = Pen.createSolid(color, CapSize)
                 if begin
                 {
@@ -299,11 +301,11 @@ impl PropWnd
         func updateBtnState(prop: *PropWnd, layout: *Wnd)
         {
             let curSel = prop.getSelectedBaseForm()
-            for c in layout.childs
+            for c in layout.children
             {
                 let btn  = cast(*IconButton) c
                 let dash = enumFromUserData'DashStyle(btn.userData)
-                btn.isChecked = curSel.dashStyle == dash
+                btn.setChecked(curSel.dashStyle == dash)
                 btn.invalidate()
             }
         }
@@ -316,16 +318,17 @@ impl PropWnd
 
             let btn0 = IconButton.create(layout, {}, {0, 0, 0, 32})
             btn0.userData = enumToUserData(i)
-            btn0.setForm(.RoundSquare)
-            btn0.isChecked = curSel.dashStyle == i
+            btn0.setForm(.RoundedRectangle)
+            btn0.updateFlags(.Radio)
+            btn0.setChecked(curSel.dashStyle == i)
 
-            btn0.sigPaintIcon = func|prop = me|(btn, bc, pos, flags)
+            btn0.iconPainter = func|prop = me|(btn, bc, pos, flags)
             {
                 bc.painter.setParams(.Antialiased)
                 var rect = pos
                 rect.inflate(-9, -9)
                 var dash  = enumFromUserData'DashStyle(btn.userData)
-                let color = flags & .Checked ? btn.getThemeColors().btnIcon_CheckedIcon : btn.getThemeColors().btnIcon_Icon
+                let color = flags & .Checked ? btn.themeColors().btnIcon_CheckedIcon : btn.themeColors().btnIcon_Icon
                 var pen   = Pen.createDash(dash, color, DashSize)
                 pen.dashBlankScale = 0.25
                 bc.painter.drawLine(rect.x, rect.vertCenter(), rect.right(), rect.vertCenter(), pen)
@@ -358,7 +361,7 @@ impl PropWnd
         default:                            btn.name = "Outline"
         }
 
-        btn.sigPaintIcon = func|prop = me|(btn, bc, pos, flags)
+        btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
         {
             bc.painter.setParams(.Antialiased)
             let curSel = prop.getSelectedBaseForm()
@@ -371,7 +374,7 @@ impl PropWnd
             bc.painter.drawRoundRect(rect, 5, 5, curSel.borderColor, 5)
         }
 
-        btn.sigShowPopup += func|prop = me|(btn)
+        btn.sigPopupRequested += func|prop = me|(btn)
         {
             let curSel = prop.getSelectedBaseForm()
             var picker = createColorPicker(btn, curSel.borderColor)
@@ -379,9 +382,9 @@ impl PropWnd
             // Defer the undo entry until the color actually changes: `first` (closure-owned) is
             // true only on the first change, so opening then closing without picking leaves no
             // no-op undo entry, while later changes still replace the previous one (first = false).
-            picker.sigChanged += func|prop, btn, first = true|(pk)
+            picker.sigColorChanged += func|prop, btn, first = true|(pk)
             {
-                prop.pushTypedValue(pk.getColor().argb, BaseForm, #nameof(BaseForm.borderColor), first, true)
+                prop.pushTypedValue(pk.color().argb, BaseForm, #nameof(BaseForm.borderColor), first, true)
                 first = false
                 btn.invalidate()
             }
@@ -408,8 +411,8 @@ impl PropWnd
         }
 
         let btn = createArrowButton(stack, BtnColorWidth, BtnColorHeight)
-        btn.name         = "Fill"
-        btn.sigPaintIcon = func|prop = me|(btn, bc, pos, flags)
+        btn.name        = "Fill"
+        btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
         {
             bc.painter.setParams(.Antialiased)
             var curSel = notnull prop.getSelectedBaseForm()
@@ -423,17 +426,17 @@ impl PropWnd
             bc.painter.fillRoundRect(rect, 10, 10, backCol)
         }
 
-        btn.sigShowPopup += func|prop = me|(btn)
+        btn.sigPopupRequested += func|prop = me|(btn)
         {
             var curSel  = notnull prop.getSelectedBaseForm()
             var backCol = curSel.subKind == .PixSel ? (notnull g_Main).pixSelFillCol : curSel.backColor
             var picker  = createColorPicker(btn, backCol)
             if curSel.subKind == .PixSel
             {
-                picker.sigChanged += func|btn|(pk)
+                picker.sigColorChanged += func|btn|(pk)
                 {
                     let mainWnd = notnull g_Main
-                    mainWnd.pixSelFillCol = pk.getColor()
+                    mainWnd.pixSelFillCol = pk.color()
                     btn.invalidate()
                 }
             }
@@ -442,9 +445,9 @@ impl PropWnd
                 // Defer the undo entry until the color actually changes: `first` (closure-owned) is
                 // true only on the first change, so opening then closing without picking leaves no
                 // no-op undo entry, while later changes still replace the previous one (first = false).
-                picker.sigChanged += func|prop, btn, first = true|(pk)
+                picker.sigColorChanged += func|prop, btn, first = true|(pk)
                 {
-                    prop.pushTypedValue(pk.getColor().argb, BaseForm, #nameof(BaseForm.backColor), first, true)
+                    prop.pushTypedValue(pk.color().argb, BaseForm, #nameof(BaseForm.backColor), first, true)
                     first = false
                     btn.invalidate()
                 }
@@ -462,15 +465,15 @@ impl PropWnd
             return
 
         let btn = createArrowButton(stack, BtnColorWidth, BtnColorHeight)
-        btn.name         = "Shape"
-        btn.sigPaintIcon = func|prop = me|(btn, bc, pos, flags)
+        btn.name        = "Shape"
+        btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
         {
             bc.painter.setParams(.Antialiased)
             let curSel = cast(*FormShape) prop.getSelectedBaseForm()
-            drawShapeGlyph(bc.painter, curSel.kind, pos, btn.getThemeColors().btnIcon_Icon)
+            drawShapeGlyph(bc.painter, curSel.kind, pos, btn.themeColors().btnIcon_Icon)
         }
 
-        btn.sigShowPopup += func|prop = me|(btn) { prop.createPopupShapeKind(btn, FormShape, #nameof(FormShape.kind)) }
+        btn.sigPopupRequested += func|prop = me|(btn) { prop.createPopupShapeKind(btn, FormShape, #nameof(FormShape.kind)) }
     }
 
     mtd propStep(stack: *Wnd)
@@ -480,15 +483,15 @@ impl PropWnd
             return
 
         let btn = createArrowButton(stack, BtnColorWidth, BtnColorHeight)
-        btn.name         = "Shape"
-        btn.sigPaintIcon = func|prop = me|(btn, bc, pos, flags)
+        btn.name        = "Shape"
+        btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
         {
             bc.painter.setParams(.Antialiased)
             let curSel = cast(*FormStep) prop.getSelectedBaseForm()
-            drawShapeGlyph(bc.painter, curSel.kind, pos, btn.getThemeColors().btnIcon_Icon)
+            drawShapeGlyph(bc.painter, curSel.kind, pos, btn.themeColors().btnIcon_Icon)
         }
 
-        btn.sigShowPopup += func|prop = me|(btn) { prop.createPopupShapeKind(btn, FormStep, #nameof(FormStep.kind)) }
+        btn.sigPopupRequested += func|prop = me|(btn) { prop.createPopupShapeKind(btn, FormStep, #nameof(FormStep.kind)) }
     }
 
     mtd propStartCapStyle(stack: *Wnd)
@@ -500,12 +503,12 @@ impl PropWnd
         let btn = createArrowButton(stack, BtnStyleWidth, BtnStyleHeight)
         btn.name = "Start"
 
-        btn.sigPaintIcon = func|prop = me|(btn, bc, pos, flags)
+        btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
         {
             var curSel = cast(*FormLine) prop.getSelectedBaseForm()
             var rect   = pos
             rect.inflate(-9, -9)
-            var pen = Pen.createSolid(btn.getThemeColors().btnIcon_Icon, CapSize)
+            var pen = Pen.createSolid(btn.themeColors().btnIcon_Icon, CapSize)
             pen.begCapStyle = curSel.beginCap
             pen.endCapStyle = .None
             let {?, l0} = Painter.capStyleExtent(curSel.beginCap, CapSize, pen.capBegScaleX)
@@ -515,7 +518,7 @@ impl PropWnd
             bc.painter.drawLine(rect.x, rect.vertCenter(), rect.right(), rect.vertCenter(), pen)
         }
 
-        btn.sigShowPopup += func|prop = me|(btn) { prop.createPopupCapStyle(btn, begin: true) }
+        btn.sigPopupRequested += func|prop = me|(btn) { prop.createPopupCapStyle(btn, begin: true) }
     }
 
     mtd propEndCapStyle(stack: *Wnd)
@@ -525,13 +528,13 @@ impl PropWnd
             return
 
         let btn = createArrowButton(stack, BtnStyleWidth, BtnStyleHeight)
-        btn.name         = "End"
-        btn.sigPaintIcon = func|prop = me|(btn, bc, pos, flags)
+        btn.name        = "End"
+        btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
         {
             let curSel = cast(*FormLine) prop.getSelectedBaseForm()
             var rect   = pos
             rect.inflate(-9, -9)
-            var pen = Pen.createSolid(btn.getThemeColors().btnIcon_Icon, CapSize)
+            var pen = Pen.createSolid(btn.themeColors().btnIcon_Icon, CapSize)
             pen.begCapStyle = .None
             pen.endCapStyle = curSel.endCap
             let {?, l0} = Painter.capStyleExtent(curSel.endCap, CapSize, pen.capEndScaleX)
@@ -541,7 +544,7 @@ impl PropWnd
             bc.painter.drawLine(rect.x, rect.vertCenter(), rect.right(), rect.vertCenter(), pen)
         }
 
-        btn.sigShowPopup += func|prop = me|(btn) { prop.createPopupCapStyle(btn, begin: false) }
+        btn.sigPopupRequested += func|prop = me|(btn) { prop.createPopupCapStyle(btn, begin: false) }
     }
 
     mtd propDashStyle(stack: *Wnd)
@@ -555,19 +558,19 @@ impl PropWnd
             return
 
         let btn = createArrowButton(stack, BtnStyleWidth, BtnStyleHeight)
-        btn.name         = "Dash"
-        btn.sigPaintIcon = func|prop = me|(btn, bc, pos, flags)
+        btn.name        = "Dash"
+        btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
         {
             bc.painter.setParams(.Antialiased)
             var curSel = prop.getSelectedBaseForm()
             var rect   = pos
             rect.inflate(-10, -10)
-            var pen = Pen.createDash(curSel.dashStyle, btn.getThemeColors().btnIcon_Icon, DashSize)
+            var pen = Pen.createDash(curSel.dashStyle, btn.themeColors().btnIcon_Icon, DashSize)
             pen.dashBlankScale = 0.25
             bc.painter.drawLine(rect.x, rect.vertCenter(), rect.right(), rect.vertCenter(), pen)
         }
 
-        btn.sigShowPopup += func|prop = me|(btn) { prop.createPopupDashStyle(btn) }
+        btn.sigPopupRequested += func|prop = me|(btn) { prop.createPopupDashStyle(btn) }
     }
 
     // The step type combo is generated by the grid (FormStep.typeIndex attribute);
@@ -578,7 +581,7 @@ impl PropWnd
         if curSelType != FormStep do
             return
 
-        let stack = Wnd.create'Wnd(.topLayout, {0, 0, 0, .getThemeMetrics().comboBox_Height})
+        let stack = Wnd.create'Wnd(.topLayout, {0, 0, 0, .themeMetrics().comboBox_Height})
 
         with let btn = PushButton.create(stack, "Reset", {0, 0, 60})
         {
@@ -614,7 +617,7 @@ impl PropWnd
             return curText
         let capture = notnull main.getCapture()
         let undo    = capture.newUndo(.SetText)
-        undo.text = dlg.getText()
+        undo.text = dlg.text()
         capture.pushUndo(undo)
         return undo.text
     }
@@ -627,8 +630,8 @@ impl PropWnd
             return
 
         let btn = createArrowButton(stack, BtnColorWidth, BtnColorHeight)
-        btn.name         = "Text"
-        btn.sigPaintIcon = func|prop = me|(btn, bc, pos, flags)
+        btn.name        = "Text"
+        btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
         {
             bc.painter.setParams(.Antialiased)
             let curSel = cast(*FormCallout) prop.getSelectedBaseForm()
@@ -641,13 +644,13 @@ impl PropWnd
             bc.painter.fillRoundRect(rect, 10, 10, curSel.textColor)
         }
 
-        btn.sigShowPopup += func|prop = me|(btn)
+        btn.sigPopupRequested += func|prop = me|(btn)
         {
             let curSel = cast(*FormCallout) prop.getSelectedBaseForm()
             var picker = createColorPicker(btn, curSel.textColor)
-            picker.sigChanged += func|prop, btn, first = true|(pk)
+            picker.sigColorChanged += func|prop, btn, first = true|(pk)
             {
-                prop.pushTypedValue(pk.getColor().argb, FormCallout, #nameof(FormCallout.textColor), first)
+                prop.pushTypedValue(pk.color().argb, FormCallout, #nameof(FormCallout.textColor), first)
                 first = false
                 btn.invalidate()
             }
@@ -681,16 +684,15 @@ impl PropWnd
 
         func addBox(prop: *PropWnd, parent: *Wnd, label: String, name: String, value: s32, signed: bool)
         {
-            let edit = EditCtrl.create(parent, label, Format.toString("%", value), flags: .AutoLoseFocus)
-            edit.labelSize = 15
-            edit.editSize  = 0
+            let edit = EditCtrl.create(parent, label, Format.toString("%", value), flags: .ReleaseFocusOnEnterOrEscape)
+            edit.setLayoutMetrics(15, 0)
             if signed do
-                edit.edit.setInputS64()
+                edit.edit.setSignedIntegerRange()
             else do
-                edit.edit.setInputU64(1, 10000)
-            edit.edit.sigLoseFocus += func|prop, &name|(ed)
+                edit.edit.setUnsignedIntegerRange(1, 10000)
+            edit.edit.sigFocusLost += func|prop, &name|(ed)
             {
-                let {v, ?, ?} = catch StrConv.parseS32(ed.text)
+                let {v, ?, ?} = catch StrConv.parseS32(ed.text())
                 prop.pushTypedValue(v, BaseForm, name, true, true)
             }
         }
@@ -701,11 +703,11 @@ impl PropWnd
         func addRow(prop: *PropWnd, name: string)->*Wnd
         {
             let v    = Swag.TypeValue{name: name}
-            let item = prop.grid.addItem(v, null, null, 40, .Zero)
+            let item = prop.grid.addItem(v, null, null, 40, .None)
 
             // No NoFocus: the rows embed edit boxes, so they stay keyboard-navigable
             item.flags.add(.NoSeparator)
-            return StackLayoutCtrl.create(notnull item.line, .HorzFit, {0, 0, 0, 40})
+            return StackLayoutCtrl.create(notnull item.line, .HorizontalFit, {0, 0, 0, 40})
         }
 
         discard .grid.addSeparator("Position")
@@ -788,17 +790,17 @@ impl PropWnd
                     continue
                 let sliderBox = it.sliderBox
                 sliderBox.label.setText("Outline")
-                sliderBox.setMinMaxS64(cast() MinTextBorderSize, cast() MaxTextBorderSize)
-                sliderBox.setValueNoChange((notnull .getSelectedBaseForm()).borderSize)
+                sliderBox.setSignedBounds(cast() MinTextBorderSize, cast() MaxTextBorderSize)
+                sliderBox.setValueWithoutGesture((notnull .getSelectedBaseForm()).borderSize)
             }
         }
     }
 
     mtd selectionHasChanged()
     {
-        for it in .topLayout.childs do
+        for it in .topLayout.children do
             it.destroy()
-        .grid.clearStructs()
+        .grid.clear()
 
         if !.getSelectedBaseForm()
         {
@@ -806,20 +808,20 @@ impl PropWnd
             return
         }
 
-        let stack0 = StackLayoutCtrl.create(notnull .topLayout, .HorzCenter, {0, 0, 0, BtnColorHeight + 12})
+        let stack0 = StackLayoutCtrl.create(notnull .topLayout, .HorizontalCenter, {0, 0, 0, BtnColorHeight + 12})
         .propBackColor(stack0)
         .propBorderColor(stack0)
         .propCalloutText(stack0)
         .propShape(stack0)
         .propStep(stack0)
-        if stack0.childs.count == 0 do
+        if stack0.children.count == 0 do
             stack0.destroyNow()
 
-        let stack1 = StackLayoutCtrl.create(notnull .topLayout, .HorzCenter, {0, 0, 0, BtnStyleHeight + 12})
+        let stack1 = StackLayoutCtrl.create(notnull .topLayout, .HorizontalCenter, {0, 0, 0, BtnStyleHeight + 12})
         .propStartCapStyle(stack1)
         .propDashStyle(stack1)
         .propEndCapStyle(stack1)
-        if stack1.childs.count == 0 do
+        if stack1.children.count == 0 do
             stack1.destroyNow()
 
         .propNextStep()
@@ -843,22 +845,22 @@ impl PropWnd
             .backgroundStyle = .Window
 
             .topLayout              = StackLayoutCtrl.create(prop)
-            .topLayout.layoutKind   = .Top
+            .topLayout.mode         = .Top
             .topLayout.fitToContent = true
             .topLayout.dockStyle    = .Top
             .topLayout.padding      = 8
             .topLayout.padding.y    = 16
 
-            .grid             = Properties.create(prop, kind: .Panel)
-            .grid.dockStyle   = .Center
-            .grid.showReverts = false
+            .grid           = Properties.create(prop, kind: .Panel)
+            .grid.dockStyle = .Center
+            .grid.setRevertButtonsVisible(false)
 
             // Most specific first: a form edits its own fields (text, caps, round...)
             // before the BaseForm style shared by every form
-            .grid.usingFieldsLast = true
+            .grid.setUsingFieldsLast(true)
 
             // Always show a small vertical bar so the row width does not jump with the content
-            .grid.scrollWnd.scrollWndFlags |= .ForceVertical | .SmallBar
+            .grid.scrollWnd.updateFlags(.AlwaysShowVertical | .CompactBars)
 
             .main = main
             .grid.setNotify(cast(IPropertyNotify) prop)
@@ -959,19 +961,19 @@ impl IPropertyNotify for PropWnd
 impl IWnd for PropWnd
 {
     // This impl shadows the whole FrameWnd one: forward its paint/resize methods
-    mtd impl onPrePaintEvent(evt: *PaintEvent)
+    mtd impl onBeforePaint(evt: *PaintEvent)
     {
-        .frameWnd.IWnd.onPrePaintEvent(evt)
+        .frameWnd.IWnd.onBeforePaint(evt)
     }
 
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaint(evt: *PaintEvent)
     {
-        .frameWnd.IWnd.onPaintEvent(evt)
+        .frameWnd.IWnd.onPaint(evt)
     }
 
-    mtd impl onPostPaintEvent(evt: *PaintEvent)
+    mtd impl onAfterPaint(evt: *PaintEvent)
     {
-        .frameWnd.IWnd.onPostPaintEvent(evt)
+        .frameWnd.IWnd.onAfterPaint(evt)
     }
 
     mtd impl onResizeEvent(evt: *ResizeEvent)

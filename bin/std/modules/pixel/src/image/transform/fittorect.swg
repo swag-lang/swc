@@ -2,43 +2,41 @@ using Core
 
 public impl Image
 {
-    // Fits the image to fill the target rectangle while maintaining aspect ratio.
+    // Resizes and center-crops the image to cover the requested dimensions.
     //
-    // The image is scaled to cover the entire target area, then cropped to exact dimensions.
-    // Uses center cropping to preserve the most important part of the image.
-    mtd fitToRect(targetRect: Math.Rectangle)
+    // The aspect ratio is preserved during scaling. The result has exactly
+    // `width` by `height` pixels.
+    mtd cover(width, height: s32, mode = ResizeMode.Bicubic)
     {
-        let targetAspect = targetRect.width / targetRect.height
-        let imageAspect  = .getAspectRatio()
+        Debug.assert(width > 0 and height > 0)
+        let targetAspect = width / cast(f32) height
+        let imageAspect  = .aspectRatio()
 
-        // Calculate dimensions to fill target while maintaining aspect ratio
         var newWidth, newHeight: s32
 
         if imageAspect > targetAspect
         {
-            // Image is wider than target - scale by height
-            newHeight = cast(s32) targetRect.height
-            newWidth  = cast(s32) (newHeight * imageAspect)
+            newHeight = height
+            newWidth  = cast(s32) Math.ceil(newHeight * imageAspect)
         }
         else
         {
-            // Image is taller than target - scale by width
-            newWidth  = cast(s32) targetRect.width
-            newHeight = cast(s32) (newWidth / imageAspect)
+            newWidth  = width
+            newHeight = cast(s32) Math.ceil(newWidth / imageAspect)
         }
 
-        .resize(newWidth, newHeight, .Bicubic)
+        .resize(newWidth, newHeight, mode)
 
-        // Center crop to exact target dimensions
-        let cropX = (.width - cast(s32) targetRect.width) / 2
-        let cropY = (.height - cast(s32) targetRect.height) / 2
+        let cropX = (.width - width) / 2
+        let cropY = (.height - height) / 2
+        .crop(cropX, cropY, width, height)
+    }
 
-        var cropRect: Math.Rectangle
-        cropRect.x      = cropX
-        cropRect.y      = cropY
-        cropRect.width  = cast(s32) targetRect.width
-        cropRect.height = cast(s32) targetRect.height
-
-        .crop(cropRect)
+    // Returns a resized and center-cropped copy that covers the requested dimensions.
+    mtd const covered(width, height: s32, mode = ResizeMode.Bicubic)->Image
+    {
+        var result: retval = me
+        result.cover(width, height, mode)
+        return result
     }
 }

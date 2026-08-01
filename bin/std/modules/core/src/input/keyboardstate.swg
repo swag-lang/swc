@@ -1,15 +1,27 @@
 #global public
 #global namespace Input
 
-// Represents one keyboard state
+// Captures the pressed keys at one update.
 struct KeyboardState
 {
-    using native: KeyboardStateNative     // Embedded native state.
-    pressed:      [Key] bool              // Pressed associated with this value.
+    readonly
+    {
+        pressed: [Key] bool     // Whether each key is pressed.
+    }
+
+    internal
+    {
+        using native: KeyboardStateNative
+    }
 }
 
 impl KeyboardState
 {
+    internal mtd setPressed(key: Key, pressed: bool)
+    {
+        .pressed[key] = pressed
+    }
+
     // Compute current keyboard state
     mtd update()
     {

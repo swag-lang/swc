@@ -1,15 +1,19 @@
 #global namespace Hash
 #global #[Swag.Safety(.Overflow, false)]
 
-// A SHA-1 cryptographic hash function implementation.
-// Provides methods to compute 160-bit SHA-1 hash values from arbitrary data streams.
-// Supports incremental hashing through 'init', 'update', and 'final' operations.
+// Computes a SHA-1 digest incrementally.
+//
+// SHA-1 is suitable for compatibility and non-adversarial checksums only. Do not
+// use it for signatures or other collision-resistant security decisions.
 public struct Sha1
 {
-    data:    [64] u8     // Internal data buffer for processing 512-bit blocks
-    state:   [5] u32     // Five 32-bit hash state values (A, B, C, D, E)
-    datalen: u32         // Current number of bytes in the data buffer
-    bitlen:  u64         // Total number of bits processed so far
+    internal
+    {
+        data:       [64] u8
+        state:      [5] u32 = [0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476, 0xC3D2E1F0]
+        dataLength: u32
+        bitLength:  u64
+    }
 }
 
 impl Sha1
@@ -93,14 +97,16 @@ impl Sha1
 
 public impl Sha1
 {
-    alias Digest = [5] u32     // SHA-1 digest result as five 32-bit words
+    // Stores a SHA-1 digest as five 32-bit words.
+    alias Digest = [5] u32
 
-    // Finalize the computation and produce the final hash digest.
-    // Applies padding and length encoding, then stores the result in the output buffer.
-    mtd final(result: Digest)
+    // Finalizes the current sequence and returns its 160-bit digest.
+    // Call [[reset]] before reusing this value after finalization.
+    mtd finalize()->Digest
     {
-        var i = .datalen
-        if .datalen < 56
+        var result: retval
+        var i = .dataLength
+        if .dataLength < 56
         {
             .data[i] = 0x80
             i        += 1
@@ -130,23 +136,23 @@ public impl Sha1
             }
         }
 
-        .bitlen   += .datalen * 8
-        .data[63] = cast(u8) .bitlen
-        .data[62] = cast(u8) (.bitlen >> 8)
-        .data[61] = cast(u8) (.bitlen >> 16)
-        .data[60] = cast(u8) (.bitlen >> 24)
-        .data[59] = cast(u8) (.bitlen >> 32)
-        .data[58] = cast(u8) (.bitlen >> 40)
-        .data[57] = cast(u8) (.bitlen >> 48)
-        .data[56] = cast(u8) (.bitlen >> 56)
+        .bitLength += .dataLength * 8
+        .data[63]  = cast(u8) .bitLength
+        .data[62]  = cast(u8) (.bitLength >> 8)
+        .data[61]  = cast(u8) (.bitLength >> 16)
+        .data[60]  = cast(u8) (.bitLength >> 24)
+        .data[59]  = cast(u8) (.bitLength >> 32)
+        .data[58]  = cast(u8) (.bitLength >> 40)
+        .data[57]  = cast(u8) (.bitLength >> 48)
+        .data[56]  = cast(u8) (.bitLength >> 56)
         .transform(.data)
 
         Memory.copy(result, &.state[0], #sizeof(.state))
+        return result
     }
 
-    // Initialize the hashing sequence with standard SHA-1 constants.
-    // Sets up the initial state values and resets all counters to zero.
-    mtd init()
+    // Resets the sequence to the standard SHA-1 initial state.
+    mtd reset()
     {
         @init(me, 1)
         .state[0] = 0x67452301
@@ -156,37 +162,31 @@ public impl Sha1
         .state[4] = 0xC3D2E1F0
     }
 
-    // Update the hash value with 'buffer' content.
-    // Processes the input data in 512-bit blocks, buffering incomplete blocks for later processing.
+    // Includes `buffer` in the running digest.
     mtd update(buffer: const [..] u8)
     {
-        Debug.assert(@countof(buffer) <= Swag.U32.Max)
         let buf = @dataof(buffer)
-        let len = cast(u32) @countof(buffer)
+        let len = @countof(buffer)
 
         for [i] in len
         {
-            .data[.datalen] = buf[i]
-            .datalen        += 1
-            if .datalen == 64
+            .data[.dataLength] = buf[i]
+            .dataLength        += 1
+            if .dataLength == 64
             {
                 .transform(.data)
-                .bitlen  += 512
-                .datalen = 0
+                .bitLength  += 512
+                .dataLength = 0
             }
         }
     }
 
-    // Returns the SHA-1 hash value for the given buffer.
-    // Convenience function that performs the complete hash operation in a single call.
+    // Computes the SHA-1 digest of `buffer` in one operation.
     func compute(buffer: const [..] u8)->Digest
     {
         var v: Sha1
-        v.init()
+        v.reset()
         v.update(buffer)
-
-        var result: retval
-        v.final(result)
-        return result
+        return v.finalize()
     }
 }

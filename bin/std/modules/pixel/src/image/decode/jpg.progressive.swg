@@ -83,7 +83,7 @@ impl Decoder
                     .eobRun = 1 << r
                     if r do
                         .eobRun += .getBits2(r)
-                    .eobRun     -= 1
+                    .eobRun -= 1
                     break
                 }
             }

@@ -497,7 +497,7 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) fail
     var safeSpread = spread
     if !safeSpread do
         safeSpread = 1
-    safeSpread     = Math.min(safeSpread, 64)
+    safeSpread = Math.min(safeSpread, 64)
 
     let padding = cast(s32) safeSpread
     let bounds  = computeOutlineBounds(&safeSlot.outline)
@@ -543,7 +543,7 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) fail
         }
 
     let samples = cast(u64) width * cast(u64) rows
-    if rows >= 2 and samples >= MsdfParallelMinSamples and !Jobs.isSynchrone()
+    if rows >= 2 and samples >= MsdfParallelMinSamples and !Jobs.isSynchronous()
     {
         Jobs.parallelFor(cast(u32) rows, &ctx) #code(py, data)
         {
@@ -582,12 +582,5 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) fail
         dst[src + 3] = cast(u8) Math.max(0.0'f64, Math.min(255.0'f64, Math.round(av)))
     }
 
-    safeSlot.bitmap.rows      = rows
-    safeSlot.bitmap.width     = width
-    safeSlot.bitmap.pitch     = cast(s32) width * 4
-    safeSlot.bitmap.buffer    = dst
-    safeSlot.bitmap.pixelMode = .Rgba
-    safeSlot.bitmap.grayCount = 256
-    safeSlot.bitmapLeft       = left
-    safeSlot.bitmapTop        = top
+    safeSlot.setBitmap(rows, width, cast(s32) width * 4, dst, .Rgba, left, top)
 }

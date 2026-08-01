@@ -20,7 +20,7 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     @assert(root.canExpand())
 
     root.forceExpandMark = false
-    let child = root.lines.newPtr()
+    let child = root.lines.allocate()
     child.parent = &root
     child.level  = 1
     root.lines.add(child)
@@ -29,7 +29,7 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     @assert(root.isParentOf(child))
     @assert(!child.isParentOf(&root))
 
-    let grandChild = child.lines.newPtr()
+    let grandChild = child.lines.allocate()
     grandChild.parent = child
     grandChild.level  = 2
     child.lines.add(grandChild)
@@ -44,20 +44,20 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     var line: ListLine
     let item0 = line.setItem(0, "Name")
     @assert(line.items.count == 1)
-    @assert(line.getItem(0) == item0)
+    @assert(line.itemAt(0) == item0)
     @assert(item0.name == "Name")
     @assert(item0.column == 0)
 
     let item1 = line.setItem(1, "Kind")
     @assert(line.items.count == 2)
-    @assert(line.getItem(1) == item1)
+    @assert(line.itemAt(1) == item1)
     @assert(item1.name == "Kind")
     @assert(item1.column == 1)
 
     let updated = line.setItem(0, "Renamed")
     @assert(updated == item0)
     @assert(line.items.count == 2)
-    @assert(line.getItem(0).name == "Renamed")
+    @assert(line.itemAt(0).name == "Renamed")
 }
 
 #test
@@ -76,11 +76,11 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     @assert(root1.index == 2)
     @assert(separator.index == 3)
     @assert(root2.index == 4)
-    @assert(list.getLineCount() == 4)
-    @assert(list.getLine(0) == root0)
-    @assert(list.getLine(1) == root1)
-    @assert(list.getLine(2) == separator)
-    @assert(list.getLine(3) == root2)
+    @assert(list.lineCount() == 4)
+    @assert(list.lineAt(0) == root0)
+    @assert(list.lineAt(1) == root1)
+    @assert(list.lineAt(2) == separator)
+    @assert(list.lineAt(3) == root2)
     @assert(list.idxLineToIdxList.find(root0.index).value == 0)
     @assert(list.idxLineToIdxList.tryFind(child0.index) == null)
     @assert(list.idxLineToIdxList.find(root1.index).value == 1)
@@ -91,7 +91,7 @@ func listCtrlHeadlessSel(list: *ListCtrl)
 #test
 {
     var list: ListCtrl
-    list.selectionMode = .Multi
+    list.setSelectionMode(.Multi)
 
     let root0       = list.createLine("root0")
     let hiddenChild = list.createLine("hidden", parentLine: root0)
@@ -101,24 +101,25 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     let root2 = list.createLine("root2")
 
     list.selectLines(3, 0)
-    @assert(list.isSelectedLine(0))
-    @assert(list.isSelectedLine(1))
-    @assert(!list.isSelectedLine(2))
-    @assert(list.isSelectedLine(3))
+    @assert(list.isLineSelected(0))
+    @assert(list.isLineSelected(1))
+    @assert(!list.isLineSelected(2))
+    @assert(list.isLineSelected(3))
 
-    let selected = list.getSelectedLines()
+    let selected = list.selectedLines()
     @assert(selected.count == 3)
     @assert(selected[0] == root0)
     @assert(selected[1] == root1)
     @assert(selected[2] == root2)
 
-    list.selModel.select(hiddenChild.index, true)
-    let selectedVisible = list.getSelectedLines()
+    list.selModel.select(hiddenChild.index)
+    let selectedVisible = list.selectedLines()
     @assert(selectedVisible.count == 3)
 
-    list.checkModel.select(root1.index, true)
-    list.checkModel.select(hiddenChild.index, true)
-    let checked = list.getCheckedLines()
+    root1.canCheck = true
+    list.setLineChecked(root1, notify: false)
+    list.checkModel.select(hiddenChild.index)
+    let checked = list.checkedLines()
     @assert(checked.count == 1)
     @assert(checked[0] == root1)
 }
@@ -126,16 +127,16 @@ func listCtrlHeadlessSel(list: *ListCtrl)
 #test
 {
     var list: ListCtrl
-    list.selectionMode = .Single
+    list.setSelectionMode(.Single)
 
     discard list.createLine("root0")
     discard list.createLine("root1")
     discard list.createLine("root2")
 
     list.selectLines(0, 2)
-    @assert(!list.isSelectedLine(0))
-    @assert(!list.isSelectedLine(1))
-    @assert(list.isSelectedLine(2))
+    @assert(!list.isLineSelected(0))
+    @assert(!list.isLineSelected(1))
+    @assert(list.isLineSelected(2))
 
     list.selectLines(2, 0, false)
     @assert(list.selModel.isEmpty())
@@ -143,10 +144,12 @@ func listCtrlHeadlessSel(list: *ListCtrl)
 
 #test
 {
-    var list: ListCtrl
-    list.isVirtual     = true
-    list.virtualCount  = 6
-    list.selectionMode = .Multi
+    var host: Testing.HeadlessHost
+    host.setup(240, 180)
+
+    let list = ListCtrl.createSimple(&host.root, {0, 0, 220, 160})
+    list.setVirtualCount(6)
+    list.setSelectionMode(.Multi)
 
     list.selectLines(4, 2)
     @assert(!list.isLineSelected(1))
@@ -154,19 +157,21 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     @assert(list.isLineSelected(3))
     @assert(list.isLineSelected(4))
     @assert(!list.isLineSelected(5))
-    @assert(list.getSelectedLines().isEmpty())
+    @assert(list.selectedLines().isEmpty())
 
     list.selectLine(3, false)
     @assert(!list.isLineSelected(3))
 
     list.clear()
     @assert(!list.isVirtual)
-    @assert(list.getLineCount() == 0)
+    @assert(list.lineCount() == 0)
     @assert(list.selModel.isEmpty())
 
     let line = list.createLine("real")
     @assert(line.index == 0)
-    @assert(list.getLineCount() == 1)
+    @assert(list.lineCount() == 1)
+
+    host.shutdown()
 }
 
 // Expanding/collapsing a parent line changes the visible line count.
@@ -181,17 +186,17 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     list.createLine("childB", parentLine: root0)
     list.createLine("root1")
 
-    @assert(list.getLineCount() == 2)
+    @assert(list.lineCount() == 2)
     @assert(root0.canExpand())
     @assert(!root0.expanded)
 
     list.expand(root0)
     @assert(root0.expanded)
-    @assert(list.getLineCount() == 4)
+    @assert(list.lineCount() == 4)
 
     list.collapse(root0)
     @assert(!root0.expanded)
-    @assert(list.getLineCount() == 2)
+    @assert(list.lineCount() == 2)
 
     host.shutdown()
 }
@@ -204,11 +209,11 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     ListCtrlHeadlessSelCount = 0
 
     let list = ListCtrl.createSimple(&host.root, {0, 0, 200, 300})
-    list.sigSelChanged += &listCtrlHeadlessSel
+    list.sigSelectionChanged += &listCtrlHeadlessSel
     list.createLine("a")
     list.createLine("b")
 
-    @assert(list.getLineCount() == 2)
+    @assert(list.lineCount() == 2)
     @assert(!list.isLineSelected(0))
 
     list.selectLine(0)
@@ -236,10 +241,10 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     list.createLine("a")
     list.createLine("b")
     list.createLine("c")
-    @assert(list.getLineCount() == 3)
+    @assert(list.lineCount() == 3)
 
     list.clear()
-    @assert(list.getLineCount() == 0)
+    @assert(list.lineCount() == 0)
 
     host.shutdown()
 }
@@ -252,13 +257,13 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     ListCtrlHeadlessSelCount = 0
 
     let list = ListCtrl.createSimple(&host.root, {0, 0, 200, 300})
-    list.sigSelChanged += &listCtrlHeadlessSel
+    list.sigSelectionChanged += &listCtrlHeadlessSel
     list.createLine("a")
     list.createLine("b")
     list.createLine("c")
 
-    let lh = list.getLineHeight()
-    let vs = list.listView.getSurfaceRect()
+    let lh = list.lineHeight()
+    let vs = list.listView.surfaceRect()
 
     host.click({vs.x + 30, vs.y + lh * 0.5})
     @assert(list.isLineSelected(0))
@@ -279,13 +284,13 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     host.setup(220, 320)
 
     let list = ListCtrl.createSimple(&host.root, {0, 0, 200, 300})
-    list.selectionMode = .Multi
+    list.setSelectionMode(.Multi)
     list.createLine("a")
     list.createLine("b")
     list.createLine("c")
 
-    let lh = list.getLineHeight()
-    let vs = list.listView.getSurfaceRect()
+    let lh = list.lineHeight()
+    let vs = list.listView.surfaceRect()
 
     host.click({vs.x + 30, vs.y + lh * 0.5})
     host.click({vs.x + 30, vs.y + lh * 2 + lh * 0.5}, Input.MouseButton.Left, Input.KeyModifiers.Control)

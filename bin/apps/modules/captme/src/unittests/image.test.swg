@@ -14,19 +14,19 @@ using Swag, Core
     f.capture.height  = 3
     f.capture.backImg = Gui.Testing.indexedImage(4, 3)
 
-    let before00 = f.capture.backImg.getPixelColor(0, 0)
-    let before30 = f.capture.backImg.getPixelColor(3, 0)
-    let before02 = f.capture.backImg.getPixelColor(0, 2)
+    let before00 = f.capture.backImg.pixelColor(0, 0)
+    let before30 = f.capture.backImg.pixelColor(3, 0)
+    let before02 = f.capture.backImg.pixelColor(0, 2)
 
     f.main.sendCommandEvent(ActionImage.MirrorImage)
-    @assert(f.capture.backImg.getPixelColor(0, 0).argb == before30.argb)
+    @assert(f.capture.backImg.pixelColor(0, 0).argb == before30.argb)
     f.capture.undo()
-    @assert(f.capture.backImg.getPixelColor(0, 0).argb == before00.argb)
+    @assert(f.capture.backImg.pixelColor(0, 0).argb == before00.argb)
 
     f.main.sendCommandEvent(ActionImage.FlipImage)
-    @assert(f.capture.backImg.getPixelColor(0, 0).argb == before02.argb)
+    @assert(f.capture.backImg.pixelColor(0, 0).argb == before02.argb)
     f.capture.undo()
-    @assert(f.capture.backImg.getPixelColor(0, 0).argb == before00.argb)
+    @assert(f.capture.backImg.pixelColor(0, 0).argb == before00.argb)
 
     f.shutdown()
 }

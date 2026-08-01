@@ -47,7 +47,7 @@ using Core
 
 func day1A()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "1.txt")
+    let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "1.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     var total: u64
@@ -57,7 +57,7 @@ func day1A()
         let cur = expect StrConv.toS32(l)
         if cur > last do
             total += 1
-        last      = cur
+        last = cur
     }
 
     // Console.print("total: ", total)

@@ -82,7 +82,7 @@ Combine a terminating condition with a plain 'break' to end the scope loop.
         cpt += 1
         if cpt == 5 do
             break     // End the 'Loop' scope
-        continue      // Jump back to the start of 'Loop'
+        continue     // Jump back to the start of 'Loop'
     }
 
     @assert(cpt == 5)

@@ -113,17 +113,17 @@ func unpremultiplyImage(image: *Image)
 func flipImageVertical(image: *Image)
 {
     var row = Array'u8{}
-    row.resize(cast(u64) image.width8)
+    row.resize(cast(u64) image.rowStride)
 
     var top = image.pixels.buffer
-    var bot = image.pixels.buffer + image.width8 * (image.height - 1)
+    var bot = image.pixels.buffer + image.rowStride * (image.height - 1)
     for image.height / 2
     {
-        Memory.copy(row.buffer, top, cast(u64) image.width8)
-        Memory.copy(top, bot, cast(u64) image.width8)
-        Memory.copy(bot, row.buffer, cast(u64) image.width8)
-        top += image.width8
-        bot -= image.width8
+        Memory.copy(row.buffer, top, cast(u64) image.rowStride)
+        Memory.copy(top, bot, cast(u64) image.rowStride)
+        Memory.copy(bot, row.buffer, cast(u64) image.rowStride)
+        top += image.rowStride
+        bot -= image.rowStride
     }
 }
 
@@ -225,15 +225,15 @@ func drawFrame(painter: *Pixel.Painter, rect: Math.Rectangle, title: string)
 func makeOutline(text: string, size: u32, embolden: u32)->LinePathList
 {
     var result: retval
-    expect (notnull g_TypeFace).getStringOutline(&result, text, size, embolden)
+    expect (notnull g_TypeFace).buildStringOutline(&result, text, size, embolden)
     result.flatten(.High)
     return result
 }
 
 func drawOutlineCore(painter: *Pixel.Painter, outline: *LinePathList, x, y, scale, border: f32, faceColor, outlineColor: Color, mode: OutlineMode)
 {
-    let drawX = x - ((outline.bvMin.x - border) * scale)
-    let drawY = y - ((outline.bvMin.y - border) * scale)
+    let drawX = x - ((outline.minBounds.x - border) * scale)
+    let drawY = y - ((outline.minBounds.y - border) * scale)
 
     painter.pushTransform()
     painter.scaleTransform(scale, scale)
@@ -282,16 +282,16 @@ func drawShadowedOutline(painter: *Pixel.Painter, area: Math.Rectangle, text: st
     const Bold = 0'u32
 
     var outline    = makeOutline(text, OutlineFontSize, Bold)
-    let textWidth  = ((outline.bvMax.x - outline.bvMin.x) + 2 * OutlineBorder) * scale
-    let textHeight = ((outline.bvMax.y - outline.bvMin.y) + 2 * OutlineBorder) * scale
+    let textWidth  = ((outline.maxBounds.x - outline.minBounds.x) + 2 * OutlineBorder) * scale
+    let textHeight = ((outline.maxBounds.y - outline.minBounds.y) + 2 * OutlineBorder) * scale
     let localW     = cast(s32) Math.ceil(textWidth + OutlineShadowMargin * 2)
     let localH     = cast(s32) Math.ceil(textHeight + OutlineShadowMargin * 2)
     let textX      = cast(f32) OutlineShadowMargin
     let textY      = cast(f32) OutlineShadowMargin
 
-    let rtText   = g_Renderer.getRenderTarget(localW, localH)
-    let rtShadow = g_Renderer.getRenderTarget(localW, localH)
-    let rtBlur   = g_Renderer.getRenderTarget(localW, localH)
+    let rtText   = g_Renderer.acquireRenderTarget(localW, localH)
+    let rtShadow = g_Renderer.acquireRenderTarget(localW, localH)
+    let rtBlur   = g_Renderer.acquireRenderTarget(localW, localH)
 
     if superSample <= 1
     {
@@ -300,7 +300,7 @@ func drawShadowedOutline(painter: *Pixel.Painter, area: Math.Rectangle, text: st
     else
     {
         let ss      = cast(f32) superSample
-        let rtSuper = g_Renderer.getRenderTarget(localW * superSample, localH * superSample)
+        let rtSuper = g_Renderer.acquireRenderTarget(localW * superSample, localH * superSample)
         renderOutlineToTarget(painter, rtSuper, &outline, textX * ss, textY * ss, scale * ss, mode)
 
         with painter
@@ -363,8 +363,8 @@ func drawShadowedTexture(painter: *Pixel.Painter, area: Math.Rectangle, texture:
 {
     let localW = texture.width
     let localH = texture.height
-    let rtText = g_Renderer.getRenderTarget(localW, localH)
-    let rtBlur = g_Renderer.getRenderTarget(localW, localH)
+    let rtText = g_Renderer.acquireRenderTarget(localW, localH)
+    let rtBlur = g_Renderer.acquireRenderTarget(localW, localH)
     let src    = Math.Rectangle{0, 0, cast(f32) localW, cast(f32) localH}
 
     with painter
@@ -491,7 +491,7 @@ func onResize(_window: *Env.Window, width, height: s32)
     try g_Window.show()
 
     var loop: Env.WindowLoop
-    if Env.hasArg("swag.test") do
+    if Env.hasArgument("swag.test") do
         loop.maxTestFrames = TestFrames
     while loop.next()
     {

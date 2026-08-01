@@ -10,13 +10,12 @@ func makeFastNoise()->Noise.FastNoise
     noise.octaves    = 3
     noise.lacunarity = 2.25
     noise.gain       = 0.4
-    noise.update()
     return noise
 }
 
 func makeNoiseColor(noise: &Noise.FastNoise, x, y: s32, alpha: u8)->Color
 {
-    let value = noise.noise(cast(f32) x, cast(f32) y)
+    let value = noise.sample(cast(f32) x, cast(f32) y)
     let light = cast(u8) Math.map(value, -1.0, 1.0, 0, 255.0)
     return Color.fromArgb(alpha, light, light, light)
 }
@@ -30,7 +29,7 @@ func makeNoiseColor(noise: &Noise.FastNoise, x, y: s32, alpha: u8)->Color
 
     var img   = makeImage(2, 2, .BGRA8, pixels)
     var noise = makeFastNoise()
-    img.noise(&noise)
+    img.fillNoise(&noise)
     assertImage(img, 2, 2, .BGRA8)
 
     assertPixel(img, 0, 1, makeNoiseColor(&noise, 0, 0, 40))

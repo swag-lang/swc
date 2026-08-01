@@ -24,28 +24,81 @@ public enum StyleFlag
 // slot, outlines, and bitmaps all belong to the face.
 public struct Face
 {
-    // Everything below is read from the font file by 'load' and describes the typeface itself.
-    // The table parser fills it in from its own files, so it stays writable inside the module;
-    // treat it as a result.
-    style:              StyleFlag     // Declared bold and italic traits.
-    glyphCount:         u32           // Number of glyphs in the face.
-    familyName:         String        // Owned font-family name.
-    styleName:          String        // Owned style name such as `Regular` or `Bold`.
-    bbox:               BBox          // Global bounding box in font design units.
-    unitsPerEm:         u16           // Number of font design units in one em.
-    ascender:           s16           // Typographic ascender in design units.
-    descender:          s16           // Typographic descender in design units.
-    height:             s16           // Recommended line height in design units.
-    maxAdvanceWidth:    s16           // Maximum horizontal advance in design units.
-    underlinePosition:  s16           // Underline center relative to the baseline.
-    underlineThickness: s16           // Recommended underline thickness in design units.
-    glyph:              GlyphSlot     // Reusable slot for the current glyph.
-    size:               Size          // Active pixel size and scaled metrics.
-    charMap:            CharMap       // Selected Unicode character map.
+    // The reusable slot remains mutable so its documented outline operations can
+    // transform the current glyph in place.
+    glyph: GlyphSlot     // Reusable slot for the current glyph.
+
+    // Loading and glyph operations establish all face state. Callers may inspect
+    // it but cannot break the relationships between its metrics and borrowed data.
+    readonly
+    {
+        style:              StyleFlag     // Declared bold and italic traits.
+        glyphCount:         u32           // Number of glyphs in the face.
+        familyName:         String        // Owned font-family name.
+        styleName:          String        // Owned style name such as `Regular` or `Bold`.
+        bbox:               BBox          // Global bounding box in font design units.
+        unitsPerEm:         u16           // Number of font design units in one em.
+        ascender:           s16           // Typographic ascender in design units.
+        descender:          s16           // Typographic descender in design units.
+        height:             s16           // Recommended line height in design units.
+        maxAdvanceWidth:    s16           // Maximum horizontal advance in design units.
+        underlinePosition:  s16           // Underline center relative to the baseline.
+        underlineThickness: s16           // Recommended underline thickness in design units.
+        size:               Size          // Active pixel size and scaled metrics.
+        charMap:            CharMap       // Selected Unicode character map.
+    }
 }
 
 public impl Face
 {
+    internal mtd setNames(familyName, styleName: String)
+    {
+        .familyName = familyName
+        .styleName  = styleName
+    }
+
+    internal mtd setUnderline(position, thickness: s16)
+    {
+        .underlinePosition  = position
+        .underlineThickness = thickness
+    }
+
+    internal mtd setHeader(unitsPerEm: u16, xMin, yMin, xMax, yMax: s16)
+    {
+        .unitsPerEm = unitsPerEm
+        .bbox       = {xMin, yMin, xMax, yMax}
+    }
+
+    internal mtd setHorizontalMetrics(ascender, descender, lineGap, maxAdvanceWidth: s16)
+    {
+        .ascender        = ascender
+        .descender       = descender
+        .height          = cast(s16) (ascender - descender + lineGap)
+        .maxAdvanceWidth = maxAdvanceWidth
+    }
+
+    internal mtd setGlyphCount(glyphCount: u32)
+    {
+        .glyphCount = glyphCount
+    }
+
+    internal mtd setStyle(style: StyleFlag)
+    {
+        .style = style
+    }
+
+    internal mtd initializeRecords()
+    {
+        .glyph.initialize(me)
+        .size.initialize(me)
+        .charMap.initialize(me)
+    }
+
+    internal mtd selectCharMap(platformID, encodingID: u16)
+    {
+        .charMap.select(platformID, encodingID)
+    }
+
     // Loads a TrueType face from an in-memory font file.
     //
     // The face owns a private copy of `bytes`, so the input may be released after
@@ -91,7 +144,7 @@ public impl Face
     mtd setPixelSize(pixelWidth, pixelHeight: u32) fail
     {
         let faceData = getFaceImpl(me)
-        if !pixelWidth and !pixelHeight do
+        if (!pixelWidth and !pixelHeight) or pixelWidth > Swag.U16.Max or pixelHeight > Swag.U16.Max do
             fault(0x17)
 
         var width  = pixelWidth
@@ -101,32 +154,26 @@ public impl Face
         if !height do
             height = width
 
-        .size.metrics.xPpem      = cast(u16) width
-        .size.metrics.yPpem      = cast(u16) height
-        .size.metrics.xScale     = scaleFixed(width, faceData.unitsPerEm)
-        .size.metrics.yScale     = scaleFixed(height, faceData.unitsPerEm)
-        .size.metrics.ascender   = scale26_6(.ascender, height, faceData.unitsPerEm)
-        .size.metrics.descender  = scale26_6(.descender, height, faceData.unitsPerEm)
-        .size.metrics.height     = scale26_6(.height, height, faceData.unitsPerEm)
-        .size.metrics.maxAdvance = scale26_6(.maxAdvanceWidth, width, faceData.unitsPerEm)
+        .size.setPixelMetrics(width, height)
     }
 
     // Returns whether the face contains supported kerning pairs.
     //
     // Only legacy `kern` format-zero pairs are currently read. Use this inexpensive
     // check to skip pair lookups for fonts without such data.
-    mtd hasKerning()->bool fail
+    mtd const hasKerning()->bool
     {
-        return getFaceImpl(me).kernPairs.count != 0
+        let faceData = cast(const *FaceImpl) cast(const *void) me
+        return faceData.kernPairs.count != 0
     }
 
     // Returns horizontal kerning between two glyph indices.
     //
     // The x component uses 26.6 fixed-point pixels at the active size. Both
     // components are zero when either index is missing or the pair has no adjustment.
-    mtd getKerning(leftGlyph, rightGlyph: u32)->Vector fail
+    mtd const getKerning(leftGlyph, rightGlyph: u32)->Vector
     {
-        let faceData = getFaceImpl(me)
+        let faceData = cast(const *FaceImpl) cast(const *void) me
         var result: retval
         if !leftGlyph or !rightGlyph do
             return result
@@ -150,6 +197,9 @@ public impl Face
         let idx      = catch lookupGlyphIndex(faceData, cast(u32) charCode) as err
         return err != null ? 0 : idx
     }
+
+    // Returns whether the selected character map contains a glyph for `charCode`.
+    mtd hasChar(charCode: rune)->bool => .glyphIndex(charCode) != 0
 
     // Loads a glyph by index into the face's reusable slot.
     //

@@ -6,7 +6,7 @@ impl Image
     {
         let mec = cast #unconst (*Image) me
 
-        switch #complete .pf
+        switch #complete .pixelFormat
         {
         case .RGB8:
             break
@@ -15,7 +15,7 @@ impl Image
             mec.visitPixels(dstImage)
             {
                 let dstImage = cast(*Image) (notnull userData)
-                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bpp8 + y * dstImage.width8
+                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bytesPerPixel + y * dstImage.rowStride
                 pixDst[0] = pix[0]
                 pixDst[1] = pix[1]
                 pixDst[2] = pix[2]
@@ -25,7 +25,7 @@ impl Image
             mec.visitPixels(dstImage)
             {
                 let dstImage = cast(*Image) (notnull userData)
-                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bpp8 + y * dstImage.width8
+                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bytesPerPixel + y * dstImage.rowStride
                 pixDst[0] = pix[2]
                 pixDst[1] = pix[1]
                 pixDst[2] = pix[0]
@@ -37,7 +37,7 @@ impl Image
     {
         let mec = cast #unconst (*Image) me
 
-        switch #complete .pf
+        switch #complete .pixelFormat
         {
         case .RGBA8:
             break
@@ -46,7 +46,7 @@ impl Image
             mec.visitPixels(dstImage)
             {
                 let dstImage = cast(*Image) (notnull userData)
-                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bpp8 + y * dstImage.width8
+                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bytesPerPixel + y * dstImage.rowStride
                 pixDst[0] = pix[2]
                 pixDst[1] = pix[1]
                 pixDst[2] = pix[0]
@@ -57,7 +57,7 @@ impl Image
             mec.visitPixels(dstImage)
             {
                 let dstImage = cast(*Image) (notnull userData)
-                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bpp8 + y * dstImage.width8
+                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bytesPerPixel + y * dstImage.rowStride
                 pixDst[0] = pix[0]
                 pixDst[1] = pix[1]
                 pixDst[2] = pix[2]
@@ -68,7 +68,7 @@ impl Image
             mec.visitPixels(dstImage)
             {
                 let dstImage = cast(*Image) (notnull userData)
-                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bpp8 + y * dstImage.width8
+                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bytesPerPixel + y * dstImage.rowStride
                 pixDst[0] = pix[2]
                 pixDst[1] = pix[1]
                 pixDst[2] = pix[0]
@@ -81,7 +81,7 @@ impl Image
     {
         let mec = cast #unconst (*Image) me
 
-        switch #complete .pf
+        switch #complete .pixelFormat
         {
         case .BGR8:
             break
@@ -90,7 +90,7 @@ impl Image
             mec.visitPixels(dstImage)
             {
                 let dstImage = cast(*Image) (notnull userData)
-                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bpp8 + y * dstImage.width8
+                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bytesPerPixel + y * dstImage.rowStride
                 pixDst[0] = pix[0]
                 pixDst[1] = pix[1]
                 pixDst[2] = pix[2]
@@ -100,7 +100,7 @@ impl Image
             mec.visitPixels(dstImage)
             {
                 let dstImage = cast(*Image) (notnull userData)
-                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bpp8 + y * dstImage.width8
+                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bytesPerPixel + y * dstImage.rowStride
                 pixDst[0] = pix[2]
                 pixDst[1] = pix[1]
                 pixDst[2] = pix[0]
@@ -112,7 +112,7 @@ impl Image
     {
         let mec = cast #unconst (*Image) me
 
-        switch #complete .pf
+        switch #complete .pixelFormat
         {
         case .BGRA8:
             break
@@ -121,7 +121,7 @@ impl Image
             mec.visitPixels(dstImage)
             {
                 let dstImage = cast(*Image) (notnull userData)
-                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bpp8 + y * dstImage.width8
+                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bytesPerPixel + y * dstImage.rowStride
                 pixDst[0] = pix[0]
                 pixDst[1] = pix[1]
                 pixDst[2] = pix[2]
@@ -132,7 +132,7 @@ impl Image
             mec.visitPixels(dstImage)
             {
                 let dstImage = cast(*Image) (notnull userData)
-                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bpp8 + y * dstImage.width8
+                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bytesPerPixel + y * dstImage.rowStride
                 pixDst[0] = pix[2]
                 pixDst[1] = pix[1]
                 pixDst[2] = pix[0]
@@ -143,7 +143,7 @@ impl Image
             mec.visitPixels(dstImage)
             {
                 let dstImage = cast(*Image) (notnull userData)
-                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bpp8 + y * dstImage.width8
+                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bytesPerPixel + y * dstImage.rowStride
                 pixDst[0] = pix[2]
                 pixDst[1] = pix[1]
                 pixDst[2] = pix[0]
@@ -154,7 +154,7 @@ impl Image
 
     mtd const doChangePf(dstImage: *Image)
     {
-        switch #complete dstImage.pf
+        switch #complete dstImage.pixelFormat
         {
         case .RGB8:  .doRGB8(dstImage)
         case .RGBA8: .doRGBA8(dstImage)
@@ -164,11 +164,11 @@ impl Image
     }
 
     // Change image pixel format
-    public mtd setPixelFormat(newPf: PixelFormat)
+    public mtd convertTo(newPf: PixelFormat)
     {
         Debug.assert(.pixels.buffer != null)
 
-        if newPf == .pf do
+        if newPf == .pixelFormat do
             return
 
         .allocWorkingBuffer(.width, .height, newPf)
@@ -177,11 +177,11 @@ impl Image
     }
 
     // Change image pixel format
-    public mtd const toSetPixelFormat(newPf: PixelFormat)->Image
+    public mtd const convertedTo(newPf: PixelFormat)->Image
     {
         Debug.assert(.pixels.buffer != null)
 
-        if newPf == .pf do
+        if newPf == .pixelFormat do
             return me
 
         var result: retval = create(.width, .height, newPf)

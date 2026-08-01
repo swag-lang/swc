@@ -23,7 +23,7 @@ private
 }
 
 // Encodes a single GIF image using a generated palette and LZW compression.
-public struct Encoder {}
+internal struct Encoder {}
 
 impl Encoder
 {
@@ -34,11 +34,11 @@ impl Encoder
     }
 }
 
-public impl IImageEncoder for Encoder
+internal impl IImageEncoder for Encoder
 {
     mtd impl canEncode(fileName: string)->bool
     {
-        return Path.getExtensionLowerCase(fileName) == ".gif"
+        return Path.lowercaseExtension(fileName) == ".gif"
     }
 
     mtd impl encode(result: *ConcatBuffer, image: Image, options: #null any) fail

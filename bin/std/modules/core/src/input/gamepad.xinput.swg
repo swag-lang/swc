@@ -3,7 +3,7 @@
 
 using XInput, Win32
 
-public impl GamePad
+public impl Gamepad
 {
     // Returns true if the corresponding 'padIndex' is connected
     func isConnected(padIndex: u32)->bool

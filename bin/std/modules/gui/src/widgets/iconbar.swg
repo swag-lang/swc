@@ -2,26 +2,28 @@
 
 using Core, Pixel
 
-// Selects icon bar flags.
-#[Swag.EnumFlags]
-enum IconBarFlags
+// Selects the axis along which an icon bar arranges its buttons.
+enum IconBarOrientation
 {
-    Zero = 0     // No flags are enabled.
-    Vertical     // Enables vertical.
+    Horizontal     // Arranges buttons from left to right.
+    Vertical       // Arranges buttons from top to bottom.
 }
 
-// Represents icon bar.
+// Arranges icon buttons and forwards their action and checked-state signals.
 struct IconBar
 {
-    using wnd: Wnd     // Embedded wnd state.
+    using wnd: Wnd     // Embedded window behavior and presentation.
 
-    iconBarFlags     = IconBarFlags.Zero     // Icon bar flags associated with this value.
-    iconSize:    f32                         // Icon size associated with this value.
-    iconPadding: f32 = 4                     // Icon padding associated with this value.
+    readonly
+    {
+        orientation      = IconBarOrientation.Horizontal     // Current button layout axis.
+        iconSize:    f32                                     // Square icon size in logical units.
+        itemPadding: f32 = 4                                 // Padding around every icon in logical units.
+    }
 
-    sigUpdateState:  SigArray'func||(*CommandStateEvent)     // Signal emitted when update state.
-    sigCheckChanged: SigArray'func||(*IconButton)            // Signal emitted when check changed.
-    sigPressed:      SigArray'func||(*IconButton)            // Signal emitted when pressed.
+    sigComputeState:   SigArray'func||(*CommandStateEvent)     // Invoked when child command state must be computed.
+    sigCheckedChanged: SigArray'func||(*IconButton)            // Emitted after a child changes checked state.
+    sigPressed:        SigArray'func||(*IconButton)            // Emitted after a plain child button is activated.
 }
 
 impl IWnd for IconBar
@@ -29,99 +31,130 @@ impl IWnd for IconBar
     mtd impl onComputeStateEvent(evt: *CommandStateEvent)
     {
         evt.accepted = false
-        .sigUpdateState.call(evt)
+        .sigComputeState.call(evt)
+    }
+}
+
+private impl IconBar
+{
+    mtd computeLayout()
+    {
+        for child in .children
+        {
+            if .orientation == .Vertical do
+                child.dockStyle = .Top
+            else do
+                child.dockStyle = .Left
+        }
+
+        let paddedIconSize = .iconSize + 2 * .itemPadding
+        let barLength      = cast(f32) .children.count * paddedIconSize
+        if .orientation == .Vertical do
+            .resize(paddedIconSize, barLength)
+        else do
+            .resize(barLength, paddedIconSize)
+    }
+
+    mtd updateButtonMetrics()
+    {
+        let size = .iconSize + 2 * .itemPadding
+        for child in .children
+        {
+            let button = cast(*IconButton) child
+            button.setIconSize(.iconSize, .iconSize)
+            button.resize(size, size)
+        }
     }
 }
 
 impl IconBar
 {
-    // Computes layout.
-    mtd computeLayout()
-    {
-        for c in .childs
-        {
-            if .iconBarFlags.has(.Vertical) do
-                c.dockStyle = .Top
-            else do
-                c.dockStyle = .Left
-        }
-
-        let pad  = 2 * .iconPadding
-        let size = cast(f32) (.childs.count * (.iconSize + pad))
-        if .iconBarFlags.has(.Vertical) do
-            .resize(.iconSize + pad, size)
-        else do
-            .resize(size, .iconSize + pad)
-    }
-
-    // Performs the create operation.
+    // Creates an empty icon bar with a non-negative icon size and item padding.
     #[Swag.Discardable]
-    func create(parent: *Wnd, iconSize: f32, position: Math.Rectangle = {}, id: #null WndId = null)->*IconBar
+    func create(parent: *Wnd, iconSize: f32, position: Math.Rectangle = {}, id: #null WndId = null, orientation = IconBarOrientation.Horizontal, itemPadding = 4'f32)->*IconBar
     {
         Debug.assert(parent != null)
-        var pos = position
-        pos.height = iconSize
-        let res = Wnd.create'IconBar(parent, null, pos, id)
-        res.iconSize = iconSize
-        return res
+        Debug.assert(iconSize >= 0 and itemPadding >= 0)
+        let result = Wnd.create'IconBar(parent, null, position, id)
+        result.iconSize    = iconSize
+        result.itemPadding = itemPadding
+        result.orientation = orientation
+        result.computeLayout()
+        return result
     }
 
-    // Add a new button
+    // Appends an icon button with optional command identifier and interaction flags.
     #[Swag.Discardable]
-    mtd addItem(icon: Icon, btnId: #null WndId = null, iconBtnFlags = IconButtonFlags.Zero)->*IconButton
+    mtd addButton(icon: Icon, id: #null WndId = null, flags = IconButtonFlags.None)->*IconButton
     {
-        var iconT = icon
-        iconT.sizeX, iconT.sizeY = .iconSize
+        var sizedIcon = icon
+        sizedIcon.sizeX, sizedIcon.sizeY = .iconSize
 
-        let size = .iconSize + 2 * .iconPadding
-        let b    = IconButton.create(me, iconT, {0, 0, size, size})
-        b.iconBtnFlags.set(iconBtnFlags)
-        b.id        = btnId
-        b.dockStyle = .Left
-        b.setForm(.RoundSquare)
+        let size   = .iconSize + 2 * .itemPadding
+        let button = IconButton.create(me, sizedIcon, {0, 0, size, size}, id, flags)
+        button.dockStyle = .orientation == .Vertical ? .Top : .Left
+        button.setForm(.RoundedRectangle)
+
+        if flags.has(.Radio) or flags.has(.Toggle) do
+            button.sigCheckedChanged += func|bar = me|(btn) { bar.sigCheckedChanged.call(btn) }
+        else do
+            button.sigPressed += func|bar = me|(btn) { bar.sigPressed.call(cast(*IconButton) btn) }
+
         .computeLayout()
-
-        if iconBtnFlags.has(.Checkable | .CheckableToggle)
-        {
-            b.sigCheckChanged += func|bar = me|(btn) { bar.sigCheckChanged.call(btn) }
-        }
-        else
-        {
-            b.sigPressed += func|bar = me|(btn) { bar.sigPressed.call(cast(*IconButton) btn) }
-        }
-
-        .updateCommandState()
-        return b
+        return button
     }
 
-    // Add a new checkable button
+    // Appends a radio-style button that remains checked after its first activation.
     #[Swag.Discardable]
-    mtd addCheckableItem(icon: Icon, btnId: #null WndId = null)->*IconButton
+    mtd addRadioButton(icon: Icon, id: #null WndId = null)->*IconButton
     {
-        return .addItem(icon, btnId, .Checkable)
+        return .addButton(icon, id, .Radio)
     }
 
-    // Add a new checkable button
+    // Appends a toggle button that flips checked state on every activation.
     #[Swag.Discardable]
-    mtd addCheckableToggleItem(icon: Icon, btnId: #null WndId = null)->*IconButton
+    mtd addToggleButton(icon: Icon, id: #null WndId = null)->*IconButton
     {
-        return .addItem(icon, btnId, .CheckableToggle)
+        return .addButton(icon, id, .Toggle)
     }
 
-    // Change bar flags
-    mtd setIconBarFlags(add, remove = IconBarFlags.Zero)
+    // Changes the layout axis and immediately recomputes the bar size.
+    mtd setOrientation(orientation: IconBarOrientation)
     {
-        .iconBarFlags.add(add)
-        .iconBarFlags.remove(remove)
+        if .orientation == orientation do
+            return
+        .orientation = orientation
         .computeLayout()
     }
 
-    // Returns the button with the given id
-    mtd getButton(btnId: string)->#null *IconButton
+    // Changes padding around every icon and immediately recomputes the bar size.
+    mtd setItemPadding(padding: f32)
     {
-        let btn = .getChildById(btnId)
-        if !btn do
+        Debug.assert(padding >= 0)
+        if .itemPadding == padding do
+            return
+        .itemPadding = padding
+        .updateButtonMetrics()
+        .computeLayout()
+    }
+
+    // Changes the square icon size and immediately updates every child button.
+    mtd setIconSize(size: f32)
+    {
+        Debug.assert(size >= 0)
+        if .iconSize == size do
+            return
+        .iconSize = size
+        .updateButtonMetrics()
+        .computeLayout()
+    }
+
+    // Returns the child icon button carrying one command identifier, or null when absent.
+    mtd buttonById(id: WndId)->#null *IconButton
+    {
+        let button = .childById(id)
+        if !button do
             return null
-        return cast(#null *IconButton) btn
+        return cast(#null *IconButton) button
     }
 }

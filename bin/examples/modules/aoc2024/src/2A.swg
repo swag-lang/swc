@@ -43,7 +43,7 @@ using Core
 
 func day2A()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "2.txt")
+    let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "2.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     var total = 0
@@ -63,7 +63,7 @@ func day2A()
                     bad = true
                 if ls and Math.sign(diff) != ls do
                     bad = true
-                ls      = Math.sign(diff)
+                ls = Math.sign(diff)
             }
 
             prev = a

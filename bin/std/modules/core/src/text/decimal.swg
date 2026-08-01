@@ -309,8 +309,8 @@ impl Decimal
                 .d[w] = cast(u8) (rem + '0')
             elif rem != 0 do
                 .trunc = true
-            n          = quo
-            r          -= 1
+            n = quo
+            r -= 1
         }
 
         // Put down extra digits.
@@ -323,13 +323,13 @@ impl Decimal
                 .d[w] = cast(u8) (rem + '0')
             elif rem != 0 do
                 .trunc = true
-            n          = quo
+            n = quo
         }
 
         .nd += delta
         if .nd >= @countof(.d) do
             .nd = cast(s32) @countof(.d)
-        .dp     += delta
+        .dp += delta
         .trim()
     }
 
@@ -477,7 +477,7 @@ impl Decimal
                 if c < '0' or c > '9' do
                     break
                 if e < 10000 do
-                    e       = e * 10 + (c - '0')
+                    e = e * 10 + (c - '0')
                 buffer, cpt += 1
             }
 
@@ -599,7 +599,7 @@ impl Decimal
         var bits = mant & ((1'u64 << Swag.F64.MantBits) - 1)
         bits |= cast(u64) ((.exp - Swag.F64.Bias) & ((1's64 << Swag.F64.MantBits) - 1)) << Swag.F64.MantBits
         if .neg do
-            bits        |= (1'u64 << 63)
+            bits |= (1'u64 << 63)
         result.b        = bits
         result.overflow = overflow
         return result

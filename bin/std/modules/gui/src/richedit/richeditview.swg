@@ -1,6 +1,6 @@
 using Core, Pixel
 
-// Represents rich edit view.
+// Paints a [[Gui.RichEditCtrl]] document and handles its direct input gestures.
 #[Swag.Opaque]
 public struct RichEditView
 {
@@ -25,21 +25,21 @@ impl IWnd for RichEditView
         if .timerCaret
         {
             let srf = notnull .surface
-            srf.app.deleteTimer(.timerCaret)
+            srf.app.removeTimer(.timerCaret)
             .timerCaret = null
         }
 
         if .selMode
         {
             .selMode = false
-            if .getMouseCapture() == me do
+            if .mouseCapture() == me do
                 .releaseMouse()
         }
 
-        if .getFocus() == me
+        if .focusedWindow() == me
         {
             let srf = notnull .surface
-            srf.app.keybFocusWnd = null
+            srf.app.keyboardFocusWnd = null
         }
 
         .ed = null
@@ -48,7 +48,7 @@ impl IWnd for RichEditView
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         let ed = .ed
-        if ed and ed.richEdFlags & .WordWrap do
+        if ed and ed.flags & .WordWrap do
             ed.recomputeScroll = true
     }
 
@@ -58,30 +58,30 @@ impl IWnd for RichEditView
         evt.accepted = false
         switch evt.kind
         {
-        case .MouseDoubleClick:
+        case .DoubleClick:
             if evt.button == .Left
             {
                 edn.selectWord()
                 evt.accepted = true
             }
 
-        case .MousePressed:
+        case .Pressed:
             if evt.button == .Left
             {
                 evt.accepted = true
                 let pt = .surfaceToLocal(evt.surfacePos) + .scrollPos
-                let cp = edn.getCursorPosFromPoint(pt)
+                let cp = edn.cursorAt(pt)
                 .firstLineSelMode = cp.lineIndex
                 edn.setCursorPos(cp)
                 if !(evt.modifiers & .Shift) do
                     edn.selBeg = cp
-                .selMode       = true
+                .selMode = true
                 edn.setRectangularSelection(evt.modifiers & .Alt ? true : false)
                 edn.ensureCaretIsVisible()
                 .captureMouse()
             }
 
-        case .MouseReleased:
+        case .Released:
             if .selMode
             {
                 evt.accepted = true
@@ -89,12 +89,12 @@ impl IWnd for RichEditView
                 .releaseMouse()
             }
 
-        case .MouseMove:
+        case .Move:
             if .selMode
             {
                 evt.accepted = true
                 let pt = .surfaceToLocal(evt.surfacePos) + .scrollPos
-                let cp = edn.getCursorPosFromPoint(pt)
+                let cp = edn.cursorAt(pt)
                 if edn.cursorPos.lineIndex != cp.lineIndex or edn.cursorPos.charPosInLine != cp.charPosInLine
                 {
                     if edn.hasSelRect
@@ -117,15 +117,15 @@ impl IWnd for RichEditView
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
         let edn = notnull .ed
-        if evt.kind == .KeyPressed
+        if evt.kind == .Pressed
         {
             // Lose focus with escape or enter
-            if edn.richEdFlags & .AutoLoseFocus
+            if edn.flags & .AutoLoseFocus
             {
-                if evt.key == .Escape or (evt.key == .Enter and evt.modifiers.equals(.Zero))
+                if evt.key == .Escape or (evt.key == .Enter and evt.modifiers.equals(.None))
                 {
                     evt.accepted = false
-                    .getTopView().setFocus()
+                    .topView().setFocus()
                     return
                 }
             }
@@ -134,10 +134,10 @@ impl IWnd for RichEditView
             edn.keyPressed(evt.key, evt.modifiers)
             .forceVisibleCaret()
         }
-        elif evt.kind == .Rune
+        elif evt.kind == .Character
         {
             evt.accepted = true
-            edn.charPressed(evt.key, evt.char, evt.modifiers)
+            edn.charPressed(evt.key, evt.character, evt.modifiers)
             .forceVisibleCaret()
         }
     }
@@ -146,14 +146,14 @@ impl IWnd for RichEditView
     {
         switch evt.kind
         {
-        case .SetFocus:
+        case .Gained:
             .timerCaret   = (notnull .surface).app.addTimer(500'ms, me)
             .visibleCaret = true
             .invalidate()
 
-        case .KillFocus:
+        case .Lost:
             let srf = notnull .surface
-            srf.app.deleteTimer(notnull .timerCaret)
+            srf.app.removeTimer(notnull .timerCaret)
             .timerCaret   = null
             .visibleCaret = false
             .invalidate()
@@ -166,16 +166,16 @@ impl IWnd for RichEditView
         .invalidate()
     }
 
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaint(evt: *PaintEvent)
     {
         let edn     = notnull .ed
-        let painter = evt.bc.painter
-        let colors  = .getThemeColors()
+        let painter = evt.paintContext.painter
+        let colors  = .themeColors()
 
-        let marginLeft = edn.getMarginLeft()
+        let marginLeft = edn.leftMargin()
         var x          = 0'f32
         var y          = 0'f32
-        let size       = edn.getXExtent()
+        let size       = edn.xGlyphSize()
 
         // Force visible caret
         if edn.forceCaretVisible do
@@ -196,9 +196,9 @@ impl IWnd for RichEditView
 
         if edn.recomputeScroll do
             edn.countVisibleLines = 0
-        edn.dirtyFirstLineView    = false
+        edn.dirtyFirstLineView = false
 
-        let clientRect  = .getClientRect()
+        let clientRect  = .clientRect()
         let firstHidden = true
         var maxx        = 0'f32
 
@@ -219,7 +219,7 @@ impl IWnd for RichEditView
 
             if edn.recomputeScroll do
                 edn.countVisibleLines += 1
-            edn.lastVisibleLineView   = i
+            edn.lastVisibleLineView = i
 
             let l = notnull edn.lines[i]
 
@@ -229,11 +229,11 @@ impl IWnd for RichEditView
             l.drawingRect.height = size.y
 
             // Current line
-            if bvis and edn.isSelectionEmpty() and i == edn.cursorPos.lineIndex and edn.richEdFlags & .CurLineBorder
+            if bvis and edn.isSelectionEmpty() and i == edn.cursorPos.lineIndex and edn.flags & .CurLineBorder
             {
                 var fullRect = l.drawingRect
                 fullRect.y -= .scrollPos.y
-                fullRect.setRight(clientRect.right() - edn.getMarginRight())
+                fullRect.setRight(clientRect.right() - edn.rightMargin())
                 fullRect.inflate(-1)
                 painter.drawRect(fullRect, colors.richEdit_CurLineBorder, 1)
             }
@@ -256,7 +256,7 @@ impl IWnd for RichEditView
 
             if bvis or edn.recomputeScroll
             {
-                x = .paintLine(evt.bc, i, y - .scrollPos.y, bvis)
+                x = .paintLine(evt.paintContext, i, y - .scrollPos.y, bvis)
             }
 
             maxx = Math.max(maxx, x)
@@ -269,18 +269,18 @@ impl IWnd for RichEditView
         // Caret
         if .visibleCaret
         {
-            let colorCaret = .getThemeColors().richEdit_Caret
+            let colorCaret = .themeColors().richEdit_Caret
             if edn.hasSelRect
             {
-                let selBeg = edn.getBegSelection()
-                let selEnd = edn.getEndSelection()
+                let selBeg = edn.selectionStart()
+                let selEnd = edn.selectionEnd()
                 for [caretI] in selBeg.lineIndex to selEnd.lineIndex
                 {
                     var cp = edn.cursorPos
                     cp.lineIndex = caretI
                     if cp.charPosInLine > (notnull edn.lines[cp.lineIndex]).length() do
                         continue
-                    var posCaret = edn.getCaretPos(cp)
+                    var posCaret = edn.caretRect(cp)
                     posCaret.x -= .scrollPos.x
                     posCaret.y -= .scrollPos.y
                     painter.fillRect(posCaret, colorCaret)
@@ -288,7 +288,7 @@ impl IWnd for RichEditView
             }
             else
             {
-                var posCaret = edn.getCaretPos(edn.cursorPos)
+                var posCaret = edn.caretRect(edn.cursorPos)
                 posCaret.x -= .scrollPos.x
                 posCaret.y -= .scrollPos.y
                 painter.fillRect(posCaret, colorCaret)
@@ -297,13 +297,13 @@ impl IWnd for RichEditView
 
         // Scroll size
         y = cast(f32) (edn.countVisibleLines * size.y)
-        if edn.richEdFlags & .WordWrap do
+        if edn.flags & .WordWrap do
             maxx = 0
         elif !edn.recomputeScroll do
             maxx = edn.scrollWnd.scrollSize.x
         else
         {
-            let posCaret = edn.getCaretPos(edn.cursorPos)
+            let posCaret = edn.caretRect(edn.cursorPos)
             maxx += posCaret.width + 32
         }
 
@@ -336,13 +336,13 @@ impl RichEditView
         let edn     = notnull .ed
         let painter = bc.painter
 
-        let fontR = edn.getFont().getFont(strStyle.fontMode)
+        let fontR = edn.font().getFont(strStyle.fontMode)
         if !fontR or str.isEmpty() do
             return x
         let font = nnFont(fontR)
 
         var shaped     = Painter.shapeRun(str, font)
-        let info       = Painter.getTextDrawInfo(font)
+        let info       = Painter.computeTextDrawInfo(font)
         let drawFont   = info.drawFont
         let snapPixels = info.snapPixels
 
@@ -369,7 +369,7 @@ impl RichEditView
             rect.x      = left
             rect.y      = y
             rect.width  = Math.max(right - left, 0.0)
-            rect.height = edn.getXExtent().y
+            rect.height = edn.xGlyphSize().y
             painter.fillRect(rect, strStyle.colBk)
         }
 
@@ -402,11 +402,11 @@ impl RichEditView
 
         var oldStyle, newStyle: RichEditRuneStyle
         oldStyle = edn.styles[0]
-        var x = edn.getMarginLeft() - .scrollPos.x
+        var x = edn.leftMargin() - .scrollPos.x
 
-        let sel0 = edn.getBegSelection()
-        let sel1 = edn.getEndSelection()
-        let size = edn.getXExtent()
+        let sel0 = edn.selectionStart()
+        let sel1 = edn.selectionEnd()
+        let size = edn.xGlyphSize()
 
         var i = 0
         while i < count
@@ -429,7 +429,7 @@ impl RichEditView
                 var cp1: RichEditCursor
                 cp1.charPosInLine = i
                 cp1.lineIndex     = lineIndex
-                var charPos = edn.getCursorDisplayPos(cp1)
+                var charPos = edn.cursorDisplayPosition(cp1)
                 charPos.y -= size.y * 0.5
                 if edn.selRectangle.contains(charPos) do
                     selected = true
@@ -449,7 +449,7 @@ impl RichEditView
             {
                 if .hasFocus() do
                     newStyle = edn.stylesSelect[0]
-                elif edn.richEdFlags & .ShowFocusSel do
+                elif edn.flags & .ShowFocusSel do
                     newStyle = edn.stylesSelect[1]
                 if !newStyle.colFg.a do
                     newStyle.colFg = edn.styles[dref pStyle].colFg
@@ -457,16 +457,16 @@ impl RichEditView
                 newStyle.underline = edn.styles[dref pStyle].underline
             }
 
-            if edn.richEdFlags & .DrawBlanks
+            if edn.flags & .DrawBlanks
             {
                 if cr == ' ' and pChar != &dummyChar
                 {
-                    newStyle.colFg = .getThemeColors().richEdit_TextSpecial
+                    newStyle.colFg = .themeColors().richEdit_TextSpecial
                     cr             = '.'
                 }
                 elif isTabulation
                 {
-                    newStyle.colFg = .getThemeColors().richEdit_TextSpecial
+                    newStyle.colFg = .themeColors().richEdit_TextSpecial
                 }
             }
 
@@ -482,7 +482,7 @@ impl RichEditView
             if isTabulation
             {
                 let x1 = x
-                x += edn.getTabOffset(cast(s32) x)
+                x += edn.tabAdvance(cast(s32) x)
 
                 // Background color for tabulations
                 if visible and oldStyle.colBk.a do

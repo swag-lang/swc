@@ -80,7 +80,7 @@ interface IEncoder
 
 /*
 Serialization encoder.
-This is a high level encoder that needs a specific implementation like [[Core.Serialization.Write.TagBin]] or [[Core.Serialization.Write.JSon]].
+This is a high level encoder that needs a specific implementation like [[Core.Serialization.Write.TagBin]] or [[Core.Serialization.Write.Json]].
 
 ```swag
 var buf:     ConcatBuffer
@@ -141,8 +141,8 @@ impl Encoder
     {
         if !dataType do
             fail SerializationError{"missing data type"}
-        var type = Reflection.makeConcreteAlias(dataType orelse #typeof(u8))
-        type = Reflection.makeConcreteEnum(type)
+        var type = Reflection.resolveAliases(dataType orelse #typeof(u8))
+        type = Reflection.enumUnderlyingType(type)
 
         .serializer.beginValue()
         defer #nofail .serializer.endValue()
@@ -224,7 +224,7 @@ impl Encoder
             }
 
             // Core.Array
-            let valueType = Reflection.getStructArrayType(type)
+            let valueType = Reflection.dynamicArrayElementType(type)
             if valueType
             {
                 let safeValueType = valueType

@@ -493,22 +493,6 @@ uint32_t FormatModel::maxAllowedNewlines(const uint32_t gapIndex) const
     if (options_->maxConsecutiveEmptyLines > 0)
         maxNewlines = std::min(maxNewlines, options_->maxConsecutiveEmptyLines + 1);
 
-    if (!options_->keepEmptyLinesAtStartOfBlock.value_or(true) && gapIndex > 0)
-    {
-        const uint32_t prev = prevPiece(gapIndex);
-        if (prev != FormatPiece::INVALID_INDEX && pieces_[prev].is(TokenId::SymLeftCurly))
-            maxNewlines = std::min(maxNewlines, 1u);
-    }
-
-    if (!options_->keepEmptyLinesAtEndOfBlock.value_or(true) && gapIndex < pieces_.size())
-    {
-        uint32_t next = gapIndex;
-        if (pieces_[next].removed)
-            next = nextPiece(next);
-        if (next != FormatPiece::INVALID_INDEX && pieces_[next].is(TokenId::SymRightCurly))
-            maxNewlines = std::min(maxNewlines, 1u);
-    }
-
     const bool isTrailingGap = gapIndex + 1 == gaps_.size();
     if (options_->trimTrailingNewlines.value_or(false) && isTrailingGap)
         maxNewlines = std::min(maxNewlines, 1u);

@@ -13,15 +13,39 @@ using Swag, Core
     let a         = Wnd.create'Wnd(container, null, {0, 0, 50, 50}, "Wnd.A")
     let b         = Wnd.create'Wnd(container, null, {0, 0, 50, 50}, "Wnd.B")
 
-    @assert(container.childs.count == 2)
+    @assert(container.children.count == 2)
     @assert(a.parent == container)
-    @assert(container.isParentOf(a))
-    @assert(host.root.isParentOf(a))
-    @assert(!a.isParentOf(container))
+    @assert(container.isAncestorOf(a))
+    @assert(host.root.isAncestorOf(a))
+    @assert(!a.isAncestorOf(container))
 
-    @assert(container.getChildById("Wnd.A") == a)
-    @assert(container.getChildById("Wnd.B") == b)
-    @assert(container.getChildById("Wnd.None") == null)
+    @assert(container.childById("Wnd.A") == a)
+    @assert(container.childById("Wnd.B") == b)
+    @assert(container.childById("Wnd.None") == null)
+
+    host.shutdown()
+}
+
+// Detaching and reparenting update both sides and propagate the surface through the subtree.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(200, 200)
+
+    let left       = Wnd.create'Wnd(&host.root, null, {0, 0, 100, 200})
+    let right      = Wnd.create'Wnd(&host.root, null, {100, 0, 100, 200})
+    let child      = Wnd.create'Wnd(left, null, {0, 0, 50, 50})
+    let grandChild = Wnd.create'Wnd(child, null, {0, 0, 20, 20})
+
+    @assert(left.detachChild(child))
+    @assert(child.parent == null and child.surface == null)
+    @assert(grandChild.surface == null)
+    @assert(left.children.count == 0)
+
+    child.setParent(right)
+    @assert(child.parent == right and child.surface == right.surface)
+    @assert(grandChild.surface == right.surface)
+    @assert(right.children.count == 1 and right.children[0] == child)
 
     host.shutdown()
 }
@@ -36,12 +60,12 @@ using Swag, Core
     let child     = Wnd.create'Wnd(container, null, {0, 0, 50, 50})
 
     @assert(child.isVisible())
-    @assert(child.isVisibleState())
+    @assert(child.isLocallyVisible())
 
     child.hide()
     @assert(!child.isVisible())
     @assert(child.isHidden())
-    @assert(!child.isVisibleState())
+    @assert(!child.isLocallyVisible())
 
     child.show()
     @assert(child.isVisible())
@@ -49,8 +73,8 @@ using Swag, Core
     // A hidden parent hides the child, but the child keeps its own visible state.
     container.hide()
     @assert(!child.isVisible())
-    @assert(child.isVisibleState())
-    @assert(child.isVisible(true))
+    @assert(child.isLocallyVisible())
+    @assert(child.isLocallyVisible())
 
     host.shutdown()
 }
@@ -65,18 +89,22 @@ using Swag, Core
     let child     = Wnd.create'Wnd(container, null, {0, 0, 50, 50})
 
     @assert(child.isEnabled())
+    @assert(child.isLocallyEnabled())
 
     child.disable()
     @assert(!child.isEnabled())
     @assert(child.isDisabled())
+    @assert(!child.isLocallyEnabled())
 
     child.enable()
     @assert(child.isEnabled())
+    @assert(child.isLocallyEnabled())
 
     // A disabled parent disables the child, but the child keeps its own state.
     container.disable()
     @assert(!child.isEnabled())
-    @assert(child.isEnabled(true))
+    @assert(child.isLocallyEnabled())
+    @assert(child.isLocallyEnabled())
 
     host.shutdown()
 }
@@ -143,24 +171,24 @@ using Swag, Core
     let child     = Wnd.create'Wnd(container, null, {20, 20, 60, 60})
 
     // Surface point (40,40) -> container(10,10) -> child local (20,20): inside child.
-    @assert(host.root.getWndAt(40, 40, true) == child)
+    @assert(host.root.windowAt(40, 40, true) == child)
 
     // A point inside the container but outside the child resolves to the container.
-    @assert(host.root.getWndAt(160, 160, true) == container)
+    @assert(host.root.windowAt(160, 160, true) == container)
 
     child.hide()
-    @assert(host.root.getWndAt(40, 40, true) == container)
+    @assert(host.root.windowAt(40, 40, true) == container)
     child.show()
 
     // Disabled is skipped unless getDisabled is set.
     child.disable()
-    @assert(host.root.getWndAt(40, 40, false) == container)
-    @assert(host.root.getWndAt(40, 40, true) == child)
+    @assert(host.root.windowAt(40, 40, false) == container)
+    @assert(host.root.windowAt(40, 40, true) == child)
 
     host.shutdown()
 }
 
-// Z-order: getWndAt returns the topmost (last) sibling; bringToFront/bringToTop reorder.
+// Z-order: windowAt returns the topmost (last) sibling; sendToBack/bringToFront reorder.
 #test
 {
     var host: Testing.HeadlessHost
@@ -171,15 +199,15 @@ using Swag, Core
     let b         = Wnd.create'Wnd(container, null, {0, 0, 100, 100})
 
     // b was added last -> painted on top -> hit first.
-    @assert(host.root.getWndAt(50, 50, true) == b)
+    @assert(host.root.windowAt(50, 50, true) == b)
 
-    a.bringToTop()
-    @assert(container.childs.back() == a)
-    @assert(host.root.getWndAt(50, 50, true) == a)
+    a.bringToFront()
+    @assert(container.children.back() == a)
+    @assert(host.root.windowAt(50, 50, true) == a)
 
-    b.bringToFront()
-    @assert(container.childs.front() == b)
-    @assert(host.root.getWndAt(50, 50, true) == a)
+    b.sendToBack()
+    @assert(container.children.front() == b)
+    @assert(host.root.windowAt(50, 50, true) == a)
 
     host.shutdown()
 }
@@ -192,11 +220,11 @@ using Swag, Core
 
     let container = Wnd.create'Wnd(&host.root, null, {0, 0, 200, 200})
     let child     = Wnd.create'Wnd(container, null, {0, 0, 50, 50})
-    @assert(container.childs.count == 1)
+    @assert(container.children.count == 1)
 
     child.destroy()
     host.pump()
-    @assert(container.childs.count == 0)
+    @assert(container.children.count == 0)
 
     host.shutdown()
 }

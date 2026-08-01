@@ -2,92 +2,97 @@
 
 using Core, Pixel
 
-// Selects properties ctrl flags.
+// Configures optional navigation and filtering UI around a property editor.
 #[Swag.EnumFlags]
 enum PropertiesCtrlFlags
 {
-    Zero = 0          // No flags are enabled.
-    FindBar           // Add a find bar at the top
-    SectionPane       // Display all sections in a pane on the left
-    SectionFilter     // Display a section filter bar
+    None = 0              // Shows only the property editor.
+    SearchBar             // Adds a text search bar at the top.
+    SectionNavigation     // Adds a hierarchical section pane on the left.
+    SectionTabs           // Adds top tabs that filter by section.
 }
 
-// Represents properties ctrl.
+// Combines a property editor with optional section navigation, tabs, and search.
 struct PropertiesCtrl
 {
     using frameWnd: FrameWnd     // Embedded frame wnd state.
 
-    #[Swag.Late]
+    readonly
     {
+        #[Swag.Late]
         splitter: *SplitterCtrl     // Splitter associated with this value.
-        list:     *ListCtrl         // List associated with this value.
-        tab:      *Tab              // Tab associated with this value.
-        prop:     *Properties       // Prop associated with this value.
+        #[Swag.Late]
+        list: *ListCtrl     // List associated with this value.
+        #[Swag.Late]
+        tab: *Tab     // Tab associated with this value.
+        #[Swag.Late]
+        properties: *Properties     // Property editor owned by this control.
     }
 
-    propFlags: PropertiesCtrlFlags     // Prop flags associated with this value.
+    readonly flags: PropertiesCtrlFlags     // Active optional UI features.
 }
 
 impl PropertiesCtrl
 {
-    // Creates a new Properties instance
+    // Creates a property editor and its requested navigation controls.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, kind = PropertiesKind.List, flags = PropertiesCtrlFlags.SectionPane, id: #null WndId = null)->*PropertiesCtrl
+    func create(parent: *Wnd, position: Math.Rectangle = {}, kind = PropertiesKind.List, flags = PropertiesCtrlFlags.SectionNavigation, id: #null WndId = null)->*PropertiesCtrl
     {
+        Debug.assert(parent)
         let ed = Wnd.create'PropertiesCtrl(parent, "", position, id)
 
         with ed
         {
-            .propFlags = flags
+            .flags = flags
 
             .splitter           = SplitterCtrl.create(ed, vertical: false)
             .splitter.dockStyle = .Center
 
             .list = ListCtrl.createSimple(.splitter)
-            .list.listFlags.add(.ForceMarginExpandMark)
-            .list.sigSelChanged += func|ed|(list)
+            .list.updateFlags(.ReserveExpandMargin)
+            .list.sigSelectionChanged += func|ed|(list)
             {
-                let sel = list.getFocusLine()
+                let sel = list.focusedLine()
                 if !sel do
                     return
                 list.toggleExpand(sel)
                 let item = notnull cast(#null *PropertiesItem) sel.userData0
-                let pos  = item.label.getRectIn(ed.prop.edView)
-                ed.prop.scrollWnd.setScrollPos(0, pos.y)
+                let pos  = item.label.rectRelativeTo(ed.properties.edView)
+                ed.properties.scrollWnd.setScrollPos(0, pos.y)
             }
 
-            .prop = Properties.create(.splitter, kind: kind)
+            .properties = Properties.create(.splitter, kind: kind)
 
             .splitter.addPane(.list)
-            .splitter.addPane(.prop)
+            .splitter.addPane(.properties)
 
-            if !flags.has(.SectionPane) do
-                .splitter.showPane(0, false)
+            if !flags.has(.SectionNavigation) do
+                .splitter.setPaneVisible(0, false)
         }
 
         // Filter bar
-        if flags.has(.FindBar)
+        if flags.has(.SearchBar)
         {
             with let filter = EditBox.create(ed, "")
             {
-                .icon      = ed.getTheme().getIcon24(ThemeIcons24.Search, 18)
+                .setIcon(ed.theme().icon24(ThemeIcons24.Search, 18))
                 .dockStyle = .Top
-                .setNote("Search")
-                .margin.w   = 8
-                .sigChanged += func|ed|(fil) { ed.prop.setStringFilter(fil.text); }
-                .editBoxFlags.add(.ClearButton)
+                .setPlaceholder("Search")
+                .margin.w       = 8
+                .sigTextChanged += func|ed|(fil) { ed.properties.setFilter(fil.text()); }
+                .updateFlags(.ClearButton)
             }
         }
 
         // Section filter bar
-        if flags.has(.SectionFilter)
+        if flags.has(.SectionTabs)
         {
             with ed.tab = Tab.create(ed, {0, 0, 0, 30})
             {
                 .margin.w  = 12
                 .dockStyle = .Top
                 .setForm(.PushButton)
-                .sigSelChanged += func|ed|(tab) { ed.prop.setCurrentSection(cast(u32) cast(u64) (notnull tab.getSelectedItem()).userData0); }
+                .sigSelectionChanged += func|ed|(tab) { ed.properties.setCurrentSection(cast(u32) cast(u64) (notnull tab.selectedItem()).userData0); }
             }
         }
 
@@ -104,14 +109,14 @@ impl PropertiesCtrl
         {
             .tab.clear()
             let tabItem = .tab.addItem("All")
-            tabItem.userData0 = cast(#null *void) .prop.sections.count
+            tabItem.userData0 = cast(#null *void) .properties.sections.count
         }
 
         var parentLine: #null *ListLine
-        for &it, [idx] in .prop.sections
+        for &it, [idx] in .properties.sections
         {
-            let str   = (notnull it.item).label.getText()
-            let naked = RichString.getNaked(str)
+            let str   = (notnull it.item).label.text()
+            let naked = RichString.plainText(str)
 
             // In the filter bar
             if @isset(.tab) and it.lvl == 0
@@ -132,17 +137,17 @@ impl PropertiesCtrl
         }
     }
 
-    // Add a new struct to display
-    mtd addStruct(val: any, category: #null string = null)
+    // Appends one reflected structure and rebuilds section navigation.
+    mtd addStruct(val: any, section: #null string = null)
     {
-        .prop.addStruct(val, category)
+        .properties.addStruct(val, section)
         .fillSections()
     }
 
     // Give the keyboard focus to the property grid (navigation mode), so the whole
     // control can be driven by keyboard.
-    mtd setFocus()
+    mtd focusProperties()
     {
-        .prop.focusNav()
+        .properties.focusNavigation()
     }
 }

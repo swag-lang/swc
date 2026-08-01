@@ -6,7 +6,7 @@ impl Image
     public mtd fill(color: Color)
     {
         // unsupported pixel format
-        if .pf.channels() < 3 or .pf.bitDepth() != 8 do
+        if .pixelFormat.channels() < 3 or .pixelFormat.bitDepth() != 8 do
             return
 
         #[Swag.Mixin]
@@ -16,11 +16,11 @@ impl Image
             for [x] in .width
             {
                 convertToRGBA8'PF(cast([*] u8) (notnull pix), color.r, color.g, color.b, color.a)
-                pix += .bpp8
+                pix += .bytesPerPixel
             }
         }
 
-        switch .pf
+        switch .pixelFormat
         {
         case .BGR8:  .fillFirstLine'BGR8()
         case .BGRA8: .fillFirstLine'BGRA8()
@@ -31,7 +31,7 @@ impl Image
 
         .visitPixels(stride: .width)
         {
-            Memory.copy(pix, cast([*] u8) (notnull image.pixels.buffer), cast(u64) image.width * image.bpp8)
+            Memory.copy(pix, cast([*] u8) (notnull image.pixels.buffer), cast(u64) image.width * image.bytesPerPixel)
         }
     }
 }

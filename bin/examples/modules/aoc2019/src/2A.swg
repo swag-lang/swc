@@ -50,7 +50,7 @@ using Core
 
 func day2A()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "2.txt")
+    let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "2.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     var op: Array's32
@@ -67,7 +67,7 @@ func day2A()
             op[op[ip + 3]] = op[op[ip + 1]] + op[op[ip + 2]]
         else do
             op[op[ip + 3]] = op[op[ip + 1]] * op[op[ip + 2]]
-        ip                 += 4
+        ip += 4
     }
 
     // Console.print("total: ", op[0])

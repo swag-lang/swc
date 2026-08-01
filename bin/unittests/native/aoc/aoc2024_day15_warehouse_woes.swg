@@ -148,9 +148,9 @@ func parseInput(text: string)->Parsed
             {
                 if result.wh.h == 0 do
                     result.wh.w = col
-                result.wh.h     += 1
-                row             += 1
-                col             = 0
+                result.wh.h += 1
+                row         += 1
+                col         = 0
             }
             elif result.wh.h > 0
             {

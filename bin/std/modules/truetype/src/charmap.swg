@@ -7,9 +7,27 @@ using Swag, Core
 // font's `cmap` table.
 public struct CharMap
 {
-    #[Swag.Late]
-    face:       *Face     // Borrowed pointer to the owning face.
-    encoding:   u32       // Four-byte encoding tag, or zero for the selected Unicode map.
-    platformID: u16       // TrueType platform identifier.
-    encodingID: u16       // Platform-specific encoding identifier.
+    // The selected mapping is owned by the face and cannot be replaced by callers.
+    readonly
+    {
+        #[Swag.Late]
+        face:       *Face     // Borrowed pointer to the owning face.
+        encoding:   u32       // Four-byte encoding tag, or zero for the selected Unicode map.
+        platformID: u16       // TrueType platform identifier.
+        encodingID: u16       // Platform-specific encoding identifier.
+    }
+}
+
+impl CharMap
+{
+    internal mtd initialize(face: *Face)
+    {
+        .face = face
+    }
+
+    internal mtd select(platformID, encodingID: u16)
+    {
+        .platformID = platformID
+        .encodingID = encodingID
+    }
 }

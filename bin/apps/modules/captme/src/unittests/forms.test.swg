@@ -13,8 +13,8 @@ func testTextPaintTransform(text: *FormText, tx, ty, z, renderScale: f32)->TextP
 {
     var result: retval
 
-    var painter = Painter{fake: true}
-    painter.begin()
+    var painter: Painter
+    painter.begin(layoutOnly: true)
     painter.setAntialiased()
     painter.translateTransform(tx * renderScale, ty * renderScale)
 
@@ -132,7 +132,7 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     step.ws                 = 30
     step.hs                 = 40
     f.capture.nextStepIndex = 7
-    var evt = testMouse(.MouseMove)
+    var evt = testMouse(.Move)
     @assert(!step.IForm.edit(&evt, {100, 90}, {120, 110}, 1))
     Gui.Testing.assertRect(step.IForm.boundRect(), 85, 70, 30, 40)
     @assert(step.index == 7)
@@ -222,10 +222,10 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     f.setup()
 
     let shape   = testAddShape(f.capture, 0, 0, 1, 1)
-    var moveEvt = testMouse(.MouseMove)
+    var moveEvt = testMouse(.Move)
     @assert(shape.IForm.edit(&moveEvt, {80, 70}, {50, 20}, 1))
     Gui.Testing.assertRect(shape.IForm.boundRect(), 50, 20, 30, 50)
-    var releaseEvt = testMouse(.MouseReleased)
+    var releaseEvt = testMouse(.Released)
     @assert(!shape.IForm.edit(&releaseEvt, {80, 70}, {50, 20}, 1))
 
     let line = testAddLine(f.capture, 0, 0, 1, 1)
@@ -251,9 +251,9 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     var f: HeadlessFixture
     f.setup()
 
-    var moveEvt    = testMouse(.MouseMove)
-    var releaseEvt = testMouse(.MouseReleased)
-    var doubleEvt  = testMouse(.MouseDoubleClick)
+    var moveEvt    = testMouse(.Move)
+    var releaseEvt = testMouse(.Released)
+    var doubleEvt  = testMouse(.DoubleClick)
 
     var emptyPoints: Array'Math.Vector2
     let polygon = testAddPolygon(f.capture, emptyPoints.toSlice())

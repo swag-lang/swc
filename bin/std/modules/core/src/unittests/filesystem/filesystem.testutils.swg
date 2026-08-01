@@ -11,6 +11,6 @@ func makeFilesystemTestPath(name: string)->String
     var fileName: String = "swag_core_"
     fileName += name
     fileName += "_"
-    fileName += GUID64.getRandom().getString()
+    fileName += Guid64.random().toString()
     return Path.combine(tempDir.toString(), fileName.toString())
 }

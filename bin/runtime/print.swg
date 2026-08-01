@@ -111,7 +111,7 @@ func __ftoa(result: [*] u8, value: f64)
         fpart *= 10
         if fpart < 1 do
             leadingZeros += 1
-        afterPoint       -= 1
+        afterPoint -= 1
     }
 
     // Zeros before the value part

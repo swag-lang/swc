@@ -96,7 +96,7 @@ impl TweakFile
                 fail SyntaxError{"invalid value name", line: idx + 1}
 
             // Search value in folder type
-            let field = Reflection.getField(currentFolder.type, id)
+            let field = Reflection.findField(currentFolder.type, id)
             if !field do
                 fail SyntaxError{Errors.mkString(Format.toString("value [[%]] not found in folder [[%]]", id, currentFolder.type.name)), line: idx + 1}
             let safeField = field
@@ -109,7 +109,7 @@ impl TweakFile
             if one[0] == '$'
             {
                 one = Tokenize.eatCount(one, 1)
-                let otherField = Reflection.getField(currentFolder.type, one)
+                let otherField = Reflection.findField(currentFolder.type, one)
                 if !otherField do
                     fail SyntaxError{Errors.mkString(Format.toString("reference [[%]] not found in folder [[%]]", one, currentFolder.type.name)), line: idx + 1}
                 let safeOtherField = otherField
@@ -167,7 +167,7 @@ impl TweakFile
 
             let ptrDst = cast([*] u8) refr.folder.data + refr.dst.offset
             let ptrSrc = cast([*] u8) refr.folder.data + refr.src.offset
-            Reflection.copy(ptrDst, ptrSrc, refr.dst.pointedType)
+            Reflection.assign(ptrDst, ptrSrc, refr.dst.pointedType)
 
             refs.removeAt(toDo)
         }

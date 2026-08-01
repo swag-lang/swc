@@ -4,10 +4,10 @@
 using Errors
 
 // Names of the months used for formatting and parsing
-const MonthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+internal const MonthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 
 // Names of the days of the week used for formatting and parsing
-const DayOfWeekNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+internal const DayOfWeekNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 
 // Day of the week enumeration
 enum DayOfWeek
@@ -27,13 +27,13 @@ enum DateTimeFormat
     DateIso           // 'YYYY-MM-DD'
     TimeIso           // 'HH:MM:SS'
     TimeIsoMs         // 'HH:MM:SS.ZZZ'
-    TimeIsoHM         // 'HH:MM'
+    TimeIsoHm         // 'HH:MM'
     Date              // 'DAYOFWEEK MONTH DAY YYYY'
     DateTime          // 'DAYOFWEEK MONTH DAY YYYY HH:MM:SS'
     DateTimeMs        // 'DAYOFWEEK MONTH DAY YYYY HH:MM:SS.ZZZ'
     DateTimeIso       // 'YYYY-MM-DD HH:MM:SS'
     DateTimeIsoMs     // 'YYYY-MM-DD HH:MM:SS.ZZZ'
-    DateTimeIsoHM     // 'YYYY-MM-DD HH:MM'
+    DateTimeIsoHm     // 'YYYY-MM-DD HH:MM'
 }
 
 // Represents an instant in time, typically expressed as a date and time of day
@@ -262,13 +262,13 @@ impl DateTime
         case .DateIso:       return Format.toString("%-%{02}-%{02}", .year, .month, .day)
         case .TimeIso:       return Format.toString("%{02}:%{02}:%{02}", .hour, .minute, .second)
         case .TimeIsoMs:     return Format.toString("%{02}:%{02}:%{02}.%{03}", .hour, .minute, .second, .millisecond)
-        case .TimeIsoHM:     return Format.toString("%{02}:%{02}", .hour, .minute)
+        case .TimeIsoHm:     return Format.toString("%{02}:%{02}", .hour, .minute)
         case .Date:          return Format.toString("% % % %", dayOfWeekName(.dayOfWeek()), monthName(.month), .day, .year)
         case .DateTime:      return Format.toString("% % % % %{02}:%{02}:%{02}", dayOfWeekName(.dayOfWeek()), monthName(.month), .day, .year, .hour, .minute, .second)
         case .DateTimeMs:    return Format.toString("% % % % %{02}:%{02}:%{02}.%{03}", dayOfWeekName(.dayOfWeek()), monthName(.month), .day, .year, .hour, .minute, .second, .millisecond)
         case .DateTimeIso:   return Format.toString("%-%{02}-%{02} %{02}:%{02}:%{02}", .year, .month, .day, .hour, .minute, .second)
         case .DateTimeIsoMs: return Format.toString("%-%{02}-%{02} %{02}:%{02}:%{02}.%{03}", .year, .month, .day, .hour, .minute, .second, .millisecond)
-        case .DateTimeIsoHM: return Format.toString("%-%{02}-%{02} %{02}:%{02}", .year, .month, .day, .hour, .minute)
+        case .DateTimeIsoHm: return Format.toString("%-%{02}-%{02} %{02}:%{02}", .year, .month, .day, .hour, .minute)
         }
 
         var result: retval
@@ -334,11 +334,11 @@ impl StrConv.IConvert for DateTime
             case 'b': str = .toString(.DateTimeMs)
             case 'c': str = .toString(.DateTimeIso)
             case 'd': str = .toString(.DateTimeIsoMs)
-            case 'e': str = .toString(.DateTimeIsoHM)
+            case 'e': str = .toString(.DateTimeIsoHm)
             case 'f': str = .toString(.DateIso)
             case 'g': str = .toString(.TimeIso)
             case 'h': str = .toString(.TimeIsoMs)
-            case 'i': str = .toString(.TimeIsoHM)
+            case 'i': str = .toString(.TimeIsoHm)
             case 'j': str = .toString(.Date)
             default:  str = .toString(.DateTime)
             }

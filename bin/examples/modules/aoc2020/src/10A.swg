@@ -85,7 +85,7 @@ using Core
 
 func day10A()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "10.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "10.txt")
     let lines    = expect File.readAllLines(dataPath)
     var vals     = Slice.map(lines[to], func(x) => expect StrConv.toS64(x))
 
@@ -98,7 +98,7 @@ func day10A()
             cpt1 += 1
         elif v - prev == 3 do
             cpt3 += 1
-        prev     = v
+        prev = v
     }
 
     let total = cpt1 * (cpt3 + 1)

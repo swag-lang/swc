@@ -32,9 +32,9 @@ alias ConstF64 = Const'f64
 
 #[Swag.ConstExpr, Swag.Inline]
 {
-    // Returns the sign of 'x' (-1 for negative, 1 for positive)
-    func sign(x: f32) => x < 0 ? -1'f32 : 1'f32
-    func sign(x: f64) => x < 0 ? -1'f64 : 1'f64
+    // Returns the sign of 'x' (-1 for negative, 0 for zero, and 1 for positive).
+    func sign(x: f32) => cast(f32) (x > 0) - cast(f32) (x < 0)
+    func sign(x: f64) => cast(f64) (x > 0) - cast(f64) (x < 0)
 
     // Clamps 'x' between 0 and 1
     func saturate(x: f32) => clamp(x, 0'f32, 1'f32)
@@ -194,29 +194,30 @@ alias ConstF64 = Const'f64
         return minDst + r * (maxDst - minDst)
     }
 
-    // Calculates the smallest power of 10 greater than or equal to the given number val
-    func powerOf10(val: f32)->s32
+    // Returns the smallest power of ten strictly greater than 'value'.
+    func nextPowerOfTen(value: f32)->f32
     {
-        if val == 0 do
-            return 1
-        return cast() pow(10, floor(log10(val)) + 1)
+        if value < 1 do
+            return 1'f32
+        return pow(10'f32, floor(log10(value)) + 1)
     }
 
-    func powerOf10(val: f64)->s32
+    // Returns the smallest power of ten strictly greater than 'value'.
+    func nextPowerOfTen(value: f64)->f64
     {
-        if val == 0 do
-            return 1
-        return cast() pow(10, floor(log10(val)) + 1)
+        if value < 1 do
+            return 1'f64
+        return pow(10'f64, floor(log10(value)) + 1)
     }
 }
 
 #[Swag.ConstExpr, Swag.Inline]
 {
-    // Performs the atan2 operation.
-    func atan2(x, y: f32) => @atan2(x, y)
+    // Returns the signed arc tangent of the coordinates 'y' and 'x'.
+    func atan2(y, x: f32) => @atan2(y, x)
 
-    // Returns the signed arc tangent of two coordinates.
-    func atan2(x, y: f64) => @atan2(x, y)
+    // Returns the signed arc tangent of the coordinates 'y' and 'x'.
+    func atan2(y, x: f64) => @atan2(y, x)
 
     // Performs the sqrt operation.
     func sqrt(x: f32) => @sqrt(x)

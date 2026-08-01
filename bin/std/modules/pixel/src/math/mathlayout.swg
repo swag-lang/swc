@@ -170,7 +170,7 @@ private func mathLayoutRow(node: *MathNode, font: *Font, style: MathStyle, varia
         {
             let cls = mathNormalizedClass(node, idx)
             if hasPrevious do
-                x         += mathSpacingMu(previousClass, cls) / 18.0 * em
+                x += mathSpacingMu(previousClass, cls) / 18.0 * em
             previousClass = cls
             hasPrevious   = true
         }
@@ -435,8 +435,8 @@ private func mathMeasureDelimiter(text: string, font: *Font, minScale, targetHei
     result.scale = minScale
     if measured.height > 0 do
         result.scale = Math.max(result.scale, targetHeight / measured.height)
-    result.width     = measured.width * result.scale
-    result.height    = measured.height * result.scale
+    result.width  = measured.width * result.scale
+    result.height = measured.height * result.scale
     return result
 }
 

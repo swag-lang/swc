@@ -22,7 +22,7 @@ using Core
 
 func day1A()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "1.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "1.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     let split  = Tokenize.split(lines[0], ','u8)

@@ -24,9 +24,12 @@ impl XAudio2DriverNative
         if initCOM
         {
             result = CoInitializeEx(null, 0)
-            if result != S_OK do
+
+            // COM returns S_FALSE when the apartment was already initialized; it is still a
+            // successful initialization and still requires CoUninitialize.
+            if result != S_OK and cast(u64) result != 1 do
                 fail SystemError{"failed to initialize COM", errorID: cast(u64) result}
-            .hasInitCOM = initCOM
+            .hasInitCOM = true
         }
 
         result = XAudio2Create(&.xAudio2, 0)
@@ -52,9 +55,7 @@ impl XAudio2DriverNative
         if result != S_OK do
             fail SystemError{"cannot get xaudio2 channel mask", errorID: cast(u64) result}
 
-        result = X3DAudioInitialize(.channelMask, X3DAUDIO_SPEED_OF_SOUND, .x3DInstance)
-        if result != S_OK do
-            fail SystemError{"cannot initialize X3D audio", errorID: cast(u64) result}
+        X3DAudioInitialize(.channelMask, X3DAUDIO_SPEED_OF_SOUND, .x3DInstance)
 
         // Context for xaudio2 threads
         let cxt = @getcontext()
@@ -113,7 +114,7 @@ impl XAudio2DriverNative
             fail SystemError{"setOutputVolume", errorID: cast(u64) hr}
     }
 
-    mtd getOutputVolumeXAudio2()->f32
+    mtd outputVolumeXAudio2()->f32
     {
         if !.masteringVoice do
             return 0
@@ -190,7 +191,7 @@ impl Voice
 
         var wfx: WAVEFORMATEXTENSIBLE
         wfx.format.nChannels      = cast(u16) file.channelCount
-        wfx.format.nSamplesPerSec = cast(u16) file.frequency
+        wfx.format.nSamplesPerSec = file.sampleRate
         wfx.format.wBitsPerSample = cast(u16) file.bitsPerSample
         wfx.format.wFormatTag     = FORMAT_EXTENSIBLE
         wfx.format.cbSize         = #sizeof(WAVEFORMATEXTENSIBLE) - #sizeof(WAVEFORMATEX)
@@ -217,9 +218,7 @@ impl Voice
         wfx.samples.wValidBitsPerSample = wfx.format.wBitsPerSample
 
         var flags: DWORD
-        if createFlags.has(.AcceptFilters) do
-            flags |= XAUDIO2_VOICE_USEFILTER
-        if !createFlags.has(.AcceptPitch) do
+        if !createFlags.has(.PitchControl) do
             flags |= XAUDIO2_VOICE_NOPITCH
         var handle: #null *IXAudio2SourceVoice
         let safeXAudio2       = notnull g_Driver.xAudio2.xAudio2
@@ -227,7 +226,7 @@ impl Voice
         let hr                = createSourceVoice(safeXAudio2, &handle, cast(const *WAVEFORMATEX) &wfx.format, flags, XAUDIO2_DEFAULT_FREQ_RATIO, &g_Cb, null, null)
         if hr != S_OK do
             fail SystemError{"createSourceVoice", errorID: cast(u64) hr}
-        voice.handle = cast(VoiceHandle) handle
+        voice.handle = cast(#null *void) handle
     }
 
     mtd destroyXAudio2()
@@ -272,35 +271,45 @@ impl Voice
         return voiceState.buffersQueued != 0
     }
 
-    mtd playXAudio2(batchID: u32 = 0) fail
+    mtd playXAudio2(batchId: u32 = 0) fail
     {
         if !.handle do
             return
         let safeHandle = .handle
         let handle     = cast(*IXAudio2SourceVoice) safeHandle
         let start      = handle.vtbl.start
-        let hr         = start(handle, 0, batchID)
+        let hr         = start(handle, 0, batchId)
         if hr != S_OK do
             fail SystemError{"start", errorID: cast(u64) hr}
     }
 
-    mtd stopXAudio2(batchID: u32 = 0) fail
+    mtd stopXAudio2(batchId: u32 = 0) fail
     {
         if !.handle do
             return
         let safeHandle = .handle
         let handle     = cast(*IXAudio2SourceVoice) safeHandle
         let stop       = handle.vtbl.stop
-        let hr         = stop(handle, 0, batchID)
+        let hr         = stop(handle, 0, batchId)
         if hr != S_OK do
             fail SystemError{"stop", errorID: cast(u64) hr}
     }
+
+    mtd resetXAudio2() fail
+    {
+        if !.handle do
+            return
+        let handle = cast(*IXAudio2SourceVoice) .handle
+        let hr     = handle.vtbl.flushSourceBuffers(handle)
+        if hr != S_OK do
+            fail SystemError{"cannot flush XAudio2 source buffers", errorID: cast(u64) hr}
+    }
 }
 
-public impl Voice
+internal impl Voice
 {
     // Sets this voice's XAudio2 gain as a linear value from `0` through `1`.
-    mtd setVolumeXAudio2(volume: f32, batchID: u32 = 0) fail
+    mtd setVolumeXAudio2(volume: f32, batchId: u32 = 0) fail
     {
         if !.handle do
             return
@@ -308,13 +317,13 @@ public impl Voice
         let handle     = cast(*IXAudio2SourceVoice) safeHandle
         let v          = Math.clamp(volume, 0, 1)
         let setVolume  = handle.vtbl.setVolume
-        let hr         = setVolume(cast(*IXAudio2Voice) handle, v, batchID)
+        let hr         = setVolume(cast(*IXAudio2Voice) handle, v, batchId)
         if hr != S_OK do
             fail SystemError{"setVolume", errorID: cast(u64) hr}
     }
 
     // Returns this voice's current XAudio2 linear gain.
-    mtd getVolumeXAudio2()->f32 fail
+    mtd volumeXAudio2()->f32 fail
     {
         if !.handle do
             return 0
@@ -329,25 +338,36 @@ public impl Voice
     // Sets this voice's XAudio2 playback frequency ratio.
     //
     // The voice must have been created with
-    // [[Audio.VoiceCreateFlags.AcceptPitch]]. Prefer
+    // [[Audio.VoiceCreateFlags.PitchControl]]. Prefer
     // [[Audio.Voice.setFrequencyRatio]] in backend-independent code.
-    mtd setFrequencyRatioXAudio2(ratio: f32, batchID: u32 = 0) fail
+    mtd setFrequencyRatioXAudio2(ratio: f32, batchId: u32 = 0) fail
     {
         if !.handle do
             return
         let safeHandle        = .handle
         let handle            = cast(*IXAudio2SourceVoice) safeHandle
         let setFrequencyRatio = handle.vtbl.setFrequencyRatio
-        let hr                = setFrequencyRatio(handle, ratio, batchID)
+        let hr                = setFrequencyRatio(handle, ratio, batchId)
         if hr != S_OK do
             fail SystemError{"setFrequencyRatio", errorID: cast(u64) hr}
+    }
+
+    // Returns this voice's XAudio2 playback frequency ratio.
+    mtd frequencyRatioXAudio2()->f32 fail
+    {
+        if !.handle do
+            return 0
+        let handle = cast(*IXAudio2SourceVoice) .handle
+        var ratio: f32
+        handle.vtbl.getFrequencyRatio(handle, &ratio)
+        return ratio
     }
 
     // Replaces this voice's XAudio2 output buses.
     //
     // An empty slice routes to the mastering voice. Prefer
-    // [[Audio.Voice.setRooting]] in backend-independent code.
-    mtd setRootingXAudio2(buses: const [..] *Bus) fail
+    // [[Audio.Voice.setRouting]] in backend-independent code.
+    mtd setRoutingXAudio2(buses: const [..] *Bus) fail
     {
         const MaxBus = 16
         var sfxSend:      [MaxBus] XAUDIO2_SEND_DESCRIPTOR = undefined
@@ -355,7 +375,7 @@ public impl Voice
         var pSFXSEndList: #null *XAUDIO2_VOICE_SENDS
 
         let count = @countof(buses)
-        if count >= MaxBus do
+        if count > MaxBus do
             fail SystemError{"too many buses", errorID: count}
 
         if count
@@ -411,7 +431,7 @@ impl Bus
         let hr                = createSubmixVoice(safeXAudio2, &handle, numChannels, 44100, XAUDIO2_VOICE_USEFILTER, 0, pSFXSEndList, null)
         if hr != S_OK do
             fail SystemError{"createSubmixVoice", errorID: cast(u64) hr}
-        bus.handle = cast(BusHandle) handle
+        bus.handle = cast(#null *void) handle
     }
 
     mtd destroyXAudio2()
@@ -426,10 +446,10 @@ impl Bus
     }
 }
 
-public impl Bus
+internal impl Bus
 {
     // Sets this XAudio2 submix gain as a linear value from `0` through `1`.
-    mtd setVolumeXAudio2(volume: f32, batchID: u32 = 0) fail
+    mtd setVolumeXAudio2(volume: f32, batchId: u32 = 0) fail
     {
         if !.handle do
             return
@@ -437,13 +457,13 @@ public impl Bus
         let handle     = cast(*IXAudio2SubmixVoice) safeHandle
         let v          = Math.clamp(volume, 0, 1)
         let setVolume  = handle.vtbl.setVolume
-        let hr         = setVolume(cast(*IXAudio2Voice) handle, v, batchID)
+        let hr         = setVolume(cast(*IXAudio2Voice) handle, v, batchId)
         if hr != S_OK do
             fail SystemError{"setVolume", errorID: cast(u64) hr}
     }
 
     // Returns this XAudio2 submix's current linear gain.
-    mtd getVolumeXAudio2()->f32 fail
+    mtd volumeXAudio2()->f32 fail
     {
         if !.handle do
             return 0

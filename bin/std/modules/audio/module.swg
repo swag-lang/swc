@@ -7,8 +7,8 @@ instance, and [[Audio.Bus]] groups voices for shared volume and routing. The
 default Windows backend is XAudio2; [[Audio.DriverKind.NoSound]] provides the
 same lifecycle without opening an audio device.
 
-Create the engine before loading or playing sounds and destroy it only after
-all voices and buses are finished. A fire-and-forget voice created by
+Create the engine before creating voices or buses. Destroying the engine stops
+and releases any remaining playback objects. A fire-and-forget voice created by
 [[Audio.Voice.play]] destroys itself at the end of playback.
 
 ```swag

@@ -61,7 +61,7 @@ internal func day6EnsureInstructions()
     if day6InstructionsLoaded do
         return
 
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "6.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "6.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     day6Instructions.reserve(lines.count)
@@ -141,7 +141,7 @@ func day6A0()
                 var coord = x0 + (y * DAY6_GRID_SIZE32)
                 for writeCount
                 {
-                    lights.toggleKey(coord)
+                    lights.toggle(coord)
                     coord += 1
                 }
             }
@@ -223,7 +223,7 @@ func day6A2()
 
     day6EnsureInstructions()
     var lights: BitArray
-    lights.reserve(DAY6_GRID_SIZE * DAY6_GRID_SIZE, false)
+    lights.resize(DAY6_GRID_SIZE * DAY6_GRID_SIZE)
 
     for instruction in day6Instructions
     {

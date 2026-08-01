@@ -2,21 +2,21 @@
 
 using Core, Pixel
 
-// Selects push button form.
+// Selects push button visual emphasis.
 enum PushButtonForm
 {
-    Normal      // Uses the normal form.
-    Default     // Uses the default form.
-    Flat        // Uses the flat form.
-    Strong      // Uses the strong form.
+    Normal      // Uses standard action emphasis.
+    Default     // Highlights the dialog's default action.
+    Flat        // Minimizes the idle background and border.
+    Strong      // Uses a strong filled background and bold label.
 }
 
-// Represents push button.
+// Invokes an action from pointer or keyboard input.
 struct PushButton
 {
-    using button: Button     // Embedded button state.
+    using button: Button     // Embedded button behavior and presentation.
 
-    form = PushButtonForm.Normal     // Form associated with this value.
+    readonly form = PushButtonForm.Normal     // Current visual emphasis.
 
     // Color animations of the painted parts, driven by the hover and press state.
     internal
@@ -40,13 +40,13 @@ impl IWnd for PushButton
         }
     }
 
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaint(evt: *PaintEvent)
     {
-        let bc      = evt.bc
-        let theme   = .getTheme()
-        let metrics = .getThemeMetrics()
-        let colors  = .getThemeColors()
-        let rects   = .getThemeRects()
+        let bc      = evt.paintContext
+        let theme   = .theme()
+        let metrics = .themeMetrics()
+        let colors  = .themeColors()
+        let rects   = .themeRects()
 
         var subRectBk:     #null *ThemeImageRect
         var subRectBorder: #null *ThemeImageRect
@@ -165,7 +165,7 @@ impl IWnd for PushButton
         }
 
         // Background
-        let clientRect = .getClientRect()
+        let clientRect = .clientRect()
         .aniBk.apply(me, colorBk)
         theme.drawSubRect(bc.painter, clientRect, subRectBk, .aniBk.cur())
 
@@ -180,7 +180,7 @@ impl IWnd for PushButton
         format.horzAlignment = .Center
         format.vertAlignment = .Center
         format.flags         = .Clip
-        format.font          = .getFont()
+        format.font          = .font()
         if .form == .Strong do
             format.fontStyle = .Bold
         var labelPos = clientRect
@@ -193,23 +193,56 @@ impl IWnd for PushButton
         if .processMouseEvent(evt) do
             .postCommandEvent(.id)
     }
+
+    // Space or Enter activates the focused button.
+    mtd impl onKeyEvent(evt: *KeyEvent)
+    {
+        evt.accepted = false
+        if evt.kind != .Pressed do
+            return
+        if evt.key != .Space and evt.key != .Return do
+            return
+
+        .sigPressed.call(cast(*Button) me)
+        .postCommandEvent(.id)
+        evt.accepted = true
+    }
 }
 
 impl PushButton
 {
-    // Performs the create operation.
+    // Replaces the displayed icon.
+    mtd setIcon(icon: Icon) => .button.setIcon(icon)
+
+    // Removes the displayed icon.
+    mtd clearIcon() => .button.clearIcon()
+
+    // Overrides the icon draw size; zero preserves an axis from the icon descriptor.
+    mtd setIconSize(width, height: f32) => .button.setIconSize(width, height)
+
+    // Creates a push button with optional command identifier and visual emphasis.
     #[Swag.Discardable]
-    func create(parent: *Wnd, name: string, position: Math.Rectangle = {}, id: #null WndId = null)->*PushButton
+    func create(parent: *Wnd, name: string, position: Math.Rectangle = {}, id: #null WndId = null, form = PushButtonForm.Normal)->*PushButton
     {
         Debug.assert(parent != null)
         var pos = position
         if pos.height == 0 do
-            pos.height = parent.getThemeMetrics().btnPush_Height
+            pos.height = parent.themeMetrics().btnPush_Height
         if pos.width == 0 do
-            pos.width = parent.getThemeMetrics().btnPush_Width
+            pos.width = parent.themeMetrics().btnPush_Width
         let res = Wnd.create'PushButton(parent, name, pos, id)
+        res.form = form
         if id != null do
             res.updateCommandState()
         return res
+    }
+
+    // Changes visual emphasis and repaints the button.
+    mtd setForm(form: PushButtonForm)
+    {
+        if .form == form do
+            return
+        .form = form
+        .invalidate()
     }
 }

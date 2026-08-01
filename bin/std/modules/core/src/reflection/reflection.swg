@@ -50,10 +50,10 @@ using Swag
     // Returns whether pointer arithmetic.
     func isPointerArithmetic(t: typeinfo) => t and t.flags & .PointerArithmetic
 
-    // Returns whether enum flags.
-    func isEnumFlags(t: #null typeinfo)->bool
+    // Returns whether the type is an enum marked with #[Swag.EnumFlags].
+    func isFlagsEnum(t: #null typeinfo)->bool
     {
-        return isEnum(t)
+        return isEnum(t) and hasAttribute(t, EnumFlags)
     }
 
     // Returns whether simple native.
@@ -109,8 +109,8 @@ using Swag
 
 #[ConstExpr]
 {
-    // In case this is a type alias, need to go deep inside it to find the right type
-    func makeConcreteAlias(type: typeinfo)->typeinfo
+    // Resolves nested aliases and returns their underlying type.
+    func resolveAliases(type: typeinfo)->typeinfo
     {
         var result = type
         while isTypeAlias(result)
@@ -122,46 +122,54 @@ using Swag
         return result
     }
 
-    // Returns the maximum sizeof a bunch of 'typeinfo'
-    func maxSizeOf(v: const [..] typeinfo)->u64
+    // Returns the largest size among the supplied types.
+    func maximumSize(types: const [..] typeinfo)->u64
     {
-        var res = 0'u32
-        for p in v do
-            res = @max(res, p.sizeof)
-        return res
+        var result = 0'u64
+        for type in types do
+            result = @max(result, cast(u64) type.sizeof)
+        return result
     }
 
-    // Make an union of flags of all types
-    func orFlags(v: const [..] typeinfo)->Swag.TypeInfoFlags
+    // Returns the union of the flags carried by the supplied types.
+    func combinedFlags(types: const [..] typeinfo)->Swag.TypeInfoFlags
     {
-        var res: Swag.TypeInfoFlags = .Zero
-        for p in v do
-            res |= p.flags
-        return res
+        var result: Swag.TypeInfoFlags = .Zero
+        for type in types do
+            result |= type.flags
+        return result
     }
 
-    // Performs the copy operation.
-    func copy(dst, src: #null *void, type: #null typeinfo)
+    // Assigns a runtime-typed value, preserving its copy and drop semantics.
+    func assign(destination: #null *void, source: #null const *void, type: #null typeinfo)
     {
-        if !dst or !src or !type do
+        if !destination or !source or !type or destination == source do
             return
-        let nnDst  = dst
-        let nnSrc  = src
+
+        if !canCopy(type)
+        {
+            @panic("Reflection.assign cannot copy this type", #curlocation)
+            return
+        }
+
+        let nnDst  = destination
+        let nnSrc  = source
         let nnType = type
+        Memory.dropType(nnDst, nnType)
         Memory.copy(nnDst, nnSrc, cast(u64) nnType.sizeof)
         Memory.postCopyType(nnDst, nnType)
     }
 
-    // Performs the reset operation.
-    func reset(dst: #null *void, type: #null typeinfo)
+    // Resets a runtime-typed value to its declared default value.
+    func reset(destination: #null *void, type: #null typeinfo)
     {
-        if !dst or !type
+        if !destination or !type
         {
             @panic("Reflection.reset cannot reset a null type", #curlocation)
             return
         }
 
-        let nnDst  = dst
+        let nnDst  = destination
         let nnType = type
         if !Memory.canDefaultInit(nnType)
         {
@@ -262,22 +270,23 @@ private func registerTypeGraphNoLock(type: #null typeinfo)
     }
 }
 
-// Registers type.
+// Registers a type and every type reachable from its reflected graph.
 func registerType(type: typeinfo)
 {
     Sync.scopedLock(&g_HashLock)
     registerTypeGraphNoLock(type)
 }
 
-// Registers crc to type alias.
-func registerCrcToTypeAlias(crc: u32, type: typeinfo)
+// Registers an additional CRC alias for a type.
+func registerTypeAlias(crc: u32, type: typeinfo)
 {
     Sync.scopedLock(&g_HashLock)
     addCrcToTypeAlias(crc, type)
 }
 
-// Defines infer type with interface fields.
-func inferTypeWithInterfaceFields(itf: typeinfo, fieldCrcs: const [..] u32)->#null typeinfo
+// Infers an interface implementation from the CRCs of its serialized fields.
+// Returns null when no unique best match exists.
+func inferInterfaceImplementation(itf: typeinfo, fieldCrcs: const [..] u32)->#null typeinfo
 {
     var bestType:  #null typeinfo
     var bestScore: u64
@@ -349,8 +358,8 @@ func inferTypeWithInterfaceFields(itf: typeinfo, fieldCrcs: const [..] u32)->#nu
     }
 }
 
-// Convert a crc to a registered typeinfo
-func crcToType(crc: u32)->#null typeinfo
+// Returns the registered type associated with a CRC, or null.
+func typeFromCrc(crc: u32)->#null typeinfo
 {
     Sync.sharedLock(&g_HashLock)
     let e = g_HashCrcToType.tryFind(crc)
@@ -359,8 +368,8 @@ func crcToType(crc: u32)->#null typeinfo
     return e.value
 }
 
-// Convert a crc to a registered typeinfo
-func nameToType(name: string)->#null typeinfo
+// Returns the registered type associated with a name, or null.
+func typeFromName(name: string)->#null typeinfo
 {
     Sync.sharedLock(&g_HashLock)
     let e = g_HashNameToType.tryFind(name)

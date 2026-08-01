@@ -8,17 +8,17 @@ using Core, Pixel
 // tooltip. Mirrors the validation feedback of the Unity/Unreal inspectors.
 enum PropValidation
 {
-    None        // No option is selected.
-    Info        // Selects info.
-    Warning     // Selects warning.
-    Error       // Selects error.
+    None        // Reports no validation issue.
+    Info        // Reports informational guidance.
+    Warning     // Reports a non-blocking concern.
+    Error       // Reports an invalid value.
 }
 
-// Represents prop validation result.
+// Returns one validation severity and its optional user-facing explanation.
 struct PropValidationResult
 {
-    state:   PropValidation = .None     // State associated with this value.
-    message: #null string               // Message associated with this value.
+    state:   PropValidation = .None     // Validation severity.
+    message: #null string               // Explanation shown with the row, or null for none.
 }
 
 internal impl Properties
@@ -26,7 +26,7 @@ internal impl Properties
     // Background color of the validation bar (reuses the embedded-info palette).
     mtd validationColor(state: PropValidation)->Color
     {
-        let colors = .getThemeColors()
+        let colors = .themeColors()
         switch state
         {
         case .Error:   return colors.embInfo_CriticalBk
@@ -40,7 +40,7 @@ internal impl Properties
     // Text color of the validation bar message.
     mtd validationTextColor(state: PropValidation)->Color
     {
-        let colors = .getThemeColors()
+        let colors = .themeColors()
         switch state
         {
         case .Error:   return colors.embInfo_CriticalText
@@ -54,15 +54,15 @@ internal impl Properties
     // Theme icon for a validation state (matches the embedded-info control).
     mtd validationIcon(state: PropValidation)->Icon
     {
-        let theme = .getTheme()
+        let theme = .theme()
         switch state
         {
-        case .Error:   return theme.getIcon64(.Critical, .valBarIconSize)
-        case .Warning: return theme.getIcon64(.Warning, .valBarIconSize)
-        case .Info:    return theme.getIcon64(.Information, .valBarIconSize)
+        case .Error:   return theme.icon64(.Critical, .valBarIconSize)
+        case .Warning: return theme.icon64(.Warning, .valBarIconSize)
+        case .Info:    return theme.icon64(.Information, .valBarIconSize)
         }
 
-        return theme.getIcon64(.Information, .valBarIconSize)
+        return theme.icon64(.Information, .valBarIconSize)
     }
 
     // Recompute the validation state of every item (called on build and after a change).
@@ -113,7 +113,7 @@ internal impl Properties
         return .applyItemValidation(item, result.state, result.message)
     }
 
-    // Set the validation of an item directly (for validation not driven by a struct).
+    // Assigns validation state directly for data not represented by a reflected struct field.
     #[Swag.Discardable]
     mtd setItemValidation(item: *PropertiesItem, state: PropValidation, message: #null string = null)->bool
     {
@@ -121,7 +121,7 @@ internal impl Properties
     }
 
     // Draw the colored background of a row's validation bar, in the row line's client space. The
-    // severity icon and the message text are drawn by the Label itself (like EmbInfoCtrl), so they
+    // severity icon and the message text are drawn by the Label itself (like InfoBar), so they
     // stay vertically centered together — see applyValidationVisual for the icon/colors.
     mtd paintValidationBar(painter: *Painter, item: *PropertiesItem)
     {
@@ -139,17 +139,17 @@ internal impl Properties
         painter.fillRoundRect(bar, .valBarRadius, .valBarRadius, .validationColor(item.validation))
     }
 
-    // Apply the bar's theme visuals to the Label: the severity icon (getIcon64, native White tint,
-    // like EmbInfoCtrl) plus the embInfo_* text color. Split out so it can be re-run on a theme
+    // Apply the bar's theme visuals to the Label: the severity icon (icon64, native White tint,
+    // like InfoBar) plus the embInfo_* text color. Split out so it can be re-run on a theme
     // switch (the Label colors are manual fields, not styles, so they don't follow the theme alone).
     mtd applyValidationVisual(item: *PropertiesItem)
     {
         if !@isset(item.validationLabel) or item.validation == .None do
             return
         let lbl = item.validationLabel
-        lbl.icon      = .validationIcon(item.validation)
-        lbl.iconColor = Argb.White
-        lbl.textColor = .validationTextColor(item.validation)
+        lbl.setIcon(.validationIcon(item.validation))
+        lbl.setIconColor(Argb.White)
+        lbl.setTextColor(.validationTextColor(item.validation))
         .syncValidationTextOffset(lbl)
     }
 
@@ -162,16 +162,16 @@ internal impl Properties
         if !@isset(item.label) do
             return
         let lbl = item.label
-        lbl.icon      = .getTheme().getIcon64(.Information, .valBarIconSize)
-        lbl.iconColor = Argb.White
-        lbl.textColor = .getThemeColors().embInfo_InformationText
+        lbl.setIcon(.theme().icon64(.Information, .valBarIconSize))
+        lbl.setIconColor(Argb.White)
+        lbl.setTextColor(.themeColors().embInfo_InformationText)
     }
 
     mtd syncValidationTextOffset(lbl: *Label)
     {
-        let font = lbl.getFont().regular
+        let font = lbl.font().regular
         if font do
-            lbl.paddingText = {me.valBarGlyphWidth, -font.descent * 0.5, me.valBarPaddingX, font.descent * 0.5}
+            lbl.setTextPadding({me.valBarGlyphWidth, -font.descent * 0.5, me.valBarPaddingX, font.descent * 0.5})
     }
 
     // Match the validation bar to the editor column and size the row to host it. Called once
@@ -199,10 +199,10 @@ internal impl Properties
                 .syncValidationTextOffset(notnull lbl)
                 let topGap = lbl.margin.y
                 let botGap = lbl.margin.w
-                let cw     = item.line.getClientRect().width
+                let cw     = item.line.clientRect().width
                 lbl.position.x     = me.leftMargin
                 lbl.position.width = Math.max(cw - me.leftMargin - me.rightMargin, 1.0)
-                lbl.autoHeight()
+                lbl.updateAutomaticHeight()
                 consume        = topGap + lbl.position.height + botGap
                 lbl.position.y = item.valueCellHeight + topGap
             }
@@ -226,7 +226,7 @@ internal impl Properties
         lbl.maxSize.x      = w
         lbl.position.width = w
         .syncValidationTextOffset(notnull lbl)
-        lbl.autoHeight()
+        lbl.updateAutomaticHeight()
         return true
     }
 }
@@ -240,8 +240,7 @@ private impl Properties
         if item.validation == state and item.validationMsg == message do
             return false
 
-        item.validation    = state
-        item.validationMsg = message
+        item.assignValidation(state, message)
 
         if state == .None
         {
@@ -269,19 +268,18 @@ private impl Properties
 
         with let lbl = Label.create(item.line, "", {0, 0, .position.width, 0})
         {
-            .labelFlags        |= .WordWrap | .AutoHeight
-            .horzAlignmentText = .Left
-            .vertAlignmentText = .Center
-            .focusStrategy     = .None
+            .updateFlags(.WordWrap | .AutoHeight)
+            .setTextAlignment(.Left, .Center)
+            .focusStrategy = .None
 
             // The Label draws the severity icon on the left and the text after it (both vertically
-            // centered by the Label — vertAlignmentIcon defaults to Center), like EmbInfoCtrl.
-            .horzAlignmentIcon = .Left
-            .paddingIcon.x     = (me.valBarGlyphWidth - me.valBarIconSize) * 0.5
+            // centered by the Label — iconVerticalAlignment defaults to Center), like InfoBar.
+            .setIconHorizontalAlignment(.Left)
+            .setIconPadding({(me.valBarGlyphWidth - me.valBarIconSize) * 0.5, 0, 0, 0})
 
             // Reserve room for the glyph on the left and inset the text from the colored
             // background edges (vertical breathing room is added when painting the bar).
-            .paddingText = {me.valBarGlyphWidth, 0, me.valBarPaddingX, 0}
+            .setTextPadding({me.valBarGlyphWidth, 0, me.valBarPaddingX, 0})
 
             // Gap above the bar + the painted vertical breathing room top and bottom.
             .margin.y = me.valBarGap + me.valBarPaddingY
@@ -290,6 +288,6 @@ private impl Properties
                 .margin.z = me.rightMargin
         }
 
-        item.validationLabel = lbl
+        item.assignValidationLabel(lbl)
     }
 }

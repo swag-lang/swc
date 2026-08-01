@@ -168,7 +168,7 @@ using Swag, Core
     let angle = 90.0'f32
     var u     = f.capture.newUndo(.SetTypedValue)
     u.valU32 = cast #bit (u32) angle
-    u.valRef = notnull Reflection.getField(BaseForm, #nameof(BaseForm.rotate))
+    u.valRef = notnull Reflection.findField(BaseForm, #nameof(BaseForm.rotate))
     f.capture.pushUndo(u)
     @assert(shape.rotate == 90)
     @assert(text.rotate == 90)
@@ -213,7 +213,7 @@ using Swag, Core
     let angle  = 90.0'f32
     var setVal = f.capture.newUndo(.SetTypedValue)
     setVal.valU32  = cast #bit (u32) angle
-    setVal.valRef  = notnull Reflection.getField(BaseForm, #nameof(BaseForm.rotate))
+    setVal.valRef  = notnull Reflection.findField(BaseForm, #nameof(BaseForm.rotate))
     setVal.mdlType = FormText
     f.capture.pushUndo(setVal)
     @assert(shape.rotate == 33)
@@ -391,7 +391,7 @@ func testUndoFuzzAssertState(capture: *Capture, snap: *UndoFuzzState)
     }
 }
 
-func testUndoFuzzSelect(capture: *Capture, rng: *Random.Rng, count: u32)
+func testUndoFuzzSelect(capture: *Capture, rng: *Random.Generator, count: u32)
 {
     capture.selection.clear()
     let total = cast(u32) capture.forms.count
@@ -432,7 +432,7 @@ func testUndoFuzzSelect(capture: *Capture, rng: *Random.Rng, count: u32)
     @assert(!f.capture.canUndo())
     var snapInitial = testUndoFuzzSnapshot(f.capture)
 
-    var rng: Random.Rng
+    var rng: Random.Generator
     rng.seedU32(0x51CA97)
 
     let alignKinds   = [UndoKind.AlignLeft, UndoKind.AlignCenter, UndoKind.AlignRight, UndoKind.AlignTop, UndoKind.AlignMiddle, UndoKind.AlignBottom]
@@ -501,7 +501,7 @@ func testUndoFuzzSelect(capture: *Capture, rng: *Random.Rng, count: u32)
             let angle = cast(f32) rng.nextS32(0, 360)
             let u     = f.capture.newUndo(.SetTypedValue)
             u.valU32 = cast #bit (u32) angle
-            u.valRef = notnull Reflection.getField(BaseForm, #nameof(BaseForm.rotate))
+            u.valRef = notnull Reflection.findField(BaseForm, #nameof(BaseForm.rotate))
             f.capture.pushUndo(u)
         }
         elif op == 7

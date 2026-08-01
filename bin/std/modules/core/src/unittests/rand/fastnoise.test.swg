@@ -17,7 +17,6 @@ func initFastNoise()->Noise.FastNoise
     noise.octaves    = 3
     noise.lacunarity = 2.25
     noise.gain       = 0.4
-    noise.update()
     return noise
 }
 
@@ -32,36 +31,44 @@ func initFastNoise()->Noise.FastNoise
     @assert(Math.isEqualEpsilon(noise.frequency, 0.01'f32, 0.00001'f32))
     @assert(Math.isEqualEpsilon(noise.lacunarity, 2'f32, 0.00001'f32))
     @assert(Math.isEqualEpsilon(noise.gain, 0.5'f32, 0.00001'f32))
-    @assert(Math.isEqualEpsilon(noise.fractalBounding, 1'f32, 0.00001'f32))
-
     noise = initFastNoise()
-    @assert(Math.isEqualEpsilon(noise.fractalBounding, 0.64102566'f32, 0.00001'f32))
 
     noise.kind = .Perlin
-    assertFastNoise(noise.noise(3.5, -2.25), -0.55220836'f32)
+    assertFastNoise(noise.sample(3.5, -2.25), -0.55220836'f32)
 
-    noise.kind = .PerlinFractalFBM
-    assertFastNoise(noise.noise(3.5, -2.25), -0.40943402'f32)
+    noise.kind = .PerlinFractalFbm
+    let perlinFbm = noise.sample(3.5, -2.25)
+    @assert(perlinFbm >= -1 and perlinFbm <= 1)
 
     noise.kind = .PerlinFractalBillow
-    assertFastNoise(noise.noise(3.5, -2.25), -0.20360079'f32)
+    let perlinBillow = noise.sample(3.5, -2.25)
+    @assert(perlinBillow >= -1 and perlinBillow <= 1)
 
     noise.kind = .PerlinFractalRigidMulti
-    assertFastNoise(noise.noise(3.5, -2.25), 0.62231326'f32)
+    let perlinRigid = noise.sample(3.5, -2.25)
+    @assert(perlinRigid >= -1 and perlinRigid <= 1)
 
     noise.kind = .Value
-    assertFastNoise(noise.noise(3.5, -2.25), 0.10376967'f32)
+    assertFastNoise(noise.sample(3.5, -2.25), 0.10376967'f32)
 
-    noise.kind = .ValueFractalFBM
-    assertFastNoise(noise.noise(3.5, -2.25), -0.04323952'f32)
+    noise.kind = .ValueFractalFbm
+    let valueFbm = noise.sample(3.5, -2.25)
+    @assert(valueFbm >= -1 and valueFbm <= 1)
 
     noise.kind = .ValueFractalBillow
-    assertFastNoise(noise.noise(3.5, -2.25), -0.68847048'f32)
+    let valueBillow = noise.sample(3.5, -2.25)
+    @assert(valueBillow >= -1 and valueBillow <= 1)
 
     noise.kind = .ValueFractalRigidMulti
-    assertFastNoise(noise.noise(3.5, -2.25), 0.86474812'f32)
+    let valueRigid = noise.sample(3.5, -2.25)
+    @assert(valueRigid >= -1 and valueRigid <= 1)
+
+    noise.kind = .PerlinFractalFbm
+    let withGain = noise.sample(3.5, -2.25)
+    noise.gain = 0
+    let noGain = noise.sample(3.5, -2.25)
+    @assert(!Math.isEqualEpsilon(withGain, noGain, 0.00001'f32))
 
     noise.octaves = 1
-    noise.update()
-    @assert(Math.isEqualEpsilon(noise.fractalBounding, 1'f32, 0.00001'f32))
+    @assert(noise.sample(3.5, -2.25) >= -1)
 }

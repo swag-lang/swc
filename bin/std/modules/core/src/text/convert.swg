@@ -152,7 +152,7 @@ impl ConvertFormatInt
 func convertAny(buf: *ConcatBuffer, value: #null const any, convFmt: ConvertFormat, strFormat: #null string)
 {
     var valueData = @dataof(value)
-    var type      = Reflection.makeConcreteAlias(@kindof(value))
+    var type      = Reflection.resolveAliases(@kindof(value))
 
     // A reference
     if Reflection.isPointerRef(type)
@@ -198,7 +198,7 @@ func convertAny(buf: *ConcatBuffer, value: #null const any, convFmt: ConvertForm
     // An enum value
     if Reflection.isEnum(type)
     {
-        let enumName = Reflection.getEnumName(type, valueData)
+        let enumName = Reflection.enumName(type, valueData)
         if !enumName.isEmpty() do
             buf.addBytes(@mkslice(enumName.buffer, cast(u64) enumName.length))
         else do

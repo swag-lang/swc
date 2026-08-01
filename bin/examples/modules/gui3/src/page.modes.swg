@@ -6,20 +6,20 @@ func createModesPage(parent: *Wnd)
 
     let left = createPanel(parent, "RichEditCtrl form", "Code-oriented chrome using gui3's own mode page source for a very different visual rhythm.", layout.left)
     {
-        let rect = left.getClientRect()
+        let rect = left.clientRect()
         discard createCodeEditor(left, {18, 88, rect.width - 36, rect.height - 106}, cast(string) SourcePageModes, .ShowFocusSel | .CurLineBorder | .TabToSpaces)
     }
 
     let right = createPanel(parent, "Edit form", "A softer document presentation for wrapped notes, review summaries and scratch prose.", layout.right)
     {
-        let rect = right.getClientRect()
+        let rect = right.clientRect()
         let ed   = createDocumentEditor(right, {18, 88, rect.width - 36, rect.height - 106}, "This variant uses the Edit form.\n\nIt keeps the rich selection model but relaxes the visual framing so notes sit more naturally beside buttons, forms and inspectors.\n\nBecause the control stays the same underneath, switching between prose and code does not mean switching engines.")
         ed.lineSpacing = 2
     }
 
     let bottom = createPanel(parent, "Flags matrix", "Read-only, blank rendering and wrapping can be combined per instance depending on the job.", layout.bottom)
     {
-        let rect         = bottom.getClientRect()
+        let rect         = bottom.clientRect()
         let gutter       = 18.0
         let columnWidth  = (rect.width - gutter * 4) / 3
         let top          = 92.0

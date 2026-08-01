@@ -93,7 +93,7 @@ SWC_TEST_BEGIN(FormatBlanks_MaxConsecutiveEmptyLinesOne)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(FormatBlanks_KeepEmptyLinesAtStartOfBlockRemoves)
+SWC_TEST_BEGIN(FormatBlanks_AfterOpeningBraceNever)
 {
     static constexpr std::string_view SOURCE =
         "func foo()\n"
@@ -110,13 +110,13 @@ SWC_TEST_BEGIN(FormatBlanks_KeepEmptyLinesAtStartOfBlockRemoves)
         "}\n";
 
     FormatOptions options;
-    options.keepEmptyLinesAtStartOfBlock = false;
-    options.maxConsecutiveEmptyLines     = 0;
+    options.blankLineAfterOpeningBrace = FormatBlankLineStyle::Never;
+    options.maxConsecutiveEmptyLines   = 0;
     return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(FormatBlanks_KeepEmptyLinesAtStartOfBlockPreserves)
+SWC_TEST_BEGIN(FormatBlanks_AfterOpeningBracePreserve)
 {
     static constexpr std::string_view SOURCE =
         "func foo()\n"
@@ -127,13 +127,34 @@ SWC_TEST_BEGIN(FormatBlanks_KeepEmptyLinesAtStartOfBlockPreserves)
         "}\n";
 
     FormatOptions options;
-    options.keepEmptyLinesAtStartOfBlock = true;
-    options.maxConsecutiveEmptyLines     = 0;
+    options.blankLineAfterOpeningBrace = FormatBlankLineStyle::Preserve;
+    options.maxConsecutiveEmptyLines   = 0;
     return checkBlanksRewrite(ctx, SOURCE, SOURCE, options);
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(FormatBlanks_KeepEmptyLinesAtEndOfBlockRemoves)
+SWC_TEST_BEGIN(FormatBlanks_AfterOpeningBraceAlways)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo()\n"
+        "{\n"
+        "    a = 1\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo()\n"
+        "{\n"
+        "\n"
+        "    a = 1\n"
+        "}\n";
+
+    FormatOptions options;
+    options.blankLineAfterOpeningBrace = FormatBlankLineStyle::Always;
+    return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatBlanks_BeforeClosingBraceNever)
 {
     static constexpr std::string_view SOURCE =
         "func foo()\n"
@@ -150,13 +171,13 @@ SWC_TEST_BEGIN(FormatBlanks_KeepEmptyLinesAtEndOfBlockRemoves)
         "}\n";
 
     FormatOptions options;
-    options.keepEmptyLinesAtEndOfBlock = false;
-    options.maxConsecutiveEmptyLines   = 0;
+    options.blankLineBeforeClosingBrace = FormatBlankLineStyle::Never;
+    options.maxConsecutiveEmptyLines    = 0;
     return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(FormatBlanks_KeepEmptyLinesAtEndOfBlockPreserves)
+SWC_TEST_BEGIN(FormatBlanks_BeforeClosingBracePreserve)
 {
     static constexpr std::string_view SOURCE =
         "func foo()\n"
@@ -167,9 +188,30 @@ SWC_TEST_BEGIN(FormatBlanks_KeepEmptyLinesAtEndOfBlockPreserves)
         "}\n";
 
     FormatOptions options;
-    options.keepEmptyLinesAtEndOfBlock = true;
-    options.maxConsecutiveEmptyLines   = 0;
+    options.blankLineBeforeClosingBrace = FormatBlankLineStyle::Preserve;
+    options.maxConsecutiveEmptyLines    = 0;
     return checkBlanksRewrite(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatBlanks_BeforeClosingBraceAlways)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo()\n"
+        "{\n"
+        "    a = 1\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo()\n"
+        "{\n"
+        "    a = 1\n"
+        "\n"
+        "}\n";
+
+    FormatOptions options;
+    options.blankLineBeforeClosingBrace = FormatBlankLineStyle::Always;
+    return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
@@ -215,7 +257,7 @@ SWC_TEST_BEGIN(FormatBlanks_TrimTrailingNewlinesDisabled)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(FormatBlanks_CombinedStartAndEndOfBlock)
+SWC_TEST_BEGIN(FormatBlanks_CombinedBlockEdges)
 {
     static constexpr std::string_view SOURCE =
         "func foo()\n"
@@ -240,14 +282,14 @@ SWC_TEST_BEGIN(FormatBlanks_CombinedStartAndEndOfBlock)
         "}\n";
 
     FormatOptions options;
-    options.keepEmptyLinesAtStartOfBlock = false;
-    options.keepEmptyLinesAtEndOfBlock   = false;
-    options.maxConsecutiveEmptyLines     = 0;
+    options.blankLineAfterOpeningBrace  = FormatBlankLineStyle::Never;
+    options.blankLineBeforeClosingBrace = FormatBlankLineStyle::Never;
+    options.maxConsecutiveEmptyLines    = 0;
     return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(FormatBlanks_BetweenFunctionsInsertsBlank)
+SWC_TEST_BEGIN(FormatBlanks_BeforeFunctionAlways)
 {
     static constexpr std::string_view SOURCE =
         "func foo()\n"
@@ -271,12 +313,12 @@ SWC_TEST_BEGIN(FormatBlanks_BetweenFunctionsInsertsBlank)
         "}\n";
 
     FormatOptions options;
-    options.minBlankLinesBetweenFunctions = 1;
+    options.blankLineBeforeFunctionDefinition = FormatBlankLineStyle::Always;
     return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(FormatBlanks_BetweenFunctionsKeepsDocCommentAttached)
+SWC_TEST_BEGIN(FormatBlanks_BeforeFunctionKeepsDocCommentAttached)
 {
     static constexpr std::string_view SOURCE =
         "func foo()\n"
@@ -304,12 +346,12 @@ SWC_TEST_BEGIN(FormatBlanks_BetweenFunctionsKeepsDocCommentAttached)
         "}\n";
 
     FormatOptions options;
-    options.minBlankLinesBetweenFunctions = 1;
+    options.blankLineBeforeFunctionDefinition = FormatBlankLineStyle::Always;
     return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(FormatBlanks_BetweenFunctionsKeepsShortFormsStacked)
+SWC_TEST_BEGIN(FormatBlanks_BeforeFunctionKeepsShortFormsStacked)
 {
     static constexpr std::string_view SOURCE =
         "interface IFoo\n"
@@ -321,12 +363,12 @@ SWC_TEST_BEGIN(FormatBlanks_BetweenFunctionsKeepsShortFormsStacked)
         "func cube(x: s32) => x * x * x\n";
 
     FormatOptions options;
-    options.minBlankLinesBetweenFunctions = 1;
+    options.blankLineBeforeFunctionDefinition = FormatBlankLineStyle::Always;
     return checkBlanksRewrite(ctx, SOURCE, SOURCE, options);
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(FormatBlanks_BetweenTypesInsertsBlank)
+SWC_TEST_BEGIN(FormatBlanks_BeforeTypeAlways)
 {
     static constexpr std::string_view SOURCE =
         "struct Point\n"
@@ -350,12 +392,12 @@ SWC_TEST_BEGIN(FormatBlanks_BetweenTypesInsertsBlank)
         "}\n";
 
     FormatOptions options;
-    options.minBlankLinesBetweenTypes = 1;
+    options.blankLineBeforeTypeDefinition = FormatBlankLineStyle::Always;
     return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(FormatBlanks_BeforeCommentsInsertsBlank)
+SWC_TEST_BEGIN(FormatBlanks_BeforeCommentBlockAlways)
 {
     static constexpr std::string_view SOURCE =
         "func foo()\n"
@@ -375,12 +417,12 @@ SWC_TEST_BEGIN(FormatBlanks_BeforeCommentsInsertsBlank)
         "}\n";
 
     FormatOptions options;
-    options.minBlankLinesBeforeComments = 1;
+    options.blankLineBeforeCommentBlock = FormatBlankLineStyle::Always;
     return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(FormatBlanks_BeforeCommentsKeepsBlockStartAndRuns)
+SWC_TEST_BEGIN(FormatBlanks_BeforeCommentBlockKeepsBlockStartAndRuns)
 {
     static constexpr std::string_view SOURCE =
         "func foo()\n"
@@ -391,7 +433,7 @@ SWC_TEST_BEGIN(FormatBlanks_BeforeCommentsKeepsBlockStartAndRuns)
         "}\n";
 
     FormatOptions options;
-    options.minBlankLinesBeforeComments = 1;
+    options.blankLineBeforeCommentBlock = FormatBlankLineStyle::Always;
     return checkBlanksRewrite(ctx, SOURCE, SOURCE, options);
 }
 SWC_TEST_END()
@@ -408,7 +450,7 @@ SWC_TEST_BEGIN(FormatBlanks_AfterGlobalBlockInsertsBlank)
         "const A = 1\n";
 
     FormatOptions options;
-    options.blankLineAfterGlobalBlock = true;
+    options.blankLineAfterGlobalBlock = FormatBlankLineStyle::Always;
     return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
@@ -430,8 +472,8 @@ SWC_TEST_BEGIN(FormatBlanks_AfterGlobalThenUsingBlocks)
         "const A = 1\n";
 
     FormatOptions options;
-    options.blankLineAfterGlobalBlock = true;
-    options.blankLineAfterUsingBlock  = true;
+    options.blankLineAfterGlobalBlock = FormatBlankLineStyle::Always;
+    options.blankLineAfterUsingBlock  = FormatBlankLineStyle::Always;
     return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
@@ -507,7 +549,7 @@ SWC_TEST_BEGIN(FormatBlanks_BetweenCasesNeverRemovesBlanks)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(FormatBlanks_AfterBlocksInsertsBlank)
+SWC_TEST_BEGIN(FormatBlanks_AfterStandaloneClosingBraceAlways)
 {
     static constexpr std::string_view SOURCE =
         "func foo(x: bool)\n"
@@ -531,12 +573,60 @@ SWC_TEST_BEGIN(FormatBlanks_AfterBlocksInsertsBlank)
         "}\n";
 
     FormatOptions options;
-    options.minBlankLinesAfterBlocks = 1;
+    options.blankLineAfterStandaloneClosingBrace = FormatBlankLineStyle::Always;
     return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(FormatBlanks_AfterBlocksKeepsElseAttached)
+SWC_TEST_BEGIN(FormatBlanks_AfterStandaloneClosingBraceNever)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo(x: bool)\n"
+        "{\n"
+        "    if x\n"
+        "    {\n"
+        "        a = 1\n"
+        "    }\n"
+        "\n"
+        "    b = 2\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo(x: bool)\n"
+        "{\n"
+        "    if x\n"
+        "    {\n"
+        "        a = 1\n"
+        "    }\n"
+        "    b = 2\n"
+        "}\n";
+
+    FormatOptions options;
+    options.blankLineAfterStandaloneClosingBrace = FormatBlankLineStyle::Never;
+    return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatBlanks_AfterStandaloneClosingBracePreserve)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo(x: bool)\n"
+        "{\n"
+        "    if x\n"
+        "    {\n"
+        "        a = 1\n"
+        "    }\n"
+        "\n"
+        "    b = 2\n"
+        "}\n";
+
+    FormatOptions options;
+    options.blankLineAfterStandaloneClosingBrace = FormatBlankLineStyle::Preserve;
+    return checkBlanksRewrite(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatBlanks_AfterStandaloneClosingBraceKeepsElseAttached)
 {
     static constexpr std::string_view SOURCE =
         "func foo(x: bool)\n"
@@ -552,7 +642,7 @@ SWC_TEST_BEGIN(FormatBlanks_AfterBlocksKeepsElseAttached)
         "}\n";
 
     FormatOptions options;
-    options.minBlankLinesAfterBlocks = 1;
+    options.blankLineAfterStandaloneClosingBrace = FormatBlankLineStyle::Always;
     return checkBlanksRewrite(ctx, SOURCE, SOURCE, options);
 }
 SWC_TEST_END()

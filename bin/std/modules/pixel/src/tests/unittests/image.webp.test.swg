@@ -14,7 +14,7 @@ func webpMultiplyHigh(value, coefficient: s32)->s32
 
 func assertWebpPixelFromTop(image: Image, x, y, r, g, b, a: u8)
 {
-    let color = image.getPixelColor(x, image.height - y - 1)
+    let color = image.pixelColor(x, image.height - y - 1)
     @assert(color.r == r)
     @assert(color.g == g)
     @assert(color.b == b)
@@ -28,7 +28,7 @@ func checkWebpAgainstPng(fileName, goldenName: string, width, height: s32)
     @assert(decoded.isValid())
     @assert(decoded.width == width)
     @assert(decoded.height == height)
-    @assert(decoded.pf == .RGBA8)
+    @assert(decoded.pixelFormat == .RGBA8)
 
     let golden = catch Image.load(getTestDataPath(goldenName)) as goldenError
     @assert(goldenError == null)
@@ -37,8 +37,8 @@ func checkWebpAgainstPng(fileName, goldenName: string, width, height: s32)
     for [y] in height do
         for [x] in width
     {
-        let got  = decoded.getPixelColor(x, y)
-        let want = golden.getPixelColor(x, y)
+        let got  = decoded.pixelColor(x, y)
+        let want = golden.pixelColor(x, y)
         @assert(got.r == want.r)
         @assert(got.g == want.g)
         @assert(got.b == want.b)
@@ -53,7 +53,7 @@ func checkLossyWebp(fileName, goldenName: string, width, height: s32, withAlpha:
     @assert(decoded.isValid())
     @assert(decoded.width == width)
     @assert(decoded.height == height)
-    @assert(decoded.pf == .RGBA8)
+    @assert(decoded.pixelFormat == .RGBA8)
 
     let golden = catch Image.load(getTestDataPath(goldenName)) as goldenError
     @assert(goldenError == null)
@@ -67,15 +67,15 @@ func checkLossyWebp(fileName, goldenName: string, width, height: s32, withAlpha:
         for [x] in width
         {
             let sourceY   = height - y - 1
-            let luma      = cast(s32) golden.getPixelColor(x, sourceY).r
-            let cb        = cast(s32) golden.getPixelColor(x / 2, height + sourceY / 2).r
-            let cr        = cast(s32) golden.getPixelColor(halfWidth + x / 2, height + sourceY / 2).r
+            let luma      = cast(s32) golden.pixelColor(x, sourceY).r
+            let cb        = cast(s32) golden.pixelColor(x / 2, height + sourceY / 2).r
+            let cr        = cast(s32) golden.pixelColor(halfWidth + x / 2, height + sourceY / 2).r
             let expectedR = webpExpectedChannel((webpMultiplyHigh(luma, 19077) + webpMultiplyHigh(cr, 26149) - 14234) >> 6)
             let expectedG = webpExpectedChannel((webpMultiplyHigh(luma, 19077) - webpMultiplyHigh(cb, 6419) -
-                             webpMultiplyHigh(cr, 13320) + 8708) >> 6)
+                            webpMultiplyHigh(cr, 13320) + 8708) >> 6)
             let expectedB = webpExpectedChannel((webpMultiplyHigh(luma, 19077) + webpMultiplyHigh(cb, 33050) - 17685) >> 6)
-            let expectedA = withAlpha ? golden.getPixelColor(x, height + halfHeight + sourceY).r : 0xFF
-            let got       = decoded.getPixelColor(x, y)
+            let expectedA = withAlpha ? golden.pixelColor(x, height + halfHeight + sourceY).r : 0xFF
+            let got       = decoded.pixelColor(x, y)
             @assert(got.r == expectedR)
             @assert(got.g == expectedG)
             @assert(got.b == expectedB)
@@ -117,12 +117,12 @@ func assertEncodedWebpRoundtrip(source: Image)
     @assert(decodeError == null)
     @assert(decoded.width == source.width)
     @assert(decoded.height == source.height)
-    @assert(decoded.pf == .RGBA8)
+    @assert(decoded.pixelFormat == .RGBA8)
     for [y] in source.height do
         for [x] in source.width
     {
-        let got  = decoded.getPixelColor(x, y)
-        let want = source.getPixelColor(x, y)
+        let got  = decoded.pixelColor(x, y)
+        let want = source.pixelColor(x, y)
         @assert(got.r == want.r)
         @assert(got.g == want.g)
         @assert(got.b == want.b)
@@ -150,9 +150,9 @@ func assertEncodedWebpRoundtrip(source: Image)
         ]
     let rgba = makeImage(3, 2, .RGBA8, pixels)
     assertEncodedWebpRoundtrip(rgba)
-    assertEncodedWebpRoundtrip(rgba.toSetPixelFormat(.BGRA8))
-    assertEncodedWebpRoundtrip(rgba.toSetPixelFormat(.RGB8))
-    assertEncodedWebpRoundtrip(rgba.toSetPixelFormat(.BGR8))
+    assertEncodedWebpRoundtrip(rgba.convertedTo(.BGRA8))
+    assertEncodedWebpRoundtrip(rgba.convertedTo(.RGB8))
+    assertEncodedWebpRoundtrip(rgba.convertedTo(.BGR8))
 }
 
 // Backward-distance runs can span the VP8L maximum length and start a new run.
@@ -196,7 +196,7 @@ func assertEncodedWebpRoundtrip(source: Image)
     @assert(err4 == null)
     @assert(decoded.width == 75)
     @assert(decoded.height == 100)
-    @assert(decoded.pf == .RGBA8)
+    @assert(decoded.pixelFormat == .RGBA8)
     @assert(!decoded.isValid())
 }
 
@@ -274,7 +274,7 @@ func assertEncodedWebpRoundtrip(source: Image)
     @assert(decodeError == null)
     @assert(decoded.width == 150)
     @assert(decoded.height == 100)
-    @assert(decoded.pf == .RGBA8)
+    @assert(decoded.pixelFormat == .RGBA8)
     @assert(!decoded.isValid())
 }
 

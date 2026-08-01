@@ -19,10 +19,10 @@ using Swag, Core
     redGreen.fillHsl(.RedGreen, Color.fromArgb(255'u8, 0'u8, 0'u8, 0'u8))
     assertImage(redGreen, 2, 2, .BGRA8)
 
-    assertPixel(redGreen, 0, 1, Color.fromRgbf(0.0, 1.0, 0.0).withAlpha(255))
-    assertPixel(redGreen, 1, 1, Color.fromRgbf(0.5, 1.0, 0.0).withAlpha(255))
-    assertPixel(redGreen, 0, 0, Color.fromRgbf(0.0, 0.5, 0.0).withAlpha(255))
-    assertPixel(redGreen, 1, 0, Color.fromRgbf(0.5, 0.5, 0.0).withAlpha(255))
+    assertPixel(redGreen, 0, 1, Color.fromRgbF32(0.0, 1.0, 0.0).withAlpha(255))
+    assertPixel(redGreen, 1, 1, Color.fromRgbF32(0.5, 1.0, 0.0).withAlpha(255))
+    assertPixel(redGreen, 0, 0, Color.fromRgbF32(0.0, 0.5, 0.0).withAlpha(255))
+    assertPixel(redGreen, 1, 0, Color.fromRgbF32(0.5, 0.5, 0.0).withAlpha(255))
 }
 
 // RGB plane modes as the ColorPicker actually uses them: RGBA8 format with a
@@ -33,26 +33,26 @@ using Swag, Core
     // RedGreen keeps blue fixed (here full blue).
     var redGreen = Image.create(2, 2, .RGBA8)
     redGreen.fillHsl(.RedGreen, Color.fromArgb(255'u8, 0'u8, 0'u8, 255'u8))
-    assertPixel(redGreen, 0, 1, Color.fromRgbf(0.0, 1.0, 1.0).withAlpha(255))
-    assertPixel(redGreen, 1, 1, Color.fromRgbf(0.5, 1.0, 1.0).withAlpha(255))
-    assertPixel(redGreen, 0, 0, Color.fromRgbf(0.0, 0.5, 1.0).withAlpha(255))
-    assertPixel(redGreen, 1, 0, Color.fromRgbf(0.5, 0.5, 1.0).withAlpha(255))
+    assertPixel(redGreen, 0, 1, Color.fromRgbF32(0.0, 1.0, 1.0).withAlpha(255))
+    assertPixel(redGreen, 1, 1, Color.fromRgbF32(0.5, 1.0, 1.0).withAlpha(255))
+    assertPixel(redGreen, 0, 0, Color.fromRgbF32(0.0, 0.5, 1.0).withAlpha(255))
+    assertPixel(redGreen, 1, 0, Color.fromRgbF32(0.5, 0.5, 1.0).withAlpha(255))
 
     // RedBlue keeps green fixed.
     var redBlue = Image.create(2, 2, .RGBA8)
     redBlue.fillHsl(.RedBlue, Color.fromArgb(255'u8, 0'u8, 255'u8, 0'u8))
-    assertPixel(redBlue, 0, 1, Color.fromRgbf(0.0, 1.0, 1.0).withAlpha(255))
-    assertPixel(redBlue, 1, 1, Color.fromRgbf(0.5, 1.0, 1.0).withAlpha(255))
-    assertPixel(redBlue, 0, 0, Color.fromRgbf(0.0, 1.0, 0.5).withAlpha(255))
-    assertPixel(redBlue, 1, 0, Color.fromRgbf(0.5, 1.0, 0.5).withAlpha(255))
+    assertPixel(redBlue, 0, 1, Color.fromRgbF32(0.0, 1.0, 1.0).withAlpha(255))
+    assertPixel(redBlue, 1, 1, Color.fromRgbF32(0.5, 1.0, 1.0).withAlpha(255))
+    assertPixel(redBlue, 0, 0, Color.fromRgbF32(0.0, 1.0, 0.5).withAlpha(255))
+    assertPixel(redBlue, 1, 0, Color.fromRgbF32(0.5, 1.0, 0.5).withAlpha(255))
 
     // GreenBlue keeps red fixed.
     var greenBlue = Image.create(2, 2, .RGBA8)
     greenBlue.fillHsl(.GreenBlue, Color.fromArgb(255'u8, 255'u8, 0'u8, 0'u8))
-    assertPixel(greenBlue, 0, 1, Color.fromRgbf(1.0, 0.0, 1.0).withAlpha(255))
-    assertPixel(greenBlue, 1, 1, Color.fromRgbf(1.0, 0.5, 1.0).withAlpha(255))
-    assertPixel(greenBlue, 0, 0, Color.fromRgbf(1.0, 0.0, 0.5).withAlpha(255))
-    assertPixel(greenBlue, 1, 0, Color.fromRgbf(1.0, 0.5, 0.5).withAlpha(255))
+    assertPixel(greenBlue, 0, 1, Color.fromRgbF32(1.0, 0.0, 1.0).withAlpha(255))
+    assertPixel(greenBlue, 1, 1, Color.fromRgbF32(1.0, 0.5, 1.0).withAlpha(255))
+    assertPixel(greenBlue, 0, 0, Color.fromRgbF32(1.0, 0.0, 0.5).withAlpha(255))
+    assertPixel(greenBlue, 1, 0, Color.fromRgbF32(1.0, 0.5, 0.5).withAlpha(255))
 }
 
 // A larger image exercises the fill path the real ColorPicker widget uses (this is
@@ -69,9 +69,9 @@ using Swag, Core
     big.fillHsl(.RedGreen, Color.fromArgb(255'u8, 0'u8, 0'u8, 200'u8))
     assertImage(big, 128, 96, .RGBA8)
 
-    let topLeft     = big.getPixelColor(1, 1)
-    let bottomRight = big.getPixelColor(126, 94)
-    let bottomLeft  = big.getPixelColor(1, 94)
+    let topLeft     = big.pixelColor(1, 1)
+    let bottomRight = big.pixelColor(126, 94)
+    let bottomLeft  = big.pixelColor(1, 94)
 
     @assert(topLeft.a == 255)     // fill must write opaque alpha everywhere
     @assert(bottomRight.a == 255)
@@ -85,7 +85,7 @@ using Swag, Core
     var big = Image.create(128, 96, .RGBA8)
     big.fillHsl(.HueSaturation, Color.fromHsl(0.0, 1.0, 0.5))
     assertImage(big, 128, 96, .RGBA8)
-    @assert(big.getPixelColor(1, 1).a == 255)
-    @assert(big.getPixelColor(126, 94).a == 255)
-    @assert(big.getPixelColor(1, 1).argb != big.getPixelColor(126, 94).argb)
+    @assert(big.pixelColor(1, 1).a == 255)
+    @assert(big.pixelColor(126, 94).a == 255)
+    @assert(big.pixelColor(1, 1).argb != big.pixelColor(126, 94).argb)
 }

@@ -102,7 +102,7 @@ private func run(op: &Array's64, input: s64)->s64
 
 func day9B()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "9.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "9.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     var prg: Array's64

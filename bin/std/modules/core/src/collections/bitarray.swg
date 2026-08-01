@@ -6,15 +6,20 @@ using Swag
 // for storing a large number of boolean flags.
 public struct BitArray
 {
-    buffer:    #null [*] u32        // Internal buffer storing the bits packed into 32-bit integers.
     allocator: #null IAllocator     // The allocator used for memory operations.
-    count:     u64                  // The number of bits in the array.
-    capacity:  u64                  // The total allocated capacity in bytes.
+
+    readonly count: u64     // The number of bits in the array.
+
+    private
+    {
+        buffer:        #null [*] u32
+        capacityBytes: u64
+    }
 }
 
 impl BitArray
 {
-    mtd const wordCount()->u64
+    private mtd const wordCount()->u64
     {
         if !.count do
             return 0
@@ -25,35 +30,39 @@ impl BitArray
         return result
     }
 
-    mtd dataPtr()->[*] u32
+    private mtd dataPtr()->[*] u32
     {
         return notnull .buffer
     }
 
-    mtd const constDataPtr()->const [*] u32
+    private mtd const constDataPtr()->const [*] u32
     {
         return cast(const [*] u32) (notnull .buffer)
     }
 
     // Frees the memory allocated by the bit array.
     // Does nothing if the buffer is not allocated.
-    mtd free()
+    private mtd release()
     {
         if !.buffer do
             return
-        Memory.free(.buffer, .capacity, .allocator)
+        Memory.free(.buffer, .capacityBytes, .allocator)
+        .buffer        = null
+        .count         = 0
+        .capacityBytes = 0
     }
 
     // Reallocates the private buffer to a new capacity.
     // This is a low-level memory operation.
-    mtd realloc(newCapacity: u64)
+    private mtd realloc(newCapacityBytes: u64)
     {
         if !.allocator do
             .allocator = @getcontext().allocator
-        .buffer        = cast() Memory.realloc(.buffer, newCapacity, .capacity, .allocator)
+        .buffer        = cast() Memory.realloc(.buffer, newCapacityBytes, .capacityBytes, .allocator)
+        .capacityBytes = newCapacityBytes
     }
 
-    mtd clearUnusedBits()
+    private mtd clearUnusedBits()
     {
         let usedBits = .count & 31
         if !usedBits do
@@ -76,7 +85,7 @@ public impl BitArray
     // Ensures the allocated memory is freed when the array goes out of scope.
     mtd opDrop()
     {
-        .free()
+        .release()
     }
 
     // Handles the deep copy of the array when it is copied.
@@ -86,14 +95,18 @@ public impl BitArray
         if .buffer
         {
             let otherBuffer = .dataPtr()
-            .buffer = null
-            .reserve(.count)
-            Memory.copy(.dataPtr(), otherBuffer, .capacity)
+            let bitCount    = .count
+            let byteCount   = .capacityBytes
+            .buffer        = null
+            .count         = 0
+            .capacityBytes = 0
+            .resize(bitCount)
+            Memory.copy(.dataPtr(), otherBuffer, byteCount)
         }
     }
 
     // Returns the boolean value of the bit at a specific position.
-    mtd opIndex(index: u64)->bool
+    mtd const opIndex(index: u64)->bool
     {
         return .get(index)
     }
@@ -108,23 +121,22 @@ public impl BitArray
     mtd opSet(what: const [..] bool)
     {
         let len = @countof(what)
-        .reserve(len)
+        .resize(len)
         if !len do
             return
 
-        Memory.set(.dataPtr(), 0, .capacity)
         for value, [index] in what do
             .set(index, value)
     }
 
     // Compares this bit array with another one for equality.
     // Returns 'true' if both arrays have the same bit count and all bits are identical.
-    mtd opEquals(other: BitArray)->bool
+    mtd const opEquals(other: BitArray)->bool
     {
         if .count != other.count do
             return false
 
-        let buffer      = .dataPtr()
+        let buffer      = .constDataPtr()
         let otherBuffer = other.constDataPtr()
         for .wordCount()
         {
@@ -170,35 +182,29 @@ public impl BitArray
         }
     }
 
-    // Reserves capacity for a given number of bits.
-    // The allocated memory is not initialized.
-    mtd reserve(maxBits: u64)
+    // Changes the number of bits and initializes every bit to `initialValue`.
+    mtd resize(bitCount: u64, initialValue = false)
     {
-        if !maxBits
+        if !bitCount
         {
-            .free()
-            .buffer           = null
-            .count, .capacity = 0
+            .release()
             return
         }
 
-        .count    = maxBits
-        .capacity = .wordCount() * 4
-        .realloc(.capacity)
-    }
-
-    // Reserves capacity for a given number of bits and initializes them to a specific value.
-    mtd reserve(maxBits: u64, initialValue: bool)
-    {
-        .reserve(maxBits)
-        Memory.set(.dataPtr(), initialValue ? 0xFF : 0x00, .capacity)
+        .count = bitCount
+        let byteCount = .wordCount() * #sizeof(u32)
+        if byteCount != .capacityBytes do
+            .realloc(byteCount)
+        Memory.set(.dataPtr(), initialValue ? 0xFF : 0x00, .capacityBytes)
         .clearUnusedBits()
     }
 
     // Sets all bits in the array to the specified boolean value.
     mtd setAll(value: bool)
     {
-        Memory.set(.dataPtr(), value ? 0xFF : 0x00, .capacity)
+        if !.count do
+            return
+        Memory.set(.dataPtr(), value ? 0xFF : 0x00, .capacityBytes)
         .clearUnusedBits()
     }
 
@@ -235,10 +241,7 @@ public impl BitArray
         let bit    = index - (val << 5)
         let shift  = 1'u32 << cast(u32) bit
         let buffer = .dataPtr()
-        if buffer[val] & shift do
-            buffer[val] ^= shift
-        else do
-            buffer[val] |= shift
+        buffer[val] ^= shift
     }
 
     // Inverts all bit values in the array.

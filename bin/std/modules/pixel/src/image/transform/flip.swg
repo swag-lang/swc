@@ -9,7 +9,7 @@ impl Image
         mec.visitPixels(f, stride: .width)
         {
             let dstImage = cast(*Image) (notnull userData)
-            let w8       = image.width * image.bpp8
+            let w8       = image.width * image.bytesPerPixel
             Memory.copy(dstImage.pixels.buffer + (image.height - y - 1) * w8, pix, cast(u64) w8)
         }
     }
@@ -24,10 +24,10 @@ impl Image
     }
 
     // Flip image vertically
-    public mtd const toFlip()->Image
+    public mtd const flipped()->Image
     {
         Debug.assert(.pixels.buffer != null)
-        var result: retval = create(.width, .height, .pf)
+        var result: retval = create(.width, .height, .pixelFormat)
         .doFlip(&result)
         return result
     }

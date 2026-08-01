@@ -18,12 +18,12 @@ internal impl Properties
         if !target or !@isset(.edView) do
             return false
         let view = notnull cast(#null *Wnd) .edView
-        return target == view or view.isParentOf(target)
+        return target == view or view.isAncestorOf(target)
     }
 
     mtd hitTest(ptLoc: Math.Point)->#null *PropertiesItem
     {
-        let pt = ptLoc + .scrollWnd.getScrollPos()
+        let pt = ptLoc + .scrollWnd.scrollPosition()
         for itemIt in .items
         {
             let item = notnull itemIt
@@ -49,10 +49,10 @@ internal impl Properties
             // the popup can still close on an outside click and the trigger button's hover
             // state can clear normally. Wheel events inside the popup are left alone so it
             // can scroll its own content.
-            if let mouseEvt = evt as MouseEvent where mouseEvt.kind == .MouseWheel
+            if let mouseEvt = evt as MouseEvent where mouseEvt.kind == .Wheel
             {
                 let target = mouseEvt.target
-                if !(target and (target == prop.editPopup or prop.editPopup.isParentOf(target))) do
+                if !(target and (target == prop.editPopup or prop.editPopup.isAncestorOf(target))) do
                     return true
             }
 
@@ -62,29 +62,29 @@ internal impl Properties
         // Mouse wheel anywhere over the list scrolls it, even when the cursor is over an
         // editor (combobox/editbox/slider): those pass the wheel on, but their inner widgets
         // would otherwise swallow the bubble before it reaches the scroll view.
-        if let mouseEvt = evt as MouseEvent where mouseEvt.kind == .MouseWheel
+        if let mouseEvt = evt as MouseEvent where mouseEvt.kind == .Wheel
         {
-            if prop.scrollWnd and prop.edView and mouseEvt.target and prop.edView.isParentOf(mouseEvt.target)
+            if prop.scrollWnd and prop.edView and mouseEvt.target and prop.edView.isAncestorOf(mouseEvt.target)
             {
-                let sp = prop.scrollWnd.getScrollPos()
-                prop.scrollWnd.setScrollPos(sp.x, sp.y - mouseEvt.move.y * prop.scrollWnd.scrollIncrementV)
+                let sp = prop.scrollWnd.scrollPosition()
+                prop.scrollWnd.setScrollPos(sp.x, sp.y - mouseEvt.delta.y * prop.scrollWnd.verticalScrollStep)
                 return true
             }
         }
 
         switch evt
         {
-        case FocusEvent as focusEvt where focusEvt.kind == .CanSetFocus:
+        case FocusEvent as focusEvt where focusEvt.kind == .CanGain:
             if prop.cursorSet do
                 focusEvt.canChangeFocus = false
 
         // While a row editor has the focus, intercept the navigation/mode keys
         // before the editor sees them so the grid is always keyboard-drivable.
-        case KeyEvent as keyEvt where keyEvt.kind == .KeyPressed:
+        case KeyEvent as keyEvt where keyEvt.kind == .Pressed:
             if prop.editKeyEvent(keyEvt) do
                 return true
 
-        case MouseEvent as mouseEvt where mouseEvt.kind == .MousePressed:
+        case MouseEvent as mouseEvt where mouseEvt.kind == .Pressed:
 
             // A press outside the row area (on the scroll bar, typically) must not touch the
             // selection: scrolling and selecting are separate gestures.
@@ -121,9 +121,9 @@ internal impl Properties
             // (the gap between two rows) must not select-and-reveal the first row —
             // that would jump the scroll back to the top.
             if !prop.isEditorWnd(mouseEvt.target) do
-                prop.focusNav(fallbackToFirst: false)
+                prop.focusNavigation(fallbackToFirst: false)
 
-        case MouseEvent as mouseEvt where mouseEvt.kind == .MouseDoubleClick and mouseEvt.button == .Left:
+        case MouseEvent as mouseEvt where mouseEvt.kind == .DoubleClick and mouseEvt.button == .Left:
             if !prop.isOverRows(mouseEvt.target) do
                 break
 
@@ -144,21 +144,21 @@ internal impl Properties
                 selItem.checkBox.toggle()
             }
 
-        case MouseEvent as mouseEvt where mouseEvt.kind == .MouseReleased:
+        case MouseEvent as mouseEvt where mouseEvt.kind == .Released:
             prop.resizingColumn = false
 
-        case MouseEvent as mouseEvt where mouseEvt.kind == .MouseLeave:
+        case MouseEvent as mouseEvt where mouseEvt.kind == .Leave:
             if prop.hotItem and prop.isGridLike() do
                 ToolTip.hide(notnull prop.hotItem.line)
             prop.hotItem = null
 
-        case MouseEvent as mouseEvt where (mouseEvt.kind == .MouseMove or mouseEvt.kind == .MouseSetCursor):
+        case MouseEvent as mouseEvt where (mouseEvt.kind == .Move or mouseEvt.kind == .SetCursor):
             var pt = prop.surfaceToLocal(mouseEvt.surfacePos)
 
             // Resize of the grid column
             if prop.resizingColumn
             {
-                prop.setColumnSize(cast() (pt.x - prop.gridMarginColumn * 0.5))
+                prop.setNameColumnWidth(cast() (pt.x - prop.gridMarginColumn * 0.5))
                 return true
             }
 
@@ -175,7 +175,7 @@ internal impl Properties
                 if hit and @isset(hit.label) and prop.isGridLike()
                 {
                     pt = hit.label.surfaceToLocal(mouseEvt.surfacePos)
-                    if hit.label.getClientRect().contains(pt) do
+                    if hit.label.clientRect().contains(pt) do
                         ToolTip.show(notnull hit.line, mouseEvt.surfacePos, hit.description)
                 }
 
@@ -185,10 +185,10 @@ internal impl Properties
             // On the column size bar
             if prop.isGridLike()
             {
-                let x = prop.getColumnX()
+                let x = prop.columnPosition()
                 if pt.x >= x - 3 and pt.x <= x + 3 and hit and !hit.flags.has(.NoSeparator)
                 {
-                    prop.getApp().setFrameCursor(Cursor.from(.SizeWE))
+                    prop.app().setFrameCursor(Cursor.from(.ResizeHorizontal))
                     prop.cursorSet = true
                     prop.invalidate()
                 }
@@ -205,21 +205,21 @@ internal impl Properties
 
     mtd onItemEvent(item: *PropertiesItem, wndItem: *Wnd, evt: IEvent)->bool
     {
-        if wndItem.childs.isEmpty() do
+        if wndItem.children.isEmpty() do
             return false
 
         switch evt
         {
-        case MouseEvent as mouseEvt where mouseEvt.kind == .MousePressed and mouseEvt.button == .Right:
+        case MouseEvent as mouseEvt where mouseEvt.kind == .Pressed and mouseEvt.button == .Right:
             .popupMenu(item, mouseEvt.surfacePos)
             return true
 
-        case NotifyEvent as ntfyEvt where ntfyEvt.ntfyKind == .ChildFocusChanged:
+        case NotifyEvent as ntfyEvt where ntfyEvt.kind == .ChildFocusChanged:
             wndItem.invalidate()
             return true
 
-        case PaintEvent as paintEvt where paintEvt.kind == .PrePaint:
-            .paintBackItem(paintEvt.bc.painter, item, wndItem)
+        case PaintEvent as paintEvt where paintEvt.kind == .Before:
+            .paintBackItem(paintEvt.paintContext.painter, item, wndItem)
         }
 
         return false

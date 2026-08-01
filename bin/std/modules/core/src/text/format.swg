@@ -119,8 +119,8 @@ func append(buf: *ConcatBuffer, fmt: string, values: ...)
 
                 if ptr[nextIdx] do
                     nextIdx += 1
-                idx         = nextIdx
-                strFormat   = @mkslice(ptrFormat, cast(u64) countFormat)
+                idx       = nextIdx
+                strFormat = @mkslice(ptrFormat, cast(u64) countFormat)
             }
 
             // Deal with the parameter

@@ -11,7 +11,7 @@ func circularHeadlessChanged(c: *Circular)
     CircularHeadlessChangedCount += 1
 }
 
-// setValue/getValue map through the [min..max] range and emit sigChanged.
+// setValue/value map through the [min..max] range and emit sigChanged.
 #test
 {
     var host: Testing.HeadlessHost
@@ -19,21 +19,38 @@ func circularHeadlessChanged(c: *Circular)
     CircularHeadlessChangedCount = 0
 
     let circ = Circular.create(&host.root, {20, 20, 120, 120})
-    circ.setMinMax(0, 100)
+    circ.setBounds(0, 100)
     circ.sigChanged += &circularHeadlessChanged
 
     circ.setValue(50)
-    @assert(Math.abs(circ.getValue() - 50) < 0.01)
-    @assert(Math.abs(circ.value1 - 0.5) < 0.01)
+    @assert(Math.abs(circ.value() - 50) < 0.01)
+    @assert(Math.abs(circ.lowerRatio - 0.5) < 0.01)
     @assert(CircularHeadlessChangedCount == 1)
 
     circ.setValue(25)
-    @assert(Math.abs(circ.getValue() - 25) < 0.01)
+    @assert(Math.abs(circ.value() - 25) < 0.01)
     @assert(CircularHeadlessChangedCount == 2)
 
     // Same value again does not re-emit.
     circ.setValue(25)
     @assert(CircularHeadlessChangedCount == 2)
+
+    host.shutdown()
+}
+
+// A partial arc applies its start angle exactly once when positioning markers.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(160, 160)
+
+    let circ = Circular.create(&host.root, {20, 20, 120, 120})
+    circ.setAngleRange(Math.Angle.fromDegrees(90), Math.Angle.fromDegrees(270))
+    circ.updateGeometry()
+
+    let start = circ.positionAtAngle(circ.valueToAngle(0))
+    @assert(start.x > circ.centerX)
+    @assert(Math.abs(start.y - circ.centerY) < 0.01)
 
     host.shutdown()
 }
@@ -45,15 +62,15 @@ func circularHeadlessChanged(c: *Circular)
     host.setup(160, 160)
 
     let circ = Circular.create(&host.root, {20, 20, 120, 120}, null, true)
-    circ.setMinMax(0, 100)
+    circ.setBounds(0, 100)
 
-    // The right bound must be set first: setValue1 clamps to min(value, value2).
-    circ.setValueRight(70)
-    circ.setValueLeft(30)
+    // Either endpoint can be assigned first because range controls start at the full span.
+    circ.setLowerValue(30)
+    circ.setUpperValue(70)
 
-    @assert(Math.abs(circ.getValueLeft() - 30) < 0.01)
-    @assert(Math.abs(circ.getValueRight() - 70) < 0.01)
-    @assert(circ.value1 <= circ.value2)
+    @assert(Math.abs(circ.lowerValue() - 30) < 0.01)
+    @assert(Math.abs(circ.upperValue() - 70) < 0.01)
+    @assert(circ.lowerRatio <= circ.upperRatio)
 
     host.shutdown()
 }

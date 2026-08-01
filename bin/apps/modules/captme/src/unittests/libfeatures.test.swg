@@ -18,7 +18,7 @@ using Swag, Core
     // the (real) recycle bin and library folder is cleaned up in a defer so a failed
     // assertion can never leave stray captures behind for the running app to load.
     let src  = testTempCapturePath()
-    let base = Path.getFileName(src)
+    let base = Path.fileName(src)
     defer
     {
         discard catch File.delete(src)
@@ -227,7 +227,7 @@ using Swag, Core
     @assert(err7 == null)
     Memory.delete(cap)
 
-    let it = view.allItems.addNewPtr()
+    let it = view.allItems.addNew()
     it.fi.fullname = path
     view.items.add(it)
     view.loadOne(it)

@@ -238,12 +238,12 @@ SWC_TEST_BEGIN(FormatFile_BlankLineAfterUsingBlock)
         "const X = 1\n";
 
     FormatOptions options;
-    options.blankLineAfterUsingBlock = true;
+    options.blankLineAfterUsingBlock = FormatBlankLineStyle::Always;
     return checkFileRewrite(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(FormatFile_MinBlankLinesBetweenFunctions)
+SWC_TEST_BEGIN(FormatFile_BlankLineBeforeFunctionDefinition)
 {
     // Only multi-line definitions are separated: empty / one-line bodies and
     // prototypes keep stacking as written.
@@ -274,7 +274,7 @@ SWC_TEST_BEGIN(FormatFile_MinBlankLinesBetweenFunctions)
         "}\n";
 
     FormatOptions options;
-    options.minBlankLinesBetweenFunctions = 1;
+    options.blankLineBeforeFunctionDefinition = FormatBlankLineStyle::Always;
     return checkFileRewrite(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()

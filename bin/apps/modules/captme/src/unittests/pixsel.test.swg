@@ -56,20 +56,20 @@ using Swag, Core
         dref cast(*u32) pix = Color.fromArgb(255'u8, r, g, b).argb
     }
 
-    let before = f.capture.backImg.getPixelColor(12, 12)
+    let before = f.capture.backImg.pixelColor(12, 12)
     let pixSel = testAddShape(f.capture, 6, 6, 12, 12, .PixSel)
     pixSel.kind = .Rectangle
     f.capture.selection.add(0)
 
     f.main.sendCommandEvent(ActionPixSel.SmartFill)
-    let after = f.capture.backImg.getPixelColor(12, 12)
+    let after = f.capture.backImg.pixelColor(12, 12)
     @assert(after.argb != before.argb)
 
     f.capture.undo()
-    @assert(f.capture.backImg.getPixelColor(12, 12).argb == before.argb)
+    @assert(f.capture.backImg.pixelColor(12, 12).argb == before.argb)
 
     f.capture.redo()
-    @assert(f.capture.backImg.getPixelColor(12, 12).argb == after.argb)
+    @assert(f.capture.backImg.pixelColor(12, 12).argb == after.argb)
 
     f.shutdown()
 }
@@ -86,7 +86,7 @@ using Swag, Core
     f.capture.height  = 24
     f.capture.backImg = Gui.Testing.indexedImage(24, 24)
 
-    let before = f.capture.backImg.getPixelColor(12, 12)
+    let before = f.capture.backImg.pixelColor(12, 12)
     let pixSel = testAddShape(f.capture, 6, 6, 12, 12, .PixSel)
     pixSel.kind = .Rectangle
     f.capture.selection.add(0)
@@ -104,12 +104,12 @@ using Swag, Core
     @assert(imgForm.image.width == 12)
     @assert(imgForm.image.height == 12)
     @assert(imgForm.texture.isValid())
-    @assert(f.capture.backImg.getPixelColor(12, 12).argb != before.argb)
+    @assert(f.capture.backImg.pixelColor(12, 12).argb != before.argb)
 
     f.capture.undo()
     @assert(f.capture.forms.count == 1)
     @assert(@kindof(f.capture.forms[0]) == FormShape)
-    @assert(f.capture.backImg.getPixelColor(12, 12).argb == before.argb)
+    @assert(f.capture.backImg.pixelColor(12, 12).argb == before.argb)
 
     f.capture.redo()
     @assert(f.capture.forms.count == 1)

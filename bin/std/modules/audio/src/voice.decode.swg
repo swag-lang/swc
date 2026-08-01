@@ -6,8 +6,8 @@ impl Voice
     {
         let file = notnull .file
 
-        // If we are at the end of the file, then nothing to:, except if we need
-        // to for. In that case, we rewind datas to the start
+        // At the end of the source, return no buffer unless looping is enabled. A loop rewinds
+        // the source before filling the next buffer.
         if .streamCurSeek >= file.dataSize
         {
             if !.playFlags.has(.Loop) do
@@ -16,17 +16,17 @@ impl Voice
         }
 
         // If the file is prefetched and in a driver requested format, just submit the
-        // prefetched datas
-        if .streamCurSeek < file.datas.count and file.encoding == .requestedEncoding
+        // prefetched data
+        if .streamCurSeek < file.data.count and file.encoding == .requestedEncoding
         {
             let orgSeek  = .streamCurSeek
-            let readSize = (file.datas.count - .streamCurSeek)
-            .streamCurSeek = file.datas.count
-            let datasBuffer = notnull file.datas.buffer
-            return {datasBuffer + orgSeek, readSize}
+            let readSize = (file.data.count - .streamCurSeek)
+            .streamCurSeek = file.data.count
+            let dataBuffer = notnull file.data.buffer
+            return {dataBuffer + orgSeek, readSize}
         }
 
-        // Otherwise we need to decode datas in a temporary buffer
+        // Otherwise decode into a temporary buffer.
         if !.decodedBuffers[.decodedBufferIdx].buffer do
             .decodedBuffers[.decodedBufferIdx].resize(DecodedBufferSize)
 
@@ -40,20 +40,21 @@ impl Voice
     mtd closeBuffer()
     {
         closeData(me)
+        .destroyCodec()
     }
 
     mtd createCodec() fail
     {
         let file = notnull .file
-        let desc = getCodec(.requestedEncoding, file.encoding)
+        let desc = findCodec(.requestedEncoding, file.encoding)
         if !desc do
             fail UnsupportedFormatError{"unsupported encoding"}
         let decoderData = notnull Memory.new(desc.type)
         let decoder     = cast(*Codec) decoderData
-        decoder.srcEncoding = file.encoding
-        decoder.dstEncoding = .requestedEncoding
-        decoder.type        = desc.type
-        .codec              = @mkinterface(decoder, desc.type, ICodec)
+        decoder.sourceEncoding      = file.encoding
+        decoder.destinationEncoding = .requestedEncoding
+        decoder.type                = desc.type
+        .codec                      = @mkinterface(decoder, desc.type, ICodec)
     }
 
     mtd destroyCodec()
@@ -71,7 +72,7 @@ impl Voice
     {
         let file = notnull .file
 
-        // If the file contains datas that are directly requested by the driver, no need
+        // If the file contains data in the encoding requested by the driver, no need
         // to decode, we can directly read in the destination buffer
         if file.encoding == .requestedEncoding
         {
@@ -90,7 +91,7 @@ impl Voice
             let streamBuffer = notnull .streamBuffer.buffer
             let codec        = notnull .codec
             .streamBuffer.count = .readData(streamBuffer, StreamBufferSize)
-            .streamCurSeek      = readStart + codec.init(streamBuffer, .streamBuffer.count)
+            .streamCurSeek      = readStart + codec.initialize(streamBuffer, .streamBuffer.count)
         }
 
         let readStart    = .streamCurSeek
@@ -98,15 +99,15 @@ impl Voice
         let codec        = notnull .codec
         .streamBuffer.count = .readData(streamBuffer, StreamBufferSize)
         let used = codec.decode(destBuffer, length, streamBuffer, .streamBuffer.count)
-        .streamCurSeek = readStart + used.read
-        return used.write
+        .streamCurSeek = readStart + used.bytesRead
+        return used.bytesWritten
     }
 
     mtd readData(destBuffer: [*] void, length: u64)->u64 fail
     {
         let file = notnull .file
 
-        // Out of datas
+        // End of the audio payload.
         if .streamCurSeek >= file.dataSize do
             return 0
 
@@ -114,11 +115,11 @@ impl Voice
 
         // First take from the prefetched buffer if there's something there, instead of reading
         // from the file.
-        if .streamCurSeek < file.datas.count
+        if .streamCurSeek < file.data.count
         {
-            let remain      = Math.min(file.datas.count - .streamCurSeek, length)
-            let datasBuffer = notnull file.datas.buffer
-            Memory.copy(destBuffer, datasBuffer + .streamCurSeek, remain)
+            let remain     = Math.min(file.data.count - .streamCurSeek, length)
+            let dataBuffer = notnull file.data.buffer
+            Memory.copy(destBuffer, dataBuffer + .streamCurSeek, remain)
             .streamCurSeek += remain
             if .streamCurSeek >= file.dataSize do
                 return remain
@@ -129,10 +130,10 @@ impl Voice
 
         // Open file for streaming
         if !.stream.isOpen() do
-            .stream = File.open(file.fullname, File.FileMode.Open, File.FileAccess.Read, File.FileShare.Read)
+            .stream = File.open(file.path, File.FileMode.Open, File.FileAccess.Read, File.FileShare.Read)
 
         // Read from file
-        .stream.setPosition(.Begin, file.dataSeek + .streamCurSeek)
+        .stream.seek(.Begin, file.dataOffset + .streamCurSeek)
         wantedLength = Math.min(wantedLength, file.dataSize - .streamCurSeek)
         return .stream.read(destBuffer, wantedLength)
     }
@@ -140,10 +141,11 @@ impl Voice
     mtd rewindData() fail
     {
         .streamCurSeek = 0
+        .destroyCodec()
         if .stream.isOpen()
         {
             let file = notnull .file
-            .stream.setPosition(.Begin, file.dataSeek)
+            .stream.seek(.Begin, file.dataOffset)
         }
     }
 

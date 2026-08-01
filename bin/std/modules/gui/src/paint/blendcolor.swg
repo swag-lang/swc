@@ -8,7 +8,7 @@ struct BlendColor
     speed: f32 = 8     // Speed of the interpolation, in units per second.
 
     // Interpolation state, advanced one step per frame. Set a target with 'setColor' and read
-    // the current value with 'getColor'; the endpoints and the cursor between them are derived.
+    // the current value with 'color'; the endpoints and the cursor between them are derived.
     internal
     {
         curVec4:   Math.Vector4           // Color of the current frame.
@@ -24,9 +24,9 @@ impl BlendColor
     // Apply the color lerp to reach 'target'
     mtd apply(wnd: *Wnd, target: Color)
     {
-        if wnd.getApp().dirtyTheme != .themeCrc
+        if wnd.app().dirtyTheme != .themeCrc
         {
-            .themeCrc                       = wnd.getApp().dirtyTheme
+            .themeCrc                       = wnd.app().dirtyTheme
             .curVec4, .startVec4, .destVec4 = target.toVector4()
             .factor                         = 1.0
             return
@@ -61,8 +61,8 @@ impl BlendColor
             destV.z = .startVec4.z
         }
 
-        .curVec4 = startV.lerpTo(destV, .factor)
-        .factor  += wnd.getApp().getDt() * .speed
+        .curVec4 = Math.Vector4.lerp(startV, destV, .factor)
+        .factor  += wnd.app().deltaSeconds() * .speed
         wnd.invalidate()
     }
 
@@ -72,7 +72,7 @@ impl BlendColor
         .themeCrc = Swag.U32.Max
     }
 
-    // Get the current color
+    // Returns the current interpolated color.
     mtd cur()->Color
     {
         return Color.fromVector4(.curVec4)

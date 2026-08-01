@@ -7,7 +7,7 @@ using Time
 struct FileInfo
 {
     fullname:       String               // Full path of the file or directory
-    attributes = FileAttributes.Zero     // Attributes describing the file (e.g., read-only, hidden)
+    attributes = FileAttributes.None     // Attributes describing the file (e.g., read-only, hidden)
     creationTime:   DateTime             // Time the file or directory was created
     lastAccessTime: DateTime             // Time the file or directory was last accessed
     lastWriteTime:  DateTime             // Time the file or directory was last modified

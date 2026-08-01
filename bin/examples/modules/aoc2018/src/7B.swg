@@ -36,7 +36,7 @@ using Core
 
 func day7B()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "7.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "7.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     var steps: HashTable'(u8, { prev, next: String })
@@ -108,7 +108,7 @@ func day7B()
             }
         }
 
-        // Slice.sort(avail.toSlice(), bigFirst: true)
+        // Slice.sort(avail.toSlice(), descending: true)
         for &w1 in workers
         {
             if w1.val or avail.isEmpty() do

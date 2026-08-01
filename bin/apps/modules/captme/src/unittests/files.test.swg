@@ -26,7 +26,7 @@ func testSamePath(left: String, right: String)->bool
 
 func testHasCaptmeFileMetadata(img: Image, captureFile: String)->bool
 {
-    for md in img.metaDatas
+    for md in img.metadata
     {
         if md.isTag("Captme.File")
         {
@@ -40,9 +40,13 @@ func testHasCaptmeFileMetadata(img: Image, captureFile: String)->bool
 
 func testPrepareRecentLibrary(main: *MainWnd)
 {
+    // Each scenario owns the callbacks it registers. Drop previous closures before their
+    // captured windows disappear, then restore a pristine library value.
+    @drop(&g_Library, 1)
+    @init(&g_Library, 1)
+
     catch Library.init() as err2
     @assert(err2 == null)
-    g_Library.files.clear()
     g_Library.loaded = true
 
     if !@isset(main.recentWnd) do
@@ -197,7 +201,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(saved.isValid())
     @assert(saved.width == 32)
     @assert(saved.height == 20)
-    @assert(saved.metaDatas.count > 0)
+    @assert(saved.metadata.count > 0)
     @assert(testHasCaptmeFileMetadata(saved, capturePath))
 
     f.shutdown()

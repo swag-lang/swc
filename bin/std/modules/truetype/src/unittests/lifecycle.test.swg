@@ -66,6 +66,12 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
 
     discard catch face.setPixelSize(0, 0) as err8
     @assert(err8 != null)
+
+    discard catch face.setPixelSize(Swag.U16.Max + 1, 16) as err9
+    @assert(err9 != null)
+
+    @assert(face.hasChar('A'))
+    @assert(!face.hasChar(0x10FFFF))
 }
 
 #test

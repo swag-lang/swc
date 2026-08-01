@@ -45,7 +45,9 @@ const InvalidRenderTargetHandle: RenderTargetHandle = cast() 0     // Sentinel t
 alias RenderTargetSurfaceHandle = u64                                            // Opaque renderer depth/stencil-surface identifier.
 const InvalidRenderTargetSurfaceHandle: RenderTargetSurfaceHandle = cast() 0     // Sentinel that identifies no surface.
 
-// Owns CPU pixel storage for one texture in headless mode.
+// Dependency-visible backing type required by the concrete `RenderOgl` layout.
+// It is not part of the renderer product API.
+#[Swag.Opaque, Swag.NoDoc]
 struct HeadlessTexture
 {
     handle: TextureHandle     // Synthetic renderer handle.
@@ -117,7 +119,7 @@ private impl RenderOgl
     {
         var storage: HeadlessTexture
         storage.handle = texture.handle
-        storage.pixels.resize(cast(u64) texture.getByteSize())
+        storage.pixels.resize(cast(u64) texture.byteCount())
         if pixels do
             Memory.copy(storage.pixels.buffer, @dataof(pixels), Math.min(@countof(pixels), storage.pixels.count))
         .headlessTextures.add(#move storage)
@@ -129,7 +131,7 @@ private impl RenderOgl
         if !storage do
             return
 
-        var img = Image.create(texture.width, texture.height, texture.pf)
+        var img = Image.create(texture.width, texture.height, texture.pixelFormat)
         img.fill(color)
         Memory.copy(storage.pixels.buffer, img.pixels.buffer, Math.min(storage.pixels.count, img.pixels.count))
     }
@@ -458,8 +460,8 @@ impl RenderOgl
         glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT)
     }
 
-    // Get the actual render target size
-    mtd getTargetSize()->{ width, height: s32 }
+    // Returns the active render-target size in pixels.
+    mtd targetSize()->{ width, height: s32 }
     {
         if .curRT do
             return {.curRT.colorBuffer.width, .curRT.colorBuffer.height}
@@ -473,7 +475,7 @@ impl RenderOgl
             return
 
         glEnable(GL_SCISSOR_TEST)
-        let {?, h} = .getTargetSize()
+        let {?, h} = .targetSize()
         glScissor(cast(GLint) rect.x, cast(GLint) (h - rect.y - rect.height), cast(GLint) rect.width, cast(GLint) rect.height)
     }
 
@@ -570,7 +572,7 @@ impl RenderOgl
     mtd bindRenderTarget(rt: *RenderTarget, vp: #null *Math.Rectangle = null)
     {
         Debug.assert(rt != null)
-        if !rt.colorBuffer.valid do
+        if !rt.colorBuffer.isValid() do
             return
         if .curRT do
             .stackRT.add(.curRT)
@@ -596,7 +598,7 @@ impl RenderOgl
     {
         if .headless
         {
-            var result: retval = Image.create(rt.colorBuffer.width, rt.colorBuffer.height, rt.colorBuffer.pf, .getTexturePixels(rt.colorBuffer, rt.colorBuffer.pf).toSlice())
+            var result: retval = Image.create(rt.colorBuffer.width, rt.colorBuffer.height, rt.colorBuffer.pixelFormat, .readTexturePixels(rt.colorBuffer, rt.colorBuffer.pixelFormat).toSlice())
             result.crop(x, y, w, h)
             return result
         }
@@ -615,7 +617,7 @@ impl RenderOgl
         let curRT = notnull .curRT
         if .headless
         {
-            var result: retval = Image.create(curRT.colorBuffer.width, curRT.colorBuffer.height, curRT.colorBuffer.pf, .getTexturePixels(curRT.colorBuffer, curRT.colorBuffer.pf).toSlice())
+            var result: retval = Image.create(curRT.colorBuffer.width, curRT.colorBuffer.height, curRT.colorBuffer.pixelFormat, .readTexturePixels(curRT.colorBuffer, curRT.colorBuffer.pixelFormat).toSlice())
             result.crop(x, y, w, h)
             .unbindRenderTarget()
             return result
@@ -654,12 +656,13 @@ impl RenderOgl
     #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd createRenderTarget(w, h: s32)->RenderTarget
     {
+        Debug.assert(w > 0 and h > 0)
         if .headless
         {
             var result: retval
-            result.handle             = cast(RenderTargetHandle) .headlessNextHandle
-            .headlessNextHandle       += 1
-            result.colorBuffer.attach(cast(TextureHandle) .headlessNextHandle, .BGRA8, w, h)
+            let targetHandle = cast(RenderTargetHandle) .headlessNextHandle
+            .headlessNextHandle += 1
+            result.attach(targetHandle, cast(TextureHandle) .headlessNextHandle, .BGRA8, w, h)
             .headlessNextHandle += 1
             .addHeadlessTexture(result.colorBuffer, null)
             return result
@@ -685,9 +688,7 @@ impl RenderOgl
         glBindFramebuffer(GL_FRAMEBUFFER, 0)
 
         var result: retval
-        result.handle             = cast(RenderTargetHandle) fbo
-        result.colorBuffer.attach(cast(TextureHandle) colorID, .RGBA8, w, h)
-        result.depthStencil       = cast() rbo
+        result.attach(cast(RenderTargetHandle) fbo, cast(TextureHandle) colorID, .RGBA8, w, h, cast(RenderTargetSurfaceHandle) rbo)
         return result
     }
 
@@ -695,15 +696,13 @@ impl RenderOgl
     #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd deleteRenderTarget(rt: *RenderTarget)
     {
-        if rt.handle == InvalidRenderTargetHandle or !rt.colorBuffer.valid do
+        if rt.handle == InvalidRenderTargetHandle or !rt.colorBuffer.isValid() do
             return
 
         if .headless
         {
             .removeHeadlessTexture(rt.colorBuffer.handle)
-            rt.handle       = InvalidRenderTargetHandle
-            rt.depthStencil = InvalidRenderTargetSurfaceHandle
-            rt.colorBuffer.clear()
+            rt.clear()
             return
         }
 
@@ -716,9 +715,7 @@ impl RenderOgl
         var fb: GLuint = cast() rt.handle
         glDeleteFramebuffers(1, &fb)
 
-        rt.handle       = InvalidRenderTargetHandle
-        rt.depthStencil = InvalidRenderTargetSurfaceHandle
-        rt.colorBuffer.clear()
+        rt.clear()
     }
 
     // Load and register an image for rendering
@@ -733,15 +730,13 @@ impl RenderOgl
     {
         if !image.isValid()
         {
-            var result: Texture
-            result.attach(InvalidTextureHandle, .RGBA8, 0, 0)
-            return result
+            return {}
         }
 
         if .headless
         {
             var result: retval
-            result.attach(cast(TextureHandle) .headlessNextHandle, image.pf, image.width, image.height)
+            result.attach(cast(TextureHandle) .headlessNextHandle, image.pixelFormat, image.width, image.height)
             .headlessNextHandle += 1
             .addHeadlessTexture(result, image.pixels.toSlice())
             return result
@@ -750,7 +745,7 @@ impl RenderOgl
         var fmt: GLenum = 0
         var tinternal   = GL_RGB
 
-        switch #complete image.pf
+        switch #complete image.pixelFormat
         {
         case .BGR8:
             fmt = GL_BGR
@@ -774,14 +769,14 @@ impl RenderOgl
         glTexImage2D(GL_TEXTURE_2D, 0, tinternal, cast(s32) image.width, cast(s32) image.height, 0, fmt, GL_UNSIGNED_BYTE, cast([*] u8) (notnull image.pixels.buffer))
 
         var result: retval
-        result.attach(cast(TextureHandle) textureID, image.pf, image.width, image.height)
+        result.attach(cast(TextureHandle) textureID, image.pixelFormat, image.width, image.height)
         return result
     }
 
     // Maps a Pixel byte layout to its OpenGL upload/readback format.
-    func pixelFormatToNative(pf: PixelFormat)->GLenum
+    internal func pixelFormatToNative(pixelFormat: PixelFormat)->GLenum
     {
-        switch #complete pf
+        switch #complete pixelFormat
         {
         case .BGR8:  return GL_BGR
         case .BGRA8: return GL_BGRA
@@ -801,27 +796,27 @@ impl RenderOgl
             let storage = .findHeadlessTexture(texture.handle)
             if !storage do
                 return
-            Memory.copy(storage.pixels.buffer, pixels, Math.min(storage.pixels.count, cast(u64) texture.getByteSize()))
+            Memory.copy(storage.pixels.buffer, pixels, Math.min(storage.pixels.count, cast(u64) texture.byteCount()))
             return
         }
 
-        let fmt       = pixelFormatToNative(texture.pf)
+        let fmt       = pixelFormatToNative(texture.pixelFormat)
         let textureID = cast(GLuint) texture.handle
         glBindTexture(GL_TEXTURE_2D, textureID)
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, cast(s32) texture.width, cast(s32) texture.height, fmt, GL_UNSIGNED_BYTE, pixels)
     }
 
-    // Returns the pixels associated to a texture
+    // Reads a texture into owned CPU memory in `pixelFormat`.
     #[Warning("Wrn0006", WarningLevel.Disable)]
-    mtd getTexturePixels(texture: Texture, pf: PixelFormat)->Array'u8
+    mtd readTexturePixels(texture: Texture, pixelFormat: PixelFormat)->Array'u8
     {
         var result: retval
         if .headless
         {
-            if !texture.valid do
+            if !texture.isValid() do
                 return result
 
-            result.resize(cast(u64) texture.getByteSize())
+            result.resize(cast(u64) texture.byteCount())
             let storage = .findHeadlessTexture(texture.handle)
             if storage do
                 Memory.copy(result.buffer, storage.pixels.buffer, Math.min(result.count, storage.pixels.count))
@@ -830,8 +825,8 @@ impl RenderOgl
 
         glEnable(GL_TEXTURE_2D)
         glBindTexture(GL_TEXTURE_2D, cast() texture.handle)
-        result.resize(cast(u64) texture.getByteSize())
-        let fmt = pixelFormatToNative(pf)
+        result.resize(cast(u64) texture.byteCount())
+        let fmt = pixelFormatToNative(pixelFormat)
         glGetTexImage(GL_TEXTURE_2D, 0, fmt, GL_UNSIGNED_BYTE, result.buffer)
         glDisable(GL_TEXTURE_2D)
         return result
@@ -841,7 +836,7 @@ impl RenderOgl
     #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd removeTexture(texture: *Texture)
     {
-        if !texture.valid do
+        if !texture.isValid() do
             return
         if .headless
         {
@@ -865,14 +860,14 @@ impl RenderOgl
     // Rotate the world transform
     mtd rotateTransform(angle: Math.Angle)
     {
-        let tr = Transform2.createRotation(angle.rad, 0, 0)
+        let tr = Transform2.createRotation(angle.radians, 0, 0)
         .worldTransform.multiply(tr)
     }
 
     // Rotate the world transform
     mtd rotateTransform(angle: Math.Angle, centerX, centerY: f32)
     {
-        let tr = Transform2.createRotation(angle.rad, centerX, centerY)
+        let tr = Transform2.createRotation(angle.radians, centerX, centerY)
         .worldTransform.multiply(tr)
     }
 
@@ -900,9 +895,9 @@ impl RenderOgl
     // Uploads projection and model matrices for the current target.
     //
     // `mvp` and `mdl` are uniform locations in the active shader.
-    mtd computeMatrices(mvp, mdl: ShaderParamHandle)
+    internal mtd computeMatrices(mvp, mdl: ShaderParamHandle)
     {
-        let {width, height} = .getTargetSize()
+        let {width, height} = .targetSize()
 
         // View, ortho projection
         .orthoMatrix = ortho(cast(f32) height, 0, 0, cast(f32) width, 0, 1.0)
@@ -924,7 +919,7 @@ impl RenderOgl
 
         case .Clear:
             let params       = &cmd.clear
-            let {a, r, g, b} = params.color.toArgbf()
+            let {a, r, g, b} = params.color.toArgbF32()
             glClearColor(r, g, b, a)
             glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT)
 
@@ -1058,7 +1053,7 @@ impl RenderOgl
                 else do
                     textureID = cast() atlas.texture.handle
 
-                atlas.texture.attach(cast(TextureHandle) textureID, atlas.bpp == 3 ? .RGB8 : .RGBA8, atlas.width / atlas.bpp, atlas.height)
+                atlas.texture.attach(cast(TextureHandle) textureID, atlas.bytesPerPixel == 3 ? .RGB8 : .RGBA8, atlas.width / atlas.bytesPerPixel, atlas.height)
 
                 // An atlas keeps fixed dimensions for its whole life, so allocate the
                 // texture storage once and stream new glyphs in with glTexSubImage2D.
@@ -1074,10 +1069,10 @@ impl RenderOgl
                     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
                     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magF)
                     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minF)
-                    glTexImage2D(GL_TEXTURE_2D, 0, fmt, cast(GLsizei) atlas.texture.width, cast(GLsizei) atlas.texture.height, 0, fmt, GL_UNSIGNED_BYTE, atlas.datas.buffer)
+                    glTexImage2D(GL_TEXTURE_2D, 0, fmt, cast(GLsizei) atlas.texture.width, cast(GLsizei) atlas.texture.height, 0, fmt, GL_UNSIGNED_BYTE, atlas.data.buffer)
                 }
                 else do
-                    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, cast(GLsizei) atlas.texture.width, cast(GLsizei) atlas.texture.height, fmt, GL_UNSIGNED_BYTE, atlas.datas.buffer)
+                    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, cast(GLsizei) atlas.texture.width, cast(GLsizei) atlas.texture.height, fmt, GL_UNSIGNED_BYTE, atlas.data.buffer)
 
                 // Build the mip chain for distance-field atlases. Each glyph keeps a
                 // 'spread'-texel margin, so low mips do not bleed neighbouring glyphs.
@@ -1273,7 +1268,7 @@ impl RenderOgl
             return
         }
 
-        let {width, height} = .getTargetSize()
+        let {width, height} = .targetSize()
         if width <= 0 or height <= 0 do
             return
 
@@ -1330,12 +1325,14 @@ impl RenderOgl
         glUniformMatrix4fv(cast(GLint) .curShader.mdl, 1, GL_FALSE, &.modelMatrix.m[0, 0])
     }
 
-    // Get a render target of the given size
-    // releaseRenderTarget must be called to release it
-    mtd getRenderTarget(w, h: s32)->*RenderTarget
+    // Acquires a pooled render target at least as large as the requested size.
+    //
+    // Return it with [[Pixel.RenderOgl.releaseRenderTarget]].
+    mtd acquireRenderTarget(width, height: s32)->*RenderTarget
     {
-        let w2 = Math.roundUpToPowerOf2(cast(u32) w)
-        let h2 = Math.roundUpToPowerOf2(cast(u32) h)
+        Debug.assert(width > 0 and height > 0)
+        let w2 = Math.roundUpToPowerOf2(cast(u32) width)
+        let h2 = Math.roundUpToPowerOf2(cast(u32) height)
 
         for rt, [i] in .stackReleasedRT
         {
@@ -1371,7 +1368,7 @@ impl RenderOgl
     }
 
     // Create the given shader
-    func createShader(base: *ShaderBase, vertex, pixel: const [..] u8) fail
+    internal func createShader(base: *ShaderBase, vertex, pixel: const [..] u8) fail
     {
         var buf: String = @mkstring(@dataof(vertex), @countof(vertex))
         buf.replace("#include base", @mkstring(@dataof(BaseVertexShader), @countof(BaseVertexShader)))

@@ -39,4 +39,9 @@ using Swag, Core, Pixel
     Clipboard.addTypedValue(&v, s32)
     @assert(Clipboard.getTypedValue(&got, s32))
     @assert(got == 1664)
+
+    Clipboard.clear()
+    @assert(!Clipboard.hasString())
+    @assert(!Clipboard.hasImage())
+    @assert(!Clipboard.hasTypedValue(s32))
 }

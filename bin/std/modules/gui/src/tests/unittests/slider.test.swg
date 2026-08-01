@@ -32,7 +32,7 @@ func sliderHeadlessReset()
     SliderHeadlessEndCount     = 0
 }
 
-// setValue/getValue map through the [min..max] range and clamp.
+// setValue/value map through the [min..max] range and clamp.
 #test
 {
     var host: Testing.HeadlessHost
@@ -40,23 +40,23 @@ func sliderHeadlessReset()
     sliderHeadlessReset()
 
     let slider = Slider.create(&host.root, {20, 20, 220, 30})
-    slider.setMinMax(0, 100)
+    slider.setBounds(0, 100)
     slider.sigStartChange += &sliderHeadlessStart
     slider.sigChanged     += &sliderHeadlessChanged
     slider.sigEndChange   += &sliderHeadlessEnd
 
     slider.setValue(50)
-    @assert(Math.abs(slider.getValue() - 50) < 0.01)
-    @assert(Math.abs(slider.value1 - 0.5) < 0.01)
+    @assert(Math.abs(slider.value() - 50) < 0.01)
+    @assert(Math.abs(slider.lowerRatio - 0.5) < 0.01)
     @assert(SliderHeadlessChangedCount == 1)
     @assert(SliderHeadlessStartCount == 1)
     @assert(SliderHeadlessEndCount == 1)
 
     slider.setValue(200)
-    @assert(Math.abs(slider.getValue() - 100) < 0.01)
+    @assert(Math.abs(slider.value() - 100) < 0.01)
 
     slider.setValue(-50)
-    @assert(Math.abs(slider.getValue() - 0) < 0.01)
+    @assert(Math.abs(slider.value() - 0) < 0.01)
 
     host.shutdown()
 }
@@ -69,13 +69,31 @@ func sliderHeadlessReset()
     sliderHeadlessReset()
 
     let slider = Slider.create(&host.root, {20, 20, 220, 30})
-    slider.setMinMax(0, 10, 1)
+    slider.setBounds(0, 10, 1)
 
     slider.setValue(3.4)
-    @assert(Math.abs(slider.getValue() - 3) < 0.01)
+    @assert(Math.abs(slider.value() - 3) < 0.01)
 
     slider.setValue(3.6)
-    @assert(Math.abs(slider.getValue() - 4) < 0.01)
+    @assert(Math.abs(slider.value() - 4) < 0.01)
+
+    host.shutdown()
+}
+
+// A step that does not divide the range still clamps the upper endpoint exactly.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(280, 80)
+
+    let slider = Slider.create(&host.root, {20, 20, 220, 30})
+    slider.setBounds(0, 10, 6)
+    slider.setValue(10)
+
+    @assert(Math.abs(slider.value() - 10) < 0.01)
+    @assert(Math.abs(slider.minimum() - 0) < 0.01)
+    @assert(Math.abs(slider.maximum() - 10) < 0.01)
+    @assert(Math.abs(slider.step() - 6) < 0.01)
 
     host.shutdown()
 }
@@ -88,7 +106,7 @@ func sliderHeadlessReset()
     sliderHeadlessReset()
 
     let slider = Slider.create(&host.root, {20, 20, 220, 30})
-    slider.setMinMax(0, 100)
+    slider.setBounds(0, 100)
     slider.sigStartChange += &sliderHeadlessStart
     slider.sigEndChange   += &sliderHeadlessEnd
 
@@ -96,11 +114,11 @@ func sliderHeadlessReset()
     @assert(slider.isMoving)
     @assert(host.app.mouseCaptureWnd == slider)
     @assert(SliderHeadlessStartCount == 1)
-    let valRight = slider.getValue()
+    let valRight = slider.value()
     @assert(valRight > 50)
 
     host.moveMouse({40, 35})
-    let valLeft = slider.getValue()
+    let valLeft = slider.value()
     @assert(valLeft < 50)
     @assert(valLeft < valRight)
 
@@ -120,12 +138,23 @@ func sliderHeadlessReset()
     sliderHeadlessReset()
 
     let slider = Slider.create(&host.root, {20, 20, 220, 30}, null, true)
-    slider.setMinMax(0, 100)
-    slider.setRangeValues(20, 80)
+    slider.setBounds(0, 100)
+    slider.setRange(20, 80)
 
-    @assert(Math.abs(slider.getValueLeft() - 20) < 0.01)
-    @assert(Math.abs(slider.getValueRight() - 80) < 0.01)
-    @assert(slider.value1 <= slider.value2)
+    @assert(Math.abs(slider.lowerValue() - 20) < 0.01)
+    @assert(Math.abs(slider.upperValue() - 80) < 0.01)
+    @assert(slider.lowerRatio <= slider.upperRatio)
+
+    sliderHeadlessReset()
+    slider.sigStartChange += &sliderHeadlessStart
+    slider.sigChanged     += &sliderHeadlessChanged
+    slider.sigEndChange   += &sliderHeadlessEnd
+    slider.setRange(-20, 120)
+    @assert(Math.abs(slider.lowerValue() - 0) < 0.01)
+    @assert(Math.abs(slider.upperValue() - 100) < 0.01)
+    @assert(SliderHeadlessStartCount == 1)
+    @assert(SliderHeadlessChangedCount == 1)
+    @assert(SliderHeadlessEndCount == 1)
 
     host.shutdown()
 }
@@ -138,28 +167,28 @@ func sliderHeadlessReset()
     sliderHeadlessReset()
 
     let slider = Slider.create(&host.root, {20, 20, 220, 30})
-    slider.setMinMax(0, 100)
+    slider.setBounds(0, 100)
     slider.setValue(50)
     slider.sigChanged += &sliderHeadlessChanged
     host.focus(slider)
 
     // Default step is 5% of the range = 5 units.
     host.keyPress(Input.Key.Right)
-    @assert(Math.abs(slider.getValue() - 55) < 0.01)
+    @assert(Math.abs(slider.value() - 55) < 0.01)
     host.keyPress(Input.Key.Left)
-    @assert(Math.abs(slider.getValue() - 50) < 0.01)
+    @assert(Math.abs(slider.value() - 50) < 0.01)
     @assert(SliderHeadlessChangedCount == 2)
 
     host.keyPress(Input.Key.Home)
-    @assert(Math.abs(slider.getValue() - 0) < 0.01)
+    @assert(Math.abs(slider.value() - 0) < 0.01)
     host.keyPress(Input.Key.End)
-    @assert(Math.abs(slider.getValue() - 100) < 0.01)
+    @assert(Math.abs(slider.value() - 100) < 0.01)
 
     // Up/Down mirror Right/Left.
     host.keyPress(Input.Key.Down)
-    @assert(Math.abs(slider.getValue() - 95) < 0.01)
+    @assert(Math.abs(slider.value() - 95) < 0.01)
     host.keyPress(Input.Key.Up)
-    @assert(Math.abs(slider.getValue() - 100) < 0.01)
+    @assert(Math.abs(slider.value() - 100) < 0.01)
 
     host.shutdown()
 }
@@ -172,14 +201,14 @@ func sliderHeadlessReset()
     sliderHeadlessReset()
 
     let slider = Slider.create(&host.root, {20, 20, 220, 30})
-    slider.setMinMax(0, 10, 1)
+    slider.setBounds(0, 10, 1)
     slider.setValue(5)
     host.focus(slider)
 
     host.keyPress(Input.Key.Right)
-    @assert(Math.abs(slider.getValue() - 6) < 0.01)
+    @assert(Math.abs(slider.value() - 6) < 0.01)
     host.keyPress(Input.Key.Left)
-    @assert(Math.abs(slider.getValue() - 5) < 0.01)
+    @assert(Math.abs(slider.value() - 5) < 0.01)
 
     host.shutdown()
 }

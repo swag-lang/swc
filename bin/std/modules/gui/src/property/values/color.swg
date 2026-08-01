@@ -1,6 +1,6 @@
 using Core, Pixel
 
-impl Properties
+internal impl Properties
 {
     mtd constructColor(value: Swag.TypeValue, data: #null [*] u8, parentItem: *PropertiesItem)->*PropertiesItem
     {
@@ -15,7 +15,7 @@ impl Properties
         let keepAlpha = Reflection.hasAttribute(value, .KeepAlpha)
         let editAlpha = !opaque and !keepAlpha
 
-        var width = cast(f32) Reflection.getAttributeValue(value, .EditSize, "size", .sizeEditValue)
+        var width = cast(f32) Reflection.attributeValue(value, .EditSize, "size", .editorWidth)
         if !.isGridLike() do
             width = .listContentWidthFromUseful(width)
         const MarginBtn = 4
@@ -25,7 +25,7 @@ impl Properties
         // stay left-aligned at its edit size in list mode (otherwise the color row
         // is the only one that ends up centered). maxSize caps the stack stretch;
         // an anchored width would drift with the resize history.
-        let line = Wnd.create'Wnd(item.line, {0, 0, width, .getThemeMetrics().editBox_Height})
+        let line = Wnd.create'Wnd(item.line, {0, 0, width, .themeMetrics().editBox_Height})
         line.maxSize.x = width
         if .isGridLike() do
             line.dockStyle = .CenterKeepSizeVert
@@ -33,37 +33,37 @@ impl Properties
 
         with let btn = IconButton.create(line, {}, {0, 0, WidthBtn, item.line.position.height})
         {
-            .dockStyle   = .Left
-            .arrowPos    = .RightDown
-            .checkedForm = .None
-            .setForm(.RoundSquare)
+            .dockStyle = .Left
+            .setArrowPosition(.RightDownward)
+            .setCheckIndicator(.None)
+            .setForm(.RoundedRectangle)
 
             // Overlay: the swatch itself is the affordance, so no opaque hot/checked box (which
             // would show up as a white fill over a selected accent row). Hover/checked is instead
             // a subtle translucent state layer that blends over the swatch and the row.
-            .iconBtnFlags.add(.Popup | .CheckableToggle | .Overlay)
+            .updateFlags(.Popup | .Toggle | .Overlay)
         }
 
         with let ed = EditBox.create(line, "", {0, 0, width - MarginBtn - WidthBtn, item.line.position.height})
         {
             .dockStyle = .Center
             .margin.x  = MarginBtn
-            .setInputX64(0, opaque ? 0xFFFFFF : 0xFFFFFFFF)
-            .sigLoseFocus += func|prop = me, color, item, opaque, keepAlpha|(ed)
+            .setHexadecimalRange(0, opaque ? 0xFFFFFF : 0xFFFFFFFF)
+            .sigFocusLost += func|prop = me, color, item, opaque, keepAlpha|(ed)
             {
-                var result = cast(u32) (catch StrConv.parseX64(ed.text).value & 0xFFFFFFFF)
+                var result = cast(u32) (catch StrConv.parseX64(ed.text()).value & 0xFFFFFFFF)
                 if opaque do
                     result |= 0xFF000000
                 elif keepAlpha do
                     result |= color.a << 24
                 color.argb = result
-                prop.hasChanged(item)
+                prop.commitItemChange(item)
             }
         }
 
         me.flattenCondensedEdit(ed)
 
-        btn.sigPaintIcon = func|color|(btn, bc, pos, paintFlags)
+        btn.iconPainter = func|color|(btn, bc, pos, paintFlags)
         {
             bc.painter.setParams(.Antialiased)
             if !color.isOpaque() do
@@ -71,7 +71,7 @@ impl Properties
             bc.painter.fillRoundRect(pos, 5, 5, dref color)
         }
 
-        btn.sigShowPopup += func|prop = me, color, item, opaque, keepAlpha|(btn)
+        btn.sigPopupRequested += func|prop = me, color, item, opaque, keepAlpha|(btn)
         {
             if !btn do
                 return
@@ -80,27 +80,27 @@ impl Properties
 
             var pal: Array'Color
             for [i] in 9 do
-                pal.add(Color.getBlendKeepAlpha(Argb.White, Argb.Black, i / 8.0))
+                pal.add(Color.lerpRgb(Argb.White, Argb.Black, i / 8.0))
 
             var flags = ColorPickerFlags.All
             if opaque or keepAlpha do
-                flags.remove(ColorPickerFlags.Alpha)
+                flags.remove(ColorPickerFlags.AllowAlpha)
 
             let picker = ColorPickerCtrl.createWithPalette(frame, {8, 54}, pal, flags)
             picker.setColor(dref color)
-            picker.sigChanged += func|prop, color, item, opaque, keepAlpha|(pk)
+            picker.sigColorChanged += func|prop, color, item, opaque, keepAlpha|(pk)
             {
-                var result = pk.getColor().argb
+                var result = pk.color().argb
                 if opaque do
                     result |= 0xFF000000
                 elif keepAlpha do
                     result |= color.a << 24
                 color.argb = result
-                prop.hasChanged(item)
+                prop.commitItemChange(item)
             }
         }
 
-        btn.sigHidePopup += func|prop = me|(btn) { prop.editPopup = null }
+        btn.sigPopupClosed += func|prop = me|(btn) { prop.editPopup = null }
 
         item.sigRefresh += func|prop = me, ed, btn, color, editAlpha|(item)
         {
@@ -117,9 +117,9 @@ impl Properties
 }
 
 // The built-in color editor, registered in the same editor registry as user editors.
-struct ColorEditor {}
+internal struct ColorEditor {}
 
-impl IPropertyEditor for ColorEditor
+internal impl IPropertyEditor for ColorEditor
 {
     mtd impl canEdit(type: #null typeinfo)->bool
     {

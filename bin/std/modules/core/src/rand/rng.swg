@@ -1,9 +1,9 @@
 #global namespace Random
 #global public
 
-// Represents rng.
+// Produces pseudorandom values from the selected algorithm.
 #[Swag.Opaque]
-struct(T = MWC) Rng
+struct(T = MultiplyWithCarry32) Generator
 {
     // The generator state and whether it was seeded. Seed and draw through the methods:
     // reading a raw state tells nothing, and writing one can produce a degenerate sequence.
@@ -14,7 +14,7 @@ struct(T = MWC) Rng
     }
 }
 
-impl Rng
+impl Generator
 {
     // Seed random generator with a 32 bits value
     #[Swag.Inline]
@@ -43,7 +43,7 @@ impl Rng
     mtd nextU32()->u32
     {
         if !.seedDone do
-            .seedU32(Time.nowMilliseconds())
+            .seedAutomatically()
 
         #static if #defined(T.nextU32) do
             return .rng.nextU32()
@@ -56,7 +56,7 @@ impl Rng
     mtd nextU64()->u64
     {
         if !.seedDone do
-            .seedU32(Time.nowMilliseconds())
+            .seedAutomatically()
 
         #static if #defined(T.nextU64) do
             return .rng.nextU64()
@@ -64,10 +64,10 @@ impl Rng
             return (cast(u64) .rng.nextU32() << 32) | .rng.nextU32()
     }
 
-    // Seed the rng with the current time
-    mtd seedNow()
+    // Seeds the generator from the current clock and thread.
+    mtd seedAutomatically()
     {
-        .seedU32(Time.nowMicroseconds())
+        .seedU64(Time.monotonicMicroseconds() ^ Env.Process.currentThreadId())
     }
 
     // Returns a signed 32 bits random value
@@ -88,20 +88,14 @@ impl Rng
     #[Swag.Inline]
     mtd nextF32()->f32
     {
-        var v = .nextU32()
-        while v == Swag.U32.Max do
-            v = .nextU32()
-        return v / cast(f32) Swag.U32.Max
+        return cast(f32) (.nextU32() >> 8) * (1'f32 / 16777216'f32)
     }
 
     // Range is [0..1[, so 1.0 will never be returned
     #[Swag.Inline]
     mtd nextF64()->f64
     {
-        var v = .nextU64()
-        while v == Swag.U64.Max do
-            v = .nextU64()
-        return v / cast(f64) Swag.U64.Max
+        return cast(f64) (.nextU64() >> 11) * (1'f64 / 9007199254740992'f64)
     }
 
     // Returns an unsigned random value in a given range
@@ -109,8 +103,12 @@ impl Rng
     mtd nextU32(min, max: u32)->u32
     {
         Debug.assert(max > min, "[[max]] must be greater than [[min]]")
-        let range = cast(u32) (max - min)
-        let value = .nextU32() % range
+        let range = max - min
+        let limit = Swag.U32.Max - Swag.U32.Max % range
+        var value = .nextU32()
+        while value >= limit do
+            value = .nextU32()
+        value %= range
         return min + value
     }
 
@@ -119,29 +117,47 @@ impl Rng
     mtd nextU64(min, max: u64)->u64
     {
         Debug.assert(max > min, "[[max]] must be greater than [[min]]")
-        let range = cast(u64) (max - min)
-        let value = .nextU64() % range
+        let range = max - min
+        let limit = Swag.U64.Max - Swag.U64.Max % range
+        var value = .nextU64()
+        while value >= limit do
+            value = .nextU64()
+        value %= range
         return min + value
     }
 
     // Returns a signed random value in a given range
     // 'max' is excluded
+    #[Swag.Safety(.Overflow, false)]
     mtd nextS32(min, max: s32)->s32
     {
         Debug.assert(max > min, "[[max]] must be greater than [[min]]")
-        let range = cast(u32) (max - min)
-        let value = cast(s32) (.nextU32() % range)
-        return min + value
+        let minBits = cast #bit (u32) min
+        let maxBits = cast #bit (u32) max
+        let range   = cast #wrap (u32) (maxBits - minBits)
+        let limit   = Swag.U32.Max - Swag.U32.Max % range
+        var value   = .nextU32()
+        while value >= limit do
+            value = .nextU32()
+        value %= range
+        return cast #bit (s32) cast #wrap (u32) (minBits + value)
     }
 
     // Returns a signed random value in a given range
     // 'max' is excluded
+    #[Swag.Safety(.Overflow, false)]
     mtd nextS64(min, max: s64)->s64
     {
         Debug.assert(max > min, "[[max]] must be greater than [[min]]")
-        let range = cast(u64) (max - min)
-        let value = cast(s64) (.nextU64() % range)
-        return min + value
+        let minBits = cast #bit (u64) min
+        let maxBits = cast #bit (u64) max
+        let range   = cast #wrap (u64) (maxBits - minBits)
+        let limit   = Swag.U64.Max - Swag.U64.Max % range
+        var value   = .nextU64()
+        while value >= limit do
+            value = .nextU64()
+        value %= range
+        return cast #bit (s64) cast #wrap (u64) (minBits + value)
     }
 
     // Returns a float value in a given range
@@ -170,15 +186,18 @@ impl Rng
         return .nextU32(0, 2) == 0 ? false : true
     }
 
-    // Randomly change the order of a slice
+    // Randomizes the order of a slice using Fisher-Yates shuffling.
     mtd(V) shuffle(slice: [..] V)
     {
-        let countOf = @countof(slice)
-        let dataOf  = @dataof(slice)
-        for i in slice
+        let count = @countof(slice)
+        if count < 2 do
+            return
+
+        let data = @dataof(slice)
+        for var index = count - 1; index > 0; index -= 1
         {
-            let o = .nextU64(0, countOf)
-            Core.swap(dataOf + i, dataOf + o)
+            let other = .nextU64(0, index + 1)
+            Core.swap(data + index, data + other)
         }
     }
 }

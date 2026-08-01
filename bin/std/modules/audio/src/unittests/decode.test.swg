@@ -51,7 +51,7 @@ using Swag, Core
 
 #test
 {
-    var file = catch SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"), loadDatas: false) as err8
+    var file = catch SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"), preloadData: false) as err8
     @assert(err8 == null)
 
     var voice: Voice

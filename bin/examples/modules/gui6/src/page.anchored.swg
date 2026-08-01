@@ -3,7 +3,7 @@ using Core, Gui, Pixel
 func createTransientAnchorMenu(parent: *Wnd)->*MenuCtrl
 {
     let menu = MenuCtrl.createPopup(parent, owner: g_View)
-    menu.menuCtrlFlags |= .NoKeyShortcuts
+    menu.updateFlags(.HideShortcuts)
     menu.addItem("Compact cards", MenuCmd.ModeCompact)
     menu.addItem("Detailed cards", MenuCmd.ModeDetailed)
     menu.addItem("Column layout", MenuCmd.ModeColumns)
@@ -13,10 +13,10 @@ func createTransientAnchorMenu(parent: *Wnd)->*MenuCtrl
     return menu
 }
 
-func showAnchorMenu(btn: *Button, pos: PopupPos)
+func showAnchorMenu(btn: *Button, pos: PopupPosition)
 {
     let menu = createTransientAnchorMenu(btn)
-    let rect = btn.getSurfaceRect()
+    let rect = btn.surfaceRect()
     var pt: Math.Point
     switch pos
     {
@@ -34,16 +34,16 @@ func createAnchoredPopupPage(parent: *Wnd)
 
     let left   = createPanel(parent, "Toolbar anchors", "AnchorTopCenter and AnchorBottomCenter make compact menus feel attached to toolbar buttons.", layout.left)
     let topBtn = PushButton.create(left, "Open below", {24, 112, 200})
-    topBtn.form       = .Default
-    topBtn.icon       = app.theme.getIcon24(.BottomPopupArrow, 18)
+    topBtn.setForm(.Default)
+    topBtn.setIcon(app.theme.icon24(.BottomPopupArrow, 18))
     topBtn.sigPressed += func(btn) { showAnchorMenu(btn, .AnchorTopCenter); }
 
     let bottomBtn = PushButton.create(left, "Open above", {246, 112, 200})
-    bottomBtn.icon       = app.theme.getIcon24(.SortArrowUp, 18)
+    bottomBtn.setIcon(app.theme.icon24(.SortArrowUp, 18))
     bottomBtn.sigPressed += func(btn) { showAnchorMenu(btn, .AnchorBottomCenter); }
 
     let plainBtn = PushButton.create(left, "Plain popup", {24, 178, 200})
-    plainBtn.icon       = app.theme.getIcon24(.More, 18)
+    plainBtn.setIcon(app.theme.icon24(.More, 18))
     plainBtn.sigPressed += func(btn) { showAnchorMenu(btn, .TopLeft); }
 
     discard createActionButton(left, "Switch to columns", {246, 178, 200}, MenuCmd.ModeColumns, .Sort)

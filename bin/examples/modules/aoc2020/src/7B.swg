@@ -38,7 +38,7 @@ func day7B()
 /////////////////////////////////////////////////////////////////
 func day7B0()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "7.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "7.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     var id: HashTable'(string, Array'({ count: u32, name: string }))
@@ -80,7 +80,7 @@ func day7B0()
 /////////////////////////////////////////////////////////////////
 func day7B1()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "7.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "7.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     var id: HashTable'(string, Array'({ count: u32, name: string }))

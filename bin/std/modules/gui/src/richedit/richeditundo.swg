@@ -12,7 +12,7 @@ enum RichEditUndoType
     Hide          // Selects hide.
 }
 
-// Represents rich edit undo.
+// Stores one reversible rich-edit text or selection operation.
 struct RichEditUndo
 {
     type:        RichEditUndoType = Selection     // Type associated with this value.
@@ -32,7 +32,7 @@ struct RichEditUndo
 
 private impl RichEditCtrl
 {
-    mtd getLastModificationUndo()->u64
+    mtd lastModificationUndoIndex()->u64
     {
         var count = .currentUndo
         while count
@@ -62,7 +62,7 @@ private impl RichEditCtrl
 
 impl RichEditCtrl
 {
-    // Performs the clear undo operation.
+    // Clears both undo and redo history.
     mtd clearUndo()
     {
         .undoMgr.clear()
@@ -72,7 +72,7 @@ impl RichEditCtrl
         .modifiedUndoMarker = Swag.U64.Max
     }
 
-    // Performs the push undo operation.
+    // Appends one undo record and clears redo history.
     mtd pushUndo()
     {
         // Nested undo,: not increment serial
@@ -86,7 +86,7 @@ impl RichEditCtrl
         .undoCounter += 1
     }
 
-    // Performs the pop undo operation.
+    // Removes and returns the newest undo record.
     mtd popUndo()
     {
         Debug.assert(.undoCounter != 0)
@@ -117,7 +117,7 @@ impl RichEditCtrl
         return true
     }
 
-    // Performs the undo operation.
+    // Reverts the newest recorded edit.
     mtd undo()
     {
         if !.canUndo() do
@@ -133,7 +133,7 @@ impl RichEditCtrl
             {
                 .selBeg    = undo.selBeg
                 .cursorPos = undo.cursorPos
-                var cp = .getBegSelection()
+                var cp = .selectionStart()
                 .insertTextPrivate(&cp, undo.runes, undo.styles, undo.hasSelRect)
             }
             elif undo.type == .Insert
@@ -156,7 +156,7 @@ impl RichEditCtrl
             .currentUndo -= 1
         }
 
-        if .getLastModificationUndo() == .modifiedUndoMarker do
+        if .lastModificationUndoIndex() == .modifiedUndoMarker do
             .setModified(false)
         else do
             .setModified(true)
@@ -173,7 +173,7 @@ impl RichEditCtrl
         return true
     }
 
-    // Performs the redo operation.
+    // Reapplies the newest reverted edit.
     mtd redo()
     {
         if !.canRedo() do
@@ -190,14 +190,14 @@ impl RichEditCtrl
                 .selBeg = undo.selBeg
                 .setCursorPos(undo.cursorPos)
                 .setRectangularSelection(undo.hasSelRect)
-                .computeRectangularSelection(.getBegSelection(), .getEndSelection())
-                .deleteTextPrivate(.getBegSelection(), .getEndSelection(), undo.hasSelRect)
+                .computeRectangularSelection(.selectionStart(), .selectionEnd())
+                .deleteTextPrivate(.selectionStart(), .selectionEnd(), undo.hasSelRect)
             }
             elif undo.type == .Insert
             {
                 .selBeg = undo.selBeg
                 .setCursorPos(undo.cursorPos)
-                var cp = .getBegSelection()
+                var cp = .selectionStart()
                 .insertTextPrivate(&cp, undo.runes, undo.styles, undo.hasSelRect)
             }
 
@@ -213,7 +213,7 @@ impl RichEditCtrl
             .currentUndo += 1
         }
 
-        if .getLastModificationUndo() == .modifiedUndoMarker do
+        if .lastModificationUndoIndex() == .modifiedUndoMarker do
             .setModified(false)
         else do
             .setModified(true)

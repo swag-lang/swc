@@ -14,7 +14,7 @@ namespace FormatPass
     void attributes(FormatModel& model);  // attribute-placement, break-after-attribute, sort-attribute-arguments
     void braces(FormatModel& model);      // brace-style, compact-empty-braces, break-before-else
     void shortBlocks(FormatModel& model); // allow-short-*-on-single-line
-    void blanks(FormatModel& model);      // blank-line-after-using-block
+    void blanks(FormatModel& model);      // blank-line-* structural options
     void spacing(FormatModel& model);     // all space-* options
     void indent(FormatModel& model);      // indent-* structural options
     void wrap(FormatModel& model);        // column-limit and break-* wrapping options

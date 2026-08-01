@@ -34,8 +34,8 @@ impl Encoder
         {
             if value & Mask[posval] do
                 .bytenew |= cast(u8) Mask[.bytepos]
-            posval       -= 1
-            .bytepos     -= 1
+            posval   -= 1
+            .bytepos -= 1
             if .bytepos < 0
             {
                 let written = .bytenew
@@ -49,11 +49,11 @@ impl Encoder
         }
     }
 
-    mtd writeMetaDatas(image: const *Image)
+    mtd writeMetadata(image: const *Image)
     {
-        for md in image.metaDatas
+        for md in image.metadata
         {
-            .writeWord(0xFFE0'u16 + cast(u16) md.sig)
+            .writeWord(0xFFE0'u16 + cast(u16) md.signature)
             .writeWord(3 + cast(u16) md.tag.count + cast(u16) md.value.count)
             .writeBytes(md.tag.toSlice())
             .writeByte(0)

@@ -1,12 +1,18 @@
 using Core.Errors
 
-// A stream for reading from or writing to a byte buffer
+// Provides a bounded cursor over borrowed bytes or a caller-owned byte array.
+//
+// A read stream borrows its input slice. A write stream borrows its destination
+// array and can reallocate that array while it grows.
 public struct ByteStream
 {
-    readBuffer:  #null const [..] u8     // Buffer used for reading
-    writeBuffer: #null *Array'u8         // Buffer used for writing
-    seek:        u64                     // Current read/write position
-    eof:         bool                    // End-of-file flag for reads
+    internal
+    {
+        readBuffer:  #null const [..] u8     // Borrowed read-only bytes.
+        writeBuffer: #null *Array'u8         // Borrowed writable destination.
+        seek:        u64                     // Current byte position.
+        eof:         bool                    // Whether a read advanced to the end.
+    }
 }
 
 public impl ByteStream
@@ -27,16 +33,16 @@ public impl ByteStream
         return result
     }
 
-    // Returns a slice of unread bytes from the current seek to the end
-    mtd remainReadToSlice()->const [..] u8
+    // Returns the unread bytes from the current position to the end.
+    mtd remainingBytes()->const [..] u8
     {
-        return @mkslice(.readData() + .seek, .length() - .seek)
+        return @mkslice(.data() + .seek, .length() - .seek)
     }
 
-    // Returns a string of unread bytes from the current seek to the end
-    mtd remainReadToString()->string
+    // Returns the unread bytes as a borrowed string.
+    mtd remainingString()->string
     {
-        return @mkstring(.readData() + .seek, .length() - .seek)
+        return @mkstring(.data() + .seek, .length() - .seek)
     }
 
     // Returns the total length of the buffer (read or write)
@@ -45,8 +51,10 @@ public impl ByteStream
         return .writeBuffer ? .writeBuffer.count : @countof(.readBuffer)
     }
 
-    // Returns a pointer to the underlying read or write buffer
-    mtd readData()->const [*] u8
+    // Kept in the exported dependency because public generic methods expand in
+    // their caller and need this primitive. It is not part of the documented API.
+    #[Swag.NoDoc]
+    mtd data()->const [*] u8
     {
         return .writeBuffer ? notnull .writeBuffer.buffer : notnull @dataof(.readBuffer)
     }
@@ -96,7 +104,7 @@ public impl ByteStream
     {
         if .seek + #sizeof(T) > .length() do
             fail OverflowError{"byte stream overflow"}
-        let val = dref cast(const *T) (.readData() + .seek)
+        let val = dref cast(const *T) (.data() + .seek)
         .seek += #sizeof(T)
         return val
     }
@@ -106,7 +114,7 @@ public impl ByteStream
     {
         if .seek + count > .length() do
             fail OverflowError{"byte stream overflow"}
-        Memory.copy(dest, .readData() + .seek, count)
+        Memory.copy(dest, .data() + .seek, count)
         .seek += count
     }
 
@@ -114,7 +122,7 @@ public impl ByteStream
     mtd readU8()->u8
     {
         let c = .peekU8()
-        .moveSeek()
+        .advance()
         return c
     }
 
@@ -123,31 +131,32 @@ public impl ByteStream
     {
         if .seek >= .length() do
             return 0
-        return dref (.readData() + .seek)
+        return dref (.data() + .seek)
     }
 
-    // Advances the seek by a specified offset (default is 1)
-    mtd moveSeek(offset: u64 = 1)
+    // Advances by `count` bytes, clamping at the end of the buffer.
+    mtd advance(count: u64 = 1)
     {
-        .seek += offset
         let len = .length()
-        if .seek >= len
+        if count >= len - .seek
         {
             .seek = len
             .eof  = true
             return
         }
+
+        .seek += count
     }
 
-    // Sets the seek to a specific offset
-    mtd setSeek(offset: u64)
+    // Sets the absolute byte position.
+    mtd setPosition(position: u64)
     {
         let len = .length()
-        Debug.assert(offset <= len)
-        .seek = offset
+        Debug.assert(position <= len)
+        .seek = position
         .eof  = .seek >= len
     }
 
-    // Returns the current seek position
-    mtd const getSeek()->u64 => .seek
+    // Returns the current absolute byte position.
+    mtd const position()->u64 => .seek
 }

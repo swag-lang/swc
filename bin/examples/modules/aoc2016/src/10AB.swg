@@ -134,7 +134,7 @@ func day10AB()
 {
     // Time.Stopwatch.scopeMeasure()
 
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "10.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "10.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     expect r0.compile(#raw "value (\d+) goes to bot (\d+)")

@@ -11,38 +11,39 @@
 public enum FastNoiseKind
 {
     Perlin                      // Basic Perlin noise.
-    PerlinFractalFBM            // Fractal Brownian Motion using Perlin noise.
+    PerlinFractalFbm            // Fractal Brownian motion using Perlin noise.
     PerlinFractalBillow         // Billow-style fractal using Perlin noise.
-    PerlinFractalRigidMulti     // Rigid multi-fractal using Perlin noise.
+    PerlinFractalRigidMulti     // Rigid multifractal using Perlin noise.
     Value                       // Basic value noise.
-    ValueFractalFBM             // Fractal Brownian Motion using value noise.
+    ValueFractalFbm             // Fractal Brownian motion using value noise.
     ValueFractalBillow          // Billow-style fractal using value noise.
-    ValueFractalRigidMulti      // Rigid multi-fractal using value noise.
+    ValueFractalRigidMulti      // Rigid multifractal using value noise.
 }
 
 // FastNoise structure for generating different types of noise based on user-defined parameters.
 public struct FastNoise
 {
-    kind       = FastNoiseKind.Perlin     // Type of noise to generate.
-    seed       = 1337                     // Seed value for noise generation.
-    octaves    = 3                        // The number of layers of noise. More octaves create a more varied look but are also more resource-intensive to calculate.
-    frequency  = 0.01                     // The period in which we sample the noise. A higher frequency results in more frequent noise change.
-    lacunarity = 2.0                      // The rate of change of the frequency for each successive octave. A 'lacunarity' value of 1 results in each octave having the same frequency.
-    gain       = 0.5                      // The scaling factor applied to each octave. 'gain' is only used when 'octaves' is set to a value higher than 1.
-
-    fractalBounding = 1.0     // Normalization factor used to keep the noise within bounds for fractal types.
+    kind:       FastNoiseKind = .Perlin     // Type of noise to generate.
+    seed:       s32           = 1337        // Seed value for noise generation.
+    octaves:    u32           = 3           // The number of sampled layers; must be at least one.
+    frequency:  f32           = 0.01        // Coordinate scale applied before sampling.
+    lacunarity: f32           = 2.0         // Frequency multiplier between successive layers.
+    gain:       f32           = 0.5         // Amplitude multiplier between successive layers.
 }
 
 impl FastNoise
 {
-    // Calculates the fractal bounding factor to normalize amplitude across octaves.
-    mtd calculateFractalBounding()
+    private mtd const validateFractalParameters()
     {
-        if .octaves == 1
-        {
-            .fractalBounding = 1.0
-            return
-        }
+        Debug.assert(.octaves > 0)
+        Debug.assert(.lacunarity > 0)
+        Debug.assert(.gain >= 0)
+    }
+
+    mtd const fractalBounding()->f32
+    {
+        if .octaves <= 1 do
+            return 1
 
         var amp        = .gain
         var ampFractal = 1.0
@@ -53,127 +54,131 @@ impl FastNoise
             amp        *= .gain
         }
 
-        .fractalBounding = 1.0 / ampFractal
-    }
-
-    // Update private values.
-    // Should be called each time an private parameter has been changed.
-    public mtd update()
-    {
-        .calculateFractalBounding()
+        return 1.0 / ampFractal
     }
 
     // Computes fractal Brownian Motion using Perlin noise.
-    public mtd const perlinFractalFBM(x, y: f32)->f32
+    public mtd const perlinFractalFbm(x, y: f32)->f32
     {
+        .validateFractalParameters()
         var xi  = x
         var yi  = y
         var sum = perlin(xi, yi, .seed)
         var amp = 1.0
 
-        for [i] in .octaves
+        for [i] in .octaves - 1
         {
             xi, yi *= .lacunarity
             amp    *= .gain
             sum    += perlin(xi, yi, .seed) * amp
         }
 
-        return sum * .fractalBounding
+        return sum * .fractalBounding()
     }
 
     // Computes billow-style fractal using Perlin noise.
     public mtd const perlinFractalBillow(x, y: f32)->f32
     {
+        .validateFractalParameters()
         var xi  = x
         var yi  = y
         var sum = Math.abs(perlin(xi, yi, .seed)) * 2 - 1
         var amp = 1.0
 
-        for [i] in .octaves
+        for [i] in .octaves - 1
         {
             xi, yi *= .lacunarity
             amp    *= .gain
             sum    += (Math.abs(perlin(xi, yi, .seed)) * 2 - 1) * amp
         }
 
-        return sum * .fractalBounding
+        return sum * .fractalBounding()
     }
 
     // Computes rigid multi-fractal using Perlin noise.
     public mtd const perlinFractalRigidMulti(x, y: f32)->f32
     {
+        .validateFractalParameters()
         var xi  = x
         var yi  = y
         var sum = 1 - Math.abs(perlin(xi, yi, .seed))
         var amp = 1.0
 
-        for [i] in .octaves
+        for [i] in .octaves - 1
         {
             xi, yi *= .lacunarity
             amp    *= .gain
             sum    += (1 - Math.abs(perlin(xi, yi, .seed))) * amp
         }
 
-        return sum * .fractalBounding
+        return sum * .fractalBounding()
     }
 
     // Computes fractal Brownian Motion using value noise.
-    public mtd const valueFractalFBM(x, y: f32)->f32
+    public mtd const valueFractalFbm(x, y: f32)->f32
     {
+        .validateFractalParameters()
         var xi  = x
         var yi  = y
         var sum = Noise.value(xi, yi, .seed)
         var amp = 1.0
 
-        for [i] in .octaves
+        for [i] in .octaves - 1
         {
             xi, yi *= .lacunarity
             amp    *= .gain
             sum    += Noise.value(xi, yi, .seed) * amp
         }
 
-        return sum * .fractalBounding
+        return sum * .fractalBounding()
     }
 
     // Computes billow-style fractal using value noise.
     public mtd const valueFractalBillow(x, y: f32)->f32
     {
+        .validateFractalParameters()
         var xi  = x
         var yi  = y
         var sum = Math.abs(Noise.value(xi, yi, .seed)) * 2 - 1
         var amp = 1.0
 
-        for [i] in .octaves
+        for [i] in .octaves - 1
         {
             xi, yi *= .lacunarity
             amp    *= .gain
             sum    += (Math.abs(Noise.value(xi, yi, .seed)) * 2 - 1) * amp
         }
 
-        return sum * .fractalBounding
+        return sum * .fractalBounding()
     }
 
     // Computes rigid multi-fractal using value noise.
     public mtd const valueFractalRigidMulti(x, y: f32)->f32
     {
+        .validateFractalParameters()
         var xi  = x
         var yi  = y
         var sum = 1 - Math.abs(Noise.value(xi, yi, .seed))
         var amp = 1.0
 
-        for [i] in .octaves
+        for [i] in .octaves - 1
         {
             xi, yi *= .lacunarity
             amp    *= .gain
             sum    += (1 - Math.abs(Noise.value(xi, yi, .seed))) * amp
         }
 
-        return sum * .fractalBounding
+        return sum * .fractalBounding()
     }
 
-    // Get a noise result.
-    public mtd const noise(x, y: f32)->f32
+    // Samples the configured noise at the given coordinates.
+    public mtd const sample(x, y: f32)->f32
     {
+        Debug.assert(.octaves > 0)
+        Debug.assert(.frequency >= 0)
+        Debug.assert(.lacunarity > 0)
+        Debug.assert(.gain >= 0)
+
         var result: f32 = undefined
 
         let xi = x * .frequency
@@ -182,11 +187,11 @@ impl FastNoise
         switch #complete .kind
         {
         case .Perlin:                  result = Noise.perlin(xi, yi, .seed)
-        case .PerlinFractalFBM:        result = .perlinFractalFBM(xi, yi)
+        case .PerlinFractalFbm:        result = .perlinFractalFbm(xi, yi)
         case .PerlinFractalBillow:     result = .perlinFractalBillow(xi, yi)
         case .PerlinFractalRigidMulti: result = .perlinFractalRigidMulti(xi, yi)
         case .Value:                   result = Noise.value(xi, yi, .seed)
-        case .ValueFractalFBM:         result = .valueFractalFBM(xi, yi)
+        case .ValueFractalFbm:         result = .valueFractalFbm(xi, yi)
         case .ValueFractalBillow:      result = .valueFractalBillow(xi, yi)
         case .ValueFractalRigidMulti:  result = .valueFractalRigidMulti(xi, yi)
         }

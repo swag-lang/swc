@@ -17,8 +17,12 @@ impl HeadlessFixture
         .gui.setup(width, height)
         .gui.bindApplication(&g_App)
 
-        .main              = Wnd.create'MainWnd(&.gui.root, {x: 0, y: 0, width: width, height: height})
-        g_Main             = .main
+        .main  = Wnd.create'MainWnd(&.gui.root, {x: 0, y: 0, width: width, height: height})
+        g_Main = .main
+        let renderer = .gui.app.rendererRef()
+        .main.icons24.set(renderer.addImage(Image.create(480, 480, .RGBA8)), 24, 24)
+        .main.icons48.set(renderer.addImage(Image.create(480, 480, .RGBA8)), 48, 48)
+        .main.appIcon.set(renderer.addImage(Image.create(512, 512, .RGBA8)))
         .main.mdlFavorite  = &.main.mdlFormShape
         .main.mdlHighlight = &.main.mdlFormShape
         .main.mdlPixSel    = &.main.mdlFormShape
@@ -176,8 +180,8 @@ func testTempCapturePath()->String
 
 func testPrimeGizmo(form: IForm, z: f32 = 1)
 {
-    var painter = Painter{fake: true}
-    painter.begin()
+    var painter: Painter
+    painter.begin(layoutOnly: true)
     form.paintGizmo(&painter, z, .Selected)
     painter.end()
 }
@@ -186,8 +190,8 @@ func testPrimeCaptureGizmo(capture: *Capture)
 {
     capture.gizmo.rect = {0, 0, capture.width, capture.height}
 
-    var painter = Painter{fake: true}
-    painter.begin()
+    var painter: Painter
+    painter.begin(layoutOnly: true)
     capture.gizmo.paint(&painter, false)
     painter.end()
 }
@@ -217,23 +221,23 @@ func testRegisterHeadlessShortcuts(main: *MainWnd)
     main.registerKeyShortcut(.Control, .D, ActionSelection.DeSelectAll)
     main.registerKeyShortcut(.CtrlShift, .I, ActionSelection.InvertSelection)
     main.registerKeyShortcut(.Control, .Space, ActionSelection.Freeze)
-    main.registerKeyShortcut(.Zero, .Delete, ActionSelection.DeleteSelection)
+    main.registerKeyShortcut(.None, .Delete, ActionSelection.DeleteSelection)
     main.registerKeyShortcut(.Control, .Z, ActionUndo.DoUndo)
     main.registerKeyShortcut(.Control, .Y, ActionUndo.DoRedo)
     main.registerKeyShortcut(.Shift, .Left, ActionMoveSel.Left1)
     main.registerKeyShortcut(.Shift, .Up, ActionMoveSel.Top1)
     main.registerKeyShortcut(.Shift, .Right, ActionMoveSel.Right1)
     main.registerKeyShortcut(.Shift, .Down, ActionMoveSel.Bottom1)
-    main.registerKeyShortcut(.Zero, .Left, ActionMoveSel.Left)
-    main.registerKeyShortcut(.Zero, .Up, ActionMoveSel.Top)
-    main.registerKeyShortcut(.Zero, .Right, ActionMoveSel.Right)
-    main.registerKeyShortcut(.Zero, .Down, ActionMoveSel.Bottom)
+    main.registerKeyShortcut(.None, .Left, ActionMoveSel.Left)
+    main.registerKeyShortcut(.None, .Up, ActionMoveSel.Top)
+    main.registerKeyShortcut(.None, .Right, ActionMoveSel.Right)
+    main.registerKeyShortcut(.None, .Down, ActionMoveSel.Bottom)
     main.registerKeyShortcut(.Control, .G, ActionGroup.Group)
     main.registerKeyShortcut(.CtrlShift, .G, ActionGroup.Ungroup)
-    main.registerKeyShortcut(.Zero, .Home, ActionAlign.SendToFront)
-    main.registerKeyShortcut(.Zero, .End, ActionAlign.SendToBack)
-    main.registerKeyShortcut(.Zero, .PageUp, ActionAlign.MoveForward)
-    main.registerKeyShortcut(.Zero, .PageDown, ActionAlign.MoveBackward)
+    main.registerKeyShortcut(.None, .Home, ActionAlign.SendToFront)
+    main.registerKeyShortcut(.None, .End, ActionAlign.SendToBack)
+    main.registerKeyShortcut(.None, .PageUp, ActionAlign.MoveForward)
+    main.registerKeyShortcut(.None, .PageDown, ActionAlign.MoveBackward)
     main.registerKeyShortcut(.Control, .Add, ActionZoom.ZoomIn)
     main.registerKeyShortcut(.Control, .Subtract, ActionZoom.ZoomOut)
     main.registerKeyShortcut(.Control, .NumPad0, ActionZoom.Zoom1)
@@ -264,7 +268,7 @@ func testDate(day: u16)->Time.DateTime
 
 func testAddLibraryItem(view: *LibraryView, name: String, size: u64, day: u16, linked: string = "", linkedUpToDate = true, title: string = "")->*LibraryItem
 {
-    let it = view.allItems.addNewPtr()
+    let it = view.allItems.addNew()
     it.fi.fullname      = name
     it.fi.size          = size
     it.fi.lastWriteTime = testDate(day)

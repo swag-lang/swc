@@ -15,7 +15,7 @@ func testSetupGlobalMain(main: *MainWnd)
     main.quickStyleBar           = SplitterCtrl.create(main, {0, 0, 300, 600}, vertical: true)
     main.quickStyleBar.dockStyle = .Right
 
-    main.editZoomBar           = StackLayoutCtrl.create(main, .HorzCenter, {0, 0, 300, 32})
+    main.editZoomBar           = StackLayoutCtrl.create(main, .HorizontalCenter, {0, 0, 300, 32})
     main.editZoomBar.dockStyle = .Top
 
     main.editToolBar           = Wnd.create'Wnd(main, {0, 0, 64, 64})
@@ -54,8 +54,8 @@ func testSetupGlobalMain(main: *MainWnd)
 
     @assert(Gui.Testing.actionExecute'ActionGlobal(f.main, ActionGlobal.ShowLibrary))
     @assert(f.main.libraryMode)
-    @assert(!f.main.editWnd.isVisibleState())
-    @assert(f.main.libWnd.isVisibleState())
+    @assert(!f.main.editWnd.isLocallyVisible())
+    @assert(f.main.libWnd.isLocallyVisible())
 
     evt = Gui.Testing.commandState(ActionGlobal.ShowLibrary)
     @assert(Gui.Testing.actionUpdate'ActionGlobal(f.main, ActionGlobal.ShowLibrary, &evt))
@@ -63,8 +63,8 @@ func testSetupGlobalMain(main: *MainWnd)
 
     @assert(Gui.Testing.actionExecute'ActionGlobal(f.main, ActionGlobal.ShowLibrary))
     @assert(!f.main.libraryMode)
-    @assert(f.main.editWnd.isVisibleState())
-    @assert(!f.main.libWnd.isVisibleState())
+    @assert(f.main.editWnd.isLocallyVisible())
+    @assert(!f.main.libWnd.isLocallyVisible())
 
     let surface = notnull f.main.surface
     surface.show()

@@ -31,7 +31,7 @@ impl IForm for FormDraw
 
     mtd impl edit(evt: *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool
     {
-        if evt.kind == .MouseReleased and evt.button == .Left do
+        if evt.kind == .Released and evt.button == .Left do
             return false
 
         let x0 = localPos.x / zoom
@@ -44,7 +44,7 @@ impl IForm for FormDraw
             .points.add({xs, ys})
             .points.add({x0, y0})
         }
-        elif evt.kind == .MouseMove
+        elif evt.kind == .Move
         {
             let xs = Math.abs(x0 - .points.back().x)
             let ys = Math.abs(y0 - .points.back().y)
@@ -105,7 +105,7 @@ impl IForm for FormDraw
         {
             let anchorSize2 = .anchorSize * 0.5
             let col         = .subKind == .PixSel ? Argb.Yellow : Argb.White
-            let color       = Color.getBlend(Argb.Black, col, (flags & .Hot) ? 0.8 : 1)
+            let color       = Color.lerp(Argb.Black, col, (flags & .Hot) ? 0.8 : 1)
 
             let start = .points[0] * z
             painter.fillCircle(start.x, start.y, anchorSize2, color)
@@ -118,7 +118,7 @@ impl IForm for FormDraw
 
     mtd impl isInside(pt: Math.Point)->bool
     {
-        return Math.Geometry.polyContains(.points, {pt.x, pt.y})
+        return Math.Geometry.polygonContainsPoint(.points, {pt.x, pt.y})
     }
 
     mtd impl hitTest(pt: Math.Point, z: f32)->bool

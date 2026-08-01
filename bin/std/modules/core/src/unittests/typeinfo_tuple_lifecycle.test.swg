@@ -68,7 +68,7 @@ func testCoreTupleRuntimeLifecycle()->bool
     sourceFirst.id                  = 1
     sourceSecond.id                 = 2
     CoreTupleLifecyclePostCopyOrder = 0
-    Reflection.copy(target, source, tupleType)
+    Reflection.assign(target, source, tupleType)
     if CoreTupleLifecyclePostCopyOrder != 12 or targetFirst.id != 1 or targetSecond.id != 2 do
         return false
 

@@ -70,9 +70,9 @@ impl Process
         .close()
     }
 
-    // Get current process ID
-    func getProcessId()->u64 => GetCurrentProcessId()
+    // Returns the current operating-system process identifier.
+    func currentProcessId()->u64 => GetCurrentProcessId()
 
-    // Get current thread ID
-    func getThreadId()->u64 => GetCurrentThreadId()
+    // Returns the current operating-system thread identifier.
+    func currentThreadId()->u64 => GetCurrentThreadId()
 }

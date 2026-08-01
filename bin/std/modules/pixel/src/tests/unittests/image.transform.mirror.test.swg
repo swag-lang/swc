@@ -10,7 +10,7 @@ using Swag, Core
         ]
 
     let src = makeImage(3, 2, .RGBA8, pixels)
-    let out = src.toMirror()
+    let out = src.mirrored()
     assertImage(out, 3, 2, .RGBA8)
 
     assertPixel(out, 0, 1, Color.fromArgb(33'u8, 30'u8, 31'u8, 32'u8))

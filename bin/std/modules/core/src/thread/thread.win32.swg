@@ -51,13 +51,20 @@ func wait(threads: *Thread...)
 
 impl Thread
 {
-    // Sleep the current thread for a given amount of milliseconds
-    func sleep(ms: Time.Duration)
+    // Suspends the current thread for at least `duration`.
+    func sleep(duration: Time.Duration)
     {
-        Sleep(ms.toMs())
+        var remaining = duration.milliseconds()
+        while remaining > Swag.U32.Max - 1
+        {
+            Sleep(Swag.U32.Max - 1)
+            remaining -= Swag.U32.Max - 1
+        }
+
+        Sleep(cast(u32) remaining)
     }
 
-    // Sleep the current thread for a given amount of milliseconds
+    // Yields the remainder of the current thread's time slice.
     func yield()
     {
         SwitchToThread()

@@ -30,7 +30,7 @@ const RoundCorners = 8.0
 
 func paintGrid(wnd: *Wnd, painter: *Painter)
 {
-    let rect = wnd.getClientRect()
+    let rect = wnd.clientRect()
 
     var rectGrid: Math.Rectangle
 
@@ -108,7 +108,7 @@ func randValue()
 
 func animate(wnd: *Wnd)
 {
-    let dt = wnd.getApp().getDt()
+    let dt = wnd.app().deltaSeconds()
 
     let wasMoving = g_IsMoving
     g_IsMoving = false
@@ -117,7 +117,7 @@ func animate(wnd: *Wnd)
         // End of scale
         if Math.isEqualEpsilon(c.z, c.zd, 0.01) do
             c.zd = 1
-        c.z      = Math.lerp(c.z, c.zd, 20 * dt)
+        c.z = Math.lerp(c.z, c.zd, 20 * dt)
         if Math.isEqualEpsilon(c.z, 1, 0.01) do
             c.z = 1
 
@@ -200,7 +200,7 @@ func keyboard(wnd: *Wnd)
     if g_IsMoving or g_GameOver do
         return
 
-    let kb = wnd.getApp().getKeyboard()
+    let kb = wnd.app().keyboardRef()
 
     switch
     {
@@ -269,17 +269,17 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     switch evt
     {
     case CreateEvent:
-        g_Font = wnd.getTheme().createDefaultFont(50)
+        g_Font = wnd.theme().createDefaultFont(50)
         randValue()
         randValue()
 
     case PaintEvent as paintEvt:
         let painter = paintEvt.bc.painter
-        let rect    = wnd.getClientRect()
+        let rect    = wnd.clientRect()
 
         painter.fillRect(rect, Color.fromRgb(43, 43, 43))
 
-        painter.drawStringCenter(rect.horzCenter(), 20, "score", wnd.getTheme().createDefaultFont(25), Argb.White)
+        painter.drawStringCenter(rect.horzCenter(), 20, "score", wnd.theme().createDefaultFont(25), Argb.White)
         let str = Format.toString("%", g_Score)
         painter.drawStringCenter(rect.horzCenter(), 60, str, notnull g_Font, Argb.White)
 

@@ -10,32 +10,41 @@ private func timerEntry(param: #null *void, _timerOrWaitFired: BOOL)
     let t         = cast(*Timer) safeParam
     if !@getcontext() do
         @setcontext(t.context)
-    let userLambda = notnull t.userLambda
-    userLambda(dref t)
+    let callback = notnull t.callback
+    callback(t)
 }
 
 impl Timer
 {
-    // Creates a new timer
-    func create(elapsedTimeMs: u32, lambda: func(Timer), periodic = false)->Timer fail
+    // Releases the native timer when this value leaves scope.
+    mtd opDrop()
+    {
+        .release()
+    }
+
+    // Creates a timer that first fires after `delay`.
+    // A periodic timer subsequently fires at the same interval.
+    func create(delay: Duration, callback: func(*Timer), periodic = false)->Timer fail
     {
         var result: retval
-        try result.init(elapsedTimeMs, lambda, periodic)
+        try result.initialize(delay, callback, periodic)
         return result
     }
 
-    // Initialize timer
-    mtd init(elapsedTimeMs: u32, lambda: func(Timer), periodic = false) fail
+    internal mtd initialize(delay: Duration, callback: func(*Timer), periodic: bool) fail
     {
         Debug.assert(.handle == null)
-        Debug.assert(elapsedTimeMs > 0)
-        Debug.assert(lambda != null)
-        .userLambda = lambda
-        .context    = dref @getcontext()
-        try CreateTimerQueueTimer(&.handle, null, &timerEntry, me, elapsedTimeMs, periodic ? elapsedTimeMs : 0, 0)
+        let delayMs = delay.milliseconds()
+        if !delayMs or delayMs >= Swag.U32.Max do
+            fail Errors.OverflowError{"timer delay must be between 1 and 4294967294 milliseconds"}
+
+        .callback = callback
+        .context  = dref @getcontext()
+        let nativeDelay = cast(u32) delayMs
+        try CreateTimerQueueTimer(&.handle, null, &timerEntry, me, nativeDelay, periodic ? nativeDelay : 0, 0)
     }
 
-    // Release the timer
+    // Stops the timer and waits for any active callback before returning.
     mtd release()
     {
         if !.handle do

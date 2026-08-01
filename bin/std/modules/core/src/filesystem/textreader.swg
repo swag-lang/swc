@@ -7,20 +7,23 @@ public enum TextEncoding
     Utf8      // UTF-8 encoding
 }
 
-// TextReader reads a text file from a FileStream with buffering and encoding support
+// Reads a text file through an owned, buffered [[Core.File.FileStream]].
 public struct TextReader
 {
-    stream:        FileStream            // File stream used to read from disk
-    buffer:        Array'u8              // Internal byte buffer used for reading data
-    encodingType = TextEncoding.Utf8     // Text encoding type (default is UTF-8)
-    byteSeek:      u64                   // Current byte offset in the buffer
-    bufferSize:    u64                   // Size of the buffer
-    checkPreamble: bool                  // Indicates whether to check for a UTF-8 BOM on first read
+    internal
+    {
+        stream:        FileStream            // Owned file stream.
+        buffer:        Array'u8              // Buffered encoded bytes.
+        encodingType = TextEncoding.Utf8     // Selected source encoding.
+        byteSeek:      u64                   // Current byte offset in the buffer.
+        bufferSize:    u64                   // Target buffer capacity.
+        checkPreamble: bool                  // Whether the first read must inspect a UTF-8 BOM.
+    }
 }
 
 impl TextReader
 {
-    mtd readBuffer()
+    mtd readBuffer() fail
     {
         .byteSeek = 0
 
@@ -61,7 +64,7 @@ public impl TextReader
 
         .byteSeek      = 0
         .checkPreamble = true
-        .bufferSize    = Math.min(.stream.getSize(), 64 * 1024'u64)
+        .bufferSize    = Math.min(.stream.size(), 64 * 1024'u64)
         .bufferSize    = Math.max(.bufferSize, 16)
         .encodingType  = encoding
     }
@@ -72,10 +75,11 @@ public impl TextReader
         .stream.close()
     }
 
-    // Reads one line of text into the result string
-    // Returns false if the end of the stream has been reached
+    // Reads one line into `result` and returns false at end of file.
+    //
+    // Line-ending bytes are consumed but not included in the result.
     #[Swag.Safety(.BoundCheck | .Overflow, false)]
-    mtd readLine(result: &String)->bool
+    mtd readLine(result: &String)->bool fail
     {
         result.clear()
 
@@ -143,9 +147,8 @@ public impl TextReader
         return true
     }
 
-    // Reads from the current position to the end of the stream
-    // and returns the content as a UTF-8 string
-    mtd readToEnd()->String
+    // Reads from the current position to the end as UTF-8 text.
+    mtd readToEnd()->String fail
     {
         var result: retval
 

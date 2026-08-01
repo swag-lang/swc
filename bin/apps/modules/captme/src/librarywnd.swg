@@ -223,7 +223,7 @@ impl LibraryWnd
         if !g_Library.loaded do
             g_Library.fill()
 
-        if .listCtrl.getLineCount() do
+        if .listCtrl.lineCount() do
             return
         g_Library.onDeleteFile += func|libWnd = me|(file)
         {
@@ -231,7 +231,7 @@ impl LibraryWnd
             {
                 if it.fi.fullname == file
                 {
-                    libWnd.view.selModel.select(cast() i, false)
+                    libWnd.view.selModel.unselect(cast() i)
                     libWnd.view.items.removeAtOrdered(i)
                     break
                 }
@@ -337,15 +337,15 @@ impl LibraryWnd
         .registerAction'ActionLibSel()
         .registerAction'ActionLibTrash()
 
-        .registerKeyShortcut(.Zero, .Left, ActionLibSel.Left)
-        .registerKeyShortcut(.Zero, .Right, ActionLibSel.Right)
-        .registerKeyShortcut(.Zero, .Up, ActionLibSel.Up)
-        .registerKeyShortcut(.Zero, .Down, ActionLibSel.Down)
-        .registerKeyShortcut(.Zero, .Home, ActionLibSel.Home)
-        .registerKeyShortcut(.Zero, .End, ActionLibSel.End)
+        .registerKeyShortcut(.None, .Left, ActionLibSel.Left)
+        .registerKeyShortcut(.None, .Right, ActionLibSel.Right)
+        .registerKeyShortcut(.None, .Up, ActionLibSel.Up)
+        .registerKeyShortcut(.None, .Down, ActionLibSel.Down)
+        .registerKeyShortcut(.None, .Home, ActionLibSel.Home)
+        .registerKeyShortcut(.None, .End, ActionLibSel.End)
 
         .registerKeyShortcut(.Control, .C, ActionFile.CopyImage)
-        .registerKeyShortcut(.Zero, .F2, ActionFile.RenameCapture)
+        .registerKeyShortcut(.None, .F2, ActionFile.RenameCapture)
     }
 
     // Update the live text filter and rebuild the visible set.
@@ -391,7 +391,7 @@ impl LibraryWnd
         while @countof(p) != 0
         {
             fulls.add(String.from(p))
-            let parent = Path.getDirectoryName(p)
+            let parent = Path.directoryName(p)
             if parent == null or @countof(parent) == 0 or parent == p do
                 break
             p = parent
@@ -401,11 +401,11 @@ impl LibraryWnd
         for #reverse [idx] in fulls.count
         {
             let fp = fulls[idx].toString()
-            var nm = Path.getFileName(fp) orelse ""
+            var nm = Path.fileName(fp) orelse ""
             if @countof(nm) == 0 do
                 nm = fp
             let isTrash = trashFolder == fp
-            let icon    = isTrash ? .getTheme().getIcon24(.Remove) : .getTheme().getIcon24(.OpenFile)
+            let icon    = isTrash ? .theme().icon24(.Remove) : .theme().icon24(.OpenFile)
             .breadcrumb.addItem(nm, icon, tag: fp)
         }
     }
@@ -435,7 +435,7 @@ impl LibraryWnd
 
         for d, [i] in dirs
         {
-            let name = Path.getFileName(d.fullname) orelse d.fullname.toString()
+            let name = Path.fileName(d.fullname) orelse d.fullname.toString()
             menu.addItem(name, .menuPaths[i].toString(), checked: d.fullname == currentChild)
         }
     }
@@ -487,7 +487,7 @@ impl LibraryWnd
         res.view = view
 
         // Top bar list
-        with let barList = StackLayoutCtrl.create(rightBar, .HorzCenter, {0, 0, 300, 32})
+        with let barList = StackLayoutCtrl.create(rightBar, .HorizontalCenter, {0, 0, 300, 32})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Window
@@ -498,16 +498,16 @@ impl LibraryWnd
             .addColumn("name", 200)
             .addColumn("count", 70)
             .listView.style.addStyleSheetColors("listItem_SelectedBk $listItem_FocusSelectedBk")
-            .lineHeight               = 30
-            .listFlags                |= .NoMouseEmptySel
-            .scrollWnd.scrollWndFlags |= .SmallBar | .ForceVertical | .TransparentBar
+            .setLineHeight(30)
+            .updateFlags(.PreserveSelectionOnEmptyClick)
+            .scrollWnd.updateFlags(.CompactBars | .AlwaysShowVertical | .TransparentBars)
             .header.hide()
             .backgroundStyle = .Window
-            .listFlags       |= .ForceMarginExpandMark
-            .dockStyle       = .Center
-            .sigSelChanged   += func|view|(list)
+            .updateFlags(.ReserveExpandMargin)
+            .dockStyle           = .Center
+            .sigSelectionChanged += func|view|(list)
             {
-                var sel = list.getSelectedLine()
+                var sel = list.selectedLine()
                 if !sel do
                     return
                 view.filterYear  = cast(u64) sel.userData0
@@ -526,12 +526,12 @@ impl LibraryWnd
             .dockStyle       = .Top
             .backgroundStyle = .Window
             .sigItemPressed  += func|res|(bc, idx) { res.navigateFolder(bc.items[idx].tag.toString()) }
-            .sigFillMenu     = func|res|(bc, idx, menu) { res.fillBreadcrumbMenu(bc, idx, menu) }
+            .sigFillMenu     += func|res|(bc, idx, menu) { res.fillBreadcrumbMenu(bc, idx, menu) }
             .sigMenuSelected += func|res|(bc, idx, id) { res.navigateFolder(id) }
         }
 
         // Top bar
-        with res.editZoomBar = StackLayoutCtrl.create(res, .HorzCenter, {0, 0, 300, 32})
+        with res.editZoomBar = StackLayoutCtrl.create(res, .HorizontalCenter, {0, 0, 300, 32})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Window
@@ -539,23 +539,23 @@ impl LibraryWnd
 
         with view.imgSpin = ImageRect.create(res, {4, 4, 24, 24})
         {
-            .setMovie(dref notnull view.getTheme().res.spin)
+            .setSpriteSheet(dref notnull view.theme().res.spin)
             .hide()
         }
 
         // Image Size
-        with res.zoomBtn = IconButton.create(res.editZoomBar, res.getTheme().getIcon24(.Search), {0, 0, 120, 32})
+        with res.zoomBtn = IconButton.create(res.editZoomBar, res.theme().icon24(.Search), {0, 0, 120, 32})
         {
             .name.set("Size")
-            .iconBtnFlags.add(.Center)
-            .textPos    = .Right
-            .arrowPos   = .RightDown
+            .updateFlags(.CenterContent)
+            .setTextPosition(.Right)
+            .setArrowPosition(.RightDownward)
             .sigPressed += func|res|(btn)
             {
-                var pos = btn.getSurfaceRect()
+                var pos = btn.surfaceRect()
                 with var menu = MenuCtrl.createPopup(res)
                 {
-                    .menuCtrlFlags |= .NoKeyShortcuts
+                    menu.updateFlags(.HideShortcuts)
                     .addItem(ActionRecentSize.LibSmall)
                     .addItem(ActionRecentSize.LibMedium)
                     .addItem(ActionRecentSize.LibBig)
@@ -566,18 +566,18 @@ impl LibraryWnd
         }
 
         // Sort
-        with res.sortBtn = IconButton.create(res.editZoomBar, res.getTheme().getIcon24(.Sort), {0, 0, 120, 32})
+        with res.sortBtn = IconButton.create(res.editZoomBar, res.theme().icon24(.Sort), {0, 0, 120, 32})
         {
             .name.set("Sort")
-            .iconBtnFlags.add(.Center)
-            .textPos    = .Right
-            .arrowPos   = .RightDown
+            .updateFlags(.CenterContent)
+            .setTextPosition(.Right)
+            .setArrowPosition(.RightDownward)
             .sigPressed += func|res|(btn)
             {
-                var pos = btn.getSurfaceRect()
+                var pos = btn.surfaceRect()
                 with var menu = MenuCtrl.createPopup(res)
                 {
-                    .menuCtrlFlags |= .NoKeyShortcuts
+                    menu.updateFlags(.HideShortcuts)
                     .addItem(ActionLibSort.Recent)
                     .addItem(ActionLibSort.FileSize)
                     .addItem(ActionLibSort.Similar)
@@ -590,18 +590,18 @@ impl LibraryWnd
         }
 
         // Filter
-        with res.filterBtn = IconButton.create(res.editZoomBar, res.getTheme().getIcon24(.Filter), {0, 0, 120, 32})
+        with res.filterBtn = IconButton.create(res.editZoomBar, res.theme().icon24(.Filter), {0, 0, 120, 32})
         {
             .name.set("Filter")
-            .iconBtnFlags.add(.Center)
-            .textPos    = .Right
-            .arrowPos   = .RightDown
+            .updateFlags(.CenterContent)
+            .setTextPosition(.Right)
+            .setArrowPosition(.RightDownward)
             .sigPressed += func|res|(btn)
             {
-                var pos = btn.getSurfaceRect()
+                var pos = btn.surfaceRect()
                 with var menu = MenuCtrl.createPopup(res)
                 {
-                    .menuCtrlFlags |= .NoKeyShortcuts
+                    menu.updateFlags(.HideShortcuts)
                     .addItem(ActionLibFilter.UpToDateLinkedImage)
                     .addItem(ActionLibFilter.UnSavedLinkedImage)
                     .addSeparator()
@@ -614,18 +614,18 @@ impl LibraryWnd
         }
 
         // Recycle bin
-        with res.trashBtn = IconButton.create(res.editZoomBar, res.getTheme().getIcon24(.Remove), {0, 0, 120, 32})
+        with res.trashBtn = IconButton.create(res.editZoomBar, res.theme().icon24(.Remove), {0, 0, 120, 32})
         {
             .name.set("Trash")
-            .iconBtnFlags.add(.Center)
-            .textPos    = .Right
-            .arrowPos   = .RightDown
+            .updateFlags(.CenterContent)
+            .setTextPosition(.Right)
+            .setArrowPosition(.RightDownward)
             .sigPressed += func|res|(btn)
             {
-                var pos = btn.getSurfaceRect()
+                var pos = btn.surfaceRect()
                 with var menu = MenuCtrl.createPopup(res)
                 {
-                    .menuCtrlFlags |= .NoKeyShortcuts
+                    menu.updateFlags(.HideShortcuts)
                     .addItem(ActionLibTrash.Toggle)
                     .addSeparator()
                     .addItem(ActionLibTrash.Empty)
@@ -636,11 +636,11 @@ impl LibraryWnd
         }
 
         // Live search
-        with res.searchEdit = EditBox.create(res.editZoomBar, "", {0, 0, 180, 32}, flags: .ClearButton | .AutoLoseFocus)
+        with res.searchEdit = EditBox.create(res.editZoomBar, "", {0, 0, 180, 32}, flags: .ClearButton | .ReleaseFocusOnEnterOrEscape)
         {
-            .setForm(.Round)
-            .setNote("Search")
-            .sigChanged += func|res|(ed) { res.setSearch(ed.getText()) }
+            .setForm(.RoundedRectangle)
+            .setPlaceholder("Search")
+            .sigTextChanged += func|res|(ed) { res.setSearch(ed.text()) }
         }
 
         res.setPreviewSize(.Small)

@@ -1,26 +1,41 @@
 #global public
 #global namespace Input
 
-// Allows getting keystrokes from keyboard
+// Tracks keyboard state, transitions, and configurable key repetition.
 struct Keyboard
 {
-    previousState: KeyboardState     // Previous state associated with this value.
-    currentState:  KeyboardState     // Current state associated with this value.
-    pressedRepeat: [Key] bool        // Pressed repeat associated with this value.
-    pressedTime:   [Key] u32         // Pressed time associated with this value.
+    readonly
+    {
+        previousState: KeyboardState     // State captured before the latest update.
+        currentState:  KeyboardState     // State captured by the latest update.
+    }
 
-    // Delay, in milliseconds, before a repeated key stroke starts
-    pressedRepeatStartTimeMs: u32 = 400     // Pressed repeat start time ms associated with this value.
+    initialRepeatDelayMs: u32  = 400      // Delay before the first repeated key press.
+    repeatIntervalMs:     u32  = 50       // Delay between subsequent repeated key presses.
+    repeatEnabled:        bool = true     // Whether held keys generate repeated press transitions.
 
-    // Delay, in miliseconds, between two repeated key strokes
-    pressedRepeatTimeMs: u32 = 50     // Pressed repeat time ms associated with this value.
-
-    // Allow key stroke repetition if true
-    canRepeat: bool = true     // Can repeat associated with this value.
+    internal
+    {
+        isRepeating: [Key] bool
+        pressedAtMs: [Key] u64
+    }
 }
 
 impl Keyboard
 {
+    // Test and backend hook kept out of the documented product surface.
+    #[Swag.NoDoc]
+    mtd setCurrentKeyState(key: Key, pressed: bool)
+    {
+        .currentState.setPressed(key, pressed)
+    }
+
+    internal mtd setKeyStates(key: Key, previousPressed, currentPressed: bool)
+    {
+        .previousState.setPressed(key, previousPressed)
+        .currentState.setPressed(key, currentPressed)
+    }
+
     // Compute current state of the keyboard (all keys)
     mtd update()
     {
@@ -28,34 +43,34 @@ impl Keyboard
         .currentState.update()
 
         // Repetition
-        let now = Time.nowMilliseconds()
+        let now = Time.monotonicMilliseconds()
         for key in Key
         {
             if !.currentState.isKeyPressed(key)
             {
-                .pressedRepeat[key] = false
-                .pressedTime[key]   = 0
+                .isRepeating[key] = false
+                .pressedAtMs[key] = 0
             }
-            elif .canRepeat
+            elif .repeatEnabled
             {
                 // First pressed time
-                if !.pressedTime[key] do
-                    .pressedTime[key] = now
+                if !.pressedAtMs[key] do
+                    .pressedAtMs[key] = now
 
                 // First repetition
-                if !.pressedRepeat[key]
+                if !.isRepeating[key]
                 {
-                    if now - .pressedTime[key] >= .pressedRepeatStartTimeMs
+                    if now - .pressedAtMs[key] >= .initialRepeatDelayMs
                     {
-                        .pressedRepeat[key]         = true
-                        .pressedTime[key]           = now
-                        .previousState.pressed[key] = false
+                        .isRepeating[key] = true
+                        .pressedAtMs[key] = now
+                        .previousState.setPressed(key, false)
                     }
                 }
-                elif now - .pressedTime[key] >= .pressedRepeatTimeMs
+                elif now - .pressedAtMs[key] >= .repeatIntervalMs
                 {
-                    .pressedTime[key]           = now
-                    .previousState.pressed[key] = false
+                    .pressedAtMs[key] = now
+                    .previousState.setPressed(key, false)
                 }
             }
         }
@@ -66,8 +81,8 @@ impl Keyboard
     {
         .previousState.clear()
         .currentState.clear()
-        Memory.clear(&.pressedRepeat, #sizeof(.pressedRepeat))
-        Memory.clear(&.pressedTime, #sizeof(.pressedTime))
+        Memory.clear(&.isRepeating, #sizeof(.isRepeating))
+        Memory.clear(&.pressedAtMs, #sizeof(.pressedAtMs))
     }
 
     // Determines whether given key is currently being pressed
@@ -94,10 +109,10 @@ impl Keyboard
         return !.currentState.pressed[key] and .previousState.pressed[key]
     }
 
-    // Returns the currently pressed key modifiers
-    mtd getPressedModifiers()->KeyModifiers
+    // Returns the modifier flags active in the latest state.
+    mtd pressedModifiers()->KeyModifiers
     {
-        var modifiers: Input.KeyModifiers = .Zero
+        var modifiers: Input.KeyModifiers = .None
         if .isKeyPressed(Input.Key.LShift) do
             modifiers |= .Shift
         if .isKeyPressed(Input.Key.RShift) do

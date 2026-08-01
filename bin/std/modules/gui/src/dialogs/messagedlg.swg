@@ -1,49 +1,52 @@
 using Core, Pixel
 
-// Represents message dlg.
+// Displays a rich message, optional icon and extension, and caller-defined action buttons.
 public struct MessageDlg
 {
     using dialog: Dialog     // Embedded dialog state.
-    #[Swag.Late]
-    labelIcon: *Label     // Label icon associated with this value.
-    #[Swag.Late]
-    label:     *Label         // Label associated with this value.
-    extension: #null *Wnd     // Extension associated with this value.
+    readonly
+    {
+        #[Swag.Late]
+        labelIcon: *Label     // Optional large icon label.
+        #[Swag.Late]
+        label:     *Label         // Rich message label.
+        extension: #null *Wnd     // Optional caller-owned extension docked below the message.
+    }
 }
 
-// Represents message dlg options.
+// Configures message content alignment, icon presentation, and post-creation customization.
 public struct MessageDlgOptions
 {
-    icon:      Icon                                    // Icon associated with this value.
-    iconColor: Color                                   // Icon color associated with this value.
-    horzAlignmentText = StringHorzAlignment.Center     // Horz alignment text associated with this value.
-    vertAlignmentText = StringVertAlignment.Center     // Vert alignment text associated with this value.
-    sigCreate: #null func||(*MessageDlg)               // Signal emitted when create.
+    icon:      Icon                                          // Optional large message icon.
+    iconColor: Color                                         // Icon tint, or transparent for its descriptor color.
+    textHorizontalAlignment = StringHorzAlignment.Center     // Horizontal message alignment.
+    textVerticalAlignment   = StringVertAlignment.Center     // Vertical message alignment.
+    onCreated: #null func||(*MessageDlg)                     // Optional callback invoked before icon setup and layout.
 }
 
 public impl MessageDlg
 {
-    // Creates the message box
-    func create(from: *Surface, message: string, options: MessageDlgOptions)->*MessageDlg
+    // Creates a message dialog without adding action buttons.
+    #[Swag.Discardable]
+    func create(from: *Surface, message: string, options: MessageDlgOptions = {})->*MessageDlg
     {
+        Debug.assert(from != null)
         let dlg = Wnd.create'MessageDlg()
-        dlg.fromSurface = from
 
         let srf = dlg.createSurface(from, 0, 0, 500, 300)
 
-        let metrics = from.wnd.getThemeMetrics()
+        let metrics = from.wnd.themeMetrics()
 
-        with dlg.label = Label.create(srf.getView(), message, {})
+        with dlg.label = Label.create(srf.view(), message, {})
         {
             .dockStyle = .Center
-            .labelFlags.add(.WordWrap)
-            .horzAlignmentText = options.horzAlignmentText
-            .vertAlignmentText = options.vertAlignmentText
+            .updateFlags(.WordWrap)
+            .setTextAlignment(options.textHorizontalAlignment, options.textVerticalAlignment)
             .setAllPaddings(metrics.dialog_Padding)
         }
 
-        if options.sigCreate do
-            options.sigCreate(dlg)
+        if options.onCreated do
+            options.onCreated(dlg)
 
         dlg.setIcon(options.icon)
 
@@ -55,25 +58,27 @@ public impl MessageDlg
         return dlg
     }
 
-    // Display the box, centered, and returns the id of the pressed button
-    mtd doModal(from: *Surface)->WndId
+    // Adapts the surface to its content, centers it on its owner, and returns the modal result.
+    mtd doModal()->WndId
     {
         .adaptSizeToMessage()
         let srf = notnull .surface
-        srf.center(from)
+        srf.center(notnull .parentSurface)
         return Dialog.doModal(me)
     }
 
     private mtd adaptSizeToMessage()
     {
-        let metrics = .getThemeMetrics()
+        let metrics = .themeMetrics()
 
         // Evaluate size of text
-        var fake = Painter{fake: true}
+        var fake: Painter
+        fake.begin(layoutOnly: true)
+        defer fake.end()
         var rsf: RichStringFormat
-        rsf.font          = .getFont()
+        rsf.font          = .font()
         rsf.flags         |= .WordWrap
-        rsf.horzAlignment = .label.horzAlignmentText
+        rsf.horzAlignment = .label.textHorizontalAlignment
         fake.drawRichString({0, 0, 512, 0}, &.label.name, rsf)
         .label.name.invalidate()
 
@@ -81,9 +86,9 @@ public impl MessageDlg
         var w = 0'f32
         for btn in .buttons do
             w += btn.position.width
-        w     += cast(f32) ((.buttons.count - 1) * metrics.dialog_BtnPadding)
-        w     += 2 * metrics.dialog_Padding
-        w     += metrics.btnPush_Width
+        w += cast(f32) ((.buttons.count - 1) * metrics.dialog_BtnPadding)
+        w += 2 * metrics.dialog_Padding
+        w += metrics.btnPush_Width
 
         var wl = .label.name.boundRect.width + 2 * metrics.dialog_Padding
         wl += 2 * metrics.wnd_BorderSize
@@ -102,12 +107,12 @@ public impl MessageDlg
             h += .labelIcon.position.height
         else do
             h += metrics.dialog_Padding
-        h     += .wndBottom.position.height
-        h     += 2 * metrics.wnd_BorderSize
+        h += .buttonBar.position.height
+        h += 2 * metrics.wnd_BorderSize
         let srf = notnull .surface
         if srf.flags & .SmallCaption do
             h += metrics.wnd_SmallCaptionCY
-        elif srf.flags & .BigCaption do
+        elif srf.flags & .LargeCaption do
             h += metrics.wnd_BigCaptionCY
 
         let ext = .extension
@@ -123,43 +128,42 @@ public impl MessageDlg
         srf.setPosition(pos)
     }
 
-    // Add a bottom extended window
+    // Docks one extension below the message content.
     mtd setExtension(wndExtension: *Wnd)
     {
         Debug.assert(.extension == null)
         .extension           = wndExtension
         .extension.dockStyle = .Bottom
-        .extension.margin.x  = .getThemeMetrics().dialog_Padding
+        .extension.margin.x  = .themeMetrics().dialog_Padding
     }
 
-    // Set big icon color (icon must has been set before)
+    // Changes the large icon tint.
     mtd setIconColor(color: Color)
     {
         Debug.assert(@isset(.labelIcon))
-        .labelIcon.iconColor = color
+        .labelIcon.setIconColor(color)
     }
 
-    // Set big icon
+    // Creates or replaces the large message icon; an invalid icon leaves it unchanged.
     mtd setIcon(icon: Icon, color: Color = Argb.Zero)
     {
         if !icon.isValid() do
             return
 
         if !@isset(.labelIcon) do
-            .labelIcon   = Label.create((notnull .surface).wnd.view, "", {0, 0, 0, icon.sizeX + icon.sizeX * 0.5})
+            .labelIcon = Label.create((notnull .surface).wnd.view, "", {0, 0, 0, icon.sizeX + icon.sizeX * 0.5})
         .label.padding.y = 0
 
         with me.labelIcon
         {
-            .dockStyle         = .Top
-            .iconColor         = color
-            .icon              = icon
-            .horzAlignmentIcon = .Center
-            .vertAlignmentIcon = .Center
+            .dockStyle = .Top
+            .setIcon(icon)
+            .setIconColor(color)
+            .setIconAlignment(.Center, .Center)
         }
     }
 
-    // Message box with a 'ok'
+    // Shows a modal message with one OK action.
     func ok(from: *Surface, message: string, options: MessageDlgOptions = {})
     {
         with let dlg = create(from, message, options)
@@ -167,10 +171,10 @@ public impl MessageDlg
             .addButton("OK", Dialog.BtnOk, true)
         }
 
-        discard dlg.doModal(from)
+        discard dlg.doModal()
     }
 
-    // Message box with a 'ok' and 'cancel' button
+    // Shows a modal message with OK and Cancel actions.
     func okCancel(from: *Surface, message: string, defaultId = Dialog.BtnCancel, options: MessageDlgOptions = {})->WndId
     {
         with let dlg = create(from, message, options)
@@ -179,16 +183,16 @@ public impl MessageDlg
             .addButton("Cancel", Dialog.BtnCancel, defaultId == Dialog.BtnCancel)
         }
 
-        return dlg.doModal(from)
+        return dlg.doModal()
     }
 
-    // Message box with a 'yes' and 'no' button
+    // Shows a modal question with Yes and No actions.
     func yesNo(from: *Surface, message: string, title: #null string = null, defaultId = Dialog.BtnNo, options: MessageDlgOptions = {})->WndId
     {
         var opt = options
         if !opt.icon.isValid()
         {
-            opt.icon      = from.app.theme.getIcon64(ThemeIcons64.Question)
+            opt.icon      = from.app.theme.icon64(ThemeIcons64.Question)
             opt.iconColor = Argb.White
         }
 
@@ -200,16 +204,16 @@ public impl MessageDlg
             .addButton("No", Dialog.BtnNo, defaultId == Dialog.BtnNo)
         }
 
-        return dlg.doModal(from)
+        return dlg.doModal()
     }
 
-    // Message box with a 'yes' and 'no' button
+    // Shows a modal question with Yes, No, and Cancel actions.
     func yesNoCancel(from: *Surface, message: string, defaultId = Dialog.BtnCancel, options: MessageDlgOptions = {})->WndId
     {
         var opt = options
         if !opt.icon.isValid()
         {
-            opt.icon      = from.app.theme.getIcon64(ThemeIcons64.Question)
+            opt.icon      = from.app.theme.icon64(ThemeIcons64.Question)
             opt.iconColor = Argb.White
         }
 
@@ -220,17 +224,17 @@ public impl MessageDlg
             .addButton("Cancel", Dialog.BtnCancel, defaultId == Dialog.BtnCancel)
         }
 
-        return dlg.doModal(from)
+        return dlg.doModal()
     }
 
-    // Message box to 'confirm' something
+    // Shows a standardized confirmation question with Yes and No actions.
     func confirm(from: *Surface, message: string, question: #null string = null, defaultId = Dialog.BtnNo, options: MessageDlgOptions = {})->WndId
     {
         var txt = String.from(message)
         while !txt.isEmpty() and txt.back() == '\n' do
             txt.removeBack()
         txt += "\n\n"
-        txt += question orelse "<b>Do you want to continue ?</b>"
+        txt += question orelse "<b>Do you want to continue?</b>"
 
         return yesNo(from, txt.toString(), "Please confirm", defaultId, options)
     }
@@ -256,7 +260,7 @@ public impl MessageDlg
         var opt = options
         if !opt.icon.isValid()
         {
-            opt.icon      = from.app.theme.getIcon64(.Critical)
+            opt.icon      = from.app.theme.icon64(.Critical)
             opt.iconColor = Argb.White
         }
 
@@ -267,6 +271,6 @@ public impl MessageDlg
             .addButton("OK", Dialog.BtnOk, true)
         }
 
-        discard dlg.doModal(from)
+        discard dlg.doModal()
     }
 }

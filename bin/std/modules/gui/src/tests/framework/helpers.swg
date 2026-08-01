@@ -33,7 +33,7 @@ func tempFilePath(prefix, extension: string)->String
         catch Directory.create(folder)
 
     var fileName = String.from(prefix)
-    fileName += GUID64.getRandom().getString()
+    fileName += Guid64.random().toString()
     fileName += extension
     return Path.combine(folder.toString(), fileName.toString())
 }

@@ -1,13 +1,18 @@
 #global namespace Hash
 #global #[Swag.Safety(.Overflow, false)]
 
-// Represents md5.
+// Computes an MD5 digest incrementally.
+//
+// MD5 is suitable for compatibility and non-adversarial checksums only. Do not
+// use it for passwords, signatures, or other security-sensitive verification.
 public struct Md5
 {
-    padding: [64] u8     // Padding associated with this value.
-    state:   [4] u32     // State associated with this value.
-    count:   [2] u32     // Count associated with this value.
-    buffer:  [64] u8     // Buffer associated with this value.
+    internal
+    {
+        state:  [4] u32 = [0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476]
+        count:  [2] u32
+        buffer: [64] u8
+    }
 }
 
 public impl Md5
@@ -15,32 +20,36 @@ public impl Md5
     // Names the digest type.
     alias Digest = [16] u8
 
-    // Finalize the computation
-    mtd final(digest: Digest)
+    // Finalizes the current sequence and returns its 128-bit digest.
+    // Call [[reset]] before reusing this value after finalization.
+    mtd finalize()->Digest
     {
-        var bits: [8] u8
+        var digest:  retval
+        var bits:    [8] u8
+        var padding: [64] u8
+        padding[0] = 0x80
         encode(&bits[0], .count, 8)
 
         let index  = (.count[0] >> 3) & 0x3F
         let padLen = (index < 56) ? (56 - index) : (120 - index)
 
-        .update(@mkslice(&.padding[0], padLen))
+        .update(@mkslice(&padding[0], padLen))
         .update(@mkslice(&bits[0], 8))
         encode(&digest[0], .state, 16)
+        return digest
     }
 
-    // Initialize the hashing sequence
-    mtd init()
+    // Resets the sequence to the standard MD5 initial state.
+    mtd reset()
     {
         @init(me, 1)
-        .padding[0] = 0x80
-        .state[0]   = 0x67452301
-        .state[1]   = 0xEFCDAB89
-        .state[2]   = 0x98BADCFE
-        .state[3]   = 0x10325476
+        .state[0] = 0x67452301
+        .state[1] = 0xEFCDAB89
+        .state[2] = 0x98BADCFE
+        .state[3] = 0x10325476
     }
 
-    // Update the hash value with 'buffer' content
+    // Includes `data` in the running digest.
     mtd update(data: const [..] u8)
     {
         // Only deal with 32 bits size
@@ -53,7 +62,7 @@ public impl Md5
         .count[0] += inputLen << 3
         if .count[0] < inputLen << 3 do
             .count[1] += 1
-        .count[1]     += inputLen >> 29
+        .count[1] += inputLen >> 29
 
         var i       = 0'u32
         let partLen = 64 - index
@@ -74,7 +83,7 @@ public impl Md5
         Memory.copy(&.buffer[index], input + i, cast(u64) inputLen - i)
     }
 
-    // Returns the md5 value for the given buffer
+    // Computes the MD5 digest of `buffer` in one operation.
     func compute(buffer: const [..] u8)->Digest
     {
         let bufferLen = @countof(buffer)
@@ -107,15 +116,12 @@ public impl Md5
         }
 
         var v: Md5
-        v.init()
+        v.reset()
         v.update(buffer)
-
-        var result: retval
-        v.final(result)
-        return result
+        return v.finalize()
     }
 
-    // Convert a MD5 result to a string
+    // Formats `digest` as 32 uppercase hexadecimal digits.
     func toString(digest: Digest)->String
     {
         const CONV = "0123456789ABCDEF"

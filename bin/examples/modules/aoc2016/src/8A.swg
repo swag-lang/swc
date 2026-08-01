@@ -42,7 +42,7 @@ using Core
 
 func day8A()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "8.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "8.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     const W = 50
@@ -66,7 +66,7 @@ func day8A()
             {
                 for [i] in H do
                     screen[x, (i + 1) % H] = nscreen[x, i]
-                nscreen                    = screen
+                nscreen = screen
             }
 
         case expect re.match(#raw "rotate row y=(\d+) by (\d+)", l):
@@ -75,7 +75,7 @@ func day8A()
             {
                 for [i] in W do
                     screen[(i + 1) % W, y] = nscreen[i, y]
-                nscreen                    = screen
+                nscreen = screen
             }
         }
     }

@@ -74,7 +74,7 @@ impl Layer
         .width         = info.width
         .height        = info.height
         .renderScale   = Math.max(info.renderScale, 1)
-        .paintTarget   = renderer.getRenderTarget(.width * .renderScale, .height * .renderScale)
+        .paintTarget   = renderer.acquireRenderTarget(.width * .renderScale, .height * .renderScale)
         .contentTarget = .paintTarget
         .active        = true
         .resolved      = .renderScale == 1
@@ -113,7 +113,7 @@ impl Layer
         let painter        = notnull .painter
         let paintTarget    = notnull .paintTarget
         let renderScale    = .renderScale
-        let resolvedTarget = renderer.getRenderTarget(.width, .height)
+        let resolvedTarget = renderer.acquireRenderTarget(.width, .height)
         let srcRect        = Math.Rectangle{0, 0, .width * renderScale, .height * renderScale}
         let dstRect        = Math.Rectangle{0, 0, .width, .height}
 
@@ -158,8 +158,8 @@ impl Layer
         let renderer     = notnull .renderer
         let painter      = notnull .painter
         let content      = notnull .contentTarget
-        let target1      = renderer.getRenderTarget(shadowWidth, shadowHeight)
-        let target2      = renderer.getRenderTarget(shadowWidth, shadowHeight)
+        let target1      = renderer.acquireRenderTarget(shadowWidth, shadowHeight)
+        let target2      = renderer.acquireRenderTarget(shadowWidth, shadowHeight)
 
         with painter
         {

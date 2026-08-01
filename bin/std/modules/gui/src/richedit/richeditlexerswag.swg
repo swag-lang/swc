@@ -2,7 +2,7 @@
 
 using Core, Pixel
 
-// Represents rich edit lexer swag.
+// Provides syntax highlighting for Swag source code.
 struct RichEditLexerSwag
 {
     #[Swag.Incomplete]
@@ -14,7 +14,7 @@ struct RichEditLexerSwag
         Keyword          // Selects keyword.
         Control          // Selects control.
         Intrinsic        // Selects intrinsic.
-        Buildin          // Selects buildin.
+        Builtin          // Compiler builtin functions such as `@sqrt` and `@memcpy`.
         Function         // Selects function.
         Preprocessor     // Selects preprocessor.
         CharEscape       // Selects char escape.
@@ -28,7 +28,7 @@ struct RichEditLexerSwag
 
     #[Swag.Incomplete]
     // Identifies the lexical state carried between lines.
-    enum State: s32
+    internal enum State: s32
     {
         Default               // Selects default.
         LineComment           // Selects line comment.
@@ -37,7 +37,7 @@ struct RichEditLexerSwag
         Declaration           // Selects declaration.
         Control               // Selects control.
         Intrinsic             // Selects intrinsic.
-        Buildin               // Selects buildin.
+        Builtin               // Compiler builtin function.
         Compiler              // Selects compiler.
         CompilerFunction      // Selects compiler function.
         CompilerGlobal        // Selects compiler global.
@@ -60,8 +60,8 @@ struct RichEditLexerSwag
         Error                 // Selects error.
     }
 
-    mapStyles: [State] Style                 // Map styles associated with this value.
-    mapWords:  HashTable'(string, State)     // Map words associated with this value.
+    internal mapStyles: [State] Style
+    internal mapWords:  HashTable'(string, State)
 }
 
 impl IRichEditLexer for RichEditLexerSwag
@@ -75,7 +75,7 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapStyles[State.Control]           = Control
         .mapStyles[State.Declaration]       = Keyword
         .mapStyles[State.Intrinsic]         = Intrinsic
-        .mapStyles[State.Buildin]           = Buildin
+        .mapStyles[State.Builtin]           = Builtin
         .mapStyles[State.CompilerFunction]  = Function
         .mapStyles[State.CompilerGlobal]    = Preprocessor
         .mapStyles[State.CompilerStatement] = Preprocessor
@@ -268,53 +268,53 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("cstring", State.Type)
         .mapWords.add("typeinfo", State.Type)
 
-        .mapWords.add("@abs", State.Buildin)
-        .mapWords.add("@acos", State.Buildin)
-        .mapWords.add("@asin", State.Buildin)
-        .mapWords.add("@atan", State.Buildin)
-        .mapWords.add("@atan2", State.Buildin)
-        .mapWords.add("@alloc", State.Buildin)
-        .mapWords.add("@atomadd", State.Buildin)
-        .mapWords.add("@atomand", State.Buildin)
-        .mapWords.add("@atomcmpxchg", State.Buildin)
-        .mapWords.add("@atomor", State.Buildin)
-        .mapWords.add("@atomxchg", State.Buildin)
-        .mapWords.add("@atomxor", State.Buildin)
-        .mapWords.add("@bitcountnz", State.Buildin)
-        .mapWords.add("@bitcountlz", State.Buildin)
-        .mapWords.add("@bitcounttz", State.Buildin)
-        .mapWords.add("@byteswap", State.Buildin)
-        .mapWords.add("@cvaarg", State.Buildin)
-        .mapWords.add("@cvaend", State.Buildin)
-        .mapWords.add("@cvastart", State.Buildin)
-        .mapWords.add("@ceil", State.Buildin)
-        .mapWords.add("@cos", State.Buildin)
-        .mapWords.add("@cosh", State.Buildin)
-        .mapWords.add("@exp", State.Buildin)
-        .mapWords.add("@exp2", State.Buildin)
-        .mapWords.add("@floor", State.Buildin)
-        .mapWords.add("@free", State.Buildin)
-        .mapWords.add("@log", State.Buildin)
-        .mapWords.add("@log10", State.Buildin)
-        .mapWords.add("@log2", State.Buildin)
-        .mapWords.add("@max", State.Buildin)
-        .mapWords.add("@memcmp", State.Buildin)
-        .mapWords.add("@memcpy", State.Buildin)
-        .mapWords.add("@memmove", State.Buildin)
-        .mapWords.add("@memset", State.Buildin)
-        .mapWords.add("@min", State.Buildin)
-        .mapWords.add("@muladd", State.Buildin)
-        .mapWords.add("@pow", State.Buildin)
-        .mapWords.add("@realloc", State.Buildin)
-        .mapWords.add("@rol", State.Buildin)
-        .mapWords.add("@ror", State.Buildin)
-        .mapWords.add("@round", State.Buildin)
-        .mapWords.add("@sin", State.Buildin)
-        .mapWords.add("@sinh", State.Buildin)
-        .mapWords.add("@sqrt", State.Buildin)
-        .mapWords.add("@tan", State.Buildin)
-        .mapWords.add("@tanh", State.Buildin)
-        .mapWords.add("@trunc", State.Buildin)
+        .mapWords.add("@abs", State.Builtin)
+        .mapWords.add("@acos", State.Builtin)
+        .mapWords.add("@asin", State.Builtin)
+        .mapWords.add("@atan", State.Builtin)
+        .mapWords.add("@atan2", State.Builtin)
+        .mapWords.add("@alloc", State.Builtin)
+        .mapWords.add("@atomadd", State.Builtin)
+        .mapWords.add("@atomand", State.Builtin)
+        .mapWords.add("@atomcmpxchg", State.Builtin)
+        .mapWords.add("@atomor", State.Builtin)
+        .mapWords.add("@atomxchg", State.Builtin)
+        .mapWords.add("@atomxor", State.Builtin)
+        .mapWords.add("@bitcountnz", State.Builtin)
+        .mapWords.add("@bitcountlz", State.Builtin)
+        .mapWords.add("@bitcounttz", State.Builtin)
+        .mapWords.add("@byteswap", State.Builtin)
+        .mapWords.add("@cvaarg", State.Builtin)
+        .mapWords.add("@cvaend", State.Builtin)
+        .mapWords.add("@cvastart", State.Builtin)
+        .mapWords.add("@ceil", State.Builtin)
+        .mapWords.add("@cos", State.Builtin)
+        .mapWords.add("@cosh", State.Builtin)
+        .mapWords.add("@exp", State.Builtin)
+        .mapWords.add("@exp2", State.Builtin)
+        .mapWords.add("@floor", State.Builtin)
+        .mapWords.add("@free", State.Builtin)
+        .mapWords.add("@log", State.Builtin)
+        .mapWords.add("@log10", State.Builtin)
+        .mapWords.add("@log2", State.Builtin)
+        .mapWords.add("@max", State.Builtin)
+        .mapWords.add("@memcmp", State.Builtin)
+        .mapWords.add("@memcpy", State.Builtin)
+        .mapWords.add("@memmove", State.Builtin)
+        .mapWords.add("@memset", State.Builtin)
+        .mapWords.add("@min", State.Builtin)
+        .mapWords.add("@muladd", State.Builtin)
+        .mapWords.add("@pow", State.Builtin)
+        .mapWords.add("@realloc", State.Builtin)
+        .mapWords.add("@rol", State.Builtin)
+        .mapWords.add("@ror", State.Builtin)
+        .mapWords.add("@round", State.Builtin)
+        .mapWords.add("@sin", State.Builtin)
+        .mapWords.add("@sinh", State.Builtin)
+        .mapWords.add("@sqrt", State.Builtin)
+        .mapWords.add("@tan", State.Builtin)
+        .mapWords.add("@tanh", State.Builtin)
+        .mapWords.add("@trunc", State.Builtin)
 
         .mapWords.add("#run", State.CompilerFunction)
         .mapWords.add("#test", State.CompilerFunction)
@@ -375,7 +375,7 @@ impl IRichEditLexer for RichEditLexerSwag
         ed.styles[cast(u64) Keyword].colFg      = 0xFF569CD6
         ed.styles[cast(u64) Control].colFg      = 0xFFD8A0DF
         ed.styles[cast(u64) Intrinsic].colFg    = 0xFFDCDCAA
-        ed.styles[cast(u64) Buildin].colFg      = 0xFFF67F56
+        ed.styles[cast(u64) Builtin].colFg      = 0xFFF67F56
         ed.styles[cast(u64) Function].colFg     = 0xFFFF7411
         ed.styles[cast(u64) Preprocessor].colFg = 0xFFAAAAAA
         ed.styles[cast(u64) CharEscape].colFg   = 0xFFD7BA7D
@@ -392,7 +392,7 @@ impl IRichEditLexer for RichEditLexerSwag
         // Smart return
         if ch == '\n'
         {
-            let cp          = ed.getBegSelection()
+            let cp          = ed.selectionStart()
             let line        = notnull ed.lines[cp.lineIndex]
             var str: String = "\n"
 

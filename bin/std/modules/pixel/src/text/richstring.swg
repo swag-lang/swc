@@ -149,9 +149,8 @@ impl RichString
         .dirty = true
     }
 
-    // Transform the given string to a naked one.
-    // Will return the string without the format markers.
-    func getNaked(str: string)->String
+    // Returns owned plain text with supported formatting markers removed.
+    func plainText(str: string)->String
     {
         var result: retval
 

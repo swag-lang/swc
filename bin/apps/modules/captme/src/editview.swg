@@ -30,17 +30,17 @@ impl IWnd for EditView
 
         switch evt.kind
         {
-        case .MouseWheel:
+        case .Wheel:
             if evt.modifiers & .Control
             {
                 evt.accepted = true
-                let z = .zoom + (evt.move.y > 0 ? 0.1 : -0.1)
+                let z = .zoom + (evt.delta.y > 0 ? 0.1 : -0.1)
                 .setZoom(z, true)
             }
         }
     }
 
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaint(evt: *PaintEvent)
     {
         if .firstPaint
         {
@@ -48,10 +48,10 @@ impl IWnd for EditView
             .firstPaint = false
         }
 
-        let painter = evt.bc.painter
+        let painter = evt.paintContext.painter
 
         // Background
-        var rect = .getClientRect()
+        var rect = .clientRect()
         rect.offset(.scrollPos)
         painter.fillRect(rect, Argb.Black)
         if !.capture do
@@ -75,7 +75,7 @@ impl IWnd for EditView
         painter.pushTransform()
         painter.translateTransform(captureRect.x, captureRect.y)
         .capture.gizmo.rect = Math.Rectangle{0, 0, captureRect.width, captureRect.height}
-        .capture.gizmo.paint(painter, false, .getThemeColors().hilight)
+        .capture.gizmo.paint(painter, false, .themeColors().hilight)
         painter.popTransform()
     }
 }
@@ -90,7 +90,7 @@ impl EditView
     mtd getCaptureRect()->Math.Rectangle
     {
         var captureRect: retval
-        let rect    = .scroll.getClientScrollRect()
+        let rect    = .scroll.scrollableClientRect()
         let capture = notnull .capture
         captureRect.width  = capture.width * .zoom
         captureRect.height = capture.height * .zoom
@@ -117,7 +117,7 @@ impl EditView
         var mousePos, mousePos1: Math.Point
         if mouseCenter
         {
-            mousePos  = .getApp().mouse.getPosition()
+            mousePos  = .app().mouse.position()
             mousePos  = .screenToSurface(mousePos)
             mousePos  = .surfaceToLocal(mousePos)
             mousePos1 = mousePos + .scrollPos
@@ -159,7 +159,7 @@ impl EditView
         // A degenerate (zero-sized) capture would divide by zero below.
         if .capture.width == 0 or .capture.height == 0 do
             return
-        var rect = .getClientRect()
+        var rect = .clientRect()
         rect.inflate(-.viewMargin * 2)
 
         var zx = rect.width / .capture.width

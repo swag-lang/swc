@@ -17,7 +17,7 @@ internal impl Properties
     // Public so custom editors can label their widgets the same way the built-ins do.
     public func itemDisplayName(value: Swag.TypeValue)->String
     {
-        let attrName = Reflection.getAttributeValue(value, Properties.Name, "name")
+        let attrName = Reflection.attributeValue(value, Properties.Name, "name")
         if attrName != null do
             return attributeString(attrName)
         return Utf8.beautifyName(value.name orelse "")
@@ -26,7 +26,7 @@ internal impl Properties
     // Create a row for 'value' (field typeinfo + name) bound to 'data' under 'parentItem'.
     // Public so custom editors registered with registerEditor (possibly authored in another
     // module) can build their row the same way the built-in editors do.
-    public mtd addItem(value: Swag.TypeValue, data: #null *u8, parentItem: #null *PropertiesItem, height: f32 = 0, flags = AddItemFlags.Name | AddItemFlags.Description)->*PropertiesItem
+    public mtd addItem(value: Swag.TypeValue, data: #null *u8, parentItem: #null *PropertiesItem, height: f32 = 0, flags = PropertiesAddItemFlags.Name | PropertiesAddItemFlags.Description)->*PropertiesItem
     {
         var line: #null *Wnd
 
@@ -41,7 +41,7 @@ internal impl Properties
 
         with line
         {
-            .wndFlags.add(.PreChildsPaint)
+            .wndFlags.add(.BeforeChildrenPaint)
 
             // Lines never take the keyboard focus themselves: navigation lives on
             // the edView and edition on the row editors. This keeps a click on a
@@ -65,13 +65,9 @@ internal impl Properties
             line.margin.w = .gridLineMargin * 0.5
         }
 
-        with let item = .items.addNewPtr()
+        with let item = .items.addNew()
         {
-            .line            = notnull line
-            .type            = value.pointedType
-            .typeValue       = value
-            .data            = data
-            .parent          = parentItem
+            .initialize(notnull line, value.pointedType, value, data, parentItem)
             .level           = parentItem ? parentItem.level + 1 : 0
             .section         = parentItem ? parentItem.section : 0
             .valueCellHeight = height != 0 ? height : .gridLineHeight
@@ -115,25 +111,23 @@ internal impl Properties
                 {
                     if .isGridLike()
                     {
-                        .vertAlignmentText = .Center
-                        .horzAlignmentText = .Left
-                        .dockStyle         = .Left
-                        .margin.z          = .gridMarginColumn
-                        .paddingText.x     = .leftMargin
+                        .setTextAlignment(.Left, .Center)
+                        .setTextPadding({.leftMargin, 0, 0, 0})
+                        .dockStyle = .Left
+                        .margin.z  = .gridMarginColumn
                     }
                     else
                     {
-                        .labelFlags        |= .WordWrap | .AutoHeight | .DontAdaptSingleLineHeight
-                        .vertAlignmentText = .Top
-                        .horzAlignmentText = .Left
-                        .margin.y          = .listNameMarginBefore
-                        .margin.w          = .listNameMarginAfter
+                        .updateFlags(.WordWrap | .AutoHeight | .PreserveSingleLineHeight)
+                        .setTextAlignment(.Left, .Top)
+                        .margin.y = .listNameMarginBefore
+                        .margin.w = .listNameMarginAfter
                     }
 
                     .style.setFont(.fontName)
                 }
 
-                item.label = label
+                item.assignLabel(label)
                 if parentItem
                 {
                     item.filter += " "
@@ -146,12 +140,12 @@ internal impl Properties
         }
 
         // Description
-        let dispDesc = Reflection.getAttributeValue(value, Properties.Description, "desc")
+        let dispDesc = Reflection.attributeValue(value, Properties.Description, "desc")
         if dispDesc != null
         {
-            item.filter      += " "
-            item.filter      += attributeString(dispDesc)
-            item.description = attributeString(dispDesc)
+            item.filter += " "
+            item.filter += attributeString(dispDesc)
+            item.assignDescription(attributeString(dispDesc))
 
             if flags.has(.Description)
             {
@@ -159,12 +153,11 @@ internal impl Properties
                 {
                     with let labelDesc = Label.create(line, "", {0, 0, .listContentWidth(), 0})
                     {
-                        .labelFlags        |= .WordWrap | .AutoHeight | .DontAdaptSingleLineHeight
-                        .vertAlignmentText = .Top
-                        .horzAlignmentText = .Left
-                        .margin.w          = .listDescMarginAfter
+                        .updateFlags(.WordWrap | .AutoHeight | .PreserveSingleLineHeight)
+                        .setTextAlignment(.Left, .Top)
+                        .margin.w = .listDescMarginAfter
                         .setText(attributeString(dispDesc))
-                        item.labelDesc = labelDesc
+                        item.assignDescriptionLabel(labelDesc)
                     }
                 }
             }
@@ -305,7 +298,7 @@ internal impl Properties
             }
 
             // Category / nested subgroups
-            let subCateg = Reflection.getAttributeValue(value, Properties.Category, "name")
+            let subCateg = Reflection.attributeValue(value, Properties.Category, "name")
             if subCateg != null
             {
                 let segs = Tokenize.split(attributeString(subCateg), "/")
@@ -356,7 +349,7 @@ internal impl Properties
     public mtd addSeparator(name: #null string = null, parentItem: #null *PropertiesItem = null)->*PropertiesItem
     {
         let v = Swag.TypeValue{name: name}
-        with let item = .addItem(v, null, parentItem, 1, .Zero)
+        with let item = .addItem(v, null, parentItem, 1, .None)
         {
             .flags.add(.NoSeparator | .NoFocus)
             .line.margin.y        = 15
@@ -406,18 +399,18 @@ internal impl Properties
         if !.isGridLike() do
             return
 
-        if let space = Reflection.getAttributeValue(value, .Gap, "size") do
+        if let space = Reflection.attributeValue(value, .Gap, "size") do
             .addSpacerRow(parentItem, cast(s32) space)
-        if let header = Reflection.getAttributeValue(value, .Heading, "text") do
+        if let header = Reflection.attributeValue(value, .Heading, "text") do
             .addHeaderRow(attributeString(header), parentItem)
-        if let help = Reflection.getAttributeValue(value, .HelpBox, "text") do
+        if let help = Reflection.attributeValue(value, .HelpBox, "text") do
             .addNoteRow(attributeString(help), parentItem)
     }
 
     // A blank vertical gap ('size' px). It paints nothing (paintBackItem short-circuits on .Spacer).
     mtd addSpacerRow(parentItem: #null *PropertiesItem, size: s32)->*PropertiesItem
     {
-        with let item = .addItem(Swag.TypeValue{}, null, parentItem, cast(f32) size, .Zero)
+        with let item = .addItem(Swag.TypeValue{}, null, parentItem, cast(f32) size, .None)
         {
             .level = (notnull parentItem).level
             .flags.add(.Spacer | .NoSeparator | .NoFocus)
@@ -447,22 +440,21 @@ internal impl Properties
     // on top carries the icon and text.
     mtd addNoteRow(text: #null string, parentItem: #null *PropertiesItem)->*PropertiesItem
     {
-        let item = .addItem(Swag.TypeValue{}, null, parentItem, 0, .Zero)
+        let item = .addItem(Swag.TypeValue{}, null, parentItem, 0, .None)
         item.level = (notnull parentItem).level
         item.flags.add(.Note | .NoSeparator | .NoFocus)
 
         with let lbl = Label.create(item.line, text, {0, 0, .position.width, item.line.position.height})
         {
-            .focusStrategy     = .None
-            .horzAlignmentText = .Left
-            .vertAlignmentText = .Center
-            .horzAlignmentIcon = .Left
-            .paddingIcon.x     = (.valBarGlyphWidth - .valBarIconSize) * 0.5
-            .paddingText       = {.valBarGlyphWidth, 0, .valBarPaddingX, 0}
-            .dockStyle         = .Center
+            .focusStrategy = .None
+            .setTextAlignment(.Left, .Center)
+            .setIconHorizontalAlignment(.Left)
+            .setIconPadding({(.valBarGlyphWidth - .valBarIconSize) * 0.5, 0, 0, 0})
+            .setTextPadding({.valBarGlyphWidth, 0, .valBarPaddingX, 0})
+            .dockStyle = .Center
         }
 
-        item.label = lbl
+        item.assignLabel(lbl)
 
         // Icon + colors come from the theme and are re-applied on a theme switch (applyNoteVisual),
         // exactly like the validation bar — a plain Label color field does not follow the theme, so

@@ -1,15 +1,15 @@
 #global namespace Globalization
 
-// Represents culture info.
+// Groups the process-wide formatting conventions.
 public struct CultureInfo
 {
-    numberFormat: NumberFormatInfo     // Number format associated with this value.
+    numberFormat: NumberFormatInfo     // Numeric formatting conventions.
 }
 
 var g_CultureInfo: CultureInfo
 
-// Returns the global culture info structure
-public func getCultureInfo()->*CultureInfo
+// Returns the mutable process-wide culture settings.
+public func currentCulture()->*CultureInfo
 {
     return &g_CultureInfo
 }

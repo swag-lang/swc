@@ -142,9 +142,8 @@ private func makeTestTexture(handle: u64, w, h: s32)->Texture
     var outer:   RenderTarget
     var inner:   RenderTarget
 
-    outer.colorBuffer.attach(cast(TextureHandle) 21, .BGRA8, 128, 128)
-
-    inner.colorBuffer.attach(cast(TextureHandle) 22, .BGRA8, 64, 64)
+    outer.attach(cast(RenderTargetHandle) 1, cast(TextureHandle) 21, .BGRA8, 128, 128)
+    inner.attach(cast(RenderTargetHandle) 2, cast(TextureHandle) 22, .BGRA8, 64, 64)
 
     painter.begin()
     painter.bindRenderTarget(&outer)

@@ -25,5 +25,5 @@ let font    = wnd.getFont()
 Paint only inside the invalidated region when possible. Call
 [[Gui.Wnd.invalidate]] after a visual state change, and
 [[Gui.Wnd.invalidateRect]] when only a bounded region changed.
-[[Gui.Application.themeHasChanged]] recomputes styles and invalidates the
+[[Gui.Application.notifyThemeChanged]] recomputes styles and invalidates the
 interface after editing shared theme data.

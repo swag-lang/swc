@@ -37,16 +37,16 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     switch evt
     {
     case ResizeEvent:
-        g_Rect = wnd.getClientRect()
+        g_Rect = wnd.clientRect()
 
     case CreateEvent:
-        var dataPath: String = Path.getDirectoryName(#curlocation.fileName)
+        var dataPath: String = Path.directoryName(#curlocation.fileName)
         dataPath = Path.combine(dataPath, "datas")
         dataPath = Path.combine(dataPath, "taquin")
 
         g_Image   = expect Image.load(Path.combine(dataPath, "lighthouse.jpg"))
-        g_Texture = wnd.getApp().getRenderer().addImage(g_Image)
-        g_Rect    = wnd.getClientRect()
+        g_Texture = wnd.app().rendererRef().addImage(g_Image)
+        g_Rect    = wnd.clientRect()
 
         // List of tiles to pick from
         var toAdd: Array'Elem
@@ -77,7 +77,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         let j = Random.shared().nextU64(0, cast(u64) NumElems - 1)
         g_Matrix[i, j].empty = true
 
-    case MouseEvent as mouseEvt where mouseEvt.kind == .MouseMove:
+    case MouseEvent as mouseEvt where mouseEvt.kind == .Move:
         let pt = wnd.surfaceToLocal(mouseEvt.surfacePos)
 
         g_HotX, g_HotY = -1
@@ -99,7 +99,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
             }
         }
 
-    case MouseEvent as mouseEvt where mouseEvt.kind == .MousePressed:
+    case MouseEvent as mouseEvt where mouseEvt.kind == .Pressed:
         if g_Moving do
             break
         if g_HotX == -1 do
@@ -127,7 +127,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
     case PaintEvent as paintEvt:
         let painter = paintEvt.bc.painter
-        let dt      = wnd.getApp().getDt()
+        let dt      = wnd.app().deltaSeconds()
 
         painter.setAntialiased(true)
         wnd.invalidate()

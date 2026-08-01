@@ -989,7 +989,7 @@ impl Deflate
                     d.dict[dstPos] = c
                     if dstPos < (MaxMatchLen - 1) do
                         d.dict[LzDictSize + dstPos] = c
-                    d.lookaheadSize                 += 1
+                    d.lookaheadSize += 1
                     if (d.lookaheadSize + d.dictSize) >= MinMatchLen
                     {
                         let insPos: u32 = d.lookaheadPos + (d.lookaheadSize - 1) - 2
@@ -1175,7 +1175,7 @@ public impl Deflate
 
         if has(.initFlags, CompressionFlags.ComputeAdler32)
         {
-            .adler.init()
+            .adler.reset()
             .adler.update(src)
         }
     }

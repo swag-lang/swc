@@ -116,10 +116,10 @@ impl Theme
             Memory.delete(.res.spin)
     }
 
-    private mtd setupDefault(renderer: *RenderOgl)
+    private mtd setupDefault(renderer: *PainterRenderer)
     {
         .initialized = true
-        .fonts       = &renderer.fonts
+        .fonts       = renderer.fontCache()
         .colors.setDark()
 
         let images = defaultThemeImages()
@@ -142,8 +142,8 @@ impl Theme
 
     // Loads the embedded typefaces and builds the default font families.
     //
-    // Glyph metrics are rasterized on the CPU, so this works against a headless renderer exactly
-    // as it does against a real one. Idempotent.
+    // Glyph metrics are rasterized on the CPU, so this works with either painter backend.
+    // Idempotent.
     private mtd setupDefaultFonts()
     {
         with me.res

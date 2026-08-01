@@ -33,6 +33,7 @@ struct AutoStage
 struct HeadlessHost
 {
     app:        Application     // App associated with this value.
+    renderer:   RenderCpu       // Deterministic backend borrowed by `app.renderer`.
     surface:    Surface         // Surface associated with this value.
     surfaceWnd: SurfaceWnd      // Surface wnd associated with this value.
     root:       Wnd             // Root associated with this value.
@@ -64,7 +65,7 @@ impl HeadlessHost
         // not clobber the user's own clipboard.
         Clipboard.setFake(true)
 
-        .app.renderer.setupHeadless()
+        .app.renderer.setBackend(&.renderer)
 
         .theme = Memory.new'Theme()
         .theme.colors.setDark()
@@ -113,11 +114,11 @@ impl HeadlessHost
 
     // Binds another Application instance to this host: the code under test may read
     // its own module-global Application (theme, renderer, options) while events flow
-    // through the host. The renderer goes headless and the host's theme and style
-    // are shared instead of being rebuilt.
+    // through the host. Both applications borrow the host's CPU backend, theme, and
+    // style instead of rebuilding resources.
     mtd bindApplication(app: *Application)
     {
-        app.renderer.setupHeadless()
+        app.renderer = .app.renderer
         app.theme = .theme
 
         app.style.share(&.app.style)

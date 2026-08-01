@@ -12,6 +12,7 @@ that solves the problem.
 | Build reusable vector geometry | [[Pixel.LinePath]] and [[Pixel.LinePathList]] |
 | Render recorded commands with OpenGL | [[Pixel.RenderOgl]] |
 | Render deterministic pixels without a GPU | [[Pixel.RenderCpu]] |
+| Route painter and layer work to either backend | [[Pixel.PainterRenderer]] |
 | Load and lay out fonts | [[Pixel.TypeFace]], [[Pixel.Font]], and [[Pixel.RichString]] |
 
 ## A first image

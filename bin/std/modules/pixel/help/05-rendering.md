@@ -69,25 +69,36 @@ PNG snapshot.
 
 Use [[Pixel.RenderTarget]] for an off-screen pass. [[Pixel.Layer]] packages a
 temporary target and the information needed to composite it back, which is useful
-for opacity, blur, and effects spanning several draw calls.
+for opacity, blur, and effects spanning several draw calls. Layers receive a
+[[Pixel.PainterRenderer]], a borrowed backend-neutral route to either renderer.
+Their blur and supersampling passes are recorded as built-in painter commands,
+not as OpenGL shader pointers.
 
 Textures created by either renderer are represented by [[Pixel.Texture]]. Their
 handles belong to that renderer; release or recycle them through the corresponding
 renderer workflow rather than treating the handle as portable storage. CPU and
 OpenGL handles are not interchangeable.
 
-## Headless mode
+## Selecting a backend
 
-[[Pixel.RenderOgl.setupHeadless]] enables deterministic CPU-backed behavior for
-existing code whose renderer type is [[Pixel.RenderOgl]], including GUI tests and
-[[Pixel.Layer]]. It delegates resources and painter submission to [[Pixel.RenderCpu]]
-and needs neither `init` nor a graphics context.
+Use [[Pixel.RenderCpu]] directly when only software pixels are needed. Code that
+must work with either backend stores a [[Pixel.PainterRenderer]] and selects the
+concrete renderer explicitly:
 
-Use [[Pixel.RenderCpu]] directly in new context-free code. Use the compatibility
-entry point when an existing API stores a concrete [[Pixel.RenderOgl]]. Both paths
-interpret Pixel's built-in shapes, brushes, textures, clipping, blending, bitmap
-text, render targets, blur, and supersampling resolve. A custom GLSL shader has no
-portable CPU implementation and is rejected by the software renderer. Advanced
+```swag
+var cpu: RenderCpu
+var renderer: PainterRenderer
+renderer.setBackend(&cpu)
+
+var layer: Layer
+layer.begin(&renderer, &painter, {width: 320, height: 180})
+```
+
+[[Pixel.RenderOgl]] is now strictly an OpenGL renderer: it has no software mode,
+does not own a CPU renderer, and always requires a valid graphics context. Both
+backends interpret Pixel's built-in shapes, brushes, textures, clipping, blending,
+bitmap text, render targets, blur, and supersampling resolve. A custom GLSL shader
+has no portable CPU implementation and is rejected by [[Pixel.RenderCpu]]. Advanced
 MSDF outline, glow, softness, and bevel effects also remain OpenGL-only; plain
 distance-field face coverage is available in software.
 

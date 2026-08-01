@@ -7,7 +7,7 @@ struct LayerBeginInfo
 {
     width:        s32                                          // Logical layer width, in pixels.
     height:       s32                                          // Logical layer height, in pixels.
-    renderScale:  s32          = 1                             // Supersampling factor; values below `1` become `1`.
+    renderScale:  s32          = 1                             // Supersampling factor, clamped to the range `1` through `8`.
     paintAlpha:   bool         = true                          // Preserve alpha through a separate resolve when needed.
     clearColor:   Color        = Color.fromArgb(Argb.Zero)     // Initial straight-alpha color.
     antialiased:  bool         = true                          // Enable antialiasing while recording.
@@ -44,7 +44,7 @@ struct LayerDrawInfo
 // `resolve`/`buildShadow`/`draw`.
 struct Layer
 {
-    renderer:      #null *RenderOgl        // Borrowed renderer used to allocate targets.
+    renderer:      #null *PainterRenderer  // Borrowed renderer used to allocate targets.
     painter:       #null *Painter          // Borrowed painter receiving layer commands.
     paintTarget:   #null *RenderTarget     // Supersampled recording target, if allocated.
     contentTarget: #null *RenderTarget     // Resolved content target, if allocated.
@@ -61,7 +61,7 @@ impl Layer
     // Begins recording into a newly acquired off-screen target.
     //
     // `renderer` and `painter` are borrowed until release. Dimensions must be positive.
-    mtd begin(renderer: *RenderOgl, painter: *Painter, info: LayerBeginInfo)
+    mtd begin(renderer: *PainterRenderer, painter: *Painter, info: LayerBeginInfo)
     {
         Debug.assert(!.active)
         Debug.assert(renderer != null)
@@ -73,7 +73,7 @@ impl Layer
         .painter       = painter
         .width         = info.width
         .height        = info.height
-        .renderScale   = Math.max(info.renderScale, 1)
+        .renderScale   = Math.clamp(info.renderScale, 1, 8)
         .paintTarget   = renderer.acquireRenderTarget(.width * .renderScale, .height * .renderScale)
         .contentTarget = .paintTarget
         .active        = true
@@ -120,13 +120,12 @@ impl Layer
         with painter
         {
             .bindRenderTarget(resolvedTarget)
-            .setShader(&renderer.shaderResolve)
-            .setShaderParam(renderer.shaderResolve.factor, renderScale)
+            .setResolveShader(renderScale)
             .setColorMaskFull()
             .setBlendingMode(.Copy)
             .clear(Argb.Zero)
             .drawTexture(dstRect, srcRect, paintTarget.colorBuffer)
-            .setShader()
+            .setDefaultShader()
             .unbindRenderTarget()
             .releaseRenderTarget(paintTarget)
         }
@@ -164,7 +163,7 @@ impl Layer
         with painter
         {
             .bindRenderTarget(target1)
-            .setShader(&renderer.shaderSimple)
+            .setDefaultShader(.Simple)
             .setBlendingMode(.Copy)
             .setColorMaskFull()
             .clear(Argb.Zero)
@@ -175,14 +174,12 @@ impl Layer
         with painter
         {
             .bindRenderTarget(target2)
-            .setShader(&renderer.shaderBlur)
-            .setShaderParam(renderer.shaderBlur.axis, 0's32)
-            .setShaderParam(renderer.shaderBlur.radius, info.radius)
+            .setBlurShader(0, info.radius)
             .setBlendingMode(.Copy)
             .setColorMaskFull()
             .clear(Argb.Zero)
             .drawTexture(fullRect, fullRect, target1.colorBuffer)
-            .setShader()
+            .setDefaultShader()
             .unbindRenderTarget()
         }
 
@@ -192,16 +189,14 @@ impl Layer
         with painter
         {
             .bindRenderTarget(target1)
-            .setShader(&renderer.shaderBlur)
-            .setShaderParam(renderer.shaderBlur.axis, 1's32)
-            .setShaderParam(renderer.shaderBlur.radius, info.radius)
+            .setBlurShader(1, info.radius)
             .setBlendingMode(.Copy)
             .setColorMaskFull()
             .drawTexture(fullRect, fullRect, target2.colorBuffer, info.color)
-            .setShader(&renderer.shaderSimple)
+            .setDefaultShader(.Simple)
             .setBlendingMode(.Alpha)
             .drawTexture(imageRect, sourceRect, content.colorBuffer)
-            .setShader()
+            .setDefaultShader()
             .unbindRenderTarget()
             .releaseRenderTarget(target2)
         }
@@ -236,7 +231,7 @@ impl Layer
         with painter
         {
             .pushState()
-            .setShader()
+            .setDefaultShader()
             .setAntialiased(false)
             .setInterpolationMode(info.interpolationMode)
             .setColorMaskColor()

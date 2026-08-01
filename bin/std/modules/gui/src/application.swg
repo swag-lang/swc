@@ -11,9 +11,10 @@ struct Application
     using native: ApplicationNative                 // Platform-specific application state.
     sigFrame:     SigArray'func||(*Application)     // Emitted after each processed frame.
 
-    options:  ApplicationOptions     // Diagnostics and development options.
-    appIcon:  Pixel.Image            // Icon used for native windows created by the application.
-    renderer: Pixel.RenderOgl        // Shared renderer used by every surface.
+    options:  ApplicationOptions          // Diagnostics and development options.
+    appIcon:  Pixel.Image                 // Icon used for native windows created by the application.
+    renderer: Pixel.PainterRenderer       // Shared painter renderer used by every surface.
+    internal rendererOgl: Pixel.RenderOgl // Native OpenGL backend borrowed by `renderer`.
     #[Swag.Late]
     theme:       *Theme             // Active application theme.
     style:       ThemeStyle         // Root style inherited by surface window trees.
@@ -670,6 +671,8 @@ impl Application
 
         if !.mainSurface
         {
+            if !.renderer.hasBackend() do
+                .renderer.setBackend(&.rendererOgl)
             .theme = Memory.new'Theme()
             .style.set(.theme)
         }

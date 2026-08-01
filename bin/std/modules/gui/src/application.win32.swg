@@ -107,7 +107,7 @@ impl Application
 
     internal mtd sendSystemEvents()
     {
-        if .renderer.headless do
+        if .renderer.isSoftware() do
             return
 
         var msg: MSG
@@ -125,7 +125,7 @@ impl Application
 
     internal mtd surfaceAt(x, y: f32)->#null *Surface
     {
-        if .renderer.headless
+        if .renderer.isSoftware()
         {
             for s in .surfaces
             {

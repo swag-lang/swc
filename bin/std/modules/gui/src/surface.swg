@@ -75,8 +75,8 @@ impl Surface
 {
     // Returns the drawable and viewport of this surface.
     //
-    // Pass it to [[Pixel.RenderOgl.begin]] to draw into this surface with an own painter, as a
-    // capture or an export pass does.
+    // Pass it to [[Pixel.PainterRenderer.begin]] to draw into this surface with an own painter,
+    // as a capture or an export pass does.
     mtd const renderingContext()->Pixel.RenderingContext
     {
         return .rc
@@ -141,7 +141,7 @@ impl Surface
         }
 
         let app = surface.app
-        if !app.renderer.headless do
+        if !app.renderer.isSoftware() do
             try createNative(app, surface, x, y, width, height, flags, mainSurface)
 
         surface.minSize = {128, 128}

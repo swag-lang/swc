@@ -9,23 +9,22 @@ using Swag, Core
 // Every step is invisible to the other suites and reaches the renderer only as a command sequence,
 // which is exactly what a golden records. See [[Testing.assertGolden]].
 //
-// The renderer runs in headless mode: its targets and textures are CPU-backed descriptors, so no
-// GL context is involved and the handles are allocated in a deterministic order. No shader is
-// linked either, so every uniform location is still zero and they all remap to the same 'p#0'; the
-// type and value that follow are what tells two consecutive SetShaderParam apart.
-private func makeLayerRenderer(renderer: *RenderOgl)
+// The renderer uses the CPU backend, so no graphics context is involved and resource handles are
+// allocated in a deterministic order. Built-in effects remain explicit painter commands.
+private func makeLayerRenderer(cpu: *RenderCpu, renderer: *PainterRenderer)
 {
-    renderer.setupHeadless()
+    renderer.setBackend(cpu)
 }
 
 #test
 {
     var painter:  Painter
-    var renderer: RenderOgl
+    var cpu:      RenderCpu
+    var renderer: PainterRenderer
     var layer:    Layer
     var begin:    LayerBeginInfo
 
-    makeLayerRenderer(&renderer)
+    makeLayerRenderer(&cpu, &renderer)
     begin.width  = 64
     begin.height = 32
 
@@ -43,11 +42,12 @@ private func makeLayerRenderer(renderer: *RenderOgl)
 #test
 {
     var painter:  Painter
-    var renderer: RenderOgl
+    var cpu:      RenderCpu
+    var renderer: PainterRenderer
     var layer:    Layer
     var begin:    LayerBeginInfo
 
-    makeLayerRenderer(&renderer)
+    makeLayerRenderer(&cpu, &renderer)
     begin.width       = 64
     begin.height      = 32
     begin.renderScale = 2
@@ -66,12 +66,13 @@ private func makeLayerRenderer(renderer: *RenderOgl)
 #test
 {
     var painter:  Painter
-    var renderer: RenderOgl
+    var cpu:      RenderCpu
+    var renderer: PainterRenderer
     var layer:    Layer
     var begin:    LayerBeginInfo
     var draw:     LayerDrawInfo
 
-    makeLayerRenderer(&renderer)
+    makeLayerRenderer(&cpu, &renderer)
     begin.width  = 64
     begin.height = 32
     draw.dstRect = {10, 10, 64, 32}
@@ -87,16 +88,17 @@ private func makeLayerRenderer(renderer: *RenderOgl)
 }
 
 // A shadow adds the separable blur passes and a second composite. This is the only golden that
-// exercises the blur shader and its parameters.
+// exercises the built-in blur program and its parameters.
 #test
 {
     var painter:  Painter
-    var renderer: RenderOgl
+    var cpu:      RenderCpu
+    var renderer: PainterRenderer
     var layer:    Layer
     var begin:    LayerBeginInfo
     var draw:     LayerDrawInfo
 
-    makeLayerRenderer(&renderer)
+    makeLayerRenderer(&cpu, &renderer)
     begin.width         = 64
     begin.height        = 32
     draw.dstRect        = {10, 10, 64, 32}

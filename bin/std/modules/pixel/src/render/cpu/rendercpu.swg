@@ -54,9 +54,6 @@ struct RenderCpu
         overlapWritten: Array'u8
         alphaResolve:   bool
 
-        shaderSimple:  #null *ShaderBase
-        shaderBlur:    #null *ShaderBase
-        shaderResolve: #null *ShaderBase
         blurAxis:      s32
         blurRadius:    f32 = 4
         resolveFactor: s32 = 1
@@ -916,28 +913,29 @@ private impl RenderCpu
         case .ReleaseRenderTarget:
             .releaseRenderTarget(cmd.renderTgt.tgt)
 
+        case .SetDefaultShader:
+            switch #complete cmd.defaultShader.id
+            {
+            case .Default: .program = CpuProgram_Default
+            case .Simple:  .program = CpuProgram_Simple
+            case .Blur:
+                .program    = CpuProgram_Blur
+                .blurAxis   = cmd.defaultShader.axis
+                .blurRadius = cmd.defaultShader.radius
+            case .Resolve:
+                .program       = CpuProgram_Resolve
+                .resolveFactor = cmd.defaultShader.factor
+            }
+
         case .SetShader:
             let shader = cmd.shader.shader
             if !shader do
                 .program = CpuProgram_Default
-            elif shader == .shaderSimple do
-                .program = CpuProgram_Simple
-            elif shader == .shaderBlur do
-                .program = CpuProgram_Blur
-            elif shader == .shaderResolve do
-                .program = CpuProgram_Resolve
             else do
                 Debug.assert(false, "RenderCpu does not support custom shaders")
 
         case .SetShaderParam:
-            if .program == CpuProgram_Blur and cmd.shaderParam.type == s32 do
-                .blurAxis = cmd.shaderParam._s32
-            elif .program == CpuProgram_Blur and cmd.shaderParam.type == f32 do
-                .blurRadius = cmd.shaderParam._f32
-            elif .program == CpuProgram_Resolve and cmd.shaderParam.type == s32 do
-                .resolveFactor = cmd.shaderParam._s32
-            else do
-                Debug.assert(false, "RenderCpu does not support custom shader parameters")
+            Debug.assert(false, "RenderCpu does not support custom shader parameters")
 
         case .SetFontEffect:
             Debug.assert(cmd.fontEffect.enabled < 0.5, "RenderCpu does not support MSDF font effects")
@@ -1016,14 +1014,6 @@ impl RenderCpu
     mtd resetScissorRect()
     {
         .scissorOn = false
-    }
-
-    // Configures the built-in OpenGL shader markers used by the compatibility bridge.
-    internal mtd configureBuiltins(renderer: *RenderOgl)
-    {
-        .shaderSimple       = &renderer.shaderSimple
-        .shaderBlur         = &renderer.shaderBlur
-        .shaderResolve      = &renderer.shaderResolve
     }
 
     // Executes a completed painter command stream synchronously.

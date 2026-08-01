@@ -233,6 +233,9 @@ private
             case .ReleaseRenderTarget:
                 .body.appendFormat(" %", .targetRef(cmd.renderTgt.tgt))
 
+            case .SetDefaultShader:
+                .body.appendFormat(" % axis=% radius=% factor=%", fmtEnum(cmd.defaultShader.id), cmd.defaultShader.axis, fmtF(cmd.defaultShader.radius), cmd.defaultShader.factor)
+
             case .SetShader:
                 .body.appendFormat(" %", .shaderRef(cmd.shader.shader))
 

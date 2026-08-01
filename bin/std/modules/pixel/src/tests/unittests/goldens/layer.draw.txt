@@ -17,7 +17,7 @@ UnbindRenderTarget
 Transform 1 0 0 1 0 0
 SetBlendingMode Alpha
 ColorMask rgb-
-SetShader none
+SetDefaultShader Default axis=0 radius=0 factor=0
 ColorMask rgb-
 SetBlendingMode Alpha
 BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(10,10)-(74,42) src=(0.007813,0.015625)-(0.992188,0.984375)

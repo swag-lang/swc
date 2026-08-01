@@ -324,12 +324,12 @@ private impl Surface
 
         result.applyNativeDwmStyle()
 
-        result.rc = try app.renderer.native.createContext(result.hWnd, width, height, mainSurface ? mainSurface.rc.hRC : null)
+        result.rc = try app.rendererOgl.native.createContext(result.hWnd, width, height, mainSurface ? mainSurface.rc.hRC : null)
     }
 
     mtd destroyNative()
     {
-        if .app.renderer.headless or !.hWnd do
+        if .app.renderer.isSoftware() or !.hWnd do
             return
 
         .removeTrayIcon()
@@ -363,7 +363,7 @@ impl Surface
     // layout and is intentionally not used.
     mtd setTrayIcon(icon: Pixel.Image, tip: #null string = null)
     {
-        if .app.renderer.headless do
+        if .app.renderer.isSoftware() do
             return
 
         var img     = icon
@@ -398,7 +398,7 @@ impl Surface
         if !.trayIcon do
             return
 
-        if !.app.renderer.headless
+        if !.app.renderer.isSoftware()
         {
             var tnid: NOTIFYICONDATAA
             tnid.cbSize = #sizeof(NOTIFYICONDATAA)
@@ -414,7 +414,7 @@ impl Surface
     // Requests a close through the regular system-command event path.
     mtd requestClose()
     {
-        if .app.renderer.headless
+        if .app.renderer.isSoftware()
         {
             postSurfaceSysCommand(me, .Close)
             return
@@ -426,7 +426,7 @@ impl Surface
     // Requests minimization through the regular system-command event path.
     mtd requestMinimize()
     {
-        if .app.renderer.headless
+        if .app.renderer.isSoftware()
         {
             postSurfaceSysCommand(me, .Minimize)
             return
@@ -438,7 +438,7 @@ impl Surface
     // Requests maximization through the regular system-command event path.
     mtd requestMaximize()
     {
-        if .app.renderer.headless
+        if .app.renderer.isSoftware()
         {
             postSurfaceSysCommand(me, .Maximize)
             return
@@ -450,7 +450,7 @@ impl Surface
     // Requests restoration through the regular system-command event path.
     mtd requestRestore()
     {
-        if .app.renderer.headless
+        if .app.renderer.isSoftware()
         {
             postSurfaceSysCommand(me, .Restore)
             return
@@ -464,7 +464,7 @@ impl Surface
         let shouldBeTopMost = .flags.has(.TopMost)
         .topMost = shouldBeTopMost
 
-        if .app.renderer.headless or !.hWnd do
+        if .app.renderer.isSoftware() or !.hWnd do
             return
 
         var exStyle = cast #bit (u64) GetWindowLongPtrA(.hWnd, GWL_EXSTYLE)
@@ -506,7 +506,7 @@ impl Surface
             clampPos.height = Math.min(clampPos.height, .maxSize.y)
 
         .position = clampPos
-        if .app.renderer.headless
+        if .app.renderer.isSoftware()
         {
             .sendResizeEvent(clampPos.width, clampPos.height)
             return
@@ -534,7 +534,7 @@ impl Surface
     // Brings the surface to the front of its current Z-order group.
     mtd bringToFront()
     {
-        if .app.renderer.headless do
+        if .app.renderer.isSoftware() do
             return
 
         BringWindowToTop(.hWnd)
@@ -546,7 +546,7 @@ impl Surface
         if !.isDisabled do
             return
         .isDisabled = false
-        if .app.renderer.headless
+        if .app.renderer.isSoftware()
         {
             .invalidate()
             return
@@ -561,7 +561,7 @@ impl Surface
         if .isDisabled do
             return
         .isDisabled = true
-        if .app.renderer.headless
+        if .app.renderer.isSoftware()
         {
             .invalidate()
             return
@@ -599,7 +599,7 @@ impl Surface
         // window appears already showing correct content.
         .paint()
 
-        if .app.renderer.headless
+        if .app.renderer.isSoftware()
         {
             let curFocus = .wnd.view.focusedWindow()
             if !curFocus or !.wnd.isAncestorOf(curFocus) do
@@ -627,7 +627,7 @@ impl Surface
             return
         .isHidden = true
 
-        if .app.renderer.headless
+        if .app.renderer.isSoftware()
         {
             .wnd.view.sendStateEvent(.Hide)
             return
@@ -645,7 +645,7 @@ impl Surface
         .isMaximized      = true
         .isMinimized      = false
         .restoredPosition = .position
-        if .app.renderer.headless
+        if .app.renderer.isSoftware()
         {
             .invalidate()
             return
@@ -662,7 +662,7 @@ impl Surface
             return
         .isMaximized = false
         .isMinimized = false
-        if .app.renderer.headless
+        if .app.renderer.isSoftware()
         {
             .setPosition(.restoredPosition)
             .invalidate()
@@ -679,7 +679,7 @@ impl Surface
         if .isMinimized do
             return
         .isMinimized = true
-        if .app.renderer.headless
+        if .app.renderer.isSoftware()
         {
             .invalidate()
             return
@@ -691,7 +691,7 @@ impl Surface
     // Converts `pt` in place from screen coordinates to surface coordinates.
     mtd screenToSurface(pt: *Math.Point)
     {
-        if .app.renderer.headless
+        if .app.renderer.isSoftware()
         {
             pt.x -= .position.x
             pt.y -= .position.y
@@ -707,7 +707,7 @@ impl Surface
     // Converts `pt` in place from surface coordinates to screen coordinates.
     mtd surfaceToScreen(pt: *Math.Point)
     {
-        if .app.renderer.headless
+        if .app.renderer.isSoftware()
         {
             pt.x += .position.x
             pt.y += .position.y

@@ -3,6 +3,23 @@
 
 using Swag, Core, Pixel
 
+// An application can select the CPU backend before its first surface; creation then follows the
+// normal GUI lifecycle without allocating a native window or replacing that backend with OpenGL.
+#test
+{
+    var cpu: RenderCpu
+    var app: Application
+    app.renderer.setBackend(&cpu)
+
+    let surface = notnull (expect app.createSurface(0, 0, 160, 96))
+    @assert(app.renderer.isSoftware())
+    @assert(!surface.hWnd)
+
+    surface.show()
+    let image = app.renderer.readRenderTarget(&surface.rt, 0, 0, surface.rc.width, surface.rc.height)
+    @assert(image.isValid() and image.width == surface.rc.width and image.height == surface.rc.height)
+}
+
 // The headless host must exercise the complete GUI paint path, not only record commands.
 #test
 {

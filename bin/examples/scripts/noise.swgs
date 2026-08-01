@@ -53,10 +53,10 @@ func compute()
 {
     g_Noise.seed       = g_NoiseParams.seed
     g_Noise.kind       = g_NoiseParams.kind
-    g_Noise.frequency  = g_NoiseParams.frequency
+    g_Noise.frequency  = cast(f32) g_NoiseParams.frequency
     g_Noise.octaves    = g_NoiseParams.octaves
-    g_Noise.lacunarity = g_NoiseParams.lacunarity
-    g_Noise.gain       = g_NoiseParams.gain
+    g_Noise.lacunarity = cast(f32) g_NoiseParams.lacunarity
+    g_Noise.gain       = cast(f32) g_NoiseParams.gain
     g_Image.fillNoise(&g_Noise)
 }
 
@@ -67,10 +67,10 @@ func createUI(wnd: *Wnd)
         .padding         = 10
         .backgroundStyle = .Window
         .splitter.setPaneVisible(0, false)
-        .prop.setEditorWidth(260)
-        .prop.setNameColumnWidth(65)
-        .prop.addStruct(g_NoiseParams)
-        .prop.sigChanged += func|wnd|(list, item)
+        .properties.setEditorWidth(260)
+        .properties.setNameColumnWidth(65)
+        .properties.addStruct(g_NoiseParams)
+        .properties.sigValueChanged += func|wnd|(list, item)
         {
             compute()
             wnd.invalidate()
@@ -85,13 +85,12 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     case CreateEvent:
         g_Image   = Image.create(W, H, .BGR8)
         g_Texture = wnd.app().renderer.addImage(g_Image)
-        g_Noise.update()
         createUI(wnd)
         compute()
 
     case PaintEvent as paintEvt:
-        let painter  = paintEvt.bc.painter
-        let renderer = paintEvt.bc.renderer
+        let painter  = paintEvt.paintContext.painter
+        let renderer = paintEvt.paintContext.renderer
         renderer.updateTexture(g_Texture, notnull g_Image.pixels.buffer)
         painter.drawTexture(cast() UX, 0, cast() W, cast() H, g_Texture)
     }
@@ -101,7 +100,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
 #main
 {
-    try Jobs.setNumWorkers()
+    try Jobs.initialize()
 
     Application.runSurface(100, 100, W + UX - 46, H - 31, title: "Noise", canSize: false, hook: &onEvent)
 }

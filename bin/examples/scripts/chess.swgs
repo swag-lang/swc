@@ -392,7 +392,7 @@ func paintCell(painter: *Pixel.Painter, index: s8)
 
 func paintBoard(paintEvt: *PaintEvent)
 {
-    let painter = paintEvt.bc.painter
+    let painter = paintEvt.paintContext.painter
 
     let s = BoardSize
     let b = BorderSize
@@ -451,7 +451,7 @@ func paintBoard(paintEvt: *PaintEvent)
 
 func paintStates(paintEvt: *PaintEvent)
 {
-    let painter = paintEvt.bc.painter
+    let painter = paintEvt.paintContext.painter
     var str: String
 
     var y = BoardWithBorderSize + 12

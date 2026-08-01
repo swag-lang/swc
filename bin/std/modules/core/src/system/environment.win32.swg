@@ -65,7 +65,7 @@ public func getMonitors()->Array'Monitor
             return TRUE
 
         var m: Monitor
-        let ptr = cast(*Array'Monitor) cast(u64) lParam
+        let ptr = cast(*Array'Monitor) cast #bit (u64) lParam
 
         m.bounds.x      = mi.rcMonitor.left
         m.bounds.y      = mi.rcMonitor.top
@@ -97,7 +97,7 @@ public func getMonitors()->Array'Monitor
         return TRUE
     }
 
-    EnumDisplayMonitors(null, null, cast() &proc, cast(LPARAM) cast(u64) &result)
+    EnumDisplayMonitors(null, null, cast() &proc, cast #bit (LPARAM) cast(u64) &result)
     result.sort(func||(a, b) { return a.bounds.x <=> b.bounds.x })
 
     return result
@@ -318,16 +318,16 @@ public struct WindowLoop
 
 private func getWindowFromHandle(hWnd: HWND)->#null *Window
 {
-    return cast(#null *Window) GetWindowLongPtrA(hWnd, GWLP_USERDATA)
+    return cast(#null *Window) cast #bit (u64) GetWindowLongPtrA(hWnd, GWLP_USERDATA)
 }
 
 private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRESULT
 {
     if msg == WM_CREATE
     {
-        let createStruct = cast(*CREATESTRUCTA) cast(u64) lParam
+        let createStruct = cast(*CREATESTRUCTA) cast #bit (u64) lParam
         let createParam  = notnull createStruct.lpCreateParams
-        SetWindowLongPtrA(hWnd, GWLP_USERDATA, createParam)
+        SetWindowLongPtrA(hWnd, GWLP_USERDATA, cast #bit (LONG_PTR) cast(u64) createParam)
 
         let window = cast(*Window) createParam
         window.setNativeHandle(hWnd)

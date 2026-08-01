@@ -12,7 +12,8 @@ struct Driver
 {
     using native: DriverNative
 
-    isCreated: bool
+    isCreated:           bool
+    allocationAllocator: IAllocator = undefined
 
     updateTh:            Threading.Thread
     wakeupUpdate:        Sync.Event
@@ -74,6 +75,8 @@ internal func updateThreadProc(th: Threading.Thread)
             case .Destroy:
                 voice.setState(.PendingDestroy)
                 catch voice.stopNative()
+                catch voice.resetNative()
+                voice.closeBuffer()
                 voice.destroyNative()
 
                 let idx = voice.idxInList
@@ -104,12 +107,16 @@ impl Driver
     mtd create(kind: DriverKind = .Default) fail
     {
         Debug.assert(!.isCreated)
-        .driverIsClosing = false
+        .driverIsClosing     = false
+        .allocationAllocator = notnull (@getcontext().defaultAllocator orelse @getcontext().allocator)
 
-        // Pin the shared command list to the creating context's allocator: its
-        // buffer is reallocated and freed from several threads (main, update
-        // thread, xaudio2 callbacks), and every one of them must use the same heap.
-        .voicesToUpdate.allocator = @getcontext().allocator
+        // Every driver-owned collection can be mutated on one thread and released
+        // on another, so all of them use the engine's stable allocator.
+        .voicesToUpdate.allocator       = .allocationAllocator
+        .activeVoices.allocator         = .allocationAllocator
+        .pendingRecycleVoices.allocator = .allocationAllocator
+        .toRecycleVoices.allocator      = .allocationAllocator
+        .buses.allocator                = .allocationAllocator
 
         .createNative(kind)
 
@@ -157,15 +164,22 @@ impl Driver
         .toRecycleVoices.add(.pendingRecycleVoices.toSlice())
         .pendingRecycleVoices.clear()
 
-        for voice in .toRecycleVoices do
-            Memory.delete(voice)
+        for voice in .toRecycleVoices
+        {
+            let allocator = voice.allocationAllocator
+            Memory.delete(voice, allocator)
+        }
+
         .toRecycleVoices.clear()
 
         for voice in .activeVoices
         {
             catch voice.stopNative()
+            catch voice.resetNative()
+            voice.closeBuffer()
             voice.destroyNative()
-            Memory.delete(voice)
+            let allocator = voice.allocationAllocator
+            Memory.delete(voice, allocator)
         }
 
         .activeVoices.clear()
@@ -175,7 +189,8 @@ impl Driver
         for bus in .buses
         {
             bus.destroyNative()
-            Memory.delete(bus)
+            let allocator = bus.allocationAllocator
+            Memory.delete(bus, allocator)
         }
 
         .buses.clear()
@@ -215,7 +230,16 @@ impl Driver
         .mutexRecycleVoices.unlock()
         if back do
             back.recycle()
-        return back orelse Memory.new'Voice()
+        else
+        {
+            back                        = Memory.new'Voice(.allocationAllocator)
+            back.allocationAllocator    = .allocationAllocator
+            back.streamBuffer.allocator = .allocationAllocator
+            for &buffer in back.decodedBuffers do
+                buffer.allocator = .allocationAllocator
+        }
+
+        return notnull back
     }
 
     mtd setOutputVolume(volume: f32) fail => .native.setOutputVolumeNative(volume)

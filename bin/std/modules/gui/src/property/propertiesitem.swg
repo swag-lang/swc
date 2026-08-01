@@ -128,22 +128,22 @@ internal impl PropertiesItem
 
     mtd assignModified(modified: bool)
     {
-        .isModified = modified;
+        .isModified = modified
     }
 
     mtd assignLabel(label: *Label)
     {
-        .label = label;
+        .label = label
     }
 
     mtd assignDescription(description: String)
     {
-        .description = description;
+        .description = description
     }
 
     mtd assignDescriptionLabel(label: *Label)
     {
-        .labelDesc = label;
+        .labelDesc = label
     }
 
     mtd assignValidation(state: PropValidation, message: String)
@@ -154,26 +154,26 @@ internal impl PropertiesItem
 
     mtd assignValidationLabel(label: *Label)
     {
-        .validationLabel = label;
+        .validationLabel = label
     }
 
     mtd assignEditBox(edit: *EditBox)
     {
-        .editBox = edit;
+        .editBox = edit
     }
 
     mtd assignCheckBox(check: *CheckButton)
     {
-        .checkBox = check;
+        .checkBox = check
     }
 
     mtd assignComboBox(combo: *ComboBox)
     {
-        .comboBox = combo;
+        .comboBox = combo
     }
 
     mtd assignSliderBox(slider: *SliderCtrl)
     {
-        .sliderBox = slider;
+        .sliderBox = slider
     }
 }

@@ -48,8 +48,8 @@ func audioGetTestDataPath(fileName: string, loc = #callerlocation)->String
 func audioDecodePcmToPcm16(sourceEncoding: SoundFileEncoding, source: [..] u8, destinationCapacity: u64)->{ destination: Array'u8, progress: CodecProgress } fail
 {
     var codec: CodecPcmToPcm16
-    codec.sourceEncoding      = sourceEncoding
-    codec.destinationEncoding = .Pcm16
+    let allocator = notnull @getcontext().allocator
+    codec.configure(sourceEncoding, .Pcm16, #typeof(CodecPcmToPcm16), allocator)
 
     var result: retval
     result.destination.resize(destinationCapacity)

@@ -52,8 +52,8 @@ alias GLDEBUGPROC = func(GLenum, GLenum, GLuint, GLenum, GLsizei, #null const *G
     func glDebugMessageControl(source: GLenum, type: GLenum, severity: GLenum, count: GLsizei, ids: #null const *GLuint, enabled: GLboolean)
     func glDebugMessageInsert(source: GLenum, type: GLenum, id: GLuint, severity: GLenum, length: GLsizei, buf: #null const *GLchar)
     func glGetDebugMessageLog(count: GLuint, bufSize: GLsizei, sources: #null *GLenum, types: #null *GLenum, ids: #null *GLuint, severities: #null *GLenum, lengths: #null *GLsizei, messageLog: #null *GLchar)->GLuint
-    func glGetObjectLabel(identifier: GLenum, name: GLuint, bufSize: GLsizei, length: #null *GLsizei, label: GLchar)
-    func glGetObjectPtrLabel(ptr: #null *void, bufSize: GLsizei, length: #null *GLsizei, label: GLchar)
+    func glGetObjectLabel(identifier: GLenum, name: GLuint, bufSize: GLsizei, length: #null *GLsizei, label: #null *GLchar)
+    func glGetObjectPtrLabel(ptr: #null const *void, bufSize: GLsizei, length: #null *GLsizei, label: #null *GLchar)
     func glObjectLabel(identifier: GLenum, name: GLuint, length: GLsizei, label: #null const *GLchar)
     func glObjectPtrLabel(ptr: #null *void, length: GLsizei, label: #null const *GLchar)
     func glPopDebugGroup()

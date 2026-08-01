@@ -107,7 +107,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         }
 
     case PaintEvent as paintEvt:
-        let painter = paintEvt.bc.painter
+        let painter = paintEvt.paintContext.painter
 
         var remaining = Math.min(wnd.app().deltaSeconds() * SimulationSpeed, MaxFrameStep)
         var valid     = Math.isFinite(remaining)

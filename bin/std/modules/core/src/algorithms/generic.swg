@@ -3,8 +3,8 @@
 // Swaps the values of two variables.
 // Takes pointers to the two values to be swapped.
 // A pure storage exchange: the values are relocated (`#relocate` applies `opPostMove`, so types with a
-// self-referential fixup like the small-string optimization stay valid). The scratch slot is zeroed at
-// the end so its destructor is a no-op (after the last move it shares storage with `*y`).
+// self-referential fixup like the small-string optimization stay valid). After the final relocation,
+// the scratch slot is no longer a live `T`; its raw storage is zeroed only to suppress a duplicate drop.
 #[Swag.Inline]
 func(T) swap(x, y: *T)
 {

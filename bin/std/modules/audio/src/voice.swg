@@ -46,8 +46,9 @@ public struct Voice
     // voice through its methods; touching this state from outside the module races the driver.
     internal
     {
-        handle: #null *void          // Identity of the voice inside the driver.
-        file:   #null *SoundFile     // Borrowed source, alive for the voice's lifetime.
+        allocationAllocator: IAllocator = undefined     // Allocator that owns this voice and its buffers.
+        handle:              #null *void                // Identity of the voice inside the driver.
+        file:                #null *SoundFile           // Borrowed source, alive for the voice's lifetime.
 
         requestedEncoding = SoundFileEncoding.Unknown     // Encoding the caller asked to decode to.
         codec: #null ICodec                               // Decoder instance for a streamed source.
@@ -118,7 +119,8 @@ public impl Voice
         defer #fail
         {
             voice.destroyNative()
-            Memory.delete(voice)
+            let allocator = voice.allocationAllocator
+            Memory.delete(voice, allocator)
         }
 
         voice.file = file

@@ -614,3 +614,37 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 
     scratch.release()
 }
+
+// Alignment keeps the full 64 bits of an address
+#test
+{
+    const High = 0x0000_0134_0000_0000'u64
+
+    @assert(ScratchAllocator.align(High, 16) == High)
+    @assert(ScratchAllocator.align(High + 1, 16) == High + 16)
+    @assert(ScratchAllocator.align(High + 15, 16) == High + 16)
+    @assert(ScratchAllocator.align(High + 16, 16) == High + 16)
+    @assert(ScratchAllocator.align(High + 9, 8) == High + 16)
+}
+
+// Every allocation is aligned as requested, whatever the block address is
+#test
+{
+    var alloc:   Allocator
+    var scratch: ScratchAllocator
+    let itf = makeScratchAllocator(&scratch, &alloc)
+
+    for alignment in [8'u32, 16, 32, 64, 128]
+    {
+        var req: AllocatorRequest
+        req.size      = 24
+        req.alignment = alignment
+        itf.alloc(&req)
+
+        let address = cast(u64) notnull req.address
+        @assert(address % cast(u64) alignment == 0)
+        @assert(address >= cast(u64) scratch.block)
+    }
+
+    scratch.release()
+}

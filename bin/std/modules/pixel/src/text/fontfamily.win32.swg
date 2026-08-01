@@ -25,7 +25,7 @@ impl FontFamily
             return TRUE
         let x = Utf8.fromUtf16(@mkslice(&fa.lfFaceName[0], len))
 
-        let ret = cast(*SystemFontFamilyInfo) cast(u64) lParam
+        let ret = cast(*SystemFontFamilyInfo) cast #bit (u64) lParam
         var idx = cast(u64) FontFamilyStyle.Regular
 
         if fa.lfWeight > FW_REGULAR
@@ -57,7 +57,7 @@ impl FontFamily
                 return TRUE
 
             // Already here ?
-            let ret = cast(*Array'SystemFontFamilyInfo) cast(u64) lParam
+            let ret = cast(*Array'SystemFontFamilyInfo) cast #bit (u64) lParam
             for here in dref ret
             {
                 if here.name == x do
@@ -69,7 +69,7 @@ impl FontFamily
 
             let hdc = GetDC(null)
             defer ReleaseDC(null, hdc)
-            EnumFontFamiliesExW(hdc, fa, &enumSubFamily, cast(LPARAM) cast(u64) &v, 0)
+            EnumFontFamiliesExW(hdc, fa, &enumSubFamily, cast #bit (LPARAM) cast(u64) &v, 0)
 
             ret.add(v)
         }
@@ -87,7 +87,7 @@ impl FontFamily
 
         var logFont: LOGFONTW
         logFont.lfCharSet = DEFAULT_CHARSET
-        EnumFontFamiliesExW(hdc, &logFont, &enumFamily, cast(LPARAM) cast(u64) &result, 0)
+        EnumFontFamiliesExW(hdc, &logFont, &enumFamily, cast #bit (LPARAM) cast(u64) &result, 0)
 
         result.sort(func(a, b) { return a.name <=> b.name })
         return result
@@ -103,7 +103,7 @@ impl FontFamily
 
         var arr: Array'SystemFontFamilyInfo
         let v = Utf16.toZeroTerminated(fontFamily)
-        EnumFontFamiliesW(hdc, v.buffer, &enumFamily, cast(LPARAM) cast(u64) &arr)
+        EnumFontFamiliesW(hdc, v.buffer, &enumFamily, cast #bit (LPARAM) cast(u64) &arr)
 
         if arr.isEmpty() do
             return {}

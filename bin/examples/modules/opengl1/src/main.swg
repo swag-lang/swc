@@ -41,6 +41,8 @@ func onResize(_window: *Env.Window, width, height: s32)
     {
         g_Frame.update()
         display()
+        if Env.hasArgument("swag.test") do
+            break
     }
 
     g_Context.destroy()

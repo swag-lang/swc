@@ -3,10 +3,13 @@
 #foreignlib("shell32")
 using Swag
 
-alias SHSTDAPI = #null *void
-alias HRESULT  = #null *void
+alias HRESULT  = s32
+alias SHSTDAPI = HRESULT
 
-const S_OK = cast(HRESULT) null
+const S_OK    = 0's32
+const S_FALSE = 1's32
+
+#assert(#sizeof(HRESULT) == 4)
 
 const CSIDL_DESKTOP                 = 0x0000             // <desktop>
 const CSIDL_INTERNET                = 0x0001             // Internet Explorer (icon on desktop)

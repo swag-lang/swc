@@ -110,6 +110,8 @@ func createShader()
     while loop.next()
     {
         display()
+        if Env.hasArgument("swag.test") do
+            break
     }
 
     g_Context.destroy()

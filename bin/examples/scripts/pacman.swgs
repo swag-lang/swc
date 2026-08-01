@@ -2069,7 +2069,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         restartGame()
 
     case PaintEvent as paintEvt:
-        g_Painter = paintEvt.bc.painter
+        g_Painter = paintEvt.paintContext.painter
         gameLoop()
         display()
         wnd.invalidate()

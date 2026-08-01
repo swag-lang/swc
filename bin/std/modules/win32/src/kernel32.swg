@@ -3,7 +3,7 @@
 #foreignlib("kernel32")
 using Swag
 
-alias ATOM          = #null const [*] void
+alias ATOM          = u16
 alias HANDLE        = #null const [*] void
 alias HGLOBAL       = HANDLE
 alias HLOCAL        = HANDLE
@@ -25,8 +25,8 @@ alias LPCWSTR       = #null const [*] u16
 alias PCWSTR        = #null const [*] u16
 alias LPCTSTR       = #null const [*] u16
 alias LPDWORD       = #null *DWORD
-alias LPOVERLAPPED  = #null *DWORD
 alias DWORD_PTR     = u64
+alias ULONG_PTR     = u64
 alias UINT          = u32
 alias INT           = s32
 alias SHORT         = s16
@@ -35,7 +35,7 @@ alias LARGE_INTEGER = s64
 alias DWORD64       = u64
 alias ULONG64       = u64
 alias PLONG         = #null *LONG
-alias LONG_PTR      = #null *LONG
+alias LONG_PTR      = s64
 alias CHAR          = u8
 alias WCHAR         = u16
 alias LPSTR         = #null [*] CHAR
@@ -226,6 +226,30 @@ struct SECURITY_ATTRIBUTES
     lpSecurityDescriptor: LPVOID
     bInheritHandle:       BOOL
 }
+
+struct OVERLAPPED_OFFSET
+{
+    Offset:     DWORD
+    OffsetHigh: DWORD
+}
+
+struct OVERLAPPED
+{
+    Internal:     ULONG_PTR
+    InternalHigh: ULONG_PTR
+    using data:   union
+    {
+        fileOffset: OVERLAPPED_OFFSET
+        Pointer:    #null *void
+    }
+    hEvent: HANDLE
+}
+
+alias LPOVERLAPPED = #null *OVERLAPPED
+
+#assert(#sizeof(ATOM) == 2)
+#assert(#sizeof(LONG_PTR) == 8)
+#assert(#sizeof(OVERLAPPED) == 32)
 
 struct FILETIME
 {

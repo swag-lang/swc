@@ -13,11 +13,18 @@ using Swag, Core
     let file = catch SoundFile.load(path) as err2
     @assert(err2 == null)
     @assert(file.encoding == .Pcm16)
+    @assert(file.sampleEncoding() == .Pcm16)
     @assert(file.sampleRate == 44100)
+    @assert(file.sampleRateHz() == 44100)
     @assert(file.channelCount == 2)
+    @assert(file.numChannels() == 2)
     @assert(file.bitsPerSample == 16)
     @assert(file.frameCount == 2)
+    @assert(file.sampleFrameCount() == 2)
     @assert(file.dataSize == 8)
+    @assert(file.payloadSize() == 8)
+    @assert(file.isDataPreloaded())
+    @assert(@countof(file.preloadedData()) == 8)
     @assert(file.dataOffset == 44)
     @assert(file.data.count == 8)
     @assert(file.availableFields.has(.Format))
@@ -25,9 +32,11 @@ using Swag, Core
     @assert(file.availableFields.has(.ChannelCount))
     @assert(file.availableFields.has(.BitsPerSample))
     @assert(file.availableFields.has(.Data))
+    @assert(file.hasField(.Data))
     @assert(file.availableFields.has(.FrameCount))
     @assert(file.availableFields.has(.Duration))
     audioAssertFloat(file.durationSeconds, 2.0 / 44100.0, 0.000001)
+    audioAssertFloat(file.durationInSeconds(), 2.0 / 44100.0, 0.000001)
     @assert(audioAssertBytes(file.data.toSlice(), [0x00, 0x80, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0x7F]))
 }
 
@@ -41,6 +50,8 @@ using Swag, Core
     @assert(file.dataSize == 8)
     @assert(file.dataOffset == 44)
     @assert(file.data.count == 0)
+    @assert(!file.isDataPreloaded())
+    @assert(@countof(file.preloadedData()) == 0)
     @assert(file.frameCount == 2)
 }
 

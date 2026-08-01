@@ -7,6 +7,10 @@ using Swag, Core.Errors
 // Names the buffer type.
 alias Buffer = Array'u8
 
+// Highest ratio deflate can reach, one stored bit per output byte plus block
+// overhead. A payload announcing more expansion than this is corrupt.
+private const DeflateMaxExpansion = 1032'u64
+
 /*
 Binary serializer with forward/backward compatibility.
 Changes that are supported from V to V+1 are :
@@ -496,13 +500,26 @@ impl TagBin
         {
             let uncompressedSize = .stream.readNative'u64()
             let compressedSize   = .stream.readNative'u64()
+
+            // Both sizes come from the stream, so a truncated or foreign payload can
+            // name any value at all. The compressed run must fit in what is left,
+            // otherwise the element is not readable.
+            if compressedSize > .stream.length() - .stream.seek do
+                fail SerializationError{"compressed payload runs past the end of the stream", field: val}
+
             if uncompressedSize == compressedSize do
                 .elemStack.add({false, null})
             else
             {
                 // push parent buffer on stack and switch current output
                 let decompressedBuffer = .acquireTmpBuf()
-                decompressedBuffer.reserve(uncompressedSize)
+
+                // The announced size is only a sizing hint: 'decompress' grows the
+                // buffer on its own and rejects a malformed payload. Honour it only
+                // while it stays within what deflate can produce from this input, so
+                // a corrupt header cannot ask for an arbitrary allocation.
+                if uncompressedSize <= compressedSize * DeflateMaxExpansion do
+                    decompressedBuffer.reserve(uncompressedSize)
 
                 // Here uncompress to 'tmp'
                 var decompressor: Core.Compress.Inflate

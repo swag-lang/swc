@@ -94,9 +94,8 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
             .margin          = 10
         }
 
-        with g_Edit = EditBox.create(layout, "0")
+        with g_Edit = EditBox.create(layout, "0", flags: .ReadOnly | .RightAligned)
         {
-            .editBoxFlags = .ReadOnly | .RightAlign
             .style.setFont(notnull g_FontTxt, .Regular)
         }
 

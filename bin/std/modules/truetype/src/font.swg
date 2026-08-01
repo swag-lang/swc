@@ -34,6 +34,8 @@ struct FaceImpl
 {
     face: Face
 
+    allocationAllocator: IAllocator = undefined
+
     fontData:       Array'u8
     tables:         Array'TableRecord
     glyphMetrics:   Array'GlyphMetric

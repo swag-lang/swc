@@ -81,3 +81,31 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
     assertFixtureFontLoads("ariali.ttf", .Italic)
     assertFixtureFontLoads("arialbi.ttf", .Bold | .Italic)
 }
+
+// A face retains the allocator that owns its outer allocation. Destroying it after
+// the thread context switches allocators must not route the pointer to the new one.
+#test
+{
+    let context           = @getcontext()
+    let originalAllocator = notnull context.allocator
+
+    var scratchA: ScratchAllocator
+    var scratchB: ScratchAllocator
+    scratchA.setCapacity(4 * 1024 * 1024, originalAllocator)
+    scratchB.setCapacity(4 * 1024 * 1024, originalAllocator)
+    defer scratchA.release()
+    defer scratchB.release()
+    defer context.allocator = originalAllocator
+
+    let bytes      = loadFontBytes()
+    let allocatorA = @mkinterface(&scratchA, #typeof(scratchA), IAllocator)
+    let allocatorB = @mkinterface(&scratchB, #typeof(scratchB), IAllocator)
+    context.allocator = allocatorA
+
+    let face = catch Face.load(bytes.toSlice(), allocatorA) as err
+    @assert(err == null)
+    @assert(face != null)
+
+    context.allocator = allocatorB
+    (notnull face).destroy()
+}

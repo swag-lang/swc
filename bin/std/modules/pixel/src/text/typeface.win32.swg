@@ -31,12 +31,14 @@ impl TypeFace
         if here do
             return notnull here.value
 
-        let tf = Memory.new'TypeFace()
-        defer #fail Memory.delete(tf)
+        let allocator = notnull (@getcontext().defaultAllocator orelse @getcontext().allocator)
+        let tf        = Memory.new'TypeFace(allocator)
+        tf.allocationAllocator = allocator
+        defer #fail Memory.delete(tf, allocator)
         tf.fullname = fullname
         tf.buffer   = readHfontData(hfont)
 
-        let face = try Face.load(tf.buffer.toSlice())
+        let face = try Face.load(tf.buffer.toSlice(), allocator)
         tf.face = notnull face
 
         g_HashTypeFace.add(str, tf)

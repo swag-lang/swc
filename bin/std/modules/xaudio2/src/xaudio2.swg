@@ -272,7 +272,7 @@ struct IXAudio2Itf
     release:                func(this: *IXAudio2)->ULONG
     registerForCallbacks:   func(this: *IXAudio2, pCallback: *IXAudio2EngineCallback)
     unregisterForCallbacks: func(this: *IXAudio2, pCallback: *IXAudio2EngineCallback)
-    createSourceVoice:      func(this: *IXAudio2, ppSourceVoice: *#null *IXAudio2SourceVoice, pSourceFormat: const *WAVEFORMATEX, flags: UINT32, maxFrequencyRatio: f32, pCallback: *IXAudio2VoiceCallback, pSendList: #null const *XAUDIO2_VOICE_SENDS, pEffectChain: #null const *XAUDIO2_EFFECT_CHAIN)->HRESULT
+    createSourceVoice:      func(this: *IXAudio2, ppSourceVoice: *#null *IXAudio2SourceVoice, pSourceFormat: const *WAVEFORMATEX, flags: UINT32, maxFrequencyRatio: f32, pCallback: #null *IXAudio2VoiceCallback, pSendList: #null const *XAUDIO2_VOICE_SENDS, pEffectChain: #null const *XAUDIO2_EFFECT_CHAIN)->HRESULT
     createSubmixVoice:      func(this: *IXAudio2, ppSubmixVoice: *#null *IXAudio2SubmixVoice, inputChannels: UINT32, inputSampleRate: UINT32, flags: UINT32, processingStage: UINT32, pSendList: #null const *XAUDIO2_VOICE_SENDS, pEffectChain: #null const *XAUDIO2_EFFECT_CHAIN)->HRESULT
     createMasteringVoice:   func(this: *IXAudio2, voice: *#null *IXAudio2MasteringVoice, inputChannels: UINT32 = XAUDIO2_DEFAULT_CHANNELS, inputSampleRate: UINT32 = XAUDIO2_DEFAULT_SAMPLERATE, flags: UINT32 = 0, szDeviceId: #null LPCWSTR = null, effectChain: #null *XAUDIO2_EFFECT_CHAIN = null, streamCategory = AUDIO_STREAM_CATEGORY.AudioCategory_GameEffects)->HRESULT
     startEngine:            func(this: *IXAudio2)->HRESULT

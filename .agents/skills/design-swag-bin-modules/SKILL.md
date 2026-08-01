@@ -41,6 +41,13 @@ their call sites when a public API changes.
 - Keep native handle types and upstream-shaped declarations at the binding layer.
   Wrap them with Swag ownership, errors, and value types at the product layer.
 
+For generated upstream bindings, fidelity is the API rule: preserve canonical
+symbol names, integer widths and signedness, pointer depth, pointee constness,
+nullability, and calling convention. Pin the exact upstream revision, check in a
+deterministic generator and its output, and provide a `--check`-style stale-output
+validation. Keep ergonomic Swag naming and ownership policy in a separate product
+wrapper; never hand-normalize the raw binding until it no longer matches upstream.
+
 ## Name the surface predictably
 
 - Use `UpperCamelCase` for namespaces, types, interfaces, aliases, attributes,

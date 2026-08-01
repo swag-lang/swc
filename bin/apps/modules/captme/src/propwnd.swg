@@ -695,7 +695,10 @@ impl PropWnd
             }
         }
 
-        func addRow(prop: *PropWnd, name: String)->*Wnd
+        // 'name' must be a view of storage that outlives the grid (a literal): the
+        // TypeValue below keeps the view, and a by-value String parameter would hand
+        // it a dangling pointer into this frame's small-string storage.
+        func addRow(prop: *PropWnd, name: string)->*Wnd
         {
             let v    = Swag.TypeValue{name: name}
             let item = prop.grid.addItem(v, null, null, 40, .Zero)

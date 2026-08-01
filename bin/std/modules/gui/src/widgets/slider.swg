@@ -19,10 +19,10 @@ struct Slider
 {
     using wnd: Wnd     // Embedded wnd state.
 
-    flags               = SliderFlags.HilightBar     // Active behavior and presentation flags.
-    sigStartChange: SigArray'func||(*Slider)         // Emitted when a user-style change transaction starts.
-    sigChanged:     SigArray'func||(*Slider)         // Emitted after either value changes.
-    sigEndChange:   SigArray'func||(*Slider)         // Emitted when a user-style change transaction ends.
+    flags = SliderFlags.HilightBar               // Active behavior and presentation flags.
+    sigStartChange: SigArray'func||(*Slider)     // Emitted when a user-style change transaction starts.
+    sigChanged:     SigArray'func||(*Slider)     // Emitted after either value changes.
+    sigEndChange:   SigArray'func||(*Slider)     // Emitted when a user-style change transaction ends.
 
     // Drag and hover state of the two markers, and the color animations that follow it. The
     // mouse and keyboard events maintain all of it; connect to the signals to react to a change.
@@ -34,19 +34,19 @@ struct Slider
         max:        f32 = 1     // Inclusive value-space maximum.
         steps:      f32         // Configured step normalized to the value range.
 
-        isMoving:     bool     // Whether a drag gesture is in progress.
-        isLowerPressed:   bool     // Whether the first marker is held down.
-        isUpperPressed:   bool     // Whether the second marker is held down.
-        isLowerHot:       bool     // Whether the mouse is over the first marker.
-        isUpperHot:       bool     // Whether the mouse is over the second marker.
-        hasLowerValue:    bool     // Whether the first value was established.
-        hasUpperValue:    bool     // Whether the second value was established.
-        correcMoving: f32      // Grab offset inside the marker, kept for the drag.
+        isMoving:       bool     // Whether a drag gesture is in progress.
+        isLowerPressed: bool     // Whether the first marker is held down.
+        isUpperPressed: bool     // Whether the second marker is held down.
+        isLowerHot:     bool     // Whether the mouse is over the first marker.
+        isUpperHot:     bool     // Whether the mouse is over the second marker.
+        hasLowerValue:  bool     // Whether the first value was established.
+        hasUpperValue:  bool     // Whether the second value was established.
+        correcMoving:   f32      // Grab offset inside the marker, kept for the drag.
 
         lowerMarkerAnimation: BlendColor     // Color animation of the first marker.
         upperMarkerAnimation: BlendColor     // Color animation of the second marker.
-        lowerStepAnimation: BlendColor     // Color animation of the first step indicator.
-        upperStepAnimation: BlendColor     // Color animation of the second step indicator.
+        lowerStepAnimation:   BlendColor     // Color animation of the first step indicator.
+        upperStepAnimation:   BlendColor     // Color animation of the second step indicator.
     }
 }
 
@@ -270,8 +270,8 @@ impl IWnd for Slider
                 }
                 elif !.flags.has(.Range)
                 {
-                    .correcMoving = 0
-                    .isLowerPressed   = true
+                    .correcMoving   = 0
+                    .isLowerPressed = true
                     let clientRect = .offsetClientRect()
                     if isVertical
                     {
@@ -622,15 +622,15 @@ impl Slider
     {
         Debug.assert(lower <= upper)
         Debug.assert(.flags.has(.Range))
-        let diff = .max - .min
+        let diff     = .max - .min
         let newLower = .clamp((lower - .min) / diff)
         let newUpper = .clamp((upper - .min) / diff)
         Debug.assert(newLower <= newUpper)
 
         let changed = !.hasLowerValue or !.hasUpperValue or newLower != .lowerRatio or newUpper != .upperRatio
         .hasLowerValue, .hasUpperValue = true
-        .lowerRatio = newLower
-        .upperRatio = newUpper
+        .lowerRatio                    = newLower
+        .upperRatio                    = newUpper
         if changed
         {
             .startChange()

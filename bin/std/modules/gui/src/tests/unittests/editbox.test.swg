@@ -379,7 +379,7 @@ func editHeadlessEscape(eb: *EditBox)
     EditHeadlessEscapeCount = 0
 
     let edit = EditBox.create(&host.root, "x", {20, 20, 200, 26}, null, EditBoxFlags.None)
-    edit.sigSubmitted  += &editHeadlessEnter
+    edit.sigSubmitted += &editHeadlessEnter
     edit.sigCancelled += &editHeadlessEscape
 
     host.focus(edit)

@@ -20,7 +20,7 @@ using Core
 
 internal struct Pile
 {
-    val:    s32
+    val:      s32
     children: Array'(string)
 }
 

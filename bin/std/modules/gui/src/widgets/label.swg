@@ -22,16 +22,16 @@ struct Label
 
     readonly
     {
-        icon:                    Icon                               // Optional displayed icon.
-        iconColor:               Color                              // Explicit icon color, or transparent for the icon or theme color.
-        textColor:               Color                              // Explicit text color, or transparent for theme colors.
-        flags                    = LabelFlags.None                  // Active text layout and presentation options.
-        iconHorizontalAlignment  = StringHorzAlignment.Center       // Horizontal icon alignment.
-        iconVerticalAlignment    = StringVertAlignment.Center       // Vertical icon alignment.
-        textHorizontalAlignment  = StringHorzAlignment.Center       // Horizontal text alignment.
-        textVerticalAlignment    = StringVertAlignment.Center       // Vertical text alignment.
-        textPadding: Math.Vector4                                   // Insets applied to the text layout rectangle.
-        iconPadding: Math.Vector4                                   // Insets applied to the icon layout rectangle.
+        icon:        Icon                                        // Optional displayed icon.
+        iconColor:   Color                                       // Explicit icon color, or transparent for the icon or theme color.
+        textColor:   Color                                       // Explicit text color, or transparent for theme colors.
+        flags                   = LabelFlags.None                // Active text layout and presentation options.
+        iconHorizontalAlignment = StringHorzAlignment.Center     // Horizontal icon alignment.
+        iconVerticalAlignment   = StringVertAlignment.Center     // Vertical icon alignment.
+        textHorizontalAlignment = StringHorzAlignment.Center     // Horizontal text alignment.
+        textVerticalAlignment   = StringVertAlignment.Center     // Vertical text alignment.
+        textPadding: Math.Vector4                                // Insets applied to the text layout rectangle.
+        iconPadding: Math.Vector4                                // Insets applied to the icon layout rectangle.
     }
 
     // Rich-text chunk under the mouse, tracked so a link can be hovered and clicked.
@@ -185,11 +185,11 @@ impl Label
                 sf.palette[0] = theme.colors.label_TextLight
             else do
                 sf.palette[0] = theme.colors.label_Text
-            sf.palette[1]     = theme.colors.label_Text1
-            sf.palette[2]     = theme.colors.label_Text2
-            sf.palette[3]     = theme.colors.label_Text3
-            sf.colorUrl       = theme.colors.url_Text
-            sf.colorHotUrl    = theme.colors.url_HotText
+            sf.palette[1]  = theme.colors.label_Text1
+            sf.palette[2]  = theme.colors.label_Text2
+            sf.palette[3]  = theme.colors.label_Text3
+            sf.colorUrl    = theme.colors.url_Text
+            sf.colorHotUrl = theme.colors.url_HotText
         }
 
         return sf
@@ -346,7 +346,7 @@ impl Label
 
             var height = .name.boundRect.height
             if !.name.isEmpty() do
-                height       = Math.max(height, (notnull sf.font.regular).height)
+                height = Math.max(height, (notnull sf.font.regular).height)
             height           += .textPadding.y + .textPadding.w
             .position.height = height
             .preferredSize.y = height

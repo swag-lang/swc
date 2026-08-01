@@ -23,22 +23,22 @@ impl IActionUI for ActionLibTrash
         {
         case .Toggle:
             evt.updatedFields |= .Name | .Checked
-            evt.name     = "Recycle Bin"
-            evt.checked  = libWnd.trashMode
+            evt.name          = "Recycle Bin"
+            evt.checked       = libWnd.trashMode
 
         case .Empty:
             evt.updatedFields |= .Name
-            evt.name     = "Empty Recycle Bin"
+            evt.name          = "Empty Recycle Bin"
 
         case .Restore:
             evt.updatedFields |= .Name | .Disabled
-            evt.name     = "Restore"
-            evt.disabled = !hasSel
+            evt.name          = "Restore"
+            evt.disabled      = !hasSel
 
         case .DeleteForever:
             evt.updatedFields |= .Name | .Disabled
-            evt.name     = "Delete Permanently"
-            evt.disabled = !hasSel
+            evt.name          = "Delete Permanently"
+            evt.disabled      = !hasSel
         }
 
         return true

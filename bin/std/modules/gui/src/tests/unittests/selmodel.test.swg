@@ -116,6 +116,7 @@ using Swag, Core
         @assert(index == expected)
         expected += 1
     }
+
     @assert(expected == 6)
 }
 

@@ -720,7 +720,7 @@ impl HeadlessHost
         var evt = MouseEvent{kind: .Wheel}
         evt.button     = Input.MouseButton.Left
         evt.surfacePos = target.screenToSurface(pt)
-        evt.delta.y     = delta
+        evt.delta.y    = delta
         evt.modifiers  = modifiers
         target.sendEvent(&evt)
         .pump()
@@ -775,7 +775,7 @@ impl HeadlessHost
 
         var evt = KeyEvent{kind: .Character}
         evt.key       = key
-        evt.character      = char
+        evt.character = char
         evt.modifiers = modifiers
         target.sendEvent(&evt)
 
@@ -809,8 +809,8 @@ impl HeadlessHost
         var evt = MouseEvent{kind: kind}
         evt.button     = button
         evt.surfacePos = target.screenToSurface(pt)
-        evt.delta.x     = pt.x - .mousePos.x
-        evt.delta.y     = pt.y - .mousePos.y
+        evt.delta.x    = pt.x - .mousePos.x
+        evt.delta.y    = pt.y - .mousePos.y
         evt.modifiers  = modifiers
         target.sendEvent(&evt)
     }

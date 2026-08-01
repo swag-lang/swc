@@ -33,82 +33,82 @@ impl IActionUI for ActionFile
         {
         case .NewImage:
             evt.updatedFields |= .Name
-            evt.name     = "New Image"
+            evt.name          = "New Image"
 
         case .NewFromClipboard:
             evt.updatedFields |= .Name | .Disabled
-            evt.name     = "New From Clipboard"
-            evt.disabled = !Clipboard.hasImage()
+            evt.name          = "New From Clipboard"
+            evt.disabled      = !Clipboard.hasImage()
 
         case .SaveAsImage:
             evt.updatedFields |= .Name | .Disabled | .Icon
-            evt.name     = "Save As Image..."
-            evt.disabled = !capture
-            evt.icon     = main.theme().icon24(.SaveAs)
+            evt.name          = "Save As Image..."
+            evt.disabled      = !capture
+            evt.icon          = main.theme().icon24(.SaveAs)
 
         case .SaveAsLinkedImage:
             evt.updatedFields |= .Name | .Disabled | .Icon
-            evt.name     = "Save As Linked Image..."
-            evt.disabled = !capture
-            evt.icon     = main.theme().icon24(.Export)
+            evt.name          = "Save As Linked Image..."
+            evt.disabled      = !capture
+            evt.icon          = main.theme().icon24(.Export)
 
         case .OpenImage:
             evt.updatedFields |= .Name | .Icon
-            evt.name     = "Open Image..."
-            evt.icon     = main.theme().icon24(.OpenFile)
+            evt.name          = "Open Image..."
+            evt.icon          = main.theme().icon24(.OpenFile)
 
         case .UpdateLinkedImage:
             evt.updatedFields |= .Name | .Disabled | .Icon
-            evt.name     = "Update Linked Image"
-            evt.disabled = !capture
-            evt.icon     = main.theme().icon24(.Update)
+            evt.name          = "Update Linked Image"
+            evt.disabled      = !capture
+            evt.icon          = main.theme().icon24(.Update)
 
         case .UnlinkImage:
             evt.updatedFields |= .Name | .Disabled
-            evt.name     = "Unlink Image"
-            evt.disabled = !capture or capture.linkedImage.length == 0
+            evt.name          = "Unlink Image"
+            evt.disabled      = !capture or capture.linkedImage.length == 0
 
         case .DeleteCapture:
             evt.updatedFields |= .Name | .Disabled | .Icon
-            evt.name     = "Delete"
+            evt.name          = "Delete"
             if main.libraryMode do
                 evt.disabled = !main.libWnd.hasSelected()
             else do
                 evt.disabled = !capture
-            evt.icon         = main.theme().icon24(.Remove)
+            evt.icon = main.theme().icon24(.Remove)
 
         case .DupCapture:
             evt.updatedFields |= .Name | .Disabled | .Icon
-            evt.name     = "Duplicate"
-            evt.disabled = !capture
-            evt.icon     = main.theme().icon24(.Duplicate)
+            evt.name          = "Duplicate"
+            evt.disabled      = !capture
+            evt.icon          = main.theme().icon24(.Duplicate)
 
         case .RenameCapture:
             evt.updatedFields |= .Name | .Disabled
-            evt.name     = "Rename..."
-            evt.disabled = !capture
+            evt.name          = "Rename..."
+            evt.disabled      = !capture
 
         case .CopyImage:
             evt.updatedFields |= .Name | .Disabled | .Icon
-            evt.name     = "Copy Image to Clipboard"
-            evt.disabled = !capture
-            evt.icon     = main.theme().icon24(.Copy)
+            evt.name          = "Copy Image to Clipboard"
+            evt.disabled      = !capture
+            evt.icon          = main.theme().icon24(.Copy)
 
         case .CaptureFileLocation:
             evt.updatedFields |= .Name | .Disabled | .Icon
-            evt.name     = "Locate Capture File"
-            evt.disabled = !capture
-            evt.icon     = main.theme().icon24(.OpenFile)
+            evt.name          = "Locate Capture File"
+            evt.disabled      = !capture
+            evt.icon          = main.theme().icon24(.OpenFile)
 
         case .LinkedFileLocation:
             evt.updatedFields |= .Name | .Disabled | .Icon
-            evt.name     = "Locate Linked Image"
-            evt.disabled = !capture or capture.linkedImage.isEmpty()
-            evt.icon     = main.theme().icon24(.Link)
+            evt.name          = "Locate Linked Image"
+            evt.disabled      = !capture or capture.linkedImage.isEmpty()
+            evt.icon          = main.theme().icon24(.Link)
 
         case .FileDetails:
             evt.updatedFields |= .Name | .Disabled
-            evt.name     = "File Details"
+            evt.name          = "File Details"
             if main.libraryMode do
                 evt.disabled = !main.libWnd.hasSelected()
             else do
@@ -263,7 +263,7 @@ impl IActionUI for ActionFile
             func addLine(lt: *Wnd, title, val: String)
             {
                 let wnd = Wnd.create'StackLayoutCtrl(lt)
-                wnd.mode      = .Left
+                wnd.mode            = .Left
                 wnd.position.height = 20
                 let lbl1 = Label.create(wnd, title, {0, 0, 100, 0})
                 lbl1.setTextHorizontalAlignment(.Left)
@@ -296,9 +296,9 @@ impl MainWnd
         var opt: FileDlgOptions
         with opt
         {
-            .state     = &me.fileDlgState
-            .mode      = .SelectFile
-            .title     = "Load Image"
+            .state             = &me.fileDlgState
+            .mode              = .SelectFile
+            .title             = "Load Image"
             .confirmButtonText = "Load"
             .shortcuts.add({Env.SpecialDirectory.Desktop, "Desktop"})
             .shortcuts.add({Env.SpecialDirectory.UserPictures, "My Images"})
@@ -375,9 +375,9 @@ impl MainWnd
         var opt: FileDlgOptions
         with opt
         {
-            .state     = &me.fileDlgState
-            .mode      = .CreateFile
-            .title     = "Save As Image"
+            .state             = &me.fileDlgState
+            .mode              = .CreateFile
+            .title             = "Save As Image"
             .confirmButtonText = "Save"
             .shortcuts.add({Env.SpecialDirectory.Desktop, "Desktop"})
             .shortcuts.add({Env.SpecialDirectory.UserPictures, "My Images"})

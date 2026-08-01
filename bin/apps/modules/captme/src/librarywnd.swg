@@ -504,7 +504,7 @@ impl LibraryWnd
             .header.hide()
             .backgroundStyle = .Window
             .updateFlags(.ReserveExpandMargin)
-            .dockStyle       = .Center
+            .dockStyle           = .Center
             .sigSelectionChanged += func|view|(list)
             {
                 var sel = list.selectedLine()

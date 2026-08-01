@@ -72,7 +72,7 @@ impl List
         #static if back do
             var n = .tail
         else do
-            var n        = .head
+            var n = .head
         var ordinal: u64 = 0
         #scope(Up)
             while n
@@ -91,7 +91,7 @@ impl List
             #static if back do
                 n = node.prev
             else do
-                n   = node.next
+                n = node.next
             ordinal += 1
         }
     }
@@ -190,7 +190,7 @@ impl List
             .head = n
         else do
             n.prev.next = n
-        node.prev       = n
+        node.prev = n
         return n
     }
 
@@ -210,7 +210,7 @@ impl List
             .tail = n
         else do
             n.next.prev = n
-        node.next       = n
+        node.next = n
         return n
     }
 }

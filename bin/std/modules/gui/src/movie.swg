@@ -30,13 +30,13 @@ struct Movie
     // The source the frames come from, and the decoding state that walks it.
     internal
     {
-        source:      MovieSource = None     // Kind of source the movie plays.
-        imgList:     ImageList              // Frames of an image-list source.
-        gif:         Gif.Decoder            // Decoder of a GIF source.
-        bytes:       Array'u8               // Encoded bytes of the source.
-        cachedFrames:       Array'Image     // Decoded GIF frames retained when caching is enabled.
-        elapsedFrameSeconds: f32            // Time accumulated toward the next frame.
-        dirtyFrame:         bool            // Whether a seek changed the current frame.
+        source:              MovieSource = None     // Kind of source the movie plays.
+        imgList:             ImageList              // Frames of an image-list source.
+        gif:                 Gif.Decoder            // Decoder of a GIF source.
+        bytes:               Array'u8               // Encoded bytes of the source.
+        cachedFrames:        Array'Image            // Decoded GIF frames retained when caching is enabled.
+        elapsedFrameSeconds: f32                    // Time accumulated toward the next frame.
+        dirtyFrame:          bool                   // Whether a seek changed the current frame.
     }
 }
 
@@ -232,6 +232,7 @@ impl Movie
                 .elapsedFrameSeconds = 0
                 break
             }
+
             hasChanged = true
         }
 

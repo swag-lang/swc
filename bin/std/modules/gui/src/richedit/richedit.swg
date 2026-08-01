@@ -35,19 +35,19 @@ struct RichEditMapping
 // Provides a multiline rich-text editor with styling, selection, undo, and pluggable lexing.
 struct RichEditCtrl
 {
-    using frameWnd: FrameWnd                            // Embedded frame wnd state.
-    flags               = RichEditFlags.None            // Active editor behavior flags.
-    lineSpacing:    f32                                 // Extra vertical spacing, in logical pixels, between display lines.
-    overwriteMode:  bool                                // Whether typed text replaces the rune under the caret.
-    tabSize:        s32 = 4                             // Width of a tab stop in space advances.
-    marginLeft:     f32                                 // Blank space between the view and the left text edge.
-    marginRight:    f32                                 // Blank space between the right text edge and the view.
-    lexer:          #null IRichEditLexer                // Optional lexer responsible for assigning style indices.
-    form                = RichEditForm.RichEditCtrl     // Current theme treatment.
-    sigIsReadOnly:  SigArray'func||(*bool)              // Lets owners impose read-only state in addition to `flags`.
-    sigChanged:     SigArray'func||(*RichEditCtrl)      // Emitted after document content changes.
-    sigModified:    SigArray'func||(*RichEditCtrl)      // Emitted when the modified state toggles.
-    backgroundColorModel: String                        // Optional theme color expression used for the editor background.
+    using frameWnd:       FrameWnd                            // Embedded frame wnd state.
+    flags                     = RichEditFlags.None            // Active editor behavior flags.
+    lineSpacing:          f32                                 // Extra vertical spacing, in logical pixels, between display lines.
+    overwriteMode:        bool                                // Whether typed text replaces the rune under the caret.
+    tabSize:              s32 = 4                             // Width of a tab stop in space advances.
+    marginLeft:           f32                                 // Blank space between the view and the left text edge.
+    marginRight:          f32                                 // Blank space between the right text edge and the view.
+    lexer:                #null IRichEditLexer                // Optional lexer responsible for assigning style indices.
+    form                      = RichEditForm.RichEditCtrl     // Current theme treatment.
+    sigIsReadOnly:        SigArray'func||(*bool)              // Lets owners impose read-only state in addition to `flags`.
+    sigChanged:           SigArray'func||(*RichEditCtrl)      // Emitted after document content changes.
+    sigModified:          SigArray'func||(*RichEditCtrl)      // Emitted when the modified state toggles.
+    backgroundColorModel: String                              // Optional theme color expression used for the editor background.
 
     // Appearance of each style index a lexer can assign to a rune, and of the selection. Fill
     // these in to give the control its syntax colors.
@@ -59,10 +59,10 @@ struct RichEditCtrl
     // connect to the signals; this state only makes sense together.
     internal
     {
-        cursorPos:    RichEditCursor              // Cursor pos associated with this value.
-        selBeg:       RichEditCursor              // Sel beg associated with this value.
-        lines:        ArrayPtr'RichEditLine       // Lines associated with this value.
-        freeLines:    ArrayPtr'RichEditLine       // Free lines associated with this value.
+        cursorPos: RichEditCursor            // Cursor pos associated with this value.
+        selBeg:    RichEditCursor            // Sel beg associated with this value.
+        lines:     ArrayPtr'RichEditLine     // Lines associated with this value.
+        freeLines: ArrayPtr'RichEditLine     // Free lines associated with this value.
         #[Swag.Late]
         scrollWnd: *ScrollWnd     // Scroll wnd associated with this value.
         #[Swag.Late]

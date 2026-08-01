@@ -59,27 +59,27 @@ public impl MersenneTwister64
         while k
         {
             .state[i] = (.state[i] ^ ((.state[i - 1] ^ (.state[i - 1] >> 62)) * 3935559000370003845)) + seed[j] + j
-            i, j   += 1
+            i, j      += 1
             if i >= StateSize
             {
                 .state[0] = .state[StateSize - 1]
-                i      = 1
+                i         = 1
             }
 
             if j >= keyLength do
                 j = 0
-            k     -= 1
+            k -= 1
         }
 
         k = StateSize - 1
         while k != 0
         {
             .state[i] = (.state[i] ^ ((.state[i - 1] ^ (.state[i - 1] >> 62)) * 2862933555777941757)) - i
-            i      += 1
+            i         += 1
             if i >= StateSize
             {
                 .state[0] = .state[StateSize - 1]
-                i      = 1
+                i         = 1
             }
 
             k -= 1

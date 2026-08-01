@@ -514,7 +514,7 @@ impl Painter
         cxt.patternTotalLen = 0
         for [i] in cxt.patternCount do
             cxt.patternTotalLen += Math.max(cxt.pattern[i], 0.01)
-        cxt.patternTotalLen     *= cxt.pen.size
+        cxt.patternTotalLen *= cxt.pen.size
 
         let repeatCount = cast(s32) (cxt.path.polygon.perimeter / cxt.patternTotalLen)
         cxt.error = cxt.path.polygon.perimeter - (repeatCount * cxt.patternTotalLen)

@@ -15,8 +15,8 @@ struct HeaderItem
 {
     name:              RichString     // Displayed column label.
     icon:              Icon           // Optional icon drawn before the label.
-    isResizable        = true          // Whether the trailing separator can resize the column.
-    isClickable        = true          // Whether the column can emit click actions.
+    isResizable = true                // Whether the trailing separator can resize the column.
+    isClickable = true                // Whether the column can emit click actions.
     reservesIconSpace: bool           // Whether list rows reserve the header icon column.
 
     internal
@@ -39,9 +39,9 @@ enum HeaderFlags
 // Indicates the direction displayed by a column sort marker.
 enum HeaderSortDirection
 {
-    None          // No sort marker is displayed.
-    Ascending     // Displays an ascending sort marker.
-    Descending    // Displays a descending sort marker.
+    None           // No sort marker is displayed.
+    Ascending      // Displays an ascending sort marker.
+    Descending     // Displays a descending sort marker.
 }
 
 // Displays named, optionally sortable and resizable columns.
@@ -49,8 +49,8 @@ struct Header
 {
     using wnd: Wnd     // Embedded window behavior and presentation.
 
-    form                = HeaderForm.Flat     // Background and border presentation.
-    itemPadding:    f32 = 5                   // Horizontal inset applied to each item label.
+    form                  = HeaderForm.Flat             // Background and border presentation.
+    itemPadding:      f32 = 5                           // Horizontal inset applied to each item label.
     sigLayoutChanged: SigArray'func||(*Header)          // Emitted after an effective column width changes.
     sigColumnClicked: SigArray'func||(*Header, u32)     // Emitted after the user clicks a column.
 
@@ -58,10 +58,10 @@ struct Header
     // so the layout and the owning list stay in step.
     readonly
     {
-        flags         = HeaderFlags.Clickable       // Active interaction options.
-        items:        ArrayPtr'HeaderItem           // Columns in display order.
-        sortColumn    = Swag.U32.Max                // Logical column carrying the sort marker.
-        sortDirection = HeaderSortDirection.None    // Direction of the sort marker.
+        flags         = HeaderFlags.Clickable        // Active interaction options.
+        items: ArrayPtr'HeaderItem                   // Columns in display order.
+        sortColumn    = Swag.U32.Max                 // Logical column carrying the sort marker.
+        sortDirection = HeaderSortDirection.None     // Direction of the sort marker.
     }
 
     // Hover and drag state of one gesture over the header.
@@ -460,7 +460,7 @@ impl Header
         Debug.assert(index < .items.count)
         Debug.assert(minimum >= 0)
         Debug.assert(maximum == 0 or maximum >= minimum)
-        let item         = notnull .items[index]
+        let item = notnull .items[index]
         item.minimumWidth = minimum
         item.maximumWidth = maximum
         .setItemWidth(index, item.width)

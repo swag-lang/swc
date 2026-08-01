@@ -238,7 +238,7 @@ impl Offset
         const TwoPi = ConstF64.TwoPi
         var steps = Pi / acos(1 - arcT / abs(delta))
         if steps > abs(delta) * Pi do
-            steps    = abs(delta) * Pi
+            steps = abs(delta) * Pi
         .sinVal      = sin(TwoPi / steps)
         .cosVal      = cos(TwoPi / steps)
         .stepsPerRad = steps / TwoPi

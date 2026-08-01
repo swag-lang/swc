@@ -49,7 +49,7 @@ func addTgaImageHeader(cb: *ConcatBuffer, imageType, bpp, descriptor: u8, width,
     h.imageTypeCode  = imageType
     h.width          = width
     h.height         = height
-    h.bitsPerPixel            = bpp
+    h.bitsPerPixel   = bpp
     h.descriptorByte = descriptor
     cb.addStruct(h)
 }
@@ -174,7 +174,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     h.imageTypeCode = TGA_TYPE_RGB
     h.width         = 1'u16
     h.height        = 1'u16
-    h.bitsPerPixel           = 24'u8
+    h.bitsPerPixel  = 24'u8
     cb.addStruct(h)
     cb.addNative(73'u8)
     cb.addNative(68'u8)
@@ -327,7 +327,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     h.colorMapBpp    = 24'u8
     h.width          = 2'u16
     h.height         = 1'u16
-    h.bitsPerPixel            = 8'u8
+    h.bitsPerPixel   = 8'u8
     cb.addStruct(h)
     addTgaPaletteColor(&cb, 10, 20, 30)
     addTgaPaletteColor(&cb, 40, 50, 60)
@@ -365,7 +365,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     h.colorMapBpp    = 32'u8
     h.width          = 1'u16
     h.height         = 1'u16
-    h.bitsPerPixel            = 8'u8
+    h.bitsPerPixel   = 8'u8
     cb.addStruct(h)
     cb.addNative(3'u8); cb.addNative(4'u8); cb.addNative(5'u8); cb.addNative(6'u8)
     cb.addNative(0'u8)
@@ -426,7 +426,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     h.colorMapBpp    = 24'u8
     h.width          = 3'u16
     h.height         = 1'u16
-    h.bitsPerPixel            = 8'u8
+    h.bitsPerPixel   = 8'u8
     cb.addStruct(h)
     addTgaPaletteColor(&cb, 1, 2, 3)
     addTgaPaletteColor(&cb, 4, 5, 6)

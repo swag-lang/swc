@@ -33,9 +33,9 @@ struct Circular
     using wnd: Wnd     // Embedded wnd state.
 
     // Configuration flags and visual settings
-    flags:         CircularFlags                    // Active value-behavior flags.
-    stepForm:      CircularStepForm   = .Tick       // Visual form of step indicators (None, Dot, Tick)
-    markerForm:    CircularMarkerForm = .Circle     // Visual form of value markers (None, Circle, Needle)
+    flags:      CircularFlags                    // Active value-behavior flags.
+    stepForm:   CircularStepForm   = .Tick       // Visual form of step indicators (None, Dot, Tick)
+    markerForm: CircularMarkerForm = .Circle     // Visual form of value markers (None, Circle, Needle)
 
     // Angular configuration (in radians)
     startAngle: f32 = 0                       // Starting angle of the circular range (0 = top)
@@ -64,7 +64,7 @@ struct Circular
         steps:      f32         // Configured step normalized to the value range.
 
         // Internal state tracking
-        isMoving:   bool     // True when user is dragging a marker
+        isMoving:       bool     // True when user is dragging a marker
         isLowerPressed: bool     // True when primary marker is being pressed
         isUpperPressed: bool     // True when secondary marker is being pressed
         isLowerHot:     bool     // True when mouse is hovering over primary marker
@@ -81,7 +81,7 @@ struct Circular
         // Animation blending for smooth color transitions
         lowerMarkerAnimation: BlendColor     // Color animation for primary marker
         upperMarkerAnimation: BlendColor     // Color animation for secondary marker
-        aniStep:  BlendColor     // Color animation for step indicators
+        aniStep:              BlendColor     // Color animation for step indicators
     }
 }
 
@@ -196,18 +196,18 @@ impl IWnd for Circular
 
                 if .isLowerHot
                 {
-                    .isLowerPressed   = true
-                    .correcMoving = 0
+                    .isLowerPressed = true
+                    .correcMoving   = 0
                 }
                 elif .isUpperHot
                 {
-                    .isUpperPressed   = true
-                    .correcMoving = 0
+                    .isUpperPressed = true
+                    .correcMoving   = 0
                 }
                 elif !.flags.has(.Range)
                 {
-                    .correcMoving = 0
-                    .isLowerPressed   = true
+                    .correcMoving   = 0
+                    .isLowerPressed = true
                     .setLowerRatio(normalizedValue)
                 }
                 else
@@ -610,15 +610,15 @@ impl Circular
     {
         Debug.assert(lower <= upper)
         Debug.assert(.flags.has(.Range))
-        let diff = .max - .min
+        let diff     = .max - .min
         let newLower = .clamp((lower - .min) / diff)
         let newUpper = .clamp((upper - .min) / diff)
         Debug.assert(newLower <= newUpper)
 
         let changed = !.hasLowerValue or !.hasUpperValue or newLower != .lowerRatio or newUpper != .upperRatio
         .hasLowerValue, .hasUpperValue = true
-        .lowerRatio = newLower
-        .upperRatio = newUpper
+        .lowerRatio                    = newLower
+        .upperRatio                    = newUpper
         if changed
         {
             .startChange()

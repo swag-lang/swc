@@ -71,7 +71,7 @@ public func getTypedValue(value: *void, type: typeinfo)->bool
         decoder.readTypedContent(value, type)
         decoder.end()
     }
-    else
+        else
     {
         return false
     }

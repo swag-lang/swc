@@ -148,7 +148,7 @@ func accumulateSpan(area, cover: [*] f64, width: s32, xa, ya, xb, yb, s: f64)
         if xf < 0.0 do
             xf = 0.0
         elif xf > 1.0 do
-            xf    = 1.0
+            xf = 1.0
         cover[cx] += s * dyTotal
         area[cx]  += s * dyTotal * xf
         return
@@ -272,7 +272,7 @@ func renderCurrentOutline(slot: *GlyphSlot) fail
 
             var c = Math.abs(val)
             if c > 1.0 do
-                c    = 1.0
+                c = 1.0
             dref dst = cast(u8) (c * 255.0 + 0.5)
             dst      += 1
         }

@@ -56,13 +56,13 @@ enum SurfaceFlags
 {
     None = 0     // Creates a frameless, non-resizable surface.
 
-    LargeCaption      // Uses the standard large title bar.
-    SmallCaption      // Uses the compact tool-window title bar.
-    MinimizeButton    // Displays a minimize button in the title bar.
-    MaximizeButton    // Displays a maximize button in the title bar.
-    CloseButton       // Displays a close button in the title bar.
-    Border            // Draws the themed window border.
-    Resizable         // Allows the user to resize the surface by dragging its border.
+    LargeCaption       // Uses the standard large title bar.
+    SmallCaption       // Uses the compact tool-window title bar.
+    MinimizeButton     // Displays a minimize button in the title bar.
+    MaximizeButton     // Displays a maximize button in the title bar.
+    CloseButton        // Displays a close button in the title bar.
+    Border             // Draws the themed window border.
+    Resizable          // Allows the user to resize the surface by dragging its border.
 
     ToolWindow     // Creates a secondary tool window that does not appear in the taskbar.
     TopMost        // Keeps the surface above non-topmost windows.

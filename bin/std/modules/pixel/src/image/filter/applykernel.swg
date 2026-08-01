@@ -6,28 +6,28 @@ impl Image
     #[Swag.Incomplete]
     public enum Kernel: const [..] s32
     {
-        GaussianBlur3x3Light  = [3, 8, 0, 1, 0, 1, 4, 1, 0, 1, 0]     // Light 3-by-3 Gaussian blur.
-        GaussianBlur3x3Strong = [3, 20, 1, 2, 1, 2, 8, 2, 1, 2, 1]     // Stronger 3-by-3 Gaussian blur.
+        GaussianBlur3x3Light  = [3, 8, 0, 1, 0, 1, 4, 1, 0, 1, 0]                                                            // Light 3-by-3 Gaussian blur.
+        GaussianBlur3x3Strong = [3, 20, 1, 2, 1, 2, 8, 2, 1, 2, 1]                                                           // Stronger 3-by-3 Gaussian blur.
         GaussianBlur5x5       = [5, 159, 2, 4, 5, 4, 2, 4, 9, 12, 9, 4, 5, 12, 15, 12, 5, 4, 9, 12, 9, 4, 2, 4, 5, 4, 2]     // Smooth 5-by-5 Gaussian blur.
-        BoxBlur3x3            = [3, 9, 1, 1, 1, 1, 1, 1, 1, 1, 1]     // Uniform 3-by-3 box blur.
-        BoxBlur5x5            = [5, 25, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]     // Uniform 5-by-5 box blur.
-        Sharpen3x3Strong      = [3, 8, -1, -1, -1, -1, 16, -1, -1, -1, -1]     // Strong all-neighbor sharpening.
-        Sharpen3x3Cross       = [3, 1, 0, -1, 0, -1, 5, -1, 0, -1, 0]     // Cross-shaped sharpening.
-        Soften3x3             = [3, 20, 0, 1, 0, 1, 16, 1, 0, 1, 0]     // Mild cross-shaped softening.
+        BoxBlur3x3            = [3, 9, 1, 1, 1, 1, 1, 1, 1, 1, 1]                                                            // Uniform 3-by-3 box blur.
+        BoxBlur5x5            = [5, 25, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]           // Uniform 5-by-5 box blur.
+        Sharpen3x3Strong      = [3, 8, -1, -1, -1, -1, 16, -1, -1, -1, -1]                                                   // Strong all-neighbor sharpening.
+        Sharpen3x3Cross       = [3, 1, 0, -1, 0, -1, 5, -1, 0, -1, 0]                                                        // Cross-shaped sharpening.
+        Soften3x3             = [3, 20, 0, 1, 0, 1, 16, 1, 0, 1, 0]                                                          // Mild cross-shaped softening.
 
-        EmbossLeft3x3Light    = [3, 0, -1, -1, 0, -1, 3, 0, 0, 0, 0]     // Light emboss illuminated from the left.
-        EmbossLeft3x3Medium   = [3, 0, -2, -2, 0, -2, 6, 0, 0, 0, 0]     // Medium emboss illuminated from the left.
-        EmbossLeft3x3Strong   = [3, 0, -4, -4, 0, -4, 12, 0, 0, 0, 0]     // Strong emboss illuminated from the left.
-        EmbossRight3x3Light   = [3, 0, 0, 0, 0, 0, -3, 1, 0, 1, 1]     // Light emboss illuminated from the right.
-        EmbossRight3x3Medium  = [3, 0, 0, 0, 0, 0, -6, 2, 0, 2, 2]     // Medium emboss illuminated from the right.
-        EmbossRight3x3Strong  = [3, 0, 0, 0, 0, 0, -12, 4, 0, 4, 4]     // Strong emboss illuminated from the right.
+        EmbossLeft3x3Light   = [3, 0, -1, -1, 0, -1, 3, 0, 0, 0, 0]      // Light emboss illuminated from the left.
+        EmbossLeft3x3Medium  = [3, 0, -2, -2, 0, -2, 6, 0, 0, 0, 0]      // Medium emboss illuminated from the left.
+        EmbossLeft3x3Strong  = [3, 0, -4, -4, 0, -4, 12, 0, 0, 0, 0]     // Strong emboss illuminated from the left.
+        EmbossRight3x3Light  = [3, 0, 0, 0, 0, 0, -3, 1, 0, 1, 1]        // Light emboss illuminated from the right.
+        EmbossRight3x3Medium = [3, 0, 0, 0, 0, 0, -6, 2, 0, 2, 2]        // Medium emboss illuminated from the right.
+        EmbossRight3x3Strong = [3, 0, 0, 0, 0, 0, -12, 4, 0, 4, 4]       // Strong emboss illuminated from the right.
 
-        Laplacian8         = [3, 0, -1, -1, -1, -1, 8, -1, -1, -1, -1]     // Eight-neighbor Laplacian edge detector.
-        DiagonalGradient   = [3, 0, -5, 0, 0, 0, 0, 0, 0, 0, 5]     // Diagonal gradient edge detector.
-        HorizontalGradient = [3, 0, -1, -1, -1, 0, 0, 0, 1, 1, 1]     // Horizontal gradient edge detector.
-        HorizontalLine     = [3, 0, -1, -1, -1, 2, 2, 2, -1, -1, -1]     // Horizontal line detector.
+        Laplacian8         = [3, 0, -1, -1, -1, -1, 8, -1, -1, -1, -1]      // Eight-neighbor Laplacian edge detector.
+        DiagonalGradient   = [3, 0, -5, 0, 0, 0, 0, 0, 0, 0, 5]             // Diagonal gradient edge detector.
+        HorizontalGradient = [3, 0, -1, -1, -1, 0, 0, 0, 1, 1, 1]           // Horizontal gradient edge detector.
+        HorizontalLine     = [3, 0, -1, -1, -1, 2, 2, 2, -1, -1, -1]        // Horizontal line detector.
         Laplacian8Strong   = [3, 0, -5, -5, -5, -5, 40, -5, -5, -5, -5]     // Strong eight-neighbor Laplacian edge detector.
-        Laplacian4         = [3, 0, 0, 1, 0, 1, -4, 1, 0, 1, 0]     // Four-neighbor Laplacian edge detector.
+        Laplacian4         = [3, 0, 0, 1, 0, 1, -4, 1, 0, 1, 0]             // Four-neighbor Laplacian edge detector.
 
         SobelHorizontal3x3   = [3, 0, 1, 2, 1, 0, 0, 0, -1, -2, -1]     // Sobel horizontal-edge detector.
         SobelVertical3x3     = [3, 0, 1, 0, -1, 2, 0, -2, 1, 0, -1]     // Sobel vertical-edge detector.

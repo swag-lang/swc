@@ -128,7 +128,7 @@ func removeJobNoLock(job: *Job)
     g_pendingJobs.removeAt(cast(u64) job.pendingIndex)
     if job.pendingIndex < g_pendingJobs.count do
         g_pendingJobs[job.pendingIndex].pendingIndex = job.pendingIndex
-    job.pendingIndex                                 = Swag.U32.Max
+    job.pendingIndex = Swag.U32.Max
     job.clearState(.Pending)
 }
 

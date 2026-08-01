@@ -5,7 +5,7 @@ using Swag, Core
 
 var CompositeSliderChangedCount: u32
 var CompositeInfoDismissedCount: u32
-var CompositeColorChangedCount: u32
+var CompositeColorChangedCount:  u32
 
 func compositeSliderChanged(s: *SliderCtrl)
 {
@@ -162,7 +162,6 @@ func compositeColorChanged(picker: *ColorPickerCtrl)
 
     host.shutdown()
 }
-
 
 // ColorPickerCtrl exposes stable state and emits at most one signal per programmatic change.
 #test

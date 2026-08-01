@@ -312,7 +312,7 @@ impl QuickWnd
             if startSize != 0 do
                 form.beginCap = startCap
             if endSize != 0 do
-                form.endCap  = .ArrowAnchor
+                form.endCap = .ArrowAnchor
             form.borderColor = color
             addStyleForm(&.qsArrow, form)
         }

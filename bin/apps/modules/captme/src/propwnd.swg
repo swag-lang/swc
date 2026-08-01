@@ -111,7 +111,7 @@ impl PropWnd
             undo.valU32 = val
             if !common do
                 undo.mdlType = type
-            undo.valRef      = notnull Reflection.findField(type, name)
+            undo.valRef = notnull Reflection.findField(type, name)
             capture.pushUndo(undo)
         }
 
@@ -411,7 +411,7 @@ impl PropWnd
         }
 
         let btn = createArrowButton(stack, BtnColorWidth, BtnColorHeight)
-        btn.name         = "Fill"
+        btn.name        = "Fill"
         btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
         {
             bc.painter.setParams(.Antialiased)
@@ -465,7 +465,7 @@ impl PropWnd
             return
 
         let btn = createArrowButton(stack, BtnColorWidth, BtnColorHeight)
-        btn.name         = "Shape"
+        btn.name        = "Shape"
         btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
         {
             bc.painter.setParams(.Antialiased)
@@ -483,7 +483,7 @@ impl PropWnd
             return
 
         let btn = createArrowButton(stack, BtnColorWidth, BtnColorHeight)
-        btn.name         = "Shape"
+        btn.name        = "Shape"
         btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
         {
             bc.painter.setParams(.Antialiased)
@@ -528,7 +528,7 @@ impl PropWnd
             return
 
         let btn = createArrowButton(stack, BtnStyleWidth, BtnStyleHeight)
-        btn.name         = "End"
+        btn.name        = "End"
         btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
         {
             let curSel = cast(*FormLine) prop.getSelectedBaseForm()
@@ -558,7 +558,7 @@ impl PropWnd
             return
 
         let btn = createArrowButton(stack, BtnStyleWidth, BtnStyleHeight)
-        btn.name         = "Dash"
+        btn.name        = "Dash"
         btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
         {
             bc.painter.setParams(.Antialiased)
@@ -630,7 +630,7 @@ impl PropWnd
             return
 
         let btn = createArrowButton(stack, BtnColorWidth, BtnColorHeight)
-        btn.name         = "Text"
+        btn.name        = "Text"
         btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
         {
             bc.painter.setParams(.Antialiased)
@@ -842,14 +842,14 @@ impl PropWnd
             .backgroundStyle = .Window
 
             .topLayout              = StackLayoutCtrl.create(prop)
-            .topLayout.mode   = .Top
+            .topLayout.mode         = .Top
             .topLayout.fitToContent = true
             .topLayout.dockStyle    = .Top
             .topLayout.padding      = 8
             .topLayout.padding.y    = 16
 
-            .grid             = Properties.create(prop, kind: .Panel)
-            .grid.dockStyle   = .Center
+            .grid           = Properties.create(prop, kind: .Panel)
+            .grid.dockStyle = .Center
             .grid.setRevertButtonsVisible(false)
 
             // Most specific first: a form edits its own fields (text, caps, round...)

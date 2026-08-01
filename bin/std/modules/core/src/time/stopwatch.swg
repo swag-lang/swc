@@ -29,7 +29,7 @@ public impl Stopwatch
         if .running
         {
             .accumulated += monotonicTicks() - .startTimestamp
-            .running      = false
+            .running     = false
         }
     }
 

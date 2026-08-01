@@ -3,9 +3,9 @@ using Core, Gui, Pixel
 func createDockLabel(parent: *Wnd, title, text: string, dock: DockStyle, size: Math.Point, margin: Math.Vector4 = {})->*Label
 {
     let label = Label.create(parent, Format.toString("<b>%</b>\n%", title, text), {0, 0, size.x, size.y}, null, .WordWrap)
-    label.backgroundStyle   = .Window
-    label.dockStyle         = dock
-    label.margin            = margin
+    label.backgroundStyle = .Window
+    label.dockStyle       = dock
+    label.margin          = margin
     label.setTextPadding({12, 8, 12, 8})
     label.setTextAlignment(.Left, .Top)
     return label

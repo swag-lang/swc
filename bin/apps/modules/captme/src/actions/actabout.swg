@@ -18,8 +18,8 @@ impl IActionUI for ActionAbout
         {
         case .About:
             evt.updatedFields |= .Name | .Icon
-            evt.name     = "About..."
-            evt.icon     = main.theme().icon24(.About)
+            evt.name          = "About..."
+            evt.icon          = main.theme().icon24(.About)
         }
 
         return true
@@ -44,10 +44,10 @@ impl IActionUI for ActionAbout
         msg            += Format.toString("Copyright \u00A9 % Christophe Beaudet", Date.year)
         params.message = msg.toString()
 
-        params.surfaceIcon                               = Icon.from(&main.icons48, 11)
-        params.contentIcon                               = Icon.from(&main.appIcon, 0)
+        params.surfaceIcon                                 = Icon.from(&main.icons48, 11)
+        params.contentIcon                                 = Icon.from(&main.appIcon, 0)
         params.contentIcon.sizeX, params.contentIcon.sizeY = 96
-        params.contentIcon.color                         = Argb.White
+        params.contentIcon.color                           = Argb.White
 
         let dlg = AboutDlg.create(notnull view.surface, params, height: 330)
         dlg.labelMessage.sigLinkActivated += func(lbl, txt)

@@ -106,8 +106,8 @@ func PackedImageDecodeLike(header: PackedHeader18)->PackedImageLike
     var result: retval = undefined
     result.width         = 2
     result.height        = 2
-    result.bytesPerPixel          = 3
-    result.rowStride        = 6
+    result.bytesPerPixel = 3
+    result.rowStride     = 6
     result.pixels.buffer = result.storage
     result.pixels.count  = 12
     result.storage[3]    = 42

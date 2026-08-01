@@ -67,10 +67,10 @@ private impl Voice
 {
     mtd recycle()
     {
-        .file      = null
-        .playFlags = .None
-        .state     = .None
-        .idxInList = 0
+        .file              = null
+        .playFlags         = .None
+        .state             = .None
+        .idxInList         = 0
         .streamCurSeek     = 0
         .decodedBufferIdx  = 0
         .requestedEncoding = .Unknown

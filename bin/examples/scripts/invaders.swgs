@@ -81,7 +81,7 @@ func updatePlayer()
         g_Player.x -= PLAYER_SPEED * g_Dt
     elif kb.isKeyPressed(.Right) do
         g_Player.x += PLAYER_SPEED * g_Dt
-    g_Player.x     = Math.clamp(g_Player.x, 40, g_Rect.width - 40.0 - g_PlayerImg.width)
+    g_Player.x = Math.clamp(g_Player.x, 40, g_Rect.width - 40.0 - g_PlayerImg.width)
 
     // Laser
     if kb.isKeyJustPressed(.Space)

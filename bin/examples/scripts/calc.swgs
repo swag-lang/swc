@@ -89,7 +89,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         with let layout = GridLayoutCtrl.create(wnd, 4, 6)
         {
             .dockStyle       = .Center
-            .flags = .EqualColumnWidths | .EqualRowHeights
+            .flags           = .EqualColumnWidths | .EqualRowHeights
             .backgroundStyle = .Window
             .margin          = 10
         }

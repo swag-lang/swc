@@ -63,10 +63,10 @@ func initFastNoise()->Noise.FastNoise
     let valueRigid = noise.sample(3.5, -2.25)
     @assert(valueRigid >= -1 and valueRigid <= 1)
 
-    noise.kind    = .PerlinFractalFbm
-    let withGain  = noise.sample(3.5, -2.25)
-    noise.gain    = 0
-    let noGain    = noise.sample(3.5, -2.25)
+    noise.kind = .PerlinFractalFbm
+    let withGain = noise.sample(3.5, -2.25)
+    noise.gain = 0
+    let noGain = noise.sample(3.5, -2.25)
     @assert(!Math.isEqualEpsilon(withGain, noGain, 0.00001'f32))
 
     noise.octaves = 1

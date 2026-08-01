@@ -65,6 +65,7 @@ impl ScratchAllocator
             .freeMem(p.allocation, p.allocationSize)
             .firstLeak = n
         }
+
         .totalLeak = 0
     }
 
@@ -145,23 +146,23 @@ impl IAllocator for ScratchAllocator
         // Otherwise this is a leak
         // We prepend a LeakHeader to the user block, and linked it in
         // the chained list of leak allocations (at the first position)
-        let alignment = request.alignment != 0 ? request.alignment : cast(u32) #sizeof(*void)
-        let totalSize = request.size + #sizeof(LeakHeader) + alignment - 1
-        let allocation = cast([*] u8) notnull .alloc(totalSize, alignment)
+        let alignment   = request.alignment != 0 ? request.alignment : cast(u32) #sizeof(*void)
+        let totalSize   = request.size + #sizeof(LeakHeader) + alignment - 1
+        let allocation  = cast([*] u8) notnull .alloc(totalSize, alignment)
         let leakAddress = ScratchAllocator.align(cast(u64) (allocation + #sizeof(LeakHeader)), alignment) - #sizeof(LeakHeader)
-        let ptr       = cast([*] LeakHeader) leakAddress
-        let leak      = cast(#null [*] LeakHeader) .firstLeak
+        let ptr         = cast([*] LeakHeader) leakAddress
+        let leak        = cast(#null [*] LeakHeader) .firstLeak
         if leak do
-            leak.prev   = ptr
+            leak.prev = ptr
         ptr.prev           = null
         ptr.next           = .firstLeak
         ptr.allocation     = allocation
         ptr.allocationSize = totalSize
         ptr.userSize       = request.size
         .firstLeak         = ptr
-        request.address = ptr + 1     // user block is after the header
-        .totalLeak      += request.size
-        .maxLeak        = @max(.maxLeak, .totalLeak)
+        request.address    = ptr + 1     // user block is after the header
+        .totalLeak         += request.size
+        .maxLeak           = @max(.maxLeak, .totalLeak)
     }
 
     mtd impl alloc(request: *AllocatorRequest)

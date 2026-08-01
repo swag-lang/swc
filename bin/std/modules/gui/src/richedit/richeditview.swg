@@ -75,7 +75,7 @@ impl IWnd for RichEditView
                 edn.setCursorPos(cp)
                 if !(evt.modifiers & .Shift) do
                     edn.selBeg = cp
-                .selMode       = true
+                .selMode = true
                 edn.setRectangularSelection(evt.modifiers & .Alt ? true : false)
                 edn.ensureCaretIsVisible()
                 .captureMouse()
@@ -196,7 +196,7 @@ impl IWnd for RichEditView
 
         if edn.recomputeScroll do
             edn.countVisibleLines = 0
-        edn.dirtyFirstLineView    = false
+        edn.dirtyFirstLineView = false
 
         let clientRect  = .clientRect()
         let firstHidden = true
@@ -219,7 +219,7 @@ impl IWnd for RichEditView
 
             if edn.recomputeScroll do
                 edn.countVisibleLines += 1
-            edn.lastVisibleLineView   = i
+            edn.lastVisibleLineView = i
 
             let l = notnull edn.lines[i]
 

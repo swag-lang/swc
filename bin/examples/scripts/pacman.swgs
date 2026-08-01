@@ -979,12 +979,12 @@ impl Pacman
      */
     mtd reset()
     {
-        .x        = 13.5
-        .y        = 7.0
-        .angle    = 0.0
-        .dir      = .NONE
-        .tempDir  = .NONE
-        .texCount = 10
+        .x            = 13.5
+        .y            = 7.0
+        .angle        = 0.0
+        .dir          = .NONE
+        .tempDir      = .NONE
+        .texCount     = 10
         .deadTexCount = 0
         .ready        = false
     }

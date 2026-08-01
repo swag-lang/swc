@@ -28,18 +28,18 @@ impl IActionUI for ActionSelection
         {
         case .SelectAll:
             evt.updatedFields |= .Disabled | .Name
-            evt.disabled = !capture or !capture.forms.count or isLib
-            evt.name     = "Select All Objects"
+            evt.disabled      = !capture or !capture.forms.count or isLib
+            evt.name          = "Select All Objects"
 
         case .SelectSameAll:
             evt.updatedFields |= .Disabled | .Name
-            evt.disabled = !capture or !capture.forms.count or !hasSel or isLib
-            evt.name     = "Select Similar Objects"
+            evt.disabled      = !capture or !capture.forms.count or !hasSel or isLib
+            evt.name          = "Select Similar Objects"
 
         case .DeSelectAll:
             evt.updatedFields |= .Disabled | .Name
-            evt.disabled = !capture or !hasSel or isLib
-            evt.name     = "Deselect All Objects"
+            evt.disabled      = !capture or !hasSel or isLib
+            evt.name          = "Deselect All Objects"
 
         case .InvertSelection:
             evt.updatedFields |= .Disabled | .Name
@@ -50,20 +50,20 @@ impl IActionUI for ActionSelection
 
         case .DeleteSelection:
             evt.updatedFields |= .Disabled | .Name | .Icon
-            evt.disabled = !hasSel
-            evt.name     = "Delete"
-            evt.icon     = main.theme().icon24(.Remove)
+            evt.disabled      = !hasSel
+            evt.name          = "Delete"
+            evt.icon          = main.theme().icon24(.Remove)
 
         case .Snap:
             evt.updatedFields |= .Name | .Checked
-            evt.name     = "Snap To Forms"
-            evt.checked  = main.snap
+            evt.name          = "Snap To Forms"
+            evt.checked       = main.snap
 
         case .Freeze:
             evt.updatedFields |= .Name | .Checked | .Disabled
-            evt.name     = "Freeze Selection"
-            evt.checked  = main.freezeSel
-            evt.disabled = !capture or isLib
+            evt.name          = "Freeze Selection"
+            evt.checked       = main.freezeSel
+            evt.disabled      = !capture or isLib
         }
 
         return true

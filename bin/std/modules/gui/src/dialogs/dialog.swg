@@ -114,7 +114,7 @@ impl Dialog
     mtd createSurface(from: *Surface, x, y: s32, width = 512, height = 300, flags = SurfaceFlags.None)->*Surface
     {
         Debug.assert(from != null)
-        .parentSurface    = from
+        .parentSurface = from
         let surfaceFlags = SurfaceFlags.LargeCaption | SurfaceFlags.ToolWindow | flags
         let srf          = notnull (expect from.app.createSurface(x, y, width, height, surfaceFlags, me))
         srf.wnd.view.backgroundStyle = .Dialog
@@ -125,7 +125,7 @@ impl Dialog
         with me.buttonBar = Wnd.create'StackLayoutCtrl(srf.wnd.view, "", {0, 0, 0, h})
         {
             .spacing         = 10
-            .mode      = .Center
+            .mode            = .Center
             .dockStyle       = .Bottom
             .backgroundStyle = .DialogBar
             .setAllPaddings(metrics.dialog_Padding)
@@ -162,14 +162,12 @@ impl Dialog
             for button in .buttons where button.form == .Default do
                 button.setForm(.Normal)
         }
+
         with let btn = PushButton.create(me.buttonBar, str, {}, id)
         {
             .setForm(isDefault ? .Default : .Strong)
 
-            .sigPressed += func|dlg = me|(btn)
-            {
-                dlg.closeWithResult(btn.id)
-            }
+            .sigPressed += func|dlg = me|(btn) { dlg.closeWithResult(btn.id) }
 
             me.buttons.add(btn)
         }

@@ -167,14 +167,14 @@ internal
 
 #init
 {
-    g_Cb.vtbl = &g_Cbi
+    g_Cb.vtbl                        = &g_Cbi
     g_Cbi.onVoiceProcessingPassStart = &onVoiceProcessingPassStart
     g_Cbi.onVoiceProcessingPassEnd   = &onVoiceProcessingPassEnd
-    g_Cbi.onStreamEnd   = &onStreamEnd
-    g_Cbi.onBufferStart = &onBufferStart
-    g_Cbi.onBufferEnd   = &onBufferEnd
-    g_Cbi.onLoopEnd     = &onLoopEnd
-    g_Cbi.onVoiceError  = &onVoiceError
+    g_Cbi.onStreamEnd                = &onStreamEnd
+    g_Cbi.onBufferStart              = &onBufferStart
+    g_Cbi.onBufferEnd                = &onBufferEnd
+    g_Cbi.onLoopEnd                  = &onLoopEnd
+    g_Cbi.onVoiceError               = &onVoiceError
 }
 
 ///////////////////////////////////////////////////////////////
@@ -200,21 +200,21 @@ impl Voice
         switch file.encoding
         {
         case .Pcm8, .Pcm16, .Pcm24, .Pcm32:
-            wfx.subFormat = Wav.GUID_PCM
+            wfx.subFormat           = Wav.GUID_PCM
             voice.requestedEncoding = file.encoding
 
         case .Float32:
-            wfx.subFormat = Wav.GUID_IEEE_FLOAT
+            wfx.subFormat           = Wav.GUID_IEEE_FLOAT
             voice.requestedEncoding = file.encoding
 
         default:
-            wfx.subFormat = Wav.GUID_PCM
+            wfx.subFormat             = Wav.GUID_PCM
             wfx.format.wBitsPerSample = 16
             voice.requestedEncoding   = .Pcm16
         }
 
-        wfx.format.nBlockAlign     = cast(u16) (wfx.format.nChannels * (wfx.format.wBitsPerSample / 8))
-        wfx.format.nAvgBytesPerSec = wfx.format.nBlockAlign * wfx.format.nSamplesPerSec
+        wfx.format.nBlockAlign          = cast(u16) (wfx.format.nChannels * (wfx.format.wBitsPerSample / 8))
+        wfx.format.nAvgBytesPerSec      = wfx.format.nBlockAlign * wfx.format.nSamplesPerSec
         wfx.samples.wValidBitsPerSample = wfx.format.wBitsPerSample
 
         var flags: DWORD
@@ -389,7 +389,7 @@ internal impl Voice
 
             sfxSendList.sendCount = cast() count
             sfxSendList.pSends    = &sfxSend
-            pSFXSEndList = &sfxSendList
+            pSFXSEndList          = &sfxSendList
         }
 
         let safeHandle      = notnull .handle
@@ -422,7 +422,7 @@ impl Bus
             sfxSend.pOutputVoice  = cast(*IXAudio2Voice) safeParentHandle
             sfxSendList.sendCount = 1
             sfxSendList.pSends    = &sfxSend
-            pSFXSEndList = &sfxSendList
+            pSFXSEndList          = &sfxSendList
         }
 
         var handle: #null *IXAudio2SubmixVoice

@@ -86,7 +86,7 @@ func onFileOpen(_b: *Button)
 func onFileSave(_b: *Button)
 {
     var opt: FileDlgOptions
-    opt.mode      = .CreateFile
+    opt.mode              = .CreateFile
     opt.confirmButtonText = "Save"
     opt.filters.add({"Text", ".txt"})
     discard FileDlg.create(notnull g_Surface, opt).doModal()
@@ -118,8 +118,8 @@ func createRootView()
     // Title bar (docked top so the layout reflows on resize).
     with let title = Label.create(notnull g_View, "GUI9 - Dialogs & FileBrowserCtrl", {0, 0, 0, 46})
     {
-        .dockStyle         = .Top
-        .margin            = {16, 12, 16, 0}
+        .dockStyle = .Top
+        .margin    = {16, 12, 16, 0}
         .setTextAlignment(.Left, .Center)
         .style.setFont(view.theme().createDefaultFont(24), .Regular)
     }
@@ -133,7 +133,7 @@ func createRootView()
     g_StartDir = Env.getSpecialDirectory(.UserDocuments)
 
     var opt: FileDlgOptions
-    opt.mode       = .SelectFile
+    opt.mode          = .SelectFile
     opt.initialFolder = g_StartDir.toString()
     opt.filters.add({"All files", ""})
     opt.filters.add({"Text", ".txt"})

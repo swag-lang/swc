@@ -184,7 +184,7 @@ func vp8ParseResidual4(decoder: *Vp8Decoder, partition: *Vp8Partition, plane: s3
         let zigzag  = VP8_ZIGZAG[coefficient - 1]
         var decoded = cast(s32) value * (zigzag ? acQuant : dcQuant)
         if partition.readBit(VP8_UNIFORM_PROB) do
-            decoded                       = -decoded
+            decoded = -decoded
         decoder.coeff[coeffBase + zigzag] = cast(s16) decoded
         if coefficient == 16 or !partition.readBit(decoder.tokenProb[probabilityBase]) do
             return 1
@@ -460,7 +460,7 @@ func vp8Reconstruct(decoder: *Vp8Decoder, mbX, mbY: s32)->bool
     {
         for [i] in 16 do
             yData[yOffset + i] = decoder.ybr[row + 1][i + 8]
-        yOffset                += decoder.yStride
+        yOffset += decoder.yStride
     }
 
     var cOffset = (mbY * decoder.cStride + mbX) * 8

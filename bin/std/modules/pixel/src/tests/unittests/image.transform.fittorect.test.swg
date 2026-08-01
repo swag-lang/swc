@@ -25,7 +25,7 @@ using Swag, Core
         10'u8, 11'u8, 12'u8, 13'u8,      20'u8, 21'u8, 22'u8, 23'u8,
         ]
 
-    var tall = makeImage(2, 4, .RGBA8, tallPixels)
+    var tall    = makeImage(2, 4, .RGBA8, tallPixels)
     var covered = tall.covered(2, 2)
     assertImage(tall, 2, 4, .RGBA8)
     tall = #move covered

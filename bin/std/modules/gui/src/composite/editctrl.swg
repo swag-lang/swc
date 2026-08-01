@@ -14,9 +14,9 @@ struct EditCtrl
         spacing:    f32 = 5      // Gap between label and edit box.
 
         #[Swag.Late]
-        label: *Label            // Descriptive label owned by this control.
+        label: *Label     // Descriptive label owned by this control.
         #[Swag.Late]
-        edit: *EditBox           // Edit box owned by this control.
+        edit: *EditBox     // Edit box owned by this control.
     }
 }
 
@@ -57,6 +57,7 @@ impl EditCtrl
             .edit = EditBox.create(ctrl, text, flags: flags)
             .sendResizeEvent()
         }
+
         return ctrl
     }
 

@@ -17,9 +17,9 @@ impl HeadlessFixture
         .gui.setup(width, height)
         .gui.bindApplication(&g_App)
 
-        .main              = Wnd.create'MainWnd(&.gui.root, {x: 0, y: 0, width: width, height: height})
-        g_Main             = .main
-        let renderer       = .gui.app.rendererRef()
+        .main  = Wnd.create'MainWnd(&.gui.root, {x: 0, y: 0, width: width, height: height})
+        g_Main = .main
+        let renderer = .gui.app.rendererRef()
         .main.icons24.set(renderer.addImage(Image.create(480, 480, .RGBA8)), 24, 24)
         .main.icons48.set(renderer.addImage(Image.create(480, 480, .RGBA8)), 48, 48)
         .main.appIcon.set(renderer.addImage(Image.create(512, 512, .RGBA8)))

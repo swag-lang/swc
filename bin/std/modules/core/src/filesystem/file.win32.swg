@@ -63,7 +63,7 @@ func open(fullName: string, mode: FileMode, access: FileAccess, share: FileShare
     }
 
     // Read/Write mode
-    var wAccess: DWORD
+    var wAccess:           DWORD
     var canRead, canWrite: bool
     if access & FileAccess.Read
     {

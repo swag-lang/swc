@@ -14,9 +14,12 @@ struct(K) HashSetEntry
 struct(K) HashSet
 {
     // Special hash values to indicate the state of a slot in the table.
-    #[Swag.NoDoc] const HASH_FREE    = 0'u32
-    #[Swag.NoDoc] const HASH_DELETED = 1'u32
-    #[Swag.NoDoc] const HASH_FIRST   = 2'u32
+    #[Swag.NoDoc]
+    const HASH_FREE = 0'u32
+    #[Swag.NoDoc]
+    const HASH_DELETED = 1'u32
+    #[Swag.NoDoc]
+    const HASH_FIRST = 2'u32
 
     internal allocator: #null IAllocator
 
@@ -215,7 +218,7 @@ impl HashSet
 
         if !.allocator do
             .allocator = @getcontext().allocator
-        .table         = cast([*] HashSetEntry'(K)) Memory.alloc(newCapacityBytes, .allocator)
+        .table = cast([*] HashSetEntry'(K)) Memory.alloc(newCapacityBytes, .allocator)
         let table = .tablePtr()
 
         // Be sure hash entry is 0
@@ -314,7 +317,7 @@ impl HashSet
         else
         {
             if table[index].hash == HashSet.HASH_DELETED do
-                .deleted     -= 1
+                .deleted -= 1
             table[index].key = #fwd key
         }
 
@@ -470,7 +473,7 @@ impl HashSet
                 if hashval == HashSet.HASH_DELETED do
                     .deleted -= 1
                 elif hashval >= HashSet.HASH_FIRST do
-                    .count    -= 1
+                    .count -= 1
                 table[i].hash = HashSet.HASH_FREE
 
                 // We are done if there's no more valid value, and no more me.deleted value

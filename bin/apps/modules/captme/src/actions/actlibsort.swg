@@ -21,19 +21,19 @@ impl IActionUI for ActionLibSort
         switch cxt.id
         {
         case .Recent:
-            evt.updatedFields      |= .Name | .Checked | .RenderingHint
+            evt.updatedFields |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = "Write Time"
             evt.checked       = libWnd.sortMethod == .Recent
 
         case .FileSize:
-            evt.updatedFields      |= .Name | .Checked | .RenderingHint
+            evt.updatedFields |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = "File Size"
             evt.checked       = libWnd.sortMethod == .FileSize
 
         case .Similar:
-            evt.updatedFields      |= .Name | .Checked | .RenderingHint
+            evt.updatedFields |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = "Similarity"
             evt.checked       = libWnd.sortMethod == .Similar
@@ -47,8 +47,8 @@ impl IActionUI for ActionLibSort
             else
             {
                 evt.updatedFields |= .Disabled
-                evt.disabled = true
-                evt.name     = "Invert Order"
+                evt.disabled      = true
+                evt.name          = "Invert Order"
             }
 
             evt.checked = libWnd.invertSort

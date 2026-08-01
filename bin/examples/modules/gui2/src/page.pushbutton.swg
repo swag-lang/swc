@@ -8,15 +8,15 @@ func createPushButtonPage(parent: *Wnd)
         var btn = PushButton.create(left, "Normal", {22, 92, 150})
         btn.setIcon(app.theme.icon24(ThemeIcons24.Play, 18))
 
-        btn      = PushButton.create(left, "Default", {190, 92, 150})
+        btn = PushButton.create(left, "Default", {190, 92, 150})
         btn.setForm(.Default)
         btn.setIcon(app.theme.icon24(ThemeIcons24.Save, 18))
 
-        btn      = PushButton.create(left, "Flat", {22, 142, 150})
+        btn = PushButton.create(left, "Flat", {22, 142, 150})
         btn.setForm(.Flat)
         btn.setIcon(app.theme.icon24(ThemeIcons24.Search, 18))
 
-        btn      = PushButton.create(left, "Strong", {190, 142, 150})
+        btn = PushButton.create(left, "Strong", {190, 142, 150})
         btn.setForm(.Strong)
         btn.setIcon(app.theme.icon24(ThemeIcons24.Download, 18))
     }
@@ -31,7 +31,7 @@ func createPushButtonPage(parent: *Wnd)
         btn = PushButton.create(right, "Disabled", {190, 92, 150})
         btn.disable()
 
-        btn            = PushButton.create(right, "Long label clipped cleanly", {22, 142, 210})
+        btn = PushButton.create(right, "Long label clipped cleanly", {22, 142, 210})
         btn.setForm(.Default)
         btn.sigPressed += func|status|(btn) { status.setText("Pressed: long label button") }
 

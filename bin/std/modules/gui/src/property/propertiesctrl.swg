@@ -6,10 +6,10 @@ using Core, Pixel
 #[Swag.EnumFlags]
 enum PropertiesCtrlFlags
 {
-    None = 0             // Shows only the property editor.
-    SearchBar            // Adds a text search bar at the top.
-    SectionNavigation    // Adds a hierarchical section pane on the left.
-    SectionTabs          // Adds top tabs that filter by section.
+    None = 0              // Shows only the property editor.
+    SearchBar             // Adds a text search bar at the top.
+    SectionNavigation     // Adds a hierarchical section pane on the left.
+    SectionTabs           // Adds top tabs that filter by section.
 }
 
 // Combines a property editor with optional section navigation, tabs, and search.
@@ -22,9 +22,9 @@ struct PropertiesCtrl
         #[Swag.Late]
         splitter: *SplitterCtrl     // Splitter associated with this value.
         #[Swag.Late]
-        list:     *ListCtrl         // List associated with this value.
+        list: *ListCtrl     // List associated with this value.
         #[Swag.Late]
-        tab:      *Tab              // Tab associated with this value.
+        tab: *Tab     // Tab associated with this value.
         #[Swag.Late]
         properties: *Properties     // Property editor owned by this control.
     }
@@ -78,7 +78,7 @@ impl PropertiesCtrl
                 .setIcon(ed.theme().icon24(ThemeIcons24.Search, 18))
                 .dockStyle = .Top
                 .setPlaceholder("Search")
-                .margin.w   = 8
+                .margin.w       = 8
                 .sigTextChanged += func|ed|(fil) { ed.properties.setFilter(fil.text()); }
                 .updateFlags(.ClearButton)
             }

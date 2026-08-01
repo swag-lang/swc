@@ -117,7 +117,7 @@ func animate(wnd: *Wnd)
         // End of scale
         if Math.isEqualEpsilon(c.z, c.zd, 0.01) do
             c.zd = 1
-        c.z      = Math.lerp(c.z, c.zd, 20 * dt)
+        c.z = Math.lerp(c.z, c.zd, 20 * dt)
         if Math.isEqualEpsilon(c.z, 1, 0.01) do
             c.z = 1
 

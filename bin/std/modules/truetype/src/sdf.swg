@@ -44,7 +44,7 @@ func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) fail
     var safeSpread = spread
     if !safeSpread do
         safeSpread = 1
-    safeSpread     = Math.min(safeSpread, 64)
+    safeSpread = Math.min(safeSpread, 64)
 
     let padding = cast(s32) safeSpread
     let bounds  = computeOutlineBounds(&safeSlot.outline)

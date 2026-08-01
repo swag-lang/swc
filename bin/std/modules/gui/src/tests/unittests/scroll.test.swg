@@ -32,8 +32,8 @@ func scrollHeadlessSize(s: *ScrollWnd, o, n: Math.Point)
 
     let scroll = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 200, 200})
     scroll.createView'Wnd()
-    scroll.sigScrollPositionChanged  += &scrollHeadlessPos
-    scroll.sigScrollSizeChanged += &scrollHeadlessSize
+    scroll.sigScrollPositionChanged += &scrollHeadlessPos
+    scroll.sigScrollSizeChanged     += &scrollHeadlessSize
 
     scroll.setScrollSize(1000, 1000)
     @assert(ScrollHeadlessSizeCount == 1)

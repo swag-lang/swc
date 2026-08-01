@@ -17,9 +17,9 @@ enum ColorPickerViewMode
 #[Swag.EnumFlags]
 enum ColorPickerFlags
 {
-    None                   // Edits opaque RGB colors only.
-    AllowAlpha             // Enables alpha editing and ARGB hexadecimal input.
-    All = AllowAlpha       // Enables every optional channel.
+    None                 // Edits opaque RGB colors only.
+    AllowAlpha           // Enables alpha editing and ARGB hexadecimal input.
+    All = AllowAlpha     // Enables every optional channel.
 }
 
 // Combines color planes, channel editors, an eyedropper, and an optional palette into one picker.
@@ -31,10 +31,10 @@ struct ColorPickerCtrl
 
     readonly
     {
-        originalColor: Color                                      // Color captured by the first `setColor` call.
-        selectedColor: Color                                      // Current selected color.
-        flags         = ColorPickerFlags.All                      // Available optional channels.
-        mode          = ColorPickerViewMode.SaturationLightness   // Active plane and slider arrangement.
+        originalColor: Color                                // Color captured by the first `setColor` call.
+        selectedColor: Color                                // Current selected color.
+        flags = ColorPickerFlags.All                        // Available optional channels.
+        mode  = ColorPickerViewMode.SaturationLightness     // Active plane and slider arrangement.
 
         #[Swag.Late]
         {
@@ -159,22 +159,22 @@ impl ColorPickerCtrl
             icon.color = Argb.White
             let picker = IconButton.create(v, icon, {245, 215, 40, 40})
 
-            .editA = EditBox.create(v, "", {10, 265, 50})
-            .editR = EditBox.create(v, "", {70, 265, 50})
-            .editG = EditBox.create(v, "", {125, 265, 50})
-            .editB = EditBox.create(v, "", {180, 265, 50})
+            .editA   = EditBox.create(v, "", {10, 265, 50})
+            .editR   = EditBox.create(v, "", {70, 265, 50})
+            .editG   = EditBox.create(v, "", {125, 265, 50})
+            .editB   = EditBox.create(v, "", {180, 265, 50})
             .editHex = EditBox.create(v, "", {240, 265, 90})
 
             var l = Label.create(v, "A", {.editA.position.x, .editA.position.bottom() + 0, .editA.position.width})
             l.updateFlags(.SecondaryText)
-            l            = Label.create(v, "R", {.editR.position.x, .editR.position.bottom() + 0, .editR.position.width})
+            l = Label.create(v, "R", {.editR.position.x, .editR.position.bottom() + 0, .editR.position.width})
             l.updateFlags(.SecondaryText)
-            l            = Label.create(v, "G", {.editG.position.x, .editG.position.bottom() + 0, .editG.position.width})
+            l = Label.create(v, "G", {.editG.position.x, .editG.position.bottom() + 0, .editG.position.width})
             l.updateFlags(.SecondaryText)
-            l            = Label.create(v, "B", {.editB.position.x, .editB.position.bottom() + 0, .editB.position.width})
+            l = Label.create(v, "B", {.editB.position.x, .editB.position.bottom() + 0, .editB.position.width})
             l.updateFlags(.SecondaryText)
 
-            l            = Label.create(v, flags.has(.AllowAlpha) ? "ARGB" : "RGB", {.editHex.position.x, .editHex.position.bottom() + 0, .editHex.position.width})
+            l = Label.create(v, flags.has(.AllowAlpha) ? "ARGB" : "RGB", {.editHex.position.x, .editHex.position.bottom() + 0, .editHex.position.width})
             l.updateFlags(.SecondaryText)
 
             .radioH = RadioButton.create(v, "H", {280, 10, 40})

@@ -326,7 +326,7 @@ func createRootView()
     setLabelTextStyle(subTitle, .Left, .Top)
 
     let themeButton = PushButton.create(view, "", {})
-    g_ThemeButton          = themeButton
+    g_ThemeButton = themeButton
     themeButton.setForm(.Flat)
     themeButton.setIcon(app.theme.icon24(ThemeIcons24.Picker, 18))
     themeButton.sigPressed += &toggleTheme

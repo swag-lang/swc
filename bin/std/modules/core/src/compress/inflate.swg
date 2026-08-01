@@ -86,7 +86,7 @@ internal
             @init(me, 1)
             for v in codeLengths do
                 sizes[v] += 1
-            sizes[0]     = 0
+            sizes[0] = 0
 
             for [i] in 1 to 16
             {

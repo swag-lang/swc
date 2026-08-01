@@ -29,11 +29,11 @@ impl IActionUI for ActionMoveSel
         {
         case .Left, .Top, .Right, .Bottom:
             evt.updatedFields |= .Disabled
-            evt.disabled = !hasSel
+            evt.disabled      = !hasSel
 
         case .Left1, .Top1, .Right1, .Bottom1:
             evt.updatedFields |= .Disabled
-            evt.disabled = !hasSel
+            evt.disabled      = !hasSel
         }
 
         return true

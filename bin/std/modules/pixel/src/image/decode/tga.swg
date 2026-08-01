@@ -32,9 +32,9 @@ struct Header
 
 struct Palette
 {
-    data:  #null const [*] u8
-    first: u16
-    count: u16
+    data:          #null const [*] u8
+    first:         u16
+    count:         u16
     bitsPerPixel:  u8
     bytesPerPixel: u8
 }
@@ -302,11 +302,11 @@ internal impl IImageDecoder for Decoder
         var palette: Palette
         if header.colorMapType
         {
-            palette.first = header.colorMapFirst
-            palette.count = header.colorMapLength
-            palette.bitsPerPixel   = header.colorMapBpp
-            palette.bytesPerPixel  = palettePixelBytes(header.colorMapBpp)
-            palette.data  = dataof
+            palette.first         = header.colorMapFirst
+            palette.count         = header.colorMapLength
+            palette.bitsPerPixel  = header.colorMapBpp
+            palette.bytesPerPixel = palettePixelBytes(header.colorMapBpp)
+            palette.data          = dataof
             checkBuffer(dataof, last, cast(u64) palette.count * palette.bytesPerPixel)
             dataof += cast(u64) palette.count * palette.bytesPerPixel
         }

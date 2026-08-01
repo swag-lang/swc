@@ -31,7 +31,7 @@ struct TagBinSection
 {
     startSeek: ConcatBufferPosition                      // Position in the output buffer where the section starts.
     mapSeek:   HashTable'(u32, ConcatBufferPosition)     // Maps CRC keys to their position in the output buffer.
-    kind:      SectionKind                           // Type of section (e.g., Raw or Unordered)
+    kind:      SectionKind                               // Type of section (e.g., Raw or Unordered)
 }
 
 // Binary writer for serialized data with support for structured and raw output
@@ -164,7 +164,7 @@ impl TagBin
             output.addNative(TagBinSignature.Fat)
             for k, [v] in sec.mapSeek
             {
-                output.addNative(k)                             // Crc
+                output.addNative(k)                            // Crc
                 output.addNative(ConcatBuffer.offsetOf(v))     // Linear seek inside the buffer
             }
         }

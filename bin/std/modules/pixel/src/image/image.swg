@@ -15,7 +15,7 @@ using Swag, Core, Core.Serialization
 // ```
 struct Image
 {
-    pixels:    Array'u8                // Owned, row-major pixel bytes.
+    pixels:   Array'u8                // Owned, row-major pixel bytes.
     metadata: Array'ImageMetadata     // Format-specific metadata preserved by compatible codecs.
 
     // Geometry and encoding of the pixel buffer. They are established together by 'create' and
@@ -66,6 +66,7 @@ impl Image
             Debug.assert(@countof(buffer) == result.byteCount, "pixel buffer size does not match image geometry")
             Memory.copy(cast([*] u8) (notnull result.pixels.buffer), @dataof(buffer), @countof(buffer))
         }
+
         return result
     }
 

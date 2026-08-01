@@ -79,7 +79,7 @@ impl Image
 
                 if .pixelFormat.hasAlpha() do
                     pix[3] = 255
-                pix        += .bytesPerPixel
+                pix += .bytesPerPixel
             }
 
             .visitPixels(stride: .width)
@@ -133,7 +133,7 @@ impl Image
 
                 if .pixelFormat.hasAlpha() do
                     pix[3] = 255
-                pix        += .bytesPerPixel
+                pix += .bytesPerPixel
             }
 
             .visitPixels(stride: .width)
@@ -187,7 +187,7 @@ impl Image
 
                 if .pixelFormat.hasAlpha() do
                     pix[3] = 255
-                pix        += .bytesPerPixel
+                pix += .bytesPerPixel
             }
 
             .visitPixels(stride: .width)

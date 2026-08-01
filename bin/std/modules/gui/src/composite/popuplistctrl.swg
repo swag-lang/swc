@@ -26,10 +26,10 @@ struct PopupListCtrl
 
     readonly
     {
-        items:         ArrayPtr'PopupListCtrlItem     // Entries in display order.
-        selectedIndex = Swag.U32.Max                  // Initially highlighted item, or U32.Max.
+        items: ArrayPtr'PopupListCtrlItem     // Entries in display order.
+        selectedIndex = Swag.U32.Max          // Initially highlighted item, or U32.Max.
         #[Swag.Late]
-        scrollWnd: *ScrollWnd                        // Scrollable viewport owned by the popup.
+        scrollWnd: *ScrollWnd     // Scrollable viewport owned by the popup.
     }
 
     internal maxIconSize: s32     // Widest item icon, used to align labels.
@@ -317,9 +317,9 @@ impl PopupListCtrl
         {
             .setFrameFlags(.SmallShadow)
             .setFrameForm(.Square)
-            .scrollWnd                = .createView'ScrollWnd()
-            .scrollWnd.dockStyle      = .Center
-            .scrollWnd.focusStrategy  = .None
+            .scrollWnd               = .createView'ScrollWnd()
+            .scrollWnd.dockStyle     = .Center
+            .scrollWnd.focusStrategy = .None
             .scrollWnd.updateFlags(.CompactBars)
             let popupView = .scrollWnd.createView'PopupListView()
             popupView.list = popup

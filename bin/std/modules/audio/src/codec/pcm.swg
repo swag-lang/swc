@@ -77,8 +77,8 @@ impl ICodec for CodecPcmToPcm16
                     #assert(false)
                 }
 
-                dst += 1
-                src += TS
+                dst          += 1
+                src          += TS
                 bytesWritten += #sizeof(s16)
                 bytesRead    += TS
             }

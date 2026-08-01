@@ -7,9 +7,9 @@ struct WrapLayoutCtrl
 {
     using wnd: Wnd     // Embedded wnd state.
 
-    spacing:    f32 = 5      // Horizontal and vertical gap between items.
-    itemWidth:  f32 = 64     // Fallback width when a child has no preferred width.
-    itemHeight: f32 = 64     // Fallback height when a child has no preferred height.
+    spacing:    f32 = 5             // Horizontal and vertical gap between items.
+    itemWidth:  f32 = 64            // Fallback width when a child has no preferred width.
+    itemHeight: f32 = 64            // Fallback height when a child has no preferred height.
     readonly contentHeight: f32     // Height occupied by the latest layout pass.
 }
 
@@ -43,19 +43,19 @@ impl IWnd for WrapLayoutCtrl
             if hint.preferred.y > 0 do
                 height = hint.preferred.y
 
-            let outerWidth = width + margin.x + margin.z
+            let outerWidth  = width + margin.x + margin.z
             let outerHeight = height + margin.y + margin.w
             if x != client.x and x + outerWidth > client.right()
             {
-                x = client.x
-                y += rowHeight + .spacing
+                x         = client.x
+                y         += rowHeight + .spacing
                 rowHeight = 0
             }
 
             var rect = Math.Rectangle{x + margin.x, y + margin.y, width, height}
             c.arrange(rect)
-            x += outerWidth + .spacing
-            rowHeight = Math.max(rowHeight, outerHeight)
+            x              += outerWidth + .spacing
+            rowHeight      = Math.max(rowHeight, outerHeight)
             .contentHeight = y + rowHeight + .padding.w
         }
 

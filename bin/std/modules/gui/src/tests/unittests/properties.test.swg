@@ -141,8 +141,8 @@ impl IPropertyNotify for PropHeadlessRoData
 
     var data: PropHeadlessGroupedData
     let ctrl = PropertiesCtrl.create(page, {0, 0, 560, 10}, .Grid, .SectionTabs | .SectionNavigation | .SearchBar)
-    ctrl.dockStyle          = .Left
-    ctrl.margin.z           = 24
+    ctrl.dockStyle = .Left
+    ctrl.margin.z  = 24
     ctrl.properties.setEditorWidth(300)
     ctrl.properties.setNameColumnWidth(150)
     ctrl.addStruct(data, "Settings")
@@ -235,7 +235,7 @@ impl IPropertyNotify for PropHeadlessRoData
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data)
 
-    prop.focusNavigation()                     // count row
+    prop.focusNavigation()              // count row
     host.keyPress(Input.Key.Return)     // edit count
     @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) (notnull prop.items[1]).editBox)
 
@@ -364,7 +364,7 @@ struct PropHeadlessColorData
     func sendWheel(p: *Properties, deltaY: f32)
     {
         var wheel = MouseEvent{kind: .Wheel}
-        wheel.delta.y     = deltaY
+        wheel.delta.y    = deltaY
         wheel.surfacePos = {20, 90}
         p.edView.sendEvent(&wheel)
     }

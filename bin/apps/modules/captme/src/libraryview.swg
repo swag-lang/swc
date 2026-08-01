@@ -356,7 +356,7 @@ impl LibraryView
         // that actually have a preview; the rest simply don't take part in similarity sort.
         if capture.preview.isValid() do
             capture.haar = ImageStatistics.quickExtractHaarFeatures(capture.preview, 32)
-        g_DirtyList      = true
+        g_DirtyList = true
 
         .mutexLoaded.lock()
         it.capture = capture

@@ -9,14 +9,14 @@ public impl Image
     // or continuously toned content.
     enum ResizeMode
     {
-        Nearest       // Nearest-neighbor sampling; preserves hard pixel edges.
-        Bilinear      // Linear interpolation over adjacent samples.
-        Bicubic       // Smooth cubic B-spline reconstruction.
-        Gaussian      // Wide Gaussian reconstruction.
-        Quadratic     // Quadratic reconstruction.
-        Hermite       // Cubic Hermite reconstruction.
-        Hamming       // Windowed-sinc Hamming reconstruction.
-        CatmullRom    // Sharper Catmull-Rom cubic reconstruction.
+        Nearest        // Nearest-neighbor sampling; preserves hard pixel edges.
+        Bilinear       // Linear interpolation over adjacent samples.
+        Bicubic        // Smooth cubic B-spline reconstruction.
+        Gaussian       // Wide Gaussian reconstruction.
+        Quadratic      // Quadratic reconstruction.
+        Hermite        // Cubic Hermite reconstruction.
+        Hamming        // Windowed-sinc Hamming reconstruction.
+        CatmullRom     // Sharper Catmull-Rom cubic reconstruction.
     }
 
     // Resizes the image, preserving aspect ratio when one dimension is zero.
@@ -83,13 +83,13 @@ namespace ResizeTools
     {
         switch rmode
         {
-        case .Bilinear:  return 1
-        case .Hermite:   return 1
-        case .Hamming:   return 1
-        case .Quadratic: return 1.5
-        case .Bicubic:   return 2
+        case .Bilinear:   return 1
+        case .Hermite:    return 1
+        case .Hamming:    return 1
+        case .Quadratic:  return 1.5
+        case .Bicubic:    return 2
         case .CatmullRom: return 2
-        case .Gaussian:  return 3
+        case .Gaussian:   return 3
         }
 
         return 0
@@ -265,7 +265,7 @@ namespace ResizeTools
                 let right = crow.right
 
                 #static if BPP == 32 do
-                    var da:     f64
+                    var da: f64
                 var dr, dg, db: f64
                 var pw  = notnull crow.weights.buffer
                 var ptr = srcRow + left * bpp8
@@ -277,8 +277,8 @@ namespace ResizeTools
                     dr += f * ptr[2]
                     #static if BPP == 32 do
                         da += f * ptr[3]
-                    pw     += 1
-                    ptr    += bpp8
+                    pw  += 1
+                    ptr += bpp8
                 }
 
                 dstRow[0] = cast(u8) Math.round(db)
@@ -286,7 +286,7 @@ namespace ResizeTools
                 dstRow[2] = cast(u8) Math.round(dr)
                 #static if BPP == 32 do
                     dstRow[3] = cast(u8) Math.round(da)
-                dstRow        += bpp8
+                dstRow += bpp8
             }
         }
 
@@ -318,7 +318,7 @@ namespace ResizeTools
                 let right = crow.right
 
                 #static if BPP == 32 do
-                    var da:     f64
+                    var da: f64
                 var dr, dg, db: f64
                 var pw  = notnull crow.weights.buffer
                 var ptr = srcCol + left * w8Src
@@ -330,8 +330,8 @@ namespace ResizeTools
                     dr += f * ptr[2]
                     #static if BPP == 32 do
                         da += f * ptr[3]
-                    pw     += 1
-                    ptr    += cast(u64) w8Src
+                    pw  += 1
+                    ptr += cast(u64) w8Src
                 }
 
                 dstCol[0] = cast(u8) Math.round(db)
@@ -339,7 +339,7 @@ namespace ResizeTools
                 dstCol[2] = cast(u8) Math.round(dr)
                 #static if BPP == 32 do
                     dstCol[3] = cast(u8) Math.round(da)
-                dstCol        += cast(u64) w8Dst
+                dstCol += cast(u64) w8Dst
             }
         }
 
@@ -422,7 +422,7 @@ namespace ResizeTools
         switch mode
         {
         case .Nearest: doResizeRaw(dstImage, srcImage)
-        default:   doResizeFilter(dstImage, srcImage, mode)
+        default:       doResizeFilter(dstImage, srcImage, mode)
         }
     }
 }

@@ -34,8 +34,8 @@ impl Encoder
         {
             if value & Mask[posval] do
                 .bytenew |= cast(u8) Mask[.bytepos]
-            posval       -= 1
-            .bytepos     -= 1
+            posval   -= 1
+            .bytepos -= 1
             if .bytepos < 0
             {
                 let written = .bytenew

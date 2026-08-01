@@ -11,11 +11,11 @@ struct PalettePicker
 
     readonly
     {
-        colors:        Array'Color              // Colors displayed in insertion order.
-        selectedColor: Color                    // Selected color, or transparent black when no item is selected.
-        selectedIndex: s32 = Swag.S32.Max       // Selected color index, or `Swag.S32.Max` when absent.
-        itemSize:      s32 = 24                 // Width and height of each color item, in logical units.
-        spacing:       s32 = 3                  // Gap between adjacent color items, in logical units.
+        colors:        Array'Color            // Colors displayed in insertion order.
+        selectedColor: Color                  // Selected color, or transparent black when no item is selected.
+        selectedIndex: s32 = Swag.S32.Max     // Selected color index, or `Swag.S32.Max` when absent.
+        itemSize:      s32 = 24               // Width and height of each color item, in logical units.
+        spacing:       s32 = 3                // Gap between adjacent color items, in logical units.
     }
 
     internal
@@ -37,7 +37,7 @@ private impl PalettePicker
         for [i] in @countof(.colors)
         {
             .itemRects[i] = {x, y, cast(f32) .itemSize, cast(f32) .itemSize}
-            x += .itemSize + .spacing
+            x             += .itemSize + .spacing
             if x + .itemSize > rect.right()
             {
                 x = rect.x
@@ -127,14 +127,14 @@ impl IWnd for PalettePicker
         var index = .selectedIndex == Swag.S32.Max ? 0 : .selectedIndex
         switch evt.key
         {
-        case .Left:  index = Math.max(0, index - 1)
-        case .Right: index = Math.min(cast(s32) .colors.count - 1, index + 1)
-        case .Up:    index = Math.max(0, index - .columnCount())
-        case .Down:  index = Math.min(cast(s32) .colors.count - 1, index + .columnCount())
-        case .Home:  index = 0
-        case .End:   index = cast(s32) .colors.count - 1
+        case .Left:           index = Math.max(0, index - 1)
+        case .Right:          index = Math.min(cast(s32) .colors.count - 1, index + 1)
+        case .Up:             index = Math.max(0, index - .columnCount())
+        case .Down:           index = Math.min(cast(s32) .colors.count - 1, index + .columnCount())
+        case .Home:           index = 0
+        case .End:            index = cast(s32) .colors.count - 1
         case .Space, .Return: break
-        default: return
+        default:              return
         }
 
         .setSelectedIndex(index)
@@ -215,6 +215,7 @@ impl PalettePicker
             color.a = 255
             .colors.add(color)
         }
+
         .invalidate()
     }
 
@@ -226,10 +227,11 @@ impl PalettePicker
         for [i] in count
         {
             let lightness = count <= 1 ? 0.5 : i / cast(f32) (count - 1)
-            var color = Color.fromHsl(hue, saturation, lightness)
+            var color     = Color.fromHsl(hue, saturation, lightness)
             color.a = 255
             .colors.add(color)
         }
+
         .invalidate()
     }
 
@@ -242,10 +244,11 @@ impl PalettePicker
         for [i] in count
         {
             let saturation = count <= 1 ? 0 : i / cast(f32) (count - 1)
-            var color = Color.fromHsl(hue, saturation, lightness)
+            var color      = Color.fromHsl(hue, saturation, lightness)
             color.a = 255
             .colors.add(color)
         }
+
         .invalidate()
     }
 

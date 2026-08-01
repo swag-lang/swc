@@ -7,7 +7,7 @@ struct(K, V) HashTableEntry
 {
     internal hash: u32
     readonly key:  K     // The key.
-    value:         V     // The value associated with the key.
+    value: V             // The value associated with the key.
 }
 
 // A hash table implemented with open-addressing that maps keys to values.
@@ -15,9 +15,12 @@ struct(K, V) HashTableEntry
 struct(K, V) HashTable
 {
     // Special hash values to indicate the state of a slot in the table.
-    #[Swag.NoDoc] const HASH_FREE    = 0'u32
-    #[Swag.NoDoc] const HASH_DELETED = 1'u32
-    #[Swag.NoDoc] const HASH_FIRST   = 2'u32
+    #[Swag.NoDoc]
+    const HASH_FREE = 0'u32
+    #[Swag.NoDoc]
+    const HASH_DELETED = 1'u32
+    #[Swag.NoDoc]
+    const HASH_FIRST = 2'u32
 
     internal allocator: #null IAllocator
 
@@ -243,7 +246,7 @@ impl HashTable
 
         if !.allocator do
             .allocator = @getcontext().allocator
-        .table         = cast([*] HashTableEntry'(K, V)) Memory.alloc(newCapacityBytes, .allocator)
+        .table = cast([*] HashTableEntry'(K, V)) Memory.alloc(newCapacityBytes, .allocator)
         let table = .tablePtr()
 
         // Be sure hash entry is 0
@@ -351,7 +354,7 @@ impl HashTable
         else
         {
             if table[index].hash == HashTable.HASH_DELETED do
-                .deleted       -= 1
+                .deleted -= 1
             table[index].key   = key
             table[index].value = #fwd value
         }
@@ -582,7 +585,7 @@ impl HashTable
                 if hashval == HashTable.HASH_DELETED do
                     .deleted -= 1
                 elif hashval >= HashTable.HASH_FIRST do
-                    .count    -= 1
+                    .count -= 1
                 table[i].hash = HashTable.HASH_FREE
 
                 // We are done if there's no more valid value, and no more me.deleted value

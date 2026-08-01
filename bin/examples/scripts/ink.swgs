@@ -71,6 +71,7 @@ impl Drop
             let root = sqrt(1 + (otherr / p.lengthSquared()))
             v = (p * root) + other.center
         }
+
         .lp.recomputeFlattenedPolygon()
     }
 

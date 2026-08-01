@@ -200,8 +200,8 @@ internal impl Properties
             {
                 if me.isGridLike() do
                     .margin.x = me.leftMargin
-                .dockStyle    = .Left
-                .userData     = cast #unconst (#null *void) v.value
+                .dockStyle = .Left
+                .userData  = cast #unconst (#null *void) v.value
             }
 
             me.adaptCondensedControl(ed)
@@ -216,7 +216,7 @@ internal impl Properties
                 labelWidth = me.listContentWidth() - me.gridLineHeight
             with let label1 = Label.create(line, "", {item.line.position.height, 0, Math.max(labelWidth, 1.0)})
             {
-                .dockStyle         = .Center
+                .dockStyle = .Center
                 .updateFlags(.WordWrap | .AutoHeight)
                 .setTextHorizontalAlignment(.Left)
                 .setText(dispDescStr)

@@ -113,7 +113,7 @@ func __catchErr()
     if !cxt.hasError do
         cxt.curError = null
     else do
-        cxt.curError        = cxt.errors[cxt.errorIndex].value
+        cxt.curError = cxt.errors[cxt.errorIndex].value
     cxt.errorAllocator.used = cxt.errorIndex ? cxt.errors[cxt.errorIndex - 1].pushUsedAlloc : 0
     cxt.hasError            = 0
     if cxt.errorIndex do

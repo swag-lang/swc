@@ -138,7 +138,7 @@ namespace GenericCloneCodegenSupport
                 .first = ptr
             else do
                 .second = ptr
-            .count      += 1
+            .count += 1
         }
 
         mtd clearOwned()

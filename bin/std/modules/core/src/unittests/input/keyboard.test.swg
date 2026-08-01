@@ -86,8 +86,8 @@ using Swag
     for [i] in @countof(Input.Key)
     {
         keyboard.setKeyStates(cast(Input.Key) i, true, true)
-        keyboard.isRepeating[i]           = true
-        keyboard.pressedAtMs[i]           = cast(u32) i + 1
+        keyboard.isRepeating[i] = true
+        keyboard.pressedAtMs[i] = cast(u32) i + 1
     }
 
     keyboard.clear()

@@ -119,7 +119,7 @@ impl Theme
     private mtd setupDefault(renderer: *RenderOgl)
     {
         .initialized = true
-        .fonts      = &renderer.fonts
+        .fonts       = &renderer.fonts
         .colors.setDark()
 
         let images = defaultThemeImages()

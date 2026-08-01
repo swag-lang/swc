@@ -13,7 +13,7 @@ impl AggregateLiteralTracked
     mtd opPostCopy()
     {
         AggregateLiteralPostCopyCount += 1
-        .value += 100
+        .value                        += 100
     }
 
     mtd opDrop()
@@ -28,7 +28,7 @@ impl AggregateLiteralTracked
     AggregateLiteralDropCount     = 0
 
     {
-        var source = AggregateLiteralTracked{7}
+        var source                              = AggregateLiteralTracked{7}
         var values: [1] AggregateLiteralTracked = [source]
 
         @assert(AggregateLiteralPostCopyCount == 1)

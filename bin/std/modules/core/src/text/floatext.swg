@@ -456,7 +456,7 @@ impl FloatExt
 
             if d.nd == 0 do
                 d.dp = 0
-            d.neg    = .neg
+            d.neg = .neg
             return true
         }
 

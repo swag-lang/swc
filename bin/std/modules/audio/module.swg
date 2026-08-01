@@ -47,5 +47,5 @@ files; unsupported containers or encodings fail instead of being guessed.
     cfg.genDoc.titleContent = "Audio"
     cfg.genDoc.titleToc     = "Audio documentation"
     cfg.genDoc.icon         = "favicon.svg"
-    cfg.genDoc.css = "css/style.css"
+    cfg.genDoc.css          = "css/style.css"
 }

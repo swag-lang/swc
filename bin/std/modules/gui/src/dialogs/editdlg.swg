@@ -58,9 +58,9 @@ public impl EditDlg
         dlg.richEdit = RichEditCtrl.create(srf.view(), {0, 0, 0, editorHeight})
         with dlg.richEdit
         {
-            .anchorStyle  = .Height
-            .dockStyle    = .Bottom
-            .margin       = metrics.dialog_Padding
+            .anchorStyle = .Height
+            .dockStyle   = .Bottom
+            .margin      = metrics.dialog_Padding
             .setFlags(.flags | .AutoLoseFocus)
             .backgroundColorModel = "$dlg_BtnBarBk"
             .setForm(.Edit)
@@ -106,7 +106,7 @@ public impl EditDlg
             .label = Label.create((notnull .surface).view(), message, {0, 0, 0, height})
             with me.label
             {
-                .dockStyle         = .Center
+                .dockStyle = .Center
                 .setTextAlignment(.Center, .Center)
             }
 

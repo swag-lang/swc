@@ -5,9 +5,9 @@ using Core, Pixel
 // Selects icon button background geometry.
 enum IconButtonForm
 {
-    Rectangle          // Uses a rectangular background.
-    Circle             // Uses a circular background.
-    RoundedRectangle   // Uses a rounded rectangular background.
+    Rectangle            // Uses a rectangular background.
+    Circle               // Uses a circular background.
+    RoundedRectangle     // Uses a rounded rectangular background.
 }
 
 // Configures icon button interaction and content presentation.
@@ -27,13 +27,13 @@ enum IconButtonFlags
 // Selects arrow placement and direction around icon button content.
 enum IconButtonArrowPosition
 {
-    None            // Draws no arrow.
-    Left            // Places a left-pointing arrow before the content.
-    Top             // Places an upward arrow above the content.
-    Right           // Places a right-pointing arrow after the content.
-    RightUpward     // Places an upward arrow after the content.
-    RightDownward   // Places a downward arrow after the content.
-    Bottom          // Places a downward arrow below the content.
+    None              // Draws no arrow.
+    Left              // Places a left-pointing arrow before the content.
+    Top               // Places an upward arrow above the content.
+    Right             // Places a right-pointing arrow after the content.
+    RightUpward       // Places an upward arrow after the content.
+    RightDownward     // Places a downward arrow after the content.
+    Bottom            // Places a downward arrow below the content.
 }
 
 // Selects label placement relative to the icon.
@@ -61,15 +61,15 @@ struct IconButton
 {
     using button: Button     // Embedded button behavior and presentation.
 
-    sigPopupClosed:    SigArray'func||(*IconButton)     // Emitted before the owned popup is destroyed.
-    sigPopupRequested: SigArray'func||(*IconButton)     // Emitted when activation requests popup creation.
-    sigCheckedChanged: SigArray'func||(*IconButton)     // Emitted after user activation changes checked state.
-    iconPainter: #null func||(*IconButton, *PaintContext, Math.Rectangle, PaintItemFlags)     // Custom icon painter, or null for `icon`.
+    sigPopupClosed:    SigArray'func||(*IconButton)                                                 // Emitted before the owned popup is destroyed.
+    sigPopupRequested: SigArray'func||(*IconButton)                                                 // Emitted when activation requests popup creation.
+    sigCheckedChanged: SigArray'func||(*IconButton)                                                 // Emitted after user activation changes checked state.
+    iconPainter:       #null func||(*IconButton, *PaintContext, Math.Rectangle, PaintItemFlags)     // Custom icon painter, or null for `icon`.
 
     readonly
     {
-        iconColor: Color                                  // Explicit icon color, or transparent for theme color.
-        textColor: Color                                  // Explicit label color, or transparent for theme color.
+        iconColor: Color                                   // Explicit icon color, or transparent for theme color.
+        textColor: Color                                   // Explicit label color, or transparent for theme color.
         form           = IconButtonForm.Rectangle          // Background geometry.
         checkIndicator = IconButtonCheckIndicator.Full     // Checked-state indicator placement.
         arrowPosition  = IconButtonArrowPosition.None      // Optional arrow placement and direction.
@@ -267,8 +267,8 @@ impl IWnd for IconButton
             switch #complete .arrowPosition
             {
             case .Left, .Right, .RightUpward, .RightDownward: nw += metrics.btnIcon_WidthArrow + metrics.btnIcon_SpacingArrowH
-            case .Top, .Bottom:                       nh += metrics.btnIcon_HeightArrow + metrics.btnIcon_SpacingArrowV
-            case .None:                               break
+            case .Top, .Bottom:                               nh += metrics.btnIcon_HeightArrow + metrics.btnIcon_SpacingArrowV
+            case .None:                                       break
             }
 
             let fontR = nnFont(.font().regular)
@@ -551,7 +551,7 @@ private impl IconButton
         var stateChanged: bool
         if .flags.has(.Toggle)
         {
-            .isChecked = !.isChecked
+            .isChecked   = !.isChecked
             stateChanged = true
         }
         elif .flags.has(.Radio) and !.isChecked
@@ -736,11 +736,11 @@ impl IconButton
 
         if x + width > topView.position.width - sdw.z do
             x = topView.position.width - width - sdw.z
-        x     = Math.max(x, sdw.x)
+        x = Math.max(x, sdw.x)
 
         if y + height > topView.position.height - sdw.w do
             y = topView.position.height - height - sdw.w
-        y     = Math.max(y, sdw.y)
+        y = Math.max(y, sdw.y)
 
         with let frame = Wnd.create'FrameWnd(topView, {x, y, width, height})
         {
@@ -748,7 +748,7 @@ impl IconButton
             .setFrameForm(.Round)
             .setFrameFlags(.SmallShadow)
             .style.addStyleSheetColors("frameWnd_Border $frameWnd_PopupBorder")
-            .anchor    = anchor
+            .anchor         = anchor
             .anchorPosition = anchorCenter - .position.x
         }
 

@@ -203,7 +203,7 @@ func combine(fullnames: #null string...)->String
         {
             let c = result.back()
             if !isDirectorySeparator(c) do
-            result += DirectorySeparator
+                result += DirectorySeparator
         }
 
         result += part

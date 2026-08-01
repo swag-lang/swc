@@ -65,7 +65,7 @@ func decodeRle8(result: *Image, src, last: const [*] u8, palette: const [*] u8, 
             p += absoluteCount
             if padding do
                 p += 1
-            x     += absoluteCount
+            x += absoluteCount
         }
     }
 }
@@ -139,7 +139,7 @@ func decodeRle4(result: *Image, src, last: const [*] u8, palette: const [*] u8, 
             p += byteCount
             if padding do
                 p += 1
-            x     += pixelCount
+            x += pixelCount
         }
     }
 }

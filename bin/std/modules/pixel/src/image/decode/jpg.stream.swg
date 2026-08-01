@@ -262,7 +262,7 @@ impl Decoder
                 var temp = .getBits1(8)
                 if prec do
                     temp = (temp << 8) + .getBits1(8)
-                qbuf[i]  = cast(s16) temp
+                qbuf[i] = cast(s16) temp
             }
 
             var i = 64 + 1
@@ -320,7 +320,7 @@ impl Decoder
         var prefix:      [12] u8
         var prefixCount: u32
         var inValue = false
-        var meta: ImageMetadata
+        var meta:        ImageMetadata
         meta.signature = cast(u32) marker - cast(u32) Marker.M_APP0
 
         while left

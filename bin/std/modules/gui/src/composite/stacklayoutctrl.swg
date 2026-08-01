@@ -212,7 +212,7 @@ private impl StackLayoutCtrl
                 var itemWeight = 1'f32
                 if !.isFitMain() do
                     itemWeight = .mainWeight(c)
-                totalWeight    += itemWeight
+                totalWeight += itemWeight
             }
         }
 
@@ -281,7 +281,7 @@ private impl StackLayoutCtrl
                 crossSize = crossAvailable
             else do
                 crossSize = .preferredCross(hint)
-            crossSize     = Math.clamp(crossSize, .minimumCross(hint), .maximumCross(hint))
+            crossSize = Math.clamp(crossSize, .minimumCross(hint), .maximumCross(hint))
 
             var mainPos: f32
             if .isReverse()

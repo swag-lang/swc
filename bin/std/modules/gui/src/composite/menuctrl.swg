@@ -12,8 +12,8 @@ public enum PopupPosition
 #[Swag.EnumFlags]
 public enum MenuFlags
 {
-    None = 0           // Shows command shortcut labels.
-    HideShortcuts      // Hides command shortcut labels.
+    None = 0          // Shows command shortcut labels.
+    HideShortcuts     // Hides command shortcut labels.
 }
 
 // Stores one command, submenu, or separator in a [[Gui.MenuCtrl]].
@@ -37,31 +37,31 @@ public struct MenuCtrl
 {
     using frameWnd: FrameWnd     // Embedded frame window state.
 
-    sigCommandSelected: SigArray'func||(*MenuCtrl, WndId)          // Emitted after a command is selected.
-    onPrepareItem:      #null func(*MenuCtrl, *PopupMenuItem)      // Updates an item before menu layout is computed.
+    sigCommandSelected: SigArray'func||(*MenuCtrl, WndId)         // Emitted after a command is selected.
+    onPrepareItem:      #null func(*MenuCtrl, *PopupMenuItem)     // Updates an item before menu layout is computed.
 
     readonly
     {
-        flags: MenuFlags = None                   // Active presentation options.
-        items: ArrayPtr'PopupMenuItem             // Commands, submenus, and separators in display order.
+        flags: MenuFlags = None           // Active presentation options.
+        items: ArrayPtr'PopupMenuItem     // Commands, submenus, and separators in display order.
     }
 
     internal
     {
-        paddingSel:              f32 = 4                    // Selection-background padding.
-        hotIdx:                  u32 = Swag.U32.Max         // Item currently under the pointer.
-        selectedIdx:             u32 = Swag.U32.Max         // Item selected by keyboard navigation.
-        bar:                     bool                       // Whether this control is a persistent menu bar.
-        endModal:                bool                       // Whether the active modal loop should end.
-        endModalResult:          #null WndId                // Selected command, or `null` when dismissed.
-        ownerMenu:               #null *MenuCtrl            // Parent menu for a submenu.
-        subVisible:              #null *MenuCtrl            // Currently visible submenu.
-        timer:                   #null *Timer               // Delayed submenu-opening timer.
-        dirtyLayout:             bool                       // Whether item bounds need recomputing.
-        paintByFrame:            bool                       // Whether the frame paints an anchored popup.
-        popupBarItemIdx:         u32 = Swag.U32.Max         // Owning menu-bar item for an anchored popup.
-        popupBarItemSurfaceRect: Math.Rectangle             // Owning menu-bar item bounds in surface coordinates.
-        ignoreNextRelease:       bool                       // Whether to ignore the release that opened the popup.
+        paddingSel:              f32 = 4                // Selection-background padding.
+        hotIdx:                  u32 = Swag.U32.Max     // Item currently under the pointer.
+        selectedIdx:             u32 = Swag.U32.Max     // Item selected by keyboard navigation.
+        bar:                     bool                   // Whether this control is a persistent menu bar.
+        endModal:                bool                   // Whether the active modal loop should end.
+        endModalResult:          #null WndId            // Selected command, or `null` when dismissed.
+        ownerMenu:               #null *MenuCtrl        // Parent menu for a submenu.
+        subVisible:              #null *MenuCtrl        // Currently visible submenu.
+        timer:                   #null *Timer           // Delayed submenu-opening timer.
+        dirtyLayout:             bool                   // Whether item bounds need recomputing.
+        paintByFrame:            bool                   // Whether the frame paints an anchored popup.
+        popupBarItemIdx:         u32 = Swag.U32.Max     // Owning menu-bar item for an anchored popup.
+        popupBarItemSurfaceRect: Math.Rectangle         // Owning menu-bar item bounds in surface coordinates.
+        ignoreNextRelease:       bool                   // Whether to ignore the release that opened the popup.
     }
 }
 
@@ -788,7 +788,7 @@ impl MenuCtrl
                 .onPrepareItem(notnull i)
             if idx do
                 .position.height += metrics.menuPopup_SpaceLines
-            it.pos               = .position.height
+            it.pos = .position.height
 
             lastIsSeparator = it.separator
             if it.separator
@@ -1049,7 +1049,7 @@ public impl MenuCtrl
         case .AnchorTopCenter:
             pt.y += .themeMetrics().menuPopup_ShadowSize
             .setPosition({pt.x - .position.width * 0.5, pt.y, .position.width, .position.height})
-            .anchor    = .Top
+            .anchor         = .Top
             .anchorPosition = .position.width * 0.5
             .setFrameFlags(.Borders | .SmallShadow)
             .setFrameForm(.Round)
@@ -1059,7 +1059,7 @@ public impl MenuCtrl
         case .AnchorBottomCenter:
             pt.y -= .themeMetrics().menuPopup_ShadowSize
             .setPosition({pt.x - .position.width * 0.5, pt.y - .position.height, .position.width, .position.height})
-            .anchor    = .Bottom
+            .anchor         = .Bottom
             .anchorPosition = .position.width * 0.5
             .setFrameFlags(.Borders | .SmallShadow)
             .setFrameForm(.Round)
@@ -1072,8 +1072,8 @@ public impl MenuCtrl
         .show()
         .captureMouse()
 
-        .endModal             = false
-        .endModalResult       = null
+        .endModal          = false
+        .endModalResult    = null
         .app().inModalLoop += 1
         let srf = notnull .surface
         while !.endModal do

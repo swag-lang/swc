@@ -137,14 +137,14 @@ public impl Sha1
         }
 
         .bitLength += .dataLength * 8
-        .data[63] = cast(u8) .bitLength
-        .data[62] = cast(u8) (.bitLength >> 8)
-        .data[61] = cast(u8) (.bitLength >> 16)
-        .data[60] = cast(u8) (.bitLength >> 24)
-        .data[59] = cast(u8) (.bitLength >> 32)
-        .data[58] = cast(u8) (.bitLength >> 40)
-        .data[57] = cast(u8) (.bitLength >> 48)
-        .data[56] = cast(u8) (.bitLength >> 56)
+        .data[63]  = cast(u8) .bitLength
+        .data[62]  = cast(u8) (.bitLength >> 8)
+        .data[61]  = cast(u8) (.bitLength >> 16)
+        .data[60]  = cast(u8) (.bitLength >> 24)
+        .data[59]  = cast(u8) (.bitLength >> 32)
+        .data[58]  = cast(u8) (.bitLength >> 40)
+        .data[57]  = cast(u8) (.bitLength >> 48)
+        .data[56]  = cast(u8) (.bitLength >> 56)
         .transform(.data)
 
         Memory.copy(result, &.state[0], #sizeof(.state))

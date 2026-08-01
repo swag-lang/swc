@@ -33,7 +33,7 @@ internal impl Properties
 
         with let btn = IconButton.create(line, {}, {0, 0, WidthBtn, item.line.position.height})
         {
-            .dockStyle   = .Left
+            .dockStyle = .Left
             .setArrowPosition(.RightDownward)
             .setCheckIndicator(.None)
             .setForm(.RoundedRectangle)

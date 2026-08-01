@@ -10,11 +10,11 @@ func createCheckButtonPage(parent: *Wnd)
         var check = CheckButton.create(left, "Checked", {24, 128, 180})
         check.setState(.Checked)
 
-        check                  = CheckButton.create(left, "Undefined", {24, 166, 180})
+        check = CheckButton.create(left, "Undefined", {24, 166, 180})
         check.updateFlags(.TriState)
         check.setState(.Indeterminate)
 
-        check         = CheckButton.create(left, "Disabled checked", {240, 90, 200})
+        check = CheckButton.create(left, "Disabled checked", {240, 90, 200})
         check.setState(.Checked)
         check.disable()
 
@@ -27,11 +27,11 @@ func createCheckButtonPage(parent: *Wnd)
         var check = CheckButton.create(right, "Box on the right", {24, 90, 250})
         check.updateFlags(.RightAligned)
 
-        check                  = CheckButton.create(right, "Checked on the right", {24, 128, 250})
+        check = CheckButton.create(right, "Checked on the right", {24, 128, 250})
         check.updateFlags(.RightAligned)
         check.setState(.Checked)
 
-        check                  = CheckButton.create(right, "Three-state right", {24, 166, 250})
+        check = CheckButton.create(right, "Three-state right", {24, 166, 250})
         check.updateFlags(.RightAligned | .TriState)
         check.setState(.Indeterminate)
     }

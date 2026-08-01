@@ -366,7 +366,7 @@ impl Surface
         if .app.renderer.headless do
             return
 
-        var img = icon
+        var img     = icon
         let newIcon = catch img.toHicon()
         if !newIcon do
             return
@@ -419,6 +419,7 @@ impl Surface
             postSurfaceSysCommand(me, .Close)
             return
         }
+
         catch PostMessageW(.hWnd, WM_CLOSE, 0, 0)
     }
 
@@ -430,6 +431,7 @@ impl Surface
             postSurfaceSysCommand(me, .Minimize)
             return
         }
+
         catch PostMessageW(.hWnd, WM_SYSCOMMAND, SC_MINIMIZE, 0)
     }
 
@@ -441,6 +443,7 @@ impl Surface
             postSurfaceSysCommand(me, .Maximize)
             return
         }
+
         catch PostMessageW(.hWnd, WM_SYSCOMMAND, SC_MAXIMIZE, 0)
     }
 
@@ -452,6 +455,7 @@ impl Surface
             postSurfaceSysCommand(me, .Restore)
             return
         }
+
         catch PostMessageW(.hWnd, WM_SYSCOMMAND, SC_RESTORE, 0)
     }
 
@@ -638,8 +642,8 @@ impl Surface
     {
         if .isMaximized do
             return
-        .isMaximized          = true
-        .isMinimized          = false
+        .isMaximized      = true
+        .isMinimized      = false
         .restoredPosition = .position
         if .app.renderer.headless
         {

@@ -53,13 +53,13 @@ func updateFromTable(cxt: ActionContext, evt: *CommandStateEvent, table: const [
         }
 
         evt.updatedFields |= .Name | .Disabled
-        evt.name     = d.name
-        evt.disabled = disabled
+        evt.name          = d.name
+        evt.disabled      = disabled
 
         if d.hideDisabled
         {
             evt.updatedFields |= .Hidden
-            evt.hidden   = disabled
+            evt.hidden        = disabled
         }
 
         return true

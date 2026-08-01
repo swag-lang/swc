@@ -233,7 +233,7 @@ public impl TypeFace
                 for [i] in prevIdx until pathList.paths.count
                 {
                     pathList.paths[i].assumeClosed()
-                    pathList.paths[i].serial   = serial
+                    pathList.paths[i].serial = serial
                 }
 
                 serial += 1

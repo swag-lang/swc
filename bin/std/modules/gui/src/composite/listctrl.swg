@@ -14,14 +14,14 @@ enum ListSelectionMode
 #[Swag.EnumFlags]
 enum ListFlags
 {
-    None = 0                  // Uses the default list presentation and selection behavior.
-    HideSelection             // Hides selection while the list does not have focus.
-    AlternateLines            // Alternates row background colors.
-    HorizontalLines           // Draws horizontal row separators.
-    VerticalLines             // Draws vertical column separators.
-    ReserveExpandMargin       // Reserves an expansion margin even when no row can expand.
-    PreserveSelectionOnEmptyClick // Keeps selection when empty space is clicked.
-    HotTrack                  // Highlights the row under the pointer.
+    None = 0                          // Uses the default list presentation and selection behavior.
+    HideSelection                     // Hides selection while the list does not have focus.
+    AlternateLines                    // Alternates row background colors.
+    HorizontalLines                   // Draws horizontal row separators.
+    VerticalLines                     // Draws vertical column separators.
+    ReserveExpandMargin               // Reserves an expansion margin even when no row can expand.
+    PreserveSelectionOnEmptyClick     // Keeps selection when empty space is clicked.
+    HotTrack                          // Highlights the row under the pointer.
 }
 
 // Stores one cell in a [[Gui.ListLine]].
@@ -84,15 +84,15 @@ struct ListCtrl
         }
     }
 
-    sigSelectionChanged: SigArray'func||(*ListCtrl)                                       // Emitted after the selected row set changes.
-    sigCheckedChanged:   SigArray'func||(*ListCtrl)                                       // Emitted after the checked row set changes.
-    sigRightClicked:     SigArray'func||(*ListCtrl, Math.Point)                           // Emitted for a right click, with the local position.
-    sigLeftDoubleClicked: SigArray'func||(*ListCtrl, Math.Point)                          // Emitted for a left double click, with the local position.
-    sigExpanded:         SigArray'func||(*ListCtrl, *ListLine)                            // Emitted after a row expands.
-    sigCollapsed:        SigArray'func||(*ListCtrl, *ListLine)                            // Emitted after a row collapses.
-    sigKeyPressed:     SigArray'func||(*ListCtrl, *KeyEvent)                            // Emitted after a key press reaches the list.
-    onFillVirtualLine: #null func(*ListCtrl, #null *ListLine, u32)                      // Fills a transient row before a virtual row is painted.
-    compareLines:      #null func(#null *ListLine, #null *ListLine, u32, bool)->s32     // Compares two rows for custom sorting.
+    sigSelectionChanged:  SigArray'func||(*ListCtrl)                                       // Emitted after the selected row set changes.
+    sigCheckedChanged:    SigArray'func||(*ListCtrl)                                       // Emitted after the checked row set changes.
+    sigRightClicked:      SigArray'func||(*ListCtrl, Math.Point)                           // Emitted for a right click, with the local position.
+    sigLeftDoubleClicked: SigArray'func||(*ListCtrl, Math.Point)                           // Emitted for a left double click, with the local position.
+    sigExpanded:          SigArray'func||(*ListCtrl, *ListLine)                            // Emitted after a row expands.
+    sigCollapsed:         SigArray'func||(*ListCtrl, *ListLine)                            // Emitted after a row collapses.
+    sigKeyPressed:        SigArray'func||(*ListCtrl, *KeyEvent)                            // Emitted after a key press reaches the list.
+    onFillVirtualLine:    #null func(*ListCtrl, #null *ListLine, u32)                      // Fills a transient row before a virtual row is painted.
+    compareLines:         #null func(#null *ListLine, #null *ListLine, u32, bool)->s32     // Compares two rows for custom sorting.
 
     internal
     {
@@ -111,7 +111,6 @@ struct ListCtrl
         focusIndex = Swag.U32.Max     // Row the keyboard focus is on.
         hotIndex   = Swag.U32.Max     // Row under the mouse.
     }
-
 }
 
 // Hosts the scrollable, painted row viewport of a [[Gui.ListCtrl]].
@@ -290,7 +289,7 @@ impl IWnd for ListView
                 startSelIdx, endSelIdx = 0
             else do
                 startSelIdx, endSelIdx = .list.focusIndex - 1
-            selChanged                 = true
+            selChanged = true
 
         case .Down:
             if .list.focusIndex == lineCount - 1 do
@@ -299,7 +298,7 @@ impl IWnd for ListView
                 .list.focusIndex = 0
             else do
                 startSelIdx, endSelIdx = .list.focusIndex + 1
-            selChanged                 = true
+            selChanged = true
 
         case .Left where focusLine:
             .list.collapse(notnull focusLine)
@@ -323,7 +322,7 @@ impl IWnd for ListView
                 startSelIdx, endSelIdx = 0
             else do
                 startSelIdx, endSelIdx = .list.focusIndex - offset
-            selChanged                 = true
+            selChanged = true
         }
 
         if selChanged
@@ -417,7 +416,7 @@ impl IWnd for ListView
                     var eatCheck = false
                     if localPos.x < widthLeft do
                         eatCheck = true
-                    widthLeft    += Math.min(metrics.btnCheck_Size, .list.lineHeight())
+                    widthLeft += Math.min(metrics.btnCheck_Size, .list.lineHeight())
 
                     if eatCheck
                     {
@@ -820,6 +819,7 @@ impl ListCtrl
             .unselectAll()
             return
         }
+
         if mode == .Single and .selModel.selectedCount() > 1
         {
             let first = .selModel.ranges()[0].start
@@ -1032,7 +1032,7 @@ impl ListCtrl
         if !.isVirtual and (notnull .lines[idx]).separator do
             return
 
-        let idxLine = .isVirtual ? idx : (notnull .lines[idx]).index
+        let idxLine     = .isVirtual ? idx : (notnull .lines[idx]).index
         let wasSelected = .selModel.isSelected(idxLine)
         if .selectionMode == .Single and select
         {
@@ -1047,6 +1047,7 @@ impl ListCtrl
                 return
             .selModel.setSelected(idxLine, select)
         }
+
         .invalidate()
         .sigSelectionChanged.call(me)
     }
@@ -1067,8 +1068,8 @@ impl ListCtrl
             return
         }
 
-        let idx0 = Math.min(start, end)
-        let idx1 = Math.max(start, end)
+        let idx0    = Math.min(start, end)
+        let idx1    = Math.max(start, end)
         var changed = false
         for [i] in idx0 to idx1
         {

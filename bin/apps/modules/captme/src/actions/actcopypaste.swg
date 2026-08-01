@@ -25,15 +25,15 @@ impl IActionUI for ActionCopyPaste
         {
         case .Copy:
             evt.updatedFields |= .Disabled | .Name | .Icon
-            evt.disabled = !hasSel
-            evt.name     = "Copy"
-            evt.icon     = main.theme().icon24(.Copy)
+            evt.disabled      = !hasSel
+            evt.name          = "Copy"
+            evt.icon          = main.theme().icon24(.Copy)
 
         case .Cut:
             evt.updatedFields |= .Disabled | .Name | .Icon
-            evt.disabled = !hasSel
-            evt.name     = "Cut"
-            evt.icon     = main.theme().icon24(.Cut)
+            evt.disabled      = !hasSel
+            evt.name          = "Cut"
+            evt.icon          = main.theme().icon24(.Cut)
 
         case .Paste:
             evt.updatedFields |= .Disabled | .Name | .Icon
@@ -41,11 +41,11 @@ impl IActionUI for ActionCopyPaste
                 evt.disabled = true
             elif !Clipboard.hasTypedValue(#typeof(CaptureClipboardForms)) and !Clipboard.hasImage() do
                 evt.disabled = true
-            evt.name         = "Paste"
-            evt.icon         = main.theme().icon24(.Paste)
+            evt.name = "Paste"
+            evt.icon = main.theme().icon24(.Paste)
 
         case .PasteImageInside:
-            evt.updatedFields             |= .Disabled | .Name | .Hidden
+            evt.updatedFields        |= .Disabled | .Name | .Hidden
             evt.disabled, evt.hidden = true
             evt.name                 = "Paste Inside Image"
 
@@ -71,8 +71,8 @@ impl IActionUI for ActionCopyPaste
 
         case .CopyAsImage:
             evt.updatedFields |= .Disabled | .Name
-            evt.disabled = !capture
-            evt.name     = "Copy Image to Clipboard"
+            evt.disabled      = !capture
+            evt.name          = "Copy Image to Clipboard"
         }
 
         return true

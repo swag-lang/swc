@@ -44,7 +44,7 @@ func storeBytes(s: *DynString, src: const [*] u8, len: u64)
     let data = notnull s.data
     for [i] in len do
         data[i] = src[i]
-    s.count     = len
+    s.count = len
 }
 
 func appendBytes(s: *DynString, src: #null const [*] u8, len: u64)
@@ -56,7 +56,7 @@ func appendBytes(s: *DynString, src: #null const [*] u8, len: u64)
     let from = notnull src
     for [i] in len do
         data[s.count + i] = from[i]
-    s.count               += len
+    s.count += len
 }
 
 // ---------------------------------------------------------------------------

@@ -138,15 +138,15 @@ impl Decoder
                 break
             if ret == 1 do
                 keySize += 1
-            entry       = (notnull .table.entries.buffer)[key]
-            strLen      = entry.length
+            entry  = (notnull .table.entries.buffer)[key]
+            strLen = entry.length
             for [i] in strLen
             {
                 let p = frmOff + entry.length - 1
                 let x = p % .fw
                 var y = p / .fw
                 if interlace do
-                    y                                = interlacedLineIndex(cast(s32) .fh, y)
+                    y = interlacedLineIndex(cast(s32) .fh, y)
                 .frame[(.fy + y) * .width + .fx + x] = entry.suffix
                 if entry.prefix == 0xFFF do
                     break

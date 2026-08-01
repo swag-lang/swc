@@ -124,7 +124,8 @@ internal impl Properties
         {
             with let slider = SliderCtrl.create(item.line, dispName.toString())
             {
-                .anchorStyle  = .Right
+                .anchorStyle = .Right
+
                 // Enough for a 3-4 digit value plus a unit; a bigger box would eat the track.
                 .setLayoutMetrics(60, 64)
                 .setAutomaticValueWidth(false)

@@ -36,7 +36,7 @@ public impl Adler32
             s1 += input[0]
             if s1 >= Base do
                 s1 -= Base
-            s2     += s1
+            s2 += s1
             if s2 >= Base do
                 s2 -= Base
         }
@@ -50,7 +50,7 @@ public impl Adler32
 
             if s1 >= Base do
                 s1 -= Base
-            s2     %= Base
+            s2 %= Base
         }
         else
         {

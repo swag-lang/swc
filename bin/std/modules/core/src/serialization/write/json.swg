@@ -53,13 +53,27 @@ impl Json
         {
             switch c
             {
-            case '"':  .output.addBytes("\\\"")
-            case '\\': .output.addBytes("\\\\")
-            case '\b': .output.addBytes("\\b")
-            case '\f': .output.addBytes("\\f")
-            case '\n': .output.addBytes("\\n")
-            case '\r': .output.addBytes("\\r")
-            case '\t': .output.addBytes("\\t")
+            case '"':
+                .output.addBytes("\\\"")
+
+            case '\\':
+                .output.addBytes("\\\\")
+
+            case '\b':
+                .output.addBytes("\\b")
+
+            case '\f':
+                .output.addBytes("\\f")
+
+            case '\n':
+                .output.addBytes("\\n")
+
+            case '\r':
+                .output.addBytes("\\r")
+
+            case '\t':
+                .output.addBytes("\\t")
+
             default:
                 if c < 0x20
                 {
@@ -71,6 +85,7 @@ impl Json
                     .output.addNative(c)
             }
         }
+
         .output.addNative('"'u8)
     }
 

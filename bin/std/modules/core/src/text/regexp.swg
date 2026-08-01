@@ -1598,7 +1598,7 @@ impl RegExp
             {
                 if n == 0 do
                     m -= 1
-                m     -= n
+                m -= n
                 while m
                 {
                     .preprocessed.add(expr.toSlice())
@@ -1657,7 +1657,7 @@ impl RegExp
 
             if expr[idx] == ')' do
                 count += 1
-            idx       += 1
+            idx += 1
         }
 
         var result: retval

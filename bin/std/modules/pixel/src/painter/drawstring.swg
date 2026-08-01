@@ -500,7 +500,7 @@ impl Painter
             result.descent = Math.max(result.descent, refr.height - refr.shiftY)
             if i do
                 result.width += font.cache.kerning(text[i - 1].glyphIndex, refr.glyphIndex)
-            result.width     += refr.advanceX
+            result.width += refr.advanceX
         }
 
         let sc = font.scale()
@@ -749,7 +749,7 @@ impl Painter
                 line.height = Math.max(defaultLineHeight, Math.max(line.measure.height, line.fontAscent - line.fontDescent))
                 if format.minLineHeight > 0 do
                     line.height = Math.max(line.height, format.minLineHeight)
-                line.hasEol     = true
+                line.hasEol = true
                 lines.add(line)
 
                 startLine                                 = line.end + 1
@@ -785,7 +785,7 @@ impl Painter
                                 line.measure.width -= text.chunks[idx - 1].boundRect.width
                             else do
                                 line.whiteSpaces -= text.chunks[idx - 1].boundRect.width
-                            line.end             -= 1
+                            line.end -= 1
                         }
 
                         line.height = Math.max(defaultLineHeight, Math.max(line.measure.height, line.fontAscent - line.fontDescent))
@@ -830,11 +830,11 @@ impl Painter
             }
             else do
                 line.measure.width += ms.width
-            line.measure.ascent    = Math.max(line.measure.ascent, ms.ascent)
-            line.measure.descent   = Math.max(line.measure.descent, ms.descent)
-            line.measure.height    = Math.max(line.measure.height, ms.height)
-            line.fontAscent        = Math.max(line.fontAscent, c.font.ascent)
-            line.fontDescent       = Math.min(line.fontDescent, c.font.descent)
+            line.measure.ascent  = Math.max(line.measure.ascent, ms.ascent)
+            line.measure.descent = Math.max(line.measure.descent, ms.descent)
+            line.measure.height  = Math.max(line.measure.height, ms.height)
+            line.fontAscent      = Math.max(line.fontAscent, c.font.ascent)
+            line.fontDescent     = Math.min(line.fontDescent, c.font.descent)
 
             c.boundRect.height = Math.max(c.font.height, ms.height)
         }

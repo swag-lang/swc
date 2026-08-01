@@ -49,31 +49,31 @@ internal impl IActionUI for ActionProperties
         {
         case ActionProperties.Copy:
             evt.updatedFields |= .Name | .Icon
-            evt.name     = "Copy"
-            evt.icon     = theme.icon24(.Copy)
+            evt.name          = "Copy"
+            evt.icon          = theme.icon24(.Copy)
 
         case ActionProperties.Paste:
             evt.updatedFields |= .Name | .Icon | .Disabled
-            evt.name     = "Paste"
-            evt.icon     = theme.icon24(.Paste)
-            evt.disabled = !prop.canChangeItem(notnull item) or !Clipboard.hasTypedValue(notnull item.type)
+            evt.name          = "Paste"
+            evt.icon          = theme.icon24(.Paste)
+            evt.disabled      = !prop.canChangeItem(notnull item) or !Clipboard.hasTypedValue(notnull item.type)
 
         case ActionProperties.ResetDefault:
             evt.updatedFields |= .Name | .Icon | .Disabled
-            evt.name     = "Reset to default"
-            evt.icon     = theme.icon24(.Undo)
-            evt.disabled = !item.isModified
+            evt.name          = "Reset to default"
+            evt.icon          = theme.icon24(.Undo)
+            evt.disabled      = !item.isModified
 
         case ActionProperties.MoveUp:
             evt.updatedFields |= .Name | .Icon | .Disabled
-            evt.name     = "Move Up"
-            evt.icon     = theme.icon24(.SortArrowUp)
-            evt.disabled = !arr.arrElem or !prop.canChangeItem(notnull arr.arrItem) or prop.arrayElementIndex(notnull arr.arrElem) == 0
+            evt.name          = "Move Up"
+            evt.icon          = theme.icon24(.SortArrowUp)
+            evt.disabled      = !arr.arrElem or !prop.canChangeItem(notnull arr.arrItem) or prop.arrayElementIndex(notnull arr.arrElem) == 0
 
         case ActionProperties.MoveDown:
             evt.updatedFields |= .Name | .Icon | .Disabled
-            evt.name     = "Move Down"
-            evt.icon     = theme.icon24(.SortArrowDown)
+            evt.name          = "Move Down"
+            evt.icon          = theme.icon24(.SortArrowDown)
             var atEnd = true
             if arr.arrElem
             {
@@ -85,14 +85,14 @@ internal impl IActionUI for ActionProperties
 
         case ActionProperties.Remove:
             evt.updatedFields |= .Name | .Icon | .Disabled
-            evt.name     = "Remove"
-            evt.icon     = theme.icon24(.Remove)
-            evt.disabled = !arr.arrElem or !prop.canChangeItem(notnull arr.arrItem)
+            evt.name          = "Remove"
+            evt.icon          = theme.icon24(.Remove)
+            evt.disabled      = !arr.arrElem or !prop.canChangeItem(notnull arr.arrItem)
 
         case ActionProperties.RemoveAll:
             evt.updatedFields |= .Name | .Icon | .Disabled
-            evt.name     = "Remove All"
-            evt.icon     = theme.icon24(.RemoveAll)
+            evt.name          = "Remove All"
+            evt.icon          = theme.icon24(.RemoveAll)
             var empty = true
             if arr.arrItem
             {

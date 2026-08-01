@@ -218,14 +218,14 @@ public func formatKeyShortcut(modifiers: KeyModifiers, key: Key)->String
     {
         if result.length do
             result += "+"
-        result     += "Ctrl"
+        result += "Ctrl"
     }
 
     if modifiers & .Shift
     {
         if result.length do
             result += "+"
-        result     += "Shift"
+        result += "Shift"
     }
 
     if result.length do

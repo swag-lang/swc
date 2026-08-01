@@ -143,8 +143,8 @@ internal impl Properties
         let dispDesc = Reflection.attributeValue(value, Properties.Description, "desc")
         if dispDesc != null
         {
-            item.filter      += " "
-            item.filter      += attributeString(dispDesc)
+            item.filter += " "
+            item.filter += attributeString(dispDesc)
             item.assignDescription(attributeString(dispDesc))
 
             if flags.has(.Description)

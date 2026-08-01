@@ -110,7 +110,7 @@ func closestPointsBetweenSegments(firstStart, firstEnd, secondStart, secondEnd: 
 
     if a <= epsilonSquared
     {
-        let t           = Math.clamp(e / c, 0'f32, 1'f32)
+        let t = Math.clamp(e / c, 0'f32, 1'f32)
         result.first    = firstStart
         result.second   = secondStart + t * q1q0
         result.distance = (result.first - result.second).length()
@@ -119,7 +119,7 @@ func closestPointsBetweenSegments(firstStart, firstEnd, secondStart, secondEnd: 
 
     if c <= epsilonSquared
     {
-        let s           = Math.clamp(-d / a, 0'f32, 1'f32)
+        let s = Math.clamp(-d / a, 0'f32, 1'f32)
         result.first    = firstStart + s * p1p0
         result.second   = secondStart
         result.distance = (result.first - result.second).length()
@@ -258,7 +258,7 @@ func closestPointsBetweenSegments(firstStart, firstEnd, secondStart, secondEnd: 
 
     result.first  = firstStart + s * p1p0
     result.second = secondStart + t * q1q0
-    let diff      = result.first - result.second
+    let diff = result.first - result.second
     result.distance = diff.length()
     return result
 }
@@ -279,8 +279,8 @@ private func lineIntersectionFactors(start0, end0, start1, end1: Vector2, epsilo
         return result
     }
 
-    result.intersects  = true
-    result.firstFactor = ua / d
+    result.intersects   = true
+    result.firstFactor  = ua / d
     result.secondFactor = ub / d
     return result
 }

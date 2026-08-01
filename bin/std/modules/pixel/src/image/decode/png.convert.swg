@@ -42,8 +42,8 @@ impl Decoder
                 dst[2] = gray8
                 if .seenTRSN do
                     dst[3] = gray == transparent ? 0'u8 : 255'u8
-                src        += 2
-                dst        += result.bytesPerPixel
+                src += 2
+                dst += result.bytesPerPixel
             }
 
         case 2:
@@ -66,8 +66,8 @@ impl Decoder
                 dst[2] = reduce16(b)
                 if .seenTRSN do
                     dst[3] = r == transparentR and g == transparentG and b == transparentB ? 0'u8 : 255'u8
-                src        += 6
-                dst        += result.bytesPerPixel
+                src += 6
+                dst += result.bytesPerPixel
             }
 
         case 4:
@@ -208,8 +208,8 @@ impl Decoder
                     dst[3] = 0
                 else do
                     dst[3] = 255
-                src        += 3
-                dst        += result.bytesPerPixel
+                src += 3
+                dst += result.bytesPerPixel
             }
         }
     }

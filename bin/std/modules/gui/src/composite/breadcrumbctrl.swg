@@ -22,15 +22,15 @@ struct BreadcrumbCtrl
 
     readonly
     {
-        items:    Array'BreadcrumbItem     // Ordered path levels.
-        padX     = 7.0'f32                 // Horizontal padding inside each level body.
-        iconGap  = 5.0'f32                 // Gap between an icon and its label.
-        arrowPad = 6.0'f32                 // Padding on each side of a child-menu arrow.
+        items: Array'BreadcrumbItem     // Ordered path levels.
+        padX     = 7.0'f32              // Horizontal padding inside each level body.
+        iconGap  = 5.0'f32              // Gap between an icon and its label.
+        arrowPad = 6.0'f32              // Padding on each side of a child-menu arrow.
     }
 
-    sigItemPressed:  SigArray'func||(*BreadcrumbCtrl, u64)                 // Emitted after a level body is activated.
-    sigFillMenu:     SigArray'func||(*BreadcrumbCtrl, u64, *MenuCtrl)      // Emitted when a level's child menu needs content.
-    sigMenuSelected: SigArray'func||(*BreadcrumbCtrl, u64, String)         // Emitted after a command is selected from a child menu.
+    sigItemPressed:  SigArray'func||(*BreadcrumbCtrl, u64)                // Emitted after a level body is activated.
+    sigFillMenu:     SigArray'func||(*BreadcrumbCtrl, u64, *MenuCtrl)     // Emitted when a level's child menu needs content.
+    sigMenuSelected: SigArray'func||(*BreadcrumbCtrl, u64, String)        // Emitted after a command is selected from a child menu.
 
     internal
     {
@@ -129,7 +129,7 @@ impl BreadcrumbCtrl
             var w = .padX
             if it.icon.isValid() do
                 w += it.icon.sizeX + .iconGap
-            w     += Painter.measureString(it.name.toString(), font).width + .padX
+            w += Painter.measureString(it.name.toString(), font).width + .padX
 
             it.bodyRect = {x, client.y, w, client.height}
             x           += w

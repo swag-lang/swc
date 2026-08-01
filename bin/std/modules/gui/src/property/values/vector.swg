@@ -36,7 +36,7 @@ internal impl Properties
 
             with let label = Label.create(line, (notnull v.name)[0 to 0], {0, 0, item.line.position.height})
             {
-                .dockStyle         = .Left
+                .dockStyle = .Left
                 .setTextHorizontalAlignment(.Center)
             }
 

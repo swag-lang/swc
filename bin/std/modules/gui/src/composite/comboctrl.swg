@@ -14,9 +14,9 @@ struct ComboCtrl
         spacing:    f32 = 5      // Gap between label and combo box.
 
         #[Swag.Late]
-        label: *Label            // Descriptive label owned by this control.
+        label: *Label     // Descriptive label owned by this control.
         #[Swag.Late]
-        combo: *ComboBox         // Combo box owned by this control.
+        combo: *ComboBox     // Combo box owned by this control.
     }
 }
 
@@ -27,10 +27,10 @@ impl IWnd for ComboCtrl
         if !@isset(.label) do
             return
 
-        let rect    = .clientRect()
-        let height  = .themeMetrics().comboBox_Height
-        let y       = rect.vertCenter() - height * 0.5
-        let width   = .comboWidth == 0 ? Math.max(rect.width - .spacing - .labelWidth, 0) : .comboWidth
+        let rect   = .clientRect()
+        let height = .themeMetrics().comboBox_Height
+        let y      = rect.vertCenter() - height * 0.5
+        let width  = .comboWidth == 0 ? Math.max(rect.width - .spacing - .labelWidth, 0) : .comboWidth
         .label.setPosition(0, y, .labelWidth, height)
         .combo.setPosition(.label.position.right() + .spacing, y, width, height)
     }
@@ -57,6 +57,7 @@ impl ComboCtrl
             .combo = ComboBox.create(ctrl)
             .sendResizeEvent()
         }
+
         return ctrl
     }
 

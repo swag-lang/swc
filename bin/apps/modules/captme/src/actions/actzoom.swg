@@ -23,25 +23,25 @@ impl IActionUI for ActionZoom
         {
         case .Zoom1:
             evt.updatedFields |= .Name | .Disabled
-            evt.name     = "Actual Size"
-            evt.disabled = !capture
+            evt.name          = "Actual Size"
+            evt.disabled      = !capture
 
         case .ZoomFit:
             evt.updatedFields |= .Name | .Disabled
-            evt.name     = "Fit To View"
-            evt.disabled = !capture
+            evt.name          = "Fit To View"
+            evt.disabled      = !capture
 
         case .ZoomIn:
             evt.updatedFields |= .Name | .Disabled | .Icon
-            evt.name     = "Zoom In"
-            evt.disabled = !capture or !main.editWnd.editView.canZoomIn()
-            evt.icon     = main.theme().icon24(.ZoomIn)
+            evt.name          = "Zoom In"
+            evt.disabled      = !capture or !main.editWnd.editView.canZoomIn()
+            evt.icon          = main.theme().icon24(.ZoomIn)
 
         case .ZoomOut:
             evt.updatedFields |= .Name | .Disabled | .Icon
-            evt.name     = "Zoom Out"
-            evt.disabled = !capture or !main.editWnd.editView.canZoomOut()
-            evt.icon     = main.theme().icon24(.ZoomOut)
+            evt.name          = "Zoom Out"
+            evt.disabled      = !capture or !main.editWnd.editView.canZoomOut()
+            evt.icon          = main.theme().icon24(.ZoomOut)
         }
 
         return true

@@ -21,8 +21,8 @@ public struct ScrollWnd
 
     readonly
     {
-        scrollSize: Math.Point               // Virtual content size.
-        flags      = ScrollWndFlags.None     // Active scrollbar options.
+        scrollSize: Math.Point          // Virtual content size.
+        flags = ScrollWndFlags.None     // Active scrollbar options.
     }
 
     sigScrollPositionChanged: SigArray'func||(*ScrollWnd, Math.Point, Math.Point)     // Emitted with old and new scroll positions.
@@ -232,8 +232,8 @@ public impl IWnd for ScrollWnd
         switch
         {
         case .flags.has(.TransparentBars): break
-        case bc.isDisabled:                        colorBk = colors.scrollBar_DisabledBk
-        default:                                   colorBk = colors.scrollBar_Bk
+        case bc.isDisabled:                colorBk = colors.scrollBar_DisabledBk
+        default:                           colorBk = colors.scrollBar_Bk
         }
 
         // Vertical bar

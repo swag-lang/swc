@@ -3,7 +3,7 @@ using Core, Gui, Pixel
 func createGridCell(parent: *Wnd, text: string, icon: ThemeIcons24)->*Label
 {
     let label = Label.create(parent, text, {0, 0, 120, 42}, null, .WordWrap)
-    label.backgroundStyle   = .Window
+    label.backgroundStyle = .Window
     label.setIcon(app.theme.icon24(icon, 16))
     label.setIconHorizontalAlignment(.Left)
     label.setTextHorizontalAlignment(.Left)
@@ -29,8 +29,8 @@ func createGridWrapPage(parent: *Wnd)
     grid.flags.add(.EqualColumnWidths)
     grid.flags.add(.EqualRowHeights)
     grid.horizontalSpacing = 10
-    grid.verticalSpacing = 10
-    grid.padding     = 4
+    grid.verticalSpacing   = 10
+    grid.padding           = 4
 
     let timeline = createGridCell(grid, "Timeline span 2", .Sort)
     grid.setCell(timeline, 0, 0, 2, 1)

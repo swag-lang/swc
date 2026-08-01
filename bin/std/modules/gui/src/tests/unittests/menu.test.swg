@@ -57,7 +57,7 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
     let popup = MenuCtrl.createPopup(&host.root)
     popup.addItem("Open", Menu_Open)
     popup.addItem("Quit", Menu_Quit)
-    MenuSelectedCount = 0
+    MenuSelectedCount        = 0
     popup.sigCommandSelected += &menuCommandSelected
 
     var frameCount: u32

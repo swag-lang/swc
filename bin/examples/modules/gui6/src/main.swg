@@ -600,56 +600,56 @@ func computeMenuCommandState(evt: *CommandStateEvent)->bool
     {
     case MenuCmd.SaveFile:
         evt.updatedFields |= .Disabled
-        evt.disabled = !g_DocumentDirty
+        evt.disabled      = !g_DocumentDirty
 
     case MenuCmd.Undo:
         evt.updatedFields |= .Disabled
-        evt.disabled = !g_DocumentDirty
+        evt.disabled      = !g_DocumentDirty
 
     case MenuCmd.Redo:
         evt.updatedFields |= .Disabled
-        evt.disabled = g_DocumentDirty
+        evt.disabled      = g_DocumentDirty
 
     case MenuCmd.ToggleGrid:
         evt.updatedFields |= .Checked
-        evt.checked  = g_ShowGrid
+        evt.checked       = g_ShowGrid
 
     case MenuCmd.ToggleGuides:
         evt.updatedFields |= .Checked
-        evt.checked  = g_ShowGuides
+        evt.checked       = g_ShowGuides
 
     case MenuCmd.ModeCompact:
-        evt.updatedFields      |= .Checked | .RenderingHint
+        evt.updatedFields |= .Checked | .RenderingHint
         evt.renderingHint = .ExclusiveGroup
         evt.checked       = g_Mode == .Compact
 
     case MenuCmd.ModeDetailed:
-        evt.updatedFields      |= .Checked | .RenderingHint
+        evt.updatedFields |= .Checked | .RenderingHint
         evt.renderingHint = .ExclusiveGroup
         evt.checked       = g_Mode == .Detailed
 
     case MenuCmd.ModeColumns:
-        evt.updatedFields      |= .Checked | .RenderingHint
+        evt.updatedFields |= .Checked | .RenderingHint
         evt.renderingHint = .ExclusiveGroup
         evt.checked       = g_Mode == .Columns
 
     case MenuCmd.ThemeLight:
-        evt.updatedFields      |= .Checked | .RenderingHint
+        evt.updatedFields |= .Checked | .RenderingHint
         evt.renderingHint = .ExclusiveGroup
         evt.checked       = !g_DarkTheme
 
     case MenuCmd.ThemeDark:
-        evt.updatedFields      |= .Checked | .RenderingHint
+        evt.updatedFields |= .Checked | .RenderingHint
         evt.renderingHint = .ExclusiveGroup
         evt.checked       = g_DarkTheme
 
     case MenuCmd.ContextPin:
         evt.updatedFields |= .Checked
-        evt.checked  = g_ContextPinned
+        evt.checked       = g_ContextPinned
 
     case MenuCmd.ContextDelete:
         evt.updatedFields |= .Disabled
-        evt.disabled = g_ContextPinned
+        evt.disabled      = g_ContextPinned
 
     default:
         return false
@@ -851,7 +851,7 @@ func createRootView()
     setLabelTextStyle(subTitle, .Left, .Top)
 
     let themeButton = PushButton.create(view, "", {})
-    g_ThemeButton          = themeButton
+    g_ThemeButton = themeButton
     themeButton.setForm(.Flat)
     themeButton.setIcon(app.theme.icon24(ThemeIcons24.Picker, 18))
     themeButton.sigPressed += &toggleTheme

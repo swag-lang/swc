@@ -1188,14 +1188,14 @@ impl Tessellate
         let leftNode   = nnNode(.basin.leftNode)
         var bottomNode = leftNode
         while bottomNode.next and bottomNode.point.y >= nnNode(bottomNode.next).point.y do
-            bottomNode    = nnNode(bottomNode.next)
+            bottomNode = nnNode(bottomNode.next)
         .basin.bottomNode = bottomNode
         if bottomNode == leftNode do
             return
 
         var rightNode = bottomNode
         while rightNode.next and rightNode.point.y < nnNode(rightNode.next).point.y do
-            rightNode    = nnNode(rightNode.next)
+            rightNode = nnNode(rightNode.next)
         .basin.rightNode = rightNode
         if rightNode == bottomNode do
             return

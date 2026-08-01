@@ -258,7 +258,7 @@ impl Decoder
                 dest += rowStrideOut
             else do
                 dest -= rowStrideOut
-            row      += 1
+            row += 1
         }
     }
 
@@ -308,7 +308,7 @@ impl Decoder
                     let dstPixels = .safeDstPixels()
                     for [z] in pixelBytes do
                         dstPixels[out_off + z] = t[z]
-                    t                          += pixelBytes
+                    t += pixelBytes
                 }
             }
 

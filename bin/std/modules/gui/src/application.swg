@@ -41,8 +41,8 @@ struct Application
         mouseEnterWnd:    #null *Wnd     // Window the mouse last entered.
     }
 
-    frameCursor:         Cursor     // Cursor selected for the current frame.
-    fadeDisabledSurface = true      // Whether modal-disabled surfaces fade toward the disabled theme color.
+    frameCursor: Cursor            // Cursor selected for the current frame.
+    fadeDisabledSurface = true     // Whether modal-disabled surfaces fade toward the disabled theme color.
 
     // Run-loop state. It only means something to the loop that owns it.
     internal
@@ -73,6 +73,7 @@ struct Application
         statePath: String                // File used by [[saveState]] and [[loadState]].
         hotKeys:   Array'KeyShortcut     // Registered system-wide keyboard shortcuts.
     }
+
     readonly dirtyTheme: u32     // Revision incremented after each theme change.
 }
 
@@ -152,7 +153,7 @@ private impl Application
             targetWnd = .mouseCaptureWnd
         else do
             targetWnd = .windowAtMouse()
-        targetWnd     = skipDisabled(targetWnd)
+        targetWnd = skipDisabled(targetWnd)
 
         // If no target window, but one target surface, then we will send
         // to the surfaceWnd (we probably are in the shadow area)
@@ -215,7 +216,7 @@ private impl Application
             let move = .mouse.movement()
             evt.surfacePos = targetWnd.screenToSurface(mousePos)
             evt.kind       = .Move
-            evt.delta       = move
+            evt.delta      = move
             targetWnd.sendEvent(&evt)
             if Math.abs(move.x) >= 0.5 or Math.abs(move.y) >= 0.5 do
                 ToolTip.resetTimer(evt.surfacePos)
@@ -270,7 +271,7 @@ private impl Application
         var evt      = MouseEvent{kind: .Wheel}
         let mousePos = .mouse.position()
         evt.surfacePos = targetWnd.screenToSurface(mousePos)
-        evt.delta.y     = z
+        evt.delta.y    = z
         evt.modifiers  = .keyboard.pressedModifiers()
         targetWnd.sendEvent(&evt)
     }
@@ -325,7 +326,7 @@ private impl Application
             return
 
         var evt = KeyEvent{kind: .Character}
-        evt.character      = r
+        evt.character = r
         evt.key       = key
         evt.modifiers = .keyboard.pressedModifiers()
         targetWnd.sendEvent(&evt)
@@ -532,7 +533,7 @@ private impl Application
     {
         .endModal     = false
         .endModalExit = null
-        .inModalLoop += 1
+        .inModalLoop  += 1
         defer .inModalLoop -= 1
 
         var disabledSurfaces: Array'(*Surface)
@@ -729,7 +730,7 @@ impl Application
 
             var evt = NotifyEvent{}
             evt.accepted = false
-            evt.kind = .ThemeChanged
+            evt.kind     = .ThemeChanged
             wnd.sendEvent(&evt)
         }
 
@@ -875,7 +876,7 @@ impl Application
         let timer = Memory.new'Timer()
         Debug.assert(time.milliseconds() > 0, "timer period must be positive")
         timer.periodMilliseconds = time.milliseconds()
-        timer.target = target
+        timer.target             = target
         if .duringTimerEvents do
             .timersToAdd.add(timer)
         else do
@@ -969,7 +970,7 @@ impl Application
         {
             if enabled do
                 catch registerNativeHotKey(shortcut.modifiers, shortcut.key)
-            else do
+                else do
                 unregisterNativeHotKey(shortcut.modifiers, shortcut.key)
         }
     }
@@ -1017,6 +1018,7 @@ impl Application
             for shortcut in .hotKeys do
                 unregisterNativeHotKey(shortcut.modifiers, shortcut.key)
         }
+
         .hotKeys.clear()
     }
 

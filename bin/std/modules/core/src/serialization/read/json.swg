@@ -135,16 +135,16 @@ public impl Json
             }
             else do
                 .col += 1
-            c        = .stream.peekU8()
+            c = .stream.peekU8()
         }
     }
 
     // Defines start read.
     mtd startRead(input: const [..] u8)
     {
-        .stream    = ByteStream.openRead(input)
-        .line      = 1
-        .col       = 1
+        .stream = ByteStream.openRead(input)
+        .line   = 1
+        .col    = 1
         .propName.clear()
     }
 
@@ -322,6 +322,7 @@ public impl Json
                 var result: retval
                 return result
             }
+
             var result: retval
             .readString(&result)
             return result

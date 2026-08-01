@@ -22,13 +22,13 @@ impl IActionUI for ActionGroup
         {
         case .Group:
             evt.updatedFields |= .Disabled | .Name
-            evt.name     = "Group"
-            evt.disabled = isLib or !capture or !capture.canGroup()
+            evt.name          = "Group"
+            evt.disabled      = isLib or !capture or !capture.canGroup()
 
         case .Ungroup:
             evt.updatedFields |= .Disabled | .Name
-            evt.name     = "Ungroup"
-            evt.disabled = isLib or !capture or !capture.canUngroup()
+            evt.name          = "Ungroup"
+            evt.disabled      = isLib or !capture or !capture.canUngroup()
         }
 
         return true

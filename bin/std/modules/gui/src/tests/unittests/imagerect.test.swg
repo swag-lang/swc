@@ -23,9 +23,9 @@ using Swag, Core
     var host: Testing.HeadlessHost
     host.setup(160, 160)
 
-    let image = Pixel.Image.create(4, 2, .RGBA8)
+    let image   = Pixel.Image.create(4, 2, .RGBA8)
     var texture = host.app.renderer.addImage(image)
-    let atlas = ImageList.create(texture, frameWidth: 2, frameHeight: 2)
+    let atlas   = ImageList.create(texture, frameWidth: 2, frameHeight: 2)
 
     @assert(atlas.isValid())
     @assert(atlas.columnCount() == 2)
@@ -84,10 +84,10 @@ using Swag, Core
     var host: Testing.HeadlessHost
     host.setup(160, 160)
 
-    let image = Pixel.Image.create(4, 2, .RGBA8)
+    let image   = Pixel.Image.create(4, 2, .RGBA8)
     var texture = host.app.renderer.addImage(image)
-    let atlas = ImageList.create(texture, frameWidth: 2, frameHeight: 2)
-    let view = ImageRect.create(&host.root, {20, 20, 120, 120})
+    let atlas   = ImageList.create(texture, frameWidth: 2, frameHeight: 2)
+    let view    = ImageRect.create(&host.root, {20, 20, 120, 120})
 
     view.setImageList(atlas)
     @assert(view.movie.frameCount == 2)

@@ -171,7 +171,7 @@ func readChunkFmt(file: *SoundFile, stream: *File.FileStream, chunkSize: u32) fa
     if chunkSize >= #sizeof(PCMWAVEFORMAT)
     {
         var pcmwf: PCMWAVEFORMAT
-        pcmwf.wf = wf
+        pcmwf.wf             = wf
         file.availableFields |= .BitsPerSample
 
         if !stream.readValue(&pcmwf.wBitsPerSample) do
@@ -192,7 +192,7 @@ func readChunkFmt(file: *SoundFile, stream: *File.FileStream, chunkSize: u32) fa
             if chunkSize >= #sizeof(WAVEFORMATEXTENSIBLE)
             {
                 var wfex: WAVEFORMATEXTENSIBLE
-                wfex.fmtex = wfx
+                wfex.fmtex           = wfx
                 file.availableFields |= .ChannelMask
                 file.availableFields |= .ValidBitsPerSample
 

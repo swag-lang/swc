@@ -16,7 +16,7 @@ func createColumnsPage(parent: *Wnd)
     files.addColumn("Owner", 120)
     files.addColumn("Changed", 110, app.theme.icon24(.Sort, 16))
     files.header.setItemWidthLimits(0, minimum: 130)
-    files.header.itemAt(0).isResizable = false
+    files.header.itemAt(0).isResizable       = false
     files.header.itemAt(3).reservesIconSpace = true
     for [i] in 18
     {

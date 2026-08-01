@@ -51,7 +51,7 @@ impl BitStream
         Debug.assert(.numBits == 0)
         Debug.assert(count <= .size() - .curByte)
         .curByte += count
-        .eof = .curByte == .size()
+        .eof     = .curByte == .size()
     }
 
     // Refills the bit buffer until at least 'width' bits are available

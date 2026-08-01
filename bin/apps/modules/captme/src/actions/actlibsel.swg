@@ -26,7 +26,7 @@ impl IActionUI for ActionLibSel
         case .Left, .Up, .Right, .Down,
              .Home, .End:
             evt.updatedFields |= .Disabled
-            evt.disabled = !hasSel
+            evt.disabled      = !hasSel
         }
 
         return true

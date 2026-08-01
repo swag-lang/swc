@@ -13,7 +13,7 @@ struct Texture
     // the storage would silently corrupt every texture coordinate computed from it.
     readonly
     {
-        handle: TextureHandle = InvalidTextureHandle     // Renderer-specific resource handle.
+        handle:      TextureHandle = InvalidTextureHandle     // Renderer-specific resource handle.
         pixelFormat: PixelFormat   = undefined                // Pixel encoding of the texture storage.
         width:       s32           = 0                        // Width, in texels.
         height:      s32           = 0                        // Height, in texels.

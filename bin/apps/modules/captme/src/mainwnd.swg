@@ -97,10 +97,10 @@ impl IWnd for MainWnd
 
             .addSeparator()
             .addItem(ActionGlobal.Exit)
-            .owner        = me
+            .owner = me
             .setFramePainting(true)
-            .dockStyle    = .Center
-            .padding      = 10
+            .dockStyle = .Center
+            .padding   = 10
             .updateState()
             .computeLayoutPopup()
         }
@@ -383,7 +383,7 @@ impl MainWnd
             if !capture do
                 return
 
-            .embInfoFreeze            = InfoBar.create(notnull .editWnd.view, "Selection is frozen", .Message, flags: .Bottom)
+            .embInfoFreeze              = InfoBar.create(notnull .editWnd.view, "Selection is frozen", .Message, flags: .Bottom)
             .embInfoFreeze.sigDismissed += func|main = me|(ctrl)
             {
                 main.freezeSel     = false
@@ -700,9 +700,9 @@ impl MainWnd
             }
         }
 
-        .captureBtn           = IconButton.create(notnull .topBar, Icon.from(&.icons48, 6), {0, 0, 64, 64}, id: ActionCapture.DoIt)
+        .captureBtn = IconButton.create(notnull .topBar, Icon.from(&.icons48, 6), {0, 0, 64, 64}, id: ActionCapture.DoIt)
         .captureBtn.setIconColor(Argb.White)
-        .libraryBtn           = IconButton.create(notnull .topBar, Icon.from(&.icons48, 8), {64, 0, 64, 64}, id: ActionGlobal.ShowLibrary)
+        .libraryBtn = IconButton.create(notnull .topBar, Icon.from(&.icons48, 8), {64, 0, 64, 64}, id: ActionGlobal.ShowLibrary)
     }
 
     mtd setTheme()
@@ -736,14 +736,14 @@ impl MainWnd
                 c.updateFlags(remove: .IconOnly)
                 c.position.width, c.position.height = 64
                 c.setIconSize(48, 48)
-                .libraryBtn.position.x              = 64
+                .libraryBtn.position.x = 64
             }
             else
             {
                 c.updateFlags(.IconOnly)
                 c.position.width, c.position.height = 40
                 c.setIconSize(32, 32)
-                .libraryBtn.position.x              = 48
+                .libraryBtn.position.x = 48
             }
         }
 
@@ -817,7 +817,7 @@ impl MainWnd
         with res.recentSizeBar = IconBar.create(res.recentBar, 20)
         {
             .setOrientation(.Vertical)
-            .dockStyle   = .Left
+            .dockStyle = .Left
             .setItemPadding(0)
             .addRadioButton({}, ActionRecentSize.RecentSmall)
             .addRadioButton({}, ActionRecentSize.RecentMedium)

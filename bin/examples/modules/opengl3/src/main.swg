@@ -130,7 +130,7 @@ impl Mat4
             {
                 var sum = 0'f32
                 for [k] in 4 do
-                    sum            += a.m[k * 4 + row] * b.m[col * 4 + k]
+                    sum += a.m[k * 4 + row] * b.m[col * 4 + k]
                 r.m[col * 4 + row] = sum
             }
         }

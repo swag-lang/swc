@@ -92,10 +92,10 @@ impl Polygon
         let tmp1 = Vector2.normalizedOrZero(v2 - v1)
         let n1   = tmp1.cross(1)
 
-        let vva1          = v1 + n0
-        let vva0          = v0 + n0
-        let vvb1          = v2 + n1
-        let vvb0          = v1 + n1
+        let vva1                            = v1 + n0
+        let vva0                            = v0 + n0
+        let vvb1                            = v2 + n1
+        let vvb0                            = v1 + n1
         let {intersects, intersectionPoint} = Geometry.intersectLines(vva0, vva1, vvb0, vvb1)
 
         var result: retval = v1
@@ -470,9 +470,9 @@ impl Polygon
         {
             let current = .points[i]
             let next    = .points[(i + 1) % count]
-            .minBounds  = Vector2.min(.minBounds, current)
-            .maxBounds  = Vector2.max(.maxBounds, current)
-            .perimeter += current.distanceTo(next)
+            .minBounds      = Vector2.min(.minBounds, current)
+            .maxBounds      = Vector2.max(.maxBounds, current)
+            .perimeter      += current.distanceTo(next)
             signedTwiceArea += current.x * next.y - next.x * current.y
 
             if count >= 3

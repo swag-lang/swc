@@ -276,8 +276,8 @@ func rebuildInspector()
         oldProps.destroy()
 
     let props = Properties.create(objHost, {}, g_DisplayMode)
-    g_Props             = props
-    props.dockStyle     = .Center
+    g_Props         = props
+    props.dockStyle = .Center
     props.setEditorWidth(320)
     if props.isGridLike() do
         props.setNameColumnWidth(190)
@@ -636,7 +636,7 @@ func createRootView()
     setLabelTextStyle(subTitle, .Left, .Top)
 
     let themeButton = PushButton.create(view, "", {})
-    g_ThemeButton          = themeButton
+    g_ThemeButton = themeButton
     themeButton.setForm(.Flat)
     themeButton.setIcon(app.theme.icon24(ThemeIcons24.Picker, 18))
     themeButton.sigPressed += &toggleTheme

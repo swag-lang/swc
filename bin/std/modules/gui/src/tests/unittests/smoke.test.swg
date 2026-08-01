@@ -81,8 +81,8 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     var host: Testing.HeadlessHost
     host.setup(320, 200)
 
-    let surface = notnull expect host.app.createSurface(20, 30, 180, 100, SurfaceFlags.ToolWindow | SurfaceFlags.TopMost | SurfaceFlags.NoShadow)
-    let background = notnull expect host.app.createSurface(0, 0, 100, 80, SurfaceFlags.None)
+    let surface            = notnull expect host.app.createSurface(20, 30, 180, 100, SurfaceFlags.ToolWindow | SurfaceFlags.TopMost | SurfaceFlags.NoShadow)
+    let background         = notnull expect host.app.createSurface(0, 0, 100, 80, SurfaceFlags.None)
     let disabledBackground = notnull expect host.app.createSurface(100, 0, 100, 80, SurfaceFlags.None)
     background.show()
     disabledBackground.show()
@@ -102,7 +102,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     @assert(surface.isTopMost())
     @assert(surface.flags.has(.TopMost))
 
-    let replacement = Wnd.create'Wnd()
+    let replacement  = Wnd.create'Wnd()
     let previousView = surface.view()
     surface.setView(replacement)
     @assert(surface.view() == replacement)
@@ -152,7 +152,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     host.setup(160, 90)
 
     var frameCallbacks: u32
-    host.app.sigFrame += func|count = &frameCallbacks|(app) { dref count += 1 }
+    host.app.sigFrame    += func|count = &frameCallbacks|(app) { dref count += 1 }
     host.app.maxRunFrame = 2
 
     host.app.runFrame()
@@ -212,7 +212,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
 
     evt.kind       = .Move
     evt.surfacePos = {50, 20}
-    evt.delta       = {20, 5}
+    evt.delta      = {20, 5}
     host.surfaceWnd.sendEvent(&evt)
 
     @assert(host.surface.position.x == 30)
@@ -231,12 +231,12 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
 
     evt.kind       = .Pressed
     evt.surfacePos = {30, 1}
-    evt.delta       = {}
+    evt.delta      = {}
     host.surfaceWnd.sendEvent(&evt)
 
     evt.kind       = .Move
     evt.surfacePos = {30, 11}
-    evt.delta       = {0, 10}
+    evt.delta      = {0, 10}
     host.surfaceWnd.sendEvent(&evt)
 
     @assert(host.surface.position.x == 10)

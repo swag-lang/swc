@@ -75,7 +75,7 @@ impl Encoder
             .subimage[i].scanlineWidth = .calculateScanlineWidth(.subimage[i].width)
             if .subimage[.widestPass].scanlineWidth < .subimage[i].scanlineWidth do
                 .widestPass = i
-            .lastPass       = i
+            .lastPass = i
         }
     }
 
@@ -205,9 +205,9 @@ impl Encoder
         let filter      = .getBestFilter(scanlineWidth - 1)
         if filter == .None do
             filtered_sl = cast([*] u8) (notnull .scanline)
-        filtered_sl     -= 1
-        filtered_sl[0]  = cast(u8) filter
-        filtered_sl     += 1
+        filtered_sl    -= 1
+        filtered_sl[0] = cast(u8) filter
+        filtered_sl    += 1
 
         if filter != .None do
             .filterScanline(filtered_sl, scanlineWidth - 1, filter)

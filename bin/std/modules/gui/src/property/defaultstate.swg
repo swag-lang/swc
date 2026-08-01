@@ -286,8 +286,8 @@ internal impl Properties
         with item.revertButton = IconButton.create(host, .theme().icon24(.Undo, .revertIconSize(h)), {0, 0, h, h})
         {
             .setForm(.Circle)
-            .updateFlags(.Overlay)     // Elegant translucent hover without an opaque box.
-            .maxSize       = {h, h}         // square: symmetric horizontally and vertically
+            .updateFlags(.Overlay)      // Elegant translucent hover without an opaque box.
+            .maxSize       = {h, h}     // square: symmetric horizontally and vertically
             .minSize       = {h, h}
             .focusStrategy = .None     // stays out of the keyboard nav order
             .dockStyle     = .Right

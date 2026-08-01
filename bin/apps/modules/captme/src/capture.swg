@@ -791,7 +791,7 @@ impl Capture
         var cullClip = clip
         if painter.hasClippingRect()
         {
-            var pc = painter.clippingRect()
+            var pc        = painter.clippingRect()
             let transform = painter.transform()
             pc.offset(-transform.tx, -transform.ty)
             cullClip.intersect(pc)
@@ -977,7 +977,7 @@ impl Capture
             .snapY = -1
 
         let editView    = notnull .editView
-        let keyboard        = &editView.app().keyboard
+        let keyboard    = &editView.app().keyboard
         let ctrlPressed = keyboard.isKeyPressed(.Control) or keyboard.isKeyPressed(.RControl) or keyboard.isKeyPressed(.LControl)
         if !editView.main.snap and !ctrlPressed do
             return
@@ -1297,8 +1297,8 @@ impl Capture
                         .lastSelectHit += 1
                         if .lastSelectHit >= res.count do
                             .lastSelectHit = 0
-                        .hotForm           = res[.lastSelectHit]
-                        here               = .selection.contains(.hotForm)
+                        .hotForm = res[.lastSelectHit]
+                        here     = .selection.contains(.hotForm)
                     }
                     elif !evt.modifiers.has(.Control) and !here and .selection.count
                     {

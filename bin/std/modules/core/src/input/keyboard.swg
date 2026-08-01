@@ -10,9 +10,9 @@ struct Keyboard
         currentState:  KeyboardState     // State captured by the latest update.
     }
 
-    initialRepeatDelayMs: u32 = 400     // Delay before the first repeated key press.
-    repeatIntervalMs:     u32 = 50      // Delay between subsequent repeated key presses.
-    repeatEnabled:        bool = true   // Whether held keys generate repeated press transitions.
+    initialRepeatDelayMs: u32  = 400      // Delay before the first repeated key press.
+    repeatIntervalMs:     u32  = 50       // Delay between subsequent repeated key presses.
+    repeatEnabled:        bool = true     // Whether held keys generate repeated press transitions.
 
     internal
     {
@@ -62,14 +62,14 @@ impl Keyboard
                 {
                     if now - .pressedAtMs[key] >= .initialRepeatDelayMs
                     {
-                        .isRepeating[key]            = true
-                        .pressedAtMs[key]            = now
+                        .isRepeating[key] = true
+                        .pressedAtMs[key] = now
                         .previousState.setPressed(key, false)
                     }
                 }
                 elif now - .pressedAtMs[key] >= .repeatIntervalMs
                 {
-                    .pressedAtMs[key]           = now
+                    .pressedAtMs[key] = now
                     .previousState.setPressed(key, false)
                 }
             }

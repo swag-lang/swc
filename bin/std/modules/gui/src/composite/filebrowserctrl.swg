@@ -9,16 +9,16 @@ struct FileBrowserCtrl
 
     readonly
     {
-        treeCtrl:      #null *ListCtrl      // Optional shortcuts and drives list.
-        options:       FileDlgOptions       // Effective browsing and selection options.
-        currentFolder: String               // Normalized folder currently displayed.
+        treeCtrl:      #null *ListCtrl     // Optional shortcuts and drives list.
+        options:       FileDlgOptions      // Effective browsing and selection options.
+        currentFolder: String              // Normalized folder currently displayed.
 
         #[Swag.Late]
         {
-            listCtrl:  *ListCtrl       // Sortable file and folder list.
-            comboPath: *ComboBox       // Current-folder and ancestor selector.
-            editFile:  *EditBox        // File or folder name editor.
-            comboType: *ComboBox       // Active file-type filter selector.
+            listCtrl:  *ListCtrl     // Sortable file and folder list.
+            comboPath: *ComboBox     // Current-folder and ancestor selector.
+            editFile:  *EditBox      // File or folder name editor.
+            comboType: *ComboBox     // Active file-type filter selector.
         }
     }
 
@@ -129,8 +129,8 @@ private impl FileBrowserCtrl
         with me.listCtrl = ListCtrl.createMultiColumns(view)
         {
             .setSelectionMode(me.options.mode == FileDlgMode.SelectFiles ? ListSelectionMode.Multi : ListSelectionMode.Single)
-            .dockStyle       = .Center
-            .margin.z        = 10
+            .dockStyle = .Center
+            .margin.z  = 10
             .updateFlags(.HotTrack)
             .backgroundStyle = .View
 
@@ -201,7 +201,7 @@ private impl FileBrowserCtrl
 
                     if !txt.isEmpty() do
                         txt += ";"
-                    txt     += Path.fileName(fi.fullname)
+                    txt += Path.fileName(fi.fullname)
                 }
 
                 if !txt.isEmpty() do
@@ -247,7 +247,7 @@ impl FileBrowserCtrl
         {
             with fileBrowser.treeCtrl = ListCtrl.createSimple(fileBrowser, {0, 0, 170})
             {
-                .dockStyle       = .Left
+                .dockStyle = .Left
                 .updateFlags(.HotTrack)
                 .setLineHeight(28)
                 .setLeftTextMargin(8)

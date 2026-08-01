@@ -60,8 +60,8 @@ func splitLines(src: string)->Array'(string)
         result.add(onestr)
         if cpt < countof - 1 and dref end == '\r' and end[1] == '\n' do
             end, cpt += 1
-        end, cpt     += 1
-        dataof       = end
+        end, cpt += 1
+        dataof   = end
     }
 
     return result

@@ -120,7 +120,7 @@ internal impl IImageEncoder for Encoder
         header.imageTypeCode  = cast(u8) (userOptions.rle ? TYPE_RLE_RGB : TYPE_RGB)
         header.width          = cast(u16) image.width
         header.height         = cast(u16) image.height
-        header.bitsPerPixel            = image.bitsPerPixel
+        header.bitsPerPixel   = image.bitsPerPixel
         header.descriptorByte = image.pixelFormat.hasAlpha() ? 8'u8 : 0'u8
         result.addStruct(header)
 

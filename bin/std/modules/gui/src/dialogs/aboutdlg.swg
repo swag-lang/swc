@@ -84,5 +84,4 @@ public impl AboutDlg
         dlg.sendResizeEvent()
         return dlg
     }
-
 }

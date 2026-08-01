@@ -53,8 +53,8 @@ impl Voice
         let decoder     = cast(*Codec) decoderData
         decoder.sourceEncoding      = file.encoding
         decoder.destinationEncoding = .requestedEncoding
-        decoder.type = desc.type
-        .codec       = @mkinterface(decoder, desc.type, ICodec)
+        decoder.type                = desc.type
+        .codec                      = @mkinterface(decoder, desc.type, ICodec)
     }
 
     mtd destroyCodec()

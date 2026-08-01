@@ -37,8 +37,8 @@ struct PropertiesItem
 {
     internal filter: String
     #[Swag.Late]
-    line: *Wnd                 // Window hosting this row's editor.
-    data: #null *u8            // Address of the bound field.
+    line: *Wnd          // Window hosting this row's editor.
+    data: #null *u8     // Address of the bound field.
 
     // Field address in every edited instance (multi-selection). [0] aliases `data`.
     // Empty or a single entry means a plain single-instance edit. Items under a dynamic
@@ -77,10 +77,10 @@ struct PropertiesItem
     userData1: #null *void               // User data1 associated with this value.
 
     #[Swag.Late]
-    label: *Label                 // Primary row label.
-    description: String           // Displayed field description.
+    label:       *Label     // Primary row label.
+    description: String     // Displayed field description.
     #[Swag.Late]
-    labelDesc: *Label              // Description label.
+    labelDesc: *Label     // Description label.
 
     // Per-item validation (info/warning/error) shown as an inline colored message bar
     // stacked under the row.
@@ -126,10 +126,25 @@ internal impl PropertiesItem
         .parent    = parent
     }
 
-    mtd assignModified(modified: bool) { .isModified = modified; }
-    mtd assignLabel(label: *Label) { .label = label; }
-    mtd assignDescription(description: String) { .description = description; }
-    mtd assignDescriptionLabel(label: *Label) { .labelDesc = label; }
+    mtd assignModified(modified: bool)
+    {
+        .isModified = modified;
+    }
+
+    mtd assignLabel(label: *Label)
+    {
+        .label = label;
+    }
+
+    mtd assignDescription(description: String)
+    {
+        .description = description;
+    }
+
+    mtd assignDescriptionLabel(label: *Label)
+    {
+        .labelDesc = label;
+    }
 
     mtd assignValidation(state: PropValidation, message: String)
     {
@@ -137,9 +152,28 @@ internal impl PropertiesItem
         .validationMsg = message
     }
 
-    mtd assignValidationLabel(label: *Label) { .validationLabel = label; }
-    mtd assignEditBox(edit: *EditBox) { .editBox = edit; }
-    mtd assignCheckBox(check: *CheckButton) { .checkBox = check; }
-    mtd assignComboBox(combo: *ComboBox) { .comboBox = combo; }
-    mtd assignSliderBox(slider: *SliderCtrl) { .sliderBox = slider; }
+    mtd assignValidationLabel(label: *Label)
+    {
+        .validationLabel = label;
+    }
+
+    mtd assignEditBox(edit: *EditBox)
+    {
+        .editBox = edit;
+    }
+
+    mtd assignCheckBox(check: *CheckButton)
+    {
+        .checkBox = check;
+    }
+
+    mtd assignComboBox(combo: *ComboBox)
+    {
+        .comboBox = combo;
+    }
+
+    mtd assignSliderBox(slider: *SliderCtrl)
+    {
+        .sliderBox = slider;
+    }
 }

@@ -31,8 +31,8 @@ struct SplitterItem
 struct SplitterCtrl
 {
     using frameWnd: FrameWnd                     // Embedded frame wnd state.
-    flags              = SplitterFlags.None     // Orientation and divider options.
-    titleSize: f32 = 30                         // Title extent along the splitting axis.
+    flags               = SplitterFlags.None     // Orientation and divider options.
+    titleSize:      f32 = 30                     // Title extent along the splitting axis.
 
     // The panes the splitter manages, in order. Add them through the methods so the bars and
     // the layout follow.
@@ -41,10 +41,10 @@ struct SplitterCtrl
     // Hover and drag state of one gesture over a bar, and the pane count the layout derived.
     internal
     {
-        correctMoving:   f32       // Grab offset inside the bar, kept for the drag.
-        hotIdx = Swag.U32.Max      // Bar under the mouse.
-        moving:          bool      // Whether a bar drag is in progress.
-        numVisiblePanes: s32       // Panes the last layout actually placed.
+        correctMoving:   f32      // Grab offset inside the bar, kept for the drag.
+        hotIdx = Swag.U32.Max     // Bar under the mouse.
+        moving:          bool     // Whether a bar drag is in progress.
+        numVisiblePanes: s32      // Panes the last layout actually placed.
     }
 }
 
@@ -366,12 +366,12 @@ private impl SplitterCtrl
 
             if .isVertical()
             {
-                result.y += pane.size
+                result.y      += pane.size
                 result.height = barSize
             }
             else
             {
-                result.x += pane.size
+                result.x     += pane.size
                 result.width = barSize
             }
 
@@ -405,7 +405,7 @@ private impl SplitterCtrl
         }
 
         var hasVisibleRight = false
-        var scan = cast(u64) idx + 1
+        var scan            = cast(u64) idx + 1
         while scan < .items.count
         {
             if (notnull .items[scan]).visible
@@ -413,6 +413,7 @@ private impl SplitterCtrl
                 hasVisibleRight = true
                 break
             }
+
             scan += 1
         }
 

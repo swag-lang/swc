@@ -29,9 +29,9 @@ struct ComboBox
 {
     using wnd: Wnd     // Embedded window behavior and presentation.
 
-    minimumPopupWidth:  f32 = 100     // Minimum drop-down width in logical units.
-    maximumPopupHeight: f32 = 300     // Maximum drop-down height in logical units.
-    sigChanged: SigArray'func||(*ComboBox, u32)     // Emitted after a notifying selection change.
+    minimumPopupWidth:  f32 = 100                           // Minimum drop-down width in logical units.
+    maximumPopupHeight: f32 = 300                           // Maximum drop-down height in logical units.
+    sigChanged:         SigArray'func||(*ComboBox, u32)     // Emitted after a notifying selection change.
 
     // What the combo shows. Add items through the methods, which keep the popup and the
     // measured icon width in step, and select through 'setSelected'.
@@ -39,9 +39,9 @@ struct ComboBox
     {
         mode          = ComboBoxMode.Selection     // Text interaction mode chosen at creation.
         flags         = ComboBoxFlags.None         // Active presentation options.
-        items:        ArrayPtr'ComboBoxItem        // Entries in display order.
+        items:   ArrayPtr'ComboBoxItem             // Entries in display order.
         selectedIndex = Swag.U32.Max               // Selected item index, or U32.Max when empty.
-        editBox:      #null *EditBox               // Embedded editor in editable mode, otherwise null.
+        editBox: #null *EditBox                    // Embedded editor in editable mode, otherwise null.
     }
 
     // Hover state, the open popup, and the color animations of the painted parts.
@@ -284,8 +284,8 @@ private impl ComboBox
     mtd showPopup()
     {
         let popup = PopupListCtrl.create(cast(*Wnd) me)
-        .popup               = popup
-        popup.minimumWidth = .minimumPopupWidth
+        .popup              = popup
+        popup.minimumWidth  = .minimumPopupWidth
         popup.maximumHeight = .maximumPopupHeight
         popup.fitVertically = true
 

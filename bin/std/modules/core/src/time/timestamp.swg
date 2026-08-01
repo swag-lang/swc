@@ -77,7 +77,7 @@ impl Timestamp
         y = cast(u16) year
         let days = daysInMonth(y, m)
         if d > days do
-            d  = days
+            d = days
         .ticks = dateToTicks(y, m, d) + (.ticks % TicksPerDay)
     }
 

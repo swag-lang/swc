@@ -14,24 +14,24 @@ enum FileDlgMode
 // Stores reusable file-dialog placement and browsing state between invocations.
 struct FileDlgState
 {
-    surfacePosition:    Math.Rectangle     // Last dialog surface rectangle.
-    currentFolder:      String             // Last browsed folder.
-    nameColumnWidth:    s32 = 200          // Last width of the name column.
-    modifiedColumnWidth: s32 = 150         // Last width of the modified-time column.
+    surfacePosition:     Math.Rectangle     // Last dialog surface rectangle.
+    currentFolder:       String             // Last browsed folder.
+    nameColumnWidth:     s32 = 200          // Last width of the name column.
+    modifiedColumnWidth: s32 = 150          // Last width of the modified-time column.
 }
 
 // Configures a [[Gui.FileDlg]] or embedded [[Gui.FileBrowserCtrl]].
 struct FileDlgOptions
 {
-    title:             string      = ""                                        // Surface title, or empty for a mode-specific title.
-    confirmButtonText: string      = ""                                        // Confirmation button label, or empty for "OK".
-    initialFolder:     string      = ""                                        // Initially browsed folder, when non-empty.
-    initialName:       string      = ""                                        // Initial file-name editor contents.
-    showLocationsPane              = true                                      // Whether to show shortcuts and drives.
-    mode:              FileDlgMode = SelectFile                                // Accepted selection kind.
-    filters:           Array'{ name: string, extensions: string }              // Named extension filters.
-    shortcuts:         Array'{ type: Core.Env.SpecialDirectory, name: string } // Locations shown in the shortcuts pane.
-    state:             #null *FileDlgState                                     // Optional borrowed state updated on destruction.
+    title:             string      = ""                                            // Surface title, or empty for a mode-specific title.
+    confirmButtonText: string      = ""                                            // Confirmation button label, or empty for "OK".
+    initialFolder:     string      = ""                                            // Initially browsed folder, when non-empty.
+    initialName:       string      = ""                                            // Initial file-name editor contents.
+    showLocationsPane              = true                                          // Whether to show shortcuts and drives.
+    mode:              FileDlgMode = SelectFile                                    // Accepted selection kind.
+    filters:           Array'{ name: string, extensions: string }                  // Named extension filters.
+    shortcuts:         Array'{ type: Core.Env.SpecialDirectory, name: string }     // Locations shown in the shortcuts pane.
+    state:             #null *FileDlgState                                         // Optional borrowed state updated on destruction.
 }
 
 // Thin modal wrapper around the reusable 'FileBrowserCtrl' composite.
@@ -79,7 +79,7 @@ private impl FileDlg
             if btnid != Dialog.BtnOk do
                 return true
 
-            let dedit      = notnull dlg.edit
+            let dedit = notnull dlg.edit
             var folderName: String
             folderName = dedit.text()
             folderName.trim()
@@ -126,7 +126,7 @@ impl FileDlg
     {
         Debug.assert(from != null)
         let dlg = Wnd.create'FileDlg()
-        dlg.options       = opt
+        dlg.options = opt
 
         with let srf = dlg.createSurface(from, 100, 100, 700, 500)
         {
@@ -139,10 +139,10 @@ impl FileDlg
             {
                 switch #complete opt.mode
                 {
-                case .CreateFile:       .setTitle("Create File")
-                case .SelectFile:       .setTitle("Select File")
-                case .SelectFiles:      .setTitle("Select Files")
-                case .SelectFolder:     .setTitle("Select Folder")
+                case .CreateFile:   .setTitle("Create File")
+                case .SelectFile:   .setTitle("Select File")
+                case .SelectFiles:  .setTitle("Select Files")
+                case .SelectFolder: .setTitle("Select Folder")
                 }
             }
         }
@@ -155,7 +155,7 @@ impl FileDlg
         // Host the reusable browser composite.
         with dlg.browser = FileBrowserCtrl.create(srf.view(), opt)
         {
-            .dockStyle    = .Center
+            .dockStyle             = .Center
             .sigAccepted           += func|fileDlg = dlg|(b) { fileDlg.closeWithResult(Dialog.BtnOk) }
             .sigNewFolderRequested += func|fileDlg = dlg|(b) { fileDlg.onNewFolder() }
         }

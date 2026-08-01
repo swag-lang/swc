@@ -8,8 +8,8 @@ struct Mouse
 {
     readonly
     {
-        previousState: MouseState            // State captured before the latest update.
-        currentState:  MouseState            // State captured by the latest update.
+        previousState: MouseState     // State captured before the latest update.
+        currentState:  MouseState     // State captured by the latest update.
     }
 
     doubleClickTimeMs: u32 = 300     // Maximum interval recognized as a double-click.

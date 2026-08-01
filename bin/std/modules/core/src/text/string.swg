@@ -525,8 +525,8 @@ impl String
         let buffer = notnull .buffer
         for [i] in eat do
             buffer[.length + i] = tmp[i]
-        .length                 += eat
-        buffer[.length]         = 0
+        .length         += eat
+        buffer[.length] = 0
     }
 
     // Append a string to the String
@@ -572,7 +572,7 @@ impl String
         {
             if separator and @index do
                 result += separator
-            result     += values[@index]
+            result += values[@index]
         }
 
         return result

@@ -43,8 +43,8 @@ impl IActionUI for ActionImage
         {
         case .RestoreOrg:
             evt.updatedFields |= .Name | .Disabled
-            evt.name     = "Restore to Original"
-            evt.disabled = !capture or !capture.backImgOriginal.isValid()
+            evt.name          = "Restore to Original"
+            evt.disabled      = !capture or !capture.backImgOriginal.isValid()
         }
 
         return true

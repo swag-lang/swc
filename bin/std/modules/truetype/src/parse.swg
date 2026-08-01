@@ -72,7 +72,7 @@ func parseNames(faceData: *FaceImpl) fail
 
         if nameID == NAME_ID_FAMILY and score > bestFamilyScore
         {
-            familyName     = decodeNameRecord(nameTable, stringOffset, base)
+            familyName      = decodeNameRecord(nameTable, stringOffset, base)
             bestFamilyScore = score
         }
         elif nameID == NAME_ID_STYLE and score > bestStyleScore
@@ -287,7 +287,7 @@ func parseFace(faceData: *FaceImpl) fail
     if @countof(head) < 54 do
         fault(0xB9)
 
-    faceData.unitsPerEm       = readU16(head, 18)
+    faceData.unitsPerEm = readU16(head, 18)
     faceData.face.setHeader(faceData.unitsPerEm, readS16(head, 36), readS16(head, 38), readS16(head, 40), readS16(head, 42))
     faceData.macStyle         = readU16(head, 44)
     faceData.indexToLocFormat = readS16(head, 50)
@@ -296,11 +296,11 @@ func parseFace(faceData: *FaceImpl) fail
     if @countof(hhea) < 36 do
         fault(0x8F)
 
-    let ascender                   = readS16(hhea, 4)
-    let descender                  = readS16(hhea, 6)
-    faceData.lineGap               = readS16(hhea, 8)
+    let ascender  = readS16(hhea, 4)
+    let descender = readS16(hhea, 6)
+    faceData.lineGap = readS16(hhea, 8)
     faceData.face.setHorizontalMetrics(ascender, descender, faceData.lineGap, readS16(hhea, 10))
-    faceData.numLongMetrics       = readU16(hhea, 34)
+    faceData.numLongMetrics = readU16(hhea, 34)
 
     let maxp = getTableSlice(faceData, TAG_MAXP, 0x8E)
     if @countof(maxp) < 6 do

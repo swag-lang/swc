@@ -15,7 +15,7 @@ using Swag, Core, File
     host.setup(640, 460)
 
     var opt: FileDlgOptions
-    opt.mode      = .SelectFile
+    opt.mode              = .SelectFile
     opt.showLocationsPane = false
     opt.filters.add({"Text", ".txt"})
 
@@ -56,7 +56,7 @@ using Swag, Core, File
     host.setup(640, 460)
 
     var opt: FileDlgOptions
-    opt.mode      = .SelectFolder
+    opt.mode              = .SelectFolder
     opt.showLocationsPane = false
 
     let fb = FileBrowserCtrl.create(&host.root, opt, {0, 0, 600, 400})

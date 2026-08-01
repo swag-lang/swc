@@ -157,7 +157,7 @@ struct PaintEvent
         After       // Paint after the window's children.
     }
 
-    using base: Event                         // Embedded base state.
+    using base:   Event                         // Embedded base state.
     kind:         Kind          = .Content      // Painting phase.
     paintContext: *PaintContext = undefined     // Active painting context.
 }

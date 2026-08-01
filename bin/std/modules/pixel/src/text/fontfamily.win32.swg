@@ -12,7 +12,7 @@ public struct SystemFontFaceInfo
 // Describes a Windows font family and the native faces available for its style slots.
 public struct SystemFontFamilyInfo
 {
-    name:  String                                                   // Family name.
+    name:  String                                             // Family name.
     faces: [@countof(FontFamilyStyle)] SystemFontFaceInfo     // Face descriptor indexed by [[Pixel.FontFamilyStyle]].
 }
 

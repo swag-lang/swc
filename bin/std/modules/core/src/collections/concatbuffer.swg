@@ -159,9 +159,9 @@ impl ConcatBuffer
 
         let bsize      = Math.max(.granularity, numBytes)
         let lastBucket = notnull .lastBucket
-        lastBucket.data  = Memory.alloc(bsize, .allocator)
-        lastBucket.size  = bsize
-        .currentSP       = lastBucket.data
+        lastBucket.data = Memory.alloc(bsize, .allocator)
+        lastBucket.size = bsize
+        .currentSP      = lastBucket.data
     }
 
     // Associates a specific allocator with the buffer.
@@ -355,7 +355,7 @@ impl ConcatBuffer
     mtd position()->ConcatBufferPosition
     {
         var result: retval
-        result.bucket = .lastBucket
+        result.bucket  = .lastBucket
         result.pointer = .currentSP
         return result
     }

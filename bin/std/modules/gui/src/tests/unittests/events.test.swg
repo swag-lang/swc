@@ -11,7 +11,7 @@ using Swag, Core
 
     evt.kind          = CommandStateEvent.Kind.Apply
     evt.id            = Dialog.BtnOk
-    evt.updatedFields      = CommandStateEvent.UpdatedFields.Disabled | CommandStateEvent.UpdatedFields.Name
+    evt.updatedFields = CommandStateEvent.UpdatedFields.Disabled | CommandStateEvent.UpdatedFields.Name
     evt.renderingHint = CommandStateEvent.RenderingHint.ExclusiveGroup
     evt.disabled      = true
     evt.name          = "Ok"
@@ -33,7 +33,7 @@ using Swag, Core
     var mouseEvt: MouseEvent
     mouseEvt.kind       = .Move
     mouseEvt.surfacePos = {10, 20}
-    mouseEvt.delta       = {-3, 4}
+    mouseEvt.delta      = {-3, 4}
     mouseEvt.modifiers  = Input.KeyModifiers.Control | Input.KeyModifiers.Shift
 
     @assert(mouseEvt.kind == MouseEvent.Kind.Move)
@@ -89,7 +89,7 @@ using Swag, Core
 {
     var key: KeyEvent
     key.kind      = .Character
-    key.character      = 'x'
+    key.character = 'x'
     key.modifiers = Input.KeyModifiers.Alt
     @assert(key.kind == KeyEvent.Kind.Character)
     @assert(key.character == 'x')

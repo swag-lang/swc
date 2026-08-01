@@ -16,9 +16,9 @@ struct IconBar
 
     readonly
     {
-        orientation = IconBarOrientation.Horizontal     // Current button layout axis.
-        iconSize:    f32                                 // Square icon size in logical units.
-        itemPadding: f32 = 4                             // Padding around every icon in logical units.
+        orientation      = IconBarOrientation.Horizontal     // Current button layout axis.
+        iconSize:    f32                                     // Square icon size in logical units.
+        itemPadding: f32 = 4                                 // Padding around every icon in logical units.
     }
 
     sigComputeState:   SigArray'func||(*CommandStateEvent)     // Invoked when child command state must be computed.
@@ -75,7 +75,7 @@ impl IconBar
     {
         Debug.assert(parent != null)
         Debug.assert(iconSize >= 0 and itemPadding >= 0)
-        let result        = Wnd.create'IconBar(parent, null, position, id)
+        let result = Wnd.create'IconBar(parent, null, position, id)
         result.iconSize    = iconSize
         result.itemPadding = itemPadding
         result.orientation = orientation

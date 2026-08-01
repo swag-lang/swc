@@ -392,7 +392,7 @@ impl Color
     func lerpRgb(start, end: Color, factor: f32)->Color
     {
         var result: retval = undefined
-        let t    = Math.saturate(factor)
+        let t              = Math.saturate(factor)
         result.a = start.a
         result.r = cast(u8) Math.lerp(cast(f32) start.r, cast(f32) end.r, t)
         result.g = cast(u8) Math.lerp(cast(f32) start.g, cast(f32) end.g, t)
@@ -405,7 +405,7 @@ impl Color
     func lerp(start, end: Color, factor: f32)->Color
     {
         var result: retval = undefined
-        let t    = Math.saturate(factor)
+        let t              = Math.saturate(factor)
         result.a = cast(u8) Math.lerp(cast(f32) start.a, cast(f32) end.a, t)
         result.r = cast(u8) Math.lerp(cast(f32) start.r, cast(f32) end.r, t)
         result.g = cast(u8) Math.lerp(cast(f32) start.g, cast(f32) end.g, t)
@@ -558,8 +558,8 @@ impl Color
     #[ConstExpr]
     mtd const rotateHue(degrees: f32)->Color
     {
-        let hsl  = .toHsl()
-        let newH = Math.fract(hsl.h + (degrees / 360.0))
+        let hsl    = .toHsl()
+        let newH   = Math.fract(hsl.h + (degrees / 360.0))
         var result = Color.fromHsl(newH, hsl.s, hsl.l)
         result.a = .a     // Preserve alpha
         return result

@@ -6,8 +6,8 @@ using Core.Errors
 #[Swag.Tls]
 {
     private var g_Rng: Random.MersenneTwister64     // Mersenne Twister 64-bit random number generator
-    private var g_RngInit: bool        // Flag indicating whether the RNG has been initialized
-    private var g_Counter: u32         // Thread-local counter for timestamp-based GUIDs
+    private var g_RngInit: bool                     // Flag indicating whether the RNG has been initialized
+    private var g_Counter: u32                      // Thread-local counter for timestamp-based GUIDs
 }
 
 // Initialize the random number generator with high-entropy seed.
@@ -45,12 +45,12 @@ impl Guid64
         initRng()
 
         var result: retval = undefined
-        let now             = Time.DateTime.now()
+        let now            = Time.DateTime.now()
 
         // Extract components
         let dateTicks = Time.dateToTicks(now.year, now.month, now.day) +
                         Time.timeToTicks(now.hour, now.minute, now.second, now.millisecond)
-        let timestamp  = cast(u32) ((dateTicks - Time.DaysTo1970 * Time.TicksPerDay) / Time.TicksPerSecond)
+        let timestamp   = cast(u32) ((dateTicks - Time.DaysTo1970 * Time.TicksPerDay) / Time.TicksPerSecond)
         let millisecond = now.millisecond
 
         // Thread-local counter with overflow protection
@@ -60,10 +60,10 @@ impl Guid64
 
         // Combine all components
         result.value = 0
-        result.value |= cast(u64) timestamp << 32     // Upper 32 bits: timestamp
+        result.value |= cast(u64) timestamp << 32       // Upper 32 bits: timestamp
         result.value |= cast(u64) millisecond << 16     // Next 16 bits: milliseconds
-        result.value |= cast(u64) g_Counter << 4      // Next 12 bits: counter
-        result.value |= cast(u64) random4             // Lower 4 bits: random
+        result.value |= cast(u64) g_Counter << 4        // Next 12 bits: counter
+        result.value |= cast(u64) random4               // Lower 4 bits: random
 
         return result
     }

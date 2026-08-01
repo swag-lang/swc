@@ -6,8 +6,8 @@ using Core.Errors
 #[Swag.Tls]
 {
     private var g_Rng: Random.MersenneTwister64     // Mersenne Twister 64-bit random number generator
-    private var g_RngInit: bool        // Flag indicating whether the RNG has been initialized
-    private var g_Counter: u32         // Thread-local counter for timestamp-based identifiers
+    private var g_RngInit: bool                     // Flag indicating whether the RNG has been initialized
+    private var g_Counter: u32                      // Thread-local counter for timestamp-based identifiers
 }
 
 // Initialize the random number generator with high-entropy seed.
@@ -168,7 +168,7 @@ impl Guid128
                 return false
 
             parsed.bytes[byteIndex] = (high << 4) | low
-            sourceIndex += 2
+            sourceIndex             += 2
         }
 
         dref result = parsed

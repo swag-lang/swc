@@ -97,9 +97,9 @@ public impl BitArray
             let otherBuffer = .dataPtr()
             let bitCount    = .count
             let byteCount   = .capacityBytes
-            .buffer         = null
-            .count          = 0
-            .capacityBytes  = 0
+            .buffer        = null
+            .count         = 0
+            .capacityBytes = 0
             .resize(bitCount)
             Memory.copy(.dataPtr(), otherBuffer, byteCount)
         }

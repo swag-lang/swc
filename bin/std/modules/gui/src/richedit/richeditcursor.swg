@@ -229,7 +229,7 @@ impl RichEditCtrl
                             cp.charPosInLine = j
                             if pt.x >= rect.horzCenter() do
                                 cp.charPosInLine += 1
-                            found                = true
+                            found = true
                             break
                         }
 

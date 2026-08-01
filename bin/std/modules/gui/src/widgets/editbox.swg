@@ -5,29 +5,29 @@ using Core, Pixel
 // Specifies the visual geometry of the EditBox.
 enum EditBoxForm
 {
-    Rectangle          // Uses a rectangular background and standard border.
-    RoundedRectangle   // Uses a rounded rectangular background and border.
-    Flat               // Uses a flat background and border.
-    Transparent        // Draws no background unless validation fails.
+    Rectangle            // Uses a rectangular background and standard border.
+    RoundedRectangle     // Uses a rounded rectangular background and border.
+    Flat                 // Uses a flat background and border.
+    Transparent          // Draws no background unless validation fails.
 }
 
 // Defines the type of input that the EditBox should accept and validate.
 enum EditBoxInputMode
 {
-    Text               // Accepts unrestricted UTF-8 text.
-    SignedInteger      // Accepts a signed 64-bit integer in the configured range.
-    UnsignedInteger    // Accepts an unsigned 64-bit integer in the configured range.
-    FloatingPoint      // Accepts a 64-bit floating-point value in the configured range.
-    Hexadecimal        // Accepts an unsigned 64-bit hexadecimal value in the configured range.
+    Text                // Accepts unrestricted UTF-8 text.
+    SignedInteger       // Accepts a signed 64-bit integer in the configured range.
+    UnsignedInteger     // Accepts an unsigned 64-bit integer in the configured range.
+    FloatingPoint       // Accepts a 64-bit floating-point value in the configured range.
+    Hexadecimal         // Accepts an unsigned 64-bit hexadecimal value in the configured range.
 }
 
 // Possible outcomes when validating the EditBox content.
 enum EditBoxCheckResult
 {
-    Incomplete       // Allows an incomplete prefix, such as "-" or "0x", while editing.
-    Valid            // Accepts the content.
-    InvalidSilent    // Rejects the latest edit without showing an error state.
-    InvalidVisible   // Keeps the content and shows an error state.
+    Incomplete         // Allows an incomplete prefix, such as "-" or "0x", while editing.
+    Valid              // Accepts the content.
+    InvalidSilent      // Rejects the latest edit without showing an error state.
+    InvalidVisible     // Keeps the content and shows an error state.
 }
 
 #[Swag.EnumFlags]
@@ -48,20 +48,20 @@ struct EditBox
 
     internal textStorage: String     // Current UTF-8 text content.
 
-    sigTextChanged: SigArray'func||(*EditBox)                      // Emitted once after text changes.
-    sigFocusLost:   SigArray'func||(*EditBox)                      // Emitted after keyboard focus is lost.
-    sigSubmitted:   SigArray'func||(*EditBox)                      // Emitted when Enter is pressed.
-    sigCancelled:   SigArray'func||(*EditBox)                      // Emitted when Escape is pressed.
+    sigTextChanged: SigArray'func||(*EditBox)     // Emitted once after text changes.
+    sigFocusLost:   SigArray'func||(*EditBox)     // Emitted after keyboard focus is lost.
+    sigSubmitted:   SigArray'func||(*EditBox)     // Emitted when Enter is pressed.
+    sigCancelled:   SigArray'func||(*EditBox)     // Emitted when Escape is pressed.
     readonly
     {
-        icon:           Icon                                                   // Optional leading icon.
-        unit:           String                                                 // Optional trailing unit, such as "kg".
-        form            = EditBoxForm.Rectangle                               // Current background geometry.
-        flags           = EditBoxFlags.ReleaseFocusOnEnterOrEscape            // Active interaction and presentation options.
-        inputMode       = EditBoxInputMode.Text                                // Current built-in validation mode.
-        maximumLength:  s32                                                    // Maximum rune count, or zero for no limit.
-        trailingMargin: f32                                                    // Extra trailing inset in logical units.
-        validator: #null func||(*EditBox)->EditBoxCheckResult                  // Custom validator, or null for built-in validation.
+        icon:           Icon                                           // Optional leading icon.
+        unit:           String                                         // Optional trailing unit, such as "kg".
+        form      = EditBoxForm.Rectangle                              // Current background geometry.
+        flags     = EditBoxFlags.ReleaseFocusOnEnterOrEscape           // Active interaction and presentation options.
+        inputMode = EditBoxInputMode.Text                              // Current built-in validation mode.
+        maximumLength:  s32                                            // Maximum rune count, or zero for no limit.
+        trailingMargin: f32                                            // Extra trailing inset in logical units.
+        validator:      #null func||(*EditBox)->EditBoxCheckResult     // Custom validator, or null for built-in validation.
     }
 
     internal
@@ -240,7 +240,7 @@ impl IWnd for EditBox
             if .flags.has(.RightAligned) do
                 pos.x = pos.right() - sizeX + .posSelBeg
             else do
-                pos.x  += .posSelBeg
+                pos.x += .posSelBeg
             pos.x      -= .rightTextMargin()
             pos.y      = clientRect.vertCenter() - fontR.height * 0.5
             pos.height = fontR.height
@@ -706,8 +706,8 @@ private impl EditBox
         {
         case .Rectangle:        return .themeMetrics().editBox_SquarePadding
         case .RoundedRectangle: return .themeMetrics().editBox_RoundPadding
-        case .Flat:        return .themeMetrics().editBox_FlatPadding
-        case .Transparent: break
+        case .Flat:             return .themeMetrics().editBox_FlatPadding
+        case .Transparent:      break
         }
 
         return {}
@@ -1254,7 +1254,10 @@ impl EditBox
     }
 
     // Returns the selected byte range.
-    mtd const selection()->{ start: u64, end: u64 } => {.selBeg, .selEnd}
+    mtd const selection()->{ start: u64, end: u64 } =>
+    {
+        .selBeg, .selEnd
+    }
 
     // Returns true when the current content is valid.
     mtd const isValid()->bool => !.isInvalid

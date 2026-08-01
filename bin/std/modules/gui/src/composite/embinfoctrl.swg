@@ -28,14 +28,14 @@ struct InfoBar
 
     readonly
     {
-        kind:             InfoBarKind               // Current semantic presentation.
-        flags:            InfoBarFlags              // Current placement and lifetime options.
-        autoDismissDelay: Time.Duration = 4's       // Delay used by [[InfoBarFlags.AutoDismiss]].
+        kind:             InfoBarKind             // Current semantic presentation.
+        flags:            InfoBarFlags            // Current placement and lifetime options.
+        autoDismissDelay: Time.Duration = 4's     // Delay used by [[InfoBarFlags.AutoDismiss]].
 
         #[Swag.Late]
-        label: *Label                               // Message label owned by this bar.
+        label: *Label     // Message label owned by this bar.
         #[Swag.Late]
-        closeButton: *IconButton                    // Dismiss button owned by this bar.
+        closeButton: *IconButton     // Dismiss button owned by this bar.
     }
 
     internal timer: #null *Timer     // Active auto-dismiss timer.
@@ -93,6 +93,7 @@ private impl InfoBar
                 .style.addStyleSheetColors(Format.toString("wnd_Bk 0x%{X}", colors.embInfo_MessageBk.argb))
                 .setTextColor(colors.embInfo_MessageText)
             }
+
             .setIconColor(Argb.White)
         }
 

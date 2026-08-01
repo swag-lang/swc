@@ -41,16 +41,16 @@ enum TabViewForm
 // Selects how tab widths are measured.
 enum TabLayout
 {
-    Equal      // Divides available width equally, subject to the minimum width.
-    Fixed      // Uses the configured fixed width for every tab.
-    Content    // Sizes each tab from its label, icon, and item padding.
+    Equal       // Divides available width equally, subject to the minimum width.
+    Fixed       // Uses the configured fixed width for every tab.
+    Content     // Sizes each tab from its label, icon, and item padding.
 }
 
 // Describes one tab label and its optional owned page view.
 struct TabItem
 {
-    using item: Item           // Embedded label, icon, identifier, and user data.
-    readonly view: #null *Wnd  // Page view owned by the tab control, if any.
+    using item: Item              // Embedded label, icon, identifier, and user data.
+    readonly view: #null *Wnd     // Page view owned by the tab control, if any.
 
     // Placement computed by the bar layout, and the color animations of the painted parts.
     internal
@@ -74,26 +74,26 @@ struct Tab
     // keep the views, the layout and the selection consistent.
     readonly
     {
-        barForm:          TabBarForm  = .Flat     // Tab bar background presentation.
-        itemForm:         TabItemForm = .Flat     // Individual tab presentation.
-        viewForm:         TabViewForm = .Flat     // Selected page frame presentation.
-        layout:           TabLayout   = .Equal    // Tab width measurement policy.
-        fixedItemWidth:   f32 = 100               // Item width used by the fixed policy.
-        itemPadding:      f32 = 25                // Extra width added by the content policy.
-        minimumItemWidth: f32 = 25                // Minimum effective width for every tab.
-        items:         ArrayPtr'TabItem     // Tabs in display order.
-        selectedIndex = Swag.U32.Max        // Selected tab index, or U32.Max when empty.
+        barForm:          TabBarForm  = .Flat            // Tab bar background presentation.
+        itemForm:         TabItemForm = .Flat            // Individual tab presentation.
+        viewForm:         TabViewForm = .Flat            // Selected page frame presentation.
+        layout:           TabLayout   = .Equal           // Tab width measurement policy.
+        fixedItemWidth:   f32         = 100              // Item width used by the fixed policy.
+        itemPadding:      f32         = 25               // Extra width added by the content policy.
+        minimumItemWidth: f32         = 25               // Minimum effective width for every tab.
+        items:            ArrayPtr'TabItem               // Tabs in display order.
+        selectedIndex                 = Swag.U32.Max     // Selected tab index, or U32.Max when empty.
     }
 
     // Bar layout and overflow state, recomputed by the layout pass.
     internal
     {
-        buttonPopup:     #null *IconButton        // Button that opens the overflow list.
-        popup:           #null *PopupListCtrl     // Overflow list while it is open.
-        firstVisibleIndex: u32                    // First tab the bar can show.
-        hotIndex:          u32 = Swag.U32.Max     // Tab under the mouse.
-        barHeight:       f32                      // Height the bar measured for itself.
-        mostRightPos:    f32                      // Right edge of the last laid out tab.
+        buttonPopup:       #null *IconButton        // Button that opens the overflow list.
+        popup:             #null *PopupListCtrl     // Overflow list while it is open.
+        firstVisibleIndex: u32                      // First tab the bar can show.
+        hotIndex:          u32 = Swag.U32.Max       // Tab under the mouse.
+        barHeight:         f32                      // Height the bar measured for itself.
+        mostRightPos:      f32                      // Right edge of the last laid out tab.
     }
 }
 
@@ -348,13 +348,17 @@ impl IWnd for Tab
         case .Left, .Up:
             if index > 0 do
                 index -= 1
+
         case .Right, .Down:
             if index + 1 < .items.count do
                 index += 1
+
         case .Home:
             index = 0
+
         case .End:
             index = cast(u32) .items.count - 1
+
         default:
             return
         }
@@ -491,7 +495,7 @@ private impl Tab
             if !.buttonPopup
             {
                 let btnPopup = IconButton.create(me, .theme().icon24(ThemeIcons24.SortArrowDown), {})
-                .buttonPopup        = btnPopup
+                .buttonPopup = btnPopup
                 btnPopup.setForm(.Circle)
                 btnPopup.sigPressed += func|tab = me|(btn)
                 {
@@ -580,6 +584,7 @@ impl Tab
             .layout    = .Content
             .barHeight = .themeMetrics().tabBar_ButtonHeight
         }
+
         .sendResizeEvent()
         .invalidate()
     }
@@ -649,7 +654,7 @@ impl Tab
 
         if .items.isEmpty()
         {
-            .selectedIndex = Swag.U32.Max
+            .selectedIndex     = Swag.U32.Max
             .firstVisibleIndex = 0
         }
         elif .selectedIndex > index
@@ -679,8 +684,9 @@ impl Tab
             if view do
                 view.destroy()
         }
+
         .items.clear()
-        .selectedIndex    = Swag.U32.Max
+        .selectedIndex     = Swag.U32.Max
         .firstVisibleIndex = 0
         .sendResizeEvent()
         .invalidate()
@@ -699,6 +705,7 @@ impl Tab
             if oldView do
                 oldView.wndFlags |= .Hidden
         }
+
         .selectedIndex = index
         let newView = (notnull .items[.selectedIndex]).view
         if newView do

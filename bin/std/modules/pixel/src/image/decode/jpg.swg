@@ -189,7 +189,7 @@ internal struct Decoder
         realDestBytesPerScanLine: s32
         destBytesPerScanLine:     s32
 
-        acceptMetadata: bool
+        acceptMetadata:  bool
         progressiveFlag: bool
         hasAdobeMarker:  bool
         hasJfifMarker:   bool
@@ -230,7 +230,7 @@ internal struct Decoder
         quantBuf:   Array'u8
         sampleBuf:  Array'u8
         decOptions: DecodeOptions
-        metadata: Array'ImageMetadata
+        metadata:   Array'ImageMetadata
     }
 }
 

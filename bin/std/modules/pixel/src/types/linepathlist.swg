@@ -161,7 +161,7 @@ impl LinePathList
         }
 
         .clear()
-        .paths = #move newList.paths
+        .paths     = #move newList.paths
         .minBounds = newList.minBounds
         .maxBounds = newList.maxBounds
     }

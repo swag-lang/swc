@@ -17,11 +17,11 @@ public struct MessageDlg
 // Configures message content alignment, icon presentation, and post-creation customization.
 public struct MessageDlgOptions
 {
-    icon:      Icon                                    // Optional large message icon.
-    iconColor: Color                                   // Icon tint, or transparent for its descriptor color.
+    icon:      Icon                                          // Optional large message icon.
+    iconColor: Color                                         // Icon tint, or transparent for its descriptor color.
     textHorizontalAlignment = StringHorzAlignment.Center     // Horizontal message alignment.
-    textVerticalAlignment = StringVertAlignment.Center       // Vertical message alignment.
-    onCreated: #null func||(*MessageDlg)                // Optional callback invoked before icon setup and layout.
+    textVerticalAlignment   = StringVertAlignment.Center     // Vertical message alignment.
+    onCreated: #null func||(*MessageDlg)                     // Optional callback invoked before icon setup and layout.
 }
 
 public impl MessageDlg
@@ -86,9 +86,9 @@ public impl MessageDlg
         var w = 0'f32
         for btn in .buttons do
             w += btn.position.width
-        w     += cast(f32) ((.buttons.count - 1) * metrics.dialog_BtnPadding)
-        w     += 2 * metrics.dialog_Padding
-        w     += metrics.btnPush_Width
+        w += cast(f32) ((.buttons.count - 1) * metrics.dialog_BtnPadding)
+        w += 2 * metrics.dialog_Padding
+        w += metrics.btnPush_Width
 
         var wl = .label.name.boundRect.width + 2 * metrics.dialog_Padding
         wl += 2 * metrics.wnd_BorderSize
@@ -107,8 +107,8 @@ public impl MessageDlg
             h += .labelIcon.position.height
         else do
             h += metrics.dialog_Padding
-        h     += .buttonBar.position.height
-        h     += 2 * metrics.wnd_BorderSize
+        h += .buttonBar.position.height
+        h += 2 * metrics.wnd_BorderSize
         let srf = notnull .surface
         if srf.flags & .SmallCaption do
             h += metrics.wnd_SmallCaptionCY
@@ -151,7 +151,7 @@ public impl MessageDlg
             return
 
         if !@isset(.labelIcon) do
-            .labelIcon   = Label.create((notnull .surface).wnd.view, "", {0, 0, 0, icon.sizeX + icon.sizeX * 0.5})
+            .labelIcon = Label.create((notnull .surface).wnd.view, "", {0, 0, 0, icon.sizeX + icon.sizeX * 0.5})
         .label.padding.y = 0
 
         with me.labelIcon

@@ -42,27 +42,27 @@ impl IActionUI for ActionAlign
         {
         case .SendToFront:
             evt.updatedFields |= .Disabled | .Icon | .Name
-            evt.name     = "Send To Front"
-            evt.disabled = !hasSel or (notnull capture).selection.contains((notnull capture).forms.count - 1)
-            evt.icon     = main.theme().icon24(.BringToFront)
+            evt.name          = "Send To Front"
+            evt.disabled      = !hasSel or (notnull capture).selection.contains((notnull capture).forms.count - 1)
+            evt.icon          = main.theme().icon24(.BringToFront)
 
         case .SendToBack:
             evt.updatedFields |= .Disabled | .Icon | .Name
-            evt.name     = "Send To Back"
-            evt.disabled = !hasSel or (notnull capture).selection.contains(0)
-            evt.icon     = main.theme().icon24(.SendToBack)
+            evt.name          = "Send To Back"
+            evt.disabled      = !hasSel or (notnull capture).selection.contains(0)
+            evt.icon          = main.theme().icon24(.SendToBack)
 
         case .MoveForward:
             evt.updatedFields |= .Disabled | .Icon | .Name
-            evt.name     = "Move Forward"
-            evt.disabled = !hasSel or (notnull capture).selection.contains((notnull capture).forms.count - 1)
-            evt.icon     = main.theme().icon24(.BringForward)
+            evt.name          = "Move Forward"
+            evt.disabled      = !hasSel or (notnull capture).selection.contains((notnull capture).forms.count - 1)
+            evt.icon          = main.theme().icon24(.BringForward)
 
         case .MoveBackward:
             evt.updatedFields |= .Disabled | .Icon | .Name
-            evt.name     = "Move Backward"
-            evt.disabled = !hasSel or (notnull capture).selection.contains(0)
-            evt.icon     = main.theme().icon24(.SendBackward)
+            evt.name          = "Move Backward"
+            evt.disabled      = !hasSel or (notnull capture).selection.contains(0)
+            evt.icon          = main.theme().icon24(.SendBackward)
         }
 
         return true

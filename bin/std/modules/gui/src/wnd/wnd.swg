@@ -100,10 +100,10 @@ struct LayoutDebugInfo
 // Routes a key combination to a command identifier and optional target window.
 struct KeyShortcut
 {
-    modifiers: Input.KeyModifiers = None     // Required modifier-key combination.
-    key:       Input.Key          = None     // Required non-modifier key.
+    modifiers: Input.KeyModifiers = None          // Required modifier-key combination.
+    key:       Input.Key          = None          // Required non-modifier key.
     id:        WndId              = undefined     // Command identifier sent on a match.
-    target:    #null *Wnd                    // Explicit command target, or `null` to use normal routing.
+    target:    #null *Wnd                         // Explicit command target, or `null` to use normal routing.
 }
 
 // Receives lifecycle, input, paint, command, and notification events for a [Wnd].
@@ -180,14 +180,14 @@ interface IWnd
 #[Swag.EnumFlags]
 enum WndFlags
 {
-    None = 0            // No flags are enabled.
-    NoScroll            // Ignores ancestor scroll offsets when computing surface coordinates.
-    ClipChildren        // Clips child painting to this window's client rectangle.
-    Disabled            // Rejects user input and uses disabled presentation.
-    Hidden              // Excludes the window from painting, input, and layout visibility.
-    BeforeChildrenPaint // Enables the before-children paint phase.
-    AfterChildrenPaint  // Enables the after-children overlay paint phase.
-    TopMost             // Keeps the window after normal siblings in paint order.
+    None = 0                // No flags are enabled.
+    NoScroll                // Ignores ancestor scroll offsets when computing surface coordinates.
+    ClipChildren            // Clips child painting to this window's client rectangle.
+    Disabled                // Rejects user input and uses disabled presentation.
+    Hidden                  // Excludes the window from painting, input, and layout visibility.
+    BeforeChildrenPaint     // Enables the before-children paint phase.
+    AfterChildrenPaint      // Enables the after-children overlay paint phase.
+    TopMost                 // Keeps the window after normal siblings in paint order.
 }
 
 // Forms one node in a retained GUI tree and provides layout, event, and painting services.
@@ -1867,9 +1867,9 @@ impl Wnd
     mtd serializeState(ser: *Serialization.Serializer) fail
     {
         var evt: SerializeStateEvent
-        evt.accepted = false
-        evt.serializer      = ser
-        evt.target   = me
+        evt.accepted   = false
+        evt.serializer = ser
+        evt.target     = me
         .processEvent(&evt)
 
         if !evt.accepted

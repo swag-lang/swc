@@ -402,9 +402,9 @@ public impl LinePath
             return
 
         .clearCache()
-        .isDirty        = false
-        .isFlatten      = true
-        .flattenQuality = quality
+        .isDirty               = false
+        .isFlatten             = true
+        .flattenQuality        = quality
         .minBounds, .maxBounds = .startPoint
 
         if !.elements.count do

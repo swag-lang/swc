@@ -23,7 +23,7 @@ enum GridTrackKind
 // Defines one row or column of a [[GridLayoutCtrl]].
 struct GridTrack
 {
-    kind          = GridTrackKind.Fixed     // Sizing policy.
+    kind         = GridTrackKind.Fixed     // Sizing policy.
     value:   f32 = 100                     // Pixel size for `Fixed`, or weight for `Fraction`.
     minimum: f32                           // Minimum track size in logical pixels.
     maximum: f32                           // Maximum track size, or zero for no upper bound.
@@ -34,17 +34,17 @@ struct GridLayoutCtrl
 {
     using wnd: Wnd     // Embedded wnd state.
 
-    flags        = GridLayoutFlags.None     // Active grid sizing options.
-    numColumns: s32                        // Number of columns.
-    numRows:    s32                        // Number of rows.
-    horizontalSpacing: f32 = 5             // Gap between adjacent columns.
-    verticalSpacing:   f32 = 5             // Gap between adjacent rows.
+    flags                  = GridLayoutFlags.None     // Active grid sizing options.
+    numColumns:        s32                            // Number of columns.
+    numRows:           s32                            // Number of rows.
+    horizontalSpacing: f32 = 5                        // Gap between adjacent columns.
+    verticalSpacing:   f32 = 5                        // Gap between adjacent rows.
 
     internal
     {
-        layout:      Array'(#null *Wnd)     // Window assigned to each cell.
-        columnTracks: Array'GridTrack       // Column definitions.
-        rowTracks:    Array'GridTrack       // Row definitions.
+        layout:       Array'(#null *Wnd)     // Window assigned to each cell.
+        columnTracks: Array'GridTrack        // Column definitions.
+        rowTracks:    Array'GridTrack        // Row definitions.
     }
 }
 
@@ -92,8 +92,8 @@ private impl GridLayoutCtrl
         var result: retval
         switch track.kind
         {
-        case .Fixed:           result = track.value
-        case .Content:         result = content
+        case .Fixed:    result = track.value
+        case .Content:  result = content
         case .Fraction: result = track.minimum
         }
 
@@ -207,7 +207,7 @@ private impl GridLayoutCtrl
                 var trackWeight = 1'f32
                 if tracks[i].value > 0 do
                     trackWeight = tracks[i].value
-                weight          += trackWeight
+                weight += trackWeight
             }
         }
 
@@ -223,6 +223,7 @@ private impl GridLayoutCtrl
                     if tracks[i].kind == GridTrackKind.Fraction and result[i] < .trackMax(tracks[i]) do
                         activeWeight += tracks[i].value > 0 ? tracks[i].value : 1
                 }
+
                 if activeWeight <= 0 do
                     break
 
@@ -234,7 +235,7 @@ private impl GridLayoutCtrl
                     let w      = tracks[i].value > 0 ? tracks[i].value : 1
                     let share  = remaining * w / activeWeight
                     let actual = Math.min(share, .trackMax(tracks[i]) - result[i])
-                    result[i] += actual
+                    result[i]   += actual
                     distributed += actual
                 }
 
@@ -283,7 +284,7 @@ private impl GridLayoutCtrl
         {
             if i do
                 result += spacing
-            result     += sizes[idx + i]
+            result += sizes[idx + i]
         }
 
         return result

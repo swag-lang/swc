@@ -34,11 +34,17 @@ impl Angle
 
     // Creates an angle from a value in radians.
     #[ConstExpr, Inline]
-    func fromRadians(value: f32)->Angle => {radians: value}
+    func fromRadians(value: f32)->Angle =>
+    {
+        radians: value
+    }
 
     // Creates an angle from a value in degrees.
     #[ConstExpr, Inline]
-    func fromDegrees(value: f32)->Angle => {radians: Math.toRadians(value)}
+    func fromDegrees(value: f32)->Angle =>
+    {
+        radians: Math.toRadians(value)
+    }
 
     // Convert the angle from radians to degrees.
     // Returns the angle value in degrees as a floating-point number.

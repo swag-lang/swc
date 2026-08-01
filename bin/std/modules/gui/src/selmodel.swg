@@ -87,7 +87,7 @@ impl SelModel
     {
         var rangeStart = Math.min(first, last)
         var rangeEnd   = Math.max(first, last)
-        var insertAt:  u64
+        var insertAt: u64
 
         while insertAt < .rangesStorage.count
         {
@@ -105,7 +105,7 @@ impl SelModel
                 break
             rangeStart = Math.min(rangeStart, range.start)
             rangeEnd   = Math.max(rangeEnd, range.end)
-            mergeEnd  += 1
+            mergeEnd   += 1
         }
 
         if insertAt == mergeEnd
@@ -134,6 +134,7 @@ impl SelModel
                 rangeIndex += 1
                 continue
             }
+
             if range.start > rangeEnd do
                 break
 
@@ -157,7 +158,7 @@ impl SelModel
                 break
             }
 
-            range.end = rangeStart - 1
+            range.end  = rangeStart - 1
             rangeIndex += 1
         }
     }

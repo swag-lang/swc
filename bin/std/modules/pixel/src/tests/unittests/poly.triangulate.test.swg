@@ -45,7 +45,7 @@ func triCount(pts: [..] Vector2)->u64
     @assert(open.isSimple)
 
     var explicitlyClosed = open
-    let closingPoint = explicitlyClosed.points[0]
+    let closingPoint     = explicitlyClosed.points[0]
     explicitlyClosed.add(closingPoint)
     explicitlyClosed.recompute()
 

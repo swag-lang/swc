@@ -216,7 +216,7 @@ func __convertArgcArgv(args: const [*] u8)
             cmdLine += 1
             let start = cmdLine
             while dref cmdLine and dref cmdLine != '"' do
-                cmdLine    += 1
+                cmdLine += 1
             __argv[__argc] = cast(string) @mkslice(start, cast(u64) (cmdLine - start))
             if dref cmdLine do
                 cmdLine += 1
@@ -225,7 +225,7 @@ func __convertArgcArgv(args: const [*] u8)
         {
             let start = cmdLine
             while dref cmdLine and dref cmdLine != ' ' do
-                cmdLine    += 1
+                cmdLine += 1
             __argv[__argc] = cast(string) @mkslice(start, cast(u64) (cmdLine - start))
         }
 

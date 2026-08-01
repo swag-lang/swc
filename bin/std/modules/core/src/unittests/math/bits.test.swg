@@ -40,7 +40,7 @@ func expectedCountOnes8(value: u8)->u8
     {
         if input & mask do
             count += 1
-        mask      <<= 1
+        mask <<= 1
     }
 
     return count
@@ -115,7 +115,7 @@ func expectedCountOnes16(value: u16)->u16
     {
         if input & mask do
             count += 1
-        mask      <<= 1
+        mask <<= 1
     }
 
     return count

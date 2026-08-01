@@ -24,8 +24,8 @@ public impl Md5
     // Call [[reset]] before reusing this value after finalization.
     mtd finalize()->Digest
     {
-        var digest: retval
-        var bits: [8] u8
+        var digest:  retval
+        var bits:    [8] u8
         var padding: [64] u8
         padding[0] = 0x80
         encode(&bits[0], .count, 8)
@@ -43,10 +43,10 @@ public impl Md5
     mtd reset()
     {
         @init(me, 1)
-        .state[0]   = 0x67452301
-        .state[1]   = 0xEFCDAB89
-        .state[2]   = 0x98BADCFE
-        .state[3]   = 0x10325476
+        .state[0] = 0x67452301
+        .state[1] = 0xEFCDAB89
+        .state[2] = 0x98BADCFE
+        .state[3] = 0x10325476
     }
 
     // Includes `data` in the running digest.
@@ -62,7 +62,7 @@ public impl Md5
         .count[0] += inputLen << 3
         if .count[0] < inputLen << 3 do
             .count[1] += 1
-        .count[1]     += inputLen >> 29
+        .count[1] += inputLen >> 29
 
         var i       = 0'u32
         let partLen = 64 - index

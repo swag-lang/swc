@@ -82,8 +82,8 @@ func parseGrid(text: string)->Grid
             {
                 if result.height == 0 do
                     result.width = col
-                result.height    += 1
-                col              = 0
+                result.height += 1
+                col           = 0
             }
             continue
         }

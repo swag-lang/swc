@@ -111,8 +111,8 @@ struct Properties
     // change so cached layout state remains synchronized.
     readonly
     {
-        kind = PropertiesKind.List     // Presentation selected at creation.
-        editorWidth: s32 = 200     // Preferred maximum width of value editors.
+        kind             = PropertiesKind.List     // Presentation selected at creation.
+        editorWidth: s32 = 200                     // Preferred maximum width of value editors.
 
         // Affects rows added after the option changes.
         usingFieldsLast: bool
@@ -387,17 +387,17 @@ impl Properties
         {
             .kind = kind
 
-            .scrollWnd                = .createView'ScrollWnd()
-            .scrollWnd.dockStyle      = .Center
-            .scrollWnd.focusStrategy  = .None
-            .scrollWnd.padding        = 0
+            .scrollWnd               = .createView'ScrollWnd()
+            .scrollWnd.dockStyle     = .Center
+            .scrollWnd.focusStrategy = .None
+            .scrollWnd.padding       = 0
             .scrollWnd.updateFlags(.TransparentBars)
 
-            .edView            = .scrollWnd.createView'PropertiesView()
-            .edView.ed         = ed
-            .edView.mode = .Top
-            .edView.spacing    = 0
-            .edView.wndFlags   |= .NoScroll
+            .edView          = .scrollWnd.createView'PropertiesView()
+            .edView.ed       = ed
+            .edView.mode     = .Top
+            .edView.spacing  = 0
+            .edView.wndFlags |= .NoScroll
 
             let theme = parent.theme()
 

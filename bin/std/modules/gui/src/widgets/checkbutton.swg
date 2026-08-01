@@ -121,9 +121,9 @@ impl IWnd for CheckButton
             format.horzAlignment = .Right
         else do
             format.horzAlignment = .Left
-        format.vertAlignment     = .Center
-        format.flags             = .Clip
-        format.font              = .font()
+        format.vertAlignment = .Center
+        format.flags         = .Clip
+        format.font          = .font()
         var labelPos = clientRect
         if !.flags.has(.RightAligned) do
             labelPos.x += posBox.width + metrics.btnCheck_Padding
@@ -165,7 +165,7 @@ impl CheckButton
             pos.height = parent.themeMetrics().btnPush_Height
         if pos.width == 0 do
             pos.width = parent.themeMetrics().btnPush_Width
-        let result   = Wnd.create'CheckButton(parent, name, pos, id)
+        let result = Wnd.create'CheckButton(parent, name, pos, id)
         result.flags = flags
         return result
     }
@@ -175,13 +175,11 @@ impl CheckButton
     {
         switch .state
         {
-        case .Unchecked:
-            .state = .Checked
-        case .Checked:
-            .state = .flags.has(.TriState) ? .Indeterminate : .Unchecked
-        case .Indeterminate:
-            .state = .Unchecked
+        case .Unchecked:     .state = .Checked
+        case .Checked:       .state = .flags.has(.TriState) ? .Indeterminate : .Unchecked
+        case .Indeterminate: .state = .Unchecked
         }
+
         .invalidate()
         .sigChanged.call(me)
         .postCommandEvent(.id)

@@ -51,8 +51,8 @@ func iconBarHeadlessReset()
     var host: Testing.HeadlessHost
     host.setup(240, 120)
 
-    let bar = IconBar.create(&host.root, 20, {20, 20}, itemPadding: 2)
-    let btn = bar.addButton({}, IconBarHeadless_Btn1)
+    let bar              = IconBar.create(&host.root, 20, {20, 20}, itemPadding: 2)
+    let btn              = bar.addButton({}, IconBarHeadless_Btn1)
     let descriptorWidth  = btn.icon.sizeX
     let descriptorHeight = btn.icon.sizeY
     @assert(btn.position.width == 24 and btn.position.height == 24)

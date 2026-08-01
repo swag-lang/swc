@@ -17,18 +17,18 @@ impl NativeCursor
 #init
 {
     using NativeCursor, CursorShape
-    defaultCursors[Arrow].cursor                   = LoadCursorA(null, MAKEINTRESOURCEA(IDC_ARROW))
-    defaultCursors[ResizeHorizontal].cursor        = LoadCursorA(null, MAKEINTRESOURCEA(IDC_SIZEWE))
-    defaultCursors[ResizeVertical].cursor          = LoadCursorA(null, MAKEINTRESOURCEA(IDC_SIZENS))
+    defaultCursors[Arrow].cursor                    = LoadCursorA(null, MAKEINTRESOURCEA(IDC_ARROW))
+    defaultCursors[ResizeHorizontal].cursor         = LoadCursorA(null, MAKEINTRESOURCEA(IDC_SIZEWE))
+    defaultCursors[ResizeVertical].cursor           = LoadCursorA(null, MAKEINTRESOURCEA(IDC_SIZENS))
     defaultCursors[ResizeNorthwestSoutheast].cursor = LoadCursorA(null, MAKEINTRESOURCEA(IDC_SIZENWSE))
     defaultCursors[ResizeNortheastSouthwest].cursor = LoadCursorA(null, MAKEINTRESOURCEA(IDC_SIZENESW))
-    defaultCursors[Move].cursor                    = LoadCursorA(null, MAKEINTRESOURCEA(IDC_SIZEALL))
-    defaultCursors[Cross].cursor    = LoadCursorA(null, MAKEINTRESOURCEA(IDC_CROSS))
-    defaultCursors[Help].cursor     = LoadCursorA(null, MAKEINTRESOURCEA(IDC_HELP))
-    defaultCursors[Hand].cursor     = LoadCursorA(null, MAKEINTRESOURCEA(IDC_HAND))
-    defaultCursors[IBeam].cursor    = LoadCursorA(null, MAKEINTRESOURCEA(IDC_IBEAM))
-    defaultCursors[No].cursor       = LoadCursorA(null, MAKEINTRESOURCEA(IDC_NO))
-    defaultCursors[Wait].cursor     = LoadCursorA(null, MAKEINTRESOURCEA(IDC_WAIT))
+    defaultCursors[Move].cursor                     = LoadCursorA(null, MAKEINTRESOURCEA(IDC_SIZEALL))
+    defaultCursors[Cross].cursor                    = LoadCursorA(null, MAKEINTRESOURCEA(IDC_CROSS))
+    defaultCursors[Help].cursor                     = LoadCursorA(null, MAKEINTRESOURCEA(IDC_HELP))
+    defaultCursors[Hand].cursor                     = LoadCursorA(null, MAKEINTRESOURCEA(IDC_HAND))
+    defaultCursors[IBeam].cursor                    = LoadCursorA(null, MAKEINTRESOURCEA(IDC_IBEAM))
+    defaultCursors[No].cursor                       = LoadCursorA(null, MAKEINTRESOURCEA(IDC_NO))
+    defaultCursors[Wait].cursor                     = LoadCursorA(null, MAKEINTRESOURCEA(IDC_WAIT))
 }
 
 impl Cursor

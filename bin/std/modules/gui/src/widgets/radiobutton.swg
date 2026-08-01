@@ -12,7 +12,7 @@ struct RadioButton
     readonly
     {
         flags = RadioButtonFlags.None     // Active marker placement options.
-        checked: bool                    // Whether this option is selected.
+        checked: bool                     // Whether this option is selected.
     }
 
     sigChanged: SigArray'func||(*RadioButton)     // Emitted after a user action selects the button.
@@ -108,9 +108,9 @@ impl IWnd for RadioButton
             format.horzAlignment = .Right
         else do
             format.horzAlignment = .Left
-        format.vertAlignment     = .Center
-        format.flags             = .Clip
-        format.font              = .font()
+        format.vertAlignment = .Center
+        format.flags         = .Clip
+        format.font          = .font()
         var labelPos = clientRect
         if !.flags.has(.RightAligned) do
             labelPos.x += posBox.width + metrics.btnCheck_Padding
@@ -151,7 +151,7 @@ impl RadioButton
             pos.height = parent.themeMetrics().btnPush_Height
         if pos.width == 0 do
             pos.width = parent.themeMetrics().btnPush_Width
-        let result   = Wnd.create'RadioButton(parent, name, pos, id)
+        let result = Wnd.create'RadioButton(parent, name, pos, id)
         result.flags = flags
         return result
     }

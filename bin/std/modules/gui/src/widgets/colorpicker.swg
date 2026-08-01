@@ -5,26 +5,26 @@ using Core, Pixel
 // Selects the color components mapped to the picker's horizontal and vertical axes.
 enum ColorPickerMode
 {
-    SaturationLightness     // Maps saturation horizontally and lightness vertically.
-    HueSaturation           // Maps hue horizontally and saturation vertically.
-    HueLightness            // Maps hue horizontally and lightness vertically.
-    GreenBlue               // Maps green horizontally and blue vertically.
-    RedBlue                 // Maps red horizontally and blue vertically.
-    RedGreen                // Maps red horizontally and green vertically.
-    HueVertical             // Maps hue from top to bottom.
-    HueHorizontal           // Maps hue from left to right.
-    LightnessVertical       // Maps lightness from top to bottom.
-    LightnessHorizontal     // Maps lightness from left to right.
-    SaturationVertical      // Maps saturation from top to bottom.
-    SaturationHorizontal    // Maps saturation from left to right.
-    AlphaHorizontal         // Maps alpha from left to right.
-    AlphaVertical           // Maps alpha from top to bottom.
-    RedHorizontal           // Maps red from left to right.
-    RedVertical             // Maps red from top to bottom.
-    GreenHorizontal         // Maps green from left to right.
-    GreenVertical           // Maps green from top to bottom.
-    BlueHorizontal          // Maps blue from left to right.
-    BlueVertical            // Maps blue from top to bottom.
+    SaturationLightness      // Maps saturation horizontally and lightness vertically.
+    HueSaturation            // Maps hue horizontally and saturation vertically.
+    HueLightness             // Maps hue horizontally and lightness vertically.
+    GreenBlue                // Maps green horizontally and blue vertically.
+    RedBlue                  // Maps red horizontally and blue vertically.
+    RedGreen                 // Maps red horizontally and green vertically.
+    HueVertical              // Maps hue from top to bottom.
+    HueHorizontal            // Maps hue from left to right.
+    LightnessVertical        // Maps lightness from top to bottom.
+    LightnessHorizontal      // Maps lightness from left to right.
+    SaturationVertical       // Maps saturation from top to bottom.
+    SaturationHorizontal     // Maps saturation from left to right.
+    AlphaHorizontal          // Maps alpha from left to right.
+    AlphaVertical            // Maps alpha from top to bottom.
+    RedHorizontal            // Maps red from left to right.
+    RedVertical              // Maps red from top to bottom.
+    GreenHorizontal          // Maps green from left to right.
+    GreenVertical            // Maps green from top to bottom.
+    BlueHorizontal           // Maps blue from left to right.
+    BlueVertical             // Maps blue from top to bottom.
 }
 
 // Selects a color component or component pair from a rendered gradient.
@@ -36,17 +36,17 @@ struct ColorPicker
 
     readonly
     {
-        hue, saturation, lightness: f32                               // Current HSL components in the closed interval [0, 1].
-        alpha, red, green, blue:    f32                               // Current ARGB components in the closed interval [0, 1].
-        mode = ColorPickerMode.SaturationLightness                    // Current component mapping.
+        hue, saturation, lightness: f32                // Current HSL components in the closed interval [0, 1].
+        alpha, red, green, blue:    f32                // Current ARGB components in the closed interval [0, 1].
+        mode = ColorPickerMode.SaturationLightness     // Current component mapping.
     }
 
     internal
     {
-        dirty:      bool = true
-        isDragging: bool
-        image:      Image
-        texture:    Texture
+        dirty:            bool = true
+        isDragging:       bool
+        image:            Image
+        texture:          Texture
         cursorX, cursorY: s32
     }
 }
@@ -305,12 +305,12 @@ impl IWnd for ColorPicker
                     .computeRGB()
 
                 case .HueSaturation:
-                    .hue = x
+                    .hue        = x
                     .saturation = 1 - y
                     .computeRGB()
 
                 case .HueLightness:
-                    .hue = x
+                    .hue       = x
                     .lightness = 1 - y
                     .computeRGB()
 
@@ -425,32 +425,64 @@ private impl ColorPicker
         case .HueSaturation:
             .cursorX = cast() (.hue * clientRect.width)
             .cursorY = cast() ((1 - .saturation) * clientRect.height)
+
         case .HueLightness:
             .cursorX = cast() (.hue * clientRect.width)
             .cursorY = cast() ((1 - .lightness) * clientRect.height)
+
         case .GreenBlue:
             .cursorX = cast() (.green * clientRect.width)
             .cursorY = cast() (.blue * clientRect.height)
+
         case .RedBlue:
             .cursorX = cast() (.red * clientRect.width)
             .cursorY = cast() (.blue * clientRect.height)
+
         case .RedGreen:
             .cursorX = cast() (.red * clientRect.width)
             .cursorY = cast() (.green * clientRect.height)
-        case .HueVertical:          .cursorY = cast() (.hue * clientRect.height)
-        case .HueHorizontal:        .cursorX = cast() (.hue * clientRect.width)
-        case .LightnessVertical:    .cursorY = cast() (.lightness * clientRect.height)
-        case .LightnessHorizontal:  .cursorX = cast() (.lightness * clientRect.width)
-        case .SaturationVertical:   .cursorY = cast() (.saturation * clientRect.height)
-        case .SaturationHorizontal: .cursorX = cast() (.saturation * clientRect.width)
-        case .AlphaHorizontal:      .cursorX = cast() (.alpha * clientRect.width)
-        case .AlphaVertical:        .cursorY = cast() (.alpha * clientRect.height)
-        case .RedHorizontal:        .cursorX = cast() (.red * clientRect.width)
-        case .RedVertical:          .cursorY = cast() (.red * clientRect.height)
-        case .GreenHorizontal:      .cursorX = cast() (.green * clientRect.width)
-        case .GreenVertical:        .cursorY = cast() (.green * clientRect.height)
-        case .BlueHorizontal:       .cursorX = cast() (.blue * clientRect.width)
-        case .BlueVertical:         .cursorY = cast() (.blue * clientRect.height)
+
+        case .HueVertical:
+            .cursorY = cast() (.hue * clientRect.height)
+
+        case .HueHorizontal:
+            .cursorX = cast() (.hue * clientRect.width)
+
+        case .LightnessVertical:
+            .cursorY = cast() (.lightness * clientRect.height)
+
+        case .LightnessHorizontal:
+            .cursorX = cast() (.lightness * clientRect.width)
+
+        case .SaturationVertical:
+            .cursorY = cast() (.saturation * clientRect.height)
+
+        case .SaturationHorizontal:
+            .cursorX = cast() (.saturation * clientRect.width)
+
+        case .AlphaHorizontal:
+            .cursorX = cast() (.alpha * clientRect.width)
+
+        case .AlphaVertical:
+            .cursorY = cast() (.alpha * clientRect.height)
+
+        case .RedHorizontal:
+            .cursorX = cast() (.red * clientRect.width)
+
+        case .RedVertical:
+            .cursorY = cast() (.red * clientRect.height)
+
+        case .GreenHorizontal:
+            .cursorX = cast() (.green * clientRect.width)
+
+        case .GreenVertical:
+            .cursorY = cast() (.green * clientRect.height)
+
+        case .BlueHorizontal:
+            .cursorX = cast() (.blue * clientRect.width)
+
+        case .BlueVertical:
+            .cursorY = cast() (.blue * clientRect.height)
         }
     }
 

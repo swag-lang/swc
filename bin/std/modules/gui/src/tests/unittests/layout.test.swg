@@ -213,7 +213,7 @@ using Swag, Core
 
     let grid = GridLayoutCtrl.create(&host.root, 2, 2, {0, 0, 250, 100})
     grid.horizontalSpacing = 5
-    grid.verticalSpacing = 5
+    grid.verticalSpacing   = 5
 
     // Default colSizes = 100, rowSizes = 30.
 
@@ -244,7 +244,7 @@ using Swag, Core
 
     let grid = GridLayoutCtrl.create(&host.root, 2, 2, {0, 0, 250, 100})
     grid.horizontalSpacing = 5
-    grid.verticalSpacing = 5
+    grid.verticalSpacing   = 5
 
     let wide = Wnd.create'Wnd(grid, null, {0, 0, 0, 0})
     grid.setCell(wide, 0, 0, 2, 1)

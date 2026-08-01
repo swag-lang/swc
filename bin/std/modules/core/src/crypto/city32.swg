@@ -42,9 +42,9 @@ impl City32
         var b   = len * 5
         var c   = 9'u32
         let d   = b
-        a    += fetch(s)
-        b    += fetch(s + len - 4)
-        c    += fetch(s + ((len >> 1) & 4))
+        a             += fetch(s)
+        b             += fetch(s + len - 4)
+        c             += fetch(s + ((len >> 1) & 4))
         .currentValue = murmur3(murmur3(c, murmur3(b, murmur3(a, d))))
     }
 
@@ -139,16 +139,16 @@ impl City32
             s += 20
         }
 
-        g    = Math.ror(g, 11) * C1
-        g    = Math.ror(g, 17) * C1
-        f    = Math.ror(f, 11) * C1
-        f    = Math.ror(f, 17) * C1
-        h    = Math.ror(h + g, 19)
-        h    = h * 5 + 0xE6546B64
-        h    = Math.ror(h, 17) * C1
-        h    = Math.ror(h + f, 19)
-        h    = h * 5 + 0xE6546B64
-        h    = Math.ror(h, 17) * C1
+        g             = Math.ror(g, 11) * C1
+        g             = Math.ror(g, 17) * C1
+        f             = Math.ror(f, 11) * C1
+        f             = Math.ror(f, 17) * C1
+        h             = Math.ror(h + g, 19)
+        h             = h * 5 + 0xE6546B64
+        h             = Math.ror(h, 17) * C1
+        h             = Math.ror(h + f, 19)
+        h             = h * 5 + 0xE6546B64
+        h             = Math.ror(h, 17) * C1
         .currentValue = h
     }
 

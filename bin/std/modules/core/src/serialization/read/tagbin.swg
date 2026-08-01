@@ -33,8 +33,8 @@ Supported attributes are :
 */
 struct TagBin
 {
-    ignoreElements: Array'String     // Element names skipped while decoding.
-    options:        TagBinOptions    // Compatibility behavior.
+    ignoreElements: Array'String      // Element names skipped while decoding.
+    options:        TagBinOptions     // Compatibility behavior.
 
     internal
     {
@@ -45,9 +45,9 @@ struct TagBin
         convertNextNative: #null const *Swag.TypeInfoNative     // Pending native conversion.
         convertValToArray: bool                                 // Whether the next scalar becomes an array.
         convertArrayToVal: bool                                 // Whether the next array becomes a scalar.
-        outStack:           Array'{ buf: #null const [..] u8, seek: u64 }
-        elemStack:          Array'{ compressed: bool, tmpBuf: #null *Buffer }
-        tmpPool:            ArrayPtr'Buffer
+        outStack:          Array'{ buf: #null const [..] u8, seek: u64 }
+        elemStack:         Array'{ compressed: bool, tmpBuf: #null *Buffer }
+        tmpPool:           ArrayPtr'Buffer
     }
 }
 

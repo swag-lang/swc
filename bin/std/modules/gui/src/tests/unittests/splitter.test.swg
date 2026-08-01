@@ -82,12 +82,12 @@ using Swag, Core
     host.setup(340, 220)
 
     let splitter = SplitterCtrl.create(&host.root, {0, 0, 320, 200})
-    let pane0 = Wnd.create'Wnd(splitter)
-    let pane1 = Wnd.create'Wnd(splitter)
-    let pane2 = Wnd.create'Wnd(splitter)
-    let item0 = splitter.addPane(pane0)
-    let item1 = splitter.addPane(pane1, 90, showTitle: true)
-    let item2 = splitter.addPane(pane2, 90)
+    let pane0    = Wnd.create'Wnd(splitter)
+    let pane1    = Wnd.create'Wnd(splitter)
+    let pane2    = Wnd.create'Wnd(splitter)
+    let item0    = splitter.addPane(pane0)
+    let item1    = splitter.addPane(pane1, 90, showTitle: true)
+    let item2    = splitter.addPane(pane2, 90)
 
     splitter.setPaneVisible(1, false)
     @assert(!pane1.isLocallyVisible())

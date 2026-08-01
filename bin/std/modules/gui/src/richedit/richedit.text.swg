@@ -753,7 +753,7 @@ public impl RichEditCtrl
                     x = (.tabSize * size.x) - x
                     if x == 0 do
                         x = .tabSize * size.x
-                    x     = charPt.x - x
+                    x = charPt.x - x
 
                     while charPt.x > x and beg.charPosInLine and Unicode.isSpace(line.chars[beg.charPosInLine - 1])
                     {
@@ -769,7 +769,7 @@ public impl RichEditCtrl
                 .pushUndo()
                 if !first do
                     .serialUndo -= 1
-                .selBeg         = beg
+                .selBeg = beg
                 .setCursorPos(beg1)
                 .deleteSelectionPrivate(beg, beg1, false)
                 .popUndo()

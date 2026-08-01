@@ -169,7 +169,7 @@ func unpackBits(dst: [*] u8, expected: u64, src, last: const [*] u8) fail
             p += 1
             for count do
                 dst[out + @index] = value
-            out                   += count
+            out += count
         }
     }
 }
@@ -400,7 +400,7 @@ internal impl IImageDecoder for Decoder
                     {
                         var v = srcRow[x]
                         if photometric == PHOTO_WHITE_IS_ZERO do
-                            v  = 255 - v
+                            v = 255 - v
                         dst[0] = v
                         dst[1] = v
                         dst[2] = v

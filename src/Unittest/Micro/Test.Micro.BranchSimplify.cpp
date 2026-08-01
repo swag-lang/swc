@@ -268,6 +268,130 @@ SWC_TEST_BEGIN(BranchSimplify_ErasesDeadTailAfterRet)
 }
 SWC_TEST_END()
 
+// jcc over a single register copy becomes a conditional move on the
+// inverted condition; the label survives.
+SWC_TEST_BEGIN(BranchSimplify_ConvertsMinPatternToCmov)
+{
+    const MicroReg vA = MicroReg::virtualIntReg(10);
+    const MicroReg vB = MicroReg::virtualIntReg(11);
+    MicroBuilder   builder(ctx);
+
+    const MicroLabelRef skip = builder.createLabel();
+
+    builder.emitCmpRegReg(vB, vA, MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::AboveOrEqual, MicroOpBits::B32, skip);
+    builder.emitLoadRegReg(vA, vB, MicroOpBits::B64);
+    builder.placeLabel(skip);
+    builder.emitRet();
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    uint32_t cmovCount = 0;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        if (inst.op != MicroInstrOpcode::LoadCondRegReg)
+            continue;
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (ops && ops[2].cpuCond == MicroCond::Below)
+            ++cmovCount;
+    }
+
+    if (cmovCount != 1)
+        return Result::Error;
+    if (countConditionalJumps(builder) != 0)
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// jcc over a single immediate load materializes the immediate above the
+// branch and selects it conditionally.
+SWC_TEST_BEGIN(BranchSimplify_ConvertsConditionalConstantToCmov)
+{
+    const MicroReg vA = MicroReg::virtualIntReg(10);
+    const MicroReg vC = MicroReg::virtualIntReg(11);
+    MicroBuilder   builder(ctx);
+
+    const MicroLabelRef skip = builder.createLabel();
+
+    builder.emitCmpRegImm(vC, ApInt(9, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, skip);
+    builder.emitLoadRegImm(vA, ApInt(0, 64), MicroOpBits::B64);
+    builder.placeLabel(skip);
+    builder.emitRet();
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    uint32_t cmovCount = 0;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        if (inst.op != MicroInstrOpcode::LoadCondRegReg)
+            continue;
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (ops && ops[2].cpuCond == MicroCond::Equal)
+            ++cmovCount;
+    }
+
+    if (cmovCount != 1)
+        return Result::Error;
+    if (countConditionalJumps(builder) != 0)
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A two-instruction body is not a conditional move candidate.
+SWC_TEST_BEGIN(BranchSimplify_KeepsMultiInstructionBranchBody)
+{
+    const MicroReg vA = MicroReg::virtualIntReg(10);
+    const MicroReg vB = MicroReg::virtualIntReg(11);
+    const MicroReg vC = MicroReg::virtualIntReg(12);
+    MicroBuilder   builder(ctx);
+
+    const MicroLabelRef skip = builder.createLabel();
+
+    builder.emitCmpRegReg(vB, vA, MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::AboveOrEqual, MicroOpBits::B32, skip);
+    builder.emitLoadRegReg(vA, vB, MicroOpBits::B64);
+    builder.emitLoadRegReg(vC, vB, MicroOpBits::B64);
+    builder.placeLabel(skip);
+    builder.emitRet();
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    if (countConditionalJumps(builder) != 1)
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// cmov has no 8/16-bit forms: a narrow select keeps its branch.
+SWC_TEST_BEGIN(BranchSimplify_KeepsByteSelectBranch)
+{
+    const MicroReg vA = MicroReg::virtualIntReg(10);
+    const MicroReg vB = MicroReg::virtualIntReg(11);
+    MicroBuilder   builder(ctx);
+
+    const MicroLabelRef skip = builder.createLabel();
+
+    builder.emitCmpRegReg(vB, vA, MicroOpBits::B8);
+    builder.emitJumpToLabel(MicroCond::AboveOrEqual, MicroOpBits::B32, skip);
+    builder.emitLoadRegReg(vA, vB, MicroOpBits::B8);
+    builder.placeLabel(skip);
+    builder.emitRet();
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    if (countConditionalJumps(builder) != 1)
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

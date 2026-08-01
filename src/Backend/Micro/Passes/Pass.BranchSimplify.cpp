@@ -548,7 +548,7 @@ namespace
 
             if (trackedReg.isValid())
             {
-                const MicroInstrUseDef useDef = scanInst->collectUseDef(operands, nullptr);
+                const MicroInstrUseDef useDef         = scanInst->collectUseDef(operands, nullptr);
                 bool                   definesTracked = false;
                 for (const MicroReg def : useDef.defs)
                 {
@@ -712,6 +712,149 @@ namespace
         return changed;
     }
 
+    // Conditions the cmov encoder can express. Every condition
+    // invertBranchCondition can produce is encodable; this only fences off
+    // the unconditional marker defensively.
+    bool conditionSupportsConditionalMove(const MicroCond cond)
+    {
+        return cond != MicroCond::Unconditional;
+    }
+
+    // If-conversion of the smallest diamond-free branch:
+    //
+    //     jcc   CC, .L                cmov(~CC) D, S      ; or: mov T, imm
+    //     mov   D, S             ->                       ;     cmov(~CC) D, T
+    //     .L:                         .L:
+    //
+    // The skipped body runs exactly when CC is false, which is what the
+    // conditional move with the inverted condition expresses; the label stays
+    // for any other jump that targets it. A single-copy body converts
+    // directly. A single immediate-load body converts by materializing the
+    // immediate into a fresh scratch register above the branch — an immediate
+    // load never touches the CPU flags the move consumes. This removes the
+    // classic min/max and conditional-constant branches, which are the least
+    // predictable ones in the numeric kernels.
+    bool convertBranchesToConditionalMoves(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    {
+        struct Conversion
+        {
+            MicroInstrRef jumpRef  = MicroInstrRef::invalid();
+            MicroInstrRef bodyRef  = MicroInstrRef::invalid();
+            MicroInstrRef labelRef = MicroInstrRef::invalid();
+            MicroCond     cond     = MicroCond::Unconditional;
+            bool          fromImm  = false;
+        };
+
+        SmallVector<Conversion> conversions;
+
+        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        {
+            const MicroInstr& jumpInst = *it;
+            if (jumpInst.op != MicroInstrOpcode::JumpCond)
+                continue;
+            const MicroInstrOperand* jumpOps = jumpInst.ops(operands);
+            if (!jumpOps || jumpOps[0].cpuCond == MicroCond::Unconditional)
+                continue;
+
+            const MicroInstrRef bodyRef = storage.findNextInstructionRef(it.current);
+            if (!bodyRef.isValid())
+                continue;
+            const MicroInstr* bodyInst = storage.ptr(bodyRef);
+            if (!bodyInst)
+                continue;
+
+            bool fromImm = false;
+            if (bodyInst->op == MicroInstrOpcode::LoadRegImm)
+                fromImm = true;
+            else if (bodyInst->op != MicroInstrOpcode::LoadRegReg)
+                continue;
+
+            const MicroInstrOperand* bodyOps = bodyInst->ops(operands);
+            if (!bodyOps)
+                continue;
+
+            // cmov exists for 32/64-bit integer registers only.
+            const MicroOpBits bodyBits = fromImm ? bodyOps[1].opBits : bodyOps[2].opBits;
+            if (getNumBits(bodyBits) < 32)
+                continue;
+            const MicroReg dstReg = bodyOps[0].reg;
+            if (!dstReg.isVirtualInt() && !dstReg.isInt())
+                continue;
+            if (!fromImm)
+            {
+                const MicroReg srcReg = bodyOps[1].reg;
+                if (!srcReg.isVirtualInt() && !srcReg.isInt())
+                    continue;
+            }
+            // A >64-bit immediate cannot be re-materialized from the stored word.
+            if (fromImm && bodyOps[2].valueInt.bitWidth() > 64)
+                continue;
+
+            const MicroInstrRef labelRef = storage.findNextInstructionRef(bodyRef);
+            if (!labelRef.isValid())
+                continue;
+            const MicroInstr* labelInst = storage.ptr(labelRef);
+            if (!labelInst)
+                continue;
+            uint32_t labelId = 0;
+            if (!tryGetLabelId(labelId, *labelInst, labelInst->ops(operands)))
+                continue;
+            uint32_t targetLabelId = 0;
+            if (!tryGetJumpTargetLabelId(targetLabelId, jumpInst, jumpOps) || targetLabelId != labelId)
+                continue;
+
+            MicroCond inverted = MicroCond::Unconditional;
+            if (!invertBranchCondition(jumpOps[0].cpuCond, inverted) || !conditionSupportsConditionalMove(inverted))
+                continue;
+
+            conversions.push_back({.jumpRef = it.current, .bodyRef = bodyRef, .labelRef = labelRef, .cond = inverted, .fromImm = fromImm});
+        }
+
+        if (conversions.empty())
+            return false;
+
+        uint32_t nextVirtualIntRegIndex = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
+
+        for (const Conversion& conversion : conversions)
+        {
+            const MicroInstr*        bodyInst = storage.ptr(conversion.bodyRef);
+            const MicroInstrOperand* bodyOps  = bodyInst ? bodyInst->ops(operands) : nullptr;
+            if (!bodyOps)
+                continue;
+
+            const MicroReg    dstReg   = bodyOps[0].reg;
+            const MicroOpBits bodyBits = conversion.fromImm ? bodyOps[1].opBits : bodyOps[2].opBits;
+            MicroReg          srcReg   = MicroReg::invalid();
+
+            if (conversion.fromImm)
+            {
+                srcReg = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+
+                MicroInstrOperand immOps[3];
+                immOps[0].reg    = srcReg;
+                immOps[1].opBits = bodyBits;
+                immOps[2].setImmediateValue(bodyOps[2].immediateValue());
+                storage.insertDerivedBefore(operands, conversion.jumpRef, MicroInstrOpcode::LoadRegImm, immOps);
+            }
+            else
+            {
+                srcReg = bodyOps[1].reg;
+            }
+
+            MicroInstrOperand movOps[4];
+            movOps[0].reg     = dstReg;
+            movOps[1].reg     = srcReg;
+            movOps[2].cpuCond = conversion.cond;
+            movOps[3].opBits  = bodyBits;
+            storage.insertDerivedBefore(operands, conversion.labelRef, MicroInstrOpcode::LoadCondRegReg, movOps);
+
+            storage.erase(conversion.jumpRef);
+            storage.erase(conversion.bodyRef);
+        }
+
+        return true;
+    }
+
     bool instructionHasNoFallthrough(const MicroInstr& inst, const MicroInstrOperand* ops)
     {
         if (!MicroInstrInfo::isTerminatorInstruction(inst))
@@ -815,6 +958,13 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         changed |= foldKnownBranches(storage, operands, *ssaState, knownValues, knownFlags);
 
     changed |= fuseMaterializedBoolBranches(storage, operands);
+
+    if (convertBranchesToConditionalMoves(storage, operands, context))
+    {
+        changed = true;
+        if (context.builder)
+            context.builder->invalidateControlFlowGraph();
+    }
 
     bool structuralChanged = true;
     while (structuralChanged)

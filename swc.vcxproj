@@ -190,6 +190,7 @@
         <ClCompile Include="src\Unittest\Micro\Test.Micro.Ssa.cpp"/>
         <ClCompile Include="src\Unittest\Micro\Test.Micro.StackAdjustNormalize.cpp"/>
         <ClCompile Include="src\Unittest\Micro\Test.Micro.StrengthReduction.cpp"/>
+        <ClCompile Include="src\Unittest\Micro\Test.Micro.ValueNumbering.cpp"/>
         <ClCompile Include="src\Unittest\Native\Test.Native.NativeArtifact.cpp"/>
         <ClCompile Include="src\Unittest\Native\Test.Native.PeWriter.cpp"/>
         <ClCompile Include="src\Unittest\Native\Test.Native.Pdb.cpp"/>
@@ -271,6 +272,7 @@
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.LoopInvariantCodeMotion.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.StackAdjustNormalize.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.StrengthReduction.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.ValueNumbering.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.Sanity.cpp"/>
         <ClCompile Include="src\Backend\\Sanitizer\Sanitizer.cpp"/>
         <ClCompile Include="src\Backend\\Sanitizer\Checks\Check.NullDeref.cpp"/>
@@ -593,6 +595,7 @@
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.RegisterAllocation.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.StackAdjustNormalize.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.StrengthReduction.h"/>
+        <ClInclude Include="src\Backend\\Micro\Passes\Pass.ValueNumbering.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.Sanity.h"/>
         <ClInclude Include="src\Backend\\Sanitizer\Sanitizer.h"/>
         <ClInclude Include="src\Backend\\Sanitizer\SanitizerCheck.h"/>

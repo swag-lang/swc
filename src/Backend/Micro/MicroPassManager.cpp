@@ -23,6 +23,7 @@
 #include "Backend/Micro/Passes/Pass.Sanity.h"
 #include "Backend/Micro/Passes/Pass.StackAdjustNormalize.h"
 #include "Backend/Micro/Passes/Pass.StrengthReduction.h"
+#include "Backend/Micro/Passes/Pass.ValueNumbering.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/Utf8Helper.h"
@@ -427,6 +428,7 @@ MicroPassManager::MicroPassManager()
     copyEliminationPass_     = std::make_unique<MicroCopyEliminationPass>();
     instructionCombinePass_  = std::make_unique<MicroInstructionCombinePass>();
     strengthReductionPass_   = std::make_unique<MicroStrengthReductionPass>();
+    valueNumberingPass_      = std::make_unique<MicroValueNumberingPass>();
     licmPass_                = std::make_unique<MicroLoopInvariantCodeMotionPass>();
     deadCodeEliminationPass_ = std::make_unique<MicroDeadCodeEliminationPass>();
     branchSimplifyPass_      = std::make_unique<MicroBranchSimplifyPass>();
@@ -476,6 +478,11 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
         addPreRaLoopPass(*copyEliminationPass_);
         addPreRaLoopPass(*instructionCombinePass_);
         addPreRaLoopPass(*strengthReductionPass_);
+        // Deduplicate identical dominating computes. Runs after strength
+        // reduction so the multiply-high expansions of `u / C` and `u % C`
+        // exist to be shared, and before LICM so a loop body slimmed by
+        // sharing exposes more hoisting.
+        addPreRaLoopPass(*valueNumberingPass_);
         // Hoist loop-invariant address/load/constant computations into the loop
         // preheader. Runs after instruction-combine so address modes (lea) are
         // already formed, and before DCE so any now-redundant copies are cleaned.

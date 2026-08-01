@@ -25,7 +25,7 @@ BindRenderTarget rt#1 paintAlpha=false
 Transform 1 0 0 1 0 0
 SetBlendingMode Alpha
 ColorMask rgb-
-SetShader shader#0
+SetDefaultShader Simple axis=0 radius=0 factor=0
 SetBlendingMode Copy
 ColorMask rgba
 Clear 00000000
@@ -40,15 +40,13 @@ ResetTexture0
 Transform 1 0 0 1 0 0
 SetBlendingMode Alpha
 ColorMask rgb-
-SetShader shader#1
-SetShaderParam p#0 s32=0
-SetShaderParam p#0 f32=6
+SetDefaultShader Blur axis=0 radius=6 factor=0
 SetBlendingMode Copy
 ColorMask rgba
 Clear 00000000
 BindTexture0 Texture uv=FillSubRect interp=Pixel tex#1 bound=(0,0)-(80,48) src=(0.003906,0.007813)-(0.621094,0.742188)
 DrawTriangles n=6 bbox=(0,0)-(80,48) colors=[FFFFFFFF] cov=solid
-SetShader none
+SetDefaultShader Default axis=0 radius=0 factor=0
 UnbindRenderTarget
 Transform 1 0 0 1 0 0
 SetBlendingMode Alpha
@@ -58,24 +56,22 @@ ResetTexture0
 Transform 1 0 0 1 0 0
 SetBlendingMode Alpha
 ColorMask rgb-
-SetShader shader#1
-SetShaderParam p#0 s32=1
-SetShaderParam p#0 f32=6
+SetDefaultShader Blur axis=1 radius=6 factor=0
 SetBlendingMode Copy
 ColorMask rgba
 BindTexture0 Texture uv=FillSubRect interp=Pixel tex#2 bound=(0,0)-(80,48) src=(0.003906,0.007813)-(0.621094,0.742188)
 DrawTriangles n=6 bbox=(0,0)-(80,48) colors=[96000000] cov=solid
-SetShader shader#0
+SetDefaultShader Simple axis=0 radius=0 factor=0
 SetBlendingMode Alpha
 BindTexture0 Texture uv=FillSubRect interp=Pixel tex#0 bound=(5,4)-(69,36) src=(0.007813,0.015625)-(0.992188,0.984375)
 DrawTriangles n=6 bbox=(5,4)-(69,36) colors=[FFFFFFFF] cov=solid
-SetShader none
+SetDefaultShader Default axis=0 radius=0 factor=0
 UnbindRenderTarget
 Transform 1 0 0 1 0 0
 SetBlendingMode Alpha
 ColorMask rgb-
 ReleaseRenderTarget rt#2
-SetShader none
+SetDefaultShader Default axis=0 radius=0 factor=0
 ColorMask rgb-
 SetBlendingMode Alpha
 BindTexture0 Texture uv=FillSubRect interp=Linear tex#1 bound=(5,6)-(85,54) src=(0.003906,0.007813)-(0.621094,0.742188)

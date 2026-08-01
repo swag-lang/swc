@@ -65,7 +65,7 @@ impl ImageList
     //
     // Call this before pointing the list at another atlas, or the previous texture leaks in the
     // renderer.
-    mtd release(renderer: *RenderOgl)
+    mtd release(renderer: *PainterRenderer)
     {
         if .texture.isValid() do
             renderer.removeTexture(&.texture)

@@ -5,7 +5,6 @@ using Swag, Core
 #test
 {
     var renderer: RenderOgl
-    renderer.setupHeadless()
 
     var image: Image
     let texture = renderer.addImage(image)

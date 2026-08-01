@@ -2,11 +2,13 @@
 
 using Core, Ogl, Core.Math
 
-// Identifies the built-in shader selected when no custom shader is active.
+// Identifies a renderer-independent program understood by every painter backend.
 enum DefaultShaderId
 {
-    Default     // Standard shape, texture, and text rendering.
+    Default     // Standard antialiased shape, texture, and text rendering.
+    Simple      // Non-antialiased textured rendering.
     Blur        // Separable blur pass used by layers and effects.
+    Resolve     // Supersampling resolve pass used by layers.
 }
 
 // Antialiasing fringe half-width, in (untransformed) path-space pixels.
@@ -52,6 +54,7 @@ enum CommandId
     BindRenderTarget          // Redirect drawing to an off-screen target.
     UnbindRenderTarget        // Restore the previous rendering target.
     ReleaseRenderTarget       // Release a renderer-owned target.
+    SetDefaultShader          // Select a renderer-independent built-in program.
     SetShader                 // Select a custom shader.
     SetShaderParam            // Update one custom-shader uniform.
     SetFontEffect             // Update MSDF font-effect uniforms.
@@ -155,6 +158,7 @@ struct Command
         textureFont:    struct{ font: *Font, atlasIndex: s32 }
         colorMask:      ColorMask
         renderTgt:      struct{ tgt: *RenderTarget, paintAlpha: bool }
+        defaultShader:  struct{ id: DefaultShaderId = undefined, axis: s32, radius: f32, factor: s32 }
         shader:         struct{ shader: #null *ShaderBase }
 
         shaderParam: struct
@@ -1070,6 +1074,47 @@ impl Painter
     {
         let cmd = .newCommand(.SetShader, true)
         cmd.shader.shader = shader
+    }
+
+    // Selects the default antialiased or simple textured built-in program.
+    //
+    // Use [[Pixel.Painter.setBlurShader]] or [[Pixel.Painter.setResolveShader]]
+    // for the parameterized programs.
+    mtd setDefaultShader(shader: DefaultShaderId = .Default)
+    {
+        Debug.assert(shader == .Default or shader == .Simple)
+        let cmd = .newCommand(.SetDefaultShader, true)
+        cmd.defaultShader.id     = shader
+        cmd.defaultShader.axis   = 0
+        cmd.defaultShader.radius = 0
+        cmd.defaultShader.factor = 0
+    }
+
+    // Selects one separable blur pass.
+    //
+    // `axis` is `0` for horizontal sampling and `1` for vertical sampling.
+    // `radius` must be positive.
+    mtd setBlurShader(axis: s32, radius: f32)
+    {
+        Debug.assert((axis == 0 or axis == 1) and radius > 0)
+        let cmd = .newCommand(.SetDefaultShader, true)
+        cmd.defaultShader.id     = .Blur
+        cmd.defaultShader.axis   = axis
+        cmd.defaultShader.radius = radius
+        cmd.defaultShader.factor = 0
+    }
+
+    // Selects the supersampling resolve program.
+    //
+    // `factor` must be between `1` and `8`, inclusive.
+    mtd setResolveShader(factor: s32)
+    {
+        Debug.assert(factor >= 1 and factor <= 8)
+        let cmd = .newCommand(.SetDefaultShader, true)
+        cmd.defaultShader.id     = .Resolve
+        cmd.defaultShader.axis   = 0
+        cmd.defaultShader.radius = 0
+        cmd.defaultShader.factor = factor
     }
 
     // Set a shader parameter

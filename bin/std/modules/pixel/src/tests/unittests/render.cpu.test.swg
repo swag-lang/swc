@@ -97,11 +97,10 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     assertPixel(image, 9, 5, Argb.Zero)
 }
 
-// The RenderOgl headless bridge executes nested targets with the same texture handles.
+// The CPU backend executes nested targets with stable texture handles.
 #test
 {
-    var renderer: RenderOgl
-    renderer.setupHeadless()
+    var renderer: RenderCpu
     var outer = renderer.createRenderTarget(12, 12)
     var inner = renderer.createRenderTarget(4, 4)
 
@@ -128,8 +127,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
 // paintAlpha replays geometry into alpha after overlap-safe color rendering.
 #test
 {
-    var renderer: RenderOgl
-    renderer.setupHeadless()
+    var renderer: RenderCpu
     var target = renderer.createRenderTarget(32, 32)
 
     var path: LinePath
@@ -157,7 +155,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     @assert(image.pixelColor(16, 2).a == 0)
 }
 
-// Built-in blur shaders are interpreted on the CPU; custom shader code is never executed.
+// The built-in blur program is interpreted directly by the CPU backend.
 #test
 {
     var source = Image.create(9, 9, .BGRA8)
@@ -165,22 +163,19 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     let white = (notnull source.pixels.buffer) + cast(u64) ((source.height - 4 - 1) * source.rowStride + 4 * source.bytesPerPixel)
     white[0], white[1], white[2], white[3] = 255
 
-    var renderer: RenderOgl
-    renderer.setupHeadless()
+    var renderer: RenderCpu
     let texture = renderer.addImage(source)
     var target = renderer.createRenderTarget(9, 9)
 
     var painter: Painter
     painter.begin()
     painter.bindRenderTarget(&target)
-    painter.setShader(&renderer.shaderBlur)
-    painter.setShaderParam(renderer.shaderBlur.axis, 0's32)
-    painter.setShaderParam(renderer.shaderBlur.radius, 2'f32)
+    painter.setBlurShader(0, 2)
     painter.setBlendingMode(.Copy)
     painter.setColorMaskFull()
     painter.clear(Color.fromArgb(Argb.Zero))
     painter.drawTexture({0, 0, 9, 9}, texture)
-    painter.setShader()
+    painter.setDefaultShader()
     painter.unbindRenderTarget()
     painter.end()
     renderer.draw(&painter)
@@ -253,20 +248,18 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
         }
     }
 
-    var renderer: RenderOgl
-    renderer.setupHeadless()
+    var renderer: RenderCpu
     let texture = renderer.addImage(source)
     var target = renderer.createRenderTarget(2, 2)
 
     var painter: Painter
     painter.begin()
     painter.bindRenderTarget(&target)
-    painter.setShader(&renderer.shaderResolve)
-    painter.setShaderParam(renderer.shaderResolve.factor, 2's32)
+    painter.setResolveShader(2)
     painter.setColorMaskFull()
     painter.setBlendingMode(.Copy)
     painter.drawTexture({0, 0, 2, 2}, {0, 0, 4, 4}, texture)
-    painter.setShader()
+    painter.setDefaultShader()
     painter.unbindRenderTarget()
     painter.end()
     renderer.draw(&painter)

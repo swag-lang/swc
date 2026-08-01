@@ -216,8 +216,8 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
         {
             if index != 0 do
                 len = appendAst(&buffer[0], len, ", ")
-            len     = appendAst(&buffer[0], len, "request.")
-            len     = appendAst(&buffer[0], len, notnull parameter.name)
+            len = appendAst(&buffer[0], len, "request.")
+            len = appendAst(&buffer[0], len, notnull parameter.name)
         }
         len = appendAst(&buffer[0], len, ")\n}\n\n")
     }

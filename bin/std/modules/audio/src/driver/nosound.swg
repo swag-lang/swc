@@ -38,7 +38,7 @@ impl NoSoundDriverNative
         .outputVolume = volume
     }
 
-    mtd getOutputVolumeNoSound()->f32
+    mtd outputVolumeNoSound()->f32
     {
         return .outputVolume
     }
@@ -48,7 +48,7 @@ impl Voice
 {
     func createNoSound(voice: *Voice, createFlags = VoiceCreateFlags.Default) fail
     {
-        voice.handle = cast(VoiceHandle) Memory.new'NoSoundVoice()
+        voice.handle = cast(#null *void) Memory.new'NoSoundVoice()
         let file = notnull voice.file
         voice.requestedEncoding = file.encoding
         if !voice.handle do
@@ -86,14 +86,21 @@ impl Voice
         return false
     }
 
-    mtd playNoSound(batchID: u32 = 0) fail
+    mtd playNoSound(batchId: u32 = 0) fail
     {
         let handle = cast(#null *NoSoundVoice) .handle
         if handle do
             handle.isPlaying = true
     }
 
-    mtd stopNoSound(batchID: u32 = 0) fail
+    mtd stopNoSound(batchId: u32 = 0) fail
+    {
+        let handle = cast(#null *NoSoundVoice) .handle
+        if handle do
+            handle.isPlaying = false
+    }
+
+    mtd resetNoSound() fail
     {
         let handle = cast(#null *NoSoundVoice) .handle
         if handle do
@@ -101,10 +108,10 @@ impl Voice
     }
 }
 
-public impl Voice
+internal impl Voice
 {
     // Sets the linear gain recorded by the no-sound backend.
-    mtd setVolumeNoSound(volume: f32, batchID: u32 = 0) fail
+    mtd setVolumeNoSound(volume: f32, batchId: u32 = 0) fail
     {
         if !.handle do
             return
@@ -113,7 +120,7 @@ public impl Voice
     }
 
     // Returns the linear gain recorded by the no-sound backend.
-    mtd getVolumeNoSound()->f32 fail
+    mtd volumeNoSound()->f32 fail
     {
         if !.handle do
             return 0
@@ -122,7 +129,7 @@ public impl Voice
     }
 
     // Sets the frequency ratio recorded by the no-sound backend.
-    mtd setFrequencyRatioNoSound(ratio: f32, batchID: u32 = 0) fail
+    mtd setFrequencyRatioNoSound(ratio: f32, batchId: u32 = 0) fail
     {
         if !.handle do
             return
@@ -130,15 +137,24 @@ public impl Voice
         handle.frequencyRatio = ratio
     }
 
+    // Returns the frequency ratio recorded by the no-sound backend.
+    mtd frequencyRatioNoSound()->f32 fail
+    {
+        if !.handle do
+            return 0
+        let handle = cast(*NoSoundVoice) .handle
+        return handle.frequencyRatio
+    }
+
     // Validates and records no-sound bus routing without producing audio.
-    mtd setRootingNoSound(buses: const [..] *Bus) fail
+    mtd setRoutingNoSound(buses: const [..] *Bus) fail
     {
         if !.handle do
             return
 
         let handle = cast(*NoSoundVoice) .handle
         let count  = @countof(buses)
-        if count >= @countof(handle.buses) do
+        if count > @countof(handle.buses) do
             fail SystemError{"too many buses", errorID: count}
 
         handle.busCount = cast(u32) count
@@ -160,7 +176,7 @@ impl Bus
             fail BadParameterError{"parent bus invalid"}
 
         let handle = Memory.new'NoSoundBus()
-        bus.handle         = cast(BusHandle) handle
+        bus.handle         = cast(#null *void) handle
         handle.numChannels = numChannels
         handle.parent      = parent
     }
@@ -174,10 +190,10 @@ impl Bus
     }
 }
 
-public impl Bus
+internal impl Bus
 {
     // Sets the linear bus gain recorded by the no-sound backend.
-    mtd setVolumeNoSound(volume: f32, batchID: u32 = 0) fail
+    mtd setVolumeNoSound(volume: f32, batchId: u32 = 0) fail
     {
         if !.handle do
             return
@@ -186,7 +202,7 @@ public impl Bus
     }
 
     // Returns the linear bus gain recorded by the no-sound backend.
-    mtd getVolumeNoSound()->f32 fail
+    mtd volumeNoSound()->f32 fail
     {
         if !.handle do
             return 0

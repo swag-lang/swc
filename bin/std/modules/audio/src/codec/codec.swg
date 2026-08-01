@@ -19,14 +19,20 @@ public interface ICodec
     //
     // `srcBuffer` contains up to `srcLength` bytes from the start of the encoded
     // stream. Implementations may consume headers or initial sample data.
-    mtd init(srcBuffer: [*] void, srcLength: u64)->u64 fail
+    mtd initialize(source: [*] void, sourceSize: u64)->u64 fail
 
     // Decodes one chunk and reports produced and consumed byte counts.
     //
-    // At most `destLength` bytes may be written to `destBuffer`, and at most
-    // `srcLength` bytes may be read from `srcBuffer`. `write` is the number of
-    // destination bytes produced; `read` is the number of source bytes consumed.
-    mtd decode(destBuffer: [*] void, destLength: u64, srcBuffer: [*] void, srcLength: u64)->{ write, read: u64 } fail
+    // At most `destinationSize` bytes may be written to `destination`, and at most
+    // `sourceSize` bytes may be read from `source`.
+    mtd decode(destination: [*] void, destinationSize: u64, source: [*] void, sourceSize: u64)->CodecProgress fail
+}
+
+// Reports the byte-level progress of one incremental codec operation.
+public struct CodecProgress
+{
+    bytesWritten: u64     // Bytes produced in the destination buffer.
+    bytesRead:    u64     // Bytes consumed from the source buffer.
 }
 
 struct CodecDesc
@@ -39,23 +45,31 @@ struct CodecDesc
 //
 // `T` must implement [[Audio.ICodec]]. Registration stores its type and
 // interface dispatch table; codec instances are allocated on demand.
-public func(T) addCodec()
+public func(T) registerCodec()
 {
     #assert(Reflection.hasInterface(#typeof(T), ICodec))
 
+    registerCodecImplementation(#typeof(T), @mkinterface(null, #typeof(T), ICodec))
+}
+
+// Non-generic bridge used by registerCodec after its body is instantiated in the caller's
+// module. The registry itself remains module-internal.
+#[Swag.NoDoc]
+public func registerCodecImplementation(type: const *Swag.TypeInfoStruct, itf: ICodec)
+{
     var desc: CodecDesc = undefined
-    desc.type = #typeof(T)
-    desc.itf  = @mkinterface(null, #typeof(T), ICodec)
+    desc.type = type
+    desc.itf  = itf
     g_Codecs.add(desc)
 }
 
 // Find the codec that can treat the given encoding
-func getCodec(dstEncoding, srcEncoding: SoundFileEncoding)->#null *CodecDesc
+func findCodec(destinationEncoding, sourceEncoding: SoundFileEncoding)->#null *CodecDesc
 {
     var found: #null *CodecDesc
     for &codec in g_Codecs
     {
-        if codec.itf.canEncode(dstEncoding) and codec.itf.canDecode(srcEncoding)
+        if codec.itf.canEncode(destinationEncoding) and codec.itf.canDecode(sourceEncoding)
         {
             found = codec
             break
@@ -68,8 +82,8 @@ func getCodec(dstEncoding, srcEncoding: SoundFileEncoding)->#null *CodecDesc
 // Stores the source, destination, and concrete type of a codec instance.
 public struct Codec
 {
-    srcEncoding: SoundFileEncoding     // Encoding read from the sound file.
-    dstEncoding: SoundFileEncoding     // Encoding requested by the active backend.
+    sourceEncoding:      SoundFileEncoding     // Encoding read from the sound file.
+    destinationEncoding: SoundFileEncoding     // Encoding requested by the active backend.
     // Concrete codec type used for destruction.
     #[Swag.Late]
     type: const *Swag.TypeInfoStruct
@@ -78,5 +92,5 @@ public struct Codec
 // Initialize predefined codecs
 #init
 {
-    addCodec'CodecPcmToPcm16()
+    registerCodec'CodecPcmToPcm16()
 }

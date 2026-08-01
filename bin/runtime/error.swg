@@ -128,7 +128,7 @@ func __failedExpect(loc: SourceCodeLocation)
     var str: [512] u8
     var len: u64
 
-    const U = "uncatched runtime error "
+    const U = "uncaught runtime error "
     @memcpy(&str[len], @dataof(U), @countof(U))
     len += @countof(U)
     var maxLen = @min(@countof(type.fullname), 128)

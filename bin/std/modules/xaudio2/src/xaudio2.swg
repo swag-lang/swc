@@ -322,7 +322,7 @@ struct IXAudio2SourceVoiceItf
     start:               func(this: *IXAudio2SourceVoice, flags: UINT32, operationSet: UINT32)->HRESULT
     stop:                func(this: *IXAudio2SourceVoice, flags: UINT32, operationSet: UINT32)->HRESULT
     submitSourceBuffer:  func(this: *IXAudio2SourceVoice, pBuffer: const *XAUDIO2_BUFFER, pBufferWMA: #null const *XAUDIO2_BUFFER_WMA)->HRESULT
-    glushSourceBuffers:  func(this: *IXAudio2SourceVoice)->HRESULT
+    flushSourceBuffers:  func(this: *IXAudio2SourceVoice)->HRESULT
     discontinuity:       func(this: *IXAudio2SourceVoice)->HRESULT
     exitLoop:            func(this: *IXAudio2SourceVoice, OperationSet: UINT32)->HRESULT
     getState:            func(this: *IXAudio2SourceVoice, pVoiceState: *XAUDIO2_VOICE_STATE, flags: UINT32)
@@ -363,5 +363,5 @@ struct WAVEFORMATEXTENSIBLE
 #[Swag.Foreign(module: "xaudio2_9", link: "xaudio2")]
 {
     func XAudio2Create(ppXAudio2: *#null *IXAudio2, flags: UINT32, processor: XAUDIO2_PROCESSOR = XAUDIO2_ANY_PROCESSOR)->HRESULT
-    func X3DAudioInitialize(speakerChannelMask: UINT32, speedOfSound: FLOAT32, instance: X3DAUDIO_HANDLE)->HRESULT
+    func X3DAudioInitialize(speakerChannelMask: UINT32, speedOfSound: FLOAT32, instance: X3DAUDIO_HANDLE)
 }

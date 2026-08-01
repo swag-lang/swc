@@ -46,6 +46,32 @@ SWC_TEST_BEGIN(FormatAlign_ConsecutiveAssignments)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatAlign_AssignmentsBreakOnIndentation)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo(index: s32)\n"
+        "{\n"
+        "    if index != 0 do\n"
+        "        len = append(len, 1)\n"
+        "    len     = append(len, 2)\n"
+        "    len     = append(len, 3)\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo(index: s32)\n"
+        "{\n"
+        "    if index != 0 do\n"
+        "        len = append(len, 1)\n"
+        "    len = append(len, 2)\n"
+        "    len = append(len, 3)\n"
+        "}\n";
+
+    FormatOptions options;
+    options.alignConsecutiveAssignments = FormatAlignMode::Consecutive;
+    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatAlign_AssignmentsBreakOnBlankLine)
 {
     static constexpr std::string_view SOURCE =
@@ -204,6 +230,33 @@ SWC_TEST_BEGIN(FormatAlign_TrailingComments)
         "{\n"
         "    var a = 0      // one\n"
         "    var bb = 0     // two\n"
+        "}\n";
+
+    FormatOptions options;
+    options.alignTrailingComments    = true;
+    options.trailingCommentMinSpaces = 5;
+    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatAlign_TrailingCommentsBreakOnIndentation)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo(x: bool)\n"
+        "{\n"
+        "    if x do\n"
+        "        a = 1 // nested\n"
+        "    longer = 2 // outer one\n"
+        "    b = 3 // outer two\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo(x: bool)\n"
+        "{\n"
+        "    if x do\n"
+        "        a = 1     // nested\n"
+        "    longer = 2     // outer one\n"
+        "    b = 3          // outer two\n"
         "}\n";
 
     FormatOptions options;

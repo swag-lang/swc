@@ -218,7 +218,7 @@ impl Allocator
 
     mtd setup()
     {
-        @memset(me, 0, #sizeof(Allocator))
+        @init(me, 1)
         .installMagic = InstalledMagic
         .configure(false, true, false, false, false)
     }
@@ -1069,7 +1069,7 @@ impl Allocator
         .releaseRetiredHeaps()
         .mutex.unlock()
 
-        @memset(me, 0, #sizeof(Allocator))
+        @init(me, 1)
     }
 
     mtd opDrop()

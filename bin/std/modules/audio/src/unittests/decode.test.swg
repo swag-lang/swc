@@ -9,7 +9,7 @@ using Swag, Core
     @assert(err == null)
 
     var voice: Voice
-    voice.file              = &file
+    voice.file = &file
     voice.requestedEncoding = .Pcm16
 
     let {buffer0, size0} = catch voice.readBuffer() as err2
@@ -34,7 +34,7 @@ using Swag, Core
     @assert(err5 == null)
 
     var voice: Voice
-    voice.file              = &file
+    voice.file = &file
     voice.requestedEncoding = .Pcm16
 
     var decoded: [6] u8
@@ -51,11 +51,11 @@ using Swag, Core
 
 #test
 {
-    var file = catch SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"), loadDatas: false) as err8
+    var file = catch SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"), preloadData: false) as err8
     @assert(err8 == null)
 
     var voice: Voice
-    voice.file              = &file
+    voice.file = &file
     voice.requestedEncoding = .Pcm16
 
     var buffer: [4] u8

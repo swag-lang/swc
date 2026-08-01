@@ -27,29 +27,29 @@ impl ICodec for CodecPcmToPcm16
         return false
     }
 
-    mtd impl init(srcBuffer: [*] void, srcLength: u64)->u64 fail
+    mtd impl initialize(source: [*] void, sourceSize: u64)->u64 fail
     {
         return 0
     }
 
-    mtd impl decode(destBuffer: [*] void, destLength: u64, srcBuffer: [*] void, srcLength: u64)->{ write, read: u64 } fail
+    mtd impl decode(destination: [*] void, destinationSize: u64, source: [*] void, sourceSize: u64)->CodecProgress fail
     {
-        if .srcEncoding == .dstEncoding
+        if .sourceEncoding == .destinationEncoding
         {
-            let length = Math.min(srcLength, destLength)
-            Memory.copy(destBuffer, srcBuffer, length)
+            let length = Math.min(sourceSize, destinationSize)
+            Memory.copy(destination, source, length)
             return {length, length}
         }
 
-        func(TS: s32, EN: SoundFileEncoding) doIt(destBuffer: [*] void, destLength: u64, srcBuffer: [*] void, srcLength: u64)->{ write, read: u64 }
+        func(TS: s32, EN: SoundFileEncoding) doIt(destination: [*] void, destinationSize: u64, source: [*] void, sourceSize: u64)->CodecProgress
         {
-            var dst = cast([*] s16) destBuffer
-            var src = cast([*] u8) srcBuffer
+            var dst = cast([*] s16) destination
+            var src = cast([*] u8) source
 
-            var write, read = 0
-            for [i] in srcLength / TS
+            var bytesWritten, bytesRead = 0
+            for [i] in sourceSize / TS
             {
-                if write + #sizeof(s16) > destLength do
+                if bytesWritten + #sizeof(s16) > destinationSize do
                     break
 
                 #static switch EN
@@ -61,7 +61,7 @@ impl ICodec for CodecPcmToPcm16
                     var sample = cast(u32) src[0] | (cast(u32) src[1] << 8) | (cast(u32) src[2] << 16)
                     if sample & 0x00800000 do
                         sample |= 0xFF000000
-                    dst[0]     = cast(s16) (cast #wrap (s32) sample >> 8)
+                    dst[0] = cast(s16) (cast #wrap (s32) sample >> 8)
 
                 case .Pcm32:
                     let input = cast([*] s32) src
@@ -77,21 +77,21 @@ impl ICodec for CodecPcmToPcm16
                     #assert(false)
                 }
 
-                dst   += 1
-                src   += TS
-                write += #sizeof(s16)
-                read  += TS
+                dst += 1
+                src += TS
+                bytesWritten += #sizeof(s16)
+                bytesRead    += TS
             }
 
-            return {write, read}
+            return {bytesWritten, bytesRead}
         }
 
-        switch .srcEncoding
+        switch .sourceEncoding
         {
-        case .Pcm8:    return doIt'(1, Pcm8)(destBuffer, destLength, srcBuffer, srcLength)
-        case .Pcm24:   return doIt'(3, Pcm24)(destBuffer, destLength, srcBuffer, srcLength)
-        case .Pcm32:   return doIt'(4, Pcm32)(destBuffer, destLength, srcBuffer, srcLength)
-        case .Float32: return doIt'(4, Float32)(destBuffer, destLength, srcBuffer, srcLength)
+        case .Pcm8:    return doIt'(1, Pcm8)(destination, destinationSize, source, sourceSize)
+        case .Pcm24:   return doIt'(3, Pcm24)(destination, destinationSize, source, sourceSize)
+        case .Pcm32:   return doIt'(4, Pcm32)(destination, destinationSize, source, sourceSize)
+        case .Float32: return doIt'(4, Float32)(destination, destinationSize, source, sourceSize)
         }
 
         fail UnsupportedFormatError{"invalid encoding"}

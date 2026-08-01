@@ -37,5 +37,5 @@ try voice.stop()
 voice.destroy()
 ```
 
-> WARNING: [[Audio.destroyEngine]] invalidates the native resources behind all
-> remaining voices and buses. Finish or destroy those objects first.
+[[Audio.destroyEngine]] stops and releases any remaining voices and buses before
+closing the backend. Pointers to those objects are invalid afterward.

@@ -138,13 +138,19 @@ namespace
             return model_->piece(lineStart).isComment && FormatPassUtil::lineEndOf(*model_, lineStart) == lineStart;
         }
 
+        uint32_t lineIndentColumn(const uint32_t lineStart) const
+        {
+            return FormatModel::textColumns(model_->lineIndentOf(lineStart), std::max(options_->tabWidth, 1u));
+        }
+
         void runCategory(const AlignCategory category, const FormatAlignMode mode) const
         {
             if (mode == FormatAlignMode::Preserve)
                 return;
 
             std::vector<std::pair<uint32_t, uint32_t>> group; // (lineStart, anchor)
-            uint32_t                                   groupDepth = 0;
+            uint32_t                                   groupDepth  = 0;
+            uint32_t                                   groupIndent = 0;
 
             auto flush = [&] {
                 if (mode == FormatAlignMode::None)
@@ -163,10 +169,11 @@ namespace
 
                 const uint32_t anchor = anchorOf(category, lineStart);
                 const bool     blank  = lineIsBlankSeparated(lineStart);
+                const uint32_t indent = lineIndentColumn(lineStart);
 
                 if (!group.empty())
                 {
-                    bool breaks = false;
+                    bool breaks = anchor != INVALID_PIECE && indent != groupIndent;
                     if (blank)
                     {
                         if (mode == FormatAlignMode::Consecutive)
@@ -193,7 +200,10 @@ namespace
                     continue;
 
                 if (group.empty())
-                    groupDepth = model_->piece(lineStart).depth;
+                {
+                    groupDepth  = model_->piece(lineStart).depth;
+                    groupIndent = indent;
+                }
                 group.emplace_back(lineStart, anchor);
             }
 
@@ -260,7 +270,8 @@ namespace
 
             const FormatRoleE     startRole = declStartRole(category);
             std::vector<uint32_t> group;
-            uint32_t              groupDepth = 0;
+            uint32_t              groupDepth  = 0;
+            uint32_t              groupIndent = 0;
 
             auto flush = [&] {
                 alignGridGroup(group, mode == FormatAlignMode::None);
@@ -272,12 +283,13 @@ namespace
                 if (model_->piece(lineStart).removed)
                     continue;
 
-                const bool member = declLineHasColumn(startRole, lineStart);
-                const bool blank  = lineIsBlankSeparated(lineStart);
+                const bool     member = declLineHasColumn(startRole, lineStart);
+                const bool     blank  = lineIsBlankSeparated(lineStart);
+                const uint32_t indent = lineIndentColumn(lineStart);
 
                 if (!group.empty())
                 {
-                    bool breaks = false;
+                    bool breaks = member && indent != groupIndent;
                     if (blank)
                     {
                         if (mode == FormatAlignMode::Consecutive)
@@ -302,7 +314,10 @@ namespace
                     continue;
 
                 if (group.empty())
-                    groupDepth = model_->piece(lineStart).depth;
+                {
+                    groupDepth  = model_->piece(lineStart).depth;
+                    groupIndent = indent;
+                }
                 group.push_back(lineStart);
             }
 
@@ -531,6 +546,7 @@ namespace
             const uint32_t minSpaces = std::max(options.trailingCommentMinSpaces, 1u);
 
             std::vector<std::pair<uint32_t, uint32_t>> group; // (comment piece, code end column)
+            uint32_t                                   groupIndent = 0;
 
             auto flush = [&] {
                 if (group.empty())
@@ -586,6 +602,11 @@ namespace
                     endCol = pc.column + FormatModel::textColumns(model_->piece(pc.piece).text, std::max(options_->tabWidth, 1u), pc.column);
                 }
 
+                const uint32_t indent = lineIndentColumn(lineStart);
+                if (!group.empty() && indent != groupIndent)
+                    flush();
+                if (group.empty())
+                    groupIndent = indent;
                 group.emplace_back(lineEnd, endCol);
             }
 

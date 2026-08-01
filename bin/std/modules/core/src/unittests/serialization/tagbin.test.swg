@@ -755,3 +755,25 @@ func corruptTagBinCompressedSizes(bytes: String, fieldName: string, uncompressed
 
     Memory.delete(decoded)
 }
+
+// A field whose header does not decode is skipped without unbalancing the element
+// stack, so the fields around it still read back.
+#test
+{
+    let payload = makeTagBinPayload()
+    let bytes   = encodeTagBin(payload)
+    let sizes   = readTagBinCompressedSizes(bytes.toSlice(), "blob")
+    let patched = corruptTagBinCompressedSizes(bytes, "blob", sizes.uncompressed, bytes.length + 1)
+
+    var decoder: Serialization.Decoder'Serialization.Read.TagBin
+    decoder.flags |= .IgnoreStructFieldError
+
+    let decoded = notnull catch decoder.readAll'TagBinPayload(patched.toSlice()) as err26
+    @assert(err26 == null)
+    @assert(decoded.id == 17)
+    @assert(decoded.name == "tagbin")
+    @assert(assertS32Array(decoded.counts, [-8, 0, 7, 42]))
+    @assert(decoded.blob.isEmpty())
+
+    Memory.delete(decoded)
+}

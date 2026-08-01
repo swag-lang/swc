@@ -538,6 +538,11 @@ impl TagBin
             .elemStack.add({false, null})
         }
 
+        // The element owns an entry on the stacks from here on. Whatever fails below
+        // has to hand them back, because a caller pairs 'endElement' with a
+        // 'beginElement' that returned and with nothing else.
+        defer #fail catch .endElement(val)
+
         // If they do not match, we will try to convert the type from the one in the
         // stream to the requested one
         if crcType != getTypeInfoCrc(val.pointedType)

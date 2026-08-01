@@ -434,18 +434,6 @@ func __testsDone()
         __exitError()
 }
 
-func __panicBox(msg, title: string)
-{
-    using __Win32RT
-    let result = MessageBoxA(null, @dataof(msg), @dataof(title), MB_ICONERROR | MB_CANCELTRYCONTINUE)
-    switch result
-    {
-    case IDCANCEL:   __exitError()
-    case IDTRYAGAIN: DebugBreak()
-    case IDCONTINUE: break
-    }
-}
-
 func __captureStack(skip: u32, wh: [..] *void)->u32
 {
     using __Win32RT

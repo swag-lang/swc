@@ -267,53 +267,11 @@ func @panic(message: #null string, loc: SourceCodeLocation)
         return
     }
 
+    // A panic reports a broken invariant, so the process stops here. Returning
+    // would resume the caller on state the panic just declared unusable, and the
+    // run would end with a success code that hides the report printed above.
     __printPanicReport(message, loc)
-
-    for arg in @args
-    {
-        if @stringcmp(arg, "swag.test") do
-            __exitError()
-    }
-
-    // Build message
-    var str: [1024] u8
-    var len: u64
-
-    if message != null
-    {
-        len = @countof(message)
-        if len > 512 do
-            len = 512
-        @memcpy(&str[0], @dataof(message), len)
-        str[len]     = '\n'
-        str[len + 1] = '\n'
-        len          += 2
-    }
-
-    // Source location
-    @memcpy(&str[len], @dataof(loc.fileName), @countof(loc.fileName))
-    len += @countof(loc.fileName)
-    @memcpy(&str[len], @dataof(", line "), 7)
-    len += 7
-    let dstLine = cast([*] u8) &str[len]
-    let cptLine = cast(u32) (__itoa(dstLine, cast(s64) loc.lineStart + 1) - dstLine)
-    len += cptLine
-    @memcpy(&str[len], @dataof("\n\n"), 2)
-    len += 2
-
-    // Message to the user
-    const title = "Swag runtime panic"
-    const info  = """Cancel: exit the program
-Retry: break into the debugger
-Continue: ignore the panic
-"""
-
-    @memcpy(&str[len], @dataof(info), @countof(info))
-    len += @countof(info)
-
-    str[len] = 0
-
-//__panicBox(cast(string) str, title)
+    __exitError()
 }
 
 #[Swag.Safety(.All, false)]

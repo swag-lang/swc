@@ -71,6 +71,24 @@ struct MicroPassContext
     // already-cleaned-up IR. Erase/DCE cleanups have no such restriction.
     bool isFirstOptimizationSweep = true;
 
+    // True during the first sweep of the legalize/allocate loop, i.e. while
+    // register allocation is still assigning the whole function. Legalization
+    // of the allocator's own output introduces fresh virtual scratch registers,
+    // which sends the loop round again; that later sweep allocates a handful of
+    // values into a function whose registers are already committed, and it has
+    // no record of the whole-range reservations the first sweep made. Only the
+    // first sweep may hand a value a register for its entire live range.
+    bool isFirstAllocationSweep = true;
+
+    // Physical registers the first allocation sweep handed to a value for its
+    // entire live range. A later sweep allocates into a function whose
+    // registers are already committed, and it rebuilds its state from scratch,
+    // so nothing else remembers those reservations: without this list it can
+    // hand a scratch value a register that still holds a live one, and no
+    // repair path can notice — the value it displaces has no spill home to be
+    // restored from. Reset with the rest of the pipeline state.
+    SmallVector<MicroReg> globalReservedRegs;
+
 #if SWC_HAS_STATS
     size_t optimizationInstrRemoved = 0;
     size_t optimizationInstrAdded   = 0;

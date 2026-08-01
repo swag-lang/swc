@@ -345,6 +345,10 @@ namespace
         bool reachedFixedPoint = false;
         for (uint32_t iteration = 0; iteration < maxIterations; ++iteration)
         {
+            context.isFirstAllocationSweep = iteration == 0;
+            if (iteration == 0)
+                context.globalReservedRegs.clear();
+
             bool iterationMutated = false;
 #if SWC_HAS_VALIDATE_MICRO
             std::vector<LoopPassTraceEntry> iterationTrace;
@@ -398,8 +402,9 @@ namespace
             return MicroVerify::reportError(context, loopName, std::format("fixed point not reached after {} iterations", maxIterations));
         }
 
-        context.useDefMap = nullptr;
-        context.ssaState  = nullptr;
+        context.useDefMap              = nullptr;
+        context.ssaState               = nullptr;
+        context.isFirstAllocationSweep = true;
         return Result::Continue;
     }
 }

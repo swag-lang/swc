@@ -83,6 +83,27 @@ private:
         MicroReg physReg = MicroReg::invalid();
     };
 
+    // Half-open-free span of instruction indices over which a globally assigned
+    // value owns its physical register. Two globals may share a register only
+    // if their ranges are disjoint, and the local allocator may use it anywhere
+    // outside them.
+    // A register borrowed from a previous sweep's reservation, and where its
+    // saved contents must be read back.
+    struct BorrowRestore
+    {
+        MicroReg    physReg;
+        uint64_t    slotOffset = 0;
+        MicroOpBits slotBits   = MicroOpBits::B64;
+        uint32_t    atIndex    = 0;
+    };
+
+    struct GlobalRange
+    {
+        uint32_t lo         = 0;
+        uint32_t hi         = 0;
+        uint32_t ownerDense = 0;
+    };
+
     void clearState();
     void initState(MicroPassContext& context);
     void coalesceLocalCopies() const;
@@ -115,7 +136,21 @@ private:
     void             advanceCurrentPositionCursors(uint32_t instructionIndex);
     void             prepareInstructionData();
     void             computeLoopDepth();
-    void             selectPinnedRegisters();
+    bool             functionHasCalls() const;
+    bool             isFlushBoundary(uint32_t instructionIndex, const MicroInstr& inst) const;
+    void             computeVirtualLiveSpans();
+    void             computeConcreteClaimPositions();
+    void             computeGlobalBenefits(std::vector<uint64_t>& outBenefit) const;
+    bool             intervalHasCall(uint32_t lo, uint32_t hi) const;
+    bool             concreteClaimsOverlap(MicroReg physReg, uint32_t lo, uint32_t hi) const;
+    bool             isProvenFreeRegister(MicroReg physReg) const;
+    bool             globalRangesOverlap(MicroReg physReg, uint32_t lo, uint32_t hi) const;
+    void             addGlobalRange(MicroReg physReg, uint32_t lo, uint32_t hi, uint32_t ownerDense);
+    bool             isReservedByGlobalFor(MicroReg virtKey, MicroReg physReg, uint32_t instructionIndex) const;
+    bool             hasConcreteTouchInRange(MicroReg physReg, uint32_t lo, uint32_t hi) const;
+    bool             isStraightLineRange(uint32_t lo, uint32_t hi) const;
+    bool             tryBorrowReservedRegister(const AllocRequest& request, MicroRegSpan protectedKeys, MicroRegSpan forbiddenPhysRegs, int64_t stackDepth, std::vector<PendingInsert>& pending, MicroReg& outPhys);
+    void             assignGlobalRegisters();
     void             preallocateLoopCarriedSlots();
     void             computeReachability();
     void             analyzeLiveness();
@@ -188,7 +223,11 @@ private:
     std::vector<SmallVector<uint32_t, 2>> predecessors_;
     std::vector<uint32_t>                 loopDepth_;
     std::vector<uint8_t>                  concreteLoopCarried_;
-    SmallVector<MicroReg>                 pinnedPhysRegs_;
+    std::vector<uint32_t>                 virtualSpanLo_;
+    std::vector<uint32_t>                 virtualSpanHi_;
+    std::vector<std::vector<uint32_t>>    concreteClaimPositionsByDenseIndex_;
+    MicroDenseRegIndex                    denseGlobalPhysRegs_;
+    std::vector<SmallVector<GlobalRange>> globalRangesByPhysDense_;
     std::vector<uint8_t>                  reachableInstructions_;
     std::vector<uint32_t>                 worklist_;
     std::vector<uint8_t>                  inWorklist_;
@@ -215,6 +254,7 @@ private:
     std::vector<MicroInstrRef>   pendingErasures_;
     const MicroControlFlowGraph* controlFlowGraph_ = nullptr;
     std::vector<PendingInsert>   pending_;
+    SmallVector<BorrowRestore>   pendingBorrowRestores_;
     std::vector<PendingInsert>   boundaryPending_;
     // Write-through stores for loop-carried values: queued right after the
     // instruction that defines such a value and flushed before the next one, so

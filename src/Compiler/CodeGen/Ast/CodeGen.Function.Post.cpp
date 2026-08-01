@@ -1389,6 +1389,20 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
     if (hasResult)
     {
         const CodeGenNodePayload& resultPayload = codeGen.payload(nodeRef);
+
+        // An address-backed result register is defined by the success path, and
+        // when the managed expression never falls through — an inlined callee
+        // whose only exit is 'fail' — that definition is never emitted at all.
+        // Both this zeroing and every consumer after the join would then read an
+        // undefined register. Define it on this path too, from the storage
+        // symbol: the same address the success path computes, rooted at the
+        // local stack base whose definition dominates both arms.
+        if (resultPayload.isAddress() && resultPayload.runtimeStorageSym && codeGen.localStackBaseReg().isValid() &&
+            resultPayload.runtimeStorageSym->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
+        {
+            builder.emitLoadAddressRegMem(resultPayload.reg, codeGen.localStackBaseReg(), resultPayload.runtimeStorageSym->offset(), MicroOpBits::B64);
+        }
+
         SWC_RESULT(emitZeroFallibleExprResult(codeGen, resultPayload, resultType));
     }
 

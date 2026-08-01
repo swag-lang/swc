@@ -26,7 +26,7 @@ impl IRenderer for RenderOgl
         }
 
         let storage = Memory.new'OglContext()
-        dref storage = ogl
+        dref storage  = ogl
         .contextCount += 1
         return {nativeWindow, storage, width, height}
     }

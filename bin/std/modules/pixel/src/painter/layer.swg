@@ -68,7 +68,7 @@ impl Layer
         Debug.assert(info.width > 0 and info.height > 0)
 
         .release()
-        let renderer   = painter.renderer()
+        let renderer = painter.renderer()
         .renderer      = renderer
         .painter       = painter
         .width         = info.width

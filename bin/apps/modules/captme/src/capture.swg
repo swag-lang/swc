@@ -308,10 +308,10 @@ impl Capture
     {
         var result: retval
 
-        let rect = Math.Rectangle{width: .width * zoom, height: .height * zoom}
-        let render = g_App.renderer
+        let rect    = Math.Rectangle{width: .width * zoom, height: .height * zoom}
+        let render  = g_App.renderer
         var painter = Pixel.Painter.create(render)
-        let srf    = notnull (notnull .editView).surface
+        let srf     = notnull (notnull .editView).surface
         render.begin(srf.renderingContext())
         painter.begin()
 

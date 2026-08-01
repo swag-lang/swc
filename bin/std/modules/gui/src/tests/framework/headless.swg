@@ -67,7 +67,7 @@ impl HeadlessHost
 
         .app.setRenderer(&.renderer)
 
-        .surface.rc      = expect .app.renderer.createContext(null, cast(s32) width, cast(s32) height)
+        .surface.rc = expect .app.renderer.createContext(null, cast(s32) width, cast(s32) height)
         .surface.bindPainterToRenderer(.app.renderer)
         .app.renderer.setCurrentContext(.surface.rc)
         .app.renderer.init()
@@ -79,9 +79,9 @@ impl HeadlessHost
         .app.theme = .theme
         .app.style.own(.theme)
 
-        .surface.app       = &.app
-        .surface.position  = {0, 0, width, height}
-        .app.mainSurface   = &.surface
+        .surface.app      = &.app
+        .surface.position = {0, 0, width, height}
+        .app.mainSurface  = &.surface
 
         let root = &.root
         root.itf     = cast(IWnd) dref root

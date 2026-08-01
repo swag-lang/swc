@@ -40,7 +40,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     painter.fillRect({2, 2, 8, 8}, Color.fromArgb(128'u8, 255'u8, 0'u8, 0'u8))
     painter.end()
 
-    let image = renderCpu(12, 12, &painter)
+    let image    = renderCpu(12, 12, &painter)
     let diagonal = image.pixelColor(5, 5)
     let regular  = image.pixelColor(5, 4)
     @assert(diagonal == regular)
@@ -104,8 +104,8 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
 {
     var renderer: RenderCpu
     let render = cast(IRenderer) &renderer
-    var outer = render.createRenderTarget(12, 12)
-    var inner = render.createRenderTarget(4, 4)
+    var outer  = render.createRenderTarget(12, 12)
+    var inner  = render.createRenderTarget(4, 4)
 
     var painter: Painter
     painter.begin()
@@ -154,7 +154,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     render.draw(&painter)
 
     let image = render.readRenderTarget(&target, 0, 0, 32, 32)
-    let hit = image.pixelColor(16, 16)
+    let hit   = image.pixelColor(16, 16)
     @assert(hit.r == 255 and hit.g > 200 and hit.a == 255)
     @assert(image.pixelColor(16, 2).a == 0)
 }
@@ -168,9 +168,9 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     white[0], white[1], white[2], white[3] = 255
 
     var renderer: RenderCpu
-    let render = cast(IRenderer) &renderer
+    let render  = cast(IRenderer) &renderer
     let texture = render.addImage(source)
-    var target = render.createRenderTarget(9, 9)
+    var target  = render.createRenderTarget(9, 9)
 
     var painter: Painter
     painter.begin()
@@ -249,14 +249,15 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
                 pixel[1] = 0
                 pixel[2] = 0
             }
+
             pixel[3] = 255
         }
     }
 
     var renderer: RenderCpu
-    let render = cast(IRenderer) &renderer
+    let render  = cast(IRenderer) &renderer
     let texture = render.addImage(source)
-    var target = render.createRenderTarget(2, 2)
+    var target  = render.createRenderTarget(2, 2)
 
     var painter: Painter
     painter.begin()
@@ -271,7 +272,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     render.draw(&painter)
 
     let image = render.readRenderTarget(&target, 0, 0, 2, 2)
-    let gray = image.pixelColor(0, 0)
+    let gray  = image.pixelColor(0, 0)
     @assert(gray.r >= 127 and gray.r <= 128 and gray.g == gray.r and gray.b == gray.r and gray.a == 255)
     assertPixel(image, 1, 0, Argb.Blue)
 }

@@ -12,9 +12,7 @@ struct Selection
     value: s32
 }
 
-struct Overloaded
-{
-}
+struct Overloaded {}
 
 impl IOverloaded for Overloaded
 {
@@ -38,7 +36,7 @@ impl IOverloaded for Overloaded
 {
     var object: Overloaded
     let renderer = cast(IOverloaded) &object
-    var value: s32
+    var value:  s32
 
     @assert(renderer.select("value") == 1)
     @assert(renderer.select(&value) == 2)

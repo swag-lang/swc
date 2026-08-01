@@ -71,15 +71,16 @@ struct RenderOgl
     // OpenGL context this renderer owns; reaching in from outside would desynchronize the mirror.
     private
     {
-        using native: NativeRenderOgl              // Platform-specific context operations.
-        vertexbuffer:   GLuint                    // OpenGL streaming vertex buffer.
-        worldTransform: Transform2                // Current painter world transform.
-        orthoMatrix:    Matrix4x4                 // Current surface projection matrix.
-        modelMatrix:    Matrix4x4                 // Current model matrix.
-        whiteTexture:   GLuint                    // Built-in one-pixel white texture.
-        hatchTextures:  [HatchStyle] GLuint       // Built-in hatch texture handles.
-        blendingMode:   BlendingMode = .Alpha     // Active OpenGL blending mode.
-        curRC:          RenderContext              // Active drawable and viewport.
+        using native:   NativeRenderOgl                              // Platform-specific context operations.
+        vertexbuffer:   GLuint                                       // OpenGL streaming vertex buffer.
+        worldTransform: Transform2                                   // Current painter world transform.
+        orthoMatrix:    Matrix4x4                                    // Current surface projection matrix.
+        modelMatrix:    Matrix4x4                                    // Current model matrix.
+        whiteTexture:   GLuint                                       // Built-in one-pixel white texture.
+        hatchTextures:  [HatchStyle] GLuint                          // Built-in hatch texture handles.
+        blendingMode:   BlendingMode = .Alpha                        // Active OpenGL blending mode.
+        colorMask:      ColorMask    = {true, true, true, false}     // Painter-requested channel mask.
+        curRC:          RenderContext                                // Active drawable and viewport.
 
         stackReleasedRT: Array'#null *RenderTarget     // Targets queued for deferred release.
         stackRT:         Array'#null *RenderTarget     // Nested bound render targets.
@@ -293,6 +294,15 @@ private impl RenderOgl
             glBlendFunc(GL_ONE, GL_ONE)
             glBlendEquation(GL_MAX)
         }
+    }
+
+    mtd setColorMask(mask: ColorMask)
+    {
+        .colorMask = mask
+        glColorMask(mask.r ? GL_TRUE : GL_FALSE,
+                    mask.g ? GL_TRUE : GL_FALSE,
+                    mask.b ? GL_TRUE : GL_FALSE,
+                    mask.a ? GL_TRUE : GL_FALSE)
     }
 }
 
@@ -746,8 +756,7 @@ impl RenderOgl
             glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT)
 
         case .ColorMask:
-            let params = &cmd.colorMask
-            glColorMask(params.r ? GL_TRUE : GL_FALSE, params.g ? GL_TRUE : GL_FALSE, params.b ? GL_TRUE : GL_FALSE, params.a ? GL_TRUE : GL_FALSE)
+            .setColorMask(cmd.colorMask)
 
         case .Transform:
             let params = &cmd.transform
@@ -767,7 +776,7 @@ impl RenderOgl
             glStencilOp(mode, mode, mode)
 
         case .EndClippingRegion:
-            glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE)
+            .setColorMask(.colorMask)
             glStencilFunc(GL_EQUAL, 1, 0xFF)
             glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP)
 
@@ -817,7 +826,7 @@ impl RenderOgl
                 glBlendEquation(GL_FUNC_ADD)
                 glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE)
                 glDrawArrays(GL_TRIANGLES, cast(GLint) params.start, cast(GLsizei) params.count)
-                glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE)
+                .setColorMask(.colorMask)
             }
 
         case .StartFont:
@@ -1010,6 +1019,8 @@ impl RenderOgl
                     case .Transform, .StartFont, .StartMsdfFont, .EndFont, .ResetTexture0, .BindTexture0, .ResetTextureFont, .BindTextureFont, .SetFontEffect, .DrawTriangles: .executeCommand(dc, cmd1, cast(u64) i, width, height)
                     }
                 }
+
+                .setColorMask(.colorMask)
             }
 
             .unbindRenderTargetImpl()
@@ -1109,7 +1120,7 @@ impl RenderOgl
         glActiveTexture(GL_TEXTURE1)
         glBindTexture(GL_TEXTURE_2D, .whiteTexture)
         .setBlendingMode(BlendingMode.Alpha)
-        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE)
+        .setColorMask({true, true, true, false})
 
         for [i] in 4 do
             glEnableVertexAttribArray(cast(GLuint) i)

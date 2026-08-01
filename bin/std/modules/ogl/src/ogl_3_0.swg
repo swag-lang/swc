@@ -1,235 +1,459 @@
-#global public
-
-using Swag
-
-alias GLhalf = u16
-
-#[Extension, Swag.PlaceHolder]
-{
-    func glBeginConditionalRender(id: GLuint, mode: GLenum)
-    func glBeginTransformFeedback(primitiveMode: GLenum)
-    func glBindBufferBase(target: GLenum, index: GLuint, buffer: GLuint)
-    func glBindBufferRange(target: GLenum, index: GLuint, buffer: GLuint, offset: GLintptr, size: GLsizeiptr)
-    func glBindFragDataLocation(program: GLuint, colorNumber: GLuint, name: #null const *GLchar)
-    func glBindVertexArray(array: GLuint)
-    func glClampColor(target: GLenum, clamp: GLenum)
-    func glClearBufferfi(buffer: GLenum, drawBuffer: GLint, depth: GLfloat, stencil: GLint)
-    func glClearBufferfv(buffer: GLenum, drawBuffer: GLint, value: #null const *GLfloat)
-    func glClearBufferiv(buffer: GLenum, drawBuffer: GLint, value: #null const *GLint)
-    func glClearBufferuiv(buffer: GLenum, drawBuffer: GLint, value: #null const *GLuint)
-    func glColorMaski(buf: GLuint, red: GLboolean, green: GLboolean, blue: GLboolean, alpha: GLboolean)
-    func glDeleteVertexArrays(n: GLsizei, arrays: #null const *GLuint)
-    func glDisablei(cap: GLenum, index: GLuint)
-    func glEnablei(cap: GLenum, index: GLuint)
-    func glEndConditionalRender()
-    func glEndTransformFeedback()
-    func glFlushMappedBufferRange(target: GLenum, offset: GLintptr, length: GLsizeiptr)->#null *void
-    func glGenVertexArrays(n: GLsizei, arrays: #null *GLuint)
-    func glGetBooleani_v(pname: GLenum, index: GLuint, data: #null *GLboolean)
-    func glGetFragDataLocation(program: GLuint, name: #null const *GLchar)->GLint
-    func glGetIntegeri_v(target: GLenum, index: GLuint, data: #null *GLint)
-    func glGetStringi(name: GLenum, index: GLuint)->#null const *GLubyte
-    func glGetTexParameterIiv(target: GLenum, pname: GLenum, params: #null *GLint)
-    func glGetTexParameterIuiv(target: GLenum, pname: GLenum, params: #null *GLuint)
-    func glGetTransformFeedbackVarying(program: GLuint, index: GLuint, bufSize: GLsizei, length: #null *GLsizei, size: #null *GLsizei, type: #null *GLenum, name: #null *GLchar)
-    func glGetUniformuiv(program: GLuint, location: GLint, params: #null *GLuint)
-    func glGetVertexAttribIiv(index: GLuint, pname: GLenum, params: #null *GLint)
-    func glGetVertexAttribIuiv(index: GLuint, pname: GLenum, params: #null *GLuint)
-    func glIsEnabledi(cap: GLenum, index: GLuint)->GLboolean
-    func glIsVertexArray(array: GLuint)->GLboolean
-    func glTexParameterIiv(target: GLenum, pname: GLenum, params: #null const *GLint)
-    func glTexParameterIuiv(target: GLenum, pname: GLenum, params: #null const *GLuint)
-    func glTransformFeedbackVaryings(program: GLuint, count: GLsizei, varyings: #null *#null const *GLchar, bufferMode: GLenum)
-    func glUniform1ui(location: GLint, v0: GLuint)
-    func glUniform1uiv(location: GLint, count: GLsizei, value: #null const *GLuint)
-    func glUniform2ui(location: GLint, v0: GLuint, v1: GLuint)
-    func glUniform2uiv(location: GLint, count: GLsizei, value: #null const *GLuint)
-    func glUniform3ui(location: GLint, v0: GLuint, v1: GLuint, v2: GLuint)
-    func glUniform3uiv(location: GLint, count: GLsizei, value: #null const *GLuint)
-    func glUniform4ui(location: GLint, v0: GLuint, v1: GLuint, v2: GLuint, v3: GLuint)
-    func glUniform4uiv(location: GLint, count: GLsizei, value: #null const *GLuint)
-    func glVertexAttribI1i(index: GLuint, v0: GLint)
-    func glVertexAttribI1iv(index: GLuint, v0: #null const *GLint)
-    func glVertexAttribI1ui(index: GLuint, v0: GLuint)
-    func glVertexAttribI1uiv(index: GLuint, v0: #null const *GLuint)
-    func glVertexAttribI2i(index: GLuint, v0: GLint, v1: GLint)
-    func glVertexAttribI2iv(index: GLuint, v0: #null const *GLint)
-    func glVertexAttribI2ui(index: GLuint, v0: GLuint, v1: GLuint)
-    func glVertexAttribI2uiv(index: GLuint, v0: #null const *GLuint)
-    func glVertexAttribI3i(index: GLuint, v0: GLint, v1: GLint, v2: GLint)
-    func glVertexAttribI3iv(index: GLuint, v0: #null const *GLint)
-    func glVertexAttribI3ui(index: GLuint, v0: GLuint, v1: GLuint, v2: GLuint)
-    func glVertexAttribI3uiv(index: GLuint, v0: #null const *GLuint)
-    func glVertexAttribI4bv(index: GLuint, v0: #null const *GLbyte)
-    func glVertexAttribI4i(index: GLuint, v0: GLint, v1: GLint, v2: GLint, v3: GLint)
-    func glVertexAttribI4iv(index: GLuint, v0: #null const *GLint)
-    func glVertexAttribI4sv(index: GLuint, v0: #null const *GLshort)
-    func glVertexAttribI4ubv(index: GLuint, v0: #null const *GLubyte)
-    func glVertexAttribI4ui(index: GLuint, v0: GLuint, v1: GLuint, v2: GLuint, v3: GLuint)
-    func glVertexAttribI4uiv(index: GLuint, v0: #null const *GLuint)
-    func glVertexAttribI4usv(index: GLuint, v0: #null const *GLushort)
-    func glVertexAttribIPointer(index: GLuint, size: GLint, type: GLenum, stride: GLsizei, pointer: #null const *void)
-}
-
-const GL_CLIP_DISTANCE0                                = GL_CLIP_PLANE0
-const GL_CLIP_DISTANCE1                                = GL_CLIP_PLANE1
-const GL_CLIP_DISTANCE2                                = GL_CLIP_PLANE2
-const GL_CLIP_DISTANCE3                                = GL_CLIP_PLANE3
-const GL_CLIP_DISTANCE4                                = GL_CLIP_PLANE4
-const GL_CLIP_DISTANCE5                                = GL_CLIP_PLANE5
-const GL_COMPARE_REF_TO_TEXTURE                        = GL_COMPARE_R_TO_TEXTURE_ARB
-const GL_MAX_CLIP_DISTANCES                            = GL_MAX_CLIP_PLANES
-const GL_MAX_VARYING_COMPONENTS                        = GL_MAX_VARYING_FLOATS
-const GL_CONTEXT_FLAG_FORWARD_COMPATIBLE_BIT           = 0x0001
-const GL_MAJOR_VERSION                                 = 0x821B
-const GL_MINOR_VERSION                                 = 0x821C
-const GL_NUM_EXTENSIONS                                = 0x821D
-const GL_CONTEXT_FLAGS                                 = 0x821E
-const GL_DEPTH_BUFFER                                  = 0x8223
-const GL_STENCIL_BUFFER                                = 0x8224
-const GL_RGBA32F                                       = 0x8814
-const GL_RGB32F                                        = 0x8815
-const GL_RGBA16F                                       = 0x881A
-const GL_RGB16F                                        = 0x881B
-const GL_VERTEX_ATTRIB_ARRAY_INTEGER                   = 0x88FD
-const GL_MAX_ARRAY_TEXTURE_LAYERS                      = 0x88FF
-const GL_MIN_PROGRAM_TEXEL_OFFSET                      = 0x8904
-const GL_MAX_PROGRAM_TEXEL_OFFSET                      = 0x8905
-const GL_CLAMP_VERTEX_COLOR                            = 0x891A
-const GL_CLAMP_FRAGMENT_COLOR                          = 0x891B
-const GL_CLAMP_READ_COLOR                              = 0x891C
-const GL_FIXED_ONLY                                    = 0x891D
-const GL_TEXTURE_RED_TYPE                              = 0x8C10
-const GL_TEXTURE_GREEN_TYPE                            = 0x8C11
-const GL_TEXTURE_BLUE_TYPE                             = 0x8C12
-const GL_TEXTURE_ALPHA_TYPE                            = 0x8C13
-const GL_TEXTURE_LUMINANCE_TYPE                        = 0x8C14
-const GL_TEXTURE_INTENSITY_TYPE                        = 0x8C15
-const GL_TEXTURE_DEPTH_TYPE                            = 0x8C16
-const GL_TEXTURE_1D_ARRAY                              = 0x8C18
-const GL_PROXY_TEXTURE_1D_ARRAY                        = 0x8C19
-const GL_TEXTURE_2D_ARRAY                              = 0x8C1A
-const GL_PROXY_TEXTURE_2D_ARRAY                        = 0x8C1B
-const GL_TEXTURE_BINDING_1D_ARRAY                      = 0x8C1C
-const GL_TEXTURE_BINDING_2D_ARRAY                      = 0x8C1D
-const GL_R11F_G11F_B10F                                = 0x8C3A
-const GL_UNSIGNED_INT_10F_11F_11F_REV                  = 0x8C3B
-const GL_RGB9_E5                                       = 0x8C3D
-const GL_UNSIGNED_INT_5_9_9_9_REV                      = 0x8C3E
-const GL_TEXTURE_SHARED_SIZE                           = 0x8C3F
-const GL_TRANSFORM_FEEDBACK_VARYING_MAX_LENGTH         = 0x8C76
-const GL_TRANSFORM_FEEDBACK_BUFFER_MODE                = 0x8C7F
-const GL_MAX_TRANSFORM_FEEDBACK_SEPARATE_COMPONENTS    = 0x8C80
-const GL_TRANSFORM_FEEDBACK_VARYINGS                   = 0x8C83
-const GL_TRANSFORM_FEEDBACK_BUFFER_START               = 0x8C84
-const GL_TRANSFORM_FEEDBACK_BUFFER_SIZE                = 0x8C85
-const GL_PRIMITIVES_GENERATED                          = 0x8C87
-const GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN         = 0x8C88
-const GL_RASTERIZER_DISCARD                            = 0x8C89
-const GL_MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS = 0x8C8A
-const GL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS       = 0x8C8B
-const GL_INTERLEAVED_ATTRIBS                           = 0x8C8C
-const GL_SEPARATE_ATTRIBS                              = 0x8C8D
-const GL_TRANSFORM_FEEDBACK_BUFFER                     = 0x8C8E
-const GL_TRANSFORM_FEEDBACK_BUFFER_BINDING             = 0x8C8F
-const GL_RGBA32UI                                      = 0x8D70
-const GL_RGB32UI                                       = 0x8D71
-const GL_RGBA16UI                                      = 0x8D76
-const GL_RGB16UI                                       = 0x8D77
-const GL_RGBA8UI                                       = 0x8D7C
-const GL_RGB8UI                                        = 0x8D7D
-const GL_RGBA32I                                       = 0x8D82
-const GL_RGB32I                                        = 0x8D83
-const GL_RGBA16I                                       = 0x8D88
-const GL_RGB16I                                        = 0x8D89
-const GL_RGBA8I                                        = 0x8D8E
-const GL_RGB8I                                         = 0x8D8F
-const GL_RED_INTEGER                                   = 0x8D94
-const GL_GREEN_INTEGER                                 = 0x8D95
-const GL_BLUE_INTEGER                                  = 0x8D96
-const GL_ALPHA_INTEGER                                 = 0x8D97
-const GL_RGB_INTEGER                                   = 0x8D98
-const GL_RGBA_INTEGER                                  = 0x8D99
-const GL_BGR_INTEGER                                   = 0x8D9A
-const GL_BGRA_INTEGER                                  = 0x8D9B
-const GL_SAMPLER_1D_ARRAY                              = 0x8DC0
-const GL_SAMPLER_2D_ARRAY                              = 0x8DC1
-const GL_SAMPLER_1D_ARRAY_SHADOW                       = 0x8DC3
-const GL_SAMPLER_2D_ARRAY_SHADOW                       = 0x8DC4
-const GL_SAMPLER_CUBE_SHADOW                           = 0x8DC5
-const GL_UNSIGNED_INT_VEC2                             = 0x8DC6
-const GL_UNSIGNED_INT_VEC3                             = 0x8DC7
-const GL_UNSIGNED_INT_VEC4                             = 0x8DC8
-const GL_INT_SAMPLER_1D                                = 0x8DC9
-const GL_INT_SAMPLER_2D                                = 0x8DCA
-const GL_INT_SAMPLER_3D                                = 0x8DCB
-const GL_INT_SAMPLER_CUBE                              = 0x8DCC
-const GL_INT_SAMPLER_1D_ARRAY                          = 0x8DCE
-const GL_INT_SAMPLER_2D_ARRAY                          = 0x8DCF
-const GL_UNSIGNED_INT_SAMPLER_1D                       = 0x8DD1
-const GL_UNSIGNED_INT_SAMPLER_2D                       = 0x8DD2
-const GL_UNSIGNED_INT_SAMPLER_3D                       = 0x8DD3
-const GL_UNSIGNED_INT_SAMPLER_CUBE                     = 0x8DD4
-const GL_UNSIGNED_INT_SAMPLER_1D_ARRAY                 = 0x8DD6
-const GL_UNSIGNED_INT_SAMPLER_2D_ARRAY                 = 0x8DD7
-const GL_QUERY_WAIT                                    = 0x8E13
-const GL_QUERY_NO_WAIT                                 = 0x8E14
-const GL_QUERY_BY_REGION_WAIT                          = 0x8E15
-const GL_QUERY_BY_REGION_NO_WAIT                       = 0x8E16
-const GL_CLIP_DISTANCE6                                = 0x3006
-const GL_CLIP_DISTANCE7                                = 0x3007
-const GL_COMPRESSED_RED                                = 0x8225
-const GL_COMPRESSED_RG                                 = 0x8226
-const GL_DEPTH_COMPONENT32F                            = 0x8CAC
-const GL_DEPTH32F_STENCIL8                             = 0x8CAD
-const GL_FLOAT_32_UNSIGNED_INT_24_8_REV                = 0x8DAD
-const GL_COLOR_ATTACHMENT16                            = 0x8CF0
-const GL_COLOR_ATTACHMENT17                            = 0x8CF1
-const GL_COLOR_ATTACHMENT18                            = 0x8CF2
-const GL_COLOR_ATTACHMENT19                            = 0x8CF3
-const GL_COLOR_ATTACHMENT20                            = 0x8CF4
-const GL_COLOR_ATTACHMENT21                            = 0x8CF5
-const GL_COLOR_ATTACHMENT22                            = 0x8CF6
-const GL_COLOR_ATTACHMENT23                            = 0x8CF7
-const GL_COLOR_ATTACHMENT24                            = 0x8CF8
-const GL_COLOR_ATTACHMENT25                            = 0x8CF9
-const GL_COLOR_ATTACHMENT26                            = 0x8CFA
-const GL_COLOR_ATTACHMENT27                            = 0x8CFB
-const GL_COLOR_ATTACHMENT28                            = 0x8CFC
-const GL_COLOR_ATTACHMENT29                            = 0x8CFD
-const GL_COLOR_ATTACHMENT30                            = 0x8CFE
-const GL_COLOR_ATTACHMENT31                            = 0x8CFF
-const GL_HALF_FLOAT                                    = 0x140B
-const GL_MAP_READ_BIT                                  = 0x0001
-const GL_MAP_WRITE_BIT                                 = 0x0002
-const GL_MAP_INVALIDATE_RANGE_BIT                      = 0x0004
-const GL_MAP_INVALIDATE_BUFFER_BIT                     = 0x0008
-const GL_MAP_FLUSH_EXPLICIT_BIT                        = 0x0010
-const GL_MAP_UNSYNCHRONIZED_BIT                        = 0x0020
-const GL_COMPRESSED_RED_RGTC1                          = 0x8DBB
-const GL_COMPRESSED_SIGNED_RED_RGTC1                   = 0x8DBC
-const GL_COMPRESSED_RG_RGTC2                           = 0x8DBD
-const GL_COMPRESSED_SIGNED_RG_RGTC2                    = 0x8DBE
-const GL_RG                                            = 0x8227
-const GL_RG_INTEGER                                    = 0x8228
-const GL_R8                                            = 0x8229
-const GL_R16                                           = 0x822A
-const GL_RG8                                           = 0x822B
-const GL_RG16                                          = 0x822C
-const GL_R16F                                          = 0x822D
-const GL_R32F                                          = 0x822E
-const GL_RG16F                                         = 0x822F
-const GL_RG32F                                         = 0x8230
-const GL_R8I                                           = 0x8231
-const GL_R8UI                                          = 0x8232
-const GL_R16I                                          = 0x8233
-const GL_R16UI                                         = 0x8234
-const GL_R32I                                          = 0x8235
-const GL_R32UI                                         = 0x8236
-const GL_RG8I                                          = 0x8237
-const GL_RG8UI                                         = 0x8238
-const GL_RG16I                                         = 0x8239
-const GL_RG16UI                                        = 0x823A
-const GL_RG32I                                         = 0x823B
-const GL_RG32UI                                        = 0x823C
-const GL_VERTEX_ARRAY_BINDING                          = 0x85B5
+#global public
+
+using Swag
+
+alias GLhalf = u16
+
+#[Extension, Swag.PlaceHolder]
+
+{
+    func glBeginConditionalRender(id: GLuint, mode: GLenum)
+
+    func glBeginTransformFeedback(primitiveMode: GLenum)
+
+    func glBindBufferBase(target: GLenum, index: GLuint, buffer: GLuint)
+
+    func glBindBufferRange(target: GLenum, index: GLuint, buffer: GLuint, offset: GLintptr, size: GLsizeiptr)
+
+    func glBindFragDataLocation(program: GLuint, colorNumber: GLuint, name: #null const *GLchar)
+
+    func glBindVertexArray(array: GLuint)
+
+    func glClampColor(target: GLenum, clamp: GLenum)
+
+    func glClearBufferfi(buffer: GLenum, drawBuffer: GLint, depth: GLfloat, stencil: GLint)
+
+    func glClearBufferfv(buffer: GLenum, drawBuffer: GLint, value: #null const *GLfloat)
+
+    func glClearBufferiv(buffer: GLenum, drawBuffer: GLint, value: #null const *GLint)
+
+    func glClearBufferuiv(buffer: GLenum, drawBuffer: GLint, value: #null const *GLuint)
+
+    func glColorMaski(buf: GLuint, red: GLboolean, green: GLboolean, blue: GLboolean, alpha: GLboolean)
+
+    func glDeleteVertexArrays(n: GLsizei, arrays: #null const *GLuint)
+
+    func glDisablei(cap: GLenum, index: GLuint)
+
+    func glEnablei(cap: GLenum, index: GLuint)
+
+    func glEndConditionalRender()
+
+    func glEndTransformFeedback()
+
+    func glFlushMappedBufferRange(target: GLenum, offset: GLintptr, length: GLsizeiptr)->#null *void
+
+    func glGenVertexArrays(n: GLsizei, arrays: #null *GLuint)
+
+    func glGetBooleani_v(pname: GLenum, index: GLuint, data: #null *GLboolean)
+
+    func glGetFragDataLocation(program: GLuint, name: #null const *GLchar)->GLint
+
+    func glGetIntegeri_v(target: GLenum, index: GLuint, data: #null *GLint)
+
+    func glGetStringi(name: GLenum, index: GLuint)->#null const *GLubyte
+
+    func glGetTexParameterIiv(target: GLenum, pname: GLenum, params: #null *GLint)
+
+    func glGetTexParameterIuiv(target: GLenum, pname: GLenum, params: #null *GLuint)
+
+    func glGetTransformFeedbackVarying(program: GLuint, index: GLuint, bufSize: GLsizei, length: #null *GLsizei, size: #null *GLsizei, type: #null *GLenum, name: #null *GLchar)
+
+    func glGetUniformuiv(program: GLuint, location: GLint, params: #null *GLuint)
+
+    func glGetVertexAttribIiv(index: GLuint, pname: GLenum, params: #null *GLint)
+
+    func glGetVertexAttribIuiv(index: GLuint, pname: GLenum, params: #null *GLuint)
+
+    func glIsEnabledi(cap: GLenum, index: GLuint)->GLboolean
+
+    func glIsVertexArray(array: GLuint)->GLboolean
+
+    func glTexParameterIiv(target: GLenum, pname: GLenum, params: #null const *GLint)
+
+    func glTexParameterIuiv(target: GLenum, pname: GLenum, params: #null const *GLuint)
+
+    func glTransformFeedbackVaryings(program: GLuint, count: GLsizei, varyings: #null *#null const *GLchar, bufferMode: GLenum)
+
+    func glUniform1ui(location: GLint, v0: GLuint)
+
+    func glUniform1uiv(location: GLint, count: GLsizei, value: #null const *GLuint)
+
+    func glUniform2ui(location: GLint, v0: GLuint, v1: GLuint)
+
+    func glUniform2uiv(location: GLint, count: GLsizei, value: #null const *GLuint)
+
+    func glUniform3ui(location: GLint, v0: GLuint, v1: GLuint, v2: GLuint)
+
+    func glUniform3uiv(location: GLint, count: GLsizei, value: #null const *GLuint)
+
+    func glUniform4ui(location: GLint, v0: GLuint, v1: GLuint, v2: GLuint, v3: GLuint)
+
+    func glUniform4uiv(location: GLint, count: GLsizei, value: #null const *GLuint)
+
+    func glVertexAttribI1i(index: GLuint, v0: GLint)
+
+    func glVertexAttribI1iv(index: GLuint, v0: #null const *GLint)
+
+    func glVertexAttribI1ui(index: GLuint, v0: GLuint)
+
+    func glVertexAttribI1uiv(index: GLuint, v0: #null const *GLuint)
+
+    func glVertexAttribI2i(index: GLuint, v0: GLint, v1: GLint)
+
+    func glVertexAttribI2iv(index: GLuint, v0: #null const *GLint)
+
+    func glVertexAttribI2ui(index: GLuint, v0: GLuint, v1: GLuint)
+
+    func glVertexAttribI2uiv(index: GLuint, v0: #null const *GLuint)
+
+    func glVertexAttribI3i(index: GLuint, v0: GLint, v1: GLint, v2: GLint)
+
+    func glVertexAttribI3iv(index: GLuint, v0: #null const *GLint)
+
+    func glVertexAttribI3ui(index: GLuint, v0: GLuint, v1: GLuint, v2: GLuint)
+
+    func glVertexAttribI3uiv(index: GLuint, v0: #null const *GLuint)
+
+    func glVertexAttribI4bv(index: GLuint, v0: #null const *GLbyte)
+
+    func glVertexAttribI4i(index: GLuint, v0: GLint, v1: GLint, v2: GLint, v3: GLint)
+
+    func glVertexAttribI4iv(index: GLuint, v0: #null const *GLint)
+
+    func glVertexAttribI4sv(index: GLuint, v0: #null const *GLshort)
+
+    func glVertexAttribI4ubv(index: GLuint, v0: #null const *GLubyte)
+
+    func glVertexAttribI4ui(index: GLuint, v0: GLuint, v1: GLuint, v2: GLuint, v3: GLuint)
+
+    func glVertexAttribI4uiv(index: GLuint, v0: #null const *GLuint)
+
+    func glVertexAttribI4usv(index: GLuint, v0: #null const *GLushort)
+
+    func glVertexAttribIPointer(index: GLuint, size: GLint, type: GLenum, stride: GLsizei, pointer: #null const *void)
+}
+
+const GL_CLIP_DISTANCE0 = GL_CLIP_PLANE0
+
+const GL_CLIP_DISTANCE1 = GL_CLIP_PLANE1
+
+const GL_CLIP_DISTANCE2 = GL_CLIP_PLANE2
+
+const GL_CLIP_DISTANCE3 = GL_CLIP_PLANE3
+
+const GL_CLIP_DISTANCE4 = GL_CLIP_PLANE4
+
+const GL_CLIP_DISTANCE5 = GL_CLIP_PLANE5
+
+const GL_COMPARE_REF_TO_TEXTURE = GL_COMPARE_R_TO_TEXTURE_ARB
+
+const GL_MAX_CLIP_DISTANCES = GL_MAX_CLIP_PLANES
+
+const GL_MAX_VARYING_COMPONENTS = GL_MAX_VARYING_FLOATS
+
+const GL_CONTEXT_FLAG_FORWARD_COMPATIBLE_BIT = 0x0001
+
+const GL_MAJOR_VERSION = 0x821B
+
+const GL_MINOR_VERSION = 0x821C
+
+const GL_NUM_EXTENSIONS = 0x821D
+
+const GL_CONTEXT_FLAGS = 0x821E
+
+const GL_DEPTH_BUFFER = 0x8223
+
+const GL_STENCIL_BUFFER = 0x8224
+
+const GL_RGBA32F = 0x8814
+
+const GL_RGB32F = 0x8815
+
+const GL_RGBA16F = 0x881A
+
+const GL_RGB16F = 0x881B
+
+const GL_VERTEX_ATTRIB_ARRAY_INTEGER = 0x88FD
+
+const GL_MAX_ARRAY_TEXTURE_LAYERS = 0x88FF
+
+const GL_MIN_PROGRAM_TEXEL_OFFSET = 0x8904
+
+const GL_MAX_PROGRAM_TEXEL_OFFSET = 0x8905
+
+const GL_CLAMP_VERTEX_COLOR = 0x891A
+
+const GL_CLAMP_FRAGMENT_COLOR = 0x891B
+
+const GL_CLAMP_READ_COLOR = 0x891C
+
+const GL_FIXED_ONLY = 0x891D
+
+const GL_TEXTURE_RED_TYPE = 0x8C10
+
+const GL_TEXTURE_GREEN_TYPE = 0x8C11
+
+const GL_TEXTURE_BLUE_TYPE = 0x8C12
+
+const GL_TEXTURE_ALPHA_TYPE = 0x8C13
+
+const GL_TEXTURE_LUMINANCE_TYPE = 0x8C14
+
+const GL_TEXTURE_INTENSITY_TYPE = 0x8C15
+
+const GL_TEXTURE_DEPTH_TYPE = 0x8C16
+
+const GL_TEXTURE_1D_ARRAY = 0x8C18
+
+const GL_PROXY_TEXTURE_1D_ARRAY = 0x8C19
+
+const GL_TEXTURE_2D_ARRAY = 0x8C1A
+
+const GL_PROXY_TEXTURE_2D_ARRAY = 0x8C1B
+
+const GL_TEXTURE_BINDING_1D_ARRAY = 0x8C1C
+
+const GL_TEXTURE_BINDING_2D_ARRAY = 0x8C1D
+
+const GL_R11F_G11F_B10F = 0x8C3A
+
+const GL_UNSIGNED_INT_10F_11F_11F_REV = 0x8C3B
+
+const GL_RGB9_E5 = 0x8C3D
+
+const GL_UNSIGNED_INT_5_9_9_9_REV = 0x8C3E
+
+const GL_TEXTURE_SHARED_SIZE = 0x8C3F
+
+const GL_TRANSFORM_FEEDBACK_VARYING_MAX_LENGTH = 0x8C76
+
+const GL_TRANSFORM_FEEDBACK_BUFFER_MODE = 0x8C7F
+
+const GL_MAX_TRANSFORM_FEEDBACK_SEPARATE_COMPONENTS = 0x8C80
+
+const GL_TRANSFORM_FEEDBACK_VARYINGS = 0x8C83
+
+const GL_TRANSFORM_FEEDBACK_BUFFER_START = 0x8C84
+
+const GL_TRANSFORM_FEEDBACK_BUFFER_SIZE = 0x8C85
+
+const GL_PRIMITIVES_GENERATED = 0x8C87
+
+const GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN = 0x8C88
+
+const GL_RASTERIZER_DISCARD = 0x8C89
+
+const GL_MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS = 0x8C8A
+
+const GL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS = 0x8C8B
+
+const GL_INTERLEAVED_ATTRIBS = 0x8C8C
+
+const GL_SEPARATE_ATTRIBS = 0x8C8D
+
+const GL_TRANSFORM_FEEDBACK_BUFFER = 0x8C8E
+
+const GL_TRANSFORM_FEEDBACK_BUFFER_BINDING = 0x8C8F
+
+const GL_RGBA32UI = 0x8D70
+
+const GL_RGB32UI = 0x8D71
+
+const GL_RGBA16UI = 0x8D76
+
+const GL_RGB16UI = 0x8D77
+
+const GL_RGBA8UI = 0x8D7C
+
+const GL_RGB8UI = 0x8D7D
+
+const GL_RGBA32I = 0x8D82
+
+const GL_RGB32I = 0x8D83
+
+const GL_RGBA16I = 0x8D88
+
+const GL_RGB16I = 0x8D89
+
+const GL_RGBA8I = 0x8D8E
+
+const GL_RGB8I = 0x8D8F
+
+const GL_RED_INTEGER = 0x8D94
+
+const GL_GREEN_INTEGER = 0x8D95
+
+const GL_BLUE_INTEGER = 0x8D96
+
+const GL_ALPHA_INTEGER = 0x8D97
+
+const GL_RGB_INTEGER = 0x8D98
+
+const GL_RGBA_INTEGER = 0x8D99
+
+const GL_BGR_INTEGER = 0x8D9A
+
+const GL_BGRA_INTEGER = 0x8D9B
+
+const GL_SAMPLER_1D_ARRAY = 0x8DC0
+
+const GL_SAMPLER_2D_ARRAY = 0x8DC1
+
+const GL_SAMPLER_1D_ARRAY_SHADOW = 0x8DC3
+
+const GL_SAMPLER_2D_ARRAY_SHADOW = 0x8DC4
+
+const GL_SAMPLER_CUBE_SHADOW = 0x8DC5
+
+const GL_UNSIGNED_INT_VEC2 = 0x8DC6
+
+const GL_UNSIGNED_INT_VEC3 = 0x8DC7
+
+const GL_UNSIGNED_INT_VEC4 = 0x8DC8
+
+const GL_INT_SAMPLER_1D = 0x8DC9
+
+const GL_INT_SAMPLER_2D = 0x8DCA
+
+const GL_INT_SAMPLER_3D = 0x8DCB
+
+const GL_INT_SAMPLER_CUBE = 0x8DCC
+
+const GL_INT_SAMPLER_1D_ARRAY = 0x8DCE
+
+const GL_INT_SAMPLER_2D_ARRAY = 0x8DCF
+
+const GL_UNSIGNED_INT_SAMPLER_1D = 0x8DD1
+
+const GL_UNSIGNED_INT_SAMPLER_2D = 0x8DD2
+
+const GL_UNSIGNED_INT_SAMPLER_3D = 0x8DD3
+
+const GL_UNSIGNED_INT_SAMPLER_CUBE = 0x8DD4
+
+const GL_UNSIGNED_INT_SAMPLER_1D_ARRAY = 0x8DD6
+
+const GL_UNSIGNED_INT_SAMPLER_2D_ARRAY = 0x8DD7
+
+const GL_QUERY_WAIT = 0x8E13
+
+const GL_QUERY_NO_WAIT = 0x8E14
+
+const GL_QUERY_BY_REGION_WAIT = 0x8E15
+
+const GL_QUERY_BY_REGION_NO_WAIT = 0x8E16
+
+const GL_CLIP_DISTANCE6 = 0x3006
+
+const GL_CLIP_DISTANCE7 = 0x3007
+
+const GL_COMPRESSED_RED = 0x8225
+
+const GL_COMPRESSED_RG = 0x8226
+
+const GL_DEPTH_COMPONENT32F = 0x8CAC
+
+const GL_DEPTH32F_STENCIL8 = 0x8CAD
+
+const GL_FLOAT_32_UNSIGNED_INT_24_8_REV = 0x8DAD
+
+const GL_COLOR_ATTACHMENT16 = 0x8CF0
+
+const GL_COLOR_ATTACHMENT17 = 0x8CF1
+
+const GL_COLOR_ATTACHMENT18 = 0x8CF2
+
+const GL_COLOR_ATTACHMENT19 = 0x8CF3
+
+const GL_COLOR_ATTACHMENT20 = 0x8CF4
+
+const GL_COLOR_ATTACHMENT21 = 0x8CF5
+
+const GL_COLOR_ATTACHMENT22 = 0x8CF6
+
+const GL_COLOR_ATTACHMENT23 = 0x8CF7
+
+const GL_COLOR_ATTACHMENT24 = 0x8CF8
+
+const GL_COLOR_ATTACHMENT25 = 0x8CF9
+
+const GL_COLOR_ATTACHMENT26 = 0x8CFA
+
+const GL_COLOR_ATTACHMENT27 = 0x8CFB
+
+const GL_COLOR_ATTACHMENT28 = 0x8CFC
+
+const GL_COLOR_ATTACHMENT29 = 0x8CFD
+
+const GL_COLOR_ATTACHMENT30 = 0x8CFE
+
+const GL_COLOR_ATTACHMENT31 = 0x8CFF
+
+const GL_HALF_FLOAT = 0x140B
+
+const GL_MAP_READ_BIT = 0x0001
+
+const GL_MAP_WRITE_BIT = 0x0002
+
+const GL_MAP_INVALIDATE_RANGE_BIT = 0x0004
+
+const GL_MAP_INVALIDATE_BUFFER_BIT = 0x0008
+
+const GL_MAP_FLUSH_EXPLICIT_BIT = 0x0010
+
+const GL_MAP_UNSYNCHRONIZED_BIT = 0x0020
+
+const GL_COMPRESSED_RED_RGTC1 = 0x8DBB
+
+const GL_COMPRESSED_SIGNED_RED_RGTC1 = 0x8DBC
+
+const GL_COMPRESSED_RG_RGTC2 = 0x8DBD
+
+const GL_COMPRESSED_SIGNED_RG_RGTC2 = 0x8DBE
+
+const GL_RG = 0x8227
+
+const GL_RG_INTEGER = 0x8228
+
+const GL_R8 = 0x8229
+
+const GL_R16 = 0x822A
+
+const GL_RG8 = 0x822B
+
+const GL_RG16 = 0x822C
+
+const GL_R16F = 0x822D
+
+const GL_R32F = 0x822E
+
+const GL_RG16F = 0x822F
+
+const GL_RG32F = 0x8230
+
+const GL_R8I = 0x8231
+
+const GL_R8UI = 0x8232
+
+const GL_R16I = 0x8233
+
+const GL_R16UI = 0x8234
+
+const GL_R32I = 0x8235
+
+const GL_R32UI = 0x8236
+
+const GL_RG8I = 0x8237
+
+const GL_RG8UI = 0x8238
+
+const GL_RG16I = 0x8239
+
+const GL_RG16UI = 0x823A
+
+const GL_RG32I = 0x823B
+
+const GL_RG32UI = 0x823C
+
+const GL_VERTEX_ARRAY_BINDING = 0x85B5

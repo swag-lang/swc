@@ -118,11 +118,16 @@ The first run creates `goldens/toolbar.enabled.png` and passes so the new file c
 be reviewed. A mismatch fails and writes `toolbar.enabled.actual.png`. After
 reviewing both images, `tools\accept-test-goldens.bat` promotes pending snapshots.
 
+Use [[Pixel.Testing.assertImagesNear]] when two backends render the same scene in
+one test. It writes both images on failure. The channel-delta limit absorbs small
+rounding differences; the different-pixel limit separately bounds raster-edge
+outliers, so neither tolerance can hide a broad rendering regression.
+
 [[Pixel.RenderCpu]] interprets built-in shapes, brushes, textures, clipping,
-blending, bitmap text, render targets, blur, and supersampling. Custom GLSL
-shaders and advanced MSDF outline, glow, softness, and bevel effects remain
-OpenGL-only. Keep a small OpenGL integration suite for shader compiler, driver,
-context, and presentation coverage.
+blending, bitmap and MSDF text effects, render targets, blur, and supersampling.
+Custom GLSL shaders remain OpenGL-only. Keep a small OpenGL integration suite for
+shader compiler, driver, context, and presentation coverage, and compare its
+portable scenes with CPU output.
 
 > WARNING: End a painter before calling [[Pixel.Painter.render]]. Do not mutate
 > its command or vertex buffers while a renderer is consuming them.

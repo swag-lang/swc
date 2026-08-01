@@ -14,10 +14,10 @@ using Swag, Core
 
 #test
 {
-    var cpu: RenderCpu
+    var cpu:   RenderCpu
     var painter = Painter.create(&cpu)
-    var layer:    Layer
-    var begin:    LayerBeginInfo
+    var layer: Layer
+    var begin: LayerBeginInfo
 
     begin.width  = 64
     begin.height = 32
@@ -35,10 +35,10 @@ using Swag, Core
 // size; without renderScale the resolve is a no-op.
 #test
 {
-    var cpu: RenderCpu
+    var cpu:   RenderCpu
     var painter = Painter.create(&cpu)
-    var layer:    Layer
-    var begin:    LayerBeginInfo
+    var layer: Layer
+    var begin: LayerBeginInfo
 
     begin.width       = 64
     begin.height      = 32
@@ -57,11 +57,11 @@ using Swag, Core
 // Compositing a layer binds its content texture and draws one quad.
 #test
 {
-    var cpu: RenderCpu
+    var cpu:   RenderCpu
     var painter = Painter.create(&cpu)
-    var layer:    Layer
-    var begin:    LayerBeginInfo
-    var draw:     LayerDrawInfo
+    var layer: Layer
+    var begin: LayerBeginInfo
+    var draw:  LayerDrawInfo
 
     begin.width  = 64
     begin.height = 32
@@ -81,11 +81,11 @@ using Swag, Core
 // exercises the built-in blur program and its parameters.
 #test
 {
-    var cpu: RenderCpu
+    var cpu:   RenderCpu
     var painter = Painter.create(&cpu)
-    var layer:    Layer
-    var begin:    LayerBeginInfo
-    var draw:     LayerDrawInfo
+    var layer: Layer
+    var begin: LayerBeginInfo
+    var draw:  LayerDrawInfo
 
     begin.width         = 64
     begin.height        = 32

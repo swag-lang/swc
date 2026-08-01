@@ -8,9 +8,9 @@ using Swag, Core, Core.Math
 // graphics context, or GPU driver. Call [[Pixel.RenderCpu.begin]], record and submit a painter,
 // then read the surface or an off-screen target back as an [[Pixel.Image]].
 //
-// Custom OpenGL shaders and advanced MSDF font effects are not portable to this backend.
-// Other built-in painter operations are interpreted directly; submitting an unsupported
-// shader or font effect is a programmer error.
+// Every renderer-independent painter operation, including MSDF font effects, blur, and
+// supersampling resolve, is interpreted directly. Custom OpenGL shaders remain specific to
+// [[Pixel.RenderOgl]] and are a programmer error when submitted to this backend.
 #[Swag.NoCopy]
 struct RenderCpu
 {
@@ -35,19 +35,20 @@ struct RenderCpu
         scissorRect: Math.Rectangle
 
         blendingMode: BlendingMode = Alpha
-        colorMask:    ColorMask     = {true, true, true, false}
+        colorMask:    ColorMask    = {true, true, true, false}
 
         paintCommand: Command = undefined
         paintOn:      bool
         program:      u8
 
         surfaceStencil: Array'u8
-        stencilOn:    bool
-        stencilWrite: bool
-        stencilMode:  ClippingMode = Set
+        stencilOn:      bool
+        stencilWrite:   bool
+        stencilMode:    ClippingMode = Set
 
         font:           #null *Font
         fontAtlasIndex: s32 = -1
+        fontEffect:     FontEffectParams
         overlapMode:    bool
         overlapPass:    u8
         overlapAlpha:   Array'u8
@@ -64,8 +65,8 @@ struct RenderCpu
 #[Swag.Opaque, Swag.NoDoc]
 struct CpuTexture
 {
-    handle: TextureHandle
-    image:  Image
+    handle:  TextureHandle
+    image:   Image
     stencil: Array'u8
 }
 
@@ -119,6 +120,7 @@ private impl RenderCpu
             let texture = notnull .findTexture(.curRT.colorBuffer.handle)
             return &texture.stencil
         }
+
         return &.surfaceStencil
     }
 
@@ -135,7 +137,7 @@ private impl RenderCpu
 
     mtd ensureStencil(width, height: s32)
     {
-        let count = cast(u64) width * cast(u64) height
+        let count   = cast(u64) width * cast(u64) height
         let stencil = .currentStencil()
         if stencil.count == count do
             return
@@ -241,7 +243,7 @@ private impl RenderCpu
         if .alphaResolve
         {
             var out = dst
-            let a = cast(u8) Math.clamp(Math.round(cast(f32) src.a * cast(f32) src.a / 255.0), 0.0, 255.0)
+            let a   = cast(u8) Math.clamp(Math.round(cast(f32) src.a * cast(f32) src.a / 255.0), 0.0, 255.0)
             out.a = Math.max(out.a, a)
             writePixel(image, x, y, out)
             return
@@ -264,7 +266,7 @@ private impl RenderCpu
             // The first fragment consumes the maximum alpha accumulated by the mark pass;
             // subsequent overlapping fragments see zero destination alpha and contribute nothing.
             let factor = cast(f32) .overlapAlpha[pixelIdx] / 255.0
-            var out = Color.fromArgbF32(0,
+            var out    = Color.fromArgbF32(0,
                                         cast(f32) src.r / 255.0 * factor + cast(f32) dst.r / 255.0 * (1.0 - factor),
                                         cast(f32) src.g / 255.0 * factor + cast(f32) dst.g / 255.0 * (1.0 - factor),
                                         cast(f32) src.b / 255.0 * factor + cast(f32) dst.b / 255.0 * (1.0 - factor))
@@ -345,26 +347,62 @@ private impl RenderCpu
         return lerpColor(lerpColor(c00, c10, tx), lerpColor(c01, c11, tx), ty)
     }
 
+    func sampleSubRect(image: *Image, paintPos: Vector2, params: const *Command)->Color
+    {
+        let p    = &params.texture0
+        let minX = cast(s32) Math.floor(p.textureRect.x * image.width)
+        let minY = cast(s32) Math.floor(p.textureRect.y * image.height)
+        let maxX = cast(s32) Math.floor(p.textureRect.z * image.width)
+        let maxY = cast(s32) Math.floor(p.textureRect.w * image.height)
+        let dstW = Math.max(p.boundRect.z - p.boundRect.x, 0.000001)
+        let dstH = Math.max(p.boundRect.w - p.boundRect.y, 0.000001)
+        let tx   = Math.saturate((paintPos.x - p.boundRect.x) / dstW)
+        let ty   = Math.saturate((paintPos.y - p.boundRect.y) / dstH)
+        var px   = cast(f32) minX + tx * cast(f32) (maxX - minX + 1) - 0.5
+        var py   = cast(f32) minY + ty * cast(f32) (maxY - minY + 1) - 0.5
+
+        if p.interpolationMode == .Pixel
+        {
+            let x = Math.clamp(cast(s32) Math.floor(px + 0.5), minX, maxX)
+            let y = Math.clamp(cast(s32) Math.floor(py + 0.5), minY, maxY)
+            return readPixel(image, x, y)
+        }
+
+        px = Math.clamp(px, cast(f32) minX, cast(f32) maxX)
+        py = Math.clamp(py, cast(f32) minY, cast(f32) maxY)
+        let x0  = cast(s32) Math.floor(px)
+        let y0  = cast(s32) Math.floor(py)
+        let x1  = Math.min(x0 + 1, maxX)
+        let y1  = Math.min(y0 + 1, maxY)
+        let fx  = px - Math.floor(px)
+        let fy  = py - Math.floor(py)
+        let c00 = readPixel(image, x0, y0)
+        let c10 = readPixel(image, x1, y0)
+        let c01 = readPixel(image, x0, y1)
+        let c11 = readPixel(image, x1, y1)
+        return lerpColor(lerpColor(c00, c10, fx), lerpColor(c01, c11, fx), fy)
+    }
+
     mtd sampleBlur(image: *Image, u, v: f32)->Color
     {
         let radius = Math.max(.blurRadius, 0.0)
         if radius <= 0.000001 do
             return sampleLinear(image, u, v, false)
 
-        let rr = radius * radius
-        let w0 = 0.5135 / Math.pow(radius, 0.96)
+        let rr     = radius * radius
+        let w0     = 0.5135 / Math.pow(radius, 0.96)
         var a, r, g, b: f32
         var offset = -radius
         while offset <= radius
         {
-            let su = .blurAxis == 0 ? u + offset / image.width : u
-            let sv = .blurAxis == 0 ? v : v + offset / image.height
+            let su     = .blurAxis == 0 ? u + offset / image.width : u
+            let sv     = .blurAxis == 0 ? v : v + offset / image.height
             let sample = sampleLinear(image, su, sv, false)
             let weight = w0 * Math.exp((-offset * offset) / (2.0 * rr))
-            a += cast(f32) sample.a / 255.0 * weight
-            r += cast(f32) sample.r / 255.0 * weight
-            g += cast(f32) sample.g / 255.0 * weight
-            b += cast(f32) sample.b / 255.0 * weight
+            a      += cast(f32) sample.a / 255.0 * weight
+            r      += cast(f32) sample.r / 255.0 * weight
+            g      += cast(f32) sample.g / 255.0 * weight
+            b      += cast(f32) sample.b / 255.0 * weight
             offset += 1.0
         }
 
@@ -373,11 +411,11 @@ private impl RenderCpu
 
     mtd sampleResolve(image: *Image, u, v: f32)->Color
     {
-        let factor = Math.clamp(.resolveFactor, 1, 8)
+        let factor    = Math.clamp(.resolveFactor, 1, 8)
         let dstWidth  = Math.max(image.width / factor, 1)
         let dstHeight = Math.max(image.height / factor, 1)
-        let baseX = cast(s32) Math.floor(Math.clamp(u, 0.0, 0.999999) * dstWidth) * factor
-        let baseY = cast(s32) Math.floor(Math.clamp(1.0 - v, 0.0, 0.999999) * dstHeight) * factor
+        let baseX     = cast(s32) Math.floor(Math.clamp(u, 0.0, 0.999999) * dstWidth) * factor
+        let baseY     = cast(s32) Math.floor(Math.clamp(1.0 - v, 0.0, 0.999999) * dstHeight) * factor
 
         var sumA, sumR, sumG, sumB: f32
         for var y: s32; y < factor; y += 1
@@ -438,9 +476,11 @@ private impl RenderCpu
         {
         case .Clamp:
             t = Math.saturate(t)
+
         case .Repeat:
             t = Math.fract(t)
             if t < 0 do t += 1
+
         case .Mirror:
             var u = Math.fract(t * 0.5) * 2.0
             if u < 0 do u += 2
@@ -478,10 +518,13 @@ private impl RenderCpu
             if !storage do
                 return Color.fromArgb(Argb.Zero)
 
-            let w = Math.max(p.boundRect.z - p.boundRect.x, 0.000001)
-            let h = Math.max(p.boundRect.w - p.boundRect.y, 0.000001)
-            var u = (paintPos.x - p.boundRect.x) / w
-            var v = 1.0 - (paintPos.y - p.boundRect.y) / h
+            if p.uvMode == .FillSubRect and .program != CpuProgram_Blur and .program != CpuProgram_Resolve do
+                return sampleSubRect(&storage.image, paintPos, &.paintCommand)
+
+            let w      = Math.max(p.boundRect.z - p.boundRect.x, 0.000001)
+            let h      = Math.max(p.boundRect.w - p.boundRect.y, 0.000001)
+            var u      = (paintPos.x - p.boundRect.x) / w
+            var v      = 1.0 - (paintPos.y - p.boundRect.y) / h
             let repeat = p.uvMode == .Tile
 
             if p.uvMode == .FillSubRect
@@ -519,82 +562,231 @@ private impl RenderCpu
         let idx = cast(u64) (y * 8 + x)
         switch #complete style
         {
-        case .Dot:                       return Hatch.Dot[idx] != 0
-        case .Horizontal:                return Hatch.Horizontal[idx] != 0
-        case .HorizontalLight:           return Hatch.HorizontalLight[idx] != 0
-        case .HorizontalNarrow:          return Hatch.HorizontalNarrow[idx] != 0
-        case .Vertical:                  return Hatch.Vertical[idx] != 0
-        case .VerticalLight:             return Hatch.VerticalLight[idx] != 0
-        case .VerticalNarrow:            return Hatch.VerticalNarrow[idx] != 0
-        case .SolidDiamond:              return Hatch.SolidDiamond[idx] != 0
-        case .OutlinedDiamond:           return Hatch.OutlinedDiamond[idx] != 0
-        case .HorizontalDark:            return Hatch.HorizontalDark[idx] != 0
-        case .VerticalDark:              return Hatch.VerticalDark[idx] != 0
-        case .Grid:                      return Hatch.Grid[idx] != 0
-        case .GridLarge:                 return Hatch.GridLarge[idx] != 0
-        case .GridDotted:                return Hatch.GridDotted[idx] != 0
-        case .Cross:                     return Hatch.Cross[idx] != 0
-        case .CrossLarge:                return Hatch.CrossLarge[idx] != 0
-        case .Percent5:                  return Hatch.Percent5[idx] != 0
-        case .Percent10:                 return Hatch.Percent10[idx] != 0
-        case .Percent20:                 return Hatch.Percent20[idx] != 0
-        case .Percent25:                 return Hatch.Percent25[idx] != 0
-        case .Percent30:                 return Hatch.Percent30[idx] != 0
-        case .Percent40:                 return Hatch.Percent40[idx] != 0
-        case .Percent50:                 return Hatch.Percent50[idx] != 0
-        case .Percent60:                 return Hatch.Percent60[idx] != 0
-        case .Percent70:                 return Hatch.Percent70[idx] != 0
-        case .Percent75:                 return Hatch.Percent75[idx] != 0
-        case .Percent80:                 return Hatch.Percent80[idx] != 0
-        case .Percent90:                 return Hatch.Percent90[idx] != 0
-        case .CheckBoard:                return Hatch.CheckBoard[idx] != 0
-        case .CheckBoardLarge:           return Hatch.CheckBoardLarge[idx] != 0
-        case .Weave:                     return Hatch.Weave[idx] != 0
-        case .DiagonalForward:           return Hatch.DiagonalForward[idx] != 0
-        case .DiagonalForwardLight:      return Hatch.DiagonalForwardLight[idx] != 0
-        case .DiagonalBackward:          return Hatch.DiagonalBackward[idx] != 0
-        case .DiagonalBackwardLight:     return Hatch.DiagonalBackwardLight[idx] != 0
-        case .DiagonalCross:             return Hatch.DiagonalCross[idx] != 0
+        case .Dot:                   return Hatch.Dot[idx] != 0
+        case .Horizontal:            return Hatch.Horizontal[idx] != 0
+        case .HorizontalLight:       return Hatch.HorizontalLight[idx] != 0
+        case .HorizontalNarrow:      return Hatch.HorizontalNarrow[idx] != 0
+        case .Vertical:              return Hatch.Vertical[idx] != 0
+        case .VerticalLight:         return Hatch.VerticalLight[idx] != 0
+        case .VerticalNarrow:        return Hatch.VerticalNarrow[idx] != 0
+        case .SolidDiamond:          return Hatch.SolidDiamond[idx] != 0
+        case .OutlinedDiamond:       return Hatch.OutlinedDiamond[idx] != 0
+        case .HorizontalDark:        return Hatch.HorizontalDark[idx] != 0
+        case .VerticalDark:          return Hatch.VerticalDark[idx] != 0
+        case .Grid:                  return Hatch.Grid[idx] != 0
+        case .GridLarge:             return Hatch.GridLarge[idx] != 0
+        case .GridDotted:            return Hatch.GridDotted[idx] != 0
+        case .Cross:                 return Hatch.Cross[idx] != 0
+        case .CrossLarge:            return Hatch.CrossLarge[idx] != 0
+        case .Percent5:              return Hatch.Percent5[idx] != 0
+        case .Percent10:             return Hatch.Percent10[idx] != 0
+        case .Percent20:             return Hatch.Percent20[idx] != 0
+        case .Percent25:             return Hatch.Percent25[idx] != 0
+        case .Percent30:             return Hatch.Percent30[idx] != 0
+        case .Percent40:             return Hatch.Percent40[idx] != 0
+        case .Percent50:             return Hatch.Percent50[idx] != 0
+        case .Percent60:             return Hatch.Percent60[idx] != 0
+        case .Percent70:             return Hatch.Percent70[idx] != 0
+        case .Percent75:             return Hatch.Percent75[idx] != 0
+        case .Percent80:             return Hatch.Percent80[idx] != 0
+        case .Percent90:             return Hatch.Percent90[idx] != 0
+        case .CheckBoard:            return Hatch.CheckBoard[idx] != 0
+        case .CheckBoardLarge:       return Hatch.CheckBoardLarge[idx] != 0
+        case .Weave:                 return Hatch.Weave[idx] != 0
+        case .DiagonalForward:       return Hatch.DiagonalForward[idx] != 0
+        case .DiagonalForwardLight:  return Hatch.DiagonalForwardLight[idx] != 0
+        case .DiagonalBackward:      return Hatch.DiagonalBackward[idx] != 0
+        case .DiagonalBackwardLight: return Hatch.DiagonalBackwardLight[idx] != 0
+        case .DiagonalCross:         return Hatch.DiagonalCross[idx] != 0
         }
 
         return false
     }
 
-    mtd sampleFont(uv: Vector2)->Color
+    func smoothStep(edge0, edge1, value: f32)->f32
+    {
+        if edge1 <= edge0 do
+            return value < edge0 ? 0.0 : 1.0
+        let t = Math.saturate((value - edge0) / (edge1 - edge0))
+        return t * t * (3.0 - 2.0 * t)
+    }
+
+    func median(a, b, c: f32)->f32
+    {
+        return Math.max(Math.min(a, b), Math.min(Math.max(a, b), c))
+    }
+
+    mtd fontAtlas()->#null *GlyphAtlas
     {
         if !.font or .fontAtlasIndex < 0 do
-            return Color.fromArgb(Argb.Zero)
+            return null
 
         let cache = .font.cache
         if cast(u64) .fontAtlasIndex >= cache.atlases.count do
-            return Color.fromArgb(Argb.Zero)
-        let atlas = &cache.atlases[cast(u64) .fontAtlasIndex]
+            return null
+        return &cache.atlases[cast(u64) .fontAtlasIndex]
+    }
+
+    func readFontAtlas(atlas: const *GlyphAtlas, x, y: s32)->Vector4
+    {
         let pixelWidth = cast(s32) (atlas.width / atlas.bytesPerPixel)
-        let x = Math.clamp(cast(s32) Math.floor(uv.x * pixelWidth), 0, pixelWidth - 1)
-        let y = Math.clamp(cast(s32) Math.floor(uv.y * atlas.height), 0, cast(s32) atlas.height - 1)
-        let row = cast(s32) atlas.height - y - 1
-        let ptr = (notnull atlas.data.buffer) + cast(u64) row * atlas.width + cast(u64) x * atlas.bytesPerPixel
+        let xx  = Math.clamp(x, 0, pixelWidth - 1)
+        let yy  = Math.clamp(y, 0, cast(s32) atlas.height - 1)
+        let row = cast(s32) atlas.height - yy - 1
+        let ptr = (notnull atlas.data.buffer) + cast(u64) row * atlas.width + cast(u64) xx * atlas.bytesPerPixel
 
         if atlas.bytesPerPixel == 1
         {
-            let coverage = Math.pow(cast(f32) ptr[0] / 255.0, FontGamma)
-            return Color.fromArgbF32(coverage, 1, 1, 1)
+            let value = cast(f32) ptr[0] / 255.0
+            return {value, value, value, value}
         }
 
-        // The CPU backend uses the true-distance alpha channel as a deterministic
-        // fallback for MTSDF text. The full OpenGL effects path remains the visual
-        // reference, but ordinary MSDF faces keep correct coverage here.
-        let distance = cast(f32) ptr[3] / 255.0
-        let coverage = Math.saturate((distance - 0.5) * MsdfRange + 0.5)
-        return Color.fromArgbF32(Math.pow(coverage, FontGamma), 1, 1, 1)
+        return {cast(f32) ptr[0] / 255.0,
+                cast(f32) ptr[1] / 255.0,
+                cast(f32) ptr[2] / 255.0,
+                cast(f32) ptr[3] / 255.0}
     }
 
-    mtd shade(paintPos, fontUv: Vector2, vertexColor: Color, coverage: f32)->Color
+    func sampleFontAtlas(atlas: const *GlyphAtlas, uv: Vector2, linear: bool)->Vector4
+    {
+        let width  = cast(s32) (atlas.width / atlas.bytesPerPixel)
+        let height = cast(s32) atlas.height
+        if !linear
+        {
+            let x = Math.clamp(cast(s32) Math.floor(uv.x * width), 0, width - 1)
+            let y = Math.clamp(cast(s32) Math.floor(uv.y * height), 0, height - 1)
+            return readFontAtlas(atlas, x, y)
+        }
+
+        let px = Math.saturate(uv.x) * width - 0.5
+        let py = Math.saturate(uv.y) * height - 0.5
+        let x0 = cast(s32) Math.floor(px)
+        let y0 = cast(s32) Math.floor(py)
+        let x1 = Math.min(x0 + 1, width - 1)
+        let y1 = Math.min(y0 + 1, height - 1)
+        let tx = px - Math.floor(px)
+        let ty = py - Math.floor(py)
+        let c00 = readFontAtlas(atlas, x0, y0)
+        let c10 = readFontAtlas(atlas, x1, y0)
+        let c01 = readFontAtlas(atlas, x0, y1)
+        let c11 = readFontAtlas(atlas, x1, y1)
+        return Vector4.lerp(Vector4.lerp(c00, c10, tx), Vector4.lerp(c01, c11, tx), ty)
+    }
+
+    func msdfCoverage(atlas: const *GlyphAtlas, uv: Vector2, screenPxRange, edge, aa: f32)->f32
+    {
+        let sample = sampleFontAtlas(atlas, uv, true)
+        let sd = median(sample.x, sample.y, sample.z)
+        return Math.saturate((sd - edge) * screenPxRange / aa + 0.5)
+    }
+
+    mtd shadeMsdf(faceColor: Color, uv, uvDx, uvDy: Vector2)->Color
+    {
+        let atlas = .fontAtlas()
+        if !atlas do
+            return Color.fromArgb(Argb.Zero)
+
+        let safeAtlas = notnull atlas
+        let width      = cast(f32) (safeAtlas.width / safeAtlas.bytesPerPixel)
+        let height     = cast(f32) safeAtlas.height
+        let fwX        = Math.abs(uvDx.x) + Math.abs(uvDy.x)
+        let fwY        = Math.abs(uvDx.y) + Math.abs(uvDy.y)
+        let screenX    = fwX > 0.000001 ? 1.0 / fwX : 1.0
+        let screenY    = fwY > 0.000001 ? 1.0 / fwY : 1.0
+        let screenPxRange = Math.max(0.5 * (MsdfRange / width * screenX + MsdfRange / height * screenY), 1.0)
+
+        if .fontEffect.enabled < 0.5
+        {
+            let off = Vector2{fwX * 0.25, fwY * 0.25}
+            var alpha = msdfCoverage(safeAtlas, uv + Vector2{-off.x, -off.y}, screenPxRange, 0.5, 1.0)
+            alpha += msdfCoverage(safeAtlas, uv + Vector2{off.x, -off.y}, screenPxRange, 0.5, 1.0)
+            alpha += msdfCoverage(safeAtlas, uv + Vector2{-off.x, off.y}, screenPxRange, 0.5, 1.0)
+            alpha += msdfCoverage(safeAtlas, uv + Vector2{off.x, off.y}, screenPxRange, 0.5, 1.0)
+            alpha = Math.pow(alpha * 0.25, FontGamma)
+            return faceColor.withAlphaF32(cast(f32) faceColor.a / 255.0 * alpha)
+        }
+
+        let p           = &.fontEffect
+        let aa          = Math.max(1.0, p.faceSoftness * screenPxRange)
+        let sample      = sampleFontAtlas(safeAtlas, uv, true)
+        let sdMedian    = median(sample.x, sample.y, sample.z)
+        let sdTrue      = sample.w
+        let faceEdge    = 0.5 - p.faceDilate
+        let outlineEdge = faceEdge - p.outlineWidth
+        let useTrue     = Math.saturate(p.faceSoftness * screenPxRange - 1.0)
+        let sdFace      = sdMedian + (sdTrue - sdMedian) * useTrue
+        let faceCov     = Math.saturate((sdFace - faceEdge) * screenPxRange / aa + 0.5)
+        let outerCov    = Math.saturate((sdTrue - outlineEdge) * screenPxRange / aa + 0.5)
+
+        let face = faceColor.toVector4()
+        var faceR = face.x
+        var faceG = face.y
+        var faceB = face.z
+        if p.bevel > 0
+        {
+            let gradX     = sampleFontAtlas(safeAtlas, uv + uvDx, true).w - sdTrue
+            let gradY     = sampleFontAtlas(safeAtlas, uv + uvDy, true).w - sdTrue
+            let magnitude = Math.sqrt(gradX * gradX + gradY * gradY)
+            let reference = 1.0 / screenPxRange
+            let strength  = smoothStep(0.0, 0.6 * reference, magnitude)
+            var lit: f32
+            if magnitude > 0.000001 do
+                lit = (-gradX - gradY) / (magnitude * ConstF32.Sqrt2)
+            let light = Math.clamp(1.0 + p.bevel * lit * strength, 0.25, 1.75)
+            faceR, faceG, faceB *= light
+        }
+
+        let outline     = p.outlineColor.toVector4()
+        let faceAlpha   = faceCov * face.w
+        let outlineAlpha = outerCov * outline.w
+        let shapeAlpha  = faceAlpha + outlineAlpha * (1.0 - faceAlpha)
+        var shapeR = faceR
+        var shapeG = faceG
+        var shapeB = faceB
+        if shapeAlpha > 0.0001
+        {
+            shapeR = (faceR * faceAlpha + outline.x * outlineAlpha * (1.0 - faceAlpha)) / shapeAlpha
+            shapeG = (faceG * faceAlpha + outline.y * outlineAlpha * (1.0 - faceAlpha)) / shapeAlpha
+            shapeB = (faceB * faceAlpha + outline.z * outlineAlpha * (1.0 - faceAlpha)) / shapeAlpha
+        }
+
+        let glow = p.glowColor.toVector4()
+        var glowAlpha: f32
+        if glow.w > 0
+        {
+            let distance  = Math.abs(sdTrue - (0.5 - p.glowOffset))
+            let intensity = 1.0 - smoothStep(p.glowInner, p.glowOuter, distance)
+            glowAlpha = Math.pow(Math.saturate(intensity), Math.max(p.glowPower, 0.0001)) * glow.w
+        }
+
+        let resultAlpha = shapeAlpha + glowAlpha * (1.0 - shapeAlpha)
+        var resultR = shapeR
+        var resultG = shapeG
+        var resultB = shapeB
+        if resultAlpha > 0.0001
+        {
+            resultR = (shapeR * shapeAlpha + glow.x * glowAlpha * (1.0 - shapeAlpha)) / resultAlpha
+            resultG = (shapeG * shapeAlpha + glow.y * glowAlpha * (1.0 - shapeAlpha)) / resultAlpha
+            resultB = (shapeB * shapeAlpha + glow.z * glowAlpha * (1.0 - shapeAlpha)) / resultAlpha
+        }
+
+        return Color.fromArgbF32(resultAlpha, resultR, resultG, resultB)
+    }
+
+    mtd shade(paintPos, fontUv, fontUvDx, fontUvDy: Vector2, vertexColor: Color, coverage: f32)->Color
     {
         var result = Color.multiply(vertexColor, .samplePaint(paintPos))
-        if .program == CpuProgram_Font or .program == CpuProgram_Msdf
+        if .program == CpuProgram_Font
         {
-            result = Color.multiply(result, .sampleFont(fontUv))
+            let atlas = .fontAtlas()
+            if !atlas do
+                return Color.fromArgb(Argb.Zero)
+            let sample = sampleFontAtlas(notnull atlas, fontUv, false)
+            result.a = cast(u8) Math.clamp(Math.round(cast(f32) result.a * Math.pow(sample.x, FontGamma)), 0.0, 255.0)
+        }
+        elif .program == CpuProgram_Msdf
+        {
+            result = .shadeMsdf(result, fontUv, fontUvDx, fontUvDy)
         }
         elif .program == CpuProgram_Default
         {
@@ -638,9 +830,13 @@ private impl RenderCpu
         let edge2TopLeft = isTopLeft(p0, p1)
         let invArea      = 1.0 / area
 
-        let dcDx = (v0.cov * (p1.y - p2.y) + v1.cov * (p2.y - p0.y) + v2.cov * (p0.y - p1.y)) * invArea
-        let dcDy = (v0.cov * (p2.x - p1.x) + v1.cov * (p0.x - p2.x) + v2.cov * (p1.x - p0.x)) * invArea
+        let dcDx     = (v0.cov * (p1.y - p2.y) + v1.cov * (p2.y - p0.y) + v2.cov * (p0.y - p1.y)) * invArea
+        let dcDy     = (v0.cov * (p2.x - p1.x) + v1.cov * (p0.x - p2.x) + v2.cov * (p1.x - p0.x)) * invArea
         let covWidth = Math.max(Math.abs(dcDx) + Math.abs(dcDy), 0.00001)
+        let fontUvDx = Vector2{(v0.uv.x * (p1.y - p2.y) + v1.uv.x * (p2.y - p0.y) + v2.uv.x * (p0.y - p1.y)) * invArea,
+                               (v0.uv.y * (p1.y - p2.y) + v1.uv.y * (p2.y - p0.y) + v2.uv.y * (p0.y - p1.y)) * invArea}
+        let fontUvDy = Vector2{(v0.uv.x * (p2.x - p1.x) + v1.uv.x * (p0.x - p2.x) + v2.uv.x * (p1.x - p0.x)) * invArea,
+                               (v0.uv.y * (p2.x - p1.x) + v1.uv.y * (p0.x - p2.x) + v2.uv.y * (p1.x - p0.x)) * invArea}
 
         let c0 = Color.fromArgb(v0.color)
         let c1 = Color.fromArgb(v1.color)
@@ -658,9 +854,9 @@ private impl RenderCpu
                     continue
 
                 let sample = Vector2{cast(f32) x + 0.5, cast(f32) y + 0.5}
-                let e0 = edge(p1, p2, sample)
-                let e1 = edge(p2, p0, sample)
-                let e2 = edge(p0, p1, sample)
+                let e0     = edge(p1, p2, sample)
+                let e1     = edge(p2, p0, sample)
+                let e2     = edge(p0, p1, sample)
                 if !insideEdge(e0, edge0TopLeft) or !insideEdge(e1, edge1TopLeft) or !insideEdge(e2, edge2TopLeft) do
                     continue
 
@@ -673,24 +869,24 @@ private impl RenderCpu
                     continue
                 }
 
-                let w0 = e0 * invArea
-                let w1 = e1 * invArea
-                let w2 = e2 * invArea
-                let paintPos = v0.pos * w0 + v1.pos * w1 + v2.pos * w2
-                let fontUv   = v0.uv * w0 + v1.uv * w1 + v2.uv * w2
+                let w0          = e0 * invArea
+                let w1          = e1 * invArea
+                let w2          = e2 * invArea
+                let paintPos    = v0.pos * w0 + v1.pos * w1 + v2.pos * w2
+                let fontUv      = v0.uv * w0 + v1.uv * w1 + v2.uv * w2
                 let vertexColor = Color.fromArgbF32((c0.a * w0 + c1.a * w1 + c2.a * w2) / 255.0,
                                                     (c0.r * w0 + c1.r * w1 + c2.r * w2) / 255.0,
                                                     (c0.g * w0 + c1.g * w1 + c2.g * w2) / 255.0,
                                                     (c0.b * w0 + c1.b * w1 + c2.b * w2) / 255.0)
                 let cov = Math.saturate(((v0.cov * w0 + v1.cov * w1 + v2.cov * w2) - 0.5) / covWidth + 0.5)
-                .blendPixel(image, x, y, .shade(paintPos, fontUv, vertexColor, cov))
+                .blendPixel(image, x, y, .shade(paintPos, fontUv, fontUvDx, fontUvDy, vertexColor, cov))
             }
         }
     }
 
     mtd drawTriangleRange(image: *Image, painter: *Painter, start, count: u32)
     {
-        var i = start
+        var i   = start
         let end = start + count
         while i + 2 < end
         {
@@ -751,10 +947,10 @@ private impl RenderCpu
         if !image do
             return
 
-        let minX = .scissorOn ? Math.clamp(cast(s32) .scissorRect.x, 0, image.width) : 0
-        let minY = .scissorOn ? Math.clamp(cast(s32) .scissorRect.y, 0, image.height) : 0
-        let maxX = .scissorOn ? Math.clamp(cast(s32) .scissorRect.right(), 0, image.width) : image.width
-        let maxY = .scissorOn ? Math.clamp(cast(s32) .scissorRect.bottom(), 0, image.height) : image.height
+        let minX    = .scissorOn ? Math.clamp(cast(s32) .scissorRect.x, 0, image.width) : 0
+        let minY    = .scissorOn ? Math.clamp(cast(s32) .scissorRect.y, 0, image.height) : 0
+        let maxX    = .scissorOn ? Math.clamp(cast(s32) .scissorRect.right(), 0, image.width) : image.width
+        let maxY    = .scissorOn ? Math.clamp(cast(s32) .scissorRect.bottom(), 0, image.height) : image.height
         let stencil = .currentStencil()
         for var y = minY; y < maxY; y += 1
         {
@@ -793,6 +989,7 @@ private impl RenderCpu
         .stencilMode    = .Set
         .font           = null
         .fontAtlasIndex = -1
+        .fontEffect     = {}
         .overlapMode    = false
         .overlapPass    = 0
         .alphaResolve   = false
@@ -816,10 +1013,10 @@ private impl RenderCpu
             {
             case .Transform, .StartFont, .StartMsdfFont, .EndFont, .ResetTexture0,
                  .BindTexture0, .ResetTextureFont, .BindTextureFont, .SetFontEffect,
-                 .DrawTriangles:
-                .executeCommand(painter, replay, i)
+                 .DrawTriangles: .executeCommand(painter, replay, i)
             }
         }
+
         .alphaResolve = false
     }
 
@@ -888,6 +1085,7 @@ private impl RenderCpu
             .fontAtlasIndex = -1
 
         case .UpdateFont:
+
             // Glyph pixels already live in CPU memory; no upload is required.
             break
 
@@ -916,12 +1114,17 @@ private impl RenderCpu
         case .SetDefaultShader:
             switch #complete cmd.defaultShader.id
             {
-            case .Default: .program = CpuProgram_Default
-            case .Simple:  .program = CpuProgram_Simple
+            case .Default:
+                .program = CpuProgram_Default
+
+            case .Simple:
+                .program = CpuProgram_Simple
+
             case .Blur:
                 .program    = CpuProgram_Blur
                 .blurAxis   = cmd.defaultShader.axis
                 .blurRadius = cmd.defaultShader.radius
+
             case .Resolve:
                 .program       = CpuProgram_Resolve
                 .resolveFactor = cmd.defaultShader.factor
@@ -938,7 +1141,7 @@ private impl RenderCpu
             Debug.assert(false, "RenderCpu does not support custom shader parameters")
 
         case .SetFontEffect:
-            Debug.assert(cmd.fontEffect.enabled < 0.5, "RenderCpu does not support MSDF font effects")
+            .fontEffect = cmd.fontEffect
         }
     }
 }
@@ -975,9 +1178,7 @@ impl RenderCpu
     // Finishes a CPU frame.
     //
     // CPU rendering is synchronous, so this operation does not present or wait for work.
-    internal mtd endImpl()
-    {
-    }
+    internal mtd endImpl() {}
 
     // Returns an owned copy of the current surface pixels.
     mtd surfaceImage()->Image
@@ -1049,7 +1250,7 @@ impl RenderCpu
         Debug.assert(rt != null and width > 0 and height > 0, "readRenderTarget needs a target and positive dimensions")
         let storage = .findTexture(rt.colorBuffer.handle)
         Debug.assert(storage != null, "render target is not owned by this renderer")
-        let source = notnull storage
+        let source         = notnull storage
         var result: retval = source.image
         result.crop(x, y, width, height)
         return result
@@ -1058,7 +1259,7 @@ impl RenderCpu
     // Reads the active target into a new image, then restores the previous target.
     internal mtd unbindRenderTargetToImageImpl(x, y, width, height: s32)->Image
     {
-        let rt = notnull .curRT
+        let rt     = notnull .curRT
         var result = .readRenderTargetImpl(rt, x, y, width, height)
         .unbindRenderTargetImpl()
         return result
@@ -1147,7 +1348,7 @@ impl RenderCpu
         let storage = .findTexture(texture.handle)
         Debug.assert(storage != null, "texture is not owned by this renderer")
         let source = notnull storage
-        let image = source.image.convertedTo(pixelFormat)
+        let image  = source.image.convertedTo(pixelFormat)
         result = image.pixels
         return result
     }

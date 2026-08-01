@@ -18,6 +18,7 @@ struct Application
         #[Swag.Late]
         renderer: Pixel.IRenderer     // Renderer selected before the first surface is created.
     }
+
     internal rendererOgl: Pixel.RenderOgl     // Default OpenGL renderer used when none is selected.
     #[Swag.Late]
     theme:       *Theme             // Active application theme.

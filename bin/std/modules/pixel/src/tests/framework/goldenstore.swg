@@ -3,7 +3,7 @@
 
 using Swag, Core
 
-// Configures tolerated differences when comparing a rendered image with its PNG golden.
+// Configures tolerated differences for image-to-image and PNG-golden comparisons.
 struct ImageGoldenOptions
 {
     maxChannelDelta:    u8      // Maximum absolute difference accepted for each ARGB channel.
@@ -67,6 +67,33 @@ func assertGoldenText(text: string, name: string, loc = #callerlocation)
     @assert(false)
 }
 
+// Compares two owned pixel buffers with the same bounded tolerance as image goldens.
+//
+// `expected` and `actual` must be valid images. Dimensions must match exactly. A channel delta
+// at or below [[Pixel.Testing.ImageGoldenOptions.maxChannelDelta]] is accepted; at most
+// [[Pixel.Testing.ImageGoldenOptions.maxDifferentPixels]] pixels may exceed it. A failed comparison
+// writes `<name>.expected.png` and `<name>.actual.png` beside the calling test.
+func assertImagesNear(expected, actual: const *Image, name: string, options: ImageGoldenOptions = {}, loc = #callerlocation)
+{
+    Debug.assert(expected != null and expected.isValid(), "expected image needs allocated pixels")
+    Debug.assert(actual != null and actual.isValid(), "actual image needs allocated pixels")
+
+    let difference = compareImages(expected, actual, options)
+    if isWithinTolerance(&difference, options) do
+        return
+
+    let expectedPath = goldenPath(name, ".expected.png", loc)
+    let actualPath   = goldenPath(name, ".actual.png", loc)
+    discard writeImage(expected, expectedPath.toString())
+    discard writeImage(actual, actualPath.toString())
+
+    Console.println("[image] pixels differ for ", name)
+    Console.println("        expected: ", expectedPath)
+    Console.println("        actual  : ", actualPath)
+    reportImageDifference(&difference, expected, actual)
+    @assert(false)
+}
+
 // Compares owned pixels against the PNG golden named `name`.
 //
 // Goldens live beside the calling test under `goldens/<name>.png`. A missing golden is created
@@ -80,10 +107,8 @@ func assertImageGolden(image: const *Image, name: string, options: ImageGoldenOp
 
     if !File.exists(path)
     {
-        discard catch image.save(path.toString()) as errWrite
-        if errWrite != null
+        if !writeImage(image, path.toString())
         {
-            Console.println("[golden] cannot create ", path)
             @assert(false)
             return
         }
@@ -101,66 +126,114 @@ func assertImageGolden(image: const *Image, name: string, options: ImageGoldenOp
         return
     }
 
-    var differentPixels: u64
-    var firstX, firstY: s32
-    var firstExpected, firstActual: Color
-    var foundFirst: bool
-    let sameSize = expected.width == image.width and expected.height == image.height
-    if sameSize
-    {
-        for var y: s32; y < image.height; y += 1
-        {
-            for var x: s32; x < image.width; x += 1
-            {
-                let expectedColor = expected.pixelColor(x, y)
-                let actualColor   = image.pixelColor(x, y)
-                let delta = Math.max(Math.abs(cast(s32) expectedColor.a - actualColor.a),
-                                     Math.max(Math.abs(cast(s32) expectedColor.r - actualColor.r),
-                                              Math.max(Math.abs(cast(s32) expectedColor.g - actualColor.g),
-                                                       Math.abs(cast(s32) expectedColor.b - actualColor.b))))
-                if delta <= options.maxChannelDelta do
-                    continue
-
-                differentPixels += 1
-                if !foundFirst
-                {
-                    foundFirst   = true
-                    firstX       = x
-                    firstY       = y
-                    firstExpected = expectedColor
-                    firstActual   = actualColor
-                }
-            }
-        }
-
-        if differentPixels <= options.maxDifferentPixels do
-            return
-    }
+    let difference = compareImages(&expected, image, options)
+    if isWithinTolerance(&difference, options) do
+        return
 
     let actual = actualPath(path.toString(), ".png")
-    discard catch image.save(actual.toString()) as errWrite
-    if errWrite != null do
-        Console.println("[golden] cannot write ", actual)
+    discard writeImage(image, actual.toString())
 
     Console.println("[golden] pixels differ for ", name)
     Console.println("         golden : ", path)
     Console.println("         actual : ", actual)
-    if !sameSize
-    {
-        Console.println("         size   : ", expected.width, "x", expected.height,
-                        " expected, ", image.width, "x", image.height, " produced")
-    }
-    elif foundFirst
-    {
-        Console.println("         pixels : ", differentPixels, " outside tolerance")
-        Console.println("         first  : (", firstX, ", ", firstY, ") expected ",
-                        firstExpected.argb, ", produced ", firstActual.argb)
-    }
+    reportImageDifference(&difference, &expected, image)
     @assert(false)
 }
 
 private
 {
+    struct ImageDifference
+    {
+        sameSize:        bool
+        differentPixels: u64
+        maxChannelDelta: u8
+        firstX:          s32
+        firstY:          s32
+        firstExpected:   Color
+        firstActual:     Color
+    }
+
+    func isWithinTolerance(difference: const *ImageDifference, options: ImageGoldenOptions)->bool
+    {
+        return difference.sameSize and difference.differentPixels <= options.maxDifferentPixels
+    }
+
+    func compareImages(expected, actual: const *Image, options: ImageGoldenOptions)->ImageDifference
+    {
+        var result: retval
+        result.sameSize = expected.width == actual.width and expected.height == actual.height
+        if !result.sameSize do
+            return result
+
+        for var y: s32; y < actual.height; y += 1
+        {
+            for var x: s32; x < actual.width; x += 1
+            {
+                let expectedColor = expected.pixelColor(x, y)
+                let actualColor   = actual.pixelColor(x, y)
+                let delta         = Math.max(Math.abs(cast(s32) expectedColor.a - actualColor.a),
+                                     Math.max(Math.abs(cast(s32) expectedColor.r - actualColor.r),
+                                              Math.max(Math.abs(cast(s32) expectedColor.g - actualColor.g),
+                                                       Math.abs(cast(s32) expectedColor.b - actualColor.b))))
+                result.maxChannelDelta = Math.max(result.maxChannelDelta, cast(u8) delta)
+                if delta <= options.maxChannelDelta do
+                    continue
+
+                result.differentPixels += 1
+                if result.differentPixels == 1
+                {
+                    result.firstX        = x
+                    result.firstY        = y
+                    result.firstExpected = expectedColor
+                    result.firstActual   = actualColor
+                }
+            }
+        }
+
+        return result
+    }
+
+    func reportImageDifference(difference: const *ImageDifference, expected, actual: const *Image)
+    {
+        if !difference.sameSize
+        {
+            Console.println("         size   : ", expected.width, "x", expected.height,
+                            " expected, ", actual.width, "x", actual.height, " produced")
+            return
+        }
+
+        Console.println("         pixels : ", difference.differentPixels, " outside tolerance")
+        Console.println("         delta  : ", difference.maxChannelDelta, " maximum channel difference")
+        if difference.differentPixels
+        {
+            Console.println("         first  : (", difference.firstX, ", ", difference.firstY, ") expected ",
+                            difference.firstExpected.argb, ", produced ", difference.firstActual.argb)
+        }
+    }
+
+    func writeImage(image: const *Image, path: string)->bool
+    {
+        let dir = Path.directoryName(path)
+        if dir != null and !Directory.exists(dir)
+        {
+            catch Directory.create(dir) as errDir
+            if errDir != null
+            {
+                Console.println("[image] cannot create ", dir)
+                return false
+            }
+        }
+
+        discard catch image.save(path) as errWrite
+        if errWrite != null
+        {
+            Console.println("[image] cannot write ", path)
+            return false
+        }
+
+        return true
+    }
+
     // Goldens sit in a 'goldens' folder beside the test source file, so a test and its snapshots
     // move together and a module owns its own corpus.
     func goldenPath(name, extension: string, loc: Swag.SourceCodeLocation)->String

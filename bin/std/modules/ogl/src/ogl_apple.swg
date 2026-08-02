@@ -4,12 +4,8 @@ using Swag
 
 /* --------------------------- GL_APPLE_rgb_422 ---------------------------- */
 
-const GL_APPLE_rgb_422 = 1
-
-const GL_RGB_422_APPLE = 0x8A1F
-
-const GL_UNSIGNED_SHORT_8_8_APPLE = 0x85BA
-
+const GL_APPLE_rgb_422                = 1
+const GL_RGB_422_APPLE                = 0x8A1F
+const GL_UNSIGNED_SHORT_8_8_APPLE     = 0x85BA
 const GL_UNSIGNED_SHORT_8_8_REV_APPLE = 0x85BB
-
-const GL_RGB_RAW_422_APPLE = 0x8A51
+const GL_RGB_RAW_422_APPLE            = 0x8A51

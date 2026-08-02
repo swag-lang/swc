@@ -110,12 +110,12 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     case PaintEvent as paintEvt:
         let painter = paintEvt.paintContext.painter
 
-        var leftPressed = wnd.app().mouse.isButtonPressed(.Left) or Env.hasArgument("swag.test")
+        var leftPressed = wnd.app().mouse.isButtonPressed(.Left) or Env.isSmokeRun()
         var mousePos    = wnd.app().mouse.position()
         mousePos = wnd.screenToSurface(mousePos)
         mousePos = wnd.surfaceToLocal(mousePos)
 
-        if Env.hasArgument("swag.test")
+        if Env.isSmokeRun()
         {
             leftPressed = true
             mousePos.x  = 100

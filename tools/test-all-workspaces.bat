@@ -2,6 +2,11 @@
 setlocal
 
 rem Runs compiler, script, library, example, application, and reference tests once.
+rem
+rem Two intents, two commands. 'test' runs a module's #test functions and never its #main;
+rem 'smoke' runs the real program for a bounded number of frames to prove it starts. Examples
+rem declare no #test, so they are smoked: running 'test' on them would report zero tests and
+rem pass without proving anything. Applications get both.
 
 for %%I in ("%~f0") do set "TOOLS_DIR=%%~dpI"
 call "%TOOLS_DIR%_shared-tooling.bat" :init "%TOOLS_DIR%" "%~1"
@@ -38,8 +43,9 @@ goto parse_args
 call "%TOOLS_DIR%test-compiler-suites.bat" %MODE_ARG% --build-cfg "%BUILD_CFG%"%EXTRA_ARGS% || exit /b 1
 call "%TOOLS_DIR%test-example-scripts.bat" %MODE_ARG% test --build-cfg "%BUILD_CFG%"%EXTRA_ARGS% || exit /b 1
 call "%TOOLS_DIR%manage-standard-library.bat" %MODE_ARG% test --build-cfg "%BUILD_CFG%"%EXTRA_ARGS% || exit /b 1
-call "%TOOLS_DIR%manage-examples-workspace.bat" %MODE_ARG% test --build-cfg "%BUILD_CFG%"%EXTRA_ARGS% || exit /b 1
+call "%TOOLS_DIR%manage-examples-workspace.bat" %MODE_ARG% smoke --build-cfg "%BUILD_CFG%"%EXTRA_ARGS% || exit /b 1
 call "%TOOLS_DIR%manage-applications-workspace.bat" %MODE_ARG% test --build-cfg "%BUILD_CFG%"%EXTRA_ARGS% || exit /b 1
+call "%TOOLS_DIR%manage-applications-workspace.bat" %MODE_ARG% smoke --build-cfg "%BUILD_CFG%"%EXTRA_ARGS% || exit /b 1
 call "%TOOLS_DIR%manage-reference-workspace.bat" %MODE_ARG% test --build-cfg "%BUILD_CFG%"%EXTRA_ARGS% || exit /b 1
 
 call "%TOOLS_DIR%_shared-tooling.bat" :batch_end "%~f0"

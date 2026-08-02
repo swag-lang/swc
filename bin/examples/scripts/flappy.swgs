@@ -85,7 +85,7 @@ The '#main' hook is the entry point for an executable or script. In script mode,
     defer Audio.destroyEngine()
 
     // Create one application surface and dispatch its events to 'onEvent'.
-    // '--run-arg swag.test' makes runSurface exit after a bounded frame count,
+    // A smoke run exits after a bounded frame count,
     // which keeps automated example tests non-interactive.
     Application.runSurface(100, 100, 254, 481, title: "Flappy Bird", hook: &onEvent)
 }

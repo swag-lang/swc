@@ -2236,7 +2236,7 @@ func loadBindTextures()
 
     func muteForTest(app: *Application)
     {
-        if Env.hasArgument("swag.test") do
+        if Env.isSmokeRun() do
             expect Audio.setOutputVolume(0)
     }
 

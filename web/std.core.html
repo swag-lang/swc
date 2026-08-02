@@ -337,7 +337,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary>Functions<span class="toc-count">1168</span></summary>
+<summary>Functions<span class="toc-count">1169</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Core_Serialization_Alias">Serialization.Alias</a></li>
@@ -1158,6 +1158,7 @@
 <li><a href="#Core_Env_Process_opDrop">Process.opDrop</a></li>
 <li><a href="#Core_Env_Process_waitForExit">Process.waitForExit</a></li>
 <li><a href="#Core_Env_Window_acquireDeviceContext">Window.acquireDeviceContext</a></li>
+<li><a href="#Core_Env_Window_close">Window.close</a></li>
 <li><a href="#Core_Env_Window_releaseDeviceContext">Window.releaseDeviceContext</a></li>
 <li><a href="#Core_Env_Window_requestPaint">Window.requestPaint</a></li>
 <li><a href="#Core_Env_Window_setClientSize">Window.setClientSize</a></li>
@@ -3811,6 +3812,8 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_Window_acquireDeviceContext">Window.acquireDeviceContext</a></td><td><p>Acquires the native device context for this window.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_Env_Window_close">Window.close</a></td><td><p>Closes the native window if it is still open.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_Env_Window_releaseDeviceContext">Window.releaseDeviceContext</a></td><td><p>Releases a device context returned by <a href="#Core_Env_Window_acquireDeviceContext">Core.Env.Window.acquireDeviceContext</a>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_Window_requestPaint">Window.requestPaint</a></td><td><p>Queues a paint request for this window.</p>
@@ -3827,7 +3830,7 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_associateFileExtension">Env.associateFileExtension</a></td><td><p>Associate an extension to an executable</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Env_createWindow">Env.createWindow</a></td><td><p>Creates a native application window. Platform-specific state stays behind <a href="#Core_Env_Window_nativeHandle">Core.Env.Window.nativeHandle</a>.</p>
+<tr><td class="code-type"><a href="#Core_Env_createWindow">Env.createWindow</a></td><td><p>Creates and owns a native application window.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_doSyncProcess">Env.doSyncProcess</a></td><td><p>Starts a new process with arguments, and wait for it to be done</p>
 </td></tr>
@@ -4898,7 +4901,7 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_associateFileExtension">Env.associateFileExtension</a></td><td><p>Associate an extension to an executable</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Env_createWindow">Env.createWindow</a></td><td><p>Creates a native application window. Platform-specific state stays behind <a href="#Core_Env_Window_nativeHandle">Core.Env.Window.nativeHandle</a>.</p>
+<tr><td class="code-type"><a href="#Core_Env_createWindow">Env.createWindow</a></td><td><p>Creates and owns a native application window.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_doSyncProcess">Env.doSyncProcess</a></td><td><p>Starts a new process with arguments, and wait for it to be done</p>
 </td></tr>
@@ -8833,10 +8836,11 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Core_Env_Window" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Env.Window</span> <a class="api-item-permalink" href="#Core_Env_Window" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L294">src</a></div>
+<div class="api-item api-item-struct"><span id="Core_Env_Window" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Env.Window</span> <a class="api-item-permalink" href="#Core_Env_Window" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L295">src</a></div>
 <p>Owns one native application window.</p>
-<p><a href="#Core_Env_createWindow">Core.Env.createWindow</a> stores the address of this value in native state. Keep it at a stable address until the native window has been destroyed.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Env_Window">Window</a></span></span></div>
+<p>Create a window with <a href="#Core_Env_createWindow">Core.Env.createWindow</a>. The value closes any remaining native window when it leaves scope; call <a href="#Core_Env_Window_close">Core.Env.Window.close</a> to release it earlier.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.NoCopy]</span>
+<span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Env_Window">Window</a></span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
@@ -8853,6 +8857,8 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <thead><tr><th>Name</th><th>Description</th></tr></thead>
 <tbody>
 <tr><td class="code-type"><a href="#Core_Env_Window_acquireDeviceContext">acquireDeviceContext</a></td><td><p>Acquires the native device context for this window.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_Window_close">close</a></td><td><p>Closes the native window if it is still open.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_Window_releaseDeviceContext">releaseDeviceContext</a></td><td><p>Releases a device context returned by <a href="#Core_Env_Window_acquireDeviceContext">Core.Env.Window.acquireDeviceContext</a>.</p>
 </td></tr>
@@ -8880,7 +8886,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Core_Env_WindowLoop" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Env.WindowLoop</span> <a class="api-item-permalink" href="#Core_Env_WindowLoop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L310">src</a></div>
+<div class="api-item api-item-struct"><span id="Core_Env_WindowLoop" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Env.WindowLoop</span> <a class="api-item-permalink" href="#Core_Env_WindowLoop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L311">src</a></div>
 <p>Provides iterable native message processing.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Env_WindowLoop">WindowLoop</a></span></span></div>
 </section>
@@ -16313,33 +16319,39 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">waitForExit</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_acquireDeviceContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.acquireDeviceContext</span> <a class="api-item-permalink" href="#Core_Env_Window_acquireDeviceContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L423">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_acquireDeviceContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.acquireDeviceContext</span> <a class="api-item-permalink" href="#Core_Env_Window_acquireDeviceContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L453">src</a></div>
 <p>Acquires the native device context for this window.</p>
 <p>Every successful call must be paired with <a href="#Core_Env_Window_releaseDeviceContext">Core.Env.Window.releaseDeviceContext</a> on the same window.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">acquireDeviceContext</span>()-&gt;<span class="SCst"><a href="std.win32.html#Win32_HDC">HDC</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_releaseDeviceContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.releaseDeviceContext</span> <a class="api-item-permalink" href="#Core_Env_Window_releaseDeviceContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L429">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.close</span> <a class="api-item-permalink" href="#Core_Env_Window_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L439">src</a></div>
+<p>Closes the native window if it is still open.</p>
+<p>Calling <span class="code-inline">close</span> repeatedly is safe. Failure leaves the native handle owned by this value, so a later call or scope cleanup can retry the release.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">close</span>() <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Env_Window_releaseDeviceContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.releaseDeviceContext</span> <a class="api-item-permalink" href="#Core_Env_Window_releaseDeviceContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L459">src</a></div>
 <p>Releases a device context returned by <a href="#Core_Env_Window_acquireDeviceContext">Core.Env.Window.acquireDeviceContext</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">releaseDeviceContext</span>(deviceContext: <span class="SCst"><a href="std.win32.html#Win32_HDC">HDC</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_requestPaint" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.requestPaint</span> <a class="api-item-permalink" href="#Core_Env_Window_requestPaint" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L435">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_requestPaint" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.requestPaint</span> <a class="api-item-permalink" href="#Core_Env_Window_requestPaint" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L465">src</a></div>
 <p>Queues a paint request for this window.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">requestPaint</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_setClientSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.setClientSize</span> <a class="api-item-permalink" href="#Core_Env_Window_setClientSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L441">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_setClientSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.setClientSize</span> <a class="api-item-permalink" href="#Core_Env_Window_setClientSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L471">src</a></div>
 <p>Resizes the logical client area while preserving the current position.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setClientSize</span>(width, height: <span class="STpe">s32</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_show" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.show</span> <a class="api-item-permalink" href="#Core_Env_Window_show" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L456">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_show" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.show</span> <a class="api-item-permalink" href="#Core_Env_Window_show" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L486">src</a></div>
 <p>Shows the window and updates its client area.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">show</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_WindowLoop_next" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">WindowLoop.next</span> <a class="api-item-permalink" href="#Core_Env_WindowLoop_next" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L466">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_WindowLoop_next" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">WindowLoop.next</span> <a class="api-item-permalink" href="#Core_Env_WindowLoop_next" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L496">src</a></div>
 <p>Processes pending messages and returns whether the application should continue.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">next</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -16361,9 +16373,10 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <span class="SKwd">func</span> <span class="SFct">associateFileExtension</span>(extension, appName, appPath: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_createWindow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.createWindow</span> <a class="api-item-permalink" href="#Core_Env_createWindow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L383">src</a></div>
-<p>Creates a native application window. Platform-specific state stays behind <a href="#Core_Env_Window_nativeHandle">Core.Env.Window.nativeHandle</a>.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createWindow</span>(window: &amp;<span class="SCst"><a href="#Core_Env_Window">Window</a></span>, options: <span class="SCst"><a href="#Core_Env_WindowOptions">WindowOptions</a></span>) <span class="SKwd">fail</span></span></div>
+<div class="api-item api-item-func"><span id="Core_Env_createWindow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.createWindow</span> <a class="api-item-permalink" href="#Core_Env_createWindow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L397">src</a></div>
+<p>Creates and owns a native application window.</p>
+<p>The returned <a href="#Core_Env_Window">Core.Env.Window</a> keeps platform-specific state behind <a href="#Core_Env_Window_nativeHandle">Core.Env.Window.nativeHandle</a> and closes the native window when it leaves scope.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createWindow</span>(options: <span class="SCst"><a href="#Core_Env_WindowOptions">WindowOptions</a></span>)-&gt;<span class="SCst"><a href="#Core_Env_Window">Window</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Env_doSyncProcess" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.doSyncProcess</span> <a class="api-item-permalink" href="#Core_Env_doSyncProcess" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.swg#L31">src</a></div>
@@ -16424,7 +16437,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">openUrl</span>(url: <span class="STpe">string</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_processWindowMessages" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.processWindowMessages</span> <a class="api-item-permalink" href="#Core_Env_processWindowMessages" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L402">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_processWindowMessages" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.processWindowMessages</span> <a class="api-item-permalink" href="#Core_Env_processWindowMessages" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L418">src</a></div>
 <p>Processes all pending window messages. Returns false when the application should exit.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">processWindowMessages</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>

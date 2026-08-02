@@ -28,35 +28,15 @@
 //
 //   3. insertSavedRegsPrologue / insertSavedRegsEpilogue
 //        Materializes the planned push/pop, frame setup, stack adjust, and
-//        slot stores/loads. When an existing adjacent stack adjust matches
-//        the direction we need, it is merged in place instead of emitted
-//        again (avoids back-to-back `sub sp` pairs).
+//        slot stores/loads. The saved area is a self-contained allocation in
+//        front of the body: the frame pointer anchored right after it (see
+//        the sanitize pass) is what keeps the frame walkable, so the body's
+//        own stack motion stays out of the unwind description.
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool tryMergeStackAdjustInstruction(const MicroPassContext& context, MicroInstrRef targetRef, MicroReg stackPointerReg, MicroOp expectedOp, uint64_t additionalValue)
-    {
-        if (targetRef.isInvalid() || !additionalValue)
-            return false;
-
-        const MicroInstr* inst = context.instructions->ptr(targetRef);
-        if (!inst || inst->op != MicroInstrOpcode::OpBinaryRegImm)
-            return false;
-
-        MicroInstrOperand* ops = inst->ops(*context.operands);
-        if (!ops)
-            return false;
-        if (ops[0].reg != stackPointerReg || ops[1].opBits != MicroOpBits::B64 || ops[2].microOp != expectedOp)
-            return false;
-        if (ops[3].valueU64 > std::numeric_limits<uint64_t>::max() - additionalValue)
-            return false;
-
-        ops[3].valueU64 += additionalValue;
-        return true;
-    }
-
     void insertStackAdjust(const MicroPassContext& context, MicroInstrRef insertBeforeRef, MicroReg stackPointerReg, MicroOp op, uint64_t value)
     {
         MicroInstrOperand ops[4];
@@ -509,38 +489,26 @@ void MicroPrologEpilogPass::insertSavedRegsPrologue(const MicroPassContext& cont
         instructions.insertSyntheticBefore(operands, insertBeforeRef, MicroInstrOpcode::Push, pushOps);
     }
 
-    // Merging the saved-area allocation into the body's own leading stack
-    // adjust keeps the prologue on a single allocation, which is what lets the
-    // unwind encoder describe the frame with one alloc op and final-rsp
-    // relative UWOP_SAVE_XMM128 offsets. The saved slots then live above the
-    // body's locals, so their offsets are biased by the merged amount.
-    uint64_t slotBias       = 0;
-    bool     mergedStackSub = false;
+    // The saved area gets its own allocation, in front of everything the body
+    // does with the stack pointer. The slots sit at [sp+0..], each 16-aligned
+    // so UWOP_SAVE_XMM128 can describe the stores, and the frame pointer is
+    // anchored right after them (see the sanitize pass): the unwinder then
+    // recovers the stack pointer from the frame register, so the body's own
+    // later allocations — its frame, its spill area, its call adjusts — never
+    // need to appear in the unwind description at all.
     if (savedRegsStackSubSize_)
-    {
-        const MicroInstr* bodyFirst = instructions.ptr(insertBeforeRef);
-        const uint64_t    bodySub   = bodyFirst && bodyFirst->op == MicroInstrOpcode::OpBinaryRegImm ? bodyFirst->ops(operands)[3].valueU64 : 0;
-        mergedStackSub              = tryMergeStackAdjustInstruction(context, insertBeforeRef, conv.stackPointer, MicroOp::Subtract, savedRegsStackSubSize_);
-        if (mergedStackSub)
-            slotBias = bodySub;
-    }
-
-    if (savedRegsStackSubSize_ && !mergedStackSub)
         insertStackAdjust(context, insertBeforeRef, conv.stackPointer, MicroOp::Subtract, savedRegsStackSubSize_);
 
     // Float persistent regs use explicit stack slots because there is no
-    // push/pop form. When the allocation was merged, the stores go after the
-    // merged adjust so they execute on the final stack pointer.
-    const MicroInstrRef storeInsertRef = mergedStackSub ? instructions.findNextInstructionRef(insertBeforeRef) : insertBeforeRef;
+    // push/pop form.
     for (const SavedRegSlot& slot : savedRegSlots_)
     {
-        SWC_ASSERT(storeInsertRef.isValid());
         MicroInstrOperand storeOps[4];
         storeOps[0].reg      = conv.stackPointer;
         storeOps[1].reg      = slot.reg;
         storeOps[2].opBits   = slot.slotBits;
-        storeOps[3].valueU64 = slotBias + slot.offset;
-        instructions.insertSyntheticBefore(operands, storeInsertRef, MicroInstrOpcode::LoadMemReg, storeOps);
+        storeOps[3].valueU64 = slot.offset;
+        instructions.insertSyntheticBefore(operands, insertBeforeRef, MicroInstrOpcode::LoadMemReg, storeOps);
     }
 }
 
@@ -552,37 +520,21 @@ void MicroPrologEpilogPass::insertSavedRegsEpilogue(const MicroPassContext& cont
     auto& instructions = *context.instructions;
     auto& operands     = *context.operands;
 
-    // Restore in reverse: load slot-backed regs, undo stack allocation, then
-    // pop integer regs. A merged deallocation mirrors the prologue: the loads
-    // execute before the body's own stack add, on the still-live frame, at the
-    // biased offsets the prologue stored to.
-    uint64_t      slotBias       = 0;
-    bool          mergedStackAdd = false;
-    MicroInstrRef loadInsertRef  = insertBeforeRef;
-    if (savedRegsStackSubSize_)
-    {
-        const MicroInstrRef previousBodyRef = instructions.findPreviousInstructionRef(insertBeforeRef);
-        const MicroInstr*   bodyAdd         = previousBodyRef.isValid() ? instructions.ptr(previousBodyRef) : nullptr;
-        const uint64_t      bodyAddValue    = bodyAdd && bodyAdd->op == MicroInstrOpcode::OpBinaryRegImm ? bodyAdd->ops(operands)[3].valueU64 : 0;
-        mergedStackAdd                      = tryMergeStackAdjustInstruction(context, previousBodyRef, conv.stackPointer, MicroOp::Add, savedRegsStackSubSize_);
-        if (mergedStackAdd)
-        {
-            slotBias      = bodyAddValue;
-            loadInsertRef = previousBodyRef;
-        }
-    }
-
+    // Restore in reverse: load slot-backed regs, undo the saved-area
+    // allocation, then pop integer regs. At every return the body has undone
+    // its own stack motion, so the stack pointer addresses the saved area
+    // directly, at the same [sp+0..] offsets the prologue stored to.
     for (const SavedRegSlot& slot : savedRegSlots_)
     {
         MicroInstrOperand loadOps[4];
         loadOps[0].reg      = slot.reg;
         loadOps[1].reg      = conv.stackPointer;
         loadOps[2].opBits   = slot.slotBits;
-        loadOps[3].valueU64 = slotBias + slot.offset;
-        instructions.insertSyntheticBefore(operands, loadInsertRef, MicroInstrOpcode::LoadRegMem, loadOps);
+        loadOps[3].valueU64 = slot.offset;
+        instructions.insertSyntheticBefore(operands, insertBeforeRef, MicroInstrOpcode::LoadRegMem, loadOps);
     }
 
-    if (savedRegsStackSubSize_ && !mergedStackAdd)
+    if (savedRegsStackSubSize_)
         insertStackAdjust(context, insertBeforeRef, conv.stackPointer, MicroOp::Add, savedRegsStackSubSize_);
 
     for (const MicroReg pushedReg : std::ranges::reverse_view(pushedRegs_))

@@ -53,7 +53,7 @@ namespace
 
         conv.intRegs = SmallVector{MicroReg::intReg(0), MicroReg::intReg(1), MicroReg::intReg(2), MicroReg::intReg(3), MicroReg::intReg(5), MicroReg::intReg(6), MicroReg::intReg(7), MicroReg::intReg(8), MicroReg::intReg(9), MicroReg::intReg(10), MicroReg::intReg(11), MicroReg::intReg(12), MicroReg::intReg(13), MicroReg::intReg(14), MicroReg::intReg(15)};
 
-        conv.floatRegs = SmallVector{MicroReg::floatReg(0), MicroReg::floatReg(1), MicroReg::floatReg(2), MicroReg::floatReg(3), MicroReg::floatReg(4), MicroReg::floatReg(5)};
+        conv.floatRegs = SmallVector{MicroReg::floatReg(0), MicroReg::floatReg(1), MicroReg::floatReg(2), MicroReg::floatReg(3), MicroReg::floatReg(4), MicroReg::floatReg(5), MicroReg::floatReg(6), MicroReg::floatReg(7), MicroReg::floatReg(8), MicroReg::floatReg(9), MicroReg::floatReg(10), MicroReg::floatReg(11), MicroReg::floatReg(12), MicroReg::floatReg(13), MicroReg::floatReg(14), MicroReg::floatReg(15)};
 
         conv.intArgRegs = SmallVector{MicroReg::intReg(2), MicroReg::intReg(3), MicroReg::intReg(8), MicroReg::intReg(9)};
 
@@ -69,14 +69,12 @@ namespace
         conv.floatTransientRegs = SmallVector{MicroReg::floatReg(0), MicroReg::floatReg(1), MicroReg::floatReg(2), MicroReg::floatReg(3), MicroReg::floatReg(4), MicroReg::floatReg(5)};
 
         // xmm6-xmm15 follow the Win64 nonvolatile contract: the prologue saves
-        // the ones a function defines (movaps slots + UWOP_SAVE_XMM128), so
+        // the ones a function defines to 16-aligned slots described by
+        // UWOP_SAVE_XMM128, the frame pointer is anchored right after them so
+        // the unwinder recovers the stack pointer independently of the body's
+        // own allocations, and the epilogue restores them before the pops. So
         // float values finally survive calls in registers.
-        // xmm6-xmm15 stay out of the pools for now: they are Win64 nonvolatile,
-        // and although the prologue/epilogue and UWOP_SAVE_XMM128 support below
-        // is in place, exception dispatch through JIT frames that save them
-        // still dies (see the fp_panic repro) — to be root-caused before the
-        // persistent float pool is enabled.
-        conv.floatPersistentRegs.clear();
+        conv.floatPersistentRegs                       = SmallVector{MicroReg::floatReg(6), MicroReg::floatReg(7), MicroReg::floatReg(8), MicroReg::floatReg(9), MicroReg::floatReg(10), MicroReg::floatReg(11), MicroReg::floatReg(12), MicroReg::floatReg(13), MicroReg::floatReg(14), MicroReg::floatReg(15)};
         conv.stackAlignment                            = 16;
         conv.stackParamAlignment                       = 8;
         conv.stackParamSlotSize                        = 8;

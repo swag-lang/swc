@@ -198,6 +198,7 @@ namespace
         MicroInstrRef              framePointerPushRef = MicroInstrRef::invalid();
         MicroInstrRef              afterStackShapeRef  = MicroInstrRef::invalid();
         uint64_t                   frameDelta          = 0;
+        bool                       seenPrologueStore   = false;
 
         for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
         {
@@ -219,9 +220,26 @@ namespace
                 continue;
             }
 
+            if (it->op == MicroInstrOpcode::LoadMemReg)
+            {
+                seenPrologueStore = true;
+                continue;
+            }
+
             uint64_t subtractImmediate = 0;
             if (isStackAdjustWithOp(*it, ops, conv.stackPointer, MicroOp::Subtract, subtractImmediate))
             {
+                // A subtract after the saved-register stores is the body's own
+                // (its frame, its spill area, a call adjust) — the prologue's
+                // stack shape ended with the stores. The frame pointer must
+                // anchor above such subtracts: the unwinder recovers the stack
+                // pointer from it, which is what keeps a frame walkable no
+                // matter how the body moves the stack pointer afterwards, and
+                // the unwind scanner can only describe the setup while it is
+                // still inside the tracked prologue.
+                if (seenPrologueStore)
+                    break;
+
                 frameDelta += subtractImmediate;
 
                 auto nextIt = it;

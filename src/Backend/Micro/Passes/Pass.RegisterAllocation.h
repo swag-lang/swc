@@ -113,7 +113,10 @@ private:
     const VRegState& stateForVirtual(MicroReg key) const;
     bool             isLiveOut(MicroReg key, uint32_t stamp) const;
     bool             isLiveAcrossCall(MicroReg key) const;
+    bool             isLiveAcrossHotCall(MicroReg key) const;
     void             markLiveAcrossCall(MicroReg key);
+    void             computeGuardedCallPositions();
+    bool             intervalHasHotCall(uint32_t lo, uint32_t hi) const;
     bool             requiresCallSpill(MicroReg key) const;
     void             markCallSpill(MicroReg key);
     void             clearCallSpill(MicroReg key);
@@ -241,9 +244,16 @@ private:
     std::vector<uint32_t>                 definitionCounts_;
     std::vector<uint32_t>                 liveStampByDenseIndex_;
     std::vector<uint8_t>                  vregsLiveAcrossCall_;
-    std::vector<uint8_t>                  callSpillFlags_;
-    std::vector<uint32_t>                 mappedVirtualIndices_;
-    std::vector<MicroReg>                 currentConcreteLiveOut_;
+    // Calls sitting inside a forward-jumped-over region — a bounds-check panic
+    // block, an error path — never execute on the straight-line path. A value
+    // whose only calls are guarded is cheaper parked around them (the cost
+    // runs only if the guard fires) than promoted to a callee-saved register
+    // (whose save/restore runs on every function entry).
+    std::vector<uint8_t>  guardedCallPositions_;
+    std::vector<uint8_t>  vregsLiveAcrossHotCall_;
+    std::vector<uint8_t>  callSpillFlags_;
+    std::vector<uint32_t> mappedVirtualIndices_;
+    std::vector<MicroReg> currentConcreteLiveOut_;
 
     SmallVector<MicroReg> intPersistentRegs_;
     SmallVector<MicroReg> floatPersistentRegs_;

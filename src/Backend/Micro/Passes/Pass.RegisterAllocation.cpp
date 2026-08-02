@@ -294,6 +294,19 @@ bool MicroRegisterAllocationPass::isLiveAcrossCall(MicroReg key) const
     return vregsLiveAcrossCall_[denseIndex] != 0;
 }
 
+bool MicroRegisterAllocationPass::isLiveAcrossHotCall(MicroReg key) const
+{
+    // A callee-saved float register costs a fixed 16-byte store/load pair on
+    // every function entry; spilling around calls costs one pair per executed
+    // crossing. Flat crossings never repay that reliably — only a call
+    // crossed inside a loop does, where the spill pair would run every
+    // iteration.
+    const uint32_t denseIndex = denseVirtualRegs_.find(key);
+    if (denseIndex == MicroDenseRegIndex::K_INVALID_INDEX || denseIndex >= vregsLiveAcrossHotCall_.size())
+        return false;
+    return vregsLiveAcrossHotCall_[denseIndex] >= 10;
+}
+
 void MicroRegisterAllocationPass::markLiveAcrossCall(MicroReg key)
 {
     const uint32_t denseIndex        = denseVirtualIndex(key);
@@ -747,6 +760,84 @@ bool MicroRegisterAllocationPass::intervalHasCall(const uint32_t lo, const uint3
     return false;
 }
 
+bool MicroRegisterAllocationPass::intervalHasHotCall(const uint32_t lo, const uint32_t hi) const
+{
+    for (uint32_t idx = lo; idx <= hi && idx < instructionCount_; ++idx)
+    {
+        if (instructionUseDefs_[idx].isCall && (idx >= guardedCallPositions_.size() || !guardedCallPositions_[idx]))
+            return true;
+    }
+
+    return false;
+}
+
+void MicroRegisterAllocationPass::computeGuardedCallPositions()
+{
+    // A call is guarded when a conditional jump before it targets a label
+    // after it: the fall-through path steps over the call, which is the shape
+    // of every compiler-emitted safety check (bounds, null, math) and of
+    // hand-written error paths. Guarded calls are presumed cold.
+    guardedCallPositions_.assign(instructionCount_, 0);
+    if (!hasControlFlow_ || !instructionCount_)
+        return;
+
+    std::unordered_map<uint64_t, uint32_t> labelIndexByRef;
+    uint32_t                               idx = 0;
+    for (auto it = instructions_->view().begin(); it != instructions_->view().end() && idx < instructionCount_; ++it, ++idx)
+    {
+        if (it->op != MicroInstrOpcode::Label)
+            continue;
+        const MicroInstrOperand* ops = it->ops(*operands_);
+        if (ops)
+            labelIndexByRef[ops[0].valueU64] = idx;
+    }
+
+    idx = 0;
+    for (auto it = instructions_->view().begin(); it != instructions_->view().end() && idx < instructionCount_; ++it, ++idx)
+    {
+        if (it->op != MicroInstrOpcode::JumpCond && it->op != MicroInstrOpcode::JumpCondImm)
+            continue;
+        if (MicroInstrInfo::isUnconditionalJumpInstruction(*it, it->ops(*operands_)))
+            continue;
+
+        const MicroInstrOperand* ops = it->ops(*operands_);
+        if (!ops)
+            continue;
+
+        const auto targetIt = labelIndexByRef.find(ops[2].valueU64);
+        if (targetIt == labelIndexByRef.end() || targetIt->second <= idx)
+            continue;
+
+        // Only a region that falls into the join right after its call is a
+        // guard shadow: that is the emitted shape of a safety check (argument
+        // loads, then the panic call, then the label the jump targets). A
+        // then-block of an if/else ends with its own jump instead, and a
+        // region with an interior label has other ways in — either could be
+        // hot, so neither is marked.
+        const uint32_t targetIdx     = targetIt->second;
+        bool           regionIsGuard = targetIdx > idx + 1;
+        uint32_t       inner         = idx + 1;
+        for (auto innerIt = std::next(it); regionIsGuard && inner < targetIdx; ++innerIt, ++inner)
+        {
+            if (innerIt->op == MicroInstrOpcode::Label)
+                regionIsGuard = false;
+            else if (inner + 1 == targetIdx)
+                regionIsGuard = instructionUseDefs_[inner].isCall;
+            else if (MicroInstrInfo::isTerminatorInstruction(*innerIt))
+                regionIsGuard = false;
+        }
+
+        if (!regionIsGuard)
+            continue;
+
+        for (inner = idx + 1; inner < targetIdx; ++inner)
+        {
+            if (instructionUseDefs_[inner].isCall)
+                guardedCallPositions_[inner] = 1;
+        }
+    }
+}
+
 bool MicroRegisterAllocationPass::concreteClaimsOverlap(const MicroReg physReg, const uint32_t lo, const uint32_t hi) const
 {
     const uint32_t denseIndex = denseConcreteRegs_.find(physReg);
@@ -981,18 +1072,26 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
 
         std::vector<uint32_t>& reserved           = isFloat ? reservedFloat : reservedInt;
         std::vector<uint32_t>& reservedPersistent = isFloat ? reservedFloatPersistent : reservedIntPersistent;
-        const size_t           total              = isFloat ? totalFloat : totalInt;
-        const size_t           totalPersistent    = isFloat ? totalFloatPersit : totalIntPersist;
-        const uint32_t         minFreeClass       = isFloat ? K_MIN_FREE_FLOAT_CLASS : K_MIN_FREE_INT_CLASS;
+        // The float floors count only the caller-saved pool: a persistent
+        // float hull already pays for itself through the prologue save, and
+        // letting the full sixteen-register file raise the carrier cap was
+        // measured to starve the local allocator — every extra caller-saved
+        // hull is one fewer scratch register for the straight-line code.
+        const size_t   total           = isFloat ? freeFloatTransient_.size() : totalInt;
+        const size_t   totalPersistent = isFloat ? totalFloatPersit : totalIntPersist;
+        const uint32_t minFreeClass    = isFloat ? K_MIN_FREE_FLOAT_CLASS : K_MIN_FREE_INT_CLASS;
 
         if (total <= minFreeClass)
             continue;
 
-        // A value alive across a call is safest in a callee-saved register; a
-        // caller-saved one remains acceptable because every call inside the
-        // hull parks the value in its slot for the call's duration
-        // (saveRestorePinnedAcrossCall).
-        const bool needsPersistent = intervalHasCall(lo, hi);
+        // A hull crossing a call that actually runs prefers a callee-saved
+        // register; one whose calls are all guard-shadowed prefers a
+        // caller-saved register, whose parking cost runs only if a guard
+        // fires — a callee-saved save/restore would run on every entry. A
+        // caller-saved pick crossing any call parks the value in its slot for
+        // the call's duration (saveRestorePinnedAcrossCall).
+        const bool crossesCall     = intervalHasCall(lo, hi);
+        const bool needsPersistent = isFloat ? intervalHasHotCall(lo, hi) : crossesCall;
 
         uint32_t headroom = std::numeric_limits<uint32_t>::max();
         for (uint32_t idx = lo; idx <= hi; ++idx)
@@ -1012,10 +1111,16 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
         for (int pass = 0; pass < 2 && !picked.isValid(); ++pass)
         {
             // A value not crossing a call is offered caller-saved registers
-            // first, so it does not force a prologue push for nothing. One that
-            // does cross a call prefers callee-saved, and falls back to
-            // caller-saved with call-site parking when the persistent pool has
-            // nothing (the float class has no callee-saved registers at all).
+            // first, so it does not force a prologue push for nothing. One
+            // crossing a hot call prefers callee-saved, and falls back to
+            // caller-saved with call-site parking. One crossing only guarded
+            // calls takes caller-saved with parking or nothing: promoting the
+            // overflow to callee-saved was measured to lose — the prologue
+            // save/restore runs on every entry of a hot small function, while
+            // the memory home it replaces was only touched a few times per
+            // iteration.
+            if (pass == 1 && isFloat && !needsPersistent && crossesCall)
+                break;
             const SmallVector<MicroReg>& pool = needsPersistent == (pass == 0) ? persistentPool : transientPool;
             for (const MicroReg reg : pool)
             {
@@ -1117,7 +1222,7 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
         // A caller-saved register does not survive the calls inside the hull on
         // its own: give the value a slot now, and rewriteInstructions parks it
         // there for exactly the duration of each such call.
-        if (needsPersistent && !isPersistentPhysReg(picked))
+        if (crossesCall && !isPersistentPhysReg(picked))
         {
             ensureSpillSlot(regState, isFloat);
             pinnedCallSavedDense_.push_back(cand.denseIndex);
@@ -1423,6 +1528,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     nextConcreteTouchCursor_.assign(concreteRegs.size(), 0);
     liveStampByDenseIndex_.assign(virtualRegs.size(), 0);
     vregsLiveAcrossCall_.assign(virtualRegs.size(), 0);
+    vregsLiveAcrossHotCall_.assign(virtualRegs.size(), 0);
     callSpillFlags_.assign(virtualRegs.size(), 0);
     mappedVirtualIndices_.clear();
     mappedVirtualIndices_.reserve(virtualRegs.size());
@@ -1561,6 +1667,16 @@ void MicroRegisterAllocationPass::analyzeLiveness()
                 if (bitIndex >= virtualRegs.size())
                     break;
                 vregsLiveAcrossCall_[bitIndex] = 1;
+                if (idx >= guardedCallPositions_.size() || !guardedCallPositions_[idx])
+                {
+                    // Weight one flat crossing per call, and any in-loop call
+                    // enough to dominate: the count decides below whether a
+                    // callee-saved register amortizes its prologue traffic.
+                    const uint32_t depth              = idx < loopDepth_.size() ? loopDepth_[idx] : 0u;
+                    const uint32_t weight             = depth ? 10u : 1u;
+                    const uint32_t current            = vregsLiveAcrossHotCall_[bitIndex];
+                    vregsLiveAcrossHotCall_[bitIndex] = static_cast<uint8_t>(std::min<uint32_t>(current + weight, 255u));
+                }
                 wordBits &= (wordBits - 1ull);
             }
         }
@@ -2920,10 +3036,17 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             }
 
             const bool liveAcrossCall = isLiveAcrossCall(request.virtKey);
+            // A callee-saved FLOAT register is only worth its prologue
+            // save/restore for a value that crosses calls which actually run
+            // and do so more than once flat (or inside a loop); one whose
+            // calls are guard-shadowed or rare is cheaper spilled around
+            // them. Ints keep the simple any-call rule: their persistent
+            // save is a one-byte push, not a two-instruction 16-byte slot
+            // round-trip.
             if (request.virtReg.isVirtualInt())
                 request.needsPersistent = liveAcrossCall && !conv_->intPersistentRegs.empty();
             else
-                request.needsPersistent = liveAcrossCall && !conv_->floatPersistentRegs.empty();
+                request.needsPersistent = isLiveAcrossHotCall(request.virtKey) && !conv_->floatPersistentRegs.empty();
 
             // If no persistent class exists, remember to spill around call boundaries.
             clearCallSpill(request.virtKey);
@@ -3082,6 +3205,8 @@ void MicroRegisterAllocationPass::clearState()
     controlFlowGraph_ = nullptr;
 
     vregsLiveAcrossCall_.clear();
+    vregsLiveAcrossHotCall_.clear();
+    guardedCallPositions_.clear();
     instructionUseDefs_.clear();
     denseVirtualRegs_.clear();
     denseConcreteRegs_.clear();
@@ -3146,6 +3271,7 @@ Result MicroRegisterAllocationPass::run(MicroPassContext& context)
     if (!hasVirtualRegs_)
         return Result::Continue;
 
+    computeGuardedCallPositions();
     analyzeLiveness();
     computeVirtualLiveSpans();
     setupPools();

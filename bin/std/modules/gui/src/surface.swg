@@ -3,11 +3,17 @@
 using Core, Pixel, Serialization
 
 // Serializable placement and display state of a surface.
+//
+// This is what an application persists through [[Gui.Application.saveState]], so a field
+// here keeps an alias for every name it has been written under; see [[Pixel.Image]].
 struct SurfaceState
 {
-    position:         Math.Rectangle     // Current surface bounds in screen coordinates.
+    position: Math.Rectangle     // Current surface bounds in screen coordinates.
+
+    #[Serialization.Alias("positionNotMaximized")]
     restoredPosition: Math.Rectangle     // Bounds restored after leaving a maximized state.
-    isMaximized:      bool               // Whether the surface is maximized.
+
+    isMaximized: bool     // Whether the surface is maximized.
 }
 
 // Top-level drawable window managed by an [[Application]].

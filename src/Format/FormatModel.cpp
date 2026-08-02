@@ -143,6 +143,7 @@ void FormatModel::build(const SourceView& srcView, const FormatOptions& options)
     pieces_.clear();
     gaps_.clear();
     blocks_.clear();
+    logicalExpressions_.clear();
     ownedTexts_.clear();
 
     const auto& tokens = srcView.tokens();

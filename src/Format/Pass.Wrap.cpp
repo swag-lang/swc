@@ -46,6 +46,54 @@ namespace
         bool                  canJoin    = false;
     };
 
+    struct LogicalPolicy
+    {
+        std::optional<bool>     forceSingleLine;
+        std::optional<bool>     sourceSelectsLayout;
+        FormatLogicalLayout     layout        = FormatLogicalLayout::Preserve;
+        FormatOperatorWrapStyle breakPosition = FormatOperatorWrapStyle::Preserve;
+        FormatLogicalPacking    packing       = FormatLogicalPacking::Preserve;
+
+        bool active() const
+        {
+            return forceSingleLine.value_or(false) || sourceSelectsLayout.has_value() ||
+                   layout != FormatLogicalLayout::Preserve || breakPosition != FormatOperatorWrapStyle::Preserve ||
+                   packing != FormatLogicalPacking::Preserve;
+        }
+    };
+
+    struct LogicalState
+    {
+        uint32_t                firstPiece        = INVALID_PIECE;
+        uint32_t                lastPiece         = INVALID_PIECE;
+        uint32_t                rootOperatorPiece = INVALID_PIECE;
+        std::vector<uint32_t>   operators;
+        std::vector<uint32_t>   operands;
+        std::optional<bool>     forceSingleLine;
+        std::optional<bool>     sourceSelectsLayout;
+        FormatLogicalLayout     layout        = FormatLogicalLayout::Preserve;
+        FormatOperatorWrapStyle breakPosition = FormatOperatorWrapStyle::Preserve;
+        FormatLogicalPacking    packing       = FormatLogicalPacking::Preserve;
+        ListLineMode            lineMode      = ListLineMode::Unchanged;
+        bool                    editable      = false;
+        bool                    hasComment    = false;
+        bool                    canJoin       = false;
+    };
+
+    enum class LayoutTargetKind : uint8_t
+    {
+        List,
+        Logical,
+    };
+
+    struct LayoutTarget
+    {
+        uint32_t         firstPiece = INVALID_PIECE;
+        uint32_t         lastPiece  = INVALID_PIECE;
+        uint32_t         index      = INVALID_PIECE;
+        LayoutTargetKind kind       = LayoutTargetKind::List;
+    };
+
     bool textHasNewline(const std::string_view text)
     {
         return text.find_first_of("\r\n") != std::string_view::npos;
@@ -63,10 +111,13 @@ namespace
         void run()
         {
             collectLists();
+            collectLogicalExpressions();
             chooseLineModes();
             prepareLists();
+            prepareLogicalExpressions();
             wrapLongLines();
             finishLists();
+            finishLogicalExpressions();
         }
 
     private:
@@ -116,14 +167,99 @@ namespace
             }
         }
 
+        LogicalPolicy logicalPolicy() const
+        {
+            return {
+                .forceSingleLine     = options_->forceSingleLineLogicalExpressions,
+                .sourceSelectsLayout = options_->sourceSelectsLogicalExpressionLayout,
+                .layout              = options_->logicalExpressionLayout,
+                .breakPosition       = options_->logicalOperatorBreakPosition,
+                .packing             = options_->logicalOperandPacking,
+            };
+        }
+
+        uint32_t nextCodePiece(const uint32_t pieceIndex) const
+        {
+            for (uint32_t next = model_->nextPiece(pieceIndex); next != INVALID_PIECE; next = model_->nextPiece(next))
+            {
+                if (!model_->piece(next).isComment)
+                    return next;
+            }
+            return INVALID_PIECE;
+        }
+
+        void collectLogicalExpressions()
+        {
+            const LogicalPolicy policy = logicalPolicy();
+            if (!policy.active())
+                return;
+
+            for (const FormatLogicalExpression& expr : model_->logicalExpressions())
+            {
+                SWC_ASSERT(expr.rootOperatorPiece != INVALID_PIECE);
+                const uint32_t rootDepth = model_->piece(expr.rootOperatorPiece).depth;
+
+                LogicalState state;
+                state.firstPiece          = expr.firstPiece;
+                state.lastPiece           = expr.lastPiece;
+                state.rootOperatorPiece   = expr.rootOperatorPiece;
+                state.forceSingleLine     = policy.forceSingleLine;
+                state.sourceSelectsLayout = policy.sourceSelectsLayout;
+                state.layout              = policy.layout;
+                state.breakPosition       = policy.breakPosition;
+                state.packing             = policy.packing;
+                state.operands.push_back(expr.firstPiece);
+
+                for (uint32_t i = expr.firstPiece; i <= expr.lastPiece; ++i)
+                {
+                    const FormatPiece& piece = model_->piece(i);
+                    if (!piece.hasRole(FormatRoleE::LogicalOp) || piece.depth != rootDepth)
+                        continue;
+                    const uint32_t operand = nextCodePiece(i);
+                    if (operand == INVALID_PIECE || operand > expr.lastPiece)
+                        continue;
+                    state.operators.push_back(i);
+                    state.operands.push_back(operand);
+                }
+
+                if (!state.operators.empty())
+                    logicalExpressions_.push_back(std::move(state));
+            }
+        }
+
         void chooseLineModes()
         {
-            // Normalize nested lists first so an outer list can join when all
-            // of its intrinsically multiline children can also join.
-            for (auto it = lists_.rbegin(); it != lists_.rend(); ++it)
+            std::vector<LayoutTarget> targets;
+            targets.reserve(lists_.size() + logicalExpressions_.size());
+            for (uint32_t i = 0; i < lists_.size(); ++i)
+                targets.push_back({lists_[i].openPiece, lists_[i].closePiece, i, LayoutTargetKind::List});
+            for (uint32_t i = 0; i < logicalExpressions_.size(); ++i)
+                targets.push_back({logicalExpressions_[i].firstPiece, logicalExpressions_[i].lastPiece, i, LayoutTargetKind::Logical});
+
+            std::ranges::sort(targets, [](const LayoutTarget& lhs, const LayoutTarget& rhs) {
+                const uint32_t lhsSize = lhs.lastPiece - lhs.firstPiece;
+                const uint32_t rhsSize = rhs.lastPiece - rhs.firstPiece;
+                if (lhsSize != rhsSize)
+                    return lhsSize < rhsSize;
+                return lhs.firstPiece > rhs.firstPiece;
+            });
+
+            // Normalize nested constructs first so an outer expression can
+            // join after all of its joinable children have joined.
+            for (const LayoutTarget& target : targets)
             {
-                inspectList(*it);
-                chooseLineMode(*it);
+                if (target.kind == LayoutTargetKind::List)
+                {
+                    ListState& state = lists_[target.index];
+                    inspectList(state);
+                    chooseLineMode(state);
+                }
+                else
+                {
+                    LogicalState& state = logicalExpressions_[target.index];
+                    inspectLogicalExpression(state);
+                    chooseLogicalLineMode(state);
+                }
             }
         }
 
@@ -295,6 +431,138 @@ namespace
             state.lineMode = ListLineMode::MultiLine;
         }
 
+        bool isLogicalBoundaryGap(const LogicalState& state, const uint32_t pieceIndex) const
+        {
+            if (std::ranges::find(state.operators, pieceIndex) != state.operators.end())
+                return true;
+            return std::ranges::find(state.operands.begin() + 1, state.operands.end(), pieceIndex) != state.operands.end();
+        }
+
+        void inspectLogicalExpression(LogicalState& state) const
+        {
+            state.editable = FormatPassUtil::canEditPiece(*model_, state.firstPiece) &&
+                             FormatPassUtil::canEditPiece(*model_, state.lastPiece);
+            state.canJoin = state.editable;
+
+            for (uint32_t i = state.firstPiece + 1; i <= state.lastPiece; ++i)
+            {
+                const FormatPiece& piece = model_->piece(i);
+                if (piece.removed)
+                    continue;
+                if (piece.isComment)
+                {
+                    state.hasComment = true;
+                    state.canJoin    = false;
+                }
+                if (piece.frozen || model_->gapBefore(i).frozen)
+                {
+                    state.editable = false;
+                    state.canJoin  = false;
+                }
+                if (model_->gapHasNewline(i) && !isLogicalBoundaryGap(state, i))
+                    state.canJoin = false;
+            }
+        }
+
+        bool firstLogicalOperandsShareSourceLine(const LogicalState& state) const
+        {
+            SWC_ASSERT(state.operands.size() >= 2);
+            for (uint32_t i = state.operands[0] + 1; i <= state.operands[1]; ++i)
+            {
+                if (textHasNewline(model_->gapBefore(i).origText))
+                    return false;
+            }
+            return true;
+        }
+
+        std::vector<FormatGap> snapshotLogicalGaps(const LogicalState& state) const
+        {
+            std::vector<FormatGap> result;
+            result.reserve(state.lastPiece - state.firstPiece);
+            for (uint32_t i = state.firstPiece + 1; i <= state.lastPiece; ++i)
+                result.push_back(model_->gapBefore(i));
+            return result;
+        }
+
+        void restoreLogicalGaps(const LogicalState& state, const std::vector<FormatGap>& gaps) const
+        {
+            SWC_ASSERT(gaps.size() == state.lastPiece - state.firstPiece);
+            for (uint32_t i = state.firstPiece + 1; i <= state.lastPiece; ++i)
+                model_->gapBefore(i) = gaps[i - state.firstPiece - 1];
+        }
+
+        void joinLogicalBoundaries(const LogicalState& state) const
+        {
+            for (size_t i = 0; i < state.operators.size(); ++i)
+            {
+                const uint32_t op      = state.operators[i];
+                const uint32_t operand = state.operands[i + 1];
+                if (model_->gapHasNewline(op))
+                    model_->setGapSpaces(op, 1);
+                if (model_->gapHasNewline(operand))
+                    model_->setGapSpaces(operand, 1);
+            }
+        }
+
+        bool joinLogicalExpression(const LogicalState& state) const
+        {
+            if (!state.canJoin)
+                return false;
+            joinLogicalBoundaries(state);
+            return true;
+        }
+
+        bool joinedLogicalExpressionFits(const LogicalState& state) const
+        {
+            if (options_->columnLimit == 0)
+                return true;
+            const uint32_t lineStart = model_->lineStartOf(state.firstPiece);
+            return FormatPassUtil::lineWidth(*model_, lineStart) <= options_->columnLimit;
+        }
+
+        void chooseLogicalLineMode(LogicalState& state)
+        {
+            if (!state.editable)
+                return;
+
+            if (state.forceSingleLine.value_or(false))
+            {
+                if (joinLogicalExpression(state))
+                    state.lineMode = ListLineMode::SingleLine;
+                return;
+            }
+
+            if (!state.sourceSelectsLayout.has_value())
+                return;
+
+            if (*state.sourceSelectsLayout)
+            {
+                if (firstLogicalOperandsShareSourceLine(state) && joinLogicalExpression(state))
+                    state.lineMode = ListLineMode::SingleLine;
+                else
+                    state.lineMode = ListLineMode::MultiLine;
+                return;
+            }
+
+            if (!state.canJoin)
+            {
+                state.lineMode = ListLineMode::MultiLine;
+                return;
+            }
+
+            const std::vector<FormatGap> originalGaps = snapshotLogicalGaps(state);
+            const bool                   joined       = joinLogicalExpression(state);
+            SWC_ASSERT(joined);
+            if (joinedLogicalExpressionFits(state))
+            {
+                state.lineMode = ListLineMode::SingleLine;
+                return;
+            }
+
+            restoreLogicalGaps(state, originalGaps);
+            state.lineMode = ListLineMode::MultiLine;
+        }
+
         bool listIsMultiline(const ListState& state) const
         {
             for (uint32_t i = state.openPiece + 1; i <= state.closePiece; ++i)
@@ -424,6 +692,167 @@ namespace
             }
         }
 
+        bool logicalExpressionIsMultiline(const LogicalState& state) const
+        {
+            for (uint32_t i = state.firstPiece + 1; i <= state.lastPiece; ++i)
+            {
+                if (!model_->piece(i).removed && model_->gapHasNewline(i))
+                    return true;
+            }
+            return false;
+        }
+
+        bool logicalBoundaryIsBroken(const LogicalState& state, const size_t index) const
+        {
+            return model_->gapHasNewline(state.operators[index]) || model_->gapHasNewline(state.operands[index + 1]);
+        }
+
+        FormatOperatorWrapStyle logicalBoundaryPosition(const LogicalState& state, const size_t index) const
+        {
+            if (state.breakPosition == FormatOperatorWrapStyle::Before || state.breakPosition == FormatOperatorWrapStyle::After)
+                return state.breakPosition;
+            if (model_->gapHasNewline(state.operators[index]))
+                return FormatOperatorWrapStyle::Before;
+            if (model_->gapHasNewline(state.operands[index + 1]))
+                return FormatOperatorWrapStyle::After;
+            if (options_->breakBeforeBinaryOperators == FormatOperatorWrapStyle::Before ||
+                options_->breakBeforeBinaryOperators == FormatOperatorWrapStyle::After)
+                return options_->breakBeforeBinaryOperators;
+            return FormatOperatorWrapStyle::After;
+        }
+
+        Utf8 fixedLogicalIndent(const LogicalState& state) const
+        {
+            const uint32_t tabWidth = std::max(options_->tabWidth, 1u);
+            const uint32_t baseCols = FormatModel::textColumns(model_->lineIndentOf(state.firstPiece), tabWidth);
+            return FormatPassUtil::indentForColumns(*model_, baseCols + std::max(options_->continuationIndentWidth, 1u));
+        }
+
+        uint32_t logicalFirstOperandColumn(const LogicalState& state) const
+        {
+            std::vector<PieceColumn> columns;
+            FormatPassUtil::computeLineColumns(*model_, model_->lineStartOf(state.firstPiece), &columns);
+            for (const PieceColumn& column : columns)
+            {
+                if (column.piece == state.firstPiece)
+                    return column.column;
+            }
+            return UINT32_MAX;
+        }
+
+        Utf8 logicalIndent(const LogicalState& state) const
+        {
+            if (state.layout == FormatLogicalLayout::HangingAlign)
+            {
+                const uint32_t column = logicalFirstOperandColumn(state);
+                if (column != UINT32_MAX)
+                    return FormatPassUtil::indentForColumns(*model_, column);
+            }
+
+            if (state.layout == FormatLogicalLayout::Preserve)
+            {
+                for (size_t i = 0; i < state.operators.size(); ++i)
+                {
+                    if (model_->gapHasNewline(state.operators[i]))
+                        return Utf8(model_->lineIndentOf(state.operators[i]));
+                    if (model_->gapHasNewline(state.operands[i + 1]))
+                        return Utf8(model_->lineIndentOf(state.operands[i + 1]));
+                }
+            }
+
+            return fixedLogicalIndent(state);
+        }
+
+        uint32_t firstBrokenLogicalOperator(const LogicalState& state) const
+        {
+            for (size_t i = 0; i < state.operators.size(); ++i)
+            {
+                if (logicalBoundaryIsBroken(state, i))
+                    return static_cast<uint32_t>(i);
+            }
+            return INVALID_PIECE;
+        }
+
+        void setLogicalBoundaryBreak(const LogicalState& state, const size_t index, const Utf8& indent) const
+        {
+            const uint32_t                op       = state.operators[index];
+            const uint32_t                operand  = state.operands[index + 1];
+            const FormatOperatorWrapStyle position = logicalBoundaryPosition(state, index);
+            if (position == FormatOperatorWrapStyle::Before)
+            {
+                if (model_->gapHasNewline(operand))
+                    model_->setGapSpaces(operand, 1);
+                model_->setGapBreak(op, 1, indent.view());
+            }
+            else
+            {
+                if (model_->gapHasNewline(op))
+                    model_->setGapSpaces(op, 1);
+                model_->setGapBreak(operand, 1, indent.view());
+            }
+        }
+
+        void normalizeLogicalBoundaries(const LogicalState& state, const Utf8& indent) const
+        {
+            for (size_t i = 0; i < state.operators.size(); ++i)
+            {
+                if (logicalBoundaryIsBroken(state, i))
+                    setLogicalBoundaryBreak(state, i, indent);
+            }
+        }
+
+        void applyLogicalPacking(const LogicalState& state, const Utf8& indent) const
+        {
+            if (state.packing == FormatLogicalPacking::Preserve || state.hasComment || !state.editable)
+                return;
+
+            uint32_t requiredBreak = firstBrokenLogicalOperator(state);
+            if (requiredBreak == INVALID_PIECE && state.lineMode == ListLineMode::MultiLine)
+                requiredBreak = 0;
+
+            joinLogicalBoundaries(state);
+            switch (state.packing)
+            {
+                case FormatLogicalPacking::Pack:
+                    if (requiredBreak != INVALID_PIECE)
+                        setLogicalBoundaryBreak(state, requiredBreak, indent);
+                    break;
+                case FormatLogicalPacking::ByPrecedence:
+                {
+                    if (requiredBreak != INVALID_PIECE)
+                        setLogicalBoundaryBreak(state, requiredBreak, indent);
+                    for (size_t i = 0; i < state.operators.size(); ++i)
+                    {
+                        if (model_->piece(state.operators[i]).isNot(TokenId::KwdOr))
+                            continue;
+                        setLogicalBoundaryBreak(state, i, indent);
+                    }
+                    break;
+                }
+                case FormatLogicalPacking::OnePerLine:
+                    for (size_t i = 0; i < state.operators.size(); ++i)
+                        setLogicalBoundaryBreak(state, i, indent);
+                    break;
+                case FormatLogicalPacking::Preserve:
+                    break;
+            }
+        }
+
+        void prepareLogicalExpressions() const
+        {
+            for (const LogicalState& state : logicalExpressions_)
+            {
+                if (state.lineMode == ListLineMode::SingleLine)
+                    continue;
+                if (state.lineMode != ListLineMode::MultiLine && !logicalExpressionIsMultiline(state))
+                    continue;
+
+                const Utf8 indent = logicalIndent(state);
+                applyLogicalPacking(state, indent);
+                normalizeLogicalBoundaries(state, indent);
+            }
+        }
+
         bool lineEditable(const uint32_t lineStart) const
         {
             uint32_t piece = lineStart;
@@ -449,6 +878,39 @@ namespace
                     return true;
             }
             return false;
+        }
+
+        const LogicalState* logicalExpressionForBoundary(const uint32_t pieceIndex) const
+        {
+            const LogicalState* result     = nullptr;
+            uint32_t            resultSize = UINT32_MAX;
+            for (const LogicalState& state : logicalExpressions_)
+            {
+                if (pieceIndex < state.firstPiece || pieceIndex > state.lastPiece || !isLogicalBoundaryGap(state, pieceIndex))
+                    continue;
+                const uint32_t size = state.lastPiece - state.firstPiece;
+                if (size < resultSize)
+                {
+                    result     = &state;
+                    resultSize = size;
+                }
+            }
+            return result;
+        }
+
+        FormatOperatorWrapStyle operatorWrapStyle(const uint32_t operatorPiece) const
+        {
+            if (!model_->piece(operatorPiece).hasRole(FormatRoleE::LogicalOp))
+                return options_->breakBeforeBinaryOperators;
+
+            const LogicalState* state = logicalExpressionForBoundary(operatorPiece);
+            if (!state)
+                return options_->breakBeforeBinaryOperators;
+            if (state->lineMode == ListLineMode::SingleLine)
+                return FormatOperatorWrapStyle::None;
+            if (state->breakPosition == FormatOperatorWrapStyle::Before || state->breakPosition == FormatOperatorWrapStyle::After)
+                return state->breakPosition;
+            return options_->breakBeforeBinaryOperators;
         }
 
         const ListState* listContaining(const uint32_t pieceIndex) const
@@ -508,8 +970,6 @@ namespace
             uint32_t bestOp         = INVALID_PIECE;
             uint32_t bestOther      = INVALID_PIECE;
 
-            const FormatOperatorWrapStyle opStyle = options_->breakBeforeBinaryOperators;
-
             for (const auto& [pieceIndex, column] : columns)
             {
                 const FormatPiece& piece = model_->piece(pieceIndex);
@@ -527,12 +987,16 @@ namespace
                 if (piece.is(TokenId::SymComma) && piece.depth == bestCommaDepth &&
                     !commaBelongsToSingleLineList(pieceIndex) && c + 1 < columns.size())
                     candidate = columns[c + 1].piece;
-                else if (piece.hasRole(FormatRoleE::BinaryOp) && opStyle != FormatOperatorWrapStyle::Preserve && opStyle != FormatOperatorWrapStyle::None)
+                else if (piece.hasRole(FormatRoleE::BinaryOp))
                 {
+                    const FormatOperatorWrapStyle opStyle = operatorWrapStyle(pieceIndex);
                     if (opStyle == FormatOperatorWrapStyle::Before)
                         candidate = pieceIndex;
                     else if (c + 1 < columns.size())
-                        candidate = columns[c + 1].piece;
+                    {
+                        if (opStyle == FormatOperatorWrapStyle::After)
+                            candidate = columns[c + 1].piece;
+                    }
                 }
                 else if (piece.hasRole(FormatRoleE::TernaryOp) && options_->breakBeforeTernaryOperators.value_or(false))
                     candidate = pieceIndex;
@@ -568,6 +1032,10 @@ namespace
 
         Utf8 continuationIndent(const uint32_t lineStart, const std::vector<PieceColumn>& columns, const uint32_t breakPiece) const
         {
+            const LogicalState* logical = logicalExpressionForBoundary(breakPiece);
+            if (logical && logical->lineMode != ListLineMode::SingleLine && logical->layout != FormatLogicalLayout::Preserve)
+                return logicalIndent(*logical);
+
             const ListState* list = listContaining(breakPiece);
             if (list && list->lineMode != ListLineMode::SingleLine && list->layout != FormatListLayout::Preserve)
                 return listItemIndent(*list);
@@ -655,9 +1123,44 @@ namespace
             }
         }
 
-        FormatModel*           model_;
-        const FormatOptions*   options_;
-        std::vector<ListState> lists_;
+        void addRequiredLogicalBreaks(const LogicalState& state, const Utf8& indent) const
+        {
+            if (state.packing == FormatLogicalPacking::OnePerLine)
+            {
+                for (size_t i = 0; i < state.operators.size(); ++i)
+                    setLogicalBoundaryBreak(state, i, indent);
+                return;
+            }
+
+            if (state.packing != FormatLogicalPacking::ByPrecedence)
+                return;
+
+            if (state.lineMode == ListLineMode::MultiLine)
+                setLogicalBoundaryBreak(state, 0, indent);
+            for (size_t i = 0; i < state.operators.size(); ++i)
+            {
+                if (model_->piece(state.operators[i]).isNot(TokenId::KwdOr))
+                    continue;
+                setLogicalBoundaryBreak(state, i, indent);
+            }
+        }
+
+        void finishLogicalExpressions() const
+        {
+            for (const LogicalState& state : logicalExpressions_)
+            {
+                if (state.lineMode == ListLineMode::SingleLine || !logicalExpressionIsMultiline(state))
+                    continue;
+                const Utf8 indent = logicalIndent(state);
+                addRequiredLogicalBreaks(state, indent);
+                normalizeLogicalBoundaries(state, indent);
+            }
+        }
+
+        FormatModel*              model_;
+        const FormatOptions*      options_;
+        std::vector<ListState>    lists_;
+        std::vector<LogicalState> logicalExpressions_;
     };
 }
 

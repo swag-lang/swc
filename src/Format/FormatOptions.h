@@ -106,6 +106,21 @@ enum class FormatListLayout : uint8_t
     Block,         // Break after `(` and place `)` on its own line
 };
 
+enum class FormatLogicalLayout : uint8_t
+{
+    Preserve,
+    HangingIndent, // Indent continuation lines by a fixed amount
+    HangingAlign,  // Align continuation lines with the first operand
+};
+
+enum class FormatLogicalPacking : uint8_t
+{
+    Preserve,
+    Pack,         // Fit as many operands per line as possible
+    ByPrecedence, // Keep `and` groups together and break primarily at `or`
+    OnePerLine,   // One operand per line once wrapping kicks in
+};
+
 enum class FormatCaseBodyStyle : uint8_t
 {
     Preserve,
@@ -186,6 +201,12 @@ struct FormatOptions
     std::optional<bool>     sourceSelectsParameterLayout;                                   // Let the first two declaration parameters select single-line or multiline layout
     FormatListLayout        argumentListLayout  = FormatListLayout::Preserve;               // Layout of multiline call argument lists
     FormatListLayout        parameterListLayout = FormatListLayout::Preserve;               // Layout of multiline declaration parameter lists
+
+    std::optional<bool>     forceSingleLineLogicalExpressions;                                // Place editable logical expressions on one line, regardless of the column limit
+    std::optional<bool>     sourceSelectsLogicalExpressionLayout;                             // Let the first two logical operands select single-line or multiline layout
+    FormatLogicalLayout     logicalExpressionLayout      = FormatLogicalLayout::Preserve;     // Alignment of multiline logical expressions
+    FormatOperatorWrapStyle logicalOperatorBreakPosition = FormatOperatorWrapStyle::Preserve; // Side of `and` / `or` that owns the line break
+    FormatLogicalPacking    logicalOperandPacking        = FormatLogicalPacking::Preserve;    // Packing of operands in multiline logical expressions
 
     // -----------------------------------------------------------------------
     // Braces & short bodies

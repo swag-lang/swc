@@ -51,6 +51,7 @@ enum class FormatRoleE : uint64_t
     TernaryOp       = 1ULL << 34, // `?` / `:` of a conditional expression
     TypeDeclStart   = 1ULL << 35, // first piece of a named type / impl / namespace declaration
     WhereKeyword    = 1ULL << 36, // `where` introducing a constraint clause
+    LogicalOp       = 1ULL << 37, // `and` / `or` of a logical expression
 };
 using FormatRoles = EnumFlags<FormatRoleE>;
 
@@ -75,6 +76,13 @@ struct FormatBlock
     uint32_t        headPiece  = 0; // first piece of the owning statement / declaration
     FormatBlockKind kind       = FormatBlockKind::Plain;
     bool            exprLevel  = false; // embedded in an expression or type (closure body, anonymous struct / tuple type)
+};
+
+struct FormatLogicalExpression
+{
+    uint32_t firstPiece        = 0;
+    uint32_t lastPiece         = 0;
+    uint32_t rootOperatorPiece = 0;
 };
 
 // One token or comment of the source stream.
@@ -122,6 +130,8 @@ public:
     const std::vector<FormatPiece>& pieces() const { return pieces_; }
     std::vector<FormatBlock>&       blocks() { return blocks_; }
     const std::vector<FormatBlock>& blocks() const { return blocks_; }
+    std::vector<FormatLogicalExpression>&       logicalExpressions() { return logicalExpressions_; }
+    const std::vector<FormatLogicalExpression>& logicalExpressions() const { return logicalExpressions_; }
 
     const SourceView&    srcView() const { return *srcView_; }
     const FormatOptions& options() const { return *options_; }
@@ -184,6 +194,7 @@ private:
     std::vector<FormatPiece> pieces_;
     std::vector<FormatGap>   gaps_; // gaps_[i] precedes pieces_[i]; gaps_.back() trails the last piece
     std::vector<FormatBlock> blocks_;
+    std::vector<FormatLogicalExpression> logicalExpressions_;
     std::vector<uint32_t>    tokenToPiece_;
     std::deque<Utf8>         ownedTexts_;
     std::string_view         eol_ = "\n";

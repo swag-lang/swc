@@ -166,6 +166,25 @@ argument-list-layout = hanging-align
 # Possible values: preserve, hanging-indent, hanging-align, vertical, block
 parameter-list-layout = hanging-align
 
+# Place every logical expression on one line, even past the column limit.
+force-single-line-logical-expressions = false
+
+# Use the first two logical operands to keep the whole expression on one line
+# or apply the configured multi-line layout.
+source-selects-logical-expression-layout = true
+
+# Alignment used for multi-line logical expressions.
+# Possible values: preserve, hanging-indent, hanging-align
+logical-expression-layout = hanging-align
+
+# Side of `and` / `or` that owns a line break.
+# Possible values: preserve, before, after
+logical-operator-break-position = after
+
+# Packing used for operands in multi-line logical expressions.
+# Possible values: preserve, pack, by-precedence, one-per-line
+logical-operand-packing = by-precedence
+
 # ----------------------------------------------------------------------------
 # Braces & short bodies
 # ----------------------------------------------------------------------------

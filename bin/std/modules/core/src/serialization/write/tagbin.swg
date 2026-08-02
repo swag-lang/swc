@@ -19,11 +19,16 @@ enum TagBinSignature: u32
 }
 
 // Additional signature for each value, stored after the value description (crcs)
+//
+// These numbers are the on-disk format, so both cases are pinned. Every element ever
+// written carries bit 0, which is why [[Serialization.Write.TagBinValueFlags.None]] is
+// one rather than zero; renumbering them makes an existing stream decode its plain
+// values as compressed ones.
 #[Swag.EnumFlags]
 enum TagBinValueFlags: u8
 {
-    None = 0       // No value option is enabled.
-    Compressed     // Enables compressed.
+    None       = 1     // No value option is enabled.
+    Compressed = 2     // The value payload is deflate compressed.
 }
 
 // Internal state for a binary serialization section

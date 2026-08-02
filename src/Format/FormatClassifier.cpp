@@ -54,7 +54,7 @@ namespace
             if (root.isInvalid())
                 return;
             computeSpan(root);
-            classifyNode(root, AstNodeId::Invalid);
+            classifyNode(root, AstNodeId::Invalid, AstNodeId::Invalid);
             registerRemainingBraces();
         }
 
@@ -527,7 +527,7 @@ namespace
             SWC_UNUSED(node);
         }
 
-        void classifyNode(const AstNodeRef nodeRef, const AstNodeId parentCompound)
+        void classifyNode(const AstNodeRef nodeRef, const AstNodeId parentCompound, const AstNodeId parentNode)
         {
             if (!shouldVisit(nodeRef))
                 return;
@@ -981,7 +981,22 @@ namespace
                                                     : node.cast<AstLogicalExpr>().nodeLeftRef;
                     const NodeSpan   leftSpan = spanOf(leftRef);
                     if (leftSpan.valid())
-                        addRole(nextCodeAfterOperand(leftSpan.maxPiece), FormatRoleE::BinaryOp);
+                    {
+                        const uint32_t op = nextCodeAfterOperand(leftSpan.maxPiece);
+                        addRole(op, FormatRoleE::BinaryOp);
+                        if (node.is(AstNodeId::LogicalExpr))
+                        {
+                            addRole(op, FormatRoleE::LogicalOp);
+                            if (parentNode != AstNodeId::LogicalExpr && span.valid())
+                            {
+                                FormatLogicalExpression expr;
+                                expr.firstPiece        = span.minPiece;
+                                expr.lastPiece         = span.maxPiece;
+                                expr.rootOperatorPiece = op;
+                                model_->logicalExpressions().push_back(expr);
+                            }
+                        }
+                    }
                     break;
                 }
 
@@ -1119,7 +1134,7 @@ namespace
             SmallVector<AstNodeRef> children;
             Ast::nodeIdInfos(node.id()).collectChildren(children, *ast_, node);
             for (const AstNodeRef childRef : children)
-                classifyNode(childRef, parentCompound);
+                classifyNode(childRef, parentCompound, node.id());
         }
 
         FormatModel*                           model_;

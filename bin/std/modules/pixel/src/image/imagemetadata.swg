@@ -4,14 +4,20 @@ using Core
 
 // Stores one opaque metadata record associated with an image.
 //
-// Codecs use `sig` and `tag` to identify a record and keep `value` as its
+// Codecs use `signature` and `tag` to identify a record and keep `value` as its
 // format-specific byte payload. Unknown records can therefore survive a
 // decode/encode round trip without Pixel interpreting their contents.
+//
+// The aliases keep records written under the earlier spelling readable; see
+// [[Pixel.Image]] for why a serialized rename needs one.
+#[Core.Serialization.Alias("ImageMetaData")]
 struct ImageMetadata
 {
-    signature: u32          // Codec-defined signature or namespace identifier.
-    tag:       Array'u8     // Owned byte tag that identifies the record within `signature`.
-    value:     Array'u8     // Owned, codec-defined payload bytes.
+    #[Core.Serialization.Alias("sig")]
+    signature: u32     // Codec-defined signature or namespace identifier.
+
+    tag:   Array'u8     // Owned byte tag that identifies the record within `signature`.
+    value: Array'u8     // Owned, codec-defined payload bytes.
 }
 
 impl ImageMetadata

@@ -670,6 +670,32 @@ func releaseTagBinInterface(value: *#null ITagBinScore)
     Memory.delete(decoded)
 }
 
+func readTagBinValueFlags(bytes: const [..] u8, fieldName: string)->u8
+{
+    let seek   = findTagBinFieldSeek(bytes, fieldName)
+    var stream = ByteStream.openRead(bytes)
+    stream.setPosition(seek + #sizeof(u32) + #sizeof(u32))
+
+    let flags = catch stream.readNative'u8() as errvf
+    @assert(errvf == null)
+    return flags
+}
+
+// The value-flags byte is on-disk format, not an internal detail: it is written as a
+// raw number and every stream ever produced carries 1 for a plain value and 3 for a
+// compressed one. Renumbering the enum silently reinterprets every plain value in an
+// existing stream as a compressed one, so the byte is pinned here rather than compared
+// against the enum cases it is meant to guard.
+#test
+{
+    @assert(#sizeof(Serialization.Write.TagBinValueFlags) == 1)
+
+    let payload = makeTagBinPayload()
+    let bytes   = encodeTagBin(payload)
+    @assert(readTagBinValueFlags(bytes.toSlice(), "id") == 1)
+    @assert(readTagBinValueFlags(bytes.toSlice(), "blob") == 3)
+}
+
 func readTagBinCompressedSizes(bytes: const [..] u8, fieldName: string)->{ uncompressed: u64, compressed: u64 }
 {
     let seek   = findTagBinFieldSeek(bytes, fieldName)

@@ -85,6 +85,28 @@ namespace
         schema.add("source-selects-parameter-layout", &options.sourceSelectsParameterLayout, "Use the first two declaration parameters' source lines to choose single-line or multiline layout");
         schema.addEnum("argument-list-layout", &options.argumentListLayout, listLayoutChoices, "Choose the layout of multiline call argument lists");
         schema.addEnum("parameter-list-layout", &options.parameterListLayout, listLayoutChoices, "Choose the layout of multiline declaration parameter lists");
+
+        const std::initializer_list<std::pair<const char*, FormatLogicalLayout>> logicalLayoutChoices = {
+            {"preserve", FormatLogicalLayout::Preserve},
+            {"hanging-indent", FormatLogicalLayout::HangingIndent},
+            {"hanging-align", FormatLogicalLayout::HangingAlign},
+        };
+        const std::initializer_list<std::pair<const char*, FormatLogicalPacking>> logicalPackingChoices = {
+            {"preserve", FormatLogicalPacking::Preserve},
+            {"pack", FormatLogicalPacking::Pack},
+            {"by-precedence", FormatLogicalPacking::ByPrecedence},
+            {"one-per-line", FormatLogicalPacking::OnePerLine},
+        };
+        const std::initializer_list<std::pair<const char*, FormatOperatorWrapStyle>> logicalBreakChoices = {
+            {"preserve", FormatOperatorWrapStyle::Preserve},
+            {"before", FormatOperatorWrapStyle::Before},
+            {"after", FormatOperatorWrapStyle::After},
+        };
+        schema.add("force-single-line-logical-expressions", &options.forceSingleLineLogicalExpressions, "Place every editable logical expression on one line, regardless of the column limit");
+        schema.add("source-selects-logical-expression-layout", &options.sourceSelectsLogicalExpressionLayout, "Use the first two logical operands' source lines to choose single-line or multiline layout");
+        schema.addEnum("logical-expression-layout", &options.logicalExpressionLayout, logicalLayoutChoices, "Choose the alignment of multiline logical expressions");
+        schema.addEnum("logical-operator-break-position", &options.logicalOperatorBreakPosition, logicalBreakChoices, "Choose where logical expressions break relative to `and` and `or`");
+        schema.addEnum("logical-operand-packing", &options.logicalOperandPacking, logicalPackingChoices, "Choose how logical operands span lines");
     }
 
     void bindBraceSchema(StructConfigSchema& schema, FormatOptions& options)

@@ -328,6 +328,271 @@ SWC_TEST_BEGIN(FormatWrap_BlockLists)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatWrap_ForceSingleLineLogicalExpressions)
+{
+    static constexpr std::string_view SOURCE =
+        "func test(a, b, c, d: bool)\n"
+        "{\n"
+        "    if a and\n"
+        "       b or\n"
+        "       c and\n"
+        "       d do\n"
+        "        return\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func test(a, b, c, d: bool)\n"
+        "{\n"
+        "    if a and b or c and d do\n"
+        "        return\n"
+        "}\n";
+
+    FormatOptions options;
+    options.columnLimit                          = 18;
+    options.forceSingleLineParameterLists        = true;
+    options.forceSingleLineLogicalExpressions    = true;
+    options.sourceSelectsLogicalExpressionLayout = true;
+    options.logicalExpressionLayout              = FormatLogicalLayout::HangingAlign;
+    options.logicalOperatorBreakPosition         = FormatOperatorWrapStyle::Before;
+    options.logicalOperandPacking                = FormatLogicalPacking::OnePerLine;
+    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_SourceSelectsSingleLineLogicalExpressions)
+{
+    static constexpr std::string_view SOURCE =
+        "func test(a, b, c, d: bool)\n"
+        "{\n"
+        "    if a and b or\n"
+        "       c and d do\n"
+        "        return\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func test(a, b, c, d: bool)\n"
+        "{\n"
+        "    if a and b or c and d do\n"
+        "        return\n"
+        "}\n";
+
+    FormatOptions options;
+    options.columnLimit                          = 18;
+    options.forceSingleLineParameterLists        = true;
+    options.sourceSelectsLogicalExpressionLayout = true;
+    options.logicalExpressionLayout              = FormatLogicalLayout::HangingAlign;
+    options.logicalOperatorBreakPosition         = FormatOperatorWrapStyle::Before;
+    options.logicalOperandPacking                = FormatLogicalPacking::OnePerLine;
+    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_LogicalOperatorsAfter)
+{
+    static constexpr std::string_view SOURCE =
+        "func test(a, b, c, d: bool)\n"
+        "{\n"
+        "    if a and\n"
+        "       b or c and d do\n"
+        "        return\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func test(a, b, c, d: bool)\n"
+        "{\n"
+        "    if a and\n"
+        "       b or\n"
+        "       c and d do\n"
+        "        return\n"
+        "}\n";
+
+    FormatOptions options;
+    options.breakBeforeBinaryOperators           = FormatOperatorWrapStyle::Before;
+    options.sourceSelectsLogicalExpressionLayout = true;
+    options.logicalExpressionLayout              = FormatLogicalLayout::HangingAlign;
+    options.logicalOperatorBreakPosition         = FormatOperatorWrapStyle::After;
+    options.logicalOperandPacking                = FormatLogicalPacking::ByPrecedence;
+    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_LogicalOperatorsBefore)
+{
+    static constexpr std::string_view SOURCE =
+        "func test(a, b, c, d: bool)\n"
+        "{\n"
+        "    if a and\n"
+        "       b or c and d do\n"
+        "        return\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func test(a, b, c, d: bool)\n"
+        "{\n"
+        "    if a\n"
+        "       and b\n"
+        "       or c and d do\n"
+        "        return\n"
+        "}\n";
+
+    FormatOptions options;
+    options.breakBeforeBinaryOperators           = FormatOperatorWrapStyle::After;
+    options.sourceSelectsLogicalExpressionLayout = true;
+    options.logicalExpressionLayout              = FormatLogicalLayout::HangingAlign;
+    options.logicalOperatorBreakPosition         = FormatOperatorWrapStyle::Before;
+    options.logicalOperandPacking                = FormatLogicalPacking::ByPrecedence;
+    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_LogicalOperandsOnePerLine)
+{
+    static constexpr std::string_view SOURCE =
+        "func test(a, b, c, d: bool)\n"
+        "{\n"
+        "    if a and\n"
+        "       b or c and d do\n"
+        "        return\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func test(a, b, c, d: bool)\n"
+        "{\n"
+        "    if a and\n"
+        "       b or\n"
+        "       c and\n"
+        "       d do\n"
+        "        return\n"
+        "}\n";
+
+    FormatOptions options;
+    options.sourceSelectsLogicalExpressionLayout = true;
+    options.logicalExpressionLayout              = FormatLogicalLayout::HangingAlign;
+    options.logicalOperatorBreakPosition         = FormatOperatorWrapStyle::After;
+    options.logicalOperandPacking                = FormatLogicalPacking::OnePerLine;
+    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_LogicalHangingIndent)
+{
+    static constexpr std::string_view SOURCE =
+        "func test(a, b, c, d: bool)\n"
+        "{\n"
+        "    if a and\n"
+        "       b or c and d do\n"
+        "        return\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func test(a, b, c, d: bool)\n"
+        "{\n"
+        "    if a and\n"
+        "        b or\n"
+        "        c and d do\n"
+        "        return\n"
+        "}\n";
+
+    FormatOptions options;
+    options.continuationIndentWidth              = 4;
+    options.sourceSelectsLogicalExpressionLayout = true;
+    options.logicalExpressionLayout              = FormatLogicalLayout::HangingIndent;
+    options.logicalOperatorBreakPosition         = FormatOperatorWrapStyle::After;
+    options.logicalOperandPacking                = FormatLogicalPacking::ByPrecedence;
+    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_LogicalOperandsPack)
+{
+    static constexpr std::string_view SOURCE =
+        "func test(a, b, c, d: bool)\n"
+        "{\n"
+        "    if a and\n"
+        "       b or\n"
+        "       c and\n"
+        "       d do\n"
+        "        return\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func test(a, b, c, d: bool)\n"
+        "{\n"
+        "    if a and\n"
+        "       b or c and d do\n"
+        "        return\n"
+        "}\n";
+
+    FormatOptions options;
+    options.sourceSelectsLogicalExpressionLayout = true;
+    options.logicalExpressionLayout              = FormatLogicalLayout::HangingAlign;
+    options.logicalOperatorBreakPosition         = FormatOperatorWrapStyle::After;
+    options.logicalOperandPacking                = FormatLogicalPacking::Pack;
+    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_FormatterSelectsLogicalExpressionLineMode)
+{
+    static constexpr std::string_view SOURCE =
+        "func test()\n"
+        "{\n"
+        "    if true and\n"
+        "       false do\n"
+        "        return\n"
+        "    if someVeryLongCondition() and\n"
+        "       anotherVeryLongCondition() do\n"
+        "        return\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func test()\n"
+        "{\n"
+        "    if true and false do\n"
+        "        return\n"
+        "    if someVeryLongCondition() and\n"
+        "       anotherVeryLongCondition() do\n"
+        "        return\n"
+        "}\n";
+
+    FormatOptions options;
+    options.columnLimit                          = 36;
+    options.sourceSelectsLogicalExpressionLayout = false;
+    options.logicalExpressionLayout              = FormatLogicalLayout::HangingAlign;
+    options.logicalOperatorBreakPosition         = FormatOperatorWrapStyle::After;
+    options.logicalOperandPacking                = FormatLogicalPacking::ByPrecedence;
+    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_NestedLogicalExpressions)
+{
+    static constexpr std::string_view SOURCE =
+        "func test(a, b, c, d: bool)\n"
+        "{\n"
+        "    if a and (b or c or\n"
+        "              d) or e do\n"
+        "        return\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func test(a, b, c, d: bool)\n"
+        "{\n"
+        "    if a and (b or c or d) or e do\n"
+        "        return\n"
+        "}\n";
+
+    FormatOptions options;
+    options.columnLimit                          = 18;
+    options.forceSingleLineParameterLists        = true;
+    options.sourceSelectsLogicalExpressionLayout = true;
+    options.logicalExpressionLayout              = FormatLogicalLayout::HangingAlign;
+    options.logicalOperatorBreakPosition         = FormatOperatorWrapStyle::After;
+    options.logicalOperandPacking                = FormatLogicalPacking::OnePerLine;
+    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatWrap_NoWrapWhenDisabled)
 {
     static constexpr std::string_view SOURCE =

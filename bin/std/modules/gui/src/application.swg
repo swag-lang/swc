@@ -965,9 +965,6 @@ impl Application
         // application, example or script has to recognize that it is being exercised.
         if !.maxRunFrame do
             .maxRunFrame = Env.smokeFrames()
-        Console.println("SMOKEDIAG budget=", .maxRunFrame, " isSmoke=", Env.isSmokeRun())
-        for a in @args do
-            Console.println("SMOKEDIAG arg='", a, "'")
 
         for s in .surfaces
         {

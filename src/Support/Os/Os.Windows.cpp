@@ -1053,37 +1053,71 @@ namespace Os
         if (childOutputWrite)
             CloseHandle(childOutputWrite);
 
+        // The deadline has to cover the output pumping, not just the wait that follows it.
+        // Reading a pipe blocks until the child writes or exits, so a child that simply keeps
+        // running would sit here forever and the timeout would never be reached.
+        const bool  hasDeadline = options && options->timeoutMs;
+        const auto  deadline    = std::chrono::steady_clock::now() + std::chrono::milliseconds(hasDeadline ? options->timeoutMs : 0);
+        bool        timedOut    = false;
+
         if (childOutputRead)
         {
             std::string pendingLine;
             char        buffer[4096];
             for (;;)
             {
-                DWORD bytesRead = 0;
-                if (!ReadFile(childOutputRead, buffer, sizeof(buffer), &bytesRead, nullptr))
+                DWORD available = 0;
+                if (!PeekNamedPipe(childOutputRead, nullptr, 0, nullptr, &available, nullptr))
+                    break;
+
+                if (available)
                 {
-                    if (GetLastError() == ERROR_BROKEN_PIPE)
+                    DWORD bytesRead = 0;
+                    const DWORD want = std::min<DWORD>(sizeof(buffer), available);
+                    if (!ReadFile(childOutputRead, buffer, want, &bytesRead, nullptr) || !bytesRead)
                         break;
+
+                    forwardProcessOutputChunk(options, pendingLine, std::string_view(buffer, bytesRead));
+                    continue;
+                }
+
+                // Nothing buffered: the child is either finished or simply quiet.
+                if (WaitForSingleObject(processInfo.hProcess, 0) == WAIT_OBJECT_0)
+                    break;
+
+                if (hasDeadline && std::chrono::steady_clock::now() >= deadline)
+                {
+                    timedOut = true;
                     break;
                 }
 
-                if (!bytesRead)
-                    break;
-
-                forwardProcessOutputChunk(options, pendingLine, std::string_view(buffer, bytesRead));
+                Sleep(2);
             }
 
             flushPendingProcessOutput(options, pendingLine);
             CloseHandle(childOutputRead);
         }
 
-        const DWORD timeout    = options && options->timeoutMs ? options->timeoutMs : INFINITE;
-        const DWORD waitResult = WaitForSingleObject(processInfo.hProcess, timeout);
-        if (waitResult == WAIT_TIMEOUT)
+        DWORD waitResult = WAIT_OBJECT_0;
+        if (!timedOut)
         {
-            // The process is still alive and will never be waited on again, so it has to be
-            // taken down here; leaving it behind would keep its artifact locked and let the
-            // next build fail for an unrelated reason.
+            DWORD remaining = INFINITE;
+            if (hasDeadline)
+            {
+                const auto left = std::chrono::duration_cast<std::chrono::milliseconds>(deadline - std::chrono::steady_clock::now()).count();
+                remaining       = left > 0 ? static_cast<DWORD>(left) : 0;
+            }
+
+            waitResult = WaitForSingleObject(processInfo.hProcess, remaining);
+            if (waitResult == WAIT_TIMEOUT)
+                timedOut = true;
+        }
+
+        if (timedOut)
+        {
+            // The child is still alive and nothing else will reap it, so it has to be taken
+            // down here; leaving it behind keeps its artifact locked and makes the next build
+            // fail for an unrelated reason.
             TerminateProcess(processInfo.hProcess, 1);
             WaitForSingleObject(processInfo.hProcess, 5000);
             CloseHandle(processInfo.hThread);

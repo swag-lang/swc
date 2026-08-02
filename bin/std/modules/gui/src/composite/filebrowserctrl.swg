@@ -5,8 +5,7 @@ using Core, File, Directory
 // Embeds location navigation, a sortable file list, and name and type editors.
 struct FileBrowserCtrl
 {
-    using
-    wnd: Wnd     // Embedded wnd state.
+    using wnd: Wnd     // Embedded wnd state.
 
     readonly
     {

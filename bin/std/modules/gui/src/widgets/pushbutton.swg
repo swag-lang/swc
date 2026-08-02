@@ -14,8 +14,7 @@ enum PushButtonForm
 // Invokes an action from pointer or keyboard input.
 struct PushButton
 {
-    using
-    button: Button     // Embedded button behavior and presentation.
+    using button: Button     // Embedded button behavior and presentation.
 
     readonly
     form = PushButtonForm.Normal     // Current visual emphasis.

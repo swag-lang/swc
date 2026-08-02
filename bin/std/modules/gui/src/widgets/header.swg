@@ -47,8 +47,7 @@ enum HeaderSortDirection
 // Displays named, optionally sortable and resizable columns.
 struct Header
 {
-    using
-    wnd: Wnd     // Embedded window behavior and presentation.
+    using wnd: Wnd     // Embedded window behavior and presentation.
 
     form                  = HeaderForm.Flat             // Background and border presentation.
     itemPadding:      f32 = 5                           // Horizontal inset applied to each item label.

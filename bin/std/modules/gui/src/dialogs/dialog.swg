@@ -3,8 +3,7 @@
 // Owns a modal surface, a content view, and an optional validated action bar.
 struct Dialog
 {
-    using
-    wnd: Wnd     // Embedded window behavior and presentation.
+    using wnd: Wnd     // Embedded window behavior and presentation.
 
     // Called before a button result closes the dialog; return false to keep it open.
     validateResult: #null func||(*Dialog, WndId)->bool

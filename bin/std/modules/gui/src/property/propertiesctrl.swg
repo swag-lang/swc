@@ -15,8 +15,7 @@ enum PropertiesCtrlFlags
 // Combines a property editor with optional section navigation, tabs, and search.
 struct PropertiesCtrl
 {
-    using
-    frameWnd: FrameWnd     // Embedded frame wnd state.
+    using frameWnd: FrameWnd     // Embedded frame wnd state.
 
     readonly
     {

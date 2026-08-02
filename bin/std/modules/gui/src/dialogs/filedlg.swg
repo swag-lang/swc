@@ -37,8 +37,7 @@ struct FileDlgOptions
 // Thin modal wrapper around the reusable 'FileBrowserCtrl' composite.
 struct FileDlg
 {
-    using
-    dialog: Dialog     // Embedded dialog state.
+    using dialog: Dialog     // Embedded dialog state.
     readonly
     {
         #[Swag.Late]

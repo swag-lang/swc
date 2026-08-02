@@ -564,18 +564,25 @@ namespace
             const bool isConst     = (flags & static_cast<AstNode::ParserFlags>(AstVarDeclFlagsE::Const)) != 0;
             const bool inAggregate = parentCompound == AstNodeId::AggregateBody;
 
-            const FormatRoleE startRole = inAggregate ? FormatRoleE::FieldDeclStart
-                                          : isConst   ? FormatRoleE::ConstDeclStart
-                                                      : FormatRoleE::VarDeclStart;
-            addRole(span.minPiece, startRole);
+            const FormatRoleE startRole  = inAggregate ? FormatRoleE::FieldDeclStart
+                                           : isConst   ? FormatRoleE::ConstDeclStart
+                                                       : FormatRoleE::VarDeclStart;
+            uint32_t          startPiece = span.minPiece;
 
-            // `using wnd: Wnd` fields start their line on the `using` keyword.
-            if (span.valid())
+            // The AST span of `using wnd: Wnd` starts on `wnd`, but the
+            // declaration starts on `using`. Keep a single start marker so
+            // aggregate layout cannot split the prefix from the field name.
+            if (inAggregate && span.valid())
             {
                 const uint32_t prev = prevCode(span.minPiece);
                 if (prev != INVALID_PIECE && model_->piece(prev).is(TokenId::KwdUsing))
-                    addRole(prev, startRole);
+                {
+                    startPiece = prev;
+                    model_->piece(span.minPiece).roles.remove(FormatRoleE::StmtStart);
+                    addRole(prev, FormatRoleE::StmtStart);
+                }
             }
+            addRole(startPiece, startRole);
 
             // The type may start with qualifiers (`#late`, `#null`, `*`, ...)
             // that its span skips over. Walk backward to the nearest `:` so

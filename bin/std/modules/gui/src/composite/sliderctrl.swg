@@ -5,8 +5,7 @@ using Core, Pixel
 // Combines a label, slider, and validated numeric editor into one control.
 struct SliderCtrl
 {
-    using
-    frameWnd: FrameWnd     // Embedded frame wnd state.
+    using frameWnd: FrameWnd     // Embedded frame wnd state.
 
     sigChanged: SigArray'func||(*SliderCtrl)     // Emitted after the slider value changes.
 

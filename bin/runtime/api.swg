@@ -534,9 +534,8 @@ namespace Swag
     // An error raised by the system
     struct SystemError
     {
-        using
-        base:    Swag.BaseError
-        errorID: u64
+        using base: Swag.BaseError
+        errorID:    u64
     }
 
     // Store a 'fail' error information
@@ -735,36 +734,31 @@ namespace Swag
 
     struct TypeInfoNative
     {
-        using
-        base:       TypeInfo
+        using base: TypeInfo
         nativeKind: TypeInfoNativeKind = TypeInfoNativeKind.Void
     }
 
     struct TypeInfoPointer
     {
-        using
-        base:        TypeInfo
+        using base:  TypeInfo
         pointedType: const *TypeInfo     // The pointed type
     }
 
     struct TypeInfoAlias
     {
-        using
-        base:    TypeInfo
-        rawType: const *TypeInfo     // The underlying type
+        using base: TypeInfo
+        rawType:    const *TypeInfo     // The underlying type
     }
 
     struct TypeInfoCodeBlock
     {
-        using
-        base:    TypeInfo
-        rawType: const *TypeInfo     // The underlying type
+        using base: TypeInfo
+        rawType:    const *TypeInfo     // The underlying type
     }
 
     struct TypeInfoStruct
     {
-        using
-        base:        TypeInfo
+        using base:  TypeInfo
         opInit:      #null func(#null *void)        // Initialization hook; null when zero-initialization suffices or explicit initialization is required
         opDrop:      #null func(#null *void)        // Pointer to the function to drop an instance of that struct
         opPostCopy:  #null func(#null *void)        // Pointer to the function to call after a copy
@@ -781,8 +775,7 @@ namespace Swag
 
     struct TypeInfoFunc
     {
-        using
-        base:       TypeInfo
+        using base: TypeInfo
         generics:   #null const [..] TypeValue     // Generic parameters
         parameters: #null const [..] TypeValue     // Parameters
         returnType: #null const *TypeInfo          // The return type, or 'null'
@@ -791,8 +784,7 @@ namespace Swag
 
     struct TypeInfoEnum
     {
-        using
-        base:       TypeInfo
+        using base: TypeInfo
         values:     #null const [..] TypeValue     // All the values
         rawType:    #null const *TypeInfo          // The underlying enum type
         attributes: #null const [..] Attribute     // All the attributes
@@ -800,8 +792,7 @@ namespace Swag
 
     struct TypeInfoArray
     {
-        using
-        base:        TypeInfo
+        using base:  TypeInfo
         pointedType: const *TypeInfo     // The underlying type
         finalType:   const *TypeInfo     // If this is an array with multiple dimensions, this will be the final type
         count:       u64                 // Number of elements in the array
@@ -810,29 +801,25 @@ namespace Swag
 
     struct TypeInfoSlice
     {
-        using
-        base:        TypeInfo
+        using base:  TypeInfo
         pointedType: const *TypeInfo     // The underlying type
     }
 
     struct TypeInfoVariadic
     {
-        using
-        base:    TypeInfo
-        rawType: const *TypeInfo     // The underlying type
+        using base: TypeInfo
+        rawType:    const *TypeInfo     // The underlying type
     }
 
     struct TypeInfoGeneric
     {
-        using
-        base:    TypeInfo
-        rawType: const *TypeInfo
+        using base: TypeInfo
+        rawType:    const *TypeInfo
     }
 
     struct TypeInfoNamespace
     {
-        using
-        base: TypeInfo
+        using base: TypeInfo
     }
 
     // #########################################################

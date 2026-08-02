@@ -44,8 +44,7 @@ enum EditBoxFlags
 // Edits and validates a single line of text, optionally as a bounded numeric value.
 struct EditBox
 {
-    using
-    wnd: Wnd     // Embedded window behavior and presentation.
+    using wnd: Wnd     // Embedded window behavior and presentation.
 
     internal
     textStorage: String     // Current UTF-8 text content.

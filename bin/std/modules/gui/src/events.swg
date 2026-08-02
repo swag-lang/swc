@@ -30,10 +30,9 @@ impl IEvent for Event {}
 // Requests execution of a command identified by `id`.
 struct CommandEvent
 {
-    using
-    base:   Event                 // Embedded base state.
-    id:     WndId = undefined     // Command identifier.
-    source: #null *Wnd            // Window that originated the command, when known.
+    using base: Event                 // Embedded base state.
+    id:         WndId = undefined     // Command identifier.
+    source:     #null *Wnd            // Window that originated the command, when known.
 }
 
 impl IEvent for CommandEvent {}
@@ -72,11 +71,10 @@ struct CommandStateEvent
         Apply       // Computed state is being applied to command presenters.
     }
 
-    using
-    base:   Event                 // Embedded base state.
-    kind:   Kind                  // Whether state is being computed or applied.
-    id:     WndId = undefined     // Command identifier.
-    source: #null *Wnd            // Window that requested the state, when known.
+    using base: Event                 // Embedded base state.
+    kind:       Kind                  // Whether state is being computed or applied.
+    id:         WndId = undefined     // Command identifier.
+    source:     #null *Wnd            // Window that requested the state, when known.
 
     icon:          Icon              // Command icon when [UpdatedFields.Icon] is present.
     name:          String            // Compact command label when [UpdatedFields.Name] is present.
@@ -95,9 +93,8 @@ impl IEvent for CommandStateEvent {}
 // Signals that a registered timer has elapsed.
 struct TimerEvent
 {
-    using
-    base:  Event                  // Embedded base state.
-    timer: *Timer = undefined     // Timer that elapsed.
+    using base: Event                  // Embedded base state.
+    timer:      *Timer = undefined     // Timer that elapsed.
 }
 
 impl IEvent for TimerEvent {}
@@ -105,8 +102,7 @@ impl IEvent for TimerEvent {}
 // Signals one application frame.
 struct FrameEvent
 {
-    using
-    base:       Event     // Embedded base state.
+    using base: Event     // Embedded base state.
     firstFrame: bool      // Whether this is the first frame after startup.
 }
 
@@ -115,8 +111,7 @@ impl IEvent for FrameEvent {}
 // Signals creation of a window.
 struct CreateEvent
 {
-    using
-    base: Event     // Embedded base state.
+    using base: Event     // Embedded base state.
 }
 
 impl IEvent for CreateEvent {}
@@ -138,9 +133,8 @@ struct StateEvent
         Disable     // Signals transition to locally disabled state.
     }
 
-    using
-    base: Event     // Embedded base state.
-    kind: Kind      // State transition being reported.
+    using base: Event     // Embedded base state.
+    kind:       Kind      // State transition being reported.
 }
 
 impl IEvent for StateEvent {}
@@ -148,8 +142,7 @@ impl IEvent for StateEvent {}
 // Signals destruction of a window.
 struct DestroyEvent
 {
-    using
-    base: Event     // Embedded base state.
+    using base: Event     // Embedded base state.
 }
 
 impl IEvent for DestroyEvent {}
@@ -165,8 +158,7 @@ struct PaintEvent
         After       // Paint after the window's children.
     }
 
-    using
-    base:         Event                         // Embedded base state.
+    using base:   Event                         // Embedded base state.
     kind:         Kind          = .Content      // Painting phase.
     paintContext: *PaintContext = undefined     // Active painting context.
 }
@@ -176,9 +168,8 @@ impl IEvent for PaintEvent {}
 // Signals a window resize.
 struct ResizeEvent
 {
-    using
-    base:    Event          // Embedded base state.
-    oldSize: Math.Point     // Size before the resize.
+    using base: Event          // Embedded base state.
+    oldSize:    Math.Point     // Size before the resize.
 }
 
 impl IEvent for ResizeEvent {}
@@ -186,9 +177,8 @@ impl IEvent for ResizeEvent {}
 // Signals a window move.
 struct MoveEvent
 {
-    using
-    base:   Event          // Embedded base state.
-    oldPos: Math.Point     // Position before the move.
+    using base: Event          // Embedded base state.
+    oldPos:     Math.Point     // Position before the move.
 }
 
 impl IEvent for MoveEvent {}
@@ -204,12 +194,11 @@ struct KeyEvent
         Character     // Text input produced one Unicode character.
     }
 
-    using
-    base:      Event                              // Embedded base state.
-    kind:      Kind                               // Keyboard event kind.
-    modifiers: Input.KeyModifiers = None          // Modifiers held during the event.
-    key:       Input.Key          = undefined     // Physical or logical key, when applicable.
-    character: rune                               // Input character for `Kind.Character`.
+    using base: Event                              // Embedded base state.
+    kind:       Kind                               // Keyboard event kind.
+    modifiers:  Input.KeyModifiers = None          // Modifiers held during the event.
+    key:        Input.Key          = undefined     // Physical or logical key, when applicable.
+    character:  rune                               // Input character for `Kind.Character`.
 }
 
 impl IEvent for KeyEvent {}
@@ -231,8 +220,7 @@ struct MouseEvent
         SetCursor       // The target must choose the active cursor.
     }
 
-    using
-    base:       Event                              // Embedded base state.
+    using base: Event                              // Embedded base state.
     kind:       Kind                               // Mouse event kind.
     button:     Input.MouseButton  = undefined     // Button involved in the transition.
     surfacePos: Math.Point                         // Pointer position in surface coordinates.
@@ -245,9 +233,8 @@ impl IEvent for MouseEvent {}
 // Requests application termination.
 struct QuitEvent
 {
-    using
-    base:     Event     // Embedded base state.
-    quitCode: s32       // Process exit code requested by the application.
+    using base: Event     // Embedded base state.
+    quitCode:   s32       // Process exit code requested by the application.
 }
 
 impl IEvent for QuitEvent {}
@@ -264,11 +251,10 @@ struct FocusEvent
         CanLose     // Queries whether the window may lose keyboard focus.
     }
 
-    using
-    base:  Event              // Embedded base state.
-    kind:  Kind               // Focus event kind.
-    other: #null *Wnd         // Window at the other end of the focus transition.
-    canChangeFocus = true     // Whether the queried focus transition is allowed.
+    using base: Event          // Embedded base state.
+    kind:       Kind           // Focus event kind.
+    other:      #null *Wnd     // Window at the other end of the focus transition.
+    canChangeFocus = true      // Whether the queried focus transition is allowed.
 }
 
 impl IEvent for FocusEvent {}
@@ -276,11 +262,10 @@ impl IEvent for FocusEvent {}
 // Carries an application-defined message received from the host window system.
 struct SysUserEvent
 {
-    using
-    base:    Event     // Embedded base state.
-    message: u64       // Application-defined message identifier.
-    param0:  u64       // First message parameter.
-    param1:  u64       // Second message parameter.
+    using base: Event     // Embedded base state.
+    message:    u64       // Application-defined message identifier.
+    param0:     u64       // First message parameter.
+    param1:     u64       // Second message parameter.
 }
 
 impl IEvent for SysUserEvent {}
@@ -298,9 +283,8 @@ struct SysCommandEvent
         User         // Carries a host-specific command not covered above.
     }
 
-    using
-    base: Event     // Embedded base state.
-    kind: Kind      // Host command being requested.
+    using base: Event     // Embedded base state.
+    kind:       Kind      // Host command being requested.
 }
 
 impl IEvent for SysCommandEvent {}
@@ -308,10 +292,9 @@ impl IEvent for SysCommandEvent {}
 // Signals a theme-style change.
 struct ThemeEvent
 {
-    using
-    base:   Event                       // Embedded base state.
-    style:  *ThemeStyle = undefined     // Style being updated.
-    parent: #null *ThemeStyle           // Parent style inherited by `style`, when any.
+    using base: Event                       // Embedded base state.
+    style:      *ThemeStyle = undefined     // Style being updated.
+    parent:     #null *ThemeStyle           // Parent style inherited by `style`, when any.
 }
 
 impl IEvent for ThemeEvent {}
@@ -319,8 +302,7 @@ impl IEvent for ThemeEvent {}
 // Requests serialization or restoration of window state.
 struct SerializeStateEvent
 {
-    using
-    base:       Event                                     // Embedded base state.
+    using base: Event                                     // Embedded base state.
     serializer: *Serialization.Serializer = undefined     // Serializer that defines the current read/write mode.
 }
 
@@ -329,8 +311,7 @@ impl IEvent for SerializeStateEvent {}
 // Carries a semantic notification emitted by a control.
 struct NotifyEvent
 {
-    using
-    base: Event     // Embedded base state.
+    using base: Event     // Embedded base state.
 
     // Identifies the semantic notification sent by a control.
     enum Kind
@@ -348,8 +329,7 @@ impl IEvent for NotifyEvent {}
 // Requests repainting of a window.
 struct InvalidateEvent
 {
-    using
-    base: Event     // Embedded base state.
+    using base: Event     // Embedded base state.
 }
 
 impl IEvent for InvalidateEvent {}

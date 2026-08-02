@@ -3,8 +3,7 @@ using Core, Pixel
 // Displays a rich message, optional icon and extension, and caller-defined action buttons.
 public struct MessageDlg
 {
-    using
-    dialog: Dialog     // Embedded dialog state.
+    using dialog: Dialog     // Embedded dialog state.
     readonly
     {
         #[Swag.Late]

@@ -19,9 +19,8 @@ public enum MenuFlags
 // Stores one command, submenu, or separator in a [[Gui.MenuCtrl]].
 public struct PopupMenuItem
 {
-    using
-    item:      Item           // Embedded item state.
-    rightName: RichString     // Optional right-aligned shortcut label.
+    using item: Item           // Embedded item state.
+    rightName:  RichString     // Optional right-aligned shortcut label.
     #[Swag.Late]
     popup:     *MenuCtrl                           // Popup associated with this value.
     pos:       f32                                 // Pos associated with this value.
@@ -36,8 +35,7 @@ public struct PopupMenuItem
 // Displays either a persistent menu bar or a modal popup menu.
 public struct MenuCtrl
 {
-    using
-    frameWnd: FrameWnd     // Embedded frame window state.
+    using frameWnd: FrameWnd     // Embedded frame window state.
 
     sigCommandSelected: SigArray'func||(*MenuCtrl, WndId)         // Emitted after a command is selected.
     onPrepareItem:      #null func(*MenuCtrl, *PopupMenuItem)     // Updates an item before menu layout is computed.

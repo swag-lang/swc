@@ -32,8 +32,7 @@ struct GridTrack
 // Arranges child windows in configurable rows, columns, and spanning cells.
 struct GridLayoutCtrl
 {
-    using
-    wnd: Wnd     // Embedded wnd state.
+    using wnd: Wnd     // Embedded wnd state.
 
     flags                  = GridLayoutFlags.None     // Active grid sizing options.
     numColumns:        s32                            // Number of columns.

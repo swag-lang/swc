@@ -237,8 +237,7 @@ struct OVERLAPPED
 {
     Internal:     ULONG_PTR
     InternalHigh: ULONG_PTR
-    using
-    data: union
+    using data:   union
     {
         fileOffset: OVERLAPPED_OFFSET
         Pointer:    #null *void

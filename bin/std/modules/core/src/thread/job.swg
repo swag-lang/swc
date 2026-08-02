@@ -32,8 +32,7 @@ public struct Job
 #[Swag.NoDoc]
 public struct(T) SliceJob
 {
-    using
-    base:        Job                    // Embedded base state.
+    using base:  Job                    // Embedded base state.
     buffer:      #null const [..] T     // Buffer associated with this value.
     offset:      u32                    // Offset associated with this value.
     contextData: #null *void            // Context data associated with this value.
@@ -43,8 +42,7 @@ public struct(T) SliceJob
 #[Swag.NoDoc]
 public struct ForJob
 {
-    using
-    base:        Job             // Embedded base state.
+    using base:  Job             // Embedded base state.
     startIndex:  u32             // Index of start.
     endIndex:    u32             // Index of end.
     contextData: #null *void     // Context data associated with this value.

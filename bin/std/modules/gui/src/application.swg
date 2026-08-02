@@ -8,9 +8,8 @@ alias FrameCallback = func||(*Application)
 // Owns GUI resources, top-level surfaces, input state, and the event loop.
 struct Application
 {
-    using
-    native:   ApplicationNative                 // Platform-specific application state.
-    sigFrame: SigArray'func||(*Application)     // Emitted after each processed frame.
+    using native: ApplicationNative                 // Platform-specific application state.
+    sigFrame:     SigArray'func||(*Application)     // Emitted after each processed frame.
 
     options: ApplicationOptions     // Diagnostics and development options.
     appIcon: Pixel.Image            // Icon used for native windows created by the application.

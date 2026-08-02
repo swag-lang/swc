@@ -12,8 +12,7 @@ enum IconBarOrientation
 // Arranges icon buttons and forwards their action and checked-state signals.
 struct IconBar
 {
-    using
-    wnd: Wnd     // Embedded window behavior and presentation.
+    using wnd: Wnd     // Embedded window behavior and presentation.
 
     readonly
     {

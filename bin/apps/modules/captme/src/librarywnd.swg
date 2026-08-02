@@ -16,8 +16,7 @@ enum SortMethod
 
 struct LibraryWnd
 {
-    using
-    wnd: Wnd
+    using wnd: Wnd
 
     #[Swag.Late]
     {

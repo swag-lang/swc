@@ -105,8 +105,7 @@ internal const PropCondensedControlHeight = 20'f32
 // Builds and edits reflected structure fields with validation, filtering, defaults, and undo support.
 struct Properties
 {
-    using
-    frameWnd: FrameWnd     // Embedded frame wnd state.
+    using frameWnd: FrameWnd     // Embedded frame wnd state.
 
     // Construction options are read-only to callers. Use the setters below when a value has to
     // change so cached layout state remains synchronized.

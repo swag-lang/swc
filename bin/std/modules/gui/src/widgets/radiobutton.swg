@@ -5,8 +5,7 @@ using Core, Pixel
 // Lets the user select one option from an optional group.
 struct RadioButton
 {
-    using
-    button: Button     // Embedded button behavior and presentation.
+    using button: Button     // Embedded button behavior and presentation.
 
     groupId: #null WndId     // Identifier shared by mutually exclusive siblings; null leaves the button ungrouped.
 

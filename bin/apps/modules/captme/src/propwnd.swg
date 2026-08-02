@@ -41,8 +41,7 @@ func drawShapeGlyph(painter: *Painter, kind: FormShapeKind, pos: Math.Rectangle,
 // timeline. The compact x/y and w/h rows are hand-appended at the end of the grid.
 struct PropWnd
 {
-    using
-    frameWnd: FrameWnd
+    using frameWnd: FrameWnd
     #[Swag.Late]
     {
         topLayout: *StackLayoutCtrl

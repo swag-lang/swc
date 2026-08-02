@@ -30,8 +30,7 @@ private func initRng()
 struct Guid128
 {
     readonly
-    using
-    value: union
+    using value: union
     {
         bytes: [16] u8     // Byte representation.
         words: [2] u64     // Two-word representation.

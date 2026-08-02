@@ -16,8 +16,7 @@ enum LabelFlags
 // Displays rich text and an optional icon, and reports activated links.
 struct Label
 {
-    using
-    wnd: Wnd     // Embedded window behavior and presentation.
+    using wnd: Wnd     // Embedded window behavior and presentation.
 
     sigLinkActivated: SigArray'func||(*Label, string)     // Emitted when the user activates a rich-text link.
 

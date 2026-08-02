@@ -3,8 +3,7 @@ using Core, Pixel
 // Displays application identity, title, descriptive rich text, and optional icons.
 public struct AboutDlg
 {
-    using
-    dialog: Dialog     // Embedded dialog state.
+    using dialog: Dialog     // Embedded dialog state.
     readonly
     {
         #[Swag.Late]

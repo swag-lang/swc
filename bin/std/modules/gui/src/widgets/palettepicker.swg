@@ -5,8 +5,7 @@ using Core, Pixel
 // Displays a wrapping palette and lets the user select one color.
 struct PalettePicker
 {
-    using
-    wnd: Wnd     // Embedded window behavior and presentation.
+    using wnd: Wnd     // Embedded window behavior and presentation.
 
     sigSelectionChanged: SigArray'func||(*PalettePicker)     // Emitted after the selected color changes.
 

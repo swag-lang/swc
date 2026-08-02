@@ -20,16 +20,14 @@ enum ComboBoxFlags
 // Stores one selectable item or separator in a combo box.
 struct ComboBoxItem
 {
-    using
-    base:        Item     // Embedded label, icon, identifier, and user data.
+    using base:  Item     // Embedded label, icon, identifier, and user data.
     isSeparator: bool     // Whether this entry separates groups and cannot be selected.
 }
 
 // Displays a compact selection field with a drop-down list.
 struct ComboBox
 {
-    using
-    wnd: Wnd     // Embedded window behavior and presentation.
+    using wnd: Wnd     // Embedded window behavior and presentation.
 
     minimumPopupWidth:  f32 = 100                           // Minimum drop-down width in logical units.
     maximumPopupHeight: f32 = 300                           // Maximum drop-down height in logical units.

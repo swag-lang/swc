@@ -33,8 +33,7 @@ enum FrameWndAnchor
 // Hosts one view inside an optional themed frame, border, shadow, and callout anchor.
 struct FrameWnd
 {
-    using
-    wnd: Wnd     // Embedded wnd state.
+    using wnd: Wnd     // Embedded wnd state.
 
     #[Swag.Late]
     view:           *Wnd                      // Hosted content view.

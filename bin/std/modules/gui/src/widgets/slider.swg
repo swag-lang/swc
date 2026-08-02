@@ -17,8 +17,7 @@ enum SliderFlags
 // Provides a linear single-value or range slider.
 struct Slider
 {
-    using
-    wnd: Wnd     // Embedded wnd state.
+    using wnd: Wnd     // Embedded wnd state.
 
     flags = SliderFlags.HilightBar               // Active behavior and presentation flags.
     sigStartChange: SigArray'func||(*Slider)     // Emitted when a user-style change transaction starts.

@@ -25,8 +25,7 @@ enum ColorPickerFlags
 // Combines color planes, channel editors, an eyedropper, and an optional palette into one picker.
 struct ColorPickerCtrl
 {
-    using
-    frameWnd: FrameWnd     // Embedded frame wnd state.
+    using frameWnd: FrameWnd     // Embedded frame wnd state.
 
     sigColorChanged: SigArray'func||(*ColorPickerCtrl)     // Emitted once after the selected color changes.
 

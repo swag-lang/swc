@@ -10,8 +10,7 @@ enum UpdateCommand
 // The sound driver
 struct Driver
 {
-    using
-    native: DriverNative
+    using native: DriverNative
 
     isCreated:           bool
     allocationAllocator: IAllocator = undefined

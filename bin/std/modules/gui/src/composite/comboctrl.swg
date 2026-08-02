@@ -5,8 +5,7 @@ using Core, Pixel
 // Pairs a descriptive label with a combo box in one horizontal row.
 struct ComboCtrl
 {
-    using
-    frameWnd: FrameWnd     // Embedded framed-window behavior and presentation.
+    using frameWnd: FrameWnd     // Embedded framed-window behavior and presentation.
 
     readonly
     {

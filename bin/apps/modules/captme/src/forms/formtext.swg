@@ -10,8 +10,7 @@ enum FormTextAlign
 #[Swag.Using(Properties)]
 struct FormText
 {
-    using
-    base: BaseForm
+    using base: BaseForm
     #[Name("Font"), FontName]
     fontName: String
     #[Name("Text"), MultiLine]

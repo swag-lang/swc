@@ -14,8 +14,7 @@ func easeGrab(current, target: f32)->f32
 
 struct CaptureRectWnd
 {
-    using
-    wnd: Wnd
+    using wnd: Wnd
 
     #[Swag.Late]
     main:          *MainWnd

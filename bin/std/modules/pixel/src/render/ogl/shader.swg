@@ -39,22 +39,19 @@ struct ShaderBase
 // Uses the standard shader without antialiasing coverage.
 struct ShaderSimple
 {
-    using
-    base: ShaderBase     // Shared program and uniform handles.
+    using base: ShaderBase     // Shared program and uniform handles.
 }
 
 // Uses the standard shader with per-vertex antialiasing coverage.
 struct ShaderAA
 {
-    using
-    base: ShaderBase     // Shared program and uniform handles.
+    using base: ShaderBase     // Shared program and uniform handles.
 }
 
 // Extends the standard shader with bitmap/MSDF text-effect uniforms.
 struct ShaderFont
 {
-    using
-    base: ShaderBase     // Shared program and uniform handles.
+    using base: ShaderBase     // Shared program and uniform handles.
 
     fxEnabled:      ShaderParamHandle     // Effect-enable uniform.
     fxFaceDilate:   ShaderParamHandle     // Face dilation uniform.
@@ -72,16 +69,14 @@ struct ShaderFont
 // Extends the simple shader with separable-blur controls.
 struct ShaderBlur
 {
-    using
-    base:   ShaderBase            // Shared program and uniform handles.
-    radius: ShaderParamHandle     // Blur radius uniform.
-    axis:   ShaderParamHandle     // Blur axis uniform: `0` horizontal, `1` vertical.
+    using base: ShaderBase            // Shared program and uniform handles.
+    radius:     ShaderParamHandle     // Blur radius uniform.
+    axis:       ShaderParamHandle     // Blur axis uniform: `0` horizontal, `1` vertical.
 }
 
 // Extends the simple shader with supersampling resolve controls.
 struct ShaderResolve
 {
-    using
-    base:   ShaderBase            // Shared program and uniform handles.
-    factor: ShaderParamHandle     // Integer supersampling factor uniform.
+    using base: ShaderBase            // Shared program and uniform handles.
+    factor:     ShaderParamHandle     // Integer supersampling factor uniform.
 }

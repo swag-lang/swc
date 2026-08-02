@@ -20,8 +20,7 @@ enum BottomSize
 // Main structure
 struct MainWnd
 {
-    using
-    wnd: Wnd
+    using wnd: Wnd
     #[Swag.Late]
     {
         topBar, editToolBar, recentBar:  *Wnd

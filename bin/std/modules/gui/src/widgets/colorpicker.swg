@@ -30,8 +30,7 @@ enum ColorPickerMode
 // Selects a color component or component pair from a rendered gradient.
 struct ColorPicker
 {
-    using
-    wnd: Wnd     // Embedded window behavior and presentation.
+    using wnd: Wnd     // Embedded window behavior and presentation.
 
     sigColorChanged: SigArray'func||(*ColorPicker)     // Emitted after the selected color changes.
 

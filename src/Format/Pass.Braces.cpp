@@ -736,6 +736,26 @@ namespace
         }
     }
 
+    // `using` is part of an aggregate field declaration, never a standalone
+    // line. Repair source that separated it from the field name and keep the
+    // prefix canonical before aggregate layout and alignment run.
+    void normalizeUsingFields(FormatModel& model)
+    {
+        for (uint32_t i = 0; i < model.numPieces(); ++i)
+        {
+            const FormatPiece& usingPiece = model.piece(i);
+            if (usingPiece.removed || usingPiece.frozen || usingPiece.isNot(TokenId::KwdUsing) ||
+                !usingPiece.hasRole(FormatRoleE::FieldDeclStart))
+                continue;
+
+            const uint32_t fieldName = model.nextPiece(i);
+            if (fieldName == INVALID_PIECE || model.piece(fieldName).isComment || !FormatPassUtil::canEditGap(model, fieldName))
+                continue;
+
+            model.setGapSpaces(fieldName, 1);
+        }
+    }
+
     // `;` before an end of line is redundant. Same-line separators stay.
     void removeRedundantSemicolons(FormatModel& model)
     {
@@ -813,6 +833,7 @@ namespace FormatPass
     {
         removeConditionParentheses(model);
         splitSameLineStatements(model);
+        normalizeUsingFields(model);
         normalizeAggregateMembers(model);
         removeRedundantSemicolons(model);
     }

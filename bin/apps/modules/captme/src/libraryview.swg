@@ -24,8 +24,7 @@ impl LibraryItem
 
 struct LibraryView
 {
-    using
-    wnd: Wnd
+    using wnd: Wnd
     #[Swag.Late]
     {
         scrollWnd: *ScrollWnd

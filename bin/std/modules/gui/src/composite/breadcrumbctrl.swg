@@ -18,8 +18,7 @@ struct BreadcrumbItem
 // Displays a horizontal path whose levels can be activated or expanded into child menus.
 struct BreadcrumbCtrl
 {
-    using
-    wnd: Wnd     // Embedded wnd state.
+    using wnd: Wnd     // Embedded wnd state.
 
     readonly
     {

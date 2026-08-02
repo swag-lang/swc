@@ -13,8 +13,7 @@ enum ProgressBarFlags
 // Displays finite progress or indeterminate activity.
 struct ProgressBar
 {
-    using
-    wnd: Wnd     // Embedded window behavior and presentation.
+    using wnd: Wnd     // Embedded window behavior and presentation.
 
     readonly
     {

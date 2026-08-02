@@ -32,10 +32,9 @@ struct SplitterItem
 // Arranges resizable panes separated by draggable dividers.
 struct SplitterCtrl
 {
-    using
-    frameWnd:  FrameWnd                     // Embedded frame wnd state.
-    flags          = SplitterFlags.None     // Orientation and divider options.
-    titleSize: f32 = 30                     // Title extent along the splitting axis.
+    using frameWnd: FrameWnd                     // Embedded frame wnd state.
+    flags               = SplitterFlags.None     // Orientation and divider options.
+    titleSize:      f32 = 30                     // Title extent along the splitting axis.
 
     // The panes the splitter manages, in order. Add them through the methods so the bars and
     // the layout follow.

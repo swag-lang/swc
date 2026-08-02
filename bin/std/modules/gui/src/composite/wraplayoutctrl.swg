@@ -5,8 +5,7 @@ using Core
 // Flows visible children left to right and wraps them into additional rows.
 struct WrapLayoutCtrl
 {
-    using
-    wnd: Wnd     // Embedded wnd state.
+    using wnd: Wnd     // Embedded wnd state.
 
     spacing:    f32 = 5      // Horizontal and vertical gap between items.
     itemWidth:  f32 = 64     // Fallback width when a child has no preferred width.

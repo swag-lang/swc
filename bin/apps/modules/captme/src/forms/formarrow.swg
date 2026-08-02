@@ -1,7 +1,6 @@
 struct FormArrow
 {
-    using
-    line: FormLine
+    using line: FormLine
 }
 
 impl IForm for FormArrow {}

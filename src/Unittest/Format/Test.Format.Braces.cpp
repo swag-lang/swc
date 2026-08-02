@@ -69,6 +69,30 @@ SWC_TEST_BEGIN(FormatStatements_OneStatementPerLine)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatStatements_UsingFieldPrefixStaysTogether)
+{
+    static constexpr std::string_view SOURCE =
+        "struct Derived\n"
+        "{\n"
+        "    using\n"
+        "    base: Base\n"
+        "    value: s32\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "struct Derived\n"
+        "{\n"
+        "    using base: Base\n"
+        "    value:      s32\n"
+        "}\n";
+
+    FormatOptions options;
+    options.oneStructFieldPerLine = true;
+    options.alignStructFields     = FormatAlignMode::Consecutive;
+    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatStatements_OneEnumValuePerLine)
 {
     static constexpr std::string_view SOURCE =

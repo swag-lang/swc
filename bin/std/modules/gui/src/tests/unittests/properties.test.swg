@@ -1741,9 +1741,8 @@ struct PropHeadlessUsingBase
 
 struct PropHeadlessUsingDerived
 {
-    using
-    base:   PropHeadlessUsingBase
-    ownVal: s32
+    using base: PropHeadlessUsingBase
+    ownVal:     s32
 }
 
 // usingFieldsLast walks the struct's own fields before recursing into its 'using'

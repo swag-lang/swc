@@ -1053,11 +1053,19 @@ Result NativeBackendBuilder::runGeneratedArtifact()
             runtimePathDirs.push_back(importedLinkDir);
     }
 
+    // A smoke run is supposed to stop by itself once its frame budget is spent, and a test
+    // executable once its tests are done. Give both a deadline: a program that stops making
+    // progress must fail the run rather than hang it, which is the failure mode a smoke run
+    // exists to catch in the first place.
+    const bool     bounded   = compiler_->cmdLine().command == CommandKind::Smoke || compiler_->cmdLine().command == CommandKind::Test;
+    const uint32_t timeoutMs = bounded ? compiler_->cmdLine().runTimeoutSeconds * 1000 : 0;
+
     const Os::ProcessRunOptions options{
         .capturedOutput            = &artifactOutput,
         .logCtx                    = &ctx_,
         .additionalPathDirectories = runtimePathDirs,
         .suppressForwardLinePrefix = "[swag.test]",
+        .timeoutMs                 = timeoutMs,
     };
 
     const std::vector<Utf8> runArgs = effectiveGeneratedArtifactRunArgs(compiler_->cmdLine());
@@ -1070,6 +1078,8 @@ Result NativeBackendBuilder::runGeneratedArtifact()
             return reportError(DiagnosticId::cmd_err_native_artifact_start_failed, Diagnostic::ARG_PATH, Utf8(artifactPath), Diagnostic::ARG_BECAUSE, Os::systemError());
         case Os::ProcessRunResult::WaitFailed:
             return reportError(DiagnosticId::cmd_err_native_artifact_wait_failed, Diagnostic::ARG_PATH, Utf8(artifactPath));
+        case Os::ProcessRunResult::TimedOut:
+            return reportError(DiagnosticId::cmd_err_native_artifact_timed_out, Diagnostic::ARG_PATH, Utf8(artifactPath), Diagnostic::ARG_VALUE, compiler_->cmdLine().runTimeoutSeconds);
         case Os::ProcessRunResult::ExitCodeFailed:
             return reportError(DiagnosticId::cmd_err_native_artifact_exit_code_failed, Diagnostic::ARG_PATH, Utf8(artifactPath), Diagnostic::ARG_BECAUSE, Os::systemError());
     }

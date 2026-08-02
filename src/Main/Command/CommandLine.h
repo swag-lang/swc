@@ -64,6 +64,10 @@ inline constexpr std::string_view SWAG_SMOKE_RUN_ARG = "swag.smoke";
 // Frames a smoke run renders before it stops, when the command line does not say.
 inline constexpr uint32_t SWAG_SMOKE_DEFAULT_FRAMES = 50;
 
+// Seconds a bounded run may take before it is killed. Generous enough for the slowest module
+// in the tree, small enough that a stuck program fails a suite instead of hanging it.
+inline constexpr uint32_t SWAG_RUN_DEFAULT_TIMEOUT_SECONDS = 300;
+
 inline Runtime::CompilerCommand compilerCommandFromKind(const CommandKind command)
 {
     switch (command)
@@ -213,6 +217,9 @@ struct CommandLine
 
     // Frames a smoke run renders before stopping.
     uint32_t smokeFrames = SWAG_SMOKE_DEFAULT_FRAMES;
+
+    // Seconds a bounded run (test or smoke) may take before it is killed and reported failed.
+    uint32_t runTimeoutSeconds = SWAG_RUN_DEFAULT_TIMEOUT_SECONDS;
 
     std::set<fs::path> directories;
     std::set<fs::path> files;

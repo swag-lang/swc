@@ -82,6 +82,7 @@ SWC_DIAG_DEF(cmd_err_native_backend_kind_required, Error, "native backend needs 
 SWC_DIAG_DEF(cmd_err_native_executable_subsystem_not_supported, Error, "native backend only supports default or console executable subsystems")
 SWC_DIAG_DEF(cmd_err_native_artifact_start_failed, Error, "cannot start '{path}': {because}")
 SWC_DIAG_DEF(cmd_err_native_artifact_wait_failed, Error, "cannot wait for generated executable '{path}'")
+SWC_DIAG_DEF(cmd_err_native_artifact_timed_out, Error, "generated executable '{path}' did not finish within {value} seconds")
 SWC_DIAG_DEF(cmd_err_native_artifact_exit_code_failed, Error, "cannot get exit code for '{path}': {because}")
 SWC_DIAG_DEF(cmd_err_native_artifact_failed, Error, "generated executable exited with code {value}")
 SWC_DIAG_DEF(cmd_err_native_tests_failed, Error, "generated executable '#test' result: {count} did not pass")

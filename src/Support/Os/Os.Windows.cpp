@@ -1077,7 +1077,20 @@ namespace Os
             CloseHandle(childOutputRead);
         }
 
-        const DWORD waitResult = WaitForSingleObject(processInfo.hProcess, INFINITE);
+        const DWORD timeout    = options && options->timeoutMs ? options->timeoutMs : INFINITE;
+        const DWORD waitResult = WaitForSingleObject(processInfo.hProcess, timeout);
+        if (waitResult == WAIT_TIMEOUT)
+        {
+            // The process is still alive and will never be waited on again, so it has to be
+            // taken down here; leaving it behind would keep its artifact locked and let the
+            // next build fail for an unrelated reason.
+            TerminateProcess(processInfo.hProcess, 1);
+            WaitForSingleObject(processInfo.hProcess, 5000);
+            CloseHandle(processInfo.hThread);
+            CloseHandle(processInfo.hProcess);
+            return ProcessRunResult::TimedOut;
+        }
+
         if (waitResult != WAIT_OBJECT_0)
         {
             CloseHandle(processInfo.hThread);

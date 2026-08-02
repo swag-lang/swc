@@ -52,6 +52,12 @@ if /I "%~1"=="--frames" (
     shift
     goto parse_args
 )
+if /I "%~1"=="--run-timeout" (
+    set "WORKSPACE_ARGS=%WORKSPACE_ARGS% --run-timeout %~2"
+    shift
+    shift
+    goto parse_args
+)
 if /I "%~1"=="--workspace-module" (
     set "WORKSPACE_ARGS=%WORKSPACE_ARGS% --workspace-module %~2"
     shift

@@ -27,6 +27,7 @@ namespace Os
         StartFailed,
         WaitFailed,
         ExitCodeFailed,
+        TimedOut,
     };
 
     enum class WindowsToolchainDiscoveryResult : uint8_t
@@ -53,6 +54,11 @@ namespace Os
         // Lines starting with this prefix are captured but not forwarded (used for
         // machine-readable marker lines like the native test tally).
         std::string_view suppressForwardLinePrefix;
+
+        // Kills the process and reports TimedOut after this many milliseconds; zero waits
+        // forever. A run that is supposed to end on its own has to be given a deadline, or a
+        // program that stops making progress hangs the whole suite instead of failing it.
+        uint32_t timeoutMs = 0;
     };
 
     void initialize();

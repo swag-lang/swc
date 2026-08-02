@@ -142,6 +142,9 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Compiler, "smoke", "--frames", nullptr,
         &cmdLine_->smokeFrames,
         "Stop a smoke run after this many rendered frames");
+    add(HelpOptionGroup::Compiler, "test smoke", "--run-timeout", nullptr,
+        &cmdLine_->runTimeoutSeconds,
+        "Fail a test or smoke run whose executable has not finished after this many seconds");
     add(HelpOptionGroup::Compiler, "test build run smoke", "--publish", nullptr,
         &cmdLine_->publish,
         "Copy executable dependency DLLs and PDBs to the artifact output directory after a successful native link");

@@ -144,6 +144,8 @@ private:
     bool             intervalHasCall(uint32_t lo, uint32_t hi) const;
     bool             concreteClaimsOverlap(MicroReg physReg, uint32_t lo, uint32_t hi) const;
     bool             isProvenFreeRegister(MicroReg physReg) const;
+    bool             hullConcreteClaimsBlock(MicroReg physReg, uint32_t lo, uint32_t hi) const;
+    bool             isPinnedCallSavedOwner(uint32_t denseIndex) const;
     bool             globalRangesOverlap(MicroReg physReg, uint32_t lo, uint32_t hi) const;
     void             addGlobalRange(MicroReg physReg, uint32_t lo, uint32_t hi, uint32_t ownerDense);
     bool             isReservedByGlobalFor(MicroReg virtKey, MicroReg physReg, uint32_t instructionIndex) const;
@@ -191,6 +193,7 @@ private:
     MicroReg         assignVirtReg(const AllocRequest& request, MicroRegSpan protectedKeys, MicroRegSpan forbiddenPhysRegs, MicroRegSpan remapForbiddenPhysRegs, uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending);
     void             spillMappedVirtualsForConcreteTouches(const MicroInstrUseDef& useDef, MicroRegSpan protectedKeys, uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending);
     void             spillCallLiveOut(uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending);
+    void             saveRestorePinnedAcrossCall(uint32_t instructionIndex, int64_t stackDepth, std::vector<PendingInsert>& pending);
     void             flushAllMappedVirtuals(uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending);
     void             clearAllMappedVirtuals();
     void             expireDeadMappings(uint32_t stamp);
@@ -255,7 +258,12 @@ private:
     const MicroControlFlowGraph* controlFlowGraph_ = nullptr;
     std::vector<PendingInsert>   pending_;
     SmallVector<BorrowRestore>   pendingBorrowRestores_;
-    std::vector<PendingInsert>   boundaryPending_;
+    // Values pinned in a caller-saved register whose hull crosses a call: they
+    // are parked in their slot around every call inside the hull
+    // (saveRestorePinnedAcrossCall), so the call paths pay for the register
+    // instead of the straight-line code.
+    SmallVector<uint32_t>      pinnedCallSavedDense_;
+    std::vector<PendingInsert> boundaryPending_;
     // Write-through stores for loop-carried values: queued right after the
     // instruction that defines such a value and flushed before the next one, so
     // the value's stable home slot always holds its latest value across the

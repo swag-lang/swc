@@ -772,6 +772,43 @@ bool MicroRegisterAllocationPass::isProvenFreeRegister(const MicroReg physReg) c
            concreteClaimPositionsByDenseIndex_[denseIndex].empty();
 }
 
+bool MicroRegisterAllocationPass::hullConcreteClaimsBlock(const MicroReg physReg, const uint32_t lo, const uint32_t hi) const
+{
+    // Range-scoped variant of the proven-free rule, for the float class only.
+    // A claim inside the hull blocks the register, with one exception: a call
+    // that merely clobbers it. The value is parked in its slot around every
+    // call inside its hull (saveRestorePinnedAcrossCall), so the clobber hits
+    // a register whose value is safe in memory. A call that actually reads the
+    // register — an argument, an indirect target — still blocks it, as does
+    // any concrete contact outside a call. Claims outside the hull are the
+    // local allocator's business: the reservation is range-scoped and the
+    // value is dead there.
+    const uint32_t denseIndex = denseConcreteRegs_.find(physReg);
+    if (denseIndex == MicroDenseRegIndex::K_INVALID_INDEX || denseIndex >= concreteClaimPositionsByDenseIndex_.size())
+        return false;
+
+    const auto& positions = concreteClaimPositionsByDenseIndex_[denseIndex];
+    for (auto it = std::ranges::lower_bound(positions, lo); it != positions.end() && *it <= hi; ++it)
+    {
+        const uint32_t position = *it;
+        if (position >= instructionUseDefs_.size())
+            return true;
+
+        const MicroInstrUseDef& useDef = instructionUseDefs_[position];
+        if (!useDef.isCall)
+            return true;
+        if (containsKey(useDef.uses, physReg))
+            return true;
+    }
+
+    return false;
+}
+
+bool MicroRegisterAllocationPass::isPinnedCallSavedOwner(const uint32_t denseIndex) const
+{
+    return std::ranges::find(pinnedCallSavedDense_, denseIndex) != pinnedCallSavedDense_.end();
+}
+
 bool MicroRegisterAllocationPass::globalRangesOverlap(const MicroReg physReg, const uint32_t lo, const uint32_t hi) const
 {
     const uint32_t denseIndex = denseGlobalPhysRegs_.find(physReg);
@@ -911,12 +948,18 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
     std::ranges::stable_sort(candidates, [](const GlobalCandidate& a, const GlobalCandidate& b) { return a.benefit > b.benefit; });
 
     // The local allocator must keep enough of each class to satisfy the worst
-    // single instruction — four register operands plus what a destructive
+    // single instruction — its register operands plus what a destructive
     // lowering needs — because it cannot spill its way out of an empty pool:
-    // it reports an internal error. A function with calls additionally needs
-    // callee-saved registers left for its own values live across one.
-    constexpr uint32_t K_MIN_FREE_PER_CLASS  = 7;
-    constexpr uint32_t K_MIN_FREE_PERSISTENT = 2;
+    // it reports an internal error. The floor differs per class: the worst int
+    // instruction names four registers and destructive lowerings add three,
+    // while the widest float shape is the ternary multiply-add (three
+    // registers) plus one legalization scratch. A single shared floor sized
+    // for ints would exclude the whole float class, whose pool is smaller
+    // than that floor. A function with calls additionally needs callee-saved
+    // registers left for its own values live across one.
+    constexpr uint32_t K_MIN_FREE_INT_CLASS   = 7;
+    constexpr uint32_t K_MIN_FREE_FLOAT_CLASS = 4;
+    constexpr uint32_t K_MIN_FREE_PERSISTENT  = 2;
 
     const bool            hasCalls = functionHasCalls();
     std::vector<uint32_t> reservedInt(instructionCount_, 0);
@@ -940,16 +983,20 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
         std::vector<uint32_t>& reservedPersistent = isFloat ? reservedFloatPersistent : reservedIntPersistent;
         const size_t           total              = isFloat ? totalFloat : totalInt;
         const size_t           totalPersistent    = isFloat ? totalFloatPersit : totalIntPersist;
+        const uint32_t         minFreeClass       = isFloat ? K_MIN_FREE_FLOAT_CLASS : K_MIN_FREE_INT_CLASS;
 
-        if (total <= K_MIN_FREE_PER_CLASS)
+        if (total <= minFreeClass)
             continue;
 
-        // A value alive across a call survives only in a callee-saved register.
+        // A value alive across a call is safest in a callee-saved register; a
+        // caller-saved one remains acceptable because every call inside the
+        // hull parks the value in its slot for the call's duration
+        // (saveRestorePinnedAcrossCall).
         const bool needsPersistent = intervalHasCall(lo, hi);
 
         uint32_t headroom = std::numeric_limits<uint32_t>::max();
         for (uint32_t idx = lo; idx <= hi; ++idx)
-            headroom = std::min(headroom, static_cast<uint32_t>(total - K_MIN_FREE_PER_CLASS) - std::min(reserved[idx], static_cast<uint32_t>(total - K_MIN_FREE_PER_CLASS)));
+            headroom = std::min(headroom, static_cast<uint32_t>(total - minFreeClass) - std::min(reserved[idx], static_cast<uint32_t>(total - minFreeClass)));
         if (!headroom)
             continue;
 
@@ -965,15 +1012,36 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
         for (int pass = 0; pass < 2 && !picked.isValid(); ++pass)
         {
             // A value not crossing a call is offered caller-saved registers
-            // first, so it does not force a prologue push for nothing.
-            const SmallVector<MicroReg>& pool = needsPersistent || pass == 1 ? persistentPool : transientPool;
+            // first, so it does not force a prologue push for nothing. One that
+            // does cross a call prefers callee-saved, and falls back to
+            // caller-saved with call-site parking when the persistent pool has
+            // nothing (the float class has no callee-saved registers at all).
+            const SmallVector<MicroReg>& pool = needsPersistent == (pass == 0) ? persistentPool : transientPool;
             for (const MicroReg reg : pool)
             {
-                if (!isProvenFreeRegister(reg))
-                    continue;
+                // Int hulls take only proven-free registers: later legalize
+                // sweeps conjure fixed int registers (shift counts, division
+                // pairs) that no claim check at grant time can see. Float
+                // shapes have no late fixed-register lowerings — their only
+                // concrete contacts are ABI moves and call clobbers, both in
+                // the stream already — so a claim check scoped to the hull is
+                // sound for them, and it is what lets a float hull take a
+                // caller-saved register at all: in a function with any call,
+                // every volatile float register carries clobber claims
+                // somewhere.
+                if (isFloat)
+                {
+                    if (hullConcreteClaimsBlock(reg, lo, hi))
+                        continue;
+                }
+                else
+                {
+                    if (!isProvenFreeRegister(reg))
+                        continue;
+                    SWC_ASSERT(!concreteClaimsOverlap(reg, lo, hi));
+                }
                 if (isPhysRegForbiddenForVirtual(vreg, reg))
                     continue;
-                SWC_ASSERT(!concreteClaimsOverlap(reg, lo, hi));
                 if (globalRangesOverlap(reg, lo, hi))
                     continue;
 
@@ -997,8 +1065,8 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
                 // somewhere. A value whose own span covers the whole function is then
                 // vetoed on all of them at once and the local allocator has nowhere
                 // left to put it — it reports an internal error, it cannot spill its
-                // way out. So the floors must also hold function-wide: keep
-                // K_MIN_FREE_PER_CLASS registers per class (and K_MIN_FREE_PERSISTENT
+                // way out. So the floors must also hold function-wide: keep the
+                // class floor's worth of registers (and K_MIN_FREE_PERSISTENT
                 // callee-saved ones) carrying no reservation at all. Registers that
                 // already hold one may keep stacking disjoint hulls freely.
                 const uint32_t regDense      = denseGlobalPhysRegs_.find(reg);
@@ -1018,7 +1086,7 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
                             ++distinctPersistent;
                     }
 
-                    if (distinctClass >= static_cast<uint32_t>(total - K_MIN_FREE_PER_CLASS))
+                    if (distinctClass >= static_cast<uint32_t>(total - minFreeClass))
                         continue;
                     if (hasCalls && isPersistent &&
                         distinctPersistent >= static_cast<uint32_t>(totalPersistent - K_MIN_FREE_PERSISTENT))
@@ -1045,6 +1113,15 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
         regState.pinned = true;
         regState.mapped = false; // never tracked by the spill machinery
         regState.phys   = picked;
+
+        // A caller-saved register does not survive the calls inside the hull on
+        // its own: give the value a slot now, and rewriteInstructions parks it
+        // there for exactly the duration of each such call.
+        if (needsPersistent && !isPersistentPhysReg(picked))
+        {
+            ensureSpillSlot(regState, isFloat);
+            pinnedCallSavedDense_.push_back(cand.denseIndex);
+        }
 
         // Globals bypass mapVirtReg, so capture the debug local-stack base here
         // too: it is a boundary-crossing value like any other, and without this
@@ -2423,6 +2500,29 @@ void MicroRegisterAllocationPass::spillCallLiveOut(uint32_t stamp, int64_t stack
     }
 }
 
+void MicroRegisterAllocationPass::saveRestorePinnedAcrossCall(const uint32_t instructionIndex, const int64_t stackDepth, std::vector<PendingInsert>& pending)
+{
+    // A value pinned in a caller-saved register does not survive a call on its
+    // own: park it in its slot for exactly the call's duration — store before
+    // the call, read back before the next instruction (through
+    // pendingBorrowRestores_). The memory traffic lands on the call paths
+    // alone; in the common shape those are cold safety-panic blocks, and the
+    // straight-line code keeps the pure register form. This stays correct even
+    // when a panic call returns through a user panic hook: the value is back
+    // in its register before the next instruction runs.
+    for (const uint32_t denseIndex : pinnedCallSavedDense_)
+    {
+        if (instructionIndex < virtualSpanLo_[denseIndex] || instructionIndex > virtualSpanHi_[denseIndex])
+            continue;
+
+        auto&         regState = states_[denseIndex];
+        PendingInsert save;
+        queueSpillStore(save, regState.phys, regState, stackDepth);
+        pending.push_back(save);
+        pendingBorrowRestores_.push_back({.physReg = regState.phys, .slotOffset = regState.spillOffset, .slotBits = regState.spillBits, .atIndex = instructionIndex + 1});
+    }
+}
+
 void MicroRegisterAllocationPass::flushAllMappedVirtuals(uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending)
 {
     // Control-flow boundaries require a stable memory state for all mapped values.
@@ -2600,7 +2700,14 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             if (globalDense == MicroDenseRegIndex::K_INVALID_INDEX || globalDense >= globalRangesByPhysDense_.size())
                 continue;
             for (const GlobalRange& range : globalRangesByPhysDense_[globalDense])
+            {
+                // A call's implicit clobber of a call-saved pinned register is
+                // the one expected overlap: the value sits parked in its slot
+                // for exactly the call's duration.
+                if (isCall && isPinnedCallSavedOwner(range.ownerDense))
+                    continue;
                 SWC_ASSERT(idx < range.lo || idx > range.hi);
+            }
         }
 
         SmallVector<MicroInstrRegOperandRef> regRefs;
@@ -2888,7 +2995,10 @@ void MicroRegisterAllocationPass::rewriteInstructions()
         }
 
         if (isCall)
+        {
             spillCallLiveOut(stamp, stackDepth, pending_);
+            saveRestorePinnedAcrossCall(idx, stackDepth, pending_);
+        }
 
         for (const auto& pendingInst : pending_)
         {
@@ -2993,6 +3103,7 @@ void MicroRegisterAllocationPass::clearState()
     concreteClaimPositionsByDenseIndex_.clear();
     denseGlobalPhysRegs_.clear();
     pendingBorrowRestores_.clear();
+    pinnedCallSavedDense_.clear();
     globalRangesByPhysDense_.clear();
     reachableInstructions_.clear();
     worklist_.clear();

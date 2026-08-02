@@ -1069,5 +1069,219 @@
     "hello_jit_ms": 55.4005,
     "hello_build_ms": 74.3621,
     "hello_build_peak_mb": 97.13671875
+  },
+  {
+    "meta": {
+      "stamp": "20260802-170514",
+      "date": "2026-08-02T17:05:14+00:00",
+      "label": "",
+      "commit": "2f69132b3",
+      "subject": "Stop ordinary floats from leaking into the nonvolatile pool",
+      "master": "2f69132b3",
+      "dirty": false,
+      "swc": "C:\\Perso\\swag-lang\\swc\\bin\\swc.exe",
+      "swc_bytes": 4928512
+    },
+    "drift_pct": 7.453112258765969,
+    "calibration_ms": 1.8395,
+    "context": {
+      "baseline": "20260731-142125",
+      "baseline_commit": "5aa83e60a",
+      "run_factor": 0.8876546268223543,
+      "run_task_factors": {
+        "wordfreq": 0.9712035327595746,
+        "csvagg": 0.9121243452879991,
+        "sha256": 0.8479633929607608,
+        "dijkstra": 0.8725126027401496,
+        "raytrace": 0.8529919031160901,
+        "leven": 0.8749960740961648
+      },
+      "run_controls": 60,
+      "run_dispersion_pct": 2.264034996704204,
+      "build_factor": 0.9442244447847373,
+      "build_task_factors": {
+        "wordfreq": 0.9954608799273535,
+        "csvagg": 0.9604939779321632,
+        "sha256": 0.9502615719603519,
+        "dijkstra": 0.929326908347345,
+        "raytrace": 0.9187886193823244,
+        "leven": 0.9134931756742407
+      },
+      "build_controls": 36,
+      "build_dispersion_pct": 1.9040889838701915
+    },
+    "runtimes": {
+      "swag-release": {
+        "run_ms": {
+          "wordfreq": 68.77820002,
+          "csvagg": 24.54369998,
+          "sha256": 2.9205,
+          "dijkstra": 41.76960001,
+          "raytrace": 20.15320002,
+          "leven": 16.29110001
+        },
+        "run_adjusted_ms": {
+          "wordfreq": 70.81749365611742,
+          "csvagg": 26.908282962505993,
+          "sha256": 3.4441345277922215,
+          "dijkstra": 47.872775566589446,
+          "raytrace": 23.626484549709964,
+          "leven": 18.61848354785825
+        },
+        "run_geo_adjusted_ms": 22.738218951985793,
+        "run_index": {
+          "wordfreq": 0.7725550381067632,
+          "csvagg": 0.4554619647642905,
+          "sha256": 0.5472091710073291,
+          "dijkstra": 0.6106011089744288,
+          "raytrace": 1.1383679142415917,
+          "leven": 0.46897234671159255
+        },
+        "run_geo_index": 0.630406085617406,
+        "build_ms": {
+          "wordfreq": 75.8294,
+          "csvagg": 79.923,
+          "sha256": 73.3723,
+          "dijkstra": 73.9217,
+          "raytrace": 70.4722,
+          "leven": 76.5657
+        },
+        "build_adjusted_ms": {
+          "wordfreq": 76.1751682351735,
+          "csvagg": 83.21030827498298,
+          "sha256": 77.21274032857696,
+          "dijkstra": 79.54326872064598,
+          "raytrace": 76.70121126160278,
+          "leven": 83.8163896993402
+        },
+        "build_geo_adjusted_ms": 79.38449521467027,
+        "build_index": {
+          "wordfreq": 1.1170968339364031,
+          "csvagg": 1.0813063509129925,
+          "sha256": 1.0077847707155914,
+          "dijkstra": 1.0961159172895878,
+          "raytrace": 1.0312213294290429,
+          "leven": 1.0835458594062632
+        },
+        "build_geo_index": 1.0688346037519538,
+        "build_peak_mb": 101.56640625,
+        "exe_kb": 123.74301313151163
+      },
+      "swc-jit-release": {
+        "run_ms": {
+          "wordfreq": 68.8979,
+          "csvagg": 27.01179998,
+          "sha256": 3.15070001,
+          "dijkstra": 41.71990004,
+          "raytrace": 21.20680001,
+          "leven": 16.77709998
+        },
+        "run_adjusted_ms": {
+          "wordfreq": 70.94074277534158,
+          "csvagg": 29.614164033162766,
+          "sha256": 3.715608522909193,
+          "dijkstra": 47.81581367303752,
+          "raytrace": 24.861666250909074,
+          "leven": 19.173914577079742
+        },
+        "run_geo_adjusted_ms": 23.715900614487442,
+        "run_index": {
+          "wordfreq": 0.7693088956004491,
+          "csvagg": 0.5165696648815644,
+          "sha256": 0.5342970468075685,
+          "dijkstra": 0.5917081056138924,
+          "raytrace": 1.1129713919674937,
+          "leven": 0.457915146017638
+        },
+        "run_geo_index": 0.6325062567304978
+      },
+      "swag-fast-debug": {
+        "run_ms": {
+          "wordfreq": 82.22609997,
+          "csvagg": 50.76209997,
+          "sha256": 15.01049998,
+          "dijkstra": 49.41949999,
+          "raytrace": 28.84489996,
+          "leven": 47.37629998
+        },
+        "run_adjusted_ms": {
+          "wordfreq": 84.66412775122741,
+          "csvagg": 55.65260946299169,
+          "sha256": 17.701825461579336,
+          "dijkstra": 56.64044259624068,
+          "raytrace": 33.81614743894501,
+          "leven": 54.14458576735648
+        },
+        "run_geo_adjusted_ms": 45.307295398640875,
+        "run_index": {
+          "wordfreq": 0.7935050082211064,
+          "csvagg": 0.8240436132283773,
+          "sha256": 0.8833025857844047,
+          "dijkstra": 0.694629571761771,
+          "raytrace": 1.2386504214733087,
+          "leven": 0.6428473061088469
+        },
+        "run_geo_index": 0.8268052084843142,
+        "build_ms": {
+          "wordfreq": 84.2022,
+          "csvagg": 107.4607,
+          "sha256": 91.6397,
+          "dijkstra": 82.9916,
+          "raytrace": 81.4546,
+          "leven": 100.938
+        },
+        "build_adjusted_ms": {
+          "wordfreq": 84.58614667624597,
+          "csvagg": 111.88065981564085,
+          "sha256": 96.4362894428646,
+          "dijkstra": 89.3029129518986,
+          "raytrace": 88.65434146839958,
+          "leven": 110.49672037834176
+        },
+        "build_geo_adjusted_ms": 96.31670765289542,
+        "build_index": {
+          "wordfreq": 1.0367461269014229,
+          "csvagg": 1.067215277224807,
+          "sha256": 1.0308286650967546,
+          "dijkstra": 1.048775426711998,
+          "raytrace": 1.0042460760244403,
+          "leven": 1.091006682277001
+        },
+        "build_geo_index": 1.0461087463653933,
+        "build_peak_mb": 108.3515625,
+        "exe_kb": 156.78986292931657
+      },
+      "swc-jit-fast-debug": {
+        "run_ms": {
+          "wordfreq": 82.08730002,
+          "csvagg": 47.43820004,
+          "sha256": 15.48219996,
+          "dijkstra": 49.86939998,
+          "raytrace": 28.66299998,
+          "leven": 52.34529998
+        },
+        "run_adjusted_ms": {
+          "wordfreq": 84.52121234233715,
+          "csvagg": 52.00847920030202,
+          "sha256": 18.25809945160738,
+          "dijkstra": 57.156079835848544,
+          "raytrace": 33.60289807592586,
+          "leven": 59.82346838992456
+        },
+        "run_geo_adjusted_ms": 45.79320423943078,
+        "run_index": {
+          "wordfreq": 0.8302069628596667,
+          "csvagg": 0.6396493226222518,
+          "sha256": 0.8802011006844387,
+          "dijkstra": 0.662144097301642,
+          "raytrace": 1.2249614712915475,
+          "leven": 0.6800130536649968
+        },
+        "run_geo_index": 0.7977810857547925
+      }
+    },
+    "hello_jit_ms": 53.3684,
+    "hello_build_ms": 64.3847,
+    "hello_build_peak_mb": 98.625
   }
 ]

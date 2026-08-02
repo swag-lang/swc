@@ -519,7 +519,7 @@ footer {
         <svg class="mark" viewBox="0 0 116 116" role="img" aria-label="Swag"><path d="M46 8L96 8L106.08 20L104.48 30L42.48 30L39.76 47L101.76 47L95.52 86L70 108L20 108L9.92 96L11.52 86L73.52 86L76.24 69L14.24 69L20.48 30L46 8Z"/></svg>
         <span class="wordmark">SWAG</span>
         <span class="sep"></span>
-        <span class="meta">2026-08-01 &middot; <code>b609411b5</code> &middot; campagne nº5</span>
+        <span class="meta">2026-08-02 &middot; <code>2f69132b3</code> &middot; campagne nº6</span>
     </div>
 </header>
 
@@ -527,12 +527,12 @@ footer {
     <div class="wrap">
         <div class="rule"></div>
         <span class="eyebrow">6 t&acirc;ches &middot; 14 runtimes &middot; checksums identiques</span>
-        <h1>swc produit du code <b>1.72&times;</b> plus lent, et le produit <b>4.3&times;</b> plus vite.</h1>
+        <h1>swc produit du code <b>1.67&times;</b> plus lent, et le produit <b>4.4&times;</b> plus vite.</h1>
         <p class="lede">Six programmes r&eacute;alistes &eacute;crits &agrave; la main &agrave; l'identique en swag, C++, Rust,
         Swift, C#, JavaScript, Lua et Python. M&ecirc;me algorithme, m&ecirc;me g&eacute;n&eacute;rateur al&eacute;atoire,
         m&ecirc;me section chronom&eacute;tr&eacute;e. Les 84 binaires produisent le m&ecirc;me checksum &mdash; c'est la
         preuve qu'on compare bien le m&ecirc;me travail.</p>
-        <div class="stats"><div class="stat"><div class="sv">1.72<em>&times;</em></div><div class="sl">ex&eacute;cution vs le meilleur</div><p>Moyenne g&eacute;om&eacute;trique sur les 6 t&acirc;ches. Le meilleur est C++ clang-cl.</p></div><div class="stat"><div class="sv">+5<em>%</em></div><div class="sl">JIT swc vs natif swc</div><p>Le m&ecirc;me code, compil&eacute; en m&eacute;moire au lieu d'un exe.</p></div><div class="stat"><div class="sv">4.3<em>&times;</em></div><div class="sl">compilation plus rapide</div><p>swc face &agrave; MSVC, m&ecirc;me protocole, ex&eacute;cutable produit.</p></div><div class="stat"><div class="sv">102<em>Mo</em></div><div class="sl">pic m&eacute;moire du compilateur</div><p>Plancher fixe : m&ecirc;me valeur sur un hello world.</p></div></div>
+        <div class="stats"><div class="stat"><div class="sv">1.67<em>&times;</em></div><div class="sl">ex&eacute;cution vs le meilleur</div><p>Moyenne g&eacute;om&eacute;trique sur les 6 t&acirc;ches. Le meilleur est C++ MSVC.</p></div><div class="stat"><div class="sv">+4<em>%</em></div><div class="sl">JIT swc vs natif swc</div><p>Le m&ecirc;me code, compil&eacute; en m&eacute;moire au lieu d'un exe.</p></div><div class="stat"><div class="sv">4.4<em>&times;</em></div><div class="sl">compilation plus rapide</div><p>swc face &agrave; MSVC, m&ecirc;me protocole, ex&eacute;cutable produit.</p></div><div class="stat"><div class="sv">102<em>Mo</em></div><div class="sl">pic m&eacute;moire du compilateur</div><p>Plancher fixe : m&ecirc;me valeur sur un hello world.</p></div></div>
     </div>
 </div>
 
@@ -570,20 +570,20 @@ footer {
 <span class="tick" style="left:85.714%"><i></i><b>64</b></span>
 <span class="tick" style="left:100.000%"><i></i><b>128</b></span>
 </div>
-<div class="row f-native"><div class="rl">C++ clang-cl <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:1.560%"></span></div><div class="rv">1.08<em>&times;</em></div></div>
-<div class="row f-native"><div class="rl">C++ MSVC <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:1.827%"></span></div><div class="rv">1.09<em>&times;</em></div></div>
-<div class="row f-native"><div class="rl">Rust <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:3.406%"></span></div><div class="rv">1.18<em>&times;</em></div></div>
-<div class="row f-managed"><div class="rl">C# NativeAOT <span class="mode">AOT</span></div><div class="track"><span class="bar" style="width:7.501%"></span></div><div class="rv">1.44<em>&times;</em></div></div>
-<div class="row f-native"><div class="rl">Swift <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:7.666%"></span></div><div class="rv">1.45<em>&times;</em></div></div>
-<div class="row f-swag"><div class="rl">swag release <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:11.172%"></span></div><div class="rv">1.72<em>&times;</em></div></div>
-<div class="row f-swag"><div class="rl">swag release <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:12.187%"></span></div><div class="rv">1.81<em>&times;</em></div></div>
-<div class="row f-managed"><div class="rl">C# CoreCLR <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:19.956%"></span></div><div class="rv">2.63<em>&times;</em></div></div>
-<div class="row f-swag"><div class="rl">swag fast-debug <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:23.923%"></span></div><div class="rv">3.19<em>&times;</em></div></div>
-<div class="row f-swag"><div class="rl">swag fast-debug <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:24.765%"></span></div><div class="rv">3.33<em>&times;</em></div></div>
-<div class="row f-dynamic"><div class="rl">LuaJIT <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:32.086%"></span></div><div class="rv">4.74<em>&times;</em></div></div>
-<div class="row f-dynamic"><div class="rl">Node / V8 <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:35.838%"></span></div><div class="rv">5.69<em>&times;</em></div></div>
-<div class="row f-dynamic"><div class="rl">Lua <span class="mode">interpr&eacute;t&eacute;</span></div><div class="track"><span class="bar" style="width:79.321%"></span></div><div class="rv">46.93<em>&times;</em></div></div>
-<div class="row f-dynamic"><div class="rl">CPython <span class="mode">interpr&eacute;t&eacute;</span></div><div class="track"><span class="bar" style="width:100.000%"></span></div><div class="rv">132.97<em>&times;</em></div></div>
+<div class="row f-native"><div class="rl">C++ MSVC <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:1.577%"></span></div><div class="rv">1.08<em>&times;</em></div></div>
+<div class="row f-native"><div class="rl">C++ clang-cl <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:1.837%"></span></div><div class="rv">1.09<em>&times;</em></div></div>
+<div class="row f-native"><div class="rl">Rust <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:3.846%"></span></div><div class="rv">1.21<em>&times;</em></div></div>
+<div class="row f-native"><div class="rl">Swift <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:7.222%"></span></div><div class="rv">1.42<em>&times;</em></div></div>
+<div class="row f-managed"><div class="rl">C# NativeAOT <span class="mode">AOT</span></div><div class="track"><span class="bar" style="width:7.476%"></span></div><div class="rv">1.44<em>&times;</em></div></div>
+<div class="row f-swag"><div class="rl">swag release <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:10.605%"></span></div><div class="rv">1.67<em>&times;</em></div></div>
+<div class="row f-swag"><div class="rl">swag release <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:11.473%"></span></div><div class="rv">1.74<em>&times;</em></div></div>
+<div class="row f-managed"><div class="rl">C# CoreCLR <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:19.986%"></span></div><div class="rv">2.64<em>&times;</em></div></div>
+<div class="row f-swag"><div class="rl">swag fast-debug <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:24.814%"></span></div><div class="rv">3.33<em>&times;</em></div></div>
+<div class="row f-swag"><div class="rl">swag fast-debug <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:25.034%"></span></div><div class="rv">3.37<em>&times;</em></div></div>
+<div class="row f-dynamic"><div class="rl">LuaJIT <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:31.897%"></span></div><div class="rv">4.70<em>&times;</em></div></div>
+<div class="row f-dynamic"><div class="rl">Node / V8 <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:35.697%"></span></div><div class="rv">5.65<em>&times;</em></div></div>
+<div class="row f-dynamic"><div class="rl">Lua <span class="mode">interpr&eacute;t&eacute;</span></div><div class="track"><span class="bar" style="width:79.547%"></span></div><div class="rv">47.45<em>&times;</em></div></div>
+<div class="row f-dynamic"><div class="rl">CPython <span class="mode">interpr&eacute;t&eacute;</span></div><div class="track"><span class="bar" style="width:100.000%"></span></div><div class="rv">133.91<em>&times;</em></div></div>
 </figure>
     <div class="legend">
         <span><i class="k-swag"></i>swag</span>
@@ -593,11 +593,11 @@ footer {
     </div>
 
     <div class="note">
-        <p>Deux choses se lisent d'un coup. <b>Le JIT de swc tourne &agrave; 5&nbsp;% du backend
-        natif</b> (1.81&times; contre 1.72&times;) : ce n'est pas un mode d&eacute;grad&eacute;,
-        c'est le m&ecirc;me Micro IR et le m&ecirc;me encodeur x64. Et il devance LuaJIT (4.74&times;),
+        <p>Deux choses se lisent d'un coup. <b>Le JIT de swc tourne &agrave; 4&nbsp;% du backend
+        natif</b> (1.74&times; contre 1.67&times;) : ce n'est pas un mode d&eacute;grad&eacute;,
+        c'est le m&ecirc;me Micro IR et le m&ecirc;me encodeur x64. Et il devance LuaJIT (4.70&times;),
         qui est pourtant la r&eacute;f&eacute;rence du genre.</p>
-        <p>En face, swag release reste &agrave; 1.72&times; du peloton C++/Rust/Swift/C#-AOT. Cet
+        <p>En face, swag release reste &agrave; 1.67&times; du peloton C++/Rust/Swift/C#-AOT. Cet
         &eacute;cart n'est pas imputable aux contr&ocirc;les de s&ucirc;ret&eacute; : Rust, Swift et C# gardent leurs
         v&eacute;rifications de bornes en release, alors que swag release et C++ passent par des pointeurs bruts.</p>
     </div>
@@ -614,131 +614,131 @@ footer {
 <th class="num">leven</th>
 <th class="num">moy. g&eacute;o</th>
 </tr></thead><tbody>
-<tr class="f-native"><th scope="row">C++ clang-cl <span class="mode">natif</span></th>
-<td class="num">50.87</td>
-<td class="num">16.68</td>
-<td class="num">2.26</td>
-<td class="num">41.23</td>
-<td class="num">9.39</td>
-<td class="num">12.59</td>
+<tr class="f-native"><th scope="row">C++ MSVC <span class="mode">natif</span></th>
+<td class="num">51.10</td>
+<td class="num">15.08</td>
+<td class="num">2.23</td>
+<td class="num">24.30</td>
+<td class="num">7.54</td>
+<td class="num">15.50</td>
 <td class="num"><b>1.08</b></td>
 </tr>
-<tr class="f-native"><th scope="row">C++ MSVC <span class="mode">natif</span></th>
-<td class="num">55.17</td>
-<td class="num">16.88</td>
-<td class="num">2.47</td>
-<td class="num">26.77</td>
-<td class="num">9.39</td>
-<td class="num">17.44</td>
+<tr class="f-native"><th scope="row">C++ clang-cl <span class="mode">natif</span></th>
+<td class="num">47.70</td>
+<td class="num">15.67</td>
+<td class="num">2.09</td>
+<td class="num">34.36</td>
+<td class="num">8.54</td>
+<td class="num">11.46</td>
 <td class="num"><b>1.09</b></td>
 </tr>
 <tr class="f-native"><th scope="row">Rust <span class="mode">natif</span></th>
-<td class="num">49.75</td>
-<td class="num">19.95</td>
-<td class="num">2.37</td>
-<td class="num">43.75</td>
-<td class="num">10.94</td>
-<td class="num">14.18</td>
-<td class="num"><b>1.18</b></td>
-</tr>
-<tr class="f-managed"><th scope="row">C# NativeAOT <span class="mode">AOT</span></th>
-<td class="num">57.78</td>
-<td class="num">25.15</td>
-<td class="num">2.91</td>
-<td class="num">52.25</td>
-<td class="num">9.64</td>
-<td class="num">24.68</td>
-<td class="num"><b>1.44</b></td>
+<td class="num">48.23</td>
+<td class="num">21.06</td>
+<td class="num">2.04</td>
+<td class="num">38.15</td>
+<td class="num">9.72</td>
+<td class="num">12.29</td>
+<td class="num"><b>1.21</b></td>
 </tr>
 <tr class="f-native"><th scope="row">Swift <span class="mode">natif</span></th>
-<td class="num">61.25</td>
-<td class="num">25.81</td>
-<td class="num">3.20</td>
-<td class="num">66.57</td>
-<td class="num">12.05</td>
-<td class="num">13.61</td>
-<td class="num"><b>1.45</b></td>
+<td class="num">60.40</td>
+<td class="num">22.33</td>
+<td class="num">2.74</td>
+<td class="num">61.21</td>
+<td class="num">9.68</td>
+<td class="num">11.53</td>
+<td class="num"><b>1.42</b></td>
+</tr>
+<tr class="f-managed"><th scope="row">C# NativeAOT <span class="mode">AOT</span></th>
+<td class="num">54.67</td>
+<td class="num">23.02</td>
+<td class="num">2.42</td>
+<td class="num">46.59</td>
+<td class="num">9.05</td>
+<td class="num">21.18</td>
+<td class="num"><b>1.44</b></td>
 </tr>
 <tr class="f-swag"><th scope="row">swag release <span class="mode">natif</span></th>
-<td class="num">73.24</td>
-<td class="num">28.50</td>
-<td class="num">3.11</td>
-<td class="num">46.74</td>
-<td class="num">24.87</td>
-<td class="num">20.26</td>
-<td class="num"><b>1.72</b></td>
+<td class="num">68.78</td>
+<td class="num">24.54</td>
+<td class="num">2.92</td>
+<td class="num">41.77</td>
+<td class="num">20.15</td>
+<td class="num">16.29</td>
+<td class="num"><b>1.67</b></td>
 </tr>
 <tr class="f-swag"><th scope="row">swag release <span class="mode">JIT</span></th>
-<td class="num">72.98</td>
-<td class="num">30.08</td>
-<td class="num">3.67</td>
-<td class="num">48.21</td>
-<td class="num">24.98</td>
+<td class="num">68.90</td>
+<td class="num">27.01</td>
+<td class="num">3.15</td>
+<td class="num">41.72</td>
 <td class="num">21.21</td>
-<td class="num"><b>1.81</b></td>
+<td class="num">16.78</td>
+<td class="num"><b>1.74</b></td>
 </tr>
 <tr class="f-managed"><th scope="row">C# CoreCLR <span class="mode">JIT</span></th>
-<td class="num">138.44</td>
-<td class="num">43.30</td>
-<td class="num">2.68</td>
-<td class="num">125.08</td>
-<td class="num">38.58</td>
-<td class="num">25.47</td>
-<td class="num"><b>2.63</b></td>
+<td class="num">135.28</td>
+<td class="num">39.51</td>
+<td class="num">2.57</td>
+<td class="num">110.27</td>
+<td class="num">31.48</td>
+<td class="num">21.75</td>
+<td class="num"><b>2.64</b></td>
 </tr>
 <tr class="f-swag"><th scope="row">swag fast-debug <span class="mode">natif</span></th>
-<td class="num">84.05</td>
-<td class="num">52.25</td>
-<td class="num">17.97</td>
-<td class="num">55.57</td>
-<td class="num">28.40</td>
-<td class="num">50.31</td>
-<td class="num"><b>3.19</b></td>
-</tr>
-<tr class="f-swag"><th scope="row">swag fast-debug <span class="mode">JIT</span></th>
-<td class="num">83.63</td>
-<td class="num">57.67</td>
-<td class="num">18.41</td>
-<td class="num">57.61</td>
-<td class="num">27.48</td>
-<td class="num">56.98</td>
+<td class="num">82.23</td>
+<td class="num">50.76</td>
+<td class="num">15.01</td>
+<td class="num">49.42</td>
+<td class="num">28.84</td>
+<td class="num">47.38</td>
 <td class="num"><b>3.33</b></td>
 </tr>
+<tr class="f-swag"><th scope="row">swag fast-debug <span class="mode">JIT</span></th>
+<td class="num">82.09</td>
+<td class="num">47.44</td>
+<td class="num">15.48</td>
+<td class="num">49.87</td>
+<td class="num">28.66</td>
+<td class="num">52.35</td>
+<td class="num"><b>3.37</b></td>
+</tr>
 <tr class="f-dynamic"><th scope="row">LuaJIT <span class="mode">JIT</span></th>
-<td class="num">124.00</td>
-<td class="num">78.00</td>
-<td class="num">34.00</td>
-<td class="num">131.00</td>
-<td class="num">27.00</td>
-<td class="num">58.00</td>
-<td class="num"><b>4.74</b></td>
+<td class="num">118.00</td>
+<td class="num">69.00</td>
+<td class="num">29.00</td>
+<td class="num">115.00</td>
+<td class="num">25.00</td>
+<td class="num">49.00</td>
+<td class="num"><b>4.70</b></td>
 </tr>
 <tr class="f-dynamic"><th scope="row">Node / V8 <span class="mode">JIT</span></th>
-<td class="num">169.76</td>
-<td class="num">67.38</td>
-<td class="num">46.84</td>
-<td class="num">135.16</td>
-<td class="num">39.18</td>
-<td class="num">70.88</td>
-<td class="num"><b>5.69</b></td>
+<td class="num">159.45</td>
+<td class="num">63.31</td>
+<td class="num">39.49</td>
+<td class="num">117.53</td>
+<td class="num">34.93</td>
+<td class="num">61.45</td>
+<td class="num"><b>5.65</b></td>
 </tr>
 <tr class="f-dynamic"><th scope="row">Lua <span class="mode">interpr&eacute;t&eacute;</span></th>
-<td class="num">718.00</td>
-<td class="num">1174.00</td>
-<td class="num">640.00</td>
-<td class="num">645.00</td>
-<td class="num">246.00</td>
-<td class="num">739.00</td>
-<td class="num"><b>46.93</b></td>
+<td class="num">689.00</td>
+<td class="num">1037.00</td>
+<td class="num">549.00</td>
+<td class="num">599.00</td>
+<td class="num">219.00</td>
+<td class="num">684.00</td>
+<td class="num"><b>47.45</b></td>
 </tr>
 <tr class="f-dynamic"><th scope="row">CPython <span class="mode">interpr&eacute;t&eacute;</span></th>
-<td class="num">1980.41</td>
-<td class="num">2431.80</td>
-<td class="num">1498.47</td>
-<td class="num">1927.35</td>
-<td class="num">825.94</td>
-<td class="num">2848.23</td>
-<td class="num"><b>132.97</b></td>
+<td class="num">1929.82</td>
+<td class="num">2206.74</td>
+<td class="num">1337.73</td>
+<td class="num">1699.82</td>
+<td class="num">704.02</td>
+<td class="num">2609.22</td>
+<td class="num"><b>133.91</b></td>
 </tr>
 </tbody></table></div>
 
@@ -754,143 +754,143 @@ footer {
 <th class="num">leven</th>
 <th class="num">moy. g&eacute;o</th>
 </tr></thead><tbody>
-<tr class="f-native"><th scope="row">C++ clang-cl <span class="mode">natif</span></th>
-<td class="num">1.02</td>
-<td class="num">1.00</td>
-<td class="num">1.00</td>
-<td class="num">1.54</td>
-<td class="num">1.00</td>
-<td class="num">1.00</td>
-<td class="num"><b>1.08</b></td>
-</tr>
 <tr class="f-native"><th scope="row">C++ MSVC <span class="mode">natif</span></th>
-<td class="num">1.11</td>
-<td class="num">1.01</td>
+<td class="num">1.07</td>
+<td class="num">1.00</td>
 <td class="num">1.09</td>
 <td class="num">1.00</td>
 <td class="num">1.00</td>
-<td class="num">1.39</td>
+<td class="num">1.35</td>
+<td class="num"><b>1.08</b></td>
+</tr>
+<tr class="f-native"><th scope="row">C++ clang-cl <span class="mode">natif</span></th>
+<td class="num">1.00</td>
+<td class="num">1.04</td>
+<td class="num">1.03</td>
+<td class="num">1.41</td>
+<td class="num">1.13</td>
+<td class="num">1.00</td>
 <td class="num"><b>1.09</b></td>
 </tr>
 <tr class="f-native"><th scope="row">Rust <span class="mode">natif</span></th>
+<td class="num">1.01</td>
+<td class="num">1.40</td>
 <td class="num">1.00</td>
-<td class="num">1.20</td>
-<td class="num">1.05</td>
-<td class="num">1.63</td>
-<td class="num">1.17</td>
-<td class="num">1.13</td>
-<td class="num"><b>1.18</b></td>
-</tr>
-<tr class="f-managed"><th scope="row">C# NativeAOT <span class="mode">AOT</span></th>
-<td class="num">1.16</td>
-<td class="num">1.51</td>
+<td class="num">1.57</td>
 <td class="num">1.29</td>
-<td class="num">1.95</td>
-<td class="num">1.03</td>
-<td class="num">1.96</td>
-<td class="num"><b>1.44</b></td>
+<td class="num">1.07</td>
+<td class="num"><b>1.21</b></td>
 </tr>
 <tr class="f-native"><th scope="row">Swift <span class="mode">natif</span></th>
-<td class="num">1.23</td>
-<td class="num">1.55</td>
-<td class="num">1.42</td>
-<td class="num">2.49</td>
+<td class="num">1.27</td>
+<td class="num">1.48</td>
+<td class="num">1.34</td>
+<td class="num">2.52</td>
 <td class="num">1.28</td>
-<td class="num">1.08</td>
-<td class="num"><b>1.45</b></td>
+<td class="num">1.01</td>
+<td class="num"><b>1.42</b></td>
+</tr>
+<tr class="f-managed"><th scope="row">C# NativeAOT <span class="mode">AOT</span></th>
+<td class="num">1.15</td>
+<td class="num">1.53</td>
+<td class="num">1.19</td>
+<td class="num">1.92</td>
+<td class="num">1.20</td>
+<td class="num">1.85</td>
+<td class="num"><b>1.44</b></td>
 </tr>
 <tr class="f-swag"><th scope="row">swag release <span class="mode">natif</span></th>
-<td class="num">1.47</td>
-<td class="num">1.71</td>
-<td class="num">1.38</td>
-<td class="num">1.75</td>
-<td class="num">2.65</td>
-<td class="num">1.61</td>
-<td class="num"><b>1.72</b></td>
+<td class="num">1.44</td>
+<td class="num">1.63</td>
+<td class="num">1.43</td>
+<td class="num">1.72</td>
+<td class="num">2.67</td>
+<td class="num">1.42</td>
+<td class="num"><b>1.67</b></td>
 </tr>
 <tr class="f-swag"><th scope="row">swag release <span class="mode">JIT</span></th>
-<td class="num">1.47</td>
-<td class="num">1.80</td>
-<td class="num">1.63</td>
-<td class="num">1.80</td>
-<td class="num">2.66</td>
-<td class="num">1.69</td>
-<td class="num"><b>1.81</b></td>
+<td class="num">1.44</td>
+<td class="num">1.79</td>
+<td class="num">1.54</td>
+<td class="num">1.72</td>
+<td class="num">2.81</td>
+<td class="num">1.46</td>
+<td class="num"><b>1.74</b></td>
 </tr>
 <tr class="f-managed"><th scope="row">C# CoreCLR <span class="mode">JIT</span></th>
-<td class="num">2.78</td>
-<td class="num">2.60</td>
-<td class="num">1.19</td>
-<td class="num">4.67</td>
-<td class="num">4.11</td>
-<td class="num">2.02</td>
-<td class="num"><b>2.63</b></td>
+<td class="num">2.84</td>
+<td class="num">2.62</td>
+<td class="num">1.26</td>
+<td class="num">4.54</td>
+<td class="num">4.18</td>
+<td class="num">1.90</td>
+<td class="num"><b>2.64</b></td>
 </tr>
 <tr class="f-swag"><th scope="row">swag fast-debug <span class="mode">natif</span></th>
-<td class="num">1.69</td>
-<td class="num">3.13</td>
-<td class="num">7.97</td>
-<td class="num">2.08</td>
-<td class="num">3.03</td>
-<td class="num">4.00</td>
-<td class="num"><b>3.19</b></td>
-</tr>
-<tr class="f-swag"><th scope="row">swag fast-debug <span class="mode">JIT</span></th>
-<td class="num">1.68</td>
-<td class="num">3.46</td>
-<td class="num">8.16</td>
-<td class="num">2.15</td>
-<td class="num">2.93</td>
-<td class="num">4.53</td>
+<td class="num">1.72</td>
+<td class="num">3.37</td>
+<td class="num">7.36</td>
+<td class="num">2.03</td>
+<td class="num">3.83</td>
+<td class="num">4.13</td>
 <td class="num"><b>3.33</b></td>
 </tr>
+<tr class="f-swag"><th scope="row">swag fast-debug <span class="mode">JIT</span></th>
+<td class="num">1.72</td>
+<td class="num">3.14</td>
+<td class="num">7.59</td>
+<td class="num">2.05</td>
+<td class="num">3.80</td>
+<td class="num">4.57</td>
+<td class="num"><b>3.37</b></td>
+</tr>
 <tr class="f-dynamic"><th scope="row">LuaJIT <span class="mode">JIT</span></th>
-<td class="num">2.49</td>
-<td class="num">4.68</td>
-<td class="num">15.07</td>
-<td class="num">4.89</td>
-<td class="num">2.88</td>
-<td class="num">4.61</td>
-<td class="num"><b>4.74</b></td>
+<td class="num">2.47</td>
+<td class="num">4.57</td>
+<td class="num">14.21</td>
+<td class="num">4.73</td>
+<td class="num">3.32</td>
+<td class="num">4.27</td>
+<td class="num"><b>4.70</b></td>
 </tr>
 <tr class="f-dynamic"><th scope="row">Node / V8 <span class="mode">JIT</span></th>
-<td class="num">3.41</td>
-<td class="num">4.04</td>
-<td class="num">20.76</td>
-<td class="num">5.05</td>
-<td class="num">4.17</td>
-<td class="num">5.63</td>
-<td class="num"><b>5.69</b></td>
+<td class="num">3.34</td>
+<td class="num">4.20</td>
+<td class="num">19.36</td>
+<td class="num">4.84</td>
+<td class="num">4.63</td>
+<td class="num">5.36</td>
+<td class="num"><b>5.65</b></td>
 </tr>
 <tr class="f-dynamic"><th scope="row">Lua <span class="mode">interpr&eacute;t&eacute;</span></th>
-<td class="num">14.43</td>
-<td class="num">70.40</td>
-<td class="num">283.68</td>
-<td class="num">24.09</td>
-<td class="num">26.21</td>
-<td class="num">58.70</td>
-<td class="num"><b>46.93</b></td>
+<td class="num">14.44</td>
+<td class="num">68.75</td>
+<td class="num">269.06</td>
+<td class="num">24.65</td>
+<td class="num">29.04</td>
+<td class="num">59.66</td>
+<td class="num"><b>47.45</b></td>
 </tr>
 <tr class="f-dynamic"><th scope="row">CPython <span class="mode">interpr&eacute;t&eacute;</span></th>
-<td class="num">39.81</td>
-<td class="num">145.83</td>
-<td class="num">664.19</td>
-<td class="num">72.00</td>
-<td class="num">87.98</td>
-<td class="num">226.24</td>
-<td class="num"><b>132.97</b></td>
+<td class="num">40.46</td>
+<td class="num">146.29</td>
+<td class="num">655.62</td>
+<td class="num">69.95</td>
+<td class="num">93.36</td>
+<td class="num">227.58</td>
+<td class="num"><b>133.91</b></td>
 </tr>
 </tbody></table></div>
 
     <div class="note">
         <p><b>O&ugrave; regarder en premier.</b> <code>sha256</code> est le signal le plus propre : une boucle
         d'ALU enti&egrave;re, sans acc&egrave;s m&eacute;moire complexe, o&ugrave; il ne reste que l'allocation de
-        registres et la s&eacute;lection d'instructions. swag y met 3.11&nbsp;ms contre
-        2.26&nbsp;ms pour le meilleur. C'est aussi l&agrave; que <code>fast-debug</code> co&ucirc;te le plus
-        cher : 17.97&nbsp;ms, soit 5.8&times; le mode release &mdash; les gardes de s&ucirc;ret&eacute;
+        registres et la s&eacute;lection d'instructions. swag y met 2.92&nbsp;ms contre
+        2.04&nbsp;ms pour le meilleur. C'est aussi l&agrave; que <code>fast-debug</code> co&ucirc;te le plus
+        cher : 15.01&nbsp;ms, soit 5.1&times; le mode release &mdash; les gardes de s&ucirc;ret&eacute;
         mordent exactement o&ugrave; l'arithm&eacute;tique est dense. Le pire cas global est
-        <code>raytrace</code> (2.65&times;), le meilleur <code>sha256</code>
-        (1.38&times;).</p>
+        <code>raytrace</code> (2.67&times;), le meilleur <code>leven</code>
+        (1.42&times;).</p>
     </div>
 </section>
 
@@ -909,14 +909,14 @@ footer {
 <span class="tick" style="left:85.714%"><i></i><b>4096</b></span>
 <span class="tick" style="left:100.000%"><i></i><b>8192</b></span>
 </div>
-<div class="row f-swag"><div class="rl">swag release <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:5.208%"></span></div><div class="rv">82<em>ms</em></div></div>
-<div class="row f-swag"><div class="rl">swag fast-debug <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:8.303%"></span></div><div class="rv">96<em>ms</em></div></div>
-<div class="row f-native"><div class="rl">Rust <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:29.319%"></span></div><div class="rv">265<em>ms</em></div></div>
-<div class="row f-native"><div class="rl">C++ MSVC <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:35.164%"></span></div><div class="rv">353<em>ms</em></div></div>
-<div class="row f-native"><div class="rl">C++ clang-cl <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:35.724%"></span></div><div class="rv">362<em>ms</em></div></div>
-<div class="row f-native"><div class="rl">Swift <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:68.759%"></span></div><div class="rv">1799<em>ms</em></div></div>
-<div class="row f-managed"><div class="rl">C# CoreCLR <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:81.708%"></span></div><div class="rv">3372<em>ms</em></div></div>
-<div class="row f-managed"><div class="rl">C# NativeAOT <span class="mode">AOT</span></div><div class="track"><span class="bar" style="width:95.318%"></span></div><div class="rv">6527<em>ms</em></div></div>
+<div class="row f-swag"><div class="rl">swag release <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:3.257%"></span></div><div class="rv">75<em>ms</em></div></div>
+<div class="row f-swag"><div class="rl">swag fast-debug <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:7.242%"></span></div><div class="rv">91<em>ms</em></div></div>
+<div class="row f-native"><div class="rl">Rust <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:27.649%"></span></div><div class="rv">245<em>ms</em></div></div>
+<div class="row f-native"><div class="rl">C++ MSVC <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:33.654%"></span></div><div class="rv">328<em>ms</em></div></div>
+<div class="row f-native"><div class="rl">C++ clang-cl <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:33.824%"></span></div><div class="rv">330<em>ms</em></div></div>
+<div class="row f-native"><div class="rl">Swift <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:66.862%"></span></div><div class="rv">1641<em>ms</em></div></div>
+<div class="row f-managed"><div class="rl">C# CoreCLR <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:76.561%"></span></div><div class="rv">2627<em>ms</em></div></div>
+<div class="row f-managed"><div class="rl">C# NativeAOT <span class="mode">AOT</span></div><div class="track"><span class="bar" style="width:92.483%"></span></div><div class="rv">5688<em>ms</em></div></div>
 </figure>
     <div class="legend">
         <span><i class="k-swag"></i>swag</span>
@@ -925,8 +925,8 @@ footer {
     </div>
 
     <div class="note">
-        <p>swc compile en 82&nbsp;ms l&agrave; o&ugrave; rustc met 3.2&times; plus,
-        MSVC 4.3&times;, swiftc 22&times; et NativeAOT 79&times;. La colonne
+        <p>swc compile en 75&nbsp;ms l&agrave; o&ugrave; rustc met 3.3&times; plus,
+        MSVC 4.4&times;, swiftc 22&times; et NativeAOT 76&times;. La colonne
         <em>hello</em> isole le co&ucirc;t fixe de chaque compilateur : <code>dotnet publish</code> paie plusieurs
         secondes avant m&ecirc;me de regarder le code, parce qu'il traverse MSBuild, la restauration NuGet puis ILC.</p>
     </div>
@@ -946,83 +946,83 @@ footer {
 </tr></thead><tbody>
 <tr class="f-swag"><th scope="row">swag release <span class="mode">natif</span></th>
 <td class="num">76</td>
-<td class="num">95</td>
-<td class="num">83</td>
-<td class="num">78</td>
 <td class="num">80</td>
-<td class="num">83</td>
-<td class="num"><b>82</b></td>
+<td class="num">73</td>
 <td class="num">74</td>
+<td class="num">70</td>
+<td class="num">77</td>
+<td class="num"><b>75</b></td>
+<td class="num">64</td>
 </tr>
 <tr class="f-swag"><th scope="row">swag fast-debug <span class="mode">natif</span></th>
-<td class="num">89</td>
-<td class="num">112</td>
-<td class="num">95</td>
-<td class="num">90</td>
-<td class="num">86</td>
-<td class="num">106</td>
-<td class="num"><b>96</b></td>
+<td class="num">84</td>
+<td class="num">107</td>
+<td class="num">92</td>
+<td class="num">83</td>
+<td class="num">81</td>
+<td class="num">101</td>
+<td class="num"><b>91</b></td>
 <td class="num">&mdash;</td>
 </tr>
 <tr class="f-native"><th scope="row">Rust <span class="mode">natif</span></th>
-<td class="num">281</td>
-<td class="num">359</td>
-<td class="num">238</td>
-<td class="num">226</td>
-<td class="num">207</td>
-<td class="num">312</td>
-<td class="num"><b>265</b></td>
-<td class="num">144</td>
+<td class="num">264</td>
+<td class="num">348</td>
+<td class="num">201</td>
+<td class="num">218</td>
+<td class="num">193</td>
+<td class="num">276</td>
+<td class="num"><b>245</b></td>
+<td class="num">139</td>
 </tr>
 <tr class="f-native"><th scope="row">C++ MSVC <span class="mode">natif</span></th>
-<td class="num">360</td>
-<td class="num">372</td>
+<td class="num">338</td>
 <td class="num">363</td>
-<td class="num">344</td>
-<td class="num">326</td>
-<td class="num">352</td>
-<td class="num"><b>353</b></td>
-<td class="num">111</td>
+<td class="num">342</td>
+<td class="num">299</td>
+<td class="num">306</td>
+<td class="num">322</td>
+<td class="num"><b>328</b></td>
+<td class="num">115</td>
 </tr>
 <tr class="f-native"><th scope="row">C++ clang-cl <span class="mode">natif</span></th>
-<td class="num">368</td>
-<td class="num">359</td>
 <td class="num">338</td>
-<td class="num">373</td>
-<td class="num">337</td>
-<td class="num">403</td>
-<td class="num"><b>362</b></td>
+<td class="num">360</td>
+<td class="num">321</td>
+<td class="num">315</td>
+<td class="num">316</td>
+<td class="num">334</td>
+<td class="num"><b>330</b></td>
 <td class="num">&mdash;</td>
 </tr>
 <tr class="f-native"><th scope="row">Swift <span class="mode">natif</span></th>
-<td class="num">1991</td>
-<td class="num">2302</td>
+<td class="num">1881</td>
+<td class="num">2304</td>
+<td class="num">1512</td>
+<td class="num">1330</td>
+<td class="num">1300</td>
 <td class="num">1724</td>
-<td class="num">1478</td>
-<td class="num">1478</td>
-<td class="num">1966</td>
-<td class="num"><b>1799</b></td>
+<td class="num"><b>1641</b></td>
 <td class="num">277</td>
 </tr>
 <tr class="f-managed"><th scope="row">C# CoreCLR <span class="mode">JIT</span></th>
-<td class="num">2968</td>
-<td class="num">3255</td>
-<td class="num">3054</td>
-<td class="num">3788</td>
-<td class="num">3475</td>
-<td class="num">3789</td>
-<td class="num"><b>3372</b></td>
-<td class="num">2637</td>
+<td class="num">2558</td>
+<td class="num">2720</td>
+<td class="num">2671</td>
+<td class="num">2653</td>
+<td class="num">2589</td>
+<td class="num">2577</td>
+<td class="num"><b>2627</b></td>
+<td class="num">2486</td>
 </tr>
 <tr class="f-managed"><th scope="row">C# NativeAOT <span class="mode">AOT</span></th>
-<td class="num">6306</td>
-<td class="num">6167</td>
-<td class="num">6483</td>
-<td class="num">6805</td>
-<td class="num">6586</td>
-<td class="num">6844</td>
-<td class="num"><b>6527</b></td>
-<td class="num">5465</td>
+<td class="num">5440</td>
+<td class="num">5536</td>
+<td class="num">5751</td>
+<td class="num">5763</td>
+<td class="num">5878</td>
+<td class="num">5774</td>
+<td class="num"><b>5688</b></td>
+<td class="num">5253</td>
 </tr>
 </tbody></table></div>
 </section>
@@ -1041,14 +1041,14 @@ footer {
 <span class="tick" style="left:75.000%"><i></i><b>300</b></span>
 <span class="tick" style="left:100.000%"><i></i><b>400</b></span>
 </div>
-<div class="row f-managed"><div class="rl">C# NativeAOT <span class="mode">AOT</span></div><div class="track"><span class="bar" style="width:89.852%"></span></div><div class="rv">359<em>Mo</em></div></div>
-<div class="row f-native"><div class="rl">Rust <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:46.133%"></span></div><div class="rv">185<em>Mo</em></div></div>
-<div class="row f-native"><div class="rl">Swift <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:45.104%"></span></div><div class="rv">180<em>Mo</em></div></div>
-<div class="row f-managed"><div class="rl">C# CoreCLR <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:31.033%"></span></div><div class="rv">124<em>Mo</em></div></div>
-<div class="row f-swag"><div class="rl">swag fast-debug <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:26.795%"></span></div><div class="rv">107<em>Mo</em></div></div>
-<div class="row f-swag"><div class="rl">swag release <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:25.382%"></span></div><div class="rv">102<em>Mo</em></div></div>
-<div class="row f-native"><div class="rl">C++ clang-cl <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:17.347%"></span></div><div class="rv">69<em>Mo</em></div></div>
-<div class="row f-native"><div class="rl">C++ MSVC <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:16.146%"></span></div><div class="rv">65<em>Mo</em></div></div>
+<div class="row f-managed"><div class="rl">C# NativeAOT <span class="mode">AOT</span></div><div class="track"><span class="bar" style="width:88.767%"></span></div><div class="rv">355<em>Mo</em></div></div>
+<div class="row f-native"><div class="rl">Rust <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:46.055%"></span></div><div class="rv">184<em>Mo</em></div></div>
+<div class="row f-native"><div class="rl">Swift <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:45.283%"></span></div><div class="rv">181<em>Mo</em></div></div>
+<div class="row f-managed"><div class="rl">C# CoreCLR <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:30.462%"></span></div><div class="rv">122<em>Mo</em></div></div>
+<div class="row f-swag"><div class="rl">swag fast-debug <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:27.088%"></span></div><div class="rv">108<em>Mo</em></div></div>
+<div class="row f-swag"><div class="rl">swag release <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:25.392%"></span></div><div class="rv">102<em>Mo</em></div></div>
+<div class="row f-native"><div class="rl">C++ MSVC <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:18.218%"></span></div><div class="rv">73<em>Mo</em></div></div>
+<div class="row f-native"><div class="rl">C++ clang-cl <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:17.341%"></span></div><div class="rv">69<em>Mo</em></div></div>
 </figure>
 
     <div class="note">
@@ -1068,20 +1068,20 @@ footer {
 <span class="tick" style="left:75.000%"><i></i><b>195</b></span>
 <span class="tick" style="left:100.000%"><i></i><b>260</b></span>
 </div>
-<div class="row f-dynamic"><div class="rl">Node / V8 <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:97.233%"></span></div><div class="rv">253<em>Mo</em></div></div>
-<div class="row f-swag"><div class="rl">swag fast-debug <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:56.543%"></span></div><div class="rv">147<em>Mo</em></div></div>
-<div class="row f-swag"><div class="rl">swag release <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:55.279%"></span></div><div class="rv">144<em>Mo</em></div></div>
-<div class="row f-dynamic"><div class="rl">Lua <span class="mode">interpr&eacute;t&eacute;</span></div><div class="track"><span class="bar" style="width:38.314%"></span></div><div class="rv">100<em>Mo</em></div></div>
-<div class="row f-dynamic"><div class="rl">CPython <span class="mode">interpr&eacute;t&eacute;</span></div><div class="track"><span class="bar" style="width:29.638%"></span></div><div class="rv">77<em>Mo</em></div></div>
-<div class="row f-dynamic"><div class="rl">LuaJIT <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:28.700%"></span></div><div class="rv">75<em>Mo</em></div></div>
-<div class="row f-managed"><div class="rl">C# CoreCLR <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:21.934%"></span></div><div class="rv">57<em>Mo</em></div></div>
-<div class="row f-swag"><div class="rl">swag fast-debug <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:21.118%"></span></div><div class="rv">55<em>Mo</em></div></div>
-<div class="row f-swag"><div class="rl">swag release <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:21.115%"></span></div><div class="rv">55<em>Mo</em></div></div>
-<div class="row f-managed"><div class="rl">C# NativeAOT <span class="mode">AOT</span></div><div class="track"><span class="bar" style="width:20.840%"></span></div><div class="rv">54<em>Mo</em></div></div>
-<div class="row f-native"><div class="rl">Swift <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:20.584%"></span></div><div class="rv">54<em>Mo</em></div></div>
-<div class="row f-native"><div class="rl">Rust <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:19.576%"></span></div><div class="rv">51<em>Mo</em></div></div>
-<div class="row f-native"><div class="rl">C++ clang-cl <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:19.518%"></span></div><div class="rv">51<em>Mo</em></div></div>
-<div class="row f-native"><div class="rl">C++ MSVC <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:19.518%"></span></div><div class="rv">51<em>Mo</em></div></div>
+<div class="row f-dynamic"><div class="rl">Node / V8 <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:97.180%"></span></div><div class="rv">253<em>Mo</em></div></div>
+<div class="row f-swag"><div class="rl">swag release <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:55.990%"></span></div><div class="rv">146<em>Mo</em></div></div>
+<div class="row f-swag"><div class="rl">swag fast-debug <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:55.670%"></span></div><div class="rv">145<em>Mo</em></div></div>
+<div class="row f-dynamic"><div class="rl">Lua <span class="mode">interpr&eacute;t&eacute;</span></div><div class="track"><span class="bar" style="width:38.308%"></span></div><div class="rv">100<em>Mo</em></div></div>
+<div class="row f-dynamic"><div class="rl">CPython <span class="mode">interpr&eacute;t&eacute;</span></div><div class="track"><span class="bar" style="width:29.633%"></span></div><div class="rv">77<em>Mo</em></div></div>
+<div class="row f-dynamic"><div class="rl">LuaJIT <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:28.711%"></span></div><div class="rv">75<em>Mo</em></div></div>
+<div class="row f-managed"><div class="rl">C# CoreCLR <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:21.931%"></span></div><div class="rv">57<em>Mo</em></div></div>
+<div class="row f-swag"><div class="rl">swag release <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:21.128%"></span></div><div class="rv">55<em>Mo</em></div></div>
+<div class="row f-swag"><div class="rl">swag fast-debug <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:21.121%"></span></div><div class="rv">55<em>Mo</em></div></div>
+<div class="row f-managed"><div class="rl">C# NativeAOT <span class="mode">AOT</span></div><div class="track"><span class="bar" style="width:20.826%"></span></div><div class="rv">54<em>Mo</em></div></div>
+<div class="row f-native"><div class="rl">Swift <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:20.565%"></span></div><div class="rv">53<em>Mo</em></div></div>
+<div class="row f-native"><div class="rl">Rust <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:19.573%"></span></div><div class="rv">51<em>Mo</em></div></div>
+<div class="row f-native"><div class="rl">C++ clang-cl <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:19.513%"></span></div><div class="rv">51<em>Mo</em></div></div>
+<div class="row f-native"><div class="rl">C++ MSVC <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:19.513%"></span></div><div class="rv">51<em>Mo</em></div></div>
 </figure>
     <div class="legend">
         <span><i class="k-swag"></i>swag</span>
@@ -1108,12 +1108,12 @@ footer {
 <span class="tick" style="left:64.660%"><i></i><b>60</b></span>
 <span class="tick" style="left:96.990%"><i></i><b>120</b></span>
 </div>
-<div class="row f-dynamic"><div class="rl">Lua <span class="mode">interpr&eacute;t&eacute;</span></div><div class="track"><span class="bar" style="width:0.700%"></span></div><div class="rv">13<em>ms</em></div></div>
-<div class="row f-dynamic"><div class="rl">LuaJIT <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:0.962%"></span></div><div class="rv">15<em>ms</em></div></div>
-<div class="row f-dynamic"><div class="rl">CPython <span class="mode">interpr&eacute;t&eacute;</span></div><div class="track"><span class="bar" style="width:51.136%"></span></div><div class="rv">45<em>ms</em></div></div>
-<div class="row f-dynamic"><div class="rl">Node / V8 <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:55.393%"></span></div><div class="rv">49<em>ms</em></div></div>
-<div class="row f-swag"><div class="rl">swag release <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:60.940%"></span></div><div class="rv">55<em>ms</em></div></div>
-<div class="row f-swag"><div class="rl">swag fast-debug <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:62.883%"></span></div><div class="rv">58<em>ms</em></div></div>
+<div class="row f-dynamic"><div class="rl">Lua <span class="mode">interpr&eacute;t&eacute;</span></div><div class="track"><span class="bar" style="width:0.700%"></span></div><div class="rv">14<em>ms</em></div></div>
+<div class="row f-dynamic"><div class="rl">LuaJIT <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:1.175%"></span></div><div class="rv">15<em>ms</em></div></div>
+<div class="row f-dynamic"><div class="rl">CPython <span class="mode">interpr&eacute;t&eacute;</span></div><div class="track"><span class="bar" style="width:51.326%"></span></div><div class="rv">45<em>ms</em></div></div>
+<div class="row f-dynamic"><div class="rl">Node / V8 <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:51.663%"></span></div><div class="rv">45<em>ms</em></div></div>
+<div class="row f-swag"><div class="rl">swag fast-debug <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:59.137%"></span></div><div class="rv">53<em>ms</em></div></div>
+<div class="row f-swag"><div class="rl">swag release <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:59.197%"></span></div><div class="rv">53<em>ms</em></div></div>
 </figure>
         </div>
         <div>
@@ -1130,11 +1130,11 @@ footer {
 </div>
 <div class="row f-managed"><div class="rl">C# CoreCLR <span class="mode">JIT</span></div><div class="track"><span class="bar" style="width:8.688%"></span></div><div class="rv">7<em>Ko</em></div></div>
 <div class="row f-native"><div class="rl">Swift <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:29.857%"></span></div><div class="rv">26<em>Ko</em></div></div>
-<div class="row f-swag"><div class="rl">swag release <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:54.905%"></span></div><div class="rv">123<em>Ko</em></div></div>
+<div class="row f-swag"><div class="rl">swag release <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:55.013%"></span></div><div class="rv">124<em>Ko</em></div></div>
 <div class="row f-native"><div class="rl">C++ MSVC <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:56.828%"></span></div><div class="rv">139<em>Ko</em></div></div>
 <div class="row f-native"><div class="rl">C++ clang-cl <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:56.896%"></span></div><div class="rv">139<em>Ko</em></div></div>
 <div class="row f-native"><div class="rl">Rust <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:58.578%"></span></div><div class="rv">155<em>Ko</em></div></div>
-<div class="row f-swag"><div class="rl">swag fast-debug <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:58.739%"></span></div><div class="rv">156<em>Ko</em></div></div>
+<div class="row f-swag"><div class="rl">swag fast-debug <span class="mode">natif</span></div><div class="track"><span class="bar" style="width:58.808%"></span></div><div class="rv">157<em>Ko</em></div></div>
 <div class="row f-managed"><div class="rl">C# NativeAOT <span class="mode">AOT</span></div><div class="track"><span class="bar" style="width:90.032%"></span></div><div class="rv">1100<em>Ko</em></div></div>
 </figure>
         </div>
@@ -1159,48 +1159,53 @@ footer {
 <p class="cap">Pour chaque t&acirc;che, le temps Swag brut est divis&eacute; par le mouvement m&eacute;dian de 10 runtimes t&eacute;moins inchang&eacute;s. La campagne <code>5aa83e60a</code> vaut 1,00 ; une baisse mesure donc un progr&egrave;s du compilateur, apr&egrave;s retrait du contexte machine.</p>
 <svg class="hchart" viewBox="0 0 760 250" role="img" preserveAspectRatio="xMidYMid meet">
 <line class="hgrid" x1="52" y1="216.0" x2="664" y2="216.0"/>
-<text class="hlab" x="46" y="219.5" text-anchor="end">0.56</text>
+<text class="hlab" x="46" y="219.5" text-anchor="end">0.54</text>
 <line class="hgrid" x1="52" y1="166.0" x2="664" y2="166.0"/>
-<text class="hlab" x="46" y="169.5" text-anchor="end">0.69</text>
+<text class="hlab" x="46" y="169.5" text-anchor="end">0.68</text>
 <line class="hgrid" x1="52" y1="116.0" x2="664" y2="116.0"/>
 <text class="hlab" x="46" y="119.5" text-anchor="end">0.82</text>
 <line class="hgrid" x1="52" y1="66.0" x2="664" y2="66.0"/>
-<text class="hlab" x="46" y="69.5" text-anchor="end">0.96</text>
+<text class="hlab" x="46" y="69.5" text-anchor="end">0.95</text>
 <line class="hgrid" x1="52" y1="16.0" x2="664" y2="16.0"/>
 <text class="hlab" x="46" y="19.5" text-anchor="end">1.09</text>
 <text class="hlab" x="52.0" y="242" text-anchor="middle">72573259a</text>
-<text class="hlab" x="205.0" y="242" text-anchor="middle">5aa83e60a</text>
-<text class="hlab" x="358.0" y="242" text-anchor="middle">11ae6899b</text>
-<text class="hlab" x="511.0" y="242" text-anchor="middle">409d0d496</text>
-<text class="hlab" x="664.0" y="242" text-anchor="middle">b609411b5</text>
-<polyline class="hline h-a" points="52.0,52.9 205.0,49.3 358.0,62.8 511.0,152.4 664.0,182.7"/>
-<circle class="hdot h-a" cx="52.0" cy="52.9" r="2.6"/>
-<circle class="hdot h-a" cx="205.0" cy="49.3" r="2.6"/>
-<circle class="hdot h-a" cx="358.0" cy="62.8" r="2.6"/>
-<circle class="hdot h-a" cx="511.0" cy="152.4" r="2.6"/>
+<text class="hlab" x="174.4" y="242" text-anchor="middle">5aa83e60a</text>
+<text class="hlab" x="296.8" y="242" text-anchor="middle">11ae6899b</text>
+<text class="hlab" x="419.2" y="242" text-anchor="middle">409d0d496</text>
+<text class="hlab" x="541.6" y="242" text-anchor="middle">b609411b5</text>
+<text class="hlab" x="664.0" y="242" text-anchor="middle">2f69132b3</text>
+<polyline class="hline h-a" points="52.0,52.7 174.4,49.3 296.8,62.1 419.2,147.2 541.6,175.9 664.0,182.7"/>
+<circle class="hdot h-a" cx="52.0" cy="52.7" r="2.6"/>
+<circle class="hdot h-a" cx="174.4" cy="49.3" r="2.6"/>
+<circle class="hdot h-a" cx="296.8" cy="62.1" r="2.6"/>
+<circle class="hdot h-a" cx="419.2" cy="147.2" r="2.6"/>
+<circle class="hdot h-a" cx="541.6" cy="175.9" r="2.6"/>
 <circle class="hdot h-a" cx="664.0" cy="182.7" r="2.6"/>
-<polyline class="hline h-b" points="52.0,56.9 205.0,49.3 358.0,69.9 511.0,147.0 664.0,180.1"/>
-<circle class="hdot h-b" cx="52.0" cy="56.9" r="2.6"/>
-<circle class="hdot h-b" cx="205.0" cy="49.3" r="2.6"/>
-<circle class="hdot h-b" cx="358.0" cy="69.9" r="2.6"/>
-<circle class="hdot h-b" cx="511.0" cy="147.0" r="2.6"/>
-<circle class="hdot h-b" cx="664.0" cy="180.1" r="2.6"/>
-<polyline class="hline h-c" points="52.0,51.1 205.0,49.3 358.0,82.2 511.0,112.6 664.0,127.9"/>
-<circle class="hdot h-c" cx="52.0" cy="51.1" r="2.6"/>
-<circle class="hdot h-c" cx="205.0" cy="49.3" r="2.6"/>
-<circle class="hdot h-c" cx="358.0" cy="82.2" r="2.6"/>
-<circle class="hdot h-c" cx="511.0" cy="112.6" r="2.6"/>
-<circle class="hdot h-c" cx="664.0" cy="127.9" r="2.6"/>
-<polyline class="hline h-d" points="52.0,54.8 205.0,49.3 358.0,93.5 511.0,114.4 664.0,129.5"/>
-<circle class="hdot h-d" cx="52.0" cy="54.8" r="2.6"/>
-<circle class="hdot h-d" cx="205.0" cy="49.3" r="2.6"/>
-<circle class="hdot h-d" cx="358.0" cy="93.5" r="2.6"/>
-<circle class="hdot h-d" cx="511.0" cy="114.4" r="2.6"/>
-<circle class="hdot h-d" cx="664.0" cy="129.5" r="2.6"/>
-<text class="hend h-c" x="672.0" y="131.4">fast-debug natif</text>
-<text class="hend h-d" x="672.0" y="143.4">fast-debug JIT</text>
-<text class="hend h-b" x="672.0" y="183.6">release JIT</text>
-<text class="hend h-a" x="672.0" y="195.6">release natif</text>
+<polyline class="hline h-b" points="52.0,56.5 174.4,49.3 296.8,68.9 419.2,142.0 541.6,173.4 664.0,181.9"/>
+<circle class="hdot h-b" cx="52.0" cy="56.5" r="2.6"/>
+<circle class="hdot h-b" cx="174.4" cy="49.3" r="2.6"/>
+<circle class="hdot h-b" cx="296.8" cy="68.9" r="2.6"/>
+<circle class="hdot h-b" cx="419.2" cy="142.0" r="2.6"/>
+<circle class="hdot h-b" cx="541.6" cy="173.4" r="2.6"/>
+<circle class="hdot h-b" cx="664.0" cy="181.9" r="2.6"/>
+<polyline class="hline h-c" points="52.0,51.0 174.4,49.3 296.8,80.5 419.2,109.3 541.6,123.9 664.0,111.8"/>
+<circle class="hdot h-c" cx="52.0" cy="51.0" r="2.6"/>
+<circle class="hdot h-c" cx="174.4" cy="49.3" r="2.6"/>
+<circle class="hdot h-c" cx="296.8" cy="80.5" r="2.6"/>
+<circle class="hdot h-c" cx="419.2" cy="109.3" r="2.6"/>
+<circle class="hdot h-c" cx="541.6" cy="123.9" r="2.6"/>
+<circle class="hdot h-c" cx="664.0" cy="111.8" r="2.6"/>
+<polyline class="hline h-d" points="52.0,54.5 174.4,49.3 296.8,91.2 419.2,111.1 541.6,125.5 664.0,122.3"/>
+<circle class="hdot h-d" cx="52.0" cy="54.5" r="2.6"/>
+<circle class="hdot h-d" cx="174.4" cy="49.3" r="2.6"/>
+<circle class="hdot h-d" cx="296.8" cy="91.2" r="2.6"/>
+<circle class="hdot h-d" cx="419.2" cy="111.1" r="2.6"/>
+<circle class="hdot h-d" cx="541.6" cy="125.5" r="2.6"/>
+<circle class="hdot h-d" cx="664.0" cy="122.3" r="2.6"/>
+<text class="hend h-c" x="672.0" y="115.3">fast-debug natif</text>
+<text class="hend h-d" x="672.0" y="127.3">fast-debug JIT</text>
+<text class="hend h-b" x="672.0" y="185.4">release JIT</text>
+<text class="hend h-a" x="672.0" y="197.4">release natif</text>
 <text class="hunit" x="44" y="12">&times;</text>
 </svg>
 <h3>Compilation &mdash; indice corrig&eacute; du contexte machine</h3>
@@ -1217,24 +1222,27 @@ footer {
 <line class="hgrid" x1="52" y1="16.0" x2="664" y2="16.0"/>
 <text class="hlab" x="46" y="19.5" text-anchor="end">1.19</text>
 <text class="hlab" x="52.0" y="242" text-anchor="middle">72573259a</text>
-<text class="hlab" x="205.0" y="242" text-anchor="middle">5aa83e60a</text>
-<text class="hlab" x="358.0" y="242" text-anchor="middle">11ae6899b</text>
-<text class="hlab" x="511.0" y="242" text-anchor="middle">409d0d496</text>
-<text class="hlab" x="664.0" y="242" text-anchor="middle">b609411b5</text>
-<polyline class="hline h-a" points="52.0,178.3 205.0,136.6 358.0,110.9 511.0,49.3 664.0,103.0"/>
+<text class="hlab" x="174.4" y="242" text-anchor="middle">5aa83e60a</text>
+<text class="hlab" x="296.8" y="242" text-anchor="middle">11ae6899b</text>
+<text class="hlab" x="419.2" y="242" text-anchor="middle">409d0d496</text>
+<text class="hlab" x="541.6" y="242" text-anchor="middle">b609411b5</text>
+<text class="hlab" x="664.0" y="242" text-anchor="middle">2f69132b3</text>
+<polyline class="hline h-a" points="52.0,178.3 174.4,136.6 296.8,110.9 419.2,49.3 541.6,103.0 664.0,92.4"/>
 <circle class="hdot h-a" cx="52.0" cy="178.3" r="2.6"/>
-<circle class="hdot h-a" cx="205.0" cy="136.6" r="2.6"/>
-<circle class="hdot h-a" cx="358.0" cy="110.9" r="2.6"/>
-<circle class="hdot h-a" cx="511.0" cy="49.3" r="2.6"/>
-<circle class="hdot h-a" cx="664.0" cy="103.0" r="2.6"/>
-<polyline class="hline h-c" points="52.0,182.7 205.0,136.6 358.0,159.1 511.0,109.2 664.0,145.4"/>
+<circle class="hdot h-a" cx="174.4" cy="136.6" r="2.6"/>
+<circle class="hdot h-a" cx="296.8" cy="110.9" r="2.6"/>
+<circle class="hdot h-a" cx="419.2" cy="49.3" r="2.6"/>
+<circle class="hdot h-a" cx="541.6" cy="103.0" r="2.6"/>
+<circle class="hdot h-a" cx="664.0" cy="92.4" r="2.6"/>
+<polyline class="hline h-c" points="52.0,182.7 174.4,136.6 296.8,159.1 419.2,109.2 541.6,145.4 664.0,107.0"/>
 <circle class="hdot h-c" cx="52.0" cy="182.7" r="2.6"/>
-<circle class="hdot h-c" cx="205.0" cy="136.6" r="2.6"/>
-<circle class="hdot h-c" cx="358.0" cy="159.1" r="2.6"/>
-<circle class="hdot h-c" cx="511.0" cy="109.2" r="2.6"/>
-<circle class="hdot h-c" cx="664.0" cy="145.4" r="2.6"/>
-<text class="hend h-a" x="672.0" y="106.5">release natif</text>
-<text class="hend h-c" x="672.0" y="148.9">fast-debug natif</text>
+<circle class="hdot h-c" cx="174.4" cy="136.6" r="2.6"/>
+<circle class="hdot h-c" cx="296.8" cy="159.1" r="2.6"/>
+<circle class="hdot h-c" cx="419.2" cy="109.2" r="2.6"/>
+<circle class="hdot h-c" cx="541.6" cy="145.4" r="2.6"/>
+<circle class="hdot h-c" cx="664.0" cy="107.0" r="2.6"/>
+<text class="hend h-a" x="672.0" y="95.9">release natif</text>
+<text class="hend h-c" x="672.0" y="110.5">fast-debug natif</text>
 <text class="hunit" x="44" y="12">&times;</text>
 </svg>
 <h3>Pic m&eacute;moire du compilateur</h3>
@@ -1251,58 +1259,63 @@ footer {
 <line class="hgrid" x1="52" y1="16.0" x2="664" y2="16.0"/>
 <text class="hlab" x="46" y="19.5" text-anchor="end">233</text>
 <text class="hlab" x="52.0" y="242" text-anchor="middle">72573259a</text>
-<text class="hlab" x="205.0" y="242" text-anchor="middle">5aa83e60a</text>
-<text class="hlab" x="358.0" y="242" text-anchor="middle">11ae6899b</text>
-<text class="hlab" x="511.0" y="242" text-anchor="middle">409d0d496</text>
-<text class="hlab" x="664.0" y="242" text-anchor="middle">b609411b5</text>
-<polyline class="hline h-a" points="52.0,58.8 205.0,179.7 358.0,181.0 511.0,179.7 664.0,182.7"/>
+<text class="hlab" x="174.4" y="242" text-anchor="middle">5aa83e60a</text>
+<text class="hlab" x="296.8" y="242" text-anchor="middle">11ae6899b</text>
+<text class="hlab" x="419.2" y="242" text-anchor="middle">409d0d496</text>
+<text class="hlab" x="541.6" y="242" text-anchor="middle">b609411b5</text>
+<text class="hlab" x="664.0" y="242" text-anchor="middle">2f69132b3</text>
+<polyline class="hline h-a" points="52.0,58.8 174.4,179.7 296.8,181.0 419.2,179.7 541.6,182.7 664.0,182.6"/>
 <circle class="hdot h-a" cx="52.0" cy="58.8" r="2.6"/>
-<circle class="hdot h-a" cx="205.0" cy="179.7" r="2.6"/>
-<circle class="hdot h-a" cx="358.0" cy="181.0" r="2.6"/>
-<circle class="hdot h-a" cx="511.0" cy="179.7" r="2.6"/>
-<circle class="hdot h-a" cx="664.0" cy="182.7" r="2.6"/>
-<polyline class="hline h-c" points="52.0,49.3 205.0,172.4 358.0,172.1 511.0,174.1 664.0,175.5"/>
+<circle class="hdot h-a" cx="174.4" cy="179.7" r="2.6"/>
+<circle class="hdot h-a" cx="296.8" cy="181.0" r="2.6"/>
+<circle class="hdot h-a" cx="419.2" cy="179.7" r="2.6"/>
+<circle class="hdot h-a" cx="541.6" cy="182.7" r="2.6"/>
+<circle class="hdot h-a" cx="664.0" cy="182.6" r="2.6"/>
+<polyline class="hline h-c" points="52.0,49.3 174.4,172.4 296.8,172.1 419.2,174.1 541.6,175.5 664.0,174.0"/>
 <circle class="hdot h-c" cx="52.0" cy="49.3" r="2.6"/>
-<circle class="hdot h-c" cx="205.0" cy="172.4" r="2.6"/>
-<circle class="hdot h-c" cx="358.0" cy="172.1" r="2.6"/>
-<circle class="hdot h-c" cx="511.0" cy="174.1" r="2.6"/>
-<circle class="hdot h-c" cx="664.0" cy="175.5" r="2.6"/>
-<text class="hend h-c" x="672.0" y="179.0">fast-debug natif</text>
-<text class="hend h-a" x="672.0" y="191.0">release natif</text>
+<circle class="hdot h-c" cx="174.4" cy="172.4" r="2.6"/>
+<circle class="hdot h-c" cx="296.8" cy="172.1" r="2.6"/>
+<circle class="hdot h-c" cx="419.2" cy="174.1" r="2.6"/>
+<circle class="hdot h-c" cx="541.6" cy="175.5" r="2.6"/>
+<circle class="hdot h-c" cx="664.0" cy="174.0" r="2.6"/>
+<text class="hend h-c" x="672.0" y="177.5">fast-debug natif</text>
+<text class="hend h-a" x="672.0" y="189.5">release natif</text>
 <text class="hunit" x="44" y="12">Mo</text>
 </svg>
 <h3>Par t&acirc;che &mdash; swag release natif, indice corrig&eacute;</h3>
 <div class="small-mult">
 <div class="sm"><b>wordfreq</b><svg class="hchart compact" viewBox="0 0 300 104" role="img" preserveAspectRatio="xMidYMid meet">
 <line class="hgrid" x1="40" y1="84.0" x2="288" y2="84.0"/>
-<text class="hlab" x="34" y="87.5" text-anchor="end">0.74</text>
+<text class="hlab" x="34" y="87.5" text-anchor="end">0.71</text>
 <line class="hgrid" x1="40" y1="48.0" x2="288" y2="48.0"/>
-<text class="hlab" x="34" y="51.5" text-anchor="end">0.90</text>
+<text class="hlab" x="34" y="51.5" text-anchor="end">0.89</text>
 <line class="hgrid" x1="40" y1="12.0" x2="288" y2="12.0"/>
 <text class="hlab" x="34" y="15.5" text-anchor="end">1.07</text>
 <text class="hlab" x="40.0" y="96" text-anchor="start">72573259a</text>
-<text class="hlab" x="288.0" y="96" text-anchor="end">b609411b5</text>
-<polyline class="hline h-a" points="40.0,34.5 102.0,26.9 164.0,24.0 226.0,29.7 288.0,72.0"/>
-<circle class="hdot h-a" cx="40.0" cy="34.5" r="2.6"/>
-<circle class="hdot h-a" cx="102.0" cy="26.9" r="2.6"/>
-<circle class="hdot h-a" cx="164.0" cy="24.0" r="2.6"/>
-<circle class="hdot h-a" cx="226.0" cy="29.7" r="2.6"/>
+<text class="hlab" x="288.0" y="96" text-anchor="end">2f69132b3</text>
+<polyline class="hline h-a" points="40.0,33.6 89.6,26.7 139.2,24.0 188.8,29.2 238.4,67.6 288.0,72.0"/>
+<circle class="hdot h-a" cx="40.0" cy="33.6" r="2.6"/>
+<circle class="hdot h-a" cx="89.6" cy="26.7" r="2.6"/>
+<circle class="hdot h-a" cx="139.2" cy="24.0" r="2.6"/>
+<circle class="hdot h-a" cx="188.8" cy="29.2" r="2.6"/>
+<circle class="hdot h-a" cx="238.4" cy="67.6" r="2.6"/>
 <circle class="hdot h-a" cx="288.0" cy="72.0" r="2.6"/>
 </svg></div>
 <div class="sm"><b>csvagg</b><svg class="hchart compact" viewBox="0 0 300 104" role="img" preserveAspectRatio="xMidYMid meet">
 <line class="hgrid" x1="40" y1="84.0" x2="288" y2="84.0"/>
-<text class="hlab" x="34" y="87.5" text-anchor="end">0.34</text>
+<text class="hlab" x="34" y="87.5" text-anchor="end">0.31</text>
 <line class="hgrid" x1="40" y1="48.0" x2="288" y2="48.0"/>
-<text class="hlab" x="34" y="51.5" text-anchor="end">0.76</text>
+<text class="hlab" x="34" y="51.5" text-anchor="end">0.75</text>
 <line class="hgrid" x1="40" y1="12.0" x2="288" y2="12.0"/>
-<text class="hlab" x="34" y="15.5" text-anchor="end">1.18</text>
+<text class="hlab" x="34" y="15.5" text-anchor="end">1.19</text>
 <text class="hlab" x="40.0" y="96" text-anchor="start">72573259a</text>
-<text class="hlab" x="288.0" y="96" text-anchor="end">b609411b5</text>
-<polyline class="hline h-a" points="40.0,31.4 102.0,27.7 164.0,24.0 226.0,43.1 288.0,72.0"/>
-<circle class="hdot h-a" cx="40.0" cy="31.4" r="2.6"/>
-<circle class="hdot h-a" cx="102.0" cy="27.7" r="2.6"/>
-<circle class="hdot h-a" cx="164.0" cy="24.0" r="2.6"/>
-<circle class="hdot h-a" cx="226.0" cy="43.1" r="2.6"/>
+<text class="hlab" x="288.0" y="96" text-anchor="end">2f69132b3</text>
+<polyline class="hline h-a" points="40.0,31.1 89.6,27.6 139.2,24.0 188.8,42.3 238.4,70.1 288.0,72.0"/>
+<circle class="hdot h-a" cx="40.0" cy="31.1" r="2.6"/>
+<circle class="hdot h-a" cx="89.6" cy="27.6" r="2.6"/>
+<circle class="hdot h-a" cx="139.2" cy="24.0" r="2.6"/>
+<circle class="hdot h-a" cx="188.8" cy="42.3" r="2.6"/>
+<circle class="hdot h-a" cx="238.4" cy="70.1" r="2.6"/>
 <circle class="hdot h-a" cx="288.0" cy="72.0" r="2.6"/>
 </svg></div>
 <div class="sm"><b>sha256</b><svg class="hchart compact" viewBox="0 0 300 104" role="img" preserveAspectRatio="xMidYMid meet">
@@ -1313,13 +1326,14 @@ footer {
 <line class="hgrid" x1="40" y1="12.0" x2="288" y2="12.0"/>
 <text class="hlab" x="34" y="15.5" text-anchor="end">1.16</text>
 <text class="hlab" x="40.0" y="96" text-anchor="start">72573259a</text>
-<text class="hlab" x="288.0" y="96" text-anchor="end">b609411b5</text>
-<polyline class="hline h-a" points="40.0,24.0 102.0,26.5 164.0,29.2 226.0,71.5 288.0,72.0"/>
+<text class="hlab" x="288.0" y="96" text-anchor="end">2f69132b3</text>
+<polyline class="hline h-a" points="40.0,24.0 89.6,26.5 139.2,29.2 188.8,71.5 238.4,72.0 288.0,68.5"/>
 <circle class="hdot h-a" cx="40.0" cy="24.0" r="2.6"/>
-<circle class="hdot h-a" cx="102.0" cy="26.5" r="2.6"/>
-<circle class="hdot h-a" cx="164.0" cy="29.2" r="2.6"/>
-<circle class="hdot h-a" cx="226.0" cy="71.5" r="2.6"/>
-<circle class="hdot h-a" cx="288.0" cy="72.0" r="2.6"/>
+<circle class="hdot h-a" cx="89.6" cy="26.5" r="2.6"/>
+<circle class="hdot h-a" cx="139.2" cy="29.2" r="2.6"/>
+<circle class="hdot h-a" cx="188.8" cy="71.5" r="2.6"/>
+<circle class="hdot h-a" cx="238.4" cy="72.0" r="2.6"/>
+<circle class="hdot h-a" cx="288.0" cy="68.5" r="2.6"/>
 </svg></div>
 <div class="sm"><b>dijkstra</b><svg class="hchart compact" viewBox="0 0 300 104" role="img" preserveAspectRatio="xMidYMid meet">
 <line class="hgrid" x1="40" y1="84.0" x2="288" y2="84.0"/>
@@ -1329,12 +1343,13 @@ footer {
 <line class="hgrid" x1="40" y1="12.0" x2="288" y2="12.0"/>
 <text class="hlab" x="34" y="15.5" text-anchor="end">1.13</text>
 <text class="hlab" x="40.0" y="96" text-anchor="start">72573259a</text>
-<text class="hlab" x="288.0" y="96" text-anchor="end">b609411b5</text>
-<polyline class="hline h-a" points="40.0,24.0 102.0,27.3 164.0,61.0 226.0,69.7 288.0,72.0"/>
+<text class="hlab" x="288.0" y="96" text-anchor="end">2f69132b3</text>
+<polyline class="hline h-a" points="40.0,24.0 89.6,27.3 139.2,61.0 188.8,69.7 238.4,72.0 288.0,72.0"/>
 <circle class="hdot h-a" cx="40.0" cy="24.0" r="2.6"/>
-<circle class="hdot h-a" cx="102.0" cy="27.3" r="2.6"/>
-<circle class="hdot h-a" cx="164.0" cy="61.0" r="2.6"/>
-<circle class="hdot h-a" cx="226.0" cy="69.7" r="2.6"/>
+<circle class="hdot h-a" cx="89.6" cy="27.3" r="2.6"/>
+<circle class="hdot h-a" cx="139.2" cy="61.0" r="2.6"/>
+<circle class="hdot h-a" cx="188.8" cy="69.7" r="2.6"/>
+<circle class="hdot h-a" cx="238.4" cy="72.0" r="2.6"/>
 <circle class="hdot h-a" cx="288.0" cy="72.0" r="2.6"/>
 </svg></div>
 <div class="sm"><b>raytrace</b><svg class="hchart compact" viewBox="0 0 300 104" role="img" preserveAspectRatio="xMidYMid meet">
@@ -1345,29 +1360,31 @@ footer {
 <line class="hgrid" x1="40" y1="12.0" x2="288" y2="12.0"/>
 <text class="hlab" x="34" y="15.5" text-anchor="end">1.30</text>
 <text class="hlab" x="40.0" y="96" text-anchor="start">72573259a</text>
-<text class="hlab" x="288.0" y="96" text-anchor="end">b609411b5</text>
-<polyline class="hline h-a" points="40.0,72.0 102.0,62.6 164.0,30.6 226.0,31.0 288.0,24.0"/>
+<text class="hlab" x="288.0" y="96" text-anchor="end">2f69132b3</text>
+<polyline class="hline h-a" points="40.0,72.0 89.6,62.6 139.2,30.6 188.8,31.0 238.4,24.0 288.0,39.2"/>
 <circle class="hdot h-a" cx="40.0" cy="72.0" r="2.6"/>
-<circle class="hdot h-a" cx="102.0" cy="62.6" r="2.6"/>
-<circle class="hdot h-a" cx="164.0" cy="30.6" r="2.6"/>
-<circle class="hdot h-a" cx="226.0" cy="31.0" r="2.6"/>
-<circle class="hdot h-a" cx="288.0" cy="24.0" r="2.6"/>
+<circle class="hdot h-a" cx="89.6" cy="62.6" r="2.6"/>
+<circle class="hdot h-a" cx="139.2" cy="30.6" r="2.6"/>
+<circle class="hdot h-a" cx="188.8" cy="31.0" r="2.6"/>
+<circle class="hdot h-a" cx="238.4" cy="24.0" r="2.6"/>
+<circle class="hdot h-a" cx="288.0" cy="39.2" r="2.6"/>
 </svg></div>
 <div class="sm"><b>leven</b><svg class="hchart compact" viewBox="0 0 300 104" role="img" preserveAspectRatio="xMidYMid meet">
 <line class="hgrid" x1="40" y1="84.0" x2="288" y2="84.0"/>
-<text class="hlab" x="34" y="87.5" text-anchor="end">0.35</text>
+<text class="hlab" x="34" y="87.5" text-anchor="end">0.33</text>
 <line class="hgrid" x1="40" y1="48.0" x2="288" y2="48.0"/>
 <text class="hlab" x="34" y="51.5" text-anchor="end">0.75</text>
 <line class="hgrid" x1="40" y1="12.0" x2="288" y2="12.0"/>
 <text class="hlab" x="34" y="15.5" text-anchor="end">1.16</text>
 <text class="hlab" x="40.0" y="96" text-anchor="start">72573259a</text>
-<text class="hlab" x="288.0" y="96" text-anchor="end">b609411b5</text>
-<polyline class="hline h-a" points="40.0,24.0 102.0,26.2 164.0,31.9 226.0,72.0 288.0,69.0"/>
+<text class="hlab" x="288.0" y="96" text-anchor="end">2f69132b3</text>
+<polyline class="hline h-a" points="40.0,24.0 89.6,26.2 139.2,31.8 188.8,71.0 238.4,68.0 288.0,72.0"/>
 <circle class="hdot h-a" cx="40.0" cy="24.0" r="2.6"/>
-<circle class="hdot h-a" cx="102.0" cy="26.2" r="2.6"/>
-<circle class="hdot h-a" cx="164.0" cy="31.9" r="2.6"/>
-<circle class="hdot h-a" cx="226.0" cy="72.0" r="2.6"/>
-<circle class="hdot h-a" cx="288.0" cy="69.0" r="2.6"/>
+<circle class="hdot h-a" cx="89.6" cy="26.2" r="2.6"/>
+<circle class="hdot h-a" cx="139.2" cy="31.8" r="2.6"/>
+<circle class="hdot h-a" cx="188.8" cy="71.0" r="2.6"/>
+<circle class="hdot h-a" cx="238.4" cy="68.0" r="2.6"/>
+<circle class="hdot h-a" cx="288.0" cy="72.0" r="2.6"/>
 </svg></div>
 </div>
 <h3>Journal des campagnes</h3>
@@ -1384,6 +1401,17 @@ footer {
 <th class="num">m&eacute;moire (Mo)</th>
 <th class="num">d&eacute;rive (%)</th>
 </tr></thead><tbody>
+<tr class="f-swag"><th scope="row"><code>2f69132b3</code></th>
+<td class="num">2026-08-02</td>
+<td class="num">&mdash;</td>
+<td class="num">22.74</td>
+<td class="num">23.72</td>
+<td class="num">79</td>
+<td class="num">-11.2</td>
+<td class="num">-5.6</td>
+<td class="num">102</td>
+<td class="num">7.5</td>
+</tr>
 <tr class="f-swag"><th scope="row"><code>b609411b5</code></th>
 <td class="num">2026-08-01</td>
 <td class="num">&mdash;</td>
@@ -1440,7 +1468,7 @@ footer {
 <td class="num">10.8</td>
 </tr>
 </tbody></table></div>
-<p class="cap">Un contexte n&eacute;gatif signifie que les t&eacute;moins ont tourn&eacute; plus vite que pendant la campagne de r&eacute;f&eacute;rence ; les temps Swag bruts sont alors relev&eacute;s d'autant. La dispersion m&eacute;diane des t&eacute;moins de la derni&egrave;re campagne est de 2.4&nbsp;% en ex&eacute;cution et 3.2&nbsp;% en compilation.</p>
+<p class="cap">Un contexte n&eacute;gatif signifie que les t&eacute;moins ont tourn&eacute; plus vite que pendant la campagne de r&eacute;f&eacute;rence ; les temps Swag bruts sont alors relev&eacute;s d'autant. La dispersion m&eacute;diane des t&eacute;moins de la derni&egrave;re campagne est de 2.3&nbsp;% en ex&eacute;cution et 1.9&nbsp;% en compilation.</p>
 <p class="cap">Un ast&eacute;risque marque une campagne mesur&eacute;e sur un arbre modifi&eacute; : son commit seul ne la reproduit pas.</p>
 </section>
 
@@ -1456,7 +1484,7 @@ footer {
         <li><b>R&eacute;p&eacute;titions</b><span>Cinq passes en <em>round-robin</em> : passe 1 de tous les runtimes,
         puis passe 2, etc. Minimum retenu.</span></li>
         <li><b>Calibration</b><span>Charge de r&eacute;f&eacute;rence avant et apr&egrave;s la campagne :
-        1.919&nbsp;ms puis 2.128&nbsp;ms, soit +10.9&nbsp;% de d&eacute;rive.</span></li>
+        1.839&nbsp;ms puis 1.977&nbsp;ms, soit +7.5&nbsp;% de d&eacute;rive.</span></li>
         <li><b>Correction du contexte</b><span>Les runtimes non-Swag sont suppos&eacute;s stables.
         Leur variation m&eacute;diane par rapport &agrave; la premi&egrave;re campagne propre corrige
         s&eacute;par&eacute;ment les temps d'ex&eacute;cution et de compilation de Swag.</span></li>
@@ -1481,7 +1509,7 @@ footer {
 </main>
 
 <footer class="wrap">
-    <code>b609411b5</code> &mdash; Remove legacy batch scripts in `tools` and `web/tools`; add benchmark results.<br>
+    <code>2f69132b3</code> &mdash; Stop ordinary floats from leaking into the nonvolatile pool<br>
     Release x64 reconstruit depuis ce commit avant la mesure &middot; toolchains absentes : aucune &middot;
     page g&eacute;n&eacute;r&eacute;e par <code>mkpage.py</code> depuis
     <code>results/</code> et <code>history.json</code>

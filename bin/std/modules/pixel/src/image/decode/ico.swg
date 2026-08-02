@@ -61,8 +61,7 @@ func isPngSignature(p: const [*] u8, size: u64)->bool
 {
     if size < 8 do
         return false
-    return p[0] == 0x89 and p[1] == 0x50 and p[2] == 0x4E and p[3] == 0x47 and
-           p[4] == 0x0D and p[5] == 0x0A and p[6] == 0x1A and p[7] == 0x0A
+    return p[0] == 0x89 and p[1] == 0x50 and p[2] == 0x4E and p[3] == 0x47 and p[4] == 0x0D and p[5] == 0x0A and p[6] == 0x1A and p[7] == 0x0A
 }
 
 func rowStride32(widthBits: u64)->u64

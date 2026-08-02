@@ -300,9 +300,7 @@ private impl RenderOgl
     {
         .colorMask = mask
         glColorMask(mask.r ? GL_TRUE : GL_FALSE,
-                    mask.g ? GL_TRUE : GL_FALSE,
-                    mask.b ? GL_TRUE : GL_FALSE,
-                    mask.a ? GL_TRUE : GL_FALSE)
+                    mask.g ? GL_TRUE : GL_FALSE, mask.b ? GL_TRUE : GL_FALSE, mask.a ? GL_TRUE : GL_FALSE)
     }
 }
 

@@ -68,11 +68,9 @@ func day4A()
                test(lines[y][x], lines[y + 1][x], lines[y + 2][x], lines[y + 3][x]) do
                 total += 1
 
-            if y >= 3 and x <= lines[y].length - 4 and
-               test(lines[y][x], lines[y - 1][x + 1], lines[y - 2][x + 2], lines[y - 3][x + 3]) do
+            if y >= 3 and x <= lines[y].length - 4 and test(lines[y][x], lines[y - 1][x + 1], lines[y - 2][x + 2], lines[y - 3][x + 3]) do
                 total += 1
-            if y <= lines.count - 4 and x <= lines[y].length - 4 and
-               test(lines[y][x], lines[y + 1][x + 1], lines[y + 2][x + 2], lines[y + 3][x + 3]) do
+            if y <= lines.count - 4 and x <= lines[y].length - 4 and test(lines[y][x], lines[y + 1][x + 1], lines[y + 2][x + 2], lines[y + 3][x + 3]) do
                 total += 1
         }
     }

@@ -403,12 +403,7 @@ private func mathCommandSymbol(command: string)->MathSymbolSpec
     if command == "bigvee" do return mathSymbol("\u22C1", .Op, true, .Limits)
 
     // Named functions
-    if command == "sin" or command == "cos" or command == "tan" or command == "cot"
-       or command == "sec" or command == "csc" or command == "sinh" or command == "cosh"
-       or command == "tanh" or command == "log" or command == "ln" or command == "exp"
-       or command == "lim" or command == "limsup" or command == "liminf" or command == "max"
-       or command == "min" or command == "sup" or command == "inf" or command == "det"
-       or command == "gcd"
+    if command == "sin" or command == "cos" or command == "tan" or command == "cot" or command == "sec" or command == "csc" or command == "sinh" or command == "cosh" or command == "tanh" or command == "log" or command == "ln" or command == "exp" or command == "lim" or command == "limsup" or command == "liminf" or command == "max" or command == "min" or command == "sup" or command == "inf" or command == "det" or command == "gcd"
     {
         let limits = command == "lim" or command == "limsup" or command == "liminf" ? MathLimitsMode.Limits : MathLimitsMode.Automatic
         return mathSymbol(command, .Op, false, limits)
@@ -821,9 +816,7 @@ private impl MathParser
     {
         let beginAt     = .pos
         let environment = .readRawGroup("'\\begin'")
-        if environment != "matrix" and environment != "pmatrix" and environment != "bmatrix"
-           and environment != "Bmatrix" and environment != "vmatrix" and environment != "Vmatrix"
-           and environment != "cases" and environment != "aligned" do
+        if environment != "matrix" and environment != "pmatrix" and environment != "bmatrix" and environment != "Bmatrix" and environment != "vmatrix" and environment != "Vmatrix" and environment != "cases" and environment != "aligned" do
             mathFail(Format.toString("math renderer does not support environment '%'", environment), beginAt)
 
         let matrix = .newNode(.Matrix)

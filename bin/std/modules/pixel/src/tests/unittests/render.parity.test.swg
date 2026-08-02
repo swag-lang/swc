@@ -90,19 +90,13 @@ private func renderParityScene(renderer: IRenderer)->Image
     painter.popTransform()
 
     // Every built-in brush family.
-    let linear = Brush.createLinearGradient(6, 42, 58, 42,
-                                             Color.fromArgb(Argb.Crimson),
-                                             Color.fromArgb(Argb.DodgerBlue))
+    let linear = Brush.createLinearGradient(6, 42, 58, 42, Color.fromArgb(Argb.Crimson), Color.fromArgb(Argb.DodgerBlue))
     painter.fillRect({6, 38, 52, 18}, linear)
 
-    let radial = Brush.createRadialGradient(84, 47, 18,
-                                             Color.fromArgb(Argb.White),
-                                             Color.fromArgb(Argb.DarkViolet))
+    let radial = Brush.createRadialGradient(84, 47, 18, Color.fromArgb(Argb.White), Color.fromArgb(Argb.DarkViolet))
     painter.fillCircle(84, 47, 18, radial)
 
-    let sweep = Brush.createSweepGradient(126, 47,
-                                           Color.fromArgb(Argb.Gold),
-                                           Color.fromArgb(Argb.DodgerBlue))
+    let sweep = Brush.createSweepGradient(126, 47, Color.fromArgb(Argb.Gold), Color.fromArgb(Argb.DodgerBlue))
     painter.fillCircle(126, 47, 18, sweep)
 
     let hatch = Brush.createHatch(.DiagonalCross, Color.fromArgb(Argb.LimeGreen))
@@ -223,10 +217,7 @@ private func renderLayerParityScene(renderer: IRenderer)->Image
     painter.clear(Color.fromArgb(255'u8, 24'u8, 30'u8, 42'u8))
 
     layer.begin(&painter, {width: 72, height: 48, renderScale: 2})
-    painter.fillRoundRect({7, 7, 58, 34}, 9, 9,
-                          Brush.createLinearGradient(7, 7, 65, 41,
-                                                     Color.fromArgb(Argb.DeepPink),
-                                                     Color.fromArgb(Argb.DodgerBlue)))
+    painter.fillRoundRect({7, 7, 58, 34}, 9, 9, Brush.createLinearGradient(7, 7, 65, 41, Color.fromArgb(Argb.DeepPink), Color.fromArgb(Argb.DodgerBlue)))
     painter.fillCircle(36, 24, 10, Color.fromArgb(190'u8, Argb.White))
     layer.end()
     layer.draw({dstRect: {42, 26, 72, 48},

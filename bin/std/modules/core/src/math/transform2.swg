@@ -29,9 +29,7 @@ impl Transform2
     // Checks if the transform is the identity matrix
     mtd const isIdentity()->bool
     {
-        return .m11 == 1 and .m12 == 0 and
-               .m21 == 0 and .m22 == 1 and
-               .tx == 0 and .ty == 0
+        return .m11 == 1 and .m12 == 0 and .m21 == 0 and .m22 == 1 and .tx == 0 and .ty == 0
     }
 
     // Checks if the linear part is the identity, i.e. the transform is a pure
@@ -39,8 +37,7 @@ impl Transform2
     // aligned and pixel-snapped under such a transform.
     mtd const isTranslationOnly()->bool
     {
-        return .m11 == 1 and .m12 == 0 and
-               .m21 == 0 and .m22 == 1
+        return .m11 == 1 and .m12 == 0 and .m21 == 0 and .m22 == 1
     }
 
     // Creates a rotation matrix, with a given center of rotation

@@ -172,9 +172,9 @@ private
                 let expectedColor = expected.pixelColor(x, y)
                 let actualColor   = actual.pixelColor(x, y)
                 let delta         = Math.max(Math.abs(cast(s32) expectedColor.a - actualColor.a),
-                                     Math.max(Math.abs(cast(s32) expectedColor.r - actualColor.r),
-                                              Math.max(Math.abs(cast(s32) expectedColor.g - actualColor.g),
-                                                       Math.abs(cast(s32) expectedColor.b - actualColor.b))))
+                                             Math.max(Math.abs(cast(s32) expectedColor.r - actualColor.r),
+                                                      Math.max(Math.abs(cast(s32) expectedColor.g - actualColor.g),
+                                                               Math.abs(cast(s32) expectedColor.b - actualColor.b))))
                 result.maxChannelDelta = Math.max(result.maxChannelDelta, cast(u8) delta)
                 if delta <= options.maxChannelDelta do
                     continue
@@ -197,8 +197,7 @@ private
     {
         if !difference.sameSize
         {
-            Console.println("         size   : ", expected.width, "x", expected.height,
-                            " expected, ", actual.width, "x", actual.height, " produced")
+            Console.println("         size   : ", expected.width, "x", expected.height, " expected, ", actual.width, "x", actual.height, " produced")
             return
         }
 
@@ -206,8 +205,7 @@ private
         Console.println("         delta  : ", difference.maxChannelDelta, " maximum channel difference")
         if difference.differentPixels
         {
-            Console.println("         first  : (", difference.firstX, ", ", difference.firstY, ") expected ",
-                            difference.firstExpected.argb, ", produced ", difference.firstActual.argb)
+            Console.println("         first  : (", difference.firstX, ", ", difference.firstY, ") expected ", difference.firstExpected.argb, ", produced ", difference.firstActual.argb)
         }
     }
 

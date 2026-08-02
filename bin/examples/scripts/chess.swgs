@@ -211,7 +211,8 @@ func computeMoves()
        moveIsPossible(ki, ki + 1) and
        g_Board[ki + 1].content == .Empty and
        g_Board[ki + 2].content == .Empty and
-       g_Board[ki + 3].content == contentToTreat and g_Board[ki + 3].piece == .Rook
+       g_Board[ki + 3].content == contentToTreat and
+       g_Board[ki + 3].piece == .Rook
     {
         var board = doMove(g_Board, ki, ki + 2)
         if !isCheck(board, g_Game.whiteTurn) do
@@ -222,7 +223,8 @@ func computeMoves()
        moveIsPossible(ki, ki - 1) and
        g_Board[ki - 1].content == .Empty and
        g_Board[ki - 2].content == .Empty and
-       g_Board[ki - 4].content == contentToTreat and g_Board[ki - 4].piece == .Rook
+       g_Board[ki - 4].content == contentToTreat and
+       g_Board[ki - 4].piece == .Rook
     {
         var board = doMove(g_Board, ki, ki - 2)
         if !isCheck(board, g_Game.whiteTurn) do

@@ -311,7 +311,10 @@ impl IForm for FormImage
 
             case .Blur, .Pixelate:
                 if !.texture.isValid() or
-                   .xc != .x or .yc != .y or .wc != .w or .hc != .h or
+                   .xc != .x or
+                   .yc != .y or
+                   .wc != .w or
+                   .hc != .h or
                    .textureKind != .kind or
                    .dirty or
                    .stc != .strength or
@@ -340,7 +343,10 @@ impl IForm for FormImage
 
             case .Zoom:
                 if !.texture.isValid() or
-                   .xc != .x or .yc != .y or .wc != .w or .hc != .h or
+                   .xc != .x or
+                   .yc != .y or
+                   .wc != .w or
+                   .hc != .h or
                    .textureKind != .kind or
                    .dirty or
                    .stc != .strength or

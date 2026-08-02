@@ -446,18 +446,18 @@ impl Painter
     // StartMsdfFont so the uniforms land on the MSDF font program.
     private mtd setFontEffect(fx: FontEffectParams)
     {
-        if .hasFontEffect
-           and .lastFontEffect.enabled      == fx.enabled
-           and .lastFontEffect.faceDilate   == fx.faceDilate
-           and .lastFontEffect.faceSoftness == fx.faceSoftness
-           and .lastFontEffect.outlineWidth == fx.outlineWidth
-           and .lastFontEffect.outlineColor.argb == fx.outlineColor.argb
-           and .lastFontEffect.glowColor.argb == fx.glowColor.argb
-           and .lastFontEffect.glowOffset   == fx.glowOffset
-           and .lastFontEffect.glowInner    == fx.glowInner
-           and .lastFontEffect.glowOuter    == fx.glowOuter
-           and .lastFontEffect.glowPower    == fx.glowPower
-           and .lastFontEffect.bevel        == fx.bevel do
+        if .hasFontEffect and
+           .lastFontEffect.enabled      == fx.enabled and
+           .lastFontEffect.faceDilate   == fx.faceDilate and
+           .lastFontEffect.faceSoftness == fx.faceSoftness and
+           .lastFontEffect.outlineWidth == fx.outlineWidth and
+           .lastFontEffect.outlineColor.argb == fx.outlineColor.argb and
+           .lastFontEffect.glowColor.argb == fx.glowColor.argb and
+           .lastFontEffect.glowOffset   == fx.glowOffset and
+           .lastFontEffect.glowInner    == fx.glowInner and
+           .lastFontEffect.glowOuter    == fx.glowOuter and
+           .lastFontEffect.glowPower    == fx.glowPower and
+           .lastFontEffect.bevel        == fx.bevel do
             return
 
         .lastFontEffect = fx

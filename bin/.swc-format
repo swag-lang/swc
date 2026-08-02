@@ -183,7 +183,7 @@ logical-operator-break-position = after
 
 # Packing used for operands in multi-line logical expressions.
 # Possible values: preserve, pack, by-precedence, one-per-line
-logical-operand-packing = by-precedence
+logical-operand-packing = one-per-line
 
 # ----------------------------------------------------------------------------
 # Braces & short bodies

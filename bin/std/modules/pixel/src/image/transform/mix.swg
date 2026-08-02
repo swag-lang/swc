@@ -29,9 +29,7 @@ impl Image
                 pixDst += cast(u64) (y * (image.width * image.bytesPerPixel))
 
                 // fast path: outside blit rect, keep pixel as-is
-                if x < params.x or y < params.y or
-                   x >= params.x + srcImage.width or
-                   y >= params.y + srcImage.height
+                if x < params.x or y < params.y or x >= params.x + srcImage.width or y >= params.y + srcImage.height
                 {
                     copyPixelDirect'BPP(cast([*] u8) (notnull pixDst), cast([*] u8) pix)     // copy current dst pixel back (no change)
                 }

@@ -882,7 +882,7 @@ impl Deflate
             compBlockSucceeded = .compressBlock((d.compressFlags & ForceAllStaticBlocks) or (d.totalLzBytes < 48))
 
         if ((useRawBlock or (d.totalLzBytes and ((d.outputBufAddr - savedOutputBuf + 1) >= d.totalLzBytes))) and
-           ((d.lookaheadPos - d.lzCodeBufDictPos) <= d.dictSize))
+            ((d.lookaheadPos - d.lzCodeBufDictPos) <= d.dictSize))
         {
             d.outputBufAddr = savedOutputBuf
             d.bitBuffer     = savedBitBuf

@@ -61,8 +61,7 @@ func testCoreTupleRuntimeLifecycle()->bool
     let sourceSecond = coreTupleLifecycleProbeAt(cast([*] u8) (source), tupleStruct, 1)
     let targetFirst  = coreTupleLifecycleProbeAt(cast([*] u8) (target), tupleStruct, 0)
     let targetSecond = coreTupleLifecycleProbeAt(cast([*] u8) (target), tupleStruct, 1)
-    if sourceFirst.id != 7 or sourceSecond.id != 7 or
-       sourceFirst.value != "tuple-default" or sourceSecond.value != "tuple-default" do
+    if sourceFirst.id != 7 or sourceSecond.id != 7 or sourceFirst.value != "tuple-default" or sourceSecond.value != "tuple-default" do
         return false
 
     sourceFirst.id                  = 1
@@ -80,8 +79,10 @@ func testCoreTupleRuntimeLifecycle()->bool
     CoreTupleLifecycleDropOrder = 0
     Reflection.reset(target, tupleType)
     if CoreTupleLifecycleDropOrder != 21 or
-       targetFirst.id != 7 or targetSecond.id != 7 or
-       targetFirst.value != "tuple-default" or targetSecond.value != "tuple-default" do
+       targetFirst.id != 7 or
+       targetSecond.id != 7 or
+       targetFirst.value != "tuple-default" or
+       targetSecond.value != "tuple-default" do
         return false
 
     CoreTupleLifecycleDropOrder = 0
@@ -118,8 +119,7 @@ func testCoreTupleArrayRuntimeLifecycle()->bool
     let second0 = coreTupleLifecycleProbeAt(tuple0, tupleStruct, 1)
     let first1  = coreTupleLifecycleProbeAt(tuple1, tupleStruct, 0)
     let second1 = coreTupleLifecycleProbeAt(tuple1, tupleStruct, 1)
-    if first0.value != "tuple-default" or second0.value != "tuple-default" or
-       first1.value != "tuple-default" or second1.value != "tuple-default" do
+    if first0.value != "tuple-default" or second0.value != "tuple-default" or first1.value != "tuple-default" or second1.value != "tuple-default" do
         return false
 
     first0.id  = 1
@@ -163,8 +163,7 @@ func testCoreTupleAliasRuntimeLifecycle()->bool
 
     let first  = coreTupleLifecycleProbeAt(cast([*] u8) (value), tupleStruct, 0)
     let second = coreTupleLifecycleProbeAt(cast([*] u8) (value), tupleStruct, 1)
-    if first.id != 7 or second.id != 7 or
-       first.value != "tuple-default" or second.value != "tuple-default" do
+    if first.id != 7 or second.id != 7 or first.value != "tuple-default" or second.value != "tuple-default" do
         return false
 
     first.id                        = 1

@@ -345,14 +345,12 @@ impl Decoder
             }
         }
 
-        if marker == .M_APP0 and prefixCount >= 5 and
-           prefix[0] == 'J' and prefix[1] == 'F' and prefix[2] == 'I' and prefix[3] == 'F' and prefix[4] == 0
+        if marker == .M_APP0 and prefixCount >= 5 and prefix[0] == 'J' and prefix[1] == 'F' and prefix[2] == 'I' and prefix[3] == 'F' and prefix[4] == 0
         {
             .hasJfifMarker = true
         }
 
-        if cast(u32) marker == cast(u32) Marker.M_APP0 + 14 and prefixCount == @countof(prefix) and
-           prefix[0] == 'A' and prefix[1] == 'd' and prefix[2] == 'o' and prefix[3] == 'b' and prefix[4] == 'e'
+        if cast(u32) marker == cast(u32) Marker.M_APP0 + 14 and prefixCount == @countof(prefix) and prefix[0] == 'A' and prefix[1] == 'd' and prefix[2] == 'o' and prefix[3] == 'b' and prefix[4] == 'e'
         {
             .hasAdobeMarker = true
             .adobeTransform = prefix[11]

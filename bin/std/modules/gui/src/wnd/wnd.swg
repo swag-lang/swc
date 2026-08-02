@@ -927,17 +927,8 @@ impl Wnd
         for depth do
             Console.print("  ")
 
-        Console.println(
-            .type.name,
-            " name=", .name.raw,
-            " rect=", .position.x, ",", .position.y, ",", .position.width, ",", .position.height,
-            " min=", .layoutDebug.measuredMin.x, "x", .layoutDebug.measuredMin.y,
-            " pref=", .layoutDebug.measuredPreferred.x, "x", .layoutDebug.measuredPreferred.y,
-            " max=", .layoutDebug.measuredMax.x, "x", .layoutDebug.measuredMax.y,
-            " arranged=", .layoutDebug.arrangedRect.x, ",", .layoutDebug.arrangedRect.y, ",", .layoutDebug.arrangedRect.width, ",", .layoutDebug.arrangedRect.height,
-            " clip=", .layoutDebug.clippedX, "/", .layoutDebug.clippedY,
-            " clampMin=", .layoutDebug.clampedByMinX, "/", .layoutDebug.clampedByMinY,
-            " clampMax=", .layoutDebug.clampedByMaxX, "/", .layoutDebug.clampedByMaxY)
+        Console.println(.type.name,
+                        " name=", .name.raw, " rect=", .position.x, ",", .position.y, ",", .position.width, ",", .position.height, " min=", .layoutDebug.measuredMin.x, "x", .layoutDebug.measuredMin.y, " pref=", .layoutDebug.measuredPreferred.x, "x", .layoutDebug.measuredPreferred.y, " max=", .layoutDebug.measuredMax.x, "x", .layoutDebug.measuredMax.y, " arranged=", .layoutDebug.arrangedRect.x, ",", .layoutDebug.arrangedRect.y, ",", .layoutDebug.arrangedRect.width, ",", .layoutDebug.arrangedRect.height, " clip=", .layoutDebug.clippedX, "/", .layoutDebug.clippedY, " clampMin=", .layoutDebug.clampedByMinX, "/", .layoutDebug.clampedByMinY, " clampMax=", .layoutDebug.clampedByMaxX, "/", .layoutDebug.clampedByMaxY)
 
         for c in .children do
             c.dumpLayoutTreeNode(depth + 1)

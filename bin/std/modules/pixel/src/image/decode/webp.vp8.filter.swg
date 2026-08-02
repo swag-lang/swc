@@ -51,8 +51,12 @@ func vp8Filter246(pixels: [*] u8, count, level, iLevel, hLevel, index, iStep, jS
         let q2 = cast(s32) pixels[offset + 2 * jStep]
         let q3 = cast(s32) pixels[offset + 3 * jStep]
         if 2 * vp8Abs(p0 - q0) + vp8Abs(p1 - q1) / 2 > level or
-           vp8Abs(p3 - p2) > iLevel or vp8Abs(p2 - p1) > iLevel or vp8Abs(p1 - p0) > iLevel or
-           vp8Abs(q1 - q0) > iLevel or vp8Abs(q2 - q1) > iLevel or vp8Abs(q3 - q2) > iLevel
+           vp8Abs(p3 - p2) > iLevel or
+           vp8Abs(p2 - p1) > iLevel or
+           vp8Abs(p1 - p0) > iLevel or
+           vp8Abs(q1 - q0) > iLevel or
+           vp8Abs(q2 - q1) > iLevel or
+           vp8Abs(q3 - q2) > iLevel
         {
             offset += iStep
             continue

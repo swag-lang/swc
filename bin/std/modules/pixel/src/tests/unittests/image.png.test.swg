@@ -428,11 +428,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     {
         for [x] in Width
         {
-            assertPngPixelAt(img, x, Height - y - 1,
-                             cast(u8) (10 + x + y * Width),
-                             cast(u8) (50 + x * 2 + y),
-                             cast(u8) (100 + x + y * 3),
-                             255'u8)
+            assertPngPixelAt(img, x, Height - y - 1, cast(u8) (10 + x + y * Width), cast(u8) (50 + x * 2 + y), cast(u8) (100 + x + y * 3), 255'u8)
         }
     }
 }

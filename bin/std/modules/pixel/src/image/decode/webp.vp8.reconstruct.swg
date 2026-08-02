@@ -120,8 +120,7 @@ func vp8InverseWht(decoder: *Vp8Decoder)
     }
 }
 
-func vp8ParseResidual4(decoder: *Vp8Decoder, partition: *Vp8Partition, plane: s32, context: u8,
-                       dcQuant, acQuant: u16, skipFirst: bool, coeffBase: s32)->u8
+func vp8ParseResidual4(decoder: *Vp8Decoder, partition: *Vp8Partition, plane: s32, context: u8, dcQuant, acQuant: u16, skipFirst: bool, coeffBase: s32)->u8
 {
     var coefficient     = skipFirst ? 1 : 0
     var band            = cast(s32) VP8_BANDS[coefficient]
@@ -256,8 +255,7 @@ func vp8ParseResiduals(decoder: *Vp8Decoder, mbX, mbY: s32)->bool
             var nz = leftNz[y + chroma]
             for [x] in 2
             {
-                nz = vp8ParseResidual4(decoder, partition, VP8_PLANE_UV, nz + upperNz[x + chroma],
-                                       quant.uv[0], quant.uv[1], false, coeffBase)
+                nz                  = vp8ParseResidual4(decoder, partition, VP8_PLANE_UV, nz + upperNz[x + chroma], quant.uv[0], quant.uv[1], false, coeffBase)
                 upperNz[x + chroma] = nz
                 nzAc[y * 2 + x]     = nz
                 nzDc[y * 2 + x]     = decoder.coeff[coeffBase] != 0 ? 1 : 0

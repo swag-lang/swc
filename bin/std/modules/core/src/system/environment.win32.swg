@@ -335,13 +335,20 @@ public struct Window
 }
 
 // Provides iterable native message processing.
+// Pumps window messages until the window closes, or until a smoke run's frame budget is spent.
 public struct WindowLoop
 {
-    maxTestFrames: u32 = 50     // Frame limit used only when `swag.test` is present.
+    // Frames a smoke run should render for this program, or zero to take the launcher's budget.
+    //
+    // A program that cycles through pages knows how many frames it takes to show them all,
+    // and that count is a property of its content rather than of whoever launched it. It has
+    // no effect on a normal run, which ends only when the window closes.
+    smokeFrames: u32
 
     internal
     {
-        testFrames: u32
+        frameBudget: u32     // Frames this run may render; zero outside a smoke run.
+        framesRun:   u32     // Frames rendered so far.
     }
 }
 
@@ -522,14 +529,23 @@ public impl WindowLoop
     // Processes pending messages and returns whether the application should continue.
     mtd next()->bool
     {
-        if Env.hasArgument("swag.test") and .testFrames >= .maxTestFrames do
+        // A smoke run is bounded by whoever launched it, so a program driving its own loop
+        // stops on its own without recognizing that it is being exercised.
+        if .frameBudget == 0
+        {
+            .frameBudget = Env.smokeFrames()
+            if .frameBudget and .smokeFrames do
+                .frameBudget = .smokeFrames
+        }
+
+        if .frameBudget and .framesRun >= .frameBudget do
             return false
 
         if !processWindowMessages() do
             return false
 
-        if Env.hasArgument("swag.test") do
-            .testFrames += 1
+        if .frameBudget do
+            .framesRun += 1
 
         return true
     }

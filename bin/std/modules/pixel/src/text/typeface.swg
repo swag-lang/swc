@@ -119,10 +119,13 @@ public impl TypeFace
         defer #fail Memory.delete(tf, allocator)
         tf.fullname = fullname
 
-        // If file does not exist, try the system folder
+        // If file does not exist, try the system folder.
+        //
+        // The installed fonts belong to the machine, not to the program, so this looks past
+        // any sandbox: a sandboxed run has no fonts of its own and would find nothing.
         if !File.exists(fullname)
         {
-            let p = Path.combine(Env.getSpecialDirectory(.Font), fullname)
+            let p = Path.combine(Env.realSpecialDirectory(.Font), fullname)
             tf.buffer = File.readAllBytes(p)
         }
         else

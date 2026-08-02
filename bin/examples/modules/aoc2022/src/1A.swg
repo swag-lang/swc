@@ -45,15 +45,18 @@ func day1A()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "1.txt")
     let lines    = expect File.readAllLines(dataPath)
 
+    // A blank line separates two elves; it carries no number, and parsing one is an error.
     var total, one: u64
     for l in lines
     {
-        one += expect StrConv.toU64(l)
         if l.isEmpty()
         {
             total = Math.max(total, one)
             one   = 0
+            continue
         }
+
+        one += expect StrConv.toU64(l)
     }
 
     // Console.print("total: ", total)

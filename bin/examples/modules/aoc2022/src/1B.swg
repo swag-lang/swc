@@ -16,11 +16,14 @@ func day1B()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "1.txt")
     let lines    = expect File.readAllLines(dataPath)
 
+    // A blank line separates two elves; it carries no number, and parsing one is an error.
     var count: [3] u64
     var one:   u64
     for l in lines
     {
-        one += expect StrConv.toU64(l)
+        if !l.isEmpty() do
+            one += expect StrConv.toU64(l)
+
         if l.isEmpty() or @index == lines.count - 1
         {
             switch

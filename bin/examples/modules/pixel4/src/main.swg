@@ -384,7 +384,7 @@ func updateTestMode()
 
     var loop: Env.WindowLoop
     if Env.isSmokeRun() do
-        loop.maxTestFrames = cast(u32) MaxPages * cast(u32) TestFramesPerPage
+        loop.smokeFrames = cast(u32) MaxPages * cast(u32) TestFramesPerPage
     while loop.next()
     {
         updateShortcuts()

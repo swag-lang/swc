@@ -494,7 +494,7 @@ func onResize(_window: *Env.Window, width, height: s32)
 
     var loop: Env.WindowLoop
     if Env.isSmokeRun() do
-        loop.maxTestFrames = TestFrames
+        loop.smokeFrames = TestFrames
     while loop.next()
     {
         display()

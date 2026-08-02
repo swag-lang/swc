@@ -1,4 +1,5 @@
 #pragma once
+#include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroDenseRegIndex.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroPassManager.h"
@@ -26,6 +27,12 @@ public:
         MicroOpBits       spillBits      = MicroOpBits::B64;
         MicroInstrOperand rematImmediate = {};
         MicroOpBits       rematBits      = MicroOpBits::B64;
+        // The address of a global, constant or function is materialized by an
+        // instruction the emitter patches, so remaking it means remaking its
+        // relocation too. Kept by value: the builder's relocation vector grows
+        // as remade loads are inserted, which would move any pointer into it.
+        MicroRelocation rematRelocation = {};
+        bool            rematIsRelocated = false;
         // Original instruction that defined a rematerializable value. If the value
         // is evicted or expires before any user reads its physical mapping, the
         // defining instruction is unreachable and gets pruned at the end of RA.
@@ -57,6 +64,10 @@ private:
         MicroInstrOpcode  op     = MicroInstrOpcode::Nop;
         uint8_t           numOps = 0;
         MicroInstrOperand ops[4] = {};
+        // Filled in when the inserted instruction is a remade address load; the
+        // insertion site binds it to the fresh instruction.
+        MicroRelocation relocation    = {};
+        bool            hasRelocation = false;
     };
 
     struct AllocRequest
@@ -177,6 +188,7 @@ private:
     void             updateRematerializationForDef(VRegState& regState, MicroReg virtKey, MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* instOps) const;
     static void      noteRematDefConsumed(VRegState& regState);
     void             retireRematDef(VRegState& regState);
+    void             insertPending(MicroInstrRef beforeRef, const PendingInsert& pendingInst);
     void             queueErase(MicroInstrRef instRef);
     void             flushQueuedErasures();
     void             applyStackPointerDelta(int64_t& stackDepth, const MicroInstr& inst) const;
@@ -280,6 +292,9 @@ private:
     // back-edge regardless of when the register mapping is later dropped.
     std::vector<PendingInsert>                 deferredLoopCarriedStores_;
     std::unordered_map<MicroLabelRef, int64_t> labelStackDepth_;
+    // Snapshot of what each relocation-bearing address load points at, taken
+    // before allocation so a rematerialized copy can be given its own.
+    std::unordered_map<MicroInstrRef, MicroRelocation> relocationByDefInstruction_;
 };
 
 SWC_END_NAMESPACE();

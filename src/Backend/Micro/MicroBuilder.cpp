@@ -141,9 +141,6 @@ bool MicroBuilder::invalidateRelocationForInstruction(MicroInstrRef instructionR
 
 bool MicroBuilder::pruneDeadRelocations()
 {
-    if (relocations_.empty())
-        return false;
-
     bool changed = false;
     for (MicroRelocation& reloc : relocations_)
     {
@@ -161,6 +158,12 @@ bool MicroBuilder::pruneDeadRelocations()
     std::erase_if(relocations_, [](const MicroRelocation& reloc) {
         return reloc.instructionRef.isInvalid();
     });
+
+    // Nothing is keyed by an erased instruction any more, so its slot can be
+    // handed out again. Doing this here and nowhere else is what keeps a
+    // recycled reference from carrying a dead relocation onto a new
+    // instruction - a wrong patch target, not a crash at the point of reuse.
+    instructions_.releaseErasedRefs();
 
     return changed || beforeSize != relocations_.size();
 }

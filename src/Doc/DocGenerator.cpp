@@ -11,6 +11,7 @@
 #include "Main/FileSystem.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/Utf8Helper.h"
+#include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -183,6 +184,7 @@ namespace
         Utf8 content = std::format("<h1>{}</h1>\n", Utf8Helper::escapeHtml(options.titleContent));
 
         uint32_t currentLevel = 1;
+        bool     hasOpenItem  = false;
         for (const SourceFile* file : moduleSourceFiles(ctx.compiler()))
         {
             Utf8 stem = file->path().stem().string();
@@ -198,20 +200,27 @@ namespace
                 continue;
 
             const uint32_t level = stem.substr(4, 3) == "000" ? 1 : 2;
-            while (currentLevel < level)
+            if (currentLevel < level)
             {
-                toc += "<ul>\n";
+                SWC_ASSERT(hasOpenItem);
+                toc += "\n<ul>\n";
                 currentLevel++;
             }
-            while (currentLevel > level)
+            else
             {
-                toc += "</ul>\n";
-                currentLevel--;
+                if (hasOpenItem)
+                    toc += "</li>\n";
+                while (currentLevel > level)
+                {
+                    toc += "</ul>\n</li>\n";
+                    currentLevel--;
+                }
             }
 
             const Utf8 title  = Utf8Helper::toTitle(stem.substr(8));
             const Utf8 anchor = DocMarkdown::makeAnchor(file->name());
-            toc.append(std::format("<li><a href=\"#{}\">{}</a></li>\n", anchor, Utf8Helper::escapeHtml(title)));
+            toc.append(std::format("<li><a href=\"#{}\">{}</a>", anchor, Utf8Helper::escapeHtml(title)));
+            hasOpenItem = true;
             content.append(std::format("<h{} id=\"{}\">{}</h{}>\n", level + 1, anchor, Utf8Helper::escapeHtml(title), level + 1));
 
             if (file->path().extension() == ".md")
@@ -219,9 +228,11 @@ namespace
             else
                 content += renderExampleSource(ctx, renderCtx, file->sourceView());
         }
+        if (hasOpenItem)
+            toc += "</li>\n";
         while (currentLevel > 1)
         {
-            toc += "</ul>\n";
+            toc += "</ul>\n</li>\n";
             currentLevel--;
         }
         toc += "</ul>\n";

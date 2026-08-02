@@ -132,13 +132,13 @@ impl RichString
     //
     // The string can have multiple lines.
     // Accepted markers are:
-    // * `<u>` => underline
-    // * `<b>` => bold
-    // * `<i>` => italic
-    // * `<p1>` => color palette 1
-    // * `<p2>` => color palette 2
-    // * `<p3>` => color palette 3
-    // * `<url>` => clickable
+    // - `<u>` => underline
+    // - `<b>` => bold
+    // - `<i>` => italic
+    // - `<p1>` => color palette 1
+    // - `<p2>` => color palette 2
+    // - `<p3>` => color palette 3
+    // - `<url>` => clickable
     // ```swag
     // <b>this is bold</b> but this is normal <i>and this is italic</i>
     // ```swag

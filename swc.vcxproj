@@ -249,6 +249,8 @@
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.LoadFold.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.AddressMode.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.NarrowExtend.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.FloatOrderedCompare.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.CommuteConst.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.StoreToLoad.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.ConstProp.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.Legalize.cpp"/>

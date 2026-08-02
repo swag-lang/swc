@@ -93,10 +93,11 @@ namespace
     {
         SmallVector<uint8_t, 2> useSlots;
         SmallVector<uint8_t, 4> rawSlots;
-        uint8_t                 movBitsSlot   = 0;
-        bool                    dstIsAlsoUse  = false;
-        bool                    hasImmediate  = false;
-        uint8_t                 immediateSlot = 0;
+        uint8_t                 movBitsSlot          = 0;
+        bool                    dstIsAlsoUse         = false;
+        bool                    hasImmediate         = false;
+        uint8_t                 immediateSlot        = 0;
+        bool                    keyedByRelocationToo = false;
     };
 
     bool numberingShapeFor(const MicroInstrOpcode op, NumberingShape& outShape)
@@ -143,6 +144,19 @@ namespace
                 outShape.movBitsSlot = 2;
                 return true;
 
+            case MicroInstrOpcode::LoadRegPtrReloc:
+                // ops: [0] dst, [1] opBits, [2] target. The address of a global,
+                // a constant or a function: the same relocation always resolves
+                // to the same value, so every re-materialization of one inside a
+                // loop is redundant. The target word alone does not identify it —
+                // offset 0 exists in every data segment — so the relocation's own
+                // identity completes the key.
+                outShape.useSlots             = {};
+                outShape.rawSlots             = {1, 2};
+                outShape.movBitsSlot          = 1;
+                outShape.keyedByRelocationToo = true;
+                return true;
+
             default:
                 return false;
         }
@@ -164,6 +178,20 @@ namespace
         MicroReg      srcReg  = MicroReg::invalid();
         MicroOpBits   movBits = MicroOpBits::B64;
     };
+
+    // What a relocation points at, as key words. Two relocation-bearing loads
+    // are the same value exactly when these agree; anything the emitter uses to
+    // resolve the target has to appear here or two different addresses could
+    // hash together.
+    void appendRelocationIdentity(SmallVector<uint64_t, 8>& key, const MicroRelocation& reloc)
+    {
+        key.push_back(static_cast<uint64_t>(reloc.kind));
+        key.push_back(reloc.targetAddress);
+        key.push_back(reinterpret_cast<uint64_t>(reloc.targetSymbol));
+        key.push_back(reloc.constantRef.get());
+        key.push_back(reloc.constantShard);
+        key.push_back(reloc.constantOffset);
+    }
 
     uint64_t hashKey(const SmallVector<uint64_t, 8>& key)
     {
@@ -206,6 +234,15 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
     const MicroPassHelpers::MicroDomTree dom = MicroPassHelpers::computeInstructionDominators(cfg, entry);
 
     const auto instrRefs = cfg.instructionRefs();
+
+    // Relocation-bearing loads are keyed by what they point at, so the pass
+    // needs to reach a relocation from its instruction.
+    std::unordered_map<MicroInstrRef, const MicroRelocation*> relocationByInstruction;
+    for (const MicroRelocation& reloc : context.builder->codeRelocations())
+    {
+        if (reloc.instructionRef.isValid())
+            relocationByInstruction[reloc.instructionRef] = &reloc;
+    }
 
     std::unordered_map<uint64_t, SmallVector<NumberingEntry, 2>> table;
     std::vector<PlannedRewrite>                                  rewrites;
@@ -273,6 +310,13 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
             key.push_back(ops[slot].valueU64);
         if (shape.hasImmediate)
             key.push_back(ops[shape.immediateSlot].valueU64);
+        if (shape.keyedByRelocationToo)
+        {
+            const auto relocIt = relocationByInstruction.find(instRef);
+            if (relocIt == relocationByInstruction.end())
+                continue;
+            appendRelocationIdentity(key, *relocIt->second);
+        }
 
         uint32_t myValueId = MicroSsaState::K_INVALID_VALUE;
         if (!ssaState->defValue(dstReg, instRef, myValueId))
@@ -326,6 +370,12 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
         MicroInstrOperand* ops = inst->ops(operands);
         if (!ops)
             continue;
+
+        // A rewritten instruction no longer carries the address the relocation
+        // was going to patch. Leaving the relocation attached would have the
+        // emitter bind it to whatever the copy encodes.
+        if (inst->op == MicroInstrOpcode::LoadRegPtrReloc)
+            context.builder->invalidateRelocationForInstruction(rewrite.instRef);
 
         inst->op          = MicroInstrOpcode::LoadRegReg;
         inst->numOperands = 3;

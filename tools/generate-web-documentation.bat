@@ -25,26 +25,8 @@ goto parse_args
 set "WEB_DIR=%ROOT%\web"
 if not exist "%WEB_DIR%" mkdir "%WEB_DIR%" || exit /b 1
 
-if exist "%WEB_DIR%\*.html" (
-    del /Q "%WEB_DIR%\*.html"
-    if errorlevel 1 exit /b 1
-)
-if exist "%WEB_DIR%\*.php" (
-    del /Q "%WEB_DIR%\*.php"
-    if errorlevel 1 exit /b 1
-)
-if exist "%WEB_DIR%\.htaccess" (
-    del /Q "%WEB_DIR%\.htaccess"
-    if errorlevel 1 exit /b 1
-)
-if exist "%WEB_DIR%\common" (
-    rmdir /S /Q "%WEB_DIR%\common"
-    if errorlevel 1 exit /b 1
-)
-if exist "%WEB_DIR%\html" (
-    rmdir /S /Q "%WEB_DIR%\html"
-    if errorlevel 1 exit /b 1
-)
+rem Generated files are opened with truncation and replaced in place. Keeping the current site
+rem until each replacement succeeds avoids leaving an empty documentation tree after a failure.
 
 REM The brand assets come first: the pages link them, and cutting them again here is what
 REM keeps the mark, the icons and the favicons in step with their definition. The generator

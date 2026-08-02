@@ -90,13 +90,13 @@ File.writeAllBytes(file, buf)
 ```
 
 Can be serialized:
-* All simple types: `bool/u8/u16/u32/u64/s8/s16/s32/s64/rune/f32/f64`
-* A type value 'typeinfo', which will be saved as a CRC.
-* An interface. Will be stored as a type and a typed value.
-* A struct.
-* A `Core.String`.
-* A `Core.Array` of valid values.
-* A static array of valid values.
+- All simple types: `bool/u8/u16/u32/u64/s8/s16/s32/s64/rune/f32/f64`
+- A type value 'typeinfo', which will be saved as a CRC.
+- An interface. Will be stored as a type and a typed value.
+- A struct.
+- A `Core.String`.
+- A `Core.Array` of valid values.
+- A static array of valid values.
 
 > NOTE:
 > Type 'string' is not supported. Consider using [[Core.String]] instead.

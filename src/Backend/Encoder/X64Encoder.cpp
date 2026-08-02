@@ -2705,9 +2705,19 @@ void X64Encoder::encodeOpBinaryRegImm(MicroReg reg, const ApInt& valueInt, Micro
         }
         else if (canEncodeOpImmediate(value, opBits))
         {
+            // The immediate is written as four bytes, so the multiply has to be
+            // encoded at 32 bits: at 16 the operand-size prefix would have the
+            // decoder read only two of them and take the rest for the next
+            // instruction. Widening the operand first is what makes that sound -
+            // the low half of the product is the same either way.
+            MicroOpBits encodeBits = opBits;
             if (opBits == MicroOpBits::B8 || opBits == MicroOpBits::B16)
+            {
                 encodeLoadSignedExtendRegReg(reg, reg, MicroOpBits::B32, opBits);
-            emitRex(store_, opBits, reg, reg);
+                encodeBits = MicroOpBits::B32;
+            }
+
+            emitRex(store_, encodeBits, reg, reg);
             emitCpuOp(store_, 0x69);
             emitModRm(store_, reg, reg);
             emitValue(store_, value, MicroOpBits::B32);

@@ -196,9 +196,11 @@ namespace
         b.emitRet();
     }
 
+    constexpr uint32_t K_FLOAT_SPILL_VALUE_COUNT = 16;
+
     void buildFloatSpillAcrossCallNoPersistentRegs(MicroBuilder& b, CallConvKind callConvKind)
     {
-        for (uint32_t i = 0; i < 16; ++i)
+        for (uint32_t i = 0; i < K_FLOAT_SPILL_VALUE_COUNT; ++i)
         {
             const auto v = MicroReg::virtualFloatReg(5000 + i);
             b.emitClearReg(v, MicroOpBits::B64);
@@ -206,7 +208,7 @@ namespace
 
         b.emitCallReg(MicroReg::intReg(0), callConvKind);
 
-        for (uint32_t i = 0; i < 16; ++i)
+        for (uint32_t i = 0; i < K_FLOAT_SPILL_VALUE_COUNT; ++i)
         {
             const auto v = MicroReg::virtualFloatReg(5000 + i);
             b.emitOpBinaryRegReg(v, v, MicroOp::FloatXor, MicroOpBits::B64);
@@ -527,6 +529,23 @@ namespace
         return result;
     }
 
+    // Instructions of one opcode that sit past the last call. A value live
+    // across a call is re-established there, so this is what tells a real
+    // rematerialization apart from the definition the fixture already had.
+    uint32_t countOpcodeAfterLastCall(MicroBuilder& builder, MicroInstrOpcode opcode)
+    {
+        uint32_t result = 0;
+        for (const auto& inst : builder.instructions().view())
+        {
+            if (MicroInstr::info(inst.op).flags.has(MicroInstrFlagsE::IsCallInstruction))
+                result = 0;
+            else if (inst.op == opcode)
+                result++;
+        }
+
+        return result;
+    }
+
     uint32_t countLoadRegImmValue(MicroBuilder& builder, uint64_t value)
     {
         uint32_t result   = 0;
@@ -789,8 +808,15 @@ SWC_TEST_BEGIN(RegAlloc_Spill_FloatAcrossCall_NoPersistent)
 
         SWC_RESULT(Backend::Unittest::assertNoVirtualRegs(builder));
 
+        // Every value here is live across the call with nowhere persistent to
+        // sit, so each has to be either spilled or remade after it. A float
+        // zero is remade by clearing again rather than by loading an immediate
+        // - no instruction moves a constant straight into an xmm register - and
+        // the remade definition replaces the original one, so what identifies
+        // it is its position past the call rather than a count that grew.
         if (!hasSpillFrameOps(builder, CallConv::get(callConvKind)) &&
-            countOpcode(builder, MicroInstrOpcode::LoadRegImm) == 0)
+            countOpcodeAfterLastCall(builder, MicroInstrOpcode::LoadRegImm) == 0 &&
+            countOpcodeAfterLastCall(builder, MicroInstrOpcode::ClearReg) == 0)
             return Result::Error;
     }
 }

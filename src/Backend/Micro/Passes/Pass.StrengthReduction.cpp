@@ -18,6 +18,7 @@
 //   v /u pow2 -> v >> log2       (Unsigned divide by pow2 -> logical shift right)
 //   v %u pow2 -> v &  (pow2-1)   (Unsigned modulo by pow2 -> bitwise mask)
 //   v +/- 0   -> erase if dead   (handled defensively; InstCombine also matches it)
+//   v *u w    -> v *s w          (Unsigned multiply -> signed, when flags are dead)
 //
 // Division and modulo by any other non-zero constant expand into the classic
 // multiply-high sequences (Hacker's Delight 10-4 / 10-9): a hardware divide
@@ -30,6 +31,26 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    // Only x86's one-operand `mul` computes the full double-width product, and
+    // it pays for that by hard-wiring rax:rdx and refusing an immediate: a
+    // multiply by a constant becomes materialize-constant, save rax, move,
+    // multiply, move back, restore rax. `imul` has neither restriction, and its
+    // low half is bit-identical whatever the signedness - the wide product lives
+    // in MultiplyHigh{Signed,Unsigned}, which this never touches.
+    //
+    // The one observable difference is the overflow flag: `mul` raises it when
+    // the high half is non-zero, `imul` when the signed product does not fit.
+    // The arithmetic-overflow safety check reads exactly that, so the rewrite
+    // only applies where the flags provably die first.
+    bool tryUseSignedMultiply(MicroInstrOperand* ops, const uint8_t microOpSlot)
+    {
+        if (ops[microOpSlot].microOp != MicroOp::MultiplyUnsigned)
+            return false;
+
+        ops[microOpSlot].microOp = MicroOp::MultiplySigned;
+        return true;
+    }
+
     bool canRewriteShift(MicroOpBits opBits, uint64_t immediate)
     {
         const uint32_t bitCount = getNumBits(opBits);
@@ -444,7 +465,9 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
         const MicroInstr&   inst    = *it;
         ++it;
 
-        if (inst.op != MicroInstrOpcode::OpBinaryRegImm)
+        const bool isRegImm = inst.op == MicroInstrOpcode::OpBinaryRegImm;
+        const bool isRegReg = inst.op == MicroInstrOpcode::OpBinaryRegReg;
+        if (!isRegImm && !isRegReg)
             continue;
 
         MicroInstrOperand* ops = inst.ops(operands);
@@ -452,6 +475,19 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
             continue;
 
         if (!ops[0].reg.isAnyInt())
+            continue;
+
+        // Changing which condition the flags describe needs the strict window:
+        // a fused branch keeps them live across a jump, which the relaxed
+        // "dead after" contract does not see.
+        if (MicroPassHelpers::areCpuFlagsRedefinedBeforeBoundary(storage, operands, instRef))
+        {
+            // ops: RegImm is [1] opBits [2] microOp [3] imm, RegReg is [2] opBits [3] microOp.
+            if (tryUseSignedMultiply(ops, isRegImm ? 2 : 3))
+                context.passChanged = true;
+        }
+
+        if (!isRegImm)
             continue;
 
         const MicroOpBits opBits    = ops[1].opBits;

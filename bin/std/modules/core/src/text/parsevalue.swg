@@ -6,13 +6,13 @@ using Swag, Core.Errors
 // 'addr' must point to an initialized memory location that can hold 'type'
 //
 // Accepted types are :
-// * `s8, s16, s32, s64, u8, u16, u32, u64, rune, bool, f32, f64`
-// * 'Core.String'  literal strings are not supported as 'buf' is supposed to be transient
-// * enum           with or without 'Swag.EnumFlags' attribute
+// - `s8, s16, s32, s64, u8, u16, u32, u64, rune, bool, f32, f64`
+// - 'Core.String'  literal strings are not supported as 'buf' is supposed to be transient
+// - enum           with or without 'Swag.EnumFlags' attribute
 //
 // 'buf' can contain multiple values separated with blanks if 'type' is:
-// * a static array of the types above
-// * a dynamic 'Core.Array' of the types above
+// - a static array of the types above
+// - a dynamic 'Core.Array' of the types above
 public func parseValue(addr: *void, type: typeinfo, buf: string)->#null string fail
 {
     var patch = cast(*u8) addr

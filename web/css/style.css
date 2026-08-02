@@ -415,6 +415,7 @@ body {
 
 .right p {
     max-width: var(--swag-measure);
+    text-align: justify;
 }
 
 .right li {
@@ -426,6 +427,16 @@ body {
     margin: 44px 0;
     border: 0;
     border-top: 1px solid var(--swag-line);
+}
+
+/* Text and the blocks that support it share one reading edge. The code and table
+   contents can still scroll horizontally without stretching the page measure. */
+.api-item,
+.container table,
+.code-block,
+.blockquote {
+    width: 100%;
+    max-width: var(--swag-measure);
 }
 
 .module-overview {
@@ -600,7 +611,6 @@ body {
 /* ---------------------------------------------------------------- tables -- */
 
 .container table {
-    max-width: 100%;
     margin: 20px 0;
     border-collapse: collapse;
     font-size: .93rem;
@@ -631,16 +641,6 @@ body {
 .container .align-left { text-align: left; }
 .container .align-center { text-align: center; }
 .container .align-right { text-align: right; }
-
-.container .table-markdown {
-    width: 100%;
-    max-width: var(--swag-measure);
-}
-
-.table-enumeration,
-.api-summary {
-    width: 100%;
-}
 
 .api-summary p {
     margin: 0;
@@ -769,7 +769,6 @@ body {
 /* ------------------------------------------------------------- callouts --- */
 
 .blockquote {
-    max-width: var(--swag-measure);
     margin: 20px 0;
     padding: 13px 16px;
     background: color-mix(in srgb, var(--swag-quote-color, #888) 8%, var(--swag-bg));
@@ -848,11 +847,12 @@ body {
     text-indent: .2em;
 }
 
-.hero-line {
+.right .hero-line {
     max-width: 46ch;
     margin: 26px auto 0;
     color: #c9c9cf;
     font-size: 1.16rem;
+    text-align: center;
 }
 
 .hero-actions {

@@ -307,6 +307,11 @@ namespace
         ENCODE_CASE("op_binary_reg_imm_or_r11", "49 83 CB 7F", b.emitOpBinaryRegImm(R11, ApInt(0x7F, 64), MicroOp::Or, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_imm_xor_r12", "49 83 F4 7F", b.emitOpBinaryRegImm(R12, ApInt(0x7F, 64), MicroOp::Xor, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_imm_mul", "4D 6B ED 07", b.emitOpBinaryRegImm(R13, ApInt(7, 64), MicroOp::MultiplySigned, MicroOpBits::B64););
+        ENCODE_CASE("op_binary_reg_imm_mul_imm32_b64", "4D 69 ED 01 01 00 00", b.emitOpBinaryRegImm(R13, ApInt(0x101, 64), MicroOp::MultiplySigned, MicroOpBits::B64););
+        ENCODE_CASE("op_binary_reg_imm_mul_imm32_b32", "45 69 ED 01 01 00 00", b.emitOpBinaryRegImm(R13, ApInt(0x101, 32), MicroOp::MultiplySigned, MicroOpBits::B32););
+        // Four immediate bytes force the 32-bit form: kept at 16 the operand-size
+        // prefix would have the decoder take only two of them.
+        ENCODE_CASE("op_binary_reg_imm_mul_imm32_b16", "45 0F BF ED 45 69 ED 01 01 00 00", b.emitOpBinaryRegImm(R13, ApInt(0x101, 16), MicroOp::MultiplySigned, MicroOpBits::B16););
         ENCODE_CASE("op_binary_reg_imm_fround_b64_floor", "66 48 0F 3A 0B C0 01", b.emitOpBinaryRegImm(XMM0, ApInt(1, 64), MicroOp::FloatRound, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_imm_fround_b32_trunc", "66 0F 3A 0A C9 03", b.emitOpBinaryRegImm(XMM1, ApInt(3, 64), MicroOp::FloatRound, MicroOpBits::B32););
         ENCODE_CASE("op_binary_reg_imm_shl_0_b64", "49 C1 E0 00", b.emitOpBinaryRegImm(R8, ApInt(0, 64), MicroOp::ShiftLeft, MicroOpBits::B64););

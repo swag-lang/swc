@@ -43,7 +43,7 @@ Utf8 DocPage::styles()
 
     --swag-header-height: 66px;
     --swag-rail-width: 306px;
-    --swag-measure: 80ch;
+    --swag-measure: 120ch;
     --swag-radius: 6px;
 
     --swag-font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -369,7 +369,9 @@ body {
 }
 
 .right-page {
-    width: min(100%, 1080px);
+    /* Resolve the character measure once with the prose font. Reusing a 'ch' measure
+       on code, tables or enlarged lead text gives each of them a different edge. */
+    width: min(100%, var(--swag-measure));
     margin: 0 auto;
     padding: 34px 8px 30px;
 }
@@ -425,18 +427,32 @@ body {
 }
 
 .right p {
-    max-width: var(--swag-measure);
+    width: 100%;
+    max-width: 100%;
+    text-align: justify;
 }
 
 .right li {
-    max-width: calc(var(--swag-measure) - 2ch);
+    width: 100%;
+    max-width: 100%;
 }
 
 .right hr {
-    max-width: var(--swag-measure);
+    width: 100%;
+    max-width: 100%;
     margin: 44px 0;
     border: 0;
     border-top: 1px solid var(--swag-line);
+}
+
+/* Every block takes its measure from '.right-page', so changes in font family or size
+   cannot move its right edge. Wide code and table contents scroll within that edge. */
+.api-item,
+.container table,
+.code-block,
+.blockquote {
+    width: 100%;
+    max-width: 100%;
 }
 
 .module-overview {
@@ -445,7 +461,7 @@ body {
 }
 
 .module-overview > p:first-of-type {
-    max-width: var(--swag-measure);
+    max-width: 100%;
     color: var(--swag-ink-soft);
     font-size: 1.14rem;
     line-height: 1.55;
@@ -613,7 +629,6 @@ body {
 /* ---------------------------------------------------------------- tables -- */
 
 .container table {
-    max-width: 100%;
     margin: 20px 0;
     border-collapse: collapse;
     font-size: .93rem;
@@ -644,16 +659,6 @@ body {
 .container .align-left { text-align: left; }
 .container .align-center { text-align: center; }
 .container .align-right { text-align: right; }
-
-.container .table-markdown {
-    width: 100%;
-    max-width: var(--swag-measure);
-}
-
-.table-enumeration,
-.api-summary {
-    width: 100%;
-}
 
 .api-summary p {
     margin: 0;
@@ -784,7 +789,6 @@ body {
 /* ------------------------------------------------------------- callouts --- */
 
 .blockquote {
-    max-width: var(--swag-measure);
     margin: 20px 0;
     padding: 13px 16px;
     background: color-mix(in srgb, var(--swag-quote-color, #888) 8%, var(--swag-bg));
@@ -863,11 +867,12 @@ body {
     text-indent: .2em;
 }
 
-.hero-line {
+.right .hero-line {
     max-width: 46ch;
     margin: 26px auto 0;
     color: #c9c9cf;
     font-size: 1.16rem;
+    text-align: center;
 }
 
 .hero-actions {
@@ -964,7 +969,7 @@ body {
 /* ---------------------------------------------------------------- footer -- */
 
 .site-footer {
-    width: min(100%, 1080px);
+    width: min(100%, var(--swag-measure));
     margin: 0 auto;
     padding: 22px 8px 52px;
     color: var(--swag-ink-faint);
@@ -986,7 +991,7 @@ body {
 }
 
 .swag-footer-note {
-    max-width: var(--swag-measure);
+    max-width: 100%;
     margin-bottom: 6px;
 }
 

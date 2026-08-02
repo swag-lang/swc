@@ -792,9 +792,9 @@ func compare(src, dst: const [..] u8, comparisonType = ComparisonType.Latin1)->s
 
 // Macro to visit the unicode characters of the utf8 sequence.
 // Block parameters:
-// * 'c':       the character
-// * 'charIdx': the character index
-// * 'byteIdx': the byte index of that character within the utf8 sequence
+// - 'c':       the character
+// - 'charIdx': the character index
+// - 'byteIdx': the byte index of that character within the utf8 sequence
 #[Swag.Macro]
 func visitRunes(buffer: const [..] u8, stmt: #code(c: rune, charIdx: u64, byteIdx: u64))
 {

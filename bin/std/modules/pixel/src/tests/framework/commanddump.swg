@@ -21,10 +21,10 @@ enum DumpLevel
 // The result is meant to be stored as a golden file and compared verbatim, so every value that
 // is not reproducible across runs or machines is normalized away:
 //
-// + Texture handles, font and render target addresses, and shader uniform locations are replaced
+// - Texture handles, font and render target addresses, and shader uniform locations are replaced
 //   by 'tex#N', 'font#N', 'rt#N', 'shader#N' and 'p#N' indices assigned in first-use order.
-// + Font labels keep only the file name of the underlying typeface, never its directory.
-// + Floating point values are rounded to three decimals and printed without an exponent.
+// - Font labels keep only the file name of the underlying typeface, never its directory.
+// - Floating point values are rounded to three decimals and printed without an exponent.
 //
 // The snapshot opens with one '#' legend line per remapped object, then a blank line, then one
 // line per command. Lines are separated by a single '\n' and the result ends with a '\n'.

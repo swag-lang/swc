@@ -396,6 +396,12 @@
     <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.NarrowExtend.cpp">
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.FloatOrderedCompare.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.CommuteConst.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
     <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.StoreToLoad.cpp">
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClCompile>

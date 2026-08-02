@@ -171,6 +171,16 @@ void MicroRegisterAllocationPass::initState(MicroPassContext& context)
             break;
         }
     }
+
+    // What each address load points at, so rematerializing one can carry its
+    // relocation along. Snapshotted by value: the builder's vector grows every
+    // time a remade load is inserted.
+    relocationByDefInstruction_.clear();
+    for (const MicroRelocation& reloc : (context.builder)->codeRelocations())
+    {
+        if (reloc.instructionRef.isValid())
+            relocationByDefInstruction_[reloc.instructionRef] = reloc;
+    }
 }
 
 uint32_t MicroRegisterAllocationPass::allocRequestPriority(const AllocRequest& request)
@@ -1915,11 +1925,13 @@ void MicroRegisterAllocationPass::ensureSpillSlot(VRegState& regState, bool isFl
 
 void MicroRegisterAllocationPass::clearRematerialization(VRegState& regState)
 {
-    regState.rematerializable = false;
-    regState.rematImmediate   = {};
-    regState.rematBits        = MicroOpBits::B64;
-    regState.rematDefInstRef  = MicroInstrRef::invalid();
-    regState.rematDefConsumed = false;
+    regState.rematerializable  = false;
+    regState.rematImmediate    = {};
+    regState.rematBits         = MicroOpBits::B64;
+    regState.rematDefInstRef   = MicroInstrRef::invalid();
+    regState.rematDefConsumed  = false;
+    regState.rematIsRelocated  = false;
+    regState.rematRelocation   = {};
 }
 
 void MicroRegisterAllocationPass::noteRematDefConsumed(VRegState& regState)
@@ -1938,6 +1950,17 @@ void MicroRegisterAllocationPass::retireRematDef(VRegState& regState)
 
     regState.rematDefInstRef  = MicroInstrRef::invalid();
     regState.rematDefConsumed = false;
+}
+
+void MicroRegisterAllocationPass::insertPending(const MicroInstrRef beforeRef, const PendingInsert& pendingInst)
+{
+    const MicroInstrRef insertedRef = instructions_->insertSyntheticBefore(*operands_, beforeRef, pendingInst.op, std::span(pendingInst.ops, pendingInst.numOps));
+    if (!pendingInst.hasRelocation)
+        return;
+
+    MicroRelocation reloc = pendingInst.relocation;
+    reloc.instructionRef  = insertedRef;
+    (context_->builder)->addRelocation(reloc);
 }
 
 void MicroRegisterAllocationPass::queueErase(const MicroInstrRef instRef)
@@ -1982,11 +2005,33 @@ uint64_t MicroRegisterAllocationPass::spillMemOffset(uint64_t spillOffset, int64
 void MicroRegisterAllocationPass::queueRematerializedLoad(PendingInsert& out, MicroReg physReg, const VRegState& regState)
 {
     SWC_ASSERT(regState.rematerializable);
-    out.op            = MicroInstrOpcode::LoadRegImm;
+
+    // Remaking a float zero as an immediate means staging it through an integer
+    // register, because no instruction moves a constant straight into an xmm
+    // one. Clearing is a single instruction. Only floats: the integer clear is
+    // an xor, and it would wipe flags this insertion point may have live.
+    if (!regState.rematIsRelocated && physReg.isAnyFloat() && !regState.rematImmediate.hasWideImmediateValue() && regState.rematImmediate.valueU64 == 0)
+    {
+        out.op            = MicroInstrOpcode::ClearReg;
+        out.numOps        = 2;
+        out.ops[0].reg    = physReg;
+        out.ops[1].opBits = regState.rematBits;
+        return;
+    }
+
+    out.op            = regState.rematIsRelocated ? MicroInstrOpcode::LoadRegPtrReloc : MicroInstrOpcode::LoadRegImm;
     out.numOps        = 3;
     out.ops[0].reg    = physReg;
     out.ops[1].opBits = regState.rematBits;
     out.ops[2]        = regState.rematImmediate;
+
+    if (regState.rematIsRelocated)
+    {
+        out.relocation                = regState.rematRelocation;
+        out.relocation.instructionRef = MicroInstrRef::invalid();
+        out.relocation.codeOffset     = 0;
+        out.hasRelocation             = true;
+    }
 }
 
 void MicroRegisterAllocationPass::queueSpillStore(PendingInsert& out, MicroReg physReg, const VRegState& regState, int64_t stackDepth) const
@@ -2061,6 +2106,25 @@ void MicroRegisterAllocationPass::updateRematerializationForDef(VRegState& regSt
             }
             return;
 
+        case MicroInstrOpcode::LoadRegPtrReloc:
+        {
+            // Remaking one of these costs the same single instruction it cost
+            // the first time, so it must never reach a spill slot. Without this
+            // an address shared by several uses — which common-subexpression
+            // elimination is what creates — turns into a store plus a reload.
+            if (instOps[0].reg != virtKey)
+                return;
+            const auto relocIt = relocationByDefInstruction_.find(instRef);
+            if (relocIt == relocationByDefInstruction_.end())
+                return;
+
+            setRematerializedImmediate(regState, instOps[2], instOps[1].opBits);
+            regState.rematDefInstRef  = instRef;
+            regState.rematIsRelocated = true;
+            regState.rematRelocation  = relocIt->second;
+            return;
+        }
+
         case MicroInstrOpcode::LoadRegReg:
             if (instOps[0].reg == virtKey && instOps[1].reg.isVirtual())
             {
@@ -2070,6 +2134,11 @@ void MicroRegisterAllocationPass::updateRematerializationForDef(VRegState& regSt
                     regState.rematerializable = srcState.rematerializable;
                     regState.rematImmediate   = srcState.rematImmediate;
                     regState.rematBits        = srcState.rematBits;
+                    // A relocated address is only an immediate once the emitter
+                    // has patched it; carrying the recipe without its relocation
+                    // would remake the unpatched word.
+                    regState.rematIsRelocated = srcState.rematIsRelocated;
+                    regState.rematRelocation  = srcState.rematRelocation;
                     // Don't track this copy as a remat-def: cleaning it up belongs
                     // to the pre-RA copy elimination pass, not to RA's own bookkeeping.
                 }
@@ -2844,7 +2913,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
         // one) so the value's home slot is updated before any boundary flush,
         // call, or branch of the current instruction can act on it.
         for (const auto& storeInst : deferredLoopCarriedStores_)
-            instructions_->insertSyntheticBefore(*operands_, instructionRef, storeInst.op, std::span(storeInst.ops, storeInst.numOps));
+            insertPending(instructionRef, storeInst);
         deferredLoopCarriedStores_.clear();
 
         // Give back a register borrowed from a previous sweep, now that the
@@ -2867,7 +2936,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             reload.ops[1].reg      = conv_->stackPointer;
             reload.ops[2].opBits   = restore.slotBits;
             reload.ops[3].valueU64 = spillMemOffset(restore.slotOffset, stackDepth);
-            instructions_->insertSyntheticBefore(*operands_, instructionRef, reload.op, std::span(reload.ops, reload.numOps));
+            insertPending(instructionRef, reload);
             pendingBorrowRestores_.erase(pendingBorrowRestores_.begin() + restoreIndex);
         }
 
@@ -2880,7 +2949,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             flushAllMappedVirtuals(stamp, stackDepth, boundaryPending_);
             for (const auto& pendingInst : boundaryPending_)
             {
-                instructions_->insertSyntheticBefore(*operands_, instructionRef, pendingInst.op, std::span(pendingInst.ops, pendingInst.numOps));
+                insertPending(instructionRef, pendingInst);
             }
         }
 
@@ -3203,7 +3272,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
 
         for (const auto& pendingInst : pending_)
         {
-            instructions_->insertSyntheticBefore(*operands_, instructionRef, pendingInst.op, std::span(pendingInst.ops, pendingInst.numOps));
+            insertPending(instructionRef, pendingInst);
         }
 
         expireDeadMappings(stamp);

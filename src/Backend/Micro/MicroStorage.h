@@ -96,6 +96,12 @@ public:
     const MicroInstr*                     ptr(MicroInstrRef ref) const noexcept;
     std::pair<MicroInstrRef, MicroInstr*> emplaceUninit();
     bool                                  erase(MicroInstrRef ref);
+    // An erased slot is only handed out again once everything keyed by its
+    // reference has been dropped. Relocations are keyed that way, and a pass
+    // that erases a relocated load and inserts an instruction before its own
+    // cleanup runs would otherwise see the new instruction inherit the old
+    // relocation. MicroBuilder::pruneDeadRelocations is what calls this.
+    void                                  releaseErasedRefs();
     MicroInstrRef                         findNextInstructionRef(MicroInstrRef afterRef) const noexcept;
     MicroInstrRef                         findPreviousInstructionRef(MicroInstrRef beforeRef) const noexcept;
     MicroInstrRef                         insertBefore(MicroInstrRef beforeRef, const MicroInstr& value);
@@ -120,6 +126,7 @@ private:
 
     std::vector<Node>          nodes_;
     std::vector<MicroInstrRef> freeList_;
+    std::vector<MicroInstrRef> quarantinedRefs_;
     MicroInstrRef              head_     = MicroInstrRef::invalid();
     MicroInstrRef              tail_     = MicroInstrRef::invalid();
     uint32_t                   count_    = 0;

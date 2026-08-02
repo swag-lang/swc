@@ -6970,7 +6970,7 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">bindRenderTarget</span>(tgt: *<span class="SCst"><a href="#Pixel_RenderTarget">RenderTarget</a></span>, paintAlpha = <span class="SKwd">false</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Painter_capStyleExtent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.capStyleExtent</span> <a class="api-item-permalink" href="#Pixel_Painter_capStyleExtent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/drawpath.swg#L927">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Painter_capStyleExtent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Painter.capStyleExtent</span> <a class="api-item-permalink" href="#Pixel_Painter_capStyleExtent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/drawpath.swg#L928">src</a></div>
 <p>Returns the extent in both directions of a given LineCapStyle.</p>
 <ul>
 <li><span class="code-inline">lineSize</span> is the supposed line drawing size</li>
@@ -7721,16 +7721,11 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <div class="api-item api-item-func"><span id="Pixel_Testing_dumpPainter" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Testing.dumpPainter</span> <a class="api-item-permalink" href="#Pixel_Testing_dumpPainter" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/tests/framework/commanddump.swg#L36">src</a></div>
 <p>Serializes the display list recorded by <span class="code-inline">painter</span> into a stable, human readable snapshot.</p>
 <p>The result is meant to be stored as a golden file and compared verbatim, so every value that is not reproducible across runs or machines is normalized away:</p>
-<div class="description-list-title"><p>Texture handles, font and render target addresses, and shader uniform locations are replaced</p></div>
-<div class="description-list-block">
-</div>
-<p>by <span class="code-inline">tex#N</span>, <span class="code-inline">font#N</span>, <span class="code-inline">rt#N</span>, <span class="code-inline">shader#N</span> and <span class="code-inline">p#N</span> indices assigned in first-use order.</p>
-<div class="description-list-title"><p>Font labels keep only the file name of the underlying typeface, never its directory.</p></div>
-<div class="description-list-block">
-</div>
-<div class="description-list-title"><p>Floating point values are rounded to three decimals and printed without an exponent.</p></div>
-<div class="description-list-block">
-</div>
+<ul>
+<li>Texture handles, font and render target addresses, and shader uniform locations are replaced by <span class="code-inline">tex#N</span>, <span class="code-inline">font#N</span>, <span class="code-inline">rt#N</span>, <span class="code-inline">shader#N</span> and <span class="code-inline">p#N</span> indices assigned in first-use order.</li>
+<li>Font labels keep only the file name of the underlying typeface, never its directory.</li>
+<li>Floating point values are rounded to three decimals and printed without an exponent.</li>
+</ul>
 <p>The snapshot opens with one <span class="code-inline">#</span> legend line per remapped object, then a blank line, then one line per command. Lines are separated by a single <span class="code-inline">\n</span> and the result ends with a <span class="code-inline">\n</span>.</p>
 <p><span class="code-inline">painter</span> must have completed a <span class="code-inline">begin()</span> / <span class="code-inline">end()</span> pass; the painter is only read, never modified. A lower <span class="code-inline">level</span> keeps snapshots of composite drawings (widgets, whole windows) readable while still catching command level regressions.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">dumpPainter</span>(painter: <span class="SKwd">const</span> *<span class="SCst"><a href="#Pixel_Painter">Painter</a></span>, level = <span class="SCst"><a href="#Pixel_Testing_DumpLevel">DumpLevel</a></span>.<span class="SCst"><a href="#Pixel_Testing_DumpLevel_Full">Full</a></span>)-&gt;<span class="SCst"><a href="std.core.html#Core_String">String</a></span></span></div>
@@ -8093,15 +8088,14 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <p>Adjusts the color to meet a required contrast ratio against <span class="code-inline">target</span>.</p>
 <p>The result meets or exceeds <span class="code-inline">requiredContrast</span> using the WCAG contrast calculation. The function iteratively darkens or lightens the color in the direction that increases contrast most effectively.</p>
 <ul>
-<li>Parameters:</li>
+<li>Parameters:
+<ul>
 <li>target: The color to contrast against (e.g., foreground or background).</li>
 <li>requiredContrast: The minimum contrast ratio (default = 4.5 for normal text).</li>
-<li>step: Brightness adjustment per iteration. Positive values move toward lighter,</li>
-</ul>
-<div class="code-block"><span class="SCde">      negative toward darker; the function automatically picks direction.
-</span></div>
-<ul>
+<li>step: Brightness adjustment per iteration. Positive values move toward lighter, negative toward darker; the function automatically picks direction.</li>
 <li>maxSteps: Maximum number of iterations (safety cap).</li>
+</ul>
+</li>
 <li>Returns: A new color meeting or exceeding the required contrast ratio.</li>
 </ul>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">ensureContrast</span>(target: <span class="SCst"><a href="#Pixel_Color">Color</a></span>, requiredContrast: <span class="STpe">f32</span> = <span class="SNum">4.5</span>, step: <span class="STpe">f32</span> = <span class="SNum">0.02</span>, maxSteps: <span class="STpe">s32</span> = <span class="SNum">64</span>)</span></div>

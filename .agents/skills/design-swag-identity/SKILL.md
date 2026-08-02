@@ -146,7 +146,10 @@ show syntax the compiler no longer accepts.
   a name the compiler knows, it is monospace.
 - Section labels and kind chips: uppercase, `.09em` to `.16em` tracking, small. They are
   labels, not headings.
-- Body measure stops at 80 characters. Tables and code may use the full column.
+- Set the documentation content column to a maximum of `120ch`. Resolve that measure on
+  the shared prose-font container, then make paragraphs, lead text, code, tables, API
+  blocks, and callouts fill it; never reapply the `ch` measure on descendants whose font
+  family or size would produce a different right edge.
 - One `h1` per page. An `h2` carries a leaning voltage rule above it; nothing else does.
 
 ## Build The Interface

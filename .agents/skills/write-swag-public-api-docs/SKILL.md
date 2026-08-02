@@ -91,6 +91,26 @@ requested.
 - Put literal `[[...]]` syntax in inline or fenced code. The audit ignores code
   while checking unresolved symbol references.
 - Use standard headings, emphasis, links, images, unordered or ordered lists, description lists, and Markdown tables.
+- Spell every unordered-list marker as `- `. Indent a wrapped line to the item's content column so the generator merges it into the same item, indent nested lists by two more spaces, and leave an empty `//` line before the paragraph that follows a list. For example:
+
+  ```swag
+  // - The first item continues on this
+  //   indented source line.
+  // - The second item contains a nested list:
+  //   - A nested item.
+  //
+  // This paragraph is outside the list.
+  ```
+
+- Inside `.Examples` `/** ... */` prose, apply the same marker and indentation rules to the raw content lines; do not add a Javadoc `*` prefix to every line.
+- Spell ordered-list markers as `1. `, `2. `, and so on. Apply the same continuation, nesting, and separating-blank-line rules as for unordered lists.
+- Reserve `+ ` for description-list terms; never use it as an unordered-list marker. Indent the description below its term:
+
+  ```swag
+  // + 'fmt'
+  //     Selects the output format.
+  ```
+
 - Use `> NOTE:`, `> TIP:`, `> WARNING:`, `> ATTENTION:`, or `> EXAMPLE:` for callouts.
 - Use `<html>...</html>` only when the supported markup cannot express the required layout.
 - Keep generated pages static: link only to `.html` documentation pages and never add PHP or script elements.

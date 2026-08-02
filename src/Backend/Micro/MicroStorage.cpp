@@ -197,6 +197,7 @@ void MicroStorage::clear() noexcept
     ++revision_;
     nodes_.clear();
     freeList_.clear();
+    quarantinedRefs_.clear();
     head_  = MicroInstrRef::invalid();
     tail_  = MicroInstrRef::invalid();
     count_ = 0;
@@ -252,7 +253,7 @@ bool MicroStorage::erase(MicroInstrRef ref)
         tail_ = node.prev;
 
     node = Node{};
-    freeList_.push_back(ref);
+    quarantinedRefs_.push_back(ref);
     SWC_ASSERT(count_ > 0);
     --count_;
     ++revision_;
@@ -363,6 +364,15 @@ MicroStorage::View MicroStorage::view() noexcept
 MicroStorage::ConstView MicroStorage::view() const noexcept
 {
     return ConstView(this);
+}
+
+void MicroStorage::releaseErasedRefs()
+{
+    if (quarantinedRefs_.empty())
+        return;
+
+    freeList_.insert(freeList_.end(), quarantinedRefs_.begin(), quarantinedRefs_.end());
+    quarantinedRefs_.clear();
 }
 
 MicroInstrRef MicroStorage::allocNode()

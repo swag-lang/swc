@@ -287,13 +287,75 @@ Utf8 DocMarkdown::renderCodeBlock(const TaskContext& ctx, const std::string_view
 }
 namespace
 {
-    bool isOrderedListLine(const std::string_view line)
+    struct ListMarker
     {
-        const std::string_view value = Utf8Helper::trim(line);
-        size_t                 i     = 0;
-        while (i < value.size() && std::isdigit(static_cast<unsigned char>(value[i])))
-            i++;
-        return i > 0 && i + 1 < value.size() && value[i] == '.' && value[i + 1] == ' ';
+        size_t indent        = 0;
+        size_t contentIndent = 0;
+        size_t contentOffset = 0;
+        bool   ordered       = false;
+    };
+
+    size_t leadingIndent(const std::string_view line)
+    {
+        size_t result = 0;
+        for (const char c : line)
+        {
+            if (c == ' ')
+                result++;
+            else if (c == '\t')
+                result += 4;
+            else
+                break;
+        }
+        return result;
+    }
+
+    bool tryReadListMarker(const std::string_view line, ListMarker& outMarker)
+    {
+        size_t offset = 0;
+        size_t indent = 0;
+        while (offset < line.size() && (line[offset] == ' ' || line[offset] == '\t'))
+        {
+            indent += line[offset] == '\t' ? 4 : 1;
+            offset++;
+        }
+
+        if (offset + 1 < line.size() && (line[offset] == '*' || line[offset] == '-') && line[offset + 1] == ' ')
+        {
+            outMarker = {
+                .indent        = indent,
+                .contentIndent = indent + 2,
+                .contentOffset = offset + 2,
+                .ordered       = false,
+            };
+            return true;
+        }
+
+        const size_t digitsStart = offset;
+        while (offset < line.size() && std::isdigit(static_cast<unsigned char>(line[offset])))
+            offset++;
+        if (offset == digitsStart || offset + 1 >= line.size() || line[offset] != '.' || line[offset + 1] != ' ')
+            return false;
+
+        outMarker = {
+            .indent        = indent,
+            .contentIndent = indent + offset - digitsStart + 2,
+            .contentOffset = offset + 2,
+            .ordered       = true,
+        };
+        return true;
+    }
+
+    std::string_view removeLeadingIndent(const std::string_view line, const size_t indent)
+    {
+        size_t offset  = 0;
+        size_t removed = 0;
+        while (offset < line.size() && removed < indent && (line[offset] == ' ' || line[offset] == '\t'))
+        {
+            removed += line[offset] == '\t' ? 4 : 1;
+            offset++;
+        }
+        return line.substr(offset);
     }
 
     enum class TableAlign : uint8_t
@@ -366,19 +428,86 @@ namespace
         return cells;
     }
 
+    bool isExplicitMarkdownBlockStart(const std::string_view line)
+    {
+        if (line.empty() || line == "---" || line.starts_with("```") || line.starts_with(">") || line.starts_with("# ") || line.starts_with("## ") || line.starts_with("### ") || line.starts_with("#### ") || line.starts_with("##### ") || line.starts_with("###### "))
+            return true;
+        if (line.starts_with("+ ") || line.starts_with("<html>"))
+            return true;
+        return line.starts_with("|");
+    }
+
     bool isMarkdownBlockStart(std::span<const Utf8> lines, const size_t index)
     {
         const std::string_view raw  = lines[index];
         const std::string_view line = Utf8Helper::trim(raw);
-        if (line.empty() || line == "---" || line.starts_with("```") || line.starts_with(">") || line.starts_with("# ") || line.starts_with("## ") || line.starts_with("### ") || line.starts_with("#### ") || line.starts_with("##### ") || line.starts_with("###### "))
+        if (isExplicitMarkdownBlockStart(line))
             return true;
         if (raw.starts_with("    ") || raw.starts_with("\t"))
             return true;
-        if (line.starts_with("* ") || line.starts_with("- ") || line.starts_with("+ ") || isOrderedListLine(line))
-            return true;
-        if (line.starts_with("<html>"))
-            return true;
-        return line.starts_with("|");
+        ListMarker marker;
+        return tryReadListMarker(raw, marker);
+    }
+
+    Utf8 renderList(const DocRenderContext& renderCtx, std::span<const Utf8> lines, size_t& index, const uint32_t headingOffset)
+    {
+        ListMarker firstMarker;
+        SWC_ASSERT(tryReadListMarker(lines[index], firstMarker));
+
+        Utf8 result;
+        result += firstMarker.ordered ? "<ol>\n" : "<ul>\n";
+        while (index < lines.size())
+        {
+            ListMarker marker;
+            if (!tryReadListMarker(lines[index], marker) || marker.indent != firstMarker.indent || marker.ordered != firstMarker.ordered)
+                break;
+
+            std::vector<Utf8> itemLines;
+            itemLines.emplace_back(Utf8Helper::trim(std::string_view(lines[index]).substr(marker.contentOffset)));
+            index++;
+
+            bool followsBlankLine = false;
+            while (index < lines.size())
+            {
+                const std::string_view raw  = lines[index];
+                const std::string_view line = Utf8Helper::trim(raw);
+                if (line.empty())
+                {
+                    itemLines.emplace_back();
+                    followsBlankLine = true;
+                    index++;
+                    continue;
+                }
+
+                ListMarker nextMarker;
+                const bool hasMarker = tryReadListMarker(raw, nextMarker);
+                if (hasMarker && nextMarker.indent <= marker.indent)
+                    break;
+
+                const size_t indent = leadingIndent(raw);
+                if ((followsBlankLine || isMarkdownBlockStart(lines, index)) && indent <= marker.indent)
+                    break;
+
+                if (hasMarker || isExplicitMarkdownBlockStart(line))
+                    itemLines.emplace_back(removeLeadingIndent(raw, marker.contentIndent));
+                else
+                    itemLines.emplace_back(line);
+                followsBlankLine = false;
+                index++;
+            }
+
+            Utf8 item = DocMarkdown::renderLines(renderCtx, itemLines, headingOffset);
+            if (item.starts_with("<p>"))
+            {
+                item.erase(0, 3);
+                const size_t paragraphEnd = item.find("</p>\n");
+                if (paragraphEnd != Utf8::npos)
+                    item.erase(paragraphEnd, paragraphEnd + 5 == item.size() ? 5 : 4);
+            }
+            result.append(std::format("<li>{}</li>\n", item));
+        }
+        result += firstMarker.ordered ? "</ol>\n" : "</ul>\n";
+        return result;
     }
 }
 
@@ -613,30 +742,10 @@ Utf8 DocMarkdown::renderLines(const DocRenderContext& renderCtx, std::span<const
             continue;
         }
 
-        if (line.starts_with("* ") || line.starts_with("- ") || isOrderedListLine(line))
+        ListMarker listMarker;
+        if (tryReadListMarker(raw, listMarker))
         {
-            const bool ordered = isOrderedListLine(line);
-            result += ordered ? "<ol>\n" : "<ul>\n";
-            while (index < lines.size())
-            {
-                std::string_view item = Utf8Helper::trim(lines[index]);
-                if (ordered)
-                {
-                    if (!isOrderedListLine(item))
-                        break;
-                    item.remove_prefix(item.find('.') + 1);
-                }
-                else
-                {
-                    if (!item.starts_with("* ") && !item.starts_with("- "))
-                        break;
-                    item.remove_prefix(1);
-                }
-                item = Utf8Helper::trim(item);
-                result.append(std::format("<li>{}</li>\n", renderInline(renderCtx, item)));
-                index++;
-            }
-            result += ordered ? "</ol>\n" : "</ul>\n";
+            result += renderList(renderCtx, lines, index, headingOffset);
             continue;
         }
 

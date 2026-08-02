@@ -920,8 +920,9 @@ public impl Painter
 
     // Returns the extent in both directions of a given LineCapStyle.
     //
-    // * 'lineSize' is the supposed line drawing size
-    // * 'capScale' is the supposed LineCapStyle scale
+    // - 'lineSize' is the supposed line drawing size
+    // - 'capScale' is the supposed LineCapStyle scale
+    //
     // Returns the width and the length.
     func capStyleExtent(capStyle: LineCapStyle, lineSize, capScale: f32)->{ w: f32, l: f32 }
     {

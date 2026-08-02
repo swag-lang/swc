@@ -15,25 +15,25 @@ private const DeflateMaxExpansion = 1032'u64
 Binary serializer with forward/backward compatibility.
 Changes that are supported from V to V+1 are :
 
-* Add a new field. The new field will stay at the default value.
-* Remove a field. It will just be ignored.
-* Reorder of fields, as long as their name/type are the same.
-* Rename a field with 'Serialization.Alias'.
+- Add a new field. The new field will stay at the default value.
+- Remove a field. It will just be ignored.
+- Reorder of fields, as long as their name/type are the same.
+- Rename a field with 'Serialization.Alias'.
 
 Supported type changes are :
 
-* Conversion from integer/float/rune/bool to integer/float/rune/bool.
-* Change the size of a static array.
-* Conversion from a static array to a dynamic `Core.Array`, and vice versa.
-* Conversion from a single value to a static array or `Core.Array`, and vice versa.
-* Rename a struct with 'Serialization.Alias'.
-* Convert an existing complexe type to 'Serialization.Final'
+- Conversion from integer/float/rune/bool to integer/float/rune/bool.
+- Change the size of a static array.
+- Conversion from a static array to a dynamic `Core.Array`, and vice versa.
+- Conversion from a single value to a static array or `Core.Array`, and vice versa.
+- Rename a struct with 'Serialization.Alias'.
+- Convert an existing complexe type to 'Serialization.Final'
 
 Supported attributes are :
 
-* 'Serialisation.Version'. If version is specified, then loading will not have versioning if versions are the same
-* 'Serialization.Alias'. To rename a field or a struct type. Multiple aliases are supported.
-* 'Serialization.Final'. The struct will be loaded/saved without versioning (faster and lower serialization size)
+- 'Serialisation.Version'. If version is specified, then loading will not have versioning if versions are the same
+- 'Serialization.Alias'. To rename a field or a struct type. Multiple aliases are supported.
+- 'Serialization.Final'. The struct will be loaded/saved without versioning (faster and lower serialization size)
 */
 struct TagBin
 {

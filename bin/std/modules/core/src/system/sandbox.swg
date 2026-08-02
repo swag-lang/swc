@@ -133,7 +133,8 @@ func isSandboxed()->bool => g_Sandboxed
 
 // Reports whether the process is a smoke run: the real program, bounded by its launcher.
 //
-// Code driving its own loop instead of [[Gui.Application.run]] asks this to know when to stop.
+// Code driving its own loop instead of [Gui.Application.run](std.gui.html#Gui_Application_run)
+// asks this to know when to stop.
 // Nothing else should branch on it: a smoke run must exercise the same paths as a real one.
 func isSmokeRun()->bool => smokeFrames() != 0
 

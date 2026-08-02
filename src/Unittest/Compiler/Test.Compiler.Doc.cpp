@@ -120,6 +120,46 @@ const value = 1
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_DocMarkdownRendersCompleteLists)
+{
+    static constexpr std::string_view SOURCE = R"(- A list item that continues
+  on the following source line.
+- A parent item:
+  - A nested item that also
+          continues with aligned prose.
+  - Another nested item.
+- A final item.
+
+1. A numbered item that continues
+   on the following source line.
+2. Another numbered item.
+
+- A code parent:
+  - A nested code item:
+    ```
+    payload
+    ```
+
++ 'fmt'
+    Selects the output format.
+)";
+
+    const Utf8 html = DocGenerator::renderMarkdownForTest(ctx, SOURCE);
+    if (!html.contains("<li>A list item that continues on the following source line.</li>"))
+        return Result::Error;
+    if (!html.contains("<li>A parent item:\n<ul>\n<li>A nested item that also continues with aligned prose.</li>\n<li>Another nested item.</li>\n</ul>\n</li>"))
+        return Result::Error;
+    if (!html.contains("<ol>\n<li>A numbered item that continues on the following source line.</li>\n<li>Another numbered item.</li>\n</ol>"))
+        return Result::Error;
+    if (!html.contains("A nested code item:\n<div class=\"code-block\"><span class=\"SCde\">payload\n</span></div>\n</li>"))
+        return Result::Error;
+    if (!html.contains("<div class=\"description-list-title\"><p><span class=\"code-inline\">fmt</span></p></div>"))
+        return Result::Error;
+    if (!html.contains("<div class=\"description-list-block\">\n<p>Selects the output format.</p>\n</div>"))
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Compiler_DocMarkdownRendersHeaderlessTableAndNestedInline)
 {
     // A pipe run without a separator row is a long-standing Swag spelling for a two column
@@ -140,6 +180,56 @@ Swag **does not require `break`** at the end of each case, and see https://swag-
     if (!html.contains("<b>does not require <span class=\"code-inline\">break</span></b>"))
         return Result::Error;
     if (!html.contains("<a href=\"https://swag-lang.org/index.php\">https://swag-lang.org/index.php</a>"))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(Compiler_DocExamplesNestTableOfContentsLists)
+{
+    static constexpr std::string_view SOURCE = "/** Documentation chapter. */";
+
+    ScopedDocTestDirectory directory("examples-toc");
+    if (!directory.ready())
+        return Result::Error;
+
+    const fs::path modulePath  = directory.root() / "module.swg";
+    const fs::path chapterPath = directory.root() / "001_000_chapter.swg";
+    const fs::path firstPath   = directory.root() / "001_001_first_topic.swg";
+    const fs::path secondPath  = directory.root() / "001_002_second_topic.swg";
+
+    CommandLine cmdLine;
+    cmdLine.command        = CommandKind::Doc;
+    cmdLine.name           = "compiler_doc_examples_test";
+    cmdLine.docOutputDir   = directory.root();
+    cmdLine.moduleFilePath = modulePath;
+    cmdLine.modulePath     = directory.root();
+    cmdLine.files.insert(chapterPath);
+    cmdLine.files.insert(firstPath);
+    cmdLine.files.insert(secondPath);
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    FileSystem::IoErrorInfo moduleIoError;
+    SWC_RESULT(FileSystem::writeBinaryFile(modulePath, nullptr, 0, moduleIoError));
+
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    Unittest::registerTestSource(compiler, chapterPath, SOURCE);
+    Unittest::registerTestSource(compiler, firstPath, SOURCE);
+    Unittest::registerTestSource(compiler, secondPath, SOURCE);
+    Command::sema(compiler);
+
+    Runtime::BuildCfgGenDoc& genDoc = compiler.buildCfg().genDoc;
+    genDoc.kind                     = Runtime::BuildCfgDocKind::Examples;
+    genDoc.outputName               = runtimeString("examples-toc");
+
+    TaskContext                  compilerCtx(compiler);
+    DocGenerator::GenerateResult generated;
+    const DocGenerator           generator(compilerCtx);
+    SWC_RESULT(generator.generate(generated));
+
+    std::string             content;
+    FileSystem::IoErrorInfo ioError;
+    SWC_RESULT(FileSystem::readTextFile(directory.root() / "examples-toc.html", content, ioError));
+    if (!content.contains("<li><a href=\"#_001_000_chapter_swg\">Chapter</a>\n<ul>\n<li><a href=\"#_001_001_first_topic_swg\">First Topic</a></li>\n<li><a href=\"#_001_002_second_topic_swg\">Second Topic</a></li>\n</ul>\n</li>"))
         return Result::Error;
 }
 SWC_TEST_END()
@@ -352,6 +442,12 @@ func hidden(value: s32)->s32
     const fs::path stylesheetPath = directory.root() / "style.css";
     SWC_RESULT(FileSystem::readTextFile(stylesheetPath, content, ioError));
     if (!content.contains(".site-header") || !content.contains(".code-block"))
+        return Result::Error;
+    if (!content.contains("--swag-measure: 120ch;"))
+        return Result::Error;
+    if (!content.contains(".right-page {\n    /* Resolve the character measure once with the prose font.") || !content.contains("width: min(100%, var(--swag-measure));"))
+        return Result::Error;
+    if (!content.contains(".right p {\n    width: 100%;\n    max-width: 100%;\n    text-align: justify;") || !content.contains(".container table,\n.code-block,\n.blockquote {\n    width: 100%;\n    max-width: 100%;"))
         return Result::Error;
 }
 SWC_TEST_END()

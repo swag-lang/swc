@@ -78,15 +78,9 @@ tools\test-all-configurations.bat dm
 <ul>
 <li>Add one regression concept per small file or clearly named group.</li>
 <li>Keep every individual test below 40 seconds, excluding compiler build time.</li>
-<li>Avoid external services, user-specific paths, timing assumptions, and random</li>
-</ul>
-<p>input without a recorded seed.</p>
-<ul>
+<li>Avoid external services, user-specific paths, timing assumptions, and random input without a recorded seed.</li>
 <li>Keep passing tests silent; use temporary <span class="code-inline">@print</span> calls only while debugging.</li>
-<li>Review any <span class="code-inline">*.actual.txt</span> snapshot before accepting it with</li>
-</ul>
-<p><span class="code-inline">tools\accept-test-goldens.bat</span>.</p>
-<ul>
+<li>Review any <span class="code-inline">*.actual.txt</span> snapshot before accepting it with <span class="code-inline">tools\accept-test-goldens.bat</span>.</li>
 <li>Retain a regression test after the compiler fix lands.</li>
 </ul>
 <p>The executable <a href="language.html">language reference</a> is also a regression suite, but it should teach supported behavior. Put edge cases and rejected forms in <span class="code-inline">bin/unittests</span> unless they materially improve the explanation.</p>

@@ -32,8 +32,10 @@ namespace
         PatternRegistry r;
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryOpBinaryRegImm);
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryFoldRedundantMaskBeforeShift);
+        r.add(MicroInstrOpcode::OpBinaryRegReg, tryDropFloatOrderedGuard);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryOpBinaryRegReg);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldConstBinaryRhs);
+        r.add(MicroInstrOpcode::OpBinaryRegReg, tryCommuteConstantLhs);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFuseInPlaceUpdate);
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryFuseInPlaceUpdate);
         r.add(MicroInstrOpcode::OpBinaryRegMem, tryFuseInPlaceUpdate);

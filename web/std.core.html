@@ -8521,11 +8521,27 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Core_Serialization_Read_TagBin" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Read.TagBin</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBin" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L39">src</a></div>
 <p>Binary serializer with forward/backward compatibility. Changes that are supported from V to V+1 are :</p>
-<p>Add a new field. The new field will stay at the default value. Remove a field. It will just be ignored. Reorder of fields, as long as their name/type are the same. Rename a field with <span class="code-inline">Serialization.Alias</span>.</p>
+<ul>
+<li>Add a new field. The new field will stay at the default value.</li>
+<li>Remove a field. It will just be ignored.</li>
+<li>Reorder of fields, as long as their name/type are the same.</li>
+<li>Rename a field with <span class="code-inline">Serialization.Alias</span>.</li>
+</ul>
 <p>Supported type changes are :</p>
-<p>Conversion from integer/float/rune/bool to integer/float/rune/bool. Change the size of a static array. Conversion from a static array to a dynamic <span class="code-inline">Core.Array</span>, and vice versa. Conversion from a single value to a static array or <span class="code-inline">Core.Array</span>, and vice versa. Rename a struct with <span class="code-inline">Serialization.Alias</span>. Convert an existing complexe type to <span class="code-inline">Serialization.Final</span></p>
+<ul>
+<li>Conversion from integer/float/rune/bool to integer/float/rune/bool.</li>
+<li>Change the size of a static array.</li>
+<li>Conversion from a static array to a dynamic <span class="code-inline">Core.Array</span>, and vice versa.</li>
+<li>Conversion from a single value to a static array or <span class="code-inline">Core.Array</span>, and vice versa.</li>
+<li>Rename a struct with <span class="code-inline">Serialization.Alias</span>.</li>
+<li>Convert an existing complexe type to <span class="code-inline">Serialization.Final</span></li>
+</ul>
 <p>Supported attributes are :</p>
-<p><span class="code-inline">Serialisation.Version</span>. If version is specified, then loading will not have versioning if versions are the same <span class="code-inline">Serialization.Alias</span>. To rename a field or a struct type. Multiple aliases are supported. <span class="code-inline">Serialization.Final</span>. The struct will be loaded/saved without versioning (faster and lower serialization size)</p>
+<ul>
+<li><span class="code-inline">Serialisation.Version</span>. If version is specified, then loading will not have versioning if versions are the same</li>
+<li><span class="code-inline">Serialization.Alias</span>. To rename a field or a struct type. Multiple aliases are supported.</li>
+<li><span class="code-inline">Serialization.Final</span>. The struct will be loaded/saved without versioning (faster and lower serialization size)</li>
+</ul>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">TagBin</span></span></div>
 </section>
 <h3>Fields</h3>
@@ -8668,7 +8684,16 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <span class="SCst"><a href="#namespace_Core_File">File</a></span>.<span class="SFct">writeAllBytes</span>(file, buf)
 </span></div>
-<p>Can be serialized: All simple types: <span class="code-inline">bool/u8/u16/u32/u64/s8/s16/s32/s64/rune/f32/f64</span> A type value <span class="code-inline">typeinfo</span>, which will be saved as a CRC. An interface. Will be stored as a type and a typed value. A struct. A <span class="code-inline">Core.String</span>. A <span class="code-inline">Core.Array</span> of valid values. A static array of valid values.</p>
+<p>Can be serialized:</p>
+<ul>
+<li>All simple types: <span class="code-inline">bool/u8/u16/u32/u64/s8/s16/s32/s64/rune/f32/f64</span></li>
+<li>A type value <span class="code-inline">typeinfo</span>, which will be saved as a CRC.</li>
+<li>An interface. Will be stored as a type and a typed value.</li>
+<li>A struct.</li>
+<li>A <span class="code-inline">Core.String</span>.</li>
+<li>A <span class="code-inline">Core.Array</span> of valid values.</li>
+<li>A static array of valid values.</li>
+</ul>
 <div class="blockquote blockquote-note">
 <div class="blockquote-title-block"><span class="blockquote-title">Note</span></div>
 <p>Type <span class="code-inline">string</span> is not supported. Consider using <a href="#Core_String">Core.String</a> instead.</p>
@@ -11024,7 +11049,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <section class="api-symbol">
 <div class="api-item api-item-enum"><span id="Core_Serialization_Write_TagBinValueFlags" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Write.TagBinValueFlags</span> <a class="api-item-permalink" href="#Core_Serialization_Write_TagBinValueFlags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/write/tagbin.swg#L29">src</a></div>
 <p>Additional signature for each value, stored after the value description (crcs)</p>
-<p>These numbers are the on-disk format, so both cases are pinned. Every element ever written carries bit 0, which is why [[Serialization.Write.TagBinValueFlags.None]] is one rather than zero; renumbering them makes an existing stream decode its plain values as compressed ones.</p>
+<p>These numbers are the on-disk format, so both cases are pinned. Every element ever written carries bit 0, which is why <a href="#Core_Serialization_Write_TagBinValueFlags_None">Core.Serialization.Write.TagBinValueFlags.None</a> is one rather than zero; renumbering them makes an existing stream decode its plain values as compressed ones.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
 <span class="SKwd">enum</span> <span class="SCst"><a href="#Core_Serialization_Write_TagBinValueFlags">TagBinValueFlags</a></span>: <span class="STpe">u8</span></span></div>
 </section>
@@ -16473,7 +16498,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createWindow</span>(options: <span class="SCst"><a href="#Core_Env_WindowOptions">WindowOptions</a></span>)-&gt;<span class="SCst"><a href="#Core_Env_Window">Window</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_deniedSystemMutations" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.deniedSystemMutations</span> <a class="api-item-permalink" href="#Core_Env_deniedSystemMutations" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L164">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_deniedSystemMutations" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.deniedSystemMutations</span> <a class="api-item-permalink" href="#Core_Env_deniedSystemMutations" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L165">src</a></div>
 <p>Returns how many system mutations have been refused so far.</p>
 <p>A smoke run reports this: an application that still reaches for the registry or the shell on startup is not yet isolated, even though nothing failed.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">deniedSystemMutations</span>()-&gt;<span class="STpe">u64</span> =&gt;</span></div>
@@ -16528,13 +16553,13 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">hasArgument</span>(argument: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_isInsideDirectory" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.isInsideDirectory</span> <a class="api-item-permalink" href="#Core_Env_isInsideDirectory" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L184">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_isInsideDirectory" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.isInsideDirectory</span> <a class="api-item-permalink" href="#Core_Env_isInsideDirectory" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L185">src</a></div>
 <p>Reports whether <span class="code-inline">path</span> names <span class="code-inline">root</span> itself or something below it.</p>
 <p>Both sides are resolved and normalized first, so a relative path, a mixed separator style or a difference in case cannot smuggle a location past the check.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isInsideDirectory</span>(root: <span class="STpe">string</span>, path: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_isInsideSandbox" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.isInsideSandbox</span> <a class="api-item-permalink" href="#Core_Env_isInsideSandbox" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L206">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_isInsideSandbox" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.isInsideSandbox</span> <a class="api-item-permalink" href="#Core_Env_isInsideSandbox" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L207">src</a></div>
 <p>Reports whether <span class="code-inline">path</span> is inside the sandbox. Answers true when nothing is armed.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isInsideSandbox</span>(path: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -16544,9 +16569,9 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isSandboxed</span>()-&gt;<span class="STpe">bool</span> =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_isSmokeRun" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.isSmokeRun</span> <a class="api-item-permalink" href="#Core_Env_isSmokeRun" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L139">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_isSmokeRun" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.isSmokeRun</span> <a class="api-item-permalink" href="#Core_Env_isSmokeRun" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L140">src</a></div>
 <p>Reports whether the process is a smoke run: the real program, bounded by its launcher.</p>
-<p>Code driving its own loop instead of [[Gui.Application.run]] asks this to know when to stop. Nothing else should branch on it: a smoke run must exercise the same paths as a real one.</p>
+<p>Code driving its own loop instead of <a href="std.gui.html#Gui_Application_run">Gui.Application.run</a> asks this to know when to stop. Nothing else should branch on it: a smoke run must exercise the same paths as a real one.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isSmokeRun</span>()-&gt;<span class="STpe">bool</span> =&gt; <span class="SFct">smokeFrames</span>()</span></div>
 </section>
 <section class="api-symbol">
@@ -16583,7 +16608,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">registerApplication</span>(appName, appFriendly: <span class="STpe">string</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_sandboxRoot" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.sandboxRoot</span> <a class="api-item-permalink" href="#Core_Env_sandboxRoot" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L158">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_sandboxRoot" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.sandboxRoot</span> <a class="api-item-permalink" href="#Core_Env_sandboxRoot" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L159">src</a></div>
 <p>Returns the sandbox root, or an empty string when the process is not sandboxed.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sandboxRoot</span>()-&gt;<span class="STpe">string</span> =&gt; g_SandboxRoot.toString</span></div>
 </section>
@@ -16594,7 +16619,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <span class="SKwd">func</span> <span class="SFct">showInFileExplorer</span>(path: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_smokeFrames" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.smokeFrames</span> <a class="api-item-permalink" href="#Core_Env_smokeFrames" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L145">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_smokeFrames" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.smokeFrames</span> <a class="api-item-permalink" href="#Core_Env_smokeFrames" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L146">src</a></div>
 <p>Returns how many frames a smoke run renders before stopping, or zero outside one.</p>
 <p>A smoke run proves the real program starts and keeps running; the bound belongs to whoever launched it, so an application never has to recognize that it is being exercised.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">smokeFrames</span>()-&gt;<span class="STpe">u32</span></span></div>

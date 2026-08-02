@@ -452,18 +452,18 @@ namespace Swag
     // operands and the tracking metadata.
     //
     // For [[IAllocator.alloc]]:
-    // * 'size' must be the size in bytes to allocate
-    // * 'alignment' must be the alignment constraint in bytes (or 0)
-    // * 'address' will be the returned allocated memory address
+    // - 'size' must be the size in bytes to allocate
+    // - 'alignment' must be the alignment constraint in bytes (or 0)
+    // - 'address' will be the returned allocated memory address
     //
     // For [[IAllocator.free]]:
-    // * 'size' must be the original allocated size in bytes of 'address'
-    // * 'address' must be the memory address to release
+    // - 'size' must be the original allocated size in bytes of 'address'
+    // - 'address' must be the memory address to release
     //
     // For [[IAllocator.realloc]]:
-    // * 'size' must be the new size in bytes
-    // * 'oldSize' must be the original allocated size in bytes of 'address'
-    // * 'address' must be the memory address to reallocate, and receives the new one
+    // - 'size' must be the new size in bytes
+    // - 'oldSize' must be the original allocated size in bytes of 'address'
+    // - 'address' must be the memory address to reallocate, and receives the new one
     //
     // See [[IAllocator]]
     struct AllocatorRequest

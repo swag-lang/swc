@@ -21,7 +21,7 @@ enum TagBinSignature: u32
 // Additional signature for each value, stored after the value description (crcs)
 //
 // These numbers are the on-disk format, so both cases are pinned. Every element ever
-// written carries bit 0, which is why [[Serialization.Write.TagBinValueFlags.None]] is
+// written carries bit 0, which is why [[Core.Serialization.Write.TagBinValueFlags.None]] is
 // one rather than zero; renumbering them makes an existing stream decode its plain
 // values as compressed ones.
 #[Swag.EnumFlags]

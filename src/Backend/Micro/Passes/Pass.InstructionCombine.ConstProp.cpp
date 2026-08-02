@@ -64,7 +64,19 @@ namespace InstructionCombine
                 return false;
 
             const MicroInstr* inst = ctx.storage->ptr(info->instRef);
-            if (!inst || inst->op != MicroInstrOpcode::LoadRegImm)
+            if (!inst)
+                return false;
+
+            // A cleared register is the constant zero. Constant folding used to
+            // stop at it, which left every `x op 0` and every float zero behind
+            // the peepholes that handle the spelled-out immediate.
+            if (inst->op == MicroInstrOpcode::ClearReg)
+            {
+                outImm = 0;
+                return true;
+            }
+
+            if (inst->op != MicroInstrOpcode::LoadRegImm)
                 return false;
 
             const MicroInstrOperand* immOps = inst->ops(*ctx.operands);
@@ -365,17 +377,34 @@ namespace InstructionCombine
         const MicroReg    src    = copyOps[1].reg;
         const MicroOpBits opBits = copyOps[2].opBits;
 
-        if (!dst.isVirtualInt())
+        if (!dst.isVirtual())
             return false;
 
         uint64_t rawImm = 0;
         if (!findImmDef(rawImm, ctx, src, copyRef))
             return false;
 
+        const uint64_t imm = rawImm & getBitsMask(opBits);
+
+        // Moving a zero into a float register is a two-instruction detour
+        // through a general-purpose one — the constant has to be staged there
+        // first. Clearing the float register directly is one instruction and
+        // costs no integer register, which is what the comparison against a
+        // literal zero every float `if` lowers to needs.
+        if (dst.isVirtualFloat())
+        {
+            if (imm != 0 || !ctx.claimAll({copyRef}))
+                return false;
+
+            MicroInstrOperand clearOps[2];
+            clearOps[0].reg    = dst;
+            clearOps[1].opBits = opBits;
+            ctx.emitRewrite(copyRef, MicroInstrOpcode::ClearReg, clearOps);
+            return true;
+        }
+
         if (!ctx.claimAll({copyRef}))
             return false;
-
-        const uint64_t imm = rawImm & getBitsMask(opBits);
 
         MicroInstrOperand newOps[3];
         newOps[0].reg    = dst;

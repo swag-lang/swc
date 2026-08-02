@@ -62,8 +62,8 @@ func replaceString(dest: *String, fmt: string, values: ...)
 // ```swag
 // let x = Format.toString("my life in hexadecimal is %{X}", myLife)
 // ```
-// * See [[ConvertFormatInt.setFormat]] for some valid format options
-// * See [[ConvertFormatFloat.setFormat]] for some valid format options
+// - See [[ConvertFormatInt.setFormat]] for some valid format options
+// - See [[ConvertFormatFloat.setFormat]] for some valid format options
 func toString(fmt: string, values: ...)->String
 {
     var buf: ConcatBuffer

@@ -1752,6 +1752,7 @@ struct PropHeadlessUsingDerived
     var host: Testing.HeadlessHost
     host.setup(260, 320)
     defer host.shutdown()
+
     func indexOf(prop: *Properties, name: string)->u64
     {
         for item, [idx] in prop.items

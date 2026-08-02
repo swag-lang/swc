@@ -364,5 +364,4 @@ func updateTestMode()
         display()
         updateTestMode()
     }
-
 }

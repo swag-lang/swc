@@ -13,10 +13,10 @@ using Swag, Core
 
     let faceData                  = getFaceData(face)
     let glyf: #null const [..] u8 = expect getTableSlice(faceData, TAG_GLYF, 0x10)
-    let glyphStart = faceData.glyphLocations[glyphIndex]
-    let glyphEnd   = faceData.glyphLocations[glyphIndex + 1]
-    let glyphData = expect getSlice(glyf, glyphStart, glyphEnd - glyphStart)
-    let contourCount = expect readS16(glyphData, 0)
+    let glyphStart                = faceData.glyphLocations[glyphIndex]
+    let glyphEnd                  = faceData.glyphLocations[glyphIndex + 1]
+    let glyphData                 = expect getSlice(glyf, glyphStart, glyphEnd - glyphStart)
+    let contourCount              = expect readS16(glyphData, 0)
     @assert(contourCount < 0)
 
     discard expect face.setPixelSize(0, 20)

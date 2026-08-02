@@ -45,5 +45,4 @@ func onResize(_window: *Env.Window, width, height: s32)
         if Env.hasArgument("swag.test") do
             break
     }
-
 }

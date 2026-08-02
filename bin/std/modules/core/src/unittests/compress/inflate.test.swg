@@ -11,8 +11,8 @@ using Swag
     for [i] in 4000 do
         original[i] = cast #bit (u8) (i * 7 + (i >> 2) + (i & 13))
 
-    var zl: Compress.ZLib
-    let compressed = expect zl.compress(original)
+    var zl:  Compress.ZLib
+    let compressed   = expect zl.compress(original)
     var zl2: Compress.ZLib
     let decompressed = expect zl2.decompress(compressed.toSlice())
     @assert(@countof(decompressed) == 4000)

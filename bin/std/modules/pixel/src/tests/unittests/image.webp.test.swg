@@ -52,7 +52,7 @@ func checkLossyWebp(fileName, goldenName: string, width, height: s32, withAlpha:
     @assert(decoded.height == height)
     @assert(decoded.pixelFormat == .RGBA8)
 
-    let golden = expect Image.load(getTestDataPath(goldenName))
+    let golden     = expect Image.load(getTestDataPath(goldenName))
     let halfWidth  = (width + 1) / 2
     let halfHeight = (height + 1) / 2
     @assert(golden.width == 2 * halfWidth)
@@ -83,7 +83,7 @@ func checkLossyWebp(fileName, goldenName: string, width, height: s32, withAlpha:
 func assertEncodedWebpRoundtrip(source: Image)
 {
     let buffer = expect source.encode("memory.webp")
-    let bytes = nnBytes(buffer.toSlice())
+    let bytes  = nnBytes(buffer.toSlice())
     @assert(@countof(bytes) >= 21)
     @assert(bytes[0] == 'R' and bytes[1] == 'I' and bytes[2] == 'F' and bytes[3] == 'F')
     @assert(bytes[8] == 'W' and bytes[9] == 'E' and bytes[10] == 'B' and bytes[11] == 'P')
@@ -191,6 +191,7 @@ func assertEncodedWebpRoundtrip(source: Image)
     checkLossyWebp("blue-purple-pink.lossy.webp", "blue-purple-pink.lossy.webp.ycbcr.png", 150, 100, false)
 
     let decoded = expect Image.load(getTestDataPath("blue-purple-pink.lossy.webp"))
+
     // Reference samples produced by libwebp 1.6.0 dwebp with -nofancy.
     assertWebpPixelFromTop(decoded, 0, 0, 16, 19, 15, 255)
     assertWebpPixelFromTop(decoded, 112, 58, 232, 107, 160, 255)
@@ -204,6 +205,7 @@ func assertEncodedWebpRoundtrip(source: Image)
     checkLossyWebp("yellow_rose.lossy-with-alpha.webp", "yellow_rose.lossy-with-alpha.webp.nycbcra.png", 400, 301, true)
 
     let decoded = expect Image.load(getTestDataPath("yellow_rose.lossy-with-alpha.webp"))
+
     // Reference samples produced by libwebp 1.6.0 dwebp with -nofancy.
     assertWebpPixelFromTop(decoded, 106, 81, 241, 146, 3, 255)
     assertWebpPixelFromTop(decoded, 128, 47, 255, 90, 151, 255)

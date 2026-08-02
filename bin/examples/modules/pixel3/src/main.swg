@@ -147,5 +147,4 @@ func onResize(_window: *Env.Window, width, height: s32)
     {
         display()
     }
-
 }

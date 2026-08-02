@@ -13,7 +13,7 @@ private alias RenderParityScene = func||(IRenderer)->Image
 
 private func renderCpu(scene: RenderParityScene)->Image
 {
-    var cpu: RenderCpu
+    var cpu:      RenderCpu
     let renderer: IRenderer = &cpu
     renderer.init()
     return scene(renderer)
@@ -23,9 +23,9 @@ private func renderOgl(className, title: string, width, height: s32, scene: Rend
 {
     var window = try Env.createWindow({className: className, title: title, width: width, height: height})
 
-    var ogl: RenderOgl
+    var ogl:      RenderOgl
     let renderer: IRenderer = &ogl
-    var context = try renderer.createContext(cast(#null const *void) window.nativeHandle, width, height)
+    var context             = try renderer.createContext(cast(#null const *void) window.nativeHandle, width, height)
     defer renderer.deleteContext(&context)
 
     renderer.setCurrentContext(context)
@@ -65,7 +65,7 @@ private func renderParityScene(renderer: IRenderer)->Image
 {
     var texture = makeRenderParityTexture(renderer)
     defer renderer.removeTexture(&texture)
-    var target  = renderer.createRenderTarget(RenderParityWidth, RenderParityHeight)
+    var target = renderer.createRenderTarget(RenderParityWidth, RenderParityHeight)
     defer renderer.deleteRenderTarget(&target)
 
     var painter = Painter.create(renderer)

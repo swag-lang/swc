@@ -137,5 +137,4 @@ var g_RC:       Pixel.RenderContext
     {
         display()
     }
-
 }

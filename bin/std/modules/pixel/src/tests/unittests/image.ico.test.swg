@@ -399,7 +399,7 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     srcBuf[3]  = 128'u8
     srcBuf[12] = 200'u8     // last pixel B
 
-    let cb = expect src.encode("memory.ico")
+    let cb  = expect src.encode("memory.ico")
     let img = expect decodeIco(nnBytes(cb.toSlice()))
     @assert(img.width == 2)
     @assert(img.height == 2)
@@ -420,7 +420,7 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     srcBuf[1] = 20'u8
     srcBuf[2] = 30'u8
 
-    let cb = expect src.encode("memory.ico")
+    let cb  = expect src.encode("memory.ico")
     let img = expect decodeIco(nnBytes(cb.toSlice()))
     @assert(img.pixelFormat == .BGRA8)
     @assert((notnull img.pixels.buffer)[0] == 10'u8)
@@ -439,7 +439,7 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     srcBuf[2] = 10'u8     // B
     srcBuf[3] = 99'u8     // A
 
-    let cb = expect src.encode("memory.ico")
+    let cb  = expect src.encode("memory.ico")
     let img = expect decodeIco(nnBytes(cb.toSlice()))
     @assert(img.pixelFormat == .BGRA8)
     @assert((notnull img.pixels.buffer)[0] == 10'u8)     // B

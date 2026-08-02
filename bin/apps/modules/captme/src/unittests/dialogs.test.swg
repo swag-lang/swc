@@ -21,5 +21,4 @@ using Swag, Core
     gui.pump()
     @assert(gui.autoHandled)
     @assert(gui.app.surfaces.count == 0)
-
 }

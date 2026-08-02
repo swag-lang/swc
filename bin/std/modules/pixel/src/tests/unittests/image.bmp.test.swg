@@ -43,7 +43,7 @@ using Swag, Core
 {
     let path  = getTestDataPath("test.bmp")
     let bytes = expect File.readAllBytes(path)
-    let img = expect Image.decode(path, bytes.toSlice(), {})
+    let img   = expect Image.decode(path, bytes.toSlice(), {})
     @assert(img.isValid())
     @assert(img.width == 4)
     @assert(img.height == 4)
@@ -54,7 +54,7 @@ using Swag, Core
 #test
 {
     let path = getTestDataPath("test.bmp")
-    let img = expect Image.load(path)
+    let img  = expect Image.load(path)
     @assert(img.isValid())
     @assert(img.width == 4)
     @assert(img.height == 4)
@@ -633,6 +633,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 {
     let path = makeTempBmpPath()
     defer discard catch File.delete(path.toString())
+
     // FileHeader (14 bytes) + only 4 bytes of DIB header (biSize = 40, non-CoreHeader path).
     // The decoder will see size=40 != 12 and then check dataof+sizeof(Header) > last, then fail.
     var cb: ConcatBuffer
@@ -684,8 +685,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
 // Bmp.Encoder.canEncode recognises .bmp and rejects other extensions.
 #test
-{
-}
+{}
 
 // Encode a BGR8 4x4 image (row stride 12 bytes - already 4-byte aligned, no padding needed).
 #test
@@ -858,6 +858,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     srcBuf[72] = 42'u8     // row4 pixel(0) B
 
     let cb = expect src.encode("memory.bmp")
+
     // File must contain alignment padding: 5 rows x 16 bytes = 80 bytes pixel data
     @assert(@countof(cb) == 134)     // 14+40+80
     cb.makeLinear()

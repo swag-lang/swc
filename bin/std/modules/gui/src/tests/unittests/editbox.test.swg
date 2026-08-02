@@ -281,6 +281,7 @@ func editHeadlessEscape(eb: *EditBox)
     var host: Testing.HeadlessHost
     host.setup(160, 60)
     defer host.shutdown()
+
     // Narrow box, long text -> horizontal scroll kicks in.
     let edit = EditBox.create(&host.root, "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", {0, 0, 120, 26}, null, EditBoxFlags.None)
     host.focus(edit)

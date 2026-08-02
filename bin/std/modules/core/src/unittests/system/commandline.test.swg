@@ -173,7 +173,7 @@ func assertStringValues(values: const &Array'String, expected: const [..] string
 #test
 {
     var value = 0'f32
-    let rest = expect StrConv.parseValue(&value, f32, "-0.5")
+    let rest  = expect StrConv.parseValue(&value, f32, "-0.5")
     @assert(@countof(rest) == 0)
     @assert(value == -0.5)
 }

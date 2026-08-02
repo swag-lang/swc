@@ -12,6 +12,7 @@ using Swag, Core
     defer f.shutdown()
 
     expect Library.init()
+
     // A source capture file living in the temp area. Everything this test writes into
     // the (real) recycle bin and library folder is cleaned up in a defer so a failed
     // assertion can never leave stray captures behind for the running app to load.

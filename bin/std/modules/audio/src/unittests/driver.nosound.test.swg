@@ -57,10 +57,10 @@ func audioStartNoSoundEngine()
     defer destroyEngine()
 
     let rootResult = expect Bus.create(2)
-    let root = notnull rootResult
+    let root       = notnull rootResult
 
     let childResult = expect Bus.create(1, root)
-    let child = notnull childResult
+    let child       = notnull childResult
 
     let rootHandle  = cast(*NoSoundBus) notnull root.handle
     let childHandle = cast(*NoSoundBus) notnull child.handle
@@ -93,10 +93,10 @@ func audioStartNoSoundEngine()
     audioStartNoSoundEngine()
     defer destroyEngine()
 
-    var file = expect SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"))
+    var file        = expect SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"))
     let voiceResult = expect Voice.create(&file)
-    let voice  = notnull voiceResult
-    let handle = cast(*NoSoundVoice) notnull voice.handle
+    let voice       = notnull voiceResult
+    let handle      = cast(*NoSoundVoice) notnull voice.handle
     @assert(voice.requestedEncoding == .Pcm16)
     @assert(!voice.isPlaying())
 
@@ -114,10 +114,10 @@ func audioStartNoSoundEngine()
     @assert(errInvalidRatio is Errors.BadParameterError)
 
     let bus0Result = expect Bus.create(2)
-    let safeBus0 = notnull bus0Result
+    let safeBus0   = notnull bus0Result
 
     let bus1Result = expect Bus.create(2, safeBus0)
-    let safeBus1 = notnull bus1Result
+    let safeBus1   = notnull bus1Result
     discard expect voice.setRouting([safeBus0, safeBus1])
     @assert(handle.busCount == 2)
     @assert(handle.buses[0] == safeBus0)
@@ -151,7 +151,7 @@ func audioStartNoSoundEngine()
     audioStartNoSoundEngine()
     defer destroyEngine()
 
-    var file = expect SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"), preloadData: false)
+    var file              = expect SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"), preloadData: false)
     let context           = @getcontext()
     let originalAllocator = notnull context.allocator
     var scratch: ScratchAllocator
@@ -180,7 +180,7 @@ func audioStartNoSoundEngine()
     audioStartNoSoundEngine()
     defer destroyEngine()
 
-    var file = expect SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"), preloadData: false)
+    var file  = expect SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"), preloadData: false)
     let voice = notnull (expect Voice.create(&file))
     discard expect voice.play()
     discard expect voice.updateNoSound()
@@ -197,10 +197,10 @@ func audioStartNoSoundEngine()
     audioStartNoSoundEngine()
     defer destroyEngine()
 
-    var file = expect SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"))
+    var file        = expect SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"))
     let voiceResult = expect Voice.create(&file)
-    let voice  = notnull voiceResult
-    let handle = cast(*NoSoundVoice) notnull voice.handle
+    let voice       = notnull voiceResult
+    let handle      = cast(*NoSoundVoice) notnull voice.handle
 
     discard expect voice.play()
     let shouldKeepUpdating = expect voice.updateNoSound()

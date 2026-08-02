@@ -182,6 +182,7 @@ using Swag, Core
     var f: HeadlessFixture
     f.setup()
     defer f.shutdown()
+
     // SetText over [shape, text]
     let shape = testAddShape(f.capture, 10, 10, 20, 20)
     let text  = testAddText(f.capture, 50, 10, 30, 20)

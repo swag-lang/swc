@@ -26,7 +26,7 @@ func assertGifHeader(bytes: const [..] u8, width, height: u16)
 
 func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
 {
-    let cb = expect src.encode("memory.gif")
+    let cb    = expect src.encode("memory.gif")
     let bytes = nnBytes(cb.toSlice())
     assertGifHeader(bytes, cast(u16) src.width, cast(u16) src.height)
 
@@ -132,7 +132,7 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     srcBuf[10] = 110'u8
     srcBuf[11] = 120'u8
 
-    let cb = expect src.encode("memory.gif")
+    let cb  = expect src.encode("memory.gif")
     let img = expect Image.decode("rgb.gif", nnBytes(cb.toSlice()), {})
     @assert(img.pixelFormat == .RGB8)
     @assert(Memory.compare(src.pixels.buffer, img.pixels.buffer, src.pixels.count) == 0)
@@ -154,7 +154,7 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
 
     assertEncodedGifRoundtrip(src, .RGBA8)
 
-    let cb = expect src.encode("memory.gif")
+    let cb  = expect src.encode("memory.gif")
     let img = expect Image.decode("rgba.gif", nnBytes(cb.toSlice()), {})
     assertGifPixelAt(img, 0, 0, 0'u8, 0'u8, 0'u8, 0'u8)
     assertGifPixelAt(img, 1, 0, 40'u8, 50'u8, 60'u8, 255'u8)
@@ -200,7 +200,7 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
         pix    += 3
     }
 
-    let cb = expect src.encode("memory.gif")
+    let cb  = expect src.encode("memory.gif")
     let img = expect Image.decode("quantized.gif", nnBytes(cb.toSlice()), {})
     @assert(img.width == 17)
     @assert(img.height == 17)

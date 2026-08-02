@@ -513,8 +513,8 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
         raw.add(cast(u8) ((@index * 73 + 19) & 0xFF))
     let packed = packLiteralTiffLzw(nnBytes(raw.toSlice()))
 
-    let buf = buildTiff(true, 64, 64, 1, 1, 5, 64, 8, nnBytes(packed.toSlice()), null, false)
-    let img = expect decodeTiff(nnBytes(buf.toSlice()))
+    let buf    = buildTiff(true, 64, 64, 1, 1, 5, 64, 8, nnBytes(packed.toSlice()), null, false)
+    let img    = expect decodeTiff(nnBytes(buf.toSlice()))
     let pixels = notnull img.pixels.buffer
     for [y] in 64
     {
@@ -577,7 +577,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     srcBuf[2] = 33'u8
     srcBuf[9] = 99'u8     // top-right R (last pixel)
 
-    let cb = expect src.encode("memory.tiff")
+    let cb  = expect src.encode("memory.tiff")
     let img = expect decodeTiff(nnBytes(cb.toSlice()))
     @assert(img.width == 2)
     @assert(img.height == 2)
@@ -598,7 +598,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     srcBuf[2] = 3'u8
     srcBuf[3] = 200'u8
 
-    let cb = expect src.encode("memory.tiff")
+    let cb  = expect src.encode("memory.tiff")
     let img = expect decodeTiff(nnBytes(cb.toSlice()))
     @assert(img.pixelFormat == .RGBA8)
     @assert((notnull img.pixels.buffer)[0] == 1'u8)
@@ -616,7 +616,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     srcBuf[1] = 20'u8     // G
     srcBuf[2] = 30'u8     // R
 
-    let cb = expect src.encode("memory.tiff")
+    let cb  = expect src.encode("memory.tiff")
     let img = expect decodeTiff(nnBytes(cb.toSlice()))
     @assert(img.pixelFormat == .RGB8)
     @assert((notnull img.pixels.buffer)[0] == 30'u8)
@@ -694,7 +694,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     var options: Tiff.EncodeOptions
     options.compression = .PackBits
 
-    let cb = expect src.encode("memory.tiff", options)
+    let cb  = expect src.encode("memory.tiff", options)
     let img = expect decodeTiff(nnBytes(cb.toSlice()))
     @assert(img.pixelFormat == .RGB8)
     @assert((notnull img.pixels.buffer)[0] == 1'u8)

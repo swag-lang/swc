@@ -58,7 +58,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     var renderer: RenderCpu
     renderer.begin(8, 8)
     let render: IRenderer = &renderer
-    var texture = render.addImage(source)
+    var texture           = render.addImage(source)
     defer render.removeTexture(&texture)
     defer render.end()
 
@@ -105,10 +105,10 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
 #test
 {
     var renderer: RenderCpu
-    let render: IRenderer = &renderer
-    var outer  = render.createRenderTarget(12, 12)
+    let render:   IRenderer = &renderer
+    var outer               = render.createRenderTarget(12, 12)
     defer render.deleteRenderTarget(&outer)
-    var inner  = render.createRenderTarget(4, 4)
+    var inner = render.createRenderTarget(4, 4)
     defer render.deleteRenderTarget(&inner)
 
     var painter: Painter
@@ -135,8 +135,8 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
 #test
 {
     var renderer: RenderCpu
-    let render: IRenderer = &renderer
-    var target = render.createRenderTarget(32, 32)
+    let render:   IRenderer = &renderer
+    var target              = render.createRenderTarget(32, 32)
     defer render.deleteRenderTarget(&target)
 
     var path: LinePath
@@ -173,10 +173,10 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     white[0], white[1], white[2], white[3] = 255
 
     var renderer: RenderCpu
-    let render: IRenderer = &renderer
-    var texture = render.addImage(source)
+    let render:   IRenderer = &renderer
+    var texture             = render.addImage(source)
     defer render.removeTexture(&texture)
-    var target  = render.createRenderTarget(9, 9)
+    var target = render.createRenderTarget(9, 9)
     defer render.deleteRenderTarget(&target)
 
     var painter: Painter
@@ -262,10 +262,10 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     }
 
     var renderer: RenderCpu
-    let render: IRenderer = &renderer
-    var texture = render.addImage(source)
+    let render:   IRenderer = &renderer
+    var texture             = render.addImage(source)
     defer render.removeTexture(&texture)
-    var target  = render.createRenderTarget(2, 2)
+    var target = render.createRenderTarget(2, 2)
     defer render.deleteRenderTarget(&target)
 
     var painter: Painter

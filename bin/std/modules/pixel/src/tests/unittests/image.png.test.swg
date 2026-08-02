@@ -58,7 +58,7 @@ func assertPngHasChunk(bytes: const [..] u8, c0, c1, c2, c3: u8)
 
 func assertEncodedPngRoundtrip(src: Image, expectedPf: PixelFormat, options: #null any = null)
 {
-    let cb = expect src.encode("memory.png", options)
+    let cb    = expect src.encode("memory.png", options)
     let bytes = nnBytes(cb.toSlice())
     @assert(@countof(bytes) > 33)
     @assert(bytes[0] == 137'u8 and bytes[1] == 80'u8 and bytes[2] == 78'u8 and bytes[3] == 71'u8)
@@ -222,7 +222,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
         }
     }
 
-    var zlib: Compress.ZLib
+    var zlib:   Compress.ZLib
     let compressed = expect zlib.compress(nnBytes(raw.toSlice()), .Default)
     var result: ConcatBuffer
     addPngSignature(&result)
@@ -617,7 +617,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
         }
     }
 
-    let cb = expect rgb.encode("memory.png", options)
+    let cb       = expect rgb.encode("memory.png", options)
     let rgbBytes = nnBytes(cb.toSlice())
     @assert(rgbBytes[28] == 1'u8)
 

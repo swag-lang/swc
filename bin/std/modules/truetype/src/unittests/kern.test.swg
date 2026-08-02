@@ -14,6 +14,7 @@ using Swag, Core
     @assert(glyphV > 0)
 
     discard expect face.setPixelSize(0, 100)
+
     // 'AV' is a classic negative kerning pair (glyphs tucked closer together).
     let kern100 = face.getKerning(glyphA, glyphV)
     @assert(kern100.x < 0)

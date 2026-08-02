@@ -179,5 +179,4 @@ func onResize(_window: *Env.Window, width, height: s32)
         loop.maxTestFrames = TestFrames
     while loop.next() do
         display()
-
 }

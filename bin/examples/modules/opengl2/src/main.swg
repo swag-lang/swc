@@ -114,5 +114,4 @@ func createShader()
         if Env.hasArgument("swag.test") do
             break
     }
-
 }

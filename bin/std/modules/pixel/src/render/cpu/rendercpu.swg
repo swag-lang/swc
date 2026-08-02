@@ -630,10 +630,10 @@ private impl RenderCpu
     func readFontAtlas(atlas: const *GlyphAtlas, x, y: s32)->Vector4
     {
         let pixelWidth = cast(s32) (atlas.width / atlas.bytesPerPixel)
-        let xx  = Math.clamp(x, 0, pixelWidth - 1)
-        let yy  = Math.clamp(y, 0, cast(s32) atlas.height - 1)
-        let row = cast(s32) atlas.height - yy - 1
-        let ptr = (notnull atlas.data.buffer) + cast(u64) row * atlas.width + cast(u64) xx * atlas.bytesPerPixel
+        let xx         = Math.clamp(x, 0, pixelWidth - 1)
+        let yy         = Math.clamp(y, 0, cast(s32) atlas.height - 1)
+        let row        = cast(s32) atlas.height - yy - 1
+        let ptr        = (notnull atlas.data.buffer) + cast(u64) row * atlas.width + cast(u64) xx * atlas.bytesPerPixel
 
         if atlas.bytesPerPixel == 1
         {
@@ -658,14 +658,14 @@ private impl RenderCpu
             return readFontAtlas(atlas, x, y)
         }
 
-        let px = Math.saturate(uv.x) * width - 0.5
-        let py = Math.saturate(uv.y) * height - 0.5
-        let x0 = cast(s32) Math.floor(px)
-        let y0 = cast(s32) Math.floor(py)
-        let x1 = Math.min(x0 + 1, width - 1)
-        let y1 = Math.min(y0 + 1, height - 1)
-        let tx = px - Math.floor(px)
-        let ty = py - Math.floor(py)
+        let px  = Math.saturate(uv.x) * width - 0.5
+        let py  = Math.saturate(uv.y) * height - 0.5
+        let x0  = cast(s32) Math.floor(px)
+        let y0  = cast(s32) Math.floor(py)
+        let x1  = Math.min(x0 + 1, width - 1)
+        let y1  = Math.min(y0 + 1, height - 1)
+        let tx  = px - Math.floor(px)
+        let ty  = py - Math.floor(py)
         let c00 = readFontAtlas(atlas, x0, y0)
         let c10 = readFontAtlas(atlas, x1, y0)
         let c01 = readFontAtlas(atlas, x0, y1)
@@ -676,7 +676,7 @@ private impl RenderCpu
     func msdfCoverage(atlas: const *GlyphAtlas, uv: Vector2, screenPxRange, edge, aa: f32)->f32
     {
         let sample = sampleFontAtlas(atlas, uv, true)
-        let sd = median(sample.x, sample.y, sample.z)
+        let sd     = median(sample.x, sample.y, sample.z)
         return Math.saturate((sd - edge) * screenPxRange / aa + 0.5)
     }
 
@@ -686,18 +686,18 @@ private impl RenderCpu
         if !atlas do
             return Color.fromArgb(Argb.Zero)
 
-        let safeAtlas = notnull atlas
-        let width      = cast(f32) (safeAtlas.width / safeAtlas.bytesPerPixel)
-        let height     = cast(f32) safeAtlas.height
-        let fwX        = Math.abs(uvDx.x) + Math.abs(uvDy.x)
-        let fwY        = Math.abs(uvDx.y) + Math.abs(uvDy.y)
-        let screenX    = fwX > 0.000001 ? 1.0 / fwX : 1.0
-        let screenY    = fwY > 0.000001 ? 1.0 / fwY : 1.0
+        let safeAtlas     = notnull atlas
+        let width         = cast(f32) (safeAtlas.width / safeAtlas.bytesPerPixel)
+        let height        = cast(f32) safeAtlas.height
+        let fwX           = Math.abs(uvDx.x) + Math.abs(uvDy.x)
+        let fwY           = Math.abs(uvDx.y) + Math.abs(uvDy.y)
+        let screenX       = fwX > 0.000001 ? 1.0 / fwX : 1.0
+        let screenY       = fwY > 0.000001 ? 1.0 / fwY : 1.0
         let screenPxRange = Math.max(0.5 * (MsdfRange / width * screenX + MsdfRange / height * screenY), 1.0)
 
         if .fontEffect.enabled < 0.5
         {
-            let off = Vector2{fwX * 0.25, fwY * 0.25}
+            let off   = Vector2{fwX * 0.25, fwY * 0.25}
             var alpha = msdfCoverage(safeAtlas, uv + Vector2{-off.x, -off.y}, screenPxRange, 0.5, 1.0)
             alpha += msdfCoverage(safeAtlas, uv + Vector2{off.x, -off.y}, screenPxRange, 0.5, 1.0)
             alpha += msdfCoverage(safeAtlas, uv + Vector2{-off.x, off.y}, screenPxRange, 0.5, 1.0)
@@ -718,7 +718,7 @@ private impl RenderCpu
         let faceCov     = Math.saturate((sdFace - faceEdge) * screenPxRange / aa + 0.5)
         let outerCov    = Math.saturate((sdTrue - outlineEdge) * screenPxRange / aa + 0.5)
 
-        let face = faceColor.toVector4()
+        let face  = faceColor.toVector4()
         var faceR = face.x
         var faceG = face.y
         var faceB = face.z
@@ -736,13 +736,13 @@ private impl RenderCpu
             faceR, faceG, faceB *= light
         }
 
-        let outline     = p.outlineColor.toVector4()
-        let faceAlpha   = faceCov * face.w
+        let outline      = p.outlineColor.toVector4()
+        let faceAlpha    = faceCov * face.w
         let outlineAlpha = outerCov * outline.w
-        let shapeAlpha  = faceAlpha + outlineAlpha * (1.0 - faceAlpha)
-        var shapeR = faceR
-        var shapeG = faceG
-        var shapeB = faceB
+        let shapeAlpha   = faceAlpha + outlineAlpha * (1.0 - faceAlpha)
+        var shapeR       = faceR
+        var shapeG       = faceG
+        var shapeB       = faceB
         if shapeAlpha > 0.0001
         {
             shapeR = (faceR * faceAlpha + outline.x * outlineAlpha * (1.0 - faceAlpha)) / shapeAlpha
@@ -760,9 +760,9 @@ private impl RenderCpu
         }
 
         let resultAlpha = shapeAlpha + glowAlpha * (1.0 - shapeAlpha)
-        var resultR = shapeR
-        var resultG = shapeG
-        var resultB = shapeB
+        var resultR     = shapeR
+        var resultG     = shapeG
+        var resultB     = shapeB
         if resultAlpha > 0.0001
         {
             resultR = (shapeR * shapeAlpha + glow.x * glowAlpha * (1.0 - shapeAlpha)) / resultAlpha

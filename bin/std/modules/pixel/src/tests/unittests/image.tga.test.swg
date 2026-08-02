@@ -495,7 +495,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     var options: Tga.EncodeOptions
     options.rle = true
 
-    let cb = expect src.encode("memory.tga", options)
+    let cb    = expect src.encode("memory.tga", options)
     let bytes = nnBytes(cb.toSlice())
     @assert(bytes[2] == TGA_TYPE_RLE_RGB)
     @assert(bytes[18] == 0x83'u8)
@@ -523,7 +523,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     var options: Tga.EncodeOptions
     options.rle = true
 
-    let cb = expect src.encode("memory.tga", options)
+    let cb    = expect src.encode("memory.tga", options)
     let bytes = nnBytes(cb.toSlice())
     @assert(bytes[2] == TGA_TYPE_RLE_RGB)
     @assert(bytes[16] == 32'u8)

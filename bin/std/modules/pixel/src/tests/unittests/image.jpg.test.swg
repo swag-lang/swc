@@ -100,7 +100,7 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     var opt: Jpg.EncodeOptions
     opt.quality = quality
 
-    let cb = expect src.encode("memory.jpg", opt)
+    let cb    = expect src.encode("memory.jpg", opt)
     let bytes = nnBytes(cb.toSlice())
     @assert(@countof(bytes) > 20)
     @assert(bytes[0] == 0xFF and bytes[1] == 0xD8)
@@ -148,7 +148,7 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
 #test
 {
     let bytes = expect File.readAllBytes(getTestDataPath("h1v1.jpg"))
-    let img = expect Image.decode("fixture.jpeg", bytes.toSlice(), {})
+    let img   = expect Image.decode("fixture.jpeg", bytes.toSlice(), {})
     @assert(img.width == 660)
     @assert(img.height == 441)
     @assert(img.pixelFormat == .BGR8)
@@ -230,9 +230,9 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
 
     var options: Jpg.EncodeOptions
     options.quality = 100
-    let encoded = expect src.encode("memory.jpg", options)
+    let encoded  = expect src.encode("memory.jpg", options)
     let adobeRgb = addAdobeRgbMarker(nnBytes(encoded.toSlice()))
-    let decoded = expect Image.decode("adobe-rgb.jpg", nnBytes(adobeRgb.toSlice()), {})
+    let decoded  = expect Image.decode("adobe-rgb.jpg", nnBytes(adobeRgb.toSlice()), {})
     @assert(decoded.width == 8 and decoded.height == 8)
 
     // The source encoder's Y, Cb and Cr component samples become direct R, G and B.

@@ -678,7 +678,7 @@ func readTagBinCompressedSizes(bytes: const [..] u8, fieldName: string)->{ uncom
 
     var result: retval
     result.uncompressed = expect stream.readNative'u64()
-    result.compressed = expect stream.readNative'u64()
+    result.compressed   = expect stream.readNative'u64()
     return result
 }
 

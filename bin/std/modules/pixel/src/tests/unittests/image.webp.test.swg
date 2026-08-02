@@ -34,14 +34,14 @@ func checkWebpAgainstPng(fileName, goldenName: string, width, height: s32)
     @assert(golden.height == height)
     for [y] in height do
         for [x] in width
-    {
-        let got  = decoded.pixelColor(x, y)
-        let want = golden.pixelColor(x, y)
-        @assert(got.r == want.r)
-        @assert(got.g == want.g)
-        @assert(got.b == want.b)
-        @assert(got.a == want.a)
-    }
+        {
+            let got  = decoded.pixelColor(x, y)
+            let want = golden.pixelColor(x, y)
+            @assert(got.r == want.r)
+            @assert(got.g == want.g)
+            @assert(got.b == want.b)
+            @assert(got.a == want.a)
+        }
 }
 
 func checkLossyWebp(fileName, goldenName: string, width, height: s32, withAlpha: bool)
@@ -98,14 +98,14 @@ func assertEncodedWebpRoundtrip(source: Image)
     @assert(decoded.pixelFormat == .RGBA8)
     for [y] in source.height do
         for [x] in source.width
-    {
-        let got  = decoded.pixelColor(x, y)
-        let want = source.pixelColor(x, y)
-        @assert(got.r == want.r)
-        @assert(got.g == want.g)
-        @assert(got.b == want.b)
-        @assert(got.a == want.a)
-    }
+        {
+            let got  = decoded.pixelColor(x, y)
+            let want = source.pixelColor(x, y)
+            @assert(got.r == want.r)
+            @assert(got.g == want.g)
+            @assert(got.b == want.b)
+            @assert(got.a == want.a)
+        }
 }
 
 // The decoder and encoder registries recognise WebP files.
@@ -217,11 +217,20 @@ func assertEncodedWebpRoundtrip(source: Image)
 #test
 {
     checkLossyWebp("blue-purple-pink-large.no-filter.lossy.webp",
-                   "blue-purple-pink-large.no-filter.lossy.webp.ycbcr.png", 600, 400, false)
+                   "blue-purple-pink-large.no-filter.lossy.webp.ycbcr.png",
+                   600,
+                   400,
+                   false)
     checkLossyWebp("blue-purple-pink-large.simple-filter.lossy.webp",
-                   "blue-purple-pink-large.simple-filter.lossy.webp.ycbcr.png", 600, 400, false)
+                   "blue-purple-pink-large.simple-filter.lossy.webp.ycbcr.png",
+                   600,
+                   400,
+                   false)
     checkLossyWebp("blue-purple-pink-large.normal-filter.lossy.webp",
-                   "blue-purple-pink-large.normal-filter.lossy.webp.ycbcr.png", 600, 400, false)
+                   "blue-purple-pink-large.normal-filter.lossy.webp.ycbcr.png",
+                   600,
+                   400,
+                   false)
 }
 
 // Multiple VP8 coefficient partitions decode independently.

@@ -164,8 +164,8 @@ namespace
     void applyBlankLinesBetweenDefinitions(FormatModel& model)
     {
         const FormatOptions&       options = model.options();
-        const FormatBlankLineStyle funcs = options.blankLineBeforeFunctionDefinition;
-        const FormatBlankLineStyle types = options.blankLineBeforeTypeDefinition;
+        const FormatBlankLineStyle funcs   = options.blankLineBeforeFunctionDefinition;
+        const FormatBlankLineStyle types   = options.blankLineBeforeTypeDefinition;
         if (funcs == FormatBlankLineStyle::Preserve && types == FormatBlankLineStyle::Preserve)
             return;
 
@@ -219,7 +219,7 @@ namespace
                 continue;
             const FormatPiece& prevPiece = model.piece(prev);
             // Only the first line of a comment block, after real code.
-            if (prevPiece.isComment || prevPiece.is(TokenId::SymLeftCurly))
+            if (prevPiece.isComment || prevPiece.is(TokenId::SymLeftCurly) || prevPiece.hasRole(FormatRoleE::TrailingDo))
                 continue;
             if (model.piece(model.lineStartOf(prev)).hasRole(FormatRoleE::AttrOpen))
                 continue; // between an attribute and its declaration
@@ -323,6 +323,20 @@ namespace
         }
     }
 
+    void applyBlankLinesAtInlineBodyStarts(FormatModel& model)
+    {
+        const FormatBlankLineStyle style = model.options().blankLineAfterOpeningBrace;
+        if (style == FormatBlankLineStyle::Preserve)
+            return;
+
+        for (const FormatInlineBody& body : model.inlineBodies())
+        {
+            const uint32_t first = model.nextPiece(body.doPiece);
+            if (first != INVALID_PIECE && first <= body.lastPiece)
+                applyBlankLineStyle(model, first, style);
+        }
+    }
+
     // A standalone closing brace ends a structural paragraph. Braces followed
     // by `else`, `case`, or another closing brace stay attached.
     void applyBlankLineAfterStandaloneClosingBraces(FormatModel& model)
@@ -365,6 +379,7 @@ namespace FormatPass
         applyBlankLinesBeforeComments(model);
         applyBlankLinesBetweenCases(model);
         applyBlankLinesAtBlockEdges(model);
+        applyBlankLinesAtInlineBodyStarts(model);
     }
 }
 

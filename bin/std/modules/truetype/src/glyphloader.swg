@@ -249,7 +249,10 @@ func loadGlyphInternal(face: *Face, glyphIndex: u32) fail
     appendGlyph(faceData, glyphIndex, xPpem, yPpem)
 
     slot.outline.setView(faceData.outlinePoints.count ? faceData.outlinePoints.buffer : null,
-                         faceData.outlineTags.count ? faceData.outlineTags.buffer : null, faceData.outlineContours.count ? faceData.outlineContours.buffer : null, cast(s16) faceData.outlinePoints.count, cast(s16) faceData.outlineContours.count)
+                         faceData.outlineTags.count ? faceData.outlineTags.buffer : null,
+                         faceData.outlineContours.count ? faceData.outlineContours.buffer : null,
+                         cast(s16) faceData.outlinePoints.count,
+                         cast(s16) faceData.outlineContours.count)
 
     let metric = faceData.glyphMetrics[glyphIndex]
     slot.setAdvance(scale26_6(metric.advanceWidth, xPpem, faceData.unitsPerEm))

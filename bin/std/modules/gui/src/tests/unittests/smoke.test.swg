@@ -117,15 +117,16 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
 
     var frameCount: u32
     var didClick:   bool
-    let result = host.app.doModalLoop(surface, func|host = &host, button, frames = &frameCount, didClick = &didClick|(app)
-    {
-        dref frames += 1
-        if !dref didClick
-        {
-            host.clickWnd(button)
-            dref didClick = true
-        }
-    })
+    let result = host.app.doModalLoop(surface,
+                                      func|host = &host, button, frames = &frameCount, didClick = &didClick|(app)
+                                      {
+                                          dref frames += 1
+                                          if !dref didClick
+                                          {
+                                              host.clickWnd(button)
+                                              dref didClick = true
+                                          }
+                                      })
 
     @assert(result == GuiHeadlessSmoke_ModalExit)
     @assert(frameCount == 1)

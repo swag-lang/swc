@@ -61,13 +61,13 @@ func day8A()
                 hidden += 1
             else do
                 for [x] in 0 until col
-            {
-                if l[x] >= l[col]
                 {
-                    hidden += 1
-                    break
+                    if l[x] >= l[col]
+                    {
+                        hidden += 1
+                        break
+                    }
                 }
-            }
 
             maxLeft = Math.max(maxLeft, l[col])
 

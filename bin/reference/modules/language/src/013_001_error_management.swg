@@ -164,7 +164,8 @@ func blockCatchElse(name: #null string)->u64
     catch
     {
         return count(name)
-    } else {}
+    }
+    else {}
 
     return 99
 }

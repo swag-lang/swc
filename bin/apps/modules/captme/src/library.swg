@@ -5,6 +5,10 @@ struct Library
     files:        Array'File.FileInfo
     onDeleteFile: SigArray'func||(String)
     loaded:       bool
+
+    // Folder the captures live in. Empty selects the user's document library, which is what
+    // the application always uses; only a test overrides it, through 'useFolder'.
+    folder: String
 }
 
 impl Library
@@ -20,8 +24,21 @@ impl Library
             Directory.create(trash)
     }
 
+    // Redirects the library to 'path'; an empty path restores the user's document library.
+    //
+    // A test points this at a scratch folder before it touches anything: the capture actions
+    // it exercises write real files through 'newFileName', and a run that dies before its
+    // cleanup would otherwise leave stray captures in the user's own library.
+    func useFolder(path: String)
+    {
+        g_Library.folder = path
+    }
+
     func getFolder()->String
     {
+        if !g_Library.folder.isEmpty() do
+            return g_Library.folder
+
         let str = Env.getSpecialDirectory(.UserDocuments)
         Debug.assert(!str.isEmpty())
         return Path.combine(str, "captMe")

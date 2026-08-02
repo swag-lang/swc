@@ -61,8 +61,8 @@ impl RuntimeWriteOnlyIndexAssignBox
         #static if op == .AddAssign do
             if index == 0 do
                 .first += value
-        else do
-            .second += value
+            else do
+                .second += value
         else do
             #error("unsupported opIndexAssign op [[" ++ op.symbol() ++ "]]")
     }

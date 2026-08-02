@@ -14,11 +14,13 @@ impl IActionUI for ActionPixSel
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        return updateFromTable(cxt, evt, [
-            {Clear,     "Clear",      .PixSel, hideDisabled: true},
-            {Fill,      "Fill",       .PixSel, hideDisabled: true},
-            {SmartFill, "Smart Fill", .PixSel, hideDisabled: true},
-            {SmartMove, "Smart Move", .PixSel, hideDisabled: true}])
+        return updateFromTable(cxt,
+                               evt,
+                               [
+                                   {Clear,     "Clear",      .PixSel, hideDisabled: true},
+                                   {Fill,      "Fill",       .PixSel, hideDisabled: true},
+                                   {SmartFill, "Smart Fill", .PixSel, hideDisabled: true},
+                                   {SmartMove, "Smart Move", .PixSel, hideDisabled: true}])
     }
 
     mtd impl execute(cxt: ActionContext)->bool

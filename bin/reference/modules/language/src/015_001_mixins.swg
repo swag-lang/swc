@@ -97,9 +97,10 @@ separate block after the call.
     var a = 0
 
     // Inline code argument
-    doItTwice(4, #code {
-        a += value
-    })
+    doItTwice(4,
+              #code {
+                  a += value
+              })
 
     // Separate trailing block
     doItTwice(2)

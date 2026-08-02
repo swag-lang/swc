@@ -15,7 +15,9 @@ using Swag, Core
 
     var grad4 = Image.create(2, 2, .RGBA8)
     grad4.fillGradient(Color.fromArgb(255'u8, 10'u8, 20'u8, 30'u8),
-                       Color.fromArgb(255'u8, 110'u8, 120'u8, 130'u8), Color.fromArgb(255'u8, 210'u8, 220'u8, 230'u8), Color.fromArgb(255'u8, 250'u8, 240'u8, 230'u8))
+                       Color.fromArgb(255'u8, 110'u8, 120'u8, 130'u8),
+                       Color.fromArgb(255'u8, 210'u8, 220'u8, 230'u8),
+                       Color.fromArgb(255'u8, 250'u8, 240'u8, 230'u8))
     assertImage(grad4, 2, 2, .RGBA8)
 
     assertPixel(grad4, 0, 1, Color.fromArgb(255'u8, 210'u8, 220'u8, 230'u8))

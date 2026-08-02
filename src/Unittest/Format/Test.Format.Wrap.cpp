@@ -593,6 +593,173 @@ SWC_TEST_BEGIN(FormatWrap_NestedLogicalExpressions)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatWrap_NormalizesAdversarialLists)
+{
+    static constexpr std::string_view SOURCE =
+        "func target(first:s32,\n"
+        "\n"
+        " second :s32,third:s32)->s32\n"
+        "{\n"
+        " return first+second+third\n"
+        "}\n"
+        "func run()\n"
+        "{\n"
+        " let value=target(1,\n"
+        "\n"
+        "  2,3)\n"
+        " value=target(value,\n"
+        "             2,3)\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func target(first: s32,\n"
+        "            second: s32,\n"
+        "            third: s32)->s32\n"
+        "{\n"
+        "    return first + second + third\n"
+        "}\n"
+        "func run()\n"
+        "{\n"
+        "    let value = target(1,\n"
+        "                       2,\n"
+        "                       3)\n"
+        "    value = target(value,\n"
+        "                   2,\n"
+        "                   3)\n"
+        "}\n";
+
+    FormatOptions options;
+    options.indentStyle                    = FormatIndentStyle::Spaces;
+    options.indentWidth                    = 4;
+    options.spaceBeforeColonInDeclarations = false;
+    options.spaceAfterColonInDeclarations  = true;
+    options.spaceAroundAssignmentOperator  = true;
+    options.spaceAroundBinaryOperators     = true;
+    options.spaceBeforeComma               = false;
+    options.spaceAfterComma                = true;
+    options.sourceSelectsArgumentLayout    = true;
+    options.sourceSelectsParameterLayout   = true;
+    options.argumentListLayout             = FormatListLayout::HangingAlign;
+    options.parameterListLayout            = FormatListLayout::HangingAlign;
+    options.binPackArguments               = FormatBinPackStyle::OnePerLine;
+    options.binPackParameters              = FormatBinPackStyle::OnePerLine;
+    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_NormalizesAdversarialLogicalExpression)
+{
+    static constexpr std::string_view SOURCE =
+        "func test(a,b,c:bool)\n"
+        "{\n"
+        " if a\n"
+        "             and b or\n"
+        " c do\n"
+        "  return\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func test(a, b, c: bool)\n"
+        "{\n"
+        "    if a and\n"
+        "       b or\n"
+        "       c do\n"
+        "        return\n"
+        "}\n";
+
+    FormatOptions options;
+    options.indentStyle                          = FormatIndentStyle::Spaces;
+    options.indentWidth                          = 4;
+    options.spaceBeforeColonInDeclarations       = false;
+    options.spaceAfterColonInDeclarations        = true;
+    options.spaceBeforeComma                     = false;
+    options.spaceAfterComma                      = true;
+    options.sourceSelectsLogicalExpressionLayout = true;
+    options.logicalExpressionLayout              = FormatLogicalLayout::HangingAlign;
+    options.logicalOperatorBreakPosition         = FormatOperatorWrapStyle::After;
+    options.logicalOperandPacking                = FormatLogicalPacking::OnePerLine;
+    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_AlignsMultilineArgumentContents)
+{
+    static constexpr std::string_view SOURCE =
+        "func run()\n"
+        "{\n"
+        " call(1,\n"
+        " [\n"
+        "   2,\n"
+        "   3\n"
+        " ],\n"
+        " func()\n"
+        " {\n"
+        "  work()\n"
+        "  work()\n"
+        " })\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func run()\n"
+        "{\n"
+        "    call(1,\n"
+        "         [\n"
+        "             2,\n"
+        "             3\n"
+        "         ],\n"
+        "         func()\n"
+        "         {\n"
+        "             work()\n"
+        "             work()\n"
+        "         })\n"
+        "}\n";
+
+    FormatOptions options;
+    options.indentStyle                 = FormatIndentStyle::Spaces;
+    options.indentWidth                 = 4;
+    options.sourceSelectsArgumentLayout = true;
+    options.argumentListLayout          = FormatListLayout::HangingAlign;
+    options.binPackArguments            = FormatBinPackStyle::OnePerLine;
+    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_ClosureCapturesStayInsideArgument)
+{
+    static constexpr std::string_view SOURCE =
+        "func run()\n"
+        "{\n"
+        " call(surface, func|host = &host, frames = select(&count, 1)|(app)\n"
+        " {\n"
+        "  use(host, frames)\n"
+        "  if ready do\n"
+        "  use(frames, app)\n"
+        " })\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func run()\n"
+        "{\n"
+        "    call(surface,\n"
+        "         func|host = &host, frames = select(&count, 1)|(app)\n"
+        "         {\n"
+        "             use(host, frames)\n"
+        "             if ready do\n"
+        "                 use(frames, app)\n"
+        "         })\n"
+        "}\n";
+
+    FormatOptions options;
+    options.indentStyle                 = FormatIndentStyle::Spaces;
+    options.indentWidth                 = 4;
+    options.columnLimit                 = 40;
+    options.sourceSelectsArgumentLayout = true;
+    options.argumentListLayout          = FormatListLayout::HangingAlign;
+    options.binPackArguments            = FormatBinPackStyle::OnePerLine;
+    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatWrap_NoWrapWhenDisabled)
 {
     static constexpr std::string_view SOURCE =

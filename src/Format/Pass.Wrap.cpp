@@ -275,7 +275,7 @@ namespace
             for (uint32_t i = item; i != INVALID_PIECE && i < state.closePiece; i = model_->nextPiece(i))
             {
                 const FormatPiece& piece = model_->piece(i);
-                if (piece.isNot(TokenId::SymComma) || piece.depth != innerDepth)
+                if (piece.isNot(TokenId::SymComma) || piece.depth != innerDepth || piece.hasRole(FormatRoleE::ClosureCaptureComma))
                     continue;
 
                 const uint32_t next = model_->nextPiece(i);
@@ -880,6 +880,13 @@ namespace
             return false;
         }
 
+        bool isWrappableComma(const uint32_t commaPiece) const
+        {
+            const FormatPiece& piece = model_->piece(commaPiece);
+            return piece.is(TokenId::SymComma) && !piece.hasRole(FormatRoleE::ClosureCaptureComma) &&
+                   !commaBelongsToSingleLineList(commaPiece);
+        }
+
         const LogicalState* logicalExpressionForBoundary(const uint32_t pieceIndex) const
         {
             const LogicalState* result     = nullptr;
@@ -973,7 +980,7 @@ namespace
             for (const auto& [pieceIndex, column] : columns)
             {
                 const FormatPiece& piece = model_->piece(pieceIndex);
-                if (piece.is(TokenId::SymComma) && !commaBelongsToSingleLineList(pieceIndex))
+                if (isWrappableComma(pieceIndex))
                     bestCommaDepth = std::min(bestCommaDepth, piece.depth);
             }
 
@@ -984,8 +991,7 @@ namespace
                 const FormatPiece& piece         = model_->piece(pieceIndex);
 
                 uint32_t candidate = INVALID_PIECE;
-                if (piece.is(TokenId::SymComma) && piece.depth == bestCommaDepth &&
-                    !commaBelongsToSingleLineList(pieceIndex) && c + 1 < columns.size())
+                if (isWrappableComma(pieceIndex) && piece.depth == bestCommaDepth && c + 1 < columns.size())
                     candidate = columns[c + 1].piece;
                 else if (piece.hasRole(FormatRoleE::BinaryOp))
                 {
@@ -1012,7 +1018,7 @@ namespace
 
                 if (column < limit)
                 {
-                    if (piece.is(TokenId::SymComma) && piece.depth == bestCommaDepth)
+                    if (isWrappableComma(pieceIndex) && piece.depth == bestCommaDepth)
                         bestComma = candidate;
                     else if (piece.hasRole(FormatRoleE::BinaryOp))
                         bestOp = candidate;
@@ -1108,6 +1114,88 @@ namespace
                 model_->setGapSpaces(state.closePiece, spacesBeforeClose(state));
         }
 
+        bool isMultilineLiteralItem(const uint32_t item) const
+        {
+            const FormatPiece& piece = model_->piece(item);
+            return piece.is(TokenId::SymLeftBracket) || piece.is(TokenId::SymLeftCurly) || piece.is(TokenId::KwdFunc) ||
+                   piece.is(TokenId::CompilerCode);
+        }
+
+        bool isStructuralItemLine(const FormatPiece& piece, const bool bracketItem, const uint32_t itemDepth) const
+        {
+            if (bracketItem && piece.depth == itemDepth + 1)
+                return true;
+            if (piece.is(TokenId::SymRightParen) || piece.is(TokenId::SymRightBracket) || piece.is(TokenId::SymRightCurly))
+                return true;
+            return piece.roles.hasAny({FormatRoleE::StmtStart, FormatRoleE::CaseLabel, FormatRoleE::AttrOpen,
+                                       FormatRoleE::ElseKeyword, FormatRoleE::EnumValueStart, FormatRoleE::FieldDeclStart,
+                                       FormatRoleE::BlockOpen, FormatRoleE::BlockClose, FormatRoleE::LiteralOpen,
+                                       FormatRoleE::LiteralClose, FormatRoleE::DestructuringClose, FormatRoleE::WhereKeyword});
+        }
+
+        uint32_t inlineBodyDepthAt(const uint32_t pieceIndex) const
+        {
+            uint32_t result = 0;
+            for (const FormatInlineBody& body : model_->inlineBodies())
+            {
+                if (pieceIndex > body.doPiece && pieceIndex <= body.lastPiece)
+                    result++;
+            }
+            return result;
+        }
+
+        void alignMultilineItemContents(const ListState& state, const size_t itemIndex) const
+        {
+            const uint32_t item = state.items[itemIndex];
+            if (!model_->gapHasNewline(item) || !isMultilineLiteralItem(item))
+                return;
+
+            const uint32_t rangeEnd = itemIndex + 1 < state.items.size() ? model_->prevPiece(state.items[itemIndex + 1])
+                                                                         : model_->prevPiece(state.closePiece);
+            if (rangeEnd == INVALID_PIECE || rangeEnd <= item)
+                return;
+
+            const uint32_t tabWidth        = std::max(options_->tabWidth, 1u);
+            const uint32_t itemCols        = FormatModel::textColumns(model_->lineIndentOf(item), tabWidth);
+            const uint32_t itemDepth       = model_->piece(item).depth;
+            const uint32_t itemInlineDepth = inlineBodyDepthAt(item);
+            const bool     bracketItem     = model_->piece(item).is(TokenId::SymLeftBracket) || model_->piece(item).is(TokenId::SymLeftCurly);
+            int32_t        lastDelta       = 0;
+
+            for (uint32_t lineStart = model_->nextPiece(item); lineStart != INVALID_PIECE && lineStart <= rangeEnd; lineStart = model_->nextPiece(lineStart))
+            {
+                if (!model_->gapHasNewline(lineStart))
+                    continue;
+                if (!FormatPassUtil::canEditGap(*model_, lineStart))
+                    continue;
+
+                const FormatPiece& piece      = model_->piece(lineStart);
+                const uint32_t     current    = FormatModel::textColumns(model_->lineIndentOf(lineStart), tabWidth);
+                uint32_t           targetCols = current;
+                if (isStructuralItemLine(piece, bracketItem, itemDepth))
+                {
+                    uint32_t structuralDepth = piece.depth;
+                    if (piece.match != INVALID_PIECE &&
+                        (piece.is(TokenId::SymRightParen) || piece.is(TokenId::SymRightBracket) || piece.is(TokenId::SymRightCurly)))
+                        structuralDepth = model_->piece(piece.match).depth;
+                    const uint32_t bracketDepth     = structuralDepth > itemDepth ? structuralDepth - itemDepth : 0;
+                    const uint32_t pieceInlineDepth = inlineBodyDepthAt(lineStart);
+                    const uint32_t inlineDepth      = pieceInlineDepth > itemInlineDepth ? pieceInlineDepth - itemInlineDepth : 0;
+                    const uint32_t relativeDepth    = bracketDepth + inlineDepth;
+                    targetCols                      = itemCols + relativeDepth * std::max(options_->indentWidth, 1u);
+                    lastDelta                       = static_cast<int32_t>(targetCols) - static_cast<int32_t>(current);
+                }
+                else
+                {
+                    const int32_t shifted = static_cast<int32_t>(current) + lastDelta;
+                    targetCols            = shifted > 0 ? static_cast<uint32_t>(shifted) : 0;
+                }
+
+                if (targetCols != current)
+                    model_->setGapBreak(lineStart, model_->gapNewlineCount(lineStart), FormatPassUtil::indentForColumns(*model_, targetCols).view());
+            }
+        }
+
         void finishLists() const
         {
             for (const ListState& state : lists_)
@@ -1120,6 +1208,8 @@ namespace
                 applyOnePerLine(state, indent);
                 alignBrokenItems(state, indent);
                 placeClose(state);
+                for (size_t i = 0; i < state.items.size(); ++i)
+                    alignMultilineItemContents(state, i);
             }
         }
 

@@ -138,11 +138,11 @@ break-before-where = true
 
 # How to lay out arguments across lines in calls.
 # Possible values: preserve, pack, one-per-line
-bin-pack-arguments = pack
+bin-pack-arguments = one-per-line
 
 # How to lay out parameters across lines in declarations.
 # Possible values: preserve, pack, one-per-line
-bin-pack-parameters = pack
+bin-pack-parameters = one-per-line
 
 # Place every call argument list on one line, even past the column limit.
 force-single-line-argument-lists = false

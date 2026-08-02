@@ -190,23 +190,24 @@ impl ColorPickerCtrl
                 var save  = v.color()
                 var sfade = app.fadeDisabledSurface
                 app.fadeDisabledSurface = false
-                discard app.doModalLoop(null, func|v, save|(app)
-                {
-                    app.setFrameCursor(Cursor.from(.Cross))
+                discard app.doModalLoop(null,
+                                        func|v, save|(app)
+                                        {
+                                            app.setFrameCursor(Cursor.from(.Cross))
 
-                    if app.mouse.isButtonPressed(.Right)
-                    {
-                        v.setColor(save)
-                        app.exitModal()
-                        return
-                    }
+                                            if app.mouse.isButtonPressed(.Right)
+                                            {
+                                                v.setColor(save)
+                                                app.exitModal()
+                                                return
+                                            }
 
-                    var col = Application.pickColorAtMouse()
-                    v.setColor(col)
+                                            var col = Application.pickColorAtMouse()
+                                            v.setColor(col)
 
-                    if app.mouse.isButtonPressed(.Left) do
-                        app.exitModal()
-                })
+                                            if app.mouse.isButtonPressed(.Left) do
+                                                app.exitModal()
+                                        })
 
                 app.fadeDisabledSurface = sfade
             }

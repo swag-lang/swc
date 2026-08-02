@@ -19,7 +19,8 @@ namespace
         // starts: their lines keep their relative indentation.
         return piece.roles.hasAny({FormatRoleE::StmtStart, FormatRoleE::CaseLabel, FormatRoleE::AttrOpen,
                                    FormatRoleE::ElseKeyword, FormatRoleE::EnumValueStart, FormatRoleE::FieldDeclStart,
-                                   FormatRoleE::BlockOpen, FormatRoleE::BlockClose, FormatRoleE::WhereKeyword});
+                                   FormatRoleE::BlockOpen, FormatRoleE::BlockClose, FormatRoleE::DestructuringClose,
+                                   FormatRoleE::WhereKeyword});
     }
 
     class IndentPass
@@ -38,6 +39,8 @@ namespace
 
             sortedBlocks_ = model_->blocks();
             std::ranges::sort(sortedBlocks_, [](const FormatBlock& a, const FormatBlock& b) { return a.openPiece < b.openPiece; });
+            sortedInlineBodies_ = model_->inlineBodies();
+            std::ranges::sort(sortedInlineBodies_, [](const FormatInlineBody& a, const FormatInlineBody& b) { return a.doPiece < b.doPiece; });
 
             std::vector<uint32_t> lineStarts;
             model_->collectLineStarts(lineStarts);
@@ -82,6 +85,11 @@ namespace
                 blockStack_.push_back({sortedBlocks_[nextBlock_++], false});
             while (!blockStack_.empty() && blockStack_.back().block.closePiece < lineStart)
                 blockStack_.pop_back();
+
+            while (nextInlineBody_ < sortedInlineBodies_.size() && sortedInlineBodies_[nextInlineBody_].doPiece < lineStart)
+                inlineBodyStack_.push_back(sortedInlineBodies_[nextInlineBody_++]);
+            while (!inlineBodyStack_.empty() && inlineBodyStack_.back().lastPiece < lineStart)
+                inlineBodyStack_.pop_back();
         }
 
         // `where` clauses and the braces of their block bodies sit
@@ -123,7 +131,8 @@ namespace
 
             uint32_t   newCols                = 0;
             const bool isStatement            = isStatementLine(piece);
-            const bool updatesStatementAnchor = isStatement && piece.isNot(TokenId::KwdElse);
+            const bool updatesStatementAnchor = isStatement && piece.isNot(TokenId::KwdElse) &&
+                                                !piece.hasRole(FormatRoleE::DestructuringClose);
             if (isStatement)
             {
                 newCols = statementColumns(lineStart, piece);
@@ -204,6 +213,8 @@ namespace
 
                 depth += blockContribution(block);
             }
+
+            depth += static_cast<uint32_t>(inlineBodyStack_.size());
 
             // A case label opens the body region of its owning switch.
             if (piece.hasRole(FormatRoleE::CaseLabel))
@@ -290,18 +301,21 @@ namespace
             bool        sawCase = false;
         };
 
-        FormatModel*             model_;
-        const FormatOptions*     options_;
-        std::vector<FormatBlock> sortedBlocks_;
-        std::vector<StackEntry>  blockStack_;
-        std::vector<OpenBracket> parenStack_;
-        std::vector<uint32_t>    pendingComments_;
-        size_t                   nextBlock_            = 0;
-        uint32_t                 lastStmtOldCols_      = 0;
-        uint32_t                 lastStmtNewCols_      = 0;
-        uint32_t                 lastCodeCols_         = 0;
-        uint32_t                 lastStmtOperandCol_   = UINT32_MAX;
-        bool                     prevLineEndsBinaryOp_ = false;
+        FormatModel*                  model_;
+        const FormatOptions*          options_;
+        std::vector<FormatBlock>      sortedBlocks_;
+        std::vector<StackEntry>       blockStack_;
+        std::vector<FormatInlineBody> sortedInlineBodies_;
+        std::vector<FormatInlineBody> inlineBodyStack_;
+        std::vector<OpenBracket>      parenStack_;
+        std::vector<uint32_t>         pendingComments_;
+        size_t                        nextBlock_            = 0;
+        size_t                        nextInlineBody_       = 0;
+        uint32_t                      lastStmtOldCols_      = 0;
+        uint32_t                      lastStmtNewCols_      = 0;
+        uint32_t                      lastCodeCols_         = 0;
+        uint32_t                      lastStmtOperandCol_   = UINT32_MAX;
+        bool                          prevLineEndsBinaryOp_ = false;
     };
 }
 

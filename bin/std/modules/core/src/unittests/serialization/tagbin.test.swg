@@ -670,6 +670,70 @@ func releaseTagBinInterface(value: *#null ITagBinScore)
     Memory.delete(decoded)
 }
 
+struct TagBinLegacyPair
+{
+    x: s32
+    y: s32
+}
+
+// Builds a stream in the layout that shipped before the version word and the per-value flags
+// byte existed: the root signature is followed straight away by the section, and an element is
+// just its two CRCs and its payload. The type CRC is deliberately one no current type hashes
+// to, which is also what those streams carry.
+func buildLegacyTagBinStream(xValue, yValue: s32)->Array'u8
+{
+    const LegacyTypeCrc = 0x954A3BAB'u32
+
+    var result: retval
+    var writer = ByteStream.openWrite(&result)
+
+    writer.writeNative(cast(u32) Serialization.Write.TagBinSignature.Root)
+    writer.writeNative(cast(u32) Serialization.Write.TagBinSignature.Version)
+    writer.writeNative(0'u32)
+    writer.writeNative(cast(u32) Serialization.Write.TagBinSignature.Fat)
+
+    let fatSeekField = writer.position()
+    writer.writeNative(0'u64)
+    writer.writeNative(2'u64)
+
+    let xSeek = writer.position()
+    writer.writeNative(Hash.Crc32.compute("x"))
+    writer.writeNative(LegacyTypeCrc)
+    writer.writeNative(xValue)
+
+    let ySeek = writer.position()
+    writer.writeNative(Hash.Crc32.compute("y"))
+    writer.writeNative(LegacyTypeCrc)
+    writer.writeNative(yValue)
+
+    let fatSeek = writer.position()
+    writer.writeNative(cast(u32) Serialization.Write.TagBinSignature.Fat)
+    writer.writeNative(Hash.Crc32.compute("x"))
+    writer.writeNative(xSeek)
+    writer.writeNative(Hash.Crc32.compute("y"))
+    writer.writeNative(ySeek)
+
+    writer.setPosition(fatSeekField)
+    writer.writeNative(fatSeek)
+    return result
+}
+
+// A stream written before the format grew its version word still reads. Those streams also
+// predate the per-value flags byte, so the two have to be recognized together: consuming a
+// version word that is not there shifts the whole stream by four bytes, and reading a flags
+// byte that is not there shifts every element by one.
+#test
+{
+    let bytes = buildLegacyTagBinStream(1130, 1138)
+
+    var decoder: Serialization.Decoder'Serialization.Read.TagBin
+    let decoded = notnull expect decoder.readAll'TagBinLegacyPair(bytes.toSlice())
+    defer Memory.delete(decoded)
+
+    @assert(decoded.x == 1130)
+    @assert(decoded.y == 1138)
+}
+
 func readTagBinValueFlags(bytes: const [..] u8, fieldName: string)->u8
 {
     let seek   = findTagBinFieldSeek(bytes, fieldName)

@@ -137,14 +137,14 @@ func jitMakeAssignDestructRet(first, second: u32)->JitAssignDestructRet
     first  = 0
     second = 0
     if true do
-    {x: first, y: second} = point
+        {x: first, y: second} = point
     @assert(first == 51)
     @assert(second == 52)
 
     first  = 0
     second = 0
     #static if true do
-    {y: second, x: first} = point
+        {y: second, x: first} = point
     @assert(first == 51)
     @assert(second == 52)
 

@@ -762,9 +762,9 @@ impl Properties
                 mustShow = true
 
             if mustShow do
-            {
-                mustShow, mustEnable
-            } = .itemState(item)
+                {
+                    mustShow, mustEnable
+                } = .itemState(item)
         }
 
         item.line.show(mustShow)

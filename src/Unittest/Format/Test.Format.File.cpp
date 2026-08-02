@@ -16,9 +16,146 @@ namespace
         SWC_RESULT(formatter.prepare(parentCtx.global(), source));
         if (formatter.text() != expected)
             return Result::Error;
+
+        Formatter secondPass(options);
+        SWC_RESULT(secondPass.prepare(parentCtx.global(), formatter.text()));
+        if (secondPass.text() != expected)
+            return Result::Error;
         return Result::Continue;
     }
 }
+
+SWC_TEST_BEGIN(FormatFile_InlineBodyOwnsNestedBraceIndent)
+{
+    static constexpr std::string_view SOURCE =
+        "func run(flag: bool)\n"
+        "{\n"
+        " for [y] in 2 do\n"
+        "  for [x] in 2\n"
+        " {\n"
+        "  if flag\n"
+        "  {\n"
+        "   break\n"
+        "}\n"
+        "}\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func run(flag: bool)\n"
+        "{\n"
+        "    for [y] in 2 do\n"
+        "        for [x] in 2\n"
+        "        {\n"
+        "            if flag\n"
+        "            {\n"
+        "                break\n"
+        "            }\n"
+        "        }\n"
+        "}\n";
+
+    FormatOptions options;
+    options.indentStyle = FormatIndentStyle::Spaces;
+    options.indentWidth = 4;
+    return checkFileRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatFile_InlineIfBranchStopsBeforeElse)
+{
+    static constexpr std::string_view SOURCE =
+        "func run(flag: bool)\n"
+        "{\n"
+        " if flag do\n"
+        " signal += func|value = 1|(arg) { use(value, arg) }\n"
+        " else do\n"
+        " signal += func|value = 2|(arg) { use(value, arg) }\n"
+        " finish()\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func run(flag: bool)\n"
+        "{\n"
+        "    if flag do\n"
+        "        signal += func|value = 1|(arg) { use(value, arg) }\n"
+        "    else do\n"
+        "        signal += func|value = 2|(arg) { use(value, arg) }\n"
+        "    finish()\n"
+        "}\n";
+
+    FormatOptions options;
+    options.indentStyle = FormatIndentStyle::Spaces;
+    options.indentWidth = 4;
+    return checkFileRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatFile_CatchHandlerAlignsAndIndents)
+{
+    static constexpr std::string_view SOURCE =
+        "func run(flag: bool)\n"
+        "{\n"
+        " if flag do\n"
+        "  catch work()\n"
+        "   else do\n"
+        "   recover()\n"
+        " finish()\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func run(flag: bool)\n"
+        "{\n"
+        "    if flag do\n"
+        "        catch work()\n"
+        "        else do\n"
+        "            recover()\n"
+        "    finish()\n"
+        "}\n";
+
+    FormatOptions options;
+    options.indentStyle = FormatIndentStyle::Spaces;
+    options.indentWidth = 4;
+    return checkFileRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatFile_InlineDestructuringIsNotABlock)
+{
+    static constexpr std::string_view SOURCE =
+        "func run(point: {x, y: s32})\n"
+        "{\n"
+        " var first: s32\n"
+        " var second: s32\n"
+        " if true do\n"
+        " {x: first, y: second} = point\n"
+        " if false do\n"
+        " {\n"
+        "     x: first, y: second\n"
+        " } = point\n"
+        " use(first)\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func run(point: {x, y: s32})\n"
+        "{\n"
+        "    var first: s32\n"
+        "    var second: s32\n"
+        "    if true do\n"
+        "        {x: first, y: second} = point\n"
+        "    if false do\n"
+        "        {\n"
+        "            x: first, y: second\n"
+        "        } = point\n"
+        "    use(first)\n"
+        "}\n";
+
+    FormatOptions options;
+    options.indentStyle                        = FormatIndentStyle::Spaces;
+    options.indentWidth                        = 4;
+    options.allowShortBlocksOnSingleLine       = FormatShortBlockStyle::Empty;
+    options.allowShortIfStatementsOnSingleLine = false;
+    return checkFileRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
 
 SWC_TEST_BEGIN(FormatFile_InsertFinalNewline)
 {

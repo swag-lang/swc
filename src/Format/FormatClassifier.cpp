@@ -109,6 +109,12 @@ namespace
                    ast_->node(nodeRef).cast<AstAssignList>().hasFlag(AstAssignListFlagsE::Destructuring);
         }
 
+        bool isDestructuringAssignStmt(const AstNodeRef nodeRef) const
+        {
+            return nodeRef.isValid() && ast_->node(nodeRef).is(AstNodeId::AssignStmt) &&
+                   isDestructuringAssignList(ast_->node(nodeRef).cast<AstAssignStmt>().nodeLeftRef);
+        }
+
         const NodeSpan& computeSpan(const AstNodeRef nodeRef)
         {
             const auto it = spans_.find(nodeRef.get());
@@ -303,6 +309,7 @@ namespace
 
             addRole(openPiece, FormatRoleE::LiteralOpen);
             addRole(open.match, FormatRoleE::LiteralClose);
+            addRole(open.match, FormatRoleE::DestructuringClose);
         }
 
         void registerBlock(const uint32_t openPiece, const FormatBlockKind kind, const uint32_t headPiece, const bool exprLevel = false) const
@@ -331,6 +338,53 @@ namespace
 
             addRole(openPiece, FormatRoleE::BlockOpen);
             addRole(open.match, FormatRoleE::BlockClose);
+        }
+
+        void registerInlineControl(const uint32_t doPiece, const NodeSpan& bodySpan, const uint32_t maxPiece = INVALID_PIECE) const
+        {
+            if (doPiece == INVALID_PIECE || !bodySpan.valid())
+                return;
+
+            for (const FormatInlineBody& body : model_->inlineBodies())
+            {
+                if (body.doPiece == doPiece)
+                    return;
+            }
+
+            uint32_t lastPiece = maxPiece == INVALID_PIECE ? bodySpan.maxPiece : std::min(bodySpan.maxPiece, maxPiece);
+            for (;;)
+            {
+                const uint32_t next = nextCode(lastPiece);
+                if (next == INVALID_PIECE)
+                    break;
+
+                const FormatPiece& close = model_->piece(next);
+                if (close.match == INVALID_PIECE || close.match < bodySpan.minPiece ||
+                    (close.isNot(TokenId::SymRightParen) && close.isNot(TokenId::SymRightBracket) && close.isNot(TokenId::SymRightCurly)))
+                    break;
+                lastPiece = next;
+            }
+
+            model_->inlineBodies().push_back({doPiece, lastPiece});
+        }
+
+        uint32_t pieceBeforeElseBranch(const AstNodeRef elseRef)
+        {
+            const NodeSpan elseSpan = spanOf(elseRef);
+            if (!elseSpan.valid())
+                return INVALID_PIECE;
+
+            uint32_t keyword = elseSpan.minPiece;
+            if (model_->piece(keyword).isNot(TokenId::KwdElseIf))
+            {
+                keyword = prevCode(keyword);
+                if (keyword != INVALID_PIECE && model_->piece(keyword).is(TokenId::KwdDo))
+                    keyword = prevCode(keyword);
+            }
+
+            if (keyword == INVALID_PIECE || (model_->piece(keyword).isNot(TokenId::KwdElse) && model_->piece(keyword).isNot(TokenId::KwdElseIf)))
+                return INVALID_PIECE;
+            return prevCode(keyword);
         }
 
         // Locates the `{` that opens a body node: either the body's first
@@ -387,21 +441,37 @@ namespace
             addRole(prevCodeIf(bodySpan.minPiece, TokenId::KwdDo), FormatRoleE::TrailingDo);
         }
 
-        void markControlBody(const AstNodeRef bodyRef, const uint32_t headPiece)
+        uint32_t inlineBodyLimit(const AstNodeRef ownerRef, const AstNodeRef elseRef = AstNodeRef::invalid())
+        {
+            uint32_t result = INVALID_PIECE;
+            if (const auto it = statementLimits_.find(ownerRef.get()); it != statementLimits_.end())
+                result = it->second;
+
+            const uint32_t beforeElse = pieceBeforeElseBranch(elseRef);
+            if (beforeElse != INVALID_PIECE)
+                result = result == INVALID_PIECE ? beforeElse : std::min(result, beforeElse);
+            return result;
+        }
+
+        void markControlBody(const AstNodeRef bodyRef, const uint32_t headPiece, const AstNodeRef ownerRef, const AstNodeRef elseRef = AstNodeRef::invalid())
         {
             const NodeSpan bodySpan = spanOf(bodyRef);
             if (!bodySpan.valid())
                 return;
-            const uint32_t open = bodyOpenBrace(bodySpan);
+            const uint32_t open = isDestructuringAssignStmt(bodyRef) ? INVALID_PIECE : bodyOpenBrace(bodySpan);
             if (open != INVALID_PIECE)
                 registerBlock(open, FormatBlockKind::Control, headPiece);
             else
+            {
                 markTrailingDo(bodySpan);
+                addRole(bodySpan.minPiece, FormatRoleE::StmtStart);
+                registerInlineControl(prevCodeIf(bodySpan.minPiece, TokenId::KwdDo), bodySpan, inlineBodyLimit(ownerRef, elseRef));
+            }
         }
 
         // Marks the `else` keyword (and optional trailing `do`) that introduces
         // an else body which is not an `elif` chain.
-        void classifyElseBody(const AstNodeRef elseRef, const uint32_t headPiece)
+        void classifyElseBody(const AstNodeRef elseRef, const uint32_t headPiece, const AstNodeRef ownerRef)
         {
             if (!shouldVisit(elseRef))
                 return;
@@ -421,23 +491,36 @@ namespace
             if (before != INVALID_PIECE && model_->piece(before).is(TokenId::KwdElse))
                 addRole(before, FormatRoleE::ElseKeyword);
 
-            const uint32_t open = bodyOpenBrace(elseSpan);
+            const uint32_t open = isDestructuringAssignStmt(elseRef) ? INVALID_PIECE : bodyOpenBrace(elseSpan);
             if (open != INVALID_PIECE)
                 registerBlock(open, FormatBlockKind::Control, headPiece);
+            else
+            {
+                addRole(elseSpan.minPiece, FormatRoleE::StmtStart);
+                registerInlineControl(prevCodeIf(elseSpan.minPiece, TokenId::KwdDo), elseSpan, inlineBodyLimit(ownerRef));
+            }
         }
 
         void markStatementStarts(const AstNode& node)
         {
             SmallVector<AstNodeRef> children;
             Ast::nodeIdInfos(node.id()).collectChildren(children, *ast_, node);
+            SmallVector<std::pair<uint32_t, AstNodeRef>> statements;
             for (const AstNodeRef childRef : children)
             {
                 if (!shouldVisit(childRef))
                     continue;
                 const NodeSpan span = spanOf(childRef);
                 if (span.valid())
+                {
                     addRole(span.minPiece, FormatRoleE::StmtStart);
+                    statements.push_back({span.minPiece, childRef});
+                }
             }
+
+            std::ranges::sort(statements, [](const auto& a, const auto& b) { return a.first < b.first; });
+            for (size_t i = 1; i < statements.size(); ++i)
+                statementLimits_[statements[i - 1].second.get()] = prevCode(statements[i].first);
         }
 
         // First piece of the first compound child (statements span only).
@@ -475,13 +558,13 @@ namespace
             }
 
             // The type may start with qualifiers (`#late`, `#null`, `*`, ...)
-            // that its span skips over: find the `:` forward from the
-            // declaration start instead of walking back from the type.
+            // that its span skips over. Walk backward to the nearest `:` so
+            // each declaration in a VarDeclList marks its own separator.
             const NodeSpan typeSpan = spanOf(typeRef);
             if (typeSpan.valid() && span.valid())
             {
                 const uint32_t declDepth = model_->piece(span.minPiece).depth;
-                for (uint32_t p = nextCode(span.minPiece); p != INVALID_PIECE && p <= typeSpan.minPiece; p = nextCode(p))
+                for (uint32_t p = prevCode(typeSpan.minPiece); p != INVALID_PIECE && p >= span.minPiece; p = prevCode(p))
                 {
                     const FormatPiece& piece = model_->piece(p);
                     if (piece.is(TokenId::SymColon) && piece.depth == declDepth)
@@ -681,6 +764,51 @@ namespace
                     const auto&    fn       = node.cast<AstClosureExpr>();
                     const NodeSpan bodySpan = spanOf(fn.nodeBodyRef);
                     registerBlock(bodyOpenBrace(bodySpan), FormatBlockKind::Function, span.minPiece, true);
+
+                    SmallVector<AstNodeRef> captures;
+                    ast_->appendNodes(captures, fn.nodeCaptureArgsRef);
+                    NodeSpan captureSpan;
+                    for (const AstNodeRef captureRef : captures)
+                    {
+                        const NodeSpan childSpan = spanOf(captureRef);
+                        if (!childSpan.valid())
+                            continue;
+                        if (!captureSpan.valid())
+                            captureSpan = childSpan;
+                        else
+                        {
+                            captureSpan.minPiece = std::min(captureSpan.minPiece, childSpan.minPiece);
+                            captureSpan.maxPiece = std::max(captureSpan.maxPiece, childSpan.maxPiece);
+                        }
+                    }
+
+                    if (captureSpan.valid())
+                    {
+                        const uint32_t openPipe   = prevCodeIf(captureSpan.minPiece, TokenId::SymPipe);
+                        uint32_t       captureEnd = captureSpan.maxPiece;
+                        for (;;)
+                        {
+                            const uint32_t next = nextCode(captureEnd);
+                            if (next == INVALID_PIECE)
+                                break;
+                            const FormatPiece& close = model_->piece(next);
+                            if (close.match == INVALID_PIECE || close.match < captureSpan.minPiece ||
+                                (close.isNot(TokenId::SymRightParen) && close.isNot(TokenId::SymRightBracket) && close.isNot(TokenId::SymRightCurly)))
+                                break;
+                            captureEnd = next;
+                        }
+                        const uint32_t closePipe = nextCodeIf(captureEnd, TokenId::SymPipe);
+                        if (openPipe != INVALID_PIECE && closePipe != INVALID_PIECE)
+                        {
+                            const uint32_t captureDepth = model_->piece(openPipe).depth;
+                            for (uint32_t i = model_->nextPiece(openPipe); i != INVALID_PIECE && i < closePipe; i = model_->nextPiece(i))
+                            {
+                                const FormatPiece& piece = model_->piece(i);
+                                if (piece.is(TokenId::SymComma) && piece.depth == captureDepth)
+                                    addRole(i, FormatRoleE::ClosureCaptureComma);
+                            }
+                        }
+                    }
                     break;
                 }
 
@@ -791,8 +919,8 @@ namespace
                     if (span.valid() && model_->piece(span.minPiece).is(TokenId::KwdElseIf))
                         addRole(span.minPiece, FormatRoleE::ElseKeyword);
 
-                    markControlBody(stmt.nodeIfBlockRef, span.minPiece);
-                    classifyElseBody(stmt.nodeElseBlockRef, span.minPiece);
+                    markControlBody(stmt.nodeIfBlockRef, span.minPiece, nodeRef, stmt.nodeElseBlockRef);
+                    classifyElseBody(stmt.nodeElseBlockRef, span.minPiece, nodeRef);
                     break;
                 }
 
@@ -803,8 +931,8 @@ namespace
                     if (span.valid() && model_->piece(span.minPiece).is(TokenId::KwdElseIf))
                         addRole(span.minPiece, FormatRoleE::ElseKeyword);
 
-                    markControlBody(stmt.nodeIfBlockRef, span.minPiece);
-                    classifyElseBody(stmt.nodeElseBlockRef, span.minPiece);
+                    markControlBody(stmt.nodeIfBlockRef, span.minPiece, nodeRef, stmt.nodeElseBlockRef);
+                    classifyElseBody(stmt.nodeElseBlockRef, span.minPiece, nodeRef);
                     break;
                 }
 
@@ -815,8 +943,8 @@ namespace
                     if (span.valid() && model_->piece(span.minPiece).is(TokenId::KwdElseIf))
                         addRole(span.minPiece, FormatRoleE::ElseKeyword);
 
-                    markControlBody(stmt.nodeIfBlockRef, span.minPiece);
-                    classifyElseBody(stmt.nodeElseBlockRef, span.minPiece);
+                    markControlBody(stmt.nodeIfBlockRef, span.minPiece, nodeRef, stmt.nodeElseBlockRef);
+                    classifyElseBody(stmt.nodeElseBlockRef, span.minPiece, nodeRef);
                     break;
                 }
 
@@ -881,7 +1009,7 @@ namespace
                 {
                     const auto& stmt = node.cast<AstWhileStmt>();
                     addRole(span.minPiece, FormatRoleE::ControlKeyword);
-                    markControlBody(stmt.nodeBodyRef, span.minPiece);
+                    markControlBody(stmt.nodeBodyRef, span.minPiece, nodeRef);
                     break;
                 }
 
@@ -889,7 +1017,7 @@ namespace
                 {
                     const auto& stmt = node.cast<AstForeachStmt>();
                     addRole(span.minPiece, FormatRoleE::ControlKeyword);
-                    markControlBody(stmt.nodeBodyRef, span.minPiece);
+                    markControlBody(stmt.nodeBodyRef, span.minPiece, nodeRef);
                     break;
                 }
 
@@ -897,7 +1025,7 @@ namespace
                 {
                     const auto& stmt = node.cast<AstForStmt>();
                     addRole(span.minPiece, FormatRoleE::ControlKeyword);
-                    markControlBody(stmt.nodeBodyRef, span.minPiece);
+                    markControlBody(stmt.nodeBodyRef, span.minPiece, nodeRef);
                     break;
                 }
 
@@ -905,7 +1033,7 @@ namespace
                 {
                     const auto& stmt = node.cast<AstForCStyleStmt>();
                     addRole(span.minPiece, FormatRoleE::ControlKeyword);
-                    markControlBody(stmt.nodeBodyRef, span.minPiece);
+                    markControlBody(stmt.nodeBodyRef, span.minPiece, nodeRef);
                     break;
                 }
 
@@ -913,7 +1041,7 @@ namespace
                 {
                     const auto& stmt = node.cast<AstInfiniteLoopStmt>();
                     addRole(span.minPiece, FormatRoleE::ControlKeyword);
-                    markControlBody(stmt.nodeBodyRef, span.minPiece);
+                    markControlBody(stmt.nodeBodyRef, span.minPiece, nodeRef);
                     break;
                 }
 
@@ -921,7 +1049,7 @@ namespace
                 {
                     const auto& stmt = node.cast<AstWithStmt>();
                     addRole(span.minPiece, FormatRoleE::ControlKeyword);
-                    markControlBody(stmt.nodeBodyRef, span.minPiece);
+                    markControlBody(stmt.nodeBodyRef, span.minPiece, nodeRef);
                     break;
                 }
 
@@ -929,7 +1057,7 @@ namespace
                 {
                     const auto& stmt = node.cast<AstDeferStmt>();
                     addRole(span.minPiece, FormatRoleE::ControlKeyword);
-                    markControlBody(stmt.nodeBodyRef, span.minPiece);
+                    markControlBody(stmt.nodeBodyRef, span.minPiece, nodeRef);
                     break;
                 }
 
@@ -939,12 +1067,19 @@ namespace
                 case AstNodeId::ContinueStmt:
                 case AstNodeId::FallThroughStmt:
                 case AstNodeId::UnreachableStmt:
-                case AstNodeId::ErrorManagementStmt:
                 case AstNodeId::ErrorManagementExpr:
                 case AstNodeId::FailExpr:
                 case AstNodeId::DiscardExpr:
                     addRole(span.minPiece, FormatRoleE::ControlKeyword);
                     break;
+
+                case AstNodeId::ErrorManagementStmt:
+                {
+                    const auto& stmt = node.cast<AstErrorManagementStmt>();
+                    addRole(span.minPiece, FormatRoleE::ControlKeyword);
+                    classifyElseBody(stmt.nodeHandlerRef, span.minPiece, nodeRef);
+                    break;
+                }
 
                 case AstNodeId::UsingDecl:
                 case AstNodeId::UsingNamespaceStmt:
@@ -1140,6 +1275,7 @@ namespace
         FormatModel*                           model_;
         const Ast*                             ast_;
         std::unordered_map<uint32_t, NodeSpan> spans_;
+        std::unordered_map<uint32_t, uint32_t> statementLimits_;
     };
 }
 

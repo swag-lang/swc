@@ -27,7 +27,8 @@ public func addTypedValue(value: *void, type: typeinfo)
         encode.start(&buf)
         encode.writeValue(value, type)
         encode.end()
-    } else {}
+    }
+    else {}
 
     buf.makeLinear()
     addTypedData(g_ValueFormat, type, notnull buf.toSlice())
@@ -71,7 +72,7 @@ public func getTypedValue(value: *void, type: typeinfo)->bool
         decoder.readTypedContent(value, type)
         decoder.end()
     }
-        else
+    else
     {
         return false
     }

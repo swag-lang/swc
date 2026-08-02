@@ -57,12 +57,13 @@ func day4A()
     let dataPath = Path.combine(Path.directoryName(#file), "4.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    Slice.sort(lines[to], func(x, y)->s32
-    {
-        let val0 = expect Time.DateTime.parse(x[1 to 16])
-        let val1 = expect Time.DateTime.parse(y[1 to 16])
-        return val0.value <=> val1.value
-    })
+    Slice.sort(lines[to],
+               func(x, y)->s32
+               {
+                   let val0 = expect Time.DateTime.parse(x[1 to 16])
+                   let val1 = expect Time.DateTime.parse(y[1 to 16])
+                   return val0.value <=> val1.value
+               })
 
     var when    = expect RegExp.create("(\\d+)-(\\d+)-(\\d+) (\\d+):(\\d+)")
     var start   = expect RegExp.create("Guard #(\\d+) begins shift")

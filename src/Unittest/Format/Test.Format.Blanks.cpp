@@ -16,6 +16,11 @@ namespace
         SWC_RESULT(formatter.prepare(parentCtx.global(), source));
         if (formatter.text() != expected)
             return Result::Error;
+
+        Formatter secondPass(options);
+        SWC_RESULT(secondPass.prepare(parentCtx.global(), formatter.text()));
+        if (secondPass.text() != expected)
+            return Result::Error;
         return Result::Continue;
     }
 }
@@ -435,6 +440,32 @@ SWC_TEST_BEGIN(FormatBlanks_BeforeCommentBlockKeepsBlockStartAndRuns)
     FormatOptions options;
     options.blankLineBeforeCommentBlock = FormatBlankLineStyle::Always;
     return checkBlanksRewrite(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatBlanks_BeforeCommentBlockKeepsInlineBodyStart)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo(ready: bool)\n"
+        "{\n"
+        "    if ready do\n"
+        "\n"
+        "        // First comment in the inline body.\n"
+        "        work()\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo(ready: bool)\n"
+        "{\n"
+        "    if ready do\n"
+        "        // First comment in the inline body.\n"
+        "        work()\n"
+        "}\n";
+
+    FormatOptions options;
+    options.blankLineBeforeCommentBlock = FormatBlankLineStyle::Always;
+    options.blankLineAfterOpeningBrace  = FormatBlankLineStyle::Never;
+    return checkBlanksRewrite(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 

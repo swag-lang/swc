@@ -997,7 +997,7 @@ impl Application
             if enabled do
                 catch registerNativeHotKey(shortcut.modifiers, shortcut.key)
                 else do
-                unregisterNativeHotKey(shortcut.modifiers, shortcut.key)
+                    unregisterNativeHotKey(shortcut.modifiers, shortcut.key)
         }
     }
 

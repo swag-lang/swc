@@ -166,7 +166,9 @@ private impl RenderCpu
     {
         let u = Math.saturate(t)
         return Color.fromArgbF32((cast(f32) c0.a + (cast(f32) c1.a - c0.a) * u) / 255.0,
-                                 (cast(f32) c0.r + (cast(f32) c1.r - c0.r) * u) / 255.0, (cast(f32) c0.g + (cast(f32) c1.g - c0.g) * u) / 255.0, (cast(f32) c0.b + (cast(f32) c1.b - c0.b) * u) / 255.0)
+                                 (cast(f32) c0.r + (cast(f32) c1.r - c0.r) * u) / 255.0,
+                                 (cast(f32) c0.g + (cast(f32) c1.g - c0.g) * u) / 255.0,
+                                 (cast(f32) c0.b + (cast(f32) c1.b - c0.b) * u) / 255.0)
     }
 
     func modFloor(value, divisor: s32)->s32
@@ -265,14 +267,18 @@ private impl RenderCpu
             // subsequent overlapping fragments see zero destination alpha and contribute nothing.
             let factor = cast(f32) .overlapAlpha[pixelIdx] / 255.0
             var out    = Color.fromArgbF32(0,
-                                           cast(f32) src.r / 255.0 * factor + cast(f32) dst.r / 255.0 * (1.0 - factor), cast(f32) src.g / 255.0 * factor + cast(f32) dst.g / 255.0 * (1.0 - factor), cast(f32) src.b / 255.0 * factor + cast(f32) dst.b / 255.0 * (1.0 - factor))
+                                           cast(f32) src.r / 255.0 * factor + cast(f32) dst.r / 255.0 * (1.0 - factor),
+                                           cast(f32) src.g / 255.0 * factor + cast(f32) dst.g / 255.0 * (1.0 - factor),
+                                           cast(f32) src.b / 255.0 * factor + cast(f32) dst.b / 255.0 * (1.0 - factor))
             writePixel(image, x, y, out)
             return
         }
 
         let sa  = cast(f32) src.a / 255.0
         var out = Color.fromArgbF32(blendChannel(cast(f32) src.a / 255.0, cast(f32) dst.a / 255.0, sa, .blendingMode),
-                                    blendChannel(cast(f32) src.r / 255.0, cast(f32) dst.r / 255.0, sa, .blendingMode), blendChannel(cast(f32) src.g / 255.0, cast(f32) dst.g / 255.0, sa, .blendingMode), blendChannel(cast(f32) src.b / 255.0, cast(f32) dst.b / 255.0, sa, .blendingMode))
+                                    blendChannel(cast(f32) src.r / 255.0, cast(f32) dst.r / 255.0, sa, .blendingMode),
+                                    blendChannel(cast(f32) src.g / 255.0, cast(f32) dst.g / 255.0, sa, .blendingMode),
+                                    blendChannel(cast(f32) src.b / 255.0, cast(f32) dst.b / 255.0, sa, .blendingMode))
 
         if !.colorMask.r do out.r = dst.r
         if !.colorMask.g do out.g = dst.g
@@ -869,7 +875,9 @@ private impl RenderCpu
                 let paintPos    = v0.pos * w0 + v1.pos * w1 + v2.pos * w2
                 let fontUv      = v0.uv * w0 + v1.uv * w1 + v2.uv * w2
                 let vertexColor = Color.fromArgbF32((c0.a * w0 + c1.a * w1 + c2.a * w2) / 255.0,
-                                                    (c0.r * w0 + c1.r * w1 + c2.r * w2) / 255.0, (c0.g * w0 + c1.g * w1 + c2.g * w2) / 255.0, (c0.b * w0 + c1.b * w1 + c2.b * w2) / 255.0)
+                                                    (c0.r * w0 + c1.r * w1 + c2.r * w2) / 255.0,
+                                                    (c0.g * w0 + c1.g * w1 + c2.g * w2) / 255.0,
+                                                    (c0.b * w0 + c1.b * w1 + c2.b * w2) / 255.0)
                 let cov = Math.saturate(((v0.cov * w0 + v1.cov * w1 + v2.cov * w2) - 0.5) / covWidth + 0.5)
                 .blendPixel(image, x, y, .shade(paintPos, fontUv, fontUvDx, fontUvDy, vertexColor, cov))
             }

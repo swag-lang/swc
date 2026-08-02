@@ -41,10 +41,10 @@ They can be used for clarity or grouping, but they are not required.
     else do
         if a == 2 do
             @assert(false)
-    elif a == 3 do
-        @assert(false)
-    elif a == 4 do
-        @assert(false)
+        elif a == 3 do
+            @assert(false)
+        elif a == 4 do
+            @assert(false)
 
     // Logical expressions work as expected with 'and' and 'or'.
     if a == 0 and a == 1 do

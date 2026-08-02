@@ -43,6 +43,7 @@ struct TagBin
     internal
     {
         streamVersion:     u32                                  // Version found in the stream.
+        hasValueFlags:     bool                                 // Whether each element carries a value-flags byte.
         stream:            ByteStream                           // Input cursor.
         freeSections:      ArrayPtr'TagBinSection               // Reusable section objects.
         sections:          ArrayPtr'TagBinSection               // Active section stack.
@@ -300,7 +301,24 @@ impl TagBin
         let sig = .stream.readNative'u32()
         if sig != Write.TagBinSignature.Root do
             fail SerializationError{"invalid root signature"}
-        .streamVersion = .stream.readNative'u32()
+
+        // The first streams carried no version word and no per-element value flags: the root
+        // signature was followed straight away by the first section. Both were added together,
+        // so the version word doubles as the marker for the whole layout.
+        //
+        // 'TagBinVersion' cannot be mistaken for what an older stream puts here, because that
+        // position then holds a 'TagBinSignature', and the two constants are disjoint.
+        let mark = .stream.readNative'u32()
+        if mark == Write.TagBinVersion
+        {
+            .streamVersion = mark
+            .hasValueFlags = true
+            return
+        }
+
+        .stream.setPosition(.stream.position() - #sizeof(u32))
+        .streamVersion = 0
+        .hasValueFlags = false
     }
 
     // Finish reading the root container.
@@ -494,8 +512,12 @@ impl TagBin
         // Read the type signature.
         let crcType = .stream.readNative'u32()
 
-        // Read value flags
-        let flags = .stream.readNative'Write.TagBinValueFlags()
+        // Read value flags. A stream written before they existed has none of them, and
+        // nothing in it is compressed.
+        var flags = Write.TagBinValueFlags.None
+        if .hasValueFlags do
+            flags = .stream.readNative'Write.TagBinValueFlags()
+
         if flags.has(.Compressed)
         {
             let uncompressedSize = .stream.readNative'u64()

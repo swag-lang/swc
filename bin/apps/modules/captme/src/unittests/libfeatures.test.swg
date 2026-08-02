@@ -110,7 +110,7 @@ using Swag, Core
     @assert(img.height == 14)
 }
 
-// The library breadcrumb mirrors the real on-disk folder: it ends at the captMe folder
+// The library breadcrumb mirrors the real on-disk folder: it ends at the library folder
 // normally and at the recycle-bin folder in trash mode, each level carrying its full path.
 #test
 {
@@ -122,12 +122,12 @@ using Swag, Core
     // The headless fixture does not build the real toolbar, so attach a breadcrumb here.
     lib.breadcrumb = BreadcrumbCtrl.create(cast(*Wnd) lib, {0, 0, 600, 32})
 
-    // Default (empty) current folder falls back to the captMe library folder.
+    // Default (empty) current folder falls back to the library folder.
     @assert(lib.currentFolder() == Library.getFolder())
     lib.updateBreadcrumb()
     @assert(lib.breadcrumb.items.count > 0)
     let lastNormal = lib.breadcrumb.items.back()
-    @assert(lastNormal.name == "captMe")
+    @assert(lastNormal.name == (Path.fileName(Library.getFolder()) orelse ""))
     @assert(lastNormal.tag == Library.getFolder())
 
     // Point the library at the recycle bin folder.

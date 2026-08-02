@@ -71,6 +71,20 @@ namespace
         };
         schema.addEnum("bin-pack-arguments", &options.binPackArguments, binPackChoices, "Choose how call arguments span lines");
         schema.addEnum("bin-pack-parameters", &options.binPackParameters, binPackChoices, "Choose how declaration parameters span lines");
+
+        const std::initializer_list<std::pair<const char*, FormatListLayout>> listLayoutChoices = {
+            {"preserve", FormatListLayout::Preserve},
+            {"hanging-indent", FormatListLayout::HangingIndent},
+            {"hanging-align", FormatListLayout::HangingAlign},
+            {"vertical", FormatListLayout::Vertical},
+            {"block", FormatListLayout::Block},
+        };
+        schema.add("force-single-line-argument-lists", &options.forceSingleLineArgumentLists, "Place every editable call argument list on one line, regardless of the column limit");
+        schema.add("force-single-line-parameter-lists", &options.forceSingleLineParameterLists, "Place every editable declaration parameter list on one line, regardless of the column limit");
+        schema.add("source-selects-argument-layout", &options.sourceSelectsArgumentLayout, "Use the first two call arguments' source lines to choose single-line or multiline layout");
+        schema.add("source-selects-parameter-layout", &options.sourceSelectsParameterLayout, "Use the first two declaration parameters' source lines to choose single-line or multiline layout");
+        schema.addEnum("argument-list-layout", &options.argumentListLayout, listLayoutChoices, "Choose the layout of multiline call argument lists");
+        schema.addEnum("parameter-list-layout", &options.parameterListLayout, listLayoutChoices, "Choose the layout of multiline declaration parameter lists");
     }
 
     void bindBraceSchema(StructConfigSchema& schema, FormatOptions& options)

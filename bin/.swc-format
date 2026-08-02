@@ -144,6 +144,28 @@ bin-pack-arguments = pack
 # Possible values: preserve, pack, one-per-line
 bin-pack-parameters = pack
 
+# Place every call argument list on one line, even past the column limit.
+force-single-line-argument-lists = false
+
+# Place every declaration parameter list on one line, even past the column limit.
+force-single-line-parameter-lists = false
+
+# Use the first two call arguments to keep the whole list on one line or apply
+# the configured multi-line layout.
+source-selects-argument-layout = true
+
+# Use the first two declaration parameters to keep the whole list on one line
+# or apply the configured multi-line layout.
+source-selects-parameter-layout = true
+
+# Layout used for multi-line call argument lists.
+# Possible values: preserve, hanging-indent, hanging-align, vertical, block
+argument-list-layout = hanging-align
+
+# Layout used for multi-line declaration parameter lists.
+# Possible values: preserve, hanging-indent, hanging-align, vertical, block
+parameter-list-layout = hanging-align
+
 # ----------------------------------------------------------------------------
 # Braces & short bodies
 # ----------------------------------------------------------------------------

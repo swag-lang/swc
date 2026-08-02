@@ -97,6 +97,15 @@ enum class FormatBinPackStyle : uint8_t
     OnePerLine, // One argument per line once wrapping kicks in
 };
 
+enum class FormatListLayout : uint8_t
+{
+    Preserve,
+    HangingIndent, // Keep the first item after `(`; indent continuation lines by a fixed amount
+    HangingAlign,  // Keep the first item after `(`; align continuation lines with that item
+    Vertical,      // Break after `(`; keep `)` after the last item
+    Block,         // Break after `(` and place `)` on its own line
+};
+
 enum class FormatCaseBodyStyle : uint8_t
 {
     Preserve,
@@ -171,6 +180,12 @@ struct FormatOptions
     std::optional<bool>     breakBeforeWhere;                                               // Place `where` clauses on their own line
     FormatBinPackStyle      binPackArguments  = FormatBinPackStyle::Preserve;               // Call argument layout when wrapping
     FormatBinPackStyle      binPackParameters = FormatBinPackStyle::Preserve;               // Declaration parameter layout when wrapping
+    std::optional<bool>     forceSingleLineArgumentLists;                                   // Place editable call argument lists on one line, regardless of the column limit
+    std::optional<bool>     forceSingleLineParameterLists;                                  // Place editable declaration parameter lists on one line, regardless of the column limit
+    std::optional<bool>     sourceSelectsArgumentLayout;                                    // Let the first two call arguments select single-line or multiline layout
+    std::optional<bool>     sourceSelectsParameterLayout;                                   // Let the first two declaration parameters select single-line or multiline layout
+    FormatListLayout        argumentListLayout  = FormatListLayout::Preserve;               // Layout of multiline call argument lists
+    FormatListLayout        parameterListLayout = FormatListLayout::Preserve;               // Layout of multiline declaration parameter lists
 
     // -----------------------------------------------------------------------
     // Braces & short bodies

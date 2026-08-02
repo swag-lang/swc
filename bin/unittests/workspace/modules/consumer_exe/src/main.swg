@@ -8,6 +8,8 @@ using ExportApi, StaticApi, RuntimeCtxDll, RuntimeCtxBase, RuntimeCtxDirect
 #assert(#alignof(CtxAbiOffsets) == 8)
 #assert(#sizeof(CtxAbiFloatPack) == 24)
 #assert(#alignof(CtxAbiFloatPack) == 8)
+#assert(#sizeof(CtxAbiFloatPair) == 8)
+#assert(#alignof(CtxAbiFloatPair) == 4)
 
 struct DepSelfBufferWrapper
 {
@@ -299,6 +301,28 @@ func verifyDllAbiCalls()
     @assert(nested0.p.b == 8)
     @assert(nested0.q.a0 == 17'u64)
     @assert(nested0.q.a3 == 47'u64)
+
+    let floatPair0 = ctxSharedMakeFloatPair(733, 366)
+    let floatPair1 = ctxSharedPassFloatPair({x: -1.5, y: 2.25})
+    @assert(floatPair0.x == cast(f32) 733)
+    @assert(floatPair0.y == cast(f32) 366)
+    @assert(floatPair1.x == cast(f32) -1.5)
+    @assert(floatPair1.y == cast(f32) 2.25)
+    @assert(ctxSharedFloatPairSum({x: 1.5, y: 2.5}) == cast(f32) 4)
+
+    let floatPair2 = ctxSharedMakeFloatPairViaLocal(733, 366)
+    @assert(floatPair2.x == cast(f32) 733)
+    @assert(floatPair2.y == cast(f32) 366)
+
+    // A method and a free function whose flattened names would collide must stay two
+    // distinct exports: calling one has to run its own body, not the other's.
+    let cursor = CtxAbiCursor{pos: {x: 12, y: 34}}
+    let viaMtd = cursor.position()
+    let viaFn  = ctxAbiCursorPosition()
+    @assert(viaMtd.x == cast(f32) 12)
+    @assert(viaMtd.y == cast(f32) 34)
+    @assert(viaFn.x == cast(f32) 91)
+    @assert(viaFn.y == cast(f32) 82)
 
     let float0 = ctxSharedMakeFloatPack(0.5)
     let float1 = ctxSharedCloneFloatPack(ctxSharedMakeFloatPack(1.5))

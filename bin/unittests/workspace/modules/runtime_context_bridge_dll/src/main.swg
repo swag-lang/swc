@@ -77,6 +77,14 @@ public struct CtxAbiFloatPack
     b: f64
 }
 
+// Two floats in eight bytes: the size of a pair of integers, but the ABI hands it back in a
+// float register rather than an integer one. Nothing else here covers that class.
+public struct CtxAbiFloatPair
+{
+    x: f32
+    y: f32
+}
+
 public struct CtxAbiCalculator
 {
     base: s32
@@ -343,6 +351,59 @@ public func ctxSharedMakeNested(seed: s32)->CtxAbiNested
     result.q.a2 = cast(u64) seed + 30
     result.q.a3 = cast(u64) seed + 40
     return result
+}
+
+public func ctxSharedMakeFloatPair(x: f32, y: f32)->CtxAbiFloatPair
+{
+    return {x: x, y: y}
+}
+
+// 'CtxAbiCursor.position' and 'ctxAbiCursorPosition' name different things, but flattening
+// a scoped path and a camelCase name with the same separator maps both to one exported
+// symbol. The two then share a linker name and every call to one lands in the other.
+public struct CtxAbiCursor
+{
+    pos: CtxAbiFloatPair
+}
+
+public impl CtxAbiCursor
+{
+    mtd const position()->CtxAbiFloatPair
+    {
+        return .pos
+    }
+}
+
+public func ctxAbiCursorPosition()->CtxAbiFloatPair
+{
+    return {x: 91, y: 82}
+}
+
+#[Swag.Discardable]
+public func ctxSharedFillPair(dst: *CtxAbiPair, a: s32, b: s32)->s32
+{
+    dst.a = a
+    dst.b = b
+    return 1
+}
+
+// The shape that broke the mouse: fill a local through its address with a call whose own
+// result is dropped, then return a register-class aggregate built from it.
+public func ctxSharedMakeFloatPairViaLocal(a: s32, b: s32)->CtxAbiFloatPair
+{
+    var tmp: CtxAbiPair
+    ctxSharedFillPair(&tmp, a, b)
+    return {x: cast(f32) tmp.a, y: cast(f32) tmp.b}
+}
+
+public func ctxSharedPassFloatPair(value: CtxAbiFloatPair)->CtxAbiFloatPair
+{
+    return value
+}
+
+public func ctxSharedFloatPairSum(value: CtxAbiFloatPair)->f32
+{
+    return value.x + value.y
 }
 
 public func ctxSharedMakeFloatPack(seed: f64)->CtxAbiFloatPack

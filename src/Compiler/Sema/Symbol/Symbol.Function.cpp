@@ -27,6 +27,12 @@ namespace
         return std::isalnum(static_cast<unsigned char>(c)) != 0;
     }
 
+    // Separates two source identifiers; a single underscore separates two words inside
+    // one identifier. Keeping the two apart is what makes the flattened name injective:
+    // with one separator for both, 'Input.Mouse.position' and 'Input.mousePosition' both
+    // become 'input_mouse_position' and the linker silently binds one call to the other.
+    constexpr std::string_view PUBLIC_API_IDENTIFIER_SEPARATOR = "__";
+
     Utf8 sanitizePublicApiSymbolText(const std::string_view text)
     {
         // Public API names are exported outside the compiler. Normalize every
@@ -52,9 +58,11 @@ namespace
                 continue;
             }
 
+            // Punctuation in a source name (the dots of a scoped path, mostly) separates
+            // two identifiers, so it carries the identifier separator, not a word break.
             if (!lastWasUnderscore)
             {
-                out += '_';
+                out += PUBLIC_API_IDENTIFIER_SEPARATOR;
                 lastWasUnderscore = true;
             }
 
@@ -72,8 +80,8 @@ namespace
         if (fragment.empty())
             return;
 
-        if (!out.empty() && out.back() != '_')
-            out += '_';
+        if (!out.empty())
+            out += PUBLIC_API_IDENTIFIER_SEPARATOR;
         out += fragment;
     }
 
@@ -500,7 +508,10 @@ namespace
         if (publicApiSignatureCollides(symbol, ctx, signature, false))
             signature = buildPublicApiDetailedSignature(ctx, symbol);
 
-        out += "__";
+        // One level deeper than the identifier separator, so an overload signature can
+        // never be mistaken for one more scope fragment.
+        out += '_';
+        out += PUBLIC_API_IDENTIFIER_SEPARATOR;
         out += signature;
     }
 

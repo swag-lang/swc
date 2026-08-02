@@ -16,6 +16,11 @@ namespace
         SWC_RESULT(formatter.prepare(parentCtx.global(), source));
         if (formatter.text() != expected)
             return Result::Error;
+
+        Formatter secondPass(options);
+        SWC_RESULT(secondPass.prepare(parentCtx.global(), formatter.text()));
+        if (secondPass.text() != expected)
+            return Result::Error;
         return Result::Continue;
     }
 }
@@ -40,6 +45,285 @@ SWC_TEST_BEGIN(FormatWrap_BreaksAfterComma)
     FormatOptions options;
     options.columnLimit             = 36;
     options.continuationIndentWidth = 4;
+    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_ForceSingleLineLists)
+{
+    static constexpr std::string_view SOURCE =
+        "func target(first: s32,\n"
+        "            second: s32,\n"
+        "            third: s32) {}\n"
+        "func run()\n"
+        "{\n"
+        "    target(11111111,\n"
+        "           22222222,\n"
+        "           33333333)\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func target(first: s32, second: s32, third: s32) {}\n"
+        "func run()\n"
+        "{\n"
+        "    target(11111111, 22222222, 33333333)\n"
+        "}\n";
+
+    FormatOptions options;
+    options.columnLimit                   = 20;
+    options.forceSingleLineArgumentLists  = true;
+    options.forceSingleLineParameterLists = true;
+    options.sourceSelectsArgumentLayout   = true;
+    options.sourceSelectsParameterLayout  = true;
+    options.argumentListLayout            = FormatListLayout::Block;
+    options.parameterListLayout           = FormatListLayout::Block;
+    options.binPackArguments              = FormatBinPackStyle::OnePerLine;
+    options.binPackParameters             = FormatBinPackStyle::OnePerLine;
+    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_FormatterSelectsListLineMode)
+{
+    static constexpr std::string_view SOURCE =
+        "func short(a: s32,\n"
+        "           b: s32) {}\n"
+        "func longTarget(firstValue: s32,\n"
+        "                secondValue: s32, thirdValue: s32) {}\n"
+        "func run()\n"
+        "{\n"
+        "    short(1,\n"
+        "          2)\n"
+        "    longTarget(11111111,\n"
+        "               22222222, 33333333)\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func short(a: s32, b: s32) {}\n"
+        "func longTarget(\n"
+        "    firstValue: s32,\n"
+        "    secondValue: s32,\n"
+        "    thirdValue: s32\n"
+        ") {}\n"
+        "func run()\n"
+        "{\n"
+        "    short(1, 2)\n"
+        "    longTarget(\n"
+        "        11111111,\n"
+        "        22222222,\n"
+        "        33333333\n"
+        "    )\n"
+        "}\n";
+
+    FormatOptions options;
+    options.columnLimit                  = 36;
+    options.continuationIndentWidth      = 4;
+    options.sourceSelectsArgumentLayout  = false;
+    options.sourceSelectsParameterLayout = false;
+    options.argumentListLayout           = FormatListLayout::Block;
+    options.parameterListLayout          = FormatListLayout::Block;
+    options.binPackArguments             = FormatBinPackStyle::OnePerLine;
+    options.binPackParameters            = FormatBinPackStyle::OnePerLine;
+    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_SourceSelectsSingleLineLists)
+{
+    static constexpr std::string_view SOURCE =
+        "func target(first: s32, second: s32,\n"
+        "            third: s32) {}\n"
+        "func run()\n"
+        "{\n"
+        "    target(11111111, 22222222,\n"
+        "           33333333)\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func target(first: s32, second: s32, third: s32) {}\n"
+        "func run()\n"
+        "{\n"
+        "    target(11111111, 22222222, 33333333)\n"
+        "}\n";
+
+    FormatOptions options;
+    options.columnLimit                  = 20;
+    options.sourceSelectsArgumentLayout  = true;
+    options.sourceSelectsParameterLayout = true;
+    options.argumentListLayout           = FormatListLayout::Block;
+    options.parameterListLayout          = FormatListLayout::Block;
+    options.binPackArguments             = FormatBinPackStyle::OnePerLine;
+    options.binPackParameters            = FormatBinPackStyle::OnePerLine;
+    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_SourceSelectsNestedSingleLineLists)
+{
+    static constexpr std::string_view SOURCE =
+        "func inner(a, b, c: s32) {}\n"
+        "func outer(a, b, c: s32) {}\n"
+        "func run()\n"
+        "{\n"
+        "    outer(1, inner(2, 3,\n"
+        "                   4), 5)\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func inner(a, b, c: s32) {}\n"
+        "func outer(a, b, c: s32) {}\n"
+        "func run()\n"
+        "{\n"
+        "    outer(1, inner(2, 3, 4), 5)\n"
+        "}\n";
+
+    FormatOptions options;
+    options.columnLimit                   = 20;
+    options.forceSingleLineParameterLists = true;
+    options.sourceSelectsArgumentLayout   = true;
+    options.argumentListLayout            = FormatListLayout::Block;
+    options.binPackArguments              = FormatBinPackStyle::OnePerLine;
+    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_HangingIndentLists)
+{
+    static constexpr std::string_view SOURCE =
+        "func target(first: s32,\n"
+        "            second: s32, third: s32) {}\n"
+        "func run()\n"
+        "{\n"
+        "    target(1,\n"
+        "           2, 3)\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func target(first: s32,\n"
+        "    second: s32,\n"
+        "    third: s32) {}\n"
+        "func run()\n"
+        "{\n"
+        "    target(1,\n"
+        "        2,\n"
+        "        3)\n"
+        "}\n";
+
+    FormatOptions options;
+    options.continuationIndentWidth      = 4;
+    options.sourceSelectsArgumentLayout  = true;
+    options.sourceSelectsParameterLayout = true;
+    options.argumentListLayout           = FormatListLayout::HangingIndent;
+    options.parameterListLayout          = FormatListLayout::HangingIndent;
+    options.binPackArguments             = FormatBinPackStyle::OnePerLine;
+    options.binPackParameters            = FormatBinPackStyle::OnePerLine;
+    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_HangingAlignLists)
+{
+    static constexpr std::string_view SOURCE =
+        "func target(first: s32,\n"
+        "            second: s32, third: s32) {}\n"
+        "func run()\n"
+        "{\n"
+        "    target(1,\n"
+        "           2, 3)\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func target(first: s32,\n"
+        "            second: s32,\n"
+        "            third: s32) {}\n"
+        "func run()\n"
+        "{\n"
+        "    target(1,\n"
+        "           2,\n"
+        "           3)\n"
+        "}\n";
+
+    FormatOptions options;
+    options.sourceSelectsArgumentLayout  = true;
+    options.sourceSelectsParameterLayout = true;
+    options.argumentListLayout           = FormatListLayout::HangingAlign;
+    options.parameterListLayout          = FormatListLayout::HangingAlign;
+    options.binPackArguments             = FormatBinPackStyle::OnePerLine;
+    options.binPackParameters            = FormatBinPackStyle::OnePerLine;
+    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_VerticalLists)
+{
+    static constexpr std::string_view SOURCE =
+        "func target(first: s32,\n"
+        "            second: s32, third: s32) {}\n"
+        "func run()\n"
+        "{\n"
+        "    target(1,\n"
+        "           2, 3)\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func target(\n"
+        "    first: s32,\n"
+        "    second: s32,\n"
+        "    third: s32) {}\n"
+        "func run()\n"
+        "{\n"
+        "    target(\n"
+        "        1,\n"
+        "        2,\n"
+        "        3)\n"
+        "}\n";
+
+    FormatOptions options;
+    options.continuationIndentWidth      = 4;
+    options.sourceSelectsArgumentLayout  = true;
+    options.sourceSelectsParameterLayout = true;
+    options.argumentListLayout           = FormatListLayout::Vertical;
+    options.parameterListLayout          = FormatListLayout::Vertical;
+    options.binPackArguments             = FormatBinPackStyle::OnePerLine;
+    options.binPackParameters            = FormatBinPackStyle::OnePerLine;
+    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_BlockLists)
+{
+    static constexpr std::string_view SOURCE =
+        "func target(first: s32,\n"
+        "            second: s32, third: s32) {}\n"
+        "func run()\n"
+        "{\n"
+        "    target(1,\n"
+        "           2, 3)\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func target(\n"
+        "    first: s32,\n"
+        "    second: s32,\n"
+        "    third: s32\n"
+        ") {}\n"
+        "func run()\n"
+        "{\n"
+        "    target(\n"
+        "        1,\n"
+        "        2,\n"
+        "        3\n"
+        "    )\n"
+        "}\n";
+
+    FormatOptions options;
+    options.continuationIndentWidth      = 4;
+    options.sourceSelectsArgumentLayout  = true;
+    options.sourceSelectsParameterLayout = true;
+    options.argumentListLayout           = FormatListLayout::Block;
+    options.parameterListLayout          = FormatListLayout::Block;
+    options.binPackArguments             = FormatBinPackStyle::OnePerLine;
+    options.binPackParameters            = FormatBinPackStyle::OnePerLine;
     return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
@@ -72,6 +356,40 @@ SWC_TEST_BEGIN(FormatWrap_BreakBeforeBinaryOperators)
     options.columnLimit                = 24;
     options.continuationIndentWidth    = 4;
     options.breakBeforeBinaryOperators = FormatOperatorWrapStyle::Before;
+    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_BinPackLists)
+{
+    static constexpr std::string_view SOURCE =
+        "func target(first: s32,\n"
+        "            second: s32,\n"
+        "            third: s32) {}\n"
+        "func run()\n"
+        "{\n"
+        "    target(1,\n"
+        "           2,\n"
+        "           3)\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func target(first: s32,\n"
+        "    second: s32, third: s32) {}\n"
+        "func run()\n"
+        "{\n"
+        "    target(1,\n"
+        "        2, 3)\n"
+        "}\n";
+
+    FormatOptions options;
+    options.continuationIndentWidth      = 4;
+    options.sourceSelectsArgumentLayout  = true;
+    options.sourceSelectsParameterLayout = true;
+    options.argumentListLayout           = FormatListLayout::HangingIndent;
+    options.parameterListLayout          = FormatListLayout::HangingIndent;
+    options.binPackArguments             = FormatBinPackStyle::Pack;
+    options.binPackParameters            = FormatBinPackStyle::Pack;
     return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()

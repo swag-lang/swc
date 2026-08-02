@@ -32,7 +32,7 @@
 
     --swag-header-height: 66px;
     --swag-rail-width: 306px;
-    --swag-measure: 80ch;
+    --swag-measure: 120ch;
     --swag-radius: 6px;
 
     --swag-font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -358,7 +358,9 @@ body {
 }
 
 .right-page {
-    width: min(100%, 1080px);
+    /* Resolve the character measure once with the prose font. Reusing a 'ch' measure
+       on code, tables or enlarged lead text gives each of them a different edge. */
+    width: min(100%, var(--swag-measure));
     margin: 0 auto;
     padding: 34px 8px 30px;
 }
@@ -414,29 +416,32 @@ body {
 }
 
 .right p {
-    max-width: var(--swag-measure);
+    width: 100%;
+    max-width: 100%;
     text-align: justify;
 }
 
 .right li {
-    max-width: calc(var(--swag-measure) - 2ch);
+    width: 100%;
+    max-width: 100%;
 }
 
 .right hr {
-    max-width: var(--swag-measure);
+    width: 100%;
+    max-width: 100%;
     margin: 44px 0;
     border: 0;
     border-top: 1px solid var(--swag-line);
 }
 
-/* Text and the blocks that support it share one reading edge. The code and table
-   contents can still scroll horizontally without stretching the page measure. */
+/* Every block takes its measure from '.right-page', so changes in font family or size
+   cannot move its right edge. Wide code and table contents scroll within that edge. */
 .api-item,
 .container table,
 .code-block,
 .blockquote {
     width: 100%;
-    max-width: var(--swag-measure);
+    max-width: 100%;
 }
 
 .module-overview {
@@ -445,7 +450,7 @@ body {
 }
 
 .module-overview > p:first-of-type {
-    max-width: var(--swag-measure);
+    max-width: 100%;
     color: var(--swag-ink-soft);
     font-size: 1.14rem;
     line-height: 1.55;
@@ -949,7 +954,7 @@ body {
 /* ---------------------------------------------------------------- footer -- */
 
 .site-footer {
-    width: min(100%, 1080px);
+    width: min(100%, var(--swag-measure));
     margin: 0 auto;
     padding: 22px 8px 52px;
     color: var(--swag-ink-faint);
@@ -971,7 +976,7 @@ body {
 }
 
 .swag-footer-note {
-    max-width: var(--swag-measure);
+    max-width: 100%;
     margin-bottom: 6px;
 }
 

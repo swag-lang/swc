@@ -445,7 +445,7 @@ func hidden(value: s32)->s32
         return Result::Error;
     if (!content.contains("--swag-measure: 120ch;"))
         return Result::Error;
-    if (!content.contains(".right-page {\n    /* Resolve the character measure once with the prose font.") || !content.contains("width: min(100%, var(--swag-measure));"))
+    if (!content.contains(".right {\n    min-width: 0;\n    /* Resolve the character measure once with the prose font.") || !content.contains("width: min(100%, var(--swag-measure));"))
         return Result::Error;
     if (!content.contains(".right p {\n    width: 100%;\n    max-width: 100%;\n    text-align: justify;") || !content.contains(".container table,\n.code-block,\n.blockquote {\n    width: 100%;\n    max-width: 100%;"))
         return Result::Error;

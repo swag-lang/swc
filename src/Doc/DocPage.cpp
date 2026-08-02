@@ -366,12 +366,14 @@ body {
 
 .right {
     min-width: 0;
-}
-
-.right-page {
     /* Resolve the character measure once with the prose font. Reusing a 'ch' measure
        on code, tables or enlarged lead text gives each of them a different edge. */
     width: min(100%, var(--swag-measure));
+    margin: 0 auto;
+}
+
+.right-page {
+    width: 100%;
     margin: 0 auto;
     padding: 34px 8px 30px;
 }
@@ -445,7 +447,7 @@ body {
     border-top: 1px solid var(--swag-line);
 }
 
-/* Every block takes its measure from '.right-page', so changes in font family or size
+/* Every block takes its measure from '.right', so changes in font family or size
    cannot move its right edge. Wide code and table contents scroll within that edge. */
 .api-item,
 .container table,
@@ -969,7 +971,7 @@ body {
 /* ---------------------------------------------------------------- footer -- */
 
 .site-footer {
-    width: min(100%, var(--swag-measure));
+    width: 100%;
     margin: 0 auto;
     padding: 22px 8px 52px;
     color: var(--swag-ink-faint);

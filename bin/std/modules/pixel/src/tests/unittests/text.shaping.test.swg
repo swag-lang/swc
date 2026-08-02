@@ -4,10 +4,20 @@ using Swag, Core
 
 func makeShapingTestFont(cache: *FontCache)->*Font
 {
-    var face: *TypeFace = undefined
-    catch loadTestTypeFace(&face, getTestDataPath("segoeui.ttf")) as err
-    @assert(err == null)
+    let face = notnull expect loadTestTypeFace(getTestDataPath("segoeui.ttf"))
     return cache.createFont(face, 32, .Bitmap)
+}
+
+// Typeface outline builders return complete values, including the rune advance.
+#test
+{
+    let face  = notnull expect loadTestTypeFace(getTestDataPath("segoeui.ttf"))
+    let glyph = expect face.buildRuneOutline('A', 32)
+    @assert(glyph.outline.count() != 0)
+    @assert(glyph.advance > 0)
+
+    let text = expect face.buildStringOutline("AB", 32)
+    @assert(text.count() >= glyph.outline.count())
 }
 
 #test

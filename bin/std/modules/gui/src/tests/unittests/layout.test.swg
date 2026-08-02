@@ -8,7 +8,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(220, 320)
-
+    defer host.shutdown()
     let stack = StackLayoutCtrl.create(&host.root, .Top, {0, 0, 200, 300})
     stack.spacing = 5
     let c0 = Wnd.create'Wnd(stack, null, {0, 0, 200, 40})
@@ -21,8 +21,6 @@ using Swag, Core
     @assert(c2.position.y == 90)
     @assert(c0.position.width == 200)
     @assert(c0.position.height == 40)
-
-    host.shutdown()
 }
 
 // StackLayoutCtrl Left stacks children horizontally with spacing.
@@ -30,7 +28,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(320, 120)
-
+    defer host.shutdown()
     let stack = StackLayoutCtrl.create(&host.root, .Left, {0, 0, 300, 100})
     stack.spacing = 5
     let c0 = Wnd.create'Wnd(stack, null, {0, 0, 30, 100})
@@ -43,8 +41,6 @@ using Swag, Core
     @assert(c2.position.x == 70)
     @assert(c0.position.height == 100)
     @assert(c0.position.width == 30)
-
-    host.shutdown()
 }
 
 // StackLayoutCtrl HorzCenter centers children horizontally as a group.
@@ -52,7 +48,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(220, 120)
-
+    defer host.shutdown()
     let stack = StackLayoutCtrl.create(&host.root, .HorizontalCenter, {0, 0, 200, 100})
     stack.spacing = 5
     let c0 = Wnd.create'Wnd(stack, null, {0, 0, 40, 30})
@@ -64,8 +60,6 @@ using Swag, Core
     @assert(c0.position.x == 35)
     @assert(c1.position.x == 80)
     @assert(c2.position.x == 125)
-
-    host.shutdown()
 }
 
 // StackLayoutCtrl VertCenter centers children vertically as a group.
@@ -73,7 +67,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(120, 220)
-
+    defer host.shutdown()
     let stack = StackLayoutCtrl.create(&host.root, .VerticalCenter, {0, 0, 100, 200})
     stack.spacing = 5
     let c0 = Wnd.create'Wnd(stack, null, {0, 0, 40, 30})
@@ -85,8 +79,6 @@ using Swag, Core
     @assert(c0.position.y == 50)
     @assert(c1.position.y == 85)
     @assert(c2.position.y == 120)
-
-    host.shutdown()
 }
 
 // StackLayoutCtrl distributes remaining space only to expandable children.
@@ -94,7 +86,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(220, 240)
-
+    defer host.shutdown()
     let stack = StackLayoutCtrl.create(&host.root, .Top, {0, 0, 200, 200})
     stack.spacing = 0
     let fixed = Wnd.create'Wnd(stack, null, {0, 0, 200, 40})
@@ -107,8 +99,6 @@ using Swag, Core
     @assert(grow.position == Math.Rectangle{0, 40, 200, 160})
     @assert(grow.managedByLayout)
     @assert(grow.layoutDebug.arrangedRect == grow.position)
-
-    host.shutdown()
 }
 
 // StackLayoutCtrl honors minSize when available space is too small.
@@ -116,7 +106,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(120, 120)
-
+    defer host.shutdown()
     let stack = StackLayoutCtrl.create(&host.root, .Top, {0, 0, 100, 50})
     stack.spacing = 0
     let child = Wnd.create'Wnd(stack, null, {0, 0, 100, 10})
@@ -125,8 +115,6 @@ using Swag, Core
 
     @assert(child.position.height == 60)
     @assert(child.layoutDebug.measuredMin.y == 60)
-
-    host.shutdown()
 }
 
 // StackLayoutCtrl propagates layout to arranged children.
@@ -134,7 +122,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(160, 160)
-
+    defer host.shutdown()
     let stack = StackLayoutCtrl.create(&host.root, .Top, {0, 0, 120, 120})
     stack.spacing = 0
     let line = Wnd.create'Wnd(stack, null, {0, 0, 120, 35})
@@ -149,8 +137,6 @@ using Swag, Core
 
     @assert(line.position == Math.Rectangle{0, 0, 120, 50})
     @assert(fill.position == Math.Rectangle{0, 0, 120, 50})
-
-    host.shutdown()
 }
 
 // WrapLayoutCtrl flows fixed-size items left to right, wrapping to new rows.
@@ -158,7 +144,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(180, 200)
-
+    defer host.shutdown()
     let wrap = WrapLayoutCtrl.create(&host.root, {0, 0, 150, 200})
     wrap.itemWidth  = 64
     wrap.itemHeight = 64
@@ -173,8 +159,6 @@ using Swag, Core
 
     // The third item no longer fits on the first row and wraps.
     @assert(c2.position == Math.Rectangle{0, 69, 64, 64})
-
-    host.shutdown()
 }
 
 // GridLayoutCtrl supports content and fractional tracks.
@@ -182,7 +166,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(340, 120)
-
+    defer host.shutdown()
     let grid = GridLayoutCtrl.create(&host.root, 3, 1, {0, 0, 300, 80})
     grid.horizontalSpacing = 0
     grid.setColumnTrack(0, GridTrackKind.Content)
@@ -201,8 +185,6 @@ using Swag, Core
     @assert(c1.position.x == 60)
     @assert(Math.abs(c1.position.width - 80) <= 1)
     @assert(Math.abs(c2.position.width - 160) <= 1)
-
-    host.shutdown()
 }
 
 // GridLayoutCtrl places children in fixed columns/rows with spacing.
@@ -210,7 +192,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(260, 120)
-
+    defer host.shutdown()
     let grid = GridLayoutCtrl.create(&host.root, 2, 2, {0, 0, 250, 100})
     grid.horizontalSpacing = 5
     grid.verticalSpacing   = 5
@@ -232,8 +214,6 @@ using Swag, Core
     @assert(c10.position == Math.Rectangle{105, 0, 100, 30})
     @assert(c01.position == Math.Rectangle{0, 35, 100, 30})
     @assert(c11.position == Math.Rectangle{105, 35, 100, 30})
-
-    host.shutdown()
 }
 
 // GridLayoutCtrl supports cells spanning multiple columns.
@@ -241,7 +221,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(260, 120)
-
+    defer host.shutdown()
     let grid = GridLayoutCtrl.create(&host.root, 2, 2, {0, 0, 250, 100})
     grid.horizontalSpacing = 5
     grid.verticalSpacing   = 5
@@ -252,8 +232,6 @@ using Swag, Core
 
     // Spanning two 100-wide columns plus the 5px gap between them.
     @assert(wide.position == Math.Rectangle{0, 0, 205, 30})
-
-    host.shutdown()
 }
 
 // Fractional tracks redistribute space left unused by a capped track.
@@ -261,7 +239,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(340, 120)
-
+    defer host.shutdown()
     let grid = GridLayoutCtrl.create(&host.root, 2, 1, {0, 0, 300, 80})
     grid.horizontalSpacing = 0
     grid.setColumnTrack(0, .Fraction, 1, maximum: 50)
@@ -274,8 +252,6 @@ using Swag, Core
 
     @assert(Math.abs(left.position.width - 50) < 0.01)
     @assert(Math.abs(right.position.width - 250) < 0.01)
-
-    host.shutdown()
 }
 
 // Reassigning a grid child clears its previous cells.
@@ -283,7 +259,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(240, 100)
-
+    defer host.shutdown()
     let grid  = GridLayoutCtrl.create(&host.root, 2, 1, {0, 0, 205, 80})
     let child = Wnd.create'Wnd(grid)
     grid.setCell(child, 0, 0)
@@ -293,8 +269,6 @@ using Swag, Core
     grid.setCell(child, 1, 0)
     grid.computeLayout()
     @assert(child.position.x == 105)
-
-    host.shutdown()
 }
 
 // A wrapping row advances by its tallest item rather than by the next item.
@@ -302,7 +276,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(160, 180)
-
+    defer host.shutdown()
     let wrap = WrapLayoutCtrl.create(&host.root, {0, 0, 130, 160})
     wrap.spacing = 5
     discard Wnd.create'Wnd(wrap, {0, 0, 80, 20})
@@ -312,6 +286,4 @@ using Swag, Core
 
     @assert(nextRow.position.y == 65)
     @assert(wrap.contentHeight == 75)
-
-    host.shutdown()
 }

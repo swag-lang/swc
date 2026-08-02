@@ -4,16 +4,13 @@ using Swag, Core
 
 private func makeMathTestFont(cache: *FontCache)->*Font
 {
-    var face: *TypeFace = undefined
-    catch loadTestTypeFace(&face, getTestDataPath("segoeui.ttf")) as err
-    @assert(err == null)
+    let face = notnull expect loadTestTypeFace(getTestDataPath("segoeui.ttf"))
     return cache.createFont(face, 36, .Bitmap)
 }
 
 private func assertMathParses(source: string)
 {
-    discard catch MathExpression.parse(source) as err
-    @assert(err == null)
+    discard expect MathExpression.parse(source)
 }
 
 private func assertMathSyntaxError(source: string, contains: string, seek: u64)

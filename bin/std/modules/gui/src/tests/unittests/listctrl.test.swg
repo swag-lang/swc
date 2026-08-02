@@ -146,7 +146,7 @@ func listCtrlHeadlessSel(list: *ListCtrl)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 180)
-
+    defer host.shutdown()
     let list = ListCtrl.createSimple(&host.root, {0, 0, 220, 160})
     list.setVirtualCount(6)
     list.setSelectionMode(.Multi)
@@ -170,8 +170,6 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     let line = list.createLine("real")
     @assert(line.index == 0)
     @assert(list.lineCount() == 1)
-
-    host.shutdown()
 }
 
 // Expanding/collapsing a parent line changes the visible line count.
@@ -179,7 +177,7 @@ func listCtrlHeadlessSel(list: *ListCtrl)
 {
     var host: Testing.HeadlessHost
     host.setup(220, 320)
-
+    defer host.shutdown()
     let list  = ListCtrl.createSimple(&host.root, {0, 0, 200, 300})
     let root0 = list.createLine("root0")
     list.createLine("childA", parentLine: root0)
@@ -197,8 +195,6 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     list.collapse(root0)
     @assert(!root0.expanded)
     @assert(list.lineCount() == 2)
-
-    host.shutdown()
 }
 
 // Single-selection: selecting another line deselects the previous one.
@@ -206,6 +202,7 @@ func listCtrlHeadlessSel(list: *ListCtrl)
 {
     var host: Testing.HeadlessHost
     host.setup(220, 320)
+    defer host.shutdown()
     ListCtrlHeadlessSelCount = 0
 
     let list = ListCtrl.createSimple(&host.root, {0, 0, 200, 300})
@@ -227,8 +224,6 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     list.unselectAll()
     @assert(!list.isLineSelected(1))
     @assert(ListCtrlHeadlessSelCount == 3)
-
-    host.shutdown()
 }
 
 // clear() removes all lines.
@@ -236,7 +231,7 @@ func listCtrlHeadlessSel(list: *ListCtrl)
 {
     var host: Testing.HeadlessHost
     host.setup(220, 320)
-
+    defer host.shutdown()
     let list = ListCtrl.createSimple(&host.root, {0, 0, 200, 300})
     list.createLine("a")
     list.createLine("b")
@@ -245,8 +240,6 @@ func listCtrlHeadlessSel(list: *ListCtrl)
 
     list.clear()
     @assert(list.lineCount() == 0)
-
-    host.shutdown()
 }
 
 // Clicking a line selects it; clicking another (Single mode) moves the selection.
@@ -254,6 +247,7 @@ func listCtrlHeadlessSel(list: *ListCtrl)
 {
     var host: Testing.HeadlessHost
     host.setup(220, 320)
+    defer host.shutdown()
     ListCtrlHeadlessSelCount = 0
 
     let list = ListCtrl.createSimple(&host.root, {0, 0, 200, 300})
@@ -273,8 +267,6 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     @assert(list.isLineSelected(2))
     @assert(!list.isLineSelected(0))
     @assert(ListCtrlHeadlessSelCount >= 2)
-
-    host.shutdown()
 }
 
 // Multi-selection: Ctrl+click toggles individual lines.
@@ -282,7 +274,7 @@ func listCtrlHeadlessSel(list: *ListCtrl)
 {
     var host: Testing.HeadlessHost
     host.setup(220, 320)
-
+    defer host.shutdown()
     let list = ListCtrl.createSimple(&host.root, {0, 0, 200, 300})
     list.setSelectionMode(.Multi)
     list.createLine("a")
@@ -298,8 +290,6 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     @assert(list.isLineSelected(0))
     @assert(!list.isLineSelected(1))
     @assert(list.isLineSelected(2))
-
-    host.shutdown()
 }
 
 // Arrow keys move the selection up and down.
@@ -307,7 +297,7 @@ func listCtrlHeadlessSel(list: *ListCtrl)
 {
     var host: Testing.HeadlessHost
     host.setup(220, 320)
-
+    defer host.shutdown()
     let list = ListCtrl.createSimple(&host.root, {0, 0, 200, 300})
     list.createLine("a")
     list.createLine("b")
@@ -324,6 +314,4 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     host.keyPress(Input.Key.Up)
     @assert(list.isLineSelected(0))
     @assert(!list.isLineSelected(1))
-
-    host.shutdown()
 }

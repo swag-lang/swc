@@ -722,7 +722,7 @@ impl Application
         {
             .wnd.create(view, hook)
             .wnd.surface = surface
-            .wnd.itf     = cast(IWnd) surface.wnd
+            .wnd.itf     = surface.wnd
             .wnd.computeStyle()
             .wnd.view.computeStyle()
             .wnd.sendResizeEvent()

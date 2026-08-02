@@ -59,8 +59,10 @@ namespace Platform.Win32
 {
     // Owns a Windows OpenGL context and the window device context paired with it.
     //
-    // Create this value with [[Ogl.Platform.Win32.createContext]] and release it
-    // exactly once with [[Ogl.Platform.Win32.Context.destroy]].
+    // Create this value with [[Ogl.Platform.Win32.createContext]]. It releases any remaining
+    // native resources when it leaves scope; call [[Ogl.Platform.Win32.Context.destroy]] to
+    // release them earlier.
+    #[Swag.NoCopy]
     #[Swag.Opaque]
     public struct Context
     {
@@ -101,6 +103,12 @@ namespace Platform.Win32
 
     public impl Context
     {
+        // Releases any remaining native resources when this value leaves scope.
+        mtd opDrop()
+        {
+            .destroy()
+        }
+
         // Returns whether this value owns a native rendering context.
         mtd const isValid()->bool => .hRC != null
 

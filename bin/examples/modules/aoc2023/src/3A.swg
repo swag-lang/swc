@@ -77,7 +77,7 @@ func day3A()
     var total = 0'u64
     for n in nums
     {
-        for var x = n.x; x <= n.lx; x += 1
+        for [x] in n.x to n.lx
         {
             if hasSymbol(x, n.y - 1) or
                hasSymbol(x, n.y + 1) or

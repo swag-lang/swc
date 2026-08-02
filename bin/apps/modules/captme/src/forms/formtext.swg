@@ -238,14 +238,14 @@ impl IForm for FormText
             for t, [idx] in tokens
             {
                 let pathl = &.paths[idx]
-                expect (notnull face).buildStringOutline(pathl, t, cast() fSize, cast() sSize)
+                dref pathl = expect (notnull face).buildStringOutline(t, cast() fSize, cast() sSize)
                 pathl.flatten(.High)
                 pathl.clean()
 
                 let borderPath = &.borderPaths[idx]
                 if !Math.isZeroEpsilon(bSize) and .borderColor.a
                 {
-                    expect (notnull face).buildStringOutline(borderPath, t, cast() fSize, cast() sSize)
+                    dref borderPath = expect (notnull face).buildStringOutline(t, cast() fSize, cast() sSize)
                     borderPath.flatten(.Normal)
                     borderPath.clean()
                     borderPath.offset(bSize, .joinStyle, 0.25)
@@ -329,6 +329,6 @@ impl IForm for FormText
     mtd impl setup(capt: *Capture)
     {
         .capture = capt
-        .gizmo.setupForForm(cast(IForm) me)
+        .gizmo.setupForForm(me)
     }
 }

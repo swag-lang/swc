@@ -29,8 +29,9 @@ func onResize(_window: *Env.Window, width, height: s32)
 
 #main
 {
-    try Env.createWindow(&g_Window, {className: "OPENGL1_CLASS_NAME", title: "OpenGL example", width: 512, height: 512})
+    g_Window  = try Env.createWindow({className: "OPENGL1_CLASS_NAME", title: "OpenGL example", width: 512, height: 512})
     g_Context = try Ogl.Platform.Win32.createContext(&g_Window)
+    defer g_Context.destroy()
 
     g_Window.callbacks.onResize = &onResize
 
@@ -45,5 +46,4 @@ func onResize(_window: *Env.Window, width, height: s32)
             break
     }
 
-    g_Context.destroy()
 }

@@ -8,7 +8,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     f.main.editMode = .Shape
     f.gui.drag({20, 30}, {80, 70})
 
@@ -21,8 +21,6 @@ using Swag, Core
     let shape = cast(*FormShape) @dataof(f.capture.forms[0])
     Gui.Testing.assertRect(shape.IForm.boundRect(), 20, 30, 60, 40)
     @assert(f.capture.canUndo())
-
-    f.shutdown()
 }
 
 // The headless host mirrors modifier keys into event state, so Shift-constrained
@@ -31,7 +29,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     f.main.editMode = .Shape
     f.gui.drag({20, 30}, {80, 70}, modifiers: Input.KeyModifiers.Shift)
 
@@ -39,8 +37,6 @@ using Swag, Core
 
     let shape = cast(*FormShape) @dataof(f.capture.forms[0])
     Gui.Testing.assertRect(shape.IForm.boundRect(), 20, 30, 60, 60)
-
-    f.shutdown()
 }
 
 // Moving a selected form through mouse capture pushes undo, and the registered
@@ -49,7 +45,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-
+    defer f.shutdown()
     let shape = testAddShape(f.capture, 10, 10, 20, 20)
     shape.kind = .Rectangle
 
@@ -66,8 +62,6 @@ using Swag, Core
 
     f.gui.shortcut(Input.Key.Y, Input.KeyModifiers.Control)
     Gui.Testing.assertRect(shape.IForm.boundRect(), 40, 30, 20, 20)
-
-    f.shutdown()
 }
 
 // Selection mode lasso is an app-level interaction: mouse capture, repeated move
@@ -76,7 +70,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     discard testAddShape(f.capture, 10, 10, 20, 20)
     discard testAddShape(f.capture, 70, 70, 20, 20)
     discard testAddShape(f.capture, 180, 180, 20, 20)
@@ -90,8 +84,6 @@ using Swag, Core
     @assert(!f.capture.selection.contains(2))
     @assert(!f.capture.drawSelRect)
     @assert(f.capture.mouseMode == .None)
-
-    f.shutdown()
 }
 
 // Every editor tool that can be tested without OS integration creates the
@@ -100,7 +92,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     f.main.editMode = .Line
     f.gui.drag({10, 10}, {70, 30})
     @assert(@kindof(f.capture.forms[0]) == FormLine)
@@ -148,8 +140,6 @@ using Swag, Core
     Gui.Testing.assertRect(step.IForm.boundRect(), 286, 66, 48, 48)
     @assert(step.index == 1)
     @assert(f.capture.nextStepIndex == 2)
-
-    f.shutdown()
 }
 
 // Polygon creation remains captured across clicks and finishes on double-click.
@@ -157,7 +147,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     f.main.editMode = .Polygon
     f.gui.drag({30, 30}, {100, 30})
     @assert(f.capture.mouseMode == .Creating)
@@ -174,8 +164,6 @@ using Swag, Core
     @assert((cast(*FormPolygon) @dataof(f.capture.forms[0])).points.count == 3)
     @assert(f.capture.selection.count == 1)
     @assert(f.capture.canUndo())
-
-    f.shutdown()
 }
 
 // Ctrl-click extends selection, a plain click replaces it, and holding O forces
@@ -184,7 +172,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     discard testAddShape(f.capture, 10, 10, 40, 40)
     discard testAddShape(f.capture, 80, 10, 40, 40)
     discard testAddShape(f.capture, 150, 10, 40, 40)
@@ -211,8 +199,6 @@ using Swag, Core
     @assert(@kindof(f.capture.forms[3]) == FormText)
     @assert(f.capture.selection.count == 1)
     @assert(f.capture.selection[0] == 3)
-
-    f.shutdown()
 }
 
 // The edit view context menu posts real commands back to MainWnd through the
@@ -221,7 +207,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-
+    defer f.shutdown()
     let shape = testAddShape(f.capture, 10, 10, 20, 20)
     discard testAddText(f.capture, 50, 10, 20, 20)
     f.capture.selection.add(0)
@@ -236,8 +222,6 @@ using Swag, Core
     @assert(@dataof(f.capture.forms[0]) != shape)
     @assert(f.capture.selection.count == 0)
     @assert(f.capture.canUndo())
-
-    f.shutdown()
 }
 
 // Context menu submenus are driven through real hover/timer popup behavior.
@@ -245,7 +229,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-
+    defer f.shutdown()
     let a = testAddShape(f.capture, 10, 30, 20, 20)
     let b = testAddShape(f.capture, 50, 70, 20, 20)
     f.capture.selection.add(0)
@@ -261,8 +245,6 @@ using Swag, Core
     @assert(a.y == 30)
     @assert(b.y == 30)
     @assert(f.capture.canUndo())
-
-    f.shutdown()
 }
 
 // The Arrange submenu follows the same popup path and updates z-order/selection.
@@ -270,7 +252,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-
+    defer f.shutdown()
     let a = testAddShape(f.capture, 10, 10, 20, 20)
     let b = testAddShape(f.capture, 50, 10, 20, 20)
     let c = testAddText(f.capture, 90, 10, 20, 20)
@@ -289,8 +271,6 @@ using Swag, Core
     @assert(f.capture.selection.count == 1)
     @assert(f.capture.selection[0] == 2)
     @assert(f.capture.canUndo())
-
-    f.shutdown()
 }
 
 // Local editor shortcuts dispatch through the focused window and command
@@ -299,6 +279,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
+    defer f.shutdown()
     testRegisterLocalEditorShortcuts(f.main)
     f.gui.focus(f.editView)
 
@@ -326,8 +307,6 @@ using Swag, Core
     @assert(f.capture.forms.count == 2)
     f.gui.shortcut(Input.Key.Z, Input.KeyModifiers.Control)
     @assert(f.capture.forms.count == 3)
-
-    f.shutdown()
 }
 
 // Registered headless shortcuts travel through the focused window and global
@@ -336,6 +315,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
     f.gui.focus(f.editView)
 
     let a = testAddShape(f.capture, 10, 10, 20, 20)
@@ -359,8 +339,6 @@ using Swag, Core
     f.editView.setZoom(1)
     f.gui.shortcut(Input.Key.Add, Input.KeyModifiers.Control)
     @assert(f.editView.zoom > 1)
-
-    f.shutdown()
 }
 
 // Box-form gizmos resize and rotate through real headless mouse events.
@@ -368,11 +346,11 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     let shape = testAddShape(f.capture, 20, 30, 40, 30)
     shape.kind = .Rectangle
     f.capture.selection.add(0)
-    testPrimeGizmo(cast(IForm) shape)
+    testPrimeGizmo(shape)
 
     f.gui.drag({60, 60}, {85, 80})
     Gui.Testing.assertRect(shape.IForm.boundRect(), 20, 30, 65, 50)
@@ -381,13 +359,11 @@ using Swag, Core
     f.capture.undo()
     Gui.Testing.assertRect(shape.IForm.boundRect(), 20, 30, 40, 30)
 
-    testPrimeGizmo(cast(IForm) shape)
+    testPrimeGizmo(shape)
     f.gui.drag({40, 4}, {95, 45}, modifiers: Input.KeyModifiers.Shift)
     @assert(Math.abs(shape.rotate - 90) < 0.001)
     f.capture.undo()
     @assert(Math.abs(shape.rotate) < 0.001)
-
-    f.shutdown()
 }
 
 // A free image can be switched into inside-edit mode by double-clicking, then
@@ -396,7 +372,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     let image = testAddImage(f.capture, 40, 50, 80, 60)
     image.kind    = .Image
     image.place   = .Free
@@ -409,7 +385,7 @@ using Swag, Core
     @assert(image.editInside)
     @assert(!image.IForm.canRotate())
 
-    testPrimeGizmo(cast(IForm) image)
+    testPrimeGizmo(image)
     f.gui.drag({65, 72}, {75, 82})
 
     Gui.Testing.assertRect(image.freePos, 5, 6, 30, 26)
@@ -420,8 +396,6 @@ using Swag, Core
 
     f.gui.doubleClick({60, 70})
     @assert(!image.editInside)
-
-    f.shutdown()
 }
 
 // Point-form gizmos move line endpoints through Capture.mouse and create a
@@ -430,10 +404,10 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     let line = testAddLine(f.capture, 20, 30, 70, 45)
     f.capture.selection.add(0)
-    testPrimeGizmo(cast(IForm) line)
+    testPrimeGizmo(line)
 
     f.gui.drag({70, 45}, {95, 80})
     @assert(line.xb == 95)
@@ -443,8 +417,6 @@ using Swag, Core
     f.capture.undo()
     @assert(line.xb == 70)
     @assert(line.yb == 45)
-
-    f.shutdown()
 }
 
 // The capture bounding gizmo resizes the canvas itself without needing a real
@@ -453,7 +425,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     testPrimeCaptureGizmo(f.capture)
     f.gui.drag({400, 300}, {430, 320})
 
@@ -464,6 +436,4 @@ using Swag, Core
     f.capture.undo()
     @assert(f.capture.width == 400)
     @assert(f.capture.height == 300)
-
-    f.shutdown()
 }

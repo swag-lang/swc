@@ -5,7 +5,7 @@ using Swag, Core
 #test
 {
     var renderer: RenderOgl
-    let render = cast(IRenderer) &renderer
+    let render: IRenderer = &renderer
 
     var image: Image
     let texture = render.addImage(image)

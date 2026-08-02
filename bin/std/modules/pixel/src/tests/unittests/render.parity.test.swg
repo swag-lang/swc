@@ -9,6 +9,32 @@ private const RenderTextHeight   = 168
 private const RenderLayerWidth   = 160
 private const RenderLayerHeight  = 104
 
+private alias RenderParityScene = func||(IRenderer)->Image
+
+private func renderCpu(scene: RenderParityScene)->Image
+{
+    var cpu: RenderCpu
+    let renderer: IRenderer = &cpu
+    renderer.init()
+    return scene(renderer)
+}
+
+private func renderOgl(className, title: string, width, height: s32, scene: RenderParityScene)->Image fail
+{
+    var window = try Env.createWindow({className: className, title: title, width: width, height: height})
+
+    var ogl: RenderOgl
+    let renderer: IRenderer = &ogl
+    var context = try renderer.createContext(cast(#null const *void) window.nativeHandle, width, height)
+    defer renderer.deleteContext(&context)
+
+    renderer.setCurrentContext(context)
+    renderer.init()
+    renderer.begin(context)
+    defer renderer.end()
+    return scene(renderer)
+}
+
 private func makeRenderParityTexture(renderer: IRenderer)->Texture
 {
     var image             = Image.create(4, 4, .BGRA8)
@@ -17,9 +43,9 @@ private func makeRenderParityTexture(renderer: IRenderer)->Texture
                                     Color.fromArgb(Argb.DodgerBlue),
                                     Color.fromArgb(Argb.LimeGreen)]
 
-    for var y: s32; y < image.height; y += 1
+    for [y] in image.height
     {
-        for var x: s32; x < image.width; x += 1
+        for [x] in image.width
         {
             let color = colors[cast(u64) ((x + y) & 3)]
             let row   = image.height - y - 1
@@ -38,7 +64,9 @@ private func makeRenderParityTexture(renderer: IRenderer)->Texture
 private func renderParityScene(renderer: IRenderer)->Image
 {
     var texture = makeRenderParityTexture(renderer)
+    defer renderer.removeTexture(&texture)
     var target  = renderer.createRenderTarget(RenderParityWidth, RenderParityHeight)
+    defer renderer.deleteRenderTarget(&target)
 
     var painter = Painter.create(renderer)
     painter.begin()
@@ -123,16 +151,12 @@ private func renderParityScene(renderer: IRenderer)->Image
     renderer.draw(&painter)
 
     let result = renderer.readRenderTarget(&target, 0, 0, RenderParityWidth, RenderParityHeight)
-    renderer.removeTexture(&texture)
-    renderer.deleteRenderTarget(&target)
     return result
 }
 
 private func makeRenderParityFont(renderer: IRenderer, size: u32, mode: FontRenderMode)->*Font
 {
-    var face: *TypeFace = undefined
-    catch loadTestTypeFace(&face, getTestDataPath("segoeui.ttf")) as err
-    @assert(err == null)
+    let face = notnull expect loadTestTypeFace(getTestDataPath("segoeui.ttf"))
     return renderer.fontCache().createFont(face, size, mode)
 }
 
@@ -142,6 +166,7 @@ private func renderTextParityScene(renderer: IRenderer)->Image
     let bitmap = makeRenderParityFont(renderer, 20, .Bitmap)
     let msdf   = makeRenderParityFont(renderer, 40, .Msdf)
     var target = renderer.createRenderTarget(RenderTextWidth, RenderTextHeight)
+    defer renderer.deleteRenderTarget(&target)
 
     var outlineGlow: TextEffect
     outlineGlow.outlineWidth = 0.16
@@ -180,7 +205,6 @@ private func renderTextParityScene(renderer: IRenderer)->Image
     renderer.draw(&painter)
 
     let result = renderer.readRenderTarget(&target, 0, 0, RenderTextWidth, RenderTextHeight)
-    renderer.deleteRenderTarget(&target)
     return result
 }
 
@@ -188,6 +212,7 @@ private func renderTextParityScene(renderer: IRenderer)->Image
 private func renderLayerParityScene(renderer: IRenderer)->Image
 {
     var target = renderer.createRenderTarget(RenderLayerWidth, RenderLayerHeight)
+    defer renderer.deleteRenderTarget(&target)
     var painter = Painter.create(renderer)
     var layer: Layer
 
@@ -213,7 +238,6 @@ private func renderLayerParityScene(renderer: IRenderer)->Image
     renderer.draw(&painter)
 
     let result = renderer.readRenderTarget(&target, 0, 0, RenderLayerWidth, RenderLayerHeight)
-    renderer.deleteRenderTarget(&target)
     return result
 }
 
@@ -235,10 +259,7 @@ private func renderLayerParityScene(renderer: IRenderer)->Image
 // The deterministic CPU backend is the exact, reviewable reference for portable painter output.
 #test
 {
-    var cpu: RenderCpu
-    let renderer = cast(IRenderer) &cpu
-    renderer.init()
-    let image = renderParityScene(renderer)
+    let image = renderCpu(&renderParityScene)
     Testing.assertImageGolden(&image, "render.parity.portable")
 }
 
@@ -246,97 +267,37 @@ private func renderLayerParityScene(renderer: IRenderer)->Image
 // bounded explicitly; flat fills, texture interiors and state transitions still compare exactly.
 #test
 {
-    var cpu: RenderCpu
-    let cpuRenderer = cast(IRenderer) &cpu
-    cpuRenderer.init()
-    let expected = renderParityScene(cpuRenderer)
-
-    var window: Env.Window
-    expect Env.createWindow(&window, {className: "SWAG_PIXEL_RENDER_PARITY", title: "Pixel renderer parity", width: RenderParityWidth, height: RenderParityHeight})
-
-    var ogl: RenderOgl
-    let renderer = cast(IRenderer) &ogl
-    var context  = expect renderer.createContext(cast(#null const *void) window.nativeHandle, RenderParityWidth, RenderParityHeight)
-    renderer.setCurrentContext(context)
-    renderer.init()
-    renderer.begin(context)
-
-    let image = renderParityScene(renderer)
+    let expected = renderCpu(&renderParityScene)
+    let image    = expect renderOgl("SWAG_PIXEL_RENDER_PARITY", "Pixel renderer parity", RenderParityWidth, RenderParityHeight, &renderParityScene)
     Testing.assertImagesNear(&expected, &image, "render.parity.cpu-ogl", {maxChannelDelta: 3, maxDifferentPixels: 512})
-
-    renderer.end()
-    renderer.deleteContext(&context)
-    catch DestroyWindow(window.nativeHandle)
 }
 
 // Text goldens cover bitmap sampling plus the complete built-in MTSDF effects path.
 #test
 {
-    var cpu: RenderCpu
-    let renderer = cast(IRenderer) &cpu
-    renderer.init()
-    let image = renderTextParityScene(renderer)
+    let image = renderCpu(&renderTextParityScene)
     Testing.assertImageGolden(&image, "render.parity.text")
 }
 
 // CPU and OpenGL implement the same built-in text programs, including MTSDF effects.
 #test
 {
-    var cpu: RenderCpu
-    let cpuRenderer = cast(IRenderer) &cpu
-    cpuRenderer.init()
-    let expected = renderTextParityScene(cpuRenderer)
-
-    var window: Env.Window
-    expect Env.createWindow(&window, {className: "SWAG_PIXEL_TEXT_PARITY", title: "Pixel text parity", width: RenderTextWidth, height: RenderTextHeight})
-
-    var ogl: RenderOgl
-    let renderer = cast(IRenderer) &ogl
-    var context = expect renderer.createContext(cast(#null const *void) window.nativeHandle, RenderTextWidth, RenderTextHeight)
-    renderer.setCurrentContext(context)
-    renderer.init()
-    renderer.begin(context)
-
-    let image = renderTextParityScene(renderer)
+    let expected = renderCpu(&renderTextParityScene)
+    let image    = expect renderOgl("SWAG_PIXEL_TEXT_PARITY", "Pixel text parity", RenderTextWidth, RenderTextHeight, &renderTextParityScene)
     Testing.assertImagesNear(&expected, &image, "render.parity.text.cpu-ogl", {maxChannelDelta: 5, maxDifferentPixels: 1500})
-
-    renderer.end()
-    renderer.deleteContext(&context)
-    catch DestroyWindow(window.nativeHandle)
 }
 
 // The CPU backend makes composite layer output deterministic and reviewable.
 #test
 {
-    var cpu: RenderCpu
-    let renderer = cast(IRenderer) &cpu
-    renderer.init()
-    let image = renderLayerParityScene(renderer)
+    let image = renderCpu(&renderLayerParityScene)
     Testing.assertImageGolden(&image, "render.parity.layer")
 }
 
 // Layer resolve, blur, paint-alpha replay and pooled targets agree across both backends.
 #test
 {
-    var cpu: RenderCpu
-    let cpuRenderer = cast(IRenderer) &cpu
-    cpuRenderer.init()
-    let expected = renderLayerParityScene(cpuRenderer)
-
-    var window: Env.Window
-    expect Env.createWindow(&window, {className: "SWAG_PIXEL_LAYER_PARITY", title: "Pixel layer parity", width: RenderLayerWidth, height: RenderLayerHeight})
-
-    var ogl: RenderOgl
-    let renderer = cast(IRenderer) &ogl
-    var context = expect renderer.createContext(cast(#null const *void) window.nativeHandle, RenderLayerWidth, RenderLayerHeight)
-    renderer.setCurrentContext(context)
-    renderer.init()
-    renderer.begin(context)
-
-    let image = renderLayerParityScene(renderer)
+    let expected = renderCpu(&renderLayerParityScene)
+    let image    = expect renderOgl("SWAG_PIXEL_LAYER_PARITY", "Pixel layer parity", RenderLayerWidth, RenderLayerHeight, &renderLayerParityScene)
     Testing.assertImagesNear(&expected, &image, "render.parity.layer.cpu-ogl", {maxChannelDelta: 6, maxDifferentPixels: 1500})
-
-    renderer.end()
-    renderer.deleteContext(&context)
-    catch DestroyWindow(window.nativeHandle)
 }

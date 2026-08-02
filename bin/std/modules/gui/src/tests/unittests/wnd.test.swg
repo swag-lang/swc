@@ -8,7 +8,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-
+    defer host.shutdown()
     let container = Wnd.create'Wnd(&host.root, null, {0, 0, 200, 200})
     let a         = Wnd.create'Wnd(container, null, {0, 0, 50, 50}, "Wnd.A")
     let b         = Wnd.create'Wnd(container, null, {0, 0, 50, 50}, "Wnd.B")
@@ -22,8 +22,6 @@ using Swag, Core
     @assert(container.childById("Wnd.A") == a)
     @assert(container.childById("Wnd.B") == b)
     @assert(container.childById("Wnd.None") == null)
-
-    host.shutdown()
 }
 
 // Detaching and reparenting update both sides and propagate the surface through the subtree.
@@ -31,7 +29,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-
+    defer host.shutdown()
     let left       = Wnd.create'Wnd(&host.root, null, {0, 0, 100, 200})
     let right      = Wnd.create'Wnd(&host.root, null, {100, 0, 100, 200})
     let child      = Wnd.create'Wnd(left, null, {0, 0, 50, 50})
@@ -46,8 +44,6 @@ using Swag, Core
     @assert(child.parent == right and child.surface == right.surface)
     @assert(grandChild.surface == right.surface)
     @assert(right.children.count == 1 and right.children[0] == child)
-
-    host.shutdown()
 }
 
 // Hidden state and its propagation to children.
@@ -55,7 +51,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-
+    defer host.shutdown()
     let container = Wnd.create'Wnd(&host.root, null, {0, 0, 200, 200})
     let child     = Wnd.create'Wnd(container, null, {0, 0, 50, 50})
 
@@ -75,8 +71,6 @@ using Swag, Core
     @assert(!child.isVisible())
     @assert(child.isLocallyVisible())
     @assert(child.isLocallyVisible())
-
-    host.shutdown()
 }
 
 // Disabled state and its propagation to children.
@@ -84,7 +78,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-
+    defer host.shutdown()
     let container = Wnd.create'Wnd(&host.root, null, {0, 0, 200, 200})
     let child     = Wnd.create'Wnd(container, null, {0, 0, 50, 50})
 
@@ -105,8 +99,6 @@ using Swag, Core
     @assert(!child.isEnabled())
     @assert(child.isLocallyEnabled())
     @assert(child.isLocallyEnabled())
-
-    host.shutdown()
 }
 
 // Move/resize and coordinate conversion through the parent chain.
@@ -114,7 +106,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-
+    defer host.shutdown()
     let container = Wnd.create'Wnd(&host.root, null, {10, 20, 180, 160})
     let child     = Wnd.create'Wnd(container, null, {30, 40, 50, 50})
 
@@ -134,8 +126,6 @@ using Swag, Core
 
     child.setPosition({0, 0, 100, 100})
     @assert(child.position == Math.Rectangle{0, 0, 100, 100})
-
-    host.shutdown()
 }
 
 // Dock layout: Left/Right consume edges, Center fills the rest.
@@ -143,7 +133,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(220, 140)
-
+    defer host.shutdown()
     let container = Wnd.create'Wnd(&host.root, null, {0, 0, 200, 100})
     let left      = Wnd.create'Wnd(container, null, {0, 0, 40, 0})
     let right     = Wnd.create'Wnd(container, null, {0, 0, 30, 0})
@@ -157,8 +147,6 @@ using Swag, Core
     @assert(left.position == Math.Rectangle{0, 0, 40, 100})
     @assert(right.position == Math.Rectangle{170, 0, 30, 100})
     @assert(center.position == Math.Rectangle{40, 0, 130, 100})
-
-    host.shutdown()
 }
 
 // getWndAt descends the hierarchy and skips hidden/disabled by default.
@@ -166,7 +154,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-
+    defer host.shutdown()
     let container = Wnd.create'Wnd(&host.root, null, {10, 10, 180, 180})
     let child     = Wnd.create'Wnd(container, null, {20, 20, 60, 60})
 
@@ -184,8 +172,6 @@ using Swag, Core
     child.disable()
     @assert(host.root.windowAt(40, 40, false) == container)
     @assert(host.root.windowAt(40, 40, true) == child)
-
-    host.shutdown()
 }
 
 // Z-order: windowAt returns the topmost (last) sibling; sendToBack/bringToFront reorder.
@@ -193,7 +179,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-
+    defer host.shutdown()
     let container = Wnd.create'Wnd(&host.root, null, {0, 0, 200, 200})
     let a         = Wnd.create'Wnd(container, null, {0, 0, 100, 100})
     let b         = Wnd.create'Wnd(container, null, {0, 0, 100, 100})
@@ -208,8 +194,6 @@ using Swag, Core
     b.sendToBack()
     @assert(container.children.front() == b)
     @assert(host.root.windowAt(50, 50, true) == a)
-
-    host.shutdown()
 }
 
 // destroy() detaches the window from its parent after the destroy pump.
@@ -217,7 +201,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-
+    defer host.shutdown()
     let container = Wnd.create'Wnd(&host.root, null, {0, 0, 200, 200})
     let child     = Wnd.create'Wnd(container, null, {0, 0, 50, 50})
     @assert(container.children.count == 1)
@@ -225,6 +209,4 @@ using Swag, Core
     child.destroy()
     host.pump()
     @assert(container.children.count == 0)
-
-    host.shutdown()
 }

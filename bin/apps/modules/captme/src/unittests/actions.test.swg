@@ -19,7 +19,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-
+    defer f.shutdown()
     discard testAddShape(f.capture, 10, 10, 20, 20)
     discard testAddText(f.capture, 50, 10, 20, 20)
 
@@ -51,8 +51,6 @@ using Swag, Core
     f.main.sendCommandEvent(ActionSelection.Freeze)
     @assert(!f.main.freezeSel)
     @assert(f.main.embInfoFreeze == null)
-
-    f.shutdown()
 }
 
 // Tool-mode actions update checked state and switch every safe editor mode.
@@ -60,7 +58,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-
+    defer f.shutdown()
     f.main.sendCommandEvent(ActionToolMode.Shape)
     @assert(f.main.editMode == .Shape)
     f.main.sendCommandEvent(ActionToolMode.Line)
@@ -96,8 +94,6 @@ using Swag, Core
     evt = Gui.Testing.commandState(ActionToolMode.Text)
     @assert(Gui.Testing.actionUpdate'ActionToolMode(f.main, ActionToolMode.Text, &evt))
     @assert(!evt.checked)
-
-    f.shutdown()
 }
 
 // Capture delay, capture-option toggles and view clipping are pure state actions.
@@ -105,7 +101,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-
+    defer f.shutdown()
     f.main.sendCommandEvent(ActionCaptureDelay.Delay5)
     @assert(f.main.captureOptions.delay == 5)
     var delayEvt = Gui.Testing.commandState(ActionCaptureDelay.Delay)
@@ -160,8 +156,6 @@ using Swag, Core
     var clipEvt = Gui.Testing.commandState(ActionView.Clip)
     @assert(Gui.Testing.actionUpdate'ActionView(f.main, ActionView.Clip, &clipEvt))
     @assert(clipEvt.checked == f.main.editorOptions.clipToSelection)
-
-    f.shutdown()
 }
 
 // Zoom actions expose disabled state at clamps and execute without paint.
@@ -169,7 +163,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-
+    defer f.shutdown()
     f.editView.setZoom(1)
     f.main.sendCommandEvent(ActionZoom.ZoomIn)
     @assert(f.editView.zoom > 1)
@@ -197,8 +191,6 @@ using Swag, Core
     evt = Gui.Testing.commandState(ActionZoom.ZoomOut)
     @assert(Gui.Testing.actionUpdate'ActionZoom(f.main, ActionZoom.ZoomOut, &evt))
     @assert(evt.disabled)
-
-    f.shutdown()
 }
 
 // Edit, pixsel, image and undo actions report enabled/hidden state from current selection.
@@ -206,7 +198,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-
+    defer f.shutdown()
     let text   = testAddText(f.capture, 0, 0, 40, 20)
     let image  = testAddImage(f.capture, 50, 0, 20, 20)
     let pixSel = testAddShape(f.capture, 80, 0, 20, 20, .PixSel)
@@ -279,8 +271,6 @@ using Swag, Core
     evt                       = Gui.Testing.commandState(ActionImage.RestoreOrg)
     @assert(Gui.Testing.actionUpdate'ActionImage(f.main, ActionImage.RestoreOrg, &evt))
     @assert(!evt.disabled)
-
-    f.shutdown()
 }
 
 // Nudge, align and arrange command actions integrate with undo and command-state disabling.
@@ -288,7 +278,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-
+    defer f.shutdown()
     let a = testAddShape(f.capture, 10, 10, 10, 10)
     let b = testAddShape(f.capture, 50, 40, 20, 20)
 
@@ -401,8 +391,6 @@ using Swag, Core
     evt = Gui.Testing.commandState(ActionAlign.AlignTop)
     @assert(Gui.Testing.actionUpdate'ActionAlign(f.main, ActionAlign.AlignTop, &evt))
     @assert(evt.disabled)
-
-    f.shutdown()
 }
 
 // Arrange command variants reorder forms through the command dispatcher, not
@@ -411,7 +399,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-
+    defer f.shutdown()
     let a = testAddShape(f.capture, 0, 0, 10, 10)
     let b = testAddShape(f.capture, 20, 0, 10, 10)
     let c = testAddText(f.capture, 40, 0, 10, 10)
@@ -450,8 +438,6 @@ using Swag, Core
     @assert(@dataof(f.capture.forms[2]) == b)
     @assert(f.capture.selection[0] == 0)
     f.capture.undo()
-
-    f.shutdown()
 }
 
 // File, copy/paste, flatten and small dialog actions expose stable command state
@@ -460,7 +446,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-
+    defer f.shutdown()
     var evt = Gui.Testing.commandState(ActionFile.SaveAsImage)
     @assert(Gui.Testing.actionUpdate'ActionFile(f.main, ActionFile.SaveAsImage, &evt))
     @assert(!evt.disabled)
@@ -543,7 +529,6 @@ using Swag, Core
     @assert(!evt.name.isEmpty())
 
     discard shape
-    f.shutdown()
 }
 
 // FlattenAll command execution is renderer-backed but stays fully in memory.
@@ -551,7 +536,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-
+    defer f.shutdown()
     let shape = testAddShape(f.capture, 10, 10, 20, 20)
     shape.kind = .Rectangle
     discard testAddText(f.capture, 40, 10, 20, 20)
@@ -563,6 +548,4 @@ using Swag, Core
 
     f.capture.undo()
     @assert(f.capture.forms.count == 2)
-
-    f.shutdown()
 }

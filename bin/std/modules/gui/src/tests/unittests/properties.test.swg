@@ -86,7 +86,7 @@ impl IPropertyNotify for PropHeadlessRoData
 {
     var host: Testing.HeadlessHost
     host.setup(260, 320)
-
+    defer host.shutdown()
     var data: PropHeadlessData
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data)
@@ -94,8 +94,6 @@ impl IPropertyNotify for PropHeadlessRoData
     // 1 implicit section item + 3 fields.
     @assert(prop.items.count == 4)
     @assert((notnull prop.items[0]).flags.has(.Section))
-
-    host.shutdown()
 }
 
 // Public configuration methods keep their observable state synchronized, and clear makes the
@@ -104,7 +102,7 @@ impl IPropertyNotify for PropHeadlessRoData
 {
     var host: Testing.HeadlessHost
     host.setup(260, 320)
-
+    defer host.shutdown()
     var data: PropHeadlessData
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.setEditorWidth(280)
@@ -125,8 +123,6 @@ impl IPropertyNotify for PropHeadlessRoData
     prop.clear()
     @assert(prop.items.count == 0)
     @assert(!prop.selItem)
-
-    host.shutdown()
 }
 
 // PropertiesCtrl keeps visible grid rows after the same staged layout sequence
@@ -136,7 +132,7 @@ impl IPropertyNotify for PropHeadlessRoData
 {
     var host: Testing.HeadlessHost
     host.setup(1240, 820)
-
+    defer host.shutdown()
     let page = Wnd.create'Wnd(&host.root, {24, 104, 1192, 666})
 
     var data: PropHeadlessGroupedData
@@ -167,8 +163,6 @@ impl IPropertyNotify for PropHeadlessRoData
     @assert((notnull ctrl.properties.items[1]).line.isVisible())
     @assert((notnull ctrl.properties.items[1]).line.position.height == ctrl.properties.gridLineHeight)
     @assert((notnull ctrl.properties.items[1]).line.position.y >= ctrl.properties.gridLineHeight)
-
-    host.shutdown()
 }
 
 // Keyboard navigation: focusNavigation selects the first navigable row, arrows move the
@@ -177,7 +171,7 @@ impl IPropertyNotify for PropHeadlessRoData
 {
     var host: Testing.HeadlessHost
     host.setup(260, 320)
-
+    defer host.shutdown()
     var data: PropHeadlessData
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data)     // [0]=section [1]=count [2]=label [3]=enabled
@@ -199,8 +193,6 @@ impl IPropertyNotify for PropHeadlessRoData
     @assert(prop.selItem == prop.items[1])
     host.keyPress(Input.Key.End)
     @assert(prop.selItem == prop.items[3])
-
-    host.shutdown()
 }
 
 // Enter starts editing the selected row (focuses its editor); Escape returns to
@@ -209,7 +201,7 @@ impl IPropertyNotify for PropHeadlessRoData
 {
     var host: Testing.HeadlessHost
     host.setup(260, 320)
-
+    defer host.shutdown()
     var data: PropHeadlessData
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data)
@@ -220,8 +212,6 @@ impl IPropertyNotify for PropHeadlessRoData
 
     host.keyPress(Input.Key.Escape)
     @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) prop.edView)
-
-    host.shutdown()
 }
 
 // While editing, Up/Down auto-commit and move the selection back to navigation
@@ -230,7 +220,7 @@ impl IPropertyNotify for PropHeadlessRoData
 {
     var host: Testing.HeadlessHost
     host.setup(260, 320)
-
+    defer host.shutdown()
     var data: PropHeadlessData
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data)
@@ -242,8 +232,6 @@ impl IPropertyNotify for PropHeadlessRoData
     host.keyPress(Input.Key.Down)     // commit + move to label row
     @assert(prop.selItem == prop.items[2])
     @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) prop.edView)
-
-    host.shutdown()
 }
 
 // Tab commits the current edit and starts editing the next editable row.
@@ -251,7 +239,7 @@ impl IPropertyNotify for PropHeadlessRoData
 {
     var host: Testing.HeadlessHost
     host.setup(260, 320)
-
+    defer host.shutdown()
     var data: PropHeadlessData
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data)
@@ -261,8 +249,6 @@ impl IPropertyNotify for PropHeadlessRoData
     host.keyPress(Input.Key.Tab)        // -> edit label row
     @assert(prop.selItem == prop.items[2])
     @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) (notnull prop.items[2]).editBox)
-
-    host.shutdown()
 }
 
 struct PropHeadlessActionData
@@ -285,7 +271,7 @@ struct PropHeadlessArrayData
 {
     var host: Testing.HeadlessHost
     host.setup(400, 600)
-
+    defer host.shutdown()
     var data: PropHeadlessArrayData
     data.actions.resize(1)
     let prop = Properties.create(&host.root, {0, 0, 380, 560}, .List)
@@ -335,8 +321,6 @@ struct PropHeadlessArrayData
     @assert(descLbl.textPadding.y > 0)
     @assert(Math.abs(descLbl.textPadding.y + descLbl.textPadding.w) < 0.01)     // pure translation, no height loss
     @assert(chkRow.position.height >= descLbl.position.bottom())                // wrapped info text is not clipped
-
-    host.shutdown()
 }
 
 struct PropHeadlessColorData
@@ -353,7 +337,7 @@ struct PropHeadlessColorData
 {
     var host: Testing.HeadlessHost
     host.setup(300, 200)
-
+    defer host.shutdown()
     var data: PropHeadlessColorData
     let prop = Properties.create(&host.root, {0, 0, 280, 180}, .List)
     prop.addStruct(data, "S")
@@ -385,8 +369,6 @@ struct PropHeadlessColorData
     prop.editPopup = null
     sendWheel(prop, 6)     // scroll back up
     @assert(prop.scrollWnd.scrollPosition().y != y1)
-
-    host.shutdown()
 }
 
 private func findIconButton(w: *Wnd)->#null *IconButton
@@ -410,7 +392,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
 {
     var host: Testing.HeadlessHost
     host.setup(300, 200)
-
+    defer host.shutdown()
     var data: PropHeadlessColorData
     let prop = Properties.create(&host.root, {0, 0, 280, 180}, .List)
     prop.addStruct(data, "S")
@@ -427,8 +409,6 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     prop.editPopup = popup
     host.sendMouseEvent(btn, .Leave, {0, 0}, .Left, .None)
     @assert(!btn.isHot)
-
-    host.shutdown()
 }
 
 // In navigation mode, Space toggles a bool row's checkbox in place.
@@ -436,7 +416,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
 {
     var host: Testing.HeadlessHost
     host.setup(260, 320)
-
+    defer host.shutdown()
     var data: PropHeadlessData     // enabled = true
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data)
@@ -450,8 +430,6 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     @assert(!chk.isChecked())
     host.keyPress(Input.Key.Space)
     @assert(chk.isChecked())
-
-    host.shutdown()
 }
 
 // Navigating a slider row: Right steps the slider track and focuses it (auto-commit
@@ -460,7 +438,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
 {
     var host: Testing.HeadlessHost
     host.setup(320, 220)
-
+    defer host.shutdown()
     var data: PropHeadlessSliderData     // volume=50, level=5
     let prop = Properties.create(&host.root, {0, 0, 300, 200})
     prop.addStruct(data, "S")     // [0]=section [1]=volume [2]=level
@@ -486,8 +464,6 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     host.keyPress(Input.Key.Down)
     @assert(prop.selItem == prop.items[2])
     @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) prop.edView)
-
-    host.shutdown()
 }
 
 // Enter on a slider row edits its value box like a plain editbox row: it focuses the
@@ -496,7 +472,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
 {
     var host: Testing.HeadlessHost
     host.setup(320, 220)
-
+    defer host.shutdown()
     var data: PropHeadlessSliderData     // volume=50, level=5
     let prop = Properties.create(&host.root, {0, 0, 300, 200})
     prop.addStruct(data, "S")     // [0]=section [1]=volume [2]=level
@@ -512,8 +488,6 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) edit)
     @assert(edit.selBeg == 0 and edit.selEnd == @countof(edit.text()))
     @assert(@countof(edit.text()) > 0)
-
-    host.shutdown()
 }
 
 // Editing an enum row: Enter focuses the combo, Left/Right change the selection
@@ -522,7 +496,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
 {
     var host: Testing.HeadlessHost
     host.setup(300, 200)
-
+    defer host.shutdown()
     var data: PropHeadlessEnumData     // choice = Mid (index 1)
     let prop = Properties.create(&host.root, {0, 0, 280, 180})
     prop.addStruct(data, "E")     // [0]=section [1]=choice
@@ -559,8 +533,6 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     @assert(data.choice == .High)
     @assert(combo.popup == null)
     @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) prop.edView)
-
-    host.shutdown()
 }
 
 // A row with a custom/composite editor (e.g. a Math.Point) is navigable and can be
@@ -569,7 +541,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-
+    defer host.shutdown()
     var data: PropHeadlessCustomData
     let prop = Properties.create(&host.root, {0, 0, 300, 180})
     prop.addStruct(data, "C")     // [0]=section [1]=origin [2]=count
@@ -585,8 +557,6 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     host.keyPress(Input.Key.Down)     // commit + move to the next row
     @assert(prop.selItem == prop.items[2])
     @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) prop.edView)
-
-    host.shutdown()
 }
 
 // focusNavigation keeps the already-selected row (so clicking a header/custom row does not
@@ -595,7 +565,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-
+    defer host.shutdown()
     var data: PropHeadlessCustomData
     let prop = Properties.create(&host.root, {0, 0, 300, 180})
     prop.addStruct(data, "C")
@@ -603,8 +573,6 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     prop.setSelItem(prop.items[1])     // as if 'origin' was just clicked
     prop.focusNavigation()
     @assert(prop.selItem == prop.items[1])     // kept, not reset to the first row
-
-    host.shutdown()
 }
 
 // A named section becomes the first item and is registered.
@@ -612,7 +580,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
 {
     var host: Testing.HeadlessHost
     host.setup(260, 320)
-
+    defer host.shutdown()
     var data: PropHeadlessData
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data, "Settings")
@@ -620,8 +588,6 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     @assert(prop.items.count == 4)
     @assert((notnull prop.items[0]).flags.has(.Section))
     @assert(prop.sections.count == 1)
-
-    host.shutdown()
 }
 
 // PropertiesCtrl grid keeps deterministic line and editor heights.
@@ -629,7 +595,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
 {
     var host: Testing.HeadlessHost
     host.setup(360, 180)
-
+    defer host.shutdown()
     var data: PropHeadlessData
     let ctrl = PropertiesCtrl.create(&host.root, {0, 0, 320, 120}, .Grid, .None)
     ctrl.addStruct(data, "Settings")
@@ -655,8 +621,6 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     @assert(countItem.editBox.position.height == ctrl.properties.themeMetrics().editBox_Height)
     @assert(countItem.editBox.position.y == Math.round((countItem.line.position.height - countItem.editBox.position.height) * 0.5))
     @assert(ctrl.properties.scrollWnd.scrollSize.y > ctrl.properties.position.height)
-
-    host.shutdown()
 }
 
 // Properties list keeps rows visible after being docked with a filter bar, as
@@ -665,7 +629,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
 {
     var host: Testing.HeadlessHost
     host.setup(1240, 820)
-
+    defer host.shutdown()
     let page = Wnd.create'Wnd(&host.root, {24, 104, 1192, 666})
 
     let filter = EditBox.create(page, "")
@@ -694,8 +658,6 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     @assert(it0.label.position.height > 0)
     @assert(it1.label.position.height > 0)
     @assert(prop.scrollWnd.scrollSize.y > prop.position.height)
-
-    host.shutdown()
 }
 
 //
@@ -745,7 +707,7 @@ private func findFieldItem(prop: *Properties, name: string)->#null *PropertiesIt
 {
     var host: Testing.HeadlessHost
     host.setup(320, 360)
-
+    defer host.shutdown()
     var t0, t1, t2: MultiTile
     let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
 
@@ -774,8 +736,6 @@ private func findFieldItem(prop: *Properties, name: string)->#null *PropertiesIt
     let choiceItem = notnull findFieldItem(prop, "choice")
     choiceItem.comboBox.setSelectedIndex(2)     // High
     @assert(t0.choice == .High and t1.choice == .High and t2.choice == .High)
-
-    host.shutdown()
 }
 
 // A field that differs across instances is "mixed": the editor shows no concrete value,
@@ -784,7 +744,7 @@ private func findFieldItem(prop: *Properties, name: string)->#null *PropertiesIt
 {
     var host: Testing.HeadlessHost
     host.setup(320, 360)
-
+    defer host.shutdown()
     var t0, t1: MultiTile
     t0.count = 1
     t1.count = 2     // differs -> mixed
@@ -812,8 +772,6 @@ private func findFieldItem(prop: *Properties, name: string)->#null *PropertiesIt
     @assert(t0.count == 7 and t1.count == 7)
     @assert(!prop.fieldIsMixed(countItem))
     @assert(countItem.editBox.text() == "7")
-
-    host.shutdown()
 }
 
 // A single instance behaves exactly like the classic addStruct (no multi state).
@@ -821,7 +779,7 @@ private func findFieldItem(prop: *Properties, name: string)->#null *PropertiesIt
 {
     var host: Testing.HeadlessHost
     host.setup(320, 360)
-
+    defer host.shutdown()
     var t0: MultiTile
     t0.count = 3
     let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
@@ -838,8 +796,6 @@ private func findFieldItem(prop: *Properties, name: string)->#null *PropertiesIt
     countItem.editBox.setText("8")
     prop.validateNative(countItem)
     @assert(t0.count == 8)
-
-    host.shutdown()
 }
 
 private func collectEditBoxes(w: *Wnd, out: *Array'(#null *EditBox))
@@ -858,7 +814,7 @@ private func collectEditBoxes(w: *Wnd, out: *Array'(#null *EditBox))
 {
     var host: Testing.HeadlessHost
     host.setup(320, 380)
-
+    defer host.shutdown()
     var t0, t1: MultiTile
     t0.pos = {1, 10}
     t1.pos = {2, 10}     // x differs (mixed), y uniform
@@ -887,8 +843,6 @@ private func collectEditBoxes(w: *Wnd, out: *Array'(#null *EditBox))
     @assert(t0.pos.x == 5 and t1.pos.x == 5)
     @assert(t0.pos.y == 10 and t1.pos.y == 10)     // untouched
     @assert(!prop.subFieldIsMixed(posItem, 0, #sizeof(f32)))
-
-    host.shutdown()
 }
 
 // Enum-flags multi-edit logic: a bit that disagrees across instances is "mixed", and
@@ -899,6 +853,7 @@ private func collectEditBoxes(w: *Wnd, out: *Array'(#null *EditBox))
 {
     var host: Testing.HeadlessHost
     host.setup(200, 120)
+    defer host.shutdown()
     let prop = Properties.create(&host.root, {0, 0, 180, 100}, .List)
 
     var b0, b1: MultiBadges
@@ -928,8 +883,6 @@ private func collectEditBoxes(w: *Wnd, out: *Array'(#null *EditBox))
     // Clearing a shared bit clears it everywhere.
     prop.writeEnumBit(&item, starMask, false)
     @assert(!cast(bool) (b0 & MultiBadges.Star) and !cast(bool) (b1 & MultiBadges.Star))
-
-    host.shutdown()
 }
 
 // Dynamic strings are compared and propagated by content (they own a heap buffer).
@@ -937,7 +890,7 @@ private func collectEditBoxes(w: *Wnd, out: *Array'(#null *EditBox))
 {
     var host: Testing.HeadlessHost
     host.setup(320, 360)
-
+    defer host.shutdown()
     var t0, t1: MultiTile
     t0.name = "alpha"
     t1.name = "beta"     // differs -> mixed
@@ -962,8 +915,6 @@ private func collectEditBoxes(w: *Wnd, out: *Array'(#null *EditBox))
     t0.name = "same"
     t1.name = "same"
     @assert(!prop.fieldIsMixed(nameItem))
-
-    host.shutdown()
 }
 
 // A color (struct via the built-in ColorEditor) reports mixed and propagates as a whole value.
@@ -971,7 +922,7 @@ private func collectEditBoxes(w: *Wnd, out: *Array'(#null *EditBox))
 {
     var host: Testing.HeadlessHost
     host.setup(320, 360)
-
+    defer host.shutdown()
     var t0, t1: MultiTile
     t0.tint = Pixel.Argb.Red
     t1.tint = Pixel.Argb.Blue     // differs -> mixed
@@ -990,8 +941,6 @@ private func collectEditBoxes(w: *Wnd, out: *Array'(#null *EditBox))
     t1.tint = Pixel.Argb.Red
     prop.refresh()
     @assert(!prop.fieldIsMixed(tintItem))
-
-    host.shutdown()
 }
 
 //
@@ -1028,7 +977,7 @@ impl Gui.IPropertyNotify for ValData
 {
     var host: Testing.HeadlessHost
     host.setup(300, 240)
-
+    defer host.shutdown()
     var data: ValData     // name empty -> error, count ok
     let prop = Properties.create(&host.root, {0, 0, 280, 220}, .List)
     prop.addStruct(data, "S")
@@ -1055,8 +1004,6 @@ impl Gui.IPropertyNotify for ValData
     nameItem.editBox.setText("hello")
     prop.validateDynamicString(nameItem)
     @assert(nameItem.validation == .None)
-
-    host.shutdown()
 }
 
 // A validation set manually (no notify interface) is kept across refreshes.
@@ -1064,7 +1011,7 @@ impl Gui.IPropertyNotify for ValData
 {
     var host: Testing.HeadlessHost
     host.setup(280, 220)
-
+    defer host.shutdown()
     var data: PropHeadlessData     // no IPropertyNotify
     let prop = Properties.create(&host.root, {0, 0, 260, 200}, .List)
     prop.addStruct(data)
@@ -1081,8 +1028,6 @@ impl Gui.IPropertyNotify for ValData
 
     prop.setItemValidation(it, .None)
     @assert(it.validation == .None)
-
-    host.shutdown()
 }
 
 // Read-only fields gray (disable) their editor, while staying visible. Covers both the
@@ -1091,7 +1036,7 @@ impl Gui.IPropertyNotify for ValData
 {
     var host: Testing.HeadlessHost
     host.setup(260, 360)
-
+    defer host.shutdown()
     g_PropRoDynamic = true
 
     var data: PropHeadlessRoData
@@ -1119,8 +1064,6 @@ impl Gui.IPropertyNotify for ValData
     @assert(prop.canChangeItem(dynamicItem))
     @assert(lockedItem.editBox.flags.has(.ReadOnly))
     @assert(!prop.canChangeItem(lockedItem))
-
-    host.shutdown()
 }
 
 // Reordering array elements (static + dynamic) and removing a dynamic element by the correct
@@ -1129,7 +1072,7 @@ impl Gui.IPropertyNotify for ValData
 {
     var host: Testing.HeadlessHost
     host.setup(300, 520)
-
+    defer host.shutdown()
     var data: PropMoveData
     data.dyn.resize(3)
     data.dyn[0].id = 10
@@ -1171,8 +1114,6 @@ impl Gui.IPropertyNotify for ValData
     @assert(statElems.count == 3)
     prop.moveArrayValue(notnull statElems[0], 1)
     @assert(data.stat[0] == 2 and data.stat[1] == 1 and data.stat[2] == 3)
-
-    host.shutdown()
 }
 
 // The context-menu commands run through the shared gui action system (ActionProperties /
@@ -1182,7 +1123,7 @@ impl Gui.IPropertyNotify for ValData
 {
     var host: Testing.HeadlessHost
     host.setup(320, 520)
-
+    defer host.shutdown()
     var data: PropMoveData
     data.dyn.resize(3)
     data.dyn[0].id = 10
@@ -1217,8 +1158,6 @@ impl Gui.IPropertyNotify for ValData
     // CommandEvent path (sendCommandEvent updates state first, then sends the command).
     prop.sendCommandEvent(ActionProperties.MoveUp)
     @assert(data.dyn[0].id == 20 and data.dyn[1].id == 10 and data.dyn[2].id == 30)
-
-    host.shutdown()
 }
 
 // --- Custom editor registry -------------------------------------------------
@@ -1262,7 +1201,7 @@ impl IPropertyEditor for PropAngleEditor
             // writer parses the leading number out of the free text.
             .sigFocusLost += func|list, item, angle|(ed)
             {
-                angle.deg = cast(s32) (catch StrConv.toNum's64(ed.text()))
+                angle.deg = cast(s32) (expect StrConv.toNum's64(ed.text()))
                 list.commitItemChange(item)
             }
         }
@@ -1286,7 +1225,7 @@ impl IPropertyEditor for PropAngleEditor
 {
     var host: Testing.HeadlessHost
     host.setup(260, 320)
-
+    defer host.shutdown()
     var data: PropHeadlessAngleData
 
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
@@ -1310,8 +1249,6 @@ impl IPropertyEditor for PropAngleEditor
     // The registry resolves the editor for the angle type, but not for an unrelated one.
     @assert(Properties.findEditor(PropHeadlessAngle) != null)
     @assert(Properties.findEditor(#null string) == null)
-
-    host.shutdown()
 }
 
 // --- Reset to default -------------------------------------------------------
@@ -1360,7 +1297,7 @@ impl IPropertyNotify for PropDefaultCustom
 {
     var host: Testing.HeadlessHost
     host.setup(260, 320)
-
+    defer host.shutdown()
     var data: PropDefaultData
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data)
@@ -1404,8 +1341,6 @@ impl IPropertyNotify for PropDefaultCustom
     prop.resetItemDefault(countItem)
     @assert(data.count == 42)
     @assert(!countItem.isModified)
-
-    host.shutdown()
 }
 
 // The "Reset to default" context-menu command goes through the shared action system: update()
@@ -1414,7 +1349,7 @@ impl IPropertyNotify for PropDefaultCustom
 {
     var host: Testing.HeadlessHost
     host.setup(260, 320)
-
+    defer host.shutdown()
     var data: PropDefaultData
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data)
@@ -1435,8 +1370,6 @@ impl IPropertyNotify for PropDefaultCustom
 
     prop.sendCommandEvent(ActionProperties.ResetDefault)
     @assert(data.count == 42 and !countItem.isModified)
-
-    host.shutdown()
 }
 
 // The test and the reset are both customizable through IPropertyNotify: isItemAtDefault forces the
@@ -1445,7 +1378,7 @@ impl IPropertyNotify for PropDefaultCustom
 {
     var host: Testing.HeadlessHost
     host.setup(260, 320)
-
+    defer host.shutdown()
     g_PropDefResetCalls    = 0
     g_PropDefForceModified = true
 
@@ -1467,8 +1400,6 @@ impl IPropertyNotify for PropDefaultCustom
     g_PropDefForceModified = false
     prop.updateStates()
     @assert(!valItem.isModified)
-
-    host.shutdown()
 }
 
 // Grid mode: the revert column is reserved on the right of every resettable row (docked, present
@@ -1478,7 +1409,7 @@ impl IPropertyNotify for PropDefaultCustom
 {
     var host: Testing.HeadlessHost
     host.setup(360, 320)
-
+    defer host.shutdown()
     var data: PropDefaultData
     let prop = Properties.create(&host.root, {0, 0, 340, 300}, .Grid)
     prop.addStruct(data)
@@ -1519,8 +1450,6 @@ impl IPropertyNotify for PropDefaultCustom
     @assert(btn.aniBk.themeCrc == Swag.U32.Max)
     @assert(host.app.mouseEnterWnd == null)
     @assert(host.app.mouseCaptureWnd == null)
-
-    host.shutdown()
 }
 
 // Condensed grid mode: the revert button is sized to the condensed editor height, then docked
@@ -1529,7 +1458,7 @@ impl IPropertyNotify for PropDefaultCustom
 {
     var host: Testing.HeadlessHost
     host.setup(360, 320)
-
+    defer host.shutdown()
     var data: PropDefaultData
     let prop = Properties.create(&host.root, {0, 0, 340, 300}, .Condensed)
     prop.addStruct(data)
@@ -1546,8 +1475,6 @@ impl IPropertyNotify for PropDefaultCustom
     @assert(countItem.isModified and !btn.isDisabled())
     @assert(btn.position.height == PropCondensedControlHeight)
     @assert(Math.isEqualEpsilon(btn.position.vertCenter(), countItem.line.clientRect().vertCenter(), 0.01))
-
-    host.shutdown()
 }
 
 // Multi-selection: a field is "modified" when it differs from the default in ANY edited instance,
@@ -1556,7 +1483,7 @@ impl IPropertyNotify for PropDefaultCustom
 {
     var host: Testing.HeadlessHost
     host.setup(320, 360)
-
+    defer host.shutdown()
     var t0, t1: PropDefaultData
     t0.count = 42     // at default
     t1.count = 7      // differs
@@ -1573,8 +1500,6 @@ impl IPropertyNotify for PropDefaultCustom
     prop.resetItemDefault(countItem)
     @assert(t0.count == 42 and t1.count == 42)
     @assert(!countItem.isModified)
-
-    host.shutdown()
 }
 
 // Undo/redo of a scalar field edit: each commit records one step; undo/redo walk the timeline;
@@ -1584,7 +1509,7 @@ impl IPropertyNotify for PropDefaultCustom
 {
     var host: Testing.HeadlessHost
     host.setup(260, 320)
-
+    defer host.shutdown()
     var data: PropHeadlessData
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data)
@@ -1624,8 +1549,6 @@ impl IPropertyNotify for PropDefaultCustom
     @assert(data.count == 55 and !prop.canRedo())
     prop.undo()
     @assert(data.count == 42)
-
-    host.shutdown()
 }
 
 // Undo/redo of a dynamic String field (copied by content, not by raw bytes).
@@ -1633,7 +1556,7 @@ impl IPropertyNotify for PropDefaultCustom
 {
     var host: Testing.HeadlessHost
     host.setup(300, 360)
-
+    defer host.shutdown()
     var data: MultiTile
     data.name = "alpha"
     let prop = Properties.create(&host.root, {0, 0, 280, 340}, .List)
@@ -1649,8 +1572,6 @@ impl IPropertyNotify for PropDefaultCustom
     @assert(data.name == "alpha")
     prop.redo()
     @assert(data.name == "beta")
-
-    host.shutdown()
 }
 
 // Undo/redo across a multi-selection edit restores every edited instance.
@@ -1658,7 +1579,7 @@ impl IPropertyNotify for PropDefaultCustom
 {
     var host: Testing.HeadlessHost
     host.setup(320, 360)
-
+    defer host.shutdown()
     var t0, t1: PropHeadlessData     // both count = 42
     let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
     var bases:  Array'(*u8)
@@ -1676,8 +1597,6 @@ impl IPropertyNotify for PropDefaultCustom
     @assert(t0.count == 42 and t1.count == 42)
     prop.redo()
     @assert(t0.count == 100 and t1.count == 100)
-
-    host.shutdown()
 }
 
 // Ctrl+Z / Ctrl+Y (and Ctrl+Shift+Z) drive undo/redo while the grid is in navigation mode.
@@ -1685,7 +1604,7 @@ impl IPropertyNotify for PropDefaultCustom
 {
     var host: Testing.HeadlessHost
     host.setup(260, 320)
-
+    defer host.shutdown()
     var data: PropHeadlessData
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data)
@@ -1704,8 +1623,6 @@ impl IPropertyNotify for PropDefaultCustom
     @assert(data.count == 42)
     host.keyPress(Input.Key.Z, Input.KeyModifiers.Control | Input.KeyModifiers.Shift)
     @assert(data.count == 100)
-
-    host.shutdown()
 }
 
 // --- Nested subgroups (#3) and decorators (#5) ------------------------------
@@ -1731,7 +1648,7 @@ struct PropDecorData
 {
     var host: Testing.HeadlessHost
     host.setup(360, 480)
-
+    defer host.shutdown()
     var data: PropDecorData
     let prop = Properties.create(&host.root, {0, 0, 340, 460}, .Grid)
     prop.addStruct(data, "S")
@@ -1780,8 +1697,6 @@ struct PropDecorData
     // Decorators are inert: not focusable and never expandable.
     @assert(headingIt.flags.has(.NoFocus) and spacerIt.flags.has(.NoFocus) and noteIt.flags.has(.NoFocus))
     @assert(headingIt.numChilds == 0 and spacerIt.numChilds == 0 and noteIt.numChilds == 0)
-
-    host.shutdown()
 }
 
 struct PropHeadlessFontStyleData
@@ -1796,7 +1711,7 @@ struct PropHeadlessFontStyleData
 {
     var host: Testing.HeadlessHost
     host.setup(260, 320)
-
+    defer host.shutdown()
     var data: PropHeadlessFontStyleData
     let prop = Properties.create(&host.root, {0, 0, 240, 300}, kind: .Panel)
     prop.addStruct(data)
@@ -1817,8 +1732,6 @@ struct PropHeadlessFontStyleData
     @assert(data.style == .Italic)
     host.clickWnd(btnItalic)
     @assert(data.style == .Regular)
-
-    host.shutdown()
 }
 
 struct PropHeadlessUsingBase
@@ -1838,7 +1751,7 @@ struct PropHeadlessUsingDerived
 {
     var host: Testing.HeadlessHost
     host.setup(260, 320)
-
+    defer host.shutdown()
     func indexOf(prop: *Properties, name: string)->u64
     {
         for item, [idx] in prop.items
@@ -1863,8 +1776,6 @@ struct PropHeadlessUsingDerived
     prop1.setUsingFieldsLast(true)
     prop1.addStruct(data)
     @assert(indexOf(prop1, "ownVal") < indexOf(prop1, "baseVal"))
-
-    host.shutdown()
 }
 
 enum PropFilterChoice
@@ -1896,11 +1807,11 @@ impl IPropertyNotify for PropFilterHost
 {
     var host: Testing.HeadlessHost
     host.setup(260, 320)
-
+    defer host.shutdown()
     var data: PropFilterData
     var ntfy: PropFilterHost
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
-    prop.setNotify(cast(IPropertyNotify) &ntfy)
+    prop.setNotify(&ntfy)
     prop.addStruct(data)
 
     let item = notnull prop.items[1]
@@ -1915,8 +1826,6 @@ impl IPropertyNotify for PropFilterHost
     @assert(data.choice == .High)
     item.comboBox.setSelectedIndex(0)
     @assert(data.choice == .Low)
-
-    host.shutdown()
 }
 
 struct PropSameCategData
@@ -1935,7 +1844,7 @@ struct PropSameCategData
 {
     var host: Testing.HeadlessHost
     host.setup(800, 600)
-
+    defer host.shutdown()
     var data: PropSameCategData
     let opt = PropertiesCtrl.create(&host.root, flags: .SectionTabs | .SearchBar)
     opt.dockStyle = .Center
@@ -1966,8 +1875,6 @@ struct PropSameCategData
     let descIt = notnull descItem
     @assert(@isset(descIt.checkBox))
     @assert((notnull descIt.checkBox.parent).position.width > cast(f32) opt.properties.editorWidth)
-
-    host.shutdown()
 }
 
 enum PropAlignChoice { A, B, C }
@@ -1989,7 +1896,7 @@ struct PropAlignData
 {
     var host: Testing.HeadlessHost
     host.setup(800, 600)
-
+    defer host.shutdown()
     var data: PropAlignData
     let prop = Properties.create(&host.root, {0, 0, 400, 560}, .List)
     prop.addStruct(data, "S")
@@ -2033,6 +1940,4 @@ struct PropAlignData
     host.root.applyLayout()
     host.pump()
     assertAligned(prop)
-
-    host.shutdown()
 }

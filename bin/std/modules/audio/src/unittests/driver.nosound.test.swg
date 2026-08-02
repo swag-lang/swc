@@ -5,8 +5,7 @@ using Swag, Core
 
 func audioStartNoSoundEngine()
 {
-    discard catch createNoSoundEngine() as err
-    @assert(err == null)
+    discard expect createNoSoundEngine()
     @assert(g_Driver.kind == .NoSound)
 }
 
@@ -16,8 +15,7 @@ func audioStartNoSoundEngine()
     discard catch outputVolume() as errNoEngine
     @assert(errNoEngine is Errors.BadParameterError)
 
-    discard catch createEngine(.NoSound) as errCreate
-    @assert(errCreate == null)
+    discard expect createEngine(.NoSound)
     @assert(isEngineCreated())
     @assert(activeDriverKind() == .NoSound)
 
@@ -39,30 +37,18 @@ func audioStartNoSoundEngine()
 
 #test
 {
-    discard catch createEngine(.NoSound) as err2
-    @assert(err2 == null)
+    discard expect createEngine(.NoSound)
     @assert(g_Driver.kind == .NoSound)
     defer destroyEngine()
 
-    audioAssertFloat(catch outputVolume() as err3, 1)
-    @assert(err3 == null)
-
-    discard catch setOutputVolume(0.25) as err4
-    @assert(err4 == null)
-    audioAssertFloat(catch outputVolume() as err5, 0.25)
-    @assert(err5 == null)
-
-    discard catch setOutputVolume(2) as err6
-    @assert(err6 == null)
-    audioAssertFloat(catch outputVolume() as err7, 1)
-    @assert(err7 == null)
-
-    discard catch setOutputVolumeDb(-6.0206) as errDb
-    @assert(errDb == null)
-    audioAssertFloat(catch outputVolume() as errLinear, 0.5, 0.0002)
-    @assert(errLinear == null)
-    audioAssertFloat(catch outputVolumeDb() as errReadDb, -6.0206, 0.0002)
-    @assert(errReadDb == null)
+    audioAssertFloat(expect outputVolume(), 1)
+    discard expect setOutputVolume(0.25)
+    audioAssertFloat(expect outputVolume(), 0.25)
+    discard expect setOutputVolume(2)
+    audioAssertFloat(expect outputVolume(), 1)
+    discard expect setOutputVolumeDb(-6.0206)
+    audioAssertFloat(expect outputVolume(), 0.5, 0.0002)
+    audioAssertFloat(expect outputVolumeDb(), -6.0206, 0.0002)
 }
 
 #test
@@ -70,12 +56,10 @@ func audioStartNoSoundEngine()
     audioStartNoSoundEngine()
     defer destroyEngine()
 
-    let rootResult = catch Bus.create(2) as errRoot
-    @assert(errRoot == null)
+    let rootResult = expect Bus.create(2)
     let root = notnull rootResult
 
-    let childResult = catch Bus.create(1, root) as errChild
-    @assert(errChild == null)
+    let childResult = expect Bus.create(1, root)
     let child = notnull childResult
 
     let rootHandle  = cast(*NoSoundBus) notnull root.handle
@@ -90,18 +74,11 @@ func audioStartNoSoundEngine()
     @assert(child.parent == root)
     @assert(g_Driver.buses.count == 2)
 
-    discard catch child.setVolume(1.5) as err7
-    @assert(err7 == null)
-    audioAssertFloat(catch child.volume() as err8, 1)
-    @assert(err8 == null)
-
-    discard catch child.setVolumeDb(-6.0206) as err9
-    @assert(err9 == null)
-    audioAssertFloat(catch child.volume() as err10, 0.5, 0.0002)
-    @assert(err10 == null)
-    audioAssertFloat(catch child.volumeDb() as err11, -6.0206, 0.0002)
-    @assert(err11 == null)
-
+    discard expect child.setVolume(1.5)
+    audioAssertFloat(expect child.volume(), 1)
+    discard expect child.setVolumeDb(-6.0206)
+    audioAssertFloat(expect child.volume(), 0.5, 0.0002)
+    audioAssertFloat(expect child.volumeDb(), -6.0206, 0.0002)
     var invalidParent: Bus
     discard catch Bus.create(1, &invalidParent) as err12
     @assert(err12 is Errors.BadParameterError)
@@ -116,73 +93,50 @@ func audioStartNoSoundEngine()
     audioStartNoSoundEngine()
     defer destroyEngine()
 
-    var file = catch SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav")) as err15
-    @assert(err15 == null)
-
-    let voiceResult = catch Voice.create(&file) as errVoice
-    @assert(errVoice == null)
+    var file = expect SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"))
+    let voiceResult = expect Voice.create(&file)
     let voice  = notnull voiceResult
     let handle = cast(*NoSoundVoice) notnull voice.handle
     @assert(voice.requestedEncoding == .Pcm16)
     @assert(!voice.isPlaying())
 
-    discard catch voice.setVolume(1.5) as err17
-    @assert(err17 == null)
-    audioAssertFloat(catch voice.volume() as err18, 1)
-    @assert(err18 == null)
-
-    discard catch voice.setVolume(-0.25) as err19
-    @assert(err19 == null)
-    audioAssertFloat(catch voice.volume() as err20, 0)
-    @assert(err20 == null)
-
-    discard catch voice.setVolumeDb(-6.0206) as err21
-    @assert(err21 == null)
-    audioAssertFloat(catch voice.volume() as err22, 0.5, 0.0002)
-    @assert(err22 == null)
-    audioAssertFloat(catch voice.volumeDb() as err23, -6.0206, 0.0002)
-    @assert(err23 == null)
-
-    discard catch voice.setFrequencyRatio(1.75) as err24
-    @assert(err24 == null)
+    discard expect voice.setVolume(1.5)
+    audioAssertFloat(expect voice.volume(), 1)
+    discard expect voice.setVolume(-0.25)
+    audioAssertFloat(expect voice.volume(), 0)
+    discard expect voice.setVolumeDb(-6.0206)
+    audioAssertFloat(expect voice.volume(), 0.5, 0.0002)
+    audioAssertFloat(expect voice.volumeDb(), -6.0206, 0.0002)
+    discard expect voice.setFrequencyRatio(1.75)
     audioAssertFloat(handle.frequencyRatio, 1.75)
-    audioAssertFloat(catch voice.frequencyRatio() as errFrequency, 1.75)
-    @assert(errFrequency == null)
+    audioAssertFloat(expect voice.frequencyRatio(), 1.75)
     discard catch voice.setFrequencyRatio(0) as errInvalidRatio
     @assert(errInvalidRatio is Errors.BadParameterError)
 
-    let bus0Result = catch Bus.create(2) as errBus0
-    @assert(errBus0 == null)
+    let bus0Result = expect Bus.create(2)
     let safeBus0 = notnull bus0Result
 
-    let bus1Result = catch Bus.create(2, safeBus0) as errBus1
-    @assert(errBus1 == null)
+    let bus1Result = expect Bus.create(2, safeBus0)
     let safeBus1 = notnull bus1Result
-    discard catch voice.setRouting([safeBus0, safeBus1]) as err27
-    @assert(err27 == null)
+    discard expect voice.setRouting([safeBus0, safeBus1])
     @assert(handle.busCount == 2)
     @assert(handle.buses[0] == safeBus0)
     @assert(handle.buses[1] == safeBus1)
 
-    discard catch voice.play() as err28
-    @assert(err28 == null)
+    discard expect voice.play()
     @assert(voice.isPlaying())
     @assert(handle.isPlaying)
 
-    discard catch voice.pause() as err29
-    @assert(err29 == null)
+    discard expect voice.pause()
     @assert(!voice.isPlaying())
     @assert(!handle.isPlaying)
 
-    discard catch voice.play(.Loop) as err30
-    @assert(err30 == null)
-    let shouldKeepUpdating = catch voice.updateNoSound() as err31
-    @assert(err31 == null)
+    discard expect voice.play(.Loop)
+    let shouldKeepUpdating = expect voice.updateNoSound()
     @assert(shouldKeepUpdating)
     @assert(handle.isPlaying)
 
-    discard catch voice.stop() as err32
-    @assert(err32 == null)
+    discard expect voice.stop()
     @assert(!voice.isPlaying())
     @assert(!handle.isPlaying)
     @assert(voice.streamCurSeek == 0)
@@ -197,9 +151,7 @@ func audioStartNoSoundEngine()
     audioStartNoSoundEngine()
     defer destroyEngine()
 
-    var file = catch SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"), preloadData: false) as errFile
-    @assert(errFile == null)
-
+    var file = expect SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"), preloadData: false)
     let context           = @getcontext()
     let originalAllocator = notnull context.allocator
     var scratch: ScratchAllocator
@@ -207,7 +159,7 @@ func audioStartNoSoundEngine()
     defer scratch.release()
     defer context.allocator = originalAllocator
 
-    let scratchAllocator = @mkinterface(&scratch, #typeof(scratch), IAllocator)
+    let scratchAllocator: IAllocator = &scratch
     context.allocator = scratchAllocator
 
     let busResult   = catch Bus.create(2) as errBus
@@ -228,19 +180,13 @@ func audioStartNoSoundEngine()
     audioStartNoSoundEngine()
     defer destroyEngine()
 
-    var file = catch SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"), preloadData: false) as errFile
-    @assert(errFile == null)
-    let voice = notnull (catch Voice.create(&file) as errVoice)
-    @assert(errVoice == null)
-
-    discard catch voice.play() as errPlay
-    @assert(errPlay == null)
-    discard catch voice.updateNoSound() as errUpdate
-    @assert(errUpdate == null)
+    var file = expect SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"), preloadData: false)
+    let voice = notnull (expect Voice.create(&file))
+    discard expect voice.play()
+    discard expect voice.updateNoSound()
     @assert(voice.stream.isOpen())
 
-    discard catch voice.stop() as errStop
-    @assert(errStop == null)
+    discard expect voice.stop()
     @assert(!voice.stream.isOpen())
     @assert(voice.streamCurSeek == 0)
     voice.destroy()
@@ -251,18 +197,13 @@ func audioStartNoSoundEngine()
     audioStartNoSoundEngine()
     defer destroyEngine()
 
-    var file = catch SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav")) as err33
-    @assert(err33 == null)
-
-    let voiceResult = catch Voice.create(&file) as errVoice
-    @assert(errVoice == null)
+    var file = expect SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"))
+    let voiceResult = expect Voice.create(&file)
     let voice  = notnull voiceResult
     let handle = cast(*NoSoundVoice) notnull voice.handle
 
-    discard catch voice.play() as err35
-    @assert(err35 == null)
-    let shouldKeepUpdating = catch voice.updateNoSound() as err36
-    @assert(err36 == null)
+    discard expect voice.play()
+    let shouldKeepUpdating = expect voice.updateNoSound()
     @assert(!shouldKeepUpdating)
     @assert(!handle.isPlaying)
     @assert(voice.streamCurSeek == file.dataSize)

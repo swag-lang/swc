@@ -60,7 +60,7 @@ func currentLocation(loc = #callerlocation)->Swag.SourceCodeLocation => loc
     log.setFlags(LogFlags.Prefix | LogFlags.ShortFileName | LogFlags.Line)
 
     var writer: MemoryLogWriter
-    log.addWriter(cast(ILogWriter) writer)
+    log.addWriter(writer)
 
     let loc = currentLocation()
     log.print("hello", loc)
@@ -78,8 +78,8 @@ func currentLocation(loc = #callerlocation)->Swag.SourceCodeLocation => loc
 
     var writerA: MemoryLogWriter
     var writerB: MemoryLogWriter
-    log.addWriter(cast(ILogWriter) writerA)
-    log.addWriter(cast(ILogWriter) writerB)
+    log.addWriter(writerA)
+    log.addWriter(writerB)
 
     let loc = currentLocation()
     log.print("world", loc)
@@ -97,10 +97,10 @@ func currentLocation(loc = #callerlocation)->Swag.SourceCodeLocation => loc
     log.setFlags(LogFlags.ShortFileName)
 
     var writer: MemoryLogWriter
-    log.addWriter(cast(ILogWriter) writer)
+    log.addWriter(writer)
     log.clearWriters()
 
-    log.addWriter(cast(ILogWriter) writer)
+    log.addWriter(writer)
 
     let secondLoc = currentLocation()
     log.print("second", secondLoc)

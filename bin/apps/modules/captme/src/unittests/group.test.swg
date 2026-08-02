@@ -9,7 +9,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-
+    defer f.shutdown()
     let a = testAddShape(f.capture, 0, 0, 10, 10)
     let b = testAddShape(f.capture, 20, 0, 10, 10)
     let c = testAddShape(f.capture, 40, 0, 10, 10)
@@ -60,8 +60,6 @@ using Swag, Core
     f.capture.undo()
     @assert(a.groups[0] == gid)
     @assert(b.groups[0] == gid)
-
-    f.shutdown()
 }
 
 // Nested groups: wrapping an existing group prepends a new outer id; ungrouping pops
@@ -70,7 +68,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-
+    defer f.shutdown()
     let a = testAddShape(f.capture, 0, 0, 10, 10)
     let b = testAddShape(f.capture, 20, 0, 10, 10)
     let c = testAddShape(f.capture, 40, 0, 10, 10)
@@ -118,8 +116,6 @@ using Swag, Core
     f.capture.undo()
     @assert(a.groups.count == 2)
     @assert(c.groups.count == 1)
-
-    f.shutdown()
 }
 
 // Grouping survives a save/load round-trip, together with the id allocator.
@@ -127,7 +123,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     f.capture.width, f.capture.widthOrg   = 64
     f.capture.height, f.capture.heightOrg = 48
     f.capture.backImg                     = Image.create(64, 48, .BGRA8)
@@ -143,24 +139,12 @@ using Swag, Core
     let nextId = f.capture.nextGroupId
 
     let path = testTempCapturePath()
-    defer
-    {
-        discard catch File.delete(path)
-    }
-
+    defer discard catch File.delete(path)
     f.capture.file    = path
     f.capture.changed = true
-    catch f.capture.save() as err
-    @assert(err == null)
-
-    let loaded = notnull catch Capture.load(path) as err2
-    @assert(err2 == null)
-
-    defer
-    {
-        Memory.delete(loaded)
-    }
-
+    expect f.capture.save()
+    let loaded = notnull expect Capture.load(path)
+    defer Memory.delete(loaded)
     @assert(loaded.forms.count == 3)
     @assert(loaded.nextGroupId == nextId)
 
@@ -172,8 +156,6 @@ using Swag, Core
     @assert(lb.groups.count == 1)
     @assert(lb.groups[0] == gid)
     @assert(lc.groups.count == 0)
-
-    f.shutdown()
 }
 
 // Pasting a grouped selection keeps the copies grouped together but under a fresh id,
@@ -182,6 +164,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
     testRegisterIoActions(f.main)
 
     let a = testAddShape(f.capture, 10, 20, 30, 40)
@@ -205,6 +188,4 @@ using Swag, Core
     @assert(pa.groups[0] == pb.groups[0])
     @assert(pa.groups[0] != origGid)
     @assert(a.groups[0] == origGid)
-
-    f.shutdown()
 }

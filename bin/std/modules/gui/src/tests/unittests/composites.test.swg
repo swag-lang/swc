@@ -30,7 +30,7 @@ func compositeColorChanged(picker: *ColorPickerCtrl)
 {
     var host: Testing.HeadlessHost
     host.setup(260, 60)
-
+    defer host.shutdown()
     let ctrl = EditCtrl.create(&host.root, "Name", "Bob", {0, 0, 240, 26})
     @assert(ctrl.label.text() == "Name")
     @assert(ctrl.edit.text() == "Bob")
@@ -42,8 +42,6 @@ func compositeColorChanged(picker: *ColorPickerCtrl)
     ctrl.setLayoutMetrics(50, 0, 7)
     @assert(ctrl.labelWidth == 50 and ctrl.editWidth == 0 and ctrl.spacing == 7)
     @assert(ctrl.edit.position.width == 183)
-
-    host.shutdown()
 }
 
 // Headless modal helpers can fill an EditCtrl by label before validating.
@@ -51,7 +49,7 @@ func compositeColorChanged(picker: *ColorPickerCtrl)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-
+    defer host.shutdown()
     let dlg = Dialog.create(&host.surface, 260, 150, title: "Edit")
     dlg.addButton("OK", Dialog.BtnOk, true)
     let ctrl = EditCtrl.create(dlg, "Name", "Bob", {20, 20, 210, 26})
@@ -73,8 +71,6 @@ func compositeColorChanged(picker: *ColorPickerCtrl)
     @assert(result == Dialog.BtnOk)
     @assert(didSet)
     @assert(ctrl.edit.text() == "Alice")
-
-    host.shutdown()
 }
 
 // SliderCtrl drives an embedded slider and mirrors the value into its editbox.
@@ -82,6 +78,7 @@ func compositeColorChanged(picker: *ColorPickerCtrl)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 60)
+    defer host.shutdown()
     CompositeSliderChangedCount = 0
 
     let ctrl = SliderCtrl.create(&host.root, "Vol", {0, 0, 300, 30})
@@ -96,8 +93,6 @@ func compositeColorChanged(picker: *ColorPickerCtrl)
     @assert(Math.abs(ctrl.value() - 50) < 0.01)
     @assert(ctrl.edit.text() == "50.00")
     @assert(CompositeSliderChangedCount == 1)
-
-    host.shutdown()
 }
 
 // SliderCtrl integer range formats the value box without decimals.
@@ -105,15 +100,13 @@ func compositeColorChanged(picker: *ColorPickerCtrl)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 60)
-
+    defer host.shutdown()
     let ctrl = SliderCtrl.create(&host.root, "N", {0, 0, 300, 30})
     ctrl.setUnsignedBounds(0, 100)
 
     ctrl.setValue(40)
     @assert(Math.abs(ctrl.value() - 40) < 0.01)
     @assert(ctrl.edit.text() == "40")
-
-    host.shutdown()
 }
 
 // ComboCtrl pairs a label with a combobox.
@@ -121,7 +114,7 @@ func compositeColorChanged(picker: *ColorPickerCtrl)
 {
     var host: Testing.HeadlessHost
     host.setup(260, 60)
-
+    defer host.shutdown()
     let ctrl = ComboCtrl.create(&host.root, "Mode", {0, 0, 240, 26})
     @assert(ctrl.label.text() == "Mode")
 
@@ -135,8 +128,6 @@ func compositeColorChanged(picker: *ColorPickerCtrl)
     ctrl.setLayoutMetrics(45, 0, 5)
     @assert(ctrl.labelWidth == 45 and ctrl.comboWidth == 0)
     @assert(ctrl.combo.position.width == 190)
-
-    host.shutdown()
 }
 
 // InfoBar exposes semantic state and emits one dismissal signal before destruction.
@@ -144,6 +135,7 @@ func compositeColorChanged(picker: *ColorPickerCtrl)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 120)
+    defer host.shutdown()
     CompositeInfoDismissedCount = 0
 
     let bar = InfoBar.create(&host.root, "Saved", .Information, flags: .Bottom)
@@ -159,8 +151,6 @@ func compositeColorChanged(picker: *ColorPickerCtrl)
 
     bar.dismiss()
     @assert(CompositeInfoDismissedCount == 1)
-
-    host.shutdown()
 }
 
 // ColorPickerCtrl exposes stable state and emits at most one signal per programmatic change.
@@ -168,6 +158,7 @@ func compositeColorChanged(picker: *ColorPickerCtrl)
 {
     var host: Testing.HeadlessHost
     host.setup(380, 360)
+    defer host.shutdown()
     CompositeColorChangedCount = 0
 
     let picker = ColorPickerCtrl.create(&host.root, {0, 0, 340, 330})
@@ -197,6 +188,4 @@ func compositeColorChanged(picker: *ColorPickerCtrl)
     @assert(picker.selectedColor.a == 255)
     @assert(picker.selectedColor.r == 0x40)
     @assert(CompositeColorChangedCount == 2)
-
-    host.shutdown()
 }

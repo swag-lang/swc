@@ -36,6 +36,7 @@ private func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = 
 {
     var host: Testing.HeadlessHost
     host.setup(200, 80)
+    defer host.shutdown()
     assertPaintGolden(&host, "widget.root.empty")
 }
 
@@ -43,7 +44,7 @@ private func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = 
 {
     var host: Testing.HeadlessHost
     host.setup(200, 80)
-
+    defer host.shutdown()
     discard PushButton.create(&host.root, "Ok", {20, 20, 160, 40})
     assertPaintGolden(&host, "widget.pushbutton")
 }
@@ -54,7 +55,7 @@ private func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = 
 {
     var host: Testing.HeadlessHost
     host.setup(200, 80)
-
+    defer host.shutdown()
     let btn = PushButton.create(&host.root, "Ok", {20, 20, 160, 40})
     btn.disable()
     assertPaintGolden(&host, "widget.pushbutton.disabled")
@@ -65,7 +66,7 @@ private func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = 
 {
     var host: Testing.HeadlessHost
     host.setup(200, 80)
-
+    defer host.shutdown()
     let btn = PushButton.create(&host.root, "Ok", {20, 20, 160, 40})
     btn.hide()
     assertPaintGolden(&host, "widget.pushbutton.hidden")
@@ -75,7 +76,7 @@ private func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = 
 {
     var host: Testing.HeadlessHost
     host.setup(200, 80)
-
+    defer host.shutdown()
     discard Label.create(&host.root, "Hello", {20, 20, 160, 24})
     assertPaintGolden(&host, "widget.label")
 }
@@ -86,7 +87,7 @@ private func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = 
 {
     var host: Testing.HeadlessHost
     host.setup(200, 80)
-
+    defer host.shutdown()
     discard CheckButton.create(&host.root, "On", {20, 20, 160, 24})
     assertPaintGolden(&host, "widget.checkbutton.unchecked")
 }
@@ -95,7 +96,7 @@ private func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = 
 {
     var host: Testing.HeadlessHost
     host.setup(200, 80)
-
+    defer host.shutdown()
     let chk = CheckButton.create(&host.root, "On", {20, 20, 160, 24})
     chk.toggle()
     assertPaintGolden(&host, "widget.checkbutton.checked")
@@ -105,7 +106,7 @@ private func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = 
 {
     var host: Testing.HeadlessHost
     host.setup(200, 80)
-
+    defer host.shutdown()
     discard RadioButton.create(&host.root, "One", {20, 20, 160, 24})
     assertPaintGolden(&host, "widget.radiobutton")
 }
@@ -116,7 +117,7 @@ private func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = 
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
-
+    defer host.shutdown()
     discard ProgressBar.create(&host.root, {20, 20, 200, 20})
     assertPaintGolden(&host, "widget.progressbar.empty")
 }
@@ -125,7 +126,7 @@ private func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = 
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
-
+    defer host.shutdown()
     let bar = ProgressBar.create(&host.root, {20, 20, 200, 20})
     bar.setValue(0.5)
     assertPaintGolden(&host, "widget.progressbar.half")
@@ -135,7 +136,7 @@ private func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = 
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
-
+    defer host.shutdown()
     discard Slider.create(&host.root, {20, 20, 200, 20})
     assertPaintGolden(&host, "widget.slider")
 }
@@ -144,7 +145,7 @@ private func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = 
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
-
+    defer host.shutdown()
     discard EditBox.create(&host.root, "text", {20, 20, 200, 24})
     assertPaintGolden(&host, "widget.editbox")
 }
@@ -154,7 +155,7 @@ private func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = 
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-
+    defer host.shutdown()
     discard PushButton.create(&host.root, "A", {10, 10, 100, 30})
     discard PushButton.create(&host.root, "B", {10, 50, 100, 30})
     discard Label.create(&host.root, "C", {130, 10, 100, 30})
@@ -167,7 +168,7 @@ private func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = 
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-
+    defer host.shutdown()
     let view = Wnd.create'Wnd(&host.root, {10, 10, 100, 50})
     view.wndFlags.add(.ClipChildren)
     discard PushButton.create(view, "In", {5, 5, 60, 20})

@@ -25,7 +25,7 @@ using Swag, Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(96, 64)
-
+    defer host.shutdown()
     let background = host.render()
     @assert(background.isValid())
     @assert(background.width == 96 and background.height == 64)

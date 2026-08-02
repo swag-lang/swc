@@ -116,8 +116,8 @@ func day9BB()
     var filesBySize: [10] Array's32
     var moved:       HashTable'(s32, u8)
 
-    for var i = 0; i < line.length; i += 2 do
-        filesBySize[line[i] - '0'].add(i)
+    for [i] in line.length where i % 2 == 0 do
+        filesBySize[line[i] - '0'].add(cast(s32) i)
 
     var total         = 0'u64
     var idx, blockIdx = 0

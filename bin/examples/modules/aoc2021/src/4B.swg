@@ -68,8 +68,9 @@ func day4B()
 
     var bestScore: u64
     var bestCard:  Array'u64
-    for var line = 2; line < lines.count; line += 6
+    for [cardIndex] in (lines.count - 2 + 5) / 6
     {
+        let line = 2 + cardIndex * 6
         var card:            Array'u64
         var maxCol, maxLine: [5] u64
 

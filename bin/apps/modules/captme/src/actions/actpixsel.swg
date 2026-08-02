@@ -263,7 +263,7 @@ impl MainWnd
                 nf.backCapture()
             }
 
-            undo.oldForms.add(cast(IForm) nf)
+            undo.oldForms.add(nf)
         }
 
         capture.pushUndo(undo, serial)

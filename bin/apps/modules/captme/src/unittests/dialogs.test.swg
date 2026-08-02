@@ -8,7 +8,9 @@ using Swag, Core
 #test
 {
     var gui: Gui.Testing.HeadlessHost
+    defer g_Main = null
     gui.setup(900, 700)
+    defer gui.shutdown()
     gui.bindApplication(&g_App)
 
     let main = MainWnd.create(&gui.root)
@@ -20,6 +22,4 @@ using Swag, Core
     @assert(gui.autoHandled)
     @assert(gui.app.surfaces.count == 0)
 
-    gui.shutdown()
-    g_Main = null
 }

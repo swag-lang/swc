@@ -18,6 +18,7 @@ func radioButtonHeadlessChanged(btn: *RadioButton)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
+    defer host.shutdown()
     host.recordCommands()
     RadioButtonHeadlessChangedCount = 0
 
@@ -37,8 +38,6 @@ func radioButtonHeadlessChanged(btn: *RadioButton)
     @assert(radio.isChecked())
     @assert(RadioButtonHeadlessChangedCount == 1)
     @assert(host.commandCount == 1)
-
-    host.shutdown()
 }
 
 // setChecked changes state silently (no signal/command).
@@ -46,6 +45,7 @@ func radioButtonHeadlessChanged(btn: *RadioButton)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
+    defer host.shutdown()
     host.recordCommands()
     RadioButtonHeadlessChangedCount = 0
 
@@ -58,8 +58,6 @@ func radioButtonHeadlessChanged(btn: *RadioButton)
     @assert(!radio.isChecked())
     @assert(RadioButtonHeadlessChangedCount == 0)
     @assert(host.commandCount == 0)
-
-    host.shutdown()
 }
 
 // Two radios are independent windows; without a group id the framework leaves grouping to the
@@ -68,6 +66,7 @@ func radioButtonHeadlessChanged(btn: *RadioButton)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 200)
+    defer host.shutdown()
     host.recordCommands()
 
     let a = RadioButton.create(&host.root, "A", {20, 20, 120, 30})
@@ -83,8 +82,6 @@ func radioButtonHeadlessChanged(btn: *RadioButton)
     // Ungrouped: both can be checked at once (grouping stays opt-in).
     b.setChecked(true)
     @assert(a.isChecked() and b.isChecked())
-
-    host.shutdown()
 }
 
 // Radios sharing a group id auto-uncheck each other, on both setChecked and a real click; a second
@@ -93,7 +90,7 @@ func radioButtonHeadlessChanged(btn: *RadioButton)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 280)
-
+    defer host.shutdown()
     let a = RadioButton.create(&host.root, "A", {20, 20, 160, 30})
     let b = RadioButton.create(&host.root, "B", {20, 60, 160, 30})
     let c = RadioButton.create(&host.root, "C", {20, 100, 160, 30})
@@ -115,6 +112,4 @@ func radioButtonHeadlessChanged(btn: *RadioButton)
     @assert(d.isChecked() and b.isChecked())
     e.setChecked(true)
     @assert(!d.isChecked() and e.isChecked() and b.isChecked())
-
-    host.shutdown()
 }

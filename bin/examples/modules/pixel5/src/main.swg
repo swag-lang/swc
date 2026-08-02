@@ -333,11 +333,12 @@ func updateTestMode()
 
 #main
 {
-    try Env.createWindow(&g_Window, {className: "PIXEL5_CLASS_NAME", title: "Pixel filters and transforms showcase", width: W, height: H, style: FixedWindowStyle})
+    g_Window = try Env.createWindow({className: "PIXEL5_CLASS_NAME", title: "Pixel filters and transforms showcase", width: W, height: H, style: FixedWindowStyle})
     try g_Window.setClientSize(W, H)
     g_Render  = &g_Renderer
     g_Painter = Pixel.Painter.create(g_Render)
     g_RC      = try g_Render.createContext(cast(#null const *void) g_Window.nativeHandle, W, H)
+    defer g_Render.deleteContext(&g_RC)
     g_Render.setCurrentContext(g_RC)
     g_Render.init()
 
@@ -358,5 +359,4 @@ func updateTestMode()
         updateTestMode()
     }
 
-    g_Render.deleteContext(&g_RC)
 }

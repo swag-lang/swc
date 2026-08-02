@@ -18,6 +18,7 @@ func checkButtonHeadlessChanged(btn: *CheckButton)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
+    defer host.shutdown()
     host.recordCommands()
     CheckButtonHeadlessChangedCount = 0
 
@@ -39,8 +40,6 @@ func checkButtonHeadlessChanged(btn: *CheckButton)
     @assert(check.state == .Unchecked)
     @assert(CheckButtonHeadlessChangedCount == 2)
     @assert(host.commandCount == 2)
-
-    host.shutdown()
 }
 
 // The TriState flag adds the Indeterminate state to the standard toggle cycle.
@@ -48,6 +47,7 @@ func checkButtonHeadlessChanged(btn: *CheckButton)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
+    defer host.shutdown()
     host.recordCommands()
     CheckButtonHeadlessChangedCount = 0
 
@@ -69,8 +69,6 @@ func checkButtonHeadlessChanged(btn: *CheckButton)
     check.setState(.Indeterminate)
     @assert(check.isIndeterminate())
     @assert(CheckButtonHeadlessChangedCount == 0)
-
-    host.shutdown()
 }
 
 // Space and Enter toggle the focused check button.
@@ -78,6 +76,7 @@ func checkButtonHeadlessChanged(btn: *CheckButton)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
+    defer host.shutdown()
     CheckButtonHeadlessChangedCount = 0
 
     let check = CheckButton.create(&host.root, "Key", {20, 20, 120, 30})
@@ -91,8 +90,6 @@ func checkButtonHeadlessChanged(btn: *CheckButton)
     host.keyPress(Input.Key.Return)
     @assert(!check.isChecked())
     @assert(CheckButtonHeadlessChangedCount == 2)
-
-    host.shutdown()
 }
 
 // A disabled checkbutton ignores clicks.
@@ -100,6 +97,7 @@ func checkButtonHeadlessChanged(btn: *CheckButton)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
+    defer host.shutdown()
     host.recordCommands()
     CheckButtonHeadlessChangedCount = 0
 
@@ -111,6 +109,4 @@ func checkButtonHeadlessChanged(btn: *CheckButton)
     @assert(!check.isChecked())
     @assert(CheckButtonHeadlessChangedCount == 0)
     @assert(host.commandCount == 0)
-
-    host.shutdown()
 }

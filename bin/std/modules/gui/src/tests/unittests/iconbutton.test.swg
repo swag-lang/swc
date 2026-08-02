@@ -31,6 +31,7 @@ func iconButtonHeadlessReset()
 {
     var host: Testing.HeadlessHost
     host.setup(120, 120)
+    defer host.shutdown()
     host.recordCommands()
     iconButtonHeadlessReset()
 
@@ -40,8 +41,6 @@ func iconButtonHeadlessReset()
     host.click({40, 40})
     @assert(IconButtonHeadlessPressedCount == 1)
     @assert(!btn.isChecked)
-
-    host.shutdown()
 }
 
 // A Toggle button flips its checked state on every click.
@@ -49,6 +48,7 @@ func iconButtonHeadlessReset()
 {
     var host: Testing.HeadlessHost
     host.setup(120, 120)
+    defer host.shutdown()
     host.recordCommands()
     iconButtonHeadlessReset()
 
@@ -63,8 +63,6 @@ func iconButtonHeadlessReset()
     host.click({40, 40})
     @assert(!btn.isChecked)
     @assert(IconButtonHeadlessCheckCount == 2)
-
-    host.shutdown()
 }
 
 // A radio button can only be set, never unset, by user activation.
@@ -72,6 +70,7 @@ func iconButtonHeadlessReset()
 {
     var host: Testing.HeadlessHost
     host.setup(120, 120)
+    defer host.shutdown()
     host.recordCommands()
     iconButtonHeadlessReset()
 
@@ -86,8 +85,6 @@ func iconButtonHeadlessReset()
     host.click({40, 40})
     @assert(btn.isChecked)
     @assert(IconButtonHeadlessCheckCount == 1)
-
-    host.shutdown()
 }
 
 // Programmatic checked-state changes support both stateful modes and remain silent.
@@ -95,6 +92,7 @@ func iconButtonHeadlessReset()
 {
     var host: Testing.HeadlessHost
     host.setup(180, 120)
+    defer host.shutdown()
     iconButtonHeadlessReset()
 
     let toggle = IconButton.create(&host.root, {}, {20, 20, 40, 40}, flags: .Toggle)
@@ -112,8 +110,6 @@ func iconButtonHeadlessReset()
     radio.setChecked(true)
     @assert(radio.isChecked)
     @assert(IconButtonHeadlessCheckCount == 0)
-
-    host.shutdown()
 }
 
 // Space and Enter activate a focused toggle with the same state, signal, and command contract as a click.
@@ -121,6 +117,7 @@ func iconButtonHeadlessReset()
 {
     var host: Testing.HeadlessHost
     host.setup(180, 120)
+    defer host.shutdown()
     host.recordCommands()
     iconButtonHeadlessReset()
 
@@ -134,8 +131,6 @@ func iconButtonHeadlessReset()
     @assert(!btn.isChecked)
     @assert(IconButtonHeadlessCheckCount == 2)
     @assert(host.commandCount == 2 and host.lastCommand == IconButtonHeadless_Command)
-
-    host.shutdown()
 }
 
 // Hiding a button resets both its pointer state and its animated overlay state.
@@ -143,7 +138,7 @@ func iconButtonHeadlessReset()
 {
     var host: Testing.HeadlessHost
     host.setup(120, 120)
-
+    defer host.shutdown()
     let btn = IconButton.create(&host.root, {}, {20, 20, 40, 40})
     btn.isHot          = true
     btn.isPressed      = true
@@ -154,8 +149,6 @@ func iconButtonHeadlessReset()
     @assert(!btn.isHot)
     @assert(!btn.isPressed)
     @assert(btn.aniBk.themeCrc == Swag.U32.Max)
-
-    host.shutdown()
 }
 
 // Disabling a button keeps it in the layout, but still drops transient input/paint state.
@@ -163,7 +156,7 @@ func iconButtonHeadlessReset()
 {
     var host: Testing.HeadlessHost
     host.setup(120, 120)
-
+    defer host.shutdown()
     let btn = IconButton.create(&host.root, {}, {20, 20, 40, 40})
     btn.isHot              = true
     btn.isIn               = true
@@ -182,6 +175,4 @@ func iconButtonHeadlessReset()
     @assert(btn.aniBk.themeCrc == Swag.U32.Max)
     @assert(host.app.mouseEnterWnd == null)
     @assert(host.app.mouseCaptureWnd == null)
-
-    host.shutdown()
 }

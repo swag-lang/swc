@@ -37,7 +37,7 @@ func testSetupGlobalMain(main: *MainWnd)
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-
+    defer f.shutdown()
     let oldLibraryLoaded = g_Library.loaded
     defer
     {
@@ -79,6 +79,4 @@ func testSetupGlobalMain(main: *MainWnd)
     evt = Gui.Testing.commandState(ActionGlobal.Exit)
     @assert(Gui.Testing.actionUpdate'ActionGlobal(f.main, ActionGlobal.Exit, &evt))
     @assert(!evt.name.isEmpty())
-
-    f.shutdown()
 }

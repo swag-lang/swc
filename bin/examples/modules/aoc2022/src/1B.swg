@@ -20,7 +20,7 @@ func day1B()
     var one:   u64
     for l in lines
     {
-        one += catch StrConv.toU64(l)
+        one += expect StrConv.toU64(l)
         if l.isEmpty() or @index == lines.count - 1
         {
             switch

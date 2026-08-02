@@ -9,8 +9,7 @@ func testPrepareSavedCapture(capture: *Capture)->String
     capture.file    = path
     capture.changed = true
 
-    catch capture.save() as err
-    @assert(err == null)
+    expect capture.save()
     @assert(File.exists(path))
     return path
 }
@@ -45,8 +44,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @drop(&g_Library, 1)
     @init(&g_Library, 1)
 
-    catch Library.init() as err2
-    @assert(err2 == null)
+    expect Library.init()
     g_Library.loaded = true
 
     if !@isset(main.recentWnd) do
@@ -58,6 +56,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
     testRegisterIoActions(f.main)
     testPrepareRecentLibrary(f.main)
 
@@ -87,8 +86,6 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(File.exists(generatedPath))
     @assert(f.main.recentWnd.recentView.items.count == 1)
     @assert(f.main.recentWnd.recentView.selected == 0)
-
-    f.shutdown()
 }
 
 // New From Clipboard consumes the real image clipboard and creates a persisted capture.
@@ -96,6 +93,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
     testRegisterIoActions(f.main)
     testPrepareRecentLibrary(f.main)
 
@@ -119,8 +117,6 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(File.exists(generatedPath))
     @assert(f.main.recentWnd.recentView.items.count == 1)
     @assert(f.main.recentWnd.recentView.selected == 0)
-
-    f.shutdown()
 }
 
 // Open Image drives the real file dialog, loads a real PNG, then persists a capture.
@@ -128,19 +124,14 @@ func testPrepareRecentLibrary(main: *MainWnd)
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
     testRegisterIoActions(f.main)
     testPrepareRecentLibrary(f.main)
 
     let sourcePath = Gui.Testing.tempFilePath("captme-", ".png")
-    defer
-    {
-        discard catch File.delete(sourcePath)
-    }
-
+    defer discard catch File.delete(sourcePath)
     var source = Gui.Testing.indexedImage(21, 13)
-    catch source.save(sourcePath) as err3
-    @assert(err3 == null)
-
+    expect source.save(sourcePath)
     f.gui.acceptModalFileDialog(sourcePath)
 
     @assert(Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.OpenImage))
@@ -164,8 +155,6 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(File.exists(generatedPath))
     @assert(f.main.recentWnd.recentView.items.count == 1)
     @assert(f.main.recentWnd.recentView.selected == 0)
-
-    f.shutdown()
 }
 
 // Save As Image writes a real PNG that can be loaded back with Captme metadata.
@@ -173,6 +162,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
     testRegisterIoActions(f.main)
 
     f.capture.width   = 32
@@ -180,31 +170,20 @@ func testPrepareRecentLibrary(main: *MainWnd)
     f.capture.backImg = Gui.Testing.indexedImage(32, 20)
 
     let capturePath = testPrepareSavedCapture(f.capture)
-    defer
-    {
-        discard catch File.delete(capturePath)
-    }
-
+    defer discard catch File.delete(capturePath)
     let pngPath = Gui.Testing.tempFilePath("captme-", ".png")
-    defer
-    {
-        discard catch File.delete(pngPath)
-    }
-
+    defer discard catch File.delete(pngPath)
     f.main.doSaveAsImage(pngPath)
     f.gui.pump()
 
     @assert(File.exists(pngPath))
 
-    let saved = catch Image.load(pngPath) as err4
-    @assert(err4 == null)
+    let saved = expect Image.load(pngPath)
     @assert(saved.isValid())
     @assert(saved.width == 32)
     @assert(saved.height == 20)
     @assert(saved.metadata.count > 0)
     @assert(testHasCaptmeFileMetadata(saved, capturePath))
-
-    f.shutdown()
 }
 
 // The Save As Image command drives the real file dialog before writing the PNG.
@@ -212,6 +191,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
     testRegisterIoActions(f.main)
 
     f.capture.width   = 34
@@ -219,17 +199,9 @@ func testPrepareRecentLibrary(main: *MainWnd)
     f.capture.backImg = Gui.Testing.indexedImage(34, 22)
 
     let capturePath = testPrepareSavedCapture(f.capture)
-    defer
-    {
-        discard catch File.delete(capturePath)
-    }
-
+    defer discard catch File.delete(capturePath)
     let pngPath = Gui.Testing.tempFilePath("captme-", ".png")
-    defer
-    {
-        discard catch File.delete(pngPath)
-    }
-
+    defer discard catch File.delete(pngPath)
     f.gui.acceptModalFileDialog(pngPath)
 
     f.main.sendCommandEvent(ActionFile.SaveAsImage)
@@ -239,14 +211,11 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(f.gui.app.surfaces.count == 0)
     @assert(File.exists(pngPath))
 
-    let saved = catch Image.load(pngPath) as err5
-    @assert(err5 == null)
+    let saved = expect Image.load(pngPath)
     @assert(saved.isValid())
     @assert(saved.width == 34)
     @assert(saved.height == 22)
     @assert(testHasCaptmeFileMetadata(saved, capturePath))
-
-    f.shutdown()
 }
 
 // Existing file targets exercise the nested overwrite confirmation from FileDlg.
@@ -254,6 +223,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
     testRegisterIoActions(f.main)
 
     f.capture.width   = 40
@@ -261,22 +231,12 @@ func testPrepareRecentLibrary(main: *MainWnd)
     f.capture.backImg = Gui.Testing.indexedImage(40, 30)
 
     let capturePath = testPrepareSavedCapture(f.capture)
-    defer
-    {
-        discard catch File.delete(capturePath)
-    }
-
+    defer discard catch File.delete(capturePath)
     let pngPath = Gui.Testing.tempFilePath("captme-", ".png")
-    defer
-    {
-        discard catch File.delete(pngPath)
-    }
-
+    defer discard catch File.delete(pngPath)
     var oldImage = Image.create(3, 2, .BGRA8)
     oldImage.fill(ColorRed)
-    catch oldImage.save(pngPath) as err6
-    @assert(err6 == null)
-
+    expect oldImage.save(pngPath)
     f.gui.acceptModalFileDialog(pngPath)
     f.gui.thenClickModalButton(Dialog.BtnYes)
 
@@ -286,14 +246,11 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(f.gui.autoHandled)
     @assert(f.gui.app.surfaces.count == 0)
 
-    let saved = catch Image.load(pngPath) as err7
-    @assert(err7 == null)
+    let saved = expect Image.load(pngPath)
     @assert(saved.isValid())
     @assert(saved.width == 40)
     @assert(saved.height == 30)
     @assert(testHasCaptmeFileMetadata(saved, capturePath))
-
-    f.shutdown()
 }
 
 // Save As Linked Image persists the linked file association into the capture file.
@@ -301,6 +258,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
     testRegisterIoActions(f.main)
 
     f.capture.width   = 28
@@ -308,17 +266,9 @@ func testPrepareRecentLibrary(main: *MainWnd)
     f.capture.backImg = Gui.Testing.indexedImage(28, 18)
 
     let capturePath = testPrepareSavedCapture(f.capture)
-    defer
-    {
-        discard catch File.delete(capturePath)
-    }
-
+    defer discard catch File.delete(capturePath)
     let linkedPath = Gui.Testing.tempFilePath("captme-", ".png")
-    defer
-    {
-        discard catch File.delete(linkedPath)
-    }
-
+    defer discard catch File.delete(linkedPath)
     f.main.doSaveAsImage(linkedPath, linked: true)
     f.gui.pump()
 
@@ -326,17 +276,10 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(f.capture.linkedImage == linkedPath)
     @assert(f.capture.linkedUpToDate)
 
-    let loaded = notnull catch Capture.load(capturePath) as err8
-    @assert(err8 == null)
-    defer
-    {
-        Memory.delete(loaded)
-    }
-
+    let loaded = notnull expect Capture.load(capturePath)
+    defer Memory.delete(loaded)
     @assert(loaded.linkedImage == linkedPath)
     @assert(loaded.linkedUpToDate)
-
-    f.shutdown()
 }
 
 // The linked-image variant uses the same real file dialog and persists the chosen path.
@@ -344,6 +287,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
     testRegisterIoActions(f.main)
 
     f.capture.width   = 36
@@ -351,17 +295,9 @@ func testPrepareRecentLibrary(main: *MainWnd)
     f.capture.backImg = Gui.Testing.indexedImage(36, 24)
 
     let capturePath = testPrepareSavedCapture(f.capture)
-    defer
-    {
-        discard catch File.delete(capturePath)
-    }
-
+    defer discard catch File.delete(capturePath)
     let linkedPath = Gui.Testing.tempFilePath("captme-", ".png")
-    defer
-    {
-        discard catch File.delete(linkedPath)
-    }
-
+    defer discard catch File.delete(linkedPath)
     f.gui.acceptModalFileDialog(linkedPath)
 
     f.main.sendCommandEvent(ActionFile.SaveAsLinkedImage)
@@ -373,17 +309,10 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(testSamePath(f.capture.linkedImage, linkedPath))
     @assert(f.capture.linkedUpToDate)
 
-    let loaded = notnull catch Capture.load(capturePath) as err9
-    @assert(err9 == null)
-    defer
-    {
-        Memory.delete(loaded)
-    }
-
+    let loaded = notnull expect Capture.load(capturePath)
+    defer Memory.delete(loaded)
     @assert(testSamePath(loaded.linkedImage, linkedPath))
     @assert(loaded.linkedUpToDate)
-
-    f.shutdown()
 }
 
 // Updating an existing linked image avoids the file dialog and still exercises
@@ -392,6 +321,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
     testRegisterIoActions(f.main)
 
     f.capture.width   = 26
@@ -399,17 +329,9 @@ func testPrepareRecentLibrary(main: *MainWnd)
     f.capture.backImg = Gui.Testing.indexedImage(26, 16)
 
     let capturePath = testPrepareSavedCapture(f.capture)
-    defer
-    {
-        discard catch File.delete(capturePath)
-    }
-
+    defer discard catch File.delete(capturePath)
     let linkedPath = Gui.Testing.tempFilePath("captme-", ".png")
-    defer
-    {
-        discard catch File.delete(linkedPath)
-    }
-
+    defer discard catch File.delete(linkedPath)
     f.capture.linkedImage                       = linkedPath
     f.capture.linkedUpToDate                    = false
     f.main.editorOptions.confirmLinkedOverwrite = false
@@ -420,24 +342,16 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(File.exists(linkedPath))
     @assert(f.capture.linkedUpToDate)
 
-    let linked = catch Image.load(linkedPath) as err10
-    @assert(err10 == null)
+    let linked = expect Image.load(linkedPath)
     @assert(linked.isValid())
     @assert(linked.width == 26)
     @assert(linked.height == 16)
     @assert(testHasCaptmeFileMetadata(linked, capturePath))
 
-    let loaded = notnull catch Capture.load(capturePath) as err11
-    @assert(err11 == null)
-    defer
-    {
-        Memory.delete(loaded)
-    }
-
+    let loaded = notnull expect Capture.load(capturePath)
+    defer Memory.delete(loaded)
     @assert(loaded.linkedImage == linkedPath)
     @assert(loaded.linkedUpToDate)
-
-    f.shutdown()
 }
 
 // Updating a linked image also works through the real overwrite confirmation dialog.
@@ -445,6 +359,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
     testRegisterIoActions(f.main)
 
     f.capture.width   = 38
@@ -452,17 +367,9 @@ func testPrepareRecentLibrary(main: *MainWnd)
     f.capture.backImg = Gui.Testing.indexedImage(38, 26)
 
     let capturePath = testPrepareSavedCapture(f.capture)
-    defer
-    {
-        discard catch File.delete(capturePath)
-    }
-
+    defer discard catch File.delete(capturePath)
     let linkedPath = Gui.Testing.tempFilePath("captme-", ".png")
-    defer
-    {
-        discard catch File.delete(linkedPath)
-    }
-
+    defer discard catch File.delete(linkedPath)
     f.capture.linkedImage                       = linkedPath
     f.capture.linkedUpToDate                    = false
     f.main.editorOptions.confirmLinkedOverwrite = true
@@ -477,24 +384,16 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(File.exists(linkedPath))
     @assert(f.capture.linkedUpToDate)
 
-    let linked = catch Image.load(linkedPath) as err12
-    @assert(err12 == null)
+    let linked = expect Image.load(linkedPath)
     @assert(linked.isValid())
     @assert(linked.width == 38)
     @assert(linked.height == 26)
     @assert(testHasCaptmeFileMetadata(linked, capturePath))
 
-    let loaded = notnull catch Capture.load(capturePath) as err13
-    @assert(err13 == null)
-    defer
-    {
-        Memory.delete(loaded)
-    }
-
+    let loaded = notnull expect Capture.load(capturePath)
+    defer Memory.delete(loaded)
     @assert(testSamePath(loaded.linkedImage, linkedPath))
     @assert(loaded.linkedUpToDate)
-
-    f.shutdown()
 }
 
 // Unlinking an image goes through the confirmation dialog and persists the capture.
@@ -502,6 +401,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
     testRegisterIoActions(f.main)
     f.main.recentWnd = RecentWnd.create(f.main, f.main)
 
@@ -510,18 +410,12 @@ func testPrepareRecentLibrary(main: *MainWnd)
     f.capture.backImg = Gui.Testing.indexedImage(24, 18)
 
     let capturePath = testPrepareSavedCapture(f.capture)
-    defer
-    {
-        discard catch File.delete(capturePath)
-    }
-
+    defer discard catch File.delete(capturePath)
     let linkedPath = Gui.Testing.tempFilePath("captme-", ".png")
     f.capture.linkedImage    = linkedPath
     f.capture.linkedUpToDate = true
     f.capture.changed        = true
-    catch f.capture.save() as err14
-    @assert(err14 == null)
-
+    expect f.capture.save()
     f.gui.clickModalButtonWhenShown(Dialog.BtnYes)
 
     f.main.sendCommandEvent(ActionFile.UnlinkImage)
@@ -532,17 +426,10 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(f.capture.linkedImage.isEmpty())
     @assert(!f.capture.linkedUpToDate)
 
-    let loaded = notnull catch Capture.load(capturePath) as err15
-    @assert(err15 == null)
-    defer
-    {
-        Memory.delete(loaded)
-    }
-
+    let loaded = notnull expect Capture.load(capturePath)
+    defer Memory.delete(loaded)
     @assert(loaded.linkedImage.isEmpty())
     @assert(!loaded.linkedUpToDate)
-
-    f.shutdown()
 }
 
 // Duplicate Capture creates an independent capture file and recent entry.
@@ -550,16 +437,13 @@ func testPrepareRecentLibrary(main: *MainWnd)
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
     testRegisterIoActions(f.main)
     testPrepareRecentLibrary(f.main)
 
     discard testAddShape(f.capture, 4, 5, 12, 13)
     let originalPath = testPrepareSavedCapture(f.capture)
-    defer
-    {
-        discard catch File.delete(originalPath)
-    }
-
+    defer discard catch File.delete(originalPath)
     @assert(Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.DupCapture))
     f.gui.pump()
 
@@ -576,17 +460,10 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(!testSamePath(duplicatedPath, originalPath))
     @assert(File.exists(duplicatedPath))
 
-    let duplicated = notnull catch Capture.load(duplicatedPath) as err16
-    @assert(err16 == null)
-    defer
-    {
-        Memory.delete(duplicated)
-    }
-
+    let duplicated = notnull expect Capture.load(duplicatedPath)
+    defer Memory.delete(duplicated)
     @assert(duplicated.forms.count == 1)
     @assert(duplicated.linkedImage == null)
-
-    f.shutdown()
 }
 
 // Delete Capture confirms through the real modal and removes the selected capture file.
@@ -594,14 +471,14 @@ func testPrepareRecentLibrary(main: *MainWnd)
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
     testRegisterIoActions(f.main)
     testPrepareRecentLibrary(f.main)
 
     let capturePath = testPrepareSavedCapture(f.capture)
     g_Library.addFile(capturePath)
 
-    let loaded = catch f.main.recentWnd.addRecent(capturePath, true, true) as err17
-    @assert(err17 == null)
+    let loaded = expect f.main.recentWnd.addRecent(capturePath, true, true)
     Memory.delete(loaded)
     @assert(f.main.recentWnd.recentView.selected == 0)
 
@@ -614,8 +491,6 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(f.gui.app.surfaces.count == 0)
     @assert(!File.exists(capturePath))
     @assert(g_Library.files.count == 0)
-
-    f.shutdown()
 }
 
 // File Details opens a real modal dialog after reading the saved capture size
@@ -624,14 +499,11 @@ func testPrepareRecentLibrary(main: *MainWnd)
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
     testRegisterIoActions(f.main)
 
     let capturePath = testPrepareSavedCapture(f.capture)
-    defer
-    {
-        discard catch File.delete(capturePath)
-    }
-
+    defer discard catch File.delete(capturePath)
     f.gui.clickModalButtonWhenShown(Dialog.BtnOk)
 
     f.main.sendCommandEvent(ActionFile.FileDetails)
@@ -639,6 +511,4 @@ func testPrepareRecentLibrary(main: *MainWnd)
 
     @assert(f.gui.autoHandled)
     @assert(f.gui.app.surfaces.count == 0)
-
-    f.shutdown()
 }

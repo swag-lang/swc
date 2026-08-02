@@ -63,7 +63,7 @@ impl QuickStyle
 // defaultQuickStyle* builders below).
 func(T) addStyleForm(qs: *QuickStyle, form: *T)
 {
-    let it = cast(IForm) form
+    let it: IForm = form
     it.setup(null)
     qs.forms.add(it)
 }

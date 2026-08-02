@@ -63,15 +63,15 @@ impl MainWnd
         if .mdlByType.isEmpty()
         {
             // FormRegistry order
-            .mdlByType.add(cast(IForm) .mdlFormShape)
-            .mdlByType.add(cast(IForm) .mdlFormArrow)
-            .mdlByType.add(cast(IForm) .mdlFormLine)
-            .mdlByType.add(cast(IForm) .mdlFormPolygon)
-            .mdlByType.add(cast(IForm) .mdlFormText)
-            .mdlByType.add(cast(IForm) .mdlFormDraw)
-            .mdlByType.add(cast(IForm) .mdlFormStep)
-            .mdlByType.add(cast(IForm) .mdlFormImage)
-            .mdlByType.add(cast(IForm) .mdlFormCallout)
+            .mdlByType.add(.mdlFormShape)
+            .mdlByType.add(.mdlFormArrow)
+            .mdlByType.add(.mdlFormLine)
+            .mdlByType.add(.mdlFormPolygon)
+            .mdlByType.add(.mdlFormText)
+            .mdlByType.add(.mdlFormDraw)
+            .mdlByType.add(.mdlFormStep)
+            .mdlByType.add(.mdlFormImage)
+            .mdlByType.add(.mdlFormCallout)
         }
 
         return .mdlByType[formDescIndex(type)]

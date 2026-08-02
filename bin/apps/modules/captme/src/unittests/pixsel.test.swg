@@ -8,7 +8,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-
+    defer f.shutdown()
     f.capture.width   = 30
     f.capture.height  = 30
     f.capture.backImg = Image.create(30, 30, .BGRA8)
@@ -35,8 +35,6 @@ using Swag, Core
 
     f.capture.undo()
     @assert(Gui.Testing.countNonZeroBytes(f.capture.backImg) == filledBytes)
-
-    f.shutdown()
 }
 
 // Smart fill uses surrounding pixels to replace a pixel-selection area and remains undoable.
@@ -44,7 +42,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-
+    defer f.shutdown()
     f.capture.width   = 24
     f.capture.height  = 24
     f.capture.backImg = Image.create(24, 24, .BGRA8)
@@ -70,8 +68,6 @@ using Swag, Core
 
     f.capture.redo()
     @assert(f.capture.backImg.pixelColor(12, 12).argb == after.argb)
-
-    f.shutdown()
 }
 
 // Smart move captures a pixel selection into a movable image form, then deletes the
@@ -81,7 +77,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-
+    defer f.shutdown()
     f.capture.width   = 24
     f.capture.height  = 24
     f.capture.backImg = Gui.Testing.indexedImage(24, 24)
@@ -114,8 +110,6 @@ using Swag, Core
     f.capture.redo()
     @assert(f.capture.forms.count == 1)
     @assert(@kindof(f.capture.forms[0]) == FormImage)
-
-    f.shutdown()
 }
 
 // Pixel-selection extraction filters the current selection without rendering.
@@ -123,7 +117,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     let pixSel = testAddShape(f.capture, 4, 4, 10, 10, .PixSel)
     pixSel.kind = .Rectangle
     discard testAddText(f.capture, 20, 4, 10, 10)
@@ -133,6 +127,4 @@ using Swag, Core
     let pixSels = f.main.getPixSels()
     @assert(pixSels.count == 1)
     @assert(@dataof(pixSels[0]) == pixSel)
-
-    f.shutdown()
 }

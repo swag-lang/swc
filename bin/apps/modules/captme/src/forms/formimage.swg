@@ -457,6 +457,6 @@ impl IForm for FormImage
     mtd impl setup(capt: *Capture)
     {
         .capture = capt
-        .gizmo.setupForForm(cast(IForm) me)
+        .gizmo.setupForForm(me)
     }
 }

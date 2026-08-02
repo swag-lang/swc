@@ -9,7 +9,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-
+    defer f.shutdown()
     f.capture.width   = 4
     f.capture.height  = 3
     f.capture.backImg = Gui.Testing.indexedImage(4, 3)
@@ -27,8 +27,6 @@ using Swag, Core
     @assert(f.capture.backImg.pixelColor(0, 0).argb == before02.argb)
     f.capture.undo()
     @assert(f.capture.backImg.pixelColor(0, 0).argb == before00.argb)
-
-    f.shutdown()
 }
 
 // Rotation and explicit resize update both the image and the capture dimensions
@@ -37,7 +35,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-
+    defer f.shutdown()
     f.capture.width   = 30
     f.capture.height  = 20
     f.capture.backImg = Gui.Testing.indexedImage(30, 20)
@@ -87,8 +85,6 @@ using Swag, Core
     @assert(f.capture.backImg.height == 20)
     @assert(f.capture.width == 30)
     @assert(f.capture.height == 20)
-
-    f.shutdown()
 }
 
 // Dialog-backed image actions can now run through a real headless modal surface.
@@ -98,7 +94,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-
+    defer f.shutdown()
     f.capture.width   = 30
     f.capture.height  = 20
     f.capture.backImg = Gui.Testing.indexedImage(30, 20)
@@ -133,8 +129,6 @@ using Swag, Core
     f.capture.undo()
     @assert(f.capture.width == 30)
     @assert(f.capture.height == 20)
-
-    f.shutdown()
 }
 
 // Expand Image uses the same modal resize dialog but only grows the backing
@@ -143,7 +137,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-
+    defer f.shutdown()
     f.capture.width   = 30
     f.capture.height  = 20
     f.capture.backImg = Gui.Testing.indexedImage(30, 20)
@@ -176,8 +170,6 @@ using Swag, Core
     @assert(f.capture.backImg.height == 20)
     @assert(f.capture.width == 30)
     @assert(f.capture.height == 20)
-
-    f.shutdown()
 }
 
 // Trim Capture can be exercised entirely in memory: it crops to visible content,
@@ -186,7 +178,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-
+    defer f.shutdown()
     f.capture.width   = 100
     f.capture.height  = 80
     f.capture.backImg = Image.create(100, 80, .BGRA8)
@@ -211,6 +203,4 @@ using Swag, Core
     Gui.Testing.assertRect(inside.IForm.boundRect(), 10, 15, 30, 25)
     @assert(f.capture.backImg.width == 100)
     @assert(f.capture.backImg.height == 80)
-
-    f.shutdown()
 }

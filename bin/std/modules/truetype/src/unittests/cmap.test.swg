@@ -4,23 +4,19 @@ using Swag, Core
 
 #test
 {
-    let glyphA = catch lookupCMap4(Cmap4Fixture, 'A'u32) as err
-    @assert(err == null)
+    let glyphA = expect lookupCMap4(Cmap4Fixture, 'A'u32)
     @assert(glyphA == 3)
 
-    let glyphB = catch lookupCMap4(Cmap4Fixture, 'B'u32) as err2
-    @assert(err2 == null)
+    let glyphB = expect lookupCMap4(Cmap4Fixture, 'B'u32)
     @assert(glyphB == 0)
 }
 
 #test
 {
-    let glyph0 = catch lookupCMap12(Cmap12Fixture, 0x00010000) as err3
-    @assert(err3 == null)
+    let glyph0 = expect lookupCMap12(Cmap12Fixture, 0x00010000)
     @assert(glyph0 == 7)
 
-    let glyph1 = catch lookupCMap12(Cmap12Fixture, 0x00010001) as err4
-    @assert(err4 == null)
+    let glyph1 = expect lookupCMap12(Cmap12Fixture, 0x00010001)
     @assert(glyph1 == 0)
 }
 
@@ -44,8 +40,7 @@ using Swag, Core
     faceData.fontData.add(cmap)
     faceData.tables.add({tag: TAG_CMAP, length: @countof(cmap)})
 
-    discard catch parseCMap(&faceData) as err5
-    @assert(err5 == null)
+    discard expect parseCMap(&faceData)
     @assert(faceData.face.charMap.platformID == 0)
     @assert(faceData.face.charMap.encodingID == 4)
     @assert(faceData.cmapFormat == 12)

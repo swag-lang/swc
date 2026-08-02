@@ -20,6 +20,7 @@ func popupHeadlessChanged(combo: *ComboBox, idx: u32)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 200)
+    defer host.shutdown()
     host.recordCommands()
     PopupHeadlessChangedCount = 0
 
@@ -44,7 +45,6 @@ func popupHeadlessChanged(combo: *ComboBox, idx: u32)
     @assert(host.lastCommand == PopupHeadless_Item2)
 
     host.app.setMouseCaptureRaw(null)
-    host.shutdown()
 }
 
 // Clicking an open combobox again hides the popup.
@@ -52,7 +52,7 @@ func popupHeadlessChanged(combo: *ComboBox, idx: u32)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 200)
-
+    defer host.shutdown()
     let combo = ComboBox.create(&host.root, {20, 20, 160, 26})
     combo.addItem("One")
     combo.addItem("Two")
@@ -68,7 +68,6 @@ func popupHeadlessChanged(combo: *ComboBox, idx: u32)
     @assert(combo.selectedIndex == Swag.U32.Max)
 
     host.app.setMouseCaptureRaw(null)
-    host.shutdown()
 }
 
 // PopupListCtrl data model: items and separators.
@@ -76,7 +75,7 @@ func popupHeadlessChanged(combo: *ComboBox, idx: u32)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 200)
-
+    defer host.shutdown()
     let popup = PopupListCtrl.create(&host.root)
     popup.addItem("A")
     popup.addSeparator()
@@ -95,6 +94,4 @@ func popupHeadlessChanged(combo: *ComboBox, idx: u32)
 
     popup.destroy()
     host.pump()
-
-    host.shutdown()
 }

@@ -62,8 +62,8 @@ impl IUndoCommand for IncCommand
     a.delta = 1
     let b = Memory.new'IncCommand()
     b.delta = 2
-    mgr.pushCmd(cast(IUndoCommand) a, serial)
-    mgr.pushCmd(cast(IUndoCommand) b, serial)
+    mgr.pushCmd(a, serial)
+    mgr.pushCmd(b, serial)
     @assert(g_undoCounter == 3 and mgr.count() == 2)
 
     mgr.undo()     // both revert in one step

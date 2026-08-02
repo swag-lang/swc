@@ -12,12 +12,9 @@ using Swag
         original[i] = cast #bit (u8) (i * 7 + (i >> 2) + (i & 13))
 
     var zl: Compress.ZLib
-    let compressed = catch zl.compress(original) as err
-    @assert(err == null)
-
+    let compressed = expect zl.compress(original)
     var zl2: Compress.ZLib
-    let decompressed = catch zl2.decompress(compressed.toSlice()) as err2
-    @assert(err2 == null)
+    let decompressed = expect zl2.decompress(compressed.toSlice())
     @assert(@countof(decompressed) == 4000)
 
     var ok = true

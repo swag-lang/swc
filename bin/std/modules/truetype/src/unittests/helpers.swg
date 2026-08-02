@@ -21,8 +21,7 @@ func getTestDataPath(fileName: string, loc = #callerlocation)->String
 
 func loadFontBytes(fileName: string = "segoeui.ttf")->Array'u8
 {
-    let bytes = catch File.readAllBytes(getTestDataPath(fileName)) as err
-    @assert(err == null)
+    let bytes = expect File.readAllBytes(getTestDataPath(fileName))
     return bytes
 }
 
@@ -38,8 +37,7 @@ impl FaceScope
     {
         .bytes = loadFontBytes(fileName)
 
-        .face = catch Face.load(.bytes.toSlice()) as err2
-        @assert(err2 == null)
+        .face = expect Face.load(.bytes.toSlice())
         @assert(.face != null)
     }
 

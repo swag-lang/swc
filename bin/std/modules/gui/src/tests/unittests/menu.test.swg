@@ -21,7 +21,7 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-
+    defer host.shutdown()
     let bar = MenuCtrl.createBar(&host.root, {0, 0, 300, 0})
     bar.addItem("New", Menu_New)
     @assert(bar.items.count == 1)
@@ -44,8 +44,6 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
     @assert(sub.items.count == 2)
     sub.clear()
     @assert(sub.items.isEmpty())
-
-    host.shutdown()
 }
 
 // Headless tests can drive modal popup menus through the normal mouse pipeline.
@@ -53,7 +51,7 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-
+    defer host.shutdown()
     let popup = MenuCtrl.createPopup(&host.root)
     popup.addItem("Open", Menu_Open)
     popup.addItem("Quit", Menu_Quit)
@@ -82,7 +80,6 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
     @assert(host.app.mouseCaptureWnd == null)
 
     host.pump()
-    host.shutdown()
 }
 
 // Headless popup menus can drive nested submenus through hover/timer behavior.
@@ -90,7 +87,7 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-
+    defer host.shutdown()
     let popup = MenuCtrl.createPopup(&host.root)
     let sub   = MenuCtrl.createPopup(&host.root)
     sub.addItem("Open", Menu_Open)
@@ -120,7 +117,6 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
     @assert(host.app.mouseCaptureWnd == null)
 
     host.pump()
-    host.shutdown()
 }
 
 // Clicking outside a captured popup dismisses it without selecting an item.
@@ -128,7 +124,7 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-
+    defer host.shutdown()
     let popup = MenuCtrl.createPopup(&host.root)
     popup.addItem("Open", Menu_Open)
 
@@ -149,7 +145,6 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
     @assert(host.app.mouseCaptureWnd == null)
 
     host.pump()
-    host.shutdown()
 }
 
 // Hidden popup rows keep their previous layout values, but they must not
@@ -158,7 +153,7 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-
+    defer host.shutdown()
     let popup = MenuCtrl.createPopup(&host.root)
     popup.addItem("Open", Menu_Open)
     popup.addItem("Hidden", "Menu.Hidden")
@@ -181,8 +176,6 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
 
     let pointOnQuit = Math.Point{popup.position.width * 0.5, quitIt.pos + quitIt.size * 0.5}
     @assert(popup.hitTestPopup(pointOnQuit) == 3)
-
-    host.shutdown()
 }
 
 // A popup item links a submenu back to its owner.
@@ -190,7 +183,7 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-
+    defer host.shutdown()
     let bar = MenuCtrl.createBar(&host.root, {0, 0, 300, 0})
     bar.addItem("New", Menu_New)
 
@@ -202,8 +195,6 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
     @assert((notnull bar.items[1]).name.raw == "File")
     @assert((notnull bar.items[1]).popup == sub)
     @assert(sub.ownerMenu == bar)
-
-    host.shutdown()
 }
 
 // Opening a menu-bar popup on press must not be cancelled by the release
@@ -212,7 +203,7 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-
+    defer host.shutdown()
     let bar = MenuCtrl.createBar(&host.root, {0, 0, 300, 0})
     let sub = MenuCtrl.createPopup(&host.root)
     sub.addItem("Open", Menu_Open)
@@ -232,8 +223,6 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
 
     @assert(bar.subVisible == sub)
     @assert(!sub.ignoreNextRelease)
-
-    host.shutdown()
 }
 
 // A taller menu bar centers its visual/hit item band and uses that band as popup anchor.
@@ -241,7 +230,7 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-
+    defer host.shutdown()
     let metrics   = host.root.themeMetrics()
     let barHeight = metrics.menuBar_Height + 12
     let bar       = MenuCtrl.createBar(&host.root, {0, 0, 300, barHeight})
@@ -264,7 +253,6 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
     @assert(sub.position.y == expectedItemY - metrics.menuPopup_ShadowSize)
 
     host.mouseUp({0, 0})
-    host.shutdown()
 }
 
 // A menu-bar popup carries the opened bar item inside its own themed area.
@@ -272,7 +260,7 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-
+    defer host.shutdown()
     let metrics = host.root.themeMetrics()
     let bar     = MenuCtrl.createBar(&host.root, {0, 0, 300, 0})
     let sub     = MenuCtrl.createPopup(&host.root)
@@ -288,6 +276,4 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
     @assert(sub.popupBarItemSurfaceRect.height == bar.position.height)
     @assert(sub.position.y == -metrics.menuPopup_ShadowSize)
     @assert((notnull sub.items[0]).pos > metrics.menuPopup_ShadowSize + bar.position.height)
-
-    host.shutdown()
 }

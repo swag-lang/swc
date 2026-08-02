@@ -8,7 +8,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     let cf = testAddCallout(f.capture, 10, 10, 40, 20)
 
     // Body is 10,10 → 50,30; testAddCallout drops the tail below at (22, 60).
@@ -18,8 +18,6 @@ using Swag, Core
     @assert(b.y == 10)
     @assert(b.right() == 50)
     @assert(b.bottom() == 60)
-
-    f.shutdown()
 }
 
 // Point 0 of a callout is the tail tip; MovePoint undo moves it and restores it.
@@ -27,13 +25,13 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     let cf = testAddCallout(f.capture, 0, 0, 40, 20)
     let tx = cf.tailX
     let ty = cf.tailY
 
     var mp = f.capture.newUndo(.MovePoint)
-    mp.baseForm = cast(IForm) cf
+    mp.baseForm = cf
     mp.pointIdx = 0
     mp.newPosX  = 5
     mp.newPosY  = -7
@@ -49,8 +47,6 @@ using Swag, Core
     cf.IForm.moveForm(3, 4)
     @assert(cf.tailX == tx + 3)
     @assert(cf.tailY == ty + 4)
-
-    f.shutdown()
 }
 
 // SetText edits a callout's text (reusing the FormText undo path) with undo/redo.
@@ -58,7 +54,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     let cf = testAddCallout(f.capture, 5, 5, 60, 30)
     cf.text = "old"
     f.capture.selection.add(0)
@@ -73,8 +69,6 @@ using Swag, Core
 
     f.capture.redo()
     @assert(cf.text == "new")
-
-    f.shutdown()
 }
 
 // Edit-mode plumbing recognizes the callout in both directions.
@@ -82,15 +76,13 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     let cf = testAddCallout(f.capture, 0, 0, 40, 20)
-    @assert(MainWnd.formToEditMode(cast(IForm) cf) == .Callout)
+    @assert(MainWnd.formToEditMode(cf) == .Callout)
 
-    f.main.updateEditMode(cast(IForm) cf)
+    f.main.updateEditMode(cf)
     @assert(f.main.editMode == .Callout)
     @assert(@kindof(f.main.editModeToModel(.Callout)) == FormCallout)
-
-    f.shutdown()
 }
 
 // SetText must flag the render dirty so the displayed FormText glyphs actually refresh
@@ -99,7 +91,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     let text = testAddText(f.capture, 0, 0, 100, 40)
     text.text    = "old"
     text.isDirty = false
@@ -110,8 +102,6 @@ using Swag, Core
     f.capture.pushUndo(u)
     @assert(text.text == "new")
     @assert(text.isDirty)
-
-    f.shutdown()
 }
 
 // Font name and style edits reuse the shared FormText undo paths for a callout.
@@ -119,7 +109,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     let cf = testAddCallout(f.capture, 0, 0, 60, 30)
     cf.fontName  = "old"
     cf.fontStyle = .Regular
@@ -141,8 +131,6 @@ using Swag, Core
     f.capture.undo()
     @assert(cf.fontName == "old")
     @assert(cf.fontStyle == .Regular)
-
-    f.shutdown()
 }
 
 // Painting a callout emits body/tail/text geometry without crashing, and hit-testing
@@ -151,7 +139,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     let cf = testAddCallout(f.capture, 20, 20, 120, 60)
     cf.text        = "Hi!"
     cf.backColor   = ColorBlue
@@ -168,8 +156,6 @@ using Swag, Core
 
     @assert(cf.IForm.hitTest({80, 50}, 1))
     @assert(!cf.IForm.hitTest({500, 500}, 1))
-
-    f.shutdown()
 }
 
 // copy propagates callout style (not text) and isSame tracks style changes.
@@ -177,7 +163,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     let cf = testAddCallout(f.capture, 0, 0, 40, 20)
     cf.roundSize = 22
     cf.fontSize  = 30
@@ -192,8 +178,6 @@ using Swag, Core
 
     copy.roundSize += 1
     @assert(!cf.IForm.isSame(&copy))
-
-    f.shutdown()
 }
 
 // The tail base stays on the straight part of an edge, clear of the rounded corners,
@@ -203,7 +187,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     let cf = testAddCallout(f.capture, 0, 0, 100, 60)
     cf.roundSize = 20
     let cr = 20.0
@@ -221,8 +205,6 @@ using Swag, Core
     @assert(tr.p0.x == 60 and tr.p1.x == 60)
     @assert(tr.p0.y >= cr - 0.01)
     @assert(tr.p1.y <= 100 - cr + 0.01)
-
-    f.shutdown()
 }
 
 // Callouts survive the copy/paste clipboard round-trip with text and geometry intact.
@@ -230,7 +212,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     let cf = testAddCallout(f.capture, 12, 14, 50, 25)
     cf.text      = "hello"
     cf.roundSize = 18
@@ -238,7 +220,7 @@ using Swag, Core
     cf.tailY     = 90
 
     var clip: CaptureClipboardForms
-    clip.add(cast(IForm) cf)
+    clip.add(cf)
 
     var forms = clip.toForms(f.capture)
     defer Capture.freeForms(forms)
@@ -251,6 +233,4 @@ using Swag, Core
     @assert(c2.tailX == 4)
     @assert(c2.tailY == 90)
     @assert(c2.capture == f.capture)
-
-    f.shutdown()
 }

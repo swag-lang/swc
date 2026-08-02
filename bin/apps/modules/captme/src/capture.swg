@@ -182,47 +182,47 @@ impl CaptureClipboardForm
         case .Arrow:
             let form = Memory.new'FormArrow()
             dref form = .arrow
-            result    = cast(IForm) form
+            result    = form
 
         case .Draw:
             let form = Memory.new'FormDraw()
             dref form = .draw
-            result    = cast(IForm) form
+            result    = form
 
         case .Image:
             let form = Memory.new'FormImage()
             dref form = .image
-            result    = cast(IForm) form
+            result    = form
 
         case .Line:
             let form = Memory.new'FormLine()
             dref form = .line
-            result    = cast(IForm) form
+            result    = form
 
         case .Polygon:
             let form = Memory.new'FormPolygon()
             dref form = .polygon
-            result    = cast(IForm) form
+            result    = form
 
         case .Shape:
             let form = Memory.new'FormShape()
             dref form = .shape
-            result    = cast(IForm) form
+            result    = form
 
         case .Step:
             let form = Memory.new'FormStep()
             dref form = .step
-            result    = cast(IForm) form
+            result    = form
 
         case .Text:
             let form = Memory.new'FormText()
             dref form = .text
-            result    = cast(IForm) form
+            result    = form
 
         case .Callout:
             let form = Memory.new'FormCallout()
             dref form = .callout
-            result    = cast(IForm) form
+            result    = form
 
         case .None:
             return result
@@ -512,7 +512,7 @@ impl Capture
                 formImg.image         = img
                 formImg.borderColor.a = 0
                 formImg.backColor.a   = 0
-                res.add(cast(IForm) formImg)
+                res.add(formImg)
             }
             else do
                 return
@@ -742,11 +742,7 @@ impl Capture
             return
 
         let snapNow = .snapX != -1 or .snapY != -1
-        defer
-        {
-            me.prevSnapActive = snapNow
-        }
-
+        defer me.prevSnapActive = snapNow
         if snapNow or .prevSnapActive
         {
             view.invalidate()
@@ -1766,6 +1762,6 @@ impl Capture
         // Capture the "before" state, then hand the command to the generic manager which
         // discards the redo tail (freeing those commands) and applies this one via redo()/doIt().
         u.init()
-        .undoMgr.pushCmd(cast(IUndoCommand) u, serial, apply: true)
+        .undoMgr.pushCmd(u, serial, apply: true)
     }
 }

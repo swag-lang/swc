@@ -9,7 +9,7 @@ using Swag, Core, File
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-
+    defer f.shutdown()
     discard f.setupLibraryWnd()
     let libWnd = cast(*Wnd) notnull f.main.libWnd
 
@@ -69,8 +69,6 @@ using Swag, Core, File
     evt                          = Gui.Testing.commandState(ActionLibSel.Right)
     @assert(Gui.Testing.actionUpdate'ActionLibSel(libWnd, ActionLibSel.Right, &evt))
     @assert(!evt.disabled)
-
-    f.shutdown()
 }
 
 // Library view filtering, sorting and keyboard-style movement operate entirely
@@ -79,6 +77,7 @@ using Swag, Core, File
 {
     var f: HeadlessFixture
     f.setup()
+    defer f.shutdown()
     let lib  = f.setupLibraryWnd()
     let view = notnull lib.view
     let wnd  = cast(*Wnd) lib
@@ -177,8 +176,6 @@ using Swag, Core, File
     wnd.sendCommandEvent(ActionLibSel.Up)
     @assert(view.focusItem == 0)
     @assert(view.selModel.isSelected(0))
-
-    f.shutdown()
 }
 
 // Deleting a multi-selection removes every selected capture, even though the
@@ -188,9 +185,8 @@ using Swag, Core, File
 {
     var f: HeadlessFixture
     f.setup()
-
-    catch Library.init() as err
-    @assert(err == null)
+    defer f.shutdown()
+    expect Library.init()
     g_Library.files.clear()
     g_Library.loaded = true
     g_Library.onDeleteFile.clear()
@@ -223,8 +219,7 @@ using Swag, Core, File
         let path = testTempCapturePath()
         capture.file    = path
         capture.changed = true
-        catch capture.save() as err2
-        @assert(err2 == null)
+        expect capture.save()
         @assert(File.exists(path))
         Memory.delete(capture)
 
@@ -262,8 +257,6 @@ using Swag, Core, File
         @assert(!File.exists(p))
         @assert(File.exists(Path.combine(Library.getTrashFolder(), Path.fileName(p))))
     }
-
-    f.shutdown()
 }
 
 // The library search box matches captures by title, linked image path or file name,
@@ -273,6 +266,7 @@ using Swag, Core, File
 {
     var f: HeadlessFixture
     f.setup()
+    defer f.shutdown()
     let lib  = f.setupLibraryWnd()
     let view = notnull lib.view
 
@@ -296,8 +290,6 @@ using Swag, Core, File
 
     lib.setSearch("")
     @assert(view.items.count == 3)
-
-    f.shutdown()
 }
 
 // Filling the date sidebar from a fresh (empty) list must open the year/month/day
@@ -308,7 +300,7 @@ using Swag, Core, File
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     f.main.libWnd = LibraryWnd.create(f.main)
     let libWnd = notnull f.main.libWnd
 
@@ -351,6 +343,4 @@ using Swag, Core, File
 
     libWnd.view.thread.safeForceEnd()
     libWnd.view.thread.wait()
-
-    f.shutdown()
 }

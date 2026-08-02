@@ -178,7 +178,7 @@ func createDemoEditor(parent: *Wnd, rect: Math.Rectangle, flags: RichEditFlags, 
 func createCodeEditor(parent: *Wnd, rect: Math.Rectangle, text: string, flags = RichEditFlags.ShowFocusSel | .CurLineBorder | .TabToSpaces)->*RichEditCtrl
 {
     let ed = createDemoEditor(parent, rect, flags)
-    ed.setLexer(cast(IRichEditLexer) g_LexerSwag)
+    ed.setLexer(g_LexerSwag)
     ed.marginLeft  = 18
     ed.marginRight = 24
     ed.setText(text)

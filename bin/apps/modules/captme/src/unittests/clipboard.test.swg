@@ -23,6 +23,7 @@ func testResetClipboardToImage()
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
     testRegisterIoActions(f.main)
     testResetClipboardToImage()
 
@@ -57,8 +58,6 @@ func testResetClipboardToImage()
     @assert(f.capture.forms.count == 1)
     @assert(f.capture.selection.count == 1)
     @assert(f.capture.selection[0] == 0)
-
-    f.shutdown()
 }
 
 // Paste consumes typed Captme forms from the clipboard and owns them through
@@ -67,6 +66,7 @@ func testResetClipboardToImage()
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
     testRegisterIoActions(f.main)
     testResetClipboardToImage()
 
@@ -90,8 +90,6 @@ func testResetClipboardToImage()
 
     f.capture.redo()
     @assert(f.capture.forms.count == 2)
-
-    f.shutdown()
 }
 
 // Image clipboard paths are covered both as a whole-capture copy and as paste
@@ -100,6 +98,7 @@ func testResetClipboardToImage()
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
     testRegisterIoActions(f.main)
     testResetClipboardToImage()
 
@@ -142,6 +141,4 @@ func testResetClipboardToImage()
     f.capture.undo()
     @assert(target.image.width == 2)
     @assert(target.image.height == 2)
-
-    f.shutdown()
 }

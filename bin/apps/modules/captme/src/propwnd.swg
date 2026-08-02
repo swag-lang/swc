@@ -863,7 +863,7 @@ impl PropWnd
             .grid.scrollWnd.updateFlags(.AlwaysShowVertical | .CompactBars)
 
             .main = main
-            .grid.setNotify(cast(IPropertyNotify) prop)
+            .grid.setNotify(prop)
         }
 
         return prop

@@ -285,8 +285,9 @@ func onResize(_window: *Env.Window, width, height: s32)
 
 #main
 {
-    try Env.createWindow(&g_Window, {className: "OPENGL3_CLASS_NAME", title: "OpenGL example - lit spinning cube", width: g_Width, height: g_Height})
+    g_Window  = try Env.createWindow({className: "OPENGL3_CLASS_NAME", title: "OpenGL example - lit spinning cube", width: g_Width, height: g_Height})
     g_Context = try Ogl.Platform.Win32.createContext(&g_Window)
+    defer g_Context.destroy()
     glInitExtensions()
 
     glGenBuffers(1, &g_VertexBuffer)
@@ -312,5 +313,4 @@ func onResize(_window: *Env.Window, width, height: s32)
             break
     }
 
-    g_Context.destroy()
 }

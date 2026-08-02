@@ -10,6 +10,7 @@ var TabHeadlessSelChangedCount: u32
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
+    defer host.shutdown()
     TabHeadlessSelChangedCount = 0
 
     let tab = Tab.create(&host.root, {10, 10, 300, 180})
@@ -35,8 +36,6 @@ var TabHeadlessSelChangedCount: u32
     @assert(tab.selectedIndex == 1 and TabHeadlessSelChangedCount == 2)
     host.keyPress(Input.Key.Home)
     @assert(tab.selectedIndex == 0 and TabHeadlessSelChangedCount == 3)
-
-    host.shutdown()
 }
 
 // Tab views are shown/hidden according to the selection.
@@ -44,7 +43,7 @@ var TabHeadlessSelChangedCount: u32
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-
+    defer host.shutdown()
     let tab   = Tab.create(&host.root, {10, 10, 300, 180})
     let viewA = Wnd.create'Wnd(tab, null, {0, 0, 100, 100})
     let viewB = Wnd.create'Wnd(tab, null, {0, 0, 100, 100})
@@ -58,8 +57,6 @@ var TabHeadlessSelChangedCount: u32
     tab.setSelectedIndex(1)
     @assert(viewA.wndFlags.has(.Hidden))
     @assert(!viewB.wndFlags.has(.Hidden))
-
-    host.shutdown()
 }
 
 // Removing tabs destroys owned pages, preserves the selected item identity, and clears safely.
@@ -67,6 +64,7 @@ var TabHeadlessSelChangedCount: u32
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
+    defer host.shutdown()
     TabHeadlessSelChangedCount = 0
 
     let tab   = Tab.create(&host.root, {10, 10, 300, 180})
@@ -91,6 +89,4 @@ var TabHeadlessSelChangedCount: u32
     @assert(tab.items.isEmpty() and tab.selectedItem() == null and tab.selectedIndex == Swag.U32.Max)
     @assert(viewA.isPendingDestroy and viewB.isPendingDestroy and viewC.isPendingDestroy)
     host.pump()
-
-    host.shutdown()
 }

@@ -87,7 +87,7 @@ impl ImageCanvas
         let renderer = notnull canvas.renderer
         canvas.isOpen = true
         renderer.begin(width, height)
-        let rendererItf = cast(IRenderer) renderer
+        let rendererItf: IRenderer = renderer
         rendererItf.init()
         dref notnull canvas.target = rendererItf.createRenderTarget(width, height)
         rendererItf.end()
@@ -144,7 +144,7 @@ impl ImageCanvas
 
         let renderer = notnull result.renderer
         renderer.begin(result.width, result.height)
-        let rendererItf = cast(IRenderer) renderer
+        let rendererItf: IRenderer = renderer
         result.source = rendererItf.addImage(image)
         rendererItf.end()
         result.hasSource = true
@@ -195,7 +195,7 @@ impl ImageCanvas
 
         let renderer = notnull .renderer
         renderer.begin(.width, .height)
-        let rendererItf = cast(IRenderer) renderer
+        let rendererItf: IRenderer = renderer
         .painter.render()
         var result: retval = rendererItf.readRenderTarget(notnull .target, 0, 0, .width, .height)
         rendererItf.end()
@@ -214,7 +214,7 @@ impl ImageCanvas
 
         let renderer = notnull .renderer
         renderer.begin(.width, .height)
-        let rendererItf = cast(IRenderer) renderer
+        let rendererItf: IRenderer = renderer
         rendererItf.deleteRenderTarget(notnull .target)
         rendererItf.end()
 

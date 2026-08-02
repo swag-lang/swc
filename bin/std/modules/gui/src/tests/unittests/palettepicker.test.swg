@@ -17,7 +17,7 @@ func palettePickerHeadlessChanged(picker: *PalettePicker)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-
+    defer host.shutdown()
     let picker = PalettePicker.create(&host.root, {10, 10, 220, 100})
     @assert(picker.colors.count == 0)
     @assert(picker.selectedIndex == Swag.S32.Max)
@@ -29,8 +29,6 @@ func palettePickerHeadlessChanged(picker: *PalettePicker)
 
     picker.addHueRamp(8, 1, 0.5)
     @assert(picker.colors.count == 10)
-
-    host.shutdown()
 }
 
 // Mouse and keyboard selection share one index, color, and notification contract.
@@ -38,6 +36,7 @@ func palettePickerHeadlessChanged(picker: *PalettePicker)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
+    defer host.shutdown()
     PalettePickerHeadlessChangedCount = 0
 
     let picker = PalettePicker.create(&host.root, {10, 10, 220, 100})
@@ -64,6 +63,4 @@ func palettePickerHeadlessChanged(picker: *PalettePicker)
     picker.clearSelection(notify: false)
     @assert(picker.selectedIndex == Swag.S32.Max)
     @assert(PalettePickerHeadlessChangedCount == 3)
-
-    host.shutdown()
 }

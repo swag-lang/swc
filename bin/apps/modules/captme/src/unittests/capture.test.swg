@@ -16,7 +16,7 @@ func testAddMonitor(main: *MainWnd, idx: u32)
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-
+    defer f.shutdown()
     f.main.monitors.clear()
     testAddMonitor(f.main, 0)
     testAddMonitor(f.main, 1)
@@ -58,8 +58,6 @@ func testAddMonitor(main: *MainWnd, idx: u32)
     evt = Gui.Testing.commandState(ActionCapture.Screen3)
     @assert(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.Screen3, &evt))
     @assert(!evt.name.isEmpty())
-
-    f.shutdown()
 }
 
 // Full-screen OS capture is tested without creating a Captme library file:
@@ -70,6 +68,7 @@ func testAddMonitor(main: *MainWnd, idx: u32)
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
     testRegisterIoActions(f.main)
 
     f.main.captureOptions.hideEditorBefore = false
@@ -82,8 +81,6 @@ func testAddMonitor(main: *MainWnd, idx: u32)
     f.main.sendCommandEvent(ActionCapture.FullScreen)
 
     @assert(Clipboard.hasImage())
-
-    f.shutdown()
 }
 
 // Last-area capture reuses cached grab bounds, so it exercises the OS capture
@@ -92,6 +89,7 @@ func testAddMonitor(main: *MainWnd, idx: u32)
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
     testRegisterIoActions(f.main)
 
     f.main.captureOptions.hideEditorBefore = false
@@ -112,8 +110,6 @@ func testAddMonitor(main: *MainWnd, idx: u32)
     @assert(img.isValid())
     @assert(img.width == 16)
     @assert(img.height == 12)
-
-    f.shutdown()
 }
 
 // Monitor capture is non-interactive: a small fake monitor keeps the real screen
@@ -124,6 +120,7 @@ func testAddMonitor(main: *MainWnd, idx: u32)
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
     testRegisterIoActions(f.main)
 
     f.main.captureOptions.hideEditorBefore = false
@@ -141,6 +138,4 @@ func testAddMonitor(main: *MainWnd, idx: u32)
     @assert(img.isValid())
     @assert(img.width == 320)
     @assert(img.height == 240)
-
-    f.shutdown()
 }

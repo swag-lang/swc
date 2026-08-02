@@ -84,7 +84,7 @@ impl HeadlessHost
         .app.mainSurface  = &.surface
 
         let root = &.root
-        root.itf     = cast(IWnd) dref root
+        root.itf     = dref root
         root.type    = Wnd
         root.surface = &.surface
         root.style.share(&.app.style)
@@ -96,7 +96,7 @@ impl HeadlessHost
         // Wire the surface root window so getTopView()/getTopWnd() resolve to the
         // root view. This enables popup-based widgets (combobox, menus, tabs)
         // which anchor their popups to the top view.
-        .surfaceWnd.itf     = cast(IWnd) &.surfaceWnd
+        .surfaceWnd.itf     = &.surfaceWnd
         .surfaceWnd.type    = SurfaceWnd
         .surfaceWnd.surface = &.surface
         .surfaceWnd.style.share(&.app.style)
@@ -729,11 +729,7 @@ impl HeadlessHost
             return
 
         .setModifierKeys(modifiers, true)
-        defer
-        {
-            me.setModifierKeys(modifiers, false)
-        }
-
+        defer me.setModifierKeys(modifiers, false)
         var evt = MouseEvent{kind: .Wheel}
         evt.button     = Input.MouseButton.Left
         evt.surfacePos = target.screenToSurface(pt)
@@ -818,11 +814,7 @@ impl HeadlessHost
     mtd sendMouseEvent(target: *Wnd, kind: MouseEvent.Kind, pt: Math.Point, button: Input.MouseButton, modifiers: Input.KeyModifiers)
     {
         .setModifierKeys(modifiers, true)
-        defer
-        {
-            me.setModifierKeys(modifiers, false)
-        }
-
+        defer me.setModifierKeys(modifiers, false)
         var evt = MouseEvent{kind: kind}
         evt.button     = button
         evt.surfacePos = target.screenToSurface(pt)

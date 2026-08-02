@@ -18,7 +18,7 @@ func breadcrumbPressed(bc: *BreadcrumbCtrl, idx: u64)
 {
     var host: Testing.HeadlessHost
     host.setup(400, 60)
-
+    defer host.shutdown()
     let bc = BreadcrumbCtrl.create(&host.root, {0, 0, 400, 32})
     bc.addItem("Home", {}, 1)
     bc.addItem("Docs", {}, 2)
@@ -36,8 +36,6 @@ func breadcrumbPressed(bc: *BreadcrumbCtrl, idx: u64)
 
     bc.removeItemsFrom(2)
     @assert(bc.items.count == 2)
-
-    host.shutdown()
 }
 
 // Clicking a level body navigates to that level; clicking a chevron with no menu content
@@ -46,6 +44,7 @@ func breadcrumbPressed(bc: *BreadcrumbCtrl, idx: u64)
 {
     var host: Testing.HeadlessHost
     host.setup(400, 60)
+    defer host.shutdown()
     BreadcrumbPressedCount = 0
     BreadcrumbPressedIndex = Swag.U64.Max
 
@@ -64,6 +63,4 @@ func breadcrumbPressed(bc: *BreadcrumbCtrl, idx: u64)
     let a = bc.items[0].arrowRect
     host.click({a.horzCenter(), a.vertCenter()})
     @assert(BreadcrumbPressedCount == 1)
-
-    host.shutdown()
 }

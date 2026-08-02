@@ -8,7 +8,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(320, 80)
-
+    defer host.shutdown()
     let header = Header.create(&host.root, {10, 10, 300, 24})
     @assert(header.items.count == 0)
 
@@ -31,6 +31,4 @@ using Swag, Core
     @assert(header.sortColumn == 1 and header.sortDirection == .Descending)
     header.clearSortIndicator()
     @assert(header.sortColumn == Swag.U32.Max and header.sortDirection == .None)
-
-    host.shutdown()
 }

@@ -17,10 +17,8 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
     let glyphA = face.glyphIndex('A')
     @assert(glyphA > 0)
 
-    discard catch face.setPixelSize(0, 18) as err
-    @assert(err == null)
-    discard catch face.loadGlyph(glyphA, .Render) as err2
-    @assert(err2 == null)
+    discard expect face.setPixelSize(0, 18)
+    discard expect face.loadGlyph(glyphA, .Render)
     @assert(face.glyph.bitmap.width > 0)
     @assert(face.glyph.bitmap.rows > 0)
     @assert(countBitmapCoverage(&face.glyph.bitmap) > 0)
@@ -51,16 +49,14 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
     @assert(face.descender < 0)
     @assert(face.maxAdvanceWidth > 0)
 
-    discard catch face.setPixelSize(0, 16) as err6
-    @assert(err6 == null)
+    discard expect face.setPixelSize(0, 16)
     @assert(face.size.metrics.xPpem == 16)
     @assert(face.size.metrics.yPpem == 16)
     @assert(face.size.metrics.ascender > 0)
     @assert(face.size.metrics.descender < 0)
     @assert(face.size.metrics.maxAdvance > 0)
 
-    discard catch face.setPixelSize(24, 0) as err7
-    @assert(err7 == null)
+    discard expect face.setPixelSize(24, 0)
     @assert(face.size.metrics.xPpem == 24)
     @assert(face.size.metrics.yPpem == 24)
 
@@ -98,12 +94,11 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
     defer context.allocator = originalAllocator
 
     let bytes      = loadFontBytes()
-    let allocatorA = @mkinterface(&scratchA, #typeof(scratchA), IAllocator)
-    let allocatorB = @mkinterface(&scratchB, #typeof(scratchB), IAllocator)
+    let allocatorA: IAllocator = &scratchA
+    let allocatorB: IAllocator = &scratchB
     context.allocator = allocatorA
 
-    let face = catch Face.load(bytes.toSlice(), allocatorA) as err
-    @assert(err == null)
+    let face = expect Face.load(bytes.toSlice(), allocatorA)
     @assert(face != null)
 
     context.allocator = allocatorB

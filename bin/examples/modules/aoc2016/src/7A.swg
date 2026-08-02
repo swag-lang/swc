@@ -27,7 +27,7 @@ func day7A()
         cpt = 0
         ok  = false
 
-        for var i = 0; i < @countof(l) - 3; i += 1
+        for [i] in @countof(l) - 3
         {
             if l[i] == '[' do
                 cpt += 1

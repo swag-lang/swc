@@ -46,6 +46,11 @@ private struct DefaultThemeImages
 
 private var g_DefaultThemeImages: DefaultThemeImages
 
+private func defaultTypeFace(name: string, bytes: const [..] u8)->#null *TypeFace fail
+{
+    return try TypeFace.create(name, bytes)
+}
+
 private func defaultThemeImages()->*DefaultThemeImages
 {
     let cache = &g_DefaultThemeImages
@@ -151,15 +156,15 @@ impl Theme
             if @isset(.defaultTypeFaceR) do
                 return
 
-            catch createGuiTypeFace(&.defaultTypeFaceR, DefaultFontRegularName, DefaultFontRegular)
-            catch createGuiTypeFace(&.defaultTypeFaceB, DefaultFontBoldName, DefaultFontBold)
-            catch createGuiTypeFace(&.defaultTypeFaceI, DefaultFontItalicName, DefaultFontItalic)
-            catch createGuiTypeFace(&.defaultTypeFaceBI, DefaultFontBoldItalicName, DefaultFontBoldItalic)
+            .defaultTypeFaceR  = notnull expect defaultTypeFace(DefaultFontRegularName, DefaultFontRegular)
+            .defaultTypeFaceB  = notnull expect defaultTypeFace(DefaultFontBoldName, DefaultFontBold)
+            .defaultTypeFaceI  = notnull expect defaultTypeFace(DefaultFontItalicName, DefaultFontItalic)
+            .defaultTypeFaceBI = notnull expect defaultTypeFace(DefaultFontBoldItalicName, DefaultFontBoldItalic)
 
-            catch createGuiTypeFace(&.defaultFsTypeFaceR, DefaultFontFsRegularName, DefaultFontFsRegular)
-            catch createGuiTypeFace(&.defaultFsTypeFaceB, DefaultFontFsBoldName, DefaultFontFsBold)
-            catch createGuiTypeFace(&.defaultFsTypeFaceI, DefaultFontFsItalicName, DefaultFontFsItalic)
-            catch createGuiTypeFace(&.defaultFsTypeFaceBI, DefaultFontFsBoldItalicName, DefaultFontFsBoldItalic)
+            .defaultFsTypeFaceR  = notnull expect defaultTypeFace(DefaultFontFsRegularName, DefaultFontFsRegular)
+            .defaultFsTypeFaceB  = notnull expect defaultTypeFace(DefaultFontFsBoldName, DefaultFontFsBold)
+            .defaultFsTypeFaceI  = notnull expect defaultTypeFace(DefaultFontFsItalicName, DefaultFontFsItalic)
+            .defaultFsTypeFaceBI = notnull expect defaultTypeFace(DefaultFontFsBoldItalicName, DefaultFontFsBoldItalic)
 
             .fontDefault.regular    = .fonts.createFont(.defaultTypeFaceR, me.metrics.defaultFontSize)
             .fontDefault.bold       = .fonts.createFont(.defaultTypeFaceB, me.metrics.defaultFontSize)

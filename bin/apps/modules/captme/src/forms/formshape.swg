@@ -57,7 +57,7 @@ impl IForm for FormShape
         var xbu     = 0
         var ybu     = 0
         let capture = notnull .capture
-        capture.snap(&xbu, &ybu, true, true, 0, cast(IForm) me)
+        capture.snap(&xbu, &ybu, true, true, 0, me)
         xb += xbu
         yb += ybu
 
@@ -207,6 +207,6 @@ impl IForm for FormShape
     mtd impl setup(capt: *Capture)
     {
         .capture = capt
-        .gizmo.setupForForm(cast(IForm) me)
+        .gizmo.setupForForm(me)
     }
 }

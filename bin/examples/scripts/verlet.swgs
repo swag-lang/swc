@@ -43,10 +43,10 @@ impl Verlet
 
 func solveCollisions()
 {
-    for var i = 0; i < g_Objs.count; i += 1
+    for [i] in g_Objs.count
     {
         var v1 = g_Objs[i]
-        for var j = i + 1; j < g_Objs.count; j += 1
+        for [j] in i + 1 until g_Objs.count
         {
             var v2 = g_Objs[j]
             var n  = v1.positionCurrent - v2.positionCurrent

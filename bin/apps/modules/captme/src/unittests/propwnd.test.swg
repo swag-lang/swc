@@ -55,6 +55,7 @@ func testItemIndex(prop: *PropWnd, name: string)->u64
 {
     var f: HeadlessFixture
     f.setup()
+    defer f.shutdown()
     let prop = testSetupPropWnd(&f)
 
     let tf = testAddText(f.capture, 10, 20, 100, 50)
@@ -102,8 +103,6 @@ func testItemIndex(prop: *PropWnd, name: string)->u64
     @assert(sectionIt.flags.has(.Section))
     @assert(sectionIt.line.position.height == 0)
     @assert(sectionIt.line.margin.y == 0 and sectionIt.line.margin.w == 0)
-
-    f.shutdown()
 }
 
 // Clicking inside the grid must never yank the scroll back to the top: neither on a
@@ -113,6 +112,7 @@ func testItemIndex(prop: *PropWnd, name: string)->u64
 {
     var f: HeadlessFixture
     f.setup()
+    defer f.shutdown()
     let prop = testSetupPropWnd(&f)
 
     discard testAddText(f.capture, 10, 20, 100, 50)
@@ -148,8 +148,6 @@ func testItemIndex(prop: *PropWnd, name: string)->u64
     f.gui.click(pt)
     f.gui.pump()
     @assert(prop.grid.scrollWnd.scrollPosition().y == sc.y)
-
-    f.shutdown()
 }
 
 // The x/y and w/h rows are keyboard-navigable: Down from the position row selects the
@@ -158,6 +156,7 @@ func testItemIndex(prop: *PropWnd, name: string)->u64
 {
     var f: HeadlessFixture
     f.setup()
+    defer f.shutdown()
     let prop = testSetupPropWnd(&f)
 
     discard testAddText(f.capture, 10, 20, 100, 50)
@@ -183,8 +182,6 @@ func testItemIndex(prop: *PropWnd, name: string)->u64
     f.gui.keyPress(.Up)
     f.gui.pump()
     @assert(prop.grid.selItem == posItem)
-
-    f.shutdown()
 }
 
 // A selected step form hides the whole border/joins block and gets no position/size
@@ -194,6 +191,7 @@ func testItemIndex(prop: *PropWnd, name: string)->u64
 {
     var f: HeadlessFixture
     f.setup()
+    defer f.shutdown()
     let prop = testSetupPropWnd(&f)
 
     discard testAddStep(f.capture, 10, 20, 100, 50)
@@ -210,8 +208,6 @@ func testItemIndex(prop: *PropWnd, name: string)->u64
 
     @assert(testFindItem(prop, "position") == null)
     @assert(testFindItem(prop, "size") == null)
-
-    f.shutdown()
 }
 
 // A pixel-selection shape hides the whole style content, separators included (no
@@ -220,6 +216,7 @@ func testItemIndex(prop: *PropWnd, name: string)->u64
 {
     var f: HeadlessFixture
     f.setup()
+    defer f.shutdown()
     let prop = testSetupPropWnd(&f)
 
     discard testAddShape(f.capture, 10, 20, 100, 50, subKind: .PixSel)
@@ -233,6 +230,4 @@ func testItemIndex(prop: *PropWnd, name: string)->u64
     @assert(round != null and !round.line.isVisible())
     let effects = testFindItem(prop, "Effects")
     @assert(effects != null and !effects.line.isVisible())
-
-    f.shutdown()
 }

@@ -2,15 +2,6 @@
 
 using Swag, Core
 
-// A canvas needs a rendering context, which a machine without a graphics device cannot give.
-// Every test below reports whether it could run, so the suite stays honest on such a machine
-// instead of passing by doing nothing.
-func openCanvas(width, height: s32, outCanvas: *ImageCanvas)->bool
-{
-    dref outCanvas = catch ImageCanvas.create(width, height) as err
-    return err == null
-}
-
 func makeSquarePath(x0, y0, x1, y1: f32)->LinePath
 {
     var result: retval
@@ -25,15 +16,12 @@ func makeSquarePath(x0, y0, x1, y1: f32)->LinePath
 // A filled path reaches the pixels, opaque, and leaves the rest untouched.
 #test
 {
-    var canvas: ImageCanvas
-    if !openCanvas(32, 32, &canvas) do
-        return
+    var canvas = expect ImageCanvas.create(32, 32)
 
     var path = makeSquarePath(8, 8, 24, 24)
     canvas.painter.fillPath(&path, Color.fromRgb(247, 249, 0))
 
-    var img = catch canvas.toImage() as err
-    @assert(err == null)
+    let img = expect canvas.toImage()
     @assert(img.width == 32)
     @assert(img.height == 32)
 
@@ -46,16 +34,13 @@ func makeSquarePath(x0, y0, x1, y1: f32)->LinePath
 // The ground is laid under the drawing, not over it.
 #test
 {
-    var canvas: ImageCanvas
-    if !openCanvas(32, 32, &canvas) do
-        return
+    var canvas = expect ImageCanvas.create(32, 32)
 
     canvas.clear(Color.fromRgb(11, 11, 13))
     var path = makeSquarePath(8, 8, 24, 24)
     canvas.painter.fillPath(&path, Color.fromRgb(247, 249, 0))
 
-    var img = catch canvas.toImage() as err
-    @assert(err == null)
+    let img = expect canvas.toImage()
 
     let corner = img.pixelColor(2, 2)
     @assert(corner.r == 11 and corner.g == 11 and corner.b == 13 and corner.a == 255)
@@ -65,23 +50,18 @@ func makeSquarePath(x0, y0, x1, y1: f32)->LinePath
 // A canvas opened over an image keeps that image and composites on top of it.
 #test
 {
-    var ground: ImageCanvas
-    if !openCanvas(32, 32, &ground) do
-        return
+    var ground = expect ImageCanvas.create(32, 32)
 
     ground.clear(Color.fromRgb(10, 20, 30))
-    var base = catch ground.toImage() as errBase
-    @assert(errBase == null)
+    let base = expect ground.toImage()
 
-    var over = catch ImageCanvas.create(base) as errOver
-    @assert(errOver == null)
+    var over = expect ImageCanvas.create(base)
     @assert(over.width == 32 and over.height == 32)
 
     var path = makeSquarePath(0, 0, 16, 32)
     over.painter.fillPath(&path, Color.fromRgb(200, 100, 50))
 
-    var stamped = catch over.toImage() as errStamped
-    @assert(errStamped == null)
+    let stamped = expect over.toImage()
 
     // The right half still shows the image the canvas was opened over.
     let kept = stamped.pixelColor(24, 16)
@@ -95,20 +75,16 @@ func makeSquarePath(x0, y0, x1, y1: f32)->LinePath
 // A canvas can produce a series: reading it leaves the painter ready for the next frame.
 #test
 {
-    var canvas: ImageCanvas
-    if !openCanvas(16, 16, &canvas) do
-        return
+    var canvas = expect ImageCanvas.create(16, 16)
 
     var first = makeSquarePath(0, 0, 16, 16)
     canvas.painter.fillPath(&first, Color.fromRgb(255, 0, 0))
-    var red = catch canvas.toImage() as errRed
-    @assert(errRed == null)
+    let red = expect canvas.toImage()
     @assert(red.pixelColor(8, 8).r == 255)
 
     var second = makeSquarePath(0, 0, 16, 16)
     canvas.painter.fillPath(&second, Color.fromRgb(0, 255, 0))
-    var green = catch canvas.toImage() as errGreen
-    @assert(errGreen == null)
+    let green = expect canvas.toImage()
 
     // The second frame starts from a cleared target: the first one did not linger.
     let pixel = green.pixelColor(8, 8)
@@ -118,15 +94,12 @@ func makeSquarePath(x0, y0, x1, y1: f32)->LinePath
 // Everything the painter can do is available, not just paths.
 #test
 {
-    var canvas: ImageCanvas
-    if !openCanvas(32, 32, &canvas) do
-        return
+    var canvas = expect ImageCanvas.create(32, 32)
 
     canvas.painter.fillRect({0, 0, 32, 16}, Color.fromRgb(80, 90, 100))
     canvas.painter.drawLine(0, 24, 32, 24, Color.fromRgb(255, 255, 255), 4)
 
-    var img = catch canvas.toImage() as err
-    @assert(err == null)
+    let img = expect canvas.toImage()
     @assert(img.pixelColor(16, 8).r == 80)
     @assert(img.pixelColor(16, 24).r > 200)
 }
@@ -146,9 +119,7 @@ func makeSquarePath(x0, y0, x1, y1: f32)->LinePath
 // drawn off screen read back fully transparent while its color was perfectly correct.
 #test
 {
-    var canvas: ImageCanvas
-    if !openCanvas(32, 32, &canvas) do
-        return
+    var canvas = expect ImageCanvas.create(32, 32)
 
     var path: LinePath
     path.start(4, 16)
@@ -162,8 +133,7 @@ func makeSquarePath(x0, y0, x1, y1: f32)->LinePath
     canvas.painter.setAntialiased(true)
     canvas.painter.drawPath(&path, pen)
 
-    var img = catch canvas.toImage() as err
-    @assert(err == null)
+    let img = expect canvas.toImage()
 
     let hit = img.pixelColor(16, 16)
     @assert(hit.r == 247 and hit.g == 249 and hit.b == 0)

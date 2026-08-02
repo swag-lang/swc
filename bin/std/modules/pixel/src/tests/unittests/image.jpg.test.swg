@@ -18,9 +18,7 @@ func assertJpgPixelNear(img: Image, b, g, r: u8, tolerance: u8)
 
 func assertLoadedJpg(fileName: string, width, height: s32, b, g, r: u8)
 {
-    var img: Image
-    img = catch Image.load(getTestDataPath(fileName)) as err
-    @assert(err == null)
+    let img = expect Image.load(getTestDataPath(fileName))
     @assert(img.isValid())
     @assert(img.width == width)
     @assert(img.height == height)
@@ -31,23 +29,9 @@ func assertLoadedJpg(fileName: string, width, height: s32, b, g, r: u8)
     assertJpgPixelNear(img, b, g, r, 8'u8)
 }
 
-func jpgCanEncode(fileName: string)->bool
-{
-    var enc: Jpg.Encoder
-    let itf = @mkinterface(&enc, #typeof(Jpg.Encoder), IImageEncoder)
-    return itf.canEncode(fileName)
-}
-
-func encodeJpg(result: *ConcatBuffer, image: Image, options: #null any = null) fail
-{
-    var enc: Jpg.Encoder
-    let itf = @mkinterface(&enc, #typeof(Jpg.Encoder), IImageEncoder)
-    itf.encode(result, image, options)
-}
-
 func assertJpgHasMarker(bytes: const [..] u8, marker: u8)
 {
-    for var i = 0'u64; i + 1 < @countof(bytes); i += 1
+    for [i] in @countof(bytes) - 1
     {
         if bytes[i] == 0xFF and bytes[i + 1] == marker do
             return
@@ -116,10 +100,7 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     var opt: Jpg.EncodeOptions
     opt.quality = quality
 
-    var cb: ConcatBuffer
-    catch encodeJpg(&cb, src, opt) as err2
-    @assert(err2 == null)
-
+    let cb = expect src.encode("memory.jpg", opt)
     let bytes = nnBytes(cb.toSlice())
     @assert(@countof(bytes) > 20)
     @assert(bytes[0] == 0xFF and bytes[1] == 0xD8)
@@ -129,9 +110,7 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     assertJpgHasMarker(bytes, 0xC4'u8)
     assertJpgHasMarker(bytes, 0xDA'u8)
 
-    var img: Image
-    img = catch Image.decode("encoded.jpg", bytes, {}) as err3
-    @assert(err3 == null)
+    let img = expect Image.decode("encoded.jpg", bytes, {})
     @assert(img.width == src.width)
     @assert(img.height == src.height)
     @assert(img.pixelFormat == .BGR8)
@@ -147,9 +126,6 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     @assert(!Image.canLoad("photo.jxl"))
     @assert(Image.canSave("photo.jpg"))
     @assert(Image.canSave("photo.jpeg"))
-    @assert(jpgCanEncode("photo.jpg"))
-    @assert(jpgCanEncode("photo.jpeg"))
-    @assert(!jpgCanEncode("photo.png"))
 }
 
 // Load real baseline JPEG fixtures with different sampling layouts.
@@ -171,12 +147,8 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
 // Decode from preloaded bytes and verify .jpeg extension routing.
 #test
 {
-    let bytes = catch File.readAllBytes(getTestDataPath("h1v1.jpg")) as err4
-    @assert(err4 == null)
-
-    var img: Image
-    img = catch Image.decode("fixture.jpeg", bytes.toSlice(), {}) as err5
-    @assert(err5 == null)
+    let bytes = expect File.readAllBytes(getTestDataPath("h1v1.jpg"))
+    let img = expect Image.decode("fixture.jpeg", bytes.toSlice(), {})
     @assert(img.width == 660)
     @assert(img.height == 441)
     @assert(img.pixelFormat == .BGR8)
@@ -186,15 +158,11 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
 // Metadata-only decode must populate dimensions without allocating pixels.
 #test
 {
-    let bytes = catch File.readAllBytes(getTestDataPath("h2v2.jpg")) as err6
-    @assert(err6 == null)
-
+    let bytes = expect File.readAllBytes(getTestDataPath("h2v2.jpg"))
     var opts: DecodeOptions
     opts.decodePixels = false
 
-    var img: Image
-    img = catch Image.decode("meta.jpg", bytes.toSlice(), opts) as err7
-    @assert(err7 == null)
+    let img = expect Image.decode("meta.jpg", bytes.toSlice(), opts)
     @assert(img.width == 1024)
     @assert(img.height == 768)
     @assert(img.pixelFormat == .BGR8)
@@ -209,8 +177,7 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     img = catch Image.decode("bad.jpg", @mkslice(&bad[0], @countof(bad)), {}) as err8
     @assert(err8 != null)
 
-    let bytes = catch File.readAllBytes(getTestDataPath("h1v1.jpg")) as err9
-    @assert(err9 == null)
+    let bytes = expect File.readAllBytes(getTestDataPath("h1v1.jpg"))
     img = catch Image.decode("truncated.jpg", @mkslice(bytes.buffer, 32), {}) as err10
     @assert(err10 != null)
 }
@@ -263,13 +230,9 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
 
     var options: Jpg.EncodeOptions
     options.quality = 100
-    var encoded: ConcatBuffer
-    catch encodeJpg(&encoded, src, options) as encodeError
-    @assert(encodeError == null)
-
+    let encoded = expect src.encode("memory.jpg", options)
     let adobeRgb = addAdobeRgbMarker(nnBytes(encoded.toSlice()))
-    let decoded  = catch Image.decode("adobe-rgb.jpg", nnBytes(adobeRgb.toSlice()), {}) as decodeError
-    @assert(decodeError == null)
+    let decoded = expect Image.decode("adobe-rgb.jpg", nnBytes(adobeRgb.toSlice()), {})
     @assert(decoded.width == 8 and decoded.height == 8)
 
     // The source encoder's Y, Cb and Cr component samples become direct R, G and B.

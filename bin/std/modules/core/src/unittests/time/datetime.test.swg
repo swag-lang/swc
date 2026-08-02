@@ -135,19 +135,19 @@ func assertDateTime(value: Time.DateTime, year, month, day, hour, minute, second
 
 #test
 {
-    let dateOnly = catch Time.DateTime.parse("2024-02-29")
+    let dateOnly = expect Time.DateTime.parse("2024-02-29")
     assertDateTime(dateOnly.value, 2024, 2, 29, 0, 0, 0, 0)
     @assert(dateOnly.eat == 10)
 
-    let hourMinute = catch Time.DateTime.parse("2024-02-29 01:02")
+    let hourMinute = expect Time.DateTime.parse("2024-02-29 01:02")
     assertDateTime(hourMinute.value, 2024, 2, 29, 1, 2, 0, 0)
     @assert(hourMinute.eat == 16)
 
-    let fullIso = catch Time.DateTime.parse("2024-02-29 01:02:03.456")
+    let fullIso = expect Time.DateTime.parse("2024-02-29 01:02:03.456")
     assertDateTime(fullIso.value, 2024, 2, 29, 1, 2, 3, 456)
     @assert(fullIso.eat == 23)
 
-    let named = catch Time.DateTime.parse("Thursday February 29 2024 01:02:03")
+    let named = expect Time.DateTime.parse("Thursday February 29 2024 01:02:03")
     assertDateTime(named.value, 2024, 2, 29, 1, 2, 3, 0)
     @assert(named.eat == 34)
 }

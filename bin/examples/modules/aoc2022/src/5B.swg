@@ -58,7 +58,7 @@ func day5B()
     {
         if moveMode
         {
-            if !catch r.match(#raw "move (\d+) from (\d+) to (\d+)", l) do
+            if !expect r.match(#raw "move (\d+) from (\d+) to (\d+)", l) do
                 continue
             let count   = expect StrConv.toU64(r.getCapture(1))
             let colFrom = expect StrConv.toS32(r.getCapture(2)) - 1
@@ -74,14 +74,13 @@ func day5B()
         }
         else
         {
-            var stack = 0
-            for var i = 0; i < l.length; i += 4
+            for [stack] in (l.length + 3) / 4
             {
+                let i = stack * 4
                 if stack >= stacks.count do
                     stacks.add("")
                 if l[i] == '[' do
                     stacks[stack].append(l[i + 1])
-                stack += 1
             }
         }
     }

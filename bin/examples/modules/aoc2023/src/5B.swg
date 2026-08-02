@@ -107,8 +107,11 @@ func day5B()
     }
 
     var ranges: Array'SeedRange
-    for var x = 0; x < seeds.count; x += 2 do
+    for [pair] in seeds.count / 2
+    {
+        let x = pair * 2
         ranges.add({seeds[x], seeds[x] + seeds[x + 1] - 1})
+    }
 
     for [i] in 7
     {

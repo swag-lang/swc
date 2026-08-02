@@ -31,6 +31,7 @@ func iconBarHeadlessReset()
 {
     var host: Testing.HeadlessHost
     host.setup(240, 80)
+    defer host.shutdown()
     iconBarHeadlessReset()
 
     let bar = IconBar.create(&host.root, 24, {20, 20})
@@ -41,8 +42,6 @@ func iconBarHeadlessReset()
     @assert(b2 != null)
     @assert(bar.children.count == 2)
     @assert(bar.buttonById(IconBarHeadless_Btn1) == b1)
-
-    host.shutdown()
 }
 
 // Changing bar metrics updates existing buttons as well as the bar extent.
@@ -50,7 +49,7 @@ func iconBarHeadlessReset()
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-
+    defer host.shutdown()
     let bar              = IconBar.create(&host.root, 20, {20, 20}, itemPadding: 2)
     let btn              = bar.addButton({}, IconBarHeadless_Btn1)
     let descriptorWidth  = btn.icon.sizeX
@@ -67,8 +66,6 @@ func iconBarHeadlessReset()
     @assert(btn.icon.sizeX == descriptorWidth and btn.icon.sizeY == descriptorHeight)
     @assert(btn.position.width == 38 and btn.position.height == 38)
     @assert(bar.position.width == 38 and bar.position.height == 38)
-
-    host.shutdown()
 }
 
 // Clicking a docked button forwards through the bar's sigPressed.
@@ -76,6 +73,7 @@ func iconBarHeadlessReset()
 {
     var host: Testing.HeadlessHost
     host.setup(240, 80)
+    defer host.shutdown()
     iconBarHeadlessReset()
 
     let bar = IconBar.create(&host.root, 24, {20, 20})
@@ -85,8 +83,6 @@ func iconBarHeadlessReset()
     // First button is docked on the left, filling the bar origin.
     host.click({34, 34})
     @assert(IconBarHeadlessPressedCount == 1)
-
-    host.shutdown()
 }
 
 // A toggle button forwards through the bar's sigCheckedChanged.
@@ -94,6 +90,7 @@ func iconBarHeadlessReset()
 {
     var host: Testing.HeadlessHost
     host.setup(240, 80)
+    defer host.shutdown()
     iconBarHeadlessReset()
 
     let bar = IconBar.create(&host.root, 24, {20, 20})
@@ -107,6 +104,4 @@ func iconBarHeadlessReset()
     bar.setOrientation(.Vertical)
     @assert(bar.orientation == .Vertical)
     @assert(bar.position.width == 32 and bar.position.height == 32)
-
-    host.shutdown()
 }

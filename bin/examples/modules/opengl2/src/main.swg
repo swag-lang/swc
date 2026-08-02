@@ -93,8 +93,9 @@ func createShader()
 
 #main
 {
-    try Env.createWindow(&g_Window, {className: "OPENGL2_CLASS_NAME", title: "OpenGL example", width: 512, height: 512})
+    g_Window  = try Env.createWindow({className: "OPENGL2_CLASS_NAME", title: "OpenGL example", width: 512, height: 512})
     g_Context = try Ogl.Platform.Win32.createContext(&g_Window)
+    defer g_Context.destroy()
     glInitExtensions()
 
     glGenBuffers(1, &g_VertexBuffer)
@@ -114,5 +115,4 @@ func createShader()
             break
     }
 
-    g_Context.destroy()
 }

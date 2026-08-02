@@ -8,7 +8,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(320, 220)
-
+    defer host.shutdown()
     let splitter = SplitterCtrl.create(&host.root, {0, 0, 300, 200})
     let pane0    = Wnd.create'Wnd(splitter, null, {})
     let pane1    = Wnd.create'Wnd(splitter, null, {})
@@ -26,8 +26,6 @@ using Swag, Core
     let barSize = splitter.themeMetrics().splitView_BarSize
     let total   = (notnull splitter.items[0]).size + (notnull splitter.items[1]).size + barSize
     @assert(Math.abs(total - client.width) < 1.5)
-
-    host.shutdown()
 }
 
 // A pane can be hidden and shown again, updating the visible-pane count.
@@ -35,7 +33,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(320, 220)
-
+    defer host.shutdown()
     let splitter = SplitterCtrl.create(&host.root, {0, 0, 300, 200})
     let pane0    = Wnd.create'Wnd(splitter, null, {})
     let pane1    = Wnd.create'Wnd(splitter, null, {})
@@ -51,8 +49,6 @@ using Swag, Core
     @assert(splitter.isPaneVisible(1))
     @assert(splitter.numVisiblePanes == 2)
     @assert(pane1.isLocallyVisible())
-
-    host.shutdown()
 }
 
 // setPaneSize clamps to the pane minimum size.
@@ -60,7 +56,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(320, 220)
-
+    defer host.shutdown()
     let splitter = SplitterCtrl.create(&host.root, {0, 0, 300, 200})
     let pane0    = Wnd.create'Wnd(splitter, null, {})
     let pane1    = Wnd.create'Wnd(splitter, null, {})
@@ -71,8 +67,6 @@ using Swag, Core
     pane0It.minimumSize = 20
     splitter.setPaneSize(0, -50)
     @assert(pane0It.size >= 20)
-
-    host.shutdown()
 }
 
 // Hidden panes do not absorb size transferred between visible neighbors.
@@ -80,7 +74,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(340, 220)
-
+    defer host.shutdown()
     let splitter = SplitterCtrl.create(&host.root, {0, 0, 320, 200})
     let pane0    = Wnd.create'Wnd(splitter)
     let pane1    = Wnd.create'Wnd(splitter)
@@ -101,6 +95,4 @@ using Swag, Core
     @assert(Math.abs(item0.size - requested) < 0.01)
     @assert(Math.abs(item0.size + item2.size - total) < 0.01)
     @assert(item1.size == middleSize)
-
-    host.shutdown()
 }

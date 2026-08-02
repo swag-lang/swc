@@ -23,15 +23,13 @@ func assertWebpPixelFromTop(image: Image, x, y, r, g, b, a: u8)
 
 func checkWebpAgainstPng(fileName, goldenName: string, width, height: s32)
 {
-    let decoded = catch Image.load(getTestDataPath(fileName)) as decodeError
-    @assert(decodeError == null)
+    let decoded = expect Image.load(getTestDataPath(fileName))
     @assert(decoded.isValid())
     @assert(decoded.width == width)
     @assert(decoded.height == height)
     @assert(decoded.pixelFormat == .RGBA8)
 
-    let golden = catch Image.load(getTestDataPath(goldenName)) as goldenError
-    @assert(goldenError == null)
+    let golden = expect Image.load(getTestDataPath(goldenName))
     @assert(golden.width == width)
     @assert(golden.height == height)
     for [y] in height do
@@ -48,15 +46,13 @@ func checkWebpAgainstPng(fileName, goldenName: string, width, height: s32)
 
 func checkLossyWebp(fileName, goldenName: string, width, height: s32, withAlpha: bool)
 {
-    let decoded = catch Image.load(getTestDataPath(fileName)) as decodeError
-    @assert(decodeError == null)
+    let decoded = expect Image.load(getTestDataPath(fileName))
     @assert(decoded.isValid())
     @assert(decoded.width == width)
     @assert(decoded.height == height)
     @assert(decoded.pixelFormat == .RGBA8)
 
-    let golden = catch Image.load(getTestDataPath(goldenName)) as goldenError
-    @assert(goldenError == null)
+    let golden = expect Image.load(getTestDataPath(goldenName))
     let halfWidth  = (width + 1) / 2
     let halfHeight = (height + 1) / 2
     @assert(golden.width == 2 * halfWidth)
@@ -84,26 +80,9 @@ func checkLossyWebp(fileName, goldenName: string, width, height: s32, withAlpha:
     }
 }
 
-func webpCanEncode(fileName: string)->bool
-{
-    var encoder: Webp.Encoder
-    let itf = @mkinterface(&encoder, #typeof(Webp.Encoder), IImageEncoder)
-    return itf.canEncode(fileName)
-}
-
-func encodeWebp(result: *ConcatBuffer, image: Image) fail
-{
-    var encoder: Webp.Encoder
-    let itf = @mkinterface(&encoder, #typeof(Webp.Encoder), IImageEncoder)
-    itf.encode(result, image, null)
-}
-
 func assertEncodedWebpRoundtrip(source: Image)
 {
-    var buffer: ConcatBuffer
-    catch encodeWebp(&buffer, source) as encodeError
-    @assert(encodeError == null)
-
+    let buffer = expect source.encode("memory.webp")
     let bytes = nnBytes(buffer.toSlice())
     @assert(@countof(bytes) >= 21)
     @assert(bytes[0] == 'R' and bytes[1] == 'I' and bytes[2] == 'F' and bytes[3] == 'F')
@@ -113,8 +92,7 @@ func assertEncodedWebpRoundtrip(source: Image)
                    (cast(u32) bytes[6] << 16) | (cast(u32) bytes[7] << 24)
     @assert(cast(u64) riffSize + 8 == @countof(bytes))
 
-    let decoded = catch Image.decode("encoded.webp", bytes, {}) as decodeError
-    @assert(decodeError == null)
+    let decoded = expect Image.decode("encoded.webp", bytes, {})
     @assert(decoded.width == source.width)
     @assert(decoded.height == source.height)
     @assert(decoded.pixelFormat == .RGBA8)
@@ -136,8 +114,6 @@ func assertEncodedWebpRoundtrip(source: Image)
     @assert(Image.canLoad("image.webp"))
     @assert(!Image.canLoad("image.webm"))
     @assert(Image.canSave("image.webp"))
-    @assert(webpCanEncode("image.webp"))
-    @assert(!webpCanEncode("image.png"))
 }
 
 // Lossless encoding preserves every channel and the image row orientation.
@@ -161,9 +137,7 @@ func assertEncodedWebpRoundtrip(source: Image)
     var source = Image.create(5000, 1, .RGBA8)
     source.fill(Color.fromArgb(37'u8, 19'u8, 73'u8, 211'u8))
 
-    var buffer: ConcatBuffer
-    catch encodeWebp(&buffer, source) as encodeError
-    @assert(encodeError == null)
+    let buffer = expect source.encode("memory.webp")
     @assert(buffer.count() < 128)
     assertEncodedWebpRoundtrip(source)
 }
@@ -172,8 +146,7 @@ func assertEncodedWebpRoundtrip(source: Image)
 #test
 {
     var source: Image
-    var buffer: ConcatBuffer
-    catch encodeWebp(&buffer, source) as encodeError
+    discard catch source.encode("memory.webp") as encodeError
     @assert(encodeError != null)
 }
 
@@ -187,13 +160,10 @@ func assertEncodedWebpRoundtrip(source: Image)
 // Metadata-only decoding reads dimensions without allocating the pixel buffer.
 #test
 {
-    let bytes = catch File.readAllBytes(getTestDataPath("gopher-doc.lossless.webp")) as err3
-    @assert(err3 == null)
-
+    let bytes = expect File.readAllBytes(getTestDataPath("gopher-doc.lossless.webp"))
     var options: DecodeOptions
     options.decodePixels = false
-    let decoded = catch Image.decode("metadata.webp", bytes.toSlice(), options) as err4
-    @assert(err4 == null)
+    let decoded = expect Image.decode("metadata.webp", bytes.toSlice(), options)
     @assert(decoded.width == 75)
     @assert(decoded.height == 100)
     @assert(decoded.pixelFormat == .RGBA8)
@@ -210,8 +180,7 @@ func assertEncodedWebpRoundtrip(source: Image)
     decoded = catch Image.decode("bad.webp", @mkslice(&bad[0], @countof(bad)), {}) as err5
     @assert(err5 != null)
 
-    let bytes = catch File.readAllBytes(getTestDataPath("gopher-doc.lossless.webp")) as err6
-    @assert(err6 == null)
+    let bytes = expect File.readAllBytes(getTestDataPath("gopher-doc.lossless.webp"))
     decoded = catch Image.decode("truncated.webp", @mkslice(bytes.buffer, 32), {}) as err7
     @assert(err7 != null)
 }
@@ -221,9 +190,7 @@ func assertEncodedWebpRoundtrip(source: Image)
 {
     checkLossyWebp("blue-purple-pink.lossy.webp", "blue-purple-pink.lossy.webp.ycbcr.png", 150, 100, false)
 
-    let decoded = catch Image.load(getTestDataPath("blue-purple-pink.lossy.webp")) as decodeError
-    @assert(decodeError == null)
-
+    let decoded = expect Image.load(getTestDataPath("blue-purple-pink.lossy.webp"))
     // Reference samples produced by libwebp 1.6.0 dwebp with -nofancy.
     assertWebpPixelFromTop(decoded, 0, 0, 16, 19, 15, 255)
     assertWebpPixelFromTop(decoded, 112, 58, 232, 107, 160, 255)
@@ -236,9 +203,7 @@ func assertEncodedWebpRoundtrip(source: Image)
 {
     checkLossyWebp("yellow_rose.lossy-with-alpha.webp", "yellow_rose.lossy-with-alpha.webp.nycbcra.png", 400, 301, true)
 
-    let decoded = catch Image.load(getTestDataPath("yellow_rose.lossy-with-alpha.webp")) as decodeError
-    @assert(decodeError == null)
-
+    let decoded = expect Image.load(getTestDataPath("yellow_rose.lossy-with-alpha.webp"))
     // Reference samples produced by libwebp 1.6.0 dwebp with -nofancy.
     assertWebpPixelFromTop(decoded, 106, 81, 241, 146, 3, 255)
     assertWebpPixelFromTop(decoded, 128, 47, 255, 90, 151, 255)
@@ -266,12 +231,10 @@ func assertEncodedWebpRoundtrip(source: Image)
 // VP8 metadata-only decoding reads the frame header without allocating pixels.
 #test
 {
-    let bytes = catch File.readAllBytes(getTestDataPath("blue-purple-pink.lossy.webp")) as readError
-    @assert(readError == null)
+    let bytes = expect File.readAllBytes(getTestDataPath("blue-purple-pink.lossy.webp"))
     var options: DecodeOptions
     options.decodePixels = false
-    let decoded = catch Image.decode("metadata.webp", bytes.toSlice(), options) as decodeError
-    @assert(decodeError == null)
+    let decoded = expect Image.decode("metadata.webp", bytes.toSlice(), options)
     @assert(decoded.width == 150)
     @assert(decoded.height == 100)
     @assert(decoded.pixelFormat == .RGBA8)

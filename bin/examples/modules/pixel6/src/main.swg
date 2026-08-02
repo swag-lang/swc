@@ -225,8 +225,7 @@ func drawFrame(painter: *Pixel.Painter, rect: Math.Rectangle, title: string)
 
 func makeOutline(text: string, size: u32, embolden: u32)->LinePathList
 {
-    var result: retval
-    expect (notnull g_TypeFace).buildStringOutline(&result, text, size, embolden)
+    var result = expect (notnull g_TypeFace).buildStringOutline(text, size, embolden)
     result.flatten(.High)
     return result
 }
@@ -479,11 +478,12 @@ func onResize(_window: *Env.Window, width, height: s32)
 
 #main
 {
-    try Env.createWindow(&g_Window, {className: "PIXEL6_CLASS_NAME", title: "Pixel example - Captme text outline quality", width: W, height: H, style: FixedWindowStyle})
+    g_Window = try Env.createWindow({className: "PIXEL6_CLASS_NAME", title: "Pixel example - Captme text outline quality", width: W, height: H, style: FixedWindowStyle})
     try g_Window.setClientSize(W, H)
     g_Render  = &g_Renderer
     g_Painter = Pixel.Painter.create(g_Render)
     g_RC      = try g_Render.createContext(cast(#null const *void) g_Window.nativeHandle, W, H)
+    defer g_Render.deleteContext(&g_RC)
     g_Render.setCurrentContext(g_RC)
     g_Render.init()
 
@@ -501,6 +501,5 @@ func onResize(_window: *Env.Window, width, height: s32)
         display()
     }
 
-    g_Render.deleteContext(&g_RC)
     shutdownGdiPlus()
 }

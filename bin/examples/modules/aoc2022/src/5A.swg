@@ -61,7 +61,7 @@ func day5A()
     var stacks: Array'String
 
     var r: Parser.RegExp
-    catch r.compile(#raw "\d+")
+    expect r.compile(#raw "\d+")
 
     var moveMode = false
     for l in lines
@@ -90,14 +90,13 @@ func day5A()
         }
         else
         {
-            var stack = 0
-            for var i = 0; i < l.length; i += 4
+            for [stack] in (l.length + 3) / 4
             {
+                let i = stack * 4
                 if stack >= stacks.count do
                     stacks.add("")
                 if l[i] == '[' do
                     stacks[stack].append(l[i + 1])
-                stack += 1
             }
         }
     }

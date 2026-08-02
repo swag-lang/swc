@@ -8,7 +8,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     let textItf = f.main.editModeToModel(.Text)
     textItf.setBaseForm(111, 112, 113, 114)
     f.main.mdlFormText.text = "Keep me"
@@ -33,8 +33,6 @@ using Swag, Core
     @assert(f.main.mdlFormPolygon.points[0] == pointBefore)
     @assert((cast(*FormPolygon) @dataof(notnull polyPaint.itf)).points.count == 6)
     quickStyleReleasePaintForm(&polyPaint)
-
-    f.shutdown()
 }
 
 // Dismissing the QuickStyle context menu must not disturb the right-side Properties pane.
@@ -42,6 +40,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
+    defer f.shutdown()
     f.gui.surfaceWnd.view = f.main
 
     with f.main.quickStyleBar = SplitterCtrl.create(f.main, {600, 0, 300, 650}, vertical: true)
@@ -111,8 +110,6 @@ using Swag, Core
     @assert(sliderBefore.slider.position == sliderTrackPosBefore)
     @assert(sliderBefore.edit.position == sliderEditPosBefore)
     @assert(f.main.propWnd.topLayout.children.count == propChildCountBefore)
-
-    f.shutdown()
 }
 
 // Default quick styles cover every visible Captme tool family with subkind tagging.
@@ -120,7 +117,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     let quick = QuickWnd.create(f.main, f.main)
     quick.setDefault()
 
@@ -165,7 +162,6 @@ using Swag, Core
 
     quick.destroy()
     f.gui.pump()
-    f.shutdown()
 }
 
 // Reset quick styles goes through the real confirmation dialog and rebuilds the
@@ -174,7 +170,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-
+    defer f.shutdown()
     let quick = QuickWnd.create(f.main, f.main)
     f.main.quickWnd = quick
     f.main.editMode = .Shape
@@ -183,7 +179,7 @@ using Swag, Core
 
     let extra = Memory.new'FormShape()
     extra.IForm.setup(f.capture)
-    quick.qsShape.forms.add(cast(IForm) extra)
+    quick.qsShape.forms.add(extra)
     quick.updateQuickStyles(forceRebuild: true)
     @assert(quick.qsShape.forms.count == defaultCount + 1)
     @assert(quick.currentStyle == &quick.qsShape)
@@ -200,7 +196,6 @@ using Swag, Core
 
     quick.destroy()
     f.gui.pump()
-    f.shutdown()
 }
 
 // The QuickStyle context menu can drive the same reset flow as a user: popup
@@ -209,7 +204,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-
+    defer f.shutdown()
     let quick = QuickWnd.create(f.main, f.main)
     f.main.quickWnd = quick
     f.main.editMode = .Shape
@@ -219,7 +214,7 @@ using Swag, Core
 
     let extra = Memory.new'FormShape()
     extra.IForm.setup(f.capture)
-    quick.qsShape.forms.add(cast(IForm) extra)
+    quick.qsShape.forms.add(extra)
     quick.updateQuickStyles(forceRebuild: true)
     @assert(quick.qsShape.forms.count == defaultCount + 1)
 
@@ -234,7 +229,6 @@ using Swag, Core
 
     quick.destroy()
     f.gui.pump()
-    f.shutdown()
 }
 
 // QuickStyle.sanitize and clear preserve known Captme forms and release them through the style owner.
@@ -242,11 +236,11 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     var quickStyle: QuickStyle
     let shape = Memory.new'FormShape()
     shape.IForm.setup(f.capture)
-    quickStyle.forms.add(cast(IForm) shape)
+    quickStyle.forms.add(shape)
 
     quickStyle.sanitize()
     @assert(quickStyle.forms.count == 1)
@@ -254,6 +248,4 @@ using Swag, Core
 
     quickStyle.clear()
     @assert(quickStyle.forms.count == 0)
-
-    f.shutdown()
 }

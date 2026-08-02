@@ -132,7 +132,7 @@ func loadBrushTextures()
 
 func loadTextShowcase()
 {
-    expect (notnull g_TypeFace).buildStringOutline(&g_OutlineText, "PIXEL", 84)
+    g_OutlineText = expect (notnull g_TypeFace).buildStringOutline("PIXEL", 84)
 }
 
 func insetRect(rect: Math.Rectangle, left, top, right, bottom: f32)->Math.Rectangle
@@ -366,11 +366,12 @@ func updateTestMode()
 
 #main
 {
-    try Env.createWindow(&g_Window, {className: "PIXEL4_CLASS_NAME", title: "Pixel path and brush drawing showcase", width: W, height: H, style: FixedWindowStyle})
+    g_Window = try Env.createWindow({className: "PIXEL4_CLASS_NAME", title: "Pixel path and brush drawing showcase", width: W, height: H, style: FixedWindowStyle})
     try g_Window.setClientSize(W, H)
     g_Render  = &g_Renderer
     g_Painter = Pixel.Painter.create(g_Render)
     g_RC      = try g_Render.createContext(cast(#null const *void) g_Window.nativeHandle, W, H)
+    defer g_Render.deleteContext(&g_RC)
     g_Render.setCurrentContext(g_RC)
     g_Render.init()
 
@@ -391,5 +392,4 @@ func updateTestMode()
         updateTestMode()
     }
 
-    g_Render.deleteContext(&g_RC)
 }

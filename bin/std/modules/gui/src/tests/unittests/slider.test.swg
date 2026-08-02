@@ -37,6 +37,7 @@ func sliderHeadlessReset()
 {
     var host: Testing.HeadlessHost
     host.setup(280, 80)
+    defer host.shutdown()
     sliderHeadlessReset()
 
     let slider = Slider.create(&host.root, {20, 20, 220, 30})
@@ -57,8 +58,6 @@ func sliderHeadlessReset()
 
     slider.setValue(-50)
     @assert(Math.abs(slider.value() - 0) < 0.01)
-
-    host.shutdown()
 }
 
 // Steps snap the value to the nearest multiple.
@@ -66,6 +65,7 @@ func sliderHeadlessReset()
 {
     var host: Testing.HeadlessHost
     host.setup(280, 80)
+    defer host.shutdown()
     sliderHeadlessReset()
 
     let slider = Slider.create(&host.root, {20, 20, 220, 30})
@@ -76,8 +76,6 @@ func sliderHeadlessReset()
 
     slider.setValue(3.6)
     @assert(Math.abs(slider.value() - 4) < 0.01)
-
-    host.shutdown()
 }
 
 // A step that does not divide the range still clamps the upper endpoint exactly.
@@ -85,7 +83,7 @@ func sliderHeadlessReset()
 {
     var host: Testing.HeadlessHost
     host.setup(280, 80)
-
+    defer host.shutdown()
     let slider = Slider.create(&host.root, {20, 20, 220, 30})
     slider.setBounds(0, 10, 6)
     slider.setValue(10)
@@ -94,8 +92,6 @@ func sliderHeadlessReset()
     @assert(Math.abs(slider.minimum() - 0) < 0.01)
     @assert(Math.abs(slider.maximum() - 10) < 0.01)
     @assert(Math.abs(slider.step() - 6) < 0.01)
-
-    host.shutdown()
 }
 
 // A mouse press jumps the value to the click position and dragging updates it.
@@ -103,6 +99,7 @@ func sliderHeadlessReset()
 {
     var host: Testing.HeadlessHost
     host.setup(280, 80)
+    defer host.shutdown()
     sliderHeadlessReset()
 
     let slider = Slider.create(&host.root, {20, 20, 220, 30})
@@ -126,8 +123,6 @@ func sliderHeadlessReset()
     @assert(!slider.isMoving)
     @assert(host.app.mouseCaptureWnd == null)
     @assert(SliderHeadlessEndCount == 1)
-
-    host.shutdown()
 }
 
 // A range slider keeps two ordered values.
@@ -135,6 +130,7 @@ func sliderHeadlessReset()
 {
     var host: Testing.HeadlessHost
     host.setup(280, 80)
+    defer host.shutdown()
     sliderHeadlessReset()
 
     let slider = Slider.create(&host.root, {20, 20, 220, 30}, null, true)
@@ -155,8 +151,6 @@ func sliderHeadlessReset()
     @assert(SliderHeadlessStartCount == 1)
     @assert(SliderHeadlessChangedCount == 1)
     @assert(SliderHeadlessEndCount == 1)
-
-    host.shutdown()
 }
 
 // Keyboard control: arrows step the value, Home/End jump to the bounds.
@@ -164,6 +158,7 @@ func sliderHeadlessReset()
 {
     var host: Testing.HeadlessHost
     host.setup(280, 80)
+    defer host.shutdown()
     sliderHeadlessReset()
 
     let slider = Slider.create(&host.root, {20, 20, 220, 30})
@@ -189,8 +184,6 @@ func sliderHeadlessReset()
     @assert(Math.abs(slider.value() - 95) < 0.01)
     host.keyPress(Input.Key.Up)
     @assert(Math.abs(slider.value() - 100) < 0.01)
-
-    host.shutdown()
 }
 
 // Keyboard stepping snaps to integer steps when configured.
@@ -198,6 +191,7 @@ func sliderHeadlessReset()
 {
     var host: Testing.HeadlessHost
     host.setup(280, 80)
+    defer host.shutdown()
     sliderHeadlessReset()
 
     let slider = Slider.create(&host.root, {20, 20, 220, 30})
@@ -209,6 +203,4 @@ func sliderHeadlessReset()
     @assert(Math.abs(slider.value() - 6) < 0.01)
     host.keyPress(Input.Key.Left)
     @assert(Math.abs(slider.value() - 5) < 0.01)
-
-    host.shutdown()
 }

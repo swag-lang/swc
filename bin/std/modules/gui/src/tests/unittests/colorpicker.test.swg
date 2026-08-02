@@ -17,6 +17,7 @@ func colorPickerHeadlessChanged(c: *ColorPicker)
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
+    defer host.shutdown()
     ColorPickerHeadlessChangedCount = 0
 
     let picker = ColorPicker.create(&host.root, {20, 20, 160, 160})
@@ -37,8 +38,6 @@ func colorPickerHeadlessChanged(c: *ColorPicker)
     picker.setColor(Argb.Red, notify: false)
     @assert(picker.color() == Argb.Red)
     @assert(ColorPickerHeadlessChangedCount == 1)
-
-    host.shutdown()
 }
 
 // setHsl updates the HSL components and notifies once.
@@ -46,6 +45,7 @@ func colorPickerHeadlessChanged(c: *ColorPicker)
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
+    defer host.shutdown()
     ColorPickerHeadlessChangedCount = 0
 
     let picker = ColorPicker.create(&host.root, {20, 20, 160, 160})
@@ -59,6 +59,4 @@ func colorPickerHeadlessChanged(c: *ColorPicker)
     // Same hue again: no change, no signal.
     picker.setHsl(0.5, picker.saturation, picker.lightness)
     @assert(ColorPickerHeadlessChangedCount == 1)
-
-    host.shutdown()
 }

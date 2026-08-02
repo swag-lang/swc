@@ -288,8 +288,9 @@ public struct WindowOptions
 
 // Owns one native application window.
 //
-// [[Core.Env.createWindow]] stores the address of this value in native state.
-// Keep it at a stable address until the native window has been destroyed.
+// Create a window with [[Core.Env.createWindow]]. The value closes any remaining native window
+// when it leaves scope; call [[Core.Env.Window.close]] to release it earlier.
+#[Swag.NoCopy]
 public struct Window
 {
     readonly
@@ -357,6 +358,10 @@ private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM
         case WM_DESTROY:
             PostQuitMessage(0)
             return 0
+
+        case WM_NCDESTROY:
+            window.setNativeHandle(null)
+            SetWindowLongPtrA(hWnd, GWLP_USERDATA, 0)
         }
     }
 
@@ -365,23 +370,33 @@ private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM
 
 impl Window
 {
-    internal mtd prepareCreation(showCommand: s32)
-    {
-        .nativeHandle = null
-        .callbacks    = {}
-        .showCommand  = showCommand
-    }
-
     internal mtd setNativeHandle(nativeHandle: HWND)
     {
         .nativeHandle = nativeHandle
     }
+
+    // Rebinds the native callback state when an owning window value moves.
+    mtd opPostMove()
+    {
+        if .nativeHandle do
+            SetWindowLongPtrA(.nativeHandle, GWLP_USERDATA, cast #bit (LONG_PTR) cast(u64) &me)
+    }
+
+    // Closes any remaining native window when this value leaves scope.
+    mtd opDrop()
+    {
+        catch .close()
+    }
 }
 
-// Creates a native application window. Platform-specific state stays behind [[Core.Env.Window.nativeHandle]].
-public func createWindow(window: &Window, options: WindowOptions) fail
+// Creates and owns a native application window.
+//
+// The returned [[Core.Env.Window]] keeps platform-specific state behind
+// [[Core.Env.Window.nativeHandle]] and closes the native window when it leaves scope.
+public func createWindow(options: WindowOptions)->Window fail
 {
-    window.prepareCreation(options.showCommand)
+    var result: retval
+    result.showCommand = options.showCommand
 
     var wc: WNDCLASSA
     wc.style         = options.classStyle
@@ -390,11 +405,12 @@ public func createWindow(window: &Window, options: WindowOptions) fail
     wc.lpszClassName = @dataof(options.className)
     try RegisterClassA(wc)
 
-    let hWnd = CreateWindowExA(options.exStyle, @dataof(options.className), @dataof(options.title), options.style, options.x, options.y, options.width, options.height, null, null, wc.hInstance, &window)
+    let hWnd = CreateWindowExA(options.exStyle, @dataof(options.className), @dataof(options.title), options.style, options.x, options.y, options.width, options.height, null, null, wc.hInstance, &result)
     if !hWnd do
         failWinError(GetLastError())
 
-    window.setNativeHandle(hWnd)
+    result.setNativeHandle(hWnd)
+    return result
 }
 
 // Processes all pending window messages. Returns false when the application should exit.
@@ -415,6 +431,20 @@ public func processWindowMessages()->bool
 
 public impl Window
 {
+    // Closes the native window if it is still open.
+    //
+    // Calling `close` repeatedly is safe. Failure leaves the native handle owned by this value,
+    // so a later call or scope cleanup can retry the release.
+    mtd close() fail
+    {
+        let handle = .nativeHandle
+        if !handle do
+            return
+
+        try DestroyWindow(handle)
+        .nativeHandle = null
+    }
+
     // Acquires the native device context for this window.
     //
     // Every successful call must be paired with

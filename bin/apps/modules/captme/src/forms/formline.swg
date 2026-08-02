@@ -58,7 +58,7 @@ impl IForm for FormLine
         var xbu     = 0
         var ybu     = 0
         let capture = notnull .capture
-        capture.snap(&xbu, &ybu, true, true, 1, cast(IForm) me)
+        capture.snap(&xbu, &ybu, true, true, 1, me)
         .xb += xbu
         .yb += ybu
 

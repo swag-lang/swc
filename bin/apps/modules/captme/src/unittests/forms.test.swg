@@ -56,7 +56,7 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     let shape = testAddShape(f.capture, 10, 20, 30, 40)
     shape.IForm.setBaseForm(80, 90, -20, -30)
     Gui.Testing.assertRect(shape.IForm.boundRect(), 60, 60, 20, 30)
@@ -76,8 +76,6 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
 
     shape.kind = .Rectangle
     @assert(shape.IForm.isInside({-1000, -1000}))
-
-    f.shutdown()
 }
 
 // Text supersampling must only increase raster resolution, never logical layout.
@@ -85,7 +83,7 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     let text = testAddText(f.capture, 20, 30, 180, 90)
     text.text        = "780"
     text.fontSize    = 48
@@ -97,8 +95,6 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     let base   = testTextPaintTransform(text, 17, -9, 1, 1)
     let scaled = testTextPaintTransform(text, 17, -9, 1, 3)
     testAssertScaledTransform(base, scaled, 3)
-
-    f.shutdown()
 }
 
 // Text, image and step forms expose the expected non-painting interaction contracts.
@@ -106,7 +102,7 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     let text = testAddText(f.capture, 20, 30, 120, 50)
     @assert(text.IForm.mustClipToBound())
     @assert(text.IForm.canRotate())
@@ -138,8 +134,6 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     @assert(step.index == 7)
     @assert(f.capture.nextStepIndex == 8)
     @assert(step.isDirty)
-
-    f.shutdown()
 }
 
 // Line-like forms keep endpoint, control-point and bound-rect state consistent.
@@ -147,7 +141,7 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     let line = testAddLine(f.capture, 10, 60, 40, 20)
     Gui.Testing.assertRect(line.IForm.boundRect(), 10, 20, 30, 40)
 
@@ -172,8 +166,6 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     @assert(arrow.ya == 125)
     @assert(arrow.xb == 130)
     @assert(arrow.yb == 155)
-
-    f.shutdown()
 }
 
 // Polygon and draw forms share point-list movement, scaling and inside tests.
@@ -181,7 +173,7 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     var polyPoints: Array'Math.Vector2
     polyPoints.add({10, 10})
     polyPoints.add({60, 10})
@@ -211,8 +203,6 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     Gui.Testing.assertPoint(draw.points[2], 120, 160)
     draw.IForm.moveForm(3, -4)
     Gui.Testing.assertPoint(draw.points[0], 103, 96)
-
-    f.shutdown()
 }
 
 // Form edit methods produce deterministic geometry and completion flags.
@@ -220,7 +210,7 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     let shape   = testAddShape(f.capture, 0, 0, 1, 1)
     var moveEvt = testMouse(.Move)
     @assert(shape.IForm.edit(&moveEvt, {80, 70}, {50, 20}, 1))
@@ -241,8 +231,6 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     @assert(!image.isReadyToCapture)
     @assert(!image.IForm.edit(&releaseEvt, {20, 30}, {60, 100}, 1))
     @assert(image.isReadyToCapture)
-
-    f.shutdown()
 }
 
 // Point-list edit methods add, update and finish without relying on painting.
@@ -250,7 +238,7 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     var moveEvt    = testMouse(.Move)
     var releaseEvt = testMouse(.Released)
     var doubleEvt  = testMouse(.DoubleClick)
@@ -275,8 +263,6 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     @assert(draw.IForm.edit(&moveEvt, {5, 5}, {15, 9}, 1))
     @assert(draw.points.count == 3)
     @assert(!draw.IForm.edit(&releaseEvt, {5, 5}, {15, 9}, 1))
-
-    f.shutdown()
 }
 
 // Copy/isSame covers every concrete form family and the regression-sensitive subKind fields.
@@ -284,7 +270,7 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     let shape = testAddShape(f.capture, 1, 2, 30, 40, .Highlight)
     shape.kind      = .RoundRectangle
     shape.roundSize = 25
@@ -368,6 +354,4 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     image.kind     = .Blur
     imageCopy.kind = .Blur
     @assert(image.IForm.isSame(&imageCopy))
-
-    f.shutdown()
 }

@@ -9,7 +9,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     f.capture.backImgOriginal = Image.create(123, 77, .BGRA8)
     f.capture.widthOrg        = 123
     f.capture.heightOrg       = 77
@@ -37,7 +37,6 @@ using Swag, Core
     @assert(f.capture.width == 123)
 
     f.capture.undo()
-    f.shutdown()
 }
 
 // Flatten renders the selected forms into the background and removes only that
@@ -46,7 +45,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     f.capture.backImg.fill(ColorBlue)
     let shape = testAddShape(f.capture, 10, 10, 30, 25)
     let text  = testAddText(f.capture, 70, 10, 30, 20)
@@ -68,8 +67,6 @@ using Swag, Core
     f.capture.redo()
     @assert(f.capture.forms.count == 1)
     @assert(@dataof(f.capture.forms[0]) == text)
-
-    f.shutdown()
 }
 
 // FlattenAll renders every non-pixel-selection form into the background and clears
@@ -78,7 +75,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     f.capture.backImg.fill(ColorBlue)
     discard testAddShape(f.capture, 10, 10, 30, 25)
     discard testAddText(f.capture, 70, 10, 30, 20)
@@ -95,8 +92,6 @@ using Swag, Core
 
     f.capture.redo()
     @assert(f.capture.forms.count == 0)
-
-    f.shutdown()
 }
 
 // SetImage replaces the background image and position, and restores both on undo.
@@ -104,7 +99,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     var u = f.capture.newUndo(.SetImage)
     u.newImg      = Image.create(50, 40, .BGRA8)
     u.newImagePos = {5, 7}
@@ -121,8 +116,6 @@ using Swag, Core
     f.capture.redo()
     @assert(f.capture.backImg.width == 50)
     @assert(f.capture.backImagePos.x == 5)
-
-    f.shutdown()
 }
 
 // SetImageInside sets the inside image of the selected image forms and restores the
@@ -131,7 +124,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     let imgForm = testAddImage(f.capture, 50, 50, 60, 40)
     imgForm.image = Image.create(10, 10, .BGRA8)
     f.capture.selection.add(0)
@@ -147,8 +140,6 @@ using Swag, Core
 
     f.capture.redo()
     @assert(imgForm.image.width == 20)
-
-    f.shutdown()
 }
 
 // SetTypedValue writes a field bit pattern through reflection on every accepted form
@@ -157,7 +148,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     let shape = testAddShape(f.capture, 10, 10, 20, 20)
     let text  = testAddText(f.capture, 50, 10, 30, 20)
     shape.rotate = 33
@@ -180,8 +171,6 @@ using Swag, Core
     f.capture.redo()
     @assert(shape.rotate == 90)
     @assert(text.rotate == 90)
-
-    f.shutdown()
 }
 
 // Regression: the per-kind undo storage is compacted (init skips forms the command does
@@ -192,7 +181,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     // SetText over [shape, text]
     let shape = testAddShape(f.capture, 10, 10, 20, 20)
     let text  = testAddText(f.capture, 50, 10, 30, 20)
@@ -238,8 +227,6 @@ using Swag, Core
     @assert(shape.borderSize == 9)
     f.capture.undo()
     @assert(shape.borderSize == 3)
-
-    f.shutdown()
 }
 
 // Regression: undoing an alignment must restore point-based forms too. The restore
@@ -249,7 +236,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     discard testAddShape(f.capture, 10, 50, 20, 20)
     let line = testAddLine(f.capture, 100, 120, 150, 170)
     f.capture.selection.add(0)
@@ -267,8 +254,6 @@ using Swag, Core
     @assert(line.ya == 50)
     f.capture.undo()
     @assert(line.ya == 120)
-
-    f.shutdown()
 }
 
 // Regression: SetImageInside over a mixed [shape, image] selection restores the saved
@@ -277,7 +262,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     discard testAddShape(f.capture, 10, 10, 20, 20)
     let imgForm = testAddImage(f.capture, 50, 50, 60, 40)
     imgForm.image = Image.create(10, 10, .BGRA8)
@@ -294,8 +279,6 @@ using Swag, Core
 
     f.capture.redo()
     @assert(imgForm.image.width == 20)
-
-    f.shutdown()
 }
 
 // Geometry signature of one form, used by the metamorphic undo test below: the
@@ -414,7 +397,7 @@ func testUndoFuzzSelect(capture: *Capture, rng: *Random.Generator, count: u32)
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     discard testAddShape(f.capture, 10, 10, 40, 30)
     discard testAddShape(f.capture, 60, 20, 30, 30)
     discard testAddText(f.capture, 100, 10, 50, 20)
@@ -478,14 +461,14 @@ func testUndoFuzzSelect(capture: *Capture, rng: *Random.Generator, count: u32)
                 let form = Memory.new'FormShape()
                 form.IForm.setup(f.capture)
                 form.IForm.setBaseForm(rng.nextS32(0, 350), rng.nextS32(0, 250), rng.nextS32(5, 60), rng.nextS32(5, 60))
-                u.oldForms.add(cast(IForm) form)
+                u.oldForms.add(form)
             }
             else
             {
                 let form = Memory.new'FormText()
                 form.IForm.setup(f.capture)
                 form.IForm.setBaseForm(rng.nextS32(0, 350), rng.nextS32(0, 250), rng.nextS32(10, 80), rng.nextS32(10, 40))
-                u.oldForms.add(cast(IForm) form)
+                u.oldForms.add(form)
             }
 
             f.capture.pushUndo(u)
@@ -576,6 +559,4 @@ func testUndoFuzzSelect(capture: *Capture, rng: *Random.Generator, count: u32)
     while f.capture.canUndo() do
         f.capture.undo()
     testUndoFuzzAssertState(f.capture, &snapInitial)
-
-    f.shutdown()
 }

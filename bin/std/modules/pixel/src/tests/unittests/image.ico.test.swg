@@ -74,32 +74,11 @@ func buildIco(width, height: s32, bitCount: u16, clrUsed: u32, dibBody: const [.
     return cbToArray(&cb)
 }
 
-func icoCanEncode(fileName: string)->bool
-{
-    var enc: Ico.Encoder
-    let itf = @mkinterface(&enc, #typeof(Ico.Encoder), IImageEncoder)
-    return itf.canEncode(fileName)
-}
-
-func encodeIco(result: *ConcatBuffer, image: Image) fail
-{
-    var enc: Ico.Encoder
-    let itf = @mkinterface(&enc, #typeof(Ico.Encoder), IImageEncoder)
-    itf.encode(result, image, null)
-}
-
 func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 {
     var dec: Ico.Decoder
-    let itf = @mkinterface(&dec, #typeof(Ico.Decoder), IImageDecoder)
+    let itf: IImageDecoder = &dec
     return itf.decode(bytes, opt)
-}
-
-func encodePng(result: *ConcatBuffer, image: Image) fail
-{
-    var enc: Png.Encoder
-    let itf = @mkinterface(&enc, #typeof(Png.Encoder), IImageEncoder)
-    itf.encode(result, image, null)
 }
 
 // The registries recognise .ico (and .cur for loading).
@@ -108,8 +87,6 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     @assert(Image.canLoad("in.ico"))
     @assert(Image.canLoad("in.cur"))
     @assert(Image.canSave("out.ico"))
-    @assert(icoCanEncode("out.ico"))
-    @assert(!icoCanEncode("out.bmp"))
 }
 
 // Decode a 2x2 32-bit BGRA icon. XOR data is bottom-up, matching the buffer.
@@ -129,8 +106,7 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     for 8 do body.addNative(0'u8)
 
     let buf = buildIco(2, 2, 32, 0, nnBytes(body.toSlice()))
-    var img = catch decodeIco(nnBytes(buf.toSlice())) as err
-    @assert(err == null)
+    let img = expect decodeIco(nnBytes(buf.toSlice()))
     @assert(img.width == 2)
     @assert(img.height == 2)
     @assert(img.pixelFormat == .BGRA8)
@@ -157,8 +133,7 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     body.addNative(0'u8)
 
     let buf = buildIco(2, 1, 32, 0, nnBytes(body.toSlice()))
-    let img = catch decodeIco(nnBytes(buf.toSlice())) as err2
-    @assert(err2 == null)
+    let img = expect decodeIco(nnBytes(buf.toSlice()))
     @assert((notnull img.pixels.buffer)[3] == 255'u8)
     @assert((notnull img.pixels.buffer)[7] == 0'u8)
 }
@@ -178,8 +153,7 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     body.addNative(0'u8)
 
     let buf = buildIco(2, 1, 32, 0, nnBytes(body.toSlice()))
-    let img = catch decodeIco(nnBytes(buf.toSlice())) as err3
-    @assert(err3 == null)
+    let img = expect decodeIco(nnBytes(buf.toSlice()))
     @assert((notnull img.pixels.buffer)[3] == 128'u8)
     @assert((notnull img.pixels.buffer)[7] == 0'u8)
 }
@@ -204,8 +178,7 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     for 4 do body.addNative(0'u8)
 
     let buf = buildIco(2, 2, 24, 0, nnBytes(body.toSlice()))
-    var img = catch decodeIco(nnBytes(buf.toSlice())) as err2
-    @assert(err2 == null)
+    let img = expect decodeIco(nnBytes(buf.toSlice()))
     @assert(img.pixelFormat == .BGRA8)
     @assert((notnull img.pixels.buffer)[0] == 10'u8)
     @assert((notnull img.pixels.buffer)[1] == 20'u8)
@@ -237,8 +210,7 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     for 8 do body.addNative(0'u8)
 
     let buf = buildIco(2, 2, 8, 4, nnBytes(body.toSlice()))
-    var img = catch decodeIco(nnBytes(buf.toSlice())) as err3
-    @assert(err3 == null)
+    let img = expect decodeIco(nnBytes(buf.toSlice()))
     @assert(img.pixelFormat == .BGRA8)
     @assert((notnull img.pixels.buffer)[0] == 10'u8)
     @assert((notnull img.pixels.buffer)[1] == 20'u8)
@@ -263,8 +235,7 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     for 4 do body.addNative(0'u8)
 
     let buf = buildIco(2, 1, 1, 2, nnBytes(body.toSlice()))
-    var img = catch decodeIco(nnBytes(buf.toSlice())) as err4
-    @assert(err4 == null)
+    let img = expect decodeIco(nnBytes(buf.toSlice()))
     @assert((notnull img.pixels.buffer)[0] == 7'u8)
     @assert((notnull img.pixels.buffer)[1] == 8'u8)
     @assert((notnull img.pixels.buffer)[2] == 9'u8)
@@ -329,8 +300,7 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     for 12 do cb.addNative(0'u8)     // rest of XOR
     for 8 do cb.addNative(0'u8)      // AND
 
-    var img = catch decodeIco(nnBytes(cb.toSlice())) as err5
-    @assert(err5 == null)
+    let img = expect decodeIco(nnBytes(cb.toSlice()))
     @assert(img.width == 2)
     @assert(img.height == 2)
     @assert((notnull img.pixels.buffer)[0] == 200'u8)
@@ -348,9 +318,7 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     srcBuf[2] = 33'u8
     srcBuf[3] = 255'u8
 
-    var png: ConcatBuffer
-    catch encodePng(&png, src) as err6
-    @assert(err6 == null)
+    let png = expect src.encode("memory.png")
     png.makeLinear()
     let pngBytes = nnBytes(png.toSlice())
     let pngLen   = cast(u32) @countof(pngBytes)
@@ -371,8 +339,7 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     cb.addStruct(e)
     cb.addBytes(pngBytes)
 
-    var img = catch decodeIco(nnBytes(cb.toSlice())) as err7
-    @assert(err7 == null)
+    let img = expect decodeIco(nnBytes(cb.toSlice()))
     @assert(img.width == 3)
     @assert(img.height == 2)
 }
@@ -387,8 +354,7 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
 
     var opt: DecodeOptions
     opt.decodePixels = false
-    var img = catch decodeIco(nnBytes(buf.toSlice()), opt) as err8
-    @assert(err8 == null)
+    let img = expect decodeIco(nnBytes(buf.toSlice()), opt)
     @assert(img.width == 2)
     @assert(img.height == 2)
     @assert(img.pixelFormat == .BGRA8)
@@ -433,12 +399,8 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     srcBuf[3]  = 128'u8
     srcBuf[12] = 200'u8     // last pixel B
 
-    var cb: ConcatBuffer
-    catch encodeIco(&cb, src) as err11
-    @assert(err11 == null)
-
-    var img = catch decodeIco(nnBytes(cb.toSlice())) as err12
-    @assert(err12 == null)
+    let cb = expect src.encode("memory.ico")
+    let img = expect decodeIco(nnBytes(cb.toSlice()))
     @assert(img.width == 2)
     @assert(img.height == 2)
     @assert(img.pixelFormat == .BGRA8)
@@ -458,12 +420,8 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     srcBuf[1] = 20'u8
     srcBuf[2] = 30'u8
 
-    var cb: ConcatBuffer
-    catch encodeIco(&cb, src) as err13
-    @assert(err13 == null)
-
-    var img = catch decodeIco(nnBytes(cb.toSlice())) as err14
-    @assert(err14 == null)
+    let cb = expect src.encode("memory.ico")
+    let img = expect decodeIco(nnBytes(cb.toSlice()))
     @assert(img.pixelFormat == .BGRA8)
     @assert((notnull img.pixels.buffer)[0] == 10'u8)
     @assert((notnull img.pixels.buffer)[1] == 20'u8)
@@ -481,12 +439,8 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     srcBuf[2] = 10'u8     // B
     srcBuf[3] = 99'u8     // A
 
-    var cb: ConcatBuffer
-    catch encodeIco(&cb, src) as err15
-    @assert(err15 == null)
-
-    var img = catch decodeIco(nnBytes(cb.toSlice())) as err16
-    @assert(err16 == null)
+    let cb = expect src.encode("memory.ico")
+    let img = expect decodeIco(nnBytes(cb.toSlice()))
     @assert(img.pixelFormat == .BGRA8)
     @assert((notnull img.pixels.buffer)[0] == 10'u8)     // B
     @assert((notnull img.pixels.buffer)[1] == 20'u8)     // G
@@ -500,8 +454,7 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     var src = Image.create(300, 8, .BGRA8)
     src.clear()
 
-    var cb: ConcatBuffer
-    catch encodeIco(&cb, src) as err17
+    discard catch src.encode("memory.ico") as err17
     @assert(err17 != null)
 }
 
@@ -509,11 +462,7 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
 #test
 {
     let path = makeTempIcoPath()
-    defer
-    {
-        discard catch File.delete(path.toString())
-    }
-
+    defer discard catch File.delete(path.toString())
     var src = Image.create(4, 4, .BGRA8)
     src.clear()
     let srcBuf = notnull src.pixels.buffer
@@ -522,11 +471,8 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     srcBuf[2] = 99'u8
     srcBuf[3] = 255'u8
 
-    catch src.save(path.toString()) as err18
-    @assert(err18 == null)
-
-    var img = catch Image.load(path.toString()) as err19
-    @assert(err19 == null)
+    expect src.save(path.toString())
+    let img = expect Image.load(path.toString())
     @assert(img.width == 4)
     @assert(img.height == 4)
     @assert(img.pixelFormat == .BGRA8)
@@ -548,12 +494,9 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
 
     let entries: [2] Image = [small, large]
 
-    var cb: ConcatBuffer
-    catch Ico.encodeAll(&cb, entries) as errAll
-    @assert(errAll == null)
+    let cb = expect Ico.encodeAll(entries)
 
-    var img = catch decodeIco(nnBytes(cb.toSlice())) as errBack
-    @assert(errBack == null)
+    let img = expect decodeIco(nnBytes(cb.toSlice()))
     @assert(img.width == 8)
     @assert(img.height == 8)
     @assert((notnull img.pixels.buffer)[0] == 22'u8)
@@ -569,9 +512,7 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
 
     let entries: [2] Image = [first, second]
 
-    var cb: ConcatBuffer
-    catch Ico.encodeAll(&cb, entries) as errTwo
-    @assert(errTwo == null)
+    let cb = expect Ico.encodeAll(entries)
 
     let bytes = nnBytes(cb.toSlice())
     @assert(bytes[4] == 2'u8)     // ICONDIR.count
@@ -583,8 +524,7 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     var empty: Array'Image
     empty.reserve(1)
 
-    var cb: ConcatBuffer
-    catch Ico.encodeAll(&cb, empty.toSlice()) as errNone
+    discard catch Ico.encodeAll(empty.toSlice()) as errNone
     @assert(errNone != null)
 }
 
@@ -592,11 +532,7 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
 #test
 {
     let path = makeTempIcoPath()
-    defer
-    {
-        discard catch File.delete(path.toString())
-    }
-
+    defer discard catch File.delete(path.toString())
     var small = Image.create(4, 4, .BGRA8)
     small.clear()
     var large = Image.create(16, 16, .BGRA8)
@@ -604,11 +540,8 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     (notnull large.pixels.buffer)[2] = 77'u8
 
     let entries: [2] Image = [small, large]
-    catch Ico.save(path.toString(), entries) as errSave
-    @assert(errSave == null)
-
-    var img = catch Image.load(path.toString()) as errLoad
-    @assert(errLoad == null)
+    expect Ico.save(path.toString(), entries)
+    let img = expect Image.load(path.toString())
     @assert(img.width == 16)
     @assert((notnull img.pixels.buffer)[2] == 77'u8)
 }

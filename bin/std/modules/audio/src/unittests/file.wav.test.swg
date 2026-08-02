@@ -6,12 +6,10 @@ using Swag, Core
 {
     let path = audioGetTestDataPath("pcm16_stereo.wav")
 
-    let bytes = catch File.readAllBytes(path) as err
-    @assert(err == null)
+    let bytes = expect File.readAllBytes(path)
     @assert(bytes.count == 52)
 
-    let file = catch SoundFile.load(path) as err2
-    @assert(err2 == null)
+    let file = expect SoundFile.load(path)
     @assert(file.encoding == .Pcm16)
     @assert(file.sampleEncoding() == .Pcm16)
     @assert(file.sampleRate == 44100)
@@ -44,8 +42,7 @@ using Swag, Core
 {
     let path = audioGetTestDataPath("pcm16_stereo.wav")
 
-    let file = catch SoundFile.load(path, preloadData: false) as err3
-    @assert(err3 == null)
+    let file = expect SoundFile.load(path, preloadData: false)
     @assert(file.encoding == .Pcm16)
     @assert(file.dataSize == 8)
     @assert(file.dataOffset == 44)
@@ -59,8 +56,7 @@ using Swag, Core
 {
     let path = audioGetTestDataPath("pcm8_mono_odd.wav")
 
-    let file = catch SoundFile.load(path) as err5
-    @assert(err5 == null)
+    let file = expect SoundFile.load(path)
     @assert(file.encoding == .Pcm8)
     @assert(file.sampleRate == 8000)
     @assert(file.channelCount == 1)
@@ -76,8 +72,7 @@ using Swag, Core
 {
     let path = audioGetTestDataPath("pcm24_extensible_stereo.wav")
 
-    let file = catch SoundFile.load(path) as err6
-    @assert(err6 == null)
+    let file = expect SoundFile.load(path)
     @assert(file.encoding == .Pcm24)
     @assert(file.sampleRate == 48000)
     @assert(file.channelCount == 2)
@@ -95,8 +90,7 @@ using Swag, Core
 {
     let path = audioGetTestDataPath("float32_extensible_mono.wav")
 
-    let file = catch SoundFile.load(path) as err7
-    @assert(err7 == null)
+    let file = expect SoundFile.load(path)
     @assert(file.encoding == .Float32)
     @assert(file.sampleRate == 22050)
     @assert(file.channelCount == 1)
@@ -113,8 +107,7 @@ using Swag, Core
 {
     let path = audioGetTestDataPath("pcm16_with_unknown_chunk.wav")
 
-    let file = catch SoundFile.load(path) as err8
-    @assert(err8 == null)
+    let file = expect SoundFile.load(path)
     @assert(file.encoding == .Pcm16)
     @assert(file.sampleRate == 44100)
     @assert(file.channelCount == 1)

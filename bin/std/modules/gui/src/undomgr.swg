@@ -121,7 +121,7 @@ impl UndoManager
     {
         let p = Memory.new'T()
         dref p = cmd
-        .pushCmd(cast(IUndoCommand) p, 0, true)
+        .pushCmd(p, 0, true)
     }
 
     // Reverts the previous command group, if any.

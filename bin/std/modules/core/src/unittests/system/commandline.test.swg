@@ -121,7 +121,7 @@ func assertStringValues(values: const &Array'String, expected: const [..] string
     var options          = BasicOptions{}
     let args: [7] string = ["-delta", "-7", "-count", "-12", "-enabled", "-mode", "Gamma"]
 
-    let result = catch CommandLine.parse(&options, args)
+    let result = expect CommandLine.parse(&options, args)
 
     @assert(options.delta == -7)
     @assert(options.count == -12)
@@ -148,9 +148,7 @@ func assertStringValues(values: const &Array'String, expected: const [..] string
 #test
 {
     var options: NameOptions
-    let result = catch CommandLine.parse(&options, ["-n:Alice"]) as err3
-    @assert(err3 == null)
-
+    let result = expect CommandLine.parse(&options, ["-n:Alice"])
     @assert(options.name == "Alice")
     @assert(result.isSet.name)
 }
@@ -158,9 +156,7 @@ func assertStringValues(values: const &Array'String, expected: const [..] string
 #test
 {
     var options: NameOptions
-    let result = catch CommandLine.parse(&options, ["-n:-Alice"]) as err4
-    @assert(err4 == null)
-
+    let result = expect CommandLine.parse(&options, ["-n:-Alice"])
     @assert(options.name == "-Alice")
     @assert(result.isSet.name)
 }
@@ -168,9 +164,7 @@ func assertStringValues(values: const &Array'String, expected: const [..] string
 #test
 {
     var options: NumericOptions
-    let result = catch CommandLine.parse(&options, ["-enabled", "false"]) as err5
-    @assert(err5 == null)
-
+    let result = expect CommandLine.parse(&options, ["-enabled", "false"])
     @assert(options.enabled == false)
     @assert(result.isSet.enabled)
     @assert(!result.isSet.threshold)
@@ -179,8 +173,7 @@ func assertStringValues(values: const &Array'String, expected: const [..] string
 #test
 {
     var value = 0'f32
-    let rest  = catch StrConv.parseValue(&value, f32, "-0.5") as err6
-    @assert(err6 == null)
+    let rest = expect StrConv.parseValue(&value, f32, "-0.5")
     @assert(@countof(rest) == 0)
     @assert(value == -0.5)
 }
@@ -188,9 +181,7 @@ func assertStringValues(values: const &Array'String, expected: const [..] string
 #test
 {
     var options: NumericOptions
-    let result = catch CommandLine.parse(&options, ["-threshold", "-0.5"]) as err7
-    @assert(err7 == null)
-
+    let result = expect CommandLine.parse(&options, ["-threshold", "-0.5"])
     @assert(options.threshold == -0.5)
     @assert(result.isSet.threshold)
     @assert(!result.isSet.enabled)
@@ -199,9 +190,7 @@ func assertStringValues(values: const &Array'String, expected: const [..] string
 #test
 {
     var options: ArrayOptions
-    let result = catch CommandLine.parse(&options, ["-values:-1", "2", "3"]) as err8
-    @assert(err8 == null)
-
+    let result = expect CommandLine.parse(&options, ["-values:-1", "2", "3"])
     @assert(assertIntValues(options.values, [-1, 2, 3]))
     @assert(!result.isSet.labels)
     @assert(result.isSet.values)
@@ -210,9 +199,7 @@ func assertStringValues(values: const &Array'String, expected: const [..] string
 #test
 {
     var options: ArrayOptions
-    let result = catch CommandLine.parse(&options, ["-labels", "Bob Smith", "Alice"]) as err9
-    @assert(err9 == null)
-
+    let result = expect CommandLine.parse(&options, ["-labels", "Bob Smith", "Alice"])
     @assert(assertStringValues(options.labels, ["Bob Smith", "Alice"]))
     @assert(!result.isSet.values)
     @assert(result.isSet.labels)
@@ -221,9 +208,7 @@ func assertStringValues(values: const &Array'String, expected: const [..] string
 #test
 {
     var options: ArrayOptions
-    let result = catch CommandLine.parse(&options, ["-labels:-Bob", "Alice"]) as err10
-    @assert(err10 == null)
-
+    let result = expect CommandLine.parse(&options, ["-labels:-Bob", "Alice"])
     @assert(assertStringValues(options.labels, ["-Bob", "Alice"]))
     @assert(!result.isSet.values)
     @assert(result.isSet.labels)

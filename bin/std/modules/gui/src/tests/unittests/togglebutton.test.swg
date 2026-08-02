@@ -18,6 +18,7 @@ func toggleButtonHeadlessChanged(btn: *ToggleButton)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
+    defer host.shutdown()
     host.recordCommands()
     ToggleButtonHeadlessChangedCount = 0
 
@@ -36,8 +37,6 @@ func toggleButtonHeadlessChanged(btn: *ToggleButton)
     @assert(!toggle.isChecked())
     @assert(ToggleButtonHeadlessChangedCount == 2)
     @assert(host.commandCount == 2)
-
-    host.shutdown()
 }
 
 // Pressing then leaving the button before release cancels the toggle.
@@ -45,6 +44,7 @@ func toggleButtonHeadlessChanged(btn: *ToggleButton)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
+    defer host.shutdown()
     host.recordCommands()
     ToggleButtonHeadlessChangedCount = 0
 
@@ -59,8 +59,6 @@ func toggleButtonHeadlessChanged(btn: *ToggleButton)
     @assert(ToggleButtonHeadlessChangedCount == 0)
     @assert(host.commandCount == 0)
     @assert(host.app.mouseCaptureWnd == null)
-
-    host.shutdown()
 }
 
 // Programmatic changes are silent; keyboard activation follows pointer activation.
@@ -68,6 +66,7 @@ func toggleButtonHeadlessChanged(btn: *ToggleButton)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
+    defer host.shutdown()
     host.recordCommands()
     ToggleButtonHeadlessChangedCount = 0
 
@@ -81,8 +80,6 @@ func toggleButtonHeadlessChanged(btn: *ToggleButton)
     host.keyPress(Input.Key.Space)
     @assert(!toggle.isChecked())
     @assert(ToggleButtonHeadlessChangedCount == 1 and host.commandCount == 1)
-
-    host.shutdown()
 }
 
 // Hiding a toggle button resets its transient pointer and animated paint state.
@@ -90,7 +87,7 @@ func toggleButtonHeadlessChanged(btn: *ToggleButton)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-
+    defer host.shutdown()
     let toggle = ToggleButton.create(&host.root, {20, 20, 60, 30})
     toggle.isHot              = true
     toggle.isPressed          = true
@@ -105,6 +102,4 @@ func toggleButtonHeadlessChanged(btn: *ToggleButton)
     @assert(toggle.aniBk.themeCrc == Swag.U32.Max)
     @assert(toggle.aniBorder.themeCrc == Swag.U32.Max)
     @assert(toggle.aniMark.themeCrc == Swag.U32.Max)
-
-    host.shutdown()
 }

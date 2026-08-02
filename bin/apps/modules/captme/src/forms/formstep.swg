@@ -60,7 +60,7 @@ impl IForm for FormStep
         var xbu     = 0
         var ybu     = 0
         let capture = notnull .capture
-        capture.snap(&xbu, &ybu, true, true, 0, cast(IForm) me)
+        capture.snap(&xbu, &ybu, true, true, 0, me)
         xa += xbu
         ya += ybu
         .setBaseForm(xa, ya, .ws, .hs)
@@ -164,7 +164,7 @@ impl IForm for FormStep
                 t = Format.toString("%", cast(rune) ('a'rune + (curIndex - 1) % 26))
             }
 
-            expect face.buildStringOutline(&.pathl, t, cast() fSize)
+            .pathl = expect face.buildStringOutline(t, cast() fSize)
             .pathl.flatten(painter.quality())
             .pathl.offset(1, JoinStyle.Round, 0.5)
             .pathl.clean()
@@ -222,6 +222,6 @@ impl IForm for FormStep
     mtd impl setup(capt: *Capture)
     {
         .capture = capt
-        .gizmo.setupForForm(cast(IForm) me)
+        .gizmo.setupForForm(me)
     }
 }

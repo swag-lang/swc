@@ -216,7 +216,7 @@ internal impl Properties
                 cmd.generation = .generation
                 cmd.oldVal     = item.undoValue
                 cmd.newVal     = cur
-                .activeUndoMgr().pushCmd(cast(IUndoCommand) cmd, 0, false)
+                .activeUndoMgr().pushCmd(cmd, 0, false)
                 if .dragItem == item do
                     .dragCmd = cmd
             }

@@ -8,16 +8,16 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     let shape = testAddShape(f.capture, 10, 10, 40, 30, .Highlight)
     shape.kind  = .Rectangle
     shape.alpha = 35
-    f.main.updateModel(cast(IForm) shape)
+    f.main.updateModel(shape)
     @assert(f.main.editMode == .Shape)
     @assert(@dataof(f.main.mdlHighlight) == &f.main.mdlFormShape)
     @assert(f.main.mdlFormShape.subKind == .Highlight)
 
-    f.main.updateEditMode(cast(IForm) shape)
+    f.main.updateEditMode(shape)
     @assert(f.main.editMode == .Highlight)
     @assert(f.main.getEditMode() == .Shape)
     @assert(@kindof(f.main.editModeToModel(.Highlight)) == FormShape)
@@ -26,16 +26,14 @@ using Swag, Core
     let draw = testAddDraw(f.capture, emptyPoints.toSlice())
     draw.subKind     = .PixSel
     draw.paintShadow = false
-    f.main.updateModel(cast(IForm) draw)
+    f.main.updateModel(draw)
     @assert(@dataof(f.main.mdlPixSel) == &f.main.mdlFormDraw)
     @assert(f.main.mdlFormDraw.subKind == .PixSel)
 
-    f.main.updateEditMode(cast(IForm) draw)
+    f.main.updateEditMode(draw)
     @assert(f.main.editMode == .PixSel)
     @assert(f.main.getEditMode() == .Draw)
     @assert(@kindof(f.main.editModeToModel(.PixSel)) == FormDraw)
-
-    f.shutdown()
 }
 
 // newFormFromModel clones every standard model and clears point/image payloads when requested.
@@ -43,7 +41,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     f.main.mdlFormShape.kind = .RoundRectangle
     let shape = f.main.newFormFromModel(.Shape)
     @assert(@kindof(shape) == FormShape)
@@ -104,6 +102,4 @@ using Swag, Core
     // clear drops the text payload while keeping the style.
     @assert((cast(*FormCallout) @dataof(callout)).text.isEmpty())
     testDeleteForm(callout)
-
-    f.shutdown()
 }

@@ -37,6 +37,7 @@ func pushButtonHeadlessResetCounters()
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
+    defer host.shutdown()
     host.recordCommands()
     pushButtonHeadlessResetCounters()
 
@@ -49,14 +50,13 @@ func pushButtonHeadlessResetCounters()
     @assert(PushButtonHeadlessPressedCount == 2)
     @assert(host.commandCount == 2 and host.lastCommand == PushButtonHeadless_Command)
     @assert(button.form == .Default)
-
-    host.shutdown()
 }
 
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
+    defer host.shutdown()
     host.recordCommands()
     pushButtonHeadlessResetCounters()
 
@@ -71,14 +71,13 @@ func pushButtonHeadlessResetCounters()
     @assert(!button.isHot)
     @assert(!button.isIn)
     @assert(host.commandCount == 0)
-
-    host.shutdown()
 }
 
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
+    defer host.shutdown()
     host.recordCommands()
     pushButtonHeadlessResetCounters()
 
@@ -101,14 +100,13 @@ func pushButtonHeadlessResetCounters()
     @assert(!button.isPressing)
     @assert(button.isIn)
     @assert(host.app.mouseCaptureWnd == null)
-
-    host.shutdown()
 }
 
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
+    defer host.shutdown()
     host.recordCommands()
     pushButtonHeadlessResetCounters()
 
@@ -131,14 +129,13 @@ func pushButtonHeadlessResetCounters()
     @assert(button.aniText.themeCrc == Swag.U32.Max)
     @assert(host.app.mouseCaptureWnd == null)
     @assert(host.app.mouseEnterWnd == null)
-
-    host.shutdown()
 }
 
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
+    defer host.shutdown()
     host.recordCommands()
     pushButtonHeadlessResetCounters()
 
@@ -166,14 +163,13 @@ func pushButtonHeadlessResetCounters()
     @assert(button.aniText.themeCrc == Swag.U32.Max)
     @assert(host.app.mouseCaptureWnd == null)
     @assert(host.app.mouseEnterWnd == null)
-
-    host.shutdown()
 }
 
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
+    defer host.shutdown()
     host.recordCommands()
     pushButtonHeadlessResetCounters()
 
@@ -194,14 +190,13 @@ func pushButtonHeadlessResetCounters()
     @assert(!button.isPressing)
     @assert(!button.isIn)
     @assert(host.app.mouseCaptureWnd == null)
-
-    host.shutdown()
 }
 
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
+    defer host.shutdown()
     host.recordCommands()
     pushButtonHeadlessResetCounters()
 
@@ -222,14 +217,13 @@ func pushButtonHeadlessResetCounters()
     @assert(!button.isPressed)
     @assert(!button.isPressing)
     @assert(host.app.mouseCaptureWnd == null)
-
-    host.shutdown()
 }
 
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
+    defer host.shutdown()
     host.recordCommands()
     pushButtonHeadlessResetCounters()
 
@@ -249,14 +243,13 @@ func pushButtonHeadlessResetCounters()
     @assert(PushButtonHeadlessPressedCount == 0)
     @assert(!button.isPressed)
     @assert(!button.isPressing)
-
-    host.shutdown()
 }
 
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
+    defer host.shutdown()
     host.recordCommands()
     pushButtonHeadlessResetCounters()
 
@@ -282,14 +275,13 @@ func pushButtonHeadlessResetCounters()
     @assert(button.aniText.themeCrc == Swag.U32.Max)
     @assert(host.app.mouseEnterWnd == null)
     @assert(host.app.mouseCaptureWnd == null)
-
-    host.shutdown()
 }
 
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
+    defer host.shutdown()
     host.recordCommands()
     pushButtonHeadlessResetCounters()
 
@@ -310,14 +302,13 @@ func pushButtonHeadlessResetCounters()
     @assert(button.aniBorder.themeCrc == Swag.U32.Max)
     @assert(button.aniText.themeCrc == Swag.U32.Max)
     @assert(host.app.mouseCaptureWnd == null)
-
-    host.shutdown()
 }
 
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
+    defer host.shutdown()
     host.recordCommands()
     pushButtonHeadlessResetCounters()
 
@@ -333,14 +324,13 @@ func pushButtonHeadlessResetCounters()
     @assert(!button.isPressed)
     @assert(!button.isPressing)
     @assert(host.app.mouseCaptureWnd == null)
-
-    host.shutdown()
 }
 
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
+    defer host.shutdown()
     host.recordCommands()
     pushButtonHeadlessResetCounters()
 
@@ -354,6 +344,4 @@ func pushButtonHeadlessResetCounters()
     @assert(!button.isPressed)
     @assert(!button.isPressing)
     @assert(host.app.mouseCaptureWnd == null)
-
-    host.shutdown()
 }

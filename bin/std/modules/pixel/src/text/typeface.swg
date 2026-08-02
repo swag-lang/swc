@@ -193,33 +193,33 @@ public impl TypeFace
         return &.face.glyph.bitmap
     }
 
-    // Replaces `pathList` with the outline of one rune at the requested size.
-    #[Swag.Discardable]
-    mtd buildRuneOutline(pathList: *LinePathList, c: rune, size: u32, embolden: u32 = 0)->f32 fail
+    // Builds the outline and advance of one rune at the requested size.
+    mtd buildRuneOutline(c: rune, size: u32, embolden: u32 = 0)->{outline: LinePathList, advance: f32} fail
     {
-        pathList.clear()
+        var result: retval
 
         .face.setPixelSize(0, size)
         .face.loadChar(c)
         .transform(size, embolden)
 
-        let prevIdx  = pathList.paths.count
+        let prevIdx  = result.outline.paths.count
         let commands = .face.glyph.outline.decompose()
-        addOutlineToPathList(pathList, commands.toSlice())
+        addOutlineToPathList(&result.outline, commands.toSlice())
 
-        if prevIdx != pathList.paths.count
+        if prevIdx != result.outline.paths.count
         {
-            for [i] in prevIdx until pathList.paths.count do
-                pathList.paths[i].assumeClosed()
+            for [i] in prevIdx until result.outline.paths.count do
+                result.outline.paths[i].assumeClosed()
         }
 
-        return embolden + (.face.glyph.advance.x / 64.0)
+        result.advance = embolden + (.face.glyph.advance.x / 64.0)
+        return result
     }
 
-    // Replaces `pathList` with the outlines of a UTF-8 string at the requested size.
-    mtd buildStringOutline(pathList: *LinePathList, text: string, size: u32, embolden: u32 = 0) fail
+    // Builds the outlines of a UTF-8 string at the requested size.
+    mtd buildStringOutline(text: string, size: u32, embolden: u32 = 0)->LinePathList fail
     {
-        pathList.clear()
+        var result: retval
 
         try .face.setPixelSize(0, size)
 
@@ -233,16 +233,16 @@ public impl TypeFace
 
             .face.glyph.outline.translate(x, 0)
 
-            let prevIdx  = pathList.paths.count
+            let prevIdx  = result.paths.count
             let commands = .face.glyph.outline.decompose()
-            addOutlineToPathList(pathList, commands.toSlice())
+            addOutlineToPathList(&result, commands.toSlice())
 
-            if prevIdx != pathList.paths.count
+            if prevIdx != result.paths.count
             {
-                for [i] in prevIdx until pathList.paths.count
+                for [i] in prevIdx until result.paths.count
                 {
-                    pathList.paths[i].assumeClosed()
-                    pathList.paths[i].serial = serial
+                    result.paths[i].assumeClosed()
+                    result.paths[i].serial = serial
                 }
 
                 serial += 1
@@ -250,5 +250,7 @@ public impl TypeFace
 
             x += .face.glyph.advance.x
         }
+
+        return result
     }
 }

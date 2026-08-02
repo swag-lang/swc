@@ -56,8 +56,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     switch evt
     {
     case CreateEvent:
-        var pl: LinePathList
-        expect wnd.theme().res.defaultTypeFaceR.buildStringOutline(&pl, "Swag", 200)
+        var pl = expect wnd.theme().res.defaultTypeFaceR.buildStringOutline("Swag", 200)
         for path in pl.toSlice()
         {
             path.flatten()

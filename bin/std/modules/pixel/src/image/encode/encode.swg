@@ -52,9 +52,11 @@ public impl Image
     // Encodes the image to an owned segmented memory buffer.
     //
     // `fileName` selects the encoder by extension; no file is opened.
+    // Fails if the image is invalid or no encoder accepts the extension.
     mtd const encode(fileName: string, options: #null any = null)->ConcatBuffer fail
     {
-        Debug.assert(.pixels.buffer != null, "image is invalid")
+        if !.pixels.buffer do
+            fail InvalidFormatError{"invalid image"}
 
         // Find the encoder that can treat 'fileName'
         var found: #null *ImageEncoder

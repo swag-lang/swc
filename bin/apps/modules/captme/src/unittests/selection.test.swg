@@ -8,7 +8,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-
+    defer f.shutdown()
     discard testAddShape(f.capture, 10, 10, 10, 10)
     discard testAddText(f.capture, 30, 10, 10, 10)
     discard testAddShape(f.capture, 50, 10, 10, 10)
@@ -33,8 +33,6 @@ using Swag, Core
     let snap = f.main.snap
     f.main.sendCommandEvent(ActionSelection.Snap)
     @assert(f.main.snap != snap)
-
-    f.shutdown()
 }
 
 // Alignment undo stores the correct axis for every horizontal and vertical variant.
@@ -42,7 +40,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     let a = testAddShape(f.capture, 20, 50, 20, 20)
     let b = testAddShape(f.capture, 80, 10, 40, 60)
     f.capture.selection.add(0)
@@ -89,8 +87,6 @@ using Swag, Core
     f.capture.undo()
     @assert(a.y == 50)
     @assert(b.y == 10)
-
-    f.shutdown()
 }
 
 // Arrange commands reorder forms and restore both order and selection on undo.
@@ -98,7 +94,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     let a = testAddShape(f.capture, 0, 0, 10, 10)
     let b = testAddShape(f.capture, 20, 0, 10, 10)
     let c = testAddText(f.capture, 40, 0, 10, 10)
@@ -138,8 +134,6 @@ using Swag, Core
     @assert(f.capture.selection.contains(1))
     f.capture.undo()
     @assert(@dataof(f.capture.forms[2]) == c)
-
-    f.shutdown()
 }
 
 // Offset commands group by serial, undo/redo together and truncate redo after a new edit.
@@ -147,7 +141,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     let a = testAddShape(f.capture, 10, 10, 10, 10)
     let b = testAddShape(f.capture, 30, 30, 10, 10)
     f.capture.selection.add(0)
@@ -190,8 +184,6 @@ using Swag, Core
     @assert(f.capture.undoMgr.count() == 1)
     @assert(a.x == 8)
     @assert(b.x == 28)
-
-    f.shutdown()
 }
 
 // Create and delete selection undo records own form lifetime and selection state.
@@ -199,7 +191,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     let a = testAddShape(f.capture, 0, 0, 10, 10)
     discard testAddText(f.capture, 20, 0, 10, 10)
     f.capture.selection.add(0)
@@ -222,7 +214,7 @@ using Swag, Core
     let newText = Memory.new'FormText()
     newText.IForm.setup(f.capture)
     newText.IForm.setBaseForm(70, 80, 20, 25)
-    undo.oldForms.add(cast(IForm) newText)
+    undo.oldForms.add(newText)
     f.capture.pushUndo(undo)
     @assert(f.capture.forms.count == 2)
     @assert(@kindof(f.capture.forms[1]) == FormText)
@@ -231,8 +223,6 @@ using Swag, Core
     @assert(f.capture.forms.count == 1)
     f.capture.redo()
     @assert(f.capture.forms.count == 2)
-
-    f.shutdown()
 }
 
 // MoveBaseForm, MovePoint and MoveCapture undo records cover geometry edits beyond selection moves.
@@ -240,12 +230,12 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     let shape = testAddShape(f.capture, 10, 20, 30, 40)
     let line  = testAddLine(f.capture, 100, 120, 150, 170)
 
     var moveBase = f.capture.newUndo(.MoveBaseForm)
-    moveBase.baseForm = cast(IForm) shape
+    moveBase.baseForm = shape
     moveBase.newPosX  = 5
     moveBase.newPosY  = 6
     moveBase.newSizeX = 7
@@ -256,7 +246,7 @@ using Swag, Core
     Gui.Testing.assertRect(shape.IForm.boundRect(), 10, 20, 30, 40)
 
     var movePoint = f.capture.newUndo(.MovePoint)
-    movePoint.baseForm = cast(IForm) line
+    movePoint.baseForm = line
     movePoint.pointIdx = 1
     movePoint.newPosX  = -10
     movePoint.newPosY  = 20
@@ -287,8 +277,6 @@ using Swag, Core
     @assert(f.capture.backImagePos.y == 0)
     @assert(shape.x == 10)
     @assert(line.xa == 100)
-
-    f.shutdown()
 }
 
 // Text, font, rotation and style-model undo records restore user-editable form state.
@@ -296,7 +284,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     let text = testAddText(f.capture, 0, 0, 120, 60)
     text.text      = "before"
     text.fontName  = "font-a"
@@ -358,8 +346,6 @@ using Swag, Core
     @assert(shape.backColor == ColorBlue)
     f.capture.undo()
     @assert(shape.borderSize == 3)
-
-    f.shutdown()
 }
 
 // Freeze is available with a capture and toggles the frozen state, but is disabled
@@ -368,7 +354,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
-
+    defer f.shutdown()
     let shape = testAddShape(f.capture, 10, 10, 20, 20)
     f.capture.selection.add(0)
 
@@ -396,8 +382,6 @@ using Swag, Core
     f.main.freezeSelection(true)
     @assert(!f.main.freezeSel)
     @assert(f.main.embInfoFreeze == null)
-
-    f.shutdown()
 }
 
 // Snap computes x/y offsets against capture bounds and neighboring form edges.
@@ -405,7 +389,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     discard testAddShape(f.capture, 20, 20, 40, 40)
     let moving = testAddShape(f.capture, 100, 100, 20, 20)
     f.capture.selection.add(1)
@@ -413,7 +397,7 @@ using Swag, Core
 
     var nx = -42
     var ny = -42
-    f.capture.snap(&nx, &ny, false, false, editForm: cast(IForm) moving)
+    f.capture.snap(&nx, &ny, false, false, editForm: moving)
     @assert(nx == -40)
     @assert(ny == -40)
     @assert(f.capture.snapX == 60)
@@ -421,7 +405,7 @@ using Swag, Core
 
     nx = 280
     ny = 180
-    f.capture.snap(&nx, &ny, true, true, editForm: cast(IForm) moving)
+    f.capture.snap(&nx, &ny, true, true, editForm: moving)
     @assert(nx == 280)
     @assert(ny == 180)
     @assert(f.capture.snapX == 400)
@@ -430,9 +414,7 @@ using Swag, Core
     f.main.snap = false
     nx          = -42
     ny          = -42
-    f.capture.snap(&nx, &ny, false, false, editForm: cast(IForm) moving)
+    f.capture.snap(&nx, &ny, false, false, editForm: moving)
     @assert(nx == -42)
     @assert(ny == -42)
-
-    f.shutdown()
 }

@@ -13,7 +13,7 @@ using Swag, Core, File
 {
     var host: Testing.HeadlessHost
     host.setup(640, 460)
-
+    defer host.shutdown()
     var opt: FileDlgOptions
     opt.mode              = .SelectFile
     opt.showLocationsPane = false
@@ -45,8 +45,6 @@ using Swag, Core, File
     @assert(fileName2 == "report.txt")
     @assert(!fb.setCurrentFolder("this-folder-does-not-exist"))
     @assert(!fb.createFolder("bad/name"))
-
-    host.shutdown()
 }
 
 // SelectFolder mode offers a single "Folders" type entry.
@@ -54,7 +52,7 @@ using Swag, Core, File
 {
     var host: Testing.HeadlessHost
     host.setup(640, 460)
-
+    defer host.shutdown()
     var opt: FileDlgOptions
     opt.mode              = .SelectFolder
     opt.showLocationsPane = false
@@ -68,6 +66,4 @@ using Swag, Core, File
     let name     = fb.selectedPath()
     let fileName = notnull Path.fileName(name.toString())
     @assert(fileName == "myfolder")
-
-    host.shutdown()
 }

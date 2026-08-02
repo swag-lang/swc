@@ -23,8 +23,9 @@ func day3B()
         let lines    = File.readAllLines(dataPath)
 
         var total = 0
-        for var l = 0'u64; l < lines.count; l += 3
+        for [group] in lines.count / 3
         {
+            let l = group * 3
             var split: [3] Array'(string)
             split[0] = Tokenize.split(lines[l], ' 'u8)
             split[1] = Tokenize.split(lines[l + 1], ' 'u8)

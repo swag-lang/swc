@@ -19,17 +19,11 @@ func distToPixel(v: s32)->s32
     scope.init("arial.ttf")
     let face = notnull scope.face
 
-    discard catch face.setPixelSize(0, 13) as err
-    @assert(err == null)
-
-    discard catch face.loadChar('x') as err2
-    @assert(err2 == null)
-
+    discard expect face.setPixelSize(0, 13)
+    discard expect face.loadChar('x')
     let before = getOutlineBounds(&face.glyph.outline).yMax
 
-    discard catch face.hintVertical() as err3
-    @assert(err3 == null)
-
+    discard expect face.hintVertical()
     let after = getOutlineBounds(&face.glyph.outline).yMax
 
     // The baseline (y = 0) must stay put, and the x-height must end up on (or within

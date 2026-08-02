@@ -11,9 +11,7 @@ using Swag, Core
     f.setup()
     defer f.shutdown()
 
-    catch Library.init() as err
-    @assert(err == null)
-
+    expect Library.init()
     // A source capture file living in the temp area. Everything this test writes into
     // the (real) recycle bin and library folder is cleaned up in a defer so a failed
     // assertion can never leave stray captures behind for the running app to load.
@@ -32,8 +30,7 @@ using Swag, Core
     cap.backImg               = Gui.Testing.indexedImage(8, 6)
     cap.file                  = src
     cap.changed               = true
-    catch cap.save() as err2
-    @assert(err2 == null)
+    expect cap.save()
     Memory.delete(cap)
 
     let trash = Library.getTrashFolder()
@@ -65,37 +62,25 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     let cap = Memory.new'Capture()
     cap.width, cap.widthOrg   = 8
     cap.height, cap.heightOrg = 6
     cap.backImg               = Gui.Testing.indexedImage(8, 6)
     let path = testTempCapturePath()
-    defer
-    {
-        discard catch File.delete(path)
-    }
-
+    defer discard catch File.delete(path)
     cap.file    = path
     cap.changed = true
-    catch cap.save() as err3
-    @assert(err3 == null)
+    expect cap.save()
     Memory.delete(cap)
 
     f.main.setCaptureTitle(path, "Renamed")
 
-    let loaded = notnull catch Capture.load(path) as err4
-    @assert(err4 == null)
-    defer
-    {
-        Memory.delete(loaded)
-    }
-
+    let loaded = notnull expect Capture.load(path)
+    defer Memory.delete(loaded)
     @assert(loaded.title == "Renamed")
     @assert(loaded.width == 8)
     @assert(loaded.backImg.isValid())
-
-    f.shutdown()
 }
 
 // Copying a stored capture from the library places its full-resolution image on the
@@ -104,21 +89,16 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     let cap = Memory.new'Capture()
     cap.width, cap.widthOrg   = 20
     cap.height, cap.heightOrg = 14
     cap.backImg               = Gui.Testing.indexedImage(20, 14)
     let path = testTempCapturePath()
-    defer
-    {
-        discard catch File.delete(path)
-    }
-
+    defer discard catch File.delete(path)
     cap.file    = path
     cap.changed = true
-    catch cap.save() as err5
-    @assert(err5 == null)
+    expect cap.save()
     Memory.delete(cap)
 
     f.main.copyLibraryImage(path)
@@ -127,8 +107,6 @@ using Swag, Core
     @assert(img.isValid())
     @assert(img.width == 20)
     @assert(img.height == 14)
-
-    f.shutdown()
 }
 
 // The library breadcrumb mirrors the real on-disk folder: it ends at the captMe folder
@@ -137,6 +115,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
+    defer f.shutdown()
     let lib = f.setupLibraryWnd()
 
     // The headless fixture does not build the real toolbar, so attach a breadcrumb here.
@@ -161,8 +140,6 @@ using Swag, Core
     @assert(lib.breadcrumb.items.count >= 2)
     let parentOfTrash = lib.breadcrumb.items[lib.breadcrumb.items.count - 2]
     @assert(parentOfTrash.tag == Library.getFolder())
-
-    f.shutdown()
 }
 
 // The breadcrumb drop-down lists a level's real sub-folders and keeps their path ids in
@@ -172,12 +149,11 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
+    defer f.shutdown()
     let lib = f.setupLibraryWnd()
     lib.breadcrumb = BreadcrumbCtrl.create(cast(*Wnd) lib, {0, 0, 600, 32})
 
-    catch Library.init() as err6
-    @assert(err6 == null)
-
+    expect Library.init()
     lib.curFolder = Library.getFolder()
     lib.updateBreadcrumb()
 
@@ -198,7 +174,6 @@ using Swag, Core
     @assert(foundTrash)
 
     menu.destroy()
-    f.shutdown()
 }
 
 // Loading a capture that has no preview (e.g. an older file, or one restored from the
@@ -208,6 +183,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
+    defer f.shutdown()
     let lib  = f.setupLibraryWnd()
     let view = lib.view
 
@@ -216,15 +192,10 @@ using Swag, Core
     cap.height, cap.heightOrg = 6
     cap.backImg               = Gui.Testing.indexedImage(8, 6)
     let path = testTempCapturePath()
-    defer
-    {
-        discard catch File.delete(path)
-    }
-
+    defer discard catch File.delete(path)
     cap.file    = path
     cap.changed = true
-    catch cap.save() as err7
-    @assert(err7 == null)
+    expect cap.save()
     Memory.delete(cap)
 
     let it = view.allItems.addNew()
@@ -235,6 +206,4 @@ using Swag, Core
     let itCapture = notnull it.capture
     @assert(!itCapture.preview.isValid())
     @assert(itCapture.haar.size == 0)
-
-    f.shutdown()
 }

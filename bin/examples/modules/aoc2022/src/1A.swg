@@ -48,7 +48,7 @@ func day1A()
     var total, one: u64
     for l in lines
     {
-        one += catch StrConv.toU64(l)
+        one += expect StrConv.toU64(l)
         if l.isEmpty()
         {
             total = Math.max(total, one)

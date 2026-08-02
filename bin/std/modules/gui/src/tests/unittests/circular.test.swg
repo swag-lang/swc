@@ -16,6 +16,7 @@ func circularHeadlessChanged(c: *Circular)
 {
     var host: Testing.HeadlessHost
     host.setup(160, 160)
+    defer host.shutdown()
     CircularHeadlessChangedCount = 0
 
     let circ = Circular.create(&host.root, {20, 20, 120, 120})
@@ -34,8 +35,6 @@ func circularHeadlessChanged(c: *Circular)
     // Same value again does not re-emit.
     circ.setValue(25)
     @assert(CircularHeadlessChangedCount == 2)
-
-    host.shutdown()
 }
 
 // A partial arc applies its start angle exactly once when positioning markers.
@@ -43,7 +42,7 @@ func circularHeadlessChanged(c: *Circular)
 {
     var host: Testing.HeadlessHost
     host.setup(160, 160)
-
+    defer host.shutdown()
     let circ = Circular.create(&host.root, {20, 20, 120, 120})
     circ.setAngleRange(Math.Angle.fromDegrees(90), Math.Angle.fromDegrees(270))
     circ.updateGeometry()
@@ -51,8 +50,6 @@ func circularHeadlessChanged(c: *Circular)
     let start = circ.positionAtAngle(circ.valueToAngle(0))
     @assert(start.x > circ.centerX)
     @assert(Math.abs(start.y - circ.centerY) < 0.01)
-
-    host.shutdown()
 }
 
 // A range circular keeps two ordered values.
@@ -60,7 +57,7 @@ func circularHeadlessChanged(c: *Circular)
 {
     var host: Testing.HeadlessHost
     host.setup(160, 160)
-
+    defer host.shutdown()
     let circ = Circular.create(&host.root, {20, 20, 120, 120}, null, true)
     circ.setBounds(0, 100)
 
@@ -71,6 +68,4 @@ func circularHeadlessChanged(c: *Circular)
     @assert(Math.abs(circ.lowerValue() - 30) < 0.01)
     @assert(Math.abs(circ.upperValue() - 70) < 0.01)
     @assert(circ.lowerRatio <= circ.upperRatio)
-
-    host.shutdown()
 }

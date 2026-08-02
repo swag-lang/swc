@@ -6,7 +6,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
 {
     var renderer: RenderCpu
     renderer.begin(width, height)
-    let render = cast(IRenderer) &renderer
+    let render: IRenderer = &renderer
     render.draw(painter)
     render.end()
     return renderer.surfaceImage()
@@ -57,8 +57,10 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
 
     var renderer: RenderCpu
     renderer.begin(8, 8)
-    let render  = cast(IRenderer) &renderer
-    let texture = render.addImage(source)
+    let render: IRenderer = &renderer
+    var texture = render.addImage(source)
+    defer render.removeTexture(&texture)
+    defer render.end()
 
     var painter: Painter
     painter.begin()
@@ -103,9 +105,11 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
 #test
 {
     var renderer: RenderCpu
-    let render = cast(IRenderer) &renderer
+    let render: IRenderer = &renderer
     var outer  = render.createRenderTarget(12, 12)
+    defer render.deleteRenderTarget(&outer)
     var inner  = render.createRenderTarget(4, 4)
+    defer render.deleteRenderTarget(&inner)
 
     var painter: Painter
     painter.begin()
@@ -131,8 +135,9 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
 #test
 {
     var renderer: RenderCpu
-    let render = cast(IRenderer) &renderer
+    let render: IRenderer = &renderer
     var target = render.createRenderTarget(32, 32)
+    defer render.deleteRenderTarget(&target)
 
     var path: LinePath
     path.start(4, 16)
@@ -168,9 +173,11 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     white[0], white[1], white[2], white[3] = 255
 
     var renderer: RenderCpu
-    let render  = cast(IRenderer) &renderer
-    let texture = render.addImage(source)
+    let render: IRenderer = &renderer
+    var texture = render.addImage(source)
+    defer render.removeTexture(&texture)
     var target  = render.createRenderTarget(9, 9)
+    defer render.deleteRenderTarget(&target)
 
     var painter: Painter
     painter.begin()
@@ -233,9 +240,9 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
 #test
 {
     var source = Image.create(4, 4, .BGRA8)
-    for var y: s32; y < 4; y += 1
+    for [y] in 4
     {
-        for var x: s32; x < 4; x += 1
+        for [x] in 4
         {
             let pixel = (notnull source.pixels.buffer) + cast(u64) ((3 - y) * source.rowStride + x * source.bytesPerPixel)
             if x < 2
@@ -255,9 +262,11 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     }
 
     var renderer: RenderCpu
-    let render  = cast(IRenderer) &renderer
-    let texture = render.addImage(source)
+    let render: IRenderer = &renderer
+    var texture = render.addImage(source)
+    defer render.removeTexture(&texture)
     var target  = render.createRenderTarget(2, 2)
+    defer render.deleteRenderTarget(&target)
 
     var painter: Painter
     painter.begin()

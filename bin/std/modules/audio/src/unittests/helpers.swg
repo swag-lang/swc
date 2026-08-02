@@ -53,7 +53,7 @@ func audioDecodePcmToPcm16(sourceEncoding: SoundFileEncoding, source: [..] u8, d
 
     var result: retval
     result.destination.resize(destinationCapacity)
-    let itf               = @mkinterface(&codec, #typeof(CodecPcmToPcm16), ICodec)
+    let itf: ICodec       = &codec
     let destinationBuffer = notnull result.destination.buffer
     result.progress = itf.decode(destinationBuffer, result.destination.count, @dataof(source), @countof(source))
     return result

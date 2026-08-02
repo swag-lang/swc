@@ -165,9 +165,9 @@ private
         if !result.sameSize do
             return result
 
-        for var y: s32; y < actual.height; y += 1
+        for [y] in actual.height
         {
-            for var x: s32; x < actual.width; x += 1
+            for [x] in actual.width
             {
                 let expectedColor = expected.pixelColor(x, y)
                 let actualColor   = actual.pixelColor(x, y)

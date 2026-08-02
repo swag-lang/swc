@@ -22,7 +22,7 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 80)
-
+    defer host.shutdown()
     let combo = ComboBox.create(&host.root, {20, 20, 160, 26}, mode: .Editable)
     combo.addItem("One")
     combo.addItem("Two")
@@ -37,8 +37,6 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
     combo.removeItemAt(1)
     @assert(combo.items.count == 1 and combo.selectedIndex == Swag.U32.Max)
     @assert(combo.selectedItem() == null and @countof((notnull combo.editBox).text()) == 0)
-
-    host.shutdown()
 }
 
 // Selecting an item emits sigChanged + a command carrying the item id.
@@ -46,6 +44,7 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 80)
+    defer host.shutdown()
     host.recordCommands()
     ComboHeadlessChangedCount = 0
     ComboHeadlessLastIdx      = 0
@@ -81,8 +80,6 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
     @assert(ComboHeadlessChangedCount == 2)
     @assert(ComboHeadlessLastIdx == Swag.U32.Max)
     @assert(host.commandCount == 1)
-
-    host.shutdown()
 }
 
 // clear() empties the item list and resets all selection state silently.
@@ -90,7 +87,7 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 80)
-
+    defer host.shutdown()
     let combo = ComboBox.create(&host.root, {20, 20, 160, 26})
     combo.addItem("One")
     combo.addItem("Two")
@@ -101,8 +98,6 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
     @assert(combo.items.count == 0)
     @assert(combo.selectedIndex == Swag.U32.Max)
     @assert(combo.selectedItem() == null)
-
-    host.shutdown()
 }
 
 // An edit combo embeds an editbox that mirrors the selected item text.
@@ -110,7 +105,7 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 80)
-
+    defer host.shutdown()
     let combo = ComboBox.create(&host.root, {20, 20, 160, 26}, null, ComboBoxMode.Editable)
     @assert(combo.editBox != null)
     combo.addItem("Alpha")
@@ -119,8 +114,6 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
     combo.setSelectedIndex(1)
     host.pump()
     @assert((notnull combo.editBox).text() == "Beta")
-
-    host.shutdown()
 }
 
 // Keyboard control: arrows move the selection (clamped at the ends, skipping
@@ -129,6 +122,7 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 80)
+    defer host.shutdown()
     ComboHeadlessChangedCount = 0
 
     let combo = ComboBox.create(&host.root, {20, 20, 160, 26})
@@ -161,8 +155,6 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
     @assert(combo.selectedIndex == 0)
     host.keyPress(Input.Key.End)
     @assert(combo.selectedIndex == 3)
-
-    host.shutdown()
 }
 
 // Enter opens the drop-down popup, Escape closes it.
@@ -170,7 +162,7 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 200)
-
+    defer host.shutdown()
     let combo = ComboBox.create(&host.root, {20, 20, 160, 26})
     combo.addItem("One")
     combo.addItem("Two")
@@ -184,6 +176,4 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
     host.pump()
     @assert(combo.popup == null)
     host.app.setMouseCaptureRaw(null)
-
-    host.shutdown()
 }

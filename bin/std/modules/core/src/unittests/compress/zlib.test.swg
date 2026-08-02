@@ -29,15 +29,13 @@ func assertBytesEqual(actual: const [..] u8, expected: const [..] u8)->bool
 func assertZLibRoundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
 {
     var zlib: Compress.ZLib
-    let compressed = catch zlib.compress(input, level) as err
-    @assert(err == null)
+    let compressed = expect zlib.compress(input, level)
     @assert(compressed.count >= 6)
     @assert(compressed[0] == 0x78)
     @assert(compressed[1] == 0x9C)
 
     var reader: Compress.ZLib
-    let decoded = catch reader.decompress(compressed.toSlice(), @countof(input)) as err2
-    @assert(err2 == null)
+    let decoded = expect reader.decompress(compressed.toSlice(), @countof(input))
     @assert(assertBytesEqual(decoded.toSlice(), input))
 }
 
@@ -47,14 +45,12 @@ func assertDeflateRoundTrip(input: const [..] u8, level: Compress.Deflate.Compre
     deflater.init(level, strategy)
 
     var compressed: Array'u8
-    catch deflater.compress(&compressed, input) as err3
-    @assert(err3 == null)
+    expect deflater.compress(&compressed, input)
     @assert(compressed.count != 0)
 
     var inflater: Compress.Inflate
     var decoded:  Array'u8
-    catch inflater.decompress(&decoded, compressed.toSlice()) as err4
-    @assert(err4 == null)
+    expect inflater.decompress(&decoded, compressed.toSlice())
     @assert(assertBytesEqual(decoded.toSlice(), input))
 }
 
@@ -110,8 +106,7 @@ func assertDeflateRoundTrip(input: const [..] u8, level: Compress.Deflate.Compre
     fillCompressPattern(input)
 
     var zlib: Compress.ZLib
-    var compressed = catch zlib.compress(input) as err5
-    @assert(err5 == null)
+    var compressed = expect zlib.compress(input)
     @assert(compressed.count > 6)
 
     compressed[compressed.count - 1] ^= 0x5A

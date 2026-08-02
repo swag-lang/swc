@@ -24,9 +24,7 @@ struct TweakBeta
     tweak.registerFolder'TweakAlpha(&alpha)
     tweak.registerFolder'TweakBeta(&beta)
 
-    discard catch tweak.parse("/TweakAlpha\nfoo 1\nbar $foo\n/TweakBeta\nbar 2\nfoo $bar\n") as err
-    @assert(err == null)
-
+    discard expect tweak.parse("/TweakAlpha\nfoo 1\nbar $foo\n/TweakBeta\nbar 2\nfoo $bar\n")
     @assert(alpha.foo == 1)
     @assert(alpha.bar == 1)
     @assert(beta.bar == 2)

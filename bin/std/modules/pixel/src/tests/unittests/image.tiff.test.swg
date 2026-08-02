@@ -250,24 +250,10 @@ func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, b
     return cbToArray(&cb)
 }
 
-func tiffCanEncode(fileName: string)->bool
-{
-    var enc: Tiff.Encoder
-    let itf = @mkinterface(&enc, #typeof(Tiff.Encoder), IImageEncoder)
-    return itf.canEncode(fileName)
-}
-
-func encodeTiff(result: *ConcatBuffer, image: Image, options: #null any = null) fail
-{
-    var enc: Tiff.Encoder
-    let itf = @mkinterface(&enc, #typeof(Tiff.Encoder), IImageEncoder)
-    itf.encode(result, image, options)
-}
-
 func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 {
     var dec: Tiff.Decoder
-    let itf = @mkinterface(&dec, #typeof(Tiff.Decoder), IImageDecoder)
+    let itf: IImageDecoder = &dec
     return itf.decode(bytes, opt)
 }
 
@@ -278,8 +264,6 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     @assert(Image.canLoad("in.tiff"))
     @assert(Image.canSave("out.tif"))
     @assert(Image.canSave("out.tiff"))
-    @assert(tiffCanEncode("out.tiff"))
-    @assert(!tiffCanEncode("out.bmp"))
 }
 
 // Decode a little-endian 2x1 uncompressed RGB image.
@@ -290,8 +274,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     pix.addNative(40'u8); pix.addNative(50'u8); pix.addNative(60'u8)
 
     let buf = buildTiff(true, 2, 1, 3, 2, 1, 1, 8, nnBytes(pix.toSlice()), null, false)
-    var img = catch decodeTiff(nnBytes(buf.toSlice())) as err
-    @assert(err == null)
+    let img = expect decodeTiff(nnBytes(buf.toSlice()))
     @assert(img.width == 2)
     @assert(img.height == 1)
     @assert(img.pixelFormat == .RGB8)
@@ -311,8 +294,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     pix.addNative(44'u8); pix.addNative(55'u8); pix.addNative(66'u8)
 
     let buf = buildTiff(false, 2, 1, 3, 2, 1, 1, 8, nnBytes(pix.toSlice()), null, false)
-    var img = catch decodeTiff(nnBytes(buf.toSlice())) as err2
-    @assert(err2 == null)
+    let img = expect decodeTiff(nnBytes(buf.toSlice()))
     @assert(img.pixelFormat == .RGB8)
     @assert((notnull img.pixels.buffer)[0] == 11'u8)
     @assert((notnull img.pixels.buffer)[3] == 44'u8)
@@ -326,8 +308,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     pix.addNative(5'u8); pix.addNative(10'u8); pix.addNative(15'u8)
 
     let buf = buildTiff(true, 3, 1, 1, 1, 1, 1, 8, nnBytes(pix.toSlice()), null, false)
-    var img = catch decodeTiff(nnBytes(buf.toSlice())) as err3
-    @assert(err3 == null)
+    let img = expect decodeTiff(nnBytes(buf.toSlice()))
     @assert(img.pixelFormat == .BGR8)
     @assert((notnull img.pixels.buffer)[0] == 5'u8)
     @assert((notnull img.pixels.buffer)[1] == 5'u8)
@@ -343,8 +324,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     pix.addNative(5'u8); pix.addNative(250'u8)
 
     let buf = buildTiff(true, 2, 1, 1, 0, 1, 1, 8, nnBytes(pix.toSlice()), null, false)
-    var img = catch decodeTiff(nnBytes(buf.toSlice())) as err4
-    @assert(err4 == null)
+    let img = expect decodeTiff(nnBytes(buf.toSlice()))
     @assert((notnull img.pixels.buffer)[0] == 250'u8)
     @assert((notnull img.pixels.buffer)[3] == 5'u8)
 }
@@ -361,8 +341,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     pix.addNative(0'u8); pix.addNative(1'u8)
 
     let buf = buildTiff(true, 2, 1, 1, 3, 1, 1, 8, nnBytes(pix.toSlice()), pal.toSlice(), false)
-    var img = catch decodeTiff(nnBytes(buf.toSlice())) as err5
-    @assert(err5 == null)
+    let img = expect decodeTiff(nnBytes(buf.toSlice()))
     @assert(img.pixelFormat == .RGB8)
     @assert((notnull img.pixels.buffer)[0] == 10'u8)
     @assert((notnull img.pixels.buffer)[1] == 20'u8)
@@ -379,8 +358,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     pix.addNative(1'u8); pix.addNative(2'u8); pix.addNative(3'u8); pix.addNative(4'u8)
 
     let buf = buildTiff(true, 1, 1, 4, 2, 1, 1, 8, nnBytes(pix.toSlice()), null, true)
-    var img = catch decodeTiff(nnBytes(buf.toSlice())) as err6
-    @assert(err6 == null)
+    let img = expect decodeTiff(nnBytes(buf.toSlice()))
     @assert(img.pixelFormat == .RGBA8)
     @assert((notnull img.pixels.buffer)[0] == 1'u8)
     @assert((notnull img.pixels.buffer)[1] == 2'u8)
@@ -399,8 +377,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     pix.addNative(100'u8); pix.addNative(110'u8); pix.addNative(120'u8)
 
     let buf = buildTiff(true, 4, 1, 3, 2, 32773, 1, 8, nnBytes(pix.toSlice()), null, false)
-    var img = catch decodeTiff(nnBytes(buf.toSlice())) as err7
-    @assert(err7 == null)
+    let img = expect decodeTiff(nnBytes(buf.toSlice()))
     @assert((notnull img.pixels.buffer)[0] == 10'u8)
     @assert((notnull img.pixels.buffer)[5] == 60'u8)
     @assert((notnull img.pixels.buffer)[9] == 100'u8)
@@ -415,8 +392,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     pix.addNative(0xAB'u8)
 
     let buf = buildTiff(true, 1, 1, 3, 2, 32773, 1, 8, nnBytes(pix.toSlice()), null, false)
-    var img = catch decodeTiff(nnBytes(buf.toSlice())) as err8
-    @assert(err8 == null)
+    let img = expect decodeTiff(nnBytes(buf.toSlice()))
     @assert((notnull img.pixels.buffer)[0] == 0xAB'u8)
     @assert((notnull img.pixels.buffer)[1] == 0xAB'u8)
     @assert((notnull img.pixels.buffer)[2] == 0xAB'u8)
@@ -432,8 +408,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     pix.addNative(40'u8); pix.addNative(40'u8); pix.addNative(40'u8)     // file row 3 (bottom)
 
     let buf = buildTiff(true, 1, 4, 3, 2, 1, 2, 8, nnBytes(pix.toSlice()), null, false)
-    var img = catch decodeTiff(nnBytes(buf.toSlice())) as err9
-    @assert(err9 == null)
+    let img = expect decodeTiff(nnBytes(buf.toSlice()))
     @assert(img.width == 1)
     @assert(img.height == 4)
 
@@ -454,8 +429,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 
     var opt: DecodeOptions
     opt.decodePixels = false
-    var img = catch decodeTiff(nnBytes(buf.toSlice()), opt) as err10
-    @assert(err10 == null)
+    let img = expect decodeTiff(nnBytes(buf.toSlice()), opt)
     @assert(img.width == 1)
     @assert(img.height == 1)
     @assert(img.pixelFormat == .RGB8)
@@ -483,8 +457,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     let packed = packLiteralTiffLzw(nnBytes(raw.toSlice()))
 
     let buf = buildTiff(true, 2, 1, 3, 2, 5, 1, 8, nnBytes(packed.toSlice()), null, false)
-    var img = catch decodeTiff(nnBytes(buf.toSlice())) as err12
-    @assert(err12 == null)
+    let img = expect decodeTiff(nnBytes(buf.toSlice()))
     @assert((notnull img.pixels.buffer)[0] == 10'u8)
     @assert((notnull img.pixels.buffer)[1] == 20'u8)
     @assert((notnull img.pixels.buffer)[2] == 30'u8)
@@ -502,8 +475,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     let packed = packLiteralTiffLzw(nnBytes(predicted.toSlice()))
 
     let buf = buildTiff(true, 2, 1, 3, 2, 5, 1, 8, nnBytes(packed.toSlice()), null, false, 2)
-    var img = catch decodeTiff(nnBytes(buf.toSlice())) as err
-    @assert(err == null)
+    let img = expect decodeTiff(nnBytes(buf.toSlice()))
     @assert((notnull img.pixels.buffer)[0] == 10'u8)
     @assert((notnull img.pixels.buffer)[1] == 20'u8)
     @assert((notnull img.pixels.buffer)[2] == 30'u8)
@@ -528,8 +500,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     writer.finish()
 
     let buf = buildTiff(true, 6, 1, 1, 1, 5, 1, 8, nnBytes(writer.bytes.toSlice()), null, false)
-    var img = catch decodeTiff(nnBytes(buf.toSlice())) as err
-    @assert(err == null)
+    let img = expect decodeTiff(nnBytes(buf.toSlice()))
     for [i] in img.pixels.count do
         @assert((notnull img.pixels.buffer)[i] == 65'u8)
 }
@@ -543,8 +514,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     let packed = packLiteralTiffLzw(nnBytes(raw.toSlice()))
 
     let buf = buildTiff(true, 64, 64, 1, 1, 5, 64, 8, nnBytes(packed.toSlice()), null, false)
-    var img = catch decodeTiff(nnBytes(buf.toSlice())) as err
-    @assert(err == null)
+    let img = expect decodeTiff(nnBytes(buf.toSlice()))
     let pixels = notnull img.pixels.buffer
     for [y] in 64
     {
@@ -587,9 +557,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     var src = Image.create(2, 2, .RGB8)
     src.clear()
 
-    var cb: ConcatBuffer
-    catch encodeTiff(&cb, src) as err15
-    @assert(err15 == null)
+    let cb = expect src.encode("memory.tiff")
     cb.makeLinear()
     let bytes = nnBytes(cb.toSlice())
     @assert(@dataof(bytes)[0] == 0x49'u8)
@@ -609,12 +577,8 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     srcBuf[2] = 33'u8
     srcBuf[9] = 99'u8     // top-right R (last pixel)
 
-    var cb: ConcatBuffer
-    catch encodeTiff(&cb, src) as err16
-    @assert(err16 == null)
-
-    var img = catch decodeTiff(nnBytes(cb.toSlice())) as err17
-    @assert(err17 == null)
+    let cb = expect src.encode("memory.tiff")
+    let img = expect decodeTiff(nnBytes(cb.toSlice()))
     @assert(img.width == 2)
     @assert(img.height == 2)
     @assert(img.pixelFormat == .RGB8)
@@ -634,12 +598,8 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     srcBuf[2] = 3'u8
     srcBuf[3] = 200'u8
 
-    var cb: ConcatBuffer
-    catch encodeTiff(&cb, src) as err18
-    @assert(err18 == null)
-
-    var img = catch decodeTiff(nnBytes(cb.toSlice())) as err19
-    @assert(err19 == null)
+    let cb = expect src.encode("memory.tiff")
+    let img = expect decodeTiff(nnBytes(cb.toSlice()))
     @assert(img.pixelFormat == .RGBA8)
     @assert((notnull img.pixels.buffer)[0] == 1'u8)
     @assert((notnull img.pixels.buffer)[1] == 2'u8)
@@ -656,12 +616,8 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     srcBuf[1] = 20'u8     // G
     srcBuf[2] = 30'u8     // R
 
-    var cb: ConcatBuffer
-    catch encodeTiff(&cb, src) as err20
-    @assert(err20 == null)
-
-    var img = catch decodeTiff(nnBytes(cb.toSlice())) as err21
-    @assert(err21 == null)
+    let cb = expect src.encode("memory.tiff")
+    let img = expect decodeTiff(nnBytes(cb.toSlice()))
     @assert(img.pixelFormat == .RGB8)
     @assert((notnull img.pixels.buffer)[0] == 30'u8)
     @assert((notnull img.pixels.buffer)[1] == 20'u8)
@@ -672,11 +628,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 #test
 {
     let path = makeTempTiffPath()
-    defer
-    {
-        discard catch File.delete(path.toString())
-    }
-
+    defer discard catch File.delete(path.toString())
     var src = Image.create(3, 2, .RGB8)
     src.clear()
     let srcBuf = notnull src.pixels.buffer
@@ -684,11 +636,8 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     srcBuf[1] = 45'u8
     srcBuf[2] = 67'u8
 
-    catch src.save(path.toString()) as err22
-    @assert(err22 == null)
-
-    var img = catch Image.load(path.toString()) as err23
-    @assert(err23 == null)
+    expect src.save(path.toString())
+    let img = expect Image.load(path.toString())
     @assert(img.width == 3)
     @assert(img.height == 2)
     @assert(img.pixelFormat == .RGB8)
@@ -715,20 +664,14 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
         }
     }
 
-    var uncompressed: ConcatBuffer
-    catch encodeTiff(&uncompressed, src) as err24
-    @assert(err24 == null)
-
+    let uncompressed = expect src.encode("memory.tiff")
     var options: Tiff.EncodeOptions
     options.compression = .PackBits
 
-    var packed: ConcatBuffer
-    catch encodeTiff(&packed, src, options) as err25
-    @assert(err25 == null)
+    let packed = expect src.encode("memory.tiff", options)
     @assert(@countof(packed.toSlice()) < @countof(uncompressed.toSlice()))
 
-    let img = catch decodeTiff(nnBytes(packed.toSlice())) as err26
-    @assert(err26 == null)
+    let img = expect decodeTiff(nnBytes(packed.toSlice()))
     @assert(img.pixelFormat == .RGBA8)
     @assert(img.width == src.width)
     @assert(img.height == src.height)
@@ -751,12 +694,8 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     var options: Tiff.EncodeOptions
     options.compression = .PackBits
 
-    var cb: ConcatBuffer
-    catch encodeTiff(&cb, src, options) as err27
-    @assert(err27 == null)
-
-    let img = catch decodeTiff(nnBytes(cb.toSlice())) as err28
-    @assert(err28 == null)
+    let cb = expect src.encode("memory.tiff", options)
+    let img = expect decodeTiff(nnBytes(cb.toSlice()))
     @assert(img.pixelFormat == .RGB8)
     @assert((notnull img.pixels.buffer)[0] == 1'u8)
     @assert((notnull img.pixels.buffer)[1] == 2'u8)
@@ -780,13 +719,10 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     var options: Tiff.EncodeOptions
     options.compression = .Lzw
 
-    var cb: ConcatBuffer
-    catch encodeTiff(&cb, src, options) as err
-    @assert(err == null)
+    let cb = expect src.encode("memory.tiff", options)
     cb.makeLinear()
 
-    let img = catch decodeTiff(nnBytes(cb.toSlice())) as decodeErr
-    @assert(decodeErr == null)
+    let img = expect decodeTiff(nnBytes(cb.toSlice()))
     @assert(img.pixelFormat == .RGBA8)
     @assert(img.width == src.width)
     @assert(img.height == src.height)

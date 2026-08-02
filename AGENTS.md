@@ -5,6 +5,10 @@ All AI instructions for modifying this repository live in `.agents/skills/`.
 Before changing code, tests, examples, or build files, read and follow
 [modify-swag-codebase](.agents/skills/modify-swag-codebase/SKILL.md).
 
+Before adding or changing any Swag source (`.swg` or `.swgs`), including tests,
+examples, scripts, and documentation code samples, also read and follow
+[write-idiomatic-swag-code](.agents/skills/write-idiomatic-swag-code/SKILL.md).
+
 When adding, changing, reviewing, or normalizing a public module API under `bin/`, also read
 and follow [design-swag-bin-modules](.agents/skills/design-swag-bin-modules/SKILL.md): module
 boundaries, naming, ownership, failure behavior, operation families, and compatibility must be

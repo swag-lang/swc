@@ -8,7 +8,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     f.capture.width     = 64
     f.capture.height    = 48
     f.capture.widthOrg  = 64
@@ -74,25 +74,13 @@ using Swag, Core
     f.capture.title = "My Capture Name"
 
     let path = testTempCapturePath()
-    defer
-    {
-        discard catch File.delete(path)
-    }
-
+    defer discard catch File.delete(path)
     f.capture.file    = path
     f.capture.changed = true
 
-    catch f.capture.save() as err
-    @assert(err == null)
-
-    let loaded = notnull catch Capture.load(path) as err2
-    @assert(err2 == null)
-
-    defer
-    {
-        Memory.delete(loaded)
-    }
-
+    expect f.capture.save()
+    let loaded = notnull expect Capture.load(path)
+    defer Memory.delete(loaded)
     @assert(loaded.width == 64)
     @assert(loaded.height == 48)
     @assert(loaded.forms.count == 9)
@@ -157,8 +145,6 @@ using Swag, Core
     @assert(lCallout.fontStyle == .BoldItalic)
     @assert(lCallout.alignHorz == .LeftTop)
     @assert(lCallout.alignVert == .RightBottom)
-
-    f.shutdown()
 }
 
 // Preview loading ignores heavy images while preserving form metadata.
@@ -166,7 +152,7 @@ using Swag, Core
 {
     var f: HeadlessFixture
     f.setup()
-
+    defer f.shutdown()
     f.capture.width   = 32
     f.capture.height  = 32
     f.capture.backImg = Image.create(32, 32, .BGRA8)
@@ -175,29 +161,15 @@ using Swag, Core
     discard testAddShape(f.capture, 2, 3, 4, 5)
 
     let path = testTempCapturePath()
-    defer
-    {
-        discard catch File.delete(path)
-    }
-
+    defer discard catch File.delete(path)
     f.capture.file    = path
     f.capture.changed = true
 
-    catch f.capture.save() as err3
-    @assert(err3 == null)
-
-    let loaded = notnull catch Capture.load(path, preview: true) as err4
-    @assert(err4 == null)
-
-    defer
-    {
-        Memory.delete(loaded)
-    }
-
+    expect f.capture.save()
+    let loaded = notnull expect Capture.load(path, preview: true)
+    defer Memory.delete(loaded)
     @assert(loaded.forms.count == 1)
     @assert(!loaded.backImg.isValid())
     @assert(loaded.title == "Preview Title")
     @assert((cast(*BaseForm) @dataof(loaded.forms[0])).capture == loaded)
-
-    f.shutdown()
 }

@@ -12,59 +12,21 @@ func getTestDataPath(fileName: string, loc = #callerlocation)->String
     return path
 }
 
-func makeTempBmpPath()->String
+func makeTempImagePath(extension: string)->String
 {
-    let tempDir      = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
-    var name: String = "swag_pixel_bmp_"
+    let tempDir      = Env.getSpecialDirectory(.Temp)
+    var name: String = "swag_pixel_"
     name += Guid64.random().toString()
-    name += ".bmp"
+    name += extension
     return Path.combine(tempDir.toString(), name.toString())
 }
 
-func makeTempTgaPath()->String
-{
-    let tempDir      = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
-    var name: String = "swag_pixel_tga_"
-    name += Guid64.random().toString()
-    name += ".tga"
-    return Path.combine(tempDir.toString(), name.toString())
-}
-
-func makeTempPngPath()->String
-{
-    let tempDir      = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
-    var name: String = "swag_pixel_png_"
-    name += Guid64.random().toString()
-    name += ".png"
-    return Path.combine(tempDir.toString(), name.toString())
-}
-
-func makeTempGifPath()->String
-{
-    let tempDir      = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
-    var name: String = "swag_pixel_gif_"
-    name += Guid64.random().toString()
-    name += ".gif"
-    return Path.combine(tempDir.toString(), name.toString())
-}
-
-func makeTempTiffPath()->String
-{
-    let tempDir      = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
-    var name: String = "swag_pixel_tiff_"
-    name += Guid64.random().toString()
-    name += ".tif"
-    return Path.combine(tempDir.toString(), name.toString())
-}
-
-func makeTempIcoPath()->String
-{
-    let tempDir      = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
-    var name: String = "swag_pixel_ico_"
-    name += Guid64.random().toString()
-    name += ".ico"
-    return Path.combine(tempDir.toString(), name.toString())
-}
+func makeTempBmpPath()->String  => makeTempImagePath(".bmp")
+func makeTempTgaPath()->String  => makeTempImagePath(".tga")
+func makeTempPngPath()->String  => makeTempImagePath(".png")
+func makeTempGifPath()->String  => makeTempImagePath(".gif")
+func makeTempTiffPath()->String => makeTempImagePath(".tif")
+func makeTempIcoPath()->String  => makeTempImagePath(".ico")
 
 // Copy a ConcatBuffer's bytes into an owning Array. ConcatBuffer cannot be
 // returned by value safely (it owns linked buckets), so test builders that
@@ -86,9 +48,9 @@ func nnBytes(bytes: #null [..] u8)->const [..] u8
     return @mkslice(cast([*] u8) (notnull @dataof(bytes)), @countof(bytes))
 }
 
-func loadTestTypeFace(outFace: **TypeFace, fullname: string) fail
+func loadTestTypeFace(fullname: string)->#null *TypeFace fail
 {
-    dref outFace = try TypeFace.load(fullname)
+    return try TypeFace.load(fullname)
 }
 
 func makeImage(width, height: s32, pf: PixelFormat, buffer: const [..] u8)->Image

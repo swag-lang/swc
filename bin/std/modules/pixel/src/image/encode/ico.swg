@@ -17,11 +17,11 @@ internal impl IImageEncoder for Encoder
     mtd impl encode(result: *ConcatBuffer, image: Image, options: #null any) fail
     {
         var single: [1] Image = [image]
-        try encodeAll(result, single)
+        try appendAll(result, single)
     }
 }
 
-// Appends an icon holding every image, in the order given.
+// Encodes an icon holding every image, in the order given.
 //
 // An icon is picked by size at display time, so a favicon carrying 16, 32, and 48 pixel
 // entries stays sharp in a tab, a bookmark, and a shortcut alike. Each image is written as a
@@ -33,7 +33,14 @@ internal impl IImageEncoder for Encoder
 // let sizes: [3] Image = [mark16, mark32, mark48]
 // try Ico.save("favicon.ico", sizes)
 // ```
-public func encodeAll(result: *ConcatBuffer, images: const [..] Image) fail
+public func encodeAll(images: const [..] Image)->ConcatBuffer fail
+{
+    var result: retval
+    try appendAll(&result, images)
+    return result
+}
+
+private func appendAll(result: *ConcatBuffer, images: const [..] Image) fail
 {
     if @countof(images) == 0 do
         fail InvalidFormatError{"an icon needs at least one image"}
@@ -82,8 +89,7 @@ public func encodeAll(result: *ConcatBuffer, images: const [..] Image) fail
 // Writes an icon file holding every image, in the order given.
 public func save(fileName: string, images: const [..] Image) fail
 {
-    var buffer: ConcatBuffer
-    try encodeAll(&buffer, images)
+    let buffer = try encodeAll(images)
     discard try File.writeAllBytes(fileName, buffer)
 }
 

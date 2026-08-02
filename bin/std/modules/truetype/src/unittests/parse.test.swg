@@ -4,24 +4,19 @@ using Swag, Core
 
 #test
 {
-    let valueU16 = catch readU16(ReaderBytes, 0) as err
-    @assert(err == null)
+    let valueU16 = expect readU16(ReaderBytes, 0)
     @assert(valueU16 == 0x1234)
 
-    let valueS16 = catch readS16(ReaderBytes, 2) as err2
-    @assert(err2 == null)
+    let valueS16 = expect readS16(ReaderBytes, 2)
     @assert(valueS16 == -128)
 
-    let valueU32 = catch readU32(ReaderBytes, 0) as err3
-    @assert(err3 == null)
+    let valueU32 = expect readU32(ReaderBytes, 0)
     @assert(valueU32 == 0x1234FF80)
 
-    let valueS32 = catch readS32(ReaderS32Bytes, 0) as err4
-    @assert(err4 == null)
+    let valueS32 = expect readS32(ReaderS32Bytes, 0)
     @assert(valueS32 == -128)
 
-    let valueF2Dot14 = catch readF2Dot14(FixedPointBytes, 0) as err5
-    @assert(err5 == null)
+    let valueF2Dot14 = expect readF2Dot14(FixedPointBytes, 0)
     @assert(Math.abs(valueF2Dot14 - 0.5) < 0.0001)
 
     discard catch assertRange(ReaderBytes, 0, 16) as err6

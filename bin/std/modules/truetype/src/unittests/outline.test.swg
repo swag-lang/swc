@@ -30,11 +30,8 @@ using Swag, Core
     scope.init()
     let face = notnull scope.face
 
-    discard catch face.setPixelSize(0, 18) as err
-    @assert(err == null)
-
-    discard catch face.loadChar('A') as err2
-    @assert(err2 == null)
+    discard expect face.setPixelSize(0, 18)
+    discard expect face.loadChar('A')
     @assert(face.glyph.outline.contourCount > 0)
     @assert(face.glyph.outline.pointCount > 0)
     @assert(face.glyph.advance.x > 0)
@@ -61,8 +58,7 @@ using Swag, Core
     @assert(bounds1.xMin == bounds0.xMin + 64)
     @assert(bounds1.xMax == bounds0.xMax + 64)
 
-    discard catch face.loadChar('A') as err3
-    @assert(err3 == null)
+    discard expect face.loadChar('A')
     let transformIdx     = findPointWithNonZeroY(&face.glyph.outline)
     let transformPts     = notnull face.glyph.outline.points
     let beforeTransformX = transformPts[transformIdx].x
@@ -72,28 +68,23 @@ using Swag, Core
     @assert(transformPts[transformIdx].x == beforeTransformX)
     @assert(transformPts[transformIdx].y == beforeTransformY * 2)
 
-    discard catch face.loadChar('A') as err4
-    @assert(err4 == null)
+    discard expect face.loadChar('A')
     let bounds2 = getOutlineBounds(&face.glyph.outline)
-    discard catch face.glyph.outline.embolden(64) as err5
-    @assert(err5 == null)
+    discard expect face.glyph.outline.embolden(64)
     let bounds3 = getOutlineBounds(&face.glyph.outline)
     @assert(bounds3.xMax - bounds3.xMin >= bounds2.xMax - bounds2.xMin)
 
     // Emboldening a glyph with a counter ('o') must add ink: the outer contour
     // grows while the inner hole shrinks. A per-contour winding bug would instead
     // grow the hole, so the total filled area would not increase.
-    discard catch face.loadChar('o') as err6
-    @assert(err6 == null)
+    discard expect face.loadChar('o')
     @assert(face.glyph.outline.contourCount >= 2)
     let inkBefore = Math.abs(totalOutlineSignedArea(&face.glyph.outline))
-    discard catch face.glyph.outline.embolden(128) as err7
-    @assert(err7 == null)
+    discard expect face.glyph.outline.embolden(128)
     let inkAfter = Math.abs(totalOutlineSignedArea(&face.glyph.outline))
     @assert(inkAfter > inkBefore)
 
-    discard catch face.loadChar('A') as err8
-    @assert(err8 == null)
+    discard expect face.loadChar('A')
     let sampleIdx     = findPointWithNonZeroY(&face.glyph.outline)
     let samplePts     = notnull face.glyph.outline.points
     let sampleBeforeX = samplePts[sampleIdx].x

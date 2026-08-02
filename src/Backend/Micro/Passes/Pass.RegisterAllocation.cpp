@@ -474,6 +474,19 @@ bool MicroRegisterAllocationPass::canUsePhysical(MicroReg virtKey, uint32_t inst
     if (!allowConcreteLive && hasFutureConcreteTouchConflict(virtKey, physReg, instructionIndex))
         return false;
 
+    // The future-touch test above asks whether the REQUESTING value is still
+    // alive at the register's next concrete touch — it cannot see a concrete
+    // value alive across this very point (defined above, read below) when the
+    // requester dies first. The reload or mapping inserted here would clobber
+    // that live value: an argument register already loaded for an imminent
+    // call is the canonical victim (arg set up first, another arg's reload
+    // asks for a register in between). This refusal is absolute — no relaxed
+    // path can make the clobber safe — and by construction it only triggers
+    // between a concrete definition and its read, so registers stay available
+    // before their setup and after their last concrete read.
+    if (isConcreteLiveInAt(physReg, instructionIndex))
+        return false;
+
     // The scan above walks forward in layout order, so it is blind to a value
     // a loop carries around its back-edge: every touch of it lies behind the
     // point that wants the register, and the register looks free. Taking it is

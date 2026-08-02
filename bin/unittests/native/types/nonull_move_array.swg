@@ -21,8 +21,8 @@ impl NativeNonNullMoveUndefinedEscape
 }
 
 alias NativeNonNullMoveArrayElementAlias = NativeNonNullMoveArrayDefault
-alias NativeNonNullMoveArrayAlias       = [2] NativeNonNullMoveArrayElementAlias
-alias NativeNonNullMoveArrayNestedAlias = NativeNonNullMoveArrayAlias
+alias NativeNonNullMoveArrayAlias        = [2] NativeNonNullMoveArrayElementAlias
+alias NativeNonNullMoveArrayNestedAlias  = NativeNonNullMoveArrayAlias
 
 func consumeNativeNonNullMoveArray(value: NativeNonNullMoveArrayNestedAlias)->bool
 {

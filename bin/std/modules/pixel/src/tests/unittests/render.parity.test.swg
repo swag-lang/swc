@@ -2,12 +2,12 @@
 
 using Swag, Core, Win32
 
-private const RenderParityWidth  = 192
+private const RenderParityWidth = 192
 private const RenderParityHeight = 128
-private const RenderTextWidth    = 360
-private const RenderTextHeight   = 168
-private const RenderLayerWidth   = 160
-private const RenderLayerHeight  = 104
+private const RenderTextWidth = 360
+private const RenderTextHeight = 168
+private const RenderLayerWidth = 160
+private const RenderLayerHeight = 104
 
 private alias RenderParityScene = func||(IRenderer)->Image
 
@@ -39,9 +39,9 @@ private func makeRenderParityTexture(renderer: IRenderer)->Texture
 {
     var image             = Image.create(4, 4, .BGRA8)
     let colors: [4] Color = [Color.fromArgb(Argb.Crimson),
-                                    Color.fromArgb(Argb.Gold),
-                                    Color.fromArgb(Argb.DodgerBlue),
-                                    Color.fromArgb(Argb.LimeGreen)]
+                             Color.fromArgb(Argb.Gold),
+                             Color.fromArgb(Argb.DodgerBlue),
+                             Color.fromArgb(Argb.LimeGreen)]
 
     for [y] in image.height
     {

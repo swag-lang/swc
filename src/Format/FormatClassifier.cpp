@@ -178,6 +178,26 @@ namespace
                          model_->piece(start).is(TokenId::KwdConst)))
                         span.minPiece = start;
                 }
+                else if (node.is(AstNodeId::FunctionExpr) || node.is(AstNodeId::ClosureExpr))
+                {
+                    // Function-expression nodes are anchored after their body,
+                    // and their child span commonly starts on `(` or inside a
+                    // capture list. Include the introducing `func` so an
+                    // initializer `=` can be classified from the real operand
+                    // boundary.
+                    uint32_t p = span.minPiece;
+                    for (uint32_t guard = 0; p != INVALID_PIECE && guard < 64; ++guard)
+                    {
+                        if (model_->piece(p).is(TokenId::KwdFunc))
+                        {
+                            span.minPiece = p;
+                            break;
+                        }
+                        p = prevCode(p);
+                        if (p != INVALID_PIECE && model_->piece(p).roles.hasAny({FormatRoleE::StmtStart, FormatRoleE::AssignOp}))
+                            break;
+                    }
+                }
                 else if (node.is(AstNodeId::AssignStmt) &&
                          isDestructuringAssignList(node.cast<AstAssignStmt>().nodeLeftRef))
                 {
@@ -340,7 +360,7 @@ namespace
             addRole(open.match, FormatRoleE::BlockClose);
         }
 
-        void registerInlineControl(const uint32_t doPiece, const NodeSpan& bodySpan, const uint32_t maxPiece = INVALID_PIECE) const
+        void registerInlineControl(const uint32_t headPiece, const uint32_t doPiece, const NodeSpan& bodySpan, const uint32_t maxPiece = INVALID_PIECE) const
         {
             if (doPiece == INVALID_PIECE || !bodySpan.valid())
                 return;
@@ -365,7 +385,7 @@ namespace
                 lastPiece = next;
             }
 
-            model_->inlineBodies().push_back({doPiece, lastPiece});
+            model_->inlineBodies().push_back({headPiece, doPiece, lastPiece});
         }
 
         uint32_t pieceBeforeElseBranch(const AstNodeRef elseRef)
@@ -465,7 +485,7 @@ namespace
             {
                 markTrailingDo(bodySpan);
                 addRole(bodySpan.minPiece, FormatRoleE::StmtStart);
-                registerInlineControl(prevCodeIf(bodySpan.minPiece, TokenId::KwdDo), bodySpan, inlineBodyLimit(ownerRef, elseRef));
+                registerInlineControl(headPiece, prevCodeIf(bodySpan.minPiece, TokenId::KwdDo), bodySpan, inlineBodyLimit(ownerRef, elseRef));
             }
         }
 
@@ -497,7 +517,7 @@ namespace
             else
             {
                 addRole(elseSpan.minPiece, FormatRoleE::StmtStart);
-                registerInlineControl(prevCodeIf(elseSpan.minPiece, TokenId::KwdDo), elseSpan, inlineBodyLimit(ownerRef));
+                registerInlineControl(headPiece, prevCodeIf(elseSpan.minPiece, TokenId::KwdDo), elseSpan, inlineBodyLimit(ownerRef));
             }
         }
 
@@ -752,6 +772,7 @@ namespace
                     const auto&    fn       = node.cast<AstFunctionExpr>();
                     const NodeSpan bodySpan = spanOf(fn.nodeBodyRef);
                     registerBlock(bodyOpenBrace(bodySpan), FormatBlockKind::Function, span.minPiece, true);
+                    addRole(nextCodeIf(span.minPiece, TokenId::SymLeftParen), FormatRoleE::DeclOpenParen);
 
                     const NodeSpan returnSpan = spanOf(fn.nodeReturnTypeRef);
                     if (returnSpan.valid())
@@ -782,6 +803,7 @@ namespace
                         }
                     }
 
+                    uint32_t closePipe = INVALID_PIECE;
                     if (captureSpan.valid())
                     {
                         const uint32_t openPipe   = prevCodeIf(captureSpan.minPiece, TokenId::SymPipe);
@@ -797,7 +819,7 @@ namespace
                                 break;
                             captureEnd = next;
                         }
-                        const uint32_t closePipe = nextCodeIf(captureEnd, TokenId::SymPipe);
+                        closePipe = nextCodeIf(captureEnd, TokenId::SymPipe);
                         if (openPipe != INVALID_PIECE && closePipe != INVALID_PIECE)
                         {
                             const uint32_t captureDepth = model_->piece(openPipe).depth;
@@ -809,6 +831,16 @@ namespace
                             }
                         }
                     }
+                    else
+                    {
+                        const uint32_t openPipe = nextCode(span.minPiece);
+                        if (openPipe != INVALID_PIECE && model_->piece(openPipe).is(TokenId::SymPipePipe))
+                            closePipe = openPipe;
+                        else if (openPipe != INVALID_PIECE && model_->piece(openPipe).is(TokenId::SymPipe))
+                            closePipe = nextCodeIf(openPipe, TokenId::SymPipe);
+                    }
+
+                    addRole(nextCodeIf(closePipe, TokenId::SymLeftParen), FormatRoleE::DeclOpenParen);
                     break;
                 }
 
@@ -908,6 +940,16 @@ namespace
                 case AstNodeId::AliasDecl:
                 {
                     const auto& alias = node.cast<AstAliasDecl>();
+                    uint32_t    start = span.minPiece;
+                    for (uint32_t i = span.minPiece; span.valid() && i <= span.maxPiece; i = model_->nextPiece(i))
+                    {
+                        if (model_->piece(i).is(TokenId::KwdAlias))
+                        {
+                            start = i;
+                            break;
+                        }
+                    }
+                    addRole(start, FormatRoleE::AliasDeclStart);
                     markInitAssign(alias.nodeExprRef, FormatRoleE::InitAssign);
                     break;
                 }
@@ -1237,12 +1279,19 @@ namespace
                     if (span.valid())
                     {
                         const FormatPiece& open = model_->piece(span.minPiece);
-                        if (open.is(TokenId::SymLeftCurly) && open.match != INVALID_PIECE)
+                        if ((open.is(TokenId::SymLeftCurly) || open.is(TokenId::SymLeftBracket)) && open.match != INVALID_PIECE)
                         {
                             addRole(span.minPiece, FormatRoleE::LiteralOpen);
                             addRole(open.match, FormatRoleE::LiteralClose);
                         }
                     }
+                    break;
+                }
+
+                case AstNodeId::NamedArgument:
+                {
+                    if (span.valid())
+                        addRole(nextCodeIf(span.minPiece, TokenId::SymColon), FormatRoleE::NamedArgumentColon);
                     break;
                 }
 

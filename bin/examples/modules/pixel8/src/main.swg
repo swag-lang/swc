@@ -14,24 +14,21 @@ const Titles       = [
     "Finite series with limits",
     "Matrix notation",
     "Piecewise function",
-    "Nested layout and accents",
-    ]
+    "Nested layout and accents",]
 const Sources = [
     #raw "x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}",
     #raw "\int_{0}^{\infty} e^{-x^2}\,dx = \frac{\sqrt{\pi}}{2}",
     #raw "\sum_{k=1}^{n} k^3 = \left(\frac{n(n+1)}{2}\right)^2",
     #raw "A = \begin{pmatrix}a&b\\c&d\end{pmatrix},\quad \det A = ad-bc",
     #raw "f(x) = \begin{cases}x^2&x\ge0\\-x&x<0\end{cases}",
-    #raw "\vec{v}_{i+1} = \frac{\hat{u}+\sqrt[3]{1+\alpha_i^2}}{1+\lVert u\rVert}",
-    ]
+    #raw "\vec{v}_{i+1} = \frac{\hat{u}+\sqrt[3]{1+\alpha_i^2}}{1+\lVert u\rVert}",]
 const Accents = [
     Argb.RoyalBlue,
     Argb.MediumVioletRed,
     Argb.DarkOrange,
     Argb.SeaGreen,
     Argb.SlateBlue,
-    Argb.Crimson,
-    ]
+    Argb.Crimson,]
 const Subtitle = "Reusable LaTeX parsing, TeX atom spacing, scalable scripts, fractions, radicals, " ++
                  "limits, delimiters and matrices."
 

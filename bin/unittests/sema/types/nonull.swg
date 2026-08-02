@@ -206,12 +206,12 @@ func semaNonNullConstruction()
     var moveDefaultSource                     = SemaNonNullMoveDefault{required: "explicit"}
     let moveDefaultTarget                     = #move moveDefaultSource
     let families                              = SemaNonNullFamilies{
-        valuePointer:  direct,
-        blockPointer:  block,
-        slice:         slice,
-        text:          text,
-        ctext:         ctext,
-        boxed:         boxed,
+        valuePointer: direct,
+        blockPointer: block,
+        slice: slice,
+        text: text,
+        ctext: ctext,
+        boxed: boxed,
         reflectedType: reflectedType,
         }
 

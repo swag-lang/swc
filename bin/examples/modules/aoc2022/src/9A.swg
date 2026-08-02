@@ -291,7 +291,8 @@ func day9A()
                 T.y += sdy
 
             case dx + dy > 2:
-                T.x += sdx; T.y += sdy
+                T.x += sdx
+                T.y += sdy
             }
 
             set.add(T)

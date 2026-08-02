@@ -61,7 +61,7 @@ struct RichEditLexerSwag
     }
 
     internal mapStyles: [State] Style
-    internal mapWords:  HashTable'(string, State)
+    internal mapWords: HashTable'(string, State)
 }
 
 impl IRichEditLexer for RichEditLexerSwag

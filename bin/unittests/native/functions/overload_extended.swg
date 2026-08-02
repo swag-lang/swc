@@ -123,7 +123,7 @@ var gBoolHit: bool = false
 var gIntHit:  s32  = 0
 
 func boolOrInt(a: bool) { gBoolHit = a }
-func boolOrInt(a: s32)  { gIntHit = a }
+func boolOrInt(a: s32) { gIntHit = a }
 
 #test
 {

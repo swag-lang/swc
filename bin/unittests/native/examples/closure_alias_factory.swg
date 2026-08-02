@@ -28,7 +28,7 @@ struct QuoteSummary
 }
 
 alias SeatDiscountRule = func||(s32)->s32
-alias SupportFeeRule = func||(bool)->s32
+alias SupportFeeRule   = func||(bool)->s32
 
 func makeSeatDiscountRule(requestedSeats: s32)->SeatDiscountRule
 {
@@ -75,9 +75,9 @@ func buildQuote(plan: SubscriptionPlan, order: TeamOrder, supportFeeRule: Suppor
 {
     const growthPlan: SubscriptionPlan =
         {
-        code:               "growth",
+        code: "growth",
         baseSeatPriceCents: 2400,
-        includedSeats:      3,
+        includedSeats: 3,
         }
 
     let supportFeeRule: SupportFeeRule = func(needsPrioritySupport: bool)->s32
@@ -89,8 +89,8 @@ func buildQuote(plan: SubscriptionPlan, order: TeamOrder, supportFeeRule: Suppor
 
     let startupQuote = buildQuote(growthPlan,
                                   {
-                                      requestedSeats:       8,
-                                      analyticsAddOnCents:  1200,
+                                      requestedSeats: 8,
+                                      analyticsAddOnCents: 1200,
                                       needsPrioritySupport: false,
                                   },
                                   supportFeeRule)
@@ -103,8 +103,8 @@ func buildQuote(plan: SubscriptionPlan, order: TeamOrder, supportFeeRule: Suppor
 
     let scaleUpQuote = buildQuote(growthPlan,
                                   {
-                                      requestedSeats:       12,
-                                      analyticsAddOnCents:  5000,
+                                      requestedSeats: 12,
+                                      analyticsAddOnCents: 5000,
                                       needsPrioritySupport: true,
                                   },
                                   supportFeeRule)
@@ -117,8 +117,8 @@ func buildQuote(plan: SubscriptionPlan, order: TeamOrder, supportFeeRule: Suppor
 
     let enterpriseQuote = buildQuote(growthPlan,
                                      {
-                                         requestedSeats:       22,
-                                         analyticsAddOnCents:  9000,
+                                         requestedSeats: 22,
+                                         analyticsAddOnCents: 9000,
                                          needsPrioritySupport: true,
                                      },
                                      supportFeeRule)

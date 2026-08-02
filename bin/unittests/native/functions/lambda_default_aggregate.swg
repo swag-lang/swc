@@ -6,7 +6,7 @@ struct LambdaDefaultPayload
     bias:   s32
 }
 
-alias LambdaDefaultArrayFn = func(values = [1, 2.5])->f32
+alias LambdaDefaultArrayFn   = func(values = [1, 2.5])->f32
 alias LambdaDefaultPayloadFn = func(payload = {values: [3, 4, 5], bias: 7})->s32
 
 #test

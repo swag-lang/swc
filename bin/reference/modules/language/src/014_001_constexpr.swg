@@ -23,8 +23,7 @@ const ConstexprSquares = [
     constexprSquare(1),
     constexprSquare(2),
     constexprSquare(3),
-    constexprSquare(4),
-    ]
+    constexprSquare(4),]
 
 #assert(ConstexprSquares[0] == 1)
 #assert(ConstexprSquares[1] == 4)

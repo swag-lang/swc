@@ -20,13 +20,13 @@ struct LambdaResult
     pair:     LambdaPair
 }
 
-alias LambdaAggregate = func(LambdaPayload, [4] s32, any)->LambdaResult
-alias LambdaTypedVariadic = func(LambdaPair, [2] u16, LambdaPayload...)->u64
+alias LambdaAggregate       = func(LambdaPayload, [4] s32, any)->LambdaResult
+alias LambdaTypedVariadic   = func(LambdaPair, [2] u16, LambdaPayload...)->u64
 alias LambdaUntypedVariadic = func(bool, ...)->s32
-alias LambdaUnary = func(s32)->s32
+alias LambdaUnary           = func(s32)->s32
 alias LambdaBinaryPredicate = func(s32, s32)->bool
-alias LambdaDefaultUnary = func(value: s32 = 11)->s32
-alias LambdaDefaultBool = func(bool)->bool
+alias LambdaDefaultUnary    = func(value: s32 = 11)->s32
+alias LambdaDefaultBool     = func(bool)->bool
 
 enum LambdaDefaultCategory
 {

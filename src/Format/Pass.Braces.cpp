@@ -31,6 +31,16 @@ namespace
         return true;
     }
 
+    bool blockWasSingleLine(const FormatModel& model, const FormatBlock& block)
+    {
+        for (uint32_t i = block.headPiece + 1; i <= block.closePiece; ++i)
+        {
+            if (model.gapBefore(i).origText.find_first_of("\r\n") != std::string_view::npos)
+                return false;
+        }
+        return true;
+    }
+
     bool blockIsEmpty(const FormatModel& model, const FormatBlock& block)
     {
         return model.nextPiece(block.openPiece) == block.closePiece;
@@ -45,7 +55,7 @@ namespace
             const FormatPiece& piece = model.piece(i);
             if (piece.removed)
                 continue;
-            if (piece.depth == innerDepth && piece.roles.hasAny({FormatRoleE::StmtStart, FormatRoleE::CaseLabel}))
+            if (piece.depth == innerDepth && piece.roles.hasAny({FormatRoleE::StmtStart, FormatRoleE::CaseLabel, FormatRoleE::EnumValueStart}))
                 count++;
         }
         return count;
@@ -71,6 +81,79 @@ namespace
         return false;
     }
 
+    FormatShortBlockStyle configuredShortStyle(const FormatModel& model, const FormatBlock& block)
+    {
+        const FormatOptions& options = model.options();
+
+        // Blocks embedded in an expression or a type keep their layout,
+        // except closure bodies which have their own dedicated option.
+        if (block.exprLevel)
+        {
+            if (block.kind == FormatBlockKind::Function)
+                return options.allowShortClosuresOnSingleLine;
+            return FormatShortBlockStyle::Preserve;
+        }
+
+        switch (block.kind)
+        {
+            case FormatBlockKind::Function:
+                return options.allowShortFunctionsOnSingleLine;
+            case FormatBlockKind::Struct:
+                return options.allowShortStructsOnSingleLine;
+            case FormatBlockKind::Enum:
+                return options.allowShortEnumsOnSingleLine;
+
+            case FormatBlockKind::Control:
+            case FormatBlockKind::Plain:
+            {
+                FormatShortBlockStyle style = options.allowShortBlocksOnSingleLine;
+                const FormatPiece&    head  = model.piece(block.headPiece);
+                if (head.is(TokenId::KwdIf) || head.is(TokenId::KwdElseIf) || head.is(TokenId::KwdElse))
+                {
+                    if (options.allowShortIfStatementsOnSingleLine)
+                        style = *options.allowShortIfStatementsOnSingleLine ? FormatShortBlockStyle::Inline : FormatShortBlockStyle::Never;
+                }
+                else if (head.is(TokenId::KwdWhile) || head.is(TokenId::KwdFor))
+                {
+                    if (options.allowShortLoopsOnSingleLine)
+                        style = *options.allowShortLoopsOnSingleLine ? FormatShortBlockStyle::Inline : FormatShortBlockStyle::Never;
+                }
+                return style;
+            }
+
+            case FormatBlockKind::Interface:
+            case FormatBlockKind::Namespace:
+            case FormatBlockKind::Impl:
+            case FormatBlockKind::Switch:
+                return FormatShortBlockStyle::Preserve;
+        }
+
+        return FormatShortBlockStyle::Preserve;
+    }
+
+    bool sourceKeepsBlockSingleLine(const FormatModel& model, const FormatBlock& block)
+    {
+        return configuredShortStyle(model, block) == FormatShortBlockStyle::Source && blockWasSingleLine(model, block);
+    }
+
+    bool blockKeepsMembersSingleLine(const FormatModel& model, const FormatBlock& block)
+    {
+        const FormatShortBlockStyle style = configuredShortStyle(model, block);
+        if (style == FormatShortBlockStyle::Source)
+            return blockWasSingleLine(model, block);
+        return (style == FormatShortBlockStyle::Inline || style == FormatShortBlockStyle::Always) && blockIsSingleLine(model, block);
+    }
+
+    bool statementBelongsToSourceSingleLineBlock(const FormatModel& model, const uint32_t piece)
+    {
+        for (const FormatBlock& block : model.blocks())
+        {
+            if (piece > block.openPiece && piece < block.closePiece && sourceKeepsBlockSingleLine(model, block))
+                return true;
+        }
+        return false;
+    }
+
     class BracesPass
     {
     public:
@@ -87,7 +170,7 @@ namespace
                 if (!rangeEditable(*model_, block.openPiece, block.closePiece))
                     continue;
 
-                const FormatShortBlockStyle style = shortStyleFor(block);
+                const FormatShortBlockStyle style = configuredShortStyle(*model_, block);
                 if (style == FormatShortBlockStyle::Preserve)
                     continue;
 
@@ -96,6 +179,16 @@ namespace
 
                 switch (style)
                 {
+                    case FormatShortBlockStyle::Source:
+                        if (blockWasSingleLine(*model_, block))
+                        {
+                            if (!singleLine && !empty)
+                                tryJoinBlock(block);
+                        }
+                        else if (singleLine && !empty)
+                            splitBlock(block);
+                        break;
+
                     case FormatShortBlockStyle::Never:
                         if (singleLine && !empty)
                             splitBlock(block);
@@ -117,6 +210,7 @@ namespace
                 }
             }
 
+            runInlineBodies();
             runShortCases();
         }
 
@@ -146,54 +240,6 @@ namespace
         }
 
     private:
-        FormatShortBlockStyle shortStyleFor(const FormatBlock& block) const
-        {
-            // Blocks embedded in an expression or a type keep their layout,
-            // except closure bodies which have their own dedicated option.
-            if (block.exprLevel)
-            {
-                if (block.kind == FormatBlockKind::Function)
-                    return options_->allowShortClosuresOnSingleLine;
-                return FormatShortBlockStyle::Preserve;
-            }
-
-            switch (block.kind)
-            {
-                case FormatBlockKind::Function:
-                    return options_->allowShortFunctionsOnSingleLine;
-                case FormatBlockKind::Struct:
-                    return options_->allowShortStructsOnSingleLine;
-                case FormatBlockKind::Enum:
-                    return options_->allowShortEnumsOnSingleLine;
-
-                case FormatBlockKind::Control:
-                case FormatBlockKind::Plain:
-                {
-                    FormatShortBlockStyle style = options_->allowShortBlocksOnSingleLine;
-                    const FormatPiece&    head  = model_->piece(block.headPiece);
-                    if (head.is(TokenId::KwdIf) || head.is(TokenId::KwdElseIf) || head.is(TokenId::KwdElse))
-                    {
-                        if (options_->allowShortIfStatementsOnSingleLine)
-                            style = *options_->allowShortIfStatementsOnSingleLine ? FormatShortBlockStyle::Inline : FormatShortBlockStyle::Never;
-                    }
-                    else if (head.is(TokenId::KwdWhile) || head.is(TokenId::KwdFor))
-                    {
-                        if (options_->allowShortLoopsOnSingleLine)
-                            style = *options_->allowShortLoopsOnSingleLine ? FormatShortBlockStyle::Inline : FormatShortBlockStyle::Never;
-                    }
-                    return style;
-                }
-
-                case FormatBlockKind::Interface:
-                case FormatBlockKind::Namespace:
-                case FormatBlockKind::Impl:
-                case FormatBlockKind::Switch:
-                    return FormatShortBlockStyle::Preserve;
-            }
-
-            return FormatShortBlockStyle::Preserve;
-        }
-
         void splitBlock(const FormatBlock& block) const
         {
             const Utf8 base(model_->lineIndentOf(block.headPiece));
@@ -207,7 +253,7 @@ namespace
                 if (piece.removed)
                     continue;
 
-                const bool isStmt = piece.depth == innerDepth && piece.roles.hasAny({FormatRoleE::StmtStart, FormatRoleE::CaseLabel});
+                const bool isStmt = piece.depth == innerDepth && piece.roles.hasAny({FormatRoleE::StmtStart, FormatRoleE::CaseLabel, FormatRoleE::EnumValueStart});
                 if (first || isStmt)
                     model_->setGapBreak(i, 1, inner.view());
                 first = false;
@@ -258,6 +304,29 @@ namespace
             }
             model_->setGapSpaces(firstContent, 1);
             model_->setGapSpaces(block.closePiece, 1);
+        }
+
+        void runInlineBodies() const
+        {
+            for (const FormatInlineBody& body : model_->inlineBodies())
+            {
+                const FormatPiece&         head   = model_->piece(body.headPiece);
+                const std::optional<bool>* option = nullptr;
+                if (head.is(TokenId::KwdIf) || head.is(TokenId::KwdElseIf) || head.is(TokenId::KwdElse))
+                    option = &options_->allowShortIfStatementsOnSingleLine;
+                else if (head.is(TokenId::KwdWhile) || head.is(TokenId::KwdFor))
+                    option = &options_->allowShortLoopsOnSingleLine;
+
+                if (!option || !option->has_value() || **option)
+                    continue;
+
+                const uint32_t first = model_->nextPiece(body.doPiece);
+                if (first == INVALID_PIECE || model_->gapHasNewline(first) || !FormatPassUtil::canEditGap(*model_, first))
+                    continue;
+
+                const Utf8 indent = FormatPassUtil::indentPlusOne(*model_, model_->lineIndentOf(body.headPiece));
+                model_->setGapBreak(first, 1, indent.view());
+            }
         }
 
         void applyCompactEmpty(const FormatBlock& block, const bool compact) const
@@ -553,6 +622,67 @@ namespace
 
 namespace
 {
+    void splitSameLineStatements(FormatModel& model)
+    {
+        if (!model.options().oneStatementPerLine.value_or(false))
+            return;
+
+        for (uint32_t i = 0; i < model.numPieces(); ++i)
+        {
+            FormatPiece& semi = model.piece(i);
+            if (semi.removed || semi.frozen || semi.isNot(TokenId::SymSemiColon))
+                continue;
+
+            const uint32_t next = model.nextPiece(i);
+            if (next == INVALID_PIECE || model.piece(next).isComment || model.gapHasNewline(next) ||
+                model.piece(next).depth != semi.depth || !model.piece(next).hasRole(FormatRoleE::StmtStart) ||
+                !FormatPassUtil::canEditGap(model, next) || statementBelongsToSourceSingleLineBlock(model, i))
+                continue;
+
+            model.setGapBreak(next, 1, model.lineIndentOf(i));
+            model.removePiece(i);
+        }
+    }
+
+    void normalizeAggregateMembers(FormatModel& model)
+    {
+        if (!model.options().oneEnumValuePerLine.value_or(false) && !model.options().oneStructFieldPerLine.value_or(false))
+            return;
+
+        for (const FormatBlock& block : model.blocks())
+        {
+            const bool isEnum   = block.kind == FormatBlockKind::Enum && model.options().oneEnumValuePerLine.value_or(false);
+            const bool isStruct = block.kind == FormatBlockKind::Struct && model.options().oneStructFieldPerLine.value_or(false);
+            if ((!isEnum && !isStruct) || !rangeEditable(model, block.openPiece, block.closePiece) || blockKeepsMembersSingleLine(model, block))
+                continue;
+
+            const uint32_t        innerDepth = model.piece(block.openPiece).depth + 1;
+            const FormatRoleE     memberRole = isEnum ? FormatRoleE::EnumValueStart : FormatRoleE::FieldDeclStart;
+            std::vector<uint32_t> members;
+            for (uint32_t i = block.openPiece + 1; i < block.closePiece; ++i)
+            {
+                const FormatPiece& piece = model.piece(i);
+                if (!piece.removed && piece.depth == innerDepth && piece.hasRole(memberRole))
+                    members.push_back(i);
+            }
+            if (members.size() < 2)
+                continue;
+
+            for (uint32_t i = block.openPiece + 1; i < block.closePiece; ++i)
+            {
+                FormatPiece& piece = model.piece(i);
+                if (!piece.removed && piece.depth == innerDepth && piece.is(TokenId::SymComma))
+                    model.removePiece(i);
+            }
+
+            const Utf8 base(model.lineIndentOf(block.headPiece));
+            const Utf8 inner = FormatPassUtil::indentPlusOne(model, base.view());
+            for (const uint32_t member : members)
+                model.setGapBreak(member, 1, inner.view());
+            model.setGapBreak(block.closePiece, 1, base.view());
+        }
+    }
+
     // `;` before an end of line is redundant. Same-line separators stay.
     void removeRedundantSemicolons(FormatModel& model)
     {
@@ -629,6 +759,8 @@ namespace FormatPass
     void statements(FormatModel& model)
     {
         removeConditionParentheses(model);
+        splitSameLineStatements(model);
+        normalizeAggregateMembers(model);
         removeRedundantSemicolons(model);
     }
 

@@ -442,7 +442,7 @@ struct(A, B) Pair
 #test
 {
     let a: Transform2D's32 = {pos: {x: 10, y: 20}, scale: {x: 2, y: 3}}
-    let b: Transform2D's32 = {pos: {x: 5, y: -5},  scale: {x: 4, y: 2}}
+    let b: Transform2D's32 = {pos: {x: 5, y: -5}, scale: {x: 4, y: 2}}
     let combined           = a + b
 
     // pos: 10+5=15, 20+(-5)=15

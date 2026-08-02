@@ -17,7 +17,13 @@ used interchangeably with the original type throughout your code.
 */
 #test
 {
-    enum RGB { R, G, B }
+    enum RGB
+    {
+        R
+        G
+        B
+    }
+
     @assert(RGB.R == 0)
 
     alias Color = RGB

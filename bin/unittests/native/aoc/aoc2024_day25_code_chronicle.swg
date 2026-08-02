@@ -112,7 +112,7 @@ func parseInit()->ParseResult
 func parseFree(r: *ParseResult)
 {
     if r.locks do @free(r.locks)
-    if r.keys  do @free(r.keys)
+    if r.keys do @free(r.keys)
 }
 
 // Parse a single 7-row schematic starting at `startPos`.

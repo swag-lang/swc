@@ -206,12 +206,12 @@ func jitNonNullConstruction()->bool
     var moveDefaultSource                                       = JitNonNullMoveDefault{required: "explicit"}
     let moveDefaultTarget                                       = #move moveDefaultSource
     let families                                                = JitNonNullFamilies{
-        valuePointer:  direct,
-        blockPointer:  block,
-        slice:         slice,
-        text:          text,
-        ctext:         ctext,
-        boxed:         boxed,
+        valuePointer: direct,
+        blockPointer: block,
+        slice: slice,
+        text: text,
+        ctext: ctext,
+        boxed: boxed,
         reflectedType: reflectedType,
         }
 

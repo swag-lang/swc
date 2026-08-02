@@ -16,15 +16,15 @@ impl Bag
     var counter: s32
     var values:  [4] s32
 
-    mtd mInc()              { counter += 1 }
-    mtd mSet(v: s32)        { counter = v }
-    mtd mGet()->s32         { return counter }
-    mtd mGetViaMe()->s32    { return me.counter }
-    mtd mSetAt(i, v: s32)   { values[i] = v }
+    mtd mInc() { counter += 1 }
+    mtd mSet(v: s32) { counter = v }
+    mtd mGet()->s32 { return counter }
+    mtd mGetViaMe()->s32 { return me.counter }
+    mtd mSetAt(i, v: s32) { values[i] = v }
     mtd mGetAt(i: s32)->s32 { return values[i] }
 
-    func fSet(v: s32)       { counter = v }
-    func fGet()->s32        { return counter }
+    func fSet(v: s32) { counter = v }
+    func fGet()->s32 { return counter }
 }
 
 // Control: type-qualified access (no instance) reaches the static.

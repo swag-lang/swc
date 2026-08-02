@@ -1660,8 +1660,8 @@ struct PropDecorData
     let advanced  = notnull findFieldItem(prop, "Advanced")
     let physics   = notnull findFieldItem(prop, "Physics")
     @assert(transform.flags.has(.Category) and transform.level == 0)
-    @assert(advanced.flags.has(.Category)  and advanced.level == 1)
-    @assert(physics.flags.has(.Category)   and physics.level == 0)
+    @assert(advanced.flags.has(.Category) and advanced.level == 1)
+    @assert(physics.flags.has(.Category) and physics.level == 0)
     @assert(advanced.parent == transform)     // subgroup nested under its prefix
 
     // Fields indent with their group depth: a top-level field is at indent 0, a subgroup field one
@@ -1878,7 +1878,12 @@ struct PropSameCategData
     @assert((notnull descIt.checkBox.parent).position.width > cast(f32) opt.properties.editorWidth)
 }
 
-enum PropAlignChoice { A, B, C }
+enum PropAlignChoice
+{
+    A
+    B
+    C
+}
 
 struct PropAlignData
 {

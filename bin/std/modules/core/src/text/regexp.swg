@@ -1033,7 +1033,8 @@ impl RegExp
                     {
                         var rootGroup = n.group
                         while .groupParent[rootGroup] != 0
-                            do rootGroup = .groupParent[rootGroup]
+                            do
+                            rootGroup = .groupParent[rootGroup]
                         if rootGroup != .group and .groupParent[rootGroup] == 0 do
                             .groupParent[rootGroup] = .group
                     }

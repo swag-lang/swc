@@ -2,7 +2,7 @@
 
 struct ExplicitNullabilityItem {}
 
-alias ExplicitNullabilityRequiredPtr = *ExplicitNullabilityItem
+alias ExplicitNullabilityRequiredPtr    = *ExplicitNullabilityItem
 alias ExplicitNullabilityOptionalString = #null string
 
 struct ExplicitNullabilityHolder

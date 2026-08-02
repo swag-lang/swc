@@ -11,8 +11,8 @@ impl NonNullMoveArrayRequired
 }
 
 alias NonNullMoveArrayElementAlias = NonNullMoveArrayRequired
-alias NonNullMoveArrayAlias       = [2] NonNullMoveArrayElementAlias
-alias NonNullMoveArrayNestedAlias = NonNullMoveArrayAlias
+alias NonNullMoveArrayAlias        = [2] NonNullMoveArrayElementAlias
+alias NonNullMoveArrayNestedAlias  = NonNullMoveArrayAlias
 
 func consumeNonNullMoveArray(value: NonNullMoveArrayNestedAlias) {}
 

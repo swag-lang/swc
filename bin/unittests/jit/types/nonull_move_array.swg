@@ -21,8 +21,8 @@ impl JitNonNullMoveUndefinedEscape
 }
 
 alias JitNonNullMoveArrayElementAlias = JitNonNullMoveArrayDefault
-alias JitNonNullMoveArrayAlias       = [2] JitNonNullMoveArrayElementAlias
-alias JitNonNullMoveArrayNestedAlias = JitNonNullMoveArrayAlias
+alias JitNonNullMoveArrayAlias        = [2] JitNonNullMoveArrayElementAlias
+alias JitNonNullMoveArrayNestedAlias  = JitNonNullMoveArrayAlias
 
 func consumeJitNonNullMoveArray(value: JitNonNullMoveArrayNestedAlias)->bool
 {

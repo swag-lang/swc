@@ -317,7 +317,8 @@ impl MainWnd
             r += cw
 
         case 2, 5, 8:
-            l += cw / 2; r += cw / 2
+            l += cw / 2
+            r += cw / 2
 
         case 3, 6, 9:
             l += cw
@@ -329,7 +330,8 @@ impl MainWnd
             b += ch
 
         case 4, 5, 6:
-            t += ch / 2; b += ch / 2
+            t += ch / 2
+            b += ch / 2
 
         case 7, 8, 9:
             t += ch

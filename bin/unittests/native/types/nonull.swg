@@ -206,12 +206,12 @@ func nativeNonNullConstruction()->bool
     var moveDefaultSource                                             = NativeNonNullMoveDefault{required: "explicit"}
     let moveDefaultTarget                                             = #move moveDefaultSource
     let families                                                      = NativeNonNullFamilies{
-        valuePointer:  direct,
-        blockPointer:  block,
-        slice:         slice,
-        text:          text,
-        ctext:         ctext,
-        boxed:         boxed,
+        valuePointer: direct,
+        blockPointer: block,
+        slice: slice,
+        text: text,
+        ctext: ctext,
+        boxed: boxed,
         reflectedType: reflectedType,
         }
 

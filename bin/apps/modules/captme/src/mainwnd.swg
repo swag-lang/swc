@@ -8,7 +8,22 @@ const Icons48         = #include("datas/icons48.png")
 const AppIcon         = #include("datas/appicon.png")
 
 // Enums
-enum EditMode { Shape, Arrow, Line, Polygon, Text, Favorites, Draw, Highlight, Selection, Step, Image, PixSel, Callout }
+enum EditMode
+{
+    Shape
+    Arrow
+    Line
+    Polygon
+    Text
+    Favorites
+    Draw
+    Highlight
+    Selection
+    Step
+    Image
+    PixSel
+    Callout
+}
 
 enum BottomSize
 {

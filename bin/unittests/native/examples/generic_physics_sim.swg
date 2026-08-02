@@ -254,18 +254,18 @@ impl Spring
         let forceOnA: Vec2 = sep * forceMag
         let forceOnB: Vec2 = -forceOnA
 
-        return {a:         me.a.applyForce(&forceOnA),
-                b:         me.b.applyForce(&forceOnB),
+        return {a: me.a.applyForce(&forceOnA),
+                b: me.b.applyForce(&forceOnB),
                 stiffness: me.stiffness,
-                restLen:   me.restLen}
+                restLen: me.restLen}
     }
 
     func step(const me, dt: T)->Spring
     {
-        return {a:         me.a.step(dt),
-                b:         me.b.step(dt),
+        return {a: me.a.step(dt),
+                b: me.b.step(dt),
                 stiffness: me.stiffness,
-                restLen:   me.restLen}
+                restLen: me.restLen}
     }
 
     func totalKineticEnergy(const me)->T
@@ -483,10 +483,10 @@ impl Spring
 #test
 {
     let s: Spring's32 = {
-        a:         {pos: {x: 0, y: 0}, vel: {x: 0, y: 0}, acc: {x: 0, y: 0}, mass: 1},
-        b:         {pos: {x: 10, y: 0}, vel: {x: 0, y: 0}, acc: {x: 0, y: 0}, mass: 1},
+        a: {pos: {x: 0, y: 0}, vel: {x: 0, y: 0}, acc: {x: 0, y: 0}, mass: 1},
+        b: {pos: {x: 10, y: 0}, vel: {x: 0, y: 0}, acc: {x: 0, y: 0}, mass: 1},
         stiffness: 1,
-        restLen:   5}
+        restLen: 5}
 
     let sep = s.separation()
     #assert(#typeof(sep) == Vec2's32)
@@ -497,10 +497,10 @@ impl Spring
 #test
 {
     let s: Spring's32 = {
-        a:         {pos: {x: 0, y: 0}, vel: {x: 3, y: 0}, acc: {x: 0, y: 0}, mass: 2},
-        b:         {pos: {x: 10, y: 0}, vel: {x: -3, y: 0}, acc: {x: 0, y: 0}, mass: 2},
+        a: {pos: {x: 0, y: 0}, vel: {x: 3, y: 0}, acc: {x: 0, y: 0}, mass: 2},
+        b: {pos: {x: 10, y: 0}, vel: {x: -3, y: 0}, acc: {x: 0, y: 0}, mass: 2},
         stiffness: 1,
-        restLen:   5}
+        restLen: 5}
 
     @assert(s.totalKineticEnergy() == 18)     // (9*2/2)*2
 
@@ -511,10 +511,10 @@ impl Spring
 #test
 {
     let s: Spring's32 = {
-        a:         {pos: {x: 0, y: 0}, vel: {x: 0, y: 0}, acc: {x: 0, y: 0}, mass: 1},
-        b:         {pos: {x: 10, y: 0}, vel: {x: 0, y: 0}, acc: {x: 0, y: 0}, mass: 1},
+        a: {pos: {x: 0, y: 0}, vel: {x: 0, y: 0}, acc: {x: 0, y: 0}, mass: 1},
+        b: {pos: {x: 10, y: 0}, vel: {x: 0, y: 0}, acc: {x: 0, y: 0}, mass: 1},
         stiffness: 1,
-        restLen:   5}
+        restLen: 5}
 
     let bounds = s.systemBounds(1's32)
     #assert(#typeof(bounds) == AABB's32)

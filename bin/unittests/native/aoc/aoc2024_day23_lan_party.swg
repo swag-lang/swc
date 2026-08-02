@@ -199,7 +199,7 @@ struct CliqueState
 
 func bronKerbosch(g: *Graph, state: *CliqueState,
     candidates: [*] u32, candCount: u32,
-    excluded:   [*] u32, exclCount: u32)
+    excluded: [*] u32, exclCount: u32)
 {
     if candCount == 0 and exclCount == 0
     {

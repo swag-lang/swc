@@ -1256,8 +1256,7 @@ impl EditBox
     // Returns the selected byte range.
     mtd const selection()->{ start: u64, end: u64 } =>
     {
-        .selBeg, .selEnd
-    }
+        .selBeg, .selEnd}
 
     // Returns true when the current content is valid.
     mtd const isValid()->bool => !.isInvalid

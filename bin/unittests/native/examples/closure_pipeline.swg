@@ -50,7 +50,7 @@ const N = 8
     var src: [N] s32 = [1, 2, 3, 4, 5, 6, 7, 8]
 
     let add:   func||(s32, s32)->s32 = func(a: s32, b: s32)->s32 { return a + b }
-    var total: s32 = 0
+    var total: s32                   = 0
     for [i] in @countof(src) do
         total = add(total, src[i])
 
@@ -60,9 +60,9 @@ const N = 8
 // Reduce: product.
 #test
 {
-    var src:     [4] s32 = [2, 3, 4, 5]
+    var src:     [4] s32               = [2, 3, 4, 5]
     let mul:     func||(s32, s32)->s32 = func(a: s32, b: s32)->s32 { return a * b }
-    var product: s32     = 1
+    var product: s32                   = 1
     for [i] in @countof(src) do
         product = mul(product, src[i])
 
@@ -75,7 +75,7 @@ const N = 8
     var src: [4] s32 = [10, 20, 30, 40]
     var dst: [4] s32
 
-    var offset = 5
+    var offset                      = 5
     let addOffset: func||(s32)->s32 = func|offset|(x: s32)->s32 { return x + offset }
     for [i] in @countof(src) do
         dst[i] = addOffset(src[i])
@@ -93,7 +93,7 @@ const N = 8
     var dst:      [N] s32
     var dstCount: u32     = 0
 
-    var callCount: s32 = 0
+    var callCount: s32               = 0
     let aboveFive: func||(s32)->bool = func|&callCount|(x: s32)->bool
     {
         callCount += 1
@@ -125,8 +125,8 @@ const N = 8
     var filtered:      [6] s32
     var filteredCount: u32     = 0
 
-    let square: func||(s32)->s32 = func(x: s32)->s32 { return x * x }
-    let gtTen:  func||(s32)->bool = func(x: s32)->bool { return x > 10 }
+    let square: func||(s32)->s32      = func(x: s32)->s32 { return x * x }
+    let gtTen:  func||(s32)->bool     = func(x: s32)->bool { return x > 10 }
     let add:    func||(s32, s32)->s32 = func(a: s32, b: s32)->s32 { return a + b }
 
     for [i] in @countof(src) do
@@ -153,8 +153,8 @@ const N = 8
 // Multiple capture values.
 #test
 {
-    var base       = 100
-    var multiplier = 3
+    var base                      = 100
+    var multiplier                = 3
     let compute: func||(s32)->s32 = func|base, multiplier|(x: s32)->s32
     {
         return base + x * multiplier
@@ -170,7 +170,7 @@ struct Pair { a, b: s32 }
 
 #test
 {
-    let pair:  Pair = {a: 7, b: 4}
+    let pair:  Pair             = {a: 7, b: 4}
     let apply: func||(s32)->s32 = func|pair|(value: s32)->s32 { return pair.a + pair.b * value }
     @assert(apply(3) == 19)
     @assert(apply(0) == 7)

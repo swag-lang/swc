@@ -15,6 +15,7 @@ namespace
         Assignments,
         Declarations,
         Constants,
+        Aliases,
         StructFields,
         EnumValues,
         Attributes,
@@ -37,6 +38,7 @@ namespace
             runDeclarationFamily(AlignCategory::Declarations, options_->alignConsecutiveDeclarations, options_->alignDeclarationInitializers.value_or(false));
             runDeclarationFamily(AlignCategory::StructFields, options_->alignStructFields, options_->alignStructFieldInitializers.value_or(false));
             runDeclarationFamily(AlignCategory::Constants, options_->alignConsecutiveConstants, options_->alignConstantTypes.value_or(false));
+            runCategory(AlignCategory::Aliases, options_->alignConsecutiveAliases);
             runCategory(AlignCategory::Assignments, options_->alignConsecutiveAssignments);
             runCategory(AlignCategory::EnumValues, options_->alignEnumValues);
             runCategory(AlignCategory::Attributes, options_->alignAttributes);
@@ -91,6 +93,11 @@ namespace
                         return INVALID_PIECE;
                     return findRoleOnLine(lineStart, FormatRoleE::InitAssign, false);
 
+                case AlignCategory::Aliases:
+                    if (findRoleOnLine(lineStart, FormatRoleE::AliasDeclStart, false) == INVALID_PIECE)
+                        return INVALID_PIECE;
+                    return findRoleOnLine(lineStart, FormatRoleE::InitAssign, false);
+
                 case AlignCategory::StructFields:
                     if (!first.hasRole(FormatRoleE::FieldDeclStart))
                         return INVALID_PIECE;
@@ -138,6 +145,11 @@ namespace
             return model_->piece(lineStart).isComment && FormatPassUtil::lineEndOf(*model_, lineStart) == lineStart;
         }
 
+        bool lineIsTransparentFor(const AlignCategory category, const uint32_t lineStart) const
+        {
+            return category == AlignCategory::Aliases && model_->piece(lineStart).hasRole(FormatRoleE::AttrOpen);
+        }
+
         uint32_t lineIndentColumn(const uint32_t lineStart) const
         {
             return FormatModel::textColumns(model_->lineIndentOf(lineStart), std::max(options_->tabWidth, 1u));
@@ -170,6 +182,13 @@ namespace
                 const uint32_t anchor = anchorOf(category, lineStart);
                 const bool     blank  = lineIsBlankSeparated(lineStart);
                 const uint32_t indent = lineIndentColumn(lineStart);
+
+                if (anchor == INVALID_PIECE && lineIsTransparentFor(category, lineStart))
+                {
+                    if (!group.empty() && blank && mode == FormatAlignMode::Consecutive)
+                        flush();
+                    continue;
+                }
 
                 if (!group.empty())
                 {
@@ -228,6 +247,9 @@ namespace
                     return FormatRoleE::FieldDeclStart;
                 case AlignCategory::Constants:
                     return FormatRoleE::ConstDeclStart;
+                case AlignCategory::Aliases:
+                    SWC_ASSERT(false);
+                    return FormatRoleE::AliasDeclStart;
                 default:
                     SWC_ASSERT(false);
                     return FormatRoleE::VarDeclStart;

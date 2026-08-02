@@ -14,7 +14,7 @@ struct Tracked
 impl Tracked
 {
     mtd opPostCopy() { g_PostCopy += 1 }
-    mtd opDrop()     { g_Drop += 1 }
+    mtd opDrop() { g_Drop += 1 }
 }
 
 #[Swag.NoCopy]

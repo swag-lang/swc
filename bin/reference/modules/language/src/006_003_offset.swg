@@ -48,7 +48,9 @@ enabling indexed access to those fields via a single view.
     }
 
     var v: MyStruct
-    v.x = 10; v.y = 20; v.z = 30
+    v.x = 10
+    v.y = 20
+    v.z = 30
 
     // Each index in 'idx' maps directly to x/y/z.
     @assert(v.idx[0] == v.x)

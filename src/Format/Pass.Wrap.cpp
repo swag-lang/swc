@@ -44,6 +44,7 @@ namespace
         bool                  editable   = false;
         bool                  hasComment = false;
         bool                  canJoin    = false;
+        bool                  literal    = false;
     };
 
     struct LogicalPolicy
@@ -133,6 +134,16 @@ namespace
                 };
             }
 
+            if (piece.hasRole(FormatRoleE::LiteralOpen))
+            {
+                return {
+                    .forceSingleLine     = options_->forceSingleLineLiteralLists,
+                    .sourceSelectsLayout = options_->sourceSelectsLiteralLayout,
+                    .layout              = options_->literalListLayout,
+                    .binPack             = options_->binPackLiteralItems,
+                };
+            }
+
             SWC_ASSERT(piece.hasRole(FormatRoleE::DeclOpenParen));
             return {
                 .forceSingleLine     = options_->forceSingleLineParameterLists,
@@ -148,7 +159,8 @@ namespace
             {
                 const FormatPiece& open = model_->piece(i);
                 if (open.removed || open.match == INVALID_PIECE ||
-                    !open.roles.hasAny({FormatRoleE::CallOpenParen, FormatRoleE::DeclOpenParen}))
+                    !open.roles.hasAny({FormatRoleE::CallOpenParen, FormatRoleE::DeclOpenParen, FormatRoleE::LiteralOpen}) ||
+                    model_->piece(open.match).hasRole(FormatRoleE::DestructuringClose))
                     continue;
 
                 const ListPolicy policy = policyFor(open);
@@ -162,6 +174,7 @@ namespace
                 state.sourceSelectsLayout = policy.sourceSelectsLayout;
                 state.layout              = policy.layout;
                 state.binPack             = policy.binPack;
+                state.literal             = open.hasRole(FormatRoleE::LiteralOpen);
                 collectItems(state);
                 lists_.push_back(std::move(state));
             }
@@ -321,6 +334,19 @@ namespace
             if (state.items.size() < 2)
                 return true;
 
+            // Literal rows often intentionally pack many scalar values per
+            // source line. Unlike argument lists, seeing only the first two
+            // items together is not enough evidence that a previously
+            // multiline data table should become one enormous line.
+            if (state.literal)
+            {
+                for (uint32_t i = state.openPiece + 1; i <= state.closePiece; ++i)
+                {
+                    if (textHasNewline(model_->gapBefore(i).origText))
+                        return false;
+                }
+            }
+
             for (uint32_t i = state.items[0] + 1; i <= state.items[1]; ++i)
             {
                 if (textHasNewline(model_->gapBefore(i).origText))
@@ -345,8 +371,13 @@ namespace
                 model_->gapBefore(i) = gaps[i - state.openPiece - 1];
         }
 
-        uint32_t spacesAfterOpen() const
+        uint32_t spacesAfterOpen(const ListState& state) const
         {
+            const FormatPiece& open = model_->piece(state.openPiece);
+            if (open.is(TokenId::SymLeftBracket))
+                return options_->spaceInsideBrackets.value_or(false) ? 1 : 0;
+            if (open.is(TokenId::SymLeftCurly))
+                return options_->spaceInsideBraces.value_or(false) ? 1 : 0;
             return options_->spaceInsideParentheses.value_or(false) ? 1 : 0;
         }
 
@@ -357,8 +388,19 @@ namespace
 
         uint32_t spacesBeforeClose(const ListState& state) const
         {
+            const FormatPiece& close = model_->piece(state.closePiece);
             if (state.items.empty())
+            {
+                if (close.is(TokenId::SymRightCurly))
+                    return options_->spaceInEmptyBraces.value_or(false) ? 1 : 0;
+                if (close.is(TokenId::SymRightBracket))
+                    return options_->spaceInsideBrackets.value_or(false) ? 1 : 0;
                 return options_->spaceInEmptyParentheses.value_or(false) ? 1 : 0;
+            }
+            if (close.is(TokenId::SymRightBracket))
+                return options_->spaceInsideBrackets.value_or(false) ? 1 : 0;
+            if (close.is(TokenId::SymRightCurly))
+                return options_->spaceInsideBraces.value_or(false) ? 1 : 0;
             return options_->spaceInsideParentheses.value_or(false) ? 1 : 0;
         }
 
@@ -372,7 +414,7 @@ namespace
                 const uint32_t item = state.items[i];
                 if (!model_->gapHasNewline(item))
                     continue;
-                model_->setGapSpaces(item, i == 0 ? spacesAfterOpen() : spacesAfterComma());
+                model_->setGapSpaces(item, i == 0 ? spacesAfterOpen(state) : spacesAfterComma());
             }
 
             if (model_->gapHasNewline(state.closePiece))
@@ -592,9 +634,14 @@ namespace
             return UINT32_MAX;
         }
 
+        bool literalStartsOnNextSourceLine(const ListState& state) const
+        {
+            return state.literal && !state.items.empty() && textHasNewline(model_->gapBefore(state.items.front()).origText);
+        }
+
         Utf8 listItemIndent(const ListState& state) const
         {
-            if (state.layout == FormatListLayout::HangingAlign)
+            if (state.layout == FormatListLayout::HangingAlign && !literalStartsOnNextSourceLine(state))
             {
                 const uint32_t column = openColumn(state);
                 if (column != UINT32_MAX)
@@ -619,7 +666,7 @@ namespace
                 return;
             const uint32_t first = state.items.front();
             if (model_->gapHasNewline(first) && FormatPassUtil::canEditGap(*model_, first))
-                model_->setGapSpaces(first, spacesAfterOpen());
+                model_->setGapSpaces(first, spacesAfterOpen(state));
         }
 
         void breakFirstItem(const ListState& state) const
@@ -637,7 +684,10 @@ namespace
             {
                 case FormatListLayout::HangingIndent:
                 case FormatListLayout::HangingAlign:
-                    attachFirstItem(state);
+                    if (literalStartsOnNextSourceLine(state))
+                        breakFirstItem(state);
+                    else
+                        attachFirstItem(state);
                     break;
                 case FormatListLayout::Vertical:
                 case FormatListLayout::Block:
@@ -676,7 +726,7 @@ namespace
                 const uint32_t item = state.items[i];
                 if (item == requiredBreak || !model_->gapHasNewline(item) || !FormatPassUtil::canEditGap(*model_, item))
                     continue;
-                model_->setGapSpaces(item, i == 0 ? spacesAfterOpen() : spacesAfterComma());
+                model_->setGapSpaces(item, i == 0 ? spacesAfterOpen(state) : spacesAfterComma());
             }
         }
 

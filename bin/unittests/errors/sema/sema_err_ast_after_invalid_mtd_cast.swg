@@ -81,17 +81,17 @@ struct AstAfterInvalidCastOwner
     signal:   AstAfterInvalidCastSignal'func||(*AstAfterInvalidCastOwner)
 }
 
-impl AstAfterInvalidCastOwner
+    impl AstAfterInvalidCastOwner
 {
     mtd validSignalCall()
     {
         .signal.call(me)
     }
 
-    mtd install()
+        mtd install()
     {
         let captured: #null *AstAfterInvalidCastDialog = null
-        .callback = mtd|captured|(dlg, id) { return captured == dlg }
+            .callback = mtd|captured|(dlg, id) { return captured == dlg }
         .signal.call(me)     // swc-expected-error {{sema_err_cannot_cast}}
     }
 }

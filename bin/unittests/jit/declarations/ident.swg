@@ -24,7 +24,7 @@ struct BigBlob
 }
 
 alias SmallArray = [3] s32
-alias BigArray = [5] s32
+alias BigArray   = [5] s32
 
 #test
 {

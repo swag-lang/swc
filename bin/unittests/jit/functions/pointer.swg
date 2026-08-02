@@ -7,7 +7,7 @@ struct FuncData
 }
 
 alias Transform = func(FuncData, s32)->s32
-alias Reducer = func(s32...)->s32
+alias Reducer   = func(s32...)->s32
 
 struct TransformHolder
 {

@@ -166,8 +166,8 @@ namespace GenericForeachLazyCodegen
     {
         var box = makeIntBox()
         let ok  = box.whereIndexSum(3) == 6 and
-                  box.constWhereCount(7) == 3 and
-                  box.reverseIndexCode() == 4321
+                 box.constWhereCount(7) == 3 and
+                 box.reverseIndexCode() == 4321
         box.free()
         return ok
     }
@@ -176,8 +176,8 @@ namespace GenericForeachLazyCodegen
     {
         var box = makeBoolBox()
         let ok  = box.whereIndexSum(false) == 4 and
-                  box.constWhereCount(true) == 2 and
-                  box.reverseIndexCode() == 4321
+                 box.constWhereCount(true) == 2 and
+                 box.reverseIndexCode() == 4321
         box.free()
         return ok
     }

@@ -207,7 +207,7 @@ struct Properties
     // of one slider drag into a single command. generation stamps the grid content: it bumps on
     // clear so commands recorded against dropped rows skip their row refresh.
     internal externUndoMgr: #null *UndoManager     // Undo timeline of the host, when it shares one.
-    internal undoEnabled:   bool = true            // Whether edits record undo commands.
+    internal undoEnabled: bool = true              // Whether edits record undo commands.
 
     // Recording state of the undo timeline the grid owns.
     internal

@@ -144,23 +144,35 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     cb.addStruct(bh)
 
     // 2x2 BGRA - 4 bytes per pixel, no padding needed
-    cb.addNative(10'u8);  cb.addNative(20'u8);  cb.addNative(30'u8);  cb.addNative(255'u8)
-    cb.addNative(40'u8);  cb.addNative(50'u8);  cb.addNative(60'u8);  cb.addNative(200'u8)
-    cb.addNative(70'u8);  cb.addNative(80'u8);  cb.addNative(90'u8);  cb.addNative(128'u8)
-    cb.addNative(100'u8); cb.addNative(110'u8); cb.addNative(120'u8); cb.addNative(64'u8)
+    cb.addNative(10'u8)
+    cb.addNative(20'u8)
+    cb.addNative(30'u8)
+    cb.addNative(255'u8)
+    cb.addNative(40'u8)
+    cb.addNative(50'u8)
+    cb.addNative(60'u8)
+    cb.addNative(200'u8)
+    cb.addNative(70'u8)
+    cb.addNative(80'u8)
+    cb.addNative(90'u8)
+    cb.addNative(128'u8)
+    cb.addNative(100'u8)
+    cb.addNative(110'u8)
+    cb.addNative(120'u8)
+    cb.addNative(64'u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.width  == 2)
+    @assert(img.width == 2)
     @assert(img.height == 2)
-    @assert(img.pixelFormat     == .BGRA8)
-    @assert(img.bitsPerPixel    == 32)
-    @assert(img.bytesPerPixel   == 4)
+    @assert(img.pixelFormat == .BGRA8)
+    @assert(img.bitsPerPixel == 32)
+    @assert(img.bytesPerPixel == 4)
     @assert(img.pixels.count == 16)
-    @assert((notnull img.pixels.buffer)[0]  == 10'u8)
-    @assert((notnull img.pixels.buffer)[1]  == 20'u8)
-    @assert((notnull img.pixels.buffer)[2]  == 30'u8)
-    @assert((notnull img.pixels.buffer)[3]  == 255'u8)
+    @assert((notnull img.pixels.buffer)[0] == 10'u8)
+    @assert((notnull img.pixels.buffer)[1] == 20'u8)
+    @assert((notnull img.pixels.buffer)[2] == 30'u8)
+    @assert((notnull img.pixels.buffer)[3] == 255'u8)
 }
 
 // Decode a 5x5 24-bit BGR8 BMP where each row has 1 byte of alignment padding on disk.
@@ -186,18 +198,22 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     cb.addStruct(bh)
 
     // Row 0: pixel(0,0)=B100 G150 R200, pixels 1-4 zero, 1 pad byte
-    cb.addNative(100'u8); cb.addNative(150'u8); cb.addNative(200'u8)
-    for 12 do cb.addNative(0'u8)     // pixels 1-4
-    cb.addNative(0'u8)               // pad
+    cb.addNative(100'u8)
+    cb.addNative(150'u8)
+    cb.addNative(200'u8)
+    for 12 do
+        cb.addNative(0'u8)     // pixels 1-4
+    cb.addNative(0'u8)     // pad
     // Rows 1-4 all zeros (4 rows x 16 bytes)
-    for 64 do cb.addNative(0'u8)
+    for 64 do
+        cb.addNative(0'u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.width  == 5)
+    @assert(img.width == 5)
     @assert(img.height == 5)
-    @assert(img.pixelFormat     == .BGR8)
-    @assert(img.bitsPerPixel    == 24)
+    @assert(img.pixelFormat == .BGR8)
+    @assert(img.bitsPerPixel == 24)
     @assert(img.pixels.count == 75)     // 5x5x3 = 75, no padding in decoded result
     @assert((notnull img.pixels.buffer)[0] == 100'u8)
     @assert((notnull img.pixels.buffer)[1] == 150'u8)
@@ -226,18 +242,28 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     cb.addStruct(ch)
 
     // 2x2 BGR8: row stride = 8 bytes (6 pixel bytes + 2 pad)
-    cb.addNative(10'u8);  cb.addNative(20'u8);  cb.addNative(30'u8)      // row0 pix0
-    cb.addNative(40'u8);  cb.addNative(50'u8);  cb.addNative(60'u8)      // row0 pix1
-    cb.addNative(0'u8);   cb.addNative(0'u8)                             // row0 pad
-    cb.addNative(70'u8);  cb.addNative(80'u8);  cb.addNative(90'u8)      // row1 pix0
-    cb.addNative(100'u8); cb.addNative(110'u8); cb.addNative(120'u8)     // row1 pix1
-    cb.addNative(0'u8);   cb.addNative(0'u8)                             // row1 pad
+    cb.addNative(10'u8)
+    cb.addNative(20'u8)
+    cb.addNative(30'u8)     // row0 pix0
+    cb.addNative(40'u8)
+    cb.addNative(50'u8)
+    cb.addNative(60'u8)     // row0 pix1
+    cb.addNative(0'u8)
+    cb.addNative(0'u8)     // row0 pad
+    cb.addNative(70'u8)
+    cb.addNative(80'u8)
+    cb.addNative(90'u8)     // row1 pix0
+    cb.addNative(100'u8)
+    cb.addNative(110'u8)
+    cb.addNative(120'u8)     // row1 pix1
+    cb.addNative(0'u8)
+    cb.addNative(0'u8)     // row1 pad
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.width  == 2)
+    @assert(img.width == 2)
     @assert(img.height == 2)
-    @assert(img.pixelFormat     == .BGR8)
+    @assert(img.pixelFormat == .BGR8)
     @assert(img.pixels.count == 12)
     @assert((notnull img.pixels.buffer)[0] == 10'u8)
     @assert((notnull img.pixels.buffer)[1] == 20'u8)
@@ -267,18 +293,28 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     bh.biSizeImage   = 16'u32
     cb.addStruct(bh)
 
-    cb.addNative(55'u8); cb.addNative(66'u8); cb.addNative(77'u8)      // row0 pix0
-    cb.addNative(88'u8); cb.addNative(99'u8); cb.addNative(110'u8)     // row0 pix1
-    cb.addNative(0'u8);  cb.addNative(0'u8)                            // row0 pad
-    cb.addNative(11'u8); cb.addNative(22'u8); cb.addNative(33'u8)      // row1 pix0
-    cb.addNative(44'u8); cb.addNative(55'u8); cb.addNative(66'u8)      // row1 pix1
-    cb.addNative(0'u8);  cb.addNative(0'u8)                            // row1 pad
+    cb.addNative(55'u8)
+    cb.addNative(66'u8)
+    cb.addNative(77'u8)     // row0 pix0
+    cb.addNative(88'u8)
+    cb.addNative(99'u8)
+    cb.addNative(110'u8)     // row0 pix1
+    cb.addNative(0'u8)
+    cb.addNative(0'u8)     // row0 pad
+    cb.addNative(11'u8)
+    cb.addNative(22'u8)
+    cb.addNative(33'u8)     // row1 pix0
+    cb.addNative(44'u8)
+    cb.addNative(55'u8)
+    cb.addNative(66'u8)     // row1 pix1
+    cb.addNative(0'u8)
+    cb.addNative(0'u8)     // row1 pad
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.width  == 2)
+    @assert(img.width == 2)
     @assert(img.height == 2)
-    @assert(img.pixelFormat     == .BGR8)
+    @assert(img.pixelFormat == .BGR8)
     @assert((notnull img.pixels.buffer)[0] == 55'u8)
     @assert((notnull img.pixels.buffer)[1] == 66'u8)
     @assert((notnull img.pixels.buffer)[2] == 77'u8)
@@ -306,12 +342,22 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     bh.biSizeImage = 16'u32
     cb.addStruct(bh)
 
-    cb.addNative(1'u8); cb.addNative(2'u8); cb.addNative(3'u8)
-    cb.addNative(4'u8); cb.addNative(5'u8); cb.addNative(6'u8)
-    cb.addNative(0'u8); cb.addNative(0'u8)
-    cb.addNative(7'u8); cb.addNative(8'u8); cb.addNative(9'u8)
-    cb.addNative(10'u8); cb.addNative(11'u8); cb.addNative(12'u8)
-    cb.addNative(0'u8); cb.addNative(0'u8)
+    cb.addNative(1'u8)
+    cb.addNative(2'u8)
+    cb.addNative(3'u8)
+    cb.addNative(4'u8)
+    cb.addNative(5'u8)
+    cb.addNative(6'u8)
+    cb.addNative(0'u8)
+    cb.addNative(0'u8)
+    cb.addNative(7'u8)
+    cb.addNative(8'u8)
+    cb.addNative(9'u8)
+    cb.addNative(10'u8)
+    cb.addNative(11'u8)
+    cb.addNative(12'u8)
+    cb.addNative(0'u8)
+    cb.addNative(0'u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
@@ -350,7 +396,10 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     addBmpPaletteColor(&cb, 10, 20, 30)
     addBmpPaletteColor(&cb, 40, 50, 60)
     addBmpPaletteColor(&cb, 70, 80, 90)
-    cb.addNative(0'u8); cb.addNative(1'u8); cb.addNative(2'u8); cb.addNative(3'u8)
+    cb.addNative(0'u8)
+    cb.addNative(1'u8)
+    cb.addNative(2'u8)
+    cb.addNative(3'u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
@@ -387,7 +436,9 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     addBmpPaletteColor(&cb, 0, 0, 0)
     addBmpPaletteColor(&cb, 9, 8, 7)
     cb.addNative(0b10100000'u8)
-    cb.addNative(0'u8); cb.addNative(0'u8); cb.addNative(0'u8)
+    cb.addNative(0'u8)
+    cb.addNative(0'u8)
+    cb.addNative(0'u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
@@ -422,8 +473,10 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     addBmpPaletteColor(&cb, 0, 0, 0)
     addBmpPaletteColor(&cb, 11, 12, 13)
     addBmpPaletteColor(&cb, 21, 22, 23)
-    cb.addNative(0x12'u8); cb.addNative(0x10'u8)
-    cb.addNative(0'u8); cb.addNative(0'u8)
+    cb.addNative(0x12'u8)
+    cb.addNative(0x10'u8)
+    cb.addNative(0'u8)
+    cb.addNative(0'u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
@@ -531,11 +584,18 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     addBmpPaletteColor(&cb, 10, 0, 0)
     addBmpPaletteColor(&cb, 0, 20, 0)
     addBmpPaletteColor(&cb, 0, 0, 30)
-    cb.addNative(4'u8); cb.addNative(1'u8)
-    cb.addNative(0'u8); cb.addNative(0'u8)
-    cb.addNative(0'u8); cb.addNative(4'u8)
-    cb.addNative(2'u8); cb.addNative(3'u8); cb.addNative(0'u8); cb.addNative(1'u8)
-    cb.addNative(0'u8); cb.addNative(1'u8)
+    cb.addNative(4'u8)
+    cb.addNative(1'u8)
+    cb.addNative(0'u8)
+    cb.addNative(0'u8)
+    cb.addNative(0'u8)
+    cb.addNative(4'u8)
+    cb.addNative(2'u8)
+    cb.addNative(3'u8)
+    cb.addNative(0'u8)
+    cb.addNative(1'u8)
+    cb.addNative(0'u8)
+    cb.addNative(1'u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
@@ -573,8 +633,10 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     addBmpPaletteColor(&cb, 11, 12, 13)
     addBmpPaletteColor(&cb, 21, 22, 23)
     addBmpPaletteColor(&cb, 31, 32, 33)
-    cb.addNative(4'u8); cb.addNative(0x12'u8)
-    cb.addNative(0'u8); cb.addNative(1'u8)
+    cb.addNative(4'u8)
+    cb.addNative(0x12'u8)
+    cb.addNative(0'u8)
+    cb.addNative(1'u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
@@ -595,9 +657,9 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     opts.decodePixels = false
 
     let img = expect Image.decode(path, bytes.toSlice(), opts)
-    @assert(img.width  == 4)
+    @assert(img.width == 4)
     @assert(img.height == 4)
-    @assert(img.pixelFormat     == .BGR8)
+    @assert(img.pixelFormat == .BGR8)
     @assert(!img.isValid())
 }
 
@@ -620,7 +682,8 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     bh.biPlanes   = 1'u16
     bh.biBitCount = 8'u16
     cb.addStruct(bh)
-    for 4 do cb.addNative(0'u8)
+    for 4 do
+        cb.addNative(0'u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     var img: Image
@@ -670,7 +733,8 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     bh.biBitCount    = 24'u16
     bh.biCompression = 4'u32     // value 4 is not a recognised compression type
     cb.addStruct(bh)
-    for 4 do cb.addNative(0'u8)
+    for 4 do
+        cb.addNative(0'u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     var img: Image
@@ -698,11 +762,11 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     let cb = expect src.encode("memory.bmp")
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.width        == 4)
-    @assert(img.height       == 4)
-    @assert(img.pixelFormat           == .BGR8)
-    @assert(img.bitsPerPixel          == 24)
-    @assert(img.bytesPerPixel         == 3)
+    @assert(img.width == 4)
+    @assert(img.height == 4)
+    @assert(img.pixelFormat == .BGR8)
+    @assert(img.bitsPerPixel == 24)
+    @assert(img.bytesPerPixel == 3)
     @assert(img.pixels.count == 48)
 }
 
@@ -717,9 +781,9 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     let cb = expect src.encode("memory.bmp")
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.width        == 5)
-    @assert(img.height       == 5)
-    @assert(img.pixelFormat           == .BGR8)
+    @assert(img.width == 5)
+    @assert(img.height == 5)
+    @assert(img.pixelFormat == .BGR8)
     @assert(img.pixels.count == 75)
 }
 
@@ -740,9 +804,9 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     let cb = expect src.encode("memory.bmp")
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert((notnull img.pixels.buffer)[0]  == 200'u8)
-    @assert((notnull img.pixels.buffer)[1]  == 128'u8)
-    @assert((notnull img.pixels.buffer)[2]  == 64'u8)
+    @assert((notnull img.pixels.buffer)[0] == 200'u8)
+    @assert((notnull img.pixels.buffer)[1] == 128'u8)
+    @assert((notnull img.pixels.buffer)[2] == 64'u8)
     @assert((notnull img.pixels.buffer)[45] == 33'u8)
 }
 
@@ -757,11 +821,11 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     let cb = expect src.encode("memory.bmp")
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.width        == 2)
-    @assert(img.height       == 2)
-    @assert(img.pixelFormat           == .BGRA8)
-    @assert(img.bitsPerPixel          == 32)
-    @assert(img.bytesPerPixel         == 4)
+    @assert(img.width == 2)
+    @assert(img.height == 2)
+    @assert(img.pixelFormat == .BGRA8)
+    @assert(img.bitsPerPixel == 32)
+    @assert(img.bytesPerPixel == 4)
     @assert(img.pixels.count == 16)
 }
 
@@ -783,12 +847,12 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     let cb = expect src.encode("memory.bmp")
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert((notnull img.pixels.buffer)[0]  == 10'u8)
-    @assert((notnull img.pixels.buffer)[1]  == 20'u8)
-    @assert((notnull img.pixels.buffer)[2]  == 30'u8)
-    @assert((notnull img.pixels.buffer)[3]  == 200'u8)
-    @assert((notnull img.pixels.buffer)[4]  == 50'u8)
-    @assert((notnull img.pixels.buffer)[7]  == 128'u8)
+    @assert((notnull img.pixels.buffer)[0] == 10'u8)
+    @assert((notnull img.pixels.buffer)[1] == 20'u8)
+    @assert((notnull img.pixels.buffer)[2] == 30'u8)
+    @assert((notnull img.pixels.buffer)[3] == 200'u8)
+    @assert((notnull img.pixels.buffer)[4] == 50'u8)
+    @assert((notnull img.pixels.buffer)[7] == 128'u8)
 }
 
 // Encode an RGB8 4x4 image: encoder swaps R/B to write BGR bytes into the BMP file,
@@ -807,9 +871,9 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     let cb = expect src.encode("memory.bmp")
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.width  == 4)
+    @assert(img.width == 4)
     @assert(img.height == 4)
-    @assert(img.pixelFormat     == .BGR8)     // RGB8 saved as 24-bit BGR, loads as BGR8
+    @assert(img.pixelFormat == .BGR8)     // RGB8 saved as 24-bit BGR, loads as BGR8
     // Encoder writes [B=200, G=150, R=100]; decoder stores as BGR8 bytes verbatim
     @assert((notnull img.pixels.buffer)[0] == 200'u8)     // B
     @assert((notnull img.pixels.buffer)[1] == 150'u8)     // G
@@ -833,9 +897,9 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     let cb = expect src.encode("memory.bmp")
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.width  == 2)
+    @assert(img.width == 2)
     @assert(img.height == 2)
-    @assert(img.pixelFormat     == .BGRA8)     // RGBA8 saved as 32-bit BGRA, loads as BGRA8
+    @assert(img.pixelFormat == .BGRA8)     // RGBA8 saved as 32-bit BGRA, loads as BGRA8
     // Encoder writes [B=30, G=20, R=10, A=255]; decoder stores as BGRA8 bytes verbatim
     @assert((notnull img.pixels.buffer)[0] == 30'u8)      // B
     @assert((notnull img.pixels.buffer)[1] == 20'u8)      // G
@@ -872,9 +936,9 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    @assert(img.pixels.count     == 75)
-    @assert((notnull img.pixels.buffer)[0]  == 77'u8)
-    @assert((notnull img.pixels.buffer)[1]  == 88'u8)
-    @assert((notnull img.pixels.buffer)[2]  == 99'u8)
+    @assert(img.pixels.count == 75)
+    @assert((notnull img.pixels.buffer)[0] == 77'u8)
+    @assert((notnull img.pixels.buffer)[1] == 88'u8)
+    @assert((notnull img.pixels.buffer)[2] == 99'u8)
     @assert((notnull img.pixels.buffer)[72] == 42'u8)
 }

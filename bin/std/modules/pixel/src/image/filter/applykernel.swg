@@ -14,25 +14,22 @@ impl Image
         Sharpen3x3Strong      = [3, 8, -1, -1, -1, -1, 16, -1, -1, -1, -1]                                                   // Strong all-neighbor sharpening.
         Sharpen3x3Cross       = [3, 1, 0, -1, 0, -1, 5, -1, 0, -1, 0]                                                        // Cross-shaped sharpening.
         Soften3x3             = [3, 20, 0, 1, 0, 1, 16, 1, 0, 1, 0]                                                          // Mild cross-shaped softening.
-
-        EmbossLeft3x3Light   = [3, 0, -1, -1, 0, -1, 3, 0, 0, 0, 0]      // Light emboss illuminated from the left.
-        EmbossLeft3x3Medium  = [3, 0, -2, -2, 0, -2, 6, 0, 0, 0, 0]      // Medium emboss illuminated from the left.
-        EmbossLeft3x3Strong  = [3, 0, -4, -4, 0, -4, 12, 0, 0, 0, 0]     // Strong emboss illuminated from the left.
-        EmbossRight3x3Light  = [3, 0, 0, 0, 0, 0, -3, 1, 0, 1, 1]        // Light emboss illuminated from the right.
-        EmbossRight3x3Medium = [3, 0, 0, 0, 0, 0, -6, 2, 0, 2, 2]        // Medium emboss illuminated from the right.
-        EmbossRight3x3Strong = [3, 0, 0, 0, 0, 0, -12, 4, 0, 4, 4]       // Strong emboss illuminated from the right.
-
-        Laplacian8         = [3, 0, -1, -1, -1, -1, 8, -1, -1, -1, -1]      // Eight-neighbor Laplacian edge detector.
-        DiagonalGradient   = [3, 0, -5, 0, 0, 0, 0, 0, 0, 0, 5]             // Diagonal gradient edge detector.
-        HorizontalGradient = [3, 0, -1, -1, -1, 0, 0, 0, 1, 1, 1]           // Horizontal gradient edge detector.
-        HorizontalLine     = [3, 0, -1, -1, -1, 2, 2, 2, -1, -1, -1]        // Horizontal line detector.
-        Laplacian8Strong   = [3, 0, -5, -5, -5, -5, 40, -5, -5, -5, -5]     // Strong eight-neighbor Laplacian edge detector.
-        Laplacian4         = [3, 0, 0, 1, 0, 1, -4, 1, 0, 1, 0]             // Four-neighbor Laplacian edge detector.
-
-        SobelHorizontal3x3   = [3, 0, 1, 2, 1, 0, 0, 0, -1, -2, -1]     // Sobel horizontal-edge detector.
-        SobelVertical3x3     = [3, 0, 1, 0, -1, 2, 0, -2, 1, 0, -1]     // Sobel vertical-edge detector.
-        PrewittHorizontal3x3 = [3, 0, 1, 1, 1, 0, 0, 0, -1, -1, -1]     // Prewitt horizontal-edge detector.
-        PrewittVertical3x3   = [3, 0, 1, 0, -1, 1, 0, -1, 1, 0, -1]     // Prewitt vertical-edge detector.
+        EmbossLeft3x3Light    = [3, 0, -1, -1, 0, -1, 3, 0, 0, 0, 0]                                                         // Light emboss illuminated from the left.
+        EmbossLeft3x3Medium   = [3, 0, -2, -2, 0, -2, 6, 0, 0, 0, 0]                                                         // Medium emboss illuminated from the left.
+        EmbossLeft3x3Strong   = [3, 0, -4, -4, 0, -4, 12, 0, 0, 0, 0]                                                        // Strong emboss illuminated from the left.
+        EmbossRight3x3Light   = [3, 0, 0, 0, 0, 0, -3, 1, 0, 1, 1]                                                           // Light emboss illuminated from the right.
+        EmbossRight3x3Medium  = [3, 0, 0, 0, 0, 0, -6, 2, 0, 2, 2]                                                           // Medium emboss illuminated from the right.
+        EmbossRight3x3Strong  = [3, 0, 0, 0, 0, 0, -12, 4, 0, 4, 4]                                                          // Strong emboss illuminated from the right.
+        Laplacian8            = [3, 0, -1, -1, -1, -1, 8, -1, -1, -1, -1]                                                    // Eight-neighbor Laplacian edge detector.
+        DiagonalGradient      = [3, 0, -5, 0, 0, 0, 0, 0, 0, 0, 5]                                                           // Diagonal gradient edge detector.
+        HorizontalGradient    = [3, 0, -1, -1, -1, 0, 0, 0, 1, 1, 1]                                                         // Horizontal gradient edge detector.
+        HorizontalLine        = [3, 0, -1, -1, -1, 2, 2, 2, -1, -1, -1]                                                      // Horizontal line detector.
+        Laplacian8Strong      = [3, 0, -5, -5, -5, -5, 40, -5, -5, -5, -5]                                                   // Strong eight-neighbor Laplacian edge detector.
+        Laplacian4            = [3, 0, 0, 1, 0, 1, -4, 1, 0, 1, 0]                                                           // Four-neighbor Laplacian edge detector.
+        SobelHorizontal3x3    = [3, 0, 1, 2, 1, 0, 0, 0, -1, -2, -1]                                                         // Sobel horizontal-edge detector.
+        SobelVertical3x3      = [3, 0, 1, 0, -1, 2, 0, -2, 1, 0, -1]                                                         // Sobel vertical-edge detector.
+        PrewittHorizontal3x3  = [3, 0, 1, 1, 1, 0, 0, 0, -1, -1, -1]                                                         // Prewitt horizontal-edge detector.
+        PrewittVertical3x3    = [3, 0, 1, 0, -1, 1, 0, -1, 1, 0, -1]                                                         // Prewitt vertical-edge detector.
     }
 
     #[Swag.Safety(.All, false)]

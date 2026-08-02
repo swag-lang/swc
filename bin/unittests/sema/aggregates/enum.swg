@@ -24,7 +24,7 @@ enum A8: u64 { A }
 enum A9: rune { A = 'A'}
 enum A10: bool { A = true }
 enum A11: f32 { A = 0 }
-enum A12: f64 { A = 0  }
+enum A12: f64 { A = 0 }
 enum A13: string { A = "0" }
 
 enum CC
@@ -75,11 +75,11 @@ enum EE
 
 #assert(cast #bit (u32) CC.A == 0)
 
-#assert(cast(s8)  A1.A == 0)
+#assert(cast(s8) A1.A == 0)
 #assert(cast(s16) A2.A == 0)
 #assert(cast(s32) A3.A == 0)
 #assert(cast(s64) A4.A == 0)
-#assert(cast(u8)  A5.A == 0)
+#assert(cast(u8) A5.A == 0)
 #assert(cast(u16) A6.A == 0)
 #assert(cast(u32) A7.A == 0)
 #assert(cast(u64) A8.A == 0)

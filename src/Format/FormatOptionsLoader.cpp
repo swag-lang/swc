@@ -85,6 +85,10 @@ namespace
         schema.add("source-selects-parameter-layout", &options.sourceSelectsParameterLayout, "Use the first two declaration parameters' source lines to choose single-line or multiline layout");
         schema.addEnum("argument-list-layout", &options.argumentListLayout, listLayoutChoices, "Choose the layout of multiline call argument lists");
         schema.addEnum("parameter-list-layout", &options.parameterListLayout, listLayoutChoices, "Choose the layout of multiline declaration parameter lists");
+        schema.addEnum("bin-pack-literal-items", &options.binPackLiteralItems, binPackChoices, "Choose how array and struct literal items span lines");
+        schema.add("force-single-line-literal-lists", &options.forceSingleLineLiteralLists, "Place every editable array and struct literal item list on one line, regardless of the column limit");
+        schema.add("source-selects-literal-layout", &options.sourceSelectsLiteralLayout, "Use the literal's source shape to choose single-line or multiline layout");
+        schema.addEnum("literal-list-layout", &options.literalListLayout, listLayoutChoices, "Choose the layout of multiline array and struct literal item lists");
 
         const std::initializer_list<std::pair<const char*, FormatLogicalLayout>> logicalLayoutChoices = {
             {"preserve", FormatLogicalLayout::Preserve},
@@ -117,6 +121,7 @@ namespace
 
         const std::initializer_list<std::pair<const char*, FormatShortBlockStyle>> shortChoices = {
             {"preserve", FormatShortBlockStyle::Preserve},
+            {"source", FormatShortBlockStyle::Source},
             {"never", FormatShortBlockStyle::Never},
             {"empty", FormatShortBlockStyle::Empty},
             {"inline", FormatShortBlockStyle::Inline},
@@ -136,6 +141,9 @@ namespace
 
         schema.add("remove-redundant-semicolons", &options.removeRedundantSemicolons, "Drop `;` at end of line");
         schema.add("remove-condition-parentheses", &options.removeConditionParentheses, "Drop the parentheses wrapping a whole control-statement condition");
+        schema.add("one-statement-per-line", &options.oneStatementPerLine, "Put independent statements separated by `;` on separate lines");
+        schema.add("one-enum-value-per-line", &options.oneEnumValuePerLine, "Put every value of a multi-value enum on its own line and remove separator commas");
+        schema.add("one-struct-field-per-line", &options.oneStructFieldPerLine, "Put every field of a multi-field struct on its own line and remove separator commas");
     }
 
     void bindAlignmentSchema(StructConfigSchema& schema, FormatOptions& options)
@@ -150,6 +158,7 @@ namespace
         schema.addEnum("align-consecutive-assignments", &options.alignConsecutiveAssignments, alignChoices, "Align `=` signs in adjacent assignments");
         schema.addEnum("align-consecutive-declarations", &options.alignConsecutiveDeclarations, alignChoices, "Align names and types in adjacent `let` and `var` declarations");
         schema.addEnum("align-consecutive-constants", &options.alignConsecutiveConstants, alignChoices, "Align values in adjacent `const` declarations");
+        schema.addEnum("align-consecutive-aliases", &options.alignConsecutiveAliases, alignChoices, "Align `=` signs in adjacent `alias` declarations");
         schema.addEnum("align-struct-fields", &options.alignStructFields, alignChoices, "Align `:` and types in adjacent struct fields");
         schema.addEnum("align-enum-values", &options.alignEnumValues, alignChoices, "Align `=` in adjacent enum value definitions");
 
@@ -171,8 +180,11 @@ namespace
 
     void bindSpacingSchema(StructConfigSchema& schema, FormatOptions& options)
     {
+        schema.add("normalize-horizontal-whitespace", &options.normalizeHorizontalWhitespace, "Collapse non-semantic same-line whitespace and enforce configured spacing exactly");
         schema.add("space-before-colon-in-declarations", &options.spaceBeforeColonInDeclarations, "Insert a space before `:` in declarations such as `a : u8`");
         schema.add("space-after-colon-in-declarations", &options.spaceAfterColonInDeclarations, "Insert a space after `:` in declarations such as `a: u8`");
+        schema.add("space-before-colon-in-named-arguments", &options.spaceBeforeColonInNamedArguments, "Insert a space before `:` in named arguments and literal fields");
+        schema.add("space-after-colon-in-named-arguments", &options.spaceAfterColonInNamedArguments, "Insert a space after `:` in named arguments and literal fields");
         schema.add("space-before-colon-in-base-clause", &options.spaceBeforeColonInBaseClause, "Insert a space before `:` in `enum E: u32` and `using base: Foo`");
         schema.add("space-around-assignment-operator", &options.spaceAroundAssignmentOperator, "Insert spaces around `=` in assignments");
         schema.add("space-around-binary-operators", &options.spaceAroundBinaryOperators, "Insert spaces around binary operators such as `+`, `*`, and `&`");

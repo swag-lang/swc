@@ -57,7 +57,7 @@ struct PropertiesItem
     // current value differs from that default (recomputed on build and after every change);
     // revertButton is the lazily-created revert affordance shown while the row is modified.
     internal defaultData: #null *u8
-    internal isModified:  bool
+    internal isModified: bool
     #[Swag.Late]
     internal revertButton: *IconButton
     #[Swag.Late]
@@ -84,7 +84,7 @@ struct PropertiesItem
 
     // Per-item validation (info/warning/error) shown as an inline colored message bar
     // stacked under the row.
-    internal validation:    PropValidation
+    internal validation: PropValidation
     internal validationMsg: String
     #[Swag.Late]
     internal validationLabel: *Label
@@ -102,12 +102,12 @@ struct PropertiesItem
 
     internal ntfyItf: #null IPropertyNotify
 
-    internal aniFocusBk:     BlendColor
+    internal aniFocusBk: BlendColor
     internal aniFocusBorder: BlendColor
-    internal level:          u32
-    internal numChilds:      u32
-    internal section:        u32
-    internal extendFocus:    f32 = 10
+    internal level: u32
+    internal numChilds: u32
+    internal section: u32
+    internal extendFocus: f32 = 10
 
     // Grid only: height of the value cell (label + editor) on its own. The row grows below
     // it to host the validation message bar, so we keep the base height to restore/recompute.

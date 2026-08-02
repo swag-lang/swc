@@ -14,10 +14,9 @@ namespace Swag
         Constant          = 0x00000200     // Attribute can be used on a constant
         Alias             = 0x00000400     // Attribute can be used on an alias
         Scope             = 0x00000800     // Attribute acts on a lexical scope instead of a declaration
-
-        Multi = 0x01000000     // Attribute can be used more than once
-        Gen   = 0x02000000
-        All   = 0x04000000
+        Multi             = 0x01000000     // Attribute can be used more than once
+        Gen               = 0x02000000
+        All               = 0x04000000
     }
 
     enum CallConv: u8

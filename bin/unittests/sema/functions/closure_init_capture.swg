@@ -28,22 +28,22 @@ impl InitCaptureOwner
 
 func semaTest001()
 {
-    let base = 10
-    let step = 4
+    let base                   = 10
+    let step                   = 4
     let cb: InitCaptureNullary = func|sum = base + step|()->s32 { return sum }
     #assert(#typeof(cb) == InitCaptureNullary)
 }
 
 func semaTest002()
 {
-    let pair = InitCapturePair{left: 2, right: 5}
+    let pair                   = InitCapturePair{left: 2, right: 5}
     let cb: InitCaptureNullary = func|leftValue = pair.left, rightValue = pair.right|()->s32 { return leftValue * 10 + rightValue }
     #assert(#typeof(cb) == InitCaptureNullary)
 }
 
 func semaTest003()
 {
-    var box = InitCaptureBox{value: 8}
+    var box                    = InitCaptureBox{value: 8}
     let cb: InitCaptureNullary = func|&current = box.value|()->s32 { current += 1; return current }
     #assert(#typeof(cb) == InitCaptureNullary)
 }
@@ -57,8 +57,8 @@ func semaTest004()
 
 func semaTest005()
 {
-    let base = 0x10
-    let bit  = 0x04
+    let base                   = 0x10
+    let bit                    = 0x04
     let cb: InitCaptureNullary = func|mask = base | (bit)|()->s32 { return mask }
     #assert(#typeof(cb) == InitCaptureNullary)
 }

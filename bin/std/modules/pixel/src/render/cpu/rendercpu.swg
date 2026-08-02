@@ -267,9 +267,9 @@ private impl RenderCpu
             // subsequent overlapping fragments see zero destination alpha and contribute nothing.
             let factor = cast(f32) .overlapAlpha[pixelIdx] / 255.0
             var out    = Color.fromArgbF32(0,
-                                           cast(f32) src.r / 255.0 * factor + cast(f32) dst.r / 255.0 * (1.0 - factor),
-                                           cast(f32) src.g / 255.0 * factor + cast(f32) dst.g / 255.0 * (1.0 - factor),
-                                           cast(f32) src.b / 255.0 * factor + cast(f32) dst.b / 255.0 * (1.0 - factor))
+                                        cast(f32) src.r / 255.0 * factor + cast(f32) dst.r / 255.0 * (1.0 - factor),
+                                        cast(f32) src.g / 255.0 * factor + cast(f32) dst.g / 255.0 * (1.0 - factor),
+                                        cast(f32) src.b / 255.0 * factor + cast(f32) dst.b / 255.0 * (1.0 - factor))
             writePixel(image, x, y, out)
             return
         }
@@ -280,10 +280,14 @@ private impl RenderCpu
                                     blendChannel(cast(f32) src.g / 255.0, cast(f32) dst.g / 255.0, sa, .blendingMode),
                                     blendChannel(cast(f32) src.b / 255.0, cast(f32) dst.b / 255.0, sa, .blendingMode))
 
-        if !.colorMask.r do out.r = dst.r
-        if !.colorMask.g do out.g = dst.g
-        if !.colorMask.b do out.b = dst.b
-        if !.colorMask.a do out.a = dst.a
+        if !.colorMask.r do
+            out.r = dst.r
+        if !.colorMask.g do
+            out.g = dst.g
+        if !.colorMask.b do
+            out.b = dst.b
+        if !.colorMask.a do
+            out.a = dst.a
         writePixel(image, x, y, out)
     }
 
@@ -295,8 +299,10 @@ private impl RenderCpu
         {
             uu = Math.fract(uu)
             vv = Math.fract(vv)
-            if uu < 0 do uu += 1
-            if vv < 0 do vv += 1
+            if uu < 0 do
+                uu += 1
+            if vv < 0 do
+                vv += 1
         }
         else
         {
@@ -317,8 +323,10 @@ private impl RenderCpu
         {
             uu = Math.fract(uu)
             vv = Math.fract(vv)
-            if uu < 0 do uu += 1
-            if vv < 0 do vv += 1
+            if uu < 0 do
+                uu += 1
+            if vv < 0 do
+                vv += 1
         }
         else
         {
@@ -479,11 +487,13 @@ private impl RenderCpu
 
         case .Repeat:
             t = Math.fract(t)
-            if t < 0 do t += 1
+            if t < 0 do
+                t += 1
 
         case .Mirror:
             var u = Math.fract(t * 0.5) * 2.0
-            if u < 0 do u += 2
+            if u < 0 do
+                u += 2
             t = u <= 1.0 ? u : 2.0 - u
         }
 
@@ -967,10 +977,14 @@ private impl RenderCpu
 
                 let old = readPixel(image, x, y)
                 var out = color
-                if !.colorMask.r do out.r = old.r
-                if !.colorMask.g do out.g = old.g
-                if !.colorMask.b do out.b = old.b
-                if !.colorMask.a do out.a = old.a
+                if !.colorMask.r do
+                    out.r = old.r
+                if !.colorMask.g do
+                    out.g = old.g
+                if !.colorMask.b do
+                    out.b = old.b
+                if !.colorMask.a do
+                    out.a = old.a
                 writePixel(image, x, y, out)
             }
         }

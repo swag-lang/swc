@@ -891,6 +891,38 @@ SWC_TEST_BEGIN(FormatWrap_ContinuationKeepsRelativeIndent)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatWrap_SourceSelectsLiteralLayout)
+{
+    static constexpr std::string_view SOURCE =
+        "struct Point { x: s32, y: s32 }\n"
+        "func foo()\n"
+        "{\n"
+        "    let values = [1, 2,\n"
+        "                     3, 4]\n"
+        "    let point = Point{x: 1,\n"
+        "                            y: 2}\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "struct Point { x: s32, y: s32 }\n"
+        "func foo()\n"
+        "{\n"
+        "    let values = [1,\n"
+        "                  2,\n"
+        "                  3,\n"
+        "                  4]\n"
+        "    let point = Point{x: 1,\n"
+        "                      y: 2}\n"
+        "}\n";
+
+    FormatOptions options;
+    options.sourceSelectsLiteralLayout = true;
+    options.literalListLayout          = FormatListLayout::HangingAlign;
+    options.binPackLiteralItems        = FormatBinPackStyle::OnePerLine;
+    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

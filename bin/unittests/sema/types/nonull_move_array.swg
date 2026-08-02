@@ -21,8 +21,8 @@ impl SemaNonNullMoveUndefinedEscape
 }
 
 alias SemaNonNullMoveArrayElementAlias = SemaNonNullMoveArrayDefault
-alias SemaNonNullMoveArrayAlias       = [2] SemaNonNullMoveArrayElementAlias
-alias SemaNonNullMoveArrayNestedAlias = SemaNonNullMoveArrayAlias
+alias SemaNonNullMoveArrayAlias        = [2] SemaNonNullMoveArrayElementAlias
+alias SemaNonNullMoveArrayNestedAlias  = SemaNonNullMoveArrayAlias
 
 func consumeSemaNonNullMoveArray(value: SemaNonNullMoveArrayNestedAlias)->bool
 {

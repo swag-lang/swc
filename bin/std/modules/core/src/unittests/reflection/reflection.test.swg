@@ -83,7 +83,7 @@ enum ProbeFlags: u32
     Exec  = 4
 }
 
-alias ReflectionProbeAlias = ReflectionProbe
+alias ReflectionProbeAlias  = ReflectionProbe
 alias ReflectionProbeAlias2 = ReflectionProbeAlias
 var ReflectionRuntimeMethodCalls:  s32
 var ReflectionRuntimePointerCalls: s32

@@ -347,11 +347,16 @@ func onLivePreviewEvent(view: *Wnd, evt: IEvent)->bool
         {
             var names: Array'(string)
             var cols:  Array'Color
-            names.add("selected");   cols.add(g_Color)
-            names.add("lighter");    cols.add(Color.lighter(g_Color, 0.34))
-            names.add("darker");     cols.add(Color.darker(g_Color, 0.34))
-            names.add("complement"); cols.add(g_Color.complementary())
-            names.add("muted");      cols.add(g_Color.adjustSaturation(-0.55))
+            names.add("selected")
+            cols.add(g_Color)
+            names.add("lighter")
+            cols.add(Color.lighter(g_Color, 0.34))
+            names.add("darker")
+            cols.add(Color.darker(g_Color, 0.34))
+            names.add("complement")
+            cols.add(g_Color.complementary())
+            names.add("muted")
+            cols.add(g_Color.adjustSaturation(-0.55))
             drawColorRow(painter, rect, font, colors, names, cols)
         }
     }
@@ -373,12 +378,18 @@ func onDerivedPreviewEvent(view: *Wnd, evt: IEvent)->bool
 
         var names: Array'(string)
         var cols:  Array'Color
-        names.add("selected");   cols.add(g_Color)
-        names.add("analog -30"); cols.add(g_Color.rotateHue(-30))
-        names.add("analog +30"); cols.add(g_Color.rotateHue(30))
-        names.add("triad +120"); cols.add(g_Color.rotateHue(120))
-        names.add("triad -120"); cols.add(g_Color.rotateHue(-120))
-        names.add("gray");       cols.add(g_Color.grayscale())
+        names.add("selected")
+        cols.add(g_Color)
+        names.add("analog -30")
+        cols.add(g_Color.rotateHue(-30))
+        names.add("analog +30")
+        cols.add(g_Color.rotateHue(30))
+        names.add("triad +120")
+        cols.add(g_Color.rotateHue(120))
+        names.add("triad -120")
+        cols.add(g_Color.rotateHue(-120))
+        names.add("gray")
+        cols.add(g_Color.grayscale())
 
         // Two rows of three when there is height for it, otherwise a single fitted
         // row so the bottom row is never clipped.

@@ -370,7 +370,7 @@ func solve(text: string)->FenceCost
 // @bitcountnz exercise
 #test
 {
-    @assert(popcount8(0)    == 0'u32)
+    @assert(popcount8(0) == 0'u32)
     @assert(popcount8(0xFF) == 8'u32)
     @assert(popcount8(0x0A) == 2'u32)
     @assert(popcount8(0x55) == 4'u32)

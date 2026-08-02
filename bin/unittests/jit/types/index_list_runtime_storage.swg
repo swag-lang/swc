@@ -1,7 +1,7 @@
 #test
 {
     let flag = false
-    let cb = func(v: bool)->[2, 2] u16
+    let cb   = func(v: bool)->[2, 2] u16
     {
         if v do
             return [[31'u16, 32], [33, 34]]

@@ -77,13 +77,13 @@ func directionVector(dir: Direction)->Vec2
 {
     switch #complete dir
     {
-    case Direction.Right:     return {dx: 1,  dy: 0}
-    case Direction.Down:      return {dx: 0,  dy: 1}
-    case Direction.DownRight: return {dx: 1,  dy: 1}
+    case Direction.Right:     return {dx: 1, dy: 0}
+    case Direction.Down:      return {dx: 0, dy: 1}
+    case Direction.DownRight: return {dx: 1, dy: 1}
     case Direction.DownLeft:  return {dx: -1, dy: 1}
     case Direction.Left:      return {dx: -1, dy: 0}
-    case Direction.Up:        return {dx: 0,  dy: -1}
-    case Direction.UpRight:   return {dx: 1,  dy: -1}
+    case Direction.Up:        return {dx: 0, dy: -1}
+    case Direction.UpRight:   return {dx: 1, dy: -1}
     case Direction.UpLeft:    return {dx: -1, dy: -1}
     }
 

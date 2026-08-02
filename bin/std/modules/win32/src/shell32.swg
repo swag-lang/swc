@@ -375,7 +375,8 @@ internal namespace Shell32Priv
     func ShellExecuteA(hwnd: HWND, lpOperation: LPCSTR, lpFile: LPCSTR, lpParameters: LPCSTR, lpDirectory: LPCSTR, nShowCmd: INT)->HINSTANCE fail
     {
         let result = Shell32Priv.ShellExecuteA(hwnd, lpOperation, lpFile, lpParameters, lpDirectory, nShowCmd)
-        if cast(u64) result <= 32 do     // ?!
+        if cast(u64) result <= 32 do
+            // ?!
             failWinError(GetLastError())
         return result
     }
@@ -383,7 +384,8 @@ internal namespace Shell32Priv
     func ShellExecuteW(hwnd: HWND, lpOperation: LPCWSTR, lpFile: LPCWSTR, lpParameters: LPCWSTR, lpDirectory: LPCWSTR, nShowCmd: INT)->HINSTANCE fail
     {
         let result = Shell32Priv.ShellExecuteW(hwnd, lpOperation, lpFile, lpParameters, lpDirectory, nShowCmd)
-        if cast(u64) result <= 32 do     // ?!
+        if cast(u64) result <= 32 do
+            // ?!
             failWinError(GetLastError())
         return result
     }

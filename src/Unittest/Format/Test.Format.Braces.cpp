@@ -16,6 +16,11 @@ namespace
         SWC_RESULT(formatter.prepare(parentCtx.global(), source));
         if (formatter.text() != expected)
             return Result::Error;
+
+        Formatter secondPass(options);
+        SWC_RESULT(secondPass.prepare(parentCtx.global(), formatter.text()));
+        if (secondPass.text() != expected)
+            return Result::Error;
         return Result::Continue;
     }
 }
@@ -35,6 +40,77 @@ SWC_TEST_BEGIN(FormatBraces_AllmanMovesBraceToOwnLine)
 
     FormatOptions options;
     options.braceStyle = FormatBraceStyle::Allman;
+    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatStatements_OneStatementPerLine)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo()\n"
+        "{\n"
+        "    var first = 1;var second = 2\n"
+        "    first += 1; second += 2\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo()\n"
+        "{\n"
+        "    var first = 1\n"
+        "    var second = 2\n"
+        "    first += 1\n"
+        "    second += 2\n"
+        "}\n";
+
+    FormatOptions options;
+    options.oneStatementPerLine       = true;
+    options.removeRedundantSemicolons = true;
+    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatStatements_OneEnumValuePerLine)
+{
+    static constexpr std::string_view SOURCE =
+        "enum AuditMode { First, Second\n"
+        "    Third, Fourth }\n";
+
+    static constexpr std::string_view EXPECTED =
+        "enum AuditMode {\n"
+        "    First\n"
+        "    Second\n"
+        "    Third\n"
+        "    Fourth\n"
+        "}\n";
+
+    FormatOptions options;
+    options.oneEnumValuePerLine         = true;
+    options.allowShortEnumsOnSingleLine = FormatShortBlockStyle::Never;
+    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatBraces_ShortInlineDoBodiesSplit)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo(flag: bool)\n"
+        "{\n"
+        "    if flag do return\n"
+        "    while flag do return\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo(flag: bool)\n"
+        "{\n"
+        "    if flag do\n"
+        "        return\n"
+        "    while flag do\n"
+        "        return\n"
+        "}\n";
+
+    FormatOptions options;
+    options.allowShortIfStatementsOnSingleLine = false;
+    options.allowShortLoopsOnSingleLine        = false;
     return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
@@ -224,6 +300,51 @@ SWC_TEST_BEGIN(FormatBraces_ShortFunctionsNeverKeepsEmpty)
     FormatOptions options;
     options.allowShortFunctionsOnSingleLine = FormatShortBlockStyle::Never;
     return checkBracesRewrite(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatBraces_SourceSelectsDefinitionLayout)
+{
+    static constexpr std::string_view SOURCE =
+        "enum InlineEnum { A, Longer }\n"
+        "enum BlockEnum { A,\n"
+        "    Longer }\n"
+        "struct InlineStruct { x: s32, longer: s32 }\n"
+        "struct BlockStruct { x: s32,\n"
+        "    longer: s32 }\n"
+        "func inline() { first(); second() }\n"
+        "func block()\n"
+        "{ first() }\n";
+
+    static constexpr std::string_view EXPECTED =
+        "enum InlineEnum { A, Longer }\n"
+        "enum BlockEnum\n"
+        "{\n"
+        "    A\n"
+        "    Longer\n"
+        "}\n"
+        "struct InlineStruct { x: s32, longer: s32 }\n"
+        "struct BlockStruct\n"
+        "{\n"
+        "    x: s32\n"
+        "    longer: s32\n"
+        "}\n"
+        "func inline() { first(); second() }\n"
+        "func block()\n"
+        "{\n"
+        "    first()\n"
+        "}\n";
+
+    FormatOptions options;
+    options.braceStyle                      = FormatBraceStyle::Allman;
+    options.allowShortEnumsOnSingleLine     = FormatShortBlockStyle::Source;
+    options.allowShortStructsOnSingleLine   = FormatShortBlockStyle::Source;
+    options.allowShortFunctionsOnSingleLine = FormatShortBlockStyle::Source;
+    options.oneEnumValuePerLine             = true;
+    options.oneStructFieldPerLine           = true;
+    options.oneStatementPerLine             = true;
+    options.removeRedundantSemicolons       = true;
+    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 

@@ -27,7 +27,7 @@ else { const C1 = 3 }
 
 #static if false
 {
-    #static if true  { const S1 = 1 }
+    #static if true { const S1 = 1 }
     elif true { const S1 = 2 }
     else { const S1 = 3 }
 }

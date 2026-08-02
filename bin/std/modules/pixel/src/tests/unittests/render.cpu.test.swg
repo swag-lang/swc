@@ -51,8 +51,8 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
 #test
 {
     const pixels: [16] u8 = [
-        255, 0, 0, 255,   0, 255, 0, 255,
-        0, 0, 255, 255,   255, 255, 255, 255]
+        255, 0, 0, 255, 0, 255, 0, 255,
+        0, 0, 255, 255, 255, 255, 255, 255]
     let source = Image.create(2, 2, .RGBA8, pixels)
 
     var renderer: RenderCpu

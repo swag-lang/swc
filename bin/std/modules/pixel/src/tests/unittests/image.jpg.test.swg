@@ -51,8 +51,7 @@ func addAdobeRgbMarker(encoded: const [..] u8)->Array'u8
         0, 100,
         0, 0,
         0, 0,
-        0,
-        ]
+        0,]
 
     var result: ConcatBuffer
     result.addBytes(encoded[until 2])

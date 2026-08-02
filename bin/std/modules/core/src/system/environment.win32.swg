@@ -259,7 +259,7 @@ public func getDpiScale()->f32
 }
 
 // Handles a native window paint request.
-public alias WindowPaintCallback  = func||(*Window)
+public alias WindowPaintCallback = func||(*Window)
 
 // Handles a native window resize and receives the new logical client size.
 public alias WindowResizeCallback = func||(*Window, s32, s32)

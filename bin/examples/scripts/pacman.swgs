@@ -2236,7 +2236,8 @@ func loadBindTextures()
 
     func muteForTest(app: *Application)
     {
-        if Env.hasArgument("swag.test") do expect Audio.setOutputVolume(0)
+        if Env.hasArgument("swag.test") do
+            expect Audio.setOutputVolume(0)
     }
 
     Application.runSurface(100, 100, cast(s32) (300 * Scale) - 150, cast(s32) (345 * Scale) - 31, title: "Pacman", hook: &onEvent, init: &muteForTest)

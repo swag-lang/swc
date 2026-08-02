@@ -16,6 +16,11 @@ namespace
         SWC_RESULT(formatter.prepare(parentCtx.global(), source));
         if (formatter.text() != expected)
             return Result::Error;
+
+        Formatter secondPass(options);
+        SWC_RESULT(secondPass.prepare(parentCtx.global(), formatter.text()));
+        if (secondPass.text() != expected)
+            return Result::Error;
         return Result::Continue;
     }
 }
@@ -39,6 +44,57 @@ SWC_TEST_BEGIN(FormatSpacing_SpaceAfterComma)
     FormatOptions options;
     options.spaceAfterComma  = true;
     options.spaceBeforeComma = false;
+    return checkSpacingRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatSpacing_NormalizeHorizontalWhitespace)
+{
+    static constexpr std::string_view SOURCE =
+        "private enum   AuditMode { First }\n"
+        "func   add(first  : s32, second:s32)->s32\n"
+        "{\n"
+        "    return  first  +  second\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "private enum AuditMode { First }\n"
+        "func add(first: s32, second: s32)->s32\n"
+        "{\n"
+        "    return first + second\n"
+        "}\n";
+
+    FormatOptions options;
+    options.normalizeHorizontalWhitespace  = true;
+    options.spaceBeforeColonInDeclarations = false;
+    options.spaceAfterColonInDeclarations  = true;
+    options.spaceAroundBinaryOperators     = true;
+    options.spaceAfterComma                = true;
+    options.spaceBeforeComma               = false;
+    return checkSpacingRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatSpacing_NamedArgumentColons)
+{
+    static constexpr std::string_view SOURCE =
+        "struct Point { x: s32, y: s32 }\n"
+        "func make()\n"
+        "{\n"
+        "    let point = Point{x:1,y:2}\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "struct Point { x: s32, y: s32 }\n"
+        "func make()\n"
+        "{\n"
+        "    let point = Point{x: 1, y: 2}\n"
+        "}\n";
+
+    FormatOptions options;
+    options.spaceBeforeColonInNamedArguments = false;
+    options.spaceAfterColonInNamedArguments  = true;
+    options.spaceAfterComma                  = true;
     return checkSpacingRewrite(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()

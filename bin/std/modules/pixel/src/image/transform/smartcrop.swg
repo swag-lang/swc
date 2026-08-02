@@ -479,7 +479,8 @@ public impl Image
         var bD2:    f32 = 1.0e30
 
         let r0 = scoreWindow(ctx, bx, by, bestW, bestH)
-        bScore = r0.score; bD2    = r0.d2
+        bScore = r0.score
+        bD2    = r0.d2
 
         let rx0 = Math.clamp(bestX - range, 0, maxX)
         let ry0 = Math.clamp(bestY - range, 0, maxY)
@@ -514,7 +515,8 @@ public impl Image
 
         {
             let r0 = scoreWindow(ctx, bestX, bestY, bestW, bestH)
-            bScore = r0.score; bD2    = r0.d2
+            bScore = r0.score
+            bD2    = r0.d2
         }
 
         for [i] in 0 to 4

@@ -41,8 +41,8 @@ func sideEffect(flag: bool, delta: s32)->bool
 {
     let a = 5 > 3 and 2 < 4
     let b = 5 > 3 and 2 > 4
-    let c = 5 < 3 or  2 < 4
-    let d = 5 < 3 or  2 > 4
+    let c = 5 < 3 or 2 < 4
+    let d = 5 < 3 or 2 > 4
 
     #assert(#typeof(a) == bool)
     #assert(#typeof(b) == bool)

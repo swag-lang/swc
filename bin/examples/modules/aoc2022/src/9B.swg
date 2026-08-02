@@ -482,7 +482,8 @@ func day9B()
                     rope[i].y += sdy
 
                 case dx + dy > 2:
-                    rope[i].x += sdx; rope[i].y += sdy
+                    rope[i].x += sdx
+                    rope[i].y += sdy
                 }
 
                 set.add(rope[9])

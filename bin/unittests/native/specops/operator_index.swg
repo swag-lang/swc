@@ -106,7 +106,7 @@ struct RuntimeIndexHolder
 {
     var holder = RuntimeIndexHolder{
         value: RuntimeValueIndexBox{first: 1, second: 2},
-        refs:  RuntimeRefIndexBox{buffer: [20, 30]},
+        refs: RuntimeRefIndexBox{buffer: [20, 30]},
         }
 
     let nested    = holder.value[1]

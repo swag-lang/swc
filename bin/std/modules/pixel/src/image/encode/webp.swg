@@ -7,8 +7,7 @@ const WEBP_ENCODE_GREEN_SHORT_SYMBOLS  = 232'u32
 const WEBP_ENCODE_GREEN_LONG_CODE_BASE = 464'u32
 
 const WEBP_ENCODE_CODE_LENGTH_ORDER: [19] u8 = [
-    17, 18, 0, 1, 2, 3, 4, 5, 16, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
-    ]
+    17, 18, 0, 1, 2, 3, 4, 5, 16, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,]
 
 struct EncodeBitWriter
 {

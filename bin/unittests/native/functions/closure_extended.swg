@@ -46,7 +46,7 @@ func relayUnary(cb: func||(s32)->s32)->func||(s32)->s32 => cb
 
 impl MethodClosureReceiver
 {
-    mtd makeAdder(offset: s32)->func||(&MethodClosureReceiver, s32)->s32
+    mtd makeAdder(offset: s32)->func ||(&MethodClosureReceiver, s32)->s32
     {
         return mtd|offset|(value: s32)->s32
         {
@@ -250,7 +250,7 @@ func runInlineClosureCaptureRef()->s32
 
 #test
 {
-    var seed = 5
+    var seed                 = 5
     let first: func||()->s32 = func|seed|()->s32
     {
         seed += 1
@@ -299,7 +299,7 @@ func runInlineClosureCaptureRef()->s32
 
 #test
 {
-    var total = 0
+    var total              = 0
     let inc: func||()->s32 = func|&total|()->s32
     {
         total += 1
@@ -320,8 +320,8 @@ func runInlineClosureCaptureRef()->s32
 
 #test
 {
-    var total  = 4
-    var factor = 3
+    var total                = 4
+    var factor               = 3
     let cb: func||(s32)->s32 = func|factor, &total|(value: s32)->s32
     {
         total  += value * factor
@@ -338,7 +338,7 @@ func runInlineClosureCaptureRef()->s32
 
 #test
 {
-    var values: [3] s32 = [1, 2, 3]
+    var values: [3] s32       = [1, 2, 3]
     let cb:     func||()->s32 = func|values|()->s32
     {
         return values[0] + values[1] + values[2]
@@ -352,7 +352,7 @@ func runInlineClosureCaptureRef()->s32
 
 #test
 {
-    var values: [3] s32 = [1, 2, 3]
+    var values: [3] s32       = [1, 2, 3]
     let cb:     func||()->s32 = func|&values|()->s32
     {
         return values[0] + values[1] + values[2]
@@ -411,7 +411,7 @@ func runInlineClosureCaptureRef()->s32
 
 #test
 {
-    let factor = 3
+    let factor               = 3
     let cb: func||(s32)->s32 = func|factor|(value: s32)->s32 { return value * factor }
     @assert(invokeUnary(cb, 7) == 21)
 }
@@ -419,7 +419,7 @@ func runInlineClosureCaptureRef()->s32
 #test
 {
     let offset = 3
-    let cb = func|offset|(value: s32)->s32 { return value + offset }
+    let cb     = func|offset|(value: s32)->s32 { return value + offset }
     @assert(cb(7) == 10)
 }
 
@@ -471,7 +471,7 @@ func runInlineClosureCaptureRef()->s32
     let globalReader: func||()->s32 = func()->s32 { return GlobalSeed + GlobalBonus }
     @assert(globalReader() == 42)
 
-    var text = "abc"
+    var text                      = "abc"
     let byValue: func||()->string = func|text|()->string { return text }
     let byRef:   func||()->string = func|&text|()->string { return text }
 

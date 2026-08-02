@@ -178,9 +178,9 @@ func safetyFactor(fleet: *Fleet, steps: u32)->u64
         let bottom: bool = cast() (bot.py > midY)
 
         if !right and !bottom do quads[QuadTL] += 1
-        if right  and !bottom do quads[QuadTR] += 1
-        if !right and bottom  do quads[QuadBL] += 1
-        if right  and bottom  do quads[QuadBR] += 1
+        if right and !bottom do quads[QuadTR] += 1
+        if !right and bottom do quads[QuadBL] += 1
+        if right and bottom do quads[QuadBR] += 1
     }
 
     // Multiply quadrant counts using compound assignment (*=)

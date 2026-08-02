@@ -1,12 +1,12 @@
 #global private
 using Swag
 
-alias SimplePingFn = func(const &SimpleMethodProbe)->s32
-alias GenericCopyFromFn = func(&GenericMethodProbe's32, const [..] s32)->s32
+alias SimplePingFn         = func(const &SimpleMethodProbe)->s32
+alias GenericCopyFromFn    = func(&GenericMethodProbe's32, const [..] s32)->s32
 alias ExportedScaleValueFn = func(s32, s32)->s32
-alias ExportedAddFn = func(&ExportedMethodProbe, s32)->s32
-alias ExportedScaledFn = func(const &ExportedMethodProbe, s32)->s32
-alias ExportedScoreFn = func(&ExportedMethodProbe, s32)->s32
+alias ExportedAddFn        = func(&ExportedMethodProbe, s32)->s32
+alias ExportedScaledFn     = func(const &ExportedMethodProbe, s32)->s32
+alias ExportedScoreFn      = func(&ExportedMethodProbe, s32)->s32
 
 struct HiddenMethodProbe
 {

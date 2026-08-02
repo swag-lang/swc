@@ -15,7 +15,7 @@ const C_DWORD2: u32    = cast(u32) A_DWORD2
 
 #[Swag.Strict]
 {
-    alias Meters = s32
+    alias Meters  = s32
     alias Seconds = s32
 }
 

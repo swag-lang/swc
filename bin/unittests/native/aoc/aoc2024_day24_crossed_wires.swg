@@ -327,7 +327,7 @@ func parseGates(c: *Circuit, text: string)
 func evalGate(op: GateOp, a: u8, b: u8)->u8
 {
     if op == GateOp.OpAnd do return a & b
-    if op == GateOp.OpOr  do return a | b
+    if op == GateOp.OpOr do return a | b
     if op == GateOp.OpXor do return a ^ b
     return 0
 }
@@ -639,8 +639,8 @@ func solve(wiresText: string, gatesText: string)->SolveResult
     @assert(evalGate(GateOp.OpAnd, 1, 1) == 1)
     @assert(evalGate(GateOp.OpAnd, 1, 0) == 0)
     @assert(evalGate(GateOp.OpAnd, 0, 1) == 0)
-    @assert(evalGate(GateOp.OpOr,  1, 0) == 1)
-    @assert(evalGate(GateOp.OpOr,  0, 0) == 0)
+    @assert(evalGate(GateOp.OpOr, 1, 0) == 1)
+    @assert(evalGate(GateOp.OpOr, 0, 0) == 0)
     @assert(evalGate(GateOp.OpXor, 1, 1) == 0)
     @assert(evalGate(GateOp.OpXor, 1, 0) == 1)
 }

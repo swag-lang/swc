@@ -244,11 +244,10 @@ private func mathLayoutRadical(node: *MathNode, font: *Font, style: MathStyle, v
     node.offsets[0]    = {contentX, 0}
     node.metrics.width = contentX + radicand.metrics.width + 0.06 * em
     node.paths.add(MathDrawPath{
-        kind:      MathPathKind.Radical,
-        rect:      {0, rootTop, node.metrics.width, rootBottom - rootTop},
+        kind: MathPathKind.Radical,
+        rect: {0, rootTop, node.metrics.width, rootBottom - rootTop},
         lineWidth: rule,
-        aux:       contentX
-        })
+        aux: contentX})
 
     node.metrics.ascent  = Math.max(radicand.metrics.ascent + gap + rule, -rootTop + rule * 0.5)
     node.metrics.descent = Math.max(radicand.metrics.descent, rootBottom + rule * 0.5)
@@ -389,20 +388,34 @@ private struct MathDelimiterMeasure
 
 private func mathDelimiterPathKind(text: string)->{ kind: MathPathKind, found: bool }
 {
-    if text == "(" do return {kind: .LeftParenthesis, found: true}
-    if text == ")" do return {kind: .RightParenthesis, found: true}
-    if text == "[" do return {kind: .LeftBracket, found: true}
-    if text == "]" do return {kind: .RightBracket, found: true}
-    if text == "{" do return {kind: .LeftBrace, found: true}
-    if text == "}" do return {kind: .RightBrace, found: true}
-    if text == "\u27E8" do return {kind: .LeftAngle, found: true}
-    if text == "\u27E9" do return {kind: .RightAngle, found: true}
-    if text == "\u230A" do return {kind: .LeftFloor, found: true}
-    if text == "\u230B" do return {kind: .RightFloor, found: true}
-    if text == "\u2308" do return {kind: .LeftCeiling, found: true}
-    if text == "\u2309" do return {kind: .RightCeiling, found: true}
-    if text == "|" do return {kind: .Bar, found: true}
-    if text == "\u2016" do return {kind: .DoubleBar, found: true}
+    if text == "(" do
+        return {kind: .LeftParenthesis, found: true}
+    if text == ")" do
+        return {kind: .RightParenthesis, found: true}
+    if text == "[" do
+        return {kind: .LeftBracket, found: true}
+    if text == "]" do
+        return {kind: .RightBracket, found: true}
+    if text == "{" do
+        return {kind: .LeftBrace, found: true}
+    if text == "}" do
+        return {kind: .RightBrace, found: true}
+    if text == "\u27E8" do
+        return {kind: .LeftAngle, found: true}
+    if text == "\u27E9" do
+        return {kind: .RightAngle, found: true}
+    if text == "\u230A" do
+        return {kind: .LeftFloor, found: true}
+    if text == "\u230B" do
+        return {kind: .RightFloor, found: true}
+    if text == "\u2308" do
+        return {kind: .LeftCeiling, found: true}
+    if text == "\u2309" do
+        return {kind: .RightCeiling, found: true}
+    if text == "|" do
+        return {kind: .Bar, found: true}
+    if text == "\u2016" do
+        return {kind: .DoubleBar, found: true}
     return {}
 }
 

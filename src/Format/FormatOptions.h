@@ -37,6 +37,7 @@ enum class FormatAlignMode : uint8_t
 enum class FormatShortBlockStyle : uint8_t
 {
     Preserve,
+    Source, // Keep source-single-line blocks compact; normalize source-multiline blocks
     Never,
     Empty,  // Only `{}` stays on the opening line
     Inline, // `do ...` / single-statement bodies may stay on one line
@@ -149,11 +150,11 @@ struct FormatOptions
     // -----------------------------------------------------------------------
     // File-level whitespace
     // -----------------------------------------------------------------------
-    std::optional<bool> preserveBom;                       // Preserve UTF-8 BOM markers already present in the file
-    std::optional<bool> preserveTrailingWhitespace;        // Keep trailing whitespace on existing lines unchanged
-    std::optional<bool> insertFinalNewline;                // Ensure the file ends with a single newline
-    std::optional<bool> trimTrailingNewlines;              // Collapse multiple trailing newlines to one
-    std::optional<bool> trimLeadingBlankLines;             // Remove blank lines at the very start of the file
+    std::optional<bool>  preserveBom;                                                           // Preserve UTF-8 BOM markers already present in the file
+    std::optional<bool>  preserveTrailingWhitespace;                                            // Keep trailing whitespace on existing lines unchanged
+    std::optional<bool>  insertFinalNewline;                                                    // Ensure the file ends with a single newline
+    std::optional<bool>  trimTrailingNewlines;                                                  // Collapse multiple trailing newlines to one
+    std::optional<bool>  trimLeadingBlankLines;                                                 // Remove blank lines at the very start of the file
     uint32_t             maxConsecutiveEmptyLines             = 0;                              // Max blank lines in a row (0 = no limit)
     FormatBlankLineStyle blankLineAfterOpeningBrace           = FormatBlankLineStyle::Preserve; // Blank line immediately after a multi-line `{`
     FormatBlankLineStyle blankLineBeforeClosingBrace          = FormatBlankLineStyle::Preserve; // Blank line immediately before a multi-line `}`
@@ -201,6 +202,10 @@ struct FormatOptions
     std::optional<bool>     sourceSelectsParameterLayout;                                   // Let the first two declaration parameters select single-line or multiline layout
     FormatListLayout        argumentListLayout  = FormatListLayout::Preserve;               // Layout of multiline call argument lists
     FormatListLayout        parameterListLayout = FormatListLayout::Preserve;               // Layout of multiline declaration parameter lists
+    FormatBinPackStyle      binPackLiteralItems = FormatBinPackStyle::Preserve;             // Literal item layout when wrapping
+    std::optional<bool>     forceSingleLineLiteralLists;                                    // Place editable literal item lists on one line, regardless of the column limit
+    std::optional<bool>     sourceSelectsLiteralLayout;                                     // Let the literal's source shape select single-line or multiline layout
+    FormatListLayout        literalListLayout = FormatListLayout::Preserve;                 // Layout of multiline array / struct literal item lists
 
     std::optional<bool>     forceSingleLineLogicalExpressions;                                // Place editable logical expressions on one line, regardless of the column limit
     std::optional<bool>     sourceSelectsLogicalExpressionLayout;                             // Let the first two logical operands select single-line or multiline layout
@@ -233,6 +238,9 @@ struct FormatOptions
     // -----------------------------------------------------------------------
     std::optional<bool> removeRedundantSemicolons;  // Drop `;` at end of line (same-line separators stay)
     std::optional<bool> removeConditionParentheses; // Drop `( ... )` wrapping a whole control condition
+    std::optional<bool> oneStatementPerLine;        // Split independent statements separated by `;`
+    std::optional<bool> oneEnumValuePerLine;        // Put every value of a multi-value enum on its own line
+    std::optional<bool> oneStructFieldPerLine;      // Put every field of a multi-field struct on its own line
 
     // -----------------------------------------------------------------------
     // Alignment
@@ -240,6 +248,7 @@ struct FormatOptions
     FormatAlignMode alignConsecutiveAssignments  = FormatAlignMode::Preserve; // Align `=` in adjacent assignments
     FormatAlignMode alignConsecutiveDeclarations = FormatAlignMode::Preserve; // Align names/types of adjacent `let`/`var` declarations
     FormatAlignMode alignConsecutiveConstants    = FormatAlignMode::Preserve; // Align values of adjacent `const` declarations
+    FormatAlignMode alignConsecutiveAliases      = FormatAlignMode::Preserve; // Align `=` in adjacent `alias` declarations
     FormatAlignMode alignStructFields            = FormatAlignMode::Preserve; // Align `:` and types of adjacent struct fields
     FormatAlignMode alignEnumValues              = FormatAlignMode::Preserve; // Align `=` on enum value definitions
 
@@ -264,8 +273,11 @@ struct FormatOptions
     // -----------------------------------------------------------------------
     // Spacing
     // -----------------------------------------------------------------------
+    std::optional<bool>     normalizeHorizontalWhitespace;                              // Collapse non-semantic same-line whitespace and enforce exact configured spacing
     std::optional<bool>     spaceBeforeColonInDeclarations;                             // `a : u8`
     std::optional<bool>     spaceAfterColonInDeclarations;                              // `a: u8`
+    std::optional<bool>     spaceBeforeColonInNamedArguments;                           // `field : value`
+    std::optional<bool>     spaceAfterColonInNamedArguments;                            // `field: value`
     std::optional<bool>     spaceBeforeColonInBaseClause;                               // `enum E: u32`
     std::optional<bool>     spaceAroundAssignmentOperator;                              // `a = 1`
     std::optional<bool>     spaceAroundBinaryOperators;                                 // `a + b`
@@ -304,8 +316,8 @@ struct FormatOptions
     // -----------------------------------------------------------------------
     // Imports / using
     // -----------------------------------------------------------------------
-    FormatSortOrder      sortUsingStatements       = FormatSortOrder::Preserve;       // Sort order for top-of-file `using` statements
-    std::optional<bool>  mergeUsingStatements;                                        // Collapse adjacent `using` onto one line
+    FormatSortOrder      sortUsingStatements = FormatSortOrder::Preserve;            // Sort order for top-of-file `using` statements
+    std::optional<bool>  mergeUsingStatements;                                       // Collapse adjacent `using` onto one line
     FormatBlankLineStyle blankLineAfterUsingBlock  = FormatBlankLineStyle::Preserve; // Blank line after the initial `using` block
     FormatBlankLineStyle blankLineAfterGlobalBlock = FormatBlankLineStyle::Preserve; // Blank line after the leading `#global` directives
 

@@ -90,23 +90,31 @@ namespace
                 if (model_->piece(i).isComment || model_->piece(prev).isComment)
                     continue;
 
-                const std::optional<uint32_t> spaces = desiredSpaces(prev, i);
+                const uint32_t                current = model_->gapColumns(i);
+                const std::optional<uint32_t> spaces  = desiredSpaces(prev, i);
                 if (!spaces)
+                {
+                    // Alignment is rebuilt by the final alignment pass. In
+                    // strict mode any otherwise unclassified horizontal run
+                    // is ordinary token separation, never user-owned layout.
+                    if (options_->normalizeHorizontalWhitespace.value_or(false) && current > 1)
+                        model_->setGapSpaces(i, 1);
                     continue;
+                }
 
-                // A `true` spacing option inserts a missing blank but never
-                // shrinks wider runs: those are manual alignment. A `false`
-                // option removes the blanks entirely.
-                const uint32_t current = model_->gapColumns(i);
-                if (*spaces == 0)
+                if (options_->normalizeHorizontalWhitespace.value_or(false))
                 {
-                    if (current != 0)
-                        model_->setGapSpaces(i, 0);
+                    if (current != *spaces)
+                        model_->setGapSpaces(i, *spaces);
+                    continue;
                 }
-                else if (current == 0)
-                {
+
+                // Without strict normalization, positive spacing options only
+                // insert a missing blank and preserve wider manual alignment.
+                if (*spaces == 0 && current != 0)
+                    model_->setGapSpaces(i, 0);
+                else if (*spaces > 0 && current == 0)
                     model_->setGapSpaces(i, *spaces);
-                }
             }
         }
 
@@ -211,8 +219,12 @@ namespace
                 return fromBool(opt.spaceBeforeColonInDeclarations);
             if (cur.is(TokenId::SymColon) && cur.hasRole(FormatRoleE::BaseClauseColon))
                 return fromBool(opt.spaceBeforeColonInBaseClause);
+            if (cur.is(TokenId::SymColon) && cur.hasRole(FormatRoleE::NamedArgumentColon))
+                return fromBool(opt.spaceBeforeColonInNamedArguments);
             if (prev.is(TokenId::SymColon) && (prev.hasRole(FormatRoleE::DeclColon) || prev.hasRole(FormatRoleE::BaseClauseColon)))
                 return fromBool(opt.spaceAfterColonInDeclarations);
+            if (prev.is(TokenId::SymColon) && prev.hasRole(FormatRoleE::NamedArgumentColon))
+                return fromBool(opt.spaceAfterColonInNamedArguments);
 
             // After the `)` of a cast.
             if (prev.hasRole(FormatRoleE::CastCloseParen) && !isClosingId(cur.id))

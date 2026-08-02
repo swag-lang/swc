@@ -36,7 +36,8 @@ func day9B()
             garbage += 1
 
         case line[i] == '{' and !garbage:
-            group += 1; score += group
+            group += 1
+            score += group
 
         case line[i] == '}' and !garbage:
             group -= 1

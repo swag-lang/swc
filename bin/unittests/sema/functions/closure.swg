@@ -10,15 +10,15 @@ struct Capture24
     a, b, c: u64
 }
 
-alias ClosureUnary = func||(s32)->s32
-alias ClosureNullary = func||()->s32
+alias ClosureUnary    = func||(s32)->s32
+alias ClosureNullary  = func||()->s32
 alias ClosureBoundary = func||()->u64
 
 func addOne(value: s32)->s32 => value + 1
 
 func semaTest001()
 {
-    let fromLambda:   ClosureUnary = func(value: s32)->s32 { return value + 10 }
+    let fromLambda:   ClosureUnary         = func(value: s32)->s32 { return value + 10 }
     let fromFunction: ClosureUnary         = &addOne
     var nullable:     #null ClosureNullary = null
 
@@ -29,14 +29,14 @@ func semaTest001()
 
 func semaTest002()
 {
-    let boundary: Boundary64 = {a: 1, b: 2, c: 3, d: 4, e: 5, f: 6, g: 7, h: 8}
+    let boundary: Boundary64      = {a: 1, b: 2, c: 3, d: 4, e: 5, f: 6, g: 7, h: 8}
     let exact:    ClosureBoundary = func|boundary|()->u64 { return boundary.a + boundary.h }
     #assert(#typeof(exact) == ClosureBoundary)
 }
 
 func semaTest003()
 {
-    var total = 0
+    var total                    = 0
     let refCapture: ClosureUnary = func|&total|(value: s32)->s32 { total += value; return total }
     #assert(#typeof(refCapture) == ClosureUnary)
 }

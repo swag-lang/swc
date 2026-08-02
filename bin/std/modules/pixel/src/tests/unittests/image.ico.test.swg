@@ -95,15 +95,28 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     var body: ConcatBuffer
 
     // XOR row 0 (bottom)
-    body.addNative(10'u8); body.addNative(20'u8); body.addNative(30'u8); body.addNative(40'u8)
-    body.addNative(50'u8); body.addNative(60'u8); body.addNative(70'u8); body.addNative(80'u8)
+    body.addNative(10'u8)
+    body.addNative(20'u8)
+    body.addNative(30'u8)
+    body.addNative(40'u8)
+    body.addNative(50'u8)
+    body.addNative(60'u8)
+    body.addNative(70'u8)
+    body.addNative(80'u8)
 
     // XOR row 1 (top)
-    body.addNative(90'u8);  body.addNative(100'u8); body.addNative(110'u8); body.addNative(120'u8)
-    body.addNative(130'u8); body.addNative(140'u8); body.addNative(150'u8); body.addNative(160'u8)
+    body.addNative(90'u8)
+    body.addNative(100'u8)
+    body.addNative(110'u8)
+    body.addNative(120'u8)
+    body.addNative(130'u8)
+    body.addNative(140'u8)
+    body.addNative(150'u8)
+    body.addNative(160'u8)
 
     // AND mask: 2 rows of 4 bytes, fully opaque
-    for 8 do body.addNative(0'u8)
+    for 8 do
+        body.addNative(0'u8)
 
     let buf = buildIco(2, 2, 32, 0, nnBytes(body.toSlice()))
     let img = expect decodeIco(nnBytes(buf.toSlice()))
@@ -123,8 +136,14 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 {
     var body: ConcatBuffer
 
-    body.addNative(10'u8); body.addNative(20'u8); body.addNative(30'u8); body.addNative(0'u8)
-    body.addNative(40'u8); body.addNative(50'u8); body.addNative(60'u8); body.addNative(0'u8)
+    body.addNative(10'u8)
+    body.addNative(20'u8)
+    body.addNative(30'u8)
+    body.addNative(0'u8)
+    body.addNative(40'u8)
+    body.addNative(50'u8)
+    body.addNative(60'u8)
+    body.addNative(0'u8)
 
     // x=1 is transparent; the row is padded to four bytes.
     body.addNative(0x40'u8)
@@ -143,8 +162,14 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 {
     var body: ConcatBuffer
 
-    body.addNative(10'u8); body.addNative(20'u8); body.addNative(30'u8); body.addNative(128'u8)
-    body.addNative(40'u8); body.addNative(50'u8); body.addNative(60'u8); body.addNative(0'u8)
+    body.addNative(10'u8)
+    body.addNative(20'u8)
+    body.addNative(30'u8)
+    body.addNative(128'u8)
+    body.addNative(40'u8)
+    body.addNative(50'u8)
+    body.addNative(60'u8)
+    body.addNative(0'u8)
 
     // Mark x=0 transparent in the AND mask; modern alpha must still win.
     body.addNative(0x80'u8)
@@ -164,18 +189,28 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     var body: ConcatBuffer
 
     // XOR row 0 (bottom): 2 pixels BGR + 2 pad bytes (row stride = 8)
-    body.addNative(10'u8); body.addNative(20'u8); body.addNative(30'u8)
-    body.addNative(40'u8); body.addNative(50'u8); body.addNative(60'u8)
-    body.addNative(0'u8);  body.addNative(0'u8)
+    body.addNative(10'u8)
+    body.addNative(20'u8)
+    body.addNative(30'u8)
+    body.addNative(40'u8)
+    body.addNative(50'u8)
+    body.addNative(60'u8)
+    body.addNative(0'u8)
+    body.addNative(0'u8)
 
     // XOR row 1 (top)
-    for 8 do body.addNative(0'u8)
+    for 8 do
+        body.addNative(0'u8)
 
     // AND row 0 (bottom): bit for x=1 set -> pixel (1,0) transparent
-    body.addNative(0x40'u8); body.addNative(0'u8); body.addNative(0'u8); body.addNative(0'u8)
+    body.addNative(0x40'u8)
+    body.addNative(0'u8)
+    body.addNative(0'u8)
+    body.addNative(0'u8)
 
     // AND row 1 (top)
-    for 4 do body.addNative(0'u8)
+    for 4 do
+        body.addNative(0'u8)
 
     let buf = buildIco(2, 2, 24, 0, nnBytes(body.toSlice()))
     let img = expect decodeIco(nnBytes(buf.toSlice()))
@@ -196,18 +231,37 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     var body: ConcatBuffer
 
     // Palette (4 BGRA quads)
-    body.addNative(0'u8);  body.addNative(0'u8);  body.addNative(0'u8);  body.addNative(0'u8)     // idx 0
-    body.addNative(10'u8); body.addNative(20'u8); body.addNative(30'u8); body.addNative(0'u8)     // idx 1
-    body.addNative(40'u8); body.addNative(50'u8); body.addNative(60'u8); body.addNative(0'u8)     // idx 2
-    body.addNative(70'u8); body.addNative(80'u8); body.addNative(90'u8); body.addNative(0'u8)     // idx 3
+    body.addNative(0'u8)
+    body.addNative(0'u8)
+    body.addNative(0'u8)
+    body.addNative(0'u8)     // idx 0
+    body.addNative(10'u8)
+    body.addNative(20'u8)
+    body.addNative(30'u8)
+    body.addNative(0'u8)     // idx 1
+    body.addNative(40'u8)
+    body.addNative(50'u8)
+    body.addNative(60'u8)
+    body.addNative(0'u8)     // idx 2
+    body.addNative(70'u8)
+    body.addNative(80'u8)
+    body.addNative(90'u8)
+    body.addNative(0'u8)     // idx 3
     // XOR row 0 (bottom): indices [1,2] + 2 pad (row stride = 4)
-    body.addNative(1'u8); body.addNative(2'u8); body.addNative(0'u8); body.addNative(0'u8)
+    body.addNative(1'u8)
+    body.addNative(2'u8)
+    body.addNative(0'u8)
+    body.addNative(0'u8)
 
     // XOR row 1 (top)
-    body.addNative(3'u8); body.addNative(0'u8); body.addNative(0'u8); body.addNative(0'u8)
+    body.addNative(3'u8)
+    body.addNative(0'u8)
+    body.addNative(0'u8)
+    body.addNative(0'u8)
 
     // AND mask: 2 rows of 4 bytes, opaque
-    for 8 do body.addNative(0'u8)
+    for 8 do
+        body.addNative(0'u8)
 
     let buf = buildIco(2, 2, 8, 4, nnBytes(body.toSlice()))
     let img = expect decodeIco(nnBytes(buf.toSlice()))
@@ -226,13 +280,23 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     var body: ConcatBuffer
 
     // Palette (2 BGRA quads)
-    body.addNative(0'u8); body.addNative(0'u8); body.addNative(0'u8); body.addNative(0'u8)     // idx 0
-    body.addNative(7'u8); body.addNative(8'u8); body.addNative(9'u8); body.addNative(0'u8)     // idx 1
+    body.addNative(0'u8)
+    body.addNative(0'u8)
+    body.addNative(0'u8)
+    body.addNative(0'u8)     // idx 0
+    body.addNative(7'u8)
+    body.addNative(8'u8)
+    body.addNative(9'u8)
+    body.addNative(0'u8)     // idx 1
     // XOR row 0 (only row): x0=1, x1=0 -> 0b10000000, + 3 pad (row stride = 4)
-    body.addNative(0x80'u8); body.addNative(0'u8); body.addNative(0'u8); body.addNative(0'u8)
+    body.addNative(0x80'u8)
+    body.addNative(0'u8)
+    body.addNative(0'u8)
+    body.addNative(0'u8)
 
     // AND mask: 1 row of 4 bytes
-    for 4 do body.addNative(0'u8)
+    for 4 do
+        body.addNative(0'u8)
 
     let buf = buildIco(2, 1, 1, 2, nnBytes(body.toSlice()))
     let img = expect decodeIco(nnBytes(buf.toSlice()))
@@ -285,8 +349,12 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     d1.planes   = 1
     d1.bitCount = 32
     cb.addStruct(d1)
-    cb.addNative(1'u8); cb.addNative(2'u8); cb.addNative(3'u8); cb.addNative(4'u8)     // XOR
-    for 4 do cb.addNative(0'u8)                                                        // AND
+    cb.addNative(1'u8)
+    cb.addNative(2'u8)
+    cb.addNative(3'u8)
+    cb.addNative(4'u8)     // XOR
+    for 4 do
+        cb.addNative(0'u8)     // AND
 
     // Image 2 (2x2)
     var d2: IcoDib
@@ -296,9 +364,14 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     d2.planes   = 1
     d2.bitCount = 32
     cb.addStruct(d2)
-    cb.addNative(200'u8); cb.addNative(201'u8); cb.addNative(202'u8); cb.addNative(203'u8)
-    for 12 do cb.addNative(0'u8)     // rest of XOR
-    for 8 do cb.addNative(0'u8)      // AND
+    cb.addNative(200'u8)
+    cb.addNative(201'u8)
+    cb.addNative(202'u8)
+    cb.addNative(203'u8)
+    for 12 do
+        cb.addNative(0'u8)     // rest of XOR
+    for 8 do
+        cb.addNative(0'u8)     // AND
 
     let img = expect decodeIco(nnBytes(cb.toSlice()))
     @assert(img.width == 2)
@@ -348,7 +421,8 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 #test
 {
     var body: ConcatBuffer
-    for 24 do body.addNative(0'u8)     // 16 XOR + 8 AND
+    for 24 do
+        body.addNative(0'u8)     // 16 XOR + 8 AND
 
     let buf = buildIco(2, 2, 32, 0, nnBytes(body.toSlice()))
 
@@ -404,10 +478,10 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     @assert(img.width == 2)
     @assert(img.height == 2)
     @assert(img.pixelFormat == .BGRA8)
-    @assert((notnull img.pixels.buffer)[0]  == 10'u8)
-    @assert((notnull img.pixels.buffer)[1]  == 20'u8)
-    @assert((notnull img.pixels.buffer)[2]  == 30'u8)
-    @assert((notnull img.pixels.buffer)[3]  == 128'u8)
+    @assert((notnull img.pixels.buffer)[0] == 10'u8)
+    @assert((notnull img.pixels.buffer)[1] == 20'u8)
+    @assert((notnull img.pixels.buffer)[2] == 30'u8)
+    @assert((notnull img.pixels.buffer)[3] == 128'u8)
     @assert((notnull img.pixels.buffer)[12] == 200'u8)
 }
 

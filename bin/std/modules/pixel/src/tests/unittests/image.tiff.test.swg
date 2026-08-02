@@ -270,8 +270,12 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 #test
 {
     var pix: ConcatBuffer
-    pix.addNative(10'u8); pix.addNative(20'u8); pix.addNative(30'u8)
-    pix.addNative(40'u8); pix.addNative(50'u8); pix.addNative(60'u8)
+    pix.addNative(10'u8)
+    pix.addNative(20'u8)
+    pix.addNative(30'u8)
+    pix.addNative(40'u8)
+    pix.addNative(50'u8)
+    pix.addNative(60'u8)
 
     let buf = buildTiff(true, 2, 1, 3, 2, 1, 1, 8, nnBytes(pix.toSlice()), null, false)
     let img = expect decodeTiff(nnBytes(buf.toSlice()))
@@ -290,8 +294,12 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 #test
 {
     var pix: ConcatBuffer
-    pix.addNative(11'u8); pix.addNative(22'u8); pix.addNative(33'u8)
-    pix.addNative(44'u8); pix.addNative(55'u8); pix.addNative(66'u8)
+    pix.addNative(11'u8)
+    pix.addNative(22'u8)
+    pix.addNative(33'u8)
+    pix.addNative(44'u8)
+    pix.addNative(55'u8)
+    pix.addNative(66'u8)
 
     let buf = buildTiff(false, 2, 1, 3, 2, 1, 1, 8, nnBytes(pix.toSlice()), null, false)
     let img = expect decodeTiff(nnBytes(buf.toSlice()))
@@ -305,7 +313,9 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 #test
 {
     var pix: ConcatBuffer
-    pix.addNative(5'u8); pix.addNative(10'u8); pix.addNative(15'u8)
+    pix.addNative(5'u8)
+    pix.addNative(10'u8)
+    pix.addNative(15'u8)
 
     let buf = buildTiff(true, 3, 1, 1, 1, 1, 1, 8, nnBytes(pix.toSlice()), null, false)
     let img = expect decodeTiff(nnBytes(buf.toSlice()))
@@ -321,7 +331,8 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 #test
 {
     var pix: ConcatBuffer
-    pix.addNative(5'u8); pix.addNative(250'u8)
+    pix.addNative(5'u8)
+    pix.addNative(250'u8)
 
     let buf = buildTiff(true, 2, 1, 1, 0, 1, 1, 8, nnBytes(pix.toSlice()), null, false)
     let img = expect decodeTiff(nnBytes(buf.toSlice()))
@@ -333,12 +344,16 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 #test
 {
     var pal: Array'u16
-    pal.add(10 << 8); pal.add(40 << 8)     // red
-    pal.add(20 << 8); pal.add(50 << 8)     // green
-    pal.add(30 << 8); pal.add(60 << 8)     // blue
+    pal.add(10 << 8)
+    pal.add(40 << 8)     // red
+    pal.add(20 << 8)
+    pal.add(50 << 8)     // green
+    pal.add(30 << 8)
+    pal.add(60 << 8)     // blue
 
     var pix: ConcatBuffer
-    pix.addNative(0'u8); pix.addNative(1'u8)
+    pix.addNative(0'u8)
+    pix.addNative(1'u8)
 
     let buf = buildTiff(true, 2, 1, 1, 3, 1, 1, 8, nnBytes(pix.toSlice()), pal.toSlice(), false)
     let img = expect decodeTiff(nnBytes(buf.toSlice()))
@@ -355,7 +370,10 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 #test
 {
     var pix: ConcatBuffer
-    pix.addNative(1'u8); pix.addNative(2'u8); pix.addNative(3'u8); pix.addNative(4'u8)
+    pix.addNative(1'u8)
+    pix.addNative(2'u8)
+    pix.addNative(3'u8)
+    pix.addNative(4'u8)
 
     let buf = buildTiff(true, 1, 1, 4, 2, 1, 1, 8, nnBytes(pix.toSlice()), null, true)
     let img = expect decodeTiff(nnBytes(buf.toSlice()))
@@ -371,10 +389,18 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 {
     var pix: ConcatBuffer
     pix.addNative(11'u8)     // literal header: 12 bytes follow
-    pix.addNative(10'u8); pix.addNative(20'u8); pix.addNative(30'u8)
-    pix.addNative(40'u8); pix.addNative(50'u8); pix.addNative(60'u8)
-    pix.addNative(70'u8); pix.addNative(80'u8); pix.addNative(90'u8)
-    pix.addNative(100'u8); pix.addNative(110'u8); pix.addNative(120'u8)
+    pix.addNative(10'u8)
+    pix.addNative(20'u8)
+    pix.addNative(30'u8)
+    pix.addNative(40'u8)
+    pix.addNative(50'u8)
+    pix.addNative(60'u8)
+    pix.addNative(70'u8)
+    pix.addNative(80'u8)
+    pix.addNative(90'u8)
+    pix.addNative(100'u8)
+    pix.addNative(110'u8)
+    pix.addNative(120'u8)
 
     let buf = buildTiff(true, 4, 1, 3, 2, 32773, 1, 8, nnBytes(pix.toSlice()), null, false)
     let img = expect decodeTiff(nnBytes(buf.toSlice()))
@@ -402,10 +428,18 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 #test
 {
     var pix: ConcatBuffer
-    pix.addNative(10'u8); pix.addNative(10'u8); pix.addNative(10'u8)     // file row 0 (top)
-    pix.addNative(20'u8); pix.addNative(20'u8); pix.addNative(20'u8)     // file row 1
-    pix.addNative(30'u8); pix.addNative(30'u8); pix.addNative(30'u8)     // file row 2
-    pix.addNative(40'u8); pix.addNative(40'u8); pix.addNative(40'u8)     // file row 3 (bottom)
+    pix.addNative(10'u8)
+    pix.addNative(10'u8)
+    pix.addNative(10'u8)     // file row 0 (top)
+    pix.addNative(20'u8)
+    pix.addNative(20'u8)
+    pix.addNative(20'u8)     // file row 1
+    pix.addNative(30'u8)
+    pix.addNative(30'u8)
+    pix.addNative(30'u8)     // file row 2
+    pix.addNative(40'u8)
+    pix.addNative(40'u8)
+    pix.addNative(40'u8)     // file row 3 (bottom)
 
     let buf = buildTiff(true, 1, 4, 3, 2, 1, 2, 8, nnBytes(pix.toSlice()), null, false)
     let img = expect decodeTiff(nnBytes(buf.toSlice()))
@@ -423,7 +457,9 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 #test
 {
     var pix: ConcatBuffer
-    pix.addNative(0'u8); pix.addNative(0'u8); pix.addNative(0'u8)
+    pix.addNative(0'u8)
+    pix.addNative(0'u8)
+    pix.addNative(0'u8)
 
     let buf = buildTiff(true, 1, 1, 3, 2, 1, 1, 8, nnBytes(pix.toSlice()), null, false)
 
@@ -440,8 +476,10 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 #test
 {
     var cb: ConcatBuffer
-    cb.addNative(0x58'u8); cb.addNative(0x58'u8)
-    cb.addNative(0'u8); cb.addNative(0'u8)
+    cb.addNative(0x58'u8)
+    cb.addNative(0x58'u8)
+    cb.addNative(0'u8)
+    cb.addNative(0'u8)
     cb.addNative(8'u32)
 
     var img = catch decodeTiff(nnBytes(cb.toSlice())) as err11
@@ -452,8 +490,12 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 #test
 {
     var raw: Array'u8
-    raw.add(10); raw.add(20); raw.add(30)
-    raw.add(40); raw.add(50); raw.add(60)
+    raw.add(10)
+    raw.add(20)
+    raw.add(30)
+    raw.add(40)
+    raw.add(50)
+    raw.add(60)
     let packed = packLiteralTiffLzw(nnBytes(raw.toSlice()))
 
     let buf = buildTiff(true, 2, 1, 3, 2, 5, 1, 8, nnBytes(packed.toSlice()), null, false)
@@ -470,8 +512,12 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 #test
 {
     var predicted: Array'u8
-    predicted.add(10); predicted.add(20); predicted.add(30)
-    predicted.add(5);  predicted.add(5);  predicted.add(5)
+    predicted.add(10)
+    predicted.add(20)
+    predicted.add(30)
+    predicted.add(5)
+    predicted.add(5)
+    predicted.add(5)
     let packed = packLiteralTiffLzw(nnBytes(predicted.toSlice()))
 
     let buf = buildTiff(true, 2, 1, 3, 2, 5, 1, 8, nnBytes(packed.toSlice()), null, false, 2)
@@ -533,7 +579,8 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 #test
 {
     var pix: ConcatBuffer
-    pix.addNative(0'u8); pix.addNative(0'u8)
+    pix.addNative(0'u8)
+    pix.addNative(0'u8)
 
     let buf = buildTiff(true, 1, 1, 2, 1, 1, 1, 8, nnBytes(pix.toSlice()), null, false)
     var img = catch decodeTiff(nnBytes(buf.toSlice())) as err13
@@ -544,7 +591,8 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 #test
 {
     var pix: ConcatBuffer
-    pix.addNative(0'u8); pix.addNative(0'u8)
+    pix.addNative(0'u8)
+    pix.addNative(0'u8)
 
     let buf = buildTiff(true, 1, 1, 1, 1, 1, 1, 16, nnBytes(pix.toSlice()), null, false)
     var img = catch decodeTiff(nnBytes(buf.toSlice())) as err14

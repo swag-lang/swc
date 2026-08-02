@@ -113,7 +113,7 @@ func parseMaze(text: string)->Maze
 
         cells[row * MaxDim + col] = ch
         if ch == cast(u8) Start { m.sr = row; m.sc = col }
-        if ch == cast(u8) End   { m.er = row; m.ec = col }
+        if ch == cast(u8) End { m.er = row; m.ec = col }
         col += 1
     }
 

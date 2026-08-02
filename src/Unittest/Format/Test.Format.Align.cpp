@@ -16,6 +16,11 @@ namespace
         SWC_RESULT(formatter.prepare(parentCtx.global(), source));
         if (formatter.text() != expected)
             return Result::Error;
+
+        Formatter secondPass(options);
+        SWC_RESULT(secondPass.prepare(parentCtx.global(), formatter.text()));
+        if (secondPass.text() != expected)
+            return Result::Error;
         return Result::Continue;
     }
 }
@@ -42,6 +47,48 @@ SWC_TEST_BEGIN(FormatAlign_ConsecutiveAssignments)
 
     FormatOptions options;
     options.alignConsecutiveAssignments = FormatAlignMode::Consecutive;
+    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatAlign_ConsecutiveAliases)
+{
+    static constexpr std::string_view SOURCE =
+        "alias A      = u8\n"
+        "alias Longer = u16\n"
+        "alias X = u32\n";
+
+    static constexpr std::string_view EXPECTED =
+        "alias A      = u8\n"
+        "alias Longer = u16\n"
+        "alias X      = u32\n";
+
+    FormatOptions options;
+    options.normalizeHorizontalWhitespace = true;
+    options.alignConsecutiveAliases       = FormatAlignMode::Consecutive;
+    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatAlign_AliasesAcrossAttributesAndBlankLines)
+{
+    static constexpr std::string_view SOURCE =
+        "#[Swag.Strict]\n"
+        "public alias A = u8\n"
+        "\n"
+        "#[Swag.Strict]\n"
+        "public alias LongerName = u16\n";
+
+    static constexpr std::string_view EXPECTED =
+        "#[Swag.Strict]\n"
+        "public alias A          = u8\n"
+        "\n"
+        "#[Swag.Strict]\n"
+        "public alias LongerName = u16\n";
+
+    FormatOptions options;
+    options.normalizeHorizontalWhitespace = true;
+    options.alignConsecutiveAliases       = FormatAlignMode::AcrossBlanks;
     return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()

@@ -227,9 +227,9 @@ func initCard(c: *SceneCard, label: string, argb: u32, shape: CardShape, scale, 
 func initDemoData()
 {
     // Deliberately different values so a multi-selection shows shared fields and "mixed" fields.
-    initCard(&g_Cards[0], "Alpha", 0xFF6495ED, .Card,   1.0, 16, 0.30, 1.00, true,  .Soft, CardBadge.Accent | CardBadge.Tag)
-    initCard(&g_Cards[1], "Beta",  0xFFE2725B, .Banner, 1.3, 10, 0.60, 0.85, false, .None, CardBadge.Ring)
-    initCard(&g_Cards[2], "Gamma", 0xFF66BB6A, .Pill,   0.9, 24, 0.15, 1.00, true,  .Hard, CardBadge.Accent)
+    initCard(&g_Cards[0], "Alpha", 0xFF6495ED, .Card, 1.0, 16, 0.30, 1.00, true, .Soft, CardBadge.Accent | CardBadge.Tag)
+    initCard(&g_Cards[1], "Beta", 0xFFE2725B, .Banner, 1.3, 10, 0.60, 0.85, false, .None, CardBadge.Ring)
+    initCard(&g_Cards[2], "Gamma", 0xFF66BB6A, .Pill, 0.9, 24, 0.15, 1.00, true, .Hard, CardBadge.Accent)
 
     g_StatusText = "Pick a display mode, edit 1-3 cards at once; a field that differs shows as mixed."
 }

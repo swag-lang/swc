@@ -294,113 +294,210 @@ private func mathSymbol(text: string, atomClass = MathAtomClass.Ord, large = fal
 private func mathCommandSymbol(command: string)->MathSymbolSpec
 {
     // Greek lowercase
-    if command == "alpha" do return mathSymbol("\u03B1")
-    if command == "beta" do return mathSymbol("\u03B2")
-    if command == "gamma" do return mathSymbol("\u03B3")
-    if command == "delta" do return mathSymbol("\u03B4")
-    if command == "epsilon" do return mathSymbol("\u03F5")
-    if command == "varepsilon" do return mathSymbol("\u03B5")
-    if command == "zeta" do return mathSymbol("\u03B6")
-    if command == "eta" do return mathSymbol("\u03B7")
-    if command == "theta" do return mathSymbol("\u03B8")
-    if command == "vartheta" do return mathSymbol("\u03D1")
-    if command == "iota" do return mathSymbol("\u03B9")
-    if command == "kappa" do return mathSymbol("\u03BA")
-    if command == "lambda" do return mathSymbol("\u03BB")
-    if command == "mu" do return mathSymbol("\u03BC")
-    if command == "nu" do return mathSymbol("\u03BD")
-    if command == "xi" do return mathSymbol("\u03BE")
-    if command == "pi" do return mathSymbol("\u03C0")
-    if command == "varpi" do return mathSymbol("\u03D6")
-    if command == "rho" do return mathSymbol("\u03C1")
-    if command == "varrho" do return mathSymbol("\u03F1")
-    if command == "sigma" do return mathSymbol("\u03C3")
-    if command == "varsigma" do return mathSymbol("\u03C2")
-    if command == "tau" do return mathSymbol("\u03C4")
-    if command == "upsilon" do return mathSymbol("\u03C5")
-    if command == "phi" do return mathSymbol("\u03D5")
-    if command == "varphi" do return mathSymbol("\u03C6")
-    if command == "chi" do return mathSymbol("\u03C7")
-    if command == "psi" do return mathSymbol("\u03C8")
-    if command == "omega" do return mathSymbol("\u03C9")
+    if command == "alpha" do
+        return mathSymbol("\u03B1")
+    if command == "beta" do
+        return mathSymbol("\u03B2")
+    if command == "gamma" do
+        return mathSymbol("\u03B3")
+    if command == "delta" do
+        return mathSymbol("\u03B4")
+    if command == "epsilon" do
+        return mathSymbol("\u03F5")
+    if command == "varepsilon" do
+        return mathSymbol("\u03B5")
+    if command == "zeta" do
+        return mathSymbol("\u03B6")
+    if command == "eta" do
+        return mathSymbol("\u03B7")
+    if command == "theta" do
+        return mathSymbol("\u03B8")
+    if command == "vartheta" do
+        return mathSymbol("\u03D1")
+    if command == "iota" do
+        return mathSymbol("\u03B9")
+    if command == "kappa" do
+        return mathSymbol("\u03BA")
+    if command == "lambda" do
+        return mathSymbol("\u03BB")
+    if command == "mu" do
+        return mathSymbol("\u03BC")
+    if command == "nu" do
+        return mathSymbol("\u03BD")
+    if command == "xi" do
+        return mathSymbol("\u03BE")
+    if command == "pi" do
+        return mathSymbol("\u03C0")
+    if command == "varpi" do
+        return mathSymbol("\u03D6")
+    if command == "rho" do
+        return mathSymbol("\u03C1")
+    if command == "varrho" do
+        return mathSymbol("\u03F1")
+    if command == "sigma" do
+        return mathSymbol("\u03C3")
+    if command == "varsigma" do
+        return mathSymbol("\u03C2")
+    if command == "tau" do
+        return mathSymbol("\u03C4")
+    if command == "upsilon" do
+        return mathSymbol("\u03C5")
+    if command == "phi" do
+        return mathSymbol("\u03D5")
+    if command == "varphi" do
+        return mathSymbol("\u03C6")
+    if command == "chi" do
+        return mathSymbol("\u03C7")
+    if command == "psi" do
+        return mathSymbol("\u03C8")
+    if command == "omega" do
+        return mathSymbol("\u03C9")
 
     // Greek uppercase
-    if command == "Gamma" do return mathSymbol("\u0393")
-    if command == "Delta" do return mathSymbol("\u0394")
-    if command == "Theta" do return mathSymbol("\u0398")
-    if command == "Lambda" do return mathSymbol("\u039B")
-    if command == "Xi" do return mathSymbol("\u039E")
-    if command == "Pi" do return mathSymbol("\u03A0")
-    if command == "Sigma" do return mathSymbol("\u03A3")
-    if command == "Upsilon" do return mathSymbol("\u03A5")
-    if command == "Phi" do return mathSymbol("\u03A6")
-    if command == "Psi" do return mathSymbol("\u03A8")
-    if command == "Omega" do return mathSymbol("\u03A9")
+    if command == "Gamma" do
+        return mathSymbol("\u0393")
+    if command == "Delta" do
+        return mathSymbol("\u0394")
+    if command == "Theta" do
+        return mathSymbol("\u0398")
+    if command == "Lambda" do
+        return mathSymbol("\u039B")
+    if command == "Xi" do
+        return mathSymbol("\u039E")
+    if command == "Pi" do
+        return mathSymbol("\u03A0")
+    if command == "Sigma" do
+        return mathSymbol("\u03A3")
+    if command == "Upsilon" do
+        return mathSymbol("\u03A5")
+    if command == "Phi" do
+        return mathSymbol("\u03A6")
+    if command == "Psi" do
+        return mathSymbol("\u03A8")
+    if command == "Omega" do
+        return mathSymbol("\u03A9")
 
     // Binary operators
-    if command == "pm" do return mathSymbol("\u00B1", .Bin)
-    if command == "mp" do return mathSymbol("\u2213", .Bin)
-    if command == "times" do return mathSymbol("\u00D7", .Bin)
-    if command == "div" do return mathSymbol("\u00F7", .Bin)
-    if command == "cdot" do return mathSymbol("\u22C5", .Bin)
-    if command == "ast" do return mathSymbol("\u2217", .Bin)
-    if command == "star" do return mathSymbol("\u22C6", .Bin)
-    if command == "circ" do return mathSymbol("\u2218", .Bin)
-    if command == "bullet" do return mathSymbol("\u2219", .Bin)
-    if command == "cap" do return mathSymbol("\u2229", .Bin)
-    if command == "cup" do return mathSymbol("\u222A", .Bin)
-    if command == "setminus" do return mathSymbol("\u2216", .Bin)
-    if command == "land" or command == "wedge" do return mathSymbol("\u2227", .Bin)
-    if command == "lor" or command == "vee" do return mathSymbol("\u2228", .Bin)
-    if command == "oplus" do return mathSymbol("\u2295", .Bin)
-    if command == "ominus" do return mathSymbol("\u2296", .Bin)
-    if command == "otimes" do return mathSymbol("\u2297", .Bin)
-    if command == "oslash" do return mathSymbol("\u2298", .Bin)
+    if command == "pm" do
+        return mathSymbol("\u00B1", .Bin)
+    if command == "mp" do
+        return mathSymbol("\u2213", .Bin)
+    if command == "times" do
+        return mathSymbol("\u00D7", .Bin)
+    if command == "div" do
+        return mathSymbol("\u00F7", .Bin)
+    if command == "cdot" do
+        return mathSymbol("\u22C5", .Bin)
+    if command == "ast" do
+        return mathSymbol("\u2217", .Bin)
+    if command == "star" do
+        return mathSymbol("\u22C6", .Bin)
+    if command == "circ" do
+        return mathSymbol("\u2218", .Bin)
+    if command == "bullet" do
+        return mathSymbol("\u2219", .Bin)
+    if command == "cap" do
+        return mathSymbol("\u2229", .Bin)
+    if command == "cup" do
+        return mathSymbol("\u222A", .Bin)
+    if command == "setminus" do
+        return mathSymbol("\u2216", .Bin)
+    if command == "land" or command == "wedge" do
+        return mathSymbol("\u2227", .Bin)
+    if command == "lor" or command == "vee" do
+        return mathSymbol("\u2228", .Bin)
+    if command == "oplus" do
+        return mathSymbol("\u2295", .Bin)
+    if command == "ominus" do
+        return mathSymbol("\u2296", .Bin)
+    if command == "otimes" do
+        return mathSymbol("\u2297", .Bin)
+    if command == "oslash" do
+        return mathSymbol("\u2298", .Bin)
 
     // Relations
-    if command == "le" or command == "leq" do return mathSymbol("\u2264", .Rel)
-    if command == "ge" or command == "geq" do return mathSymbol("\u2265", .Rel)
-    if command == "ne" or command == "neq" do return mathSymbol("\u2260", .Rel)
-    if command == "approx" do return mathSymbol("\u2248", .Rel)
-    if command == "sim" do return mathSymbol("\u223C", .Rel)
-    if command == "simeq" do return mathSymbol("\u2243", .Rel)
-    if command == "equiv" do return mathSymbol("\u2261", .Rel)
-    if command == "propto" do return mathSymbol("\u221D", .Rel)
-    if command == "in" do return mathSymbol("\u2208", .Rel)
-    if command == "notin" do return mathSymbol("\u2209", .Rel)
-    if command == "ni" do return mathSymbol("\u220B", .Rel)
-    if command == "subset" do return mathSymbol("\u2282", .Rel)
-    if command == "supset" do return mathSymbol("\u2283", .Rel)
-    if command == "subseteq" do return mathSymbol("\u2286", .Rel)
-    if command == "supseteq" do return mathSymbol("\u2287", .Rel)
-    if command == "parallel" do return mathSymbol("\u2225", .Rel)
-    if command == "perp" do return mathSymbol("\u22A5", .Rel)
-    if command == "mid" do return mathSymbol("\u2223", .Rel)
-    if command == "models" do return mathSymbol("\u22A8", .Rel)
+    if command == "le" or command == "leq" do
+        return mathSymbol("\u2264", .Rel)
+    if command == "ge" or command == "geq" do
+        return mathSymbol("\u2265", .Rel)
+    if command == "ne" or command == "neq" do
+        return mathSymbol("\u2260", .Rel)
+    if command == "approx" do
+        return mathSymbol("\u2248", .Rel)
+    if command == "sim" do
+        return mathSymbol("\u223C", .Rel)
+    if command == "simeq" do
+        return mathSymbol("\u2243", .Rel)
+    if command == "equiv" do
+        return mathSymbol("\u2261", .Rel)
+    if command == "propto" do
+        return mathSymbol("\u221D", .Rel)
+    if command == "in" do
+        return mathSymbol("\u2208", .Rel)
+    if command == "notin" do
+        return mathSymbol("\u2209", .Rel)
+    if command == "ni" do
+        return mathSymbol("\u220B", .Rel)
+    if command == "subset" do
+        return mathSymbol("\u2282", .Rel)
+    if command == "supset" do
+        return mathSymbol("\u2283", .Rel)
+    if command == "subseteq" do
+        return mathSymbol("\u2286", .Rel)
+    if command == "supseteq" do
+        return mathSymbol("\u2287", .Rel)
+    if command == "parallel" do
+        return mathSymbol("\u2225", .Rel)
+    if command == "perp" do
+        return mathSymbol("\u22A5", .Rel)
+    if command == "mid" do
+        return mathSymbol("\u2223", .Rel)
+    if command == "models" do
+        return mathSymbol("\u22A8", .Rel)
 
     // Arrows
-    if command == "to" or command == "rightarrow" do return mathSymbol("\u2192", .Rel)
-    if command == "leftarrow" do return mathSymbol("\u2190", .Rel)
-    if command == "leftrightarrow" do return mathSymbol("\u2194", .Rel)
-    if command == "Rightarrow" do return mathSymbol("\u21D2", .Rel)
-    if command == "Leftarrow" do return mathSymbol("\u21D0", .Rel)
-    if command == "Leftrightarrow" do return mathSymbol("\u21D4", .Rel)
-    if command == "mapsto" do return mathSymbol("\u21A6", .Rel)
-    if command == "uparrow" do return mathSymbol("\u2191", .Rel)
-    if command == "downarrow" do return mathSymbol("\u2193", .Rel)
+    if command == "to" or command == "rightarrow" do
+        return mathSymbol("\u2192", .Rel)
+    if command == "leftarrow" do
+        return mathSymbol("\u2190", .Rel)
+    if command == "leftrightarrow" do
+        return mathSymbol("\u2194", .Rel)
+    if command == "Rightarrow" do
+        return mathSymbol("\u21D2", .Rel)
+    if command == "Leftarrow" do
+        return mathSymbol("\u21D0", .Rel)
+    if command == "Leftrightarrow" do
+        return mathSymbol("\u21D4", .Rel)
+    if command == "mapsto" do
+        return mathSymbol("\u21A6", .Rel)
+    if command == "uparrow" do
+        return mathSymbol("\u2191", .Rel)
+    if command == "downarrow" do
+        return mathSymbol("\u2193", .Rel)
 
     // Large operators
-    if command == "sum" do return mathSymbol("\u2211", .Op, true, .Limits)
-    if command == "prod" do return mathSymbol("\u220F", .Op, true, .Limits)
-    if command == "coprod" do return mathSymbol("\u2210", .Op, true, .Limits)
-    if command == "int" do return mathSymbol("\u222B", .Op, true, .NoLimits)
-    if command == "iint" do return mathSymbol("\u222C", .Op, true, .NoLimits)
-    if command == "iiint" do return mathSymbol("\u222D", .Op, true, .NoLimits)
-    if command == "oint" do return mathSymbol("\u222E", .Op, true, .NoLimits)
-    if command == "bigcap" do return mathSymbol("\u22C2", .Op, true, .Limits)
-    if command == "bigcup" do return mathSymbol("\u22C3", .Op, true, .Limits)
-    if command == "bigwedge" do return mathSymbol("\u22C0", .Op, true, .Limits)
-    if command == "bigvee" do return mathSymbol("\u22C1", .Op, true, .Limits)
+    if command == "sum" do
+        return mathSymbol("\u2211", .Op, true, .Limits)
+    if command == "prod" do
+        return mathSymbol("\u220F", .Op, true, .Limits)
+    if command == "coprod" do
+        return mathSymbol("\u2210", .Op, true, .Limits)
+    if command == "int" do
+        return mathSymbol("\u222B", .Op, true, .NoLimits)
+    if command == "iint" do
+        return mathSymbol("\u222C", .Op, true, .NoLimits)
+    if command == "iiint" do
+        return mathSymbol("\u222D", .Op, true, .NoLimits)
+    if command == "oint" do
+        return mathSymbol("\u222E", .Op, true, .NoLimits)
+    if command == "bigcap" do
+        return mathSymbol("\u22C2", .Op, true, .Limits)
+    if command == "bigcup" do
+        return mathSymbol("\u22C3", .Op, true, .Limits)
+    if command == "bigwedge" do
+        return mathSymbol("\u22C0", .Op, true, .Limits)
+    if command == "bigvee" do
+        return mathSymbol("\u22C1", .Op, true, .Limits)
 
     // Named functions
     if command == "sin" or command == "cos" or command == "tan" or command == "cot" or command == "sec" or command == "csc" or command == "sinh" or command == "cosh" or command == "tanh" or command == "log" or command == "ln" or command == "exp" or command == "lim" or command == "limsup" or command == "liminf" or command == "max" or command == "min" or command == "sup" or command == "inf" or command == "det" or command == "gcd"
@@ -410,32 +507,58 @@ private func mathCommandSymbol(command: string)->MathSymbolSpec
     }
 
     // Delimiters and ordinary symbols
-    if command == "lbrace" do return mathSymbol("{", .Open)
-    if command == "rbrace" do return mathSymbol("}", .Close)
-    if command == "langle" do return mathSymbol("\u27E8", .Open)
-    if command == "rangle" do return mathSymbol("\u27E9", .Close)
-    if command == "lfloor" do return mathSymbol("\u230A", .Open)
-    if command == "rfloor" do return mathSymbol("\u230B", .Close)
-    if command == "lceil" do return mathSymbol("\u2308", .Open)
-    if command == "rceil" do return mathSymbol("\u2309", .Close)
-    if command == "vert" or command == "lvert" do return mathSymbol("|", .Open)
-    if command == "rvert" do return mathSymbol("|", .Close)
-    if command == "Vert" or command == "lVert" do return mathSymbol("\u2016", .Open)
-    if command == "rVert" do return mathSymbol("\u2016", .Close)
-    if command == "infty" do return mathSymbol("\u221E")
-    if command == "partial" do return mathSymbol("\u2202")
-    if command == "nabla" do return mathSymbol("\u2207")
-    if command == "forall" do return mathSymbol("\u2200")
-    if command == "exists" do return mathSymbol("\u2203")
-    if command == "neg" or command == "lnot" do return mathSymbol("\u00AC")
-    if command == "emptyset" do return mathSymbol("\u2205")
-    if command == "ell" do return mathSymbol("\u2113")
-    if command == "hbar" do return mathSymbol("\u210F")
-    if command == "Re" do return mathSymbol("\u211C")
-    if command == "Im" do return mathSymbol("\u2111")
-    if command == "aleph" do return mathSymbol("\u2135")
-    if command == "ldots" do return mathSymbol("\u2026", .Inner)
-    if command == "cdots" do return mathSymbol("\u22EF", .Inner)
+    if command == "lbrace" do
+        return mathSymbol("{", .Open)
+    if command == "rbrace" do
+        return mathSymbol("}", .Close)
+    if command == "langle" do
+        return mathSymbol("\u27E8", .Open)
+    if command == "rangle" do
+        return mathSymbol("\u27E9", .Close)
+    if command == "lfloor" do
+        return mathSymbol("\u230A", .Open)
+    if command == "rfloor" do
+        return mathSymbol("\u230B", .Close)
+    if command == "lceil" do
+        return mathSymbol("\u2308", .Open)
+    if command == "rceil" do
+        return mathSymbol("\u2309", .Close)
+    if command == "vert" or command == "lvert" do
+        return mathSymbol("|", .Open)
+    if command == "rvert" do
+        return mathSymbol("|", .Close)
+    if command == "Vert" or command == "lVert" do
+        return mathSymbol("\u2016", .Open)
+    if command == "rVert" do
+        return mathSymbol("\u2016", .Close)
+    if command == "infty" do
+        return mathSymbol("\u221E")
+    if command == "partial" do
+        return mathSymbol("\u2202")
+    if command == "nabla" do
+        return mathSymbol("\u2207")
+    if command == "forall" do
+        return mathSymbol("\u2200")
+    if command == "exists" do
+        return mathSymbol("\u2203")
+    if command == "neg" or command == "lnot" do
+        return mathSymbol("\u00AC")
+    if command == "emptyset" do
+        return mathSymbol("\u2205")
+    if command == "ell" do
+        return mathSymbol("\u2113")
+    if command == "hbar" do
+        return mathSymbol("\u210F")
+    if command == "Re" do
+        return mathSymbol("\u211C")
+    if command == "Im" do
+        return mathSymbol("\u2111")
+    if command == "aleph" do
+        return mathSymbol("\u2135")
+    if command == "ldots" do
+        return mathSymbol("\u2026", .Inner)
+    if command == "cdots" do
+        return mathSymbol("\u22EF", .Inner)
 
     return {text: ""}
 }
@@ -896,19 +1019,31 @@ private impl MathParser
             return .newSymbol(text)
         }
 
-        if command == "mathrm" do return .parseStyle(.Roman, "'\\mathrm'")
-        if command == "mathit" do return .parseStyle(.Italic, "'\\mathit'")
-        if command == "mathbf" do return .parseStyle(.Bold, "'\\mathbf'")
-        if command == "boldsymbol" or command == "bm" do return .parseStyle(.BoldItalic, Format.toString("'\\%'", command))
+        if command == "mathrm" do
+            return .parseStyle(.Roman, "'\\mathrm'")
+        if command == "mathit" do
+            return .parseStyle(.Italic, "'\\mathit'")
+        if command == "mathbf" do
+            return .parseStyle(.Bold, "'\\mathbf'")
+        if command == "boldsymbol" or command == "bm" do
+            return .parseStyle(.BoldItalic, Format.toString("'\\%'", command))
 
-        if command == "hat" or command == "widehat" do return .parseAccent("^")
-        if command == "tilde" or command == "widetilde" do return .parseAccent("~")
-        if command == "bar" do return .parseAccent("\u00AF")
-        if command == "vec" do return .parseAccent("\u2192")
-        if command == "dot" do return .parseAccent("\u02D9")
-        if command == "ddot" do return .parseAccent("\u00A8")
-        if command == "overline" do return .parseAccent("", false, true)
-        if command == "underline" do return .parseAccent("", true, true)
+        if command == "hat" or command == "widehat" do
+            return .parseAccent("^")
+        if command == "tilde" or command == "widetilde" do
+            return .parseAccent("~")
+        if command == "bar" do
+            return .parseAccent("\u00AF")
+        if command == "vec" do
+            return .parseAccent("\u2192")
+        if command == "dot" do
+            return .parseAccent("\u02D9")
+        if command == "ddot" do
+            return .parseAccent("\u00A8")
+        if command == "overline" do
+            return .parseAccent("", false, true)
+        if command == "underline" do
+            return .parseAccent("", true, true)
 
         let spec = mathCommandSymbol(command)
         if spec.found
@@ -921,13 +1056,20 @@ private impl MathParser
 
         // Explicit spacing commands
         var space = 0.0'f32
-        if command == "," do space = 3.0 / 18.0
-        elif command == ":" do space = 4.0 / 18.0
-        elif command == ";" do space = 5.0 / 18.0
-        elif command == "!" do space = -3.0 / 18.0
-        elif command == " " do space = 1.0 / 3.0
-        elif command == "quad" do space = 1.0
-        elif command == "qquad" do space = 2.0
+        if command == "," do
+            space = 3.0 / 18.0
+        elif command == ":" do
+            space = 4.0 / 18.0
+        elif command == ";" do
+            space = 5.0 / 18.0
+        elif command == "!" do
+            space = -3.0 / 18.0
+        elif command == " " do
+            space = 1.0 / 3.0
+        elif command == "quad" do
+            space = 1.0
+        elif command == "qquad" do
+            space = 2.0
         if space != 0
         {
             let node = .newNode(.Space)
@@ -936,15 +1078,24 @@ private impl MathParser
         }
 
         // Escaped TeX punctuation is literal.
-        if command == "{" do return .newSymbol("{", .Open)
-        if command == "}" do return .newSymbol("}", .Close)
-        if command == "_" do return .newSymbol("_")
-        if command == "^" do return .newSymbol("^")
-        if command == "%" do return .newSymbol("%")
-        if command == "#" do return .newSymbol("#")
-        if command == "&" do return .newSymbol("&")
-        if command == "$" do return .newSymbol("$")
-        if command == "|" do return .newSymbol("\u2016", .Open)
+        if command == "{" do
+            return .newSymbol("{", .Open)
+        if command == "}" do
+            return .newSymbol("}", .Close)
+        if command == "_" do
+            return .newSymbol("_")
+        if command == "^" do
+            return .newSymbol("^")
+        if command == "%" do
+            return .newSymbol("%")
+        if command == "#" do
+            return .newSymbol("#")
+        if command == "&" do
+            return .newSymbol("&")
+        if command == "$" do
+            return .newSymbol("$")
+        if command == "|" do
+            return .newSymbol("\u2016", .Open)
         if command == "\\" do
             mathFail("math row break '\\\\' is outside a matrix", at)
 

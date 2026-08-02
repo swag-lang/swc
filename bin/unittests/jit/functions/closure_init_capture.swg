@@ -30,8 +30,8 @@ impl InitCaptureOwner
 
 #test
 {
-    var base = 2
-    var step = 5
+    var base              = 2
+    var step              = 5
     let cb: func||()->s32 = func|sum = base + step|()->s32
     {
         sum += 1
@@ -45,8 +45,8 @@ impl InitCaptureOwner
 
 #test
 {
-    let a = InitCaptureBox{value: 3}
-    let b = InitCaptureBox{value: 7}
+    let a                 = InitCaptureBox{value: 3}
+    let b                 = InitCaptureBox{value: 7}
     let cb: func||()->s32 = func|left = a.value, right = b.value|()->s32 { return left * 10 + right }
     @assert(cb() == 37)
 }
@@ -62,7 +62,7 @@ impl InitCaptureOwner
 
 #test
 {
-    var value = 10
+    var value             = 10
     let cb: func||()->s32 = func|&current = value|()->s32
     {
         current += 3
@@ -77,7 +77,7 @@ impl InitCaptureOwner
 
 #test
 {
-    var pair = InitCapturePair{left: 1, right: 2}
+    var pair              = InitCapturePair{left: 1, right: 2}
     let cb: func||()->s32 = func|&left = pair.left, right = pair.right|()->s32
     {
         left += right
@@ -92,8 +92,8 @@ impl InitCaptureOwner
 
 #test
 {
-    let base = 0x10
-    let bit  = 0x04
+    let base              = 0x10
+    let bit               = 0x04
     let cb: func||()->s32 = func|mask = base | (bit)|()->s32 { return mask }
     @assert(cb() == 0x14)
 }

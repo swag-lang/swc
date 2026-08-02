@@ -6,8 +6,8 @@ using Swag
 struct(K, V) HashTableEntry
 {
     internal hash: u32
-    readonly key:  K     // The key.
-    value: V             // The value associated with the key.
+    readonly key: K     // The key.
+    value: V            // The value associated with the key.
 }
 
 // A hash table implemented with open-addressing that maps keys to values.

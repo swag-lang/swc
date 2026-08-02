@@ -29,10 +29,9 @@ using Swag
 {
     var window = expect Env.createWindow({
         className: "SWAG_CORE_ENV_WINDOW_VALUE_TEST",
-        title:     "Core environment test",
-        width:     64,
-        height:    64,
-        })
+        title: "Core environment test",
+        width: 64,
+        height: 64,})
     @assert(window.nativeHandle != null)
 
     expect window.close()

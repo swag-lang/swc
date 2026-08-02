@@ -60,8 +60,7 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
         #raw "A\to B\leftarrow C\leftrightarrow D\Rightarrow E\Leftrightarrow F\mapsto G",
         #raw "\infty+\partial+\nabla+\forall+\exists+\neg+\emptyset+\ell+\hbar+\Re+\Im+\aleph",
         #raw "\sin x+\cos y+\tan z+\log n+\ln n+\exp x+\det A+\gcd(a,b)",
-        #raw "\lvert x\rvert+\lVert v\rVert+\vert y\vert+\Vert z\Vert+\|w\|"
-        ]
+        #raw "\lvert x\rvert+\lVert v\rVert+\vert y\vert+\Vert z\Vert+\|w\|"]
 
     for commandLine in Commands do
         assertMathParses(commandLine)
@@ -252,8 +251,7 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
         #raw "\begin{Bmatrix}a&b\\c&d\end{Bmatrix}",
         #raw "\begin{vmatrix}a&b\\c&d\end{vmatrix}",
         #raw "\begin{Vmatrix}a&b\\c&d\end{Vmatrix}",
-        #raw "\begin{aligned}a&=b+c\\d&=e-f\end{aligned}"
-        ]
+        #raw "\begin{aligned}a&=b+c\\d&=e-f\end{aligned}"]
     for source in Environments do
         assertMathParses(source)
 }
@@ -280,9 +278,12 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
             pathCount += node.paths.count
             for path in node.paths
             {
-                if path.kind == .Hat do sawHat = true
-                if path.kind == .Tilde do sawTilde = true
-                if path.kind == .Vector do sawVector = true
+                if path.kind == .Hat do
+                    sawHat = true
+                if path.kind == .Tilde do
+                    sawTilde = true
+                if path.kind == .Vector do
+                    sawVector = true
             }
         }
     }
@@ -306,10 +307,14 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
         let node = notnull nodeRef
         if node.kind != .Style do
             continue
-        if node.fontVariant == .Roman do sawRoman = true
-        if node.fontVariant == .Italic do sawItalic = true
-        if node.fontVariant == .Bold do sawBold = true
-        if node.fontVariant == .BoldItalic do sawBoldItalic = true
+        if node.fontVariant == .Roman do
+            sawRoman = true
+        if node.fontVariant == .Italic do
+            sawItalic = true
+        if node.fontVariant == .Bold do
+            sawBold = true
+        if node.fontVariant == .BoldItalic do
+            sawBoldItalic = true
     }
 
     @assert(sawRoman and sawItalic and sawBold and sawBoldItalic)
@@ -359,8 +364,7 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
         #raw "\left\lVert\right\rVert",
         #raw "\hat{}",
         #raw "\tilde{}",
-        #raw "\vec{}"
-        ]
+        #raw "\vec{}"]
 
     var cache:   FontCache
     let font = makeMathTestFont(&cache)

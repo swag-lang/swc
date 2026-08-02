@@ -62,7 +62,11 @@ func sum3(x, y = 0.0)
 
 Multiple functions can share the same name if they differ in parameter count or types.
 */
-enum Values { A, B }
+enum Values
+{
+    A
+    B
+}
 
 func toto(x: s32, y = Values.A)
 {

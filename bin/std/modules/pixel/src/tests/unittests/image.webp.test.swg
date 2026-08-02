@@ -120,10 +120,9 @@ func assertEncodedWebpRoundtrip(source: Image)
 #test
 {
     const pixels = [
-        11'u8, 22'u8, 33'u8, 44'u8,      55'u8, 66'u8, 77'u8, 88'u8,
-        91'u8, 102'u8, 113'u8, 124'u8,   135'u8, 146'u8, 157'u8, 168'u8,
-        179'u8, 190'u8, 201'u8, 212'u8,  223'u8, 234'u8, 245'u8, 17'u8,
-        ]
+        11'u8, 22'u8, 33'u8, 44'u8, 55'u8, 66'u8, 77'u8, 88'u8,
+        91'u8, 102'u8, 113'u8, 124'u8, 135'u8, 146'u8, 157'u8, 168'u8,
+        179'u8, 190'u8, 201'u8, 212'u8, 223'u8, 234'u8, 245'u8, 17'u8,]
     let rgba = makeImage(3, 2, .RGBA8, pixels)
     assertEncodedWebpRoundtrip(rgba)
     assertEncodedWebpRoundtrip(rgba.convertedTo(.BGRA8))
@@ -174,8 +173,7 @@ func assertEncodedWebpRoundtrip(source: Image)
 #test
 {
     let bad: [12] u8 = [
-        'R', 'I', 'F', 'F', 4, 0, 0, 0, 'N', 'O', 'P', 'E',
-        ]
+        'R', 'I', 'F', 'F', 4, 0, 0, 0, 'N', 'O', 'P', 'E',]
     var decoded: Image
     decoded = catch Image.decode("bad.webp", @mkslice(&bad[0], @countof(bad)), {}) as err5
     @assert(err5 != null)
@@ -258,8 +256,7 @@ func assertEncodedWebpRoundtrip(source: Image)
     let animated: [30] u8 = [
         'R', 'I', 'F', 'F', 22, 0, 0, 0, 'W', 'E', 'B', 'P',
         'V', 'P', '8', 'X', 10, 0, 0, 0,
-        2, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        ]
+        2, 0, 0, 0, 0, 0, 0, 0, 0, 0,]
     var decoded: Image
     decoded = catch Image.decode("animated.webp", @mkslice(&animated[0], @countof(animated)), {}) as decodeError
     @assert(decodeError != null)

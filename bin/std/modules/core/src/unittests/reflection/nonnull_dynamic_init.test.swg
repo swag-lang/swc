@@ -92,8 +92,8 @@ func testCoreNonNullDynamicInitialization()->bool
     let allocatedDefaults      = Memory.new(defaultArrayType)
     let allocatedDefaultValues = cast(#null *[2] CoreNonNullRuntimeDefault) allocatedDefaults
     let initializedNewArray    = allocatedDefaultValues != null and
-                                 (dref allocatedDefaultValues)[0].value == "fallback" and
-                                 (dref allocatedDefaultValues)[1].value == "fallback"
+                              (dref allocatedDefaultValues)[0].value == "fallback" and
+                              (dref allocatedDefaultValues)[1].value == "fallback"
     if allocatedDefaults do
         Memory.free(cast(#null [*] void) allocatedDefaults, cast(u64) defaultArrayType.sizeof)
 

@@ -351,7 +351,8 @@ func loadBindTextures()
 
     func muteForTest(app: *Application)
     {
-        if Env.hasArgument("swag.test") do expect Audio.setOutputVolume(0)
+        if Env.hasArgument("swag.test") do
+            expect Audio.setOutputVolume(0)
     }
 
     Application.runSurface(100, 100, W - 46, H - 31, title: "Space-invaders", hook: &onEvent, init: &muteForTest)

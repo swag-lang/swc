@@ -1,8 +1,8 @@
 using RuntimeCtxBase
 
-public const CTX_SHARED_INIT_FLAG    = 0x0008'u64
+public const CTX_SHARED_INIT_FLAG = 0x0008'u64
 public const CTX_SHARED_PREMAIN_FLAG = 0x0010'u64
-public const CTX_SHARED_DROP_FLAG    = 0x0020'u64
+public const CTX_SHARED_DROP_FLAG = 0x0020'u64
 
 #init
 {

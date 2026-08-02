@@ -447,17 +447,17 @@ impl Painter
     private mtd setFontEffect(fx: FontEffectParams)
     {
         if .hasFontEffect and
-           .lastFontEffect.enabled      == fx.enabled and
-           .lastFontEffect.faceDilate   == fx.faceDilate and
+           .lastFontEffect.enabled == fx.enabled and
+           .lastFontEffect.faceDilate == fx.faceDilate and
            .lastFontEffect.faceSoftness == fx.faceSoftness and
            .lastFontEffect.outlineWidth == fx.outlineWidth and
            .lastFontEffect.outlineColor.argb == fx.outlineColor.argb and
            .lastFontEffect.glowColor.argb == fx.glowColor.argb and
-           .lastFontEffect.glowOffset   == fx.glowOffset and
-           .lastFontEffect.glowInner    == fx.glowInner and
-           .lastFontEffect.glowOuter    == fx.glowOuter and
-           .lastFontEffect.glowPower    == fx.glowPower and
-           .lastFontEffect.bevel        == fx.bevel do
+           .lastFontEffect.glowOffset == fx.glowOffset and
+           .lastFontEffect.glowInner == fx.glowInner and
+           .lastFontEffect.glowOuter == fx.glowOuter and
+           .lastFontEffect.glowPower == fx.glowPower and
+           .lastFontEffect.bevel == fx.bevel do
             return
 
         .lastFontEffect = fx
@@ -570,17 +570,35 @@ impl Painter
         cmd.drawTriangles.count += 6
 
         var ptr = .vertexBuffer.emplaceAddress(6)
-        ptr.pos = innerA; ptr.uv = {0, 0}; ptr.color = color; ptr.cov = 1
-        ptr     += 1
-        ptr.pos = innerB; ptr.uv = {0, 0}; ptr.color = color; ptr.cov = 1
-        ptr     += 1
-        ptr.pos = outerA; ptr.uv = {0, 0}; ptr.color = color; ptr.cov = 0
-        ptr     += 1
-        ptr.pos = innerB; ptr.uv = {0, 0}; ptr.color = color; ptr.cov = 1
-        ptr     += 1
-        ptr.pos = outerB; ptr.uv = {0, 0}; ptr.color = color; ptr.cov = 0
-        ptr     += 1
-        ptr.pos = outerA; ptr.uv = {0, 0}; ptr.color = color; ptr.cov = 0
+        ptr.pos   = innerA
+        ptr.uv    = {0, 0}
+        ptr.color = color
+        ptr.cov   = 1
+        ptr       += 1
+        ptr.pos   = innerB
+        ptr.uv    = {0, 0}
+        ptr.color = color
+        ptr.cov   = 1
+        ptr       += 1
+        ptr.pos   = outerA
+        ptr.uv    = {0, 0}
+        ptr.color = color
+        ptr.cov   = 0
+        ptr       += 1
+        ptr.pos   = innerB
+        ptr.uv    = {0, 0}
+        ptr.color = color
+        ptr.cov   = 1
+        ptr       += 1
+        ptr.pos   = outerB
+        ptr.uv    = {0, 0}
+        ptr.color = color
+        ptr.cov   = 0
+        ptr       += 1
+        ptr.pos   = outerA
+        ptr.uv    = {0, 0}
+        ptr.color = color
+        ptr.cov   = 0
     }
 
     private mtd aaHalfPathSpace()->f32

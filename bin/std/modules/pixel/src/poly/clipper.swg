@@ -1658,7 +1658,7 @@ impl Transform
         return result
     }
 
-    func poly2ContainsPoly1(outPt1, outPt2:     #null *OutPt)->bool
+    func poly2ContainsPoly1(outPt1, outPt2: #null *OutPt)->bool
     {
         var op = nnOutPt(outPt1)
         for
@@ -3143,7 +3143,7 @@ impl Transform
         }
     }
 
-    func pointCount(pts:           #null *OutPt)->s32
+    func pointCount(pts: #null *OutPt)->s32
     {
         if !pts do
             return 0
@@ -3194,7 +3194,7 @@ impl Transform
         .polyOuts.clear()
     }
 
-    func disposeOutPts(pts:           #null *OutPt)
+    func disposeOutPts(pts: #null *OutPt)
     {
         var pp = pts
         if !pp do

@@ -171,7 +171,7 @@ struct RuntimeIndexAssignHolder
 #test
 {
     var holder = RuntimeIndexAssignHolder{
-        value:     RuntimeIndexAssignBox{values: [1, 10]},
+        value: RuntimeIndexAssignBox{values: [1, 10]},
         writeOnly: RuntimeWriteOnlyIndexAssignBox{first: 4, second: 9},
         }
 

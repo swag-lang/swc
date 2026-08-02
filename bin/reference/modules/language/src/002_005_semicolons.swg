@@ -52,7 +52,8 @@ control flow harder to scan.
     var y = 0
 
     // Increment both 'x' and 'y' on the same line.
-    x += 1; y += 1
+    x += 1
+    y += 1
 
     // Assert correctness of both variables.
     @assert(x == 1)

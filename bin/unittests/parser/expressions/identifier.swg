@@ -66,9 +66,9 @@
 #assert(A[1 ,2 ,3])
 #assert(A{1 ,2 ,3})
 
-#assert(A(  1,2,3  ))
-#assert(A[  1,2,3  ])
-#assert(A{  1,2,3  })
+#assert(A( 1,2,3 ))
+#assert(A[ 1,2,3 ])
+#assert(A{ 1,2,3 })
 
 // --- Mixed empty & non-empty combos ---
 #assert(A( B(), C[1], D{} ))
@@ -119,9 +119,9 @@
 )
 
 // --- Spaces before closers ---
-#assert(A(1,2,3   ))
-#assert(A[1,2,3   ])
-#assert(A{1,2,3   })
+#assert(A(1,2,3 ))
+#assert(A[1,2,3 ])
+#assert(A{1,2,3 })
 
 // --- No-space tight forms ---
 #assert(A(1,2,3))

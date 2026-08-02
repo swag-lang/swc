@@ -3,10 +3,10 @@
 // The four member access levels, and what each one still allows.
 struct Account
 {
-    public   id:      s32 = 1
+    public id: s32 = 1
     readonly balance: s32 = 100
-    internal ledger:  s32 = 7
-    private  secret:  s32 = 42
+    internal ledger: s32 = 7
+    private secret: s32 = 42
 }
 
 impl Account

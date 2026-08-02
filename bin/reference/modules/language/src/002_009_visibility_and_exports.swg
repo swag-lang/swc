@@ -80,7 +80,7 @@ splits reading from writing:
 struct Counter
 {
     readonly count: s32
-    private  step:  s32 = 2
+    private step: s32 = 2
 }
 
 impl Counter

@@ -20,13 +20,13 @@ struct LambdaResult
     pair:     LambdaPair
 }
 
-alias LambdaAggregate = func(LambdaPayload, [4] s32, any)->LambdaResult
-alias LambdaTypedVariadic = func(LambdaPair, [2] u16, LambdaPayload...)->u64
+alias LambdaAggregate       = func(LambdaPayload, [4] s32, any)->LambdaResult
+alias LambdaTypedVariadic   = func(LambdaPair, [2] u16, LambdaPayload...)->u64
 alias LambdaUntypedVariadic = func(bool, ...)->s32
-alias LambdaUnary = func(s32)->s32
+alias LambdaUnary           = func(s32)->s32
 alias LambdaBinaryPredicate = func(s32, s32)->bool
-alias LambdaDefaultUnary = func(value: s32 = 11)->s32
-alias LambdaDefaultBool = func(flag: bool = true)->bool
+alias LambdaDefaultUnary    = func(value: s32 = 11)->s32
+alias LambdaDefaultBool     = func(flag: bool = true)->bool
 
 enum LambdaDefaultCategory
 {
@@ -288,7 +288,7 @@ func squareValue(value: s32)->s32 => value * value
 #test
 {
     let increment: LambdaDefaultUnary = func(value) => value + 1
-    let invert:    LambdaDefaultBool = func(flag) => !flag
+    let invert:    LambdaDefaultBool  = func(flag) => !flag
 
     @assert(increment() == 12)
     @assert(increment(8) == 9)
@@ -311,7 +311,7 @@ func squareValue(value: s32)->s32 => value * value
 
 #test
 {
-    let seedDefaulted: LambdaDefaultUnary = func(value) => value + 1
+    let seedDefaulted: LambdaDefaultUnary  = func(value) => value + 1
     var holder:        LambdaRuntimeHolder = {
         unary: func(value) => value + 4,
         predicate: func(left, right) => left == right,

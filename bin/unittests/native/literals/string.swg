@@ -223,7 +223,7 @@ namespace compiler301
         var c   = @countof(str)
         @assert(c == 4)
 
-        str = "totototo"; c   = @countof(str); @assert(c == 8)
+        str = "totototo"; c = @countof(str); @assert(c == 8)
     }
 }
 

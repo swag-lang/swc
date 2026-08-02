@@ -21,7 +21,7 @@ const Eol = #raw """
 // Raw strings preserve backslashes literally
 #test
 {
-    let raw    = #raw "A\B"
+    let raw = #raw "A\B"
     let normal = "A\\B"
     @assert(raw == normal)
 }
@@ -114,7 +114,7 @@ line3"""
 #test
 {
     @assert(#raw "hello world" == "hello world")
-    @assert(#raw "\n"          != "\n")
-    @assert(#raw "\t"          != "\t")
-    @assert(#raw "A\\B"        == "A\\\\B")
+    @assert(#raw "\n" != "\n")
+    @assert(#raw "\t" != "\t")
+    @assert(#raw "A\\B" == "A\\\\B")
 }

@@ -75,8 +75,8 @@ struct StoneMap
 func mapInit()->StoneMap
 {
     var result: retval
-    result.keys   = cast(#null [*] u64)  @alloc(cast(u64) MapCap * #sizeof(u64))
-    result.counts = cast(#null [*] u64)  @alloc(cast(u64) MapCap * #sizeof(u64))
+    result.keys   = cast(#null [*] u64) @alloc(cast(u64) MapCap * #sizeof(u64))
+    result.counts = cast(#null [*] u64) @alloc(cast(u64) MapCap * #sizeof(u64))
     result.alive  = cast(#null [*] bool) @alloc(cast(u64) MapCap * #sizeof(bool))
     result.used   = 0
     let alive  = notnull result.alive
@@ -91,9 +91,9 @@ func mapInit()->StoneMap
 
 func mapFree(m: *StoneMap)
 {
-    if m.keys   do @free(m.keys)
+    if m.keys do @free(m.keys)
     if m.counts do @free(m.counts)
-    if m.alive  do @free(m.alive)
+    if m.alive do @free(m.alive)
 }
 
 func mapIsEmpty(m: *StoneMap)->bool
@@ -298,7 +298,7 @@ func solve(text: string)->BlinkResult
     for [i] in 75
     {
         let cur = currentMap(&a, &b, cast(u32) i)
-        if i == 6  do result.after6  = mapTotal(cur)
+        if i == 6 do result.after6 = mapTotal(cur)
         if i == 25 do result.after25 = mapTotal(cur)
 
         if i % 2 == 0
@@ -396,8 +396,8 @@ func solve(text: string)->BlinkResult
     mapAdd(&m, 10, 2)
     mapAdd(&m, 20, 3)
 
-    var sum: u64 = 0
-    let pSum     = &sum
+    var sum: u64          = 0
+    let pSum              = &sum
     let cb:  StoneVisitor = func|pSum|(key: u64, count: u64)
     {
         dref pSum += key * count

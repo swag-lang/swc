@@ -4,9 +4,9 @@
 
 using Win32
 
-private const WaitManyThreadCount       = cast(u64) MAXIMUM_WAIT_OBJECTS + 1'u64
+private const WaitManyThreadCount = cast(u64) MAXIMUM_WAIT_OBJECTS + 1'u64
 private const WaitManyExpectedDoneCount = cast(s32) WaitManyThreadCount
-private const WaitManyDelayedSleepMs    = 1000'u32
+private const WaitManyDelayedSleepMs = 1000'u32
 
 struct WaitManyPayload
 {

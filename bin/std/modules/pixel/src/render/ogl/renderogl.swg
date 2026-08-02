@@ -1071,17 +1071,17 @@ impl RenderOgl
             let s  = &.shaderFontMsdf
             let oc = p.outlineColor.toVector4()
             let gc = p.glowColor.toVector4()
-            glUniform1f(cast(GLint) s.fxEnabled,      p.enabled)
-            glUniform1f(cast(GLint) s.fxFaceDilate,   p.faceDilate)
+            glUniform1f(cast(GLint) s.fxEnabled, p.enabled)
+            glUniform1f(cast(GLint) s.fxFaceDilate, p.faceDilate)
             glUniform1f(cast(GLint) s.fxFaceSoftness, p.faceSoftness)
             glUniform1f(cast(GLint) s.fxOutlineWidth, p.outlineWidth)
             glUniform4fv(cast(GLint) s.fxOutlineColor, 1, &oc.x)
             glUniform4fv(cast(GLint) s.fxGlowColor, 1, &gc.x)
-            glUniform1f(cast(GLint) s.fxGlowOffset,   p.glowOffset)
-            glUniform1f(cast(GLint) s.fxGlowInner,    p.glowInner)
-            glUniform1f(cast(GLint) s.fxGlowOuter,    p.glowOuter)
-            glUniform1f(cast(GLint) s.fxGlowPower,    p.glowPower)
-            glUniform1f(cast(GLint) s.fxBevel,        p.bevel)
+            glUniform1f(cast(GLint) s.fxGlowOffset, p.glowOffset)
+            glUniform1f(cast(GLint) s.fxGlowInner, p.glowInner)
+            glUniform1f(cast(GLint) s.fxGlowOuter, p.glowOuter)
+            glUniform1f(cast(GLint) s.fxGlowPower, p.glowPower)
+            glUniform1f(cast(GLint) s.fxBevel, p.bevel)
         }
     }
 

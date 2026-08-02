@@ -30,7 +30,11 @@ func sigArrayTestAppendA(value: *s32)
     @assert(signal.isEmpty())
 
     signal += &sigArrayTestAdd
-    signal += func(value: *s32) { discard value; SigArrayTestTotal += 10 }
+    signal += func(value: *s32)
+    {
+        discard value
+        SigArrayTestTotal += 10
+    }
     @assert(!signal.isEmpty())
     @assert(signal.count() == 2)
 

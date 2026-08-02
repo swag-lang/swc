@@ -388,8 +388,12 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 #test
 {
     var samples: Array'u16
-    samples.add(0x1234); samples.add(0x5678); samples.add(0x9ABC)
-    samples.add(0x1235); samples.add(0x5678); samples.add(0x9ABC)
+    samples.add(0x1234)
+    samples.add(0x5678)
+    samples.add(0x9ABC)
+    samples.add(0x1235)
+    samples.add(0x5678)
+    samples.add(0x9ABC)
 
     var key: Array'u16
     key.add(0x1234)

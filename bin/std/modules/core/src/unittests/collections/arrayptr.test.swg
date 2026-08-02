@@ -103,7 +103,10 @@ impl ApTracked
     // deleteAt keeps order and drops the object: [0,1,2,3,4] -> remove id 1 -> [0,2,3,4].
     arr.deleteAt(1)
     @assert(arr.count == 4 and g_ApDropCount == 1)
-    let a0 = notnull arr[0]; let a1 = notnull arr[1]; let a2 = notnull arr[2]; let a3 = notnull arr[3]
+    let a0 = notnull arr[0]
+    let a1 = notnull arr[1]
+    let a2 = notnull arr[2]
+    let a3 = notnull arr[3]
     @assert(a0.id == 0 and a1.id == 2 and a2.id == 3 and a3.id == 4)
 
     // deleteBack drops the last: -> [0,2,3].
@@ -114,7 +117,8 @@ impl ApTracked
     // deleteAtUnordered swaps the last into the hole: remove index 0 (id 0) -> [3,2].
     arr.deleteAtUnordered(0)
     @assert(arr.count == 2 and g_ApDropCount == 3)
-    let b0 = notnull arr[0]; let b1 = notnull arr[1]
+    let b0 = notnull arr[0]
+    let b1 = notnull arr[1]
     @assert(b0.id == 3 and b1.id == 2)
 
     // insertNewPtr allocates and inserts at the index.

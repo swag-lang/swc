@@ -54,6 +54,8 @@ enum class FormatRoleE : uint64_t
     LogicalOp           = 1ULL << 37, // `and` / `or` of a logical expression
     ClosureCaptureComma = 1ULL << 38, // comma inside `func|capture, capture|`, not an enclosing call separator
     DestructuringClose  = 1ULL << 39, // `}` closing a destructuring assignment pattern at statement indentation
+    NamedArgumentColon  = 1ULL << 40, // `:` between a named argument / literal field and its value
+    AliasDeclStart      = 1ULL << 41, // first piece of an `alias` declaration
 };
 using FormatRoles = EnumFlags<FormatRoleE>;
 
@@ -82,6 +84,7 @@ struct FormatBlock
 
 struct FormatInlineBody
 {
+    uint32_t headPiece = 0;
     uint32_t doPiece   = 0;
     uint32_t lastPiece = 0;
 };

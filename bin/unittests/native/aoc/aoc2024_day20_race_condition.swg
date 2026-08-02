@@ -47,7 +47,7 @@ struct Grid
 func gridInit()->Grid
 {
     var g: Grid
-    g.cells = cast(#null [*] u8)  @alloc(cast(u64) MaxCells)
+    g.cells = cast(#null [*] u8) @alloc(cast(u64) MaxCells)
     g.dist  = cast(#null [*] u32) @alloc(cast(u64) MaxCells * #sizeof(u32))
     let cells = notnull g.cells
     let dist  = notnull g.dist
@@ -62,7 +62,7 @@ func gridInit()->Grid
 func gridFree(g: *Grid)
 {
     if g.cells do @free(g.cells)
-    if g.dist  do @free(g.dist)
+    if g.dist do @free(g.dist)
 }
 
 impl Grid

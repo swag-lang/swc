@@ -38,7 +38,6 @@
 <summary>Namespaces<span class="toc-count">12</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-namespaces">All Namespaces</a></li>
-<li><a href="#namespace_Language">Language</a></li>
 <li><a href="#namespace_Swag">Swag</a></li>
 <li><a href="#namespace_Swag_F32">Swag.F32</a></li>
 <li><a href="#namespace_Swag_F64">Swag.F64</a></li>
@@ -50,6 +49,7 @@
 <li><a href="#namespace_Swag_U32">Swag.U32</a></li>
 <li><a href="#namespace_Swag_U64">Swag.U64</a></li>
 <li><a href="#namespace_Swag_U8">Swag.U8</a></li>
+<li><a href="#namespace_Win32">Win32</a></li>
 </ul>
 </details>
 <details class="toc-group">
@@ -363,7 +363,6 @@
 <table class="api-summary">
 <thead><tr><th>Namespace</th></tr></thead>
 <tbody>
-<tr><td class="code-type"><a href="#namespace_Language">Language</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Swag">Swag</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Swag_F32">Swag.F32</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Swag_F64">Swag.F64</a></td></tr>
@@ -375,6 +374,7 @@
 <tr><td class="code-type"><a href="#namespace_Swag_U32">Swag.U32</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Swag_U64">Swag.U64</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Swag_U8">Swag.U8</a></td></tr>
+<tr><td class="code-type"><a href="#namespace_Win32">Win32</a></td></tr>
 </tbody>
 </table>
 <h3 id="summary-types">Types</h3>
@@ -808,177 +808,6 @@
 <h2 id="detailed-reference">Detailed reference</h2>
 <h3 id="namespaces">Namespaces</h3>
 <section class="api-symbol">
-<div class="api-item api-item-namespace"><span id="namespace_Language" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Language</span> <a class="api-item-permalink" href="#namespace_Language" aria-label="Permalink">#</a></span></div>
-<p>Public API declared directly in <span class="code-inline">Language</span>.</p>
-<h3 id="namespace_Language_functions">Functions</h3>
-<table class="api-summary">
-<thead><tr><th>Name</th><th>Description</th></tr></thead>
-<tbody>
-<tr><td class="code-type"><a href="#_abs">@abs</a></td><td><p>Absolute value.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_acos">@acos</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#_alloc">@alloc</a></td><td><p>Returns a system allocated memory block of <span class="code-inline">size</span> bytes.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_args">@args</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#_as">@as</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#_asin">@asin</a></td><td><p>Inverse trigonometric functions.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_assert">@assert</a></td><td><p>Panic if the expression is false. Typically used in tests.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_atan">@atan</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#_atan2">@atan2</a></td><td><p>Arctangent of y/x with quadrant selection.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_atomadd">@atomadd</a></td><td><p>Atomic <span class="code-inline">add</span></p>
-</td></tr>
-<tr><td class="code-type"><a href="#_atomand">@atomand</a></td><td><p>Atomic <span class="code-inline">and</span></p>
-</td></tr>
-<tr><td class="code-type"><a href="#_atomcmpxchg">@atomcmpxchg</a></td><td><p>Atomic 'compare and exchange'</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_atomor">@atomor</a></td><td><p>Atomic <span class="code-inline">or</span></p>
-</td></tr>
-<tr><td class="code-type"><a href="#_atomxchg">@atomxchg</a></td><td><p>Atomic <span class="code-inline">exchange</span></p>
-</td></tr>
-<tr><td class="code-type"><a href="#_atomxor">@atomxor</a></td><td><p>Atomic <span class="code-inline">xor</span></p>
-</td></tr>
-<tr><td class="code-type"><a href="#_bitcountlz">@bitcountlz</a></td><td><p>Returns the index+1 of the first set bit, starting from the left (msb). 0 if all zero.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_bitcountnz">@bitcountnz</a></td><td><p>Count the number of bits set to 1</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_bitcounttz">@bitcounttz</a></td><td><p>Returns the index+1 of the first set bit, starting from right (lsb). 0 if all zero.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_breakpoint">@breakpoint</a></td><td><p>Stop a bytecode execution, and launch the bytecode debugger.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_byteswap">@byteswap</a></td><td><p>Reverses the order of bytes in an integer.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_ceil">@ceil</a></td><td><p>Round toward plus infinity.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_compiler">@compiler</a></td><td><p>Returns an <a href="#Swag_ICompiler">ICompiler</a> interface to communicate with the compiler.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_compilererror">@compilererror</a></td><td><p>Raise a compiler error at the given source location</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_compilerwarning">@compilerwarning</a></td><td><p>Raise a compiler warning at the given source location</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_cos">@cos</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#_cosh">@cosh</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#_exp">@exp</a></td><td><p>Exponentials and power.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_exp2">@exp2</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#_floor">@floor</a></td><td><p>Round toward minus infinity.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_free">@free</a></td><td><p>Free a system memory block allocated with <a href="#_alloc">@alloc</a></p>
-</td></tr>
-<tr><td class="code-type"><a href="#_getcontext">@getcontext</a></td><td><p>Get the current thread context.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_gvtd">@gvtd</a></td><td><p>Returns the list of all global variables.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_is">@is</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#_jit">@jit</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#_log">@log</a></td><td><p>Logarithms.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_log10">@log10</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#_log2">@log2</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#_max">@max</a></td><td><p>Maximum of two values.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_memcmp">@memcmp</a></td><td><p>Compare two memory blocks, and returns -1, 0 if equal, or 1.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_memcpy">@memcpy</a></td><td><p>Copy one memory block to another address.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_memmove">@memmove</a></td><td><p>Move one memory block to another address.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_memset">@memset</a></td><td><p>Set all bytes of a given memory block to <span class="code-inline">value</span></p>
-</td></tr>
-<tr><td class="code-type"><a href="#_min">@min</a></td><td><p>Minimum of two values.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_modules">@modules</a></td><td><p>Returns the list of all loaded modules.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_muladd">@muladd</a></td><td><p>Returns '(val1 * val2) + val3'</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_panic">@panic</a></td><td><p>Stop the execution and panic</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_pinfos">@pinfos</a></td><td><p>Get information about the current process.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_pow">@pow</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#_print">@print</a></td><td><p>Basic print to console function</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_realloc">@realloc</a></td><td><p>Realloc a system memory block allocated with <a href="#_alloc">@alloc</a></p>
-</td></tr>
-<tr><td class="code-type"><a href="#_rol">@rol</a></td><td><p>Rotate bits left</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_ror">@ror</a></td><td><p>Rotate bits right</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_round">@round</a></td><td><p>Round to nearest, away from zero at .5.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_rtflags">@rtflags</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#_safetypanic">@safetypanic</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#_setcontext">@setcontext</a></td><td><p>Replace the current thread context.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_sin">@sin</a></td><td><p>Trigonometric functions.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_sinh">@sinh</a></td><td><p>Hyperbolic trigonometric functions.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_sqrt">@sqrt</a></td><td><p>Square root.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_stringcmp">@stringcmp</a></td><td><p>Compares two strings, and returns <span class="code-inline">true</span> if they are equal.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_tableof">@tableof</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#_tan">@tan</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#_tanh">@tanh</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#_trunc">@trunc</a></td><td><p>Round toward zero.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#_typecmp">@typecmp</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#acos">acos</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#acosf">acosf</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#asin">asin</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#asinf">asinf</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#atan">atan</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#atan2">atan2</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#atan2f">atan2f</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#atanf">atanf</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#ceil">ceil</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#ceilf">ceilf</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#cos">cos</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#cosf">cosf</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#cosh">cosh</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#coshf">coshf</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#exp">exp</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#exp2">exp2</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#exp2f">exp2f</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#expf">expf</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#floor">floor</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#floorf">floorf</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#free">free</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#log">log</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#log10">log10</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#log10f">log10f</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#log2">log2</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#log2f">log2f</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#logf">logf</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#malloc">malloc</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#memcmp">memcmp</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#memcpy">memcpy</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#memmove">memmove</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#memset">memset</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#pow">pow</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#powf">powf</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#realloc">realloc</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#round">round</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#roundf">roundf</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#sin">sin</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#sinf">sinf</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#sinh">sinh</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#sinhf">sinhf</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#sqrt">sqrt</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#sqrtf">sqrtf</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#tan">tan</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#tanf">tanf</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#tanh">tanh</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#tanhf">tanhf</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#trunc">trunc</a></td><td></td></tr>
-<tr><td class="code-type"><a href="#truncf">truncf</a></td><td></td></tr>
-</tbody>
-</table>
-</section>
-<section class="api-symbol">
 <div class="api-item api-item-namespace"><span id="namespace_Swag" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Swag</span> <a class="api-item-permalink" href="#namespace_Swag" aria-label="Permalink">#</a></span></div>
 <p>Public API declared directly in <span class="code-inline">Swag</span>.</p>
 <h3 id="namespace_Swag_namespaces">Namespaces</h3>
@@ -1351,6 +1180,177 @@
 </tbody>
 </table>
 </section>
+<section class="api-symbol">
+<div class="api-item api-item-namespace"><span id="namespace_Win32" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Win32</span> <a class="api-item-permalink" href="#namespace_Win32" aria-label="Permalink">#</a></span></div>
+<p>Public API declared directly in <span class="code-inline">Win32</span>.</p>
+<h3 id="namespace_Win32_functions">Functions</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#_abs">@abs</a></td><td><p>Absolute value.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_acos">@acos</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#_alloc">@alloc</a></td><td><p>Returns a system allocated memory block of <span class="code-inline">size</span> bytes.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_args">@args</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#_as">@as</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#_asin">@asin</a></td><td><p>Inverse trigonometric functions.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_assert">@assert</a></td><td><p>Panic if the expression is false. Typically used in tests.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_atan">@atan</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#_atan2">@atan2</a></td><td><p>Arctangent of y/x with quadrant selection.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_atomadd">@atomadd</a></td><td><p>Atomic <span class="code-inline">add</span></p>
+</td></tr>
+<tr><td class="code-type"><a href="#_atomand">@atomand</a></td><td><p>Atomic <span class="code-inline">and</span></p>
+</td></tr>
+<tr><td class="code-type"><a href="#_atomcmpxchg">@atomcmpxchg</a></td><td><p>Atomic 'compare and exchange'</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_atomor">@atomor</a></td><td><p>Atomic <span class="code-inline">or</span></p>
+</td></tr>
+<tr><td class="code-type"><a href="#_atomxchg">@atomxchg</a></td><td><p>Atomic <span class="code-inline">exchange</span></p>
+</td></tr>
+<tr><td class="code-type"><a href="#_atomxor">@atomxor</a></td><td><p>Atomic <span class="code-inline">xor</span></p>
+</td></tr>
+<tr><td class="code-type"><a href="#_bitcountlz">@bitcountlz</a></td><td><p>Returns the index+1 of the first set bit, starting from the left (msb). 0 if all zero.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_bitcountnz">@bitcountnz</a></td><td><p>Count the number of bits set to 1</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_bitcounttz">@bitcounttz</a></td><td><p>Returns the index+1 of the first set bit, starting from right (lsb). 0 if all zero.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_breakpoint">@breakpoint</a></td><td><p>Stop a bytecode execution, and launch the bytecode debugger.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_byteswap">@byteswap</a></td><td><p>Reverses the order of bytes in an integer.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_ceil">@ceil</a></td><td><p>Round toward plus infinity.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_compiler">@compiler</a></td><td><p>Returns an <a href="#Swag_ICompiler">ICompiler</a> interface to communicate with the compiler.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_compilererror">@compilererror</a></td><td><p>Raise a compiler error at the given source location</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_compilerwarning">@compilerwarning</a></td><td><p>Raise a compiler warning at the given source location</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_cos">@cos</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#_cosh">@cosh</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#_exp">@exp</a></td><td><p>Exponentials and power.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_exp2">@exp2</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#_floor">@floor</a></td><td><p>Round toward minus infinity.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_free">@free</a></td><td><p>Free a system memory block allocated with <a href="#_alloc">@alloc</a></p>
+</td></tr>
+<tr><td class="code-type"><a href="#_getcontext">@getcontext</a></td><td><p>Get the current thread context.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_gvtd">@gvtd</a></td><td><p>Returns the list of all global variables.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_is">@is</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#_jit">@jit</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#_log">@log</a></td><td><p>Logarithms.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_log10">@log10</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#_log2">@log2</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#_max">@max</a></td><td><p>Maximum of two values.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_memcmp">@memcmp</a></td><td><p>Compare two memory blocks, and returns -1, 0 if equal, or 1.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_memcpy">@memcpy</a></td><td><p>Copy one memory block to another address.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_memmove">@memmove</a></td><td><p>Move one memory block to another address.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_memset">@memset</a></td><td><p>Set all bytes of a given memory block to <span class="code-inline">value</span></p>
+</td></tr>
+<tr><td class="code-type"><a href="#_min">@min</a></td><td><p>Minimum of two values.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_modules">@modules</a></td><td><p>Returns the list of all loaded modules.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_muladd">@muladd</a></td><td><p>Returns '(val1 * val2) + val3'</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_panic">@panic</a></td><td><p>Stop the execution and panic</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_pinfos">@pinfos</a></td><td><p>Get information about the current process.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_pow">@pow</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#_print">@print</a></td><td><p>Basic print to console function</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_realloc">@realloc</a></td><td><p>Realloc a system memory block allocated with <a href="#_alloc">@alloc</a></p>
+</td></tr>
+<tr><td class="code-type"><a href="#_rol">@rol</a></td><td><p>Rotate bits left</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_ror">@ror</a></td><td><p>Rotate bits right</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_round">@round</a></td><td><p>Round to nearest, away from zero at .5.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_rtflags">@rtflags</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#_safetypanic">@safetypanic</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#_setcontext">@setcontext</a></td><td><p>Replace the current thread context.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_sin">@sin</a></td><td><p>Trigonometric functions.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_sinh">@sinh</a></td><td><p>Hyperbolic trigonometric functions.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_sqrt">@sqrt</a></td><td><p>Square root.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_stringcmp">@stringcmp</a></td><td><p>Compares two strings, and returns <span class="code-inline">true</span> if they are equal.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_tableof">@tableof</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#_tan">@tan</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#_tanh">@tanh</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#_trunc">@trunc</a></td><td><p>Round toward zero.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#_typecmp">@typecmp</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#acos">acos</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#acosf">acosf</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#asin">asin</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#asinf">asinf</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#atan">atan</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#atan2">atan2</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#atan2f">atan2f</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#atanf">atanf</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#ceil">ceil</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#ceilf">ceilf</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#cos">cos</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#cosf">cosf</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#cosh">cosh</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#coshf">coshf</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#exp">exp</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#exp2">exp2</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#exp2f">exp2f</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#expf">expf</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#floor">floor</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#floorf">floorf</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#free">free</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#log">log</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#log10">log10</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#log10f">log10f</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#log2">log2</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#log2f">log2f</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#logf">logf</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#malloc">malloc</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#memcmp">memcmp</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#memcpy">memcpy</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#memmove">memmove</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#memset">memset</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#pow">pow</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#powf">powf</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#realloc">realloc</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#round">round</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#roundf">roundf</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#sin">sin</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#sinf">sinf</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#sinh">sinh</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#sinhf">sinhf</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#sqrt">sqrt</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#sqrtf">sqrtf</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#tan">tan</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#tanf">tanf</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#tanh">tanh</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#tanhf">tanhf</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#trunc">trunc</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#truncf">truncf</a></td><td></td></tr>
+</tbody>
+</table>
+</section>
 <h3 id="types">Types</h3>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Swag_Allocator" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.Allocator</span> <a class="api-item-permalink" href="#Swag_Allocator" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/allocator.swg#L70">src</a></div>
@@ -1362,7 +1362,7 @@
 <tbody>
 <tr><td id="Swag_Allocator_breakOnAllocId" class="code-type">breakOnAllocId</td><td class="code-type">u32</td><td></td></tr>
 <tr><td id="Swag_Allocator_captureAllocStack" class="code-type">captureAllocStack</td><td class="code-type">bool</td><td></td></tr>
-<tr><td id="Swag_Allocator_classes" class="code-type">classes</td><td class="code-type">[28] <a href="#Swag_AllocatorClass">Language.Swag.AllocatorClass</a></td><td></td></tr>
+<tr><td id="Swag_Allocator_classes" class="code-type">classes</td><td class="code-type">[28] <a href="#Swag_AllocatorClass">Win32.Swag.AllocatorClass</a></td><td></td></tr>
 <tr><td id="Swag_Allocator_countAlloc" class="code-type">countAlloc</td><td class="code-type">u32</td><td></td></tr>
 <tr><td id="Swag_Allocator_countFree" class="code-type">countFree</td><td class="code-type">u32</td><td></td></tr>
 <tr><td id="Swag_Allocator_countOsAlloc" class="code-type">countOsAlloc</td><td class="code-type">u32</td><td></td></tr>
@@ -1371,15 +1371,15 @@
 <tr><td id="Swag_Allocator_electricMode" class="code-type">electricMode</td><td class="code-type">bool</td><td></td></tr>
 <tr><td id="Swag_Allocator_fillAlloc" class="code-type">fillAlloc</td><td class="code-type">bool</td><td></td></tr>
 <tr><td id="Swag_Allocator_fillFree" class="code-type">fillFree</td><td class="code-type">bool</td><td></td></tr>
-<tr><td id="Swag_Allocator_firstAlloc" class="code-type">firstAlloc</td><td class="code-type">#null *<a href="#Swag_AllocatorHeader">Language.Swag.AllocatorHeader</a></td><td></td></tr>
-<tr><td id="Swag_Allocator_firstFree" class="code-type">firstFree</td><td class="code-type">#null *<a href="#Swag_AllocatorHeader">Language.Swag.AllocatorHeader</a></td><td></td></tr>
-<tr><td id="Swag_Allocator_firstRetiredHeap" class="code-type">firstRetiredHeap</td><td class="code-type">#null *<a href="#Swag_AllocatorThreadHeap">Language.Swag.AllocatorThreadHeap</a></td><td></td></tr>
+<tr><td id="Swag_Allocator_firstAlloc" class="code-type">firstAlloc</td><td class="code-type">#null *<a href="#Swag_AllocatorHeader">Win32.Swag.AllocatorHeader</a></td><td></td></tr>
+<tr><td id="Swag_Allocator_firstFree" class="code-type">firstFree</td><td class="code-type">#null *<a href="#Swag_AllocatorHeader">Win32.Swag.AllocatorHeader</a></td><td></td></tr>
+<tr><td id="Swag_Allocator_firstRetiredHeap" class="code-type">firstRetiredHeap</td><td class="code-type">#null *<a href="#Swag_AllocatorThreadHeap">Win32.Swag.AllocatorThreadHeap</a></td><td></td></tr>
 <tr><td id="Swag_Allocator_installMagic" class="code-type">installMagic</td><td class="code-type">u32</td><td></td></tr>
-<tr><td id="Swag_Allocator_lastFree" class="code-type">lastFree</td><td class="code-type">#null *<a href="#Swag_AllocatorHeader">Language.Swag.AllocatorHeader</a></td><td></td></tr>
+<tr><td id="Swag_Allocator_lastFree" class="code-type">lastFree</td><td class="code-type">#null *<a href="#Swag_AllocatorHeader">Win32.Swag.AllocatorHeader</a></td><td></td></tr>
 <tr><td id="Swag_Allocator_maxCachedBytes" class="code-type">maxCachedBytes</td><td class="code-type">u64</td><td></td></tr>
 <tr><td id="Swag_Allocator_maxCachedSize" class="code-type">maxCachedSize</td><td class="code-type">u64</td><td></td></tr>
 <tr><td id="Swag_Allocator_maxFreeSize" class="code-type">maxFreeSize</td><td class="code-type">u64</td><td></td></tr>
-<tr><td id="Swag_Allocator_mutex" class="code-type">mutex</td><td class="code-type">Language.MutexRW</td><td></td></tr>
+<tr><td id="Swag_Allocator_mutex" class="code-type">mutex</td><td class="code-type">Win32.MutexRW</td><td></td></tr>
 <tr><td id="Swag_Allocator_nextId" class="code-type">nextId</td><td class="code-type">u32</td><td></td></tr>
 <tr><td id="Swag_Allocator_showMaxLeaks" class="code-type">showMaxLeaks</td><td class="code-type">u32</td><td></td></tr>
 <tr><td id="Swag_Allocator_sizeAlloc" class="code-type">sizeAlloc</td><td class="code-type">u64</td><td></td></tr>
@@ -1400,7 +1400,7 @@
 <tbody>
 <tr><td id="Swag_AllocatorClass_cachedBytes" class="code-type">cachedBytes</td><td class="code-type">u64</td><td></td></tr>
 <tr><td id="Swag_AllocatorClass_cachedCount" class="code-type">cachedCount</td><td class="code-type">u32</td><td></td></tr>
-<tr><td id="Swag_AllocatorClass_firstFree" class="code-type">firstFree</td><td class="code-type">#null *<a href="#Swag_AllocatorHeader">Language.Swag.AllocatorHeader</a></td><td></td></tr>
+<tr><td id="Swag_AllocatorClass_firstFree" class="code-type">firstFree</td><td class="code-type">#null *<a href="#Swag_AllocatorHeader">Win32.Swag.AllocatorHeader</a></td><td></td></tr>
 </tbody>
 </table>
 <section class="api-symbol">
@@ -1430,13 +1430,13 @@
 <tr><td id="Swag_AllocatorHeader_classIndex" class="code-type">classIndex</td><td class="code-type">u32</td><td></td></tr>
 <tr><td id="Swag_AllocatorHeader_hint" class="code-type">hint</td><td class="code-type">#null string</td><td></td></tr>
 <tr><td id="Swag_AllocatorHeader_isTracked" class="code-type">isTracked</td><td class="code-type">bool</td><td></td></tr>
-<tr><td id="Swag_AllocatorHeader_loc" class="code-type">loc</td><td class="code-type"><a href="#Swag_SourceCodeLocation">Language.Swag.SourceCodeLocation</a></td><td></td></tr>
+<tr><td id="Swag_AllocatorHeader_loc" class="code-type">loc</td><td class="code-type"><a href="#Swag_SourceCodeLocation">Win32.Swag.SourceCodeLocation</a></td><td></td></tr>
 <tr><td id="Swag_AllocatorHeader_magic" class="code-type">magic</td><td class="code-type">u32</td><td></td></tr>
-<tr><td id="Swag_AllocatorHeader_next" class="code-type">next</td><td class="code-type">#null *<a href="#Swag_AllocatorHeader">Language.Swag.AllocatorHeader</a></td><td></td></tr>
-<tr><td id="Swag_AllocatorHeader_nextFree" class="code-type">nextFree</td><td class="code-type">#null *<a href="#Swag_AllocatorHeader">Language.Swag.AllocatorHeader</a></td><td></td></tr>
+<tr><td id="Swag_AllocatorHeader_next" class="code-type">next</td><td class="code-type">#null *<a href="#Swag_AllocatorHeader">Win32.Swag.AllocatorHeader</a></td><td></td></tr>
+<tr><td id="Swag_AllocatorHeader_nextFree" class="code-type">nextFree</td><td class="code-type">#null *<a href="#Swag_AllocatorHeader">Win32.Swag.AllocatorHeader</a></td><td></td></tr>
 <tr><td id="Swag_AllocatorHeader_ownerHeap" class="code-type">ownerHeap</td><td class="code-type">#null *void</td><td></td></tr>
-<tr><td id="Swag_AllocatorHeader_prev" class="code-type">prev</td><td class="code-type">#null *<a href="#Swag_AllocatorHeader">Language.Swag.AllocatorHeader</a></td><td></td></tr>
-<tr><td id="Swag_AllocatorHeader_prevFree" class="code-type">prevFree</td><td class="code-type">#null *<a href="#Swag_AllocatorHeader">Language.Swag.AllocatorHeader</a></td><td></td></tr>
+<tr><td id="Swag_AllocatorHeader_prev" class="code-type">prev</td><td class="code-type">#null *<a href="#Swag_AllocatorHeader">Win32.Swag.AllocatorHeader</a></td><td></td></tr>
+<tr><td id="Swag_AllocatorHeader_prevFree" class="code-type">prevFree</td><td class="code-type">#null *<a href="#Swag_AllocatorHeader">Win32.Swag.AllocatorHeader</a></td><td></td></tr>
 <tr><td id="Swag_AllocatorHeader_stack" class="code-type">stack</td><td class="code-type">[16] *void</td><td></td></tr>
 <tr><td id="Swag_AllocatorHeader_stackCount" class="code-type">stackCount</td><td class="code-type">u32</td><td></td></tr>
 <tr><td id="Swag_AllocatorHeader_userSize" class="code-type">userSize</td><td class="code-type">u64</td><td></td></tr>
@@ -1485,7 +1485,7 @@
 </td></tr>
 <tr><td id="Swag_AllocatorRequest_alignment" class="code-type">alignment</td><td class="code-type">u32</td><td><p>Alignment constraint.</p>
 </td></tr>
-<tr><td id="Swag_AllocatorRequest_callerLoc" class="code-type">callerLoc</td><td class="code-type"><a href="#Swag_SourceCodeLocation">Language.Swag.SourceCodeLocation</a></td><td><p>The caller code, to help tracking leaks. Optional.</p>
+<tr><td id="Swag_AllocatorRequest_callerLoc" class="code-type">callerLoc</td><td class="code-type"><a href="#Swag_SourceCodeLocation">Win32.Swag.SourceCodeLocation</a></td><td><p>The caller code, to help tracking leaks. Optional.</p>
 </td></tr>
 <tr><td id="Swag_AllocatorRequest_hint" class="code-type">hint</td><td class="code-type">#null string</td><td><p>A hint message, to help tracking leaks. Optional.</p>
 </td></tr>
@@ -1505,8 +1505,8 @@
 <tbody>
 <tr><td id="Swag_AllocatorThreadClass_cachedBytes" class="code-type">cachedBytes</td><td class="code-type">u64</td><td></td></tr>
 <tr><td id="Swag_AllocatorThreadClass_cachedCount" class="code-type">cachedCount</td><td class="code-type">u32</td><td></td></tr>
-<tr><td id="Swag_AllocatorThreadClass_firstFree" class="code-type">firstFree</td><td class="code-type">#null *<a href="#Swag_AllocatorHeader">Language.Swag.AllocatorHeader</a></td><td></td></tr>
-<tr><td id="Swag_AllocatorThreadClass_remoteFree" class="code-type">remoteFree</td><td class="code-type">#null *<a href="#Swag_AllocatorHeader">Language.Swag.AllocatorHeader</a></td><td></td></tr>
+<tr><td id="Swag_AllocatorThreadClass_firstFree" class="code-type">firstFree</td><td class="code-type">#null *<a href="#Swag_AllocatorHeader">Win32.Swag.AllocatorHeader</a></td><td></td></tr>
+<tr><td id="Swag_AllocatorThreadClass_remoteFree" class="code-type">remoteFree</td><td class="code-type">#null *<a href="#Swag_AllocatorHeader">Win32.Swag.AllocatorHeader</a></td><td></td></tr>
 </tbody>
 </table>
 <section class="api-symbol">
@@ -1521,8 +1521,8 @@
 <tr><td id="Swag_AllocatorThreadHeap_allocator" class="code-type">allocator</td><td class="code-type">#null *void</td><td></td></tr>
 <tr><td id="Swag_AllocatorThreadHeap_cachedBytes" class="code-type">cachedBytes</td><td class="code-type">u64</td><td></td></tr>
 <tr><td id="Swag_AllocatorThreadHeap_cachedCount" class="code-type">cachedCount</td><td class="code-type">u32</td><td></td></tr>
-<tr><td id="Swag_AllocatorThreadHeap_classes" class="code-type">classes</td><td class="code-type">[28] <a href="#Swag_AllocatorThreadClass">Language.Swag.AllocatorThreadClass</a></td><td></td></tr>
-<tr><td id="Swag_AllocatorThreadHeap_nextRetired" class="code-type">nextRetired</td><td class="code-type">#null *<a href="#Swag_AllocatorThreadHeap">Language.Swag.AllocatorThreadHeap</a></td><td></td></tr>
+<tr><td id="Swag_AllocatorThreadHeap_classes" class="code-type">classes</td><td class="code-type">[28] <a href="#Swag_AllocatorThreadClass">Win32.Swag.AllocatorThreadClass</a></td><td></td></tr>
+<tr><td id="Swag_AllocatorThreadHeap_nextRetired" class="code-type">nextRetired</td><td class="code-type">#null *<a href="#Swag_AllocatorThreadHeap">Win32.Swag.AllocatorThreadHeap</a></td><td></td></tr>
 <tr><td id="Swag_AllocatorThreadHeap_retired" class="code-type">retired</td><td class="code-type">u32</td><td></td></tr>
 <tr><td id="Swag_AllocatorThreadHeap_threadId" class="code-type">threadId</td><td class="code-type">u64</td><td></td></tr>
 </tbody>
@@ -1535,9 +1535,9 @@
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td id="Swag_Attribute_params" class="code-type">params</td><td class="code-type">#null const [..] <a href="#Swag_AttributeParam">Language.Swag.AttributeParam</a></td><td><p>Attribute parameters</p>
+<tr><td id="Swag_Attribute_params" class="code-type">params</td><td class="code-type">#null const [..] <a href="#Swag_AttributeParam">Win32.Swag.AttributeParam</a></td><td><p>Attribute parameters</p>
 </td></tr>
-<tr><td id="Swag_Attribute_type" class="code-type">type</td><td class="code-type">#null const *<a href="#Swag_TypeInfo">Language.Swag.TypeInfo</a></td><td></td></tr>
+<tr><td id="Swag_Attribute_type" class="code-type">type</td><td class="code-type">#null const *<a href="#Swag_TypeInfo">Win32.Swag.TypeInfo</a></td><td></td></tr>
 </tbody>
 </table>
 <section class="api-symbol">
@@ -1585,11 +1585,11 @@
 </td></tr>
 <tr><td id="Swag_BuildCfg_allocatorTrackAllocations" class="code-type">allocatorTrackAllocations</td><td class="code-type">bool</td><td><p>Keep an exact allocation list for detailed leak reporting</p>
 </td></tr>
-<tr><td id="Swag_BuildCfg_backend" class="code-type">backend</td><td class="code-type"><a href="#Swag_BuildCfgBackend">Language.Swag.BuildCfgBackend</a></td><td><p>Backend options</p>
+<tr><td id="Swag_BuildCfg_backend" class="code-type">backend</td><td class="code-type"><a href="#Swag_BuildCfgBackend">Win32.Swag.BuildCfgBackend</a></td><td><p>Backend options</p>
 </td></tr>
-<tr><td id="Swag_BuildCfg_backendKind" class="code-type">backendKind</td><td class="code-type"><a href="#Swag_BuildCfgBackendKind">Language.Swag.BuildCfgBackendKind</a></td><td><p>Backend type (executable, shared library, static library, export...)</p>
+<tr><td id="Swag_BuildCfg_backendKind" class="code-type">backendKind</td><td class="code-type"><a href="#Swag_BuildCfgBackendKind">Win32.Swag.BuildCfgBackendKind</a></td><td><p>Backend type (executable, shared library, static library, export...)</p>
 </td></tr>
-<tr><td id="Swag_BuildCfg_backendSubKind" class="code-type">backendSubKind</td><td class="code-type"><a href="#Swag_BuildCfgBackendSubKind">Language.Swag.BuildCfgBackendSubKind</a></td><td><p>Backend sub kind</p>
+<tr><td id="Swag_BuildCfg_backendSubKind" class="code-type">backendSubKind</td><td class="code-type"><a href="#Swag_BuildCfgBackendSubKind">Win32.Swag.BuildCfgBackendSubKind</a></td><td><p>Backend sub kind</p>
 </td></tr>
 <tr><td id="Swag_BuildCfg_embeddedImports" class="code-type">embeddedImports</td><td class="code-type">bool</td><td><p>Module should embed all its dependencies</p>
 </td></tr>
@@ -1597,7 +1597,7 @@
 </td></tr>
 <tr><td id="Swag_BuildCfg_errorStackTrace" class="code-type">errorStackTrace</td><td class="code-type">bool</td><td><p>Add stack trace in case a <span class="code-inline">fail</span> is raised</p>
 </td></tr>
-<tr><td id="Swag_BuildCfg_genDoc" class="code-type">genDoc</td><td class="code-type"><a href="#Swag_BuildCfgGenDoc">Language.Swag.BuildCfgGenDoc</a></td><td><p>Parameters for document generation</p>
+<tr><td id="Swag_BuildCfg_genDoc" class="code-type">genDoc</td><td class="code-type"><a href="#Swag_BuildCfgGenDoc">Win32.Swag.BuildCfgGenDoc</a></td><td><p>Parameters for document generation</p>
 </td></tr>
 <tr><td id="Swag_BuildCfg_ignoreInWorkspace" class="code-type">ignoreInWorkspace</td><td class="code-type">bool</td><td><p>Skip this module when building a workspace</p>
 </td></tr>
@@ -1627,9 +1627,9 @@
 </td></tr>
 <tr><td id="Swag_BuildCfg_resAppName" class="code-type">resAppName</td><td class="code-type">#null string</td><td><p>For an executable, the associated application name</p>
 </td></tr>
-<tr><td id="Swag_BuildCfg_safetyGuards" class="code-type">safetyGuards</td><td class="code-type"><a href="#Swag_SafetyWhat">Language.Swag.SafetyWhat</a></td><td><p>Activate specific RUNTIME safety checks (guards, panics, poisoning)</p>
+<tr><td id="Swag_BuildCfg_safetyGuards" class="code-type">safetyGuards</td><td class="code-type"><a href="#Swag_SafetyWhat">Win32.Swag.SafetyWhat</a></td><td><p>Activate specific RUNTIME safety checks (guards, panics, poisoning)</p>
 </td></tr>
-<tr><td id="Swag_BuildCfg_sanityGuards" class="code-type">sanityGuards</td><td class="code-type"><a href="#Swag_SafetyWhat">Language.Swag.SafetyWhat</a></td><td><p>Activate specific STATIC (compile-time) sanity checks</p>
+<tr><td id="Swag_BuildCfg_sanityGuards" class="code-type">sanityGuards</td><td class="code-type"><a href="#Swag_SafetyWhat">Win32.Swag.SafetyWhat</a></td><td><p>Activate specific STATIC (compile-time) sanity checks</p>
 </td></tr>
 <tr><td id="Swag_BuildCfg_tempAllocatorCapacity" class="code-type">tempAllocatorCapacity</td><td class="code-type">u32</td><td><p>Default capacity of the <span class="code-inline">temp</span> allocator (in bytes)</p>
 </td></tr>
@@ -1656,7 +1656,7 @@
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td id="Swag_BuildCfgBackend_cpuVectorize" class="code-type">cpuVectorize</td><td class="code-type"><a href="#Swag_BuildCfgBackendCpuVectorize">Language.Swag.BuildCfgBackendCpuVectorize</a></td><td><p>Auto-vectorization policy (set per build config)</p>
+<tr><td id="Swag_BuildCfgBackend_cpuVectorize" class="code-type">cpuVectorize</td><td class="code-type"><a href="#Swag_BuildCfgBackendCpuVectorize">Win32.Swag.BuildCfgBackendCpuVectorize</a></td><td><p>Auto-vectorization policy (set per build config)</p>
 </td></tr>
 <tr><td id="Swag_BuildCfgBackend_debugInfo" class="code-type">debugInfo</td><td class="code-type">bool</td><td><p>Output debug information if <span class="code-inline">true</span></p>
 </td></tr>
@@ -1672,7 +1672,7 @@
 <tr><td id="Swag_BuildCfgBackend_fpMathNoSignedZero" class="code-type">fpMathNoSignedZero</td><td class="code-type">bool</td><td><p>true in <span class="code-inline">release</span></p>
 </td></tr>
 <tr><td id="Swag_BuildCfgBackend_fpMathUnsafe" class="code-type">fpMathUnsafe</td><td class="code-type">bool</td><td></td></tr>
-<tr><td id="Swag_BuildCfgBackend_inlineMode" class="code-type">inlineMode</td><td class="code-type"><a href="#Swag_BuildCfgBackendInlineMode">Language.Swag.BuildCfgBackendInlineMode</a></td><td><p>Inlining policy (set per build config)</p>
+<tr><td id="Swag_BuildCfgBackend_inlineMode" class="code-type">inlineMode</td><td class="code-type"><a href="#Swag_BuildCfgBackendInlineMode">Win32.Swag.BuildCfgBackendInlineMode</a></td><td><p>Inlining policy (set per build config)</p>
 </td></tr>
 <tr><td id="Swag_BuildCfgBackend_optimize" class="code-type">optimize</td><td class="code-type">bool</td><td></td></tr>
 <tr><td id="Swag_BuildCfgBackend_unrollMemLimit" class="code-type">unrollMemLimit</td><td class="code-type">u32</td><td><p>Maximum number of bytes to unroll memset/cpy in optimize mode</p>
@@ -1704,7 +1704,7 @@
 </td></tr>
 <tr><td id="Swag_BuildCfgGenDoc_icon" class="code-type">icon</td><td class="code-type">#null string</td><td><p>The icon path of the page</p>
 </td></tr>
-<tr><td id="Swag_BuildCfgGenDoc_kind" class="code-type">kind</td><td class="code-type"><a href="#Swag_BuildCfgDocKind">Language.Swag.BuildCfgDocKind</a></td><td><p>The kind of documentation to generate</p>
+<tr><td id="Swag_BuildCfgGenDoc_kind" class="code-type">kind</td><td class="code-type"><a href="#Swag_BuildCfgDocKind">Win32.Swag.BuildCfgDocKind</a></td><td><p>The kind of documentation to generate</p>
 </td></tr>
 <tr><td id="Swag_BuildCfgGenDoc_morePages" class="code-type">morePages</td><td class="code-type">#null string</td><td><p>Additional external file pages to process (separated with <span class="code-inline">;</span>)</p>
 </td></tr>
@@ -1736,7 +1736,7 @@
 </td></tr>
 <tr><td id="Swag_BuildCfgGenDoc_syntaxDefaultColor" class="code-type">syntaxDefaultColor</td><td class="code-type">u32</td><td><p>Code syntax default color (if not colorized)</p>
 </td></tr>
-<tr><td id="Swag_BuildCfgGenDoc_theme" class="code-type">theme</td><td class="code-type"><a href="#Swag_BuildCfgDocTheme">Language.Swag.BuildCfgDocTheme</a></td><td><p>Which palette the generated pages use</p>
+<tr><td id="Swag_BuildCfgGenDoc_theme" class="code-type">theme</td><td class="code-type"><a href="#Swag_BuildCfgDocTheme">Win32.Swag.BuildCfgDocTheme</a></td><td><p>Which palette the generated pages use</p>
 </td></tr>
 <tr><td id="Swag_BuildCfgGenDoc_titleContent" class="code-type">titleContent</td><td class="code-type">#null string</td><td><p>Title for the main document content</p>
 </td></tr>
@@ -1777,13 +1777,13 @@
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td id="Swag_CompilerMessage_kind" class="code-type">kind</td><td class="code-type"><a href="#Swag_CompilerMsgKind">Language.Swag.CompilerMsgKind</a></td><td><p>Kind of the message</p>
+<tr><td id="Swag_CompilerMessage_kind" class="code-type">kind</td><td class="code-type"><a href="#Swag_CompilerMsgKind">Win32.Swag.CompilerMsgKind</a></td><td><p>Kind of the message</p>
 </td></tr>
 <tr><td id="Swag_CompilerMessage_moduleName" class="code-type">moduleName</td><td class="code-type">#null string</td><td><p>Name of the module for which the message is sent.</p>
 </td></tr>
 <tr><td id="Swag_CompilerMessage_name" class="code-type">name</td><td class="code-type">#null string</td><td><p>Depends on <span class="code-inline">kind</span></p>
 </td></tr>
-<tr><td id="Swag_CompilerMessage_type" class="code-type">type</td><td class="code-type">#null const *<a href="#Swag_TypeInfo">Language.Swag.TypeInfo</a></td><td><p>Depends on <span class="code-inline">kind</span></p>
+<tr><td id="Swag_CompilerMessage_type" class="code-type">type</td><td class="code-type">#null const *<a href="#Swag_TypeInfo">Win32.Swag.TypeInfo</a></td><td><p>Depends on <span class="code-inline">kind</span></p>
 </td></tr>
 </tbody>
 </table>
@@ -1796,33 +1796,33 @@
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td id="Swag_Context_allocator" class="code-type">allocator</td><td class="code-type">#null <a href="#Swag_IAllocator">Language.Swag.IAllocator</a></td><td><p>The current allocator interface</p>
+<tr><td id="Swag_Context_allocator" class="code-type">allocator</td><td class="code-type">#null <a href="#Swag_IAllocator">Win32.Swag.IAllocator</a></td><td><p>The current allocator interface</p>
 </td></tr>
 <tr><td id="Swag_Context_curError" class="code-type">curError</td><td class="code-type">#null any</td><td><p>The current raised error</p>
 </td></tr>
-<tr><td id="Swag_Context_defaultAllocator" class="code-type">defaultAllocator</td><td class="code-type">#null <a href="#Swag_IAllocator">Language.Swag.IAllocator</a></td><td><p>The default allocator, to restore after a temporary change of <span class="code-inline">allocator</span></p>
+<tr><td id="Swag_Context_defaultAllocator" class="code-type">defaultAllocator</td><td class="code-type">#null <a href="#Swag_IAllocator">Win32.Swag.IAllocator</a></td><td><p>The default allocator, to restore after a temporary change of <span class="code-inline">allocator</span></p>
 </td></tr>
-<tr><td id="Swag_Context_errorAllocator" class="code-type">errorAllocator</td><td class="code-type"><a href="#Swag_ScratchAllocator">Language.Swag.ScratchAllocator</a></td><td><p>A temporary allocator to store the error values</p>
+<tr><td id="Swag_Context_errorAllocator" class="code-type">errorAllocator</td><td class="code-type"><a href="#Swag_ScratchAllocator">Win32.Swag.ScratchAllocator</a></td><td><p>A temporary allocator to store the error values</p>
 </td></tr>
 <tr><td id="Swag_Context_errorIndex" class="code-type">errorIndex</td><td class="code-type">u32</td><td><p>Number of errors in the array</p>
 </td></tr>
-<tr><td id="Swag_Context_errors" class="code-type">errors</td><td class="code-type">[32] <a href="#Swag_ErrorValue">Language.Swag.ErrorValue</a></td><td><p>All errors</p>
+<tr><td id="Swag_Context_errors" class="code-type">errors</td><td class="code-type">[32] <a href="#Swag_ErrorValue">Win32.Swag.ErrorValue</a></td><td><p>All errors</p>
 </td></tr>
-<tr><td id="Swag_Context_exceptionLoc" class="code-type">exceptionLoc</td><td class="code-type"><a href="#Swag_SourceCodeLocation">Language.Swag.SourceCodeLocation</a></td><td><p>When an exception is raised, this is the code location</p>
+<tr><td id="Swag_Context_exceptionLoc" class="code-type">exceptionLoc</td><td class="code-type"><a href="#Swag_SourceCodeLocation">Win32.Swag.SourceCodeLocation</a></td><td><p>When an exception is raised, this is the code location</p>
 </td></tr>
 <tr><td id="Swag_Context_exceptionParams" class="code-type">exceptionParams</td><td class="code-type">[4] #null const *void</td><td><p>When an exception is raised, this are the parameters</p>
 </td></tr>
 <tr><td id="Swag_Context_hasError" class="code-type">hasError</td><td class="code-type">u32</td><td><p>&lt;&gt; 0 if an error is raised</p>
 </td></tr>
-<tr><td id="Swag_Context_panic" class="code-type">panic</td><td class="code-type">#null func(#null string, <a href="#Swag_SourceCodeLocation">Language.Swag.SourceCodeLocation</a>)</td><td><p>A function to call if there's a panic</p>
+<tr><td id="Swag_Context_panic" class="code-type">panic</td><td class="code-type">#null func(#null string, <a href="#Swag_SourceCodeLocation">Win32.Swag.SourceCodeLocation</a>)</td><td><p>A function to call if there's a panic</p>
 </td></tr>
-<tr><td id="Swag_Context_runtimeFlags" class="code-type">runtimeFlags</td><td class="code-type"><a href="#Swag_RuntimeFlags">Language.Swag.RuntimeFlags</a></td><td><p>As initialized by the runtime</p>
+<tr><td id="Swag_Context_runtimeFlags" class="code-type">runtimeFlags</td><td class="code-type"><a href="#Swag_RuntimeFlags">Win32.Swag.RuntimeFlags</a></td><td><p>As initialized by the runtime</p>
 </td></tr>
-<tr><td id="Swag_Context_tempAllocator" class="code-type">tempAllocator</td><td class="code-type"><a href="#Swag_ScratchAllocator">Language.Swag.ScratchAllocator</a></td><td><p>A temporary allocator for the user</p>
+<tr><td id="Swag_Context_tempAllocator" class="code-type">tempAllocator</td><td class="code-type"><a href="#Swag_ScratchAllocator">Win32.Swag.ScratchAllocator</a></td><td><p>A temporary allocator for the user</p>
 </td></tr>
 <tr><td id="Swag_Context_traceIndex" class="code-type">traceIndex</td><td class="code-type">u32</td><td><p>Number of traces in the array</p>
 </td></tr>
-<tr><td id="Swag_Context_traces" class="code-type">traces</td><td class="code-type">[32] <a href="#Swag_SourceCodeLocation">Language.Swag.SourceCodeLocation</a></td><td><p>Stack trace, in case of errors</p>
+<tr><td id="Swag_Context_traces" class="code-type">traces</td><td class="code-type">[32] <a href="#Swag_SourceCodeLocation">Win32.Swag.SourceCodeLocation</a></td><td><p>Stack trace, in case of errors</p>
 </td></tr>
 <tr><td id="Swag_Context_user0" class="code-type">user0</td><td class="code-type">u64</td><td><p>For user usage</p>
 </td></tr>
@@ -1892,7 +1892,7 @@
 <tbody>
 <tr><td id="Swag_Module_name" class="code-type">name</td><td class="code-type">#null string</td><td><p>Name of the module</p>
 </td></tr>
-<tr><td id="Swag_Module_types" class="code-type">types</td><td class="code-type">#null const [..] #null const *<a href="#Swag_TypeInfo">Language.Swag.TypeInfo</a></td><td><p>All exported types</p>
+<tr><td id="Swag_Module_types" class="code-type">types</td><td class="code-type">#null const [..] #null const *<a href="#Swag_TypeInfo">Win32.Swag.TypeInfo</a></td><td><p>All exported types</p>
 </td></tr>
 </tbody>
 </table>
@@ -1907,7 +1907,7 @@
 <tbody>
 <tr><td id="Swag_ProcessInfos_args" class="code-type">args</td><td class="code-type">#null string</td><td><p>The application arguments, as returned by <a href="#_args">@args</a></p>
 </td></tr>
-<tr><td id="Swag_ProcessInfos_modules" class="code-type">modules</td><td class="code-type">#null const [..] <a href="#Swag_Module">Language.Swag.Module</a></td><td><p>The list of all modules</p>
+<tr><td id="Swag_ProcessInfos_modules" class="code-type">modules</td><td class="code-type">#null const [..] <a href="#Swag_Module">Win32.Swag.Module</a></td><td><p>The list of all modules</p>
 </td></tr>
 </tbody>
 </table>
@@ -1919,7 +1919,7 @@
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td id="Swag_ScratchAllocator_allocator" class="code-type">allocator</td><td class="code-type">#null <a href="#Swag_IAllocator">Language.Swag.IAllocator</a></td><td></td></tr>
+<tr><td id="Swag_ScratchAllocator_allocator" class="code-type">allocator</td><td class="code-type">#null <a href="#Swag_IAllocator">Win32.Swag.IAllocator</a></td><td></td></tr>
 <tr><td id="Swag_ScratchAllocator_block" class="code-type">block</td><td class="code-type">#null [*] u8</td><td></td></tr>
 <tr><td id="Swag_ScratchAllocator_capacity" class="code-type">capacity</td><td class="code-type">u64</td><td></td></tr>
 <tr><td id="Swag_ScratchAllocator_firstLeak" class="code-type">firstLeak</td><td class="code-type">#null *void</td><td></td></tr>
@@ -1962,7 +1962,7 @@
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td id="Swag_SystemError_base" class="code-type">base</td><td class="code-type"><a href="#Swag_BaseError">Language.Swag.BaseError</a></td><td></td></tr>
+<tr><td id="Swag_SystemError_base" class="code-type">base</td><td class="code-type"><a href="#Swag_BaseError">Win32.Swag.BaseError</a></td><td></td></tr>
 <tr><td id="Swag_SystemError_errorID" class="code-type">errorID</td><td class="code-type">u64</td><td></td></tr>
 </tbody>
 </table>
@@ -1977,11 +1977,11 @@
 <tbody>
 <tr><td id="Swag_TypeInfo_crc" class="code-type">crc</td><td class="code-type">u32</td><td><p>A unique CRC to identify the type</p>
 </td></tr>
-<tr><td id="Swag_TypeInfo_flags" class="code-type">flags</td><td class="code-type"><a href="#Swag_TypeInfoFlags">Language.Swag.TypeInfoFlags</a></td><td><p>Some additional flags</p>
+<tr><td id="Swag_TypeInfo_flags" class="code-type">flags</td><td class="code-type"><a href="#Swag_TypeInfoFlags">Win32.Swag.TypeInfoFlags</a></td><td><p>Some additional flags</p>
 </td></tr>
 <tr><td id="Swag_TypeInfo_fullname" class="code-type">fullname</td><td class="code-type">#null string</td><td><p>The full scoped name of the type</p>
 </td></tr>
-<tr><td id="Swag_TypeInfo_kind" class="code-type">kind</td><td class="code-type"><a href="#Swag_TypeInfoKind">Language.Swag.TypeInfoKind</a></td><td><p>The kind of the type</p>
+<tr><td id="Swag_TypeInfo_kind" class="code-type">kind</td><td class="code-type"><a href="#Swag_TypeInfoKind">Win32.Swag.TypeInfoKind</a></td><td><p>The kind of the type</p>
 </td></tr>
 <tr><td id="Swag_TypeInfo_name" class="code-type">name</td><td class="code-type">#null string</td><td><p>The unscoped name</p>
 </td></tr>
@@ -1998,8 +1998,8 @@
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td id="Swag_TypeInfoAlias_base" class="code-type">base</td><td class="code-type"><a href="#Swag_TypeInfo">Language.Swag.TypeInfo</a></td><td></td></tr>
-<tr><td id="Swag_TypeInfoAlias_rawType" class="code-type">rawType</td><td class="code-type">const *<a href="#Swag_TypeInfo">Language.Swag.TypeInfo</a></td><td><p>The underlying type</p>
+<tr><td id="Swag_TypeInfoAlias_base" class="code-type">base</td><td class="code-type"><a href="#Swag_TypeInfo">Win32.Swag.TypeInfo</a></td><td></td></tr>
+<tr><td id="Swag_TypeInfoAlias_rawType" class="code-type">rawType</td><td class="code-type">const *<a href="#Swag_TypeInfo">Win32.Swag.TypeInfo</a></td><td><p>The underlying type</p>
 </td></tr>
 </tbody>
 </table>
@@ -2011,12 +2011,12 @@
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td id="Swag_TypeInfoArray_base" class="code-type">base</td><td class="code-type"><a href="#Swag_TypeInfo">Language.Swag.TypeInfo</a></td><td></td></tr>
+<tr><td id="Swag_TypeInfoArray_base" class="code-type">base</td><td class="code-type"><a href="#Swag_TypeInfo">Win32.Swag.TypeInfo</a></td><td></td></tr>
 <tr><td id="Swag_TypeInfoArray_count" class="code-type">count</td><td class="code-type">u64</td><td><p>Number of elements in the array</p>
 </td></tr>
-<tr><td id="Swag_TypeInfoArray_finalType" class="code-type">finalType</td><td class="code-type">const *<a href="#Swag_TypeInfo">Language.Swag.TypeInfo</a></td><td><p>If this is an array with multiple dimensions, this will be the final type</p>
+<tr><td id="Swag_TypeInfoArray_finalType" class="code-type">finalType</td><td class="code-type">const *<a href="#Swag_TypeInfo">Win32.Swag.TypeInfo</a></td><td><p>If this is an array with multiple dimensions, this will be the final type</p>
 </td></tr>
-<tr><td id="Swag_TypeInfoArray_pointedType" class="code-type">pointedType</td><td class="code-type">const *<a href="#Swag_TypeInfo">Language.Swag.TypeInfo</a></td><td><p>The underlying type</p>
+<tr><td id="Swag_TypeInfoArray_pointedType" class="code-type">pointedType</td><td class="code-type">const *<a href="#Swag_TypeInfo">Win32.Swag.TypeInfo</a></td><td><p>The underlying type</p>
 </td></tr>
 <tr><td id="Swag_TypeInfoArray_totalCount" class="code-type">totalCount</td><td class="code-type">u64</td><td><p>The total number of elements in case this has multiple dimensions</p>
 </td></tr>
@@ -2030,8 +2030,8 @@
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td id="Swag_TypeInfoCodeBlock_base" class="code-type">base</td><td class="code-type"><a href="#Swag_TypeInfo">Language.Swag.TypeInfo</a></td><td></td></tr>
-<tr><td id="Swag_TypeInfoCodeBlock_rawType" class="code-type">rawType</td><td class="code-type">const *<a href="#Swag_TypeInfo">Language.Swag.TypeInfo</a></td><td><p>The underlying type</p>
+<tr><td id="Swag_TypeInfoCodeBlock_base" class="code-type">base</td><td class="code-type"><a href="#Swag_TypeInfo">Win32.Swag.TypeInfo</a></td><td></td></tr>
+<tr><td id="Swag_TypeInfoCodeBlock_rawType" class="code-type">rawType</td><td class="code-type">const *<a href="#Swag_TypeInfo">Win32.Swag.TypeInfo</a></td><td><p>The underlying type</p>
 </td></tr>
 </tbody>
 </table>
@@ -2043,12 +2043,12 @@
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td id="Swag_TypeInfoEnum_attributes" class="code-type">attributes</td><td class="code-type">#null const [..] <a href="#Swag_Attribute">Language.Swag.Attribute</a></td><td><p>All the attributes</p>
+<tr><td id="Swag_TypeInfoEnum_attributes" class="code-type">attributes</td><td class="code-type">#null const [..] <a href="#Swag_Attribute">Win32.Swag.Attribute</a></td><td><p>All the attributes</p>
 </td></tr>
-<tr><td id="Swag_TypeInfoEnum_base" class="code-type">base</td><td class="code-type"><a href="#Swag_TypeInfo">Language.Swag.TypeInfo</a></td><td></td></tr>
-<tr><td id="Swag_TypeInfoEnum_rawType" class="code-type">rawType</td><td class="code-type">#null const *<a href="#Swag_TypeInfo">Language.Swag.TypeInfo</a></td><td><p>The underlying enum type</p>
+<tr><td id="Swag_TypeInfoEnum_base" class="code-type">base</td><td class="code-type"><a href="#Swag_TypeInfo">Win32.Swag.TypeInfo</a></td><td></td></tr>
+<tr><td id="Swag_TypeInfoEnum_rawType" class="code-type">rawType</td><td class="code-type">#null const *<a href="#Swag_TypeInfo">Win32.Swag.TypeInfo</a></td><td><p>The underlying enum type</p>
 </td></tr>
-<tr><td id="Swag_TypeInfoEnum_values" class="code-type">values</td><td class="code-type">#null const [..] <a href="#Swag_TypeValue">Language.Swag.TypeValue</a></td><td><p>All the values</p>
+<tr><td id="Swag_TypeInfoEnum_values" class="code-type">values</td><td class="code-type">#null const [..] <a href="#Swag_TypeValue">Win32.Swag.TypeValue</a></td><td><p>All the values</p>
 </td></tr>
 </tbody>
 </table>
@@ -2060,14 +2060,14 @@
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td id="Swag_TypeInfoFunc_attributes" class="code-type">attributes</td><td class="code-type">#null const [..] <a href="#Swag_Attribute">Language.Swag.Attribute</a></td><td><p>All the attributes</p>
+<tr><td id="Swag_TypeInfoFunc_attributes" class="code-type">attributes</td><td class="code-type">#null const [..] <a href="#Swag_Attribute">Win32.Swag.Attribute</a></td><td><p>All the attributes</p>
 </td></tr>
-<tr><td id="Swag_TypeInfoFunc_base" class="code-type">base</td><td class="code-type"><a href="#Swag_TypeInfo">Language.Swag.TypeInfo</a></td><td></td></tr>
-<tr><td id="Swag_TypeInfoFunc_generics" class="code-type">generics</td><td class="code-type">#null const [..] <a href="#Swag_TypeValue">Language.Swag.TypeValue</a></td><td><p>Generic parameters</p>
+<tr><td id="Swag_TypeInfoFunc_base" class="code-type">base</td><td class="code-type"><a href="#Swag_TypeInfo">Win32.Swag.TypeInfo</a></td><td></td></tr>
+<tr><td id="Swag_TypeInfoFunc_generics" class="code-type">generics</td><td class="code-type">#null const [..] <a href="#Swag_TypeValue">Win32.Swag.TypeValue</a></td><td><p>Generic parameters</p>
 </td></tr>
-<tr><td id="Swag_TypeInfoFunc_parameters" class="code-type">parameters</td><td class="code-type">#null const [..] <a href="#Swag_TypeValue">Language.Swag.TypeValue</a></td><td><p>Parameters</p>
+<tr><td id="Swag_TypeInfoFunc_parameters" class="code-type">parameters</td><td class="code-type">#null const [..] <a href="#Swag_TypeValue">Win32.Swag.TypeValue</a></td><td><p>Parameters</p>
 </td></tr>
-<tr><td id="Swag_TypeInfoFunc_returnType" class="code-type">returnType</td><td class="code-type">#null const *<a href="#Swag_TypeInfo">Language.Swag.TypeInfo</a></td><td><p>The return type, or <span class="code-inline">null</span></p>
+<tr><td id="Swag_TypeInfoFunc_returnType" class="code-type">returnType</td><td class="code-type">#null const *<a href="#Swag_TypeInfo">Win32.Swag.TypeInfo</a></td><td><p>The return type, or <span class="code-inline">null</span></p>
 </td></tr>
 </tbody>
 </table>
@@ -2079,8 +2079,8 @@
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td id="Swag_TypeInfoGeneric_base" class="code-type">base</td><td class="code-type"><a href="#Swag_TypeInfo">Language.Swag.TypeInfo</a></td><td></td></tr>
-<tr><td id="Swag_TypeInfoGeneric_rawType" class="code-type">rawType</td><td class="code-type">const *<a href="#Swag_TypeInfo">Language.Swag.TypeInfo</a></td><td></td></tr>
+<tr><td id="Swag_TypeInfoGeneric_base" class="code-type">base</td><td class="code-type"><a href="#Swag_TypeInfo">Win32.Swag.TypeInfo</a></td><td></td></tr>
+<tr><td id="Swag_TypeInfoGeneric_rawType" class="code-type">rawType</td><td class="code-type">const *<a href="#Swag_TypeInfo">Win32.Swag.TypeInfo</a></td><td></td></tr>
 </tbody>
 </table>
 <section class="api-symbol">
@@ -2091,7 +2091,7 @@
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td id="Swag_TypeInfoNamespace_base" class="code-type">base</td><td class="code-type"><a href="#Swag_TypeInfo">Language.Swag.TypeInfo</a></td><td></td></tr>
+<tr><td id="Swag_TypeInfoNamespace_base" class="code-type">base</td><td class="code-type"><a href="#Swag_TypeInfo">Win32.Swag.TypeInfo</a></td><td></td></tr>
 </tbody>
 </table>
 <section class="api-symbol">
@@ -2102,8 +2102,8 @@
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td id="Swag_TypeInfoNative_base" class="code-type">base</td><td class="code-type"><a href="#Swag_TypeInfo">Language.Swag.TypeInfo</a></td><td></td></tr>
-<tr><td id="Swag_TypeInfoNative_nativeKind" class="code-type">nativeKind</td><td class="code-type"><a href="#Swag_TypeInfoNativeKind">Language.Swag.TypeInfoNativeKind</a></td><td></td></tr>
+<tr><td id="Swag_TypeInfoNative_base" class="code-type">base</td><td class="code-type"><a href="#Swag_TypeInfo">Win32.Swag.TypeInfo</a></td><td></td></tr>
+<tr><td id="Swag_TypeInfoNative_nativeKind" class="code-type">nativeKind</td><td class="code-type"><a href="#Swag_TypeInfoNativeKind">Win32.Swag.TypeInfoNativeKind</a></td><td></td></tr>
 </tbody>
 </table>
 <section class="api-symbol">
@@ -2114,8 +2114,8 @@
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td id="Swag_TypeInfoPointer_base" class="code-type">base</td><td class="code-type"><a href="#Swag_TypeInfo">Language.Swag.TypeInfo</a></td><td></td></tr>
-<tr><td id="Swag_TypeInfoPointer_pointedType" class="code-type">pointedType</td><td class="code-type">const *<a href="#Swag_TypeInfo">Language.Swag.TypeInfo</a></td><td><p>The pointed type</p>
+<tr><td id="Swag_TypeInfoPointer_base" class="code-type">base</td><td class="code-type"><a href="#Swag_TypeInfo">Win32.Swag.TypeInfo</a></td><td></td></tr>
+<tr><td id="Swag_TypeInfoPointer_pointedType" class="code-type">pointedType</td><td class="code-type">const *<a href="#Swag_TypeInfo">Win32.Swag.TypeInfo</a></td><td><p>The pointed type</p>
 </td></tr>
 </tbody>
 </table>
@@ -2127,8 +2127,8 @@
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td id="Swag_TypeInfoSlice_base" class="code-type">base</td><td class="code-type"><a href="#Swag_TypeInfo">Language.Swag.TypeInfo</a></td><td></td></tr>
-<tr><td id="Swag_TypeInfoSlice_pointedType" class="code-type">pointedType</td><td class="code-type">const *<a href="#Swag_TypeInfo">Language.Swag.TypeInfo</a></td><td><p>The underlying type</p>
+<tr><td id="Swag_TypeInfoSlice_base" class="code-type">base</td><td class="code-type"><a href="#Swag_TypeInfo">Win32.Swag.TypeInfo</a></td><td></td></tr>
+<tr><td id="Swag_TypeInfoSlice_pointedType" class="code-type">pointedType</td><td class="code-type">const *<a href="#Swag_TypeInfo">Win32.Swag.TypeInfo</a></td><td><p>The underlying type</p>
 </td></tr>
 </tbody>
 </table>
@@ -2140,18 +2140,18 @@
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td id="Swag_TypeInfoStruct_attributes" class="code-type">attributes</td><td class="code-type">#null const [..] <a href="#Swag_Attribute">Language.Swag.Attribute</a></td><td><p>All the attributes</p>
+<tr><td id="Swag_TypeInfoStruct_attributes" class="code-type">attributes</td><td class="code-type">#null const [..] <a href="#Swag_Attribute">Win32.Swag.Attribute</a></td><td><p>All the attributes</p>
 </td></tr>
-<tr><td id="Swag_TypeInfoStruct_base" class="code-type">base</td><td class="code-type"><a href="#Swag_TypeInfo">Language.Swag.TypeInfo</a></td><td></td></tr>
-<tr><td id="Swag_TypeInfoStruct_fields" class="code-type">fields</td><td class="code-type">#null const [..] <a href="#Swag_TypeValue">Language.Swag.TypeValue</a></td><td><p>All the fields</p>
+<tr><td id="Swag_TypeInfoStruct_base" class="code-type">base</td><td class="code-type"><a href="#Swag_TypeInfo">Win32.Swag.TypeInfo</a></td><td></td></tr>
+<tr><td id="Swag_TypeInfoStruct_fields" class="code-type">fields</td><td class="code-type">#null const [..] <a href="#Swag_TypeValue">Win32.Swag.TypeValue</a></td><td><p>All the fields</p>
 </td></tr>
-<tr><td id="Swag_TypeInfoStruct_fromGeneric" class="code-type">fromGeneric</td><td class="code-type">#null const *<a href="#Swag_TypeInfo">Language.Swag.TypeInfo</a></td><td><p>If it comes from a generic instantiation, this is the original generic struct</p>
+<tr><td id="Swag_TypeInfoStruct_fromGeneric" class="code-type">fromGeneric</td><td class="code-type">#null const *<a href="#Swag_TypeInfo">Win32.Swag.TypeInfo</a></td><td><p>If it comes from a generic instantiation, this is the original generic struct</p>
 </td></tr>
-<tr><td id="Swag_TypeInfoStruct_generics" class="code-type">generics</td><td class="code-type">#null const [..] <a href="#Swag_TypeValue">Language.Swag.TypeValue</a></td><td><p>Generic parameters</p>
+<tr><td id="Swag_TypeInfoStruct_generics" class="code-type">generics</td><td class="code-type">#null const [..] <a href="#Swag_TypeValue">Win32.Swag.TypeValue</a></td><td><p>Generic parameters</p>
 </td></tr>
-<tr><td id="Swag_TypeInfoStruct_interfaces" class="code-type">interfaces</td><td class="code-type">#null const [..] <a href="#Swag_TypeValue">Language.Swag.TypeValue</a></td><td><p>All the interfaces</p>
+<tr><td id="Swag_TypeInfoStruct_interfaces" class="code-type">interfaces</td><td class="code-type">#null const [..] <a href="#Swag_TypeValue">Win32.Swag.TypeValue</a></td><td><p>All the interfaces</p>
 </td></tr>
-<tr><td id="Swag_TypeInfoStruct_methods" class="code-type">methods</td><td class="code-type">#null const [..] <a href="#Swag_TypeValue">Language.Swag.TypeValue</a></td><td><p>All the methods, if exported</p>
+<tr><td id="Swag_TypeInfoStruct_methods" class="code-type">methods</td><td class="code-type">#null const [..] <a href="#Swag_TypeValue">Win32.Swag.TypeValue</a></td><td><p>All the methods, if exported</p>
 </td></tr>
 <tr><td id="Swag_TypeInfoStruct_opDrop" class="code-type">opDrop</td><td class="code-type">#null func(#null *void)</td><td><p>Pointer to the function to drop an instance of that struct</p>
 </td></tr>
@@ -2163,7 +2163,7 @@
 </td></tr>
 <tr><td id="Swag_TypeInfoStruct_structName" class="code-type">structName</td><td class="code-type">#null string</td><td><p>User name of the struct</p>
 </td></tr>
-<tr><td id="Swag_TypeInfoStruct_usingFields" class="code-type">usingFields</td><td class="code-type">#null const [..] <a href="#Swag_TypeValue">Language.Swag.TypeValue</a></td><td><p>All the fields marked with <span class="code-inline">using</span></p>
+<tr><td id="Swag_TypeInfoStruct_usingFields" class="code-type">usingFields</td><td class="code-type">#null const [..] <a href="#Swag_TypeValue">Win32.Swag.TypeValue</a></td><td><p>All the fields marked with <span class="code-inline">using</span></p>
 </td></tr>
 </tbody>
 </table>
@@ -2175,8 +2175,8 @@
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td id="Swag_TypeInfoVariadic_base" class="code-type">base</td><td class="code-type"><a href="#Swag_TypeInfo">Language.Swag.TypeInfo</a></td><td></td></tr>
-<tr><td id="Swag_TypeInfoVariadic_rawType" class="code-type">rawType</td><td class="code-type">const *<a href="#Swag_TypeInfo">Language.Swag.TypeInfo</a></td><td><p>The underlying type</p>
+<tr><td id="Swag_TypeInfoVariadic_base" class="code-type">base</td><td class="code-type"><a href="#Swag_TypeInfo">Win32.Swag.TypeInfo</a></td><td></td></tr>
+<tr><td id="Swag_TypeInfoVariadic_rawType" class="code-type">rawType</td><td class="code-type">const *<a href="#Swag_TypeInfo">Win32.Swag.TypeInfo</a></td><td><p>The underlying type</p>
 </td></tr>
 </tbody>
 </table>
@@ -2189,18 +2189,18 @@
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td id="Swag_TypeValue_attributes" class="code-type">attributes</td><td class="code-type">#null const [..] <a href="#Swag_Attribute">Language.Swag.Attribute</a></td><td><p>Associated attributes</p>
+<tr><td id="Swag_TypeValue_attributes" class="code-type">attributes</td><td class="code-type">#null const [..] <a href="#Swag_Attribute">Win32.Swag.Attribute</a></td><td><p>Associated attributes</p>
 </td></tr>
 <tr><td id="Swag_TypeValue_crc" class="code-type">crc</td><td class="code-type">u32</td><td><p>Unique CRC</p>
 </td></tr>
-<tr><td id="Swag_TypeValue_flags" class="code-type">flags</td><td class="code-type"><a href="#Swag_TypeValueFlags">Language.Swag.TypeValueFlags</a></td><td><p>Associated flags</p>
+<tr><td id="Swag_TypeValue_flags" class="code-type">flags</td><td class="code-type"><a href="#Swag_TypeValueFlags">Win32.Swag.TypeValueFlags</a></td><td><p>Associated flags</p>
 </td></tr>
 <tr><td id="Swag_TypeValue_name" class="code-type">name</td><td class="code-type">#null string</td><td><p>Name of the value</p>
 </td></tr>
 <tr><td id="Swag_TypeValue_offset" class="code-type">offset</td><td class="code-type">u32</td><td><p>Offset, in bytes</p>
 </td></tr>
 <tr><td id="Swag_TypeValue_padding" class="code-type">padding</td><td class="code-type">u32</td><td></td></tr>
-<tr><td id="Swag_TypeValue_pointedType" class="code-type">pointedType</td><td class="code-type">#null const *<a href="#Swag_TypeInfo">Language.Swag.TypeInfo</a></td><td><p>Type of the value</p>
+<tr><td id="Swag_TypeValue_pointedType" class="code-type">pointedType</td><td class="code-type">#null const *<a href="#Swag_TypeInfo">Win32.Swag.TypeInfo</a></td><td><p>Type of the value</p>
 </td></tr>
 <tr><td id="Swag_TypeValue_value" class="code-type">value</td><td class="code-type">#null const *void</td><td><p>Pointer to the constant value</p>
 </td></tr>

@@ -849,6 +849,51 @@ void MicroRegisterAllocationPass::computeGuardedCallPositions()
                 guardedCallPositions_[inner] = 1;
         }
     }
+
+    // Second emitted shape: the hot path jumps OVER the panic block with an
+    // unconditional jump, and the guards branch INTO it. The region between
+    // that jump and its target starts with the panic label, ends with the
+    // panic call, and falls into the join — same signature, different entry.
+    idx = 0;
+    for (auto it = instructions_->view().begin(); it != instructions_->view().end() && idx < instructionCount_; ++it, ++idx)
+    {
+        if (!MicroInstrInfo::isUnconditionalJumpInstruction(*it, it->ops(*operands_)))
+            continue;
+        if (it->op != MicroInstrOpcode::JumpCond && it->op != MicroInstrOpcode::JumpCondImm)
+            continue;
+
+        const MicroInstrOperand* ops = it->ops(*operands_);
+        if (!ops)
+            continue;
+
+        const auto targetIt = labelIndexByRef.find(ops[2].valueU64);
+        if (targetIt == labelIndexByRef.end() || targetIt->second <= idx)
+            continue;
+
+        const uint32_t targetIdx     = targetIt->second;
+        bool           regionIsGuard = targetIdx > idx + 2;
+        uint32_t       inner         = idx + 1;
+        for (auto innerIt = std::next(it); regionIsGuard && inner < targetIdx; ++innerIt, ++inner)
+        {
+            if (inner == idx + 1)
+                regionIsGuard = innerIt->op == MicroInstrOpcode::Label;
+            else if (innerIt->op == MicroInstrOpcode::Label)
+                regionIsGuard = false;
+            else if (inner + 1 == targetIdx)
+                regionIsGuard = instructionUseDefs_[inner].isCall;
+            else if (MicroInstrInfo::isTerminatorInstruction(*innerIt))
+                regionIsGuard = false;
+        }
+
+        if (!regionIsGuard)
+            continue;
+
+        for (inner = idx + 2; inner < targetIdx; ++inner)
+        {
+            if (instructionUseDefs_[inner].isCall)
+                guardedCallPositions_[inner] = 1;
+        }
+    }
 }
 
 bool MicroRegisterAllocationPass::concreteClaimsOverlap(const MicroReg physReg, const uint32_t lo, const uint32_t hi) const
@@ -1063,7 +1108,14 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
     // registers left for its own values live across one.
     constexpr uint32_t K_MIN_FREE_INT_CLASS   = 7;
     constexpr uint32_t K_MIN_FREE_FLOAT_CLASS = 4;
-    constexpr uint32_t K_MIN_FREE_PERSISTENT  = 2;
+    // Callee-saved registers kept out of the hulls for the local allocator's
+    // own call-crossing values. Ints need two: their first allocation sweep
+    // has no other escape hatch, and one proved insolvent. Floats make do
+    // with one — they fall back to caller-saved registers spilled around
+    // calls, and allocatePhysical has a last-resort valve into the
+    // nonvolatile pool.
+    constexpr uint32_t K_MIN_FREE_PERSISTENT_INT   = 2;
+    constexpr uint32_t K_MIN_FREE_PERSISTENT_FLOAT = 1;
 
     const bool            hasCalls = functionHasCalls();
     std::vector<uint32_t> reservedInt(instructionCount_, 0);
@@ -1163,13 +1215,14 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
                 if (globalRangesOverlap(reg, lo, hi))
                     continue;
 
-                const bool isPersistent = isPersistentPhysReg(reg);
-                if (hasCalls && isPersistent && totalPersistent <= K_MIN_FREE_PERSISTENT)
+                const bool     isPersistent      = isPersistentPhysReg(reg);
+                const uint32_t minFreePersistent = isFloat ? K_MIN_FREE_PERSISTENT_FLOAT : K_MIN_FREE_PERSISTENT_INT;
+                if (hasCalls && isPersistent && totalPersistent <= minFreePersistent)
                     continue;
 
                 if (hasCalls && isPersistent)
                 {
-                    const uint32_t cap  = static_cast<uint32_t>(totalPersistent - K_MIN_FREE_PERSISTENT);
+                    const uint32_t cap  = static_cast<uint32_t>(totalPersistent - minFreePersistent);
                     bool           fits = true;
                     for (uint32_t idx = lo; idx <= hi && fits; ++idx)
                         fits = reservedPersistent[idx] < cap;
@@ -1184,8 +1237,8 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
                 // vetoed on all of them at once and the local allocator has nowhere
                 // left to put it — it reports an internal error, it cannot spill its
                 // way out. So the floors must also hold function-wide: keep the
-                // class floor's worth of registers (and K_MIN_FREE_PERSISTENT
-                // callee-saved ones) carrying no reservation at all. Registers that
+                // class floor's worth of registers (and the per-class persistent
+                // floor's worth of callee-saved ones) carrying no reservation at all. Registers that
                 // already hold one may keep stacking disjoint hulls freely.
                 const uint32_t regDense      = denseGlobalPhysRegs_.find(reg);
                 const bool     carriesRanges = regDense != MicroDenseRegIndex::K_INVALID_INDEX &&
@@ -1207,7 +1260,7 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
                     if (distinctClass >= static_cast<uint32_t>(total - minFreeClass))
                         continue;
                     if (hasCalls && isPersistent &&
-                        distinctPersistent >= static_cast<uint32_t>(totalPersistent - K_MIN_FREE_PERSISTENT))
+                        distinctPersistent >= static_cast<uint32_t>(totalPersistent - minFreePersistent))
                         continue;
                 }
 
@@ -2169,7 +2222,11 @@ MicroRegisterAllocationPass::FreePools MicroRegisterAllocationPass::pickFreePool
     if (request.needsPersistent)
         return FreePools{&freeFloatPersistent_, &freeFloatTransient_};
 
-    return FreePools{&freeFloatTransient_, freeFloatPersistent_.empty() ? nullptr : &freeFloatPersistent_};
+    // No callee-saved fallback for an ordinary float: every nonvolatile float
+    // taken costs the prologue a 16-byte store/load pair, which a short-lived
+    // value never repays. Momentary pressure is better served by evicting a
+    // caller-saved mapping — the class floor keeps enough of them hull-free.
+    return FreePools{&freeFloatTransient_, nullptr};
 }
 
 bool MicroRegisterAllocationPass::tryTakePreferredPhysical(const AllocRequest& request, MicroRegSpan forbiddenPhysRegs, const bool allowConcreteLive, MicroReg& outPhys)
@@ -2434,6 +2491,14 @@ MicroReg MicroRegisterAllocationPass::allocatePhysical(const AllocRequest& reque
             MicroReg borrowed;
             if (tryBorrowReservedRegister(request, protectedKeys, forbiddenPhysRegs, stackDepth, pending, borrowed))
                 return borrowed;
+
+            // Solvency valve: ordinary floats are kept away from the
+            // nonvolatile pool (each taken register costs the prologue a
+            // 16-byte store/load pair), but an unallocatable request costs
+            // the compile. Only when every caller-saved avenue — free,
+            // transfer, eviction, borrow — is exhausted may one be taken.
+            if (isFloatReg && tryTakeAllowedPhysical(freeFloatPersistent_, request.virtKey, request.instructionIndex, forbiddenPhysRegs, true, physReg))
+                return physReg;
 
             SWC_INTERNAL_CHECK(false);
         }

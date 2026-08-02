@@ -82,7 +82,7 @@
     <span class="SLgc">defer</span> <span class="SCst">Audio</span>.<span class="SFct">destroyEngine</span>()
 
     <span class="SCmt">// Create one application surface and dispatch its events to 'onEvent'.</span>
-    <span class="SCmt">// '--run-arg swag.test' makes runSurface exit after a bounded frame count,</span>
+    <span class="SCmt">// A smoke run exits after a bounded frame count,</span>
     <span class="SCmt">// which keeps automated example tests non-interactive.</span>
     <span class="SCst">Application</span>.<span class="SFct">runSurface</span>(<span class="SNum">100</span>, <span class="SNum">100</span>, <span class="SNum">254</span>, <span class="SNum">481</span>, title: <span class="SStr">"Flappy Bird"</span>, hook: &amp;onEvent)
 }

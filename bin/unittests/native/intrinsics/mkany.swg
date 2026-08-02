@@ -13,13 +13,13 @@ enum MkanyKind: u16
 }
 
 #[Swag.Strict]
-alias MkanyStrictS32Ptr = *s32
+alias MkanyStrictS32Ptr   = *s32
 
 #[Swag.Strict]
-alias MkanyStrictVoidPtr = *void
+alias MkanyStrictVoidPtr  = *void
 
 #[Swag.Strict]
-alias MkanyStrictS32 = s32
+alias MkanyStrictS32      = s32
 
 #[Swag.Strict]
 alias MkanyStrictTypeInfo = typeinfo

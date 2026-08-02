@@ -200,12 +200,7 @@ extends with a custom sharp selector such as 'for #Pairs'.
         expected -= 1
     }
 
-    enum Direction
-    {
-        Up
-        Down
-    }
-
+    enum Direction { Up, Down }
     let direction = Direction.Up
 
     switch #complete direction

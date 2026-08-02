@@ -7,13 +7,13 @@ enum ForeachAliasPriority: u32
     High   = 10
 }
 
-alias ForeachPriorityAlias = ForeachAliasPriority
+alias ForeachPriorityAlias       = ForeachAliasPriority
 
 #[Swag.Strict]
 alias StrictForeachPriorityAlias = ForeachAliasPriority
 
 #[Swag.Strict]
-alias StrictForeachF32 = f32
+alias StrictForeachF32           = f32
 
 #test
 {

@@ -51,7 +51,8 @@ struct Image
 
     // Reusable scratch image owned by this image, allocated on demand by the transforms.
     #[Core.Serialization.NoSerialize]
-    internal workingBuffer: #null *Image
+    internal
+    workingBuffer: #null *Image
 }
 
 impl Image

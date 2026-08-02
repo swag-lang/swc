@@ -3,7 +3,8 @@ using Core, Pixel
 // Prompts for either a single line or a block of rich text.
 public struct EditDlg
 {
-    using dialog: Dialog     // Embedded dialog state.
+    using
+    dialog: Dialog     // Embedded dialog state.
     readonly
     {
         #[Swag.Late]

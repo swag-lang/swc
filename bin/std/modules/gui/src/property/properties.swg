@@ -105,7 +105,8 @@ internal const PropCondensedControlHeight = 20'f32
 // Builds and edits reflected structure fields with validation, filtering, defaults, and undo support.
 struct Properties
 {
-    using frameWnd: FrameWnd     // Embedded frame wnd state.
+    using
+    frameWnd: FrameWnd     // Embedded frame wnd state.
 
     // Construction options are read-only to callers. Use the setters below when a value has to
     // change so cached layout state remains synchronized.
@@ -167,11 +168,13 @@ struct Properties
     // Scrolling viewport of the grid, established when it is created. A host configures the
     // scrollbars or scrolls the grid through it; the grid decides which window it is.
     #[Swag.Late]
-    readonly scrollWnd: *ScrollWnd
+    readonly
+    scrollWnd: *ScrollWnd
 
     // View the rows are painted in, established when the grid is created.
     #[Swag.Late]
-    internal edView: *PropertiesView
+    internal
+    edView: *PropertiesView
 
     // Grid state rebuilt from the rows: section index, hover and selection, and the transient
     // state of one gesture. The grid maintains all of it.
@@ -198,7 +201,8 @@ struct Properties
     // Row the context menu currently operates on. Read by the ActionProperties commands (and
     // any keyboard/toolbar trigger of the same commands); kept set across the async command
     // dispatch that follows doModal.
-    internal menuItem: #null *PropertiesItem
+    internal
+    menuItem: #null *PropertiesItem
 
     // Undo/redo (propertiesundo.swg). Every field edit committed through commitItemChange records
     // command into undoMgr (unless undoEnabled is off). applyingUndo guards against re-recording
@@ -206,8 +210,10 @@ struct Properties
     // instead, so the grid shares the host's undo timeline. dragItem/dragCmd coalesce the moves
     // of one slider drag into a single command. generation stamps the grid content: it bumps on
     // clear so commands recorded against dropped rows skip their row refresh.
-    internal externUndoMgr: #null *UndoManager     // Undo timeline of the host, when it shares one.
-    internal undoEnabled: bool = true              // Whether edits record undo commands.
+    internal
+    externUndoMgr: #null *UndoManager     // Undo timeline of the host, when it shares one.
+    internal
+    undoEnabled: bool = true     // Whether edits record undo commands.
 
     // Recording state of the undo timeline the grid owns.
     internal
@@ -223,11 +229,13 @@ struct Properties
     // per-struct IPropertyNotify implementations bound at build time. This is how a host that
     // does not own the displayed structs (an editor panel showing a document's objects) plugs
     // dynamic visibility, validation and change reactions.
-    internal hostNtfy: #null IPropertyNotify
+    internal
+    hostNtfy: #null IPropertyNotify
 
     // Build-time state of the opt-in mode (addStructMulti 'onlyNamed'): only fields carrying an
     // explicit Properties.Name attribute get a row.
-    internal buildOnlyNamed: bool
+    internal
+    buildOnlyNamed: bool
 }
 
 // The control's own IWnd events. Swag does not allow a split interface impl, so both entry points

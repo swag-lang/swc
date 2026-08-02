@@ -5,7 +5,8 @@ using Core, Pixel
 // Lets the user switch a Boolean option on or off.
 struct ToggleButton
 {
-    using button: Button     // Embedded button behavior and presentation.
+    using
+    button: Button     // Embedded button behavior and presentation.
 
     sigChanged: SigArray'func||(*ToggleButton)     // Emitted after a user action changes the state.
 

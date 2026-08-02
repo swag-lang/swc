@@ -6,7 +6,7 @@ struct TypedVariadicPair
     b: s32
 }
 
-alias TypedVariadicAlias = s32
+alias TypedVariadicAlias     = s32
 
 #[Swag.Strict]
 alias TypedVariadicStrictF32 = f32

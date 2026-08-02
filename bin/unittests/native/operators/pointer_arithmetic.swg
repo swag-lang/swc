@@ -4,10 +4,10 @@
 alias PointerArithmeticStrictS32Ptr = [*] s32
 
 #[Swag.Strict]
-alias PointerArithmeticStrictU8Ptr = [*] u8
+alias PointerArithmeticStrictU8Ptr  = [*] u8
 
 #[Swag.Strict]
-alias PointerArithmeticStrictU8 = u8
+alias PointerArithmeticStrictU8     = u8
 
 #test
 {

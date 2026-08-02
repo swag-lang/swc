@@ -69,7 +69,9 @@ Reinitialize a struct instance to its declared default field values.
 {
     struct RGB
     {
-        r = 1, g = 2, b = 3
+        r = 1
+        g = 2
+        b = 3
     }
 
     var rgb = RGB{10, 20, 30}
@@ -91,7 +93,9 @@ Reinitialize a struct instance with custom field values.
 {
     struct RGB
     {
-        r = 1, g = 2, b = 3
+        r = 1
+        g = 2
+        b = 3
     }
 
     var rgb = RGB{10, 20, 30}
@@ -113,7 +117,9 @@ Reinitialize all elements of an array of structs with specified field values.
 {
     struct RGB
     {
-        r = 1, g = 2, b = 3
+        r = 1
+        g = 2
+        b = 3
     }
 
     var rgb: [4] RGB

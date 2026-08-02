@@ -22,7 +22,8 @@ enum CheckButtonFlags
 // Lets the user enable an option or choose among three check states.
 struct CheckButton
 {
-    using button: Button     // Embedded button behavior and presentation.
+    using
+    button: Button     // Embedded button behavior and presentation.
 
     readonly
     {

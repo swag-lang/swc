@@ -14,7 +14,8 @@ struct FrameTiming
         isPaused:     bool               // Whether updates are paused.
     }
 
-    internal previousTick: u64
+    internal
+    previousTick: u64
 }
 
 impl FrameTiming

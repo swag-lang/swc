@@ -7,7 +7,8 @@
 #[Swag.Using(Properties)]
 struct FormCallout
 {
-    using base: BaseForm
+    using
+    base: BaseForm
     #[Name("Font"), FontName]
     fontName: String
     #[Name("Text"), MultiLine]

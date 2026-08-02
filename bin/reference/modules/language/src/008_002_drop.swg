@@ -11,7 +11,9 @@ in resource management, where explicit cleanup is required before resetting the 
 {
     struct RGB
     {
-        r = 1, g = 2, b = 3
+        r = 1
+        g = 2
+        b = 3
     }
 
     var rgb: [4] RGB

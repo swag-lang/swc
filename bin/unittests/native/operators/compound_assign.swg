@@ -1,13 +1,13 @@
 #global private
 
 #[Swag.Strict]
-alias CompoundStrictS32 = s32
+alias CompoundStrictS32    = s32
 
 #[Swag.Strict]
-alias CompoundStrictU32 = u32
+alias CompoundStrictU32    = u32
 
 #[Swag.Strict]
-alias CompoundStrictF32 = f32
+alias CompoundStrictF32    = f32
 
 #[Swag.Strict]
 alias CompoundStrictS32Ptr = [*] s32

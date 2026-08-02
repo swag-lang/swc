@@ -19,7 +19,8 @@ enum StackLayoutMode
 // Arranges visible children as a one-dimensional stack.
 struct StackLayoutCtrl
 {
-    using wnd: Wnd     // Embedded wnd state.
+    using
+    wnd: Wnd     // Embedded wnd state.
 
     mode:         StackLayoutMode = Top     // Direction and distribution policy.
     spacing:      f32             = 5       // Gap between adjacent children.

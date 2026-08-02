@@ -274,8 +274,9 @@ one-statement-per-line = true
 # keep their comma-separated values.
 one-enum-value-per-line = true
 
-# A multi-field struct has exactly one field per line. Source-selected
-# single-line definitions keep their comma-separated fields.
+# A multi-field struct has exactly one field declaration per line. Multi-name
+# declarations such as `x, y: s32` stay together, and source-selected
+# single-line definitions keep their comma-separated declarations.
 one-struct-field-per-line = true
 
 # ----------------------------------------------------------------------------

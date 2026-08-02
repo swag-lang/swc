@@ -15,7 +15,7 @@ const Unassigned    = -1
 const Skip          = -2
 const HorizontalVal = -1.0e+40
 
-public alias CInt = s64     // Signed integer coordinate used by clipping operations.
+public alias CInt  = s64     // Signed integer coordinate used by clipping operations.
 alias ClipperPath  = Array'IntPoint
 alias ClipperPaths = Array'ClipperPath
 

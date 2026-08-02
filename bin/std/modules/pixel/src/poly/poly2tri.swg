@@ -74,9 +74,10 @@ public struct Result
 // Stores one tessellation point and its incident constrained edges.
 struct Point
 {
-    using v: Math.Vector2        // Point coordinates in path space.
-    edges:   Array'(*Edge)       // Incident constrained edges.
-    border:  [2] #null *Edge     // Up to two boundary edges.
+    using
+    v:      Math.Vector2        // Point coordinates in path space.
+    edges:  Array'(*Edge)       // Incident constrained edges.
+    border: [2] #null *Edge     // Up to two boundary edges.
 }
 
 // Connects two tessellation points with a constrained edge.

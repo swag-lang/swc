@@ -33,7 +33,8 @@ enum FrameWndAnchor
 // Hosts one view inside an optional themed frame, border, shadow, and callout anchor.
 struct FrameWnd
 {
-    using wnd: Wnd     // Embedded wnd state.
+    using
+    wnd: Wnd     // Embedded wnd state.
 
     #[Swag.Late]
     view:           *Wnd                      // Hosted content view.
@@ -41,7 +42,8 @@ struct FrameWnd
     frameFlags = FrameWndFlags.Borders        // Active optional decoration.
     anchor     = FrameWndAnchor.None          // Edge carrying the callout anchor.
     anchorPosition: f32                       // Anchor center along the selected edge.
-    internal usedBackgroundColor: Color       // Background color selected during the latest paint.
+    internal
+    usedBackgroundColor: Color     // Background color selected during the latest paint.
 }
 
 impl IWnd for FrameWnd

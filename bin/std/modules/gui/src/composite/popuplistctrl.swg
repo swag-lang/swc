@@ -5,14 +5,16 @@ using Core, Pixel
 // Stores one selectable item or separator in a popup list.
 struct PopupListCtrlItem
 {
-    using base:  Item     // Embedded label, icon, identifier, and user data.
+    using
+    base:        Item     // Embedded label, icon, identifier, and user data.
     isSeparator: bool     // Whether this entry separates groups and cannot be selected.
 }
 
 // Displays a temporary list that commits one highlighted item or reports cancellation.
 struct PopupListCtrl
 {
-    using frameWnd: FrameWnd     // Embedded framed-window behavior and presentation.
+    using
+    frameWnd: FrameWnd     // Embedded framed-window behavior and presentation.
 
     itemHeight:      f32 = 30      // Height of selectable rows in logical units.
     separatorHeight: f32 = 15      // Height of separator rows in logical units.
@@ -32,13 +34,15 @@ struct PopupListCtrl
         scrollWnd: *ScrollWnd     // Scrollable viewport owned by the popup.
     }
 
-    internal maxIconSize: s32     // Widest item icon, used to align labels.
+    internal
+    maxIconSize: s32     // Widest item icon, used to align labels.
 }
 
 // Implements painting and input inside a popup list.
 internal struct PopupListView
 {
-    using wnd: Wnd     // Embedded wnd state.
+    using
+    wnd: Wnd     // Embedded wnd state.
     #[Swag.Late]
     list:    *PopupListCtrl         // List associated with this value.
     hotIdx:  u32 = Swag.U32.Max     // Index of hot.

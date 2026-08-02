@@ -4,7 +4,7 @@
 alias ForStrictS32 = s32
 
 #[Swag.Strict]
-alias ForStrictU8 = u8
+alias ForStrictU8  = u8
 
 struct CountedLoop
 {

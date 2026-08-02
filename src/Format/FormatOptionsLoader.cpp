@@ -143,7 +143,7 @@ namespace
         schema.add("remove-condition-parentheses", &options.removeConditionParentheses, "Drop the parentheses wrapping a whole control-statement condition");
         schema.add("one-statement-per-line", &options.oneStatementPerLine, "Put independent statements separated by `;` on separate lines");
         schema.add("one-enum-value-per-line", &options.oneEnumValuePerLine, "Put every value of a multi-value enum on its own line and remove separator commas");
-        schema.add("one-struct-field-per-line", &options.oneStructFieldPerLine, "Put every field of a multi-field struct on its own line and remove separator commas");
+        schema.add("one-struct-field-per-line", &options.oneStructFieldPerLine, "Put every field declaration of a multi-field struct on its own line and remove declaration-separator commas");
     }
 
     void bindAlignmentSchema(StructConfigSchema& schema, FormatOptions& options)

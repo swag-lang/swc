@@ -1,9 +1,9 @@
 #global private
 
-alias EnumAliasU32 = u32
+alias EnumAliasU32         = u32
 
 #[Swag.Strict]
-alias EnumStrictAliasU16 = u16
+alias EnumStrictAliasU16   = u16
 
 #[Swag.Strict]
 alias EnumStrictArrayAlias = [2] s32

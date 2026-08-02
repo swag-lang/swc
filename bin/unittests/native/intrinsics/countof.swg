@@ -30,10 +30,10 @@ enum RefCountKind
 }
 
 #[Swag.Strict]
-alias CountOfStrictU32 = u32
+alias CountOfStrictU32    = u32
 
 #[Swag.Strict]
-alias CountOfStrictSlice = [..] u8
+alias CountOfStrictSlice  = [..] u8
 
 #[Swag.Strict]
 alias CountOfStrictString = string

@@ -1,7 +1,7 @@
 #global private
 
 #[Swag.Strict]
-alias MksliceStrictU16Ptr = *u16
+alias MksliceStrictU16Ptr      = *u16
 
 #[Swag.Strict]
 alias MksliceStrictConstS32Ptr = const *s32

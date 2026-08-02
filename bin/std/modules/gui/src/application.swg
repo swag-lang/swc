@@ -8,8 +8,9 @@ alias FrameCallback = func||(*Application)
 // Owns GUI resources, top-level surfaces, input state, and the event loop.
 struct Application
 {
-    using native: ApplicationNative                 // Platform-specific application state.
-    sigFrame:     SigArray'func||(*Application)     // Emitted after each processed frame.
+    using
+    native:   ApplicationNative                 // Platform-specific application state.
+    sigFrame: SigArray'func||(*Application)     // Emitted after each processed frame.
 
     options: ApplicationOptions     // Diagnostics and development options.
     appIcon: Pixel.Image            // Icon used for native windows created by the application.
@@ -19,7 +20,8 @@ struct Application
         renderer: Pixel.IRenderer     // Renderer selected before the first surface is created.
     }
 
-    internal rendererOgl: Pixel.RenderOgl     // Default OpenGL renderer used when none is selected.
+    internal
+    rendererOgl: Pixel.RenderOgl     // Default OpenGL renderer used when none is selected.
     #[Swag.Late]
     theme:       *Theme             // Active application theme.
     style:       ThemeStyle         // Root style inherited by surface window trees.
@@ -29,7 +31,8 @@ struct Application
 
     // The surface list is maintained by the application: create and destroy surfaces through
     // its own API so the modal stack and the render loop stay consistent.
-    readonly surfaces: Array'(*Surface)
+    readonly
+    surfaces: Array'(*Surface)
 
     // Frame and input bookkeeping. Reading it tells what the application is doing this frame;
     // writing it from outside would desynchronize the loop from the window tree.
@@ -80,7 +83,8 @@ struct Application
         hotKeys:   Array'KeyShortcut     // Registered system-wide keyboard shortcuts.
     }
 
-    readonly dirtyTheme: u32     // Revision incremented after each theme change.
+    readonly
+    dirtyTheme: u32     // Revision incremented after each theme change.
 }
 
 private impl Application

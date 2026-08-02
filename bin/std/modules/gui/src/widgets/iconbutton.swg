@@ -59,7 +59,8 @@ enum IconButtonCheckIndicator
 // Displays an icon action with optional label, checked state, arrow, and owned popup.
 struct IconButton
 {
-    using button: Button     // Embedded button behavior and presentation.
+    using
+    button: Button     // Embedded button behavior and presentation.
 
     sigPopupClosed:    SigArray'func||(*IconButton)                                                 // Emitted before the owned popup is destroyed.
     sigPopupRequested: SigArray'func||(*IconButton)                                                 // Emitted when activation requests popup creation.

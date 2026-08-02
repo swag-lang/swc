@@ -19,11 +19,12 @@ struct SurfaceState
 // Top-level drawable window managed by an [[Application]].
 struct Surface
 {
-    using native: NativeSurface                // Platform-specific window state.
-    app:          *Application = undefined     // Application that owns the surface.
-    wnd:          *SurfaceWnd  = undefined     // Root window containing the surface view.
-    userData:     #null *void                  // Optional caller-owned data.
-    surfaceId:    String                       // Identifier used by cross-process custom messages.
+    using
+    native:    NativeSurface                // Platform-specific window state.
+    app:       *Application = undefined     // Application that owns the surface.
+    wnd:       *SurfaceWnd  = undefined     // Root window containing the surface view.
+    userData:  #null *void                  // Optional caller-owned data.
+    surfaceId: String                       // Identifier used by cross-process custom messages.
 
     minSize: Math.Point     // Minimum allowed width and height; zero disables a dimension limit.
     maxSize: Math.Point     // Maximum allowed width and height; zero disables a dimension limit.
@@ -53,7 +54,8 @@ struct Surface
         isDirty:   bool                                                    // Whether a repaint is pending.
     }
 
-    using state: SurfaceState     // Serializable placement and maximized state.
+    using
+    state: SurfaceState     // Serializable placement and maximized state.
 }
 
 // Configures a surface's native chrome, resize behavior, and Z-order class.

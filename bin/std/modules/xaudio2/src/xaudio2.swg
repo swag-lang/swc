@@ -9,7 +9,7 @@ alias UINT64  = u64
 alias FLOAT32 = f32
 
 const X3DAUDIO_HANDLE_BYTESIZE = 20
-alias X3DAUDIO_HANDLE = [X3DAUDIO_HANDLE_BYTESIZE] BYTE
+alias X3DAUDIO_HANDLE   = [X3DAUDIO_HANDLE_BYTESIZE] BYTE
 
 alias XAUDIO2_PROCESSOR = UINT32
 const Processor1            = 0x00000001
@@ -307,18 +307,21 @@ struct IXAudio2VoiceItf
 
 struct IXAudio2MasteringVoiceItf
 {
-    using voice:    IXAudio2VoiceItf
+    using
+    voice:          IXAudio2VoiceItf
     getChannelMask: func(this: *IXAudio2MasteringVoice, pChannelmask: *DWORD)->HRESULT
 }
 
 struct IXAudio2SubmixVoiceItf
 {
-    using voice: IXAudio2VoiceItf
+    using
+    voice: IXAudio2VoiceItf
 }
 
 struct IXAudio2SourceVoiceItf
 {
-    using voice:         IXAudio2VoiceItf
+    using
+    voice:               IXAudio2VoiceItf
     start:               func(this: *IXAudio2SourceVoice, flags: UINT32, operationSet: UINT32)->HRESULT
     stop:                func(this: *IXAudio2SourceVoice, flags: UINT32, operationSet: UINT32)->HRESULT
     submitSourceBuffer:  func(this: *IXAudio2SourceVoice, pBuffer: const *XAUDIO2_BUFFER, pBufferWMA: #null const *XAUDIO2_BUFFER_WMA)->HRESULT

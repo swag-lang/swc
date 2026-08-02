@@ -13,7 +13,8 @@ enum InPlaceEditMode
 
 struct InPlaceEditWnd
 {
-    using wnd: Wnd
+    using
+    wnd: Wnd
     #[Swag.Late]
     {
         editWnd:   *EditWnd

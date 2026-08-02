@@ -1,16 +1,16 @@
 #global private
 
 #[Swag.Strict]
-alias BinaryStrictS32 = s32
+alias BinaryStrictS32    = s32
 
 #[Swag.Strict]
-alias BinaryStrictU32 = u32
+alias BinaryStrictU32    = u32
 
 #[Swag.Strict]
-alias BinaryStrictF32 = f32
+alias BinaryStrictF32    = f32
 
 #[Swag.Strict]
-alias BinaryStrictRune = rune
+alias BinaryStrictRune   = rune
 
 #[Swag.Strict]
 alias BinaryStrictS32Ptr = [*] s32

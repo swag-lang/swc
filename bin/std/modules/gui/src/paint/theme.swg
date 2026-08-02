@@ -100,12 +100,14 @@ struct Theme
 
     // Whether the theme was set up. A theme is established once against a renderer, so the
     // flag is a result to read, never a switch to flip.
-    readonly initialized: bool
+    readonly
+    initialized: bool
 
     // Font storage of the renderer this theme was set up against; borrowed, never owned. Every
     // font the theme hands out therefore lives exactly as long as the renderer that will draw it.
     #[Swag.Late]
-    internal fonts: *Pixel.FontCache
+    internal
+    fonts: *Pixel.FontCache
 }
 
 impl Theme

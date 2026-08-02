@@ -22,7 +22,8 @@ struct RecentInfos
 
 struct RecentView
 {
-    using wnd: Wnd
+    using
+    wnd: Wnd
 
     #[Swag.Late]
     main: *MainWnd
@@ -215,7 +216,8 @@ impl IWnd for RecentView
 
 struct RecentWnd
 {
-    using scrollWnd: ScrollWnd
+    using
+    scrollWnd: ScrollWnd
     #[Swag.Late]
     main: *MainWnd
     #[Swag.Late]

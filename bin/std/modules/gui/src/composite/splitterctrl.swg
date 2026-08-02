@@ -21,22 +21,26 @@ struct SplitterItem
     maximumSize:  f32 = 0          // Maximum size, or zero for no upper bound.
     label:        #null *Label     // Optional pane title managed by the splitter.
     preserveSize: bool             // Whether other panes absorb resize changes first.
-    internal visible = true        // Whether the pane participates in layout.
+    internal
+    visible = true     // Whether the pane participates in layout.
 
     // Color animation of the bar that follows this pane.
-    internal aniBar: BlendColor
+    internal
+    aniBar: BlendColor
 }
 
 // Arranges resizable panes separated by draggable dividers.
 struct SplitterCtrl
 {
-    using frameWnd: FrameWnd                     // Embedded frame wnd state.
-    flags               = SplitterFlags.None     // Orientation and divider options.
-    titleSize:      f32 = 30                     // Title extent along the splitting axis.
+    using
+    frameWnd:  FrameWnd                     // Embedded frame wnd state.
+    flags          = SplitterFlags.None     // Orientation and divider options.
+    titleSize: f32 = 30                     // Title extent along the splitting axis.
 
     // The panes the splitter manages, in order. Add them through the methods so the bars and
     // the layout follow.
-    readonly items: ArrayPtr'SplitterItem
+    readonly
+    items: ArrayPtr'SplitterItem
 
     // Hover and drag state of one gesture over a bar, and the pane count the layout derived.
     internal

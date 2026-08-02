@@ -162,12 +162,7 @@ Ordinary constants and other case expressions remain valid.
 
 #test
 {
-    enum State
-    {
-        Idle
-        Ready
-    }
-
+    enum State { Idle, Ready }
     let state = State.Ready
 
     switch state
@@ -193,13 +188,7 @@ declared enum value needs a `case`, and a `default` is rejected.
 
 #test
 {
-    enum Color
-    {
-        Red
-        Green
-        Blue
-    }
-
+    enum Color { Red, Green, Blue }
     let color = Color.Red
 
     switch #complete color

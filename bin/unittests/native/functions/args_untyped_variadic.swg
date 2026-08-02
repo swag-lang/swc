@@ -59,7 +59,7 @@ enum VariadicStrictFlag: u32
 alias VariadicStrictFlagAlias = VariadicStrictFlag
 
 #[Swag.Strict]
-alias VariadicStrictF32Alias = f32
+alias VariadicStrictF32Alias  = f32
 
 func variadicAnyStrictFlag(values: ...)->bool
 {

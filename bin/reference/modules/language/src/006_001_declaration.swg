@@ -34,12 +34,16 @@ The trailing separator is optional and can be omitted.
     // Fields separated by commas
     struct MyStruct
     {
-        name: #null string, val1: bool
+        name: #null string
+        val1: bool
     }
 
     struct MyStruct1
     {
-        x: s32, y, z: s32, val: bool, myS: MyStruct
+        x:    s32
+        y, z: s32
+        val:  bool
+        myS:  MyStruct
     }
 }
 

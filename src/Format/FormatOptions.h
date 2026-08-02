@@ -240,7 +240,7 @@ struct FormatOptions
     std::optional<bool> removeConditionParentheses; // Drop `( ... )` wrapping a whole control condition
     std::optional<bool> oneStatementPerLine;        // Split independent statements separated by `;`
     std::optional<bool> oneEnumValuePerLine;        // Put every value of a multi-value enum on its own line
-    std::optional<bool> oneStructFieldPerLine;      // Put every field of a multi-field struct on its own line
+    std::optional<bool> oneStructFieldPerLine;      // Put every field declaration of a multi-field struct on its own line
 
     // -----------------------------------------------------------------------
     // Alignment

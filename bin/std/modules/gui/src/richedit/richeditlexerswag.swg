@@ -60,8 +60,10 @@ struct RichEditLexerSwag
         Error                 // Selects error.
     }
 
-    internal mapStyles: [State] Style
-    internal mapWords: HashTable'(string, State)
+    internal
+    mapStyles: [State] Style
+    internal
+    mapWords: HashTable'(string, State)
 }
 
 impl IRichEditLexer for RichEditLexerSwag

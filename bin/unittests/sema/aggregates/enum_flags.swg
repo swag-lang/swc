@@ -1,6 +1,6 @@
 #global private
 
-alias FlagsAliasU32 = u32
+alias FlagsAliasU32       = u32
 
 #[Swag.Strict]
 alias FlagsStrictAliasU16 = u16

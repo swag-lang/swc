@@ -91,6 +91,8 @@ namespace
         {
             if (block.kind == FormatBlockKind::Function)
                 return options.allowShortClosuresOnSingleLine;
+            if (block.kind == FormatBlockKind::Struct && options.allowShortStructsOnSingleLine == FormatShortBlockStyle::Source)
+                return FormatShortBlockStyle::Source;
             return FormatShortBlockStyle::Preserve;
         }
 
@@ -659,27 +661,78 @@ namespace
             const uint32_t        innerDepth = model.piece(block.openPiece).depth + 1;
             const FormatRoleE     memberRole = isEnum ? FormatRoleE::EnumValueStart : FormatRoleE::FieldDeclStart;
             std::vector<uint32_t> members;
+            std::vector<uint32_t> separators;
             for (uint32_t i = block.openPiece + 1; i < block.closePiece; ++i)
             {
                 const FormatPiece& piece = model.piece(i);
                 if (!piece.removed && piece.depth == innerDepth && piece.hasRole(memberRole))
                     members.push_back(i);
             }
+            if (isStruct)
+            {
+                // A top-level comma after a complete `name: type` field can
+                // separate fields. A comma before the field's `:` belongs to
+                // a multi-name declaration such as `x, y: s32` and must stay.
+                for (uint32_t i = block.openPiece + 1; i < block.closePiece; ++i)
+                {
+                    const FormatPiece& separator = model.piece(i);
+                    if (separator.removed || separator.depth != innerDepth || separator.isNot(TokenId::SymComma))
+                        continue;
+
+                    bool completesField = false;
+                    for (uint32_t p = model.prevPiece(i); p != INVALID_PIECE && p > block.openPiece; p = model.prevPiece(p))
+                    {
+                        const FormatPiece& piece = model.piece(p);
+                        if (piece.depth == innerDepth && piece.is(TokenId::SymComma))
+                            break;
+                        if (piece.depth == innerDepth && piece.roles.hasAny({FormatRoleE::StmtStart, FormatRoleE::FieldDeclStart}))
+                            break;
+                        if (piece.depth == innerDepth && (piece.is(TokenId::SymColon) || piece.hasRole(FormatRoleE::InitAssign)))
+                        {
+                            completesField = true;
+                            break;
+                        }
+                    }
+
+                    const uint32_t next = model.nextPiece(i);
+                    if (completesField && next != INVALID_PIECE && next < block.closePiece && model.piece(next).depth == innerDepth && std::ranges::find(members, next) == members.end())
+                    {
+                        model.piece(next).roles.add(FormatRoleE::StmtStart);
+                        model.piece(next).roles.add(FormatRoleE::FieldDeclStart);
+                        members.push_back(next);
+                        separators.push_back(i);
+                    }
+                }
+                std::ranges::sort(members);
+            }
+
             if (members.size() < 2)
                 continue;
 
-            for (uint32_t i = block.openPiece + 1; i < block.closePiece; ++i)
+            if (isEnum)
             {
-                FormatPiece& piece = model.piece(i);
-                if (!piece.removed && piece.depth == innerDepth && piece.is(TokenId::SymComma))
-                    model.removePiece(i);
+                for (uint32_t i = block.openPiece + 1; i < block.closePiece; ++i)
+                {
+                    FormatPiece& piece = model.piece(i);
+                    if (!piece.removed && piece.depth == innerDepth && piece.is(TokenId::SymComma))
+                        model.removePiece(i);
+                }
+            }
+            else
+            {
+                for (const uint32_t separator : separators)
+                    model.removePiece(separator);
             }
 
             const Utf8 base(model.lineIndentOf(block.headPiece));
             const Utf8 inner = FormatPassUtil::indentPlusOne(model, base.view());
             for (const uint32_t member : members)
-                model.setGapBreak(member, 1, inner.view());
-            model.setGapBreak(block.closePiece, 1, base.view());
+            {
+                if (!isStruct || !model.gapHasNewline(member))
+                    model.setGapBreak(member, 1, inner.view());
+            }
+            if (!isStruct || !model.gapHasNewline(block.closePiece))
+                model.setGapBreak(block.closePiece, 1, base.view());
         }
     }
 

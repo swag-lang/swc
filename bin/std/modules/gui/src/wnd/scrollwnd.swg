@@ -14,7 +14,8 @@ public enum ScrollWndFlags
 // Hosts one view in a scrollable viewport with optional smooth panning and scrollbars.
 public struct ScrollWnd
 {
-    using frameWnd: FrameWnd     // Embedded frame wnd state.
+    using
+    frameWnd: FrameWnd     // Embedded frame wnd state.
 
     verticalScrollStep:   f32 = 50     // Vertical distance applied per mouse-wheel notch.
     horizontalScrollStep: f32 = 50     // Horizontal distance applied per shifted wheel notch.

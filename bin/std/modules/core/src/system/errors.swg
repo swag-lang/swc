@@ -4,60 +4,69 @@
 // Represents invalid format error.
 struct InvalidFormatError
 {
-    using base: Swag.BaseError     // Embedded base state.
+    using
+    base: Swag.BaseError     // Embedded base state.
 }
 
 // Represents unsupported format error.
 struct UnsupportedFormatError
 {
-    using base: Swag.BaseError     // Embedded base state.
+    using
+    base: Swag.BaseError     // Embedded base state.
 }
 
 // Represents bad parameter error.
 struct BadParameterError
 {
-    using base: Swag.BaseError     // Embedded base state.
+    using
+    base: Swag.BaseError     // Embedded base state.
 }
 
 // Represents syntax error.
 struct SyntaxError
 {
-    using base: Swag.BaseError     // Embedded base state.
-    line, col:  u64                // Line associated with this value.
-    seek:       u64                // Seek associated with this value.
+    using
+    base:      Swag.BaseError     // Embedded base state.
+    line, col: u64                // Line associated with this value.
+    seek:      u64                // Seek associated with this value.
 }
 
 // Represents overflow error.
 struct OverflowError
 {
-    using base: Swag.BaseError     // Embedded base state.
+    using
+    base: Swag.BaseError     // Embedded base state.
 }
 
 // Represents parse incomplete error.
 struct ParseIncompleteError
 {
-    using base: Swag.BaseError     // Embedded base state.
+    using
+    base: Swag.BaseError     // Embedded base state.
 }
 
 // Represents serialization error.
 struct SerializationError
 {
-    using base: Swag.BaseError            // Embedded base state.
-    field:      TypeValue = undefined     // Can contain the bad field
+    using
+    base:  Swag.BaseError            // Embedded base state.
+    field: TypeValue = undefined     // Can contain the bad field
 }
 
 // Represents file not found error.
 struct FileNotFoundError
 {
-    using base: Swag.BaseError     // Embedded base state.
-    fileName:   #null string       // File name associated with this value.
+    using
+    base:     Swag.BaseError     // Embedded base state.
+    fileName: #null string       // File name associated with this value.
 }
 
 // Represents invalid file name error.
 struct InvalidFileNameError
 {
-    using base: Swag.BaseError     // Embedded base state.
-    fileName:   #null string       // File name associated with this value.
+    using
+    base:     Swag.BaseError     // Embedded base state.
+    fileName: #null string       // File name associated with this value.
 }
 
 // Represents invalid version.

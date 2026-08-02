@@ -8,13 +8,7 @@ members. For enums, it simplifies code by avoiding repetitive type prefixes.
 */
 #test
 {
-    enum RGB
-    {
-        R
-        G
-        B
-    }
-
+    enum RGB { R, G, B }
     @assert(RGB.R == 0)     // Fully qualified access.
 
     using RGB           // Import enum members into the current scope.
@@ -36,8 +30,9 @@ for composition-like behavior, improving code readability and reducing nesting.
 
     struct Point3
     {
-        using base: Point2     // Bring 'Point2' fields into 'Point3' scope.
-        z:          s32
+        using
+        base: Point2     // Bring 'Point2' fields into 'Point3' scope.
+        z:    s32
     }
 
     var value: Point3

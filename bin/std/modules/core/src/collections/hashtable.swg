@@ -5,9 +5,11 @@ using Swag
 // Represents a single key-value pair entry within a HashTable.
 struct(K, V) HashTableEntry
 {
-    internal hash: u32
-    readonly key: K     // The key.
-    value: V            // The value associated with the key.
+    internal
+    hash: u32
+    readonly
+    key:   K     // The key.
+    value: V     // The value associated with the key.
 }
 
 // A hash table implemented with open-addressing that maps keys to values.
@@ -22,7 +24,8 @@ struct(K, V) HashTable
     #[Swag.NoDoc]
     const HASH_FIRST = 2'u32
 
-    internal allocator: #null IAllocator
+    internal
+    allocator: #null IAllocator
 
     // Sizes are reported, never set: the table grows itself when it needs to.
     readonly

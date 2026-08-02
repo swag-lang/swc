@@ -7,29 +7,10 @@ Enums define a set of named constant values. Unlike C/C++, Swag allows enum valu
 */
 #test
 {
-    enum Values0
-    {
-        A
-        B
-    }
-
-    enum Values1
-    {
-        A
-        B
-    }
-
-    enum Values2
-    {
-        A
-        B
-    }
-
-    enum Values3
-    {
-        A
-        B
-    }
+    enum Values0 { A, B }
+    enum Values1 { A, B }
+    enum Values2 { A, B }
+    enum Values3 { A, B }
 }
 
 /**
@@ -40,12 +21,7 @@ By default, enums use the `s32` type for storage.
 
 #test
 {
-    enum Values
-    {
-        A
-        B
-    }
-
+    enum Values { A, B }
     let type = #typeof(Values)
     @assert(type.rawType == s32)
     #assert(#typeof(Values) == Values)
@@ -77,13 +53,7 @@ Without explicit values, enums start at 0 and increment by 1.
 */
 #test
 {
-    enum Value: s64
-    {
-        A
-        B
-        C
-    }
-
+    enum Value: s64 { A, B, C }
     #assert(Value.A == 0)
     #assert(Value.B == 1)
     #assert(Value.C == 2)
@@ -94,13 +64,7 @@ Custom values can be assigned manually.
 */
 #test
 {
-    enum Value: s64
-    {
-        A = 10
-        B = 20
-        C = 30
-    }
-
+    enum Value: s64 { A = 10, B = 20, C = 30 }
     #assert(Value.A == 10)
     #assert(Value.B == 20)
     #assert(Value.C == 30)
@@ -133,13 +97,7 @@ Non-integer enums require explicit assignments.
 
 #test
 {
-    enum Value1: string
-    {
-        A = "string 1"
-        B = "string 2"
-        C = "string 3"
-    }
-
+    enum Value1: string { A = "string 1", B = "string 2", C = "string 3" }
     #assert(Value1.A == "string 1")
 
     enum Value2: f32
@@ -176,13 +134,7 @@ Non-integer enums require explicit assignments.
 */
 #test
 {
-    enum Value
-    {
-        A
-        B
-        C
-    }
-
+    enum Value { A, B, C }
     using Value
 
     @assert(A == 0)
@@ -198,13 +150,7 @@ With `#[Swag.EnumFlags]`, enum values represent bit flags. They should use unsig
 #test
 {
     #[Swag.EnumFlags]
-    enum MyFlags: u8
-    {
-        A
-        B
-        C
-        D
-    }
+    enum MyFlags: u8 { A, B, C, D }
 
     #assert(MyFlags.A == 0b00000001)
     #assert(MyFlags.B == 0b00000010)
@@ -221,12 +167,7 @@ Enums can store array constants.
 */
 #test
 {
-    enum Value: const [2] s32
-    {
-        A = [1, 2]
-        B = [10, 20]
-    }
-
+    enum Value: const [2] s32 { A = [1, 2], B = [10, 20] }
     #assert(#typeof(Value).rawType == const [2] s32)
 }
 
@@ -237,12 +178,7 @@ Enums can also store slices.
 */
 #test
 {
-    enum Value: const [..] s32
-    {
-        A = [1, 2]
-        B = [10, 20, 30]
-    }
-
+    enum Value: const [..] s32 { A = [1, 2], B = [10, 20, 30] }
     let a = cast(const [..] s32) Value.A
     let b = cast(const [..] s32) Value.B
     #assert(@countof(a) == 2)
@@ -255,11 +191,7 @@ Enums can also store slices.
 
 Enums can import values from another enum using `using`. Both enums must share the same base type.
 */
-enum BasicErrors
-{
-    FailedToLoad
-    FailedToSave
-}
+enum BasicErrors { FailedToLoad, FailedToSave }
 
 enum MyErrors
 {
@@ -296,12 +228,7 @@ forming the contiguous range from zero to the last value.
 */
 #test
 {
-    enum MyIndex
-    {
-        First
-        Second
-        Third
-    }
+    enum MyIndex { First, Second, Third }
 
     const Array: [MyIndex] s32 = [0, 1, 2]
     const Valu                 = Array[MyIndex.First]
@@ -330,12 +257,7 @@ Swag infers enum types automatically in assignments and expressions.
 
 #test
 {
-    enum Values
-    {
-        A
-        B
-    }
-
+    enum Values { A, B }
     let x: Values = Values.A
     let y: Values = .A
     @assert(x == y)
@@ -350,12 +272,7 @@ The bare form `case A` does not implicitly enter the enum scope.
 */
 #test
 {
-    enum Values
-    {
-        A
-        B
-    }
-
+    enum Values { A, B }
     let x = Values.A
 
     switch x
@@ -372,12 +289,7 @@ You can omit the enum name when the type is already known.
 */
 #test
 {
-    enum Values
-    {
-        A
-        B
-    }
-
+    enum Values { A, B }
     let x = Values.A
     @assert(x == .A)
 }
@@ -390,11 +302,7 @@ This works with flags too.
 #test
 {
     #[Swag.EnumFlags]
-    enum Values
-    {
-        A
-        B
-    }
+    enum Values { A, B }
 
     let x = Values.A | Values.B
     @assert((x & .A) and (x & .B))
@@ -405,12 +313,7 @@ This works with flags too.
 */
 #test
 {
-    enum Values
-    {
-        A
-        B
-    }
-
+    enum Values { A, B }
     func toto(v1, v2: Values) {}
     toto(.A, .B)
 }
@@ -422,13 +325,7 @@ You can loop over the number of enum values with `for`, or iterate the values th
 */
 #test
 {
-    enum RGB
-    {
-        R
-        G
-        B
-    }
-
+    enum RGB { R, G, B }
     var cpt = 0
     for RGB do
         cpt += 1
@@ -440,13 +337,7 @@ Binding a name offers a structured way to iterate and handle specific values.
 */
 #test
 {
-    enum RGB
-    {
-        R
-        G
-        B
-    }
-
+    enum RGB { R, G, B }
     for val in RGB
     {
         switch val

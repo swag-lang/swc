@@ -53,7 +53,8 @@ struct RichString
     hasUrl:     bool                // Whether at least one chunk is a URL.
 
     // Whether the chunks must be rebuilt before the next layout or paint.
-    internal dirty: bool
+    internal
+    dirty: bool
 }
 
 impl RichString

@@ -124,7 +124,7 @@ struct Point { x: s32, y: s32 }
 
 enum Kind: u8 { A = 1, B = 2 }
 
-alias KindAlias = Kind
+alias KindAlias       = Kind
 
 #[Swag.Strict]
 alias StrictKindAlias = Kind

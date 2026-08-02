@@ -13,7 +13,8 @@ enum ProgressBarFlags
 // Displays finite progress or indeterminate activity.
 struct ProgressBar
 {
-    using wnd: Wnd     // Embedded window behavior and presentation.
+    using
+    wnd: Wnd     // Embedded window behavior and presentation.
 
     readonly
     {
@@ -21,7 +22,8 @@ struct ProgressBar
         flags = ProgressBarFlags.None     // Active presentation options.
     }
 
-    internal animationPhase: f32     // Position of the indeterminate marker from zero to one.
+    internal
+    animationPhase: f32     // Position of the indeterminate marker from zero to one.
 }
 
 impl IWnd for ProgressBar

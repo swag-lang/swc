@@ -49,8 +49,10 @@ enum TabLayout
 // Describes one tab label and its optional owned page view.
 struct TabItem
 {
-    using item: Item              // Embedded label, icon, identifier, and user data.
-    readonly view: #null *Wnd     // Page view owned by the tab control, if any.
+    using
+    item: Item     // Embedded label, icon, identifier, and user data.
+    readonly
+    view: #null *Wnd     // Page view owned by the tab control, if any.
 
     // Placement computed by the bar layout, and the color animations of the painted parts.
     internal
@@ -66,7 +68,8 @@ struct TabItem
 // Displays a selectable tab bar and one owned page view at a time.
 struct Tab
 {
-    using wnd: Wnd     // Embedded window behavior and presentation.
+    using
+    wnd: Wnd     // Embedded window behavior and presentation.
 
     sigSelectionChanged: SigArray'func||(*Tab)     // Emitted after the selected tab changes.
 

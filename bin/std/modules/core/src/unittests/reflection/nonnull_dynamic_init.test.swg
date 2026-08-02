@@ -20,7 +20,7 @@ struct CoreNonNullRuntimeDefault
     value: string = "fallback"
 }
 
-alias CoreNonNullRuntimeDefaultPair = [2] CoreNonNullRuntimeDefault
+alias CoreNonNullRuntimeDefaultPair  = [2] CoreNonNullRuntimeDefault
 
 #[Swag.Strict]
 alias CoreNonNullRuntimeDefaultAlias = CoreNonNullRuntimeDefault

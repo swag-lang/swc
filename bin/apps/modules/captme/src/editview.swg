@@ -1,6 +1,7 @@
 struct EditView
 {
-    using wnd: Wnd
+    using
+    wnd: Wnd
     #[Swag.Late]
     main: *MainWnd
     #[Swag.Late]

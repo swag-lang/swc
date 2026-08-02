@@ -4,7 +4,7 @@
 alias RotateStrictU32 = u32
 
 #[Swag.Strict]
-alias RotateStrictU8 = u8
+alias RotateStrictU8  = u8
 
 // ============================================================
 // @rol — rotate left

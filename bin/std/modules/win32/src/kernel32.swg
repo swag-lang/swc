@@ -3,47 +3,47 @@
 #foreignlib("kernel32")
 using Swag
 
-alias ATOM          = u16
-alias HANDLE        = #null const [*] void
-alias HGLOBAL       = HANDLE
-alias HLOCAL        = HANDLE
-alias HINSTANCE     = HANDLE
-alias HMODULE       = HANDLE
-alias LRESULT       = s64
-alias WORD          = u16
-alias DWORD         = u32
-alias BOOL          = s32
-alias BYTE          = u8
-alias LPBYTE        = #null *BYTE
-alias LONG          = s32
-alias ULONG         = u32
-alias LPVOID        = #null [*] void
-alias LPCVOID       = #null const [*] void
-alias LPCSTR        = #null const [*] u8
-alias PCSTR         = #null const [*] u8
-alias LPCWSTR       = #null const [*] u16
-alias PCWSTR        = #null const [*] u16
-alias LPCTSTR       = #null const [*] u16
-alias LPDWORD       = #null *DWORD
-alias DWORD_PTR     = u64
-alias ULONG_PTR     = u64
-alias UINT          = u32
-alias INT           = s32
-alias SHORT         = s16
-alias USHORT        = u16
-alias LARGE_INTEGER = s64
-alias DWORD64       = u64
-alias ULONG64       = u64
-alias PLONG         = #null *LONG
-alias LONG_PTR      = s64
-alias CHAR          = u8
-alias WCHAR         = u16
-alias LPSTR         = #null [*] CHAR
-alias LPWSTR        = #null [*] WCHAR
-alias LPCH          = #null [*] CHAR
-alias LPWCH         = #null [*] WCHAR
-alias SIZE_T        = u64
-alias va_list       = #null [*] u8
+alias ATOM                   = u16
+alias HANDLE                 = #null const [*] void
+alias HGLOBAL                = HANDLE
+alias HLOCAL                 = HANDLE
+alias HINSTANCE              = HANDLE
+alias HMODULE                = HANDLE
+alias LRESULT                = s64
+alias WORD                   = u16
+alias DWORD                  = u32
+alias BOOL                   = s32
+alias BYTE                   = u8
+alias LPBYTE                 = #null *BYTE
+alias LONG                   = s32
+alias ULONG                  = u32
+alias LPVOID                 = #null [*] void
+alias LPCVOID                = #null const [*] void
+alias LPCSTR                 = #null const [*] u8
+alias PCSTR                  = #null const [*] u8
+alias LPCWSTR                = #null const [*] u16
+alias PCWSTR                 = #null const [*] u16
+alias LPCTSTR                = #null const [*] u16
+alias LPDWORD                = #null *DWORD
+alias DWORD_PTR              = u64
+alias ULONG_PTR              = u64
+alias UINT                   = u32
+alias INT                    = s32
+alias SHORT                  = s16
+alias USHORT                 = u16
+alias LARGE_INTEGER          = s64
+alias DWORD64                = u64
+alias ULONG64                = u64
+alias PLONG                  = #null *LONG
+alias LONG_PTR               = s64
+alias CHAR                   = u8
+alias WCHAR                  = u16
+alias LPSTR                  = #null [*] CHAR
+alias LPWSTR                 = #null [*] WCHAR
+alias LPCH                   = #null [*] CHAR
+alias LPWCH                  = #null [*] WCHAR
+alias SIZE_T                 = u64
+alias va_list                = #null [*] u8
 
 alias LPTHREAD_START_ROUTINE = func(#null *void)->DWORD
 alias WAITORTIMERCALLBACK    = func(#null *void, BOOL)
@@ -237,7 +237,8 @@ struct OVERLAPPED
 {
     Internal:     ULONG_PTR
     InternalHigh: ULONG_PTR
-    using data:   union
+    using
+    data: union
     {
         fileOffset: OVERLAPPED_OFFSET
         Pointer:    #null *void

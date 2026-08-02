@@ -146,7 +146,8 @@ struct Command
 {
     id: CommandId = undefined     // Operation represented by the active union payload.
 
-    using params: union     // Command-specific payload selected by `id`; inactive members must not be read.
+    using
+    params: union     // Command-specific payload selected by `id`; inactive members must not be read.
     {
         clear:          struct{ color: Color }
         drawTriangles:  struct{ start: u32, count: u32 }

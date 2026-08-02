@@ -1,16 +1,16 @@
 #global private
 
 #[Swag.Strict]
-alias QualifiedStrictPtr = *s32
+alias QualifiedStrictPtr      = *s32
 
 #[Swag.Strict]
-alias QualifiedStrictSlice = [..] s32
+alias QualifiedStrictSlice    = [..] s32
 
 #[Swag.Strict]
-alias QualifiedStrictString = string
+alias QualifiedStrictString   = string
 
 #[Swag.Strict]
-alias QualifiedStrictCString = cstring
+alias QualifiedStrictCString  = cstring
 
 #[Swag.Strict]
 alias QualifiedStrictTypeInfo = typeinfo

@@ -35,7 +35,8 @@ struct RichEditMapping
 // Provides a multiline rich-text editor with styling, selection, undo, and pluggable lexing.
 struct RichEditCtrl
 {
-    using frameWnd:       FrameWnd                            // Embedded frame wnd state.
+    using
+    frameWnd:             FrameWnd                            // Embedded frame wnd state.
     flags                     = RichEditFlags.None            // Active editor behavior flags.
     lineSpacing:          f32                                 // Extra vertical spacing, in logical pixels, between display lines.
     overwriteMode:        bool                                // Whether typed text replaces the rune under the caret.

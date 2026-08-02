@@ -2,7 +2,8 @@ using Core, Core.Errors
 
 struct CodecPcmToPcm16
 {
-    using base: Codec
+    using
+    base: Codec
 }
 
 impl ICodec for CodecPcmToPcm16

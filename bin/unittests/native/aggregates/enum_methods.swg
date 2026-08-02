@@ -136,7 +136,7 @@ enum Slot: u8 { A, B, C }
 
 enum ImportedAliasErrors { FailedToLoad, FailedToSave }
 
-alias ImportedAliasErrorsAlias = ImportedAliasErrors
+alias ImportedAliasErrorsAlias       = ImportedAliasErrors
 
 #[Swag.Strict]
 alias StrictImportedAliasErrorsAlias = ImportedAliasErrors

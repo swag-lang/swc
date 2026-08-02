@@ -5,8 +5,10 @@ using Swag
 // Represents a single entry within a HashSet.
 struct(K) HashSetEntry
 {
-    internal hash: u32
-    readonly key: K     // The key itself.
+    internal
+    hash: u32
+    readonly
+    key: K     // The key itself.
 }
 
 // A hash set implemented with an open-addressing hash table.
@@ -21,7 +23,8 @@ struct(K) HashSet
     #[Swag.NoDoc]
     const HASH_FIRST = 2'u32
 
-    internal allocator: #null IAllocator
+    internal
+    allocator: #null IAllocator
 
     // Sizes are reported, never set: the set grows itself when it needs to.
     readonly

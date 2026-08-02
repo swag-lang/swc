@@ -1741,8 +1741,9 @@ struct PropHeadlessUsingBase
 
 struct PropHeadlessUsingDerived
 {
-    using base: PropHeadlessUsingBase
-    ownVal:     s32
+    using
+    base:   PropHeadlessUsingBase
+    ownVal: s32
 }
 
 // usingFieldsLast walks the struct's own fields before recursing into its 'using'
@@ -1878,12 +1879,7 @@ struct PropSameCategData
     @assert((notnull descIt.checkBox.parent).position.width > cast(f32) opt.properties.editorWidth)
 }
 
-enum PropAlignChoice
-{
-    A
-    B
-    C
-}
+enum PropAlignChoice { A, B, C }
 
 struct PropAlignData
 {

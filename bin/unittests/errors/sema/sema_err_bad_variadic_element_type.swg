@@ -1,6 +1,6 @@
 #global private
 
-alias VoidAlias = void
+alias VoidAlias       = void
 
 #[Swag.Strict]
 alias StrictVoidAlias = void

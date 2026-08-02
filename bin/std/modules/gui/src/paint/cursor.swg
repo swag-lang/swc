@@ -20,7 +20,8 @@ enum CursorShape
 // Lightweight descriptor for a shared system cursor.
 struct Cursor
 {
-    using native: NativeCursor     // Embedded native state.
+    using
+    native: NativeCursor     // Embedded native state.
 }
 
 impl Cursor

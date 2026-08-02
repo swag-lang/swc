@@ -215,7 +215,8 @@ struct Wnd
 
     // The child list is maintained by the window itself: attach through [setParent] and
     // detach through [detachChild] so parent, surface, style, and layout state stay consistent.
-    readonly children: Array'(*Wnd)
+    readonly
+    children: Array'(*Wnd)
 
     name:    RichString      // Display text with optional rich spans.
     id:      #null WndId     // Optional stable command, lookup, and persistence identifier.
@@ -234,7 +235,8 @@ struct Wnd
     focusStrategy: FocusStrategy = OnMousePress     // Pointer-to-keyboard focus policy.
 
     backgroundStyle: BackgroundStyle = Transparent     // Semantic theme background painted before content.
-    internal isAllocated: bool                         // Whether destruction must release this allocation.
+    internal
+    isAllocated: bool     // Whether destruction must release this allocation.
 
     // Layout bookkeeping. The layout pass owns it: reading it tells what the window is doing,
     // writing it from outside would desynchronize the pass from the tree.

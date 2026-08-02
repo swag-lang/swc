@@ -8,7 +8,8 @@ public struct BitArray
 {
     allocator: #null IAllocator     // The allocator used for memory operations.
 
-    readonly count: u64     // The number of bits in the array.
+    readonly
+    count: u64     // The number of bits in the array.
 
     private
     {

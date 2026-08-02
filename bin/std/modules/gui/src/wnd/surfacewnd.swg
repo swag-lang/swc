@@ -14,7 +14,8 @@ public enum SizingBorder
 // Provides the root GUI frame and native caption controls for a [[Gui.Surface]].
 public struct SurfaceWnd
 {
-    using base:    FrameWnd                // Embedded base state.
+    using
+    base:          FrameWnd                // Embedded base state.
     icon:          Icon                    // Icon associated with this value.
     minimizeBtn:   #null *IconButton       // Minimize btn associated with this value.
     maximizeBtn:   #null *IconButton       // Maximize btn associated with this value.

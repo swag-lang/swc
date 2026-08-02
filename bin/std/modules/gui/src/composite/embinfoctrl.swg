@@ -22,7 +22,8 @@ enum InfoBarFlags
 // Displays a themed inline message with a dismiss action.
 struct InfoBar
 {
-    using frameWnd: FrameWnd     // Embedded framed-window behavior and presentation.
+    using
+    frameWnd: FrameWnd     // Embedded framed-window behavior and presentation.
 
     sigDismissed: SigArray'func||(*InfoBar)     // Emitted when user action or timeout dismisses the bar.
 
@@ -38,7 +39,8 @@ struct InfoBar
         closeButton: *IconButton     // Dismiss button owned by this bar.
     }
 
-    internal timer: #null *Timer     // Active auto-dismiss timer.
+    internal
+    timer: #null *Timer     // Active auto-dismiss timer.
 }
 
 impl IWnd for InfoBar

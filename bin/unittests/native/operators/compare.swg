@@ -6,22 +6,22 @@ enum CmpEnum: u16
 }
 
 #[Swag.Strict]
-alias CompareStrictEnum = CmpEnum
+alias CompareStrictEnum        = CmpEnum
 
 #[Swag.Strict]
-alias CompareStrictAny = any
+alias CompareStrictAny         = any
 
 #[Swag.Strict]
-alias CompareStrictS32Ptr = [*] s32
+alias CompareStrictS32Ptr      = [*] s32
 
 #[Swag.Strict]
 alias CompareOtherStrictS32Ptr = [*] s32
 
 #[Swag.Strict]
-alias CompareStrictS32 = s32
+alias CompareStrictS32         = s32
 
 #[Swag.Strict]
-alias CompareStrictF32 = f32
+alias CompareStrictF32         = f32
 
 struct CompareIdentityBase
 {

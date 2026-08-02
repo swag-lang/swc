@@ -11,9 +11,10 @@ enum FormStepType
 #[Swag.Using(Properties)]
 struct FormStep
 {
-    using base: BaseForm
-    kind:       FormShapeKind = Ellipse
-    index:      u32           = 1
+    using
+    base:  BaseForm
+    kind:  FormShapeKind = Ellipse
+    index: u32           = 1
     #[Name("Step")]
     typeIndex = FormStepType.Number
 

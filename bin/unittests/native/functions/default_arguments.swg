@@ -18,7 +18,7 @@ enum DefaultKind
 }
 
 #[Swag.Strict]
-alias StrictDefaultKind = DefaultKind
+alias StrictDefaultKind  = DefaultKind
 
 #[Swag.Strict]
 alias StrictDefaultFloat = f32

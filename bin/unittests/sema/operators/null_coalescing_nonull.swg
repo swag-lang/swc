@@ -9,7 +9,7 @@ struct OrelseNonNullItem
 alias OrelseNullablePointerAlias = #null *OrelseNonNullItem
 
 #[Swag.Strict]
-alias OrelseNullableStringAlias = #null string
+alias OrelseNullableStringAlias  = #null string
 
 #[Swag.Strict]
 alias OrelseRequiredPointerAlias = *OrelseNonNullItem

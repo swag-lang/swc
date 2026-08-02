@@ -1,7 +1,8 @@
 // Provides shared pointer state, command-state integration, icons, and activation signals for buttons.
 public struct Button
 {
-    using wnd: Wnd     // Embedded window behavior and presentation.
+    using
+    wnd: Wnd     // Embedded window behavior and presentation.
 
     readonly
     {

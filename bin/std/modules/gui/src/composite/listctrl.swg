@@ -27,11 +27,12 @@ enum ListFlags
 // Stores one cell in a [[Gui.ListLine]].
 struct ListItem
 {
-    using item: Item                         // Embedded item state.
-    sortKey:    String                       // Optional key used instead of the displayed label when sorting.
-    colorBk:    Color                        // Cell background override, or transparent for the list color.
-    colorFg:    Color                        // Cell foreground override, or transparent for the list color.
-    column:     u32                          // Zero-based column index.
+    using
+    item:    Item                            // Embedded item state.
+    sortKey: String                          // Optional key used instead of the displayed label when sorting.
+    colorBk: Color                           // Cell background override, or transparent for the list color.
+    colorFg: Color                           // Cell foreground override, or transparent for the list color.
+    column:  u32                             // Zero-based column index.
     horzAlign = StringHorzAlignment.Left     // Cell content alignment.
 }
 
@@ -61,7 +62,8 @@ struct ListLine
 // Displays selectable flat, multi-column, hierarchical, or virtual rows.
 struct ListCtrl
 {
-    using frameWnd: FrameWnd     // Embedded frame wnd state.
+    using
+    frameWnd: FrameWnd     // Embedded frame wnd state.
 
     readonly
     {
@@ -116,12 +118,14 @@ struct ListCtrl
 // Hosts the scrollable, painted row viewport of a [[Gui.ListCtrl]].
 struct ListView
 {
-    using wnd: Wnd     // Embedded wnd state.
+    using
+    wnd: Wnd     // Embedded wnd state.
     #[Swag.Late]
     list: *ListCtrl     // List associated with this value.
 
     // Set when a press was consumed by something else, so the matching release is ignored.
-    internal discardMouseRelease: bool
+    internal
+    discardMouseRelease: bool
 }
 
 impl ListLine

@@ -1,6 +1,6 @@
 #global private
 
-alias SSW = Swag
+alias SSW    = Swag
 
 alias DWORD1 = u32
 const A: DWORD1 = 0

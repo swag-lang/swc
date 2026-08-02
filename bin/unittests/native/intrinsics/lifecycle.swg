@@ -113,16 +113,16 @@ enum IntrinsicStrictEnum: u32
 }
 
 #[Swag.Strict]
-alias IntrinsicStrictEnumAlias = IntrinsicStrictEnum
+alias IntrinsicStrictEnumAlias   = IntrinsicStrictEnum
 
 #[Swag.Strict]
-alias IntrinsicStrictIntAlias = s32
+alias IntrinsicStrictIntAlias    = s32
 
 #[Swag.Strict]
-alias IntrinsicStrictFloatAlias = f32
+alias IntrinsicStrictFloatAlias  = f32
 
 #[Swag.Strict]
-alias IntrinsicStrictS32Ptr = *s32
+alias IntrinsicStrictS32Ptr      = *s32
 
 #[Swag.Strict]
 alias IntrinsicStrictStringAlias = string

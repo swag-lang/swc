@@ -30,7 +30,8 @@ enum CircularMarkerForm
 // Provides a circular single-value or range slider.
 struct Circular
 {
-    using wnd: Wnd     // Embedded wnd state.
+    using
+    wnd: Wnd     // Embedded wnd state.
 
     // Configuration flags and visual settings
     flags:      CircularFlags                    // Active value-behavior flags.

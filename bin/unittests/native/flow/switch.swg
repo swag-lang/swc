@@ -23,10 +23,10 @@ enum SwitchStrictAliasEnum: s32
 alias StrictSwitchAliasEnum = SwitchStrictAliasEnum
 
 #[Swag.Strict]
-alias StrictSwitchS32 = s32
+alias StrictSwitchS32       = s32
 
 #[Swag.Strict]
-alias StrictSwitchF32 = f32
+alias StrictSwitchF32       = f32
 
 #test
 {

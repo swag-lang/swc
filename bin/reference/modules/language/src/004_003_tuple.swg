@@ -64,11 +64,13 @@ Tuples can be assigned to each other if their field types match, even if field n
 {
     var x:
     {
-        a: s32, b: s32
+        a: s32
+        b: s32
     }
     var y:
     {
-        c: s32, d: s32
+        c: s32
+        d: s32
     }
 
     y = {1, 2}

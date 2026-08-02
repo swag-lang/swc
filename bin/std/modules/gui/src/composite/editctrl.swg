@@ -5,7 +5,8 @@ using Core, Pixel
 // Pairs a descriptive label with a single-line edit box in one horizontal row.
 struct EditCtrl
 {
-    using frameWnd: FrameWnd     // Embedded framed-window behavior and presentation.
+    using
+    frameWnd: FrameWnd     // Embedded framed-window behavior and presentation.
 
     readonly
     {

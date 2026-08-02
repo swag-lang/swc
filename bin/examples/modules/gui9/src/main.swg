@@ -200,7 +200,7 @@ func onRootEvent(_view: *Wnd, evt: IEvent)->bool
 
     // In automated test mode we just exercise the composite/build and exit;
     // the modal dialogs require interaction so they are not auto-opened.
-    if Env.hasArgument("swag.test") do
+    if Env.isSmokeRun() do
         app.maxRunFrame = 30
 
     surface.show()

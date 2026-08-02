@@ -3,12 +3,12 @@
 
 using Swag, Core, Pixel
 
-// The fake clipboard (enabled by the headless host) mirrors the OS semantics: a string
-// or a typed payload replaces only its own format, adding an image empties everything.
+// The fake clipboard (armed by the sandbox) mirrors the OS semantics: a string or a typed
+// payload replaces only its own format, adding an image empties everything.
 #test
 {
-    Clipboard.setFake(true)
-    defer Clipboard.setFake(false)
+    @assert(Clipboard.isFake())
+    expect Clipboard.resetFake()
 
     @assert(!Clipboard.hasString())
     @assert(!Clipboard.hasImage())

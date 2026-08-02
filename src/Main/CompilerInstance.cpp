@@ -550,6 +550,9 @@ void CompilerInstance::processCommand()
             Command::build(*this);
             break;
         case CommandKind::Run:
+        // A smoke run is an ordinary run with a bound on it and a sandbox around it, so it
+        // takes the same path; what differs travels in the run arguments.
+        case CommandKind::Smoke:
             Command::run(*this);
             break;
         default:

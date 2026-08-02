@@ -70,53 +70,20 @@ impl HeadlessFixture
     {
         .gui.shutdown()
         g_Main = null
-        testReleaseScratchLibrary()
     }
 }
 
-// Folder the tests use as their library, under the shared 'swag-tests' scratch area and
-// never under the user's documents. Each fixture gets its own, so two tests can never see
-// each other's captures and none of them ever enumerates a real library.
-func testLibraryFolder()->String
-{
-    let tempDir = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
-    let folder  = Path.combine(tempDir.toString(), "swag-tests")
-    let root    = Path.combine(folder.toString(), "captme-library")
-
-    var name = String.from("run-")
-    name += Guid64.random().toString()
-    return Path.combine(root.toString(), name.toString())
-}
-
-// Points the library at a fresh scratch folder for the duration of one fixture.
+// Establishes the library a fixture works against.
 //
-// Capture actions such as Duplicate write a real file through 'Library.newFileName', so the
-// redirection has to be established before any fixture runs, and it has to be proven rather
-// than assumed: reading the folder back is the only thing standing between a test and the
-// user's own captures.
-//
-// Nothing here deletes anything. A fixture folder is unique and empty by construction, so
-// there is no cleanup to perform and no enumeration that could be pointed at real data.
+// captme resolves it from the documents folder, which the sandbox already answers inside
+// itself, so nothing here has to redirect anything. What it does do is refuse to run when the
+// sandbox is not armed: these tests exercise capture actions that write real files through
+// 'Library.newFileName', and outside a sandbox those land in the user's own library.
 func testUseScratchLibrary()
 {
-    Library.useFolder(testLibraryFolder())
+    @assert(Env.isSandboxed())
     discard catch Library.init()
 
-    // The library must be somewhere under the scratch area. A redirection that did not take
-    // effect leaves the default document library in place, and every capture written by the
-    // fixture would land in it.
-    let folder = Library.getFolder()
-    @assert(!folder.isEmpty())
-    @assert(folder.contains("swag-tests"))
-
-    g_Library.files.clear()
-    g_Library.loaded = false
-}
-
-// Restores the user's document library.
-func testReleaseScratchLibrary()
-{
-    Library.useFolder("")
     g_Library.files.clear()
     g_Library.loaded = false
 }

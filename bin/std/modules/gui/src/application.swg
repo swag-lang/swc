@@ -645,17 +645,17 @@ impl Application
             .keyboardFocusWnd = null
     }
 
-    // When launched with the 'swag.test' argument, auto-exit after 'testFrames' frames.
-    // Useful when the surface is created manually instead of through 'runSurface'.
+    // Kept for callers that still bound their own run; a smoke run already bounds itself.
+    #[Swag.Deprecated("a smoke run sets the frame budget itself")]
     mtd applyTestArgs(testFrames: u32 = 50)
     {
-        if Env.hasArgument("swag.test") do
-            .maxRunFrame = testFrames
+        discard testFrames
     }
 
     // Creates a main surface and runs its application until shutdown.
-    // When the application is launched with the 'swag.test' argument, it auto-exits
-    // after 'testFrames' frames, so examples can be run headless by the test suite.
+    //
+    // A smoke run stops on its own after the frame budget its launcher set, so an example
+    // written with this needs nothing special to be exercised by the test suite.
     func runSurface(x, y, width, height: s32, title: #null string = null, view: #null *Wnd = null, borders = true, canSize = true, hook: #null HookEvent = null, init: #null func(*Application) = null, testFrames: u32 = 50)
     {
         var app: Application
@@ -669,8 +669,7 @@ impl Application
         surface.setTitle(title)
         if init do
             init(&app)
-        if Env.hasArgument("swag.test") do
-            app.maxRunFrame = testFrames
+        discard testFrames
         surface.show()
         app.run()
     }
@@ -962,6 +961,11 @@ impl Application
     #[Swag.Discardable]
     mtd run()->s32
     {
+        // A smoke run is bounded by whoever launched it. Applying it here means no
+        // application, example or script has to recognize that it is being exercised.
+        if !.maxRunFrame do
+            .maxRunFrame = Env.smokeFrames()
+
         for s in .surfaces
         {
             var evt = FrameEvent{}

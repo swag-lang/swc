@@ -6,7 +6,9 @@ using Swag
 
 func getShellExecutablePath()->String
 {
-    let fontsDir = Env.getSpecialDirectory(Env.SpecialDirectory.Font)
+    // This test launches a real system executable, so it has to look outside any sandbox to
+    // find it. Data an application owns must never be reached this way.
+    let fontsDir = Env.realSpecialDirectory(Env.SpecialDirectory.Font)
     @assert(fontsDir.length != 0)
 
     let windowsDir = Path.directoryName(fontsDir.toString())

@@ -1951,7 +1951,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
             return Result::Error;
 
         std::vector<fs::path> requiredArtifacts;
-        if ((moduleCmdLine.command == CommandKind::Build || moduleCmdLine.command == CommandKind::Run) &&
+        if ((moduleCmdLine.command == CommandKind::Build || isRunLikeCommand(moduleCmdLine.command)) &&
             Runtime::backendKindProducesNativeArtifact(probeCompiler.buildCfg().backendKind))
         {
             NativeBackendBuilder        nativeProbeBuilder(probeCompiler, false);
@@ -1986,7 +1986,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
                     return Result::Error;
             }
 
-            if (moduleCmdLine.command == CommandKind::Run)
+            if (isRunLikeCommand(moduleCmdLine.command))
             {
                 if (probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable)
                 {

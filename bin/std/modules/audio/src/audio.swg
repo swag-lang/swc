@@ -12,7 +12,14 @@ public func createEngine(kind: DriverKind = .Default) fail
 {
     if g_Driver.isCreated do
         fail BadParameterError{"audio engine is already created"}
-    g_Driver.create(kind)
+
+    // A sandboxed run never opens the machine's audio device. Nobody wants a test suite or a
+    // smoke run making noise, and the device is a shared resource like any other.
+    var resolved = kind
+    if Env.isSandboxed() do
+        resolved = .NoSound
+
+    g_Driver.create(resolved)
 }
 
 // Creates the process-wide engine without opening an audio device.

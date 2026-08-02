@@ -317,7 +317,7 @@ func updateShortcuts()
 
 func updateTestMode()
 {
-    if !Env.hasArgument("swag.test") do
+    if !Env.isSmokeRun() do
         return
 
     g_TestFrame += 1
@@ -350,7 +350,7 @@ func updateTestMode()
     try g_Window.show()
 
     var loop: Env.WindowLoop
-    if Env.hasArgument("swag.test") do
+    if Env.isSmokeRun() do
         loop.maxTestFrames = cast(u32) MaxPages * cast(u32) TestFramesPerPage
     while loop.next()
     {

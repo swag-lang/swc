@@ -49,8 +49,6 @@ var g_App: Application
     let surface = notnull (try g_App.createSurface(0, 0, 10, 10, SurfaceFlags.StandardWindow, surfaceId: "Captme"))
     let mainWnd = MainWnd.create(surface.wnd)
 
-    if Env.hasArgument("swag.test") do
-        g_App.maxRunFrame = 50
     if !Env.hasArgument("--hide") do
         surface.show()
 

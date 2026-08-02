@@ -197,10 +197,12 @@ SWC_TEST_BEGIN(Compiler_TestCommandForcesSwagTestRunArg)
     if (parserCmdLine.runArgs.size() != 1 || parserCmdLine.runArgs[0] != "custom")
         return Result::Error;
 
+    // The test command adds both markers: the one that turns the generated executable into a
+    // test runner, and the one that isolates it from the machine it runs on.
     const std::vector<Utf8> runArgs = effectiveGeneratedArtifactRunArgs(parserCmdLine);
-    if (runArgs.size() != 2)
+    if (runArgs.size() != 3)
         return Result::Error;
-    if (runArgs[0] != "custom" || runArgs[1] != SWAG_TEST_RUN_ARG)
+    if (runArgs[0] != "custom" || runArgs[1] != SWAG_TEST_RUN_ARG || runArgs[2] != SWAG_SANDBOX_RUN_ARG)
         return Result::Error;
 }
 SWC_TEST_END()
@@ -210,9 +212,28 @@ SWC_TEST_BEGIN(Compiler_TestCommandDoesNotDuplicateSwagTestRunArg)
     CommandLine cmdLine;
     cmdLine.command = CommandKind::Test;
     cmdLine.runArgs.emplace_back(SWAG_TEST_RUN_ARG);
+    cmdLine.runArgs.emplace_back(SWAG_SANDBOX_RUN_ARG);
 
     const std::vector<Utf8> runArgs = effectiveGeneratedArtifactRunArgs(cmdLine);
-    if (runArgs.size() != 1 || runArgs[0] != SWAG_TEST_RUN_ARG)
+    if (runArgs.size() != 2)
+        return Result::Error;
+    if (runArgs[0] != SWAG_TEST_RUN_ARG || runArgs[1] != SWAG_SANDBOX_RUN_ARG)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+// A caller that pins its own sandbox root keeps it: the command only supplies one when the
+// run does not already say where to be isolated.
+SWC_TEST_BEGIN(Compiler_TestCommandKeepsExplicitSandboxRoot)
+{
+    CommandLine cmdLine;
+    cmdLine.command = CommandKind::Test;
+    cmdLine.runArgs.emplace_back("swag.sandbox=C:/scratch/here");
+
+    const std::vector<Utf8> runArgs = effectiveGeneratedArtifactRunArgs(cmdLine);
+    if (runArgs.size() != 2)
+        return Result::Error;
+    if (runArgs[0] != "swag.sandbox=C:/scratch/here" || runArgs[1] != SWAG_TEST_RUN_ARG)
         return Result::Error;
 }
 SWC_TEST_END()

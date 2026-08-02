@@ -109,6 +109,7 @@ namespace
 
             case CommandKind::Build:
             case CommandKind::Run:
+            case CommandKind::Smoke:
                 break;
 
             case CommandKind::Test:
@@ -129,7 +130,7 @@ namespace
         }
 
         result.mayRunArtifact = (cmdLine.command == CommandKind::Test && result.backendKind == Runtime::BuildCfgBackendKind::Executable) ||
-                                (cmdLine.command == CommandKind::Run && result.backendKind == Runtime::BuildCfgBackendKind::Executable);
+                                (isRunLikeCommand(cmdLine.command) && result.backendKind == Runtime::BuildCfgBackendKind::Executable);
 
         NativeBackendBuilder        nativeBuilder(compiler, false);
         const NativeArtifactBuilder artifactBuilder(nativeBuilder);
@@ -296,6 +297,7 @@ namespace
 
             case CommandKind::Build:
             case CommandKind::Run:
+            case CommandKind::Smoke:
                 addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("parse {}", inputCount));
                 addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "run semantic analysis, including compile-time evaluation when required");
                 if (!cmdLine.exportApiDir.empty())
@@ -307,7 +309,7 @@ namespace
                     addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("link {} with the integrated linker", Utf8(nativePreview.paths.artifactPath)));
                     if (cmdLine.publish && nativePreview.backendKind == Runtime::BuildCfgBackendKind::Executable)
                         addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("copy dependency DLLs/PDBs into {}", Utf8(nativePreview.paths.artifactPath.parent_path())));
-                    if (cmdLine.command == CommandKind::Run && nativePreview.backendKind == Runtime::BuildCfgBackendKind::Executable)
+                    if (isRunLikeCommand(cmdLine.command) && nativePreview.backendKind == Runtime::BuildCfgBackendKind::Executable)
                         addPlanEntry(entries, index, "Would", LogColor::BrightGreen, std::format("run {}", Utf8(nativePreview.paths.artifactPath)));
                 }
                 else

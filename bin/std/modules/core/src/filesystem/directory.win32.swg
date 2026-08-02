@@ -7,6 +7,7 @@ using Win32
 // Performs the create operation.
 func create(dirname: string) fail
 {
+    try Env.guardWrite(dirname)
     let winPath = Utf16.toZeroTerminated(dirname)
     catch CreateDirectoryW(@dataof(winPath), null) as err
     Errors.transformWinErrors(err, dirname)

@@ -22,6 +22,9 @@ if /I "%~1"=="build" (
 ) else if /I "%~1"=="test" (
     set "SWC_COMMAND=test"
     shift
+) else if /I "%~1"=="smoke" (
+    set "SWC_COMMAND=smoke"
+    shift
 )
 
 :parse_args

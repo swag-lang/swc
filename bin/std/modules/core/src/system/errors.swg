@@ -60,6 +60,13 @@ struct InvalidFileNameError
     fileName:   #null string       // File name associated with this value.
 }
 
+// Represents an operation refused because it would leave the sandbox.
+struct SandboxError
+{
+    using base: Swag.BaseError     // Embedded base state.
+    path:       #null string       // Path the refused operation targeted.
+}
+
 // Represents invalid version.
 struct InvalidVersion
 {

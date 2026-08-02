@@ -37,7 +37,7 @@ func onEvent(view: *Wnd, evt: IEvent)->bool
     g_Button         = PushButton.create(view, "Push Button")
     centerButton(view)
 
-    if Env.hasArgument("swag.test") do
+    if Env.isSmokeRun() do
         app.maxRunFrame = TestFrames
 
     surface.show()

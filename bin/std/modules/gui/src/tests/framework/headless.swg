@@ -60,10 +60,9 @@ impl HeadlessHost
     // Initializes a headless application, theme, surface, and root window of the requested size.
     mtd setup(width, height: f32)
     {
-        // The OS clipboard is machine-global: another process can hold or rewrite it at
-        // any time. Tests use the process-local fake so they stay deterministic and do
-        // not clobber the user's own clipboard.
-        Clipboard.setFake(true)
+        // The clipboard is already faked by the sandbox; start each host from an empty one so
+        // a previous test cannot leak content into this one.
+        discard catch Clipboard.resetFake()
 
         .app.setRenderer(&.renderer)
 
@@ -113,7 +112,6 @@ impl HeadlessHost
             .root.destroy()
         .pump()
         .surface.destroyRendering()
-        Clipboard.setFake(false)
     }
 
     // Binds another Application instance to this host: the code under test may read

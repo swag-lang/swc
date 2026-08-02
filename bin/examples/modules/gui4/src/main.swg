@@ -658,7 +658,7 @@ func createRootView()
 // real rebuild path), then quit after a fixed number of frames.
 func updateTestMode()
 {
-    if !Env.hasArgument("swag.test") or !g_Surface do
+    if !Env.isSmokeRun() or !g_Surface do
         return
 
     g_TestFrame += 1
@@ -696,7 +696,7 @@ func onFrame(_app: *Application)
     applyTheme()
 
     app.sigFrame += &onFrame
-    if Env.hasArgument("swag.test") do
+    if Env.isSmokeRun() do
         app.maxRunFrame = 240
 
     surface.show()

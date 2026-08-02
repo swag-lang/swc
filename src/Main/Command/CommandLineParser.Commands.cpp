@@ -36,6 +36,7 @@ void CommandLineParser::registerCommands()
                               {"test", CommandKind::Test},
                               {"build", CommandKind::Build},
                               {"run", CommandKind::Run},
+                              {"smoke", CommandKind::Smoke},
                           },
                           "Select the command to execute",
                           {&StructConfigAssignHook::setBoolTrue, &cmdLine_->commandExplicit});
@@ -59,35 +60,35 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Input, "all", "--module-file", nullptr,
         &cmdLine_->moduleFilePath,
         "Run this module setup file before compiling the rest of the module; derive the module root and relative input paths from its parent directory");
-    add(HelpOptionGroup::Input, "new sema doc test build run", "--workspace", "-w",
+    add(HelpOptionGroup::Input, "new sema doc test build run smoke", "--workspace", "-w",
         &cmdLine_->workspacePath,
         "Use a workspace containing modules/<module>/module.swg and modules/<module>/src; new creates the workspace when absent, while compilation owns its .output and .tmp directories and excludes --module, --module-file, --directory, and --file");
-    add(HelpOptionGroup::Input, "sema doc test build run", "--workspace-module", "-m",
+    add(HelpOptionGroup::Input, "sema doc test build run smoke", "--workspace-module", "-m",
         &cmdLine_->workspaceModuleFilter,
         "With --workspace, compile only this module and its internal workspace dependencies");
-    add(HelpOptionGroup::Input, "sema doc test build run", "--import-api-module", nullptr,
+    add(HelpOptionGroup::Input, "sema doc test build run smoke", "--import-api-module", nullptr,
         &cmdLine_->importApiModules,
         "Resolve a generated public API dependency by module name through <compiler-root>/std/.output/<module>/<matching-config>");
-    add(HelpOptionGroup::Input, "sema doc test build run", "--import-api-dir", nullptr,
+    add(HelpOptionGroup::Input, "sema doc test build run smoke", "--import-api-dir", nullptr,
         &cmdLine_->importApiDirs,
         "Add a read-only dependency root containing generated public API files (.swg/.swgs) under <module>/<backend>/<build-cfg>/<arch>");
-    add(HelpOptionGroup::Input, "sema doc test build run", "--import-api-file", nullptr,
+    add(HelpOptionGroup::Input, "sema doc test build run smoke", "--import-api-file", nullptr,
         &cmdLine_->importApiFiles,
         "Add one generated public API file (.swg/.swgs) to the compilation input");
-    add(HelpOptionGroup::Input, "sema doc build run", "--export-api-dir", nullptr,
+    add(HelpOptionGroup::Input, "sema doc build run smoke", "--export-api-dir", nullptr,
         &cmdLine_->exportApiDir,
         "Write the module public API to this directory after a successful semantic pass");
-    addEnum(HelpOptionGroup::Target, "sema doc test build run", "--arch", "-a",
+    addEnum(HelpOptionGroup::Target, "sema doc test build run smoke", "--arch", "-a",
             &cmdLine_->targetArch,
             {
                 {"x86_64", Runtime::TargetArch::X86_64},
             },
             "Set the target architecture used by #arch and compiler target queries");
-    addEnum(HelpOptionGroup::Target, "sema doc test build run", "--build-cfg", "-bc",
+    addEnum(HelpOptionGroup::Target, "sema doc test build run smoke", "--build-cfg", "-bc",
             &cmdLine_->buildCfg,
             std::move(buildCfgChoices),
             "Set the registered build configuration used by #cfg and @compiler.getBuildCfg()");
-    addEnum(HelpOptionGroup::Target, "sema doc test build run", "--artifact-kind", "-ak",
+    addEnum(HelpOptionGroup::Target, "sema doc test build run smoke", "--artifact-kind", "-ak",
             &cmdLine_->backendKind,
             {
                 {"executable", Runtime::BuildCfgBackendKind::Executable},
@@ -98,22 +99,22 @@ void CommandLineParser::registerCommands()
             "Select the backend kind exposed through @compiler.getBuildCfg(); export builds produce dependency and API output without a native artifact",
             true,
             {&StructConfigAssignHook::setBoolTrue, &cmdLine_->artifactKindExplicit});
-    add(HelpOptionGroup::Target, "sema doc test build run", "--cpu", "-cpu",
+    add(HelpOptionGroup::Target, "sema doc test build run smoke", "--cpu", "-cpu",
         &cmdLine_->targetCpu,
         "Set the target CPU string used by #cpu and compiler target queries");
-    add(HelpOptionGroup::Target, "sema doc test build run", "--artifact-name", "-n",
+    add(HelpOptionGroup::Target, "sema doc test build run smoke", "--artifact-name", "-n",
         &cmdLine_->name,
         "Set the artifact name exposed through @compiler.getBuildCfg() and used for native outputs");
-    add(HelpOptionGroup::Target, "sema doc test build run", "--module-namespace", nullptr,
+    add(HelpOptionGroup::Target, "sema doc test build run smoke", "--module-namespace", nullptr,
         &cmdLine_->moduleNamespace,
         "Override the module namespace exposed through @compiler.getBuildCfg() and used as the semantic module root");
-    add(HelpOptionGroup::Target, "sema doc test build run", "--out-dir", "-od",
+    add(HelpOptionGroup::Target, "sema doc test build run smoke", "--out-dir", "-od",
         &cmdLine_->outDir,
         "Set the artifact output directory exposed through @compiler.getBuildCfg()");
-    add(HelpOptionGroup::Target, "sema doc test build run", "--work-dir", "-wd",
+    add(HelpOptionGroup::Target, "sema doc test build run smoke", "--work-dir", "-wd",
         &cmdLine_->workDir,
         "Set the work directory exposed through @compiler.getBuildCfg()");
-    add(HelpOptionGroup::Target, "sema doc test build run", "--optimize", "-o",
+    add(HelpOptionGroup::Target, "sema doc test build run smoke", "--optimize", "-o",
         &cmdLine_->backendOptimize,
         "Enable backend optimization for JIT folding and native code generation");
     add(HelpOptionGroup::Target, "doc", "--doc-output-dir", nullptr,
@@ -132,16 +133,19 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Compiler, "all", "--stats-mem", "-stm",
         &cmdLine_->statsMem,
         "Show runtime memory statistics after execution");
-    add(HelpOptionGroup::Compiler, "sema doc test build run", "--tag", nullptr,
+    add(HelpOptionGroup::Compiler, "sema doc test build run smoke", "--tag", nullptr,
         &cmdLine_->tags,
         "Register a compiler tag for #hastag and #gettag; use Name, Name = value, or Name: type = value");
-    add(HelpOptionGroup::Compiler, "test run", "--run-arg", nullptr,
+    add(HelpOptionGroup::Compiler, "test run smoke", "--run-arg", nullptr,
         &cmdLine_->runArgs,
         "Append one argument to every emitted executable launched by test or run; repeat the option to append more");
-    add(HelpOptionGroup::Compiler, "test build run", "--publish", nullptr,
+    add(HelpOptionGroup::Compiler, "smoke", "--frames", nullptr,
+        &cmdLine_->smokeFrames,
+        "Stop a smoke run after this many rendered frames");
+    add(HelpOptionGroup::Compiler, "test build run smoke", "--publish", nullptr,
         &cmdLine_->publish,
         "Copy executable dependency DLLs and PDBs to the artifact output directory after a successful native link");
-    add(HelpOptionGroup::Compiler, "sema doc test build run", "--rebuild", nullptr,
+    add(HelpOptionGroup::Compiler, "sema doc test build run smoke", "--rebuild", nullptr,
         &cmdLine_->rebuild,
         "With --workspace, recompile every selected module even when all generated outputs are up to date");
     add(HelpOptionGroup::Compiler, "doc", "--output-doc", nullptr,
@@ -205,7 +209,7 @@ void CommandLineParser::registerCommands()
         &cmdLine_->verboseVerifyFilter,
         "Keep --verbose-verify messages and diagnostic IDs that match this string");
 
-    add(HelpOptionGroup::Development, "all", "--dry-run", "-dr",
+    add(HelpOptionGroup::Development, "all", "--dry-run smoke", "-dr",
         &cmdLine_->dryRun,
         "Preview planned stages, outputs, and external commands without executing compile-time code, native tools, tests, or emitted artifacts");
     add(HelpOptionGroup::Development, "all", "--show-config", nullptr,

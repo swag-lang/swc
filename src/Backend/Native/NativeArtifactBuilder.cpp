@@ -783,7 +783,13 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
         const ABICall::PreparedCall preparedTestsDone = ABICall::prepareArgs(builder, testsDoneFn->callConvKind(), {});
         ABICall::callLocal(builder, testsDoneFn->callConvKind(), testsDoneFn, preparedTestsDone);
     }
-    emitLifecycleCalls(builder, builder_->mainFunctions);
+    // The test command runs a module's #test functions and nothing else. Letting #main run
+    // as well would start the real application at the end of a test pass, with the side
+    // effects that implies: windows, shell registration, and writes to the application's own
+    // data. Covering startup is a #test's job, not a side effect of testing.
+    if (ctx.cmdLine().command != CommandKind::Test)
+        emitLifecycleCalls(builder, builder_->mainFunctions);
+
     emitLifecycleCalls(builder, builder_->dropFunctions);
     emitRuntimeDependencyHookCalls(builder, *builder_, builder_->runtimeDependencyDropOrder, RuntimeHookStage::Drop, hookArgs, nextVirtualIntRegIndex);
 

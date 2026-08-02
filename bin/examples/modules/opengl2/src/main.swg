@@ -111,7 +111,7 @@ func createShader()
     while loop.next()
     {
         display()
-        if Env.hasArgument("swag.test") do
+        if Env.isSmokeRun() do
             break
     }
 }

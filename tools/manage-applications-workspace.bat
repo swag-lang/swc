@@ -27,6 +27,9 @@ if /I "%~1"=="build" (
 ) else if /I "%~1"=="test" (
     set "SWC_COMMAND=test"
     shift
+) else if /I "%~1"=="smoke" (
+    set "SWC_COMMAND=smoke"
+    shift
 )
 
 :parse_args
@@ -39,6 +42,12 @@ if /I "%~1"=="--build-cfg" (
 )
 if /I "%~1"=="-bc" (
     set "BUILD_CFG=%~2"
+    shift
+    shift
+    goto parse_args
+)
+if /I "%~1"=="--frames" (
+    set "WORKSPACE_ARGS=%WORKSPACE_ARGS% --frames %~2"
     shift
     shift
     goto parse_args

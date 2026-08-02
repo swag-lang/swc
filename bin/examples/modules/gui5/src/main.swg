@@ -551,7 +551,7 @@ func previousPage()
 
 func updateTestMode()
 {
-    if !Env.hasArgument("swag.test") or !g_Surface do
+    if !Env.isSmokeRun() or !g_Surface do
         return
 
     g_TestFrame += 1
@@ -640,7 +640,7 @@ func createRootView()
     buildPage()
 
     app.sigFrame += &onFrame
-    if Env.hasArgument("swag.test") do
+    if Env.isSmokeRun() do
         app.maxRunFrame = cast(u32) MaxPages * cast(u32) TestFramesPerPage + 10
 
     surface.show()

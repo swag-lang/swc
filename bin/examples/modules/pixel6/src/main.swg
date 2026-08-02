@@ -493,7 +493,7 @@ func onResize(_window: *Env.Window, width, height: s32)
     try g_Window.show()
 
     var loop: Env.WindowLoop
-    if Env.hasArgument("swag.test") do
+    if Env.isSmokeRun() do
         loop.maxTestFrames = TestFrames
     while loop.next()
     {

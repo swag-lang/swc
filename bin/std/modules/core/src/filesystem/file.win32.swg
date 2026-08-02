@@ -5,8 +5,11 @@
 using Win32
 
 // Delete the specified file
+//
+// The deletion is permanent: it does not go through the recycle bin.
 func delete(fullName: string) fail
 {
+    try Env.guardWrite(fullName)
     let winPath = Utf16.toZeroTerminated(fullName)
     catch DeleteFileW(@dataof(winPath)) as err
     Errors.transformWinErrors(err, fullName)
@@ -15,6 +18,7 @@ func delete(fullName: string) fail
 // Change the file write date/time
 func touch(fullName: string) fail
 {
+    try Env.guardWrite(fullName)
     let winPath = Utf16.toZeroTerminated(fullName)
 
     let hFile = catch CreateFileW(@dataof(winPath), FILE_WRITE_ATTRIBUTES, 0, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null) as err
@@ -48,6 +52,11 @@ func exists(fullName: string)->bool
 // Open a new file stream
 func open(fullName: string, mode: FileMode, access: FileAccess, share: FileShare)->FileStream fail
 {
+    // A write access is the only way a stream can alter the file system, so the sandbox is
+    // checked here rather than on every subsequent write.
+    if access & FileAccess.Write do
+        try Env.guardWrite(fullName)
+
     var result: retval
 
     // Open mode

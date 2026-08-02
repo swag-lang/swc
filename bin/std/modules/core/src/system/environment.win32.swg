@@ -8,8 +8,24 @@ public const LineEnding = "\r\n"
 
 // Returns the normalized path of a well-known system directory.
 //
+// Under a sandbox this answers inside it, so an application reaches its own scratch copy of
+// the documents or application-data folder without knowing anything about the isolation.
+//
 // Returns an empty string when the directory cannot be resolved.
 public func getSpecialDirectory(what: SpecialDirectory)->String
+{
+    if isSandboxed() do
+        return sandboxSpecialDirectory(what)
+    return realSpecialDirectory(what)
+}
+
+// Returns the normalized path of a well-known system directory on the machine itself,
+// ignoring any sandbox.
+//
+// Reserved for code that genuinely has to reach the real system, such as locating a system
+// executable to launch. Anything that reads or writes an application's own data must go
+// through [[Env.getSpecialDirectory]] instead, so a test cannot touch the real thing.
+public func realSpecialDirectory(what: SpecialDirectory)->String
 {
     if what == SpecialDirectory.Temp
     {
@@ -144,8 +160,14 @@ var g_SysInfo: SYSTEM_INFO
 }
 
 // Register an application in the system
+//
+// Refused under a sandbox: this writes to the user's registry, which a test or a smoke run
+// has no business touching.
 public func registerApplication(appName, appFriendly: string)
 {
+    if denySystemMutation(.ApplicationRegistration) do
+        return
+
     var hKey: HKEY
 
     let commandKey = Format.toString("Software\\Classes\\Applications\\%", appName)
@@ -177,9 +199,15 @@ public func registerApplication(appName, appFriendly: string)
 }
 
 // Associate an extension to an executable
+//
+// Refused under a sandbox, which reports it as not associated: claiming a file extension
+// changes what the shell does on the whole machine.
 #[Swag.Discardable]
 public func associateFileExtension(extension, appName, appPath: string)->bool
 {
+    if denySystemMutation(.FileAssociation) do
+        return false
+
     var hKey: HKEY
 
     /////

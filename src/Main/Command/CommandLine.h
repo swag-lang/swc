@@ -16,6 +16,7 @@ enum class CommandKind
     Doc,
     Unittest,
     Test,
+    Smoke,
     Build,
     Run,
 };
@@ -44,11 +45,24 @@ inline constexpr CommandInfo COMMANDS[] = {
     {CommandKind::Unittest, "unittest", "Run only the internal C++ unit tests"},
 #endif
     {CommandKind::Test, "test", "Run source-driven tests, expected diagnostics, and #test functions"},
+    {CommandKind::Smoke, "smoke", "Run emitted executables for a bounded number of frames, isolated from the machine, to prove they start and run"},
     {CommandKind::Build, "build", "Build native artifacts from input sources without running emitted executables"},
     {CommandKind::Run, "run", "Build native artifacts from input sources and run emitted executables when available"},
 };
 
 inline constexpr std::string_view SWAG_TEST_RUN_ARG = "swag.test";
+
+// Asks the runtime to isolate the generated executable from real machine state before any
+// user code runs. Without a value the process picks its own private root; the runtime does
+// the work, so nothing here has to know where that ends up.
+inline constexpr std::string_view SWAG_SANDBOX_RUN_ARG = "swag.sandbox";
+
+// Bounds a smoke run: the program stops after this many rendered frames. Carried as
+// 'swag.smoke=<frames>' so the budget belongs to the launcher, not to each application.
+inline constexpr std::string_view SWAG_SMOKE_RUN_ARG = "swag.smoke";
+
+// Frames a smoke run renders before it stops, when the command line does not say.
+inline constexpr uint32_t SWAG_SMOKE_DEFAULT_FRAMES = 50;
 
 inline Runtime::CompilerCommand compilerCommandFromKind(const CommandKind command)
 {
@@ -66,10 +80,19 @@ inline Runtime::CompilerCommand compilerCommandFromKind(const CommandKind comman
         case CommandKind::Unittest:
         case CommandKind::Build:
         case CommandKind::Run:
+        // A smoke run compiles the program as it ships: it proves the real thing starts, so
+        // '#test' bodies stay out of it.
+        case CommandKind::Smoke:
             return Runtime::CompilerCommand::Build;
         default:
             SWC_UNREACHABLE();
     }
+}
+
+// Reports whether the command builds artifacts and then runs the emitted executable.
+inline bool isRunLikeCommand(const CommandKind command)
+{
+    return command == CommandKind::Run || command == CommandKind::Smoke;
 }
 
 inline bool hasRunArg(const std::vector<Utf8>& runArgs, const std::string_view value)
@@ -77,6 +100,22 @@ inline bool hasRunArg(const std::vector<Utf8>& runArgs, const std::string_view v
     for (const Utf8& arg : runArgs)
     {
         if (arg.view() == value)
+            return true;
+    }
+
+    return false;
+}
+
+// Reports whether a run argument named `name` is present, on its own or carrying a value as
+// 'name=value'. A caller that pinned its own sandbox root must not be given a second marker.
+inline bool hasRunArgNamed(const std::vector<Utf8>& runArgs, const std::string_view name)
+{
+    for (const Utf8& arg : runArgs)
+    {
+        const std::string_view view = arg.view();
+        if (view == name)
+            return true;
+        if (view.size() > name.size() && view.starts_with(name) && view[name.size()] == '=')
             return true;
     }
 
@@ -172,6 +211,9 @@ struct CommandLine
     std::vector<Utf8> tags;
     std::vector<Utf8> runArgs;
 
+    // Frames a smoke run renders before stopping.
+    uint32_t smokeFrames = SWAG_SMOKE_DEFAULT_FRAMES;
+
     std::set<fs::path> directories;
     std::set<fs::path> files;
     std::set<Utf8>     importApiModules;
@@ -209,6 +251,8 @@ constexpr std::string_view commandName(const CommandKind command)
             return "unittest";
         case CommandKind::Test:
             return "test";
+        case CommandKind::Smoke:
+            return "smoke";
         case CommandKind::Build:
             return "build";
         case CommandKind::Run:
@@ -225,6 +269,22 @@ inline std::vector<Utf8> effectiveGeneratedArtifactRunArgs(const CommandLine& cm
     std::vector<Utf8> result = cmdLine.runArgs;
     if (cmdLine.command == CommandKind::Test && !hasRunArg(result, SWAG_TEST_RUN_ARG))
         result.emplace_back(SWAG_TEST_RUN_ARG);
+
+    // A smoke run is the real program, bounded. The frame budget travels with it so no
+    // application has to recognize that it is being exercised.
+    if (cmdLine.command == CommandKind::Smoke && !hasRunArgNamed(result, SWAG_SMOKE_RUN_ARG))
+    {
+        result.emplace_back(std::format("{}={}", SWAG_SMOKE_RUN_ARG, cmdLine.smokeFrames));
+    }
+
+    // Neither a test nor a smoke run may reach the machine it runs on. Isolation is imposed
+    // here, on the command, so it cannot depend on a module remembering to ask for it.
+    if ((cmdLine.command == CommandKind::Test || cmdLine.command == CommandKind::Smoke) &&
+        !hasRunArgNamed(result, SWAG_SANDBOX_RUN_ARG))
+    {
+        result.emplace_back(SWAG_SANDBOX_RUN_ARG);
+    }
+
     return result;
 }
 

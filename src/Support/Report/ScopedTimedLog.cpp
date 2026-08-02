@@ -348,7 +348,7 @@ ScopedCommandLog::ScopedCommandLog(const TaskContext& ctx) :
     std::vector<Utf8> parts;
     parts.emplace_back(colorize(ctx, LogColor::White, commandName(cmd.command)));
     parts.emplace_back(colorize(ctx, LogColor::Yellow, scopeName(cmd)));
-    if (cmd.command == CommandKind::Build || cmd.command == CommandKind::Run || cmd.command == CommandKind::Test)
+    if (cmd.command == CommandKind::Build || isRunLikeCommand(cmd.command) || cmd.command == CommandKind::Test)
         parts.push_back(colorize(ctx, LogColor::Gray, cmd.buildCfg));
 
     constexpr LinePrefix prefix{.glyphColor = LogColor::BrightBlue, .glyph = LogSymbol::CommandMark, .labelColor = LogColor::BrightBlue};

@@ -28,11 +28,25 @@ struct FakeStore
 
 var g_Fake: FakeStore
 
-// Redirect the whole Clipboard API to a process-local store (true) or back to the OS
-// clipboard (false). The store starts empty on each switch.
-public func setFake(enable: bool)
+// The store is armed by the sandbox, not by a caller: the OS clipboard belongs to the person
+// running the process, and a test or a smoke run must not be able to read or overwrite it.
+#init
 {
-    g_Fake.enabled = enable
+    if Env.isSandboxed() do
+        g_Fake.enabled = true
+}
+
+// Reports whether clipboard calls go to the process-local store rather than to the system.
+public func isFake()->bool => g_Fake.enabled
+
+// Empties the process-local store.
+//
+// Fails outside a sandbox: there is no process-local store to reset there, and silently
+// clearing the system clipboard instead would destroy the user's own content.
+public func resetFake() fail
+{
+    if !g_Fake.enabled do
+        fail Core.Errors.BadParameterError{"the clipboard is not faked outside a sandbox"}
     fakeClear()
 }
 

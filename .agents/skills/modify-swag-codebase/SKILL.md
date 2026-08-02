@@ -71,6 +71,17 @@ For other change types, run the narrowest relevant checks that demonstrate the m
 
 Remove temporary files and folders created during investigation or validation.
 
+At the end of every work session, explicitly inspect test source trees for ignored build
+artifacts, because `git status` does not report them. Remove test-created folders that landed
+outside the intended output or temporary roots. In particular, remove non-legitimate nested
+`.output` folders under `bin/unittests`; do not confuse them with the canonical
+`bin/unittests/.output` owned by the test tooling. Confirm that each candidate is generated
+test output rather than an intentional fixture before deleting it.
+
+```powershell
+Get-ChildItem bin/unittests -Directory -Recurse -Force -Filter .output
+```
+
 Before returning control, prune noise from the working tree so the modified-file list only
 contains real changes:
 

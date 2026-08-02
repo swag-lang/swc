@@ -7,14 +7,20 @@ description: Apply the Swag visual identity to the logo, favicons, generated doc
 
 Swag is a compiler that runs your program while it compiles it. The identity says the
 same thing: everything is **cut from a grid**, in **one accent over one ink**. Nothing is
-soft, nothing is decorative, and nothing is added that does not carry information.
+rounded, nothing is decorative, and nothing is added that does not carry information.
 
 A reader must recognize a Swag surface from three things alone, before reading a word:
 the cut, the voltage, and the ink.
 
+**Cut is not the same as rough.** Every edge sits where a rule puts it, and every cut is
+measured. What the identity refuses is softness, not craft: a form that looks hacked out
+of a slab has missed it as badly as one that looks upholstered.
+
 ## Hold The Three Constants
 
-1. **The cut.** Every corner the identity opens is cut at 45 degrees, never rounded.
+1. **The cut.** Every corner the identity opens is cut at 45 degrees, never rounded. The
+   cut is a vocabulary, not a decoration: its width says what the corner is, and a corner
+   left square says the form stops there on purpose.
 2. **The voltage.** Exactly one accent, `#F7F900`, used for the mark, one rule per
    heading, active state, and nothing else. An accent that appears everywhere accents
    nothing.
@@ -42,24 +48,44 @@ is ink.
 
 ## Cut The Mark
 
-The mark is a three-bar `S` cut out of a block, leaning right.
+The mark is a three-bar `S` cut out of a block, leaning right. Twelve corners, each opened
+by a cut whose width says which corner it is.
 
 | Measure | Units | Meaning |
 | --- | --- | --- |
 | Grid | 100 | Height of the mark |
 | Width | 84 | Width before the lean |
-| Stroke | 22 | Every bar and stem |
-| Gap | 17 | Every counter; `3 * 22 + 2 * 17` is the grid exactly |
-| Shoulder | 22 | The wide cut on the top-left and bottom-right corners |
-| Terminal | 12 | The narrow cut closing the two free ends |
-| Lean | 0.16 | Horizontal shift per unit of height |
+| Stroke | 20 | Every bar and stem |
+| Gap | 20 | Every counter |
+| Shoulder | 30 | The long cut on the top-left and bottom-right corners |
+| Terminal | 12 | The cut that closes a free end |
+| Notch | 8 | The short cut on each of the four corners of a counter |
+| Lean | 0.14 | Horizontal shift per unit of height |
 
-The two shoulder cuts are what separate the mark from a seven-segment `5`. Do not remove
-them, do not round anything, and do not add a container the mark has to sit inside.
+Three rules hold those numbers together. Break one and the mark stops being machined:
+
+1. `3 * stroke + 2 * gap == grid`. A counter weighs exactly what a bar weighs, and five of
+   them fill the height. Move one and move another.
+2. `terminal + notch == stroke`. At a free end the two cuts meet, so the bar comes to a
+   point instead of keeping a square corner.
+3. Every corner is cut. The two shoulders open the form — they are what separate the mark
+   from a seven-segment `5` — and the four notches keep a counter from reading as a slot
+   punched through a slab: it flares where it meets the air, and is cut back where it stops.
+
+The 45 degrees are measured on the grid, before the lean shears them. An edge in a
+generated file is therefore not at 45 degrees on screen, and is not to be "corrected".
+
+Do not round anything, and do not add a container the mark has to sit inside.
+
+The letter itself is settled. It has been retuned once — the counter brought up to the
+weight of a bar, the shoulders lengthened, the four notches added — and every attempt to
+replace it was rejected: a gradient ribbon, a folded ribbon, a faceted gem, a fragmenting
+`S`, and a drawn `SWAG` wordmark. Tune a measure when a size demands it; do not redraw the
+letter.
 
 `web/tools/brand.swgs` is the single definition of that geometry. It builds the mark once
 as a `Pixel.LinePath` and hands it to the two writers that consume it — `Pixel.Svg.Document`
-for the vector masters and `Pixel.Image.fillPath` for the rasters — so no asset can disagree
+for the vector masters and `Pixel.ImageCanvas` for the rasters — so no asset can disagree
 with another about where an edge is. The script owns the shape and nothing else; anything
 generic it needs belongs in `bin/std`, not in the script.
 
@@ -75,12 +101,17 @@ It writes `web/imgs/swag_mark.svg`, `web/imgs/swag_mark.png`, `web/imgs/swag_ico
 16, 32, and 48 pixel entries, each cut at its own size rather than downsampled, so the
 counters of the mark stay open in a browser tab.
 
-When the geometry changes, three places must be updated in the same change:
+When the geometry changes, four places must be updated in the same change. Only the first
+is automatic; the other three hold a copy of the path, and a stale copy is invisible until
+two surfaces sit side by side:
 
 1. Run the generator.
-2. Paste the new path into `--swag-mark` in `documentationStyles()`, where the mark is
-   inlined as an alpha mask so a generated page stays one self-contained file.
-3. Copy the icon into the VSCode extension with `tools/package-vscode-extension.bat`.
+2. Paste the new path and its `viewBox` into `--swag-mark` in `documentationStyles()`,
+   where the mark is inlined as an alpha mask so a generated page stays one self-contained
+   file.
+3. Paste the same path into `bench/page_template.html`, and into the `bench/bench.html` it
+   has already produced.
+4. Copy the icon into the VSCode extension with `tools/package-vscode-extension.bat`.
 
 ## Regenerate The Syntax Image
 
@@ -96,8 +127,12 @@ show syntax the compiler no longer accepts.
 
 ## Place The Mark
 
-- Keep clear space of at least one stroke (22 units, scaled) on every side.
+- Keep clear space of at least one stroke (20 units, scaled) on every side.
 - Below 24 pixels, use the icon tile rather than the bare mark.
+- **A tile has two crops, and they are not interchangeable.** An application icon is looked
+  at, so the mark holds 56% of it and keeps its clear space. A favicon is glanced at: at
+  sixteen pixels that margin costs the counters, so the mark holds 74% and the margin is
+  spent on the form. Both live in `brand.swgs` as `ICON_FILL` and `FAVICON_FILL`.
 - The mark is the whole logo. There is no drawn wordmark: `SWAG` is set in type, 800
   weight, `.2em` tracking, beside the mark. A drawn wordmark was tried and rejected; it
   read as a novelty typeface and fought the mark.
@@ -154,16 +189,29 @@ Change one side and change the other in the same commit.
 
 ## Keep The Voice
 
-The identity is not only visual. Console output, diagnostics, and documentation prose
-follow [write-swag-compiler-messages](../write-swag-compiler-messages/SKILL.md); the
-progress line, the `◆` mark, and the `clean` / `passed` / `stopped` sign-off are part of
-the same identity as the cut and the voltage.
+The identity is not only visual: a Swag surface is recognizable in a terminal too, and by
+the same means. Nothing is added that does not carry information.
+
+- **The style comes from invariance, not from variation.** One mark, `◆`. One sign-off,
+  `clean` / `passed` / `stopped`. One closed table of step verbs, each a pair of gerund and
+  participle — `checking` / `checked`. No random line, no message of the day, no rotating
+  emoji: anything that varies for effect is stale in a week.
+- **Swag never talks over an error.** Character is allowed exactly where the reader has no
+  problem to solve — the opening line, the step names, the sign-off, the nothing-to-do
+  case. From the first diagnostic on, the voice is dry, dense, and useful.
+- **One grammar for every failure**, whether it comes from compile time, run time, the
+  sanitizer, or the compiler breaking itself.
+
+Console output, diagnostics, and documentation prose follow
+[write-swag-compiler-messages](../write-swag-compiler-messages/SKILL.md).
 
 ## Verify
 
 1. Regenerate the assets and the site: `swc web/tools/brand.swgs`, then
    `tools/generate-web-documentation.bat dm`.
 2. Look at a page in both palettes and at a narrow width before calling it done.
-3. Check the mark at 16, 32, and 128 pixels. If the counters close up, the placement is
-   wrong, not the mark.
+3. Look at the mark itself at 16, 32, and 128 pixels, not only at the size you drew it.
+   If the counters close up, the crop is wrong before the mark is.
 4. Confirm no page gained a script element, an external font, or a second accent.
+5. When the geometry moved, confirm the four consumers agree: the generated assets, the
+   inlined `--swag-mark`, the extension icon, and the mark inlined in `bench/`.

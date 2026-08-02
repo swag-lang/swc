@@ -10,8 +10,8 @@ from the repository root:
 
 It writes the vector master and its raster derivatives into 'web/'. The shape is built
 once as a [[Pixel.LinePath]] and handed to the two writers that consume it:
-[[Pixel.Svg.Document]] for the vector masters and [[Pixel.Image.fillPath]] for the
-rasters, so a file can never disagree with the others about where an edge is.
+[[Pixel.Svg.Document]] for the vector masters and [[Pixel.ImageCanvas]] for the rasters,
+so a file can never disagree with the others about where an edge is.
 */
 #import("pixel", location: "swag@std")
 
@@ -25,16 +25,20 @@ using Core, Pixel
 The mark is cut from a square of `GRID` units. Every measurement is a whole number of
 units, so the form stays aligned at any size.
 
-The three bars and the two counters fill the height exactly: `3 * STROKE + 2 * GAP`
-is `GRID`. Changing one of them means changing another.
+A bar and a counter carry the same weight, and five of them fill the height exactly:
+`3 * STROKE + 2 * GAP` is `GRID`. Changing one of them means changing another.
 */
 const GRID:     f32 = 100.0     // Height of the mark.
 const WIDTH:    f32 = 84.0      // Width of the mark, before the lean.
-const STROKE:   f32 = 22.0      // Thickness of a bar and of a stem.
-const GAP:      f32 = 17.0      // Height of a counter.
-const SHOULDER: f32 = 22.0      // The two cuts that open the form; they make it an S.
-const TERMINAL: f32 = 12.0      // The two cuts that close a free end.
-const LEAN:     f32 = 0.16      // Horizontal shift per unit of height: the mark leans right.
+const STROKE:   f32 = 20.0      // Thickness of a bar and of a stem.
+const GAP:      f32 = 20.0      // Height of a counter: a bar and a counter weigh the same.
+const SHOULDER: f32 = 30.0      // The two long cuts that open the form; they make it an S.
+const NOTCH:    f32 = 8.0       // The four short cuts, one on every corner of a counter.
+const LEAN:     f32 = 0.14      // Horizontal shift per unit of height: the mark leans right.
+
+// The cut that closes a free end. It meets the notch of the counter beside it exactly, so
+// each of the two free ends comes to a point instead of keeping a square corner.
+const TERMINAL = STROKE - NOTCH
 
 const VOLTAGE = Color.fromRgb(0xF7, 0xF9, 0x00)     // The one accent.
 const INK     = Color.fromRgb(0x0B, 0x0B, 0x0D)     // The one ground.
@@ -47,15 +51,79 @@ const MARK_WIDTH = WIDTH + GRID * LEAN
 // #########################################################
 
 /**
+One corner of the outline: where it sits on the design grid, and how wide the 45 degree
+cut that opens it is.
+
+Nothing else has to be written down. The outline is rectilinear before it leans, so the
+two directions a cut runs in are read from the neighboring corners.
+*/
+struct Corner
+{
+    x, y: f32       // Position on the design grid.
+    cut:  f32       // Width of the diagonal that replaces the square corner.
+}
+
+/**
+Walks the outline of the mark, mapping the design grid onto the canvas as it goes.
+
+`scale` maps design units to pixels, `originX` and `originY` place the design box, and
+the lean is applied on the way.
+*/
+struct MarkPen
+{
+    path:    *LinePath      // The outline being built.
+    scale:   f32            // Design units to pixels.
+    originX: f32            // Where the design box sits on the canvas.
+    originY: f32
+    lastX:   f32            // Last point emitted, in pixels.
+    lastY:   f32
+    started: bool           // Whether the first point has been emitted.
+}
+
+impl MarkPen
+{
+    // Adds one point of the outline, given in design units.
+    mtd at(x, y: f32)
+    {
+        // The lean shifts a point right in proportion to how high it sits.
+        let px = .originX + (x + (GRID - y) * LEAN) * .scale
+        let py = .originY + y * .scale
+
+        if !.started
+        {
+            .path.start(px, py)
+            .started = true
+        }
+
+        // Where a terminal cut and a notch meet, both ask for the same point: a free end
+        // comes to a point, and the edge between them has no length to draw.
+        elif Math.abs(px - .lastX) > 0.0001 or Math.abs(py - .lastY) > 0.0001 do
+            .path.lineTo(px, py)
+
+        .lastX = px
+        .lastY = py
+    }
+
+    // Opens one corner, cutting it back towards each of its two neighbors.
+    mtd open(corner, prev, next: Corner)
+    {
+        .at(towards(corner.x, prev.x, corner.cut), towards(corner.y, prev.y, corner.cut))
+        .at(towards(corner.x, next.x, corner.cut), towards(corner.y, next.y, corner.cut))
+    }
+}
+
+// Moves 'from' by 'distance' towards 'target', and not at all when they are level.
+func towards(from, target: f32, distance: f32) => from + Math.sign(target - from) * distance
+
+/**
 Builds the mark: a three-bar `S` cut out of a block.
 
-Two opposite corners are opened by a wide `SHOULDER` cut, which is what separates the
-form from a seven-segment `5`; the two free ends are closed by a narrow `TERMINAL` cut.
-Those four diagonals are the signature of the whole identity, and the interface repeats
-them on the elements it wants to mark as Swag's own.
-
-The path is emitted in device space: `scale` maps the design grid onto the canvas, and
-the lean is applied on the way.
+Every corner is opened at 45 degrees, and the width of the cut says what the corner is. A
+long `SHOULDER` opens the two corners that separate the form from a seven-segment `5`; a
+`TERMINAL` closes each of the two free ends; a short `NOTCH` opens the four corners of a
+counter, so a counter flares where it meets the air and is cut back where it stops. Those
+diagonals are the signature of the whole identity, and the interface repeats them on the
+elements it wants to mark as Swag's own.
 */
 func buildMark(scale, originX, originY: f32)->LinePath
 {
@@ -65,44 +133,46 @@ func buildMark(scale, originX, originY: f32)->LinePath
     let m1 = m0 + s               // Bottom of the middle bar.
     let b0 = GRID - s             // Top of the bottom bar.
 
-    let corners: [16] Math.Point = [
-        {SHOULDER, 0},                    // Opened top-left shoulder.
-        {w - TERMINAL, 0},
-        {w, TERMINAL},                    // Cut top-right terminal.
-        {w, s},
-        {s, s},
-        {s, m0},
-        {w, m0},
-        {w, GRID - SHOULDER},
-        {w - SHOULDER, GRID},             // Opened bottom-right shoulder.
-        {TERMINAL, GRID},
-        {0, GRID - TERMINAL},             // Cut bottom-left terminal.
-        {0, b0},
-        {w - s, b0},
-        {w - s, m1},
-        {0, m1},
-        {0, SHOULDER}]
+    // Clockwise from the top-left, the corner every edge of the outline runs between.
+    let corners: [12] Corner = [
+        {0, 0, SHOULDER},         // The shoulder that opens the top of the S.
+        {w, 0, TERMINAL},         // The free end of the top bar,
+        {w, s, NOTCH},            // closing onto the upper counter.
+        {s, s, NOTCH},
+        {s, m0, NOTCH},           // The blind end of the upper counter.
+        {w, m0, NOTCH},
+        {w, GRID, SHOULDER},      // The shoulder that opens the bottom of the S.
+        {0, GRID, TERMINAL},      // The free end of the bottom bar,
+        {0, b0, NOTCH},           // closing onto the lower counter.
+        {w - s, b0, NOTCH},
+        {w - s, m1, NOTCH},       // The blind end of the lower counter.
+        {0, m1, NOTCH}]
 
     var result: retval
-    for &corner, [i] in corners
-    {
-        // The lean shifts a point right in proportion to how high it sits.
-        let x = originX + (corner.x + (GRID - corner.y) * LEAN) * scale
-        let y = originY + corner.y * scale
-        if i == 0 do
-            result.start(x, y)
-        else do
-            result.lineTo(x, y)
-    }
+    var pen    = MarkPen{&result, scale, originX, originY}
+
+    let count = @countof(corners)
+    for &corner, [index] in corners do
+        pen.open(corner, corners[(index + count - 1) % count], corners[(index + 1) % count])
 
     result.close()
     return result
 }
 
+/**
+Share of a square field the mark holds.
+
+An application icon is looked at, so it keeps the clear space the chart asks for. A favicon
+is only ever glanced at: at sixteen pixels that same margin costs the counters, so the tab
+icon spends the margin on the form instead.
+*/
+const ICON_FILL:    f32 = 0.56
+const FAVICON_FILL: f32 = 0.74
+
 // Centers the mark on a square field: the form every icon uses.
-func buildTileMark(size: f32)->LinePath
+func buildTileMark(size, fill: f32)->LinePath
 {
-    let scale = size * 0.56 / GRID
+    let scale = size * fill / GRID
     return buildMark(scale, (size - MARK_WIDTH * scale) * 0.5, (size - GRID * scale) * 0.5)
 }
 
@@ -135,9 +205,9 @@ func writeMark(svgPath, pngPath: string, size: s32) fail
 }
 
 // The mark on a square field of ink, at one size.
-func renderIcon(size: s32)->Image fail
+func renderIcon(size: s32, fill: f32)->Image fail
 {
-    var path   = buildTileMark(cast(f32) size)
+    var path   = buildTileMark(cast(f32) size, fill)
     var canvas = try ImageCanvas.create(size, size)
     canvas.clear(INK)
     canvas.painter.fillPath(&path, VOLTAGE)
@@ -146,7 +216,7 @@ func renderIcon(size: s32)->Image fail
 
 func writeIcon(path: string, size: s32) fail
 {
-    var img = try renderIcon(size)
+    var img = try renderIcon(size, ICON_FILL)
     try img.save(path)
     wrote(path)
 }
@@ -162,11 +232,14 @@ func writeFavicon(svgPath, icoPath: string) fail
     var doc = Svg.Document.create(BOX, BOX)
     doc.setTitle("Swag")
     doc.setBackground(INK)
-    doc.addPath(buildTileMark(BOX), VOLTAGE)
+    doc.addPath(buildTileMark(BOX, FAVICON_FILL), VOLTAGE)
     try doc.save(svgPath)
     wrote(svgPath)
 
-    let entries: [3] Image = [try renderIcon(16), try renderIcon(32), try renderIcon(48)]
+    let entries: [3] Image = [
+        try renderIcon(16, FAVICON_FILL),
+        try renderIcon(32, FAVICON_FILL),
+        try renderIcon(48, FAVICON_FILL)]
     try Ico.save(icoPath, entries)
     wrote(icoPath)
 }

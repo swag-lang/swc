@@ -39,7 +39,7 @@
     --swag-font-mono: ui-monospace, "Cascadia Mono", SFMono-Regular, Menlo, Consolas, monospace;
 
     /* The mark, as an alpha mask so it takes the accent wherever it is placed. */
-    --swag-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 116 116'%3E%3Cpath fill='%23fff' d='M46 8L96 8L106.08 20L104.48 30L42.48 30L39.76 47L101.76 47L95.52 86L70 108L20 108L9.92 96L11.52 86L73.52 86L76.24 69L14.24 69L20.48 30Z'/%3E%3C/svg%3E");
+    --swag-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 114 116'%3E%3Cpath fill='%23fff' d='M17.8 38L52 8L94 8L104.32 20L95.2 28L47.2 28L38.08 36L37.52 40L44.4 48L92.4 48L99.28 56L96.2 78L62 108L20 108L9.68 96L18.8 88L66.8 88L75.92 80L76.48 76L69.6 68L21.6 68L14.72 60L17.8 38Z'/%3E%3C/svg%3E");
 
     /* The 45 degree cut the mark opens on, repeated by the elements the interface owns. */
     --swag-cut: 6px;

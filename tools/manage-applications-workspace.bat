@@ -17,6 +17,7 @@ set "STD_OUTPUT_ROOT=%ROOT%\bin\std\.output"
 set "SWC_COMMAND=build"
 set "BUILD_CFG=fast-debug"
 set "EXTRA_ARGS="
+set "TEST_ARGS="
 set "WORKSPACE_ARGS="
 
 if /I "%~1"=="build" (
@@ -26,6 +27,9 @@ if /I "%~1"=="build" (
     shift
 ) else if /I "%~1"=="test" (
     set "SWC_COMMAND=test"
+    rem Applications are native executables; run their tests once in the emitted artifact.
+    rem An explicit --test-jit can still opt back into the in-process JIT pass.
+    set "TEST_ARGS= --no-test-jit"
     shift
 ) else if /I "%~1"=="smoke" (
     set "SWC_COMMAND=smoke"
@@ -58,6 +62,21 @@ if /I "%~1"=="--run-timeout" (
     shift
     goto parse_args
 )
+if /I "%SWC_COMMAND%"=="test" if /I "%~1"=="--test-jit" (
+    set "TEST_ARGS=%TEST_ARGS% --test-jit"
+    shift
+    goto parse_args
+)
+if /I "%SWC_COMMAND%"=="test" if /I "%~1"=="-tj" (
+    set "TEST_ARGS=%TEST_ARGS% --test-jit"
+    shift
+    goto parse_args
+)
+if /I "%SWC_COMMAND%"=="test" if /I "%~1"=="--no-test-jit" (
+    set "TEST_ARGS=%TEST_ARGS% --no-test-jit"
+    shift
+    goto parse_args
+)
 if /I "%~1"=="--workspace-module" (
     set "WORKSPACE_ARGS=%WORKSPACE_ARGS% --workspace-module %~2"
     shift
@@ -76,5 +95,5 @@ goto parse_args
 
 :run
 call "%TOOLS_DIR%manage-standard-library.bat" %MODE_ARG% build --build-cfg "%BUILD_CFG%"%EXTRA_ARGS% || exit /b 1
-call "%TOOLS_DIR%_shared-tooling.bat" :run_swc %SWC_COMMAND% --workspace "%APPS_WORKSPACE%" --build-cfg %BUILD_CFG% --import-api-dir "%STD_OUTPUT_ROOT%"%WORKSPACE_ARGS%%EXTRA_ARGS%
+call "%TOOLS_DIR%_shared-tooling.bat" :run_swc %SWC_COMMAND% --workspace "%APPS_WORKSPACE%" --build-cfg %BUILD_CFG% --import-api-dir "%STD_OUTPUT_ROOT%"%WORKSPACE_ARGS%%TEST_ARGS%%EXTRA_ARGS%
 exit /b %ERRORLEVEL%

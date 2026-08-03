@@ -37,6 +37,7 @@ namespace
         r.add(MicroInstrOpcode::LoadRegImm, tryForwardLoadRegImm);
         r.add(MicroInstrOpcode::LoadRegImm, tryCanonicalizeZeroToClear);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoFloatBinary);
+        r.add(MicroInstrOpcode::OpBinaryRegMem, tryUseSelfOperandForFloatBinary);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyIntoFloatBinary);
         r.add(MicroInstrOpcode::LoadRegReg, tryForwardCopy);
         return r;

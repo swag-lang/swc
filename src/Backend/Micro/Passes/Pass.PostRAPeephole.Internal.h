@@ -71,6 +71,7 @@ namespace PostRaPeephole
     bool tryCanonicalizeZeroToClear(Context& ctx, MicroInstrRef defRef, const MicroInstr& defInst);
     bool tryFoldCopyIntoFloatBinary(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryFoldLoadIntoFloatBinary(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
+    bool tryUseSelfOperandForFloatBinary(Context& ctx, MicroInstrRef opRef, const MicroInstr& opInst);
 
     // Walks forward from `fromRef`: the register is dead iff the next thing that
     // touches it is a redefinition, with no read in between.

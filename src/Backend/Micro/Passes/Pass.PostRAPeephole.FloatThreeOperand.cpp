@@ -151,6 +151,84 @@ namespace PostRaPeephole
         return true;
     }
 
+    // `x * x` reads the same slot twice: once to load the destination, once as
+    // the operation's memory operand. Naming the register on both sides drops
+    // one of the two reads and costs nothing - no extra instruction, no extra
+    // dependency, since the value is already in the register the operation is
+    // about to write.
+    bool tryUseSelfOperandForFloatBinary(Context& ctx, const MicroInstrRef opRef, const MicroInstr& opInst)
+    {
+        if (opInst.op != MicroInstrOpcode::OpBinaryRegMem || opInst.numOperands < 5)
+            return false;
+
+        const MicroInstrOperand* ops = ctx.operandsFor(opRef);
+        if (!ops)
+            return false;
+
+        const MicroReg dst  = ops[0].reg;
+        const MicroReg base = ops[1].reg;
+        if (!dst.isFloat() || !base.isValid() || base.isInstructionPointer())
+            return false;
+
+        const MicroOpBits opBits = ops[2].opBits;
+        if (!hasThreeOperandForm(ops[3].microOp))
+            return false;
+
+        const uint64_t offset = ops[4].valueU64;
+
+        // Walk back to whatever last wrote the destination. Only a load of this
+        // very address means the register already holds the memory operand.
+        constexpr uint32_t K_MAX_SCAN = 12;
+
+        MicroInstrRef cursor = ctx.previousRef(opRef);
+        for (uint32_t step = 0; step < K_MAX_SCAN; ++step)
+        {
+            const MicroInstr* candidate = ctx.instruction(cursor);
+            if (!candidate)
+                return false;
+
+            const MicroInstrDef& info = MicroInstr::info(candidate->op);
+            if (candidate->op == MicroInstrOpcode::Label ||
+                info.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
+                info.flags.has(MicroInstrFlagsE::JumpInstruction) ||
+                info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                info.flags.has(MicroInstrFlagsE::WritesMemory))
+                return false;
+
+            if (candidate->op == MicroInstrOpcode::LoadRegMem && candidate->numOperands >= 4)
+            {
+                const MicroInstrOperand* loadOps = ctx.operandsFor(cursor);
+                if (loadOps && loadOps[0].reg == dst)
+                {
+                    if (loadOps[1].reg != base || loadOps[3].valueU64 != offset || loadOps[2].opBits != opBits)
+                        return false;
+                    break;
+                }
+            }
+
+            const MicroInstrUseDef useDef = candidate->collectUseDef(*ctx.operands, ctx.encoder);
+            for (const MicroReg reg : useDef.defs)
+            {
+                if (reg == dst || reg == base)
+                    return false;
+            }
+
+            cursor = ctx.previousRef(cursor);
+        }
+
+        if (!ctx.claimAll({opRef}))
+            return false;
+
+        MicroInstrOperand newOps[4] = {};
+        newOps[0].reg     = dst;
+        newOps[1].reg     = dst;
+        newOps[2].opBits  = opBits;
+        newOps[3].microOp = ops[3].microOp;
+
+        ctx.emitRewrite(opRef, MicroInstrOpcode::OpBinaryRegReg, std::span{newOps, 4});
+        return true;
+    }
+
     bool tryFoldCopyIntoFloatBinary(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
     {
         if (!ctx.encoder || !ctx.encoder->supportsNonDestructiveFloatBinary())

@@ -39,7 +39,7 @@ impl IPropertyEditor for AlignEditor
         {
             with let btn = IconButton.create(line, {}, {0, 0, BtnW, lineH})
             {
-                .setForm(.RoundedRectangle)
+                .setForm(.Rectangle)
                 .updateFlags(.Radio)
 
                 // The sCapture toolbar icons when the app is there, letter fallbacks otherwise

@@ -123,7 +123,7 @@ impl PropWnd
     {
         with let btn = IconButton.create(stack, {}, {0, 0, w, h})
         {
-            .setForm(.RoundedRectangle)
+            .setForm(.Rectangle)
             .style.addStyleSheetColors("btnIcon_Bk                  $lighterMedium")
             .style.addStyleSheetColors("btnIcon_HotBk               $lighterBig")
             .style.addStyleSheetColors("btnIcon_PressedBk           $lighterVeryBig")
@@ -195,7 +195,7 @@ impl PropWnd
         {
             let btn0 = IconButton.create(notnull frame.view, {})
             btn0.userData = enumToUserData(i)
-            btn0.setForm(.RoundedRectangle)
+            btn0.setForm(.Rectangle)
             btn0.updateFlags(.Radio)
             if cur == i do
                 btn0.setChecked(true)
@@ -251,7 +251,7 @@ impl PropWnd
         {
             let btn0 = IconButton.create(layout, {}, {0, 0, 0, 40})
             btn0.userData = enumToUserData(i)
-            btn0.setForm(.RoundedRectangle)
+            btn0.setForm(.Rectangle)
             btn0.updateFlags(.Radio)
             btn0.setChecked(cur == i)
 
@@ -318,7 +318,7 @@ impl PropWnd
 
             let btn0 = IconButton.create(layout, {}, {0, 0, 0, 32})
             btn0.userData = enumToUserData(i)
-            btn0.setForm(.RoundedRectangle)
+            btn0.setForm(.Rectangle)
             btn0.updateFlags(.Radio)
             btn0.setChecked(curSel.dashStyle == i)
 

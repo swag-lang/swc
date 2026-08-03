@@ -630,6 +630,11 @@ private impl ListView
         {
             let colorSel = .hasFocus() ? colors.listItem_FocusSelectedBk : colors.listItem_SelectedBk
             painter.fillRect(rect, colorSel)
+            if colors.activeRail.a
+            {
+                let rail = Math.Rectangle{rect.x, rect.y, 4, rect.height}
+                painter.fillRect(rail, colors.activeRail)
+            }
         }
 
         // Hot box

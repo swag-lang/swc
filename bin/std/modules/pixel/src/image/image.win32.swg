@@ -38,22 +38,24 @@ impl Image
         return result
     }
 
-    // Creates a Windows icon from this image.
+    // Creates a Windows icon from this image while preserving its logical color channels and alpha.
     mtd toHicon()->HICON fail
     {
+        var dib = .convertedTo(.BGRA8)
+
         var bi: BITMAPINFO
         bi.bmiHeader.biSize        = #sizeof(BITMAPINFOHEADER)
-        bi.bmiHeader.biWidth       = .width
-        bi.bmiHeader.biHeight      = .height
+        bi.bmiHeader.biWidth       = dib.width
+        bi.bmiHeader.biHeight      = dib.height
         bi.bmiHeader.biPlanes      = 1
-        bi.bmiHeader.biBitCount    = .bitsPerPixel
+        bi.bmiHeader.biBitCount    = dib.bitsPerPixel
         bi.bmiHeader.biCompression = BI_RGB
 
         var ppvBits: *u8 = undefined
         let hbmp         = CreateDIBSection(null, &bi, cast() DIB_RGB_COLORS, &ppvBits, null, 0)
         defer #nofail DeleteObject(cast() hbmp)
 
-        Memory.copy(ppvBits, .pixels.buffer, cast(u64) .width * .height * .bytesPerPixel)
+        Memory.copy(ppvBits, dib.pixels.buffer, dib.byteCount)
 
         // CreateIconIndirect requires a non-null mask: for a 32-bit color icon the
         // alpha channel drives transparency, but the AND mask (hbmMask) must still

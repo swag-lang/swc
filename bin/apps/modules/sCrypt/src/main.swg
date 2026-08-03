@@ -262,7 +262,7 @@ func populateDrives(combo: *ComboBox)
     let appIcon = expect Image.decode(".png", AppIcon)
     g_App.setAppIcon(appIcon)
     g_Surface = try g_App.createSurface(80, 50, 1100, 790, SurfaceFlags.StandardWindow)
-    g_App.theme.colors.setSwagDark()
+    g_App.theme.setSwagDark()
     g_App.notifyThemeChanged()
     let mainSurface = surface()
     mainSurface.minSize = {1100, 790}

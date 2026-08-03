@@ -112,6 +112,20 @@ struct Theme
 
 impl Theme
 {
+    // Applies the dark Swag palette and its square top-level surface geometry.
+    mtd setSwagDark()
+    {
+        .colors.setSwagDark()
+        .metrics.surfaceWnd_CornerRadius = 0
+    }
+
+    // Applies the light Swag palette and its square top-level surface geometry.
+    mtd setSwagLight()
+    {
+        .colors.setSwagLight()
+        .metrics.surfaceWnd_CornerRadius = 0
+    }
+
     private mtd freeDefault()
     {
         // A fonts-only theme (headless text measurement) never created the image lists.

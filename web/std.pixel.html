@@ -1185,7 +1185,7 @@ layer.<span class="SFct">draw</span>({dstRect: {<span class="SNum">0</span>, <sp
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Image_release">Image.release</a></td><td><p>Releases all owned image content and restores an empty value.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Pixel_Image_toHicon">Image.toHicon</a></td><td><p>Creates a Windows icon from this image.</p>
+<tr><td class="code-type"><a href="#Pixel_Image_toHicon">Image.toHicon</a></td><td><p>Creates a Windows icon from this image while preserving its logical color channels and alpha.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Image_visitPixels">Image.visitPixels</a></td><td><p>Visits pixels in parallel using chunks separated by <span class="code-inline">stride</span> pixels.</p>
 </td></tr>
@@ -2527,7 +2527,7 @@ image.<span class="SFct">fill</span>(<span class="SCst"><a href="#Pixel_Color">C
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Image_release">release</a></td><td><p>Releases all owned image content and restores an empty value.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Pixel_Image_toHicon">toHicon</a></td><td><p>Creates a Windows icon from this image.</p>
+<tr><td class="code-type"><a href="#Pixel_Image_toHicon">toHicon</a></td><td><p>Creates a Windows icon from this image while preserving its logical color channels and alpha.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Image_visitPixels">visitPixels</a></td><td><p>Visits pixels in parallel using chunks separated by <span class="code-inline">stride</span> pixels.</p>
 </td></tr>
@@ -6215,7 +6215,7 @@ path.<span class="SFct">close</span>()
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">create</span>(width, height: <span class="STpe">s32</span>, pixelFormat: <span class="SCst"><a href="#Pixel_PixelFormat">PixelFormat</a></span>, buffer: <span class="SItr">#null</span> <span class="SKwd">const</span> [..] <span class="STpe">u8</span> = <span class="SKwd">null</span>)-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Image_from" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.from</span> <a class="api-item-permalink" href="#Pixel_Image_from" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/image.win32.swg#L71">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Image_from" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.from</span> <a class="api-item-permalink" href="#Pixel_Image_from" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/image.win32.swg#L73">src</a></div>
 <p>Creates an image from a Windows icon handle.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">from</span>(hicon: <span class="SCst"><a href="std.win32.html#Win32_HICON">HICON</a></span>)-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span> <span class="SKwd">fail</span></span></div>
 <p>Creates an image from a Windows bitmap handle.</p>
@@ -6261,7 +6261,7 @@ path.<span class="SFct">close</span>()
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Pixel_Image_toHicon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.toHicon</span> <a class="api-item-permalink" href="#Pixel_Image_toHicon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/image.win32.swg#L43">src</a></div>
-<p>Creates a Windows icon from this image.</p>
+<p>Creates a Windows icon from this image while preserving its logical color channels and alpha.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">toHicon</span>()-&gt;<span class="SCst"><a href="std.win32.html#Win32_HICON">HICON</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">

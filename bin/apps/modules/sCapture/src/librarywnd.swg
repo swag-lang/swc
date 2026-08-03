@@ -638,7 +638,7 @@ impl LibraryWnd
         // Live search
         with res.searchEdit = EditBox.create(res.editZoomBar, "", {0, 0, 180, 32}, flags: .ClearButton | .ReleaseFocusOnEnterOrEscape)
         {
-            .setForm(.RoundedRectangle)
+            .setForm(.Rectangle)
             .setPlaceholder("Search")
             .sigTextChanged += func|res|(ed) { res.setSearch(ed.text()) }
         }

@@ -7,6 +7,8 @@
 
     --volt:  #F7F900;
     --ink:   #0B0B0D;
+    --active: var(--ink);
+    --selection: #E7E7E3;
 
     --bg:    #FFFFFF;
     --panel: #FAFAF7;
@@ -39,6 +41,8 @@
         --g-managed: #56565F;
         --g-dynamic: #3B3B44;
         --track:     #17171C;
+        --active:    var(--volt);
+        --selection: #2A2A30;
     }
 }
 
@@ -68,9 +72,14 @@
     --g-managed: #56565F;
     --g-dynamic: #3B3B44;
     --track:     #17171C;
+    --active:    var(--volt);
+    --selection: #2A2A30;
 }
 
 /* ------------------------------------------------------------------- base */
+::selection { background: var(--selection); }
+:focus-visible { outline: 2px solid var(--active); outline-offset: 2px; }
+
 body {
     margin: 0;
     background: var(--bg);
@@ -157,7 +166,7 @@ code { font-size: .88em; color: var(--soft); }
 .hero .rule {
     width: 44px;
     height: 4px;
-    background: var(--volt);
+    background: var(--active);
     transform: skewX(-18deg);
     margin-bottom: 22px;
 }
@@ -290,6 +299,7 @@ h3 {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    border-right: 2px solid transparent;
 }
 
 .row .mode {
@@ -326,7 +336,7 @@ h3 {
 .f-dynamic .bar { background: var(--g-dynamic); }
 
 .row:hover .rl { color: var(--fg); }
-.row:hover .track { background: var(--track); }
+.row:hover .rl { border-right-color: var(--active); }
 
 /* ----------------------------------------------------------------- legend */
 .legend {
@@ -400,7 +410,7 @@ tbody td.num {
 
 tbody td.num b { color: var(--fg); font-weight: 600; }
 
-tbody tr:hover td, tbody tr:hover th { background: var(--panel); }
+tbody tr:hover td, tbody tr:hover th { border-bottom-color: var(--active); }
 
 tbody tr.f-swag    th { border-left-color: var(--g-swag); }
 tbody tr.f-native  th { border-left-color: var(--g-native); }
@@ -414,7 +424,7 @@ table.tasks tbody td { color: var(--soft); }
 
 /* ------------------------------------------------------------------- misc */
 .note {
-    border-left: 2px solid var(--volt);
+    border-left: 2px solid var(--active);
     padding: 2px 0 2px 16px;
     margin: 26px 0;
     color: var(--soft);

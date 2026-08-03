@@ -19,6 +19,7 @@ struct ThemeColors
     hilightLight:         Color     // Semantic color used for hilight light.
     hilightDark:          Color     // Semantic color used for hilight dark.
     hilightLightContrast: Color     // Semantic color used for hilight light contrast.
+    activeRail:           Color     // Narrow rule marking active and selected controls, or transparent when unused.
     disabled:             Color     // Semantic color used for disabled.
     transparent:          Color     // Semantic color used for transparent.
     lighterSmall:         Color     // Semantic color used for lighter small.
@@ -397,6 +398,7 @@ impl ThemeColors
         .hilightLight         = Color.lighter(Color.fromArgb(Blue), 0.2)
         .hilightDark          = Color.darker(Color.fromArgb(Blue), 0.2)
         .hilightLightContrast = Color.contrasting(Color.fromArgb(Blue))
+        .activeRail           = Transparent
         .disabled             = Disabled
         .transparent          = Transparent
         .lighterSmall         = LighterSmall
@@ -784,6 +786,7 @@ impl ThemeColors
         .hilightLight         = Color.lighter(Color.fromArgb(Blue), 0.2)
         .hilightDark          = Color.darker(Color.fromArgb(Blue), 0.2)
         .hilightLightContrast = Color.contrasting(Color.fromArgb(Blue))
+        .activeRail           = Transparent
         .disabled             = Disabled
         .transparent          = Transparent
         .lighterSmall         = LighterSmall
@@ -1142,6 +1145,7 @@ impl ThemeColors
         .hilightLight         = accent
         .hilightDark          = accent
         .hilightLightContrast = activeText
+        .activeRail           = accent
 
         .btnPush_PressedBorder     = accent
         .btnPush_HotBorder         = accent
@@ -1158,18 +1162,18 @@ impl ThemeColors
         .btnPushDefault_HotBorder     = accent
         .btnPushDefault_HotBk         = accent
 
-        .btnIcon_CheckedPressedIcon = activeText
-        .btnIcon_CheckedPressedText = activeText
-        .btnIcon_CheckedHotIcon     = activeText
-        .btnIcon_CheckedHotText     = activeText
-        .btnIcon_CheckedIcon        = activeText
-        .btnIcon_CheckedText        = activeText
-        .btnIcon_CheckedPressedBk   = accent
-        .btnIcon_CheckedHotBk       = accent
-        .btnIcon_CheckedBk          = accent
-        .btnIcon_CheckedMark        = activeText
-        .btnIcon_CheckedPressedMark = activeText
-        .btnIcon_CheckedHotMark     = activeText
+        .btnIcon_CheckedPressedIcon = accent
+        .btnIcon_CheckedPressedText = accent
+        .btnIcon_CheckedHotIcon     = accent
+        .btnIcon_CheckedHotText     = accent
+        .btnIcon_CheckedIcon        = accent
+        .btnIcon_CheckedText        = accent
+        .btnIcon_CheckedPressedBk   = neutralPressed
+        .btnIcon_CheckedHotBk       = neutralHot
+        .btnIcon_CheckedBk          = .transparent
+        .btnIcon_CheckedMark        = accent
+        .btnIcon_CheckedPressedMark = accent
+        .btnIcon_CheckedHotMark     = accent
 
         .btnCheck_PressedBorder = accent
         .btnCheck_PressedMark   = accent
@@ -1191,14 +1195,14 @@ impl ThemeColors
         .btnToggle_OffPressedBorder = accent
         .btnToggle_OffPressedMark   = accent
         .btnToggle_OnBorder         = accent
-        .btnToggle_OnMark           = activeText
-        .btnToggle_OnBk             = accent
+        .btnToggle_OnMark           = accent
+        .btnToggle_OnBk             = neutralPressed
         .btnToggle_OnHotBorder      = accent
-        .btnToggle_OnHotMark        = activeText
-        .btnToggle_OnHotBk          = accent
+        .btnToggle_OnHotMark        = accent
+        .btnToggle_OnHotBk          = neutralHot
         .btnToggle_OnPressedBorder  = accent
-        .btnToggle_OnPressedMark    = activeText
-        .btnToggle_OnPressedBk      = accent
+        .btnToggle_OnPressedMark    = accent
+        .btnToggle_OnPressedBk      = neutralPressed
 
         .slider_HilightBk     = accent
         .slider_Mark          = accent
@@ -1212,38 +1216,39 @@ impl ThemeColors
         .circular_PressedMark = accent
         .circular_RangeArc    = accent
 
-        .tabItem_FlatSelected             = accent
+        .tabItem_SelectedText             = .text
+        .tabItem_FlatSelected             = neutralPressed
         .tabItem_FlatHot                  = neutralHot
-        .tabItem_RoundSelected            = accent
+        .tabItem_RoundSelected            = neutralPressed
         .tabItem_RoundHot                 = neutralHot
-        .tabItem_ButtonSelected           = accent
+        .tabItem_ButtonSelected           = neutralPressed
         .tabItem_ButtonHot                = neutralHot
-        .tabItem_PushButtonSelected       = accent
-        .tabItem_PushButtonSelectedText   = activeText
-        .tabItem_PushButtonSelectedBorder = accent
+        .tabItem_PushButtonSelected       = neutralPressed
+        .tabItem_PushButtonSelectedText   = .text
+        .tabItem_PushButtonSelectedBorder = .border
         .tabItem_PushButtonHot            = neutralHot
-        .tabItem_PushButtonHotBorder      = accent
+        .tabItem_PushButtonHotBorder      = .border
 
-        .menuBar_SelectedBk   = accent
-        .menuBar_SelectedText = activeText
-        .popupItem_HotBk        = accent
-        .popupItem_HotText      = activeText
-        .popupItem_HotRightText = activeText
+        .menuBar_SelectedBk     = neutralHot
+        .menuBar_SelectedText   = .text
+        .popupItem_HotBk        = neutralHot
+        .popupItem_HotText      = .text
+        .popupItem_HotRightText = .text
 
         .comboBox_HotBorder      = accent
         .comboBox_SelectedBorder = accent
-        .comboBoxItem_HotBk        = accent
-        .comboBoxItem_HotText      = activeText
+        .comboBoxItem_HotBk        = neutralHot
+        .comboBoxItem_HotText      = .text
         .comboBoxItem_CheckMark    = accent
-        .comboBoxItem_HotCheckMark = activeText
-        .popupList_HotBk        = accent
-        .popupList_HotText      = activeText
+        .comboBoxItem_HotCheckMark = accent
+        .popupList_HotBk        = neutralHot
+        .popupList_HotText      = .text
         .popupList_CheckMark    = accent
-        .popupList_HotCheckMark = activeText
+        .popupList_HotCheckMark = accent
 
         .frameWnd_FocusBorder        = accent
-        .listItem_FocusSelectedBk    = accent
-        .listItem_FocusSelectedText  = activeText
+        .listItem_FocusSelectedBk    = neutralPressed
+        .listItem_FocusSelectedText  = .text
         .listItem_SelectedBk         = neutralPressed
         .listItem_HotBk              = neutralHot
         .headerItem_HotBk            = neutralHot

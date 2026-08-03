@@ -708,9 +708,9 @@ impl MainWnd
     mtd setTheme()
     {
         if .editorOptions.theme == .Dark do
-            .app().theme.colors.setSwagDark()
+            .app().theme.setSwagDark()
         else do
-            .app().theme.colors.setSwagLight()
+            .app().theme.setSwagLight()
         .app().notifyThemeChanged()
     }
 

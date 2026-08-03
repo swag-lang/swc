@@ -214,6 +214,11 @@ impl IWnd for Tab
             theme.drawSubRect(painter, labelPos, subRect, v.aniImg.cur())
         if subRectBorder do
             theme.drawSubRect(painter, labelPos, subRectBorder, v.aniBorder.cur(), false)
+        if idx == .selectedIndex and colors.activeRail.a
+        {
+            let rail = Math.Rectangle{labelPos.x, labelPos.bottom() - 4, labelPos.width, 4}
+            painter.fillRect(rail, colors.activeRail)
+        }
 
         var format: RichStringFormat
         v.aniText.apply(me, colorText)

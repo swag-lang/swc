@@ -763,8 +763,11 @@ impl Application
         }
 
         .dirtyTheme += 1
-        for s in .surfaces do
+        for s in .surfaces
+        {
+            s.applyNativeSurfaceFlags()
             s.wnd.updateTheme()
+        }
     }
 
     private mtd serializeState(ser: *Serializer) fail

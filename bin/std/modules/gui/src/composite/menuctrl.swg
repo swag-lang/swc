@@ -133,6 +133,12 @@ public impl IWnd for MenuCtrl
             else do
                 theme.drawSubRect(painter, backPos, &rects.menuBar_SelectedBk, colorSel)
 
+            if selected and colors.activeRail.a
+            {
+                let rail = Math.Rectangle{backPos.x, labelPos.bottom() - 4, backPos.width, 4}
+                painter.fillRect(rail, colors.activeRail)
+            }
+
             // Icon
             if it.icon.isValid()
             {
@@ -207,7 +213,8 @@ public impl IWnd for MenuCtrl
 
             // Back selection
             var colorSel: Color
-            if .hotIdx == idx and !it.disabled
+            let isHot = .hotIdx == idx and !it.disabled
+            if isHot
             {
                 colorSel       = colors.popupItem_HotBk
                 colorText      = colors.popupItem_HotText
@@ -219,6 +226,11 @@ public impl IWnd for MenuCtrl
             backPos.height += metrics.menuPopup_SpaceLines
             backPos.inflate(.paddingSel, 0)
             theme.drawSubRect(painter, backPos, &rects.menuPopup_HotBk, colorSel)
+            if isHot and colors.activeRail.a
+            {
+                let rail = Math.Rectangle{backPos.x, backPos.y, 4, backPos.height}
+                painter.fillRect(rail, colors.activeRail)
+            }
 
             var iconPos = labelPos
             iconPos.x += metrics.menuPopup_IconMargin
@@ -1051,7 +1063,7 @@ public impl MenuCtrl
             .anchor         = .Top
             .anchorPosition = .position.width * 0.5
             .setFrameFlags(.Borders | .SmallShadow)
-            .setFrameForm(.Round)
+            .setFrameForm(.themeColors().activeRail.a ? .Square : .Round)
             .padding.y  += 14
             .paddingSel = 0
 
@@ -1061,7 +1073,7 @@ public impl MenuCtrl
             .anchor         = .Bottom
             .anchorPosition = .position.width * 0.5
             .setFrameFlags(.Borders | .SmallShadow)
-            .setFrameForm(.Round)
+            .setFrameForm(.themeColors().activeRail.a ? .Square : .Round)
             .paddingSel = 0
         }
 

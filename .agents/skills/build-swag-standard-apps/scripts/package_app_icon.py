@@ -30,15 +30,22 @@ def centered_square(image: Image.Image) -> Image.Image:
     return image.crop((left, top, left + edge, top + edge))
 
 
-def flatten(image: Image.Image) -> Image.Image:
+def flatten_mask(image: Image.Image) -> Image.Image:
     source = centered_square(image.convert("RGB"))
     source_pixels = source.load()
-    pixels = [VOLTAGE if color_distance(source_pixels[x, y], VOLTAGE) <
-              color_distance(source_pixels[x, y], INK) else INK
+    pixels = [255 if color_distance(source_pixels[x, y], VOLTAGE) <
+              color_distance(source_pixels[x, y], INK) else 0
               for y in range(source.height) for x in range(source.width)]
-    result = Image.new("RGB", source.size, INK)
+    result = Image.new("L", source.size)
     result.putdata(pixels)
     return result
+
+
+def render(mask: Image.Image, size: tuple[int, int]) -> Image.Image:
+    resized_mask = mask.resize(size, Image.Resampling.LANCZOS)
+    ink = Image.new("RGB", size, INK)
+    voltage = Image.new("RGB", size, VOLTAGE)
+    return Image.composite(voltage, ink, resized_mask)
 
 
 def parse_args() -> argparse.Namespace:
@@ -56,15 +63,17 @@ def main() -> None:
         raise SystemExit(f"Icon master does not exist: {args.master}")
 
     with Image.open(args.master) as opened:
-        master = flatten(opened)
+        mask = flatten_mask(opened)
 
     args.png.parent.mkdir(parents=True, exist_ok=True)
     args.ico.parent.mkdir(parents=True, exist_ok=True)
 
-    resampling = Image.Resampling.LANCZOS
-    png = master.resize(PNG_SIZE, resampling)
+    png = render(mask, PNG_SIZE)
     png.save(args.png, format="PNG", optimize=True)
-    png.save(args.ico, format="ICO", sizes=ICO_SIZES)
+
+    ico_frames = [render(mask, size) for size in ICO_SIZES]
+    ico_frames[-1].save(args.ico, format="ICO", sizes=ICO_SIZES,
+                        append_images=ico_frames[:-1])
 
     print(f"wrote {args.png} ({PNG_SIZE[0]}x{PNG_SIZE[1]})")
     print(f"wrote {args.ico} ({len(ICO_SIZES)} sizes)")

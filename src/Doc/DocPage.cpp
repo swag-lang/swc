@@ -19,6 +19,8 @@ Utf8 DocPage::styles()
 
     --swag-accent: #f7f900;
     --swag-accent-ink: #050505;
+    --swag-active: #0b0b0d;
+    --swag-selection: #e7e7e3;
 
     --swag-bg: #ffffff;
     --swag-bg-sunken: #f6f6f4;
@@ -44,8 +46,6 @@ Utf8 DocPage::styles()
     --swag-header-height: 66px;
     --swag-rail-width: 306px;
     --swag-measure: 120ch;
-    --swag-radius: 6px;
-
     --swag-font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     --swag-font-mono: ui-monospace, "Cascadia Mono", SFMono-Regular, Menlo, Consolas, monospace;
 
@@ -71,6 +71,8 @@ Utf8 DocPage::styles()
         --swag-link: #79b8ff;
         --swag-shadow: 0 1px 2px rgba(0, 0, 0, .4);
         --swag-code-fg: #d5d5dd;
+        --swag-active: #f7f900;
+        --swag-selection: #2a2a30;
 
         --swag-kind-namespace: #94a3b8;
         --swag-kind-struct: #7aa7ff;
@@ -96,6 +98,8 @@ Utf8 DocPage::styles()
     --swag-link: #79b8ff;
     --swag-shadow: 0 1px 2px rgba(0, 0, 0, .4);
     --swag-code-fg: #d5d5dd;
+    --swag-active: #f7f900;
+    --swag-selection: #2a2a30;
 
     --swag-kind-namespace: #94a3b8;
     --swag-kind-struct: #7aa7ff;
@@ -112,6 +116,15 @@ Utf8 DocPage::styles()
 
 * {
     box-sizing: border-box;
+}
+
+::selection {
+    background: var(--swag-selection);
+}
+
+:focus-visible {
+    outline: 2px solid var(--swag-active);
+    outline-offset: 2px;
 }
 
 html {
@@ -153,6 +166,11 @@ body {
     color: #fff;
     background: #050505;
     border-bottom: 2px solid var(--swag-accent);
+}
+
+.site-header :focus-visible,
+.hero :focus-visible {
+    outline-color: var(--swag-accent);
 }
 
 .site-nav {
@@ -200,7 +218,7 @@ body {
 .site-links a {
     padding: 6px 10px;
     color: #e8e8e8;
-    border-radius: 4px;
+    border-bottom: 2px solid transparent;
     font-size: .93rem;
     text-decoration: none;
 }
@@ -208,7 +226,8 @@ body {
 .site-links a:hover,
 .site-links a:focus-visible {
     color: var(--swag-accent);
-    background: rgba(255, 255, 255, .07);
+    border-bottom-color: var(--swag-accent);
+    outline-color: var(--swag-accent);
 }
 
 /* ----------------------------------------------------------------- shell -- */
@@ -262,7 +281,7 @@ body {
     flex: none;
     width: 11px;
     height: 3px;
-    background: var(--swag-accent);
+    background: var(--swag-active);
     transform: skewX(-18deg);
 }
 
@@ -288,14 +307,13 @@ body {
 .left a:hover,
 .left a:focus-visible {
     color: var(--swag-ink);
-    background: var(--swag-bg-sunken);
-    border-left-color: var(--swag-accent);
+    border-left-color: var(--swag-active);
 }
 
 .left a:target,
 .left a.is-current {
     color: var(--swag-ink);
-    border-left-color: var(--swag-accent);
+    border-left-color: var(--swag-active);
 }
 
 /* An 'examples' page nests its chapters, so the depth has to stay readable. */
@@ -319,7 +337,7 @@ body {
     gap: 8px;
     padding: 5px 10px 5px 8px;
     color: var(--swag-ink);
-    border-radius: 4px;
+    border-left: 2px solid transparent;
     font-size: .87rem;
     font-weight: 600;
     cursor: pointer;
@@ -347,7 +365,7 @@ body {
 }
 
 .toc-group > summary:hover {
-    background: var(--swag-bg-sunken);
+    border-left-color: var(--swag-active);
 }
 
 .toc-count {
@@ -409,7 +427,7 @@ body {
     left: 0;
     width: 32px;
     height: 4px;
-    background: var(--swag-accent);
+    background: var(--swag-active);
     transform: skewX(-18deg);
 }
 
@@ -541,9 +559,8 @@ body {
     gap: 14px;
     padding: 11px 16px;
     background: var(--swag-bg-sunken);
-    border: 1px solid var(--swag-line);
+    border: 0;
     border-left: 3px solid var(--swag-item-color, var(--swag-line-strong));
-    border-radius: var(--swag-radius);
 }
 
 .api-item-namespace { --swag-item-color: var(--swag-kind-namespace); }
@@ -699,7 +716,6 @@ body {
     color: var(--swag-ink);
     background: var(--swag-bg-code);
     border: 1px solid var(--swag-line);
-    border-radius: 4px;
     font-family: var(--swag-font-mono);
     font-size: .88em;
     white-space: nowrap;
@@ -713,7 +729,6 @@ body {
     background: var(--swag-bg-code);
     border: 1px solid var(--swag-line);
     border-left: 3px solid var(--swag-line-strong);
-    border-radius: var(--swag-radius);
     font-family: var(--swag-font-mono);
     font-size: .875rem;
     line-height: 1.55;
@@ -724,7 +739,7 @@ body {
 /* A declaration is short and already indented by its own source, so wrapping a long
    signature reads better than hiding its tail behind a horizontal scrollbar. */
 .api-symbol > .code-block {
-    border-left-color: var(--swag-accent);
+    border-left-color: var(--swag-active);
     white-space: pre-wrap;
 }
 
@@ -794,9 +809,8 @@ body {
     margin: 20px 0;
     padding: 13px 16px;
     background: color-mix(in srgb, var(--swag-quote-color, #888) 8%, var(--swag-bg));
-    border: 1px solid color-mix(in srgb, var(--swag-quote-color, #888) 26%, transparent);
+    border: 0;
     border-left: 3px solid var(--swag-quote-color, var(--swag-line-strong));
-    border-radius: var(--swag-radius);
 }
 
 .blockquote > :first-child { margin-top: 0; }
@@ -933,7 +947,7 @@ body {
     bottom: 22px;
     left: 0;
     width: 3px;
-    background: var(--swag-link);
+    background: var(--swag-active);
     transform: scaleY(0);
     transform-origin: top;
     transition: transform 120ms ease-out;

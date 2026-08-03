@@ -778,7 +778,7 @@ impl QuickWnd
         {
             let btn = Wnd.create'QuickButton(.layout, null, {0, 0, 64, 64})
             btn.updateFlags(.Radio)
-            btn.setForm(.RoundedRectangle)
+            btn.setForm(.Rectangle)
             btn.formItf  = it
             btn.quickWnd = me
 
@@ -825,7 +825,7 @@ impl QuickWnd
             btn.updateFlags(.Radio)
             btn.userData = cast(*void) 1'u64     // This is the model button
             btn.formItf  = formItf
-            btn.setForm(.RoundedRectangle)
+            btn.setForm(.Rectangle)
             btn.style.addStyleSheetColors("btnIcon_Bk          0x0")
             btn.style.addStyleSheetColors("btnIcon_HotBk       0x0")
             btn.style.addStyleSheetColors("btnIcon_PressedBk   0x0")
@@ -847,7 +847,7 @@ impl QuickWnd
             btn1.style.addStyleSheetColors("btnIcon_HotBk       $hilightLight")
             btn1.style.addStyleSheetColors("btnIcon_PressedBk   $hilightDark")
             btn1.style.addStyleSheetColors("btnIcon_Icon        $hilightLightContrast")
-            btn1.setForm(.Circle)
+            btn1.setForm(.Rectangle)
 
             .layout.sendResizeEvent()
             .setScrollSize(0, .layout.contentHeight)

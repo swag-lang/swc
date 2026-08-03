@@ -221,7 +221,30 @@ impl IWnd for IconButton
             theme.drawSubRect(bc.painter, clientRect, subRectBk, .aniBk.cur())
         }
 
-        if !flat and !overlay and .isChecked and .checkIndicator != .None
+        if !flat and !overlay and .isChecked and colors.activeRail.a
+        {
+            let thickness = Math.min(4'f32, Math.min(clientRect.width, clientRect.height))
+            var rail      = clientRect
+            switch .checkIndicator
+            {
+            case .Top:
+                rail.height = thickness
+
+            case .Left:
+                rail.width = thickness
+
+            case .Right:
+                rail.x     = rail.right() - thickness
+                rail.width = thickness
+
+            case .None, .Bottom, .Full:
+                rail.y      = rail.bottom() - thickness
+                rail.height = thickness
+            }
+
+            bc.painter.fillRect(rail, colors.activeRail)
+        }
+        elif !flat and !overlay and .isChecked and .checkIndicator != .None
         {
             switch .checkIndicator
             {
@@ -745,7 +768,7 @@ impl IconButton
         with let frame = Wnd.create'FrameWnd(topView, {x, y, width, height})
         {
             .owner = me
-            .setFrameForm(.Round)
+            .setFrameForm(.themeColors().activeRail.a ? .Square : .Round)
             .setFrameFlags(.SmallShadow)
             .style.addStyleSheetColors("frameWnd_Border $frameWnd_PopupBorder")
             .anchor         = anchor

@@ -79,12 +79,7 @@ if /I "%SWC_COMMAND%"=="test" if /I "%~1"=="--no-test-jit" (
     shift
     goto parse_args
 )
-if /I "%SWC_COMMAND%"=="run" if /I "%~1"=="--run-arg" (
-    set "APPLICATION_ARGS=%APPLICATION_ARGS% "%~2""
-    shift
-    shift
-    goto parse_args
-)
+if /I "%SWC_COMMAND%"=="run" if /I "%~1"=="--run-arg" goto parse_application_arg
 if /I "%~1"=="--workspace-module" (
     set "WORKSPACE_MODULE=%~2"
     set "WORKSPACE_ARGS=%WORKSPACE_ARGS% --workspace-module %~2"
@@ -101,6 +96,28 @@ if /I "%~1"=="-m" (
 )
 set "EXTRA_ARGS=%EXTRA_ARGS% %1"
 shift
+goto parse_args
+
+:parse_application_arg
+shift
+if "%~1"=="" (
+    echo --run-arg requires a value.
+    exit /b 1
+)
+set "APPLICATION_ARG_VALUE=%~1"
+shift
+
+:parse_application_arg_suffix
+if "%~1"=="" goto commit_application_arg
+set "APPLICATION_ARG_SUFFIX=%~1"
+if "%APPLICATION_ARG_SUFFIX:~0,1%"=="-" goto commit_application_arg
+rem cmd.exe tokenizes '=' in batch arguments. Reassemble values such as name=value.
+set "APPLICATION_ARG_VALUE=%APPLICATION_ARG_VALUE%=%APPLICATION_ARG_SUFFIX%"
+shift
+goto parse_application_arg_suffix
+
+:commit_application_arg
+set "APPLICATION_ARGS=%APPLICATION_ARGS% "%APPLICATION_ARG_VALUE%""
 goto parse_args
 
 :run

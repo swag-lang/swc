@@ -11,7 +11,7 @@ xcopy "%ROOT%\web\imgs\swag_icon.png" "%VSCODE_DIR%\images\" /Y || exit /b 1
 xcopy "%ROOT%\web\imgs\syntax.png" "%VSCODE_DIR%\images\" /Y || exit /b 1
 
 pushd "%VSCODE_DIR%" || exit /b 1
-vsce package
+call vsce.cmd package
 set "PACKAGE_ERROR=%ERRORLEVEL%"
 popd
 exit /b %PACKAGE_ERROR%

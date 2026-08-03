@@ -42,6 +42,8 @@ func iconBarHeadlessReset()
     @assert(b2 != null)
     @assert(bar.children.count == 2)
     @assert(bar.buttonById(IconBarHeadless_Btn1) == b1)
+    @assert(b1.form == .Rectangle and b2.form == .Rectangle)
+    @assert(b1.checkIndicator == .Bottom and b2.checkIndicator == .Bottom)
 }
 
 // Changing bar metrics updates existing buttons as well as the bar extent.
@@ -104,4 +106,5 @@ func iconBarHeadlessReset()
     bar.setOrientation(.Vertical)
     @assert(bar.orientation == .Vertical)
     @assert(bar.position.width == 32 and bar.position.height == 32)
+    @assert(b.checkIndicator == .Left)
 }

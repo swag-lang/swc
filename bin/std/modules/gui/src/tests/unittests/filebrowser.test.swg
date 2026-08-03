@@ -67,3 +67,24 @@ using Swag, Core, File
     let fileName = notnull Path.fileName(name.toString())
     @assert(fileName == "myfolder")
 }
+
+// Dialogs create the composite before assigning its Center dock. The fields
+// must acquire a useful width once the parent performs its first layout.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 460)
+    defer host.shutdown()
+    var opt: FileDlgOptions
+    opt.mode              = .CreateFile
+    opt.showLocationsPane = false
+    opt.filters.add({"sCrypt container", ".scv"})
+
+    let fb = FileBrowserCtrl.create(&host.root, opt)
+    fb.dockStyle = .Center
+    host.root.applyLayout()
+    fb.applyLayout()
+
+    @assert(fb.editFile.position.width > 300)
+    @assert(fb.comboType.position.width > 300)
+}

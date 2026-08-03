@@ -59,7 +59,22 @@ func chooseContainer(target: *EditBox, create: bool)
     options.shortcuts.add({Env.SpecialDirectory.Desktop, "Desktop"})
     options.shortcuts.add({Env.SpecialDirectory.UserDocuments, "Documents"})
 
+    // Keep the stronger modal depth local to sCrypt. The shared dark and light
+    // themes retain their original surface geometry and dialog presentation.
+    let oldShadowSize   = g_App.theme.metrics.surfaceWnd_ShadowSize
+    let oldCornerRadius = g_App.theme.metrics.surfaceWnd_CornerRadius
+    g_App.theme.metrics.surfaceWnd_ShadowSize   = 10
+    g_App.theme.metrics.surfaceWnd_CornerRadius = 1
+    defer
+    {
+        g_App.theme.metrics.surfaceWnd_ShadowSize   = oldShadowSize
+        g_App.theme.metrics.surfaceWnd_CornerRadius = oldCornerRadius
+    }
+
     let dialog = FileDlg.create(surface(), options)
+    (notnull dialog.surface).updateFlags(add: .Border)
+    for button in dialog.buttons where button.id == Dialog.BtnCancel do
+        button.setForm(.Normal)
     if dialog.doModal() == Dialog.BtnOk do
         target.setText(dialog.selectedPath())
 }
@@ -113,6 +128,7 @@ func createContainer()
     }
 
     (notnull g_Status).setText("Creating and randomizing the container…")
+    Cursor.activateWait()
     var volume = catch SCrypt.Volume.create(path, (notnull g_CreatePassword).bytes(), size) as createError
     (notnull g_CreatePassword).clear()
     (notnull g_ConfirmPassword).clear()
@@ -157,6 +173,7 @@ func mountContainer()
     }
 
     (notnull g_Status).setText("Starting the portable filesystem driver…")
+    Cursor.activateWait()
     let mounted = Memory.new'SCrypt.Platform.MountedVolume()
     discard catch SCrypt.Platform.MountedVolume.open(
         mounted, path, (notnull g_MountPassword).bytes(), mountPoint) as mountError
@@ -179,6 +196,7 @@ func dismountContainer(showFailure = true)
 {
     if !g_Mounted do
         return
+    Cursor.activateWait()
     let mounted = notnull g_Mounted
     discard catch mounted.close() as closeError
     Memory.delete(mounted)
@@ -280,7 +298,6 @@ func populateDrives(combo: *ComboBox)
     let title = Label.create(root, "sCrypt", {46, 22, 420, 46})
     title.setTextAlignment(.Left, .Center)
     title.style.setFont(root.theme().createDefaultFont(36, .Bold), .Regular)
-    title.setTextColor(root.themeColors().hilight)
 
     let subtitle = Label.create(root,
         "Encrypted storage that looks and behaves like a regular Windows drive.",
@@ -358,7 +375,9 @@ func populateDrives(combo: *ComboBox)
     statusFrame.setFrameFlags(.Borders)
     let statusView = statusFrame.createView'Wnd()
     let statusIcon = Label.create(statusView, "", {14, 8, 30, 40})
-    statusIcon.setIcon(root.theme().icon64(ThemeIcons64.Information, 22))
+    var statusGlyph = root.theme().icon24(ThemeIcons24.About, 22)
+    statusGlyph.color = root.themeColors().label_TextLight
+    statusIcon.setIcon(statusGlyph)
     g_Status = Label.create(statusView, "Ready — create a vault or choose one to mount.",
                              {52, 8, 956, 40})
     (notnull g_Status).setTextAlignment(.Left, .Center)

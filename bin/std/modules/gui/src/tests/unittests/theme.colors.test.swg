@@ -8,7 +8,7 @@ using Swag, Core
     colors.setSwagDark()
 
     @assert(colors.bk == 0xFF0B0B0D)
-    @assert(colors.text == 0xFFE6E6EA)
+    @assert(colors.text == 0xFFE9E9ED)
     @assert(colors.hilight == 0xFFF7F900)
     @assert(colors.hilightLightContrast == 0xFF0B0B0D)
     @assert(colors.activeRail == 0xFFF7F900)
@@ -16,10 +16,16 @@ using Swag, Core
     @assert(colors.btnPush_StrongText == 0xFF0B0B0D)
     @assert(colors.btnIcon_CheckedBk == 0x00000000)
     @assert(colors.btnIcon_CheckedIcon == 0xFFF7F900)
-    @assert(colors.menuBar_SelectedBk == 0xFF202024)
-    @assert(colors.popupItem_HotBk == 0xFF202024)
-    @assert(colors.listItem_FocusSelectedBk == 0xFF2A2A30)
-    @assert(colors.frameWnd_Border == 0xFF26262E)
+    @assert(colors.view_Bk == 0xFF15151A)
+    @assert(colors.wnd_Bk == 0xFF202026)
+    @assert(colors.wnd_CaptionBk == 0xFF2A2A32)
+    @assert(colors.wnd_Border == 0xFF6B6B77)
+    @assert(colors.btnPush_Bk == 0xFF2A2A32)
+    @assert(colors.edit_Border == 0xFF6B6B77)
+    @assert(colors.menuBar_SelectedBk == 0xFF33333C)
+    @assert(colors.popupItem_HotBk == 0xFF33333C)
+    @assert(colors.listItem_FocusSelectedBk == 0xFF3B3B46)
+    @assert(colors.frameWnd_Border == 0xFF3D3D48)
 }
 
 #test

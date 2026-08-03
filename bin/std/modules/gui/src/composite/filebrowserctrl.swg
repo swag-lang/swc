@@ -295,16 +295,48 @@ impl FileBrowserCtrl
         let viewBottom = Wnd.create'Wnd(fileBrowser, {0, 0, 0, 90})
         viewBottom.dockStyle       = .Bottom
         viewBottom.backgroundStyle = .Window
-        fileBrowser.applyLayout()
 
-        with fileBrowser.editFile = EditBox.create(viewBottom, "", {105, 10, viewBottom.position.width - (105 + 15)})
+        // Build the two fields from docked rows. FileBrowserCtrl is commonly
+        // created at size zero and docked by its caller afterwards, so deriving
+        // field widths from its construction-time size can make them negative
+        // and therefore invisible.
+        with let nameRow = Wnd.create'Wnd(viewBottom, {0, 0, 0, 35})
         {
-            .anchorStyle = .Width
+            .dockStyle       = .Top
+            .backgroundStyle = .Window
         }
 
-        with fileBrowser.comboType = ComboBox.create(viewBottom, {105, 45, viewBottom.position.width - (105 + 15)})
+        let nameLbl0 = opt.mode == .SelectFolder ? "Folder Name" : "File Name"
+        with let label0 = Label.create(nameRow, nameLbl0, {0, 0, 95})
         {
-            .anchorStyle = .Width
+            .dockStyle = .Left
+            .margin.z  = 10
+            .setTextAlignment(.Right, .Center)
+        }
+
+        with fileBrowser.editFile = EditBox.create(nameRow, "")
+        {
+            .dockStyle = .Center
+            .margin.z  = 15
+        }
+
+        with let typeRow = Wnd.create'Wnd(viewBottom, {0, 0, 0, 35})
+        {
+            .dockStyle       = .Top
+            .backgroundStyle = .Window
+        }
+
+        with let label1 = Label.create(typeRow, "Type", {0, 0, 95})
+        {
+            .dockStyle = .Left
+            .margin.z  = 10
+            .setTextAlignment(.Right, .Center)
+        }
+
+        with fileBrowser.comboType = ComboBox.create(typeRow)
+        {
+            .dockStyle = .Center
+            .margin.z  = 15
             if opt.mode == .SelectFolder do
                 .addItem("Folders")
             else do
@@ -313,12 +345,6 @@ impl FileBrowserCtrl
             .setSelectedIndex(0)
             .sigChanged += func|fileBrowser|(c, idx) { fileBrowser.fillFileList() }
         }
-
-        let nameLbl0 = opt.mode == .SelectFolder ? "Folder Name" : "File Name"
-        let label0   = Label.create(viewBottom, nameLbl0, {5, 10, 80, fileBrowser.editFile.position.height})
-        label0.setTextAlignment(.Right, .Center)
-        let label1 = Label.create(viewBottom, "Type", {5, 45, 80, fileBrowser.comboType.position.height})
-        label1.setTextAlignment(.Right, .Center)
 
         with fileBrowser
         {
@@ -337,9 +363,16 @@ impl FileBrowserCtrl
                 .listCtrl.setFocus()
         }
 
-        // Default to the first shortcut/drive when nothing else selected a folder.
-        if fileBrowser.currentFolder.isEmpty() and fileBrowser.treeCtrl do
-            fileBrowser.treeCtrl.selectLine(0)
+        // Default to the first real shortcut/drive when nothing else selected a folder.
+        if fileBrowser.currentFolder.isEmpty() and fileBrowser.treeCtrl
+        {
+            let tree = notnull fileBrowser.treeCtrl
+            for line, [idx] in tree.lines where line and !line.separator
+            {
+                tree.selectLine(cast(u32) idx)
+                break
+            }
+        }
 
         return fileBrowser
     }

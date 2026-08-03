@@ -1264,17 +1264,18 @@ impl ThemeColors
     // Applies the dark Swag application palette: Voltage over Ink with neutral structure.
     mtd setSwagDark()
     {
-        const Ink        = 0xFF0B0B0D
-        const Panel      = 0xFF141417
-        const Raised     = 0xFF1B1B1F
-        const View       = 0xFF101013
-        const Line       = 0xFF26262E
-        const Text       = 0xFFE6E6EA
-        const SoftText   = 0xFFA9A9B4
-        const FaintText  = 0xFF7D7D89
-        const Voltage    = 0xFFF7F900
-        const NeutralHot = 0xFF202024
-        const Pressed    = 0xFF2A2A30
+        const Ink         = 0xFF0B0B0D
+        const View        = 0xFF15151A
+        const Panel       = 0xFF202026
+        const Raised      = 0xFF2A2A32
+        const NeutralHot  = 0xFF33333C
+        const Pressed     = 0xFF3B3B46
+        const Line        = 0xFF3D3D48
+        const ControlLine = 0xFF6B6B77
+        const Text        = 0xFFE9E9ED
+        const SoftText    = 0xFFB4B4BE
+        const FaintText   = 0xFF91919D
+        const Voltage     = 0xFFF7F900
 
         .setDark()
 
@@ -1283,11 +1284,11 @@ impl ThemeColors
         .text   = Text
 
         .wnd_Bk                      = Panel
-        .wnd_CaptionBk               = Ink
+        .wnd_CaptionBk               = Raised
         .wnd_CaptionBkNotActived     = Panel
         .wnd_CaptionText             = Text
         .wnd_CaptionNotActivatedText = SoftText
-        .wnd_Border                  = Line
+        .wnd_Border                  = ControlLine
         .view_Bk                     = View
         .dlg_Bk                      = Panel
         .dlg_BtnBarBk                = View
@@ -1296,8 +1297,8 @@ impl ThemeColors
         .btnPush_StrongBorder = Voltage
         .btnPush_StrongBk     = Voltage
         .btnPush_Text         = Text
-        .btnPush_Border       = Line
-        .btnPush_Bk           = Panel
+        .btnPush_Border       = ControlLine
+        .btnPush_Bk           = Raised
         .btnPush_PressedText  = Text
         .btnPush_PressedBk    = Pressed
         .btnPush_HotText      = Text
@@ -1319,15 +1320,15 @@ impl ThemeColors
         .label_Icon      = Text
         .disabled        = FaintText
 
-        .edit_Border      = Line
-        .edit_HotBorder   = Line
+        .edit_Border      = ControlLine
+        .edit_HotBorder   = ControlLine
         .edit_Bk          = Raised
         .edit_HotBk       = Raised
         .edit_FocusBk     = Raised
         .edit_Text        = Text
         .edit_Note        = FaintText
         .edit_TextUnit    = SoftText
-        .richEdit_Bk      = Ink
+        .richEdit_Bk      = View
         .richEdit_Text    = Text
         .richEdit_Caret   = Text
 
@@ -1341,7 +1342,7 @@ impl ThemeColors
         .scrollBar_Bk        = View
         .scrollBar_Box       = FaintText
 
-        .comboBox_Border      = Line
+        .comboBox_Border      = ControlLine
         .comboBox_Bk          = Raised
         .comboBox_HotBk       = Raised
         .comboBox_SelectedBk  = Raised
@@ -1353,7 +1354,7 @@ impl ThemeColors
         .popupList_Text       = Text
 
         .frameWnd_Border      = Line
-        .frameWnd_PopupBorder = Line
+        .frameWnd_PopupBorder = ControlLine
         .frameWnd_Bk          = Panel
         .frameWnd_FocusBk     = Panel
         .listItem_Text        = Text
@@ -1365,8 +1366,8 @@ impl ThemeColors
         .header_Bk            = Panel
         .splitView_TitleBk    = Panel
         .splitView_Bar        = Line
-        .progressBar_Border   = Line
-        .progressBar_Bk       = Ink
+        .progressBar_Border   = ControlLine
+        .progressBar_Bk       = View
         .prop_GridBorder      = Line
         .prop_GridColumn      = Line
         .prop_SectionBk       = View

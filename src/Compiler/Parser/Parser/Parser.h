@@ -208,6 +208,7 @@ private:
     AstNodeRef parseForInfinite();
     AstNodeRef parseFunctionDecl(bool isInterfaceDefinition = false);
     AstNodeRef parseFunctionBody();
+    bool       bodyShapeAllowsAutoInline(AstNodeRef bodyRef, TokenRef bodyStartRef) const;
     AstNodeRef parseFunctionParam();
     AstNodeRef parseFunctionParamList();
     AstNodeRef parseGenericParam();

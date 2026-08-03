@@ -206,6 +206,11 @@ struct AstIntrinsicValue : AstNodeT<AstNodeId::IntrinsicValue>
 };
 
 // -----------------------------------------------------------------------------
+// Auto-inline budget: a candidate body wider than this many source tokens is left out of line.
+// Tokens are a cheap, stable proxy for body size. Shared because the parser measures the body and
+// the auto-inline heuristic reads the verdict.
+constexpr uint32_t K_AUTO_INLINE_MAX_BODY_TOKENS = 80;
+
 enum class AstFunctionFlagsE : AstNode::ParserFlags
 {
     Zero     = 0,
@@ -215,6 +220,15 @@ enum class AstFunctionFlagsE : AstNode::ParserFlags
     Const    = 1 << 3,
     Impl     = 1 << 4,
     Short    = 1 << 5,
+    // The body's SHAPE qualifies for auto-inlining: small enough, and free of the constructs the
+    // heuristic cannot move into a caller (a nested call, a local function, `#offsetof`).
+    //
+    // The parser decides this, and that is the whole point. Sema rewrites body nodes in place, so
+    // the same question asked mid-analysis reads nodes whose id and payload disagree, and asking
+    // it only of already-analysed callees made the answer depend on which thread got there first.
+    // Measured at the time: the same source lost ~1000 inlines per build of the standard library,
+    // varying run to run. Right after parsing, the body is complete and nothing else can touch it.
+    AutoInlineBody = 1 << 6,
 };
 
 struct AstFunctionExpr : AstLambdaExprT<AstNodeId::FunctionExpr, AstFunctionFlagsE>

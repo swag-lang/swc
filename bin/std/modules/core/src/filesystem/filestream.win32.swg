@@ -85,6 +85,31 @@ impl FileStream
         return low + (cast(u64) high << 32)
     }
 
+    // Changes the file length while preserving the current position when it remains in range.
+    // Shrinking past the current position leaves the position at the new end of the file.
+    mtd resize(newSize: u64) fail
+    {
+        Debug.assert(.isOpen())
+        Debug.assert(.canSeek)
+        Debug.assert(.canWrite)
+
+        let oldPosition = .position()
+        .seek(.Begin, newSize)
+        catch SetEndOfFile(cast(HANDLE) .handle) as err
+        Errors.transformWinErrors(err, .name)
+        .seek(.Begin, Math.min(oldPosition, newSize))
+    }
+
+    // Commits buffered file data and metadata to the underlying device.
+    mtd flush() fail
+    {
+        Debug.assert(.isOpen())
+        Debug.assert(.canWrite)
+
+        catch FlushFileBuffers(cast(HANDLE) .handle) as err
+        Errors.transformWinErrors(err, .name)
+    }
+
     // Returns the current absolute byte position.
     mtd position()->u64 fail
     {

@@ -214,3 +214,12 @@ func expectDateTime(value: Time.DateTime, year, month, day, hour, minute, second
     @assert(dateTime.month == 2)
     expectDateTime(dateTime, 2024, 2, 29, 12, 0, 0, 0)
 }
+
+#test
+{
+    let dateTime = Time.DateTime.utcNow()
+    let timestamp = Time.Timestamp.utcNow()
+    @assert(dateTime.isValid())
+    @assert(timestamp.ticks != 0)
+    @assert(timestamp.toDateTime().isValid())
+}

@@ -19,6 +19,17 @@ impl DateTime
 
 public impl DateTime
 {
+    // Returns the current UTC date and time.
+    func utcNow()->DateTime
+    {
+        var systemTime: SYSTEMTIME = undefined
+        GetSystemTime(&systemTime)
+
+        var result: retval = undefined
+        result.setSystemTime(systemTime)
+        return result
+    }
+
     // Returns a DateTime containing the current date and time
     func now()->DateTime
     {

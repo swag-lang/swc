@@ -398,6 +398,7 @@ const FIND_FIRST_EX_ON_DISK_ENTRIES_ONLY = 4
     func GetProcAddress(hModule: HMODULE, lpProcName: LPCSTR)->#null const *void
     func GetCurrentProcess()->HANDLE
     func GetCurrentProcessId()->DWORD
+    func GetModuleFileNameW(hModule: HMODULE, lpFilename: LPWSTR, nSize: DWORD)->DWORD
     func GetModuleHandleA(lpModuleName: LPCSTR)->HMODULE
     func GetModuleHandleW(lpModuleName: LPCWSTR)->HMODULE
     func GetStdHandle(nStdHandle: DWORD)->HANDLE
@@ -406,6 +407,7 @@ const FIND_FIRST_EX_ON_DISK_ENTRIES_ONLY = 4
     func WriteConsoleOutputCharacterA(hConsoleOutput: HANDLE, lpCharacter: LPCSTR, nLength: DWORD, dwWriteCoord: DWORD, lpNumberOfCharsWritten: LPDWORD)->BOOL
     func WriteConsoleOutputCharacterW(hConsoleOutput: HANDLE, lpCharacter: LPCTSTR, nLength: DWORD, dwWriteCoord: DWORD, lpNumberOfCharsWritten: LPDWORD)->BOOL
     func SetConsoleOutputCP(codePage: UINT)
+    func GetLogicalDrives()->DWORD
     func GetLogicalDriveStringsA(nBufferLength: DWORD, lpBuffer: LPCSTR)->DWORD
     func GetLogicalDriveStringsW(nBufferLength: DWORD, lpBuffer: LPWSTR)->DWORD
 
@@ -442,6 +444,7 @@ const FIND_FIRST_EX_ON_DISK_ENTRIES_ONLY = 4
 
     func ReadFile(hFile: HANDLE, lpBuffer: LPVOID, nNumberOfBytesToRead: DWORD, lpNumberOfBytesRead: LPDWORD, lpOverlapped: LPOVERLAPPED)->BOOL
     func CloseHandle(handle: HANDLE)
+    func RtlZeroMemory(destination: LPVOID, length: SIZE_T)->LPVOID
     func FileTimeToLocalFileTime(lpFileTime: const *FILETIME, lpLocalFileTime: *FILETIME)->BOOL
 }
 
@@ -485,6 +488,8 @@ internal namespace Win32Priv
         func CreateFileW(lpFileName: LPCWSTR, dwDesiredAccess: DWORD, dwShareMode: DWORD, lpSecurityAttributes: #null *SECURITY_ATTRIBUTES, dwCreationDisposition: DWORD, dwFlagsAndAttributes: DWORD, hTemplateFile: HANDLE)->HANDLE
         func SetFilePointer(hFile: HANDLE, lDistanceToMove: LONG, lpDistanceToMoveHigh: PLONG, dwMoveMethod: DWORD)->DWORD
         func GetFileSize(hFile: HANDLE, lpFileSizeHigh: LPDWORD)->DWORD
+        func SetEndOfFile(hFile: HANDLE)->BOOL
+        func FlushFileBuffers(hFile: HANDLE)->BOOL
 
         func FileTimeToSystemTime(lpFileTime: const *FILETIME, lpSystemTime: *SYSTEMTIME)->BOOL
         func SystemTimeToFileTime(lpSystemTime: const *SYSTEMTIME, lpFileTime: *FILETIME)->BOOL
@@ -923,6 +928,18 @@ internal namespace Win32Priv
         if low == INVALID_FILE_SIZE do
             failWinError(GetLastError())
         return low
+    }
+
+    func SetEndOfFile(hFile: HANDLE) fail
+    {
+        if !Win32Priv.SetEndOfFile(hFile) do
+            failWinError(GetLastError())
+    }
+
+    func FlushFileBuffers(hFile: HANDLE) fail
+    {
+        if !Win32Priv.FlushFileBuffers(hFile) do
+            failWinError(GetLastError())
     }
 
     #[Discardable]

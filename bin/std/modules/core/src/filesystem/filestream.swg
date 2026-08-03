@@ -48,4 +48,45 @@ impl FileStream
     {
         return .read(buffer, #sizeof(T)) == #sizeof(T)
     }
+
+    // Reads at most the size of `buffer` and returns the number of bytes read.
+    mtd read(buffer: [..] u8)->u64 fail
+    {
+        return .read(@dataof(buffer), @countof(buffer))
+    }
+
+    // Writes at most the size of `buffer` and returns the number of bytes written.
+    mtd write(buffer: const [..] u8)->u64 fail
+    {
+        return .write(@dataof(buffer), @countof(buffer))
+    }
+
+    // Reads the complete `buffer` and returns false only when the stream ends first.
+    mtd readExact(buffer: [..] u8)->bool fail
+    {
+        return .read(buffer) == @countof(buffer)
+    }
+
+    // Moves to `offset`, reads the complete `buffer`, and returns false only when the stream ends first.
+    // The resulting stream position follows the bytes read.
+    mtd readExactAt(offset: u64, buffer: [..] u8)->bool fail
+    {
+        .seek(.Begin, offset)
+        return .readExact(buffer)
+    }
+
+    // Writes the complete `buffer` or fails if the stream stops accepting bytes.
+    mtd writeAll(buffer: const [..] u8) fail
+    {
+        if .write(buffer) != @countof(buffer) do
+            fail Swag.SystemError{"file write stopped before all bytes were written"}
+    }
+
+    // Moves to `offset` and writes the complete `buffer`.
+    // The resulting stream position follows the bytes written.
+    mtd writeAllAt(offset: u64, buffer: const [..] u8) fail
+    {
+        .seek(.Begin, offset)
+        .writeAll(buffer)
+    }
 }

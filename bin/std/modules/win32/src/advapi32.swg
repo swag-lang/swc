@@ -30,6 +30,7 @@ const KEY_CREATE_LINK        = 0x0020
 const KEY_WOW64_32KEY        = 0x0200
 const KEY_WOW64_64KEY        = 0x0100
 const KEY_WOW64_RES          = 0x0300
+const KEY_READ               = 0x00020019
 
 const REG_NONE                       = 0'u32     // No value type
 const REG_SZ                         = 1'u32     // Unicode nul terminated string
@@ -49,6 +50,8 @@ const REG_QWORD_LITTLE_ENDIAN        = 11'u32     // 64-bit number (same as REG_
 #[Foreign("advapi32"), Swag.Discardable]
 {
     func RegCreateKeyExA(hKey: HKEY, lpSubKey: LPCSTR, reserved: DWORD, lpClass: #null LPSTR, dwOptions: DWORD, samDesired: REGSAM, lpSecurityAttributes: #null const *SECURITY_ATTRIBUTES, hkResult: *HKEY, lpdwDisposition: LPDWORD)->LSTATUS
+    func RegOpenCurrentUser(samDesired: REGSAM, phkResult: *HKEY)->LSTATUS
+    func RegOpenKeyExW(hKey: HKEY, lpSubKey: LPCWSTR, ulOptions: DWORD, samDesired: REGSAM, phkResult: *HKEY)->LSTATUS
     func RegSetValueExA(hKey: HKEY, lpValueName: LPCSTR, reserved: DWORD, dwType: DWORD, lpData: #null const *BYTE, cbData: DWORD)->LSTATUS
     func RegCloseKey(hKey: HKEY)->LSTATUS
 }

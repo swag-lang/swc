@@ -38,6 +38,38 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
 
 #test
 {
+    let fileName = CoreTests.makeFilesystemTestPath("core_file_random_access.tmp")
+    defer discard catch File.delete(fileName)
+
+    var stream = expect File.open(fileName, File.FileMode.CreateNew, File.FileAccess.ReadWrite, File.FileShare.Read)
+    expect stream.resize(32)
+    @assert(expect stream.size() == 32)
+    @assert(expect stream.position() == 0)
+
+    let payload: [5] u8 = [1, 3, 5, 7, 9]
+    expect stream.writeAllAt(11, payload)
+    expect stream.flush()
+    @assert(expect stream.position() == 16)
+
+    var recovered: [5] u8
+    @assert(expect stream.readExactAt(11, recovered))
+    @assert(assertBytes(recovered, payload))
+    @assert(expect stream.position() == 16)
+
+    var beyond: [17] u8
+    @assert(!(expect stream.readExactAt(16, beyond)))
+
+    expect stream.seek(.Begin, 8)
+    expect stream.resize(12)
+    @assert(expect stream.position() == 8)
+    expect stream.resize(4)
+    @assert(expect stream.position() == 4)
+    @assert(expect stream.size() == 4)
+    stream.close()
+}
+
+#test
+{
     let fileName = CoreTests.makeFilesystemTestPath("core_file_append_create.tmp")
 
     var stream = expect File.open(fileName, File.FileMode.Append, File.FileAccess.Write, File.FileShare.Zero)

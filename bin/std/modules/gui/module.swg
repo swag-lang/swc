@@ -1,6 +1,6 @@
 /*
 GUI builds native desktop interfaces from composable windows, controls, dialogs,
-themes, actions, and Pixel drawing.
+themes, actions, password-safe input, and Pixel drawing.
 
 An [[Gui.Application]] owns surfaces and drives the event loop. Each
 [[Gui.Surface]] has a root [[Gui.Wnd]]; controls form a flatly documented API and

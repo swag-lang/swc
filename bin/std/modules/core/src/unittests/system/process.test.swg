@@ -4,6 +4,13 @@
 
 using Swag
 
+#test
+{
+    let executable = expect Env.Process.currentExecutablePath()
+    @assert(Path.isRooted(executable))
+    @assert(File.exists(executable))
+}
+
 func getShellExecutablePath()->String
 {
     // This test launches a real system executable, so it has to look outside any sandbox to

@@ -73,6 +73,20 @@ impl Process
     // Returns the current operating-system process identifier.
     func currentProcessId()->u64 => GetCurrentProcessId()
 
+    // Returns the absolute path of the executable image for the current process.
+    //
+    // Fails when Windows cannot resolve the image path or the path exceeds the platform limit.
+    func currentExecutablePath()->String fail
+    {
+        var buffer: [32768] u16
+        let count = GetModuleFileNameW(null, @dataof(buffer), cast(u32) @countof(buffer))
+        if !count do
+            failWinError(GetLastError())
+        if count >= @countof(buffer) do
+            failWinError(ERROR_INSUFFICIENT_BUFFER)
+        return Utf8.fromUtf16(@mkslice(@dataof(buffer), count))
+    }
+
     // Returns the current operating-system thread identifier.
     func currentThreadId()->u64 => GetCurrentThreadId()
 }

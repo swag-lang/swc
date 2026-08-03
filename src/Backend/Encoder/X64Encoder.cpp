@@ -584,6 +584,54 @@ namespace
             store.pushU8(value);
     }
 
+    uint8_t x64RegNumber(X64Reg reg)
+    {
+        return static_cast<uint8_t>((isExtendedReg(reg) ? 8 : 0) | encodeReg(reg));
+    }
+
+    // pp replaces the mandatory prefix byte the legacy encoding would have
+    // emitted ahead of the 0F escape.
+    uint8_t vexPrefixBits(uint8_t mandatoryPrefix)
+    {
+        switch (mandatoryPrefix)
+        {
+            case 0x66:
+                return 0b01;
+            case 0xF3:
+                return 0b10;
+            case 0xF2:
+                return 0b11;
+            default:
+                return 0b00;
+        }
+    }
+
+    // VEX prefix for the scalar 128-bit forms this encoder emits: L = 0, W
+    // ignored, and mmmmm always the 0F escape - so the two-byte form covers
+    // everything except a second source in the extended register file. The
+    // R/B/vvvv fields are stored inverted, which is why every one of them is
+    // written as its complement.
+    void emitVex(PagedStore& store, uint8_t mandatoryPrefix, X64Reg dst, X64Reg src1, X64Reg src2)
+    {
+        const uint8_t pp     = vexPrefixBits(mandatoryPrefix);
+        const uint8_t vvvv   = static_cast<uint8_t>(~x64RegNumber(src1) & 0x0F);
+        const bool    extDst = isExtendedReg(dst);
+        const bool    extSrc = isExtendedReg(src2);
+
+        if (!extSrc)
+        {
+            store.pushU8(0xC5);
+            store.pushU8(static_cast<uint8_t>((extDst ? 0 : 0x80) | (vvvv << 3) | pp));
+            return;
+        }
+
+        // Three-byte form, reached only when the second source is extended, so
+        // its B field is the one that has to go to zero. X is unused here.
+        store.pushU8(0xC4);
+        store.pushU8(static_cast<uint8_t>((extDst ? 0 : 0x80) | 0x40 | 0x01));
+        store.pushU8(static_cast<uint8_t>((vvvv << 3) | pp));
+    }
+
     uint8_t getX64OpCode(MicroOp op)
     {
         switch (op)
@@ -2171,7 +2219,31 @@ void X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
     SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
 
     ///////////////////////////////////////////
-    if (op == MicroOp::Add)
+    // Float arithmetic reads memory directly, exactly as the register form does
+    // but with a memory ModRM. Without this the operand has to be loaded into a
+    // register first, which is a whole extra instruction every time a value
+    // comes from a spill slot.
+    if (regDst.isFloat())
+    {
+        if (op != MicroOp::FloatSqrt && op != MicroOp::FloatAnd && op != MicroOp::FloatXor)
+        {
+            emitSpecF64(store_, 0xF3, opBits);
+            emitRex(store_, MicroOpBits::Zero, regDst, memReg);
+        }
+        else
+        {
+            emitPrefixF64(store_, opBits);
+            emitRex(store_, MicroOpBits::Zero, regDst, memReg);
+        }
+
+        emitCpuOp(store_, 0x0F);
+        emitCpuOp(store_, op);
+        emitModRm(store_, memOffset, regDst, memReg);
+    }
+
+    ///////////////////////////////////////////
+
+    else if (op == MicroOp::Add)
     {
         emitRex(store_, opBits, regDst, memReg);
         emitSpecCpuOp(store_, getX64RegMemOpCode(op), opBits);
@@ -3143,6 +3215,23 @@ void X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, const
     {
         SWC_INTERNAL_ERROR();
     }
+}
+
+void X64Encoder::encodeOpBinaryRegRegReg(MicroReg regDst, MicroReg regSrc1, MicroReg regSrc2, MicroOp op, MicroOpBits opBits)
+{
+    SWC_ASSERT(regDst.isFloat() && regSrc1.isFloat() && regSrc2.isFloat());
+    SWC_ASSERT(opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
+
+    // Same mandatory prefix the two-operand form would carry: F2/F3 select the
+    // scalar arithmetic shapes, 66/none the bitwise ones.
+    const bool    isBitwise        = op == MicroOp::FloatAnd || op == MicroOp::FloatXor;
+    const uint8_t mandatoryPrefix  = isBitwise ? (opBits == MicroOpBits::B64 ? 0x66 : 0x00)
+                                               : (opBits == MicroOpBits::B64 ? 0xF2 : 0xF3);
+
+    // No 0F byte: the VEX prefix already carries the escape.
+    emitVex(store_, mandatoryPrefix, microRegToX64Reg(regDst), microRegToX64Reg(regSrc1), microRegToX64Reg(regSrc2));
+    emitCpuOp(store_, op);
+    emitModRm(store_, regDst, regSrc2);
 }
 
 void X64Encoder::encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits)

@@ -822,6 +822,17 @@ void MicroBuilder::emitOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg
     ops[4].microOp          = op;
 }
 
+void MicroBuilder::emitOpBinaryRegRegReg(MicroReg regDst, MicroReg regSrc1, MicroReg regSrc2, MicroOp op, MicroOpBits opBits)
+{
+    const auto&        inst = addInstruction(MicroInstrOpcode::OpBinaryRegRegReg, 5);
+    MicroInstrOperand* ops  = inst.ops(operands_);
+    ops[0].reg              = regDst;
+    ops[1].reg              = regSrc1;
+    ops[2].reg              = regSrc2;
+    ops[3].opBits           = opBits;
+    ops[4].microOp          = op;
+}
+
 Result MicroBuilder::runPasses(const MicroPassManager& passes, Encoder* encoder, MicroPassContext& context)
 {
     context.encoder                 = encoder;

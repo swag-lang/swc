@@ -35,38 +35,9 @@ namespace PostRaPeephole
             return false;
         }
 
-        // Mirrors the "dead after consumer" scan in ConstForward: walk forward
-        // from `fromRef`; the reg is dead iff the next touch is a redefinition
-        // (no intervening read). Fallthrough-jumps-to-next-label are treated
-        // as no-ops because a sibling pattern in this same pass erases them.
         bool regDeadAfter(const Context& ctx, MicroInstrRef fromRef, MicroReg reg)
         {
-            MicroInstrRef cur = ctx.nextRef(fromRef);
-            for (int step = 0; step < K_MAX_LIVENESS_WINDOW && cur.isValid(); ++step, cur = ctx.nextRef(cur))
-            {
-                const MicroInstr* inst = ctx.instruction(cur);
-                if (!inst)
-                    return false;
-
-                const MicroInstrUseDef useDef = inst->collectUseDef(*ctx.operands, ctx.encoder);
-                if (regInList(useDef.uses.span(), reg))
-                    return false;
-                if (regInList(useDef.defs.span(), reg))
-                    return true;
-
-                const MicroInstrOperand* ops = inst->ops(*ctx.operands);
-                if (isRedundantFallthroughJumpToNextLabel(ctx, cur, *inst, ops))
-                    continue;
-
-                const MicroInstrDef& info = MicroInstr::info(inst->op);
-                if (info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
-                    return false;
-                if (info.flags.has(MicroInstrFlagsE::JumpInstruction))
-                    return false;
-                if (info.flags.has(MicroInstrFlagsE::IsCallInstruction))
-                    return false;
-            }
-            return false;
+            return regIsDeadAfter(ctx, fromRef, reg);
         }
 
         // Producers whose only register write is a pure Def at ops[0]. Anything

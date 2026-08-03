@@ -896,6 +896,71 @@ namespace
         return changed;
     }
 
+    // A conditional jump over an unconditional one folds into a single
+    // inverted branch when the conditional's target is the label run right
+    // after the pair:
+    //
+    //     jcc  CC, .Lnext              jcc  ~CC, .Lfar
+    //     jmp  .Lfar            =>     .Lnext:
+    //     .Lnext:
+    //
+    // This is what `if cond do continue` inside a loop lowers to, so without
+    // the fold the hot path pays a taken jump on every iteration. Flag
+    // conditions come in exact complement pairs (unordered float compares
+    // included), so the inversion is semantics-preserving at the flags level.
+    bool invertJumpOverAdjacentJump(MicroStorage& storage, MicroOperandStorage& operands)
+    {
+        ProgramLayout layout;
+        buildProgramLayout(layout, storage, operands);
+
+        bool changed = false;
+        for (auto it = storage.view().begin(); it != storage.view().end();)
+        {
+            MicroInstr& condInst = *it;
+            ++it;
+
+            if (condInst.op != MicroInstrOpcode::JumpCond)
+                continue;
+            MicroInstrOperand* condOps = condInst.ops(operands);
+            if (!condOps || condInst.numOperands < 3 || condOps[0].cpuCond == MicroCond::Unconditional)
+                continue;
+
+            if (it == storage.view().end())
+                break;
+
+            const MicroInstrRef jumpRef  = it.current;
+            const MicroInstr&   jumpInst = *it;
+            if (jumpInst.op != MicroInstrOpcode::JumpCond)
+                continue;
+            const MicroInstrOperand* jumpOps = jumpInst.ops(operands);
+            if (!jumpOps || jumpInst.numOperands < 3 || jumpOps[0].cpuCond != MicroCond::Unconditional)
+                continue;
+
+            uint32_t condTarget = 0;
+            uint32_t jumpTarget = 0;
+            if (!tryGetJumpTargetLabelId(condTarget, condInst, condOps))
+                continue;
+            if (!tryGetJumpTargetLabelId(jumpTarget, jumpInst, jumpOps))
+                continue;
+            if (condTarget == jumpTarget)
+                continue;
+
+            if (!isTargetInImmediateLabelRun(layout, storage, operands, jumpRef, condTarget))
+                continue;
+
+            MicroCond inverted = MicroCond::Unconditional;
+            if (!invertBranchCondition(condOps[0].cpuCond, inverted))
+                continue;
+
+            ++it;
+            condOps[0].cpuCond  = inverted;
+            condOps[2].valueU64 = jumpTarget;
+            changed |= storage.erase(jumpRef);
+        }
+
+        return changed;
+    }
+
     // Conditions the cmov encoder can express. Every condition
     // invertBranchCondition can produce is encodable; this only fences off
     // the unconditional marker defensively.
@@ -1159,6 +1224,7 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
 
         structuralChanged |= redirectJumpChains(storage, operands);
         structuralChanged |= eraseJumpsToImmediateLabels(storage, operands);
+        structuralChanged |= invertJumpOverAdjacentJump(storage, operands);
         structuralChanged |= eraseDeadInstructionsAfterTerminators(storage, operands);
 
         if (structuralChanged && context.builder)

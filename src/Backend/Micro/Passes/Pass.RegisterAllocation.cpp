@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
@@ -55,7 +55,7 @@
 //
 // Spill / rematerialize policy (see VRegState):
 //   - When a virtual is evicted, prefer rematerialization if it has a known
-//     constant origin (LoadRegImm/ClearReg) — emit a fresh load at the use
+//     constant origin (LoadRegImm/ClearReg) â€” emit a fresh load at the use
 //     site instead of hitting memory.
 //   - Otherwise allocate (lazily) a stack slot via `ensureSpillSlot` and
 //     emit store-before-eviction / load-before-use as PendingInsert entries.
@@ -309,7 +309,7 @@ bool MicroRegisterAllocationPass::isLiveAcrossHotCall(MicroReg key) const
 {
     // A callee-saved float register costs a fixed 16-byte store/load pair on
     // every function entry; spilling around calls costs one pair per executed
-    // crossing. Flat crossings never repay that reliably — only a call
+    // crossing. Flat crossings never repay that reliably â€” only a call
     // crossed inside a loop does, where the spill pair would run every
     // iteration.
     const uint32_t denseIndex = denseVirtualRegs_.find(key);
@@ -486,13 +486,13 @@ bool MicroRegisterAllocationPass::canUsePhysical(MicroReg virtKey, uint32_t inst
         return false;
 
     // The future-touch test above asks whether the REQUESTING value is still
-    // alive at the register's next concrete touch — it cannot see a concrete
+    // alive at the register's next concrete touch â€” it cannot see a concrete
     // value alive across this very point (defined above, read below) when the
     // requester dies first. The reload or mapping inserted here would clobber
     // that live value: an argument register already loaded for an imminent
     // call is the canonical victim (arg set up first, another arg's reload
-    // asks for a register in between). This refusal is absolute — no relaxed
-    // path can make the clobber safe — and by construction it only triggers
+    // asks for a register in between). This refusal is absolute â€” no relaxed
+    // path can make the clobber safe â€” and by construction it only triggers
     // between a concrete definition and its read, so registers stay available
     // before their setup and after their last concrete read.
     if (isConcreteLiveInAt(physReg, instructionIndex))
@@ -501,7 +501,7 @@ bool MicroRegisterAllocationPass::canUsePhysical(MicroReg virtKey, uint32_t inst
     // The scan above walks forward in layout order, so it is blind to a value
     // a loop carries around its back-edge: every touch of it lies behind the
     // point that wants the register, and the register looks free. Taking it is
-    // unrecoverable — a value living under a register's own name has no home to
+    // unrecoverable â€” a value living under a register's own name has no home to
     // be spilled to, so no later repair can put it back. For those registers
     // only, ask the liveness fixpoint, which answers for the CFG instead of for
     // the listing, and refuse even on the relaxed paths that otherwise tolerate
@@ -655,7 +655,7 @@ void MicroRegisterAllocationPass::computeVirtualLiveSpans()
     // The span of instruction indices over which a value occupies its home. It
     // is the hull of its live range, holes included: a global keeps one
     // register for the whole span, so a hole is given away rather than reused.
-    // That costs some packing and buys the property the whole design rests on —
+    // That costs some packing and buys the property the whole design rests on â€”
     // one value, one register, everywhere it is live.
     virtualSpanLo_.assign(denseVirtualRegs_.regs().size(), std::numeric_limits<uint32_t>::max());
     virtualSpanHi_.assign(denseVirtualRegs_.regs().size(), 0);
@@ -723,7 +723,7 @@ void MicroRegisterAllocationPass::computeGlobalBenefits(std::vector<uint64_t>& o
     // A value is worth a global register exactly when the boundary flush would
     // otherwise push it through memory, and the benefit is what that costs: one
     // spill plus one reload per boundary it is live across, weighted by how
-    // often the boundary runs. A value never live across a boundary gets zero —
+    // often the boundary runs. A value never live across a boundary gets zero â€”
     // the local allocator already keeps it in a register for its whole life.
     //
     // The weight grows by an order of magnitude per loop nesting level, the
@@ -744,7 +744,7 @@ void MicroRegisterAllocationPass::computeGlobalBenefits(std::vector<uint64_t>& o
 
         // Only a boundary inside a loop is worth anything. Reserving a register
         // for a value's whole live range to save one round-trip on a path taken
-        // once is a bad trade — it denies the local allocator that register
+        // once is a bad trade â€” it denies the local allocator that register
         // everywhere, forever, for a single spill and reload. It also keeps a
         // value that is merely a copy from being handed a register of its own
         // instead of being coalesced away.
@@ -836,7 +836,7 @@ void MicroRegisterAllocationPass::computeGuardedCallPositions()
         // guard shadow: that is the emitted shape of a safety check (argument
         // loads, then the panic call, then the label the jump targets). A
         // then-block of an if/else ends with its own jump instead, and a
-        // region with an interior label has other ways in — either could be
+        // region with an interior label has other ways in â€” either could be
         // hot, so neither is marked.
         const uint32_t targetIdx     = targetIt->second;
         bool           regionIsGuard = targetIdx > idx + 1;
@@ -864,7 +864,7 @@ void MicroRegisterAllocationPass::computeGuardedCallPositions()
     // Second emitted shape: the hot path jumps OVER the panic block with an
     // unconditional jump, and the guards branch INTO it. The region between
     // that jump and its target starts with the panic label, ends with the
-    // panic call, and falls into the join — same signature, different entry.
+    // panic call, and falls into the join â€” same signature, different entry.
     idx = 0;
     for (auto it = instructions_->view().begin(); it != instructions_->view().end() && idx < instructionCount_; ++it, ++idx)
     {
@@ -923,7 +923,7 @@ bool MicroRegisterAllocationPass::isProvenFreeRegister(const MicroReg physReg) c
     // Named nowhere in the whole function: never an operand, never an ABI
     // shuffle, never a call clobber, never live as a concrete value. A clash
     // between a global reservation and the rest of allocation would need a
-    // concrete claim on the register somewhere, and there are none — which
+    // concrete claim on the register somewhere, and there are none â€” which
     // makes the absence of interference a property of the selection, not an
     // outcome to be defended by overlap checks on every path.
     const uint32_t denseIndex = denseConcreteRegs_.find(physReg);
@@ -939,7 +939,7 @@ bool MicroRegisterAllocationPass::hullConcreteClaimsBlock(const MicroReg physReg
     // that merely clobbers it. The value is parked in its slot around every
     // call inside its hull (saveRestorePinnedAcrossCall), so the clobber hits
     // a register whose value is safe in memory. A call that actually reads the
-    // register — an argument, an indirect target — still blocks it, as does
+    // register â€” an argument, an indirect target â€” still blocks it, as does
     // any concrete contact outside a call. Claims outside the hull are the
     // local allocator's business: the reservation is range-scoped and the
     // value is dead there.
@@ -1019,7 +1019,7 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
     // Give every value that crosses a control-flow boundary one physical
     // register for the whole hull of its live range. That is what makes the
     // boundary flush vacuous: a value still live at a boundary is either a
-    // global — which never enters the mapping, so the flush cannot touch it —
+    // global â€” which never enters the mapping, so the flush cannot touch it â€”
     // or one that failed to get a register and keeps the old memory home.
     //
     // Holding one register everywhere is also what lets this skip edge
@@ -1033,7 +1033,7 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
     // over the reserving value's own span, so the rest of the function still
     // has the full machine.
     //
-    // Only proven-free registers — named nowhere in the function — may be
+    // Only proven-free registers â€” named nowhere in the function â€” may be
     // handed out. An earlier variant also granted registers with concrete
     // claims outside the hull, defended by overlap checks; every one of its
     // miscompiles came from a claim interaction those checks missed (a
@@ -1047,8 +1047,8 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
     // computed jump (JumpReg / JumpCondImm) or an unresolvable target leaves
     // successors incomplete, so live ranges come out too short and a hull would
     // free its register while the value is still needed. The local allocator
-    // tolerates that imprecision — every boundary flush re-homes values in
-    // memory — so only this mechanism has to stand down.
+    // tolerates that imprecision â€” every boundary flush re-homes values in
+    // memory â€” so only this mechanism has to stand down.
     SWC_ASSERT(controlFlowGraph_ != nullptr);
     if (controlFlowGraph_->hasUnsupportedControlFlowForCfgLiveness() || !controlFlowGraph_->supportsDeadCodeLiveness())
         return;
@@ -1084,6 +1084,7 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
     {
         uint32_t denseIndex = 0;
         uint64_t benefit    = 0;
+        uint64_t rawBenefit = 0;
     };
     SmallVector<GlobalCandidate> candidates;
 
@@ -1107,7 +1108,7 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
         if (!density)
             continue;
 
-        candidates.push_back({.denseIndex = denseIndex, .benefit = density});
+        candidates.push_back({.denseIndex = denseIndex, .benefit = density, .rawBenefit = benefits[denseIndex]});
     }
     if (candidates.empty())
         return;
@@ -1121,8 +1122,8 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
     const uint64_t spanScopedMinDensity = candidates.front().benefit / K_SPAN_SCOPED_DENSITY_DIVISOR;
 
     // The local allocator must keep enough of each class to satisfy the worst
-    // single instruction — its register operands plus what a destructive
-    // lowering needs — because it cannot spill its way out of an empty pool:
+    // single instruction â€” its register operands plus what a destructive
+    // lowering needs â€” because it cannot spill its way out of an empty pool:
     // it reports an internal error. The floor differs per class: the worst int
     // instruction names four registers and destructive lowerings add three,
     // while the widest float shape is the ternary multiply-add (three
@@ -1135,7 +1136,7 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
     // Callee-saved registers kept out of the hulls for the local allocator's
     // own call-crossing values. Ints need two: their first allocation sweep
     // has no other escape hatch, and one proved insolvent. Floats make do
-    // with one — they fall back to caller-saved registers spilled around
+    // with one â€” they fall back to caller-saved registers spilled around
     // calls, and allocatePhysical has a last-resort valve into the
     // nonvolatile pool.
     constexpr uint32_t K_MIN_FREE_PERSISTENT_INT   = 2;
@@ -1161,32 +1162,60 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
 
         std::vector<uint32_t>& reserved           = isFloat ? reservedFloat : reservedInt;
         std::vector<uint32_t>& reservedPersistent = isFloat ? reservedFloatPersistent : reservedIntPersistent;
-        // The float floors count only the caller-saved pool: a persistent
-        // float hull already pays for itself through the prologue save, and
-        // letting the full sixteen-register file raise the carrier cap was
-        // measured to starve the local allocator — every extra caller-saved
-        // hull is one fewer scratch register for the straight-line code.
         const size_t   total           = isFloat ? freeFloatTransient_.size() : totalInt;
         const size_t   totalPersistent = isFloat ? totalFloatPersit : totalIntPersist;
         const uint32_t minFreeClass    = isFloat ? K_MIN_FREE_FLOAT_CLASS : K_MIN_FREE_INT_CLASS;
 
-        if (total <= minFreeClass)
-            continue;
-
         // A hull crossing a call that actually runs prefers a callee-saved
         // register; one whose calls are all guard-shadowed prefers a
         // caller-saved register, whose parking cost runs only if a guard
-        // fires — a callee-saved save/restore would run on every entry. A
+        // fires â€” a callee-saved save/restore would run on every entry. A
         // caller-saved pick crossing any call parks the value in its slot for
         // the call's duration (saveRestorePinnedAcrossCall).
         const bool crossesCall     = intervalHasCall(lo, hi);
         const bool needsPersistent = isFloat ? intervalHasHotCall(lo, hi) : crossesCall;
 
-        uint32_t headroom = std::numeric_limits<uint32_t>::max();
-        for (uint32_t idx = lo; idx <= hi; ++idx)
-            headroom = std::min(headroom, static_cast<uint32_t>(total - minFreeClass) - std::min(reserved[idx], static_cast<uint32_t>(total - minFreeClass)));
-        if (!headroom)
-            continue;
+        // Headroom is accounted per pool, not per class. The caller-saved
+        // budget protects the local allocator's scratch supply â€” every
+        // transient hull is one fewer register for straight-line code. The
+        // callee-saved budget only has to keep the escape-hatch floor free:
+        // a persistent hull costs one prologue save, it does not starve the
+        // scratch pool. Folding both pools under the transient floor capped
+        // the whole float class at two carriers while ten callee-saved
+        // registers sat idle, which is exactly the boundary flush this
+        // mechanism exists to remove.
+        const uint32_t transientBudget  = total > minFreeClass ? static_cast<uint32_t>(total - minFreeClass) : 0u;
+        const uint32_t persistentBudget = totalPersistent > K_MIN_FREE_PERSISTENT_FLOAT ? static_cast<uint32_t>(totalPersistent - K_MIN_FREE_PERSISTENT_FLOAT) : 0u;
+
+        uint32_t transientHeadroom  = transientBudget;
+        uint32_t persistentHeadroom = persistentBudget;
+        if (isFloat)
+        {
+            // Guard-shadowed call crossings never take a persistent register
+            // (the prologue save would run on every entry for a cold path).
+            if (crossesCall && !needsPersistent)
+                persistentHeadroom = 0;
+            for (uint32_t idx = lo; idx <= hi; ++idx)
+            {
+                const uint32_t persistentUsed = reservedPersistent[idx];
+                const uint32_t transientUsed  = reserved[idx] - std::min(reserved[idx], persistentUsed);
+                transientHeadroom             = std::min(transientHeadroom, transientBudget - std::min(transientUsed, transientBudget));
+                persistentHeadroom            = std::min(persistentHeadroom, persistentBudget - std::min(persistentUsed, persistentBudget));
+            }
+            if (!transientHeadroom && !persistentHeadroom)
+                continue;
+        }
+        else
+        {
+            if (total <= minFreeClass)
+                continue;
+
+            uint32_t headroom = std::numeric_limits<uint32_t>::max();
+            for (uint32_t idx = lo; idx <= hi; ++idx)
+                headroom = std::min(headroom, transientBudget - std::min(reserved[idx], transientBudget));
+            if (!headroom)
+                continue;
+        }
 
         // Both pools must come from setupPools, never from the calling
         // convention's raw lists: those still contain the frame pointer and the
@@ -1204,21 +1233,34 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
             // crossing a hot call prefers callee-saved, and falls back to
             // caller-saved with call-site parking. One crossing only guarded
             // calls takes caller-saved with parking or nothing: promoting the
-            // overflow to callee-saved was measured to lose — the prologue
+            // overflow to callee-saved was measured to lose â€” the prologue
             // save/restore runs on every entry of a hot small function, while
             // the memory home it replaces was only touched a few times per
             // iteration.
             if (pass == 1 && isFloat && !needsPersistent && crossesCall)
                 break;
-            const SmallVector<MicroReg>& pool = needsPersistent == (pass == 0) ? persistentPool : transientPool;
+            // A float hull prefers a callee-saved register even without a call
+            // in its span: the caller-saved pool doubles as the local
+            // allocator's scratch supply, and a hull parked there starves the
+            // straight-line code inside the very loop the hull serves. The
+            // prologue save it costs runs once per entry; the scratch register
+            // it frees pays on every iteration. Only guard-shadowed call
+            // crossings stay caller-saved (their parking is free until a
+            // guard fires, while a prologue save would run every entry).
+            const bool preferPersistent = isFloat ? (needsPersistent || !crossesCall) : needsPersistent;
+
+            const SmallVector<MicroReg>& pool = preferPersistent == (pass == 0) ? persistentPool : transientPool;
+            const bool poolIsPersistent       = &pool == &persistentPool;
+            if (isFloat && (poolIsPersistent ? !persistentHeadroom : !transientHeadroom))
+                continue;
             for (const MicroReg reg : pool)
             {
                 // Int hulls take only proven-free registers: later legalize
                 // sweeps conjure fixed int registers (shift counts, division
                 // pairs) that no claim check at grant time can see. Float
-                // shapes have no late fixed-register lowerings — their only
+                // shapes have no late fixed-register lowerings â€” their only
                 // concrete contacts are ABI moves and call clobbers, both in
-                // the stream already — so a claim check scoped to the hull is
+                // the stream already â€” so a claim check scoped to the hull is
                 // sound for them, and it is what lets a float hull take a
                 // caller-saved register at all: in a function with any call,
                 // every volatile float register carries clobber claims
@@ -1240,14 +1282,29 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
                     // register after allocation, announced by nothing visible here - so the
                     // registers it can demand are excluded, and only those.
                     //
-                    // The hull must also not cross a call, since a call clobbers every
-                    // caller-saved register and a hull holds its register across the whole span.
-                    // Refusing the caller-saved pool outright instead - which is what a single
-                    // call anywhere in the function used to do - left a hash round's eight
-                    // loop-carried values contending for four callee-saved registers, and most of
-                    // them ended up in memory.
-                    const bool spanScopedGrant = cand.benefit >= spanScopedMinDensity &&
-                                                 !crossesCall &&
+                    // A hull crossing a call may only ride a callee-saved register: the call
+                    // preserves it, so the clobber argument that bars caller-saved picks does
+                    // not apply. Refusing call-crossing hulls outright instead - which is what
+                    // a single call anywhere in the function used to do - kept a parse loop's
+                    // base pointers reloading from their stack homes on every byte scanned,
+                    // because the one call per parsed record poisoned every hull in the loop.
+                    // The density gate protects the caller-saved scratch supply, so it
+                    // only applies to caller-saved picks. A callee-saved pick costs one
+                    // prologue push however long the hull is, which an absolute benefit
+                    // floor covers: the value must cross at least one inner-loop
+                    // boundary (or a depth-one boundary ten times over). Density would
+                    // veto exactly the values this path exists for â€” a parse loop's
+                    // base pointers live across the whole function, whose density is
+                    // microscopic while their reload count is millions.
+                    // 100 = one depth-two boundary crossing under computeGlobalBenefits'
+                    // order-of-magnitude-per-level weighting.
+                    constexpr uint64_t K_PERSISTENT_MIN_RAW_BENEFIT = 100;
+
+                    const bool persistentPick  = isPersistentPhysReg(reg);
+                    const bool benefitClears   = persistentPick ? cand.rawBenefit >= K_PERSISTENT_MIN_RAW_BENEFIT
+                                                                : cand.benefit >= spanScopedMinDensity;
+                    const bool spanScopedGrant = benefitClears &&
+                                                 (!crossesCall || persistentPick) &&
                                                  context_->encoder &&
                                                  !context_->encoder->mayDemandFixedRegisterLate(reg) &&
                                                  !hullConcreteClaimsBlock(reg, lo, hi);
@@ -1279,7 +1336,7 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
                 // on distinct registers until every register of the class carries one
                 // somewhere. A value whose own span covers the whole function is then
                 // vetoed on all of them at once and the local allocator has nowhere
-                // left to put it — it reports an internal error, it cannot spill its
+                // left to put it â€” it reports an internal error, it cannot spill its
                 // way out. So the floors must also hold function-wide: keep the
                 // class floor's worth of registers (and the per-class persistent
                 // floor's worth of callee-saved ones) carrying no reservation at all. Registers that
@@ -1301,8 +1358,18 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
                             ++distinctPersistent;
                     }
 
-                    if (distinctClass >= static_cast<uint32_t>(total - minFreeClass))
+                    // The function-wide floor mirrors the per-index one: per
+                    // pool for floats, per class for ints.
+                    if (isFloat)
+                    {
+                        const uint32_t distinctTransient = distinctClass - std::min(distinctClass, distinctPersistent);
+                        if (isPersistent ? distinctPersistent >= persistentBudget : distinctTransient >= transientBudget)
+                            continue;
+                    }
+                    else if (distinctClass >= static_cast<uint32_t>(total - minFreeClass))
+                    {
                         continue;
+                    }
                     if (hasCalls && isPersistent &&
                         distinctPersistent >= static_cast<uint32_t>(totalPersistent - minFreePersistent))
                         continue;
@@ -1353,7 +1420,7 @@ void MicroRegisterAllocationPass::preallocateLoopCarriedSlots()
     // linear scan round-trips it through memory at the loop's control-flow
     // boundaries: it is reloaded at the header and re-spilled at the back-edge
     // tail. Spill slots are otherwise allocated lazily, so the header reload and
-    // the tail store can end up resolving to *different* slots — the home drifts
+    // the tail store can end up resolving to *different* slots â€” the home drifts
     // across the back-edge and the carried value (e.g. a reduction accumulator)
     // is silently lost.
     //
@@ -1609,8 +1676,8 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     definitionCounts_.assign(virtualRegs.size(), 0);
 
     // Size each float value's spill slot from the widest operand that ever names
-    // it. Sizing every one of them for a vector is safe — a float register can
-    // hold 128 bits — and it is what this pass used to do, but it makes a scalar
+    // it. Sizing every one of them for a vector is safe â€” a float register can
+    // hold 128 bits â€” and it is what this pass used to do, but it makes a scalar
     // double pay a 16-byte movdqu and 16 bytes of frame for eight bytes of
     // value, on every spill and every reload. An instruction carrying a 128-bit
     // operand marks everything it names as wide; anything else is a scalar.
@@ -2172,8 +2239,8 @@ void MicroRegisterAllocationPass::updateRematerializationForDef(VRegState& regSt
         {
             // Remaking one of these costs the same single instruction it cost
             // the first time, so it must never reach a spill slot. Without this
-            // an address shared by several uses — which common-subexpression
-            // elimination is what creates — turns into a store plus a reload.
+            // an address shared by several uses â€” which common-subexpression
+            // elimination is what creates â€” turns into a store plus a reload.
             if (instOps[0].reg != virtKey)
                 return;
             const auto relocIt = relocationByDefInstruction_.find(instRef);
@@ -2356,7 +2423,7 @@ MicroRegisterAllocationPass::FreePools MicroRegisterAllocationPass::pickFreePool
     // No callee-saved fallback for an ordinary float: every nonvolatile float
     // taken costs the prologue a 16-byte store/load pair, which a short-lived
     // value never repays. Momentary pressure is better served by evicting a
-    // caller-saved mapping — the class floor keeps enough of them hull-free.
+    // caller-saved mapping â€” the class floor keeps enough of them hull-free.
     return FreePools{&freeFloatTransient_, nullptr};
 }
 
@@ -2528,7 +2595,7 @@ bool MicroRegisterAllocationPass::tryBorrowReservedRegister(const AllocRequest& 
     // Last resort for a sweep that is not the one which allocated the function.
     // Legalizing the allocator's output asks for a scratch value in a function
     // whose registers are all committed, and the reserved ones are closed to it
-    // — so there can be nothing free. The values in the way live under a
+    // â€” so there can be nothing free. The values in the way live under a
     // register's own name and have no spill home, which is exactly what makes
     // taking their register unrecoverable. So give one a home for the length of
     // the borrow: save it to a slot before, read it back after.
@@ -2626,8 +2693,8 @@ MicroReg MicroRegisterAllocationPass::allocatePhysical(const AllocRequest& reque
             // Solvency valve: ordinary floats are kept away from the
             // nonvolatile pool (each taken register costs the prologue a
             // 16-byte store/load pair), but an unallocatable request costs
-            // the compile. Only when every caller-saved avenue — free,
-            // transfer, eviction, borrow — is exhausted may one be taken.
+            // the compile. Only when every caller-saved avenue â€” free,
+            // transfer, eviction, borrow â€” is exhausted may one be taken.
             if (isFloatReg && tryTakeAllowedPhysical(freeFloatPersistent_, request.virtKey, request.instructionIndex, forbiddenPhysRegs, true, physReg))
                 return physReg;
 
@@ -2705,7 +2772,7 @@ MicroReg MicroRegisterAllocationPass::assignVirtReg(const AllocRequest& request,
     auto& regState = stateForVirtual(request.virtKey);
 
     // Pinned values permanently live in their reserved register: no allocation,
-    // transfer, spill, or reload — every def/use simply resolves to that register.
+    // transfer, spill, or reload â€” every def/use simply resolves to that register.
     if (regState.pinned)
         return regState.phys;
 
@@ -2828,7 +2895,7 @@ void MicroRegisterAllocationPass::spillCallLiveOut(uint32_t stamp, int64_t stack
 void MicroRegisterAllocationPass::saveRestorePinnedAcrossCall(const uint32_t instructionIndex, const int64_t stackDepth, std::vector<PendingInsert>& pending)
 {
     // A value pinned in a caller-saved register does not survive a call on its
-    // own: park it in its slot for exactly the call's duration — store before
+    // own: park it in its slot for exactly the call's duration â€” store before
     // the call, read back before the next instruction (through
     // pendingBorrowRestores_). The memory traffic lands on the call paths
     // alone; in the common shape those are cold safety-panic blocks, and the
@@ -3283,7 +3350,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
                 // this defining instruction. The home then always holds the latest
                 // value, so the reload at the loop header is correct no matter where
                 // the register mapping is later dropped (call clobber, concrete-reg
-                // eviction, boundary flush) — the linear, loop-unaware live-out
+                // eviction, boundary flush) â€” the linear, loop-unaware live-out
                 // estimate cannot be trusted to spill it at those points. Pinned
                 // values stay register-resident across the loop and are exempt.
                 if (regState.loopCarriedHome && !regState.pinned && regState.mapped && regState.hasSpill)

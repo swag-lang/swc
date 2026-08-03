@@ -7,8 +7,10 @@
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/SourceFile.h"
 #include "Main/CompilerInstance.h"
+#include "Main/Global.h"
 #include "Main/TaskContext.h"
 #include "Support/Report/Diagnostic.h"
+#include "Support/Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -173,7 +175,8 @@ namespace ModuleApi
         }
 
         std::vector results(fileEntries.size(), Result::Continue);
-        Export::parallelForIndexed(ctx, static_cast<uint32_t>(fileEntries.size()), [&](TaskContext& workerCtx, uint32_t i) {
+        JobManager& jobMgr = ctx.global().jobMgr();
+        jobMgr.parallelForIndexed(ctx, static_cast<uint32_t>(fileEntries.size()), JobKind::ModuleApiExport, ctx.compiler().jobClientId(), [&](TaskContext& workerCtx, uint32_t i) {
             ModuleApiFileEntry& fileEntry = *fileEntries[i];
             for (const Symbol* symbol : fileEntry.pendingSymbols)
             {

@@ -2,10 +2,8 @@
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/ModuleApi/ModuleApi.h"
 #include "Main/CompilerInstance.h"
-#include "Main/Global.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/SmallVector.h"
-#include "Support/Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -56,63 +54,6 @@ namespace ModuleApi::Export
             set.erase(symbol);
         }
     };
-
-    // Runs `fn(workerCtx, index)` for index in [0, count) across the compiler's worker
-    // threads. Each worker carries its own TaskContext copy (so per-task state is isolated)
-    // and grabs indices via an atomic counter. Falls back to an inline loop when the job
-    // manager is single-threaded or there is a single item. The caller is responsible for
-    // ensuring `fn` only touches immutable (post-sema) data plus thread-safe services
-    // (type interning, diagnostics) and writes exclusively to its own `index` slot.
-    template<typename T>
-    void parallelForIndexed(TaskContext& ctx, uint32_t count, const T& fn)
-    {
-        if (count == 0)
-            return;
-
-        JobManager& jobMgr = ctx.global().jobMgr();
-        if (count == 1 || jobMgr.isSingleThreaded() || jobMgr.numWorkers() == 0)
-        {
-            for (uint32_t i = 0; i < count; ++i)
-                fn(ctx, i);
-            return;
-        }
-
-        class WorkerJob final : public Job
-        {
-        public:
-            WorkerJob(const TaskContext& ctx, std::atomic<uint32_t>& next, uint32_t count, const T& fn) :
-                Job(ctx, JobKind::ModuleApiExport),
-                next_(&next),
-                count_(count),
-                fn_(&fn)
-            {
-            }
-
-            JobResult exec() override
-            {
-                for (uint32_t i = next_->fetch_add(1, std::memory_order_relaxed); i < count_; i = next_->fetch_add(1, std::memory_order_relaxed))
-                    (*fn_)(ctx(), i);
-                return JobResult::Done;
-            }
-
-        private:
-            std::atomic<uint32_t>* next_;
-            uint32_t               count_;
-            const T*               fn_;
-        };
-
-        const uint32_t        numWorkers = std::min(count, jobMgr.numWorkers());
-        const JobClientId     clientId   = ctx.compiler().jobClientId();
-        std::atomic<uint32_t> nextIndex{0};
-
-        std::vector<std::unique_ptr<WorkerJob>> jobs;
-        jobs.reserve(numWorkers);
-        for (uint32_t i = 0; i < numWorkers; ++i)
-            jobs.push_back(std::make_unique<WorkerJob>(ctx, nextIndex, count, fn));
-        for (auto& job : jobs)
-            jobMgr.enqueue(*job, JobPriority::Normal, clientId);
-        jobMgr.waitAll(clientId);
-    }
 
     // ModuleApi.Export.cpp
     Utf8             buildModuleNamespaceName(const CompilerInstance& compiler);

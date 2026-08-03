@@ -34,6 +34,58 @@ public:
     void waitAll();
     void waitAll(JobClientId client);
 
+    // Runs `fn(workerCtx, index)` for index in [0, count). Each worker owns a
+    // TaskContext copy and claims indices atomically. The caller must restrict shared
+    // access to thread-safe services and write each result to its own indexed slot.
+    template<typename T>
+    void parallelForIndexed(TaskContext& ctx, uint32_t count, JobKind kind, JobClientId clientId, const T& fn, JobPriority priority = JobPriority::Normal)
+    {
+        if (count == 0)
+            return;
+
+        if (count == 1 || isSingleThreaded() || numWorkers() == 0)
+        {
+            for (uint32_t i = 0; i < count; ++i)
+                fn(ctx, i);
+            return;
+        }
+
+        class WorkerJob final : public Job
+        {
+        public:
+            WorkerJob(const TaskContext& ctx, JobKind kind, std::atomic<uint32_t>& next, uint32_t count, const T& fn) :
+                Job(ctx, kind),
+                next_(&next),
+                count_(count),
+                fn_(&fn)
+            {
+            }
+
+            JobResult exec() override
+            {
+                for (uint32_t i = next_->fetch_add(1, std::memory_order_relaxed); i < count_; i = next_->fetch_add(1, std::memory_order_relaxed))
+                    (*fn_)(this->ctx(), i);
+                return JobResult::Done;
+            }
+
+        private:
+            std::atomic<uint32_t>* next_;
+            uint32_t               count_;
+            const T*               fn_;
+        };
+
+        const uint32_t        workerCount = std::min(count, numWorkers());
+        std::atomic<uint32_t> nextIndex{0};
+
+        std::vector<std::unique_ptr<WorkerJob>> jobs;
+        jobs.reserve(workerCount);
+        for (uint32_t i = 0; i < workerCount; ++i)
+            jobs.push_back(std::make_unique<WorkerJob>(ctx, kind, nextIndex, count, fn));
+        for (auto& job : jobs)
+            enqueue(*job, priority, clientId);
+        waitAll(clientId);
+    }
+
     uint32_t      numWorkers() const noexcept { return configuredWorkerCount_; }
     uint32_t      randSeed() const noexcept { return randSeed_; }
     static size_t threadIndex() noexcept { return threadIndex_; }

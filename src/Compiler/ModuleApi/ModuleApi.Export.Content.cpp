@@ -7,6 +7,8 @@
 #include "Format/Formatter.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/FileSystem.h"
+#include "Main/Global.h"
+#include "Support/Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();
 using namespace ModuleApi::Export;
@@ -687,7 +689,8 @@ namespace ModuleApi::Export
         // large generated modules such as ogl.
         std::vector<Utf8> rootSnippets(roots.size());
         std::vector       groupResults(groups.size(), Result::Continue);
-        parallelForIndexed(ctx, static_cast<uint32_t>(groups.size()), [&](TaskContext& workerCtx, uint32_t g) {
+        JobManager&       jobMgr = ctx.global().jobMgr();
+        jobMgr.parallelForIndexed(ctx, static_cast<uint32_t>(groups.size()), JobKind::ModuleApiExport, ctx.compiler().jobClientId(), [&](TaskContext& workerCtx, uint32_t g) {
             ModuleApiValidationStack groupValidationStack;
             const size_t             groupEnd = groups[g].start + groups[g].count;
             for (size_t rootIndex = groups[g].start; rootIndex < groupEnd; ++rootIndex)
@@ -709,7 +712,7 @@ namespace ModuleApi::Export
         // preamble above, then moved into their final ordered entries by one group.
         std::vector<Utf8> groupContents(groups.size());
         std::fill(groupResults.begin(), groupResults.end(), Result::Continue);
-        parallelForIndexed(ctx, static_cast<uint32_t>(groups.size()), [&](TaskContext& workerCtx, uint32_t g) {
+        jobMgr.parallelForIndexed(ctx, static_cast<uint32_t>(groups.size()), JobKind::ModuleApiExport, ctx.compiler().jobClientId(), [&](TaskContext& workerCtx, uint32_t g) {
             groupResults[g] = buildGeneratedModuleApiContent(workerCtx, roots.subspan(groups[g].start, groups[g].count), std::span{rootSnippets}.subspan(groups[g].start, groups[g].count), moduleNamespace, eol, groupContents[g]);
         });
 

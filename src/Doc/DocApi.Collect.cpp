@@ -12,9 +12,11 @@
 #include "Compiler/SourceFile.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
+#include "Main/Global.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Report/Diagnostic.h"
+#include "Support/Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -519,7 +521,8 @@ void DocApi::collectDocItems(TaskContext& ctx, std::vector<DocItem>& outItems, c
     // keep the subsequent merge in the original symbol order and preserve deterministic HTML.
     std::vector<DocItemCandidate> candidates(symbols.size());
     const auto&                   resolvedPublicRootRefs = publicRootRefs;
-    ModuleApi::Export::parallelForIndexed(ctx, static_cast<uint32_t>(symbols.size()), [&](TaskContext& workerCtx, const uint32_t index) {
+    JobManager&                   jobMgr                 = ctx.global().jobMgr();
+    jobMgr.parallelForIndexed(ctx, static_cast<uint32_t>(symbols.size()), JobKind::ModuleApiExport, compiler.jobClientId(), [&](TaskContext& workerCtx, const uint32_t index) {
         const Symbol* symbol = symbols[index];
         if (!symbol || hasNoDocAttribute(*symbol))
             return;

@@ -7,7 +7,9 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/FileSystem.h"
+#include "Main/Global.h"
 #include "Support/Report/Diagnostic.h"
+#include "Support/Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();
 using namespace ModuleApi::Export;
@@ -318,6 +320,7 @@ namespace ModuleApi
     {
         CompilerInstance& compiler     = ctx.compiler();
         const fs::path&   exportApiDir = compiler.cmdLine().exportApiDir;
+        JobManager&       jobMgr       = ctx.global().jobMgr();
 
         ModuleApiFileEntries localEntries;
         // Documentation consumes the same resolved entries immediately after sema. Retain
@@ -367,7 +370,7 @@ namespace ModuleApi
         // same order as the linear path, so the deduplicated result is identical.
         const auto&                                      entries = collectedEntries;
         std::vector<std::vector<ModuleApiGeneratedRoot>> perFileRoots(moduleFiles.size());
-        parallelForIndexed(ctx, static_cast<uint32_t>(moduleFiles.size()), [&](TaskContext& workerCtx, uint32_t i) {
+        jobMgr.parallelForIndexed(ctx, static_cast<uint32_t>(moduleFiles.size()), JobKind::ModuleApiExport, compiler.jobClientId(), [&](TaskContext& workerCtx, uint32_t i) {
             const SourceFile*       file     = moduleFiles[i];
             const ModuleApiFileInfo fileInfo = analyzeModuleApiFile(*file, moduleNamespace.view());
             if (fileInfo.wholeFileExported)
@@ -421,7 +424,7 @@ namespace ModuleApi
 
         // Build + write each whole-file export in parallel (each targets a distinct file).
         std::vector wholeExportResults(wholeExports.size(), Result::Continue);
-        parallelForIndexed(ctx, static_cast<uint32_t>(wholeExports.size()), [&](TaskContext& workerCtx, uint32_t i) {
+        jobMgr.parallelForIndexed(ctx, static_cast<uint32_t>(wholeExports.size()), JobKind::ModuleApiExport, compiler.jobClientId(), [&](TaskContext& workerCtx, uint32_t i) {
             const WholeFileExport& we      = wholeExports[i];
             const Utf8             content = buildExportedModuleApiContent(*we.file, moduleNamespace.view(), we.hasModuleNamespace);
             wholeExportResults[i]          = writeModuleApiFile(workerCtx, we.dstPath, content.view());

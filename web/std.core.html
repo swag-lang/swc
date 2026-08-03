@@ -345,7 +345,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary>Functions<span class="toc-count">1201</span></summary>
+<summary>Functions<span class="toc-count">1202</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Core_Serialization_Alias">Serialization.Alias</a></li>
@@ -1454,6 +1454,7 @@
 <li><a href="#Core_Atomic_logicOr">Atomic.logicOr</a></li>
 <li><a href="#Core_Atomic_logicXor">Atomic.logicXor</a></li>
 <li><a href="#Core_Jobs_initialize">Jobs.initialize</a></li>
+<li><a href="#Core_Jobs_isDone">Jobs.isDone</a></li>
 <li><a href="#Core_Jobs_isSynchronous">Jobs.isSynchronous</a></li>
 <li><a href="#Core_Jobs_parallelFor">Jobs.parallelFor</a></li>
 <li><a href="#Core_Jobs_parallelVisit">Jobs.parallelVisit</a></li>
@@ -4455,6 +4456,8 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Jobs_initialize">Jobs.initialize</a></td><td><p>Initializes the global scheduler with a fixed worker count.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_Jobs_isDone">Jobs.isDone</a></td><td><p>Returns whether <span class="code-inline">job</span> completed its most recent scheduled execution.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_Jobs_isSynchronous">Jobs.isSynchronous</a></td><td><p>Returns whether jobs execute synchronously on a waiting thread.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Jobs_parallelFor">Jobs.parallelFor</a></td><td><p>Do a for in parallel chunks.</p>
@@ -5430,6 +5433,8 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 <thead><tr><th>Name</th><th>Description</th></tr></thead>
 <tbody>
 <tr><td class="code-type"><a href="#Core_Jobs_initialize">Jobs.initialize</a></td><td><p>Initializes the global scheduler with a fixed worker count.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Jobs_isDone">Jobs.isDone</a></td><td><p>Returns whether <span class="code-inline">job</span> completed its most recent scheduled execution.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Jobs_isSynchronous">Jobs.isSynchronous</a></td><td><p>Returns whether jobs execute synchronously on a waiting thread.</p>
 </td></tr>
@@ -18366,10 +18371,16 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">logicXor</span>(addr: *<span class="STpe">u64</span>, value: <span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span> =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Jobs_initialize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Jobs.initialize</span> <a class="api-item-permalink" href="#Core_Jobs_initialize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/job.swg#L152">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Jobs_initialize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Jobs.initialize</span> <a class="api-item-permalink" href="#Core_Jobs_initialize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/job.swg#L158">src</a></div>
 <p>Initializes the global scheduler with a fixed worker count.</p>
 <p>Pass zero to use the host processor count. Call this once, before submitting jobs; otherwise the scheduler remains synchronous.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">initialize</span>(workerCount: <span class="STpe">u32</span> = <span class="SNum">0</span>) <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Jobs_isDone" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Jobs.isDone</span> <a class="api-item-permalink" href="#Core_Jobs_isDone" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/job.swg#L152">src</a></div>
+<p>Returns whether <span class="code-inline">job</span> completed its most recent scheduled execution.</p>
+<p>Keep the job and its borrowed data alive until this returns true or <a href="#Core_Jobs_wait">Core.Jobs.wait</a> completes.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isDone</span>(job: *<span class="SCst"><a href="#Core_Jobs_Job">Job</a></span>)-&gt;<span class="STpe">bool</span> =&gt; <span class="SCst"><a href="#namespace_Core_Atomic">Atomic</a></span>.<span class="SFct">get</span>(&amp;job.state) &amp; <span class="SKwd">cast</span>(<span class="STpe">u32</span>) <span class="SCst">JobState</span>.<span class="SCst">Done</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Jobs_isSynchronous" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Jobs.isSynchronous</span> <a class="api-item-permalink" href="#Core_Jobs_isSynchronous" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/job.swg#L143">src</a></div>
@@ -18377,7 +18388,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isSynchronous</span>()-&gt;<span class="STpe">bool</span> =&gt; g_workerCount</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Jobs_parallelFor" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Jobs.parallelFor</span> <a class="api-item-permalink" href="#Core_Jobs_parallelFor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/job.swg#L302">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Jobs_parallelFor" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Jobs.parallelFor</span> <a class="api-item-permalink" href="#Core_Jobs_parallelFor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/job.swg#L308">src</a></div>
 <p>Do a for in parallel chunks. Block parameters:</p>
 <ul>
 <li><span class="code-inline">index</span>: current for index</li>
@@ -18387,7 +18398,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <span class="SKwd">func</span> <span class="SFct">parallelFor</span>(count: <span class="STpe">u32</span>, contextData: <span class="SItr">#null</span> *<span class="STpe">void</span> = <span class="SKwd">null</span>, stmt: <span class="SItr">#code</span>(index: <span class="STpe">u32</span>, data))</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Jobs_parallelVisit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Jobs.parallelVisit</span> <a class="api-item-permalink" href="#Core_Jobs_parallelVisit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/job.swg#L231">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Jobs_parallelVisit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Jobs.parallelVisit</span> <a class="api-item-permalink" href="#Core_Jobs_parallelVisit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/job.swg#L237">src</a></div>
 <p>Operate on a range in parallel chunks. Block parameters:</p>
 <ul>
 <li><span class="code-inline">buffer</span>: address of the element of the range to process</li>
@@ -18397,17 +18408,17 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <span class="SKwd">func</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SFct">parallelVisit</span>(range: [..] <span class="SCst"><a href="#Core_Input_Key_T">T</a></span>, offset: <span class="STpe">u32</span> = <span class="SNum">1</span>, contextData: <span class="SItr">#null</span> *<span class="STpe">void</span> = <span class="SKwd">null</span>, stmt: <span class="SItr">#code</span>(<span class="SKwd">var</span> buffer, data))</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Jobs_schedule" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Jobs.schedule</span> <a class="api-item-permalink" href="#Core_Jobs_schedule" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/job.swg#L172">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Jobs_schedule" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Jobs.schedule</span> <a class="api-item-permalink" href="#Core_Jobs_schedule" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/job.swg#L178">src</a></div>
 <p>Submits a borrowed job for one execution.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">schedule</span>(job: *<span class="SCst"><a href="#Core_Jobs_Job">Job</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Jobs_wait" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Jobs.wait</span> <a class="api-item-permalink" href="#Core_Jobs_wait" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/job.swg#L192">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Jobs_wait" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Jobs.wait</span> <a class="api-item-permalink" href="#Core_Jobs_wait" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/job.swg#L198">src</a></div>
 <p>Executes available work and waits until <span class="code-inline">job</span> has completed.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">wait</span>(job: *<span class="SCst"><a href="#Core_Jobs_Job">Job</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Jobs_waitAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Jobs.waitAll</span> <a class="api-item-permalink" href="#Core_Jobs_waitAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/job.swg#L185">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Jobs_waitAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Jobs.waitAll</span> <a class="api-item-permalink" href="#Core_Jobs_waitAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/job.swg#L191">src</a></div>
 <p>Executes available work and waits until every submitted job has completed.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">waitAll</span>()</span></div>
 </section>

@@ -67,12 +67,38 @@ func flipHeaderByte(path: string, slot: u64)
 {
     var file = expect File.open(path, .Open, .ReadWrite, .Read)
     defer file.close()
-    let offset = SCrypt.Crypto.SaltSize + slot * SCrypt.HeaderSlotSize + SCrypt.Crypto.NonceSize
+    let offset = SCrypt.Crypto.SaltSize + slot * SCrypt.HeaderSlotSize +
+                 SCrypt.HeaderRecordPrefixSize
     var byte: [1] u8
     @assert(expect file.readExactAt(offset, byte))
     byte[0] ^= 0x5A
     expect file.writeAllAt(offset, byte)
     expect file.flush()
+}
+
+func writeLegacyHeader(volume: *SCrypt.Volume)
+{
+    let sequence = volume.sequence + 1
+    let slot = 1'u32 - volume.activeSlot
+    var plain = expect volume.serialize(sequence)
+    SCrypt.Crypto.store32(notnull plain.buffer + #sizeof(SCrypt.HeaderMagic),
+                          SCrypt.LegacyFormatVersion)
+    plain.resize(SCrypt.LegacyHeaderPlainSize)
+
+    var record: Array'u8
+    record.resize(SCrypt.HeaderSlotSize)
+    let nonce = record[0 until SCrypt.Crypto.NonceSize]
+    let ciphertext = record[SCrypt.Crypto.NonceSize until
+                             SCrypt.Crypto.NonceSize + SCrypt.LegacyHeaderPlainSize]
+    let tag = record[SCrypt.Crypto.NonceSize + SCrypt.LegacyHeaderPlainSize until
+                     SCrypt.HeaderSlotSize]
+    expect SCrypt.Crypto.seal(&volume.keys, SCrypt.HeaderKind, slot,
+                              plain.toSlice(), nonce, ciphertext, tag)
+    expect volume.file.writeAllAt(
+        SCrypt.Crypto.SaltSize + slot * SCrypt.HeaderSlotSize, record.toSlice())
+    expect volume.file.flush()
+    Core.Crypto.secureClear(plain.toSlice())
+    Core.Crypto.secureClear(record.toSlice())
 }
 
 #test
@@ -83,6 +109,20 @@ func flipHeaderByte(path: string, slot: u64)
     let security: [6] u8 = [1, 4, 9, 16, 25, 36]
     var volume = expect SCrypt.Volume.create(path, testPassword(), SCrypt.MinimumSize)
     @assert(volume.containerSize == SCrypt.MinimumSize)
+    var storedLocator: [SCrypt.Crypto.RecordLocatorSize] u8
+    @assert(expect volume.file.readExactAt(
+        SCrypt.Crypto.SaltSize + volume.activeSlot * SCrypt.HeaderSlotSize, storedLocator))
+    var expectedLocator = SCrypt.Crypto.recordLocator(
+        volume.keys.authentication, SCrypt.HeaderLocatorKind, volume.activeSlot)
+    @assert(Core.Crypto.constantTimeEqual(
+        storedLocator[until SCrypt.HeaderLocatorCheckSize],
+        expectedLocator[until SCrypt.HeaderLocatorCheckSize]))
+    let encodedSize = SCrypt.Crypto.load32(&storedLocator[SCrypt.HeaderLocatorCheckSize])
+    let locatorMask = SCrypt.Crypto.load32(&expectedLocator[SCrypt.HeaderLocatorCheckSize])
+    let storedPlainSize = encodedSize ^ locatorMask
+    @assert(storedPlainSize and storedPlainSize <= SCrypt.HeaderPlainSize)
+    Core.Crypto.secureClear(expectedLocator)
+
     let root = volume.resolve("\\")
     @assert(root != null)
     @assert((notnull root).creationTime != 0)
@@ -309,4 +349,22 @@ func flipHeaderByte(path: string, slot: u64)
 
     flipHeaderByte(path, 1 - activeSlot)
     @assert(rejectsPassword(path, testPassword()))
+}
+
+#test
+{
+    let path = testContainerPath("legacy_header")
+    defer discard catch File.delete(path)
+
+    var volume = expect SCrypt.Volume.create(path, testPassword(), SCrypt.MinimumSize)
+    discard expect volume.createNode("\\legacy", true,
+                                     SCrypt.FileAttributeDirectory, emptyBytes())
+    expect volume.commit()
+    writeLegacyHeader(&volume)
+    volume.close()
+
+    var reopened = expect SCrypt.Volume.open(path, testPassword())
+    @assert(reopened.sequence == 3)
+    @assert(reopened.resolve("\\legacy") != null)
+    reopened.close()
 }

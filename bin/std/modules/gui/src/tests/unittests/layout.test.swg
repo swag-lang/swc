@@ -287,3 +287,97 @@ using Swag, Core
     @assert(nextRow.position.y == 65)
     @assert(wrap.contentHeight == 75)
 }
+
+// FormLayoutCtrl arranges typed fields from row descriptions without fixed coordinates.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(520, 320)
+    defer host.shutdown()
+
+    var options: FormLayoutOptions
+    options.labelPlacement = .Above
+    let form = FormLayoutCtrl.create(&host.root, options, {0, 0, 480, 280})
+    form.padding = {12, 10, 12, 10}
+
+    let path = EditBox.create(form, "")
+    let browse = PushButton.create(form, "Browse", {0, 0, 92, 34})
+    discard form.addField("CONTAINER FILE", path, browse, "Choose a destination path.")
+    let password = PasswordEdit.create(form)
+    discard form.addField("PASSWORD", password)
+    form.computeLayout()
+
+    @assert(form.rows.count == 2)
+    @assert(form.rows[0].field == path)
+    @assert(form.rows[0].action == browse)
+    @assert(form.rows[0].help != null)
+    @assert(path.position.width > browse.position.width)
+    @assert(browse.position.x > path.position.x)
+    @assert(password.position.y > path.position.y)
+    @assert(form.contentHeight > password.position.y)
+}
+
+// FormLayoutCtrl can share one label column across compact dialog fields.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(520, 220)
+    defer host.shutdown()
+
+    var options: FormLayoutOptions
+    options.labelPlacement = .Left
+    options.labelWidth     = 96
+    let form = FormLayoutCtrl.create(&host.root, options, {0, 0, 480, 180})
+    let name = EditBox.create(form, "")
+    let kind = ComboBox.create(form)
+    discard form.addField("File Name", name)
+    discard form.addField("Type", kind)
+    form.computeLayout()
+
+    @assert(name.position.x == 100)
+    @assert(kind.position.x == name.position.x)
+    @assert(kind.position.y > name.position.y)
+    @assert(name.position.width == kind.position.width)
+}
+
+// FormCtrl materializes typed fields and optional actions from descriptions.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(520, 320)
+    defer host.shutdown()
+
+    var definitions: Array'FormFieldDefinition
+    definitions.add({id: "name", label: "NAME", initialText: "Ada",
+                     placeholder: "Display name", actionText: "Choose"})
+    var size: FormFieldDefinition
+    size.id    = "size"
+    size.label = "SIZE"
+    size.choices.add({"MiB", "mib"})
+    size.choices.add({"GiB", "gib"})
+    size.selectedIndex = 1
+    definitions.add(#move size)
+    definitions.add({id: "secret", label: "PASSWORD", kind: FormFieldKind.Password})
+    var choice: FormFieldDefinition
+    choice.id    = "unit"
+    choice.label = "UNIT"
+    choice.kind  = .Choice
+    choice.choices.add({"MiB", "mib"})
+    choice.choices.add({"GiB", "gib"})
+    choice.selectedIndex = 1
+    definitions.add(#move choice)
+
+    @assert(definitions[1].kind == FormFieldKind.Text)
+    @assert(definitions[1].choices.count == 2)
+    @assert(@countof(definitions[1].actionText) == 0)
+
+    let form = FormCtrl.create(&host.root, definitions.toSlice(), position: {0, 0, 480, 280})
+    @assert(form.fields.count == 4)
+    @assert((notnull form.textField("name")).text() == "Ada")
+    @assert(form.passwordField("secret") != null)
+    @assert((notnull form.choiceField("unit")).selectedIndex == 1)
+    @assert(form.textField("unit") == null)
+    @assert((notnull form.findField("name")).action != null)
+    @assert((notnull (notnull form.findField("size")).accessoryChoice).selectedIndex == 1)
+    @assert(form.contentHeight > 0)
+}

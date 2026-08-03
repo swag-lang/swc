@@ -49,13 +49,16 @@ func waitJobThread(th: Threading.Thread)
     var job: Job
     job.lambda = &reusedJobEntry
     job.data   = &jobData
+    @assert(!Jobs.isDone(&job))
 
     Jobs.schedule(&job)
     Jobs.wait(&job)
+    @assert(Jobs.isDone(&job))
     @assert(Atomic.get(&jobData.executionCount) == 1)
 
     Jobs.schedule(&job)
     jobData.startedSecondRun.wait()
+    @assert(!Jobs.isDone(&job))
 
     var waitReturned: s32 = 0
     var waitData          = WaitJobThreadData{job: &job, waitReturned: &waitReturned}
@@ -78,4 +81,5 @@ func waitJobThread(th: Threading.Thread)
 
     @assert(returnedWhileBlocked == 0)
     @assert(Atomic.get(&jobData.executionCount) == 2)
+    @assert(Jobs.isDone(&job))
 }

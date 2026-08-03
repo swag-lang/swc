@@ -29,8 +29,8 @@ struct FileDlgOptions
     initialName:       string      = ""                                            // Initial file-name editor contents.
     showLocationsPane              = true                                          // Whether to show shortcuts and drives.
     mode:              FileDlgMode = SelectFile                                    // Accepted selection kind.
-    filters:           Array'{ name: string, extensions: string }                  // Named extension filters.
-    shortcuts:         Array'{ type: Core.Env.SpecialDirectory, name: string }     // Locations shown in the shortcuts pane.
+    filters:           Array'{ name: string, extensions: string }                  // Named extension filters; empty means all files.
+    shortcuts:         Array'{ type: Core.Env.SpecialDirectory, name: string }     // Locations shown in the shortcuts pane; empty uses common user folders.
     state:             #null *FileDlgState                                         // Optional borrowed state updated on destruction.
 }
 
@@ -61,49 +61,47 @@ private impl FileDlg
 {
     mtd onNewFolder()
     {
-        let folderName: String = "New Folder"
+        var options: FormDlgOptions
+        options.title  = "New Folder"
+        options.width  = 440
+        options.height = 220
+        options.fields.add({id: "name", label: "FOLDER NAME", initialText: "New Folder",
+                            placeholder: "Folder name"})
+        let dlg  = FormDlg.create(notnull me.surface, #move options)
+        let edit = notnull dlg.textField("name")
+        edit.selectAll()
+        edit.setFocus()
 
-        with let dlg = EditDlg.createSingleLine(notnull me.surface)
+        dlg.validateResult = func|dlg, browser = me.browser, edit|(fdlg, btnid)
         {
-            let edit = notnull .edit
-            edit.setText(folderName)
-            edit.selectAll()
-            edit.setPlaceholder("Folder name")
-            let srf = notnull .surface
-            srf.setTitle("Folder Name")
-            srf.center(notnull me.surface)
-        }
-
-        dlg.validateResult = func|dlg, browser = me.browser|(fdlg, btnid)
-        {
+            discard fdlg
             if btnid != Dialog.BtnOk do
                 return true
 
-            let dedit = notnull dlg.edit
             var folderName: String
-            folderName = dedit.text()
+            folderName = edit.text()
             folderName.trim()
             if folderName.isEmpty()
             {
-                dedit.selectAll()
-                dedit.setFocus()
+                edit.selectAll()
+                edit.setFocus()
                 return false
             }
 
             if !Path.isValidFileName(folderName)
             {
-                MessageDlg.error(notnull dlg.surface, "Invalid folder name")
-                dedit.selectAll()
-                dedit.setFocus()
+                MessageDlg.error(notnull dlg.surface, "The folder name is not valid.")
+                edit.selectAll()
+                edit.setFocus()
                 return false
             }
 
             let path = Path.combine(browser.currentFolder, folderName.toString())
             if Directory.exists(path)
             {
-                MessageDlg.error(notnull dlg.surface, "Folder already exists")
-                dedit.selectAll()
-                dedit.setFocus()
+                MessageDlg.error(notnull dlg.surface, "A folder with this name already exists.")
+                edit.selectAll()
+                edit.setFocus()
                 return false
             }
 
@@ -113,8 +111,12 @@ private impl FileDlg
         if dlg.doModal() != Dialog.BtnOk do
             return
 
-        if !.browser.createFolder((notnull dlg.edit).text()) do
-            MessageDlg.error(notnull .surface, "Cannot create folder")
+        if !.browser.createFolder(edit.text())
+        {
+            MessageDlg.error(notnull .surface, "The folder could not be created.")
+            return
+        }
+        .browser.setFileName(edit.text())
     }
 }
 
@@ -133,7 +135,7 @@ impl FileDlg
             .updateFlags(add: .Resizable)
             .minSize = {400, 400}
 
-            if opt.title do
+            if @countof(opt.title) do
                 .setTitle(opt.title)
             else
             {
@@ -147,7 +149,8 @@ impl FileDlg
             }
         }
 
-        dlg.addButton(opt.confirmButtonText orelse "OK", Dialog.BtnOk, true)
+        dlg.addButton(@countof(opt.confirmButtonText) ? opt.confirmButtonText : "OK",
+                      Dialog.BtnOk, true)
         dlg.addButton("Cancel", Dialog.BtnCancel)
         dlg.backgroundStyle = .Window
         srf.updateFlags(remove: .CloseButton)
@@ -164,17 +167,18 @@ impl FileDlg
         {
             if id == Dialog.BtnOk
             {
-                let selName = dlg.browser.selectedPath()
-                if selName.isEmpty()
+                if !dlg.browser.hasValidSelection()
                 {
                     dlg.browser.editFile.selectAll()
                     dlg.browser.editFile.setFocus()
                     return false
                 }
 
+                let selName = dlg.browser.selectedPath()
                 if dlg.options.mode == .CreateFile and File.exists(selName)
                 {
-                    let res = MessageDlg.confirm(notnull dlg.surface, "This file already exists.", "Do you want to replace it ?")
+                    let res = MessageDlg.confirm(notnull dlg.surface, "This file already exists.",
+                                                 "Do you want to replace it?")
                     return res == Dialog.BtnYes
                 }
             }

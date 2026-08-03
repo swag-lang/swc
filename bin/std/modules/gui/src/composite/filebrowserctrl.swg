@@ -2,6 +2,65 @@
 
 using Core, File, Directory
 
+// Stores linear string locations for back and forward navigation.
+//
+// Pushing a location after moving backward discards the abandoned forward branch.
+struct NavigationHistory
+{
+    readonly
+    {
+        entries: Array'String         // Locations in visit order.
+        index = Swag.U64.Max          // Current entry index, or [[Swag.U64.Max]] when empty.
+    }
+}
+
+impl NavigationHistory
+{
+    // Removes every location and resets the current position.
+    mtd clear()
+    {
+        .entries.clear()
+        .index = Swag.U64.Max
+    }
+
+    // Appends `path`, discarding any forward branch after the current position.
+    mtd push(path: string)
+    {
+        if .index != Swag.U64.Max and .entries[.index] == path do
+            return
+        while .index != Swag.U64.Max and .entries.count > .index + 1 do
+            .entries.removeBack()
+        .entries.add(String.from(path))
+        .index = .entries.count - 1
+    }
+
+    // Returns whether a location exists before the current one.
+    mtd canGoBack()->bool => .index != Swag.U64.Max and .index > 0
+
+    // Returns whether a location exists after the current one.
+    mtd canGoForward()->bool => .index != Swag.U64.Max and .index + 1 < .entries.count
+
+    // Moves backward and returns the new current location.
+    //
+    // The caller must first check [[Gui.NavigationHistory.canGoBack]].
+    mtd goBack()->String
+    {
+        Debug.assert(.canGoBack(), "file-browser history has no previous folder")
+        .index -= 1
+        return .entries[.index]
+    }
+
+    // Moves forward and returns the new current location.
+    //
+    // The caller must first check [[Gui.NavigationHistory.canGoForward]].
+    mtd goForward()->String
+    {
+        Debug.assert(.canGoForward(), "file-browser history has no next folder")
+        .index += 1
+        return .entries[.index]
+    }
+}
+
 // Embeds location navigation, a sortable file list, and name and type editors.
 struct FileBrowserCtrl
 {
@@ -15,10 +74,14 @@ struct FileBrowserCtrl
 
         #[Swag.Late]
         {
-            listCtrl:  *ListCtrl     // Sortable file and folder list.
-            comboPath: *ComboBox     // Current-folder and ancestor selector.
-            editFile:  *EditBox      // File or folder name editor.
-            comboType: *ComboBox     // Active file-type filter selector.
+            listCtrl:      *ListCtrl       // Sortable file and folder list.
+            comboPath:     *ComboBox       // Current-folder and ancestor selector.
+            editFile:      *EditBox        // File or folder name editor.
+            comboType:     *ComboBox       // Active file-type filter selector.
+            backButton:    *PushButton     // Navigates to the previous folder.
+            forwardButton: *PushButton     // Navigates to the next folder.
+            upButton:      *PushButton     // Navigates to the parent folder.
+            refreshButton: *PushButton     // Reloads the current folder.
         }
     }
 
@@ -31,6 +94,7 @@ struct FileBrowserCtrl
         treePathStr:    Array'String       // Folder paths backing `treeCtrl` rows.
         comboPathStr:   Array'String       // Folder paths backing `comboPath` entries.
         currentEntries: Array'FileInfo     // Filesystem entries backing visible rows.
+        history:        NavigationHistory // Folder-navigation history.
     }
 }
 
@@ -50,10 +114,31 @@ impl IWnd for FileBrowserCtrl
 
 private impl FileBrowserCtrl
 {
-    mtd folderUp()
+    mtd updateNavigationState()
     {
-        if .comboPathStr.count > 1 do
-            .setCurrentFolder(.comboPathStr[1].toString())
+        .backButton.enable(.history.canGoBack())
+        .forwardButton.enable(.history.canGoForward())
+        let parent = Path.directoryName(.currentFolder.toString()) orelse ""
+        .upButton.enable(@countof(parent) != 0 and parent != .currentFolder.toString())
+    }
+
+    mtd showFolder(folder: string)->bool
+    {
+        if !@countof(folder) or !Directory.exists(folder) do
+            return false
+
+        var normalized = String.from(folder)
+        Path.normalize(&normalized)
+        if normalized.back() == '/' and normalized.length > Path.rootLength(normalized.toString()) do
+            normalized.removeBack()
+        if .currentFolder == normalized do
+            return true
+
+        .currentFolder = #move normalized
+        .fillFileList()
+        .fillComboPath()
+        .sigFolderChanged.call(me)
+        return true
     }
 
     mtd fillComboPath()
@@ -75,7 +160,7 @@ private impl FileBrowserCtrl
 
             let one  = all[i]
             var icon = .app().directoryIcon(one)
-            icon.color = Pixel.Argb.White
+            icon.color = .themeColors().label_Text
             .comboPath.addItem(one, icon: icon)
         }
 
@@ -92,7 +177,7 @@ private impl FileBrowserCtrl
         {
             let c    = Env.getSpecialDirectory(v.type)
             var icon = .app().specialDirectoryIcon(v.type, true)
-            icon.color       = Pixel.Argb.White
+            icon.color       = .themeColors().label_Text
             l                = treeCtrl.createLine(v.name, icon)
             l.userData0      = cast(#null *void) .treePathStr.count
             l.leftTextMargin = 10
@@ -147,7 +232,32 @@ private impl FileBrowserCtrl
                 switch evt.key
                 {
                 case .Back:
-                    fileBrowser.folderUp()
+                    if evt.modifiers.equals(.None)
+                    {
+                        if !fileBrowser.goBack() do
+                            discard fileBrowser.goUp()
+                    }
+
+                case .BrowserBack:
+                    discard fileBrowser.goBack()
+
+                case .BrowserForward:
+                    discard fileBrowser.goForward()
+
+                case .BrowserRefresh, .F5:
+                    fileBrowser.refresh()
+
+                case .Left:
+                    if evt.modifiers.equals(.Alt) do
+                        discard fileBrowser.goBack()
+
+                case .Right:
+                    if evt.modifiers.equals(.Alt) do
+                        discard fileBrowser.goForward()
+
+                case .Up:
+                    if evt.modifiers.equals(.Alt) do
+                        discard fileBrowser.goUp()
 
                 case .Enter:
                     let l = list.focusedLine()
@@ -241,9 +351,18 @@ impl FileBrowserCtrl
         fileBrowser.options         = opt
         fileBrowser.backgroundStyle = .Window
 
+        if fileBrowser.options.shortcuts.isEmpty()
+        {
+            fileBrowser.options.shortcuts.add({Env.SpecialDirectory.Desktop, "Desktop"})
+            fileBrowser.options.shortcuts.add({Env.SpecialDirectory.UserDocuments, "Documents"})
+            fileBrowser.options.shortcuts.add({Env.SpecialDirectory.UserPictures, "Pictures"})
+        }
+        if fileBrowser.options.mode != .SelectFolder and fileBrowser.options.filters.isEmpty() do
+            fileBrowser.options.filters.add({"All Files", ""})
+
         // Panes
         ////////////////////////
-        if opt.showLocationsPane
+        if fileBrowser.options.showLocationsPane
         {
             with fileBrowser.treeCtrl = ListCtrl.createSimple(fileBrowser, {0, 0, 170})
             {
@@ -273,13 +392,51 @@ impl FileBrowserCtrl
 
         fileBrowser.applyLayout()
 
-        if opt.mode == .CreateFile or opt.mode == .SelectFolder
+        with fileBrowser.backButton = PushButton.create(viewTop, "Back", {0, 0, 58})
+        {
+            .dockStyle  = .Left
+            .margin.z   = 6
+            .toolTip    = "Previous folder (Alt+Left)"
+            .setIcon(fileBrowser.theme().icon24(ThemeIcons24.Undo, 16))
+            .sigPressed += func|fileBrowser|(btn) { discard fileBrowser.goBack() }
+        }
+
+        with fileBrowser.forwardButton = PushButton.create(viewTop, "Forward", {0, 0, 72})
+        {
+            .dockStyle  = .Left
+            .margin.z   = 6
+            .toolTip    = "Next folder (Alt+Right)"
+            .setIcon(fileBrowser.theme().icon24(ThemeIcons24.Redo, 16))
+            .sigPressed += func|fileBrowser|(btn) { discard fileBrowser.goForward() }
+        }
+
+        with fileBrowser.upButton = PushButton.create(viewTop, "Up", {0, 0, 46})
+        {
+            .dockStyle  = .Left
+            .margin.z   = 10
+            .toolTip    = "Parent folder (Alt+Up)"
+            .setIcon(fileBrowser.theme().icon24(ThemeIcons24.Expanded, 16))
+            .sigPressed += func|fileBrowser|(btn) { discard fileBrowser.goUp() }
+        }
+
+        with fileBrowser.refreshButton = PushButton.create(viewTop, "Refresh", {0, 0, 72})
+        {
+            .dockStyle  = .Right
+            .margin.x   = 6
+            .toolTip    = "Refresh (F5)"
+            .setIcon(fileBrowser.theme().icon24(ThemeIcons24.Update, 16))
+            .sigPressed += func|fileBrowser|(btn) { fileBrowser.refresh() }
+        }
+
+        if fileBrowser.options.mode == .CreateFile or fileBrowser.options.mode == .SelectFolder
         {
             let btn = PushButton.create(viewTop, "New Folder", {0, 0, 90})
             with btn
             {
                 .dockStyle  = .Right
                 .margin.x   = 10
+                .toolTip    = "Create a folder in the current location"
+                .setIcon(fileBrowser.theme().icon24(ThemeIcons24.Plus, 16))
                 .sigPressed += func|fileBrowser|(btn) { fileBrowser.sigNewFolderRequested.call(fileBrowser) }
             }
         }
@@ -292,69 +449,41 @@ impl FileBrowserCtrl
 
         // Bottom
         ////////////////////////
-        let viewBottom = Wnd.create'Wnd(fileBrowser, {0, 0, 0, 90})
-        viewBottom.dockStyle       = .Bottom
-        viewBottom.backgroundStyle = .Window
+        var formOptions: FormLayoutOptions
+        formOptions.labelPlacement = .Left
+        formOptions.labelWidth     = 95
+        formOptions.fieldHeight    = 30
+        formOptions.rowSpacing     = 5
+        let form = FormLayoutCtrl.create(fileBrowser, formOptions, {0, 0, 0, 90})
+        form.dockStyle       = .Bottom
+        form.backgroundStyle = .Window
+        form.padding         = {0, 8, 15, 8}
 
-        // Build the two fields from docked rows. FileBrowserCtrl is commonly
-        // created at size zero and docked by its caller afterwards, so deriving
-        // field widths from its construction-time size can make them negative
-        // and therefore invisible.
-        with let nameRow = Wnd.create'Wnd(viewBottom, {0, 0, 0, 35})
-        {
-            .dockStyle       = .Top
-            .backgroundStyle = .Window
-        }
+        let nameLbl0 = fileBrowser.options.mode == .SelectFolder ? "Folder Name" : "File Name"
+        fileBrowser.editFile = EditBox.create(form, "")
+        discard form.addField(nameLbl0, fileBrowser.editFile)
 
-        let nameLbl0 = opt.mode == .SelectFolder ? "Folder Name" : "File Name"
-        with let label0 = Label.create(nameRow, nameLbl0, {0, 0, 95})
+        with fileBrowser.comboType = ComboBox.create(form)
         {
-            .dockStyle = .Left
-            .margin.z  = 10
-            .setTextAlignment(.Right, .Center)
-        }
-
-        with fileBrowser.editFile = EditBox.create(nameRow, "")
-        {
-            .dockStyle = .Center
-            .margin.z  = 15
-        }
-
-        with let typeRow = Wnd.create'Wnd(viewBottom, {0, 0, 0, 35})
-        {
-            .dockStyle       = .Top
-            .backgroundStyle = .Window
-        }
-
-        with let label1 = Label.create(typeRow, "Type", {0, 0, 95})
-        {
-            .dockStyle = .Left
-            .margin.z  = 10
-            .setTextAlignment(.Right, .Center)
-        }
-
-        with fileBrowser.comboType = ComboBox.create(typeRow)
-        {
-            .dockStyle = .Center
-            .margin.z  = 15
-            if opt.mode == .SelectFolder do
+            if fileBrowser.options.mode == .SelectFolder do
                 .addItem("Folders")
             else do
-                for f, [idx] in opt.filters do
+                for f, [idx] in fileBrowser.options.filters do
                     .addItem(f.name, userData0: cast(#null *void) idx)
             .setSelectedIndex(0)
             .sigChanged += func|fileBrowser|(c, idx) { fileBrowser.fillFileList() }
         }
+        discard form.addField("Type", fileBrowser.comboType)
 
         with fileBrowser
         {
-            if opt.initialFolder do
-                .setCurrentFolder(opt.initialFolder)
-            elif opt.state and !opt.state.currentFolder.isEmpty() do
-                .setCurrentFolder(opt.state.currentFolder)
+            if @countof(fileBrowser.options.initialFolder) do
+                .setCurrentFolder(fileBrowser.options.initialFolder)
+            elif fileBrowser.options.state and !fileBrowser.options.state.currentFolder.isEmpty() do
+                .setCurrentFolder(fileBrowser.options.state.currentFolder)
             .listCtrl.sort(0)
-            .editFile.setText(opt.initialName)
-            if opt.mode == .CreateFile
+            .editFile.setText(fileBrowser.options.initialName)
+            if fileBrowser.options.mode == .CreateFile
             {
                 .editFile.selectAll()
                 .editFile.setFocus()
@@ -374,6 +503,8 @@ impl FileBrowserCtrl
             }
         }
 
+        fileBrowser.updateNavigationState()
+
         return fileBrowser
     }
 
@@ -381,29 +512,70 @@ impl FileBrowserCtrl
     #[Swag.Discardable]
     mtd setCurrentFolder(folder: string)->bool
     {
-        if !@countof(folder) or !Directory.exists(notnull folder) do
+        if !.showFolder(folder) do
             return false
-
-        var normalized = String.from(folder)
-        Path.normalize(&normalized)
-
-        if normalized.back() == '/' do
-            normalized.removeBack()
-        if .currentFolder == normalized do
-            return true
-
-        .currentFolder = #move normalized
-
-        .fillFileList()
-        .fillComboPath()
-        .sigFolderChanged.call(me)
+        .history.push(.currentFolder.toString())
+        .updateNavigationState()
         return true
+    }
+
+    // Returns whether a previous folder is available in this browser session.
+    mtd canGoBack()->bool => .history.canGoBack()
+
+    // Returns whether a later folder is available in this browser session.
+    mtd canGoForward()->bool => .history.canGoForward()
+
+    // Navigates to the previous folder; returns false when history has no valid entry.
+    #[Swag.Discardable]
+    mtd goBack()->bool
+    {
+        if !.history.canGoBack() do
+            return false
+        let oldIndex = .history.index
+        let folder   = .history.goBack()
+        if !.showFolder(folder.toString())
+        {
+            .history.index = oldIndex
+            .updateNavigationState()
+            return false
+        }
+        .updateNavigationState()
+        return true
+    }
+
+    // Navigates to the next folder; returns false when history has no valid entry.
+    #[Swag.Discardable]
+    mtd goForward()->bool
+    {
+        if !.history.canGoForward() do
+            return false
+        let oldIndex = .history.index
+        let folder   = .history.goForward()
+        if !.showFolder(folder.toString())
+        {
+            .history.index = oldIndex
+            .updateNavigationState()
+            return false
+        }
+        .updateNavigationState()
+        return true
+    }
+
+    // Navigates to the parent folder; returns false at a root or when it is unavailable.
+    #[Swag.Discardable]
+    mtd goUp()->bool
+    {
+        let parent = Path.directoryName(.currentFolder.toString()) orelse ""
+        if !@countof(parent) or parent == .currentFolder.toString() do
+            return false
+        return .setCurrentFolder(parent)
     }
 
     // Refresh the file list of the current folder.
     mtd refresh()
     {
         .fillFileList()
+        .updateNavigationState()
     }
 
     // Fills the file list from the current folder, applying the active filter.
@@ -458,7 +630,7 @@ impl FileBrowserCtrl
 
             // Content
             var icon = .app().fileOrDirectoryIcon(fname, fi.isDirectory())
-            icon.color = Pixel.Argb.White
+            icon.color = .themeColors().label_Text
             let line = .listCtrl.createLine(fname, icon)
             line.userData0 = fi
             line.setItem(1, fi.lastWriteTime.toString(.DateTimeIso))
@@ -540,5 +712,30 @@ impl FileBrowserCtrl
         }
 
         return result
+    }
+
+    // Returns whether the current selection satisfies the configured dialog mode.
+    mtd hasValidSelection()->bool
+    {
+        let paths = .selectedPaths()
+        if paths.isEmpty() do
+            return false
+
+        switch #complete .options.mode
+        {
+        case .CreateFile:
+            return paths.count == 1 and Directory.exists(.currentFolder)
+
+        case .SelectFile:
+            return paths.count == 1 and File.exists(paths[0])
+
+        case .SelectFiles:
+            for path in paths where !File.exists(path) do
+                return false
+            return true
+
+        case .SelectFolder:
+            return paths.count == 1 and Directory.exists(paths[0])
+        }
     }
 }

@@ -51,7 +51,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary>Types<span class="toc-count">134</span></summary>
+<summary>Types<span class="toc-count">144</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-types">All Types</a></li>
 <li><a href="#Gui_ActionContext">Gui.ActionContext</a></li>
@@ -93,6 +93,13 @@
 <li><a href="#Gui_ComboCtrl">Gui.ComboCtrl</a></li>
 <li><a href="#Gui_EditCtrl">Gui.EditCtrl</a></li>
 <li><a href="#Gui_FileBrowserCtrl">Gui.FileBrowserCtrl</a></li>
+<li><a href="#Gui_FormChoice">Gui.FormChoice</a></li>
+<li><a href="#Gui_FormCtrl">Gui.FormCtrl</a></li>
+<li><a href="#Gui_FormField">Gui.FormField</a></li>
+<li><a href="#Gui_FormFieldDefinition">Gui.FormFieldDefinition</a></li>
+<li><a href="#Gui_FormLayoutCtrl">Gui.FormLayoutCtrl</a></li>
+<li><a href="#Gui_FormLayoutOptions">Gui.FormLayoutOptions</a></li>
+<li><a href="#Gui_FormLayoutRow">Gui.FormLayoutRow</a></li>
 <li><a href="#Gui_GridLayoutCtrl">Gui.GridLayoutCtrl</a></li>
 <li><a href="#Gui_GridTrack">Gui.GridTrack</a></li>
 <li><a href="#Gui_InfoBar">Gui.InfoBar</a></li>
@@ -101,6 +108,7 @@
 <li><a href="#Gui_ListLine">Gui.ListLine</a></li>
 <li><a href="#Gui_ListView">Gui.ListView</a></li>
 <li><a href="#Gui_MenuCtrl">Gui.MenuCtrl</a></li>
+<li><a href="#Gui_NavigationHistory">Gui.NavigationHistory</a></li>
 <li><a href="#Gui_PopupListCtrl">Gui.PopupListCtrl</a></li>
 <li><a href="#Gui_PopupListCtrlItem">Gui.PopupListCtrlItem</a></li>
 <li><a href="#Gui_PopupMenuItem">Gui.PopupMenuItem</a></li>
@@ -116,6 +124,8 @@
 <li><a href="#Gui_FileDlg">Gui.FileDlg</a></li>
 <li><a href="#Gui_FileDlgOptions">Gui.FileDlgOptions</a></li>
 <li><a href="#Gui_FileDlgState">Gui.FileDlgState</a></li>
+<li><a href="#Gui_FormDlg">Gui.FormDlg</a></li>
+<li><a href="#Gui_FormDlgOptions">Gui.FormDlgOptions</a></li>
 <li><a href="#Gui_MessageDlg">Gui.MessageDlg</a></li>
 <li><a href="#Gui_MessageDlgOptions">Gui.MessageDlgOptions</a></li>
 <li><a href="#Gui_BlendColor">Gui.BlendColor</a></li>
@@ -191,7 +201,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary>Enumerations<span class="toc-count">84</span></summary>
+<summary>Enumerations<span class="toc-count">86</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-enumerations">All Enumerations</a></li>
 <li><a href="#Gui_CommandStateEvent_Kind">CommandStateEvent.Kind</a></li>
@@ -209,6 +219,8 @@
 <li><a href="#Gui_SysCommandEvent_Kind">SysCommandEvent.Kind</a></li>
 <li><a href="#Gui_ColorPickerFlags">Gui.ColorPickerFlags</a></li>
 <li><a href="#Gui_ColorPickerViewMode">Gui.ColorPickerViewMode</a></li>
+<li><a href="#Gui_FormFieldKind">Gui.FormFieldKind</a></li>
+<li><a href="#Gui_FormLabelPlacement">Gui.FormLabelPlacement</a></li>
 <li><a href="#Gui_GridLayoutFlags">Gui.GridLayoutFlags</a></li>
 <li><a href="#Gui_GridTrackKind">Gui.GridTrackKind</a></li>
 <li><a href="#Gui_InfoBarFlags">Gui.InfoBarFlags</a></li>
@@ -288,7 +300,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary>Functions<span class="toc-count">830</span></summary>
+<summary>Functions<span class="toc-count">856</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Gui_Properties_BoolCombo">Properties.BoolCombo</a></li>
@@ -449,14 +461,29 @@
 <li><a href="#Gui_ComboCtrl_setLayoutMetrics">ComboCtrl.setLayoutMetrics</a></li>
 <li><a href="#Gui_EditCtrl_create">EditCtrl.create</a></li>
 <li><a href="#Gui_EditCtrl_setLayoutMetrics">EditCtrl.setLayoutMetrics</a></li>
+<li><a href="#Gui_FileBrowserCtrl_canGoBack">FileBrowserCtrl.canGoBack</a></li>
+<li><a href="#Gui_FileBrowserCtrl_canGoForward">FileBrowserCtrl.canGoForward</a></li>
 <li><a href="#Gui_FileBrowserCtrl_create">FileBrowserCtrl.create</a></li>
 <li><a href="#Gui_FileBrowserCtrl_createFolder">FileBrowserCtrl.createFolder</a></li>
 <li><a href="#Gui_FileBrowserCtrl_fileName">FileBrowserCtrl.fileName</a></li>
+<li><a href="#Gui_FileBrowserCtrl_goBack">FileBrowserCtrl.goBack</a></li>
+<li><a href="#Gui_FileBrowserCtrl_goForward">FileBrowserCtrl.goForward</a></li>
+<li><a href="#Gui_FileBrowserCtrl_goUp">FileBrowserCtrl.goUp</a></li>
+<li><a href="#Gui_FileBrowserCtrl_hasValidSelection">FileBrowserCtrl.hasValidSelection</a></li>
 <li><a href="#Gui_FileBrowserCtrl_refresh">FileBrowserCtrl.refresh</a></li>
 <li><a href="#Gui_FileBrowserCtrl_selectedPath">FileBrowserCtrl.selectedPath</a></li>
 <li><a href="#Gui_FileBrowserCtrl_selectedPaths">FileBrowserCtrl.selectedPaths</a></li>
 <li><a href="#Gui_FileBrowserCtrl_setCurrentFolder">FileBrowserCtrl.setCurrentFolder</a></li>
 <li><a href="#Gui_FileBrowserCtrl_setFileName">FileBrowserCtrl.setFileName</a></li>
+<li><a href="#Gui_FormCtrl_choiceField">FormCtrl.choiceField</a></li>
+<li><a href="#Gui_FormCtrl_create">FormCtrl.create</a></li>
+<li><a href="#Gui_FormCtrl_findField">FormCtrl.findField</a></li>
+<li><a href="#Gui_FormCtrl_passwordField">FormCtrl.passwordField</a></li>
+<li><a href="#Gui_FormCtrl_textField">FormCtrl.textField</a></li>
+<li><a href="#Gui_FormLayoutCtrl_addField">FormLayoutCtrl.addField</a></li>
+<li><a href="#Gui_FormLayoutCtrl_clear">FormLayoutCtrl.clear</a></li>
+<li><a href="#Gui_FormLayoutCtrl_computeLayout">FormLayoutCtrl.computeLayout</a></li>
+<li><a href="#Gui_FormLayoutCtrl_create">FormLayoutCtrl.create</a></li>
 <li><a href="#Gui_GridLayoutCtrl_computeLayout">GridLayoutCtrl.computeLayout</a></li>
 <li><a href="#Gui_GridLayoutCtrl_create">GridLayoutCtrl.create</a></li>
 <li><a href="#Gui_GridLayoutCtrl_setCell">GridLayoutCtrl.setCell</a></li>
@@ -531,6 +558,12 @@
 <li><a href="#Gui_MenuCtrl_setFramePainting">MenuCtrl.setFramePainting</a></li>
 <li><a href="#Gui_MenuCtrl_updateFlags">MenuCtrl.updateFlags</a></li>
 <li><a href="#Gui_MenuCtrl_updateState">MenuCtrl.updateState</a></li>
+<li><a href="#Gui_NavigationHistory_canGoBack">NavigationHistory.canGoBack</a></li>
+<li><a href="#Gui_NavigationHistory_canGoForward">NavigationHistory.canGoForward</a></li>
+<li><a href="#Gui_NavigationHistory_clear">NavigationHistory.clear</a></li>
+<li><a href="#Gui_NavigationHistory_goBack">NavigationHistory.goBack</a></li>
+<li><a href="#Gui_NavigationHistory_goForward">NavigationHistory.goForward</a></li>
+<li><a href="#Gui_NavigationHistory_push">NavigationHistory.push</a></li>
 <li><a href="#Gui_PopupListCtrl_addItem">PopupListCtrl.addItem</a></li>
 <li><a href="#Gui_PopupListCtrl_addSeparator">PopupListCtrl.addSeparator</a></li>
 <li><a href="#Gui_PopupListCtrl_cancel">PopupListCtrl.cancel</a></li>
@@ -576,6 +609,11 @@
 <li><a href="#Gui_FileDlg_create">FileDlg.create</a></li>
 <li><a href="#Gui_FileDlg_selectedPath">FileDlg.selectedPath</a></li>
 <li><a href="#Gui_FileDlg_selectedPaths">FileDlg.selectedPaths</a></li>
+<li><a href="#Gui_FormDlg_choiceField">FormDlg.choiceField</a></li>
+<li><a href="#Gui_FormDlg_create">FormDlg.create</a></li>
+<li><a href="#Gui_FormDlg_findField">FormDlg.findField</a></li>
+<li><a href="#Gui_FormDlg_passwordField">FormDlg.passwordField</a></li>
+<li><a href="#Gui_FormDlg_textField">FormDlg.textField</a></li>
 <li><a href="#Gui_MessageDlg_confirm">MessageDlg.confirm</a></li>
 <li><a href="#Gui_MessageDlg_create">MessageDlg.create</a></li>
 <li><a href="#Gui_MessageDlg_doModal">MessageDlg.doModal</a></li>
@@ -1377,6 +1415,20 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_FileBrowserCtrl">Gui.FileBrowserCtrl</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Embeds location navigation, a sortable file list, and name and type editors.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Gui_FormChoice">Gui.FormChoice</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Describes one choice in a declarative form field.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormCtrl">Gui.FormCtrl</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Materializes a typed form from field descriptions and arranges it automatically.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormField">Gui.FormField</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Stores the typed controls created for one declarative field.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormFieldDefinition">Gui.FormFieldDefinition</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Describes one field materialized by <a href="#Gui_FormCtrl_create">Gui.FormCtrl.create</a>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormLayoutCtrl">Gui.FormLayoutCtrl</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Arranges labeled fields from a compact row description instead of fixed coordinates.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormLayoutOptions">Gui.FormLayoutOptions</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Configures the geometry shared by every row in a <a href="#Gui_FormLayoutCtrl">Gui.FormLayoutCtrl</a>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormLayoutRow">Gui.FormLayoutRow</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Describes one field row owned and arranged by a <a href="#Gui_FormLayoutCtrl">Gui.FormLayoutCtrl</a>.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Gui_GridLayoutCtrl">Gui.GridLayoutCtrl</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Arranges child windows in configurable rows, columns, and spanning cells.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_GridTrack">Gui.GridTrack</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Defines one row or column of a <a href="#Gui_GridLayoutCtrl">GridLayoutCtrl</a>.</p>
@@ -1392,6 +1444,8 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 <tr><td class="code-type"><a href="#Gui_ListView">Gui.ListView</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Hosts the scrollable, painted row viewport of a <a href="#Gui_ListCtrl">Gui.ListCtrl</a>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_MenuCtrl">Gui.MenuCtrl</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Displays either a persistent menu bar or a modal popup menu.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_NavigationHistory">Gui.NavigationHistory</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Stores linear string locations for back and forward navigation.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_PopupListCtrl">Gui.PopupListCtrl</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Displays a temporary list that commits one highlighted item or reports cancellation.</p>
 </td></tr>
@@ -1422,6 +1476,10 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 <tr><td class="code-type"><a href="#Gui_FileDlgOptions">Gui.FileDlgOptions</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Configures a <a href="#Gui_FileDlg">Gui.FileDlg</a> or embedded <a href="#Gui_FileBrowserCtrl">Gui.FileBrowserCtrl</a>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_FileDlgState">Gui.FileDlgState</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Stores reusable file-dialog placement and browsing state between invocations.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormDlg">Gui.FormDlg</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Modal data-driven dialog composed of a <a href="#Gui_FormCtrl">Gui.FormCtrl</a> and standard buttons.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormDlgOptions">Gui.FormDlgOptions</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Configures a modal form materialized entirely from field descriptions.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_MessageDlg">Gui.MessageDlg</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Displays a rich message, optional icon and extension, and caller-defined action buttons.</p>
 </td></tr>
@@ -1602,6 +1660,10 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 <tr><td class="code-type"><a href="#Gui_ColorPickerFlags">Gui.ColorPickerFlags</a></td><td><p>Configures the channels available in a color picker control.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_ColorPickerViewMode">Gui.ColorPickerViewMode</a></td><td><p>Selects the two-dimensional plane and the companion channel slider shown by a color picker control.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormFieldKind">Gui.FormFieldKind</a></td><td><p>Selects the control created for a declarative form field.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormLabelPlacement">Gui.FormLabelPlacement</a></td><td><p>Selects where a form places labels relative to their fields.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_GridLayoutFlags">Gui.GridLayoutFlags</a></td><td><p>Configures sizing policies applied by a grid layout.</p>
 </td></tr>
@@ -2071,11 +2133,23 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_EditCtrl_setLayoutMetrics">EditCtrl.setLayoutMetrics</a></td><td><p>Changes label width, edit width, and spacing, then reapplies layout.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Gui_FileBrowserCtrl_canGoBack">FileBrowserCtrl.canGoBack</a></td><td><p>Returns whether a previous folder is available in this browser session.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FileBrowserCtrl_canGoForward">FileBrowserCtrl.canGoForward</a></td><td><p>Returns whether a later folder is available in this browser session.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Gui_FileBrowserCtrl_create">FileBrowserCtrl.create</a></td><td><p>Creates an embedded file browser inside <span class="code-inline">parent</span>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_FileBrowserCtrl_createFolder">FileBrowserCtrl.createFolder</a></td><td><p>Creates a folder inside <a href="#Gui_FileBrowserCtrl_currentFolder">Gui.FileBrowserCtrl.currentFolder</a> and refreshes the list on success.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_FileBrowserCtrl_fileName">FileBrowserCtrl.fileName</a></td><td><p>Returns the current contents of the file or folder name editor.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FileBrowserCtrl_goBack">FileBrowserCtrl.goBack</a></td><td><p>Navigates to the previous folder; returns false when history has no valid entry.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FileBrowserCtrl_goForward">FileBrowserCtrl.goForward</a></td><td><p>Navigates to the next folder; returns false when history has no valid entry.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FileBrowserCtrl_goUp">FileBrowserCtrl.goUp</a></td><td><p>Navigates to the parent folder; returns false at a root or when it is unavailable.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FileBrowserCtrl_hasValidSelection">FileBrowserCtrl.hasValidSelection</a></td><td><p>Returns whether the current selection satisfies the configured dialog mode.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_FileBrowserCtrl_refresh">FileBrowserCtrl.refresh</a></td><td><p>Refresh the file list of the current folder.</p>
 </td></tr>
@@ -2086,6 +2160,24 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 <tr><td class="code-type"><a href="#Gui_FileBrowserCtrl_setCurrentFolder">FileBrowserCtrl.setCurrentFolder</a></td><td><p>Navigates to <span class="code-inline">folder</span>; returns false when it does not name an existing directory.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_FileBrowserCtrl_setFileName">FileBrowserCtrl.setFileName</a></td><td><p>Changes the contents of the file or folder name editor.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormCtrl_choiceField">FormCtrl.choiceField</a></td><td><p>Returns the choice control for <span class="code-inline">id</span>, or null when it has another kind.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormCtrl_create">FormCtrl.create</a></td><td><p>Creates and materializes a form inside <span class="code-inline">parent</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormCtrl_findField">FormCtrl.findField</a></td><td><p>Finds a materialized field by identifier.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormCtrl_passwordField">FormCtrl.passwordField</a></td><td><p>Returns the password editor for <span class="code-inline">id</span>, or null when it has another kind.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormCtrl_textField">FormCtrl.textField</a></td><td><p>Returns the text editor for <span class="code-inline">id</span>, or null when it has another kind.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormLayoutCtrl_addField">FormLayoutCtrl.addField</a></td><td><p>Appends a labeled field and returns its row index.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormLayoutCtrl_clear">FormLayoutCtrl.clear</a></td><td><p>Removes every row and destroys its controls.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormLayoutCtrl_computeLayout">FormLayoutCtrl.computeLayout</a></td><td><p>Arranges every row inside the padded client rectangle.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormLayoutCtrl_create">FormLayoutCtrl.create</a></td><td><p>Creates an empty form layout inside <span class="code-inline">parent</span>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_GridLayoutCtrl_computeLayout">GridLayoutCtrl.computeLayout</a></td><td><p>Recomputes track sizes and arranges every assigned child.</p>
 </td></tr>
@@ -2235,6 +2327,18 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_MenuCtrl_updateState">MenuCtrl.updateState</a></td><td><p>Updates state.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Gui_NavigationHistory_canGoBack">NavigationHistory.canGoBack</a></td><td><p>Returns whether a location exists before the current one.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_NavigationHistory_canGoForward">NavigationHistory.canGoForward</a></td><td><p>Returns whether a location exists after the current one.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_NavigationHistory_clear">NavigationHistory.clear</a></td><td><p>Removes every location and resets the current position.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_NavigationHistory_goBack">NavigationHistory.goBack</a></td><td><p>Moves backward and returns the new current location.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_NavigationHistory_goForward">NavigationHistory.goForward</a></td><td><p>Moves forward and returns the new current location.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_NavigationHistory_push">NavigationHistory.push</a></td><td><p>Appends <span class="code-inline">path</span>, discarding any forward branch after the current position.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Gui_PopupListCtrl_addItem">PopupListCtrl.addItem</a></td><td><p>Appends a selectable item and returns its stable heap object.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_PopupListCtrl_addSeparator">PopupListCtrl.addSeparator</a></td><td><p>Appends a non-selectable separator and returns its stable heap object.</p>
@@ -2324,6 +2428,16 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 <tr><td class="code-type"><a href="#Gui_FileDlg_selectedPath">FileDlg.selectedPath</a></td><td><p>Returns the first selected full path, or an empty string when no valid selection exists.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_FileDlg_selectedPaths">FileDlg.selectedPaths</a></td><td><p>Returns all selected full paths in display order.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormDlg_choiceField">FormDlg.choiceField</a></td><td><p>Returns the choice control for <span class="code-inline">id</span>, or null when it has another kind.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormDlg_create">FormDlg.create</a></td><td><p>Creates a centered modal form from <span class="code-inline">options</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormDlg_findField">FormDlg.findField</a></td><td><p>Finds a materialized field by identifier.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormDlg_passwordField">FormDlg.passwordField</a></td><td><p>Returns the password editor for <span class="code-inline">id</span>, or null when it has another kind.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormDlg_textField">FormDlg.textField</a></td><td><p>Returns the text editor for <span class="code-inline">id</span>, or null when it has another kind.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_MessageDlg_confirm">MessageDlg.confirm</a></td><td><p>Shows a standardized confirmation question with Yes and No actions.</p>
 </td></tr>
@@ -3514,6 +3628,20 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_FileBrowserCtrl">Gui.FileBrowserCtrl</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Embeds location navigation, a sortable file list, and name and type editors.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Gui_FormChoice">Gui.FormChoice</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Describes one choice in a declarative form field.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormCtrl">Gui.FormCtrl</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Materializes a typed form from field descriptions and arranges it automatically.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormField">Gui.FormField</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Stores the typed controls created for one declarative field.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormFieldDefinition">Gui.FormFieldDefinition</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Describes one field materialized by <a href="#Gui_FormCtrl_create">Gui.FormCtrl.create</a>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormLayoutCtrl">Gui.FormLayoutCtrl</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Arranges labeled fields from a compact row description instead of fixed coordinates.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormLayoutOptions">Gui.FormLayoutOptions</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Configures the geometry shared by every row in a <a href="#Gui_FormLayoutCtrl">Gui.FormLayoutCtrl</a>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormLayoutRow">Gui.FormLayoutRow</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Describes one field row owned and arranged by a <a href="#Gui_FormLayoutCtrl">Gui.FormLayoutCtrl</a>.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Gui_GridLayoutCtrl">Gui.GridLayoutCtrl</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Arranges child windows in configurable rows, columns, and spanning cells.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_GridTrack">Gui.GridTrack</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Defines one row or column of a <a href="#Gui_GridLayoutCtrl">GridLayoutCtrl</a>.</p>
@@ -3529,6 +3657,8 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 <tr><td class="code-type"><a href="#Gui_ListView">Gui.ListView</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Hosts the scrollable, painted row viewport of a <a href="#Gui_ListCtrl">Gui.ListCtrl</a>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_MenuCtrl">Gui.MenuCtrl</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Displays either a persistent menu bar or a modal popup menu.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_NavigationHistory">Gui.NavigationHistory</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Stores linear string locations for back and forward navigation.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_PopupListCtrl">Gui.PopupListCtrl</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Displays a temporary list that commits one highlighted item or reports cancellation.</p>
 </td></tr>
@@ -3559,6 +3689,10 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 <tr><td class="code-type"><a href="#Gui_FileDlgOptions">Gui.FileDlgOptions</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Configures a <a href="#Gui_FileDlg">Gui.FileDlg</a> or embedded <a href="#Gui_FileBrowserCtrl">Gui.FileBrowserCtrl</a>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_FileDlgState">Gui.FileDlgState</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Stores reusable file-dialog placement and browsing state between invocations.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormDlg">Gui.FormDlg</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Modal data-driven dialog composed of a <a href="#Gui_FormCtrl">Gui.FormCtrl</a> and standard buttons.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormDlgOptions">Gui.FormDlgOptions</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Configures a modal form materialized entirely from field descriptions.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_MessageDlg">Gui.MessageDlg</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Displays a rich message, optional icon and extension, and caller-defined action buttons.</p>
 </td></tr>
@@ -3711,6 +3845,10 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 <tr><td class="code-type"><a href="#Gui_ColorPickerFlags">Gui.ColorPickerFlags</a></td><td><p>Configures the channels available in a color picker control.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_ColorPickerViewMode">Gui.ColorPickerViewMode</a></td><td><p>Selects the two-dimensional plane and the companion channel slider shown by a color picker control.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormFieldKind">Gui.FormFieldKind</a></td><td><p>Selects the control created for a declarative form field.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormLabelPlacement">Gui.FormLabelPlacement</a></td><td><p>Selects where a form places labels relative to their fields.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_GridLayoutFlags">Gui.GridLayoutFlags</a></td><td><p>Configures sizing policies applied by a grid layout.</p>
 </td></tr>
@@ -5075,7 +5213,7 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Gui_FileBrowserCtrl" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.FileBrowserCtrl</span> <a class="api-item-permalink" href="#Gui_FileBrowserCtrl" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/filebrowserctrl.swg#L7">src</a></div>
+<div class="api-item api-item-struct"><span id="Gui_FileBrowserCtrl" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.FileBrowserCtrl</span> <a class="api-item-permalink" href="#Gui_FileBrowserCtrl" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/filebrowserctrl.swg#L66">src</a></div>
 <p>Embeds location navigation, a sortable file list, and name and type editors.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Gui_FileBrowserCtrl">FileBrowserCtrl</a></span></span></div>
 </section>
@@ -5083,6 +5221,8 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
+<tr><td id="Gui_FileBrowserCtrl_backButton" class="code-type">backButton</td><td class="code-type">*<a href="#Gui_PushButton">Gui.PushButton</a></td><td><p>Navigates to the previous folder.</p>
+</td></tr>
 <tr><td id="Gui_FileBrowserCtrl_comboPath" class="code-type">comboPath</td><td class="code-type">*<a href="#Gui_ComboBox">Gui.ComboBox</a></td><td><p>Current-folder and ancestor selector.</p>
 </td></tr>
 <tr><td id="Gui_FileBrowserCtrl_comboType" class="code-type">comboType</td><td class="code-type">*<a href="#Gui_ComboBox">Gui.ComboBox</a></td><td><p>Active file-type filter selector.</p>
@@ -5091,9 +5231,13 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 </td></tr>
 <tr><td id="Gui_FileBrowserCtrl_editFile" class="code-type">editFile</td><td class="code-type">*<a href="#Gui_EditBox">Gui.EditBox</a></td><td><p>File or folder name editor.</p>
 </td></tr>
+<tr><td id="Gui_FileBrowserCtrl_forwardButton" class="code-type">forwardButton</td><td class="code-type">*<a href="#Gui_PushButton">Gui.PushButton</a></td><td><p>Navigates to the next folder.</p>
+</td></tr>
 <tr><td id="Gui_FileBrowserCtrl_listCtrl" class="code-type">listCtrl</td><td class="code-type">*<a href="#Gui_ListCtrl">Gui.ListCtrl</a></td><td><p>Sortable file and folder list.</p>
 </td></tr>
 <tr><td id="Gui_FileBrowserCtrl_options" class="code-type">options</td><td class="code-type"><a href="#Gui_FileDlgOptions">Gui.FileDlgOptions</a></td><td><p>Effective browsing and selection options.</p>
+</td></tr>
+<tr><td id="Gui_FileBrowserCtrl_refreshButton" class="code-type">refreshButton</td><td class="code-type">*<a href="#Gui_PushButton">Gui.PushButton</a></td><td><p>Reloads the current folder.</p>
 </td></tr>
 <tr><td id="Gui_FileBrowserCtrl_sigAccepted" class="code-type">sigAccepted</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_FileBrowserCtrl">Gui.FileBrowserCtrl</a>))</td><td><p>Emitted when the current selection is activated.</p>
 </td></tr>
@@ -5103,6 +5247,8 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 </td></tr>
 <tr><td id="Gui_FileBrowserCtrl_treeCtrl" class="code-type">treeCtrl</td><td class="code-type">#null *<a href="#Gui_ListCtrl">Gui.ListCtrl</a></td><td><p>Optional shortcuts and drives list.</p>
 </td></tr>
+<tr><td id="Gui_FileBrowserCtrl_upButton" class="code-type">upButton</td><td class="code-type">*<a href="#Gui_PushButton">Gui.PushButton</a></td><td><p>Navigates to the parent folder.</p>
+</td></tr>
 <tr><td id="Gui_FileBrowserCtrl_wnd" class="code-type">wnd</td><td class="code-type"><a href="#Gui_Wnd">Gui.Wnd</a></td><td><p>Embedded wnd state.</p>
 </td></tr>
 </tbody>
@@ -5111,11 +5257,23 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 <table class="api-summary">
 <thead><tr><th>Name</th><th>Description</th></tr></thead>
 <tbody>
+<tr><td class="code-type"><a href="#Gui_FileBrowserCtrl_canGoBack">canGoBack</a></td><td><p>Returns whether a previous folder is available in this browser session.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FileBrowserCtrl_canGoForward">canGoForward</a></td><td><p>Returns whether a later folder is available in this browser session.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Gui_FileBrowserCtrl_create">create</a></td><td><p>Creates an embedded file browser inside <span class="code-inline">parent</span>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_FileBrowserCtrl_createFolder">createFolder</a></td><td><p>Creates a folder inside <a href="#Gui_FileBrowserCtrl_currentFolder">Gui.FileBrowserCtrl.currentFolder</a> and refreshes the list on success.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_FileBrowserCtrl_fileName">fileName</a></td><td><p>Returns the current contents of the file or folder name editor.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FileBrowserCtrl_goBack">goBack</a></td><td><p>Navigates to the previous folder; returns false when history has no valid entry.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FileBrowserCtrl_goForward">goForward</a></td><td><p>Navigates to the next folder; returns false when history has no valid entry.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FileBrowserCtrl_goUp">goUp</a></td><td><p>Navigates to the parent folder; returns false at a root or when it is unavailable.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FileBrowserCtrl_hasValidSelection">hasValidSelection</a></td><td><p>Returns whether the current selection satisfies the configured dialog mode.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_FileBrowserCtrl_refresh">refresh</a></td><td><p>Refresh the file list of the current folder.</p>
 </td></tr>
@@ -5126,6 +5284,194 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 <tr><td class="code-type"><a href="#Gui_FileBrowserCtrl_setCurrentFolder">setCurrentFolder</a></td><td><p>Navigates to <span class="code-inline">folder</span>; returns false when it does not name an existing directory.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_FileBrowserCtrl_setFileName">setFileName</a></td><td><p>Changes the contents of the file or folder name editor.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Gui_FormChoice" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.FormChoice</span> <a class="api-item-permalink" href="#Gui_FormChoice" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/formctrl.swg#L15">src</a></div>
+<p>Describes one choice in a declarative form field.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Gui_FormChoice">FormChoice</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Gui_FormChoice_id" class="code-type">id</td><td class="code-type">#null string</td><td><p>Optional stable identifier for the choice.</p>
+</td></tr>
+<tr><td id="Gui_FormChoice_text" class="code-type">text</td><td class="code-type"><a href="std.core.html#Core_String">Core.String</a></td><td><p>Text displayed by the combo box; owned by the definition.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Gui_FormCtrl" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.FormCtrl</span> <a class="api-item-permalink" href="#Gui_FormCtrl" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/formctrl.swg#L59">src</a></div>
+<p>Materializes a typed form from field descriptions and arranges it automatically.</p>
+<p>Use <a href="#Gui_FormCtrl_findField">Gui.FormCtrl.findField</a>, <a href="#Gui_FormCtrl_textField">Gui.FormCtrl.textField</a>, <a href="#Gui_FormCtrl_passwordField">Gui.FormCtrl.passwordField</a>, or <a href="#Gui_FormCtrl_choiceField">Gui.FormCtrl.choiceField</a> to retain typed access without manually constructing every label and control.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Gui_FormCtrl">FormCtrl</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Gui_FormCtrl_fields" class="code-type">fields</td><td class="code-type"><a href="std.core.html#Core_Array">Core.Array</a>'(<a href="#Gui_FormField">Gui.FormField</a>)</td><td><p>Materialized fields in declaration order.</p>
+</td></tr>
+<tr><td id="Gui_FormCtrl_layout" class="code-type">layout</td><td class="code-type"><a href="#Gui_FormLayoutCtrl">Gui.FormLayoutCtrl</a></td><td><p>Embedded form-layout behavior.</p>
+</td></tr>
+<tr><td id="Gui_FormCtrl_sigAction" class="code-type">sigAction</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_FormCtrl">Gui.FormCtrl</a>, string))</td><td><p>Emitted by a field's optional action button.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="Gui_FormCtrl_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Gui_FormCtrl_choiceField">choiceField</a></td><td><p>Returns the choice control for <span class="code-inline">id</span>, or null when it has another kind.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormCtrl_create">create</a></td><td><p>Creates and materializes a form inside <span class="code-inline">parent</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormCtrl_findField">findField</a></td><td><p>Finds a materialized field by identifier.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormCtrl_passwordField">passwordField</a></td><td><p>Returns the password editor for <span class="code-inline">id</span>, or null when it has another kind.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormCtrl_textField">textField</a></td><td><p>Returns the text editor for <span class="code-inline">id</span>, or null when it has another kind.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Gui_FormField" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.FormField</span> <a class="api-item-permalink" href="#Gui_FormField" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/formctrl.swg#L39">src</a></div>
+<p>Stores the typed controls created for one declarative field.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Gui_FormField">FormField</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Gui_FormField_accessoryChoice" class="code-type">accessoryChoice</td><td class="code-type">#null *<a href="#Gui_ComboBox">Gui.ComboBox</a></td><td><p>Optional trailing choice control.</p>
+</td></tr>
+<tr><td id="Gui_FormField_action" class="code-type">action</td><td class="code-type">#null *<a href="#Gui_PushButton">Gui.PushButton</a></td><td><p>Optional trailing action button.</p>
+</td></tr>
+<tr><td id="Gui_FormField_choice" class="code-type">choice</td><td class="code-type">#null *<a href="#Gui_ComboBox">Gui.ComboBox</a></td><td><p>Combo box when <span class="code-inline">kind</span> is <span class="code-inline">Choice</span>.</p>
+</td></tr>
+<tr><td id="Gui_FormField_control" class="code-type">control</td><td class="code-type">*<a href="#Gui_Wnd">Gui.Wnd</a></td><td><p>Generic field control.</p>
+</td></tr>
+<tr><td id="Gui_FormField_edit" class="code-type">edit</td><td class="code-type">#null *<a href="#Gui_EditBox">Gui.EditBox</a></td><td><p>Text editor when <span class="code-inline">kind</span> is <span class="code-inline">Text</span>.</p>
+</td></tr>
+<tr><td id="Gui_FormField_id" class="code-type">id</td><td class="code-type"><a href="std.core.html#Core_String">Core.String</a></td><td><p>Stable field identifier.</p>
+</td></tr>
+<tr><td id="Gui_FormField_kind" class="code-type">kind</td><td class="code-type"><a href="#Gui_FormFieldKind">Gui.FormFieldKind</a></td><td><p>Materialized control kind.</p>
+</td></tr>
+<tr><td id="Gui_FormField_password" class="code-type">password</td><td class="code-type">#null *<a href="#Gui_PasswordEdit">Gui.PasswordEdit</a></td><td><p>Password editor when <span class="code-inline">kind</span> is <span class="code-inline">Password</span>.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Gui_FormFieldDefinition" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.FormFieldDefinition</span> <a class="api-item-permalink" href="#Gui_FormFieldDefinition" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/formctrl.swg#L25">src</a></div>
+<p>Describes one field materialized by <a href="#Gui_FormCtrl_create">Gui.FormCtrl.create</a>.</p>
+<p>String values are read only while the form is being created. The resulting controls own their displayed contents.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Gui_FormFieldDefinition">FormFieldDefinition</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Gui_FormFieldDefinition_actionText" class="code-type">actionText</td><td class="code-type">string</td><td><p>Optional trailing action-button text.</p>
+</td></tr>
+<tr><td id="Gui_FormFieldDefinition_choices" class="code-type">choices</td><td class="code-type"><a href="std.core.html#Core_Array">Core.Array</a>'(<a href="#Gui_FormChoice">Gui.FormChoice</a>)</td><td><p>Primary choices for <span class="code-inline">Choice</span>, or trailing choices for another kind.</p>
+</td></tr>
+<tr><td id="Gui_FormFieldDefinition_help" class="code-type">help</td><td class="code-type">string</td><td><p>Optional explanatory text below the field.</p>
+</td></tr>
+<tr><td id="Gui_FormFieldDefinition_id" class="code-type">id</td><td class="code-type">string</td><td><p>Stable identifier used to retrieve the field.</p>
+</td></tr>
+<tr><td id="Gui_FormFieldDefinition_initialText" class="code-type">initialText</td><td class="code-type">string</td><td><p>Initial text for a text field.</p>
+</td></tr>
+<tr><td id="Gui_FormFieldDefinition_kind" class="code-type">kind</td><td class="code-type"><a href="#Gui_FormFieldKind">Gui.FormFieldKind</a></td><td><p>Kind of control to create.</p>
+</td></tr>
+<tr><td id="Gui_FormFieldDefinition_label" class="code-type">label</td><td class="code-type">string</td><td><p>Label displayed beside or above the control.</p>
+</td></tr>
+<tr><td id="Gui_FormFieldDefinition_placeholder" class="code-type">placeholder</td><td class="code-type">string</td><td><p>Placeholder for text and password fields.</p>
+</td></tr>
+<tr><td id="Gui_FormFieldDefinition_selectedIndex" class="code-type">selectedIndex</td><td class="code-type">u32</td><td><p>Initially selected primary or trailing choice index.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Gui_FormLayoutCtrl" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.FormLayoutCtrl</span> <a class="api-item-permalink" href="#Gui_FormLayoutCtrl" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/formlayoutctrl.swg#L44">src</a></div>
+<p>Arranges labeled fields from a compact row description instead of fixed coordinates.</p>
+<p>Create controls with the form as their parent, then register each row with <a href="#Gui_FormLayoutCtrl_addField">Gui.FormLayoutCtrl.addField</a>. The caller retains the concrete control pointers; the form owns only their layout.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Gui_FormLayoutCtrl">FormLayoutCtrl</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Gui_FormLayoutCtrl_contentHeight" class="code-type">contentHeight</td><td class="code-type">f32</td><td><p>Height required by the latest layout pass.</p>
+</td></tr>
+<tr><td id="Gui_FormLayoutCtrl_options" class="code-type">options</td><td class="code-type"><a href="#Gui_FormLayoutOptions">Gui.FormLayoutOptions</a></td><td><p>Geometry applied to all rows.</p>
+</td></tr>
+<tr><td id="Gui_FormLayoutCtrl_rows" class="code-type">rows</td><td class="code-type"><a href="std.core.html#Core_Array">Core.Array</a>'(<a href="#Gui_FormLayoutRow">Gui.FormLayoutRow</a>)</td><td><p>Rows in display order.</p>
+</td></tr>
+<tr><td id="Gui_FormLayoutCtrl_wnd" class="code-type">wnd</td><td class="code-type"><a href="#Gui_Wnd">Gui.Wnd</a></td><td><p>Embedded wnd state.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="Gui_FormLayoutCtrl_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Gui_FormLayoutCtrl_addField">addField</a></td><td><p>Appends a labeled field and returns its row index.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormLayoutCtrl_clear">clear</a></td><td><p>Removes every row and destroys its controls.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormLayoutCtrl_computeLayout">computeLayout</a></td><td><p>Arranges every row inside the padded client rectangle.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormLayoutCtrl_create">create</a></td><td><p>Creates an empty form layout inside <span class="code-inline">parent</span>.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Gui_FormLayoutOptions" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.FormLayoutOptions</span> <a class="api-item-permalink" href="#Gui_FormLayoutOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/formlayoutctrl.swg#L14">src</a></div>
+<p>Configures the geometry shared by every row in a <a href="#Gui_FormLayoutCtrl">Gui.FormLayoutCtrl</a>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Gui_FormLayoutOptions">FormLayoutOptions</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Gui_FormLayoutOptions_controlSpacing" class="code-type">controlSpacing</td><td class="code-type">f32</td><td><p>Gap between a field and its optional action.</p>
+</td></tr>
+<tr><td id="Gui_FormLayoutOptions_fieldHeight" class="code-type">fieldHeight</td><td class="code-type">f32</td><td><p>Minimum height reserved for each field.</p>
+</td></tr>
+<tr><td id="Gui_FormLayoutOptions_helpHeight" class="code-type">helpHeight</td><td class="code-type">f32</td><td><p>Height reserved for optional help text.</p>
+</td></tr>
+<tr><td id="Gui_FormLayoutOptions_helpSpacing" class="code-type">helpSpacing</td><td class="code-type">f32</td><td><p>Gap before optional help text.</p>
+</td></tr>
+<tr><td id="Gui_FormLayoutOptions_labelHeight" class="code-type">labelHeight</td><td class="code-type">f32</td><td><p>Height reserved for each label.</p>
+</td></tr>
+<tr><td id="Gui_FormLayoutOptions_labelPlacement" class="code-type">labelPlacement</td><td class="code-type"><a href="#Gui_FormLabelPlacement">Gui.FormLabelPlacement</a></td><td><p>Label placement used by every row.</p>
+</td></tr>
+<tr><td id="Gui_FormLayoutOptions_labelSpacing" class="code-type">labelSpacing</td><td class="code-type">f32</td><td><p>Gap between a label and its field.</p>
+</td></tr>
+<tr><td id="Gui_FormLayoutOptions_labelWidth" class="code-type">labelWidth</td><td class="code-type">f32</td><td><p>Width of the label column in <span class="code-inline">Left</span> mode.</p>
+</td></tr>
+<tr><td id="Gui_FormLayoutOptions_rowSpacing" class="code-type">rowSpacing</td><td class="code-type">f32</td><td><p>Gap between consecutive rows.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Gui_FormLayoutRow" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.FormLayoutRow</span> <a class="api-item-permalink" href="#Gui_FormLayoutRow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/formlayoutctrl.swg#L28">src</a></div>
+<p>Describes one field row owned and arranged by a <a href="#Gui_FormLayoutCtrl">Gui.FormLayoutCtrl</a>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Gui_FormLayoutRow">FormLayoutRow</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Gui_FormLayoutRow_action" class="code-type">action</td><td class="code-type">#null *<a href="#Gui_Wnd">Gui.Wnd</a></td><td><p>Optional trailing action owned by the form.</p>
+</td></tr>
+<tr><td id="Gui_FormLayoutRow_field" class="code-type">field</td><td class="code-type">*<a href="#Gui_Wnd">Gui.Wnd</a></td><td><p>Caller-created field owned by the form.</p>
+</td></tr>
+<tr><td id="Gui_FormLayoutRow_help" class="code-type">help</td><td class="code-type">#null *<a href="#Gui_Label">Gui.Label</a></td><td><p>Optional explanatory label owned by the form.</p>
+</td></tr>
+<tr><td id="Gui_FormLayoutRow_label" class="code-type">label</td><td class="code-type">*<a href="#Gui_Label">Gui.Label</a></td><td><p>Label created and owned by the form.</p>
 </td></tr>
 </tbody>
 </table>
@@ -5536,6 +5882,40 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 <tr><td class="code-type"><a href="#Gui_MenuCtrl_updateFlags">updateFlags</a></td><td><p>Adds and removes presentation options, then invalidates cached layout.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_MenuCtrl_updateState">updateState</a></td><td><p>Updates state.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Gui_NavigationHistory" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.NavigationHistory</span> <a class="api-item-permalink" href="#Gui_NavigationHistory" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/filebrowserctrl.swg#L9">src</a></div>
+<p>Stores linear string locations for back and forward navigation.</p>
+<p>Pushing a location after moving backward discards the abandoned forward branch.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Gui_NavigationHistory">NavigationHistory</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Gui_NavigationHistory_entries" class="code-type">entries</td><td class="code-type"><a href="std.core.html#Core_Array">Core.Array</a>'(<a href="std.core.html#Core_String">Core.String</a>)</td><td><p>Locations in visit order.</p>
+</td></tr>
+<tr><td id="Gui_NavigationHistory_index" class="code-type">index</td><td class="code-type">u64</td><td><p>Current entry index, or <a href="swag.runtime.html#Swag_U64_Max">Swag.U64.Max</a> when empty.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="Gui_NavigationHistory_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Gui_NavigationHistory_canGoBack">canGoBack</a></td><td><p>Returns whether a location exists before the current one.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_NavigationHistory_canGoForward">canGoForward</a></td><td><p>Returns whether a location exists after the current one.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_NavigationHistory_clear">clear</a></td><td><p>Removes every location and resets the current position.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_NavigationHistory_goBack">goBack</a></td><td><p>Moves backward and returns the new current location.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_NavigationHistory_goForward">goForward</a></td><td><p>Moves forward and returns the new current location.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_NavigationHistory_push">push</a></td><td><p>Appends <span class="code-inline">path</span>, discarding any forward branch after the current position.</p>
 </td></tr>
 </tbody>
 </table>
@@ -5981,7 +6361,7 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 <tbody>
 <tr><td id="Gui_FileDlgOptions_confirmButtonText" class="code-type">confirmButtonText</td><td class="code-type">string</td><td><p>Confirmation button label, or empty for "OK".</p>
 </td></tr>
-<tr><td id="Gui_FileDlgOptions_filters" class="code-type">filters</td><td class="code-type"><a href="std.core.html#Core_Array">Core.Array</a>'(anonymous aggregate)</td><td><p>Named extension filters.</p>
+<tr><td id="Gui_FileDlgOptions_filters" class="code-type">filters</td><td class="code-type"><a href="std.core.html#Core_Array">Core.Array</a>'(anonymous aggregate)</td><td><p>Named extension filters; empty means all files.</p>
 </td></tr>
 <tr><td id="Gui_FileDlgOptions_initialFolder" class="code-type">initialFolder</td><td class="code-type">string</td><td><p>Initially browsed folder, when non-empty.</p>
 </td></tr>
@@ -5989,7 +6369,7 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 </td></tr>
 <tr><td id="Gui_FileDlgOptions_mode" class="code-type">mode</td><td class="code-type"><a href="#Gui_FileDlgMode">Gui.FileDlgMode</a></td><td><p>Accepted selection kind.</p>
 </td></tr>
-<tr><td id="Gui_FileDlgOptions_shortcuts" class="code-type">shortcuts</td><td class="code-type"><a href="std.core.html#Core_Array">Core.Array</a>'(anonymous aggregate)</td><td><p>Locations shown in the shortcuts pane.</p>
+<tr><td id="Gui_FileDlgOptions_shortcuts" class="code-type">shortcuts</td><td class="code-type"><a href="std.core.html#Core_Array">Core.Array</a>'(anonymous aggregate)</td><td><p>Locations shown in the shortcuts pane; empty uses common user folders.</p>
 </td></tr>
 <tr><td id="Gui_FileDlgOptions_showLocationsPane" class="code-type">showLocationsPane</td><td class="code-type">bool</td><td><p>Whether to show shortcuts and drives.</p>
 </td></tr>
@@ -6015,6 +6395,64 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 <tr><td id="Gui_FileDlgState_nameColumnWidth" class="code-type">nameColumnWidth</td><td class="code-type">s32</td><td><p>Last width of the name column.</p>
 </td></tr>
 <tr><td id="Gui_FileDlgState_surfacePosition" class="code-type">surfacePosition</td><td class="code-type"><a href="std.core.html#Core_Math_Rectangle">Core.Math.Rectangle</a></td><td><p>Last dialog surface rectangle.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Gui_FormDlg" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.FormDlg</span> <a class="api-item-permalink" href="#Gui_FormDlg" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/dialogs/formdlg.swg#L18">src</a></div>
+<p>Modal data-driven dialog composed of a <a href="#Gui_FormCtrl">Gui.FormCtrl</a> and standard buttons.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Gui_FormDlg">FormDlg</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Gui_FormDlg_dialog" class="code-type">dialog</td><td class="code-type"><a href="#Gui_Dialog">Gui.Dialog</a></td><td><p>Embedded modal-dialog behavior.</p>
+</td></tr>
+<tr><td id="Gui_FormDlg_form" class="code-type">form</td><td class="code-type">*<a href="#Gui_FormCtrl">Gui.FormCtrl</a></td><td><p>Materialized form owned by the dialog.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="Gui_FormDlg_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Gui_FormDlg_choiceField">choiceField</a></td><td><p>Returns the choice control for <span class="code-inline">id</span>, or null when it has another kind.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormDlg_create">create</a></td><td><p>Creates a centered modal form from <span class="code-inline">options</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormDlg_findField">findField</a></td><td><p>Finds a materialized field by identifier.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormDlg_passwordField">passwordField</a></td><td><p>Returns the password editor for <span class="code-inline">id</span>, or null when it has another kind.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_FormDlg_textField">textField</a></td><td><p>Returns the text editor for <span class="code-inline">id</span>, or null when it has another kind.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Gui_FormDlgOptions" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.FormDlgOptions</span> <a class="api-item-permalink" href="#Gui_FormDlgOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/dialogs/formdlg.swg#L5">src</a></div>
+<p>Configures a modal form materialized entirely from field descriptions.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Gui_FormDlgOptions">FormDlgOptions</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Gui_FormDlgOptions_cancelButtonText" class="code-type">cancelButtonText</td><td class="code-type">string</td><td><p>Cancel-button text, or empty to omit it.</p>
+</td></tr>
+<tr><td id="Gui_FormDlgOptions_confirmButtonText" class="code-type">confirmButtonText</td><td class="code-type">string</td><td><p>Confirmation-button text.</p>
+</td></tr>
+<tr><td id="Gui_FormDlgOptions_fields" class="code-type">fields</td><td class="code-type"><a href="std.core.html#Core_Array">Core.Array</a>'(<a href="#Gui_FormFieldDefinition">Gui.FormFieldDefinition</a>)</td><td><p>Fields in display order.</p>
+</td></tr>
+<tr><td id="Gui_FormDlgOptions_formOptions" class="code-type">formOptions</td><td class="code-type"><a href="#Gui_FormLayoutOptions">Gui.FormLayoutOptions</a></td><td><p>Field-layout geometry.</p>
+</td></tr>
+<tr><td id="Gui_FormDlgOptions_height" class="code-type">height</td><td class="code-type">s32</td><td><p>Initial surface height.</p>
+</td></tr>
+<tr><td id="Gui_FormDlgOptions_resizable" class="code-type">resizable</td><td class="code-type">bool</td><td><p>Whether the user can resize the surface.</p>
+</td></tr>
+<tr><td id="Gui_FormDlgOptions_title" class="code-type">title</td><td class="code-type">string</td><td><p>Surface title.</p>
+</td></tr>
+<tr><td id="Gui_FormDlgOptions_width" class="code-type">width</td><td class="code-type">s32</td><td><p>Initial surface width.</p>
 </td></tr>
 </tbody>
 </table>
@@ -10222,6 +10660,38 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 </tbody>
 </table>
 <section class="api-symbol">
+<div class="api-item api-item-enum"><span id="Gui_FormFieldKind" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.FormFieldKind</span> <a class="api-item-permalink" href="#Gui_FormFieldKind" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/formctrl.swg#L7">src</a></div>
+<p>Selects the control created for a declarative form field.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Gui_FormFieldKind">FormFieldKind</a></span></span></div>
+</section>
+<h3>Cases</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Gui_FormFieldKind_Choice" class="code-type">Choice</td><td><p>Creates a selection-only <a href="#Gui_ComboBox">Gui.ComboBox</a>.</p>
+</td></tr>
+<tr><td id="Gui_FormFieldKind_Password" class="code-type">Password</td><td><p>Creates a plaintext-safe <a href="#Gui_PasswordEdit">Gui.PasswordEdit</a>.</p>
+</td></tr>
+<tr><td id="Gui_FormFieldKind_Text" class="code-type">Text</td><td><p>Creates a single-line <a href="#Gui_EditBox">Gui.EditBox</a>.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-enum"><span id="Gui_FormLabelPlacement" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.FormLabelPlacement</span> <a class="api-item-permalink" href="#Gui_FormLabelPlacement" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/formlayoutctrl.swg#L7">src</a></div>
+<p>Selects where a form places labels relative to their fields.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Gui_FormLabelPlacement">FormLabelPlacement</a></span></span></div>
+</section>
+<h3>Cases</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Gui_FormLabelPlacement_Above" class="code-type">Above</td><td><p>Places each label above its field.</p>
+</td></tr>
+<tr><td id="Gui_FormLabelPlacement_Left" class="code-type">Left</td><td><p>Places labels in a shared column to the left of fields.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
 <div class="api-item api-item-enum"><span id="Gui_GridLayoutFlags" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.GridLayoutFlags</span> <a class="api-item-permalink" href="#Gui_GridLayoutFlags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/gridlayoutctrl.swg#L8">src</a></div>
 <p>Configures sizing policies applied by a grid layout.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
@@ -12626,46 +13096,130 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setLayoutMetrics</span>(labelWidth, editWidth, spacing: <span class="STpe">f32</span> = <span class="SNum">5</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_FileBrowserCtrl_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileBrowserCtrl.create</span> <a class="api-item-permalink" href="#Gui_FileBrowserCtrl_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/filebrowserctrl.swg#L238">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_FileBrowserCtrl_canGoBack" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileBrowserCtrl.canGoBack</span> <a class="api-item-permalink" href="#Gui_FileBrowserCtrl_canGoBack" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/filebrowserctrl.swg#L524">src</a></div>
+<p>Returns whether a previous folder is available in this browser session.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">canGoBack</span>()-&gt;<span class="STpe">bool</span> =&gt; .history.canGoBack</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_FileBrowserCtrl_canGoForward" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileBrowserCtrl.canGoForward</span> <a class="api-item-permalink" href="#Gui_FileBrowserCtrl_canGoForward" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/filebrowserctrl.swg#L527">src</a></div>
+<p>Returns whether a later folder is available in this browser session.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">canGoForward</span>()-&gt;<span class="STpe">bool</span> =&gt; .history.canGoForward</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_FileBrowserCtrl_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileBrowserCtrl.create</span> <a class="api-item-permalink" href="#Gui_FileBrowserCtrl_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/filebrowserctrl.swg#L348">src</a></div>
 <p>Creates an embedded file browser inside <span class="code-inline">parent</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Discardable]</span>
 <span class="SKwd">func</span> <span class="SFct">create</span>(parent: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, opt: <span class="SCst"><a href="#Gui_FileDlgOptions">FileDlgOptions</a></span> = {}, position: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span> = {})-&gt;*<span class="SCst"><a href="#Gui_FileBrowserCtrl">FileBrowserCtrl</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_FileBrowserCtrl_createFolder" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileBrowserCtrl.createFolder</span> <a class="api-item-permalink" href="#Gui_FileBrowserCtrl_createFolder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/filebrowserctrl.swg#L440">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_FileBrowserCtrl_createFolder" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileBrowserCtrl.createFolder</span> <a class="api-item-permalink" href="#Gui_FileBrowserCtrl_createFolder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/filebrowserctrl.swg#L645">src</a></div>
 <p>Creates a folder inside <a href="#Gui_FileBrowserCtrl_currentFolder">Gui.FileBrowserCtrl.currentFolder</a> and refreshes the list on success.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">createFolder</span>(name: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_FileBrowserCtrl_fileName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileBrowserCtrl.fileName</span> <a class="api-item-permalink" href="#Gui_FileBrowserCtrl_fileName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/filebrowserctrl.swg#L458">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_FileBrowserCtrl_fileName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileBrowserCtrl.fileName</span> <a class="api-item-permalink" href="#Gui_FileBrowserCtrl_fileName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/filebrowserctrl.swg#L663">src</a></div>
 <p>Returns the current contents of the file or folder name editor.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">fileName</span>()-&gt;<span class="STpe">string</span> =&gt; .editFile.text</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_FileBrowserCtrl_refresh" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileBrowserCtrl.refresh</span> <a class="api-item-permalink" href="#Gui_FileBrowserCtrl_refresh" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/filebrowserctrl.swg#L372">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_FileBrowserCtrl_goBack" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileBrowserCtrl.goBack</span> <a class="api-item-permalink" href="#Gui_FileBrowserCtrl_goBack" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/filebrowserctrl.swg#L531">src</a></div>
+<p>Navigates to the previous folder; returns false when history has no valid entry.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Discardable]</span>
+<span class="SKwd">mtd</span> <span class="SFct">goBack</span>()-&gt;<span class="STpe">bool</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_FileBrowserCtrl_goForward" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileBrowserCtrl.goForward</span> <a class="api-item-permalink" href="#Gui_FileBrowserCtrl_goForward" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/filebrowserctrl.swg#L549">src</a></div>
+<p>Navigates to the next folder; returns false when history has no valid entry.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Discardable]</span>
+<span class="SKwd">mtd</span> <span class="SFct">goForward</span>()-&gt;<span class="STpe">bool</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_FileBrowserCtrl_goUp" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileBrowserCtrl.goUp</span> <a class="api-item-permalink" href="#Gui_FileBrowserCtrl_goUp" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/filebrowserctrl.swg#L567">src</a></div>
+<p>Navigates to the parent folder; returns false at a root or when it is unavailable.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Discardable]</span>
+<span class="SKwd">mtd</span> <span class="SFct">goUp</span>()-&gt;<span class="STpe">bool</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_FileBrowserCtrl_hasValidSelection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileBrowserCtrl.hasValidSelection</span> <a class="api-item-permalink" href="#Gui_FileBrowserCtrl_hasValidSelection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/filebrowserctrl.swg#L719">src</a></div>
+<p>Returns whether the current selection satisfies the configured dialog mode.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">hasValidSelection</span>()-&gt;<span class="STpe">bool</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_FileBrowserCtrl_refresh" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileBrowserCtrl.refresh</span> <a class="api-item-permalink" href="#Gui_FileBrowserCtrl_refresh" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/filebrowserctrl.swg#L576">src</a></div>
 <p>Refresh the file list of the current folder.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">refresh</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_FileBrowserCtrl_selectedPath" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileBrowserCtrl.selectedPath</span> <a class="api-item-permalink" href="#Gui_FileBrowserCtrl_selectedPath" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/filebrowserctrl.swg#L461">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_FileBrowserCtrl_selectedPath" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileBrowserCtrl.selectedPath</span> <a class="api-item-permalink" href="#Gui_FileBrowserCtrl_selectedPath" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/filebrowserctrl.swg#L666">src</a></div>
 <p>Returns the first selected full path, or an empty string when selection is invalid.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">selectedPath</span>()-&gt;<span class="SCst"><a href="#Gui_RichEditLexerSwag_Style_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_FileBrowserCtrl_selectedPaths" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileBrowserCtrl.selectedPaths</span> <a class="api-item-permalink" href="#Gui_FileBrowserCtrl_selectedPaths" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/filebrowserctrl.swg#L470">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_FileBrowserCtrl_selectedPaths" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileBrowserCtrl.selectedPaths</span> <a class="api-item-permalink" href="#Gui_FileBrowserCtrl_selectedPaths" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/filebrowserctrl.swg#L675">src</a></div>
 <p>Returns all selected full paths in display order.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">selectedPaths</span>()-&gt;<span class="SFct">Array</span>'<span class="SCst"><a href="#Gui_RichEditLexerSwag_Style_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_FileBrowserCtrl_setCurrentFolder" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileBrowserCtrl.setCurrentFolder</span> <a class="api-item-permalink" href="#Gui_FileBrowserCtrl_setCurrentFolder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/filebrowserctrl.swg#L350">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_FileBrowserCtrl_setCurrentFolder" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileBrowserCtrl.setCurrentFolder</span> <a class="api-item-permalink" href="#Gui_FileBrowserCtrl_setCurrentFolder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/filebrowserctrl.swg#L514">src</a></div>
 <p>Navigates to <span class="code-inline">folder</span>; returns false when it does not name an existing directory.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Discardable]</span>
 <span class="SKwd">mtd</span> <span class="SFct">setCurrentFolder</span>(folder: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_FileBrowserCtrl_setFileName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileBrowserCtrl.setFileName</span> <a class="api-item-permalink" href="#Gui_FileBrowserCtrl_setFileName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/filebrowserctrl.swg#L452">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_FileBrowserCtrl_setFileName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileBrowserCtrl.setFileName</span> <a class="api-item-permalink" href="#Gui_FileBrowserCtrl_setFileName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/filebrowserctrl.swg#L657">src</a></div>
 <p>Changes the contents of the file or folder name editor.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setFileName</span>(name: <span class="SItr">#null</span> <span class="STpe">string</span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_FormCtrl_choiceField" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FormCtrl.choiceField</span> <a class="api-item-permalink" href="#Gui_FormCtrl_choiceField" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/formctrl.swg#L173">src</a></div>
+<p>Returns the choice control for <span class="code-inline">id</span>, or null when it has another kind.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">choiceField</span>(id: <span class="SCst"><a href="#Gui_WndId">WndId</a></span>)-&gt;<span class="SItr">#null</span> *<span class="SCst"><a href="#Gui_ComboBox">ComboBox</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_FormCtrl_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FormCtrl.create</span> <a class="api-item-permalink" href="#Gui_FormCtrl_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/formctrl.swg#L136">src</a></div>
+<p>Creates and materializes a form inside <span class="code-inline">parent</span>.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Discardable]</span>
+<span class="SKwd">func</span> <span class="SFct">create</span>(parent: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, definitions: <span class="SKwd">const</span> [..] <span class="SCst"><a href="#Gui_FormFieldDefinition">FormFieldDefinition</a></span>,
+            options: <span class="SCst"><a href="#Gui_FormLayoutOptions">FormLayoutOptions</a></span> = {}, position: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span> = {})-&gt;*<span class="SCst"><a href="#Gui_FormCtrl">FormCtrl</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_FormCtrl_findField" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FormCtrl.findField</span> <a class="api-item-permalink" href="#Gui_FormCtrl_findField" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/formctrl.swg#L151">src</a></div>
+<p>Finds a materialized field by identifier.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">findField</span>(id: <span class="SCst"><a href="#Gui_WndId">WndId</a></span>)-&gt;<span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="SCst"><a href="#Gui_FormField">FormField</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_FormCtrl_passwordField" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FormCtrl.passwordField</span> <a class="api-item-permalink" href="#Gui_FormCtrl_passwordField" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/formctrl.swg#L166">src</a></div>
+<p>Returns the password editor for <span class="code-inline">id</span>, or null when it has another kind.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">passwordField</span>(id: <span class="SCst"><a href="#Gui_WndId">WndId</a></span>)-&gt;<span class="SItr">#null</span> *<span class="SCst"><a href="#Gui_PasswordEdit">PasswordEdit</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_FormCtrl_textField" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FormCtrl.textField</span> <a class="api-item-permalink" href="#Gui_FormCtrl_textField" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/formctrl.swg#L159">src</a></div>
+<p>Returns the text editor for <span class="code-inline">id</span>, or null when it has another kind.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">textField</span>(id: <span class="SCst"><a href="#Gui_WndId">WndId</a></span>)-&gt;<span class="SItr">#null</span> *<span class="SCst"><a href="#Gui_EditBox">EditBox</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_FormLayoutCtrl_addField" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FormLayoutCtrl.addField</span> <a class="api-item-permalink" href="#Gui_FormLayoutCtrl_addField" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/formlayoutctrl.swg#L161">src</a></div>
+<p>Appends a labeled field and returns its row index.</p>
+<p><span class="code-inline">field</span> and <span class="code-inline">action</span> must already be children of this form. The form creates and owns the label and optional help label. The concrete field remains directly available to the caller through the pointer passed here.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Discardable]</span>
+<span class="SKwd">mtd</span> <span class="SFct">addField</span>(label: <span class="STpe">string</span>, field: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, action: <span class="SItr">#null</span> *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span> = <span class="SKwd">null</span>,
+             help: <span class="SItr">#null</span> <span class="STpe">string</span> = <span class="SKwd">null</span>)-&gt;<span class="STpe">u64</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_FormLayoutCtrl_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FormLayoutCtrl.clear</span> <a class="api-item-permalink" href="#Gui_FormLayoutCtrl_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/formlayoutctrl.swg#L185">src</a></div>
+<p>Removes every row and destroys its controls.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_FormLayoutCtrl_computeLayout" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FormLayoutCtrl.computeLayout</span> <a class="api-item-permalink" href="#Gui_FormLayoutCtrl_computeLayout" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/formlayoutctrl.swg#L200">src</a></div>
+<p>Arranges every row inside the padded client rectangle.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">computeLayout</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_FormLayoutCtrl_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FormLayoutCtrl.create</span> <a class="api-item-permalink" href="#Gui_FormLayoutCtrl_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/formlayoutctrl.swg#L146">src</a></div>
+<p>Creates an empty form layout inside <span class="code-inline">parent</span>.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Discardable]</span>
+<span class="SKwd">func</span> <span class="SFct">create</span>(parent: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, options: <span class="SCst"><a href="#Gui_FormLayoutOptions">FormLayoutOptions</a></span> = {}, position: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span> = {})-&gt;*<span class="SCst"><a href="#Gui_FormLayoutCtrl">FormLayoutCtrl</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_GridLayoutCtrl_computeLayout" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">GridLayoutCtrl.computeLayout</span> <a class="api-item-permalink" href="#Gui_GridLayoutCtrl_computeLayout" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/gridlayoutctrl.swg#L311">src</a></div>
@@ -13061,6 +13615,38 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">updateState</span>()</span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_NavigationHistory_canGoBack" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">NavigationHistory.canGoBack</span> <a class="api-item-permalink" href="#Gui_NavigationHistory_canGoBack" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/filebrowserctrl.swg#L39">src</a></div>
+<p>Returns whether a location exists before the current one.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">canGoBack</span>()-&gt;<span class="STpe">bool</span> =&gt; .index != <span class="SCst">Swag</span>.<span class="SCst">U64</span>.<span class="SCst">Max</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_NavigationHistory_canGoForward" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">NavigationHistory.canGoForward</span> <a class="api-item-permalink" href="#Gui_NavigationHistory_canGoForward" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/filebrowserctrl.swg#L42">src</a></div>
+<p>Returns whether a location exists after the current one.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">canGoForward</span>()-&gt;<span class="STpe">bool</span> =&gt; .index != <span class="SCst">Swag</span>.<span class="SCst">U64</span>.<span class="SCst">Max</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_NavigationHistory_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">NavigationHistory.clear</span> <a class="api-item-permalink" href="#Gui_NavigationHistory_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/filebrowserctrl.swg#L21">src</a></div>
+<p>Removes every location and resets the current position.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_NavigationHistory_goBack" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">NavigationHistory.goBack</span> <a class="api-item-permalink" href="#Gui_NavigationHistory_goBack" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/filebrowserctrl.swg#L47">src</a></div>
+<p>Moves backward and returns the new current location.</p>
+<p>The caller must first check <a href="#Gui_NavigationHistory_canGoBack">Gui.NavigationHistory.canGoBack</a>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">goBack</span>()-&gt;<span class="SCst"><a href="#Gui_RichEditLexerSwag_Style_String">String</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_NavigationHistory_goForward" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">NavigationHistory.goForward</span> <a class="api-item-permalink" href="#Gui_NavigationHistory_goForward" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/filebrowserctrl.swg#L57">src</a></div>
+<p>Moves forward and returns the new current location.</p>
+<p>The caller must first check <a href="#Gui_NavigationHistory_canGoForward">Gui.NavigationHistory.canGoForward</a>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">goForward</span>()-&gt;<span class="SCst"><a href="#Gui_RichEditLexerSwag_Style_String">String</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_NavigationHistory_push" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">NavigationHistory.push</span> <a class="api-item-permalink" href="#Gui_NavigationHistory_push" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/filebrowserctrl.swg#L28">src</a></div>
+<p>Appends <span class="code-inline">path</span>, discarding any forward branch after the current position.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">push</span>(path: <span class="STpe">string</span>)</span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_PopupListCtrl_addItem" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PopupListCtrl.addItem</span> <a class="api-item-permalink" href="#Gui_PopupListCtrl_addItem" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/composite/popuplistctrl.swg#L399">src</a></div>
 <p>Appends a selectable item and returns its stable heap object.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Discardable]</span>
@@ -13285,20 +13871,46 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">text</span>()-&gt;<span class="SCst"><a href="#Gui_RichEditLexerSwag_Style_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_FileDlg_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileDlg.create</span> <a class="api-item-permalink" href="#Gui_FileDlg_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/dialogs/filedlg.swg#L126">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_FileDlg_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileDlg.create</span> <a class="api-item-permalink" href="#Gui_FileDlg_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/dialogs/filedlg.swg#L128">src</a></div>
 <p>Creates the file dialog (own OS surface), hosting a FileBrowserCtrl.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Discardable]</span>
 <span class="SKwd">func</span> <span class="SFct">create</span>(from: *<span class="SCst"><a href="#Gui_Surface">Surface</a></span>, opt: <span class="SCst"><a href="#Gui_FileDlgOptions">FileDlgOptions</a></span> = {})-&gt;*<span class="SCst"><a href="#Gui_FileDlg">FileDlg</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_FileDlg_selectedPath" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileDlg.selectedPath</span> <a class="api-item-permalink" href="#Gui_FileDlg_selectedPath" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/dialogs/filedlg.swg#L198">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_FileDlg_selectedPath" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileDlg.selectedPath</span> <a class="api-item-permalink" href="#Gui_FileDlg_selectedPath" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/dialogs/filedlg.swg#L202">src</a></div>
 <p>Returns the first selected full path, or an empty string when no valid selection exists.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">selectedPath</span>()-&gt;<span class="SCst"><a href="#Gui_RichEditLexerSwag_Style_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_FileDlg_selectedPaths" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileDlg.selectedPaths</span> <a class="api-item-permalink" href="#Gui_FileDlg_selectedPaths" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/dialogs/filedlg.swg#L204">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_FileDlg_selectedPaths" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileDlg.selectedPaths</span> <a class="api-item-permalink" href="#Gui_FileDlg_selectedPaths" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/dialogs/filedlg.swg#L208">src</a></div>
 <p>Returns all selected full paths in display order.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">selectedPaths</span>()-&gt;<span class="SFct">Array</span>'<span class="SCst"><a href="#Gui_RichEditLexerSwag_Style_String">String</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_FormDlg_choiceField" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FormDlg.choiceField</span> <a class="api-item-permalink" href="#Gui_FormDlg_choiceField" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/dialogs/formdlg.swg#L67">src</a></div>
+<p>Returns the choice control for <span class="code-inline">id</span>, or null when it has another kind.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">choiceField</span>(id: <span class="SCst"><a href="#Gui_WndId">WndId</a></span>)-&gt;<span class="SItr">#null</span> *<span class="SCst"><a href="#Gui_ComboBox">ComboBox</a></span> =&gt; .form.choiceField</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_FormDlg_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FormDlg.create</span> <a class="api-item-permalink" href="#Gui_FormDlg_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/dialogs/formdlg.swg#L31">src</a></div>
+<p>Creates a centered modal form from <span class="code-inline">options</span>.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Discardable]</span>
+<span class="SKwd">func</span> <span class="SFct">create</span>(from: *<span class="SCst"><a href="#Gui_Surface">Surface</a></span>, options: <span class="SCst"><a href="#Gui_FormDlgOptions">FormDlgOptions</a></span>)-&gt;*<span class="SCst"><a href="#Gui_FormDlg">FormDlg</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_FormDlg_findField" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FormDlg.findField</span> <a class="api-item-permalink" href="#Gui_FormDlg_findField" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/dialogs/formdlg.swg#L58">src</a></div>
+<p>Finds a materialized field by identifier.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">findField</span>(id: <span class="SCst"><a href="#Gui_WndId">WndId</a></span>)-&gt;<span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="SCst"><a href="#Gui_FormField">FormField</a></span> =&gt; .form.findField</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_FormDlg_passwordField" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FormDlg.passwordField</span> <a class="api-item-permalink" href="#Gui_FormDlg_passwordField" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/dialogs/formdlg.swg#L64">src</a></div>
+<p>Returns the password editor for <span class="code-inline">id</span>, or null when it has another kind.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">passwordField</span>(id: <span class="SCst"><a href="#Gui_WndId">WndId</a></span>)-&gt;<span class="SItr">#null</span> *<span class="SCst"><a href="#Gui_PasswordEdit">PasswordEdit</a></span> =&gt; .form.passwordField</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_FormDlg_textField" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FormDlg.textField</span> <a class="api-item-permalink" href="#Gui_FormDlg_textField" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/dialogs/formdlg.swg#L61">src</a></div>
+<p>Returns the text editor for <span class="code-inline">id</span>, or null when it has another kind.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">textField</span>(id: <span class="SCst"><a href="#Gui_WndId">WndId</a></span>)-&gt;<span class="SItr">#null</span> *<span class="SCst"><a href="#Gui_EditBox">EditBox</a></span> =&gt; .form.textField</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_MessageDlg_confirm" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MessageDlg.confirm</span> <a class="api-item-permalink" href="#Gui_MessageDlg_confirm" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/dialogs/messagedlg.swg#L232">src</a></div>
@@ -13539,7 +14151,7 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setSwagDark</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_ThemeColors_setSwagLight" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ThemeColors.setSwagLight</span> <a class="api-item-permalink" href="#Gui_ThemeColors_setSwagLight" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/paint/themecolors.swg#L1381">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_ThemeColors_setSwagLight" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ThemeColors.setSwagLight</span> <a class="api-item-permalink" href="#Gui_ThemeColors_setSwagLight" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/paint/themecolors.swg#L1382">src</a></div>
 <p>Applies the light Swag application palette: Ink over Paper with neutral structure.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setSwagLight</span>()</span></div>
 </section>

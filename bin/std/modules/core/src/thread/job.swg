@@ -144,6 +144,12 @@ public func isSynchronous()->bool => g_workerCount == 0
 // Returns the number of active worker threads.
 public func workerCount()->u32 => cast(u32) g_workerCount
 
+// Returns whether `job` completed its most recent scheduled execution.
+//
+// Keep the job and its borrowed data alive until this returns true or
+// [[Core.Jobs.wait]] completes.
+public func isDone(job: *Job)->bool => Atomic.get(&job.state) & cast(u32) JobState.Done != 0
+
 // Initializes the global scheduler with a fixed worker count.
 //
 // Pass zero to use the host processor count. Call this once, before submitting

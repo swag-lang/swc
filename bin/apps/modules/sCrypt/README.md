@@ -57,7 +57,7 @@ requis.
 3. Pour monter un conteneur, sélectionnez-le, saisissez son mot de passe et choisissez une lettre
    disponible, par exemple `A:` ou `X:`. Acceptez la demande UAC du guardian WinFsp si elle apparaît.
 4. Utilisez le lecteur normalement depuis Windows.
-5. Cliquez sur **Dismount** ou fermez sCrypt. Les écritures sont synchronisées et la lettre
+5. Cliquez sur **Unmount** ou fermez sCrypt. Les écritures sont synchronisées et la lettre
    disparaît.
 
 La création remplit la totalité du conteneur avec l’aléa cryptographique de Windows. Un grand
@@ -66,13 +66,13 @@ volume prend donc un temps proportionnel à sa taille.
 ## Architecture et portabilité
 
 ```text
-std/gui.PasswordEdit ----------> main.swg
-                                     |
-std/core.Crypto + File + Time        v
-             |               core/volume.swg -> core/crypto.swg
-             |                       |
-             v                       v
- security.win32.swg          platform/winfsp*.win32.swg -> WinFsp officiel
+std/gui FormCtrl + PasswordEdit ---> appview.swg ---> appoperations.swg
+                                                |              |
+std/core Crypto + File + Jobs                   v              v
+             |                    format/volume/volumeio/volumeops
+             |                                  |
+             v                                  v
+ security.win32.swg            winfspcallbacks/bridge/mount ---> WinFsp officiel
 ```
 
 - `std/core` fournit désormais HMAC-SHA-256, PBKDF2-HMAC-SHA-256, ChaCha20, la comparaison en
@@ -84,14 +84,20 @@ std/core.Crypto + File + Time        v
   sCrypt ne contient plus les bindings Windows correspondants.
 - `std/gui.PasswordEdit` conserve le mot de passe dans un stockage fixe effacé à la destruction ;
   le `EditBox` visible ne reçoit que des caractères de masque.
-- `core/crypto.swg` ne conserve que la dérivation des deux clés et l’authentification contextuelle
-  propres au format sCrypt. `core/volume.swg` contient le système de fichiers logique et utilise
-  directement `Core.File.FileStream`.
-- `platform/winfspAbi.win32.swg` charge WinFsp dynamiquement, prépare son runtime portable et
-  déclare directement son ABI en Swag.
-- `platform/winfsp.win32.swg` adapte le système de fichiers sCrypt aux callbacks WinFsp.
-- `main.swg` contient l’interface et l’orchestration. Les deux seuls fichiers `platform` restants
-  sont les deux adaptateurs WinFsp Windows.
+- `std/gui.FormCtrl`, `FormLayoutCtrl` et `FormDlg` matérialisent des formulaires typés depuis des
+  descriptions de champs. sCrypt les utilise pour ses deux cartes sans dupliquer labels,
+  contrôles et coordonnées. Le sélecteur de fichiers standard fournit désormais historique,
+  précédent, suivant, parent, actualisation, fil d’Ariane et raccourcis clavier.
+- `app.swg` possède l’état de la fenêtre, `appview.swg` décrit la vue et `appoperations.swg`
+  orchestre les actions asynchrones. `main.swg` ne fait plus que démarrer l’application.
+- `crypto.swg` ne conserve que la dérivation des clés et l’authentification contextuelle propres au
+  format. `format.swg`, `filesystem.swg` et `blockstore.swg` isolent respectivement la
+  sérialisation, l’index logique et l’allocation. `volume.swg`, `volumeio.swg` et `volumeops.swg`
+  séparent le cycle de vie persistant, les blocs chiffrés et les opérations de fichiers.
+- `winfspabi.win32.swg` charge WinFsp dynamiquement et prépare son runtime portable.
+  `winfspstatus.win32.swg`, `winfspcallbacks.win32.swg`, `winfspbridge.win32.swg` et
+  `winfspmount.win32.swg` séparent les statuts NT, les opérations testables, l’adaptation ABI et le
+  cycle de montage.
 
 Un portage vers un autre OS fournit les backends système de `Core.Crypto`, `Core.Time` et
 `Core.File`, puis remplace la couche WinFsp et le sélecteur de point de montage, sans modifier les
@@ -101,7 +107,9 @@ algorithmes, le format du conteneur, le widget de mot de passe ni le système de
 
 - 32 octets initiaux de sel aléatoire ;
 - PBKDF2-HMAC-SHA-256, 200 000 itérations en production, produisant deux clés séparées ;
-- deux en-têtes de métadonnées alternés et authentifiés pour tolérer une interruption de commit ;
+- deux emplacements de métadonnées alternés et authentifiés pour tolérer une interruption de
+  commit ; le format 2 n’écrit que la longueur réellement utilisée dans l’emplacement réservé et
+  sait encore ouvrir les conteneurs du format 1 ;
 - données en blocs de 4 Kio, chiffrées par ChaCha20 avec nonce aléatoire puis authentifiées par
   HMAC-SHA-256 ;
 - écriture copy-on-write : un ancien bloc n’est recyclé qu’après publication et flush du nouvel
@@ -110,8 +118,10 @@ algorithmes, le format du conteneur, le widget de mot de passe ni le système de
   mot de passe correct ; le reste du conteneur est initialisé avec des octets aléatoires.
 
 Un observateur sans mot de passe voit donc un fichier de taille connue à l’apparence aléatoire,
-sans signature sCrypt. Il reste impossible de garantir qu’aucune analyse contextuelle ne puisse
-soupçonner qu’un gros fichier aléatoire est un conteneur chiffré.
+sans magic ni marqueur sCrypt stable : même le localisateur et la longueur du header courant sont
+dérivés de la clé et de l’emplacement. Cela ne rend pas l’origine impossible à attribuer. Le nom ou
+l’extension du fichier, son contexte, sa taille, sa forte entropie et l’étude du code de sCrypt
+peuvent toujours indiquer qu’il s’agit vraisemblablement d’un conteneur chiffré.
 
 Le format et l’implémentation n’ont pas encore subi d’audit cryptographique indépendant. Ne les
 considérez pas comme un remplacement éprouvé de VeraCrypt pour des données critiques.

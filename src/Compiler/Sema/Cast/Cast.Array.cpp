@@ -30,7 +30,7 @@ namespace
         SourceCodeRef codeRef = SourceCodeRef::invalid();
     };
 
-    AstNodeRef unwrapArrayElemNodeRef(const Sema& sema, AstNodeRef nodeRef)
+    AstNodeRef arrayElemValueNodeRef(const Sema& sema, AstNodeRef nodeRef)
     {
         while (nodeRef.isValid())
         {
@@ -38,18 +38,6 @@ namespace
             if (node.is(AstNodeId::InitializerExpr))
             {
                 nodeRef = node.cast<AstInitializerExpr>().nodeExprRef;
-                continue;
-            }
-
-            if (node.is(AstNodeId::CastExpr))
-            {
-                nodeRef = node.cast<AstCastExpr>().nodeExprRef;
-                continue;
-            }
-
-            if (node.is(AstNodeId::AutoCastExpr))
-            {
-                nodeRef = node.cast<AstAutoCastExpr>().nodeExprRef;
                 continue;
             }
 
@@ -153,10 +141,21 @@ namespace
             return res;
         }
 
-        const AstNodeRef valueNodeRef = unwrapArrayElemNodeRef(*args.sema, location.nodeRef);
+        const AstNodeRef valueNodeRef = arrayElemValueNodeRef(*args.sema, location.nodeRef);
         if (valueNodeRef.isInvalid())
             return Result::Continue;
-        return Cast::retargetLiteralRuntimeStorageIfNeeded(*args.sema, valueNodeRef, srcElemType, dstElemType, false);
+        if (args.castRequest->probing)
+            return Result::Continue;
+
+        SymbolFunction*     setFn       = nullptr;
+        TypeRef             setParamRef = TypeRef::invalid();
+        const SourceCodeRef codeRef     = location.codeRef.isValid() ? location.codeRef : args.castRequest->errorCodeRef;
+        SWC_RESULT(Cast::resolveStructSetCastCandidate(*args.sema, codeRef, srcElemType, dstElemType, args.castRequest->kind, setFn, setParamRef, valueNodeRef));
+        if (!setFn && !elemCtx.selectedStructOpCast)
+            return Cast::retargetLiteralRuntimeStorageIfNeeded(*args.sema, valueNodeRef, srcElemType, dstElemType, false);
+
+        SemaNodeView valueView(*args.sema, valueNodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
+        return Cast::castIfNeeded(*args.sema, valueView, dstElemType, args.castRequest->kind, args.castRequest->flags);
     }
 
     Result foldElemCast(const CastArrayArgs& args, TypeRef srcElemType, TypeRef dstElemType, const ArrayElemLocation& location, ConstantRef valueRef, ConstantRef& outRef)
@@ -172,7 +171,10 @@ namespace
 
         outRef = elemCtx.constantFoldingResult();
         if (srcElemType != dstElemType)
+        {
             SWC_RESULT(Cast::castConstant(*args.sema, outRef, elemCtx, valueRef, dstElemType));
+            return Result::Continue;
+        }
 
         if (outRef.isInvalid())
             outRef = valueRef;
@@ -243,6 +245,11 @@ namespace
             const ArrayElemLocation location = arrayElemLocation(args, i);
             ConstantRef             castedRef;
             SWC_RESULT(foldElemCast(args, srcElemTypeRef, dstElemTypeRef, location, values[i], castedRef));
+            if (castedRef.isInvalid())
+            {
+                args.castRequest->outConstRef = ConstantRef::invalid();
+                return Result::Continue;
+            }
             newValues.push_back(castedRef);
         }
 
@@ -297,6 +304,11 @@ namespace
                 const ArrayElemLocation location = arrayElemLocation(args, i);
                 ConstantRef             castedRef;
                 SWC_RESULT(foldElemCast(args, srcTypes[i], dstSubArrayType, location, (*srcValues)[i], castedRef));
+                if (castedRef.isInvalid())
+                {
+                    args.castRequest->outConstRef = ConstantRef::invalid();
+                    return Result::Continue;
+                }
                 const std::span dstChunk{bytes.data() + (i * subArraySize), subArraySize};
                 SWC_RESULT(ConstantLower::lowerToBytes(*args.sema, dstChunk, castedRef, dstSubArrayType));
             }
@@ -333,6 +345,11 @@ namespace
             const ArrayElemLocation location = arrayElemLocation(args, i);
             ConstantRef             castedRef;
             SWC_RESULT(foldElemCast(args, srcTypes[i], dstElemTypeRef, location, (*srcValues)[i], castedRef));
+            if (castedRef.isInvalid())
+            {
+                args.castRequest->outConstRef = ConstantRef::invalid();
+                return Result::Continue;
+            }
             newValues.push_back(castedRef);
         }
 
@@ -358,6 +375,11 @@ namespace
 
         ConstantRef elemRef;
         SWC_RESULT(foldElemCast(args, args.srcTypeRef, leafTypeRef, {}, args.castRequest->constantFoldingSrc(), elemRef));
+        if (elemRef.isInvalid())
+        {
+            args.castRequest->outConstRef = ConstantRef::invalid();
+            return Result::Continue;
+        }
 
         uint64_t totalCount = 1;
         for (const auto dim : args.dstType->payloadArrayDims())

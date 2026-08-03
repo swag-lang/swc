@@ -28,9 +28,8 @@ namespace SCrypt.Integration
         let args = Env.arguments()
         if @countof(args) < 3 do
             return 2
-        let marker = Path.combine(args[2], "external-process-visible.txt")
         let payload = "VISIBLE"
-        discard catch File.writeAllBytes(marker,
+        discard catch File.writeAllBytes(args[2],
             @mkslice(cast(const [*] u8) @dataof(payload), @countof(payload))) as writeError
         return writeError == null ? 0 : 1
     }
@@ -186,8 +185,7 @@ namespace SCrypt.Integration
             if .mountedActive do
                 SCrypt.failWith("The integration volume is already mounted.")
             let mounted = Memory.new'SCrypt.Platform.MountedVolume()
-            discard catch SCrypt.Platform.MountedVolume.open(
-                mounted, .container, passwordBytes, .mountPoint) as mountError
+            discard catch mounted.open(.container, passwordBytes, .mountPoint) as mountError
             if mountError != null
             {
                 Memory.delete(mounted)
@@ -393,8 +391,7 @@ namespace SCrypt.Integration
                    "the drive letter must disappear after unmount")
 
         var rejected: SCrypt.Platform.MountedVolume
-        discard catch SCrypt.Platform.MountedVolume.open(
-            &rejected, box.container, wrongPassword(), box.mountPoint) as passwordError
+        discard catch rejected.open(box.container, wrongPassword(), box.mountPoint) as passwordError
         rejected.close()
         try verify(passwordError != null, "a wrong password must not mount the container")
         try verify(!Directory.exists(driveRoot(box.mountPoint)),
@@ -461,7 +458,10 @@ namespace SCrypt.Integration
                    "the mounted drive must be visible to Windows")
         let mountedRoot = driveRoot(box.mountPoint)
         let visibilityMarker = Path.combine(mountedRoot, "external-process-visible.txt")
-        let probeArguments = Format.toString("% \"%\"", VisibilityProbeArgument, mountedRoot)
+        // Passing a quoted drive root (for example "Y:\\") is ambiguous in the
+        // Windows command-line grammar because the trailing slash escapes the quote.
+        // Pass the complete marker path, which cannot end in a path separator.
+        let probeArguments = Format.toString("% \"%\"", VisibilityProbeArgument, visibilityMarker)
         let executablePath = try Env.Process.currentExecutablePath()
         try Env.doSyncProcess(executablePath, probeArguments)
         try verify(File.exists(visibilityMarker) and

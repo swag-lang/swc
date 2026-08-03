@@ -6,6 +6,7 @@ namespace SCrypt.Crypto
     const NonceSize     = Core.Crypto.ChaCha20NonceSize
     const TagSize       = #sizeof(Core.Crypto.HmacSha256Digest)
     const KeySize       = Core.Crypto.ChaCha20KeySize
+    const RecordLocatorSize = 16
     const KdfIterations = #command == Swag.CompilerCommand.Test ? 1_000'u32 : 200_000'u32
 
     struct Keys
@@ -68,6 +69,23 @@ namespace SCrypt.Crypto
         hmac.update(nonce)
         hmac.update(ciphertext)
         return hmac.finalize()
+    }
+
+    // Produces a key-dependent record locator. Its bytes can be stored in the
+    // container without exposing a stable file signature.
+    func recordLocator(key: const [..] u8, kind: u32, recordId: u64)->[RecordLocatorSize] u8
+    {
+        var context: [16] u8
+        store32(&context[0], kind)
+        store32(&context[4], low32(recordId))
+        store32(&context[8], low32(recordId >> 32))
+        store32(&context[12], 0x6163_6F6C) // "loca", used only inside the keyed HMAC.
+
+        var digest = Core.Crypto.HmacSha256.compute(key, context)
+        var result: retval
+        @memcpy(&result[0], &digest[0], RecordLocatorSize)
+        Core.Crypto.secureClear(digest)
+        return result
     }
 
     func crypt(key, nonce, source: const [..] u8, destination: [..] u8) fail

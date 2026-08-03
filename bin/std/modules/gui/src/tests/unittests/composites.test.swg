@@ -25,6 +25,39 @@ func compositeColorChanged(picker: *ColorPickerCtrl)
     CompositeColorChangedCount += 1
 }
 
+// FormDlg creates a complete modal form from data without fixed coordinates.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 480)
+    defer host.shutdown()
+
+    var options: FormDlgOptions
+    options.title = "Credentials"
+    options.fields.add({id: "user", label: "USER", initialText: "alice"})
+    options.fields.add({id: "password", label: "PASSWORD", kind: FormFieldKind.Password})
+    let dlg = FormDlg.create(&host.surface, options)
+
+    @assert((notnull dlg.textField("user")).text() == "alice")
+    @assert(dlg.passwordField("password") != null)
+    @assert(dlg.buttons.count == 2)
+    @assert(dlg.buttons[0].id == Dialog.BtnOk)
+    @assert(dlg.buttons[1].id == Dialog.BtnCancel)
+
+    var didClose: bool
+    host.app.sigFrame += func|host = &host, didClose = &didClose|(app)
+    {
+        discard app
+        if !dref didClose
+        {
+            @assert(host.clickModalButton(Dialog.BtnCancel))
+            dref didClose = true
+        }
+    }
+    @assert(dlg.doModal() == Dialog.BtnCancel)
+    @assert(didClose)
+}
+
 // EditCtrl pairs a label with an editbox.
 #test
 {

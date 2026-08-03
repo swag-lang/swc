@@ -23,7 +23,14 @@ using Swag, Core, File
     @assert(@isset(fb.editFile))
     @assert(@isset(fb.comboType))
     @assert(@isset(fb.listCtrl))
+    @assert(@isset(fb.backButton))
+    @assert(@isset(fb.forwardButton))
+    @assert(@isset(fb.upButton))
+    @assert(@isset(fb.refreshButton))
     @assert(fb.comboType.items.count == 1)
+    @assert(fb.options.shortcuts.count == 3)
+    @assert(!fb.canGoBack())
+    @assert(!fb.canGoForward())
 
     // The file list is multi-column with fixed default widths.
     @assert(fb.listCtrl.header.items.count == 2)
@@ -56,9 +63,11 @@ using Swag, Core, File
     var opt: FileDlgOptions
     opt.mode              = .SelectFolder
     opt.showLocationsPane = false
+    opt.shortcuts.add({Env.SpecialDirectory.Desktop, "Workspace"})
 
     let fb = FileBrowserCtrl.create(&host.root, opt, {0, 0, 600, 400})
     @assert(fb.comboType.items.count == 1)
+    @assert(fb.options.shortcuts.count == 1)
     @assert(@isset(fb.editFile))
 
     // selectedPath must not index the (empty) filter list in SelectFolder mode.
@@ -66,6 +75,26 @@ using Swag, Core, File
     let name     = fb.selectedPath()
     let fileName = notnull Path.fileName(name.toString())
     @assert(fileName == "myfolder")
+}
+
+// File-browser history drops its forward branch after a new navigation.
+#test
+{
+    var history: NavigationHistory
+    history.push("C:/one")
+    history.push("C:/two")
+    history.push("C:/three")
+    @assert(history.canGoBack())
+    @assert(!history.canGoForward())
+    @assert(history.goBack() == "C:/two")
+    @assert(history.goBack() == "C:/one")
+    @assert(history.canGoForward())
+    @assert(history.goForward() == "C:/two")
+
+    history.push("C:/other")
+    @assert(history.entries.count == 3)
+    @assert(history.entries[2] == "C:/other")
+    @assert(!history.canGoForward())
 }
 
 // Dialogs create the composite before assigning its Center dock. The fields

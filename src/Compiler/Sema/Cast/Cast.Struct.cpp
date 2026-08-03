@@ -62,6 +62,29 @@ namespace
         return AstNodeRef::invalid();
     }
 
+    AstNodeRef aggregateFieldValueNodeRef(const Sema& sema, AstNodeRef nodeRef)
+    {
+        while (nodeRef.isValid() && sema.ast().hasNode(nodeRef))
+        {
+            const AstNode& node = sema.node(nodeRef);
+            if (node.is(AstNodeId::NamedArgument))
+            {
+                nodeRef = node.cast<AstNamedArgument>().nodeArgRef;
+                continue;
+            }
+
+            if (node.is(AstNodeId::InitializerExpr))
+            {
+                nodeRef = node.cast<AstInitializerExpr>().nodeExprRef;
+                continue;
+            }
+
+            return nodeRef;
+        }
+
+        return AstNodeRef::invalid();
+    }
+
     const Token* safeToken(const Sema& sema, const SourceCodeRef& codeRef, const SourceView** outSrcView = nullptr)
     {
         SourceCodeRange codeRange;
@@ -248,10 +271,21 @@ namespace
             return res;
         }
 
-        const AstNodeRef valueNodeRef = unwrapLiteralSuffixCarrier(*args.sema, fieldNodeRef);
+        const AstNodeRef valueNodeRef = aggregateFieldValueNodeRef(*args.sema, fieldNodeRef);
         if (valueNodeRef.isInvalid())
             return Result::Continue;
-        return Cast::retargetLiteralRuntimeStorageIfNeeded(*args.sema, valueNodeRef, srcElemType, dstElemType, false);
+        if (args.castRequest->probing)
+            return Result::Continue;
+
+        SymbolFunction*     setFn       = nullptr;
+        TypeRef             setParamRef = TypeRef::invalid();
+        const SourceCodeRef codeRef     = fieldRef.isValid() ? fieldRef : args.castRequest->errorCodeRef;
+        SWC_RESULT(Cast::resolveStructSetCastCandidate(*args.sema, codeRef, srcElemType, dstElemType, args.castRequest->kind, setFn, setParamRef, valueNodeRef));
+        if (!setFn && !elemCtx.selectedStructOpCast)
+            return Cast::retargetLiteralRuntimeStorageIfNeeded(*args.sema, valueNodeRef, srcElemType, dstElemType, false);
+
+        SemaNodeView valueView(*args.sema, valueNodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
+        return Cast::castIfNeeded(*args.sema, valueView, dstElemType, args.castRequest->kind, args.castRequest->flags);
     }
 
     Result foldElemCast(const CastStructArgs& args, TypeRef srcElemType, TypeRef dstElemType, AstNodeRef fieldNodeRef, const SourceCodeRef& fieldRef, ConstantRef valueRef, ConstantRef& outRef)
@@ -267,7 +301,10 @@ namespace
 
         outRef = elemCtx.constantFoldingResult();
         if (srcElemType != dstElemType)
+        {
             SWC_RESULT(Cast::castConstant(*args.sema, outRef, elemCtx, valueRef, dstElemType));
+            return Result::Continue;
+        }
 
         if (outRef.isInvalid())
             outRef = valueRef;
@@ -537,6 +574,11 @@ namespace
             const AstNodeRef    fieldNode = aggregateFieldNodeRef(args, i, values.size());
             const SourceCodeRef fieldRef  = aggregateFieldRef(args, i, values.size());
             SWC_RESULT(foldElemCast(args, srcTypes[i], dstFields[dstIndex]->typeRef(), fieldNode, fieldRef, values[i], castedRef));
+            if (castedRef.isInvalid())
+            {
+                args.castRequest->outConstRef = ConstantRef::invalid();
+                return Result::Continue;
+            }
             castedByDst[dstIndex] = castedRef;
         }
 
@@ -615,6 +657,11 @@ namespace
 
         ConstantRef castedRef;
         SWC_RESULT(foldElemCast(args, args.srcTypeRef, field.typeRef(), fieldNodeRef, fieldRef, args.castRequest->constantFoldingSrc(), castedRef));
+        if (castedRef.isInvalid())
+        {
+            args.castRequest->outConstRef = ConstantRef::invalid();
+            return Result::Continue;
+        }
         return foldSingleFieldStructConstant(args, field, castedRef);
     }
 

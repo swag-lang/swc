@@ -24,6 +24,13 @@ as the idiom.
 4. Apply `modify-swag-codebase` for repository validation and `design-swag-bin-modules` plus
    `write-swag-public-api-docs` when a public declaration under `bin/` changes.
 
+## Name Source Files Consistently
+
+- Name `.swg` and `.swgs` files entirely in lowercase. Do not mirror type casing in filenames.
+- Concatenate ordinary multiword names, as in `filebrowserctrl.swg` and `gridlayoutctrl.swg`.
+- Reserve dots for established role and platform qualifiers such as `.test.swg`, `.init.swg`,
+  and `.win32.swg`. Follow the surrounding family when it has a more specific convention.
+
 ## Return Values Directly
 
 - Return the operation's primary result. Do not make a caller declare an uninitialized value and

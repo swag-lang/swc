@@ -2169,10 +2169,6 @@ namespace
         return Result::Continue;
     }
 
-    // Auto-inline budget: a candidate body wider than this many source tokens is left out of
-    // line. Tokens are a cheap, stable proxy for body size (no AST walk).
-    constexpr uint32_t K_AUTO_INLINE_MAX_BODY_TOKENS = 80;
-
     // Auto mode candidate selection. Beyond canInlineCall's structural guards:
     //  - skip generics (cross-Ast generic inlining re-binds generic params in the caller, not
     //    handled here);
@@ -2193,33 +2189,16 @@ namespace
                ti.isAny() || ti.isInterface() || ti.isString() || ti.isSlice();
     }
 
-    // `#offsetof(local)` yields the byte offset of a local within its function's stack frame.
-    // That value is frame-relative: inlining materializes the callee's locals into the caller's
-    // frame (after the caller's own locals), so every offset shifts by the caller prefix. The
-    // relative layout is preserved but the absolute base is not, so a body that takes `#offsetof`
-    // of one of its locals cannot be auto-inlined without changing its observable result. (Struct
-    // `#offsetof` is layout-invariant, but distinguishing the operand needs full resolution; a
-    // body using `#offsetof` at all is rare enough that the conservative gate costs nothing.)
-    bool bodyUsesCompilerOffsetOf(Sema& sema, const Ast& ast, AstNodeRef nodeRef)
-    {
-        if (nodeRef.isInvalid())
-            return false;
-        const AstNode& node = ast.node(nodeRef);
-        if (node.is(AstNodeId::CompilerCallOne) && sema.token(node.codeRef()).id == TokenId::CompilerOffsetOf)
-            return true;
-        SmallVector<AstNodeRef> children;
-        node.collectChildrenFromAst(children, ast);
-        for (const AstNodeRef childRef : children)
-            if (bodyUsesCompilerOffsetOf(sema, ast, childRef))
-                return true;
-        return false;
-    }
 
     bool shouldAutoInline(Sema& sema, const SymbolFunction& fn)
     {
         if (fn.isGenericRoot() || fn.isGenericInstance())
             return false;
-        if (!fn.isSemaCompleted())
+        // Everything below reads the callee's SIGNATURE, which a matched call site necessarily
+        // has: overload resolution needed the parameter types to get here. The callee's BODY is
+        // not consulted at all - the parser already ruled on its shape - so this answer no longer
+        // depends on how far the callee's own analysis happens to have progressed.
+        if (!fn.isTyped())
             return false;
 
         // A typed variadic (`T...`) callee packs its trailing call-site args into a typed slice.
@@ -2274,30 +2253,10 @@ namespace
         if (decl->nodeBodyRef.isInvalid())
             return false;
 
-        // Exclude bodies containing constructs whose materialization is not yet reproduced
-        // faithfully when moved into the caller (any nested call - see bodyHasNestedCallExpr - and
-        // nested local functions that re-bind their outer-scope access). Preserving resolved
-        // identifier symbols (above) already lets a body reference the callee's private
-        // globals/helpers safely; this guard keeps the remaining, not-yet-handled re-resolution
-        // cases out of line. Leaf computational callees (member access, indexing, arithmetic,
-        // casts, assignments, control flow over params/`me`/locals/globals) still inline.
-        if (bodyHasNestedCallExpr(*declAst, decl->nodeBodyRef))
-            return false;
-        if (bodyUsesCompilerOffsetOf(sema, *declAst, decl->nodeBodyRef))
-            return false;
-        SmallVector<AstNodeRef> localFns;
-        collectInlineLocalFunctionDecls(sema, decl->nodeBodyRef, localFns);
-        if (!localFns.empty())
-            return false;
-
-        const AstNode& body     = declAst->node(decl->nodeBodyRef);
-        const TokenRef startTok = body.tokRef();
-        const TokenRef endTok   = body.tokRefEnd(*declAst);
-        if (startTok.isInvalid() || endTok.isInvalid() || endTok.get() < startTok.get())
-            return false;
-
-        const uint32_t tokenSpan = endTok.get() - startTok.get();
-        return tokenSpan <= K_AUTO_INLINE_MAX_BODY_TOKENS;
+        // Body size and the constructs the materializer cannot carry into a caller (a nested
+        // call, a local function, `#offsetof`) were settled by the parser, on an immutable body.
+        // See AstFunctionFlagsE::AutoInlineBody.
+        return decl->hasFlag(AstFunctionFlagsE::AutoInlineBody);
     }
 
     bool isDynamicInterfaceDispatchCall(Sema& sema, const SymbolFunction& fn, AstNodeRef ufcsArg, std::span<const ResolvedCallArgument> resolvedArgs)

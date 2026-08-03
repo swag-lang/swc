@@ -31,6 +31,9 @@ namespace SCrypt.Platform
         return @mkstring(value, length)
     }
 
+    func volumeSerialNumber(creationTime: u64)->u32
+        => cast(u32) (creationTime & 0xFFFF_FFFF)
+
     func fillInfo(volume: *SCrypt.Volume, nodeId: u64, output: *FileInfo)->s32
     {
         let node = volume.nodeById(nodeId)
@@ -787,7 +790,7 @@ namespace SCrypt.Platform
             params.maxComponentLength       = 255
             traceWinFspStage("volume geometry initialized")
             params.volumeCreationTime       = SCrypt.volumeTimeNow()
-            params.volumeSerialNumber       = cast(u32) params.volumeCreationTime
+            params.volumeSerialNumber       = volumeSerialNumber(params.volumeCreationTime)
             traceWinFspStage("volume identity initialized")
             params.fileInfoTimeout          = 1000
             params.flags                    = (1'u32 << 1) | (1'u32 << 2) | (1'u32 << 3) |

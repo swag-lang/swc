@@ -26,6 +26,8 @@ func captured(capture: const *DirectoryCapture, name: string)->bool
 
 #test
 {
+    @assert(SCrypt.Platform.volumeSerialNumber(0x0123_4567_89AB_CDEF) == 0x89AB_CDEF)
+
     let temp = Env.getSpecialDirectory(.Temp)
     let path = Path.combine(temp.toString(),
         Format.toString("scrypt_callbacks_%.bin", Guid64.random()))

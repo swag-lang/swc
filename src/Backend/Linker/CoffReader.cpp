@@ -70,6 +70,9 @@ namespace
             case IMAGE_REL_AMD64_ADDR32NB:
                 outKind = LinkRelocKind::Rva32;
                 return true;
+            case IMAGE_REL_AMD64_REL32:
+                outKind = LinkRelocKind::Rel32;
+                return true;
             default:
                 return false;
         }

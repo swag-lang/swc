@@ -1452,6 +1452,24 @@ void X64Encoder::encodeLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOff
     SWC_ASSERT(!memReg.isFloat());
     SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
 
+    // Instruction-pointer-relative form, used to read a float constant straight
+    // out of the constant segment. The displacement is left at zero and a
+    // Relative32 relocation fills in the distance once both the code and the
+    // segment have addresses; ModRM mode 00 with rm 101 is what selects it, so
+    // the four bytes are mandatory even when the distance ends up small.
+    if (memReg.isInstructionPointer())
+    {
+        SWC_ASSERT(reg.isFloat());
+        SWC_ASSERT(memOffset == 0);
+        emitSpecF64(store_, 0xF3, opBits);
+        emitRex(store_, MicroOpBits::Zero, reg, memReg);
+        emitCpuOp(store_, 0x0F);
+        emitCpuOp(store_, 0x10);
+        emitModRm(store_, ModRmMode::Memory, reg, MODRM_RM_RIP);
+        store_.pushU32(0);
+        return;
+    }
+
     if (reg.isFloat())
     {
         emitSpecF64(store_, 0xF3, opBits);

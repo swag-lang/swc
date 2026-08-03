@@ -168,6 +168,7 @@ Result NativeObjFileWriterCoff::applySectionRelocations(CoffSectionBuild& sectio
 
             case IMAGE_REL_AMD64_ADDR32NB:
             case IMAGE_REL_AMD64_SECREL:
+            case IMAGE_REL_AMD64_REL32:
                 SWC_ASSERT(relocation.offset + sizeof(uint32_t) <= section.data.bytes.size());
                 writeU32(section.data.bytes, relocation.offset, static_cast<uint32_t>(relocation.addend));
                 break;

@@ -42,6 +42,24 @@ void MicroEmitPass::bindAbs64RelocationOffset(const MicroPassContext& context, M
     reloc.codeOffset       = codeEndOffset - sizeof(uint64_t);
 }
 
+void MicroEmitPass::bindRel32RelocationOffset(const MicroPassContext& context, MicroInstrRef instructionRef, uint32_t codeStartOffset, uint32_t codeEndOffset) const
+{
+    const auto found = relocationByInstructionRef_.find(instructionRef);
+    SWC_ASSERT(found != relocationByInstructionRef_.end());
+    if (found == relocationByInstructionRef_.end())
+        return;
+
+    SWC_ASSERT(codeEndOffset >= codeStartOffset + sizeof(uint32_t));
+    MicroRelocation& reloc = context.builder->codeRelocations()[found->second];
+    SWC_ASSERT(reloc.form == MicroRelocation::Form::Relative32);
+    reloc.codeOffset = codeEndOffset - sizeof(uint32_t);
+
+    // A RIP-relative displacement is measured from the end of the instruction,
+    // so whoever patches it needs to know where that is. Nothing else in the
+    // record carries the instruction's extent.
+    reloc.relativeEndOffset = codeEndOffset;
+}
+
 void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInstrRef instructionRef, const MicroInstr& inst)
 {
     SWC_ASSERT(context.encoder);
@@ -147,8 +165,15 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
             encoder.encodeLoadRegImm(ops[0].reg, ops[2].immediateValue(getNumBits(ops[1].opBits)), ops[1].opBits);
             break;
         case MicroInstrOpcode::LoadRegMem:
+        {
+            const uint32_t loadRegMemStart = encoder.size();
             encoder.encodeLoadRegMem(ops[0].reg, ops[1].reg, ops[3].valueU64, ops[2].opBits);
+            // Only the instruction-pointer-relative form carries a relocation,
+            // and its displacement is the last four bytes emitted.
+            if (ops[1].reg.isInstructionPointer())
+                bindRel32RelocationOffset(context, instructionRef, loadRegMemStart, encoder.size());
             break;
+        }
         case MicroInstrOpcode::LoadVecRegMem:
             encoder.encodeLoadVecRegMem(ops[0].reg, ops[1].reg, ops[3].valueU64, ops[2].opBits);
             break;

@@ -135,7 +135,11 @@ namespace
         ENCODE_CASE("load_reg_reg_r10_xmm3_b32", "66 41 0F 7E DA", b.emitLoadRegReg(R10, XMM3, MicroOpBits::B32););
         // Float-immediate lowering: stage the constant in a GP scratch (R11),
         // then move GP -> XMM via MOVD instead of routing through the stack.
-        ENCODE_CASE("load_reg_imm_xmm0_b32_conform", "41 BB 01 00 00 00 66 41 0F 6E C3", b.emitLoadRegImm(XMM0, ApInt(1, 64), MicroOpBits::B32););
+        // A float register takes no immediate, so legalize turns the constant
+        // into a read from the constant segment: one instruction, and no
+        // integer register held while it happens. The displacement is left at
+        // zero here - a relocation fills it in once the segment has an address.
+        ENCODE_CASE("load_reg_imm_xmm0_b32_rip_constant", "F3 0F 10 05 00 00 00 00", b.emitLoadRegImm(XMM0, ApInt(1, 64), MicroOpBits::B32););
 
         ENCODE_CASE("load_reg_mem_r8_rbp_0_b64", "4C 8B 45 00", b.emitLoadRegMem(R8, RBP, 0, MicroOpBits::B64););
         ENCODE_CASE("load_reg_mem_r8_r13_0_b64", "4D 8B 45 00", b.emitLoadRegMem(R8, R13, 0, MicroOpBits::B64););

@@ -39,8 +39,24 @@ struct MicroRelocation
         GlobalInitAddress,
     };
 
+    // How the patch is written into the code stream. Absolute64 stores the
+    // target address itself, in a trailing eight-byte immediate. Relative32
+    // stores the signed distance from the end of the instruction to the target,
+    // in a trailing four-byte displacement - which is what x64 RIP-relative
+    // addressing reads, and what lets a constant be reached without first
+    // materializing its address in a register.
+    enum class Form : uint8_t
+    {
+        Absolute64,
+        Relative32,
+    };
+
     Kind          kind           = Kind::ConstantAddress;
+    Form          form           = Form::Absolute64;
     uint32_t      codeOffset     = 0;
+    // End of the instruction the displacement belongs to, which is where a
+    // Relative32 distance is measured from. Unused by Absolute64.
+    uint32_t      relativeEndOffset = 0;
     MicroInstrRef instructionRef = MicroInstrRef::invalid();
     uint64_t      targetAddress  = 0;
     Symbol*       targetSymbol   = nullptr;

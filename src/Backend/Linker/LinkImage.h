@@ -29,6 +29,7 @@ enum class LinkRelocKind : uint8_t
 {
     Abs64, // write the absolute 64-bit virtual address of (target + addend); needs a base relocation
     Rva32, // write the 32-bit image-relative address of (target + addend); no base relocation
+    Rel32, // write the signed 32-bit distance from the end of the four patched bytes to (target + addend); no base relocation
 };
 
 struct LinkReloc

@@ -426,6 +426,27 @@ bool PEWriter::applyRelocations(Diagnostic& outDiag)
                     out.bytes.writeLe32(reloc.offset, value);
                     break;
                 }
+                case LinkRelocKind::Rel32:
+                {
+                    if (reloc.offset + sizeof(uint32_t) > out.bytes.size())
+                    {
+                        outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_reloc_out_of_bounds);
+                        return false;
+                    }
+                    // Measured from the end of the four patched bytes, which is
+                    // where the instruction ends and therefore what the
+                    // processor has in RIP while it executes.
+                    const int64_t inPlace = static_cast<int32_t>(out.bytes.readLe32(reloc.offset));
+                    const int64_t site    = static_cast<int64_t>(out.rva) + reloc.offset + static_cast<int64_t>(sizeof(uint32_t));
+                    const int64_t value   = static_cast<int64_t>(targetRva) + inPlace + reloc.addend - site;
+                    if (value < std::numeric_limits<int32_t>::min() || value > std::numeric_limits<int32_t>::max())
+                    {
+                        outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_reloc_out_of_bounds);
+                        return false;
+                    }
+                    out.bytes.writeLe32(reloc.offset, static_cast<uint32_t>(static_cast<int32_t>(value)));
+                    break;
+                }
             }
         }
     }

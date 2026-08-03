@@ -21,6 +21,7 @@ private:
 
     void encodeInstruction(const MicroPassContext& context, MicroInstrRef instructionRef, const MicroInstr& inst);
     void bindAbs64RelocationOffset(const MicroPassContext& context, MicroInstrRef instructionRef, uint32_t codeStartOffset, uint32_t codeEndOffset) const;
+    void bindRel32RelocationOffset(const MicroPassContext& context, MicroInstrRef instructionRef, uint32_t codeStartOffset, uint32_t codeEndOffset) const;
 
     std::unordered_map<MicroLabelRef, uint64_t> labelOffsets_;
     std::vector<PendingLabelJump>               pendingLabelJumps_;

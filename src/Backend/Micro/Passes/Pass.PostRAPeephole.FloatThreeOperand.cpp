@@ -60,6 +60,14 @@ namespace PostRaPeephole
         if (!loaded.isFloat() || base.isFloat() || !base.isValid())
             return false;
 
+        // An instruction-pointer-relative load reads a constant through a
+        // relocation bound to this very instruction. Folding it away would
+        // strand that relocation on an erased instruction: nothing would bind
+        // its code offset, it would keep the zero it was created with, and the
+        // patch would land on the function prologue.
+        if (base.isInstructionPointer())
+            return false;
+
         const MicroOpBits opBits = loadOps[2].opBits;
         if (opBits != MicroOpBits::B32 && opBits != MicroOpBits::B64)
             return false;

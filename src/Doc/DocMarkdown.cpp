@@ -452,7 +452,8 @@ namespace
     Utf8 renderList(const DocRenderContext& renderCtx, std::span<const Utf8> lines, size_t& index, const uint32_t headingOffset)
     {
         ListMarker firstMarker;
-        SWC_ASSERT(tryReadListMarker(lines[index], firstMarker));
+        [[maybe_unused]] const bool hasFirstMarker = tryReadListMarker(lines[index], firstMarker);
+        SWC_ASSERT(hasFirstMarker);
 
         Utf8 result;
         result += firstMarker.ordered ? "<ol>\n" : "<ul>\n";

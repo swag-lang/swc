@@ -1056,6 +1056,15 @@ namespace
         if (!tryGetWorkspacePathWriteTime(buildTime, manifestPath))
             return false;
 
+        // Test builds can replace a native artifact without replacing the reusable build
+        // manifest. An artifact written after that manifest belongs to another build variant.
+        for (const fs::path& artifactPath : requiredArtifacts)
+        {
+            fs::file_time_type artifactTime;
+            if (!tryGetWorkspacePathWriteTime(artifactTime, artifactPath) || artifactTime > buildTime)
+                return false;
+        }
+
         if (hasInputTime && buildTime < latestInputTime)
             return false;
         if (hasDependencyTime && buildTime < latestDependencyTime)

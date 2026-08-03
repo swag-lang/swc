@@ -449,4 +449,8 @@ func verifyCrossDllTypeIdentity()
     verifyEmptyDerivedInterfaceIs()
     verifyCrossDllTypeIdentity()
     verifyImportedBorrowSummaries()
+
+    // The workspace suite checks this marker after a test build to prove that run restored
+    // the normal executable instead of reusing the test artifact.
+    @print("SWAG_WORKSPACE_MAIN_RAN\n")
 }

@@ -7,6 +7,26 @@ description: Modify, refactor, fix, test, and validate the Swag compiler reposit
 
 Fix the root cause of every problem. Do not introduce hacks or workarounds.
 
+## Improve The Platform Along The Way
+
+Treat every repository task, especially every Swag programming task, as an opportunity to
+improve, debug, or optimize `bin/std`, the compiler, and the language itself. Do not normalize an
+awkward library API, a compiler defect, a missed optimization, or a suspicious language rule as a
+local workaround merely because the original request exposed it indirectly.
+
+- Investigate the underlying platform when Swag code is unexpectedly awkward, fragile, slow, or
+  impossible to express cleanly.
+- Fix a discovered issue in the current change when it is sufficiently understood, relevant to
+  the task, and can be validated without making the change unsafe or incoherent.
+- Record the issue in the root [TODO.md](../../../TODO.md) when it is uncertain, requires broader
+  design work, or should be handled separately. Include evidence and a concrete next investigation
+  step; do not record vague wishes.
+- Search `TODO.md` before adding an entry. Enrich an existing item instead of creating a duplicate,
+  and remove or update entries when the current task resolves or invalidates them.
+
+The roadmap is a discovery backlog, not a promise that every item will be implemented and not a
+substitute for fixing a root cause that is already safe and in scope.
+
 ## Establish The Applicable Rules
 
 1. Read [references/cpp-coding-rules.md](references/cpp-coding-rules.md) before designing or editing C++.

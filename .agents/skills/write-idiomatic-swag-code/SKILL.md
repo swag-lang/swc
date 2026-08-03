@@ -8,6 +8,13 @@ description: Write, review, and modernize idiomatic Swag source in `.swg` and `.
 Make every edited Swag fragment a concise, current example of the language. Fix an API that
 forces awkward callers instead of standardizing the workaround in tests and examples.
 
+Use every Swag programming task as a probe of the whole platform. When clean Swag code is blocked
+or made needlessly awkward, investigate whether `bin/std`, the compiler, an optimization, or the
+language design should change. Fix the underlying issue when it belongs in the current task;
+otherwise capture the finding with evidence and a next step in the root
+[TODO.md](../../../TODO.md), following `modify-swag-codebase`. Do not silently teach a workaround
+as the idiom.
+
 ## Review Before Editing
 
 1. Inspect nearby current code, the declaration being called, and representative consumers.

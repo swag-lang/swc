@@ -28,17 +28,19 @@ struct ModuleApiFileEntry
     std::vector<ModuleApiPublicEntry> publicEntries;
 };
 
+using ModuleApiFileEntries = std::unordered_map<SourceViewRef, ModuleApiFileEntry>;
+
 struct ModuleApiPerThreadData
 {
-    std::unordered_map<SourceViewRef, ModuleApiFileEntry> files;
+    ModuleApiFileEntries files;
 };
 
 namespace ModuleApi
 {
     bool   isCurrentModuleSourceFile(const SourceFile& sourceFile);
     void   onSymbolSemaCompleted(ModuleApiPerThreadData& state, TaskContext& ctx, const Symbol& symbol);
-    Result collectPublicEntries(TaskContext& ctx, std::unordered_map<SourceViewRef, ModuleApiFileEntry>& outEntries);
-    Result resolvePendingEntries(TaskContext& ctx, std::unordered_map<SourceViewRef, ModuleApiFileEntry>& entries, bool diagnosticsOnly);
+    Result collectPublicEntries(TaskContext& ctx, ModuleApiFileEntries& outEntries);
+    Result resolvePendingEntries(TaskContext& ctx, ModuleApiFileEntries& entries, bool diagnosticsOnly);
     Result exportFiles(TaskContext& ctx);
 
     namespace Internal

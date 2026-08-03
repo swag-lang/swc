@@ -57,7 +57,7 @@ namespace
         }
     }
 
-    void mergeThreadData(std::unordered_map<SourceViewRef, ModuleApiFileEntry>& outEntries, const ModuleApiPerThreadData& threadData)
+    void mergeThreadData(ModuleApiFileEntries& outEntries, const ModuleApiPerThreadData& threadData)
     {
         for (const auto& [srcViewRef, threadEntry] : threadData.files)
             mergeFileEntry(outEntries[srcViewRef], threadEntry);
@@ -304,7 +304,7 @@ namespace ModuleApi::Export
 
 namespace ModuleApi
 {
-    Result collectPublicEntries(TaskContext& ctx, std::unordered_map<SourceViewRef, ModuleApiFileEntry>& outEntries)
+    Result collectPublicEntries(TaskContext& ctx, ModuleApiFileEntries& outEntries)
     {
         outEntries.clear();
         const CompilerInstance& compiler = ctx.compiler();
@@ -319,8 +319,11 @@ namespace ModuleApi
         CompilerInstance& compiler     = ctx.compiler();
         const fs::path&   exportApiDir = compiler.cmdLine().exportApiDir;
 
-        std::unordered_map<SourceViewRef, ModuleApiFileEntry> collectedEntries;
-        if (exportApiDir.empty())
+        ModuleApiFileEntries localEntries;
+        // Documentation consumes the same resolved entries immediately after sema. Retain
+        // them on the compiler so the renderer does not repeat the AST classification pass.
+        ModuleApiFileEntries& collectedEntries = compiler.cmdLine().command == CommandKind::Doc ? compiler.prepareModuleApiPublicEntries() : localEntries;
+        if (exportApiDir.empty() && compiler.cmdLine().command != CommandKind::Doc)
         {
             for (size_t i = 0; i < compiler.numPerThreadData(); ++i)
                 mergeThreadData(collectedEntries, compiler.moduleApiPerThreadData(i));

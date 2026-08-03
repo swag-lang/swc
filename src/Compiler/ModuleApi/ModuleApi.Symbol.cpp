@@ -162,7 +162,7 @@ namespace ModuleApi
         state.files[symbol.srcViewRef()].pendingSymbols.push_back(&symbol);
     }
 
-    Result resolvePendingEntries(TaskContext& ctx, std::unordered_map<SourceViewRef, ModuleApiFileEntry>& entries, const bool diagnosticsOnly)
+    Result resolvePendingEntries(TaskContext& ctx, ModuleApiFileEntries& entries, const bool diagnosticsOnly)
     {
         std::vector<ModuleApiFileEntry*> fileEntries;
         fileEntries.reserve(entries.size());

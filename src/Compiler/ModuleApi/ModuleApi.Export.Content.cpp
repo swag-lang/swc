@@ -435,15 +435,18 @@ namespace
             emittedPreambleLines->insert(line);
     }
 
-    bool appendForwardNamespaceDecls(TaskContext& ctx, Utf8& outContent, std::span<const ModuleApiGeneratedRoot> roots, std::string_view eol, ModuleApiValidationStack& validationStack, std::unordered_set<Utf8>* emittedPreambleLines = nullptr)
+    bool appendForwardNamespaceDecls(TaskContext& ctx, Utf8& outContent, std::span<const ModuleApiGeneratedRoot> roots, std::span<const Utf8> snippets, std::string_view eol, std::unordered_set<Utf8>* emittedPreambleLines = nullptr)
     {
+        SWC_ASSERT(roots.size() == snippets.size());
+
         bool                       emitted = false;
         std::unordered_set<Utf8>   emittedPaths;
         std::vector<IdentifierRef> namespacePath;
-        Utf8                       snippet;
 
-        for (const ModuleApiGeneratedRoot& root : roots)
+        for (size_t rootIndex = 0; rootIndex < roots.size(); ++rootIndex)
         {
+            const ModuleApiGeneratedRoot& root    = roots[rootIndex];
+            const Utf8&                   snippet = snippets[rootIndex];
             if (!root.namespacePath.empty())
             {
                 const Utf8 pathKey = buildNamespacePathKey(ctx, root.namespacePath);
@@ -454,7 +457,7 @@ namespace
                 }
             }
 
-            if (buildGeneratedRootSnippet(ctx, root, eol, snippet, validationStack) != Result::Continue || snippet.empty())
+            if (snippet.empty())
                 continue;
             if (!tryExtractLeadingNamespacePath(ctx, namespacePath, root.namespacePath, snippet.view()))
                 continue;
@@ -470,23 +473,27 @@ namespace
         return emitted;
     }
 
-    Result buildGeneratedModuleApiContent(TaskContext& ctx, std::span<const ModuleApiGeneratedRoot> roots, std::string_view moduleNamespace, std::string_view eol, Utf8& outContent, ModuleApiValidationStack& validationStack)
+    Result buildGeneratedModuleApiContent(TaskContext& ctx, std::span<const ModuleApiGeneratedRoot> roots, std::span<Utf8> snippets, std::string_view moduleNamespace, std::string_view eol, Utf8& outContent)
     {
+        SWC_ASSERT(roots.size() == snippets.size());
+
         outContent.clear();
         outContent += "#global namespace ";
         outContent += moduleNamespace;
         outContent += eol;
         outContent += "#global public";
         outContent += eol;
-        if (appendForwardNamespaceDecls(ctx, outContent, roots, eol, validationStack))
+        if (appendForwardNamespaceDecls(ctx, outContent, roots, snippets, eol))
             outContent += eol;
 
         std::vector<ModuleApiOrderedEntry>    orderedEntries;
         std::unordered_set<Utf8>              emittedUsingKeys;
         std::unordered_set<const SourceFile*> usingFiles;
 
-        for (const ModuleApiGeneratedRoot& root : roots)
+        for (size_t rootIndex = 0; rootIndex < roots.size(); ++rootIndex)
         {
+            const ModuleApiGeneratedRoot& root             = roots[rootIndex];
+            Utf8&                         sanitizedSnippet = snippets[rootIndex];
             if (root.file && usingFiles.insert(root.file).second)
             {
                 std::vector<ModuleApiUsingSnippet> usingSnippets;
@@ -503,8 +510,6 @@ namespace
                 }
             }
 
-            Utf8 sanitizedSnippet;
-            SWC_RESULT(buildGeneratedRootSnippet(ctx, root, eol, sanitizedSnippet, validationStack));
             if (sanitizedSnippet.empty())
                 continue;
 
@@ -660,11 +665,6 @@ namespace ModuleApi::Export
         outContent += "#global public";
         outContent += eol;
 
-        std::unordered_set<Utf8> emittedPreambleLines;
-        ModuleApiValidationStack validationStack;
-        if (appendForwardNamespaceDecls(ctx, outContent, roots, eol, validationStack, &emittedPreambleLines))
-            outContent += eol;
-
         // Split the roots into per-source-file contiguous groups (cheap, sequential).
         struct RootGroup
         {
@@ -682,15 +682,35 @@ namespace ModuleApi::Export
             rootIndex = nextIndex;
         }
 
-        // Build each group's content in parallel. Each group uses its own validation stack;
-        // the snippet *bytes* don't depend on cross-group validation state (it only drives
-        // diagnostics), and preamble/forward-decl deduplication is handled below by the
-        // sequential merge through `emittedPreambleLines`.
-        std::vector<Utf8> groupContents(groups.size());
+        // Build every sanitized snippet once. Both the global forward declarations and the
+        // per-file content consume these bytes; regenerating them at each stage dominates
+        // large generated modules such as ogl.
+        std::vector<Utf8> rootSnippets(roots.size());
         std::vector       groupResults(groups.size(), Result::Continue);
         parallelForIndexed(ctx, static_cast<uint32_t>(groups.size()), [&](TaskContext& workerCtx, uint32_t g) {
             ModuleApiValidationStack groupValidationStack;
-            groupResults[g] = buildGeneratedModuleApiContent(workerCtx, roots.subspan(groups[g].start, groups[g].count), moduleNamespace, eol, groupContents[g], groupValidationStack);
+            const size_t             groupEnd = groups[g].start + groups[g].count;
+            for (size_t rootIndex = groups[g].start; rootIndex < groupEnd; ++rootIndex)
+            {
+                groupResults[g] = buildGeneratedRootSnippet(workerCtx, roots[rootIndex], eol, rootSnippets[rootIndex], groupValidationStack);
+                if (groupResults[g] != Result::Continue)
+                    break;
+            }
+        });
+
+        for (const Result groupResult : groupResults)
+            SWC_RESULT(groupResult);
+
+        std::unordered_set<Utf8> emittedPreambleLines;
+        if (appendForwardNamespaceDecls(ctx, outContent, roots, rootSnippets, eol, &emittedPreambleLines))
+            outContent += eol;
+
+        // Build each group's content in parallel. Snippet bytes are only read for the
+        // preamble above, then moved into their final ordered entries by one group.
+        std::vector<Utf8> groupContents(groups.size());
+        std::fill(groupResults.begin(), groupResults.end(), Result::Continue);
+        parallelForIndexed(ctx, static_cast<uint32_t>(groups.size()), [&](TaskContext& workerCtx, uint32_t g) {
+            groupResults[g] = buildGeneratedModuleApiContent(workerCtx, roots.subspan(groups[g].start, groups[g].count), std::span{rootSnippets}.subspan(groups[g].start, groups[g].count), moduleNamespace, eol, groupContents[g]);
         });
 
         bool appendedBlock = false;

@@ -27,6 +27,7 @@ namespace
     };
 
     using DocItemsByOwner = std::unordered_map<Utf8, std::vector<const DocItem*>>;
+    using SourcePaths     = std::unordered_map<const SourceFile*, Utf8>;
 
     Utf8 lastNamePart(const std::string_view value)
     {
@@ -222,7 +223,32 @@ namespace
         }
     }
 
-    Utf8 sourceLink(const CompilerInstance& compiler, const DocOverload& overload, const bool runtime)
+    Utf8 buildSourcePath(const CompilerInstance& compiler, const SourceFile& file, const bool runtime)
+    {
+        fs::path relative = file.path().filename();
+        if (!runtime && !compiler.cmdLine().modulePath.empty())
+        {
+            std::error_code ec;
+            const fs::path  candidate = fs::relative(file.path(), compiler.cmdLine().modulePath, ec);
+            if (!ec && !candidate.empty() && !candidate.generic_string().starts_with(".."))
+                relative = candidate;
+        }
+        return relative.generic_string();
+    }
+
+    void buildSourcePaths(SourcePaths& outPaths, const CompilerInstance& compiler, const DocApiDocument& document, const bool runtime)
+    {
+        for (const DocItem& item : document.items)
+        {
+            if (item.overloads.empty())
+                continue;
+            const DocOverload& overload = item.overloads.front();
+            if (overload.file && !outPaths.contains(overload.file))
+                outPaths.emplace(overload.file, buildSourcePath(compiler, *overload.file, runtime));
+        }
+    }
+
+    Utf8 sourceLink(const CompilerInstance& compiler, const SourcePaths& sourcePaths, const DocOverload& overload, const bool runtime)
     {
         Utf8 repoPath = compiler.buildCfg().repoPath;
         if (runtime)
@@ -230,19 +256,13 @@ namespace
         if (repoPath.empty() || !overload.file)
             return {};
 
-        fs::path relative = overload.file->path().filename();
-        if (!runtime && !compiler.cmdLine().modulePath.empty())
-        {
-            std::error_code ec;
-            const fs::path  candidate = fs::relative(overload.file->path(), compiler.cmdLine().modulePath, ec);
-            if (!ec && !candidate.empty() && !candidate.generic_string().starts_with(".."))
-                relative = candidate;
-        }
+        const auto pathIt = sourcePaths.find(overload.file);
+        SWC_ASSERT(pathIt != sourcePaths.end());
 
         Utf8 result = repoPath;
         if (!result.empty() && result.back() != '/')
             result += "/";
-        result.append(relative.generic_string());
+        result += pathIt->second;
         result.append(std::format("#L{}", overload.sourceLine));
         return result;
     }
@@ -702,13 +722,13 @@ namespace
         renderSummaryTable(content, renderCtx, "Methods", std::format("{}_methods", anchor), functions, false, true);
     }
 
-    void renderDocItem(Utf8& content, DocRenderContext& renderCtx, const DocItem& item, const bool runtime)
+    void renderDocItem(Utf8& content, DocRenderContext& renderCtx, const SourcePaths& sourcePaths, const DocItem& item, const bool runtime)
     {
         if (item.overloads.empty())
             return;
 
         const DocOverload& first  = item.overloads.front();
-        const Utf8         link   = sourceLink(renderCtx.ctx->compiler(), first, runtime);
+        const Utf8         link   = sourceLink(renderCtx.ctx->compiler(), sourcePaths, first, runtime);
         const Utf8         anchor = DocMarkdown::makeAnchor(item.fullName);
 
         content += "<section class=\"api-symbol\">\n";
@@ -777,6 +797,8 @@ void DocApi::renderApiDocument(TaskContext& ctx, DocApiDocument& document, const
         .anonymousTypeNames = &anonymousTypeNames,
         .moduleName         = moduleName,
     };
+    SourcePaths sourcePaths;
+    buildSourcePaths(sourcePaths, ctx.compiler(), document, runtime);
 
     document.toc += "<h3>Start here</h3>\n<ul>\n<li><a href=\"#overview\">Overview</a></li>\n";
     for (const DocGuide& guide : document.guides)
@@ -880,7 +902,7 @@ void DocApi::renderApiDocument(TaskContext& ctx, DocApiDocument& document, const
         document.content.append(std::format("<h3 id=\"{}\">{}</h3>\n", anchor, Utf8Helper::escapeHtml(title)));
         for (const DocItem* item : items)
         {
-            renderDocItem(document.content, renderCtx, *item, runtime);
+            renderDocItem(document.content, renderCtx, sourcePaths, *item, runtime);
             const DocOverload& first = item->overloads.front();
             renderMemberTable(document.content, renderCtx, *first.symbol, runtime);
             renderOwnedSymbolTables(document.content, renderCtx, item->fullName, itemsByOwner);

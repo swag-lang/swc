@@ -1887,8 +1887,11 @@ ExitCode CompilerInstance::runWorkspace()
             joinPendingLink() != Result::Continue)
             return ExitCode::CompileError;
 
+        // A documentation leaf renders directly from its in-memory symbols. Only modules with
+        // active dependents need an API file for a later module to import.
+        const bool writeModuleApi = cmdLine().command != CommandKind::Doc || !dependents[moduleIndex].empty();
         std::unique_ptr<WorkspaceModuleLink> modulePending;
-        if (runWorkspaceModule(moduleBuild, buildIndex + 1, buildCount, modulePending) != Result::Continue)
+        if (runWorkspaceModule(moduleBuild, buildIndex + 1, buildCount, writeModuleApi, modulePending) != Result::Continue)
             return ExitCode::CompileError;
 
         if (modulePending)
@@ -1912,7 +1915,7 @@ ExitCode CompilerInstance::runWorkspace()
     return Stats::getNumErrors() > 0 ? ExitCode::CompileError : ExitCode::Success;
 }
 
-Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBuild, const uint32_t moduleIndex, const uint32_t moduleCount, std::unique_ptr<WorkspaceModuleLink>& outPending) const
+Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBuild, const uint32_t moduleIndex, const uint32_t moduleCount, const bool writeModuleApi, std::unique_ptr<WorkspaceModuleLink>& outPending) const
 {
     outPending.reset();
 
@@ -1924,7 +1927,10 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
     moduleCmdLine.files.clear();
     moduleCmdLine.outDir          = workspaceModuleOutputDirectory(cmdLine().workspacePath, moduleBuild.name, moduleCmdLine, moduleBuild.setup.buildCfg.backendKind, false);
     moduleCmdLine.workDir         = workspaceModuleOutputDirectory(cmdLine().workspacePath, moduleBuild.name, moduleCmdLine, moduleBuild.setup.buildCfg.backendKind, true);
-    moduleCmdLine.exportApiDir    = moduleCmdLine.outDir;
+    if (writeModuleApi)
+        moduleCmdLine.exportApiDir = moduleCmdLine.outDir;
+    else
+        moduleCmdLine.exportApiDir.clear();
     moduleCmdLine.outDirExplicit  = true;
     moduleCmdLine.workDirExplicit = true;
     moduleCmdLine.outDirStorage   = Utf8(moduleCmdLine.outDir);

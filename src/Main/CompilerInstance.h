@@ -280,6 +280,8 @@ public:
     const SourceView*                       findSourceViewByFileName(std::string_view fileName) const;
     size_t                                  numPerThreadData() const noexcept { return perThreadData_.size(); }
     const ModuleApiPerThreadData&           moduleApiPerThreadData(size_t index) const { return perThreadData_[index].moduleApi; }
+    ModuleApiFileEntries&                   prepareModuleApiPublicEntries() { return moduleApiPublicEntries_.emplace(); }
+    const ModuleApiFileEntries*             moduleApiPublicEntries() const { return moduleApiPublicEntries_ ? &*moduleApiPublicEntries_ : nullptr; }
     const std::vector<fs::path>&            importedDependencyLinkDirs() const { return importedDependencyLinkDirs_; }
     const std::vector<ModuleSetupImport>&   moduleSetupImports() const { return moduleSetupImports_; }
     const std::vector<NativeRuntimeImport>& nativeRuntimeImports() const { return nativeRuntimeImports_; }
@@ -392,7 +394,7 @@ private:
     Result            applyModuleSetupInputs(TaskContext& ctx, const ModuleSetupSnapshot& setupSnapshot);
     static bool       isWorkspaceModuleActive(const WorkspaceModuleBuild& moduleBuild);
     ExitCode          runWorkspace();
-    Result            runWorkspaceModule(const WorkspaceModuleBuild& moduleBuild, uint32_t moduleIndex, uint32_t moduleCount, std::unique_ptr<WorkspaceModuleLink>& outPending) const;
+    Result            runWorkspaceModule(const WorkspaceModuleBuild& moduleBuild, uint32_t moduleIndex, uint32_t moduleCount, bool writeModuleApi, std::unique_ptr<WorkspaceModuleLink>& outPending) const;
     Result            flushGeneratedSourceDumps(TaskContext& ctx);
     const SourceView* findFirstSourceViewByNormalizedPath(const Utf8& normalizedPath) const;
     const SourceView* findSourceViewByNormalizedPathAndRuntimeLine(const Utf8& normalizedPath, uint32_t runtimeLine) const;
@@ -429,6 +431,7 @@ private:
     DataSegment                                    globalInitSegment_;
     DataSegment                                    compilerSegment_;
     Runtime::BuildCfg                              buildCfg_{};
+    std::optional<ModuleApiFileEntries>            moduleApiPublicEntries_;
     bool                                           moduleSetupMode_ = false;
     std::vector<ModuleSetupImport>                 moduleSetupImports_;
     std::vector<NativeRuntimeImport>               nativeRuntimeImports_;

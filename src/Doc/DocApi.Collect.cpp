@@ -465,11 +465,16 @@ void DocApi::collectDocItems(TaskContext& ctx, std::vector<DocItem>& outItems, c
     }
     else
     {
-        std::unordered_map<SourceViewRef, ModuleApiFileEntry> publicEntries;
-        if (ModuleApi::collectPublicEntries(ctx, publicEntries) != Result::Continue)
-            return;
+        ModuleApiFileEntries fallbackPublicEntries;
+        const ModuleApiFileEntries* publicEntries = compiler.moduleApiPublicEntries();
+        if (!publicEntries)
+        {
+            if (ModuleApi::collectPublicEntries(ctx, fallbackPublicEntries) != Result::Continue)
+                return;
+            publicEntries = &fallbackPublicEntries;
+        }
 
-        for (const ModuleApiFileEntry& fileEntry : publicEntries | std::views::values)
+        for (const ModuleApiFileEntry& fileEntry : *publicEntries | std::views::values)
         {
             for (const ModuleApiPublicEntry& entry : fileEntry.publicEntries)
             {
@@ -499,28 +504,44 @@ void DocApi::collectDocItems(TaskContext& ctx, std::vector<DocItem>& outItems, c
         }
     }
 
-    std::unordered_map<Utf8, size_t> itemIndices;
-    std::unordered_set<Utf8>         overloadKeys;
-    for (const Symbol* symbol : symbols)
+    struct DocItemCandidate
     {
-        if (!symbol || hasNoDocAttribute(*symbol) || !itemKind(*symbol).has_value())
-            continue;
+        const SourceFile* file = nullptr;
+        DocItemKind      kind  = DocItemKind::Function;
+        Utf8             fullName;
+        Utf8             ownerName;
+        Utf8             namespaceName;
+        DocOverload      overload;
+        bool             valid = false;
+    };
+
+    // Sema is complete, so every candidate can be derived independently. The indexed slots
+    // keep the subsequent merge in the original symbol order and preserve deterministic HTML.
+    std::vector<DocItemCandidate> candidates(symbols.size());
+    const auto&                   resolvedPublicRootRefs = publicRootRefs;
+    ModuleApi::Export::parallelForIndexed(ctx, static_cast<uint32_t>(symbols.size()), [&](TaskContext& workerCtx, const uint32_t index) {
+        const Symbol* symbol = symbols[index];
+        if (!symbol || hasNoDocAttribute(*symbol))
+            return;
+        const std::optional<DocItemKind> kind = itemKind(*symbol);
+        if (!kind.has_value())
+            return;
         if (runtime && !isDocumentationSymbol(compiler, *symbol, true))
-            continue;
-        if (isAnonymousAggregateSymbol(*symbol) || isInCompilerGeneratedScope(ctx, *symbol))
-            continue;
+            return;
+        if (isAnonymousAggregateSymbol(*symbol) || isInCompilerGeneratedScope(workerCtx, *symbol))
+            return;
         if (const auto* function = symbol->safeCast<SymbolFunction>())
         {
             const SymbolImpl* impl = function->declImplContext();
             if (impl && impl->isForInterface())
-                continue;
+                return;
         }
 
         const SourceFile* file = compiler.ownerSourceFile(symbol->srcViewRef());
         if (!file)
             file = compiler.sourceViewFile(*symbol);
         if (!file)
-            continue;
+            return;
 
         AstNodeRef declRef;
         if (!ModuleApi::Internal::tryFindNodeRef(file->ast(), symbol->decl(), declRef))
@@ -529,33 +550,33 @@ void DocApi::collectDocItems(TaskContext& ctx, std::vector<DocItem>& outItems, c
                 declRef = file->ast().tryFindNodeRef(symbol->decl());
         }
         if (declRef.isInvalid() || ModuleApi::Internal::isGeneratedSourceDecl(*file, declRef))
-            continue;
+            return;
 
         AstNodeRef rootRef = ModuleApi::Internal::findExportDeclRoot(*file, declRef);
         if (!runtime)
         {
-            const auto it = publicRootRefs.find(symbol);
-            if (it != publicRootRefs.end())
+            const auto it = resolvedPublicRootRefs.find(symbol);
+            if (it != resolvedPublicRootRefs.end())
                 rootRef = it->second;
         }
         if (rootRef.isInvalid())
-            continue;
+            return;
 
-        const std::optional<DocItemKind> kind = itemKind(*symbol);
-        SWC_ASSERT(kind.has_value());
-        Utf8 fullName = documentationScopedName(ctx, *symbol, runtime);
+        Utf8 fullName = documentationScopedName(workerCtx, *symbol, runtime);
         if (fullName.empty())
-            continue;
+            return;
 
         // A method declared in an 'impl' block is scoped by its type alone, while the
         // same symbol seen from an importing module carries the whole path. Qualifying it
         // here keeps one spelling, so a cross-module link reaches the anchor it names.
         const Symbol* owner = documentationOwner(*symbol);
+        Utf8          ownerName;
         if (owner)
         {
-            Utf8 qualified = documentationScopedName(ctx, *owner, runtime);
-            if (!qualified.empty())
+            ownerName = documentationScopedName(workerCtx, *owner, runtime);
+            if (!ownerName.empty())
             {
+                Utf8 qualified = ownerName;
                 qualified += ".";
                 if (!fullName.starts_with(qualified.view()))
                 {
@@ -566,42 +587,60 @@ void DocApi::collectDocItems(TaskContext& ctx, std::vector<DocItem>& outItems, c
             }
         }
 
-        DocOverload overload;
-        overload.symbol       = symbol;
-        overload.file         = file;
-        overload.signature    = buildDisplaySignature(ctx, *file, declRef, rootRef);
-        overload.commentLines = symbolCommentLines(ctx, *symbol, *file, declRef, rootRef);
-        overload.sourceLine   = symbol->codeRange(ctx).line + 1;
+        DocItemCandidate& candidate = candidates[index];
+        candidate.file              = file;
+        candidate.kind              = *kind;
+        candidate.fullName          = std::move(fullName);
+        candidate.ownerName         = std::move(ownerName);
+        candidate.namespaceName     = documentationNamespace(workerCtx, *symbol, owner, runtime);
+        candidate.overload.symbol       = symbol;
+        candidate.overload.file         = file;
+        candidate.overload.signature    = buildDisplaySignature(workerCtx, *file, declRef, rootRef);
+        candidate.overload.commentLines = symbolCommentLines(workerCtx, *symbol, *file, declRef, rootRef);
+        candidate.overload.sourceLine   = symbol->codeRange(workerCtx).line + 1;
+        candidate.valid                 = true;
+    });
+
+    std::unordered_map<Utf8, size_t>            itemIndices;
+    std::unordered_set<Utf8>                    overloadKeys;
+    std::unordered_map<const SourceFile*, Utf8> sourceCategories;
+    for (DocItemCandidate& candidate : candidates)
+    {
+        if (!candidate.valid)
+            continue;
 
         Utf8 itemKey;
-        itemKey.append(std::to_string(itemSortOrder(*kind)));
+        itemKey.append(std::to_string(itemSortOrder(candidate.kind)));
         itemKey += ":";
-        itemKey += fullName;
+        itemKey += candidate.fullName;
 
         Utf8 overloadKey = itemKey;
         overloadKey += "\n";
-        overloadKey += overload.signature;
+        overloadKey += candidate.overload.signature;
         overloadKey += "\n";
-        overloadKey.append(file->path().generic_string());
+        overloadKey.append(candidate.file->path().generic_string());
         overloadKey += ":";
-        overloadKey.append(std::to_string(overload.sourceLine));
+        overloadKey.append(std::to_string(candidate.overload.sourceLine));
         if (!overloadKeys.insert(overloadKey).second)
             continue;
 
         const auto [it, inserted] = itemIndices.emplace(itemKey, outItems.size());
         if (inserted)
         {
+            const auto [categoryIt, categoryInserted] = sourceCategories.try_emplace(candidate.file);
+            if (categoryInserted)
+                categoryIt->second = sourceCategory(compiler, *candidate.file, runtime);
+
             DocItem item;
-            item.kind        = *kind;
-            item.fullName    = fullName;
-            item.displayName = displayNameFor(fullName, *kind);
-            item.category    = sourceCategory(compiler, *file, runtime);
-            if (owner)
-                item.ownerName = documentationScopedName(ctx, *owner, runtime);
-            item.namespaceName = documentationNamespace(ctx, *symbol, owner, runtime);
+            item.kind          = candidate.kind;
+            item.fullName      = candidate.fullName;
+            item.displayName   = displayNameFor(candidate.fullName, candidate.kind);
+            item.category      = categoryIt->second;
+            item.ownerName     = candidate.ownerName;
+            item.namespaceName = candidate.namespaceName;
             outItems.push_back(std::move(item));
         }
-        outItems[it->second].overloads.push_back(std::move(overload));
+        outItems[it->second].overloads.push_back(std::move(candidate.overload));
     }
 
     for (DocItem& item : outItems)

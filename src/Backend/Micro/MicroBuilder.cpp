@@ -109,6 +109,15 @@ void MicroBuilder::addRelocation(const MicroRelocation& relocation)
         SWC_ASSERT(relocation.kind == MicroRelocation::Kind::ConstantAddress);
         SWC_ASSERT(!relocation.hasConstantSource() || relocation.constantShard < ConstantManager::SHARD_COUNT);
     }
+    else if (relocation.hasConstantSource())
+    {
+        // A payload interned straight into the constant segment. No constant
+        // declaration owns it, so there is no ConstantRef to name it by - the
+        // data-segment location is the whole identity, and it is what both
+        // backends resolve the target from.
+        SWC_ASSERT(relocation.kind == MicroRelocation::Kind::ConstantAddress);
+        SWC_ASSERT(relocation.constantShard < ConstantManager::SHARD_COUNT);
+    }
     else if (relocation.targetSymbol)
     {
         SWC_ASSERT((relocation.kind == MicroRelocation::Kind::LocalFunctionAddress || relocation.kind == MicroRelocation::Kind::ForeignFunctionAddress) && relocation.targetSymbol->isFunction());

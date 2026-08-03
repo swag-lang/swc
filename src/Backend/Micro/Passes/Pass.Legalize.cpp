@@ -5,6 +5,8 @@
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Main/TaskContext.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/Assert.h"
@@ -337,6 +339,49 @@ namespace
         MicroOpBits    opBits = ops[1].opBits;
         if (opBits != MicroOpBits::B32 && opBits != MicroOpBits::B64)
             opBits = MicroOpBits::B64;
+
+        // A literal float constant is better read out of the constant segment
+        // than rebuilt in a register. The instruction-pointer-relative load below
+        // is one instruction; the general-purpose staging further down is two,
+        // and it holds an integer register while it does it - in the middle of
+        // whatever loop the constant happens to sit in. Only a plain immediate
+        // qualifies: the relocated forms already name an address of their own.
+        if (inst.op == MicroInstrOpcode::LoadRegImm && context.builder && context.taskContext && context.taskContext->hasCompiler())
+        {
+            const bool wideImmediate = ops[2].hasWideImmediateValue();
+            if (!wideImmediate || ops[2].wideImmediateValue().fit64())
+            {
+                const uint64_t rawBits = wideImmediate ? ops[2].wideImmediateValue().as64() : ops[2].valueU64;
+
+                // Always eight bytes, whatever the operand width: the JIT copies
+                // whole slots into its constant island, and a four-byte entry
+                // would have it read past the end of the segment allocation.
+                char payload[8] = {};
+                std::memcpy(payload, &rawBits, opBits == MicroOpBits::B64 ? sizeof(uint64_t) : sizeof(uint32_t));
+
+                DataSegmentRef         segmentRef;
+                const std::string_view stored = context.taskContext->cstMgr().addPayloadBuffer(std::string_view{payload, sizeof(payload)}, &segmentRef);
+
+                std::array<MicroInstrOperand, 4> ripLoadOps;
+                ripLoadOps[0].reg      = dstReg;
+                ripLoadOps[1].reg      = MicroReg::instructionPointer();
+                ripLoadOps[2].opBits   = opBits;
+                ripLoadOps[3].valueU64 = 0;
+                const MicroInstrRef ripLoadRef = context.instructions->insertDerivedBefore(*context.operands, instRef, MicroInstrOpcode::LoadRegMem, ripLoadOps);
+
+                MicroRelocation relocation;
+                relocation.kind           = MicroRelocation::Kind::ConstantAddress;
+                relocation.form           = MicroRelocation::Form::Relative32;
+                relocation.instructionRef = ripLoadRef;
+                relocation.targetAddress  = reinterpret_cast<uint64_t>(stored.data());
+                relocation.constantShard  = segmentRef.shardIndex;
+                relocation.constantOffset = segmentRef.offset;
+                context.builder->addRelocation(relocation);
+
+                removeInstruction(context, instRef);
+                return;
+            }
+        }
 
         // Stage the constant in a fresh GP scratch, then move GP -> XMM through
         // LoadRegReg. The encoder is responsible for picking the right cross-class

@@ -139,6 +139,12 @@ namespace
             case MicroInstrOpcode::LoadAddrRegMem:
                 return reg.isAnyInt() || reg.isInstructionPointer();
 
+            // Reading a float constant out of the constant segment addresses it
+            // from the instruction pointer, with a relocation supplying the
+            // displacement.
+            case MicroInstrOpcode::LoadRegMem:
+                return reg.isAnyInt() || reg.isInstructionPointer();
+
             case MicroInstrOpcode::LoadAmcRegMem:
             case MicroInstrOpcode::LoadAmcMemReg:
             case MicroInstrOpcode::LoadAmcMemImm:
@@ -411,6 +417,21 @@ namespace
                 return reportError(context, phase, std::format("relocation #{} stores out-of-range constant shard {}", relocationIndex, relocation.constantShard));
             }
         }
+        else if (relocation.hasConstantSource())
+        {
+            // A payload interned directly into the constant segment: its
+            // data-segment location is its whole identity, with no constant
+            // declaration to name it by. Mirrors MicroBuilder::addRelocation.
+            if (relocation.kind != MicroRelocation::Kind::ConstantAddress)
+            {
+                return reportError(context, phase, std::format("relocation #{} names a constant segment location but kind {}", relocationIndex, static_cast<uint32_t>(relocation.kind)));
+            }
+
+            if (relocation.constantShard >= ConstantManager::SHARD_COUNT)
+            {
+                return reportError(context, phase, std::format("relocation #{} stores out-of-range constant shard {}", relocationIndex, relocation.constantShard));
+            }
+        }
         else if (relocation.targetSymbol)
         {
             const bool validKind = relocation.kind == MicroRelocation::Kind::LocalFunctionAddress || relocation.kind == MicroRelocation::Kind::ForeignFunctionAddress;
@@ -449,6 +470,19 @@ namespace
 
             case MicroInstrOpcode::LoadRegPtrReloc:
                 break;
+
+            // A constant read through the instruction pointer: the relocation
+            // supplies the displacement, so it is only legal on the RIP form.
+            case MicroInstrOpcode::LoadRegMem:
+            {
+                if (relocation.form != MicroRelocation::Form::Relative32)
+                    return reportError(context, phase, std::format("relocation #{} on a memory load is not instruction-pointer relative", relocationIndex));
+
+                const MicroInstrOperand* loadOps = context.operands->ptr(inst.opsRef);
+                if (!loadOps || inst.numOperands < 2 || !loadOps[1].reg.isInstructionPointer())
+                    return reportError(context, phase, std::format("relocation #{} names a memory load whose base is not the instruction pointer", relocationIndex));
+                break;
+            }
 
             default:
                 return reportError(context, phase, std::format("relocation #{} points to non-relocatable opcode {}", relocationIndex, static_cast<uint32_t>(inst.op)));

@@ -38,7 +38,7 @@ enum class JITRuntimeSetupMode : uint8_t
 class JIT final
 {
 public:
-    static void   prepare(TaskContext& ctx, JITMemory& outExecutableMemory, const ByteArray& linearCode, const ByteArray& unwindInfo);
+    static void   prepare(TaskContext& ctx, JITMemory& outExecutableMemory, const ByteArray& linearCode, const ByteArray& unwindInfo, std::span<const MicroRelocation> relocations = {});
     static Result patch(TaskContext& ctx, const JITMemory& executableMemory, std::span<const MicroRelocation> relocations, const SymbolFunction* ownerFunction = nullptr);
     static Result patchGlobalFunctionVariables(TaskContext& ctx);
     static void   finalize(JITMemory& executableMemory);

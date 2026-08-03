@@ -59,6 +59,11 @@ namespace
         std::memcpy(bytes.data() + offset, &value, sizeof(value));
     }
 
+    void writeU32(ByteArray& bytes, const uint32_t offset, const uint32_t value)
+    {
+        std::memcpy(bytes.data() + offset, &value, sizeof(value));
+    }
+
     bool shouldCopyPublishDependencyFile(const fs::path& srcPath, const fs::path& dstPath)
     {
         std::error_code ec;
@@ -611,7 +616,8 @@ Result NativeBackendBuilder::appendCodeRelocation(const NativeCodeRelocationTarg
         return reportError(DiagnosticId::cmd_err_native_invalid_local_function_relocation, Diagnostic::ARG_SYM, ownerName);
 
     const uint32_t patchOffset = target.functionOffset + relocation.codeOffset;
-    SWC_ASSERT(patchOffset + sizeof(uint64_t) <= target.bytes->size());
+    const size_t   patchSize   = relocation.form == MicroRelocation::Form::Relative32 ? sizeof(uint32_t) : sizeof(uint64_t);
+    SWC_ASSERT(patchOffset + patchSize <= target.bytes->size());
 
     NativeSectionRelocation record;
     record.offset = patchOffset;
@@ -639,6 +645,18 @@ Result NativeBackendBuilder::appendCodeRelocation(const NativeCodeRelocationTarg
 
             record.symbolName = nativeScopedSectionBaseSymbol(compiler(), K_R_DATA_BASE_SYMBOL);
             record.addend     = mappedOffset;
+
+            if (relocation.form == MicroRelocation::Form::Relative32)
+            {
+                // REL32 resolves to target + addend - (field + 4). The
+                // displacement is the last four bytes of the load, so that
+                // "+ 4" lands exactly on the instruction end that RIP holds.
+                SWC_ASSERT(relocation.relativeEndOffset == relocation.codeOffset + sizeof(uint32_t));
+                record.type = IMAGE_REL_AMD64_REL32;
+                writeU32(*target.bytes, patchOffset, mappedOffset);
+                break;
+            }
+
             writeU64(*target.bytes, patchOffset, record.addend);
             break;
         }

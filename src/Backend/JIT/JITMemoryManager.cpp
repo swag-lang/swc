@@ -111,6 +111,8 @@ void JITMemoryManager::allocateWithCodeSize(JITMemory& outExecutableMemory, cons
     outExecutableMemory.allocationSize_   = requestSizeAlign;
     outExecutableMemory.unwindInfoOffset_ = 0;
     outExecutableMemory.unwindInfoSize_   = 0;
+    outExecutableMemory.constantIslandOffset_ = 0;
+    outExecutableMemory.constantIslandSize_   = 0;
 }
 
 void JITMemoryManager::allocate(JITMemory& outExecutableMemory, uint32_t size)

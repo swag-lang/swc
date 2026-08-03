@@ -31,6 +31,10 @@
 
 SWC_BEGIN_NAMESPACE();
 
+// One slot per RIP-relative constant reference. Eight bytes covers every scalar
+// float shape and keeps the island naturally aligned.
+constexpr uint32_t K_CONSTANT_ISLAND_SLOT = 8;
+
 namespace
 {
     constexpr uint32_t K_COMPILER_EXCEPTION_CODE = 666;
@@ -896,6 +900,28 @@ namespace
         std::memcpy(basePtr + reloc.codeOffset, &targetAddress, sizeof(targetAddress));
     }
 
+    // Copies the constant into the island slot reserved for it and writes the
+    // distance from the end of the instruction, which is what RIP holds while
+    // the load executes.
+    void patchRelative32(std::span<std::byte> writableCode, const MicroRelocation& reloc, uint64_t targetAddress, uint32_t islandSlotOffset)
+    {
+        auto* basePtr = reinterpret_cast<uint8_t*>(writableCode.data());
+
+        const uint64_t slotEnd = static_cast<uint64_t>(islandSlotOffset) + K_CONSTANT_ISLAND_SLOT;
+        SWC_ASSERT(slotEnd <= writableCode.size_bytes());
+        std::memcpy(basePtr + islandSlotOffset, reinterpret_cast<const void*>(targetAddress), K_CONSTANT_ISLAND_SLOT);
+
+        const uint64_t patchEndOffset = static_cast<uint64_t>(reloc.codeOffset) + sizeof(uint32_t);
+        SWC_ASSERT(patchEndOffset <= writableCode.size_bytes());
+        SWC_ASSERT(reloc.relativeEndOffset >= patchEndOffset);
+
+        const int64_t distance = static_cast<int64_t>(islandSlotOffset) - static_cast<int64_t>(reloc.relativeEndOffset);
+        SWC_ASSERT(distance >= std::numeric_limits<int32_t>::min() && distance <= std::numeric_limits<int32_t>::max());
+
+        const auto displacement = static_cast<int32_t>(distance);
+        std::memcpy(basePtr + reloc.codeOffset, &displacement, sizeof(displacement));
+    }
+
     bool isOptionalFunctionRelocationReady(const SymbolFunction& targetFunction)
     {
         if (targetFunction.isForeign())
@@ -990,11 +1016,16 @@ namespace
         return patchConstantFunctionRelocationsRec(ctx, patchContext, ownerFunction, sourceRef.shardIndex, sourceRef.offset);
     }
 
-    Result patchRelocations(TaskContext& ctx, const SymbolFunction* ownerFunction, std::span<std::byte> writableCode, std::span<const MicroRelocation> relocations)
+    Result patchRelocations(TaskContext& ctx, const SymbolFunction* ownerFunction, std::span<std::byte> writableCode, std::span<const MicroRelocation> relocations, uint32_t islandBase)
     {
         SWC_ASSERT(!writableCode.empty());
         if (relocations.empty())
             return Result::Continue;
+
+        // Island slots are handed out in relocation order, which is the same
+        // order prepare() counted them in, so both agree without recording a
+        // slot index in the relocation itself.
+        uint32_t islandSlot = 0;
 
         // All relocations for one emitted function share resolution caches. This matters
         // for local functions that may need preparation before they expose a patchable
@@ -1027,6 +1058,13 @@ namespace
             if (reloc.kind == MicroRelocation::Kind::ConstantAddress)
                 SWC_RESULT(patchConstantFunctionRelocations(ctx, patchContext, ownerFunction, reloc.constantRef, reinterpret_cast<const void*>(targetAddress)));
 
+            if (reloc.form == MicroRelocation::Form::Relative32)
+            {
+                patchRelative32(writableCode, reloc, targetAddress, islandBase + islandSlot * K_CONSTANT_ISLAND_SLOT);
+                ++islandSlot;
+                continue;
+            }
+
             patchAbsolute64(writableCode, reloc, targetAddress);
         }
 
@@ -1034,7 +1072,7 @@ namespace
     }
 }
 
-void JIT::prepare(TaskContext& ctx, JITMemory& outExecutableMemory, const ByteArray& linearCode, const ByteArray& unwindInfo)
+void JIT::prepare(TaskContext& ctx, JITMemory& outExecutableMemory, const ByteArray& linearCode, const ByteArray& unwindInfo, const std::span<const MicroRelocation> relocations)
 {
     SWC_ASSERT(!linearCode.empty());
     SWC_ASSERT(linearCode.size() <= std::numeric_limits<uint32_t>::max());
@@ -1045,10 +1083,30 @@ void JIT::prepare(TaskContext& ctx, JITMemory& outExecutableMemory, const ByteAr
     const uint32_t    codeSize          = Math::alignUpU32(static_cast<uint32_t>(linearCode.size()), sizeof(uint32_t));
     const bool        registerSehUnwind = !unwindInfo.empty();
 
+    // A RIP-relative load reaches its constant through a signed 32-bit
+    // displacement, and nothing places the compiler's constant segment within
+    // that reach of a VirtualAlloc'd page. Each such relocation therefore gets
+    // its own copy of the value, allocated with the code so the distance is
+    // measured in bytes rather than gigabytes.
+    uint32_t constantIslandCount = 0;
+    for (const MicroRelocation& relocation : relocations)
+    {
+        if (relocation.form == MicroRelocation::Form::Relative32)
+            ++constantIslandCount;
+    }
+
     const uint64_t unwindSizeU64     = registerSehUnwind ? unwindInfo.size() : 0;
-    const uint64_t allocationSizeU64 = static_cast<uint64_t>(codeSize) + unwindSizeU64;
+    const uint64_t islandBaseU64     = Math::alignUpU64(static_cast<uint64_t>(codeSize) + unwindSizeU64, K_CONSTANT_ISLAND_SLOT);
+    const uint64_t islandSizeU64     = static_cast<uint64_t>(constantIslandCount) * K_CONSTANT_ISLAND_SLOT;
+    const uint64_t allocationSizeU64 = constantIslandCount ? islandBaseU64 + islandSizeU64 : static_cast<uint64_t>(codeSize) + unwindSizeU64;
     const uint32_t allocationSize    = static_cast<uint32_t>(allocationSizeU64);
     memoryManager.allocateWithCodeSize(outExecutableMemory, allocationSize, codeSize);
+
+    if (constantIslandCount)
+    {
+        outExecutableMemory.constantIslandOffset_ = static_cast<uint32_t>(islandBaseU64);
+        outExecutableMemory.constantIslandSize_   = static_cast<uint32_t>(islandSizeU64);
+    }
 
     std::span<std::byte> writableCode;
     writableCode = {static_cast<std::byte*>(outExecutableMemory.entryPoint()), linearCode.size()};
@@ -1067,8 +1125,11 @@ Result JIT::patch(TaskContext& ctx, const JITMemory& executableMemory, const std
 {
     const TaskScopedContext scopedContext(ctx);
     SWC_ASSERT(!executableMemory.empty());
-    const std::span writableCode{static_cast<std::byte*>(executableMemory.entryPoint()), executableMemory.size()};
-    return patchRelocations(ctx, ownerFunction, writableCode, relocations);
+    // The span has to reach past the code: the constant island lives after it,
+    // and size() is only the code.
+    const uint32_t  patchableSize = std::max(executableMemory.size(), executableMemory.constantIslandOffset_ + executableMemory.constantIslandSize_);
+    const std::span writableCode{static_cast<std::byte*>(executableMemory.entryPoint()), patchableSize};
+    return patchRelocations(ctx, ownerFunction, writableCode, relocations, executableMemory.constantIslandOffset_);
 }
 
 Result JIT::patchGlobalFunctionVariables(TaskContext& ctx)

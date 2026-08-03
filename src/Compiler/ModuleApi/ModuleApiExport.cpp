@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Compiler/ModuleApi/ModuleApi.Export.h"
+#include "Compiler/ModuleApi/ModuleApiExport.Internal.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
@@ -12,7 +12,6 @@
 #include "Support/Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();
-using namespace ModuleApi::Export;
 
 namespace
 {
@@ -28,41 +27,6 @@ namespace
             return {};
 
         return Utf8{value};
-    }
-
-    bool samePublicEntry(const ModuleApiPublicEntry& lhs, const ModuleApiPublicEntry& rhs)
-    {
-        return lhs.rootRef == rhs.rootRef && sameNamespacePath(lhs.namespacePath, rhs.namespacePath);
-    }
-
-    std::vector<ModuleApiPublicEntry>::iterator findPublicEntry(std::vector<ModuleApiPublicEntry>& entries, const ModuleApiPublicEntry& needle)
-    {
-        for (auto it = entries.begin(); it != entries.end(); ++it)
-        {
-            if (samePublicEntry(*it, needle))
-                return it;
-        }
-
-        return entries.end();
-    }
-
-    void mergeFileEntry(ModuleApiFileEntry& outEntry, const ModuleApiFileEntry& threadEntry)
-    {
-        // A symbol completes sema exactly once, so per-thread pending lists are disjoint.
-        outEntry.pendingSymbols.insert(outEntry.pendingSymbols.end(), threadEntry.pendingSymbols.begin(), threadEntry.pendingSymbols.end());
-
-        for (const ModuleApiPublicEntry& threadPublicEntry : threadEntry.publicEntries)
-        {
-            const auto it = findPublicEntry(outEntry.publicEntries, threadPublicEntry);
-            if (it == outEntry.publicEntries.end())
-                outEntry.publicEntries.push_back(threadPublicEntry);
-        }
-    }
-
-    void mergeThreadData(ModuleApiFileEntries& outEntries, const ModuleApiPerThreadData& threadData)
-    {
-        for (const auto& [srcViewRef, threadEntry] : threadData.files)
-            mergeFileEntry(outEntries[srcViewRef], threadEntry);
     }
 
     bool isWholeFileExported(const SourceFile& file)
@@ -217,7 +181,7 @@ namespace
     }
 }
 
-namespace ModuleApi::Export
+namespace ModuleApiExport
 {
     Utf8 buildModuleNamespaceName(const CompilerInstance& compiler)
     {
@@ -252,11 +216,6 @@ namespace ModuleApi::Export
         return isCurrentModuleSourceFile(*sourceFile);
     }
 
-    bool isModuleApiOpaqueType(const Symbol& symbol)
-    {
-        return symbol.attributes().hasRtFlag(RtAttributeFlagsE::Opaque);
-    }
-
     bool isWholeFileExportedSymbol(const CompilerInstance& compiler, const Symbol& symbol)
     {
         const SourceFile* sourceFile = compiler.sourceViewFile(symbol);
@@ -278,19 +237,6 @@ namespace ModuleApi::Export
         return "\r\n";
     }
 
-    uint32_t sourceTokenByteStart(const SourceView& srcView, const Token& token)
-    {
-        if (token.id == TokenId::Identifier)
-            return srcView.identifiers()[token.byteStart].byteStart;
-
-        return token.byteStart;
-    }
-
-    uint32_t sourceTokenByteEnd(const SourceView& srcView, const Token& token)
-    {
-        return sourceTokenByteStart(srcView, token) + token.byteLength;
-    }
-
     Result writeModuleApiFile(TaskContext& ctx, const fs::path& dstPath, std::string_view content)
     {
         FileSystem::IoErrorInfo ioError;
@@ -306,18 +252,19 @@ namespace ModuleApi::Export
 
 namespace ModuleApi
 {
-    Result collectPublicEntries(TaskContext& ctx, ModuleApiFileEntries& outEntries)
-    {
-        outEntries.clear();
-        const CompilerInstance& compiler = ctx.compiler();
-        for (size_t i = 0; i < compiler.numPerThreadData(); ++i)
-            mergeThreadData(outEntries, compiler.moduleApiPerThreadData(i));
-
-        return resolvePendingEntries(ctx, outEntries, false);
-    }
-
     Result exportFiles(TaskContext& ctx)
     {
+        using ModuleApiExport::appendGeneratedRootUnique;
+        using ModuleApiExport::appendGeneratedRootsForFile;
+        using ModuleApiExport::buildExportedModuleApiContent;
+        using ModuleApiExport::buildGeneratedModuleApiSingleFileContent;
+        using ModuleApiExport::buildModuleNamespaceName;
+        using ModuleApiExport::ModuleApiGeneratedRoot;
+        using ModuleApiExport::preferredLineEnding;
+        using ModuleApiExport::sortGeneratedModuleApiRoots;
+        using ModuleApiExport::writeGeneratedModuleImports;
+        using ModuleApiExport::writeModuleApiFile;
+
         CompilerInstance& compiler     = ctx.compiler();
         const fs::path&   exportApiDir = compiler.cmdLine().exportApiDir;
         JobManager&       jobMgr       = ctx.global().jobMgr();
@@ -326,17 +273,10 @@ namespace ModuleApi
         // Documentation consumes the same resolved entries immediately after sema. Retain
         // them on the compiler so the renderer does not repeat the AST classification pass.
         ModuleApiFileEntries& collectedEntries = compiler.cmdLine().command == CommandKind::Doc ? compiler.prepareModuleApiPublicEntries() : localEntries;
-        if (exportApiDir.empty() && compiler.cmdLine().command != CommandKind::Doc)
-        {
-            for (size_t i = 0; i < compiler.numPerThreadData(); ++i)
-                mergeThreadData(collectedEntries, compiler.moduleApiPerThreadData(i));
-
-            // Sema is done here, so walking the ASTs is safe now. Without an export
-            // directory, only diagnostics such as public global variables are needed.
-            SWC_RESULT(resolvePendingEntries(ctx, collectedEntries, true));
-        }
-        else
-            SWC_RESULT(collectPublicEntries(ctx, collectedEntries));
+        // Sema is done here, so walking the ASTs is safe now. Without an export
+        // directory, only diagnostics such as public global variables are needed.
+        const bool diagnosticsOnly = exportApiDir.empty() && compiler.cmdLine().command != CommandKind::Doc;
+        SWC_RESULT(collectPublicEntries(ctx, collectedEntries, diagnosticsOnly));
 
         if (exportApiDir.empty())
             return Result::Continue;

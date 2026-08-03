@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Compiler/ModuleApi/ModuleApi.Export.h"
+#include "Compiler/ModuleApi/ModuleApiExport.Internal.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
@@ -7,10 +7,14 @@
 #include "Compiler/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
-using namespace ModuleApi::Export;
 
 namespace
 {
+    using ModuleApiExport::isCurrentModuleSymbol;
+    using ModuleApiExport::isModuleApiOpaqueType;
+    using ModuleApiExport::isWholeFileExportedSymbol;
+    using ModuleApiExport::ModuleApiGeneratedRoot;
+
     struct ModuleApiDependencyCollector
     {
         TaskContext*                      ctx;
@@ -222,7 +226,7 @@ namespace
     }
 }
 
-namespace ModuleApi::Export
+namespace ModuleApiExport
 {
     void sortGeneratedModuleApiRoots(TaskContext& ctx, std::vector<ModuleApiGeneratedRoot>& roots)
     {

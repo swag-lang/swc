@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Doc/DocApi.h"
 #include "Compiler/Lexer/SourceView.h"
-#include "Compiler/ModuleApi/ModuleApi.Export.h"
+#include "Compiler/ModuleApi/ModuleApi.Source.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -380,14 +380,14 @@ namespace
         if (!file)
             return {};
         AstNodeRef declRef;
-        if (!ModuleApi::Internal::tryFindNodeRef(file->ast(), symbol.decl(), declRef))
+        if (!ModuleApi::tryFindReachableNodeRef(file->ast(), symbol.decl(), declRef))
         {
             if (file->ast().hasSourceView() && symbol.srcViewRef() != file->ast().srcView().ref())
                 declRef = file->ast().tryFindNodeRef(symbol.decl());
             if (declRef.isInvalid())
                 return {};
         }
-        const AstNodeRef  rootRef = ModuleApi::Internal::findExportDeclRoot(*file, declRef);
+        const AstNodeRef  rootRef = ModuleApi::findExportDeclRoot(*file, declRef);
         std::vector<Utf8> result  = DocApi::symbolCommentLines(ctx, symbol, *file, declRef, rootRef);
         if (!result.empty())
             return result;
@@ -560,7 +560,7 @@ namespace
             std::vector<Utf8> commentLines;
         };
         std::vector<MemberRow> fields;
-        const bool             hideFields = owner.isStruct() && ModuleApi::Export::isModuleApiOpaqueType(owner);
+        const bool             hideFields = owner.isStruct() && ModuleApi::isModuleApiOpaqueType(owner);
 
         for (const Symbol* member : members)
         {

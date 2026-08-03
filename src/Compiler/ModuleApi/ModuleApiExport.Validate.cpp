@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Compiler/ModuleApi/ModuleApi.Export.h"
+#include "Compiler/ModuleApi/ModuleApiExport.Internal.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
@@ -8,10 +8,16 @@
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
-using namespace ModuleApi::Export;
 
 namespace
 {
+    using ModuleApiExport::isCurrentModuleSymbol;
+    using ModuleApiExport::isModuleApiOpaqueType;
+    using ModuleApiExport::isWholeFileExportedSymbol;
+    using ModuleApiExport::ModuleApiValidationStack;
+    using ModuleApiExport::validatePublicFunctionSymbol;
+    using ModuleApiExport::validatePublicTypeSymbol;
+
     Utf8 moduleApiSymbolKindName(const Symbol& symbol)
     {
         if (const auto* symbolStruct = symbol.safeCast<SymbolStruct>())
@@ -213,7 +219,7 @@ namespace
     }
 }
 
-namespace ModuleApi::Export
+namespace ModuleApiExport
 {
     Result validatePublicTypeSymbol(TaskContext& ctx, const Symbol& symbol, ModuleApiValidationStack& stack)
     {

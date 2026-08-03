@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Doc/DocApi.h"
 #include "Compiler/Lexer/SourceView.h"
-#include "Compiler/ModuleApi/ModuleApi.Export.h"
+#include "Compiler/ModuleApi/ModuleApi.Source.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -256,8 +256,8 @@ namespace
             return result;
 
         const AstNode&    rootNode   = ast.node(rootRef);
-        const SourceView& srcView    = ModuleApi::Export::moduleApiNodeSourceView(ctx, ast, rootRef);
-        const TokenRef    startToken = ModuleApi::Export::moduleApiSnippetStartTokRef(ast, rootNode);
+        const SourceView& srcView    = ModuleApi::moduleApiNodeSourceView(ctx, ast, rootRef);
+        const TokenRef    startToken = ModuleApi::moduleApiSnippetStartTokRef(ast, rootNode);
         if (!startToken.isValid() || startToken.get() >= srcView.numTokens() || startToken.get() + 1 >= srcView.triviaStart().size())
             return result;
 
@@ -277,13 +277,13 @@ namespace
         if (!endTokRef.isValid())
             return result;
 
-        const SourceView& srcView = ModuleApi::Export::moduleApiNodeSourceView(ctx, ast, declRef);
+        const SourceView& srcView = ModuleApi::moduleApiNodeSourceView(ctx, ast, declRef);
         if (endTokRef.get() >= srcView.numTokens())
             return result;
 
         const Token&           token  = srcView.token(endTokRef);
         const std::string_view source = srcView.stringView();
-        const size_t           start  = std::min<size_t>(ModuleApi::Export::sourceTokenByteEnd(srcView, token), source.size());
+        const size_t           start  = std::min<size_t>(ModuleApi::sourceTokenByteEnd(srcView, token), source.size());
         size_t                 end    = source.find_first_of("\r\n", start);
         if (end == std::string_view::npos)
             end = source.size();
@@ -341,19 +341,19 @@ namespace
 
         uint32_t startOffset = 0;
         uint32_t endOffset   = 0;
-        if (!ModuleApi::Export::tryGetModuleApiSnippetOffsets(ctx, file, rootRef, startOffset, endOffset))
+        if (!ModuleApi::tryGetModuleApiSnippetOffsets(ctx, file, rootRef, startOffset, endOffset))
             return {};
 
-        const SourceView& srcView = ModuleApi::Export::moduleApiNodeSourceView(ctx, ast, rootRef);
+        const SourceView& srcView = ModuleApi::moduleApiNodeSourceView(ctx, ast, rootRef);
         const AstNodeRef  bodyRef = declarationBodyRef(ast.node(declRef));
         if (bodyRef.isValid() && ast.hasNode(bodyRef))
         {
             const AstNode& bodyNode = ast.node(bodyRef);
             if (bodyNode.tokRef().isValid())
             {
-                const SourceView& bodyView = ModuleApi::Export::moduleApiNodeSourceView(ctx, ast, bodyRef);
+                const SourceView& bodyView = ModuleApi::moduleApiNodeSourceView(ctx, ast, bodyRef);
                 if (&bodyView == &srcView)
-                    endOffset = ModuleApi::Export::sourceTokenByteStart(srcView, srcView.token(bodyNode.tokRef()));
+                    endOffset = ModuleApi::sourceTokenByteStart(srcView, srcView.token(bodyNode.tokRef()));
             }
         }
 
@@ -365,7 +365,7 @@ namespace
         if (startOffset >= endOffset)
             return {};
 
-        Utf8 result = ModuleApi::Export::buildSanitizedModuleApiSnippet(ctx, file, rootRef, startOffset, source.substr(startOffset, endOffset - startOffset), "\n");
+        Utf8 result = ModuleApi::buildSanitizedModuleApiSnippet(ctx, file, rootRef, startOffset, source.substr(startOffset, endOffset - startOffset), "\n");
         result.trim();
         return result;
     }
@@ -547,15 +547,15 @@ void DocApi::collectDocItems(TaskContext& ctx, std::vector<DocItem>& outItems, c
             return;
 
         AstNodeRef declRef;
-        if (!ModuleApi::Internal::tryFindNodeRef(file->ast(), symbol->decl(), declRef))
+        if (!ModuleApi::tryFindReachableNodeRef(file->ast(), symbol->decl(), declRef))
         {
             if (file->ast().hasSourceView() && symbol->srcViewRef() != file->ast().srcView().ref())
                 declRef = file->ast().tryFindNodeRef(symbol->decl());
         }
-        if (declRef.isInvalid() || ModuleApi::Internal::isGeneratedSourceDecl(*file, declRef))
+        if (declRef.isInvalid() || ModuleApi::isGeneratedSourceDecl(*file, declRef))
             return;
 
-        AstNodeRef rootRef = ModuleApi::Internal::findExportDeclRoot(*file, declRef);
+        AstNodeRef rootRef = ModuleApi::findExportDeclRoot(*file, declRef);
         if (!runtime)
         {
             const auto it = resolvedPublicRootRefs.find(symbol);

@@ -4,11 +4,9 @@
 
 SWC_BEGIN_NAMESPACE();
 
-class Ast;
 class SourceFile;
 class Symbol;
 class TaskContext;
-struct AstNode;
 
 struct ModuleApiPublicEntry
 {
@@ -39,19 +37,8 @@ namespace ModuleApi
 {
     bool   isCurrentModuleSourceFile(const SourceFile& sourceFile);
     void   onSymbolSemaCompleted(ModuleApiPerThreadData& state, TaskContext& ctx, const Symbol& symbol);
-    Result collectPublicEntries(TaskContext& ctx, ModuleApiFileEntries& outEntries);
-    Result resolvePendingEntries(TaskContext& ctx, ModuleApiFileEntries& entries, bool diagnosticsOnly);
+    Result collectPublicEntries(TaskContext& ctx, ModuleApiFileEntries& outEntries, bool diagnosticsOnly = false);
     Result exportFiles(TaskContext& ctx);
-
-    namespace Internal
-    {
-        bool       tryFindNodeRef(const Ast& ast, const AstNode* targetNode, AstNodeRef& outNodeRef);
-        bool       isGeneratedSourceDecl(const SourceFile& file, AstNodeRef declRef);
-        AstNodeRef findExportDeclRoot(const SourceFile& file, AstNodeRef declRef);
-        bool       hasExplicitPublicAccessModifier(const SourceFile& file, AstNodeRef declRef);
-        bool       isExportedPublicDeclScope(const SourceFile& file, AstNodeRef declRef, const Symbol& symbol);
-        bool       extractPublicNamespacePath(TaskContext& ctx, const SourceFile& file, AstNodeRef declRef, const Symbol& symbol, std::vector<IdentifierRef>& outNamespacePath);
-    }
 }
 
 SWC_END_NAMESPACE();

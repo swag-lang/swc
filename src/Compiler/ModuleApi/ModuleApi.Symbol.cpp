@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Compiler/ModuleApi/ModuleApi.h"
-#include "Compiler/ModuleApi/ModuleApi.Export.h"
+#include "Compiler/ModuleApi/ModuleApi.Internal.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
@@ -42,6 +42,24 @@ namespace
             fileEntry.publicEntries.push_back(publicEntry);
         else if (!existingEntry->symbol)
             existingEntry->symbol = publicEntry.symbol;
+    }
+
+    void mergeFileEntry(ModuleApiFileEntry& outEntry, const ModuleApiFileEntry& threadEntry)
+    {
+        // A symbol completes sema exactly once, so per-thread pending lists are disjoint.
+        outEntry.pendingSymbols.insert(outEntry.pendingSymbols.end(), threadEntry.pendingSymbols.begin(), threadEntry.pendingSymbols.end());
+
+        for (const ModuleApiPublicEntry& publicEntry : threadEntry.publicEntries)
+        {
+            if (!findMatchingPublicEntry(outEntry.publicEntries, publicEntry))
+                outEntry.publicEntries.push_back(publicEntry);
+        }
+    }
+
+    void mergeThreadData(ModuleApiFileEntries& outEntries, const ModuleApiPerThreadData& threadData)
+    {
+        for (const auto& [srcViewRef, threadEntry] : threadData.files)
+            mergeFileEntry(outEntries[srcViewRef], threadEntry);
     }
 
     // True for an `impl Interface for Struct {}` block that has no member functions (a
@@ -93,30 +111,30 @@ namespace
             return Result::Continue;
 
         AstNodeRef declRef;
-        if (!ModuleApi::Internal::tryFindNodeRef(astFile->ast(), symbol.decl(), declRef))
+        if (!ModuleApi::tryFindReachableNodeRef(astFile->ast(), symbol.decl(), declRef))
         {
             if (astFile->ast().hasSourceView() && symbol.srcViewRef() != astFile->ast().srcView().ref())
                 declRef = astFile->ast().tryFindNodeRef(symbol.decl());
         }
         if (declRef.isInvalid())
             return Result::Continue;
-        if (!ModuleApi::Internal::isExportedPublicDeclScope(*astFile, declRef, symbol))
+        if (!ModuleApi::isExportedPublicDeclScope(*astFile, declRef, symbol))
             return Result::Continue;
 
         if (symbol.isVariable())
         {
-            if (ModuleApi::Internal::hasExplicitPublicAccessModifier(*astFile, declRef))
+            if (ModuleApi::hasExplicitPublicAccessModifier(*astFile, declRef))
                 return reportModuleApiPublicGlobalVariable(ctx, symbol);
             return Result::Continue;
         }
 
         ModuleApiPublicEntry publicEntry;
-        publicEntry.rootRef = ModuleApi::Internal::findExportDeclRoot(*astFile, declRef);
+        publicEntry.rootRef = ModuleApi::findExportDeclRoot(*astFile, declRef);
         publicEntry.symbol  = &symbol;
         if (publicEntry.rootRef.isInvalid())
             return Result::Continue;
 
-        if (!ModuleApi::Internal::extractPublicNamespacePath(ctx, *astFile, declRef, symbol, publicEntry.namespacePath))
+        if (!ModuleApi::extractPublicNamespacePath(ctx, *astFile, declRef, symbol, publicEntry.namespacePath))
             return Result::Continue;
 
         addPublicEntry(fileEntry, publicEntry);
@@ -162,6 +180,16 @@ namespace ModuleApi
             return;
 
         state.files[symbol.srcViewRef()].pendingSymbols.push_back(&symbol);
+    }
+
+    Result collectPublicEntries(TaskContext& ctx, ModuleApiFileEntries& outEntries, const bool diagnosticsOnly)
+    {
+        outEntries.clear();
+        const CompilerInstance& compiler = ctx.compiler();
+        for (size_t i = 0; i < compiler.numPerThreadData(); ++i)
+            mergeThreadData(outEntries, compiler.moduleApiPerThreadData(i));
+
+        return resolvePendingEntries(ctx, outEntries, diagnosticsOnly);
     }
 
     Result resolvePendingEntries(TaskContext& ctx, ModuleApiFileEntries& entries, const bool diagnosticsOnly)

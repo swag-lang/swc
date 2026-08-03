@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Backend/RuntimeName.h"
-#include "Compiler/ModuleApi/ModuleApi.Export.h"
+#include "Compiler/ModuleApi/ModuleApiExport.Internal.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/SourceFile.h"
@@ -11,10 +11,19 @@
 #include "Support/Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();
-using namespace ModuleApi::Export;
 
 namespace
 {
+    using ModuleApiExport::buildModuleArtifactName;
+    using ModuleApiExport::buildSanitizedModuleApiSnippet;
+    using ModuleApiExport::findEnclosingImplRef;
+    using ModuleApiExport::ModuleApiGeneratedRoot;
+    using ModuleApiExport::sameNamespacePath;
+    using ModuleApiExport::tryBuildImplPrefix;
+    using ModuleApiExport::tryFindSemanticImplRef;
+    using ModuleApiExport::tryGetModuleApiSnippet;
+    using ModuleApiExport::tryGetModuleApiSnippetOffsets;
+
     struct ModuleApiImplEntry
     {
         Utf8              prefix;
@@ -616,7 +625,7 @@ namespace
     }
 }
 
-namespace ModuleApi::Export
+namespace ModuleApiExport
 {
     Utf8 buildExportedModuleApiContent(const SourceFile& file, std::string_view moduleNamespace, bool hasModuleNamespace)
     {

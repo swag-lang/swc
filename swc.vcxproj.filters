@@ -729,28 +729,28 @@
     <ClCompile Include="src\Main\ExternalModuleManager.cpp">
       <Filter>src\Main</Filter>
     </ClCompile>
-    <ClCompile Include="src\Compiler\ModuleApi\ModuleApi.cpp">
+    <ClCompile Include="src\Compiler\ModuleApi\ModuleApi.Decl.cpp">
       <Filter>src\Compiler\ModuleApi</Filter>
     </ClCompile>
-    <ClCompile Include="src\Compiler\ModuleApi\ModuleApi.Export.cpp">
-      <Filter>src\Compiler\ModuleApi</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Compiler\ModuleApi\ModuleApi.Export.Content.cpp">
-      <Filter>src\Compiler\ModuleApi</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Compiler\ModuleApi\ModuleApi.Export.Generate.cpp">
-      <Filter>src\Compiler\ModuleApi</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Compiler\ModuleApi\ModuleApi.Export.Roots.cpp">
-      <Filter>src\Compiler\ModuleApi</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Compiler\ModuleApi\ModuleApi.Export.Snippet.cpp">
-      <Filter>src\Compiler\ModuleApi</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Compiler\ModuleApi\ModuleApi.Export.Validate.cpp">
+    <ClCompile Include="src\Compiler\ModuleApi\ModuleApi.Source.cpp">
       <Filter>src\Compiler\ModuleApi</Filter>
     </ClCompile>
     <ClCompile Include="src\Compiler\ModuleApi\ModuleApi.Symbol.cpp">
+      <Filter>src\Compiler\ModuleApi</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\ModuleApi\ModuleApiExport.cpp">
+      <Filter>src\Compiler\ModuleApi</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\ModuleApi\ModuleApiExport.Content.cpp">
+      <Filter>src\Compiler\ModuleApi</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\ModuleApi\ModuleApiExport.Generate.cpp">
+      <Filter>src\Compiler\ModuleApi</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\ModuleApi\ModuleApiExport.Roots.cpp">
+      <Filter>src\Compiler\ModuleApi</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\ModuleApi\ModuleApiExport.Validate.cpp">
       <Filter>src\Compiler\ModuleApi</Filter>
     </ClCompile>
     <ClCompile Include="src\Main\Stats.cpp">
@@ -1496,7 +1496,13 @@
     <ClInclude Include="src\Compiler\ModuleApi\ModuleApi.h">
       <Filter>src\Compiler\ModuleApi</Filter>
     </ClInclude>
-    <ClInclude Include="src\Compiler\ModuleApi\ModuleApi.Export.h">
+    <ClInclude Include="src\Compiler\ModuleApi\ModuleApi.Internal.h">
+      <Filter>src\Compiler\ModuleApi</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\ModuleApi\ModuleApi.Source.h">
+      <Filter>src\Compiler\ModuleApi</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\ModuleApi\ModuleApiExport.Internal.h">
       <Filter>src\Compiler\ModuleApi</Filter>
     </ClInclude>
     <ClInclude Include="src\Main\Version.h">

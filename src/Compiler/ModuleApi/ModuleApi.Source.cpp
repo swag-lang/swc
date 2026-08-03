@@ -1,22 +1,22 @@
 #include "pch.h"
 #include "Compiler/Lexer/Lexer.h"
-#include "Compiler/ModuleApi/ModuleApi.Export.h"
+#include "Compiler/ModuleApi/ModuleApi.Internal.h"
+#include "Compiler/ModuleApi/ModuleApi.Source.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/SourceFile.h"
+#include "Main/CompilerInstance.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
-using namespace ModuleApi::Export;
 
 namespace
 {
-    bool isModuleApiDeclWrapper(const AstNode& node)
-    {
-        return node.is(AstNodeId::AccessModifier) ||
-               node.is(AstNodeId::AttributeList) ||
-               node.is(AstNodeId::VarDeclList);
-    }
+    using ModuleApi::isDeclarationWrapper;
+    using ModuleApi::moduleApiNodeSourceView;
+    using ModuleApi::moduleApiSnippetStartTokRef;
+    using ModuleApi::sourceTokenByteEnd;
+    using ModuleApi::sourceTokenByteStart;
 
     TokenRef moduleApiCallExprEndTokRef(const Ast& ast, const AstNode& node)
     {
@@ -156,7 +156,7 @@ namespace
 
     TokenRef moduleApiSnippetEndTokRef(const Ast& ast, const AstNode& node)
     {
-        if (isModuleApiDeclWrapper(node))
+        if (isDeclarationWrapper(node))
         {
             SmallVector<AstNodeRef> childRefs;
             node.collectChildrenFromAst(childRefs, ast);
@@ -501,8 +501,21 @@ namespace
     }
 }
 
-namespace ModuleApi::Export
+namespace ModuleApi
 {
+    uint32_t sourceTokenByteStart(const SourceView& srcView, const Token& token)
+    {
+        if (token.id == TokenId::Identifier)
+            return srcView.identifiers()[token.byteStart].byteStart;
+
+        return token.byteStart;
+    }
+
+    uint32_t sourceTokenByteEnd(const SourceView& srcView, const Token& token)
+    {
+        return sourceTokenByteStart(srcView, token) + token.byteLength;
+    }
+
     TokenRef moduleApiSnippetStartTokRef(const Ast& ast, const AstNode& node)
     {
         if (node.is(AstNodeId::VarDeclList))

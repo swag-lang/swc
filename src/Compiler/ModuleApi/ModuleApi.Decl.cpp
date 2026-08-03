@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "Compiler/ModuleApi/ModuleApi.h"
+#include "Compiler/ModuleApi/ModuleApi.Internal.h"
+#include "Compiler/ModuleApi/ModuleApi.Source.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
@@ -12,12 +14,11 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool isModuleApiDeclWrapper(const AstNode& node)
+    enum class NodePathTraversal
     {
-        return node.is(AstNodeId::AccessModifier) ||
-               node.is(AstNodeId::AttributeList) ||
-               node.is(AstNodeId::VarDeclList);
-    }
+        Declarations,
+        All,
+    };
 
     bool isModuleApiForbiddenContainer(const AstNode& node)
     {
@@ -28,7 +29,7 @@ namespace
                node.is(AstNodeId::Impl);
     }
 
-    bool collectModuleApiNodePath(const Ast& ast, const AstNodeRef currentRef, const AstNodeRef targetRef, SmallVector<AstNodeRef>& ioPath)
+    bool collectModuleApiNodePath(SmallVector<AstNodeRef>& ioPath, const Ast& ast, const AstNodeRef currentRef, const AstNodeRef targetRef, const NodePathTraversal traversal)
     {
         if (!currentRef.isValid() || ast.isAdditionalNode(currentRef))
             return false;
@@ -37,7 +38,7 @@ namespace
         if (currentRef == targetRef)
             return true;
 
-        if (ast.node(currentRef).is(AstNodeId::FunctionBody))
+        if (traversal == NodePathTraversal::Declarations && ast.node(currentRef).is(AstNodeId::FunctionBody))
         {
             ioPath.pop_back();
             return false;
@@ -47,7 +48,7 @@ namespace
         ast.node(currentRef).collectChildrenFromAst(childRefs, ast);
         for (const AstNodeRef childRef : childRefs)
         {
-            if (collectModuleApiNodePath(ast, childRef, targetRef, ioPath))
+            if (collectModuleApiNodePath(ioPath, ast, childRef, targetRef, traversal))
                 return true;
         }
 
@@ -162,7 +163,7 @@ namespace
             return false;
 
         SmallVector<AstNodeRef> nodePath;
-        if (!collectModuleApiNodePath(file.ast(), rootRef, declRef, nodePath))
+        if (!collectModuleApiNodePath(nodePath, file.ast(), rootRef, declRef, NodePathTraversal::Declarations))
             return false;
 
         IdentifierRef moduleNamespaceIdRef = IdentifierRef::invalid();
@@ -213,6 +214,13 @@ namespace
 
 namespace ModuleApi
 {
+    bool isDeclarationWrapper(const AstNode& node)
+    {
+        return node.is(AstNodeId::AccessModifier) ||
+               node.is(AstNodeId::AttributeList) ||
+               node.is(AstNodeId::VarDeclList);
+    }
+
     bool isCurrentModuleSourceFile(const SourceFile& sourceFile)
     {
         if (sourceFile.isImportedApi())
@@ -223,10 +231,6 @@ namespace ModuleApi
 
         return sourceFile.hasFlag(FileFlagsE::CustomSrc) && sourceFile.moduleNamespace() != nullptr;
     }
-}
-
-namespace ModuleApi::Internal
-{
     bool isGeneratedSourceDecl(const SourceFile& file, const AstNodeRef declRef)
     {
         if (declRef.isInvalid() || !file.ast().hasSourceView())
@@ -236,7 +240,7 @@ namespace ModuleApi::Internal
         return node.srcViewRef().isValid() && node.srcViewRef() != file.ast().srcView().ref();
     }
 
-    bool tryFindNodeRef(const Ast& ast, const AstNode* targetNode, AstNodeRef& outNodeRef)
+    bool tryFindReachableNodeRef(const Ast& ast, const AstNode* targetNode, AstNodeRef& outNodeRef)
     {
         outNodeRef = AstNodeRef::invalid();
         if (!targetNode)
@@ -266,7 +270,7 @@ namespace ModuleApi::Internal
             return declRef;
 
         SmallVector<AstNodeRef> nodePath;
-        if (!collectModuleApiNodePath(file.ast(), rootRef, declRef, nodePath))
+        if (!collectModuleApiNodePath(nodePath, file.ast(), rootRef, declRef, NodePathTraversal::Declarations))
             return AstNodeRef::invalid();
 
         AstNodeRef exportRootRef = declRef;
@@ -274,13 +278,33 @@ namespace ModuleApi::Internal
         {
             const AstNodeRef parentRef = nodePath[i - 2];
             const AstNode&   parent    = file.ast().node(parentRef);
-            if (!isModuleApiDeclWrapper(parent))
+            if (!isDeclarationWrapper(parent))
                 break;
 
             exportRootRef = parentRef;
         }
 
         return exportRootRef;
+    }
+
+    AstNodeRef findEnclosingImplRef(const SourceFile& file, const AstNodeRef declRef)
+    {
+        const AstNodeRef rootRef = file.ast().root();
+        if (rootRef.isInvalid())
+            return AstNodeRef::invalid();
+
+        SmallVector<AstNodeRef> nodePath;
+        if (!collectModuleApiNodePath(nodePath, file.ast(), rootRef, declRef, NodePathTraversal::All))
+            return AstNodeRef::invalid();
+
+        for (size_t i = 0; i + 1 < nodePath.size(); ++i)
+        {
+            const AstNodeRef nodeRef = nodePath[i];
+            if (file.ast().node(nodeRef).is(AstNodeId::Impl))
+                return nodeRef;
+        }
+
+        return AstNodeRef::invalid();
     }
 
     bool hasExplicitPublicAccessModifier(const SourceFile& file, const AstNodeRef declRef)
@@ -290,14 +314,14 @@ namespace ModuleApi::Internal
             return false;
 
         SmallVector<AstNodeRef> nodePath;
-        if (!collectModuleApiNodePath(file.ast(), rootRef, declRef, nodePath))
+        if (!collectModuleApiNodePath(nodePath, file.ast(), rootRef, declRef, NodePathTraversal::Declarations))
             return false;
 
         for (size_t i = nodePath.size(); i > 1; --i)
         {
             const AstNodeRef parentRef = nodePath[i - 2];
             const AstNode&   parent    = file.ast().node(parentRef);
-            if (!isModuleApiDeclWrapper(parent))
+            if (!isDeclarationWrapper(parent))
                 break;
 
             if (parent.is(AstNodeId::AccessModifier) && parent.tokRef().isValid() && file.ast().srcView().token(parent.tokRef()).id == TokenId::KwdPublic)
@@ -316,7 +340,7 @@ namespace ModuleApi::Internal
             return true;
 
         SmallVector<AstNodeRef> nodePath;
-        if (!collectModuleApiNodePath(file.ast(), rootRef, declRef, nodePath))
+        if (!collectModuleApiNodePath(nodePath, file.ast(), rootRef, declRef, NodePathTraversal::Declarations))
             return false;
 
         for (size_t i = 0; i + 1 < nodePath.size(); ++i)
@@ -345,6 +369,11 @@ namespace ModuleApi::Internal
         }
 
         return extractNamespacePathFromOwner(namespaceOwnerSymMapForPublicSymbol(ctx, symbol), outNamespacePath);
+    }
+
+    bool isModuleApiOpaqueType(const Symbol& symbol)
+    {
+        return symbol.attributes().hasRtFlag(RtAttributeFlagsE::Opaque);
     }
 }
 

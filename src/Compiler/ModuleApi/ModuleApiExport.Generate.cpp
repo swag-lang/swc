@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Compiler/ModuleApi/ModuleApi.Export.h"
+#include "Compiler/ModuleApi/ModuleApiExport.Internal.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -10,10 +10,29 @@
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
-using namespace ModuleApi::Export;
 
 namespace
 {
+    using ModuleApiExport::appendGeneratedRootUnique;
+    using ModuleApiExport::buildModuleArtifactName;
+    using ModuleApiExport::buildModuleNamespaceName;
+    using ModuleApiExport::buildSanitizedModuleApiSnippet;
+    using ModuleApiExport::extractPublicNamespacePath;
+    using ModuleApiExport::findExportDeclRoot;
+    using ModuleApiExport::isCurrentModuleSourceFile;
+    using ModuleApiExport::isExportedPublicDeclScope;
+    using ModuleApiExport::moduleApiNodeSourceView;
+    using ModuleApiExport::moduleApiSnippetStartTokRef;
+    using ModuleApiExport::ModuleApiGeneratedRoot;
+    using ModuleApiExport::sameNamespacePath;
+    using ModuleApiExport::sourceTokenByteEnd;
+    using ModuleApiExport::sourceTokenByteStart;
+    using ModuleApiExport::tryBuildImplPrefix;
+    using ModuleApiExport::tryFindReachableNodeRef;
+    using ModuleApiExport::tryGetModuleApiSnippet;
+    using ModuleApiExport::tryGetModuleApiSnippetOffsets;
+    using ModuleApiExport::tryGetModuleApiSnippetStartOffset;
+
     Result buildSanitizedRootSnippet(TaskContext& ctx, Utf8& outSnippet, const ModuleApiGeneratedRoot& root, std::string_view eol);
 
     bool supportsGeneratedModuleApiForeignFunctions(const CompilerInstance& compiler)
@@ -164,9 +183,9 @@ namespace
             return false;
 
         AstNodeRef declRef;
-        if (!ModuleApi::Internal::tryFindNodeRef(sourceFile->ast(), symbolFunction.decl(), declRef))
+        if (!ModuleApi::tryFindReachableNodeRef(sourceFile->ast(), symbolFunction.decl(), declRef))
             return false;
-        return ModuleApi::Internal::isExportedPublicDeclScope(*sourceFile, declRef, symbolFunction);
+        return ModuleApi::isExportedPublicDeclScope(*sourceFile, declRef, symbolFunction);
     }
 
     bool hasGeneratedModuleApiSourceMethod(TaskContext& ctx, const SymbolStruct& symbolStruct)
@@ -522,7 +541,7 @@ namespace
             return false;
 
         AstNodeRef implRef;
-        if (!ModuleApi::Internal::tryFindNodeRef(root.file->ast(), symImpl->decl(), implRef))
+        if (!ModuleApi::tryFindReachableNodeRef(root.file->ast(), symImpl->decl(), implRef))
             return false;
 
         Utf8 implPrefix;
@@ -535,27 +554,6 @@ namespace
         outSnippet += eol;
         outSnippet += "}";
         return true;
-    }
-
-    bool collectModuleApiNodePath(const Ast& ast, const AstNodeRef currentRef, const AstNodeRef targetRef, SmallVector<AstNodeRef>& ioPath)
-    {
-        if (!currentRef.isValid() || ast.isAdditionalNode(currentRef))
-            return false;
-
-        ioPath.push_back(currentRef);
-        if (currentRef == targetRef)
-            return true;
-
-        SmallVector<AstNodeRef> childRefs;
-        ast.node(currentRef).collectChildrenFromAst(childRefs, ast);
-        for (const AstNodeRef childRef : childRefs)
-        {
-            if (collectModuleApiNodePath(ast, childRef, targetRef, ioPath))
-                return true;
-        }
-
-        ioPath.pop_back();
-        return false;
     }
 
     const SymbolImpl* semanticImplContext(const Symbol* symbol)
@@ -621,16 +619,16 @@ namespace
                 continue;
 
             AstNodeRef declRef;
-            if (!ModuleApi::Internal::tryFindNodeRef(astFile->ast(), method->decl(), declRef))
+            if (!ModuleApi::tryFindReachableNodeRef(astFile->ast(), method->decl(), declRef))
                 continue;
 
             ModuleApiGeneratedRoot methodRoot;
             methodRoot.file    = astFile;
-            methodRoot.nodeRef = ModuleApi::Internal::findExportDeclRoot(*astFile, declRef);
+            methodRoot.nodeRef = ModuleApi::findExportDeclRoot(*astFile, declRef);
             methodRoot.symbol  = method;
             if (methodRoot.nodeRef.isInvalid())
                 continue;
-            if (!ModuleApi::Internal::extractPublicNamespacePath(ctx, *astFile, declRef, *method, methodRoot.namespacePath))
+            if (!ModuleApi::extractPublicNamespacePath(ctx, *astFile, declRef, *method, methodRoot.namespacePath))
                 continue;
 
             appendGeneratedRootUnique(outRoots, std::move(methodRoot));
@@ -656,7 +654,7 @@ namespace
     }
 }
 
-namespace ModuleApi::Export
+namespace ModuleApiExport
 {
     bool tryBuildImplPrefix(TaskContext& ctx, const SourceFile& file, const AstNodeRef implRef, const std::string_view eol, Utf8& outPrefix)
     {
@@ -745,26 +743,6 @@ namespace ModuleApi::Export
         return buildSanitizedRootSnippet(ctx, outSnippet, root, eol);
     }
 
-    AstNodeRef findEnclosingImplRef(const SourceFile& file, const AstNodeRef declRef)
-    {
-        const AstNodeRef rootRef = file.ast().root();
-        if (rootRef.isInvalid())
-            return AstNodeRef::invalid();
-
-        SmallVector<AstNodeRef> nodePath;
-        if (!collectModuleApiNodePath(file.ast(), rootRef, declRef, nodePath))
-            return AstNodeRef::invalid();
-
-        for (size_t i = 0; i + 1 < nodePath.size(); ++i)
-        {
-            const AstNodeRef nodeRef = nodePath[i];
-            if (file.ast().node(nodeRef).is(AstNodeId::Impl))
-                return nodeRef;
-        }
-
-        return AstNodeRef::invalid();
-    }
-
     bool tryFindSemanticImplRef(TaskContext& ctx, const ModuleApiGeneratedRoot& root, AstNodeRef& outImplRef, const SourceFile*& outImplFile)
     {
         outImplRef  = AstNodeRef::invalid();
@@ -781,7 +759,7 @@ namespace ModuleApi::Export
             return false;
 
         AstNodeRef implRef;
-        if (!Internal::tryFindNodeRef(implFile->ast(), symImpl->decl(), implRef))
+        if (!ModuleApi::tryFindReachableNodeRef(implFile->ast(), symImpl->decl(), implRef))
             return false;
 
         outImplRef  = implRef;

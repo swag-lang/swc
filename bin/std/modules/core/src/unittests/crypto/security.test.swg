@@ -12,8 +12,8 @@ func cryptoBytesEqual(left, right: const [..] u8)->bool
 
 #test
 {
-    let key      = @mkslice(cast(const [*] u8) @dataof("key"), 3)
-    let text     = "The quick brown fox jumps over the lazy dog"
+    let key               = @mkslice(cast(const [*] u8) @dataof("key"), 3)
+    let text              = "The quick brown fox jumps over the lazy dog"
     let expected: [32] u8 = [
         0xF7, 0xBC, 0x83, 0xF4, 0x30, 0x53, 0x84, 0x24,
         0xB1, 0x32, 0x98, 0xE6, 0xAA, 0x6F, 0xB1, 0x43,
@@ -21,7 +21,7 @@ func cryptoBytesEqual(left, right: const [..] u8)->bool
         0x97, 0x47, 0x9D, 0xBC, 0x2D, 0x1A, 0x3C, 0xD8]
 
     let actual = Crypto.HmacSha256.compute(key,
-        @mkslice(cast(const [*] u8) @dataof(text), @countof(text)))
+                                           @mkslice(cast(const [*] u8) @dataof(text), @countof(text)))
     @assert(cryptoBytesEqual(actual, expected))
 
     var incremental = Crypto.HmacSha256.create(key)
@@ -34,8 +34,8 @@ func cryptoBytesEqual(left, right: const [..] u8)->bool
 
 #test
 {
-    let password = @mkslice(cast(const [*] u8) @dataof("password"), 8)
-    let salt     = @mkslice(cast(const [*] u8) @dataof("salt"), 4)
+    let password          = @mkslice(cast(const [*] u8) @dataof("password"), 8)
+    let salt              = @mkslice(cast(const [*] u8) @dataof("salt"), 4)
     let expected: [64] u8 = [
         0xAE, 0x4D, 0x0C, 0x95, 0xAF, 0x6B, 0x46, 0xD3,
         0x2D, 0x0A, 0xDF, 0xF9, 0x28, 0xF0, 0x6D, 0xD0,
@@ -94,7 +94,7 @@ func cryptoBytesEqual(left, right: const [..] u8)->bool
 
 #test
 {
-    let empty = @mkslice(cast(const [*] u8) @dataof(""), 0)
+    let empty         = @mkslice(cast(const [*] u8) @dataof(""), 0)
     let one:   [1] u8 = [1]
     let other: [1] u8 = [2]
     @assert(Crypto.constantTimeEqual(empty, empty))

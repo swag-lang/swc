@@ -23,7 +23,7 @@ func randomBytes(buffer: [..] u8) fail
 func(T) secureClear(buffer: [..] T)
 {
     const elementSize = #sizeof(T)
-    let byteCount     = @countof(buffer) * elementSize
+    let byteCount = @countof(buffer) * elementSize
     if byteCount do
         discard RtlZeroMemory(@dataof(buffer), byteCount)
 }

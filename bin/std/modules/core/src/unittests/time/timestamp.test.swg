@@ -217,7 +217,7 @@ func expectDateTime(value: Time.DateTime, year, month, day, hour, minute, second
 
 #test
 {
-    let dateTime = Time.DateTime.utcNow()
+    let dateTime  = Time.DateTime.utcNow()
     let timestamp = Time.Timestamp.utcNow()
     @assert(dateTime.isValid())
     @assert(timestamp.ticks != 0)

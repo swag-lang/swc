@@ -26,6 +26,7 @@ private func sha256Bytes(digest: Hash.Sha256.Digest)->HmacSha256Digest
         result[i * 4 + 2] = cast(u8) ((word >> 8) & 0xFF)
         result[i * 4 + 3] = cast(u8) (word & 0xFF)
     }
+
     return result
 }
 
@@ -104,7 +105,7 @@ public impl HmacSha256
         .inner.bitLength  = 0
         .outer.dataLength = 0
         .outer.bitLength  = 0
-        .initialized     = false
+        .initialized      = false
     }
 
     // Clears keyed state when this value leaves scope.

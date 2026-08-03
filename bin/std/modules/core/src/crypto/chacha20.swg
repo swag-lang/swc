@@ -55,10 +55,10 @@ func chacha20Block(key: const [..] u8, counter: u32, nonce: const [..] u8)->[Cha
         fail Errors.BadParameterError{"ChaCha20 needs a 12-byte nonce"}
 
     var initial: [16] u32
-    initial[0]  = 0x61707865
-    initial[1]  = 0x3320646E
-    initial[2]  = 0x79622D32
-    initial[3]  = 0x6B206574
+    initial[0] = 0x61707865
+    initial[1] = 0x3320646E
+    initial[2] = 0x79622D32
+    initial[3] = 0x6B206574
     for [i] in 8 do
         initial[4 + i] = load32(@dataof(key) + i * 4)
     initial[12] = counter

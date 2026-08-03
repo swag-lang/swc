@@ -11,7 +11,7 @@ func containsDriveLetter(letters: const [..] rune, expected: rune)->bool
 #test
 {
     let available = File.availableDriveLetters()
-    var previous = 0'rune
+    var previous  = 0'rune
     for letter in available
     {
         @assert(letter >= 'A' and letter <= 'Z')

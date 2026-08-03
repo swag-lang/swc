@@ -14,10 +14,9 @@ private func rememberedNetworkDriveMask()->u32
     var result = 0'u32
     for [index] in 26
     {
-        let subkey = Utf16.toZeroTerminated(Format.toString(
-            "Network\\%", cast(rune) ('A' + index)))
+        let subkey        = Utf16.toZeroTerminated(Format.toString("Network\\%", cast(rune) ('A' + index)))
         var mapping: HKEY = null
-        let status = RegOpenKeyExW(currentUser, @dataof(subkey), 0, KEY_READ, &mapping)
+        let status        = RegOpenKeyExW(currentUser, @dataof(subkey), 0, KEY_READ, &mapping)
         if status == 0
         {
             result |= 1'u32 << index
@@ -26,6 +25,7 @@ private func rememberedNetworkDriveMask()->u32
         elif status != ERROR_FILE_NOT_FOUND do
             return Swag.U32.Max
     }
+
     return result
 }
 

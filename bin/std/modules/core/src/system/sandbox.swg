@@ -20,7 +20,7 @@ It is armed by the runtime from the process command line before any `#init`, `#p
 > produces the same wrong-but-green result the sandbox exists to prevent.
 */
 private var g_SandboxRoot: String
-private var g_Sandboxed:   bool
+private var g_Sandboxed: bool
 private var g_DeniedCount: u64
 
 // Run argument the compiler passes to a generated executable to isolate it. Either on its
@@ -43,7 +43,7 @@ private func defaultSandboxRoot()->String
 {
     var result = Path.combine(getSpecialDirectory(.Temp).toString(), "swag-sandbox")
     var name   = String.from("run-")
-    name += Format.toString("%", currentProcessId())
+    name   += Format.toString("%", currentProcessId())
     result = Path.combine(result.toString(), name.toString())
     return result
 }

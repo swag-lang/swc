@@ -64,10 +64,10 @@ using Swag
     if !Env.isSandboxed() do
         return
 
-    let docs     = Env.getSpecialDirectory(.UserDocuments)
-    let appData  = Env.getSpecialDirectory(.UserAppData)
-    let tempDir  = Env.getSpecialDirectory(.Temp)
-    let root     = Env.sandboxRoot()
+    let docs    = Env.getSpecialDirectory(.UserDocuments)
+    let appData = Env.getSpecialDirectory(.UserAppData)
+    let tempDir = Env.getSpecialDirectory(.Temp)
+    let root    = Env.sandboxRoot()
 
     @assert(Env.isInsideDirectory(root, docs.toString()))
     @assert(Env.isInsideDirectory(root, appData.toString()))

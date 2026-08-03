@@ -16,7 +16,7 @@ struct PasswordEdit
 
     internal
     #[Swag.Late]
-    edit:       *EditBox     // Mask-only child owned by this control.
+    edit:      *EditBox      // Mask-only child owned by this control.
     storage:   [1024] u8     // Fixed storage avoids reallocating plaintext through a general allocator.
     byteCount: u64           // Number of occupied plaintext bytes.
     runeCount: u64           // Number of entered Unicode code points.
@@ -33,6 +33,7 @@ private impl PasswordEdit
             let {?, eat} = Utf8.decodeRune(.storage[byteOffset until .byteCount])
             byteOffset += eat
         }
+
         return byteOffset
     }
 
@@ -108,7 +109,7 @@ private impl PasswordEdit
         if !changed and key == .Back and caret
         {
             .eraseRunes(caret - 1, caret)
-            caret  -= 1
+            caret   -= 1
             changed = true
         }
         elif !changed and key == .Delete and caret < .runeCount
@@ -150,7 +151,8 @@ private impl PasswordEdit
             if key.kind == .Pressed and
                ((key.modifiers & Input.KeyModifiers.Control) and
                 (key.key == .C or key.key == .X or key.key == .V or key.key == .Insert) or
-                (key.modifiers & Input.KeyModifiers.Shift) and key.key == .Insert)
+                (key.modifiers & Input.KeyModifiers.Shift) and
+                key.key == .Insert)
             {
                 key.accepted = true
                 return true
@@ -198,9 +200,9 @@ public impl PasswordEdit
             pos.width = parent.themeMetrics().editBox_Width
 
         let result = Wnd.create'PasswordEdit(parent, null, pos, id)
-        result.focusStrategy = .None
-        result.edit = EditBox.create(result, "", result.clientRect(), flags: .ReleaseFocusOnEnterOrEscape)
-        result.edit.hookOnEvent = func|password = result|(wnd, evt) => password.handleEditEvent(wnd, evt)
+        result.focusStrategy     = .None
+        result.edit              = EditBox.create(result, "", result.clientRect(), flags: .ReleaseFocusOnEnterOrEscape)
+        result.edit.hookOnEvent  = func|password = result|(wnd, evt) => password.handleEditEvent(wnd, evt)
         result.edit.sigSubmitted += func|password = result|(edit)
         {
             discard edit

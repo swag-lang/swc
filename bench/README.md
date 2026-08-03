@@ -90,6 +90,12 @@ an asterisk in the report, because its commit alone will not reproduce it.
 | `results/` | one raw campaign per file, kept whole so a past number can be re-derived |
 | `src/` | the six tasks in every language |
 
+## After a campaign
+
+The repository [README](../README.md) quotes one campaign in full — both tables and the four
+ratios that follow them. Those numbers are hand-copied, so a campaign that moves them is only
+half recorded until the README is refreshed from the new `results/` file and its stamp updated.
+
 ## Extending it
 
 - **A new task**: add it to every language under `src/`, then to `TASKS` in `toolchains.py`

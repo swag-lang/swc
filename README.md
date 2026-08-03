@@ -70,8 +70,9 @@ Six programs, written by hand and identically in every language, none of them us
 container: each one reimplements its own hash map, heap, or matrix, so the benchmark measures the
 compiler rather than somebody's hash table. All ports print the same checksum.
 
-Milliseconds, one campaign on a Windows laptop, lower is better. `swc` in `release`, `clang-cl /O2`,
-`rustc -C opt-level=3 -C codegen-units=1`.
+Milliseconds, lower is better. `swc` in `release`, `clang-cl /O2`,
+`rustc -C opt-level=3 -C codegen-units=1`, one campaign on a Windows laptop
+([`20260802-195919`](bench/results/20260802-195919.json)).
 
 **Execution.** The same program compiled natively, then run again through the compiler's JIT, then
 against the other runtimes:

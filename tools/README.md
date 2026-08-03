@@ -44,7 +44,7 @@ The names are verb-first and grouped by role:
 | --- | --- |
 | `manage-standard-library.bat` | Build or test the standard library, optionally one module |
 | `manage-examples-workspace.bat` | Build, run, or test examples, optionally one module |
-| `manage-applications-workspace.bat` | Build, run, or test applications, optionally one module |
+| `manage-applications-workspace.bat` | Build, run, or test applications; `run` requires one module and launches its packaged executable |
 | `manage-reference-workspace.bat` | Build or test the executable language reference |
 | `run-benchmark-campaign.bat` | Run or regenerate the cross-language performance campaign |
 | `generate-web-documentation.bat` | Regenerate brand assets and the complete website |

@@ -20,6 +20,7 @@ set "EXTRA_ARGS="
 set "TEST_ARGS="
 set "WORKSPACE_ARGS="
 set "WORKSPACE_MODULE="
+set "APPLICATION_ARGS="
 
 if /I "%~1"=="build" (
     shift
@@ -78,6 +79,12 @@ if /I "%SWC_COMMAND%"=="test" if /I "%~1"=="--no-test-jit" (
     shift
     goto parse_args
 )
+if /I "%SWC_COMMAND%"=="run" if /I "%~1"=="--run-arg" (
+    set "APPLICATION_ARGS=%APPLICATION_ARGS% "%~2""
+    shift
+    shift
+    goto parse_args
+)
 if /I "%~1"=="--workspace-module" (
     set "WORKSPACE_MODULE=%~2"
     set "WORKSPACE_ARGS=%WORKSPACE_ARGS% --workspace-module %~2"
@@ -98,6 +105,8 @@ goto parse_args
 
 :run
 call "%TOOLS_DIR%manage-standard-library.bat" %MODE_ARG% build --build-cfg "%BUILD_CFG%"%EXTRA_ARGS% || exit /b 1
+if /I "%SWC_COMMAND%"=="run" goto run_application
+
 call "%TOOLS_DIR%_shared-tooling.bat" :run_swc %SWC_COMMAND% --workspace "%APPS_WORKSPACE%" --build-cfg %BUILD_CFG% --import-api-dir "%STD_OUTPUT_ROOT%"%WORKSPACE_ARGS%%TEST_ARGS%%EXTRA_ARGS%
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
@@ -111,3 +120,23 @@ if /I "%SWC_COMMAND%"=="build" (
 )
 
 exit /b 0
+
+:run_application
+if not defined WORKSPACE_MODULE (
+    echo Running an application requires --workspace-module ^<name^> or -m ^<name^>.
+    exit /b 1
+)
+
+call "%TOOLS_DIR%_shared-tooling.bat" :run_swc build --workspace "%APPS_WORKSPACE%" --build-cfg %BUILD_CFG% --import-api-dir "%STD_OUTPUT_ROOT%"%WORKSPACE_ARGS%%EXTRA_ARGS%
+if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
+
+call "%TOOLS_DIR%_package-application.bat" "%ROOT%" "%WORKSPACE_MODULE%" "%BUILD_CFG%" "%TARGET_ARCH%" || exit /b 1
+set "APPLICATION_DIR=%APPS_WORKSPACE%\.output\%WORKSPACE_MODULE%\executable\%BUILD_CFG%\%TARGET_ARCH%"
+set "APPLICATION_EXE=%APPLICATION_DIR%\%WORKSPACE_MODULE%.exe"
+
+echo Launching %WORKSPACE_MODULE%...
+pushd "%APPLICATION_DIR%" || exit /b 1
+"%APPLICATION_EXE%"%APPLICATION_ARGS%
+set "APPLICATION_ERROR=%ERRORLEVEL%"
+popd
+exit /b %APPLICATION_ERROR%

@@ -19,6 +19,7 @@ set "BUILD_CFG=fast-debug"
 set "EXTRA_ARGS="
 set "TEST_ARGS="
 set "WORKSPACE_ARGS="
+set "WORKSPACE_MODULE="
 
 if /I "%~1"=="build" (
     shift
@@ -78,12 +79,14 @@ if /I "%SWC_COMMAND%"=="test" if /I "%~1"=="--no-test-jit" (
     goto parse_args
 )
 if /I "%~1"=="--workspace-module" (
+    set "WORKSPACE_MODULE=%~2"
     set "WORKSPACE_ARGS=%WORKSPACE_ARGS% --workspace-module %~2"
     shift
     shift
     goto parse_args
 )
 if /I "%~1"=="-m" (
+    set "WORKSPACE_MODULE=%~2"
     set "WORKSPACE_ARGS=%WORKSPACE_ARGS% --workspace-module %~2"
     shift
     shift
@@ -96,4 +99,15 @@ goto parse_args
 :run
 call "%TOOLS_DIR%manage-standard-library.bat" %MODE_ARG% build --build-cfg "%BUILD_CFG%"%EXTRA_ARGS% || exit /b 1
 call "%TOOLS_DIR%_shared-tooling.bat" :run_swc %SWC_COMMAND% --workspace "%APPS_WORKSPACE%" --build-cfg %BUILD_CFG% --import-api-dir "%STD_OUTPUT_ROOT%"%WORKSPACE_ARGS%%TEST_ARGS%%EXTRA_ARGS%
-exit /b %ERRORLEVEL%
+if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
+
+if /I "%SWC_COMMAND%"=="build" (
+    if not defined WORKSPACE_MODULE (
+        call "%TOOLS_DIR%_package-application.bat" "%ROOT%" sCapture "%BUILD_CFG%" "%TARGET_ARCH%" || exit /b 1
+        call "%TOOLS_DIR%_package-application.bat" "%ROOT%" sCrypt "%BUILD_CFG%" "%TARGET_ARCH%" || exit /b 1
+    ) else (
+        call "%TOOLS_DIR%_package-application.bat" "%ROOT%" "%WORKSPACE_MODULE%" "%BUILD_CFG%" "%TARGET_ARCH%" || exit /b 1
+    )
+)
+
+exit /b 0

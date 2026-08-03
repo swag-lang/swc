@@ -55,7 +55,7 @@ func undFill(v: *UndItem)
     @assert(a.y == 2)     // swc-expected-error {{sema_err_undefined_field_use}}
 }
 
-// The captme shape: a pointer declared '= undefined' tested as a guard before any
+// A pointer declared '= undefined' and tested as a guard before any
 // assignment reads uninitialized storage.
 #[Swag.Sanity(.Lifecycle, true)]
 #test

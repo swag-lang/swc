@@ -22,7 +22,7 @@ func breadcrumbPressed(bc: *BreadcrumbCtrl, idx: u64)
     let bc = BreadcrumbCtrl.create(&host.root, {0, 0, 400, 32})
     bc.addItem("Home", {}, 1)
     bc.addItem("Docs", {}, 2)
-    bc.addItem("captMe", {}, 3, hasArrow: false)
+    bc.addItem("Workspace", {}, 3, hasArrow: false)
     bc.setLayoutMetrics(8, 4, 5)
     bc.layout()
 

@@ -194,7 +194,7 @@ func loadGdiReferences()
 {
     for sample, [idx] in Samples
     {
-        let image = renderGdiPlusOutlineImage("Captme", sample.scale)
+        let image = renderGdiPlusOutlineImage("Outline", sample.scale)
         g_GdiText[idx] = g_Render.addImage(image)
     }
 }
@@ -211,7 +211,7 @@ func insetRect(rect: Math.Rectangle, left, top, right, bottom: f32)->Math.Rectan
 
 func drawHeader(painter: *Pixel.Painter)
 {
-    painter.drawString(34, 28, "Captme outline text quality", notnull g_TitleFont, Argb.MidnightBlue)
+    painter.drawString(34, 28, "Pixel outline text quality", notnull g_TitleFont, Argb.MidnightBlue)
     painter.drawString(36, 72, "Native GDI+ GraphicsPath reference, Pixel path-stroke outline, and the old offset-fill outline with the same blurred render-target shadow.", notnull g_HelpFont, Argb.DimGray)
 }
 
@@ -426,7 +426,7 @@ func drawSampleGrid(painter: *Pixel.Painter, rowRect: Math.Rectangle, title: str
         painter.drawRoundRect(cell, 6, 6, Color.fromArgb(32, Argb.SlateGray), 1)
         painter.drawString(cell.x + 10, cell.y + 8, sample.label, notnull g_HelpFont, Argb.DimGray)
         let ss = mode == .PathStroke ? OutlineSuperSample : 1
-        drawShadowedOutline(painter, insetRect(cell, 8, 22, 8, 8), "Captme", sample.scale, mode, ss)
+        drawShadowedOutline(painter, insetRect(cell, 8, 22, 8, 8), "Outline", sample.scale, mode, ss)
     }
 }
 
@@ -477,7 +477,7 @@ func onResize(_window: *Env.Window, width, height: s32)
 
 #main
 {
-    g_Window = try Env.createWindow({className: "PIXEL6_CLASS_NAME", title: "Pixel example - Captme text outline quality", width: W, height: H, style: FixedWindowStyle})
+    g_Window = try Env.createWindow({className: "PIXEL6_CLASS_NAME", title: "Pixel example - text outline quality", width: W, height: H, style: FixedWindowStyle})
     try g_Window.setClientSize(W, H)
     g_Render  = &g_Renderer
     g_Painter = Pixel.Painter.create(g_Render)

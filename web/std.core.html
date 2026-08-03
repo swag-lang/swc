@@ -41,7 +41,7 @@
 <li><a href="#detailed-reference">Detailed reference</a></li>
 </ul>
 <details class="toc-group">
-<summary>Namespaces<span class="toc-count">42</span></summary>
+<summary>Namespaces<span class="toc-count">43</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-namespaces">All Namespaces</a></li>
 <li><a href="#namespace_Core">Core</a></li>
@@ -49,6 +49,7 @@
 <li><a href="#namespace_Core_CommandLine">Core.CommandLine</a></li>
 <li><a href="#namespace_Core_Compress">Core.Compress</a></li>
 <li><a href="#namespace_Core_Console">Core.Console</a></li>
+<li><a href="#namespace_Core_Crypto">Core.Crypto</a></li>
 <li><a href="#namespace_Core_Debug">Core.Debug</a></li>
 <li><a href="#namespace_Core_Debugger">Core.Debugger</a></li>
 <li><a href="#namespace_Core_Directory">Core.Directory</a></li>
@@ -89,7 +90,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary>Types<span class="toc-count">132</span></summary>
+<summary>Types<span class="toc-count">134</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-types">All Types</a></li>
 <li><a href="#Core_Array">Core.Array</a></li>
@@ -109,6 +110,7 @@
 <li><a href="#Core_Compress_Deflate">Compress.Deflate</a></li>
 <li><a href="#Core_Compress_Inflate">Compress.Inflate</a></li>
 <li><a href="#Core_Compress_ZLib">Compress.ZLib</a></li>
+<li><a href="#Core_Crypto_HmacSha256">Crypto.HmacSha256</a></li>
 <li><a href="#Core_Hash_Adler32">Hash.Adler32</a></li>
 <li><a href="#Core_Hash_City32">Hash.City32</a></li>
 <li><a href="#Core_Hash_Crc32">Hash.Crc32</a></li>
@@ -211,6 +213,7 @@
 <li><a href="#Core_Serialization_IEncoder">Serialization.IEncoder</a></li>
 <li><a href="#Core_StrConv_IConvert">StrConv.IConvert</a></li>
 <li><a href="#Core_StrConv_IPokeValue">StrConv.IPokeValue</a></li>
+<li><a href="#Core_Crypto_HmacSha256Digest">Crypto.HmacSha256Digest</a></li>
 <li><a href="#Core_Hash_Md5_Digest">Md5.Digest</a></li>
 <li><a href="#Core_Hash_Sha1_Digest">Sha1.Digest</a></li>
 <li><a href="#Core_Hash_Sha256_Digest">Sha256.Digest</a></li>
@@ -263,13 +266,16 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary>Constants<span class="toc-count">70</span></summary>
+<summary>Constants<span class="toc-count">73</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-constants">All Constants</a></li>
 <li><a href="#Core_ASSERT">Core.ASSERT</a></li>
 <li><a href="#Core_BIG_ENDIAN">Core.BIG_ENDIAN</a></li>
 <li><a href="#Core_WINDOWS">Core.WINDOWS</a></li>
 <li><a href="#Core_Compress_Inflate_InflateMaxDistance">Inflate.InflateMaxDistance</a></li>
+<li><a href="#Core_Crypto_ChaCha20BlockSize">Crypto.ChaCha20BlockSize</a></li>
+<li><a href="#Core_Crypto_ChaCha20KeySize">Crypto.ChaCha20KeySize</a></li>
+<li><a href="#Core_Crypto_ChaCha20NonceSize">Crypto.ChaCha20NonceSize</a></li>
 <li><a href="#Core_Path_AltDirectorySeparator">Path.AltDirectorySeparator</a></li>
 <li><a href="#Core_Path_DirectorySeparator">Path.DirectorySeparator</a></li>
 <li><a href="#Core_Path_VolumeSeparator">Path.VolumeSeparator</a></li>
@@ -339,7 +345,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary>Functions<span class="toc-count">1178</span></summary>
+<summary>Functions<span class="toc-count">1201</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Core_Serialization_Alias">Serialization.Alias</a></li>
@@ -412,6 +418,19 @@
 <li><a href="#Core_Compress_Inflate_decompress">Inflate.decompress</a></li>
 <li><a href="#Core_Compress_ZLib_compress">ZLib.compress</a></li>
 <li><a href="#Core_Compress_ZLib_decompress">ZLib.decompress</a></li>
+<li><a href="#Core_Crypto_HmacSha256_clear">HmacSha256.clear</a></li>
+<li><a href="#Core_Crypto_HmacSha256_compute">HmacSha256.compute</a></li>
+<li><a href="#Core_Crypto_HmacSha256_create">HmacSha256.create</a></li>
+<li><a href="#Core_Crypto_HmacSha256_finalize">HmacSha256.finalize</a></li>
+<li><a href="#Core_Crypto_HmacSha256_opDrop">HmacSha256.opDrop</a></li>
+<li><a href="#Core_Crypto_HmacSha256_reset">HmacSha256.reset</a></li>
+<li><a href="#Core_Crypto_HmacSha256_update">HmacSha256.update</a></li>
+<li><a href="#Core_Crypto_chacha20Block">Crypto.chacha20Block</a></li>
+<li><a href="#Core_Crypto_chacha20Xor">Crypto.chacha20Xor</a></li>
+<li><a href="#Core_Crypto_constantTimeEqual">Crypto.constantTimeEqual</a></li>
+<li><a href="#Core_Crypto_pbkdf2HmacSha256">Crypto.pbkdf2HmacSha256</a></li>
+<li><a href="#Core_Crypto_randomBytes">Crypto.randomBytes</a></li>
+<li><a href="#Core_Crypto_secureClear">Crypto.secureClear</a></li>
 <li><a href="#Core_Hash_Adler32_compute">Adler32.compute</a></li>
 <li><a href="#Core_Hash_Adler32_reset">Adler32.reset</a></li>
 <li><a href="#Core_Hash_Adler32_update">Adler32.update</a></li>
@@ -498,15 +517,21 @@
 <li><a href="#Core_Directory_volumes">Directory.volumes</a></li>
 <li><a href="#Core_File_FileInfo_isDirectory">FileInfo.isDirectory</a></li>
 <li><a href="#Core_File_FileStream_close">FileStream.close</a></li>
+<li><a href="#Core_File_FileStream_flush">FileStream.flush</a></li>
 <li><a href="#Core_File_FileStream_isOpen">FileStream.isOpen</a></li>
 <li><a href="#Core_File_FileStream_opDrop">FileStream.opDrop</a></li>
 <li><a href="#Core_File_FileStream_position">FileStream.position</a></li>
 <li><a href="#Core_File_FileStream_read">FileStream.read</a></li>
+<li><a href="#Core_File_FileStream_readExact">FileStream.readExact</a></li>
+<li><a href="#Core_File_FileStream_readExactAt">FileStream.readExactAt</a></li>
 <li><a href="#Core_File_FileStream_readValue">FileStream.readValue</a></li>
+<li><a href="#Core_File_FileStream_resize">FileStream.resize</a></li>
 <li><a href="#Core_File_FileStream_seek">FileStream.seek</a></li>
 <li><a href="#Core_File_FileStream_size">FileStream.size</a></li>
 <li><a href="#Core_File_FileStream_skip">FileStream.skip</a></li>
 <li><a href="#Core_File_FileStream_write">FileStream.write</a></li>
+<li><a href="#Core_File_FileStream_writeAll">FileStream.writeAll</a></li>
+<li><a href="#Core_File_FileStream_writeAllAt">FileStream.writeAllAt</a></li>
 <li><a href="#Core_File_TextReader_close">TextReader.close</a></li>
 <li><a href="#Core_File_TextReader_open">TextReader.open</a></li>
 <li><a href="#Core_File_TextReader_readLine">TextReader.readLine</a></li>
@@ -515,6 +540,7 @@
 <li><a href="#Core_File_TweakFile_parseFile">TweakFile.parseFile</a></li>
 <li><a href="#Core_File_TweakFile_registerFolder">TweakFile.registerFolder</a></li>
 <li><a href="#Core_File_attributes">File.attributes</a></li>
+<li><a href="#Core_File_availableDriveLetters">File.availableDriveLetters</a></li>
 <li><a href="#Core_File_delete">File.delete</a></li>
 <li><a href="#Core_File_duplicate">File.duplicate</a></li>
 <li><a href="#Core_File_exists">File.exists</a></li>
@@ -1155,6 +1181,7 @@
 <li><a href="#Core_CommandLine_parse">CommandLine.parse</a></li>
 <li><a href="#Core_CommandLine_splitArguments">CommandLine.splitArguments</a></li>
 <li><a href="#Core_Env_Process_close">Process.close</a></li>
+<li><a href="#Core_Env_Process_currentExecutablePath">Process.currentExecutablePath</a></li>
 <li><a href="#Core_Env_Process_currentProcessId">Process.currentProcessId</a></li>
 <li><a href="#Core_Env_Process_currentThreadId">Process.currentThreadId</a></li>
 <li><a href="#Core_Env_Process_opDrop">Process.opDrop</a></li>
@@ -1474,6 +1501,7 @@
 <li><a href="#Core_Time_DateTime_parse">DateTime.parse</a></li>
 <li><a href="#Core_Time_DateTime_setNow">DateTime.setNow</a></li>
 <li><a href="#Core_Time_DateTime_toString">DateTime.toString</a></li>
+<li><a href="#Core_Time_DateTime_utcNow">DateTime.utcNow</a></li>
 <li><a href="#Core_Time_Duration_fromMilliseconds">Duration.fromMilliseconds</a></li>
 <li><a href="#Core_Time_Duration_fromSeconds">Duration.fromSeconds</a></li>
 <li><a href="#Core_Time_Duration_milliseconds">Duration.milliseconds</a></li>
@@ -1510,6 +1538,7 @@
 <li><a href="#Core_Time_Timestamp_totalMilliseconds">Timestamp.totalMilliseconds</a></li>
 <li><a href="#Core_Time_Timestamp_totalMinutes">Timestamp.totalMinutes</a></li>
 <li><a href="#Core_Time_Timestamp_totalSeconds">Timestamp.totalSeconds</a></li>
+<li><a href="#Core_Time_Timestamp_utcNow">Timestamp.utcNow</a></li>
 <li><a href="#Core_Time_dateToTicks">Time.dateToTicks</a></li>
 <li><a href="#Core_Time_daysInMonth">Time.daysInMonth</a></li>
 <li><a href="#Core_Time_isLeapYear">Time.isLeapYear</a></li>
@@ -1525,8 +1554,8 @@
 </nav></aside>
 <section class="right"><article class="right-page" id="content">
 <section class="module-overview"><h1 id="overview">Swag Std.Core</h1>
-<p>Core is the foundation library shared by Swag applications and standard modules. It provides owned collections and strings, text and Unicode processing, files and paths, serialization, mathematics, hashing, time, concurrency, reflection, diagnostics, input, and access to the host environment.</p>
-<p>The APIs are grouped into focused namespaces such as <a href="#namespace_Core_Math">Core.Math</a>, <a href="#namespace_Core_File">Core.File</a>, <a href="#namespace_Core_Path">Core.Path</a>, <a href="#namespace_Core_Time">Core.Time</a>, <a href="#namespace_Core_Threading">Core.Threading</a>, <a href="#namespace_Core_Sync">Core.Sync</a>, <a href="#namespace_Core_Serialization">Core.Serialization</a>, and <a href="#namespace_Core_Reflection">Core.Reflection</a>. Frequently used value types, including <a href="#Core_Array">Core.Array</a>, <a href="#Core_HashTable">Core.HashTable</a>, and <a href="#Core_String">Core.String</a>, live directly in <span class="code-inline">Core</span>.</p>
+<p>Core is the foundation library shared by Swag applications and standard modules. It provides owned collections and strings, text and Unicode processing, files and paths, serialization, mathematics, hashing, cryptography, time, concurrency, reflection, diagnostics, input, and access to the host environment.</p>
+<p>The APIs are grouped into focused namespaces such as <a href="#namespace_Core_Math">Core.Math</a>, <a href="#namespace_Core_File">Core.File</a>, <a href="#namespace_Core_Path">Core.Path</a>, <a href="#namespace_Core_Time">Core.Time</a>, <a href="#namespace_Core_Threading">Core.Threading</a>, <a href="#namespace_Core_Sync">Core.Sync</a>, <a href="#namespace_Core_Serialization">Core.Serialization</a>, <a href="#namespace_Core_Crypto">Core.Crypto</a>, and <a href="#namespace_Core_Reflection">Core.Reflection</a>. Frequently used value types, including <a href="#Core_Array">Core.Array</a>, <a href="#Core_HashTable">Core.HashTable</a>, and <a href="#Core_String">Core.String</a>, live directly in <span class="code-inline">Core</span>.</p>
 <h2 id="overview_Read_and_process_a_file">Read and process a file</h2>
 <div class="code-block"><span class="SCde"><span class="SKwd">using</span> <span class="SCst"><a href="#namespace_Core">Core</a></span>
 
@@ -1537,6 +1566,18 @@
 lines.<span class="SFct">add</span>(line)
 </span></div>
 <p>Owned containers release their storage automatically. Slices and string views borrow storage instead; keep their source alive and do not retain them across an operation that can reallocate that source.</p>
+<h2 id="overview_Derive_short-lived_key_material">Derive short-lived key material</h2>
+<div class="code-block"><span class="SCde"><span class="SKwd">using</span> <span class="SCst"><a href="#namespace_Core">Core</a></span>
+
+<span class="SKwd">let</span> password = <span class="SItr">@mkslice</span>(<span class="SKwd">cast</span>(<span class="SKwd">const</span> [*] <span class="STpe">u8</span>) <span class="SItr">@dataof</span>(<span class="SStr">"password"</span>), <span class="SNum">8</span>)
+<span class="SKwd">let</span> salt     = <span class="SItr">@mkslice</span>(<span class="SKwd">cast</span>(<span class="SKwd">const</span> [*] <span class="STpe">u8</span>) <span class="SItr">@dataof</span>(<span class="SStr">"application salt"</span>), <span class="SNum">16</span>)
+<span class="SKwd">var</span> key: [<span class="SNum">32</span>] <span class="STpe">u8</span>
+
+<span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Core_Crypto">Crypto</a></span>.<span class="SFct">pbkdf2HmacSha256</span>(password, salt, <span class="SNum">200_000</span>, key)
+<span class="SLgc">defer</span> <span class="SCst"><a href="#namespace_Core_Crypto">Crypto</a></span>.<span class="SFct">secureClear</span>(key)
+</span></div>
+<p>Cryptographic randomness and guaranteed clearing use the target operating system behind the portable <a href="#namespace_Core_Crypto">Core.Crypto</a> API.</p>
+<p>On Windows, <a href="#Core_File_availableDriveLetters">Core.File.availableDriveLetters</a> reports letters that are safe to offer for a new logical-drive mount point.</p>
 </section>
 <section class="api-guide"><h2 id="guide_Core_at_a_glance">Core at a glance</h2>
 <p>Core supplies the building blocks used throughout the standard workspace. Pick an area by the problem you need to solve:</p>
@@ -1666,6 +1707,7 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 <tr><td class="code-type"><a href="#namespace_Core_CommandLine">Core.CommandLine</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Compress">Core.Compress</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Console">Core.Console</a></td></tr>
+<tr><td class="code-type"><a href="#namespace_Core_Crypto">Core.Crypto</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Debug">Core.Debug</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Debugger">Core.Debugger</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Directory">Core.Directory</a></td></tr>
@@ -1742,6 +1784,8 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 <tr><td class="code-type"><a href="#Core_Compress_Inflate">Compress.Inflate</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Represents inflate.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Compress_ZLib">Compress.ZLib</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Represents z lib.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Crypto_HmacSha256">Crypto.HmacSha256</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Computes HMAC-SHA-256 incrementally while keeping its keyed state opaque.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Hash_Adler32">Hash.Adler32</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Computes an Adler-32 checksum incrementally.</p>
 </td></tr>
@@ -1947,6 +1991,8 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 </td></tr>
 <tr><td class="code-type"><a href="#Core_StrConv_IPokeValue">StrConv.IPokeValue</a></td><td><span class="kind-chip kind-interface">interface</span></td><td><p>Defines the operations supported by i poke value.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_Crypto_HmacSha256Digest">Crypto.HmacSha256Digest</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Stores an HMAC-SHA-256 result as 32 bytes in network order.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_Hash_Md5_Digest">Md5.Digest</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Names the digest type.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Hash_Sha1_Digest">Sha1.Digest</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Stores a SHA-1 digest as five 32-bit words.</p>
@@ -2052,6 +2098,12 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 <tr><td class="code-type"><a href="#Core_WINDOWS">Core.WINDOWS</a></td><td><p>Defines windows.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Compress_Inflate_InflateMaxDistance">Inflate.InflateMaxDistance</a></td><td><p>Defines inflate max distance.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Crypto_ChaCha20BlockSize">Crypto.ChaCha20BlockSize</a></td><td><p>Size in bytes of one ChaCha20 key-stream block.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Crypto_ChaCha20KeySize">Crypto.ChaCha20KeySize</a></td><td><p>Size in bytes of a ChaCha20 key.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Crypto_ChaCha20NonceSize">Crypto.ChaCha20NonceSize</a></td><td><p>Size in bytes of an IETF ChaCha20 nonce.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Path_AltDirectorySeparator">Path.AltDirectorySeparator</a></td><td><p>Accepted alternate directory separator.</p>
 </td></tr>
@@ -2331,6 +2383,32 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Compress_ZLib_decompress">ZLib.decompress</a></td><td><p>Decompress stream. hintSize pre-reserves the output buffer to avoid realloc churn.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_Crypto_HmacSha256_clear">HmacSha256.clear</a></td><td><p>Clears all keyed state held by this value.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Crypto_HmacSha256_compute">HmacSha256.compute</a></td><td><p>Computes HMAC-SHA-256 for <span class="code-inline">data</span> in one operation.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Crypto_HmacSha256_create">HmacSha256.create</a></td><td><p>Creates an initialized HMAC-SHA-256 sequence for <span class="code-inline">key</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Crypto_HmacSha256_finalize">HmacSha256.finalize</a></td><td><p>Finalizes the sequence, returns its authentication code, and clears the keyed state.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Crypto_HmacSha256_opDrop">HmacSha256.opDrop</a></td><td><p>Clears keyed state when this value leaves scope.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Crypto_HmacSha256_reset">HmacSha256.reset</a></td><td><p>Replaces any previous keyed state and starts a new sequence for <span class="code-inline">key</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Crypto_HmacSha256_update">HmacSha256.update</a></td><td><p>Includes <span class="code-inline">data</span> in the running authentication code.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Crypto_chacha20Block">Crypto.chacha20Block</a></td><td><p>Produces one IETF ChaCha20 key-stream block for <span class="code-inline">counter</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Crypto_chacha20Xor">Crypto.chacha20Xor</a></td><td><p>XORs <span class="code-inline">source</span> with the IETF ChaCha20 key stream into <span class="code-inline">destination</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Crypto_constantTimeEqual">Crypto.constantTimeEqual</a></td><td><p>Compares two byte sequences without data-dependent early exit.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Crypto_pbkdf2HmacSha256">Crypto.pbkdf2HmacSha256</a></td><td><p>Derives <span class="code-inline">destination</span> with PBKDF2-HMAC-SHA-256.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Crypto_randomBytes">Crypto.randomBytes</a></td><td><p>Fills <span class="code-inline">buffer</span> with bytes from the operating system cryptographic random-number generator.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Crypto_secureClear">Crypto.secureClear</a></td><td><p>Overwrites every byte occupied by <span class="code-inline">buffer</span> before returning.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_Hash_Adler32_compute">Adler32.compute</a></td><td><p>Computes the Adler-32 checksum of <span class="code-inline">buffer</span> in one operation.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Hash_Adler32_reset">Adler32.reset</a></td><td><p>Resets the checksum to its initial Adler-32 value.</p>
@@ -2503,15 +2581,23 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 </td></tr>
 <tr><td class="code-type"><a href="#Core_File_FileStream_close">FileStream.close</a></td><td><p>Close the given file stream</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_File_FileStream_flush">FileStream.flush</a></td><td><p>Commits buffered file data and metadata to the underlying device.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_File_FileStream_isOpen">FileStream.isOpen</a></td><td><p>Returns true if the stream is currently open and valid</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_File_FileStream_opDrop">FileStream.opDrop</a></td><td><p>Releases resources owned by this value.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_File_FileStream_position">FileStream.position</a></td><td><p>Returns the current absolute byte position.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_File_FileStream_read">FileStream.read</a></td><td><p>Reads at most <span class="code-inline">length</span> bytes and returns the number of bytes read.</p>
+<tr><td class="code-type"><a href="#Core_File_FileStream_read">FileStream.read</a></td><td><p>Reads at most the size of <span class="code-inline">buffer</span> and returns the number of bytes read.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_File_FileStream_readExact">FileStream.readExact</a></td><td><p>Reads the complete <span class="code-inline">buffer</span> and returns false only when the stream ends first.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_File_FileStream_readExactAt">FileStream.readExactAt</a></td><td><p>Moves to <span class="code-inline">offset</span>, reads the complete <span class="code-inline">buffer</span>, and returns false only when the stream ends first.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_File_FileStream_readValue">FileStream.readValue</a></td><td><p>Reads one native value and returns whether all of its bytes were available.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_File_FileStream_resize">FileStream.resize</a></td><td><p>Changes the file length while preserving the current position when it remains in range.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_File_FileStream_seek">FileStream.seek</a></td><td><p>Moves to <span class="code-inline">offset</span> bytes from <span class="code-inline">origin</span>.</p>
 </td></tr>
@@ -2519,7 +2605,11 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 </td></tr>
 <tr><td class="code-type"><a href="#Core_File_FileStream_skip">FileStream.skip</a></td><td><p>Advances by <span class="code-inline">count</span> bytes from the current position.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_File_FileStream_write">FileStream.write</a></td><td><p>Writes <span class="code-inline">length</span> bytes and returns the number of bytes written.</p>
+<tr><td class="code-type"><a href="#Core_File_FileStream_write">FileStream.write</a></td><td><p>Writes at most the size of <span class="code-inline">buffer</span> and returns the number of bytes written.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_File_FileStream_writeAll">FileStream.writeAll</a></td><td><p>Writes the complete <span class="code-inline">buffer</span> or fails if the stream stops accepting bytes.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_File_FileStream_writeAllAt">FileStream.writeAllAt</a></td><td><p>Moves to <span class="code-inline">offset</span> and writes the complete <span class="code-inline">buffer</span>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_File_TextReader_close">TextReader.close</a></td><td><p>Closes the reader and the associated stream</p>
 </td></tr>
@@ -2536,6 +2626,8 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 <tr><td class="code-type"><a href="#Core_File_TweakFile_registerFolder">TweakFile.registerFolder</a></td><td><p>Registers a new structure to be parsed as a folder</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_File_attributes">File.attributes</a></td><td><p>Returns the operating-system attributes of <span class="code-inline">fullName</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_File_availableDriveLetters">File.availableDriveLetters</a></td><td><p>Returns the uppercase drive letters currently available for a new Windows mount point.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_File_delete">File.delete</a></td><td><p>Delete the specified file</p>
 </td></tr>
@@ -3817,6 +3909,8 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_Process_close">Process.close</a></td><td><p>Performs the close operation.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_Env_Process_currentExecutablePath">Process.currentExecutablePath</a></td><td><p>Returns the absolute path of the executable image for the current process.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_Env_Process_currentProcessId">Process.currentProcessId</a></td><td><p>Returns the current operating-system process identifier.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_Process_currentThreadId">Process.currentThreadId</a></td><td><p>Returns the current operating-system thread identifier.</p>
@@ -4455,6 +4549,8 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Time_DateTime_toString">DateTime.toString</a></td><td><p>Converts the DateTime to a string using the given format</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_Time_DateTime_utcNow">DateTime.utcNow</a></td><td><p>Returns the current UTC date and time.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_Time_Duration_fromMilliseconds">Duration.fromMilliseconds</a></td><td><p>Creates a duration from milliseconds.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Time_Duration_fromSeconds">Duration.fromSeconds</a></td><td><p>Creates a duration from seconds.</p>
@@ -4527,6 +4623,8 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Time_Timestamp_totalSeconds">Timestamp.totalSeconds</a></td><td><p>Returns seconds elapsed since the timestamp epoch.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_Time_Timestamp_utcNow">Timestamp.utcNow</a></td><td><p>Captures the current UTC wall-clock time.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_Time_dateToTicks">Time.dateToTicks</a></td><td><p>Convert a date to a 64 bits value</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Time_daysInMonth">Time.daysInMonth</a></td><td><p>Returns the number of days of the given month, for the given year</p>
@@ -4563,6 +4661,7 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 <tr><td class="code-type"><a href="#namespace_Core_CommandLine">Core.CommandLine</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Compress">Core.Compress</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Console">Core.Console</a></td></tr>
+<tr><td class="code-type"><a href="#namespace_Core_Crypto">Core.Crypto</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Debug">Core.Debug</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Debugger">Core.Debugger</a></td></tr>
 <tr><td class="code-type"><a href="#namespace_Core_Directory">Core.Directory</a></td></tr>
@@ -4803,6 +4902,50 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 <tr><td class="code-type"><a href="#Core_Console_silent">Console.silent</a></td><td><p>Disable console output. This is a counter, so can be called</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Console_unlock">Console.unlock</a></td><td><p>Releases the lock.</p>
+</td></tr>
+</tbody>
+</table>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-namespace"><span id="namespace_Core_Crypto" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Core.Crypto</span> <a class="api-item-permalink" href="#namespace_Core_Crypto" aria-label="Permalink">#</a></span></div>
+<p>Public API declared directly in <span class="code-inline">Core.Crypto</span>.</p>
+<h3 id="namespace_Core_Crypto_types">Types</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Kind</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Core_Crypto_HmacSha256">Crypto.HmacSha256</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Computes HMAC-SHA-256 incrementally while keeping its keyed state opaque.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Crypto_HmacSha256Digest">Crypto.HmacSha256Digest</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Stores an HMAC-SHA-256 result as 32 bytes in network order.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="namespace_Core_Crypto_constants">Constants</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Core_Crypto_ChaCha20BlockSize">Crypto.ChaCha20BlockSize</a></td><td><p>Size in bytes of one ChaCha20 key-stream block.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Crypto_ChaCha20KeySize">Crypto.ChaCha20KeySize</a></td><td><p>Size in bytes of a ChaCha20 key.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Crypto_ChaCha20NonceSize">Crypto.ChaCha20NonceSize</a></td><td><p>Size in bytes of an IETF ChaCha20 nonce.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="namespace_Core_Crypto_functions">Functions</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Core_Crypto_chacha20Block">Crypto.chacha20Block</a></td><td><p>Produces one IETF ChaCha20 key-stream block for <span class="code-inline">counter</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Crypto_chacha20Xor">Crypto.chacha20Xor</a></td><td><p>XORs <span class="code-inline">source</span> with the IETF ChaCha20 key stream into <span class="code-inline">destination</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Crypto_constantTimeEqual">Crypto.constantTimeEqual</a></td><td><p>Compares two byte sequences without data-dependent early exit.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Crypto_pbkdf2HmacSha256">Crypto.pbkdf2HmacSha256</a></td><td><p>Derives <span class="code-inline">destination</span> with PBKDF2-HMAC-SHA-256.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Crypto_randomBytes">Crypto.randomBytes</a></td><td><p>Fills <span class="code-inline">buffer</span> with bytes from the operating system cryptographic random-number generator.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Crypto_secureClear">Crypto.secureClear</a></td><td><p>Overwrites every byte occupied by <span class="code-inline">buffer</span> before returning.</p>
 </td></tr>
 </tbody>
 </table>
@@ -5073,6 +5216,8 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 <thead><tr><th>Name</th><th>Description</th></tr></thead>
 <tbody>
 <tr><td class="code-type"><a href="#Core_File_attributes">File.attributes</a></td><td><p>Returns the operating-system attributes of <span class="code-inline">fullName</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_File_availableDriveLetters">File.availableDriveLetters</a></td><td><p>Returns the uppercase drive letters currently available for a new Windows mount point.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_File_delete">File.delete</a></td><td><p>Delete the specified file</p>
 </td></tr>
@@ -6876,6 +7021,33 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 </tbody>
 </table>
 <section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Core_Crypto_HmacSha256" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Crypto.HmacSha256</span> <a class="api-item-permalink" href="#Core_Crypto_HmacSha256" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/hmacsha256.swg#L11">src</a></div>
+<p>Computes HMAC-SHA-256 incrementally while keeping its keyed state opaque.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.NoCopy]</span>
+<span class="SAtr">#[Swag.Opaque]</span>
+<span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Crypto_HmacSha256">HmacSha256</a></span></span></div>
+</section>
+<h3 id="Core_Crypto_HmacSha256_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Core_Crypto_HmacSha256_clear">clear</a></td><td><p>Clears all keyed state held by this value.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Crypto_HmacSha256_compute">compute</a></td><td><p>Computes HMAC-SHA-256 for <span class="code-inline">data</span> in one operation.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Crypto_HmacSha256_create">create</a></td><td><p>Creates an initialized HMAC-SHA-256 sequence for <span class="code-inline">key</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Crypto_HmacSha256_finalize">finalize</a></td><td><p>Finalizes the sequence, returns its authentication code, and clears the keyed state.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Crypto_HmacSha256_opDrop">opDrop</a></td><td><p>Clears keyed state when this value leaves scope.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Crypto_HmacSha256_reset">reset</a></td><td><p>Replaces any previous keyed state and starts a new sequence for <span class="code-inline">key</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Crypto_HmacSha256_update">update</a></td><td><p>Includes <span class="code-inline">data</span> in the running authentication code.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Core_Hash_Adler32" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Hash.Adler32</span> <a class="api-item-permalink" href="#Core_Hash_Adler32" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/adler32.swg#L8">src</a></div>
 <p>Computes an Adler-32 checksum incrementally.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Hash_Adler32">Adler32</a></span></span></div>
@@ -7183,15 +7355,23 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 <tbody>
 <tr><td class="code-type"><a href="#Core_File_FileStream_close">close</a></td><td><p>Close the given file stream</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_File_FileStream_flush">flush</a></td><td><p>Commits buffered file data and metadata to the underlying device.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_File_FileStream_isOpen">isOpen</a></td><td><p>Returns true if the stream is currently open and valid</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_File_FileStream_opDrop">opDrop</a></td><td><p>Releases resources owned by this value.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_File_FileStream_position">position</a></td><td><p>Returns the current absolute byte position.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_File_FileStream_read">read</a></td><td><p>Reads at most <span class="code-inline">length</span> bytes and returns the number of bytes read.</p>
+<tr><td class="code-type"><a href="#Core_File_FileStream_read">read</a></td><td><p>Reads at most the size of <span class="code-inline">buffer</span> and returns the number of bytes read.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_File_FileStream_readExact">readExact</a></td><td><p>Reads the complete <span class="code-inline">buffer</span> and returns false only when the stream ends first.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_File_FileStream_readExactAt">readExactAt</a></td><td><p>Moves to <span class="code-inline">offset</span>, reads the complete <span class="code-inline">buffer</span>, and returns false only when the stream ends first.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_File_FileStream_readValue">readValue</a></td><td><p>Reads one native value and returns whether all of its bytes were available.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_File_FileStream_resize">resize</a></td><td><p>Changes the file length while preserving the current position when it remains in range.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_File_FileStream_seek">seek</a></td><td><p>Moves to <span class="code-inline">offset</span> bytes from <span class="code-inline">origin</span>.</p>
 </td></tr>
@@ -7199,7 +7379,11 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 </td></tr>
 <tr><td class="code-type"><a href="#Core_File_FileStream_skip">skip</a></td><td><p>Advances by <span class="code-inline">count</span> bytes from the current position.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_File_FileStream_write">write</a></td><td><p>Writes <span class="code-inline">length</span> bytes and returns the number of bytes written.</p>
+<tr><td class="code-type"><a href="#Core_File_FileStream_write">write</a></td><td><p>Writes at most the size of <span class="code-inline">buffer</span> and returns the number of bytes written.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_File_FileStream_writeAll">writeAll</a></td><td><p>Writes the complete <span class="code-inline">buffer</span> or fails if the stream stops accepting bytes.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_File_FileStream_writeAllAt">writeAllAt</a></td><td><p>Moves to <span class="code-inline">offset</span> and writes the complete <span class="code-inline">buffer</span>.</p>
 </td></tr>
 </tbody>
 </table>
@@ -8890,6 +9074,8 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <tbody>
 <tr><td class="code-type"><a href="#Core_Env_Process_close">close</a></td><td><p>Performs the close operation.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_Env_Process_currentExecutablePath">currentExecutablePath</a></td><td><p>Returns the absolute path of the executable image for the current process.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_Env_Process_currentProcessId">currentProcessId</a></td><td><p>Returns the current operating-system process identifier.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_Process_currentThreadId">currentThreadId</a></td><td><p>Returns the current operating-system thread identifier.</p>
@@ -9763,6 +9949,8 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Time_DateTime_toString">toString</a></td><td><p>Converts the DateTime to a string using the given format</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_Time_DateTime_utcNow">utcNow</a></td><td><p>Returns the current UTC date and time.</p>
+</td></tr>
 </tbody>
 </table>
 <section class="api-symbol">
@@ -9923,6 +10111,8 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <tr><td class="code-type"><a href="#Core_Time_Timestamp_totalMinutes">totalMinutes</a></td><td><p>Returns minutes elapsed since the timestamp epoch.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Time_Timestamp_totalSeconds">totalSeconds</a></td><td><p>Returns seconds elapsed since the timestamp epoch.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Time_Timestamp_utcNow">utcNow</a></td><td><p>Captures the current UTC wall-clock time.</p>
 </td></tr>
 </tbody>
 </table>
@@ -10120,6 +10310,11 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </td></tr>
 </tbody>
 </table>
+<section class="api-symbol">
+<div class="api-item api-item-alias"><span id="Core_Crypto_HmacSha256Digest" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Crypto.HmacSha256Digest</span> <a class="api-item-permalink" href="#Core_Crypto_HmacSha256Digest" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/hmacsha256.swg#L6">src</a></div>
+<p>Stores an HMAC-SHA-256 result as 32 bytes in network order.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Core_Crypto_HmacSha256Digest">HmacSha256Digest</a></span> = [<span class="SNum">32</span>] <span class="STpe">u8</span></span></div>
+</section>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Core_Hash_Md5_Digest" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Md5.Digest</span> <a class="api-item-permalink" href="#Core_Hash_Md5_Digest" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/md5.swg#L22">src</a></div>
 <p>Names the digest type.</p>
@@ -11313,6 +11508,21 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Core_Compress_Inflate_InflateMaxDistance">InflateMaxDistance</a></span> = <span class="SNum">32768</span>'<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-const"><span id="Core_Crypto_ChaCha20BlockSize" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Crypto.ChaCha20BlockSize</span> <a class="api-item-permalink" href="#Core_Crypto_ChaCha20BlockSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/chacha20.swg#L12">src</a></div>
+<p>Size in bytes of one ChaCha20 key-stream block.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Core_Crypto_ChaCha20BlockSize">ChaCha20BlockSize</a></span> = <span class="SNum">64</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-const"><span id="Core_Crypto_ChaCha20KeySize" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Crypto.ChaCha20KeySize</span> <a class="api-item-permalink" href="#Core_Crypto_ChaCha20KeySize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/chacha20.swg#L6">src</a></div>
+<p>Size in bytes of a ChaCha20 key.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Core_Crypto_ChaCha20KeySize">ChaCha20KeySize</a></span> = <span class="SNum">32</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-const"><span id="Core_Crypto_ChaCha20NonceSize" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Crypto.ChaCha20NonceSize</span> <a class="api-item-permalink" href="#Core_Crypto_ChaCha20NonceSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/chacha20.swg#L9">src</a></div>
+<p>Size in bytes of an IETF ChaCha20 nonce.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Core_Crypto_ChaCha20NonceSize">ChaCha20NonceSize</a></span> = <span class="SNum">12</span></span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-const"><span id="Core_Path_AltDirectorySeparator" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Path.AltDirectorySeparator</span> <a class="api-item-permalink" href="#Core_Path_AltDirectorySeparator" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/path.swg#L8">src</a></div>
 <p>Accepted alternate directory separator.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Core_Path_AltDirectorySeparator">AltDirectorySeparator</a></span> = '\\'<span class="STpe">u8</span></span></div>
@@ -12273,6 +12483,75 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">decompress</span>(buffer: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, hintSize: <span class="STpe">u64</span> = <span class="SNum">0</span>)-&gt;<span class="SFct">Array</span>'<span class="STpe">u8</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Crypto_HmacSha256_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HmacSha256.clear</span> <a class="api-item-permalink" href="#Core_Crypto_HmacSha256_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/hmacsha256.swg#L99">src</a></div>
+<p>Clears all keyed state held by this value.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Crypto_HmacSha256_compute" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HmacSha256.compute</span> <a class="api-item-permalink" href="#Core_Crypto_HmacSha256_compute" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/hmacsha256.swg#L119">src</a></div>
+<p>Computes HMAC-SHA-256 for <span class="code-inline">data</span> in one operation.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">compute</span>(key, data: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="SCst"><a href="#Core_Crypto_HmacSha256Digest">HmacSha256Digest</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Crypto_HmacSha256_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HmacSha256.create</span> <a class="api-item-permalink" href="#Core_Crypto_HmacSha256_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/hmacsha256.swg#L37">src</a></div>
+<p>Creates an initialized HMAC-SHA-256 sequence for <span class="code-inline">key</span>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">create</span>(key: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="SCst"><a href="#Core_Crypto_HmacSha256">HmacSha256</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Crypto_HmacSha256_finalize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HmacSha256.finalize</span> <a class="api-item-permalink" href="#Core_Crypto_HmacSha256_finalize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/hmacsha256.swg#L87">src</a></div>
+<p>Finalizes the sequence, returns its authentication code, and clears the keyed state. Call <a href="#Core_Reflection_reset">reset</a> before reusing this value.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">finalize</span>()-&gt;<span class="SCst"><a href="#Core_Crypto_HmacSha256Digest">HmacSha256Digest</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Crypto_HmacSha256_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HmacSha256.opDrop</span> <a class="api-item-permalink" href="#Core_Crypto_HmacSha256_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/hmacsha256.swg#L113">src</a></div>
+<p>Clears keyed state when this value leaves scope.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Crypto_HmacSha256_reset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HmacSha256.reset</span> <a class="api-item-permalink" href="#Core_Crypto_HmacSha256_reset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/hmacsha256.swg#L45">src</a></div>
+<p>Replaces any previous keyed state and starts a new sequence for <span class="code-inline">key</span>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">reset</span>(key: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Crypto_HmacSha256_update" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HmacSha256.update</span> <a class="api-item-permalink" href="#Core_Crypto_HmacSha256_update" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/hmacsha256.swg#L79">src</a></div>
+<p>Includes <span class="code-inline">data</span> in the running authentication code.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">update</span>(data: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Crypto_chacha20Block" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Crypto.chacha20Block</span> <a class="api-item-permalink" href="#Core_Crypto_chacha20Block" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/chacha20.swg#L51">src</a></div>
+<p>Produces one IETF ChaCha20 key-stream block for <span class="code-inline">counter</span>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">chacha20Block</span>(key: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, counter: <span class="STpe">u32</span>, nonce: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;[<span class="SCst"><a href="#Core_Crypto_ChaCha20BlockSize">ChaCha20BlockSize</a></span>] <span class="STpe">u8</span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Crypto_chacha20Xor" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Crypto.chacha20Xor</span> <a class="api-item-permalink" href="#Core_Crypto_chacha20Xor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/chacha20.swg#L95">src</a></div>
+<p>XORs <span class="code-inline">source</span> with the IETF ChaCha20 key stream into <span class="code-inline">destination</span>.</p>
+<p>Source and destination can be the same slice. Other overlapping ranges are not supported.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">chacha20Xor</span>(key, nonce, source: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, destination: [..] <span class="STpe">u8</span>, initialCounter = <span class="SNum">0</span>'<span class="STpe">u32</span>) <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Crypto_constantTimeEqual" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Crypto.constantTimeEqual</span> <a class="api-item-permalink" href="#Core_Crypto_constantTimeEqual" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/security.swg#L8">src</a></div>
+<p>Compares two byte sequences without data-dependent early exit.</p>
+<p>Length remains observable: sequences with different lengths return immediately.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">constantTimeEqual</span>(left, right: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">bool</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Crypto_pbkdf2HmacSha256" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Crypto.pbkdf2HmacSha256</span> <a class="api-item-permalink" href="#Core_Crypto_pbkdf2HmacSha256" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/pbkdf2.swg#L10">src</a></div>
+<p>Derives <span class="code-inline">destination</span> with PBKDF2-HMAC-SHA-256.</p>
+<p><span class="code-inline">iterations</span> needs at least one iteration. An empty destination succeeds without writing.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">pbkdf2HmacSha256</span>(password, salt: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, iterations: <span class="STpe">u32</span>, destination: [..] <span class="STpe">u8</span>) <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Crypto_randomBytes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Crypto.randomBytes</span> <a class="api-item-permalink" href="#Core_Crypto_randomBytes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/security.win32.swg#L9">src</a></div>
+<p>Fills <span class="code-inline">buffer</span> with bytes from the operating system cryptographic random-number generator.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">randomBytes</span>(buffer: [..] <span class="STpe">u8</span>) <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Crypto_secureClear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Crypto.secureClear</span> <a class="api-item-permalink" href="#Core_Crypto_secureClear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/security.win32.swg#L24">src</a></div>
+<p>Overwrites every byte occupied by <span class="code-inline">buffer</span> before returning.</p>
+<p>This operation uses a platform routine whose writes are not removed as dead stores.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SFct">secureClear</span>(buffer: [..] <span class="SCst"><a href="#Core_Input_Key_T">T</a></span>)</span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Hash_Adler32_compute" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Adler32.compute</span> <a class="api-item-permalink" href="#Core_Hash_Adler32_compute" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/crypto/adler32.swg#L111">src</a></div>
 <p>Computes the Adler-32 checksum of <span class="code-inline">buffer</span> in one operation.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.ConstExpr]</span>
@@ -12728,6 +13007,11 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">close</span>()</span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_File_FileStream_flush" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.flush</span> <a class="api-item-permalink" href="#Core_File_FileStream_flush" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.win32.swg#L105">src</a></div>
+<p>Commits buffered file data and metadata to the underlying device.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">flush</span>() <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_File_FileStream_isOpen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.isOpen</span> <a class="api-item-permalink" href="#Core_File_FileStream_isOpen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.swg#L42">src</a></div>
 <p>Returns true if the stream is currently open and valid</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isOpen</span>(<span class="SKwd">const</span> <span class="STpe">me</span>)-&gt;<span class="STpe">bool</span></span></div>
@@ -12738,14 +13022,26 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_File_FileStream_position" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.position</span> <a class="api-item-permalink" href="#Core_File_FileStream_position" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.win32.swg#L90">src</a></div>
+<div class="api-item api-item-func"><span id="Core_File_FileStream_position" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.position</span> <a class="api-item-permalink" href="#Core_File_FileStream_position" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.win32.swg#L115">src</a></div>
 <p>Returns the current absolute byte position.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">position</span>()-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_File_FileStream_read" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.read</span> <a class="api-item-permalink" href="#Core_File_FileStream_read" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.win32.swg#L17">src</a></div>
+<div class="api-item api-item-func"><span id="Core_File_FileStream_read" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.read</span> <a class="api-item-permalink" href="#Core_File_FileStream_read" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.swg#L54">src</a></div>
+<p>Reads at most the size of <span class="code-inline">buffer</span> and returns the number of bytes read.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">read</span>(buffer: [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span></span></div>
 <p>Reads at most <span class="code-inline">length</span> bytes and returns the number of bytes read.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">read</span>(buffer: <span class="SItr">#null</span> *<span class="STpe">void</span>, length: <span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_File_FileStream_readExact" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.readExact</span> <a class="api-item-permalink" href="#Core_File_FileStream_readExact" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.swg#L66">src</a></div>
+<p>Reads the complete <span class="code-inline">buffer</span> and returns false only when the stream ends first.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">readExact</span>(buffer: [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">bool</span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_File_FileStream_readExactAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.readExactAt</span> <a class="api-item-permalink" href="#Core_File_FileStream_readExactAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.swg#L73">src</a></div>
+<p>Moves to <span class="code-inline">offset</span>, reads the complete <span class="code-inline">buffer</span>, and returns false only when the stream ends first. The resulting stream position follows the bytes read.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">readExactAt</span>(offset: <span class="STpe">u64</span>, buffer: [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">bool</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_File_FileStream_readValue" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.readValue</span> <a class="api-item-permalink" href="#Core_File_FileStream_readValue" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.swg#L48">src</a></div>
@@ -12753,7 +13049,12 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SFct">readValue</span>(buffer: *<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>)-&gt;<span class="STpe">bool</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_File_FileStream_seek" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.seek</span> <a class="api-item-permalink" href="#Core_File_FileStream_seek" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.win32.swg#L103">src</a></div>
+<div class="api-item api-item-func"><span id="Core_File_FileStream_resize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.resize</span> <a class="api-item-permalink" href="#Core_File_FileStream_resize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.win32.swg#L91">src</a></div>
+<p>Changes the file length while preserving the current position when it remains in range. Shrinking past the current position leaves the position at the new end of the file.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">resize</span>(newSize: <span class="STpe">u64</span>) <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_File_FileStream_seek" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.seek</span> <a class="api-item-permalink" href="#Core_File_FileStream_seek" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.win32.swg#L128">src</a></div>
 <p>Moves to <span class="code-inline">offset</span> bytes from <span class="code-inline">origin</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">seek</span>(origin: <span class="SCst"><a href="#Core_File_SeekOrigin">SeekOrigin</a></span>, offset: <span class="STpe">u64</span>) <span class="SKwd">fail</span></span></div>
 </section>
@@ -12763,14 +13064,26 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">size</span>()-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_File_FileStream_skip" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.skip</span> <a class="api-item-permalink" href="#Core_File_FileStream_skip" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.win32.swg#L125">src</a></div>
+<div class="api-item api-item-func"><span id="Core_File_FileStream_skip" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.skip</span> <a class="api-item-permalink" href="#Core_File_FileStream_skip" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.win32.swg#L150">src</a></div>
 <p>Advances by <span class="code-inline">count</span> bytes from the current position.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">skip</span>(count: <span class="STpe">u64</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_File_FileStream_write" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.write</span> <a class="api-item-permalink" href="#Core_File_FileStream_write" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.win32.swg#L42">src</a></div>
+<div class="api-item api-item-func"><span id="Core_File_FileStream_write" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.write</span> <a class="api-item-permalink" href="#Core_File_FileStream_write" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.swg#L60">src</a></div>
+<p>Writes at most the size of <span class="code-inline">buffer</span> and returns the number of bytes written.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">write</span>(buffer: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span></span></div>
 <p>Writes <span class="code-inline">length</span> bytes and returns the number of bytes written.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">write</span>(buffer: <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="STpe">void</span>, length: <span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_File_FileStream_writeAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.writeAll</span> <a class="api-item-permalink" href="#Core_File_FileStream_writeAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.swg#L80">src</a></div>
+<p>Writes the complete <span class="code-inline">buffer</span> or fails if the stream stops accepting bytes.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">writeAll</span>(buffer: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>) <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_File_FileStream_writeAllAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.writeAllAt</span> <a class="api-item-permalink" href="#Core_File_FileStream_writeAllAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.swg#L88">src</a></div>
+<p>Moves to <span class="code-inline">offset</span> and writes the complete <span class="code-inline">buffer</span>. The resulting stream position follows the bytes written.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">writeAllAt</span>(offset: <span class="STpe">u64</span>, buffer: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_File_TextReader_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TextReader.close</span> <a class="api-item-permalink" href="#Core_File_TextReader_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/textreader.swg#L74">src</a></div>
@@ -12815,6 +13128,12 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="api-item api-item-func"><span id="Core_File_attributes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">File.attributes</span> <a class="api-item-permalink" href="#Core_File_attributes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/fileattributes.win32.swg#L50">src</a></div>
 <p>Returns the operating-system attributes of <span class="code-inline">fullName</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">attributes</span>(fullName: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="#Core_File_FileAttributes">FileAttributes</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_File_availableDriveLetters" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">File.availableDriveLetters</span> <a class="api-item-permalink" href="#Core_File_availableDriveLetters" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/drives.win32.swg#L37">src</a></div>
+<p>Returns the uppercase drive letters currently available for a new Windows mount point.</p>
+<p>Letters used by a logical drive or a remembered network mapping are omitted. An empty array is returned when Windows cannot enumerate logical drives or the current user's remembered mappings.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">availableDriveLetters</span>()-&gt;<span class="SFct">Array</span>'<span class="STpe">rune</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_File_delete" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">File.delete</span> <a class="api-item-permalink" href="#Core_File_delete" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/file.win32.swg#L11">src</a></div>
@@ -16417,12 +16736,18 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">close</span>()</span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Env_Process_currentExecutablePath" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Process.currentExecutablePath</span> <a class="api-item-permalink" href="#Core_Env_Process_currentExecutablePath" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.win32.swg#L80">src</a></div>
+<p>Returns the absolute path of the executable image for the current process.</p>
+<p>Fails when Windows cannot resolve the image path or the path exceeds the platform limit.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">currentExecutablePath</span>()-&gt;<span class="SCst"><a href="#Core_String">String</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Env_Process_currentProcessId" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Process.currentProcessId</span> <a class="api-item-permalink" href="#Core_Env_Process_currentProcessId" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.win32.swg#L75">src</a></div>
 <p>Returns the current operating-system process identifier.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">currentProcessId</span>()-&gt;<span class="STpe">u64</span> =&gt; <span class="SCst"><a href="std.win32.html#Win32_GetCurrentProcessId">GetCurrentProcessId</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Process_currentThreadId" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Process.currentThreadId</span> <a class="api-item-permalink" href="#Core_Env_Process_currentThreadId" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.win32.swg#L78">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Process_currentThreadId" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Process.currentThreadId</span> <a class="api-item-permalink" href="#Core_Env_Process_currentThreadId" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.win32.swg#L92">src</a></div>
 <p>Returns the current operating-system thread identifier.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">currentThreadId</span>()-&gt;<span class="STpe">u64</span> =&gt; <span class="SCst"><a href="std.win32.html#Win32_GetCurrentThreadId">GetCurrentThreadId</a></span></span></div>
 </section>
@@ -18274,7 +18599,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">monthName</span>(month: <span class="STpe">u16</span>)-&gt;<span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Time_DateTime_now" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DateTime.now</span> <a class="api-item-permalink" href="#Core_Time_DateTime_now" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/datetime.win32.swg#L24">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Time_DateTime_now" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DateTime.now</span> <a class="api-item-permalink" href="#Core_Time_DateTime_now" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/datetime.win32.swg#L35">src</a></div>
 <p>Returns a DateTime containing the current date and time</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">now</span>()-&gt;<span class="SCst"><a href="#Core_Time_DateTime">DateTime</a></span></span></div>
 </section>
@@ -18284,7 +18609,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">parse</span>(str: <span class="STpe">string</span>, checkDate = <span class="SKwd">true</span>)-&gt;{ value: <span class="SCst"><a href="#Core_Time_DateTime">DateTime</a></span>, eat: <span class="STpe">u32</span> } <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Time_DateTime_setNow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DateTime.setNow</span> <a class="api-item-permalink" href="#Core_Time_DateTime_setNow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/datetime.win32.swg#L35">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Time_DateTime_setNow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DateTime.setNow</span> <a class="api-item-permalink" href="#Core_Time_DateTime_setNow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/datetime.win32.swg#L46">src</a></div>
 <p>Initialize the structure with the current local date and time</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setNow</span>()</span></div>
 </section>
@@ -18292,6 +18617,11 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="api-item api-item-func"><span id="Core_Time_DateTime_toString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DateTime.toString</span> <a class="api-item-permalink" href="#Core_Time_DateTime_toString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/datetime.swg#L259">src</a></div>
 <p>Converts the DateTime to a string using the given format</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">toString</span>(fmt = <span class="SCst"><a href="#Core_Time_DateTimeFormat">DateTimeFormat</a></span>.<span class="SCst"><a href="#Core_Time_DateTime">DateTime</a></span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Time_DateTime_utcNow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DateTime.utcNow</span> <a class="api-item-permalink" href="#Core_Time_DateTime_utcNow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/datetime.win32.swg#L24">src</a></div>
+<p>Returns the current UTC date and time.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">utcNow</span>()-&gt;<span class="SCst"><a href="#Core_Time_DateTime">DateTime</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Time_Duration_fromMilliseconds" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Duration.fromMilliseconds</span> <a class="api-item-permalink" href="#Core_Time_Duration_fromMilliseconds" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/duration.swg#L43">src</a></div>
@@ -18474,6 +18804,11 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="api-item api-item-func"><span id="Core_Time_Timestamp_totalSeconds" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Timestamp.totalSeconds</span> <a class="api-item-permalink" href="#Core_Time_Timestamp_totalSeconds" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/timestamp.swg#L140">src</a></div>
 <p>Returns seconds elapsed since the timestamp epoch.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">totalSeconds</span>()-&gt;<span class="STpe">f64</span> =&gt; .ticks</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Time_Timestamp_utcNow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Timestamp.utcNow</span> <a class="api-item-permalink" href="#Core_Time_Timestamp_utcNow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/timestamp.win32.swg#L8">src</a></div>
+<p>Captures the current UTC wall-clock time.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">utcNow</span>()-&gt;<span class="SCst"><a href="#Core_Time_Timestamp">Timestamp</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Time_dateToTicks" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Time.dateToTicks</span> <a class="api-item-permalink" href="#Core_Time_dateToTicks" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/time.swg#L101">src</a></div>

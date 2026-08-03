@@ -36,6 +36,7 @@ The names are verb-first and grouped by role:
 | `test-sanity-suite.bat` | Static and lifecycle sanity tests |
 | `test-workspace-suite.bat` | Multi-module workspace integration tests |
 | `test-example-scripts.bat` | Standalone example scripts in deterministic test mode |
+| `test-scrypt-integration.bat` | Privileged sCrypt/WinFsp end-to-end sandbox |
 
 ## Workspace and maintenance tools
 

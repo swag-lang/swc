@@ -71,6 +71,6 @@ direct consumers reviewed together.
 
 ## Applications and examples
 
-- [x] CaptMe consumer migration
+- [x] sCapture consumer migration
 - [x] standard examples and scripts consumer migration
 - [ ] final repository-wide obsolete-name and documentation scan

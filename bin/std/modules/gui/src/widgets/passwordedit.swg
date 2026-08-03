@@ -241,7 +241,7 @@ public impl PasswordEdit
     // Changes the leading icon.
     mtd setIcon(icon: Icon) => .edit.setIcon(icon)
 
-    // Clears the plaintext and visible mask, optionally emitting [[sigChanged]].
+    // Clears the plaintext and visible mask, optionally emitting [[Gui.PasswordEdit.sigChanged]].
     mtd clear(notify = true)
     {
         let changed = .byteCount != 0

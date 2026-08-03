@@ -142,7 +142,8 @@ single-file scripts run through the JIT, others as workspace modules compiled to
 
 * [bin/examples/scripts](bin/examples/scripts) — single-file `.swgs` programs run through the JIT: Flappy Bird, chess, Pac-Man, Space Invaders, a Mandelbrot viewer, Game of Life, a calculator, and more
 * [bin/examples/modules](bin/examples/modules) — workspace modules: GUI, OpenGL, and 2D rendering demos, plus ten years of [Advent of Code](https://adventofcode.com/) solutions
-* [bin/apps/modules/captme](bin/apps/modules/captme) — a screen capture application written entirely in Swag on top of the standard modules
+* [bin/apps/modules/sCapture](bin/apps/modules/sCapture) — screen capture, annotation, and image library with the standard Swag application identity
+* [bin/apps/modules/sCrypt](bin/apps/modules/sCrypt) — portable encrypted virtual drives backed by WinFsp and implemented entirely in Swag
 * [bin/std/modules](bin/std/modules) — the standard workspace: `core`, `pixel`, `gui`, `ogl`, `audio`, `truetype`, and the native Windows bindings
 
 # Getting started

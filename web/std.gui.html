@@ -51,7 +51,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary>Types<span class="toc-count">133</span></summary>
+<summary>Types<span class="toc-count">134</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-types">All Types</a></li>
 <li><a href="#Gui_ActionContext">Gui.ActionContext</a></li>
@@ -160,6 +160,7 @@
 <li><a href="#Gui_ImageRect">Gui.ImageRect</a></li>
 <li><a href="#Gui_Label">Gui.Label</a></li>
 <li><a href="#Gui_PalettePicker">Gui.PalettePicker</a></li>
+<li><a href="#Gui_PasswordEdit">Gui.PasswordEdit</a></li>
 <li><a href="#Gui_ProgressBar">Gui.ProgressBar</a></li>
 <li><a href="#Gui_PushButton">Gui.PushButton</a></li>
 <li><a href="#Gui_RadioButton">Gui.RadioButton</a></li>
@@ -279,8 +280,15 @@
 <li><a href="#Gui_WndFlags">Gui.WndFlags</a></li>
 </ul>
 </details>
+<details class="toc-group" open>
+<summary>Constants<span class="toc-count">1</span></summary>
+<ul class="toc-symbols">
+<li><a href="#summary-constants">All Constants</a></li>
+<li><a href="#Gui_PasswordEdit_MaximumByteLength">PasswordEdit.MaximumByteLength</a></li>
+</ul>
+</details>
 <details class="toc-group">
-<summary>Functions<span class="toc-count">816</span></summary>
+<summary>Functions<span class="toc-count">828</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Gui_Properties_BoolCombo">Properties.BoolCombo</a></li>
@@ -611,6 +619,8 @@
 <li><a href="#Gui_Theme_setTextColors">Theme.setTextColors</a></li>
 <li><a href="#Gui_ThemeColors_setDark">ThemeColors.setDark</a></li>
 <li><a href="#Gui_ThemeColors_setLight">ThemeColors.setLight</a></li>
+<li><a href="#Gui_ThemeColors_setSwagDark">ThemeColors.setSwagDark</a></li>
+<li><a href="#Gui_ThemeColors_setSwagLight">ThemeColors.setSwagLight</a></li>
 <li><a href="#Gui_ThemeStyle_addStyleSheetColors">ThemeStyle.addStyleSheetColors</a></li>
 <li><a href="#Gui_ThemeStyle_addStyleSheetMetrics">ThemeStyle.addStyleSheetMetrics</a></li>
 <li><a href="#Gui_ThemeStyle_clearFont">ThemeStyle.clearFont</a></li>
@@ -940,6 +950,16 @@
 <li><a href="#Gui_PalettePicker_create">PalettePicker.create</a></li>
 <li><a href="#Gui_PalettePicker_setItemMetrics">PalettePicker.setItemMetrics</a></li>
 <li><a href="#Gui_PalettePicker_setSelectedIndex">PalettePicker.setSelectedIndex</a></li>
+<li><a href="#Gui_PasswordEdit_bytes">PasswordEdit.bytes</a></li>
+<li><a href="#Gui_PasswordEdit_clear">PasswordEdit.clear</a></li>
+<li><a href="#Gui_PasswordEdit_create">PasswordEdit.create</a></li>
+<li><a href="#Gui_PasswordEdit_hasFocus">PasswordEdit.hasFocus</a></li>
+<li><a href="#Gui_PasswordEdit_isEmpty">PasswordEdit.isEmpty</a></li>
+<li><a href="#Gui_PasswordEdit_selectAll">PasswordEdit.selectAll</a></li>
+<li><a href="#Gui_PasswordEdit_setFocus">PasswordEdit.setFocus</a></li>
+<li><a href="#Gui_PasswordEdit_setForm">PasswordEdit.setForm</a></li>
+<li><a href="#Gui_PasswordEdit_setIcon">PasswordEdit.setIcon</a></li>
+<li><a href="#Gui_PasswordEdit_setPlaceholder">PasswordEdit.setPlaceholder</a></li>
 <li><a href="#Gui_ProgressBar_create">ProgressBar.create</a></li>
 <li><a href="#Gui_ProgressBar_setValue">ProgressBar.setValue</a></li>
 <li><a href="#Gui_ProgressBar_updateFlags">ProgressBar.updateFlags</a></li>
@@ -1104,7 +1124,7 @@
 </nav></aside>
 <section class="right"><article class="right-page" id="content">
 <section class="module-overview"><h1 id="overview">GUI</h1>
-<p>GUI builds native desktop interfaces from composable windows, controls, dialogs, themes, actions, and Pixel drawing.</p>
+<p>GUI builds native desktop interfaces from composable windows, controls, dialogs, themes, actions, password-safe input, and Pixel drawing.</p>
 <p>An <a href="#Gui_Application">Gui.Application</a> owns surfaces and drives the event loop. Each <a href="#Gui_Surface">Gui.Surface</a> has a root <a href="#Gui_Wnd">Gui.Wnd</a>; controls form a flatly documented API and are connected at runtime through parent links, event hooks, signals, docking, and layout constraints.</p>
 <h2 id="overview_Create_a_window">Create a window</h2>
 <div class="code-block"><span class="SCde"><span class="SKwd">using</span> <span class="SCst">Core</span>, <span class="SCst"><a href="#namespace_Gui">Gui</a></span>
@@ -1489,6 +1509,8 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_PalettePicker">Gui.PalettePicker</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Displays a wrapping palette and lets the user select one color.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Gui_PasswordEdit">Gui.PasswordEdit</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Edits a password without storing its plaintext in a regular text backing store.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Gui_ProgressBar">Gui.ProgressBar</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Displays finite progress or indeterminate activity.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_PushButton">Gui.PushButton</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Invokes an action from pointer or keyboard input.</p>
@@ -1716,6 +1738,14 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 <tr><td class="code-type"><a href="#Gui_SizingBorder">Gui.SizingBorder</a></td><td><p>Selects sizing border.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_WndFlags">Gui.WndFlags</a></td><td><p>Configures window state, clipping, paint order, and sibling ordering.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="summary-constants">Constants</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Gui_PasswordEdit_MaximumByteLength">PasswordEdit.MaximumByteLength</a></td><td><p>Maximum number of UTF-8 plaintext bytes held by one password edit.</p>
 </td></tr>
 </tbody>
 </table>
@@ -2379,6 +2409,10 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_ThemeColors_setLight">ThemeColors.setLight</a></td><td><p>Sets light.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Gui_ThemeColors_setSwagDark">ThemeColors.setSwagDark</a></td><td><p>Applies the dark Swag application palette: Voltage over Ink with neutral structure.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_ThemeColors_setSwagLight">ThemeColors.setSwagLight</a></td><td><p>Applies the light Swag application palette: Ink over Paper with neutral structure.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Gui_ThemeStyle_addStyleSheetColors">ThemeStyle.addStyleSheetColors</a></td><td><p>Adds style sheet colors.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_ThemeStyle_addStyleSheetMetrics">ThemeStyle.addStyleSheetMetrics</a></td><td><p>Adds style sheet metrics.</p>
@@ -3037,6 +3071,26 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_PalettePicker_setSelectedIndex">PalettePicker.setSelectedIndex</a></td><td><p>Selects one color by index and optionally emits <a href="#Gui_PalettePicker_sigSelectionChanged">Gui.PalettePicker.sigSelectionChanged</a>.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Gui_PasswordEdit_bytes">PasswordEdit.bytes</a></td><td><p>Returns a borrowed view of the UTF-8 plaintext bytes.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PasswordEdit_clear">PasswordEdit.clear</a></td><td><p>Clears the plaintext and visible mask, optionally emitting <a href="#Gui_PasswordEdit_sigChanged">Gui.PasswordEdit.sigChanged</a>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PasswordEdit_create">PasswordEdit.create</a></td><td><p>Creates an empty password edit with an optional command identifier.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PasswordEdit_hasFocus">PasswordEdit.hasFocus</a></td><td><p>Reports whether the private edit box owns keyboard focus.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PasswordEdit_isEmpty">PasswordEdit.isEmpty</a></td><td><p>Returns true when no password bytes are stored.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PasswordEdit_selectAll">PasswordEdit.selectAll</a></td><td><p>Selects the complete masked password.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PasswordEdit_setFocus">PasswordEdit.setFocus</a></td><td><p>Gives keyboard focus to the private edit box.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PasswordEdit_setForm">PasswordEdit.setForm</a></td><td><p>Changes the edit-box background and border form.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PasswordEdit_setIcon">PasswordEdit.setIcon</a></td><td><p>Changes the leading icon.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PasswordEdit_setPlaceholder">PasswordEdit.setPlaceholder</a></td><td><p>Changes the placeholder displayed while the password is empty.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Gui_ProgressBar_create">ProgressBar.create</a></td><td><p>Creates a progress bar with optional initial presentation options.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_ProgressBar_setValue">ProgressBar.setValue</a></td><td><p>Sets finite progress after clamping it to the zero-to-one range.</p>
@@ -3581,6 +3635,8 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 <tr><td class="code-type"><a href="#Gui_Label">Gui.Label</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Displays rich text and an optional icon, and reports activated links.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_PalettePicker">Gui.PalettePicker</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Displays a wrapping palette and lets the user select one color.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PasswordEdit">Gui.PasswordEdit</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Edits a password without storing its plaintext in a regular text backing store.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_ProgressBar">Gui.ProgressBar</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Displays finite progress or indeterminate activity.</p>
 </td></tr>
@@ -6890,6 +6946,10 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_ThemeColors_setLight">setLight</a></td><td><p>Sets light.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Gui_ThemeColors_setSwagDark">setSwagDark</a></td><td><p>Applies the dark Swag application palette: Voltage over Ink with neutral structure.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_ThemeColors_setSwagLight">setSwagLight</a></td><td><p>Applies the light Swag application palette: Ink over Paper with neutral structure.</p>
+</td></tr>
 </tbody>
 </table>
 <section class="api-symbol">
@@ -8875,6 +8935,66 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 <tr><td class="code-type"><a href="#Gui_PalettePicker_setItemMetrics">setItemMetrics</a></td><td><p>Changes color-item size and spacing.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_PalettePicker_setSelectedIndex">setSelectedIndex</a></td><td><p>Selects one color by index and optionally emits <a href="#Gui_PalettePicker_sigSelectionChanged">Gui.PalettePicker.sigSelectionChanged</a>.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Gui_PasswordEdit" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.PasswordEdit</span> <a class="api-item-permalink" href="#Gui_PasswordEdit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/widgets/passwordedit.swg#L10">src</a></div>
+<p>Edits a password without storing its plaintext in a regular text backing store.</p>
+<p>The private child edit box contains only one mask character per rune. Plaintext bytes stay in fixed-capacity storage, clipboard shortcuts are disabled, and destruction clears the storage.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Gui_PasswordEdit">PasswordEdit</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Gui_PasswordEdit_byteCount" class="code-type">byteCount</td><td class="code-type">u64</td><td><p>Number of occupied plaintext bytes.</p>
+</td></tr>
+<tr><td id="Gui_PasswordEdit_runeCount" class="code-type">runeCount</td><td class="code-type">u64</td><td><p>Number of entered Unicode code points.</p>
+</td></tr>
+<tr><td id="Gui_PasswordEdit_sigCancelled" class="code-type">sigCancelled</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_PasswordEdit">Gui.PasswordEdit</a>))</td><td><p>Emitted when Escape is pressed.</p>
+</td></tr>
+<tr><td id="Gui_PasswordEdit_sigChanged" class="code-type">sigChanged</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_PasswordEdit">Gui.PasswordEdit</a>))</td><td><p>Emitted after the password changes.</p>
+</td></tr>
+<tr><td id="Gui_PasswordEdit_sigSubmitted" class="code-type">sigSubmitted</td><td class="code-type"><a href="#Gui_SigArray">Gui.SigArray</a>'(func||(*<a href="#Gui_PasswordEdit">Gui.PasswordEdit</a>))</td><td><p>Emitted when Enter is pressed.</p>
+</td></tr>
+<tr><td id="Gui_PasswordEdit_storage" class="code-type">storage</td><td class="code-type">[1024] u8</td><td><p>Fixed storage avoids reallocating plaintext through a general allocator.</p>
+</td></tr>
+<tr><td id="Gui_PasswordEdit_wnd" class="code-type">wnd</td><td class="code-type"><a href="#Gui_Wnd">Gui.Wnd</a></td><td><p>Embedded window behavior and presentation.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="Gui_PasswordEdit_constants">Constants</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Gui_PasswordEdit_MaximumByteLength">MaximumByteLength</a></td><td><p>Maximum number of UTF-8 plaintext bytes held by one password edit.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="Gui_PasswordEdit_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Gui_PasswordEdit_bytes">bytes</a></td><td><p>Returns a borrowed view of the UTF-8 plaintext bytes.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PasswordEdit_clear">clear</a></td><td><p>Clears the plaintext and visible mask, optionally emitting <a href="#Gui_PasswordEdit_sigChanged">Gui.PasswordEdit.sigChanged</a>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PasswordEdit_create">create</a></td><td><p>Creates an empty password edit with an optional command identifier.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PasswordEdit_hasFocus">hasFocus</a></td><td><p>Reports whether the private edit box owns keyboard focus.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PasswordEdit_isEmpty">isEmpty</a></td><td><p>Returns true when no password bytes are stored.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PasswordEdit_selectAll">selectAll</a></td><td><p>Selects the complete masked password.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PasswordEdit_setFocus">setFocus</a></td><td><p>Gives keyboard focus to the private edit box.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PasswordEdit_setForm">setForm</a></td><td><p>Changes the edit-box background and border form.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PasswordEdit_setIcon">setIcon</a></td><td><p>Changes the leading icon.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_PasswordEdit_setPlaceholder">setPlaceholder</a></td><td><p>Changes the placeholder displayed while the password is empty.</p>
 </td></tr>
 </tbody>
 </table>
@@ -11675,6 +11795,12 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 </td></tr>
 </tbody>
 </table>
+<h3 id="constants">Constants</h3>
+<section class="api-symbol">
+<div class="api-item api-item-const"><span id="Gui_PasswordEdit_MaximumByteLength" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">PasswordEdit.MaximumByteLength</span> <a class="api-item-permalink" href="#Gui_PasswordEdit_MaximumByteLength" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/widgets/passwordedit.swg#L190">src</a></div>
+<p>Maximum number of UTF-8 plaintext bytes held by one password edit.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Gui_PasswordEdit_MaximumByteLength">MaximumByteLength</a></span> = <span class="SNum">1024</span></span></div>
+</section>
 <h3 id="functions">Functions</h3>
 <section class="api-symbol">
 <div class="api-item api-item-attr"><span id="Gui_Properties_BoolCombo" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Properties.BoolCombo</span> <a class="api-item-permalink" href="#Gui_Properties_BoolCombo" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/property/properties.attributes.swg#L47">src</a></div>
@@ -13386,6 +13512,16 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setLight</span>()</span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_ThemeColors_setSwagDark" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ThemeColors.setSwagDark</span> <a class="api-item-permalink" href="#Gui_ThemeColors_setSwagDark" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/paint/themecolors.swg#L1261">src</a></div>
+<p>Applies the dark Swag application palette: Voltage over Ink with neutral structure.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setSwagDark</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_ThemeColors_setSwagLight" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ThemeColors.setSwagLight</span> <a class="api-item-permalink" href="#Gui_ThemeColors_setSwagLight" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/paint/themecolors.swg#L1376">src</a></div>
+<p>Applies the light Swag application palette: Ink over Paper with neutral structure.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setSwagLight</span>()</span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_ThemeStyle_addStyleSheetColors" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ThemeStyle.addStyleSheetColors</span> <a class="api-item-permalink" href="#Gui_ThemeStyle_addStyleSheetColors" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/paint/themestyle.swg#L168">src</a></div>
 <p>Adds style sheet colors.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addStyleSheetColors</span>(str: <span class="STpe">string</span>)</span></div>
@@ -15064,6 +15200,57 @@ app.<span class="SFct">setRenderer</span>(&amp;cpu)
 <div class="api-item api-item-func"><span id="Gui_PalettePicker_setSelectedIndex" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PalettePicker.setSelectedIndex</span> <a class="api-item-permalink" href="#Gui_PalettePicker_setSelectedIndex" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/widgets/palettepicker.swg#L172">src</a></div>
 <p>Selects one color by index and optionally emits <a href="#Gui_PalettePicker_sigSelectionChanged">Gui.PalettePicker.sigSelectionChanged</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setSelectedIndex</span>(index: <span class="STpe">s32</span>, notify = <span class="SKwd">true</span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_PasswordEdit_bytes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PasswordEdit.bytes</span> <a class="api-item-permalink" href="#Gui_PasswordEdit_bytes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/widgets/passwordedit.swg#L222">src</a></div>
+<p>Returns a borrowed view of the UTF-8 plaintext bytes. The view remains valid until the password changes or the widget is destroyed.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">bytes</span>()-&gt;<span class="SKwd">const</span> [..] <span class="STpe">u8</span> =&gt; .storage[</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_PasswordEdit_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PasswordEdit.clear</span> <a class="api-item-permalink" href="#Gui_PasswordEdit_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/widgets/passwordedit.swg#L246">src</a></div>
+<p>Clears the plaintext and visible mask, optionally emitting <a href="#Gui_PasswordEdit_sigChanged">Gui.PasswordEdit.sigChanged</a>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>(notify = <span class="SKwd">true</span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_PasswordEdit_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PasswordEdit.create</span> <a class="api-item-permalink" href="#Gui_PasswordEdit_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/widgets/passwordedit.swg#L194">src</a></div>
+<p>Creates an empty password edit with an optional command identifier.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Discardable]</span>
+<span class="SKwd">func</span> <span class="SFct">create</span>(parent: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, position: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span> = {}, id: <span class="SItr">#null</span> <span class="SCst"><a href="#Gui_WndId">WndId</a></span> = <span class="SKwd">null</span>)-&gt;*<span class="SCst"><a href="#Gui_PasswordEdit">PasswordEdit</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_PasswordEdit_hasFocus" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PasswordEdit.hasFocus</span> <a class="api-item-permalink" href="#Gui_PasswordEdit_hasFocus" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/widgets/passwordedit.swg#L231">src</a></div>
+<p>Reports whether the private edit box owns keyboard focus.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">hasFocus</span>()-&gt;<span class="STpe">bool</span> =&gt; .edit.hasFocus</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_PasswordEdit_isEmpty" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PasswordEdit.isEmpty</span> <a class="api-item-permalink" href="#Gui_PasswordEdit_isEmpty" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/widgets/passwordedit.swg#L225">src</a></div>
+<p>Returns true when no password bytes are stored.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isEmpty</span>()-&gt;<span class="STpe">bool</span> =&gt;</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_PasswordEdit_selectAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PasswordEdit.selectAll</span> <a class="api-item-permalink" href="#Gui_PasswordEdit_selectAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/widgets/passwordedit.swg#L234">src</a></div>
+<p>Selects the complete masked password.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">selectAll</span>() =&gt; .edit.selectAll</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_PasswordEdit_setFocus" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PasswordEdit.setFocus</span> <a class="api-item-permalink" href="#Gui_PasswordEdit_setFocus" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/widgets/passwordedit.swg#L228">src</a></div>
+<p>Gives keyboard focus to the private edit box.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setFocus</span>() =&gt; .edit.setFocus</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_PasswordEdit_setForm" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PasswordEdit.setForm</span> <a class="api-item-permalink" href="#Gui_PasswordEdit_setForm" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/widgets/passwordedit.swg#L240">src</a></div>
+<p>Changes the edit-box background and border form.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setForm</span>(form: <span class="SCst"><a href="#Gui_EditBoxForm">EditBoxForm</a></span>) =&gt; .edit.setForm</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_PasswordEdit_setIcon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PasswordEdit.setIcon</span> <a class="api-item-permalink" href="#Gui_PasswordEdit_setIcon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/widgets/passwordedit.swg#L243">src</a></div>
+<p>Changes the leading icon.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setIcon</span>(icon: <span class="SCst"><a href="#Gui_Icon">Icon</a></span>) =&gt; .edit.setIcon</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_PasswordEdit_setPlaceholder" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PasswordEdit.setPlaceholder</span> <a class="api-item-permalink" href="#Gui_PasswordEdit_setPlaceholder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/widgets/passwordedit.swg#L237">src</a></div>
+<p>Changes the placeholder displayed while the password is empty.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setPlaceholder</span>(placeholder: <span class="SItr">#null</span> <span class="STpe">string</span>) =&gt; .edit.setPlaceholder</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_ProgressBar_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ProgressBar.create</span> <a class="api-item-permalink" href="#Gui_ProgressBar_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/widgets/progressbar.swg#L105">src</a></div>

@@ -1135,4 +1135,341 @@ impl ThemeColors
         .prop_SectionBk   = Gray8
         .prop_CategBk     = Gray8
     }
+
+    private mtd applySwagAccent(accent, activeText, neutralHot, neutralPressed: Color)
+    {
+        .hilight              = accent
+        .hilightLight         = accent
+        .hilightDark          = accent
+        .hilightLightContrast = activeText
+
+        .btnPush_PressedBorder     = accent
+        .btnPush_HotBorder         = accent
+        .btnPushFlat_PressedBorder = accent
+        .btnPushFlat_HotBorder     = accent
+
+        .btnPushDefault_Text          = activeText
+        .btnPushDefault_Border        = accent
+        .btnPushDefault_Bk            = accent
+        .btnPushDefault_PressedText   = activeText
+        .btnPushDefault_PressedBorder = accent
+        .btnPushDefault_PressedBk     = accent
+        .btnPushDefault_HotText       = activeText
+        .btnPushDefault_HotBorder     = accent
+        .btnPushDefault_HotBk         = accent
+
+        .btnIcon_CheckedPressedIcon = activeText
+        .btnIcon_CheckedPressedText = activeText
+        .btnIcon_CheckedHotIcon     = activeText
+        .btnIcon_CheckedHotText     = activeText
+        .btnIcon_CheckedIcon        = activeText
+        .btnIcon_CheckedText        = activeText
+        .btnIcon_CheckedPressedBk   = accent
+        .btnIcon_CheckedHotBk       = accent
+        .btnIcon_CheckedBk          = accent
+        .btnIcon_CheckedMark        = activeText
+        .btnIcon_CheckedPressedMark = activeText
+        .btnIcon_CheckedHotMark     = activeText
+
+        .btnCheck_PressedBorder = accent
+        .btnCheck_PressedMark   = accent
+        .btnCheck_HotBorder     = accent
+        .btnCheck_HotMark       = accent
+        .btnCheck_CheckedBorder = accent
+        .btnCheck_CheckedMark   = accent
+
+        .url_Text           = accent
+        .url_HotText        = accent
+        .edit_FocusBorder   = accent
+        .edit_HotBorder     = accent
+        .edit_SelectedBk    = neutralPressed
+        .richEdit_SelBk     = neutralPressed
+        .richEdit_CurLineBorder = neutralHot
+
+        .btnToggle_OffHotBorder     = accent
+        .btnToggle_OffHotMark       = accent
+        .btnToggle_OffPressedBorder = accent
+        .btnToggle_OffPressedMark   = accent
+        .btnToggle_OnBorder         = accent
+        .btnToggle_OnMark           = activeText
+        .btnToggle_OnBk             = accent
+        .btnToggle_OnHotBorder      = accent
+        .btnToggle_OnHotMark        = activeText
+        .btnToggle_OnHotBk          = accent
+        .btnToggle_OnPressedBorder  = accent
+        .btnToggle_OnPressedMark    = activeText
+        .btnToggle_OnPressedBk      = accent
+
+        .slider_HilightBk     = accent
+        .slider_Mark          = accent
+        .slider_HotMark       = accent
+        .slider_PressedMark   = accent
+        .slider_HilightStepBk = accent
+        .slider_HotStepBk     = accent
+
+        .circular_Mark        = accent
+        .circular_HotMark     = accent
+        .circular_PressedMark = accent
+        .circular_RangeArc    = accent
+
+        .tabItem_FlatSelected             = accent
+        .tabItem_FlatHot                  = neutralHot
+        .tabItem_RoundSelected            = accent
+        .tabItem_RoundHot                 = neutralHot
+        .tabItem_ButtonSelected           = accent
+        .tabItem_ButtonHot                = neutralHot
+        .tabItem_PushButtonSelected       = accent
+        .tabItem_PushButtonSelectedText   = activeText
+        .tabItem_PushButtonSelectedBorder = accent
+        .tabItem_PushButtonHot            = neutralHot
+        .tabItem_PushButtonHotBorder      = accent
+
+        .menuBar_SelectedBk   = accent
+        .menuBar_SelectedText = activeText
+        .popupItem_HotBk        = accent
+        .popupItem_HotText      = activeText
+        .popupItem_HotRightText = activeText
+
+        .comboBox_HotBorder      = accent
+        .comboBox_SelectedBorder = accent
+        .comboBoxItem_HotBk        = accent
+        .comboBoxItem_HotText      = activeText
+        .comboBoxItem_CheckMark    = accent
+        .comboBoxItem_HotCheckMark = activeText
+        .popupList_HotBk        = accent
+        .popupList_HotText      = activeText
+        .popupList_CheckMark    = accent
+        .popupList_HotCheckMark = activeText
+
+        .frameWnd_FocusBorder        = accent
+        .listItem_FocusSelectedBk    = accent
+        .listItem_FocusSelectedText  = activeText
+        .listItem_SelectedBk         = neutralPressed
+        .listItem_HotBk              = neutralHot
+        .headerItem_HotBk            = neutralHot
+        .headerItem_ClickedBk        = neutralPressed
+        .splitView_BarHot            = accent
+        .progressBar_Mark            = accent
+        .palPicker_HotBorder         = accent
+        .prop_FocusBk                = neutralPressed
+        .prop_FocusBorder            = accent
+        .prop_HotBk                  = neutralHot
+    }
+
+    // Applies the dark Swag application palette: Voltage over Ink with neutral structure.
+    mtd setSwagDark()
+    {
+        const Ink        = 0xFF0B0B0D
+        const Panel      = 0xFF141417
+        const Raised     = 0xFF1B1B1F
+        const View       = 0xFF101013
+        const Line       = 0xFF26262E
+        const Text       = 0xFFE6E6EA
+        const SoftText   = 0xFFA9A9B4
+        const FaintText  = 0xFF7D7D89
+        const Voltage    = 0xFFF7F900
+        const NeutralHot = 0xFF202024
+        const Pressed    = 0xFF2A2A30
+
+        .setDark()
+
+        .bk     = Ink
+        .border = Line
+        .text   = Text
+
+        .wnd_Bk                      = Panel
+        .wnd_CaptionBk               = Ink
+        .wnd_CaptionBkNotActived     = Panel
+        .wnd_CaptionText             = Text
+        .wnd_CaptionNotActivatedText = SoftText
+        .wnd_Border                  = Line
+        .view_Bk                     = View
+        .dlg_Bk                      = Panel
+        .dlg_BtnBarBk                = View
+
+        .btnPush_StrongText   = Ink
+        .btnPush_StrongBorder = Voltage
+        .btnPush_StrongBk     = Voltage
+        .btnPush_Text         = Text
+        .btnPush_Border       = Line
+        .btnPush_Bk           = Panel
+        .btnPush_PressedText  = Text
+        .btnPush_PressedBk    = Pressed
+        .btnPush_HotText      = Text
+        .btnPush_HotBk        = NeutralHot
+
+        .btnPushFlat_Text      = Text
+        .btnPushFlat_HotText   = Text
+        .btnPushFlat_HotBk     = NeutralHot
+        .btnPushFlat_PressedBk = Pressed
+        .btnIcon_Icon          = Text
+        .btnIcon_Text          = Text
+        .btnIcon_HotIcon       = Text
+        .btnIcon_HotText       = Text
+        .btnIcon_HotBk         = NeutralHot
+        .btnIcon_PressedBk     = Pressed
+
+        .label_Text      = Text
+        .label_TextLight = SoftText
+        .label_Icon      = Text
+        .disabled        = FaintText
+
+        .edit_Border      = Line
+        .edit_HotBorder   = Line
+        .edit_Bk          = Raised
+        .edit_HotBk       = Raised
+        .edit_FocusBk     = Raised
+        .edit_Text        = Text
+        .edit_Note        = FaintText
+        .edit_TextUnit    = SoftText
+        .richEdit_Bk      = Ink
+        .richEdit_Text    = Text
+        .richEdit_Caret   = Text
+
+        .menuPopup_Bk        = Panel
+        .menuPopup_Border    = Line
+        .menuPopup_Separator = Line
+        .menuBar_Bk          = Ink
+        .menuBar_Border      = Line
+        .popupItem_Text      = Text
+        .popupItem_RightText = SoftText
+        .scrollBar_Bk        = View
+        .scrollBar_Box       = FaintText
+
+        .comboBox_Border      = Line
+        .comboBox_Bk          = Raised
+        .comboBox_HotBk       = Raised
+        .comboBox_SelectedBk  = Raised
+        .comboBox_Text        = Text
+        .comboBox_HotText     = Text
+        .comboBox_SelectedText = Text
+        .comboBoxItem_Text    = Text
+        .popupList_Separator  = Line
+        .popupList_Text       = Text
+
+        .frameWnd_Border      = Line
+        .frameWnd_PopupBorder = Line
+        .frameWnd_Bk          = Panel
+        .frameWnd_FocusBk     = Panel
+        .listItem_Text        = Text
+        .listItem_SelectedText = Text
+        .listItem_Separator   = Line
+        .listItem_Line        = Line
+        .headerItem_Text      = Text
+        .headerItem_Separator = Line
+        .header_Bk            = Panel
+        .splitView_TitleBk    = Panel
+        .splitView_Bar        = Line
+        .progressBar_Border   = Line
+        .progressBar_Bk       = Ink
+        .prop_GridBorder      = Line
+        .prop_GridColumn      = Line
+        .prop_SectionBk       = View
+        .prop_CategBk         = View
+
+        .applySwagAccent(Color.fromArgb(Voltage), Color.fromArgb(Ink),
+                         Color.fromArgb(NeutralHot), Color.fromArgb(Pressed))
+    }
+
+    // Applies the light Swag application palette: Ink over Paper with neutral structure.
+    mtd setSwagLight()
+    {
+        const Ink        = 0xFF0B0B0D
+        const Paper      = 0xFFFFFFFF
+        const Panel      = 0xFFF7F7F5
+        const Raised     = 0xFFFFFFFF
+        const Line       = 0xFFE2E2DF
+        const Text       = 0xFF1B1B1D
+        const SoftText   = 0xFF55555C
+        const FaintText  = 0xFF83838D
+        const NeutralHot = 0xFFF0F0ED
+        const Pressed    = 0xFFE7E7E3
+
+        .setLight()
+
+        .bk     = Paper
+        .border = Line
+        .text   = Text
+
+        .wnd_Bk                      = Paper
+        .wnd_CaptionBk               = Paper
+        .wnd_CaptionBkNotActived     = Panel
+        .wnd_CaptionText             = Text
+        .wnd_CaptionNotActivatedText = SoftText
+        .wnd_Border                  = Line
+        .view_Bk                     = Paper
+        .dlg_Bk                      = Panel
+        .dlg_BtnBarBk                = Paper
+
+        .btnPush_StrongText   = Paper
+        .btnPush_StrongBorder = Ink
+        .btnPush_StrongBk     = Ink
+        .btnPush_Text         = Text
+        .btnPush_Border       = Line
+        .btnPush_Bk           = Raised
+        .btnPush_PressedText  = Text
+        .btnPush_PressedBk    = Pressed
+        .btnPush_HotText      = Text
+        .btnPush_HotBk        = NeutralHot
+
+        .label_Text      = Text
+        .label_TextLight = SoftText
+        .label_Icon      = Text
+        .disabled        = FaintText
+
+        .edit_Border      = Line
+        .edit_Bk          = Raised
+        .edit_HotBk       = Raised
+        .edit_FocusBk     = Raised
+        .edit_Text        = Text
+        .edit_Note        = FaintText
+        .edit_TextUnit    = SoftText
+        .richEdit_Bk      = Paper
+        .richEdit_Text    = Text
+        .richEdit_Caret   = Text
+
+        .menuPopup_Bk        = Paper
+        .menuPopup_Border    = Line
+        .menuPopup_Separator = Line
+        .menuBar_Bk          = Paper
+        .menuBar_Border      = Line
+        .popupItem_Text      = Text
+        .popupItem_RightText = SoftText
+        .scrollBar_Bk        = Panel
+        .scrollBar_Box       = FaintText
+
+        .comboBox_Border      = Line
+        .comboBox_Bk          = Raised
+        .comboBox_HotBk       = Raised
+        .comboBox_SelectedBk  = Raised
+        .comboBox_Text        = Text
+        .comboBox_HotText     = Text
+        .comboBox_SelectedText = Text
+        .comboBoxItem_Text    = Text
+        .popupList_Separator  = Line
+        .popupList_Text       = Text
+
+        .frameWnd_Border      = Line
+        .frameWnd_PopupBorder = Line
+        .frameWnd_Bk          = Paper
+        .frameWnd_FocusBk     = Paper
+        .listItem_Text        = Text
+        .listItem_SelectedText = Text
+        .listItem_Separator   = Line
+        .listItem_Line        = Line
+        .headerItem_Text      = Text
+        .headerItem_Separator = Line
+        .header_Bk            = Panel
+        .splitView_TitleBk    = Panel
+        .splitView_Bar        = Line
+        .progressBar_Border   = Line
+        .progressBar_Bk       = Paper
+        .prop_GridBorder      = Line
+        .prop_GridColumn      = Line
+        .prop_SectionBk       = Paper
+        .prop_CategBk         = Paper
+
+        .applySwagAccent(Color.fromArgb(Ink), Color.fromArgb(Paper),
+                         Color.fromArgb(NeutralHot), Color.fromArgb(Pressed))
+    }
 }

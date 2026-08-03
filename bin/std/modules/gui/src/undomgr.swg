@@ -14,7 +14,7 @@ using Core
 // (so e.g. "align 5 shapes" is one undo). Use newSerial() to get a fresh group id and pass
 // it to pushCmd for every command of the group; 0 means "give me my own fresh group".
 //
-// The property grid (Properties) and any app (e.g. captme) build on this by wrapping pushCmd
+// Property grids and editors build on this by wrapping pushCmd
 // with their own command structs implementing IUndoCommand.
 
 // One atomic, reversible change owned by an [[UndoManager]].

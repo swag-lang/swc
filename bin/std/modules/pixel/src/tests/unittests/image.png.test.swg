@@ -478,16 +478,16 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     fillSolidPngImage(&src, 1'u8, 2'u8, 3'u8, 255'u8)
 
     var md: ImageMetadata
-    md.tag   = "Captme.File"
-    md.value = "capture.captme"
+    md.tag   = "Editor.SourceFile"
+    md.value = "drawing.editor"
     src.metadata.add(md)
 
     expect src.save(path.toString())
     let img = expect Image.load(path.toString())
     @assert(img.isValid())
     @assert(img.metadata.count == 1)
-    @assert(img.metadata[0].isTag("Captme.File"))
-    @assert(cast(string) img.metadata[0].toSlice() == "capture.captme")
+    @assert(img.metadata[0].isTag("Editor.SourceFile"))
+    @assert(cast(string) img.metadata[0].toSlice() == "drawing.editor")
 }
 
 // Invalid and truncated buffers should fail without producing an image.

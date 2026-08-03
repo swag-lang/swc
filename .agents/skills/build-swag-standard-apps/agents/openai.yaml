@@ -1,0 +1,4 @@
+interface:
+  display_name: "Build Swag Standard Apps"
+  short_description: "Build polished official Swag desktop applications"
+  default_prompt: "Use $build-swag-standard-apps to create or update an official Swag application under bin/apps."

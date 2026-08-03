@@ -30,3 +30,9 @@ When the change touches a brand asset, a stylesheet, a page layout, an icon, a c
 the editor theme, also read and follow
 [design-swag-identity](.agents/skills/design-swag-identity/SKILL.md): the mark, the
 palette, and the 45 degree cut are one system.
+
+When adding, migrating, renaming, styling, packaging, or testing an official application under
+`bin/apps`, also read and follow
+[build-swag-standard-apps](.agents/skills/build-swag-standard-apps/SKILL.md): every shipped app
+uses the `sName` product convention, a specific generated icon, the standard Swag surface, and the
+applications workspace validation flow.

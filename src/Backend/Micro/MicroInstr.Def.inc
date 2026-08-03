@@ -477,6 +477,24 @@ SWC_MICRO_INSTR_DEF(
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
     })
+// Non-destructive three-operand float arithmetic: dst = src1 op src2, with dst
+// distinct from both. Legacy SSE has no such shape - it only writes back into
+// one of its inputs - so building `c = a * b` means copying a into c first, and
+// those copies survive to the hot loop. AVX's VEX encoding takes the three
+// registers directly. Created after register allocation by the post-RA peephole,
+// which is the first point where the copy and the operation are known to concern
+// the same physical registers; nothing before then emits this opcode.
+SWC_MICRO_INSTR_DEF(
+    OpBinaryRegRegReg,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::Def, MicroInstrRegMode::Use, MicroInstrRegMode::Use},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 4,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::Zero,
+        .memBaseOperandIndex   = 0,
+        .memOffsetOperandIndex = 0,
+    })
 SWC_MICRO_INSTR_DEF(
     OpBinaryRegImm,
     MicroInstrDef{

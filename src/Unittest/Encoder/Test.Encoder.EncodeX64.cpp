@@ -53,6 +53,7 @@ namespace
     constexpr MicroReg XMM1 = MicroReg::floatReg(1);
     constexpr MicroReg XMM2 = MicroReg::floatReg(2);
     constexpr MicroReg XMM3 = MicroReg::floatReg(3);
+    constexpr MicroReg XMM9 = MicroReg::floatReg(9);
 
 #define ENCODE_CASE(__name, __hex, ...)                                     \
     do                                                                      \
@@ -312,6 +313,16 @@ namespace
         // Four immediate bytes force the 32-bit form: kept at 16 the operand-size
         // prefix would have the decoder take only two of them.
         ENCODE_CASE("op_binary_reg_imm_mul_imm32_b16", "45 0F BF ED 45 69 ED 01 01 00 00", b.emitOpBinaryRegImm(R13, ApInt(0x101, 16), MicroOp::MultiplySigned, MicroOpBits::B16););
+        // VEX three-operand float arithmetic. The prefix carries the 0F escape,
+        // so no 0F byte follows, and vvvv holds the first source complemented.
+        ENCODE_CASE("op_binary_reg_reg_reg_fmul_b64", "C5 EB 59 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::FloatMultiply, MicroOpBits::B64););
+        ENCODE_CASE("op_binary_reg_reg_reg_fadd_b64", "C5 F3 58 C2", b.emitOpBinaryRegRegReg(XMM0, XMM1, XMM2, MicroOp::FloatAdd, MicroOpBits::B64););
+        ENCODE_CASE("op_binary_reg_reg_reg_fsub_b32", "C5 F2 5C C2", b.emitOpBinaryRegRegReg(XMM0, XMM1, XMM2, MicroOp::FloatSubtract, MicroOpBits::B32););
+        // An extended second source cannot be named by the two-byte prefix: only
+        // the three-byte form has the B field.
+        ENCODE_CASE("op_binary_reg_reg_reg_fmul_b64_ext_src", "C4 C1 6B 59 C9", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM9, MicroOp::FloatMultiply, MicroOpBits::B64););
+        // Float arithmetic reading its second operand straight from memory.
+        ENCODE_CASE("op_binary_reg_mem_fmul_b64", "F2 0F 59 41 08", b.emitOpBinaryRegMem(XMM0, RCX, 8, MicroOp::FloatMultiply, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_imm_fround_b64_floor", "66 48 0F 3A 0B C0 01", b.emitOpBinaryRegImm(XMM0, ApInt(1, 64), MicroOp::FloatRound, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_imm_fround_b32_trunc", "66 0F 3A 0A C9 03", b.emitOpBinaryRegImm(XMM1, ApInt(3, 64), MicroOp::FloatRound, MicroOpBits::B32););
         ENCODE_CASE("op_binary_reg_imm_shl_0_b64", "49 C1 E0 00", b.emitOpBinaryRegImm(R8, ApInt(0, 64), MicroOp::ShiftLeft, MicroOpBits::B64););

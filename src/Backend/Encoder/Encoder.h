@@ -93,6 +93,10 @@ public:
     void                                        clearDebugSourceRanges() { debugSourceRanges_.clear(); }
     void                                        addDebugSourceRange(uint32_t codeStartOffset, uint32_t codeEndOffset, const DebugSourceInfo& debugSourceInfo);
     const std::vector<EncoderDebugSourceRange>& debugSourceRanges() const { return debugSourceRanges_; }
+    // Whether the target can compute `dst = src1 op src2` for floats without
+    // writing into one of its inputs. Where it cannot, the post-RA peephole
+    // leaves the copy-then-operate pair alone.
+    virtual bool                                supportsNonDestructiveFloatBinary() const { return false; }
     void                                        setBackendBuildCfg(const Runtime::BuildCfgBackend& value) { backendBuildCfg_ = value; }
     const Runtime::BuildCfgBackend&             backendBuildCfg() const { return backendBuildCfg_; }
 
@@ -164,6 +168,7 @@ protected:
     virtual void encodeOpBinaryRegImm(MicroReg reg, const ApInt& value, MicroOp op, MicroOpBits opBits)                                                                                    = 0;
     virtual void encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, const ApInt& value, MicroOp op, MicroOpBits opBits)                                                             = 0;
     virtual void encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits)                                                                     = 0;
+    virtual void encodeOpBinaryRegRegReg(MicroReg regDst, MicroReg regSrc1, MicroReg regSrc2, MicroOp op, MicroOpBits opBits)                                                              = 0;
 
     virtual void updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand* ops, MicroInstrUseDef& info) const
     {

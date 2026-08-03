@@ -24,4 +24,15 @@ Use this compact format. Keep observations factual and make the next step action
 - Related: issue, pull request, or TODO entry if applicable
 -->
 
-No open investigation has been recorded yet.
+### sCrypt integration working-set growth
+
+- Area: bin/std
+- Found while: reproducing an sCrypt WinFsp mount in the privileged integration test
+- Observation: the process working set grows far beyond the 64 MiB test container during ordinary
+  filesystem scenarios; the test still completes and cleans up normally.
+- Evidence: `tools/test-scrypt-integration.bat dm` reached about 760 MiB in release, and the same
+  34-scenario run in fast-debug reached about 835 MiB before passing, unmounting `Y:`, and exiting.
+  Windows also recorded `RADAR_PRE_LEAK_64` for an earlier sCrypt run.
+- Next step: record process heap and working-set deltas at every integration stage and across
+  repeated mount/unmount cycles in one process, then attribute retained allocations to sCrypt,
+  WinFsp, or the core allocator before changing ownership or allocation policy.

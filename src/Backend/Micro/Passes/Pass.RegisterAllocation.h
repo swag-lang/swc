@@ -56,6 +56,12 @@ public:
         // store land in different slots), silently corrupting the accumulator.
         // See preallocateLoopCarriedSlots.
         bool loopCarriedHome = false;
+        // Set when some instruction names this value with a 128-bit operand,
+        // which is what decides how wide its spill slot has to be. A float
+        // register can hold a vector, so a value that is only ever a scalar
+        // double would otherwise pay a 16-byte slot and a 16-byte move for
+        // eight bytes of value. See prepareInstructionData.
+        bool wideFloat = false;
     };
 
 private:

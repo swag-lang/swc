@@ -100,6 +100,18 @@ public:
     virtual std::string formatRegisterName(MicroReg reg) const;
     virtual MicroReg    stackPointerReg() const = 0;
 
+    // Whether legalization may still demand this exact register for some instruction, after
+    // register allocation has already run. Those demands appear as conformance issues on a later
+    // legalize sweep, so nothing in the instruction stream announces them beforehand - which is
+    // why a register allocator cannot hand such a register to a value for a whole live range on
+    // the strength of the claims it can see. Conservative default: assume any register may be
+    // demanded, so a target that does not answer loses nothing but the opportunity.
+    virtual bool mayDemandFixedRegisterLate(MicroReg reg) const
+    {
+        SWC_UNUSED(reg);
+        return true;
+    }
+
 protected:
     TaskContext&       ctx() { return *(ctx_); }
     const TaskContext& ctx() const { return *(ctx_); }

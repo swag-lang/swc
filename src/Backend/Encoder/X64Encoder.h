@@ -21,6 +21,16 @@ public:
     void        buildUnwindInfo(ByteArray& outUnwindInfo) const override;
     std::string formatRegisterName(MicroReg reg) const override;
     MicroReg    stackPointerReg() const override { return MicroReg::intReg(4); }
+
+    // Only rax, rcx and rdx are ever demanded by a late lowering: rcx carries a variable shift
+    // count, and rax/rdx are the fixed pair of the wide multiply, the divide and the modulo.
+    // Every other integer register reaches the encoder exactly as allocation left it.
+    bool mayDemandFixedRegisterLate(MicroReg reg) const override
+    {
+        if (!reg.isAnyInt())
+            return false;
+        return reg == MicroReg::intReg(0) || reg == MicroReg::intReg(2) || reg == MicroReg::intReg(3);
+    }
     bool        queryConformanceIssue(MicroConformanceIssue& outIssue, const MicroInstr& inst, const MicroInstrOperand* ops) const override;
 
 protected:

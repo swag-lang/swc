@@ -575,3 +575,18 @@ SWC_MICRO_INSTR_DEF(
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 3,
     })
+
+// Appended after the vector forms to keep prior opcode values stable.
+// Indexed movzx: same operand layout as LoadSignedExtAmcRegMem
+// [dst, base, index, dstBits, srcBits, mul, add].
+SWC_MICRO_INSTR_DEF(
+    LoadZeroExtAmcRegMem,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::Def, MicroInstrRegMode::Use, MicroInstrRegMode::Use},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 0,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::Zero,
+        .memBaseOperandIndex   = 0,
+        .memOffsetOperandIndex = 0,
+    })

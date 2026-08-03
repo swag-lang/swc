@@ -1699,7 +1699,7 @@ namespace
         emitValue(store, valueU64, std::min(opBitsValue, MicroOpBits::B32));
     }
 
-    void encodeAmcReg(PagedStore& store, MicroReg reg, MicroOpBits opBitsReg, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, MicroOp op, bool mr)
+    void encodeAmcReg(PagedStore& store, MicroReg reg, MicroOpBits opBitsReg, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, MicroOp op, bool mr, MicroOpBits zeroExtSrcBits = MicroOpBits::Zero)
     {
         SWC_INTERNAL_CHECK(canEncodeSigned32(addValue));
 
@@ -1744,7 +1744,16 @@ namespace
                 emitSpecCpuOp(store, MicroOp::MoveSignExtend, opBitsReg);
                 break;
             case MicroOp::Move:
-                if (reg.isFloat())
+                if (zeroExtSrcBits != MicroOpBits::Zero)
+                {
+                    // Indexed movzx: 0F B6 (byte source) / 0F B7 (word source);
+                    // the destination width rides the prefixes emitted above.
+                    SWC_ASSERT(!mr && !reg.isFloat());
+                    SWC_ASSERT(zeroExtSrcBits == MicroOpBits::B8 || zeroExtSrcBits == MicroOpBits::B16);
+                    emitCpuOp(store, 0x0F);
+                    emitCpuOp(store, zeroExtSrcBits == MicroOpBits::B8 ? 0xB6 : 0xB7);
+                }
+                else if (reg.isFloat())
                 {
                     emitCpuOp(store, 0x0F);
                     if (opBitsReg == MicroOpBits::B128)
@@ -1802,6 +1811,15 @@ void X64Encoder::encodeLoadSignedExtendAmcRegMem(MicroReg regDst, MicroReg regBa
     // 64-bit on this target (no 0x67 prefix).
     SWC_ASSERT(numBitsDst == MicroOpBits::B64 && numBitsSrc == MicroOpBits::B32);
     return encodeAmcReg(store_, regDst, MicroOpBits::B64, regBase, regMul, mulValue, addValue, MicroOpBits::B64, MicroOp::MoveSignExtend, false);
+}
+
+void X64Encoder::encodeLoadZeroExtendAmcRegMem(MicroReg regDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits numBitsDst, MicroOpBits numBitsSrc)
+{
+    // Indexed movzx: load a byte or word from [base + index*scale + disp] and
+    // zero-extend it into a 32- or 64-bit register.
+    SWC_ASSERT(numBitsDst == MicroOpBits::B32 || numBitsDst == MicroOpBits::B64);
+    SWC_ASSERT(numBitsSrc == MicroOpBits::B8 || numBitsSrc == MicroOpBits::B16);
+    return encodeAmcReg(store_, regDst, numBitsDst, regBase, regMul, mulValue, addValue, MicroOpBits::B64, MicroOp::Move, false, numBitsSrc);
 }
 
 void X64Encoder::encodeLoadAmcMemReg(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, MicroReg regSrc, MicroOpBits opBitsSrc)

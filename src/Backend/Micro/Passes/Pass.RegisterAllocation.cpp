@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
+#include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroDenseRegIndex.h"
 #include "Backend/Micro/MicroInstr.h"
@@ -1072,6 +1073,13 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
     // stays in integers.
     constexpr uint64_t K_DENSITY_SCALE = 1024;
 
+    // How far below the best candidate a value may rank and still be granted a register the
+    // function names elsewhere (the span-scoped path further down). Measured on bench/: without a
+    // bound the extra supply reached every candidate that earns anything at all, and the local
+    // allocator pressure that caused cost more than the reservations returned - sha256 and leven
+    // each lost 7%. Bounding it kept their gains and left wordfreq and csvagg's intact.
+    constexpr uint64_t K_SPAN_SCOPED_DENSITY_DIVISOR = 2;
+
     struct GlobalCandidate
     {
         uint32_t denseIndex = 0;
@@ -1105,6 +1113,12 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
         return;
 
     std::ranges::stable_sort(candidates, [](const GlobalCandidate& a, const GlobalCandidate& b) { return a.benefit > b.benefit; });
+
+    // Supply and budget are two different things. Widening which registers may be granted (below)
+    // is worth it for the values that dominate a hot loop; handing one to every candidate that
+    // merely earns something starves the local allocator instead, because a hull holds its
+    // register across its holes as well.
+    const uint64_t spanScopedMinDensity = candidates.front().benefit / K_SPAN_SCOPED_DENSITY_DIVISOR;
 
     // The local allocator must keep enough of each class to satisfy the worst
     // single instruction — its register operands plus what a destructive
@@ -1214,11 +1228,31 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
                     if (hullConcreteClaimsBlock(reg, lo, hi))
                         continue;
                 }
+                else if (isProvenFreeRegister(reg))
+                {
+                    SWC_ASSERT(!concreteClaimsOverlap(reg, lo, hi));
+                }
                 else
                 {
-                    if (!isProvenFreeRegister(reg))
+                    // A register the function names elsewhere may still be granted, on the same
+                    // terms the float class already uses: a claim check scoped to the hull. What
+                    // made that unsound for ints is that legalization can still demand a fixed
+                    // register after allocation, announced by nothing visible here - so the
+                    // registers it can demand are excluded, and only those.
+                    //
+                    // The hull must also not cross a call, since a call clobbers every
+                    // caller-saved register and a hull holds its register across the whole span.
+                    // Refusing the caller-saved pool outright instead - which is what a single
+                    // call anywhere in the function used to do - left a hash round's eight
+                    // loop-carried values contending for four callee-saved registers, and most of
+                    // them ended up in memory.
+                    const bool spanScopedGrant = cand.benefit >= spanScopedMinDensity &&
+                                                 !crossesCall &&
+                                                 context_->encoder &&
+                                                 !context_->encoder->mayDemandFixedRegisterLate(reg) &&
+                                                 !hullConcreteClaimsBlock(reg, lo, hi);
+                    if (!spanScopedGrant)
                         continue;
-                    SWC_ASSERT(!concreteClaimsOverlap(reg, lo, hi));
                 }
                 if (isPhysRegForbiddenForVirtual(vreg, reg))
                     continue;

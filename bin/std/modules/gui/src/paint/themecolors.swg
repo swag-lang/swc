@@ -1182,12 +1182,12 @@ impl ThemeColors
         .btnCheck_CheckedBorder = accent
         .btnCheck_CheckedMark   = accent
 
-        .url_Text           = accent
-        .url_HotText        = accent
-        .edit_FocusBorder   = accent
-        .edit_HotBorder     = accent
-        .edit_SelectedBk    = neutralPressed
-        .richEdit_SelBk     = neutralPressed
+        .url_Text               = accent
+        .url_HotText            = accent
+        .edit_FocusBorder       = accent
+        .edit_HotBorder         = accent
+        .edit_SelectedBk        = neutralPressed
+        .richEdit_SelBk         = neutralPressed
         .richEdit_CurLineBorder = neutralHot
 
         .btnToggle_OffHotBorder     = accent
@@ -1235,30 +1235,30 @@ impl ThemeColors
         .popupItem_HotText      = .text
         .popupItem_HotRightText = .text
 
-        .comboBox_HotBorder      = accent
-        .comboBox_SelectedBorder = accent
+        .comboBox_HotBorder        = accent
+        .comboBox_SelectedBorder   = accent
         .comboBoxItem_HotBk        = neutralHot
         .comboBoxItem_HotText      = .text
         .comboBoxItem_CheckMark    = accent
         .comboBoxItem_HotCheckMark = accent
-        .popupList_HotBk        = neutralHot
-        .popupList_HotText      = .text
-        .popupList_CheckMark    = accent
-        .popupList_HotCheckMark = accent
+        .popupList_HotBk           = neutralHot
+        .popupList_HotText         = .text
+        .popupList_CheckMark       = accent
+        .popupList_HotCheckMark    = accent
 
-        .frameWnd_FocusBorder        = accent
-        .listItem_FocusSelectedBk    = neutralPressed
-        .listItem_FocusSelectedText  = .text
-        .listItem_SelectedBk         = neutralPressed
-        .listItem_HotBk              = neutralHot
-        .headerItem_HotBk            = neutralHot
-        .headerItem_ClickedBk        = neutralPressed
-        .splitView_BarHot            = accent
-        .progressBar_Mark            = accent
-        .palPicker_HotBorder         = accent
-        .prop_FocusBk                = neutralPressed
-        .prop_FocusBorder            = accent
-        .prop_HotBk                  = neutralHot
+        .frameWnd_FocusBorder       = accent
+        .listItem_FocusSelectedBk   = neutralPressed
+        .listItem_FocusSelectedText = .text
+        .listItem_SelectedBk        = neutralPressed
+        .listItem_HotBk             = neutralHot
+        .headerItem_HotBk           = neutralHot
+        .headerItem_ClickedBk       = neutralPressed
+        .splitView_BarHot           = accent
+        .progressBar_Mark           = accent
+        .palPicker_HotBorder        = accent
+        .prop_FocusBk               = neutralPressed
+        .prop_FocusBorder           = accent
+        .prop_HotBk                 = neutralHot
     }
 
     // Applies the dark Swag application palette: Voltage over Ink with neutral structure.
@@ -1320,17 +1320,17 @@ impl ThemeColors
         .label_Icon      = Text
         .disabled        = FaintText
 
-        .edit_Border      = ControlLine
-        .edit_HotBorder   = ControlLine
-        .edit_Bk          = Raised
-        .edit_HotBk       = Raised
-        .edit_FocusBk     = Raised
-        .edit_Text        = Text
-        .edit_Note        = FaintText
-        .edit_TextUnit    = SoftText
-        .richEdit_Bk      = View
-        .richEdit_Text    = Text
-        .richEdit_Caret   = Text
+        .edit_Border    = ControlLine
+        .edit_HotBorder = ControlLine
+        .edit_Bk        = Raised
+        .edit_HotBk     = Raised
+        .edit_FocusBk   = Raised
+        .edit_Text      = Text
+        .edit_Note      = FaintText
+        .edit_TextUnit  = SoftText
+        .richEdit_Bk    = View
+        .richEdit_Text  = Text
+        .richEdit_Caret = Text
 
         .menuPopup_Bk        = Panel
         .menuPopup_Border    = Line
@@ -1342,39 +1342,38 @@ impl ThemeColors
         .scrollBar_Bk        = View
         .scrollBar_Box       = FaintText
 
-        .comboBox_Border      = ControlLine
-        .comboBox_Bk          = Raised
-        .comboBox_HotBk       = Raised
-        .comboBox_SelectedBk  = Raised
-        .comboBox_Text        = Text
-        .comboBox_HotText     = Text
+        .comboBox_Border       = ControlLine
+        .comboBox_Bk           = Raised
+        .comboBox_HotBk        = Raised
+        .comboBox_SelectedBk   = Raised
+        .comboBox_Text         = Text
+        .comboBox_HotText      = Text
         .comboBox_SelectedText = Text
-        .comboBoxItem_Text    = Text
-        .popupList_Separator  = Line
-        .popupList_Text       = Text
+        .comboBoxItem_Text     = Text
+        .popupList_Separator   = Line
+        .popupList_Text        = Text
 
-        .frameWnd_Border      = Line
-        .frameWnd_PopupBorder = ControlLine
-        .frameWnd_Bk          = Panel
-        .frameWnd_FocusBk     = Panel
-        .listItem_Text        = Text
+        .frameWnd_Border       = Line
+        .frameWnd_PopupBorder  = ControlLine
+        .frameWnd_Bk           = Panel
+        .frameWnd_FocusBk      = Panel
+        .listItem_Text         = Text
         .listItem_SelectedText = Text
-        .listItem_Separator   = Line
-        .listItem_Line        = Line
-        .headerItem_Text      = Text
-        .headerItem_Separator = Line
-        .header_Bk            = Panel
-        .splitView_TitleBk    = Panel
-        .splitView_Bar        = Line
-        .progressBar_Border   = ControlLine
-        .progressBar_Bk       = View
-        .prop_GridBorder      = Line
-        .prop_GridColumn      = Line
-        .prop_SectionBk       = View
-        .prop_CategBk         = View
+        .listItem_Separator    = Line
+        .listItem_Line         = Line
+        .headerItem_Text       = Text
+        .headerItem_Separator  = Line
+        .header_Bk             = Panel
+        .splitView_TitleBk     = Panel
+        .splitView_Bar         = Line
+        .progressBar_Border    = ControlLine
+        .progressBar_Bk        = View
+        .prop_GridBorder       = Line
+        .prop_GridColumn       = Line
+        .prop_SectionBk        = View
+        .prop_CategBk          = View
 
-        .applySwagAccent(Color.fromArgb(Voltage), Color.fromArgb(Ink),
-                         Color.fromArgb(NeutralHot), Color.fromArgb(Pressed))
+        .applySwagAccent(Color.fromArgb(Voltage), Color.fromArgb(Ink), Color.fromArgb(NeutralHot), Color.fromArgb(Pressed))
     }
 
     // Applies the light Swag application palette: Ink over Paper with neutral structure.
@@ -1423,16 +1422,16 @@ impl ThemeColors
         .label_Icon      = Text
         .disabled        = FaintText
 
-        .edit_Border      = Line
-        .edit_Bk          = Raised
-        .edit_HotBk       = Raised
-        .edit_FocusBk     = Raised
-        .edit_Text        = Text
-        .edit_Note        = FaintText
-        .edit_TextUnit    = SoftText
-        .richEdit_Bk      = Paper
-        .richEdit_Text    = Text
-        .richEdit_Caret   = Text
+        .edit_Border    = Line
+        .edit_Bk        = Raised
+        .edit_HotBk     = Raised
+        .edit_FocusBk   = Raised
+        .edit_Text      = Text
+        .edit_Note      = FaintText
+        .edit_TextUnit  = SoftText
+        .richEdit_Bk    = Paper
+        .richEdit_Text  = Text
+        .richEdit_Caret = Text
 
         .menuPopup_Bk        = Paper
         .menuPopup_Border    = Line
@@ -1444,38 +1443,37 @@ impl ThemeColors
         .scrollBar_Bk        = Panel
         .scrollBar_Box       = FaintText
 
-        .comboBox_Border      = Line
-        .comboBox_Bk          = Raised
-        .comboBox_HotBk       = Raised
-        .comboBox_SelectedBk  = Raised
-        .comboBox_Text        = Text
-        .comboBox_HotText     = Text
+        .comboBox_Border       = Line
+        .comboBox_Bk           = Raised
+        .comboBox_HotBk        = Raised
+        .comboBox_SelectedBk   = Raised
+        .comboBox_Text         = Text
+        .comboBox_HotText      = Text
         .comboBox_SelectedText = Text
-        .comboBoxItem_Text    = Text
-        .popupList_Separator  = Line
-        .popupList_Text       = Text
+        .comboBoxItem_Text     = Text
+        .popupList_Separator   = Line
+        .popupList_Text        = Text
 
-        .frameWnd_Border      = Line
-        .frameWnd_PopupBorder = Line
-        .frameWnd_Bk          = Paper
-        .frameWnd_FocusBk     = Paper
-        .listItem_Text        = Text
+        .frameWnd_Border       = Line
+        .frameWnd_PopupBorder  = Line
+        .frameWnd_Bk           = Paper
+        .frameWnd_FocusBk      = Paper
+        .listItem_Text         = Text
         .listItem_SelectedText = Text
-        .listItem_Separator   = Line
-        .listItem_Line        = Line
-        .headerItem_Text      = Text
-        .headerItem_Separator = Line
-        .header_Bk            = Panel
-        .splitView_TitleBk    = Panel
-        .splitView_Bar        = Line
-        .progressBar_Border   = Line
-        .progressBar_Bk       = Paper
-        .prop_GridBorder      = Line
-        .prop_GridColumn      = Line
-        .prop_SectionBk       = Paper
-        .prop_CategBk         = Paper
+        .listItem_Separator    = Line
+        .listItem_Line         = Line
+        .headerItem_Text       = Text
+        .headerItem_Separator  = Line
+        .header_Bk             = Panel
+        .splitView_TitleBk     = Panel
+        .splitView_Bar         = Line
+        .progressBar_Border    = Line
+        .progressBar_Bk        = Paper
+        .prop_GridBorder       = Line
+        .prop_GridColumn       = Line
+        .prop_SectionBk        = Paper
+        .prop_CategBk          = Paper
 
-        .applySwagAccent(Color.fromArgb(Ink), Color.fromArgb(Paper),
-                         Color.fromArgb(NeutralHot), Color.fromArgb(Pressed))
+        .applySwagAccent(Color.fromArgb(Ink), Color.fromArgb(Paper), Color.fromArgb(NeutralHot), Color.fromArgb(Pressed))
     }
 }

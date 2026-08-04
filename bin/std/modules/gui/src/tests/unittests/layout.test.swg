@@ -300,7 +300,7 @@ using Swag, Core
     let form = FormLayoutCtrl.create(&host.root, options, {0, 0, 480, 280})
     form.padding = {12, 10, 12, 10}
 
-    let path = EditBox.create(form, "")
+    let path   = EditBox.create(form, "")
     let browse = PushButton.create(form, "Browse", {0, 0, 92, 34})
     discard form.addField("CONTAINER FILE", path, browse, "Choose a destination path.")
     let password = PasswordEdit.create(form)

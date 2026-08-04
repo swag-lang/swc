@@ -41,6 +41,7 @@ namespace SCrypt.Platform
             case .DiskFull:          return SCrypt.StatusDiskFull
             }
         }
+
         return fallback
     }
 }

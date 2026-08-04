@@ -6,13 +6,13 @@ using Core
 
 namespace SCrypt.Integration
 {
-    const PasswordText      = "integration horse battery staple"
-    const WrongPasswordText = "definitely not the password"
+    const PasswordText            = "integration horse battery staple"
+    const WrongPasswordText       = "definitely not the password"
     const VisibilityProbeArgument = "--integration-drive-probe"
-    const ContainerSize     = 64'u64 * 1024 * 1024
-    const FileAttributeReadOnly = 0x00000001'u32
-    const FileAttributeNormal   = 0x00000080'u32
-    const MoveReplaceExisting   = 0x00000001'u32
+    const ContainerSize           = 64'u64 * 1024 * 1024
+    const FileAttributeReadOnly   = 0x00000001'u32
+    const FileAttributeNormal     = 0x00000080'u32
+    const MoveReplaceExisting     = 0x00000001'u32
 
     var g_CheckCount: u32
     var g_Failure:    String
@@ -30,7 +30,7 @@ namespace SCrypt.Integration
             return 2
         let payload = "VISIBLE"
         discard catch File.writeAllBytes(args[2],
-            @mkslice(cast(const [*] u8) @dataof(payload), @countof(payload))) as writeError
+                                         @mkslice(cast(const [*] u8) @dataof(payload), @countof(payload))) as writeError
         return writeError == null ? 0 : 1
     }
 
@@ -92,17 +92,19 @@ namespace SCrypt.Integration
             if containsDriveLetter(available.toSlice(), cast(rune) ('A' + index)) do
                 return Format.toString("%:", cast(rune) ('A' + index))
         }
+
         SCrypt.failWith("No unused drive letter is available for the integration sandbox.")
     }
 
     func movePath(existing, replacement: string, replace = false) fail
     {
-        let existing16 = Utf16.toZeroTerminated(existing)
+        let existing16    = Utf16.toZeroTerminated(existing)
         let replacement16 = Utf16.toZeroTerminated(replacement)
-        if !MoveFileExW(@dataof(existing16), @dataof(replacement16),
-                        replace ? MoveReplaceExisting : 0) do
+        if !MoveFileExW(@dataof(existing16), @dataof(replacement16), replace ? MoveReplaceExisting : 0) do
             SCrypt.failWith(Format.toString("Windows error %: cannot rename [[%]] to [[%]].",
-                                            GetLastError(), existing, replacement))
+                                            GetLastError(),
+                                            existing,
+                                            replacement))
     }
 
     func setAttributes(path: string, attributes: u32) fail
@@ -110,7 +112,8 @@ namespace SCrypt.Integration
         let path16 = Utf16.toZeroTerminated(path)
         if !SetFileAttributesW(@dataof(path16), attributes) do
             SCrypt.failWith(Format.toString("Windows error %: cannot set attributes on [[%]].",
-                                            GetLastError(), path))
+                                            GetLastError(),
+                                            path))
     }
 
     func attributes(path: string)->u32
@@ -124,7 +127,8 @@ namespace SCrypt.Integration
         let path16 = Utf16.toZeroTerminated(path)
         if !SCrypt.Platform.RemoveDirectoryW(@dataof(path16)) do
             SCrypt.failWith(Format.toString("Windows error %: cannot remove directory [[%]].",
-                                            GetLastError(), path))
+                                            GetLastError(),
+                                            path))
     }
 
     func containsEntry(entries: const [..] File.FileInfo, name: string)->bool
@@ -171,11 +175,11 @@ namespace SCrypt.Integration
             if temp.isEmpty() do
                 SCrypt.failWith("Windows did not provide a temporary directory for the sandbox.")
             result.root = Path.combine(temp,
-                Format.toString("sCrypt-Integration-%", Guid64.random()))
+                                       Format.toString("sCrypt-Integration-%", Guid64.random()))
             Directory.create(result.root)
-            result.container = Path.combine(result.root, "integration.scrypt")
-            result.source = Path.combine(result.root, "external-source.bin")
-            result.recovered = Path.combine(result.root, "recovered-from-volume.bin")
+            result.container  = Path.combine(result.root, "integration.scrypt")
+            result.source     = Path.combine(result.root, "external-source.bin")
+            result.recovered  = Path.combine(result.root, "recovered-from-volume.bin")
             result.mountPoint = try findFreeMountPoint()
             return result
         }
@@ -191,7 +195,8 @@ namespace SCrypt.Integration
                 Memory.delete(mounted)
                 fail mountError
             }
-            .mounted = mounted
+
+            .mounted       = mounted
             .mountedActive = true
         }
 
@@ -202,7 +207,7 @@ namespace SCrypt.Integration
             let mounted = notnull .mounted
             discard catch mounted.close() as closeError
             Memory.delete(mounted)
-            .mounted = null
+            .mounted       = null
             .mountedActive = false
             if closeError != null do
                 fail closeError
@@ -215,9 +220,10 @@ namespace SCrypt.Integration
                 let mounted = notnull .mounted
                 discard catch mounted.close()
                 Memory.delete(mounted)
-                .mounted = null
+                .mounted       = null
                 .mountedActive = false
             }
+
             if !.root.isEmpty() do
                 SCrypt.Platform.removeRuntimeTree(.root)
         }
@@ -246,9 +252,9 @@ namespace SCrypt.Integration
 
     func runFilesystemScenarios(box: *Sandbox, original: const [..] u8) fail
     {
-        let root = driveRoot(box.mountPoint)
+        let root      = driveRoot(box.mountPoint)
         let documents = Path.combine(root, "Documents")
-        let nested = Path.combine(documents, "Nested")
+        let nested    = Path.combine(documents, "Nested")
         trace("FS: create nested directories")
         Directory.create(documents)
         Directory.create(nested)
@@ -267,7 +273,7 @@ namespace SCrypt.Integration
         let empty = Path.combine(documents, "empty.txt")
         trace("FS: empty file")
         discard File.writeAllBytes(empty,
-            @mkslice(cast(const [*] u8) @dataof(""), 0))
+                                   @mkslice(cast(const [*] u8) @dataof(""), 0))
         try verify(File.exists(empty) and (try File.openRead(empty)).size() == 0,
                    "zero-length files must be supported")
 
@@ -275,13 +281,13 @@ namespace SCrypt.Integration
         trace("FS: Unicode file")
         let unicodePayload = "UTF-8 names are preserved"
         discard File.writeAllBytes(unicode,
-            @mkslice(cast(const [*] u8) @dataof(unicodePayload), @countof(unicodePayload)))
+                                   @mkslice(cast(const [*] u8) @dataof(unicodePayload), @countof(unicodePayload)))
         let unicodeRead = try File.readAllText(unicode)
         try verify(unicodeRead == unicodePayload, "Unicode file names and text must round-trip")
 
         let overwrite = Path.combine(documents, "overwrite.bin")
         trace("FS: overwrite and append")
-        let first: [7] u8 = [1, 2, 3, 4, 5, 6, 7]
+        let first:  [7] u8 = [1, 2, 3, 4, 5, 6, 7]
         let second: [3] u8 = [9, 8, 7]
         discard File.writeAllBytes(overwrite, first)
         discard File.writeAllBytes(overwrite, second)
@@ -289,11 +295,11 @@ namespace SCrypt.Integration
         try verify(sameBytes(overwritten.toSlice(), second),
                    "overwriting must truncate and replace an existing file")
 
-        var appendStream = try File.open(overwrite, .Append, .Write, .Zero)
+        var appendStream     = try File.open(overwrite, .Append, .Write, .Zero)
         let appended: [4] u8 = [6, 5, 4, 3]
         discard try appendStream.write(&appended[0], #sizeof(appended))
         appendStream.close()
-        let afterAppend = try File.readAllBytes(overwrite)
+        let afterAppend            = try File.readAllBytes(overwrite)
         let expectedAppend: [7] u8 = [9, 8, 7, 6, 5, 4, 3]
         try verify(sameBytes(afterAppend.toSlice(), expectedAppend),
                    "append mode must add data at end of file")
@@ -311,7 +317,8 @@ namespace SCrypt.Integration
         try verify(allZero(@mkslice(sparseData.buffer, 128 * 1024 + 17)),
                    "sparse holes must read back as zero")
         try verify(@memcmp(sparseData.buffer + 128 * 1024 + 17,
-                           &marker[0], #sizeof(marker)) == 0,
+                           &marker[0],
+                           #sizeof(marker)) == 0,
                    "the sparse tail must retain its data")
 
         let renamed = Path.combine(documents, "renamed.bin")
@@ -328,7 +335,7 @@ namespace SCrypt.Integration
 
         let replacementSource = Path.combine(documents, "replacement-source.bin")
         trace("FS: rename with replacement")
-        let replacementTarget = Path.combine(documents, "replacement-target.bin")
+        let replacementTarget        = Path.combine(documents, "replacement-target.bin")
         let replacementBytes: [5] u8 = [21, 22, 23, 24, 25]
         discard File.writeAllBytes(replacementSource, replacementBytes)
         discard File.writeAllBytes(replacementTarget, first)
@@ -372,9 +379,9 @@ namespace SCrypt.Integration
                 bytes[byteIndex] = cast(u8) ((index * 31 + byteIndex * 17) & 0xFF)
             discard File.writeAllBytes(name, bytes)
         }
+
         let entries = try Directory.enumerateFiles(bulk)
-        try verify(entries.count == 24 and containsEntry(entries.toSlice(), "item-0.bin") and
-                   containsEntry(entries.toSlice(), "item-23.bin"),
+        try verify(entries.count == 24 and containsEntry(entries.toSlice(), "item-0.bin") and containsEntry(entries.toSlice(), "item-23.bin"),
                    "directory scans must return every created file")
 
         let documentsEntries = try Directory.enumerate(documents, {})
@@ -401,23 +408,23 @@ namespace SCrypt.Integration
         try verify(Directory.exists(driveRoot(box.mountPoint)),
                    "the same container must remount on the same free letter")
 
-        let root = driveRoot(box.mountPoint)
-        let persisted = Path.combine(root, "Documents", "Renamed-Nested", "external-copy.bin")
+        let root           = driveRoot(box.mountPoint)
+        let persisted      = Path.combine(root, "Documents", "Renamed-Nested", "external-copy.bin")
         let recoveredAgain = Path.combine(box.root, "recovered-after-remount.bin")
         File.duplicate(recoveredAgain, persisted)
         let bytes = try File.readAllBytes(recoveredAgain)
         try verify(sameBytes(original, bytes.toSlice()),
                    "file contents must persist across unmount and remount")
 
-        let bulk = Path.combine(root, "Documents", "Bulk")
+        let bulk    = Path.combine(root, "Documents", "Bulk")
         let entries = try Directory.enumerateFiles(bulk)
         try verify(entries.count == 24 and containsEntry(entries.toSlice(), "item-12.bin"),
                    "directory metadata must persist across remount")
 
         let newAfterRemount = Path.combine(root, "created-after-remount.txt")
-        let text = "mounted twice"
+        let text            = "mounted twice"
         discard File.writeAllBytes(newAfterRemount,
-            @mkslice(cast(const [*] u8) @dataof(text), @countof(text)))
+                                   @mkslice(cast(const [*] u8) @dataof(text), @countof(text)))
         try verify((try File.readAllText(newAfterRemount)) == text,
                    "the remounted drive must remain writable")
 
@@ -445,7 +452,7 @@ namespace SCrypt.Integration
         var created = try SCrypt.Volume.create(box.container, password(), ContainerSize)
         created.close()
         try verify(File.exists(box.container), "the encrypted container must be created")
-        var raw = try File.open(box.container, .Open, .ReadWrite, .Read)
+        var raw     = try File.open(box.container, .Open, .ReadWrite, .Read)
         let rawSize = try raw.size()
         raw.close()
         try verify(rawSize == ContainerSize, "the container must keep its fixed requested size")
@@ -456,8 +463,9 @@ namespace SCrypt.Integration
         trace("STAGE: first mount complete")
         try verify(Directory.exists(driveRoot(box.mountPoint)),
                    "the mounted drive must be visible to Windows")
-        let mountedRoot = driveRoot(box.mountPoint)
+        let mountedRoot      = driveRoot(box.mountPoint)
         let visibilityMarker = Path.combine(mountedRoot, "external-process-visible.txt")
+
         // Passing a quoted drive root (for example "Y:\\") is ambiguous in the
         // Windows command-line grammar because the trailing slash escapes the quote.
         // Pass the complete marker path, which cannot end in a path separator.
@@ -496,6 +504,7 @@ namespace SCrypt.Integration
             trace(Format.toString("FAIL-EARLY: %", g_Failure))
             return false
         }
+
         return true
     }
 
@@ -503,11 +512,10 @@ namespace SCrypt.Integration
     {
         switch err
         {
-        case SCrypt.Error:
-            return (cast(SCrypt.Error) err).message orelse "sCrypt integration error."
-        case Swag.SystemError:
-            return (cast(Swag.SystemError) err).message orelse "Windows integration error."
+        case SCrypt.Error:     return (cast(SCrypt.Error) err).message orelse "sCrypt integration error."
+        case Swag.SystemError: return (cast(Swag.SystemError) err).message orelse "Windows integration error."
         }
+
         return "Unknown integration error."
     }
 
@@ -515,11 +523,11 @@ namespace SCrypt.Integration
     {
         let running = "RUNNING\n"
         discard catch File.writeAllBytes(resultPath(),
-            @mkslice(cast(const [*] u8) @dataof(running), @countof(running)))
+                                         @mkslice(cast(const [*] u8) @dataof(running), @countof(running)))
         let passed = run()
         let report = passed ?
-            Format.toString("PASS: % end-to-end checks completed successfully.", g_CheckCount) :
-            Format.toString("FAIL: %", g_Failure)
+                     Format.toString("PASS: % end-to-end checks completed successfully.", g_CheckCount) :
+                     Format.toString("FAIL: %", g_Failure)
         trace(report)
         Console.println(report)
         Env.exit(passed ? 0 : 1)

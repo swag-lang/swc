@@ -42,6 +42,7 @@ namespace SCrypt
             {
                 .file.close()
             }
+
             .dirty = false
             .keys.clear()
         }
@@ -81,7 +82,7 @@ namespace SCrypt
             result.nextNodeId    = 2
             result.label         = "sCrypt"
             result.file          = File.open(path, .CreateNew, .ReadWrite, .Read)
-            created = true
+            created              = true
             result.file.resize(requestedSize)
 
             var randomChunk: Array'u8
@@ -94,6 +95,7 @@ namespace SCrypt
                 result.file.writeAllAt(offset, randomChunk[0 until count])
                 offset += count
             }
+
             Core.Crypto.secureClear(randomChunk.toSlice())
 
             var salt: [Crypto.SaltSize] u8
@@ -138,6 +140,7 @@ namespace SCrypt
                 if !completed do
                     result.close()
             }
+
             result.containerSize = result.file.size()
             if result.containerSize < MinimumSize do
                 failWith("The password is incorrect or the container is damaged.", .Corrupted)
@@ -180,7 +183,7 @@ namespace SCrypt
             var locator = Crypto.recordLocator(.keys.authentication, HeaderLocatorKind, slot)
             defer Core.Crypto.secureClear(locator)
             if Core.Crypto.constantTimeEqual(prefix[until HeaderLocatorCheckSize],
-                                              locator[until HeaderLocatorCheckSize])
+                                             locator[until HeaderLocatorCheckSize])
             {
                 let plainSize = Crypto.load32(&prefix[HeaderLocatorCheckSize]) ^
                                 Crypto.load32(&locator[HeaderLocatorCheckSize])
@@ -192,11 +195,10 @@ namespace SCrypt
                 if !.file.readExactAt(offset + #sizeof(prefix), record.toSlice()) do
                     return result
                 result.plain.resize(plainSize)
-                let nonce = record[0 until Crypto.NonceSize]
+                let nonce      = record[0 until Crypto.NonceSize]
                 let ciphertext = record[Crypto.NonceSize until Crypto.NonceSize + plainSize]
-                let tag = record[Crypto.NonceSize + plainSize until @countof(record)]
-                if !Crypto.open(&.keys, HeaderKind, slot, nonce, ciphertext, tag,
-                                result.plain.toSlice()) do
+                let tag        = record[Crypto.NonceSize + plainSize until @countof(record)]
+                if !Crypto.open(&.keys, HeaderKind, slot, nonce, ciphertext, tag, result.plain.toSlice()) do
                     return result
             }
             else
@@ -205,14 +207,13 @@ namespace SCrypt
                 record.resize(HeaderSlotSize)
                 @memcpy(record.buffer, &prefix[0], #sizeof(prefix))
                 if !.file.readExactAt(offset + #sizeof(prefix),
-                    record[#sizeof(prefix) until HeaderSlotSize]) do
+                                      record[#sizeof(prefix) until HeaderSlotSize]) do
                     return result
                 result.plain.resize(LegacyHeaderPlainSize)
-                let nonce = record[0 until Crypto.NonceSize]
+                let nonce      = record[0 until Crypto.NonceSize]
                 let ciphertext = record[Crypto.NonceSize until Crypto.NonceSize + LegacyHeaderPlainSize]
-                let tag = record[Crypto.NonceSize + LegacyHeaderPlainSize until HeaderSlotSize]
-                if !Crypto.open(&.keys, HeaderKind, slot, nonce, ciphertext, tag,
-                                result.plain.toSlice()) do
+                let tag        = record[Crypto.NonceSize + LegacyHeaderPlainSize until HeaderSlotSize]
+                if !Crypto.open(&.keys, HeaderKind, slot, nonce, ciphertext, tag, result.plain.toSlice()) do
                     return result
             }
 
@@ -253,7 +254,7 @@ namespace SCrypt
                 writer.bytes(node.security.toSlice())
 
                 var runCount = 0'u64
-                var idx = 0'u64
+                var idx      = 0'u64
                 while idx < node.blocks.count
                 {
                     runCount += 1
@@ -264,6 +265,7 @@ namespace SCrypt
                         count += 1
                     idx += count
                 }
+
                 writer.writeU64(runCount)
                 idx = 0
                 while idx < node.blocks.count
@@ -286,6 +288,7 @@ namespace SCrypt
                 writer.writeU64(extent.first)
                 writer.writeU64(extent.count)
             }
+
             return writer.buffer
         }
 
@@ -302,7 +305,7 @@ namespace SCrypt
             let storedSize = reader.readU64()
             .blockCount = reader.readU64()
             .nextNodeId = reader.readU64()
-            .label = reader.readString(128)
+            .label      = reader.readString(128)
             if storedSize != .containerSize or .blockCount != (.containerSize - DataOffset) / BlockRecordSize do
                 failWith("The password is incorrect or the container is damaged.", .Corrupted)
 
@@ -329,6 +332,7 @@ namespace SCrypt
                     reader.valid = false
                     break
                 }
+
                 node.security.resize(securitySize)
                 if securitySize do
                     @memcpy(node.security.buffer, @dataof(plain) + reader.cursor, securitySize)
@@ -340,22 +344,24 @@ namespace SCrypt
                     reader.valid = false
                     break
                 }
+
                 for [runIndex] in runCount
                 {
-                    let logical = reader.readU64()
+                    let logical  = reader.readU64()
                     let physical = reader.readU64()
-                    let count = reader.readU64()
-                    if !count or physical >= .blockCount or count > .blockCount - physical or
-                       count > .blockCount - totalMappings
+                    let count    = reader.readU64()
+                    if !count or physical >= .blockCount or count > .blockCount - physical or count > .blockCount - totalMappings
                     {
                         reader.valid = false
                         break
                     }
+
                     node.blocks.reserve(node.blocks.count + count)
                     for [i] in count do
                         node.blocks.add({logical + i, physical + i})
                     totalMappings += count
                 }
+
                 let nodeIndex = .nodes.count
                 .nodes.add(#move node)
                 if !.nodeLookup.add(&.nodes[nodeIndex], nodeIndex)
@@ -380,6 +386,7 @@ namespace SCrypt
                         reader.valid = false
                         break
                     }
+
                     .blocks.free.add({first, count})
                 }
             }
@@ -402,11 +409,12 @@ namespace SCrypt
                 if !committed do
                     .blocks.free = #move previousFree
             }
+
             .blocks.publishDeferred()
 
             let newSequence = .sequence + 1
-            let slot = 1'u32 - .activeSlot
-            var plain = .serialize(newSequence)
+            let slot        = 1'u32 - .activeSlot
+            var plain       = .serialize(newSequence)
             defer Core.Crypto.secureClear(plain.toSlice())
             var record: Array'u8
             record.resize(HeaderRecordPrefixSize + @countof(plain) + Crypto.TagSize)
@@ -415,10 +423,10 @@ namespace SCrypt
             @memcpy(record.buffer, &locator[0], HeaderLocatorCheckSize)
             Crypto.store32(notnull record.buffer + HeaderLocatorCheckSize,
                            cast(u32) @countof(plain) ^
-                           Crypto.load32(&locator[HeaderLocatorCheckSize]))
-            let nonce = record[Crypto.RecordLocatorSize until HeaderRecordPrefixSize]
+            Crypto.load32(&locator[HeaderLocatorCheckSize]))
+            let nonce      = record[Crypto.RecordLocatorSize until HeaderRecordPrefixSize]
             let ciphertext = record[HeaderRecordPrefixSize until HeaderRecordPrefixSize + @countof(plain)]
-            let tag = record[HeaderRecordPrefixSize + @countof(plain) until @countof(record)]
+            let tag        = record[HeaderRecordPrefixSize + @countof(plain) until @countof(record)]
             Crypto.seal(&.keys, HeaderKind, slot, plain.toSlice(), nonce, ciphertext, tag)
             .file.writeAllAt(Crypto.SaltSize + slot * HeaderSlotSize, record.toSlice())
             .file.flush()
@@ -428,6 +436,5 @@ namespace SCrypt
             .dirty      = false
             committed   = true
         }
-
     }
 }

@@ -4,8 +4,7 @@ namespace SCrypt
 {
     impl Volume
     {
-        mtd createNode(path: string, directory: bool, attributes: u32,
-                       security: const [..] u8)->u64 fail
+        mtd createNode(path: string, directory: bool, attributes: u32, security: const [..] u8)->u64 fail
         {
             let {parent, name} = .resolveParent(path)
             if parent == null or !(notnull parent).isDirectory() do
@@ -18,10 +17,10 @@ namespace SCrypt
 
             let now = volumeTimeNow()
             var node: Node
-            node.id             = .nextNodeId
-            node.parentId       = validParent.id
-            node.name           = name
-            node.attributes     = attributes
+            node.id         = .nextNodeId
+            node.parentId   = validParent.id
+            node.name       = name
+            node.attributes = attributes
             if directory do
                 node.attributes |= FileAttributeDirectory
             elif !node.attributes do
@@ -82,10 +81,10 @@ namespace SCrypt
             let {parent, name} = .resolveParent(newPath)
             if parent == null or !(notnull parent).isDirectory() or !@countof(name) do
                 failWith("The destination directory does not exist.", .NotFound)
-            let validParent = notnull parent
+            let validParent         = notnull parent
             let destinationParentId = validParent.id
-            let sourceIsDirectory = (notnull .nodeById(id)).isDirectory()
-            let existing = .findChild(validParent.id, name)
+            let sourceIsDirectory   = (notnull .nodeById(id)).isDirectory()
+            let existing            = .findChild(validParent.id, name)
             if existing and existing.id != id
             {
                 if !replace do
@@ -110,11 +109,12 @@ namespace SCrypt
                     ancestor = (notnull .nodeById(ancestor)).parentId
                 }
             }
-            let updated = notnull .nodeById(id)
+
+            let updated      = notnull .nodeById(id)
             let indexUpdated = .nodeLookup.changeParent(updated, destinationParentId, name)
             Debug.assert(indexUpdated)
             updated.changeTime = volumeTimeNow()
-            .dirty = true
+            .dirty             = true
             .commit()
         }
 
@@ -129,6 +129,5 @@ namespace SCrypt
         }
 
         mtd totalBytes()->u64 => .blockCount * BlockSize
-
     }
 }

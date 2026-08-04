@@ -54,14 +54,15 @@ internal impl MainWindow
             SCrypt.failWith("The container size is invalid.", .InvalidInput)
 
         let multiplier = .createUnit.selectedIndex == 0 ?
-            1024'u64 * 1024 : 1024'u64 * 1024 * 1024
+                         1024'u64 * 1024 : 1024'u64 * 1024 * 1024
         if parsed.value > Swag.U64.Max / multiplier do
             SCrypt.failWith("The container size is too large.", .InvalidInput)
 
         let result = parsed.value * multiplier
         if result < SCrypt.MinimumSize do
             SCrypt.failWith(Format.toString("The minimum container size is % MiB.",
-                (SCrypt.MinimumSize + 1024 * 1024 - 1) / (1024 * 1024)), .InvalidInput)
+                                            (SCrypt.MinimumSize + 1024 * 1024 - 1) / (1024 * 1024)),
+                            .InvalidInput)
         return result
     }
 
@@ -90,16 +91,19 @@ internal impl MainWindow
             .showError("Choose the container file to create.")
             return
         }
+
         if File.exists(path)
         {
             .showError("This file already exists. Choose a new name to avoid data loss.")
             return
         }
+
         if .createPassword.isEmpty()
         {
             .showError("A password is required.")
             return
         }
+
         if !Core.Crypto.constantTimeEqual(.createPassword.bytes(), .confirmPassword.bytes())
         {
             .showError("The passwords do not match.")
@@ -131,6 +135,7 @@ internal impl MainWindow
             .showError("Choose an existing container.")
             return
         }
+
         if .mountPassword.isEmpty()
         {
             .showError("A password is required.")
@@ -170,15 +175,13 @@ internal impl MainWindow
             return
 
         case .Create:
-            var volume = catch SCrypt.Volume.create(
-                .operationPath.toString(), .operationPassword.toSlice(), .operationSize) as createError
+            var volume = catch SCrypt.Volume.create(.operationPath.toString(), .operationPassword.toSlice(), .operationSize) as createError
             .operationError = createError
             if createError == null do
                 volume.close()
 
         case .Mount:
-            discard catch .mounted.open(.operationPath.toString(), .operationPassword.toSlice(),
-                .operationMount.toString()) as mountError
+            discard catch .mounted.open(.operationPath.toString(), .operationPassword.toSlice(), .operationMount.toString()) as mountError
             .operationError = mountError
 
         case .Unmount:
@@ -215,6 +218,7 @@ internal impl MainWindow
                 .status.setText("Container created. It is ready to mount.")
                 .mountPath.setText(.operationPath)
             }
+
             .setState(.Ready)
 
         case .Mount:
@@ -226,9 +230,8 @@ internal impl MainWindow
             }
             else
             {
-                .status.setText(Format.toString(
-                    "Encrypted drive mounted on %. It will unmount when sCrypt closes.",
-                    .operationMount))
+                .status.setText(Format.toString("Encrypted drive mounted on %. It will unmount when sCrypt closes.",
+                                                .operationMount))
                 .setState(.Mounted)
             }
 
@@ -258,6 +261,7 @@ internal impl MainWindow
             .removeTimer(notnull .operationTimer)
             .operationTimer = null
         }
+
         if .operationKind != .None
         {
             Jobs.wait(&.operation)

@@ -116,6 +116,7 @@ private impl FileDlg
             MessageDlg.error(notnull .surface, "The folder could not be created.")
             return
         }
+
         .browser.setFileName(edit.text())
     }
 }
@@ -150,7 +151,8 @@ impl FileDlg
         }
 
         dlg.addButton(@countof(opt.confirmButtonText) ? opt.confirmButtonText : "OK",
-                      Dialog.BtnOk, true)
+                      Dialog.BtnOk,
+                      true)
         dlg.addButton("Cancel", Dialog.BtnCancel)
         dlg.backgroundStyle = .Window
         srf.updateFlags(remove: .CloseButton)
@@ -177,8 +179,7 @@ impl FileDlg
                 let selName = dlg.browser.selectedPath()
                 if dlg.options.mode == .CreateFile and File.exists(selName)
                 {
-                    let res = MessageDlg.confirm(notnull dlg.surface, "This file already exists.",
-                                                 "Do you want to replace it?")
+                    let res = MessageDlg.confirm(notnull dlg.surface, "This file already exists.", "Do you want to replace it?")
                     return res == Dialog.BtnYes
                 }
             }

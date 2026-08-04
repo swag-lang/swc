@@ -12,15 +12,15 @@ enum FormLabelPlacement
 // Configures the geometry shared by every row in a [[Gui.FormLayoutCtrl]].
 struct FormLayoutOptions
 {
-    labelPlacement: FormLabelPlacement = Above     // Label placement used by every row.
-    labelWidth      = 112.0'f32                     // Width of the label column in `Left` mode.
-    labelHeight     = 22.0'f32                      // Height reserved for each label.
-    fieldHeight     = 34.0'f32                      // Minimum height reserved for each field.
-    helpHeight      = 20.0'f32                      // Height reserved for optional help text.
-    labelSpacing    = 4.0'f32                       // Gap between a label and its field.
-    controlSpacing  = 8.0'f32                       // Gap between a field and its optional action.
-    helpSpacing     = 4.0'f32                       // Gap before optional help text.
-    rowSpacing      = 12.0'f32                      // Gap between consecutive rows.
+    labelPlacement: FormLabelPlacement = Above         // Label placement used by every row.
+    labelWidth                         = 112.0'f32     // Width of the label column in `Left` mode.
+    labelHeight                        = 22.0'f32      // Height reserved for each label.
+    fieldHeight                        = 34.0'f32      // Minimum height reserved for each field.
+    helpHeight                         = 20.0'f32      // Height reserved for optional help text.
+    labelSpacing                       = 4.0'f32       // Gap between a label and its field.
+    controlSpacing                     = 8.0'f32       // Gap between a field and its optional action.
+    helpSpacing                        = 4.0'f32       // Gap before optional help text.
+    rowSpacing                         = 12.0'f32      // Gap between consecutive rows.
 }
 
 // Describes one field row owned and arranged by a [[Gui.FormLayoutCtrl]].
@@ -28,10 +28,10 @@ struct FormLayoutRow
 {
     readonly
     {
-        label:  *Label          // Label created and owned by the form.
-        field:  *Wnd            // Caller-created field owned by the form.
-        action: #null *Wnd      // Optional trailing action owned by the form.
-        help:   #null *Label    // Optional explanatory label owned by the form.
+        label:  *Label           // Label created and owned by the form.
+        field:  *Wnd             // Caller-created field owned by the form.
+        action: #null *Wnd       // Optional trailing action owned by the form.
+        help:   #null *Label     // Optional explanatory label owned by the form.
     }
 }
 
@@ -73,6 +73,7 @@ private impl FormLayoutCtrl
             let actionHint = row.action.measure(available)
             result = Math.max(result, actionHint.preferred.y)
         }
+
         return result
     }
 
@@ -90,7 +91,7 @@ private impl FormLayoutCtrl
             actionWidth = Math.max(actionWidth, action.minSize.x)
         }
 
-        let actionGap = row.action ? .options.controlSpacing : 0
+        let actionGap  = row.action ? .options.controlSpacing : 0
         let fieldWidth = Math.max(0, client.width - actionWidth - actionGap)
         row.field.arrange({client.x, cursor, fieldWidth, height})
         if row.action do
@@ -103,14 +104,15 @@ private impl FormLayoutCtrl
             row.help.arrange({client.x, cursor, client.width, .options.helpHeight})
             cursor += .options.helpHeight
         }
+
         return cursor
     }
 
     mtd arrangeRowLeft(row: const *FormLayoutRow, client: Math.Rectangle, y: f32)->f32
     {
-        let fieldX = client.x + .options.labelWidth + .options.labelSpacing
+        let fieldX         = client.x + .options.labelWidth + .options.labelSpacing
         let availableWidth = Math.max(0, client.width - .options.labelWidth - .options.labelSpacing)
-        let height = .rowFieldHeight(row, {availableWidth, client.height})
+        let height         = .rowFieldHeight(row, {availableWidth, client.height})
         row.label.arrange({client.x, y, .options.labelWidth, height})
 
         var actionWidth = 0'f32
@@ -121,7 +123,7 @@ private impl FormLayoutCtrl
             actionWidth = Math.max(actionWidth, action.minSize.x)
         }
 
-        let actionGap = row.action ? .options.controlSpacing : 0
+        let actionGap  = row.action ? .options.controlSpacing : 0
         let fieldWidth = Math.max(0, availableWidth - actionWidth - actionGap)
         row.field.arrange({fieldX, y, fieldWidth, height})
         if row.action do
@@ -134,6 +136,7 @@ private impl FormLayoutCtrl
             row.help.arrange({fieldX, cursor, availableWidth, .options.helpHeight})
             cursor += .options.helpHeight
         }
+
         return cursor
     }
 }
@@ -157,8 +160,7 @@ impl FormLayoutCtrl
     // and owns the label and optional help label. The concrete field remains
     // directly available to the caller through the pointer passed here.
     #[Swag.Discardable]
-    mtd addField(label: string, field: *Wnd, action: #null *Wnd = null,
-                 help: #null string = null)->u64
+    mtd addField(label: string, field: *Wnd, action: #null *Wnd = null, help: #null string = null)->u64
     {
         Debug.assert(field.parent == me, "form field needs the form as its parent")
         Debug.assert(!action or action.parent == me, "form action needs the form as its parent")
@@ -190,6 +192,7 @@ impl FormLayoutCtrl
             row.action?.destroy()
             row.help?.destroy()
         }
+
         .rows.clear()
         .contentHeight = 0
         .invalidateLayout()
@@ -203,11 +206,12 @@ impl FormLayoutCtrl
         for &row, [index] in .rows
         {
             cursor = .options.labelPlacement == .Above ?
-                .arrangeRowAbove(&row, client, cursor) :
-                .arrangeRowLeft(&row, client, cursor)
+                     .arrangeRowAbove(&row, client, cursor) :
+                     .arrangeRowLeft(&row, client, cursor)
             if index + 1 < .rows.count do
                 cursor += .options.rowSpacing
         }
+
         .contentHeight = Math.max(0, cursor - client.y)
     }
 }

@@ -49,6 +49,7 @@ namespace SCrypt
                     .free[index - 1].count += .free[index].count
                     .free.removeAtOrdered(index)
                 }
+
                 return
             }
 

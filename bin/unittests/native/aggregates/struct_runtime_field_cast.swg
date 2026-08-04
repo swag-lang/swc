@@ -46,7 +46,7 @@ func runtimeResolved(parent: *RuntimeNode)->{parent: *RuntimeNode, name: Runtime
 // by a runtime special operator.
 #test
 {
-    var node = RuntimeNode{marker: 42}
+    var node           = RuntimeNode{marker: 42}
     let {parent, name} = runtimeResolved(&node)
     @assert(parent == &node)
     @assert(parent.marker == 42)

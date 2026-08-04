@@ -130,6 +130,7 @@ impl IconBar
             let button = cast(*IconButton) child
             button.setCheckIndicator(.orientation == .Vertical ? .Left : .Bottom)
         }
+
         .computeLayout()
     }
 

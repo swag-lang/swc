@@ -9,8 +9,8 @@ struct NavigationHistory
 {
     readonly
     {
-        entries: Array'String         // Locations in visit order.
-        index = Swag.U64.Max          // Current entry index, or [[Swag.U64.Max]] when empty.
+        entries: Array'String     // Locations in visit order.
+        index = Swag.U64.Max      // Current entry index, or [[Swag.U64.Max]] when empty.
     }
 }
 
@@ -91,10 +91,10 @@ struct FileBrowserCtrl
 
     internal
     {
-        treePathStr:    Array'String       // Folder paths backing `treeCtrl` rows.
-        comboPathStr:   Array'String       // Folder paths backing `comboPath` entries.
-        currentEntries: Array'FileInfo     // Filesystem entries backing visible rows.
-        history:        NavigationHistory // Folder-navigation history.
+        treePathStr:    Array'String          // Folder paths backing `treeCtrl` rows.
+        comboPathStr:   Array'String          // Folder paths backing `comboPath` entries.
+        currentEntries: Array'FileInfo        // Filesystem entries backing visible rows.
+        history:        NavigationHistory     // Folder-navigation history.
     }
 }
 
@@ -357,6 +357,7 @@ impl FileBrowserCtrl
             fileBrowser.options.shortcuts.add({Env.SpecialDirectory.UserDocuments, "Documents"})
             fileBrowser.options.shortcuts.add({Env.SpecialDirectory.UserPictures, "Pictures"})
         }
+
         if fileBrowser.options.mode != .SelectFolder and fileBrowser.options.filters.isEmpty() do
             fileBrowser.options.filters.add({"All Files", ""})
 
@@ -394,36 +395,36 @@ impl FileBrowserCtrl
 
         with fileBrowser.backButton = PushButton.create(viewTop, "Back", {0, 0, 58})
         {
-            .dockStyle  = .Left
-            .margin.z   = 6
-            .toolTip    = "Previous folder (Alt+Left)"
+            .dockStyle = .Left
+            .margin.z  = 6
+            .toolTip   = "Previous folder (Alt+Left)"
             .setIcon(fileBrowser.theme().icon24(ThemeIcons24.Undo, 16))
             .sigPressed += func|fileBrowser|(btn) { discard fileBrowser.goBack() }
         }
 
         with fileBrowser.forwardButton = PushButton.create(viewTop, "Forward", {0, 0, 72})
         {
-            .dockStyle  = .Left
-            .margin.z   = 6
-            .toolTip    = "Next folder (Alt+Right)"
+            .dockStyle = .Left
+            .margin.z  = 6
+            .toolTip   = "Next folder (Alt+Right)"
             .setIcon(fileBrowser.theme().icon24(ThemeIcons24.Redo, 16))
             .sigPressed += func|fileBrowser|(btn) { discard fileBrowser.goForward() }
         }
 
         with fileBrowser.upButton = PushButton.create(viewTop, "Up", {0, 0, 46})
         {
-            .dockStyle  = .Left
-            .margin.z   = 10
-            .toolTip    = "Parent folder (Alt+Up)"
+            .dockStyle = .Left
+            .margin.z  = 10
+            .toolTip   = "Parent folder (Alt+Up)"
             .setIcon(fileBrowser.theme().icon24(ThemeIcons24.Expanded, 16))
             .sigPressed += func|fileBrowser|(btn) { discard fileBrowser.goUp() }
         }
 
         with fileBrowser.refreshButton = PushButton.create(viewTop, "Refresh", {0, 0, 72})
         {
-            .dockStyle  = .Right
-            .margin.x   = 6
-            .toolTip    = "Refresh (F5)"
+            .dockStyle = .Right
+            .margin.x  = 6
+            .toolTip   = "Refresh (F5)"
             .setIcon(fileBrowser.theme().icon24(ThemeIcons24.Update, 16))
             .sigPressed += func|fileBrowser|(btn) { fileBrowser.refresh() }
         }
@@ -433,9 +434,9 @@ impl FileBrowserCtrl
             let btn = PushButton.create(viewTop, "New Folder", {0, 0, 90})
             with btn
             {
-                .dockStyle  = .Right
-                .margin.x   = 10
-                .toolTip    = "Create a folder in the current location"
+                .dockStyle = .Right
+                .margin.x  = 10
+                .toolTip   = "Create a folder in the current location"
                 .setIcon(fileBrowser.theme().icon24(ThemeIcons24.Plus, 16))
                 .sigPressed += func|fileBrowser|(btn) { fileBrowser.sigNewFolderRequested.call(fileBrowser) }
             }
@@ -473,6 +474,7 @@ impl FileBrowserCtrl
             .setSelectedIndex(0)
             .sigChanged += func|fileBrowser|(c, idx) { fileBrowser.fillFileList() }
         }
+
         discard form.addField("Type", fileBrowser.comboType)
 
         with fileBrowser
@@ -539,6 +541,7 @@ impl FileBrowserCtrl
             .updateNavigationState()
             return false
         }
+
         .updateNavigationState()
         return true
     }
@@ -557,6 +560,7 @@ impl FileBrowserCtrl
             .updateNavigationState()
             return false
         }
+
         .updateNavigationState()
         return true
     }

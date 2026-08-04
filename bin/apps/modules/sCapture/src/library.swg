@@ -18,7 +18,6 @@ impl Library
         let trash = getTrashFolder()
         if !Directory.exists(trash) do
             Directory.create(trash)
-
     }
 
     // Returns the folder holding the captures.

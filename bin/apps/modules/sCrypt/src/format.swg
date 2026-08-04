@@ -5,24 +5,25 @@ namespace SCrypt
     const BlockSize       = 4096'u64
     const BlockRecordSize = BlockSize + Crypto.NonceSize + Crypto.TagSize
     const HeaderSlotSize  = #command == Swag.CompilerCommand.Test ?
-                            256'u64 * 1024 : 8'u64 * 1024 * 1024
-    const LegacyHeaderPlainSize = HeaderSlotSize - Crypto.NonceSize - Crypto.TagSize
+                           256'u64 * 1024 : 8'u64 * 1024 * 1024
+    const LegacyHeaderPlainSize  = HeaderSlotSize - Crypto.NonceSize - Crypto.TagSize
     const HeaderLocatorCheckSize = 12'u64
     const HeaderRecordPrefixSize = Crypto.RecordLocatorSize + Crypto.NonceSize
-    const HeaderPlainSize = HeaderSlotSize - HeaderRecordPrefixSize - Crypto.TagSize
-    const HeaderSlotCount = 2'u64
-    const DataOffset      = Crypto.SaltSize + HeaderSlotCount * HeaderSlotSize
-    const MinimumBlocks   = 16'u64
-    const MinimumSize     = DataOffset + MinimumBlocks * BlockRecordSize
-    const LegacyFormatVersion = 1'u32
-    const FormatVersion       = 2'u32
-    const HeaderKind          = 1'u32
-    const DataKind            = 2'u32
-    const HeaderLocatorKind   = 3'u32
+    const HeaderPlainSize        = HeaderSlotSize - HeaderRecordPrefixSize - Crypto.TagSize
+    const HeaderSlotCount        = 2'u64
+    const DataOffset             = Crypto.SaltSize + HeaderSlotCount * HeaderSlotSize
+    const MinimumBlocks          = 16'u64
+    const MinimumSize            = DataOffset + MinimumBlocks * BlockRecordSize
+    const LegacyFormatVersion    = 1'u32
+    const FormatVersion          = 2'u32
+    const HeaderKind             = 1'u32
+    const DataKind               = 2'u32
+    const HeaderLocatorKind      = 3'u32
 
     const HeaderMagic: [16] u8 = [
         0x73, 0x43, 0x72, 0x79, 0x70, 0x74, 0x2D, 0x56,
         0x6F, 0x6C, 0x75, 0x6D, 0x65, 0x2D, 0x31, 0x00]
+
     struct ByteWriter
     {
         buffer: Array'u8
@@ -87,8 +88,7 @@ namespace SCrypt
 
     impl ByteReader
     {
-        mtd has(count: u64)->bool => .valid and .cursor <= @countof(.data) and
-                                     count <= @countof(.data) - .cursor
+        mtd has(count: u64)->bool => .valid and .cursor <= @countof(.data) and count <= @countof(.data) - .cursor
 
         mtd readU32()->u32
         {
@@ -97,6 +97,7 @@ namespace SCrypt
                 .valid = false
                 return 0
             }
+
             let result = Crypto.load32(@dataof(.data) + .cursor)
             .cursor += 4
             return result
@@ -104,7 +105,7 @@ namespace SCrypt
 
         mtd readU64()->u64
         {
-            let low = .readU32()
+            let low  = .readU32()
             let high = .readU32()
             return low | (cast(u64) high << 32)
         }
@@ -117,8 +118,9 @@ namespace SCrypt
                 .valid = false
                 return {}
             }
+
             var result: retval
-            result = @mkstring(@dataof(.data) + .cursor, length)
+            result  = @mkstring(@dataof(.data) + .cursor, length)
             .cursor += length
             return result
         }

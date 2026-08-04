@@ -181,7 +181,7 @@ internal impl IWnd for PopupListView
             // Back selection
             var colorSel: Color
             var colorCheck = colors.popupList_CheckMark
-            let isHot = .hotIdx == idx
+            let isHot      = .hotIdx == idx
             if isHot
             {
                 colorSel   = colors.popupList_HotBk
@@ -195,6 +195,7 @@ internal impl IWnd for PopupListView
                 let rail = Math.Rectangle{labelPos.x, labelPos.y, 4, labelPos.height}
                 painter.fillRect(rail, colors.activeRail)
             }
+
             labelPos.moveLeft(metrics.popupList_Padding)
 
             // Icon

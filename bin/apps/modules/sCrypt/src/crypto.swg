@@ -2,12 +2,12 @@ using Core
 
 namespace SCrypt.Crypto
 {
-    const SaltSize      = 32
-    const NonceSize     = Core.Crypto.ChaCha20NonceSize
-    const TagSize       = #sizeof(Core.Crypto.HmacSha256Digest)
-    const KeySize       = Core.Crypto.ChaCha20KeySize
+    const SaltSize          = 32
+    const NonceSize         = Core.Crypto.ChaCha20NonceSize
+    const TagSize           = #sizeof(Core.Crypto.HmacSha256Digest)
+    const KeySize           = Core.Crypto.ChaCha20KeySize
     const RecordLocatorSize = 16
-    const KdfIterations = #command == Swag.CompilerCommand.Test ? 1_000'u32 : 200_000'u32
+    const KdfIterations     = #command == Swag.CompilerCommand.Test ? 1_000'u32 : 200_000'u32
 
     struct Keys
     {
@@ -55,8 +55,7 @@ namespace SCrypt.Crypto
                (cast(u32) data[2] << 16) | (cast(u32) data[3] << 24)
     }
 
-    func authenticationTag(key: const [..] u8, kind: u32, recordId: u64,
-                           nonce, ciphertext: const [..] u8)->[TagSize] u8
+    func authenticationTag(key: const [..] u8, kind: u32, recordId: u64, nonce, ciphertext: const [..] u8)->[TagSize] u8
     {
         var associated: [16] u8
         store32(&associated[0], kind)
@@ -79,7 +78,7 @@ namespace SCrypt.Crypto
         store32(&context[0], kind)
         store32(&context[4], low32(recordId))
         store32(&context[8], low32(recordId >> 32))
-        store32(&context[12], 0x6163_6F6C) // "loca", used only inside the keyed HMAC.
+        store32(&context[12], 0x6163_6F6C)     // "loca", used only inside the keyed HMAC.
 
         var digest = Core.Crypto.HmacSha256.compute(key, context)
         var result: retval
@@ -93,8 +92,7 @@ namespace SCrypt.Crypto
         Core.Crypto.chacha20Xor(key, nonce, source, destination, 1)
     }
 
-    func seal(keys: const *Keys, kind: u32, recordId: u64, plaintext: const [..] u8,
-              nonce: [..] u8, ciphertext: [..] u8, tag: [..] u8) fail
+    func seal(keys: const *Keys, kind: u32, recordId: u64, plaintext: const [..] u8, nonce: [..] u8, ciphertext: [..] u8, tag: [..] u8) fail
     {
         Debug.assert(@countof(nonce) == NonceSize)
         Debug.assert(@countof(ciphertext) == @countof(plaintext))
@@ -105,14 +103,12 @@ namespace SCrypt.Crypto
         @memcpy(@dataof(tag), &value[0], TagSize)
     }
 
-    func open(keys: const *Keys, kind: u32, recordId: u64, nonce, ciphertext, tag: const [..] u8,
-              plaintext: [..] u8)->bool fail
+    func open(keys: const *Keys, kind: u32, recordId: u64, nonce, ciphertext, tag: const [..] u8, plaintext: [..] u8)->bool fail
     {
-        if @countof(nonce) != NonceSize or @countof(tag) != TagSize or
-           @countof(ciphertext) != @countof(plaintext) do
+        if @countof(nonce) != NonceSize or @countof(tag) != TagSize or @countof(ciphertext) != @countof(plaintext) do
             return false
         var expected = authenticationTag(keys.authentication, kind, recordId, nonce, ciphertext)
-        let valid = Core.Crypto.constantTimeEqual(expected, tag)
+        let valid    = Core.Crypto.constantTimeEqual(expected, tag)
         Core.Crypto.secureClear(expected)
         if !valid do
             return false

@@ -18,7 +18,7 @@ namespace SCrypt
 
         mtd resolve(path: string)->#null *Node
         {
-            let parts = Tokenize.split(path, cast(u8) '\\', removeEmpty: true)
+            let parts   = Tokenize.split(path, cast(u8) '\\', removeEmpty: true)
             var current = .nodeById(1)
             if !current do
                 return null
@@ -28,6 +28,7 @@ namespace SCrypt
                 if !current do
                     return null
             }
+
             return current
         }
 
@@ -45,6 +46,7 @@ namespace SCrypt
                 if !parent or !(notnull parent).isDirectory() do
                     return {null, parts[parts.count - 1]}
             }
+
             return {parent, parts[parts.count - 1]}
         }
 
@@ -54,9 +56,9 @@ namespace SCrypt
             var record: [BlockRecordSize] u8
             if !.file.readExactAt(DataOffset + physical * BlockRecordSize, record) do
                 failWith("The container is truncated or unreadable.", .Io)
-            let nonce = record[0 until Crypto.NonceSize]
+            let nonce      = record[0 until Crypto.NonceSize]
             let ciphertext = record[Crypto.NonceSize until Crypto.NonceSize + BlockSize]
-            let tag = record[Crypto.NonceSize + BlockSize until BlockRecordSize]
+            let tag        = record[Crypto.NonceSize + BlockSize until BlockRecordSize]
             if !Crypto.open(&.keys, DataKind, physical, nonce, ciphertext, tag, destination) do
                 failWith("An encrypted data block is damaged.", .Corrupted)
         }
@@ -72,21 +74,22 @@ namespace SCrypt
         mtd writeBlock(nodeId, logical: u64, source: const [..] u8) fail
         {
             Debug.assert(@countof(source) == BlockSize)
-            let physical = try .blocks.allocate()
+            let physical  = try .blocks.allocate()
             var published = false
             defer
             {
                 if !published do
                     .blocks.release(physical)
             }
+
             var record: [BlockRecordSize] u8
-            let nonce = record[0 until Crypto.NonceSize]
+            let nonce      = record[0 until Crypto.NonceSize]
             let ciphertext = record[Crypto.NonceSize until Crypto.NonceSize + BlockSize]
-            let tag = record[Crypto.NonceSize + BlockSize until BlockRecordSize]
+            let tag        = record[Crypto.NonceSize + BlockSize until BlockRecordSize]
             Crypto.seal(&.keys, DataKind, physical, source, nonce, ciphertext, tag)
             .file.writeAllAt(DataOffset + physical * BlockRecordSize, record)
 
-            let node = notnull .nodeById(nodeId)
+            let node   = notnull .nodeById(nodeId)
             let search = node.blockSearch(logical)
             if search.found
             {
@@ -95,7 +98,7 @@ namespace SCrypt
             }
             else do
                 node.blocks.insertAt(search.index, BlockMapping{logical, physical})
-            .dirty = true
+            .dirty    = true
             published = true
         }
 
@@ -110,7 +113,7 @@ namespace SCrypt
         mtd trimNode(node: *Node, newSize: u64)
         {
             let keepBlocks = (newSize + BlockSize - 1) / BlockSize
-            var index = node.blocks.count
+            var index      = node.blocks.count
             while index
             {
                 index -= 1
@@ -119,6 +122,7 @@ namespace SCrypt
                 .blocks.deferRelease(node.blocks[index].physical)
                 node.blocks.removeAtOrdered(index)
             }
+
             .dirty = true
         }
 
@@ -126,9 +130,9 @@ namespace SCrypt
         {
             if newSize <= oldSize or oldSize % BlockSize == 0 do
                 return
-            let node = notnull .nodeById(nodeId)
+            let node    = notnull .nodeById(nodeId)
             let logical = oldSize / BlockSize
-            let search = node.blockSearch(logical)
+            let search  = node.blockSearch(logical)
             if !search.found do
                 return
             var block: [BlockSize] u8
@@ -150,10 +154,10 @@ namespace SCrypt
             elif newSize < oldSize do
                 .trimNode(node, newSize)
             let current = notnull .nodeById(nodeId)
-            current.size       = newSize
-            current.changeTime = volumeTimeNow()
+            current.size          = newSize
+            current.changeTime    = volumeTimeNow()
             current.lastWriteTime = current.changeTime
-            .dirty = true
+            .dirty                = true
         }
 
         mtd readNode(nodeId: u64, offset: u64, destination: [..] u8)->u32 fail
@@ -168,24 +172,24 @@ namespace SCrypt
                 return 0
 
             let count = Math.min(@countof(destination), validNode.size - offset)
-            var done = 0'u64
+            var done  = 0'u64
             while done < count
             {
                 let absolute = offset + done
-                let logical = absolute / BlockSize
-                let inBlock = absolute % BlockSize
-                let chunk = Math.min(count - done, BlockSize - inBlock)
+                let logical  = absolute / BlockSize
+                let inBlock  = absolute % BlockSize
+                let chunk    = Math.min(count - done, BlockSize - inBlock)
                 var block: [BlockSize] u8
                 .readBlock(validNode, logical, block)
                 @memcpy(@dataof(destination) + done, &block[inBlock], chunk)
                 Core.Crypto.secureClear(block)
                 done += chunk
             }
+
             return cast(u32) count
         }
 
-        mtd writeNode(nodeId: u64, offset: u64, source: const [..] u8,
-                      writeToEnd, constrained: bool)->u32 fail
+        mtd writeNode(nodeId: u64, offset: u64, source: const [..] u8, writeToEnd, constrained: bool)->u32 fail
         {
             let node = .nodeById(nodeId)
             if !node do
@@ -206,13 +210,14 @@ namespace SCrypt
                     return 0
                 count = Math.min(count, validNode.size - writeOffset)
             }
+
             if !count do
                 return 0
             if writeOffset > Swag.U64.Max - count do
                 failWith("File size overflow.", .InvalidInput)
 
             let oldSize = validNode.size
-            let end = writeOffset + count
+            let end     = writeOffset + count
             if !constrained and end > oldSize do
                 .zeroOldTail(nodeId, oldSize, end)
 
@@ -220,10 +225,10 @@ namespace SCrypt
             while done < count
             {
                 let absolute = writeOffset + done
-                let logical = absolute / BlockSize
-                let inBlock = absolute % BlockSize
-                let chunk = Math.min(count - done, BlockSize - inBlock)
-                let current = notnull .nodeById(nodeId)
+                let logical  = absolute / BlockSize
+                let inBlock  = absolute % BlockSize
+                let chunk    = Math.min(count - done, BlockSize - inBlock)
+                let current  = notnull .nodeById(nodeId)
                 var block: [BlockSize] u8
                 if inBlock or chunk != BlockSize do
                     .readBlock(current, logical, block)
@@ -239,8 +244,8 @@ namespace SCrypt
             let now = volumeTimeNow()
             updated.lastWriteTime = now
             updated.changeTime    = now
-            updated.attributes   |= FileAttributeArchive
-            .dirty = true
+            updated.attributes    |= FileAttributeArchive
+            .dirty                = true
             return cast(u32) count
         }
     }

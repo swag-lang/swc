@@ -20,7 +20,7 @@ namespace SCrypt
     struct Error
     {
         using base: Swag.BaseError
-        kind: ErrorKind
+        kind:       ErrorKind
     }
 
     func failWith(message: string, kind = ErrorKind.General) fail
@@ -28,4 +28,3 @@ namespace SCrypt
         fail Error{base: {Errors.mkString(message)}, kind: kind}
     }
 }
-

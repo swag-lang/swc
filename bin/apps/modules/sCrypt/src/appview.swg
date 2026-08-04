@@ -28,8 +28,7 @@ private func createVaultCard(parent: *Wnd, title, subtitle: string)->VaultCard
     titleLabel.setTextAlignment(.Left, .Center)
     titleLabel.style.setFont(view.theme().createDefaultFont(21, .Bold), .Regular)
 
-    let subtitleLabel = Label.create(view, subtitle, {0, 0, 0, 54}, null,
-                                     .WordWrap | .SecondaryText)
+    let subtitleLabel = Label.create(view, subtitle, {0, 0, 0, 54}, null, .WordWrap | .SecondaryText)
     subtitleLabel.dockStyle = .Top
     subtitleLabel.setTextAlignment(.Left, .Top)
 
@@ -80,12 +79,14 @@ private func mountVaultFields()->Array'FormFieldDefinition
         choice.text = Format.toString("%:", letter)
         drive.choices.add(#move choice)
     }
+
     for letter in available where letter < 'D'
     {
         var choice: FormChoice
         choice.text = Format.toString("%:", letter)
         drive.choices.add(#move choice)
     }
+
     result.add(#move drive)
     return result
 }
@@ -104,8 +105,7 @@ private func createHeader(parent: *Wnd)
         .style.addStyleSheetColors("wnd_Bk $hilight")
     }
 
-    let badge = Label.create(header, "PORTABLE  |  PASSWORD-LOCKED  |  NO SETUP",
-                             {0, 0, 330}, null, .SecondaryText)
+    let badge = Label.create(header, "PORTABLE  |  PASSWORD-LOCKED  |  NO SETUP", {0, 0, 330}, null, .SecondaryText)
     badge.dockStyle = .Right
     badge.setTextAlignment(.Right, .Center)
     badge.style.setFont(parent.theme().createDefaultFontFS(12, .Bold), .Regular)
@@ -116,7 +116,7 @@ private func createHeader(parent: *Wnd)
     title.style.setFont(parent.theme().createDefaultFont(36, .Bold), .Regular)
 
     let subtitle = Label.create(header,
-        "Encrypted storage that looks and behaves like a regular Windows drive.")
+                                "Encrypted storage that looks and behaves like a regular Windows drive.")
     subtitle.dockStyle = .Center
     subtitle.setTextAlignment(.Left, .Top)
     subtitle.updateFlags(add: .SecondaryText)
@@ -126,8 +126,10 @@ private func createHeader(parent: *Wnd)
 private func createFooter(window: *MainWindow)
 {
     let footer = Label.create(window,
-        "WinFsp - Windows File System Proxy, Copyright (C) Bill Zissimopoulos - github.com/winfsp/winfsp",
-        {0, 0, 0, 24}, null, .SecondaryText)
+                              "WinFsp - Windows File System Proxy, Copyright (C) Bill Zissimopoulos - github.com/winfsp/winfsp",
+                              {0, 0, 0, 24},
+                              null,
+                              .SecondaryText)
     footer.dockStyle = .Bottom
     footer.margin    = {34, 4, 34, 12}
     footer.setTextAlignment(.Left, .Center)
@@ -148,7 +150,7 @@ private func createFooter(window: *MainWindow)
     statusIcon.setIcon(statusGlyph)
 
     window.status = Label.create(statusView,
-        "Ready - create a vault or choose one to mount.")
+                                 "Ready - create a vault or choose one to mount.")
     window.status.dockStyle = .Center
     window.status.setTextAlignment(.Left, .Center)
     statusView.applyLayout()
@@ -156,14 +158,13 @@ private func createFooter(window: *MainWindow)
 
 private func createCreateCard(window: *MainWindow, parent: *GridLayoutCtrl)->*FrameWnd
 {
-    let card = createVaultCard(parent, "Create a new vault",
-        "Choose a fixed capacity. The complete container is randomized before it is ready.")
+    let card = createVaultCard(parent, "Create a new vault", "Choose a fixed capacity. The complete container is randomized before it is ready.")
 
     var options: FormLayoutOptions
     options.labelPlacement = .Above
     options.rowSpacing     = 10
     let definitions = createVaultFields()
-    let form = FormCtrl.create(card.body, definitions.toSlice(), options, {0, 0, 0, 304})
+    let form        = FormCtrl.create(card.body, definitions.toSlice(), options, {0, 0, 0, 304})
     form.dockStyle = .Top
 
     window.createPath      = notnull form.textField("create.path")
@@ -183,9 +184,8 @@ private func createCreateCard(window: *MainWindow, parent: *GridLayoutCtrl)->*Fr
     window.createSize.setUnsignedIntegerRange(1, 1024 * 1024)
 
     let actions = StackLayoutCtrl.create(card.body, .Right, {0, 0, 0, 38})
-    actions.dockStyle = .Bottom
-    window.createButton = PushButton.create(actions, "Create encrypted vault", {0, 0, 228, 38},
-                                             form: .Strong)
+    actions.dockStyle   = .Bottom
+    window.createButton = PushButton.create(actions, "Create encrypted vault", {0, 0, 228, 38}, form: .Strong)
     window.createButton.setIcon(window.theme().icon24(ThemeIcons24.SaveAs, 18))
     window.createButton.sigPressed += func|window|(btn)
     {
@@ -199,14 +199,13 @@ private func createCreateCard(window: *MainWindow, parent: *GridLayoutCtrl)->*Fr
 
 private func createMountCard(window: *MainWindow, parent: *GridLayoutCtrl)->*FrameWnd
 {
-    let card = createVaultCard(parent, "Mount an existing vault",
-        "Unlock a container and expose it on any currently available drive letter.")
+    let card = createVaultCard(parent, "Mount an existing vault", "Unlock a container and expose it on any currently available drive letter.")
 
     var options: FormLayoutOptions
     options.labelPlacement = .Above
     options.rowSpacing     = 10
     let definitions = mountVaultFields()
-    let form = FormCtrl.create(card.body, definitions.toSlice(), options, {0, 0, 0, 224})
+    let form        = FormCtrl.create(card.body, definitions.toSlice(), options, {0, 0, 0, 224})
     form.dockStyle = .Top
 
     window.mountPath     = notnull form.textField("mount.path")
@@ -223,13 +222,15 @@ private func createMountCard(window: *MainWindow, parent: *GridLayoutCtrl)->*Fra
     }
 
     let note = Label.create(card.body,
-        "The drive is available to Windows while sCrypt runs, then disappears when the app closes.",
-        {0, 0, 0, 54}, null, .WordWrap | .SecondaryText)
+                            "The drive is available to Windows while sCrypt runs, then disappears when the app closes.",
+                            {0, 0, 0, 54},
+                            null,
+                            .WordWrap | .SecondaryText)
     note.dockStyle = .Top
     note.setTextAlignment(.Left, .Top)
 
     let actions = StackLayoutCtrl.create(card.body, .Right, {0, 0, 0, 38})
-    actions.dockStyle = .Bottom
+    actions.dockStyle    = .Bottom
     window.unmountButton = PushButton.create(actions, "Unmount", {0, 0, 140, 38})
     window.unmountButton.setIcon(window.theme().icon24(ThemeIcons24.Stop, 18))
     window.unmountButton.sigPressed += func|window|(btn)
@@ -253,10 +254,10 @@ impl MainWindow
 {
     func create(parent: *Wnd)->*MainWindow
     {
-        let result = Wnd.create'MainWindow(parent, "sCrypt.mainWindow")
+        let result  = Wnd.create'MainWindow(parent, "sCrypt.mainWindow")
         let surface = notnull result.surface
         surface.setView(result)
-        surface.minSize = {1100, 790}
+        surface.minSize        = {1100, 790}
         result.backgroundStyle = .View
 
         createHeader(result)

@@ -3,14 +3,14 @@
 // Configures a modal form materialized entirely from field descriptions.
 struct FormDlgOptions
 {
-    title:             string = ""                     // Surface title.
-    confirmButtonText: string = "OK"                   // Confirmation-button text.
-    cancelButtonText:  string = "Cancel"               // Cancel-button text, or empty to omit it.
-    width  = 520's32                                    // Initial surface width.
-    height = 360's32                                    // Initial surface height.
-    resizable: bool                                     // Whether the user can resize the surface.
-    formOptions: FormLayoutOptions                      // Field-layout geometry.
-    fields:      Array'FormFieldDefinition              // Fields in display order.
+    title:             string = ""                   // Surface title.
+    confirmButtonText: string = "OK"                 // Confirmation-button text.
+    cancelButtonText:  string = "Cancel"             // Cancel-button text, or empty to omit it.
+    width                     = 520's32              // Initial surface width.
+    height                    = 360's32              // Initial surface height.
+    resizable:         bool                          // Whether the user can resize the surface.
+    formOptions:       FormLayoutOptions             // Field-layout geometry.
+    fields:            Array'FormFieldDefinition     // Fields in display order.
 }
 
 // Modal data-driven dialog composed of a [[Gui.FormCtrl]] and standard buttons.
@@ -20,7 +20,7 @@ struct FormDlg
 
     readonly
     #[Swag.Late]
-    form: *FormCtrl          // Materialized form owned by the dialog.
+    form: *FormCtrl     // Materialized form owned by the dialog.
 }
 
 impl FormDlg
@@ -33,20 +33,21 @@ impl FormDlg
         Debug.assert(options.width > 0 and options.height > 0,
                      "form dialog dimensions must be positive")
 
-        let result = Wnd.create'FormDlg()
-        let flags  = options.resizable ? SurfaceFlags.Resizable : SurfaceFlags.None
+        let result  = Wnd.create'FormDlg()
+        let flags   = options.resizable ? SurfaceFlags.Resizable : SurfaceFlags.None
         let surface = result.createSurface(from, 0, 0, options.width, options.height, flags)
         surface.setTitle(options.title)
         surface.center(from)
         surface.minSize = {Math.min(options.width, 360), Math.min(options.height, 240)}
 
-        result.form = FormCtrl.create(surface.view(), options.fields.toSlice(),
-                                      options.formOptions)
+        result.form           = FormCtrl.create(surface.view(), options.fields.toSlice(), options.formOptions)
         result.form.dockStyle = .Center
         result.form.setAllMargins(result.themeMetrics().dialog_Padding)
 
         result.addButton(@countof(options.confirmButtonText) ?
-                         options.confirmButtonText : "OK", Dialog.BtnOk, true)
+        options.confirmButtonText : "OK",
+                         Dialog.BtnOk,
+                         true)
         if @countof(options.cancelButtonText) do
             result.addButton(options.cancelButtonText, Dialog.BtnCancel)
         result.applyLayout()

@@ -20,8 +20,7 @@ var g_App: Application
 
     let appIcon = expect Image.decode(".png", AppIcon)
     g_App.setAppIcon(appIcon)
-    let surface = notnull (try g_App.createSurface(
-        80, 50, 1100, 790, SurfaceFlags.StandardWindow, surfaceId: "sCrypt"))
+    let surface = notnull (try g_App.createSurface(80, 50, 1100, 790, SurfaceFlags.StandardWindow, surfaceId: "sCrypt"))
     g_App.theme.setSwagDark()
     g_App.notifyThemeChanged()
     surface.setTitle("sCrypt — Private virtual drives")

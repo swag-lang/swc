@@ -29,7 +29,7 @@ namespace SCrypt
 
         mtd blockSearch(logical: u64)->{found: bool, index: u64}
         {
-            var low = 0'u64
+            var low  = 0'u64
             var high = .blocks.count
             while low < high
             {
@@ -39,6 +39,7 @@ namespace SCrypt
                 else do
                     high = middle
             }
+
             return {low < .blocks.count and .blocks[low].logical == logical, low}
         }
     }
@@ -72,6 +73,7 @@ namespace SCrypt
                 let count = .childCounts.findOrAdd(node.parentId)
                 count.value += 1
             }
+
             .byId.add(node.id, index)
             return true
         }
@@ -119,7 +121,7 @@ namespace SCrypt
 
         mtd changeParent(node: *Node, parentId: u64, name: string)->bool
         {
-            let key = childIndexKey(parentId, name)
+            let key         = childIndexKey(parentId, name)
             let destination = .byParent.tryFind(key)
             if destination != null and (notnull destination).value != node.id do
                 return false
@@ -134,6 +136,7 @@ namespace SCrypt
                 let added = .add(node, position)
                 Debug.assert(added)
             }
+
             return true
         }
     }

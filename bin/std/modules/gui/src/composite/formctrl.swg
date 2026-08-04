@@ -5,16 +5,16 @@ using Core
 // Selects the control created for a declarative form field.
 enum FormFieldKind
 {
-    Text        // Creates a single-line [[Gui.EditBox]].
-    Password    // Creates a plaintext-safe [[Gui.PasswordEdit]].
-    Choice      // Creates a selection-only [[Gui.ComboBox]].
+    Text         // Creates a single-line [[Gui.EditBox]].
+    Password     // Creates a plaintext-safe [[Gui.PasswordEdit]].
+    Choice       // Creates a selection-only [[Gui.ComboBox]].
 }
 
 // Describes one choice in a declarative form field.
 struct FormChoice
 {
     text: String                 // Text displayed by the combo box; owned by the definition.
-    id:   #null WndId = null    // Optional stable identifier for the choice.
+    id:   #null WndId = null     // Optional stable identifier for the choice.
 }
 
 // Describes one field materialized by [[Gui.FormCtrl.create]].
@@ -23,15 +23,15 @@ struct FormChoice
 // controls own their displayed contents.
 struct FormFieldDefinition
 {
-    id:           WndId = ""                    // Stable identifier used to retrieve the field.
-    label:        string = ""                   // Label displayed beside or above the control.
-    kind:         FormFieldKind = Text          // Kind of control to create.
-    initialText:  string = ""                   // Initial text for a text field.
-    placeholder:  string = ""                   // Placeholder for text and password fields.
-    help:         string = ""                   // Optional explanatory text below the field.
-    actionText:   string = ""                   // Optional trailing action-button text.
-    choices:      Array'FormChoice               // Primary choices for `Choice`, or trailing choices for another kind.
-    selectedIndex = 0'u32                        // Initially selected primary or trailing choice index.
+    id:          WndId         = ""        // Stable identifier used to retrieve the field.
+    label:       string        = ""        // Label displayed beside or above the control.
+    kind:        FormFieldKind = Text      // Kind of control to create.
+    initialText: string        = ""        // Initial text for a text field.
+    placeholder: string        = ""        // Placeholder for text and password fields.
+    help:        string        = ""        // Optional explanatory text below the field.
+    actionText:  string        = ""        // Optional trailing action-button text.
+    choices:     Array'FormChoice          // Primary choices for `Choice`, or trailing choices for another kind.
+    selectedIndex              = 0'u32     // Initially selected primary or trailing choice index.
 }
 
 // Stores the typed controls created for one declarative field.
@@ -39,14 +39,14 @@ struct FormField
 {
     readonly
     {
-        id:       String                 // Stable field identifier.
-        kind:     FormFieldKind = Text   // Materialized control kind.
-        control:  *Wnd = undefined       // Generic field control.
-        edit:     #null *EditBox         // Text editor when `kind` is `Text`.
-        password: #null *PasswordEdit    // Password editor when `kind` is `Password`.
-        choice:   #null *ComboBox        // Combo box when `kind` is `Choice`.
-        action:   #null *PushButton      // Optional trailing action button.
-        accessoryChoice: #null *ComboBox // Optional trailing choice control.
+        id:              String                        // Stable field identifier.
+        kind:            FormFieldKind = Text          // Materialized control kind.
+        control:         *Wnd          = undefined     // Generic field control.
+        edit:            #null *EditBox                // Text editor when `kind` is `Text`.
+        password:        #null *PasswordEdit           // Password editor when `kind` is `Password`.
+        choice:          #null *ComboBox               // Combo box when `kind` is `Choice`.
+        action:          #null *PushButton             // Optional trailing action button.
+        accessoryChoice: #null *ComboBox               // Optional trailing choice control.
     }
 }
 
@@ -59,7 +59,8 @@ struct FormCtrl
 {
     using layout: FormLayoutCtrl     // Embedded form-layout behavior.
 
-    readonly fields: Array'FormField     // Materialized fields in declaration order.
+    readonly
+    fields: Array'FormField     // Materialized fields in declaration order.
 
     sigAction: SigArray'func||(*FormCtrl, WndId)     // Emitted by a field's optional action button.
 }
@@ -99,12 +100,13 @@ private impl FormCtrl
                                         cast(u32) (field.choice.items.count - 1))
                 field.choice.setSelectedIndex(selected, false)
             }
+
             field.control = field.choice
         }
 
         if @countof(definition.actionText)
         {
-            field.action = PushButton.create(me, definition.actionText, id: definition.id)
+            field.action            = PushButton.create(me, definition.actionText, id: definition.id)
             field.action.sigPressed += func|form = me|(button)
             {
                 form.sigAction.call(form, button.id)
@@ -120,11 +122,10 @@ private impl FormCtrl
             field.accessoryChoice.setSelectedIndex(selected, false)
         }
 
-        let control = field.control
+        let control   = field.control
         let accessory = field.action ? cast(#null *Wnd) field.action : field.accessoryChoice
         .fields.add(#move field)
-        discard .addField(definition.label, control, accessory,
-                          @countof(definition.help) ? definition.help : null)
+        discard .addField(definition.label, control, accessory, @countof(definition.help) ? definition.help : null)
     }
 }
 
@@ -132,8 +133,7 @@ impl FormCtrl
 {
     // Creates and materializes a form inside `parent`.
     #[Swag.Discardable]
-    func create(parent: *Wnd, definitions: const [..] FormFieldDefinition,
-                options: FormLayoutOptions = {}, position: Math.Rectangle = {})->*FormCtrl
+    func create(parent: *Wnd, definitions: const [..] FormFieldDefinition, options: FormLayoutOptions = {}, position: Math.Rectangle = {})->*FormCtrl
     {
         Debug.assert(parent != null)
         let result = Wnd.create'FormCtrl(parent, null, position)

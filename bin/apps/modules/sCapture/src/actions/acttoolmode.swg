@@ -33,71 +33,71 @@ impl IActionUI for ActionToolMode
         case .Shape:
             evt.updatedFields |= .Icon | .Checked | .Name | .ToolTip
             evt.icon          = Icon.from(&main.icons48, 0)
-            evt.name          = "Shape"
-            evt.toolTip       = "Add circles and rectangle to the capture"
+            evt.name          = appStrings().act_Shape
+            evt.toolTip       = appStrings().tip_ToolShape
             evt.checked       = main.editMode == EditMode.Shape
 
         case .Arrow:
             evt.updatedFields |= .Icon | .Checked | .Name | .ToolTip
             evt.icon          = Icon.from(&main.icons48, 3)
-            evt.name          = "Arrow"
-            evt.toolTip       = "Add arrows to the capture"
+            evt.name          = appStrings().act_Arrow
+            evt.toolTip       = appStrings().tip_ToolArrow
             evt.checked       = main.editMode == EditMode.Arrow
 
         case .Line:
             evt.updatedFields |= .Icon | .Checked | .Name | .ToolTip
             evt.icon          = Icon.from(&main.icons48, 1)
-            evt.name          = "Line"
-            evt.toolTip       = "Add lines to the capture"
+            evt.name          = appStrings().act_Line
+            evt.toolTip       = appStrings().tip_ToolLine
             evt.checked       = main.editMode == EditMode.Line
 
         case .Poly:
             evt.updatedFields |= .Icon | .Checked | .Name | .ToolTip
             evt.icon          = Icon.from(&main.icons48, 2)
-            evt.name          = "Polygon"
-            evt.toolTip       = "Add polygons to the capture"
+            evt.name          = appStrings().act_Polygon
+            evt.toolTip       = appStrings().tip_ToolPolygon
             evt.checked       = main.editMode == EditMode.Polygon
 
         case .Text:
             evt.updatedFields |= .Icon | .Checked | .Name | .ToolTip
             evt.icon          = Icon.from(&main.icons48, 4)
-            evt.name          = "Text"
-            evt.toolTip       = "Add some text to the capture"
+            evt.name          = appStrings().act_Text
+            evt.toolTip       = appStrings().tip_ToolText
             evt.checked       = main.editMode == EditMode.Text
 
         case .Draw:
             evt.updatedFields |= .Icon | .Checked | .Name | .ToolTip
             evt.icon          = Icon.from(&main.icons48, 7)
-            evt.name          = "Draw"
-            evt.toolTip       = "Add some free hand paint to the capture"
+            evt.name          = appStrings().act_Draw
+            evt.toolTip       = appStrings().tip_ToolDraw
             evt.checked       = main.editMode == EditMode.Draw
 
         case .Highlight:
             evt.updatedFields |= .Icon | .Checked | .Name | .ToolTip
             evt.icon          = Icon.from(&main.icons48, 9)
-            evt.name          = "Highlight"
-            evt.toolTip       = "Highlight some parts of the capture"
+            evt.name          = appStrings().act_Highlight
+            evt.toolTip       = appStrings().tip_ToolHighlight
             evt.checked       = main.editMode == EditMode.Highlight
 
         case .Step:
             evt.updatedFields |= .Icon | .Checked | .Name | .ToolTip
             evt.icon          = Icon.from(&main.icons48, 12)
-            evt.name          = "Step"
-            evt.toolTip       = "Add some steps"
+            evt.name          = appStrings().act_Step
+            evt.toolTip       = appStrings().tip_ToolStep
             evt.checked       = main.editMode == EditMode.Step
 
         case .Img:
             evt.updatedFields |= .Icon | .Checked | .Name | .ToolTip
             evt.icon          = Icon.from(&main.icons48, 13)
-            evt.name          = "Image"
-            evt.toolTip       = "Add some images/effects"
+            evt.name          = appStrings().ui_MenuImage
+            evt.toolTip       = appStrings().tip_ToolImage
             evt.checked       = main.editMode == EditMode.Image
 
         case .PixSel:
             evt.updatedFields |= .Icon | .Checked | .Name | .ToolTip
             evt.icon          = Icon.from(&main.icons48, 17)
-            evt.name          = "PixSel"
-            evt.toolTip       = "Pixel selection"
+            evt.name          = appStrings().act_PixSel
+            evt.toolTip       = appStrings().tip_ToolPixSel
             evt.checked       = main.editMode == EditMode.PixSel
 
         case .Callout:
@@ -105,22 +105,22 @@ impl IActionUI for ActionToolMode
             // No sprite for this tool: the toolbar button draws its own bubble glyph
             // via iconPainter, so this state intentionally does not manage the icon.
             evt.updatedFields |= .Checked | .Name | .ToolTip
-            evt.name          = "Callout"
-            evt.toolTip       = "Add speech-bubble callouts to the capture"
+            evt.name          = appStrings().act_Callout
+            evt.toolTip       = appStrings().tip_ToolCallout
             evt.checked       = main.editMode == EditMode.Callout
 
         case .Favorites:
             evt.updatedFields |= .Icon | .Checked | .Name | .ToolTip
             evt.icon          = Icon.from(&main.icons48, 5)
-            evt.name          = "Favorites"
-            evt.toolTip       = "Save multiple quick styles in one single location"
+            evt.name          = appStrings().act_Favorites
+            evt.toolTip       = appStrings().tip_ToolFavorites
             evt.checked       = main.editMode == EditMode.Favorites
 
         case .Selection:
             evt.updatedFields |= .Icon | .Checked | .Name | .ToolTip
             evt.icon          = Icon.from(&main.icons48, 10)
-            evt.name          = "Select"
-            evt.toolTip       = "Select forms"
+            evt.name          = appStrings().act_Select
+            evt.toolTip       = appStrings().tip_ToolSelect
             evt.checked       = main.editMode == EditMode.Selection or (capture and capture.drawSelRect)
         }
 

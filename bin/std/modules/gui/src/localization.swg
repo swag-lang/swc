@@ -108,11 +108,18 @@ func(T) registerStrings(table: *T, file: string)
 {
     #static if !Reflection.isStruct(T) do
         #error("a string table must be a struct of 'string' fields")
+    registerStrings(#typeof(T), table, file)
+}
+
+// Registers a string table through its reflected type; prefer the typed overload.
+func registerStrings(type: typeinfo, table: *void, file: string)
+{
+    Debug.assert(Reflection.isStruct(type), "a string table must be a struct of 'string' fields")
 
     let state = &g_Localization
     for &existing in state.tables where existing.data == table do
         return
-    state.tables.add({#typeof(T), table, file})
+    state.tables.add({type, table, file})
 }
 
 // Returns the active language tag, `"en"` by default. The value is borrowed and
@@ -165,8 +172,24 @@ func applyLanguage(resources: const *Resources.Bundle, tag: string) fail
 // non-string target is a build error carrying the faulty line, not a runtime surprise.
 func(T) validateStrings(content: string) fail
 {
-    var probe: T
-    try parseStringsContent(#typeof(T), cast([*] u8) &probe, content, null)
+    try validateStrings(#typeof(T), content)
+}
+
+// Decodes `content` against a reflected string table type; prefer the typed overload.
+func validateStrings(type: typeinfo, content: string) fail
+{
+    Debug.assert(Reflection.isStruct(type), "a string table must be a struct of 'string' fields")
+
+    // The probe only receives `string` views, so releasing the raw block is enough.
+    let structType = cast(const *Swag.TypeInfoStruct) type
+    let probe      = Memory.alloc(cast(u64) structType.sizeof)
+    defer Memory.free(probe, cast(u64) structType.sizeof)
+    if structType.opInit != null do
+        structType.opInit(probe)
+    else do
+        Memory.clear(probe, cast(u64) structType.sizeof)
+
+    try parseStringsContent(type, cast([*] u8) probe, content, null)
 }
 
 // Registers the GUI string table and its embedded translations.

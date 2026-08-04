@@ -23,21 +23,21 @@ impl IActionUI for ActionLibTrash
         {
         case .Toggle:
             evt.updatedFields |= .Name | .Checked
-            evt.name          = "Recycle Bin"
+            evt.name          = appStrings().act_RecycleBin
             evt.checked       = libWnd.trashMode
 
         case .Empty:
             evt.updatedFields |= .Name
-            evt.name          = "Empty Recycle Bin"
+            evt.name          = appStrings().act_EmptyRecycleBin
 
         case .Restore:
             evt.updatedFields |= .Name | .Disabled
-            evt.name          = "Restore"
+            evt.name          = appStrings().act_Restore
             evt.disabled      = !hasSel
 
         case .DeleteForever:
             evt.updatedFields |= .Name | .Disabled
-            evt.name          = "Delete Permanently"
+            evt.name          = appStrings().act_DeletePermanently
             evt.disabled      = !hasSel
         }
 
@@ -54,7 +54,7 @@ impl IActionUI for ActionLibTrash
             libWnd.setTrashMode(!libWnd.trashMode)
 
         case .Empty:
-            let res = MessageDlg.confirm(notnull libWnd.main.surface, "This will permanently erase every capture in the recycle bin.")
+            let res = MessageDlg.confirm(notnull libWnd.main.surface, appStrings().msg_EraseTrash)
             if res == MessageDlg.BtnYes
             {
                 Library.emptyTrash()
@@ -67,7 +67,7 @@ impl IActionUI for ActionLibTrash
             libWnd.restoreSelected()
 
         case .DeleteForever:
-            let res = MessageDlg.confirm(notnull libWnd.main.surface, "This will permanently erase the selected capture(s).")
+            let res = MessageDlg.confirm(notnull libWnd.main.surface, appStrings().msg_EraseSelected)
             if res == MessageDlg.BtnYes do
                 libWnd.deleteForeverSelected()
         }

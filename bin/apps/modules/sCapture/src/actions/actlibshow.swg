@@ -22,22 +22,22 @@ impl IActionUI for ActionLibFilter
         {
         case .UpToDateLinkedImage:
             evt.updatedFields |= .Name | .Checked
-            evt.name          = "Up To Date Linked Image"
+            evt.name          = appStrings().act_UpToDateLinked
             evt.checked       = libWnd.showUpToDateLinkedImage
 
         case .UnSavedLinkedImage:
             evt.updatedFields |= .Name | .Checked
-            evt.name          = "UnSaved Linked Image"
+            evt.name          = appStrings().act_UnsavedLinked
             evt.checked       = libWnd.showUnSavedLinkedImage
 
         case .LinkedImage:
             evt.updatedFields |= .Name | .Checked
-            evt.name          = "Has Linked Image"
+            evt.name          = appStrings().act_FilterHasLinked
             evt.checked       = libWnd.showLinkedImage
 
         case .UnLinkedImage:
             evt.updatedFields |= .Name | .Checked
-            evt.name          = "Doesn't Have Linked Image"
+            evt.name          = appStrings().act_FilterNoLinked
             evt.checked       = libWnd.showUnLinkedImage
         }
 

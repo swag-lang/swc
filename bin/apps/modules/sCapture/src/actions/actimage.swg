@@ -45,7 +45,7 @@ impl IActionUI for ActionImage
         {
         case .RestoreOrg:
             evt.updatedFields |= .Name | .Disabled
-            evt.name          = "Restore to Original"
+            evt.name          = appStrings().act_RestoreOriginal
             evt.disabled      = !capture or !capture.backImgOriginal.isValid()
         }
 
@@ -57,7 +57,7 @@ impl IActionUI for ActionImage
         let main    = cast(*MainWnd) notnull cxt.wnd
         let capture = notnull main.getCapture()
 
-        // The backImgOriginal snapshot (which enables "Restore to Original") is taken lazily
+        // The backImgOriginal snapshot (which enables appStrings().act_RestoreOriginal) is taken lazily
         // at the point backImg is genuinely mutated (see doProcessImage/trimCapture), not here:
         // several commands can early-return on dialog Cancel or never touch backImg at all.
 
@@ -150,14 +150,14 @@ impl MainWnd
         let capture = notnull .getCapture()
         let ratio   = cast(f32) capture.width / capture.height
 
-        let dlg = Dialog.create(notnull .surface, 350, 265, title: "Resize Image")
-        dlg.addButton("Resize", Dialog.BtnOk, true)
+        let dlg = Dialog.create(notnull .surface, 350, 265, title: appStrings().dlg_TitleResizeImage)
+        dlg.addButton(appStrings().dlg_BtnResize, Dialog.BtnOk, true)
         dlg.addButton("Cancel", Dialog.BtnCancel)
-        let edit0 = EditCtrl.create(dlg, "Width", Format.toString("%", capture.width), {80, 15}, flags: .RightAligned)
-        let edit1 = EditCtrl.create(dlg, "Height", Format.toString("%", capture.height), {80, 50}, flags: .RightAligned)
+        let edit0 = EditCtrl.create(dlg, appStrings().ui_Width, Format.toString("%", capture.width), {80, 15}, flags: .RightAligned)
+        let edit1 = EditCtrl.create(dlg, appStrings().ui_Height, Format.toString("%", capture.height), {80, 50}, flags: .RightAligned)
         edit0.edit.setUnsignedIntegerRange(cast() Capture.MinSize, cast() Capture.MaxSize)
         edit1.edit.setUnsignedIntegerRange(cast() Capture.MinSize, cast() Capture.MaxSize)
-        let btnRatio = CheckButton.create(dlg, "Keep Ratio", {120, 85})
+        let btnRatio = CheckButton.create(dlg, appStrings().ui_KeepRatio, {120, 85})
         btnRatio.setState(g_KeepRatio ? .Checked : .Unchecked)
 
         edit0.edit.sigTextChanged += func|ratio, btnRatio, edit1|(edt)
@@ -235,15 +235,15 @@ impl MainWnd
     mtd createExpandDialog(title: String, w, h: s32)->WndId
     {
         let dlg = Dialog.create(notnull .surface, 350, 265, title: title)
-        dlg.addButton("Resize", Dialog.BtnOk, true)
+        dlg.addButton(appStrings().dlg_BtnResize, Dialog.BtnOk, true)
         dlg.addButton("Cancel", Dialog.BtnCancel)
 
         let ratio = cast(f32) w / h
 
         g_Width  = w
         g_Height = h
-        let edit0 = EditCtrl.create(dlg, "Width", Format.toString("%", w), {30, 15}, flags: .RightAligned)
-        let edit1 = EditCtrl.create(dlg, "Height", Format.toString("%", h), {30, 50}, flags: .RightAligned)
+        let edit0 = EditCtrl.create(dlg, appStrings().ui_Width, Format.toString("%", w), {30, 15}, flags: .RightAligned)
+        let edit1 = EditCtrl.create(dlg, appStrings().ui_Height, Format.toString("%", h), {30, 50}, flags: .RightAligned)
         edit0.edit.setUnsignedIntegerRange(cast() Capture.MinSize, cast() Capture.MaxSize)
         edit1.edit.setUnsignedIntegerRange(cast() Capture.MinSize, cast() Capture.MaxSize)
 
@@ -267,7 +267,7 @@ impl MainWnd
             }
         }
 
-        let btnRatio = CheckButton.create(dlg, "Keep Ratio", {70, 85})
+        let btnRatio = CheckButton.create(dlg, appStrings().ui_KeepRatio, {70, 85})
         btnRatio.setState(g_KeepRatio ? .Checked : .Unchecked)
         btnRatio.sigChanged += func||(btn) { g_KeepRatio = btn.isChecked() }
 
@@ -294,7 +294,7 @@ impl MainWnd
     mtd expandImage()
     {
         let capture = notnull .getCapture()
-        let res     = .createExpandDialog("Expand Image", capture.backImg.width, capture.backImg.height)
+        let res     = .createExpandDialog(appStrings().dlg_TitleExpandImage, capture.backImg.width, capture.backImg.height)
         if res != Dialog.BtnOk do
             return
 
@@ -343,7 +343,7 @@ impl MainWnd
     mtd expandCapture()
     {
         let capture = notnull .getCapture()
-        let res     = .createExpandDialog("Expand Capture", capture.width, capture.height)
+        let res     = .createExpandDialog(appStrings().dlg_TitleExpandCapture, capture.width, capture.height)
         if res != Dialog.BtnOk do
             return
 

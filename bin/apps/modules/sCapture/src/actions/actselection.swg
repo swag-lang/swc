@@ -29,39 +29,39 @@ impl IActionUI for ActionSelection
         case .SelectAll:
             evt.updatedFields |= .Disabled | .Name
             evt.disabled      = !capture or !capture.forms.count or isLib
-            evt.name          = "Select All Objects"
+            evt.name          = appStrings().act_SelectAll
 
         case .SelectSameAll:
             evt.updatedFields |= .Disabled | .Name
             evt.disabled      = !capture or !capture.forms.count or !hasSel or isLib
-            evt.name          = "Select Similar Objects"
+            evt.name          = appStrings().act_SelectSimilar
 
         case .DeSelectAll:
             evt.updatedFields |= .Disabled | .Name
             evt.disabled      = !capture or !hasSel or isLib
-            evt.name          = "Deselect All Objects"
+            evt.name          = appStrings().act_DeselectAll
 
         case .InvertSelection:
             evt.updatedFields |= .Disabled | .Name
 
             // Nothing to invert when there are no forms (matches SelectAll).
             evt.disabled = !capture or !capture.forms.count or isLib
-            evt.name     = "Invert Selection"
+            evt.name     = appStrings().act_InvertSelection
 
         case .DeleteSelection:
             evt.updatedFields |= .Disabled | .Name | .Icon
             evt.disabled      = !hasSel
-            evt.name          = "Delete"
+            evt.name          = appStrings().act_Delete
             evt.icon          = main.theme().icon24(.Remove)
 
         case .Snap:
             evt.updatedFields |= .Name | .Checked
-            evt.name          = "Snap To Forms"
+            evt.name          = appStrings().act_SnapToForms
             evt.checked       = main.snap
 
         case .Freeze:
             evt.updatedFields |= .Name | .Checked | .Disabled
-            evt.name          = "Freeze Selection"
+            evt.name          = appStrings().act_FreezeSelection
             evt.checked       = main.freezeSel
             evt.disabled      = !capture or isLib
         }

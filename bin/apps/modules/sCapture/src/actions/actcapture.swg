@@ -32,27 +32,27 @@ impl IActionUI for ActionCapture
         {
         case .DoIt:
             evt.updatedFields |= .Name | .Icon
-            evt.name          = "Capture"
+            evt.name          = appStrings().ui_MenuCapture
             evt.icon          = Icon.from(&main.icons48, 6)
 
         case .Area:
             evt.updatedFields |= .Name | .Icon
-            evt.name          = "Capture Area"
+            evt.name          = appStrings().act_CaptureArea
             evt.icon          = Icon.from(&main.icons24, 7)
 
         case .LastArea:
             evt.updatedFields |= .Name | .Icon
-            evt.name          = "Capture Last Area"
+            evt.name          = appStrings().act_CaptureLastArea
             evt.icon          = Icon.from(&main.icons24, 15)
 
         case .FullScreen:
             evt.updatedFields |= .Name | .Icon
-            evt.name          = "Capture Full Screen"
+            evt.name          = appStrings().act_CaptureFullScreen
             evt.icon          = Icon.from(&main.icons24, 6)
 
         case .ActiveWnd:
             evt.updatedFields |= .Name | .Icon
-            evt.name          = "Capture Active Window"
+            evt.name          = appStrings().act_CaptureActiveWindow
             evt.icon          = Icon.from(&main.icons24, 14)
 
         case .Screen0:
@@ -83,31 +83,31 @@ impl IActionUI for ActionCapture
 
         case .HideEditor:
             evt.updatedFields |= .Name | .Checked
-            evt.name          = "Hide Editor Before Capture"
+            evt.name          = appStrings().act_HideEditorBefore
             evt.checked       = main.captureOptions.hideEditorBefore
             evt.accepted      = true
 
         case .CaptureCursor:
             evt.updatedFields |= .Name | .Checked
-            evt.name          = "Capture Mouse Cursor"
+            evt.name          = appStrings().act_CaptureCursor
             evt.checked       = main.captureOptions.captureCursor
             evt.accepted      = true
 
         case .ToInPlace:
             evt.updatedFields |= .Name | .Checked
-            evt.name          = "Edit Captured Area In Place"
+            evt.name          = appStrings().act_EditInPlace
             evt.checked       = main.captureOptions.inPlaceEdit
             evt.accepted      = true
 
         case .ToEditor:
             evt.updatedFields |= .Name | .Checked
-            evt.name          = "Send Capture To Editor"
+            evt.name          = appStrings().act_SendToEditor
             evt.checked       = main.captureOptions.sendToEditor
             evt.accepted      = true
 
         case .ToClipboard:
             evt.updatedFields |= .Name | .Checked
-            evt.name          = "Send Capture To Clipboard"
+            evt.name          = appStrings().act_SendToClipboard
             evt.checked       = main.captureOptions.sendToClipboard
             evt.accepted      = true
         }

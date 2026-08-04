@@ -22,22 +22,22 @@ impl IActionUI for ActionGlobal
         {
         case .ShowEditor:
             evt.updatedFields |= .Name
-            evt.name          = "Show Editor"
+            evt.name          = appStrings().act_ShowEditor
 
         case .ShowLibrary:
             evt.updatedFields |= .Name | .ToolTip | .Checked
-            evt.name          = "Library"
-            evt.toolTip       = "Display captures library"
+            evt.name          = appStrings().act_Library
+            evt.toolTip       = appStrings().tip_ShowLibrary
             evt.checked       = main.libraryMode
 
         case .Exit:
             evt.updatedFields |= .Name | .Icon
-            evt.name          = "Quit"
+            evt.name          = appStrings().act_Quit
             evt.icon          = main.theme().icon24(.Quit)
 
         case .Minimize:
             evt.updatedFields |= .Name | .Icon
-            evt.name          = "Minimize"
+            evt.name          = appStrings().act_Minimize
             evt.icon          = main.theme().icon24(.Minimize)
         }
 

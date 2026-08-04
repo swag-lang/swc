@@ -27,12 +27,12 @@ impl IActionUI for ActionAlign
         if updateFromTable(cxt,
                            evt,
                            [
-                               {AlignLeft,   "Left",   .MultiSel},
-                               {AlignCenter, "Center", .MultiSel},
-                               {AlignRight,  "Right",  .MultiSel},
-                               {AlignTop,    "Top",    .MultiSel},
-                               {AlignMiddle, "Middle", .MultiSel},
-                               {AlignBottom, "Bottom", .MultiSel}])
+                               {AlignLeft,   appStrings().act_AlignLeft,   .MultiSel},
+                               {AlignCenter, appStrings().act_AlignCenter, .MultiSel},
+                               {AlignRight,  appStrings().act_AlignRight,  .MultiSel},
+                               {AlignTop,    appStrings().act_AlignTop,    .MultiSel},
+                               {AlignMiddle, appStrings().act_AlignMiddle, .MultiSel},
+                               {AlignBottom, appStrings().act_AlignBottom, .MultiSel}])
         {
             return true
         }
@@ -44,25 +44,25 @@ impl IActionUI for ActionAlign
         {
         case .SendToFront:
             evt.updatedFields |= .Disabled | .Icon | .Name
-            evt.name          = "Send To Front"
+            evt.name          = appStrings().act_SendToFront
             evt.disabled      = !hasSel or (notnull capture).selection.contains((notnull capture).forms.count - 1)
             evt.icon          = main.theme().icon24(.BringToFront)
 
         case .SendToBack:
             evt.updatedFields |= .Disabled | .Icon | .Name
-            evt.name          = "Send To Back"
+            evt.name          = appStrings().act_SendToBack
             evt.disabled      = !hasSel or (notnull capture).selection.contains(0)
             evt.icon          = main.theme().icon24(.SendToBack)
 
         case .MoveForward:
             evt.updatedFields |= .Disabled | .Icon | .Name
-            evt.name          = "Move Forward"
+            evt.name          = appStrings().act_MoveForward
             evt.disabled      = !hasSel or (notnull capture).selection.contains((notnull capture).forms.count - 1)
             evt.icon          = main.theme().icon24(.BringForward)
 
         case .MoveBackward:
             evt.updatedFields |= .Disabled | .Icon | .Name
-            evt.name          = "Move Backward"
+            evt.name          = appStrings().act_MoveBackward
             evt.disabled      = !hasSel or (notnull capture).selection.contains(0)
             evt.icon          = main.theme().icon24(.SendBackward)
         }

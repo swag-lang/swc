@@ -100,10 +100,10 @@ impl InPlaceEditWnd
         .actionBar.backgroundStyle = .Window
 
         let actions = [
-            {"save",  ThemeIcons24.Save,     "Save capture as image file"},
-            {"copy",  ThemeIcons24.Copy,     "Copy image to clipboard"},
-            {"edit",  ThemeIcons24.Edit,     "Open in sCapture editor"},
-            {"close", ThemeIcons24.WndClose, "Cancel and discard capture"}]
+            {"save",  ThemeIcons24.Save,     appStrings().tip_InpSave},
+            {"copy",  ThemeIcons24.Copy,     appStrings().tip_InpCopy},
+            {"edit",  ThemeIcons24.Edit,     appStrings().tip_InpEdit},
+            {"close", ThemeIcons24.WndClose, appStrings().tip_InpClose}]
 
         let theme = .theme()
         for action in actions do
@@ -119,13 +119,13 @@ impl InPlaceEditWnd
         .editBar.setOrientation(.Vertical)
 
         let editTools = [
-            {"draw",   7,  "Free draw tool"},
-            {"line",   1,  "Draw straight line"},
-            {"circle", 19, "Draw circle or ellipse"},
-            {"rect",   20, "Draw rectangle or square"},
-            {"arrow",  3,  "Draw arrow"},
-            {"text",   4,  "Add text annotation"},
-            {"marker", 9,  "Highlight with marker"}]
+            {"draw",   7,  appStrings().tip_InpDraw},
+            {"line",   1,  appStrings().tip_InpLine},
+            {"circle", 19, appStrings().tip_InpCircle},
+            {"rect",   20, appStrings().tip_InpRect},
+            {"arrow",  3,  appStrings().tip_InpArrow},
+            {"text",   4,  appStrings().tip_InpText},
+            {"marker", 9,  appStrings().tip_InpMarker}]
 
         for tool in editTools do
             .editBar.addRadioButton(Icon.from(&main.icons48, tool.item1), tool.item0).toolTip = tool.item2

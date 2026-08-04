@@ -23,32 +23,32 @@ impl IActionUI for ActionLibSort
         case .Recent:
             evt.updatedFields |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
-            evt.name          = "Write Time"
+            evt.name          = appStrings().act_SortWriteTime
             evt.checked       = libWnd.sortMethod == .Recent
 
         case .FileSize:
             evt.updatedFields |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
-            evt.name          = "File Size"
+            evt.name          = appStrings().act_SortFileSize
             evt.checked       = libWnd.sortMethod == .FileSize
 
         case .Similar:
             evt.updatedFields |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
-            evt.name          = "Similarity"
+            evt.name          = appStrings().act_Similarity
             evt.checked       = libWnd.sortMethod == .Similar
 
         case .Invert:
             evt.updatedFields |= .Name | .Checked
             if libWnd.sortMethod == .Recent do
-                evt.name = "Oldest First"
+                evt.name = appStrings().act_OldestFirst
             elif libWnd.sortMethod == .FileSize do
-                evt.name = "Smaller First"
+                evt.name = appStrings().act_SmallerFirst
             else
             {
                 evt.updatedFields |= .Disabled
                 evt.disabled      = true
-                evt.name          = "Invert Order"
+                evt.name          = appStrings().act_InvertOrder
             }
 
             evt.checked = libWnd.invertSort

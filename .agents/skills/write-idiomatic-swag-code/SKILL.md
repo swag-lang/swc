@@ -24,6 +24,25 @@ as the idiom.
 4. Apply `modify-swag-codebase` for repository validation and `design-swag-bin-modules` plus
    `write-swag-public-api-docs` when a public declaration under `bin/` changes.
 
+## Organize Source Files Around Types
+
+A file is named for the type it introduces and holds that type with all of its `impl` blocks,
+including `impl SomeInterface for Type`. Related enums and the small helper types a type owns —
+its element type, its options, its result shape — belong in the same file.
+
+- Never split one type's `impl` across files by aspect. A `foo.view.swg` / `foo.operations.swg`
+  pair is the failure mode: it scatters one object's behavior over several files and none of the
+  names says what the file contains. Merge them into the type's own file. Size is not a reason to
+  split; the standard applications keep 800- to 900-line type files.
+- Give a second type in the file its own file instead, unless the first type owns it.
+- Extend a type from another file only when the extension belongs to a distinct feature that has
+  its own file already — a command, an action, a platform backend. The `impl` then sits next to
+  that feature, never in a file named after a layer.
+- Group code with no type of its own — native bindings, constants, free helpers — by one coherent
+  concern per file, and name the file for that concern.
+- Remember that `private` is file-local. Moving a declaration away from its callers breaks the
+  build unless it becomes `internal`, which is the default.
+
 ## Name Source Files Consistently
 
 - Name `.swg` and `.swgs` files entirely in lowercase. Do not mirror type casing in filenames.
@@ -33,6 +52,37 @@ as the idiom.
   `app.operations.swg`, and `image.filter.grayscale.test.swg`. Platform, test, initialization,
   backend, role, and feature parts all use the same notation; `.test`, `.init`, and `.win32` are
   common parts, not the only valid ones. Follow the surrounding family when it is more specific.
+
+## Lay Out Statements Without a Column Budget
+
+The repository has no maximum line width: `bin/.swc-format` sets `column-limit = 0`. `swc format`
+normalizes the shape and indentation of the breaks you write, but it never adds a break to fit a
+width, and it can never remove one you added. Every line break inside a statement is permanent and
+is your decision, so a wrap made to satisfy an imagined column budget stays in the file forever.
+
+- Write one statement on one line. Do not split a call, a declaration, or an expression because
+  the line looks long; long lines are normal here, and the standard library and applications
+  routinely reach 180 to 220 columns.
+- Break a statement only when the break carries structure, one item per line:
+  - an argument that is a multi-row data table,
+  - a chain of `and` / `or` conditions,
+  - a chain of composed bit flags or packed byte reads.
+- Never split a conditional expression around its `?` or `:`. Put it on one line, or give the
+  condition a name.
+- When a statement is genuinely too dense to read on one line, extract a named local for the part
+  that carries meaning. A name beats a continuation line.
+
+```swag
+// A boolean chain earns its breaks, and the name makes the assertion readable.
+let scanned = entries.count == 24 and
+              containsEntry(entries.toSlice(), "item-0.bin") and
+              containsEntry(entries.toSlice(), "item-23.bin")
+try verify(scanned, "directory scans must return every created file")
+```
+
+Never hand-align a continuation line, a declaration column, or a trailing comment. Run
+`swc format` and let it place them; manual padding is what drifts when a neighbouring line
+changes. Follow `modify-swag-codebase` for the formatting and validation workflow.
 
 ## Return Values Directly
 

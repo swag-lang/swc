@@ -593,6 +593,7 @@ void MicroRegisterAllocationPass::computeLoopDepth()
     // instruction. Used to rank pin candidates (deeper uses benefit most from
     // staying register-resident).
     loopDepth_.assign(instructionCount_, 0);
+    functionHasLoop_ = false;
     if (!hasControlFlow_ || instructionCount_ == 0)
         return;
 
@@ -610,6 +611,7 @@ void MicroRegisterAllocationPass::computeLoopDepth()
             }
         }
     }
+    functionHasLoop_ = anyBackEdge;
     if (!anyBackEdge)
         return;
 
@@ -748,8 +750,15 @@ void MicroRegisterAllocationPass::computeGlobalBenefits(std::vector<uint64_t>& o
         // everywhere, forever, for a single spill and reload. It also keeps a
         // value that is merely a copy from being handed a register of its own
         // instead of being coalesced away.
+        // A boundary inside a loop earns by trip count. In a function with
+        // no loop at all — the shape full unrolling produces — every
+        // boundary counts at unit weight instead: a value live across a
+        // dozen label stitches between unrolled copies pays a dozen
+        // round-trips without a register. In a function that does have
+        // loops, depth-zero boundaries stay worthless, so cold-path
+        // crossings cannot buy a register they would waste.
         const uint32_t depth = idx < loopDepth_.size() ? loopDepth_[idx] : 0u;
-        if (!depth)
+        if (!depth && functionHasLoop_)
             continue;
 
         uint64_t weight = 1;

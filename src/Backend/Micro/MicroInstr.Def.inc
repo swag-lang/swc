@@ -590,3 +590,17 @@ SWC_MICRO_INSTR_DEF(
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
     })
+
+// Indexed compare against an immediate:
+// [base, index, cmpBits, addrBits, mul, add, imm].
+SWC_MICRO_INSTR_DEF(
+    CmpAmcImm,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::Use, MicroInstrRegMode::Use, MicroInstrRegMode::None},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 0,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::DefinesCpuFlags,
+        .memBaseOperandIndex   = 0,
+        .memOffsetOperandIndex = 0,
+    })

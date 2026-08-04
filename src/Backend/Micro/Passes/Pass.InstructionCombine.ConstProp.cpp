@@ -414,6 +414,162 @@ namespace InstructionCombine
         ctx.emitRewrite(copyRef, MicroInstrOpcode::LoadRegImm, newOps);
         return true;
     }
+
+    // An indexed address whose index is a compile-time constant is a plain
+    // base+displacement address: fold the index into the displacement and
+    // rewrite to the base+offset form of the same operation. This is what
+    // turns an unrolled `a[i]` into `[base + K*scale]` once the counter has
+    // been substituted per copy, and it frees the index register on the spot.
+    bool tryFoldConstIndexAmc(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref) || !ctx.ssa)
+            return false;
+
+        const MicroInstrOperand* ops = inst.ops(*ctx.operands);
+        if (!ops)
+            return false;
+
+        // Per-opcode operand shape: where the addressing pieces live, and
+        // what the base+offset rewrite looks like.
+        int baseIdx = 1, indexIdx = 2, mulIdx = 5, addIdx = 6;
+        switch (inst.op)
+        {
+            case MicroInstrOpcode::LoadAmcRegMem:
+            case MicroInstrOpcode::LoadSignedExtAmcRegMem:
+            case MicroInstrOpcode::LoadZeroExtAmcRegMem:
+            case MicroInstrOpcode::LoadAddrAmcRegMem:
+                break;
+            case MicroInstrOpcode::LoadAmcMemReg:
+            case MicroInstrOpcode::LoadAmcMemImm:
+                baseIdx  = 0;
+                indexIdx = 1;
+                break;
+            case MicroInstrOpcode::CmpAmcImm:
+                baseIdx  = 0;
+                indexIdx = 1;
+                mulIdx   = 4;
+                addIdx   = 5;
+                break;
+            default:
+                return false;
+        }
+
+        const MicroReg base  = ops[baseIdx].reg;
+        const MicroReg index = ops[indexIdx].reg;
+        if (!base.isValid() || base.isNoBase() || !index.isVirtualInt())
+            return false;
+
+        // Folding the index into the displacement assumes 64-bit address
+        // arithmetic; the sign/zero-extending loads have no addressing-width
+        // operand because they are 64-bit by construction.
+        switch (inst.op)
+        {
+            case MicroInstrOpcode::LoadAmcRegMem:
+            case MicroInstrOpcode::LoadAddrAmcRegMem:
+                if (ops[4].opBits != MicroOpBits::B64)
+                    return false;
+                break;
+            case MicroInstrOpcode::LoadAmcMemReg:
+            case MicroInstrOpcode::LoadAmcMemImm:
+            case MicroInstrOpcode::CmpAmcImm:
+                if (ops[3].opBits != MicroOpBits::B64)
+                    return false;
+                break;
+            default:
+                break;
+        }
+
+        uint64_t indexValue = 0;
+        if (!findImmDef(indexValue, ctx, index, ref))
+            return false;
+
+        // The folded displacement must stay a signed 32-bit quantity.
+        const uint64_t mulValue = ops[mulIdx].valueU64;
+        const uint64_t addValue = ops[addIdx].valueU64;
+        if (indexValue > 0x0FFFFFFFull)
+            return false;
+        const int64_t offset = static_cast<int64_t>(addValue) + static_cast<int64_t>(indexValue * mulValue);
+        if (offset != static_cast<int64_t>(static_cast<int32_t>(offset)))
+            return false;
+
+        if (!ctx.claimAll({ref}))
+            return false;
+
+        const uint64_t offsetU64 = static_cast<uint64_t>(offset);
+        switch (inst.op)
+        {
+            case MicroInstrOpcode::LoadAmcRegMem:
+            {
+                // [dst, base, index, loadBits, addrBits, mul, add] -> [dst, base, opBits, off]
+                MicroInstrOperand newOps[4];
+                newOps[0].reg      = ops[0].reg;
+                newOps[1].reg      = base;
+                newOps[2].opBits   = ops[3].opBits;
+                newOps[3].valueU64 = offsetU64;
+                ctx.emitRewrite(ref, MicroInstrOpcode::LoadRegMem, newOps);
+                return true;
+            }
+            case MicroInstrOpcode::LoadSignedExtAmcRegMem:
+            case MicroInstrOpcode::LoadZeroExtAmcRegMem:
+            {
+                // [dst, base, index, dstBits, srcBits, mul, add] -> [dst, base, dstBits, srcBits, off]
+                MicroInstrOperand newOps[5];
+                newOps[0].reg      = ops[0].reg;
+                newOps[1].reg      = base;
+                newOps[2].opBits   = ops[3].opBits;
+                newOps[3].opBits   = ops[4].opBits;
+                newOps[4].valueU64 = offsetU64;
+                ctx.emitRewrite(ref, inst.op == MicroInstrOpcode::LoadSignedExtAmcRegMem ? MicroInstrOpcode::LoadSignedExtRegMem : MicroInstrOpcode::LoadZeroExtRegMem, newOps);
+                return true;
+            }
+            case MicroInstrOpcode::LoadAddrAmcRegMem:
+            {
+                // [dst, base, index, dstBits, addrBits, mul, add] -> [dst, base, opBits, off]
+                MicroInstrOperand newOps[4];
+                newOps[0].reg      = ops[0].reg;
+                newOps[1].reg      = base;
+                newOps[2].opBits   = ops[3].opBits;
+                newOps[3].valueU64 = offsetU64;
+                ctx.emitRewrite(ref, MicroInstrOpcode::LoadAddrRegMem, newOps);
+                return true;
+            }
+            case MicroInstrOpcode::LoadAmcMemReg:
+            {
+                // [base, index, src, addrBits, srcBits, mul, add] -> [mem, src, opBits, off]
+                MicroInstrOperand newOps[4];
+                newOps[0].reg      = base;
+                newOps[1].reg      = ops[2].reg;
+                newOps[2].opBits   = ops[4].opBits;
+                newOps[3].valueU64 = offsetU64;
+                ctx.emitRewrite(ref, MicroInstrOpcode::LoadMemReg, newOps);
+                return true;
+            }
+            case MicroInstrOpcode::LoadAmcMemImm:
+            {
+                // [base, index, _, addrBits, valBits, mul, add, imm] -> [mem, opBits, off, imm]
+                MicroInstrOperand newOps[4];
+                newOps[0].reg      = base;
+                newOps[1].opBits   = ops[4].opBits;
+                newOps[2].valueU64 = offsetU64;
+                newOps[3]          = ops[7];
+                ctx.emitRewrite(ref, MicroInstrOpcode::LoadMemImm, newOps);
+                return true;
+            }
+            case MicroInstrOpcode::CmpAmcImm:
+            {
+                // [base, index, cmpBits, addrBits, mul, add, imm] -> [mem, opBits, off, imm]
+                MicroInstrOperand newOps[4];
+                newOps[0].reg      = base;
+                newOps[1].opBits   = ops[2].opBits;
+                newOps[2].valueU64 = offsetU64;
+                newOps[3]          = ops[6];
+                ctx.emitRewrite(ref, MicroInstrOpcode::CmpMemImm, newOps);
+                return true;
+            }
+            default:
+                return false;
+        }
+    }
 }
 
 SWC_END_NAMESPACE();

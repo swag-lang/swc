@@ -13,6 +13,7 @@
 #include "Backend/Micro/Passes/Pass.InstructionCombine.h"
 #include "Backend/Micro/Passes/Pass.Legalize.h"
 #include "Backend/Micro/Passes/Pass.LoopInvariantCodeMotion.h"
+#include "Backend/Micro/Passes/Pass.LoopUnroll.h"
 #include "Backend/Micro/Passes/Pass.MemToReg.h"
 #include "Backend/Micro/Passes/Pass.PostRADeadCodeElim.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.h"
@@ -432,6 +433,7 @@ MicroPassManager::MicroPassManager()
     licmPass_                = std::make_unique<MicroLoopInvariantCodeMotionPass>();
     deadCodeEliminationPass_ = std::make_unique<MicroDeadCodeEliminationPass>();
     branchSimplifyPass_      = std::make_unique<MicroBranchSimplifyPass>();
+    loopUnrollPass_          = std::make_unique<MicroLoopUnrollPass>();
 
     // Post-RA optimization passes
     postRaPeepholePass_     = std::make_unique<MicroPostRaPeepholePass>();
@@ -489,6 +491,11 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
         addPreRaLoopPass(*licmPass_);
         addPreRaLoopPass(*deadCodeEliminationPass_);
         addPreRaLoopPass(*branchSimplifyPass_);
+        // Full-unrolls small counted loops. Runs last in the sweep so the
+        // body it sizes up is already simplified, and the sweep after an
+        // unroll folds the per-copy constant counters through extends and
+        // address modes.
+        addPreRaLoopPass(*loopUnrollPass_);
     }
 
     // Static null-dereference sanity analysis (read-only). Runs once, before the

@@ -111,9 +111,12 @@ namespace
         return true;
     }
 
-    bool tryReduceAddSubZero(const MicroInstrOperand* ops, MicroStorage& storage, MicroInstrRef instRef, const MicroSsaState& ssaState)
+    bool tryReduceAddSubZero(const MicroInstrOperand* ops, MicroStorage& storage, MicroOperandStorage& operands, MicroInstrRef instRef, const MicroSsaState& ssaState)
     {
-        if (!ssaState.isRegUsedAfter(ops[0].reg, instRef))
+        // The erase drops the flag write too; a dead result does not imply
+        // dead flags once constant folding has rewritten the consumers.
+        if (!ssaState.isRegUsedAfter(ops[0].reg, instRef) &&
+            MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef))
         {
             storage.erase(instRef);
             return true;
@@ -513,7 +516,7 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
                     if (!ssaState)
                         ssaState = MicroSsaState::ensureFor(context, localSsaState);
                     if (ssaState && ssaState->isValid())
-                        changed = tryReduceAddSubZero(ops, storage, instRef, *ssaState);
+                        changed = tryReduceAddSubZero(ops, storage, operands, instRef, *ssaState);
                 }
                 break;
 

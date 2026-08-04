@@ -59,6 +59,15 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
     MicroOperandStorage& operands = *context.operands;
     MicroBuilder&        builder  = *context.builder;
 
+    // Unroll every candidate in this one run: leaving the rest for later runs
+    // would spend one fixed-point iteration per loop, and a function with
+    // many small counted loops then exhausts the optimization loop's budget
+    // before reaching its fixed point. Each unroll invalidates the layout, so
+    // the scan restarts from a fresh one until a sweep finds nothing.
+    for (bool unrolledOne = true; unrolledOne;)
+    {
+        unrolledOne = false;
+
     // Program layout: ordinals, label positions, and every jump with its target.
     std::vector<MicroInstrRef>                 order;
     std::unordered_map<uint64_t, uint32_t>     labelOrdinal;
@@ -361,9 +370,10 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
         builder.invalidateControlFlowGraph();
         context.passChanged = true;
 
-        // One unroll per run: the pass manager's loop cleans the copies and
-        // brings us back for any remaining candidate.
-        return Result::Continue;
+        // Layout is stale: restart the scan for the next candidate.
+        unrolledOne = true;
+        break;
+    }
     }
 
     return Result::Continue;

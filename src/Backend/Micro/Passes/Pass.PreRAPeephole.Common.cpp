@@ -51,7 +51,7 @@ namespace PreRaPeephole
     bool Context::claimAll(std::initializer_list<MicroInstrRef> refs)
     {
         for (const MicroInstrRef ref : refs)
-            if (isClaimed(ref))
+            if (isClaimed(ref) || isRelocated(ref))
                 return false;
 
         for (const MicroInstrRef ref : refs)

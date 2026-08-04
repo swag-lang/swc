@@ -598,6 +598,10 @@ namespace InstructionCombine
                 baseIdx = 1;
                 offIdx  = 3;
                 break;
+            case MicroInstrOpcode::LoadMemReg:
+                baseIdx = 0;
+                offIdx  = 3;
+                break;
             default:
                 return false;
         }

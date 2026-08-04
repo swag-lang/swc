@@ -139,10 +139,11 @@ namespace
             case MicroInstrOpcode::LoadAddrRegMem:
                 return reg.isAnyInt() || reg.isInstructionPointer();
 
-            // Reading a float constant out of the constant segment addresses it
-            // from the instruction pointer, with a relocation supplying the
-            // displacement.
+            // Reading a constant or an arena-resident global, or writing such
+            // a global, addresses it from the instruction pointer with a
+            // relocation supplying the displacement.
             case MicroInstrOpcode::LoadRegMem:
+            case MicroInstrOpcode::LoadMemReg:
                 return reg.isAnyInt() || reg.isInstructionPointer();
 
             case MicroInstrOpcode::LoadAmcRegMem:

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.PreRAPeephole.h"
+#include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/Passes/Pass.PreRAPeephole.Internal.h"
 #include "Support/Memory/MemoryProfile.h"
@@ -67,6 +68,15 @@ Result MicroPreRaPeepholePass::run(MicroPassContext& context)
     ctx.builder  = context.builder;
     ctx.storage  = context.instructions;
     ctx.operands = context.operands;
+    if (ctx.builder)
+    {
+        ctx.relocated.reserve(ctx.builder->codeRelocations().size());
+        for (const MicroRelocation& reloc : ctx.builder->codeRelocations())
+        {
+            if (reloc.instructionRef.isValid())
+                ctx.relocated.insert(reloc.instructionRef.get());
+        }
+    }
 
     runPerInstructionPatterns(ctx);
 

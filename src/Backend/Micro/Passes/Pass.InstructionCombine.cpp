@@ -63,12 +63,8 @@ namespace
         r.add(MicroInstrOpcode::CmpAmcImm, tryFoldLeaConstIntoAmcIndex);
         r.add(MicroInstrOpcode::LoadMemReg, tryFoldConstStore);
         r.add(MicroInstrOpcode::LoadMemReg, tryFoldMemoryAddressing);
-        // Loads only for now: a folded RIP-relative STORE can still be split
-        // by a legalize conformance rewrite, which orphans its relocation and
-        // leaves an unpatched displacement writing into the code. The store
-        // side needs that interaction settled (and a DevMode MicroVerify run)
-        // before it can join.
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldGlobalAddressIntoAccess);
+        r.add(MicroInstrOpcode::LoadMemReg, tryFoldGlobalAddressIntoAccess);
         r.add(MicroInstrOpcode::CmpRegReg, tryFoldConstCompare);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldConstCopy);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryNarrowExtend);
@@ -88,25 +84,15 @@ namespace
         // rewriting it to another opcode would leave the relocation pointing
         // at an encoding whose displacement the emitter no longer binds, and
         // the patch would then overwrite the first bytes of the function.
-        // (Producing such an instruction - as the global-address fold does -
-        // is fine; it just must not be re-anchored afterwards.)
-        std::unordered_set<uint32_t> relocated;
-        if (ctx.builder)
-        {
-            relocated.reserve(ctx.builder->codeRelocations().size());
-            for (const MicroRelocation& reloc : ctx.builder->codeRelocations())
-            {
-                if (reloc.instructionRef.isValid())
-                    relocated.insert(reloc.instructionRef.get());
-            }
-        }
-
+        // Skipping the anchor here handles rules rewriting their own anchor;
+        // claimAll's relocated check handles rules that consume neighboring
+        // instructions (a fused load-op-store must not swallow a RIP access).
         const PatternRegistry& reg   = registry();
         const auto             view  = ctx.storage->view();
         const auto             endIt = view.end();
         for (auto it = view.begin(); it != endIt; ++it)
         {
-            if (!relocated.empty() && relocated.contains(it.current.get()))
+            if (!ctx.relocated.empty() && ctx.isRelocated(it.current))
                 continue;
             for (const PatternFn fn : reg.patternsFor(it->op))
             {
@@ -131,6 +117,15 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
     ctx.operands = context.operands;
     ctx.ssa      = ssa;
     ctx.builder  = context.builder;
+    if (ctx.builder)
+    {
+        ctx.relocated.reserve(ctx.builder->codeRelocations().size());
+        for (const MicroRelocation& reloc : ctx.builder->codeRelocations())
+        {
+            if (reloc.instructionRef.isValid())
+                ctx.relocated.insert(reloc.instructionRef.get());
+        }
+    }
 
     runPerInstructionPatterns(ctx);
 

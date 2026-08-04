@@ -29,9 +29,13 @@ namespace PreRaPeephole
         MicroStorage*                storage  = nullptr;
         MicroOperandStorage*         operands = nullptr;
         std::unordered_set<uint32_t> claimed;
+        // Instructions carrying a relocation: rewriting or consuming one
+        // would leave the relocation unbound, so claimAll refuses them.
+        std::unordered_set<uint32_t> relocated;
         SmallVector<Action>          actions;
 
         bool                     isClaimed(MicroInstrRef ref) const;
+        bool                     isRelocated(MicroInstrRef ref) const { return relocated.contains(ref.get()); }
         bool                     claimAll(std::initializer_list<MicroInstrRef> refs);
         void                     emitErase(MicroInstrRef ref);
         void                     emitRewrite(MicroInstrRef ref, MicroInstrOpcode newOp, std::span<const MicroInstrOperand> newOps, bool allocNewBlock = false);

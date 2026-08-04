@@ -40,13 +40,20 @@ namespace InstructionCombine
         const MicroSsaState*         ssa      = nullptr;
         MicroBuilder*                builder  = nullptr;
         std::unordered_set<uint32_t> claimed;
+        // Instructions that carry a relocation. Rewriting or erasing one
+        // drops the relocation binding - the patch then lands wherever
+        // codeOffset zero points - so claimAll refuses them unless a rule
+        // that explicitly manages the relocation opts in.
+        std::unordered_set<uint32_t> relocated;
         SmallVector<Action>          actions;
 
         bool isClaimed(MicroInstrRef ref) const;
+        bool isRelocated(MicroInstrRef ref) const { return relocated.contains(ref.get()); }
 
         // Claim every ref atomically: returns false without side-effects if
-        // any was already claimed.
-        bool claimAll(std::initializer_list<MicroInstrRef> refs);
+        // any was already claimed, or if one carries a relocation the caller
+        // did not take responsibility for.
+        bool claimAll(std::initializer_list<MicroInstrRef> refs, bool allowRelocated = false);
 
         void emitErase(MicroInstrRef ref);
         void emitRewrite(MicroInstrRef ref, MicroInstrOpcode newOp, std::span<const MicroInstrOperand> newOps, bool allocNewBlock = false);

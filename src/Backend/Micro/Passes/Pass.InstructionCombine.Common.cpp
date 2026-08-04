@@ -161,10 +161,10 @@ namespace InstructionCombine
         return claimed.contains(ref.get());
     }
 
-    bool Context::claimAll(std::initializer_list<MicroInstrRef> refs)
+    bool Context::claimAll(std::initializer_list<MicroInstrRef> refs, bool allowRelocated)
     {
         for (const MicroInstrRef ref : refs)
-            if (isClaimed(ref))
+            if (isClaimed(ref) || (!allowRelocated && isRelocated(ref)))
                 return false;
         for (const MicroInstrRef ref : refs)
             claimed.insert(ref.get());

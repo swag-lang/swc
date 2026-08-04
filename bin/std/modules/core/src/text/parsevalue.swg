@@ -138,7 +138,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->#null string f
 
         for field in structType.fields
         {
-            if @countof(one) and one[0] == '}' do
+            if !@countof(one) or one[0] == '}' do
                 break
             one = (parseValue(cast([*] u8) addr + field.offset, notnull field.pointedType, one) orelse "")
             one = Tokenize.eatSpaces(one)

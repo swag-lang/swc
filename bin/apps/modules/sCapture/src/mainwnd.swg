@@ -722,8 +722,17 @@ impl MainWnd
     mtd setLanguage()
     {
         var tag = "en"
-        if .editorOptions.language == .French do
+        switch #complete .editorOptions.language
+        {
+        case .System:
+            if Utf8.startsWith(Env.userLocaleName().toString(), "fr") do
+                tag = "fr"
+        case .French:
             tag = "fr"
+        case .English:
+            break
+        }
+
         catch .app().setLanguage(tag)
     }
 

@@ -20,10 +20,17 @@ var g_App: Application
 
     let appIcon = expect Image.decode(".png", AppIcon)
     g_App.setAppIcon(appIcon)
+    registerAppStrings(&g_App.resources)
+
     let surface = notnull (try g_App.createSurface(80, 50, 1100, 790, SurfaceFlags.StandardWindow, surfaceId: "sCrypt"))
     g_App.theme.setSwagDark()
     g_App.notifyThemeChanged()
-    surface.setTitle("sCrypt — Private virtual drives")
+
+    // Follow the user's system language when a translation ships for it.
+    if Utf8.startsWith(Env.userLocaleName().toString(), "fr") do
+        catch g_App.setLanguage("fr")
+
+    surface.setTitle(appStrings().ui_WindowTitle)
     let mainWindow = MainWindow.create(surface.wnd)
 
     surface.show()

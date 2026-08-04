@@ -88,10 +88,10 @@ internal func caughtMessage(err: #null any)->string
     switch err
     {
     case Error:            return (cast(Error) err).message orelse "sCrypt error."
-    case Swag.SystemError: return (cast(Swag.SystemError) err).message orelse "System error."
+    case Swag.SystemError: return (cast(Swag.SystemError) err).message orelse appStrings().msg_SystemError
     }
 
-    return "The operation stopped."
+    return appStrings().msg_OperationStopped
 }
 
 internal func runMainWindowOperation(data: #null *void)
@@ -143,7 +143,7 @@ impl MainWindow
         result.applyLayout()
         cards.computeLayout()
         result.setState(.Ready)
-        result.setStatus(.Idle, "Ready — create a vault or choose one to mount.")
+        result.setStatus(.Idle, appStrings().msg_Ready)
         return result
     }
 
@@ -160,7 +160,7 @@ impl MainWindow
 
         // The badge is a compact claim about the product, so it is set fixed-width and sized
         // from its own text: a hand-tuned width clips it as soon as the theme font changes.
-        const BadgeText = "PORTABLE  |  PASSWORD-LOCKED  |  NO SETUP"
+        let BadgeText = appStrings().ui_Badge
         let badgeFont = .theme().createDefaultFontFS(12, .Bold)
         let badge     = Label.create(titleRow, BadgeText, {0, 0, Painter.measureString(BadgeText, badgeFont).width}, null, .SecondaryText)
         badge.dockStyle = .Right
@@ -172,7 +172,7 @@ impl MainWindow
         title.setTextAlignment(.Left, .Center)
         title.style.setFont(.theme().createDefaultFont(34, .Bold), .Regular)
 
-        let subtitle = Label.create(header, "Encrypted storage that looks and behaves like a regular Windows drive.")
+        let subtitle = Label.create(header, appStrings().ui_Subtitle)
         subtitle.dockStyle = .Center
         subtitle.setTextAlignment(.Left, .Top)
         subtitle.updateFlags(add: .SecondaryText)
@@ -238,20 +238,20 @@ impl MainWindow
 
     mtd createNewVaultCard(parent: *GridLayoutCtrl)->*Wnd
     {
-        let card = VaultCard.create(parent, "Create a new vault", "Choose a fixed capacity. The complete container is randomized before it is ready.")
+        let card = VaultCard.create(parent, appStrings().ui_CreateCardTitle, appStrings().ui_CreateCardHelp)
         let form = card.form
         .createForm = form
 
-        .createPath = form.addTextField("CONTAINER FILE", placeholder: "C:\\path\\private.scrypt", icon: .theme().icon24(ThemeIcons24.OpenFile, 17))
+        .createPath = form.addTextField(appStrings().ui_ContainerFile, placeholder: "C:\\path\\private.scrypt", icon: .theme().icon24(ThemeIcons24.OpenFile, 17))
         setMachineFont(.createPath)
-        let browse = form.addRowAction("Browse", .theme().icon24(ThemeIcons24.OpenFile, 16))
+        let browse = form.addRowAction(appStrings().ui_Browse, .theme().icon24(ThemeIcons24.OpenFile, 16))
         browse.sigPressed += func|window = me|(btn)
         {
             discard btn
             window.chooseContainer(window.createPath, true)
         }
 
-        .createSize = form.addTextField("FIXED CAPACITY", "256")
+        .createSize = form.addTextField(appStrings().ui_FixedCapacity, "256")
         .createSize.setUnsignedIntegerRange(1, 1024 * 1024)
         setMachineFont(.createSize)
 
@@ -262,10 +262,10 @@ impl MainWindow
         .createUnit.setSelectedIndex(0, notify: false)
         setMachineFont(.createUnit)
 
-        .createPassword  = form.addPasswordField("PASSWORD", placeholder: "Required password")
-        .confirmPassword = form.addPasswordField("CONFIRM PASSWORD", placeholder: "Enter the password again")
+        .createPassword  = form.addPasswordField(appStrings().ui_Password, placeholder: appStrings().ui_RequiredPassword)
+        .confirmPassword = form.addPasswordField(appStrings().ui_ConfirmPassword, placeholder: appStrings().ui_EnterAgain)
 
-        .createButton = PushButton.create(card.actions, "Create encrypted vault", {0, 0, 224, 36}, form: .Strong)
+        .createButton = PushButton.create(card.actions, appStrings().ui_CreateVault, {0, 0, 224, 36}, form: .Strong)
         .createButton.setIcon(.theme().icon24(ThemeIcons24.SaveAs, 18))
         .createButton.sigPressed += func|window = me|(btn)
         {
@@ -280,24 +280,24 @@ impl MainWindow
 
     mtd createMountVaultCard(parent: *GridLayoutCtrl)->*Wnd
     {
-        let card = VaultCard.create(parent, "Mount an existing vault", "Unlock a container and expose it on any currently available drive letter.")
+        let card = VaultCard.create(parent, appStrings().ui_MountCardTitle, appStrings().ui_MountCardHelp)
         let form = card.form
         .mountForm = form
 
-        .mountPath = form.addTextField("CONTAINER FILE", placeholder: "Existing encrypted container", icon: .theme().icon24(ThemeIcons24.OpenFile, 17))
+        .mountPath = form.addTextField(appStrings().ui_ContainerFile, placeholder: appStrings().ui_ExistingContainer, icon: .theme().icon24(ThemeIcons24.OpenFile, 17))
         setMachineFont(.mountPath)
-        let browse = form.addRowAction("Browse", .theme().icon24(ThemeIcons24.OpenFile, 16))
+        let browse = form.addRowAction(appStrings().ui_Browse, .theme().icon24(ThemeIcons24.OpenFile, 16))
         browse.sigPressed += func|window = me|(btn)
         {
             discard btn
             window.chooseContainer(window.mountPath, false)
         }
 
-        .mountPassword = form.addPasswordField("PASSWORD", placeholder: "Container password")
+        .mountPassword = form.addPasswordField(appStrings().ui_Password, placeholder: appStrings().ui_ContainerPassword)
 
         // The lifetime of the drive belongs to the letter that carries it, so it is said under
         // that field rather than as a loose paragraph at the bottom of the card.
-        .drive = form.addChoiceField("DRIVE LETTER", help: "The drive is available to Windows while sCrypt runs, then disappears when the app closes.")
+        .drive = form.addChoiceField(appStrings().ui_DriveLetter, help: appStrings().ui_DriveHelp)
         setMachineFont(.drive)
 
         // Windows keeps A and B for floppies and C for the system disk, so the letters a
@@ -310,7 +310,7 @@ impl MainWindow
         if .drive.items.count do
             .drive.setSelectedIndex(0, notify: false)
 
-        .unmountButton = PushButton.create(card.actions, "Unmount", {0, 0, 136, 36})
+        .unmountButton = PushButton.create(card.actions, appStrings().ui_Unmount, {0, 0, 136, 36})
         .unmountButton.setIcon(.theme().icon24(ThemeIcons24.Stop, 18))
         .unmountButton.sigPressed += func|window = me|(btn)
         {
@@ -318,7 +318,7 @@ impl MainWindow
             window.unmountContainer()
         }
 
-        .mountButton = PushButton.create(card.actions, "Mount drive", {0, 0, 136, 36}, form: .Strong)
+        .mountButton = PushButton.create(card.actions, appStrings().ui_MountDrive, {0, 0, 136, 36}, form: .Strong)
         .mountButton.setIcon(.theme().icon24(ThemeIcons24.Play, 18))
         .mountButton.sigPressed += func|window = me|(btn)
         {
@@ -358,11 +358,11 @@ impl MainWindow
         var options: FileDlgOptions
         options.state             = &.fileDlgState
         options.mode              = create ? .CreateFile : .SelectFile
-        options.title             = create ? "Create an sCrypt container" : "Open an encrypted container"
-        options.confirmButtonText = create ? "Create" : "Open"
+        options.title             = create ? appStrings().dlg_TitleCreate : appStrings().dlg_TitleOpen
+        options.confirmButtonText = create ? appStrings().dlg_BtnCreate : appStrings().dlg_BtnOpen
         options.initialName       = create ? "volume.scrypt" : ""
         options.filters.add({"sCrypt encrypted container (*.scrypt)", ".scrypt"})
-        options.shortcuts.add({Env.SpecialDirectory.Desktop, "Desktop"})
+        options.shortcuts.add({Env.SpecialDirectory.Desktop, appStrings().ui_Desktop})
         options.shortcuts.add({Env.SpecialDirectory.UserDocuments, "Documents"})
 
         let dialog = FileDlg.create(notnull .surface, options)
@@ -375,15 +375,15 @@ impl MainWindow
         let text   = .createSize.text()
         let parsed = catch StrConv.parseU64(text) as parseError
         if parseError != null or parsed.ovf or parsed.eat != @countof(text) or !parsed.value do
-            failWith("The container size is invalid.", .InvalidInput)
+            failWith(appStrings().msg_SizeInvalid, .InvalidInput)
 
         let multiplier = .createUnit.selectedIndex == 0 ? 1024'u64 * 1024 : 1024'u64 * 1024 * 1024
         if parsed.value > Swag.U64.Max / multiplier do
-            failWith("The container size is too large.", .InvalidInput)
+            failWith(appStrings().msg_SizeTooLarge, .InvalidInput)
 
         let result = parsed.value * multiplier
         if result < MinimumSize do
-            failWith(Format.toString("The minimum container size is % MiB.", (MinimumSize + 1024 * 1024 - 1) / (1024 * 1024)), .InvalidInput)
+            failWith(Format.toString(appStrings().msg_SizeMinimum, (MinimumSize + 1024 * 1024 - 1) / (1024 * 1024)), .InvalidInput)
         return result
     }
 
@@ -409,32 +409,32 @@ impl MainWindow
         let path = .createPath.text()
         if !@countof(path)
         {
-            .showError("Choose the container file to create.")
+            .showError(appStrings().msg_ChooseCreateFile)
             return
         }
 
         if File.exists(path)
         {
-            .showError("This file already exists. Choose a new name to avoid data loss.")
+            .showError(appStrings().msg_FileExists)
             return
         }
 
         if .createPassword.isEmpty()
         {
-            .showError("A password is required.")
+            .showError(appStrings().msg_PasswordRequired)
             return
         }
 
         if !Core.Crypto.constantTimeEqual(.createPassword.bytes(), .confirmPassword.bytes())
         {
-            .showError("The passwords do not match.")
+            .showError(appStrings().msg_PasswordMismatch)
             return
         }
 
         let size = catch .containerSize() as sizeError
         if sizeError != null
         {
-            .showError("Could not create the container.", sizeError)
+            .showError(appStrings().msg_CreateFailed, sizeError)
             return
         }
 
@@ -443,7 +443,7 @@ impl MainWindow
         .operation.password.add(.createPassword.bytes())
         .createPassword.clear()
         .confirmPassword.clear()
-        .setStatus(.Active, "Creating and randomizing the container...")
+        .setStatus(.Active, appStrings().msg_Randomizing)
         .setState(.Creating)
         .beginOperation(.Create)
     }
@@ -453,20 +453,20 @@ impl MainWindow
         let path = .mountPath.text()
         if !@countof(path)
         {
-            .showError("Choose an existing container.")
+            .showError(appStrings().msg_ChooseExisting)
             return
         }
 
         if .mountPassword.isEmpty()
         {
-            .showError("A password is required.")
+            .showError(appStrings().msg_PasswordRequired)
             return
         }
 
         let mountPoint = .selectedMountPoint()
         if mountPoint.isEmpty()
         {
-            .showError("No drive letter is available.")
+            .showError(appStrings().msg_NoDriveLetter)
             return
         }
 
@@ -474,7 +474,7 @@ impl MainWindow
         .operation.mount = mountPoint
         .operation.password.add(.mountPassword.bytes())
         .mountPassword.clear()
-        .setStatus(.Active, "Starting the portable filesystem driver...")
+        .setStatus(.Active, appStrings().msg_StartingDriver)
         .setState(.Mounting)
         .beginOperation(.Mount)
     }
@@ -483,7 +483,7 @@ impl MainWindow
     {
         if .state != .Mounted do
             return
-        .setStatus(.Active, "Synchronizing and unmounting the encrypted drive...")
+        .setStatus(.Active, appStrings().msg_Unmounting)
         .setState(.Unmounting)
         .beginOperation(.Unmount)
     }
@@ -531,12 +531,12 @@ impl MainWindow
         case .Create:
             if .operation.error != null
             {
-                .showError("Could not create the container.", .operation.error)
-                .setStatus(.Stopped, "Container creation stopped.")
+                .showError(appStrings().msg_CreateFailed, .operation.error)
+                .setStatus(.Stopped, appStrings().msg_CreateStopped)
             }
             else
             {
-                .setStatus(.Idle, "Container created. It is ready to mount.")
+                .setStatus(.Idle, appStrings().msg_Created)
                 .mountPath.setText(.operation.path)
             }
 
@@ -545,20 +545,20 @@ impl MainWindow
         case .Mount:
             if .operation.error != null
             {
-                .showError("Could not mount the virtual disk.", .operation.error)
-                .setStatus(.Stopped, "Mount stopped.")
+                .showError(appStrings().msg_MountFailed, .operation.error)
+                .setStatus(.Stopped, appStrings().msg_MountStopped)
                 .setState(.Ready)
             }
             else
             {
-                .setStatus(.Active, Format.toString("Encrypted drive mounted on %. It will unmount when sCrypt closes.", .operation.mount))
+                .setStatus(.Active, Format.toString(appStrings().msg_Mounted, .operation.mount))
                 .setState(.Mounted)
             }
 
         case .Unmount:
             if .operation.error != null do
-                .showError("The drive was unmounted, but final synchronization stopped.", .operation.error)
-            .setStatus(.Idle, "Drive unmounted safely.")
+                .showError(appStrings().msg_UnmountSyncStopped, .operation.error)
+            .setStatus(.Idle, appStrings().msg_Unmounted)
             .setState(.Ready)
         }
 

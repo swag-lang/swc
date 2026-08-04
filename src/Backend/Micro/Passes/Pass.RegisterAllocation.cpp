@@ -2948,6 +2948,167 @@ void MicroRegisterAllocationPass::flushAllMappedVirtuals(uint32_t stamp, int64_t
     mappedVirtualIndices_.clear();
 }
 
+void MicroRegisterAllocationPass::dropMappedVirtualNoStore(const uint32_t denseIndex)
+{
+    // Same unmapping as the full flush - no rematerialization retirement, the
+    // register goes back to its pool - for a value whose memory home is
+    // already coherent, so no store is owed.
+    auto& regState = states_[denseIndex];
+    SWC_ASSERT(regState.mapped);
+
+    const MicroReg physReg          = regState.phys;
+    const uint32_t removedListIndex = regState.mappedListIndex;
+    SWC_ASSERT(removedListIndex < mappedVirtualIndices_.size());
+
+    const uint32_t lastDenseIndex           = mappedVirtualIndices_.back();
+    mappedVirtualIndices_[removedListIndex] = lastDenseIndex;
+    mappedVirtualIndices_.pop_back();
+    if (removedListIndex < mappedVirtualIndices_.size())
+        states_[lastDenseIndex].mappedListIndex = removedListIndex;
+
+    regState.mapped          = false;
+    regState.mappedListIndex = std::numeric_limits<uint32_t>::max();
+    regState.phys            = MicroReg::invalid();
+    returnToFreePool(physReg);
+}
+
+void MicroRegisterAllocationPass::flushAtBoundary(const uint32_t instructionIndex, const MicroInstr& inst, uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending)
+{
+    // The write-back protocol. Memory stays the truth at every control-flow
+    // boundary - live dirty values are stored, exactly as the full flush
+    // did - but the register mapping is a cache that survives the boundary
+    // instead of being dropped:
+    //
+    //   - On the fall-through of a conditional jump, the mapping is simply
+    //     still valid: the store made memory coherent, the register still
+    //     holds the value.
+    //   - On the taken edge, the register ALSO still holds that edge's value
+    //     when the target's join keeps the mapping (below); otherwise the
+    //     target reloads from the coherent home, which is the old behavior.
+    //   - At a join label, a mapping survives only if every incoming edge
+    //     agrees on it: the fall-through edge contributes the current state,
+    //     and each jump edge contributed a snapshot recorded when the jump
+    //     was processed. A register kept this way holds a per-path value the
+    //     same way the home slot would, so agreement on (value, register) is
+    //     the whole requirement. Everything else is dropped without a store,
+    //     because the store phase above already made memory coherent.
+    //   - A label with a back-edge predecessor drops everything: the linear
+    //     scan has not seen the back-edge state yet. Loop-resident values are
+    //     the hull mechanism's job; this path serves forward joins - if/else
+    //     merges inside hot loops, and the label stitches of fully unrolled
+    //     code.
+    //
+    // Nothing here emits a reconciliation copy: a mapping either agrees on
+    // every edge or dies. That is what keeps this sound without splitting
+    // critical edges.
+    const auto& virtualRegs = denseVirtualRegs_.regs();
+
+    // A kept mapping holds its register until the value's next use; a far
+    // next use makes that a hostage, not a cache — the local allocator loses
+    // a scratch register for dozens of instructions to save one reload. The
+    // bound keeps the tight-loop and join-heavy shapes (next use within a
+    // few instructions) and releases the rest, clean, to the pool.
+    constexpr uint32_t K_KEEP_MAX_NEXT_USE_DISTANCE = 48;
+
+    // Store phase: identical coverage to the full flush.
+    for (size_t listIndex = 0; listIndex < mappedVirtualIndices_.size();)
+    {
+        const uint32_t denseIndex = mappedVirtualIndices_[listIndex];
+        SWC_ASSERT(denseIndex < virtualRegs.size());
+        const MicroReg virtKey  = virtualRegs[denseIndex];
+        auto&          regState = states_[denseIndex];
+        SWC_ASSERT(regState.mapped);
+
+        if (!isLiveOut(virtKey, stamp))
+        {
+            dropMappedVirtualNoStore(denseIndex);
+            continue; // swap-erase: same listIndex now holds another entry
+        }
+
+        spillOrRematerializeLiveValue(regState.phys, regState, stackDepth, pending);
+
+        if (distanceToNextUse(virtKey, instructionIndex) > K_KEEP_MAX_NEXT_USE_DISTANCE)
+        {
+            dropMappedVirtualNoStore(denseIndex);
+            continue;
+        }
+
+        ++listIndex;
+    }
+
+    if (inst.op == MicroInstrOpcode::Label)
+    {
+        // Join: intersect the surviving mappings with every incoming edge.
+        bool dropAll = false;
+
+        SmallVector<const BoundarySnapshot*, 4> edgeSnapshots;
+        if (instructionIndex < predecessors_.size())
+        {
+            for (const uint32_t pred : predecessors_[instructionIndex])
+            {
+                if (pred >= instructionIndex)
+                {
+                    dropAll = true; // back-edge: state unseen
+                    break;
+                }
+                if (pred + 1 == instructionIndex)
+                    continue; // fall-through edge: the current state
+                const auto snapshotIt = boundarySnapshots_.find(pred);
+                if (snapshotIt == boundarySnapshots_.end())
+                {
+                    dropAll = true; // edge with no recorded state
+                    break;
+                }
+                edgeSnapshots.push_back(&snapshotIt->second);
+            }
+        }
+        else
+        {
+            dropAll = true;
+        }
+
+        for (size_t listIndex = 0; listIndex < mappedVirtualIndices_.size();)
+        {
+            const uint32_t denseIndex = mappedVirtualIndices_[listIndex];
+            const MicroReg physReg    = states_[denseIndex].phys;
+
+            bool keep = !dropAll;
+            for (const BoundarySnapshot* snapshot : edgeSnapshots)
+            {
+                if (!keep)
+                    break;
+                bool found = false;
+                for (const auto& [snapDense, snapPhys] : *snapshot)
+                {
+                    if (snapDense == denseIndex)
+                    {
+                        found = snapPhys == physReg;
+                        break;
+                    }
+                }
+                keep = found;
+            }
+
+            if (keep)
+            {
+                ++listIndex;
+                continue;
+            }
+            dropMappedVirtualNoStore(denseIndex);
+        }
+    }
+    else if (inst.op == MicroInstrOpcode::JumpCond)
+    {
+        // Record this edge's state for the target label's join. The store
+        // phase ran, so every recorded mapping has a coherent home on this
+        // edge as well.
+        BoundarySnapshot& snapshot = boundarySnapshots_[instructionIndex];
+        snapshot.clear();
+        for (const uint32_t denseIndex : mappedVirtualIndices_)
+            snapshot.push_back({denseIndex, states_[denseIndex].phys});
+    }
+}
+
 void MicroRegisterAllocationPass::clearAllMappedVirtuals()
 {
     for (const uint32_t denseIndex : mappedVirtualIndices_)
@@ -3015,6 +3176,17 @@ void MicroRegisterAllocationPass::rewriteInstructions()
     deferredLoopCarriedStores_.clear();
     if (hasControlFlow_)
         labelStackDepth_.reserve(instructions_->count() / 2 + 1);
+
+    // Register mappings may survive a control-flow boundary only when the CFG
+    // is precise: the join intersection walks predecessor lists, and an edge
+    // the CFG cannot see (computed jump, unresolvable target) would make a
+    // kept register silently wrong. When the gate is off, every boundary
+    // falls back to the full flush.
+    boundarySnapshots_.clear();
+    keepAcrossBoundaries_ = hasControlFlow_ &&
+                            controlFlowGraph_ != nullptr &&
+                            !controlFlowGraph_->hasUnsupportedControlFlowForCfgLiveness() &&
+                            controlFlowGraph_->supportsDeadCodeLiveness();
     for (auto it = instructions_->view().begin(); it != instructions_->view().end() && idx < instructionCount_; ++it)
     {
         if (stamp == std::numeric_limits<uint32_t>::max())
@@ -3084,7 +3256,10 @@ void MicroRegisterAllocationPass::rewriteInstructions()
         if (isFlushBoundary(idx, *it))
         {
             boundaryPending_.clear();
-            flushAllMappedVirtuals(stamp, stackDepth, boundaryPending_);
+            if (keepAcrossBoundaries_)
+                flushAtBoundary(idx, *it, stamp, stackDepth, boundaryPending_);
+            else
+                flushAllMappedVirtuals(stamp, stackDepth, boundaryPending_);
             for (const auto& pendingInst : boundaryPending_)
             {
                 insertPending(instructionRef, pendingInst);

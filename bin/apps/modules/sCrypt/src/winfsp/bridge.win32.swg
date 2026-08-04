@@ -42,7 +42,7 @@ namespace WinFsp
             return StatusObjectNameNotFound
 
         let available = dref securitySize
-        let stored    = (notnull node).security.toSlice()
+        let stored    = node!.security.toSlice()
         if @countof(stored)
         {
             dref securitySize = @countof(stored)
@@ -190,7 +190,7 @@ namespace WinFsp
         if !node do
             return StatusObjectNameNotFound
 
-        let stored = (notnull node).security.toSlice()
+        let stored = node!.security.toSlice()
         let input  = @countof(stored) ? cast(#null const *void) @dataof(stored) : context.defaultSecurity
         var updated: #null *void
         let status = (g_WinFsp.setSecurityDescriptor)(input, information, modification, &updated)

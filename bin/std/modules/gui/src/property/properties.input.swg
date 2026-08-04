@@ -130,7 +130,7 @@ internal impl Properties
             // Toggle/Expand
             if prop.isGridLike() and
                prop.selItem and
-               (notnull prop.selItem).numChilds
+               prop.selItem!.numChilds
             {
                 let selItem = notnull prop.selItem
                 selItem.flags.toggle(.Expanded)
@@ -138,7 +138,7 @@ internal impl Properties
             }
 
             // Toggle checkbox
-            elif @isset((notnull prop.selItem).checkBox)
+            elif @isset(prop.selItem!.checkBox)
             {
                 let selItem = notnull prop.selItem
                 selItem.checkBox.toggle()

@@ -66,7 +66,7 @@ impl IDispatch for Child
 
 func dispatch(base: *Base)->s32
 {
-    return (notnull base.itf).get()
+    return base.itf!.get()
 }
 
 func runEmbeddedDispatch()->bool

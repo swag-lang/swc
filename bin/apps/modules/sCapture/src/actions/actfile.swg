@@ -177,7 +177,7 @@ impl IActionUI for ActionFile
                 var opt: MessageDlgOptions
                 opt.onCreated = func|main|(dlg)
                 {
-                    let chk = CheckButton.create((notnull dlg.surface).view(), "Do not ask again", {0, 0, 100, 40})
+                    let chk = CheckButton.create(dlg.surface!.view(), "Do not ask again", {0, 0, 100, 40})
                     chk.sigChanged += func|main|(btn) { main.editorOptions.confirmLinkedOverwrite = !btn.isChecked() }
                     dlg.setExtension(chk)
                 }

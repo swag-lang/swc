@@ -222,7 +222,7 @@ impl IWnd for ListView
         switch evt.key
         {
         case .Space where focusLine:
-            if (notnull focusLine).canCheck
+            if focusLine!.canCheck
             {
                 for l in .list.selModel
                 {
@@ -230,7 +230,7 @@ impl IWnd for ListView
                     if !res do
                         continue
                     let idx = res.value
-                    if !(notnull .list.lines[idx]).canCheck do
+                    if !.list.lines[idx]!.canCheck do
                         continue
                     let checked = !.list.checkModel.isSelected(l)
                     .list.checkModel.setSelected(l, checked)
@@ -245,7 +245,7 @@ impl IWnd for ListView
             }
 
         case .Enter where focusLine:
-            if (notnull focusLine).canCheck
+            if focusLine!.canCheck
             {
                 for l in .list.selModel
                 {
@@ -253,7 +253,7 @@ impl IWnd for ListView
                     if !res do
                         continue
                     let idx = res.value
-                    if !(notnull .list.lines[idx]).canCheck do
+                    if !.list.lines[idx]!.canCheck do
                         continue
                     .list.checkModel.select(l)
                 }
@@ -377,7 +377,7 @@ impl IWnd for ListView
             {
                 if evt.kind == .Pressed
                 {
-                    let idxLine = .list.isVirtual ? idx : (notnull .list.lines[idx]).index
+                    let idxLine = .list.isVirtual ? idx : .list.lines[idx]!.index
                     if !.list.selModel.isSelected(idxLine)
                     {
                         .list.selModel.clear()
@@ -507,7 +507,7 @@ impl IWnd for ListView
                 let idx1     = Math.max(startIdx, idx)
                 for [i] in idx0 to idx1
                 {
-                    let idxLine = .list.isVirtual ? i : (notnull .list.lines[i]).index
+                    let idxLine = .list.isVirtual ? i : .list.lines[i]!.index
                     .list.selModel.select(idxLine)
                 }
             }
@@ -515,7 +515,7 @@ impl IWnd for ListView
             // Invert selection
             else
             {
-                let idxLine = .list.isVirtual ? idx : (notnull .list.lines[idx]).index
+                let idxLine = .list.isVirtual ? idx : .list.lines[idx]!.index
                 let toSel   = !.list.selModel.isSelected(idxLine)
                 .list.selModel.setSelected(idxLine, toSel)
             }
@@ -588,7 +588,7 @@ impl IWnd for ListView
             rect = .paddedClientRect()
             for [idx] in 1 until .list.header.items.count
             {
-                var x = .columnPosition((notnull .list.header.items[idx]).column)
+                var x = .columnPosition(.list.header.items[idx]!.column)
                 x -= .scrollPos.x
                 x -= metrics.header_Separator * 0.5
                 painter.drawLine(x, rect.y, x, rect.bottom(), colors.listItem_Line, 1)
@@ -799,7 +799,7 @@ private impl ListView
         let idx = cast(u32) (res.y / .list.lineHeight())
         if idx >= lc do
             return Swag.U32.Max
-        if !.list.isVirtual and (notnull .list.lines[idx]).separator do
+        if !.list.isVirtual and .list.lines[idx]!.separator do
             return Swag.U32.Max
         return idx
     }
@@ -1035,10 +1035,10 @@ impl ListCtrl
 
         if .selectionMode == .None or lineCount == 0 do
             return
-        if !.isVirtual and (notnull .lines[idx]).separator do
+        if !.isVirtual and .lines[idx]!.separator do
             return
 
-        let idxLine     = .isVirtual ? idx : (notnull .lines[idx]).index
+        let idxLine     = .isVirtual ? idx : .lines[idx]!.index
         let wasSelected = .selModel.isSelected(idxLine)
         if .selectionMode == .Single and select
         {
@@ -1079,9 +1079,9 @@ impl ListCtrl
         var changed = false
         for [i] in idx0 to idx1
         {
-            if !.isVirtual and (notnull .lines[i]).separator do
+            if !.isVirtual and .lines[i]!.separator do
                 continue
-            let idxLine = .isVirtual ? i : (notnull .lines[i]).index
+            let idxLine = .isVirtual ? i : .lines[i]!.index
             if .selModel.isSelected(idxLine) == select do
                 continue
             .selModel.setSelected(idxLine, select)
@@ -1099,7 +1099,7 @@ impl ListCtrl
     {
         Debug.assert(!.isVirtual, "virtual lists do not support checked rows")
         Debug.assert(index < .lines.count, "list row index is out of range")
-        return .checkModel.isSelected((notnull .lines[index]).index)
+        return .checkModel.isSelected(.lines[index]!.index)
     }
 
     // Changes the checked state of one checkable row.
@@ -1122,7 +1122,7 @@ impl ListCtrl
     {
         let result = .idxLineToIdxList.tryFind(line.index)
         Debug.assert(result != null, "the list row is not visible in this control")
-        .setLineChecked((notnull result).value, checked, notify)
+        .setLineChecked(result!.value, checked, notify)
     }
 
     // Clears all checked rows and emits [[Gui.ListCtrl.sigCheckedChanged]] when needed.
@@ -1183,7 +1183,7 @@ impl ListCtrl
 
         for line in .lines
         {
-            if (notnull line).canCheck do
+            if line!.canCheck do
                 return true
         }
 
@@ -1324,7 +1324,7 @@ impl ListCtrl
     mtd setFocusedIndex(index: u32, ensureVisible = true)
     {
         Debug.assert(index < .lineCount(), "list row index is out of range")
-        if !.isVirtual and (notnull .lines[index]).separator do
+        if !.isVirtual and .lines[index]!.separator do
             return
         if .focusIndex == index do
             return
@@ -1397,7 +1397,7 @@ impl ListCtrl
     {
         .idxLineToIdxList.clear()
         for l, [idx] in .lines do
-            .idxLineToIdxList.add((notnull l).index, cast(u32) idx)
+            .idxLineToIdxList.add(l!.index, cast(u32) idx)
     }
 
     private mtd collectVisibleLines(result: *Array'(#null *ListLine), lines: [..] #null *ListLine)
@@ -1535,7 +1535,7 @@ impl ListCtrl
             for l in toI.lines
             {
                 removeCount += 1
-                if (notnull l).expanded do
+                if l!.expanded do
                     tmp.add(l)
             }
         }
@@ -1577,7 +1577,7 @@ impl ListCtrl
 
         for l in .lines
         {
-            if (notnull l).expanded do
+            if l!.expanded do
                 .collapse(notnull l)
         }
 

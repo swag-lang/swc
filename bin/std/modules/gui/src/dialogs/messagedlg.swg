@@ -154,7 +154,7 @@ public impl MessageDlg
             return
 
         if !@isset(.labelIcon) do
-            .labelIcon = Label.create((notnull .surface).wnd.view, "", {0, 0, 0, icon.sizeX + icon.sizeX * 0.5})
+            .labelIcon = Label.create(.surface!.wnd.view, "", {0, 0, 0, icon.sizeX + icon.sizeX * 0.5})
         .label.padding.y = 0
 
         with me.labelIcon

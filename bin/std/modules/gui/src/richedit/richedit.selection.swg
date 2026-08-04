@@ -322,7 +322,7 @@ impl RichEditCtrl
         if end.charPosInLine == 0 and beg.lineIndex != end.lineIndex do
             .moveCursorLeft(&end)
         beg.charPosInLine = 0
-        end.charPosInLine = (notnull .lines[end.lineIndex]).length()
+        end.charPosInLine = .lines[end.lineIndex]!.length()
         .selBeg           = beg
         .setCursorPos(end)
         .moveCursorRight(&.cursorPos)

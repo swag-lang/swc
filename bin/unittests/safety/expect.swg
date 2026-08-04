@@ -88,3 +88,35 @@ func expectSafetyEnabled()->bool
     const value = #run expectFailureDisabled()
     #assert(value == 0)
 }
+
+struct ExpectAccessNode
+{
+    value: s32
+}
+
+var g_expectAccessNode = ExpectAccessNode{value: 42}
+
+func expectAccessNode(present: bool)->#null *ExpectAccessNode => present ? &g_expectAccessNode : null
+
+#test
+{
+    #[Swag.Safety(.Expect, true)]
+    func notNullAccessPanic()->s32
+    {
+        return expectAccessNode(false)!.value     // swc-expected-error {{safety_err_runtime}}
+    }
+
+    const value = #run notNullAccessPanic()
+}
+
+#test
+{
+    #[Swag.Safety(.Expect, true)]
+    func notNullAccessSuccess()->s32
+    {
+        return expectAccessNode(true)!.value
+    }
+
+    const value = #run notNullAccessSuccess()
+    #assert(value == 42)
+}

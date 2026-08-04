@@ -192,7 +192,7 @@ impl RichEditCtrl
         var found = false
 
         // Before the first visible line
-        if pt.y < (notnull .lines[0]).drawingRect.y
+        if pt.y < .lines[0]!.drawingRect.y
         {
             cp.lineIndex     = 0
             cp.charPosInLine = 0
@@ -258,13 +258,13 @@ impl RichEditCtrl
         if !found
         {
             cp.lineIndex     = .lines.count - 1
-            cp.charPosInLine = (notnull .lines[cp.lineIndex]).length()
+            cp.charPosInLine = .lines[cp.lineIndex]!.length()
         }
 
         // Check visibility
-        if !(notnull .lines[cp.lineIndex]).isVisible() do
+        if !.lines[cp.lineIndex]!.isVisible() do
             .moveCursorDown(&cp)
-        if !(notnull .lines[cp.lineIndex]).isVisible() do
+        if !.lines[cp.lineIndex]!.isVisible() do
             .moveCursorUp(&cp)
 
         return cp
@@ -286,7 +286,7 @@ impl RichEditCtrl
             if prev == cp.lineIndex do
                 return false
             cp.lineIndex     = prev
-            cp.charPosInLine = (notnull .lines[prev]).length()
+            cp.charPosInLine = .lines[prev]!.length()
         }
         else
         {
@@ -300,7 +300,7 @@ impl RichEditCtrl
     #[Swag.Discardable]
     mtd moveCursorRight(cp: *RichEditCursor)->bool
     {
-        if cp.charPosInLine == (notnull .lines[cp.lineIndex]).length()
+        if cp.charPosInLine == .lines[cp.lineIndex]!.length()
         {
             let next = .nextVisibleLine(cp.lineIndex)
             if next == cp.lineIndex do
@@ -441,7 +441,7 @@ impl RichEditCtrl
     // Moves a cursor to the end of its logical line.
     mtd moveCursorEndLine(cp: *RichEditCursor)
     {
-        cp.charPosInLine = (notnull .lines[cp.lineIndex]).length()
+        cp.charPosInLine = .lines[cp.lineIndex]!.length()
     }
 
     // Moves a cursor to the start of the document.
@@ -461,7 +461,7 @@ impl RichEditCtrl
         }
 
         cp.lineIndex     = .lastVisibleLine()
-        cp.charPosInLine = (notnull .lines[cp.lineIndex]).length()
+        cp.charPosInLine = .lines[cp.lineIndex]!.length()
     }
 
     // Moves a cursor upward by one viewport page.

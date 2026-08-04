@@ -103,7 +103,7 @@ func runIntrinsicDynamicTypeInfo()->bool
     @assert(!itf is PointerWrapper)
     @assert(@dataof(itf) != null)
     @assert(itfBase != null)
-    @assert((notnull itfBase).value == 10)
+    @assert(itfBase!.value == 10)
 
     let dyn: any = derived
     let dynBase  = dyn as Base
@@ -111,7 +111,7 @@ func runIntrinsicDynamicTypeInfo()->bool
     @assert(dyn is Base)
     @assert(!dyn is PointerWrapper)
     @assert(dynBase != null)
-    @assert((notnull dynBase).value == 10)
+    @assert(dynBase!.value == 10)
 
     let notStruct: any = 33
     @assert(!notStruct is Base)

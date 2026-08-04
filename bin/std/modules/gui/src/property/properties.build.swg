@@ -386,7 +386,7 @@ internal impl Properties
         let item = .addItem(v, null, parentForCateg)
         item.label.style.setFont(&.fontCategory)
         item.flags.add(.Category | .NoSeparator | .Expanded | .NoFocus)
-        if !(notnull parentForCateg).flags.has(.Category) do
+        if !parentForCateg!.flags.has(.Category) do
             item.level = 0
         .sections.add({item, 1})
         return item
@@ -412,7 +412,7 @@ internal impl Properties
     {
         with let item = .addItem(Swag.TypeValue{}, null, parentItem, cast(f32) size, .None)
         {
-            .level = (notnull parentItem).level
+            .level = parentItem!.level
             .flags.add(.Spacer | .NoSeparator | .NoFocus)
         }
 
@@ -428,7 +428,7 @@ internal impl Properties
         {
             if @isset(.label) do
                 .label.style.setFont(&.fontCategory)
-            .level = (notnull parentItem).level
+            .level = parentItem!.level
             .flags.add(.Header | .NoSeparator | .NoFocus)
         }
 
@@ -441,7 +441,7 @@ internal impl Properties
     mtd addNoteRow(text: #null string, parentItem: #null *PropertiesItem)->*PropertiesItem
     {
         let item = .addItem(Swag.TypeValue{}, null, parentItem, 0, .None)
-        item.level = (notnull parentItem).level
+        item.level = parentItem!.level
         item.flags.add(.Note | .NoSeparator | .NoFocus)
 
         with let lbl = Label.create(item.line, text, {0, 0, .position.width, item.line.position.height})

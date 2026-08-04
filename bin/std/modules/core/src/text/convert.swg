@@ -227,7 +227,7 @@ func convertAny(buf: *ConcatBuffer, value: #null const any, convFmt: ConvertForm
                 buf.addBytes(", ")
             let v = @mkany(bufSlice, ptrSlice.pointedType)
             convertAny(buf, v, convFmt, strFormat)
-            bufSlice += (notnull ptrSlice.pointedType).sizeof
+            bufSlice += ptrSlice.pointedType!.sizeof
         }
 
         buf.addBytes("]")
@@ -247,7 +247,7 @@ func convertAny(buf: *ConcatBuffer, value: #null const any, convFmt: ConvertForm
                 buf.addBytes(", ")
             let v = @mkany(bufArr, ptrArr.pointedType)
             convertAny(buf, v, convFmt, strFormat)
-            bufArr += (notnull ptrArr.pointedType).sizeof
+            bufArr += ptrArr.pointedType!.sizeof
         }
 
         buf.addBytes("]")

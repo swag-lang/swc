@@ -242,7 +242,7 @@ namespace
 {
     // Resolve substitutes and unwrap transparent wrappers (parens, casts) down to the
     // expression that actually carries the narrowing information.
-    AstNodeRef resolveNullNarrowSourceRef(Sema& sema, AstNodeRef nodeRef)
+    AstNodeRef resolveNarrowSourceRef(Sema& sema, AstNodeRef nodeRef)
     {
         for (int depth = 0; depth < 16 && nodeRef.isValid(); depth++)
         {
@@ -263,19 +263,41 @@ namespace
         return nodeRef;
     }
 
+    const TypeInfo& narrowUnwrappedType(Sema& sema, TypeRef typeRef)
+    {
+        TypeRef unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
+        if (unwrappedTypeRef.isInvalid())
+            unwrappedTypeRef = typeRef;
+
+        return sema.typeMgr().get(unwrappedTypeRef);
+    }
+
     bool typeRefIsNullable(Sema& sema, TypeRef typeRef)
     {
         if (!typeRef.isValid())
             return false;
 
-        TypeRef unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
-        if (unwrappedTypeRef.isInvalid())
-            unwrappedTypeRef = typeRef;
-
-        return sema.typeMgr().get(unwrappedTypeRef).isNullable();
+        return narrowUnwrappedType(sema, typeRef).isNullable();
     }
 
-    bool isNullNarrowRootVariable(const SymbolVariable& symVar)
+    // A fact only attaches to a path whose declared type can carry it.
+    bool narrowTypeAcceptsKind(Sema& sema, TypeRef typeRef, SemaNarrowFactKind kind)
+    {
+        if (!typeRef.isValid())
+            return false;
+
+        switch (kind)
+        {
+            case SemaNarrowFactKind::NonNull:
+                return narrowUnwrappedType(sema, typeRef).isNullable();
+            case SemaNarrowFactKind::NonZero:
+                return narrowUnwrappedType(sema, typeRef).isIntLike();
+        }
+
+        return false;
+    }
+
+    bool isNarrowRootVariable(const SymbolVariable& symVar)
     {
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::GlobalStorage) ||
             symVar.hasGlobalStorage() ||
@@ -288,9 +310,9 @@ namespace
                symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal);
     }
 
-    bool nullNarrowOperandIsNullLiteral(Sema& sema, AstNodeRef nodeRef)
+    bool narrowOperandIsNullLiteral(Sema& sema, AstNodeRef nodeRef)
     {
-        const AstNodeRef resolvedRef = resolveNullNarrowSourceRef(sema, nodeRef);
+        const AstNodeRef resolvedRef = resolveNarrowSourceRef(sema, nodeRef);
         if (!resolvedRef.isValid())
             return false;
 
@@ -301,52 +323,92 @@ namespace
         return view.typeRef().isValid() && view.type()->isNull();
     }
 
-    void appendNullNarrowFact(SmallVector2<SemaNullNarrowFact>& facts, SmallVector4<const Symbol*>& path)
+    bool narrowOperandIsZeroLiteral(Sema& sema, AstNodeRef nodeRef)
+    {
+        const AstNodeRef resolvedRef = resolveNarrowSourceRef(sema, nodeRef);
+        if (!resolvedRef.isValid())
+            return false;
+
+        const SemaNodeView view = sema.view(resolvedRef, SemaNodeViewPartE::Constant);
+        return view.hasConstant() && view.cst()->isInt() && view.cst()->getInt().isZero();
+    }
+
+    // The literal a comparison must be made against for the fact to be provable.
+    bool narrowOperandIsSentinel(Sema& sema, AstNodeRef nodeRef, SemaNarrowFactKind kind)
+    {
+        switch (kind)
+        {
+            case SemaNarrowFactKind::NonNull:
+                return narrowOperandIsNullLiteral(sema, nodeRef);
+            case SemaNarrowFactKind::NonZero:
+                return narrowOperandIsZeroLiteral(sema, nodeRef);
+        }
+
+        return false;
+    }
+
+    void appendNarrowFact(SmallVector2<SemaNarrowFact>& facts, SmallVector4<const Symbol*>& path, SemaNarrowFactKind kind)
     {
         auto& fact = facts.emplace_back();
         fact.path.assign(path.begin(), path.end());
-        fact.nonNull = true;
+        fact.kind  = kind;
+        fact.holds = true;
     }
 
-    void collectNullNarrowGuardFromExpr(Sema& sema, AstNodeRef exprRef, SmallVector2<SemaNullNarrowFact>& facts)
+    void collectNarrowGuardFromExpr(Sema& sema, AstNodeRef exprRef, SemaNarrowFactKind kind, SmallVector2<SemaNarrowFact>& facts)
     {
-        const AstNodeRef resolvedRef = resolveNullNarrowSourceRef(sema, exprRef);
+        const AstNodeRef resolvedRef = resolveNarrowSourceRef(sema, exprRef);
         if (!resolvedRef.isValid())
             return;
 
         SmallVector4<const Symbol*> path;
-        if (!SemaHelpers::extractNullNarrowPath(sema, resolvedRef, path))
+        if (!SemaHelpers::extractNarrowPath(sema, resolvedRef, path))
             return;
 
         // Check the DECLARED type of the path's last component: by the time guards are
         // collected, the condition expression node itself may already have been cast to
         // bool by the truthiness check.
-        if (!typeRefIsNullable(sema, path.back()->typeRef()))
+        if (!narrowTypeAcceptsKind(sema, path.back()->typeRef(), kind))
             return;
 
-        appendNullNarrowFact(facts, path);
+        appendNarrowFact(facts, path, kind);
+    }
+
+    // `x != <sentinel>` proves the fact on the true edge, `x == <sentinel>` on the false
+    // one. Returns false when the comparison is not against this kind's sentinel, so the
+    // caller can try the next kind.
+    bool collectSentinelComparisonGuard(Sema& sema, const AstRelationalExpr& relational, TokenId op, SemaNarrowFactKind kind, SemaHelpers::NarrowGuards& out)
+    {
+        const bool leftIsSentinel  = narrowOperandIsSentinel(sema, relational.nodeLeftRef, kind);
+        const bool rightIsSentinel = narrowOperandIsSentinel(sema, relational.nodeRightRef, kind);
+        if (leftIsSentinel == rightIsSentinel)
+            return false;
+
+        const AstNodeRef targetRef = leftIsSentinel ? relational.nodeRightRef : relational.nodeLeftRef;
+        collectNarrowGuardFromExpr(sema, targetRef, kind, op == TokenId::SymBangEqual ? out.whenTrue : out.whenFalse);
+        return true;
     }
 }
 
-bool SemaHelpers::extractNullNarrowPath(Sema& sema, AstNodeRef nodeRef, SmallVector4<const Symbol*>& outPath)
+bool SemaHelpers::extractNarrowPath(Sema& sema, AstNodeRef nodeRef, SmallVector4<const Symbol*>& outPath)
 {
     if (nodeRef.isInvalid())
         return false;
 
     // Unwrap substitutes and transparent wrappers (parens, casts): they do not change
     // which storage path is being accessed.
-    const AstNodeRef resolvedRef = resolveNullNarrowSourceRef(sema, nodeRef);
+    const AstNodeRef resolvedRef = resolveNarrowSourceRef(sema, nodeRef);
     if (!resolvedRef.isValid())
         return false;
 
     const AstNode& node = sema.node(resolvedRef);
     if (node.is(AstNodeId::ParenExpr))
-        return extractNullNarrowPath(sema, node.cast<AstParenExpr>().nodeExprRef, outPath);
+        return extractNarrowPath(sema, node.cast<AstParenExpr>().nodeExprRef, outPath);
 
     if (node.is(AstNodeId::MemberAccessExpr))
     {
         const auto& member = node.cast<AstMemberAccessExpr>();
-        if (!extractNullNarrowPath(sema, member.nodeLeftRef, outPath))
+        if (!extractNarrowPath(sema, member.nodeLeftRef, outPath))
             return false;
 
         const SemaNodeView rightView = sema.view(member.nodeRightRef, SemaNodeViewPartE::Symbol);
@@ -365,16 +427,16 @@ bool SemaHelpers::extractNullNarrowPath(Sema& sema, AstNodeRef nodeRef, SmallVec
     const Symbol*      sym  = view.singleSymbol();
     if (!sym || !sym->isVariable())
         return false;
-    if (!isNullNarrowRootVariable(sym->cast<SymbolVariable>()))
+    if (!isNarrowRootVariable(sym->cast<SymbolVariable>()))
         return false;
 
     outPath.push_back(sym);
     return true;
 }
 
-void SemaHelpers::collectNullNarrowGuards(Sema& sema, AstNodeRef condRef, NullNarrowGuards& out)
+void SemaHelpers::collectNarrowGuards(Sema& sema, AstNodeRef condRef, NarrowGuards& out)
 {
-    const AstNodeRef resolvedRef = resolveNullNarrowSourceRef(sema, condRef);
+    const AstNodeRef resolvedRef = resolveNarrowSourceRef(sema, condRef);
     if (!resolvedRef.isValid())
         return;
 
@@ -387,8 +449,8 @@ void SemaHelpers::collectNullNarrowGuards(Sema& sema, AstNodeRef condRef, NullNa
             if (sema.token(unary.codeRef()).id != TokenId::SymBang)
                 return;
 
-            NullNarrowGuards child;
-            collectNullNarrowGuards(sema, unary.nodeExprRef, child);
+            NarrowGuards child;
+            collectNarrowGuards(sema, unary.nodeExprRef, child);
             for (auto& fact : child.whenTrue)
                 out.whenFalse.push_back(std::move(fact));
             for (auto& fact : child.whenFalse)
@@ -398,11 +460,11 @@ void SemaHelpers::collectNullNarrowGuards(Sema& sema, AstNodeRef condRef, NullNa
 
         case AstNodeId::LogicalExpr:
         {
-            const auto&      logical = node.cast<AstLogicalExpr>();
-            NullNarrowGuards left;
-            NullNarrowGuards right;
-            collectNullNarrowGuards(sema, logical.nodeLeftRef, left);
-            collectNullNarrowGuards(sema, logical.nodeRightRef, right);
+            const auto&  logical = node.cast<AstLogicalExpr>();
+            NarrowGuards left;
+            NarrowGuards right;
+            collectNarrowGuards(sema, logical.nodeLeftRef, left);
+            collectNarrowGuards(sema, logical.nodeRightRef, right);
 
             const TokenId op = sema.token(logical.codeRef()).id;
             if (op == TokenId::KwdAnd)
@@ -432,24 +494,23 @@ void SemaHelpers::collectNullNarrowGuards(Sema& sema, AstNodeRef condRef, NullNa
             if (op != TokenId::SymEqualEqual && op != TokenId::SymBangEqual)
                 return;
 
-            const bool leftIsNull  = nullNarrowOperandIsNullLiteral(sema, relational.nodeLeftRef);
-            const bool rightIsNull = nullNarrowOperandIsNullLiteral(sema, relational.nodeRightRef);
-            if (leftIsNull == rightIsNull)
+            if (collectSentinelComparisonGuard(sema, relational, op, SemaNarrowFactKind::NonNull, out))
                 return;
-
-            const AstNodeRef targetRef = leftIsNull ? relational.nodeRightRef : relational.nodeLeftRef;
-            collectNullNarrowGuardFromExpr(sema, targetRef, op == TokenId::SymBangEqual ? out.whenTrue : out.whenFalse);
+            collectSentinelComparisonGuard(sema, relational, op, SemaNarrowFactKind::NonZero, out);
             return;
         }
 
         default:
-            collectNullNarrowGuardFromExpr(sema, resolvedRef, out.whenTrue);
+            // Bare truthiness. Only the non-null reading is inferred here: `if count` is a
+            // very common shape, and recording a fact no consumer reads would slow every
+            // narrowing query down for nothing. A non-zero proof must be spelled `!= 0`.
+            collectNarrowGuardFromExpr(sema, resolvedRef, SemaNarrowFactKind::NonNull, out.whenTrue);
     }
 }
 
 TypeRef SemaHelpers::nullNarrowedTypeRef(Sema& sema, AstNodeRef nodeRef, TypeRef typeRef)
 {
-    if (!typeRef.isValid() || !sema.frame().hasNullNarrowFacts())
+    if (!typeRef.isValid() || !sema.frame().hasNarrowFacts())
         return TypeRef::invalid();
 
     // An assignment target keeps its declared type: narrowing applies to reads, not
@@ -498,10 +559,10 @@ TypeRef SemaHelpers::nullNarrowedTypeRef(Sema& sema, AstNodeRef nodeRef, TypeRef
     }
 
     SmallVector4<const Symbol*> path;
-    if (!extractNullNarrowPath(sema, nodeRef, path))
+    if (!extractNarrowPath(sema, nodeRef, path))
         return TypeRef::invalid();
 
-    if (!sema.frame().queryNullNarrowNonNull({path.data(), path.size()}))
+    if (!sema.frame().queryNarrowFact({path.data(), path.size()}, SemaNarrowFactKind::NonNull))
         return TypeRef::invalid();
 
     TypeInfo resultType = nullableType;
@@ -509,7 +570,7 @@ TypeRef SemaHelpers::nullNarrowedTypeRef(Sema& sema, AstNodeRef nodeRef, TypeRef
     return sema.typeMgr().addType(resultType);
 }
 
-bool SemaHelpers::nullNarrowStopsLocalFlow(Sema& sema, AstNodeRef nodeRef)
+bool SemaHelpers::narrowStopsLocalFlow(Sema& sema, AstNodeRef nodeRef)
 {
     if (nodeRef.isInvalid())
         return false;
@@ -531,13 +592,13 @@ bool SemaHelpers::nullNarrowStopsLocalFlow(Sema& sema, AstNodeRef nodeRef)
         case AstNodeId::IfStmt:
         {
             const auto& ifStmt = node.cast<AstIfStmt>();
-            return ifStmt.nodeElseBlockRef.isValid() && nullNarrowStopsLocalFlow(sema, ifStmt.nodeIfBlockRef) && nullNarrowStopsLocalFlow(sema, ifStmt.nodeElseBlockRef);
+            return ifStmt.nodeElseBlockRef.isValid() && narrowStopsLocalFlow(sema, ifStmt.nodeIfBlockRef) && narrowStopsLocalFlow(sema, ifStmt.nodeElseBlockRef);
         }
 
         case AstNodeId::IfVarDecl:
         {
             const auto& ifVarDecl = node.cast<AstIfVarDecl>();
-            return ifVarDecl.nodeElseBlockRef.isValid() && nullNarrowStopsLocalFlow(sema, ifVarDecl.nodeIfBlockRef) && nullNarrowStopsLocalFlow(sema, ifVarDecl.nodeElseBlockRef);
+            return ifVarDecl.nodeElseBlockRef.isValid() && narrowStopsLocalFlow(sema, ifVarDecl.nodeIfBlockRef) && narrowStopsLocalFlow(sema, ifVarDecl.nodeElseBlockRef);
         }
 
         case AstNodeId::EmbeddedBlock:
@@ -550,7 +611,7 @@ bool SemaHelpers::nullNarrowStopsLocalFlow(Sema& sema, AstNodeRef nodeRef)
             node.collectChildrenFromAst(children, sema.ast());
             if (children.empty())
                 return false;
-            return nullNarrowStopsLocalFlow(sema, children.back());
+            return narrowStopsLocalFlow(sema, children.back());
         }
 
         default:
@@ -558,10 +619,14 @@ bool SemaHelpers::nullNarrowStopsLocalFlow(Sema& sema, AstNodeRef nodeRef)
     }
 }
 
-void SemaHelpers::addNullNarrowFacts(SemaFrame& frame, std::span<const SemaNullNarrowFact> facts)
+void SemaHelpers::addNarrowFacts(SemaFrame& frame, std::span<const SemaNarrowFact> facts)
 {
-    for (const SemaNullNarrowFact& fact : facts)
-        frame.addNullNarrowFact({fact.path.data(), fact.path.size()}, fact.nonNull);
+    for (const SemaNarrowFact& fact : facts)
+    {
+        // Guard collection only ever produces proofs; kills go through addNarrowKill.
+        SWC_ASSERT(fact.holds);
+        frame.addNarrowFact({fact.path.data(), fact.path.size()}, fact.kind);
+    }
 }
 
 namespace
@@ -569,7 +634,7 @@ namespace
     // Walk an assignment (or address-of) target down to its leftmost root identifier,
     // without requiring the subtree to be sema'd. Returns the collected root identifier,
     // or sets `outKillAll` when the write cannot be attributed to a single root.
-    void collectNullNarrowWrittenRoot(Sema& sema, AstNodeRef nodeRef, SmallVector8<IdentifierRef>& outRoots, bool& outKillAll)
+    void collectNarrowWrittenRoot(Sema& sema, AstNodeRef nodeRef, SmallVector8<IdentifierRef>& outRoots, bool& outKillAll)
     {
         while (nodeRef.isValid())
         {
@@ -605,7 +670,7 @@ namespace
         }
     }
 
-    void collectNullNarrowLoopBodyWrites(Sema& sema, AstNodeRef bodyRef, SmallVector8<IdentifierRef>& outRoots, bool& outKillAll)
+    void collectNarrowLoopBodyWrites(Sema& sema, AstNodeRef bodyRef, SmallVector8<IdentifierRef>& outRoots, bool& outKillAll)
     {
         SmallVector<AstNodeRef> stack;
         stack.push_back(bodyRef);
@@ -623,7 +688,7 @@ namespace
                 case AstNodeId::AssignStmt:
                     // Compound assignments (`+=`, ...) cannot make a pointer null.
                     if (sema.token(node.codeRef()).id == TokenId::SymEqual)
-                        collectNullNarrowWrittenRoot(sema, node.cast<AstAssignStmt>().nodeLeftRef, outRoots, outKillAll);
+                        collectNarrowWrittenRoot(sema, node.cast<AstAssignStmt>().nodeLeftRef, outRoots, outKillAll);
                     break;
 
                 case AstNodeId::AssignList:
@@ -633,7 +698,7 @@ namespace
 
                 case AstNodeId::UnaryExpr:
                     if (sema.token(node.codeRef()).id == TokenId::SymAmpersand)
-                        collectNullNarrowWrittenRoot(sema, node.cast<AstUnaryExpr>().nodeExprRef, outRoots, outKillAll);
+                        collectNarrowWrittenRoot(sema, node.cast<AstUnaryExpr>().nodeExprRef, outRoots, outKillAll);
                     break;
 
                 default:
@@ -645,36 +710,36 @@ namespace
     }
 }
 
-void SemaHelpers::killNullNarrowFactsForLoopBody(Sema& sema, AstNodeRef bodyRef, SemaFrame& frame)
+void SemaHelpers::killNarrowFactsForLoopBody(Sema& sema, AstNodeRef bodyRef, SemaFrame& frame)
 {
-    if (!frame.hasNullNarrowFacts())
+    if (!frame.hasNarrowFacts())
         return;
 
     // A loop body executes multiple times: any fact whose root the body may reassign (or
     // whose address it takes) is not stable across the back edge, so drop it up front.
     SmallVector8<IdentifierRef> writtenRoots;
     bool                        killAll = false;
-    collectNullNarrowLoopBodyWrites(sema, bodyRef, writtenRoots, killAll);
+    collectNarrowLoopBodyWrites(sema, bodyRef, writtenRoots, killAll);
 
     if (killAll)
     {
-        frame.clearNullNarrowFacts();
+        frame.clearNarrowFacts();
         return;
     }
 
     if (!writtenRoots.empty())
-        frame.killNullNarrowFactsByRootId({writtenRoots.data(), writtenRoots.size()});
+        frame.killNarrowFactsByRootId({writtenRoots.data(), writtenRoots.size()});
 }
 
-void SemaHelpers::killNullNarrowPathAfterStatement(Sema& sema, AstNodeRef exprRef, bool nonNull)
+void SemaHelpers::killNarrowPathAfterStatement(Sema& sema, AstNodeRef exprRef, bool nonNull)
 {
     // Adding a positive fact is only useful when narrowing is possible at all; killing is
     // only needed when something is currently narrowed.
-    if (!nonNull && !sema.frame().hasNullNarrowFacts())
+    if (!nonNull && !sema.frame().hasNarrowFacts())
         return;
 
     SmallVector4<const Symbol*> path;
-    if (!extractNullNarrowPath(sema, exprRef, path))
+    if (!extractNarrowPath(sema, exprRef, path))
         return;
 
     // Only nullable-declared paths participate in narrowing.
@@ -686,12 +751,12 @@ void SemaHelpers::killNullNarrowPathAfterStatement(Sema& sema, AstNodeRef exprRe
     if (nonNull)
     {
         // A positive fact only holds inside the current region: add it to the top frame.
-        sema.frame().addNullNarrowFact({path.data(), path.size()}, true);
+        sema.frame().addNarrowFact({path.data(), path.size()}, SemaNarrowFactKind::NonNull);
     }
     else
     {
         // A kill must outlive any enclosing region that proved the path non-null.
-        sema.addNullNarrowKillAllFrames({path.data(), path.size()});
+        sema.addNarrowKillAllFrames({path.data(), path.size()});
     }
 }
 

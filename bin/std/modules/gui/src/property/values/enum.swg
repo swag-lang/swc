@@ -23,7 +23,7 @@ internal impl Properties
         if @isset(item.checkBox)
         {
             var val1, val2: u64
-            switch (notnull item.typeValue.pointedType).sizeof
+            switch item.typeValue.pointedType!.sizeof
             {
             case 1:
                 val1 = cast(u64) dref notnull cast(#null *u8) item.data
@@ -59,7 +59,7 @@ internal impl Properties
 
             var val1, val2:   u64
             var val1s, val2s: #null string
-            switch (notnull typeEnum.rawType).sizeof
+            switch typeEnum.rawType!.sizeof
             {
             case 1:  val1 = cast(u64) dref notnull cast(#null *u8) item.data
             case 2:  val1 = cast(u64) dref notnull cast(#null *u16) item.data
@@ -71,7 +71,7 @@ internal impl Properties
             var idxSel = 0'u64
             for v, [idx] in typeEnum.values
             {
-                switch (notnull typeEnum.rawType).sizeof
+                switch typeEnum.rawType!.sizeof
                 {
                 case 1:  val2 = cast(u64) dref notnull cast(#null const *u8) v.value
                 case 2:  val2 = cast(u64) dref notnull cast(#null const *u16) v.value
@@ -90,7 +90,7 @@ internal impl Properties
             var idxCombo = Swag.U32.Max
             for cb, [cbIdx] in item.comboBox.items
             {
-                if cast(u64) (notnull cb).userData0 == idxSel
+                if cast(u64) cb!.userData0 == idxSel
                 {
                     idxCombo = cast(u32) cbIdx
                     break
@@ -111,7 +111,7 @@ internal impl Properties
         {
             // Set/clear this one flag bit in every edited instance (other bits, which may
             // differ per instance, are left alone). The row's mask is the flag value.
-            let sz   = (notnull item.typeValue.pointedType).sizeof
+            let sz   = item.typeValue.pointedType!.sizeof
             let mask = readEnumBits(cast(#null *u8) item.checkBox.userData, sz)
             .writeEnumBit(item, mask, item.checkBox.isChecked())
         }
@@ -140,9 +140,9 @@ internal impl Properties
                 return
 
             // Combo slot -> enum value index (the combo may hide values, see constructEnum)
-            let idxEnum = cast(u64) (notnull item.comboBox.items[sel]).userData0
+            let idxEnum = cast(u64) item.comboBox.items[sel]!.userData0
 
-            switch (notnull typeEnum.rawType).sizeof
+            switch typeEnum.rawType!.sizeof
             {
             case 1:  setEd'u8()
             case 2:  setEd'u16()

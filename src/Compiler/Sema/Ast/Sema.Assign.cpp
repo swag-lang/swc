@@ -555,7 +555,7 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
             rightNonNull              = !rightType.isNullable() && !rightType.isNull();
         }
 
-        SemaHelpers::killNullNarrowPathAfterStatement(sema, nodeLeftRef, rightNonNull);
+        SemaHelpers::killNarrowPathAfterStatement(sema, nodeLeftRef, rightNonNull);
     }
 
     return Result::Continue;

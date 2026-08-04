@@ -100,7 +100,7 @@ public impl EditDlg
             if edit do
                 edit.selectAll()
             else do
-                (notnull .richEdit).selectAll()
+                .richEdit!.selectAll()
         }
 
         let surface = notnull .surface
@@ -126,7 +126,7 @@ public impl EditDlg
         let edit = .edit
         if edit do
             return edit.text()
-        return (notnull .richEdit).text()
+        return .richEdit!.text()
     }
 
     // Creates or updates an explanatory message above the editor.
@@ -135,7 +135,8 @@ public impl EditDlg
         Debug.assert(height > 0, "message height must be positive")
         if !@isset(.label)
         {
-            .label = Label.create((notnull .surface).view(), message, {0, 0, 0, height})
+            @assert(.surface != null)
+            .label = Label.create(.surface.view(), message, {0, 0, 0, height})
             with me.label
             {
                 .dockStyle = .Center
@@ -152,7 +153,7 @@ public impl EditDlg
             }
 
             // The surface rectangle is physical; the added message height is logical.
-            let surface = notnull .surface
+            let surface = .surface
             var pos     = surface.position
             pos.height        += height * surface.dpiScale
             surface.minSize.y += height

@@ -147,7 +147,7 @@ impl IWnd for RichEditView
         switch evt.kind
         {
         case .Gained:
-            .timerCaret   = (notnull .surface).app.addTimer(500'ms, me)
+            .timerCaret   = .surface!.app.addTimer(500'ms, me)
             .visibleCaret = true
             .invalidate()
 
@@ -191,7 +191,7 @@ impl IWnd for RichEditView
         else
         {
             i = edn.firstVisibleLineView
-            y = (notnull edn.lines[i]).drawingRect.y
+            y = edn.lines[i]!.drawingRect.y
         }
 
         if edn.recomputeScroll do
@@ -214,7 +214,7 @@ impl IWnd for RichEditView
                 bvis = false
 
             // Store the first visible line index
-            if bvis and edn.firstVisibleLineView == Swag.U64.Max and ((notnull edn.lines[i]).isVisible() or firstHidden) do
+            if bvis and edn.firstVisibleLineView == Swag.U64.Max and (edn.lines[i]!.isVisible() or firstHidden) do
                 edn.firstVisibleLineView = i
 
             if edn.recomputeScroll do
@@ -278,7 +278,7 @@ impl IWnd for RichEditView
                 {
                     var cp = edn.cursorPos
                     cp.lineIndex = caretI
-                    if cp.charPosInLine > (notnull edn.lines[cp.lineIndex]).length() do
+                    if cp.charPosInLine > edn.lines[cp.lineIndex]!.length() do
                         continue
                     var posCaret = edn.caretRect(cp)
                     posCaret.x -= .scrollPos.x

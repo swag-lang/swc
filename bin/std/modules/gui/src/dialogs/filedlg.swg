@@ -60,7 +60,7 @@ impl IWnd for FileDlg
         // The browser saves the folder/column widths; the dialog owns the position.
         let state = .options.state
         if state do
-            state.surfacePosition = (notnull .surface).position
+            state.surfacePosition = .surface!.position
     }
 }
 

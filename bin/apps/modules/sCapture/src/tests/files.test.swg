@@ -450,7 +450,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(f.main.recentWnd.recentView.items.count == 1)
     @assert(f.main.recentWnd.recentView.selected == 0)
 
-    let duplicatedPath = (notnull f.main.recentWnd.recentView.items[0]).file
+    let duplicatedPath = f.main.recentWnd.recentView.items[0]!.file
     defer
     {
         discard catch File.delete(duplicatedPath)

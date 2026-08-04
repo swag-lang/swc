@@ -26,22 +26,22 @@ namespace SemaHelpers
         SymbolFunction* calledFn = nullptr;
     };
 
-    // Nullable flow-narrowing facts implied by a boolean condition: the paths proven
-    // non-null when the condition is true, and those proven non-null when it is false
-    // (e.g. `if x != null and y` → whenTrue = {x, y}; `if !x` → whenFalse = {x}).
-    struct NullNarrowGuards
+    // Flow facts implied by a boolean condition: the paths proven when the condition is
+    // true, and those proven when it is false (e.g. `if x != null and y` → whenTrue =
+    // {x, y}; `if !x` → whenFalse = {x}).
+    struct NarrowGuards
     {
-        SmallVector2<SemaNullNarrowFact> whenTrue;
-        SmallVector2<SemaNullNarrowFact> whenFalse;
+        SmallVector2<SemaNarrowFact> whenTrue;
+        SmallVector2<SemaNarrowFact> whenFalse;
     };
 
-    bool    extractNullNarrowPath(Sema& sema, AstNodeRef nodeRef, SmallVector4<const Symbol*>& outPath);
-    void    collectNullNarrowGuards(Sema& sema, AstNodeRef condRef, NullNarrowGuards& out);
+    bool    extractNarrowPath(Sema& sema, AstNodeRef nodeRef, SmallVector4<const Symbol*>& outPath);
+    void    collectNarrowGuards(Sema& sema, AstNodeRef condRef, NarrowGuards& out);
     TypeRef nullNarrowedTypeRef(Sema& sema, AstNodeRef nodeRef, TypeRef typeRef);
-    bool    nullNarrowStopsLocalFlow(Sema& sema, AstNodeRef nodeRef);
-    void    addNullNarrowFacts(SemaFrame& frame, std::span<const SemaNullNarrowFact> facts);
-    void    killNullNarrowFactsForLoopBody(Sema& sema, AstNodeRef bodyRef, SemaFrame& frame);
-    void    killNullNarrowPathAfterStatement(Sema& sema, AstNodeRef exprRef, bool nonNull);
+    bool    narrowStopsLocalFlow(Sema& sema, AstNodeRef nodeRef);
+    void    addNarrowFacts(SemaFrame& frame, std::span<const SemaNarrowFact> facts);
+    void    killNarrowFactsForLoopBody(Sema& sema, AstNodeRef bodyRef, SemaFrame& frame);
+    void    killNarrowPathAfterStatement(Sema& sema, AstNodeRef exprRef, bool nonNull);
 
     CodeGenLoweringPayload&  ensureCodeGenLoweringPayload(Sema& sema, AstNodeRef nodeRef);
     Result                   declareGhostAndCompleteStorage(Sema& sema, SymbolVariable& symVar, TypeRef typeRef);

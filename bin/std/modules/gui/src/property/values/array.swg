@@ -96,7 +96,7 @@ internal impl Properties
         {
             if it == elemItem do
                 break
-            if (notnull it).parent == elemItem.parent do
+            if it!.parent == elemItem.parent do
                 idx += 1
         }
 

@@ -40,7 +40,7 @@ func testItemIndex(prop: *PropWnd, name: string)->u64
 {
     for item, [idx] in prop.grid.items
     {
-        if (notnull item).typeValue.name == name do
+        if item!.typeValue.name == name do
             return idx
     }
 
@@ -89,9 +89,9 @@ func testItemIndex(prop: *PropWnd, name: string)->u64
     // The x/y and w/h rows close the grid, below their own separator
     let n = prop.grid.items.count
     @assert(n >= 3)
-    @assert((notnull prop.grid.items[n - 1]).typeValue.name == "size")
-    @assert((notnull prop.grid.items[n - 2]).typeValue.name == "position")
-    @assert((notnull prop.grid.items[n - 3]).typeValue.name == "Position")
+    @assert(prop.grid.items[n - 1]!.typeValue.name == "size")
+    @assert(prop.grid.items[n - 2]!.typeValue.name == "position")
+    @assert(prop.grid.items[n - 3]!.typeValue.name == "Position")
 
     // Rows span the whole panel width (they used to be clamped to editorWidth)
     @assert(border.line.position.width > 250)

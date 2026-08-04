@@ -27,6 +27,7 @@ using Swag, Core, File
     @assert(@isset(fb.forwardButton))
     @assert(@isset(fb.upButton))
     @assert(@isset(fb.refreshButton))
+    @assert(@isset(fb.historyButton))
     @assert(@isset(fb.newFolderButton))
     @assert(@isset(fb.statusLabel))
     @assert(fb.comboType.items.count == 1)

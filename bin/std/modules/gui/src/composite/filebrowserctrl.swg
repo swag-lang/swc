@@ -80,6 +80,7 @@ struct FileBrowserCtrl
             comboType:       *ComboBox        // Active file-type filter selector.
             backButton:      *IconButton      // Navigates to the previous folder.
             forwardButton:   *IconButton      // Navigates to the next folder.
+            historyButton:   *IconButton      // Opens the recent-folders drop-down menu.
             upButton:        *IconButton      // Navigates to the parent folder.
             refreshButton:   *IconButton      // Reloads the current folder.
             newFolderButton: *PushButton      // Creates a folder in the current location.
@@ -123,8 +124,43 @@ private impl FileBrowserCtrl
     {
         .backButton.enable(.history.canGoBack())
         .forwardButton.enable(.history.canGoForward())
+        .historyButton.enable(.options.state != null and !.options.state.recentFolders.isEmpty())
         let parent = Path.directoryName(.currentFolder.toString()) orelse ""
         .upButton.enable(@countof(parent) != 0 and parent != .currentFolder.toString())
+    }
+
+    // Opens the recent-folders menu below the history button and navigates to the choice.
+    mtd openRecentMenu()
+    {
+        let state = .options.state
+        if !state do
+            return
+
+        let menu = MenuCtrl.createPopup(me)
+        for &recent in state.recentFolders
+        {
+            if !Directory.exists(recent.toString()) do
+                continue
+            var name = Path.fileName(recent.toString()) orelse ""
+            if !@countof(name) do
+                name = recent.toString()
+            var icon = .app().directoryIcon(recent.toString(), true)
+            icon.color = .themeColors().label_Text
+            discard menu.addItem(name, recent.toString(), icon)
+        }
+
+        // Nothing to show: drop the empty popup rather than flashing an empty box.
+        if menu.items.isEmpty()
+        {
+            menu.destroy()
+            return
+        }
+
+        let sr     = .historyButton.surfaceRect()
+        let sel    = menu.doModal({sr.x, sr.bottom()}, .TopLeft, autoDestroy: true)
+        let chosen = sel orelse ""
+        if @countof(chosen) do
+            .setCurrentFolder(chosen)
     }
 
     mtd showFolder(folder: string)->bool
@@ -192,30 +228,6 @@ private impl FileBrowserCtrl
         treeCtrl.clear()
         .treePathStr.clear()
 
-        // Recently used folders, most recent first, kept only while they still exist.
-        if .options.state and !.options.state.recentFolders.isEmpty()
-        {
-            var shownRecent = 0
-            for &recent in .options.state.recentFolders
-            {
-                if !Directory.exists(recent.toString()) do
-                    continue
-                if shownRecent == 0
-                {
-                    let l = treeCtrl.createLine("Recent")
-                    l.separator = true
-                }
-
-                var name = Path.fileName(recent.toString()) orelse ""
-                if !@countof(name) do
-                    name = recent.toString()
-                var icon = .app().directoryIcon(recent.toString(), true)
-                icon.color = .themeColors().label_Text
-                .addLocationLine(name, recent.toString(), icon)
-                shownRecent += 1
-            }
-        }
-
         var l = treeCtrl.createLine("Shortcuts")
         l.separator = true
 
@@ -265,7 +277,7 @@ private impl FileBrowserCtrl
         var sel      = .listCtrl.selectedLines()
         for lineIt in sel
         {
-            let fi = notnull cast(#null const *FileInfo) (notnull lineIt).userData0
+            let fi = notnull cast(#null const *FileInfo) lineIt!.userData0
             if fi.isDirectory() and .options.mode != FileDlgMode.SelectFolder do
                 continue
             selCount += 1
@@ -372,7 +384,7 @@ private impl FileBrowserCtrl
                 var txt: String
                 for l in sel
                 {
-                    let fi = notnull cast(#null const *FileInfo) (notnull l).userData0
+                    let fi = notnull cast(#null const *FileInfo) l!.userData0
                     if fi.isDirectory()
                     {
                         if fileBrowser.options.mode != .SelectFolder do
@@ -508,6 +520,18 @@ impl FileBrowserCtrl
             .sigPressed += func|fileBrowser|(btn) { discard fileBrowser.goForward() }
         }
 
+        with fileBrowser.historyButton = IconButton.create(viewTop, fileBrowser.theme().icon24(ThemeIcons24.BottomPopupArrow, 14), {0, 0, 22, 30})
+        {
+            .dockStyle = .Left
+            .margin.z  = 4
+            .toolTip   = "Recent folders"
+            .sigPressed += func|fileBrowser|(btn) { fileBrowser.openRecentMenu() }
+
+            // Without reusable state there is never a history to show.
+            if !fileBrowser.options.state do
+                .hide()
+        }
+
         with fileBrowser.upButton = IconButton.create(viewTop, fileBrowser.theme().icon24(ThemeIcons24.ParentFolder, 20), {0, 0, 30, 30})
         {
             .dockStyle = .Left
@@ -580,7 +604,8 @@ impl FileBrowserCtrl
         with fileBrowser.statusLabel = Label.create(statusBar, "", {})
         {
             .dockStyle = .Center
-            .setTextAlignment(.Left, .Center)
+            .updateFlags(add: .SecondaryText)
+            .setTextAlignment(.Center, .Center)
         }
 
         with fileBrowser
@@ -807,7 +832,7 @@ impl FileBrowserCtrl
     // Records the accepted selection into the reusable dialog state.
     //
     // The browsed folder (and the selected folder in folder mode) lands at the front of
-    // [[Gui.FileDlgState.recentFolders]], and the locations pane refreshes its recent group.
+    // [[Gui.FileDlgState.recentFolders]], served by the recent-folders drop-down.
     mtd noteAccepted()
     {
         if !.options.state do
@@ -820,7 +845,7 @@ impl FileBrowserCtrl
         }
 
         .recordRecentFolder(.currentFolder.toString())
-        .fillLocationsPane()
+        .updateNavigationState()
     }
 
     // Puts `folder` at the front of the recent list, keeping at most eight unique entries.

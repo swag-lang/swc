@@ -132,7 +132,7 @@ func loadBrushTextures()
 
 func loadTextShowcase()
 {
-    g_OutlineText = expect (notnull g_TypeFace).buildStringOutline("PIXEL", 84)
+    g_OutlineText = expect g_TypeFace!.buildStringOutline("PIXEL", 84)
 }
 
 func insetRect(rect: Math.Rectangle, left, top, right, bottom: f32)->Math.Rectangle

@@ -1364,8 +1364,11 @@ impl ThemeColors
         .frameWnd_FocusBk      = Panel
         .listItem_Text         = Text
         .listItem_SelectedText = Text
-        .listItem_Separator    = Line
-        .listItem_Line         = Line
+
+        // A list separator row carries a group label, so it reads as a faint label,
+        // not as a hairline.
+        .listItem_Separator = FaintText
+        .listItem_Line      = Line
         .headerItem_Text       = Text
         .headerItem_Separator  = Line
         .header_Bk             = Panel
@@ -1465,8 +1468,11 @@ impl ThemeColors
         .frameWnd_FocusBk      = Paper
         .listItem_Text         = Text
         .listItem_SelectedText = Text
-        .listItem_Separator    = Line
-        .listItem_Line         = Line
+
+        // A list separator row carries a group label, so it reads as a faint label,
+        // not as a hairline.
+        .listItem_Separator = FaintText
+        .listItem_Line      = Line
         .headerItem_Text       = Text
         .headerItem_Separator  = Line
         .header_Bk             = Panel

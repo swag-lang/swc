@@ -84,7 +84,7 @@ internal impl IWnd for PropertiesView
 
         // Vertical size is the bottom position of the last line
         if lastItem do
-            .ed.scrollWnd.setScrollSize(0, (notnull lastItem).line.position.bottom() + 10)
+            .ed.scrollWnd.setScrollSize(0, lastItem!.line.position.bottom() + 10)
         else do
             .ed.scrollWnd.setScrollSize(0, 0)
     }

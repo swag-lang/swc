@@ -699,11 +699,21 @@ AstNodeRef Parser::parsePostFixExpression()
     TokenRef firstOptionalAccessTokRef = TokenRef::invalid();
     while (true)
     {
+        // '!.' is matched here instead of being lexed as one token: in PREFIX position the
+        // same two characters are the logical negation of an auto-member access ('if
+        // !.buffer do'), which is a very common spelling. Only a postfix '!' can open the
+        // not-null access, and a postfix '!' has no other meaning.
+        const bool notNullAccess = is(TokenId::SymBang) && nextIs(TokenId::SymDot) && !tokPtr()[1].flags.has(TokenFlagsE::BlankBefore);
+
         // Scope resolution
-        if ((is(TokenId::SymDot) || is(TokenId::SymQuestionDot)) && !tok().flags.has(TokenFlagsE::EolBefore))
+        if ((is(TokenId::SymDot) || is(TokenId::SymQuestionDot) || notNullAccess) && !tok().flags.has(TokenFlagsE::EolBefore))
         {
-            const bool optionalAccess  = is(TokenId::SymQuestionDot);
-            auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::MemberAccessExpr>(consume());
+            const bool     optionalAccess = is(TokenId::SymQuestionDot);
+            const TokenRef opTokRef       = consume();
+            if (notNullAccess)
+                consume();
+
+            auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::MemberAccessExpr>(opTokRef);
             nodePtr->nodeLeftRef       = nodeRef;
             nodePtr->nodeRightRef      = parseIdentifier();
             if (optionalAccess)
@@ -712,6 +722,8 @@ AstNodeRef Parser::parsePostFixExpression()
                 if (firstOptionalAccessTokRef.isInvalid())
                     firstOptionalAccessTokRef = nodePtr->tokRef();
             }
+            else if (notNullAccess)
+                nodePtr->addFlag(AstMemberAccessExprFlagsE::NotNullAccess);
             nodeRef = nodeParent;
             continue;
         }

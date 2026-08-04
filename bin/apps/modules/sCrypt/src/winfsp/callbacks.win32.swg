@@ -87,7 +87,7 @@ namespace WinFsp
         let node   = volume.resolve(cString(path))
         if !node do
             return StatusObjectNameNotFound
-        dref nodeId = (notnull node).id
+        dref nodeId = node!.id
         return fillInfo(volume, dref nodeId, info)
     }
 
@@ -123,9 +123,9 @@ namespace WinFsp
         let node   = volume.nodeById(nodeId)
         if !node do
             return StatusObjectNameNotFound
-        if (notnull node).isDirectory() do
+        if node.isDirectory() do
             return StatusFileIsDirectory
-        let validNode = notnull node
+        let validNode = node
         volume.freeNodeBlocks(validNode)
         validNode.size = 0
         if replaceAttributes do
@@ -179,7 +179,7 @@ namespace WinFsp
         let node   = volume.nodeById(nodeId)
         if !node do
             return StatusObjectNameNotFound
-        if (notnull node).isDirectory() do
+        if node!.isDirectory() do
             return StatusFileIsDirectory
         let count = catch volume.readNode(nodeId, offset, @mkslice(cast([*] u8) notnull buffer, length)) as err
         if err != null do
@@ -326,7 +326,7 @@ namespace WinFsp
         let node   = volume.nodeById(nodeId)
         if !node do
             return StatusObjectNameNotFound
-        let stored    = (notnull node).security.toSlice()
+        let stored    = node!.security.toSlice()
         let available = dref securitySize
         dref securitySize = cast(u32) @countof(stored)
         if !@countof(stored) do
@@ -363,7 +363,7 @@ namespace WinFsp
         let directory = volume.nodeById(nodeId)
         if !directory do
             return StatusObjectNameNotFound
-        if !(notnull directory).isDirectory() do
+        if !directory!.isDirectory() do
             return StatusNotADirectory
 
         let markerName  = cString(marker)
@@ -380,7 +380,7 @@ namespace WinFsp
             elif sameName(markerName, ".") do
                 afterMarker = true
 
-            let parentId = (notnull directory).parentId
+            let parentId = directory!.parentId
             if afterMarker
             {
                 discard fillInfo(volume, parentId, &info)
@@ -419,8 +419,8 @@ namespace WinFsp
         if value == "." do
             return fillInfo(volume, directoryId, info)
         if value == ".." do
-            return fillInfo(volume, (notnull directory).parentId, info)
+            return fillInfo(volume, directory!.parentId, info)
         let child = volume.findChild(directoryId, value)
-        return child ? fillInfo(volume, (notnull child).id, info) : StatusObjectNameNotFound
+        return child ? fillInfo(volume, child!.id, info) : StatusObjectNameNotFound
     }
 }

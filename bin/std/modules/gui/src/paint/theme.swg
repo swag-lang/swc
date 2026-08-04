@@ -2,7 +2,7 @@
 
 using Core, Pixel
 
-private const DefaultImageName = "theme/widgets.png"
+private const DefaultImageName = "theme/widgets.svg"
 
 private const DefaultFontRegularName = "theme/segoeui.ttf"
 private const DefaultFontBoldName = "theme/segoeuib.ttf"
@@ -32,16 +32,19 @@ private const DefaultIcons64 = #include(DefaultIcons64Name)
 private const DefaultSpin = #include(DefaultSpinName)
 
 // Decoded default theme images, shared by every Theme instance. Decoding the
-// embedded PNGs is pure CPU work whose result never changes, so it is done once
-// per process (same policy as the TypeFace/Font caches).
+// embedded sources is pure CPU work whose result never changes, so it is done
+// once per process (same policy as the TypeFace/Font caches). The widgets atlas
+// is authored as a vector document; its rasterization depends on the requested
+// scale, so the last built image is cached beside the parsed drawing.
 private struct DefaultThemeImages
 {
-    lock:    Sync.Mutex
-    decoded: bool
-    widgets: Image
-    icons24: Image
-    icons64: Image
-    spin:    Image
+    lock:           Sync.Mutex
+    decoded:        bool
+    widgets:        Svg.Drawing                 // Vector widgets atlas, parsed once.
+    widgetsRasters: HashTable'(s32, Image)      // Rasterizations of `widgets`, by whole scale.
+    icons24:        Image
+    icons64:        Image
+    spin:           Image
 }
 
 private var g_DefaultThemeImages: DefaultThemeImages
@@ -57,7 +60,7 @@ private func defaultThemeImages()->*DefaultThemeImages
     Sync.scopedLock(&cache.lock)
     if !cache.decoded
     {
-        cache.widgets = expect Image.decode(DefaultImageName, DefaultImage)
+        cache.widgets = expect Svg.Drawing.parse(cast(string) DefaultImage)
         cache.icons24 = expect Image.decode(DefaultIcons24Name, DefaultIcons24)
         cache.icons64 = expect Image.decode(DefaultIcons64Name, DefaultIcons64)
         cache.spin    = expect Image.decode(DefaultSpinName, DefaultSpin)
@@ -67,10 +70,38 @@ private func defaultThemeImages()->*DefaultThemeImages
     return cache
 }
 
+// Returns the shared widgets atlas rasterized at `scale` device pixels per authored texel.
+//
+// Rasterizations are cached by scale: every theme of a process asks for the same few
+// whole scales, so each is built once and themes re-created at an already-seen scale
+// (headless test hosts, notably) reuse the pixels.
+private func defaultWidgetsImage(scale: f32)->*Image
+{
+    let cache = defaultThemeImages()
+    Sync.scopedLock(&cache.lock)
+
+    let key   = cast(s32) scale
+    let found = cache.widgetsRasters.tryFind(key)
+    if found do
+        return &found.value
+
+    let w = cast(s32) Math.round(cache.widgets.width * scale)
+    let h = cast(s32) Math.round(cache.widgets.height * scale)
+
+    // Rasterize with strong supersampling so tile edges carry exact coverage; cap
+    // the internal buffer so a dense display keeps the one-time cost bounded.
+    var ss = 4'u8
+    while ss > 1 and w * cast(s32) ss > 4096 do
+        ss /= 2
+
+    return &cache.widgetsRasters.add(key, cache.widgets.rasterize(w, h, ss)).value
+}
+
 // Owns decoded theme textures, icon atlases, typefaces, and derived font families.
 struct ThemeResources
 {
-    imgWidgets: Texture     // Img widgets associated with this value.
+    imgWidgets: Texture     // Widgets atlas texture, rasterized from the vector theme document.
+    atlasScale: f32         // Device pixels per authored atlas texel; zero until the atlas is built.
     #[Swag.Late]
     {
         icons24:             *ImageList     // Icons24 associated with this value.
@@ -164,11 +195,11 @@ impl Theme
         .fonts       = renderer.fontCache()
         .colors.setDark()
 
+        .ensureAtlasScale(renderer, 1)
+
         let images = defaultThemeImages()
         with me.res
         {
-            .imgWidgets = renderer.addImage(images.widgets)
-
             .icons24 = Memory.new'ImageList()
             .icons24.set(renderer.addImage(images.icons24), 24, 24)
 
@@ -180,6 +211,29 @@ impl Theme
         }
 
         .setupDefaultFonts()
+    }
+
+    // Keeps the widgets atlas texture at least as sharp as `scale` device pixels per authored texel.
+    //
+    // The vector theme document is the source of truth; the atlas texture is only its cached
+    // rasterization, rebuilt here so themed drawing stays one textured blit at native
+    // resolution. The scale is rounded up to a whole number so the nine-slice source cuts of
+    // [[ThemeImageRects]] stay on texel boundaries: on a fractional grid every tile border
+    // would sample its neighbor. The atlas only sharpens; a request at or below the current
+    // scale returns immediately, so a surface moving to a coarser monitor keeps the sharp
+    // atlas, which minifies cleanly.
+    mtd ensureAtlasScale(renderer: IRenderer, scale: f32)
+    {
+        let wanted = Math.max(Math.ceil(scale), 1.0)
+        if wanted <= .res.atlasScale do
+            return
+
+        if .res.atlasScale > 0 do
+            renderer.removeTexture(&.res.imgWidgets)
+
+        let image = defaultWidgetsImage(wanted)
+        .res.imgWidgets = renderer.addImage(dref image)
+        .res.atlasScale = wanted
     }
 
     // Loads the embedded typefaces and builds the default font families.

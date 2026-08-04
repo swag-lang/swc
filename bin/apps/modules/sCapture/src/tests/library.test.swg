@@ -279,11 +279,11 @@ using Swag, Core, File
 
     lib.setSearch("REPORT")
     @assert(view.items.count == 1)
-    @assert((notnull view.items[0]).fi.fullname == "beta.scapture")
+    @assert(view.items[0]!.fi.fullname == "beta.scapture")
 
     lib.setSearch("gamma")
     @assert(view.items.count == 1)
-    @assert((notnull view.items[0]).fi.fullname == "gamma.scapture")
+    @assert(view.items[0]!.fi.fullname == "gamma.scapture")
 
     lib.setSearch("nomatch")
     @assert(view.items.count == 0)

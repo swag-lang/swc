@@ -285,10 +285,10 @@ Result AstEmbeddedBlock::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
     if (inlinePayload &&
         inlinePayload->inlineRootRef == sema.curNodeRef() &&
         inlinePayload->narrowFactsBodyStartRef == childRef &&
-        sema.frame().hasNullNarrowFacts())
+        sema.frame().hasNarrowFacts())
     {
         SemaFrame frame = sema.frame();
-        frame.clearNullNarrowFacts();
+        frame.clearNarrowFacts();
         sema.pushFramePopOnPostNode(frame, sema.curNodeRef());
     }
 
@@ -309,10 +309,10 @@ Result AstDeferStmt::semaPreNode(Sema& sema)
 
     // A defer body runs at scope exit, not here: narrowing facts valid at the declaration
     // point may no longer hold when it executes.
-    if (sema.frame().hasNullNarrowFacts())
+    if (sema.frame().hasNarrowFacts())
     {
         SemaFrame frame = sema.frame();
-        frame.clearNullNarrowFacts();
+        frame.clearNarrowFacts();
         sema.pushFramePopOnPostNode(frame);
     }
 

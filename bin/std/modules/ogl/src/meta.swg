@@ -60,7 +60,7 @@ var g_Functions: Array'OneFunc
                 builderVars.appendString(", ")
             builderVars.appendString(p.name)
             builderVars.appendString(": ")
-            builderVars.appendString((notnull p.pointedType).fullname)
+            builderVars.appendString(p.pointedType!.fullname)
         }
 
         let retType = etype.returnType

@@ -102,5 +102,5 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
     @assert(face != null)
 
     context.allocator = allocatorB
-    (notnull face).destroy()
+    face!.destroy()
 }

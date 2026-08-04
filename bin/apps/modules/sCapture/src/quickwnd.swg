@@ -713,7 +713,7 @@ impl QuickWnd
             if !paintForm.title.isEmpty()
             {
                 let textColor = g_App.theme.colors.btnIcon_Text
-                let rect      = (notnull paintForm.itf).boundRect()
+                let rect      = paintForm.itf!.boundRect()
                 painter.drawStringCenter(rect.horzCenter(), rect.bottom(), paintForm.title, notnull btnp.font().regular, textColor)
             }
         }

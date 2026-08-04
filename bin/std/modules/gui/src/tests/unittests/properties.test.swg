@@ -93,7 +93,7 @@ impl IPropertyNotify for PropHeadlessRoData
 
     // 1 implicit section item + 3 fields.
     @assert(prop.items.count == 4)
-    @assert((notnull prop.items[0]).flags.has(.Section))
+    @assert(prop.items[0]!.flags.has(.Section))
 }
 
 // Public configuration methods keep their observable state synchronized, and clear makes the
@@ -118,7 +118,7 @@ impl IPropertyNotify for PropHeadlessRoData
     prop.focusNavigation()
     @assert(prop.selItem != null)
     prop.setFilter("no matching property")
-    @assert(!(notnull prop.items[1]).line.isVisible())
+    @assert(!prop.items[1]!.line.isVisible())
 
     prop.clear()
     @assert(prop.items.count == 0)
@@ -159,10 +159,10 @@ impl IPropertyNotify for PropHeadlessRoData
     @assert(ctrl.properties.edView.position.width > 0)
     @assert(ctrl.properties.edView.position.height > 0)
     @assert(ctrl.properties.items.count == 6)
-    @assert((notnull ctrl.properties.items[0]).line.isVisible())
-    @assert((notnull ctrl.properties.items[1]).line.isVisible())
-    @assert((notnull ctrl.properties.items[1]).line.position.height == ctrl.properties.gridLineHeight)
-    @assert((notnull ctrl.properties.items[1]).line.position.y >= ctrl.properties.gridLineHeight)
+    @assert(ctrl.properties.items[0]!.line.isVisible())
+    @assert(ctrl.properties.items[1]!.line.isVisible())
+    @assert(ctrl.properties.items[1]!.line.position.height == ctrl.properties.gridLineHeight)
+    @assert(ctrl.properties.items[1]!.line.position.y >= ctrl.properties.gridLineHeight)
 }
 
 // Keyboard navigation: focusNavigation selects the first navigable row, arrows move the
@@ -208,7 +208,7 @@ impl IPropertyNotify for PropHeadlessRoData
 
     prop.focusNavigation()     // selItem = count row
     host.keyPress(Input.Key.Return)
-    @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) (notnull prop.items[1]).editBox)
+    @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) prop.items[1]!.editBox)
 
     host.keyPress(Input.Key.Escape)
     @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) prop.edView)
@@ -227,7 +227,7 @@ impl IPropertyNotify for PropHeadlessRoData
 
     prop.focusNavigation()              // count row
     host.keyPress(Input.Key.Return)     // edit count
-    @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) (notnull prop.items[1]).editBox)
+    @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) prop.items[1]!.editBox)
 
     host.keyPress(Input.Key.Down)     // commit + move to label row
     @assert(prop.selItem == prop.items[2])
@@ -248,7 +248,7 @@ impl IPropertyNotify for PropHeadlessRoData
     host.keyPress(Input.Key.Return)     // edit count
     host.keyPress(Input.Key.Tab)        // -> edit label row
     @assert(prop.selItem == prop.items[2])
-    @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) (notnull prop.items[2]).editBox)
+    @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) prop.items[2]!.editBox)
 }
 
 struct PropHeadlessActionData
@@ -279,7 +279,7 @@ struct PropHeadlessArrayData
     prop.edView.sendResizeEvent()
 
     // items: [0]=section [1]=origin (vector) [2]=actions (array) [3]=element "0" [4]=visible (bool)
-    @assert(@isset((notnull prop.items[1]).label) and @isset((notnull prop.items[2]).label) and @isset((notnull prop.items[4]).label))
+    @assert(@isset(prop.items[1]!.label) and @isset(prop.items[2]!.label) and @isset(prop.items[4]!.label))
 
     // For each value row, the inner value line must start at or below the label bottom.
     func assertBelowLabel(item: *PropertiesItem)
@@ -311,7 +311,7 @@ struct PropHeadlessArrayData
 
     // The bool description is nudged down to optically center on the box: it carries a
     // positive top text padding derived from the font descent (never a hard-coded value).
-    let chk    = (notnull prop.items[4]).checkBox
+    let chk    = prop.items[4]!.checkBox
     let chkRow = notnull chk.parent
     var desc: #null *Label
     for c in chkRow.children do
@@ -398,7 +398,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     prop.addStruct(data, "S")
     prop.edView.sendResizeEvent()
 
-    let btn = notnull findIconButton((notnull prop.items[9]).line)     // the color swatch button
+    let btn = notnull findIconButton(prop.items[9]!.line)     // the color swatch button
 
     // Hover the button (no popup yet) -> hot.
     host.sendMouseEvent(btn, .Enter, {0, 0}, .Left, .None)
@@ -423,7 +423,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
 
     prop.focusNavigation()
     host.keyPress(Input.Key.End)     // enabled (checkbox) row
-    let chk = (notnull prop.items[3]).checkBox
+    let chk = prop.items[3]!.checkBox
     @assert(chk.isChecked())
 
     host.keyPress(Input.Key.Space)
@@ -450,7 +450,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     // The very first Right in navigation steps the slider and focuses it (so the
     // value changes immediately, not only on the second press).
     host.keyPress(Input.Key.Right)
-    let volumeSlider = (notnull prop.items[1]).sliderBox
+    let volumeSlider = prop.items[1]!.sliderBox
     @assert(volumeSlider.value() > 50)
     @assert(data.volume > 50)
     @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) volumeSlider.slider)
@@ -481,7 +481,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     prop.focusNavigation()
     @assert(prop.selItem == prop.items[1])
 
-    let edit = (notnull prop.items[1]).sliderBox.edit
+    let edit = prop.items[1]!.sliderBox.edit
 
     // Enter focuses the value box (not the slider track) and selects its whole text.
     host.keyPress(Input.Key.Return)
@@ -504,7 +504,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
 
     prop.focusNavigation()
     @assert(prop.selItem == prop.items[1])
-    let combo = (notnull prop.items[1]).comboBox
+    let combo = prop.items[1]!.comboBox
     @assert(combo.selectedIndex == 1)     // Mid
 
     // Enter opens the drop-down popup. The grid keeps the keyboard focus and forwards
@@ -513,7 +513,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     @assert(combo.popup != null)
     @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) prop.edView)
 
-    let pview = notnull cast(#null *PopupListView) (notnull combo.popup).scrollWnd.view
+    let pview = notnull cast(#null *PopupListView) combo.popup!.scrollWnd.view
     @assert(pview.hotIdx == 1)     // highlight starts on the current value
 
     // Down moves the highlight only; the committed value stays until Enter.
@@ -586,7 +586,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     prop.addStruct(data, "Settings")
 
     @assert(prop.items.count == 4)
-    @assert((notnull prop.items[0]).flags.has(.Section))
+    @assert(prop.items[0]!.flags.has(.Section))
     @assert(prop.sections.count == 1)
 }
 
@@ -1087,7 +1087,7 @@ impl Gui.IPropertyNotify for ValData
 
     let dynArr = notnull findFieldItem(prop, #nameof(PropMoveData.dyn))
     var elems: Array'(#null *PropertiesItem)
-    for it in prop.items where (notnull it).parent == dynArr do
+    for it in prop.items where it!.parent == dynArr do
         elems.add(it)
     @assert(elems.count == 3)
 
@@ -1109,7 +1109,7 @@ impl Gui.IPropertyNotify for ValData
     // Static array reorder: [1,2,3], move index 0 down -> [2,1,3].
     let statArr = notnull findFieldItem(prop, #nameof(PropMoveData.stat))
     var statElems: Array'(#null *PropertiesItem)
-    for it in prop.items where (notnull it).parent == statArr do
+    for it in prop.items where it!.parent == statArr do
         statElems.add(it)
     @assert(statElems.count == 3)
     prop.moveArrayValue(notnull statElems[0], 1)
@@ -1142,7 +1142,7 @@ impl Gui.IPropertyNotify for ValData
 
     let dynArr = findFieldItem(prop, #nameof(PropMoveData.dyn))
     var elems: Array'(#null *PropertiesItem)
-    for it in prop.items where (notnull it).parent == dynArr do
+    for it in prop.items where it!.parent == dynArr do
         elems.add(it)
     @assert(elems.count == 3)
 
@@ -1328,7 +1328,7 @@ impl IPropertyNotify for PropDefaultCustom
     @assert(enabledItem.isModified)
     @assert(!@isset(enabledItem.revertButton))
     let contentWidth = cast(f32) prop.editorWidth - prop.leftMargin - prop.rightMargin
-    @assert((notnull enabledItem.checkBox.parent).position.width > contentWidth)
+    @assert(enabledItem.checkBox.parent!.position.width > contentWidth)
 
     // Edit the value away from its default: the row becomes modified (no button either).
     countItem.editBox.setText("99")
@@ -1757,7 +1757,7 @@ struct PropHeadlessUsingDerived
     {
         for item, [idx] in prop.items
         {
-            if (notnull item).typeValue.name == name do
+            if item!.typeValue.name == name do
                 return idx
         }
 
@@ -1858,7 +1858,7 @@ struct PropSameCategData
     var categs = 0
     for item in opt.properties.items
     {
-        if (notnull item).flags.has(.Category) do
+        if item!.flags.has(.Category) do
             categs += 1
     }
 
@@ -1869,13 +1869,13 @@ struct PropSameCategData
     var descItem: #null *PropertiesItem
     for item in opt.properties.items
     {
-        if (notnull item).typeValue.name == "first" do
+        if item!.typeValue.name == "first" do
             descItem = item
     }
 
     let descIt = notnull descItem
     @assert(@isset(descIt.checkBox))
-    @assert((notnull descIt.checkBox.parent).position.width > cast(f32) opt.properties.editorWidth)
+    @assert(descIt.checkBox.parent!.position.width > cast(f32) opt.properties.editorWidth)
 }
 
 enum PropAlignChoice { A, B, C }

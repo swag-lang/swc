@@ -107,7 +107,7 @@ func addDlgButton(parent: *Wnd, text: string, fn: func(*Button))
 
 func createRootView()
 {
-    let view = (notnull g_Surface).view()
+    let view = g_Surface!.view()
     g_View               = view
     view.backgroundStyle = .View
 

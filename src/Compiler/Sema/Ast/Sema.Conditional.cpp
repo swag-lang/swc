@@ -239,13 +239,13 @@ Result AstConditionalExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childR
     // so it inherits the condition's narrowing facts.
     if (childRef == nodeTrueRef || childRef == nodeFalseRef)
     {
-        SemaHelpers::NullNarrowGuards guards;
-        SemaHelpers::collectNullNarrowGuards(sema, nodeCondRef, guards);
+        SemaHelpers::NarrowGuards guards;
+        SemaHelpers::collectNarrowGuards(sema, nodeCondRef, guards);
         const auto& facts = childRef == nodeTrueRef ? guards.whenTrue : guards.whenFalse;
         if (!facts.empty())
         {
             SemaFrame frame = sema.frame();
-            SemaHelpers::addNullNarrowFacts(frame, {facts.data(), facts.size()});
+            SemaHelpers::addNarrowFacts(frame, {facts.data(), facts.size()});
             sema.pushFramePopOnPostChild(frame, childRef);
         }
     }

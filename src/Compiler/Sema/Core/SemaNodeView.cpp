@@ -23,7 +23,7 @@ void SemaNodeView::compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part, Se
     if (mode != SemaNodeViewResolveE::Stored &&
         part.has(SemaNodeViewPartE::Type) &&
         typeRef_.isValid() &&
-        sema.frame().hasNullNarrowFacts())
+        sema.frame().hasNarrowFacts())
     {
         const TypeRef narrowedTypeRef = SemaHelpers::nullNarrowedTypeRef(sema, nodeRef_, typeRef_);
         if (narrowedTypeRef.isValid())

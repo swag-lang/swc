@@ -38,7 +38,7 @@ impl Application
     internal mtd captureMouse(wnd: *Wnd)
     {
         .mouseCaptureWnd = wnd
-        SetCapture((notnull wnd.surface).native.hWnd)
+        SetCapture(wnd.surface!.native.hWnd)
     }
 
     internal mtd releaseMouse()

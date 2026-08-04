@@ -437,10 +437,10 @@ func drawCard(painter: *Painter, slot: Math.Rectangle, card: *SceneCard, selecte
     if selected
     {
         let sel = Math.Rectangle{slot.x + 6, slot.y + 4, slot.width - 12, slot.height - 8}
-        painter.drawRoundRect(sel, 12, 12, (notnull g_View).themeColors().prop_FocusBorder, 2.0)
+        painter.drawRoundRect(sel, 12, 12, g_View!.themeColors().prop_FocusBorder, 2.0)
     }
 
-    let font = (notnull g_View).theme().createDefaultFont(15, .Bold)
+    let font = g_View!.theme().createDefaultFont(15, .Bold)
     let tcol = Color.lerpRgb(card.fill, Argb.Black, 0.72).withAlpha(a)
     painter.drawStringCenter(body.horzCenter(), body.vertCenter(), card.label.toString(), font, tcol)
 }
@@ -515,7 +515,7 @@ impl IPropertyEditor for RatingEditor
                 .iconPainter = func|rating, idx|(b, bc, pos, paintFlags)
                 {
                     bc.painter.setParams(.Antialiased)
-                    let on  = idx < (notnull rating).value
+                    let on  = idx < rating!.value
                     let col = on ? Argb.Goldenrod : Color.fromArgb(70'u8, Argb.Gray)
                     let rad = Math.min(pos.width, pos.height) * 0.28
                     bc.painter.fillCircle(pos.horzCenter(), pos.vertCenter(), rad, col)
@@ -622,7 +622,7 @@ func onRootEvent(_view: *Wnd, evt: IEvent)->bool
 
 func createRootView()
 {
-    let view = (notnull g_Surface).view()
+    let view = g_Surface!.view()
     g_View               = view
     view.backgroundStyle = .View
 

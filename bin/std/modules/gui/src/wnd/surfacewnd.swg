@@ -224,11 +224,11 @@ impl IWnd for SurfaceWnd
 
             var posClip = posCaption
             if srfn.flags.has(.MinimizeButton) do
-                posClip.setRight((notnull .minimizeBtn).position.x)
+                posClip.setRight(.minimizeBtn!.position.x)
             elif srfn.flags.has(.MaximizeButton) do
-                posClip.setRight((notnull .maximizeBtn).position.x)
+                posClip.setRight(.maximizeBtn!.position.x)
             elif srfn.flags.has(.CloseButton) do
-                posClip.setRight((notnull .closeBtn).position.x)
+                posClip.setRight(.closeBtn!.position.x)
             bc.painter.pushClippingRect(posClip)
             defer bc.painter.popClippingRect()
 

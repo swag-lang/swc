@@ -165,8 +165,9 @@ impl IWnd for Header
         var x = .padding.x
         for item, [idx] in .items
         {
-            .paintItem(evt.paintContext, notnull item, cast(u32) idx, x)
-            x += (notnull item).width
+            @assert(item != null)
+            .paintItem(evt.paintContext, item, cast(u32) idx, x)
+            x += item.width
 
             var rect = clientRect
             rect.x = x + (metrics.header_Separator * 0.5)
@@ -184,7 +185,7 @@ impl IWnd for Header
             {
                 let {hit, ?} = .hitTest(evt.surfacePos)
                 if hit == .hotIdx do
-                    .sigColumnClicked.call(me, (notnull .items[.hotIdx]).column)
+                    .sigColumnClicked.call(me, .items[.hotIdx]!.column)
             }
 
             if .moving or .clicked
@@ -205,7 +206,7 @@ impl IWnd for Header
             {
                 if !.flags.has(.Clickable) and !sep do
                     hit = Swag.U32.Max
-                elif !(notnull .items[hit]).isClickable do
+                elif !.items[hit]!.isClickable do
                     hit = Swag.U32.Max
             }
 
@@ -264,7 +265,7 @@ impl IWnd for Header
                     .correctMoving -= .itemWidthAt(.hotIdx)
                     .captureMouse()
                 }
-                elif (notnull .items[.hotIdx]).isClickable
+                elif .items[.hotIdx]!.isClickable
                 {
                     .clicked = true
                     .captureMouse()
@@ -364,7 +365,7 @@ impl Header
 
         for item in .items
         {
-            if (notnull item).column == column do
+            if item!.column == column do
                 return notnull item
         }
 
@@ -375,7 +376,7 @@ impl Header
     mtd const itemWidthAt(index: u32)->f32
     {
         Debug.assert(index < .items.count)
-        return .itemWidthForColumn((notnull .items[index]).column)
+        return .itemWidthForColumn(.items[index]!.column)
     }
 
     // Returns the effective width for one logical column identifier.
@@ -397,7 +398,7 @@ impl Header
     mtd itemPositionAt(index: u32)->f32
     {
         Debug.assert(index < cast(u32) .items.count)
-        return .itemPositionForColumn((notnull .items[index]).column)
+        return .itemPositionForColumn(.items[index]!.column)
     }
 
     // Returns the leading position for one logical column identifier.
@@ -434,7 +435,7 @@ impl Header
     mtd setItemWidth(index: u32, width: f32)
     {
         Debug.assert(index < .items.count)
-        .setItemWidthForColumn((notnull .items[index]).column, width)
+        .setItemWidthForColumn(.items[index]!.column, width)
     }
 
     // Sets an item width by logical column identifier and applies its configured limits.

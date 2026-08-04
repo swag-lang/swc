@@ -1178,6 +1178,30 @@ namespace
         return SemaHelpers::attachRuntimeFunctionToNode(sema, sema.curNodeRef(), IdentifierManager::RuntimeFunctionKind::RaiseException, node.codeRef());
     }
 
+    // `@assert(cond)` panics when `cond` is false, so the statements after it are only
+    // reachable with `cond` true: its flow facts hold for the remainder of the enclosing
+    // block, exactly like the surviving branch of a guard-style `if ... do return`.
+    void setupIntrinsicAssertNarrowFacts(Sema& sema, const AstIntrinsicCallExpr& node)
+    {
+        SmallVector<AstNodeRef> children;
+        sema.ast().appendNodes(children, node.spanChildrenRef);
+        if (children.empty())
+            return;
+
+        SemaHelpers::NarrowGuards guards;
+        SemaHelpers::collectNarrowGuards(sema, children[0], guards);
+        if (guards.whenTrue.empty())
+            return;
+
+        const AstNodeRef parentRef = sema.visit().parentNodeRef();
+        if (parentRef.isInvalid())
+            return;
+
+        SemaFrame frame = sema.frame();
+        SemaHelpers::addNarrowFacts(frame, {guards.whenTrue.data(), guards.whenTrue.size()});
+        sema.pushFramePopOnPostNode(frame, parentRef);
+    }
+
     bool intrinsicNeedsMathRuntimeSafety(const TokenId tokenId)
     {
         switch (tokenId)
@@ -1468,7 +1492,10 @@ Result AstIntrinsicCallExpr::semaPostNode(Sema& sema) const
     else if (tok.id == TokenId::IntrinsicSetContext)
         SWC_RESULT(setupIntrinsicSetContextRuntimeCall(sema, *this));
     else if (tok.id == TokenId::IntrinsicAssert)
+    {
         SWC_RESULT(setupIntrinsicAssertRuntimeCall(sema, *this));
+        setupIntrinsicAssertNarrowFacts(sema, *this);
+    }
     else if (tok.id == TokenId::IntrinsicGvtd)
     {
         if (SymbolFunction* fn = sema.currentFunction())

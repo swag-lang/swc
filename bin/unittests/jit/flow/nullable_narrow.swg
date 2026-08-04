@@ -160,6 +160,62 @@ func narrowNotNullTolerant()->s32
     return takesPtr(notnull q)
 }
 
+// `@assert` panics when its condition is false, so the statements after it are only
+// reachable with the condition true: its facts hold for the remainder of the block.
+func narrowAssert(p: #null *NarrowNode)->s32
+{
+    @assert(p != null)
+    return takesPtr(p)
+}
+
+// The proof holds across the statements that follow it, not just the next one.
+func narrowAssertAcrossStatements(p: #null *NarrowNode)->s32
+{
+    @assert(p != null)
+    let first = takesPtr(p)
+    let next  = p.next
+    return first + (next ? 1 : 0) + takesPtr(p)
+}
+
+// A logical chain proves every operand it requires.
+func narrowAssertAnd(a, b: #null *NarrowNode)->s32
+{
+    @assert(a != null and b != null)
+    return takesPtr(a) + takesPtr(b)
+}
+
+// Field access paths are asserted like locals.
+func narrowAssertField(o: *NarrowOwner)->s32
+{
+    @assert(o.node != null)
+    return takesPtr(o.node)
+}
+
+// Reassigning from a nullable source kills the asserted fact; a second assert re-proves it.
+func narrowAssertKill(p, q: #null *NarrowNode)->s32
+{
+    var cur = p
+    @assert(cur != null)
+    var total = takesPtr(cur)
+
+    cur = q
+    @assert(cur != null)
+    return total + takesPtr(cur)
+}
+
+// An assertion inside a nested block does not outlive it.
+func narrowAssertScoped(p: #null *NarrowNode)->s32
+{
+    {
+        @assert(p != null)
+        discard takesPtr(p)
+    }
+
+    if p do
+        return takesPtr(p)
+    return -1
+}
+
 #test
 {
     var node  = NarrowNode{value: 42}
@@ -204,4 +260,11 @@ func narrowNotNullTolerant()->s32
     @assert(narrowKillAssign(&node, null) == 42)
     @assert(narrowKillAssign(null, &node2) == -1)
     @assert(narrowNotNullTolerant() == 9)
+
+    @assert(narrowAssert(&node) == 42)
+    @assert(narrowAssertAcrossStatements(&node) == 85)
+    @assert(narrowAssertAnd(&node, &node2) == 50)
+    @assert(narrowAssertField(&owner) == 42)
+    @assert(narrowAssertKill(&node, &node2) == 50)
+    @assert(narrowAssertScoped(&node) == 42)
 }

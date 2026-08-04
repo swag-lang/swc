@@ -92,9 +92,10 @@ public impl TextReader
 
         for
         {
-            var ptr  = (notnull .buffer.buffer) + .byteSeek
+            @assert(.buffer.buffer != null)
+            var ptr  = .buffer.buffer + .byteSeek
             let ptrB = ptr
-            let ptrE = (notnull .buffer.buffer) + .buffer.count
+            let ptrE = .buffer.buffer + .buffer.count
 
             // u64 by u64
             while ptr + 8'u64 <= ptrE

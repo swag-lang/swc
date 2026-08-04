@@ -1132,11 +1132,11 @@ namespace
     // branches on `#typeof(x) == #null T` must not observe flow narrowing.
     void unNarrowIntrospectionView(Sema& sema, AstNodeRef childRef, SemaNodeView& view)
     {
-        if (!sema.frame().hasNullNarrowFacts() || !view.typeRef().isValid())
+        if (!sema.frame().hasNarrowFacts() || !view.typeRef().isValid())
             return;
 
         SmallVector4<const Symbol*> path;
-        if (!SemaHelpers::extractNullNarrowPath(sema, childRef, path))
+        if (!SemaHelpers::extractNarrowPath(sema, childRef, path))
             return;
 
         TypeRef declaredTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), path.back()->typeRef());

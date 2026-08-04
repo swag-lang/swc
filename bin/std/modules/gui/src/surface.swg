@@ -109,6 +109,10 @@ impl Surface
     {
         Debug.assert(scale > 0)
         .dpiScale = scale
+
+        // A move to a denser monitor must resharpen the shared theme atlas.
+        if @isset(.app.theme) and .app.theme.initialized and @isset(.app.renderer) do
+            .app.theme.ensureAtlasScale(.app.renderer, scale)
     }
 
     // Returns the drawable and viewport of this surface.

@@ -236,7 +236,7 @@ private func mathLayoutRadical(node: *MathNode, font: *Font, style: MathStyle, v
     {
         index = node.children[1]
         mathLayoutNode(notnull index, font, .ScriptScript, variant, options)
-        contentX = Math.max(contentX, (notnull index).metrics.width * 0.72 + 0.08 * em)
+        contentX = Math.max(contentX, index!.metrics.width * 0.72 + 0.08 * em)
     }
 
     let rootTop    = -radicand.metrics.ascent - gap - rule * 0.5
@@ -298,9 +298,9 @@ private func mathLayoutScripts(node: *MathNode, font: *Font, style: MathStyle, v
         let gap = 0.14'f32 * em
         node.metrics.width = base.metrics.width
         if sub do
-            node.metrics.width = Math.max(node.metrics.width, (notnull sub).metrics.width)
+            node.metrics.width = Math.max(node.metrics.width, sub!.metrics.width)
         if sup do
-            node.metrics.width = Math.max(node.metrics.width, (notnull sup).metrics.width)
+            node.metrics.width = Math.max(node.metrics.width, sup!.metrics.width)
 
         node.offsets[0]      = {(node.metrics.width - base.metrics.width) * 0.5, 0}
         node.metrics.ascent  = base.metrics.ascent
@@ -342,8 +342,8 @@ private func mathLayoutScripts(node: *MathNode, font: *Font, style: MathStyle, v
 
         if sub and sup
         {
-            let upperBottom = supY + (notnull sup).metrics.descent
-            let lowerTop    = subY - (notnull sub).metrics.ascent
+            let upperBottom = supY + sup!.metrics.descent
+            let lowerTop    = subY - sub!.metrics.ascent
             let wantedGap   = 0.16 * em
             if lowerTop - upperBottom < wantedGap
             {

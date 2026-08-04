@@ -44,7 +44,7 @@ impl NodeIndex
         let count = .childCounts.tryFind(node.parentId)
         if !count do
             return
-        Debug.assert((notnull count).value != 0)
+        Debug.assert(count!.value != 0)
         count.value -= 1
         if !count.value do
             .childCounts.remove(node.parentId)
@@ -54,32 +54,32 @@ impl NodeIndex
     {
         let entry = .byId.tryFind(nodeId)
         Debug.assert(entry != null)
-        (notnull entry).value = index
+        entry!.value = index
     }
 
     mtd nodePosition(id: u64)->u64
     {
         let entry = .byId.tryFind(id)
-        return entry ? (notnull entry).value : Swag.U64.Max
+        return entry ? entry!.value : Swag.U64.Max
     }
 
     mtd childId(parentId: u64, name: string)->u64
     {
         let entry = .byParent.tryFind(childIndexKey(parentId, name))
-        return entry ? (notnull entry).value : Swag.U64.Max
+        return entry ? entry!.value : Swag.U64.Max
     }
 
     mtd hasChildren(id: u64)->bool
     {
         let entry = .childCounts.tryFind(id)
-        return entry != null and (notnull entry).value != 0
+        return entry != null and entry!.value != 0
     }
 
     mtd changeParent(node: *Node, parentId: u64, name: string)->bool
     {
         let key         = childIndexKey(parentId, name)
         let destination = .byParent.tryFind(key)
-        if destination != null and (notnull destination).value != node.id do
+        if destination != null and destination!.value != node.id do
             return false
 
         if node.parentId != parentId or node.name.toString() != name

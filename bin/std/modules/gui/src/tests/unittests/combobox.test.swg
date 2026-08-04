@@ -32,11 +32,12 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
     combo.removeItemAt(0)
     @assert(combo.items.count == 2 and combo.selectedIndex == 1)
     @assert((notnull combo.selectedItem()).name.raw == "Three")
-    @assert((notnull combo.editBox).text() == "Three")
+    @assert(combo.editBox != null)
+    @assert(combo.editBox.text() == "Three")
 
     combo.removeItemAt(1)
     @assert(combo.items.count == 1 and combo.selectedIndex == Swag.U32.Max)
-    @assert(combo.selectedItem() == null and @countof((notnull combo.editBox).text()) == 0)
+    @assert(combo.selectedItem() == null and @countof(combo.editBox.text()) == 0)
 }
 
 // Selecting an item emits sigChanged + a command carrying the item id.
@@ -113,7 +114,7 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
 
     combo.setSelectedIndex(1)
     host.pump()
-    @assert((notnull combo.editBox).text() == "Beta")
+    @assert(combo.editBox!.text() == "Beta")
 }
 
 // Keyboard control: arrows move the selection (clamped at the ends, skipping

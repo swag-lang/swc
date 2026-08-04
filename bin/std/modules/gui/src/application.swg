@@ -136,7 +136,7 @@ private impl Application
     {
         if !wnd do
             return null
-        if (notnull wnd.surface).isDisabled do
+        if wnd.surface!.isDisabled do
             return null
         var scan = wnd
         while scan
@@ -224,7 +224,7 @@ private impl Application
         {
             // The raw movement is in physical screen pixels; deliver it in the
             // logical units of the target surface, like `surfacePos`.
-            let scale = (notnull targetWnd.surface).dpiScale
+            let scale = targetWnd.surface!.dpiScale
             let move  = .mouse.movement() / scale
             evt.surfacePos = targetWnd.screenToSurface(mousePos)
             evt.kind       = .Move
@@ -723,6 +723,9 @@ impl Application
             if Jobs.isSynchronous() do
                 discard catch Jobs.initialize()
         }
+
+        // A surface on a scaled display needs the theme atlas at least at its density.
+        .theme.ensureAtlasScale(.renderer, surface.dpiScale)
 
         .surfaces.add(surface)
 

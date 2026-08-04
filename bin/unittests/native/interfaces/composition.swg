@@ -68,7 +68,7 @@ func increment(h: *Holder)
     increment(&h)
     increment(&h)
     @assert(c.count == 12)
-    @assert((notnull h.itf).getValue() == 12)
+    @assert(h.itf!.getValue() == 12)
 }
 
 // Iterate over an array of interfaces with different concrete types.

@@ -24,6 +24,28 @@ Use this compact format. Keep observations factual and make the next step action
 - Related: issue, pull request, or TODO entry if applicable
 -->
 
+### `notnull` launders `readonly` away, `!.` does not
+
+- Area: compiler
+- Found while: sweeping `(notnull x).m` to `x!.m` after adding the `!.` not-null access
+- Observation: `notnull` yields a fresh *value*, so the qualifiers of the path it came from are
+  dropped. Reaching a member through it therefore hands out a mutable reference into storage the
+  caller only had read access to. `!.` accesses through the original path and keeps the
+  qualifier, which is why exactly one site out of 326 stopped compiling when it was converted.
+- Evidence: `SplitterCtrl.items` is declared `readonly`
+  ([splitterctrl.swg:40-42](bin/std/modules/gui/src/composite/splitterctrl.swg#L40-L42)), so from
+  outside `std/gui` the const `Array.opIndex` overload applies. `&(notnull
+  me.quickStyleBar.items[0]).size` compiles and produces a writable `*f32`;
+  `&me.quickStyleBar.items[0]!.size` produces `const *f32` and is rejected. sCapture uses the
+  first form to serialize pane sizes into a `readonly` collection
+  ([mainwnd.swg:210-211](bin/apps/modules/sCapture/src/mainwnd.swg#L210-L211)).
+- Next step: decide whether `notnull` should preserve the const/readonly qualifier of its operand
+  like `!.` does. It probably should — the current behavior is an unannounced escape hatch out of
+  `readonly`. Closing it needs a serialization path for `SplitterCtrl` pane sizes first
+  (`setPaneSize` exists for writes, but the serializer wants one address for read and write), then
+  a sweep of the other `notnull` sites that may be relying on the same laundering.
+- Related: the `!.` operator, `bin/unittests/jit/operators/notnull_access.swg`
+
 ### Cold-cache `std` test runs fail resolving core test-only exports
 
 - Area: compiler
@@ -44,7 +66,48 @@ Use this compact format. Keep observations factual and make the next step action
 - Next step: in the native-backend foreign resolver, check how a `<jit-constant>` relocation maps
   a module name to a concrete dll in test mode: downstream test builds must resolve `core` to
   `core.test.dll` (where test-only exports live), or the test-variant interface must not leak
-  test-only types to dependents in the first place.
+  test-only types to dependents in the first place. Making the test types non-`public` is NOT the
+  fix: without export, runtime interface dispatch stops binding the impl (the TagBin
+  `readElement` hook is silently never called and `tagbin.test.swg:611` fails), so the `public`
+  markers are required and the resolver is the only correct place.
+
+### Appending a `String` rvalue with `+=` corrupts the heap
+
+- Area: bin/std | compiler
+- Found while: accumulating traced SVG fragments into one `String` in a script
+- Observation: `someString += Format.toString(...)` — appending a temporary `String` value —
+  corrupts the heap. The damage surfaces later, as access violations inside unrelated
+  allocations, so the crash site points far away from the append. Appending a `string` view
+  (`+= s.toString()`) and `String.appendFormat` are sound. Appending a `String` lvalue was
+  replaced in the same experiment and has not been exonerated separately.
+- Evidence: scripted loop calling `Svg.trace` over 16 icon cells: with `outSvg +=
+  Format.toString(...)` in the loop, iteration 3 dies with 0xC0000005 inside `pixel.dll`; the
+  identical run with `appendFormat` plus `+= body.toString()` completes all 16 cells. The same
+  loop with no appends at all also completes, and the failure point moves with unrelated
+  allocation changes — classic layout-sensitive out-of-bounds or use-after-free behavior.
+- Next step: build a minimal repro without `pixel` (a loop appending `String` rvalues to a
+  growing `String`), then inspect which `opAssign`/append overload a `String` rvalue selects and
+  the drop ordering of the temporary around `+=` — the append may be reading the operand's
+  buffer after the temporary was dropped, or routing through a byte-slice overload whose length
+  is read from freed storage.
+
+### `Image.load` hands back the magenta placeholder for PNGs that decode correctly
+
+- Area: bin/std
+- Found while: regenerating the `texteffect.zoom` golden and comparing theme-atlas fidelity in
+  standalone scripts
+- Observation: `Image.load(path)` returned the magenta "missing image" placeholder for valid
+  theme PNGs, while `File.readAllBytes` + `Image.decode(".png", bytes)` decodes the same files
+  correctly. The placeholder makes the failure silent: a comparison harness happily measured
+  differences against solid magenta.
+- Evidence: the gui theme PNG atlases during the DPI/theme work; switching the scripts to
+  read-then-decode was the entire fix at first. Later in the same work, `Image.decode(".png",
+  bytes)` itself returned the placeholder for the same files when executed as a JIT-run script,
+  while the identical call decodes correctly compiled into a native module — so the failure is
+  context-dependent (JIT execution), not a parsing defect.
+- Next step: run one PNG decode under the JIT with the decoder instrumented, find which stage
+  fails only there (the placeholder swallows it), and make the failure loud (return the decode
+  failure) instead of returning placeholder pixels.
 
 ### Data-driven UI resource for `std/gui`
 
@@ -98,8 +161,11 @@ Use this compact format. Keep observations factual and make the next step action
 - Evidence: gui2 and the dark default theme at 150% show crisp text, hairlines, and tile
   borders; icons remain the only upscaled raster element. sCapture compiles and the main grab
   path converts spaces explicitly (`capturerectwnd.swg`, `screenshot.swg`,
-  `inplaceeditwnd.swg`).
-- Next step: source the theme icons as SVG (the `Pixel` SVG support can rasterize them at the
-  surface scale when the theme initializes). For sCapture, run a capture and in-place edit
-  session on a 150% display and on mixed-DPI monitors, and fix the remaining space mismatches
-  the session exposes.
+  `inplaceeditwnd.swg`). Automatic vectorization of the existing 24-pixel glyphs (`Svg.trace`
+  over each atlas cell) produces faithful but visually unconvincing outlines at that source
+  resolution, and was rejected.
+- Next step: the icon atlases need authored vector sources (or higher-resolution raster
+  sources) before the image lists can rebuild per scale the way the widgets atlas now does
+  through `Theme.ensureAtlasScale`. For sCapture, run a capture and in-place edit session on a
+  150% display and on mixed-DPI monitors, and fix the remaining space mismatches the session
+  exposes.

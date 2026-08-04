@@ -82,8 +82,8 @@ func popupHeadlessChanged(combo: *ComboBox, idx: u32)
     popup.addItem("B")
 
     @assert(popup.items.count == 3)
-    @assert(!(notnull popup.items[0]).isSeparator)
-    @assert((notnull popup.items[1]).isSeparator)
+    @assert(!popup.items[0]!.isSeparator)
+    @assert(popup.items[1]!.isSeparator)
     @assert(popup.selectedIndex == Swag.U32.Max)
 
     popup.itemHeight      = 30

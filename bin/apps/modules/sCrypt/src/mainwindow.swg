@@ -390,7 +390,7 @@ impl MainWindow
     mtd selectedMountPoint()->String
     {
         let item = .drive.selectedItem()
-        return item ? String.from((notnull item).name.raw) : String.from("")
+        return item ? String.from(item!.name.raw) : String.from("")
     }
 
     mtd beginOperation(kind: OperationKind)

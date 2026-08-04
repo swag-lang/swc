@@ -104,7 +104,7 @@ impl IWnd for EditBox
         {
         case .Gained:
             .originalText = .textStorage
-            .timerCaret   = (notnull .surface).app.addTimer(500'ms, me)
+            .timerCaret   = .surface!.app.addTimer(500'ms, me)
             .visibleCaret = true
             .computeCaretPos()
             .invalidate()

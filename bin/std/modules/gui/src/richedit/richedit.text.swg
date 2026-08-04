@@ -40,14 +40,14 @@ impl RichEditCtrl
                 // Pre allocate string to optimize append
                 count = 0
                 for var i = start.lineIndex + 1; i < end.lineIndex; i += 1 do
-                    count += (notnull .lines[i]).length()
+                    count += .lines[i]!.length()
                 result.text.reserve(result.text.count + count)
                 result.styles.reserve(result.styles.count + count)
 
                 for var i = start.lineIndex + 1; i < end.lineIndex; i += 1
                 {
-                    result.text.add((notnull .lines[i]).chars.toSlice())
-                    result.styles.add((notnull .lines[i]).styles.toSlice())
+                    result.text.add(.lines[i]!.chars.toSlice())
+                    result.styles.add(.lines[i]!.styles.toSlice())
                     result.text.add('\n')
                     result.styles.add(0)
                 }
@@ -80,8 +80,8 @@ impl RichEditCtrl
                 {
                     for [i] in rankEnd - rankBeg
                     {
-                        result.text.add((notnull .lines[li]).chars[rankBeg + i])
-                        result.styles.add((notnull .lines[li]).styles[rankBeg + i])
+                        result.text.add(.lines[li]!.chars[rankBeg + i])
+                        result.styles.add(.lines[li]!.styles[rankBeg + i])
                     }
                 }
 
@@ -152,7 +152,7 @@ impl RichEditCtrl
         var str: String
 
         var cutAti = i
-        while i < (notnull .lines[curLine]).length()
+        while i < .lines[curLine]!.length()
         {
             let l  = notnull .lines[curLine]
             let ch = l.chars[i]
@@ -464,7 +464,7 @@ public impl RichEditCtrl
         if .lines.count
         {
             cp.lineIndex     = .lines.count - 1
-            cp.charPosInLine = (notnull .lines[cp.lineIndex]).length()
+            cp.charPosInLine = .lines[cp.lineIndex]!.length()
         }
 
         .insertTextPrivate(&cp, text, txtStyle)
@@ -513,13 +513,13 @@ public impl RichEditCtrl
         var result: retval
         if cp.lineIndex >= .lines.count do
             return result
-        let len = (notnull .lines[cp.lineIndex]).chars.count
+        let len = .lines[cp.lineIndex]!.chars.count
         if cp.charPosInLine > len do
             return result
         if cp.charPosInLine == len do
             return {'\n', 0}
-        result.char  = (notnull .lines[cp.lineIndex]).chars[cp.charPosInLine]
-        result.style = (notnull .lines[cp.lineIndex]).styles[cp.charPosInLine]
+        result.char  = .lines[cp.lineIndex]!.chars[cp.charPosInLine]
+        result.style = .lines[cp.lineIndex]!.styles[cp.charPosInLine]
         return result
     }
 
@@ -557,7 +557,7 @@ public impl RichEditCtrl
                 .serialUndo += 1
 
             // Register action of deletion for overmode
-            if .overwriteMode and .cursorPos.charPosInLine != (notnull .lines[.cursorPos.lineIndex]).length()
+            if .overwriteMode and .cursorPos.charPosInLine != .lines[.cursorPos.lineIndex]!.length()
             {
                 pundo                    = Memory.new'RichEditUndo()
                 pundo.type               = .Delete
@@ -594,7 +594,7 @@ public impl RichEditCtrl
             pundo = notnull .undoMgr[.currentUndo - 2]
             if pundo.type == .Delete and pundo.concatChars
             {
-                if .cursorPos.charPosInLine != (notnull .lines[.cursorPos.lineIndex]).length()
+                if .cursorPos.charPosInLine != .lines[.cursorPos.lineIndex]!.length()
                 {
                     let r = .runeAt(.cursorPos)
                     pundo.runes.add(r.char)
@@ -628,7 +628,7 @@ public impl RichEditCtrl
             {
                 var cp = se
                 cp.lineIndex = caretI
-                if cp.charPosInLine > (notnull .lines[cp.lineIndex]).length() do
+                if cp.charPosInLine > .lines[cp.lineIndex]!.length() do
                     continue
                 .insertTextPrivate(&cp, @mkstring(&az[0], cpt), st)
             }
@@ -821,7 +821,7 @@ public impl RichEditCtrl
             let font = nnFont(fontR)
             for l in .lines
             {
-                let arr     = Painter.glyphs((notnull l).chars, font)
+                let arr     = Painter.glyphs(l!.chars, font)
                 let measure = Painter.measureString(arr, font)
                 result.w = Math.max(result.w, measure.width)
             }

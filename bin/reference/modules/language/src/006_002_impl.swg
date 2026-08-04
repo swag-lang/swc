@@ -100,7 +100,7 @@ alias ReflectedMyStructMethod = func(&MyStruct)->s32
 
     @assert(returnX != null)
     let method = notnull returnX
-    @assert((notnull method.pointedType).kind == .Func)
+    @assert(method.pointedType!.kind == .Func)
 
     let call = cast(ReflectedMyStructMethod) notnull method.value
     var value: MyStruct

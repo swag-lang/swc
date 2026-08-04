@@ -258,7 +258,7 @@ namespace
         frame.setCurrentLoopIndexTypeRef(indexTypeRef);
         frame.setCurrentLoopIndexOwnerRef(loopRef);
         if (iterationBodyRef.isValid())
-            SemaHelpers::killNullNarrowFactsForLoopBody(sema, iterationBodyRef, frame);
+            SemaHelpers::killNarrowFactsForLoopBody(sema, iterationBodyRef, frame);
         // A collection iterated by this loop: a structural mutation of that same storage
         // in the body (Array.add / remove / ...) invalidates the snapshot the loop reads.
         if (iterationRoot)
@@ -729,10 +729,10 @@ Result AstWhileStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) co
 
         // The condition re-establishes its narrowing facts at each iteration, but facts
         // coming from outside the loop must not survive a body that reassigns their root.
-        SemaHelpers::killNullNarrowFactsForLoopBody(sema, nodeBodyRef, frame);
-        SemaHelpers::NullNarrowGuards guards;
-        SemaHelpers::collectNullNarrowGuards(sema, nodeExprRef, guards);
-        SemaHelpers::addNullNarrowFacts(frame, {guards.whenTrue.data(), guards.whenTrue.size()});
+        SemaHelpers::killNarrowFactsForLoopBody(sema, nodeBodyRef, frame);
+        SemaHelpers::NarrowGuards guards;
+        SemaHelpers::collectNarrowGuards(sema, nodeExprRef, guards);
+        SemaHelpers::addNarrowFacts(frame, {guards.whenTrue.data(), guards.whenTrue.size()});
 
         sema.pushFramePopOnPostChild(frame, childRef);
         sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
@@ -751,7 +751,7 @@ Result AstInfiniteLoopStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& child
         frame.setCurrentBreakContent(sema.curNodeRef(), SemaFrame::BreakContextKind::Loop);
         frame.setCurrentLoopIndexTypeRef(sema.typeMgr().typeU64());
         frame.setCurrentLoopIndexOwnerRef(sema.curNodeRef());
-        SemaHelpers::killNullNarrowFactsForLoopBody(sema, nodeBodyRef, frame);
+        SemaHelpers::killNarrowFactsForLoopBody(sema, nodeBodyRef, frame);
         sema.pushFramePopOnPostChild(frame, childRef);
         sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
 

@@ -247,7 +247,7 @@ private impl ComboBox
             idx += dir
             if idx < 0 or idx >= cast(s32) .items.count do
                 return
-            if !(notnull .items[idx]).isSeparator do
+            if !.items[idx]!.isSeparator do
                 break
         }
 
@@ -261,7 +261,7 @@ private impl ComboBox
         {
             for item, [idx] in .items
             {
-                if !(notnull item).isSeparator
+                if !item!.isSeparator
                 {
                     .setSelectedIndex(cast(u32) idx)
                     return
@@ -272,7 +272,7 @@ private impl ComboBox
         {
             for var i = cast(s32) .items.count - 1; i >= 0; i -= 1
             {
-                if !(notnull .items[i]).isSeparator
+                if !.items[i]!.isSeparator
                 {
                     .setSelectedIndex(cast(u32) i)
                     return
@@ -425,7 +425,7 @@ impl ComboBox
     mtd setSelectedIndex(index: u32, notify = true)
     {
         Debug.assert(index < .items.count)
-        Debug.assert(!(notnull .items[index]).isSeparator)
+        Debug.assert(!.items[index]!.isSeparator)
         .applySelectedIndex(index, notify)
     }
 
@@ -456,7 +456,7 @@ private impl ComboBox
         if editBox
         {
             if .selectedIndex < .items.count do
-                editBox.setText((notnull .items[.selectedIndex]).name.raw)
+                editBox.setText(.items[.selectedIndex]!.name.raw)
             else do
                 editBox.setText("")
         }
@@ -465,7 +465,7 @@ private impl ComboBox
         {
             .sigChanged.call(me, .selectedIndex)
             if .selectedIndex < .items.count do
-                .postCommandEvent((notnull .items[.selectedIndex]).id)
+                .postCommandEvent(.items[.selectedIndex]!.id)
         }
 
         .invalidate()

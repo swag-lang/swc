@@ -79,7 +79,7 @@ func visitStructListReverse(values: &List'ListStructProbe)->s32
     values.remove(middle)
     @assert(@countof(values) == 2)
     @assert(values.head == first)
-    @assert((notnull values.head).next == values.tail)
+    @assert(values.head!.next == values.tail)
 
     values.remove(first)
     @assert(@countof(values) == 1)
@@ -158,8 +158,8 @@ func visitStructListReverse(values: &List'ListStructProbe)->s32
 
     let head = notnull values.head
     @assert(head.value.value == 11)
-    @assert((notnull head.next).value.value == 12)
-    @assert((notnull values.tail).value.value == 13)
+    @assert(head.next!.value.value == 12)
+    @assert(values.tail!.value.value == 13)
     @assert(visitStructList(&values) == 123)
     @assert(visitStructListReverse(&values) == 142)
 }

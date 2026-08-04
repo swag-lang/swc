@@ -1061,6 +1061,19 @@ bool CodeGenFunctionHelpers::tryUseCurrentFunctionReturnStorageForDirectExpr(Cod
     if (!codeGen.currentFunctionIndirectReturnReg().isValid() && !codeGen.hasCurrentFunctionIndirectReturnStackOffset())
         return false;
 
+    // A 'return' inside an inlined body leaves the expansion, not the enclosing function:
+    // AstReturnStmt::codeGenPostNode routes it to the inline result slot. Building the value
+    // straight into the enclosing function's indirect return slot would write the callee's
+    // result over the caller's, whose type is unrelated. A '#[CalleeReturn]' callee is the one
+    // whose 'return' really does return from the caller, so it keeps the direct storage.
+    if (codeGen.frame().hasCurrentInlineContext())
+    {
+        const CodeGenFrame::InlineContext& inlineCtx = codeGen.frame().currentInlineContext();
+        SWC_ASSERT(inlineCtx.payload != nullptr);
+        if (!inlineCtx.payload->returnsToCallerSite())
+            return false;
+    }
+
     const AstNodeRef resolvedNodeRef = codeGen.viewZero(nodeRef).nodeRef();
     if (!resolvedNodeRef.isValid())
         return false;

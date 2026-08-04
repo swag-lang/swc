@@ -125,6 +125,9 @@ struct ThemeMetrics
 
     label_Height: f32 = 24     // Theme measurement used for label height.
 
+    separator_HairlineSize: f32 = 1     // Theme measurement used for separator hairline size.
+    separator_AccentSize:   f32 = 4     // Theme measurement used for separator accent size.
+
     richEdit_Padding: f32 = 5     // Theme measurement used for rich edit padding.
     toolTip_Padding:  f32 = 2     // Theme measurement used for tool tip padding.
 }

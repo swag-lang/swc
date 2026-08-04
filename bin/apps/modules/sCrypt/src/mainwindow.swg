@@ -17,6 +17,14 @@ internal enum OperationKind
     Unmount
 }
 
+// Emphasis of the status line, from what the latest step left behind.
+internal enum StatusTone
+{
+    Idle        // Nothing is running and nothing has failed.
+    Active      // Work is running, or a drive is mounted.
+    Stopped     // The latest operation stopped.
+}
+
 // Long operation running outside the UI thread. Only one runs at a time, and the window
 // polls `job` with `timer` until the result is ready to be reported.
 struct VaultOperation
@@ -60,8 +68,13 @@ struct MainWindow
         unmountButton: *PushButton
     }
 
+    // The single status line displayed above the footer, and the glyph whose color reports its
+    // tone. Both are written only through `setStatus`.
     #[Swag.Late]
-    status: *Label     // Single status line displayed above the footer.
+    {
+        status:     *Label
+        statusIcon: *Label
+    }
 
     fileDlgState: FileDlgState
     mounted:      WinFsp.MountedVolume
@@ -87,6 +100,16 @@ internal func runMainWindowOperation(data: #null *void)
     window.runOperation()
 }
 
+// Sets a control in the fixed-width theme family.
+//
+// A path, a capacity, a unit, and a drive letter are read by the system, not by a reader, so
+// they are set like the compiler sets a name it knows and never look like prose.
+internal func setMachineFont(wnd: *Wnd)
+{
+    let theme = wnd.theme()
+    wnd.style.setFont(theme.createDefaultFontFS(theme.metrics.defaultFixedFontSize), .Regular)
+}
+
 impl MainWindow
 {
     func create(parent: *Wnd)->*MainWindow
@@ -97,6 +120,9 @@ impl MainWindow
         surface.minSize        = {1100, 790}
         result.backgroundStyle = .View
 
+        // One accent rule across the top identifies every standard Swag application surface.
+        Separator.create(result, .Top, .Accent)
+
         result.createHeader()
         result.createFooter()
 
@@ -105,8 +131,8 @@ impl MainWindow
         with cards
         {
             .dockStyle         = .Center
-            .margin            = {30, 0, 30, 14}
-            .horizontalSpacing = 30
+            .margin            = {32, 16, 32, 16}
+            .horizontalSpacing = 24
             .setColumnTrack(0, .Fraction, 1)
             .setColumnTrack(1, .Fraction, 1)
             .setRowTrack(0, .Fraction, 1)
@@ -117,32 +143,34 @@ impl MainWindow
         result.applyLayout()
         cards.computeLayout()
         result.setState(.Ready)
+        result.setStatus(.Idle, "Ready — create a vault or choose one to mount.")
         return result
     }
 
     mtd createHeader()
     {
-        let header = Wnd.create'Wnd(me, {0, 0, 0, 104})
+        let header = Wnd.create'Wnd(me, {0, 0, 0, 72})
         header.dockStyle = .Top
-        header.margin    = {30, 18, 30, 0}
+        header.margin    = {32, 20, 32, 0}
 
-        // `.` already means `me` in this method, so the rail is configured
-        // through its own name rather than through a `with` block.
-        let brandRail = Wnd.create'Wnd(header, {0, 0, 4})
-        brandRail.dockStyle       = .Left
-        brandRail.margin.z        = 12
-        brandRail.backgroundStyle = .Window
-        brandRail.style.addStyleSheetColors("wnd_Bk $hilight")
+        // The badge shares the line of the product name rather than floating between the name
+        // and its explanation, so the header reads as two rows instead of three.
+        let titleRow = Wnd.create'Wnd(header, {0, 0, 0, 44})
+        titleRow.dockStyle = .Top
 
-        let badge = Label.create(header, "PORTABLE  |  PASSWORD-LOCKED  |  NO SETUP", {0, 0, 330}, null, .SecondaryText)
+        // The badge is a compact claim about the product, so it is set fixed-width and sized
+        // from its own text: a hand-tuned width clips it as soon as the theme font changes.
+        const BadgeText = "PORTABLE  |  PASSWORD-LOCKED  |  NO SETUP"
+        let badgeFont = .theme().createDefaultFontFS(12, .Bold)
+        let badge     = Label.create(titleRow, BadgeText, {0, 0, Painter.measureString(BadgeText, badgeFont).width}, null, .SecondaryText)
         badge.dockStyle = .Right
         badge.setTextAlignment(.Right, .Center)
-        badge.style.setFont(.theme().createDefaultFontFS(12, .Bold), .Regular)
+        badge.style.setFont(badgeFont, .Regular)
 
-        let title = Label.create(header, "sCrypt", {0, 0, 0, 48})
-        title.dockStyle = .Top
+        let title = Label.create(titleRow, "sCrypt")
+        title.dockStyle = .Center
         title.setTextAlignment(.Left, .Center)
-        title.style.setFont(.theme().createDefaultFont(36, .Bold), .Regular)
+        title.style.setFont(.theme().createDefaultFont(34, .Bold), .Regular)
 
         let subtitle = Label.create(header, "Encrypted storage that looks and behaves like a regular Windows drive.")
         subtitle.dockStyle = .Center
@@ -153,39 +181,69 @@ impl MainWindow
 
     mtd createFooter()
     {
-        let footer = Label.create(me, "WinFsp - Windows File System Proxy, Copyright (C) Bill Zissimopoulos - github.com/winfsp/winfsp", {0, 0, 0, 24}, null, .SecondaryText)
+        let footer = Label.create(me, "WinFsp — Windows File System Proxy, Copyright (C) Bill Zissimopoulos — github.com/winfsp/winfsp", {0, 0, 0, 22}, null, .SecondaryText)
         footer.dockStyle = .Bottom
-        footer.margin    = {34, 4, 34, 12}
+        footer.margin    = {32, 0, 32, 12}
         footer.setTextAlignment(.Left, .Center)
 
-        let statusFrame = Wnd.create'FrameWnd(me, {0, 0, 0, 64})
-        statusFrame.dockStyle = .Bottom
-        statusFrame.margin    = {30, 0, 30, 10}
-        statusFrame.setFrameForm(.Square)
-        statusFrame.setFrameFlags(.Borders)
+        // The status line is raised off the ground by its own fill. A border around it would
+        // draw a third box on a surface that already reads without one.
+        let statusView = Wnd.create'Wnd(me, {0, 0, 0, 52})
+        statusView.dockStyle       = .Bottom
+        statusView.margin          = {32, 0, 32, 12}
+        statusView.backgroundStyle = .Window
+        statusView.padding         = {20, 8, 20, 8}
 
-        let statusView = statusFrame.createView'Wnd()
-        statusView.padding = {14, 8, 14, 8}
-        let statusIcon = Label.create(statusView, "", {0, 0, 30})
-        statusIcon.dockStyle = .Left
-        statusIcon.margin.z  = 8
-        var statusGlyph = .theme().icon24(ThemeIcons24.About, 22)
-        statusGlyph.color = .themeColors().label_TextLight
-        statusIcon.setIcon(statusGlyph)
+        .statusIcon           = Label.create(statusView, "", {0, 0, 24})
+        .statusIcon.dockStyle = .Left
+        .statusIcon.margin.z  = 12
 
-        .status           = Label.create(statusView, "Ready - create a vault or choose one to mount.")
+        .status           = Label.create(statusView, "")
         .status.dockStyle = .Center
         .status.setTextAlignment(.Left, .Center)
         statusView.applyLayout()
     }
 
-    mtd createNewVaultCard(parent: *GridLayoutCtrl)->*FrameWnd
+    // Reports the outcome of the latest step on the single status line.
+    //
+    // One glyph, three colors: the theme atlas has no monochrome success or failure glyph, and
+    // borrowing a colored one would put a third hue on a two-color surface. The color alone
+    // separates a line that is waiting from one that reports work, or one that stopped.
+    mtd setStatus(tone: StatusTone, text: string)
+    {
+        let colors = .themeColors()
+
+        var glyphColor, textColor: Color = undefined
+        switch #complete tone
+        {
+        case .Idle:
+            glyphColor = colors.label_TextLight
+            textColor  = colors.label_TextLight
+
+        case .Active:
+            glyphColor = colors.hilight
+            textColor  = colors.label_Text
+
+        case .Stopped:
+            glyphColor = colors.error
+            textColor  = colors.error
+        }
+
+        var glyph = .theme().icon24(ThemeIcons24.About, 20)
+        glyph.color = glyphColor
+        .statusIcon.setIcon(glyph)
+        .status.setTextColor(textColor)
+        .status.setText(text)
+    }
+
+    mtd createNewVaultCard(parent: *GridLayoutCtrl)->*Wnd
     {
         let card = VaultCard.create(parent, "Create a new vault", "Choose a fixed capacity. The complete container is randomized before it is ready.")
         let form = card.form
         .createForm = form
 
         .createPath = form.addTextField("CONTAINER FILE", placeholder: "C:\\path\\private.scrypt", icon: .theme().icon24(ThemeIcons24.OpenFile, 17))
+        setMachineFont(.createPath)
         let browse = form.addRowAction("Browse", .theme().icon24(ThemeIcons24.OpenFile, 16))
         browse.sigPressed += func|window = me|(btn)
         {
@@ -195,19 +253,19 @@ impl MainWindow
 
         .createSize = form.addTextField("FIXED CAPACITY", "256")
         .createSize.setUnsignedIntegerRange(1, 1024 * 1024)
+        setMachineFont(.createSize)
 
         // The multiplier read by `containerSize` follows this order.
         .createUnit = form.addRowChoice()
         .createUnit.addItem("MiB")
         .createUnit.addItem("GiB")
         .createUnit.setSelectedIndex(0, notify: false)
+        setMachineFont(.createUnit)
 
         .createPassword  = form.addPasswordField("PASSWORD", placeholder: "Required password")
         .confirmPassword = form.addPasswordField("CONFIRM PASSWORD", placeholder: "Enter the password again")
 
-        let actions = StackLayoutCtrl.create(card.body, .Right, {0, 0, 0, 38})
-        actions.dockStyle = .Bottom
-        .createButton     = PushButton.create(actions, "Create encrypted vault", {0, 0, 228, 38}, form: .Strong)
+        .createButton = PushButton.create(card.actions, "Create encrypted vault", {0, 0, 224, 36}, form: .Strong)
         .createButton.setIcon(.theme().icon24(ThemeIcons24.SaveAs, 18))
         .createButton.sigPressed += func|window = me|(btn)
         {
@@ -215,18 +273,19 @@ impl MainWindow
             window.createContainer()
         }
 
-        actions.computeLayout()
+        card.actions.computeLayout()
         card.endForm()
-        return card.frame
+        return card.panel
     }
 
-    mtd createMountVaultCard(parent: *GridLayoutCtrl)->*FrameWnd
+    mtd createMountVaultCard(parent: *GridLayoutCtrl)->*Wnd
     {
         let card = VaultCard.create(parent, "Mount an existing vault", "Unlock a container and expose it on any currently available drive letter.")
         let form = card.form
         .mountForm = form
 
         .mountPath = form.addTextField("CONTAINER FILE", placeholder: "Existing encrypted container", icon: .theme().icon24(ThemeIcons24.OpenFile, 17))
+        setMachineFont(.mountPath)
         let browse = form.addRowAction("Browse", .theme().icon24(ThemeIcons24.OpenFile, 16))
         browse.sigPressed += func|window = me|(btn)
         {
@@ -235,7 +294,11 @@ impl MainWindow
         }
 
         .mountPassword = form.addPasswordField("PASSWORD", placeholder: "Container password")
-        .drive         = form.addChoiceField("DRIVE LETTER")
+
+        // The lifetime of the drive belongs to the letter that carries it, so it is said under
+        // that field rather than as a loose paragraph at the bottom of the card.
+        .drive = form.addChoiceField("DRIVE LETTER", help: "The drive is available to Windows while sCrypt runs, then disappears when the app closes.")
+        setMachineFont(.drive)
 
         // Windows keeps A and B for floppies and C for the system disk, so the letters a
         // user expects come first and the unusual ones stay available further down.
@@ -247,13 +310,7 @@ impl MainWindow
         if .drive.items.count do
             .drive.setSelectedIndex(0, notify: false)
 
-        let note = Label.create(card.body, "The drive is available to Windows while sCrypt runs, then disappears when the app closes.", {0, 0, 0, 54}, null, .WordWrap | .SecondaryText)
-        note.dockStyle = .Top
-        note.setTextAlignment(.Left, .Top)
-
-        let actions = StackLayoutCtrl.create(card.body, .Right, {0, 0, 0, 38})
-        actions.dockStyle = .Bottom
-        .unmountButton    = PushButton.create(actions, "Unmount", {0, 0, 140, 38})
+        .unmountButton = PushButton.create(card.actions, "Unmount", {0, 0, 136, 36})
         .unmountButton.setIcon(.theme().icon24(ThemeIcons24.Stop, 18))
         .unmountButton.sigPressed += func|window = me|(btn)
         {
@@ -261,7 +318,7 @@ impl MainWindow
             window.unmountContainer()
         }
 
-        .mountButton = PushButton.create(actions, "Mount drive", {0, 0, 140, 38}, form: .Strong)
+        .mountButton = PushButton.create(card.actions, "Mount drive", {0, 0, 136, 36}, form: .Strong)
         .mountButton.setIcon(.theme().icon24(ThemeIcons24.Play, 18))
         .mountButton.sigPressed += func|window = me|(btn)
         {
@@ -269,9 +326,9 @@ impl MainWindow
             window.mountContainer()
         }
 
-        actions.computeLayout()
+        card.actions.computeLayout()
         card.endForm()
-        return card.frame
+        return card.panel
     }
 
     mtd showError(message: string, err: #null any = null)
@@ -386,7 +443,7 @@ impl MainWindow
         .operation.password.add(.createPassword.bytes())
         .createPassword.clear()
         .confirmPassword.clear()
-        .status.setText("Creating and randomizing the container...")
+        .setStatus(.Active, "Creating and randomizing the container...")
         .setState(.Creating)
         .beginOperation(.Create)
     }
@@ -417,7 +474,7 @@ impl MainWindow
         .operation.mount = mountPoint
         .operation.password.add(.mountPassword.bytes())
         .mountPassword.clear()
-        .status.setText("Starting the portable filesystem driver...")
+        .setStatus(.Active, "Starting the portable filesystem driver...")
         .setState(.Mounting)
         .beginOperation(.Mount)
     }
@@ -426,7 +483,7 @@ impl MainWindow
     {
         if .state != .Mounted do
             return
-        .status.setText("Synchronizing and unmounting the encrypted drive...")
+        .setStatus(.Active, "Synchronizing and unmounting the encrypted drive...")
         .setState(.Unmounting)
         .beginOperation(.Unmount)
     }
@@ -475,11 +532,11 @@ impl MainWindow
             if .operation.error != null
             {
                 .showError("Could not create the container.", .operation.error)
-                .status.setText("Container creation stopped.")
+                .setStatus(.Stopped, "Container creation stopped.")
             }
             else
             {
-                .status.setText("Container created. It is ready to mount.")
+                .setStatus(.Idle, "Container created. It is ready to mount.")
                 .mountPath.setText(.operation.path)
             }
 
@@ -489,19 +546,19 @@ impl MainWindow
             if .operation.error != null
             {
                 .showError("Could not mount the virtual disk.", .operation.error)
-                .status.setText("Mount stopped.")
+                .setStatus(.Stopped, "Mount stopped.")
                 .setState(.Ready)
             }
             else
             {
-                .status.setText(Format.toString("Encrypted drive mounted on %. It will unmount when sCrypt closes.", .operation.mount))
+                .setStatus(.Active, Format.toString("Encrypted drive mounted on %. It will unmount when sCrypt closes.", .operation.mount))
                 .setState(.Mounted)
             }
 
         case .Unmount:
             if .operation.error != null do
                 .showError("The drive was unmounted, but final synchronization stopped.", .operation.error)
-            .status.setText("Drive unmounted safely.")
+            .setStatus(.Idle, "Drive unmounted safely.")
             .setState(.Ready)
         }
 

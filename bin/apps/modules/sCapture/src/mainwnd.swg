@@ -792,12 +792,7 @@ impl MainWnd
         }
 
         // One Voltage rail identifies every standard Swag application surface.
-        with let brandRail = Wnd.create'Wnd(res, {0, 0, 0, 4})
-        {
-            .dockStyle       = .Top
-            .backgroundStyle = .Window
-            .style.addStyleSheetColors("wnd_Bk $hilight")
-        }
+        Separator.create(res, .Top, .Accent)
 
         // Create top bar
         with res.topBar = Wnd.create'Wnd(res, {0, 0, 64, 68})

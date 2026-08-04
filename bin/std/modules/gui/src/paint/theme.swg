@@ -112,18 +112,39 @@ struct Theme
 
 impl Theme
 {
-    // Applies the dark Swag palette and its square top-level surface geometry.
+    // Applies the dark Swag palette and its shared control geometry.
     mtd setSwagDark()
     {
         .colors.setSwagDark()
-        .metrics.surfaceWnd_CornerRadius = 0
+        .setSwagGeometry()
     }
 
-    // Applies the light Swag palette and its square top-level surface geometry.
+    // Applies the light Swag palette and its shared control geometry.
     mtd setSwagLight()
     {
         .colors.setSwagLight()
+        .setSwagGeometry()
+    }
+
+    // Gives a push button the geometry the theme already gives an edit box.
+    //
+    // The default atlas draws a push button as a pill, which is the one control that cannot sit
+    // next to a field without looking borrowed from another kit. Pointing it at the edit tiles
+    // is the whole change: same corner, same stroke weight, so a row of a form reads as one
+    // control and not as a box beside a capsule. Nothing else is repointed, because refusing a
+    // capsule is not the same as squaring every corner of the interface.
+    private mtd setSwagGeometry()
+    {
         .metrics.surfaceWnd_CornerRadius = 0
+
+        .rects.btnPush_Normal         = .rects.edit_SquareBk
+        .rects.btnPush_Hot            = .rects.edit_SquareBk
+        .rects.btnPush_Pressed        = .rects.edit_SquareBk
+        .rects.btnPush_Disabled       = .rects.edit_SquareBk
+        .rects.btnPush_NormalBorder   = .rects.edit_SquareBorder
+        .rects.btnPush_HotBorder      = .rects.edit_SquareBorder
+        .rects.btnPush_PressedBorder  = .rects.edit_SquareBorder
+        .rects.btnPush_DisabledBorder = .rects.edit_SquareBorder
     }
 
     private mtd freeDefault()

@@ -73,15 +73,24 @@ glyph, another app's icon, or a letter tile.
 
 - Default to `ThemeColors.setSwagDark()`. Offer `setSwagLight()` only when the app exposes a real
   theme choice. Never invent an app-local accent.
-- Use Voltage only for focus, the primary action, the active state, and one four-pixel brand rail
-  per major surface or group. Never place Voltage text on a light ground.
+- Use Voltage only for focus, the primary action, and the active state, plus exactly one
+  four-pixel accent rail across the top edge of the application surface. One rail per window, not
+  one per group: three parallel accent bars accent nothing and read as scaffolding. Never place
+  Voltage text on a light ground.
 - Use system sans for interface prose and the fixed-width theme family for compiler-known names,
   paths, formats, identifiers, compact badges, and status data.
 - Use a spacing rhythm based on 4, 8, 16, 24, and 32 logical pixels. Align related labels and
   controls to one grid and keep the primary task visible without scrolling at the minimum size.
-- Prefer square frames, hairlines, flat controls, whitespace, and clear grouping. Avoid card soup,
-  repeated shadows, gradients, ornamental illustrations, and rounded chrome. Curves remain valid
-  inside user content when the app edits or displays curved content.
+- Separate a group by what it sits on, not by what is drawn around it. A raised fill is the first
+  tool, whitespace the second, and a rule the last. Every border and every divider is one more
+  line a reader has to step over, so a surface that answers each grouping question with another
+  line ends up as a grid of boxes. Never put a border, a rule, and a fill around the same group.
+- Refuse rounded chrome, not craft. Square means no control is a capsule or a pill, and that a
+  button carries the same corner and the same hairline stroke as the field beside it. It does not
+  mean a hard right angle and a heavy outline on everything: a surface hacked out of a slab has
+  missed the identity as badly as an upholstered one. Curves remain valid inside user content when
+  the app edits or displays curved content.
+- Avoid card soup, repeated shadows, gradients, and ornamental illustrations.
 - Keep one dominant action per task area. Give destructive actions distance and explicit wording.
   Show progress where work is not immediate, preserve keyboard focus, and keep failure text beside
   the operation that stopped.

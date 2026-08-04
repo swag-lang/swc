@@ -169,6 +169,14 @@ surface, take these rules from it:
 - **No script.** A page is one static file. Interaction that needs more than CSS —
   `<details>`, `:target`, `:hover` — is not added. A unit test enforces this.
 
+These rules are written for a generated page, where a reader scans a long document and a rule
+tells them where one entry ends. **On an application surface a line costs more than it pays.**
+The same instinct applied to a window produces a grid of boxes: a border around each panel, a
+divider between each block, and a rail beside each of them. There, raise a group with its own
+fill first, space it second, and rule it only when neither works — and expect to draw one rule,
+not one per group. [build-swag-standard-apps](../build-swag-standard-apps/SKILL.md) governs an
+application surface; this section governs a page.
+
 ## Match The Editor
 
 `vscode/themes/swag-dark.json` uses the same token colors as the documentation, so code

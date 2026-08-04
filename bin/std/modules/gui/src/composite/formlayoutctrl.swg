@@ -1,6 +1,6 @@
 #global public
 
-using Core
+using Core, Pixel
 
 // Selects where a form places labels relative to their fields.
 enum FormLabelPlacement
@@ -9,7 +9,11 @@ enum FormLabelPlacement
     Left      // Places labels in a shared column to the left of fields.
 }
 
-// Configures the geometry shared by every row in a [[Gui.FormLayoutCtrl]].
+// Configures the geometry and the label presentation shared by every row in a
+// [[Gui.FormLayoutCtrl]].
+//
+// The form creates its own labels, so `labelFont` and `labelFlags` are how a surface gives them
+// its own emphasis instead of restyling them one by one after the fact.
 struct FormLayoutOptions
 {
     labelPlacement: FormLabelPlacement = Above         // Label placement used by every row.
@@ -21,6 +25,8 @@ struct FormLayoutOptions
     controlSpacing                     = 8.0'f32       // Gap between a field and its optional action.
     helpSpacing                        = 4.0'f32       // Gap before optional help text.
     rowSpacing                         = 12.0'f32      // Gap between consecutive rows.
+    labelFont:      #null *Font        = null          // Font applied to every created label, or the theme font.
+    labelFlags:     LabelFlags         = None          // Presentation options applied to every created label.
 }
 
 // Describes one field row owned and arranged by a [[Gui.FormLayoutCtrl]].
@@ -189,10 +195,12 @@ impl FormLayoutCtrl
         Debug.assert(!action or action.parent == me, "form action needs the form as its parent")
 
         var row = FormLayoutRow{
-            label: Label.create(me, label),
+            label: Label.create(me, label, flags: .options.labelFlags),
             field: field,
             action: action}
         row.label.setTextAlignment(.Left, .Center)
+        if .options.labelFont do
+            row.label.style.setFont(notnull .options.labelFont, .Regular)
         if help
         {
             row.help = Label.create(me, help, flags: .WordWrap | .SecondaryText)

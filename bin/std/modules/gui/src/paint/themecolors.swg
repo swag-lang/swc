@@ -20,6 +20,7 @@ struct ThemeColors
     hilightDark:          Color     // Semantic color used for hilight dark.
     hilightLightContrast: Color     // Semantic color used for hilight light contrast.
     activeRail:           Color     // Narrow rule marking active and selected controls, or transparent when unused.
+    error:                Color     // Text and glyphs reporting an operation that stopped.
     disabled:             Color     // Semantic color used for disabled.
     transparent:          Color     // Semantic color used for transparent.
     lighterSmall:         Color     // Semantic color used for lighter small.
@@ -373,6 +374,7 @@ impl ThemeColors
         const Transparent    = 0x00000000
         const Blue           = 0xFF1473E6
         const LightBlue      = 0xFF2483F6
+        const Error          = 0xFFFF6666     // readable on a dark ground, unlike pure red
         const Disabled       = 0x5FFFFFFF
         const LighterSmall   = 0x0FFFFFFF
         const LighterMedium  = 0x1FFFFFFF
@@ -399,6 +401,7 @@ impl ThemeColors
         .hilightDark          = Color.darker(Color.fromArgb(Blue), 0.2)
         .hilightLightContrast = Color.contrasting(Color.fromArgb(Blue))
         .activeRail           = Transparent
+        .error                = Error
         .disabled             = Disabled
         .transparent          = Transparent
         .lighterSmall         = LighterSmall
@@ -756,6 +759,7 @@ impl ThemeColors
         const Transparent      = 0x00000000
         const Blue             = 0xFF1473E6
         const LightBlue        = 0xFF2483F6
+        const Error            = 0xFFC42B2B     // darkened so it stays readable on a light ground
         const Disabled         = 0x5F000000
         const DisabledBorder   = 0xFFDCDCDC     // weaker than the normal control border (Gray6)
         const LighterSmall     = 0x10888888
@@ -787,6 +791,7 @@ impl ThemeColors
         .hilightDark          = Color.darker(Color.fromArgb(Blue), 0.2)
         .hilightLightContrast = Color.contrasting(Color.fromArgb(Blue))
         .activeRail           = Transparent
+        .error                = Error
         .disabled             = Disabled
         .transparent          = Transparent
         .lighterSmall         = LighterSmall

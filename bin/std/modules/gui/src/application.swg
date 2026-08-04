@@ -714,7 +714,7 @@ impl Application
         {
             .renderer.setCurrentContext(surface.rc)
             .renderer.init()
-            .theme.setupDefault(.renderer)
+            .theme.setupDefault(.renderer, surface.dpiScale)
             .mainSurface = surface
 
             // Spin up the shared worker pool so the parallel rasterizers (glyph MSDF

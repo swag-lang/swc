@@ -71,8 +71,35 @@ struct CpuTexture
     stencil: Array'u8
 }
 
+// Inclusive device-pixel rectangle a draw batch can touch inside its target.
+private struct PixelBounds
+{
+    minX: s32
+    minY: s32
+    maxX: s32
+    maxY: s32
+}
+
+private impl PixelBounds
+{
+    // Reports whether the rectangle covers no pixel at all.
+    mtd const isEmpty()->bool => .minX > .maxX or .minY > .maxY
+
+    // Returns the number of pixel rows the rectangle spans.
+    mtd const rows()->s32 => .maxY - .minY + 1
+
+    // Returns the number of pixels the rectangle spans.
+    mtd const area()->u64 => cast(u64) (.maxX - .minX + 1) * cast(u64) .rows()
+}
+
 private
 {
+    // Pixel area below which splitting a batch into bands costs more than the rasterization saves.
+    const CpuBandPixelThreshold: u64 = 64 * 1024
+
+    // Rows a band must carry for scheduling it to be worth a job.
+    const CpuBandMinRows: s32 = 16
+
     const CpuProgram_Default: u8 = 0
     const CpuProgram_Simple:  u8 = 1
     const CpuProgram_Font:    u8 = 2
@@ -144,6 +171,64 @@ private impl RenderCpu
             return
         stencil.resize(count)
         Memory.clear(stencil.buffer!, count)
+    }
+
+    // Returns the transform mapping painter-stream positions to device pixels.
+    //
+    // The content scale is applied last, so positions and translations scale alike
+    // (see RenderOgl.buildModelMatrix).
+    mtd deviceTransform()->Transform2
+    {
+        var result = .worldTransform
+        result.multiply(.modelTransform)
+        if .contentScale != 1 do
+            result.multiply(Transform2.createScale(.contentScale, .contentScale, 0, 0))
+        return result
+    }
+
+    // Returns the pixels a triangle range can touch, clipped to the target and the scissor.
+    //
+    // Rounding matches [[Pixel.RenderCpu.drawTriangle]] exactly, so the result is a superset of
+    // the pixels the range actually shades. It bounds the scratch resets of the overlap passes
+    // and the band split of the parallel rasterizer.
+    mtd triangleRangeBounds(image: *Image, painter: *Painter, start, count: u32)->PixelBounds
+    {
+        let transform = .deviceTransform()
+
+        var lowest  = Vector2.Max
+        var highest = Vector2.NegMax
+        for var i = start; i < start + count; i += 1
+        {
+            let p = transform.transformPoint(painter.vertexBuffer[i].pos)
+            lowest.x  = Math.min(lowest.x, p.x)
+            lowest.y  = Math.min(lowest.y, p.y)
+            highest.x = Math.max(highest.x, p.x)
+            highest.y = Math.max(highest.y, p.y)
+        }
+
+        var result: retval
+        result.minX = Math.clamp(cast(s32) Math.floor(lowest.x), 0, image.width - 1)
+        result.minY = Math.clamp(cast(s32) Math.floor(lowest.y), 0, image.height - 1)
+        result.maxX = Math.clamp(cast(s32) Math.ceil(highest.x) - 1, 0, image.width - 1)
+        result.maxY = Math.clamp(cast(s32) Math.ceil(highest.y) - 1, 0, image.height - 1)
+
+        if .scissorOn
+        {
+            result.minX = Math.max(result.minX, cast(s32) .scissorRect.x)
+            result.minY = Math.max(result.minY, cast(s32) .scissorRect.y)
+            result.maxX = Math.min(result.maxX, cast(s32) .scissorRect.right() - 1)
+            result.maxY = Math.min(result.maxY, cast(s32) .scissorRect.bottom() - 1)
+        }
+
+        return result
+    }
+
+    // Zeroes `bounds` inside a per-pixel scratch plane stored as `width` bytes per row.
+    func clearScratchRows(plane: [*] u8, width: s32, bounds: PixelBounds)
+    {
+        let runWidth = cast(u64) (bounds.maxX - bounds.minX + 1)
+        for var y = bounds.minY; y <= bounds.maxY; y += 1 do
+            Memory.clear(plane + cast(u64) y * cast(u64) width + cast(u64) bounds.minX, runWidth)
     }
 
     func edge(a, b, p: Vector2)->f32
@@ -821,15 +906,14 @@ private impl RenderCpu
         return result
     }
 
-    mtd drawTriangle(image: *Image, input0, input1, input2: VertexLayout)
+    // Rasterizes one triangle, restricted to the rows of `[bandMinY, bandMaxY]`.
+    //
+    // A band is a row range of the target, never a clip: it selects which worker owns the
+    // pixel, so a band-restricted sweep of the whole range produces exactly the pixels the
+    // unrestricted sweep would.
+    mtd drawTriangle(image: *Image, input0, input1, input2: VertexLayout, bandMinY, bandMaxY: s32)
     {
-        var transform = .worldTransform
-        transform.multiply(.modelTransform)
-
-        // Map the logical painter stream to device pixels last, so positions and
-        // translations scale alike (see RenderOgl.buildModelMatrix).
-        if .contentScale != 1 do
-            transform.multiply(Transform2.createScale(.contentScale, .contentScale, 0, 0))
+        let transform = .deviceTransform()
 
         var v0 = input0
         var v1 = input1
@@ -849,9 +933,9 @@ private impl RenderCpu
         }
 
         let minX = Math.clamp(cast(s32) Math.floor(Math.min(p0.x, Math.min(p1.x, p2.x))), 0, image.width - 1)
-        let minY = Math.clamp(cast(s32) Math.floor(Math.min(p0.y, Math.min(p1.y, p2.y))), 0, image.height - 1)
+        let minY = Math.max(Math.clamp(cast(s32) Math.floor(Math.min(p0.y, Math.min(p1.y, p2.y))), 0, image.height - 1), bandMinY)
         let maxX = Math.clamp(cast(s32) Math.ceil(Math.max(p0.x, Math.max(p1.x, p2.x))) - 1, 0, image.width - 1)
-        let maxY = Math.clamp(cast(s32) Math.ceil(Math.max(p0.y, Math.max(p1.y, p2.y))) - 1, 0, image.height - 1)
+        let maxY = Math.min(Math.clamp(cast(s32) Math.ceil(Math.max(p0.y, Math.max(p1.y, p2.y))) - 1, 0, image.height - 1), bandMaxY)
         if minX > maxX or minY > maxY do
             return
 
@@ -914,60 +998,100 @@ private impl RenderCpu
         }
     }
 
-    mtd drawTriangleRange(image: *Image, painter: *Painter, start, count: u32)
+    mtd drawTriangleRange(image: *Image, painter: *Painter, start, count: u32, bandMinY, bandMaxY: s32)
     {
         var i   = start
         let end = start + count
         while i + 2 < end
         {
-            .drawTriangle(image, painter.vertexBuffer[i], painter.vertexBuffer[i + 1], painter.vertexBuffer[i + 2])
+            .drawTriangle(image, painter.vertexBuffer[i], painter.vertexBuffer[i + 1], painter.vertexBuffer[i + 2], bandMinY, bandMaxY)
             i += 3
+        }
+    }
+
+    // Rasterizes a triangle range over `bounds`, across the job pool when it is large enough.
+    //
+    // Bands partition the rows, so each pixel — color, stencil, and overlap scratch alike — is
+    // owned by exactly one worker and the triangles of a pixel keep their submission order. The
+    // rasterized image is therefore identical to the serial one, band split or not.
+    mtd rasterizeRange(image: *Image, painter: *Painter, start, count: u32, bounds: PixelBounds)
+    {
+        let bandCount = Math.min(cast(s32) Jobs.workerCount(), bounds.rows() / CpuBandMinRows)
+        if bounds.area() < CpuBandPixelThreshold or bandCount <= 1
+        {
+            .drawTriangleRange(image, painter, start, count, bounds.minY, bounds.maxY)
+            return
+        }
+
+        let bandRows = (bounds.rows() + bandCount - 1) / bandCount
+        var f        = {renderer: &me, image: image, painter: painter, start: start, count: count, minY: bounds.minY, maxY: bounds.maxY, bandRows: bandRows}
+        Jobs.parallelFor(cast(u32) bandCount, &f)
+        {
+            if !data do
+                return
+            let params = cast(*#decltype(f)) (data)
+            let bandY  = params.minY + cast(s32) index * params.bandRows
+            params.renderer.drawTriangleRange(params.image, params.painter, params.start, params.count, bandY, Math.min(bandY + params.bandRows - 1, params.maxY))
         }
     }
 
     mtd drawTriangles(painter: *Painter, start, count: u32)
     {
         let image = .currentImage()
-        if !image do
+        if !image or count < 3 do
+            return
+
+        let bounds = .triangleRangeBounds(image, painter, start, count)
+        if bounds.isEmpty() do
             return
 
         if !.overlapMode or .alphaResolve
         {
-            .drawTriangleRange(image, painter, start, count)
+            .rasterizeRange(image, painter, start, count, bounds)
             return
         }
 
+        // Both overlap passes only ever reach the pixels the range covers, so the scratch
+        // planes are reset over those bounds instead of over the whole target.
         let pixelCount = cast(u64) image.width * cast(u64) image.height
         if .overlapAlpha.count != pixelCount do
             .overlapAlpha.resize(pixelCount)
         if .overlapWritten.count != pixelCount do
             .overlapWritten.resize(pixelCount)
-        Memory.clear(.overlapAlpha.buffer!, pixelCount)
-        Memory.clear(.overlapWritten.buffer!, pixelCount)
+        clearScratchRows(.overlapAlpha.buffer!, image.width, bounds)
+        clearScratchRows(.overlapWritten.buffer!, image.width, bounds)
 
         // Destination alpha is the scratch channel in the OpenGL overlap path.
         .clearAlpha(image)
         .overlapPass = 1
-        .drawTriangleRange(image, painter, start, count)
+        .rasterizeRange(image, painter, start, count, bounds)
         .overlapPass = 2
-        .drawTriangleRange(image, painter, start, count)
+        .rasterizeRange(image, painter, start, count, bounds)
         .overlapPass = 0
     }
 
+    // Zeroes the destination alpha of the scissor region, the scratch channel of the overlap resolve.
+    //
+    // OpenGL does this with an alpha-masked `glClear`, which the scissor bounds; the region
+    // mirrors that exactly. The alpha byte is written in place: routing a single-channel reset
+    // through a `Color` round trip made this the dominant cost of rasterizing a vector atlas.
     mtd clearAlpha(image: *Image)
     {
+        if !image.pixelFormat.hasAlpha() do
+            return
+
         let minX = .scissorOn ? Math.clamp(cast(s32) .scissorRect.x, 0, image.width) : 0
         let minY = .scissorOn ? Math.clamp(cast(s32) .scissorRect.y, 0, image.height) : 0
         let maxX = .scissorOn ? Math.clamp(cast(s32) .scissorRect.right(), 0, image.width) : image.width
         let maxY = .scissorOn ? Math.clamp(cast(s32) .scissorRect.bottom(), 0, image.height) : image.height
+
+        // Every format carrying alpha stores it in the fourth byte, and rows are stored bottom-up.
+        let pixels = image.pixels.buffer!
         for var y = minY; y < maxY; y += 1
         {
-            for var x = minX; x < maxX; x += 1
-            {
-                var pixel = readPixel(image, x, y)
-                pixel.a = 0
-                writePixel(image, x, y, pixel)
-            }
+            let row = pixels + cast(u64) ((image.height - y - 1) * image.rowStride + minX * image.bytesPerPixel)
+            for var x = minX; x < maxX; x += 1 do
+                row[cast(u64) ((x - minX) * image.bytesPerPixel) + 3] = 0
         }
     }
 

@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 
 // Store-to-load forwarding: when a LoadRegMem reads the same slot a recent
@@ -25,6 +26,10 @@ namespace InstructionCombine
             MicroReg    src;
             MicroOpBits bits = MicroOpBits::Zero;
             uint64_t    off  = 0;
+            // For RIP-relative loads the true address lives in the
+            // relocation, not in (base, off): entries carry the relocation's
+            // identity instead, and only equal identities match.
+            uint64_t relocKey = 0;
         };
 
         using Cache = SmallVector<CacheEntry, 8>;
@@ -68,7 +73,7 @@ namespace InstructionCombine
             }
         }
 
-        bool forwardLoad(Context& ctx, const Cache& cache, MicroInstrRef loadRef, const MicroInstrOperand* ops)
+        bool forwardLoad(Context& ctx, const Cache& cache, MicroInstrRef loadRef, const MicroInstrOperand* ops, uint64_t relocKey = 0)
         {
             const MicroReg    dst  = ops[0].reg;
             const MicroReg    base = ops[1].reg;
@@ -77,10 +82,22 @@ namespace InstructionCombine
 
             for (const CacheEntry& e : cache)
             {
-                if (e.base == base && e.off == off && e.bits == bits && e.src.isValid() && e.src != dst)
+                if (e.relocKey == relocKey && e.base == base && e.off == off && e.bits == bits && e.src.isValid() && e.src != dst)
                 {
                     if (!ctx.claimAll({loadRef}))
                         return false;
+                    // A forwarded RIP-relative load leaves its relocation
+                    // behind on what becomes a plain register move; detach it
+                    // now so the emitter never tries to bind it.
+                    if (relocKey && ctx.builder)
+                    {
+                        for (MicroRelocation& reloc : ctx.builder->codeRelocations())
+                        {
+                            if (reloc.instructionRef == loadRef)
+                                reloc.instructionRef = MicroInstrRef::invalid();
+                        }
+                    }
+
                     MicroInstrOperand moveOps[3];
                     moveOps[0].reg    = dst;
                     moveOps[1].reg    = e.src;
@@ -98,6 +115,21 @@ namespace InstructionCombine
         if (!ctx.ssa)
             return;
 
+        // Relocation identity per instruction, so RIP-relative loads of the
+        // same target can forward to each other: their (base, off) pair is
+        // always ([ip], 0) and only the relocation tells two targets apart.
+        std::unordered_map<uint32_t, uint64_t> relocKeyByRef;
+        if (ctx.builder)
+        {
+            for (const MicroRelocation& reloc : ctx.builder->codeRelocations())
+            {
+                if (!reloc.instructionRef.isValid())
+                    continue;
+                const uint64_t key = (static_cast<uint64_t>(reloc.kind) << 56) ^ (reloc.targetAddress + 1);
+                relocKeyByRef[reloc.instructionRef.get()] = key;
+            }
+        }
+
         Cache cache;
 
         const auto view  = ctx.storage->view();
@@ -109,19 +141,24 @@ namespace InstructionCombine
 
             if (inst.op == MicroInstrOpcode::LoadRegMem && ops)
             {
-                // RIP-relative accesses are opaque here: two different
-                // globals both look like [ip + 0] - the displacement lives
-                // in a relocation this alias model cannot see - so neither
-                // forwarding nor caching is sound for them.
+                // A RIP-relative load participates through its relocation
+                // identity; one whose relocation cannot be found stays
+                // opaque (never matches, never cached).
+                uint64_t relocKey = 0;
                 if (ops[1].reg.isInstructionPointer())
                 {
-                    dropEntriesReferencing(cache, ops[0].reg);
-                    continue;
+                    const auto keyIt = relocKeyByRef.find(it.current.get());
+                    if (keyIt == relocKeyByRef.end())
+                    {
+                        dropEntriesReferencing(cache, ops[0].reg);
+                        continue;
+                    }
+                    relocKey = keyIt->second;
                 }
 
                 bool forwarded = false;
                 if (!ctx.isClaimed(it.current))
-                    forwarded = forwardLoad(ctx, cache, it.current, ops);
+                    forwarded = forwardLoad(ctx, cache, it.current, ops, relocKey);
                 // The load redefines its destination register; any cache entry
                 // whose `src` refers to it is now stale and must be dropped
                 // before a later load could reach for it.
@@ -139,10 +176,11 @@ namespace InstructionCombine
                 if (!forwarded && !ctx.isClaimed(it.current) && ops[1].reg.isValid() && ops[1].reg != ops[0].reg)
                 {
                     CacheEntry entry;
-                    entry.base = ops[1].reg;
-                    entry.src  = ops[0].reg;
-                    entry.bits = ops[2].opBits;
-                    entry.off  = ops[3].valueU64;
+                    entry.base     = ops[1].reg;
+                    entry.src      = ops[0].reg;
+                    entry.bits     = ops[2].opBits;
+                    entry.off      = ops[3].valueU64;
+                    entry.relocKey = relocKey;
                     cache.push_back(entry);
                 }
                 continue;

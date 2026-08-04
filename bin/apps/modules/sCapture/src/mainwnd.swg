@@ -3,12 +3,71 @@ var g_Main: #null *MainWnd
 
 // Constants
 const ClipboardFormat = "Swag.sCapture"
-const Icons24         = #include("../datas/icons24.png")
-const Icons48         = #include("../datas/icons48.png")
+const IconsSvg        = #include("../datas/icons.svg")
 const AppIcon         = #include("../datas/appicon.png")
 
 // Enums
 enum EditMode { Shape, Arrow, Line, Polygon, Text, Favorites, Draw, Highlight, Selection, Step, Image, PixSel, Callout }
+
+// Identifies a glyph of the application icon set (`datas/icons.svg`), in the grid
+// order of the document. The set is rasterized on demand per size and scale through
+// [[Gui.IconSet]], so every glyph stays sharp at any display density.
+enum CaptureIcons
+{
+    Shape                // Shape tool.
+    Line                 // Line tool.
+    Polygon              // Polygon tool.
+    Arrow                // Arrow tool.
+    Text                 // Text tool.
+    Favorites            // Quick-style favorites.
+    Capture              // Capture trigger.
+    Draw                 // Free-hand draw tool.
+    Library              // Capture library.
+    Highlight            // Highlight tool.
+    Select               // Selection tool.
+    Step                 // Numbered-step tool.
+    Image                // Image effect.
+    Blur                 // Blur effect.
+    Pixelate             // Pixelate effect.
+    Zoom                 // Zoom effect.
+    PixSel               // Pixel-selection tool.
+    Cube                 // Capture-content effect.
+    Circle               // Circle shape.
+    Rect                 // Rectangle outline shape.
+    ViewSmall            // Small recent view.
+    ViewMedium           // Medium recent view.
+    ViewBig              // Big recent view.
+    Calendar             // Library date grouping.
+    Archive              // Library all-captures entry.
+    Monitor              // Capture one monitor.
+    FullScreen           // Capture the full screen.
+    CaptureArea          // Capture a picked area.
+    ActiveWindow         // Capture the active window.
+    LastArea             // Capture the previous area again.
+    SquareFill           // Filled badge square.
+    TextAlignLeft        // Left text alignment.
+    TextAlignCenter      // Centered text alignment.
+    TextAlignRight       // Right text alignment.
+    AlignTop             // Top vertical alignment.
+    AlignMiddle          // Middle vertical alignment.
+    AlignBottom          // Bottom vertical alignment.
+}
+
+// The parsed application icon document, shared by the main window and the headless
+// test fixtures; parsed once per process.
+var g_CaptureIconsDrawing: Svg.Drawing
+var g_CaptureIconsParsed:  bool
+
+func captureIconsDrawing()->*Svg.Drawing
+{
+    if !g_CaptureIconsParsed
+    {
+        g_CaptureIconsDrawing = expect Svg.Drawing.parse(cast(string) IconsSvg)
+        g_CaptureIconsParsed  = true
+    }
+
+    return &g_CaptureIconsDrawing
+}
 
 enum BottomSize
 {
@@ -35,10 +94,11 @@ struct MainWnd
         captureBtn, libraryBtn, zoomBtn: *IconButton
     }
 
-    sizeBtn:                   #null *IconButton
-    embInfoFreeze:             #null *InfoBar
-    icons24, icons48, appIcon: ImageList
-    monitors:                  Array'Env.Monitor
+    sizeBtn:       #null *IconButton
+    embInfoFreeze: #null *InfoBar
+    icons:         IconSet
+    appIcon:       ImageList
+    monitors:      Array'Env.Monitor
 
     // State
     editMode:                                  EditMode   = .Shape
@@ -165,8 +225,7 @@ impl IWnd for MainWnd
     {
         .saveAppState()
         let renderer = .app().renderer
-        .icons24.release(renderer)
-        .icons48.release(renderer)
+        .icons.free()
         .appIcon.release(renderer)
     }
 
@@ -704,9 +763,9 @@ impl MainWnd
             }
         }
 
-        .captureBtn = IconButton.create(.topBar!, Icon.from(&.icons48, 6), {0, 0, 64, 64}, id: ActionCapture.DoIt)
+        .captureBtn = IconButton.create(.topBar!, .icon(.Capture, 48), {0, 0, 64, 64}, id: ActionCapture.DoIt)
         .captureBtn.setIconColor(Argb.White)
-        .libraryBtn = IconButton.create(.topBar!, Icon.from(&.icons48, 8), {64, 0, 64, 64}, id: ActionGlobal.ShowLibrary)
+        .libraryBtn = IconButton.create(.topBar!, .icon(.Library, 48), {64, 0, 64, 64}, id: ActionGlobal.ShowLibrary)
     }
 
     mtd setTheme()
@@ -758,26 +817,22 @@ impl MainWnd
         .applyLayout()
     }
 
+    // Creates an icon descriptor for an application glyph at `size` logical pixels.
+    mtd icon(idx: CaptureIcons, size = 24'f32)->Icon
+    {
+        return .icons.icon(cast(s32) idx, size, .theme().res.atlasScale)
+    }
+
     func create(parent: *Wnd)->*MainWnd
     {
         let srf = parent.surface!
         srf.minSize = {1152, 512}
 
-        var img24:  Image
-        var img48:  Image
         var imgApp: Image
-        #static if #command == Swag.CompilerCommand.Test
-        {
-            img24  = Image.create(480, 480, .RGBA8)
-            img48  = Image.create(480, 480, .RGBA8)
+        #static if #command == Swag.CompilerCommand.Test do
             imgApp = Image.create(512, 512, .RGBA8)
-        }
-        else
-        {
-            img24  = expect Image.decode(".png", Icons24)
-            img48  = expect Image.decode(".png", Icons48)
+        else do
             imgApp = expect Image.decode(".png", AppIcon)
-        }
 
         let renderer = parent.app().renderer
 
@@ -785,8 +840,7 @@ impl MainWnd
         {
             let resSrf = res.surface!
             resSrf.setView(res)
-            .icons24.set(renderer.addImage(img24), 24, 24)
-            .icons48.set(renderer.addImage(img48), 48, 48)
+            .icons.setup(renderer, captureIconsDrawing())
             .appIcon.set(renderer.addImage(imgApp))
             .backgroundStyle = .Window
             .mdlFavorite     = &res.mdlFormShape

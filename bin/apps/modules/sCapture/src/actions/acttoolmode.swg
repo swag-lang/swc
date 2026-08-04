@@ -32,70 +32,70 @@ impl IActionUI for ActionToolMode
         {
         case .Shape:
             evt.updatedFields |= .Icon | .Checked | .Name | .ToolTip
-            evt.icon          = Icon.from(&main.icons48, 0)
+            evt.icon          = main.icon(.Shape, 48)
             evt.name          = "Shape"
             evt.toolTip       = "Add circles and rectangle to the capture"
             evt.checked       = main.editMode == EditMode.Shape
 
         case .Arrow:
             evt.updatedFields |= .Icon | .Checked | .Name | .ToolTip
-            evt.icon          = Icon.from(&main.icons48, 3)
+            evt.icon          = main.icon(.Arrow, 48)
             evt.name          = "Arrow"
             evt.toolTip       = "Add arrows to the capture"
             evt.checked       = main.editMode == EditMode.Arrow
 
         case .Line:
             evt.updatedFields |= .Icon | .Checked | .Name | .ToolTip
-            evt.icon          = Icon.from(&main.icons48, 1)
+            evt.icon          = main.icon(.Line, 48)
             evt.name          = "Line"
             evt.toolTip       = "Add lines to the capture"
             evt.checked       = main.editMode == EditMode.Line
 
         case .Poly:
             evt.updatedFields |= .Icon | .Checked | .Name | .ToolTip
-            evt.icon          = Icon.from(&main.icons48, 2)
+            evt.icon          = main.icon(.Polygon, 48)
             evt.name          = "Polygon"
             evt.toolTip       = "Add polygons to the capture"
             evt.checked       = main.editMode == EditMode.Polygon
 
         case .Text:
             evt.updatedFields |= .Icon | .Checked | .Name | .ToolTip
-            evt.icon          = Icon.from(&main.icons48, 4)
+            evt.icon          = main.icon(.Text, 48)
             evt.name          = "Text"
             evt.toolTip       = "Add some text to the capture"
             evt.checked       = main.editMode == EditMode.Text
 
         case .Draw:
             evt.updatedFields |= .Icon | .Checked | .Name | .ToolTip
-            evt.icon          = Icon.from(&main.icons48, 7)
+            evt.icon          = main.icon(.Draw, 48)
             evt.name          = "Draw"
             evt.toolTip       = "Add some free hand paint to the capture"
             evt.checked       = main.editMode == EditMode.Draw
 
         case .Highlight:
             evt.updatedFields |= .Icon | .Checked | .Name | .ToolTip
-            evt.icon          = Icon.from(&main.icons48, 9)
+            evt.icon          = main.icon(.Highlight, 48)
             evt.name          = "Highlight"
             evt.toolTip       = "Highlight some parts of the capture"
             evt.checked       = main.editMode == EditMode.Highlight
 
         case .Step:
             evt.updatedFields |= .Icon | .Checked | .Name | .ToolTip
-            evt.icon          = Icon.from(&main.icons48, 12)
+            evt.icon          = main.icon(.Step, 48)
             evt.name          = "Step"
             evt.toolTip       = "Add some steps"
             evt.checked       = main.editMode == EditMode.Step
 
         case .Img:
             evt.updatedFields |= .Icon | .Checked | .Name | .ToolTip
-            evt.icon          = Icon.from(&main.icons48, 13)
+            evt.icon          = main.icon(.Image, 48)
             evt.name          = "Image"
             evt.toolTip       = "Add some images/effects"
             evt.checked       = main.editMode == EditMode.Image
 
         case .PixSel:
             evt.updatedFields |= .Icon | .Checked | .Name | .ToolTip
-            evt.icon          = Icon.from(&main.icons48, 17)
+            evt.icon          = main.icon(.PixSel, 48)
             evt.name          = "PixSel"
             evt.toolTip       = "Pixel selection"
             evt.checked       = main.editMode == EditMode.PixSel
@@ -111,14 +111,14 @@ impl IActionUI for ActionToolMode
 
         case .Favorites:
             evt.updatedFields |= .Icon | .Checked | .Name | .ToolTip
-            evt.icon          = Icon.from(&main.icons48, 5)
+            evt.icon          = main.icon(.Favorites, 48)
             evt.name          = "Favorites"
             evt.toolTip       = "Save multiple quick styles in one single location"
             evt.checked       = main.editMode == EditMode.Favorites
 
         case .Selection:
             evt.updatedFields |= .Icon | .Checked | .Name | .ToolTip
-            evt.icon          = Icon.from(&main.icons48, 10)
+            evt.icon          = main.icon(.Select, 48)
             evt.name          = "Select"
             evt.toolTip       = "Select forms"
             evt.checked       = main.editMode == EditMode.Selection or (capture and capture.drawSelRect)

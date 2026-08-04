@@ -26,19 +26,19 @@ impl IActionUI for ActionRecentSize
             evt.updatedFields |= .Name | .ToolTip | .Checked | .Icon
             evt.toolTip       = "Small recent view"
             evt.checked       = main.bottomSize == .Small
-            evt.icon          = Icon.from(&main.icons24, 0)
+            evt.icon          = main.icon(.ViewSmall)
 
         case .RecentMedium:
             evt.updatedFields |= .Name | .ToolTip | .Checked | .Icon
             evt.toolTip       = "Medium recent view"
             evt.checked       = main.bottomSize == .Medium
-            evt.icon          = Icon.from(&main.icons24, 1)
+            evt.icon          = main.icon(.ViewMedium)
 
         case .RecentBig:
             evt.updatedFields |= .Name | .ToolTip | .Checked | .Icon
             evt.toolTip       = "Big recent view"
             evt.checked       = main.bottomSize == .Big
-            evt.icon          = Icon.from(&main.icons24, 2)
+            evt.icon          = main.icon(.ViewBig)
 
         case .LibSmall:
             evt.updatedFields |= .Name | .Checked | .RenderingHint

@@ -44,8 +44,11 @@ impl IPropertyEditor for AlignEditor
 
                 // The sCapture toolbar icons when the app is there, letter fallbacks otherwise
                 // (the headless fixtures build panels without a full application).
-                if g_Main do
-                    .setIcon(Icon.from(&g_Main!.icons24, cast(s32) ((vert ? 11 : 8) + i)))
+                if g_Main
+                {
+                    let base = vert ? CaptureIcons.AlignTop : CaptureIcons.TextAlignLeft
+                    .setIcon(g_Main!.icon(cast(CaptureIcons) (cast(s32) base + i)))
+                }
                 else do
                     .name = Labels[i]
             }

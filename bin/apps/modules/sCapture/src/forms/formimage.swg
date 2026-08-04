@@ -392,19 +392,19 @@ impl IForm for FormImage
                 {
                 case .Image:
                     painter.fillRect(pp, .backColor)
-                    icon = Icon.from(&g_Main!.icons48, 13)
+                    icon = g_Main!.icon(.Image, 48)
 
                 case .Blur:
-                    icon = Icon.from(&g_Main!.icons48, 14)
+                    icon = g_Main!.icon(.Blur, 48)
 
                 case .Pixelate:
-                    icon = Icon.from(&g_Main!.icons48, 15)
+                    icon = g_Main!.icon(.Pixelate, 48)
 
                 case .Zoom:
-                    icon = Icon.from(&g_Main!.icons48, 16)
+                    icon = g_Main!.icon(.Zoom, 48)
 
                 case .Capture:
-                    icon = Icon.from(&g_Main!.icons48, 18)
+                    icon = g_Main!.icon(.Cube, 48)
                 }
 
                 icon.sizeX, icon.sizeY = 32
@@ -419,7 +419,7 @@ impl IForm for FormImage
             elif .kind == .Image and !.image.isValid()
             {
                 painter.fillRect(pp, .backColor)
-                let icon = Icon.from(&g_Main!.icons48, 13)
+                let icon = g_Main!.icon(.Image, 48)
                 icon.paint(painter, pp.horzCenter() - icon.sizeX * 0.5, pp.vertCenter() - icon.sizeY * 0.5, iconColor)
                 pp.inflate(-bSize * 0.5)
                 painter.drawRect(pp, pen)

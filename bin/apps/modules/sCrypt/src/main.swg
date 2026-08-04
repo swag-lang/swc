@@ -16,7 +16,9 @@ var g_App: Application
         Integration.runAndExit()
     }
 
+    StartupTrace.mark("#main enter")
     try Jobs.initialize()
+    StartupTrace.mark("Jobs.initialize (main)")
 
     // Persisted window placement and browse-dialog state. A failure to prepare the
     // folder only costs the memory between runs, never the application start.
@@ -28,13 +30,18 @@ var g_App: Application
 
     let appIcon = expect Image.decode(".png", AppIcon)
     g_App.setAppIcon(appIcon)
+    StartupTrace.mark("app icon decode")
     let surface = (try g_App.createSurface(80, 50, 1100, 790, SurfaceFlags.StandardWindow, surfaceId: "sCrypt"))!
     g_App.theme.setSwagDark()
     g_App.notifyThemeChanged()
     surface.setTitle("sCrypt — Private virtual drives")
+    StartupTrace.mark("setSwagDark+notifyThemeChanged")
     let mainWindow = MainWindow.create(surface.wnd)
+    StartupTrace.mark("MainWindow.create")
 
     surface.show()
+    StartupTrace.mark("surface.show")
+    StartupTrace.flush()
     discard g_App.run()
     mainWindow.shutdown()
 }

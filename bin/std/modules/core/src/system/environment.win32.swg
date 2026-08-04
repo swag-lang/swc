@@ -159,7 +159,7 @@ public func getSystemMetric(what: SystemMetric)->s32
 public func userLocaleName()->String
 {
     var name16: [LOCALE_NAME_MAX_LENGTH] u16
-    let len    = catch GetUserDefaultLocaleName(&name16[0], LOCALE_NAME_MAX_LENGTH) as err
+    let len = catch GetUserDefaultLocaleName(&name16[0], LOCALE_NAME_MAX_LENGTH) as err
     if err != null or len <= 1 do
         return ""
 

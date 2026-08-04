@@ -13,7 +13,7 @@ struct ParseOuter
 {
     rect:   ParseInner
     corner: f32
-    keep    = true
+    keep = true
 }
 
 // A struct decodes as a brace-enclosed field list in declaration order, nesting included.

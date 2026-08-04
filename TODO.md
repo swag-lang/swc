@@ -47,6 +47,55 @@ Use this compact format. Keep observations factual and make the next step action
   typed accessors cannot be generated at compile time, a UI resource reintroduces exactly the
   lookup boundary the builders just removed, and a resource editor would ship that cost to every
   window. Only then evaluate the editor.
+- Related: the `gui-resources` branch settled the compile-time half for the string and theme
+  layers. `Gui.validateStrings` parses a language file inside a `#run` block against a struct of
+  `string` fields whose declared values are the reference wording, so the resource is validated at
+  build time and read through typed fields with no lookup boundary; theme sheets reuse `TweakFile`
+  at runtime because a theme is a delta over a live value, not a set of declarations. The
+  remaining open half is only the original one: emitting typed *members* for a whole window.
+
+### Dangling `else` after a guarded statement binds to `try`, not to `if`
+
+- Area: language
+- Found while: implementing recursive `Directory.delete` on the `gui-resources` branch
+- Observation: in `if c do try a() else do try b()`, the `else` binds to `try a()` as its
+  failure handler instead of to the `if`. With `c` false, nothing runs at all; with `c` true and
+  `a()` succeeding, `b()` never runs either. The code compiles silently and both branches are
+  effectively lost, which turned `File.delete` calls into no-ops inside the first version of the
+  recursive delete.
+- Evidence: a 30-line repro with two counters shows `shapePlain(true); shapePlain(false)` calling
+  `fa` once and `fb` never; bracing both branches restores the expected behavior. The whole
+  repository was searched for the shape (`do (try|catch|expect) ...` followed by `else`) and holds
+  no other occurrence.
+- Next step: decide the language rule. Either refuse an `else` whose owner is ambiguous between a
+  guarded `do` statement and `try`/`catch`, or require `catch`-style `else` to sit on the same
+  statement. A parser diagnostic is enough to make the trap impossible.
+
+### TweakFile silently keeps the previous folder on an unknown `/Folder` line
+
+- Area: bin/std
+- Found while: debugging theme sheets on the `gui-resources` branch
+- Observation: a `/Name` line that matches no registered folder only fails when no folder was
+  selected yet. After a first successful folder line, an unknown folder name silently keeps the
+  previous folder current, so the following values are decoded into the wrong struct or fail with
+  a misleading `value not found` error.
+- Evidence: `TweakFile.parse` only checks `if !currentFolder` after the match loop
+  (`bin/std/modules/core/src/filesystem/tweakfile.swg`).
+- Next step: fail on any unmatched folder line, with the line number, and add the covering test.
+
+### Property-grid names and descriptions cannot follow a language switch
+
+- Area: bin/std
+- Found while: localizing sCapture on the `gui-resources` branch
+- Observation: the property grid reads `#[Name]`, `#[Description]`, and `#[Category]` attribute
+  strings, which are compile-time constants, so options dialogs keep their English wording when
+  `Application.setLanguage` retargets every string table.
+- Evidence: sCapture ships fully localized except its options dialog and the form property
+  panels (`bin/apps/modules/sCapture/src/options.swg`, `src/forms/*.swg`).
+- Next step: decide where translation belongs. The grid could resolve the attribute string
+  through the registered string tables when a matching key exists, which keeps attributes as the
+  reference wording and adds no lookup at call sites; measure whether that lookup at grid-build
+  time is acceptable before generalizing.
 
 ### sCrypt integration working-set growth
 

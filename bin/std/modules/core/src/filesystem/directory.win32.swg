@@ -27,7 +27,7 @@ func delete(dirName: string, recurse = false) fail
         var options: EnumerationOptions
         options.wantFiles       = true
         options.wantDirectories = true
-        let entries             = try enumerate(dirName, options)
+        let entries = try enumerate(dirName, options)
         for entry in entries
         {
             // Both branches are braced on purpose: after `if ... do try X()`, a

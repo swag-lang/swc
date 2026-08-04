@@ -5,9 +5,9 @@ using Swag, Core, Pixel
 // A private table with its own language file, as an application would register one.
 struct TestStrings
 {
-    hello:   string = "Hello"
-    stay:    string = "Stay"
-    quoted:  string = "Plain"
+    hello:  string = "Hello"
+    stay:   string = "Stay"
+    quoted: string = "Plain"
 }
 
 var g_TestStrings: TestStrings

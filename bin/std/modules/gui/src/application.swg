@@ -778,7 +778,7 @@ impl Application
     // cannot silently present itself as applied. Menus and command-driven controls pick the
     // new strings up on their next update; text set once at construction keeps its wording
     // until the window is created again, so a window that must follow the switch listens
-    // for the [[NotifyKind.LanguageChanged]] notification.
+    // for the [[Gui.NotifyEvent.Kind.LanguageChanged]] notification.
     mtd setLanguage(tag: string) fail
     {
         try applyLanguage(&.resources, tag)

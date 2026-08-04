@@ -10,51 +10,51 @@ using Core, Core.Errors
 // the active table through [[strings]]; never keep a copy across a language switch.
 struct Strings
 {
-    dlg_Ok:           string = "OK"                 // Confirmation button of a dialog.
-    dlg_Cancel:       string = "Cancel"             // Cancel button of a dialog.
-    dlg_Yes:          string = "Yes"                // Positive answer button.
-    dlg_No:           string = "No"                 // Negative answer button.
-    dlg_Close:        string = "Close"              // Close button of an informational dialog.
-    dlg_ConfirmTitle: string = "Please confirm"              // Title of a confirmation dialog.
-    dlg_ConfirmText:  string = "Do you want to continue?"    // Default question of a confirmation dialog.
-    dlg_ErrorTitle:   string = "Error"                       // Title of an error dialog.
+    dlg_Ok:           string = "OK"                           // Confirmation button of a dialog.
+    dlg_Cancel:       string = "Cancel"                       // Cancel button of a dialog.
+    dlg_Yes:          string = "Yes"                          // Positive answer button.
+    dlg_No:           string = "No"                           // Negative answer button.
+    dlg_Close:        string = "Close"                        // Close button of an informational dialog.
+    dlg_ConfirmTitle: string = "Please confirm"               // Title of a confirmation dialog.
+    dlg_ConfirmText:  string = "Do you want to continue?"     // Default question of a confirmation dialog.
+    dlg_ErrorTitle:   string = "Error"                        // Title of an error dialog.
 
-    fileDlg_TitleCreateFile:   string = "Create File"                                // File dialog title when creating a file.
-    fileDlg_TitleSelectFile:   string = "Select File"                                // File dialog title when picking one file.
-    fileDlg_TitleSelectFiles:  string = "Select Files"                               // File dialog title when picking several files.
-    fileDlg_TitleSelectFolder: string = "Select Folder"                              // File dialog title when picking a folder.
-    fileDlg_NewFolderTitle:    string = "New Folder"                                 // Title of the folder-creation dialog.
-    fileDlg_NewFolderField:    string = "FOLDER NAME"                                // Label of the folder-name field.
-    fileDlg_NewFolderDefault:  string = "New Folder"                                 // Proposed name of a created folder.
-    fileDlg_NewFolderHint:     string = "Folder name"                                // Placeholder of the folder-name field.
-    fileDlg_ErrFolderName:     string = "The folder name is not valid."              // Rejected folder name.
-    fileDlg_ErrFolderExists:   string = "A folder with this name already exists."    // Name collision when creating a folder.
-    fileDlg_ErrFolderCreate:   string = "The folder could not be created."           // Filesystem refusal when creating a folder.
-    fileDlg_ReplaceTitle:      string = "This file already exists."                  // Title of the overwrite confirmation.
-    fileDlg_ReplaceText:       string = "Do you want to replace it?"                 // Body of the overwrite confirmation.
+    fileDlg_TitleCreateFile:   string = "Create File"                                 // File dialog title when creating a file.
+    fileDlg_TitleSelectFile:   string = "Select File"                                 // File dialog title when picking one file.
+    fileDlg_TitleSelectFiles:  string = "Select Files"                                // File dialog title when picking several files.
+    fileDlg_TitleSelectFolder: string = "Select Folder"                               // File dialog title when picking a folder.
+    fileDlg_NewFolderTitle:    string = "New Folder"                                  // Title of the folder-creation dialog.
+    fileDlg_NewFolderField:    string = "FOLDER NAME"                                 // Label of the folder-name field.
+    fileDlg_NewFolderDefault:  string = "New Folder"                                  // Proposed name of a created folder.
+    fileDlg_NewFolderHint:     string = "Folder name"                                 // Placeholder of the folder-name field.
+    fileDlg_ErrFolderName:     string = "The folder name is not valid."               // Rejected folder name.
+    fileDlg_ErrFolderExists:   string = "A folder with this name already exists."     // Name collision when creating a folder.
+    fileDlg_ErrFolderCreate:   string = "The folder could not be created."            // Filesystem refusal when creating a folder.
+    fileDlg_ReplaceTitle:      string = "This file already exists."                   // Title of the overwrite confirmation.
+    fileDlg_ReplaceText:       string = "Do you want to replace it?"                  // Body of the overwrite confirmation.
 
-    browser_Shortcuts:   string = "Shortcuts"                              // Locations pane group of user shortcuts.
-    browser_Drives:      string = "Drives"                                 // Locations pane group of mounted drives.
-    browser_Desktop:     string = "Desktop"                                // Default shortcut to the desktop.
-    browser_Documents:   string = "Documents"                              // Default shortcut to the documents folder.
-    browser_Pictures:    string = "Pictures"                               // Default shortcut to the pictures folder.
-    browser_ColName:     string = "Name"                                   // File list column of entry names.
-    browser_ColModified: string = "Modified"                               // File list column of last write times.
-    browser_AllFiles:    string = "All Files"                              // Filter matching every extension.
-    browser_Back:        string = "Back"                                   // Navigate to the previous folder.
-    browser_Forward:     string = "Forward"                                // Navigate to the next folder.
-    browser_Up:          string = "Up"                                     // Navigate to the parent folder.
-    browser_Refresh:     string = "Refresh"                                // Reload the current folder.
-    browser_NewFolder:   string = "New Folder"                             // Create a folder in the current location.
-    browser_TipBack:     string = "Previous folder (Alt+Left)"             // Tooltip of [[browser_Back]].
-    browser_TipForward:  string = "Next folder (Alt+Right)"                // Tooltip of [[browser_Forward]].
-    browser_TipUp:       string = "Parent folder (Alt+Up)"                 // Tooltip of [[browser_Up]].
-    browser_TipRefresh:  string = "Refresh (F5)"                           // Tooltip of [[browser_Refresh]].
+    browser_Shortcuts:    string = "Shortcuts"                                   // Locations pane group of user shortcuts.
+    browser_Drives:       string = "Drives"                                      // Locations pane group of mounted drives.
+    browser_Desktop:      string = "Desktop"                                     // Default shortcut to the desktop.
+    browser_Documents:    string = "Documents"                                   // Default shortcut to the documents folder.
+    browser_Pictures:     string = "Pictures"                                    // Default shortcut to the pictures folder.
+    browser_ColName:      string = "Name"                                        // File list column of entry names.
+    browser_ColModified:  string = "Modified"                                    // File list column of last write times.
+    browser_AllFiles:     string = "All Files"                                   // Filter matching every extension.
+    browser_Back:         string = "Back"                                        // Navigate to the previous folder.
+    browser_Forward:      string = "Forward"                                     // Navigate to the next folder.
+    browser_Up:           string = "Up"                                          // Navigate to the parent folder.
+    browser_Refresh:      string = "Refresh"                                     // Reload the current folder.
+    browser_NewFolder:    string = "New Folder"                                  // Create a folder in the current location.
+    browser_TipBack:      string = "Previous folder (Alt+Left)"                  // Tooltip of [[browser_Back]].
+    browser_TipForward:   string = "Next folder (Alt+Right)"                     // Tooltip of [[browser_Forward]].
+    browser_TipUp:        string = "Parent folder (Alt+Up)"                      // Tooltip of [[browser_Up]].
+    browser_TipRefresh:   string = "Refresh (F5)"                                // Tooltip of [[browser_Refresh]].
     browser_TipNewFolder: string = "Create a folder in the current location"     // Tooltip of [[browser_NewFolder]].
-    browser_FolderName:  string = "Folder Name"                            // Name field label when picking a folder.
-    browser_FileName:    string = "File Name"                              // Name field label when picking a file.
-    browser_Folders:     string = "Folders"                                // Type filter entry when picking a folder.
-    browser_Type:        string = "Type"                                   // Label of the type filter field.
+    browser_FolderName:   string = "Folder Name"                                 // Name field label when picking a folder.
+    browser_FileName:     string = "File Name"                                   // Name field label when picking a file.
+    browser_Folders:      string = "Folders"                                     // Type filter entry when picking a folder.
+    browser_Type:         string = "Type"                                        // Label of the type filter field.
 
     prop_Copy:             string = "Copy"                              // Copy the value of a property.
     prop_Paste:            string = "Paste"                             // Paste into a property.
@@ -81,9 +81,9 @@ func strings()->const &Strings => &g_Strings
 // an application, plus the storage of its currently loaded translations.
 private struct StringTable
 {
-    type: typeinfo = Strings          // Reflected type of the table.
-    data: #null *void                 // The live table the fields of which are retargeted.
-    file: String                      // Base name of the per-language resource.
+    type: typeinfo = Strings     // Reflected type of the table.
+    data: #null *void            // The live table the fields of which are retargeted.
+    file: String                 // Base name of the per-language resource.
 
     // Decoded translation values. The table fields are views into these heap strings,
     // so the pool is only released after the table was reset to its reference values.

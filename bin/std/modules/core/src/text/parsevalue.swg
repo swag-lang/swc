@@ -165,6 +165,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->#null string f
         eat = parseString(cast(*String) patch, one)
         return Tokenize.eatCount(one, cast(u64) eat)
     }
+
     if !Reflection.isNative(type) do
         fail UnsupportedFormatError{Errors.mkString(Format.toString("unsupported type [[%]]", type.name))}
 

@@ -120,7 +120,7 @@ public impl ByteStream
 
     // Writes a value of type 'T' in little-endian byte order.
     //
-    // Use this instead of [[writeNative]] for a persisted or transmitted format,
+    // Use this instead of [[Core.ByteStream.writeNative]] for a persisted or transmitted format,
     // so the bytes do not depend on the architecture that produced them.
     mtd(T) writeLittleEndian(value: T)
     {

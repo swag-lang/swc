@@ -727,8 +727,10 @@ impl MainWnd
         case .System:
             if Utf8.startsWith(Env.userLocaleName().toString(), "fr") do
                 tag = "fr"
+
         case .French:
             tag = "fr"
+
         case .English:
             break
         }

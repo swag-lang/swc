@@ -6,8 +6,8 @@ using Core.Errors
 // One embedded resource: a name and its compile-time bytes.
 struct EmbeddedResource
 {
-    name:  String                       // Resource name, with `/` separators.
-    bytes: #null const [..] u8          // Compile-time bytes, owned by the program image.
+    name:  String                  // Resource name, with `/` separators.
+    bytes: #null const [..] u8     // Compile-time bytes, owned by the program image.
 }
 
 // Resolves a resource name through an ordered chain of providers.
@@ -26,8 +26,8 @@ struct EmbeddedResource
 // ```
 struct Bundle
 {
-    folders:  Array'String                // Disk roots, searched in registration order.
-    embedded: Array'EmbeddedResource      // Compile-time fallback bytes, searched last.
+    folders:  Array'String               // Disk roots, searched in registration order.
+    embedded: Array'EmbeddedResource     // Compile-time fallback bytes, searched last.
 }
 
 impl Bundle
@@ -112,7 +112,7 @@ impl Bundle
             var options: Directory.EnumerationOptions
             options.recurse         = true
             options.wantDirectories = false
-            let files               = catch Directory.enumerate(folder.toString(), options) as enumErr
+            let files = catch Directory.enumerate(folder.toString(), options) as enumErr
             if enumErr != null do
                 continue
 

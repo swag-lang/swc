@@ -24,6 +24,25 @@ as the idiom.
 4. Apply `modify-swag-codebase` for repository validation and `design-swag-bin-modules` plus
    `write-swag-public-api-docs` when a public declaration under `bin/` changes.
 
+## Organize Source Files Around Types
+
+A file is named for the type it introduces and holds that type with all of its `impl` blocks,
+including `impl SomeInterface for Type`. Related enums and the small helper types a type owns —
+its element type, its options, its result shape — belong in the same file.
+
+- Never split one type's `impl` across files by aspect. A `foo.view.swg` / `foo.operations.swg`
+  pair is the failure mode: it scatters one object's behavior over several files and none of the
+  names says what the file contains. Merge them into the type's own file. Size is not a reason to
+  split; the standard applications keep 800- to 900-line type files.
+- Give a second type in the file its own file instead, unless the first type owns it.
+- Extend a type from another file only when the extension belongs to a distinct feature that has
+  its own file already — a command, an action, a platform backend. The `impl` then sits next to
+  that feature, never in a file named after a layer.
+- Group code with no type of its own — native bindings, constants, free helpers — by one coherent
+  concern per file, and name the file for that concern.
+- Remember that `private` is file-local. Moving a declaration away from its callers breaks the
+  build unless it becomes `internal`, which is the default.
+
 ## Name Source Files Consistently
 
 - Name `.swg` and `.swgs` files entirely in lowercase. Do not mirror type casing in filenames.

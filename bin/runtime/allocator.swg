@@ -907,7 +907,7 @@ impl Allocator
         let foot = .footer(header)
 
         // Every allocated block records its owner heap ('setupAllocatedHeader').
-        let ownerHeap = cast #unnull (*AllocatorThreadHeap) header.ownerHeap
+        let ownerHeap = cast(*AllocatorThreadHeap) header.ownerHeap!
 
         if header.isTracked do
             .unlinkAllocated(header)
@@ -975,7 +975,7 @@ impl Allocator
             .unlinkAllocated(header)
 
             // Every tracked allocated block records its owner heap ('setupAllocatedHeader').
-            discard .decActive(cast #unnull (*AllocatorThreadHeap) header.ownerHeap)
+            discard .decActive(cast(*AllocatorThreadHeap) header.ownerHeap!)
             .statSub(&.countAlloc, 1)
             .statSub(&.sizeAlloc, header.userSize)
 

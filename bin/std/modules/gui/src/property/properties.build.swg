@@ -186,7 +186,7 @@ internal impl Properties
         {
         case Reflection.isStaticArray(value.pointedType):
             let item           = .addItem(value, data, parentItem)
-            let typeArr        = cast #unnull (const *Swag.TypeInfoArray) value.pointedType
+            let typeArr        = cast(const *Swag.TypeInfoArray) value.pointedType!
             let numItemsBefore = .items.count
 
             var newData = data
@@ -202,7 +202,7 @@ internal impl Properties
             item.numChilds += cast(u32) (.items.count - numItemsBefore)
 
         case Reflection.isEnum(value.pointedType):
-            let typeEnum = cast #unnull (const *Swag.TypeInfoEnum) value.pointedType
+            let typeEnum = cast(const *Swag.TypeInfoEnum) value.pointedType!
             .constructEnum(value, typeEnum, data, parentItem)
 
         case value.pointedType == Core.String:
@@ -215,14 +215,14 @@ internal impl Properties
             .constructBool(value, data, parentItem)
 
         case Reflection.isInteger(value.pointedType) or Reflection.isFloat(value.pointedType):
-            let typeNative = cast #unnull (const *Swag.TypeInfoNative) value.pointedType
+            let typeNative = cast(const *Swag.TypeInfoNative) value.pointedType!
             .constructNative(value, typeNative, data, parentItem)
 
         case value.pointedType == Array:
             .constructArray(value, data, parentItem)
 
         case Reflection.isStruct(value.pointedType):
-            let typeSubStruct = cast #unnull (const *Swag.TypeInfoStruct) value.pointedType
+            let typeSubStruct = cast(const *Swag.TypeInfoStruct) value.pointedType!
             if typeSubStruct.fromGeneric == Array
             {
                 .constructArray(value, data, parentItem)

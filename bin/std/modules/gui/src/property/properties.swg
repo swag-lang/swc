@@ -361,12 +361,12 @@ internal impl Properties
                 .refreshNative(item)
             elif Reflection.isString(pointed) and @isset(item.editBox)
             {
-                item.editBox.setText(dref cast #unnull (*string) item.data)
+                item.editBox.setText(dref cast(*string) item.data!)
                 .setEditMixed(item, item.editBox)
             }
             elif pointed == Core.String and @isset(item.editBox)
             {
-                item.editBox.setText(dref cast #unnull (*String) item.data)
+                item.editBox.setText(dref cast(*String) item.data!)
                 .setEditMixed(item, item.editBox)
             }
             elif pointed == Core.String and @isset(item.comboBox) do

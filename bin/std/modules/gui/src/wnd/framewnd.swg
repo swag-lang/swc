@@ -218,7 +218,7 @@ impl FrameWnd
         .view                 = Wnd.create'T(me, "", .position, hook: hook)
         .view.backgroundStyle = .Transparent
         .sendResizeEvent()
-        return cast #unnull (*T) .view
+        return cast(*T) .view!
     }
 
     // Replaces and destroys the current view, then attaches `what` to this frame.

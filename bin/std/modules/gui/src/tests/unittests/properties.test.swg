@@ -513,7 +513,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     @assert(combo.popup != null)
     @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) prop.edView)
 
-    let pview = cast #unnull (*PopupListView) combo.popup!.scrollWnd.view
+    let pview = cast(*PopupListView) combo.popup!.scrollWnd.view!
     @assert(pview.hotIdx == 1)     // highlight starts on the current value
 
     // Down moves the highlight only; the committed value stays until Enter.
@@ -523,7 +523,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     @assert(data.choice == .Mid)
 
     // A per-frame mouse-move outside the popup must not wipe the keyboard highlight.
-    host.sendMouseEvent(cast #unnull (*Wnd) pview, MouseEvent.Kind.Move, {2, 2}, Input.MouseButton.Left, Input.KeyModifiers.None)
+    host.sendMouseEvent(cast(*Wnd) pview!, MouseEvent.Kind.Move, {2, 2}, Input.MouseButton.Left, Input.KeyModifiers.None)
     @assert(pview.hotIdx == 2)
 
     // Enter commits the highlighted item (writes the data) and closes the edit.
@@ -1306,7 +1306,7 @@ impl IPropertyNotify for PropDefaultCustom
 
     // The default value comes from a real default-constructed instance of the struct.
     @assert(countItem.defaultData != null)
-    @assert((dref cast #unnull (*s32) countItem.defaultData) == 42)
+    @assert((dref cast(*s32) countItem.defaultData!) == 42)
 
     // Freshly built: at default -> not modified, no revert button, cannot... still resettable type.
     @assert(!countItem.isModified)
@@ -1389,7 +1389,7 @@ impl IPropertyNotify for PropDefaultCustom
     let valItem = findFieldItem(prop, #nameof(PropDefaultCustom.val))!
 
     // Value equals the declared default (5), but the override forces "modified".
-    @assert((dref cast #unnull (*s32) valItem.data) == 5)
+    @assert((dref cast(*s32) valItem.data!) == 5)
     @assert(valItem.isModified)
 
     // Reset is taken over by the notify interface: our handler runs, the built-in copy does not.
@@ -1518,16 +1518,16 @@ impl IPropertyNotify for PropDefaultCustom
     @assert(!prop.canUndo() and !prop.canRedo())
 
     // Writing the same value back records nothing.
-    dref cast #unnull (*s32) it.data= 42
+    dref cast(*s32) it.data! = 42
     prop.commitItemChange(it)
     @assert(!prop.canUndo())
 
     // Two real edits.
-    dref cast #unnull (*s32) it.data= 100
+    dref cast(*s32) it.data! = 100
     prop.commitItemChange(it)
     @assert(data.count == 100 and prop.canUndo() and !prop.canRedo())
 
-    dref cast #unnull (*s32) it.data= 7
+    dref cast(*s32) it.data! = 7
     prop.commitItemChange(it)
     @assert(data.count == 7)
 
@@ -1544,7 +1544,7 @@ impl IPropertyNotify for PropDefaultCustom
     // New edit after undo truncates the redo tail.
     prop.undo()     // -> 100
     prop.undo()     // -> 42
-    dref cast #unnull (*s32) it.data= 55
+    dref cast(*s32) it.data! = 55
     prop.commitItemChange(it)
     @assert(data.count == 55 and !prop.canRedo())
     prop.undo()
@@ -1564,7 +1564,7 @@ impl IPropertyNotify for PropDefaultCustom
 
     let it = findFieldItem(prop, #nameof(MultiTile.name))!
 
-    dref cast #unnull (*String) it.data= "beta"
+    dref cast(*String) it.data! = "beta"
     prop.commitItemChange(it)
     @assert(data.name == "beta")
 
@@ -1589,7 +1589,7 @@ impl IPropertyNotify for PropDefaultCustom
 
     let it = findFieldItem(prop, #nameof(PropHeadlessData.count))!
 
-    dref cast #unnull (*s32) it.data= 100     // edit instance 0; hasChanged propagates
+    dref cast(*s32) it.data! = 100     // edit instance 0; hasChanged propagates
     prop.commitItemChange(it)
     @assert(t0.count == 100 and t1.count == 100)
 
@@ -1611,7 +1611,7 @@ impl IPropertyNotify for PropDefaultCustom
     prop.focusNavigation()
 
     let it = findFieldItem(prop, #nameof(PropHeadlessData.count))!
-    dref cast #unnull (*s32) it.data= 100
+    dref cast(*s32) it.data! = 100
     prop.commitItemChange(it)
     @assert(data.count == 100)
 

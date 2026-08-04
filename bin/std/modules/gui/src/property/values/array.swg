@@ -2,14 +2,14 @@ internal impl Properties
 {
     func setDescEditBox(item: *PropertiesItem)
     {
-        let arrData = cast #unnull (*Array'u8) item.data
+        let arrData = cast(*Array'u8) item.data!
         item.editBox.setText(Format.toString("% elements", arrData.count))
     }
 
     mtd reconstructArray(item: *PropertiesItem)
     {
         let valueType        = Reflection.dynamicArrayElementType(item.type)!
-        let arrData          = cast #unnull (*Array'u8) item.data
+        let arrData          = cast(*Array'u8) item.data!
         let countItemsBefore = .items.count
         let itemIdx          = Slice.findLinear(.items.toSlice(), item)
         let insertItemIdx    = itemIdx + item.numChilds + 1
@@ -49,7 +49,7 @@ internal impl Properties
 
     mtd refreshArray(item: *PropertiesItem)
     {
-        let arrData = cast #unnull (*Array'u8) item.data
+        let arrData = cast(*Array'u8) item.data!
         if arrData.count == cast(u64) item.userData0 do
             return
         item.userData0 = cast(#null *void) arrData.count
@@ -79,11 +79,11 @@ internal impl Properties
         if Reflection.isDynamicArray(arrayItem.type)
         {
             let vt  = Reflection.dynamicArrayElementType(arrayItem.type)!
-            let arr = cast #unnull (*Array'u8) arrayItem.data
+            let arr = cast(*Array'u8) arrayItem.data!
             return {arr.buffer, vt, arr.count}
         }
 
-        let typeArr = cast #unnull (const *Swag.TypeInfoArray) arrayItem.type
+        let typeArr = cast(const *Swag.TypeInfoArray) arrayItem.type!
         return {cast(#null [*] u8) arrayItem.data, typeArr.pointedType, typeArr.count}
     }
 
@@ -162,7 +162,7 @@ internal impl Properties
         item.flags.add(.NoSeparator)
 
         let valueType = Reflection.dynamicArrayElementType(item.type)!
-        let arrData   = cast #unnull (*Array'u8) data
+        let arrData   = cast(*Array'u8) data!
         var newData   = arrData.buffer
 
         item.userData0 = cast(#null *void) arrData.count

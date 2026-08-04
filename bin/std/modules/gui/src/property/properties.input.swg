@@ -17,7 +17,7 @@ internal impl Properties
     {
         if !target or !@isset(.edView) do
             return false
-        let view = cast #unnull (*Wnd) .edView
+        let view = cast(*Wnd) .edView!
         return target == view or view.isAncestorOf(target)
     }
 

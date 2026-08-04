@@ -112,6 +112,25 @@ namespace
         return codeGen.typeMgr().get(aliasEnumTypeRef(codeGen, view.typeRef()));
     }
 
+    // How many indirections separate the left VALUE from the object its members live in.
+    // Mirrors what member resolution peels in sema: every reference layer is transparent,
+    // and a pointer is dereferenced exactly once. A plain '*T' or '&T' is one; a binding
+    // to a pointer slot ('&*T', what an 'opIndex' hands back) is two.
+    uint32_t memberAccessDerefDepth(CodeGen& codeGen, const TypeInfo& leftTypeInfo)
+    {
+        uint32_t        depth = 0;
+        const TypeInfo* walk  = &leftTypeInfo;
+        while (walk->isReference())
+        {
+            ++depth;
+            walk = &codeGen.typeMgr().get(aliasEnumTypeRef(codeGen, walk->payloadTypeRef()));
+        }
+
+        if (walk->isAnyPointer())
+            ++depth;
+        return depth;
+    }
+
     bool resolveAggregateMemberInfo(CodeGen& codeGen, const TypeInfo& aggregateType, AstNodeRef memberRef, AggregateMemberInfo& outInfo)
     {
         if (!aggregateType.isAggregateStruct())
@@ -248,6 +267,15 @@ namespace
             {
                 baseAddressReg = codeGen.nextVirtualIntRegister();
                 builder.emitLoadRegMem(baseAddressReg, leftPayload.reg, 0, MicroOpBits::B64);
+            }
+
+            // One indirection per layer beyond the first: a reference bound to a pointer
+            // slot yields the slot address, and the slot yields the object.
+            for (uint32_t remaining = memberAccessDerefDepth(codeGen, leftTypeInfo); remaining > 1; --remaining)
+            {
+                const MicroReg nextReg = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegMem(nextReg, baseAddressReg, 0, MicroOpBits::B64);
+                baseAddressReg = nextReg;
             }
         }
         else if (!shouldTreatStructMemberLeftAsValue(codeGen, node.nodeLeftRef, leftPayload))

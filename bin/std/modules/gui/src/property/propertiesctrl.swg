@@ -57,7 +57,7 @@ impl PropertiesCtrl
                 if !sel do
                     return
                 list.toggleExpand(sel)
-                let item = cast #unnull (*PropertiesItem) sel.userData0
+                let item = cast(*PropertiesItem) sel.userData0!
                 let pos  = item.label.rectRelativeTo(ed.properties.edView)
                 ed.properties.scrollWnd.setScrollPos(0, pos.y)
             }

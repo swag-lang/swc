@@ -107,7 +107,7 @@ func testCoreTupleArrayRuntimeLifecycle()->bool
     if !(arrayStruct.pointedType.flags & TypeInfoFlags.Tuple) do
         return false
 
-    let tupleStruct = cast #unnull (const *TypeInfoStruct) arrayStruct.pointedType
+    let tupleStruct = cast(const *TypeInfoStruct) arrayStruct.pointedType!
     let values      = Memory.new(arrayType)
     if !values do
         return false
@@ -155,7 +155,7 @@ func testCoreTupleAliasRuntimeLifecycle()->bool
     if !(rawType.flags & TypeInfoFlags.Tuple) do
         return false
 
-    let tupleStruct = cast #unnull (const *TypeInfoStruct) rawType
+    let tupleStruct = cast(const *TypeInfoStruct) rawType!
     let value       = Memory.new(aliasType)
     if !value do
         return false

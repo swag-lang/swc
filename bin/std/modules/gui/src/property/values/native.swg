@@ -2,7 +2,7 @@ internal impl Properties
 {
     mtd refreshNative(item: *PropertiesItem)
     {
-        let typeNative = cast #unnull (const *Swag.TypeInfoNative) item.typeValue.pointedType
+        let typeNative = cast(const *Swag.TypeInfoNative) item.typeValue.pointedType!
         let data       = item.data
 
         if @isset(item.sliderBox)
@@ -10,7 +10,7 @@ internal impl Properties
             #[Swag.Mixin]
             func(T) setEd()
             {
-                let p = cast #unnull (*T) data
+                let p = cast(*T) data!
                 item.sliderBox.slider.setValue(cast(f32) dref p)
             }
 
@@ -36,7 +36,7 @@ internal impl Properties
             #[Swag.Mixin]
             func(T) setEd()
             {
-                let p = cast #unnull (*T) data
+                let p = cast(*T) data!
                 item.editBox.setText(Format.toString("%", dref p))
             }
 
@@ -61,7 +61,7 @@ internal impl Properties
 
     mtd validateNative(item: *PropertiesItem)
     {
-        let typeNative = cast #unnull (const *Swag.TypeInfoNative) item.typeValue.pointedType
+        let typeNative = cast(const *Swag.TypeInfoNative) item.typeValue.pointedType!
         let data       = item.data
 
         if @isset(item.sliderBox)
@@ -69,7 +69,7 @@ internal impl Properties
             #[Swag.Mixin]
             func(T) setEd()
             {
-                var p = cast #unnull (*T) data
+                var p = cast(*T) data!
                 dref p = cast(T) item.sliderBox.slider.value()
             }
 
@@ -92,7 +92,7 @@ internal impl Properties
             #[Swag.Mixin]
             func(T) setEd()
             {
-                var p = cast #unnull (*T) data
+                var p = cast(*T) data!
                 dref p = catch StrConv.toNum'T(txt)
             }
 

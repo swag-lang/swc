@@ -173,7 +173,7 @@ public impl Serialization.ISerialize for TagBinHookPayload
                 return true
             defer #nofail decoder.endField(type)
 
-            dref cast #unnull (*s32) data= decoder.readS32() - 6
+            dref cast(*s32) data! = decoder.readS32() - 6
             return true
         }
 
@@ -186,8 +186,8 @@ public impl Serialization.ISerialize for TagBinHookPayload
             let raw = decoder.readBufferU8(4)
             defer Memory.free(raw, 4)
 
-            let values = cast #unnull (*Array'u8) data
-            let rawPtr = cast #unnull ([*] u8) raw
+            let values = cast(*Array'u8) data!
+            let rawPtr = cast([*] u8) raw!
             values.clear()
             for [i] in 4 do
                 values.add(rawPtr[3 - i])
@@ -204,7 +204,7 @@ public impl Serialization.ISerialize for TagBinHookPayload
             encoder.beginField(type)
             defer #nofail encoder.endField(type)
 
-            encoder.writeS32((dref cast #unnull (const *s32) data) + 10)
+            encoder.writeS32((dref cast(const *s32) data!) + 10)
             return true
         }
 

@@ -61,7 +61,7 @@ internal impl Properties
         let def = Memory.new(rootType)
         .defaultRoots.add({def, rootType})
 
-        let defBase  = cast #unnull ([*] u8) def
+        let defBase  = cast([*] u8) def!
         let rootSize = cast(u64) rootType.sizeof
 
         for [i] in fromIdx until .items.count
@@ -133,10 +133,10 @@ internal impl Properties
 
         if item.type == Core.String
         {
-            let d = cast #unnull (*String) item.defaultData
+            let d = cast(*String) item.defaultData!
             for [k] in n
             {
-                if (dref cast #unnull (*String) .instanceAddr(item, k)) != dref d do
+                if (dref cast(*String) .instanceAddr(item, k)!) != dref d do
                     return true
             }
 
@@ -182,7 +182,7 @@ internal impl Properties
         if item.type == Core.String
         {
             for [k] in n do
-                dref cast #unnull (*String) .instanceAddr(item, k)= dref cast #unnull (*String) item.defaultData
+                dref cast(*String) .instanceAddr(item, k)! = dref cast(*String) item.defaultData!
         }
         else
         {

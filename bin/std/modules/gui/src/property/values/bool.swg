@@ -8,7 +8,7 @@ internal impl Properties
             if .fieldIsMixed(item) do
                 item.checkBox.setState(.Indeterminate)
             else do
-                item.checkBox.setState((dref cast #unnull (*bool) item.data) ? .Checked : .Unchecked)
+                item.checkBox.setState((dref cast(*bool) item.data!) ? .Checked : .Unchecked)
             item.checkBox.invalidate()
         }
         elif @isset(item.comboBox)
@@ -17,13 +17,13 @@ internal impl Properties
             if .fieldIsMixed(item) do
                 item.comboBox.clearSelection(notify: false)
             else do
-                item.comboBox.setSelectedIndex((dref cast #unnull (*bool) item.data) ? 1 : 0, notify: false)
+                item.comboBox.setSelectedIndex((dref cast(*bool) item.data!) ? 1 : 0, notify: false)
         }
     }
 
     mtd validateBool(item: *PropertiesItem)
     {
-        var data = cast #unnull (*bool) item.data
+        var data = cast(*bool) item.data!
         if @isset(item.checkBox) do
             dref data = item.checkBox.isChecked()
         elif @isset(item.comboBox)

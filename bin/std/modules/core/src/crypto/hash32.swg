@@ -27,7 +27,7 @@ public func hashBytes32(buffer: #null const [..] u8)->u32
 
     if length
     {
-        let data = cast #unnull (const [*] u8) @dataof(buffer)
+        let data = cast(const [*] u8) @dataof(buffer)!
         if length >= 8
         {
             var offset = 0'u64

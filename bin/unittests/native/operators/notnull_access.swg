@@ -4,7 +4,7 @@
 // skips the rest of the chain, '!' asserts the value is there and panics under safety
 // when it is not. What follows then runs on a non-null value, so the result keeps its
 // plain type instead of carrying a null outcome. Being postfix, '!' chains with '.',
-// '[' and '(', and 'cast #unnull' is its cast-shaped form.
+// '[' and '('.
 
 struct NotNullInner
 {
@@ -98,10 +98,38 @@ func notNullCall(fn: #null func()->s32)->s32 => fn!()
 // 'dref' applies to the proven pointer.
 func notNullDeref(value: #null *s32)->s32 => dref value!
 
-// 'cast #unnull' is the cast-shaped form: a nullable source, a non-null destination.
-func notNullCastModifier(raw: #null *void)->s32
+// A binding to a nullable slot is asserted through its reference layer: what an
+// 'opIndex' hands back is as nullable as the slot, and the assertion strips the flag
+// inside the reference so the member access still reaches the object.
+alias NotNullSlot = #null *NotNullNode
+
+struct NotNullBox
 {
-    let typed = cast #unnull (*NotNullNode) raw
+    slot: NotNullSlot
+}
+
+impl NotNullBox
+{
+    mtd const at()->const &NotNullSlot => &.slot
+    mtd atMut()->&NotNullSlot          => &.slot
+}
+
+func notNullThroughConstRef(box: *NotNullBox)->s32
+{
+    let bound = box.at()
+    return bound!.value
+}
+
+func notNullThroughRef(box: *NotNullBox)->s32
+{
+    let bound = box.atMut()
+    return bound!.inner.count == 7 ? bound!.value : -1
+}
+
+// A cast whose source is asserted first: the assertion binds tighter than the cast.
+func notNullCastOperand(raw: #null *void)->s32
+{
+    let typed = cast(*NotNullNode) raw!
     return typed.value
 }
 
@@ -158,13 +186,17 @@ func notNullAssign(newValue: s32)
     g_notNullNode.value = 42
     @assert(notNullBinding() == 42)
     @assert(notNullAfterExpect() == 42)
-    @assert(notNullCastModifier(&g_notNullNode) == 42)
+    @assert(notNullCastOperand(&g_notNullNode) == 42)
 
     var values = [7's32, 8, 9]
     @assert(notNullIndex(@dataof(values)) == 8)
 
     var single = 11's32
     @assert(notNullDeref(&single) == 11)
+
+    var box = NotNullBox{slot: &g_notNullNode}
+    @assert(notNullThroughConstRef(&box) == 42)
+    @assert(notNullThroughRef(&box) == 42)
 
     func twelve()->s32 => 12
     @assert(notNullCall(&twelve) == 12)

@@ -62,6 +62,27 @@ func nullableUseSiteCall(f: #null func()->s32)->s32
     return f()     // swc-expected-error {{sema_err_nullable_call}}
 }
 
+// A REFERENCE to a nullable slot is as unproven as the slot it names: the reference
+// layer must not smuggle the value past the use-site rules. This is what a const
+// 'opIndex' hands back, so the hole was reachable from any indexed container.
+alias NullableUseSiteSlot = #null *NullableUseSiteItem
+
+struct NullableUseSiteBox
+{
+    slot: NullableUseSiteSlot
+}
+
+impl NullableUseSiteBox
+{
+    mtd const at()->const &NullableUseSiteSlot => &.slot
+}
+
+func nullableUseSiteThroughRef(box: *NullableUseSiteBox)->s32
+{
+    let bound = box.at()
+    return bound.value     // swc-expected-error {{sema_err_nullable_member_access}}
+}
+
 // A guard kills the fact after reassignment: the second access is unproven again.
 func nullableUseSiteKilled(p: #null *NullableUseSiteItem, q: #null *NullableUseSiteItem)->s32
 {

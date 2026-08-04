@@ -43,6 +43,17 @@ namespace
         return sema.typeMgr().get(aliasEnumTypeRef(sema, view.typeRef()));
     }
 
+    // A binding to a nullable slot ('&#null *T', what an 'opIndex' hands back) is exactly
+    // as nullable as the slot it names. References are transparent, so the layer must be
+    // looked through before deciding whether a use site still needs a proof.
+    bool useSiteTypeIsNullable(Sema& sema, const SemaNodeView& view)
+    {
+        TypeRef typeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), view.typeRef());
+        if (typeRef.isInvalid())
+            typeRef = view.typeRef();
+        return typeRef.isValid() && sema.typeMgr().get(typeRef).isNullable();
+    }
+
     Result checkPointerArithmeticOperand(Sema& sema, AstNodeRef nodeRef, AstNodeRef operandRef, const SemaNodeView& operandView)
     {
         if (!operandView.type())
@@ -1405,7 +1416,7 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
         if (unwrappedLeftRef.isInvalid() || !sema.typeMgr().get(unwrappedLeftRef).isNullable())
             return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_optional_access_not_nullable, node.nodeLeftRef, nodeLeftView.typeRef());
     }
-    else if (aliasEnumType(sema, nodeLeftView).isNullable())
+    else if (useSiteTypeIsNullable(sema, nodeLeftView))
     {
         // A compile-time constant that is not null is the strongest proof there is:
         // reflection data (e.g. 'typeinfo.fields') is typed nullable but folds to a
@@ -1464,8 +1475,18 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
     else
     {
         TypeRef typeRef = aliasEnumTypeRef(sema, nodeLeftView.typeRef());
-        typeInfo        = &sema.typeMgr().get(typeRef);
-        if (typeInfo->isAnyPointer() || typeInfo->isReference())
+        typeInfo = &sema.typeMgr().get(typeRef);
+
+        // References are transparent, so every reference layer is peeled; a pointer is
+        // dereferenced exactly once. Both peels are needed for a binding to a pointer slot
+        // ('&*T', what an 'opIndex' hands back), while '**T' must still stop after one.
+        while (typeInfo->isReference())
+        {
+            typeRef  = aliasEnumTypeRef(sema, typeInfo->payloadTypeRef());
+            typeInfo = &sema.typeMgr().get(typeRef);
+        }
+
+        if (typeInfo->isAnyPointer())
         {
             typeRef  = aliasEnumTypeRef(sema, typeInfo->payloadTypeRef());
             typeInfo = &sema.typeMgr().get(typeRef);

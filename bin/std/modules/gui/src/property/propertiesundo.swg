@@ -77,7 +77,7 @@ internal impl PropFieldValue
             .isString = true
             .strings.reserve(.n)
             for [k] in .n do
-                .strings.add(dref cast #unnull (*String) .addrs[k])
+                .strings.add(dref cast(*String) .addrs[k]!)
         }
         else
         {
@@ -103,7 +103,7 @@ internal impl PropFieldValue
         if .isString
         {
             for [k] in .n do
-                dref cast #unnull (*String) .addrs[k]= .strings[k]
+                dref cast(*String) .addrs[k]! = .strings[k]
         }
         else
         {

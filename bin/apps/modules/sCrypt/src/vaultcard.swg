@@ -1,11 +1,12 @@
 using Core, Gui
 
-// A titled, framed panel with an empty body the caller fills in. The two vault
-// cards of the main window share this shape.
+// A titled, framed panel holding a field form and whatever else the caller docks into
+// its body. The two vault cards of the main window share this shape.
 struct VaultCard
 {
-    frame: *FrameWnd = undefined
-    body:  *Wnd      = undefined
+    frame: *FrameWnd       = undefined
+    body:  *Wnd            = undefined
+    form:  *FormLayoutCtrl = undefined
 }
 
 impl VaultCard
@@ -39,7 +40,23 @@ impl VaultCard
         let body = Wnd.create'Wnd(view)
         body.dockStyle       = .Center
         body.backgroundStyle = .Transparent
+
+        // The form is the first child of the body, so anything the caller docks afterwards
+        // stacks below it.
+        let form = FormLayoutCtrl.create(body, {rowSpacing: 10})
+        form.dockStyle = .Top
         view.applyLayout()
-        return {frame, body}
+        return {frame, body, form}
+    }
+
+    // Sizes the filled form to its rows, then arranges the body.
+    //
+    // Call it once the fields and the trailing controls of the card are all present, so the
+    // card never carries a hand-tuned form height.
+    mtd endForm()
+    {
+        .form.computeLayout()
+        .form.position.height = .form.contentHeight
+        .body.applyLayout()
     }
 }

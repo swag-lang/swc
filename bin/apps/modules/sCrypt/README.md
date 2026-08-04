@@ -66,43 +66,47 @@ volume prend donc un temps proportionnel à sa taille.
 ## Architecture et portabilité
 
 ```text
-std/gui FormCtrl + PasswordEdit ---> app.view.swg ---> app.operations.swg
-                                                 |                |
-std/core Crypto + File + Jobs                    v                v
-             |                    volume/{format,volume,volume.io,volume.operations}
-             |                                   |
-             v                                   v
- security.win32.swg             winfsp/{callbacks,bridge,mount}.win32.swg
-                                                 |
-                                                 v
-                                          WinFsp officiel
+std/gui FormLayoutCtrl + PasswordEdit ---> mainwindow.swg <--- vaultcard.swg
+                                                  |
+std/core Crypto + File + Jobs                     v
+             |                    volume/{format,volume,node,nodeindex,blockallocator}
+             |                                    |
+             v                                    v
+      Core.Crypto (BCrypt)     winfsp/{callbacks,bridge,winfspmount,guardian}.win32.swg
+                                                  |
+                                                  v
+                                           WinFsp officiel
 ```
 
-- `std/core` fournit désormais HMAC-SHA-256, PBKDF2-HMAC-SHA-256, ChaCha20, la comparaison en
-  temps constant, l’effacement sécurisé, l’aléa cryptographique et les opérations positionnées de
-  `FileStream`. Les algorithmes sont généraux ; seul le très petit adaptateur
-  `security.win32.swg` appelle le générateur système `BCryptGenRandom` et `RtlZeroMemory`.
-  `bcrypt.dll` fait partie de Windows et n’ajoute aucun composant à distribuer ou installer.
-  La même couche standard fournit l’horloge UTC et la liste des lettres de lecteur disponibles ;
-  sCrypt ne contient plus les bindings Windows correspondants.
+- `std/core` fournit HMAC-SHA-256, PBKDF2-HMAC-SHA-256, ChaCha20, la comparaison en temps
+  constant, l’effacement sécurisé, l’aléa cryptographique et les opérations positionnées de
+  `FileStream`. Les algorithmes sont généraux ; seul le très petit adaptateur système de
+  `Core.Crypto` appelle le générateur `BCryptGenRandom` et `RtlZeroMemory`. `bcrypt.dll` fait
+  partie de Windows et n’ajoute aucun composant à distribuer ou installer. La même couche
+  standard fournit l’horloge UTC et la liste des lettres de lecteur disponibles ; sCrypt ne
+  contient plus les bindings Windows correspondants.
 - `std/gui.PasswordEdit` conserve le mot de passe dans un stockage fixe effacé à la destruction ;
   le `EditBox` visible ne reçoit que des caractères de masque.
-- `std/gui.FormCtrl`, `FormLayoutCtrl` et `FormDlg` matérialisent des formulaires typés depuis des
-  descriptions de champs. sCrypt les utilise pour ses deux cartes sans dupliquer labels,
-  contrôles et coordonnées. Le sélecteur de fichiers standard fournit désormais historique,
-  précédent, suivant, parent, actualisation, fil d’Ariane et raccourcis clavier.
-- `app.swg` possède l’état de la fenêtre, `app.view.swg` décrit la vue et `app.operations.swg`
-  orchestre les actions asynchrones. `main.swg` ne fait plus que démarrer l’application.
+- `std/gui.FormLayoutCtrl` construit les champs et les arrange sans coordonnées fixes : chaque
+  appel `addTextField`, `addPasswordField` ou `addChoiceField` crée son contrôle, ajoute la ligne
+  étiquetée et rend le contrôle déjà typé ; `addRowAction` et `addRowChoice` complètent la ligne
+  précédente. sCrypt décrit ainsi ses deux cartes sans identifiant textuel ni recherche de champ.
+  `FormDlg` réutilise le même formulaire pour les boîtes modales. Le sélecteur de fichiers
+  standard fournit historique, précédent, suivant, parent, actualisation, fil d’Ariane et
+  raccourcis clavier.
+- `main.swg` ne fait que démarrer l’application. `mainwindow.swg` possède l’état de la fenêtre,
+  ses deux cartes et l’opération de fond ; `vaultcard.swg` fournit le panneau titré partagé par
+  les deux cartes.
 - `volume/crypto.swg` ne conserve que la dérivation des clés et l’authentification contextuelle
-  propres au format. `volume/format.swg`, `volume/filesystem.swg` et
-  `volume/blockallocator.swg` isolent respectivement la sérialisation, l’index logique et
-  l’allocation. `volume/volume.swg`, `volume/volume.io.swg` et
-  `volume/volume.operations.swg` séparent le cycle de vie persistant, les blocs chiffrés et les
-  opérations de fichiers.
-- `winfsp/abi.win32.swg` charge WinFsp dynamiquement et prépare son runtime portable.
-  `winfsp/status.win32.swg`, `winfsp/callbacks.win32.swg`, `winfsp/bridge.win32.swg` et
-  `winfsp/mount.win32.swg` séparent les statuts NT, les opérations testables, l’adaptation ABI et
-  le cycle de montage.
+  propres au format. `volume/format.swg`, `volume/node.swg`, `volume/nodeindex.swg` et
+  `volume/blockallocator.swg` isolent respectivement la sérialisation, les nœuds, l’index logique
+  et l’allocation de blocs. `volume/volume.swg` réunit le cycle de vie persistant, les blocs
+  chiffrés et les opérations de fichiers, et `volume/error.swg` porte le vocabulaire d’erreur.
+- `winfsp/abi.win32.swg` déclare l’ABI et `winfsp/runtime.win32.swg` charge WinFsp dynamiquement
+  en préparant son runtime portable. `winfsp/status.win32.swg`, `winfsp/callbacks.win32.swg`,
+  `winfsp/bridge.win32.swg`, `winfsp/winfspmount.win32.swg` et `winfsp/mountedvolume.win32.swg`
+  séparent les statuts NT, les opérations testables, l’adaptation ABI, le cycle de montage et le
+  volume monté. `winfsp/guardian.win32.swg` porte le second mode élevé du même exécutable.
 - Les déclarations propres à l’application et au volume restent directement dans le module. Seuls
   les vocabulaires qui forment une frontière réelle utilisent un namespace : `Crypto`, `WinFsp`
   et le harnais `Integration`. Le préfixe redondant `SCrypt` n’est pas répliqué dans chaque nom.

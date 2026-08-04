@@ -179,26 +179,10 @@ impl MainWindow
         statusView.applyLayout()
     }
 
-    // Creates the form of a card and docks it to the top of the card body.
-    mtd createCardForm(card: VaultCard)->*FormLayoutCtrl
-    {
-        let result = FormLayoutCtrl.create(card.body, {rowSpacing: 10})
-        result.dockStyle = .Top
-        return result
-    }
-
-    // Sizes a filled form to its rows so a card never carries a hand-tuned height.
-    mtd endCardForm(card: VaultCard, form: *FormLayoutCtrl)
-    {
-        form.computeLayout()
-        form.position.height = form.contentHeight
-        card.body.applyLayout()
-    }
-
     mtd createNewVaultCard(parent: *GridLayoutCtrl)->*FrameWnd
     {
         let card = VaultCard.create(parent, "Create a new vault", "Choose a fixed capacity. The complete container is randomized before it is ready.")
-        let form = .createCardForm(card)
+        let form = card.form
         .createForm = form
 
         .createPath = form.addTextField("CONTAINER FILE", placeholder: "C:\\path\\private.scrypt", icon: .theme().icon24(ThemeIcons24.OpenFile, 17))
@@ -232,14 +216,14 @@ impl MainWindow
         }
 
         actions.computeLayout()
-        .endCardForm(card, form)
+        card.endForm()
         return card.frame
     }
 
     mtd createMountVaultCard(parent: *GridLayoutCtrl)->*FrameWnd
     {
         let card = VaultCard.create(parent, "Mount an existing vault", "Unlock a container and expose it on any currently available drive letter.")
-        let form = .createCardForm(card)
+        let form = card.form
         .mountForm = form
 
         .mountPath = form.addTextField("CONTAINER FILE", placeholder: "Existing encrypted container", icon: .theme().icon24(ThemeIcons24.OpenFile, 17))
@@ -286,7 +270,7 @@ impl MainWindow
         }
 
         actions.computeLayout()
-        .endCardForm(card, form)
+        card.endForm()
         return card.frame
     }
 

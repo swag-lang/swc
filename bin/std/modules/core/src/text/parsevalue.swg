@@ -9,6 +9,9 @@ using Swag, Core.Errors
 // - `s8, s16, s32, s64, u8, u16, u32, u64, rune, bool, f32, f64`
 // - 'Core.String'  literal strings are not supported as 'buf' is supposed to be transient
 // - enum           with or without 'Swag.EnumFlags' attribute
+// - struct         a brace-enclosed list of field values in declaration order, such as
+//                  `{{1 29 27 27} 0}`; a `}` before the last field leaves the remaining
+//                  fields untouched, and `,` between two values is accepted
 //
 // 'buf' can contain multiple values separated with blanks if 'type' is:
 // - a static array of the types above
@@ -120,6 +123,36 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->#null string f
     {
         let itf = @mkinterface(addr, type, IPokeValue)
         return itf.poke(one)
+    }
+
+    // Struct: a brace-enclosed list of field values in declaration order. 'Core.String' is
+    // excluded because it decodes as a quoted literal below, and a type with a poke interface
+    // was already given the whole text above.
+    if Reflection.isStruct(type) and type != String
+    {
+        let structType = cast(const *TypeInfoStruct) type
+        if !@countof(one) or one[0] != '{' do
+            fail InvalidFormatError{Errors.mkString(Format.toString("missing [[{]] for struct [[%]]", type.name))}
+        one = Tokenize.eatCount(one, 1)
+        one = Tokenize.eatSpaces(one)
+
+        for field in structType.fields
+        {
+            if @countof(one) and one[0] == '}' do
+                break
+            one = (parseValue(cast([*] u8) addr + field.offset, notnull field.pointedType, one) orelse "")
+            one = Tokenize.eatSpaces(one)
+            if @countof(one) and one[0] == ','
+            {
+                one = Tokenize.eatCount(one, 1)
+                one = Tokenize.eatSpaces(one)
+            }
+        }
+
+        if !@countof(one) or one[0] != '}' do
+            fail InvalidFormatError{Errors.mkString(Format.toString("missing [[}]] for struct [[%]]", type.name))}
+        one = Tokenize.eatCount(one, 1)
+        return one
     }
 
     // Basic types

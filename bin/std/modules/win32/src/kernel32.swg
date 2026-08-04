@@ -512,6 +512,8 @@ internal namespace Win32Priv
 
         func CreateDirectoryA(lpPathName: LPCSTR, lpSecurityAttributes: #null *SECURITY_ATTRIBUTES)->BOOL
         func CreateDirectoryW(lpPathName: LPCWSTR, lpSecurityAttributes: #null *SECURITY_ATTRIBUTES)->BOOL
+        func RemoveDirectoryA(lpPathName: LPCSTR)->BOOL
+        func RemoveDirectoryW(lpPathName: LPCWSTR)->BOOL
         func GetCurrentDirectoryA(nBufferLength: DWORD, lpBuffer: LPCSTR)->DWORD
         func GetCurrentDirectoryW(nBufferLength: DWORD, lpBuffer: LPCWSTR)->DWORD
         func GetTempPathA(nBufferLength: DWORD, lpBuffer: LPSTR)->DWORD
@@ -970,6 +972,20 @@ internal namespace Win32Priv
     func CreateDirectoryW(lpPathName: LPCWSTR, lpSecurityAttributes: #null *SECURITY_ATTRIBUTES) fail
     {
         let res = Win32Priv.CreateDirectoryW(lpPathName, lpSecurityAttributes)
+        if !res do
+            failWinError(GetLastError())
+    }
+
+    func RemoveDirectoryA(lpPathName: LPCSTR) fail
+    {
+        let res = Win32Priv.RemoveDirectoryA(lpPathName)
+        if !res do
+            failWinError(GetLastError())
+    }
+
+    func RemoveDirectoryW(lpPathName: LPCWSTR) fail
+    {
+        let res = Win32Priv.RemoveDirectoryW(lpPathName)
         if !res do
             failWinError(GetLastError())
     }

@@ -13,6 +13,42 @@ func create(dirname: string) fail
     Errors.transformWinErrors(err, dirname)
 }
 
+// Deletes the directory 'dirName'.
+//
+// The directory must be empty unless 'recurse' is set, in which case its files and
+// subdirectories are deleted first. Deletion is not atomic: when a nested entry
+// cannot be removed, the entries already deleted stay deleted.
+func delete(dirName: string, recurse = false) fail
+{
+    try Env.guardWrite(dirName)
+
+    if recurse
+    {
+        var options: EnumerationOptions
+        options.wantFiles       = true
+        options.wantDirectories = true
+        let entries             = try enumerate(dirName, options)
+        for entry in entries
+        {
+            // Both branches are braced on purpose: after `if ... do try X()`, a
+            // trailing `else` would bind to the `try` as its failure handler, not
+            // to the `if`.
+            if entry.isDirectory()
+            {
+                try delete(entry.fullname.toString(), recurse: true)
+            }
+            else
+            {
+                try File.delete(entry.fullname.toString())
+            }
+        }
+    }
+
+    let winPath = Utf16.toZeroTerminated(dirName)
+    catch RemoveDirectoryW(@dataof(winPath)) as err
+    Errors.transformWinErrors(err, dirName)
+}
+
 // Returns true if the given directory exists
 func exists(dirName: string)->bool
 {

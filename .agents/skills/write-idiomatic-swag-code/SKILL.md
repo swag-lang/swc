@@ -139,6 +139,55 @@ let renderer: IRenderer = &cpu
 - Never retain a borrow beyond its owner. Prefer references for non-null borrowed values, nullable
   pointers only for real absence, and slices instead of pointer/count pairs outside native code.
 
+### Choose `defer` by what the cleanup is for
+
+`defer` is for the cleanup a reader should stop thinking about. Apply it in one direction only:
+
+- Release, restore, and unwind with `defer`, on the line after the acquisition succeeds. Never
+  repeat the same release on each exit path, and never park it at the bottom of the function.
+- Roll a multi-step mutation back with a single `defer` guarded by a success flag set last. One
+  guarded block per operation; do not scatter partial rollbacks through the body.
+- Call the operation directly when its result is part of the logic — a commit whose failure must
+  propagate, a close whose error the caller reports. `defer` swallows that.
+
+## Use `with` for Construction, Not for Shorthand
+
+`with` earns its braces when it turns a declaration and its configuration into one unit. Anywhere
+else it costs a reader more than it saves.
+
+- Open a `with` when populating one value is the block's whole purpose: a value introduced in the
+  header (`with let x = ...`, `with var x: T`, `with owner.field = ...`), or an output parameter
+  the function exists to fill. Use it from three consecutive member statements upward; below that,
+  plain assignments read better than braces.
+- Do not open a `with` on a receiver that merely appears often, and do not wrap a block that mixes
+  configuration with unrelated logic. A `with` that contains control flow over other values has
+  stopped being a construction block.
+- Never open a `with` inside a method whose body also uses `.` for `me`. Both spell a member
+  access the same way, and `with` outranks `me`, so the reader has no way to tell them apart.
+
+```swag
+with let rail = Wnd.create'Wnd(view, {0, 0, 4})
+{
+    .dockStyle       = .Left
+    .backgroundStyle = .Window
+    .style.addStyleSheetColors("wnd_Bk $hilight")
+}
+```
+
+## Group Statements and Comment the Reasons
+
+The formatter fixes structural blank lines; it cannot see meaning. Both are the author's job.
+
+- Separate the phases of a function body with one blank line — validate, acquire, transform,
+  publish. Keep the lines of one phase together, and never blank-separate a run of assignments
+  that describe a single value.
+- Do not open or close a block with a blank line, and never use two blank lines to group.
+- Comment why, not what. `// Increments the counter` above `count += 1` is noise; the invariant
+  that makes the increment safe is not.
+- Every public declaration, every non-obvious constant, and every rollback, retry, ordering
+  constraint, or security property deserves a sentence. State the constraint, not the mechanism.
+- Put a short comment above a phase when its purpose is not evident from the code it contains.
+
 ## Use Direct Control and Data Flow
 
 - Prefer early exits over nested success paths.

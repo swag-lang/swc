@@ -118,6 +118,59 @@ public impl ByteStream
         .seek += count
     }
 
+    // Writes a value of type 'T' in little-endian byte order.
+    //
+    // Use this instead of [[writeNative]] for a persisted or transmitted format,
+    // so the bytes do not depend on the architecture that produced them.
+    mtd(T) writeLittleEndian(value: T)
+    {
+        .writeNative'T(Math.nativeToLittleEndian(value))
+    }
+
+    // Reads a little-endian value of type 'T'.
+    mtd(T) readLittleEndian()->T fail
+    {
+        return Math.littleEndianToNative(.readNative'T())
+    }
+
+    // Writes a value of type 'T' in big-endian byte order.
+    mtd(T) writeBigEndian(value: T)
+    {
+        .writeNative'T(Math.nativeToBigEndian(value))
+    }
+
+    // Reads a big-endian value of type 'T'.
+    mtd(T) readBigEndian()->T fail
+    {
+        return Math.bigEndianToNative(.readNative'T())
+    }
+
+    // Writes a string as a little-endian `u32` byte count followed by its bytes.
+    //
+    // This is the framing [[readSizedString]] expects. The count is a byte count,
+    // not a character count.
+    mtd writeSizedString(value: string)
+    {
+        .writeLittleEndian(cast(u32) @countof(value))
+        .writeBytes(@mkslice(@dataof(value), @countof(value)))
+    }
+
+    // Reads a string written by [[writeSizedString]].
+    //
+    // Fails when the stored byte count exceeds `maxLength` or the remaining
+    // bytes, so a corrupted or hostile input cannot request a huge allocation.
+    mtd readSizedString(maxLength: u64 = Swag.U32.Max)->String fail
+    {
+        var result: retval
+        let count = cast(u64) .readLittleEndian'u32()
+        if count > maxLength do
+            fail OverflowError{"sized string is too long"}
+        result.reserve(count)
+        .readBytes(result.buffer, count)
+        result.length = count
+        return result
+    }
+
     // Reads and consumes a single byte
     mtd readU8()->u8
     {

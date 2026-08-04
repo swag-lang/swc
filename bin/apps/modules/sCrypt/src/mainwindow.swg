@@ -76,12 +76,15 @@ private func createVaultFields()->Array'FormFieldDefinition
     var result: retval
     result.add({id: "create.path", label: "CONTAINER FILE", placeholder: "C:\\path\\private.scrypt", actionText: "Browse"})
 
-    var capacity: FormFieldDefinition
-    capacity.id          = "create.size"
-    capacity.label       = "FIXED CAPACITY"
-    capacity.initialText = "256"
-    capacity.choices.add({"MiB", "mib"})
-    capacity.choices.add({"GiB", "gib"})
+    with var capacity: FormFieldDefinition
+    {
+        .id          = "create.size"
+        .label       = "FIXED CAPACITY"
+        .initialText = "256"
+        .choices.add({"MiB", "mib"})
+        .choices.add({"GiB", "gib"})
+    }
+
     result.add(#move capacity)
 
     result.add({id: "create.password", label: "PASSWORD", kind: FormFieldKind.Password, placeholder: "Required password"})
@@ -95,23 +98,19 @@ private func mountVaultFields()->Array'FormFieldDefinition
     result.add({id: "mount.path", label: "CONTAINER FILE", placeholder: "Existing encrypted container", actionText: "Browse"})
     result.add({id: "mount.password", label: "PASSWORD", kind: FormFieldKind.Password, placeholder: "Container password"})
 
-    var drive: FormFieldDefinition
-    drive.id    = "mount.drive"
-    drive.label = "DRIVE LETTER"
-    drive.kind  = .Choice
+    // Windows keeps A and B for floppies and C for the system disk, so the
+    // letters a user expects come first and the unusual ones stay available
+    // further down the list.
     let available = File.availableDriveLetters()
-    for letter in available where letter >= 'D'
+    with var drive: FormFieldDefinition
     {
-        var choice: FormChoice
-        choice.text = Format.toString("%:", letter)
-        drive.choices.add(#move choice)
-    }
-
-    for letter in available where letter < 'D'
-    {
-        var choice: FormChoice
-        choice.text = Format.toString("%:", letter)
-        drive.choices.add(#move choice)
+        .id    = "mount.drive"
+        .label = "DRIVE LETTER"
+        .kind  = .Choice
+        for letter in available where letter >= 'D' do
+            .choices.add({Format.toString("%:", letter)})
+        for letter in available where letter < 'D' do
+            .choices.add({Format.toString("%:", letter)})
     }
 
     result.add(#move drive)
@@ -131,15 +130,19 @@ impl MainWindow
         result.createHeader()
         result.createFooter()
 
+        // Two equal columns: create on the left, mount on the right.
         let cards = GridLayoutCtrl.create(result, 2, 1)
-        cards.dockStyle         = .Center
-        cards.margin            = {30, 0, 30, 14}
-        cards.horizontalSpacing = 30
-        cards.setColumnTrack(0, .Fraction, 1)
-        cards.setColumnTrack(1, .Fraction, 1)
-        cards.setRowTrack(0, .Fraction, 1)
-        cards.setCell(result.createCreateCard(cards), 0, 0)
-        cards.setCell(result.createMountCard(cards), 1, 0)
+        with cards
+        {
+            .dockStyle         = .Center
+            .margin            = {30, 0, 30, 14}
+            .horizontalSpacing = 30
+            .setColumnTrack(0, .Fraction, 1)
+            .setColumnTrack(1, .Fraction, 1)
+            .setRowTrack(0, .Fraction, 1)
+            .setCell(result.createCreateCard(cards), 0, 0)
+            .setCell(result.createMountCard(cards), 1, 0)
+        }
 
         result.applyLayout()
         cards.computeLayout()
@@ -159,13 +162,13 @@ impl MainWindow
         header.dockStyle = .Top
         header.margin    = {30, 18, 30, 0}
 
-        with let brandRail = Wnd.create'Wnd(header, {0, 0, 4})
-        {
-            .dockStyle       = .Left
-            .margin.z        = 12
-            .backgroundStyle = .Window
-            .style.addStyleSheetColors("wnd_Bk $hilight")
-        }
+        // `.` already means `me` in this method, so the rail is configured
+        // through its own name rather than through a `with` block.
+        let brandRail = Wnd.create'Wnd(header, {0, 0, 4})
+        brandRail.dockStyle       = .Left
+        brandRail.margin.z        = 12
+        brandRail.backgroundStyle = .Window
+        brandRail.style.addStyleSheetColors("wnd_Bk $hilight")
 
         let badge = Label.create(header, "PORTABLE  |  PASSWORD-LOCKED  |  NO SETUP", {0, 0, 330}, null, .SecondaryText)
         badge.dockStyle = .Right

@@ -60,6 +60,9 @@ impl Volume
         var result: retval
         var created   = false
         var completed = false
+
+        // `completed` is set only on the last line, so any failure below unwinds
+        // everything and leaves no half-written container on disk.
         defer
         {
             if !completed
@@ -70,20 +73,28 @@ impl Volume
             }
         }
 
-        result.dirty         = false
-        result.activeSlot    = 0
-        result.sequence      = 0
-        result.path          = path
-        result.containerSize = requestedSize
-        result.blockCount    = (requestedSize - DataOffset) / BlockRecordSize
-        result.nextNodeId    = 2
-        result.label         = "sCrypt"
-        result.file          = File.open(path, .CreateNew, .ReadWrite, .Read)
-        created              = true
+        with result
+        {
+            .dirty         = false
+            .activeSlot    = 0
+            .sequence      = 0
+            .path          = path
+            .containerSize = requestedSize
+            .blockCount    = (requestedSize - DataOffset) / BlockRecordSize
+            .nextNodeId    = RootNodeId + 1
+            .label         = "sCrypt"
+        }
+
+        result.file = File.open(path, .CreateNew, .ReadWrite, .Read)
+        created     = true
         result.file.resize(requestedSize)
 
+        // Fill the whole container with random bytes before anything real is
+        // written. Encrypted blocks are indistinguishable from random, so this is
+        // what stops an observer from telling which blocks are in use, or how
+        // much of the container holds data.
         var randomChunk: Array'u8
-        randomChunk.resize(1024 * 1024)
+        randomChunk.resize(RandomizeChunkSize)
         var offset = 0'u64
         while offset < requestedSize
         {
@@ -95,25 +106,32 @@ impl Volume
 
         Core.Crypto.secureClear(randomChunk.toSlice())
 
+        // The salt is public and lives at offset 0; the keys derived from it
+        // never touch the disk.
         var salt: [Crypto.SaltSize] u8
         Core.Crypto.randomBytes(salt)
         result.file.writeAllAt(0, salt)
         result.keys = Crypto.deriveKeys(password, salt)
         Core.Crypto.secureClear(salt)
 
+        // The root directory is its own parent, which ends every path walk.
         let now = volumeTimeNow()
-        var root: Node
-        root.id             = 1
-        root.parentId       = 1
-        root.name           = ""
-        root.attributes     = FileAttributeDirectory
-        root.creationTime   = now
-        root.lastAccessTime = now
-        root.lastWriteTime  = now
-        root.changeTime     = now
+        with var root: Node
+        {
+            .id             = RootNodeId
+            .parentId       = RootNodeId
+            .name           = ""
+            .attributes     = FileAttributeDirectory
+            .creationTime   = now
+            .lastAccessTime = now
+            .lastWriteTime  = now
+            .changeTime     = now
+        }
+
         result.nodes.add(#move root)
         let rootIndexed = result.nodeLookup.add(&result.nodes[0], 0)
         Debug.assert(rootIndexed)
+
         result.blocks.initialize(result.blockCount)
         result.dirty = true
         result.commit()
@@ -164,7 +182,14 @@ impl Volume
 
         let validHeader = notnull selected
         result.activeSlot = validHeader == &first ? 0 : 1
-        result.deserialize(validHeader.plain.toSlice())
+
+        // Every way the metadata can be rejected reports the same thing: a
+        // caller must not be able to tell a wrong password from a damaged
+        // container, or from which field gave up first.
+        discard catch result.deserialize(validHeader.plain.toSlice()) as parseError
+        if parseError != null do
+            failWith("The password is incorrect or the container is damaged.", .Corrupted)
+
         completed = true
         return result
     }
@@ -211,144 +236,136 @@ impl Volume
                 return result
         }
 
-        var reader = ByteReader{result.plain.toSlice()}
-        if !reader.matches(HeaderMagic) do
+        let sequence = catch parseHeaderSequence(result.plain.toSlice()) as parseError
+        if parseError != null do
             return result
-        let version = reader.readU32()
-        if version != LegacyFormatVersion and version != FormatVersion do
-            return result
-        result.sequence = reader.readU64()
-        result.valid    = reader.valid
+
+        result.sequence = sequence
+        result.valid    = true
         return result
     }
 
+    // Serializes the volume metadata into the plaintext of a header slot.
+    //
+    // Block mappings are stored as runs of contiguous logical/physical pairs,
+    // which keeps a large defragmented file down to a single record.
     mtd serialize(sequence: u64)->Array'u8 fail
     {
-        var writer = ByteWriter.create(HeaderPlainSize)
-        writer.bytes(HeaderMagic)
-        writer.writeU32(FormatVersion)
-        writer.writeU64(sequence)
-        writer.writeU64(.containerSize)
-        writer.writeU64(.blockCount)
-        writer.writeU64(.nextNodeId)
-        writer.writeString(.label)
-        writer.writeU64(.nodes.count)
+        var result: retval
+        var writer = ByteStream.openWrite(&result)
+
+        writer.writeBytes(HeaderMagic)
+        writer.writeLittleEndian(FormatVersion)
+        writer.writeLittleEndian(sequence)
+        writer.writeLittleEndian(.containerSize)
+        writer.writeLittleEndian(.blockCount)
+        writer.writeLittleEndian(.nextNodeId)
+        writer.writeSizedString(.label)
+
+        writer.writeLittleEndian(.nodes.count)
         for node in .nodes
         {
-            writer.writeU64(node.id)
-            writer.writeU64(node.parentId)
-            writer.writeString(node.name)
-            writer.writeU32(node.attributes)
-            writer.writeU64(node.size)
-            writer.writeU64(node.creationTime)
-            writer.writeU64(node.lastAccessTime)
-            writer.writeU64(node.lastWriteTime)
-            writer.writeU64(node.changeTime)
-            writer.writeU32(cast(u32) node.security.count)
-            writer.bytes(node.security.toSlice())
+            writer.writeLittleEndian(node.id)
+            writer.writeLittleEndian(node.parentId)
+            writer.writeSizedString(node.name)
+            writer.writeLittleEndian(node.attributes)
+            writer.writeLittleEndian(node.size)
+            writer.writeLittleEndian(node.creationTime)
+            writer.writeLittleEndian(node.lastAccessTime)
+            writer.writeLittleEndian(node.lastWriteTime)
+            writer.writeLittleEndian(node.changeTime)
+            writer.writeLittleEndian(cast(u32) node.security.count)
+            writer.writeBytes(node.security.toSlice())
 
-            var runCount = 0'u64
-            var idx      = 0'u64
-            while idx < node.blocks.count
+            writer.writeLittleEndian(node.runCount())
+            var index = 0'u64
+            while index < node.blocks.count
             {
-                runCount += 1
-                var count = 1'u64
-                while idx + count < node.blocks.count and
-                      node.blocks[idx + count].logical == node.blocks[idx].logical + count and
-                      node.blocks[idx + count].physical == node.blocks[idx].physical + count do
-                    count += 1
-                idx += count
-            }
-
-            writer.writeU64(runCount)
-            idx = 0
-            while idx < node.blocks.count
-            {
-                var count = 1'u64
-                while idx + count < node.blocks.count and
-                      node.blocks[idx + count].logical == node.blocks[idx].logical + count and
-                      node.blocks[idx + count].physical == node.blocks[idx].physical + count do
-                    count += 1
-                writer.writeU64(node.blocks[idx].logical)
-                writer.writeU64(node.blocks[idx].physical)
-                writer.writeU64(count)
-                idx += count
+                let count = node.runLength(index)
+                writer.writeLittleEndian(node.blocks[index].logical)
+                writer.writeLittleEndian(node.blocks[index].physical)
+                writer.writeLittleEndian(count)
+                index += count
             }
         }
 
-        writer.writeU64(.blocks.free.count)
+        writer.writeLittleEndian(.blocks.free.count)
         for extent in .blocks.free
         {
-            writer.writeU64(extent.first)
-            writer.writeU64(extent.count)
+            writer.writeLittleEndian(extent.first)
+            writer.writeLittleEndian(extent.count)
         }
 
-        return writer.buffer
+        // The header slot has a fixed size, so an oversized metadata block is a
+        // real out-of-space condition rather than a corruption.
+        if result.count > HeaderPlainSize do
+            failWith("The encrypted metadata area is full.", .DiskFull)
+        return result
     }
 
+    // Rebuilds the volume metadata from the plaintext of a header slot.
+    //
+    // Every field is attacker-controlled once the password is known, so each
+    // count and block index is validated against the container geometry before
+    // it is used to size an allocation. Callers report any failure as a single
+    // "wrong password or damaged container" outcome; see `Volume.open`.
     mtd deserialize(plain: const [..] u8) fail
     {
-        var reader = ByteReader{plain}
-        if !reader.matches(HeaderMagic) do
-            failWith("The password is incorrect or the container is damaged.", .Corrupted)
-        let version = reader.readU32()
+        var reader = ByteStream.openRead(plain)
+
+        var magic: [#sizeof(HeaderMagic)] u8
+        reader.readBytes(&magic[0], #sizeof(magic))
+        if @memcmp(&magic[0], &HeaderMagic[0], #sizeof(magic)) != 0 do
+            failWith("The container does not start with an sCrypt header.", .Corrupted)
+
+        let version = reader.readLittleEndian'u32()
         if version != LegacyFormatVersion and version != FormatVersion do
-            failWith("The password is incorrect or the container is damaged.", .Corrupted)
+            failWith("The container format version is not supported.", .Corrupted)
 
-        .sequence = reader.readU64()
-        let storedSize = reader.readU64()
-        .blockCount = reader.readU64()
-        .nextNodeId = reader.readU64()
-        .label      = reader.readString(128)
+        .sequence = reader.readLittleEndian'u64()
+        let storedSize = reader.readLittleEndian'u64()
+        .blockCount = reader.readLittleEndian'u64()
+        .nextNodeId = reader.readLittleEndian'u64()
+        .label      = reader.readSizedString(MaximumLabelSize)
         if storedSize != .containerSize or .blockCount != (.containerSize - DataOffset) / BlockRecordSize do
-            failWith("The password is incorrect or the container is damaged.", .Corrupted)
+            failWith("The container geometry does not match its size.", .Corrupted)
 
-        let nodeCount = reader.readU64()
-        if nodeCount == 0 or nodeCount > 1_000_000 do
-            failWith("The password is incorrect or the container is damaged.", .Corrupted)
+        let nodeCount = reader.readLittleEndian'u64()
+        if !nodeCount or nodeCount > MaximumNodeCount do
+            failWith("The container declares an implausible number of entries.", .Corrupted)
+
         .nodes.reserve(nodeCount)
         var totalMappings = 0'u64
-        for [nodeIndex] in nodeCount
+        for nodeCount
         {
             var node: Node
-            node.id             = reader.readU64()
-            node.parentId       = reader.readU64()
-            node.name           = reader.readString(4 * 1024)
-            node.attributes     = reader.readU32()
-            node.size           = reader.readU64()
-            node.creationTime   = reader.readU64()
-            node.lastAccessTime = reader.readU64()
-            node.lastWriteTime  = reader.readU64()
-            node.changeTime     = reader.readU64()
-            let securitySize = reader.readU32()
-            if securitySize > 1024 * 1024 or !reader.has(securitySize)
-            {
-                reader.valid = false
-                break
-            }
+            node.id             = reader.readLittleEndian'u64()
+            node.parentId       = reader.readLittleEndian'u64()
+            node.name           = reader.readSizedString(MaximumNameSize)
+            node.attributes     = reader.readLittleEndian'u32()
+            node.size           = reader.readLittleEndian'u64()
+            node.creationTime   = reader.readLittleEndian'u64()
+            node.lastAccessTime = reader.readLittleEndian'u64()
+            node.lastWriteTime  = reader.readLittleEndian'u64()
+            node.changeTime     = reader.readLittleEndian'u64()
 
+            let securitySize = reader.readLittleEndian'u32()
+            if securitySize > MaximumSecuritySize do
+                failWith("An entry declares an implausible security descriptor.", .Corrupted)
             node.security.resize(securitySize)
-            if securitySize do
-                @memcpy(node.security.buffer, @dataof(plain) + reader.cursor, securitySize)
-            reader.cursor += securitySize
+            reader.readBytes(node.security.buffer, securitySize)
 
-            let runCount = reader.readU64()
-            if runCount > .blockCount
-            {
-                reader.valid = false
-                break
-            }
+            let runCount = reader.readLittleEndian'u64()
+            if runCount > .blockCount do
+                failWith("An entry declares more block runs than the container holds.", .Corrupted)
 
-            for [runIndex] in runCount
+            for runCount
             {
-                let logical  = reader.readU64()
-                let physical = reader.readU64()
-                let count    = reader.readU64()
-                if !count or physical >= .blockCount or count > .blockCount - physical or count > .blockCount - totalMappings
-                {
-                    reader.valid = false
-                    break
-                }
+                let logical  = reader.readLittleEndian'u64()
+                let physical = reader.readLittleEndian'u64()
+                let count    = reader.readLittleEndian'u64()
+                if !count or physical >= .blockCount or count > .blockCount - physical or count > .blockCount - totalMappings do
+                    failWith("A block run falls outside the container.", .Corrupted)
 
                 node.blocks.reserve(node.blocks.count + count)
                 for [i] in count do
@@ -358,35 +375,26 @@ impl Volume
 
             let nodeIndex = .nodes.count
             .nodes.add(#move node)
-            if !.nodeLookup.add(&.nodes[nodeIndex], nodeIndex)
-            {
-                reader.valid = false
-                break
-            }
+            if !.nodeLookup.add(&.nodes[nodeIndex], nodeIndex) do
+                failWith("The container contains a duplicate entry.", .Corrupted)
         }
 
-        let freeCount = reader.readU64()
+        let freeCount = reader.readLittleEndian'u64()
         if freeCount > .blockCount do
-            reader.valid = false
-        else
-        {
-            .blocks.free.reserve(freeCount)
-            for [i] in freeCount
-            {
-                let first = reader.readU64()
-                let count = reader.readU64()
-                if !count or first >= .blockCount or count > .blockCount - first
-                {
-                    reader.valid = false
-                    break
-                }
+            failWith("The free list is larger than the container.", .Corrupted)
 
-                .blocks.free.add({first, count})
-            }
+        .blocks.free.reserve(freeCount)
+        for freeCount
+        {
+            let first = reader.readLittleEndian'u64()
+            let count = reader.readLittleEndian'u64()
+            if !count or first >= .blockCount or count > .blockCount - first do
+                failWith("A free extent falls outside the container.", .Corrupted)
+            .blocks.free.add({first, count})
         }
 
-        if !reader.valid or .nodeById(1) == null do
-            failWith("The password is incorrect or the container is damaged.", .Corrupted)
+        if .nodeById(RootNodeId) == null do
+            failWith("The container has no root directory.", .Corrupted)
         .dirty = false
     }
 

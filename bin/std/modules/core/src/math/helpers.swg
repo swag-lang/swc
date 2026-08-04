@@ -67,3 +67,14 @@ func(T) littleEndianToNative(x: T)->T
     else do
         return x
 }
+
+// Convert a native architecture integer to little-endian format.
+// On little-endian systems returns 'x' unchanged, on big-endian systems performs byte swap.
+#[ConstExpr, Inline]
+func(T) nativeToLittleEndian(x: T)->T
+{
+    #static if BIG_ENDIAN do
+        return Math.byteswap(x)
+    else do
+        return x
+}

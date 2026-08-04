@@ -253,29 +253,36 @@ namespace WinFsp
         return StatusSuccess
     }
 
+    // Builds the dispatch table WinFsp calls for every filesystem request.
+    //
+    // Slots left null are operations WinFsp treats as unsupported, which is the
+    // intended answer for the ones sCrypt does not implement.
     func makeInterface()->FspInterface
     {
-        var result: retval
-        result.getVolumeInfo     = &fspGetVolumeInfo
-        result.setVolumeLabel    = &fspSetVolumeLabel
-        result.getSecurityByName = &fspGetSecurityByName
-        result.create            = &fspCreate
-        result.open              = &fspOpen
-        result.overwrite         = &fspOverwrite
-        result.cleanup           = &fspCleanup
-        result.close             = &fspClose
-        result.read              = &fspRead
-        result.write             = &fspWrite
-        result.flush             = &fspFlush
-        result.getFileInfo       = &fspGetFileInfo
-        result.setBasicInfo      = &fspSetBasicInfo
-        result.setFileSize       = &fspSetFileSize
-        result.canDelete         = &fspCanDelete
-        result.rename            = &fspRename
-        result.getSecurity       = &fspGetSecurity
-        result.setSecurity       = &fspSetSecurity
-        result.readDirectory     = &fspReadDirectory
-        result.getDirInfoByName  = &fspGetDirInfoByName
+        with var result: retval
+        {
+            .getVolumeInfo     = &fspGetVolumeInfo
+            .setVolumeLabel    = &fspSetVolumeLabel
+            .getSecurityByName = &fspGetSecurityByName
+            .create            = &fspCreate
+            .open              = &fspOpen
+            .overwrite         = &fspOverwrite
+            .cleanup           = &fspCleanup
+            .close             = &fspClose
+            .read              = &fspRead
+            .write             = &fspWrite
+            .flush             = &fspFlush
+            .getFileInfo       = &fspGetFileInfo
+            .setBasicInfo      = &fspSetBasicInfo
+            .setFileSize       = &fspSetFileSize
+            .canDelete         = &fspCanDelete
+            .rename            = &fspRename
+            .getSecurity       = &fspGetSecurity
+            .setSecurity       = &fspSetSecurity
+            .readDirectory     = &fspReadDirectory
+            .getDirInfoByName  = &fspGetDirInfoByName
+        }
+
         return result
     }
 

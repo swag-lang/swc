@@ -40,4 +40,32 @@ impl Node
 
         return {low < .blocks.count and .blocks[low].logical == logical, low}
     }
+
+    // Length of the run of contiguous mappings starting at `index`.
+    //
+    // Block mappings are stored as runs, so a defragmented file costs one
+    // record instead of one per block.
+    mtd const runLength(index: u64)->u64
+    {
+        var result = 1'u64
+        while index + result < .blocks.count and
+              .blocks[index + result].logical == .blocks[index].logical + result and
+              .blocks[index + result].physical == .blocks[index].physical + result do
+            result += 1
+        return result
+    }
+
+    // Number of runs the block mappings collapse into.
+    mtd const runCount()->u64
+    {
+        var result = 0'u64
+        var index  = 0'u64
+        while index < .blocks.count
+        {
+            result += 1
+            index  += .runLength(index)
+        }
+
+        return result
+    }
 }

@@ -40,15 +40,20 @@ namespace WinFsp
         if !node do
             return StatusObjectNameNotFound
         let validNode = notnull node
-        output.fileAttributes = validNode.attributes
-        output.allocationSize = validNode.isDirectory() ? 0 :
-                                (validNode.size + BlockSize - 1) / BlockSize * BlockSize
-        output.fileSize       = validNode.size
-        output.creationTime   = validNode.creationTime
-        output.lastAccessTime = validNode.lastAccessTime
-        output.lastWriteTime  = validNode.lastWriteTime
-        output.changeTime     = validNode.changeTime
-        output.indexNumber    = validNode.id
+        with output
+        {
+            // Windows reports the space a file occupies, so a file always
+            // rounds up to whole blocks and a directory occupies none.
+            .allocationSize = validNode.isDirectory() ? 0 : (validNode.size + BlockSize - 1) / BlockSize * BlockSize
+            .fileAttributes = validNode.attributes
+            .fileSize       = validNode.size
+            .creationTime   = validNode.creationTime
+            .lastAccessTime = validNode.lastAccessTime
+            .lastWriteTime  = validNode.lastWriteTime
+            .changeTime     = validNode.changeTime
+            .indexNumber    = validNode.id
+        }
+
         return StatusSuccess
     }
 

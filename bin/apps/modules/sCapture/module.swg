@@ -2,21 +2,26 @@
 
 #run
 {
-    let itf = @compiler
-    let cfg = notnull itf.getBuildCfg()
-    cfg.moduleVersion             = #swcversion
-    cfg.moduleRevision            = #swcrevision
-    cfg.moduleBuildNum            = #swcbuildnum
-    cfg.backendKind               = .Executable
-    cfg.backendSubKind            = .Default
-    cfg.name                      = "sCapture"
-    cfg.allocatorCaptureStack     = false
-    cfg.allocatorLeaks            = true
-    cfg.allocatorTrackAllocations = #hastag("sCapture.TrackMemory")
-    cfg.allocatorElectricMode     = #hastag("sCapture.ElectricMemory")
-    cfg.allocatorFillMemory       = #hastag("sCapture.FillMemory")
-    cfg.resAppName                = "sCapture"
-    cfg.resAppDescription         = "Screen capture and annotation workspace"
-    cfg.resAppIcoFileName         = "datas/appicon.ico"
-    cfg.ignoreInWorkspace         = false
+    with let cfg = notnull @compiler.getBuildCfg()
+    {
+        .moduleVersion  = #swcversion
+        .moduleRevision = #swcrevision
+        .moduleBuildNum = #swcbuildnum
+        .backendKind    = .Executable
+        .backendSubKind = .Default
+
+        // Leak reporting stays on in every build; the heavier allocator
+        // instrumentation is opt-in through a build tag.
+        .allocatorLeaks            = true
+        .allocatorCaptureStack     = false
+        .allocatorTrackAllocations = #hastag("sCapture.TrackMemory")
+        .allocatorElectricMode     = #hastag("sCapture.ElectricMemory")
+        .allocatorFillMemory       = #hastag("sCapture.FillMemory")
+
+        .name              = "sCapture"
+        .resAppName        = "sCapture"
+        .resAppDescription = "Screen capture and annotation workspace"
+        .resAppIcoFileName = "datas/appicon.ico"
+        .ignoreInWorkspace = false
+    }
 }

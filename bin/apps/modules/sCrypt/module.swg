@@ -2,15 +2,21 @@
 
 #run
 {
-    let cfg = notnull @compiler.getBuildCfg()
-    cfg.moduleVersion     = #swcversion
-    cfg.moduleRevision    = #swcrevision
-    cfg.moduleBuildNum    = #swcbuildnum
-    cfg.backendKind       = .Executable
-    cfg.backendSubKind    = #hastag("SCrypt.Integration") ? .Console : .Default
-    cfg.name              = "sCrypt"
-    cfg.resAppName        = "sCrypt"
-    cfg.resAppDescription = "Encrypted virtual disk for Windows"
-    cfg.resAppIcoFileName = "datas/appicon.ico"
-    cfg.ignoreInWorkspace = false
+    with let cfg = notnull @compiler.getBuildCfg()
+    {
+        .moduleVersion  = #swcversion
+        .moduleRevision = #swcrevision
+        .moduleBuildNum = #swcbuildnum
+
+        // The integration harness runs headless and reports through stdout, so
+        // that build alone needs a console.
+        .backendKind    = .Executable
+        .backendSubKind = #hastag("SCrypt.Integration") ? .Console : .Default
+
+        .name              = "sCrypt"
+        .resAppName        = "sCrypt"
+        .resAppDescription = "Encrypted virtual disk for Windows"
+        .resAppIcoFileName = "datas/appicon.ico"
+        .ignoreInWorkspace = false
+    }
 }

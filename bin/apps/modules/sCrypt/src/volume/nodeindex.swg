@@ -20,7 +20,7 @@ impl NodeIndex
     {
         if .byId.contains(node.id) do
             return false
-        if node.id != 1
+        if node.id != RootNodeId
         {
             let key = childIndexKey(node.parentId, node.name.toString())
             if .byParent.contains(key) do
@@ -37,7 +37,7 @@ impl NodeIndex
     mtd remove(node: *Node)
     {
         .byId.remove(node.id)
-        if node.id == 1 do
+        if node.id == RootNodeId do
             return
 
         .byParent.remove(childIndexKey(node.parentId, node.name.toString()))

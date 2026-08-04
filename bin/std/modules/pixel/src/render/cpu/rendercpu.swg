@@ -30,6 +30,7 @@ struct RenderCpu
 
         worldTransform: Transform2 = Transform2.Identity
         modelTransform: Transform2 = Transform2.Identity
+        contentScale:   f32        = 1                     // Device pixels per unit of the painter stream being drawn.
 
         scissorOn:   bool
         scissorRect: Math.Rectangle
@@ -811,6 +812,11 @@ private impl RenderCpu
         var transform = .worldTransform
         transform.multiply(.modelTransform)
 
+        // Map the logical painter stream to device pixels last, so positions and
+        // translations scale alike (see RenderOgl.buildModelMatrix).
+        if .contentScale != 1 do
+            transform.multiply(Transform2.createScale(.contentScale, .contentScale, 0, 0))
+
         var v0 = input0
         var v1 = input1
         var v2 = input2
@@ -1066,8 +1072,13 @@ private impl RenderCpu
             .stencilWrite = false
 
         case .SetClippingRect:
-            .scissorOn   = true
-            .scissorRect = cmd.clippingRect.rect
+
+            // Painter clip rectangles are logical; the scissor tests device pixels.
+            .scissorOn          = true
+            .scissorRect.x      = Math.round(cmd.clippingRect.rect.x * .contentScale)
+            .scissorRect.y      = Math.round(cmd.clippingRect.rect.y * .contentScale)
+            .scissorRect.width  = Math.round(cmd.clippingRect.rect.right() * .contentScale) - .scissorRect.x
+            .scissorRect.height = Math.round(cmd.clippingRect.rect.bottom() * .contentScale) - .scissorRect.y
 
         case .ResetClippingRect:
             .scissorOn = false
@@ -1135,9 +1146,12 @@ private impl RenderCpu
                 .program = CpuProgram_Simple
 
             case .Blur:
+
+                // The blur samples target texels; a logical radius must cover the
+                // same on-screen extent whatever the content scale.
                 .program    = CpuProgram_Blur
                 .blurAxis   = cmd.defaultShader.axis
-                .blurRadius = cmd.defaultShader.radius
+                .blurRadius = cmd.defaultShader.radius * .contentScale
 
             case .Resolve:
                 .program       = CpuProgram_Resolve
@@ -1237,6 +1251,7 @@ impl RenderCpu
     internal mtd drawImpl(painter: *Painter)
     {
         .resetDrawState()
+        .contentScale = painter.contentScale()
         for &cmd, [idx] in painter.commandBuffer do
             .executeCommand(painter, &cmd, cast(u64) idx)
     }

@@ -48,6 +48,7 @@ enum ThemeIcons24
     Edit                 // Edit action glyph.
     Filter               // Filter action glyph.
     Minimize             // Generic minimize action glyph.
+    ParentFolder         // Up navigation toward the parent location.
 }
 
 // Identifies a glyph in the theme's 64-pixel status-icon atlas.

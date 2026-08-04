@@ -77,8 +77,16 @@ public func getMonitors()->Array'Monitor
     func proc(hMonitor: HMONITOR, _hDC: HDC, _lpRect: *RECT, lParam: LPARAM)->BOOL
     {
         var mi: MONITORINFO
-        catch GetMonitorInfoA(hMonitor, &mi) else do
-            return TRUE
+
+        // Logical bounds are what a DPI-unaware process sees. Force the unaware
+        // context for that read so the result stays logical even after the process
+        // has opted into per-monitor awareness (see enableDpiAwareness).
+        {
+            let last = Win32.SetThreadDpiAwarenessContext(Win32.DPI_AWARENESS_CONTEXT_UNAWARE)
+            defer discard Win32.SetThreadDpiAwarenessContext(last)
+            catch GetMonitorInfoA(hMonitor, &mi) else do
+                return TRUE
+        }
 
         var m: Monitor
         let ptr = cast(*Array'Monitor) cast #bit (u64) lParam
@@ -279,17 +287,35 @@ func getNativeArgs()->string
 // Returns the current logical-to-physical desktop scale factor.
 public func getDpiScale()->f32
 {
-    let w0   = getSystemMetric(.DesktopWidth)
-    let prev = SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)
-    let w1   = getSystemMetric(.DesktopWidth)
-    discard SetThreadDpiAwarenessContext(prev)
-    return cast(f32) w1 / cast(f32) w0
+    // GetDpiForSystem answers 96 in a DPI-unaware context, so query it under an
+    // explicitly aware thread context; the result is then correct whether or not
+    // the process itself opted into awareness.
+    let prev = SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_SYSTEM_AWARE)
+    defer discard SetThreadDpiAwarenessContext(prev)
+    return cast(f32) GetDpiForSystem() / cast(f32) USER_DEFAULT_SCREEN_DPI
+}
+
+var g_DpiAware: bool
+
+// Declares this process per-monitor DPI aware, so windows receive physical pixels.
+//
+// Every window-creation path calls this before its first native window exists; an
+// application only needs it directly when it creates native windows on its own.
+// Once enabled, monitor and cursor coordinates are physical desktop pixels and the
+// system no longer stretches window content on scaled displays. Idempotent, and a
+// failure (for example when the awareness was already set by other means) is ignored.
+public func enableDpiAwareness()
+{
+    if g_DpiAware do
+        return
+    g_DpiAware = true
+    discard SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)
 }
 
 // Handles a native window paint request.
 public alias WindowPaintCallback = func||(*Window)
 
-// Handles a native window resize and receives the new logical client size.
+// Handles a native window resize and receives the new client size in physical pixels.
 public alias WindowResizeCallback = func||(*Window, s32, s32)
 
 // Groups the optional callbacks dispatched by a [[Core.Env.Window]].
@@ -300,14 +326,18 @@ public struct WindowCallbacks
 }
 
 // Configures native window creation.
+//
+// `width` and `height` are logical units: the created window is proportionally
+// larger, in physical pixels, on a scaled display. The client size reported to
+// [[Core.Env.WindowResizeCallback]] is physical.
 public struct WindowOptions
 {
     className:   string                                                            // Unique native window-class name.
     title:       string                                                            // Initial window title.
     width:       s32                                                               // Width in logical units.
     height:      s32                                                               // Height in logical units.
-    x:           s32 = CW_USEDEFAULT                                               // Initial horizontal position in logical units.
-    y:           s32 = CW_USEDEFAULT                                               // Initial vertical position in logical units.
+    x:           s32 = CW_USEDEFAULT                                               // Initial horizontal position in physical desktop pixels.
+    y:           s32 = CW_USEDEFAULT                                               // Initial vertical position in physical desktop pixels.
     style:       u32 = WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN     // Native window style flags.
     exStyle:     u32                                                               // Native extended window style flags.
     classStyle:  u32 = CS_OWNDC                                                    // Native window-class style flags.
@@ -390,6 +420,14 @@ private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM
                 onResize(safeWindow, LOWORD(lParam), HIWORD(lParam))
             return 0
 
+        case WM_DPICHANGED:
+
+            // Adopt the physical rectangle the system suggests for the new monitor
+            // scale; the ensuing WM_SIZE reports the new physical client size.
+            let suggested = cast(const *RECT) cast #bit (u64) lParam
+            discard catch SetWindowPos(hWnd, null, suggested.left, suggested.top, suggested.right - suggested.left, suggested.bottom - suggested.top, SWP_NOZORDER | SWP_NOACTIVATE)
+            return 0
+
         case WM_DESTROY:
             PostQuitMessage(0)
             return 0
@@ -428,8 +466,13 @@ impl Window
 //
 // The returned [[Core.Env.Window]] keeps platform-specific state behind
 // [[Core.Env.Window.nativeHandle]] and closes the native window when it leaves scope.
+// The process becomes DPI aware, and the logical `options` size is realized in the
+// physical pixels of the monitor the window appears on.
 public func createWindow(options: WindowOptions)->Window fail
 {
+    // The first native window of the process decides its DPI awareness.
+    enableDpiAwareness()
+
     var result: retval
     result.showCommand = options.showCommand
 
@@ -445,6 +488,17 @@ public func createWindow(options: WindowOptions)->Window fail
         failWinError(GetLastError())
 
     result.setNativeHandle(hWnd)
+
+    // The window now knows its monitor: resize it from logical units to physical
+    // pixels while it is still hidden.
+    let scale = result.dpiScale()
+    if scale != 1
+    {
+        let physWidth  = cast(s32) Math.round(options.width * scale)
+        let physHeight = cast(s32) Math.round(options.height * scale)
+        catch SetWindowPos(hWnd, null, 0, 0, physWidth, physHeight, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE)
+    }
+
     return result
 }
 
@@ -501,7 +555,19 @@ public impl Window
         expect PostMessageA(.nativeHandle, WM_PAINT, 0, 0)
     }
 
-    // Resizes the logical client area while preserving the current position.
+    // Returns the physical device pixels per logical unit on the window's monitor.
+    mtd const dpiScale()->f32
+    {
+        if !.nativeHandle do
+            return 1
+        return cast(f32) GetDpiForWindow(.nativeHandle) / cast(f32) USER_DEFAULT_SCREEN_DPI
+    }
+
+    // Resizes the client area to `width` by `height` logical units while preserving
+    // the current position.
+    //
+    // The realized client area is proportionally larger, in physical pixels, on a
+    // scaled display; [[Core.Env.WindowResizeCallback]] reports that physical size.
     mtd setClientSize(width, height: s32) fail
     {
         var windowRect: RECT
@@ -511,14 +577,30 @@ public impl Window
         if !GetClientRect(.nativeHandle, &clientRect) do
             failWinError(GetLastError())
 
+        let scale       = .dpiScale()
+        let physWidth   = cast(s32) Math.round(width * scale)
+        let physHeight  = cast(s32) Math.round(height * scale)
         let frameWidth  = (windowRect.right - windowRect.left) - (clientRect.right - clientRect.left)
         let frameHeight = (windowRect.bottom - windowRect.top) - (clientRect.bottom - clientRect.top)
-        try MoveWindow(.nativeHandle, windowRect.left, windowRect.top, width + frameWidth, height + frameHeight, FALSE)
+        try MoveWindow(.nativeHandle, windowRect.left, windowRect.top, physWidth + frameWidth, physHeight + frameHeight, FALSE)
     }
 
     // Shows the window and updates its client area.
+    //
+    // The resize callback receives the initial physical client size before the
+    // window becomes visible, so a renderer never draws a frame at a stale size.
     mtd show() fail
     {
+        if .callbacks.onResize
+        {
+            var clientRect: RECT
+            if GetClientRect(.nativeHandle, &clientRect)
+            {
+                let onResize = notnull .callbacks.onResize
+                onResize(&me, clientRect.right - clientRect.left, clientRect.bottom - clientRect.top)
+            }
+        }
+
         ShowWindow(.nativeHandle, .showCommand)
         try UpdateWindow(.nativeHandle)
     }

@@ -64,6 +64,12 @@ struct NativeSurface
     lastDeadChar: WPARAM     // Last dead char associated with this value.
     topMost:      bool       // Top most associated with this value.
     trayIcon:     HICON      // Tray icon associated with this value.
+
+    // Whether an application-initiated SetWindowPos is in flight. A programmatic
+    // placement is already expressed in the target monitor's physical pixels, so the
+    // WM_DPICHANGED it triggers when crossing a DPI boundary must update the scale
+    // without adopting the OS-suggested rectangle (which assumes an old-DPI size).
+    inAppPlacement: bool
 }
 
 // Fixed notification-area icon id. A surface owns at most one tray icon.
@@ -207,14 +213,15 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
 
             // Enforce the surface min/max size during interactive (border-drag) resizing,
             // which is handled by the OS sizing loop and only honours the track sizes.
+            // Track sizes are physical pixels; the surface limits are logical.
             if surface.minSize.x > 0 do
-                mm.ptMinTrackSize.x = cast(s32) surface.minSize.x
+                mm.ptMinTrackSize.x = cast(s32) (surface.minSize.x * surface.dpiScale)
             if surface.minSize.y > 0 do
-                mm.ptMinTrackSize.y = cast(s32) surface.minSize.y
+                mm.ptMinTrackSize.y = cast(s32) (surface.minSize.y * surface.dpiScale)
             if surface.maxSize.x > 0 do
-                mm.ptMaxTrackSize.x = cast(s32) surface.maxSize.x
+                mm.ptMaxTrackSize.x = cast(s32) (surface.maxSize.x * surface.dpiScale)
             if surface.maxSize.y > 0 do
-                mm.ptMaxTrackSize.y = cast(s32) surface.maxSize.y
+                mm.ptMaxTrackSize.y = cast(s32) (surface.maxSize.y * surface.dpiScale)
 
             var pt: POINT
             pt.x = cast(s32) surface.position.x
@@ -224,7 +231,7 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             {
                 var info: MONITORINFO
                 catch GetMonitorInfoA(hm, &info)
-                let sdw = cast(s32) surface.app.theme.metrics.surfaceWnd_ShadowSize
+                let sdw = cast(s32) (surface.app.theme.metrics.surfaceWnd_ShadowSize * surface.dpiScale)
 
                 mm.ptMaxPosition.x = (info.rcWork.left - info.rcMonitor.left) - sdw
                 mm.ptMaxPosition.y = (info.rcWork.top - info.rcMonitor.top) - sdw
@@ -232,6 +239,31 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
                 mm.ptMaxSize.y     = (info.rcWork.bottom - info.rcWork.top) + 2 * sdw
             }
 
+            return 0
+
+        case WM_DPICHANGED:
+
+            // The window reached a monitor with another scale, or the user changed
+            // the display scale.
+            surface.setDpiScaleRaw(cast(f32) LOWORD(wParam) / cast(f32) USER_DEFAULT_SCREEN_DPI)
+
+            // An application-initiated placement is already sized in the target
+            // monitor's physical pixels: adopting the OS suggestion (which scales
+            // the rectangle by newDpi/oldDpi, assuming an old-DPI size) would
+            // double-scale it. Keep the requested rectangle; its WM_SIZE relayouts
+            // the tree with the new scale.
+            if surface.inAppPlacement
+            {
+                surface.invalidate()
+                return 0
+            }
+
+            // An interactive move: adopt the suggested physical rectangle, whose
+            // WM_SIZE recomputes the logical size and relayouts the tree with the
+            // new scale; per-draw font resolution follows on the next paint.
+            let suggested = cast(const *RECT) cast #bit (u64) lParam
+            catch SetWindowPos(hWnd, null, suggested.left, suggested.top, suggested.right - suggested.left, suggested.bottom - suggested.top, SWP_NOZORDER | SWP_NOACTIVATE)
+            surface.invalidate()
             return 0
 
         case WM_MOVE:
@@ -279,8 +311,15 @@ private impl Surface
     }
 
     // Creates a new (invisible) surface
+    //
+    // `width` and `height` are logical units; the created window is sized in the
+    // physical pixels of the monitor it appears on.
     func createNative(app: *Application, result: *Surface, x, y, width, height: s32, flags: SurfaceFlags) fail
     {
+        // The first native window of the process decides its DPI awareness, so opt
+        // in before any window class or window exists.
+        Env.enableDpiAwareness()
+
         // Create class
         #[Swag.Global]
         var doneClass: bool
@@ -323,6 +362,18 @@ private impl Surface
         result.hWnd = cast(#null const *void) CreateWindowExW(winFlagsEx, className, surfaceName, winFlags, x, y, width, height, null, null, GetModuleHandleW(null), result)
         if !result.hWnd do
             failWinError(GetLastError())
+
+        // The window now knows its monitor: resolve the scale and resize the still
+        // hidden window from logical units to physical pixels.
+        result.dpiScale = cast(f32) GetDpiForWindow(result.hWnd) / cast(f32) USER_DEFAULT_SCREEN_DPI
+        if result.dpiScale != 1
+        {
+            let physWidth  = cast(s32) Math.round(width * result.dpiScale)
+            let physHeight = cast(s32) Math.round(height * result.dpiScale)
+            result.inAppPlacement = true
+            defer result.inAppPlacement = false
+            catch SetWindowPos(result.hWnd, null, 0, 0, physWidth, physHeight, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOSENDCHANGING)
+        }
 
         result.applyNativeDwmStyle()
     }
@@ -495,19 +546,20 @@ impl Surface
         return true
     }
 
-    // Sets the surface bounds in screen coordinates, clamped to [[Gui.Surface.minSize]] and [[Gui.Surface.maxSize]].
+    // Sets the surface bounds in physical screen pixels, clamped to [[Gui.Surface.minSize]] and [[Gui.Surface.maxSize]].
     mtd setPosition(pos: Math.Rectangle)
     {
+        // Size limits are logical; the requested rectangle is physical.
         var clampPos = pos
 
         if .minSize.x > 0 do
-            clampPos.width = Math.max(clampPos.width, .minSize.x)
+            clampPos.width = Math.max(clampPos.width, .minSize.x * .dpiScale)
         if .minSize.y > 0 do
-            clampPos.height = Math.max(clampPos.height, .minSize.y)
+            clampPos.height = Math.max(clampPos.height, .minSize.y * .dpiScale)
         if .maxSize.x > 0 do
-            clampPos.width = Math.min(clampPos.width, .maxSize.x)
+            clampPos.width = Math.min(clampPos.width, .maxSize.x * .dpiScale)
         if .maxSize.y > 0 do
-            clampPos.height = Math.min(clampPos.height, .maxSize.y)
+            clampPos.height = Math.min(clampPos.height, .maxSize.y * .dpiScale)
 
         .position = clampPos
         if !.app.renderer.needsNativeWindow()
@@ -516,6 +568,10 @@ impl Surface
             return
         }
 
+        // The rectangle is physical for its target monitor already; flag the move so
+        // a DPI-boundary WM_DPICHANGED does not rescale it (see the handler).
+        .inAppPlacement = true
+        defer .inAppPlacement = false
         catch SetWindowPos(.hWnd, null, cast(s32) clampPos.x, cast(s32) clampPos.y, cast(s32) clampPos.width, cast(s32) clampPos.height, SWP_NOCOPYBITS | SWP_DEFERERASE | SWP_NOREDRAW | SWP_NOSENDCHANGING)
     }
 
@@ -593,7 +649,7 @@ impl Surface
         }
 
         .invalidate()
-        .wnd.applyLayout({.position.width, .position.height})
+        .wnd.applyLayout(.size())
 
         // Render the first complete frame into the back buffer *before* the window
         // becomes visible. Otherwise ShowWindow composites the still-empty (black)
@@ -692,33 +748,33 @@ impl Surface
         ShowWindow(.hWnd, SW_SHOWMINIMIZED)
     }
 
-    // Converts `pt` in place from screen coordinates to surface coordinates.
+    // Converts `pt` in place from physical screen pixels to logical surface coordinates.
     mtd screenToSurface(pt: *Math.Point)
     {
         if !.app.renderer.needsNativeWindow()
         {
-            pt.x -= .position.x
-            pt.y -= .position.y
+            pt.x = (pt.x - .position.x) / .dpiScale
+            pt.y = (pt.y - .position.y) / .dpiScale
             return
         }
 
         var wpt = POINT{cast(s32) pt.x, cast(s32) pt.y}
         ScreenToClient(.hWnd, &wpt)
-        pt.x = wpt.x
-        pt.y = wpt.y
+        pt.x = wpt.x / .dpiScale
+        pt.y = wpt.y / .dpiScale
     }
 
-    // Converts `pt` in place from surface coordinates to screen coordinates.
+    // Converts `pt` in place from logical surface coordinates to physical screen pixels.
     mtd surfaceToScreen(pt: *Math.Point)
     {
         if !.app.renderer.needsNativeWindow()
         {
-            pt.x += .position.x
-            pt.y += .position.y
+            pt.x = pt.x * .dpiScale + .position.x
+            pt.y = pt.y * .dpiScale + .position.y
             return
         }
 
-        var wpt = POINT{cast(s32) pt.x, cast(s32) pt.y}
+        var wpt = POINT{cast(s32) (pt.x * .dpiScale), cast(s32) (pt.y * .dpiScale)}
         ClientToScreen(.hWnd, &wpt)
         pt.x = wpt.x
         pt.y = wpt.y

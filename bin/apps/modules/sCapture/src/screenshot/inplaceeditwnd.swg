@@ -30,10 +30,11 @@ struct InPlaceEditWnd
     uiScale:          f32             = 1     // DPI scale of the monitor the capture sits on
 }
 
-// The capture overlay spans the whole virtual desktop in physical pixels, so the
-// editor chrome must be sized for the DPI of the monitor the captured area is on,
-// otherwise the bars/buttons render at 96-DPI size and look tiny on a hi-DPI screen.
-func captureUIScale(capture: *Capture)->f32
+// The GUI already scales its logical units by the overlay surface's own monitor
+// scale. The chrome only needs the *residual* factor for the monitor the captured
+// area sits on, so bars and buttons keep their intended size when that monitor
+// uses a different scale than the surface's main monitor.
+func captureUIScale(capture: *Capture, surfaceScale: f32)->f32
 {
     let cx = cast(f32) g_DesktopX - capture.backImagePos.x + cast(f32) capture.width * 0.5
     let cy = cast(f32) g_DesktopY - capture.backImagePos.y + cast(f32) capture.height * 0.5
@@ -41,7 +42,7 @@ func captureUIScale(capture: *Capture)->f32
     {
         let r = m.physicalBounds
         if cx >= r.x and cx < r.right() and cy >= r.y and cy < r.bottom() do
-            return Math.max(m.scaleFactor, 1.0)
+            return Math.max(m.scaleFactor, 1.0) / surfaceScale
     }
 
     return 1.0
@@ -53,7 +54,7 @@ impl InPlaceEditWnd
     {
         with let frame = createMainFrame(main, parent, capture)
         {
-            .uiScale = captureUIScale(capture)
+            .uiScale = captureUIScale(capture, parent.deviceScale())
             .createActionBar()
             .createEditBar(main)
             .setupCapture(capture)
@@ -86,7 +87,11 @@ impl InPlaceEditWnd
                 .viewMargin  = 0
                 .inPlaceEdit = true
                 .setCapture(capture)
-                .setZoom(1)
+
+                // The capture is in physical desktop pixels and the view draws in
+                // logical units; this zoom shows the image exactly one texel per
+                // device pixel, aligned with the desktop underneath.
+                .setZoom(1.0 / parent.deviceScale())
                 .setFocus()
             }
         }
@@ -341,8 +346,15 @@ impl InPlaceEditWnd
 
     mtd moveButtons()
     {
+        // The capture rectangle is in desktop-physical pixels; the bars are placed
+        // in the logical units of the overlay surface.
         let capture = notnull .capture
-        let rect    = Math.Rectangle{-capture.backImagePos.x, -capture.backImagePos.y, capture.width, capture.height}
+        let k       = .deviceScale()
+        var rect    = Math.Rectangle{-capture.backImagePos.x, -capture.backImagePos.y, capture.width, capture.height}
+        rect.x      /= k
+        rect.y      /= k
+        rect.width  /= k
+        rect.height /= k
         .positionActionBar(rect)
         .positionEditBar(rect)
     }
@@ -353,8 +365,9 @@ impl InPlaceEditWnd
         let height = 40.0 * .uiScale
         let width  = .actionBar.position.width
         let x      = Math.max(10.0 * .uiScale, rect.right() - width)
+        let limitY = cast(f32) g_ScreenHeight / .deviceScale()
 
-        if rect.bottom() < g_ScreenHeight - height + margin do
+        if rect.bottom() < limitY - height + margin do
             .actionBar.setPosition(x, rect.bottom() + margin, width, height)
         elif rect.y > height + margin do
             .actionBar.setPosition(x, rect.y - height - margin, width, height)
@@ -367,8 +380,9 @@ impl InPlaceEditWnd
         let margin = 4.0 * .uiScale
         let width  = 40.0 * .uiScale
         let height = .editBar.position.height
+        let limitX = cast(f32) g_ScreenWidth / .deviceScale()
 
-        if rect.right() < g_ScreenWidth - width + margin do
+        if rect.right() < limitX - width + margin do
             .editBar.setPosition(rect.right() + margin, rect.bottom() - height, width, height)
         elif rect.x > width + margin do
             .editBar.setPosition(rect.x - width - margin, rect.bottom() - height, width, height)

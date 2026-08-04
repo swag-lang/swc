@@ -2139,5 +2139,219 @@
     "hello_jit_ms": 88.2057,
     "hello_build_ms": 95.2976,
     "hello_build_peak_mb": 98.6796875
+  },
+  {
+    "meta": {
+      "stamp": "20260804-102846",
+      "date": "2026-08-04T10:28:46+00:00",
+      "label": "",
+      "commit": "65b0e0271",
+      "subject": "Add `Separator` widget and update related GUI components.",
+      "master": "65b0e0271",
+      "dirty": false,
+      "swc": "C:\\Perso\\swag-lang\\swc\\bin\\swc.exe",
+      "swc_bytes": 4992512
+    },
+    "drift_pct": 15.699012737224407,
+    "calibration_ms": 1.9549,
+    "context": {
+      "baseline": "20260731-142125",
+      "baseline_commit": "5aa83e60a",
+      "run_factor": 0.9385044968579387,
+      "run_task_factors": {
+        "wordfreq": 0.995602624318536,
+        "csvagg": 0.9368687542084942,
+        "sha256": 0.9028993119951209,
+        "dijkstra": 0.9763500635582582,
+        "raytrace": 0.8951675538653903,
+        "leven": 0.9283337641954796
+      },
+      "run_controls": 60,
+      "run_dispersion_pct": 1.817237027672732,
+      "build_factor": 1.1394727283835349,
+      "build_task_factors": {
+        "wordfreq": 1.1808020130153518,
+        "csvagg": 1.0232886886709585,
+        "sha256": 1.033638364041658,
+        "dijkstra": 0.9881396496790569,
+        "raytrace": 1.2006065272533004,
+        "leven": 1.4772728224652822
+      },
+      "build_controls": 36,
+      "build_dispersion_pct": 5.217457153537961
+    },
+    "runtimes": {
+      "swag-release": {
+        "run_ms": {
+          "wordfreq": 67.52639997,
+          "csvagg": 25.4553,
+          "sha256": 3.16110003,
+          "dijkstra": 39.36479997,
+          "raytrace": 14.14649998,
+          "leven": 19.08970001
+        },
+        "run_adjusted_ms": {
+          "wordfreq": 67.82465043844181,
+          "csvagg": 27.170614758633615,
+          "sha256": 3.5010548662563186,
+          "dijkstra": 40.318325812912825,
+          "raytrace": 15.803186698305268,
+          "leven": 20.563401597854924
+        },
+        "run_geo_adjusted_ms": 20.949388176706538,
+        "run_index": {
+          "wordfreq": 0.7399058156235947,
+          "csvagg": 0.459902313316107,
+          "sha256": 0.5562527582926264,
+          "dijkstra": 0.5142466498336514,
+          "raytrace": 0.7614268911767103,
+          "leven": 0.5179619854071456
+        },
+        "run_geo_index": 0.5808116204899046,
+        "build_ms": {
+          "wordfreq": 84.4495,
+          "csvagg": 93.6017,
+          "sha256": 81.8891,
+          "dijkstra": 76.2881,
+          "raytrace": 96.1602,
+          "leven": 90.4679
+        },
+        "build_adjusted_ms": {
+          "wordfreq": 71.51876357692325,
+          "csvagg": 91.47144988143019,
+          "sha256": 79.22412987827113,
+          "dijkstra": 77.2037636833802,
+          "raytrace": 80.09301783490338,
+          "leven": 61.23980528459638
+        },
+        "build_geo_adjusted_ms": 76.23217806938895,
+        "build_index": {
+          "wordfreq": 1.0488113936575034,
+          "csvagg": 1.1886587339293233,
+          "sha256": 1.0340375335048957,
+          "dijkstra": 1.0638772533376173,
+          "raytrace": 1.0768229988962392,
+          "leven": 0.7916845104519283
+        },
+        "build_geo_index": 1.0263917358119843,
+        "build_peak_mb": 101.06640625,
+        "exe_kb": 115.57312097587729
+      },
+      "swc-jit-release": {
+        "run_ms": {
+          "wordfreq": 66.02889998,
+          "csvagg": 21.89830004,
+          "sha256": 3.19379999,
+          "dijkstra": 40.7984,
+          "raytrace": 14.4781,
+          "leven": 18.81650003
+        },
+        "run_adjusted_ms": {
+          "wordfreq": 66.3205362934786,
+          "csvagg": 23.37392504727153,
+          "sha256": 3.53727148483779,
+          "dijkstra": 41.78665165577222,
+          "raytrace": 16.173620164719605,
+          "leven": 20.269110912180288
+        },
+        "run_geo_adjusted_ms": 20.54098490813759,
+        "run_index": {
+          "wordfreq": 0.7192055867407692,
+          "csvagg": 0.40771911086582646,
+          "sha256": 0.5086525387302335,
+          "dijkstra": 0.5170988129629355,
+          "raytrace": 0.7240374143154343,
+          "leven": 0.48407083726625993
+        },
+        "run_geo_index": 0.5478308281435065
+      },
+      "swag-fast-debug": {
+        "run_ms": {
+          "wordfreq": 79.26939998,
+          "csvagg": 48.5645,
+          "sha256": 14.98470001,
+          "dijkstra": 50.80150004,
+          "raytrace": 18.19519995,
+          "leven": 44.59369997
+        },
+        "run_adjusted_ms": {
+          "wordfreq": 79.6195169074186,
+          "csvagg": 51.83703670534867,
+          "sha256": 16.596202711561016,
+          "dijkstra": 52.032054829654555,
+          "raytrace": 20.326027090048083,
+          "leven": 48.0362792886739
+        },
+        "run_geo_adjusted_ms": 38.927831558383666,
+        "run_index": {
+          "wordfreq": 0.7462249608691657,
+          "csvagg": 0.7675467410765914,
+          "sha256": 0.8281331663302985,
+          "dijkstra": 0.6381130215004146,
+          "raytrace": 0.7445212991048933,
+          "leven": 0.5703246649424663
+        },
+        "run_geo_index": 0.7103874465311202,
+        "build_ms": {
+          "wordfreq": 96.9625,
+          "csvagg": 137.3195,
+          "sha256": 100.5387,
+          "dijkstra": 85.7153,
+          "raytrace": 108.1314,
+          "leven": 116.6393
+        },
+        "build_adjusted_ms": {
+          "wordfreq": 82.11579835673889,
+          "csvagg": 134.19429093694936,
+          "sha256": 97.2668038431554,
+          "dijkstra": 86.74411559928794,
+          "raytrace": 90.06397811894185,
+          "leven": 78.95582875839521
+        },
+        "build_geo_adjusted_ms": 93.33620207254071,
+        "build_index": {
+          "wordfreq": 1.0064678348526181,
+          "csvagg": 1.2800621451487144,
+          "sha256": 1.0397062158148649,
+          "dijkstra": 1.0187248528096746,
+          "raytrace": 1.020213958154972,
+          "leven": 0.7795827467564566
+        },
+        "build_geo_index": 1.0137370734523576,
+        "build_peak_mb": 106.21875,
+        "exe_kb": 147.12133265109154
+      },
+      "swc-jit-fast-debug": {
+        "run_ms": {
+          "wordfreq": 82.86070003,
+          "csvagg": 48.37919999,
+          "sha256": 14.29030002,
+          "dijkstra": 50.1081,
+          "raytrace": 19.11780005,
+          "leven": 46.98450002
+        },
+        "run_adjusted_ms": {
+          "wordfreq": 83.22667900430254,
+          "csvagg": 51.63925018598017,
+          "sha256": 15.827124719391993,
+          "dijkstra": 51.32185869623809,
+          "raytrace": 21.356672242473632,
+          "leven": 50.61164619033123
+        },
+        "run_geo_adjusted_ms": 39.45679662852717,
+        "run_index": {
+          "wordfreq": 0.8174914496635555,
+          "csvagg": 0.6351081960110726,
+          "sha256": 0.7630067212418584,
+          "dijkstra": 0.5945555730179564,
+          "raytrace": 0.7785370354938066,
+          "leven": 0.5753023186916385
+        },
+        "run_geo_index": 0.6873920831162983
+      }
+    },
+    "hello_jit_ms": 60.4572,
+    "hello_build_ms": 67.0166,
+    "hello_build_peak_mb": 98.1015625
   }
 ]

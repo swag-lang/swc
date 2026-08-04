@@ -12,6 +12,10 @@ var g_View:     #null *Wnd
 var g_Browser:  #null *FileBrowserCtrl
 var g_StartDir: String
 
+// Shared by every file dialog of the session: each one reopens with the previous
+// placement, folder, column widths and recent locations.
+var g_FileState: FileDlgState
+
 //
 // Modal dialog launchers (run on button click in interactive mode).
 //
@@ -48,36 +52,27 @@ func onMsgError(_b: *Button)
 
 func onEditSingle(_b: *Button)
 {
-    with let dlg = EditDlg.createSingleLine(notnull g_Surface)
-    {
-        .setMessage("Enter your name:")
-        .setText("John Doe")
-        let srf = notnull .surface
-        srf.setTitle("Single line edit")
-        srf.center(notnull g_Surface)
-    }
-
-    discard dlg.doModal()
+    var opt: EditDlgOptions
+    opt.title   = "Single line edit"
+    opt.message = "Enter your name:"
+    opt.text    = "John Doe"
+    discard EditDlg.createSingleLine(notnull g_Surface, opt).doModal()
 }
 
 func onEditMulti(_b: *Button)
 {
-    with let dlg = EditDlg.createMultiLine(notnull g_Surface)
-    {
-        .setMessage("Enter a description:")
-        .setText("First line\nSecond line")
-        let srf = notnull .surface
-        srf.setTitle("Multi line edit")
-        srf.center(notnull g_Surface)
-    }
-
-    discard dlg.doModal()
+    var opt: EditDlgOptions
+    opt.title   = "Multi line edit"
+    opt.message = "Enter a description:"
+    opt.text    = "First line\nSecond line"
+    discard EditDlg.createMultiLine(notnull g_Surface, opt).doModal()
 }
 
 func onFileOpen(_b: *Button)
 {
     var opt: FileDlgOptions
-    opt.mode = .SelectFile
+    opt.mode  = .SelectFile
+    opt.state = &g_FileState
     opt.filters.add({"All files", ""})
     opt.filters.add({"Images", ".png;.jpg;.bmp"})
     discard FileDlg.create(notnull g_Surface, opt).doModal()
@@ -86,8 +81,8 @@ func onFileOpen(_b: *Button)
 func onFileSave(_b: *Button)
 {
     var opt: FileDlgOptions
-    opt.mode              = .CreateFile
-    opt.confirmButtonText = "Save"
+    opt.mode  = .CreateFile
+    opt.state = &g_FileState
     opt.filters.add({"Text", ".txt"})
     discard FileDlg.create(notnull g_Surface, opt).doModal()
 }
@@ -95,7 +90,8 @@ func onFileSave(_b: *Button)
 func onSelectFolder(_b: *Button)
 {
     var opt: FileDlgOptions
-    opt.mode = .SelectFolder
+    opt.mode  = .SelectFolder
+    opt.state = &g_FileState
     discard FileDlg.create(notnull g_Surface, opt).doModal()
 }
 

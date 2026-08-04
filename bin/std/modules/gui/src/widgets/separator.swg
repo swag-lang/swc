@@ -33,9 +33,27 @@ impl IWnd for Separator
 {
     mtd impl onPaint(evt: *PaintEvent)
     {
-        let colors = .themeColors()
-        let color  = .form == .Accent ? colors.hilight : colors.border
-        evt.paintContext.painter.fillRect(.clientRect(), color)
+        let painter = evt.paintContext.painter
+        let colors  = .themeColors()
+        let color   = .form == .Accent ? colors.hilight : colors.border
+
+        // A rule must cover whole device pixels: snap the edges of its thin axis so
+        // a one-unit hairline never straddles two half-covered pixel rows.
+        var rect = .clientRect()
+        if rect.height <= rect.width
+        {
+            let y = painter.snapToDeviceY(rect.y)
+            rect.height = Math.max(painter.hairline(rect.height), painter.snapToDeviceY(rect.bottom()) - y)
+            rect.y      = y
+        }
+        else
+        {
+            let x = painter.snapToDeviceX(rect.x)
+            rect.width = Math.max(painter.hairline(rect.width), painter.snapToDeviceX(rect.right()) - x)
+            rect.x     = x
+        }
+
+        painter.fillRect(rect, color)
     }
 }
 

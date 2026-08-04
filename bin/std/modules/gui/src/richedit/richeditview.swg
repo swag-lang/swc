@@ -342,7 +342,7 @@ impl RichEditView
         let font = nnFont(fontR)
 
         var shaped     = Painter.shapeRun(str, font)
-        let info       = Painter.computeTextDrawInfo(font)
+        let info       = Painter.computeTextDrawInfo(font, 1.0, .deviceScale())
         let drawFont   = info.drawFont
         let snapPixels = info.snapPixels
 
@@ -354,7 +354,7 @@ impl RichEditView
             runToDraw = &drawShape
         }
 
-        let left  = snapPixels ? Math.round(x) : x
+        let left  = snapPixels ? Math.round(x * info.deviceScale) / info.deviceScale : x
         var right = left
         for glyph, [idx] in runToDraw.glyphs
         {

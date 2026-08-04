@@ -141,13 +141,9 @@ internal impl Properties
                 .dockStyle  = .Right
                 .sigPressed += func|prop = me, item, ed|(btn)
                 {
-                    with let dlg = EditDlg.createMultiLine(notnull prop.surface)
-                    {
-                        .setText(ed.text())
-                        let richEdit = notnull .richEdit
-                        richEdit.selectAll()
-                    }
-
+                    var editOptions: EditDlgOptions
+                    editOptions.text = ed.text()
+                    let dlg = EditDlg.createMultiLine(notnull prop.surface, editOptions)
                     if dlg.doModal() != Dialog.BtnOk do
                         return
                     ed.setText(dlg.text())

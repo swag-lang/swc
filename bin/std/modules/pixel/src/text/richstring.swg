@@ -47,10 +47,11 @@ struct RichString
     // Everything below comes out of [[Pixel.RichString.compute]] and the layout pass that
     // follows it. Set 'raw' through the methods and compute again; these describe the last
     // result. They stay writable because the layout engine lives in [[Pixel.Painter]].
-    chunks:     Array'RichChunk     // Styled runs produced by 'compute'.
-    layoutRect: Math.Rectangle      // Rectangle used by the most recent layout.
-    boundRect:  Math.Rectangle      // Bounds of visible content from the most recent layout.
-    hasUrl:     bool                // Whether at least one chunk is a URL.
+    chunks:      Array'RichChunk     // Styled runs produced by 'compute'.
+    layoutRect:  Math.Rectangle      // Rectangle used by the most recent layout.
+    boundRect:   Math.Rectangle      // Bounds of visible content from the most recent layout.
+    hasUrl:      bool                // Whether at least one chunk is a URL.
+    layoutScale: f32                 // Device scale used by the most recent layout, or zero before one.
 
     // Whether the chunks must be rebuilt before the next layout or paint.
     internal

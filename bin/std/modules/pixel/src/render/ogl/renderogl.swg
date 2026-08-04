@@ -87,6 +87,7 @@ struct RenderOgl
         curRT:           #null *RenderTarget           // Active off-screen target, if any.
         curShader:       #null *ShaderBase             // Active shader, or the default shader.
         overlapMode:     bool                          // Whether overlap-safe alpha drawing is active.
+        contentScale:    f32 = 1                       // Device pixels per unit of the painter stream being drawn.
         nativeContext:   #null const *void             // Shared native OpenGL context owned by interface-created drawables.
         contextCount:    u32                           // Number of live interface-created drawables.
     }
@@ -236,6 +237,12 @@ private impl RenderOgl
     {
         var tr = .worldTransform
         tr.multiply(modelTransform)
+
+        // The painter stream is recorded in logical units; the content scale maps
+        // them to device pixels. Applied last, it scales positions and translations
+        // alike, so widget code never sees physical coordinates.
+        if .contentScale != 1 do
+            tr.multiply(Transform2.createScale(.contentScale, .contentScale, 0, 0))
 
         // Received matrix is in row major order, so transpose it
 
@@ -785,8 +792,16 @@ impl RenderOgl
 
         case .SetClippingRect:
             let params = &cmd.clippingRect
+
+            // Painter clip rectangles are logical; the scissor works in framebuffer
+            // pixels. Round the scaled edges so neighbouring clips stay watertight.
+            let k  = .contentScale
+            let x0 = Math.round(params.rect.x * k)
+            let y0 = Math.round(params.rect.y * k)
+            let x1 = Math.round(params.rect.right() * k)
+            let y1 = Math.round(params.rect.bottom() * k)
             glEnable(GL_SCISSOR_TEST)
-            glScissor(cast(GLint) params.rect.x, cast(GLint) (height - params.rect.y - params.rect.height), cast(GLint) params.rect.width, cast(GLint) params.rect.height)
+            glScissor(cast(GLint) x0, cast(GLint) (height - y1), cast(GLint) (x1 - x0), cast(GLint) (y1 - y0))
 
         case .ResetClippingRect:
             glDisable(GL_SCISSOR_TEST)
@@ -1043,7 +1058,10 @@ impl RenderOgl
             case .Blur:
                 .setShader(&.shaderBlur)
                 glUniform1i(cast(GLint) .shaderBlur.axis, params.axis)
-                glUniform1f(cast(GLint) .shaderBlur.radius, params.radius)
+
+                // The blur samples target texels; a logical radius must cover the
+                // same on-screen extent whatever the content scale.
+                glUniform1f(cast(GLint) .shaderBlur.radius, params.radius * .contentScale)
 
             case .Resolve:
                 .setShader(&.shaderResolve)
@@ -1091,6 +1109,10 @@ impl RenderOgl
         let {width, height} = .targetSizeImpl()
         if width <= 0 or height <= 0 do
             return
+
+        // The stream's logical-to-device factor drives the model matrix, the
+        // scissor, and blur radii for the whole submission.
+        .contentScale = dc.contentScale()
 
         glBindBuffer(GL_ARRAY_BUFFER, .vertexbuffer)
 

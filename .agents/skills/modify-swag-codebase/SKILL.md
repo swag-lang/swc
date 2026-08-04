@@ -7,6 +7,11 @@ description: Modify, refactor, fix, test, and validate the Swag compiler reposit
 
 Fix the root cause of every problem. Do not introduce hacks or workarounds.
 
+The repository is written in English. Every comment, identifier, message, and
+documentation line — in the compiler sources, in `bin/`, and in every other file —
+is English; never leave French (or any other language) in the tree, whatever the
+language of the conversation.
+
 ## Improve The Platform Along The Way
 
 Treat every repository task, especially every Swag programming task, as an opportunity to
@@ -21,8 +26,10 @@ local workaround merely because the original request exposed it indirectly.
 - Record the issue in the root [TODO.md](../../../TODO.md) when it is uncertain, requires broader
   design work, or should be handled separately. Include evidence and a concrete next investigation
   step; do not record vague wishes.
-- Search `TODO.md` before adding an entry. Enrich an existing item instead of creating a duplicate,
-  and remove or update entries when the current task resolves or invalidates them.
+- Search `TODO.md` before adding an entry. Enrich an existing item instead of creating a duplicate.
+- `TODO.md` holds only what is *not done*. When a task resolves, invalidates, or completes the
+  investigation of an entry, delete that entry (or cut it down to the part that genuinely remains);
+  never keep done or investigated material as a record — history lives in git, not in the roadmap.
 
 The roadmap is a discovery backlog, not a promise that every item will be implemented and not a
 substitute for fixing a root cause that is already safe and in scope.

@@ -233,14 +233,12 @@ impl IActionUI for ActionFile
             // Snapshot the values now: 'capture' may be a library preview that the modal
             // loop could invalidate, but the file path and current title stay valid.
             let file = capture.file.toString()
-            let dlg  = EditDlg.createSingleLine(notnull main.surface)
-            dlg.setMessage("Capture name")
-            dlg.setText(capture.title)
-            dlg.edit?.selectAll()
 
-            // EditDlg.createSingleLine (unlike Dialog.create) does not center itself;
-            // do it here now the surface has its final size, so the box opens centered.
-            dlg.surface?.center(notnull main.surface)
+            var editOptions: EditDlgOptions
+            editOptions.title   = "Rename Capture"
+            editOptions.message = "Capture name"
+            editOptions.text    = capture.title
+            let dlg = EditDlg.createSingleLine(notnull main.surface, editOptions)
             if dlg.doModal() == Dialog.BtnOk do
                 main.setCaptureTitle(file, dlg.text())
 

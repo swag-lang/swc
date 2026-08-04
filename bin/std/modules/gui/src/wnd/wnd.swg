@@ -1006,11 +1006,23 @@ impl Wnd
             .setPosition(pos)
     }
 
-    // Convert a screen coordinate to a surface coordinate (relative to my surface)
+    // Convert a physical screen coordinate to a logical surface coordinate (relative to my surface)
     mtd const screenToSurface(pos: Math.Point)->Math.Point
     {
         let srfn = notnull .surface
-        return {pos.x - srfn.position.x, pos.y - srfn.position.y}
+        return {(pos.x - srfn.position.x) / srfn.dpiScale, (pos.y - srfn.position.y) / srfn.dpiScale}
+    }
+
+    // Number of physical device pixels covered by one logical unit of this window.
+    //
+    // Pass it to [[Pixel.Painter.measureStringSnapped]] and
+    // [[Pixel.Painter.computeTextDrawInfo]] so measured positions land on the same
+    // device grid the text is drawn with.
+    mtd const deviceScale()->f32
+    {
+        if !.surface do
+            return 1
+        return (notnull .surface).dpiScale
     }
 
     // Convert a surface coordinate to a local coordinate (relative to me)

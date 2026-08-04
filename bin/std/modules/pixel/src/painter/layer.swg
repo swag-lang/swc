@@ -52,6 +52,7 @@ struct Layer
     width:         s32                     // Logical content width, in pixels.
     height:        s32                     // Logical content height, in pixels.
     renderScale:   s32 = 1                 // Active supersampling factor.
+    deviceScale:   f32 = 1                 // Painter content scale captured at `begin`.
     active:        bool                    // Whether recording is between `begin` and `end`.
     resolved:      bool                    // Whether content is at logical resolution.
 }
@@ -69,12 +70,16 @@ impl Layer
 
         .release()
         let renderer = painter.renderer()
-        .renderer      = renderer
-        .painter       = painter
-        .width         = info.width
-        .height        = info.height
-        .renderScale   = Math.clamp(info.renderScale, 1, 8)
-        .paintTarget   = renderer.acquireRenderTarget(.width * .renderScale, .height * .renderScale)
+        .renderer    = renderer
+        .painter     = painter
+        .width       = info.width
+        .height      = info.height
+        .renderScale = Math.clamp(info.renderScale, 1, 8)
+
+        // Dimensions are logical: the renderer maps recorded drawing to device
+        // pixels, so the targets hold width x deviceScale texels per logical unit.
+        .deviceScale   = painter.contentScale()
+        .paintTarget   = renderer.acquireRenderTarget(.deviceWidth() * .renderScale, .deviceHeight() * .renderScale)
         .contentTarget = .paintTarget
         .active        = true
         .resolved      = .renderScale == 1
@@ -100,7 +105,20 @@ impl Layer
         .active = false
     }
 
-    // Downsamples supersampled content to logical layer dimensions.
+    // Returns the allocation width of the resolved layer content, in whole device texels.
+    private mtd const deviceWidth()->s32 => cast(s32) Math.ceil(.width * .deviceScale)
+
+    // Returns the allocation height of the resolved layer content, in whole device texels.
+    private mtd const deviceHeight()->s32 => cast(s32) Math.ceil(.height * .deviceScale)
+
+    // Content extents in device texels, kept exact: rendering fills width x deviceScale
+    // texels, so a ceil'ed source rectangle would minify the content into its logical
+    // footprint and blend the cleared padding texels into the last column and row.
+    private mtd const contentDeviceWidth()->f32 => .width * .deviceScale
+
+    private mtd const contentDeviceHeight()->f32 => .height * .deviceScale
+
+    // Downsamples supersampled content to the layer's device resolution.
     //
     // Calling this more than once is harmless.
     mtd resolve()
@@ -113,9 +131,12 @@ impl Layer
         let painter        = notnull .painter
         let paintTarget    = notnull .paintTarget
         let renderScale    = .renderScale
-        let resolvedTarget = renderer.acquireRenderTarget(.width, .height)
-        let srcRect        = Math.Rectangle{0, 0, .width * renderScale, .height * renderScale}
-        let dstRect        = Math.Rectangle{0, 0, .width, .height}
+        let resolvedTarget = renderer.acquireRenderTarget(.deviceWidth(), .deviceHeight())
+
+        // Source rectangles address target texels, destination rectangles are
+        // logical painter units mapped to device pixels at draw time.
+        let srcRect = Math.Rectangle{0, 0, .contentDeviceWidth() * renderScale, .contentDeviceHeight() * renderScale}
+        let dstRect = Math.Rectangle{0, 0, .width, .height}
 
         with painter
         {
@@ -148,17 +169,22 @@ impl Layer
         if .shadowTarget do
             return
 
+        // Destination rectangles are logical, source rectangles address the texels
+        // of the already device-resolution targets.
         let margin       = Math.max(info.margin, 0)
         let shadowWidth  = .width + 2 * margin
         let shadowHeight = .height + 2 * margin
-        let sourceRect   = Math.Rectangle{0, 0, .width, .height}
+        let devShadowW   = cast(s32) Math.ceil(shadowWidth * .deviceScale)
+        let devShadowH   = cast(s32) Math.ceil(shadowHeight * .deviceScale)
+        let sourceRect   = Math.Rectangle{0, 0, .contentDeviceWidth(), .contentDeviceHeight()}
         let targetRect   = Math.Rectangle{margin, margin, .width, .height}
-        let fullRect     = Math.Rectangle{0, 0, shadowWidth, shadowHeight}
+        let fullDstRect  = Math.Rectangle{0, 0, shadowWidth, shadowHeight}
+        let fullSrcRect  = Math.Rectangle{0, 0, shadowWidth * .deviceScale, shadowHeight * .deviceScale}
         let renderer     = notnull .renderer
         let painter      = notnull .painter
         let content      = notnull .contentTarget
-        let target1      = renderer.acquireRenderTarget(shadowWidth, shadowHeight)
-        let target2      = renderer.acquireRenderTarget(shadowWidth, shadowHeight)
+        let target1      = renderer.acquireRenderTarget(devShadowW, devShadowH)
+        let target2      = renderer.acquireRenderTarget(devShadowW, devShadowH)
 
         with painter
         {
@@ -178,7 +204,7 @@ impl Layer
             .setBlendingMode(.Copy)
             .setColorMaskFull()
             .clear(Argb.Zero)
-            .drawTexture(fullRect, fullRect, target1.colorBuffer)
+            .drawTexture(fullDstRect, fullSrcRect, target1.colorBuffer)
             .setDefaultShader()
             .unbindRenderTarget()
         }
@@ -192,7 +218,7 @@ impl Layer
             .setBlurShader(1, info.radius)
             .setBlendingMode(.Copy)
             .setColorMaskFull()
-            .drawTexture(fullRect, fullRect, target2.colorBuffer, info.color)
+            .drawTexture(fullDstRect, fullSrcRect, target2.colorBuffer, info.color)
             .setDefaultShader(.Simple)
             .setBlendingMode(.Alpha)
             .drawTexture(imageRect, sourceRect, content.colorBuffer)
@@ -211,8 +237,9 @@ impl Layer
     {
         Debug.assert(!.active)
 
+        // The destination is logical; the source addresses device texels.
         var dstRect = info.dstRect
-        var srcRect = Math.Rectangle{0, 0, .width, .height}
+        var srcRect = Math.Rectangle{0, 0, .contentDeviceWidth(), .contentDeviceHeight()}
         var texture = .texture()
 
         if info.shadow.enabled
@@ -221,7 +248,7 @@ impl Layer
             let margin = Math.max(info.shadow.margin, 0)
             dstRect.offset(info.shadow.offsetX - cast(f32) margin, info.shadow.offsetY - cast(f32) margin)
             dstRect.width, dstRect.height += cast(f32) (2 * margin)
-            srcRect                       = Math.Rectangle{0, 0, .width + 2 * margin, .height + 2 * margin}
+            srcRect                       = Math.Rectangle{0, 0, (.width + 2 * margin) * .deviceScale, (.height + 2 * margin) * .deviceScale}
             texture                       = (notnull .shadowTarget).colorBuffer
         }
         else do
@@ -264,6 +291,10 @@ impl Layer
     }
 
     // Returns the logical layer rectangle with origin `(0, 0)`.
+    //
+    // Use it as a destination rectangle. When sampling the layer texture directly,
+    // remember its texels are at device resolution: one logical unit covers the
+    // painter content scale in texels.
     mtd sourceRect()->Math.Rectangle
     {
         return Math.Rectangle{0, 0, .width, .height}

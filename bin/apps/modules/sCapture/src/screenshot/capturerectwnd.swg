@@ -51,6 +51,12 @@ impl IWnd for CaptureRectWnd
 
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
+        // Grab coordinates are canonical desktop-physical pixels (they crop the
+        // physical desktop image); the event position is logical surface units.
+        let k        = .deviceScale()
+        let physPosX = evt.surfacePos.x * k
+        let physPosY = evt.surfacePos.y * k
+
         switch evt.kind
         {
         case .Pressed where evt.button == .Right:
@@ -61,8 +67,8 @@ impl IWnd for CaptureRectWnd
 
         case .Pressed where evt.button == .Left:
             .tryStartGrab    = true
-            .clickStartPos.x = evt.surfacePos.x
-            .clickStartPos.y = evt.surfacePos.y
+            .clickStartPos.x = physPosX
+            .clickStartPos.y = physPosY
 
         case .Released where evt.button == .Left:
             if .cancelGrab
@@ -86,12 +92,12 @@ impl IWnd for CaptureRectWnd
             }
 
         case .Move where .tryStartGrab:
-            g_EndGrabX = evt.surfacePos.x
-            g_EndGrabY = evt.surfacePos.y
+            g_EndGrabX = physPosX
+            g_EndGrabY = physPosY
 
             // Check if mouse moved significantly from click start position
-            if Math.abs(evt.surfacePos.x - .clickStartPos.x) > 1 or
-               Math.abs(evt.surfacePos.y - .clickStartPos.y) > 1
+            if Math.abs(physPosX - .clickStartPos.x) > k or
+               Math.abs(physPosY - .clickStartPos.y) > k
             {
                 // Switch to manual rectangle selection mode
                 .tryStartGrab = false
@@ -104,8 +110,8 @@ impl IWnd for CaptureRectWnd
             }
 
         case .Move where .startGrab:
-            g_EndGrabX = evt.surfacePos.x
-            g_EndGrabY = evt.surfacePos.y
+            g_EndGrabX = physPosX
+            g_EndGrabY = physPosY
             .invalidate()
 
         case .Move:
@@ -152,19 +158,23 @@ impl IWnd for CaptureRectWnd
         let dimTint: Color = {155, 155, 155, 255}
         painter.drawTexture(.position, g_DesktopTexture, dimTint)
 
+        // The grab rectangle lives in desktop-physical pixels; drawing works in
+        // logical surface units.
+        let k = .deviceScale()
+        var dstGrab = grabRect
+        dstGrab.x      /= k
+        dstGrab.y      /= k
+        dstGrab.width  /= k
+        dstGrab.height /= k
+
         // Redraw the selected region at full brightness from the same texture. The
-        // desktop texture maps 1:1 onto the surface, so the source rect is the grab
-        // rect relative to the surface origin.
-        if !grabRect.isEmpty()
-        {
-            var srcRect = grabRect
-            srcRect.x -= .position.x
-            srcRect.y -= .position.y
-            painter.drawTexture(grabRect, srcRect, g_DesktopTexture)
-        }
+        // desktop texture texels are physical desktop pixels, so the grab rect is
+        // the source rect directly.
+        if !grabRect.isEmpty() do
+            painter.drawTexture(dstGrab, grabRect, g_DesktopTexture)
 
         let col = .themeColors().hilight
-        painter.drawRect(grabRect, col, 2)
+        painter.drawRect(dstGrab, col, 2)
 
         // Crosshair guides - only in manual grab mode. The cursor sits on the dragged
         // corner, so split each line around the selection instead of running it along
@@ -173,23 +183,26 @@ impl IWnd for CaptureRectWnd
         if .main.captureOptions.drawCross and !.autoGrab
         {
             let cross = Argb.White
-            painter.drawLine(g_EndGrabX, 0, g_EndGrabX, grabRect.y, cross)
-            painter.drawLine(g_EndGrabX, grabRect.bottom(), g_EndGrabX, cast() g_ScreenHeight, cross)
-            painter.drawLine(0, g_EndGrabY, grabRect.x, g_EndGrabY, cross)
-            painter.drawLine(grabRect.right(), g_EndGrabY, cast() g_ScreenWidth, g_EndGrabY, cross)
+            let endX  = g_EndGrabX / k
+            let endY  = g_EndGrabY / k
+            painter.drawLine(endX, 0, endX, dstGrab.y, cross)
+            painter.drawLine(endX, dstGrab.bottom(), endX, cast(f32) g_ScreenHeight / k, cross)
+            painter.drawLine(0, endY, dstGrab.x, endY, cross)
+            painter.drawLine(dstGrab.right(), endY, cast(f32) g_ScreenWidth / k, endY, cross)
         }
 
-        // Dimensions
+        // Dimensions, reported in physical desktop pixels: that is the size of the
+        // captured image.
         if grabRect.width > 0 and grabRect.height > 0
         {
             let fontR = notnull .font().regular
             let str   = Format.toString("% x %", grabRect.width, grabRect.height)
-            var xx    = grabRect.x + 4
-            var yy    = grabRect.y - fontR.height - 8
+            var xx    = dstGrab.x + 4
+            var yy    = dstGrab.y - fontR.height - 8
             if xx < 0 or yy < 0
             {
-                xx = grabRect.x + 5
-                yy = grabRect.y + 5
+                xx = dstGrab.x + 5
+                yy = dstGrab.y + 5
             }
 
             let m = Painter.measureString(str, fontR)

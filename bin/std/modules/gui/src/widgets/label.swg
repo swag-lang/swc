@@ -343,7 +343,7 @@ impl Label
             rect.applyPadding(.textPadding)
 
             .name.compute()
-            Painter.computeLayout(rect, &.name, sf)
+            Painter.computeLayout(rect, &.name, sf, .deviceScale())
 
             var height = .name.boundRect.height
             if !.name.isEmpty() do

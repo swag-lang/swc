@@ -992,6 +992,8 @@ const DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE    = cast(DPI_AWARENESS_CONTEXT) c
 const DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = cast(DPI_AWARENESS_CONTEXT) cast #bit (u64) -4's64
 const DPI_AWARENESS_CONTEXT_UNAWARE_GDISCALED    = cast(DPI_AWARENESS_CONTEXT) cast #bit (u64) -5's64
 
+const USER_DEFAULT_SCREEN_DPI = 96'u32
+
 // The coordinates packed in lParam are signed 16-bit values: they can be negative on
 // multi-monitor setups or when a maximized window is positioned outside the work area.
 // Sign-extend the low/high word manually so the sign is preserved (a narrowing cast
@@ -1064,6 +1066,11 @@ func GET_Y_LPARAM(lp: LPARAM)->s32
     func MonitorFromPoint(pt: POINT, dwFlags: DWORD)->HMONITOR
     func MonitorFromWindow(hwnd: HWND, dwFlags: DWORD)->HMONITOR
     func SetThreadDpiAwarenessContext(dpiContext: DPI_AWARENESS_CONTEXT)->DPI_AWARENESS_CONTEXT
+    func SetProcessDpiAwarenessContext(dpiContext: DPI_AWARENESS_CONTEXT)->BOOL
+    func GetDpiForWindow(hwnd: HWND)->UINT
+    func GetDpiForSystem()->UINT
+    func GetSystemMetricsForDpi(nIndex: s32, dpi: UINT)->s32
+    func AdjustWindowRectExForDpi(lpRect: *RECT, dwStyle: DWORD, bMenu: BOOL, dwExStyle: DWORD, dpi: UINT)->BOOL
 
     func GetSystemMetrics(nIndex: s32)->s32
 }

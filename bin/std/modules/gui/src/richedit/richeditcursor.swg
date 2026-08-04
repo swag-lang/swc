@@ -16,7 +16,7 @@ impl RichEditCtrl
     {
         let fontR = .font().getFont(.styles[styleIdx].fontMode)
         if fontR do
-            return Painter.computeTextDrawInfo(nnFont(fontR))
+            return Painter.computeTextDrawInfo(nnFont(fontR), 1.0, .deviceScale())
         return {}
     }
 

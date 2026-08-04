@@ -13,17 +13,27 @@ public struct EditDlg
     }
 }
 
+// Configures the title, message and initial contents of an [[Gui.EditDlg]].
+public struct EditDlgOptions
+{
+    title:        string = ""      // Surface title.
+    message:      string = ""      // Optional explanatory text shown above the editor.
+    text:         string = ""      // Initial editor contents.
+    selectAll     = true           // Whether the initial contents start selected.
+    editorHeight: s32    = 150     // Editor height, used by the multi-line form.
+}
+
 public impl EditDlg
 {
-    // Creates a single-line text prompt.
+    // Creates a single-line text prompt, centered on its owner.
     #[Swag.Discardable]
-    func createSingleLine(from: *Surface)->*EditDlg
+    func createSingleLine(from: *Surface, options: EditDlgOptions = {})->*EditDlg
     {
         Debug.assert(from != null)
         let dlg     = Wnd.create'EditDlg()
         let metrics = from.wnd.themeMetrics()
         let srf     = dlg.createSurface(from, 0, 0, 450, 210)
-        srf.center(from)
+        srf.setTitle(options.title)
 
         dlg.edit = EditBox.create(srf.view(), "")
         with dlg.edit
@@ -39,23 +49,24 @@ public impl EditDlg
         dlg.addButton("OK", Dialog.BtnOk, true)
         dlg.addButton("Cancel", Dialog.BtnCancel)
         dlg.sendResizeEvent()
+        dlg.applyOptions(options)
         return dlg
     }
 
-    // Creates a resizable multi-line text prompt.
+    // Creates a resizable multi-line text prompt, centered on its owner.
     #[Swag.Discardable]
-    func createMultiLine(from: *Surface, editorHeight: s32 = 150)->*EditDlg
+    func createMultiLine(from: *Surface, options: EditDlgOptions = {})->*EditDlg
     {
         Debug.assert(from != null)
-        Debug.assert(editorHeight > 0, "editor height must be positive")
+        Debug.assert(options.editorHeight > 0, "editor height must be positive")
         let dlg     = Wnd.create'EditDlg()
         let metrics = from.wnd.themeMetrics()
-        let srf     = dlg.createSurface(from, 0, 0, 500, 180 + editorHeight, .Resizable)
-        srf.center(from)
+        let srf     = dlg.createSurface(from, 0, 0, 500, 180 + options.editorHeight, .Resizable)
+        srf.setTitle(options.title)
         srf.minSize.x = 500
-        srf.minSize.y = 180 + editorHeight
+        srf.minSize.y = 180 + options.editorHeight
 
-        dlg.richEdit = RichEditCtrl.create(srf.view(), {0, 0, 0, editorHeight})
+        dlg.richEdit = RichEditCtrl.create(srf.view(), {0, 0, 0, options.editorHeight})
         with dlg.richEdit
         {
             .anchorStyle = .Height
@@ -72,7 +83,28 @@ public impl EditDlg
         dlg.addButton("OK", Dialog.BtnOk, true)
         dlg.addButton("Cancel", Dialog.BtnCancel)
         dlg.sendResizeEvent()
+        dlg.applyOptions(options)
         return dlg
+    }
+
+    // Applies the shared creation options once the editor exists, then centers the
+    // surface: the message can grow the surface, so centering must come last.
+    private mtd applyOptions(options: EditDlgOptions)
+    {
+        if @countof(options.message) do
+            .setMessage(options.message)
+        .setText(options.text)
+        if options.selectAll
+        {
+            let edit = .edit
+            if edit do
+                edit.selectAll()
+            else do
+                (notnull .richEdit).selectAll()
+        }
+
+        let surface = notnull .surface
+        surface.center(notnull .parentSurface)
     }
 
     // Replaces the editor contents.
@@ -119,9 +151,10 @@ public impl EditDlg
                 richEdit.margin.y = 0
             }
 
+            // The surface rectangle is physical; the added message height is logical.
             let surface = notnull .surface
             var pos     = surface.position
-            pos.height        += height
+            pos.height        += height * surface.dpiScale
             surface.minSize.y += height
 
             // A single-line dialog has only '.edit' (no '.richEdit'). Temporarily

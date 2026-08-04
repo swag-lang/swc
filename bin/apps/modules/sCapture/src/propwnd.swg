@@ -602,16 +602,13 @@ impl PropWnd
 
     func editText(main: *MainWnd, curText: String)->String
     {
-        with let dlg = EditDlg.createMultiLine(notnull main.surface)
-        {
-            .setMessage("Press Shift+Enter to add a new line")
-            .setText(curText)
-            .richEdit?.selectAll()
-            .surface?.setTitle("Enter Text")
-            .surface?.center(notnull main.surface)
-            if main.inPlaceEdit do
-                .surface?.setTopMost()
-        }
+        var editOptions: EditDlgOptions
+        editOptions.title   = "Enter Text"
+        editOptions.message = "Press Shift+Enter to add a new line"
+        editOptions.text    = curText.toString()
+        let dlg = EditDlg.createMultiLine(notnull main.surface, editOptions)
+        if main.inPlaceEdit do
+            dlg.surface?.setTopMost()
 
         if dlg.doModal() != Dialog.BtnOk do
             return curText

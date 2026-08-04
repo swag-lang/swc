@@ -24,6 +24,28 @@ Use this compact format. Keep observations factual and make the next step action
 - Related: issue, pull request, or TODO entry if applicable
 -->
 
+### Cold-cache `std` test runs fail resolving core test-only exports
+
+- Area: compiler
+- Found while: validating a `bin/std` change with `swc test --workspace bin/std` after deleting
+  `.dep`/`.output`
+- Observation: on a cold cache, building `pixel.test` fails with `native backend cannot resolve a
+  foreign function relocation for '<jit-constant>'` requesting `tag_bin_hook_payload__read` and
+  `tag_bin_interface_probe__score` from module `core`. Those are public *test-only* symbols
+  (`TagBinHookPayload`, `TagBinInterfaceProbe` in
+  `bin/std/modules/core/src/unittests/serialization/tagbin.test.swg`): they are exported by
+  `core.test.dll` and declared in the test-variant interface, but the resolver looks them up in
+  the non-test `core` module. The suite only passes with warm caches from an earlier state.
+- Evidence: reproduces deterministically at clean HEAD (65b0e0271) in a fresh worktree with both
+  `bin/swc.exe` and `bin/swc_devmode.exe`: `build --rebuild` succeeds, the following
+  `test --workspace bin/std` stops at pixel with the two relocations above. The strings
+  `tag_bin_hook_payload__read/write/post` are present in
+  `.output/core/shared-library/fast-debug/x86_64/core.test.dll`.
+- Next step: in the native-backend foreign resolver, check how a `<jit-constant>` relocation maps
+  a module name to a concrete dll in test mode: downstream test builds must resolve `core` to
+  `core.test.dll` (where test-only exports live), or the test-variant interface must not leak
+  test-only types to dependents in the first place.
+
 ### Data-driven UI resource for `std/gui`
 
 - Area: bin/std
@@ -61,24 +83,25 @@ Use this compact format. Keep observations factual and make the next step action
   repeated mount/unmount cycles in one process, then attribute retained allocations to sCrypt,
   WinFsp, or the core allocator before changing ownership or allocation policy.
 
-### `std/gui` surfaces are DPI-unaware and bitmap-stretched
+### Remaining DPI work: bitmap chrome assets and the in-place capture editor
 
 - Area: bin/std
-- Found while: polishing sCrypt and chasing text that never looks clean on a 150% display
-- Observation: no `std/gui` surface declares process or per-monitor DPI awareness, so Windows
-  renders the whole window at its logical size and stretches the result. Every glyph, hairline,
-  and border on a scaled display is therefore resampled, which no font tuning inside `pixel` can
-  recover. `Application.pickColorAtMouse` is the only place that touches
-  `SetThreadDpiAwarenessContext`, and only for the duration of a desktop pixel read.
-- Evidence: sCrypt opens at 1100x790 logical and `GetWindowRect` from a DPI-aware process reports
-  1650x1185, an exact 1.5x. In that capture the four-pixel accent rail is six pixels with a
-  partial pixel on each side, and every panel edge ramps over two pixels instead of one. Raising
-  `AutoMsdfMinPx` in `bin/std/modules/pixel/src/text/font.swg` from 20 to 32, which moves body
-  text from the MSDF atlas to an exact-size bitmap, produced a byte-identical crop: the blur is
-  applied after the app has drawn, so the font path cannot be the cause.
-- Next step: make one surface DPI-aware end to end before touching the toolkit. Call
-  `SetProcessDpiAwarenessContext(PER_MONITOR_AWARE_V2)` at startup, size the swap chain from
-  `GetClientRect` in physical pixels, and push `GetDpiForWindow / 96` into the painter transform
-  so `computeTextDrawInfo` receives it as `transformScale` and the existing `Auto` bitmap/MSDF
-  choice starts seeing the real on-screen size. Then decide whether layout keeps logical units,
-  and what `WM_DPICHANGED` has to re-arrange.
+- Found while: making `std/gui` and `Env.Window` per-monitor DPI aware (surfaces are now
+  physical-pixel windows, the window tree stays logical, and the renderer maps painter streams
+  through `Painter.contentScale`)
+- Observation: two things still resample on a scaled display. First, the theme remains a 1x
+  bitmap atlas: `widgets.png` nine-slice tiles and the 24/64-pixel icon atlases are linearly
+  upscaled at 125-175%, so atlas borders and icons are the one soft element left in an otherwise
+  crisp UI. Second, sCapture's in-place capture editor mixes desktop-physical and logical spaces
+  in its editing overlay; the grab flow, bars, and 1:1 capture display were adapted, but the
+  gizmo/form editing interactions inside the in-place overlay have not been visually verified on
+  a scaled or mixed-DPI multi-monitor setup.
+- Evidence: gui2 at 150% shows a 1551x1169 physical window (1034x779 logical, DPI 144) with
+  crisp MSDF text, device-snapped hairlines, and correct layout; only atlas-sourced chrome is
+  interpolated. sCapture compiles and the main grab path converts spaces explicitly
+  (`capturerectwnd.swg`, `screenshot.swg`, `inplaceeditwnd.swg`).
+- Next step: for the chrome, either ship a 2x `widgets.png`/icon atlas variant selected by
+  surface scale, or draw the flat Swag-theme chrome (square fills, hairline borders) vectorially
+  through the painter; the icons want SVG sources rasterized per scale. For sCapture, run a
+  capture and in-place edit session on a 150% display and on mixed-DPI monitors, and fix the
+  remaining space mismatches the session exposes.

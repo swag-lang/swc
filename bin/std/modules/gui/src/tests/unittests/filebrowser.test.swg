@@ -27,15 +27,18 @@ using Swag, Core, File
     @assert(@isset(fb.forwardButton))
     @assert(@isset(fb.upButton))
     @assert(@isset(fb.refreshButton))
+    @assert(@isset(fb.newFolderButton))
+    @assert(@isset(fb.statusLabel))
     @assert(fb.comboType.items.count == 1)
     @assert(fb.options.shortcuts.count == 3)
     @assert(!fb.canGoBack())
     @assert(!fb.canGoForward())
 
     // The file list is multi-column with fixed default widths.
-    @assert(fb.listCtrl.header.items.count == 2)
-    @assert(Math.abs(fb.listCtrl.header.itemWidthAt(0) - 200) < 0.5)
-    @assert(Math.abs(fb.listCtrl.header.itemWidthAt(1) - 150) < 0.5)
+    @assert(fb.listCtrl.header.items.count == 3)
+    @assert(Math.abs(fb.listCtrl.header.itemWidthAt(0) - 220) < 0.5)
+    @assert(Math.abs(fb.listCtrl.header.itemWidthAt(1) - 130) < 0.5)
+    @assert(Math.abs(fb.listCtrl.header.itemWidthAt(2) - 90) < 0.5)
 
     // selectedPath combines the folder + typed name and appends the active
     // filter extension when missing.
@@ -97,6 +100,46 @@ using Swag, Core, File
     @assert(!history.canGoForward())
 }
 
+// The reusable dialog state receives the column widths on destruction, and the
+// recent-folder history keeps unique existing folders, most recent first.
+#test
+{
+    var state: FileDlgState
+    state.nameColumnWidth     = 333
+    state.modifiedColumnWidth = 155
+    state.sizeColumnWidth     = 77
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 460)
+    defer host.shutdown()
+    var opt: FileDlgOptions
+    opt.mode              = .SelectFile
+    opt.showLocationsPane = false
+    opt.state             = &state
+    opt.filters.add({"Text", ".txt"})
+
+    let fb = FileBrowserCtrl.create(&host.root, opt, {0, 0, 600, 400})
+    @assert(Math.abs(fb.listCtrl.header.itemWidthAt(0) - 333) < 0.5)
+    @assert(Math.abs(fb.listCtrl.header.itemWidthAt(1) - 155) < 0.5)
+    @assert(Math.abs(fb.listCtrl.header.itemWidthAt(2) - 77) < 0.5)
+
+    // Recording the same existing folder twice keeps one entry at the front.
+    let temp = Env.getSpecialDirectory(.Temp)
+    fb.recordRecentFolder(temp.toString())
+    fb.recordRecentFolder(temp.toString())
+    @assert(state.recentFolders.count == 1)
+
+    // A folder that does not exist is never recorded.
+    fb.recordRecentFolder("Z:/this-folder-does-not-exist")
+    @assert(state.recentFolders.count == 1)
+
+    // The name editor targets a folder only when its content names an existing one.
+    fb.setFileName(temp.toString())
+    @assert(!fb.typedFolderTarget().isEmpty())
+    fb.setFileName("no-such-subfolder-anywhere")
+    @assert(fb.typedFolderTarget().isEmpty())
+}
+
 // Dialogs create the composite before assigning its Center dock. The fields
 // must acquire a useful width once the parent performs its first layout.
 #test
@@ -116,4 +159,13 @@ using Swag, Core, File
 
     @assert(fb.editFile.position.width > 300)
     @assert(fb.comboType.position.width > 300)
+
+    // The two bottom-docked strips stack: the name/type form sits at the bottom
+    // edge, and the status line sits directly above it, above the file list.
+    let form      = notnull fb.editFile.parent
+    let statusBar = notnull fb.statusLabel.parent
+    @assert(form.position.bottom() <= fb.position.height)
+    @assert(form.position.bottom() >= fb.position.height - 1)
+    @assert(statusBar.position.bottom() <= form.position.y)
+    @assert(statusBar.position.y >= fb.listCtrl.position.bottom())
 }

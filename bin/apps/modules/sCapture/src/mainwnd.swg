@@ -105,11 +105,12 @@ impl IWnd for MainWnd
             .computeLayoutPopup()
         }
 
+        // The menu layout is logical; the surface rectangle is physical screen pixels.
         let pt         = Input.mousePosition()
         let shadowSize = .themeMetrics().surfaceWnd_ShadowSize
         menu.position.width  += 2 * shadowSize
         menu.position.height += 2 * shadowSize
-        sf.setPosition({pt.x, pt.y, menu.position.width, menu.position.height})
+        sf.setPosition({pt.x, pt.y, menu.position.width * sf.dpiScale, menu.position.height * sf.dpiScale})
         sf.constrainPositionToScreen()
         sf.wnd.view.backgroundStyle = .Window
 

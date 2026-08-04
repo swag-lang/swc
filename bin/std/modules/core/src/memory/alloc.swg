@@ -37,7 +37,7 @@ func assertIsAllocated(buffer: #null [*] void, size: u64, allocator: #null IAllo
     req.address   = buffer
     req.hint      = hint
 
-    let talloc = notnull (allocator orelse @getcontext().allocator)
+    let talloc = (allocator orelse @getcontext().allocator)!
     talloc.assertAllocated(&req)
 }
 
@@ -54,7 +54,7 @@ func free(buffer: #null [*] void, size: u64, allocator: #null IAllocator = null,
     req.address   = buffer
     req.hint      = hint
 
-    let talloc = notnull (allocator orelse @getcontext().allocator)
+    let talloc = (allocator orelse @getcontext().allocator)!
     talloc.free(&req)
 }
 
@@ -65,7 +65,7 @@ func freeAll(allocator: #null IAllocator, hint: #null string = null, loc = #call
     req.callerLoc = loc
     req.hint      = hint
 
-    let talloc = notnull (allocator orelse @getcontext().allocator)
+    let talloc = (allocator orelse @getcontext().allocator)!
     talloc.freeAll(&req)
 }
 
@@ -84,7 +84,7 @@ func realloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator: #nul
     req.oldSize   = oldSize
     req.alignment = alignment
 
-    let talloc = notnull (allocator orelse @getcontext().allocator)
+    let talloc = (allocator orelse @getcontext().allocator)!
     talloc.realloc(&req)
 
     let address = req.address
@@ -106,7 +106,7 @@ func alloc(size: u64, allocator: #null IAllocator = null, alignment: u32 = 0, hi
     req.size      = size
     req.alignment = alignment
 
-    let talloc = notnull (allocator orelse @getcontext().allocator)
+    let talloc = (allocator orelse @getcontext().allocator)!
     talloc.alloc(&req)
 
     let address = req.address

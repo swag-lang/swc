@@ -590,7 +590,7 @@ namespace compiler350
 // _compiler4101.swg
 namespace compiler4101
 {
-    const C = #run (notnull @compiler.getBuildCfg()).backendKind
+    const C = #run @compiler.getBuildCfg()!.backendKind
 }
 
 // _compiler4102.swg
@@ -607,7 +607,7 @@ namespace compiler4102
 // _compiler4104.swg
 namespace compiler4104
 {
-    const CFG: Swag.BuildCfg = #run dref notnull @compiler.getBuildCfg()
+    const CFG: Swag.BuildCfg = #run dref @compiler.getBuildCfg()!
 }
 
 // _compiler4266.swg

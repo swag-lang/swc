@@ -16,7 +16,7 @@ impl IActionUI for ActionZoom
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let main    = cast(*MainWnd) notnull cxt.wnd
+        let main    = cast(*MainWnd) cxt.wnd!
         let capture = main.getCapture()
 
         switch cxt.id
@@ -35,13 +35,13 @@ impl IActionUI for ActionZoom
             evt.updatedFields |= .Name | .Disabled | .Icon
             evt.name          = "Zoom In"
             evt.disabled      = !capture or !main.editWnd.editView.canZoomIn()
-            evt.icon          = main.theme().icon24(.ZoomIn)
+            evt.icon          = main.theme().icon(.ZoomIn)
 
         case .ZoomOut:
             evt.updatedFields |= .Name | .Disabled | .Icon
             evt.name          = "Zoom Out"
             evt.disabled      = !capture or !main.editWnd.editView.canZoomOut()
-            evt.icon          = main.theme().icon24(.ZoomOut)
+            evt.icon          = main.theme().icon(.ZoomOut)
         }
 
         return true
@@ -49,7 +49,7 @@ impl IActionUI for ActionZoom
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main = cast(*MainWnd) notnull cxt.wnd
+        let main = cast(*MainWnd) cxt.wnd!
         let view = main.editWnd.editView
 
         switch cxt.id

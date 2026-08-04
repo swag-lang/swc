@@ -809,7 +809,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     defer discard catch File.delete(path.toString())
     var src = Image.create(4, 4, .BGR8)
     src.clear()
-    let srcBuf = notnull src.pixels.buffer
+    let srcBuf = src.pixels.buffer!
     srcBuf[0]  = 200'u8     // pixel(0,0) B
     srcBuf[1]  = 128'u8     //             G
     srcBuf[2]  = 64'u8      //             R
@@ -851,7 +851,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     defer discard catch File.delete(path.toString())
     var src = Image.create(2, 2, .BGRA8)
     src.clear()
-    let srcBuf = notnull src.pixels.buffer
+    let srcBuf = src.pixels.buffer!
     srcBuf[0] = 10'u8      // pixel(0,0) B
     srcBuf[1] = 20'u8      //             G
     srcBuf[2] = 30'u8      //             R
@@ -879,7 +879,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     defer discard catch File.delete(path.toString())
     var src = Image.create(4, 4, .RGB8)
     src.clear()
-    let srcBuf = notnull src.pixels.buffer
+    let srcBuf = src.pixels.buffer!
     srcBuf[0] = 100'u8     // pixel(0,0) R
     srcBuf[1] = 150'u8     //             G
     srcBuf[2] = 200'u8     //             B
@@ -905,7 +905,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     defer discard catch File.delete(path.toString())
     var src = Image.create(2, 2, .RGBA8)
     src.clear()
-    let srcBuf = notnull src.pixels.buffer
+    let srcBuf = src.pixels.buffer!
     srcBuf[0] = 10'u8      // pixel(0,0) R
     srcBuf[1] = 20'u8      //             G
     srcBuf[2] = 30'u8      //             B
@@ -933,7 +933,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     defer discard catch File.delete(path.toString())
     var src = Image.create(5, 5, .BGR8)
     src.clear()
-    let srcBuf = notnull src.pixels.buffer
+    let srcBuf = src.pixels.buffer!
     srcBuf[0]  = 77'u8     // pixel(0,0) B
     srcBuf[1]  = 88'u8     //             G
     srcBuf[2]  = 99'u8     //             R

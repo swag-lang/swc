@@ -7,7 +7,7 @@ func addTabSample(tab: *Tab, prefix: string)
         let view = Wnd.create'Wnd(tab)
         let name = Format.toString("%%", prefix, @index + 1)
         discard createText(view, Format.toString("View %", @index + 1), {14, 12, 120, 24})
-        tab.addItem(name, app.theme.icon24(ThemeIcons24.Search, 14), view)
+        tab.addItem(name, app.theme.icon(ThemeIcons.Search, 14), view)
     }
 }
 

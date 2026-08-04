@@ -81,7 +81,7 @@ public func show(owner: *Wnd, surfacePos: Math.Point, str: #null string, delay: 
     {
         if !g_Pending do
             g_Pending = Memory.new'ToolTipVal()
-        let pending = notnull g_Pending
+        let pending = g_Pending!
         pending.owner      = owner
         pending.surfacePos = surfacePos
         pending.str        = str

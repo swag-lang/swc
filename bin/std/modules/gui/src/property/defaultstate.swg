@@ -61,12 +61,12 @@ internal impl Properties
         let def = Memory.new(rootType)
         .defaultRoots.add({def, rootType})
 
-        let defBase  = notnull cast(#null [*] u8) def
+        let defBase  = cast #unnull ([*] u8) def
         let rootSize = cast(u64) rootType.sizeof
 
         for [i] in fromIdx until .items.count
         {
-            let it = notnull .items[i]
+            let it = .items[i]!
             it.defaultData = null
 
             if !it.data do
@@ -74,7 +74,7 @@ internal impl Properties
 
             // Items under a dynamic array live in a heap buffer, not at a fixed offset from the
             // struct base — no meaningful declared default to compare against.
-            if .isUnderDynamicArray(notnull it) do
+            if .isUnderDynamicArray(it!) do
                 continue
 
             if !canHaveDefault(it.type) do
@@ -92,7 +92,7 @@ internal impl Properties
     mtd freeDefaultRoots()
     {
         for r in .defaultRoots do
-            Memory.delete(notnull r.base, notnull r.type)
+            Memory.delete(r.base!, r.type!)
         .defaultRoots.clear()
     }
 
@@ -133,10 +133,10 @@ internal impl Properties
 
         if item.type == Core.String
         {
-            let d = notnull cast(#null *String) item.defaultData
+            let d = cast #unnull (*String) item.defaultData
             for [k] in n
             {
-                if (dref notnull cast(#null *String) .instanceAddr(item, k)) != dref d do
+                if (dref cast #unnull (*String) .instanceAddr(item, k)) != dref d do
                     return true
             }
 
@@ -182,7 +182,7 @@ internal impl Properties
         if item.type == Core.String
         {
             for [k] in n do
-                dref notnull cast(#null *String) .instanceAddr(item, k) = dref notnull cast(#null *String) item.defaultData
+                dref cast #unnull (*String) .instanceAddr(item, k)= dref cast #unnull (*String) item.defaultData
         }
         else
         {
@@ -203,7 +203,7 @@ internal impl Properties
         var changed = false
         for it in .items
         {
-            if .updateItemDefaultState(notnull it) do
+            if .updateItemDefaultState(it!) do
                 changed = true
         }
 
@@ -255,7 +255,7 @@ internal impl Properties
         if item.isModified
         {
             if !btn.icon.isValid() do
-                btn.setIcon(.theme().icon24(.Undo, .revertIconSize(btn.position.height)))
+                btn.setIcon(.theme().icon(.Undo, .revertIconSize(btn.position.height)))
             btn.enable(true)
         }
         else
@@ -283,7 +283,7 @@ internal impl Properties
             return
 
         let h = .revertButtonSize()
-        with item.revertButton = IconButton.create(host, .theme().icon24(.Undo, .revertIconSize(h)), {0, 0, h, h})
+        with item.revertButton = IconButton.create(host, .theme().icon(.Undo, .revertIconSize(h)), {0, 0, h, h})
         {
             .setForm(.Circle)
             .updateFlags(.Overlay)      // Elegant translucent hover without an opaque box.

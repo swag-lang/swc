@@ -1,9 +1,9 @@
 using Core, Gui, Pixel
 
-func addStackButton(parent: *Wnd, text: string, icon: ThemeIcons24)
+func addStackButton(parent: *Wnd, text: string, icon: ThemeIcons)
 {
     let btn = PushButton.create(parent, text, {0, 0, 150, 32})
-    btn.setIcon(app.theme.icon24(icon, 16))
+    btn.setIcon(app.theme.icon(icon, 16))
 }
 
 func createVerticalStack(parent: *Wnd, rect: Math.Rectangle)

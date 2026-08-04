@@ -109,7 +109,7 @@ impl IWnd for FileBrowserCtrl
     {
         if .options.state
         {
-            let state = notnull me.options.state
+            let state = me.options.state!
             state.currentFolder       = me.currentFolder
             state.nameColumnWidth     = cast() me.listCtrl.header.itemWidthForColumn(0)
             state.modifiedColumnWidth = cast() me.listCtrl.header.itemWidthForColumn(1)
@@ -211,7 +211,7 @@ private impl FileBrowserCtrl
     // Appends one selectable location row bound to `path`.
     mtd addLocationLine(name: string, path: string, icon: Icon)
     {
-        let treeCtrl = notnull .treeCtrl
+        let treeCtrl = .treeCtrl!
         let l        = treeCtrl.createLine(name, icon)
         l.userData0      = cast(#null *void) .treePathStr.count
         l.leftTextMargin = 10
@@ -277,7 +277,7 @@ private impl FileBrowserCtrl
         var sel      = .listCtrl.selectedLines()
         for lineIt in sel
         {
-            let fi = notnull cast(#null const *FileInfo) lineIt!.userData0
+            let fi = cast #unnull (const *FileInfo) lineIt!.userData0
             if fi.isDirectory() and .options.mode != FileDlgMode.SelectFolder do
                 continue
             selCount += 1
@@ -350,7 +350,7 @@ private impl FileBrowserCtrl
                     let l = list.focusedLine()
                     if !l do
                         break
-                    let fi = notnull cast(#null const *FileInfo) l.userData0
+                    let fi = cast #unnull (const *FileInfo) l.userData0
                     if fi.isDirectory()
                     {
                         fileBrowser.setCurrentFolder(fi.fullname)
@@ -367,7 +367,7 @@ private impl FileBrowserCtrl
                 var l = list.selectedLine()
                 if !l do
                     return
-                var fi = notnull cast(#null const *FileInfo) l.userData0
+                var fi = cast #unnull (const *FileInfo) l.userData0
                 if fi.isDirectory()
                 {
                     fileBrowser.setCurrentFolder(fi.fullname)
@@ -384,7 +384,7 @@ private impl FileBrowserCtrl
                 var txt: String
                 for l in sel
                 {
-                    let fi = notnull cast(#null const *FileInfo) l!.userData0
+                    let fi = cast #unnull (const *FileInfo) l!.userData0
                     if fi.isDirectory()
                     {
                         if fileBrowser.options.mode != .SelectFolder do
@@ -410,8 +410,8 @@ private impl FileBrowserCtrl
                 if !l1 or !l2 do
                     return 0
 
-                var fi1 = notnull cast(#null *FileInfo) l1.userData0
-                var fi2 = notnull cast(#null *FileInfo) l2.userData0
+                var fi1 = cast #unnull (*FileInfo) l1.userData0
+                var fi2 = cast #unnull (*FileInfo) l2.userData0
                 if fi1.isDirectory() and !fi2.isDirectory() do
                     return -1
                 if !fi1.isDirectory() and fi2.isDirectory() do
@@ -504,7 +504,7 @@ impl FileBrowserCtrl
 
         // Icon-only navigation: the labels live in the tooltips, so the bar never
         // truncates its buttons when the surface shrinks.
-        with fileBrowser.backButton = IconButton.create(viewTop, fileBrowser.theme().icon24(ThemeIcons24.Undo, 20), {0, 0, 30, 30})
+        with fileBrowser.backButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.Undo, 20), {0, 0, 30, 30})
         {
             .dockStyle = .Left
             .margin.z  = 4
@@ -512,7 +512,7 @@ impl FileBrowserCtrl
             .sigPressed += func|fileBrowser|(btn) { discard fileBrowser.goBack() }
         }
 
-        with fileBrowser.forwardButton = IconButton.create(viewTop, fileBrowser.theme().icon24(ThemeIcons24.Redo, 20), {0, 0, 30, 30})
+        with fileBrowser.forwardButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.Redo, 20), {0, 0, 30, 30})
         {
             .dockStyle = .Left
             .margin.z  = 4
@@ -520,7 +520,7 @@ impl FileBrowserCtrl
             .sigPressed += func|fileBrowser|(btn) { discard fileBrowser.goForward() }
         }
 
-        with fileBrowser.historyButton = IconButton.create(viewTop, fileBrowser.theme().icon24(ThemeIcons24.BottomPopupArrow, 14), {0, 0, 22, 30})
+        with fileBrowser.historyButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.BottomPopupArrow, 14), {0, 0, 22, 30})
         {
             .dockStyle = .Left
             .margin.z  = 4
@@ -532,7 +532,7 @@ impl FileBrowserCtrl
                 .hide()
         }
 
-        with fileBrowser.upButton = IconButton.create(viewTop, fileBrowser.theme().icon24(ThemeIcons24.ParentFolder, 20), {0, 0, 30, 30})
+        with fileBrowser.upButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.ParentFolder, 20), {0, 0, 30, 30})
         {
             .dockStyle = .Left
             .margin.z  = 10
@@ -540,7 +540,7 @@ impl FileBrowserCtrl
             .sigPressed += func|fileBrowser|(btn) { discard fileBrowser.goUp() }
         }
 
-        with fileBrowser.refreshButton = IconButton.create(viewTop, fileBrowser.theme().icon24(ThemeIcons24.Update, 20), {0, 0, 30, 30})
+        with fileBrowser.refreshButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.Update, 20), {0, 0, 30, 30})
         {
             .dockStyle = .Right
             .margin.x  = 4
@@ -553,7 +553,7 @@ impl FileBrowserCtrl
             .dockStyle = .Right
             .margin.x  = 12
             .toolTip   = "Create a folder in the current location"
-            .setIcon(fileBrowser.theme().icon24(ThemeIcons24.Plus, 16))
+            .setIcon(fileBrowser.theme().icon(ThemeIcons.Plus, 16))
             .sigPressed += func|fileBrowser|(btn) { fileBrowser.sigNewFolderRequested.call(fileBrowser) }
         }
 
@@ -628,7 +628,7 @@ impl FileBrowserCtrl
         // Default to the first real location when nothing else selected a folder.
         if fileBrowser.currentFolder.isEmpty() and fileBrowser.treeCtrl
         {
-            let tree = notnull fileBrowser.treeCtrl
+            let tree = fileBrowser.treeCtrl!
             for line, [idx] in tree.lines where line and !line.separator
             {
                 tree.selectLine(cast(u32) idx)
@@ -735,7 +735,7 @@ impl FileBrowserCtrl
         var filterExtensions: #null string
         if me.options.mode != .SelectFolder and .options.filters.count
         {
-            let item        = notnull .comboType.selectedItem()
+            let item        = .comboType.selectedItem()!
             let filterIndex = cast(u64) item.userData0
             if filterIndex < .options.filters.count do
                 filterExtensions = .options.filters[filterIndex].extensions
@@ -745,7 +745,7 @@ impl FileBrowserCtrl
 
         for &fi in .currentEntries
         {
-            let fname = notnull Path.fileName(fi.fullname)
+            let fname = Path.fileName(fi.fullname)!
 
             // Filter
             var show = true
@@ -889,7 +889,7 @@ impl FileBrowserCtrl
         var filterExtensions: #null string
         if me.options.mode != .SelectFolder and .options.filters.count
         {
-            let item        = notnull .comboType.selectedItem()
+            let item        = .comboType.selectedItem()!
             let filterIndex = cast(u64) item.userData0
             if filterIndex < .options.filters.count do
                 filterExtensions = .options.filters[filterIndex].extensions
@@ -912,9 +912,9 @@ impl FileBrowserCtrl
             var val = Path.combine(.currentFolder, t1.toString())
 
             // Append extension if not done by the user
-            if .options.mode != .SelectFolder and @countof(filterExtensions) and !Path.hasExtension(val, notnull filterExtensions)
+            if .options.mode != .SelectFolder and @countof(filterExtensions) and !Path.hasExtension(val, filterExtensions!)
             {
-                let exts = Tokenize.split(notnull filterExtensions, ';'rune)
+                let exts = Tokenize.split(filterExtensions!, ';'rune)
                 val += exts[0]
             }
 

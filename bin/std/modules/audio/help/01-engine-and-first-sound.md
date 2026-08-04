@@ -31,7 +31,7 @@ try createNoSoundEngine()
 defer destroyEngine()
 
 let sound = try SoundFile.load("fixtures/alert.wav")
-let voice = notnull try Voice.create(&sound)
+let voice = try Voice.create(&sound)!
 try voice.play()
 try voice.stop()
 voice.destroy()

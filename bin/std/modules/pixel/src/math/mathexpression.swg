@@ -281,7 +281,7 @@ private func mathIsAsciiVariable(text: string)->bool
 {
     if @countof(text) != 1 do
         return false
-    return mathIsAsciiLetter((notnull @dataof(text))[0])
+    return mathIsAsciiLetter(@dataof(text)![0])
 }
 
 private func mathSymbol(text: string, atomClass = MathAtomClass.Ord, large = false, limitsMode = MathLimitsMode.Automatic)->MathSymbolSpec
@@ -573,7 +573,7 @@ private impl MathParser
     {
         if .eof() do
             return 0
-        return (notnull @dataof(.source))[.pos]
+        return @dataof(.source)![.pos]
     }
 
     mtd peekAt(offset: u64)->u8
@@ -581,7 +581,7 @@ private impl MathParser
         let at = .pos + offset
         if at >= .count() do
             return 0
-        return (notnull @dataof(.source))[at]
+        return @dataof(.source)![at]
     }
 
     mtd skipMathSpaces()
@@ -640,7 +640,7 @@ private impl MathParser
         let got = @mkstring(@dataof(.source) + .pos + 1, size)
         if got != word do
             return false
-        if .pos + 1 + size < .count() and mathIsAsciiLetter((notnull @dataof(.source))[.pos + 1 + size]) do
+        if .pos + 1 + size < .count() and mathIsAsciiLetter(@dataof(.source)![.pos + 1 + size]) do
             return false
         return true
     }
@@ -857,7 +857,7 @@ private impl MathParser
         node.children.add(radicand)
         if index
         {
-            node.children.add(notnull index)
+            node.children.add(index!)
             node.flag = true
         }
 
@@ -1183,13 +1183,13 @@ private impl MathParser
         scripts.children.add(base)
         if sub
         {
-            scripts.children.add(notnull sub)
+            scripts.children.add(sub!)
             scripts.flag = true
         }
 
         if sup
         {
-            scripts.children.add(notnull sup)
+            scripts.children.add(sup!)
             scripts.flag2 = true
         }
 
@@ -1218,11 +1218,11 @@ public impl MathExpression
         let rootId = .root.id
         for nodeRef in .nodes
         {
-            let node = notnull nodeRef
+            let node = nodeRef!
             for [idx] in node.children.count
             {
                 let childId = node.children[idx].id
-                node.children[idx] = notnull .nodes[childId]
+                node.children[idx] = .nodes[childId]!
             }
 
             // Layout caches contain non-owning text views and are cheap to rebuild.
@@ -1235,7 +1235,7 @@ public impl MathExpression
             node.paths.clear()
         }
 
-        .root = notnull .nodes[rootId]
+        .root = .nodes[rootId]!
     }
 
     // Parse a reusable TeX-like mathematical expression.

@@ -37,7 +37,7 @@ impl InlineBug11List
         if !head do
             return false
 
-        let node = notnull head
+        let node = head!
         dref outNode = node
         .unlink(node)
         return true

@@ -127,7 +127,7 @@ internal impl IWnd for PopupListView
         var y = pos.y + .scrollPos.y
         for vIt, [i] in .list.items
         {
-            let v = notnull vIt
+            let v = vIt!
             let h = v.isSeparator ? .list.separatorHeight : .list.itemHeight
             if y <= h
             {
@@ -160,7 +160,7 @@ internal impl IWnd for PopupListView
         var y = 0'f32
         for i, [idx] in .list.items
         {
-            let it = notnull i
+            let it = i!
             labelPos.x      = clientRect.x
             labelPos.y      = y
             labelPos.width  = clientRect.width
@@ -208,7 +208,7 @@ internal impl IWnd for PopupListView
             if .list.maxIconSize do
                 labelPos.moveLeft(.list.maxIconSize + metrics.popupList_IconTextMargin)
 
-            let fntHeight = (notnull .font().regular).height
+            let fntHeight = .font().regular!.height
             if idx == .list.selectedIndex do
                 labelPos.setRight(labelPos.right() - fntHeight - metrics.popupList_IconTextMargin)
 
@@ -277,7 +277,7 @@ private impl PopupListView
             idx += dir
             if idx < 0 or idx >= cast(s64) .list.items.count do
                 return
-            if !(notnull .list.items[cast(u64) idx]).isSeparator do
+            if !.list.items[cast(u64) idx]!.isSeparator do
                 break
         }
 
@@ -303,7 +303,7 @@ private impl PopupListView
         {
             for var i = cast(s64) .list.items.count - 1; i >= 0; i -= 1
             {
-                if !(notnull .list.items[cast(u64) i]).isSeparator
+                if !.list.items[cast(u64) i]!.isSeparator
                 {
                     .hotIdx = cast(u32) i
                     .invalidate()
@@ -339,35 +339,35 @@ impl PopupListCtrl
     // Moves the highlighted item by a signed distance, skipping separators.
     mtd moveHighlight(direction: s32)
     {
-        let view = notnull cast(#null *PopupListView) .scrollWnd.view
+        let view = cast #unnull (*PopupListView) .scrollWnd.view
         view.moveHot(direction)
     }
 
     // Highlights the first selectable item.
     mtd highlightFirst()
     {
-        let view = notnull cast(#null *PopupListView) .scrollWnd.view
+        let view = cast #unnull (*PopupListView) .scrollWnd.view
         view.moveHotEdge(forward: true)
     }
 
     // Highlights the last selectable item.
     mtd highlightLast()
     {
-        let view = notnull cast(#null *PopupListView) .scrollWnd.view
+        let view = cast #unnull (*PopupListView) .scrollWnd.view
         view.moveHotEdge(forward: false)
     }
 
     // Closes the popup and reports cancellation.
     mtd cancel()
     {
-        let view = notnull cast(#null *PopupListView) .scrollWnd.view
+        let view = cast #unnull (*PopupListView) .scrollWnd.view
         view.close(Swag.U32.Max)
     }
 
     // Closes the popup and commits the highlighted item, if any.
     mtd commitHighlighted()
     {
-        let view = notnull cast(#null *PopupListView) .scrollWnd.view
+        let view = cast #unnull (*PopupListView) .scrollWnd.view
         view.close(view.hotIdx)
     }
 
@@ -380,7 +380,7 @@ impl PopupListCtrl
         .scrollWnd.setScrollSize(0, contentHeight)
 
         // Highlight the current selection as the keyboard starting point.
-        let startView = notnull cast(#null *PopupListView) .scrollWnd.view
+        let startView = cast #unnull (*PopupListView) .scrollWnd.view
         startView.hotIdx = .selectedIndex
 
         let pt  = .parent!.surfaceToLocal({x, y})

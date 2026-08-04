@@ -13,13 +13,13 @@ impl IActionUI for ActionAbout
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let main = cast(*MainWnd) notnull cxt.wnd
+        let main = cast(*MainWnd) cxt.wnd!
         switch cxt.id
         {
         case .About:
             evt.updatedFields |= .Name | .Icon
             evt.name          = "About..."
-            evt.icon          = main.theme().icon24(.About)
+            evt.icon          = main.theme().icon(.About)
         }
 
         return true
@@ -27,7 +27,7 @@ impl IActionUI for ActionAbout
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main = cast(*MainWnd) notnull cxt.wnd
+        let main = cast(*MainWnd) cxt.wnd!
         let view = main.editWnd.editView
 
         const Date = #run Time.DateTime.now()
@@ -49,7 +49,7 @@ impl IActionUI for ActionAbout
         params.contentIcon.sizeX, params.contentIcon.sizeY = 96
         params.contentIcon.color                           = Argb.White
 
-        let dlg = AboutDlg.create(notnull view.surface, params, height: 330)
+        let dlg = AboutDlg.create(view.surface!, params, height: 330)
         dlg.labelMessage.sigLinkActivated += func(lbl, txt)
         {
             switch txt

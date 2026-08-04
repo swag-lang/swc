@@ -113,9 +113,9 @@ impl IWnd for Header
         {
             var icon: Icon = undefined
             if .sortDirection == .Ascending do
-                icon = theme.icon24(ThemeIcons24.SortArrowDown)
+                icon = theme.icon(ThemeIcons.SortArrowDown)
             else do
-                icon = theme.icon24(ThemeIcons24.SortArrowUp)
+                icon = theme.icon(ThemeIcons.SortArrowUp)
             if labelPos.width > icon.sizeX
             {
                 var sortPos = labelPos
@@ -286,7 +286,7 @@ private impl Header
         var x = .padding.x
         for itemIt, [idx] in .items
         {
-            let item = notnull itemIt
+            let item = itemIt!
             if pos.x >= x and pos.x < x + item.width do
                 return {cast(u32) idx, false}
             x += item.width
@@ -355,7 +355,7 @@ impl Header
     mtd const itemAt(index: u32)->*HeaderItem
     {
         Debug.assert(index < .items.count)
-        return notnull .items[index]
+        return .items[index]!
     }
 
     // Returns the item for one logical column identifier.
@@ -366,7 +366,7 @@ impl Header
         for item in .items
         {
             if item!.column == column do
-                return notnull item
+                return item!
         }
 
         unreachable
@@ -386,7 +386,7 @@ impl Header
 
         for itemIt in .items
         {
-            let item = notnull itemIt
+            let item = itemIt!
             if item.column == column do
                 return item.width
         }
@@ -410,7 +410,7 @@ impl Header
         let m = .themeMetrics().header_Separator
         for itemIt, [i] in .items
         {
-            let item = notnull itemIt
+            let item = itemIt!
             if item.column == column do
                 return x
             x += item.width + m
@@ -426,7 +426,7 @@ impl Header
             return .padding.x
 
         var w = .itemPositionAt(cast(u32) .items.count - 1)
-        w += (notnull .items.back()).width
+        w += .items.back()!.width
         w += .themeMetrics().header_Separator
         return w
     }
@@ -443,7 +443,7 @@ impl Header
     {
         Debug.assert(column < .items.count)
 
-        let item = notnull .itemForColumn(column)
+        let item = .itemForColumn(column)!
         var move = Math.max(width, item.minimumWidth)
         if item.maximumWidth > 0 do
             move = Math.min(move, item.maximumWidth)
@@ -461,7 +461,7 @@ impl Header
         Debug.assert(index < .items.count)
         Debug.assert(minimum >= 0)
         Debug.assert(maximum == 0 or maximum >= minimum)
-        let item = notnull .items[index]
+        let item = .items[index]!
         item.minimumWidth = minimum
         item.maximumWidth = maximum
         .setItemWidth(index, item.width)

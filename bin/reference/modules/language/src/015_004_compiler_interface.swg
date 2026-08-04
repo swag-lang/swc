@@ -21,7 +21,7 @@ A module setup file commonly uses '#run' to configure its build:
 ```swag
 #run
 {
-    let cfg = notnull @compiler.getBuildCfg()
+    let cfg = @compiler.getBuildCfg()!
     cfg.moduleVersion  = 1
     cfg.moduleRevision = 0
     cfg.backendKind    = .Executable
@@ -40,7 +40,7 @@ Subscribe with a mask from 'Swag.CompilerMsgMask':
 ```swag
 #message(Swag.CompilerMsgMask.SemFunctions)
 {
-    let message = notnull @compiler.getMessage()
+    let message = @compiler.getMessage()!
     if message.type == null or message.name == null do
         return
 

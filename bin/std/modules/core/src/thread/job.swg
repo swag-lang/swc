@@ -241,7 +241,7 @@ public func(T) parallelVisit(range: [..] T, offset: u32 = 1, contextData: #null 
 
     func jobEntry(jobData: #null *void)
     {
-        let oneJob = cast(*SliceJob'T) (notnull jobData)
+        let oneJob = cast(*SliceJob'T) jobData!
         visitSlice(oneJob.buffer, oneJob.offset, oneJob.contextData)
     }
 
@@ -250,7 +250,7 @@ public func(T) parallelVisit(range: [..] T, offset: u32 = 1, contextData: #null 
         let scan = @dataof(sliceBuffer)
         if !scan do
             return
-        var safeScan = notnull scan
+        var safeScan = scan!
         let countof  = @countof(sliceBuffer)
         for countof / sliceOffset
         {
@@ -311,7 +311,7 @@ public func parallelFor(count: u32, contextData: #null *void = null, stmt: #code
 
     func jobEntry(jobData: #null *void)
     {
-        let oneJob = cast(*ForJob) (notnull jobData)
+        let oneJob = cast(*ForJob) jobData!
         visitFor(oneJob.startIndex, oneJob.endIndex, oneJob.contextData)
     }
 

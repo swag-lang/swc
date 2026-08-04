@@ -784,7 +784,7 @@ impl Painter
         {
             // Attributes
             let fs = c.hasFontStyle ? c.fontStyle : format.fontStyle
-            c.font = notnull format.font.getFont(fs)
+            c.font = format.font.getFont(fs)!
 
             // Measure. The width uses the same resolved draw font and device-snapped
             // advances the chunk is drawn with (see the function comment); vertical

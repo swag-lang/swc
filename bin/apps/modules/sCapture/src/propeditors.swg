@@ -24,7 +24,7 @@ impl IPropertyEditor for AlignEditor
         let lineH = list.themeMetrics().btnPush_Height
 
         // Centered as its own full-width row in the panel; packed left in a grid cell.
-        with let line = StackLayoutCtrl.create(notnull item.line, list.isGridLike() ? .HorizontalFit : .HorizontalCenter, {0, 0, 0, lineH})
+        with let line = StackLayoutCtrl.create(item.line!, list.isGridLike() ? .HorizontalFit : .HorizontalCenter, {0, 0, 0, lineH})
         {
             .anchorStyle = .Right
             .spacing     = 4

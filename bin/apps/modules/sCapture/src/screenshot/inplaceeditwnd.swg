@@ -101,25 +101,25 @@ impl InPlaceEditWnd
 
     mtd createActionBar()
     {
-        .actionBar                 = IconBar.create(notnull .editWnd.editView, 24 * .uiScale, {})
+        .actionBar                 = IconBar.create(.editWnd.editView!, 24 * .uiScale, {})
         .actionBar.backgroundStyle = .Window
 
         let actions = [
-            {"save",  ThemeIcons24.Save,     "Save capture as image file"},
-            {"copy",  ThemeIcons24.Copy,     "Copy image to clipboard"},
-            {"edit",  ThemeIcons24.Edit,     "Open in sCapture editor"},
-            {"close", ThemeIcons24.WndClose, "Cancel and discard capture"}]
+            {"save",  ThemeIcons.Save,     "Save capture as image file"},
+            {"copy",  ThemeIcons.Copy,     "Copy image to clipboard"},
+            {"edit",  ThemeIcons.Edit,     "Open in sCapture editor"},
+            {"close", ThemeIcons.WndClose, "Cancel and discard capture"}]
 
         let theme = .theme()
         for action in actions do
-            .actionBar.addButton(theme.icon24(action.item1), action.item0).toolTip = action.item2
+            .actionBar.addButton(theme.icon(action.item1), action.item0).toolTip = action.item2
 
         .actionBar.sigPressed += func|self = me|(btn) { self.handleActionBarPress(btn.id orelse ""); }
     }
 
     mtd createEditBar(main: *MainWnd)
     {
-        .editBar                 = IconBar.create(notnull .editWnd.editView, 32 * .uiScale, {})
+        .editBar                 = IconBar.create(.editWnd.editView!, 32 * .uiScale, {})
         .editBar.backgroundStyle = .Window
         .editBar.setOrientation(.Vertical)
 
@@ -180,7 +180,7 @@ impl InPlaceEditWnd
         switch actionId
         {
         case "copy":
-            let cap = notnull me.capture
+            let cap = me.capture!
             cap.crop()
             cap.copyAll()
             exitWithResult(false)
@@ -189,7 +189,7 @@ impl InPlaceEditWnd
             exitWithResult(false)
 
         case "edit":
-            let cap = notnull me.capture
+            let cap = me.capture!
             cap.crop()
             exitWithResult(true)
 
@@ -201,7 +201,7 @@ impl InPlaceEditWnd
             let fileName = .newMain.getSaveAsImageName()
             if !fileName.isEmpty()
             {
-                let cap = notnull me.capture
+                let cap = me.capture!
                 cap.crop()
                 .newMain.doSaveAsImage(fileName)
                 exitWithResult(false)
@@ -280,7 +280,7 @@ impl InPlaceEditWnd
 
         for m in modeMap
         {
-            let btn = notnull .editBar.buttonById(m.item0)
+            let btn = .editBar.buttonById(m.item0)!
             btn.setChecked(.editMode == m.item1)
         }
     }
@@ -348,7 +348,7 @@ impl InPlaceEditWnd
     {
         // The capture rectangle is in desktop-physical pixels; the bars are placed
         // in the logical units of the overlay surface.
-        let capture = notnull .capture
+        let capture = .capture!
         let k       = .deviceScale()
         var rect    = Math.Rectangle{-capture.backImagePos.x, -capture.backImagePos.y, capture.width, capture.height}
         rect.x      /= k

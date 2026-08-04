@@ -171,7 +171,7 @@ impl Encoder
 
         if Reflection.isType(type)
         {
-            let typeType = dref notnull cast(#null const **TypeInfo) data
+            let typeType = dref cast #unnull (const **TypeInfo) data
             .serializer.writeNative(typeType ? typeType.crc : 0'u32)
             return
         }
@@ -186,7 +186,7 @@ impl Encoder
             var objType, itfType: #null typeinfo
             if itf.itable
             {
-                objType = dref notnull cast(#null const *typeinfo) itf.itable
+                objType = dref cast #unnull (const *typeinfo) itf.itable
                 itfType = type
             }
 
@@ -237,7 +237,7 @@ impl Encoder
                     var bufArr = cast(#null const [*] u8) ptrArr.buffer
                     for [i] in ptrArr.count
                     {
-                        .writeValue(notnull bufArr, safeValueType)
+                        .writeValue(bufArr!, safeValueType)
                         bufArr += safeValueType.sizeof
                     }
                 }

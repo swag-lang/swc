@@ -53,7 +53,7 @@ impl Array
         #static if Reflection.hasPostCopy(T)
         {
             .initNewSlots(0, .count)
-            let buffer = notnull .buffer
+            let buffer = .buffer!
             for .count do
                 buffer[@index] = #nodrop oldBuffer[@index]
         }
@@ -84,7 +84,7 @@ impl Array
         Debug.safetyBoundCheck(lower <= upper, "lower bound greater than upper bound")
         Debug.safetyBoundCheck(lower < .count, "lower bound out of range")
         Debug.safetyBoundCheck(upper < .count, "upper bound out of range")
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         return @mkslice(buffer + lower, (upper + 1) - lower)
     }
 
@@ -93,7 +93,7 @@ impl Array
     mtd const opIndex(index: u64)->const &T
     {
         Debug.safetyBoundCheck(index < .count, "index out of range")
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         return buffer + index
     }
 
@@ -102,7 +102,7 @@ impl Array
     mtd opIndex(index: u64)->&T
     {
         Debug.safetyBoundCheck(index < .count, "index out of range")
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         return buffer + index
     }
 
@@ -112,7 +112,7 @@ impl Array
         where Reflection.canCopy(T)
     {
         Debug.safetyBoundCheck(index < .count, "index out of range")
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         buffer[index] = value
     }
 
@@ -121,7 +121,7 @@ impl Array
     mtd(op: Swag.Operator) opIndexAssign(index: u64, value: T)
     {
         Debug.safetyBoundCheck(index < .count, "index out of range")
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         #ast "buffer[index] " ++ op.symbol() ++ " value"
     }
 
@@ -151,8 +151,8 @@ impl Array
         #static if Reflection.hasPostCopy(T)
         {
             .initNewSlots(0, countof)
-            let buffer = notnull .buffer
-            let srcPtr = notnull dataof
+            let buffer = .buffer!
+            let srcPtr = dataof!
             for [i] in countof do
                 buffer[i] = #nodrop srcPtr[i]
         }
@@ -173,7 +173,7 @@ impl Array
     {
         if !.count do
             return
-        let buffer = notnull .buffer
+        let buffer = .buffer!
 
         // Little trick to avoid labels. That way a 'continue' in the user code will work correctly
         #static if back do
@@ -208,7 +208,7 @@ impl Array
     mtd ref1(x: u64)->&T
     {
         Debug.safetyBoundCheck(x < .count, "index out of range")
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         return buffer + x
     }
 
@@ -218,7 +218,7 @@ impl Array
     mtd ref2(x, y, w: u64)->&T
     {
         Debug.safetyBoundCheck(x + y * w < .count, "index out of range")
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         return buffer + x + y * w
     }
 
@@ -383,7 +383,7 @@ impl Array
     {
         if !.count do
             return
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         for [i] in .count do
             buffer[i] = value
     }
@@ -397,7 +397,7 @@ impl Array
             return
         .grow(.count + 1)
         .initNewSlots(.count, 1)
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         buffer[.count] = #nodrop #fwd value
         .count         += 1
     }
@@ -408,7 +408,7 @@ impl Array
     {
         .grow(.count + 1)
         .initNewSlots(.count, 1)
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         buffer[.count] = #nodrop #fwd value
         .count         += 1
     }
@@ -419,7 +419,7 @@ impl Array
     {
         .grow(.count + num)
         .count += num
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         return buffer + .count - num
     }
 
@@ -429,7 +429,7 @@ impl Array
     {
         .grow(.count + num)
         .count += num
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         var res    = buffer + .count - num
         @init(res, num)
         return res
@@ -445,7 +445,7 @@ impl Array
         .grow(.count + 1)
         .count += 1
         .initNewSlots(.count - 1, 1)
-        let buffer = notnull .buffer
+        let buffer = .buffer!
 
         #static if Reflection.hasPostMove(T)
         {
@@ -485,7 +485,7 @@ impl Array
         .grow(.count + sliceCount)
         .count += sliceCount
         .initNewSlots(.count - sliceCount, sliceCount)
-        let buffer = notnull .buffer
+        let buffer = .buffer!
 
         #static if Reflection.hasPostMove(T)
         {
@@ -533,7 +533,7 @@ impl Array
         .grow(.count + sliceCount)
         .count += sliceCount
         .initNewSlots(.count - sliceCount, sliceCount)
-        let buffer = notnull .buffer
+        let buffer = .buffer!
 
         #static if Reflection.hasPostMove(T)
         {
@@ -578,11 +578,11 @@ impl Array
         var oldCount = .count
         .count += sliceCount
         .initNewSlots(oldCount, sliceCount)
-        let buffer = notnull .buffer
+        let buffer = .buffer!
 
         #static if Reflection.hasPostCopy(T)
         {
-            let vals    = notnull values
+            let vals    = values!
             var destPtr = buffer + oldCount
             for sliceCount
             {
@@ -603,7 +603,7 @@ impl Array
             return
         Debug.safetyBoundCheck(idx0 < .count, "index out of range")
         Debug.safetyBoundCheck(idx1 < .count, "index out of range")
-        swap(notnull (.buffer + idx0), notnull (.buffer + idx1))
+        swap((.buffer + idx0)!, (.buffer + idx1)!)
     }
 
     // Removes a specified number of elements starting from a given index.
@@ -627,7 +627,7 @@ impl Array
                 @drop(.buffer + index, num)
             }
 
-            let buffer = notnull .buffer
+            let buffer = .buffer!
             for [i] in shiftCount
             {
                 buffer[index + i] = #relocate buffer[index + num + i]
@@ -660,7 +660,7 @@ impl Array
         else
         {
             @drop(.buffer + index)
-            let buffer = notnull .buffer
+            let buffer = .buffer!
             buffer[index] = #relocate buffer[.count]
         }
     }
@@ -685,7 +685,7 @@ impl Array
 
         #static if Reflection.hasPostMove(T)
         {
-            let buffer = notnull .buffer
+            let buffer = .buffer!
             var idx    = index
             for .count - index
             {
@@ -721,7 +721,7 @@ impl Array
     {
         if .count <= 1 do
             return
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         Slice.sort(@mkslice(buffer, .count), func(x, y: T)->s32 => x <=> y)
     }
 
@@ -731,7 +731,7 @@ impl Array
     {
         if .count <= 1 do
             return
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         Slice.sort(@mkslice(buffer, .count), func(x, y: T)->s32 => y <=> x)
     }
 
@@ -741,7 +741,7 @@ impl Array
         Debug.assert(cb != null)
         if .count <= 1 do
             return
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         Slice.sort(@mkslice(buffer, .count), cb)
     }
 
@@ -750,7 +750,7 @@ impl Array
     mtd const front()->T
     {
         Debug.assert(.count > 0, "array is empty")
-        let buffer         = notnull .buffer
+        let buffer         = .buffer!
         let result: retval = buffer[0]
         return result
     }
@@ -760,7 +760,7 @@ impl Array
     mtd frontPtr()->*T
     {
         Debug.assert(.count > 0, "array is empty")
-        return notnull .buffer
+        return .buffer!
     }
 
     // Returns a copy of the last element of the array.
@@ -768,7 +768,7 @@ impl Array
     mtd const back()->T
     {
         Debug.assert(.count > 0, "array is empty")
-        let buffer         = notnull .buffer
+        let buffer         = .buffer!
         let result: retval = buffer[.count - 1]
         return result
     }
@@ -778,7 +778,7 @@ impl Array
     mtd backPtr()->*T
     {
         Debug.assert(.count > 0, "array is empty")
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         return buffer + .count - 1
     }
 
@@ -787,7 +787,7 @@ impl Array
     mtd popBack()->T
     {
         Debug.assert(.count > 0, "array is empty")
-        let buffer         = notnull .buffer
+        let buffer         = .buffer!
         var result: retval = undefined
         result = #relocate buffer[.count - 1]
         .count -= 1
@@ -811,7 +811,7 @@ impl StrConv.IConvert for Array
         buf.addBytes("[")
         if .count
         {
-            let buffer = notnull .buffer
+            let buffer = .buffer!
             for [i] in .count
             {
                 if i do

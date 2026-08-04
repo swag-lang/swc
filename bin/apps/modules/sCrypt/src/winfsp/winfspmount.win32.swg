@@ -73,7 +73,7 @@ namespace WinFsp
                 failWith(Format.toString("WinFsp could not create the volume (NTSTATUS %{X}).", cast(u32) createStatus))
             }
 
-            let fileSystem = notnull .fileSystem
+            let fileSystem = .fileSystem!
             fileSystem.userContext = .context
             (g_WinFsp.setGuard)(fileSystem, 1)
             let mountPoint16 = Utf16.toZeroTerminated(mountPoint)
@@ -111,7 +111,7 @@ namespace WinFsp
             {
                 if .context.defaultSecurity do
                     discard LocalFree(.context.defaultSecurity)
-                Memory.delete(notnull .context)
+                Memory.delete(.context!)
                 .context = null
             }
 

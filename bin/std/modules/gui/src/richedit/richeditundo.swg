@@ -94,7 +94,7 @@ impl RichEditCtrl
 
         for [i] in .toUndo.count
         {
-            let undo = notnull .toUndo[i]
+            let undo = .toUndo[i]!
             undo.serial             = .serialUndo
             undo.begSelectionBefore = .selBegUndo
             undo.endSelectionBefore = .cursorPosUndo
@@ -124,7 +124,7 @@ impl RichEditCtrl
             return
 
         .currentUndo -= 1
-        var undo   = notnull .undoMgr[.currentUndo]
+        var undo   = .undoMgr[.currentUndo]!
         let serial = undo.serial
 
         for
@@ -150,7 +150,7 @@ impl RichEditCtrl
             .setRectangularSelection(undo.hasSelRect)
             if !.currentUndo do
                 break
-            undo = notnull .undoMgr[.currentUndo - 1]
+            undo = (.undoMgr[.currentUndo - 1])!
             if undo.serial != serial do
                 break
             .currentUndo -= 1
@@ -179,7 +179,7 @@ impl RichEditCtrl
         if !.canRedo() do
             return
 
-        var undo   = notnull .undoMgr[.currentUndo]
+        var undo   = .undoMgr[.currentUndo]!
         let serial = undo.serial
         .currentUndo += 1
 
@@ -207,7 +207,7 @@ impl RichEditCtrl
 
             if .currentUndo == .undoMgr.count do
                 break
-            undo = notnull .undoMgr[.currentUndo]
+            undo = .undoMgr[.currentUndo]!
             if undo.serial != serial do
                 break
             .currentUndo += 1

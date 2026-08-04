@@ -96,10 +96,10 @@ public struct Decoder
 
 impl Decoder
 {
-    mtd safeStream()->const [*] u8      => cast(const [*] u8) (notnull .stream)
-    mtd safeStreamStart()->const [*] u8 => cast(const [*] u8) (notnull .streamStart)
-    mtd safePalette()->*Palette         => cast(*Palette) (notnull .palette)
-    mtd safeCanvas()->[*] u8            => cast([*] u8) (notnull .canvas)
+    mtd safeStream()->const [*] u8      => cast(const [*] u8) .stream!
+    mtd safeStreamStart()->const [*] u8 => cast(const [*] u8) .streamStart!
+    mtd safePalette()->*Palette         => cast(*Palette) .palette!
+    mtd safeCanvas()->[*] u8            => cast([*] u8) .canvas!
 }
 
 public impl Decoder
@@ -162,7 +162,7 @@ public impl Decoder
         {
             let size = cast(u64) .width * cast(u64) .height
             .frame.resize(4 * size)
-            let frame = notnull .frame.buffer
+            let frame = .frame.buffer!
             Memory.set(frame, .bgIndex, size)
             .canvas = &frame[size]
 
@@ -209,7 +209,7 @@ public impl Decoder
         let pixelFormat = .gce.transparency ? PixelFormat.RGBA8 : PixelFormat.RGB8
         if !img.isValid() or img.width != .width or img.height != .height or img.pixelFormat != pixelFormat do
             .prepareFrameImage(img)
-        .renderFrame(cast([*] u8) (notnull img.pixels.buffer), img.pixelFormat)
+        .renderFrame(cast([*] u8) img.pixels.buffer!, img.pixelFormat)
         return true
     }
 
@@ -257,7 +257,7 @@ public impl IImageDecoder for Decoder
         if !options.decodePixels do
             return result
 
-        .renderFrame(cast([*] u8) (notnull result.pixels.buffer), result.pixelFormat)
+        .renderFrame(cast([*] u8) result.pixels.buffer!, result.pixelFormat)
         return result
     }
 }

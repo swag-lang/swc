@@ -65,7 +65,7 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: #null *Surface } fa
     // desktop metrics are physical. Creation sizes are logical, so create small and
     // place the surface through setPosition, which works in physical screen pixels.
     result.sf = try g_App.createSurface(g_DesktopX, g_DesktopY, 16, 16, .ToolWindow | .TopMost | .NoShadow)
-    let sf = notnull result.sf
+    let sf = result.sf!
     sf.setPosition({cast(f32) g_DesktopX, cast(f32) g_DesktopY, cast(f32) g_ScreenWidth, cast(f32) g_ScreenHeight})
 
     let captureWnd = Wnd.create'CaptureRectWnd(sf.wnd)
@@ -181,7 +181,7 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode) fail
     defer discard SetThreadDpiAwarenessContext(awareness)
 
     // Hide editor before capture
-    let surface   = notnull main.surface
+    let surface   = main.surface!
     let wasHidden = surface.isHidden
     if main.captureOptions.hideEditorBefore and !surface.isHidden and !surface.isMinimized do
         surface.hide()

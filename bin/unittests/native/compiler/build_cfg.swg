@@ -1,5 +1,5 @@
 #global private
-const Cfg = #run dref notnull @compiler.getBuildCfg()
+const Cfg = #run dref @compiler.getBuildCfg()!
 
 #assert(#typeof(Cfg) == Swag.BuildCfg)
 #assert(#typeof(Cfg.backend.optimize) == bool)

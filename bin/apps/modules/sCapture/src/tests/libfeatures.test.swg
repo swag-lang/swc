@@ -77,7 +77,7 @@ using Swag, Core
 
     f.main.setCaptureTitle(path, "Renamed")
 
-    let loaded = notnull expect Capture.load(path)
+    let loaded = expect Capture.load(path)!
     defer Memory.delete(loaded)
     @assert(loaded.title == "Renamed")
     @assert(loaded.width == 8)
@@ -204,7 +204,7 @@ using Swag, Core
     view.items.add(it)
     view.loadOne(it)
 
-    let itCapture = notnull it.capture
+    let itCapture = it.capture!
     @assert(!itCapture.preview.isValid())
     @assert(itCapture.haar.size == 0)
 }

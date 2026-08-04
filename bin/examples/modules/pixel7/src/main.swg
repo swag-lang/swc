@@ -60,9 +60,9 @@ func dataPath(fileName: string, loc = #callerlocation)->String
 func loadFonts() fail
 {
     g_TypeFace  = TypeFace.load("segoeui.ttf")
-    g_TitleFont = g_Renderer.fonts.createFont(notnull g_TypeFace, 34)
-    g_LabelFont = g_Renderer.fonts.createFont(notnull g_TypeFace, 18)
-    g_HelpFont  = g_Renderer.fonts.createFont(notnull g_TypeFace, 14)
+    g_TitleFont = g_Renderer.fonts.createFont(g_TypeFace!, 34)
+    g_LabelFont = g_Renderer.fonts.createFont(g_TypeFace!, 18)
+    g_HelpFont  = g_Renderer.fonts.createFont(g_TypeFace!, 14)
 }
 
 func normalizeSource(image: const &Image)->Image
@@ -91,7 +91,7 @@ func sourceVariant(source: const &Image, pixelFormat: PixelFormat, withAlphaBord
         return result
 
     Debug.assert(pixelFormat.hasAlpha())
-    var pixel = notnull result.pixels.buffer
+    var pixel = result.pixels.buffer!
     for [y] in result.height
     {
         for [x] in result.width
@@ -109,7 +109,7 @@ func sourceVariant(source: const &Image, pixelFormat: PixelFormat, withAlphaBord
 func paletteVariant(source: const &Image, withAlpha: bool)->Image
 {
     var result      = sourceVariant(source, withAlpha ? .RGBA8 : .RGB8)
-    var pixel       = notnull result.pixels.buffer
+    var pixel       = result.pixels.buffer!
     let borderWidth = Math.max(Math.min(result.width, result.height) / 12, 1)
     for [y] in result.height
     {
@@ -135,7 +135,7 @@ func paletteVariant(source: const &Image, withAlpha: bool)->Image
 func nonNullBytes(bytes: #null [..] u8)->const [..] u8
 {
     Debug.assert(bytes != null)
-    return @mkslice(cast([*] u8) (notnull @dataof(bytes)), @countof(bytes))
+    return @mkslice(cast([*] u8) @dataof(bytes)!, @countof(bytes))
 }
 
 func setCard(card: *DecoderCard, title, encoding: string, image: Image, encodedSize: u64)
@@ -263,8 +263,8 @@ func drawCard(painter: *Pixel.Painter, rect: Math.Rectangle, card: const &Decode
     painter.fillRoundRect(headerRect, 18, 18, Color.fromArgb(22, Argb.MidnightBlue))
     painter.fillRoundRect(previewRect, 14, 14, Color.fromArgb(255, 239, 242, 247))
 
-    painter.drawString(rect.x + 14, rect.y + 11, card.title, notnull g_LabelFont, Argb.DarkSlateBlue)
-    drawWrappedText(painter, detailsRect, card.details, notnull g_HelpFont, Argb.DimGray)
+    painter.drawString(rect.x + 14, rect.y + 11, card.title, g_LabelFont!, Argb.DarkSlateBlue)
+    drawWrappedText(painter, detailsRect, card.details, g_HelpFont!, Argb.DimGray)
 
     painter.pushClippingRect(previewRect)
     painter.drawTexture(fitTextureRect(previewRect, card.texture), card.texture)
@@ -275,14 +275,14 @@ func drawScene(painter: *Pixel.Painter)
 {
     painter.clear(Color.fromArgb(255, 245, 246, 249))
     painter.setParams(.Antialiased)
-    painter.drawString(28, 22, pageTitle(g_Page), notnull g_TitleFont, Argb.MidnightBlue)
-    drawWrappedText(painter, {30, 64, W - 60, 42}, pageDescription(g_Page), notnull g_HelpFont, Argb.DimGray)
+    painter.drawString(28, 22, pageTitle(g_Page), g_TitleFont!, Argb.MidnightBlue)
+    drawWrappedText(painter, {30, 64, W - 60, 42}, pageDescription(g_Page), g_HelpFont!, Argb.DimGray)
 
     for [i] in CardsPerPage do
         drawCard(painter, getCardRect(i), g_Cards[g_Page][i])
 
     let footer = Format.toString("F1 : next codec (%/%). BMP, TGA, JPEG, PNG, GIF, TIFF, ICO and WebP.", g_Page + 1, PageCount)
-    painter.drawString(28, H - 22, footer, notnull g_HelpFont, Argb.DimGray)
+    painter.drawString(28, H - 22, footer, g_HelpFont!, Argb.DimGray)
 }
 
 func display()

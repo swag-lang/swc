@@ -456,7 +456,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     let path = makeTempTgaPath()
     defer discard catch File.delete(path.toString())
     var src    = Image.create(2, 1, .BGR8)
-    let srcBuf = notnull src.pixels.buffer
+    let srcBuf = src.pixels.buffer!
     srcBuf[0] = 1'u8
     srcBuf[1] = 2'u8
     srcBuf[2] = 3'u8
@@ -478,7 +478,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     let path = makeTempTgaPath()
     defer discard catch File.delete(path.toString())
     var src    = Image.create(1, 1, .RGB8)
-    let srcBuf = notnull src.pixels.buffer
+    let srcBuf = src.pixels.buffer!
     srcBuf[0] = 10'u8
     srcBuf[1] = 20'u8
     srcBuf[2] = 30'u8
@@ -499,7 +499,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     let path = makeTempTgaPath()
     defer discard catch File.delete(path.toString())
     var src    = Image.create(1, 1, .RGBA8)
-    let srcBuf = notnull src.pixels.buffer
+    let srcBuf = src.pixels.buffer!
     srcBuf[0] = 1'u8
     srcBuf[1] = 2'u8
     srcBuf[2] = 3'u8
@@ -529,7 +529,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     var src    = Image.create(8, 1, .BGR8)
-    let srcBuf = notnull src.pixels.buffer
+    let srcBuf = src.pixels.buffer!
     for [x] in 4
     {
         let offset = cast(u64) x * 3
@@ -564,7 +564,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     var src    = Image.create(3, 1, .RGBA8)
-    let srcBuf = notnull src.pixels.buffer
+    let srcBuf = src.pixels.buffer!
     for [x] in src.width
     {
         let offset = cast(u64) x * 4

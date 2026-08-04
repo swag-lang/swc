@@ -1,7 +1,7 @@
 #run
 {
     let itf = @compiler
-    let cfg = notnull itf.getBuildCfg()
+    let cfg = itf.getBuildCfg()!
     cfg.backendKind = .Executable
 
     cfg.genDoc.kind         = .Pages

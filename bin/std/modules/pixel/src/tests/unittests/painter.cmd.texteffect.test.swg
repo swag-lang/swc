@@ -9,7 +9,7 @@ using Swag, Core
 // first. See [[Testing.assertGolden]].
 private func makeEffectTestFont(cache: *FontCache, size: u32, mode: FontRenderMode)->*Font
 {
-    let face = notnull expect loadTestTypeFace(getTestDataPath("segoeui.ttf"))
+    let face = expect loadTestTypeFace(getTestDataPath("segoeui.ttf"))!
     return cache.createFont(face, size, mode)
 }
 

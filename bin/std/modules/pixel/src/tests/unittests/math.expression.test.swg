@@ -4,7 +4,7 @@ using Swag, Core
 
 private func makeMathTestFont(cache: *FontCache)->*Font
 {
-    let face = notnull expect loadTestTypeFace(getTestDataPath("segoeui.ttf"))
+    let face = expect loadTestTypeFace(getTestDataPath("segoeui.ttf"))!
     return cache.createFont(face, 36, .Bitmap)
 }
 
@@ -18,10 +18,10 @@ private func assertMathSyntaxError(source: string, contains: string, seek: u64)
     discard catch MathExpression.parse(source) as err
     @assert(err != null)
     @assert(err is Errors.SyntaxError)
-    let syntax = notnull (err as Errors.SyntaxError)
+    let syntax = (err as Errors.SyntaxError)!
     @assert(syntax.seek == seek)
     @assert(syntax.message != null)
-    @assert(Utf8.indexOf(notnull syntax.message, contains) != Swag.U64.Max)
+    @assert(Utf8.indexOf(syntax.message!, contains) != Swag.U64.Max)
 }
 
 private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rightKind: MathPathKind)
@@ -271,7 +271,7 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
     var sawHat, sawTilde, sawVector: bool
     for nodeRef in accents.nodes
     {
-        let node = notnull nodeRef
+        let node = nodeRef!
         if node.kind == .Accent
         {
             ruleCount += node.rules.count
@@ -304,7 +304,7 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
     var sawRoman, sawItalic, sawBold, sawBoldItalic: bool
     for nodeRef in styled.nodes
     {
-        let node = notnull nodeRef
+        let node = nodeRef!
         if node.kind != .Style do
             continue
         if node.fontVariant == .Roman do

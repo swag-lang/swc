@@ -302,7 +302,7 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     list.createLine("a")
     list.createLine("b")
     list.createLine("c")
-    host.focus(notnull list.listView)
+    host.focus(list.listView!)
 
     host.keyPress(Input.Key.Down)
     @assert(list.isLineSelected(0))

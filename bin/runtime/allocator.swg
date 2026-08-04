@@ -294,7 +294,7 @@ impl Allocator
 
     mtd allocateThreadHeap()->*AllocatorThreadHeap
     {
-        let address = notnull .rawAlloc(#sizeof(AllocatorThreadHeap))
+        let address = .rawAlloc(#sizeof(AllocatorThreadHeap))!
         @memset(address, 0, #sizeof(AllocatorThreadHeap))
         let heap = cast(*AllocatorThreadHeap) address
         heap.allocator = me
@@ -907,7 +907,7 @@ impl Allocator
         let foot = .footer(header)
 
         // Every allocated block records its owner heap ('setupAllocatedHeader').
-        let ownerHeap = notnull cast(#null *AllocatorThreadHeap) header.ownerHeap
+        let ownerHeap = cast #unnull (*AllocatorThreadHeap) header.ownerHeap
 
         if header.isTracked do
             .unlinkAllocated(header)
@@ -975,7 +975,7 @@ impl Allocator
             .unlinkAllocated(header)
 
             // Every tracked allocated block records its owner heap ('setupAllocatedHeader').
-            discard .decActive(notnull cast(#null *AllocatorThreadHeap) header.ownerHeap)
+            discard .decActive(cast #unnull (*AllocatorThreadHeap) header.ownerHeap)
             .statSub(&.countAlloc, 1)
             .statSub(&.sizeAlloc, header.userSize)
 

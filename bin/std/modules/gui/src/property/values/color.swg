@@ -9,7 +9,7 @@ internal impl Properties
         parentItem.flags.add(.NoSeparator | .NoFocus)
 
         let item  = .addItem(value, data, parentItem)
-        let color = notnull cast(#null *Color) data
+        let color = cast #unnull (*Color) data
 
         let opaque    = Reflection.hasAttribute(value, .Opaque)
         let keepAlpha = Reflection.hasAttribute(value, .KeepAlpha)
@@ -128,7 +128,7 @@ internal impl IPropertyEditor for ColorEditor
 
     mtd impl construct(list: *Properties, value: Swag.TypeValue, data: #null [*] u8, parent: #null *PropertiesItem)->*PropertiesItem
     {
-        return list.constructColor(value, data, notnull parent)
+        return list.constructColor(value, data, parent!)
     }
 }
 

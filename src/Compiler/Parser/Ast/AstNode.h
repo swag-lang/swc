@@ -41,6 +41,7 @@ enum class AstModifierFlagsE : uint32_t
     Move          = 1 << 10,
     Relocate      = 1 << 11, // raw relocation: uninitialized target, abandoned source (no reset)
     Nullable      = 1 << 12,
+    UnNull        = 1 << 13, // cast variant: the source may be null, the destination is not
     Count,
 };
 using AstModifierFlags = EnumFlags<AstModifierFlagsE>;

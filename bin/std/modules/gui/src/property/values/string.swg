@@ -5,7 +5,7 @@ internal impl Properties
 {
     mtd validateDynamicString(item: *PropertiesItem)
     {
-        var data = notnull cast(#null *String) item.data
+        var data = cast #unnull (*String) item.data
         if @isset(item.editBox) do
             dref data = item.editBox.text()
         .commitItemChange(item)
@@ -24,7 +24,7 @@ internal impl Properties
             return
         }
 
-        let cur = notnull cast(#null *String) item.data
+        let cur = cast #unnull (*String) item.data
         var sel = 0'u32
         for &fnt, [idx] in g_PropSysFonts
         {
@@ -41,7 +41,7 @@ internal impl Properties
         if sel == Swag.U32.Max do
             return
 
-        var data = notnull cast(#null *String) item.data
+        var data = cast #unnull (*String) item.data
         if sel == 0 do
             data.clear()
         else do
@@ -87,7 +87,7 @@ internal impl Properties
             me.adaptCondensedControl(combo)
         }
 
-        let combon = notnull combo
+        let combon = combo!
         item.assignComboBox(combon)
         combon.addItem(.theme().res.defaultTypeFaceR.familyName())
         combon.addSeparator()
@@ -110,7 +110,7 @@ internal impl Properties
         var editWidth = cast(f32) Reflection.attributeValue(value, me.EditSize, "size", me.editorWidth)
         if !me.isGridLike() do
             editWidth = me.listContentWidthFromUseful(editWidth)
-        with let ed = EditBox.create(item.line, dref notnull cast(#null *String) data)
+        with let ed = EditBox.create(item.line, dref cast #unnull (*String) data)
         {
             if me.kind == .Panel
             {
@@ -136,14 +136,14 @@ internal impl Properties
         if Reflection.hasAttribute(value, .MultiLine)
         {
             ed.setTrailingMargin(24)
-            with let btn = IconButton.create(ed, .theme().icon24(.More, 20), {0, 0, 20, 20})
+            with let btn = IconButton.create(ed, .theme().icon(.More, 20), {0, 0, 20, 20})
             {
                 .dockStyle  = .Right
                 .sigPressed += func|prop = me, item, ed|(btn)
                 {
                     var editOptions: EditDlgOptions
                     editOptions.text = ed.text()
-                    let dlg = EditDlg.createMultiLine(notnull prop.surface, editOptions)
+                    let dlg = EditDlg.createMultiLine(prop.surface!, editOptions)
                     if dlg.doModal() != Dialog.BtnOk do
                         return
                     ed.setText(dlg.text())
@@ -160,7 +160,7 @@ internal impl Properties
         if !me.isGridLike() do
             editWidth = me.listContentWidthFromUseful(editWidth)
 
-        with let ed = EditBox.create(item.line, dref notnull cast(#null *string) data)
+        with let ed = EditBox.create(item.line, dref cast #unnull (*string) data)
         {
             .maxSize.x = editWidth
             if me.isGridLike() do

@@ -15,10 +15,10 @@ struct ByteMap
 
 func mapInit(m: *ByteMap, capacity: u64, base: [*] u8)
 {
-    m.keyOff = cast([*] u64) notnull @alloc(capacity * #sizeof(u64))
-    m.keyLen = cast([*] u64) notnull @alloc(capacity * #sizeof(u64))
-    m.val    = cast([*] u64) notnull @alloc(capacity * #sizeof(u64))
-    m.used   = cast([*] u8) notnull @alloc(capacity)
+    m.keyOff = cast([*] u64) (@alloc(capacity * #sizeof(u64)))!
+    m.keyLen = cast([*] u64) (@alloc(capacity * #sizeof(u64)))!
+    m.val    = cast([*] u64) (@alloc(capacity * #sizeof(u64)))!
+    m.used   = cast([*] u8) @alloc(capacity)!
     @memset(m.used, 0'u8, capacity)
     m.base  = base
     m.mask  = capacity - 1

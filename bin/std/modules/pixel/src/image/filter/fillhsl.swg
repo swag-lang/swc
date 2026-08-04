@@ -38,7 +38,7 @@ impl Image
         case .HueVert:
             .visitPixels(&swapRB)
             {
-                let swapRB  = dref cast(*bool) (notnull userData)
+                let swapRB  = dref cast(*bool) userData!
                 let factor0 = y / cast(f32) image.height
                 let col     = Color.fromHsl(factor0, 1, 0.5)
                 if swapRB
@@ -59,7 +59,7 @@ impl Image
             }
 
         case .HueHorz:
-            var pix = notnull .pixels.buffer
+            var pix = .pixels.buffer!
             for [x] in .width
             {
                 let factor0 = x / cast(f32) .width
@@ -84,14 +84,14 @@ impl Image
 
             .visitPixels(stride: .width)
             {
-                Memory.copy(pix, cast([*] u8) (notnull image.pixels.buffer), cast(u64) image.width * image.bytesPerPixel)
+                Memory.copy(pix, cast([*] u8) image.pixels.buffer!, cast(u64) image.width * image.bytesPerPixel)
             }
 
         case .SaturationVert:
             var pms = {hsl: hsl, swapRB: swapRB}
             .visitPixels(&pms)
             {
-                let params  = dref cast(*#decltype(pms)) (notnull userData)
+                let params  = dref cast(*#decltype(pms)) userData!
                 let swapRB  = params.swapRB
                 let factor0 = y / cast(f32) image.height
                 let col     = Color.fromHsl(params.hsl.h, factor0, 0.5)
@@ -113,7 +113,7 @@ impl Image
             }
 
         case .SaturationHorz:
-            var pix = notnull .pixels.buffer
+            var pix = .pixels.buffer!
             for [x] in .width
             {
                 let factor0 = x / cast(f32) .width
@@ -138,14 +138,14 @@ impl Image
 
             .visitPixels(stride: .width)
             {
-                Memory.copy(pix, cast([*] u8) (notnull image.pixels.buffer), cast(u64) image.width * image.bytesPerPixel)
+                Memory.copy(pix, cast([*] u8) image.pixels.buffer!, cast(u64) image.width * image.bytesPerPixel)
             }
 
         case .LightnessVert:
             var pms = {hsl: hsl, swapRB: swapRB}
             .visitPixels(&pms)
             {
-                let params  = dref cast(*#decltype(pms)) (notnull userData)
+                let params  = dref cast(*#decltype(pms)) userData!
                 let swapRB  = params.swapRB
                 let factor0 = y / cast(f32) image.height
                 let col     = Color.fromHsl(params.hsl.h, 1, factor0)
@@ -167,7 +167,7 @@ impl Image
             }
 
         case .LightnessHorz:
-            var pix = notnull .pixels.buffer
+            var pix = .pixels.buffer!
             for [x] in .width
             {
                 let factor0 = x / cast(f32) .width
@@ -192,14 +192,14 @@ impl Image
 
             .visitPixels(stride: .width)
             {
-                Memory.copy(pix, cast([*] u8) (notnull image.pixels.buffer), cast(u64) image.width * image.bytesPerPixel)
+                Memory.copy(pix, cast([*] u8) image.pixels.buffer!, cast(u64) image.width * image.bytesPerPixel)
             }
 
         case .HueSaturation:
             var pms = {hsl: hsl, swapRB: swapRB}
             .visitPixels(&pms)
             {
-                let params  = dref cast(*#decltype(pms)) (notnull userData)
+                let params  = dref cast(*#decltype(pms)) userData!
                 let factor0 = x / cast(f32) image.width
                 let factor1 = y / cast(f32) image.height
                 let col     = Color.fromHsl(factor0, factor1, 0.5)
@@ -224,7 +224,7 @@ impl Image
             var pms = {hsl: hsl, swapRB: swapRB}
             .visitPixels(&pms)
             {
-                let params  = dref cast(*#decltype(pms)) (notnull userData)
+                let params  = dref cast(*#decltype(pms)) userData!
                 let factor0 = x / cast(f32) image.width
                 let factor1 = y / cast(f32) image.height
                 let col     = Color.fromHsl(factor0, 1, factor1)
@@ -249,7 +249,7 @@ impl Image
             var pms = {hsl: hsl, swapRB: swapRB}
             .visitPixels(&pms)
             {
-                let params  = dref cast(*#decltype(pms)) (notnull userData)
+                let params  = dref cast(*#decltype(pms)) userData!
                 let factor0 = x / cast(f32) image.width
                 let factor1 = y / cast(f32) image.height
                 var l       = 0.5 + ((1 - factor0) * 0.5)
@@ -276,7 +276,7 @@ impl Image
             var pms = {fixedRed: color.r / 255.0, swapRB: swapRB}
             .visitPixels(&pms)
             {
-                let params  = dref cast(*#decltype(pms)) (notnull userData)
+                let params  = dref cast(*#decltype(pms)) userData!
                 let factor0 = x / cast(f32) image.width
                 let factor1 = 1 - (y / cast(f32) image.height)
                 let col     = Color.fromRgbF32(params.fixedRed, factor0, factor1)
@@ -301,7 +301,7 @@ impl Image
             var pms = {fixedGreen: color.g / 255.0, swapRB: swapRB}
             .visitPixels(&pms)
             {
-                let params  = dref cast(*#decltype(pms)) (notnull userData)
+                let params  = dref cast(*#decltype(pms)) userData!
                 let factor0 = x / cast(f32) image.width
                 let factor1 = 1 - (y / cast(f32) image.height)
                 let col     = Color.fromRgbF32(factor0, params.fixedGreen, factor1)
@@ -326,7 +326,7 @@ impl Image
             var pms = {fixedBlue: color.b / 255.0, swapRB: swapRB}
             .visitPixels(&pms)
             {
-                let params  = dref cast(*#decltype(pms)) (notnull userData)
+                let params  = dref cast(*#decltype(pms)) userData!
                 let factor0 = x / cast(f32) image.width
                 let factor1 = 1 - (y / cast(f32) image.height)
                 let col     = Color.fromRgbF32(factor0, factor1, params.fixedBlue)

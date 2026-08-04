@@ -170,7 +170,7 @@ impl HeadlessHost
 
         .autoFrames += 1
 
-        let stage = (notnull .autoStages.buffer) + .autoStage
+        let stage = .autoStages.buffer! + .autoStage
         if .runAutoStage(stage)
         {
             .autoStage  += 1
@@ -283,7 +283,7 @@ impl HeadlessHost
     mtd withModalEdit(label, text: string)
     {
         Debug.assert(.autoArmed and .autoStages.count > 0)
-        let stage = (notnull .autoStages.buffer) + .autoStages.count - 1
+        let stage = .autoStages.buffer! + .autoStages.count - 1
         let edit  = cast(*AutoEdit) stage.edits.emplaceInitAddress()
         edit.label = label
         edit.text  = text
@@ -489,7 +489,7 @@ impl HeadlessHost
         Debug.assert(wnd != null)
 
         var pt  = wnd.surfaceRect().center()
-        let srf = notnull wnd.surface
+        let srf = wnd.surface!
         srf.surfaceToScreen(&pt)
         .click(pt, button, modifiers)
     }
@@ -507,7 +507,7 @@ impl HeadlessHost
             if !view do
                 continue
 
-            wnd = view.childById(notnull id)
+            wnd = view.childById(id!)
             if wnd do
                 break
         }
@@ -624,7 +624,7 @@ impl HeadlessHost
 
         for itemIt in menu.items
         {
-            let item = notnull itemIt
+            let item = itemIt!
             if item.id != id do
                 continue
             if item.hidden or item.separator or item.disabled do
@@ -633,7 +633,7 @@ impl HeadlessHost
             let clientRect = menu.clientRect()
             var pt         = Math.Point{clientRect.x + clientRect.width * 0.5, item.pos + item.size * 0.5}
             pt = menu.localToSurface(pt)
-            let srf = notnull menu.surface
+            let srf = menu.surface!
             srf.surfaceToScreen(&pt)
             .click(pt)
             return true
@@ -651,7 +651,7 @@ impl HeadlessHost
 
         for itemIt in menu.items
         {
-            let item = notnull itemIt
+            let item = itemIt!
             if item.name.raw != label do
                 continue
             if item.hidden or item.separator or item.disabled do
@@ -660,7 +660,7 @@ impl HeadlessHost
             let clientRect = menu.clientRect()
             var pt         = Math.Point{clientRect.x + clientRect.width * 0.5, item.pos + item.size * 0.5}
             pt = menu.localToSurface(pt)
-            let srf = notnull menu.surface
+            let srf = menu.surface!
             srf.surfaceToScreen(&pt)
             .moveMouse(pt)
             return true
@@ -697,7 +697,7 @@ impl HeadlessHost
 
         let rect = menu.surfaceRect()
         var pt   = Math.Point{rect.right() + 4, rect.bottom() + 4}
-        let srf  = notnull menu.surface
+        let srf  = menu.surface!
         srf.surfaceToScreen(&pt)
         .click(pt)
         return true
@@ -751,7 +751,7 @@ impl HeadlessHost
     // Sends one complete simulated key press to the focused window.
     mtd keyPress(key: Input.Key, modifiers: Input.KeyModifiers = None)
     {
-        let target = notnull .app.keyboardFocusWnd
+        let target = .app.keyboardFocusWnd!
 
         .setModifierKeys(modifiers, true)
         .setKeyState(key, true)
@@ -784,7 +784,7 @@ impl HeadlessHost
     // Sends rune.
     mtd sendRune(key: Input.Key, char: rune, modifiers: Input.KeyModifiers = None)
     {
-        let target = notnull .app.keyboardFocusWnd
+        let target = .app.keyboardFocusWnd!
 
         .setModifierKeys(modifiers, true)
         .setKeyState(key, true)
@@ -840,7 +840,7 @@ impl HeadlessHost
         var needUpdateState = false
         for it in copy
         {
-            let evt = notnull (it as Event)
+            let evt = (it as Event)!
             if it is InvalidateEvent
             {
                 let target = evt.target
@@ -853,7 +853,7 @@ impl HeadlessHost
             if it is CommandEvent do
                 needUpdateState = true
 
-            Memory.delete(evt, notnull evt.type)
+            Memory.delete(evt, evt.type!)
         }
 
         if needUpdateState and !.root.isPendingDestroy do

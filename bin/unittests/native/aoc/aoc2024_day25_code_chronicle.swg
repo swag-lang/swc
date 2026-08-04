@@ -169,7 +169,7 @@ func parseOneSchematic(bytes: const [..] u8, startPos: u32, result: *ParseResult
             }
             h.col[col] = count
         }
-        let locks = notnull result.locks
+        let locks = result.locks!
         locks[result.lockCount] = h
         result.lockCount        += 1
     }
@@ -186,7 +186,7 @@ func parseOneSchematic(bytes: const [..] u8, startPos: u32, result: *ParseResult
             }
             h.col[col] = count
         }
-        let keys = notnull result.keys
+        let keys = result.keys!
         keys[result.keyCount] = h
         result.keyCount       += 1
     }
@@ -218,8 +218,8 @@ func parse(text: string)->ParseResult
 func countFittingPairs(r: *ParseResult)->u64
 {
     var count: u64
-    let locks = notnull r.locks
-    let keys  = notnull r.keys
+    let locks = r.locks!
+    let keys  = r.keys!
     for [li] in r.lockCount
     {
         for [ki] in r.keyCount
@@ -305,7 +305,7 @@ func solve(text: string)->SolveResult
     @assert(pr.lockCount == 2'u32)
     @assert(pr.keyCount == 3'u32)
 
-    let locks = notnull pr.locks
+    let locks = pr.locks!
 
     // Lock 1: 0,5,3,4,3
     @assert(locks[0].col[0] == 0)
@@ -328,7 +328,7 @@ func solve(text: string)->SolveResult
     var pr = parse(SampleInput)
     defer parseFree(&pr)
 
-    let keys = notnull pr.keys
+    let keys = pr.keys!
 
     // Key 1: 5,0,2,1,3
     @assert(keys[0].col[0] == 5)
@@ -446,7 +446,7 @@ func makeHeightPair(lock: Heights, key: Heights)->HeightPair
     defer parseFree(&pr)
     @assert(pr.lockCount == 1'u32)
     @assert(pr.keyCount == 0'u32)
-    let locks = notnull pr.locks
+    let locks = pr.locks!
     @assert(locks[0].col[0] == 0)
     @assert(locks[0].col[1] == 5)
     @assert(locks[0].col[2] == 3)
@@ -469,7 +469,7 @@ func makeHeightPair(lock: Heights, key: Heights)->HeightPair
     defer parseFree(&pr)
     @assert(pr.lockCount == 0'u32)
     @assert(pr.keyCount == 1'u32)
-    let keys = notnull pr.keys
+    let keys = pr.keys!
     @assert(keys[0].col[0] == 5)
     @assert(keys[0].col[1] == 0)
     @assert(keys[0].col[2] == 2)
@@ -530,8 +530,8 @@ func makeHeightPair(lock: Heights, key: Heights)->HeightPair
     var pr = parse(SampleInput)
     defer parseFree(&pr)
 
-    let locks = notnull pr.locks
-    let keys  = notnull pr.keys
+    let locks = pr.locks!
+    let keys  = pr.keys!
 
     // Lock 0 (0,5,3,4,3) vs Key 0 (5,0,2,1,3): overlap col4: 3+3=6
     @assert(!locks[0].fits(keys[0]))
@@ -562,7 +562,7 @@ func makeHeightPair(lock: Heights, key: Heights)->HeightPair
     var pr = parse(keyStr)
     defer parseFree(&pr)
     @assert(pr.keyCount == 1'u32)
-    let keys = notnull pr.keys
+    let keys = pr.keys!
     // Only bottom 2 rows have '#' → heights should be 1 for cols 0,2,4
     @assert(keys[0].col[0] == 1)
     @assert(keys[0].col[1] == 0)

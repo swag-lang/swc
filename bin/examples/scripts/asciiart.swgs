@@ -6,7 +6,7 @@ var g_Img:     Image
 var g_Texture: Texture
 
 // 'Swag.Late': the font is created in the CreateEvent handler, non-null everywhere after.
-// The deferred-init global removes the '#null' + per-read 'notnull' boilerplate.
+// The deferred-init global removes the '#null' + per-read '!' boilerplate.
 #[Swag.Late]
 var g_Font: *Font
 
@@ -27,13 +27,13 @@ func openImage(surface: #null *Surface)
         .filters.add({"TGA - Truevision Targa (*.tga)", ".tga"})
     }
 
-    let dlg = FileDlg.create(notnull surface, opt)
+    let dlg = FileDlg.create(surface!, opt)
     if dlg.doModal() != Dialog.BtnOk do
         return
 
     g_Img = catch Image.load(dlg.selectedPath()) as err
     if err != null do
-        MessageDlg.error(notnull surface, "Failed to load image", err)
+        MessageDlg.error(surface!, "Failed to load image", err)
 }
 
 func compute(render: IRenderer)

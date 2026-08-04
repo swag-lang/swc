@@ -275,8 +275,8 @@ impl QuickWnd
         if res == "0" and btn
         {
             let qbtn  = cast(*QuickButton) btn
-            let style = notnull .currentStyle
-            style.remove(notnull qbtn.formItf)
+            let style = .currentStyle!
+            style.remove(qbtn.formItf!)
             qbtn.destroy()
             .updateQuickStyles(forceRebuild: true)
         }
@@ -672,7 +672,7 @@ impl QuickWnd
         if !.currentStyle do
             return
 
-        let res = MessageDlg.confirm(notnull .surface, "This will reset the styles to the default values.")
+        let res = MessageDlg.confirm(.surface!, "This will reset the styles to the default values.")
         if res != MessageDlg.BtnYes do
             return
 
@@ -705,16 +705,16 @@ impl QuickWnd
         func paintForm(painter: *Painter, btnp: *QuickButton)
         {
             painter.setParams(.Antialiased)
-            var paintForm = quickStyleNewPaintForm(notnull btnp.formItf)
+            var paintForm = quickStyleNewPaintForm(btnp.formItf!)
             defer quickStyleReleasePaintForm(&paintForm)
 
-            Capture.paintForm(painter, {}, {0, 0, 64, 64}, notnull paintForm.itf, zoom: 1, quickMode: true)
+            Capture.paintForm(painter, {}, {0, 0, 64, 64}, paintForm.itf!, zoom: 1, quickMode: true)
 
             if !paintForm.title.isEmpty()
             {
                 let textColor = g_App.theme.colors.btnIcon_Text
                 let rect      = paintForm.itf!.boundRect()
-                painter.drawStringCenter(rect.horzCenter(), rect.bottom(), paintForm.title, notnull btnp.font().regular, textColor)
+                painter.drawStringCenter(rect.horzCenter(), rect.bottom(), paintForm.title, btnp.font().regular!, textColor)
             }
         }
 
@@ -795,12 +795,12 @@ impl QuickWnd
             {
                 let quickBtn = cast(*QuickButton) btn
                 let quick    = quickBtn.quickWnd
-                let it       = notnull quickBtn.formItf
+                let it       = quickBtn.formItf!
                 if !btn.isChecked do
                     return
                 quick.main.updateModel(it)
 
-                var capture = notnull quick.main.getCapture()
+                var capture = quick.main.getCapture()!
                 if capture.selection.count
                 {
                     let mdlValue = MainWnd.newFormFromForm(it)
@@ -841,7 +841,7 @@ impl QuickWnd
             }
 
             // Button to add a new style
-            let ico  = .theme().icon24(.Plus)
+            let ico  = .theme().icon(.Plus)
             let btn1 = IconButton.create(btn, ico, {64 - 26, 2, 24, 24})
             btn1.style.addStyleSheetColors("btnIcon_Bk          $hilight")
             btn1.style.addStyleSheetColors("btnIcon_HotBk       $hilightLight")
@@ -858,7 +858,7 @@ impl QuickWnd
                 let mdl  = main.newFormFromModel(main.getEditMode())
                 if mdl
                 {
-                    let style = notnull quickWnd.currentStyle
+                    let style = quickWnd.currentStyle!
                     style.forms.add(mdl)
                     quickWnd.updateQuickStyles()
                 }

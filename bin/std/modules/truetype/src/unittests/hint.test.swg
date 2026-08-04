@@ -17,7 +17,7 @@ func distToPixel(v: s32)->s32
 {
     var scope: FaceScope
     scope.init("arial.ttf")
-    let face = notnull scope.face
+    let face = scope.face!
 
     discard expect face.setPixelSize(0, 13)
     discard expect face.loadChar('x')

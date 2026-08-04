@@ -14,7 +14,7 @@ impl IActionUI for ActionGroup
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let main    = cast(*MainWnd) notnull cxt.wnd
+        let main    = cast(*MainWnd) cxt.wnd!
         let capture = main.getCapture()
         let isLib   = main.libraryMode
 
@@ -36,8 +36,8 @@ impl IActionUI for ActionGroup
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main    = cast(*MainWnd) notnull cxt.wnd
-        let capture = notnull main.getCapture()
+        let main    = cast(*MainWnd) cxt.wnd!
+        let capture = main.getCapture()!
 
         switch cxt.id
         {

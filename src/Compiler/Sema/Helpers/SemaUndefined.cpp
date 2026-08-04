@@ -1,4 +1,5 @@
 ﻿#include "pch.h"
+#include "Compiler/Sema/Helpers/SemaUndefined.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Ast/Sema.Switch.h"
@@ -8,7 +9,6 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
-#include "Compiler/Sema/Helpers/SemaUndefined.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
@@ -212,7 +212,7 @@ namespace
 
                 case AstNodeId::ErrorManagementExpr:
                     // 'notnull x' asserts non-null; other wrappers stay conservative.
-                    return tokenIdOf(node, TokenId::KwdCatch) == TokenId::KwdNotNull &&
+                    return tokenIdOf(node, TokenId::KwdCatch) == TokenId::SymBang &&
                            valueShapeIsNonNull(node.cast<AstErrorManagementExpr>().nodeExprRef);
 
                 default:

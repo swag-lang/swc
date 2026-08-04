@@ -154,7 +154,7 @@ func parseContainer(buffer: const [..] u8)->Container fail
 func flipRgbaRows(pixels: *Array'u8, width, height: s32)
 {
     let rowBytes = cast(u64) width * 4
-    let data     = cast([*] u8) notnull pixels.buffer
+    let data     = cast([*] u8) pixels.buffer!
     for [y] in height / 2
     {
         var upper = cast(u64) y * rowBytes
@@ -170,7 +170,7 @@ func flipRgbaRows(pixels: *Array'u8, width, height: s32)
 
 func decodeLossless(container: Container, options: DecodeOptions)->Image fail
 {
-    let imageData                        = @mkslice(cast(const [*] u8) notnull container.image.data, container.image.size)
+    let imageData                        = @mkslice(cast(const [*] u8) container.image.data!, container.image.size)
     var reader:        LosslessBitReader = undefined
     var width, height: s32
     losslessDecodeHeader(&reader, imageData, &width, &height)
@@ -197,7 +197,7 @@ func vp8DecodeAlpha(container: Container, width, height: s32, alpha: *Array'u8) 
     if container.alpha.size == 0 do
         fail InvalidFormatError{"WebP ALPH chunk does not contain a control byte"}
 
-    let source  = cast(const [*] u8) notnull container.alpha.data
+    let source  = cast(const [*] u8) container.alpha.data!
     let control = source[0]
     if control & 0xC0 do
         fail InvalidFormatError{"WebP ALPH chunk sets reserved bits"}
@@ -211,7 +211,7 @@ func vp8DecodeAlpha(container: Container, width, height: s32, alpha: *Array'u8) 
         if container.alpha.size - 1 != pixelCount do
             fail InvalidFormatError{"WebP uncompressed ALPH byte count differs from the canvas dimensions"}
         alpha.resize(pixelCount)
-        Memory.copy(cast([*] u8) notnull alpha.buffer, source + 1, pixelCount)
+        Memory.copy(cast([*] u8) alpha.buffer!, source + 1, pixelCount)
 
     case 1:
         let widthMinusOne  = cast(u32) width - 1
@@ -226,7 +226,7 @@ func vp8DecodeAlpha(container: Container, width, height: s32, alpha: *Array'u8) 
         compressed[2] = losslessWrap8(cast(s32) ((widthMinusOne >> 8) | (heightMinusOne << 6)))
         compressed[3] = losslessWrap8(cast(s32) (heightMinusOne >> 2))
         compressed[4] = losslessWrap8(cast(s32) (heightMinusOne >> 10))
-        Memory.copy(cast([*] u8) notnull compressed.buffer + 5, source + 1, container.alpha.size - 1)
+        Memory.copy(cast([*] u8) (compressed.buffer + 5)!, source + 1, container.alpha.size - 1)
 
         var rgba:                        Array'u8
         var decodedWidth, decodedHeight: s32
@@ -234,8 +234,8 @@ func vp8DecodeAlpha(container: Container, width, height: s32, alpha: *Array'u8) 
         if decodedWidth != width or decodedHeight != height do
             fail InvalidFormatError{"WebP compressed ALPH dimensions differ from the canvas"}
         alpha.resize(pixelCount)
-        let alphaData = cast([*] u8) notnull alpha.buffer
-        let rgbaData  = cast([*] u8) notnull rgba.buffer
+        let alphaData = cast([*] u8) alpha.buffer!
+        let rgbaData  = cast([*] u8) rgba.buffer!
         for [i] in pixelCount do
             alphaData[i] = rgbaData[4 * i + 1]
 
@@ -243,7 +243,7 @@ func vp8DecodeAlpha(container: Container, width, height: s32, alpha: *Array'u8) 
         fail UnsupportedFormatError{"WebP ALPH chunk uses an unsupported compression method"}
     }
 
-    let data   = cast([*] u8) notnull alpha.buffer
+    let data   = cast([*] u8) alpha.buffer!
     let filter = (control >> 2) & 3
     if filter == 0 do
         return
@@ -289,10 +289,10 @@ func vp8DecodeAlpha(container: Container, width, height: s32, alpha: *Array'u8) 
 func vp8ToRgba(decoder: *Vp8Decoder, alpha: *Array'u8, result: *Image)
 {
     result.allocPixels()
-    let yData   = cast([*] u8) notnull decoder.y.buffer
-    let cbData  = cast([*] u8) notnull decoder.cb.buffer
-    let crData  = cast([*] u8) notnull decoder.cr.buffer
-    let outData = cast([*] u8) notnull result.pixels.buffer
+    let yData   = cast([*] u8) decoder.y.buffer!
+    let cbData  = cast([*] u8) decoder.cb.buffer!
+    let crData  = cast([*] u8) decoder.cr.buffer!
+    let outData = cast([*] u8) result.pixels.buffer!
     let aData   = alpha.buffer
     let width   = decoder.header.width
     let height  = decoder.header.height
@@ -319,7 +319,7 @@ func vp8ToRgba(decoder: *Vp8Decoder, alpha: *Array'u8, result: *Image)
 
 func decodeLossy(container: Container, options: DecodeOptions)->Image fail
 {
-    let imageData           = @mkslice(cast(const [*] u8) notnull container.image.data, container.image.size)
+    let imageData           = @mkslice(cast(const [*] u8) container.image.data!, container.image.size)
     var decoder: Vp8Decoder = {source: @dataof(imageData)}
     vp8DecodeFrameHeader(&decoder, imageData)
 

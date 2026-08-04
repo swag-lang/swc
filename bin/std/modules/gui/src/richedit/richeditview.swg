@@ -24,7 +24,7 @@ impl IWnd for RichEditView
     {
         if .timerCaret
         {
-            let srf = notnull .surface
+            let srf = .surface!
             srf.app.removeTimer(.timerCaret)
             .timerCaret = null
         }
@@ -38,7 +38,7 @@ impl IWnd for RichEditView
 
         if .focusedWindow() == me
         {
-            let srf = notnull .surface
+            let srf = .surface!
             srf.app.keyboardFocusWnd = null
         }
 
@@ -54,7 +54,7 @@ impl IWnd for RichEditView
 
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
-        let edn = notnull .ed
+        let edn = .ed!
         evt.accepted = false
         switch evt.kind
         {
@@ -116,7 +116,7 @@ impl IWnd for RichEditView
 
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
-        let edn = notnull .ed
+        let edn = .ed!
         if evt.kind == .Pressed
         {
             // Lose focus with escape or enter
@@ -152,8 +152,8 @@ impl IWnd for RichEditView
             .invalidate()
 
         case .Lost:
-            let srf = notnull .surface
-            srf.app.removeTimer(notnull .timerCaret)
+            let srf = .surface!
+            srf.app.removeTimer(.timerCaret!)
             .timerCaret   = null
             .visibleCaret = false
             .invalidate()
@@ -168,7 +168,7 @@ impl IWnd for RichEditView
 
     mtd impl onPaint(evt: *PaintEvent)
     {
-        let edn     = notnull .ed
+        let edn     = .ed!
         let painter = evt.paintContext.painter
         let colors  = .themeColors()
 
@@ -221,7 +221,7 @@ impl IWnd for RichEditView
                 edn.countVisibleLines += 1
             edn.lastVisibleLineView = i
 
-            let l = notnull edn.lines[i]
+            let l = edn.lines[i]!
 
             l.drawingRect.x      = marginLeft
             l.drawingRect.y      = y
@@ -333,7 +333,7 @@ impl RichEditView
 
     mtd paintString(bc: *PaintContext, x, y: f32, str: String, strStyle: RichEditRuneStyle, visible: bool)->f32
     {
-        let edn     = notnull .ed
+        let edn     = .ed!
         let painter = bc.painter
 
         let fontR = edn.font().getFont(strStyle.fontMode)
@@ -379,8 +379,8 @@ impl RichEditView
 
     mtd paintLine(bc: *PaintContext, lineIndex: u64, py: f32, visible: bool)->f32
     {
-        let edn  = notnull .ed
-        let line = notnull edn.lines[lineIndex]
+        let edn  = .ed!
+        let line = edn.lines[lineIndex]!
         let y    = py
 
         // Dummy character for empty lines, so that a selected line display something
@@ -391,8 +391,8 @@ impl RichEditView
         var pStyle     = cast([*] u8) &dummyStyle
         if count
         {
-            pChar  = notnull line.chars.buffer
-            pStyle = notnull line.styles.buffer
+            pChar  = line.chars.buffer!
+            pStyle = line.styles.buffer!
         }
         else do
             count = 1

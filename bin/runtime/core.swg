@@ -31,7 +31,7 @@ func @is(toType, fromType: typeinfo)->bool
 
     for ft in fromStruct.usingFields
     {
-        let usingType = __concreteAlias(notnull ft.pointedType)
+        let usingType = __concreteAlias(ft.pointedType!)
         if usingType.kind == .Struct
         {
             let typeStruct = cast(const *Swag.TypeInfoStruct) usingType
@@ -67,7 +67,7 @@ func @as(toType, fromType: typeinfo, ptr: *void)->#null *void
 
     for ft in fromStruct.usingFields
     {
-        let usingType = __concreteAlias(notnull ft.pointedType)
+        let usingType = __concreteAlias(ft.pointedType!)
         if usingType.kind == .Struct
         {
             let typeStruct = cast(const *Swag.TypeInfoStruct) usingType
@@ -159,7 +159,7 @@ func @typecmp(typeA, typeB: typeinfo, cmpFlags: TypeCmpFlags)->bool
             if !namesAreEqual and field1.name != field2.name do
                 return false
 
-            if !@typecmp(notnull field1.pointedType, notnull field2.pointedType, cmpFlags) do
+            if !@typecmp(field1.pointedType!, field2.pointedType!, cmpFlags) do
                 return false
         }
 
@@ -247,7 +247,7 @@ func @args()->const [..] string
 ////////////////////////////////////////////////////////////
 
 // Make a build configuration copy
-const __buildCfg = #run dref notnull @compiler.getBuildCfg()
+const __buildCfg = #run dref @compiler.getBuildCfg()!
 
 func @rtflags()   => @getcontext().runtimeFlags
 func @jit()->bool => @getcontext().runtimeFlags & .FromCompiler ? true : false
@@ -272,7 +272,7 @@ func __runtimeAllocator()->IAllocator
         }
     }
 
-    return notnull cxt.allocator
+    return cxt.allocator!
 }
 
 func __ensureRuntimeAllocator()

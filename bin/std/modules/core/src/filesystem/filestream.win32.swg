@@ -22,7 +22,7 @@ impl FileStream
             return 0
 
         var total = 0'u64
-        let bytes = cast([*] u8) notnull buffer
+        let bytes = cast([*] u8) buffer!
         while total < length
         {
             let chunk = cast(u32) Math.min(length - total, cast(u64) Swag.U32.Max)
@@ -47,7 +47,7 @@ impl FileStream
             return 0
 
         var total = 0'u64
-        let bytes = cast(const [*] u8) notnull buffer
+        let bytes = cast(const [*] u8) buffer!
         while total < length
         {
             let chunk = cast(u32) Math.min(length - total, cast(u64) Swag.U32.Max)

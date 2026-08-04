@@ -184,7 +184,7 @@ again.
     {
         var req: Swag.AllocatorRequest
         req.size = size
-        let allocItf = notnull @getcontext().allocator
+        let allocItf = @getcontext().allocator!
         allocItf.alloc(&req)
         return req.address
     }
@@ -194,11 +194,11 @@ again.
         var req: Swag.AllocatorRequest
         req.address = ptr
         req.size    = size
-        let allocItf = notnull @getcontext().allocator
+        let allocItf = @getcontext().allocator!
         allocItf.free(&req)
     }
 
-    let p = cast(*s32) notnull exampleAlloc(4)
+    let p = cast(*s32) exampleAlloc(4)!
     dref p = 1
     exampleFree(p, 4)
 

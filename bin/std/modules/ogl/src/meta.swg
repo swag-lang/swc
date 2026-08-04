@@ -41,7 +41,7 @@ var g_Functions: Array'OneFunc
     for e in g_Functions
     {
         var builderVars: StringBuilder
-        let etype = notnull e.type
+        let etype = e.type!
 
         // Declare a lambda variable for that extension.
         builderVars.appendString("var ext_")
@@ -66,17 +66,17 @@ var g_Functions: Array'OneFunc
         let retType = etype.returnType
         if retType == null or retType == void
         {
-            builderVars.appendString(")\n{\n\tlet exfn_ = notnull ext_")
+            builderVars.appendString(")\n{\n\tlet exfn_ = ext_")
             builderVars.appendString(e.name)
-            builderVars.appendString("\n\texfn_")
+            builderVars.appendString("!\n\texfn_")
         }
         else
         {
             builderVars.appendString(")->")
             builderVars.appendString(retType.fullname)
-            builderVars.appendString("\n{\n\tlet exfn_ = notnull ext_")
+            builderVars.appendString("\n{\n\tlet exfn_ = ext_")
             builderVars.appendString(e.name)
-            builderVars.appendString("\n\treturn exfn_")
+            builderVars.appendString("!\n\treturn exfn_")
         }
 
         builderVars.appendString("(")

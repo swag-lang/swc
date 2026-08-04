@@ -12,7 +12,7 @@ namespace GenericMkSliceLazyCodegen
         req.size    = size
         req.address = buffer
 
-        let talloc = notnull (allocator orelse @getcontext().allocator)
+        let talloc = (allocator orelse @getcontext().allocator)!
         talloc.free(&req)
     }
 
@@ -23,7 +23,7 @@ namespace GenericMkSliceLazyCodegen
         req.size    = newSize
         req.oldSize = oldSize
 
-        let talloc = notnull (allocator orelse @getcontext().allocator)
+        let talloc = (allocator orelse @getcontext().allocator)!
         talloc.realloc(&req)
         return req.address
     }
@@ -86,7 +86,7 @@ namespace GenericMkSliceLazyCodegen
 
         mtd add(value: T)
         {
-            let buf = notnull .buffer
+            let buf = .buffer!
             buf[.count] = value
             .count      += 1
         }

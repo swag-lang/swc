@@ -22,32 +22,32 @@ var g_FileState: FileDlgState
 
 func onMsgOk(_b: *Button)
 {
-    MessageDlg.ok(notnull g_Surface, "This is a simple information message.")
+    MessageDlg.ok(g_Surface!, "This is a simple information message.")
 }
 
 func onMsgOkCancel(_b: *Button)
 {
-    discard MessageDlg.okCancel(notnull g_Surface, "Apply the pending changes?")
+    discard MessageDlg.okCancel(g_Surface!, "Apply the pending changes?")
 }
 
 func onMsgYesNo(_b: *Button)
 {
-    discard MessageDlg.yesNo(notnull g_Surface, "Do you enjoy this showcase?")
+    discard MessageDlg.yesNo(g_Surface!, "Do you enjoy this showcase?")
 }
 
 func onMsgYesNoCancel(_b: *Button)
 {
-    discard MessageDlg.yesNoCancel(notnull g_Surface, "Save the document before closing?")
+    discard MessageDlg.yesNoCancel(g_Surface!, "Save the document before closing?")
 }
 
 func onMsgConfirm(_b: *Button)
 {
-    discard MessageDlg.confirm(notnull g_Surface, "This will reset everything.")
+    discard MessageDlg.confirm(g_Surface!, "This will reset everything.")
 }
 
 func onMsgError(_b: *Button)
 {
-    MessageDlg.error(notnull g_Surface, "Something went wrong while saving.")
+    MessageDlg.error(g_Surface!, "Something went wrong while saving.")
 }
 
 func onEditSingle(_b: *Button)
@@ -56,7 +56,7 @@ func onEditSingle(_b: *Button)
     opt.title   = "Single line edit"
     opt.message = "Enter your name:"
     opt.text    = "John Doe"
-    discard EditDlg.createSingleLine(notnull g_Surface, opt).doModal()
+    discard EditDlg.createSingleLine(g_Surface!, opt).doModal()
 }
 
 func onEditMulti(_b: *Button)
@@ -65,7 +65,7 @@ func onEditMulti(_b: *Button)
     opt.title   = "Multi line edit"
     opt.message = "Enter a description:"
     opt.text    = "First line\nSecond line"
-    discard EditDlg.createMultiLine(notnull g_Surface, opt).doModal()
+    discard EditDlg.createMultiLine(g_Surface!, opt).doModal()
 }
 
 func onFileOpen(_b: *Button)
@@ -75,7 +75,7 @@ func onFileOpen(_b: *Button)
     opt.state = &g_FileState
     opt.filters.add({"All files", ""})
     opt.filters.add({"Images", ".png;.jpg;.bmp"})
-    discard FileDlg.create(notnull g_Surface, opt).doModal()
+    discard FileDlg.create(g_Surface!, opt).doModal()
 }
 
 func onFileSave(_b: *Button)
@@ -84,7 +84,7 @@ func onFileSave(_b: *Button)
     opt.mode  = .CreateFile
     opt.state = &g_FileState
     opt.filters.add({"Text", ".txt"})
-    discard FileDlg.create(notnull g_Surface, opt).doModal()
+    discard FileDlg.create(g_Surface!, opt).doModal()
 }
 
 func onSelectFolder(_b: *Button)
@@ -92,7 +92,7 @@ func onSelectFolder(_b: *Button)
     var opt: FileDlgOptions
     opt.mode  = .SelectFolder
     opt.state = &g_FileState
-    discard FileDlg.create(notnull g_Surface, opt).doModal()
+    discard FileDlg.create(g_Surface!, opt).doModal()
 }
 
 //
@@ -112,7 +112,7 @@ func createRootView()
     view.backgroundStyle = .View
 
     // Title bar (docked top so the layout reflows on resize).
-    with let title = Label.create(notnull g_View, "GUI9 - Dialogs & FileBrowserCtrl", {0, 0, 0, 46})
+    with let title = Label.create(g_View!, "GUI9 - Dialogs & FileBrowserCtrl", {0, 0, 0, 46})
     {
         .dockStyle = .Top
         .margin    = {16, 12, 16, 0}
@@ -121,7 +121,7 @@ func createRootView()
     }
 
     // Content area below the title.
-    let content = Wnd.create'Wnd(notnull g_View, {})
+    let content = Wnd.create'Wnd(g_View!, {})
     content.dockStyle       = .Center
     content.backgroundStyle = .Transparent
 
@@ -186,12 +186,12 @@ func onRootEvent(_view: *Wnd, evt: IEvent)->bool
 #main
 {
     let flags   = SurfaceFlags.LargeCaption | SurfaceFlags.MinimizeButton | SurfaceFlags.CloseButton | SurfaceFlags.Border | SurfaceFlags.Resizable
-    let surface = notnull (try app.createSurface(120, 90, W - 46, H - 31, flags))
+    let surface = (try app.createSurface(120, 90, W - 46, H - 31, flags))!
     g_Surface = surface
     surface.setTitle("GUI9 dialogs showcase")
 
     createRootView()
-    let view = notnull g_View
+    let view = g_View!
     view.hookOnEvent = &onRootEvent
 
     // In automated test mode we just exercise the composite/build and exit;

@@ -7,14 +7,14 @@ impl Encoder
     #[Swag.Inline]
     mtd writeByte(b: u8)
     {
-        let stream = notnull .stream
+        let stream = .stream!
         stream.addNative(b)
     }
 
     #[Swag.Inline]
     mtd writeWord(w: u16)
     {
-        let stream = notnull .stream
+        let stream = .stream!
         stream.addNative(cast(u8) (w >> 8))
         stream.addNative(cast(u8) (w & 0xFF))
     }
@@ -22,7 +22,7 @@ impl Encoder
     #[Swag.Inline]
     mtd writeBytes(s: const [..] u8)
     {
-        let stream = notnull .stream
+        let stream = .stream!
         stream.addBytes(s)
     }
 

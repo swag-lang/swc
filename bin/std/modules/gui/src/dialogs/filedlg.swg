@@ -73,7 +73,7 @@ private impl FileDlg
         options.width  = 440
         options.height = 220
 
-        let dlg  = FormDlg.create(notnull me.surface, options)
+        let dlg  = FormDlg.create(me.surface!, options)
         let edit = dlg.form.addTextField("FOLDER NAME", "New Folder", placeholder: "Folder name")
         dlg.form.computeLayout()
         edit.selectAll()
@@ -97,7 +97,7 @@ private impl FileDlg
 
             if !Path.isValidFileName(folderName)
             {
-                MessageDlg.error(notnull dlg.surface, "The folder name is not valid.")
+                MessageDlg.error(dlg.surface!, "The folder name is not valid.")
                 edit.selectAll()
                 edit.setFocus()
                 return false
@@ -106,7 +106,7 @@ private impl FileDlg
             let path = Path.combine(browser.currentFolder, folderName.toString())
             if Directory.exists(path)
             {
-                MessageDlg.error(notnull dlg.surface, "A folder with this name already exists.")
+                MessageDlg.error(dlg.surface!, "A folder with this name already exists.")
                 edit.selectAll()
                 edit.setFocus()
                 return false
@@ -120,7 +120,7 @@ private impl FileDlg
 
         if !.browser.createFolder(edit.text())
         {
-            MessageDlg.error(notnull .surface, "The folder could not be created.")
+            MessageDlg.error(.surface!, "The folder could not be created.")
             return
         }
 
@@ -212,7 +212,7 @@ impl FileDlg
                 let selName = dlg.browser.selectedPath()
                 if dlg.options.mode == .CreateFile and File.exists(selName)
                 {
-                    let res = MessageDlg.confirm(notnull dlg.surface, "This file already exists.", "Do you want to replace it?")
+                    let res = MessageDlg.confirm(dlg.surface!, "This file already exists.", "Do you want to replace it?")
                     if res != Dialog.BtnYes do
                         return false
                 }

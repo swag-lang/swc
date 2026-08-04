@@ -26,7 +26,7 @@ impl IActionUI for ActionFile
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let main    = cast(*MainWnd) notnull cxt.wnd
+        let main    = cast(*MainWnd) cxt.wnd!
         let capture = main.getCapture()
 
         switch cxt.id
@@ -44,24 +44,24 @@ impl IActionUI for ActionFile
             evt.updatedFields |= .Name | .Disabled | .Icon
             evt.name          = "Save As Image..."
             evt.disabled      = !capture
-            evt.icon          = main.theme().icon24(.SaveAs)
+            evt.icon          = main.theme().icon(.SaveAs)
 
         case .SaveAsLinkedImage:
             evt.updatedFields |= .Name | .Disabled | .Icon
             evt.name          = "Save As Linked Image..."
             evt.disabled      = !capture
-            evt.icon          = main.theme().icon24(.Export)
+            evt.icon          = main.theme().icon(.Export)
 
         case .OpenImage:
             evt.updatedFields |= .Name | .Icon
             evt.name          = "Open Image..."
-            evt.icon          = main.theme().icon24(.OpenFile)
+            evt.icon          = main.theme().icon(.OpenFile)
 
         case .UpdateLinkedImage:
             evt.updatedFields |= .Name | .Disabled | .Icon
             evt.name          = "Update Linked Image"
             evt.disabled      = !capture
-            evt.icon          = main.theme().icon24(.Update)
+            evt.icon          = main.theme().icon(.Update)
 
         case .UnlinkImage:
             evt.updatedFields |= .Name | .Disabled
@@ -75,13 +75,13 @@ impl IActionUI for ActionFile
                 evt.disabled = !main.libWnd.hasSelected()
             else do
                 evt.disabled = !capture
-            evt.icon = main.theme().icon24(.Remove)
+            evt.icon = main.theme().icon(.Remove)
 
         case .DupCapture:
             evt.updatedFields |= .Name | .Disabled | .Icon
             evt.name          = "Duplicate"
             evt.disabled      = !capture
-            evt.icon          = main.theme().icon24(.Duplicate)
+            evt.icon          = main.theme().icon(.Duplicate)
 
         case .RenameCapture:
             evt.updatedFields |= .Name | .Disabled
@@ -92,19 +92,19 @@ impl IActionUI for ActionFile
             evt.updatedFields |= .Name | .Disabled | .Icon
             evt.name          = "Copy Image to Clipboard"
             evt.disabled      = !capture
-            evt.icon          = main.theme().icon24(.Copy)
+            evt.icon          = main.theme().icon(.Copy)
 
         case .CaptureFileLocation:
             evt.updatedFields |= .Name | .Disabled | .Icon
             evt.name          = "Locate Capture File"
             evt.disabled      = !capture
-            evt.icon          = main.theme().icon24(.OpenFile)
+            evt.icon          = main.theme().icon(.OpenFile)
 
         case .LinkedFileLocation:
             evt.updatedFields |= .Name | .Disabled | .Icon
             evt.name          = "Locate Linked Image"
             evt.disabled      = !capture or capture.linkedImage.isEmpty()
-            evt.icon          = main.theme().icon24(.Link)
+            evt.icon          = main.theme().icon(.Link)
 
         case .FileDetails:
             evt.updatedFields |= .Name | .Disabled
@@ -120,8 +120,8 @@ impl IActionUI for ActionFile
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main    = cast(*MainWnd) notnull cxt.wnd
-        let capture = notnull main.getCapture()
+        let main    = cast(*MainWnd) cxt.wnd!
+        let capture = main.getCapture()!
 
         switch cxt.id
         {
@@ -141,7 +141,7 @@ impl IActionUI for ActionFile
             main.openImage()
 
         case .UnlinkImage:
-            let res = MessageDlg.confirm(notnull main.surface, "This will remove the image association.")
+            let res = MessageDlg.confirm(main.surface!, "This will remove the image association.")
             if res == MessageDlg.BtnYes
             {
                 capture.linkedImage.clear()
@@ -182,7 +182,7 @@ impl IActionUI for ActionFile
                     dlg.setExtension(chk)
                 }
 
-                if MessageDlg.confirm(notnull main.surface, txt, options: opt) != Dialog.BtnYes do
+                if MessageDlg.confirm(main.surface!, txt, options: opt) != Dialog.BtnYes do
                     break
             }
 
@@ -191,7 +191,7 @@ impl IActionUI for ActionFile
             main.doSaveImage(capture, &img, capture.linkedImage)
 
         case .DeleteCapture:
-            let res = MessageDlg.confirm(notnull main.surface, "This will delete the capture file(s).")
+            let res = MessageDlg.confirm(main.surface!, "This will delete the capture file(s).")
             if res == MessageDlg.BtnYes
             {
                 if main.libraryMode do
@@ -213,7 +213,7 @@ impl IActionUI for ActionFile
             // so guard before dereferencing to avoid a null crash and abort the duplication.
             if !newCapture
             {
-                MessageDlg.error(notnull main.surface, "Failed to duplicate capture")
+                MessageDlg.error(main.surface!, "Failed to duplicate capture")
                 break
             }
 
@@ -238,7 +238,7 @@ impl IActionUI for ActionFile
             editOptions.title   = "Rename Capture"
             editOptions.message = "Capture name"
             editOptions.text    = capture.title
-            let dlg = EditDlg.createSingleLine(notnull main.surface, editOptions)
+            let dlg = EditDlg.createSingleLine(main.surface!, editOptions)
             if dlg.doModal() == Dialog.BtnOk do
                 main.setCaptureTitle(file, dlg.text())
 
@@ -250,11 +250,11 @@ impl IActionUI for ActionFile
 
         case .CaptureFileLocation:
             if !Env.showInFileExplorer(capture.file) do
-                MessageDlg.error(notnull main.surface, "Failed to locate capture file")
+                MessageDlg.error(main.surface!, "Failed to locate capture file")
 
         case .LinkedFileLocation:
             if !Env.showInFileExplorer(capture.linkedImage) do
-                MessageDlg.error(notnull main.surface, "Failed to locate linked image")
+                MessageDlg.error(main.surface!, "Failed to locate linked image")
 
         case .FileDetails:
 
@@ -269,7 +269,7 @@ impl IActionUI for ActionFile
                 lbl2.setTextHorizontalAlignment(.Left)
             }
 
-            let dlg = Dialog.create(notnull main.surface, 600, 400, title: "Details", flags: .Border | .CloseButton | .Resizable)
+            let dlg = Dialog.create(main.surface!, 600, 400, title: "Details", flags: .Border | .CloseButton | .Resizable)
             dlg.addButton("OK", Dialog.BtnOk, true)
             let lt = StackLayoutCtrl.create(dlg)
             lt.dockStyle = .Center
@@ -307,13 +307,13 @@ impl MainWnd
             .filters.add({"TGA - Truevision Targa (*.tga)", ".tga"})
         }
 
-        let dlg = FileDlg.create(notnull .surface, opt)
+        let dlg = FileDlg.create(.surface!, opt)
         if dlg.doModal() != Dialog.BtnOk do
             return
 
         let img = catch Image.load(dlg.selectedPath()) as err
         if err != null do
-            MessageDlg.error(notnull .surface, "Failed to load image", err)
+            MessageDlg.error(.surface!, "Failed to load image", err)
         else do
             .newCapture(img, dlg.selectedPath())
     }
@@ -343,7 +343,7 @@ impl MainWnd
 
         catch img.save(nameFile, optImg) else
         {
-            MessageDlg.error(notnull .surface, "Failed to save file")
+            MessageDlg.error(.surface!, "Failed to save file")
             return
         }
 
@@ -354,7 +354,7 @@ impl MainWnd
             .recentWnd.updateRecent()
 
         let txt = Format.toString("Image <url>%</url> has been saved", nameFile)
-        let emb = InfoBar.create(notnull .editWnd.view, txt, .Information, flags: .Bottom | .AutoDismiss)
+        let emb = InfoBar.create(.editWnd.view!, txt, .Information, flags: .Bottom | .AutoDismiss)
         emb.label.sigLinkActivated += func(lbl, msg) { Env.showInFileExplorer(msg) }
     }
 
@@ -368,7 +368,7 @@ impl MainWnd
 
     mtd getSaveAsImageName()->String
     {
-        let capture = notnull .getCapture()
+        let capture = .getCapture()!
 
         var opt: FileDlgOptions
         with opt
@@ -387,7 +387,7 @@ impl MainWnd
             .filters.add({"TGA - Truevision Targa (*.tga)", ".tga"})
         }
 
-        let dlg = FileDlg.create(notnull .surface, opt)
+        let dlg = FileDlg.create(.surface!, opt)
         if .inPlaceEdit do
             dlg.surface?.setTopMost()
         if dlg.doModal() != Dialog.BtnOk do
@@ -397,7 +397,7 @@ impl MainWnd
 
     mtd doSaveAsImage(fileName: String, linked = false)
     {
-        let capture = notnull .getCapture()
+        let capture = .getCapture()!
         Cursor.activateWait()
         var img = capture.toImage()
         if linked do
@@ -407,7 +407,7 @@ impl MainWnd
 
     mtd newImage()
     {
-        let dlg = Dialog.create(notnull .surface, 350, 235, title: "New Image")
+        let dlg = Dialog.create(.surface!, 350, 235, title: "New Image")
         dlg.addButton("Create", Dialog.BtnOk, true)
         dlg.addButton("Cancel", Dialog.BtnCancel)
         let edit0 = EditCtrl.create(dlg, "Width", "512", {90, 12}, flags: .RightAligned)

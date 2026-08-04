@@ -41,7 +41,7 @@ public impl Painter
         // Triangulation
         if p.triangles.vertices.isEmpty()
         {
-            let tess = notnull t
+            let tess = t!
             tess.triangulate()
             p.triangles = tess.takeResult()
             tess.clear()

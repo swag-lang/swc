@@ -4,7 +4,7 @@
 // unguarded dereference of such a parameter (dereference, member access, indexing,
 // call) is rejected AT THE USE SITE: the deref is an error on its own node, so no
 // separate whole-function "dead parameter contract" verdict is needed. The honored
-// patterns below show the sanctioned proofs (null test, 'notnull', delegation,
+// patterns below show the sanctioned proofs (null test, '!', delegation,
 // failing exit, conditional). The return-contract and local-contract checks are
 // independent — a deref cannot subsume them — and are exercised at the end.
 
@@ -76,11 +76,11 @@ func npcOkTruthGuard(v: #null *NpcItem)->s32
     return v.value
 }
 
-// Explicit 'notnull' assertion: the caller-visible contract moves to a runtime
+// Explicit '!' assertion: the caller-visible contract moves to a runtime
 // panic, which is a deliberate choice.
 func npcOkAsserted(v: #null *NpcItem)->s32
 {
-    return (notnull v).value
+    return v!.value
 }
 
 // The first use hands the parameter to someone else: the body cannot be proven
@@ -98,7 +98,7 @@ func npcOkDelegated(x: #null *s32)->s32
 func npcOkFailFirst(x: #null *s32)->s32 fail
 {
     try npcBoom()
-    return dref notnull x
+    return dref x!
 }
 
 // Dereference on one branch only: some executions never touch the parameter.

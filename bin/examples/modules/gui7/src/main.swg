@@ -85,11 +85,11 @@ func refreshLayoutTree(wnd: *Wnd)
     wnd.invalidate()
 }
 
-func createChip(parent: *Wnd, text: string, icon: ThemeIcons24 = .Options)->*PushButton
+func createChip(parent: *Wnd, text: string, icon: ThemeIcons = .Options)->*PushButton
 {
     let btn = PushButton.create(parent, text, {0, 0, 118, 32})
     btn.setForm(.Flat)
-    btn.setIcon(app.theme.icon24(icon, 16))
+    btn.setIcon(app.theme.icon(icon, 16))
     return btn
 }
 
@@ -137,9 +137,9 @@ func pageSubtitle(page: s32)->string
 
 func updateHeader()
 {
-    let title    = notnull g_Title
-    let subTitle = notnull g_SubTitle
-    let footer   = notnull g_Footer
+    let title    = g_Title!
+    let subTitle = g_SubTitle!
+    let footer   = g_Footer!
     title.setText(Format.toString("GUI7 layout showcase - %", pageTitle(g_Page)))
     subTitle.setText(pageSubtitle(g_Page))
     footer.setText(Format.toString("F1 : next page (%/%). Resize the window or drag split bars.", g_Page + 1, MaxPages))
@@ -147,7 +147,7 @@ func updateHeader()
 
 func updateThemeButton()
 {
-    let btn = notnull g_ThemeButton
+    let btn = g_ThemeButton!
     if g_DarkTheme do
         btn.name = "White theme"
     else do
@@ -174,10 +174,10 @@ func toggleTheme(_btn: *Button)
 
 func clearPage()
 {
-    let pageView0 = notnull g_PageView
+    let pageView0 = g_PageView!
     for child in pageView0.children
     {
-        let c = notnull child
+        let c = child!
         c.destroy()
     }
 }
@@ -189,15 +189,15 @@ func buildPage()
 
     switch g_Page
     {
-    case 0:  createSplitterPage(notnull g_PageView)
-    case 1:  createStackPage(notnull g_PageView)
-    case 2:  createGridWrapPage(notnull g_PageView)
-    case 3:  createConstraintsPage(notnull g_PageView)
+    case 0:  createSplitterPage(g_PageView!)
+    case 1:  createStackPage(g_PageView!)
+    case 2:  createGridWrapPage(g_PageView!)
+    case 3:  createConstraintsPage(g_PageView!)
     default: unreachable
     }
 
-    refreshLayoutTree(notnull g_PageView)
-    let pv = notnull g_PageView
+    refreshLayoutTree(g_PageView!)
+    let pv = g_PageView!
     pv.invalidate()
 }
 
@@ -206,8 +206,8 @@ func layoutRootView()
     if !g_View or !g_PageView do
         return
 
-    let view     = notnull g_View
-    let pageView = notnull g_PageView
+    let view     = g_View!
+    let pageView = g_PageView!
 
     let rect         = view.clientRect()
     let contentWidth = Math.max(rect.width - 2 * RootMargin, 1.0)
@@ -215,10 +215,10 @@ func layoutRootView()
     let footerY      = Math.max(rect.height - 42.0, PageTop + pageHeight + 6.0)
     let titleWidth   = Math.max(contentWidth - ThemeButtonWidth - HeaderGap, 1.0)
 
-    let title2      = notnull g_Title
-    let themeButton = notnull g_ThemeButton
-    let subTitle2   = notnull g_SubTitle
-    let footer2     = notnull g_Footer
+    let title2      = g_Title!
+    let themeButton = g_ThemeButton!
+    let subTitle2   = g_SubTitle!
+    let footer2     = g_Footer!
     title2.setPosition({RootMargin, 18, titleWidth, 34})
     themeButton.setPosition({RootMargin + titleWidth + HeaderGap, 18, ThemeButtonWidth, 34})
     subTitle2.setPosition({RootMargin + 2, 56, contentWidth - 4, 42})
@@ -264,14 +264,14 @@ func canUsePageArrows()->bool
     if !g_View or !g_PageView do
         return false
 
-    let view2     = notnull g_View
-    let pageView2 = notnull g_PageView
+    let view2     = g_View!
+    let pageView2 = g_PageView!
 
     let focus = view2.focusedWindow()
     if !focus or focus == g_View do
         return true
 
-    return !pageView2.isAncestorOf(notnull focus)
+    return !pageView2.isAncestorOf(focus!)
 }
 
 func onFrame(app: *Application)
@@ -327,7 +327,7 @@ func createRootView()
     let themeButton = PushButton.create(view, "", {})
     g_ThemeButton = themeButton
     themeButton.setForm(.Flat)
-    themeButton.setIcon(app.theme.icon24(.Picker, 18))
+    themeButton.setIcon(app.theme.icon(.Picker, 18))
     themeButton.sigPressed += &toggleTheme
 
     let pageView = Wnd.create'Wnd(view, {})
@@ -346,10 +346,10 @@ func createRootView()
 #main
 {
     let flags   = SurfaceFlags.LargeCaption | SurfaceFlags.MinimizeButton | SurfaceFlags.CloseButton | SurfaceFlags.Border | SurfaceFlags.Resizable
-    let surface = notnull (try app.createSurface(120, 90, W - 46, H - 31, flags))
+    let surface = (try app.createSurface(120, 90, W - 46, H - 31, flags))!
     g_Surface = surface
     surface.setTitle("GUI7 layout showcase")
-    surface.setIcon(app.theme.icon24(.Sort, 18))
+    surface.setIcon(app.theme.icon(.Sort, 18))
 
     createRootView()
     buildPage()

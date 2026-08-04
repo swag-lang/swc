@@ -13,12 +13,12 @@ impl RichEditCtrl
         if !.hasSelRect
         {
             // First line
-            var line  = notnull .lines[start.lineIndex]
+            var line  = .lines[start.lineIndex]!
             var count = line.length()
             if count
             {
-                let pchar  = notnull line.chars.buffer
-                let pstyle = notnull line.styles.buffer
+                let pchar  = line.chars.buffer!
+                let pstyle = line.styles.buffer!
                 if start.lineIndex == end.lineIndex do
                     count = end.charPosInLine
                 for var i = start.charPosInLine; i < count; i += 1
@@ -56,12 +56,12 @@ impl RichEditCtrl
             // Last line
             if start.lineIndex != end.lineIndex
             {
-                line  = notnull .lines[end.lineIndex]
+                line  = .lines[end.lineIndex]!
                 count = line.length()
                 if count
                 {
-                    let pchar  = notnull line.chars.buffer
-                    let pstyle = notnull line.styles.buffer
+                    let pchar  = line.chars.buffer!
+                    let pstyle = line.styles.buffer!
                     for var i = 0; i < end.charPosInLine; i += 1
                     {
                         result.text.add(pchar[i])
@@ -101,10 +101,10 @@ impl RichEditCtrl
 
         // Make one single line with current wrapped lines
         var i       = lineIndex + 1
-        let dstLine = notnull .lines[lineIndex]
+        let dstLine = .lines[lineIndex]!
         while i < .lines.count
         {
-            let srcLine = notnull .lines[i]
+            let srcLine = .lines[i]!
             if !srcLine.wordWrap do
                 break
 
@@ -154,7 +154,7 @@ impl RichEditCtrl
         var cutAti = i
         while i < .lines[curLine]!.length()
         {
-            let l  = notnull .lines[curLine]
+            let l  = .lines[curLine]!
             let ch = l.chars[i]
             str += ch
 
@@ -211,18 +211,18 @@ impl RichEditCtrl
 
         if c == '\n'
         {
-            let linep = notnull .lines[cp.lineIndex]
+            let linep = .lines[cp.lineIndex]!
             discard .newLine(cp.lineIndex + 1)
-            let line = notnull .lines[cp.lineIndex + 1]
+            let line = (.lines[cp.lineIndex + 1])!
             if cp.charPosInLine < linep.length() do
-                line.insertRunes(0, notnull linep, cp.charPosInLine, linep.length() - cp.charPosInLine)
+                line.insertRunes(0, linep!, cp.charPosInLine, linep.length() - cp.charPosInLine)
             linep.setLength(cp.charPosInLine)
             cp.lineIndex     += 1
             cp.charPosInLine = 0
         }
         elif c == '\t' and (.flags & .TabToSpaces)
         {
-            let line = notnull .lines[cp.lineIndex]
+            let line = .lines[cp.lineIndex]!
             for .tabSize
             {
                 let posIns = Math.min(cp.charPosInLine, line.length())
@@ -232,7 +232,7 @@ impl RichEditCtrl
         }
         else
         {
-            let line   = notnull .lines[cp.lineIndex]
+            let line   = .lines[cp.lineIndex]!
             let posIns = Math.min(cp.charPosInLine, line.length())
             line.insertRune(posIns, c, txtStyle)
             cp.charPosInLine += 1
@@ -264,7 +264,7 @@ impl RichEditCtrl
             var rankBeg, rankEnd: u64
             for
             {
-                let line = notnull .lines[lineIndex]
+                let line = .lines[lineIndex]!
                 if rankEnd == runes.count or runes[rankEnd] == '\n'
                 {
                     var posIns = posInLine
@@ -338,8 +338,8 @@ impl RichEditCtrl
                 pe.lineIndex -= 1
             }
 
-            let lineSrc = notnull .lines[ps.lineIndex]
-            let lineEnd = notnull .lines[pe.lineIndex]
+            let lineSrc = .lines[ps.lineIndex]!
+            let lineEnd = .lines[pe.lineIndex]!
 
             if ps.lineIndex == pe.lineIndex
             {
@@ -350,7 +350,7 @@ impl RichEditCtrl
                 lineSrc.removeRunes(ps.charPosInLine, lineSrc.length() - ps.charPosInLine)
                 lineEnd.removeRunes(0, pe.charPosInLine)
                 if lineEnd.length() do
-                    lineSrc.insertRunes(ps.charPosInLine, notnull lineEnd, 0, lineEnd.length())
+                    lineSrc.insertRunes(ps.charPosInLine, lineEnd!, 0, lineEnd.length())
                 .deleteLine(pe.lineIndex)
             }
         }
@@ -367,7 +367,7 @@ impl RichEditCtrl
                 var rankBeg, rankEnd: u64
                 if .selectionRectRange(li, &rankBeg, &rankEnd)
                 {
-                    let ln = notnull .lines[li]
+                    let ln = .lines[li]!
                     ln.removeRunes(rankBeg, rankEnd - rankBeg)
                 }
 
@@ -591,7 +591,7 @@ public impl RichEditCtrl
         // Add a deletion
         if .currentUndo > 1
         {
-            pundo = notnull .undoMgr[.currentUndo - 2]
+            pundo = (.undoMgr[.currentUndo - 2])!
             if pundo.type == .Delete and pundo.concatChars
             {
                 if .cursorPos.charPosInLine != .lines[.cursorPos.lineIndex]!.length()
@@ -607,11 +607,11 @@ public impl RichEditCtrl
         }
 
         // Append the character to the last undo
-        pundo = notnull .undoMgr[.currentUndo - 1]
+        pundo = (.undoMgr[.currentUndo - 1])!
         pundo.runes.add(c)
 
         // Get the style from the previous character
-        let line = notnull .lines[.cursorPos.lineIndex]
+        let line = .lines[.cursorPos.lineIndex]!
         var st: u8
         if !.cursorPos.charPosInLine and line.length() do
             st = line.styles[0]
@@ -727,7 +727,7 @@ public impl RichEditCtrl
         while beg.lineIndex <= end.lineIndex
         {
             // Go to the first non white character
-            let line = notnull .lines[beg.lineIndex]
+            let line = .lines[beg.lineIndex]!
             if multiline
             {
                 while beg.charPosInLine < line.length() and Unicode.isSpace(line.chars[beg.charPosInLine])

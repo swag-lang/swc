@@ -100,7 +100,7 @@ Result AstCastExpr::semaPostNode(Sema& sema)
     SWC_RESULT(SemaCheck::isValue(sema, nodeExprView.nodeRef()));
 
     // Check cast modifiers
-    SWC_RESULT(SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst | AstModifierFlagsE::Wrap));
+    SWC_RESULT(SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst | AstModifierFlagsE::UnNull | AstModifierFlagsE::Wrap));
 
     // Cast kind
     CastFlags castFlags = CastFlagsE::Zero;
@@ -111,6 +111,14 @@ Result AstCastExpr::semaPostNode(Sema& sema)
     if (modifierFlags.has(AstModifierFlagsE::Wrap))
         castFlags.add(CastFlagsE::NoOverflow);
     castFlags.add(CastFlagsE::FromExplicitNode);
+
+    // '#unnull' lets the cast cross the nullable boundary; the guard below panics under
+    // safety when the source really is null, so the destination type stays honest.
+    if (modifierFlags.has(AstModifierFlagsE::UnNull))
+    {
+        castFlags.add(CastFlagsE::UnNull);
+        SWC_RESULT(SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Expect, codeRef()));
+    }
 
     sema.inheritPayloadFlags(*this, nodeExprView.nodeRef());
     if (srcTypeView.hasConstant())

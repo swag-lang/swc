@@ -17,7 +17,7 @@ internal impl Properties
     {
         if !target or !@isset(.edView) do
             return false
-        let view = notnull cast(#null *Wnd) .edView
+        let view = cast #unnull (*Wnd) .edView
         return target == view or view.isAncestorOf(target)
     }
 
@@ -26,7 +26,7 @@ internal impl Properties
         let pt = ptLoc + .scrollWnd.scrollPosition()
         for itemIt in .items
         {
-            let item = notnull itemIt
+            let item = itemIt!
             if !item.line.isVisible() do
                 continue
             var r = item.line.position
@@ -132,7 +132,7 @@ internal impl Properties
                prop.selItem and
                prop.selItem!.numChilds
             {
-                let selItem = notnull prop.selItem
+                let selItem = prop.selItem!
                 selItem.flags.toggle(.Expanded)
                 prop.updateStates()
             }
@@ -140,7 +140,7 @@ internal impl Properties
             // Toggle checkbox
             elif @isset(prop.selItem!.checkBox)
             {
-                let selItem = notnull prop.selItem
+                let selItem = prop.selItem!
                 selItem.checkBox.toggle()
             }
 
@@ -149,7 +149,7 @@ internal impl Properties
 
         case MouseEvent as mouseEvt where mouseEvt.kind == .Leave:
             if prop.hotItem and prop.isGridLike() do
-                ToolTip.hide(notnull prop.hotItem.line)
+                ToolTip.hide(prop.hotItem.line!)
             prop.hotItem = null
 
         case MouseEvent as mouseEvt where (mouseEvt.kind == .Move or mouseEvt.kind == .SetCursor):
@@ -169,14 +169,14 @@ internal impl Properties
             {
                 // Leaving a row: drop its tooltip so it does not linger over the next row.
                 if prop.hotItem do
-                    ToolTip.hide(notnull prop.hotItem.line)
+                    ToolTip.hide(prop.hotItem.line!)
                 prop.hotItem = hit
 
                 if hit and @isset(hit.label) and prop.isGridLike()
                 {
                     pt = hit.label.surfaceToLocal(mouseEvt.surfacePos)
                     if hit.label.clientRect().contains(pt) do
-                        ToolTip.show(notnull hit.line, mouseEvt.surfacePos, hit.description)
+                        ToolTip.show(hit.line!, mouseEvt.surfacePos, hit.description)
                 }
 
                 wnd.invalidate()

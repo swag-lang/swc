@@ -29,7 +29,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     @assert(stream.readU8() == 0x10)
     @assert(stream.position() == 1)
     @assert(stream.peekU8() == 0x20)
-    @assert(assertBytes(notnull stream.remainingBytes(), [0x20, 0x30, 0x40]))
+    @assert(assertBytes(stream.remainingBytes()!, [0x20, 0x30, 0x40]))
     @assert(stream.remainingString() == "\x20\x30\x40")
 
     stream.advance(2)
@@ -55,7 +55,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     @assert(!stream.isEof())
     @assert(stream.peekU8() == 0xAB)
     @assert(stream.readU8() == 0xAB)
-    @assert(assertBytes(notnull stream.remainingBytes(), [0xCD, 0xEF]))
+    @assert(assertBytes(stream.remainingBytes()!, [0xCD, 0xEF]))
 }
 
 #test

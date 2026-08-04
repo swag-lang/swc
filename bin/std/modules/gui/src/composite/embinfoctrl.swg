@@ -80,17 +80,17 @@ private impl InfoBar
             switch me.kind
             {
             case .Critical:
-                .setIcon(theme.icon64(.Critical, 28))
+                .setIcon(theme.icon(.Critical, 28))
                 .style.addStyleSheetColors(Format.toString("wnd_Bk 0x%{X}", colors.embInfo_CriticalBk.argb))
                 .setTextColor(colors.embInfo_CriticalText)
 
             case .Information:
-                .setIcon(theme.icon64(.Information, 28))
+                .setIcon(theme.icon(.Information, 28))
                 .style.addStyleSheetColors(Format.toString("wnd_Bk 0x%{X}", colors.embInfo_InformationBk.argb))
                 .setTextColor(colors.embInfo_InformationText)
 
             case .Message:
-                .setIcon(theme.icon64(.Information, 28))
+                .setIcon(theme.icon(.Information, 28))
                 .style.addStyleSheetColors(Format.toString("wnd_Bk 0x%{X}", colors.embInfo_MessageBk.argb))
                 .setTextColor(colors.embInfo_MessageText)
             }
@@ -132,7 +132,7 @@ impl InfoBar
             .dockStyle = .Center
         }
 
-        with bar.closeButton = IconButton.create(bar.label, theme.icon24(.WndClose, 18), {0, 0, 32, 32})
+        with bar.closeButton = IconButton.create(bar.label, theme.icon(.WndClose, 18), {0, 0, 32, 32})
         {
             .margin     = 5
             .dockStyle  = .Right

@@ -236,8 +236,8 @@ internal struct Decoder
 
 impl Decoder
 {
-    mtd safeSampleBuf()->[*] u8 => notnull .pSampleBuf
-    mtd safeInBufOfs()->[*] u8  => notnull .inBufOfs
+    mtd safeSampleBuf()->[*] u8 => .pSampleBuf!
+    mtd safeInBufOfs()->[*] u8  => .inBufOfs!
 
     mtd init(buffer: const [..] u8) fail
     {
@@ -281,7 +281,7 @@ impl Decoder
                     break
 
                 var pdest1 = pdest
-                var psrc   = cast([*] u8) (notnull scanLineOfs)
+                var psrc   = cast([*] u8) scanLineOfs!
                 for .imageSizeX
                 {
                     pdest1[0] = dref psrc
@@ -304,7 +304,7 @@ impl Decoder
             {
                 if .decode(&scanLineOfs, &scanLineLen) do
                     break
-                Memory.copy(pdest, cast(*void) (notnull scanLineOfs), cast(u64) .imageSizeX * 3)
+                Memory.copy(pdest, cast(*void) scanLineOfs!, cast(u64) .imageSizeX * 3)
                 pdest -= .imageSizeX * 3
             }
         }
@@ -333,7 +333,7 @@ internal impl IImageDecoder for Decoder
             return result
         result.allocPixels()
 
-        .doit(cast([*] u8) (notnull result.pixels.buffer))
+        .doit(cast([*] u8) result.pixels.buffer!)
         result.metadata = #move .metadata
 
         return result

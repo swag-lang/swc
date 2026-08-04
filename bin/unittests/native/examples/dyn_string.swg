@@ -41,7 +41,7 @@ func reserve(s: *DynString, want: u64)
 func storeBytes(s: *DynString, src: const [*] u8, len: u64)
 {
     reserve(s, len)
-    let data = notnull s.data
+    let data = s.data!
     for [i] in len do
         data[i] = src[i]
     s.count = len
@@ -52,8 +52,8 @@ func appendBytes(s: *DynString, src: #null const [*] u8, len: u64)
     if len == 0 do
         return
     reserve(s, s.count + len)
-    let data = notnull s.data
-    let from = notnull src
+    let data = s.data!
+    let from = src!
     for [i] in len do
         data[s.count + i] = from[i]
     s.count += len
@@ -89,11 +89,11 @@ impl DynString
             return
         }
 
-        let oldData = notnull .data
+        let oldData = .data!
         .data     = null
         .capacity = 0
         reserve(&me, .count)
-        let data = notnull .data
+        let data = .data!
         for [i] in .count do
             data[i] = oldData[i]
     }
@@ -120,14 +120,14 @@ impl DynString
     mtd opIndex(index: u64)->u8
     {
         @assert(index < .count)
-        return (notnull .data)[index]
+        return .data![index]
     }
 
     // Write a byte: `s[i] = c`
     mtd opIndexSet(index: u64, value: u8)
     {
         @assert(index < .count)
-        let data = notnull .data
+        let data = .data!
         data[index] = value
     }
 
@@ -163,8 +163,8 @@ impl DynString
             return false
         if .count == 0 do
             return true
-        let data      = notnull .data
-        let otherData = notnull other.data
+        let data      = .data!
+        let otherData = other.data!
         for [i] in .count
         {
             if data[i] != otherData[i] do

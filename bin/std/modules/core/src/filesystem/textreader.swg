@@ -36,7 +36,7 @@ impl TextReader
 
             if .encodingType == .Utf8
             {
-                let buffer = notnull .buffer.buffer
+                let buffer = .buffer.buffer!
                 dref cast(*u32) buffer = 0
                 .buffer.count          = .stream.read(buffer, .buffer.capacity)
 

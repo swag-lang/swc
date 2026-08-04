@@ -90,7 +90,7 @@ impl String
         let newCapacity = @countof(value) + 1
         .length = newCapacity - 1
         .grow(newCapacity)
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         Memory.copy(buffer, @dataof(value), .length)
         buffer[.length] = 0
     }
@@ -122,7 +122,7 @@ impl String
     mtd(op: Swag.Operator) opIndexAssign(index: u64, value: u8)
     {
         Debug.safetyBoundCheck(index < .length, "index out of range")
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         #static switch op
         {
         case .AddAssign: buffer[index] += #wrap value
@@ -135,7 +135,7 @@ impl String
     mtd opIndexSet(index: u64, value: u8)
     {
         Debug.safetyBoundCheck(index < .length, "index out of range")
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         buffer[index] = value
     }
 
@@ -240,7 +240,7 @@ impl String
     mtd const opIndex(index: u64)->u8
     {
         Debug.safetyBoundCheck(index < .length, "index out of range")
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         return buffer[index]
     }
 
@@ -265,7 +265,7 @@ impl String
             return
 
         // Little trick to avoid labels. That way a 'continue' in the user code will work correctly
-        let buffer = notnull .buffer
+        let buffer = .buffer!
 
         #static if back do
             var scan = buffer + .length
@@ -368,7 +368,7 @@ impl String
             idx = Utf8.indexOf(.toString(), what, idx)
         }
 
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         buffer[.length] = 0
     }
 
@@ -413,7 +413,7 @@ impl String
             idx = Utf8.indexOf(.toString(), what, idx, comparisonType)
         }
 
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         buffer[.length] = 0
     }
 
@@ -422,7 +422,7 @@ impl String
     {
         if !.length do
             return 0
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         return buffer[.length - 1]
     }
 
@@ -432,7 +432,7 @@ impl String
         if !byteCount do
             return
         Debug.safetyBoundCheck(byteIndex + byteCount <= .length, "index out of range")
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         Memory.copyOverlapping(buffer + byteIndex, buffer + byteIndex + byteCount, .length - (byteIndex + byteCount))
         .length         -= byteCount
         buffer[.length] = 0
@@ -444,7 +444,7 @@ impl String
         if !byteCount do
             return
         Debug.safetyBoundCheck(byteCount <= .length, "index out of range")
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         .length         -= byteCount
         buffer[.length] = 0
     }
@@ -462,7 +462,7 @@ impl String
         Debug.assert(value != 0)
 
         .grow(.length + 2)
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         Memory.copyOverlapping(buffer + byteIndex + 1, buffer + byteIndex, .length - byteIndex + 1)
         buffer[byteIndex] = value
         .length           += 1
@@ -509,7 +509,7 @@ impl String
     mtd append(value: u8)
     {
         .grow(.length + 2)
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         var ptr    = cast(*u16) (buffer + .length)
         dref ptr = value
         .length  += 1
@@ -522,7 +522,7 @@ impl String
         var tmp: [4] u8
         let eat = Utf8.encodeRune(tmp, value)
         .grow(.length + eat + 1)
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         for [i] in eat do
             buffer[.length + i] = tmp[i]
         .length         += eat
@@ -548,7 +548,7 @@ impl String
 
         let newLength = .length + concatLength + 1
         .grow(newLength)
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         Memory.copy(buffer + .length, @dataof(value), concatLength)
         .length         = newLength - 1
         buffer[.length] = 0
@@ -640,7 +640,7 @@ impl String
         if !.length do
             return
 
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         var ptr    = buffer
         for
         {
@@ -662,7 +662,7 @@ impl String
         if !.length do
             return
 
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         for
         {
             let sl       = @mkslice(buffer, .length)

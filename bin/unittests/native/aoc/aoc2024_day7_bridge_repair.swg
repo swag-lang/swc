@@ -112,7 +112,7 @@ func appendEquation(list: EquationList, eq: Equation)->EquationList
         result.growCount += 1'u32
     }
 
-    let data = notnull result.data
+    let data = result.data!
     data[result.count] = eq
     result.count       += 1'u32
     return result
@@ -221,7 +221,7 @@ func calibrate(text: string)->CalibrationReport
     result.equationCount  = list.count
     result.allocGrowCount = list.growCount
 
-    let data = notnull list.data
+    let data = list.data!
     for list.count
     {
         let eq = data[cast(u32) @index]

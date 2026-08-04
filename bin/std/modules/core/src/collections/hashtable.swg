@@ -509,7 +509,7 @@ impl HashTable
     {
         let result = .tryFind(key)
         Debug.assert(result != null, "key not found")
-        return notnull result
+        return result!
     }
 
     // Finds the entry for a given key.
@@ -518,7 +518,7 @@ impl HashTable
     {
         let result = .tryFind(key)
         Debug.assert(result != null, "key not found")
-        return notnull result
+        return result!
     }
 
     // Gets the value associated with a key.

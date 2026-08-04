@@ -180,7 +180,7 @@ impl Volume
         else do
             failWith("The password is incorrect or the container is damaged.", .Corrupted)
 
-        let validHeader = notnull selected
+        let validHeader = selected!
         result.activeSlot = validHeader == &first ? 0 : 1
 
         // Every way the metadata can be rejected reports the same thing: a
@@ -423,7 +423,7 @@ impl Volume
         var locator = Crypto.recordLocator(.keys.authentication, HeaderLocatorKind, slot)
         defer Core.Crypto.secureClear(locator)
         @memcpy(record.buffer, &locator[0], HeaderLocatorCheckSize)
-        Crypto.store32(notnull record.buffer + HeaderLocatorCheckSize, cast(u32) @countof(plain) ^ Crypto.load32(&locator[HeaderLocatorCheckSize]))
+        Crypto.store32((record.buffer + HeaderLocatorCheckSize)!, cast(u32) @countof(plain) ^ Crypto.load32(&locator[HeaderLocatorCheckSize]))
         let nonce      = record[Crypto.RecordLocatorSize until HeaderRecordPrefixSize]
         let ciphertext = record[HeaderRecordPrefixSize until HeaderRecordPrefixSize + @countof(plain)]
         let tag        = record[HeaderRecordPrefixSize + @countof(plain) until @countof(record)]
@@ -522,7 +522,7 @@ impl Volume
         Crypto.seal(&.keys, DataKind, physical, source, nonce, ciphertext, tag)
         .file.writeAllAt(DataOffset + physical * BlockRecordSize, record)
 
-        let node   = notnull .nodeById(nodeId)
+        let node   = .nodeById(nodeId)!
         let search = node.blockSearch(logical)
         if search.found
         {
@@ -563,7 +563,7 @@ impl Volume
     {
         if newSize <= oldSize or oldSize % BlockSize == 0 do
             return
-        let node    = notnull .nodeById(nodeId)
+        let node    = .nodeById(nodeId)!
         let logical = oldSize / BlockSize
         let search  = node.blockSearch(logical)
         if !search.found do
@@ -578,7 +578,7 @@ impl Volume
 
     mtd resizeNode(nodeId, newSize: u64) fail
     {
-        let node = notnull .nodeById(nodeId)
+        let node = .nodeById(nodeId)!
         if node.isDirectory() do
             failWith("Cannot resize a directory.", .IsDirectory)
         let oldSize = node.size
@@ -586,7 +586,7 @@ impl Volume
             .zeroOldTail(nodeId, oldSize, newSize)
         elif newSize < oldSize do
             .trimNode(node, newSize)
-        let current = notnull .nodeById(nodeId)
+        let current = .nodeById(nodeId)!
         current.size          = newSize
         current.changeTime    = volumeTimeNow()
         current.lastWriteTime = current.changeTime
@@ -598,7 +598,7 @@ impl Volume
         let node = .nodeById(nodeId)
         if !node do
             failWith("File handle is no longer valid.", .NotFound)
-        let validNode = notnull node
+        let validNode = node!
         if validNode.isDirectory() do
             failWith("Cannot read a directory as a file.", .IsDirectory)
         if offset >= validNode.size or !@countof(destination) do
@@ -627,7 +627,7 @@ impl Volume
         let node = .nodeById(nodeId)
         if !node do
             failWith("File handle is no longer valid.", .NotFound)
-        let validNode = notnull node
+        let validNode = node!
         if validNode.isDirectory() do
             failWith("Cannot write to a directory.", .IsDirectory)
         if (validNode.attributes & FileAttributeReadOnly) != 0 do
@@ -661,7 +661,7 @@ impl Volume
             let logical  = absolute / BlockSize
             let inBlock  = absolute % BlockSize
             let chunk    = Math.min(count - done, BlockSize - inBlock)
-            let current  = notnull .nodeById(nodeId)
+            let current  = .nodeById(nodeId)!
             var block: [BlockSize] u8
             if inBlock or chunk != BlockSize do
                 .readBlock(current, logical, block)
@@ -671,7 +671,7 @@ impl Volume
             done += chunk
         }
 
-        let updated = notnull .nodeById(nodeId)
+        let updated = .nodeById(nodeId)!
         if end > updated.size do
             updated.size = end
         let now = volumeTimeNow()
@@ -687,7 +687,7 @@ impl Volume
         let {parent, name} = .resolveParent(path)
         if parent == null or !parent!.isDirectory() do
             failWith("Parent directory does not exist.", .NotFound)
-        let validParent = notnull parent
+        let validParent = parent!
         if !@countof(name) or name == "." or name == ".." do
             failWith("Invalid file name.", .InvalidInput)
         if .findChild(validParent.id, name) do
@@ -759,9 +759,9 @@ impl Volume
         let {parent, name} = .resolveParent(newPath)
         if parent == null or !parent!.isDirectory() or !@countof(name) do
             failWith("The destination directory does not exist.", .NotFound)
-        let validParent         = notnull parent
+        let validParent         = parent!
         let destinationParentId = validParent.id
-        let sourceIsDirectory   = (notnull .nodeById(id)).isDirectory()
+        let sourceIsDirectory   = .nodeById(id)!.isDirectory()
         let existing            = .findChild(validParent.id, name)
         if existing and existing.id != id
         {
@@ -776,7 +776,7 @@ impl Volume
             .removeNodeAt(existingIndex)
         }
 
-        let node = notnull .nodeById(id)
+        let node = .nodeById(id)!
         if node.isDirectory()
         {
             var ancestor = destinationParentId
@@ -784,11 +784,11 @@ impl Volume
             {
                 if ancestor == id do
                     failWith("Cannot move a directory into itself.", .InvalidInput)
-                ancestor = (notnull .nodeById(ancestor)).parentId
+                ancestor = .nodeById(ancestor)!.parentId
             }
         }
 
-        let updated      = notnull .nodeById(id)
+        let updated      = .nodeById(id)!
         let indexUpdated = .nodeLookup.changeParent(updated, destinationParentId, name)
         Debug.assert(indexUpdated)
         updated.changeTime = volumeTimeNow()

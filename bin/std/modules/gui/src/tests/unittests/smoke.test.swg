@@ -78,9 +78,9 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     var host: Testing.HeadlessHost
     host.setup(320, 200)
     defer host.shutdown()
-    let surface            = notnull expect host.app.createSurface(20, 30, 180, 100, SurfaceFlags.ToolWindow | SurfaceFlags.TopMost | SurfaceFlags.NoShadow)
-    let background         = notnull expect host.app.createSurface(0, 0, 100, 80, SurfaceFlags.None)
-    let disabledBackground = notnull expect host.app.createSurface(100, 0, 100, 80, SurfaceFlags.None)
+    let surface            = expect host.app.createSurface(20, 30, 180, 100, SurfaceFlags.ToolWindow | SurfaceFlags.TopMost | SurfaceFlags.NoShadow)!
+    let background         = expect host.app.createSurface(0, 0, 100, 80, SurfaceFlags.None)!
+    let disabledBackground = expect host.app.createSurface(100, 0, 100, 80, SurfaceFlags.None)!
     background.show()
     disabledBackground.show()
     disabledBackground.disable()
@@ -182,7 +182,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     captionMenu.addItem("File", "GuiHeadlessSmoke.File")
     captionMenu.computeLayoutBar()
 
-    let menuIt0   = notnull captionMenu.items[0]
+    let menuIt0   = captionMenu.items[0]!
     let menuItemX = menuIt0.pos + menuIt0.size * 0.5
     @assert(!host.surfaceWnd.hitTestCaption({menuItemX, 15}))
     @assert(host.surfaceWnd.hitTestCaption({180, 15}))

@@ -8,7 +8,7 @@ internal impl Properties
             if .fieldIsMixed(item) do
                 item.checkBox.setState(.Indeterminate)
             else do
-                item.checkBox.setState((dref notnull cast(#null *bool) item.data) ? .Checked : .Unchecked)
+                item.checkBox.setState((dref cast #unnull (*bool) item.data) ? .Checked : .Unchecked)
             item.checkBox.invalidate()
         }
         elif @isset(item.comboBox)
@@ -17,13 +17,13 @@ internal impl Properties
             if .fieldIsMixed(item) do
                 item.comboBox.clearSelection(notify: false)
             else do
-                item.comboBox.setSelectedIndex((dref notnull cast(#null *bool) item.data) ? 1 : 0, notify: false)
+                item.comboBox.setSelectedIndex((dref cast #unnull (*bool) item.data) ? 1 : 0, notify: false)
         }
     }
 
     mtd validateBool(item: *PropertiesItem)
     {
-        var data = notnull cast(#null *bool) item.data
+        var data = cast #unnull (*bool) item.data
         if @isset(item.checkBox) do
             dref data = item.checkBox.isChecked()
         elif @isset(item.comboBox)
@@ -74,8 +74,8 @@ internal impl Properties
             item.assignComboBox(ed)
         }
 
-        item.comboBox.addItem(cast(string) (notnull Reflection.attributeValue(value, .BoolCombo, "off")))
-        item.comboBox.addItem(cast(string) (notnull Reflection.attributeValue(value, .BoolCombo, "on")))
+        item.comboBox.addItem(cast(string) Reflection.attributeValue(value, .BoolCombo, "off")!)
+        item.comboBox.addItem(cast(string) Reflection.attributeValue(value, .BoolCombo, "on")!)
 
         .refreshBool(item)
         item.comboBox.sigChanged += func|prop = me, item|(ed, n) { prop.validateBool(item) }
@@ -93,7 +93,7 @@ internal impl Properties
         if .kind == .Panel
         {
             let itemP = .addItem(value, data, parentItem)
-            with let ed = CheckButton.create(notnull itemP.line, itemDisplayName(value).toString())
+            with let ed = CheckButton.create(itemP.line!, itemDisplayName(value).toString())
             {
                 .anchorStyle = .Right
             }

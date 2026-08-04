@@ -231,13 +231,13 @@ public struct Transform
 impl Transform
 {
     #[Swag.Inline]
-    func nnEdge(e: #null *Edge)->*Edge => notnull e
+    func nnEdge(e: #null *Edge)->*Edge => e!
     #[Swag.Inline]
-    func nnOutPt(p: #null *OutPt)->*OutPt => notnull p
+    func nnOutPt(p: #null *OutPt)->*OutPt => p!
     #[Swag.Inline]
-    func nnOutRec(r: #null *OutRec)->*OutRec => notnull r
+    func nnOutRec(r: #null *OutRec)->*OutRec => r!
     #[Swag.Inline]
-    func nnIntersect(n: #null *IntersectNode)->*IntersectNode => notnull n
+    func nnIntersect(n: #null *IntersectNode)->*IntersectNode => n!
 
     // Releases edge storage owned by the transform.
     public mtd opDrop()
@@ -263,7 +263,7 @@ impl Transform
         var highI = cast(s64) pg.count - 1
         if highI < 2 do
             return
-        let pgBuf = notnull pg.buffer
+        let pgBuf = pg.buffer!
         while highI > 0 and (pgBuf[highI] == pgBuf[0]) do
             highI -= 1
         while highI > 0 and (pgBuf[highI] == pgBuf[highI - 1]) do
@@ -294,7 +294,7 @@ impl Transform
         var eLoopStop: *Edge = eStart
         for
         {
-            let ec = notnull e
+            let ec = e!
             if ec.curr == nnEdge(ec.next).curr
             {
                 if ec == ec.next do
@@ -325,7 +325,7 @@ impl Transform
                 break
         }
 
-        let eh = notnull e
+        let eh = e!
         if eh.prev == eh.next do
             return
 
@@ -333,7 +333,7 @@ impl Transform
         e = eStart
         for
         {
-            let ec = notnull e
+            let ec = e!
             initEdge2(ec, polyType)
             e = nnEdge(ec.next)
             if isFlat and e.curr.y != eStart.curr.y do
@@ -346,7 +346,7 @@ impl Transform
         if isFlat do
             return
 
-        let ef = notnull e
+        let ef = e!
         if nnEdge(ef.prev).bot == nnEdge(ef.prev).top do
             e = nnEdge(ef.next)
 
@@ -354,7 +354,7 @@ impl Transform
         var eMin:               #null *Edge
         for
         {
-            e = findNextLocMin(notnull e)
+            e = findNextLocMin(e!)
             if e == eMin do
                 break
             elif !eMin do
@@ -839,7 +839,7 @@ impl Transform
         var maxIt, maxRit: u64
         if !.maximaList.isEmpty()
         {
-            let maximaBuf = notnull .maximaList.buffer
+            let maximaBuf = .maximaList.buffer!
             if dir == .LeftToRight
             {
                 maxIt = 0
@@ -867,7 +867,7 @@ impl Transform
             {
                 if !.maximaList.isEmpty()
                 {
-                    let maximaBuf = notnull .maximaList.buffer
+                    let maximaBuf = .maximaList.buffer!
                     if dir == .LeftToRight
                     {
                         while maxIt != .maximaList.count and maximaBuf[maxIt] < e.curr.x
@@ -998,7 +998,7 @@ impl Transform
 
     mtd updateEdgeIntoAEL(e: *Edge)->*Edge
     {
-        let eNew = notnull e.nextInLML
+        let eNew = e.nextInLML!
         eNew.outIdx = e.outIdx
         let aelPrev = e.prevInAEL
         let aelNext = e.nextInAEL
@@ -1169,7 +1169,7 @@ impl Transform
             if !op or outrec.isOpen do
                 continue
 
-            var opn = notnull op
+            var opn = op!
             for
             {
                 var op2 = nnOutPt(opn.next)
@@ -1731,7 +1731,7 @@ impl Transform
     {
         for join in .joinList
         {
-            let jn      = notnull join
+            let jn      = join!
             let outRec1 = .getOutRec(nnOutPt(jn.outPt1).idx)
             var outRec2 = .getOutRec(nnOutPt(jn.outPt2).idx)
 
@@ -1896,14 +1896,14 @@ impl Transform
                 // 2. promote horizontal edges, otherwise update curr.x and curr.y ...
                 if isIntermediate(nnEdge(e), topY) and isHorizontal(nnEdge(nnEdge(e).nextInLML))
                 {
-                    e = .updateEdgeIntoAEL(notnull e)
+                    e = .updateEdgeIntoAEL(e!)
                     if e.outIdx >= 0 do
                         .addOutPt(nnEdge(e), nnEdge(e).bot)
                     .addEdgeToSEL(nnEdge(e))
                 }
                 else
                 {
-                    let ec2 = notnull e
+                    let ec2 = e!
                     ec2.curr.x = topX(ec2, topY)
                     ec2.curr.y = topY
                 }
@@ -1912,7 +1912,7 @@ impl Transform
                 // make sure both edges have a vertex here ...
                 if .strictSimple
                 {
-                    let en    = notnull e
+                    let en    = e!
                     let ePrev = en.prevInAEL
                     if (en.outIdx >= 0) and (en.windDelta != 0) and ePrev and (ePrev.outIdx >= 0) and (ePrev.curr.x == en.curr.x) and (ePrev.windDelta != 0)
                     {
@@ -1994,7 +1994,7 @@ impl Transform
         while isModified
         {
             isModified = false
-            var ec = notnull .sortedEdges
+            var ec = .sortedEdges!
             while ec.nextInSEL
             {
                 let eNext = nnEdge(ec.nextInSEL)
@@ -2054,7 +2054,7 @@ impl Transform
                     j += 1
                 if j == .intersectList.count do
                     return false
-                swap(notnull (.intersectList.buffer + i), notnull (.intersectList.buffer + j))
+                swap((.intersectList.buffer + i)!, (.intersectList.buffer + j)!)
             }
 
             let iNode = nnIntersect(.intersectList[i])
@@ -2253,7 +2253,7 @@ impl Transform
         {
             if !startEdge do
                 startEdge = .activeEdges
-            var se = notnull startEdge
+            var se = startEdge!
             while se.nextInAEL and !e2InsertsBeforeE1(nnEdge(se.nextInAEL), edge) do
                 se = nnEdge(se.nextInAEL)
             edge.nextInAEL = se.nextInAEL
@@ -2300,14 +2300,14 @@ impl Transform
         }
         elif edge.windDelta == 0 and .clipType != .Union
         {
-            let en = notnull e
+            let en = e!
             edge.windCnt  = 1
             edge.windCnt2 = en.windCnt2
             e             = en.nextInAEL
         }
         elif .isEvenOddFillType(edge)
         {
-            let en = notnull e
+            let en = e!
             if edge.windDelta == 0
             {
                 var inside = true
@@ -2328,7 +2328,7 @@ impl Transform
         }
         else
         {
-            let en = notnull e
+            let en = e!
             if en.windCnt * en.windDelta < 0
             {
                 if Math.abs(en.windCnt) > 1
@@ -3053,7 +3053,7 @@ impl Transform
         var lm: #null const *LocalMinimum
         while .popLocalMinima(botY, &lm)
         {
-            let lmn = notnull lm
+            let lmn = lm!
             let lb  = lmn.leftBound
             let rb  = lmn.rightBound
 
@@ -3105,7 +3105,7 @@ impl Transform
             {
                 for [i] in .ghostJoinList.count
                 {
-                    let jr = notnull .ghostJoinList[i]
+                    let jr = .ghostJoinList[i]!
                     if horzSegmentsOverlap(nnOutPt(jr.outPt1).pt.x, jr.offPt.x, rb.bot.x, rb.top.x) do
                         .addJoin(jr.outPt1, nnOutPt(op1), jr.offPt)
                 }
@@ -3132,7 +3132,7 @@ impl Transform
                 let e = lb.nextInAEL
                 if e
                 {
-                    var en = notnull e
+                    var en = e!
                     while en != rb
                     {
                         .intersectEdges(nnEdge(rb), en, nnEdge(lb).curr)
@@ -3149,7 +3149,7 @@ impl Transform
             return 0
 
         var result = 0
-        var p      = notnull pts
+        var p      = pts!
         for
         {
             result += 1

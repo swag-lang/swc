@@ -320,14 +320,14 @@ func borrowEscapeMaterializedLocalField()->u16
 {
     var holder: BorrowEscapeSliceField
     holder.values = cast(const [..] u16) borrowEscapeMakeArray()
-    let values = notnull holder.values
+    let values = holder.values!
     return values[0]
 }
 
 func borrowEscapeMaterializedLocalFieldInitializer()->u16
 {
     let holder = BorrowEscapeSliceField{values: cast(const [..] u16) borrowEscapeMakeArray()}
-    let values = notnull holder.values
+    let values = holder.values!
     return values[0]
 }
 
@@ -1144,7 +1144,7 @@ func borrowEscapePairLocal()->s32
     var v: s32 = 5
     var c: BorrowEscapeContainer
     c.add(&v)
-    return dref notnull c.slot
+    return dref c.slot!
 }
 
 // Caller-owned data can be stored into a global container.

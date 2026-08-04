@@ -6,7 +6,7 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
 {
     var scope: FaceScope
     scope.init(fileName)
-    let face = notnull scope.face
+    let face = scope.face!
 
     @assert(scope.bytes.count > 0)
     @assert(face.glyphCount > 0)
@@ -38,7 +38,7 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
 {
     var scope: FaceScope
     scope.init()
-    let face = notnull scope.face
+    let face = scope.face!
 
     @assert(scope.bytes.count > 0)
     @assert(face.glyphCount > 0)
@@ -83,7 +83,7 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
 #test
 {
     let context           = @getcontext()
-    let originalAllocator = notnull context.allocator
+    let originalAllocator = context.allocator!
 
     var scratchA: ScratchAllocator
     var scratchB: ScratchAllocator

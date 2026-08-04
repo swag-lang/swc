@@ -118,7 +118,7 @@ private impl RenderCpu
     {
         if .curRT
         {
-            let texture = notnull .findTexture(.curRT.colorBuffer.handle)
+            let texture = .findTexture(.curRT.colorBuffer.handle)!
             return &texture.stencil
         }
 
@@ -143,7 +143,7 @@ private impl RenderCpu
         if stencil.count == count do
             return
         stencil.resize(count)
-        Memory.clear(notnull stencil.buffer, count)
+        Memory.clear(stencil.buffer!, count)
     }
 
     func edge(a, b, p: Vector2)->f32
@@ -188,7 +188,7 @@ private impl RenderCpu
     func writePixel(image: *Image, x, y: s32, color: Color)
     {
         let storageY = image.height - y - 1
-        let pixel    = (notnull image.pixels.buffer) + cast(u64) (storageY * image.rowStride + x * image.bytesPerPixel)
+        let pixel    = image.pixels.buffer! + cast(u64) (storageY * image.rowStride + x * image.bytesPerPixel)
 
         switch #complete image.pixelFormat
         {
@@ -658,7 +658,7 @@ private impl RenderCpu
         let xx         = Math.clamp(x, 0, pixelWidth - 1)
         let yy         = Math.clamp(y, 0, cast(s32) atlas.height - 1)
         let row        = cast(s32) atlas.height - yy - 1
-        let ptr        = (notnull atlas.data.buffer) + cast(u64) row * atlas.width + cast(u64) xx * atlas.bytesPerPixel
+        let ptr        = atlas.data.buffer! + cast(u64) row * atlas.width + cast(u64) xx * atlas.bytesPerPixel
 
         if atlas.bytesPerPixel == 1
         {
@@ -711,7 +711,7 @@ private impl RenderCpu
         if !atlas do
             return Color.fromArgb(Argb.Zero)
 
-        let safeAtlas     = notnull atlas
+        let safeAtlas     = atlas!
         let width         = cast(f32) (safeAtlas.width / safeAtlas.bytesPerPixel)
         let height        = cast(f32) safeAtlas.height
         let fwX           = Math.abs(uvDx.x) + Math.abs(uvDy.x)
@@ -806,7 +806,7 @@ private impl RenderCpu
             let atlas = .fontAtlas()
             if !atlas do
                 return Color.fromArgb(Argb.Zero)
-            let sample = sampleFontAtlas(notnull atlas, fontUv, false)
+            let sample = sampleFontAtlas(atlas!, fontUv, false)
             result.a = cast(u8) Math.clamp(Math.round(cast(f32) result.a * Math.pow(sample.x, FontGamma)), 0.0, 255.0)
         }
         elif .program == CpuProgram_Msdf
@@ -942,8 +942,8 @@ private impl RenderCpu
             .overlapAlpha.resize(pixelCount)
         if .overlapWritten.count != pixelCount do
             .overlapWritten.resize(pixelCount)
-        Memory.clear(notnull .overlapAlpha.buffer, pixelCount)
-        Memory.clear(notnull .overlapWritten.buffer, pixelCount)
+        Memory.clear(.overlapAlpha.buffer!, pixelCount)
+        Memory.clear(.overlapWritten.buffer!, pixelCount)
 
         // Destination alpha is the scratch channel in the OpenGL overlap path.
         .clearAlpha(image)
@@ -1137,12 +1137,12 @@ private impl RenderCpu
 
         case .BindRenderTarget:
             .bindRenderTargetImpl(cmd.renderTgt.tgt)
-            let target = notnull .curRT
+            let target = .curRT!
             target.paintAlpha    = cmd.renderTgt.paintAlpha
             target.paintAlphaIdx = 0
 
         case .UnbindRenderTarget:
-            let target = notnull .curRT
+            let target = .curRT!
             if target.paintAlpha do
                 .replayTargetAlpha(painter, target.paintAlphaIdx, cmdIdx)
             .unbindRenderTargetImpl()
@@ -1293,7 +1293,7 @@ impl RenderCpu
         Debug.assert(rt != null and width > 0 and height > 0, "readRenderTarget needs a target and positive dimensions")
         let storage = .findTexture(rt.colorBuffer.handle)
         Debug.assert(storage != null, "render target is not owned by this renderer")
-        let source         = notnull storage
+        let source         = storage!
         var result: retval = source.image
         result.crop(x, y, width, height)
         return result
@@ -1302,7 +1302,7 @@ impl RenderCpu
     // Reads the active target into a new image, then restores the previous target.
     internal mtd unbindRenderTargetToImageImpl(x, y, width, height: s32)->Image
     {
-        let rt     = notnull .curRT
+        let rt     = .curRT!
         var result = .readRenderTargetImpl(rt, x, y, width, height)
         .unbindRenderTargetImpl()
         return result
@@ -1378,7 +1378,7 @@ impl RenderCpu
     {
         let storage = .findTexture(texture.handle)
         Debug.assert(storage != null, "texture is not owned by this renderer")
-        let target = notnull storage
+        let target = storage!
         Memory.copy(target.image.pixels.buffer, pixels, target.image.byteCount)
     }
 
@@ -1390,7 +1390,7 @@ impl RenderCpu
             return result
         let storage = .findTexture(texture.handle)
         Debug.assert(storage != null, "texture is not owned by this renderer")
-        let source = notnull storage
+        let source = storage!
         let image  = source.image.convertedTo(pixelFormat)
         result = image.pixels
         return result
@@ -1453,7 +1453,7 @@ impl RenderCpu
 
         for rt, [idx] in .stackReleasedRT
         {
-            let candidate = notnull rt
+            let candidate = rt!
             if candidate.colorBuffer.width >= w2 and candidate.colorBuffer.height >= h2
             {
                 .stackReleasedRT.removeAt(idx)

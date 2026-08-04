@@ -57,7 +57,7 @@ namespace GenericReallocDefaultArgsCodegen
             req.size      = size
             req.address   = buffer
 
-            let talloc = notnull (allocator orelse @getcontext().allocator)
+            let talloc = (allocator orelse @getcontext().allocator)!
             talloc.free(&req)
         }
 
@@ -76,7 +76,7 @@ namespace GenericReallocDefaultArgsCodegen
             req.oldSize   = oldSize
             req.alignment = alignment
 
-            let talloc = notnull (allocator orelse @getcontext().allocator)
+            let talloc = (allocator orelse @getcontext().allocator)!
             talloc.realloc(&req)
             return req.address
         }
@@ -138,7 +138,7 @@ namespace GenericReallocDefaultArgsCodegen
         {
             if .count == .capacity do
                 .reserve(.capacity ? .capacity * 2 : 2)
-            let buf = notnull .buffer
+            let buf = .buffer!
             buf[.count] = value
             .count      += 1
         }
@@ -147,7 +147,7 @@ namespace GenericReallocDefaultArgsCodegen
         {
             if .count == .capacity do
                 .reserveNamed(.capacity ? .capacity * 2 : 3)
-            let buf = notnull .buffer
+            let buf = .buffer!
             buf[.count] = value
             .count      += 1
         }

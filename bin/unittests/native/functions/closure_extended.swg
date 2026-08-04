@@ -61,7 +61,7 @@ impl PathOwner
     {
         return func|me.target, me.bias|()->s32
         {
-            let safeTarget = notnull target
+            let safeTarget = target!
             safeTarget.value += bias
             return safeTarget.value
         }
@@ -188,7 +188,7 @@ func runDottedPathCapture()->s32
 
     let cb: func||()->s32 = func|holder.target|()->s32
     {
-        let t = notnull target
+        let t = target!
         t.value += 3
         return t.value
     }

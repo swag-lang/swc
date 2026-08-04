@@ -10,7 +10,7 @@ func(T, V) findSorted(values: #null const [..] T, value: V)->u64
     var upper = @countof(values)
     if !upper do
         return Swag.U64.Max
-    let vals = notnull values
+    let vals = values!
 
     while lower < upper
     {
@@ -91,8 +91,8 @@ func(T) equals(dst, src: #null const [..] T)->bool
     if !@countof(dst) or !@countof(src) do
         return true
 
-    let dstn = notnull dst
-    let srcn = notnull src
+    let dstn = dst!
+    let srcn = src!
     for [i] in @countof(dstn) where dstn[i] != srcn[i] do
         return false
     return true

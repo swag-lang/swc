@@ -15,14 +15,14 @@ func getSlice(buffer: #null const [..] u8, offset, length: u64)->#null const [..
 func readU8(buffer: #null const [..] u8, offset: u64)->u8 fail
 {
     assertRange(buffer, offset, 1)
-    let buf = notnull buffer
+    let buf = buffer!
     return buf[offset]
 }
 
 func readU16(buffer: #null const [..] u8, offset: u64)->u16 fail
 {
     assertRange(buffer, offset, 2)
-    let buf = notnull buffer
+    let buf = buffer!
     return cast(u16) buf[offset] << 8 | buf[offset + 1]
 }
 
@@ -37,7 +37,7 @@ func readS16(buffer: #null const [..] u8, offset: u64)->s16 fail
 func readU32(buffer: #null const [..] u8, offset: u64)->u32 fail
 {
     assertRange(buffer, offset, 4)
-    let buf = notnull buffer
+    let buf = buffer!
     return cast(u32) buf[offset] << 24 | cast(u32) buf[offset + 1] << 16 | cast(u32) buf[offset + 2] << 8 | buf[offset + 3]
 }
 

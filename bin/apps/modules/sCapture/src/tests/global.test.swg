@@ -66,7 +66,7 @@ func testSetupGlobalMain(main: *MainWnd)
     @assert(f.main.editWnd.isLocallyVisible())
     @assert(!f.main.libWnd.isLocallyVisible())
 
-    let surface = notnull f.main.surface
+    let surface = f.main.surface!
     surface.show()
     @assert(!surface.isHidden)
 

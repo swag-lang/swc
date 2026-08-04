@@ -45,9 +45,9 @@ const Samples = [
 func loadFonts() fail
 {
     g_TypeFace  = try TypeFace.load("segoeui.ttf")
-    g_TitleFont = g_Renderer.fonts.createFont(notnull g_TypeFace, 34, .Bitmap)
-    g_LabelFont = g_Renderer.fonts.createFont(notnull g_TypeFace, 16, .Bitmap)
-    g_HelpFont  = g_Renderer.fonts.createFont(notnull g_TypeFace, 13, .Bitmap)
+    g_TitleFont = g_Renderer.fonts.createFont(g_TypeFace!, 34, .Bitmap)
+    g_LabelFont = g_Renderer.fonts.createFont(g_TypeFace!, 16, .Bitmap)
+    g_HelpFont  = g_Renderer.fonts.createFont(g_TypeFace!, 13, .Bitmap)
 }
 
 func gdipCheck(status: GpStatus)
@@ -99,7 +99,7 @@ func unpremultiplyChannel(value, alpha: u8)->u8
 
 func unpremultiplyImage(image: *Image)
 {
-    var ptr = notnull image.pixels.buffer
+    var ptr = image.pixels.buffer!
     for image.width * image.height
     {
         let alpha = ptr[3]
@@ -148,7 +148,7 @@ func renderGdiPlusOutlineImage(text: string, scale: f32)->Image
     @assert(format != null)
     @assert(family != null)
     @assert(measurePath != null)
-    addGdiPathText(measurePath, notnull text16.buffer, count16, family, format, emSize, 0, 0)
+    addGdiPathText(measurePath, text16.buffer!, count16, family, format, emSize, 0, 0)
     gdipCheck(GdipGetPathWorldBounds(measurePath, &bounds, null, null))
     gdipCheck(GdipDeletePath(measurePath))
 
@@ -173,7 +173,7 @@ func renderGdiPlusOutlineImage(text: string, scale: f32)->Image
     var path: #null *GpPath
     gdipCheck(GdipCreatePath(GdipFillModeAlternate, &path))
     @assert(path != null)
-    addGdiPathText(path, notnull text16.buffer, count16, family, format, emSize, margin + border - bounds.x, margin + border - bounds.y)
+    addGdiPathText(path, text16.buffer!, count16, family, format, emSize, margin + border - bounds.x, margin + border - bounds.y)
 
     var pen:   #null *GpPen
     var brush: #null *GpSolidFill
@@ -219,15 +219,15 @@ func insetRect(rect: Math.Rectangle, left, top, right, bottom: f32)->Math.Rectan
 
 func drawHeader(painter: *Pixel.Painter)
 {
-    painter.drawString(34, 28, "Pixel outline text quality", notnull g_TitleFont, Argb.MidnightBlue)
-    painter.drawString(36, 72, "Native GDI+ GraphicsPath reference, Pixel path-stroke outline, and the old offset-fill outline with the same blurred render-target shadow.", notnull g_HelpFont, Argb.DimGray)
+    painter.drawString(34, 28, "Pixel outline text quality", g_TitleFont!, Argb.MidnightBlue)
+    painter.drawString(36, 72, "Native GDI+ GraphicsPath reference, Pixel path-stroke outline, and the old offset-fill outline with the same blurred render-target shadow.", g_HelpFont!, Argb.DimGray)
 }
 
 func drawFrame(painter: *Pixel.Painter, rect: Math.Rectangle, title: string)
 {
     painter.fillRoundRect(rect, 8, 8, Argb.White)
     painter.drawRoundRect(rect, 8, 8, Color.fromArgb(84, Argb.SlateGray), 1)
-    painter.drawString(rect.x + 12, rect.y + 10, title, notnull g_LabelFont, Argb.DarkSlateBlue)
+    painter.drawString(rect.x + 12, rect.y + 10, title, g_LabelFont!, Argb.DarkSlateBlue)
 }
 
 func makeOutline(text: string, size: u32, embolden: u32)->LinePathList
@@ -432,7 +432,7 @@ func drawSampleGrid(painter: *Pixel.Painter, rowRect: Math.Rectangle, title: str
         let cell = Math.Rectangle{x, body.y, cellW, body.height}
         painter.fillRoundRect(cell, 6, 6, Color.fromArgb(255, 247, 249, 251))
         painter.drawRoundRect(cell, 6, 6, Color.fromArgb(32, Argb.SlateGray), 1)
-        painter.drawString(cell.x + 10, cell.y + 8, sample.label, notnull g_HelpFont, Argb.DimGray)
+        painter.drawString(cell.x + 10, cell.y + 8, sample.label, g_HelpFont!, Argb.DimGray)
         let ss = mode == .PathStroke ? OutlineSuperSample : 1
         drawShadowedOutline(painter, insetRect(cell, 8, 22, 8, 8), "Outline", sample.scale, mode, ss)
     }
@@ -451,7 +451,7 @@ func drawGdiGrid(painter: *Pixel.Painter, rowRect: Math.Rectangle)
         let cell = Math.Rectangle{x, body.y, cellW, body.height}
         painter.fillRoundRect(cell, 6, 6, Color.fromArgb(255, 247, 249, 251))
         painter.drawRoundRect(cell, 6, 6, Color.fromArgb(32, Argb.SlateGray), 1)
-        painter.drawString(cell.x + 10, cell.y + 8, sample.label, notnull g_HelpFont, Argb.DimGray)
+        painter.drawString(cell.x + 10, cell.y + 8, sample.label, g_HelpFont!, Argb.DimGray)
         drawShadowedTexture(painter, insetRect(cell, 8, 22, 8, 8), g_GdiText[idx])
     }
 }

@@ -37,7 +37,7 @@ non-null before use, and pair every successful allocation with '@free'.
     if data == null do
         unreachable
 
-    let usable = notnull data
+    let usable = data!
     defer @free(usable)
 
     usable[0] = 10

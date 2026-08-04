@@ -109,7 +109,7 @@ func initAntinodeGrid(width, height: u32)->AntinodeGrid
     let size = cast(u64) width * cast(u64) height
     result.cells = cast(#null [*] u8) @alloc(size)
     @assert(result.cells != null)
-    let cells = notnull result.cells
+    let cells = result.cells!
     for width * height
     {
         cells[cast(u32) @index] = 0'u8
@@ -129,7 +129,7 @@ func markAntinode(grid: &AntinodeGrid, x, y: s32)->bool
         return false
 
     let idx   = cast(u32) y * grid.width + cast(u32) x
-    let cells = notnull grid.cells
+    let cells = grid.cells!
     let isNew = cells[idx] == 0'u8
     cells[idx] = 1'u8
     return isNew
@@ -137,7 +137,7 @@ func markAntinode(grid: &AntinodeGrid, x, y: s32)->bool
 
 func clearGrid(grid: &AntinodeGrid)
 {
-    let cells = notnull grid.cells
+    let cells = grid.cells!
     for grid.width * grid.height
     {
         cells[cast(u32) @index] = 0'u8
@@ -147,7 +147,7 @@ func clearGrid(grid: &AntinodeGrid)
 func countMarked(grid: const &AntinodeGrid)->u32
 {
     var count: u32
-    let cells = notnull grid.cells
+    let cells = grid.cells!
     for grid.width * grid.height
     {
         if cells[cast(u32) @index] != 0'u8 do

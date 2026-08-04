@@ -108,18 +108,18 @@ public impl Face
     //
     // ```swag
     // let bytes = File.readAllBytes("Inter-Regular.ttf")
-    // let face  = notnull (try TrueType.Face.load(bytes.toSlice()))
+    // let face  = (try TrueType.Face.load(bytes.toSlice()))!
     // defer face.destroy()
     // ```
     func load(bytes: const [..] u8, allocator: #null IAllocator = null)->#null *Face fail
     {
         if @countof(bytes) == 0 do
             fault(0x06)
-        let allocationAllocator = notnull (allocator orelse @getcontext().allocator)
+        let allocationAllocator = (allocator orelse @getcontext().allocator)!
         let faceData            = Memory.new'FaceImpl(allocationAllocator)
         faceData.allocationAllocator = allocationAllocator
         faceData.fontData.resize(@countof(bytes))
-        let fontData = notnull faceData.fontData.buffer
+        let fontData = faceData.fontData.buffer!
         Memory.copy(fontData, @dataof(bytes), @countof(bytes))
         parseFace(faceData)
         return &faceData.face
@@ -272,7 +272,7 @@ public impl Face
         if xhS == xh and (ch <= xh or chS == ch) do
             return
 
-        let points = notnull o.points
+        let points = o.points!
         for cast(u32) o.pointCount do
             points[@index].y = hintMapY(points[@index].y, xh, xhS, ch, chS)
     }

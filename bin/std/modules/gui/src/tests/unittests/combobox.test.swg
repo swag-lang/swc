@@ -31,7 +31,7 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
 
     combo.removeItemAt(0)
     @assert(combo.items.count == 2 and combo.selectedIndex == 1)
-    @assert((notnull combo.selectedItem()).name.raw == "Three")
+    @assert(combo.selectedItem()!.name.raw == "Three")
     @assert(combo.editBox != null)
     @assert(combo.editBox.text() == "Three")
 
@@ -64,7 +64,7 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
     @assert(combo.selectedIndex == 1)
     @assert(ComboHeadlessChangedCount == 1)
     @assert(ComboHeadlessLastIdx == 1)
-    @assert((notnull combo.selectedItem()).name.raw == "Two")
+    @assert(combo.selectedItem()!.name.raw == "Two")
     @assert(host.commandCount == 1)
     @assert(host.lastCommand == ComboHeadless_Item2)
 

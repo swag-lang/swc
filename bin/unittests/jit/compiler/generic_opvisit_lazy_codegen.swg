@@ -12,7 +12,7 @@ namespace GenericForeachLazyCodegen
         req.size    = size
         req.address = buffer
 
-        let talloc = notnull (allocator orelse @getcontext().allocator)
+        let talloc = (allocator orelse @getcontext().allocator)!
         talloc.free(&req)
     }
 
@@ -23,7 +23,7 @@ namespace GenericForeachLazyCodegen
         req.size    = newSize
         req.oldSize = oldSize
 
-        let talloc = notnull (allocator orelse @getcontext().allocator)
+        let talloc = (allocator orelse @getcontext().allocator)!
         talloc.realloc(&req)
         return req.address
     }
@@ -61,7 +61,7 @@ namespace GenericForeachLazyCodegen
 
         mtd add(value: T)
         {
-            let buf = notnull .buffer
+            let buf = .buffer!
             buf[.count] = value
             .count      += 1
         }
@@ -147,7 +147,7 @@ namespace GenericForeachLazyCodegen
 
     func allocS32(value: s32)->*s32
     {
-        let ptr = cast(*s32) notnull @alloc(#sizeof(s32))
+        let ptr = cast(*s32) @alloc(#sizeof(s32))!
         dref ptr = value
         return ptr
     }
@@ -199,7 +199,7 @@ namespace GenericForeachLazyCodegen
         var ptrs   = makePtrBox()
         let ptrsOk = ptrs.nonNullIndexSum() == 4
         for ptr in ptrs.values.toSlice() where ptr != null do
-            @free(notnull ptr)
+            @free(ptr!)
         ptrs.free()
 
         return intsOk and boolsOk and ptrsOk

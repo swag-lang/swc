@@ -500,7 +500,7 @@ impl Wnd
     // Destroy the window
     mtd destroyNow()
     {
-        let srfn = notnull .surface
+        let srfn = .surface!
         Debug.assert(!.isPendingDestroy)
 
         // Each child's destroyWnd removes it from '.children': iterating the array while it
@@ -514,7 +514,7 @@ impl Wnd
     // Destroy the window
     mtd destroy()
     {
-        let srfn = notnull .surface
+        let srfn = .surface!
         .wndFlags.add(.Hidden)
         if .isPendingDestroy do
             return
@@ -562,7 +562,7 @@ impl Wnd
 
         if .parent
         {
-            let oldParent = notnull .parent
+            let oldParent = .parent!
             let detached  = oldParent.detachChild(me)
             Debug.assert(detached)
         }
@@ -622,7 +622,7 @@ impl Wnd
         if !.wndFlags.has(.Hidden) do
             return
         .wndFlags.remove(.Hidden)
-        let parent = notnull .parent
+        let parent = .parent!
         parent.invalidate()
     }
 
@@ -634,7 +634,7 @@ impl Wnd
         .sendHideStateEvent()
         .wndFlags.add(.Hidden)
         .app().unregisterWnd(me)
-        let parent = notnull .parent
+        let parent = .parent!
         parent.invalidate()
     }
 
@@ -984,7 +984,7 @@ impl Wnd
     // Be sure rect is fully inside the parent rectangle (if possible)
     mtd fitPosInParent(marginW, marginH: f32 = 0, simX, simY = false)
     {
-        let parent = notnull .parent
+        let parent = .parent!
         var pos    = .position
         if pos.x + pos.width > parent.position.width - marginW
         {
@@ -1009,7 +1009,7 @@ impl Wnd
     // Convert a physical screen coordinate to a logical surface coordinate (relative to my surface)
     mtd const screenToSurface(pos: Math.Point)->Math.Point
     {
-        let srfn = notnull .surface
+        let srfn = .surface!
         return {(pos.x - srfn.position.x) / srfn.dpiScale, (pos.y - srfn.position.y) / srfn.dpiScale}
     }
 
@@ -1173,7 +1173,7 @@ impl Wnd
     // Moves this window before all siblings so it is painted behind them.
     mtd sendToBack()
     {
-        let parent = notnull .parent
+        let parent = .parent!
         if parent.children.front() == me do
             return
 
@@ -1187,7 +1187,7 @@ impl Wnd
     // Moves this window after normal siblings so it is painted in front of them.
     mtd bringToFront()
     {
-        let parent = notnull .parent
+        let parent = .parent!
         if parent.children.back() == me do
             return
 
@@ -1501,21 +1501,21 @@ impl Wnd
     // Captures platform pointer input for this window.
     mtd captureMouse()
     {
-        let srfn = notnull .surface
+        let srfn = .surface!
         srfn.app.captureMouse(me)
     }
 
     // Releases the application's current pointer capture.
     mtd releaseMouse()
     {
-        let srfn = notnull .surface
+        let srfn = .surface!
         srfn.app.releaseMouse()
     }
 
     // Returns the window that currently owns pointer capture.
     mtd mouseCapture()->#null *Wnd
     {
-        let srfn = notnull .surface
+        let srfn = .surface!
         return srfn.app.mouseCapture()
     }
 
@@ -1526,7 +1526,7 @@ impl Wnd
     // Requests keyboard focus after both the old and new windows approve the transition.
     mtd setFocus()
     {
-        let srfn = notnull .surface
+        let srfn = .surface!
         if srfn.app.keyboardFocusWnd == me do
             return
         if !.isEnabled() do
@@ -1656,15 +1656,15 @@ impl Wnd
     // Posts quit event.
     mtd postQuitEvent()
     {
-        let srfn = notnull .surface
+        let srfn = .surface!
         srfn.app.postQuitEvent()
     }
 
     // Posts event.
     mtd postEvent(evt: IEvent)
     {
-        let srfn = notnull .surface
-        let ptr  = notnull (evt as Event)
+        let srfn = .surface!
+        let ptr  = (evt as Event)!
         ptr.target = me
         srfn.app.postEvent(evt)
     }
@@ -1679,8 +1679,8 @@ impl Wnd
     // Sends event.
     mtd sendEvent(evt: IEvent)
     {
-        let srfn = notnull .surface
-        let ptr  = notnull (evt as Event)
+        let srfn = .surface!
+        let ptr  = (evt as Event)!
         ptr.target = me
         srfn.app.sendEvent(evt)
     }

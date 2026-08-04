@@ -108,7 +108,7 @@ impl Driver
     {
         Debug.assert(!.isCreated)
         .driverIsClosing     = false
-        .allocationAllocator = notnull (@getcontext().defaultAllocator orelse @getcontext().allocator)
+        .allocationAllocator = (@getcontext().defaultAllocator orelse @getcontext().allocator)!
 
         // Every driver-owned collection can be mutated on one thread and released
         // on another, so all of them use the engine's stable allocator.
@@ -239,7 +239,7 @@ impl Driver
                 buffer.allocator = .allocationAllocator
         }
 
-        return notnull back
+        return back!
     }
 
     mtd setOutputVolume(volume: f32) fail => .native.setOutputVolumeNative(volume)

@@ -80,7 +80,7 @@ func writeLegacyHeader(volume: *Volume)
     let sequence = volume.sequence + 1
     let slot     = 1'u32 - volume.activeSlot
     var plain    = expect volume.serialize(sequence)
-    Crypto.store32(notnull plain.buffer + #sizeof(HeaderMagic), LegacyFormatVersion)
+    Crypto.store32((plain.buffer + #sizeof(HeaderMagic))!, LegacyFormatVersion)
     plain.resize(LegacyHeaderPlainSize)
 
     var record: Array'u8
@@ -186,10 +186,10 @@ func writeLegacyHeader(volume: *Volume)
 
     let appended: [3] u8 = [9, 8, 7]
     @assert(expect volume.writeNode(fileId, 0, appended, true, false) == 3)
-    let sizeBeforeConstraint = (notnull volume.nodeById(fileId)).size
+    let sizeBeforeConstraint = volume.nodeById(fileId)!.size
     let constrained: [4] u8  = [4, 5, 6, 7]
     @assert(expect volume.writeNode(fileId, sizeBeforeConstraint - 2, constrained, false, true) == 2)
-    @assert((notnull volume.nodeById(fileId)).size == sizeBeforeConstraint)
+    @assert(volume.nodeById(fileId)!.size == sizeBeforeConstraint)
 
     var hole: [32] u8
     @assert(expect volume.readNode(fileId, BlockSize, hole) == #sizeof(hole))
@@ -215,7 +215,7 @@ func writeLegacyHeader(volume: *Volume)
 
     volume.close()
     var reopened     = expect Volume.open(path, testPassword())
-    let reopenedNode = notnull reopened.resolve("\\sparse.bin")
+    let reopenedNode = reopened.resolve("\\sparse.bin")!
     @assert(reopenedNode.size == 20)
     var persisted: [20] u8
     @assert(expect reopened.readNode(reopenedNode.id, 0, persisted) == #sizeof(persisted))
@@ -269,7 +269,7 @@ func writeLegacyHeader(volume: *Volume)
     @assert(collisionError != null)
     expect volume.renameNode(firstId, "\\second.bin", true)
     @assert(volume.nodeById(secondId) == null)
-    @assert((notnull volume.resolve("\\second.bin")).id == firstId)
+    @assert(volume.resolve("\\second.bin")!.id == firstId)
     discard catch volume.renameNode(firstId, "\\folder", true) as typeError
     @assert(typeError != null)
 

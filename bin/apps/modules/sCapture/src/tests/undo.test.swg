@@ -159,7 +159,7 @@ using Swag, Core
     let angle = 90.0'f32
     var u     = f.capture.newUndo(.SetTypedValue)
     u.valU32 = cast #bit (u32) angle
-    u.valRef = notnull Reflection.findField(BaseForm, #nameof(BaseForm.rotate))
+    u.valRef = Reflection.findField(BaseForm, #nameof(BaseForm.rotate))!
     f.capture.pushUndo(u)
     @assert(shape.rotate == 90)
     @assert(text.rotate == 90)
@@ -203,7 +203,7 @@ using Swag, Core
     let angle  = 90.0'f32
     var setVal = f.capture.newUndo(.SetTypedValue)
     setVal.valU32  = cast #bit (u32) angle
-    setVal.valRef  = notnull Reflection.findField(BaseForm, #nameof(BaseForm.rotate))
+    setVal.valRef  = Reflection.findField(BaseForm, #nameof(BaseForm.rotate))!
     setVal.mdlType = FormText
     f.capture.pushUndo(setVal)
     @assert(shape.rotate == 33)
@@ -485,7 +485,7 @@ func testUndoFuzzSelect(capture: *Capture, rng: *Random.Generator, count: u32)
             let angle = cast(f32) rng.nextS32(0, 360)
             let u     = f.capture.newUndo(.SetTypedValue)
             u.valU32 = cast #bit (u32) angle
-            u.valRef = notnull Reflection.findField(BaseForm, #nameof(BaseForm.rotate))
+            u.valRef = Reflection.findField(BaseForm, #nameof(BaseForm.rotate))!
             f.capture.pushUndo(u)
         }
         elif op == 7

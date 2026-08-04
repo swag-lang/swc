@@ -217,7 +217,7 @@ impl Inflate
                     cap = dest.capacity
                 }
 
-                let obuf = notnull buf
+                let obuf = buf!
                 obuf[count] = cast(u8) value
                 count       += 1
                 continue
@@ -253,7 +253,7 @@ impl Inflate
             if distance == 1
             {
                 // Repeat the last byte 'length' times
-                let buffer = notnull dest.buffer
+                let buffer = dest.buffer!
                 let b      = buffer[dest.count - 1]
                 Memory.set(buffer + dest.count, b, cast(u64) length)
                 dest.count += length
@@ -264,7 +264,7 @@ impl Inflate
                 // own buffer, so a direct memory copy is used here: routing this through
                 // 'dest.add(slice)' would hit its self-aliasing guard and allocate a
                 // temporary array for every back-reference. Capacity is ensured by 'grow' above.
-                let buffer = notnull dest.buffer
+                let buffer = dest.buffer!
                 Memory.copy(buffer + dest.count, buffer + dest.count - distance, cast(u64) length)
                 dest.count += length
             }
@@ -273,7 +273,7 @@ impl Inflate
                 // Overlapping back-reference: grow once, then copy forward so each byte
                 // naturally references previously written output (handles distance < length)
                 dest.grow(dest.count + length)
-                let buffer = notnull dest.buffer
+                let buffer = dest.buffer!
                 let start  = dest.count
                 for [i] in cast(u64) length
                 {

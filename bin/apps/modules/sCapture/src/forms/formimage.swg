@@ -56,8 +56,8 @@ impl FormImage
 
         .image.visitPixels(mask)
         {
-            var maskImg = cast(*Image) notnull userData
-            var pix1    = (notnull maskImg.pixels.buffer) + x * 4
+            var maskImg = cast(*Image) userData!
+            var pix1    = maskImg.pixels.buffer! + x * 4
             pix1 += maskImg.width * y * 4
             if !pix1[0] do
                 dref cast(*u32) pix = 0
@@ -70,7 +70,7 @@ impl FormImage
     mtd backCapture()
     {
         let renderer = g_App.renderer
-        let capture  = notnull .capture
+        let capture  = .capture!
         let x1       = cast(s32) (.x - capture.backImagePos.x)
         let y1       = cast(s32) (.y - capture.backImagePos.y)
 
@@ -283,7 +283,7 @@ impl IForm for FormImage
         if !cxt.quickMode
         {
             let renderer = g_App.renderer
-            let capture  = notnull .capture
+            let capture  = .capture!
             let x1       = cast(s32) (.x - capture.backImagePos.x)
             let y1       = cast(s32) (.y - capture.backImagePos.y)
 

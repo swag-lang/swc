@@ -83,7 +83,7 @@ func getFaceImpl(face: #null *Face)->*FaceImpl fail
 {
     if !face do
         fault(0x23)
-    let safeFace = notnull face
+    let safeFace = face!
     let faceData = cast(*FaceImpl) cast(*void) safeFace
     if !faceData do
         fault(0x23)
@@ -111,6 +111,6 @@ func getTableSlice(faceData: *FaceImpl, tag: u32, missingCode: u8)->#null const 
     let rec = findTable(faceData, tag)
     if !rec do
         fault(missingCode)
-    let r = notnull rec
+    let r = rec!
     return getSlice(faceData.fontData.toSlice(), r.offset, r.length)
 }

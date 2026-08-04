@@ -327,7 +327,7 @@ impl StrConv.IConvert for DateTime
             str = .toString(.DateTime)
         else
         {
-            let fmt = notnull strFormat
+            let fmt = strFormat!
             switch fmt[0]
             {
             case 'a': str = .toString(.DateTime)

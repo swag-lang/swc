@@ -23,8 +23,8 @@ impl IActionUI for ActionFlatten
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main    = cast(*MainWnd) notnull cxt.wnd
-        let capture = notnull main.getCapture()
+        let main    = cast(*MainWnd) cxt.wnd!
+        let capture = main.getCapture()!
 
         var undo: *Undo = undefined
         switch cxt.id

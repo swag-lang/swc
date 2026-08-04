@@ -69,7 +69,7 @@ impl ZLib
         var result: Array'u8
         if hintSize do
             result.grow(hintSize)
-        try .decoder.decompress(&result, notnull bs.remainingBytes(), winSize)
+        try .decoder.decompress(&result, bs.remainingBytes()!, winSize)
 
         // Now we should have the checksum
         .decoder.stream.discardToNextByte()

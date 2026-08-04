@@ -37,7 +37,7 @@ internal impl IActionUI for ActionProperties
     // logic that used to live inline in popupMenu next to each addItem.
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let prop = cast(*Properties) notnull cxt.wnd
+        let prop = cast(*Properties) cxt.wnd!
         let item = prop.menuItem
         if !item do
             return false
@@ -50,53 +50,53 @@ internal impl IActionUI for ActionProperties
         case ActionProperties.Copy:
             evt.updatedFields |= .Name | .Icon
             evt.name          = "Copy"
-            evt.icon          = theme.icon24(.Copy)
+            evt.icon          = theme.icon(.Copy)
 
         case ActionProperties.Paste:
             evt.updatedFields |= .Name | .Icon | .Disabled
             evt.name          = "Paste"
-            evt.icon          = theme.icon24(.Paste)
-            evt.disabled      = !prop.canChangeItem(notnull item) or !Clipboard.hasTypedValue(notnull item.type)
+            evt.icon          = theme.icon(.Paste)
+            evt.disabled      = !prop.canChangeItem(item!) or !Clipboard.hasTypedValue(item.type!)
 
         case ActionProperties.ResetDefault:
             evt.updatedFields |= .Name | .Icon | .Disabled
             evt.name          = "Reset to default"
-            evt.icon          = theme.icon24(.Undo)
+            evt.icon          = theme.icon(.Undo)
             evt.disabled      = !item.isModified
 
         case ActionProperties.MoveUp:
             evt.updatedFields |= .Name | .Icon | .Disabled
             evt.name          = "Move Up"
-            evt.icon          = theme.icon24(.SortArrowUp)
-            evt.disabled      = !arr.arrElem or !prop.canChangeItem(notnull arr.arrItem) or prop.arrayElementIndex(notnull arr.arrElem) == 0
+            evt.icon          = theme.icon(.SortArrowUp)
+            evt.disabled      = !arr.arrElem or !prop.canChangeItem(arr.arrItem!) or prop.arrayElementIndex(arr.arrElem!) == 0
 
         case ActionProperties.MoveDown:
             evt.updatedFields |= .Name | .Icon | .Disabled
             evt.name          = "Move Down"
-            evt.icon          = theme.icon24(.SortArrowDown)
+            evt.icon          = theme.icon(.SortArrowDown)
             var atEnd = true
             if arr.arrElem
             {
-                let info = prop.arrayElementInfo(notnull arr.arrItem)
+                let info = prop.arrayElementInfo(arr.arrItem!)
                 atEnd = prop.arrayElementIndex(arr.arrElem) + 1 >= info.count
             }
 
-            evt.disabled = !arr.arrElem or !prop.canChangeItem(notnull arr.arrItem) or atEnd
+            evt.disabled = !arr.arrElem or !prop.canChangeItem(arr.arrItem!) or atEnd
 
         case ActionProperties.Remove:
             evt.updatedFields |= .Name | .Icon | .Disabled
             evt.name          = "Remove"
-            evt.icon          = theme.icon24(.Remove)
-            evt.disabled      = !arr.arrElem or !prop.canChangeItem(notnull arr.arrItem)
+            evt.icon          = theme.icon(.Remove)
+            evt.disabled      = !arr.arrElem or !prop.canChangeItem(arr.arrItem!)
 
         case ActionProperties.RemoveAll:
             evt.updatedFields |= .Name | .Icon | .Disabled
             evt.name          = "Remove All"
-            evt.icon          = theme.icon24(.RemoveAll)
+            evt.icon          = theme.icon(.RemoveAll)
             var empty = true
             if arr.arrItem
             {
-                let arrData = notnull cast(#null *Array'u8) arr.arrItem.data
+                let arrData = cast #unnull (*Array'u8) arr.arrItem.data
                 empty = arrData.isEmpty()
             }
 
@@ -108,7 +108,7 @@ internal impl IActionUI for ActionProperties
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let prop = cast(*Properties) notnull cxt.wnd
+        let prop = cast(*Properties) cxt.wnd!
         let item = prop.menuItem
         if !item do
             return false
@@ -118,10 +118,10 @@ internal impl IActionUI for ActionProperties
         switch cxt.id
         {
         case ActionProperties.Copy:
-            Clipboard.addTypedValue(notnull item.data, notnull item.type)
+            Clipboard.addTypedValue(item.data!, item.type!)
 
         case ActionProperties.Paste:
-            if Clipboard.getTypedValue(notnull item.data, notnull item.type)
+            if Clipboard.getTypedValue(item.data!, item.type!)
             {
                 prop.refreshItem(item)
                 prop.commitItemChange(item)
@@ -141,14 +141,14 @@ internal impl IActionUI for ActionProperties
         case ActionProperties.Remove:
             if !arr.arrElem do
                 break
-            if MessageDlg.confirm(notnull prop.wnd.surface, "This will remove the element") != Dialog.BtnYes do
+            if MessageDlg.confirm(prop.wnd.surface!, "This will remove the element") != Dialog.BtnYes do
                 break
             prop.removeArrayValue(arr.arrElem)
 
         case ActionProperties.RemoveAll:
             if !arr.arrItem do
                 break
-            if MessageDlg.confirm(notnull prop.wnd.surface, "This will remove all elements") != Dialog.BtnYes do
+            if MessageDlg.confirm(prop.wnd.surface!, "This will remove all elements") != Dialog.BtnYes do
                 break
             prop.clearArray(arr.arrItem)
         }

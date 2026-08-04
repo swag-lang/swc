@@ -363,7 +363,7 @@ impl Painter
     mtd renderer()->IRenderer
     {
         Debug.assert(.rendererItf != null, "painter has no renderer")
-        return notnull .rendererItf
+        return .rendererItf!
     }
 
     // Submits the completed command stream to the selected renderer.
@@ -557,7 +557,7 @@ impl Painter
     {
         if .commandBuffer.count
         {
-            let last = (notnull .commandBuffer.buffer) + .commandBuffer.count - 1
+            let last = .commandBuffer.buffer! + .commandBuffer.count - 1
             if last.id == CommandId.DrawTriangles do
                 return last
         }
@@ -691,7 +691,7 @@ impl Painter
     #[Swag.Safety(.All, false)]
     private mtd addEdgeAA(tri: u64, startx, starty, endx, endy: f32)
     {
-        let v0 = (notnull .vertexBuffer.buffer) + tri
+        let v0 = .vertexBuffer.buffer! + tri
         let p  = Vector2{startx, starty}
         let q  = Vector2{endx, endy}
 
@@ -721,7 +721,7 @@ impl Painter
         // Take the previous command if it's the same
         if replaceLast and .commandBuffer.count
         {
-            let cmdBuf = notnull .commandBuffer.buffer
+            let cmdBuf = .commandBuffer.buffer!
             if cmdBuf[.commandBuffer.count - 1].id == cmd do
                 return cmdBuf + .commandBuffer.count - 1
         }

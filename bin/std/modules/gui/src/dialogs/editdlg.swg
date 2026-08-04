@@ -103,8 +103,8 @@ public impl EditDlg
                 .richEdit!.selectAll()
         }
 
-        let surface = notnull .surface
-        surface.center(notnull .parentSurface)
+        let surface = .surface!
+        surface.center(.parentSurface!)
     }
 
     // Replaces the editor contents.
@@ -115,7 +115,7 @@ public impl EditDlg
             edit.setText(text)
         else
         {
-            let richEdit = notnull .richEdit
+            let richEdit = .richEdit!
             richEdit.setText(text)
         }
     }
@@ -148,7 +148,7 @@ public impl EditDlg
                 edit2.margin.y = 0
             else
             {
-                let richEdit = notnull .richEdit
+                let richEdit = .richEdit!
                 richEdit.margin.y = 0
             }
 

@@ -405,7 +405,7 @@ impl LibraryWnd
             if @countof(nm) == 0 do
                 nm = fp
             let isTrash = trashFolder == fp
-            let icon    = isTrash ? .theme().icon24(.Remove) : .theme().icon24(.OpenFile)
+            let icon    = isTrash ? .theme().icon(.Remove) : .theme().icon(.OpenFile)
             .breadcrumb.addItem(nm, icon, tag: fp)
         }
     }
@@ -539,12 +539,12 @@ impl LibraryWnd
 
         with view.imgSpin = ImageRect.create(res, {4, 4, 24, 24})
         {
-            .setSpriteSheet(dref notnull view.theme().res.spin)
+            .setSpriteSheet(dref view.theme().res.spin!)
             .hide()
         }
 
         // Image Size
-        with res.zoomBtn = IconButton.create(res.editZoomBar, res.theme().icon24(.Search), {0, 0, 120, 32})
+        with res.zoomBtn = IconButton.create(res.editZoomBar, res.theme().icon(.Search), {0, 0, 120, 32})
         {
             .name.set("Size")
             .updateFlags(.CenterContent)
@@ -566,7 +566,7 @@ impl LibraryWnd
         }
 
         // Sort
-        with res.sortBtn = IconButton.create(res.editZoomBar, res.theme().icon24(.Sort), {0, 0, 120, 32})
+        with res.sortBtn = IconButton.create(res.editZoomBar, res.theme().icon(.Sort), {0, 0, 120, 32})
         {
             .name.set("Sort")
             .updateFlags(.CenterContent)
@@ -590,7 +590,7 @@ impl LibraryWnd
         }
 
         // Filter
-        with res.filterBtn = IconButton.create(res.editZoomBar, res.theme().icon24(.Filter), {0, 0, 120, 32})
+        with res.filterBtn = IconButton.create(res.editZoomBar, res.theme().icon(.Filter), {0, 0, 120, 32})
         {
             .name.set("Filter")
             .updateFlags(.CenterContent)
@@ -614,7 +614,7 @@ impl LibraryWnd
         }
 
         // Recycle bin
-        with res.trashBtn = IconButton.create(res.editZoomBar, res.theme().icon24(.Remove), {0, 0, 120, 32})
+        with res.trashBtn = IconButton.create(res.editZoomBar, res.theme().icon(.Remove), {0, 0, 120, 32})
         {
             .name.set("Trash")
             .updateFlags(.CenterContent)

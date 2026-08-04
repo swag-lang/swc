@@ -265,7 +265,7 @@ impl IWnd for Properties
     {
         for itIt in .items
         {
-            let it = notnull itIt
+            let it = itIt!
             if @isset(it.validationLabel) and it.validation != .None do
                 .applyValidationVisual(it)
             if it.flags.has(.Note) do
@@ -288,7 +288,7 @@ impl IWnd for Properties
         var scan = cast(#null *PropertiesItem) item
         while scan
         {
-            if scan.ntfyItf and scan.ntfyItf.onPopupCommand(me, notnull item, notnull evt.id)
+            if scan.ntfyItf and scan.ntfyItf.onPopupCommand(me, item!, evt.id!)
             {
                 .refreshItem(item)
                 .commitItemChange(item)
@@ -361,12 +361,12 @@ internal impl Properties
                 .refreshNative(item)
             elif Reflection.isString(pointed) and @isset(item.editBox)
             {
-                item.editBox.setText(dref notnull cast(#null *string) item.data)
+                item.editBox.setText(dref cast #unnull (*string) item.data)
                 .setEditMixed(item, item.editBox)
             }
             elif pointed == Core.String and @isset(item.editBox)
             {
-                item.editBox.setText(dref notnull cast(#null *String) item.data)
+                item.editBox.setText(dref cast #unnull (*String) item.data)
                 .setEditMixed(item, item.editBox)
             }
             elif pointed == Core.String and @isset(item.comboBox) do
@@ -513,7 +513,7 @@ impl Properties
 
         for it in .items
         {
-            let itn = notnull it
+            let itn = it!
             itn.line.destroyNow()
         }
 
@@ -581,7 +581,7 @@ impl Properties
         let typeStruct = cast(const *Swag.TypeInfoStruct) typeof
         .addStructInternal(typeStruct, cast([*] u8) bases[0], item)
 
-        let itemn = notnull item
+        let itemn = item!
         itemn.numChilds = cast(u32) (.items.count - numItemsBefore)
 
         .assignInstances(firstItemIdx, bases)
@@ -609,12 +609,12 @@ impl Properties
         let base0 = cast([*] u8) bases[0]
         for [i] in fromIdx until .items.count
         {
-            let it = notnull .items[i]
+            let it = .items[i]!
             it.dataInstances.clear()
             if !it.data do
                 continue
 
-            if .isUnderDynamicArray(notnull it)
+            if .isUnderDynamicArray(it!)
             {
                 it.dataInstances.add(it.data)
                 continue
@@ -630,7 +630,7 @@ impl Properties
     mtd refresh()
     {
         for it in .items do
-            .refreshItem(notnull it)
+            .refreshItem(it!)
     }
 
     // Commits a value written by an editor, including propagation, undo, refresh, validation,
@@ -833,7 +833,7 @@ impl Properties
         .computeLevelMarks()
 
         for it in .items do
-            .updateItemState(notnull it)
+            .updateItemState(it!)
         .updateValidation()
         .updateDefaults()
         .applyLayout()

@@ -6,7 +6,7 @@ using Swag, Core, Pixel
 func pixelAt(image: const *Image, x, y: s32)->u32
 {
     let idx = (cast(u64) y * cast(u64) image.width + cast(u64) x) * 4
-    let ptr = (notnull image.pixels.buffer) + idx
+    let ptr = image.pixels.buffer! + idx
     return dref cast(const *u32) ptr
 }
 

@@ -123,7 +123,7 @@ private impl Application
         event.target.processEvent(evt)
         while !event.accepted
         {
-            let target = notnull event.target
+            let target = event.target!
             event.target = target.owner orelse target.parent
             if !event.target or event.target == stopAt do
                 break
@@ -355,11 +355,11 @@ private impl Application
         var needUpdateState = false
         for it in copy
         {
-            let evt = notnull (it as Event)
+            let evt = (it as Event)!
 
             if it is InvalidateEvent
             {
-                let target = notnull evt.target
+                let target = evt.target!
                 target.invalidate()
             }
             else do
@@ -369,7 +369,7 @@ private impl Application
             if it is CommandEvent do
                 needUpdateState = true
 
-            .toDelete.add({evt, notnull evt.type})
+            .toDelete.add({evt, evt.type!})
         }
 
         if needUpdateState do
@@ -447,7 +447,7 @@ private impl Application
         // Be sure there's no posted event for that window
         for e in .postedEvents
         {
-            let ptr = notnull (e as Event)
+            let ptr = (e as Event)!
             if ptr.target == wnd do
                 ptr.target = null
         }
@@ -606,8 +606,8 @@ impl Application
 
         for it in .postedEvents
         {
-            let ptr = notnull (it as Event)
-            .toDelete.add({ptr, notnull ptr.type})
+            let ptr = (it as Event)!
+            .toDelete.add({ptr, ptr.type!})
         }
 
         .deletePointers()
@@ -668,7 +668,7 @@ impl Application
             flags &= ~.Resizable
         if !borders do
             flags &= ~.Border
-        let surface = notnull (expect app.createSurface(x, y, width, height, flags, view, hook))
+        let surface = (expect app.createSurface(x, y, width, height, flags, view, hook))!
         surface.setTitle(title)
         if init do
             init(&app)
@@ -845,7 +845,7 @@ impl Application
         // Remove from parent
         if wnd.parent and !wnd.parent.isPendingDestroy
         {
-            let oldParent = notnull wnd.parent
+            let oldParent = wnd.parent!
             let detached  = oldParent.detachChild(wnd)
             Debug.assert(detached)
             oldParent.invalidate()
@@ -853,7 +853,7 @@ impl Application
 
         if wnd.isAllocated
         {
-            .toDelete.add({wnd, notnull wnd.type})
+            .toDelete.add({wnd, wnd.type!})
         }
     }
 

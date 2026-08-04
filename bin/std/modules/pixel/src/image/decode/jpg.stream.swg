@@ -90,7 +90,7 @@ impl Decoder
         }
 
         dref paddingFlag = false
-        let inBufOfs = notnull .inBufOfs
+        let inBufOfs = .inBufOfs!
         let c        = dref inBufOfs
         .inBufOfs  += 1
         .inBufLeft -= 1
@@ -112,7 +112,7 @@ impl Decoder
             }
         }
 
-        let inBufOfs = notnull .inBufOfs
+        let inBufOfs = .inBufOfs!
         let c        = inBufOfs[0]
         .inBufOfs  += 1
         .inBufLeft -= 1
@@ -256,7 +256,7 @@ impl Decoder
                 fail InvalidFormatError{"bad dqt table"}
 
             .quant[n].resize(64)
-            let qbuf = notnull .quant[n].buffer
+            let qbuf = .quant[n].buffer!
             for [i] in 64
             {
                 var temp = .getBits1(8)

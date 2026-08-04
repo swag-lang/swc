@@ -100,7 +100,7 @@ impl Layer
     mtd end()
     {
         Debug.assert(.active)
-        let painter = notnull .painter
+        let painter = .painter!
         painter.unbindRenderTarget()
         .active = false
     }
@@ -127,9 +127,9 @@ impl Layer
         if .resolved do
             return
 
-        let renderer       = notnull .renderer
-        let painter        = notnull .painter
-        let paintTarget    = notnull .paintTarget
+        let renderer       = .renderer!
+        let painter        = .painter!
+        let paintTarget    = .paintTarget!
         let renderScale    = .renderScale
         let resolvedTarget = renderer.acquireRenderTarget(.deviceWidth(), .deviceHeight())
 
@@ -180,9 +180,9 @@ impl Layer
         let targetRect   = Math.Rectangle{margin, margin, .width, .height}
         let fullDstRect  = Math.Rectangle{0, 0, shadowWidth, shadowHeight}
         let fullSrcRect  = Math.Rectangle{0, 0, shadowWidth * .deviceScale, shadowHeight * .deviceScale}
-        let renderer     = notnull .renderer
-        let painter      = notnull .painter
-        let content      = notnull .contentTarget
+        let renderer     = .renderer!
+        let painter      = .painter!
+        let content      = .contentTarget!
         let target1      = renderer.acquireRenderTarget(devShadowW, devShadowH)
         let target2      = renderer.acquireRenderTarget(devShadowW, devShadowH)
 
@@ -254,7 +254,7 @@ impl Layer
         else do
             .resolve()
 
-        let painter = notnull .painter
+        let painter = .painter!
         with painter
         {
             .pushState()
@@ -286,7 +286,7 @@ impl Layer
     mtd texture()->Texture
     {
         .resolve()
-        let contentTarget = notnull .contentTarget
+        let contentTarget = .contentTarget!
         return contentTarget.colorBuffer
     }
 

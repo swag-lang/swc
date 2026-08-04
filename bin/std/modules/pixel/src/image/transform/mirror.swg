@@ -12,10 +12,10 @@ impl Image
         {
             mec.visitPixels(f)
             {
-                let dstImage = cast(*Image) (notnull userData)
+                let dstImage = cast(*Image) userData!
                 var pixDst   = dstImage.pixels.buffer + (image.width - x - 1) * image.bytesPerPixel
                 pixDst += cast(u64) (y * (image.width * image.bytesPerPixel))
-                copyPixelDirect'BPP(cast([*] u8) (notnull pixDst), cast([*] u8) pix)
+                copyPixelDirect'BPP(cast([*] u8) pixDst!, cast([*] u8) pix)
             }
         }
 

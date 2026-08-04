@@ -138,7 +138,7 @@ impl Decoder
                 break
             if ret == 1 do
                 keySize += 1
-            entry  = (notnull .table.entries.buffer)[key]
+            entry  = .table.entries.buffer![key]
             strLen = entry.length
             for [i] in strLen
             {
@@ -150,7 +150,7 @@ impl Decoder
                 .frame[(.fy + y) * .width + .fx + x] = entry.suffix
                 if entry.prefix == 0xFFF do
                     break
-                entry = (notnull .table.entries.buffer)[entry.prefix]
+                entry = .table.entries.buffer![entry.prefix]
             }
 
             frmOff += strLen

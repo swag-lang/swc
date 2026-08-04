@@ -49,7 +49,7 @@ using Swag, Core
 {
     var scope: FaceScope
     scope.init()
-    let face = notnull scope.face
+    let face = scope.face!
 
     let glyphA       = face.glyphIndex('A')
     let glyphE       = face.glyphIndex(0x00E9)

@@ -16,8 +16,8 @@ var app: Application
 
 #main
 {
-    let surface = notnull (try app.createSurface(
-        100, 100, 640, 420, SurfaceFlags.StandardWindow))
+    let surface = (try app.createSurface(
+        100, 100, 640, 420, SurfaceFlags.StandardWindow))!
     surface.setTitle("My application")
 
     let button = PushButton.create(surface.view(), "Continue")
@@ -37,7 +37,7 @@ use [[Gui.Wnd.destroy]] for deferred destruction during event dispatch.
 #run
 {
     let itf = @compiler
-    let cfg = notnull itf.getBuildCfg()
+    let cfg = itf.getBuildCfg()!
     cfg.moduleVersion     = #swcversion
     cfg.moduleRevision    = #swcrevision
     cfg.moduleBuildNum    = #swcbuildnum

@@ -31,10 +31,10 @@ internal impl Properties
 
         for v in typeStruct.fields
         {
-            let dataField   = notnull cast(#null *f32) (data + v.offset)
+            let dataField   = cast #unnull (*f32) (data + v.offset)
             let fieldOffset = cast(u64) v.offset
 
-            with let label = Label.create(line, (notnull v.name)[0 to 0], {0, 0, item.line.position.height})
+            with let label = Label.create(line, v.name![0 to 0], {0, 0, item.line.position.height})
             {
                 .dockStyle = .Left
                 .setTextHorizontalAlignment(.Center)
@@ -84,7 +84,7 @@ internal impl IPropertyEditor for VectorEditor
 
     mtd impl construct(list: *Properties, value: Swag.TypeValue, data: #null [*] u8, parent: #null *PropertiesItem)->*PropertiesItem
     {
-        return list.constructVector(value, notnull cast(#null const *Swag.TypeInfoStruct) value.pointedType, data, notnull parent)
+        return list.constructVector(value, cast #unnull (const *Swag.TypeInfoStruct) value.pointedType, data, parent!)
     }
 }
 

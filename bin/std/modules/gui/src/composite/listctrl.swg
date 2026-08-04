@@ -149,7 +149,7 @@ impl ListLine
         Debug.assert(column < .items.count)
         for itemIt in .items
         {
-            let item = notnull itemIt
+            let item = itemIt!
             if item.column == column do
                 return item
         }
@@ -165,7 +165,7 @@ impl ListLine
     {
         for itemIt in .items
         {
-            let item = notnull itemIt
+            let item = itemIt!
             if item.column == column
             {
                 item.name = name
@@ -241,7 +241,7 @@ impl IWnd for ListView
             }
             else
             {
-                .list.toggleExpand(notnull focusLine)
+                .list.toggleExpand(focusLine!)
             }
 
         case .Enter where focusLine:
@@ -263,7 +263,7 @@ impl IWnd for ListView
             }
             else
             {
-                .list.toggleExpand(notnull focusLine)
+                .list.toggleExpand(focusLine!)
             }
 
         case .A:
@@ -302,10 +302,10 @@ impl IWnd for ListView
             selChanged = true
 
         case .Left where focusLine:
-            .list.collapse(notnull focusLine)
+            .list.collapse(focusLine!)
 
         case .Right where focusLine:
-            .list.expand(notnull focusLine)
+            .list.expand(focusLine!)
 
         case .PageDown:
             let first = .list.firstVisibleLineIndex()
@@ -401,7 +401,7 @@ impl IWnd for ListView
 
         if idx != Swag.U32.Max and !.list.isVirtual
         {
-            let hitLine  = notnull .list.lines[idx]
+            let hitLine  = .list.lines[idx]!
             let idxLine  = hitLine.index
             var localPos = .surfaceToLocal(evt.surfacePos)
             localPos.x += .scrollPos.x
@@ -423,7 +423,7 @@ impl IWnd for ListView
                     {
                         if evt.kind == .Released do
                             return
-                        .list.toggleExpand(notnull .list.lines[idx])
+                        .list.toggleExpand(.list.lines[idx]!)
                         return
                     }
                 }
@@ -467,7 +467,7 @@ impl IWnd for ListView
         if evt.kind == .DoubleClick
         {
             if idx != Swag.U32.Max and !.list.isVirtual do
-                .list.toggleExpand(notnull .list.lines[idx])
+                .list.toggleExpand(.list.lines[idx]!)
             let pt = .surfaceToLocal(evt.surfacePos)
             .list.sigLeftDoubleClicked.call(.list, pt)
             return
@@ -558,11 +558,11 @@ impl IWnd for ListView
 
         if .list.isVirtual
         {
-            let fillVirtualLine = notnull .list.onFillVirtualLine
+            let fillVirtualLine = .list.onFillVirtualLine!
             for [i] in firstIdx to lastIdx
             {
                 var line: ListLine
-                fillVirtualLine(notnull .list, &line, i)
+                fillVirtualLine(.list!, &line, i)
                 .paintLine(bc, i, &line, rect, line.canCheck)
                 rect.y = rect.bottom()
 
@@ -575,7 +575,7 @@ impl IWnd for ListView
             for [i] in firstIdx to lastIdx
             {
                 let line = .list.lines[i]
-                .paintLine(bc, i, notnull line, rect, reserveCheckMargin)
+                .paintLine(bc, i, line!, rect, reserveCheckMargin)
                 rect.y = rect.bottom()
 
                 if .list.listFlags.has(.HorizontalLines) do
@@ -594,7 +594,7 @@ impl IWnd for ListView
                 painter.drawLine(x, rect.y, x, rect.bottom(), colors.listItem_Line, 1)
             }
 
-            let last = notnull .list.header.items.back()
+            let last = .list.header.items.back()!
             var x    = .columnPosition(last.column)
             x -= .scrollPos.x
             x += last.width
@@ -678,7 +678,7 @@ private impl ListView
         var format: RichStringFormat
         for itemIt, [idxItem] in line.items
         {
-            let item           = notnull itemIt
+            let item           = itemIt!
             var colorFg: Color = undefined
             if item.colorFg.a and !isSelected do
                 colorFg = item.colorFg
@@ -713,7 +713,7 @@ private impl ListView
                 {
                     if canExpand
                     {
-                        let expand = theme.icon24(line.expanded ? .Expanded : .Collapsed)
+                        let expand = theme.icon(line.expanded ? .Expanded : .Collapsed)
                         expand.paint(painter, labelPos.x, labelPos.vertCenter() - expand.sizeY * 0.5, colorExpand)
                     }
 
@@ -1023,7 +1023,7 @@ impl ListCtrl
             return false
         if .isVirtual do
             return .selModel.isSelected(idx)
-        let line = notnull .lines[idx]
+        let line = .lines[idx]!
         return !line.separator and .selModel.isSelected(line.index)
     }
 
@@ -1107,7 +1107,7 @@ impl ListCtrl
     {
         Debug.assert(!.isVirtual, "virtual lists do not support checked rows")
         Debug.assert(index < .lines.count, "list row index is out of range")
-        let line = notnull .lines[index]
+        let line = .lines[index]!
         Debug.assert(line.canCheck, "the list row is not checkable")
         if .checkModel.isSelected(line.index) == checked do
             return
@@ -1156,7 +1156,7 @@ impl ListCtrl
     // Returns the effective row height for the current font and configuration.
     mtd lineHeight()->f32
     {
-        return .fixedLineHeight != 0 ? .fixedLineHeight : (notnull .font().regular).height + 8
+        return .fixedLineHeight != 0 ? .fixedLineHeight : .font().regular!.height + 8
     }
 
     // Returns the visible row at `index`.
@@ -1405,7 +1405,7 @@ impl ListCtrl
         for lIt in lines
         {
             result.add(lIt)
-            let l = notnull lIt
+            let l = lIt!
             if l.expanded do
                 .collectVisibleLines(result, l.lines.toSlice())
         }
@@ -1439,21 +1439,21 @@ impl ListCtrl
 
             if a.parent != b.parent
             {
-                if a.isParentOf(notnull b) do
+                if a.isParentOf(b!) do
                     return -1
-                if b.isParentOf(notnull a) do
+                if b.isParentOf(a!) do
                     return 1
 
-                var a1 = notnull a
-                var b1 = notnull b
+                var a1 = a!
+                var b1 = b!
                 while a1.level > b1.level do
-                    a1 = notnull a1.parent
+                    a1 = a1.parent!
                 while b1.level > a1.level do
-                    b1 = notnull b1.parent
+                    b1 = b1.parent!
                 while a1.parent != b1.parent
                 {
-                    a1 = notnull a1.parent
-                    b1 = notnull b1.parent
+                    a1 = a1.parent!
+                    b1 = b1.parent!
                 }
 
                 return sortFunc(column, descending, a1, b1)
@@ -1531,7 +1531,7 @@ impl ListCtrl
         var removeCount = 0'u32
         while tmp.count
         {
-            let toI = notnull tmp.popBack()
+            let toI = tmp.popBack()!
             for l in toI.lines
             {
                 removeCount += 1
@@ -1569,7 +1569,7 @@ impl ListCtrl
         {
             for lIt in sl
             {
-                let l = notnull lIt
+                let l = lIt!
                 l.expanded = false
                 collapseRec(l.lines.toSlice())
             }
@@ -1578,7 +1578,7 @@ impl ListCtrl
         for l in .lines
         {
             if l!.expanded do
-                .collapse(notnull l)
+                .collapse(l!)
         }
 
         collapseRec(.lines.toSlice())

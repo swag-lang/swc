@@ -31,7 +31,7 @@ impl IWnd for CaptureRectWnd
     mtd testAutoGrab()
     {
         let pt = Input.mousePosition()
-        let r  = screenToDesktopRect(getWndRectAtPos(notnull .surface, pt.x, pt.y))
+        let r  = screenToDesktopRect(getWndRectAtPos(.surface!, pt.x, pt.y))
         if !r.isEmpty()
         {
             g_StartGrabX = r.x
@@ -195,7 +195,7 @@ impl IWnd for CaptureRectWnd
         // captured image.
         if grabRect.width > 0 and grabRect.height > 0
         {
-            let fontR = notnull .font().regular
+            let fontR = .font().regular!
             let str   = Format.toString("% x %", grabRect.width, grabRect.height)
             var xx    = dstGrab.x + 4
             var yy    = dstGrab.y - fontR.height - 8

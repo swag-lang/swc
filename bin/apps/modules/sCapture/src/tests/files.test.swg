@@ -70,7 +70,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(f.gui.autoHandled)
     @assert(f.gui.app.surfaces.count == 0)
 
-    let capture       = notnull f.main.getCapture()
+    let capture       = f.main.getCapture()!
     let generatedPath = capture.file
     defer
     {
@@ -102,7 +102,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.NewFromClipboard))
     f.gui.pump()
 
-    let capture       = notnull f.main.getCapture()
+    let capture       = f.main.getCapture()!
     let generatedPath = capture.file
     defer
     {
@@ -140,7 +140,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(f.gui.autoHandled)
     @assert(f.gui.app.surfaces.count == 0)
 
-    let capture       = notnull f.main.getCapture()
+    let capture       = f.main.getCapture()!
     let generatedPath = capture.file
     defer
     {
@@ -276,7 +276,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(f.capture.linkedImage == linkedPath)
     @assert(f.capture.linkedUpToDate)
 
-    let loaded = notnull expect Capture.load(capturePath)
+    let loaded = expect Capture.load(capturePath)!
     defer Memory.delete(loaded)
     @assert(loaded.linkedImage == linkedPath)
     @assert(loaded.linkedUpToDate)
@@ -309,7 +309,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(testSamePath(f.capture.linkedImage, linkedPath))
     @assert(f.capture.linkedUpToDate)
 
-    let loaded = notnull expect Capture.load(capturePath)
+    let loaded = expect Capture.load(capturePath)!
     defer Memory.delete(loaded)
     @assert(testSamePath(loaded.linkedImage, linkedPath))
     @assert(loaded.linkedUpToDate)
@@ -348,7 +348,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(linked.height == 16)
     @assert(testHasSCaptureFileMetadata(linked, capturePath))
 
-    let loaded = notnull expect Capture.load(capturePath)
+    let loaded = expect Capture.load(capturePath)!
     defer Memory.delete(loaded)
     @assert(loaded.linkedImage == linkedPath)
     @assert(loaded.linkedUpToDate)
@@ -390,7 +390,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(linked.height == 26)
     @assert(testHasSCaptureFileMetadata(linked, capturePath))
 
-    let loaded = notnull expect Capture.load(capturePath)
+    let loaded = expect Capture.load(capturePath)!
     defer Memory.delete(loaded)
     @assert(testSamePath(loaded.linkedImage, linkedPath))
     @assert(loaded.linkedUpToDate)
@@ -426,7 +426,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(f.capture.linkedImage.isEmpty())
     @assert(!f.capture.linkedUpToDate)
 
-    let loaded = notnull expect Capture.load(capturePath)
+    let loaded = expect Capture.load(capturePath)!
     defer Memory.delete(loaded)
     @assert(loaded.linkedImage.isEmpty())
     @assert(!loaded.linkedUpToDate)
@@ -460,7 +460,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(!testSamePath(duplicatedPath, originalPath))
     @assert(File.exists(duplicatedPath))
 
-    let duplicated = notnull expect Capture.load(duplicatedPath)
+    let duplicated = expect Capture.load(duplicatedPath)!
     defer Memory.delete(duplicated)
     @assert(duplicated.forms.count == 1)
     @assert(duplicated.linkedImage == null)

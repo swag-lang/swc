@@ -4,7 +4,7 @@
 // access and calls through a still-nullable value are compile-time errors. Three
 // sanctioned routes discharge the proof:
 // - a dominating null test (flow narrowing);
-// - an explicit 'notnull' assertion (runtime-checked in safety builds);
+// - an explicit '!' assertion (runtime-checked in safety builds);
 // - a '?.' guarded access, optionally closed by an 'orelse' fallback.
 // The TYPE boundary is unchanged: a '#null T' never converts implicitly to 'T'.
 
@@ -50,10 +50,10 @@ func nullableUsageRefined(value: #null *NullableUsageItem, block: #null [*] s32,
     return value.value + block[0] + callback()
 }
 
-// ...or an explicit 'notnull' assertion.
+// ...or an explicit '!' assertion.
 func nullableUsageAsserted(value: #null *NullableUsageItem)->s32
 {
-    return (notnull value).value
+    return value!.value
 }
 
 // ...or a '?.' guarded access.

@@ -6,7 +6,7 @@ private impl RichEditCtrl
 {
     mtd selectionRectRange(lineIndex: u64, rankBeg, rankEnd: *u64)->bool
     {
-        let line = notnull .lines[lineIndex]
+        let line = .lines[lineIndex]!
         let len  = line.length()
 
         var x  = .leftMargin()
@@ -175,7 +175,7 @@ impl RichEditCtrl
             .invalidate()
         }
 
-        let back = notnull .lines.back()
+        let back = .lines.back()!
         if .selBeg.lineIndex == .lines.count - 1 and .selBeg.charPosInLine > back.length() do
             .selBeg.charPosInLine = back.length()
 
@@ -334,7 +334,7 @@ impl RichEditCtrl
     // Selects the word containing the active cursor.
     mtd selectWord()
     {
-        let line = notnull .lines[.cursorPos.lineIndex]
+        let line = .lines[.cursorPos.lineIndex]!
         let len  = line.length()
         if !len do
             return

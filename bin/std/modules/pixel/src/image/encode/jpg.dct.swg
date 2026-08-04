@@ -8,7 +8,7 @@ impl Encoder
     {
         var pos      = 0
         var location = cast(s32) ypos * .imageX + xpos
-        let pdst     = notnull .bufferRGB.buffer
+        let pdst     = .bufferRGB.buffer!
 
         for [y] in 8
         {
@@ -147,8 +147,8 @@ impl Encoder
         else
         {
             let diffc    = cast #bit (u64) cast(s64) diff     // If negative
-            let category = notnull .category
-            let bitcode  = notnull .bitcode
+            let category = .category!
+            let bitcode  = .bitcode!
             .writeBits(hTDC[category[diffc]])
             .writeBits(bitcode[diffc])
         }
@@ -178,8 +178,8 @@ impl Encoder
             }
 
             let offc     = cast #bit (u64) cast(s64) .du[i]     // If negative
-            let category = notnull .category
-            let bitcode  = notnull .bitcode
+            let category = .category!
+            let bitcode  = .bitcode!
             .writeBits(hTAC[nrzeroes * 16 + category[offc]])
             .writeBits(bitcode[offc])
             i += 1

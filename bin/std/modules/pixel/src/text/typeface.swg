@@ -88,9 +88,9 @@ public impl TypeFace
 
         let here = g_HashTypeFace.tryFind(fullname)
         if here do
-            return notnull here.value
+            return here.value!
 
-        let allocator = notnull (@getcontext().defaultAllocator orelse @getcontext().allocator)
+        let allocator = (@getcontext().defaultAllocator orelse @getcontext().allocator)!
         let tf        = Memory.new'TypeFace(allocator)
         tf.allocationAllocator = allocator
         defer #fail Memory.delete(tf, allocator)
@@ -98,7 +98,7 @@ public impl TypeFace
         tf.buffer   = bytes
 
         let face = try Face.load(tf.buffer.toSlice(), allocator)
-        tf.face = notnull face
+        tf.face = face!
 
         g_HashTypeFace.add(fullname, tf)
         return tf
@@ -111,9 +111,9 @@ public impl TypeFace
 
         let here = g_HashTypeFace.tryFind(fullname)
         if here do
-            return notnull here.value
+            return here.value!
 
-        let allocator = notnull (@getcontext().defaultAllocator orelse @getcontext().allocator)
+        let allocator = (@getcontext().defaultAllocator orelse @getcontext().allocator)!
         let tf        = Memory.new'TypeFace(allocator)
         tf.allocationAllocator = allocator
         defer #fail Memory.delete(tf, allocator)
@@ -134,7 +134,7 @@ public impl TypeFace
         }
 
         let face = try Face.load(tf.buffer.toSlice(), allocator)
-        tf.face = notnull face
+        tf.face = face!
 
         g_HashTypeFace.add(fullname, tf)
         return tf

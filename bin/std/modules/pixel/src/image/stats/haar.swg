@@ -126,10 +126,10 @@ public func extractHaarFeatures(image: Image, windowSize: u32 = 128)->HaarFeatur
     // Convert image to grayscale and resize
     var grayImage: Array'f32
     grayImage.resize(targetSize * targetSize)
-    image.resampleToGrayscale(cast(s32) targetSize, cast(s32) targetSize, notnull grayImage.buffer)
+    image.resampleToGrayscale(cast(s32) targetSize, cast(s32) targetSize, grayImage.buffer!)
 
     // 2D Haar transform
-    haarTransform2D(notnull grayImage.buffer, targetSize, notnull features.coefficients.buffer)
+    haarTransform2D(grayImage.buffer!, targetSize, features.coefficients.buffer!)
     return features
 }
 
@@ -242,7 +242,7 @@ public func quickExtractHaarFeatures(image: Image, windowSize: u32 = 32)->HaarFe
     // Fast grayscale resizing with proper bounds checking
     var grayData: Array'f32
     grayData.resize(windowSize * windowSize)
-    let grayBuf = notnull grayData.buffer
+    let grayBuf = grayData.buffer!
 
     let stepX = Math.max(1.0, cast(f32) image.width / cast(f32) windowSize)
     let stepY = Math.max(1.0, cast(f32) image.height / cast(f32) windowSize)
@@ -260,7 +260,7 @@ public func quickExtractHaarFeatures(image: Image, windowSize: u32 = 32)->HaarFe
     }
 
     // 2D Haar transform
-    haarTransform2D(notnull grayData.buffer, windowSize, notnull features.coefficients.buffer)
+    haarTransform2D(grayData.buffer!, windowSize, features.coefficients.buffer!)
     return features
 }
 

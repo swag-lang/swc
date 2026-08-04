@@ -37,7 +37,7 @@ func(T) push(arr: *DynArray'T, value: T)
         arr.capacity = newCapacity
     }
 
-    let data = notnull arr.data
+    let data = arr.data!
     data[arr.count] = value
     arr.count       += 1
 }
@@ -46,21 +46,21 @@ func(T) pop(arr: *DynArray'T)->T
 {
     @assert(arr.count > 0)
     arr.count -= 1
-    let data = notnull arr.data
+    let data = arr.data!
     return data[arr.count]
 }
 
 func(T) get(arr: *DynArray'T, index: u64)->T
 {
     @assert(index < arr.count)
-    let data = notnull arr.data
+    let data = arr.data!
     return data[index]
 }
 
 func(T) set(arr: *DynArray'T, index: u64, value: T)
 {
     @assert(index < arr.count)
-    let data = notnull arr.data
+    let data = arr.data!
     data[index] = value
 }
 
@@ -72,13 +72,13 @@ func(T) clear(arr: *DynArray'T)
 func(T) last(arr: *DynArray'T)->T
 {
     @assert(arr.count > 0)
-    let data = notnull arr.data
+    let data = arr.data!
     return data[arr.count - 1]
 }
 
 func(T) contains(arr: *DynArray'T, value: T)->bool
 {
-    let data = notnull arr.data
+    let data = arr.data!
     for [i] in arr.count
     {
         if data[i] == value do
@@ -91,7 +91,7 @@ func(T) contains(arr: *DynArray'T, value: T)->bool
 func(T) removeAt(arr: *DynArray'T, index: u64)
 {
     @assert(index < arr.count)
-    let data = notnull arr.data
+    let data = arr.data!
     var i    = index
     while i + 1 < arr.count
     {
@@ -112,7 +112,7 @@ func(T) insertAt(arr: *DynArray'T, index: u64, value: T)
         arr.capacity = newCapacity
     }
 
-    let data = notnull arr.data
+    let data = arr.data!
     var i    = arr.count
     while i > index
     {
@@ -130,7 +130,7 @@ func(T) reverse(arr: *DynArray'T)
         return
     var lo: u64 = 0
     var hi      = arr.count - 1
-    let data    = notnull arr.data
+    let data    = arr.data!
     while lo < hi
     {
         let tmp = data[lo]

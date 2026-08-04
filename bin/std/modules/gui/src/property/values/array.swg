@@ -2,14 +2,14 @@ internal impl Properties
 {
     func setDescEditBox(item: *PropertiesItem)
     {
-        let arrData = notnull cast(#null *Array'u8) item.data
+        let arrData = cast #unnull (*Array'u8) item.data
         item.editBox.setText(Format.toString("% elements", arrData.count))
     }
 
     mtd reconstructArray(item: *PropertiesItem)
     {
-        let valueType        = notnull Reflection.dynamicArrayElementType(item.type)
-        let arrData          = notnull cast(#null *Array'u8) item.data
+        let valueType        = Reflection.dynamicArrayElementType(item.type)!
+        let arrData          = cast #unnull (*Array'u8) item.data
         let countItemsBefore = .items.count
         let itemIdx          = Slice.findLinear(.items.toSlice(), item)
         let insertItemIdx    = itemIdx + item.numChilds + 1
@@ -44,12 +44,12 @@ internal impl Properties
         // Update state of all newly added items
         item.numChilds = numAddedChilds
         for [i] in item.numChilds do
-            .updateItemState(notnull .items[itemIdx + i + 1])
+            .updateItemState((.items[itemIdx + i + 1])!)
     }
 
     mtd refreshArray(item: *PropertiesItem)
     {
-        let arrData = notnull cast(#null *Array'u8) item.data
+        let arrData = cast #unnull (*Array'u8) item.data
         if arrData.count == cast(u64) item.userData0 do
             return
         item.userData0 = cast(#null *void) arrData.count
@@ -61,7 +61,7 @@ internal impl Properties
 
     mtd clearArray(item: *PropertiesItem)
     {
-        let valueType = notnull Reflection.dynamicArrayElementType(item.type)
+        let valueType = Reflection.dynamicArrayElementType(item.type)!
         Reflection.clearDynamicArray(item.data, valueType)
         .refreshArray(item)
         .commitItemChange(item)
@@ -78,12 +78,12 @@ internal impl Properties
     {
         if Reflection.isDynamicArray(arrayItem.type)
         {
-            let vt  = notnull Reflection.dynamicArrayElementType(arrayItem.type)
-            let arr = notnull cast(#null *Array'u8) arrayItem.data
+            let vt  = Reflection.dynamicArrayElementType(arrayItem.type)!
+            let arr = cast #unnull (*Array'u8) arrayItem.data
             return {arr.buffer, vt, arr.count}
         }
 
-        let typeArr = notnull cast(#null const *Swag.TypeInfoArray) arrayItem.type
+        let typeArr = cast #unnull (const *Swag.TypeInfoArray) arrayItem.type
         return {cast(#null [*] u8) arrayItem.data, typeArr.pointedType, typeArr.count}
     }
 
@@ -123,31 +123,31 @@ internal impl Properties
     mtd moveArrayValue(elemItem: *PropertiesItem, dir: s32)
     {
         let arrayItem = elemItem.parent
-        let info      = .arrayElementInfo(notnull arrayItem)
+        let info      = .arrayElementInfo(arrayItem!)
         let idx       = .arrayElementIndex(elemItem)
         let target    = cast(s64) idx + dir
         if target < 0 or target >= cast(s64) info.count do
             return
 
         Reflection.swapRuntimeValues(info.base, info.valueType, idx, cast(u64) target)
-        .commitItemChange(notnull arrayItem)
+        .commitItemChange(arrayItem!)
     }
 
     mtd removeArrayValue(item: *PropertiesItem)
     {
-        let parentItem = notnull item.parent
-        let valueType  = notnull Reflection.dynamicArrayElementType(parentItem.type)
+        let parentItem = item.parent!
+        let valueType  = Reflection.dynamicArrayElementType(parentItem.type)!
         let removeIdx  = .arrayElementIndex(item)
 
         Reflection.removeDynamicArrayElement(parentItem.data, valueType, removeIdx)
 
-        .refreshArray(notnull parentItem)
-        .commitItemChange(notnull parentItem)
+        .refreshArray(parentItem!)
+        .commitItemChange(parentItem!)
     }
 
     mtd appendArrayValue(item: *PropertiesItem)
     {
-        let valueType = notnull Reflection.dynamicArrayElementType(item.type)
+        let valueType = Reflection.dynamicArrayElementType(item.type)!
 
         discard Reflection.appendDynamicArrayElement(item.data, valueType)
 
@@ -161,8 +161,8 @@ internal impl Properties
         let numItemsBefore = .items.count
         item.flags.add(.NoSeparator)
 
-        let valueType = notnull Reflection.dynamicArrayElementType(item.type)
-        let arrData   = notnull cast(#null *Array'u8) data
+        let valueType = Reflection.dynamicArrayElementType(item.type)!
+        let arrData   = cast #unnull (*Array'u8) data
         var newData   = arrData.buffer
 
         item.userData0 = cast(#null *void) arrData.count
@@ -177,7 +177,7 @@ internal impl Properties
         }
 
         let parentForBtn = .isGridLike() ? item.line : cast(#null *Wnd) item.label
-        let addBtn       = IconButton.create(notnull parentForBtn, .theme().icon24(ThemeIcons24.Plus, 20), {0, 0, 24, 24})
+        let addBtn       = IconButton.create(parentForBtn!, .theme().icon(ThemeIcons.Plus, 20), {0, 0, 24, 24})
         addBtn.dockStyle = .isGridLike() ? .Right : .None
         addBtn.setForm(IconButtonForm.Circle)
         item.arrayAddButton = addBtn

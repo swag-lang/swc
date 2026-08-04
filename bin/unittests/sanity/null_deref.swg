@@ -20,14 +20,14 @@ func nullSafetyEnabled()->bool
 
 #test
 {
-    const cfg      = #run dref notnull @compiler.getBuildCfg()
+    const cfg      = #run dref @compiler.getBuildCfg()!
     const expected = cfg.safetyGuards & Swag.SafetyWhat.Null ? true : false
     #assert(#safety(Swag.SafetyWhat.Null) == expected)
 }
 
 // ---------------------------------------------------------------------------
 // Provable null dereferences. Use-site enforcement rejects a raw dereference of a
-// still-nullable value at compile time, so each case goes through 'notnull': the
+// still-nullable value at compile time, so each case goes through '!': the
 // explicit assertion the programmer can get wrong. With the Expect runtime guard
 // disabled, the write really reaches the null pointer, the sanitizer proves it,
 // and the function's codegen is aborted. Each is marked `#[Swag.Sanity(.Null,
@@ -39,7 +39,7 @@ func nullSafetyEnabled()->bool
 #test
 {
     var p: #null *NullDerefItem = null
-    let q                       = notnull p
+    let q                       = p!
     q.x = 1     // swc-expected-error {{sanity_err_null_deref}}
 }
 
@@ -48,7 +48,7 @@ func nullSafetyEnabled()->bool
 #test
 {
     var p: #null *NullDerefItem = null
-    let q                       = notnull p
+    let q                       = p!
     q.y = 2     // swc-expected-error {{sanity_err_null_deref}}
 }
 
@@ -57,7 +57,7 @@ func nullSafetyEnabled()->bool
 #test
 {
     var p: #null *s32 = null
-    let q             = notnull p
+    let q             = p!
     dref q = 9     // swc-expected-error {{sanity_err_null_deref}}
 }
 
@@ -66,7 +66,7 @@ func nullSafetyEnabled()->bool
 #test
 {
     var p: #null *NullDerefItem = null
-    var q                       = notnull p
+    var q                       = p!
     q.x = 3     // swc-expected-error {{sanity_err_null_deref}}
 }
 
@@ -76,7 +76,7 @@ func nullSafetyEnabled()->bool
 #test
 {
     var p: #null *NullDerefItem = null
-    let q                       = notnull p
+    let q                       = p!
     @assert(q.x == 0)     // swc-expected-error {{sanity_err_null_deref}}
 }
 
@@ -88,7 +88,7 @@ func nullSafetyEnabled()->bool
     var p: #null *NullDerefItem = null
     if p == null
     {
-        let q = notnull p
+        let q = p!
         q.x = 4     // swc-expected-error {{sanity_err_null_deref}}
     }
 }
@@ -113,7 +113,7 @@ func nullSafetyEnabled()->bool
 // Correlated conditions: the same guard controls both the assignment and the use,
 // so the use is only reached when the pointer is non-null. Must NOT be flagged.
 // Flow narrowing cannot correlate the two 'if cond' blocks, so the use goes
-// through 'notnull'.
+// through '!'.
 func correlatedGuard(cond: bool)
 {
     var v: NullDerefItem
@@ -124,7 +124,7 @@ func correlatedGuard(cond: bool)
     }
     if cond
     {
-        let q = notnull p
+        let q = p!
         q.x = 5
     }
 }

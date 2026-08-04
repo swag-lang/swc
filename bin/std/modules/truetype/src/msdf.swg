@@ -121,7 +121,7 @@ func msdfColorContour(elements: *Array'MsdfElement, first, count: u32, seed: *u6
     let crossThreshold = 0.05233595624294383'f64
 
     var corners: Array'u32
-    let ebuf = notnull elements.buffer
+    let ebuf = elements.buffer!
     var pdx  = ebuf[first + count - 1].edx1
     var pdy  = ebuf[first + count - 1].edy1
     for [i] in count
@@ -266,7 +266,7 @@ func buildMsdfSegments(outline: const *Outline, segs: *Array'MsdfSeg)
 
     if !segs.count do
         return
-    let sbuf = notnull segs.buffer
+    let sbuf = segs.buffer!
 
     // Propagate element colors down to their segments.
     for el in elements
@@ -486,7 +486,7 @@ const MsdfParallelMinSamples: u64 = 2000
 func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) fail
 {
     let faceData = getSlotImpl(slot)
-    let safeSlot = notnull slot
+    let safeSlot = slot!
     clearBitmap(safeSlot)
 
     if safeSlot.format != .Outline do
@@ -529,8 +529,8 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) fail
     // while keeping the expensive per-pixel winding test off the hot path.
     var rowVotes: Array's64
     rowVotes.resize(cast(u64) rows)
-    let channelsBuffer = notnull channels.buffer
-    let rowVotesBuffer = notnull rowVotes.buffer
+    let channelsBuffer = channels.buffer!
+    let rowVotesBuffer = rowVotes.buffer!
 
     var ctx = MsdfRowCtx{
         segs: &segs,
@@ -546,7 +546,7 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) fail
     {
         Jobs.parallelFor(cast(u32) rows, &ctx) #code(py, data)
         {
-            let safeData = notnull data
+            let safeData = data!
             msdfProcessRow(cast(*MsdfRowCtx) safeData, py)
         }
     }
@@ -564,7 +564,7 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) fail
 
     let count = cast(u64) width * rows
     faceData.bitmapPixels.resize(count * 4)
-    var dst = notnull faceData.bitmapPixels.buffer
+    var dst = faceData.bitmapPixels.buffer!
     for [i] in count
     {
         let src = i * 4

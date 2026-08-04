@@ -3,7 +3,7 @@
 
 #run
 {
-    let cfg = notnull @compiler.getBuildCfg()
+    let cfg = @compiler.getBuildCfg()!
     cfg.moduleNamespace = "StaticApi"
     cfg.backendKind     = .StaticLibrary
 }

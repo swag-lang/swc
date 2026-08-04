@@ -164,7 +164,7 @@ impl Decoder
         // A temporary line "before" the first one, if filter needs one
         var tmpRow: Array'u8
         tmpRow.resize(rowStrideOut)
-        let tmpRowBuffer = notnull tmpRow.buffer
+        let tmpRowBuffer = tmpRow.buffer!
         Memory.clear(tmpRowBuffer, rowStrideOut)
         var up = tmpRowBuffer
 
@@ -281,7 +281,7 @@ impl Decoder
     mtd adam7()
     {
         var tmpArr: Array'u8
-        var input = notnull .dcmpBuf.buffer
+        var input = .dcmpBuf.buffer!
         for [p] in 7
         {
             let x = (.header.width - Adam7OrigX[p] + Adam7SpacingX[p] - 1) / Adam7SpacingX[p]
@@ -291,7 +291,7 @@ impl Decoder
 
             let pixelBytes = cast(u64) .inChannels * (.header.bitDepth == 16 ? 2 : 1)
             tmpArr.resize(cast(u64) (x * y) * pixelBytes)
-            let tmpBuffer = notnull tmpArr.buffer
+            let tmpBuffer = tmpArr.buffer!
             Memory.clear(tmpBuffer, tmpArr.count)
 
             .defilter(cast(u32) x, cast(u32) y, input, tmpBuffer)
@@ -322,7 +322,7 @@ impl Decoder
         if .header.interlaceMethod != .Adam7
         {
             .orderDefilter = false
-            let input = notnull .dcmpBuf.buffer
+            let input = .dcmpBuf.buffer!
             .defilter(.header.width, .header.height, input, .safeDstPixels())
         }
         else

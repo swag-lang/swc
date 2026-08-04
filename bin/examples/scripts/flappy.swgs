@@ -44,7 +44,7 @@ directly when it owns a normal workspace module.
 {
     // Obtain the compiler interface and this script's mutable build configuration.
     let itf = @compiler
-    let cfg = notnull itf.getBuildCfg()
+    let cfg = itf.getBuildCfg()!
 
     // Keep runtime safety guards outside release builds.
     #static if #cfg == "release" do
@@ -159,7 +159,7 @@ var g_SoundFlap:  Audio.SoundFile
 
 /**
 'g_Font' is a nullable pointer because font creation can return no font. Call
-sites use 'notnull' only after successful asset loading establishes the
+sites use '!' only after successful asset loading establishes the
 invariant.
 */
 
@@ -301,7 +301,7 @@ func paint(painter: *Painter)
     // Draw the score using the loaded game font.
     if !g_FirstStart
     {
-        painter.drawStringCenter(g_Rect.horzCenter(), 50, Format.toString("%", g_Score), notnull g_Font, Argb.White)
+        painter.drawStringCenter(g_Rect.horzCenter(), 50, Format.toString("%", g_Score), g_Font!, Argb.White)
     }
 
     // Show the start prompt before the first round.

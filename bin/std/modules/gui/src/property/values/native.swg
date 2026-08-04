@@ -2,7 +2,7 @@ internal impl Properties
 {
     mtd refreshNative(item: *PropertiesItem)
     {
-        let typeNative = notnull cast(#null const *Swag.TypeInfoNative) item.typeValue.pointedType
+        let typeNative = cast #unnull (const *Swag.TypeInfoNative) item.typeValue.pointedType
         let data       = item.data
 
         if @isset(item.sliderBox)
@@ -10,7 +10,7 @@ internal impl Properties
             #[Swag.Mixin]
             func(T) setEd()
             {
-                let p = notnull cast(#null *T) data
+                let p = cast #unnull (*T) data
                 item.sliderBox.slider.setValue(cast(f32) dref p)
             }
 
@@ -36,7 +36,7 @@ internal impl Properties
             #[Swag.Mixin]
             func(T) setEd()
             {
-                let p = notnull cast(#null *T) data
+                let p = cast #unnull (*T) data
                 item.editBox.setText(Format.toString("%", dref p))
             }
 
@@ -61,7 +61,7 @@ internal impl Properties
 
     mtd validateNative(item: *PropertiesItem)
     {
-        let typeNative = notnull cast(#null const *Swag.TypeInfoNative) item.typeValue.pointedType
+        let typeNative = cast #unnull (const *Swag.TypeInfoNative) item.typeValue.pointedType
         let data       = item.data
 
         if @isset(item.sliderBox)
@@ -69,7 +69,7 @@ internal impl Properties
             #[Swag.Mixin]
             func(T) setEd()
             {
-                var p = notnull cast(#null *T) data
+                var p = cast #unnull (*T) data
                 dref p = cast(T) item.sliderBox.slider.value()
             }
 
@@ -92,7 +92,7 @@ internal impl Properties
             #[Swag.Mixin]
             func(T) setEd()
             {
-                var p = notnull cast(#null *T) data
+                var p = cast #unnull (*T) data
                 dref p = catch StrConv.toNum'T(txt)
             }
 
@@ -137,8 +137,8 @@ internal impl Properties
             if unit != null do
                 slider.edit.setUnit(cast(string) (unit))
 
-            let minV = cast(f32) notnull Reflection.attributeValue(value, .SliderMinMax, "min")
-            let maxV = cast(f32) notnull Reflection.attributeValue(value, .SliderMinMax, "max")
+            let minV = cast(f32) Reflection.attributeValue(value, .SliderMinMax, "min")!
+            let maxV = cast(f32) Reflection.attributeValue(value, .SliderMinMax, "max")!
 
             // Whole bounds read as an integer slider (no trailing decimals), even for a
             // float field whose values are conceptually whole (a size, an angle...).
@@ -179,8 +179,8 @@ internal impl Properties
         if Reflection.hasAttribute(value, .MinMax)
         {
             hasMinMax = true
-            minV      = cast(s64) notnull Reflection.attributeValue(value, .MinMax, "min")
-            maxV      = cast(s64) notnull Reflection.attributeValue(value, .MinMax, "max")
+            minV      = cast(s64) Reflection.attributeValue(value, .MinMax, "min")!
+            maxV      = cast(s64) Reflection.attributeValue(value, .MinMax, "max")!
         }
 
         switch typeNative.nativeKind
@@ -231,15 +231,15 @@ internal impl Properties
             }
 
             me.adaptCondensedControl(slider)
-            me.flattenCondensedEdit(notnull slider.edit)
+            me.flattenCondensedEdit(slider.edit!)
             item.assignSliderBox(slider)
 
             let unit = Reflection.attributeValue(value, .Unit, "value")
             if unit != null do
                 slider.edit.setUnit(cast(string) (unit))
 
-            let minV = cast(f32) notnull Reflection.attributeValue(value, .SliderMinMax, "min")
-            let maxV = cast(f32) notnull Reflection.attributeValue(value, .SliderMinMax, "max")
+            let minV = cast(f32) Reflection.attributeValue(value, .SliderMinMax, "min")!
+            let maxV = cast(f32) Reflection.attributeValue(value, .SliderMinMax, "max")!
 
             switch typeNative.nativeKind
             {
@@ -274,8 +274,8 @@ internal impl Properties
             if Reflection.hasAttribute(value, .MinMax)
             {
                 hasMinMax = true
-                minV      = cast(s64) notnull Reflection.attributeValue(value, .MinMax, "min")
-                maxV      = cast(s64) notnull Reflection.attributeValue(value, .MinMax, "max")
+                minV      = cast(s64) Reflection.attributeValue(value, .MinMax, "min")!
+                maxV      = cast(s64) Reflection.attributeValue(value, .MinMax, "max")!
             }
 
             item.assignEditBox(ed)

@@ -199,10 +199,10 @@ internal impl Properties
             return
         for itemIt in .items
         {
-            let item = notnull itemIt
+            let item = itemIt!
             if .isGridHeader(item) or !item.numChilds do
                 continue
-            let depth = .itemDepth(notnull item)
+            let depth = .itemDepth(item!)
             while .gridLevelHasMark.count <= depth do
                 .gridLevelHasMark.add(false)
             .gridLevelHasMark[depth] = true
@@ -238,7 +238,7 @@ internal impl Properties
     mtd syncColumnLabels()
     {
         for item in .items do
-            .syncColumnLabel(notnull item)
+            .syncColumnLabel(item!)
     }
 
     mtd columnPosition()->f32

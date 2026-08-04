@@ -14,7 +14,7 @@ internal impl IPropertyEditor for FontStyleEditor
 
     mtd impl construct(list: *Properties, value: Swag.TypeValue, data: #null [*] u8, parent: #null *PropertiesItem)->*PropertiesItem
     {
-        let parentItem = notnull parent
+        let parentItem = parent!
         parentItem.flags.add(.NoSeparator | .NoFocus)
 
         let item  = list.addItem(value, data, parentItem)
@@ -70,7 +70,7 @@ internal impl IPropertyEditor for FontStyleEditor
 
         item.sigRefresh += func|style, btnBold, btnItalic|(item)
         {
-            let s = dref notnull style
+            let s = dref style!
             btnBold.setChecked(s == .Bold or s == .BoldItalic)
             btnItalic.setChecked(s == .Italic or s == .BoldItalic)
         }

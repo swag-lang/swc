@@ -22,34 +22,34 @@ impl Image
             case .Clockwise90:
                 dstImage.visitPixels(&f)
                 {
-                    let data     = cast(*#decltype(f)) (notnull userData)
+                    let data     = cast(*#decltype(f)) userData!
                     let srcImage = cast(const *Image) data.img
                     let nx       = srcImage.width - y - 1
                     let ny       = x
                     let pixSrc   = srcImage.pixels.buffer + (nx * srcImage.bytesPerPixel) + (ny * srcImage.rowStride)
-                    copyPixelDirect'BPP(cast([*] u8) pix, cast([*] u8) (notnull pixSrc))
+                    copyPixelDirect'BPP(cast([*] u8) pix, cast([*] u8) pixSrc!)
                 }
 
             case .HalfTurn:
                 dstImage.visitPixels(&f)
                 {
-                    let data     = cast(*#decltype(f)) (notnull userData)
+                    let data     = cast(*#decltype(f)) userData!
                     let srcImage = cast(const *Image) data.img
                     let nx       = srcImage.width - x - 1
                     let ny       = srcImage.height - y - 1
                     let pixSrc   = srcImage.pixels.buffer + (nx * srcImage.bytesPerPixel) + (ny * srcImage.rowStride)
-                    copyPixelDirect'BPP(cast([*] u8) pix, cast([*] u8) (notnull pixSrc))
+                    copyPixelDirect'BPP(cast([*] u8) pix, cast([*] u8) pixSrc!)
                 }
 
             case .Clockwise270:
                 dstImage.visitPixels(&f)
                 {
-                    let data     = cast(*#decltype(f)) (notnull userData)
+                    let data     = cast(*#decltype(f)) userData!
                     let srcImage = cast(const *Image) data.img
                     let nx       = y
                     let ny       = srcImage.height - x - 1
                     let pixSrc   = srcImage.pixels.buffer + (nx * srcImage.bytesPerPixel) + (ny * srcImage.rowStride)
-                    copyPixelDirect'BPP(cast([*] u8) pix, cast([*] u8) (notnull pixSrc))
+                    copyPixelDirect'BPP(cast([*] u8) pix, cast([*] u8) pixSrc!)
                 }
             }
         }

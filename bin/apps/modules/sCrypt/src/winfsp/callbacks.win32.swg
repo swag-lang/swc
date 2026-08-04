@@ -39,7 +39,7 @@ namespace WinFsp
         let node = volume.nodeById(nodeId)
         if !node do
             return StatusObjectNameNotFound
-        let validNode = notnull node
+        let validNode = node!
         with output
         {
             // Windows reports the space a file occupies, so a file always
@@ -59,7 +59,7 @@ namespace WinFsp
 
     func callbackGetVolumeInfo(context: #null *void, total, free: *u64, label: [*] u8, labelCapacity: u32)->s32
     {
-        let volume = cast(*Volume) notnull context
+        let volume = cast(*Volume) context!
         dref total = volume.totalBytes()
         dref free  = volume.freeBytes()
         let count = Math.min(volume.label.length, cast(u64) labelCapacity - 1)
@@ -71,7 +71,7 @@ namespace WinFsp
 
     func callbackSetVolumeLabel(context: #null *void, label: #null const [*] u8)->s32
     {
-        let volume = cast(*Volume) notnull context
+        let volume = cast(*Volume) context!
         let value  = cString(label)
         if @countof(value) > 32 * 4 do
             return StatusInvalidParameter
@@ -83,7 +83,7 @@ namespace WinFsp
 
     func callbackLookup(context: #null *void, path: #null const [*] u8, nodeId: *u64, info: *FileInfo)->s32
     {
-        let volume = cast(*Volume) notnull context
+        let volume = cast(*Volume) context!
         let node   = volume.resolve(cString(path))
         if !node do
             return StatusObjectNameNotFound
@@ -93,7 +93,7 @@ namespace WinFsp
 
     func callbackCreate(context: #null *void, path: #null const [*] u8, directory: u8, attributes: u32, allocationSize: u64, security: #null const *void, securitySize: u32, nodeId: *u64, info: *FileInfo)->s32
     {
-        let volume = cast(*Volume) notnull context
+        let volume = cast(*Volume) context!
         let name   = cString(path)
         if volume.resolve(name) do
             return StatusObjectNameCollision
@@ -102,7 +102,7 @@ namespace WinFsp
             return StatusObjectNameNotFound
         var securityBytes = @mkslice(cast(const [*] u8) @dataof(""), 0)
         if securitySize do
-            securityBytes = @mkslice(cast(const [*] u8) notnull security, securitySize)
+            securityBytes = @mkslice(cast(const [*] u8) security!, securitySize)
         let id = catch volume.createNode(name, directory != 0, attributes, securityBytes) as err
         if err != null do
             return statusFromError(err)
@@ -119,7 +119,7 @@ namespace WinFsp
 
     func callbackOverwrite(context: #null *void, nodeId: u64, attributes: u32, replaceAttributes: u8, allocationSize: u64, info: *FileInfo)->s32
     {
-        let volume = cast(*Volume) notnull context
+        let volume = cast(*Volume) context!
         let node   = volume.nodeById(nodeId)
         if !node do
             return StatusObjectNameNotFound
@@ -141,7 +141,7 @@ namespace WinFsp
 
     func callbackCleanup(context: #null *void, nodeId: u64, flags: u32)
     {
-        let volume = cast(*Volume) notnull context
+        let volume = cast(*Volume) context!
         if (flags & CleanupDelete) != 0
         {
             discard catch volume.deleteNode(nodeId)
@@ -175,13 +175,13 @@ namespace WinFsp
             return StatusSuccess
         }
 
-        let volume = cast(*Volume) notnull context
+        let volume = cast(*Volume) context!
         let node   = volume.nodeById(nodeId)
         if !node do
             return StatusObjectNameNotFound
         if node!.isDirectory() do
             return StatusFileIsDirectory
-        let count = catch volume.readNode(nodeId, offset, @mkslice(cast([*] u8) notnull buffer, length)) as err
+        let count = catch volume.readNode(nodeId, offset, @mkslice(cast([*] u8) buffer!, length)) as err
         if err != null do
             return statusFromError(err)
         dref transferred = count
@@ -196,11 +196,11 @@ namespace WinFsp
             return callbackGetFileInfo(context, nodeId, info)
         }
 
-        let volume = cast(*Volume) notnull context
+        let volume = cast(*Volume) context!
         let node   = volume.nodeById(nodeId)
         if !node do
             return StatusObjectNameNotFound
-        let validNode = notnull node
+        let validNode = node!
         if validNode.isDirectory() do
             return StatusFileIsDirectory
         var writeOffset = writeToEnd ? validNode.size : offset
@@ -226,7 +226,7 @@ namespace WinFsp
                 return StatusDiskFull
         }
 
-        let count = catch volume.writeNode(nodeId, offset, @mkslice(cast(const [*] u8) notnull buffer, length), writeToEnd != 0, constrained != 0) as err
+        let count = catch volume.writeNode(nodeId, offset, @mkslice(cast(const [*] u8) buffer!, length), writeToEnd != 0, constrained != 0) as err
         if err != null do
             return statusFromError(err, volume.freeBlockCount() ? StatusIoDeviceError : StatusDiskFull)
         dref transferred = count
@@ -235,7 +235,7 @@ namespace WinFsp
 
     func callbackFlush(context: #null *void, nodeId: u64, info: *FileInfo)->s32
     {
-        let volume = cast(*Volume) notnull context
+        let volume = cast(*Volume) context!
         discard catch volume.commit() as err
         if err != null do
             return statusFromError(err)
@@ -246,16 +246,16 @@ namespace WinFsp
 
     func callbackGetFileInfo(context: #null *void, nodeId: u64, info: *FileInfo)->s32
     {
-        return fillInfo(cast(*Volume) notnull context, nodeId, info)
+        return fillInfo(cast(*Volume) context!, nodeId, info)
     }
 
     func callbackSetBasicInfo(context: #null *void, nodeId: u64, attributes: u32, creationTime, lastAccessTime, lastWriteTime, changeTime: u64, info: *FileInfo)->s32
     {
-        let volume = cast(*Volume) notnull context
+        let volume = cast(*Volume) context!
         let node   = volume.nodeById(nodeId)
         if !node do
             return StatusObjectNameNotFound
-        let validNode = notnull node
+        let validNode = node!
         if attributes != Swag.U32.Max
         {
             validNode.attributes = attributes ? attributes : FileAttributeNormal
@@ -279,11 +279,11 @@ namespace WinFsp
 
     func callbackSetFileSize(context: #null *void, nodeId, newSize: u64, setAllocationSize: u8, info: *FileInfo)->s32
     {
-        let volume = cast(*Volume) notnull context
+        let volume = cast(*Volume) context!
         let node   = volume.nodeById(nodeId)
         if !node do
             return StatusObjectNameNotFound
-        let validNode = notnull node
+        let validNode = node!
         if validNode.isDirectory() do
             return StatusFileIsDirectory
         let targetSize = setAllocationSize and newSize < validNode.size ? newSize :
@@ -298,13 +298,13 @@ namespace WinFsp
 
     func callbackCanDelete(context: #null *void, nodeId: u64)->s32
     {
-        let volume = cast(*Volume) notnull context
+        let volume = cast(*Volume) context!
         let node   = volume.nodeById(nodeId)
         if !node do
             return StatusObjectNameNotFound
         if nodeId == 1 do
             return StatusAccessDenied
-        let validNode = notnull node
+        let validNode = node!
         if (validNode.attributes & FileAttributeReadOnly) != 0 do
             return StatusAccessDenied
         if validNode.isDirectory() and volume.hasChildren(nodeId) do
@@ -314,7 +314,7 @@ namespace WinFsp
 
     func callbackRename(context: #null *void, nodeId: u64, oldPath, newPath: #null const [*] u8, replace: u8)->s32
     {
-        let volume = cast(*Volume) notnull context
+        let volume = cast(*Volume) context!
         discard oldPath
         discard catch volume.renameNode(nodeId, cString(newPath), replace != 0) as err
         return err == null ? StatusSuccess : statusFromError(err, StatusAccessDenied)
@@ -322,7 +322,7 @@ namespace WinFsp
 
     func callbackGetSecurity(context: #null *void, nodeId: u64, security: #null *void, securitySize: *u32)->s32
     {
-        let volume = cast(*Volume) notnull context
+        let volume = cast(*Volume) context!
         let node   = volume.nodeById(nodeId)
         if !node do
             return StatusObjectNameNotFound
@@ -333,20 +333,20 @@ namespace WinFsp
             return StatusSuccess
         if !security or available < @countof(stored) do
             return security ? StatusBufferOverflow : StatusSuccess
-        @memcpy(notnull security, @dataof(stored), @countof(stored))
+        @memcpy(security!, @dataof(stored), @countof(stored))
         return StatusSuccess
     }
 
     func callbackSetSecurity(context: #null *void, nodeId: u64, security: #null const *void, securitySize: u32)->s32
     {
-        let volume = cast(*Volume) notnull context
+        let volume = cast(*Volume) context!
         let node   = volume.nodeById(nodeId)
         if !node do
             return StatusObjectNameNotFound
-        let validNode = notnull node
+        let validNode = node!
         validNode.security.resize(securitySize)
         if securitySize do
-            @memcpy(validNode.security.buffer, notnull security, securitySize)
+            @memcpy(validNode.security.buffer, security!, securitySize)
         validNode.changeTime = volumeTimeNow()
         volume.dirty         = true
         return StatusSuccess
@@ -359,7 +359,7 @@ namespace WinFsp
 
     func callbackReadDirectory(context: #null *void, nodeId: u64, marker: #null const [*] u8, emit: EmitDirFn, emitContext: #null *void, complete: *u8)->s32
     {
-        let volume    = cast(*Volume) notnull context
+        let volume    = cast(*Volume) context!
         let directory = volume.nodeById(nodeId)
         if !directory do
             return StatusObjectNameNotFound
@@ -411,7 +411,7 @@ namespace WinFsp
 
     func callbackGetDirInfoByName(context: #null *void, directoryId: u64, name: #null const [*] u8, info: *FileInfo)->s32
     {
-        let volume    = cast(*Volume) notnull context
+        let volume    = cast(*Volume) context!
         let directory = volume.nodeById(directoryId)
         if !directory do
             return StatusObjectNameNotFound

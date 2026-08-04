@@ -105,7 +105,7 @@ private impl FormLayoutCtrl
         var actionWidth = 0'f32
         if row.action
         {
-            let action = notnull row.action
+            let action = row.action!
             actionWidth = action.measure({client.width, height}).preferred.x
             actionWidth = Math.max(actionWidth, action.minSize.x)
         }
@@ -137,7 +137,7 @@ private impl FormLayoutCtrl
         var actionWidth = 0'f32
         if row.action
         {
-            let action = notnull row.action
+            let action = row.action!
             actionWidth = action.measure({availableWidth, height}).preferred.x
             actionWidth = Math.max(actionWidth, action.minSize.x)
         }
@@ -200,7 +200,7 @@ impl FormLayoutCtrl
             action: action}
         row.label.setTextAlignment(.Left, .Center)
         if .options.labelFont do
-            row.label.style.setFont(notnull .options.labelFont, .Regular)
+            row.label.style.setFont(.options.labelFont!, .Regular)
         if help
         {
             row.help = Label.create(me, help, flags: .WordWrap | .SecondaryText)

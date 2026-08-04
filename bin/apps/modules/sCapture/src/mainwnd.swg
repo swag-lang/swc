@@ -74,7 +74,7 @@ impl IWnd for MainWnd
 {
     mtd popupBar()
     {
-        let sf = notnull (catch .app().createSurface(500, 400, 300, 300, .ToolWindow | .TopMost))
+        let sf = (catch .app().createSurface(500, 400, 300, 300, .ToolWindow | .TopMost))!
         with let menu = Wnd.create'MenuCtrl(sf.wnd.view)
         {
             .addItem(ActionGlobal.ShowEditor)
@@ -133,7 +133,7 @@ impl IWnd for MainWnd
             case Win32.WM_USER:
                 if evt.param1 == Win32.WM_LBUTTONDBLCLK
                 {
-                    let srf = notnull .surface
+                    let srf = .surface!
                     srf.show()
                     srf.bringToFront()
                 }
@@ -207,10 +207,10 @@ impl IWnd for MainWnd
                 .serialize("MainWnd.bottomSize", &me.bottomSize)
                 .serialize("MainWnd.fileDlgState", &me.fileDlgState)
                 .serialize("MainWnd.fileDlgStateInPlace", &me.fileDlgStateInPlace)
-                // 'notnull' produces a value, which drops the 'readonly' of 'items': see the
-                // TODO entry on the readonly hole. '!.' keeps it, so it cannot be used here.
-                .serialize("MainWnd.RightBar.Pane0", &(notnull me.quickStyleBar.items[0]).size)
-                .serialize("MainWnd.RightBar.Pane1", &(notnull me.quickStyleBar.items[1]).size)
+                // '!' produces a value, so the address below escapes the 'readonly' of
+                // 'items'. See the TODO entry on that hole: this is the site it protects.
+                .serialize("MainWnd.RightBar.Pane0", &me.quickStyleBar.items[0]!.size)
+                .serialize("MainWnd.RightBar.Pane1", &me.quickStyleBar.items[1]!.size)
                 .serialize("MainWnd.captureOptions", &me.captureOptions)
                 .serialize("MainWnd.editorOptions", &me.editorOptions)
             }
@@ -245,7 +245,7 @@ impl MainWnd
     mtd saveCapture(capture: *Capture)
     {
         catch capture.save() else do
-            MessageDlg.error(notnull .surface, Format.toString("Failed to save capture file: %", capture.file))
+            MessageDlg.error(.surface!, Format.toString("Failed to save capture file: %", capture.file))
     }
 
     // Change the user-defined name of a capture and persist it. The library shows
@@ -266,11 +266,11 @@ impl MainWnd
             let full: #null *Capture = catch Capture.load(file) as err
             if err != null
             {
-                MessageDlg.error(notnull .surface, "Failed to rename capture", err)
+                MessageDlg.error(.surface!, "Failed to rename capture", err)
                 return
             }
 
-            let loaded = notnull full
+            let loaded = full!
             loaded.title   = title
             loaded.changed = true
             .saveCapture(loaded)
@@ -296,11 +296,11 @@ impl MainWnd
         let full: #null *Capture = catch Capture.load(file) as err
         if err != null
         {
-            MessageDlg.error(notnull .surface, "Failed to copy image", err)
+            MessageDlg.error(.surface!, "Failed to copy image", err)
             return
         }
 
-        let loaded = notnull full
+        let loaded = full!
         loaded.editView = .editWnd.editView
         Clipboard.addImage(loaded.toImage())
 
@@ -316,7 +316,7 @@ impl MainWnd
         let imgToLoad = catch Image.load(arg) as err
         if err != null
         {
-            MessageDlg.error(notnull .surface, Format.toString("Failed to load file: %", arg), err)
+            MessageDlg.error(.surface!, Format.toString("Failed to load file: %", arg), err)
             return
         }
 
@@ -358,13 +358,13 @@ impl MainWnd
             return edMode
 
         case .Favorites:
-            return formToEditMode(notnull .mdlFavorite)
+            return formToEditMode(.mdlFavorite!)
 
         case .Highlight:
-            return formToEditMode(notnull .mdlHighlight)
+            return formToEditMode(.mdlHighlight!)
 
         case .PixSel:
-            return formToEditMode(notnull .mdlPixSel)
+            return formToEditMode(.mdlPixSel!)
         }
 
         return .editMode
@@ -386,7 +386,7 @@ impl MainWnd
             if !capture do
                 return
 
-            .embInfoFreeze              = InfoBar.create(notnull .editWnd.view, "Selection is frozen", .Message, flags: .Bottom)
+            .embInfoFreeze              = InfoBar.create(.editWnd.view!, "Selection is frozen", .Message, flags: .Bottom)
             .embInfoFreeze.sigDismissed += func|main = me|(ctrl)
             {
                 main.freezeSel     = false
@@ -534,7 +534,7 @@ impl MainWnd
                 {
                     var msg = Format.toString("Cannot register global shortcut '%'. ", Input.formatKeyShortcut(modifiers, key))
                     msg += "Another running application is probably already using it!"
-                    discard InfoBar.create(notnull .editWnd, msg, .Critical)
+                    discard InfoBar.create(.editWnd!, msg, .Critical)
                 }
 
                 errorReg = true
@@ -670,7 +670,7 @@ impl MainWnd
 
     mtd createToolbar()
     {
-        with me.editToolBar = StackLayoutCtrl.create(notnull me.topBar, .HorizontalCenter, {0, 0, 64, 64})
+        with me.editToolBar = StackLayoutCtrl.create(me.topBar!, .HorizontalCenter, {0, 0, 64, 64})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Window
@@ -685,7 +685,7 @@ impl MainWnd
 
         for id in toolButtons
         {
-            with let b = IconButton.create(notnull me.editToolBar, {}, position: {0, 0, 60, 64})
+            with let b = IconButton.create(me.editToolBar!, {}, position: {0, 0, 60, 64})
             {
                 .id = id
                 if id == ActionToolMode.Callout do
@@ -704,9 +704,9 @@ impl MainWnd
             }
         }
 
-        .captureBtn = IconButton.create(notnull .topBar, Icon.from(&.icons48, 6), {0, 0, 64, 64}, id: ActionCapture.DoIt)
+        .captureBtn = IconButton.create(.topBar!, Icon.from(&.icons48, 6), {0, 0, 64, 64}, id: ActionCapture.DoIt)
         .captureBtn.setIconColor(Argb.White)
-        .libraryBtn = IconButton.create(notnull .topBar, Icon.from(&.icons48, 8), {64, 0, 64, 64}, id: ActionGlobal.ShowLibrary)
+        .libraryBtn = IconButton.create(.topBar!, Icon.from(&.icons48, 8), {64, 0, 64, 64}, id: ActionGlobal.ShowLibrary)
     }
 
     mtd setTheme()
@@ -760,7 +760,7 @@ impl MainWnd
 
     func create(parent: *Wnd)->*MainWnd
     {
-        let srf = notnull parent.surface
+        let srf = parent.surface!
         srf.minSize = {1152, 512}
 
         var img24:  Image
@@ -783,7 +783,7 @@ impl MainWnd
 
         with let res = Wnd.create'MainWnd(parent, "sCapture.mainwnd")
         {
-            let resSrf = notnull res.surface
+            let resSrf = res.surface!
             resSrf.setView(res)
             .icons24.set(renderer.addImage(img24), 24, 24)
             .icons48.set(renderer.addImage(img48), 48, 48)
@@ -867,7 +867,7 @@ impl MainWnd
             .backgroundStyle = .Window
         }
 
-        let ic = res.theme().icon24(.Search, 20)
+        let ic = res.theme().icon(.Search, 20)
         with res.zoomBtn = IconButton.create(res.editZoomBar, ic, {0, 0, 120, 32})
         {
             .updateFlags(.CenterContent)

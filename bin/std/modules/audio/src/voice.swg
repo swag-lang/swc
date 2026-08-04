@@ -139,7 +139,7 @@ public impl Voice
     #[Swag.Discardable]
     func play(file: *SoundFile, createFlags = VoiceCreateFlags.Default, playFlags = VoicePlayFlags.Default)->#null *Voice fail
     {
-        let voice = notnull create(file, createFlags)
+        let voice = create(file, createFlags)!
         defer #fail voice.destroy()
         voice.play(playFlags)
         return voice

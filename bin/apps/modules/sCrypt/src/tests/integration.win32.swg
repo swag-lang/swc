@@ -140,7 +140,7 @@ namespace Integration
         var stream = catch File.open(resultPath(), .Append, .Write, .Read) as openError
         if openError != null do
             return
-        discard catch stream.write(notnull @dataof(message), @countof(message))
+        discard catch stream.write(@dataof(message)!, @countof(message))
         discard catch stream.write(@dataof("\n"), 1)
         stream.close()
     }
@@ -194,7 +194,7 @@ namespace Integration
         {
             if !.mountedActive do
                 return
-            let mounted = notnull .mounted
+            let mounted = .mounted!
             discard catch mounted.close() as closeError
             Memory.delete(mounted)
             .mounted       = null
@@ -207,7 +207,7 @@ namespace Integration
         {
             if .mountedActive
             {
-                let mounted = notnull .mounted
+                let mounted = .mounted!
                 discard catch mounted.close()
                 Memory.delete(mounted)
                 .mounted       = null

@@ -244,8 +244,8 @@ impl Encoder
             yDiv8 = .imageY
 
         .bufferRGB.resize(cast(u64) xDiv8 * yDiv8)
-        let pdst = notnull .bufferRGB.buffer
-        var pref = notnull image.pixels.buffer
+        let pdst = .bufferRGB.buffer!
+        var pref = image.pixels.buffer!
 
         for [nrline] in .imageY
         {
@@ -350,7 +350,7 @@ internal impl IImageEncoder for Encoder
         if @dataof(options) != null
         {
             Debug.assert(@kindof(options) == EncodeOptions)
-            opt = dref cast(*EncodeOptions) (notnull @dataof(options))
+            opt = dref cast(*EncodeOptions) @dataof(options)!
         }
 
         .stream      = result

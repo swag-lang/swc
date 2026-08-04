@@ -4,7 +4,7 @@ impl Voice
 {
     mtd readBuffer()->{ buffer: #null [*] void, size: u64 } fail
     {
-        let file = notnull .file
+        let file = .file!
 
         // At the end of the source, return no buffer unless looping is enabled. A loop rewinds
         // the source before filling the next buffer.
@@ -22,7 +22,7 @@ impl Voice
             let orgSeek  = .streamCurSeek
             let readSize = (file.data.count - .streamCurSeek)
             .streamCurSeek = file.data.count
-            let dataBuffer = notnull file.data.buffer
+            let dataBuffer = file.data.buffer!
             return {dataBuffer + orgSeek, readSize}
         }
 
@@ -30,7 +30,7 @@ impl Voice
         if !.decodedBuffers[.decodedBufferIdx].buffer do
             .decodedBuffers[.decodedBufferIdx].resize(DecodedBufferSize)
 
-        let destBuffer = notnull .decodedBuffers[.decodedBufferIdx].buffer
+        let destBuffer = .decodedBuffers[.decodedBufferIdx].buffer!
         let destSize   = .decodeData(destBuffer, DecodedBufferSize)
 
         .decodedBufferIdx = (.decodedBufferIdx + 1) % NumDecodedBuffers
@@ -45,12 +45,12 @@ impl Voice
 
     mtd createCodec() fail
     {
-        let file = notnull .file
+        let file = .file!
         let desc = findCodec(.requestedEncoding, file.encoding)
         if !desc do
             fail UnsupportedFormatError{"unsupported encoding"}
         let allocator   = g_Driver.allocationAllocator
-        let decoderData = notnull Memory.new(desc.type, allocator)
+        let decoderData = Memory.new(desc.type, allocator)!
         let decoder     = cast(*Codec) decoderData
         decoder.configure(file.encoding, .requestedEncoding, desc.type, allocator)
         .codec = @mkinterface(decoder, desc.type, ICodec)
@@ -60,7 +60,7 @@ impl Voice
     {
         if !.codec do
             return
-        let decoder   = cast(*Codec) (notnull @dataof(.codec))
+        let decoder   = cast(*Codec) @dataof(.codec)!
         let allocator = decoder.allocationAllocator
         if decoder.type.opDrop do
             decoder.type.opDrop(decoder)
@@ -70,7 +70,7 @@ impl Voice
 
     mtd decodeData(destBuffer: [*] void, length: u64)->u64 fail
     {
-        let file = notnull .file
+        let file = .file!
 
         // If the file contains data in the encoding requested by the driver, no need
         // to decode, we can directly read in the destination buffer
@@ -88,15 +88,15 @@ impl Voice
             expect .createCodec()
             .streamBuffer.reserve(StreamBufferSize)
             let readStart    = .streamCurSeek
-            let streamBuffer = notnull .streamBuffer.buffer
-            let codec        = notnull .codec
+            let streamBuffer = .streamBuffer.buffer!
+            let codec        = .codec!
             .streamBuffer.count = .readData(streamBuffer, StreamBufferSize)
             .streamCurSeek      = readStart + codec.initialize(streamBuffer, .streamBuffer.count)
         }
 
         let readStart    = .streamCurSeek
-        let streamBuffer = notnull .streamBuffer.buffer
-        let codec        = notnull .codec
+        let streamBuffer = .streamBuffer.buffer!
+        let codec        = .codec!
         .streamBuffer.count = .readData(streamBuffer, StreamBufferSize)
         let used = codec.decode(destBuffer, length, streamBuffer, .streamBuffer.count)
         .streamCurSeek = readStart + used.bytesRead
@@ -105,7 +105,7 @@ impl Voice
 
     mtd readData(destBuffer: [*] void, length: u64)->u64 fail
     {
-        let file = notnull .file
+        let file = .file!
 
         // End of the audio payload.
         if .streamCurSeek >= file.dataSize do
@@ -118,7 +118,7 @@ impl Voice
         if .streamCurSeek < file.data.count
         {
             let remain     = Math.min(file.data.count - .streamCurSeek, length)
-            let dataBuffer = notnull file.data.buffer
+            let dataBuffer = file.data.buffer!
             Memory.copy(destBuffer, dataBuffer + .streamCurSeek, remain)
             .streamCurSeek += remain
             if .streamCurSeek >= file.dataSize do
@@ -144,7 +144,7 @@ impl Voice
         .destroyCodec()
         if .stream.isOpen()
         {
-            let file = notnull .file
+            let file = .file!
             .stream.seek(.Begin, file.dataOffset)
         }
     }

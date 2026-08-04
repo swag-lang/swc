@@ -5,7 +5,7 @@
 #run
 {
     let itf = @compiler
-    let cfg = notnull itf.getBuildCfg()
+    let cfg = itf.getBuildCfg()!
     cfg.moduleVersion   = #swcversion
     cfg.moduleRevision  = #swcrevision
     cfg.moduleBuildNum  = #swcbuildnum

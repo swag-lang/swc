@@ -81,7 +81,7 @@ private impl TagBin
     {
         if .freeSections.count
         {
-            let ptr = notnull .freeSections.popBack()
+            let ptr = .freeSections.popBack()!
             ptr.mapSeek.clear()
             ptr.version = 0
             .sections.add(ptr)
@@ -103,7 +103,7 @@ private impl TagBin
     {
         if .tmpPool.count
         {
-            let b = notnull .tmpPool.popBack()
+            let b = .tmpPool.popBack()!
             b.clear()
             return b
         }
@@ -379,7 +379,7 @@ impl TagBin
     // Updates the stream position and releases the section back to the pool.
     mtd endSection() fail
     {
-        let sec = notnull .sections.back()
+        let sec = .sections.back()!
 
         // Fat is after the datas. We need to be sure to point
         // to what's next, except in raw mode where we are already at
@@ -460,7 +460,7 @@ impl TagBin
         }
 
         var reqCrcName = getTypeValueCrc(val)
-        let sec        = notnull .sections.back()
+        let sec        = .sections.back()!
 
         // If section is raw, then we just have values without versionning
         if sec.kind == .Raw
@@ -484,7 +484,7 @@ impl TagBin
                 {
                     let value = Reflection.attributeValue(al, "name")
                     Debug.assert(value != null)
-                    reqCrcName = Hash.Crc32.compute(notnull cast(#null string) value)
+                    reqCrcName = Hash.Crc32.compute(cast #unnull (string) value)
                     ent        = sec.mapSeek.tryFind(reqCrcName)
                     if ent do
                         break
@@ -545,7 +545,7 @@ impl TagBin
 
                 // Here uncompress to 'tmp'
                 var decompressor: Core.Compress.Inflate
-                decompressor.decompress(decompressedBuffer, notnull .stream.remainingBytes())
+                decompressor.decompress(decompressedBuffer, .stream.remainingBytes()!)
 
                 // track this element context
                 .elemStack.add({true, decompressedBuffer})
@@ -620,7 +620,7 @@ impl TagBin
         // Switch current 'output' back to parent and recycle tmp
         .stream.readBuffer = parentOut
         .stream.seek       = parentSeek
-        .releaseTmpBuf(notnull ctx.tmpBuf)
+        .releaseTmpBuf(ctx.tmpBuf!)
     }
 
     // Begin reading a value within the current context.
@@ -693,9 +693,9 @@ impl TagBin
                 if !Reflection.isPod(valueType) do
                     fail SerializationError{"cannot load a raw array into a non-pod element type"}
 
-                let vt       = notnull valueType
+                let vt       = valueType!
                 let elemSize = vt.sizeof
-                let bufArr   = notnull cast(#null *Array'u8) data
+                let bufArr   = cast #unnull (*Array'u8) data
                 bufArr.count = dref countElem
                 bufArr.reserve(bufArr.count * elemSize)
                 bufArr.capacity = bufArr.count
@@ -719,7 +719,7 @@ impl TagBin
                 if !Reflection.isPod(typeElem) do
                     fail SerializationError{"cannot load a raw array into a non-pod element type"}
 
-                let te = notnull typeElem
+                let te = typeElem!
                 .stream.readBytes(data, dref countElem * te.sizeof)
                 return true
             }
@@ -758,7 +758,7 @@ impl TagBin
     {
         if .sections.isEmpty() do
             return 0
-        let sec = notnull .sections.back()
+        let sec = .sections.back()!
         return sec.version
     }
 

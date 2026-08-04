@@ -5,7 +5,7 @@ internal var MessageStageValue = 0
 
 #message(CompilerMsgMask.PassAfterSemantic)
 {
-    let msg = notnull @compiler.getMessage()
+    let msg = @compiler.getMessage()!
     let itf = @compiler
     @assert(msg.kind == CompilerMsgKind.PassAfterSemantic)
     @assert(msg.name == "")
@@ -15,7 +15,7 @@ internal var MessageStageValue = 0
 
 #message(CompilerMsgMask.PassBeforeRun)
 {
-    let msg = notnull @compiler.getMessage()
+    let msg = @compiler.getMessage()!
     let itf = @compiler
     @assert(msg.kind == CompilerMsgKind.PassBeforeRunByteCode)
     @assert(msg.name == "")

@@ -17,7 +17,7 @@ impl IActionUI for ActionCopyPaste
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let main    = cast(*MainWnd) notnull cxt.wnd
+        let main    = cast(*MainWnd) cxt.wnd!
         let capture = main.getCapture()
         let hasSel  = capture and capture.selection.count
 
@@ -27,13 +27,13 @@ impl IActionUI for ActionCopyPaste
             evt.updatedFields |= .Disabled | .Name | .Icon
             evt.disabled      = !hasSel
             evt.name          = "Copy"
-            evt.icon          = main.theme().icon24(.Copy)
+            evt.icon          = main.theme().icon(.Copy)
 
         case .Cut:
             evt.updatedFields |= .Disabled | .Name | .Icon
             evt.disabled      = !hasSel
             evt.name          = "Cut"
-            evt.icon          = main.theme().icon24(.Cut)
+            evt.icon          = main.theme().icon(.Cut)
 
         case .Paste:
             evt.updatedFields |= .Disabled | .Name | .Icon
@@ -42,7 +42,7 @@ impl IActionUI for ActionCopyPaste
             elif !Clipboard.hasTypedValue(#typeof(CaptureClipboardForms)) and !Clipboard.hasImage() do
                 evt.disabled = true
             evt.name = "Paste"
-            evt.icon = main.theme().icon24(.Paste)
+            evt.icon = main.theme().icon(.Paste)
 
         case .PasteImageInside:
             evt.updatedFields        |= .Disabled | .Name | .Hidden
@@ -80,8 +80,8 @@ impl IActionUI for ActionCopyPaste
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main    = cast(*MainWnd) notnull cxt.wnd
-        let capture = notnull main.getCapture()
+        let main    = cast(*MainWnd) cxt.wnd!
+        let capture = main.getCapture()!
 
         switch cxt.id
         {

@@ -19,7 +19,7 @@ impl IActionUI for ActionSelection
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let main    = cast(*MainWnd) notnull cxt.wnd
+        let main    = cast(*MainWnd) cxt.wnd!
         let capture = main.getCapture()
         let hasSel  = capture and capture.selection.count
         let isLib   = main.libraryMode
@@ -52,7 +52,7 @@ impl IActionUI for ActionSelection
             evt.updatedFields |= .Disabled | .Name | .Icon
             evt.disabled      = !hasSel
             evt.name          = "Delete"
-            evt.icon          = main.theme().icon24(.Remove)
+            evt.icon          = main.theme().icon(.Remove)
 
         case .Snap:
             evt.updatedFields |= .Name | .Checked
@@ -71,8 +71,8 @@ impl IActionUI for ActionSelection
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main    = cast(*MainWnd) notnull cxt.wnd
-        let capture = notnull main.getCapture()
+        let main    = cast(*MainWnd) cxt.wnd!
+        let capture = main.getCapture()!
 
         switch cxt.id
         {

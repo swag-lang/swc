@@ -2,7 +2,7 @@
 
 // Flow-sensitive nullable narrowing: when the control flow proves a `#null` value is
 // non-null (guards, comparisons, early exits, loops, short-circuits, ternaries), the
-// value can be used where a non-null type is required, without an explicit `notnull`.
+// value can be used where a non-null type is required, without an explicit `!`.
 
 struct NarrowNode
 {
@@ -152,12 +152,12 @@ func narrowIfLet(o: *NarrowOwner)->s32
     return -1
 }
 
-// `notnull` on an already non-null value is a tolerated no-op.
+// `!` on an already non-null value is a tolerated no-op.
 func narrowNotNullTolerant()->s32
 {
     var node           = NarrowNode{value: 9}
     let q: *NarrowNode = &node
-    return takesPtr(notnull q)
+    return takesPtr(q!)
 }
 
 // `@assert` panics when its condition is false, so the statements after it are only

@@ -6,7 +6,7 @@ using Win32
 
 private func threadEntry(param: #null *void)->DWORD
 {
-    let safeParam = notnull param
+    let safeParam = param!
     let th        = cast(*Thread) safeParam
     @setcontext(th.context)
     let lambda = th.userLambda
@@ -78,7 +78,7 @@ impl Thread
         // Get a copy of current context, and initialize a temporary allocator for that thread
         .context = dref @getcontext()
         @init(&.context.tempAllocator, 1)
-        let alloc = notnull .context.allocator
+        let alloc = .context.allocator!
         if tempAllocSize < 0 do
             .context.tempAllocator.setCapacity(.context.tempAllocator.capacity, alloc)
         elif tempAllocSize != 0 do

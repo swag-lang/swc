@@ -269,7 +269,7 @@ func startGame()
 
 func display()
 {
-    let painter = notnull g_Painter
+    let painter = g_Painter!
 
     // Aliens
     for alien in g_Aliens where !alien.dead do
@@ -290,7 +290,7 @@ func display()
     }
 
     // Score
-    painter.drawString(40, 0, Format.toString("score: %", g_Score), notnull g_Font, Argb.White)
+    painter.drawString(40, 0, Format.toString("score: %", g_Score), g_Font!, Argb.White)
 }
 
 func onEvent(wnd: *Wnd, evt: IEvent)->bool

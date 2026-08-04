@@ -75,10 +75,10 @@ func loadFonts() fail
     let path = g_FontPath.toString()
     g_FontBytes    = File.readAllBytes(path)
     g_TypeFace     = TypeFace.create(path, g_FontBytes.toSlice())
-    g_TitleFont    = g_Renderer.fonts.createFont(notnull g_TypeFace, 34)
-    g_SubTitleFont = g_Renderer.fonts.createFont(notnull g_TypeFace, 18)
-    g_LabelFont    = g_Renderer.fonts.createFont(notnull g_TypeFace, 15)
-    g_HelpFont     = g_Renderer.fonts.createFont(notnull g_TypeFace, 13)
+    g_TitleFont    = g_Renderer.fonts.createFont(g_TypeFace!, 34)
+    g_SubTitleFont = g_Renderer.fonts.createFont(g_TypeFace!, 18)
+    g_LabelFont    = g_Renderer.fonts.createFont(g_TypeFace!, 15)
+    g_HelpFont     = g_Renderer.fonts.createFont(g_TypeFace!, 13)
 }
 
 func cloneImage(image: const &Image)->Image
@@ -155,14 +155,14 @@ func drawWrappedText(painter: *Pixel.Painter, rect: Math.Rectangle, text: string
 
 func drawPageHeader(painter: *Pixel.Painter, title, subtitle: string)
 {
-    painter.drawString(28, 22, title, notnull g_TitleFont, Argb.MidnightBlue)
-    drawWrappedText(painter, {30, 62, W - 60, 36}, subtitle, notnull g_SubTitleFont, Argb.DimGray)
+    painter.drawString(28, 22, title, g_TitleFont!, Argb.MidnightBlue)
+    drawWrappedText(painter, {30, 62, W - 60, 36}, subtitle, g_SubTitleFont!, Argb.DimGray)
 }
 
 func drawFooter(painter: *Pixel.Painter)
 {
     let pageText = Format.toString("F1 : next page (%/%). Pages : tonal filters, kernels and grading, image transforms, painter transforms.", g_Page + 1, MaxPages)
-    painter.drawString(28, H - 24, pageText, notnull g_HelpFont, Argb.DimGray)
+    painter.drawString(28, H - 24, pageText, g_HelpFont!, Argb.DimGray)
 }
 
 func computeSceneLayout(width, height: s32)->SceneLayout
@@ -262,8 +262,8 @@ func drawCard(painter: *Pixel.Painter, rect: Math.Rectangle, card: const &Textur
     painter.fillRoundRect(previewRect, 16, 16, Color.fromArgb(255, 246, 248, 250))
     painter.drawRoundRect(previewRect, 16, 16, Color.fromArgb(36, Argb.SlateGray), 1)
 
-    painter.drawString(rect.x + 14, rect.y + 12, card.title, notnull g_LabelFont, Argb.DarkSlateBlue)
-    drawWrappedText(painter, subtitleRect, card.subtitle, notnull g_HelpFont, Argb.DimGray)
+    painter.drawString(rect.x + 14, rect.y + 12, card.title, g_LabelFont!, Argb.DarkSlateBlue)
+    drawWrappedText(painter, subtitleRect, card.subtitle, g_HelpFont!, Argb.DimGray)
     drawCardTexture(painter, previewRect, card)
 }
 

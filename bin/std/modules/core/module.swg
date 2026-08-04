@@ -54,7 +54,7 @@ to offer for a new logical-drive mount point.
 #run
 {
     let itf = @compiler
-    let cfg = notnull itf.getBuildCfg()
+    let cfg = itf.getBuildCfg()!
     cfg.moduleVersion   = #swcversion
     cfg.moduleRevision  = #swcrevision
     cfg.moduleBuildNum  = #swcbuildnum

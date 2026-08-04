@@ -58,7 +58,7 @@ func opaqueS64(v: s64)->s64
 
 #test
 {
-    const cfg      = #run dref notnull @compiler.getBuildCfg()
+    const cfg      = #run dref @compiler.getBuildCfg()!
     const expected = cfg.safetyGuards & Swag.SafetyWhat.Overflow ? true : false
     #assert(#safety(Swag.SafetyWhat.Overflow) == expected)
 }

@@ -4,10 +4,10 @@ using Pixel
 
 func nnFont(font: #null *Font)->*Font
 {
-    return notnull font
+    return font!
 }
 
 func nnPixels(pixels: #null [*] u8)->const *u8
 {
-    return cast(const *u8) (notnull pixels)
+    return cast(const *u8) pixels!
 }

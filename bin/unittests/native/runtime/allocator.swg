@@ -81,13 +81,13 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 
     var req: AllocatorRequest
     req.size = 80
-    let allocItf = notnull @getcontext().allocator
+    let allocItf = @getcontext().allocator!
     allocItf.alloc(&req)
     @assert(req.address != null)
     @assert(alloc.countAlloc == beforeCount + 1)
     @assert(alloc.sizeAlloc == beforeSize + 80)
 
-    let ptr = cast([*] u8) notnull req.address
+    let ptr = cast([*] u8) req.address!
     for [i] in 80 do
         ptr[i] = cast(u8) (i + 3)
 
@@ -98,7 +98,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     @assert(alloc.countAlloc == beforeCount + 1)
     @assert(alloc.sizeAlloc == beforeSize + 4096)
 
-    let grown = cast([*] u8) notnull req.address
+    let grown = cast([*] u8) req.address!
     for [i] in 80 do
         @assert(grown[i] == cast(u8) (i + 3))
 
@@ -124,11 +124,11 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         reqs[i].size = 31 + cast(u64) i * 37
         if i % 3 == 0 do
             reqs[i].alignment = 64
-        let allocItf = notnull @getcontext().allocator
+        let allocItf = @getcontext().allocator!
         allocItf.alloc(&reqs[i])
         @assert(reqs[i].address != null)
 
-        let ptr = cast([*] u8) notnull reqs[i].address
+        let ptr = cast([*] u8) reqs[i].address!
         for [j] in reqs[i].size do
             ptr[j] = cast(u8) ((i + j) & 0xFF)
     }
@@ -137,7 +137,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 
     var assertReq: AllocatorRequest
     assertReq.address = reqs[5].address
-    let allocItf = notnull @getcontext().allocator
+    let allocItf = @getcontext().allocator!
     allocItf.assertAllocated(&assertReq)
 
     for [i] in 6
@@ -153,7 +153,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         allocItf.realloc(&reqs[i])
         @assert(reqs[i].address != null)
 
-        let ptr = cast([*] u8) notnull reqs[i].address
+        let ptr = cast([*] u8) reqs[i].address!
         for [j] in reqs[i].oldSize do
             @assert(ptr[j] == cast(u8) ((i + j) & 0xFF))
     }
@@ -235,7 +235,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     @assert(alloc.countAlloc == 1)
     @assert(alloc.sizeAlloc == 64)
 
-    let ptr = cast([*] u8) notnull req.address
+    let ptr = cast([*] u8) req.address!
     for [i] in 64 do
         @assert(ptr[i] == Allocator.AllocByte)
 
@@ -327,7 +327,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.alloc(&req)
     let original = req.address
 
-    let ptr = cast([*] u8) notnull req.address
+    let ptr = cast([*] u8) req.address!
     for [i] in 33 do
         ptr[i] = cast(u8) (i + 1)
 
@@ -336,7 +336,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.realloc(&req)
     @assert(req.address == original)
 
-    let samePtr = cast([*] u8) notnull req.address
+    let samePtr = cast([*] u8) req.address!
     for [i] in 33 do
         @assert(samePtr[i] == cast(u8) (i + 1))
     for [i] in 33 until 48 do
@@ -358,7 +358,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     let original = req.address
     @assert(original != null)
 
-    let ptr = cast([*] u8) notnull original
+    let ptr = cast([*] u8) original!
     for [i] in 96 do
         ptr[i] = cast(u8) (255 - i)
 
@@ -367,7 +367,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.realloc(&req)
     @assert(req.address == original)
 
-    let shrunk = cast([*] u8) notnull req.address
+    let shrunk = cast([*] u8) req.address!
     for [i] in 24 do
         @assert(shrunk[i] == cast(u8) (255 - i))
 
@@ -388,7 +388,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     req.size = 24
     itf.alloc(&req)
 
-    let ptr = cast([*] u8) notnull req.address
+    let ptr = cast([*] u8) req.address!
     for [i] in 24 do
         ptr[i] = cast(u8) (i * 3 + 7)
 
@@ -397,7 +397,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.realloc(&req)
     @assert(req.address != null)
 
-    let grown = cast([*] u8) notnull req.address
+    let grown = cast([*] u8) req.address!
     for [i] in 24 do
         @assert(grown[i] == cast(u8) (i * 3 + 7))
 
@@ -495,7 +495,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.alloc(&req)
     @assert(req.address != null)
 
-    let header = cast(*AllocatorHeader) (cast([*] u8) (notnull req.address) - #sizeof(AllocatorHeader))
+    let header = cast(*AllocatorHeader) (cast([*] u8) req.address! - #sizeof(AllocatorHeader))
     @assert(header.magic == Allocator.MagicAlloc)
     @assert(header.stackCount <= @countof(header.stack))
     #static if #os == Swag.TargetOs.Windows do
@@ -516,7 +516,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.alloc(&req)
     @assert(req.address != null)
 
-    let header = cast(*AllocatorHeader) (cast([*] u8) (notnull req.address) - #sizeof(AllocatorHeader))
+    let header = cast(*AllocatorHeader) (cast([*] u8) req.address! - #sizeof(AllocatorHeader))
     @assert(header.stackCount == 0)
     @assert(alloc.firstAlloc == header)
 
@@ -546,7 +546,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     @assert(req.address != null)
     @assert(alloc.firstAlloc != null)
 
-    let header = cast(*AllocatorHeader) (cast([*] u8) (notnull req.address) - #sizeof(AllocatorHeader))
+    let header = cast(*AllocatorHeader) (cast([*] u8) req.address! - #sizeof(AllocatorHeader))
     @assert(header == alloc.firstAlloc)
     @assert(header.stackCount <= @countof(header.stack))
 
@@ -567,11 +567,11 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.alloc(&req)
     @assert(req.address != null)
 
-    let ptr = cast([*] u8) notnull req.address
+    let ptr = cast([*] u8) req.address!
     for [i] in 128 do
         @assert(ptr[i] == Allocator.AllocByte)
 
-    let header = cast(*AllocatorHeader) (cast([*] u8) (notnull req.address) - #sizeof(AllocatorHeader))
+    let header = cast(*AllocatorHeader) (cast([*] u8) req.address! - #sizeof(AllocatorHeader))
     @assert(header.stackCount <= @countof(header.stack))
 
     itf.free(&req)
@@ -590,7 +590,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     @assert(req.address != null)
     @assert(alloc.firstAlloc != null)
 
-    let header = cast(*AllocatorHeader) (cast([*] u8) (notnull req.address) - #sizeof(AllocatorHeader))
+    let header = cast(*AllocatorHeader) (cast([*] u8) req.address! - #sizeof(AllocatorHeader))
     @assert(header == alloc.firstAlloc)
     @assert(header.stackCount <= @countof(header.stack))
 
@@ -616,7 +616,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     @assert(alloc.countAlloc == 1)
     @assert(alloc.firstAlloc != null)
 
-    let header = cast(*AllocatorHeader) (cast([*] u8) (notnull req.address) - #sizeof(AllocatorHeader))
+    let header = cast(*AllocatorHeader) (cast([*] u8) req.address! - #sizeof(AllocatorHeader))
     @assert(header == alloc.firstAlloc)
     @assert(header.magic == Allocator.MagicAlloc)
     @assert(alloc.footer(header).magic == Allocator.MagicAlloc)
@@ -800,7 +800,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         var done:    s32                        = 0
         var payload: AllocatorRemoteFreePayload = undefined
         payload.allocator = itf
-        payload.address   = notnull first
+        payload.address   = first!
         payload.done      = &done
 
         var threadId: AllocatorThreadTest.DWORD
@@ -834,7 +834,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         var done:    s32                        = 0
         var payload: AllocatorRemoteFreePayload = undefined
         payload.allocator = itf
-        payload.address   = notnull first
+        payload.address   = first!
         payload.done      = &done
 
         var threadId: AllocatorThreadTest.DWORD

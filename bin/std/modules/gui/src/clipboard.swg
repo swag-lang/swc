@@ -31,7 +31,7 @@ public func addTypedValue(value: *void, type: typeinfo)
     else {}
 
     buf.makeLinear()
-    addTypedData(g_ValueFormat, type, notnull buf.toSlice())
+    addTypedData(g_ValueFormat, type, buf.toSlice()!)
 }
 
 // Reports whether the clipboard contains a value compatible with `type`.

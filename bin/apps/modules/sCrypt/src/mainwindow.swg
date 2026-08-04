@@ -390,7 +390,7 @@ impl MainWindow
     mtd selectedMountPoint()->String
     {
         let item = .drive.selectedItem()
-        return item ? String.from((notnull item).name.raw) : String.from("")
+        return item ? String.from(item!.name.raw) : String.from("")
     }
 
     mtd beginOperation(kind: OperationKind)
@@ -607,8 +607,28 @@ impl IWnd for MainWindow
         .wnd.IWnd.onTimerEvent(evt)
     }
 
+    mtd impl onStateEvent(evt: *StateEvent)
+    {
+        if evt.kind == .Init
+        {
+            // Runs before the surface is first displayed: restore the persisted window
+            // placement and dialog state, then keep the window on a visible screen area.
+            catch g_App.loadState()
+            .surface?.constrainPositionToScreen(topLeft: true, margin: 10)
+            evt.accepted = true
+        }
+    }
+
+    mtd impl onSerializeStateEvent(evt: *SerializeStateEvent)
+    {
+        // The browse dialogs share this state, so they reopen on the folder that held
+        // the last accepted container, with its recent locations.
+        catch evt.serializer.serialize("MainWindow.fileDlgState", &me.fileDlgState)
+    }
+
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
+        catch g_App.saveState()
         .shutdown()
         .wnd.IWnd.onDestroyEvent(evt)
     }

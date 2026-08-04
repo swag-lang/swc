@@ -433,28 +433,28 @@ impl Wnd
     #[Swag.Inline]
     {
         // Returns the application that owns this window.
-        mtd app() => (notnull .surface).app
+        mtd app() => .surface!.app
 
         // Returns the root content view of this window's surface.
-        mtd topView() => (notnull .surface).wnd.view
+        mtd topView() => .surface!.wnd.view
 
         // Returns the root surface window.
-        mtd topWindow() => (notnull .surface).wnd
+        mtd topWindow() => .surface!.wnd
 
         // Returns the resolved theme.
-        mtd theme() => (notnull .style.refr).theme
+        mtd theme() => .style.refr!.theme
 
         // Returns the resolved theme metrics.
-        mtd themeMetrics() => &(notnull .style.refr).theme.metrics
+        mtd themeMetrics() => &.style.refr!.theme.metrics
 
         // Returns the resolved theme colors.
-        mtd themeColors() => &(notnull .style.refr).theme.colors
+        mtd themeColors() => &.style.refr!.theme.colors
 
         // Returns the resolved theme image rectangles.
-        mtd themeRects() => &(notnull .style.refr).theme.rects
+        mtd themeRects() => &.style.refr!.theme.rects
 
         // Returns the current frame timing.
-        mtd timing() => &(notnull .surface).app.timing
+        mtd timing() => &.surface!.app.timing
 
         // Returns the resolved font family.
         mtd font() => .style.resolvedFont()
@@ -1006,11 +1006,23 @@ impl Wnd
             .setPosition(pos)
     }
 
-    // Convert a screen coordinate to a surface coordinate (relative to my surface)
+    // Convert a physical screen coordinate to a logical surface coordinate (relative to my surface)
     mtd const screenToSurface(pos: Math.Point)->Math.Point
     {
         let srfn = notnull .surface
-        return {pos.x - srfn.position.x, pos.y - srfn.position.y}
+        return {(pos.x - srfn.position.x) / srfn.dpiScale, (pos.y - srfn.position.y) / srfn.dpiScale}
+    }
+
+    // Number of physical device pixels covered by one logical unit of this window.
+    //
+    // Pass it to [[Pixel.Painter.measureStringSnapped]] and
+    // [[Pixel.Painter.computeTextDrawInfo]] so measured positions land on the same
+    // device grid the text is drawn with.
+    mtd const deviceScale()->f32
+    {
+        if !.surface do
+            return 1
+        return .surface!.dpiScale
     }
 
     // Convert a surface coordinate to a local coordinate (relative to me)
@@ -1194,7 +1206,8 @@ impl Wnd
         if idx == idxToReplace do
             return
 
-        swap((notnull parent.children.buffer) + idx, (notnull parent.children.buffer) + idxToReplace)
+        @assert(parent.children.buffer != null)
+        swap(parent.children.buffer + idx, parent.children.buffer + idxToReplace)
     }
 
     // Move and size the wnd

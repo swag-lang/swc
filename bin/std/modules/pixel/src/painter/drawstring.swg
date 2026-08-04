@@ -160,9 +160,17 @@ struct ShapedRun
 // Contains resolved font and scaling choices for one text draw.
 public struct TextDrawInfo
 {
-    drawFont:   *Font = undefined     // Borrowed bitmap or MSDF font selected for drawing.
-    snapPixels: bool                  // Whether glyph positions use integer pixel snapping.
-    scale:      f32                   // Scale from reference glyph metrics to draw pixels.
+    drawFont:    *Font = undefined     // Borrowed bitmap or MSDF font selected for drawing.
+    snapPixels:  bool                  // Whether glyph positions snap to the device-pixel grid.
+    scale:       f32                   // Scale from reference glyph metrics to logical draw units.
+    deviceScale: f32 = 1               // Physical device pixels per logical draw unit.
+
+    // Translation of the transform the text is drawn under, when it is translation
+    // only. Snapping accounts for it so glyph edges land on the *device* grid after
+    // the renderer applies the transform; without it a fractional translation puts
+    // every "snapped" quad half a pixel off the grid. Zero for pure measurement.
+    snapOffsetX: f32     // Path-to-surface X translation compensated by snapping.
+    snapOffsetY: f32     // Path-to-surface Y translation compensated by snapping.
 }
 
 // Configures rich-text layout and drawing.
@@ -264,9 +272,17 @@ private func finishShapedRun(run: *ShapedRun, font: *Font)
     }
 }
 
-private func snapTextPosition(value: f32, snapPixels: bool)->f32
+private func snapTextPosition(value: f32, snapPixels: bool, deviceScale: f32, snapOffset = 0.0'f32)->f32
 {
-    return snapPixels ? Math.round(value) : value
+    if !snapPixels do
+        return value
+
+    // Snapping happens on the *device* grid: at a content scale of 1.5 a value
+    // rounded to a whole logical unit would land between physical pixels, which is
+    // exactly the blur snapping exists to prevent. The transform translation is
+    // folded in and out so the snapped position is on the grid after the renderer
+    // applies the transform, not merely in path space.
+    return Math.round((value + snapOffset) * deviceScale) / deviceScale - snapOffset
 }
 
 impl Painter
@@ -274,36 +290,50 @@ impl Painter
     // Resolves the bitmap or MSDF font, pixel snapping, and scale for a draw.
     //
     // `zoom` and `transformScale` are multiplicative and must be positive for
-    // meaningful output.
+    // meaningful output. `transformScale` is the number of physical device pixels
+    // one drawing unit covers on screen; pass the surface's device scale (or
+    // [[Pixel.Painter.textTransformScale]] when drawing through a painter) so an
+    // automatic font resolves against the real on-screen glyph size.
     func computeTextDrawInfo(font: *Font, zoom = 1.0'f32, transformScale = 1.0'f32)->TextDrawInfo
     {
         var result: retval
-        result.drawFont   = Font.resolveDrawFont(font, cast(f32) font.size * zoom * transformScale)
-        result.snapPixels = !result.drawFont.cache.renderMode.isDistanceField()
-        result.scale      = result.drawFont.scale() * zoom
+        result.drawFont    = Font.resolveDrawFont(font, cast(f32) font.size * zoom * transformScale)
+        result.snapPixels  = !result.drawFont.cache.renderMode.isDistanceField()
+        result.deviceScale = transformScale
+
+        // A resolved bitmap font is rasterized at its device pixel size, so it draws
+        // texel-exact: one atlas texel per device pixel, hence 1/transformScale in
+        // logical units. MSDF glyphs are size independent and keep the nominal scale.
+        if result.snapPixels do
+            result.scale = 1.0 / transformScale
+        else do
+            result.scale = result.drawFont.scale() * zoom
         return result
     }
 
-    // Scale applied to text by the current transform (max of the two axis scales).
+    // Scale applied to text by the current transform (max of the two axis scales),
+    // in physical device pixels per drawing unit.
     mtd const textTransformScale()->f32
     {
         let tr = .curState.transform
-        return Math.max(Math.sqrt(tr.m11 * tr.m11 + tr.m12 * tr.m12), Math.sqrt(tr.m21 * tr.m21 + tr.m22 * tr.m22))
+        return Math.max(Math.sqrt(tr.m11 * tr.m11 + tr.m12 * tr.m12), Math.sqrt(tr.m21 * tr.m21 + tr.m22 * tr.m22)) * .curContentScale
     }
 
     // Resolves one glyph's left and right positions from scaled metrics.
     //
-    // Bitmap runs snap offsets and advances to integer pixels. When `runStart` is
-    // true, the initial position is snapped as well.
+    // Bitmap runs snap offsets and advances to whole device pixels. When `runStart`
+    // is true, the initial position is snapped as well, compensating the transform
+    // translation carried by `info`. Offsets and advances are relative widths and
+    // snap without it.
     func advanceTextX(left, offsetX, advanceX: f32, info: TextDrawInfo, runStart = false)->{ glyphX: f32, rightX: f32 }
     {
         var result: retval
-        result.glyphX = runStart and info.snapPixels ? Math.round(left) : left
+        result.glyphX = runStart ? snapTextPosition(left, info.snapPixels, info.deviceScale, info.snapOffsetX) : left
 
-        let snappedOffset = info.snapPixels ? Math.round(offsetX * info.scale) : offsetX * info.scale
+        let snappedOffset = snapTextPosition(offsetX * info.scale, info.snapPixels, info.deviceScale)
         result.glyphX += snappedOffset
 
-        let snappedAdvance = info.snapPixels ? Math.round(advanceX * info.scale) : advanceX * info.scale
+        let snappedAdvance = snapTextPosition(advanceX * info.scale, info.snapPixels, info.deviceScale)
         result.rightX = result.glyphX + snappedAdvance
         return result
     }
@@ -454,10 +484,13 @@ impl Painter
     // The result uses the same pixel snapping and draw-font resolution as
     // [[Pixel.Painter.drawString]]. Unlike [[Pixel.Painter.measureString]], it
     // matches on-screen glyph positions for carets, selections, and right-aligned
-    // anchors. The default `atByte` measures the whole run.
-    func measureStringSnapped(run: const *ShapedRun, atByte: u64 = Swag.U64.Max)->f32
+    // anchors. The default `atByte` measures the whole run. `deviceScale` must match
+    // the device scale the text is drawn with (see [[Gui.Wnd.deviceScale]]);
+    // measuring with another scale snaps advances to a different pixel grid and the
+    // measured position drifts from the drawn one.
+    func measureStringSnapped(run: const *ShapedRun, atByte: u64 = Swag.U64.Max, deviceScale = 1.0'f32)->f32
     {
-        let info = computeTextDrawInfo(run.font)
+        let info = computeTextDrawInfo(run.font, 1.0, deviceScale)
 
         // drawString re-shapes onto the resolved draw font; mirror that so the
         // advances use the same glyph metrics it will actually draw with.
@@ -482,10 +515,10 @@ impl Painter
     }
 
     // string convenience overload of `measureStringSnapped`.
-    func measureStringSnapped(text: string, font: *Font, atByte: u64 = Swag.U64.Max, tabSize: u32 = DefaultTextTabSize, letterSpacing = 0.0'f32)->f32
+    func measureStringSnapped(text: string, font: *Font, atByte: u64 = Swag.U64.Max, tabSize: u32 = DefaultTextTabSize, letterSpacing = 0.0'f32, deviceScale = 1.0'f32)->f32
     {
         let shaped = shapeRun(text, font, tabSize, letterSpacing)
-        return measureStringSnapped(&shaped, atByte)
+        return measureStringSnapped(&shaped, atByte, deviceScale)
     }
 
     // Returns the bounding rectangle of a given text, scaled to the font draw size
@@ -527,10 +560,10 @@ impl Painter
             {
                 .setTextureFont(drawFont, refr.atlasIndex)
 
-                let x1 = snapTextPosition(glyphX + refr.shiftX * info.scale, snapPixels) + dx
-                let y1 = snapTextPosition(baselineY + glyph.offsetY * info.scale - refr.shiftY * info.scale, snapPixels) + dy
-                let x2 = snapTextPosition(glyphX + (refr.shiftX * info.scale) + (refr.width * info.scale), snapPixels) + dx
-                let y2 = snapTextPosition(baselineY + glyph.offsetY * info.scale - (refr.shiftY * info.scale) + (refr.height * info.scale), snapPixels) + dy
+                let x1 = snapTextPosition(glyphX + refr.shiftX * info.scale, snapPixels, info.deviceScale, info.snapOffsetX) + dx
+                let y1 = snapTextPosition(baselineY + glyph.offsetY * info.scale - refr.shiftY * info.scale, snapPixels, info.deviceScale, info.snapOffsetY) + dy
+                let x2 = snapTextPosition(glyphX + (refr.shiftX * info.scale) + (refr.width * info.scale), snapPixels, info.deviceScale, info.snapOffsetX) + dx
+                let y2 = snapTextPosition(baselineY + glyph.offsetY * info.scale - (refr.shiftY * info.scale) + (refr.height * info.scale), snapPixels, info.deviceScale, info.snapOffsetY) + dy
 
                 let p1 = Math.Vector2{x1, y1}
                 let p2 = Math.Vector2{x2, y1}
@@ -569,7 +602,17 @@ impl Painter
         if !brush.hasVisibleAlpha() and effect.outlineColor.a == 0 and effect.glowColor.a == 0 and !effect.hasShadow() do
             return
 
-        let info       = Painter.computeTextDrawInfo(font, zoom, .textTransformScale())
+        var info = Painter.computeTextDrawInfo(font, zoom, .textTransformScale())
+
+        // Under a translation-only transform, fold the translation into the snap so
+        // glyph edges land on the device grid on screen, matching the caret's
+        // translation-aware snapToDeviceX.
+        if .curState.transform.isTranslationOnly()
+        {
+            info.snapOffsetX = .curState.transform.tx
+            info.snapOffsetY = .curState.transform.ty
+        }
+
         let drawFont   = info.drawFont
         let snapPixels = info.snapPixels
         let isMsdf     = drawFont.cache.renderMode == .Msdf
@@ -582,8 +625,8 @@ impl Painter
             runToDraw = &drawShape
         }
 
-        let drawLeft = snapTextPosition(left, snapPixels)
-        let y        = snapTextPosition(top + font.ascent * zoom, snapPixels)
+        let drawLeft = snapTextPosition(left, snapPixels, info.deviceScale, info.snapOffsetX)
+        let y        = snapTextPosition(top + font.ascent * zoom, snapPixels, info.deviceScale, info.snapOffsetY)
 
         switch drawFont.cache.renderMode
         {
@@ -619,7 +662,7 @@ impl Painter
         // Underline
         if under != .None
         {
-            var pen = Pen.createSolid(brush.color, Math.max(1, Math.floor(font.underlineSize)))
+            var pen = Pen.createSolid(brush.color, .hairline(Math.floor(font.underlineSize)))
             pen.begCapStyle = .None
             pen.endCapStyle = .None
 
@@ -703,10 +746,17 @@ impl Painter
     }
 
     // Recompute the layout for a given rectangle
-    func computeLayout(pos: Math.Rectangle, text: *RichString, format: RichStringFormat)
+    //
+    // `deviceScale` must match the scale the text is drawn with. Chunk widths are
+    // measured with the same resolved draw font and device-snapped advances the
+    // draw pass uses, so wrapped lines, alignment, and inter-chunk gaps land where
+    // the glyphs actually end; measuring with nominal advances instead lets a
+    // per-glyph drift accumulate until a space between two chunks visually vanishes.
+    func computeLayout(pos: Math.Rectangle, text: *RichString, format: RichStringFormat, deviceScale = 1.0'f32)
     {
         Debug.assert(format.font.regular != null, "invalid default font")
-        text.layoutRect = pos
+        text.layoutRect  = pos
+        text.layoutScale = deviceScale
 
         struct OneLine
         {
@@ -726,7 +776,7 @@ impl Painter
 
         var startLine         = 0
         var lastWasSpace      = false
-        let defaultLineHeight = (notnull format.font.regular).height
+        let defaultLineHeight = format.font.regular!.height
         for &resetChunk in text.chunks do
             resetChunk.visible = false
 
@@ -736,9 +786,12 @@ impl Painter
             let fs = c.hasFontStyle ? c.fontStyle : format.fontStyle
             c.font = notnull format.font.getFont(fs)
 
-            // Measure
+            // Measure. The width uses the same resolved draw font and device-snapped
+            // advances the chunk is drawn with (see the function comment); vertical
+            // metrics stay nominal, they position lines, not glyph runs.
             c.shaped = shapeRun(c.slice, c.font, format.tabSize, format.letterSpacing)
-            let ms = c.shaped.metrics
+            var ms = c.shaped.metrics
+            ms.width    = measureStringSnapped(&c.shaped, deviceScale: deviceScale)
             c.boundRect = {0, 0, ms.width, ms.height}
 
             // User eol
@@ -974,9 +1027,12 @@ impl Painter
         if text.chunks.isEmpty() do
             return
 
-        // Recompute layout if rectangle has changed
-        if text.layoutRect != pos or forceCompute do
-            computeLayout(pos, text, format)
+        // Recompute layout if the rectangle or the device scale has changed; the
+        // layout measures with the scale's draw-font advances, so a cached layout
+        // from another scale would no longer match the drawn glyphs.
+        let deviceScale = .textTransformScale()
+        if text.layoutRect != pos or text.layoutScale != deviceScale or forceCompute do
+            computeLayout(pos, text, format, deviceScale)
 
         // Clipping
         if format.flags & .Clip

@@ -145,9 +145,12 @@ func renderGdiPlusOutlineImage(text: string, scale: f32)->Image
     var measurePath: #null *GpPath
     var bounds:      GpRectF
     gdipCheck(GdipCreatePath(GdipFillModeAlternate, &measurePath))
-    addGdiPathText(notnull measurePath, notnull text16.buffer, count16, notnull family, notnull format, emSize, 0, 0)
-    gdipCheck(GdipGetPathWorldBounds(notnull measurePath, &bounds, null, null))
-    gdipCheck(GdipDeletePath(notnull measurePath))
+    @assert(format != null)
+    @assert(family != null)
+    @assert(measurePath != null)
+    addGdiPathText(measurePath, notnull text16.buffer, count16, family, format, emSize, 0, 0)
+    gdipCheck(GdipGetPathWorldBounds(measurePath, &bounds, null, null))
+    gdipCheck(GdipDeletePath(measurePath))
 
     let margin = cast(f32) OutlineShadowMargin
     let localW = Math.max(cast(s32) Math.ceil(bounds.width + border * 2 + margin * 2), 1)
@@ -159,31 +162,36 @@ func renderGdiPlusOutlineImage(text: string, scale: f32)->Image
     var bitmap:   #null *GpBitmap
     var graphics: #null *GpGraphics
     gdipCheck(GdipCreateBitmapFromScan0(localW, localH, localW * 4, GdipPixelFormat32bppPARGB, image.pixels.buffer, &bitmap))
-    gdipCheck(GdipGetImageGraphicsContext(cast(*GpImage) (notnull bitmap), &graphics))
-    gdipCheck(GdipSetSmoothingMode(notnull graphics, GdipSmoothingModeHighQuality))
-    gdipCheck(GdipSetPixelOffsetMode(notnull graphics, GdipPixelOffsetModeHighQuality))
-    gdipCheck(GdipSetTextRenderingHint(notnull graphics, GdipTextRenderingHintAAGridFit))
-    gdipCheck(GdipGraphicsClear(notnull graphics, 0))
+    @assert(bitmap != null)
+    gdipCheck(GdipGetImageGraphicsContext(cast(*GpImage) bitmap, &graphics))
+    @assert(graphics != null)
+    gdipCheck(GdipSetSmoothingMode(graphics, GdipSmoothingModeHighQuality))
+    gdipCheck(GdipSetPixelOffsetMode(graphics, GdipPixelOffsetModeHighQuality))
+    gdipCheck(GdipSetTextRenderingHint(graphics, GdipTextRenderingHintAAGridFit))
+    gdipCheck(GdipGraphicsClear(graphics, 0))
 
     var path: #null *GpPath
     gdipCheck(GdipCreatePath(GdipFillModeAlternate, &path))
-    addGdiPathText(notnull path, notnull text16.buffer, count16, notnull family, notnull format, emSize, margin + border - bounds.x, margin + border - bounds.y)
+    @assert(path != null)
+    addGdiPathText(path, notnull text16.buffer, count16, family, format, emSize, margin + border - bounds.x, margin + border - bounds.y)
 
     var pen:   #null *GpPen
     var brush: #null *GpSolidFill
     gdipCheck(GdipCreatePen1(cast(u32) Argb.Crimson, border * 2, GdipUnitPixel, &pen))
-    gdipCheck(GdipSetPenLineJoin(notnull pen, GdipLineJoinRound))
+    @assert(pen != null)
+    gdipCheck(GdipSetPenLineJoin(pen, GdipLineJoinRound))
     gdipCheck(GdipCreateSolidFill(cast(u32) Argb.White, &brush))
-    gdipCheck(GdipDrawPath(notnull graphics, notnull pen, notnull path))
-    gdipCheck(GdipFillPath(notnull graphics, cast(*GpBrush) (notnull brush), notnull path))
+    gdipCheck(GdipDrawPath(graphics, pen, path))
+    @assert(brush != null)
+    gdipCheck(GdipFillPath(graphics, cast(*GpBrush) brush, path))
 
-    gdipCheck(GdipDeletePen(notnull pen))
-    gdipCheck(GdipDeleteBrush(cast(*GpBrush) (notnull brush)))
-    gdipCheck(GdipDeletePath(notnull path))
-    gdipCheck(GdipDeleteStringFormat(notnull format))
-    gdipCheck(GdipDeleteFontFamily(notnull family))
-    gdipCheck(GdipDeleteGraphics(notnull graphics))
-    gdipCheck(GdipDisposeImage(cast(*GpImage) (notnull bitmap)))
+    gdipCheck(GdipDeletePen(pen))
+    gdipCheck(GdipDeleteBrush(cast(*GpBrush) brush))
+    gdipCheck(GdipDeletePath(path))
+    gdipCheck(GdipDeleteStringFormat(format))
+    gdipCheck(GdipDeleteFontFamily(family))
+    gdipCheck(GdipDeleteGraphics(graphics))
+    gdipCheck(GdipDisposeImage(cast(*GpImage) bitmap))
 
     flipImageVertical(&image)
     unpremultiplyImage(&image)
@@ -224,7 +232,7 @@ func drawFrame(painter: *Pixel.Painter, rect: Math.Rectangle, title: string)
 
 func makeOutline(text: string, size: u32, embolden: u32)->LinePathList
 {
-    var result = expect (notnull g_TypeFace).buildStringOutline(text, size, embolden)
+    var result = expect g_TypeFace!.buildStringOutline(text, size, embolden)
     result.flatten(.High)
     return result
 }

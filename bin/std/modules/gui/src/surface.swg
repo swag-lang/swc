@@ -8,12 +8,17 @@ using Core, Pixel, Serialization
 // here keeps an alias for every name it has been written under; see [[Pixel.Image]].
 struct SurfaceState
 {
-    position: Math.Rectangle     // Current surface bounds in screen coordinates.
+    position: Math.Rectangle     // Current surface bounds in physical screen pixels.
 
     #[Serialization.Alias("positionNotMaximized")]
     restoredPosition: Math.Rectangle     // Bounds restored after leaving a maximized state.
 
     isMaximized: bool     // Whether the surface is maximized.
+
+    // Monitor scale the bounds were saved under, or zero for state written before
+    // scales were recorded. Restoring on a monitor with another scale rescales the
+    // sizes so the surface keeps its logical dimensions.
+    savedDpiScale: f32
 }
 
 // Top-level drawable window managed by an [[Application]].
@@ -25,8 +30,8 @@ struct Surface
     userData:     #null *void                  // Optional caller-owned data.
     surfaceId:    String                       // Identifier used by cross-process custom messages.
 
-    minSize: Math.Point     // Minimum allowed width and height; zero disables a dimension limit.
-    maxSize: Math.Point     // Maximum allowed width and height; zero disables a dimension limit.
+    minSize: Math.Point     // Minimum allowed width and height in logical units; zero disables a dimension limit.
+    maxSize: Math.Point     // Maximum allowed width and height in logical units; zero disables a dimension limit.
 
     flags:         SurfaceFlags = None     // Current presentation and window-manager flags.
     colorDisabled: Color                   // Animated tint used while the surface is disabled.
@@ -37,6 +42,11 @@ struct Surface
     {
         painter: Painter          // Painter recording the surface's frame.
         rt:      RenderTarget     // Render target the frame is drawn into.
+
+        // Physical device pixels per logical unit on the monitor showing this surface.
+        // `position` is in physical screen pixels; the window tree, painting, and mouse
+        // surface coordinates are logical and map through this factor.
+        dpiScale: f32 = 1
 
         isHidden:      bool = true     // Whether the surface is not visible.
         isInitialized: bool            // Whether the surface has received its one-time initialization event.
@@ -79,6 +89,30 @@ impl Surface
     internal mtd bindPainterToRenderer(renderer: IRenderer)
     {
         .painter.setRenderer(renderer)
+    }
+
+    // Returns the logical client size of the surface.
+    //
+    // The window tree, painting, and mouse surface positions live in this space;
+    // multiply by [[Gui.Surface.dpiScale]] to obtain physical pixels.
+    mtd const size()->Math.Point
+    {
+        return {.position.width / .dpiScale, .position.height / .dpiScale}
+    }
+
+    // Sets the surface scale outside the native creation path.
+    //
+    // The native layer resolves the scale from the window's monitor; this exists for
+    // the platform message handler and for the headless host, which simulates the
+    // platform side in tests.
+    internal mtd setDpiScaleRaw(scale: f32)
+    {
+        Debug.assert(scale > 0)
+        .dpiScale = scale
+
+        // A move to a denser monitor must resharpen the shared theme atlas.
+        if @isset(.app.theme) and .app.theme.initialized and @isset(.app.renderer) do
+            .app.theme.ensureAtlasScale(.app.renderer, scale)
     }
 
     // Returns the drawable and viewport of this surface.
@@ -148,16 +182,21 @@ impl Surface
             .applySurfaceFlags()
         }
 
+        // `width` and `height` are logical units. The native layer resolves the
+        // monitor's scale and sizes the window in physical pixels; everything after
+        // this point that touches the screen is physical.
         let app = surface.app
         if app.renderer.needsNativeWindow() do
             try createNative(app, surface, x, y, width, height, flags)
 
-        surface.rc      = try app.renderer.createContext(surface.nativeRenderHandle(), width, height, mainSurface ? &mainSurface.rc : null)
+        let physWidth  = cast(s32) Math.round(width * surface.dpiScale)
+        let physHeight = cast(s32) Math.round(height * surface.dpiScale)
+        surface.rc      = try app.renderer.createContext(surface.nativeRenderHandle(), physWidth, physHeight, mainSurface ? &mainSurface.rc : null)
         surface.painter = Painter.create(app.renderer)
 
         surface.minSize = {128, 128}
-        let w = cast(f32) Math.max(surface.minSize.x, cast(f32) width)
-        let h = cast(f32) Math.max(surface.minSize.y, cast(f32) height)
+        let w = Math.max(surface.minSize.x * surface.dpiScale, cast(f32) physWidth)
+        let h = Math.max(surface.minSize.y * surface.dpiScale, cast(f32) physHeight)
 
         surface.sendResizeEvent(w, h)
     }
@@ -203,7 +242,8 @@ impl Surface
     // Schedules the complete surface for repainting.
     mtd invalidate()
     {
-        .invalidateRect({0, 0, .position.width, .position.height})
+        let sz = .size()
+        .invalidateRect({0, 0, sz.x, sz.y})
     }
 
     // Adds a rectangle in surface coordinates to the pending repaint region.
@@ -238,27 +278,28 @@ impl Surface
     // Moves the surface inside the closest monitor's bounds.
     //
     // `topLeft` and `bottomRight` select which corners are constrained. `margin` keeps the
-    // selected edges that many pixels away from the monitor boundary.
+    // selected edges that many physical pixels away from the monitor boundary.
     mtd constrainPositionToScreen(topLeft, bottomRight = true, margin = 0'f32)
     {
         if .isMaximized or .isMinimized do
             return
 
+        // The surface position and the constraint work in physical desktop pixels.
         let monitor = Env.monitorForPoint({.position.x, .position.y})
         var np      = .position
 
         if topLeft
         {
-            np.x = Math.max(np.x, monitor.bounds.x + margin)
-            np.x = Math.min(np.x, monitor.bounds.right() - margin)
-            np.y = Math.max(np.y, monitor.bounds.y + margin)
-            np.y = Math.min(np.y, monitor.bounds.bottom() - margin)
+            np.x = Math.max(np.x, monitor.physicalBounds.x + margin)
+            np.x = Math.min(np.x, monitor.physicalBounds.right() - margin)
+            np.y = Math.max(np.y, monitor.physicalBounds.y + margin)
+            np.y = Math.min(np.y, monitor.physicalBounds.bottom() - margin)
         }
 
         if bottomRight
         {
-            np.x = Math.min(np.x, monitor.bounds.right() - margin - .position.width)
-            np.y = Math.min(np.y, monitor.bounds.bottom() - margin - .position.height)
+            np.x = Math.min(np.x, monitor.physicalBounds.right() - margin - .position.width)
+            np.y = Math.min(np.y, monitor.physicalBounds.bottom() - margin - .position.height)
         }
 
         .setPosition(np)
@@ -289,7 +330,13 @@ impl Surface
 
         if !.isDirty do
             return
-        let clipRect = .dirtyRect
+
+        // Round the dirty rectangle once, on the logical grid the painter clip uses:
+        // deriving the physical clear scissor from the raw edges instead would put
+        // the two on grids that disagree by one device pixel, leaving a cleared but
+        // never-repainted seam along the dirty edge.
+        var clipRect = .dirtyRect
+        clipRect.round()
         .dirtyRect = {Swag.F32.Max, Swag.F32.Max, 0, 0}
         .isDirty   = false
 
@@ -300,6 +347,10 @@ impl Surface
             .renderer.begin(me.rc)
             .painter.begin()
         }
+
+        // The window hierarchy records logical units; the renderer maps them to the
+        // physical render target through the surface scale.
+        .painter.setContentScale(.dpiScale)
 
         // Draw shadow around surface
         var myRect = Math.Rectangle{0, 0, .position.width, .position.height}
@@ -325,18 +376,27 @@ impl Surface
         .paintAlphaMask()
         .painter.end()
 
-        // Paint to surface render target
+        // Paint to surface render target. The direct scissor works in physical
+        // render-target pixels, unlike painter clip rectangles which stay logical.
+        var physClip = clipRect
+        physClip.x      = Math.round(clipRect.x * .dpiScale)
+        physClip.y      = Math.round(clipRect.y * .dpiScale)
+        physClip.width  = Math.round(clipRect.right() * .dpiScale) - physClip.x
+        physClip.height = Math.round(clipRect.bottom() * .dpiScale) - physClip.y
+
         with cxt
         {
             .renderer.bindRenderTarget(&me.rt, vp: &myRect)
-            .renderer.setScissorRect(clipRect)
+            .renderer.setScissorRect(physClip)
             .renderer.clear()
             .renderer.draw(&me.painter)
             .renderer.unbindRenderTarget()
         }
 
-        // Paint render target to screen
+        // Paint render target to screen. This pass copies physical texels one to
+        // one, so it runs unscaled: destination and source are both device pixels.
         .painter.begin()
+        .painter.setContentScale(1)
         .painter.setColorMaskFull()
         .painter.setInterpolationMode(.Pixel)
         .painter.setBlendingMode(.Copy)
@@ -364,6 +424,8 @@ impl Surface
         cxt.renderer.end()
     }
 
+    // `width` and `height` are in physical pixels; the window tree receives the
+    // logical size derived through the surface scale.
     private mtd sendResizeEvent(width, height: f32)
     {
         .rc.width        = cast(s32) width
@@ -371,8 +433,9 @@ impl Surface
         .position.width  = width
         .position.height = height
 
+        let sz  = .size()
         let sdw = .flags.has(.NoShadow) ? 0 : .app.theme.metrics.surfaceWnd_ShadowSize
-        .wnd.setPosition({sdw, sdw, width - 2 * sdw, height - 2 * sdw})
+        .wnd.setPosition({sdw, sdw, sz.x - 2 * sdw, sz.y - 2 * sdw})
     }
 
     // Returns the themed corner radius, or zero when rounding is disabled by the surface state.
@@ -469,9 +532,32 @@ impl Surface
         // Save position and surface state
         if @isset(.wnd.view) and .wnd.view.id != null
         {
+            if !ser.isReading() do
+                .savedDpiScale = .dpiScale
+
             catch ser.serialize(.wnd.view.id, .wnd.view.id ? Hash.Crc32.compute(.wnd.view.id) : 0, &.state) as err
             if err == null and ser.isReading()
             {
+                // Bounds were saved in physical pixels of the monitor of that
+                // session. When the target monitor uses another scale, rescale the
+                // sizes so the surface keeps its logical dimensions. The monitor
+                // scale is derived from DPI-virtualized integer widths and is a
+                // fraction of a percent off the exact window scale, so an exact
+                // comparison would rescale by ~0.9998 on every launch and shrink
+                // the window forever; a real scale change is at least 25%.
+                if .savedDpiScale > 0
+                {
+                    let target = Env.monitorForPoint({.position.x, .position.y})
+                    if target.scaleFactor > 0 and Math.abs(target.scaleFactor - .savedDpiScale) > 0.02 * .savedDpiScale
+                    {
+                        let factor = target.scaleFactor / .savedDpiScale
+                        .position.width          *= factor
+                        .position.height         *= factor
+                        .restoredPosition.width  *= factor
+                        .restoredPosition.height *= factor
+                    }
+                }
+
                 if .isMaximized
                 {
                     .setPosition(.restoredPosition)

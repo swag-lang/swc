@@ -470,9 +470,10 @@ impl Undo
             {
                 if !.acceptsType(@kindof(itf)) do
                     continue
-                if form.subKind != (notnull .mdlValue).subKind do
+                @assert(.mdlValue != null)
+                if form.subKind != .mdlValue.subKind do
                     continue
-                itf.copy(form, notnull .mdlValue)
+                itf.copy(form, .mdlValue)
             }
 
         case .SetTypedValue:
@@ -691,7 +692,7 @@ impl Undo
             {
                 if !.acceptsType(@kindof(itf)) do
                     continue
-                if form.subKind == (notnull .mdlValue).subKind do
+                if form.subKind == .mdlValue!.subKind do
                     itf.copy(form, .oldForm[idx])
             }
 

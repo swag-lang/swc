@@ -100,9 +100,10 @@ namespace WinFsp
         {
             if .fileSystem
             {
-                (g_WinFsp.stopDispatcher)(notnull .fileSystem)
-                (g_WinFsp.removeMountPoint)(notnull .fileSystem)
-                (g_WinFsp.destroy)(notnull .fileSystem)
+                @assert(.fileSystem != null)
+                (g_WinFsp.stopDispatcher)(.fileSystem)
+                (g_WinFsp.removeMountPoint)(.fileSystem)
+                (g_WinFsp.destroy)(.fileSystem)
                 .fileSystem = null
             }
 

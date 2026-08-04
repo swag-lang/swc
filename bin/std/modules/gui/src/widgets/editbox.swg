@@ -104,7 +104,7 @@ impl IWnd for EditBox
         {
         case .Gained:
             .originalText = .textStorage
-            .timerCaret   = (notnull .surface).app.addTimer(500'ms, me)
+            .timerCaret   = .surface!.app.addTimer(500'ms, me)
             .visibleCaret = true
             .computeCaretPos()
             .invalidate()
@@ -228,7 +228,7 @@ impl IWnd for EditBox
         // updateScroll (which mirrors this clientRect) so it can be unit-tested.
         let fontR    = nnFont(.font().regular)
         let caretPos = .caretRect()
-        let sizeX    = Painter.measureStringSnapped(.textStorage.toString(), fontR)
+        let sizeX    = Painter.measureStringSnapped(.textStorage.toString(), fontR, deviceScale: .deviceScale())
         .updateScroll()
 
         painter.pushClippingRect(clientRect)
@@ -268,7 +268,12 @@ impl IWnd for EditBox
         // Caret
         if .visibleCaret and .hasFocus()
         {
-            painter.fillRect(caretPos, colors.edit_Text)
+            // Snap the caret to whole device pixels so it stays a crisp bar on
+            // scaled displays.
+            var cp = caretPos
+            cp.x     = painter.snapToDeviceX(cp.x)
+            cp.width = painter.hairline(cp.width)
+            painter.fillRect(cp, colors.edit_Text)
         }
 
         painter.popClippingRect()
@@ -778,7 +783,7 @@ private impl EditBox
         {
             if .flags.has(.RightAligned)
             {
-                let sizeX = Painter.measureStringSnapped(.textStorage.toString(), font)
+                let sizeX = Painter.measureStringSnapped(.textStorage.toString(), font, deviceScale: .deviceScale())
                 result.x = clientRect.right() - sizeX + .posSelEnd - 2
             }
             else do
@@ -820,12 +825,12 @@ private impl EditBox
 
             // Hit-test against the same snapped advances the glyphs are drawn with.
             let shaped    = Painter.shapeRun(.textStorage.toString(), font)
-            let base      = clientRect.right() - Painter.measureStringSnapped(&shaped)
+            let base      = clientRect.right() - Painter.measureStringSnapped(&shaped, deviceScale: .deviceScale())
             var lastWidth = 0'f32
             var diff      = 0'f32
             for [idx] in 1 until .textStorage.length
             {
-                let met = Painter.measureStringSnapped(&shaped, idx)
+                let met = Painter.measureStringSnapped(&shaped, idx, .deviceScale())
                 diff = (met - lastWidth) * 0.5
                 if x <= base + met
                 {
@@ -851,7 +856,7 @@ private impl EditBox
             var diff      = 0'f32
             for [idx] in 1 until .textStorage.length
             {
-                let met = Painter.measureStringSnapped(&shaped, idx)
+                let met = Painter.measureStringSnapped(&shaped, idx, .deviceScale())
                 diff = (met - lastWidth) * 0.5
                 if x <= met
                 {
@@ -885,9 +890,9 @@ private impl EditBox
         // caret drifts further from the real glyph edge the longer the text is. This
         // holds for both alignments, so both use the snapped measure.
         let text = .textStorage.toString()
-        .posSelBeg, .posSelEnd = Painter.measureStringSnapped(text, font, .selEnd)
+        .posSelBeg, .posSelEnd = Painter.measureStringSnapped(text, font, .selEnd, deviceScale: .deviceScale())
         if .selBeg != .selEnd do
-            .posSelBeg = Painter.measureStringSnapped(text, font, .selBeg)
+            .posSelBeg = Painter.measureStringSnapped(text, font, .selBeg, deviceScale: .deviceScale())
     }
 
     // Moves caret left to the start of the previous word.
@@ -991,7 +996,7 @@ internal impl EditBox
 
         let caretPos  = .caretRect()
         let decalX    = Math.min(Painter.measureString("X", fontR).width * 10, clientRect.width * 0.5)
-        let sizeX     = Painter.measureStringSnapped(.textStorage.toString(), fontR)
+        let sizeX     = Painter.measureStringSnapped(.textStorage.toString(), fontR, deviceScale: .deviceScale())
         let maxDecalX = sizeX - decalX
 
         if caretPos.x - clientRect.x < .scrollPosX do

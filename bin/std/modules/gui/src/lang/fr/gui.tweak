@@ -9,7 +9,7 @@ dlg_ConfirmTitle Veuillez confirmer
 dlg_ConfirmText  Voulez-vous continuer ?
 dlg_ErrorTitle   Erreur
 
-fileDlg_TitleCreateFile   Créer un fichier
+fileDlg_TitleSaveFile     Enregistrer un fichier
 fileDlg_TitleSelectFile   Sélectionner un fichier
 fileDlg_TitleSelectFiles  Sélectionner des fichiers
 fileDlg_TitleSelectFolder Sélectionner un dossier
@@ -22,6 +22,8 @@ fileDlg_ErrFolderExists   Un dossier portant ce nom existe déjà.
 fileDlg_ErrFolderCreate   Le dossier n'a pas pu être créé.
 fileDlg_ReplaceTitle      Ce fichier existe déjà.
 fileDlg_ReplaceText       Voulez-vous le remplacer ?
+fileDlg_BtnSave           Enregistrer
+fileDlg_BtnOpen           Ouvrir
 
 browser_Shortcuts    Raccourcis
 browser_Drives       Lecteurs
@@ -30,14 +32,12 @@ browser_Documents    Documents
 browser_Pictures     Images
 browser_ColName      Nom
 browser_ColModified  Modifié
+browser_ColSize      Taille
 browser_AllFiles     Tous les fichiers
-browser_Back         Précédent
-browser_Forward      Suivant
-browser_Up           Parent
-browser_Refresh      Actualiser
 browser_NewFolder    Nouveau dossier
 browser_TipBack      Dossier précédent (Alt+Gauche)
 browser_TipForward   Dossier suivant (Alt+Droite)
+browser_TipRecent    Dossiers récents
 browser_TipUp        Dossier parent (Alt+Haut)
 browser_TipRefresh   Actualiser (F5)
 browser_TipNewFolder Créer un dossier à l'emplacement courant
@@ -45,6 +45,12 @@ browser_FolderName   Nom du dossier
 browser_FileName     Nom du fichier
 browser_Folders      Dossiers
 browser_Type         Type
+browser_StatusEmpty  Dossier vide
+browser_StatusFolder dossier
+browser_StatusFolders dossiers
+browser_StatusFile   fichier
+browser_StatusFiles  fichiers
+browser_StatusSelected "  —  % sélectionné(s)"
 
 prop_Copy             Copier
 prop_Paste            Coller

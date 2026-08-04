@@ -12,12 +12,19 @@ enum FileDlgMode
 }
 
 // Stores reusable file-dialog placement and browsing state between invocations.
+//
+// Keep one instance per dialog role and pass it through [[Gui.FileDlgOptions.state]] so
+// every invocation reopens where the previous one ended. The struct serializes cleanly,
+// so an application can persist it inside its [[Gui.SerializeStateEvent]] handler and
+// give the dialog a memory across runs.
 struct FileDlgState
 {
     surfacePosition:     Math.Rectangle     // Last dialog surface rectangle.
     currentFolder:       String             // Last browsed folder.
-    nameColumnWidth:     s32 = 200          // Last width of the name column.
-    modifiedColumnWidth: s32 = 150          // Last width of the modified-time column.
+    recentFolders:       Array'String       // Recently accepted folders, most recent first.
+    nameColumnWidth:     s32 = 220          // Last width of the name column.
+    modifiedColumnWidth: s32 = 130          // Last width of the modified-time column.
+    sizeColumnWidth:     s32 = 90           // Last width of the size column.
 }
 
 // Configures a [[Gui.FileDlg]] or embedded [[Gui.FileBrowserCtrl]].
@@ -53,7 +60,7 @@ impl IWnd for FileDlg
         // The browser saves the folder/column widths; the dialog owns the position.
         let state = .options.state
         if state do
-            state.surfacePosition = (notnull .surface).position
+            state.surfacePosition = .surface!.position
     }
 }
 
@@ -124,6 +131,11 @@ private impl FileDlg
 impl FileDlg
 {
     // Creates the file dialog (own OS surface), hosting a FileBrowserCtrl.
+    //
+    // Without [[Gui.FileDlgOptions.title]] and [[Gui.FileDlgOptions.confirmButtonText]],
+    // the surface title and the confirmation label follow the dialog mode ("Open",
+    // "Save", "Select Folder"). Confirming while the name editor targets an existing
+    // folder navigates into it instead of accepting.
     #[Swag.Discardable]
     func create(from: *Surface, opt: FileDlgOptions = {})->*FileDlg
     {
@@ -131,10 +143,10 @@ impl FileDlg
         let dlg = Wnd.create'FileDlg()
         dlg.options = opt
 
-        with let srf = dlg.createSurface(from, 100, 100, 700, 500)
+        with let srf = dlg.createSurface(from, 100, 100, 720, 520)
         {
             .updateFlags(add: .Resizable)
-            .minSize = {400, 400}
+            .minSize = {540, 420}
 
             if @countof(opt.title) do
                 .setTitle(opt.title)
@@ -142,7 +154,7 @@ impl FileDlg
             {
                 switch #complete opt.mode
                 {
-                case .CreateFile:   .setTitle(strings().fileDlg_TitleCreateFile)
+                case .CreateFile:   .setTitle(strings().fileDlg_TitleSaveFile)
                 case .SelectFile:   .setTitle(strings().fileDlg_TitleSelectFile)
                 case .SelectFiles:  .setTitle(strings().fileDlg_TitleSelectFiles)
                 case .SelectFolder: .setTitle(strings().fileDlg_TitleSelectFolder)
@@ -150,12 +162,20 @@ impl FileDlg
             }
         }
 
-        dlg.addButton(@countof(opt.confirmButtonText) ? opt.confirmButtonText : strings().dlg_Ok,
-                      Dialog.BtnOk,
-                      true)
+        var confirmText = opt.confirmButtonText
+        if !@countof(confirmText)
+        {
+            switch #complete opt.mode
+            {
+            case .CreateFile:               confirmText = strings().fileDlg_BtnSave
+            case .SelectFile, .SelectFiles: confirmText = strings().fileDlg_BtnOpen
+            case .SelectFolder:             confirmText = strings().fileDlg_TitleSelectFolder
+            }
+        }
+
+        dlg.addButton(confirmText, Dialog.BtnOk, true)
         dlg.addButton(strings().dlg_Cancel, Dialog.BtnCancel)
         dlg.backgroundStyle = .Window
-        srf.updateFlags(remove: .CloseButton)
 
         // Host the reusable browser composite.
         with dlg.browser = FileBrowserCtrl.create(srf.view(), opt)
@@ -169,6 +189,19 @@ impl FileDlg
         {
             if id == Dialog.BtnOk
             {
+                // A name that designates an existing folder navigates instead of accepting,
+                // so a pasted or typed path browses like in the platform dialogs.
+                if dlg.options.mode != .SelectFolder
+                {
+                    let target = dlg.browser.typedFolderTarget()
+                    if !target.isEmpty()
+                    {
+                        dlg.browser.setCurrentFolder(target.toString())
+                        dlg.browser.setFileName(dlg.options.mode == .CreateFile ? dlg.options.initialName : "")
+                        return false
+                    }
+                }
+
                 if !dlg.browser.hasValidSelection()
                 {
                     dlg.browser.editFile.selectAll()
@@ -180,8 +213,11 @@ impl FileDlg
                 if dlg.options.mode == .CreateFile and File.exists(selName)
                 {
                     let res = MessageDlg.confirm(notnull dlg.surface, strings().fileDlg_ReplaceTitle, strings().fileDlg_ReplaceText)
-                    return res == Dialog.BtnYes
+                    if res != Dialog.BtnYes do
+                        return false
                 }
+
+                dlg.browser.noteAccepted()
             }
 
             return true
@@ -189,9 +225,16 @@ impl FileDlg
 
         dlg.applyLayout()
 
-        // Restore the saved surface position if any.
-        if opt.state and !opt.state.surfacePosition.isEmpty() do
-            srf.setPosition(opt.state.surfacePosition)
+        // Restore the saved surface placement, then make sure it still lands on a
+        // visible screen area: a stale rectangle must never open the dialog off-screen.
+        if opt.state and !opt.state.surfacePosition.isEmpty()
+        {
+            var pos = opt.state.surfacePosition
+            pos.width  = Math.max(pos.width, srf.minSize.x)
+            pos.height = Math.max(pos.height, srf.minSize.y)
+            srf.setPosition(pos)
+            srf.constrainPositionToScreen(topLeft: true, margin: 10)
+        }
         else do
             srf.center(from)
 

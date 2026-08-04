@@ -403,8 +403,9 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     let png = buildPng16(2, 1, 2, false, samples.toSlice(), key.toSlice())
     let img = expect Image.decode("rgb16-trns.png", nnBytes(png.toSlice()), {})
     @assert(img.pixelFormat == .RGBA8)
-    @assert((notnull img.pixels.buffer)[3] == 0'u8)
-    @assert((notnull img.pixels.buffer)[7] == 255'u8)
+    @assert(img.pixels.buffer != null)
+    @assert(img.pixels.buffer[3] == 0'u8)
+    @assert(img.pixels.buffer[7] == 255'u8)
 }
 
 // Decode every Adam7 pass for a 16-bit RGB image and preserve pixel placement.

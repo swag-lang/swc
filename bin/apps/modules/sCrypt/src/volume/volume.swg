@@ -457,7 +457,7 @@ impl Volume
             return null
         for part in parts
         {
-            current = .findChild((notnull current).id, part)
+            current = .findChild(current!.id, part)
             if !current do
                 return null
         }
@@ -475,8 +475,8 @@ impl Volume
             return {null, parts[parts.count - 1]}
         for [i] in 0 until parts.count - 1
         {
-            parent = .findChild((notnull parent).id, parts[i])
-            if !parent or !(notnull parent).isDirectory() do
+            parent = .findChild(parent!.id, parts[i])
+            if !parent or !parent!.isDirectory() do
                 return {null, parts[parts.count - 1]}
         }
 
@@ -685,7 +685,7 @@ impl Volume
     mtd createNode(path: string, directory: bool, attributes: u32, security: const [..] u8)->u64 fail
     {
         let {parent, name} = .resolveParent(path)
-        if parent == null or !(notnull parent).isDirectory() do
+        if parent == null or !parent!.isDirectory() do
             failWith("Parent directory does not exist.", .NotFound)
         let validParent = notnull parent
         if !@countof(name) or name == "." or name == ".." do
@@ -757,7 +757,7 @@ impl Volume
         if id == 1 do
             failWith("Cannot rename the root directory.", .AccessDenied)
         let {parent, name} = .resolveParent(newPath)
-        if parent == null or !(notnull parent).isDirectory() or !@countof(name) do
+        if parent == null or !parent!.isDirectory() or !@countof(name) do
             failWith("The destination directory does not exist.", .NotFound)
         let validParent         = notnull parent
         let destinationParentId = validParent.id

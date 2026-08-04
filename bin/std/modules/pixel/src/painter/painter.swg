@@ -274,6 +274,12 @@ struct Painter
         overlapMode:    bool            // Whether overlap-safe alpha rendering is active.
         canSetTexture0: bool = true     // Whether drawing operations may change the brush texture.
         curState:       PaintState      // Current mutable drawing state.
+
+        // Physical device pixels per painter path-space unit. The renderer multiplies
+        // every recorded coordinate by it at draw time, so the whole stream stays in
+        // logical units; the painter itself only consults it for antialiasing fringes,
+        // text resolution, and device-grid snapping.
+        curContentScale: f32 = 1     // Device pixels per logical unit for this stream.
     }
 }
 
@@ -298,6 +304,57 @@ impl Painter
     {
         Debug.assert(!.drawingBegin)
         .rendererItf = renderer
+    }
+
+    // Sets the number of physical device pixels per painter path-space unit.
+    //
+    // Drawing keeps using logical units: the renderer scales every recorded
+    // coordinate at draw time, while antialiasing fringes, text resolution, and
+    // device-grid snapping account for the real on-screen pixel size. `1`, the
+    // default, draws one path-space unit per device pixel. The value survives
+    // [[Pixel.Painter.begin]]; set it once per owner, or per pass when a frame mixes
+    // logical and physical passes.
+    mtd setContentScale(scale: f32)
+    {
+        Debug.assert(scale > 0)
+        .curContentScale = scale
+    }
+
+    // Returns the number of physical device pixels per painter path-space unit.
+    #[Swag.Inline]
+    mtd const contentScale() => .curContentScale
+
+    // Rounds a horizontal path-space position to the physical device-pixel grid.
+    //
+    // Valid under a translation-only transform; other transforms return the value
+    // unchanged. Use it to keep hairlines and carets on whole device pixels.
+    mtd const snapToDeviceX(x: f32)->f32
+    {
+        if !.curState.transform.isTranslationOnly() do
+            return x
+        let k = .curContentScale
+        return Math.round((x + .curState.transform.tx) * k) / k - .curState.transform.tx
+    }
+
+    // Rounds a vertical path-space position to the physical device-pixel grid.
+    //
+    // See [[Pixel.Painter.snapToDeviceX]].
+    mtd const snapToDeviceY(y: f32)->f32
+    {
+        if !.curState.transform.isTranslationOnly() do
+            return y
+        let k = .curContentScale
+        return Math.round((y + .curState.transform.ty) * k) / k - .curState.transform.ty
+    }
+
+    // Returns a stroke thickness covering a whole number of device pixels.
+    //
+    // The result is at least one device pixel, so a one-unit hairline stays a crisp
+    // single pixel on every display scale instead of a blurred fraction.
+    mtd const hairline(thickness: f32 = 1)->f32
+    {
+        let k = .curContentScale
+        return Math.max(1.0, Math.round(thickness * k)) / k
     }
 
     // Returns the renderer selected for this painter.
@@ -398,6 +455,9 @@ impl Painter
         params.gradientSpread    = brush.gradientSpread
         params.gradientStops     = brush.gradientStops
         params.gradientStopCount = brush.gradientStopCount
+        // Pixel mode keeps its meaning at every scale: the renderers sharpen it to
+        // one device pixel of smoothing per texel edge when the content scale makes
+        // the texel-to-pixel mapping fractional.
         if brush.type == .Hatch do
             params.interpolationMode = .Pixel
         else do
@@ -606,7 +666,7 @@ impl Painter
         let tr = .curState.transform
         let sx = Math.sqrt(tr.m11 * tr.m11 + tr.m12 * tr.m12)
         let sy = Math.sqrt(tr.m21 * tr.m21 + tr.m22 * tr.m22)
-        let sc = Math.min(sx, sy)
+        let sc = Math.min(sx, sy) * .curContentScale
         if sc <= 0.001 do
             return AAHalf
         return AAHalf / sc
@@ -617,7 +677,7 @@ impl Painter
         let tr = .curState.transform
         let tx = normal.x * tr.m11 + normal.y * tr.m21
         let ty = normal.x * tr.m12 + normal.y * tr.m22
-        let sc = Math.sqrt(tx * tx + ty * ty)
+        let sc = Math.sqrt(tx * tx + ty * ty) * .curContentScale
         if sc <= 0.001 do
             return AAHalf
         return AAHalf / sc

@@ -18,6 +18,14 @@ var g_App: Application
 
     try Jobs.initialize()
 
+    // Persisted window placement and browse-dialog state. A failure to prepare the
+    // folder only costs the memory between runs, never the application start.
+    let stateFolder = Path.combine(Env.getSpecialDirectory(.UserAppData), "sCrypt")
+    if !Directory.exists(stateFolder) do
+        discard catch Directory.create(stateFolder)
+    if Directory.exists(stateFolder) do
+        g_App.setStatePath(Path.combine(stateFolder, "sCrypt.cfg"))
+
     let appIcon = expect Image.decode(".png", AppIcon)
     g_App.setAppIcon(appIcon)
     registerAppStrings(&g_App.resources)

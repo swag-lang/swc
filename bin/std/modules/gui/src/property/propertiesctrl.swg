@@ -116,7 +116,7 @@ impl PropertiesCtrl
         var parentLine: #null *ListLine
         for &it, [idx] in .properties.sections
         {
-            let str   = (notnull it.item).label.text()
+            let str   = it.item!.label.text()
             let naked = RichString.plainText(str)
 
             // In the filter bar

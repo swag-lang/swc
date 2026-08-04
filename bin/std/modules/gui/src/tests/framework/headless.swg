@@ -58,7 +58,11 @@ struct HeadlessHost
 impl HeadlessHost
 {
     // Initializes a headless application, theme, surface, and root window of the requested size.
-    mtd setup(width, height: f32)
+    //
+    // `width` and `height` are logical units. `dpiScale` above one renders the same
+    // logical tree into a proportionally larger physical target, like a surface on a
+    // scaled display; the window tree and input stay logical either way.
+    mtd setup(width, height: f32, dpiScale = 1.0'f32)
     {
         // The clipboard is already faked by the sandbox; start each host from an empty one so
         // a previous test cannot leak content into this one.
@@ -66,7 +70,7 @@ impl HeadlessHost
 
         .app.setRenderer(&.renderer)
 
-        .surface.rc = expect .app.renderer.createContext(null, cast(s32) width, cast(s32) height)
+        .surface.rc = expect .app.renderer.createContext(null, cast(s32) (width * dpiScale), cast(s32) (height * dpiScale))
         .surface.bindPainterToRenderer(.app.renderer)
         .app.renderer.setCurrentContext(.surface.rc)
         .app.renderer.init()
@@ -80,8 +84,9 @@ impl HeadlessHost
         .app.theme = .theme
         .app.style.own(.theme)
 
-        .surface.app      = &.app
-        .surface.position = {0, 0, width, height}
+        .surface.app = &.app
+        .surface.setDpiScaleRaw(dpiScale)
+        .surface.position = {0, 0, width * dpiScale, height * dpiScale}
         .app.mainSurface  = &.surface
 
         let root = &.root
@@ -815,11 +820,15 @@ impl HeadlessHost
     {
         .setModifierKeys(modifiers, true)
         defer me.setModifierKeys(modifiers, false)
-        var evt = MouseEvent{kind: kind}
+
+        // Like the runtime loop, positions travel in physical screen pixels and the
+        // delta is delivered in the logical units of the target surface.
+        let scale = target.deviceScale()
+        var evt   = MouseEvent{kind: kind}
         evt.button     = button
         evt.surfacePos = target.screenToSurface(pt)
-        evt.delta.x    = pt.x - .mousePos.x
-        evt.delta.y    = pt.y - .mousePos.y
+        evt.delta.x    = (pt.x - .mousePos.x) / scale
+        evt.delta.y    = (pt.y - .mousePos.y) / scale
         evt.modifiers  = modifiers
         target.sendEvent(&evt)
     }

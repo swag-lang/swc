@@ -1584,7 +1584,7 @@ namespace
             return false;
 
         SmallVector4<const Symbol*> path;
-        if (SemaHelpers::extractNullNarrowPath(sema, nodeRef, path) && sema.frame().queryNullNarrowNonNull({path.data(), path.size()}))
+        if (SemaHelpers::extractNarrowPath(sema, nodeRef, path) && sema.frame().queryNarrowFact({path.data(), path.size()}, SemaNarrowFactKind::NonNull))
             return true;
 
         SmallVector<AstNodeRef> children;
@@ -2188,7 +2188,6 @@ namespace
         return ti.isStruct() || ti.isArray() || ti.isAggregateStruct() || ti.isAggregateArray() ||
                ti.isAny() || ti.isInterface() || ti.isString() || ti.isSlice();
     }
-
 
     bool shouldAutoInline(Sema& sema, const SymbolFunction& fn)
     {

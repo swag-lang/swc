@@ -327,13 +327,13 @@ Result AstIfStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
         sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
 
         // Narrow the nullable paths proven by the condition inside the matching branch.
-        SemaHelpers::NullNarrowGuards guards;
-        SemaHelpers::collectNullNarrowGuards(sema, nodeConditionRef, guards);
+        SemaHelpers::NarrowGuards guards;
+        SemaHelpers::collectNarrowGuards(sema, nodeConditionRef, guards);
         const auto& facts = childRef == nodeIfBlockRef ? guards.whenTrue : guards.whenFalse;
         if (!facts.empty())
         {
             SemaFrame frame = sema.frame();
-            SemaHelpers::addNullNarrowFacts(frame, {facts.data(), facts.size()});
+            SemaHelpers::addNarrowFacts(frame, {facts.data(), facts.size()});
             sema.pushFramePopOnPostChild(frame, childRef);
         }
     }
@@ -349,13 +349,13 @@ Result AstIfStmt::semaPostNode(Sema& sema) const
     // Guard-style early exits: when exactly one branch terminates the local flow, the
     // statements after the `if` can only be reached through the surviving branch, so its
     // narrowing facts hold for the remainder of the enclosing block.
-    const bool thenStops = SemaHelpers::nullNarrowStopsLocalFlow(sema, nodeIfBlockRef);
-    const bool elseStops = nodeElseBlockRef.isValid() && SemaHelpers::nullNarrowStopsLocalFlow(sema, nodeElseBlockRef);
+    const bool thenStops = SemaHelpers::narrowStopsLocalFlow(sema, nodeIfBlockRef);
+    const bool elseStops = nodeElseBlockRef.isValid() && SemaHelpers::narrowStopsLocalFlow(sema, nodeElseBlockRef);
     if (thenStops == elseStops)
         return Result::Continue;
 
-    SemaHelpers::NullNarrowGuards guards;
-    SemaHelpers::collectNullNarrowGuards(sema, nodeConditionRef, guards);
+    SemaHelpers::NarrowGuards guards;
+    SemaHelpers::collectNarrowGuards(sema, nodeConditionRef, guards);
     const auto& facts = thenStops ? guards.whenFalse : guards.whenTrue;
     if (facts.empty())
         return Result::Continue;
@@ -365,7 +365,7 @@ Result AstIfStmt::semaPostNode(Sema& sema) const
         return Result::Continue;
 
     SemaFrame frame = sema.frame();
-    SemaHelpers::addNullNarrowFacts(frame, {facts.data(), facts.size()});
+    SemaHelpers::addNarrowFacts(frame, {facts.data(), facts.size()});
     sema.pushFramePopOnPostNode(frame, parentRef);
     return Result::Continue;
 }
@@ -420,7 +420,7 @@ Result AstIfVarDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) co
             {
                 const std::array<const Symbol*, 1> path  = {conditionSym};
                 SemaFrame                          frame = sema.frame();
-                frame.addNullNarrowFact({path.data(), path.size()}, true);
+                frame.addNarrowFact({path.data(), path.size()}, SemaNarrowFactKind::NonNull);
                 sema.pushFramePopOnPostChild(frame, childRef);
             }
         }

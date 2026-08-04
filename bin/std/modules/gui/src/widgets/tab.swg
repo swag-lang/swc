@@ -296,7 +296,7 @@ impl IWnd for Tab
         .computeTabLayout()
         .ensureVisible(.selectedIndex)
 
-        let curView = (notnull .items[.selectedIndex]).view
+        let curView = .items[.selectedIndex]!.view
         if curView
         {
             var clientRect = .clientRect()
@@ -381,7 +381,7 @@ private impl Tab
         let popup = PopupListCtrl.create(me)
         .popup = popup
         for item in .items do
-            popup.addItem((notnull item).name.raw, (notnull item).id, (notnull item).icon, (notnull item).userData0)
+            popup.addItem(item!.name.raw, item!.id, item!.icon, item!.userData0)
         if .selectedIndex < .items.count do
             popup.setSelectedIndex(.selectedIndex)
 
@@ -527,13 +527,13 @@ private impl Tab
     mtd ensureVisible(idx: u32)
     {
         let rect = .itemBarRect()
-        if idx < .firstVisibleIndex or (notnull .items[idx]).pos + (notnull .items[idx]).width >= rect.right()
+        if idx < .firstVisibleIndex or .items[idx]!.pos + .items[idx]!.width >= rect.right()
         {
             .firstVisibleIndex = idx
-            var x = rect.right() - (notnull .items[.firstVisibleIndex]).width
+            var x = rect.right() - .items[.firstVisibleIndex]!.width
             while .firstVisibleIndex
             {
-                x -= (notnull .items[.firstVisibleIndex - 1]).width
+                x -= .items[.firstVisibleIndex - 1]!.width
                 if x < rect.x do
                     break
                 .firstVisibleIndex -= 1
@@ -653,7 +653,7 @@ impl Tab
         .closePopups()
 
         let wasSelected = .selectedIndex == index
-        let view        = (notnull .items[index]).view
+        let view        = .items[index]!.view
         if view do
             view.destroy()
         .items.deleteAt(index)
@@ -670,7 +670,7 @@ impl Tab
         elif wasSelected
         {
             .selectedIndex = Math.min(index, cast(u32) .items.count - 1)
-            let selectedView = (notnull .items[.selectedIndex]).view
+            let selectedView = .items[.selectedIndex]!.view
             if selectedView do
                 selectedView.wndFlags &= ~.Hidden
             .sigSelectionChanged.call(me)
@@ -686,7 +686,7 @@ impl Tab
         .closePopups()
         for item in .items
         {
-            let view = (notnull item).view
+            let view = item!.view
             if view do
                 view.destroy()
         }
@@ -707,13 +707,13 @@ impl Tab
 
         if .selectedIndex < .items.count
         {
-            let oldView = (notnull .items[.selectedIndex]).view
+            let oldView = .items[.selectedIndex]!.view
             if oldView do
                 oldView.wndFlags |= .Hidden
         }
 
         .selectedIndex = index
-        let newView = (notnull .items[.selectedIndex]).view
+        let newView = .items[.selectedIndex]!.view
         if newView do
             newView.wndFlags &= ~.Hidden
 

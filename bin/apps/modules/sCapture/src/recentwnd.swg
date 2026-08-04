@@ -91,7 +91,7 @@ impl IWnd for RecentView
         var ht = Swag.U64.Max
         for i, [idx] in .items
         {
-            if (notnull i).rect.contains(pos)
+            if i!.rect.contains(pos)
             {
                 ht = idx
                 break
@@ -164,11 +164,11 @@ impl IWnd for RecentView
         if infos.linked != null
         {
             let backColor = infos.linkedUpToDate ? colors.bk : ColorYellow
-            var icon11    = Icon.from(&(notnull g_Main).icons48, 21)
+            var icon11    = Icon.from(&g_Main!.icons48, 21)
             icon11.sizeX, icon11.sizeY = 24
             icon11.paint(painter, rect.x + 4, rect.y + 4, backColor)
 
-            var icon12 = Icon.from(&(notnull g_Main).icons48, 22)
+            var icon12 = Icon.from(&g_Main!.icons48, 22)
             icon12.sizeX, icon12.sizeY = 24
             icon12.paint(painter, rect.x + 4, rect.y + 4, backColor.contrasting())
 
@@ -324,7 +324,7 @@ impl RecentWnd
         {
             for it, [i] in self.recentView.items
             {
-                if (notnull it).file == file
+                if it!.file == file
                 {
                     // Remove from recent
                     self.recentView.items.destroy(it)

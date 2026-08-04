@@ -76,14 +76,24 @@ enum class SemaFrameContextFlagsE
 };
 using SemaFrameContextFlags = EnumFlags<SemaFrameContextFlagsE>;
 
-// A flow-narrowing fact about a nullable access path (root variable followed by field
-// symbols, e.g. `p` or `me.lastBucket`). `nonNull == true` means the path is proven
-// non-null at this point of the walk; `nonNull == false` re-nullifies (kill) the path
-// and everything it prefixes (after an assignment or address-of).
-struct SemaNullNarrowFact
+// What a flow fact proves about an access path. A new kind is added here, recognized in
+// `SemaHelpers::collectNarrowGuards`, and queried by whoever consumes it; the storage,
+// the scoping and the kill rules below are shared by every kind.
+enum class SemaNarrowFactKind : uint8_t
+{
+    NonNull, // the path cannot be null: consumed by the use-site nullability rules
+    NonZero, // the path cannot be zero
+};
+
+// A flow fact about an access path (root variable followed by field symbols, e.g. `p` or
+// `me.lastBucket`). `holds == true` means the path is proven at this point of the walk;
+// `holds == false` is a kill that invalidates EVERY kind for the path and everything it
+// prefixes (after an assignment or address-of), so `kind` is meaningless on a kill.
+struct SemaNarrowFact
 {
     SmallVector4<const Symbol*> path;
-    bool                        nonNull = true;
+    SemaNarrowFactKind          kind  = SemaNarrowFactKind::NonNull;
+    bool                        holds = true;
 };
 
 class SemaFrame
@@ -115,8 +125,8 @@ public:
     void                           pushNs(IdentifierRef id) { nsPath_.push_back(id); }
     void                           popNs() { nsPath_.pop_back(); }
 
-    SymbolAccess         currentAccess() const { return access_; }
-    void                 setCurrentAccess(SymbolAccess access) { access_ = access; }
+    SymbolAccess currentAccess() const { return access_; }
+    void         setCurrentAccess(SymbolAccess access) { access_ = access; }
     // An access modifier written in an aggregate body applies to the members of THAT aggregate.
     // Recording the symbol map it was written in keeps it from reaching a nested or anonymous
     // aggregate declared inside the same block, whose members are its own.
@@ -205,11 +215,12 @@ public:
     void                             hideLookupSymbol(const Symbol* sym);
     bool                             isLookupSymbolHidden(const Symbol* sym) const;
 
-    void addNullNarrowFact(std::span<const Symbol* const> path, bool nonNull);
-    bool queryNullNarrowNonNull(std::span<const Symbol* const> path) const;
-    bool hasNullNarrowFacts() const { return !nullNarrowFacts_.empty(); }
-    void clearNullNarrowFacts() { nullNarrowFacts_.clear(); }
-    void killNullNarrowFactsByRootId(std::span<const IdentifierRef> rootIds);
+    void addNarrowFact(std::span<const Symbol* const> path, SemaNarrowFactKind kind);
+    void addNarrowKill(std::span<const Symbol* const> path);
+    bool queryNarrowFact(std::span<const Symbol* const> path, SemaNarrowFactKind kind) const;
+    bool hasNarrowFacts() const { return !narrowFacts_.empty(); }
+    void clearNarrowFacts() { narrowFacts_.clear(); }
+    void killNarrowFactsByRootId(std::span<const IdentifierRef> rootIds);
 
     static SymbolMap* currentSymMap(Sema& sema);
     SymbolFlags       flagsForCurrentAccess() const;
@@ -250,7 +261,7 @@ private:
     SmallVector2<SymbolVariable*>       bindingVars_;
     SmallVector2<SemaIterationBorrow>   iterationBorrows_;
     SmallVector4<const Symbol*>         hiddenLookupSymbols_;
-    SmallVector2<SemaNullNarrowFact>    nullNarrowFacts_;
+    SmallVector2<SemaNarrowFact>        narrowFacts_;
 };
 
 SWC_END_NAMESPACE();

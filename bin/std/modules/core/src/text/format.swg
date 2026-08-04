@@ -229,3 +229,39 @@ func toInterp(exp: string)->String
     toInterp(&#uniq0, exp)
     return #uniq0.moveToString()
 }
+
+// Formats a byte count as a compact human-readable size, such as `"312 B"`, `"4.10 KB"` or `"13.4 MB"`.
+//
+// Units are 1024-based with the conventional `KB`/`MB`/`GB`/`TB` labels. Scaled values keep
+// three significant digits; exact byte counts below 1 KB are printed unscaled.
+func byteSize(bytes: u64)->String
+{
+    if bytes < 1024 do
+        return toString("% B", bytes)
+
+    var value = cast(f64) bytes / 1024.0
+    var unit  = "KB"
+    if value >= 1024
+    {
+        value /= 1024.0
+        unit  = "MB"
+    }
+
+    if value >= 1024
+    {
+        value /= 1024.0
+        unit  = "GB"
+    }
+
+    if value >= 1024
+    {
+        value /= 1024.0
+        unit  = "TB"
+    }
+
+    if value >= 100 do
+        return toString("%{f0} %", value, unit)
+    if value >= 10 do
+        return toString("%{f1} %", value, unit)
+    return toString("%{f2} %", value, unit)
+}

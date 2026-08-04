@@ -107,6 +107,16 @@ impl Document
         .body.appendFormat(" d=\"%\"/>\n", data)
     }
 
+    // Returns only the shape elements, without the enclosing `svg` element.
+    //
+    // Use this to embed the document's shapes in a larger hand-assembled file, for
+    // example as one cell of an icon atlas grid.
+    mtd const bodyText()->String
+    {
+        var result: retval = .body
+        return result
+    }
+
     // Returns the document as SVG text.
     mtd const toString()->String
     {

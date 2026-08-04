@@ -30,6 +30,7 @@ struct RenderCpu
 
         worldTransform: Transform2 = Transform2.Identity
         modelTransform: Transform2 = Transform2.Identity
+        contentScale:   f32        = 1                     // Device pixels per unit of the painter stream being drawn.
 
         scissorOn:   bool
         scissorRect: Math.Rectangle
@@ -355,7 +356,7 @@ private impl RenderCpu
         return lerpColor(lerpColor(c00, c10, tx), lerpColor(c01, c11, tx), ty)
     }
 
-    func sampleSubRect(image: *Image, paintPos: Vector2, params: const *Command)->Color
+    func sampleSubRect(image: *Image, paintPos: Vector2, params: const *Command, contentScale: f32)->Color
     {
         let p    = &params.texture0
         let minX = cast(s32) Math.floor(p.textureRect.x * image.width)
@@ -369,7 +370,7 @@ private impl RenderCpu
         var px   = cast(f32) minX + tx * cast(f32) (maxX - minX + 1) - 0.5
         var py   = cast(f32) minY + ty * cast(f32) (maxY - minY + 1) - 0.5
 
-        if p.interpolationMode == .Pixel
+        if p.interpolationMode == .Pixel and contentScale == 1
         {
             let x = Math.clamp(cast(s32) Math.floor(px + 0.5), minX, maxX)
             let y = Math.clamp(cast(s32) Math.floor(py + 0.5), minY, maxY)
@@ -378,12 +379,26 @@ private impl RenderCpu
 
         px = Math.clamp(px, cast(f32) minX, cast(f32) maxX)
         py = Math.clamp(py, cast(f32) minY, cast(f32) maxY)
-        let x0  = cast(s32) Math.floor(px)
-        let y0  = cast(s32) Math.floor(py)
-        let x1  = Math.min(x0 + 1, maxX)
-        let y1  = Math.min(y0 + 1, maxY)
-        let fx  = px - Math.floor(px)
-        let fy  = py - Math.floor(py)
+        let x0 = cast(s32) Math.floor(px)
+        let y0 = cast(s32) Math.floor(py)
+        let x1 = Math.min(x0 + 1, maxX)
+        let y1 = Math.min(y0 + 1, maxY)
+        var fx = px - Math.floor(px)
+        var fy = py - Math.floor(py)
+
+        // Sharp bilinear (see the OpenGL base shader): pixel mode at a fractional
+        // content scale keeps one device pixel of smoothing at each texel boundary
+        // instead of dropping texels or smearing one-texel tile borders.
+        if p.interpolationMode == .Pixel
+        {
+            let texelsPerUnitX = cast(f32) (maxX - minX + 1) / dstW
+            let texelsPerUnitY = cast(f32) (maxY - minY + 1) / dstH
+            let wx             = Math.clamp(texelsPerUnitX / contentScale, 0.0001, 1.0)
+            let wy             = Math.clamp(texelsPerUnitY / contentScale, 0.0001, 1.0)
+            fx = Math.saturate((fx - 0.5) / wx + 0.5)
+            fy = Math.saturate((fy - 0.5) / wy + 0.5)
+        }
+
         let c00 = readPixel(image, x0, y0)
         let c10 = readPixel(image, x1, y0)
         let c01 = readPixel(image, x0, y1)
@@ -529,7 +544,7 @@ private impl RenderCpu
                 return Color.fromArgb(Argb.Zero)
 
             if p.uvMode == .FillSubRect and .program != CpuProgram_Blur and .program != CpuProgram_Resolve do
-                return sampleSubRect(&storage.image, paintPos, &.paintCommand)
+                return sampleSubRect(&storage.image, paintPos, &.paintCommand, .contentScale)
 
             let w      = Math.max(p.boundRect.z - p.boundRect.x, 0.000001)
             let h      = Math.max(p.boundRect.w - p.boundRect.y, 0.000001)
@@ -811,6 +826,11 @@ private impl RenderCpu
         var transform = .worldTransform
         transform.multiply(.modelTransform)
 
+        // Map the logical painter stream to device pixels last, so positions and
+        // translations scale alike (see RenderOgl.buildModelMatrix).
+        if .contentScale != 1 do
+            transform.multiply(Transform2.createScale(.contentScale, .contentScale, 0, 0))
+
         var v0 = input0
         var v1 = input1
         var v2 = input2
@@ -1066,8 +1086,13 @@ private impl RenderCpu
             .stencilWrite = false
 
         case .SetClippingRect:
-            .scissorOn   = true
-            .scissorRect = cmd.clippingRect.rect
+
+            // Painter clip rectangles are logical; the scissor tests device pixels.
+            .scissorOn          = true
+            .scissorRect.x      = Math.round(cmd.clippingRect.rect.x * .contentScale)
+            .scissorRect.y      = Math.round(cmd.clippingRect.rect.y * .contentScale)
+            .scissorRect.width  = Math.round(cmd.clippingRect.rect.right() * .contentScale) - .scissorRect.x
+            .scissorRect.height = Math.round(cmd.clippingRect.rect.bottom() * .contentScale) - .scissorRect.y
 
         case .ResetClippingRect:
             .scissorOn = false
@@ -1135,9 +1160,12 @@ private impl RenderCpu
                 .program = CpuProgram_Simple
 
             case .Blur:
+
+                // The blur samples target texels; a logical radius must cover the
+                // same on-screen extent whatever the content scale.
                 .program    = CpuProgram_Blur
                 .blurAxis   = cmd.defaultShader.axis
-                .blurRadius = cmd.defaultShader.radius
+                .blurRadius = cmd.defaultShader.radius * .contentScale
 
             case .Resolve:
                 .program       = CpuProgram_Resolve
@@ -1237,6 +1265,7 @@ impl RenderCpu
     internal mtd drawImpl(painter: *Painter)
     {
         .resetDrawState()
+        .contentScale = painter.contentScale()
         for &cmd, [idx] in painter.commandBuffer do
             .executeCommand(painter, &cmd, cast(u64) idx)
     }

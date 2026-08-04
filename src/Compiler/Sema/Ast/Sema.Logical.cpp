@@ -84,15 +84,15 @@ Result AstLogicalExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef)
     // `a or b`, only when `a` is false. Apply the matching facts while visiting `b`.
     if (childRef == nodeLeftRef)
     {
-        SemaHelpers::NullNarrowGuards guards;
-        SemaHelpers::collectNullNarrowGuards(sema, nodeLeftRef, guards);
+        SemaHelpers::NarrowGuards guards;
+        SemaHelpers::collectNarrowGuards(sema, nodeLeftRef, guards);
 
         const TokenId op    = sema.token(codeRef()).id;
         const auto&   facts = op == TokenId::KwdAnd ? guards.whenTrue : guards.whenFalse;
         if (!facts.empty())
         {
             SemaFrame frame = sema.frame();
-            SemaHelpers::addNullNarrowFacts(frame, {facts.data(), facts.size()});
+            SemaHelpers::addNarrowFacts(frame, {facts.data(), facts.size()});
             sema.pushFramePopOnPostChild(frame, nodeRightRef);
         }
     }

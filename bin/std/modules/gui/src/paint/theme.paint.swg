@@ -2,34 +2,59 @@
 
 using Core, Pixel
 
+// Maps an authored-texel rectangle onto a texture rasterized `k` times larger.
+private func atlasSrc(r: Math.Rectangle, k: f32)->Math.Rectangle
+{
+    return Math.Rectangle{r.x * k, r.y * k, r.width * k, r.height * k}
+}
+
 impl Theme
 {
     // Draws a themed image region, using its optional nine-slice margins.
     mtd drawSubRect(painter: *Painter, dstRect: Math.Rectangle, subRect: #null *ThemeImageRect, color: Color, center = true, interpol = InterpolationMode.Linear)
     {
-        drawSubRect(painter, .res.imgWidgets, dstRect, subRect, color, center, interpol)
+        drawSubRect(painter, .res.imgWidgets, dstRect, subRect, color, center, interpol, .res.atlasScale)
     }
 
     // Draws a texture region, preserving its optional nine-slice borders.
-    func drawSubRect(painter: *Painter, texture: Texture, dstRect: Math.Rectangle, subRect: #null *ThemeImageRect, color: Color, center = true, interpol = InterpolationMode.Linear)
+    //
+    // `subRect` is expressed in authored atlas texels; `srcScale` maps it onto a texture
+    // rasterized that many times larger, as the theme atlas is on a scaled display.
+    func drawSubRect(painter: *Painter, texture: Texture, dstRect: Math.Rectangle, subRect: #null *ThemeImageRect, color: Color, center = true, interpol = InterpolationMode.Linear, srcScale = 1'f32)
     {
         if !subRect or subRect.rect.isEmpty() or dstRect.isEmpty() or color.a == 0 do
             return
 
+        var k = srcScale
+        if k <= 0 do
+            k = 1
+
+        // The atlas is rasterized at a whole scale at least as dense as any surface
+        // (see [[Theme.ensureAtlasScale]]), so a fractional content scale samples it
+        // at or below 1:1: plain bilinear then behaves as supersampled downscaling
+        // and keeps borders even. Only when the mapping still magnifies — an atlas
+        // coarser than the surface — does pixel sampling, sharpened by the renderers
+        // to one device pixel of smoothing per texel edge, preserve the tile look.
+        var effInterpol = interpol
+        if painter.contentScale() > k do
+            effInterpol = .Pixel
+        elif k > 1 do
+            effInterpol = .Linear
+
         let oldInterpol = painter.interpolationMode()
-        painter.setInterpolationMode(interpol)
+        painter.setInterpolationMode(effInterpol)
         defer painter.setInterpolationMode(oldInterpol)
 
         if subRect.corner == 0
         {
-            painter.drawTexture(dstRect, subRect.rect, texture, color)
+            painter.drawTexture(dstRect, atlasSrc(subRect.rect, k), texture, color)
             return
         }
 
         let cx, cy = subRect.corner
         if dstRect.width <= subRect.rect.width and dstRect.height <= subRect.rect.height
         {
-            painter.drawTexture(dstRect, subRect.rect, texture, color)
+            painter.drawTexture(dstRect, atlasSrc(subRect.rect, k), texture, color)
             return
         }
 
@@ -56,21 +81,21 @@ impl Theme
                 d.height = cyd
                 s.width  = cx
                 s.height = cy
-                painter.drawTexture(d, s, texture, color)
+                painter.drawTexture(d, atlasSrc(s, k), texture, color)
 
             case 1, 7:
                 d.x     += cxd
                 s.x     += cx
                 d.width = dstRect.width - (cxd * 2)
                 s.width = subRect.rect.width - (cx * 2)
-                painter.drawTexture(d, s, texture, color)
+                painter.drawTexture(d, atlasSrc(s, k), texture, color)
 
             case 2, 8:
                 d.x     = dstRect.x + dstRect.width - cxd
                 s.x     = subRect.rect.x + subRect.rect.width - cx
                 d.width = cxd
                 s.width = cx
-                painter.drawTexture(d, s, texture, color)
+                painter.drawTexture(d, atlasSrc(s, k), texture, color)
 
             case 3:
                 d.x      = dstRect.x
@@ -81,7 +106,7 @@ impl Theme
                 s.width  = cx
                 d.height = dstRect.height - (cyd * 2)
                 s.height = subRect.rect.height - (cy * 2)
-                painter.drawTexture(d, s, texture, color)
+                painter.drawTexture(d, atlasSrc(s, k), texture, color)
 
             case 4:
                 d.x      += cxd
@@ -91,14 +116,14 @@ impl Theme
                 s.width  = subRect.rect.width - (cx * 2)
                 s.height = subRect.rect.height - (cy * 2)
                 if center do
-                    painter.drawTexture(d, s, texture, color)
+                    painter.drawTexture(d, atlasSrc(s, k), texture, color)
 
             case 5:
                 d.x     += d.width
                 s.x     += s.width
                 d.width = cxd
                 s.width = cx
-                painter.drawTexture(d, s, texture, color)
+                painter.drawTexture(d, atlasSrc(s, k), texture, color)
 
             case 6:
                 d.x      = dstRect.x
@@ -109,7 +134,7 @@ impl Theme
                 d.height = cyd
                 s.width  = cx
                 s.height = cy
-                painter.drawTexture(d, s, texture, color)
+                painter.drawTexture(d, atlasSrc(s, k), texture, color)
             }
         }
     }

@@ -19,12 +19,12 @@ using Swag, Core
     @assert(splitter.numVisiblePanes == 2)
     @assert(splitter.isPaneVisible(0))
     @assert(splitter.isPaneVisible(1))
-    @assert((notnull splitter.items[1]).view == pane1)
+    @assert(splitter.items[1]!.view == pane1)
     @assert(pane1.parent == splitter)
 
     let client  = splitter.paddedClientRect()
     let barSize = splitter.themeMetrics().splitView_BarSize
-    let total   = (notnull splitter.items[0]).size + (notnull splitter.items[1]).size + barSize
+    let total   = splitter.items[0]!.size + splitter.items[1]!.size + barSize
     @assert(Math.abs(total - client.width) < 1.5)
 }
 

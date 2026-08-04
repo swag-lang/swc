@@ -596,9 +596,9 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
             // Taking the address of a tracked nullable path lets it be mutated through the
             // alias: drop any active narrowing for it, then recompute the operand view so
             // the resulting pointer targets the DECLARED storage type, not the narrowed one.
-            if (sema.frame().hasNullNarrowFacts())
+            if (sema.frame().hasNarrowFacts())
             {
-                SemaHelpers::killNullNarrowPathAfterStatement(sema, nodeExprRef, false);
+                SemaHelpers::killNarrowPathAfterStatement(sema, nodeExprRef, false);
                 view.recompute(sema);
             }
             // '&x.field' consumes the address, never the value: no 'Swag.Late' read guard.

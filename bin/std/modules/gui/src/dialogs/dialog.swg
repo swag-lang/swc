@@ -71,7 +71,7 @@ impl IWnd for Dialog
                 }
 
             case .Escape:
-                if (notnull .surface).flags.has(.CloseButton)
+                if .surface!.flags.has(.CloseButton)
                 {
                     .closeWithResult(BtnCancel)
                     break
@@ -138,7 +138,7 @@ impl Dialog
     // Returns the content view above the action bar.
     mtd view()->*Wnd
     {
-        return (notnull .surface).wnd.view
+        return .surface!.wnd.view
     }
 
     // Runs the dialog modally and returns the accepted button identifier.

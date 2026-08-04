@@ -61,12 +61,17 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: #null *Surface } fa
     g_DesktopTexture = g_App.renderer.addImage(result.img)
     defer g_App.renderer.removeTexture(&g_DesktopTexture)
 
-    result.sf = try g_App.createSurface(g_DesktopX, g_DesktopY, g_ScreenWidth, g_ScreenHeight, .ToolWindow | .TopMost | .NoShadow)
-    let sf         = notnull result.sf
+    // The overlay must cover the virtual desktop in *physical* pixels, and the
+    // desktop metrics are physical. Creation sizes are logical, so create small and
+    // place the surface through setPosition, which works in physical screen pixels.
+    result.sf = try g_App.createSurface(g_DesktopX, g_DesktopY, 16, 16, .ToolWindow | .TopMost | .NoShadow)
+    let sf = notnull result.sf
+    sf.setPosition({cast(f32) g_DesktopX, cast(f32) g_DesktopY, cast(f32) g_ScreenWidth, cast(f32) g_ScreenHeight})
+
     let captureWnd = Wnd.create'CaptureRectWnd(sf.wnd)
     captureWnd.main   = main
     captureWnd.cursor = Cursor.from(CursorShape.Cross)
-    captureWnd.setPosition(0, 0, sf.position.width, sf.position.height)
+    captureWnd.setPosition(0, 0, sf.size().x, sf.size().y)
     captureWnd.captureMouse()
 
     sf.setView(captureWnd)

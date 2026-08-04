@@ -110,7 +110,7 @@ internal impl IWnd for PopupListView
                 return
             }
 
-            if !(notnull .parent).surfaceRect().contains(evt.surfacePos)
+            if !.parent!.surfaceRect().contains(evt.surfacePos)
             {
                 .close(Swag.U32.Max)
                 return
@@ -291,7 +291,7 @@ private impl PopupListView
         {
             for v, [idx] in .list.items
             {
-                if !(notnull v).isSeparator
+                if !v!.isSeparator
                 {
                     .hotIdx = cast(u32) idx
                     .invalidate()
@@ -376,14 +376,14 @@ impl PopupListCtrl
     {
         var contentHeight: f32
         for item in .items do
-            contentHeight += (notnull item).isSeparator ? .separatorHeight : .itemHeight
+            contentHeight += item!.isSeparator ? .separatorHeight : .itemHeight
         .scrollWnd.setScrollSize(0, contentHeight)
 
         // Highlight the current selection as the keyboard starting point.
         let startView = notnull cast(#null *PopupListView) .scrollWnd.view
         startView.hotIdx = .selectedIndex
 
-        let pt  = (notnull .parent).surfaceToLocal({x, y})
+        let pt  = .parent!.surfaceToLocal({x, y})
         var pos = Math.Rectangle{pt.x, pt.y, 0, 0}
         pos.width  = Math.max(width, Math.max(.minimumWidth, 0))
         pos.height = Math.min(.scrollWnd.scrollSize.y, Math.max(.maximumHeight, 0))
@@ -427,7 +427,7 @@ impl PopupListCtrl
     // Sets the item highlighted when the popup opens, or clears it with U32.Max.
     mtd setSelectedIndex(index: u32)
     {
-        Debug.assert(index == Swag.U32.Max or index < .items.count and !(notnull .items[index]).isSeparator)
+        Debug.assert(index == Swag.U32.Max or index < .items.count and !.items[index]!.isSeparator)
         .selectedIndex = index
     }
 }

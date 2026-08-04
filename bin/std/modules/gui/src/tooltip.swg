@@ -93,7 +93,7 @@ public func show(owner: *Wnd, surfacePos: Math.Point, str: #null string, delay: 
     let copy: String = str
     ToolTip.hide()
 
-    let top = (notnull owner.surface).wnd
+    let top = owner.surface!.wnd
     var pos = top.surfaceToLocal(surfacePos)
     pos.offset(12)
 

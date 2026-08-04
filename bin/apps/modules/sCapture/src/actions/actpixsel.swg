@@ -61,7 +61,7 @@ impl MainWnd
 
     mtd pixSelFill()
     {
-        .pixSelSetPixels((notnull g_Main).pixSelFillCol.argb)
+        .pixSelSetPixels(g_Main!.pixSelFillCol.argb)
     }
 
     // Set every pixel inside the pixel selection to the given color

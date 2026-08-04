@@ -63,6 +63,9 @@ struct Monitor
 }
 
 // Returns the monitor containing `point`, or the nearest monitor otherwise.
+//
+// `point` is in physical desktop pixels, the space of window positions and of the
+// cursor once the process is DPI aware.
 func monitorForPoint(point: Math.Point)->Env.Monitor
 {
     let monitors = Env.getMonitors()
@@ -70,7 +73,7 @@ func monitorForPoint(point: Math.Point)->Env.Monitor
     // First pass: exact containment
     for m in monitors
     {
-        let r = m.bounds
+        let r = m.physicalBounds
         if point.x >= r.x and point.x <= r.right() and point.y >= r.y and point.y <= r.bottom() do
             return m
     }
@@ -80,7 +83,7 @@ func monitorForPoint(point: Math.Point)->Env.Monitor
     var bestD2 = Swag.F32.Inf
     for m in monitors
     {
-        let r  = m.bounds
+        let r  = m.physicalBounds
         let cx = Math.clamp(point.x, r.x, r.right())
         let cy = Math.clamp(point.y, r.y, r.bottom())
         let dx = point.x - cx
@@ -98,7 +101,8 @@ func monitorForPoint(point: Math.Point)->Env.Monitor
 
 // Returns the monitor with the largest intersection with `rectangle`.
 //
-// The first monitor is returned when the rectangle does not intersect a monitor.
+// `rectangle` is in physical desktop pixels. The first monitor is returned when
+// the rectangle does not intersect a monitor.
 func monitorForRectangle(rectangle: Math.Rectangle)->Env.Monitor
 {
     var result: retval
@@ -107,7 +111,7 @@ func monitorForRectangle(rectangle: Math.Rectangle)->Env.Monitor
     for m in monitors
     {
         var r1 = rectangle
-        r1.intersect(m.bounds)
+        r1.intersect(m.physicalBounds)
         let surf = r1.width * r1.height
         if surf > bestSurf
         {

@@ -96,9 +96,9 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
     @assert(copied.sourceText() == original.sourceText())
     var originalPathCount, copiedPathCount = 0'u64
     for nodeRef in original.nodes do
-        originalPathCount += (notnull nodeRef).paths.count
+        originalPathCount += nodeRef!.paths.count
     for nodeRef in copied.nodes do
-        copiedPathCount += (notnull nodeRef).paths.count
+        copiedPathCount += nodeRef!.paths.count
     @assert(originalPathCount == 1)
     @assert(copiedPathCount == 0)
     let originalMetrics = original.measure(font)
@@ -106,7 +106,7 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
     @assert(Math.isEqualEpsilon(originalMetrics.width, copiedMetrics.width, 0.001))
     @assert(Math.isEqualEpsilon(originalMetrics.height(), copiedMetrics.height(), 0.001))
     for nodeRef in copied.nodes do
-        copiedPathCount += (notnull nodeRef).paths.count
+        copiedPathCount += nodeRef!.paths.count
     @assert(copiedPathCount == 1)
 }
 

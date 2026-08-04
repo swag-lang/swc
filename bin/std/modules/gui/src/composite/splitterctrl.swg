@@ -74,12 +74,12 @@ impl IWnd for SplitterCtrl
                 if .isVertical()
                 {
                     let diff = local.y - (rect.y + .correctMoving)
-                    .setPaneSize(.hotIdx, (notnull .items[.hotIdx]).size + diff)
+                    .setPaneSize(.hotIdx, .items[.hotIdx]!.size + diff)
                 }
                 else
                 {
                     let diff = local.x - (rect.x + .correctMoving)
-                    .setPaneSize(.hotIdx, (notnull .items[.hotIdx]).size + diff)
+                    .setPaneSize(.hotIdx, .items[.hotIdx]!.size + diff)
                 }
 
                 .invalidate()
@@ -411,7 +411,7 @@ private impl SplitterCtrl
         var scan            = cast(u64) idx + 1
         while scan < .items.count
         {
-            if (notnull .items[scan]).visible
+            if .items[scan]!.visible
             {
                 hasVisibleRight = true
                 break
@@ -547,6 +547,6 @@ impl SplitterCtrl
     mtd const isPaneVisible(idx: u32)->bool
     {
         Debug.assert(idx < .items.count)
-        return (notnull .items[idx]).visible
+        return .items[idx]!.visible
     }
 }

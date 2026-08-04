@@ -963,7 +963,7 @@ namespace
         if (!isConst && !isParameter && explicitTypeRef.isInvalid() && finalTypeRef.isValid() && context.nodeInitRef.isValid())
         {
             SmallVector4<const Symbol*> initPath;
-            if (SemaHelpers::extractNullNarrowPath(sema, context.nodeInitRef, initPath))
+            if (SemaHelpers::extractNarrowPath(sema, context.nodeInitRef, initPath))
             {
                 TypeRef declaredInitTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), initPath.back()->typeRef());
                 if (declaredInitTypeRef.isInvalid())
@@ -981,7 +981,7 @@ namespace
                             if (!sym)
                                 continue;
                             const std::array<const Symbol*, 1> path = {sym};
-                            sema.frame().addNullNarrowFact({path.data(), path.size()}, true);
+                            sema.frame().addNarrowFact({path.data(), path.size()}, SemaNarrowFactKind::NonNull);
                         }
                     }
                 }

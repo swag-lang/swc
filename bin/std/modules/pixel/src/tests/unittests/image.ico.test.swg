@@ -123,12 +123,13 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     @assert(img.width == 2)
     @assert(img.height == 2)
     @assert(img.pixelFormat == .BGRA8)
-    @assert((notnull img.pixels.buffer)[0] == 10'u8)
-    @assert((notnull img.pixels.buffer)[1] == 20'u8)
-    @assert((notnull img.pixels.buffer)[2] == 30'u8)
-    @assert((notnull img.pixels.buffer)[3] == 40'u8)
-    @assert((notnull img.pixels.buffer)[4] == 50'u8)
-    @assert((notnull img.pixels.buffer)[7] == 80'u8)
+    @assert(img.pixels.buffer != null)
+    @assert(img.pixels.buffer[0] == 10'u8)
+    @assert(img.pixels.buffer[1] == 20'u8)
+    @assert(img.pixels.buffer[2] == 30'u8)
+    @assert(img.pixels.buffer[3] == 40'u8)
+    @assert(img.pixels.buffer[4] == 50'u8)
+    @assert(img.pixels.buffer[7] == 80'u8)
 }
 
 // Legacy 32-bit icons leave alpha at zero and use the AND mask instead.
@@ -153,8 +154,9 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 
     let buf = buildIco(2, 1, 32, 0, nnBytes(body.toSlice()))
     let img = expect decodeIco(nnBytes(buf.toSlice()))
-    @assert((notnull img.pixels.buffer)[3] == 255'u8)
-    @assert((notnull img.pixels.buffer)[7] == 0'u8)
+    @assert(img.pixels.buffer != null)
+    @assert(img.pixels.buffer[3] == 255'u8)
+    @assert(img.pixels.buffer[7] == 0'u8)
 }
 
 // A non-zero 32-bit alpha channel takes precedence over the legacy AND mask.
@@ -179,8 +181,9 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 
     let buf = buildIco(2, 1, 32, 0, nnBytes(body.toSlice()))
     let img = expect decodeIco(nnBytes(buf.toSlice()))
-    @assert((notnull img.pixels.buffer)[3] == 128'u8)
-    @assert((notnull img.pixels.buffer)[7] == 0'u8)
+    @assert(img.pixels.buffer != null)
+    @assert(img.pixels.buffer[3] == 128'u8)
+    @assert(img.pixels.buffer[7] == 0'u8)
 }
 
 // Decode a 2x2 24-bit icon, applying the AND mask as alpha.
@@ -215,14 +218,15 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     let buf = buildIco(2, 2, 24, 0, nnBytes(body.toSlice()))
     let img = expect decodeIco(nnBytes(buf.toSlice()))
     @assert(img.pixelFormat == .BGRA8)
-    @assert((notnull img.pixels.buffer)[0] == 10'u8)
-    @assert((notnull img.pixels.buffer)[1] == 20'u8)
-    @assert((notnull img.pixels.buffer)[2] == 30'u8)
-    @assert((notnull img.pixels.buffer)[3] == 255'u8)     // opaque
-    @assert((notnull img.pixels.buffer)[4] == 40'u8)
-    @assert((notnull img.pixels.buffer)[5] == 50'u8)
-    @assert((notnull img.pixels.buffer)[6] == 60'u8)
-    @assert((notnull img.pixels.buffer)[7] == 0'u8)     // transparent via AND mask
+    @assert(img.pixels.buffer != null)
+    @assert(img.pixels.buffer[0] == 10'u8)
+    @assert(img.pixels.buffer[1] == 20'u8)
+    @assert(img.pixels.buffer[2] == 30'u8)
+    @assert(img.pixels.buffer[3] == 255'u8)     // opaque
+    @assert(img.pixels.buffer[4] == 40'u8)
+    @assert(img.pixels.buffer[5] == 50'u8)
+    @assert(img.pixels.buffer[6] == 60'u8)
+    @assert(img.pixels.buffer[7] == 0'u8)     // transparent via AND mask
 }
 
 // Decode a 2x2 8-bit indexed icon through its palette.
@@ -266,12 +270,13 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     let buf = buildIco(2, 2, 8, 4, nnBytes(body.toSlice()))
     let img = expect decodeIco(nnBytes(buf.toSlice()))
     @assert(img.pixelFormat == .BGRA8)
-    @assert((notnull img.pixels.buffer)[0] == 10'u8)
-    @assert((notnull img.pixels.buffer)[1] == 20'u8)
-    @assert((notnull img.pixels.buffer)[2] == 30'u8)
-    @assert((notnull img.pixels.buffer)[3] == 255'u8)
-    @assert((notnull img.pixels.buffer)[4] == 40'u8)
-    @assert((notnull img.pixels.buffer)[6] == 60'u8)
+    @assert(img.pixels.buffer != null)
+    @assert(img.pixels.buffer[0] == 10'u8)
+    @assert(img.pixels.buffer[1] == 20'u8)
+    @assert(img.pixels.buffer[2] == 30'u8)
+    @assert(img.pixels.buffer[3] == 255'u8)
+    @assert(img.pixels.buffer[4] == 40'u8)
+    @assert(img.pixels.buffer[6] == 60'u8)
 }
 
 // Decode a 2x1 1-bit indexed icon.
@@ -300,11 +305,12 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 
     let buf = buildIco(2, 1, 1, 2, nnBytes(body.toSlice()))
     let img = expect decodeIco(nnBytes(buf.toSlice()))
-    @assert((notnull img.pixels.buffer)[0] == 7'u8)
-    @assert((notnull img.pixels.buffer)[1] == 8'u8)
-    @assert((notnull img.pixels.buffer)[2] == 9'u8)
-    @assert((notnull img.pixels.buffer)[3] == 255'u8)
-    @assert((notnull img.pixels.buffer)[4] == 0'u8)     // idx 0 color
+    @assert(img.pixels.buffer != null)
+    @assert(img.pixels.buffer[0] == 7'u8)
+    @assert(img.pixels.buffer[1] == 8'u8)
+    @assert(img.pixels.buffer[2] == 9'u8)
+    @assert(img.pixels.buffer[3] == 255'u8)
+    @assert(img.pixels.buffer[4] == 0'u8)     // idx 0 color
 }
 
 // With multiple entries, the decoder picks the largest image.
@@ -376,8 +382,9 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     let img = expect decodeIco(nnBytes(cb.toSlice()))
     @assert(img.width == 2)
     @assert(img.height == 2)
-    @assert((notnull img.pixels.buffer)[0] == 200'u8)
-    @assert((notnull img.pixels.buffer)[3] == 203'u8)
+    @assert(img.pixels.buffer != null)
+    @assert(img.pixels.buffer[0] == 200'u8)
+    @assert(img.pixels.buffer[3] == 203'u8)
 }
 
 // A PNG-compressed icon entry is delegated to the PNG decoder.
@@ -478,11 +485,12 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     @assert(img.width == 2)
     @assert(img.height == 2)
     @assert(img.pixelFormat == .BGRA8)
-    @assert((notnull img.pixels.buffer)[0] == 10'u8)
-    @assert((notnull img.pixels.buffer)[1] == 20'u8)
-    @assert((notnull img.pixels.buffer)[2] == 30'u8)
-    @assert((notnull img.pixels.buffer)[3] == 128'u8)
-    @assert((notnull img.pixels.buffer)[12] == 200'u8)
+    @assert(img.pixels.buffer != null)
+    @assert(img.pixels.buffer[0] == 10'u8)
+    @assert(img.pixels.buffer[1] == 20'u8)
+    @assert(img.pixels.buffer[2] == 30'u8)
+    @assert(img.pixels.buffer[3] == 128'u8)
+    @assert(img.pixels.buffer[12] == 200'u8)
 }
 
 // Encode a BGR8 image: alpha is filled opaque.
@@ -497,10 +505,11 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     let cb  = expect src.encode("memory.ico")
     let img = expect decodeIco(nnBytes(cb.toSlice()))
     @assert(img.pixelFormat == .BGRA8)
-    @assert((notnull img.pixels.buffer)[0] == 10'u8)
-    @assert((notnull img.pixels.buffer)[1] == 20'u8)
-    @assert((notnull img.pixels.buffer)[2] == 30'u8)
-    @assert((notnull img.pixels.buffer)[3] == 255'u8)
+    @assert(img.pixels.buffer != null)
+    @assert(img.pixels.buffer[0] == 10'u8)
+    @assert(img.pixels.buffer[1] == 20'u8)
+    @assert(img.pixels.buffer[2] == 30'u8)
+    @assert(img.pixels.buffer[3] == 255'u8)
 }
 
 // Encode an RGBA8 image: channels are swapped to BGRA on disk.
@@ -516,10 +525,11 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     let cb  = expect src.encode("memory.ico")
     let img = expect decodeIco(nnBytes(cb.toSlice()))
     @assert(img.pixelFormat == .BGRA8)
-    @assert((notnull img.pixels.buffer)[0] == 10'u8)     // B
-    @assert((notnull img.pixels.buffer)[1] == 20'u8)     // G
-    @assert((notnull img.pixels.buffer)[2] == 30'u8)     // R
-    @assert((notnull img.pixels.buffer)[3] == 99'u8)     // A
+    @assert(img.pixels.buffer != null)
+    @assert(img.pixels.buffer[0] == 10'u8)     // B
+    @assert(img.pixels.buffer[1] == 20'u8)     // G
+    @assert(img.pixels.buffer[2] == 30'u8)     // R
+    @assert(img.pixels.buffer[3] == 99'u8)     // A
 }
 
 // Error: dimensions above 256 cannot be encoded.
@@ -550,9 +560,10 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     @assert(img.width == 4)
     @assert(img.height == 4)
     @assert(img.pixelFormat == .BGRA8)
-    @assert((notnull img.pixels.buffer)[0] == 77'u8)
-    @assert((notnull img.pixels.buffer)[1] == 88'u8)
-    @assert((notnull img.pixels.buffer)[2] == 99'u8)
+    @assert(img.pixels.buffer != null)
+    @assert(img.pixels.buffer[0] == 77'u8)
+    @assert(img.pixels.buffer[1] == 88'u8)
+    @assert(img.pixels.buffer[2] == 99'u8)
 }
 
 // An icon can carry several sizes; the decoder picks the largest of them back.

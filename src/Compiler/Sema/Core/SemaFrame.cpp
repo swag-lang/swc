@@ -75,20 +75,31 @@ bool SemaFrame::isLookupSymbolHidden(const Symbol* sym) const
     return false;
 }
 
-void SemaFrame::addNullNarrowFact(std::span<const Symbol* const> path, bool nonNull)
+void SemaFrame::addNarrowFact(std::span<const Symbol* const> path, SemaNarrowFactKind kind)
 {
     if (path.empty())
         return;
 
-    auto& fact = nullNarrowFacts_.emplace_back();
+    auto& fact = narrowFacts_.emplace_back();
     fact.path.assign(path.begin(), path.end());
-    fact.nonNull = nonNull;
+    fact.kind  = kind;
+    fact.holds = true;
 }
 
-void SemaFrame::killNullNarrowFactsByRootId(std::span<const IdentifierRef> rootIds)
+void SemaFrame::addNarrowKill(std::span<const Symbol* const> path)
 {
-    SmallVector2<SemaNullNarrowFact> kept;
-    for (auto& fact : nullNarrowFacts_)
+    if (path.empty())
+        return;
+
+    auto& fact = narrowFacts_.emplace_back();
+    fact.path.assign(path.begin(), path.end());
+    fact.holds = false;
+}
+
+void SemaFrame::killNarrowFactsByRootId(std::span<const IdentifierRef> rootIds)
+{
+    SmallVector2<SemaNarrowFact> kept;
+    for (auto& fact : narrowFacts_)
     {
         const IdentifierRef rootId = fact.path.empty() ? IdentifierRef::invalid() : fact.path.front()->idRef();
 
@@ -106,24 +117,32 @@ void SemaFrame::killNullNarrowFactsByRootId(std::span<const IdentifierRef> rootI
             kept.push_back(std::move(fact));
     }
 
-    nullNarrowFacts_ = std::move(kept);
+    narrowFacts_ = std::move(kept);
 }
 
-bool SemaFrame::queryNullNarrowNonNull(std::span<const Symbol* const> path) const
+bool SemaFrame::queryNarrowFact(std::span<const Symbol* const> path, SemaNarrowFactKind kind) const
 {
     if (path.empty())
         return false;
 
     // Newest fact wins: a kill pushed after a guard overrides it for the rest of its scope.
-    for (size_t factIndex = nullNarrowFacts_.size(); factIndex > 0; --factIndex)
+    for (size_t factIndex = narrowFacts_.size(); factIndex > 0; --factIndex)
     {
-        const SemaNullNarrowFact& fact = nullNarrowFacts_[factIndex - 1];
+        const SemaNarrowFact& fact = narrowFacts_[factIndex - 1];
         if (fact.path.size() == path.size() && std::equal(fact.path.begin(), fact.path.end(), path.begin()))
-            return fact.nonNull;
+        {
+            // A kill drops every kind; a proof of another kind says nothing about this
+            // one, so keep looking for an older proof of the requested kind.
+            if (!fact.holds)
+                return false;
+            if (fact.kind == kind)
+                return true;
+            continue;
+        }
 
         // A kill on a path also invalidates everything reached through it
         // (assigning `x` re-nullifies `x.y.z`).
-        if (!fact.nonNull && fact.path.size() < path.size() && std::equal(fact.path.begin(), fact.path.end(), path.begin()))
+        if (!fact.holds && fact.path.size() < path.size() && std::equal(fact.path.begin(), fact.path.end(), path.begin()))
             return false;
     }
 

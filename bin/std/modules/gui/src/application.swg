@@ -142,7 +142,7 @@ private impl Application
     {
         if !wnd do
             return null
-        if (notnull wnd.surface).isDisabled do
+        if wnd.surface!.isDisabled do
             return null
         var scan = wnd
         while scan
@@ -228,7 +228,10 @@ private impl Application
         // Move
         if targetWnd
         {
-            let move = .mouse.movement()
+            // The raw movement is in physical screen pixels; deliver it in the
+            // logical units of the target surface, like `surfacePos`.
+            let scale = targetWnd.surface!.dpiScale
+            let move  = .mouse.movement() / scale
             evt.surfacePos = targetWnd.screenToSurface(mousePos)
             evt.kind       = .Move
             evt.delta      = move
@@ -683,6 +686,9 @@ impl Application
     // Creates an initially hidden top-level surface.
     //
     // The first surface initializes the shared renderer and theme and becomes [[mainSurface]].
+    // `width` and `height` are logical units: on a scaled display the native window is
+    // created proportionally larger, in physical pixels. `x` and `y` are physical
+    // desktop pixels.
     mtd createSurface(x, y, width, height: s32, flags = SurfaceFlags.StandardWindow, view: #null *Wnd = null, hook: #null HookEvent = null, surfaceId: #null string = null)->#null *Surface fail
     {
         let surface = Memory.new'Surface()
@@ -725,6 +731,9 @@ impl Application
             if Jobs.isSynchronous() do
                 discard catch Jobs.initialize()
         }
+
+        // A surface on a scaled display needs the theme atlas at least at its density.
+        .theme.ensureAtlasScale(.renderer, surface.dpiScale)
 
         .surfaces.add(surface)
 

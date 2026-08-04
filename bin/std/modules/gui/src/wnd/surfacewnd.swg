@@ -81,38 +81,42 @@ impl IWnd for SurfaceWnd
             if !.movingSurface do
                 break
 
+            // The event delta is logical; the surface rectangle it moves is in
+            // physical screen pixels.
             var hasChanged = false
             var pos        = srfn.position
+            let dx         = evt.delta.x * srfn.dpiScale
+            let dy         = evt.delta.y * srfn.dpiScale
 
             if .sizingBorder & .Left
             {
-                pos.x      += evt.delta.x
-                pos.width  -= evt.delta.x
+                pos.x      += dx
+                pos.width  -= dx
                 hasChanged = true
             }
 
             if .sizingBorder & .Top
             {
-                pos.y      += evt.delta.y
-                pos.height -= evt.delta.y
+                pos.y      += dy
+                pos.height -= dy
                 hasChanged = true
             }
 
             if .sizingBorder & .Right
             {
-                pos.width  += evt.delta.x
+                pos.width  += dx
                 hasChanged = true
             }
 
             if .sizingBorder & .Bottom
             {
-                pos.height += evt.delta.y
+                pos.height += dy
                 hasChanged = true
             }
 
             if .sizingBorder == .None
             {
-                pos.offset(evt.delta.x, evt.delta.y)
+                pos.offset(dx, dy)
                 hasChanged = true
             }
 
@@ -206,7 +210,7 @@ impl IWnd for SurfaceWnd
 
         if srfn.flags.has(.Border) and metrics.surfaceWnd_ShadowSize > 0
         {
-            var pen = Pen.createSolid(colors.wnd_Border, metrics.wnd_BorderSize)
+            var pen = Pen.createSolid(colors.wnd_Border, bc.painter.hairline(metrics.wnd_BorderSize))
             pen.borderPos = .Inside
             if radius > 0 do
                 bc.painter.drawRoundRect(clientRect, radius, radius, pen)
@@ -220,11 +224,11 @@ impl IWnd for SurfaceWnd
 
             var posClip = posCaption
             if srfn.flags.has(.MinimizeButton) do
-                posClip.setRight((notnull .minimizeBtn).position.x)
+                posClip.setRight(.minimizeBtn!.position.x)
             elif srfn.flags.has(.MaximizeButton) do
-                posClip.setRight((notnull .maximizeBtn).position.x)
+                posClip.setRight(.maximizeBtn!.position.x)
             elif srfn.flags.has(.CloseButton) do
-                posClip.setRight((notnull .closeBtn).position.x)
+                posClip.setRight(.closeBtn!.position.x)
             bc.painter.pushClippingRect(posClip)
             defer bc.painter.popClippingRect()
 
@@ -290,9 +294,11 @@ impl SurfaceWnd
 
     mtd hitTestBorders(surfacePos: Math.Point)->SizingBorder
     {
+        // `surfacePos` is logical, so the surface extent must be logical as well.
         let srfn    = notnull .surface
         let metrics = .themeMetrics()
         let sdw     = metrics.surfaceWnd_ShadowSize
+        let size    = srfn.size()
 
         var newSizingBorder = SizingBorder.None
         if srfn.flags.has(.Resizable)
@@ -302,7 +308,7 @@ impl SurfaceWnd
             if surfacePos.x > sdw - SizeBorder and
                surfacePos.x < sdw + SizeBorder and
                surfacePos.y > sdw - SizeBorder and
-               surfacePos.y < srfn.position.height - sdw + SizeBorder
+               surfacePos.y < size.y - sdw + SizeBorder
             {
                 newSizingBorder |= .Left
             }
@@ -310,23 +316,23 @@ impl SurfaceWnd
             if surfacePos.y > sdw - TopSizeBorder and
                surfacePos.y < sdw + TopSizeBorder and
                surfacePos.x > sdw - SizeBorder and
-               surfacePos.x < srfn.position.width - sdw + SizeBorder
+               surfacePos.x < size.x - sdw + SizeBorder
             {
                 newSizingBorder |= .Top
             }
 
-            if surfacePos.x > srfn.position.width - sdw - SizeBorder and
-               surfacePos.x < srfn.position.width - sdw + SizeBorder and
+            if surfacePos.x > size.x - sdw - SizeBorder and
+               surfacePos.x < size.x - sdw + SizeBorder and
                surfacePos.y > sdw - SizeBorder and
-               surfacePos.y < srfn.position.height - sdw + SizeBorder
+               surfacePos.y < size.y - sdw + SizeBorder
             {
                 newSizingBorder |= .Right
             }
 
-            if surfacePos.y > srfn.position.height - sdw - SizeBorder and
-               surfacePos.y < srfn.position.height - sdw + SizeBorder and
+            if surfacePos.y > size.y - sdw - SizeBorder and
+               surfacePos.y < size.y - sdw + SizeBorder and
                surfacePos.x > sdw - SizeBorder and
-               surfacePos.x < srfn.position.width - sdw + SizeBorder
+               surfacePos.x < size.x - sdw + SizeBorder
             {
                 newSizingBorder |= .Bottom
             }

@@ -345,11 +345,22 @@ public impl Font
 
     // Resolves the concrete font for an on-screen pixel size.
     //
-    // Non-automatic fonts return themselves. An automatic font uses the
-    // size-independent MSDF view at or above the automatic quality threshold, and
-    // a crisp bitmap rasterized at the exact pixel size below it.
+    // `effectivePx` is the glyph size in physical device pixels, including zoom and
+    // display scale. An MSDF font returns itself: it is size independent. A bitmap
+    // font re-rasterizes at the effective size when it differs from its own, so the
+    // atlas always matches the device pixels it lands on. An automatic font uses the
+    // size-independent MSDF view at or above the automatic quality threshold, and a
+    // crisp bitmap rasterized at the exact device pixel size below it.
     func resolveDrawFont(font: *Font, effectivePx: f32)->*Font
     {
+        if font.mode == .Bitmap
+        {
+            let px = cast(s32) Math.max(Math.round(effectivePx), 1.0)
+            if px == font.cache.refSize do
+                return font
+            return font.owner.createView(font.cache.typeFace, font.size, cast(u32) px, 0, .Bitmap, .Bitmap, font.forceBold, font.forceItalic)
+        }
+
         if font.mode != .Auto do
             return font
         if effectivePx >= AutoMsdfMinPx do

@@ -38,8 +38,8 @@ private func makeEffectTestFont(cache: *FontCache, size: u32, mode: FontRenderMo
     Testing.assertGolden(&painter, "texteffect.strikeout")
 }
 
-// Zoom scales the quads without touching the atlas, so the bounds grow while the texture
-// coordinates stay put.
+// Zoom re-rasterizes a bitmap font at the effective pixel size, so the atlas holds
+// zoomed glyphs sampled one texel per pixel instead of stretched smaller ones.
 #test
 {
     var painter: Painter

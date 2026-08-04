@@ -17,6 +17,7 @@ public struct MessageDlg
 // Configures message content alignment, icon presentation, and post-creation customization.
 public struct MessageDlgOptions
 {
+    title:     string = ""                                   // Surface title; empty keeps the helper's default.
     icon:      Icon                                          // Optional large message icon.
     iconColor: Color                                         // Icon tint, or transparent for its descriptor color.
     textHorizontalAlignment = StringHorzAlignment.Center     // Horizontal message alignment.
@@ -34,6 +35,8 @@ public impl MessageDlg
         let dlg = Wnd.create'MessageDlg()
 
         let srf = dlg.createSurface(from, 0, 0, 500, 300)
+        if @countof(options.title) do
+            srf.setTitle(options.title)
 
         let metrics = from.wnd.themeMetrics()
 
@@ -151,7 +154,7 @@ public impl MessageDlg
             return
 
         if !@isset(.labelIcon) do
-            .labelIcon = Label.create((notnull .surface).wnd.view, "", {0, 0, 0, icon.sizeX + icon.sizeX * 0.5})
+            .labelIcon = Label.create(.surface!.wnd.view, "", {0, 0, 0, icon.sizeX + icon.sizeX * 0.5})
         .label.padding.y = 0
 
         with me.labelIcon
@@ -187,7 +190,7 @@ public impl MessageDlg
     }
 
     // Shows a modal question with Yes and No actions.
-    func yesNo(from: *Surface, message: string, title: #null string = null, defaultId = Dialog.BtnNo, options: MessageDlgOptions = {})->WndId
+    func yesNo(from: *Surface, message: string, defaultId = Dialog.BtnNo, options: MessageDlgOptions = {})->WndId
     {
         var opt = options
         if !opt.icon.isValid()
@@ -198,8 +201,6 @@ public impl MessageDlg
 
         with let dlg = create(from, message, opt)
         {
-            let srf = notnull .surface
-            srf.setTitle(title)
             .addButton(strings().dlg_Yes, Dialog.BtnYes, defaultId == Dialog.BtnYes)
             .addButton(strings().dlg_No, Dialog.BtnNo, defaultId == Dialog.BtnNo)
         }
@@ -245,7 +246,11 @@ public impl MessageDlg
             txt += "</b>"
         }
 
-        return yesNo(from, txt.toString(), strings().dlg_ConfirmTitle, defaultId, options)
+        var opt = options
+        if !@countof(opt.title) do
+            opt.title = strings().dlg_ConfirmTitle
+
+        return yesNo(from, txt.toString(), defaultId, opt)
     }
 
     // Message box to show a raised error. The caller captures the error ('catch f() as err') and
@@ -273,10 +278,11 @@ public impl MessageDlg
             opt.iconColor = Argb.White
         }
 
+        if !@countof(opt.title) do
+            opt.title = strings().dlg_ErrorTitle
+
         with let dlg = create(from, txt.toString(), opt)
         {
-            let srf = notnull .surface
-            srf.setTitle(strings().dlg_ErrorTitle)
             .addButton(strings().dlg_Ok, Dialog.BtnOk, true)
         }
 

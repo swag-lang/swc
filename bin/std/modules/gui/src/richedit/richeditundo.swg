@@ -37,8 +37,8 @@ private impl RichEditCtrl
         var count = .currentUndo
         while count
         {
-            if ((notnull .undoMgr[count - 1]).type == .Delete) or
-               ((notnull .undoMgr[count - 1]).type == .Insert) do
+            if (.undoMgr[count - 1]!.type == .Delete) or
+               (.undoMgr[count - 1]!.type == .Insert) do
                 return count
             count -= 1
         }

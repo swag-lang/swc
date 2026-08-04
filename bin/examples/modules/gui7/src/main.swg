@@ -311,7 +311,7 @@ func onRootEvent(_view: *Wnd, evt: IEvent)->bool
 
 func createRootView()
 {
-    let view = (notnull g_Surface).view()
+    let view = g_Surface!.view()
     g_View               = view
     view.backgroundStyle = .View
 

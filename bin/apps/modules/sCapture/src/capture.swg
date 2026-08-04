@@ -311,7 +311,7 @@ impl Capture
         let rect    = Math.Rectangle{width: .width * zoom, height: .height * zoom}
         let render  = g_App.renderer
         var painter = Pixel.Painter.create(render)
-        let srf     = notnull (notnull .editView).surface
+        let srf     = notnull .editView!.surface
         render.begin(srf.renderingContext())
         painter.begin()
 
@@ -1504,7 +1504,7 @@ impl Capture
     {
         // Holding 'O' makes the mouse ignore every form, so a click can start a
         // lasso or create a new form on top of existing ones.
-        if (notnull .editView).app().keyboard.isKeyPressed(Input.Key.O) do
+        if .editView!.app().keyboard.isKeyPressed(Input.Key.O) do
             return Swag.U64.Max
         let res = .hitTests(localPos, true)
         if res.isEmpty() do
@@ -1555,7 +1555,7 @@ impl Capture
         if !.selection.count do
             return
 
-        let main = (notnull .editView).main
+        let main = .editView!.main
         if main.editMode == .Selection do
             return
 

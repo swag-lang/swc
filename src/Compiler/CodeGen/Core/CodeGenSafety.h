@@ -44,6 +44,7 @@ namespace CodeGenSafety
     Result emitNegativeShiftCheck(CodeGen& codeGen, const AstNode& node);
     Result emitMathCheck(CodeGen& codeGen, const AstNode& node);
     Result emitNotNullCheck(CodeGen& codeGen, const AstNode& node);
+    Result emitNotNullGuard(CodeGen& codeGen, AstNodeRef ownerRef, AstNodeRef valueRef, std::string_view what);
     Result emitNullExtractCheck(CodeGen& codeGen, const AstNode& node, MicroReg valueReg, bool valueIsAddress, TypeRef resultTypeRef);
     Result emitLateReadCheck(CodeGen& codeGen, const AstNode& node, MicroReg addrReg, TypeRef lateTypeRef);
     Result emitUnaryMathDomainCheck(CodeGen& codeGen, MicroReg valueReg, const TypeInfo& floatType, Math::FoldIntrinsicUnaryFloatOp op, MicroLabelRef failLabel);

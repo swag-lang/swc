@@ -535,7 +535,7 @@ func releaseTagBinInterface(value: *#null ITagBinScore)
     Reflection.registerType(#typeof(TagBinInterfaceProbe))
     Reflection.registerType(#typeof(TagBinInterfacePayload))
     @assert(Reflection.hasInterface(#typeof(TagBinInterfaceProbe), ITagBinScore))
-    @assert((notnull payload.score).score() == 37)
+    @assert(payload.score!.score() == 37)
 
     let bytes = encodeTagBin(payload)
 

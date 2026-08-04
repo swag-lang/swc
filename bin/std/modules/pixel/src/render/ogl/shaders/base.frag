@@ -109,6 +109,32 @@ vec4 sampleSubRectLinear(vec2 paintPos)
     return mix(mix(c00, c10, f.x), mix(c01, c11, f.x), f.y);
 }
 
+// Sharp bilinear: nearest sampling with exactly one device pixel of smoothing at
+// each texel boundary. At a fractional content scale, true bilinear spreads a
+// one-texel tile border across several device pixels and washes it out, while pure
+// nearest drops or doubles texels; this keeps texel edges crisp at any scale and
+// degrades to bilinear where the mapping minifies.
+vec4 sampleSubRectSharp(vec2 paintPos)
+{
+    vec2 minP = subRectPixelMin();
+    vec2 maxP = subRectPixelMax();
+    vec2 p    = subRectPixelFromPaint(paintPos);
+    p = clamp(p, minP, maxP);
+
+    vec2 p0 = clamp(floor(p), minP, maxP);
+    vec2 p1 = clamp(p0 + 1.0, minP, maxP);
+
+    vec2 w = clamp(fwidth(p), vec2(0.0001), vec2(1.0));
+    vec2 f = clamp((p - p0 - 0.5) / w + 0.5, vec2(0.0), vec2(1.0));
+
+    vec4 c00 = texture(inTexture0, subRectUVFromPixel(p0));
+    vec4 c10 = texture(inTexture0, subRectUVFromPixel(vec2(p1.x, p0.y)));
+    vec4 c01 = texture(inTexture0, subRectUVFromPixel(vec2(p0.x, p1.y)));
+    vec4 c11 = texture(inTexture0, subRectUVFromPixel(p1));
+
+    return mix(mix(c00, c10, f.x), mix(c01, c11, f.x), f.y);
+}
+
 vec4 sampleTexture(vec2 paintPos, vec2 uv)
 {
     if(uvMode > 0.5 && uvMode < 1.5)
@@ -116,7 +142,10 @@ vec4 sampleTexture(vec2 paintPos, vec2 uv)
         if(interpolationMode < 0.5)
             return sampleSubRectNearest(paintPos);
 
-        return sampleSubRectLinear(paintPos);
+        if(interpolationMode < 1.5)
+            return sampleSubRectLinear(paintPos);
+
+        return sampleSubRectSharp(paintPos);
     }
 
     return texture(inTexture0, uv);

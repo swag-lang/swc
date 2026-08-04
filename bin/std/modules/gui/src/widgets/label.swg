@@ -336,18 +336,18 @@ impl Label
             if rect.height <= 0 do
                 rect.height = .preferredSize.y
             if rect.height <= 0 do
-                rect.height = (notnull sf.font.regular).height
+                rect.height = sf.font.regular!.height
 
             // The text is drawn inside textPadding, so wrap against that inset width (else a
             // padded label under-measures and clips), and add the vertical inset back in.
             rect.applyPadding(.textPadding)
 
             .name.compute()
-            Painter.computeLayout(rect, &.name, sf)
+            Painter.computeLayout(rect, &.name, sf, .deviceScale())
 
             var height = .name.boundRect.height
             if !.name.isEmpty() do
-                height = Math.max(height, (notnull sf.font.regular).height)
+                height = Math.max(height, sf.font.regular!.height)
             height           += .textPadding.y + .textPadding.w
             .position.height = height
             .preferredSize.y = height

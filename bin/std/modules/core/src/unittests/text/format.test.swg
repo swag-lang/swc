@@ -72,3 +72,17 @@ func assertFormatString(value: const &String, expected: string)->bool
     let mixed = Format.toString("% %{#2:X} %", "a", "b", 255)
     @assert(assertFormatString(mixed, "a FF b"))
 }
+
+// 'byteSize' scales through the 1024-based units and keeps three significant digits.
+#test
+{
+    @assert(Format.byteSize(0) == "0 B")
+    @assert(Format.byteSize(312) == "312 B")
+    @assert(Format.byteSize(1023) == "1023 B")
+    @assert(Format.byteSize(1024) == "1.00 KB")
+    @assert(Format.byteSize(4200) == "4.10 KB")
+    @assert(Format.byteSize(1024 * 1024) == "1.00 MB")
+    @assert(Format.byteSize(14_050_000) == "13.4 MB")
+    @assert(Format.byteSize(650 * 1024 * 1024) == "650 MB")
+    @assert(Format.byteSize(1024'u64 * 1024 * 1024 * 1024) == "1.00 TB")
+}

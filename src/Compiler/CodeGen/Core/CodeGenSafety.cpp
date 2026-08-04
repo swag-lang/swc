@@ -525,6 +525,48 @@ Result CodeGenSafety::emitNotNullCheck(CodeGen& codeGen, const AstNode& node)
     return emitRuntimePanicCall(codeGen, *panicFunction, node, "notnull on null value");
 }
 
+// Shared by 'notnull' and '!.': test a freshly generated nullable value and panic when it
+// is null, falling through to the access otherwise. The caller has already checked that
+// the guard is wanted; 'valueRef' must be a node whose payload is live.
+Result CodeGenSafety::emitNotNullGuard(CodeGen& codeGen, AstNodeRef ownerRef, AstNodeRef valueRef, std::string_view what)
+{
+    const auto* ownerPayload = codeGen.loweringPayload(ownerRef);
+    if (!ownerPayload || !ownerPayload->hasRuntimeSafety(Runtime::SafetyWhat::Expect))
+        return Result::Continue;
+
+    TypeRef valueTypeRef = codeGen.viewType(valueRef).typeRef();
+    if (!valueTypeRef.isValid())
+        return Result::Continue;
+
+    const TypeRef unwrappedTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), valueTypeRef);
+    if (unwrappedTypeRef.isValid())
+        valueTypeRef = unwrappedTypeRef;
+
+    const CodeGenNodePayload& valuePayload = codeGen.payload(valueRef);
+    const TypeInfo&           valueType    = codeGen.typeMgr().get(valueTypeRef);
+    const uint64_t            sizeOf       = valueType.sizeOf(codeGen.ctx());
+
+    const MicroOpBits presenceBits = sizeOf > sizeof(uint64_t) ? MicroOpBits::B64 : CodeGenTypeHelpers::compareBits(valueType, codeGen.ctx());
+    SWC_ASSERT(presenceBits != MicroOpBits::Zero);
+
+    MicroBuilder&  builder     = codeGen.builder();
+    const MicroReg presenceReg = codeGen.nextVirtualIntRegister();
+    if (sizeOf > sizeof(uint64_t) || valuePayload.isAddress())
+        builder.emitLoadRegMem(presenceReg, valuePayload.reg, 0, presenceBits);
+    else
+        builder.emitLoadRegReg(presenceReg, valuePayload.reg, presenceBits);
+
+    SymbolFunction* panicFunction = runtimeSafetyPanicFunction(codeGen, ownerPayload);
+    SWC_ASSERT(panicFunction != nullptr);
+
+    const MicroLabelRef presentLabel = builder.createLabel();
+    builder.emitCmpRegImm(presenceReg, ApInt(0, 64), presenceBits);
+    builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, presentLabel);
+    SWC_RESULT(emitRuntimePanicCall(codeGen, *panicFunction, codeGen.node(ownerRef), what));
+    builder.placeLabel(presentLabel);
+    return Result::Continue;
+}
+
 // A dynamic extraction (from 'any') can carry a null payload into a bare, non-null
 // destination type: guard the produced value like an implicit 'notnull'.
 Result CodeGenSafety::emitNullExtractCheck(CodeGen& codeGen, const AstNode& node, MicroReg valueReg, bool valueIsAddress, TypeRef resultTypeRef)

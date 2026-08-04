@@ -420,7 +420,7 @@ impl PropWnd
             rect.x                  = rect.horzCenter() - 21
             rect.y                  = rect.vertCenter() - 21
             rect.width, rect.height = 42
-            var backCol = curSel.subKind == .PixSel ? (notnull g_Main).pixSelFillCol : curSel.backColor
+            var backCol = curSel.subKind == .PixSel ? g_Main!.pixSelFillCol : curSel.backColor
             if !backCol.isOpaque() do
                 bc.painter.fillRoundRect(rect, 10, 10, Brush.createHatch(.CheckBoardLarge, Argb.DarkGray))
             bc.painter.fillRoundRect(rect, 10, 10, backCol)
@@ -429,7 +429,7 @@ impl PropWnd
         btn.sigPopupRequested += func|prop = me|(btn)
         {
             var curSel  = notnull prop.getSelectedBaseForm()
-            var backCol = curSel.subKind == .PixSel ? (notnull g_Main).pixSelFillCol : curSel.backColor
+            var backCol = curSel.subKind == .PixSel ? g_Main!.pixSelFillCol : curSel.backColor
             var picker  = createColorPicker(btn, backCol)
             if curSel.subKind == .PixSel
             {
@@ -602,16 +602,13 @@ impl PropWnd
 
     func editText(main: *MainWnd, curText: String)->String
     {
-        with let dlg = EditDlg.createMultiLine(notnull main.surface)
-        {
-            .setMessage("Press Shift+Enter to add a new line")
-            .setText(curText)
-            .richEdit?.selectAll()
-            .surface?.setTitle("Enter Text")
-            .surface?.center(notnull main.surface)
-            if main.inPlaceEdit do
-                .surface?.setTopMost()
-        }
+        var editOptions: EditDlgOptions
+        editOptions.title   = "Enter Text"
+        editOptions.message = "Press Shift+Enter to add a new line"
+        editOptions.text    = curText.toString()
+        let dlg = EditDlg.createMultiLine(notnull main.surface, editOptions)
+        if main.inPlaceEdit do
+            dlg.surface?.setTopMost()
 
         if dlg.doModal() != Dialog.BtnOk do
             return curText

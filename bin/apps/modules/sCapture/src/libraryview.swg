@@ -527,7 +527,7 @@ impl LibraryView
         // filtered out are absent from '.items' and would leak their GPU texture
         // when 'allItems' is cleared below.
         for it in .allItems do
-            renderer.removeTexture(&(notnull it).texture)
+            renderer.removeTexture(&it!.texture)
 
         // Add items
         .allItems.clear()

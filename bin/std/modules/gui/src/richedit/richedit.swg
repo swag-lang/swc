@@ -210,7 +210,7 @@ private impl RichEditCtrl
 
     mtd firstVisibleLine()->u64
     {
-        for [i] in .lines.count where (notnull .lines[i]).isVisible() do
+        for [i] in .lines.count where .lines[i]!.isVisible() do
             return i
         return 0
     }
@@ -221,7 +221,7 @@ private impl RichEditCtrl
             return 0
         for var i = .lines.count - 1; i >= 0; i -= 0
         {
-            if (notnull .lines[i]).isVisible() do
+            if .lines[i]!.isVisible() do
                 return i
         }
 
@@ -235,7 +235,7 @@ private impl RichEditCtrl
         var i = lineIndex - 1
         for
         {
-            if (notnull .lines[i]).isVisible() do
+            if .lines[i]!.isVisible() do
                 return i
             if !i do
                 break
@@ -254,7 +254,7 @@ private impl RichEditCtrl
         var i = lineIndex + 1
         for
         {
-            if (notnull .lines[i]).isVisible() do
+            if .lines[i]!.isVisible() do
                 return i
             if i == count - 1 do
                 break
@@ -325,7 +325,7 @@ impl RichEditCtrl
         switch .form
         {
         case .RichEditCtrl:
-            .style.setFont((notnull .parent).theme().res.fontDefaultFs)
+            .style.setFont(.parent!.theme().res.fontDefaultFs)
 
             var mdlBk = .backgroundColorModel
             if .backgroundColorModel.length == 0 do

@@ -105,11 +105,12 @@ impl IWnd for MainWnd
             .computeLayoutPopup()
         }
 
+        // The menu layout is logical; the surface rectangle is physical screen pixels.
         let pt         = Input.mousePosition()
         let shadowSize = .themeMetrics().surfaceWnd_ShadowSize
         menu.position.width  += 2 * shadowSize
         menu.position.height += 2 * shadowSize
-        sf.setPosition({pt.x, pt.y, menu.position.width, menu.position.height})
+        sf.setPosition({pt.x, pt.y, menu.position.width * sf.dpiScale, menu.position.height * sf.dpiScale})
         sf.constrainPositionToScreen()
         sf.wnd.view.backgroundStyle = .Window
 
@@ -206,6 +207,8 @@ impl IWnd for MainWnd
                 .serialize("MainWnd.bottomSize", &me.bottomSize)
                 .serialize("MainWnd.fileDlgState", &me.fileDlgState)
                 .serialize("MainWnd.fileDlgStateInPlace", &me.fileDlgStateInPlace)
+                // 'notnull' produces a value, which drops the 'readonly' of 'items': see the
+                // TODO entry on the readonly hole. '!.' keeps it, so it cannot be used here.
                 .serialize("MainWnd.RightBar.Pane0", &(notnull me.quickStyleBar.items[0]).size)
                 .serialize("MainWnd.RightBar.Pane1", &(notnull me.quickStyleBar.items[1]).size)
                 .serialize("MainWnd.captureOptions", &me.captureOptions)
@@ -547,7 +550,8 @@ impl MainWnd
 
     mtd createTopMenu()
     {
-        let parentWnd = notnull me.parent
+        @assert(me.parent != null)
+        let parentWnd = me.parent
         with let topMenu = MenuCtrl.createBar(parentWnd, owner: me)
         {
             .sendToBack()
@@ -558,7 +562,7 @@ impl MainWnd
         }
 
         // File menu
-        with let fileMenu = MenuCtrl.createPopup(notnull me.parent, owner: me)
+        with let fileMenu = MenuCtrl.createPopup(me.parent, owner: me)
         {
             .addGroup([ActionFile.NewImage, ActionFile.NewFromClipboard])
             .addGroup([ActionFile.OpenImage, ActionFile.SaveAsImage])
@@ -569,7 +573,7 @@ impl MainWnd
         }
 
         // Capture menu
-        with let captureMenu = MenuCtrl.createPopup(notnull me.parent, owner: me)
+        with let captureMenu = MenuCtrl.createPopup(me.parent, owner: me)
         {
             .addItems([ActionCapture.Area, ActionCapture.LastArea, ActionCapture.FullScreen, ActionCapture.ActiveWnd])
 
@@ -601,7 +605,7 @@ impl MainWnd
         }
 
         // Edit menu
-        with let editMenu = MenuCtrl.createPopup(notnull me.parent, owner: me)
+        with let editMenu = MenuCtrl.createPopup(me.parent, owner: me)
         {
             .addGroup([ActionUndo.DoUndo, ActionUndo.DoRedo])
             .addGroup([ActionCopyPaste.Copy, ActionCopyPaste.Cut, ActionCopyPaste.Paste])
@@ -614,7 +618,7 @@ impl MainWnd
         }
 
         // Image menu
-        with let imageMenu = MenuCtrl.createPopup(notnull me.parent, owner: me)
+        with let imageMenu = MenuCtrl.createPopup(me.parent, owner: me)
         {
             .addGroup([ActionCopyPaste.CopyAsImage])
             .addGroup([ActionImage.RestoreOrg])
@@ -625,7 +629,7 @@ impl MainWnd
         }
 
         // View menu
-        with let viewMenu = MenuCtrl.createPopup(notnull me.parent, owner: me)
+        with let viewMenu = MenuCtrl.createPopup(me.parent, owner: me)
         {
             .addGroup([ActionZoom.ZoomIn, ActionZoom.ZoomOut])
             .addGroup([ActionZoom.Zoom1, ActionZoom.ZoomFit])
@@ -634,7 +638,7 @@ impl MainWnd
         }
 
         // Help menu
-        with let helpMenu = MenuCtrl.createPopup(notnull me.parent, owner: me)
+        with let helpMenu = MenuCtrl.createPopup(me.parent, owner: me)
         {
             .addItem(ActionOptions.Options)
             .addSeparator()

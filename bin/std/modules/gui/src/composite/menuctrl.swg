@@ -316,7 +316,7 @@ public impl IWnd for MenuCtrl
             if !.bar
             {
                 if !.timer do
-                    .timer = (notnull .surface).app.addTimer(300'ms, me)
+                    .timer = .surface!.app.addTimer(300'ms, me)
                 let timer = notnull .timer
                 timer.restart()
             }
@@ -496,7 +496,7 @@ impl MenuCtrl
         theme.drawSubRect(painter, anchorBk, &rects.menuPopup_BarAnchorBk, colors.menuPopup_Bk)
         theme.drawSubRect(painter, anchorBk, &rects.menuPopup_BarAnchorBorder, colors.menuPopup_Border, interpol: .Pixel)
 
-        let i        = notnull (notnull .ownerMenu).items[.popupBarItemIdx]
+        let i        = notnull .ownerMenu!.items[.popupBarItemIdx]
         var labelPos = anchorRect
         labelPos.x     += metrics.menuBar_SpaceBetween * 0.5
         labelPos.width -= metrics.menuBar_SpaceBetween
@@ -605,7 +605,7 @@ impl MenuCtrl
     {
         with me.subVisible
         {
-            let pt = (notnull .parent).surfaceToLocal(ptSurface)
+            let pt = .parent!.surfaceToLocal(ptSurface)
             .setPosition({pt.x, pt.y, .position.width, .position.height})
             .bringToFront()
             .show()
@@ -682,7 +682,7 @@ impl MenuCtrl
 
     mtd showHotPopup()
     {
-        if .hotIdx == Swag.U32.Max or !@isset((notnull .items[.hotIdx]).popup)
+        if .hotIdx == Swag.U32.Max or !@isset(.items[.hotIdx]!.popup)
         {
             .selectedIdx = Swag.U32.Max
             return
@@ -809,7 +809,7 @@ impl MenuCtrl
                 continue
             }
 
-            it.size = (notnull rsf.font.regular).height
+            it.size = rsf.font.regular!.height
 
             fake.drawRichString({0, 0, 512, 0}, &it.name, rsf)
             var w = it.name.boundRect.width
@@ -817,7 +817,7 @@ impl MenuCtrl
             if !.flags.has(.HideShortcuts) and !it.rightName.isEmpty()
             {
                 fake.drawRichString({0, 0, 512, 0}, &it.rightName, rsf)
-                w += it.rightName.boundRect.width + (notnull rsf.font.regular).height * 3
+                w += it.rightName.boundRect.width + rsf.font.regular!.height * 3
             }
 
             .position.width  = Math.max(.position.width, w)
@@ -828,7 +828,7 @@ impl MenuCtrl
         if !.paintByFrame do
             .position.width += 2 * metrics.menuPopup_ShadowSize
 
-        .position.width += (2 * (notnull rsf.font.regular).height) + (1 * metrics.menuPopup_IconTextMargin)
+        .position.width += (2 * rsf.font.regular!.height) + (1 * metrics.menuPopup_IconTextMargin)
 
         if .hasPopupBarAnchor() and !.paintByFrame
         {
@@ -1049,7 +1049,7 @@ public impl MenuCtrl
         .computeLayoutPopup()
 
         // Be sure popup menu is in the client area of the top view
-        var pt = (notnull .parent).surfaceToLocal(surfacePos)
+        var pt = .parent!.surfaceToLocal(surfacePos)
 
         switch pos
         {

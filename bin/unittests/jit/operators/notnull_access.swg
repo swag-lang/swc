@@ -124,11 +124,11 @@ func notNullAssign(newValue: s32)
 
 #test
 {
-    g_notNullNode.value   = 42
-    g_notNullNode.name    = "hello"
-    g_notNullNode.inner   = {count: 7}
-    g_notNullNode.next    = &g_notNullOther
-    g_notNullOther.value  = 9
+    g_notNullNode.value  = 42
+    g_notNullNode.name   = "hello"
+    g_notNullNode.inner  = {count: 7}
+    g_notNullNode.next   = &g_notNullOther
+    g_notNullOther.value = 9
 
     @assert(notNullScalar() == 42)
     @assert(notNullString() == "hello")

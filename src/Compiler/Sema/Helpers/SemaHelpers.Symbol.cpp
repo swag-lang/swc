@@ -43,27 +43,6 @@ namespace
         return sema.typeMgr().get(aliasEnumTypeRef(sema, view.typeRef()));
     }
 
-    // '!.': unwrap the left view so member resolution runs on the pointee, and hang the
-    // guard codegen emits before the access on the member node itself. The reference
-    // layer is dropped along with the nullable flag, exactly like the value 'notnull'
-    // produces: a 'const &' binding to a pointer slot says nothing about the pointee, and
-    // keeping it would leak that constness onto every member reached through it.
-    Result setupNotNullMemberAccess(Sema& sema, AstNodeRef memberRef, SemaNodeView& nodeLeftView)
-    {
-        TypeRef nullableTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), nodeLeftView.typeRef());
-        if (nullableTypeRef.isInvalid())
-            nullableTypeRef = nodeLeftView.typeRef();
-
-        TypeInfo nonNullType = sema.typeMgr().get(nullableTypeRef);
-        nonNullType.removeFlag(TypeInfoFlagsE::Nullable);
-
-        const TypeRef nonNullTypeRef = sema.typeMgr().addType(nonNullType);
-        nodeLeftView.typeRef()       = nonNullTypeRef;
-        nodeLeftView.type()          = &sema.typeMgr().get(nonNullTypeRef);
-
-        return SemaHelpers::setupRuntimeSafetyPanic(sema, memberRef, Runtime::SafetyWhat::Expect, sema.node(memberRef).codeRef());
-    }
-
     Result checkPointerArithmeticOperand(Sema& sema, AstNodeRef nodeRef, AstNodeRef operandRef, const SemaNodeView& operandView)
     {
         if (!operandView.type())
@@ -1428,17 +1407,10 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
     }
     else if (aliasEnumType(sema, nodeLeftView).isNullable())
     {
-        // '!.' moves the proof from compile time to run time: the access is allowed, and
-        // a safety guard panics if the value really is null. Like 'notnull' it is
-        // tolerated on an already-proven left side (generic instantiations, narrowed
-        // regions), so nothing is reported when the flow got there first.
-        if (node.hasFlag(AstMemberAccessExprFlagsE::NotNullAccess))
-            SWC_RESULT(setupNotNullMemberAccess(sema, memberRef, nodeLeftView));
-
         // A compile-time constant that is not null is the strongest proof there is:
         // reflection data (e.g. 'typeinfo.fields') is typed nullable but folds to a
         // known value in constant contexts.
-        else if (!nodeLeftView.hasConstant() || nodeLeftView.cst()->isNull())
+        if (!nodeLeftView.hasConstant() || nodeLeftView.cst()->isNull())
             return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_nullable_member_access, node.nodeLeftRef, nodeLeftView.typeRef());
     }
 

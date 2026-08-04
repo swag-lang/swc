@@ -240,7 +240,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     if transparency != null
     {
         var trns: ConcatBuffer
-        for value in (transparency do)!
+        for value in transparency! do
             addPngU16Be(&trns, value)
         addPngChunk(&result, "tRNS", nnBytes(trns.toSlice()))
     }

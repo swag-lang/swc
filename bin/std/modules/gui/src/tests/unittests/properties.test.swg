@@ -398,7 +398,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     prop.addStruct(data, "S")
     prop.edView.sendResizeEvent()
 
-    let btn = (findIconButton(prop.items[9]!.line)     // the color swatch button)!
+    let btn = findIconButton(prop.items[9]!.line)!     // the color swatch button
 
     // Hover the button (no popup yet) -> hot.
     host.sendMouseEvent(btn, .Enter, {0, 0}, .Left, .None)

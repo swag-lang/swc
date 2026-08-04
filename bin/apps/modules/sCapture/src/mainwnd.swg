@@ -266,8 +266,6 @@ impl IWnd for MainWnd
                 .serialize("MainWnd.bottomSize", &me.bottomSize)
                 .serialize("MainWnd.fileDlgState", &me.fileDlgState)
                 .serialize("MainWnd.fileDlgStateInPlace", &me.fileDlgStateInPlace)
-                // '!' produces a value, so the address below escapes the 'readonly' of
-                // 'items'. See the TODO entry on that hole: this is the site it protects.
                 .serialize("MainWnd.RightBar.Pane0", &me.quickStyleBar.items[0]!.size)
                 .serialize("MainWnd.RightBar.Pane1", &me.quickStyleBar.items[1]!.size)
                 .serialize("MainWnd.captureOptions", &me.captureOptions)

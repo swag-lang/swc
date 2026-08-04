@@ -58,11 +58,8 @@ private func defaultThemeImages()->*DefaultThemeImages
     if !cache.decoded
     {
         cache.widgets = expect Svg.Drawing.parse(cast(string) DefaultImage)
-        StartupTrace.mark("  svg parse widgets.svg")
-        cache.icons = expect Svg.Drawing.parse(cast(string) DefaultIcons)
-        StartupTrace.mark("  svg parse icons.svg")
-        cache.spin = expect Image.decode(DefaultSpinName, DefaultSpin)
-        StartupTrace.mark("  png decode spin.png")
+        cache.icons   = expect Svg.Drawing.parse(cast(string) DefaultIcons)
+        cache.spin    = expect Image.decode(DefaultSpinName, DefaultSpin)
         cache.decoded = true
     }
 
@@ -93,9 +90,7 @@ private func defaultWidgetsImage(scale: f32)->*Image
     while ss > 1 and w * cast(s32) ss > 4096 do
         ss /= 2
 
-    let raster = cache.widgets.rasterize(w, h, ss)
-    StartupTrace.mark(Format.toString("  widgets.rasterize %x% ss %", w, h, ss))
-    return &cache.widgetsRasters.add(key, raster).value
+    return &cache.widgetsRasters.add(key, cache.widgets.rasterize(w, h, ss)).value
 }
 
 // Owns decoded theme textures, icon atlases, typefaces, and derived font families.
@@ -193,7 +188,6 @@ impl Theme
         .colors.setDark()
 
         .ensureAtlasScale(renderer, 1)
-        StartupTrace.mark(" ensureAtlasScale(1)")
 
         let images = defaultThemeImages()
         .res.icons.setup(renderer, &images.icons)
@@ -203,9 +197,7 @@ impl Theme
             .spin.set(renderer.addImage(images.spin), 48, 48)
         }
 
-        StartupTrace.mark(" icons.setup+spin")
         .setupDefaultFonts()
-        StartupTrace.mark(" setupDefaultFonts")
     }
 
     // Keeps the widgets atlas texture at least as sharp as `scale` device pixels per authored texel.
@@ -252,8 +244,7 @@ impl Theme
             .defaultFsTypeFaceI  = expect defaultTypeFace(DefaultFontFsItalicName, DefaultFontFsItalic)!
             .defaultFsTypeFaceBI = expect defaultTypeFace(DefaultFontFsBoldItalicName, DefaultFontFsBoldItalic)!
 
-            StartupTrace.mark("  8x TypeFace.create")
-            .fontDefault.regular    = .fonts.createFont(.defaultTypeFaceR, me.metrics.defaultFontSize)
+            .fontDefault.regular    =.fonts.createFont(.defaultTypeFaceR, me.metrics.defaultFontSize)
             .fontDefault.bold       = .fonts.createFont(.defaultTypeFaceB, me.metrics.defaultFontSize)
             .fontDefault.italic     = .fonts.createFont(.defaultTypeFaceI, me.metrics.defaultFontSize)
             .fontDefault.boldItalic = .fonts.createFont(.defaultTypeFaceBI, me.metrics.defaultFontSize)
@@ -262,7 +253,6 @@ impl Theme
             .fontDefaultFs.bold       = .fonts.createFont(.defaultFsTypeFaceB, me.metrics.defaultFixedFontSize)
             .fontDefaultFs.italic     = .fonts.createFont(.defaultFsTypeFaceI, me.metrics.defaultFixedFontSize)
             .fontDefaultFs.boldItalic = .fonts.createFont(.defaultFsTypeFaceBI, me.metrics.defaultFixedFontSize)
-            StartupTrace.mark("  8x createFont")
         }
     }
 

@@ -685,7 +685,6 @@ impl Application
     // desktop pixels.
     mtd createSurface(x, y, width, height: s32, flags = SurfaceFlags.StandardWindow, view: #null *Wnd = null, hook: #null HookEvent = null, surfaceId: #null string = null)->#null *Surface fail
     {
-        StartupTrace.mark("createSurface enter")
         let surface = Memory.new'Surface()
         var surfaceCreated: bool
         defer if !surfaceCreated
@@ -709,16 +708,13 @@ impl Application
         }
 
         try Surface.create(surface, x, y, width, height, flags, .mainSurface)
-        StartupTrace.mark("Surface.create")
         surfaceCreated = true
 
         if !.mainSurface
         {
             .renderer.setCurrentContext(surface.rc)
             .renderer.init()
-            StartupTrace.mark("renderer.init")
             .theme.setupDefault(.renderer)
-            StartupTrace.mark("theme.setupDefault")
             .mainSurface = surface
 
             // Spin up the shared worker pool so the parallel rasterizers (glyph MSDF
@@ -726,28 +722,23 @@ impl Application
             // of falling back to a synchronous single thread.
             if Jobs.isSynchronous() do
                 discard catch Jobs.initialize()
-            StartupTrace.mark("Jobs.initialize")
         }
 
         // A surface on a scaled display needs the theme atlas at least at its density.
         .theme.ensureAtlasScale(.renderer, surface.dpiScale)
-        StartupTrace.mark(Format.toString("ensureAtlasScale(dpi %)", surface.dpiScale))
 
         .surfaces.add(surface)
 
         with surface
         {
             .wnd.create(view, hook)
-            StartupTrace.mark("wnd.create")
             .wnd.surface = surface
             .wnd.itf     = surface.wnd
             .wnd.computeStyle()
             .wnd.view.computeStyle()
             .wnd.sendResizeEvent()
-            StartupTrace.mark("wnd.computeStyle+resize")
         }
 
-        StartupTrace.flush()
         return surface
     }
 

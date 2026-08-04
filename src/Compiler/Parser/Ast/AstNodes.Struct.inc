@@ -840,7 +840,6 @@ enum class AstMemberAccessExprFlagsE : AstNode::ParserFlags
     Zero           = 0,
     CallCallee     = 1 << 0,
     OptionalAccess = 1 << 1, // '?.': skip the access when the left side is null
-    NotNullAccess  = 1 << 2, // '!.': assert the left side is not null, panicking under safety
 };
 
 struct AstMemberAccessExpr : AstNodeT<AstNodeId::MemberAccessExpr, AstMemberAccessExprFlagsE>

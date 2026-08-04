@@ -418,11 +418,10 @@ Result AstMemberAccessExpr::codeGenPreNodeChild(const CodeGen& codeGen, const As
 {
     if (childRef == nodeLeftRef)
     {
-        // A '?.' or '!.' left side must always be materialized: its null test guards the
-        // access, even when the member itself resolves to a function and the receiver
-        // would otherwise only be produced by the call machinery.
+        // A '?.' left side must always be materialized: its null test guards the rest
+        // of the chain, even when the member itself resolves to a function and the
+        // receiver would otherwise only be produced by the call machinery.
         if (!hasFlag(AstMemberAccessExprFlagsE::OptionalAccess) &&
-            !hasFlag(AstMemberAccessExprFlagsE::NotNullAccess) &&
             canSkipCompileTimeMemberAccessLeft(const_cast<CodeGen&>(codeGen), *this))
             return Result::SkipChildren;
     }
@@ -434,8 +433,7 @@ Result AstMemberAccessExpr::codeGenPreNodeChild(const CodeGen& codeGen, const As
 
 Result AstMemberAccessExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
-    const bool optionalAccess = hasFlag(AstMemberAccessExprFlagsE::OptionalAccess);
-    if (!optionalAccess && !hasFlag(AstMemberAccessExprFlagsE::NotNullAccess))
+    if (!hasFlag(AstMemberAccessExprFlagsE::OptionalAccess))
         return Result::Continue;
 
     // Child callbacks receive the RESOLVED child (a qualification cast can rewrite
@@ -445,10 +443,6 @@ Result AstMemberAccessExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNode
     SWC_ASSERT(resolvedLeftRef.isValid());
     if (codeGen.resolvedNodeRef(childRef) != resolvedLeftRef)
         return Result::Continue;
-
-    // '!.': the opposite outcome of '?.' on the same test - panic instead of skipping.
-    if (!optionalAccess)
-        return CodeGenSafety::emitNotNullGuard(codeGen, codeGen.curNodeRef(), resolvedLeftRef, "'!.' on null value");
 
     // '?.': test the freshly generated left value and take the enclosing chain's null
     // exit when it is null. The rest of the member access then runs on a proven

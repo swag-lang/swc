@@ -267,7 +267,7 @@ struct FormatOptions
     uint32_t            trailingCommentMinSpaces = 5;                // Minimum spaces before a trailing `//`
     uint32_t            trailingCommentMaxColumn = 0;                // 0 = no limit on trailing comment column
     std::optional<bool> alignOperands;                               // Align operands of wrapped binary expressions
-    std::optional<bool> alignAfterOpenBracket;                       // Align wrapped args with the opening `(` / `[`
+    std::optional<bool> alignAfterOpenBracket;                       // Align wrapped lines with the item the opening `(` / `[` / `{` carries on its own line
     std::optional<bool> alignArrayColumns;                           // Align the columns of multi-line array-of-struct literals
 
     // -----------------------------------------------------------------------

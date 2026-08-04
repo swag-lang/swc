@@ -90,7 +90,7 @@ func writeLegacyHeader(volume: *Volume)
     record.resize(HeaderSlotSize)
     let nonce      = record[0 until Crypto.NonceSize]
     let ciphertext = record[Crypto.NonceSize until
-                             Crypto.NonceSize + LegacyHeaderPlainSize]
+                            Crypto.NonceSize + LegacyHeaderPlainSize]
     let tag = record[Crypto.NonceSize + LegacyHeaderPlainSize until
                      HeaderSlotSize]
     expect Crypto.seal(&volume.keys, HeaderKind, slot, plain.toSlice(), nonce, ciphertext, tag)

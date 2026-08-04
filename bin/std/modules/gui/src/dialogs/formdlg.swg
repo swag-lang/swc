@@ -45,7 +45,7 @@ impl FormDlg
         result.form.setAllMargins(result.themeMetrics().dialog_Padding)
 
         result.addButton(@countof(options.confirmButtonText) ?
-        options.confirmButtonText : "OK",
+                         options.confirmButtonText : "OK",
                          Dialog.BtnOk,
                          true)
         if @countof(options.cancelButtonText) do

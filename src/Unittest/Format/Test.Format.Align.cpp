@@ -595,6 +595,110 @@ SWC_TEST_BEGIN(FormatAlign_ArrayColumnsSkipsRaggedRows)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatAlign_HangingLineFollowsAlignedAnchor)
+{
+    // Padding the `=` pushes `func(` five columns right; the wrapped parameter
+    // line has to travel with it instead of staying at the source column.
+    static constexpr std::string_view SOURCE =
+        "alias LongerName = u8\n"
+        "alias Short = func(a: u8, b: u8,\n"
+        "                   c: u8)\n";
+
+    static constexpr std::string_view EXPECTED =
+        "alias LongerName = u8\n"
+        "alias Short      = func(a: u8, b: u8,\n"
+        "                        c: u8)\n";
+
+    FormatOptions options;
+    options.indentStyle                   = FormatIndentStyle::Spaces;
+    options.normalizeHorizontalWhitespace = true;
+    options.alignConsecutiveAliases       = FormatAlignMode::Consecutive;
+    options.alignAfterOpenBracket         = true;
+    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatAlign_AfterOpenBracketUsesLiteralBrace)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo()\n"
+        "{\n"
+        "    add({a: 1,\n"
+        "    b: 2})\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo()\n"
+        "{\n"
+        "    add({a: 1,\n"
+        "         b: 2})\n"
+        "}\n";
+
+    FormatOptions options;
+    options.indentStyle           = FormatIndentStyle::Spaces;
+    options.alignAfterOpenBracket = true;
+    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatAlign_AfterOpenBracketKeepsDataTableRows)
+{
+    // The `[` ends its line, so it carries no item to align with: the rows
+    // keep the statement's continuation indent instead of marching right.
+    static constexpr std::string_view SOURCE =
+        "const T = [\n"
+        "    1, 2,\n"
+        "    3, 4]\n";
+
+    FormatOptions options;
+    options.indentStyle           = FormatIndentStyle::Spaces;
+    options.alignAfterOpenBracket = true;
+    return checkAlignRewrite(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatAlign_OperandsInsideBracketAnchorOnBracket)
+{
+    // The wrapped operand belongs to the argument list, not to the statement:
+    // anchoring it on `bar` would pull it out of the call.
+    static constexpr std::string_view SOURCE =
+        "func foo()\n"
+        "{\n"
+        "    bar(aaa,\n"
+        "        bbb ==\n"
+        "        ccc)\n"
+        "}\n";
+
+    FormatOptions options;
+    options.indentStyle   = FormatIndentStyle::Spaces;
+    options.alignOperands = true;
+    return checkAlignRewrite(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatAlign_OperandsOutsideBracketAnchorOnStatement)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo()\n"
+        "{\n"
+        "    let x = aaa ==\n"
+        "    bbb\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo()\n"
+        "{\n"
+        "    let x = aaa ==\n"
+        "            bbb\n"
+        "}\n";
+
+    FormatOptions options;
+    options.indentStyle   = FormatIndentStyle::Spaces;
+    options.alignOperands = true;
+    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

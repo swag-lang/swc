@@ -45,6 +45,7 @@ namespace
             runCategory(AlignCategory::FatArrows, options_->alignFatArrows);
             runCategory(AlignCategory::CaseBodies, options_->alignCaseBodies);
             runArrayColumns();
+            repairHangingLines();
             runTrailingComments();
         }
 
@@ -556,6 +557,45 @@ namespace
             if (elemCount == SIZE_MAX || elemCount < 2)
                 return {};
             return rows;
+        }
+
+        // Padding an anchor pushes everything after it on that line to the
+        // right, including any bracket a later line hangs inside. The indent
+        // pass ran before this one, so those continuation lines still sit at
+        // the pre-alignment column: move each one back under its bracket.
+        // Records come in source order, so a bracket that itself lives on a
+        // repaired line is already at its final column when it is read.
+        void repairHangingLines() const
+        {
+            std::vector<PieceColumn> columns;
+
+            for (const FormatHangingLine& hanging : model_->hangingLines())
+            {
+                if (!FormatPassUtil::canEditGap(*model_, hanging.lineStart) || model_->piece(hanging.openPiece).removed)
+                    continue;
+
+                const uint32_t newlines = model_->gapNewlineCount(hanging.lineStart);
+                if (newlines == 0)
+                    continue;
+
+                FormatPassUtil::computeLineColumns(*model_, model_->lineStartOf(hanging.openPiece), &columns);
+                uint32_t openColumn = UINT32_MAX;
+                for (const PieceColumn& pc : columns)
+                {
+                    if (pc.piece == hanging.openPiece)
+                    {
+                        openColumn = pc.column;
+                        break;
+                    }
+                }
+                if (openColumn == UINT32_MAX)
+                    continue;
+
+                const uint32_t wanted = openColumn + hanging.offset;
+                if (wanted == lineIndentColumn(hanging.lineStart))
+                    continue;
+                model_->setGapBreak(hanging.lineStart, newlines, FormatPassUtil::indentForColumns(*model_, wanted).view());
+            }
         }
 
         void runTrailingComments() const

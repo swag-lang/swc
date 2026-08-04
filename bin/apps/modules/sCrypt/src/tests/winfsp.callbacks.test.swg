@@ -41,7 +41,7 @@ func statusForError(kind: ErrorKind)->s32
     @assert(statusForError(.DiskFull) == WinFsp.StatusDiskFull)
     @assert(statusForError(.Corrupted) == WinFsp.StatusIoDeviceError)
     @assert(WinFsp.statusFromError(null, WinFsp.StatusAccessDenied) ==
-    WinFsp.StatusAccessDenied)
+            WinFsp.StatusAccessDenied)
 }
 
 #test
@@ -64,7 +64,7 @@ func statusForError(kind: ErrorKind)->s32
     @assert(free == volume.freeBytes())
     @assert(WinFsp.cString(&label[0]) == "sCrypt")
     @assert(WinFsp.callbackSetVolumeLabel(context, @dataof("Private")) ==
-    WinFsp.StatusSuccess)
+            WinFsp.StatusSuccess)
 
     var directoryId, fileId: u64
     var info:                WinFsp.FileInfo
@@ -73,7 +73,7 @@ func statusForError(kind: ErrorKind)->s32
 
     let security: [4] u8 = [10, 20, 30, 40]
     @assert(WinFsp.callbackCreate(context, @dataof("\\docs\\data.bin"), 0, FileAttributeNormal, 0, &security[0], #sizeof(security), &fileId, &info) ==
-    WinFsp.StatusSuccess)
+            WinFsp.StatusSuccess)
     @assert(info.indexNumber == fileId and info.fileSize == 0)
 
     var lookupId: u64
@@ -95,7 +95,7 @@ func statusForError(kind: ErrorKind)->s32
     @assert(@memcmp(&source[0], &destination[0], #sizeof(source)) == 0)
 
     @assert(WinFsp.callbackSetFileSize(context, fileId, 9000, 0, &info) ==
-    WinFsp.StatusSuccess)
+            WinFsp.StatusSuccess)
     @assert(info.fileSize == 9000)
     @assert(WinFsp.callbackSetBasicInfo(context, fileId, FileAttributeArchive, 11, 12, 13, 14, &info) == WinFsp.StatusSuccess)
     @assert(info.creationTime == 11 and info.lastAccessTime == 12 and info.lastWriteTime == 13 and info.changeTime == 14)
@@ -108,7 +108,7 @@ func statusForError(kind: ErrorKind)->s32
 
     var securitySize = 0'u32
     @assert(WinFsp.callbackGetSecurity(context, fileId, null, &securitySize) ==
-    WinFsp.StatusSuccess)
+            WinFsp.StatusSuccess)
     @assert(securitySize == #sizeof(security))
     var shortSecurity: [2] u8
     securitySize = #sizeof(shortSecurity)
@@ -133,11 +133,11 @@ func statusForError(kind: ErrorKind)->s32
     @assert(WinFsp.callbackGetDirInfoByName(context, directoryId, @dataof("DATA.BIN"), &info) == WinFsp.StatusSuccess)
 
     @assert(WinFsp.callbackCanDelete(context, directoryId) ==
-    WinFsp.StatusDirectoryNotEmpty)
+            WinFsp.StatusDirectoryNotEmpty)
     @assert(WinFsp.callbackCanDelete(context, 1) == WinFsp.StatusAccessDenied)
     @assert(WinFsp.callbackRead(context, directoryId, &destination[0], 0, 1, &transferred) == WinFsp.StatusFileIsDirectory)
     @assert(WinFsp.callbackSetFileSize(context, directoryId, 1, 0, &info) ==
-    WinFsp.StatusFileIsDirectory)
+            WinFsp.StatusFileIsDirectory)
     @assert(WinFsp.callbackReadDirectory(context, fileId, null, &captureDirectoryEntry, &childCapture, &complete) == WinFsp.StatusNotADirectory)
 
     @assert(WinFsp.callbackRename(context, fileId, @dataof("\\docs\\data.bin"), @dataof("\\docs\\renamed.bin"), 0) == WinFsp.StatusSuccess)

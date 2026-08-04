@@ -68,7 +68,7 @@ func checkLossyWebp(fileName, goldenName: string, width, height: s32, withAlpha:
             let cr        = cast(s32) golden.pixelColor(halfWidth + x / 2, height + sourceY / 2).r
             let expectedR = webpExpectedChannel((webpMultiplyHigh(luma, 19077) + webpMultiplyHigh(cr, 26149) - 14234) >> 6)
             let expectedG = webpExpectedChannel((webpMultiplyHigh(luma, 19077) - webpMultiplyHigh(cb, 6419) -
-                            webpMultiplyHigh(cr, 13320) + 8708) >> 6)
+                                                 webpMultiplyHigh(cr, 13320) + 8708) >> 6)
             let expectedB = webpExpectedChannel((webpMultiplyHigh(luma, 19077) + webpMultiplyHigh(cb, 33050) - 17685) >> 6)
             let expectedA = withAlpha ? golden.pixelColor(x, height + halfHeight + sourceY).r : 0xFF
             let got       = decoded.pixelColor(x, y)

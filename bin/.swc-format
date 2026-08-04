@@ -344,8 +344,11 @@ trailing-comment-max-column = 0
 # operand of the statement.
 align-operands = true
 
-# Align wrapped arguments with the opening `(` / `[`.
-align-after-open-bracket = false
+# Align wrapped arguments with the first item carried on the line that opens
+# the `(` / `[` / `{`. A bracket that ends its own line has no item to align
+# with, so its content keeps the indentation below and hand-packed data tables
+# stay as written.
+align-after-open-bracket = true
 
 # Align the columns of multi-line array literals whose rows are single-line
 # `{ ... }` literals.

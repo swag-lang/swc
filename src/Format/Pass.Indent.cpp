@@ -10,7 +10,10 @@ namespace
 
     struct OpenBracket
     {
-        uint32_t column = 0;
+        uint32_t piece         = FormatPiece::INVALID_INDEX;
+        uint32_t column        = 0;
+        uint32_t itemColumn    = UINT32_MAX; // item carried on the bracket's own line, if any
+        uint32_t operandColumn = UINT32_MAX; // where the bracket's content starts, taken from the first wrapped line when needed
     };
 
     bool isStatementLine(const FormatPiece& piece)
@@ -149,6 +152,18 @@ namespace
                 newCols = continuationColumns(lineStart, oldCols);
             }
 
+            if (!isStatement)
+            {
+                for (const uint32_t commentLine : pendingComments_)
+                    recordHangingLine(commentLine, newCols);
+                recordHangingLine(lineStart, newCols);
+
+                // A bracket that ended its line takes its first continuation
+                // line as the operand anchor for the rest of the expression.
+                if (!parenStack_.empty() && parenStack_.back().operandColumn == UINT32_MAX)
+                    parenStack_.back().operandColumn = newCols;
+            }
+
             flushComments(newCols);
             lastCodeCols_ = newCols;
 
@@ -235,14 +250,30 @@ namespace
 
         uint32_t continuationColumns(const uint32_t lineStart, const uint32_t oldCols) const
         {
-            if (options_->alignAfterOpenBracket.value_or(false) && !parenStack_.empty())
-                return parenStack_.back().column + 1;
+            // Wrapped lines sit under the item the bracket carries on its own
+            // line. A bracket that ends its line has nothing to align with:
+            // its content falls through to the canonical / relative indent
+            // below, which is what keeps hand-packed data tables intact.
+            if (options_->alignAfterOpenBracket.value_or(false) && !parenStack_.empty() &&
+                parenStack_.back().itemColumn != UINT32_MAX)
+                return parenStack_.back().itemColumn;
 
-            // Operand lines of a wrapped binary expression align with the
-            // first operand of the statement.
-            if (options_->alignOperands.value_or(false) && lastStmtOperandCol_ != UINT32_MAX &&
+            // Operand lines of a wrapped binary expression align with the first
+            // operand of the expression they continue: the bracket's own first
+            // item when the expression is nested in one, the statement's first
+            // operand otherwise. Anchoring a nested operand on the statement
+            // would tear it out of the argument list it belongs to.
+            if (options_->alignOperands.value_or(false) &&
                 (prevLineEndsBinaryOp_ || model_->piece(lineStart).roles.hasAny({FormatRoleE::BinaryOp, FormatRoleE::TernaryOp})))
-                return lastStmtOperandCol_;
+            {
+                if (!parenStack_.empty())
+                {
+                    if (parenStack_.back().operandColumn != UINT32_MAX)
+                        return parenStack_.back().operandColumn;
+                }
+                else if (lastStmtOperandCol_ != UINT32_MAX)
+                    return lastStmtOperandCol_;
+            }
 
             // Inside brackets, force the canonical continuation indent instead
             // of keeping the relative one.
@@ -280,19 +311,38 @@ namespace
             std::vector<PieceColumn> columns;
             FormatPassUtil::computeLineColumns(*model_, lineStart, &columns);
 
-            for (const auto& [pieceIndex, column] : columns)
+            for (size_t c = 0; c < columns.size(); ++c)
             {
-                const FormatPiece& piece = model_->piece(pieceIndex);
-                if (piece.is(TokenId::SymLeftParen) || piece.is(TokenId::SymLeftBracket))
+                const FormatPiece& piece = model_->piece(columns[c].piece);
+                // Literal braces carry wrapped items exactly like a call paren
+                // does; block braces open a body and are indented, not aligned.
+                if (piece.is(TokenId::SymLeftParen) || piece.is(TokenId::SymLeftBracket) || piece.hasRole(FormatRoleE::LiteralOpen))
                 {
-                    parenStack_.push_back({column});
+                    // An item on the bracket's own line anchors everything
+                    // wrapped inside it; a bracket that ends its line has none
+                    // yet and takes the first continuation line instead.
+                    const uint32_t item = c + 1 < columns.size() ? columns[c + 1].column : UINT32_MAX;
+                    parenStack_.push_back({columns[c].piece, columns[c].column, item, item});
                 }
-                else if (piece.is(TokenId::SymRightParen) || piece.is(TokenId::SymRightBracket))
+                else if (piece.is(TokenId::SymRightParen) || piece.is(TokenId::SymRightBracket) || piece.hasRole(FormatRoleE::LiteralClose))
                 {
                     if (!parenStack_.empty())
                         parenStack_.pop_back();
                 }
             }
+        }
+
+        // Remembers a continuation line that visually hangs inside the bracket
+        // it sits in, so the alignment pass can move it along when it shifts
+        // the line the bracket belongs to.
+        void recordHangingLine(const uint32_t lineStart, const uint32_t cols)
+        {
+            if (parenStack_.empty())
+                return;
+            const OpenBracket& bracket = parenStack_.back();
+            if (bracket.piece == FormatPiece::INVALID_INDEX || cols <= bracket.column)
+                return; // block bodies and data-table rows sit left of their bracket
+            model_->hangingLines().push_back({lineStart, bracket.piece, cols - bracket.column});
         }
 
         struct StackEntry

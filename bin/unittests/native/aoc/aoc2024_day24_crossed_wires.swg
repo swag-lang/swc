@@ -472,9 +472,9 @@ func findSwapped(c: *Circuit)->SwappedResult
         if g.op == GateOp.OpXor and inputsAreXY
         {
             let isFirstBit = (g.nameA0 == 'x' and g.nameA0 + 0 == 'x' and
-                             encodeWire(g.nameA0, cast(u8) '0', cast(u8) '0') == g.inA) or
+                              encodeWire(g.nameA0, cast(u8) '0', cast(u8) '0') == g.inA) or
                              (g.nameB0 == 'x' and
-                             encodeWire(g.nameB0, cast(u8) '0', cast(u8) '0') == g.inB)
+                              encodeWire(g.nameB0, cast(u8) '0', cast(u8) '0') == g.inB)
 
             if !isFirstBit and !hasDownstream(c, g.out, GateOp.OpXor)
             {
@@ -486,9 +486,9 @@ func findSwapped(c: *Circuit)->SwappedResult
         if g.op == GateOp.OpAnd and inputsAreXY
         {
             let isFirstBit = (g.nameA0 == 'x' and
-                             encodeWire(g.nameA0, cast(u8) '0', cast(u8) '0') == g.inA) or
+                              encodeWire(g.nameA0, cast(u8) '0', cast(u8) '0') == g.inA) or
                              (g.nameB0 == 'x' and
-                             encodeWire(g.nameB0, cast(u8) '0', cast(u8) '0') == g.inB)
+                              encodeWire(g.nameB0, cast(u8) '0', cast(u8) '0') == g.inB)
 
             if !isFirstBit and !hasDownstream(c, g.out, GateOp.OpOr)
             {

@@ -144,13 +144,13 @@ impl Mat2
 
         case .Sub:
             return {a: me.a - other.a, b: me.b - other.b,
-                c: me.c - other.c, d: me.d - other.d}
+                    c: me.c - other.c, d: me.d - other.d}
 
         case .Mul:
             return {a: me.a * other.a + me.b * other.c,
-                b: me.a * other.b + me.b * other.d,
-                c: me.c * other.a + me.d * other.c,
-                d: me.c * other.b + me.d * other.d}
+                    b: me.a * other.b + me.b * other.d,
+                    c: me.c * other.a + me.d * other.c,
+                    d: me.c * other.b + me.d * other.d}
 
         default:
             #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")

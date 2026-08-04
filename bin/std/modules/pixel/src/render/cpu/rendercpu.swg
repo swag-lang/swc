@@ -267,9 +267,9 @@ private impl RenderCpu
             // subsequent overlapping fragments see zero destination alpha and contribute nothing.
             let factor = cast(f32) .overlapAlpha[pixelIdx] / 255.0
             var out    = Color.fromArgbF32(0,
-                                        cast(f32) src.r / 255.0 * factor + cast(f32) dst.r / 255.0 * (1.0 - factor),
-                                        cast(f32) src.g / 255.0 * factor + cast(f32) dst.g / 255.0 * (1.0 - factor),
-                                        cast(f32) src.b / 255.0 * factor + cast(f32) dst.b / 255.0 * (1.0 - factor))
+                                           cast(f32) src.r / 255.0 * factor + cast(f32) dst.r / 255.0 * (1.0 - factor),
+                                           cast(f32) src.g / 255.0 * factor + cast(f32) dst.g / 255.0 * (1.0 - factor),
+                                           cast(f32) src.b / 255.0 * factor + cast(f32) dst.b / 255.0 * (1.0 - factor))
             writePixel(image, x, y, out)
             return
         }

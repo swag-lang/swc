@@ -43,7 +43,7 @@ impl Complex
 
         case .Mul:
             return {re: me.re * other.re - me.im * other.im,
-                im: me.re * other.im + me.im * other.re}
+                    im: me.re * other.im + me.im * other.re}
 
         default:
             #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")

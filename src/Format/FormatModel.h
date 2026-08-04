@@ -96,6 +96,17 @@ struct FormatLogicalExpression
     uint32_t rootOperatorPiece = 0;
 };
 
+// A continuation line that hangs inside a bracket opened on an earlier line.
+// The indent pass places it relative to that bracket; the alignment pass runs
+// afterwards and can still move the line the bracket sits on, so it replays
+// these anchors to keep the hanging lines under their bracket.
+struct FormatHangingLine
+{
+    uint32_t lineStart = 0; // first piece of the continuation line
+    uint32_t openPiece = 0; // the `(` / `[` / `{` the line hangs inside
+    uint32_t offset    = 0; // columns between the bracket and the line indent
+};
+
 // One token or comment of the source stream.
 struct FormatPiece
 {
@@ -145,6 +156,8 @@ public:
     const std::vector<FormatInlineBody>&        inlineBodies() const { return inlineBodies_; }
     std::vector<FormatLogicalExpression>&       logicalExpressions() { return logicalExpressions_; }
     const std::vector<FormatLogicalExpression>& logicalExpressions() const { return logicalExpressions_; }
+    std::vector<FormatHangingLine>&             hangingLines() { return hangingLines_; }
+    const std::vector<FormatHangingLine>&       hangingLines() const { return hangingLines_; }
 
     const SourceView&    srcView() const { return *srcView_; }
     const FormatOptions& options() const { return *options_; }
@@ -209,6 +222,7 @@ private:
     std::vector<FormatBlock>             blocks_;
     std::vector<FormatInlineBody>        inlineBodies_;
     std::vector<FormatLogicalExpression> logicalExpressions_;
+    std::vector<FormatHangingLine>       hangingLines_;
     std::vector<uint32_t>                tokenToPiece_;
     std::deque<Utf8>                     ownedTexts_;
     std::string_view                     eol_ = "\n";

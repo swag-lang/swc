@@ -96,7 +96,7 @@ namespace WinFsp
     alias FspCloseFn     = func(*FspFileSystem, #null *void)
     alias FspReadFn      = func(*FspFileSystem, #null *void, #null *void, u64, u32, *u32)->s32
     alias FspWriteFn     = func(*FspFileSystem, #null *void, #null *void, u64, u32,
-                            u8, u8, *u32, *FileInfo)->s32
+                                u8, u8, *u32, *FileInfo)->s32
     alias FspFlushFn        = func(*FspFileSystem, #null *void, #null *FileInfo)->s32
     alias FspGetFileInfoFn  = func(*FspFileSystem, #null *void, *FileInfo)->s32
     alias FspSetBasicInfoFn = func(*FspFileSystem, #null *void, u32,
@@ -104,7 +104,7 @@ namespace WinFsp
     alias FspSetFileSizeFn = func(*FspFileSystem, #null *void, u64, u8, *FileInfo)->s32
     alias FspCanDeleteFn   = func(*FspFileSystem, #null *void, #null [*] u16)->s32
     alias FspRenameFn      = func(*FspFileSystem, #null *void, #null [*] u16,
-                             #null [*] u16, u8)->s32
+                                  #null [*] u16, u8)->s32
     alias FspGetSecurityFn   = func(*FspFileSystem, #null *void, #null *void, *u64)->s32
     alias FspSetSecurityFn   = func(*FspFileSystem, #null *void, u32, #null *void)->s32
     alias FspReadDirectoryFn = func(*FspFileSystem, #null *void, #null [*] u16,
@@ -142,7 +142,7 @@ namespace WinFsp
     #assert(#offsetof(FspInterface.getDirInfoByName) == 24 * #sizeof(#null *void))
 
     alias FspFileSystemCreateFn = func(#null const [*] u16, const *FspVolumeParams,
-                                        const *FspInterface, *#null *FspFileSystem)->s32
+                                       const *FspInterface, *#null *FspFileSystem)->s32
     alias FspFileSystemDeleteFn           = func(*FspFileSystem)
     alias FspFileSystemSetMountPointFn    = func(*FspFileSystem, #null const [*] u16)->s32
     alias FspFileSystemRemoveMountPointFn = func(*FspFileSystem)

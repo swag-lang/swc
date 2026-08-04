@@ -20,7 +20,7 @@ namespace WinFsp
     }
 
     alias EmitDirFn = func(emitContext: #null *void, name: #null const [*] u8,
-                            info: const *FileInfo)->u8
+                           info: const *FileInfo)->u8
 
     func cString(value: #null const [*] u8)->string
     {
@@ -157,8 +157,8 @@ namespace WinFsp
         if (flags & CleanupSetChangeTime) != 0 do
             node.changeTime = now
         if (flags & (CleanupSetAllocationSize | CleanupSetArchiveBit |
-           CleanupSetLastAccessTime | CleanupSetLastWriteTime |
-           CleanupSetChangeTime)) != 0
+                     CleanupSetLastAccessTime | CleanupSetLastWriteTime |
+                     CleanupSetChangeTime)) != 0
         {
             volume.dirty = true
             discard catch volume.commit()
@@ -228,7 +228,7 @@ namespace WinFsp
         if err != null do
             return statusFromError(err,
                                    volume.freeBlockCount() ?
-                   StatusIoDeviceError : StatusDiskFull)
+                                   StatusIoDeviceError : StatusDiskFull)
         dref transferred = count
         return fillInfo(volume, nodeId, info)
     }

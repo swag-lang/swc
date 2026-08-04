@@ -117,7 +117,7 @@ namespace compiler1599
     #test
     {
         #assert(#run toto()
-            )
+                )
     }
 }
 
@@ -300,7 +300,7 @@ namespace compiler250
     func value()->s32 { return 55; }
 
     func main(a: s32 = #run value()
-        )->s32
+              )->s32
     {
         return a
     }

@@ -421,7 +421,7 @@ impl Volume
         @memcpy(record.buffer, &locator[0], HeaderLocatorCheckSize)
         Crypto.store32(notnull record.buffer + HeaderLocatorCheckSize,
                        cast(u32) @countof(plain) ^
-        Crypto.load32(&locator[HeaderLocatorCheckSize]))
+                       Crypto.load32(&locator[HeaderLocatorCheckSize]))
         let nonce      = record[Crypto.RecordLocatorSize until HeaderRecordPrefixSize]
         let ciphertext = record[HeaderRecordPrefixSize until HeaderRecordPrefixSize + @countof(plain)]
         let tag        = record[HeaderRecordPrefixSize + @countof(plain) until @countof(record)]

@@ -320,6 +320,11 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
     jobClientId_ = global.jobMgr().newClientId();
     exeFullName_ = Os::getExeFullName();
 
+    // The mutable global segments live in the proximity arena so JIT-executed
+    // code reaches them RIP-relative (see Os::allocProximityMemory).
+    globalZeroSegment_.enableProximityStorage();
+    globalInitSegment_.enableProximityStorage();
+
     const uint32_t numWorkers     = global.jobMgr().numWorkers();
     const uint32_t perThreadSlots = global.jobMgr().isSingleThreaded() ? 1 : numWorkers + 1;
     perThreadData_.resize(perThreadSlots);

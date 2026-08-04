@@ -471,16 +471,19 @@ namespace
             case MicroInstrOpcode::LoadRegPtrReloc:
                 break;
 
-            // A constant read through the instruction pointer: the relocation
-            // supplies the displacement, so it is only legal on the RIP form.
+            // A constant or arena-resident global accessed through the
+            // instruction pointer: the relocation supplies the displacement,
+            // so it is only legal on the RIP form.
             case MicroInstrOpcode::LoadRegMem:
+            case MicroInstrOpcode::LoadMemReg:
             {
                 if (relocation.form != MicroRelocation::Form::Relative32)
-                    return reportError(context, phase, std::format("relocation #{} on a memory load is not instruction-pointer relative", relocationIndex));
+                    return reportError(context, phase, std::format("relocation #{} on a memory access is not instruction-pointer relative", relocationIndex));
 
-                const MicroInstrOperand* loadOps = context.operands->ptr(inst.opsRef);
-                if (!loadOps || inst.numOperands < 2 || !loadOps[1].reg.isInstructionPointer())
-                    return reportError(context, phase, std::format("relocation #{} names a memory load whose base is not the instruction pointer", relocationIndex));
+                const uint8_t            baseIdx = inst.op == MicroInstrOpcode::LoadRegMem ? 1 : 0;
+                const MicroInstrOperand* memOps  = context.operands->ptr(inst.opsRef);
+                if (!memOps || inst.numOperands < 2 || !memOps[baseIdx].reg.isInstructionPointer())
+                    return reportError(context, phase, std::format("relocation #{} names a memory access whose base is not the instruction pointer", relocationIndex));
                 break;
             }
 

@@ -109,6 +109,16 @@ namespace InstructionCombine
 
             if (inst.op == MicroInstrOpcode::LoadRegMem && ops)
             {
+                // RIP-relative accesses are opaque here: two different
+                // globals both look like [ip + 0] - the displacement lives
+                // in a relocation this alias model cannot see - so neither
+                // forwarding nor caching is sound for them.
+                if (ops[1].reg.isInstructionPointer())
+                {
+                    dropEntriesReferencing(cache, ops[0].reg);
+                    continue;
+                }
+
                 bool forwarded = false;
                 if (!ctx.isClaimed(it.current))
                     forwarded = forwardLoad(ctx, cache, it.current, ops);
@@ -143,6 +153,15 @@ namespace InstructionCombine
                 const MicroReg    base = ops[0].reg;
                 const MicroOpBits bits = ops[2].opBits;
                 const uint64_t    off  = ops[3].valueU64;
+
+                // A RIP-relative store writes a global some cached base may
+                // point at, and its true target is invisible to this model:
+                // flush everything and cache nothing.
+                if (base.isInstructionPointer())
+                {
+                    cache.clear();
+                    continue;
+                }
 
                 // Only evict entries that could alias this store's byte range.
                 invalidateAliasedEntries(cache, base, off, bits);

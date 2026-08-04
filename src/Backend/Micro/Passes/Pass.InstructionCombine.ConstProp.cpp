@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
@@ -569,6 +570,90 @@ namespace InstructionCombine
             default:
                 return false;
         }
+    }
+
+    // A scalar global accessed through its materialized address folds into a
+    // single RIP-relative access:
+    //
+    //     LoadRegPtrReloc %a, <global segment + K>     (Absolute64 reloc)
+    //     dst = [%a + off]   or   [%a + off] = src
+    //   ->
+    //     dst = [rip]        or   [rip] = src          (Relative32 reloc, K + off)
+    //
+    // The proximity arena is what makes this legal under the JIT: code and
+    // the global segments carve from one reserved region, so the displacement
+    // always fits, and the JIT patches it straight to the real storage. Each
+    // consumer folds independently; the materializing load dies through DCE
+    // once its last consumer is gone, and its relocation is pruned with it.
+    bool tryFoldGlobalAddressIntoAccess(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (ctx.isClaimed(ref) || !ctx.ssa || !ctx.builder)
+            return false;
+
+        uint8_t baseIdx = 0;
+        uint8_t offIdx  = 0;
+        switch (inst.op)
+        {
+            case MicroInstrOpcode::LoadRegMem:
+                baseIdx = 1;
+                offIdx  = 3;
+                break;
+            default:
+                return false;
+        }
+
+        const MicroInstrOperand* ops = inst.ops(*ctx.operands);
+        if (!ops || ops[2].opBits == MicroOpBits::B128)
+            return false;
+
+        const MicroReg base = ops[baseIdx].reg;
+        if (!base.isVirtualInt())
+            return false;
+
+        const auto reaching = ctx.ssa->reachingDef(base, ref);
+        if (!reaching.valid() || reaching.isPhi || !reaching.inst)
+            return false;
+        if (reaching.inst->op != MicroInstrOpcode::LoadRegPtrReloc)
+            return false;
+
+        // The address materialization owns the relocation naming the global.
+        const MicroRelocation* sourceReloc = nullptr;
+        for (const MicroRelocation& reloc : ctx.builder->codeRelocations())
+        {
+            if (reloc.instructionRef == reaching.instRef)
+            {
+                sourceReloc = &reloc;
+                break;
+            }
+        }
+        if (!sourceReloc)
+            return false;
+        if (sourceReloc->kind != MicroRelocation::Kind::GlobalZeroAddress && sourceReloc->kind != MicroRelocation::Kind::GlobalInitAddress)
+            return false;
+
+        const uint64_t accessOffset = ops[offIdx].valueU64;
+        if (accessOffset > 0x7FFFFFFFull)
+            return false;
+
+        if (!ctx.claimAll({ref}))
+            return false;
+
+        // Copy before addRelocation: growth invalidates the pointer.
+        MicroRelocation newReloc   = *sourceReloc;
+        newReloc.form              = MicroRelocation::Form::Relative32;
+        newReloc.instructionRef    = ref;
+        newReloc.targetAddress     = sourceReloc->targetAddress + accessOffset;
+        newReloc.codeOffset        = 0;
+        newReloc.relativeEndOffset = 0;
+        ctx.builder->addRelocation(newReloc);
+
+        MicroInstrOperand newOps[4];
+        for (uint8_t i = 0; i < 4; ++i)
+            newOps[i] = ops[i];
+        newOps[baseIdx].reg    = MicroReg::instructionPointer();
+        newOps[offIdx].valueU64 = 0;
+        ctx.emitRewrite(ref, inst.op, newOps);
+        return true;
     }
 }
 

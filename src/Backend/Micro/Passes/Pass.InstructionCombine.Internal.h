@@ -8,6 +8,7 @@ SWC_BEGIN_NAMESPACE();
 
 class MicroStorage;
 class MicroOperandStorage;
+class MicroBuilder;
 
 namespace InstructionCombine
 {
@@ -37,6 +38,7 @@ namespace InstructionCombine
         MicroStorage*                storage  = nullptr;
         MicroOperandStorage*         operands = nullptr;
         const MicroSsaState*         ssa      = nullptr;
+        MicroBuilder*                builder  = nullptr;
         std::unordered_set<uint32_t> claimed;
         SmallVector<Action>          actions;
 
@@ -90,6 +92,7 @@ namespace InstructionCombine
     bool tryFoldAmcLoadIntoCompare(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryFoldConstIndexAmc(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldLeaConstIntoAmcIndex(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryFoldGlobalAddressIntoAccess(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldMemoryAddressing(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryNarrowExtend(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldConstStore(Context& ctx, MicroInstrRef storeRef, const MicroInstr& storeInst);

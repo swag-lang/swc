@@ -214,8 +214,15 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
             encoder.encodeLoadAddressAmcRegMem(ops[0].reg, ops[3].opBits, ops[1].reg, ops[2].reg, ops[5].valueU64, ops[6].valueU64, ops[4].opBits);
             break;
         case MicroInstrOpcode::LoadMemReg:
+        {
+            const uint32_t loadMemRegStart = encoder.size();
             encoder.encodeLoadMemReg(ops[0].reg, ops[3].valueU64, ops[1].reg, ops[2].opBits);
+            // Only the instruction-pointer-relative form carries a relocation,
+            // and its displacement is the last four bytes emitted.
+            if (ops[0].reg.isInstructionPointer())
+                bindRel32RelocationOffset(context, instructionRef, loadMemRegStart, encoder.size());
             break;
+        }
         case MicroInstrOpcode::LoadMemImm:
             encoder.encodeLoadMemImm(ops[0].reg, ops[2].valueU64, ops[3].immediateValue(getNumBits(ops[1].opBits)), ops[1].opBits);
             break;

@@ -49,11 +49,23 @@ struct DataSegmentRef
 class DataSegment
 {
 public:
+    struct LargeBlockStorageDeleter
+    {
+        bool proximity = false;
+        void operator()(std::byte* p) const noexcept
+        {
+            // Arena carves stay with the arena; see Os::allocProximityMemory.
+            if (!proximity)
+                delete[] p;
+        }
+    };
+    using LargeBlockStorage = std::unique_ptr<std::byte[], LargeBlockStorageDeleter>;
+
     struct LargeBlock
     {
-        uint32_t                     offset = 0;
-        uint32_t                     size   = 0;
-        std::unique_ptr<std::byte[]> storage;
+        uint32_t          offset = 0;
+        uint32_t          size   = 0;
+        LargeBlockStorage storage;
     };
 
     struct LargeBlockRange
@@ -61,6 +73,15 @@ public:
         uintptr_t offsetEnd   = 0;
         uint32_t  blockOffset = 0;
     };
+
+    // Allocate this segment's payload (pages and large blocks) from the
+    // proximity arena, so JIT code can reach it RIP-relative. Meant for the
+    // mutable global segments; call before the segment grows.
+    void enableProximityStorage() noexcept
+    {
+        store_.enableProximityPages();
+        proximityStorage_ = true;
+    }
 
     std::pair<std::span<const std::byte>, Ref> addSpan(std::span<const std::byte> value);
     std::pair<std::span<const std::byte>, Ref> addSpan(std::span<const std::byte> value, uint32_t align);
@@ -168,6 +189,7 @@ private:
     mutable uint32_t                                                  relocationsIndexedCount_ = 0;
     std::vector<DataSegmentAllocation>                                allocations_;
     std::atomic<bool>                                                 hasLargeBlocks_{false};
+    bool                                                              proximityStorage_ = false;
     mutable std::shared_mutex                                         mutex_;
     mutable std::shared_mutex                                         relocationsMutex_;
     mutable std::shared_mutex                                         allocationsMutex_;

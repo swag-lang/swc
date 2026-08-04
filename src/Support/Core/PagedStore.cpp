@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Support/Core/PagedStore.h"
 #include "Support/Math/Helpers.h"
+#include "Support/Os/Os.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -494,19 +495,27 @@ void PagedStore::Page::deallocateAligned(std::byte* p) noexcept
     operator delete(p, static_cast<std::align_val_t>(alignof(std::max_align_t)));
 }
 
-PagedStore::Page::Page(uint32_t pageSize) :
-    storage(allocateAligned(pageSize))
+PagedStore::Page::Page(uint32_t pageSize, bool proximity)
 {
+    if (proximity)
+    {
+        storage       = static_cast<std::byte*>(Os::allocProximityMemory(pageSize));
+        fromProximity = storage != nullptr;
+    }
+    if (!storage)
+        storage = allocateAligned(pageSize);
 }
 
 PagedStore::Page::~Page()
 {
-    deallocateAligned(storage);
+    // Arena carves stay with the arena; see Os::allocProximityMemory.
+    if (!fromProximity)
+        deallocateAligned(storage);
 }
 
 PagedStore::Page* PagedStore::newPage()
 {
-    pagesStorage_.emplace_back(std::make_unique<Page>(pageSizeValue_));
+    pagesStorage_.emplace_back(std::make_unique<Page>(pageSizeValue_, proximityPages_));
     curPage_      = pagesStorage_.back().get();
     curPageIndex_ = static_cast<uint32_t>(pagesStorage_.size() - 1);
     publishPages();

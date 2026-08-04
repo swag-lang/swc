@@ -354,6 +354,247 @@ namespace InstructionCombine
 
         return false;
     }
+
+    namespace
+    {
+        // Operand index of the MicroCond for each UsesCpuFlags opcode this
+        // fold understands; anything else blocks the rewrite.
+        bool cmpFoldConsumerCondIndex(MicroInstrOpcode op, uint8_t& outIdx)
+        {
+            switch (op)
+            {
+                case MicroInstrOpcode::JumpCond:
+                case MicroInstrOpcode::JumpCondImm:
+                    outIdx = 0;
+                    return true;
+                case MicroInstrOpcode::SetCondReg:
+                    outIdx = 1;
+                    return true;
+                case MicroInstrOpcode::LoadCondRegReg:
+                    outIdx = 2;
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        // Conditions whose verdict is unchanged when a compare of a
+        // zero-extended value is narrowed to the source width: unsigned
+        // orders and equality. Signed orders are not — 0x80..0xFF flip sign
+        // at the narrow width.
+        bool condSurvivesZeroExtNarrowing(MicroCond cond)
+        {
+            switch (cond)
+            {
+                case MicroCond::Equal:
+                case MicroCond::NotEqual:
+                case MicroCond::Zero:
+                case MicroCond::NotZero:
+                case MicroCond::Below:
+                case MicroCond::BelowOrEqual:
+                case MicroCond::NotAbove:
+                case MicroCond::Above:
+                case MicroCond::AboveOrEqual:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        // Every reader of the flags a compare at cmpRef defines must satisfy
+        // `condOk`. Mirrors ConstProp's consumer scan: a terminator or label
+        // ends flag liveness in this IR, and an unknown flags reader blocks.
+        bool allCmpFlagConsumersSatisfy(const Context& ctx, const MicroInstrRef cmpRef, bool (*condOk)(MicroCond))
+        {
+            auto       walker = ctx.storage->view().begin();
+            const auto endIt  = ctx.storage->view().end();
+            while (walker != endIt && walker.current != cmpRef)
+                ++walker;
+            if (walker == endIt)
+                return false;
+            ++walker;
+
+            for (uint32_t step = 0; step < K_MAX_LOADFOLD_WINDOW && walker != endIt; ++step, ++walker)
+            {
+                const MicroInstr&    inst = *walker;
+                const MicroInstrDef& info = MicroInstr::info(inst.op);
+
+                if (info.flags.has(MicroInstrFlagsE::UsesCpuFlags))
+                {
+                    uint8_t condIdx = 0;
+                    if (!cmpFoldConsumerCondIndex(inst.op, condIdx))
+                        return false;
+
+                    const MicroInstrOperand* ops = inst.ops(*ctx.operands);
+                    if (!ops)
+                        return false;
+
+                    const MicroCond cond = ops[condIdx].cpuCond;
+                    if (cond != MicroCond::Unconditional && !condOk(cond))
+                        return false;
+                }
+
+                if (info.flags.has(MicroInstrFlagsE::DefinesCpuFlags))
+                    return true;
+                if (info.flags.has(MicroInstrFlagsE::TerminatorInstruction) || inst.op == MicroInstrOpcode::Label)
+                    return true;
+            }
+
+            return true;
+        }
+
+        // Shared tail of the two compare folds below: from an indexed load at
+        // loadRef whose single consumer must be a CmpRegImm on the loaded
+        // value, rewrite that compare into CmpAmcImm at cmpBits and erase the
+        // load. `cmpBits` is the width the memory operand is compared at.
+        bool foldAmcLoadIntoCompareAt(Context& ctx, MicroInstrRef loadRef, MicroReg vt, MicroReg base, MicroReg index, uint64_t mulValue, uint64_t addValue, MicroOpBits expectedCmpBits, MicroOpBits cmpBits, bool needsUnsignedConds)
+        {
+            MicroStorage::Iterator walker;
+            if (!findAnchorPosition(walker, *ctx.storage, loadRef))
+                return false;
+            ++walker;
+
+            const auto endIt = ctx.storage->view().end();
+            for (uint32_t step = 0; step < K_MAX_LOADFOLD_WINDOW && walker != endIt; ++step, ++walker)
+            {
+                const MicroInstr& w = *walker;
+
+                // Delaying the load to the compare's position must not cross
+                // an aliasing store, a call, control flow, or a redefinition
+                // of an addressing register.
+                if (isControlOrCall(w) || writesMemory(w))
+                    return false;
+
+                const auto* useDef   = ctx.ssa->instrUseDef(walker.current);
+                const bool  defsAddr = useDef && (microRegSpanContains(useDef->defs, base) || microRegSpanContains(useDef->defs, index));
+                const bool  usesVt   = useDef && microRegSpanContains(useDef->uses, vt);
+                const bool  defsVt   = useDef && microRegSpanContains(useDef->defs, vt);
+
+                if (defsAddr)
+                    return false;
+                if (!usesVt && !defsVt)
+                    continue;
+
+                // First reference to vt must be the compare-against-immediate.
+                if (w.op != MicroInstrOpcode::CmpRegImm)
+                    return false;
+
+                // CmpRegImm: [reg, opBits, imm].
+                const MicroInstrOperand* wOps = w.ops(*ctx.operands);
+                if (!wOps)
+                    return false;
+                if (wOps[0].reg != vt || wOps[1].opBits != expectedCmpBits)
+                    return false;
+
+                // The immediate must keep its meaning at the memory width,
+                // and stay encodable (cmp r/m64 sign-extends a 32-bit
+                // immediate).
+                const uint64_t immU64 = wOps[2].valueU64;
+                if (needsUnsignedConds)
+                {
+                    const uint64_t maxNarrow = cmpBits == MicroOpBits::B8 ? 0xFFull : 0xFFFFull;
+                    if (immU64 > maxNarrow)
+                        return false;
+                }
+                else if (cmpBits == MicroOpBits::B64)
+                {
+                    if (static_cast<int64_t>(immU64) != static_cast<int64_t>(static_cast<int32_t>(immU64)))
+                        return false;
+                }
+
+                if (needsUnsignedConds && !allCmpFlagConsumersSatisfy(ctx, walker.current, condSurvivesZeroExtNarrowing))
+                    return false;
+
+                const MicroInstrRef cmpRef = walker.current;
+                if (!ctx.claimAll({loadRef, cmpRef}))
+                    return false;
+
+                // CmpAmcImm: [base, index, cmpBits, addrBits, mul, add, imm].
+                MicroInstrOperand newOps[7];
+                newOps[0].reg      = base;
+                newOps[1].reg      = index;
+                newOps[2].opBits   = cmpBits;
+                newOps[3].opBits   = MicroOpBits::B64;
+                newOps[4].valueU64 = mulValue;
+                newOps[5].valueU64 = addValue;
+                newOps[6]          = wOps[2];
+                ctx.emitRewrite(cmpRef, MicroInstrOpcode::CmpAmcImm, newOps, /*allocNewBlock=*/true);
+                ctx.emitErase(loadRef);
+                return true;
+            }
+
+            return false;
+        }
+    }
+
+    // Fuse an indexed zero-extending load whose only consumer is a compare
+    // against an immediate into a single memory compare at the source width:
+    //
+    //     LoadZeroExtAmcRegMem vt, [base + idx*scale + disp], b32<-b8
+    //     CmpRegImm            vt, imm, b32
+    //   ->
+    //     CmpAmcImm [base + idx*scale + disp], imm, b8
+    //
+    // The byte-scan test of every text parser. Narrowing the compare is only
+    // sound for unsigned/equality consumers with an immediate that fits the
+    // source width; both are checked.
+    bool tryFoldZeroExtAmcLoadIntoCompare(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst)
+    {
+        if (ctx.isClaimed(loadRef) || !ctx.ssa)
+            return false;
+
+        const MicroInstrOperand* loadOps = loadInst.ops(*ctx.operands);
+        if (!loadOps)
+            return false;
+
+        // LoadZeroExtAmcRegMem: [dst, base, index, dstBits, srcBits, mul, add].
+        const MicroReg    vt      = loadOps[0].reg;
+        const MicroReg    base    = loadOps[1].reg;
+        const MicroReg    index   = loadOps[2].reg;
+        const MicroOpBits dstBits = loadOps[3].opBits;
+        const MicroOpBits srcBits = loadOps[4].opBits;
+
+        if (srcBits != MicroOpBits::B8 && srcBits != MicroOpBits::B16)
+            return false;
+        if (!vt.isVirtualInt() || base == vt || index == vt)
+            return false;
+
+        uint32_t loadValueId = 0;
+        if (!ctx.ssa->defValue(vt, loadRef, loadValueId) || ctx.ssa->transitiveInstructionUseCount(loadValueId, 2) != 1)
+            return false;
+
+        return foldAmcLoadIntoCompareAt(ctx, loadRef, vt, base, index, loadOps[5].valueU64, loadOps[6].valueU64, dstBits, srcBits, /*needsUnsignedConds=*/true);
+    }
+
+    // Same fold for a plain indexed load compared at its own width — no
+    // narrowing, so every condition is preserved as-is.
+    bool tryFoldAmcLoadIntoCompare(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst)
+    {
+        if (ctx.isClaimed(loadRef) || !ctx.ssa)
+            return false;
+
+        const MicroInstrOperand* loadOps = loadInst.ops(*ctx.operands);
+        if (!loadOps)
+            return false;
+
+        // LoadAmcRegMem: [dst, base, index, loadBits, addrBits, mul, add].
+        const MicroReg    vt       = loadOps[0].reg;
+        const MicroReg    base     = loadOps[1].reg;
+        const MicroReg    index    = loadOps[2].reg;
+        const MicroOpBits loadBits = loadOps[3].opBits;
+        const MicroOpBits addrBits = loadOps[4].opBits;
+
+        if (addrBits != MicroOpBits::B64)
+            return false;
+        if (!vt.isVirtualInt() || base == vt || index == vt)
+            return false;
+
+        uint32_t loadValueId = 0;
+        if (!ctx.ssa->defValue(vt, loadRef, loadValueId) || ctx.ssa->transitiveInstructionUseCount(loadValueId, 2) != 1)
+            return false;
+
+        return foldAmcLoadIntoCompareAt(ctx, loadRef, vt, base, index, loadOps[5].valueU64, loadOps[6].valueU64, loadBits, loadBits, /*needsUnsignedConds=*/false);
+    }
 }
 
 SWC_END_NAMESPACE();

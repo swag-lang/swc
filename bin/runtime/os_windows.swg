@@ -510,7 +510,7 @@ func __dbgStr(off: u32)->string
         return ""
 
     // Callers only symbolize once '__dbgCacheValid' guarantees the section pointer.
-    let sec = notnull __dbgCacheSection
+    let sec = __dbgCacheSection!
     let p   = cast([*] u8) &sec[cast(u64) off]
     return @mkstring(p, @countof(cast(cstring) p))
 }
@@ -532,7 +532,7 @@ func __symbolize(addr: *void)->__SwagSym
     let rva = cast(u32) (cast(u64) addr - cast(u64) h)
 
     // '__dbgCacheValid' guarantees the section pointer.
-    let sec = notnull __dbgCacheSection
+    let sec = __dbgCacheSection!
     for [i] in __dbgCacheCount
     {
         let e     = 16 + cast(u64) i * 20

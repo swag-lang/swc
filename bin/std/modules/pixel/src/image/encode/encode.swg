@@ -71,7 +71,7 @@ public impl Image
 
         if !found do
             fail UnsupportedFormatError{"no matching image encoder"}
-        let safeFound = notnull found
+        let safeFound = found!
 
         // Create an encoder instance
         let ptrEncoder = Memory.new(safeFound.type)

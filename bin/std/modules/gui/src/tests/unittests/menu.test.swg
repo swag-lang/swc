@@ -164,8 +164,8 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
     // Consecutive separators collapse into one, so this is Open / Hidden / --- / Quit.
     @assert(popup.items.count == 4)
 
-    let hiddenIt = notnull popup.items[1]
-    let quitIt   = notnull popup.items[3]
+    let hiddenIt = popup.items[1]!
+    let quitIt   = popup.items[3]!
     hiddenIt.hidden = true
     popup.computeLayoutPopup()
     popup.setPosition({0, 0, popup.position.width, popup.position.height})
@@ -210,7 +210,7 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
     bar.addPopup("File", sub)
 
     bar.computeLayoutBar()
-    let barIt0 = notnull bar.items[0]
+    let barIt0 = bar.items[0]!
     let itemX  = barIt0.pos + barIt0.size * 0.5
     let itemY  = bar.position.height * 0.5
 
@@ -241,7 +241,7 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
     bar.computeLayoutBar()
     let expectedItemY = (barHeight - metrics.menuBar_Height) * 0.5
 
-    let barIt0 = notnull bar.items[0]
+    let barIt0 = bar.items[0]!
     let itemX  = barIt0.pos + barIt0.size * 0.5
     @assert(bar.hitTestBar({itemX, 1}) == Swag.U32.Max)
     @assert(bar.hitTestBar({itemX, expectedItemY + 1}) == 0)

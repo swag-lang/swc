@@ -13,11 +13,11 @@ func compute()
 {
     using Math
 
-    let slider = notnull g_Slider
+    let slider = g_Slider!
     var data   = {minS: slider.lowerValue(), maxS: slider.upperValue()}
     g_Image.visitPixels(&data)
     {
-        var params = cast(*#decltype(data)) notnull userData
+        var params = cast(*#decltype(data)) userData!
         var minS   = params.minS
         var maxS   = params.maxS
 
@@ -77,7 +77,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     case PaintEvent as paintEvt:
         let painter  = paintEvt.paintContext.painter
         let renderer = paintEvt.paintContext.renderer
-        renderer.updateTexture(g_Texture, notnull g_Image.pixels.buffer)
+        renderer.updateTexture(g_Texture, g_Image.pixels.buffer!)
         painter.drawTexture(0, 0, cast(f32) w, cast(f32) h, g_Texture)
         return true
     }

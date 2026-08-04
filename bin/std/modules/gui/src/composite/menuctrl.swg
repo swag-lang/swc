@@ -94,13 +94,13 @@ public impl IWnd for MenuCtrl
 
         for i, [idx] in .items
         {
-            let it = notnull i
+            let it = i!
             if it.hidden do
                 continue
             if it.separator do
                 continue
 
-            labelPos = .getBarLabelRect(notnull i)
+            labelPos = .getBarLabelRect(i!)
 
             var format: RichStringFormat
             colorText      = it.disabled ? colors.popupItem_DisabledText : colors.popupItem_Text
@@ -190,7 +190,7 @@ public impl IWnd for MenuCtrl
         var lastIsSeparator = true
         for i, [idx] in .items
         {
-            let it = notnull i
+            let it = i!
             if it.hidden do
                 continue
             if it.separator and lastIsSeparator do
@@ -285,7 +285,7 @@ public impl IWnd for MenuCtrl
             // Right icon
             if @isset(it.popup)
             {
-                let icon = theme.icon24(ThemeIcons24.RightPopupArrow)
+                let icon = theme.icon(ThemeIcons.RightPopupArrow)
                 icon.paint(painter, labelPos.right(), textCenterY - icon.sizeY * 0.5, colorText)
             }
         }
@@ -317,7 +317,7 @@ public impl IWnd for MenuCtrl
             {
                 if !.timer do
                     .timer = .surface!.app.addTimer(300'ms, me)
-                let timer = notnull .timer
+                let timer = .timer!
                 timer.restart()
             }
 
@@ -383,7 +383,7 @@ public impl IWnd for MenuCtrl
         {
             if .hotIdx != Swag.U32.Max
             {
-                let hotItem = notnull .items[.hotIdx]
+                let hotItem = .items[.hotIdx]!
                 if @isset(hotItem.popup)
                 {
                     .hideSubVisible()
@@ -496,7 +496,7 @@ impl MenuCtrl
         theme.drawSubRect(painter, anchorBk, &rects.menuPopup_BarAnchorBk, colors.menuPopup_Bk)
         theme.drawSubRect(painter, anchorBk, &rects.menuPopup_BarAnchorBorder, colors.menuPopup_Border, interpol: .Pixel)
 
-        let i        = notnull .ownerMenu!.items[.popupBarItemIdx]
+        let i        = (.ownerMenu!.items[.popupBarItemIdx])!
         var labelPos = anchorRect
         labelPos.x     += metrics.menuBar_SpaceBetween * 0.5
         labelPos.width -= metrics.menuBar_SpaceBetween
@@ -532,7 +532,7 @@ impl MenuCtrl
         p.endModalResult = result
 
         if result != null do
-            .sigCommandSelected.call(me, notnull result)
+            .sigCommandSelected.call(me, result!)
 
         if .bar
         {
@@ -570,7 +570,7 @@ impl MenuCtrl
     {
         if !.timer do
             return
-        let srf = notnull .surface
+        let srf = .surface!
         srf.app.removeTimer(.timer)
         .timer = null
     }
@@ -580,7 +580,7 @@ impl MenuCtrl
     {
         for i in .items
         {
-            let it  = notnull i
+            let it  = i!
             let evt = .sendComputeCommandStateEvent(it.id)
             if evt.updatedFields.has(.Disabled) do
                 it.disabled = evt.disabled
@@ -620,7 +620,7 @@ impl MenuCtrl
     mtd showHotPopupBar()
     {
         .selectedIdx = .hotIdx
-        let hotItem = notnull .items[.hotIdx]
+        let hotItem = .items[.hotIdx]!
         let metrics = .themeMetrics()
 
         var anchorRect = .localToSurface(.getBarItemRect(hotItem))
@@ -651,7 +651,7 @@ impl MenuCtrl
     mtd showHotPopupPopup()
     {
         .selectedIdx = .hotIdx
-        let hotItem = notnull .items[.hotIdx]
+        let hotItem = .items[.hotIdx]!
 
         var pos         = .surfaceRect()
         let sdw         = .themeMetrics().menuPopup_ShadowSize
@@ -699,13 +699,13 @@ impl MenuCtrl
         let pos = .surfaceToLocal(surfacePos)
         for iIt, [idx] in .items
         {
-            let i = notnull iIt
+            let i = iIt!
             if i.hidden do
                 continue
             if i.separator do
                 continue
 
-            if .getBarItemRect(notnull i).contains(pos) do
+            if .getBarItemRect(i!).contains(pos) do
                 return cast(u32) idx
         }
 
@@ -721,7 +721,7 @@ impl MenuCtrl
         var lastIsSeparator = true
         for i, [idx] in .items
         {
-            let it = notnull i
+            let it = i!
             if it.hidden do
                 continue
             if it.separator and lastIsSeparator do
@@ -757,11 +757,11 @@ impl MenuCtrl
 
         for i, [idx] in .items
         {
-            let it = notnull i
+            let it = i!
             if it.hidden do
                 continue
             if .onPrepareItem do
-                .onPrepareItem(notnull i)
+                .onPrepareItem(i!)
             it.pos = x + metrics.menuBar_SpaceBetween * 0.5
             fake.drawRichString({0, 0, 512, 0}, &it.name, rsf)
             it.size = it.name.boundRect.width
@@ -789,14 +789,14 @@ impl MenuCtrl
         var lastIsSeparator = true
         for i, [idx] in .items
         {
-            let it = notnull i
+            let it = i!
             if it.hidden do
                 continue
             if it.separator and lastIsSeparator do
                 continue
 
             if .onPrepareItem do
-                .onPrepareItem(notnull i)
+                .onPrepareItem(i!)
             if idx do
                 .position.height += metrics.menuPopup_SpaceLines
             it.pos = .position.height
@@ -915,7 +915,7 @@ public impl MenuCtrl
     mtd const itemAt(index: u32)->*PopupMenuItem
     {
         Debug.assert(index < .items.count, "menu item index is out of range")
-        return notnull .items[index]
+        return .items[index]!
     }
 
     // Removes one item and invalidates cached menu layout.
@@ -956,7 +956,7 @@ public impl MenuCtrl
     mtd addItems(ids: const [..] WndId)
     {
         for id in ids do
-            .addItem(null, notnull id)
+            .addItem(null, id!)
     }
 
     // Adds a command group followed by a separator.
@@ -1086,7 +1086,7 @@ public impl MenuCtrl
         .endModal          = false
         .endModalResult    = null
         .app().inModalLoop += 1
-        let srf = notnull .surface
+        let srf = .surface!
         while !.endModal do
             srf.app.runFrame()
         .app().inModalLoop -= 1

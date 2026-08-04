@@ -6,11 +6,11 @@ using Win32
 
 private func timerEntry(param: #null *void, _timerOrWaitFired: BOOL)
 {
-    let safeParam = notnull param
+    let safeParam = param!
     let t         = cast(*Timer) safeParam
     if !@getcontext() do
         @setcontext(t.context)
-    let callback = notnull t.callback
+    let callback = t.callback!
     callback(t)
 }
 

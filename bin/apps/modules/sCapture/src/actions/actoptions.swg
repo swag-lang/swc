@@ -13,14 +13,14 @@ impl IActionUI for ActionOptions
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let main = cast(*MainWnd) notnull cxt.wnd
+        let main = cast(*MainWnd) cxt.wnd!
 
         switch cxt.id
         {
         case .Options:
             evt.updatedFields |= .Name | .Icon
             evt.name          = appStrings().act_Options
-            evt.icon          = main.theme().icon24(.Options)
+            evt.icon          = main.theme().icon(.Options)
         }
 
         return true
@@ -28,10 +28,10 @@ impl IActionUI for ActionOptions
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main = cast(*MainWnd) notnull cxt.wnd
+        let main = cast(*MainWnd) cxt.wnd!
         let view = main.editWnd.editView
 
-        let dlg = Dialog.create(notnull view.surface, 800, 600, title: appStrings().dlg_TitleOptions, flags: .Border | .CloseButton | .Resizable)
+        let dlg = Dialog.create(view.surface!, 800, 600, title: appStrings().dlg_TitleOptions, flags: .Border | .CloseButton | .Resizable)
         dlg.addButton(Gui.strings().dlg_Close, Dialog.BtnYes)
 
         let opt = PropertiesCtrl.create(dlg.view(), flags: .SectionTabs | .SearchBar)

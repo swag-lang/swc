@@ -209,7 +209,7 @@ func runMemberMacroWithPositionalThenNamedArg()->bool
     var sum = 0
     walker.visitWithData(&sum, scale: 2)
     {
-        dref notnull out += item
+        dref out! += item
     }
 
     return sum == 12

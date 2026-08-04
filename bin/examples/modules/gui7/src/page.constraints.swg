@@ -53,7 +53,7 @@ func createConstraintsPage(parent: *Wnd)
     let actionX = Math.max(center.position.width - 190, 14.0)
     let actionY = Math.max(center.position.height - 54, 96.0)
     let action  = PushButton.create(center, "Anchored action", {actionX, actionY, 170, 34})
-    action.setIcon(app.theme.icon24(.Link, 18))
+    action.setIcon(app.theme.icon(.Link, 18))
     action.anchorStyle = .Right | .Bottom
 
     let stretch = Label.create(center, "Anchored width + height", {14, 100, Math.max(center.position.width - 220, 160.0), Math.max(center.position.height - 168, 40.0)}, null, .WordWrap | .SecondaryText)

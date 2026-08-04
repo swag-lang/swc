@@ -42,11 +42,11 @@ func loadFonts() fail
     let path = g_FontPath.toString()
     g_FontBytes    = File.readAllBytes(path)
     g_TypeFace     = TypeFace.create(path, g_FontBytes.toSlice())
-    g_TitleFont    = g_Renderer.fonts.createFont(notnull g_TypeFace, 34)
-    g_OutlineFont  = g_Renderer.fonts.createFont(notnull g_TypeFace, 84)
-    g_SubTitleFont = g_Renderer.fonts.createFont(notnull g_TypeFace, 18)
-    g_LabelFont    = g_Renderer.fonts.createFont(notnull g_TypeFace, 16)
-    g_HelpFont     = g_Renderer.fonts.createFont(notnull g_TypeFace, 14)
+    g_TitleFont    = g_Renderer.fonts.createFont(g_TypeFace!, 34)
+    g_OutlineFont  = g_Renderer.fonts.createFont(g_TypeFace!, 84)
+    g_SubTitleFont = g_Renderer.fonts.createFont(g_TypeFace!, 18)
+    g_LabelFont    = g_Renderer.fonts.createFont(g_TypeFace!, 16)
+    g_HelpFont     = g_Renderer.fonts.createFont(g_TypeFace!, 14)
 }
 
 func buildFillBrushImage()->Image
@@ -54,7 +54,7 @@ func buildFillBrushImage()->Image
     var img = Image.create(96, 96, .RGBA8)
     for [y] in img.height
     {
-        var pix = (notnull img.pixels.buffer) + y * img.rowStride
+        var pix = img.pixels.buffer! + y * img.rowStride
         for [x] in img.width
         {
             if ((x / 12 + y / 12) & 1) == 0
@@ -91,7 +91,7 @@ func buildTileBrushImage()->Image
     var img = Image.create(48, 48, .RGBA8)
     for [y] in img.height
     {
-        var pix = (notnull img.pixels.buffer) + y * img.rowStride
+        var pix = img.pixels.buffer! + y * img.rowStride
         for [x] in img.width
         {
             if ((x / 8 + y / 8) & 1) == 0
@@ -157,22 +157,22 @@ func isAnchorCap(cap: LineCapStyle)->bool
 
 func drawPageHeader(painter: *Pixel.Painter, title, subtitle: string)
 {
-    painter.drawString(28, 22, title, notnull g_TitleFont, Argb.MidnightBlue)
-    drawWrappedText(painter, {30, 62, W - 60, 38}, subtitle, notnull g_SubTitleFont, Argb.DimGray)
+    painter.drawString(28, 22, title, g_TitleFont!, Argb.MidnightBlue)
+    drawWrappedText(painter, {30, 62, W - 60, 38}, subtitle, g_SubTitleFont!, Argb.DimGray)
 }
 
 func drawFooter(painter: *Pixel.Painter)
 {
     let pageText = Format.toString("F1 : next page (%/%). Pages : caps, joins, transparency, polygons, brushes, gradients, text, compositing, render targets, text effects, layers.", g_Page + 1, MaxPages)
-    painter.drawString(28, H - 26, pageText, notnull g_HelpFont, Argb.DimGray)
+    painter.drawString(28, H - 26, pageText, g_HelpFont!, Argb.DimGray)
 }
 
 func drawPanel(painter: *Pixel.Painter, rect: Math.Rectangle, title, subtitle: string)->Math.Rectangle
 {
     painter.fillRoundRect(rect.x, rect.y, rect.width, rect.height, 18, 18, Argb.White)
     painter.drawRoundRect(rect.x, rect.y, rect.width, rect.height, 18, 18, Color.fromArgb(96, Argb.SlateGray), 2)
-    painter.drawString(rect.x + 18, rect.y + 12, title, notnull g_SubTitleFont, Argb.DarkSlateBlue)
-    drawWrappedText(painter, {rect.x + 18, rect.y + 36, rect.width - 36, PanelHeaderHeight - 40}, subtitle, notnull g_HelpFont, Argb.Gray)
+    painter.drawString(rect.x + 18, rect.y + 12, title, g_SubTitleFont!, Argb.DarkSlateBlue)
+    drawWrappedText(painter, {rect.x + 18, rect.y + 36, rect.width - 36, PanelHeaderHeight - 40}, subtitle, g_HelpFont!, Argb.Gray)
     return insetRect(rect, 18, PanelHeaderHeight, 18, 18)
 }
 

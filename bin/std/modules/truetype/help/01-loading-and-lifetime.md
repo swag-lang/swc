@@ -8,7 +8,7 @@ remain alive.
 using Core, TrueType
 
 let bytes = File.readAllBytes("Inter-Regular.ttf")
-let face  = notnull (try Face.load(bytes.toSlice()))
+let face  = (try Face.load(bytes.toSlice()))!
 defer face.destroy()
 ```
 

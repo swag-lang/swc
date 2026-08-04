@@ -390,7 +390,7 @@ impl Painter
         // #null any pointer into it.
         elif .curState.paintParams & .Antialiased
         {
-            let prim2p = (notnull .vertexBuffer.buffer) + cxt.prim2
+            let prim2p = .vertexBuffer.buffer! + cxt.prim2
             let p      = prim2p.pos
             let q      = (prim2p + 2).pos
             .addEdgeAA(cxt.prim1, p, q)
@@ -487,7 +487,7 @@ impl Painter
             return
 
         case .Pattern:
-            cxt.pattern      = cast(const [*] f32) (notnull cxt.pen.pattern.buffer)
+            cxt.pattern      = cast(const [*] f32) cxt.pen.pattern.buffer!
             cxt.patternCount = cast(s32) cxt.pen.pattern.count
             if cxt.patternCount != 0 do
                 break
@@ -827,7 +827,7 @@ impl Painter
         {
             // Copy positions out before addEdgeAA: it appends geometry and may
             // reallocate the vertex buffer, invalidating pointers into it.
-            let prim2p = (notnull .vertexBuffer.buffer) + cxt.prim2
+            let prim2p = .vertexBuffer.buffer! + cxt.prim2
             let p      = prim2p.pos
             let q      = (prim2p + 2).pos
             .addEdgeAA(cxt.prim1, p, q)

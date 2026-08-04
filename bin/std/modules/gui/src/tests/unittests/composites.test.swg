@@ -157,7 +157,7 @@ func compositeColorChanged(picker: *ColorPickerCtrl)
     ctrl.combo.setSelectedIndex(1)
     host.pump()
     @assert(ctrl.combo.selectedIndex == 1)
-    @assert((notnull ctrl.combo.selectedItem()).name.raw == "Two")
+    @assert(ctrl.combo.selectedItem()!.name.raw == "Two")
 
     ctrl.setLayoutMetrics(45, 0, 5)
     @assert(ctrl.labelWidth == 45 and ctrl.comboWidth == 0)

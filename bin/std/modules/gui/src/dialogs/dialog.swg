@@ -116,7 +116,7 @@ impl Dialog
         Debug.assert(from != null)
         .parentSurface = from
         let surfaceFlags = SurfaceFlags.LargeCaption | SurfaceFlags.ToolWindow | flags
-        let srf          = notnull (expect from.app.createSurface(x, y, width, height, surfaceFlags, me))
+        let srf          = (expect from.app.createSurface(x, y, width, height, surfaceFlags, me))!
         srf.wnd.view.backgroundStyle = .Dialog
 
         let metrics = .themeMetrics()
@@ -144,7 +144,7 @@ impl Dialog
     // Runs the dialog modally and returns the accepted button identifier.
     mtd doModal()->WndId
     {
-        let surface = notnull .surface
+        let surface = .surface!
         surface.bringToFront()
         surface.show()
         if .parentSurface and .parentSurface.isTopMost() do
@@ -178,7 +178,7 @@ impl Dialog
 
         if id == BtnCancel or id == BtnNo
         {
-            let srf = notnull .surface
+            let srf = .surface!
             srf.updateFlags(add: .CloseButton)
         }
 

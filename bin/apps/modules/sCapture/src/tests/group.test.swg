@@ -143,7 +143,7 @@ using Swag, Core
     f.capture.file    = path
     f.capture.changed = true
     expect f.capture.save()
-    let loaded = notnull expect Capture.load(path)
+    let loaded = expect Capture.load(path)!
     defer Memory.delete(loaded)
     @assert(loaded.forms.count == 3)
     @assert(loaded.nextGroupId == nextId)

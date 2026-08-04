@@ -42,13 +42,13 @@ impl Image
         var f = {kernel: cast(const [..] s32) kernel, dstImage: dstImage}
         .visitPixels(&f)
         {
-            let params     = cast(*#decltype(f)) (notnull userData)
+            let params     = cast(*#decltype(f)) userData!
             let kernelSize = params.kernel[0] / 2
             let b8         = image.bytesPerPixel
             let w8         = image.rowStride
             let w          = image.width
             let h          = image.height
-            let px         = cast([*] u8) (notnull image.pixels.buffer)
+            let px         = cast([*] u8) image.pixels.buffer!
             var ks         = @dataof(params.kernel) + 2
 
             var bs, gs, rs: s32
@@ -98,7 +98,7 @@ impl Image
             if ksum > 1 do
                 bs, gs, rs /= ksum
 
-            var dpix = (notnull params.dstImage.pixels.buffer) + (x * b8) + (y * w8)
+            var dpix = params.dstImage.pixels.buffer! + (x * b8) + (y * w8)
             dpix[0] = cast(u8) Math.clamp(bs, 0, 255)
             dpix[1] = cast(u8) Math.clamp(gs, 0, 255)
             dpix[2] = cast(u8) Math.clamp(rs, 0, 255)

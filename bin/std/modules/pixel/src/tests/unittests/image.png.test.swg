@@ -21,11 +21,11 @@ using Swag, Core
 func assertPngPixelAt(img: Image, x, yFromBottom: s32, r, g, b, a: u8)
 {
     let idx = cast(u64) (yFromBottom * img.width + x) * img.bytesPerPixel
-    @assert((notnull img.pixels.buffer)[idx] == r)
-    @assert((notnull img.pixels.buffer)[idx + 1] == g)
-    @assert((notnull img.pixels.buffer)[idx + 2] == b)
+    @assert(img.pixels.buffer![idx] == r)
+    @assert(img.pixels.buffer![idx + 1] == g)
+    @assert(img.pixels.buffer![idx + 2] == b)
     if img.bytesPerPixel == 4 do
-        @assert((notnull img.pixels.buffer)[idx + 3] == a)
+        @assert(img.pixels.buffer![idx + 3] == a)
 }
 
 func assertLoadedPng(fileName: string, width, height: s32, pf: PixelFormat, r, g, b, a: u8)
@@ -76,7 +76,7 @@ func assertEncodedPngRoundtrip(src: Image, expectedPf: PixelFormat, options: #nu
 
 func fillSolidPngImage(img: *Image, r, g, b, a: u8)
 {
-    var pix = notnull img.pixels.buffer
+    var pix = img.pixels.buffer!
     for img.width * img.height
     {
         switch img.pixelFormat
@@ -240,7 +240,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     if transparency != null
     {
         var trns: ConcatBuffer
-        for value in notnull transparency do
+        for value in (transparency do)!
             addPngU16Be(&trns, value)
         addPngChunk(&result, "tRNS", nnBytes(trns.toSlice()))
     }
@@ -509,7 +509,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 {
     var rgb = Image.create(2, 2, .RGB8)
     rgb.clear()
-    let rgbBuf = notnull rgb.pixels.buffer
+    let rgbBuf = rgb.pixels.buffer!
     rgbBuf[0]  = 10'u8
     rgbBuf[1]  = 20'u8
     rgbBuf[2]  = 30'u8
@@ -520,7 +520,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 
     var rgba = Image.create(2, 2, .RGBA8)
     rgba.clear()
-    let rgbaBuf = notnull rgba.pixels.buffer
+    let rgbaBuf = rgba.pixels.buffer!
     rgbaBuf[0]  = 1'u8
     rgbaBuf[1]  = 2'u8
     rgbaBuf[2]  = 3'u8
@@ -536,7 +536,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 #test
 {
     var bgr    = Image.create(1, 1, .BGR8)
-    let bgrBuf = notnull bgr.pixels.buffer
+    let bgrBuf = bgr.pixels.buffer!
     bgrBuf[0] = 30'u8
     bgrBuf[1] = 20'u8
     bgrBuf[2] = 10'u8
@@ -547,7 +547,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     assertPngPixelAt(bgrDecoded, 0, 0, 10'u8, 20'u8, 30'u8, 255'u8)
 
     var bgra    = Image.create(1, 1, .BGRA8)
-    let bgraBuf = notnull bgra.pixels.buffer
+    let bgraBuf = bgra.pixels.buffer!
     bgraBuf[0] = 7'u8
     bgraBuf[1] = 8'u8
     bgraBuf[2] = 9'u8
@@ -606,7 +606,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     options.interlace = true
 
     var rgb    = Image.create(9, 7, .RGB8)
-    let rgbBuf = notnull rgb.pixels.buffer
+    let rgbBuf = rgb.pixels.buffer!
     for [y] in rgb.height
     {
         for [x] in rgb.width
@@ -627,7 +627,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     @assert(Memory.compare(rgb.pixels.buffer, decoded.pixels.buffer, rgb.pixels.count) == 0)
 
     var bgra    = Image.create(9, 7, .BGRA8)
-    let bgraBuf = notnull bgra.pixels.buffer
+    let bgraBuf = bgra.pixels.buffer!
     for [y] in bgra.height
     {
         for [x] in bgra.width
@@ -646,7 +646,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 
     let bgraDecoded = expect Image.decode("adam7-bgra.png", bgraBytes, {})
     @assert(bgraDecoded.pixelFormat == .RGBA8)
-    let decodedBuf = notnull bgraDecoded.pixels.buffer
+    let decodedBuf = bgraDecoded.pixels.buffer!
     for [i] in cast(u64) bgra.width * cast(u64) bgra.height
     {
         let offset = i * 4

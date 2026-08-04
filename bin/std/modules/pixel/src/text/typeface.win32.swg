@@ -29,9 +29,9 @@ impl TypeFace
         let str  = String.from(fullname)
         let here = g_HashTypeFace.tryFind(str)
         if here do
-            return notnull here.value
+            return here.value!
 
-        let allocator = notnull (@getcontext().defaultAllocator orelse @getcontext().allocator)
+        let allocator = (@getcontext().defaultAllocator orelse @getcontext().allocator)!
         let tf        = Memory.new'TypeFace(allocator)
         tf.allocationAllocator = allocator
         defer #fail Memory.delete(tf, allocator)
@@ -39,7 +39,7 @@ impl TypeFace
         tf.buffer   = readHfontData(hfont)
 
         let face = try Face.load(tf.buffer.toSlice(), allocator)
-        tf.face = notnull face
+        tf.face = face!
 
         g_HashTypeFace.add(str, tf)
         return tf

@@ -322,7 +322,7 @@ impl StaticArray
 
         #static if Reflection.hasPostCopy(T)
         {
-            let vals = notnull values
+            let vals = values!
             for var idx = 0; idx < sliceCount; idx += 1 do
                 .buffer[index + idx] = #nodrop vals[idx]
         }
@@ -399,7 +399,7 @@ impl StaticArray
 
         #static if Reflection.hasPostCopy(T)
         {
-            let vals    = notnull values
+            let vals    = values!
             var destPtr = cast([*] T) &.buffer[oldCount]
             for sliceCount
             {

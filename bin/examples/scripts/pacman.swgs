@@ -45,8 +45,8 @@ var g_Wnd:      #null *Wnd
 var g_DataPath: String
 var g_Painter:  #null *Painter
 
-func thePainter()->*Painter => notnull g_Painter
-func theWnd()->*Wnd         => notnull g_Wnd
+func thePainter()->*Painter => g_Painter!
+func theWnd()->*Wnd         => g_Wnd!
 
 var g_MapTex:      Texture
 var g_PillTex:     Texture
@@ -1610,7 +1610,7 @@ func soundState()
 
         if !g_VoiceSiren
         {
-            let siren = notnull expect Audio.Voice.play(&g_SoundSiren, playFlags: .Loop)
+            let siren = expect Audio.Voice.play(&g_SoundSiren, playFlags: .Loop)!
             g_VoiceSiren = siren
             expect siren.setVolume(0.4)
         }
@@ -1943,7 +1943,7 @@ func gameLoop()
     case .STARTLEVEL:
         if !g_VoiceReady do
             g_VoiceReady = expect Audio.Voice.play(&g_SoundReady)
-        let voice = notnull g_VoiceReady
+        let voice = g_VoiceReady!
         if !voice.isPlaying()
         {
             voice.destroy()
@@ -2002,7 +2002,7 @@ func gameLoop()
             g_VoiceEatFruit = expect Audio.Voice.play(&g_SoundEatFruit)
 
         // if g_Ticks == g_TimeStamp + 90
-        let voice = notnull g_VoiceEatFruit
+        let voice = g_VoiceEatFruit!
         if !voice.isPlaying()
         {
             voice.destroy()
@@ -2017,7 +2017,7 @@ func gameLoop()
             g_VoiceEatGhost = expect Audio.Voice.play(&g_SoundEatGhost)
 
         // if g_Ticks == g_TimeStamp + 90
-        let voice = notnull g_VoiceEatGhost
+        let voice = g_VoiceEatGhost!
         if !voice.isPlaying()
         {
             voice.destroy()
@@ -2032,7 +2032,7 @@ func gameLoop()
             g_VoiceDeath = expect Audio.Voice.play(&g_SoundDeath)
 
         // if g_Ticks > g_TimeStamp + 180
-        let voice = notnull g_VoiceDeath
+        let voice = g_VoiceDeath!
         if !voice.isPlaying()
         {
             voice.destroy()

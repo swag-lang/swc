@@ -14,7 +14,7 @@ them by 64 to obtain ordinary pixel values.
 using Core, TrueType
 
 let bytes = File.readAllBytes("Inter-Regular.ttf")
-let face  = notnull (try Face.load(bytes.toSlice()))
+let face  = (try Face.load(bytes.toSlice()))!
 defer face.destroy()
 
 try face.setPixelSize(0, 32)
@@ -34,7 +34,7 @@ fields.
 #run
 {
     let itf = @compiler
-    let cfg = notnull itf.getBuildCfg()
+    let cfg = itf.getBuildCfg()!
     cfg.moduleVersion   = #swcversion
     cfg.moduleRevision  = #swcrevision
     cfg.moduleBuildNum  = #swcbuildnum

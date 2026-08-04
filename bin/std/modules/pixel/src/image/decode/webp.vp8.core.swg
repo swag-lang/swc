@@ -92,7 +92,7 @@ impl Vp8Partition
                 return false
             }
 
-            .bits     |= cast(u32) (notnull .data)[.offset] << (8 - .bitCount)
+            .bits     |= cast(u32) .data![.offset] << (8 - .bitCount)
             .offset   += 1
             .bitCount += 8
         }

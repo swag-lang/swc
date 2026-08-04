@@ -11,7 +11,7 @@ struct DirectoryCapture
 func captureDirectoryEntry(context: #null *void, name: #null const [*] u8, info: const *WinFsp.FileInfo)->u8
 {
     discard info
-    let capture = cast(*DirectoryCapture) notnull context
+    let capture = cast(*DirectoryCapture) context!
     capture.names.add(WinFsp.cString(name))
     return 1
 }

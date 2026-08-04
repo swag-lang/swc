@@ -43,7 +43,7 @@ impl ThemeStyle
         if !.refr do
             return
 
-        let refr = notnull .refr
+        let refr = .refr!
         .refr      = null
         refr.count -= 1
         if refr.count == 0
@@ -68,7 +68,7 @@ impl ThemeStyle
     // holders instead of having to be set to match it.
     mtd share(other: *ThemeStyle)
     {
-        let refr = notnull other.refr
+        let refr = other.refr!
         if .refr == refr do
             return
 
@@ -133,7 +133,7 @@ impl ThemeStyle
             .create(parent)
 
         // Then tweak it with the stylesheet
-        let own = notnull .refr
+        let own = .refr!
         if .styleSheetColors.length
         {
             var tf: File.TweakFile

@@ -1,9 +1,10 @@
 #global private
 
-// '!.' not-null access: the mirror of '?.'. Both test the left side for null; '?.'
-// skips the rest of the chain, '!.' asserts the value is there and panics under
-// safety when it is not. The access itself then runs on a non-null value, so the
-// result keeps its plain type instead of carrying a null outcome.
+// The postfix '!' not-null assertion: the mirror of '?.'. Both test for null; '?.'
+// skips the rest of the chain, '!' asserts the value is there and panics under safety
+// when it is not. What follows then runs on a non-null value, so the result keeps its
+// plain type instead of carrying a null outcome. Being postfix, '!' chains with '.',
+// '[' and '(', and 'cast #unnull' is its cast-shaped form.
 
 struct NotNullInner
 {
@@ -74,13 +75,46 @@ func notNullMixedWithOptional(node: #null *NotNullNode)->s32 => node?.next!.valu
 // Interfaces dereference their itable the same way.
 func notNullInterface(itf: #null INotNullAccess)->s32 => itf!.get()
 
-// Tolerated on an already proven value, like 'notnull': the flow got there first.
+// Tolerated on an already proven value: the flow got there first.
 func notNullRedundant(node: #null *NotNullNode)->s32
 {
     if node == null do
         return -1
     return node!.value
 }
+
+// A bare unwrap binds the proven value; nothing needs to follow the '!'.
+func notNullBinding()->s32
+{
+    let node = notNullGet()!
+    return node.value
+}
+
+// Indexing and calling a proven value.
+func notNullIndex(buffer: #null [*] s32)->s32 => buffer![1]
+
+func notNullCall(fn: #null func()->s32)->s32 => fn!()
+
+// 'dref' applies to the proven pointer.
+func notNullDeref(value: #null *s32)->s32 => dref value!
+
+// 'cast #unnull' is the cast-shaped form: a nullable source, a non-null destination.
+func notNullCastModifier(raw: #null *void)->s32
+{
+    let typed = cast #unnull (*NotNullNode) raw
+    return typed.value
+}
+
+// Rule C: a '!' after an error-management keyword asserts its RESULT, not the
+// fallible call, which is what the keyword already swallowed.
+func notNullFallible(fails: bool)->#null *NotNullNode fail
+{
+    if fails do
+        fail Swag.BaseError{"no node"}
+    return &g_notNullNode
+}
+
+func notNullAfterExpect()->s32 => (expect notNullFallible(false)!).value
 
 // An assignment through '!.' writes to the proven storage.
 func notNullAssign(newValue: s32)
@@ -90,11 +124,11 @@ func notNullAssign(newValue: s32)
 
 #test
 {
-    g_notNullNode.value   = 42
-    g_notNullNode.name    = "hello"
-    g_notNullNode.inner   = {count: 7}
-    g_notNullNode.next    = &g_notNullOther
-    g_notNullOther.value  = 9
+    g_notNullNode.value  = 42
+    g_notNullNode.name   = "hello"
+    g_notNullNode.inner  = {count: 7}
+    g_notNullNode.next   = &g_notNullOther
+    g_notNullOther.value = 9
 
     @assert(notNullScalar() == 42)
     @assert(notNullString() == "hello")
@@ -117,4 +151,21 @@ func notNullAssign(newValue: s32)
 
     notNullAssign(5)
     @assert(g_notNullNode.value == 5)
+}
+
+#test
+{
+    g_notNullNode.value = 42
+    @assert(notNullBinding() == 42)
+    @assert(notNullAfterExpect() == 42)
+    @assert(notNullCastModifier(&g_notNullNode) == 42)
+
+    var values = [7's32, 8, 9]
+    @assert(notNullIndex(@dataof(values)) == 8)
+
+    var single = 11's32
+    @assert(notNullDeref(&single) == 11)
+
+    func twelve()->s32 => 12
+    @assert(notNullCall(&twelve) == 12)
 }

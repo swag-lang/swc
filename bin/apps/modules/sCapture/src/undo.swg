@@ -174,7 +174,7 @@ impl Undo
 
     mtd init()
     {
-        let capture = notnull .capture
+        let capture = .capture!
         switch .kind
         {
         case .RestoreOrg:
@@ -238,7 +238,7 @@ impl Undo
                 if !np do
                     continue
                 .oldText.add(dref np)
-                .oldU32.add(cast(u32) dref (notnull sp))
+                .oldU32.add(cast(u32) dref sp!)
             }
 
         case .SetFontStyle:
@@ -258,7 +258,7 @@ impl Undo
                 if !.acceptsType(@kindof(itf)) do
                     continue
                 let mdlType = .mdlType orelse #typeof(FormShape)
-                let save    = cast(*BaseForm) notnull Memory.new(mdlType)
+                let save    = cast(*BaseForm) Memory.new(mdlType)!
                 itf.copy(save, form)
                 .oldForm.add(save)
             }
@@ -328,7 +328,7 @@ impl Undo
     {
         mtd removeSelection()
         {
-            let capture = notnull .capture
+            let capture = .capture!
             .toFreeForms.clear()
             .selection.sort()
             var offset = 0
@@ -350,7 +350,7 @@ impl Undo
         {
             if srcIdx == dstIdx do
                 return
-            let capture = notnull .capture
+            let capture = .capture!
             let form    = capture.forms[srcIdx]
             capture.forms.removeAtOrdered(srcIdx)
             capture.forms.insertAt(dstIdx, form)
@@ -358,7 +358,7 @@ impl Undo
             capture.selection.add(dstIdx)
         }
 
-        let capture = notnull .capture
+        let capture = .capture!
 
         switch #complete .kind
         {
@@ -450,8 +450,8 @@ impl Undo
                 let sp = formFontStylePtr(itf)
                 if !np do
                     continue
-                dref np           = .text
-                dref (notnull sp) = .fontStyle
+                dref np  = .text
+                dref sp! = .fontStyle
                 formFontDirty(itf)
             }
 
@@ -520,11 +520,11 @@ impl Undo
             }
 
         case .MovePoint:
-            let baseForm = notnull .baseForm
+            let baseForm = .baseForm!
             baseForm.movePoint(.pointIdx, .newPosX, .newPosY)
 
         case .MoveBaseForm:
-            let baseForm = notnull .baseForm
+            let baseForm = .baseForm!
             baseForm.moveBaseForm(.newPosX, .newPosY, .newSizeX, .newSizeY)
 
         case .MoveCapture:
@@ -593,7 +593,7 @@ impl Undo
 
     mtd undoIt()
     {
-        let capture = notnull .capture
+        let capture = .capture!
 
         switch #complete .kind
         {
@@ -672,8 +672,8 @@ impl Undo
                 let sp = formFontStylePtr(itf)
                 if !np do
                     continue
-                dref np           = .oldText[idx]
-                dref (notnull sp) = cast() .oldU32[idx]
+                dref np  = .oldText[idx]
+                dref sp! = cast() .oldU32[idx]
                 formFontDirty(itf)
             }
 
@@ -733,11 +733,11 @@ impl Undo
             }
 
         case .MovePoint:
-            let baseForm = notnull .baseForm
+            let baseForm = .baseForm!
             baseForm.movePoint(.pointIdx, -.newPosX, -.newPosY)
 
         case .MoveBaseForm:
-            let baseForm = notnull .baseForm
+            let baseForm = .baseForm!
             baseForm.moveBaseForm(-.newPosX, -.newPosY, -.newSizeX, -.newSizeY)
 
         case .MoveCapture:

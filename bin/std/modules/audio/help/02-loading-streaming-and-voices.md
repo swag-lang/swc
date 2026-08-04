@@ -7,7 +7,7 @@ play.
 
 ```swag
 let music = try Audio.SoundFile.load("assets/music.wav", preloadData = false)
-let voice = notnull try Audio.Voice.create(&music)
+let voice = try Audio.Voice.create(&music)!
 defer voice.destroy()
 
 try voice.setVolume(0.35)

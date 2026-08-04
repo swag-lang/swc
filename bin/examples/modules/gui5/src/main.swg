@@ -123,9 +123,9 @@ func colorSummary()->String
 
 func updateHeader()
 {
-    let title    = notnull g_Title
-    let subTitle = notnull g_SubTitle
-    let footer   = notnull g_Footer
+    let title    = g_Title!
+    let subTitle = g_SubTitle!
+    let footer   = g_Footer!
     title.setText(Format.toString("GUI5 color widgets - %", pageTitle(g_Page)))
     subTitle.setText(pageSubtitle(g_Page))
     footer.setText(Format.toString("F1 : next page (%/%). Selected %", g_Page + 1, MaxPages, colorSummary()))
@@ -280,7 +280,7 @@ func drawSwatch(painter: *Painter, rect: Math.Rectangle, label: string, color: C
 
 func drawLiveCard(painter: *Painter, rect: Math.Rectangle, colors: *ThemeColors)
 {
-    let view      = notnull g_View
+    let view      = g_View!
     let titleFont = view.theme().createDefaultFont(24, .Bold)
     let bodyFont  = view.theme().createDefaultFont(14)
     let textColor = g_Color.contrasting()
@@ -461,10 +461,10 @@ func createPreview(parent: *Wnd, rect: Math.Rectangle, hook: func(view: *Wnd, ev
 
 func clearPage()
 {
-    let pageView = notnull g_PageView
+    let pageView = g_PageView!
     for child in pageView.children
     {
-        let c = notnull child
+        let c = child!
         c.destroy()
     }
 }
@@ -476,15 +476,15 @@ func buildPage()
 
     switch g_Page
     {
-    case 0:  createCompositePage(notnull g_PageView)
-    case 1:  createHslModesPage(notnull g_PageView)
-    case 2:  createRgbModesPage(notnull g_PageView)
-    case 3:  createPalettesPage(notnull g_PageView)
-    case 4:  createPreviewPage(notnull g_PageView)
+    case 0:  createCompositePage(g_PageView!)
+    case 1:  createHslModesPage(g_PageView!)
+    case 2:  createRgbModesPage(g_PageView!)
+    case 3:  createPalettesPage(g_PageView!)
+    case 4:  createPreviewPage(g_PageView!)
     default: unreachable
     }
 
-    let pv = notnull g_PageView
+    let pv = g_PageView!
     pv.invalidate()
 }
 
@@ -493,8 +493,8 @@ func layoutRootView()
     if !g_View or !g_PageView do
         return
 
-    let view     = notnull g_View
-    let pageView = notnull g_PageView
+    let view     = g_View!
+    let pageView = g_PageView!
 
     let rect         = view.clientRect()
     let contentWidth = Math.max(rect.width - 2 * RootMargin, 1.0)
@@ -502,10 +502,10 @@ func layoutRootView()
     let footerY      = Math.max(rect.height - 42.0, PageTop + pageHeight + 6.0)
     let titleWidth   = Math.max(contentWidth - ThemeButtonWidth - HeaderGap, 1.0)
 
-    let title2      = notnull g_Title
-    let themeButton = notnull g_ThemeButton
-    let subTitle2   = notnull g_SubTitle
-    let footer2     = notnull g_Footer
+    let title2      = g_Title!
+    let themeButton = g_ThemeButton!
+    let subTitle2   = g_SubTitle!
+    let footer2     = g_Footer!
     title2.setPosition({RootMargin, 18, titleWidth, 34})
     themeButton.setPosition({RootMargin + titleWidth + HeaderGap, 18, ThemeButtonWidth, 34})
     subTitle2.setPosition({RootMargin + 2, 56, contentWidth - 4, 42})
@@ -573,14 +573,14 @@ func canUsePageArrows()->bool
     if !g_View or !g_PageView do
         return false
 
-    let view2     = notnull g_View
-    let pageView2 = notnull g_PageView
+    let view2     = g_View!
+    let pageView2 = g_PageView!
 
     let focus = view2.focusedWindow()
     if !focus or focus == g_View do
         return true
 
-    return !pageView2.isAncestorOf(notnull focus)
+    return !pageView2.isAncestorOf(focus!)
 }
 
 func onFrame(app: *Application)
@@ -612,7 +612,7 @@ func createRootView()
     let themeButton = PushButton.create(view, "", {})
     g_ThemeButton = themeButton
     themeButton.setForm(.Flat)
-    themeButton.setIcon(app.theme.icon24(ThemeIcons24.Picker, 18))
+    themeButton.setIcon(app.theme.icon(ThemeIcons.Picker, 18))
     themeButton.sigPressed += &toggleTheme
 
     let pageView = Wnd.create'Wnd(view, {})
@@ -631,10 +631,10 @@ func createRootView()
 #main
 {
     let flags   = SurfaceFlags.LargeCaption | SurfaceFlags.MinimizeButton | SurfaceFlags.CloseButton | SurfaceFlags.Border
-    let surface = notnull (try app.createSurface(100, 50, W - 46, H - 31, flags))
+    let surface = (try app.createSurface(100, 50, W - 46, H - 31, flags))!
     g_Surface = surface
     surface.setTitle("GUI5 color widgets")
-    surface.setIcon(app.theme.icon24(ThemeIcons24.Picker, 18))
+    surface.setIcon(app.theme.icon(ThemeIcons.Picker, 18))
 
     createRootView()
     buildPage()

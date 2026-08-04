@@ -14,9 +14,9 @@ struct Shape
     {
         pathList: LinePathList     // Contours, in drawing user units.
 
-        fillColor: Color               // Straight-alpha fill color.
-        hasFill:   bool                // Whether the shape is filled.
-        evenOdd:   bool                // Whether the fill uses the even-odd rule.
+        fillColor: Color     // Straight-alpha fill color.
+        hasFill:   bool      // Whether the shape is filled.
+        evenOdd:   bool      // Whether the fill uses the even-odd rule.
 
         hidden: bool     // Whether the shape is a reusable definition, not painted directly.
 
@@ -47,18 +47,18 @@ struct Drawing
 // Attribute state inherited through `svg` and `g` elements.
 private struct GroupState
 {
-    tx, ty: f32     // Accumulated translation, in drawing units.
+    tx, ty: f32         // Accumulated translation, in drawing units.
     sx, sy: f32 = 1     // Accumulated scale.
 
     fillColor: Color = Color.fromArgb(Argb.Black)     // Inherited fill color.
     hasFill:   bool  = true                           // Whether fill is enabled.
     evenOdd:   bool                                   // Inherited fill rule.
 
-    strokeColor: Color                                // Inherited stroke color.
-    strokeWidth: f32          = 1                     // Inherited stroke width, in user units.
-    hasStroke:   bool                                 // Whether stroke is enabled.
-    capStyle:    LineCapStyle = None                  // Inherited stroke cap.
-    joinStyle:   JoinStyle    = Miter                 // Inherited stroke join.
+    strokeColor: Color                    // Inherited stroke color.
+    strokeWidth: f32          = 1         // Inherited stroke width, in user units.
+    hasStroke:   bool                     // Whether stroke is enabled.
+    capStyle:    LineCapStyle = None      // Inherited stroke cap.
+    joinStyle:   JoinStyle    = Miter     // Inherited stroke join.
 
     opacity: f32 = 1     // Accumulated group opacity.
     inDefs:  bool        // Whether the element sits inside a `defs` scope.
@@ -259,8 +259,8 @@ private func applyStyleProperty(state: *GroupState, name, value: string)
                 while pos < len and value[pos] != '(' do
                     pos += 1
                 pos += 1
-                let x = scanNumber(value, &pos)
-                var y = 0'f32
+                let x    = scanNumber(value, &pos)
+                var y    = 0'f32
                 var look = pos
                 while look < len and (value[look] == ' ' or value[look] == ',') do
                     look += 1
@@ -278,8 +278,8 @@ private func applyStyleProperty(state: *GroupState, name, value: string)
                 while pos < len and value[pos] != '(' do
                     pos += 1
                 pos += 1
-                let x = scanNumber(value, &pos)
-                var y = x
+                let x    = scanNumber(value, &pos)
+                var y    = x
                 var look = pos
                 while look < len and (value[look] == ' ' or value[look] == ',') do
                     look += 1
@@ -341,50 +341,6 @@ private func mapX(state: *GroupState, x: f32) => x * state.sx + state.tx
 #[Swag.Inline]
 private func mapY(state: *GroupState, y: f32) => y * state.sy + state.ty
 
-// Exact geometry builders. The [[Pixel.LinePath]] `set` helpers round coordinates to
-// the pixel grid for grid-friendly GUI drawing; a parsed document must keep its
-// authored fractional geometry untouched, so these build the same paths verbatim.
-
-private func buildExactEllipse(path: *LinePath, cx, cy, rx, ry: f32)
-{
-    path.start(cx, cy - ry)
-    path.arcTo(cx, cy, rx, ry, 0'deg, 90'deg)
-    path.arcTo(cx, cy, rx, ry, 90'deg, 180'deg)
-    path.arcTo(cx, cy, rx, ry, 180'deg, 270'deg)
-    path.arcTo(cx, cy, rx, ry, 270'deg, 360'deg)
-    path.close()
-}
-
-private func buildExactRoundRect(path: *LinePath, l, t, w, h, rx, ry: f32)
-{
-    let r = l + w
-    let b = t + h
-
-    path.start(l + rx, t)
-    if w - 2 * rx > 0.001 do
-        path.lineTo(r - rx, t)
-    path.arcTo(r - rx, t + ry, rx, ry, 0'deg, 90'deg)
-    if h - 2 * ry > 0.001 do
-        path.lineTo(r, b - ry)
-    path.arcTo(r - rx, b - ry, rx, ry, 90'deg, 180'deg)
-    if w - 2 * rx > 0.001 do
-        path.lineTo(l + rx, b)
-    path.arcTo(l + rx, b - ry, rx, ry, 180'deg, 270'deg)
-    if h - 2 * ry > 0.001 do
-        path.lineTo(l, t + ry)
-    path.arcTo(l + rx, t + ry, rx, ry, 270'deg, 360'deg)
-    path.close()
-}
-
-private func buildExactRect(path: *LinePath, l, t, w, h: f32)
-{
-    path.start(l, t)
-    path.lineTo(l + w, t)
-    path.lineTo(l + w, t + h)
-    path.lineTo(l, t + h)
-    path.close()
-}
-
 // Appends one endpoint-parameterized elliptical arc as cubic Béziers.
 //
 // `rotation` is out of contract and ignored; the themes never use it.
@@ -440,8 +396,8 @@ private func appendArc(path: *LinePath, x0, y0: f32, rxIn, ryIn: f32, largeArc, 
     var angle = startAngle
     for [i] in segCount
     {
-        let a0 = angle
-        let a1 = angle + segAngle
+        let a0  = angle
+        let a1  = angle + segAngle
         let p0x = cx + rx * Math.cos(a0)
         let p0y = cy + ry * Math.sin(a0)
         let p1x = cx + rx * Math.cos(a1)
@@ -496,10 +452,10 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             {
                 if path and started do
                     path.close()
-                curX = begX
-                curY = begY
-                started    = false
-                lastCurve  = 0
+                curX      = begX
+                curY      = begY
+                started   = false
+                lastCurve = 0
                 continue
             }
         }
@@ -523,11 +479,11 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
 
             path = list.newPath()
             path.start(mapX(state, x), mapY(state, y))
-            started    = true
-            curX = x
-            curY = y
-            begX = x
-            begY = y
+            started = true
+            curX    = x
+            curY    = y
+            begX    = x
+            begY    = y
 
             // Following coordinate pairs are implicit line-to commands.
             cmd = rel ? cast(u8) 'l' : cast(u8) 'L'
@@ -600,11 +556,11 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             }
 
             path!.bezierTo(mapX(state, x), mapY(state, y), mapX(state, c1x), mapY(state, c1y), mapX(state, c2x), mapY(state, c2y))
-            ctlX = c2x
-            ctlY = c2y
-            curX = x
-            curY = y
-            lastCurve  = 'c'
+            ctlX      = c2x
+            ctlY      = c2y
+            curX      = x
+            curY      = y
+            lastCurve = 'c'
             continue
 
         case 'Q', 'q', 'T', 't':
@@ -639,16 +595,16 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             }
 
             path!.bezierTo(mapX(state, x), mapY(state, y), mapX(state, c1x), mapY(state, c1y))
-            ctlX = c1x
-            ctlY = c1y
-            curX = x
-            curY = y
-            lastCurve  = 'q'
+            ctlX      = c1x
+            ctlY      = c1y
+            curX      = x
+            curY      = y
+            lastCurve = 'q'
             continue
 
         case 'A', 'a':
-            let rx       = scanNumber(data, &pos)
-            let ry       = scanNumber(data, &pos)
+            let rx = scanNumber(data, &pos)
+            let ry = scanNumber(data, &pos)
             discard scanNumber(data, &pos)     // x-axis rotation, out of contract
             let largeArc = flag(data, &pos)
             let sweepF   = flag(data, &pos)
@@ -660,7 +616,7 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
                 y += curY
             }
 
-            appendArc(notnull path, mapX(state, curX), mapY(state, curY), rx * state.sx, ry * state.sy, largeArc, sweepF, mapX(state, x), mapY(state, y))
+            appendArc(path!, mapX(state, curX), mapY(state, curY), rx * state.sx, ry * state.sy, largeArc, sweepF, mapX(state, x), mapY(state, y))
             curX = x
             curY = y
 
@@ -681,6 +637,75 @@ private func emitShape(drawing: *Drawing, list: LinePathList, state: *GroupState
     if !state.hasFill and !state.hasStroke do
         return
 
+    // The triangulated fill treats every extra contour of a list as a hole cut into
+    // the first, so a path whose contours are DISJOINT unions (an arrow above a bar)
+    // would lose all but one region. Decompose by containment depth: every even-depth
+    // contour roots its own shape and odd-depth contours join their root as holes.
+    if state.hasFill and list.paths.count > 1
+    {
+        var work = #move list
+        let n    = work.paths.count
+        for p in work.paths do
+            p.flatten(.Normal)
+
+        var depth: Array's32
+        depth.resize(n)
+        for [i] in n
+        {
+            let pi = work.paths[i]
+            if pi.polygon.points.count == 0 do
+                continue
+            let probe = pi.polygon.points[0]
+            for [j] in n where j != i
+            {
+                if work.paths[j].polygon.contains(probe) do
+                    depth[i] += 1
+            }
+        }
+
+        var roots = 0
+        for [i] in n where depth[i] % 2 == 0 do
+            roots += 1
+
+        if roots > 1
+        {
+            for [i] in n
+            {
+                if depth[i] % 2 != 0 do
+                    continue
+
+                var group: LinePathList
+                group.paths.add(work.paths[i])
+                let rootPoly = &work.paths[i].polygon
+
+                // Attach this root's immediate holes.
+                for [j] in n
+                {
+                    if depth[j] != depth[i] + 1 do
+                        continue
+                    let pj = work.paths[j]
+                    if pj.polygon.points.count and rootPoly.contains(pj.polygon.points[0]) do
+                        group.paths.add(pj)
+                }
+
+                emitShape(drawing, #move group, state)
+            }
+
+            // Every path pointer now belongs to a group list; forget them here.
+            work.paths.clear()
+            return
+        }
+
+        // Single root: emit as one shape below.
+        emitShapeOne(drawing, #move work, state)
+        return
+    }
+
+    emitShapeOne(drawing, #move list, state)
+}
+
+private func emitShapeOne(drawing: *Drawing, list: LinePathList, state: *GroupState)
+{
     let shape = drawing.shapes.emplaceInitAddress()
     shape.pathList = #move list
     shape.hidden   = state.inDefs
@@ -688,7 +713,7 @@ private func emitShape(drawing: *Drawing, list: LinePathList, state: *GroupState
     shape.hasFill = state.hasFill
     if state.hasFill
     {
-        shape.fillColor = state.fillColor
+        shape.fillColor   = state.fillColor
         shape.fillColor.a = cast(u8) Math.round(shape.fillColor.a * state.opacity)
         shape.evenOdd     = state.evenOdd
     }
@@ -696,7 +721,7 @@ private func emitShape(drawing: *Drawing, list: LinePathList, state: *GroupState
     shape.hasStroke = state.hasStroke
     if state.hasStroke
     {
-        shape.strokeColor = state.strokeColor
+        shape.strokeColor   = state.strokeColor
         shape.strokeColor.a = cast(u8) Math.round(shape.strokeColor.a * state.opacity)
         shape.strokeWidth   = state.strokeWidth * state.sx
         shape.capStyle      = state.capStyle
@@ -716,15 +741,15 @@ private func emitRect(drawing: *Drawing, state: *GroupState, x, y, w, h, rx: f32
     if rx >= halfMin - 0.001 and Math.abs(w - h) < 0.001
     {
         // A square with a full corner radius is a circle.
-        buildExactEllipse(path, mapX(state, x + w * 0.5), mapY(state, y + h * 0.5), w * 0.5 * state.sx, h * 0.5 * state.sy)
+        path.setEllipseRaw(mapX(state, x + w * 0.5), mapY(state, y + h * 0.5), w * 0.5 * state.sx, h * 0.5 * state.sy)
     }
     elif rx > 0
     {
         let cr = Math.min(rx, halfMin)
-        buildExactRoundRect(path, mapX(state, x), mapY(state, y), w * state.sx, h * state.sy, cr * state.sx, cr * state.sy)
+        path.setRoundRectRaw(mapX(state, x), mapY(state, y), w * state.sx, h * state.sy, cr * state.sx, cr * state.sy)
     }
     else do
-        buildExactRect(path, mapX(state, x), mapY(state, y), w * state.sx, h * state.sy)
+        path.setRectRaw(mapX(state, x), mapY(state, y), w * state.sx, h * state.sy)
     emitShape(drawing, list, state)
 }
 
@@ -735,7 +760,7 @@ private func emitEllipse(drawing: *Drawing, state: *GroupState, cx, cy, rx, ry: 
 
     var list: LinePathList
     let path = list.newPath()
-    buildExactEllipse(path, mapX(state, cx), mapY(state, cy), rx * state.sx, ry * state.sy)
+    path.setEllipseRaw(mapX(state, cx), mapY(state, cy), rx * state.sx, ry * state.sy)
     emitShape(drawing, list, state)
 }
 
@@ -796,7 +821,7 @@ private impl Parser
             if .text[.pos] == '/'
             {
                 result.selfClosed = true
-                .pos += 1
+                .pos              += 1
                 continue
             }
 
@@ -831,10 +856,8 @@ private impl Parser
 
             switch name
             {
-            case "d", "x", "y", "width", "height", "rx", "ry", "cx", "cy", "r", "points", "x1", "y1", "x2", "y2", "viewBox", "id", "href", "xlink:href":
-                geo.add(name, value)
-            default:
-                applyAttribute(state, name, value)
+            case "d", "x", "y", "width", "height", "rx", "ry", "cx", "cy", "r", "points", "x1", "y1", "x2", "y2", "viewBox", "id", "href", "xlink:href": geo.add(name, value)
+            default:                                                                                                                                     applyAttribute(state, name, value)
             }
         }
 
@@ -884,8 +907,8 @@ private impl Parser
                 .pos += 1
             let name = cast(string) @mkslice(@dataof(.text) + nameStart, .pos - nameStart)
 
-            var state = parent
-            var geo:  HashTable'(String, String)
+            var state        = parent
+            var geo: HashTable'(String, String)
             let {selfClosed} = .scanAttributes(&state, &geo)
             let firstShape   = .drawing.shapes.count
 
@@ -958,6 +981,7 @@ private impl Parser
                     try .parseContent(state)
 
             case "defs":
+
                 // Definitions are parsed in local coordinates and withheld from
                 // painting; `use` elements instantiate them.
                 var defState: GroupState
@@ -1002,6 +1026,7 @@ private impl Parser
                     try .parseContent(state)
 
             default:
+
                 // Unknown element: ignore it and its whole subtree.
                 if !selfClosed do
                     try .parseContent(state)
@@ -1024,12 +1049,12 @@ private impl Parser
         {
             // Build the transformed copy fully before appending: appending can
             // reallocate the array and invalidate the source borrow.
-            var list: LinePathList
-            var fillColor, strokeColor: Color
+            var list:                        LinePathList
+            var fillColor, strokeColor:      Color
             var hasFill, hasStroke, evenOdd: bool
-            var strokeWidth: f32
-            var capStyle:  LineCapStyle = None
-            var joinStyle: JoinStyle    = Miter
+            var strokeWidth:                 f32
+            var capStyle:                    LineCapStyle = None
+            var joinStyle:                   JoinStyle    = Miter
 
             {
                 let src = &.drawing.shapes[first + i]
@@ -1052,15 +1077,19 @@ private impl Parser
                         {
                         case .Line:
                             path.lineTo(mapX(state, element.position.x + offX), mapY(state, element.position.y + offY))
+
                         case .Bezier1:
                             path.bezierTo(mapX(state, element.position.x + offX), mapY(state, element.position.y + offY), mapX(state, element.p1.x + offX), mapY(state, element.p1.y + offY))
+
                         case .Bezier2:
                             path.bezierTo(mapX(state, element.position.x + offX), mapY(state, element.position.y + offY), mapX(state, element.p1.x + offX), mapY(state, element.p1.y + offY), mapX(state, element.p2.x + offX), mapY(state, element.p2.y + offY))
+
                         case .Arc:
 
                             // An arc stores its center in `position`, its angle
                             // interval in `p1`, and its radii in `p2`.
                             path.arcTo(mapX(state, element.position.x + offX), mapY(state, element.position.y + offY), element.p2.x * state.sx, element.p2.y * state.sy, Math.Angle.fromRadians(element.p1.x), Math.Angle.fromRadians(element.p1.y))
+
                         default:
                             Debug.assert(false, "definition uses an unsupported segment type")
                         }
@@ -1179,7 +1208,7 @@ impl Drawing
         let bw = width * ss
         let bh = height * ss
 
-        var cpu: RenderCpu
+        var cpu:      RenderCpu
         let renderer: IRenderer = &cpu
         cpu.begin(bw, bh)
 
@@ -1213,8 +1242,8 @@ impl Drawing
         // fringe in.
         Debug.assert(big.bytesPerPixel == 4)
         var result = Image.create(width, height, big.pixelFormat)
-        let sb     = notnull big.pixels.buffer
-        let db     = notnull result.pixels.buffer
+        let sb     = big.pixels.buffer!
+        let db     = result.pixels.buffer!
         let area   = cast(u32) (ss * ss)
         for [y] in height
         {

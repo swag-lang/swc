@@ -83,7 +83,7 @@ func assertJsonPayload(value: const &JsonPayload)->bool
     @assert(json.indexOf("transient") == Swag.U64.Max)
 
     var decoder: Serialization.Decoder'Serialization.Read.Json
-    let decoded = notnull expect decoder.readAll'JsonPayload(json.toSlice())
+    let decoded = expect decoder.readAll'JsonPayload(json.toSlice())!
     @assert(assertJsonPayload(dref decoded))
     @assert(decoded.transient == 0)
 
@@ -109,7 +109,7 @@ func assertJsonPayload(value: const &JsonPayload)->bool
     let json: String = "{\n  \"id\": 8,\n  \"active\": false,\n  \"name\": null,\n  \"counts\": [9, 8],\n  \"pair\": {\"x\": -1, \"y\": 2},\n  \"fixed\": [5, 6, 7]\n}"
 
     var decoder: Serialization.Decoder'Serialization.Read.Json
-    let decoded = notnull expect decoder.readAll'JsonPayload(json.toSlice())
+    let decoded = expect decoder.readAll'JsonPayload(json.toSlice())!
     @assert(decoded.id == 8)
     @assert(!decoded.active)
     @assert(decoded.name.isNullOrEmpty())
@@ -145,12 +145,12 @@ func assertJsonPayload(value: const &JsonPayload)->bool
     @assert(buffer.toString() == "{\"text\":\"quote=\\\" slash=\\\\ controls=\\b\\f\\n\\r\\t caf\u00E9 \U0001F642\"}")
 
     var decoder: Serialization.Decoder'Serialization.Read.Json
-    let decoded = notnull expect decoder.readAll'JsonStringPayload(notnull buffer.toSlice())
+    let decoded = expect decoder.readAll'JsonStringPayload(buffer.toSlice()!)!
     @assert(decoded.text == payload.text)
     Memory.delete(decoded)
 
     let escaped: String = #raw """{"text":"A\u00E9\uD83D\uDE42"}"""
-    let unicode = notnull expect decoder.readAll'JsonStringPayload(escaped.toSlice())
+    let unicode = expect decoder.readAll'JsonStringPayload(escaped.toSlice())!
     @assert(unicode.text == "A\u00E9\U0001F642")
     Memory.delete(unicode)
 

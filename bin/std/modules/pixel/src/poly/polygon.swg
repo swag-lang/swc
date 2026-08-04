@@ -51,7 +51,7 @@ impl Polygon
     mtd pointAt(i: u64)->&Vector2
     {
         Debug.assert(i < .points.count)
-        let points = notnull .points.buffer
+        let points = .points.buffer!
         return points + i
     }
 
@@ -60,15 +60,44 @@ impl Polygon
     mtd const pointAt(i: u64)->const &Vector2
     {
         Debug.assert(i < .points.count)
-        let points = notnull .points.buffer
+        let points = .points.buffer!
         return points + i
+    }
+
+    // Reports whether `pt` lies inside the contour, by the even-odd rule.
+    //
+    // A point exactly on an edge can land on either side; callers that need a stable
+    // answer there should not probe boundary points.
+    mtd const contains(pt: Vector2)->bool
+    {
+        let n = .points.count
+        if n < 3 do
+            return false
+
+        var inside = false
+        var j      = n - 1
+        for [i] in n
+        {
+            let a = .points[i]
+            let b = .points[j]
+            if (a.y > pt.y) != (b.y > pt.y)
+            {
+                let x = a.x + (pt.y - a.y) / (b.y - a.y) * (b.x - a.x)
+                if pt.x < x do
+                    inside = !inside
+            }
+
+            j = i
+        }
+
+        return inside
     }
 
     // Returns point `i`, optionally offset along the averaged edge normal.
     mtd const offsetPointAt(i: u64, offset: f32)->Vector2
     {
         Debug.assert(.points.count)
-        let points = notnull .points.buffer
+        let points = .points.buffer!
         if Math.isZeroEpsilon(offset)
         {
             Debug.assert(i < .points.count)

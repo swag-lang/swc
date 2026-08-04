@@ -1,7 +1,7 @@
 
 #run
 {
-    let cfg = notnull @compiler.getBuildCfg()
+    let cfg = @compiler.getBuildCfg()!
     cfg.embeddedImports = true
     cfg.moduleNamespace = "RuntimeCtxBase"
     cfg.backendKind     = .StaticLibrary

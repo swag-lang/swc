@@ -10,7 +10,7 @@ func createEditBoxPage(parent: *Wnd)
 
         edit = EditBox.create(forms, "", {240, 90, 200})
         edit.setForm(.RoundedRectangle)
-        edit.setIcon(app.theme.icon24(ThemeIcons24.Search, 18))
+        edit.setIcon(app.theme.icon(ThemeIcons.Search, 18))
         edit.setPlaceholder("Round search")
 
         edit = EditBox.create(forms, "", {24, 140, 180})

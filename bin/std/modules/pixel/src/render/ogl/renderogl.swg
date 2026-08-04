@@ -98,7 +98,7 @@ private impl RenderOgl
     func oglContext(rc: RenderContext)->*OglContext
     {
         Debug.assert(rc.data != null, "OpenGL render context has no backend state")
-        return cast(*OglContext) notnull rc.data
+        return cast(*OglContext) rc.data!
     }
 
     func setShaderCompileError(shaderID: GLuint) fail
@@ -336,7 +336,7 @@ impl RenderOgl
     {
         for it in .fonts.glyphCaches
         {
-            let cache = notnull it
+            let cache = it!
             for &atlas in cache.atlases where atlas.texture.handle != InvalidTextureHandle
             {
                 var id: GLuint = cast() atlas.texture.handle
@@ -510,7 +510,7 @@ impl RenderOgl
         var result: retval = Image.create(w, h, .BGRA8)
         glBindFramebuffer(GL_FRAMEBUFFER, cast(GLuint) rt.handle)
         glReadBuffer(GL_COLOR_ATTACHMENT0)
-        glReadPixels(x, rt.colorBuffer.height - h - y, w, h, GL_BGRA, GL_UNSIGNED_BYTE, cast([*] u8) (notnull result.pixels.buffer))
+        glReadPixels(x, rt.colorBuffer.height - h - y, w, h, GL_BGRA, GL_UNSIGNED_BYTE, cast([*] u8) result.pixels.buffer!)
         glBindFramebuffer(GL_FRAMEBUFFER, 0)
         return result
     }
@@ -518,11 +518,11 @@ impl RenderOgl
     // Get current render target pixels
     internal mtd unbindRenderTargetToImageImpl(x, y, w, h: s32)->Image
     {
-        let curRT = notnull .curRT
+        let curRT = .curRT!
 
         var result: retval = Image.create(w, h, .BGRA8)
         glReadBuffer(GL_COLOR_ATTACHMENT0)
-        glReadPixels(x, curRT.colorBuffer.height - h - y, w, h, GL_BGRA, GL_UNSIGNED_BYTE, cast([*] u8) (notnull result.pixels.buffer))
+        glReadPixels(x, curRT.colorBuffer.height - h - y, w, h, GL_BGRA, GL_UNSIGNED_BYTE, cast([*] u8) result.pixels.buffer!)
         .unbindRenderTargetImpl()
         return result
     }
@@ -533,7 +533,7 @@ impl RenderOgl
         if .stackRT.count
         {
             .curRT = .stackRT.popBack()
-            let curRT = notnull .curRT
+            let curRT = .curRT!
             glBindFramebuffer(GL_FRAMEBUFFER, cast(GLuint) curRT.handle)
             glViewport(0, 0, curRT.colorBuffer.width, curRT.colorBuffer.height)
         }
@@ -633,7 +633,7 @@ impl RenderOgl
         glGenTextures(1, &textureID)
         glBindTexture(GL_TEXTURE_2D, textureID)
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
-        glTexImage2D(GL_TEXTURE_2D, 0, tinternal, cast(s32) image.width, cast(s32) image.height, 0, fmt, GL_UNSIGNED_BYTE, cast([*] u8) (notnull image.pixels.buffer))
+        glTexImage2D(GL_TEXTURE_2D, 0, tinternal, cast(s32) image.width, cast(s32) image.height, 0, fmt, GL_UNSIGNED_BYTE, cast([*] u8) image.pixels.buffer!)
 
         var result: retval
         result.attach(cast(TextureHandle) textureID, image.pixelFormat, image.width, image.height)
@@ -768,7 +768,7 @@ impl RenderOgl
         case .Transform:
             let params = &cmd.transform
             .buildModelMatrix(params.tr)
-            let curShader = notnull .curShader
+            let curShader = .curShader!
             glUniformMatrix4fv(cast(GLint) curShader.mdl, 1, GL_FALSE, &.modelMatrix.m[0, 0])
 
         case .StartClippingRegion:
@@ -927,7 +927,7 @@ impl RenderOgl
             }
 
         case .ResetTexture0:
-            let curShader = notnull .curShader
+            let curShader = .curShader!
             glUniform1f(cast(GLint) curShader.paintType, cast(GLfloat) cast(u32) BrushType.SolidColor)
             glUniform1f(cast(GLint) curShader.uvMode, cast(GLfloat) cast(u32) UVMode.Fill)
             glUniform1f(cast(GLint) curShader.interpolationMode, cast(GLfloat) cast(u32) InterpolationMode.Pixel)
@@ -937,7 +937,7 @@ impl RenderOgl
 
         case .BindTexture0:
             let params    = &cmd.texture0
-            let curShader = notnull .curShader
+            let curShader = .curShader!
             glUniform4fv(cast(GLint) curShader.boundRect, 1, &params.boundRect.x)
             glUniform4fv(cast(GLint) curShader.textureRect, 1, &params.textureRect.x)
             glUniform1f(cast(GLint) curShader.uvMode, cast(GLfloat) params.uvMode)
@@ -1014,16 +1014,16 @@ impl RenderOgl
 
         case .BindRenderTarget:
             .bindRenderTargetImpl(cmd.renderTgt.tgt)
-            let curRT = notnull .curRT
+            let curRT = .curRT!
             curRT.paintAlpha    = cmd.renderTgt.paintAlpha
             curRT.paintAlphaIdx = cmdIdx
-            let curShader = notnull .curShader
+            let curShader = .curShader!
             .computeMatrices(curShader.mvp, curShader.mdl)
 
         case .UnbindRenderTarget:
             Debug.assert(.curRT != null)
 
-            let curRT = notnull .curRT
+            let curRT = .curRT!
             if curRT.paintAlpha
             {
                 glEnable(GL_BLEND)
@@ -1046,7 +1046,7 @@ impl RenderOgl
             }
 
             .unbindRenderTargetImpl()
-            let curShader = notnull .curShader
+            let curShader = .curShader!
             .computeMatrices(curShader.mvp, curShader.mdl)
 
         case .ReleaseRenderTarget:
@@ -1133,7 +1133,7 @@ impl RenderOgl
 
         // Default shader
         .setShader(&.shaderAA)
-        let curShader = notnull .curShader
+        let curShader = .curShader!
         .computeMatrices(curShader.mvp, curShader.mdl)
 
         // Default state
@@ -1179,7 +1179,7 @@ impl RenderOgl
 
         for rt, [i] in .stackReleasedRT
         {
-            let r = notnull rt
+            let r = rt!
             if r.colorBuffer.width == w2 and r.colorBuffer.height == h2
             {
                 .stackReleasedRT.removeAt(i)
@@ -1189,7 +1189,7 @@ impl RenderOgl
 
         for rt, [i] in .stackReleasedRT
         {
-            let r = notnull rt
+            let r = rt!
             if r.colorBuffer.width >= w2 and r.colorBuffer.height >= h2
             {
                 .stackReleasedRT.removeAt(i)

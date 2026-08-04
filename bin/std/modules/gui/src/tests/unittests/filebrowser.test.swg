@@ -46,13 +46,13 @@ using Swag, Core, File
     fb.setFileName("notes")
     @assert(fb.fileName() == "notes")
     let name     = fb.selectedPath()
-    let fileName = notnull Path.fileName(name.toString())
+    let fileName = Path.fileName(name.toString())!
     @assert(fileName == "notes.txt")
 
     // A name that already carries the extension is kept as-is.
     fb.setFileName("report.txt")
     let name2     = fb.selectedPath()
-    let fileName2 = notnull Path.fileName(name2.toString())
+    let fileName2 = Path.fileName(name2.toString())!
     @assert(fileName2 == "report.txt")
     @assert(!fb.setCurrentFolder("this-folder-does-not-exist"))
     @assert(!fb.createFolder("bad/name"))
@@ -77,7 +77,7 @@ using Swag, Core, File
     // selectedPath must not index the (empty) filter list in SelectFolder mode.
     fb.setFileName("myfolder")
     let name     = fb.selectedPath()
-    let fileName = notnull Path.fileName(name.toString())
+    let fileName = Path.fileName(name.toString())!
     @assert(fileName == "myfolder")
 }
 
@@ -163,8 +163,8 @@ using Swag, Core, File
 
     // The two bottom-docked strips stack: the name/type form sits at the bottom
     // edge, and the status line sits directly above it, above the file list.
-    let form      = notnull fb.editFile.parent
-    let statusBar = notnull fb.statusLabel.parent
+    let form      = fb.editFile.parent!
+    let statusBar = fb.statusLabel.parent!
     @assert(form.position.bottom() <= fb.position.height)
     @assert(form.position.bottom() >= fb.position.height - 1)
     @assert(statusBar.position.bottom() <= form.position.y)

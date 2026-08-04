@@ -406,7 +406,7 @@ private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM
     if msg == WM_CREATE
     {
         let createStruct = cast(*CREATESTRUCTA) cast #bit (u64) lParam
-        let createParam  = notnull createStruct.lpCreateParams
+        let createParam  = createStruct.lpCreateParams!
         SetWindowLongPtrA(hWnd, GWLP_USERDATA, cast #bit (LONG_PTR) cast(u64) createParam)
 
         let window = cast(*Window) createParam
@@ -610,7 +610,7 @@ public impl Window
             var clientRect: RECT
             if GetClientRect(.nativeHandle, &clientRect)
             {
-                let onResize = notnull .callbacks.onResize
+                let onResize = .callbacks.onResize!
                 onResize(&me, clientRect.right - clientRect.left, clientRect.bottom - clientRect.top)
             }
         }

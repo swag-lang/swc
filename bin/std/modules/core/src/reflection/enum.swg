@@ -11,7 +11,7 @@ func enumUnderlyingType(type: typeinfo)->typeinfo
         return type
 
     let enumType = cast(const *TypeInfoEnum) type
-    return notnull enumType.rawType
+    return enumType.rawType!
 }
 
 // Returns reflected information for a named enum value, or null.
@@ -21,7 +21,7 @@ func enumValue(type: #null typeinfo, name: #null string)->#null const *TypeValue
     if !isEnum(type) do
         return null
 
-    let typeEnum = cast(const *TypeInfoEnum) notnull type
+    let typeEnum = cast(const *TypeInfoEnum) type!
     for &it in typeEnum.values where it.name == name do
         return it
     return null
@@ -34,10 +34,10 @@ func enumName(type: #null typeinfo, valueAddress: #null const *void, fullyQualif
     var result: String
     if !isEnum(type) or !valueAddress do
         return result
-    let safeType  = notnull type
+    let safeType  = type!
     let safeValue = valueAddress
     let typeEnum  = cast(const *TypeInfoEnum) safeType
-    let rawType   = notnull typeEnum.rawType
+    let rawType   = typeEnum.rawType!
     let isFlags   = hasAttribute(type, EnumFlags)
 
     // Get the user value, as an 'u64' or a string

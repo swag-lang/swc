@@ -67,7 +67,7 @@ private impl TagBin
     {
         if .freeSections.count
         {
-            let ptr = notnull .freeSections.popBack()
+            let ptr = .freeSections.popBack()!
             ptr.mapSeek.clear()
             .sections.add(ptr)
             return ptr
@@ -87,7 +87,7 @@ private impl TagBin
     {
         if .freeTmpBuf.count
         {
-            let b = notnull .freeTmpBuf.popBack()
+            let b = .freeTmpBuf.popBack()!
             b.clear()
             return b
         }
@@ -123,7 +123,7 @@ impl TagBin
     // Begins the root section of the serialization structure
     mtd beginRoot()
     {
-        let output = notnull .output
+        let output = .output!
         output.addNative(TagBinSignature.Root)
         output.addNative(TagBinVersion)
     }
@@ -142,7 +142,7 @@ impl TagBin
 
         if sec.kind == .Unordered
         {
-            let output = notnull .output
+            let output = .output!
             output.addNative(TagBinSignature.Fat)
             sec.startSeek = output.position()
             output.addNative(0'u64)     // Will store the fat offset here
@@ -153,12 +153,12 @@ impl TagBin
     // Ends the current section and writes out any required metadata
     mtd endSection()
     {
-        let sec = notnull .sections.back()
+        let sec = .sections.back()!
 
         if sec.kind == .Unordered
         {
             // Patch fat table seek and count
-            let output  = notnull .output
+            let output  = .output!
             let curSeek = output.position()
             output.setPosition(sec.startSeek)
             output.addNative(ConcatBuffer.offsetOf(curSeek))
@@ -181,7 +181,7 @@ impl TagBin
     mtd beginStruct(structType: #null typeinfo, _structData: #null const [*] u8)->bool
     {
         let {pod, ?} = isPodFinal(structType)
-        let output   = notnull .output
+        let output   = .output!
         if pod
         {
             output.addNative(TagBinSignature.Raw)
@@ -216,12 +216,12 @@ impl TagBin
         Debug.assert(!.sections.isEmpty(), "Missing a previous 'beginSection' call")
 
         // If section is raw, then we just have values without versioning
-        let sec = notnull .sections.back()
+        let sec = .sections.back()!
         if sec.kind == .Raw do
             return
 
         // Register the current seek for the fat generation
-        let output = notnull .output
+        let output = .output!
         if sec.kind == .Unordered
         {
             let crcName = getTypeValueCrc(val)
@@ -261,7 +261,7 @@ impl TagBin
     mtd endElement(val: TypeValue)
     {
         // If section is raw, then we just have values without versioning
-        let sec = notnull .sections.back()
+        let sec = .sections.back()!
         if sec.kind == .Raw do
             return
 
@@ -272,10 +272,10 @@ impl TagBin
 
         // We must have a previous buffer to append into
         Debug.assert(!.outStack.isEmpty())
-        let parentOut = notnull .outStack.popBack()
+        let parentOut = .outStack.popBack()!
 
         // Gather uncompressed bytes
-        let tmpBuf     = notnull ctx.tmpBuf
+        let tmpBuf     = ctx.tmpBuf!
         let childBytes = tmpBuf.toString()
 
         // Compress
@@ -314,7 +314,7 @@ impl TagBin
     // Begins a sequence and determines if elements can be written in bulk as raw data
     mtd beginSequence(typeElem: #null typeinfo, data: #null const *void, countElem: u64)->bool
     {
-        let output = notnull .output
+        let output = .output!
         output.addNative(TagBinSignature.Sequence)
         output.addNative(countElem)
 
@@ -372,7 +372,7 @@ impl TagBin
     // Writes a native value to the output buffer, with special handling for strings
     mtd(NT) writeNative(value: NT)
     {
-        let output = notnull .output
+        let output = .output!
         #static if Reflection.isString(NT)
         {
             output.addNative(cast(u32) @countof(value))

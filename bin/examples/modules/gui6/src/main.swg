@@ -123,10 +123,10 @@ func createCaption(parent: *Wnd, text: string, x, y, width: f32)
     label.updateFlags(.SecondaryText)
 }
 
-func createActionButton(parent: *Wnd, text: string, rect: Math.Rectangle, id: WndId, icon: ThemeIcons24)->*PushButton
+func createActionButton(parent: *Wnd, text: string, rect: Math.Rectangle, id: WndId, icon: ThemeIcons)->*PushButton
 {
     let btn = PushButton.create(parent, text, rect, id)
-    btn.setIcon(app.theme.icon24(icon, 18))
+    btn.setIcon(app.theme.icon(icon, 18))
     return btn
 }
 
@@ -197,9 +197,9 @@ func stateSummary()->String
 
 func updateHeader()
 {
-    let title    = notnull g_Title
-    let subTitle = notnull g_SubTitle
-    let footer   = notnull g_Footer
+    let title    = g_Title!
+    let subTitle = g_SubTitle!
+    let footer   = g_Footer!
     title.setText(Format.toString("GUI6 menu showcase - %", pageTitle(g_Page)))
     subTitle.setText(pageSubtitle(g_Page))
     footer.setText(Format.toString("F1 : next page (%/%). %", g_Page + 1, MaxPages, stateSummary()))
@@ -276,25 +276,25 @@ func destroyPageMenus()
 
 func addDocumentItems(menu: *MenuCtrl)
 {
-    menu.addItem("New document", MenuCmd.NewFile, app.theme.icon24(.Plus, 18))
-    menu.addItem("Open...", MenuCmd.OpenFile, app.theme.icon24(.OpenFile, 18))
+    menu.addItem("New document", MenuCmd.NewFile, app.theme.icon(.Plus, 18))
+    menu.addItem("Open...", MenuCmd.OpenFile, app.theme.icon(.OpenFile, 18))
     menu.addSeparator()
-    menu.addItem("Save", MenuCmd.SaveFile, app.theme.icon24(.Save, 18))
-    menu.addItem("Save as...", MenuCmd.SaveAs, app.theme.icon24(.SaveAs, 18))
-    menu.addItem("Export package", MenuCmd.Export, app.theme.icon24(.Export, 18))
+    menu.addItem("Save", MenuCmd.SaveFile, app.theme.icon(.Save, 18))
+    menu.addItem("Save as...", MenuCmd.SaveAs, app.theme.icon(.SaveAs, 18))
+    menu.addItem("Export package", MenuCmd.Export, app.theme.icon(.Export, 18))
     menu.addSeparator()
-    menu.addItem("Quit", MenuCmd.Quit, app.theme.icon24(.Quit, 18))
+    menu.addItem("Quit", MenuCmd.Quit, app.theme.icon(.Quit, 18))
 }
 
 func addEditItems(menu: *MenuCtrl)
 {
-    menu.addItem("Undo", MenuCmd.Undo, app.theme.icon24(.Undo, 18))
-    menu.addItem("Redo", MenuCmd.Redo, app.theme.icon24(.Redo, 18))
+    menu.addItem("Undo", MenuCmd.Undo, app.theme.icon(.Undo, 18))
+    menu.addItem("Redo", MenuCmd.Redo, app.theme.icon(.Redo, 18))
     menu.addSeparator()
-    menu.addItem("Cut", MenuCmd.Cut, app.theme.icon24(.Cut, 18))
-    menu.addItem("Copy", MenuCmd.Copy, app.theme.icon24(.Copy, 18))
-    menu.addItem("Paste", MenuCmd.Paste, app.theme.icon24(.Paste, 18))
-    menu.addItem("Duplicate", MenuCmd.Duplicate, app.theme.icon24(.Duplicate, 18))
+    menu.addItem("Cut", MenuCmd.Cut, app.theme.icon(.Cut, 18))
+    menu.addItem("Copy", MenuCmd.Copy, app.theme.icon(.Copy, 18))
+    menu.addItem("Paste", MenuCmd.Paste, app.theme.icon(.Paste, 18))
+    menu.addItem("Duplicate", MenuCmd.Duplicate, app.theme.icon(.Duplicate, 18))
 }
 
 func addViewItems(menu: *MenuCtrl)
@@ -339,7 +339,7 @@ func createOptionsMenu(parent: *Wnd)->*MenuCtrl
     let menu = createTrackedPopup(parent)
     addThemeItems(menu)
     menu.addSeparator()
-    menu.addItem("About menus", MenuCmd.About, app.theme.icon24(.About, 18))
+    menu.addItem("About menus", MenuCmd.About, app.theme.icon(.About, 18))
     return menu
 }
 
@@ -707,10 +707,10 @@ func clearPage()
     g_StatusLabel = null
     g_Preview     = null
 
-    let pageView0 = notnull g_PageView
+    let pageView0 = g_PageView!
     for child in pageView0.children
     {
-        let c = notnull child
+        let c = child!
         c.destroy()
     }
 }
@@ -722,15 +722,15 @@ func buildPage()
 
     switch g_Page
     {
-    case 0:  createMenuBarPage(notnull g_PageView)
-    case 1:  createContextMenuPage(notnull g_PageView)
-    case 2:  createCommandStatePage(notnull g_PageView)
-    case 3:  createAnchoredPopupPage(notnull g_PageView)
+    case 0:  createMenuBarPage(g_PageView!)
+    case 1:  createContextMenuPage(g_PageView!)
+    case 2:  createCommandStatePage(g_PageView!)
+    case 3:  createAnchoredPopupPage(g_PageView!)
     default: unreachable
     }
 
     updateStatusLabel()
-    let pv = notnull g_PageView
+    let pv = g_PageView!
     pv.updateCommandState()
     pv.invalidate()
 }
@@ -740,8 +740,8 @@ func layoutRootView()
     if !g_View or !g_PageView do
         return
 
-    let view     = notnull g_View
-    let pageView = notnull g_PageView
+    let view     = g_View!
+    let pageView = g_PageView!
 
     let rect         = view.clientRect()
     let contentWidth = Math.max(rect.width - 2 * RootMargin, 1.0)
@@ -749,10 +749,10 @@ func layoutRootView()
     let footerY      = Math.max(rect.height - 42.0, PageTop + pageHeight + 6.0)
     let titleWidth   = Math.max(contentWidth - ThemeButtonWidth - HeaderGap, 1.0)
 
-    let title2      = notnull g_Title
-    let themeButton = notnull g_ThemeButton
-    let subTitle2   = notnull g_SubTitle
-    let footer2     = notnull g_Footer
+    let title2      = g_Title!
+    let themeButton = g_ThemeButton!
+    let subTitle2   = g_SubTitle!
+    let footer2     = g_Footer!
     title2.setPosition({RootMargin, 18, titleWidth, 34})
     themeButton.setPosition({RootMargin + titleWidth + HeaderGap, 18, ThemeButtonWidth, 34})
     subTitle2.setPosition({RootMargin + 2, 56, contentWidth - 4, 42})
@@ -798,14 +798,14 @@ func canUsePageArrows()->bool
     if !g_View or !g_PageView do
         return false
 
-    let view2     = notnull g_View
-    let pageView2 = notnull g_PageView
+    let view2     = g_View!
+    let pageView2 = g_PageView!
 
     let focus = view2.focusedWindow()
     if !focus or focus == g_View do
         return true
 
-    return !pageView2.isAncestorOf(notnull focus)
+    return !pageView2.isAncestorOf(focus!)
 }
 
 func onFrame(app: *Application)
@@ -821,7 +821,7 @@ func onFrame(app: *Application)
 
 func registerMenuShortcuts()
 {
-    let view3 = notnull g_View
+    let view3 = g_View!
     view3.registerKeyShortcut(.Control, .N, MenuCmd.NewFile)
     view3.registerKeyShortcut(.Control, .O, MenuCmd.OpenFile)
     view3.registerKeyShortcut(.Control, .S, MenuCmd.SaveFile)
@@ -853,7 +853,7 @@ func createRootView()
     let themeButton = PushButton.create(view, "", {})
     g_ThemeButton = themeButton
     themeButton.setForm(.Flat)
-    themeButton.setIcon(app.theme.icon24(ThemeIcons24.Picker, 18))
+    themeButton.setIcon(app.theme.icon(ThemeIcons.Picker, 18))
     themeButton.sigPressed += &toggleTheme
 
     let pageView = Wnd.create'Wnd(view, {})
@@ -873,10 +873,10 @@ func createRootView()
 #main
 {
     let flags   = SurfaceFlags.LargeCaption | SurfaceFlags.MinimizeButton | SurfaceFlags.CloseButton | SurfaceFlags.Border
-    let surface = notnull (try app.createSurface(100, 80, W - 46, H - 31, flags))
+    let surface = (try app.createSurface(100, 80, W - 46, H - 31, flags))!
     g_Surface = surface
     surface.setTitle("GUI6 menu showcase")
-    surface.setIcon(app.theme.icon24(ThemeIcons24.More, 18))
+    surface.setIcon(app.theme.icon(ThemeIcons.More, 18))
     g_StatusText = "Open a menu or use shortcuts to exercise command dispatch."
 
     createRootView()

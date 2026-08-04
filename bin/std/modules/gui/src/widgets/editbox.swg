@@ -111,8 +111,8 @@ impl IWnd for EditBox
 
         case .Lost:
             .sigFocusLost.call(me)
-            let srf = notnull .surface
-            srf.app.removeTimer(notnull .timerCaret)
+            let srf = .surface!
+            srf.app.removeTimer(.timerCaret!)
             .timerCaret   = null
             .visibleCaret = false
             .invalidate()
@@ -398,7 +398,7 @@ private impl EditBox
 
         if !.clearBtn
         {
-            .clearBtn           = IconButton.create(me, .theme().icon24(ThemeIcons24.WndClose, 18), {0, 0, 24, 24})
+            .clearBtn           = IconButton.create(me, .theme().icon(ThemeIcons.WndClose, 18), {0, 0, 24, 24})
             .clearBtn.dockStyle = .Right
             .clearBtn.setForm(IconButtonForm.Circle)
             .clearBtn.sigPressed += func|edit = me|(btn) { edit.setText(null); }
@@ -906,13 +906,13 @@ private impl EditBox
         if s == sel do
             return sel
 
-        let test = !Latin1.isSpace((notnull .textStorage.buffer)[s])
+        let test = !Latin1.isSpace(.textStorage.buffer![s])
         for
         {
             let ns = .moveCaretLeft(s)
             if ns == s do
                 break
-            if Latin1.isSpace((notnull .textStorage.buffer)[ns]) == test do
+            if Latin1.isSpace(.textStorage.buffer![ns]) == test do
                 return s
             s = ns
         }
@@ -926,12 +926,12 @@ private impl EditBox
         if sel == .textStorage.length do
             return sel
 
-        let test = !Latin1.isSpace((notnull .textStorage.buffer)[sel])
+        let test = !Latin1.isSpace(.textStorage.buffer![sel])
         var s    = sel
         while s != .textStorage.length
         {
             s = .moveCaretRight(s)
-            if Latin1.isSpace((notnull .textStorage.buffer)[s]) == test do
+            if Latin1.isSpace(.textStorage.buffer![s]) == test do
                 return s
         }
 

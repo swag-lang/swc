@@ -42,7 +42,7 @@ internal impl IWnd for PropertiesView
             let contentW = .ed.listContentWidthFromUseful(cw)
             for itemIt in .ed.items
             {
-                let item = notnull itemIt
+                let item = itemIt!
                 item.line.maxSize.x = cw
                 if @isset(item.label) do
                     item.label.position.width = contentW
@@ -56,7 +56,7 @@ internal impl IWnd for PropertiesView
         var lastItem: #null *PropertiesItem
         for itemIt in .ed.items
         {
-            let item = notnull itemIt
+            let item = itemIt!
             if @isset(item.label) do
                 item.label.updateAutomaticHeight()
             if @isset(item.labelDesc) do
@@ -67,12 +67,12 @@ internal impl IWnd for PropertiesView
             // Line list-mode row action buttons up with the right edge of the value column
             // now that the row label has its final size (grid docks them, so this is a no-op).
             if @isset(item.arrayAddButton) do
-                .ed.positionListActionButton(notnull item, item.arrayAddButton)
+                .ed.positionListActionButton(item!, item.arrayAddButton)
 
             // The validation bar is sized to the editor column (and, in grid mode, grows the
             // row) only once the value widgets are positioned, so do it after the first pass
             // and lay the row out again when it changed the sizing.
-            if @isset(item.validationLabel) and .ed.syncValidationBar(notnull item) do
+            if @isset(item.validationLabel) and .ed.syncValidationBar(item!) do
                 item.line.applyLayout()
 
             item.line.sendResizeEvent()

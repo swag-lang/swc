@@ -18,7 +18,7 @@ using Swag, Core
     @assert(@dataof(textPaint.itf) != @dataof(textItf))
     @assert(f.main.mdlFormText.text == "Keep me")
     @assert(textItf.boundRect() == textRectBefore)
-    @assert((cast(*FormText) @dataof(notnull textPaint.itf)).text == "A")
+    @assert((cast(*FormText) @dataof(textPaint.itf!)).text == "A")
     quickStyleReleasePaintForm(&textPaint)
 
     f.main.mdlFormPolygon.points.add({10, 10})
@@ -31,7 +31,7 @@ using Swag, Core
     @assert(@dataof(polyPaint.itf) != @dataof(polyItf))
     @assert(f.main.mdlFormPolygon.points.count == 3)
     @assert(f.main.mdlFormPolygon.points[0] == pointBefore)
-    @assert((cast(*FormPolygon) @dataof(notnull polyPaint.itf)).points.count == 6)
+    @assert((cast(*FormPolygon) @dataof(polyPaint.itf!)).points.count == 6)
     quickStyleReleasePaintForm(&polyPaint)
 }
 
@@ -73,7 +73,7 @@ using Swag, Core
     var sliderCtrlBefore: #null *SliderCtrl
     for item in f.main.propWnd.grid.items
     {
-        let it = notnull item
+        let it = item!
         if @isset(it.sliderBox)
         {
             sliderCtrlBefore = it.sliderBox
@@ -81,7 +81,7 @@ using Swag, Core
         }
     }
 
-    let sliderBefore         = notnull sliderCtrlBefore
+    let sliderBefore         = sliderCtrlBefore!
     let sliderCtrlPosBefore  = sliderBefore.position
     let sliderTrackPosBefore = sliderBefore.slider.position
     let sliderEditPosBefore  = sliderBefore.edit.position

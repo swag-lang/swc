@@ -29,7 +29,7 @@ func helperFree(buffer: #null [*] void, size: u64, allocator: #null IAllocator =
     req.size    = size
     req.address = buffer
 
-    let talloc = notnull (allocator orelse @getcontext().allocator)
+    let talloc = (allocator orelse @getcontext().allocator)!
     talloc.free(&req)
 }
 
@@ -40,7 +40,7 @@ func helperRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator
     req.size    = newSize
     req.oldSize = oldSize
 
-    let talloc = notnull (allocator orelse @getcontext().allocator)
+    let talloc = (allocator orelse @getcontext().allocator)!
     talloc.realloc(&req)
     return req.address
 }
@@ -56,7 +56,7 @@ func memoryLikeFree(buffer: #null [*] void, size: u64, allocator: #null IAllocat
     req.address   = buffer
     req.hint      = hint
 
-    let talloc = notnull (allocator orelse @getcontext().allocator)
+    let talloc = (allocator orelse @getcontext().allocator)!
     talloc.free(&req)
 }
 
@@ -70,7 +70,7 @@ func memoryLikeRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, alloc
     req.oldSize   = oldSize
     req.alignment = alignment
 
-    let talloc = notnull (allocator orelse @getcontext().allocator)
+    let talloc = (allocator orelse @getcontext().allocator)!
     talloc.realloc(&req)
     return req.address
 }
@@ -304,7 +304,7 @@ impl OwnedDropBuffer
         var req: AllocatorRequest
         req.size    = .capacity * #sizeof(DropOnlyTracked)
         req.address = .buffer
-        let allocItf = notnull .allocator
+        let allocItf = .allocator!
         allocItf.free(&req)
         .buffer = null
     }
@@ -334,7 +334,7 @@ impl ReallocDropBuffer
         req.size    = newCapacity * #sizeof(DropOnlyTracked)
         req.oldSize = .capacity * #sizeof(DropOnlyTracked)
         req.address = .buffer
-        let allocItf = notnull .allocator
+        let allocItf = .allocator!
         allocItf.realloc(&req)
         .buffer   = cast(#null [*] DropOnlyTracked) req.address
         .capacity = newCapacity
@@ -344,7 +344,7 @@ impl ReallocDropBuffer
     {
         .reserve(.count + num)
         .count += num
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         return buffer + .count - num
     }
 
@@ -358,7 +358,7 @@ impl ReallocDropBuffer
         var req: AllocatorRequest
         req.size    = .capacity * #sizeof(DropOnlyTracked)
         req.address = .buffer
-        let allocItf = notnull .allocator
+        let allocItf = .allocator!
         allocItf.free(&req)
         .buffer = null
     }
@@ -388,7 +388,7 @@ impl GenericOwnedBuffer
         req.size    = newCapacity * #sizeof(T)
         req.oldSize = .capacity * #sizeof(T)
         req.address = .buffer
-        let allocItf = notnull .allocator
+        let allocItf = .allocator!
         allocItf.realloc(&req)
         .buffer   = cast(#null [*] T) req.address
         .capacity = newCapacity
@@ -398,7 +398,7 @@ impl GenericOwnedBuffer
     {
         .reserve(.count + num)
         .count += num
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         return buffer + .count - num
     }
 
@@ -412,7 +412,7 @@ impl GenericOwnedBuffer
         var req: AllocatorRequest
         req.size    = .capacity * #sizeof(T)
         req.address = .buffer
-        let allocItf = notnull .allocator
+        let allocItf = .allocator!
         allocItf.free(&req)
         .buffer = null
     }
@@ -444,7 +444,7 @@ impl LazyAllocatorGenericBuffer
         req.size    = newCapacity * #sizeof(T)
         req.oldSize = .capacity * #sizeof(T)
         req.address = .buffer
-        let allocItf = notnull .allocator
+        let allocItf = .allocator!
         allocItf.realloc(&req)
         .buffer   = cast(#null [*] T) req.address
         .capacity = newCapacity
@@ -454,7 +454,7 @@ impl LazyAllocatorGenericBuffer
     {
         .reserve(.count + num)
         .count += num
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         return buffer + .count - num
     }
 
@@ -468,7 +468,7 @@ impl LazyAllocatorGenericBuffer
         var req: AllocatorRequest
         req.size    = .capacity * #sizeof(T)
         req.address = .buffer
-        let allocItf = notnull .allocator
+        let allocItf = .allocator!
         allocItf.free(&req)
         .buffer = null
     }
@@ -504,7 +504,7 @@ impl HelperAllocatorGenericBuffer
     {
         .reserve(.count + num)
         .count += num
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         return buffer + .count - num
     }
 
@@ -549,7 +549,7 @@ impl MemoryAllocatorGenericBuffer
     {
         .reserve(.count + num)
         .count += num
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         return buffer + .count - num
     }
 
@@ -559,7 +559,7 @@ impl MemoryAllocatorGenericBuffer
             return
 
         // Drop the removed elements, then relocate the survivors into the freed slots.
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         @drop(buffer + index, num)
         let shiftCount = .count - (index + num)
         for [i] in shiftCount do
@@ -621,7 +621,7 @@ impl PostCopyAllocatorGenericBuffer
     {
         .reserve(.count + num)
         .count += num
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         return buffer + .count - num
     }
 
@@ -1294,7 +1294,7 @@ func intrinsicInitRuntimeCountClosureInfo()->s32
     var start: u64 = 1
     var count: u64 = 2
     @init(cast([*] #null func||()->s32) &values[0] + start, count)
-    let first = notnull values[0]
+    let first = values[0]!
     return first() * 100 + cast(s32) (values[1] == null) * 10 + cast(s32) (values[2] == null)
 }
 
@@ -1326,12 +1326,12 @@ func intrinsicRemoveAtDropOnlyInfo()->IntrinsicInfo
 func intrinsicHeapRemoveAtDropOnlyInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
-    let itf = notnull @getcontext().allocator
+    let itf = @getcontext().allocator!
     var req: AllocatorRequest
     req.size = 3 * #sizeof(DropOnlyTracked)
     itf.alloc(&req)
 
-    let ptr = cast([*] DropOnlyTracked) notnull req.address
+    let ptr = cast([*] DropOnlyTracked) req.address!
     @init(ptr, 3)
     for [i] in 3 do
         ptr[i].value = cast(s32) (i + 1)
@@ -1349,13 +1349,13 @@ func intrinsicOwnedBufferFreeInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
 
-    let itf = notnull @getcontext().allocator
+    let itf = @getcontext().allocator!
     var req: AllocatorRequest
     req.size = 3 * #sizeof(DropOnlyTracked)
     itf.alloc(&req)
 
     var values = OwnedDropBuffer{itf, cast(#null [*] DropOnlyTracked) req.address, 3, 3}
-    let buffer = notnull values.buffer
+    let buffer = values.buffer!
     for [i] in 3 do
         buffer[i].value = cast(s32) (i + 1)
 
@@ -1394,7 +1394,7 @@ func intrinsicMemoryAllocatorGenericBufferRemoveRangeInfo()->IntrinsicInfo
             ptr[i].value = cast(s32) (i + 1)
 
         values.remove(1, 3)
-        let buffer = notnull values.buffer
+        let buffer = values.buffer!
         first  = buffer[0].value
         second = buffer[1].value
         third  = cast(s32) values.count
@@ -1410,7 +1410,7 @@ func intrinsicReallocOwnedBufferAutoDropInfo()->IntrinsicInfo
     resetLifecycleHooks()
 
     {
-        let itf    = notnull @getcontext().allocator
+        let itf    = @getcontext().allocator!
         var values = ReallocDropBuffer{itf, null, 0, 0}
         let ptr    = values.emplaceAddress(3)
         for [i] in 3 do
@@ -1425,7 +1425,7 @@ func intrinsicGenericOwnedBufferAutoDropInfo()->IntrinsicInfo
     resetLifecycleHooks()
 
     {
-        let itf    = notnull @getcontext().allocator
+        let itf    = @getcontext().allocator!
         var values = GenericOwnedBuffer'DropOnlyTracked{itf, null, 0, 0}
         let ptr    = values.emplaceAddress(3)
         for [i] in 3 do
@@ -1510,7 +1510,7 @@ func intrinsicReallocOwnedBufferFreeInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
 
-    let itf    = notnull @getcontext().allocator
+    let itf    = @getcontext().allocator!
     var values = ReallocDropBuffer{itf, null, 0, 0}
     let ptr    = values.emplaceAddress(3)
     for [i] in 3 do

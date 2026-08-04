@@ -56,7 +56,7 @@ public impl ByteStream
     #[Swag.NoDoc]
     mtd data()->const [*] u8
     {
-        return .writeBuffer ? notnull .writeBuffer.buffer : notnull @dataof(.readBuffer)
+        return .writeBuffer ? .writeBuffer.buffer! : @dataof(.readBuffer)!
     }
 
     // Returns true if the end of the buffer was reached during reading
@@ -70,10 +70,10 @@ public impl ByteStream
     {
         Debug.assert(writeBuffer != null)
 
-        let wb = notnull writeBuffer
+        let wb = writeBuffer!
         if seek + #sizeof(T) > wb.count do
             wb.reserve(seek + #sizeof(T))
-        let buffer = notnull wb.buffer
+        let buffer = wb.buffer!
         var ptr    = cast(*T) (buffer + seek)
         dref ptr = val
         seek     += #sizeof(T)
@@ -89,10 +89,10 @@ public impl ByteStream
         if !count do
             return
 
-        let wb = notnull .writeBuffer
+        let wb = .writeBuffer!
         if .seek + count > wb.count do
             wb.reserve(.seek + count)
-        let buffer = notnull wb.buffer
+        let buffer = wb.buffer!
         let ptr    = buffer + .seek
         Memory.copy(ptr, @dataof(slice), count)
         .seek    += count

@@ -63,7 +63,7 @@ func makeLegacyImage()->LegacyImage
     expect encoder.writeAll(&buffer, legacy)
 
     var decoder: Serialization.Decoder'Serialization.Read.TagBin
-    let decoded = notnull expect decoder.readAll'Image(buffer.toString().toSlice())
+    let decoded = expect decoder.readAll'Image(buffer.toString().toSlice())!
     defer Memory.delete(decoded)
 
     @assert(decoded.width == 3)
@@ -76,7 +76,7 @@ func makeLegacyImage()->LegacyImage
     @assert(decoded.isValid())
 
     for [i] in decoded.byteCount do
-        @assert((notnull decoded.pixels.buffer)[i] == cast(u8) (i * 7))
+        @assert(decoded.pixels.buffer![i] == cast(u8) (i * 7))
 
     @assert(decoded.metadata.count == 1)
     @assert(decoded.metadata[0].signature == 0xCAFE)

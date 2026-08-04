@@ -131,7 +131,6 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("try", State.Keyword)
         .mapWords.add("catch", State.Keyword)
         .mapWords.add("expect", State.Keyword)
-        .mapWords.add("notnull", State.Keyword)
         .mapWords.add("fail", State.Keyword)
         .mapWords.add("discard", State.Keyword)
 
@@ -395,7 +394,7 @@ impl IRichEditLexer for RichEditLexerSwag
         if ch == '\n'
         {
             let cp          = ed.selectionStart()
-            let line        = notnull ed.lines[cp.lineIndex]
+            let line        = ed.lines[cp.lineIndex]!
             var str: String = "\n"
 
             if cp.charPosInLine

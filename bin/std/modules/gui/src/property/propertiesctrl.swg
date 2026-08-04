@@ -57,7 +57,7 @@ impl PropertiesCtrl
                 if !sel do
                     return
                 list.toggleExpand(sel)
-                let item = notnull cast(#null *PropertiesItem) sel.userData0
+                let item = cast #unnull (*PropertiesItem) sel.userData0
                 let pos  = item.label.rectRelativeTo(ed.properties.edView)
                 ed.properties.scrollWnd.setScrollPos(0, pos.y)
             }
@@ -76,7 +76,7 @@ impl PropertiesCtrl
         {
             with let filter = EditBox.create(ed, "")
             {
-                .setIcon(ed.theme().icon24(ThemeIcons24.Search, 18))
+                .setIcon(ed.theme().icon(ThemeIcons.Search, 18))
                 .dockStyle = .Top
                 .setPlaceholder(strings().prop_Search)
                 .margin.w       = 8
@@ -93,7 +93,7 @@ impl PropertiesCtrl
                 .margin.w  = 12
                 .dockStyle = .Top
                 .setForm(.PushButton)
-                .sigSelectionChanged += func|ed|(tab) { ed.properties.setCurrentSection(cast(u32) cast(u64) (notnull tab.selectedItem()).userData0); }
+                .sigSelectionChanged += func|ed|(tab) { ed.properties.setCurrentSection(cast(u32) cast(u64) tab.selectedItem()!.userData0); }
             }
         }
 

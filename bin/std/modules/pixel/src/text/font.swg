@@ -193,7 +193,7 @@ public impl FontCache
     {
         for it in .glyphCaches
         {
-            let cache = notnull it
+            let cache = it!
             if cache.typeFace == typeFace and
                cache.refSize == refSize and
                cache.spread == spread and
@@ -235,7 +235,7 @@ public impl FontCache
 
         for it in .fonts
         {
-            let font = notnull it
+            let font = it!
             if font.cache.typeFace == typeFace and
                font.size == size and
                font.cache.refSize == refSize and
@@ -429,7 +429,7 @@ impl GlyphCache
     {
         let entry = .glyphRef.tryFind(glyphIndex)
         if entry do
-            return cast(const *GlyphDesc) (notnull entry.value)
+            return cast(const *GlyphDesc) entry.value!
 
         // Render the glyph
         let bpp = .renderMode.bytesPerPixel()
@@ -440,10 +440,10 @@ impl GlyphCache
         let rowBytes = bmpRef.width * bpp
 
         // Creates a new atlas if this is the first time, or if the last atlas is full
-        var atlas = .atlases.count ? &(notnull .atlases.buffer)[.atlases.count - 1] : null
+        var atlas = .atlases.count ? &.atlases.buffer![.atlases.count - 1] : null
         if atlas
         {
-            let a = notnull atlas
+            let a = atlas!
             if a.curX + rowBytes > a.width
             {
                 a.curX = 0
@@ -466,20 +466,20 @@ impl GlyphCache
             newAtlas.width  = atlasSide * newAtlas.bytesPerPixel
             newAtlas.height = atlasSide
             newAtlas.data.resize(cast(u64) newAtlas.width * newAtlas.height)
-            let data = notnull newAtlas.data.buffer
+            let data = newAtlas.data.buffer!
             Memory.clear(data, newAtlas.data.count)
             .atlases.add(newAtlas)
-            atlas = &(notnull .atlases.buffer)[.atlases.count - 1]
+            atlas = &.atlases.buffer![.atlases.count - 1]
         }
 
-        let ca = notnull atlas
+        let ca = atlas!
         let x  = ca.curX
         let y  = ca.curY
         ca.curX  += rowBytes
         ca.nextY = Math.max(ca.nextY, ca.curY + bmpRef.rows)
 
         // Copy the rendered glyph to the atlas datas
-        var buffer = (notnull ca.data.buffer) + x + (ca.width * (ca.height - 1))
+        var buffer = ca.data.buffer! + x + (ca.width * (ca.height - 1))
         buffer -= (y * ca.width)
         var src = bmpRef.buffer
         for [j] in bmpRef.rows

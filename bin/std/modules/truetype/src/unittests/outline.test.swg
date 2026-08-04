@@ -28,7 +28,7 @@ using Swag, Core
 {
     var scope: FaceScope
     scope.init()
-    let face = notnull scope.face
+    let face = scope.face!
 
     discard expect face.setPixelSize(0, 18)
     discard expect face.loadChar('A')
@@ -60,7 +60,7 @@ using Swag, Core
 
     discard expect face.loadChar('A')
     let transformIdx     = findPointWithNonZeroY(&face.glyph.outline)
-    let transformPts     = notnull face.glyph.outline.points
+    let transformPts     = face.glyph.outline.points!
     let beforeTransformX = transformPts[transformIdx].x
     let beforeTransformY = transformPts[transformIdx].y
     let scaleY           = Matrix{xx: 65536, yy: 131072}
@@ -86,7 +86,7 @@ using Swag, Core
 
     discard expect face.loadChar('A')
     let sampleIdx     = findPointWithNonZeroY(&face.glyph.outline)
-    let samplePts     = notnull face.glyph.outline.points
+    let samplePts     = face.glyph.outline.points!
     let sampleBeforeX = samplePts[sampleIdx].x
     let sampleBeforeY = samplePts[sampleIdx].y
     face.glyph.oblique()

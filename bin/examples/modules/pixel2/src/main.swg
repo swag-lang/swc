@@ -32,15 +32,15 @@ func loadFonts() fail
     let path = g_FontPath.toString()
 
     g_FontBytes = File.readAllBytes(path)
-    let face = notnull (try Face.load(g_FontBytes.toSlice()))
+    let face = (try Face.load(g_FontBytes.toSlice()))!
     g_Face = face
 
     g_FontInfo = Format.toString("% % | % glyphs | % bytes", face.familyName, face.styleName, face.glyphCount, g_FontBytes.count)
 
     g_TypeFace  = TypeFace.create(path, g_FontBytes.toSlice())
-    g_TitleFont = g_Renderer.fonts.createFont(notnull g_TypeFace, 54)
-    g_BodyFont  = g_Renderer.fonts.createFont(notnull g_TypeFace, 34)
-    g_InfoFont  = g_Renderer.fonts.createFont(notnull g_TypeFace, 18)
+    g_TitleFont = g_Renderer.fonts.createFont(g_TypeFace!, 54)
+    g_BodyFont  = g_Renderer.fonts.createFont(g_TypeFace!, 34)
+    g_InfoFont  = g_Renderer.fonts.createFont(g_TypeFace!, 18)
 }
 
 func dropFonts()
@@ -66,17 +66,17 @@ func drawScene(painter: *Pixel.Painter)
     painter.fillCircle(650, 128, 98, glowColor)
     painter.drawRoundRect(56, 58, 688, 320, 24, 24, Argb.DarkSlateBlue, 3)
 
-    painter.drawString(88, 92, "TrueType text", notnull g_TitleFont, Argb.White)
-    painter.drawString(92, 176, "Sphinx of black quartz, judge my vow.", notnull g_BodyFont, Argb.LightCyan)
-    painter.drawString(92, 240, "Loaded from src/data/segoeui.ttf", notnull g_InfoFont, Argb.LightSteelBlue)
-    painter.drawString(92, 270, g_FontInfo, notnull g_InfoFont, Argb.PaleGoldenrod)
+    painter.drawString(88, 92, "TrueType text", g_TitleFont!, Argb.White)
+    painter.drawString(92, 176, "Sphinx of black quartz, judge my vow.", g_BodyFont!, Argb.LightCyan)
+    painter.drawString(92, 240, "Loaded from src/data/segoeui.ttf", g_InfoFont!, Argb.LightSteelBlue)
+    painter.drawString(92, 270, g_FontInfo, g_InfoFont!, Argb.PaleGoldenrod)
 
     var baseline = Pen.createSolid(Argb.CadetBlue, 2)
     baseline.begCapStyle = .Round
     baseline.endCapStyle = .Round
     painter.drawLine(88, 324, 708, 324, baseline)
 
-    painter.drawStringCenter(W * 0.5, 414, "Pixel + TrueType", notnull g_BodyFont, Argb.DarkSlateGray)
+    painter.drawStringCenter(W * 0.5, 414, "Pixel + TrueType", g_BodyFont!, Argb.DarkSlateGray)
 }
 
 func display()

@@ -31,16 +31,16 @@ func assertIntArrayPtr(values: &ArrayPtr's32, expected: const [..] s32)->bool
 
     for value, [index] in values
     {
-        let src = notnull value
-        let dup = notnull copy[index]
+        let src = value!
+        let dup = copy[index]!
         @assert(dup != src)
         @assert(dref dup == dref src)
     }
 
-    let slot1 = notnull copy[1]
+    let slot1 = copy[1]!
     dref slot1 = 42
-    @assert((dref notnull values[1]) == 2)
-    @assert((dref notnull copy[1]) == 42)
+    @assert((dref values[1]!) == 2)
+    @assert((dref copy[1]!) == 42)
 }
 
 #test
@@ -58,8 +58,8 @@ func assertIntArrayPtr(values: &ArrayPtr's32, expected: const [..] s32)->bool
     @assert(copy[2] != null)
     @assert(copy[0] != values[0])
     @assert(copy[2] != values[2])
-    @assert((dref notnull copy[0]) == 7)
-    @assert((dref notnull copy[2]) == 9)
+    @assert((dref copy[0]!) == 7)
+    @assert((dref copy[2]!) == 9)
 }
 
 var g_ApDropCount: s32
@@ -91,8 +91,8 @@ impl ApTracked
     }
 
     @assert(arr.count == 5)
-    @assert((notnull arr.first()).id == 0)
-    @assert((notnull arr.last()).id == 4)
+    @assert(arr.first()!.id == 0)
+    @assert(arr.last()!.id == 4)
 
     let third = arr[2]
     @assert(arr.indexOf(third) == 2)
@@ -103,29 +103,29 @@ impl ApTracked
     // deleteAt keeps order and drops the object: [0,1,2,3,4] -> remove id 1 -> [0,2,3,4].
     arr.deleteAt(1)
     @assert(arr.count == 4 and g_ApDropCount == 1)
-    let a0 = notnull arr[0]
-    let a1 = notnull arr[1]
-    let a2 = notnull arr[2]
-    let a3 = notnull arr[3]
+    let a0 = arr[0]!
+    let a1 = arr[1]!
+    let a2 = arr[2]!
+    let a3 = arr[3]!
     @assert(a0.id == 0 and a1.id == 2 and a2.id == 3 and a3.id == 4)
 
     // deleteBack drops the last: -> [0,2,3].
     arr.deleteBack()
     @assert(arr.count == 3 and g_ApDropCount == 2)
-    @assert((notnull arr.last()).id == 3)
+    @assert(arr.last()!.id == 3)
 
     // deleteAtUnordered swaps the last into the hole: remove index 0 (id 0) -> [3,2].
     arr.deleteAtUnordered(0)
     @assert(arr.count == 2 and g_ApDropCount == 3)
-    let b0 = notnull arr[0]
-    let b1 = notnull arr[1]
+    let b0 = arr[0]!
+    let b1 = arr[1]!
     @assert(b0.id == 3 and b1.id == 2)
 
     // insertNewPtr allocates and inserts at the index.
     let ins = arr.insertNew(1)
     ins.id = 99
     @assert(arr.count == 3)
-    let c1 = notnull arr[1]
+    let c1 = arr[1]!
     @assert(c1.id == 99)
 
 // The 3 remaining elements are deallocated when 'arr' drops at scope end.

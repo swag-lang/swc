@@ -24,7 +24,7 @@ func expectSafetyEnabled()->bool
 
 #test
 {
-    const cfg      = #run dref notnull @compiler.getBuildCfg()
+    const cfg      = #run dref @compiler.getBuildCfg()!
     const expected = cfg.safetyGuards & Swag.SafetyWhat.Expect ? true : false
     #assert(#safety(Swag.SafetyWhat.Expect) == expected)
 }
@@ -70,7 +70,7 @@ func expectSafetyEnabled()->bool
     func expectNullableFailurePanic()->bool
     {
         let value: #null *s32 = null
-        let ptr               = notnull value     // swc-expected-error {{safety_err_runtime}}
+        let ptr               = value!     // swc-expected-error {{safety_err_runtime}}
         return ptr != null
     }
 
@@ -118,5 +118,33 @@ func expectAccessNode(present: bool)->#null *ExpectAccessNode => present ? &g_ex
     }
 
     const value = #run notNullAccessSuccess()
+    #assert(value == 42)
+}
+
+// 'cast #unnull' crosses the nullable boundary under the same safety category.
+func expectRawNode(present: bool)->#null *void => present ? cast(*void) &g_expectAccessNode : null
+
+#test
+{
+    #[Swag.Safety(.Expect, true)]
+    func unNullCastPanic()->s32
+    {
+        let node = cast #unnull (*ExpectAccessNode) expectRawNode(false)     // swc-expected-error {{safety_err_runtime}}
+        return node.value
+    }
+
+    const value = #run unNullCastPanic()
+}
+
+#test
+{
+    #[Swag.Safety(.Expect, true)]
+    func unNullCastSuccess()->s32
+    {
+        let node = cast #unnull (*ExpectAccessNode) expectRawNode(true)
+        return node.value
+    }
+
+    const value = #run unNullCastSuccess()
     #assert(value == 42)
 }

@@ -6,7 +6,7 @@ using Swag, Core
 {
     var scope: FaceScope
     scope.init("arial.ttf")
-    let face = notnull scope.face
+    let face = scope.face!
 
     let glyphA = face.glyphIndex('A')
     let glyphV = face.glyphIndex('V')

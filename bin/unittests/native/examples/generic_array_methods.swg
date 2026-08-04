@@ -40,7 +40,7 @@ impl DynArray
             me.capacity = newCapacity
         }
 
-        let data = notnull me.data
+        let data = me .data!
         data[me.count] = value
         me.count       += 1
     }
@@ -49,20 +49,20 @@ impl DynArray
     {
         @assert(.count > 0)
         .count -= 1
-        return (notnull .data)[.count]
+        return .data![.count]
     }
 
     func get(me, index: u64)->T
     {
         @assert(index < me.count)
-        let data = notnull me.data
+        let data = me .data!
         return data[index]
     }
 
     func set(me, index: u64, value: T)
     {
         @assert(index < me.count)
-        let data = notnull me.data
+        let data = me .data!
         data[index] = value
     }
 
@@ -74,12 +74,12 @@ impl DynArray
     mtd last()->T
     {
         @assert(.count > 0)
-        return (notnull .data)[.count - 1]
+        return .data![.count - 1]
     }
 
     func contains(me, value: T)->bool
     {
-        let data = notnull me.data
+        let data = me .data!
         for [i] in me.count
         {
             if data[i] == value do
@@ -92,7 +92,7 @@ impl DynArray
     func removeAt(me, index: u64)
     {
         @assert(index < me.count)
-        let data = notnull me.data
+        let data = me .data!
         var i    = index
         while i + 1 < me.count
         {
@@ -113,7 +113,7 @@ impl DynArray
             me.capacity = newCapacity
         }
 
-        let data = notnull me.data
+        let data = me .data!
         var i    = me.count
         while i > index
         {
@@ -131,7 +131,7 @@ impl DynArray
             return
         var lo: u64 = 0
         var hi      = .count - 1
-        let data    = notnull .data
+        let data    = .data!
         while lo < hi
         {
             let tmp = data[lo]

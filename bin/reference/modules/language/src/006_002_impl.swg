@@ -86,7 +86,7 @@ alias ReflectedMyStructMethod = func(&MyStruct)->s32
 #test
 {
     let type    = cast(const *Swag.TypeInfoStruct) #type MyStruct
-    let methods = notnull type.methods
+    let methods = type.methods!
     var returnX: #null const *Swag.TypeValue
 
     for &method in methods
@@ -99,10 +99,10 @@ alias ReflectedMyStructMethod = func(&MyStruct)->s32
     }
 
     @assert(returnX != null)
-    let method = notnull returnX
+    let method = returnX!
     @assert(method.pointedType!.kind == .Func)
 
-    let call = cast(ReflectedMyStructMethod) notnull method.value
+    let call = cast(ReflectedMyStructMethod) method.value!
     var value: MyStruct
     @assert(call(&value) == 5)
 }

@@ -16,7 +16,7 @@ impl IActionUI for ActionGlobal
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let main = cast(*MainWnd) notnull cxt.wnd
+        let main = cast(*MainWnd) cxt.wnd!
 
         switch cxt.id
         {
@@ -33,12 +33,12 @@ impl IActionUI for ActionGlobal
         case .Exit:
             evt.updatedFields |= .Name | .Icon
             evt.name          = appStrings().act_Quit
-            evt.icon          = main.theme().icon24(.Quit)
+            evt.icon          = main.theme().icon(.Quit)
 
         case .Minimize:
             evt.updatedFields |= .Name | .Icon
             evt.name          = appStrings().act_Minimize
-            evt.icon          = main.theme().icon24(.Minimize)
+            evt.icon          = main.theme().icon(.Minimize)
         }
 
         return true
@@ -46,12 +46,12 @@ impl IActionUI for ActionGlobal
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main = cast(*MainWnd) notnull cxt.wnd
+        let main = cast(*MainWnd) cxt.wnd!
 
         switch cxt.id
         {
         case .ShowEditor:
-            let srf = notnull main.surface
+            let srf = main.surface!
             srf.show()
             srf.bringToFront()
 

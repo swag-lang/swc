@@ -54,7 +54,7 @@ impl RecursiveAssocTable
 
         let oldTable    = .table
         let oldCapacity = .capacity
-        let newTable    = cast([*] RecursiveAssocEntry'(K, V)) notnull @alloc(oldCapacity * #sizeof(RecursiveAssocEntry'(K, V)))
+        let newTable    = cast([*] RecursiveAssocEntry'(K, V)) (@alloc(oldCapacity * #sizeof(RecursiveAssocEntry'(K, V))))!
         .table = newTable
 
         for [i] in oldCapacity
@@ -95,7 +95,7 @@ impl RecursiveAssocTable
         let oldTable    = .table
         let oldCapacity = .capacity
 
-        let newTable = cast([*] RecursiveAssocEntry'(K, V)) notnull @alloc(reqCapacity * #sizeof(RecursiveAssocEntry'(K, V)))
+        let newTable = cast([*] RecursiveAssocEntry'(K, V)) (@alloc(reqCapacity * #sizeof(RecursiveAssocEntry'(K, V))))!
         .table    = newTable
         .count    = 0
         .deleted  = 0
@@ -123,7 +123,7 @@ impl RecursiveAssocTable
     {
         .grow()
 
-        let table = notnull .table
+        let table = .table!
         var index = hashVal % .capacity
         while table[index].hash >= 2
         {
@@ -220,8 +220,8 @@ struct RecursiveAssocNode
     @assert(assocMap.contains(10))
     @assert(assocMap.contains(20))
 
-    let foundA = notnull assocMap.tryFind(10)
-    let foundB = notnull assocMap.tryFind(20)
+    let foundA = assocMap.tryFind(10)!
+    let foundB = assocMap.tryFind(20)!
     @assert(foundA.value.count == 1)
     @assert(foundB.value.count == 1)
     @assert(foundA.value.first == &nodeA)
@@ -244,8 +244,8 @@ struct RecursiveAssocNode
     @assert(assocCopy.contains(10))
     @assert(assocCopy.contains(20))
 
-    let copyA = notnull assocCopy.tryFind(10)
-    let copyB = notnull assocCopy.tryFind(20)
+    let copyA = assocCopy.tryFind(10)!
+    let copyB = assocCopy.tryFind(20)!
     @assert(copyA.value.count == 1)
     @assert(copyB.value.count == 1)
     @assert(copyA.value.first == &nodeA)

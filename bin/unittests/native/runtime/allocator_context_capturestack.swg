@@ -14,14 +14,14 @@ func contextCaptureAlloc(size: u64, alignment: u32 = 0)->AllocatorRequest
     var req: AllocatorRequest
     req.size      = size
     req.alignment = alignment
-    let allocItf = notnull @getcontext().allocator
+    let allocItf = @getcontext().allocator!
     allocItf.alloc(&req)
     return req
 }
 
 func contextCaptureFree(req: *AllocatorRequest)
 {
-    let allocItf = notnull @getcontext().allocator
+    let allocItf = @getcontext().allocator!
     allocItf.free(req)
     @assert(req.address == null)
 }
@@ -38,17 +38,17 @@ func contextCaptureFree(req: *AllocatorRequest)
     var req = contextCaptureAlloc(80)
     @assert(req.address != null)
 
-    let ptr = cast([*] u8) notnull req.address
+    let ptr = cast([*] u8) req.address!
     for [i] in 80 do
         ptr[i] = cast(u8) (i + 9)
 
     req.oldSize = 80
     req.size    = 4096
-    let allocItf = notnull @getcontext().allocator
+    let allocItf = @getcontext().allocator!
     allocItf.realloc(&req)
     @assert(req.address != null)
 
-    let grown = cast([*] u8) notnull req.address
+    let grown = cast([*] u8) req.address!
     for [i] in 80 do
         @assert(grown[i] == cast(u8) (i + 9))
 
@@ -91,7 +91,7 @@ func contextCaptureFree(req: *AllocatorRequest)
     itf.alloc(&req)
     @assert(req.address != null)
 
-    let header = cast(*AllocatorHeader) (cast([*] u8) (notnull req.address) - #sizeof(AllocatorHeader))
+    let header = cast(*AllocatorHeader) (cast([*] u8) req.address! - #sizeof(AllocatorHeader))
     @assert(header.magic == Allocator.MagicAlloc)
     @assert(header.stackCount <= @countof(header.stack))
 

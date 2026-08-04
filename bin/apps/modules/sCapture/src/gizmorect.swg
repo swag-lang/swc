@@ -412,7 +412,7 @@ impl GizmoRect
     mtd apply(iform: IForm, first: bool, hitMove: u32)
     {
         let form    = cast(*BaseForm) @dataof(iform)
-        let capture = notnull form.capture
+        let capture = form.capture!
         let oldRect = iform.boundRect()
         capture.interactiveMove = true
         if !first do
@@ -498,13 +498,13 @@ impl GizmoRect
     mtd applyRotate(iform: IForm, first, last: bool, angle: f32)
     {
         let form    = cast(*BaseForm) @dataof(iform)
-        let capture = notnull form.capture
+        let capture = form.capture!
         if !first do
             capture.undo()
 
         let undo = capture.newUndo(.SetTypedValue)
         undo.valU32 = cast #bit (u32) angle
-        undo.valRef = notnull Reflection.findField(BaseForm, #nameof(BaseForm.rotate))
+        undo.valRef = Reflection.findField(BaseForm, #nameof(BaseForm.rotate))!
         capture.pushUndo(undo)
 
         let main = capture.editView!.main

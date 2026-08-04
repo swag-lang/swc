@@ -12,7 +12,7 @@ namespace GenericCloneCodegenSupport
         req.size    = size
         req.address = buffer
 
-        let talloc = notnull (allocator orelse @getcontext().allocator)
+        let talloc = (allocator orelse @getcontext().allocator)!
         talloc.free(&req)
     }
 
@@ -23,7 +23,7 @@ namespace GenericCloneCodegenSupport
         req.size    = newSize
         req.oldSize = oldSize
 
-        let talloc = notnull (allocator orelse @getcontext().allocator)
+        let talloc = (allocator orelse @getcontext().allocator)!
         talloc.realloc(&req)
         return req.address
     }
@@ -54,7 +54,7 @@ namespace GenericCloneCodegenSupport
 
         mtd add(value: T)
         {
-            let buf = notnull .buffer
+            let buf = .buffer!
             buf[.count] = value
             .count      += 1
         }
@@ -76,7 +76,7 @@ namespace GenericCloneCodegenSupport
     {
         mtd addNew(value: T)
         {
-            let ptr = notnull cast(#null *T) @alloc(#sizeof(T))
+            let ptr = cast #unnull (*T) @alloc(#sizeof(T))
             dref ptr = value
             .values.add(ptr)
         }
@@ -132,7 +132,7 @@ namespace GenericCloneCodegenSupport
 
         mtd addNew(value: T)
         {
-            let ptr = notnull cast(#null *T) @alloc(#sizeof(T))
+            let ptr = cast #unnull (*T) @alloc(#sizeof(T))
             dref ptr = value
             if .count == 0 do
                 .first = ptr
@@ -187,8 +187,8 @@ namespace GenericCloneCodegenSupport
     values.addNew(3)
     values.addNew(5)
 
-    @assert(dref (notnull values.first) == 3)
-    @assert(dref (notnull values.second) == 5)
+    @assert(dref values.first! == 3)
+    @assert(dref values.second! == 5)
 
     values.clearOwned()
     @assert(values.count == 0)

@@ -241,7 +241,11 @@ public impl LinePath
         }
     }
 
-    private mtd setRectRaw(l, t, w, h: f32)
+    // Initialize the path with a rectangle at exact coordinates.
+    //
+    // Unlike [[setRect]], nothing is snapped to the pixel grid: authored fractional
+    // geometry, such as a parsed vector document, stays untouched.
+    mtd setRectRaw(l, t, w, h: f32)
     {
         let r = l + w
         let b = t + h
@@ -265,21 +269,16 @@ public impl LinePath
         .setRectRaw(l, t, w, h)
     }
 
-    // Initialize the path with a round rectangle
-    mtd setRoundRect(left, top, width, height: f32, radiusX, radiusY: f32)
+    // Initialize the path with a round rectangle at exact coordinates.
+    //
+    // Unlike [[setRoundRect]], nothing is snapped to the pixel grid; the radii are
+    // clamped to half the dimensions, so a full radius produces a capsule.
+    mtd setRoundRectRaw(l, t, w, h: f32, radiusX, radiusY: f32)
     {
-        let l = Math.round(left)
-        let t = Math.round(top)
-        let w = Math.round(width)
-        let h = Math.round(height)
-
-        let r = l + w
-        let b = t + h
-
-        var rX = Math.min(radiusX, (w * 0.5))
-        var rY = Math.min(radiusY, (h * 0.5))
-        rX = Math.round(rX)
-        rY = Math.round(rY)
+        let r  = l + w
+        let b  = t + h
+        let rX = Math.max(Math.min(radiusX, w * 0.5), 0.0)
+        let rY = Math.max(Math.min(radiusY, h * 0.5), 0.0)
 
         .start(l, t + rY)
         .arcTo(l + rX, t + rY, rX, rY, 270'deg, 360'deg)
@@ -292,7 +291,21 @@ public impl LinePath
         .close()
     }
 
-    private mtd setEllipseRaw(cX, cY: f32, rX, rY: f32)
+    // Initialize the path with a round rectangle
+    mtd setRoundRect(left, top, width, height: f32, radiusX, radiusY: f32)
+    {
+        let l = Math.round(left)
+        let t = Math.round(top)
+        let w = Math.round(width)
+        let h = Math.round(height)
+
+        .setRoundRectRaw(l, t, w, h, Math.round(radiusX), Math.round(radiusY))
+    }
+
+    // Initialize the path with an ellipse at exact coordinates.
+    //
+    // Unlike [[setEllipse]], the center and radii are not snapped to the pixel grid.
+    mtd setEllipseRaw(cX, cY: f32, rX, rY: f32)
     {
         .start(cX, cY - rY)
         .arcTo(cX, cY, rX, rY, 0'deg, 90'deg)
@@ -448,6 +461,12 @@ impl LinePath
 
     mtd flattenLine(pos: Vector2)
     {
+        // Curve subdivision and authored paths can land two consecutive samples on
+        // the same spot; a coincident point draws nothing, breaks stroke joins, and
+        // degenerates fill triangulation, so it is never emitted.
+        if .polygon.points.count and Math.abs(pos.x - .endPosBuffer.x) < 0.0001 and Math.abs(pos.y - .endPosBuffer.y) < 0.0001 do
+            return
+
         .minBounds = Vector2.min(.minBounds, pos)
         .maxBounds = Vector2.max(.maxBounds, pos)
         .polygon.add(pos)

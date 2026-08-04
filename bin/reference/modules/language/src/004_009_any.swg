@@ -19,7 +19,7 @@
 
     // Now store a string
     a = "string"
-    @assert(cast(string) (notnull a) == "string")
+    @assert(cast(string) a! == "string")
 
     // Now store a bool
     a = true
@@ -115,7 +115,7 @@ An 'any' value can be null, similar to pointers and other nullable types.
 
     x = "string"
     @assert(x != null)
-    @assert(cast(string) (notnull x) == "string")
+    @assert(cast(string) x! == "string")
 
     x = null
     @assert(x == null)

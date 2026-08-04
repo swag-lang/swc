@@ -2,12 +2,6 @@
 
 using Core, Pixel
 
-// Maps an authored-texel rectangle onto a texture rasterized `k` times larger.
-private func atlasSrc(r: Math.Rectangle, k: f32)->Math.Rectangle
-{
-    return Math.Rectangle{r.x * k, r.y * k, r.width * k, r.height * k}
-}
-
 impl Theme
 {
     // Draws a themed image region, using its optional nine-slice margins.
@@ -47,14 +41,14 @@ impl Theme
 
         if subRect.corner == 0
         {
-            painter.drawTexture(dstRect, atlasSrc(subRect.rect, k), texture, color)
+            painter.drawTexture(dstRect, subRect.rect.scaledFromOrigin(k), texture, color)
             return
         }
 
         let cx, cy = subRect.corner
         if dstRect.width <= subRect.rect.width and dstRect.height <= subRect.rect.height
         {
-            painter.drawTexture(dstRect, atlasSrc(subRect.rect, k), texture, color)
+            painter.drawTexture(dstRect, subRect.rect.scaledFromOrigin(k), texture, color)
             return
         }
 
@@ -81,21 +75,21 @@ impl Theme
                 d.height = cyd
                 s.width  = cx
                 s.height = cy
-                painter.drawTexture(d, atlasSrc(s, k), texture, color)
+                painter.drawTexture(d, s.scaledFromOrigin(k), texture, color)
 
             case 1, 7:
                 d.x     += cxd
                 s.x     += cx
                 d.width = dstRect.width - (cxd * 2)
                 s.width = subRect.rect.width - (cx * 2)
-                painter.drawTexture(d, atlasSrc(s, k), texture, color)
+                painter.drawTexture(d, s.scaledFromOrigin(k), texture, color)
 
             case 2, 8:
                 d.x     = dstRect.x + dstRect.width - cxd
                 s.x     = subRect.rect.x + subRect.rect.width - cx
                 d.width = cxd
                 s.width = cx
-                painter.drawTexture(d, atlasSrc(s, k), texture, color)
+                painter.drawTexture(d, s.scaledFromOrigin(k), texture, color)
 
             case 3:
                 d.x      = dstRect.x
@@ -106,7 +100,7 @@ impl Theme
                 s.width  = cx
                 d.height = dstRect.height - (cyd * 2)
                 s.height = subRect.rect.height - (cy * 2)
-                painter.drawTexture(d, atlasSrc(s, k), texture, color)
+                painter.drawTexture(d, s.scaledFromOrigin(k), texture, color)
 
             case 4:
                 d.x      += cxd
@@ -116,14 +110,14 @@ impl Theme
                 s.width  = subRect.rect.width - (cx * 2)
                 s.height = subRect.rect.height - (cy * 2)
                 if center do
-                    painter.drawTexture(d, atlasSrc(s, k), texture, color)
+                    painter.drawTexture(d, s.scaledFromOrigin(k), texture, color)
 
             case 5:
                 d.x     += d.width
                 s.x     += s.width
                 d.width = cxd
                 s.width = cx
-                painter.drawTexture(d, atlasSrc(s, k), texture, color)
+                painter.drawTexture(d, s.scaledFromOrigin(k), texture, color)
 
             case 6:
                 d.x      = dstRect.x
@@ -134,7 +128,7 @@ impl Theme
                 d.height = cyd
                 s.width  = cx
                 s.height = cy
-                painter.drawTexture(d, atlasSrc(s, k), texture, color)
+                painter.drawTexture(d, s.scaledFromOrigin(k), texture, color)
             }
         }
     }

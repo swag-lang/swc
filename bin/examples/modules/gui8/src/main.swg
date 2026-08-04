@@ -77,14 +77,14 @@ func sampleIcon(index: s32, size = 16'f32)->Icon
 {
     switch index % 8
     {
-    case 0:  return app.theme.icon24(.Search, size)
-    case 1:  return app.theme.icon24(.OpenFile, size)
-    case 2:  return app.theme.icon24(.Edit, size)
-    case 3:  return app.theme.icon24(.Filter, size)
-    case 4:  return app.theme.icon24(.Options, size)
-    case 5:  return app.theme.icon24(.Download, size)
-    case 6:  return app.theme.icon24(.Link, size)
-    default: return app.theme.icon24(.Sort, size)
+    case 0:  return app.theme.icon(.Search, size)
+    case 1:  return app.theme.icon(.OpenFile, size)
+    case 2:  return app.theme.icon(.Edit, size)
+    case 3:  return app.theme.icon(.Filter, size)
+    case 4:  return app.theme.icon(.Options, size)
+    case 5:  return app.theme.icon(.Download, size)
+    case 6:  return app.theme.icon(.Link, size)
+    default: return app.theme.icon(.Sort, size)
     }
 }
 
@@ -137,9 +137,9 @@ func pageSubtitle(page: s32)->string
 
 func updateHeader()
 {
-    let title    = notnull g_Title
-    let subTitle = notnull g_SubTitle
-    let footer   = notnull g_Footer
+    let title    = g_Title!
+    let subTitle = g_SubTitle!
+    let footer   = g_Footer!
     title.setText(Format.toString("GUI8 list showcase - %", pageTitle(g_Page)))
     subTitle.setText(pageSubtitle(g_Page))
     footer.setText(Format.toString("F1 : next page (%/%). Resize the window to stress list and header layout.", g_Page + 1, MaxPages))
@@ -147,7 +147,7 @@ func updateHeader()
 
 func updateThemeButton()
 {
-    let btn = notnull g_ThemeButton
+    let btn = g_ThemeButton!
     if g_DarkTheme do
         btn.name = "White theme"
     else do
@@ -174,10 +174,10 @@ func toggleTheme(_btn: *Button)
 
 func clearPage()
 {
-    let pageView0 = notnull g_PageView
+    let pageView0 = g_PageView!
     for child in pageView0.children
     {
-        let c = notnull child
+        let c = child!
         c.destroy()
     }
 }
@@ -189,15 +189,15 @@ func buildPage()
 
     switch g_Page
     {
-    case 0:  createListsPage(notnull g_PageView)
-    case 1:  createColumnsPage(notnull g_PageView)
-    case 2:  createTreesPage(notnull g_PageView)
-    case 3:  createHeadersPage(notnull g_PageView)
+    case 0:  createListsPage(g_PageView!)
+    case 1:  createColumnsPage(g_PageView!)
+    case 2:  createTreesPage(g_PageView!)
+    case 3:  createHeadersPage(g_PageView!)
     default: unreachable
     }
 
-    refreshLayoutTree(notnull g_PageView)
-    let pv = notnull g_PageView
+    refreshLayoutTree(g_PageView!)
+    let pv = g_PageView!
     pv.invalidate()
 }
 
@@ -206,8 +206,8 @@ func layoutRootView()
     if !g_View or !g_PageView do
         return
 
-    let view     = notnull g_View
-    let pageView = notnull g_PageView
+    let view     = g_View!
+    let pageView = g_PageView!
 
     let rect         = view.clientRect()
     let contentWidth = Math.max(rect.width - 2 * RootMargin, 1.0)
@@ -215,10 +215,10 @@ func layoutRootView()
     let footerY      = Math.max(rect.height - 42.0, PageTop + pageHeight + 6.0)
     let titleWidth   = Math.max(contentWidth - ThemeButtonWidth - HeaderGap, 1.0)
 
-    let title2      = notnull g_Title
-    let themeButton = notnull g_ThemeButton
-    let subTitle2   = notnull g_SubTitle
-    let footer2     = notnull g_Footer
+    let title2      = g_Title!
+    let themeButton = g_ThemeButton!
+    let subTitle2   = g_SubTitle!
+    let footer2     = g_Footer!
     title2.setPosition({RootMargin, 18, titleWidth, 34})
     themeButton.setPosition({RootMargin + titleWidth + HeaderGap, 18, ThemeButtonWidth, 34})
     subTitle2.setPosition({RootMargin + 2, 56, contentWidth - 4, 42})
@@ -264,14 +264,14 @@ func canUsePageArrows()->bool
     if !g_View or !g_PageView do
         return false
 
-    let view2     = notnull g_View
-    let pageView2 = notnull g_PageView
+    let view2     = g_View!
+    let pageView2 = g_PageView!
 
     let focus = view2.focusedWindow()
     if !focus or focus == g_View do
         return true
 
-    return !pageView2.isAncestorOf(notnull focus)
+    return !pageView2.isAncestorOf(focus!)
 }
 
 func onFrame(app: *Application)
@@ -327,7 +327,7 @@ func createRootView()
     let themeButton = PushButton.create(view, "", {})
     g_ThemeButton = themeButton
     themeButton.setForm(.Flat)
-    themeButton.setIcon(app.theme.icon24(.Picker, 18))
+    themeButton.setIcon(app.theme.icon(.Picker, 18))
     themeButton.sigPressed += &toggleTheme
 
     let pageView = Wnd.create'Wnd(view, {})
@@ -346,10 +346,10 @@ func createRootView()
 #main
 {
     let flags   = SurfaceFlags.LargeCaption | SurfaceFlags.MinimizeButton | SurfaceFlags.CloseButton | SurfaceFlags.Border | SurfaceFlags.Resizable
-    let surface = notnull (try app.createSurface(120, 90, W - 46, H - 31, flags))
+    let surface = (try app.createSurface(120, 90, W - 46, H - 31, flags))!
     g_Surface = surface
     surface.setTitle("GUI8 list showcase")
-    surface.setIcon(app.theme.icon24(.Sort, 18))
+    surface.setIcon(app.theme.icon(.Sort, 18))
 
     createRootView()
     buildPage()

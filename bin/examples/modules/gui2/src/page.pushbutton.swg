@@ -6,19 +6,19 @@ func createPushButtonPage(parent: *Wnd)
     let left   = createPanel(parent, "Forms", "The same command rendered with the standard push button forms.", layout.left)
     {
         var btn = PushButton.create(left, "Normal", {22, 92, 150})
-        btn.setIcon(app.theme.icon24(ThemeIcons24.Play, 18))
+        btn.setIcon(app.theme.icon(ThemeIcons.Play, 18))
 
         btn = PushButton.create(left, "Default", {190, 92, 150})
         btn.setForm(.Default)
-        btn.setIcon(app.theme.icon24(ThemeIcons24.Save, 18))
+        btn.setIcon(app.theme.icon(ThemeIcons.Save, 18))
 
         btn = PushButton.create(left, "Flat", {22, 142, 150})
         btn.setForm(.Flat)
-        btn.setIcon(app.theme.icon24(ThemeIcons24.Search, 18))
+        btn.setIcon(app.theme.icon(ThemeIcons.Search, 18))
 
         btn = PushButton.create(left, "Strong", {190, 142, 150})
         btn.setForm(.Strong)
-        btn.setIcon(app.theme.icon24(ThemeIcons24.Download, 18))
+        btn.setIcon(app.theme.icon(ThemeIcons.Download, 18))
     }
 
     let right = createPanel(parent, "States", "Hot/pressed states are interactive; disabled and long text variants check clipping.", layout.right)
@@ -43,7 +43,7 @@ func createPushButtonPage(parent: *Wnd)
     {
         var btn = PushButton.create(bottom, "Custom flat action", {22, 96, 220})
         btn.setForm(.Flat)
-        btn.setIcon(app.theme.icon24(ThemeIcons24.Filter, 18))
+        btn.setIcon(app.theme.icon(ThemeIcons.Filter, 18))
         btn.style.addStyleSheetColors("btnPushFlat_HotBk 0xFF2F8F5B")
         btn.style.addStyleSheetColors("btnPushFlat_PressedBk 0xFF236B44")
         btn.style.addStyleSheetColors("btnPushFlat_HotText 0xFFFFFFFF")

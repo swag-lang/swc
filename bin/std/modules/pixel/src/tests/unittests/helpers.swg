@@ -45,7 +45,7 @@ func cbToArray(cb: *ConcatBuffer)->Array'u8
 func nnBytes(bytes: #null [..] u8)->const [..] u8
 {
     @assert(bytes != null)
-    return @mkslice(cast([*] u8) (notnull @dataof(bytes)), @countof(bytes))
+    return @mkslice(cast([*] u8) @dataof(bytes)!, @countof(bytes))
 }
 
 func loadTestTypeFace(fullname: string)->#null *TypeFace fail

@@ -61,7 +61,7 @@ func tgaRunLength(src: const [*] u8, index, pixelCount, bytesPerPixel: u64)->u64
 
 func writeTgaRle(result: *ConcatBuffer, image: Image)
 {
-    let src           = cast(const [*] u8) (notnull image.pixels.buffer)
+    let src           = cast(const [*] u8) image.pixels.buffer!
     let bytesPerPixel = cast(u64) image.bytesPerPixel
     let pixelCount    = cast(u64) image.width * cast(u64) image.height
 
@@ -106,7 +106,7 @@ internal impl IImageEncoder for Encoder
         if @dataof(options) != null
         {
             Debug.assert(@kindof(options) == EncodeOptions)
-            userOptions = dref cast(*EncodeOptions) (notnull @dataof(options))
+            userOptions = dref cast(*EncodeOptions) @dataof(options)!
         }
 
         if image.width <= 0 or image.height <= 0 or !image.pixels.buffer do
@@ -130,7 +130,7 @@ internal impl IImageEncoder for Encoder
             return
         }
 
-        let src           = cast(const [*] u8) (notnull image.pixels.buffer)
+        let src           = cast(const [*] u8) image.pixels.buffer!
         let bytesPerPixel = cast(u64) image.bytesPerPixel
         let pixelCount    = cast(u64) image.width * cast(u64) image.height
 

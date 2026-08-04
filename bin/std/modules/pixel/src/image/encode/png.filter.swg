@@ -71,8 +71,8 @@ impl Encoder
         var sum:     s32
         var a, b, c: s32
 
-        let scanline     = notnull .scanline
-        let prevScanline = notnull .prevScanline
+        let scanline     = .scanline!
+        let prevScanline = .prevScanline!
         for [i] in size
         {
             if i >= .bytesPerPixel
@@ -117,8 +117,8 @@ impl Encoder
 
     mtd filterScanline(filtered: [*] u8, size: u32, filter: Filter)
     {
-        let scanline     = notnull .scanline
-        let prevScanline = notnull .prevScanline
+        let scanline     = .scanline!
+        let prevScanline = .prevScanline!
         for [i] in size
         {
             var a, b, c: s32

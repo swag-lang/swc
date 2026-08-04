@@ -1,8 +1,8 @@
 using Core, Gui, Pixel
 
-func addSimpleTreeBranch(tree: *ListCtrl, rootName: string, rootIcon: ThemeIcons24, childCount: s32)->*ListLine
+func addSimpleTreeBranch(tree: *ListCtrl, rootName: string, rootIcon: ThemeIcons, childCount: s32)->*ListLine
 {
-    let root = tree.createLine(rootName, app.theme.icon24(rootIcon, 16))
+    let root = tree.createLine(rootName, app.theme.icon(rootIcon, 16))
     for [i] in childCount
     {
         let child = tree.createLine(Format.toString("node %.%", rootName, i + 1), sampleIcon(i), parentLine: root)
@@ -37,7 +37,7 @@ func createTreesPage(parent: *Wnd)
     table.setIconSize(16)
     table.setFirstColumnIconMargin(false)
     addListFlags(table)
-    table.addColumn("Item", 210, app.theme.icon24(.SortArrowRight, 16))
+    table.addColumn("Item", 210, app.theme.icon(.SortArrowRight, 16))
     table.addColumn("State", 110)
     table.addColumn("Size", 90)
     table.addColumn("Owner", 100)

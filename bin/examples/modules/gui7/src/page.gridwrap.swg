@@ -1,10 +1,10 @@
 using Core, Gui, Pixel
 
-func createGridCell(parent: *Wnd, text: string, icon: ThemeIcons24)->*Label
+func createGridCell(parent: *Wnd, text: string, icon: ThemeIcons)->*Label
 {
     let label = Label.create(parent, text, {0, 0, 120, 42}, null, .WordWrap)
     label.backgroundStyle = .Window
-    label.setIcon(app.theme.icon24(icon, 16))
+    label.setIcon(app.theme.icon(icon, 16))
     label.setIconHorizontalAlignment(.Left)
     label.setTextHorizontalAlignment(.Left)
     label.setIconPadding({10, 0, 0, 0})
@@ -12,11 +12,11 @@ func createGridCell(parent: *Wnd, text: string, icon: ThemeIcons24)->*Label
     return label
 }
 
-func createWrapTile(parent: *Wnd, text: string, icon: ThemeIcons24)
+func createWrapTile(parent: *Wnd, text: string, icon: ThemeIcons)
 {
     let btn = PushButton.create(parent, text, {})
     btn.setForm(.Flat)
-    btn.setIcon(app.theme.icon24(icon, 16))
+    btn.setIcon(app.theme.icon(icon, 16))
 }
 
 func createGridWrapPage(parent: *Wnd)

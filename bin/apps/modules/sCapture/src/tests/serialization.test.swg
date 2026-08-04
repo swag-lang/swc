@@ -79,7 +79,7 @@ using Swag, Core
     f.capture.changed = true
 
     expect f.capture.save()
-    let loaded = notnull expect Capture.load(path)
+    let loaded = expect Capture.load(path)!
     defer Memory.delete(loaded)
     @assert(loaded.width == 64)
     @assert(loaded.height == 48)
@@ -166,7 +166,7 @@ using Swag, Core
     f.capture.changed = true
 
     expect f.capture.save()
-    let loaded = notnull expect Capture.load(path, preview: true)
+    let loaded = expect Capture.load(path, preview: true)!
     defer Memory.delete(loaded)
     @assert(loaded.forms.count == 1)
     @assert(!loaded.backImg.isValid())

@@ -6,10 +6,10 @@ through it. A bus may itself target a parent bus, which forms a directed mixing
 graph.
 
 ```swag
-let effects = notnull try Audio.Bus.create(2)
+let effects = try Audio.Bus.create(2)!
 defer effects.destroy()
 
-let voice = notnull try Audio.Voice.create(&sound)
+let voice = try Audio.Voice.create(&sound)!
 defer voice.destroy()
 
 try voice.setRouting([effects])

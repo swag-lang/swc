@@ -27,7 +27,7 @@ impl Image
                 var a       = 255'u8
                 if PF.bitsPerPixel() == 32 do
                     a = cast(u8) Math.lerp(cast(f32) color0.a, cast(f32) color1.a, factor0)
-                convertToRGBA8'PF(cast([*] u8) (notnull pix), r, g, b, a)
+                convertToRGBA8'PF(cast([*] u8) pix!, r, g, b, a)
                 pix += .bytesPerPixel
             }
         }
@@ -43,7 +43,7 @@ impl Image
 
         .visitPixels(stride: .width)
         {
-            Memory.copy(pix, cast([*] u8) (notnull image.pixels.buffer), cast(u64) image.width * image.bytesPerPixel)
+            Memory.copy(pix, cast([*] u8) image.pixels.buffer!, cast(u64) image.width * image.bytesPerPixel)
         }
     }
 
@@ -61,7 +61,7 @@ impl Image
         {
             .visitPixels(&ctx)
             {
-                let colors  = cast(*FillGradient4Context) (notnull userData)
+                let colors  = cast(*FillGradient4Context) userData!
                 let factor0 = image.width > 1 ? x / cast(f32) (image.width - 1) : 0
                 let factor1 = image.height > 1 ? y / cast(f32) (image.height - 1) : 0
                 let colH1   = Color.lerp(colors.topLeft, colors.topRight, factor0)

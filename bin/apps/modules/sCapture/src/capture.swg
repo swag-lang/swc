@@ -228,7 +228,7 @@ impl CaptureClipboardForm
             return result
         }
 
-        let r = notnull result
+        let r = result!
         r.setup(capture)
         return result
     }
@@ -279,7 +279,7 @@ impl Capture
         .editView         = view
         .gizmo.sigChanged = func|capture = me|(g, first, hitMove)
         {
-            let editView = notnull capture.editView
+            let editView = capture.editView!
             var undo     = capture.newUndo(.MoveCapture)
             undo.newPosX  = cast(s32) ((g.rect.x - g.movingRect.x) / editView.zoom)
             undo.newPosY  = cast(s32) ((g.rect.y - g.movingRect.y) / editView.zoom)
@@ -311,7 +311,7 @@ impl Capture
         let rect    = Math.Rectangle{width: .width * zoom, height: .height * zoom}
         let render  = g_App.renderer
         var painter = Pixel.Painter.create(render)
-        let srf     = notnull .editView!.surface
+        let srf     = (.editView!.surface)!
         render.begin(srf.renderingContext())
         painter.begin()
 
@@ -353,7 +353,7 @@ impl Capture
         render.draw(&painter)
         render.end()
 
-        let rt     = notnull layer.contentTarget
+        let rt     = layer.contentTarget!
         var buffer = render.readTexturePixels(rt.colorBuffer, .BGRA8)
         result = Image.create(rt.colorBuffer.width, rt.colorBuffer.height, .BGRA8, buffer.toSlice())
         result.crop(0, 0, cast(s32) rect.width, cast(s32) rect.height)
@@ -423,7 +423,7 @@ impl Capture
             decoder.serializer.ignoreElements.add(#nameof(Capture.backImgOriginal))
         }
 
-        let capture = notnull decoder.readAll'Capture(res.toSlice())
+        let capture = decoder.readAll'Capture(res.toSlice())!
         capture.file = file
 
         for itf in capture.forms do
@@ -540,7 +540,7 @@ impl Capture
         undo.oldForms = res
 
         // Move around mouse
-        let editView = notnull .editView
+        let editView = .editView!
         var pt       = editView.app().mouse.position()
         pt   = editView.screenToSurface(pt)
         pt   = editView.surfaceToLocal(pt)
@@ -689,7 +689,7 @@ impl Capture
 
     mtd paintBackImage(painter: *Painter, x, y: f32, z: f32)
     {
-        let editView = notnull .editView
+        let editView = .editView!
         let renderer = editView.app().renderer
 
         // Background image
@@ -969,7 +969,7 @@ impl Capture
         if y do
             .snapY = -1
 
-        let editView    = notnull .editView
+        let editView    = .editView!
         let keyboard    = &editView.app().keyboard
         let ctrlPressed = keyboard.isKeyPressed(.Control) or keyboard.isKeyPressed(.RControl) or keyboard.isKeyPressed(.LControl)
         if !editView.main.snap and !ctrlPressed do
@@ -1461,7 +1461,7 @@ impl Capture
 
             if .firstMouseMove
             {
-                let editView = notnull .editView
+                let editView = .editView!
                 if Math.abs(newPosX) <= 3 and Math.abs(newPosY) <= 3 and editView.main.editMode != .Step do
                     return true
                 .firstMouseMove = false
@@ -1517,7 +1517,7 @@ impl Capture
         var result: retval
         if !.forms.count do
             return result
-        let editView = notnull .editView
+        let editView = .editView!
         for #reverse [i] in @countof(.forms)
         {
             let f = .forms[i]
@@ -1568,7 +1568,7 @@ impl Capture
         if !.selection.count do
             return
         let f        = .forms[.selection.back()]
-        let editView = notnull .editView
+        let editView = .editView!
         editView.main.updateModelValues(f)
     }
 
@@ -1577,7 +1577,7 @@ impl Capture
         if !.selection.count do
             return
         let f        = .forms[.selection.back()]
-        let editView = notnull .editView
+        let editView = .editView!
         editView.main.updateModel(f)
     }
 
@@ -1585,7 +1585,7 @@ impl Capture
     {
         .updateEditModeFromSelection()
         .updateModelFromSelection()
-        let editView = notnull .editView
+        let editView = .editView!
         editView.main.updateState()
         editView.invalidate()
     }

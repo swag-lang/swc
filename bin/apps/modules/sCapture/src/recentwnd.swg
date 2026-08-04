@@ -51,12 +51,12 @@ impl RecentView
         // Save current zoom
         if .selected < .items.count
         {
-            let sel = notnull .items[.selected]
+            let sel = .items[.selected]!
             sel.zoom = view.zoom
         }
 
         // Select new recent item
-        let item                    = notnull .items[idx]
+        let item                    = .items[idx]!
         let capture: #null *Capture = catch Capture.load(item.file)
         if capture
         {
@@ -172,7 +172,7 @@ impl IWnd for RecentView
             icon12.sizeX, icon12.sizeY = 24
             icon12.paint(painter, rect.x + 4, rect.y + 4, backColor.contrasting())
 
-            var icon = parent.theme().icon24(.Link)
+            var icon = parent.theme().icon(.Link)
             icon.sizeX, icon.sizeY = 16
             icon.paint(painter, rect.x + 8, rect.y + 8, backColor.contrasting())
         }
@@ -191,7 +191,7 @@ impl IWnd for RecentView
         var x = clientRect.x
         for item, [idx] in .items
         {
-            let it = notnull item
+            let it = item!
             let w  = clientRect.height * 4.0 / 3
 
             let rect = Math.Rectangle{x, clientRect.y, w, clientRect.height}
@@ -267,7 +267,7 @@ impl IWnd for RecentWnd
             if .recentView.selected != Swag.U64.Max and .recentView.selected < .recentView.items.count
             {
                 capture.computePreview()
-                let item = notnull .recentView.items[.recentView.selected]
+                let item = .recentView.items[.recentView.selected]!
                 .app().renderer.removeTexture(&item.preview)
                 item.preview = .app().renderer.addImage(capture.preview)
                 .invalidate()
@@ -383,7 +383,7 @@ impl RecentWnd
             if idx == 0 and !.main.editWnd.editView.capture
             {
                 .recentView.selected = 0
-                .main.editWnd.editView.setCapture(notnull capture)
+                .main.editWnd.editView.setCapture(capture!)
             }
             else do
                 Memory.delete(capture)
@@ -406,7 +406,7 @@ impl RecentWnd
         if !capture do
             return
 
-        let item = notnull .recentView.items[.recentView.selected]
+        let item = .recentView.items[.recentView.selected]!
         item.linked         = capture.linkedImage
         item.linkedUpToDate = capture.linkedUpToDate
         .invalidate()
@@ -417,7 +417,7 @@ impl RecentWnd
         if .recentView.selected >= .recentView.items.count do
             return
 
-        let item = notnull .recentView.items[.recentView.selected]
+        let item = .recentView.items[.recentView.selected]!
 
         // Be sure there's no pending save
         if .timer do
@@ -431,13 +431,13 @@ impl RecentWnd
     mtd addRecent(file: String, front = true, sel = false)->#null *Capture fail
     {
         let capture = try Capture.load(file)
-        let loaded  = notnull capture
+        let loaded  = capture!
         .addRecent(loaded.file, loaded.preview, front, sel, loaded.linkedUpToDate, loaded.linkedImage)
 
         // Too much recent. Remove the oldest
         if front and .recentView.items.count > MaxRecent
         {
-            let back = notnull .recentView.items.back()
+            let back = .recentView.items.back()!
             if back.preview.isValid() do
                 .app().renderer.removeTexture(&back.preview)
             .recentView.items.destroy(back)
@@ -452,7 +452,7 @@ impl RecentWnd
         // Already there ?
         for it, [i] in .recentView.items
         {
-            let itn = notnull it
+            let itn = it!
             if itn.file == file
             {
                 var idxSel = i

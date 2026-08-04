@@ -112,7 +112,7 @@ impl Encoder
             var shiftAmount    = initialShift
 
             let row_uc   = row
-            var scanline = notnull .scanline
+            var scanline = .scanline!
             Memory.clear(cast([*] u8) scanline, cast(u64) .subimage[pass].scanlineWidth)
 
             for [k] in .subimage[pass].width
@@ -143,7 +143,7 @@ impl Encoder
         {
             let ioffset = (Adam7StartX[pass] + k * Adam7DeltaX[pass]) * .pixelSize
             let src     = row + ioffset
-            let dst     = (notnull .scanline) + k * .pixelSize
+            let dst     = .scanline! + k * .pixelSize
             if .swapRB
             {
                 dst[0] = src[2]
@@ -158,7 +158,7 @@ impl Encoder
             }
         }
 
-        return .encodeScanLine(cast([*] u8) (notnull .scanline))
+        return .encodeScanLine(cast([*] u8) .scanline!)
     }
 
     mtd encodeScanLine(sl: [*] u8)->bool fail
@@ -170,7 +170,7 @@ impl Encoder
         {
             if .swapRB and .bytesPerPixel == 3
             {
-                let scanline = notnull .scanline
+                let scanline = .scanline!
                 for var i = 0; i < scanlineWidth - 1; i += 3
                 {
                     scanline[i]     = sl[i + 2]
@@ -183,7 +183,7 @@ impl Encoder
                 // Swap R and B one whole 32-bit pixel at a time: a byte-wise swizzle
                 // of a full-desktop capture costs seconds in unoptimized builds.
                 let src   = cast(const [*] u32) sl
-                let dst   = cast([*] u32) (notnull .scanline)
+                let dst   = cast([*] u32) .scanline!
                 let count = (scanlineWidth - 1) / 4
                 for [i] in count
                 {
@@ -199,12 +199,12 @@ impl Encoder
 
         let requiresPrevious = .encodeFlags.filterChoice & (.Up | .Average | .Paeth)
         if !.rowInfo.scanlineIdx and requiresPrevious do
-            Memory.clear(cast([*] u8) (notnull .prevScanline), cast(u64) scanlineWidth)
+            Memory.clear(cast([*] u8) .prevScanline!, cast(u64) scanlineWidth)
 
-        var filtered_sl = cast([*] u8) (notnull .filteredScanline)
+        var filtered_sl = cast([*] u8) .filteredScanline!
         let filter      = .getBestFilter(scanlineWidth - 1)
         if filter == .None do
-            filtered_sl = cast([*] u8) (notnull .scanline)
+            filtered_sl = cast([*] u8) .scanline!
         filtered_sl    -= 1
         filtered_sl[0] = cast(u8) filter
         filtered_sl    += 1

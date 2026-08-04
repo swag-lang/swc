@@ -80,7 +80,7 @@ func warehouseInit()->Warehouse
     var wh: Warehouse
     let size = cast(u64) MaxDim * MaxDim * #sizeof(Tile)
     wh.cells = cast(#null [*] Tile) @alloc(size)
-    let cells = notnull wh.cells
+    let cells = wh.cells!
     for MaxDim * MaxDim
     {
         cells[@index] = Tile.Empty
@@ -94,11 +94,11 @@ func warehouseFree(wh: *Warehouse)
         @free(wh.cells)
 }
 
-func warehouseAt(wh: *Warehouse, r, c: u32)->Tile => (notnull wh.cells)[r * MaxDim + c]
+func warehouseAt(wh: *Warehouse, r, c: u32)->Tile => wh.cells![r * MaxDim + c]
 
 func warehouseSet(wh: *Warehouse, r, c: u32, t: Tile)
 {
-    let cells = notnull wh.cells
+    let cells = wh.cells!
     cells[r * MaxDim + c] = t
 }
 
@@ -198,7 +198,7 @@ func parseInput(text: string)->Parsed
     result.nMoves = moveCount
 
     // @mkslice: create a slice view over the allocated move buffer
-    let moveSlice = @mkslice(notnull result.moves, cast(u64) moveCount)
+    let moveSlice = @mkslice(result.moves!, cast(u64) moveCount)
 
     // @dataof: verify the slice's data pointer matches the allocation
     @assert(@dataof(moveSlice) == result.moves)
@@ -212,7 +212,7 @@ func parseInput(text: string)->Parsed
         pos += 1
         if ch == '^' or ch == 'v' or ch == '<' or ch == '>'
         {
-            let moves = notnull result.moves
+            let moves = result.moves!
             moves[mi] = ch
             mi        += 1
         }
@@ -237,7 +237,7 @@ func dirDelta(ch: u8, dr: *s32, dc: *s32)
 
 func simulate(p: *Parsed)
 {
-    let moves = notnull p.moves
+    let moves = p.moves!
     for [mi] in p.nMoves
     {
         var dr: s32
@@ -394,7 +394,7 @@ func boxRmsBucket(wh: *Warehouse)->s32 => cast(s32) @floor(boxRmsFromCentre(wh))
     var p = parseInput(SmallInput)
     defer parsedFree(&p)
 
-    let moves     = notnull p.moves
+    let moves     = p.moves!
     let moveSlice = @mkslice(moves, cast(u64) p.nMoves)
     @assert(@countof(moveSlice) == cast(u64) p.nMoves)
     @assert(@dataof(moveSlice) == p.moves)
@@ -410,7 +410,7 @@ func boxRmsBucket(wh: *Warehouse)->s32 => cast(s32) @floor(boxRmsFromCentre(wh))
     defer parsedFree(&p)
 
     // Verify first move
-    let moves = notnull p.moves
+    let moves = p.moves!
     @assert(moves[0] == '<')
 
     simulate(&p)

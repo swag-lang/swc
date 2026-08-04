@@ -29,7 +29,7 @@ func createCommandStatePage(parent: *Wnd)
     let left     = createPanel(parent, "Computed rows", "Open the menu to inspect check marks, radio groups and disabled save/undo/redo rows.", layout.left)
     let stateBtn = PushButton.create(left, "Open state menu", {24, 104, 230})
     stateBtn.setForm(.Default)
-    stateBtn.setIcon(app.theme.icon24(.Options, 18))
+    stateBtn.setIcon(app.theme.icon(.Options, 18))
     stateBtn.sigPressed += &showStateMenuFrom
 
     discard createActionButton(left, "Toggle grid", {24, 166, 230}, MenuCmd.ToggleGrid, .Options)

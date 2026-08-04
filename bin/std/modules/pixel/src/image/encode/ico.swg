@@ -124,7 +124,7 @@ private func appendDib(result: *ConcatBuffer, image: Image)
     // XOR (color) data, bottom-up BGRA - matches the internal buffer convention
     for [y] in height
     {
-        var psrc = (notnull image.pixels.buffer) + cast(u64) y * image.rowStride
+        var psrc = image.pixels.buffer! + cast(u64) y * image.rowStride
 
         switch image.pixelFormat
         {

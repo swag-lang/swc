@@ -25,7 +25,7 @@ impl ArrayPtr
     {
         if !.count do
             return
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         for [i] in .count
         {
             let oldPtr = buffer[i]
@@ -100,7 +100,7 @@ impl ArrayPtr
     {
         if .count == 0 do
             return null
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         return buffer[0]
     }
 
@@ -109,7 +109,7 @@ impl ArrayPtr
     {
         if .count == 0 do
             return null
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         return buffer[.count - 1]
     }
 
@@ -118,7 +118,7 @@ impl ArrayPtr
     {
         if .count
         {
-            let buffer = notnull .buffer
+            let buffer = .buffer!
             for [i] in .count
             {
                 if buffer[i] == item do
@@ -141,7 +141,7 @@ impl ArrayPtr
     {
         if num
         {
-            let buffer = notnull .buffer
+            let buffer = .buffer!
             for [i] in num do
                 Memory.delete(buffer[index + i], .allocator)
         }
@@ -153,7 +153,7 @@ impl ArrayPtr
     // place (does not preserve order). Use removeAt to remove without deallocating.
     mtd deleteAtUnordered(index: u64)
     {
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         Memory.delete(buffer[index], .allocator)
         .removeAt(index)
     }
@@ -164,7 +164,7 @@ impl ArrayPtr
     {
         if .count == 0 do
             return
-        let buffer = notnull .buffer
+        let buffer = .buffer!
         Memory.delete(buffer[.count - 1], .allocator)
         .removeBack()
     }

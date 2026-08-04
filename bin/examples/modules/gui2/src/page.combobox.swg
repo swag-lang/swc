@@ -3,10 +3,10 @@ using Core, Gui, Pixel
 func fillFlavorCombo(combo: *ComboBox)
 {
     combo.addItem("Vanilla", "vanilla")
-    combo.addItem("Chocolate", "chocolate", app.theme.icon24(ThemeIcons24.Filter, 18))
+    combo.addItem("Chocolate", "chocolate", app.theme.icon(ThemeIcons.Filter, 18))
     combo.addItem("Pistachio", "pistachio")
     combo.addSeparator()
-    combo.addItem("Seasonal special", "seasonal", app.theme.icon24(ThemeIcons24.More, 18))
+    combo.addItem("Seasonal special", "seasonal", app.theme.icon(ThemeIcons.More, 18))
 }
 
 func createComboBoxPage(parent: *Wnd)

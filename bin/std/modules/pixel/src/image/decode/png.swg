@@ -123,17 +123,17 @@ impl Decoder
 {
     func safeDatas(chunk: DecodeChunk)->const [..] u8
     {
-        return cast(const [..] u8) (notnull chunk.datas)
+        return cast(const [..] u8) chunk.datas!
     }
 
     mtd safeTRNSData()->const [..] u8
     {
-        return cast(const [..] u8) (notnull .chunkTRNS.datas)
+        return cast(const [..] u8) .chunkTRNS.datas!
     }
 
     mtd safeDstPixels()->[*] u8
     {
-        return notnull .dstPixels
+        return .dstPixels!
     }
 
     mtd readChunk(ch: ChunkHeader)->DecodeChunk fail
@@ -401,7 +401,7 @@ impl Decoder
         if .header.bitDepth == 8 and .inChannels == .outChannels
         {
             result.allocPixels()
-            .dstPixels = cast([*] u8) (notnull result.pixels.buffer)
+            .dstPixels = cast([*] u8) result.pixels.buffer!
         }
         else
         {

@@ -36,7 +36,7 @@ namespaces.
 ```swag
 #run
 {
-    let cfg = notnull @compiler.getBuildCfg()
+    let cfg = @compiler.getBuildCfg()!
     cfg.moduleVersion  = 1
     cfg.moduleRevision = 0
     cfg.moduleBuildNum = 0

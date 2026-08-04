@@ -38,7 +38,7 @@ impl IActionUI for ActionImage
             return true
         }
 
-        let main    = cast(*MainWnd) notnull cxt.wnd
+        let main    = cast(*MainWnd) cxt.wnd!
         let capture = main.getCapture()
 
         switch cxt.id
@@ -54,8 +54,8 @@ impl IActionUI for ActionImage
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main    = cast(*MainWnd) notnull cxt.wnd
-        let capture = notnull main.getCapture()
+        let main    = cast(*MainWnd) cxt.wnd!
+        let capture = main.getCapture()!
 
         // The backImgOriginal snapshot (which enables appStrings().act_RestoreOriginal) is taken lazily
         // at the point backImg is genuinely mutated (see doProcessImage/trimCapture), not here:
@@ -101,7 +101,7 @@ impl MainWnd
 {
     mtd doProcessImage(cmdId: WndId, l, t, r, b, w, h: s32 = 0)
     {
-        let capture = notnull .getCapture()
+        let capture = .getCapture()!
 
         // A real backImg mutation is about to be committed: snapshot the first original now.
         if !capture.backImgOriginal.isValid() do
@@ -147,10 +147,10 @@ impl MainWnd
 
     mtd resizeImage()
     {
-        let capture = notnull .getCapture()
+        let capture = .getCapture()!
         let ratio   = cast(f32) capture.width / capture.height
 
-        let dlg = Dialog.create(notnull .surface, 350, 265, title: appStrings().dlg_TitleResizeImage)
+        let dlg = Dialog.create(.surface!, 350, 265, title: appStrings().dlg_TitleResizeImage)
         dlg.addButton(appStrings().dlg_BtnResize, Dialog.BtnOk, true)
         dlg.addButton(Gui.strings().dlg_Cancel, Dialog.BtnCancel)
         let edit0 = EditCtrl.create(dlg, appStrings().ui_Width, Format.toString("%", capture.width), {80, 15}, flags: .RightAligned)
@@ -234,7 +234,7 @@ impl MainWnd
 
     mtd createExpandDialog(title: String, w, h: s32)->WndId
     {
-        let dlg = Dialog.create(notnull .surface, 350, 265, title: title)
+        let dlg = Dialog.create(.surface!, 350, 265, title: title)
         dlg.addButton(appStrings().dlg_BtnResize, Dialog.BtnOk, true)
         dlg.addButton(Gui.strings().dlg_Cancel, Dialog.BtnCancel)
 
@@ -293,7 +293,7 @@ impl MainWnd
 
     mtd expandImage()
     {
-        let capture = notnull .getCapture()
+        let capture = .getCapture()!
         let res     = .createExpandDialog(appStrings().dlg_TitleExpandImage, capture.backImg.width, capture.backImg.height)
         if res != Dialog.BtnOk do
             return
@@ -342,7 +342,7 @@ impl MainWnd
 
     mtd expandCapture()
     {
-        let capture = notnull .getCapture()
+        let capture = .getCapture()!
         let res     = .createExpandDialog(appStrings().dlg_TitleExpandCapture, capture.width, capture.height)
         if res != Dialog.BtnOk do
             return
@@ -380,7 +380,7 @@ impl MainWnd
 
     mtd trimCapture()
     {
-        let capture = notnull .getCapture()
+        let capture = .getCapture()!
         capture.selection.clear()
 
         var minX = Swag.F32.Max

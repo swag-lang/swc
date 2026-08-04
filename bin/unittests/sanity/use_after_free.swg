@@ -17,9 +17,9 @@ func myAlloc(size: u64)->*void
 {
     var req: AllocatorRequest
     req.size = size
-    let allocItf = notnull @getcontext().allocator
+    let allocItf = @getcontext().allocator!
     allocItf.alloc(&req)
-    return notnull req.address
+    return req.address!
 }
 
 #[Swag.Sanity(.Lifecycle, true)]
@@ -28,7 +28,7 @@ func myFree(ptr: *void, size: u64)
     var req: AllocatorRequest
     req.address = ptr
     req.size    = size
-    let allocItf = notnull @getcontext().allocator
+    let allocItf = @getcontext().allocator!
     allocItf.free(&req)
 }
 
@@ -70,7 +70,7 @@ func rejectFreeBorrowed()
     var req:   AllocatorRequest
     req.address = &value
     req.size    = #sizeof(s32)
-    let allocItf = notnull @getcontext().allocator
+    let allocItf = @getcontext().allocator!
     allocItf.free(&req)     // swc-expected-error {{sanity_err_free_borrowed}}
 }
 

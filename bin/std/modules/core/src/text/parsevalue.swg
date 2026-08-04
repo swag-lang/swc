@@ -29,7 +29,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->#null string f
         while @countof(one) and one[0] != '#'
         {
             let addrVal = Reflection.appendDynamicArrayElement(addr, safeValueType)
-            one = (parseValue(notnull addrVal, safeValueType, one) orelse "")
+            one = (parseValue(addrVal!, safeValueType, one) orelse "")
             one = Tokenize.eatSpaces(one)
         }
 
@@ -59,7 +59,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->#null string f
     if Reflection.isEnum(type)
     {
         let enumType = cast(const *TypeInfoEnum) type
-        let rawType  = notnull enumType.rawType
+        let rawType  = enumType.rawType!
         if rawType != string and enumType.sizeof > 8 do
             fail UnsupportedFormatError{Errors.mkString(Format.toString("unsupported enum type [[%]]", rawType.name))}
         let enumFlags = Reflection.hasAttribute(enumType, EnumFlags)
@@ -71,7 +71,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->#null string f
             let v  = Reflection.enumValue(type, id)
             if !v do
                 fail InvalidFormatError{Errors.mkString(Format.toString("unknown enum value [[%]]", id))}
-            let enumValue = notnull v.value
+            let enumValue = v.value!
 
             if enumType.rawType == string
             {
@@ -140,7 +140,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->#null string f
         {
             if !@countof(one) or one[0] == '}' do
                 break
-            one = (parseValue(cast([*] u8) addr + field.offset, notnull field.pointedType, one) orelse "")
+            one = (parseValue(cast([*] u8) addr + field.offset, field.pointedType!, one) orelse "")
             one = Tokenize.eatSpaces(one)
             if @countof(one) and one[0] == ','
             {

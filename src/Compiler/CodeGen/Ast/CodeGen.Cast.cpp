@@ -1883,6 +1883,15 @@ Result AstAutoCastExpr::codeGenPostNode(CodeGen& codeGen) const
 
 Result AstCastExpr::codeGenPostNode(CodeGen& codeGen) const
 {
+    // '#unnull' promised the source is not null: make the promise checkable before the
+    // destination type starts claiming it.
+    if (modifierFlags.has(AstModifierFlagsE::UnNull))
+    {
+        const AstNodeRef resolvedExprRef = codeGen.resolvedNodeRef(nodeExprRef);
+        if (resolvedExprRef.isValid())
+            SWC_RESULT(CodeGenSafety::emitNotNullGuard(codeGen, codeGen.curNodeRef(), resolvedExprRef, "'#unnull' cast on null value"));
+    }
+
     return emitNumericCast(codeGen, nodeExprRef, codeGen.transparentPayloadTypeRef());
 }
 

@@ -392,7 +392,7 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 {
     var src = Image.create(3, 2, .RGBA8)
     src.clear()
-    let srcBuf = notnull src.pixels.buffer
+    let srcBuf = src.pixels.buffer!
     srcBuf[0] = 11'u8
     srcBuf[1] = 22'u8
     srcBuf[2] = 33'u8
@@ -473,7 +473,7 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 {
     var src = Image.create(2, 2, .BGRA8)
     src.clear()
-    let srcBuf = notnull src.pixels.buffer
+    let srcBuf = src.pixels.buffer!
     srcBuf[0]  = 10'u8
     srcBuf[1]  = 20'u8
     srcBuf[2]  = 30'u8
@@ -497,7 +497,7 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 #test
 {
     var src    = Image.create(1, 1, .BGR8)
-    let srcBuf = notnull src.pixels.buffer
+    let srcBuf = src.pixels.buffer!
     srcBuf[0] = 10'u8
     srcBuf[1] = 20'u8
     srcBuf[2] = 30'u8
@@ -516,7 +516,7 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 #test
 {
     var src    = Image.create(1, 1, .RGBA8)
-    let srcBuf = notnull src.pixels.buffer
+    let srcBuf = src.pixels.buffer!
     srcBuf[0] = 30'u8     // R
     srcBuf[1] = 20'u8     // G
     srcBuf[2] = 10'u8     // B
@@ -549,7 +549,7 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     defer discard catch File.delete(path.toString())
     var src = Image.create(4, 4, .BGRA8)
     src.clear()
-    let srcBuf = notnull src.pixels.buffer
+    let srcBuf = src.pixels.buffer!
     srcBuf[0] = 77'u8
     srcBuf[1] = 88'u8
     srcBuf[2] = 99'u8
@@ -571,11 +571,11 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 {
     var small = Image.create(4, 4, .BGRA8)
     small.clear()
-    (notnull small.pixels.buffer)[0] = 11'u8
+    small.pixels.buffer![0] = 11'u8
 
     var large = Image.create(8, 8, .BGRA8)
     large.clear()
-    (notnull large.pixels.buffer)[0] = 22'u8
+    large.pixels.buffer![0] = 22'u8
 
     let entries: [2] Image = [small, large]
 
@@ -584,7 +584,7 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     let img = expect decodeIco(nnBytes(cb.toSlice()))
     @assert(img.width == 8)
     @assert(img.height == 8)
-    @assert((notnull img.pixels.buffer)[0] == 22'u8)
+    @assert(img.pixels.buffer![0] == 22'u8)
 }
 
 // Every entry keeps its own offset, so a later one is still readable on its own.
@@ -622,11 +622,11 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     small.clear()
     var large = Image.create(16, 16, .BGRA8)
     large.clear()
-    (notnull large.pixels.buffer)[2] = 77'u8
+    large.pixels.buffer![2] = 77'u8
 
     let entries: [2] Image = [small, large]
     expect Ico.save(path.toString(), entries)
     let img = expect Image.load(path.toString())
     @assert(img.width == 16)
-    @assert((notnull img.pixels.buffer)[2] == 77'u8)
+    @assert(img.pixels.buffer![2] == 77'u8)
 }

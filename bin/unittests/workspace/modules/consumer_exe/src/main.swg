@@ -62,7 +62,7 @@ func verifyImportedInterfaceTablePreparation()
     let runtimeScore = cast(*Swag.Interface) &dynamicScore
     @assert(runtimeScore != null)
     @assert(runtimeScore.itable == table)
-    @assert(cast(#null const *Swag.TypeInfoStruct) dref (notnull runtimeScore.itable) == objectInfo)
+    @assert(cast(#null const *Swag.TypeInfoStruct) dref runtimeScore.itable! == objectInfo)
 
     var concreteScore             = DepTableScore{value: 32}
     var castScore: IDepTableScore = concreteScore

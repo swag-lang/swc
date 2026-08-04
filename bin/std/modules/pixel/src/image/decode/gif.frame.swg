@@ -41,7 +41,7 @@ impl Decoder
 
     mtd renderFrame(buffer: [*] u8, pf: PixelFormat)
     {
-        let palette = notnull .palette
+        let palette = .palette!
         var i       = cast(u32) .fy * .width + .fx
 
         if pf.hasAlpha()

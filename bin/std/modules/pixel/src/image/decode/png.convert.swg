@@ -24,7 +24,7 @@ impl Decoder
     mtd convert16(result: *Image)
     {
         var src = cast(const [*] u8) .safeDstPixels()
-        var dst = cast([*] u8) (notnull result.pixels.buffer)
+        var dst = cast([*] u8) result.pixels.buffer!
 
         switch cast(u8) .header.colorType
         {
@@ -109,7 +109,7 @@ impl Decoder
         if .inChannels == 1 and .seenPLTE and !.seenTRSN
         {
             var src = .safeDstPixels()
-            var dst = cast([*] u8) (notnull result.pixels.buffer)
+            var dst = cast([*] u8) result.pixels.buffer!
             for result.width * result.height
             {
                 let pal   = src[0]
@@ -126,7 +126,7 @@ impl Decoder
         elif .inChannels == 1 and .seenPLTE and .seenTRSN
         {
             var src = .safeDstPixels()
-            var dst = cast([*] u8) (notnull result.pixels.buffer)
+            var dst = cast([*] u8) result.pixels.buffer!
             for result.width * result.height
             {
                 let pal   = src[0]
@@ -144,7 +144,7 @@ impl Decoder
         elif .inChannels == 1 and !.seenTRSN
         {
             var src = .safeDstPixels()
-            var dst = cast([*] u8) (notnull result.pixels.buffer)
+            var dst = cast([*] u8) result.pixels.buffer!
             for result.width * result.height
             {
                 dst[0] = src[0]
@@ -162,7 +162,7 @@ impl Decoder
             let scale = .header.bitDepth == 1 ? 255'u8 : .header.bitDepth == 2 ? 85'u8 : 17'u8
             key *= scale
             var src = .safeDstPixels()
-            var dst = cast([*] u8) (notnull result.pixels.buffer)
+            var dst = cast([*] u8) result.pixels.buffer!
             for result.width * result.height
             {
                 dst[0] = src[0]
@@ -178,7 +178,7 @@ impl Decoder
         elif .inChannels == 2
         {
             var src = .safeDstPixels()
-            var dst = cast([*] u8) (notnull result.pixels.buffer)
+            var dst = cast([*] u8) result.pixels.buffer!
             for result.width * result.height
             {
                 dst[0] = src[0]
@@ -198,7 +198,7 @@ impl Decoder
             let key1 = key[3]
             let key2 = key[5]
             var src  = .safeDstPixels()
-            var dst  = cast([*] u8) (notnull result.pixels.buffer)
+            var dst  = cast([*] u8) result.pixels.buffer!
             for result.width * result.height
             {
                 dst[0] = src[0]

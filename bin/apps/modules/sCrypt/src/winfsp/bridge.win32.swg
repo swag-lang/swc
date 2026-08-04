@@ -18,7 +18,7 @@ namespace WinFsp
     }
 
     func mountContext(fileSystem: *FspFileSystem)->*NativeMountContext
-        => cast(*NativeMountContext) notnull fileSystem.userContext
+        => cast(*NativeMountContext) fileSystem.userContext!
 
     func mountedVolume(fileSystem: *FspFileSystem)->*Volume
         => mountContext(fileSystem).volume
@@ -30,7 +30,7 @@ namespace WinFsp
     {
         if !value do
             return ""
-        let validValue = notnull value
+        let validValue = value!
         return Utf8.fromUtf16(@mkslice(validValue, Utf16.lengthZeroTerminated(validValue)))
     }
 
@@ -49,7 +49,7 @@ namespace WinFsp
             if security and available < @countof(stored) do
                 return StatusBufferOverflow
             if security do
-                @memcpy(notnull security, @dataof(stored), @countof(stored))
+                @memcpy(security!, @dataof(stored), @countof(stored))
             return StatusSuccess
         }
 
@@ -58,7 +58,7 @@ namespace WinFsp
         if security and available < required do
             return StatusBufferOverflow
         if security and required do
-            @memcpy(notnull security, notnull context.defaultSecurity, required)
+            @memcpy(security!, context.defaultSecurity!, required)
         return StatusSuccess
     }
 
@@ -94,7 +94,7 @@ namespace WinFsp
             return status
         if attributes do
             dref attributes = info.fileAttributes
-        return securitySize ? copySecurity(fileSystem, nodeId, security, notnull securitySize) :
+        return securitySize ? copySecurity(fileSystem, nodeId, security, securitySize!) :
                StatusSuccess
     }
 
@@ -152,7 +152,7 @@ namespace WinFsp
     func fspFlush(fileSystem: *FspFileSystem, fileContext: #null *void, info: #null *FileInfo)->s32
     {
         var scratch: FileInfo
-        return callbackFlush(mountedVolume(fileSystem), idFromContext(fileContext), info ? notnull info : &scratch)
+        return callbackFlush(mountedVolume(fileSystem), idFromContext(fileContext), info ? info! : &scratch)
     }
 
     func fspGetFileInfo(fileSystem: *FspFileSystem, fileContext: #null *void, info: *FileInfo)->s32
@@ -205,7 +205,7 @@ namespace WinFsp
 
     func emitFspDir(emitContext: #null *void, name: #null const [*] u8, info: const *FileInfo)->u8
     {
-        let context = cast(*FspEmitContext) notnull emitContext
+        let context = cast(*FspEmitContext) emitContext!
         let name16  = Utf16.toZeroTerminated(cString(name))
         let bytes   = #offsetof(FspDirInfo.fileName) + @countof(name16) * #sizeof(u16)
         if bytes > Swag.U16.Max do
@@ -214,7 +214,7 @@ namespace WinFsp
         var storage: Array'u8
         storage.resize(bytes)
         @memset(storage.buffer, 0, bytes)
-        let dirInfo = cast(*FspDirInfo) notnull storage.buffer
+        let dirInfo = cast(*FspDirInfo) storage.buffer!
         dirInfo.size     = cast(u16) bytes
         dirInfo.fileInfo = dref info
         if @countof(name16) > 1 do

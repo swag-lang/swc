@@ -7,7 +7,7 @@ impl Image
     {
         .visitPixels(generator)
         {
-            let params = cast(*Noise.FastNoise) (notnull userData)
+            let params = cast(*Noise.FastNoise) userData!
             let v      = params.sample(x, y)
             let light  = cast(u8) Math.map(v, -1.0, 1.0, 0, 255.0)
             pix[0] = light

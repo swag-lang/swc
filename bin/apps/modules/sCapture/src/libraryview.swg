@@ -207,7 +207,7 @@ impl IWnd for LibraryView
             // shadow so it stays readable over any background.
             if capture and !capture.title.isEmpty()
             {
-                let font  = notnull me.font().regular
+                let font  = me .font().regular!
                 let title = capture.title.toString()
                 let cx    = it.rect.horzCenter()
                 let by    = it.rect.bottom() - 8
@@ -218,7 +218,7 @@ impl IWnd for LibraryView
             // Waiting for texture
             if !it.texture.isValid()
             {
-                let icon  = .theme().icon64(.HourGlass, 48)
+                let icon  = .theme().icon(.HourGlass, 48)
                 let color = Color.fromArgb(50, Argb.White)
                 icon.paint(painter, it.rect.horzCenter() - icon.sizeX * 0.5, it.rect.vertCenter() - icon.sizeY * 0.5, color)
             }
@@ -307,7 +307,7 @@ impl LibraryView
         let search = .libWnd.searchText.toString()
         for it in .allItems
         {
-            let itn = notnull it
+            let itn = it!
             itn.filtered = true
 
             .mutexLoaded.lock()
@@ -368,7 +368,7 @@ impl LibraryView
         // Work on a copy, as 'items' can be changed by sorting during loading
         var copy: Array'*LibraryItem
         for it in .allItems do
-            copy.add(notnull it)
+            copy.add(it!)
 
         for it in copy
         {

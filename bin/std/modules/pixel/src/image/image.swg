@@ -82,7 +82,7 @@ impl Image
         if buffer
         {
             Debug.assert(@countof(buffer) == result.byteCount, "pixel buffer size does not match image geometry")
-            Memory.copy(cast([*] u8) (notnull result.pixels.buffer), @dataof(buffer), @countof(buffer))
+            Memory.copy(cast([*] u8) result.pixels.buffer!, @dataof(buffer), @countof(buffer))
         }
 
         return result
@@ -178,7 +178,7 @@ impl Image
     // The caller must have called an `allocWorkingBuffer` overload first.
     internal mtd safeWorkingBuffer()->*Image
     {
-        return notnull .workingBuffer
+        return .workingBuffer!
     }
 
     // Releases the working image, if any.
@@ -194,7 +194,7 @@ impl Image
     // current image.
     internal mtd applyWorkingBuffer()
     {
-        let wb = notnull .workingBuffer
+        let wb = .workingBuffer!
         swap(&.pixelFormat, &wb.pixelFormat)
         swap(&.pixels, &wb.pixels)
         swap(&.width, &wb.width)
@@ -222,13 +222,13 @@ impl Image
 
         let self: const &Image = me
         var p                  = {image: self, userData: pixelUserData}
-        Jobs.parallelVisit(@mkslice(cast([*] u8) (notnull self.pixels.buffer), self.pixels.count), cast(u32) (.bytesPerPixel * stride), &p)
+        Jobs.parallelVisit(@mkslice(cast([*] u8) self.pixels.buffer!, self.pixels.count), cast(u32) (.bytesPerPixel * stride), &p)
         {
             if !data do
                 return
             let p        = cast(*#decltype(p)) (data)
             let pixPtr   = cast([*] u8) buffer
-            let pixIndex = cast(u64) (pixPtr - cast([*] u8) (notnull p.image.pixels.buffer)) / p.image.bytesPerPixel
+            let pixIndex = cast(u64) (pixPtr - cast([*] u8) p.image.pixels.buffer!) / p.image.bytesPerPixel
 
             #inject(stmt,
                     pix = pixPtr,
@@ -251,7 +251,7 @@ impl Image
     mtd clear()
     {
         Debug.assert(.isValid(), "image is invalid")
-        let pixels = notnull .pixels.buffer
+        let pixels = .pixels.buffer!
         Memory.clear(pixels, .byteCount)
     }
 
@@ -319,28 +319,28 @@ impl Image
         #static switch PF
         {
         case .RGBA8:
-            let pix = (notnull .pixels.buffer) + (x * 4) + (y * .width * 4)
+            let pix = .pixels.buffer! + (x * 4) + (y * .width * 4)
             result.r = pix[0]
             result.g = pix[1]
             result.b = pix[2]
             result.a = pix[3]
 
         case .RGB8:
-            let pix = (notnull .pixels.buffer) + (x * 3) + (y * .width * 3)
+            let pix = .pixels.buffer! + (x * 3) + (y * .width * 3)
             result.r = pix[0]
             result.g = pix[1]
             result.b = pix[2]
             result.a = 255
 
         case .BGRA8:
-            let pix = (notnull .pixels.buffer) + (x * 4) + (y * .width * 4)
+            let pix = .pixels.buffer! + (x * 4) + (y * .width * 4)
             result.b = pix[0]
             result.g = pix[1]
             result.r = pix[2]
             result.a = pix[3]
 
         case .BGR8:
-            let pix = (notnull .pixels.buffer) + (x * 3) + (y * .width * 3)
+            let pix = .pixels.buffer! + (x * 3) + (y * .width * 3)
             result.b = pix[0]
             result.g = pix[1]
             result.r = pix[2]

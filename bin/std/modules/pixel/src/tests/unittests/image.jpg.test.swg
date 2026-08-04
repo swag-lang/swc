@@ -63,7 +63,7 @@ func addAdobeRgbMarker(encoded: const [..] u8)->Array'u8
 
 func fillSolidImage(img: *Image, b, g, r, a: u8)
 {
-    var pix = notnull img.pixels.buffer
+    var pix = img.pixels.buffer!
     for img.width * img.height
     {
         switch img.pixelFormat

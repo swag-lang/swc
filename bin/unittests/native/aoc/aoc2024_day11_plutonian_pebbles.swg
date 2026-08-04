@@ -79,8 +79,8 @@ func mapInit()->StoneMap
     result.counts = cast(#null [*] u64) @alloc(cast(u64) MapCap * #sizeof(u64))
     result.alive  = cast(#null [*] bool) @alloc(cast(u64) MapCap * #sizeof(bool))
     result.used   = 0
-    let alive  = notnull result.alive
-    let counts = notnull result.counts
+    let alive  = result.alive!
+    let counts = result.counts!
     for [i] in MapCap
     {
         alive[i]  = false
@@ -107,8 +107,8 @@ func mapProbe(m: *StoneMap, key: u64)->u32
     h *= 0x45D9F3B
     h ^= h >> 16
     var idx   = cast(u32) (h % cast(u64) MapCap)
-    let alive = notnull m.alive
-    let keys  = notnull m.keys
+    let alive = m.alive!
+    let keys  = m.keys!
     for MapCap
     {
         if !alive[idx] or keys[idx] == key do
@@ -123,19 +123,19 @@ func mapProbe(m: *StoneMap, key: u64)->u32
 func mapLookup(m: *StoneMap, key: u64)->#null *u64
 {
     let idx   = mapProbe(m, key)
-    let alive = notnull m.alive
-    let keys  = notnull m.keys
+    let alive = m.alive!
+    let keys  = m.keys!
     if alive[idx] and keys[idx] == key do
-        return &(notnull m.counts)[idx]
+        return &m.counts![idx]
     return null
 }
 
 func mapAdd(m: *StoneMap, key: u64, count: u64)
 {
     let idx    = mapProbe(m, key)
-    let alive  = notnull m.alive
-    let keys   = notnull m.keys
-    let counts = notnull m.counts
+    let alive  = m.alive!
+    let keys   = m.keys!
+    let counts = m.counts!
     if alive[idx] and keys[idx] == key
     {
         counts[idx] += count
@@ -149,8 +149,8 @@ func mapAdd(m: *StoneMap, key: u64, count: u64)
 
 func mapClear(m: *StoneMap)
 {
-    let alive  = notnull m.alive
-    let counts = notnull m.counts
+    let alive  = m.alive!
+    let counts = m.counts!
     for MapCap
     {
         alive[@index]  = false
@@ -162,8 +162,8 @@ func mapClear(m: *StoneMap)
 func mapTotal(m: *StoneMap)->u64
 {
     var total: u64
-    let alive  = notnull m.alive
-    let counts = notnull m.counts
+    let alive  = m.alive!
+    let counts = m.counts!
     for [i] in MapCap
     {
         if alive[i] do
@@ -180,9 +180,9 @@ alias StoneVisitor = func||(u64, u64)
 
 func forEachStone(m: *StoneMap, cb: StoneVisitor)
 {
-    let alive  = notnull m.alive
-    let keys   = notnull m.keys
-    let counts = notnull m.counts
+    let alive  = m.alive!
+    let keys   = m.keys!
+    let counts = m.counts!
     for [i] in MapCap
     {
         if alive[i] do
@@ -219,9 +219,9 @@ func blinkStone(stone: u64, count: u64, dst: *StoneMap)
 func blinkOnce(src: *StoneMap, dst: *StoneMap)
 {
     mapClear(dst)
-    let alive  = notnull src.alive
-    let keys   = notnull src.keys
-    let counts = notnull src.counts
+    let alive  = src.alive!
+    let keys   = src.keys!
+    let counts = src.counts!
     for [i] in MapCap
     {
         if alive[i] do

@@ -88,12 +88,12 @@ impl Serializer
     {
         if .isWrite
         {
-            let encode = notnull .encode
+            let encode = .encode!
             encode.end()
         }
         else
         {
-            let decode = notnull .decode
+            let decode = .decode!
             decode.end()
         }
     }
@@ -103,12 +103,12 @@ impl Serializer
     {
         if .isWrite
         {
-            let encode = notnull .encode
+            let encode = .encode!
             encode.beginSection(kind)
         }
         else
         {
-            let decode = notnull .decode
+            let decode = .decode!
             decode.beginSection(kind)
         }
     }
@@ -118,12 +118,12 @@ impl Serializer
     {
         if .isWrite
         {
-            let encode = notnull .encode
+            let encode = .encode!
             encode.endSection()
         }
         else
         {
-            let decode = notnull .decode
+            let decode = .decode!
             decode.endSection()
         }
     }
@@ -139,7 +139,7 @@ impl Serializer
 
         if .isWrite
         {
-            let encode = notnull .encode
+            let encode = .encode!
             encode.beginField(value)
             defer #nofail encode.endField(value)
 
@@ -161,7 +161,7 @@ impl Serializer
         }
         else
         {
-            let decode = notnull .decode
+            let decode = .decode!
             if !decode.beginField(value) do
                 return
             defer #nofail decode.endField(value)

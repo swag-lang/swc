@@ -169,7 +169,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
 {
     var source = Image.create(9, 9, .BGRA8)
     source.clear()
-    let white = (notnull source.pixels.buffer) + cast(u64) ((source.height - 4 - 1) * source.rowStride + 4 * source.bytesPerPixel)
+    let white = source.pixels.buffer! + cast(u64) ((source.height - 4 - 1) * source.rowStride + 4 * source.bytesPerPixel)
     white[0], white[1], white[2], white[3] = 255
 
     var renderer: RenderCpu
@@ -244,7 +244,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     {
         for [x] in 4
         {
-            let pixel = (notnull source.pixels.buffer) + cast(u64) ((3 - y) * source.rowStride + x * source.bytesPerPixel)
+            let pixel = source.pixels.buffer! + cast(u64) ((3 - y) * source.rowStride + x * source.bytesPerPixel)
             if x < 2
             {
                 let value: u8 = ((x + y) & 1) != 0 ? 255 : 0

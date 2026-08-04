@@ -54,9 +54,9 @@ func validateOp(str: string)
         g_Op       = str
     }
 
-    let edit = notnull g_Edit
+    let edit = g_Edit!
     if g_Error do
-        edit.setText(notnull g_Error)
+        edit.setText(g_Error!)
     else do
         edit.setText(Format.toString("%", g_CurValue))
 }
@@ -67,7 +67,7 @@ func createBtn(str: string, x, y: s32)
     {
         let btn = PushButton.create(layout, str)
         btn.sigPressed += func(btn) { validateOp(btn.name.raw) }
-        btn.style.setFont(notnull g_FontBtn, .Regular)
+        btn.style.setFont(g_FontBtn!, .Regular)
         layout.setCell(btn, x, y)
 
         switch str
@@ -96,10 +96,10 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
         with g_Edit = EditBox.create(layout, "0", flags: .ReadOnly | .RightAligned)
         {
-            .style.setFont(notnull g_FontTxt, .Regular)
+            .style.setFont(g_FontTxt!, .Regular)
         }
 
-        layout.setCell(notnull g_Edit, 0, 0, 4)
+        layout.setCell(g_Edit!, 0, 0, 4)
 
         createBtn("7", 0, 2)
         createBtn("8", 1, 2)

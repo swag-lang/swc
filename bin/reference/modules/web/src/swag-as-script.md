@@ -69,7 +69,7 @@ rest of the file is compiled:
 ```swag
 #run
 {
-    let cfg = notnull @compiler.getBuildCfg()
+    let cfg = @compiler.getBuildCfg()!
     cfg.safetyGuards = Swag.SafetyWhat.All
 }
 ```

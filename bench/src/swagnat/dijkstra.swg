@@ -64,19 +64,19 @@ func pop()
 #main
 {
     // ---- data generation (not timed) ----
-    let weight = cast([*] u64) notnull @alloc(NN * #sizeof(u64))
+    let weight = cast([*] u64) (@alloc(NN * #sizeof(u64)))!
     for [i] in NN do
         weight[i] = 1 + (rnd() % 9)
 
     // ---- timed work ----
     let t0 = now()
 
-    let dist = cast([*] u64) notnull @alloc(NN * #sizeof(u64))
+    let dist = cast([*] u64) (@alloc(NN * #sizeof(u64)))!
     for [i] in NN do
         dist[i] = INF
 
-    g_HeapD    = cast([*] u64) notnull @alloc(NN * 4 * #sizeof(u64))
-    g_HeapN    = cast([*] u64) notnull @alloc(NN * 4 * #sizeof(u64))
+    g_HeapD    = cast([*] u64) (@alloc(NN * 4 * #sizeof(u64)))!
+    g_HeapN    = cast([*] u64) (@alloc(NN * 4 * #sizeof(u64)))!
     g_HeapSize = 0
 
     dist[0] = 0

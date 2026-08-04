@@ -96,7 +96,7 @@ internal func caughtMessage(err: #null any)->string
 
 internal func runMainWindowOperation(data: #null *void)
 {
-    let window = cast(*MainWindow) (notnull data)
+    let window = cast(*MainWindow) (data!)
     window.runOperation()
 }
 
@@ -115,7 +115,7 @@ impl MainWindow
     func create(parent: *Wnd)->*MainWindow
     {
         let result  = Wnd.create'MainWindow(parent, "sCrypt.mainWindow")
-        let surface = notnull result.surface
+        let surface = result.surface!
         surface.setView(result)
         surface.minSize        = {1100, 790}
         result.backgroundStyle = .View
@@ -229,7 +229,7 @@ impl MainWindow
             textColor  = colors.error
         }
 
-        var glyph = .theme().icon24(ThemeIcons24.About, 20)
+        var glyph = .theme().icon(ThemeIcons.About, 20)
         glyph.color = glyphColor
         .statusIcon.setIcon(glyph)
         .status.setTextColor(textColor)
@@ -242,9 +242,9 @@ impl MainWindow
         let form = card.form
         .createForm = form
 
-        .createPath = form.addTextField(appStrings().ui_ContainerFile, placeholder: "C:\\path\\private.scrypt", icon: .theme().icon24(ThemeIcons24.OpenFile, 17))
+        .createPath = form.addTextField(appStrings().ui_ContainerFile, placeholder: "C:\\path\\private.scrypt", icon: .theme().icon(ThemeIcons.OpenFile, 17))
         setMachineFont(.createPath)
-        let browse = form.addRowAction(appStrings().ui_Browse, .theme().icon24(ThemeIcons24.OpenFile, 16))
+        let browse = form.addRowAction(appStrings().ui_Browse, .theme().icon(ThemeIcons.OpenFile, 16))
         browse.sigPressed += func|window = me|(btn)
         {
             discard btn
@@ -266,7 +266,7 @@ impl MainWindow
         .confirmPassword = form.addPasswordField(appStrings().ui_ConfirmPassword, placeholder: appStrings().ui_EnterAgain)
 
         .createButton = PushButton.create(card.actions, appStrings().ui_CreateVault, {0, 0, 224, 36}, form: .Strong)
-        .createButton.setIcon(.theme().icon24(ThemeIcons24.SaveAs, 18))
+        .createButton.setIcon(.theme().icon(ThemeIcons.SaveAs, 18))
         .createButton.sigPressed += func|window = me|(btn)
         {
             discard btn
@@ -284,9 +284,9 @@ impl MainWindow
         let form = card.form
         .mountForm = form
 
-        .mountPath = form.addTextField(appStrings().ui_ContainerFile, placeholder: appStrings().ui_ExistingContainer, icon: .theme().icon24(ThemeIcons24.OpenFile, 17))
+        .mountPath = form.addTextField(appStrings().ui_ContainerFile, placeholder: appStrings().ui_ExistingContainer, icon: .theme().icon(ThemeIcons.OpenFile, 17))
         setMachineFont(.mountPath)
-        let browse = form.addRowAction(appStrings().ui_Browse, .theme().icon24(ThemeIcons24.OpenFile, 16))
+        let browse = form.addRowAction(appStrings().ui_Browse, .theme().icon(ThemeIcons.OpenFile, 16))
         browse.sigPressed += func|window = me|(btn)
         {
             discard btn
@@ -311,7 +311,7 @@ impl MainWindow
             .drive.setSelectedIndex(0, notify: false)
 
         .unmountButton = PushButton.create(card.actions, appStrings().ui_Unmount, {0, 0, 136, 36})
-        .unmountButton.setIcon(.theme().icon24(ThemeIcons24.Stop, 18))
+        .unmountButton.setIcon(.theme().icon(ThemeIcons.Stop, 18))
         .unmountButton.sigPressed += func|window = me|(btn)
         {
             discard btn
@@ -319,7 +319,7 @@ impl MainWindow
         }
 
         .mountButton = PushButton.create(card.actions, appStrings().ui_MountDrive, {0, 0, 136, 36}, form: .Strong)
-        .mountButton.setIcon(.theme().icon24(ThemeIcons24.Play, 18))
+        .mountButton.setIcon(.theme().icon(ThemeIcons.Play, 18))
         .mountButton.sigPressed += func|window = me|(btn)
         {
             discard btn
@@ -336,7 +336,7 @@ impl MainWindow
         var detail = String.from(message)
         if err != null do
             detail = Format.toString("%\n\n%", message, caughtMessage(err))
-        MessageDlg.error(notnull .surface, detail)
+        MessageDlg.error(.surface!, detail)
     }
 
     mtd setState(state: AppState)
@@ -365,7 +365,7 @@ impl MainWindow
         options.shortcuts.add({Env.SpecialDirectory.Desktop, appStrings().ui_Desktop})
         options.shortcuts.add({Env.SpecialDirectory.UserDocuments, "Documents"})
 
-        let dialog = FileDlg.create(notnull .surface, options)
+        let dialog = FileDlg.create(.surface!, options)
         if dialog.doModal() == Dialog.BtnOk do
             target.setText(dialog.selectedPath())
     }
@@ -519,7 +519,7 @@ impl MainWindow
         Jobs.wait(&.operation.job)
         if .operation.timer
         {
-            .removeTimer(notnull .operation.timer)
+            .removeTimer(.operation.timer!)
             .operation.timer = null
         }
 
@@ -578,7 +578,7 @@ impl MainWindow
 
         if .operation.timer
         {
-            .removeTimer(notnull .operation.timer)
+            .removeTimer(.operation.timer!)
             .operation.timer = null
         }
 

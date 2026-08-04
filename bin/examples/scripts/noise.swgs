@@ -91,7 +91,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     case PaintEvent as paintEvt:
         let painter  = paintEvt.paintContext.painter
         let renderer = paintEvt.paintContext.renderer
-        renderer.updateTexture(g_Texture, notnull g_Image.pixels.buffer)
+        renderer.updateTexture(g_Texture, g_Image.pixels.buffer!)
         painter.drawTexture(cast() UX, 0, cast() W, cast() H, g_Texture)
     }
 

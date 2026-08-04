@@ -32,7 +32,7 @@ func semaLateLiteralOmits()->bool
     return !@isset(b.item)
 }
 
-// The field type is plain non-null at every read: no proof, no 'notnull'.
+// The field type is plain non-null at every read: no proof, no '!'.
 func semaLateTypeIsNonNull(it: *SemaLateItem)->bool
 {
     var b: SemaLateBox

@@ -34,8 +34,8 @@ overload contract with a 'where' constraint, and a runtime precondition with ord
 # Values, Errors, and Conversion
 
 ```swag
-cast  catch  discard  dref  expect  fail  false  notnull
-null  retval  true  try  undefined
+cast  catch  discard  dref  expect  fail  false  null
+retval  true  try  undefined
 ```
 
 'not' is reserved for future use.
@@ -98,7 +98,7 @@ attribute instead.
 
 ```swag
 #bit  #complete  #fail  #fwd  #move  #nodrop  #nofail  #null
-#prom  #raw  #relocate  #reverse  #unconst  #wrap
+#prom  #raw  #relocate  #reverse  #unconst  #unnull  #wrap
 ```
 
 # Runtime and Compiler Intrinsics

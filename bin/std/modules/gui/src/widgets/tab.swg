@@ -277,14 +277,14 @@ impl IWnd for Tab
             {
                 if idx == .selectedIndex do
                     continue
-                let v = notnull .items[idx]
+                let v = .items[idx]!
                 if v.pos + v.width > clientRect.right() do
                     break
                 .paintItem(painter, v, cast(u32) idx)
             }
 
             // Paint selected item
-            .paintItem(painter, notnull .items[.selectedIndex], .selectedIndex)
+            .paintItem(painter, .items[.selectedIndex]!, .selectedIndex)
         }
     }
 
@@ -397,7 +397,7 @@ private impl Tab
 
     mtd hidePopup()
     {
-        let popup = notnull .popup
+        let popup = .popup!
         popup.destroy()
         .popup = null
     }
@@ -419,7 +419,7 @@ private impl Tab
         let rect = .itemBarRect()
         for [idx] in .firstVisibleIndex until cast(u32) .items.count
         {
-            let v = notnull .items[idx]
+            let v = .items[idx]!
             if v.pos + v.width > rect.right() do
                 break
             if pos.x >= v.pos and pos.x < v.pos + v.width do
@@ -441,7 +441,7 @@ private impl Tab
             w = Math.max(w, .minimumItemWidth)
             for vIt in .items
             {
-                let v = notnull vIt
+                let v = vIt!
                 v.width       = w
                 .mostRightPos += w
             }
@@ -450,7 +450,7 @@ private impl Tab
             let w = Math.max(.fixedItemWidth, .minimumItemWidth)
             for vIt in .items
             {
-                let v = notnull vIt
+                let v = vIt!
                 v.width       = w
                 .mostRightPos += w
             }
@@ -459,7 +459,7 @@ private impl Tab
             let font = nnFont(.font().regular)
             for vIt in .items
             {
-                let v   = notnull vIt
+                let v   = vIt!
                 let mes = Painter.measureString(v.item.name.raw, font)
 
                 // Text
@@ -480,7 +480,7 @@ private impl Tab
         .mostRightPos = Math.round(rect.x)
         for [idx] in .firstVisibleIndex until cast(u32) .items.count
         {
-            let v    = notnull .items[idx]
+            let v    = .items[idx]!
             let left = Math.round(x)
             x += v.width
             let right = Math.round(x)
@@ -500,7 +500,7 @@ private impl Tab
             // Create a button if there are too many items for the given size
             if !.buttonPopup
             {
-                let btnPopup = IconButton.create(me, .theme().icon24(ThemeIcons24.SortArrowDown), {})
+                let btnPopup = IconButton.create(me, .theme().icon(ThemeIcons.SortArrowDown), {})
                 .buttonPopup = btnPopup
                 btnPopup.setForm(.Circle)
                 btnPopup.sigPressed += func|tab = me|(btn)
@@ -511,13 +511,13 @@ private impl Tab
             }
 
             let x  = barRect.right() - 32
-            let bp = notnull .buttonPopup
+            let bp = .buttonPopup!
             bp.setPosition({x, (.barHeight * 0.5) - 12, 24, 24})
         }
         elif .buttonPopup
         {
             .firstVisibleIndex = 0
-            let bp = notnull .buttonPopup
+            let bp = .buttonPopup!
             bp.destroy()
             .buttonPopup = null
             .computeTabLayout()
@@ -740,7 +740,7 @@ private impl Tab
             .hidePopup()
         if .buttonPopup
         {
-            let button = notnull .buttonPopup
+            let button = .buttonPopup!
             button.destroy()
             .buttonPopup = null
         }

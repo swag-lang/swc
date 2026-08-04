@@ -132,7 +132,6 @@ SWC_TOKEN_DEF(KwdRetVal, "retval",  TokenIdKindE::Keyword)
 SWC_TOKEN_DEF(KwdTry, "try",  TokenIdKindE::Keyword)
 SWC_TOKEN_DEF(KwdCatch, "catch",  TokenIdKindE::Keyword)
 SWC_TOKEN_DEF(KwdExpect, "expect",  TokenIdKindE::Keyword)
-SWC_TOKEN_DEF(KwdNotNull, "notnull",  TokenIdKindE::Keyword)
 SWC_TOKEN_DEF(KwdFail, "fail",  TokenIdKindE::Keyword)
 SWC_TOKEN_DEF(KwdDiscard, "discard",  TokenIdKindE::Keyword)
 
@@ -210,6 +209,7 @@ SWC_TOKEN_DEF(ModifierFail, "#fail",  TokenIdKindE::Modifier)
 SWC_TOKEN_DEF(ModifierNoFail, "#nofail",  TokenIdKindE::Modifier)
 SWC_TOKEN_DEF(ModifierBit, "#bit",  TokenIdKindE::Modifier)
 SWC_TOKEN_DEF(ModifierUnConst, "#unconst",  TokenIdKindE::Modifier)
+SWC_TOKEN_DEF(ModifierUnNull, "#unnull",  TokenIdKindE::Modifier)
 SWC_TOKEN_DEF(ModifierRaw, "#raw",  TokenIdKindE::Modifier)
 
 // COMPILER IDENTIFIERS

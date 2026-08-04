@@ -2,7 +2,7 @@
 
 #run
 {
-    with let cfg = notnull @compiler.getBuildCfg()
+    with let cfg = @compiler.getBuildCfg()!
     {
         .moduleVersion  = #swcversion
         .moduleRevision = #swcrevision

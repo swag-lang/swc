@@ -21,33 +21,33 @@ impl Image
         {
             mec.visitPixels(&f)
             {
-                let params   = cast(*#decltype(f)) (notnull userData)
+                let params   = cast(*#decltype(f)) userData!
                 let dstImage = cast(*Image) params.dstImage
                 let srcImage = cast(const *Image) params.srcImage
 
-                var pixDst = (notnull dstImage.pixels.buffer) + x * image.bytesPerPixel
+                var pixDst = dstImage.pixels.buffer! + x * image.bytesPerPixel
                 pixDst += cast(u64) (y * (image.width * image.bytesPerPixel))
 
                 // fast path: outside blit rect, keep pixel as-is
                 if x < params.x or y < params.y or x >= params.x + srcImage.width or y >= params.y + srcImage.height
                 {
-                    copyPixelDirect'BPP(cast([*] u8) (notnull pixDst), cast([*] u8) pix)     // copy current dst pixel back (no change)
+                    copyPixelDirect'BPP(cast([*] u8) pixDst!, cast([*] u8) pix)     // copy current dst pixel back (no change)
                 }
                 else
                 {
                     let x1     = x - params.x
                     let y1     = y - params.y
-                    var pixSrc = (notnull srcImage.pixels.buffer) + x1 * srcImage.bytesPerPixel
+                    var pixSrc = srcImage.pixels.buffer! + x1 * srcImage.bytesPerPixel
                     pixSrc += cast(u64) (y1 * (srcImage.width * srcImage.bytesPerPixel))
 
                     switch #complete params.mode
                     {
                     case .Copy:
-                        copyPixelDirect'BPP(notnull pixDst, notnull pixSrc)
+                        copyPixelDirect'BPP(pixDst!, pixSrc!)
 
                     case .SourceOver:
                         if BPP != 32 do
-                            copyPixelDirect'BPP(notnull pixDst, notnull pixSrc)
+                            copyPixelDirect'BPP(pixDst!, pixSrc!)
                         else
                         {
                             let sourceAlpha      = pixSrc[3] / 255.0

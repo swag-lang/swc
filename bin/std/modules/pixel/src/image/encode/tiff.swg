@@ -83,7 +83,7 @@ internal impl IImageEncoder for Encoder
         if @dataof(options) != null
         {
             Debug.assert(@kindof(options) == EncodeOptions)
-            userOptions = dref cast(*EncodeOptions) (notnull @dataof(options))
+            userOptions = dref cast(*EncodeOptions) @dataof(options)!
         }
 
         if image.width <= 0 or image.height <= 0 or !image.pixels.buffer do
@@ -139,15 +139,15 @@ internal impl IImageEncoder for Encoder
         }
 
         var packedData:   Array'u8
-        var storedData     = cast(const [*] u8) (notnull rawData.buffer)
+        var storedData     = cast(const [*] u8) rawData.buffer!
         var storedLen      = rawData.count
         var compressionTag = COMPRESSION_NONE
         var hasPredictor: bool
         if userOptions.compression == .Lzw
         {
-            applyHorizontalPredictor(notnull rawData.buffer, rowBytes, cast(u64) height, samples)
+            applyHorizontalPredictor(rawData.buffer!, rowBytes, cast(u64) height, samples)
             packLzw(&packedData, storedData, storedLen)
-            storedData     = cast(const [*] u8) (notnull packedData.buffer)
+            storedData     = cast(const [*] u8) packedData.buffer!
             storedLen      = packedData.count
             compressionTag = COMPRESSION_LZW
             hasPredictor   = true
@@ -156,7 +156,7 @@ internal impl IImageEncoder for Encoder
         {
             for [y] in height do
                 packBitsRow(&packedData, storedData + cast(u64) y * rowBytes, rowBytes)
-            storedData     = cast(const [*] u8) (notnull packedData.buffer)
+            storedData     = cast(const [*] u8) packedData.buffer!
             storedLen      = packedData.count
             compressionTag = COMPRESSION_PACKBITS
         }

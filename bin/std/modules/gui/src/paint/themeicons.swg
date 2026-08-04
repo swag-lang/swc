@@ -1,7 +1,14 @@
 #global public
 
-// Identifies a glyph in the theme's 24-pixel action-icon atlas.
-enum ThemeIcons24
+using Core, Pixel
+
+// Identifies a glyph of the theme's vector icon set.
+//
+// The set is one vector document (`theme/icons.svg`, Fluent UI System Icons, MIT
+// License); the theme rasterizes it on demand at the requested display size and the
+// current atlas scale, so any size stays sharp on any display. The declaration
+// order is the glyph order of the document grid.
+enum ThemeIcons
 {
     WndMinimize          // Window-caption minimize glyph.
     WndMaximize          // Window-caption maximize glyph.
@@ -49,36 +56,23 @@ enum ThemeIcons24
     Filter               // Filter action glyph.
     Minimize             // Generic minimize action glyph.
     ParentFolder         // Up navigation toward the parent location.
-}
-
-// Identifies a glyph in the theme's 64-pixel status-icon atlas.
-enum ThemeIcons64
-{
-    Question        // Question or confirmation status.
-    Warning         // Recoverable warning status.
-    Critical        // Critical error status.
-    Information     // Informational status.
-    HourGlass       // Waiting or in-progress status.
+    Question             // Question or confirmation status.
+    Warning              // Recoverable warning status.
+    Critical             // Critical error status.
+    Information          // Informational status.
+    HourGlass            // Waiting or in-progress status.
 }
 
 impl Theme
 {
-    // Creates an icon descriptor for a 24-pixel theme glyph at `size` logical pixels.
-    mtd icon24(idx: ThemeIcons24, size = 24'f32)->Icon
+    // Creates an icon descriptor for a theme glyph displayed at `size` logical pixels.
+    //
+    // The frames behind a given size are rasterized once from the vector icon set, at
+    // the current atlas scale, and shared by every icon of that size.
+    mtd icon(idx: ThemeIcons, size = 24'f32)->Icon
     {
         var result: retval
-        result.imageList = .res.icons24
-        result.index     = cast(s32) idx
-        result.sizeX     = size
-        result.sizeY     = size
-        return result
-    }
-
-    // Creates an icon descriptor for a 64-pixel theme glyph at `size` logical pixels.
-    mtd icon64(idx: ThemeIcons64, size = 64'f32)->Icon
-    {
-        var result: retval
-        result.imageList = .res.icons64
+        result.imageList = .iconList(size)
         result.index     = cast(s32) idx
         result.sizeX     = size
         result.sizeY     = size

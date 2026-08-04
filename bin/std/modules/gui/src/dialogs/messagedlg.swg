@@ -17,7 +17,7 @@ public struct MessageDlg
 // Configures message content alignment, icon presentation, and post-creation customization.
 public struct MessageDlgOptions
 {
-    title:     string = ""                                   // Surface title; empty keeps the helper's default.
+    title:     string       = ""                             // Surface title; empty keeps the helper's default.
     icon:      Icon                                          // Optional large message icon.
     iconColor: Color                                         // Icon tint, or transparent for its descriptor color.
     textHorizontalAlignment = StringHorzAlignment.Center     // Horizontal message alignment.
@@ -65,8 +65,8 @@ public impl MessageDlg
     mtd doModal()->WndId
     {
         .adaptSizeToMessage()
-        let srf = notnull .surface
-        srf.center(notnull .parentSurface)
+        let srf = .surface!
+        srf.center(.parentSurface!)
         return Dialog.doModal(me)
     }
 
@@ -112,7 +112,7 @@ public impl MessageDlg
             h += metrics.dialog_Padding
         h += .buttonBar.position.height
         h += 2 * metrics.wnd_BorderSize
-        let srf = notnull .surface
+        let srf = .surface!
         if srf.flags & .SmallCaption do
             h += metrics.wnd_SmallCaptionCY
         elif srf.flags & .LargeCaption do
@@ -195,7 +195,7 @@ public impl MessageDlg
         var opt = options
         if !opt.icon.isValid()
         {
-            opt.icon      = from.app.theme.icon64(ThemeIcons64.Question)
+            opt.icon      = from.app.theme.icon(ThemeIcons.Question, 64)
             opt.iconColor = Argb.White
         }
 
@@ -214,7 +214,7 @@ public impl MessageDlg
         var opt = options
         if !opt.icon.isValid()
         {
-            opt.icon      = from.app.theme.icon64(ThemeIcons64.Question)
+            opt.icon      = from.app.theme.icon(ThemeIcons.Question, 64)
             opt.iconColor = Argb.White
         }
 
@@ -274,7 +274,7 @@ public impl MessageDlg
         var opt = options
         if !opt.icon.isValid()
         {
-            opt.icon      = from.app.theme.icon64(.Critical)
+            opt.icon      = from.app.theme.icon(.Critical, 64)
             opt.iconColor = Argb.White
         }
 

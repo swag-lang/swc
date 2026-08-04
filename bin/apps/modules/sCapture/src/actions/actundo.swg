@@ -14,7 +14,7 @@ impl IActionUI for ActionUndo
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let main    = cast(*MainWnd) notnull cxt.wnd
+        let main    = cast(*MainWnd) cxt.wnd!
         let capture = main.getCapture()
 
         switch cxt.id
@@ -23,13 +23,13 @@ impl IActionUI for ActionUndo
             evt.updatedFields |= .Disabled | .Name | .Icon
             evt.name          = appStrings().act_Undo
             evt.disabled      = !capture or !capture.canUndo()
-            evt.icon          = main.theme().icon24(.Undo)
+            evt.icon          = main.theme().icon(.Undo)
 
         case .DoRedo:
             evt.updatedFields |= .Disabled | .Name | .Icon
             evt.name          = appStrings().act_Redo
             evt.disabled      = !capture or !capture.canRedo()
-            evt.icon          = main.theme().icon24(.Redo)
+            evt.icon          = main.theme().icon(.Redo)
         }
 
         return true
@@ -37,8 +37,8 @@ impl IActionUI for ActionUndo
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main    = cast(*MainWnd) notnull cxt.wnd
-        let capture = notnull main.getCapture()
+        let main    = cast(*MainWnd) cxt.wnd!
+        let capture = main.getCapture()!
 
         switch cxt.id
         {

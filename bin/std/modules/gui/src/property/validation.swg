@@ -57,12 +57,12 @@ internal impl Properties
         let theme = .theme()
         switch state
         {
-        case .Error:   return theme.icon64(.Critical, .valBarIconSize)
-        case .Warning: return theme.icon64(.Warning, .valBarIconSize)
-        case .Info:    return theme.icon64(.Information, .valBarIconSize)
+        case .Error:   return theme.icon(.Critical, .valBarIconSize)
+        case .Warning: return theme.icon(.Warning, .valBarIconSize)
+        case .Info:    return theme.icon(.Information, .valBarIconSize)
         }
 
-        return theme.icon64(.Information, .valBarIconSize)
+        return theme.icon(.Information, .valBarIconSize)
     }
 
     // Recompute the validation state of every item (called on build and after a change).
@@ -73,7 +73,7 @@ internal impl Properties
     {
         var changed = false
         for it in .items do
-            if .updateItemValidation(notnull it) do
+            if .updateItemValidation(it!) do
                 changed = true
         return changed
     }
@@ -162,7 +162,7 @@ internal impl Properties
         if !@isset(item.label) do
             return
         let lbl = item.label
-        lbl.setIcon(.theme().icon64(.Information, .valBarIconSize))
+        lbl.setIcon(.theme().icon(.Information, .valBarIconSize))
         lbl.setIconColor(Argb.White)
         lbl.setTextColor(.themeColors().embInfo_InformationText)
     }
@@ -196,7 +196,7 @@ internal impl Properties
             var consume = 0'f32
             if visible
             {
-                .syncValidationTextOffset(notnull lbl)
+                .syncValidationTextOffset(lbl!)
                 let topGap = lbl.margin.y
                 let botGap = lbl.margin.w
                 let cw     = item.line.clientRect().width
@@ -225,7 +225,7 @@ internal impl Properties
         let w = .listContentWidth()
         lbl.maxSize.x      = w
         lbl.position.width = w
-        .syncValidationTextOffset(notnull lbl)
+        .syncValidationTextOffset(lbl!)
         lbl.updateAutomaticHeight()
         return true
     }

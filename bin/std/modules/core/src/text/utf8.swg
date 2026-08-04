@@ -351,7 +351,7 @@ func fromUtf16(src: const [..] u16)->String
     result.reserve(4 * @countof(src))
     result.length = fromUtf16(@mkslice(result.buffer, result.capacity), src)
     Debug.assert(result.length + 1 < result.capacity)
-    let buffer = notnull result.buffer
+    let buffer = result.buffer!
     buffer[result.length] = 0
     return result
 }
@@ -704,7 +704,7 @@ func firstRune(src: const [..] u8)->rune
     let countof = @countof(src)
     if !countof do
         return 0
-    let dataof = notnull @dataof(src)
+    let dataof = @dataof(src)!
     if Latin1.isAscii(dataof[0]) do
         return cast(rune) dataof[0]
     let {c, ?} = Utf8.decodeRune(@mkslice(dataof, countof))
@@ -717,7 +717,7 @@ func lastRune(src: const [..] u8)->rune
     let countof = @countof(src)
     if !countof do
         return 0
-    let dataof = notnull @dataof(src)
+    let dataof = @dataof(src)!
     if Latin1.isAscii(dataof[countof - 1]) do
         return cast(rune) dataof[countof - 1]
     let {c, ?} = Utf8.decodeLastRune(@mkslice(dataof, countof))

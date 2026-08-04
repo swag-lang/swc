@@ -151,7 +151,7 @@ func __failedExpect(loc: SourceCodeLocation)
            (type == Swag.BaseError)
         {
             let data = @dataof(cxt.errors[cxt.errorIndex].value)
-            let val  = cast(const *Swag.BaseError) notnull data
+            let val  = cast(const *Swag.BaseError) data!
             maxLen = @min(@countof(val.message), 128)
             if maxLen
             {

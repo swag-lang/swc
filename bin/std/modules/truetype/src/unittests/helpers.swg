@@ -53,7 +53,7 @@ impl FaceScope
 
 func getFaceData(face: #null *Face)->*FaceImpl
 {
-    let safeFace = notnull face
+    let safeFace = face!
     return cast(*FaceImpl) cast(*void) safeFace
 }
 
@@ -71,7 +71,7 @@ func getOutlineBounds(outline: const *Outline)->BBox
         return result
     }
 
-    let pts = notnull outline.points
+    let pts = outline.points!
     for cast(u32) outline.pointCount
     {
         let pt = pts[@index]
@@ -102,7 +102,7 @@ func countBitmapCoverage(bitmap: const *Bitmap)->u32
 func findPointWithNonZeroY(outline: const *Outline)->u32
 {
     @assert(outline != null)
-    let pts = notnull outline.points
+    let pts = outline.points!
     for cast(u32) outline.pointCount
     {
         if pts[@index].y != 0 do

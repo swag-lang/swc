@@ -74,7 +74,7 @@ impl PropWnd
             return cast(*BaseForm) @dataof(iform)
         }
 
-        return notnull capture.getSelectedBaseForm()
+        return capture.getSelectedBaseForm()!
     }
 
     mtd getSelectedFormType()->typeinfo
@@ -86,7 +86,7 @@ impl PropWnd
             return @kindof(iform)
         }
 
-        return notnull capture.getSelectedFormType()
+        return capture.getSelectedFormType()!
     }
 
     mtd pushTypedValue(val: u32, type: typeinfo, name: String, first: bool, common = false)
@@ -97,7 +97,7 @@ impl PropWnd
         if !capture or !capture.selection.count
         {
             let form   = .getSelectedBaseForm()
-            let field  = notnull Reflection.findField(type, name)
+            let field  = Reflection.findField(type, name)!
             var valU32 = val
             Reflection.writeFieldValue(form, field, &valU32)
         }
@@ -111,7 +111,7 @@ impl PropWnd
             undo.valU32 = val
             if !common do
                 undo.mdlType = type
-            undo.valRef = notnull Reflection.findField(type, name)
+            undo.valRef = Reflection.findField(type, name)!
             capture.pushUndo(undo)
         }
 
@@ -172,7 +172,7 @@ impl PropWnd
         func selectedKind(prop: *PropWnd, type: typeinfo, fieldName: String)->FormShapeKind
         {
             var val: u32
-            let field = notnull Reflection.findField(type, fieldName)
+            let field = Reflection.findField(type, fieldName)!
             Reflection.readFieldValue(&val, field, prop.getSelectedBaseForm())
             return cast(FormShapeKind) val
         }
@@ -193,7 +193,7 @@ impl PropWnd
 
         for [i] in @countof(FormShapeKind)
         {
-            let btn0 = IconButton.create(notnull frame.view, {})
+            let btn0 = IconButton.create(frame.view!, {})
             btn0.userData = enumToUserData(i)
             btn0.setForm(.Rectangle)
             btn0.updateFlags(.Radio)
@@ -415,7 +415,7 @@ impl PropWnd
         btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
         {
             bc.painter.setParams(.Antialiased)
-            var curSel = notnull prop.getSelectedBaseForm()
+            var curSel = prop.getSelectedBaseForm()!
             var rect   = pos
             rect.x                  = rect.horzCenter() - 21
             rect.y                  = rect.vertCenter() - 21
@@ -428,14 +428,14 @@ impl PropWnd
 
         btn.sigPopupRequested += func|prop = me|(btn)
         {
-            var curSel  = notnull prop.getSelectedBaseForm()
+            var curSel  = prop.getSelectedBaseForm()!
             var backCol = curSel.subKind == .PixSel ? g_Main!.pixSelFillCol : curSel.backColor
             var picker  = createColorPicker(btn, backCol)
             if curSel.subKind == .PixSel
             {
                 picker.sigColorChanged += func|btn|(pk)
                 {
-                    let mainWnd = notnull g_Main
+                    let mainWnd = g_Main!
                     mainWnd.pixSelFillCol = pk.color()
                     btn.invalidate()
                 }
@@ -606,13 +606,13 @@ impl PropWnd
         editOptions.title   = appStrings().dlg_TitleEnterText
         editOptions.message = "Press Shift+Enter to add a new line"
         editOptions.text    = curText.toString()
-        let dlg = EditDlg.createMultiLine(notnull main.surface, editOptions)
+        let dlg = EditDlg.createMultiLine(main.surface!, editOptions)
         if main.inPlaceEdit do
             dlg.surface?.setTopMost()
 
         if dlg.doModal() != Dialog.BtnOk do
             return curText
-        let capture = notnull main.getCapture()
+        let capture = main.getCapture()!
         let undo    = capture.newUndo(.SetText)
         undo.text = dlg.text()
         capture.pushUndo(undo)
@@ -660,7 +660,7 @@ impl PropWnd
         if curSel.subKind != .PixSel do
             return
 
-        let topLayout = notnull .topLayout
+        let topLayout = .topLayout!
         discard PushButton.create(topLayout, "", id: ActionPixSel.Fill)
         discard PushButton.create(topLayout, "", id: ActionPixSel.SmartFill)
         discard PushButton.create(topLayout, "", id: ActionPixSel.Clear)
@@ -704,7 +704,7 @@ impl PropWnd
 
             // No NoFocus: the rows embed edit boxes, so they stay keyboard-navigable
             item.flags.add(.NoSeparator)
-            return StackLayoutCtrl.create(notnull item.line, .HorizontalFit, {0, 0, 0, 40})
+            return StackLayoutCtrl.create(item.line!, .HorizontalFit, {0, 0, 0, 40})
         }
 
         discard .grid.addSeparator("Position")
@@ -782,13 +782,13 @@ impl PropWnd
         {
             for item in .grid.items
             {
-                let it = notnull item
+                let it = item!
                 if it.typeValue.name != #nameof(BaseForm.borderSize) or !@isset(it.sliderBox) do
                     continue
                 let sliderBox = it.sliderBox
                 sliderBox.label.setText(appStrings().ui_Outline)
                 sliderBox.setSignedBounds(cast() MinTextBorderSize, cast() MaxTextBorderSize)
-                sliderBox.setValueWithoutGesture((notnull .getSelectedBaseForm()).borderSize)
+                sliderBox.setValueWithoutGesture(.getSelectedBaseForm()!.borderSize)
             }
         }
     }
@@ -805,7 +805,7 @@ impl PropWnd
             return
         }
 
-        let stack0 = StackLayoutCtrl.create(notnull .topLayout, .HorizontalCenter, {0, 0, 0, BtnColorHeight + 12})
+        let stack0 = StackLayoutCtrl.create(.topLayout!, .HorizontalCenter, {0, 0, 0, BtnColorHeight + 12})
         .propBackColor(stack0)
         .propBorderColor(stack0)
         .propCalloutText(stack0)
@@ -814,7 +814,7 @@ impl PropWnd
         if stack0.children.count == 0 do
             stack0.destroyNow()
 
-        let stack1 = StackLayoutCtrl.create(notnull .topLayout, .HorizontalCenter, {0, 0, 0, BtnStyleHeight + 12})
+        let stack1 = StackLayoutCtrl.create(.topLayout!, .HorizontalCenter, {0, 0, 0, BtnStyleHeight + 12})
         .propStartCapStyle(stack1)
         .propDashStyle(stack1)
         .propEndCapStyle(stack1)

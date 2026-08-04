@@ -22,8 +22,8 @@ func dynamicArrayElementType(t: #null typeinfo)->#null typeinfo
     if !isDynamicArray(t) do
         return null
 
-    let tt       = cast(const *TypeInfoStruct) notnull t
-    let generics = notnull tt.generics
+    let tt       = cast(const *TypeInfoStruct) t!
+    let generics = tt.generics!
     return generics[0].pointedType
 }
 
@@ -84,7 +84,7 @@ func removeDynamicArrayElement(arrayPointer: #null *void, elementType: #null typ
     }
 
     arr.count -= 1
-    Memory.clear(notnull arr.buffer + arr.count * sizeValue, sizeValue)
+    Memory.clear((arr.buffer + arr.count * sizeValue)!, sizeValue)
 }
 
 // Swap two elements (by index) inside a contiguous buffer of 'valueType'. Works for both a
@@ -175,7 +175,7 @@ func appendDynamicArrayElement(arrayPointer: #null *void, elementType: #null typ
     if initialize do
         Memory.defaultInit(result, nnType)
     else do
-        Memory.clear(notnull result, nnType.sizeof)
+        Memory.clear(result!, nnType.sizeof)
 
     return result
 }

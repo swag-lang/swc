@@ -556,8 +556,14 @@ Result CodeGenSafety::emitNotNullGuard(CodeGen& codeGen, AstNodeRef ownerRef, As
     else
         builder.emitLoadRegReg(presenceReg, valuePayload.reg, presenceBits);
 
-    SymbolFunction* panicFunction = runtimeSafetyPanicFunction(codeGen, ownerPayload);
+    // Resolve the panic helper from the runtime directly. A node carries ONE runtime
+    // function, and the owner's slot may already hold an unrelated one — a '#unnull' cast
+    // attaches its own conversion helper there — so neither payload can be trusted here.
+    const IdentifierRef panicIdRef    = codeGen.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::SafetyPanic);
+    SymbolFunction*     panicFunction = panicIdRef.isValid() ? codeGen.compiler().runtimeFunctionSymbol(panicIdRef) : nullptr;
     SWC_ASSERT(panicFunction != nullptr);
+    if (!panicFunction)
+        return Result::Continue;
 
     const MicroLabelRef presentLabel = builder.createLabel();
     builder.emitCmpRegImm(presenceReg, ApInt(0, 64), presenceBits);

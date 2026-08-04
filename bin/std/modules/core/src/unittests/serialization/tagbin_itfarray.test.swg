@@ -56,7 +56,7 @@ func releaseTagBinArrayHolder(holder: *TagBinArrayHolder)
     expect encoder.writeAll(&buffer, holder)
     buffer.makeLinear()
     var decoder: Serialization.Decoder'Serialization.Read.TagBin
-    let loaded = notnull expect decoder.readAll'TagBinArrayHolder(notnull buffer.toSlice())
+    let loaded = expect decoder.readAll'TagBinArrayHolder(buffer.toSlice()!)!
     defer releaseTagBinArrayHolder(loaded)
 
     @assert(loaded.things.count == 3)

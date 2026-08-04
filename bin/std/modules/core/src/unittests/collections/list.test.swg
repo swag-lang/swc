@@ -61,7 +61,7 @@ func visitStructListReverse(values: &List'ListStructProbe)->s32
     values.addBack(2)
     values.addFront(1)
     values.addBack(4)
-    let tail = notnull values.tail
+    let tail = values.tail!
     values.insertBefore(tail, 3)
 
     let expected: [4] s32 = [1, 2, 3, 4]
@@ -83,7 +83,7 @@ func visitStructListReverse(values: &List'ListStructProbe)->s32
 
     values.remove(first)
     @assert(@countof(values) == 1)
-    values.remove(notnull values.tail)
+    values.remove(values.tail!)
     @assert(values.isEmpty())
     @assert(values.head == null and values.tail == null)
 }
@@ -94,7 +94,7 @@ func visitStructListReverse(values: &List'ListStructProbe)->s32
     let one = values.addBack(1)
     let two = values.insertAfter(one, 2)
     discard values.insertAfter(two, 4)
-    let tail = notnull values.tail
+    let tail = values.tail!
     values.insertBefore(tail, 3)
 
     var code = 0
@@ -114,7 +114,7 @@ func visitStructListReverse(values: &List'ListStructProbe)->s32
     let one = values.addBack(1)
     let two = values.insertAfter(one, 2)
     discard values.insertAfter(two, 4)
-    let tail = notnull values.tail
+    let tail = values.tail!
     values.insertBefore(tail, 3)
 
     var code = 0
@@ -156,7 +156,7 @@ func visitStructListReverse(values: &List'ListStructProbe)->s32
     for &value in values do
         value.value += 10
 
-    let head = notnull values.head
+    let head = values.head!
     @assert(head.value.value == 11)
     @assert(head.next!.value.value == 12)
     @assert(values.tail!.value.value == 13)

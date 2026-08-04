@@ -4,9 +4,9 @@ func createContextMenuModel(parent: *Wnd)
 {
     let ctxMenu = createTrackedPopup(parent)
     g_ContextMenu = ctxMenu
-    ctxMenu.addItem("Inspect", MenuCmd.ContextInspect, app.theme.icon24(.Search, 18))
-    ctxMenu.addItem("Rename", MenuCmd.ContextRename, app.theme.icon24(.Edit, 18))
-    ctxMenu.addItem("Pin item", MenuCmd.ContextPin, app.theme.icon24(.Link, 18))
+    ctxMenu.addItem("Inspect", MenuCmd.ContextInspect, app.theme.icon(.Search, 18))
+    ctxMenu.addItem("Rename", MenuCmd.ContextRename, app.theme.icon(.Edit, 18))
+    ctxMenu.addItem("Pin item", MenuCmd.ContextPin, app.theme.icon(.Link, 18))
     ctxMenu.addSeparator()
 
     let alignMenu = createTrackedPopup(parent)
@@ -16,8 +16,8 @@ func createContextMenuModel(parent: *Wnd)
     ctxMenu.addPopup("Align", alignMenu)
 
     ctxMenu.addSeparator()
-    ctxMenu.addItem("Archive", MenuCmd.ContextArchive, app.theme.icon24(.Download, 18))
-    ctxMenu.addItem("Delete", MenuCmd.ContextDelete, app.theme.icon24(.Remove, 18))
+    ctxMenu.addItem("Archive", MenuCmd.ContextArchive, app.theme.icon(.Download, 18))
+    ctxMenu.addItem("Delete", MenuCmd.ContextDelete, app.theme.icon(.Remove, 18))
 }
 
 func showContextMenuAt(pt: Math.Point)
@@ -73,7 +73,7 @@ func createContextMenuPage(parent: *Wnd)
 
     let right   = createPanel(parent, "Launch points", "The same menu can be shown at raw mouse coordinates or anchored near controls.", layout.right)
     let openBtn = PushButton.create(right, "Open at button", {24, 100, 220})
-    openBtn.setIcon(app.theme.icon24(.More, 18))
+    openBtn.setIcon(app.theme.icon(.More, 18))
     openBtn.sigPressed += func(btn)
     {
         let pos = btn.surfaceRect()
@@ -81,7 +81,7 @@ func createContextMenuPage(parent: *Wnd)
     }
 
     let inspectBtn = PushButton.create(right, "Open centered", {24, 154, 220})
-    inspectBtn.setIcon(app.theme.icon24(.Search, 18))
+    inspectBtn.setIcon(app.theme.icon(.Search, 18))
     inspectBtn.sigPressed += func(btn)
     {
         let pos = btn.surfaceRect()

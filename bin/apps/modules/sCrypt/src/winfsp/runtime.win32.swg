@@ -24,21 +24,21 @@ namespace WinFsp
         if !create or !destroy or !setMountPoint or !removeMountPoint or !startDispatcher or !stopDispatcher or !addDirInfo or !setGuard or !setSecurity or !deleteSecurity or !registerServer or !unregisterServer or !setDebugLogHandle or !startService do
             failWith("The bundled WinFsp runtime does not expose the expected ABI.")
 
-        g_WinFsp.fsCreate                 = cast(FspFileSystemCreateFn) notnull create
-        g_WinFsp.destroy                  = cast(FspFileSystemDeleteFn) notnull destroy
-        g_WinFsp.setMountPoint            = cast(FspFileSystemSetMountPointFn) notnull setMountPoint
-        g_WinFsp.removeMountPoint         = cast(FspFileSystemRemoveMountPointFn) notnull removeMountPoint
-        g_WinFsp.startDispatcher          = cast(FspFileSystemStartDispatcherFn) notnull startDispatcher
-        g_WinFsp.stopDispatcher           = cast(FspFileSystemStopDispatcherFn) notnull stopDispatcher
-        g_WinFsp.addDirInfo               = cast(FspFileSystemAddDirInfoFn) notnull addDirInfo
-        g_WinFsp.setGuard                 = cast(FspFileSystemSetGuardFn) notnull setGuard
-        g_WinFsp.setSecurityDescriptor    = cast(FspSetSecurityDescriptorFn) notnull setSecurity
-        g_WinFsp.setSecurityAddress       = notnull setSecurity
-        g_WinFsp.deleteSecurityDescriptor = cast(FspDeleteSecurityDescriptorFn) notnull deleteSecurity
-        g_WinFsp.registerServer           = cast(WinFspRegistrationFn) notnull registerServer
-        g_WinFsp.unregisterServer         = cast(WinFspRegistrationFn) notnull unregisterServer
-        g_WinFsp.setDebugLogHandle        = cast(FspDebugLogSetHandleFn) notnull setDebugLogHandle
-        g_WinFsp.startService             = cast(FspFsctlStartServiceFn) notnull startService
+        g_WinFsp.fsCreate                 = cast(FspFileSystemCreateFn) create!
+        g_WinFsp.destroy                  = cast(FspFileSystemDeleteFn) destroy!
+        g_WinFsp.setMountPoint            = cast(FspFileSystemSetMountPointFn) setMountPoint!
+        g_WinFsp.removeMountPoint         = cast(FspFileSystemRemoveMountPointFn) removeMountPoint!
+        g_WinFsp.startDispatcher          = cast(FspFileSystemStartDispatcherFn) startDispatcher!
+        g_WinFsp.stopDispatcher           = cast(FspFileSystemStopDispatcherFn) stopDispatcher!
+        g_WinFsp.addDirInfo               = cast(FspFileSystemAddDirInfoFn) addDirInfo!
+        g_WinFsp.setGuard                 = cast(FspFileSystemSetGuardFn) setGuard!
+        g_WinFsp.setSecurityDescriptor    = cast(FspSetSecurityDescriptorFn) setSecurity!
+        g_WinFsp.setSecurityAddress       = setSecurity!
+        g_WinFsp.deleteSecurityDescriptor = cast(FspDeleteSecurityDescriptorFn) deleteSecurity!
+        g_WinFsp.registerServer           = cast(WinFspRegistrationFn) registerServer!
+        g_WinFsp.unregisterServer         = cast(WinFspRegistrationFn) unregisterServer!
+        g_WinFsp.setDebugLogHandle        = cast(FspDebugLogSetHandleFn) setDebugLogHandle!
+        g_WinFsp.startService             = cast(FspFsctlStartServiceFn) startService!
     }
 
     func winFspLogPath()->String
@@ -61,7 +61,7 @@ namespace WinFsp
         var stream = catch File.open(winFspStageLogPath(), .Append, .Write, .Read) as openError
         if openError != null do
             return
-        discard catch stream.write(notnull @dataof(message), @countof(message))
+        discard catch stream.write(@dataof(message)!, @countof(message))
         discard catch stream.write(@dataof("\n"), 1)
         stream.close()
     }

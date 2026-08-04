@@ -1,7 +1,7 @@
 #global private
 
 // Extracting a null payload from 'any' into a bare (non-null) type is guarded
-// like an implicit 'notnull' under Safety(.Null).
+// like an implicit '!' under Safety(.Null).
 
 #test
 {

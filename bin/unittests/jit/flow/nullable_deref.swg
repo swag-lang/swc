@@ -1,7 +1,7 @@
 #global private
 
 // Dereferencing a '#null' pointer now requires a proof at the use site: a
-// dominating null test (flow narrowing), a 'notnull' assertion, or a '?.'
+// dominating null test (flow narrowing), a '!' assertion, or a '?.'
 // guarded access. This file exercises the three sanctioned routes at runtime;
 // the rejected unguarded forms live in errors/sema/sema_err_nullable_use_site.swg.
 
@@ -30,7 +30,7 @@ func nullableDerefAsserted(n: #null *NullableDerefNode, skip: bool)->s32
 {
     if skip do
         return 0
-    return (notnull n).bump()
+    return n!.bump()
 }
 
 func nullableDerefOptional(n: #null *NullableDerefNode)->s32

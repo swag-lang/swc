@@ -35,32 +35,32 @@ struct Strings
     fileDlg_BtnSave:           string = "Save"                                        // Confirmation button when saving a file.
     fileDlg_BtnOpen:           string = "Open"                                        // Confirmation button when opening a file.
 
-    browser_Shortcuts:    string = "Shortcuts"                                   // Locations pane group of user shortcuts.
-    browser_Drives:       string = "Drives"                                      // Locations pane group of mounted drives.
-    browser_Desktop:      string = "Desktop"                                     // Default shortcut to the desktop.
-    browser_Documents:    string = "Documents"                                   // Default shortcut to the documents folder.
-    browser_Pictures:     string = "Pictures"                                    // Default shortcut to the pictures folder.
-    browser_ColName:      string = "Name"                                        // File list column of entry names.
-    browser_ColModified:  string = "Modified"                                    // File list column of last write times.
-    browser_ColSize:      string = "Size"                                        // File list column of file sizes.
-    browser_AllFiles:     string = "All Files"                                   // Filter matching every extension.
-    browser_NewFolder:    string = "New Folder"                                  // Create a folder in the current location.
-    browser_TipBack:      string = "Previous folder (Alt+Left)"                  // Tooltip of the back navigation button.
-    browser_TipForward:   string = "Next folder (Alt+Right)"                     // Tooltip of the forward navigation button.
-    browser_TipRecent:    string = "Recent folders"                              // Tooltip of the recent-folders button.
-    browser_TipUp:        string = "Parent folder (Alt+Up)"                      // Tooltip of the parent-folder button.
-    browser_TipRefresh:   string = "Refresh (F5)"                                // Tooltip of the refresh button.
-    browser_TipNewFolder: string = "Create a folder in the current location"     // Tooltip of [[browser_NewFolder]].
-    browser_FolderName:   string = "Folder Name"                                 // Name field label when picking a folder.
-    browser_FileName:     string = "File Name"                                   // Name field label when picking a file.
-    browser_Folders:      string = "Folders"                                     // Type filter entry when picking a folder.
-    browser_Type:         string = "Type"                                        // Label of the type filter field.
-    browser_StatusEmpty:  string = "Empty folder"                                // Status line of a folder with nothing to show.
-    browser_StatusFolder: string = "folder"                                      // Status word for one folder.
-    browser_StatusFolders: string = "folders"                                    // Status word for several folders.
-    browser_StatusFile:   string = "file"                                        // Status word for one file.
-    browser_StatusFiles:  string = "files"                                       // Status word for several files.
-    browser_StatusSelected: string = "  —  % selected"                       // Status suffix with the selection count.
+    browser_Shortcuts:      string = "Shortcuts"                                   // Locations pane group of user shortcuts.
+    browser_Drives:         string = "Drives"                                      // Locations pane group of mounted drives.
+    browser_Desktop:        string = "Desktop"                                     // Default shortcut to the desktop.
+    browser_Documents:      string = "Documents"                                   // Default shortcut to the documents folder.
+    browser_Pictures:       string = "Pictures"                                    // Default shortcut to the pictures folder.
+    browser_ColName:        string = "Name"                                        // File list column of entry names.
+    browser_ColModified:    string = "Modified"                                    // File list column of last write times.
+    browser_ColSize:        string = "Size"                                        // File list column of file sizes.
+    browser_AllFiles:       string = "All Files"                                   // Filter matching every extension.
+    browser_NewFolder:      string = "New Folder"                                  // Create a folder in the current location.
+    browser_TipBack:        string = "Previous folder (Alt+Left)"                  // Tooltip of the back navigation button.
+    browser_TipForward:     string = "Next folder (Alt+Right)"                     // Tooltip of the forward navigation button.
+    browser_TipRecent:      string = "Recent folders"                              // Tooltip of the recent-folders button.
+    browser_TipUp:          string = "Parent folder (Alt+Up)"                      // Tooltip of the parent-folder button.
+    browser_TipRefresh:     string = "Refresh (F5)"                                // Tooltip of the refresh button.
+    browser_TipNewFolder:   string = "Create a folder in the current location"     // Tooltip of [[browser_NewFolder]].
+    browser_FolderName:     string = "Folder Name"                                 // Name field label when picking a folder.
+    browser_FileName:       string = "File Name"                                   // Name field label when picking a file.
+    browser_Folders:        string = "Folders"                                     // Type filter entry when picking a folder.
+    browser_Type:           string = "Type"                                        // Label of the type filter field.
+    browser_StatusEmpty:    string = "Empty folder"                                // Status line of a folder with nothing to show.
+    browser_StatusFolder:   string = "folder"                                      // Status word for one folder.
+    browser_StatusFolders:  string = "folders"                                     // Status word for several folders.
+    browser_StatusFile:     string = "file"                                        // Status word for one file.
+    browser_StatusFiles:    string = "files"                                       // Status word for several files.
+    browser_StatusSelected: string = "  —  % selected"                             // Status suffix with the selection count.
 
     prop_Copy:             string = "Copy"                              // Copy the value of a property.
     prop_Paste:            string = "Paste"                             // Paste into a property.
@@ -166,7 +166,7 @@ func applyLanguage(resources: const *Resources.Bundle, tag: string) fail
             continue
 
         let bytes = try resources.load(resName.toString())
-        try parseStringsContent(table.type, cast([*] u8) notnull table.data, cast(string) bytes.toSlice(), &table.pool)
+        try parseStringsContent(table.type, cast([*] u8) table.data!, cast(string) bytes.toSlice(), &table.pool)
     }
 
     state.language = tag
@@ -222,7 +222,7 @@ private func langResourceName(tag: string, file: String)->String
 private func resetTable(table: *StringTable)
 {
     let structType = cast(const *Swag.TypeInfoStruct) table.type
-    let data       = notnull table.data
+    let data       = table.data!
     if structType.opDrop != null do
         structType.opDrop(data)
     if structType.opInit != null do

@@ -73,7 +73,7 @@ private impl FileDlg
         options.width  = 440
         options.height = 220
 
-        let dlg  = FormDlg.create(notnull me.surface, options)
+        let dlg  = FormDlg.create(me .surface!, options)
         let edit = dlg.form.addTextField(strings().fileDlg_NewFolderField, strings().fileDlg_NewFolderDefault, placeholder: strings().fileDlg_NewFolderHint)
         dlg.form.computeLayout()
         edit.selectAll()
@@ -97,7 +97,7 @@ private impl FileDlg
 
             if !Path.isValidFileName(folderName)
             {
-                MessageDlg.error(notnull dlg.surface, strings().fileDlg_ErrFolderName)
+                MessageDlg.error(dlg.surface!, strings().fileDlg_ErrFolderName)
                 edit.selectAll()
                 edit.setFocus()
                 return false
@@ -106,7 +106,7 @@ private impl FileDlg
             let path = Path.combine(browser.currentFolder, folderName.toString())
             if Directory.exists(path)
             {
-                MessageDlg.error(notnull dlg.surface, strings().fileDlg_ErrFolderExists)
+                MessageDlg.error(dlg.surface!, strings().fileDlg_ErrFolderExists)
                 edit.selectAll()
                 edit.setFocus()
                 return false
@@ -120,7 +120,7 @@ private impl FileDlg
 
         if !.browser.createFolder(edit.text())
         {
-            MessageDlg.error(notnull .surface, strings().fileDlg_ErrFolderCreate)
+            MessageDlg.error(.surface!, strings().fileDlg_ErrFolderCreate)
             return
         }
 
@@ -212,7 +212,7 @@ impl FileDlg
                 let selName = dlg.browser.selectedPath()
                 if dlg.options.mode == .CreateFile and File.exists(selName)
                 {
-                    let res = MessageDlg.confirm(notnull dlg.surface, strings().fileDlg_ReplaceTitle, strings().fileDlg_ReplaceText)
+                    let res = MessageDlg.confirm(dlg.surface!, strings().fileDlg_ReplaceTitle, strings().fileDlg_ReplaceText)
                     if res != Dialog.BtnYes do
                         return false
                 }

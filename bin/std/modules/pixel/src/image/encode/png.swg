@@ -166,21 +166,21 @@ impl Encoder
 
     mtd writeData(buf: const [*] u8, bytes: u32)
     {
-        let stream = notnull .stream
+        let stream = .stream!
         stream.addBytes(@mkslice(buf, bytes))
     }
 
     mtd writeU32(val: u32)
     {
         var v      = Math.nativeToBigEndian(val)
-        let stream = notnull .stream
+        let stream = .stream!
         stream.addBytes(@mkslice(cast(const [*] u8) &v, 4))
     }
 
     mtd writeHeader(chunkType: const [4] u8, chunkLength: u64)->[*] u8
     {
         let total  = chunkLength + 8 + 4
-        let stream = notnull .stream
+        let stream = .stream!
         stream.grow(total)
 
         .currentChunk.length = cast(u32) chunkLength
@@ -264,7 +264,7 @@ internal impl IImageEncoder for Encoder
         if @dataof(options) != null
         {
             Debug.assert(@kindof(options) == EncodeOptions)
-            .userOptions = dref cast(*EncodeOptions) (notnull @dataof(options))
+            .userOptions = dref cast(*EncodeOptions) @dataof(options)!
         }
 
         // unsupported pixel format
@@ -310,7 +310,7 @@ internal impl IImageEncoder for Encoder
         if .userOptions.filtering and .userOptions.compressionLevel != .NoCompression do
             .encodeFlags.filterChoice = .All
 
-        let srcPixels = cast([*] u8) (notnull image.pixels.buffer)
+        let srcPixels = cast([*] u8) image.pixels.buffer!
         for
         {
             let ioffset = (image.height - .rowInfo.rowNum - 1) * image.width * image.bytesPerPixel

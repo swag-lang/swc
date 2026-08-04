@@ -53,8 +53,8 @@ namespace DiskLayout
         var result = initDiskMap(capacity)
         result.blockCount = src.blockCount
         result.fileCount  = src.fileCount
-        let dstBlocks = notnull result.blocks
-        let srcBlocks = notnull src.blocks
+        let dstBlocks = result.blocks!
+        let srcBlocks = src.blocks!
         for src.blockCount
         {
             dstBlocks[cast(u32) @index] = srcBlocks[cast(u32) @index]
@@ -66,7 +66,7 @@ namespace DiskLayout
     {
         let bytes  = cast(const [..] u8) text
         var result = initDiskMap()
-        let blocks = notnull result.blocks
+        let blocks = result.blocks!
         var currentFileId: u16
 
         for @countof(bytes)
@@ -102,7 +102,7 @@ namespace DiskLayout
     func blockAt(dm: const &DiskMap, pos: u32)->u16
     {
         @assert(pos < dm.blockCount)
-        let blocks = notnull dm.blocks
+        let blocks = dm.blocks!
         return blocks[pos]
     }
 }
@@ -123,7 +123,7 @@ namespace Compaction
 
         var left: u32
         var right  = dm.blockCount - 1
-        let blocks = notnull dm.blocks
+        let blocks = dm.blocks!
 
         #scope(Outer)
             for
@@ -174,7 +174,7 @@ namespace Compaction
     {
         dref outStart = 0
         dref outLen   = 0
-        let blocks = notnull dm.blocks
+        let blocks = dm.blocks!
         for var i = cast(s64) dm.blockCount - 1; i >= 0; i -= 1
         {
             if blocks[cast(u32) i] == fileId
@@ -190,7 +190,7 @@ namespace Compaction
     func findGap(dm: const &DiskMap, minLen: u32, beforePos: u32, outStart: *u32, outLen: *u32)->bool
     {
         var pos: u32
-        let blocks = notnull dm.blocks
+        let blocks = dm.blocks!
         while pos < beforePos
         {
             if blocks[pos] != FreeId
@@ -220,7 +220,7 @@ namespace Compaction
 
     func moveFileToGap(dm: &DiskMap, fileStart, fileLen, gapStart: u32)
     {
-        let blocks = notnull dm.blocks
+        let blocks = dm.blocks!
         for fileLen
         {
             let offset = cast(u32) @index
@@ -241,7 +241,7 @@ namespace Checksum
     func compute(dm: const &DiskMap)->u64
     {
         var total: u64
-        let blocks = notnull dm.blocks
+        let blocks = dm.blocks!
         for dm.blockCount
         {
             let pos = cast(u32) @index
@@ -297,7 +297,7 @@ func getSpanInfo(text: string)->{spanCount: u32, firstFree: u32}
     var firstFree: u32
     var prevId    = cast(u32) FreeId + 1
     var foundFree = false
-    let blocks    = notnull dm.blocks
+    let blocks    = dm.blocks!
     for dm.blockCount
     {
         let pos = cast(u32) @index

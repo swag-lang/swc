@@ -196,7 +196,7 @@ func accumulateSpan(area, cover: [*] f64, width: s32, xa, ya, xb, yb, s: f64)
 func renderCurrentOutline(slot: *GlyphSlot) fail
 {
     let faceData = getSlotImpl(slot)
-    let safeSlot = notnull slot
+    let safeSlot = slot!
     clearBitmap(safeSlot)
 
     if safeSlot.format != .Outline do
@@ -220,7 +220,7 @@ func renderCurrentOutline(slot: *GlyphSlot) fail
         return
 
     faceData.bitmapPixels.resize(cast(u64) width * rows)
-    let bitmapBuffer = notnull faceData.bitmapPixels.buffer
+    let bitmapBuffer = faceData.bitmapPixels.buffer!
     var dst          = bitmapBuffer
 
     // Per-row signed-area accumulation buffers (analytic anti-aliasing).
@@ -228,8 +228,8 @@ func renderCurrentOutline(slot: *GlyphSlot) fail
     var cover: Array'f64
     area.resize(cast(u64) width)
     cover.resize(cast(u64) width)
-    let areaBuffer  = notnull area.buffer
-    let coverBuffer = notnull cover.buffer
+    let areaBuffer  = area.buffer!
+    let coverBuffer = cover.buffer!
 
     let leftF = cast(f64) left
     let topF  = cast(f64) top

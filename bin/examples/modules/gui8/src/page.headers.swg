@@ -7,13 +7,13 @@ func createHeaderBand(parent: *Wnd, rect: Math.Rectangle, title: string, round: 
     header.form = round ? .Round : .Flat
     if disabledClick do
         header.updateFlags(remove: .Clickable)
-    discard header.addColumn("Name", 190, app.theme.icon24(.OpenFile, 16))
+    discard header.addColumn("Name", 190, app.theme.icon(.OpenFile, 16))
     header.setItemWidthLimits(0, 120, 260)
-    let state = header.addColumn("State", 120, app.theme.icon24(.Filter, 16))
+    let state = header.addColumn("State", 120, app.theme.icon(.Filter, 16))
     state.isClickable = !disabledClick
     let size = header.addColumn("Size", 92)
     size.isResizable = false
-    discard header.addColumn("Owner", Math.max(rect.width - 36 - 190 - 120 - 92, 140.0), app.theme.icon24(.Sort, 16))
+    discard header.addColumn("Owner", Math.max(rect.width - 36 - 190 - 120 - 92, 140.0), app.theme.icon(.Sort, 16))
     header.setSortIndicator(1, round ? .Ascending : .Descending)
 
     let rowY = 148.0
@@ -41,10 +41,10 @@ func createHeadersPage(parent: *Wnd)
     list.setFrameForm(.Round)
     list.setSelectionMode(.Single)
     list.setIconSize(16)
-    list.addColumn("Component", 220, app.theme.icon24(.Options, 16))
+    list.addColumn("Component", 220, app.theme.icon(.Options, 16))
     list.addColumn("Kind", 130)
     list.addColumn("Column policy", 180)
-    list.addColumn("Interaction", 180, app.theme.icon24(.Link, 16))
+    list.addColumn("Interaction", 180, app.theme.icon(.Link, 16))
     list.header.setItemWidthLimits(0, minimum: 160)
     list.header.setItemWidthLimits(1, maximum: 160)
     list.header.itemAt(2).reservesIconSpace = true

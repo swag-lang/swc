@@ -10,7 +10,7 @@ internal impl Properties
 {
     func attributeString(value: #null any)->string
     {
-        return cast(string) notnull value
+        return cast(string) value!
     }
 
     // Display name of a field: its Properties.Name attribute, or its beautified raw name.
@@ -67,7 +67,7 @@ internal impl Properties
 
         with let item = .items.addNew()
         {
-            .initialize(notnull line, value.pointedType, value, data, parentItem)
+            .initialize(line!, value.pointedType, value, data, parentItem)
             .level           = parentItem ? parentItem.level + 1 : 0
             .section         = parentItem ? parentItem.section : 0
             .valueCellHeight = height != 0 ? height : .gridLineHeight
@@ -186,7 +186,7 @@ internal impl Properties
         {
         case Reflection.isStaticArray(value.pointedType):
             let item           = .addItem(value, data, parentItem)
-            let typeArr        = notnull cast(#null const *Swag.TypeInfoArray) value.pointedType
+            let typeArr        = cast #unnull (const *Swag.TypeInfoArray) value.pointedType
             let numItemsBefore = .items.count
 
             var newData = data
@@ -202,7 +202,7 @@ internal impl Properties
             item.numChilds += cast(u32) (.items.count - numItemsBefore)
 
         case Reflection.isEnum(value.pointedType):
-            let typeEnum = notnull cast(#null const *Swag.TypeInfoEnum) value.pointedType
+            let typeEnum = cast #unnull (const *Swag.TypeInfoEnum) value.pointedType
             .constructEnum(value, typeEnum, data, parentItem)
 
         case value.pointedType == Core.String:
@@ -215,14 +215,14 @@ internal impl Properties
             .constructBool(value, data, parentItem)
 
         case Reflection.isInteger(value.pointedType) or Reflection.isFloat(value.pointedType):
-            let typeNative = notnull cast(#null const *Swag.TypeInfoNative) value.pointedType
+            let typeNative = cast #unnull (const *Swag.TypeInfoNative) value.pointedType
             .constructNative(value, typeNative, data, parentItem)
 
         case value.pointedType == Array:
             .constructArray(value, data, parentItem)
 
         case Reflection.isStruct(value.pointedType):
-            let typeSubStruct = notnull cast(#null const *Swag.TypeInfoStruct) value.pointedType
+            let typeSubStruct = cast #unnull (const *Swag.TypeInfoStruct) value.pointedType
             if typeSubStruct.fromGeneric == Array
             {
                 .constructArray(value, data, parentItem)
@@ -241,7 +241,7 @@ internal impl Properties
             // A plain (non-registered) struct expands inline into one row per field. Custom
             // struct editors (Color, the vector family, ...) are handled by the editor registry
             // at the top of this method and never reach here.
-            let pItem = notnull parentItem
+            let pItem = parentItem!
             pItem.flags.add(.NoSeparator | .NoFocus)
             let item           = .addItem(value, data, parentItem)
             let numItemsBefore = .items.count
@@ -267,7 +267,7 @@ internal impl Properties
         // structs after the struct's own fields — a derived type then edits its most specific
         // fields first even though the language forces the base to be declared first.
         var walkOrder: Array'u64
-        let tsFields = notnull typeStruct.fields
+        let tsFields = typeStruct.fields!
         for [i] in @countof(typeStruct.fields)
         {
             if !.usingFieldsLast or !tsFields[i].flags.has(.HasUsing) do
@@ -337,7 +337,7 @@ internal impl Properties
             let added = cast(u32) (.items.count - numItemsBefore)
             for &c in categPath
             {
-                let categItem = notnull c.item
+                let categItem = c.item!
                 categItem.numChilds += added
             }
         }

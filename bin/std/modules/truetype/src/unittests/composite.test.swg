@@ -6,7 +6,7 @@ using Swag, Core
 {
     var scope: FaceScope
     scope.init()
-    let face = notnull scope.face
+    let face = scope.face!
 
     let glyphIndex = face.glyphIndex(0x00E9)
     @assert(glyphIndex > 0)

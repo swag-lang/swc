@@ -78,7 +78,7 @@ struct JitLateDirty
 
 func jitLateDirtyMemoryInit()->bool
 {
-    let raw = notnull @alloc(#sizeof(JitLateDirty))
+    let raw = @alloc(#sizeof(JitLateDirty))!
     @memset(raw, 0xD0, #sizeof(JitLateDirty))
 
     let box = cast(*JitLateDirty) raw

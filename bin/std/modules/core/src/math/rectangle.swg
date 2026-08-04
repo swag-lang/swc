@@ -197,6 +197,14 @@ impl Rectangle
         .height *= y
     }
 
+    // Return the rectangle mapped through a uniform scale about the origin.
+    // Position and dimensions are all multiplied by 'value'; useful to address a
+    // proportionally scaled grid, such as a texture atlas built at another density.
+    mtd const scaledFromOrigin(value: f32)->Rectangle
+    {
+        return Rectangle{.x * value, .y * value, .width * value, .height * value}
+    }
+
     // Inflate the rectangle uniformly in all directions.
     // Expands the rectangle by 'value' on all sides, moving position and increasing dimensions.
     mtd inflate(value: f32)

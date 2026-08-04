@@ -352,9 +352,9 @@ func createInspectorPage(parent: *Wnd)
         .sigChanged += func(_cb, idx) { setCardCount(cast(s32) idx + 1); }
     }
 
-    with let search = EditBox.create(notnull g_ObjHost, "")
+    with let search = EditBox.create(g_ObjHost!, "")
     {
-        .setIcon(parent.theme().icon24(ThemeIcons24.Search, 18))
+        .setIcon(parent.theme().icon(ThemeIcons.Search, 18))
         .dockStyle = .Top
         .setPlaceholder("Search")
         .margin.w = 8
@@ -372,7 +372,7 @@ func createInspectorPage(parent: *Wnd)
 
     let frame = createPanel(parent, "Live preview", "Each card is one edited instance; the highlighted ones are bound to the grid, so editing a field writes them all.", {})
     frame.dockStyle = .Center
-    let preview = notnull frame.view
+    let preview = frame.view!
     g_Preview           = preview
     preview.hookOnEvent = &onPreviewEvent
 }
@@ -508,7 +508,7 @@ impl IPropertyEditor for RatingEditor
                 .updateFlags(.Flat)
                 .sigPressed += func|prop, item, rating, idx|(b)
                 {
-                    let rat = notnull rating
+                    let rat = rating!
                     rat.value = rat.value == idx + 1 ? idx : idx + 1
                     prop.commitItemChange(item)
                 }
@@ -561,9 +561,9 @@ func updateStatus(item: #null *PropertiesItem)
 
 func updateHeader()
 {
-    let title    = notnull g_Title
-    let subTitle = notnull g_SubTitle
-    let footer   = notnull g_Footer
+    let title    = g_Title!
+    let subTitle = g_SubTitle!
+    let footer   = g_Footer!
     title.setText("GUI4 property control inspector")
     subTitle.setText("One property control edits several cards at once (multi-selection). The card struct uses nested category subgroups plus Heading / Gap / HelpBox decorators; the combo switches the display mode.")
     footer.setText(Format.toString("Grouping, decorators, multi-selection and live preview in one grid. %", g_StatusText))
@@ -574,8 +574,8 @@ func layoutRootView()
     if !g_View or !g_PageView do
         return
 
-    let view     = notnull g_View
-    let pageView = notnull g_PageView
+    let view     = g_View!
+    let pageView = g_PageView!
 
     let rect         = view.clientRect()
     let contentWidth = Math.max(rect.width - 2 * RootMargin, 1.0)
@@ -583,10 +583,10 @@ func layoutRootView()
     let footerY      = Math.max(rect.height - 42.0, PageTop + pageHeight + 6.0)
     let titleWidth   = Math.max(contentWidth - ThemeButtonWidth - HeaderGap, 1.0)
 
-    let title       = notnull g_Title
-    let themeButton = notnull g_ThemeButton
-    let subTitle    = notnull g_SubTitle
-    let footer      = notnull g_Footer
+    let title       = g_Title!
+    let themeButton = g_ThemeButton!
+    let subTitle    = g_SubTitle!
+    let footer      = g_Footer!
     title.setPosition({RootMargin, 18, titleWidth, 34})
     themeButton.setPosition({RootMargin + titleWidth + HeaderGap, 18, ThemeButtonWidth, 34})
     subTitle.setPosition({RootMargin + 2, 56, contentWidth - 4, 42})
@@ -638,7 +638,7 @@ func createRootView()
     let themeButton = PushButton.create(view, "", {})
     g_ThemeButton = themeButton
     themeButton.setForm(.Flat)
-    themeButton.setIcon(app.theme.icon24(ThemeIcons24.Picker, 18))
+    themeButton.setIcon(app.theme.icon(ThemeIcons.Picker, 18))
     themeButton.sigPressed += &toggleTheme
 
     let pageView = Wnd.create'Wnd(view, {})
@@ -685,13 +685,13 @@ func onFrame(_app: *Application)
     initDemoData()
 
     let flags   = SurfaceFlags.LargeCaption | SurfaceFlags.MinimizeButton | SurfaceFlags.CloseButton | SurfaceFlags.Border
-    let surface = notnull (try app.createSurface(100, 100, W - 46, H - 31, flags))
+    let surface = (try app.createSurface(100, 100, W - 46, H - 31, flags))!
     g_Surface = surface
     surface.setTitle("GUI4 property control inspector")
-    surface.setIcon(app.theme.icon24(ThemeIcons24.Options, 18))
+    surface.setIcon(app.theme.icon(ThemeIcons.Options, 18))
 
     createRootView()
-    createInspectorPage(notnull g_PageView)
+    createInspectorPage(g_PageView!)
     updateHeader()
     applyTheme()
 

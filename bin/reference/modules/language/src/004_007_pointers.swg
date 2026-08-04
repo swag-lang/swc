@@ -41,8 +41,8 @@ A `#null` value cannot flow into a bare (non-null) slot directly, and it cannot 
 dereferenced, indexed, member-accessed or called while it is still nullable: every use
 site needs a proof. Flow narrowing provides it implicitly (a dominating null test such
 as `if p == null do return`, `if p do ...`, `@assert(p != null)`, or the left side of
-`and`/`or`), `notnull` and `!.` assert it explicitly (a safety check panics at runtime
-if the value is still null), and `?.` skips the access entirely when the value is null.
+`and`/`or`), the postfix `!` asserts it explicitly (a safety check panics at runtime if
+the value is still null), and `?.` skips the access entirely when the value is null.
 Comparisons between `#null` and bare values of the same type are always allowed.
 `undefined` remains an explicit low-level escape hatch and must only be used when the
 storage is initialized manually before it is read.
@@ -73,12 +73,11 @@ droppable value.
 }
 
 /**
-# Use-Site Nullability, `?.` and `!.`
+# Use-Site Nullability, `?.` and `!`
 
 Dereferencing a value whose type is still `#null` is a compile-time error: the flow
 must prove the value non-null first. The sanctioned routes are a dominating null test
-(flow narrowing), the `?.` guarded access, the `!.` asserted access, and an explicit
-`notnull` assertion.
+(flow narrowing), the `?.` guarded access, and the postfix `!` assertion.
 
 `@assert(p != null)` is a dominating null test like any other: the statements after it
 are only reachable when the condition held, so the proof covers the remainder of the
@@ -86,11 +85,16 @@ enclosing block. It reads as a precondition rather than as a per-use assertion, 
 suits a value that is guaranteed non-null for a whole function body. Like every other
 narrowing proof, it is dropped as soon as the path is reassigned.
 
-`?.` and `!.` are the two outcomes of the same test. `?.` skips the rest of the postfix
-chain when the tested value is null; `!.` claims the value is there and panics under
-`Swag.SafetyWhat.Expect` when it is not. Because `!.` cannot produce an absent result,
-the access keeps the member's plain type: `node!.count` is an `s64`, never a `#null`
-one, and needs no fallback.
+`p!` and `p?.` are the two outcomes of the same test. `?.` skips the rest of the postfix
+chain when the tested value is null; `!` claims the value is there and panics under
+`Swag.SafetyWhat.Expect` when it is not. Being postfix, `!` binds tighter than every
+prefix form and chains freely: `p!.count`, `buffer![i]`, `handler!()`. Because it cannot
+produce an absent result, what follows keeps its plain type — `node!.count` is an `s64`,
+never a `#null` one, and needs no fallback.
+
+`try`, `catch` and `expect` swallow everything to their right, so a `!` written after one
+of them applies to its **result**: `expect load(path)!` asserts the loaded value, not the
+fallible call. Parenthesize to assert something inside instead.
 
 A `?.` chain whose result is itself nullable-capable (a pointer, string, slice,
 interface...) simply produces the null outcome in its own type. A chain producing a
@@ -98,7 +102,7 @@ plain value (an integer, a bool...) cannot carry the null outcome and must hand 
 an immediate `orelse` fallback. A void call through `?.` is a statement that does
 nothing when the value is null.
 
-Write `!.` where an invariant makes the value always present and a null would be a bug
+Write `!` where an invariant makes the value always present and a null would be a bug
 worth stopping on; write `?.` where absence is an ordinary outcome the code handles.
 Both are tolerated on a value the flow already proved, so a redundant one in a narrowed
 region is dead, not wrong.
@@ -123,15 +127,15 @@ region is dead, not wrong.
     if p != null do
         @assert(p.count == 2)
 
-    // 'notnull' asserts the proof explicitly (panics at runtime if wrong).
-    let q = notnull p
+    // The postfix '!' asserts the proof explicitly (panics at runtime if wrong).
+    let q = p!
     @assert(q.count == 2)
 
     // '@assert' proves the path for the rest of the block, like a precondition.
     @assert(p != null)
     @assert(p.count == 2)
 
-    // '!.' asserts instead of skipping, so the member keeps its plain type.
+    // '!' asserts instead of skipping, so the member keeps its plain type.
     @assert(p!.count == 2)
     @assert(p!.next!.count == 7)
 
@@ -154,11 +158,11 @@ region is dead, not wrong.
 
 The `Swag.Late` attribute declares a **non-null** field or **global variable** whose storage
 starts unset (zero/null) and receives its value later — typically in a `#run` or `#init`
-block, or during setup. It replaces the `#null ... = null` + `notnull`-at-every-use
+block, or during setup. It replaces the `#null ... = null` + `!`-at-every-use
 pattern for values that are guaranteed to be set before first use but cannot be
 initialized at their declaration.
 
-The exposed type is non-null, so uses need no `notnull`; every read is guarded (a runtime
+The exposed type is non-null, so uses need no `!`; every read is guarded (a runtime
 null panic when still unset). `@isset` tests whether the value has been assigned, without
 reading it. `Swag.Late` needs a nullable-capable type (pointer, slice, `string`, `cstring`,
 interface, function): it uses the null bit pattern as the 'unset' sentinel. A local or
@@ -182,7 +186,7 @@ var g_lateDocResource: *LateDocResource     // non-null type, set later
 
 #test
 {
-    // The type is non-null: no 'notnull', no null test needed at the use site.
+    // The type is non-null: no '!', no null test needed at the use site.
     #assert(#typeof(g_lateDocResource) == *LateDocResource)
 
     // '@isset' confirms it was assigned (in the '#run' above).

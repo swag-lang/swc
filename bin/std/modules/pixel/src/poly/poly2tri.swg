@@ -130,17 +130,17 @@ struct AdvancingFront
 
 func nnPoint(p: #null *Point)->*Point
 {
-    return notnull p
+    return p!
 }
 
 func nnNode(n: #null *Node)->*Node
 {
-    return notnull n
+    return n!
 }
 
 func nnTriangle(t: #null *Triangle)->*Triangle
 {
-    return notnull t
+    return t!
 }
 
 impl Result
@@ -799,6 +799,43 @@ impl Tessellate
             }
         }
 
+        // The sweep rejects rings that carry coincident consecutive points or
+        // zero-area spikes (A, B, A), and authored outlines do contain both; drop
+        // them until the ring is clean. A spike bounds no area, so removing it never
+        // changes the fill.
+        func closeEnough(a, b: *Point)->bool
+        {
+            return Math.abs(a.x - b.x) < 0.0005 and Math.abs(a.y - b.y) < 0.0005
+        }
+
+        var i = 0'u64
+        while .points.count - .polyStart >= 3
+        {
+            let count = .points.count - .polyStart
+            if i >= count do
+                break
+
+            let cur  = .points[.polyStart + i]
+            let next = .points[.polyStart + (i + 1) % count]
+            let prev = .points[.polyStart + (i + count - 1) % count]
+            if closeEnough(cur, next)
+            {
+                .points.removeAtOrdered(.polyStart + (i + 1) % count)
+                i = 0
+            }
+            elif closeEnough(prev, next)
+            {
+                // Remove the spike tip and one of its equal ends.
+                let tip = .polyStart + i
+                let end = .polyStart + (i + 1) % count
+                .points.removeAtOrdered(Math.max(tip, end))
+                .points.removeAtOrdered(Math.min(tip, end))
+                i = 0
+            }
+            else do
+                i += 1
+        }
+
         Debug.assert(.polyStart != .points.count, "no points !")
         initEdges(me, .points[.polyStart to .points.count - 1])
     }
@@ -862,7 +899,7 @@ impl Tessellate
             if triangle.contains(eq, p1)
             {
                 triangle.markConstrainedEdge(eq, p1)
-                let constrainedEdge = notnull .edgeEvent.constrainedEdge
+                let constrainedEdge = .edgeEvent.constrainedEdge!
                 constrainedEdge.q = p1
                 triangle          = nnTriangle(triangle.neighborAcross(point))
                 .addEdgeEvent(ep, p1, triangle, p1)
@@ -882,7 +919,7 @@ impl Tessellate
             if triangle.contains(eq, p2)
             {
                 triangle.markConstrainedEdge(eq, p2)
-                let constrainedEdge = notnull .edgeEvent.constrainedEdge
+                let constrainedEdge = .edgeEvent.constrainedEdge!
                 constrainedEdge.q = p2
                 triangle          = nnTriangle(triangle.neighborAcross(point))
                 .addEdgeEvent(ep, p2, triangle, p2)
@@ -923,7 +960,7 @@ impl Tessellate
 
             if p == eq and op == ep
             {
-                let constrainedEdge = notnull .edgeEvent.constrainedEdge
+                let constrainedEdge = .edgeEvent.constrainedEdge!
                 if eq == constrainedEdge.q and ep == constrainedEdge.p
                 {
                     t.markConstrainedEdge(ep, eq)

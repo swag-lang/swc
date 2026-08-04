@@ -174,10 +174,10 @@ public impl Image
         mec.visitPixels(&f)
         {
             let p      = image.pixelColor(x, y)
-            let params = cast(*#decltype(f)) (notnull userData)
+            let params = cast(*#decltype(f)) userData!
 
             // linear luminance
-            let lumBuf = notnull params.lum.buffer
+            let lumBuf = params.lum.buffer!
             lumBuf[index] = p.relativeLuminance()
 
             // saturation in sRGB
@@ -187,7 +187,7 @@ public impl Image
             let maxC   = Math.max(Math.max(rs, gs), bs)
             let minC   = Math.min(Math.min(rs, gs), bs)
             let eps    = 1e-6'f32
-            let satBuf = notnull params.sat.buffer
+            let satBuf = params.sat.buffer!
             satBuf[index] = (maxC > 0.0) ? ((maxC - minC) / (maxC + eps)) : 0.0
         }
     }

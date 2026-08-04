@@ -51,7 +51,7 @@ func trace(image: const *Image, options: TraceOptions = {})->Document
             return result
 
         let idx = (cast(u64) y * cast(u64) image.width + cast(u64) x) * cast(u64) bpp
-        let ptr = (notnull image.pixels.buffer) + idx
+        let ptr = image.pixels.buffer! + idx
         let a   = bpp == 4 ? ptr[3] : 255'u8
         result.color = Color.fromArgb(255, ptr[rOffset], ptr[1], ptr[bOffset])
         result.alpha = a
@@ -122,7 +122,7 @@ private func coverage(image: const *Image, bpp, rOffset, bOffset: s32, key: u32,
         return 0
 
     let idx = (cast(u64) y * cast(u64) image.width + cast(u64) x) * cast(u64) bpp
-    let ptr = (notnull image.pixels.buffer) + idx
+    let ptr = image.pixels.buffer! + idx
     let a   = bpp == 4 ? ptr[3] : 255'u8
     if a == 0 do
         return 0
@@ -184,8 +184,8 @@ private func traceClass(image: const *Image, bpp, rOffset, bOffset: s32, key: u3
             visited[cast(u64) cy * cast(u64) gw + cast(u64) cx] = true
             var path: #null *LinePath
 
-            var x = cx
-            var y = cy
+            var x      = cx
+            var y      = cy
             var entry  = 0     // 0 top, 1 right, 2 bottom, 3 left: edge we entered through.
             let startX = cx
             let startY = cy
@@ -219,18 +219,42 @@ private func traceClass(image: const *Image, bpp, rOffset, bOffset: s32, key: u3
                 var exitEdge = -1
                 switch config
                 {
-                case 1:  exitEdge = entry == 0 ? 3 : 0
-                case 2:  exitEdge = entry == 0 ? 1 : 0
-                case 3:  exitEdge = entry == 3 ? 1 : 3
-                case 4:  exitEdge = entry == 1 ? 2 : 1
-                case 6:  exitEdge = entry == 0 ? 2 : 0
-                case 7:  exitEdge = entry == 3 ? 2 : 3
-                case 8:  exitEdge = entry == 2 ? 3 : 2
-                case 9:  exitEdge = entry == 0 ? 2 : 0
-                case 11: exitEdge = entry == 1 ? 2 : 1
-                case 12: exitEdge = entry == 3 ? 1 : 3
-                case 13: exitEdge = entry == 0 ? 1 : 0
-                case 14: exitEdge = entry == 0 ? 3 : 0
+                case 1:
+                    exitEdge = entry == 0 ? 3 : 0
+
+                case 2:
+                    exitEdge = entry == 0 ? 1 : 0
+
+                case 3:
+                    exitEdge = entry == 3 ? 1 : 3
+
+                case 4:
+                    exitEdge = entry == 1 ? 2 : 1
+
+                case 6:
+                    exitEdge = entry == 0 ? 2 : 0
+
+                case 7:
+                    exitEdge = entry == 3 ? 2 : 3
+
+                case 8:
+                    exitEdge = entry == 2 ? 3 : 2
+
+                case 9:
+                    exitEdge = entry == 0 ? 2 : 0
+
+                case 11:
+                    exitEdge = entry == 1 ? 2 : 1
+
+                case 12:
+                    exitEdge = entry == 3 ? 1 : 3
+
+                case 13:
+                    exitEdge = entry == 0 ? 1 : 0
+
+                case 14:
+                    exitEdge = entry == 0 ? 3 : 0
+
                 case 5:
                     let center = (c00 + c10 + c01 + c11) * 0.25
                     if entry == 0 do
@@ -241,6 +265,7 @@ private func traceClass(image: const *Image, bpp, rOffset, bOffset: s32, key: u3
                         exitEdge = center >= thr ? 0 : 2
                     else do
                         exitEdge = center >= thr ? 2 : 0
+
                 case 10:
                     let center = (c00 + c10 + c01 + c11) * 0.25
                     if entry == 0 do
@@ -272,12 +297,15 @@ private func traceClass(image: const *Image, bpp, rOffset, bOffset: s32, key: u3
                 case 0:
                     px = x - 0.5 + crossing(c00, c10, thr)
                     py = y - 0.5
+
                 case 1:
                     px = x + 0.5
                     py = y - 0.5 + crossing(c10, c11, thr)
+
                 case 2:
                     px = x - 0.5 + crossing(c01, c11, thr)
                     py = y + 0.5
+
                 case 3:
                     px = x - 0.5
                     py = y - 0.5 + crossing(c00, c01, thr)
@@ -303,12 +331,15 @@ private func traceClass(image: const *Image, bpp, rOffset, bOffset: s32, key: u3
                 case 0:
                     y     -= 1
                     entry = 2
+
                 case 1:
                     x     += 1
                     entry = 3
+
                 case 2:
                     y     += 1
                     entry = 0
+
                 case 3:
                     x     -= 1
                     entry = 1
@@ -324,7 +355,7 @@ private func traceClass(image: const *Image, bpp, rOffset, bOffset: s32, key: u3
 
             if path
             {
-                let p = notnull path
+                let p = path!
                 simplifyPath(p, options.tolerance)
                 p.close()
             }
@@ -361,9 +392,9 @@ private func simplifyPath(path: *LinePath, tolerance: f32)
         if last <= first + 1 do
             continue
 
-        let a = points[first]
-        let b = points[last]
-        let ab = b - a
+        let a      = points[first]
+        let b      = points[last]
+        let ab     = b - a
         let abLen2 = Math.max(ab.dot(ab), 0.000001)
 
         var far     = first

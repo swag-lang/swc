@@ -133,7 +133,7 @@ func hasExpectedMethodReflection(type: typeinfo, expectedCount: s32, expectedNam
     if expectedCount == 0 do
         return true
 
-    let methods = notnull info.methods
+    let methods = info.methods!
     let m0Type  = methods[0].pointedType
     return methods[0].name == expectedName and
            m0Type != null and m0Type.kind == .Func and
@@ -158,7 +158,7 @@ func callReflectedSimpleMethod(type: typeinfo, seed: s32)->bool
     if @countof(info.methods) != 1 do
         return false
 
-    let methodInfo = (notnull info.methods)[0]
+    let methodInfo = info.methods![0]
     let methodType = cast(#null const *Swag.TypeInfoFunc) methodInfo.pointedType
     if methodType == null do
         return false
@@ -183,7 +183,7 @@ func callReflectedGenericMethod(type: typeinfo, start: s32, next: s32)->bool
     if @countof(info.methods) != 1 do
         return false
 
-    let methodInfo = (notnull info.methods)[0]
+    let methodInfo = info.methods![0]
     let methodType = cast(#null const *Swag.TypeInfoFunc) methodInfo.pointedType
     if methodType == null do
         return false
@@ -211,7 +211,7 @@ func callReflectedExportedMethods(type: typeinfo, seed: s32)->bool
     if @countof(info.methods) != 4 do
         return false
 
-    let methods    = notnull info.methods
+    let methods    = info.methods!
     let scaleInfo  = methods[0]
     let addInfo    = methods[1]
     let scaledInfo = methods[2]

@@ -11,7 +11,7 @@ using Swag, Core, File
     f.setup(registerHeadlessCommands: true)
     defer f.shutdown()
     discard f.setupLibraryWnd()
-    let libWnd = cast(*Wnd) notnull f.main.libWnd
+    let libWnd = cast(*Wnd) f.main.libWnd!
 
     var sizeEvt = Gui.Testing.commandState(ActionRecentSize.LibBig)
     @assert(Gui.Testing.actionUpdate'ActionRecentSize(f.main, ActionRecentSize.LibBig, &sizeEvt))
@@ -79,7 +79,7 @@ using Swag, Core, File
     f.setup()
     defer f.shutdown()
     let lib  = f.setupLibraryWnd()
-    let view = notnull lib.view
+    let view = lib.view!
     let wnd  = cast(*Wnd) lib
 
     let old   = testAddLibraryItem(view, "old.scapture", 10, 1)
@@ -192,7 +192,7 @@ using Swag, Core, File
     g_Library.onDeleteFile.clear()
 
     let lib  = f.setupLibraryWnd()
-    let view = notnull lib.view
+    let view = lib.view!
 
     // Mirror the handler LibraryWnd.fill() installs: drop the matching view item.
     g_Library.onDeleteFile += func|libWnd = lib|(file)
@@ -268,7 +268,7 @@ using Swag, Core, File
     f.setup()
     defer f.shutdown()
     let lib  = f.setupLibraryWnd()
-    let view = notnull lib.view
+    let view = lib.view!
 
     discard testAddLibraryItem(view, "alpha.scapture", 10, 1, title: "Login screen")
     discard testAddLibraryItem(view, "beta.scapture", 10, 2, "report.png", title: "Sales chart")
@@ -302,7 +302,7 @@ using Swag, Core, File
     f.setup()
     defer f.shutdown()
     f.main.libWnd = LibraryWnd.create(f.main)
-    let libWnd = notnull f.main.libWnd
+    let libWnd = f.main.libWnd!
 
     let oldLibraryLoaded = g_Library.loaded
     defer

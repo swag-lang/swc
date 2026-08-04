@@ -66,7 +66,7 @@ func checksumConfig(cfg: const &Config)->s32
 func countFieldsOfType(info: const *Swag.TypeInfoStruct, target: const *Swag.TypeInfo)->s32
 {
     var n: s32 = 0
-    let fields = notnull info.fields
+    let fields = info.fields!
     for [i] in @countof(fields)
     {
         if fields[i].pointedType == target do
@@ -92,12 +92,12 @@ func countFieldsOfType(info: const *Swag.TypeInfoStruct, target: const *Swag.Typ
 func nameFingerprint(info: const *Swag.TypeInfoStruct)->s32
 {
     var fp: s32 = 0
-    let fields  = notnull info.fields
+    let fields  = info.fields!
     for [i] in @countof(fields)
     {
         let name = fields[i].name
         if @countof(name) > 0 do
-            fp += cast(s32) (notnull name)[0]
+            fp += cast(s32) name![0]
     }
     return fp
 }
@@ -139,9 +139,9 @@ func levelName(level: LogLevel)->string
     let info = cast(const *Swag.TypeInfoEnum) #typeof(LogLevel)
     for [i] in @countof(info.values)
     {
-        let stored = cast(const *LogLevel) notnull info.values[i].value
+        let stored = cast(const *LogLevel) info.values[i].value!
         if dref stored == level do
-            return notnull info.values[i].name
+            return info.values[i].name!
     }
     return "unknown"
 }

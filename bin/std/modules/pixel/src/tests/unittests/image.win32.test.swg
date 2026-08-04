@@ -7,7 +7,7 @@ using Swag, Win32
 #test
 {
     var source = Image.create(2, 1, .RGBA8)
-    let pixels = notnull source.pixels.buffer
+    let pixels = source.pixels.buffer!
     pixels[0] = 0xF7
     pixels[1] = 0xF9
     pixels[2] = 0x00
@@ -22,7 +22,7 @@ using Swag, Win32
 
     let roundTrip = expect Image.from(icon)
     @assert(roundTrip.pixelFormat == .BGRA8)
-    let result = notnull roundTrip.pixels.buffer
+    let result = roundTrip.pixels.buffer!
     @assert(result[0] == 0x00 and result[1] == 0xF9 and result[2] == 0xF7 and result[3] == 0xFF)
     @assert(result[4] == 0x0D and result[5] == 0x0B and result[6] == 0x0B and result[7] == 0xFF)
 }

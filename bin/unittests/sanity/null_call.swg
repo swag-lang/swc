@@ -3,7 +3,7 @@
 // ---------------------------------------------------------------------------
 // Calling through a function pointer proven to be null (a never-assigned lambda or
 // closure) faults just like dereferencing a null data pointer. Use-site enforcement
-// rejects the raw call at compile time, so each case asserts with 'notnull' (the
+// rejects the raw call at compile time, so each case asserts with '!' (the
 // explicit assertion the programmer can get wrong) and disables the Expect runtime
 // guard so the call really reaches the null pointer. Marked
 // `#[Swag.Sanity(.Null, true)]` so the sanitizer runs (and catches it) in every config.
@@ -13,7 +13,7 @@
 #test
 {
     var f: #null func()->s32
-    let g = notnull f
+    let g = f!
     let x = g()     // swc-expected-error {{sanity_err_null_call}}
     discard x
 }
@@ -24,7 +24,7 @@
 {
     var f: #null func()->s32
     var g = f
-    let h = notnull g
+    let h = g!
     let x = h()     // swc-expected-error {{sanity_err_null_call}}
     discard x
 }

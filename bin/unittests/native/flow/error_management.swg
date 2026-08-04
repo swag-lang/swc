@@ -628,7 +628,7 @@ func notNullPointerSuccess()->s32
 {
     var storage: s32        = 91
     let maybe:   #null *s32 = notNullMaybePtr(&storage)
-    let ptr                 = notnull maybe
+    let ptr                 = maybe!
     #assert(#typeof(ptr) == *s32)
     return dref ptr
 }
@@ -637,7 +637,7 @@ func notNullSliceSuccess()->s32
 {
     var values: [3] s32        = [4, 5, 6]
     let maybe:  #null [..] s32 = values
-    let slice                  = notnull maybe
+    let slice                  = maybe!
     #assert(#typeof(slice) == [..] s32)
     return slice[1] + cast(s32) @countof(slice)
 }

@@ -155,7 +155,7 @@ impl ColorPickerCtrl
             .pickAlpha = ColorPicker.create(v, {10, 240, 220, 16})
 
             .preview = Wnd.create'Wnd(v, "", {245, 215, 40, 40})
-            var icon = v.theme().icon24(.Picker)
+            var icon = v.theme().icon(.Picker)
             icon.color = Argb.White
             let picker = IconButton.create(v, icon, {245, 215, 40, 40})
 

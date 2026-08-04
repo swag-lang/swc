@@ -240,7 +240,7 @@ func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, b
 
     if hasPalette
     {
-        let pal = notnull palette
+        let pal = palette!
         for [i] in palCount do
             tw16(&cb, le, pal[i])
     }
@@ -559,7 +559,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     let buf = buildTiff(true, 6, 1, 1, 1, 5, 1, 8, nnBytes(writer.bytes.toSlice()), null, false)
     let img = expect decodeTiff(nnBytes(buf.toSlice()))
     for [i] in img.pixels.count do
-        @assert((notnull img.pixels.buffer)[i] == 65'u8)
+        @assert(img.pixels.buffer![i] == 65'u8)
 }
 
 // Exercise independent literal streams across every TIFF LZW code-width edge.
@@ -572,7 +572,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 
     let buf    = buildTiff(true, 64, 64, 1, 1, 5, 64, 8, nnBytes(packed.toSlice()), null, false)
     let img    = expect decodeTiff(nnBytes(buf.toSlice()))
-    let pixels = notnull img.pixels.buffer
+    let pixels = img.pixels.buffer!
     for [y] in 64
     {
         for [x] in 64
@@ -630,7 +630,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 {
     var src = Image.create(2, 2, .RGB8)
     src.clear()
-    let srcBuf = notnull src.pixels.buffer
+    let srcBuf = src.pixels.buffer!
     srcBuf[0] = 11'u8     // bottom-left R
     srcBuf[1] = 22'u8
     srcBuf[2] = 33'u8
@@ -652,7 +652,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 #test
 {
     var src    = Image.create(1, 1, .RGBA8)
-    let srcBuf = notnull src.pixels.buffer
+    let srcBuf = src.pixels.buffer!
     srcBuf[0] = 1'u8
     srcBuf[1] = 2'u8
     srcBuf[2] = 3'u8
@@ -672,7 +672,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 #test
 {
     var src    = Image.create(1, 1, .BGR8)
-    let srcBuf = notnull src.pixels.buffer
+    let srcBuf = src.pixels.buffer!
     srcBuf[0] = 10'u8     // B
     srcBuf[1] = 20'u8     // G
     srcBuf[2] = 30'u8     // R
@@ -693,7 +693,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     defer discard catch File.delete(path.toString())
     var src = Image.create(3, 2, .RGB8)
     src.clear()
-    let srcBuf = notnull src.pixels.buffer
+    let srcBuf = src.pixels.buffer!
     srcBuf[0] = 123'u8
     srcBuf[1] = 45'u8
     srcBuf[2] = 67'u8
@@ -714,7 +714,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 #test
 {
     var src    = Image.create(32, 3, .RGBA8)
-    let srcBuf = notnull src.pixels.buffer
+    let srcBuf = src.pixels.buffer!
     for [y] in src.height
     {
         for [x] in src.width
@@ -745,7 +745,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 #test
 {
     var src    = Image.create(5, 1, .BGR8)
-    let srcBuf = notnull src.pixels.buffer
+    let srcBuf = src.pixels.buffer!
     for [x] in src.width
     {
         let offset = cast(u64) x * 3
@@ -771,7 +771,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 #test
 {
     var src    = Image.create(128, 40, .RGBA8)
-    let srcBuf = notnull src.pixels.buffer
+    let srcBuf = src.pixels.buffer!
     var state  = 0x12345678'u32
     for [i] in src.pixels.count
     {

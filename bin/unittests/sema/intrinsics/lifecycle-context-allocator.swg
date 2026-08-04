@@ -19,7 +19,7 @@ func helperFree(buffer: #null [*] void, size: u64, allocator: #null IAllocator =
     req.size    = size
     req.address = buffer
 
-    let talloc = notnull (allocator orelse @getcontext().allocator)
+    let talloc = (allocator orelse @getcontext().allocator)!
     talloc.free(&req)
 }
 
@@ -30,7 +30,7 @@ func helperRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator
     req.size    = newSize
     req.oldSize = oldSize
 
-    let talloc = notnull (allocator orelse @getcontext().allocator)
+    let talloc = (allocator orelse @getcontext().allocator)!
     talloc.realloc(&req)
     return req.address
 }
@@ -46,7 +46,7 @@ func memoryLikeFree(buffer: #null [*] void, size: u64, allocator: #null IAllocat
     req.address   = buffer
     req.hint      = hint
 
-    let talloc = notnull (allocator orelse @getcontext().allocator)
+    let talloc = (allocator orelse @getcontext().allocator)!
     talloc.free(&req)
 }
 
@@ -60,7 +60,7 @@ func memoryLikeRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, alloc
     req.oldSize   = oldSize
     req.alignment = alignment
 
-    let talloc = notnull (allocator orelse @getcontext().allocator)
+    let talloc = (allocator orelse @getcontext().allocator)!
     talloc.realloc(&req)
     return req.address
 }
@@ -141,7 +141,7 @@ impl DirectByteBuffer
         req.address = .buffer
         req.size    = newCapacity
         req.oldSize = .capacity
-        let talloc = notnull .allocator
+        let talloc = .allocator!
         talloc.realloc(&req)
         .buffer   = cast(#null [*] u8) req.address
         .capacity = newCapacity
@@ -174,7 +174,7 @@ impl DirectByteBuffer
         var req: AllocatorRequest
         req.size    = .capacity
         req.address = .buffer
-        let talloc = notnull .allocator
+        let talloc = .allocator!
         talloc.free(&req)
         .buffer           = null
         .count, .capacity = 0
@@ -291,7 +291,7 @@ func directAllocatorRunInitInfo()->ByteInitInfo
     values.resize(4)
     let firstTrace = encodeByteTrace(values.buffer, values.count)
 
-    let buf = notnull values.buffer
+    let buf = values.buffer!
     buf[0] = 3
     buf[1] = 7
     values.resize(2)
@@ -310,7 +310,7 @@ func helperAllocatorRunInitInfo()->ByteInitInfo
     values.resize(3)
     let firstTrace = encodeByteTrace(values.buffer, values.count)
 
-    let buf = notnull values.buffer
+    let buf = values.buffer!
     buf[0] = 4
     buf[2] = 9
     values.resize(1)
@@ -329,7 +329,7 @@ func memoryAllocatorRunDropInfo()->DropRunInfo
 
     var values: MemoryTrackedBuffer
     values.resize(4, 9)
-    let buf = notnull values.buffer
+    let buf = values.buffer!
     for [i] in 4 do
         buf[i].value = cast(s32) (i + 1)
 

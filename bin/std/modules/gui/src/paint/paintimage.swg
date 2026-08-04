@@ -26,7 +26,7 @@ impl PaintImage
         if !evt is PaintEvent do
             return false
 
-        let pt    = notnull cast(#null *PaintImage) wnd.surface!.userData
+        let pt    = cast #unnull (*PaintImage) wnd.surface!.userData
         let paint = pt.paint
         if !paint do
             return false
@@ -60,7 +60,7 @@ impl PaintImage
     public mtd init(w, h: s32)
     {
         Debug.assert(w > 0 and h > 0, "paint image dimensions must be positive")
-        .surface          = notnull expect .app.createSurface(0, 0, 1, 1, hook: &onEvent)
+        .surface          = expect .app.createSurface(0, 0, 1, 1, hook: &onEvent)!
         .surface.userData = me
         .w                = w
         .h                = h

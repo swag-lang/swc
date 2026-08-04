@@ -77,7 +77,7 @@ internal impl PropFieldValue
             .isString = true
             .strings.reserve(.n)
             for [k] in .n do
-                .strings.add(dref notnull cast(#null *String) .addrs[k])
+                .strings.add(dref cast #unnull (*String) .addrs[k])
         }
         else
         {
@@ -103,7 +103,7 @@ internal impl PropFieldValue
         if .isString
         {
             for [k] in .n do
-                dref notnull cast(#null *String) .addrs[k] = .strings[k]
+                dref cast #unnull (*String) .addrs[k] = .strings[k]
         }
         else
         {
@@ -184,7 +184,7 @@ internal impl Properties
     {
         for [i] in fromIdx until .items.count
         {
-            let it = notnull .items[i]
+            let it = .items[i]!
             it.undoValue.capture(me, it)
         }
     }
@@ -240,7 +240,7 @@ internal impl Properties
         // the timeline position we just moved to.
         for it in .items
         {
-            let itn = notnull it
+            let itn = it!
             itn.undoValue.capture(me, itn)
         }
 
@@ -319,7 +319,7 @@ public impl Properties
         .activeUndoMgr().clear()
         for it in .items
         {
-            let itn = notnull it
+            let itn = it!
             itn.undoValue.capture(me, itn)
         }
     }

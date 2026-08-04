@@ -6,7 +6,7 @@ using Swag, Core
 {
     var scope: FaceScope
     scope.init()
-    let face = notnull scope.face
+    let face = scope.face!
 
     discard expect face.setPixelSize(0, 20)
     let glyphIndex = face.glyphIndex('A')
@@ -26,7 +26,7 @@ using Swag, Core
 {
     var scope: FaceScope
     scope.init()
-    let face = notnull scope.face
+    let face = scope.face!
 
     discard expect face.setPixelSize(0, 32)
     discard expect face.loadChar('A', .Default)
@@ -45,7 +45,7 @@ using Swag, Core
 
     var hasOutside = false
     var hasInside  = false
-    let sdfBuf     = notnull sdf.buffer
+    let sdfBuf     = sdf.buffer!
     for cast(u64) sdf.width * sdf.rows
     {
         let value = sdfBuf[@index]
@@ -65,7 +65,7 @@ using Swag, Core
 {
     var scope: FaceScope
     scope.init()
-    let face = notnull scope.face
+    let face = scope.face!
 
     discard expect face.setPixelSize(0, 40)
     discard expect face.loadChar('A', .Default)
@@ -77,7 +77,7 @@ using Swag, Core
     var hasZero    = false
     var hasFull    = false
     var hasPartial = false
-    let bmpBuf     = notnull bmp.buffer
+    let bmpBuf     = bmp.buffer!
     for cast(u64) bmp.width * bmp.rows
     {
         let v = bmpBuf[@index]
@@ -98,7 +98,7 @@ using Swag, Core
 {
     var scope: FaceScope
     scope.init()
-    let face = notnull scope.face
+    let face = scope.face!
 
     discard expect face.setPixelSize(0, 20)
     discard expect face.loadChar('A', .Default)
@@ -112,7 +112,7 @@ using Swag, Core
 {
     var scope: FaceScope
     scope.init()
-    let face = notnull scope.face
+    let face = scope.face!
 
     discard expect face.setPixelSize(0, 32)
     discard expect face.loadChar('A', .Default)
@@ -143,7 +143,7 @@ using Swag, Core
     var channelsDiffer = false
     var hasInsideA     = false
     var hasOutsideA    = false
-    let msdfBuf        = notnull msdf.buffer
+    let msdfBuf        = msdf.buffer!
     for [y] in msdf.rows
     {
         for [x] in msdf.width

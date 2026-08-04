@@ -14,8 +14,8 @@ impl Image
         case .RGBA8:
             mec.visitPixels(dstImage)
             {
-                let dstImage = cast(*Image) (notnull userData)
-                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bytesPerPixel + y * dstImage.rowStride
+                let dstImage = cast(*Image) userData!
+                let pixDst   = dstImage.pixels.buffer! + x * dstImage.bytesPerPixel + y * dstImage.rowStride
                 pixDst[0] = pix[0]
                 pixDst[1] = pix[1]
                 pixDst[2] = pix[2]
@@ -24,8 +24,8 @@ impl Image
         case .BGR8, .BGRA8:
             mec.visitPixels(dstImage)
             {
-                let dstImage = cast(*Image) (notnull userData)
-                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bytesPerPixel + y * dstImage.rowStride
+                let dstImage = cast(*Image) userData!
+                let pixDst   = dstImage.pixels.buffer! + x * dstImage.bytesPerPixel + y * dstImage.rowStride
                 pixDst[0] = pix[2]
                 pixDst[1] = pix[1]
                 pixDst[2] = pix[0]
@@ -45,8 +45,8 @@ impl Image
         case .BGRA8:
             mec.visitPixels(dstImage)
             {
-                let dstImage = cast(*Image) (notnull userData)
-                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bytesPerPixel + y * dstImage.rowStride
+                let dstImage = cast(*Image) userData!
+                let pixDst   = dstImage.pixels.buffer! + x * dstImage.bytesPerPixel + y * dstImage.rowStride
                 pixDst[0] = pix[2]
                 pixDst[1] = pix[1]
                 pixDst[2] = pix[0]
@@ -56,8 +56,8 @@ impl Image
         case .RGB8:
             mec.visitPixels(dstImage)
             {
-                let dstImage = cast(*Image) (notnull userData)
-                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bytesPerPixel + y * dstImage.rowStride
+                let dstImage = cast(*Image) userData!
+                let pixDst   = dstImage.pixels.buffer! + x * dstImage.bytesPerPixel + y * dstImage.rowStride
                 pixDst[0] = pix[0]
                 pixDst[1] = pix[1]
                 pixDst[2] = pix[2]
@@ -67,8 +67,8 @@ impl Image
         case .BGR8:
             mec.visitPixels(dstImage)
             {
-                let dstImage = cast(*Image) (notnull userData)
-                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bytesPerPixel + y * dstImage.rowStride
+                let dstImage = cast(*Image) userData!
+                let pixDst   = dstImage.pixels.buffer! + x * dstImage.bytesPerPixel + y * dstImage.rowStride
                 pixDst[0] = pix[2]
                 pixDst[1] = pix[1]
                 pixDst[2] = pix[0]
@@ -89,8 +89,8 @@ impl Image
         case .BGRA8:
             mec.visitPixels(dstImage)
             {
-                let dstImage = cast(*Image) (notnull userData)
-                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bytesPerPixel + y * dstImage.rowStride
+                let dstImage = cast(*Image) userData!
+                let pixDst   = dstImage.pixels.buffer! + x * dstImage.bytesPerPixel + y * dstImage.rowStride
                 pixDst[0] = pix[0]
                 pixDst[1] = pix[1]
                 pixDst[2] = pix[2]
@@ -99,8 +99,8 @@ impl Image
         case .RGB8, .RGBA8:
             mec.visitPixels(dstImage)
             {
-                let dstImage = cast(*Image) (notnull userData)
-                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bytesPerPixel + y * dstImage.rowStride
+                let dstImage = cast(*Image) userData!
+                let pixDst   = dstImage.pixels.buffer! + x * dstImage.bytesPerPixel + y * dstImage.rowStride
                 pixDst[0] = pix[2]
                 pixDst[1] = pix[1]
                 pixDst[2] = pix[0]
@@ -120,8 +120,8 @@ impl Image
         case .BGR8:
             mec.visitPixels(dstImage)
             {
-                let dstImage = cast(*Image) (notnull userData)
-                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bytesPerPixel + y * dstImage.rowStride
+                let dstImage = cast(*Image) userData!
+                let pixDst   = dstImage.pixels.buffer! + x * dstImage.bytesPerPixel + y * dstImage.rowStride
                 pixDst[0] = pix[0]
                 pixDst[1] = pix[1]
                 pixDst[2] = pix[2]
@@ -131,8 +131,8 @@ impl Image
         case .RGB8:
             mec.visitPixels(dstImage)
             {
-                let dstImage = cast(*Image) (notnull userData)
-                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bytesPerPixel + y * dstImage.rowStride
+                let dstImage = cast(*Image) userData!
+                let pixDst   = dstImage.pixels.buffer! + x * dstImage.bytesPerPixel + y * dstImage.rowStride
                 pixDst[0] = pix[2]
                 pixDst[1] = pix[1]
                 pixDst[2] = pix[0]
@@ -142,8 +142,8 @@ impl Image
         case .RGBA8:
             mec.visitPixels(dstImage)
             {
-                let dstImage = cast(*Image) (notnull userData)
-                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bytesPerPixel + y * dstImage.rowStride
+                let dstImage = cast(*Image) userData!
+                let pixDst   = dstImage.pixels.buffer! + x * dstImage.bytesPerPixel + y * dstImage.rowStride
                 pixDst[0] = pix[2]
                 pixDst[1] = pix[1]
                 pixDst[2] = pix[0]

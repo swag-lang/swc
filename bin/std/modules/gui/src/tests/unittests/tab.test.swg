@@ -25,7 +25,7 @@ var TabHeadlessSelChangedCount: u32
     tab.setSelectedIndex(2)
     @assert(tab.selectedIndex == 2)
     @assert(TabHeadlessSelChangedCount == 1)
-    @assert((notnull tab.selectedItem()).name.raw == "C")
+    @assert(tab.selectedItem()!.name.raw == "C")
 
     // Selecting the current tab is a no-op.
     tab.setSelectedIndex(2)
@@ -78,11 +78,11 @@ var TabHeadlessSelChangedCount: u32
 
     tab.setSelectedIndex(2)
     tab.removeItemAt(0)
-    @assert(tab.selectedIndex == 1 and (notnull tab.selectedItem()).name.raw == "C")
+    @assert(tab.selectedIndex == 1 and tab.selectedItem()!.name.raw == "C")
     @assert(TabHeadlessSelChangedCount == 1)
 
     tab.removeItemAt(1)
-    @assert(tab.selectedIndex == 0 and (notnull tab.selectedItem()).name.raw == "B")
+    @assert(tab.selectedIndex == 0 and tab.selectedItem()!.name.raw == "B")
     @assert(TabHeadlessSelChangedCount == 2)
 
     tab.clear()

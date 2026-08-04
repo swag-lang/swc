@@ -42,6 +42,12 @@ its element type, its options, its result shape — belong in the same file.
   concern per file, and name the file for that concern.
 - Remember that `private` is file-local. Moving a declaration away from its callers breaks the
   build unless it becomes `internal`, which is the default.
+- A helper that operates on one type's data is a method of that type, in that type's file — never
+  a `private func` in the consumer's file. A free `pointInPolygon(poly, pt)` beside its one caller
+  is the failure mode: the next caller cannot find it and writes a second copy. Write
+  `Polygon.contains(pt)` in `polygon.swg` instead, and give it the doc comment public API
+  requires. Before writing any geometric, textual, or numeric helper, check whether the type
+  already offers it or should.
 
 ## Name Source Files Consistently
 
@@ -191,8 +197,8 @@ The formatter fixes structural blank lines; it cannot see meaning. Both are the 
 ## Use Direct Control and Data Flow
 
 - Prefer early exits over nested success paths.
-- Use `orelse`, `notnull`, optional chaining, and `with` when they express absence or structured
-  initialization more directly than temporary variables and repeated checks.
+- Use `orelse`, the postfix `!`, optional chaining, and `with` when they express absence or
+  structured initialization more directly than temporary variables and repeated checks.
 - Use range, value, index, and filtered iteration instead of manual counters when iteration itself
   is the intent.
 - Make switches exhaustive. Do not append an unreachable dummy return solely to satisfy an old
@@ -222,8 +228,8 @@ The formatter fixes structural blank lines; it cannot see meaning. Both are the 
   failure handling does not make an unused return value implicit.
 - `expect` needs a valid fallback value and therefore cannot directly materialize a non-null
   pointer. A test-only adapter may return the same successful pointer as nullable; consume it as
-  `notnull expect adapter()`. Keep the adapter value-returning rather than hiding the rule behind
-  an output parameter.
+  `expect adapter()!` — a `!` after an error-management keyword asserts its result. Keep the
+  adapter value-returning rather than hiding the rule behind an output parameter.
 - Remove redundant setup, casts, temporaries, comments, and wrappers. Keep boundary cases and
   intent-bearing names even when fewer lines are possible.
 - Do not modernize an error fixture or compiler feature test away from the construct it exists to

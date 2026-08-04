@@ -49,7 +49,7 @@ private func makeRenderParityTexture(renderer: IRenderer)->Texture
         {
             let color = colors[cast(u64) ((x + y) & 3)]
             let row   = image.height - y - 1
-            let pixel = (notnull image.pixels.buffer) + cast(u64) (row * image.rowStride + x * image.bytesPerPixel)
+            let pixel = image.pixels.buffer! + cast(u64) (row * image.rowStride + x * image.bytesPerPixel)
             pixel[0] = color.b
             pixel[1] = color.g
             pixel[2] = color.r
@@ -150,7 +150,7 @@ private func renderParityScene(renderer: IRenderer)->Image
 
 private func makeRenderParityFont(renderer: IRenderer, size: u32, mode: FontRenderMode)->*Font
 {
-    let face = notnull expect loadTestTypeFace(getTestDataPath("segoeui.ttf"))
+    let face = expect loadTestTypeFace(getTestDataPath("segoeui.ttf"))!
     return renderer.fontCache().createFont(face, size, mode)
 }
 
@@ -239,7 +239,7 @@ private func renderLayerParityScene(renderer: IRenderer)->Image
     expected.clear()
     var actual = expected
 
-    let pixels = notnull actual.pixels.buffer
+    let pixels = actual.pixels.buffer!
     pixels[2] = 4
     Testing.assertImagesNear(&expected, &actual, "render.parity.tolerance.delta", {maxChannelDelta: 4})
 

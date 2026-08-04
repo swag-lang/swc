@@ -6,6 +6,13 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    // The postfix '!' shares its node with try/catch/expect; only the token tells them apart.
+    bool isNotNullExpr(const Ast& ast, AstNodeRef nodeRef)
+    {
+        const AstNode& node = ast.node(nodeRef);
+        return node.is(AstNodeId::ErrorManagementExpr) && ast.srcView().token(node.tokRef()).id == TokenId::SymBang;
+    }
+
     void markCallCalleeNode(Ast& ast, AstNodeRef nodeRef)
     {
         if (nodeRef.isInvalid())
@@ -271,6 +278,9 @@ AstModifierFlags Parser::parseModifiers()
                 break;
             case TokenId::ModifierUnConst:
                 toSet = AstModifierFlagsE::UnConst;
+                break;
+            case TokenId::ModifierUnNull:
+                toSet = AstModifierFlagsE::UnNull;
                 break;
             case TokenId::ModifierFail:
                 toSet = AstModifierFlagsE::Fail;
@@ -699,21 +709,23 @@ AstNodeRef Parser::parsePostFixExpression()
     TokenRef firstOptionalAccessTokRef = TokenRef::invalid();
     while (true)
     {
-        // '!.' is matched here instead of being lexed as one token: in PREFIX position the
-        // same two characters are the logical negation of an auto-member access ('if
-        // !.buffer do'), which is a very common spelling. Only a postfix '!' can open the
-        // not-null access, and a postfix '!' has no other meaning.
-        const bool notNullAccess = is(TokenId::SymBang) && nextIs(TokenId::SymDot) && !tokPtr()[1].flags.has(TokenFlagsE::BlankBefore);
+        // Not-null assertion. Recognized here rather than lexed, because in PREFIX position
+        // the same character is the logical negation ('if !.buffer do'); only a postfix '!'
+        // opens the assertion, and a postfix '!' has no other meaning. Being postfix, it
+        // binds tighter than every prefix form and chains with '.', '[' and '('.
+        if (is(TokenId::SymBang) && !tok().flags.hasAny({TokenFlagsE::EolBefore, TokenFlagsE::BlankBefore}))
+        {
+            auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::ErrorManagementExpr>(consume());
+            nodePtr->nodeExprRef       = nodeRef;
+            nodeRef                    = nodeParent;
+            continue;
+        }
 
         // Scope resolution
-        if ((is(TokenId::SymDot) || is(TokenId::SymQuestionDot) || notNullAccess) && !tok().flags.has(TokenFlagsE::EolBefore))
+        if ((is(TokenId::SymDot) || is(TokenId::SymQuestionDot)) && !tok().flags.has(TokenFlagsE::EolBefore))
         {
-            const bool     optionalAccess = is(TokenId::SymQuestionDot);
-            const TokenRef opTokRef       = consume();
-            if (notNullAccess)
-                consume();
-
-            auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::MemberAccessExpr>(opTokRef);
+            const bool optionalAccess  = is(TokenId::SymQuestionDot);
+            auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::MemberAccessExpr>(consume());
             nodePtr->nodeLeftRef       = nodeRef;
             nodePtr->nodeRightRef      = parseIdentifier();
             if (optionalAccess)
@@ -722,8 +734,6 @@ AstNodeRef Parser::parsePostFixExpression()
                 if (firstOptionalAccessTokRef.isInvalid())
                     firstOptionalAccessTokRef = nodePtr->tokRef();
             }
-            else if (notNullAccess)
-                nodePtr->addFlag(AstMemberAccessExprFlagsE::NotNullAccess);
             nodeRef = nodeParent;
             continue;
         }
@@ -853,7 +863,6 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::KwdTry:
         case TokenId::KwdCatch:
         case TokenId::KwdExpect:
-        case TokenId::KwdNotNull:
             return parseErrorManagementExpr();
 
         case TokenId::IntrinsicKindOf:
@@ -1186,7 +1195,7 @@ AstNodeRef Parser::parseErrorManagementExpr()
     // 'let x = catch f() as err' captures the caught error into a named local (enclosing scope):
     // 'x' is the result, 'err' the error. Only 'catch' captures. parseExpression() absorbed the
     // trailing 'as err' into the operand as an 'AsCastExpr'; unwrap it into operand + bound name.
-    // (A trailing 'as T' on try/expect/notnull stays an ordinary cast of the operand.)
+    // (A trailing 'as T' on try/expect stays an ordinary cast of the operand.)
     if (ast_->srcView().token(opTokRef).id == TokenId::KwdCatch &&
         nodePtr->nodeExprRef.isValid() &&
         ast_->node(nodePtr->nodeExprRef).is(AstNodeId::AsCastExpr))
@@ -1194,6 +1203,18 @@ AstNodeRef Parser::parseErrorManagementExpr()
         const auto& asCast     = ast_->node(nodePtr->nodeExprRef).cast<AstAsCastExpr>();
         nodePtr->errNameTokRef = ast_->node(asCast.nodeTypeRef).tokRef();
         nodePtr->nodeExprRef   = asCast.nodeExprRef;
+    }
+
+    // 'expect f()!' asserts the RESULT is not null, not the fallible call. These keywords
+    // already swallow everything to their right, so parseExpression() folded the '!' onto
+    // the operand; hoist it back out. Explicit parentheses still give the inner reading.
+    if (nodePtr->nodeExprRef.isValid() && isNotNullExpr(*ast_, nodePtr->nodeExprRef))
+    {
+        auto&      inner      = ast_->node(nodePtr->nodeExprRef).cast<AstErrorManagementExpr>();
+        const auto notNullRef = nodePtr->nodeExprRef;
+        nodePtr->nodeExprRef  = inner.nodeExprRef;
+        inner.nodeExprRef     = nodeRef;
+        return notNullRef;
     }
 
     return nodeRef;

@@ -152,7 +152,7 @@ func decodeDib(result: *Image, dib: DibHeader, src, last: const [*] u8) fail
     {
         let xorRow = xorData + xorStride * cast(u64) y
         let andRow = andData + andStride * cast(u64) y
-        var dst    = cast([*] u8) (notnull result.pixels.buffer) + cast(u64) y * result.rowStride
+        var dst    = cast([*] u8) result.pixels.buffer! + cast(u64) y * result.rowStride
 
         for [x] in width
         {

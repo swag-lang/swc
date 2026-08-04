@@ -1,7 +1,7 @@
 #global private
 
 // Use-site nullability enforcement: dereferencing a value whose type is still
-// nullable (no dominating null test, no 'notnull', no '?.') is an error, for
+// nullable (no dominating null test, no '!', no '?.') is an error, for
 // every dereferencing operation: member access, 'dref', indexing, and calls
 // through function values.
 

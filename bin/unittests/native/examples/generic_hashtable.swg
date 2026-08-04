@@ -30,7 +30,7 @@ func(K, V) allocateStorage(table: *HashTable'(K, V), capacity: u64)
     table.capacity = capacity
     table.count    = 0
 
-    let states = notnull table.states
+    let states = table.states!
     for [i] in capacity do
         states[i] = SlotEmpty
 }
@@ -61,8 +61,8 @@ func(K, V) insertAssumeSpace(table: *HashTable'(K, V), key: K, value: V)
 {
     let start   = table.hashFn(key) % table.capacity
     var idx     = start
-    let states  = notnull table.states
-    let entries = notnull table.entries
+    let states  = table.states!
+    let entries = table.entries!
 
     while true
     {
@@ -94,8 +94,8 @@ func(K, V) rehash(table: *HashTable'(K, V), newCapacity: u64)
 
     allocateStorage'(K, V)(table, newCapacity)
 
-    let entries = notnull oldEntries
-    let states  = notnull oldStates
+    let entries = oldEntries!
+    let states  = oldStates!
     for [i] in oldCapacity
     {
         if states[i] == SlotUsed do
@@ -127,8 +127,8 @@ func(K, V) tryGet(table: *HashTable'(K, V), key: K)->#null *V
 
     let start   = table.hashFn(key) % table.capacity
     var idx     = start
-    let states  = notnull table.states
-    let entries = notnull table.entries
+    let states  = table.states!
+    let entries = table.entries!
 
     while true
     {
@@ -136,7 +136,7 @@ func(K, V) tryGet(table: *HashTable'(K, V), key: K)->#null *V
             return null
 
         if table.eqFn(entries[idx].key, key) do
-            return &(notnull table.entries)[idx].value
+            return &table.entries![idx].value
 
         idx = (idx + 1) % table.capacity
         if idx == start do
@@ -216,7 +216,7 @@ struct InventoryRow
     @assert(getOr'(string, s32)(&table, "apples", -1) == 20)
     @assert(getOr'(string, s32)(&table, "pears", -1) == -1)
 
-    let ptr = notnull tryGet'(string, s32)(&table, "bananas")
+    let ptr = (tryGet'(string, s32)(&table, "bananas"))!
     dref ptr += 5
     @assert(getOr'(string, s32)(&table, "bananas", -1) == 12)
 }

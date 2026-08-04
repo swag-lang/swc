@@ -15,6 +15,6 @@ func makeFuncInfo()           => #typeof(shortTypeInfoFunc)
     let funcInfo   = makeFuncInfo()
     #assert(#typeof(structInfo) == const *TypeInfoStruct)
     #assert(#typeof(funcInfo) == const *TypeInfoFunc)
-    @assert((notnull structInfo.fields)[0].name == "x")
+    @assert(structInfo.fields![0].name == "x")
     @assert(funcInfo.returnType == s32)
 }

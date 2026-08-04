@@ -448,7 +448,7 @@ namespace
 
         // `notnull` is not an error handler: fallibles inside its operand keep the
         // surrounding error context (`try`/`catch`/... must be spelled explicitly).
-        if (tokenId == TokenId::KwdNotNull)
+        if (tokenId == TokenId::SymBang)
             return Result::Continue;
 
         frame.setCurrentErrorContext(sema.curNodeRef(), errorContextMode(tokenId));
@@ -469,7 +469,7 @@ namespace
         // under safety when the value IS null). On an operand that is already non-null
         // (flow narrowing, generic instantiations) it is a tolerated pass-through. It
         // never handles errors: a fallible operand must spell its own `try`/`catch`/`expect`.
-        if (tokenId == TokenId::KwdNotNull)
+        if (tokenId == TokenId::SymBang)
         {
             if (notNullUnwrappedTypeRef(sema, managedChildRef).isValid())
                 return setupNotNullUnwrap(sema, managedChildRef);

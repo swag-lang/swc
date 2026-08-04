@@ -22,7 +22,7 @@ impl IActionUI for ActionAlign
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let main = cast(*MainWnd) notnull cxt.wnd
+        let main = cast(*MainWnd) cxt.wnd!
 
         if updateFromTable(cxt,
                            evt,
@@ -46,25 +46,25 @@ impl IActionUI for ActionAlign
             evt.updatedFields |= .Disabled | .Icon | .Name
             evt.name          = appStrings().act_SendToFront
             evt.disabled      = !hasSel or capture!.selection.contains(capture!.forms.count - 1)
-            evt.icon          = main.theme().icon24(.BringToFront)
+            evt.icon          = main.theme().icon(.BringToFront)
 
         case .SendToBack:
             evt.updatedFields |= .Disabled | .Icon | .Name
             evt.name          = appStrings().act_SendToBack
             evt.disabled      = !hasSel or capture!.selection.contains(0)
-            evt.icon          = main.theme().icon24(.SendToBack)
+            evt.icon          = main.theme().icon(.SendToBack)
 
         case .MoveForward:
             evt.updatedFields |= .Disabled | .Icon | .Name
             evt.name          = appStrings().act_MoveForward
             evt.disabled      = !hasSel or capture!.selection.contains(capture!.forms.count - 1)
-            evt.icon          = main.theme().icon24(.BringForward)
+            evt.icon          = main.theme().icon(.BringForward)
 
         case .MoveBackward:
             evt.updatedFields |= .Disabled | .Icon | .Name
             evt.name          = appStrings().act_MoveBackward
             evt.disabled      = !hasSel or capture!.selection.contains(0)
-            evt.icon          = main.theme().icon24(.SendBackward)
+            evt.icon          = main.theme().icon(.SendBackward)
         }
 
         return true
@@ -72,8 +72,8 @@ impl IActionUI for ActionAlign
 
     mtd impl execute(cxt: ActionContext)->bool
     {
-        let main    = cast(*MainWnd) notnull cxt.wnd
-        let capture = notnull main.getCapture()
+        let main    = cast(*MainWnd) cxt.wnd!
+        let capture = main.getCapture()!
 
         var undo: *Undo = undefined
         switch cxt.id

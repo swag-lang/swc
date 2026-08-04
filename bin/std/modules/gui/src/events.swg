@@ -318,6 +318,7 @@ struct NotifyEvent
     {
         ChildFocusChanged     // A descendant gained or lost keyboard focus.
         ThemeChanged          // The resolved theme or inherited style changed.
+        LanguageChanged       // The active language of [[Gui.strings]] changed; text set at construction must be refreshed.
     }
 
     kind: Kind = undefined     // Notification kind.

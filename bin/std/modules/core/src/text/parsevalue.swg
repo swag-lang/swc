@@ -155,93 +155,101 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->#null string f
         return one
     }
 
-    // Basic types
+    // Basic types. A native type reaching this function from another module is a
+    // different typeinfo instance, so the dispatch reads the native kind instead of
+    // switching on typeinfo identity.
     var eat = 0'u32
     var ovf = false
-    switch type
+    if type == String
     {
-    case s8:
+        eat = parseString(cast(*String) patch, one)
+        return Tokenize.eatCount(one, cast(u64) eat)
+    }
+    if !Reflection.isNative(type) do
+        fail UnsupportedFormatError{Errors.mkString(Format.toString("unsupported type [[%]]", type.name))}
+
+    let nativeType = cast(const *TypeInfoNative) type
+    switch nativeType.nativeKind
+    {
+    case .S8:
         var val: s8 = undefined
         {val, eat, ovf} = parseS8(one)
         if ovf do
             fail OverflowError{}
         dref cast(*s8) patch = val
 
-    case s16:
+    case .S16:
         var val: s16 = undefined
         {val, eat, ovf} = parseS16(one)
         if ovf do
             fail OverflowError{}
         dref cast(*s16) patch = val
 
-    case s32:
+    case .S32:
         var val: s32 = undefined
         {val, eat, ovf} = parseS32(one)
         if ovf do
             fail OverflowError{}
         dref cast(*s32) patch = val
 
-    case s64:
+    case .S64:
         var val: s64 = undefined
         {val, eat, ovf} = parseS64(one)
         if ovf do
             fail OverflowError{}
         dref cast(*s64) patch = val
 
-    case u8:
+    case .U8:
         var val: u8 = undefined
         {val, eat, ovf} = parseU8(one)
         if ovf do
             fail OverflowError{}
         dref cast(*u8) patch = val
 
-    case u16:
+    case .U16:
         var val: u16 = undefined
         {val, eat, ovf} = parseU16(one)
         if ovf do
             fail OverflowError{}
         dref cast(*u16) patch = val
 
-    case u32:
+    case .U32:
         var val: u32 = undefined
         {val, eat, ovf} = parseU32(one)
         if ovf do
             fail OverflowError{}
         dref cast(*u32) patch = val
 
-    case u64:
+    case .U64:
         var val: u64 = undefined
         {val, eat, ovf} = parseU64(one)
         if ovf do
             fail OverflowError{}
         dref cast(*u64) patch = val
 
-    case f32:
+    case .F32:
         var val: f32 = undefined
         {val, eat, ovf} = parseF32(one)
         if ovf do
             fail OverflowError{}
         dref cast(*f32) patch = val
 
-    case f64:
+    case .F64:
         var val: f64 = undefined
         {val, eat, ovf} = parseF64(one)
         if ovf do
             fail OverflowError{}
         dref cast(*f64) patch = val
 
-    case bool:
+    case .Bool:
         var val: bool = undefined
         {val, eat}             = parseBool(one)
         dref cast(*bool) patch = val
 
-    case rune:
+    case .Rune:
         var val: rune = undefined
         {val, eat}             = parseRune(one)
         dref cast(*rune) patch = val
-
-    case String:
-        eat = parseString(cast(*String) patch, one)
 
     default:
         fail UnsupportedFormatError{Errors.mkString(Format.toString("unsupported type [[%]]", type.name))}

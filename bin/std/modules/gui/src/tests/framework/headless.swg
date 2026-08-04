@@ -73,7 +73,9 @@ impl HeadlessHost
 
         .theme = Memory.new'Theme()
         .theme.colors.setDark()
-        .theme.setupDefault(.app.renderer)
+        registerDefaultThemeResources(&.app.resources)
+        registerDefaultStrings(&.app.resources)
+        .theme.setupDefault(.app.renderer, &.app.resources)
 
         .app.theme = .theme
         .app.style.own(.theme)

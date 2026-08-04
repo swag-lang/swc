@@ -170,7 +170,7 @@ private impl FileBrowserCtrl
     mtd fillFileListFolders()
     {
         let treeCtrl = notnull .treeCtrl
-        var l        = treeCtrl.createLine("Shortcuts")
+        var l        = treeCtrl.createLine(strings().browser_Shortcuts)
         l.separator = true
 
         for v in .options.shortcuts
@@ -184,7 +184,7 @@ private impl FileBrowserCtrl
             .treePathStr.add(c)
         }
 
-        l           = treeCtrl.createLine("Drives")
+        l           = treeCtrl.createLine(strings().browser_Drives)
         l.separator = true
 
         let volumes = catch Directory.drives()
@@ -222,8 +222,8 @@ private impl FileBrowserCtrl
             // NOTE: both branches are kept explicitly f32. A runtime conditional
             // whose unified result is integer, fed to an f32 parameter, is currently
             // mis-lowered to a bit-reinterpret (see reference_conditional_int_to_float_miscompile).
-            .addColumn("Name", me.options.state ? cast(f32) me.options.state.nameColumnWidth : 200.0)
-            .addColumn("Modified", me.options.state ? cast(f32) me.options.state.modifiedColumnWidth : 150.0)
+            .addColumn(strings().browser_ColName, me.options.state ? cast(f32) me.options.state.nameColumnWidth : 200.0)
+            .addColumn(strings().browser_ColModified, me.options.state ? cast(f32) me.options.state.modifiedColumnWidth : 150.0)
             .header.form = .Transparent
             .header.style.addStyleSheetColors("headerItem_Separator $lighterMedium")
             .scrollWnd.style.addStyleSheetColors("scrollBar_Bk $view_Bk")
@@ -353,13 +353,13 @@ impl FileBrowserCtrl
 
         if fileBrowser.options.shortcuts.isEmpty()
         {
-            fileBrowser.options.shortcuts.add({Env.SpecialDirectory.Desktop, "Desktop"})
-            fileBrowser.options.shortcuts.add({Env.SpecialDirectory.UserDocuments, "Documents"})
-            fileBrowser.options.shortcuts.add({Env.SpecialDirectory.UserPictures, "Pictures"})
+            fileBrowser.options.shortcuts.add({Env.SpecialDirectory.Desktop, strings().browser_Desktop})
+            fileBrowser.options.shortcuts.add({Env.SpecialDirectory.UserDocuments, strings().browser_Documents})
+            fileBrowser.options.shortcuts.add({Env.SpecialDirectory.UserPictures, strings().browser_Pictures})
         }
 
         if fileBrowser.options.mode != .SelectFolder and fileBrowser.options.filters.isEmpty() do
-            fileBrowser.options.filters.add({"All Files", ""})
+            fileBrowser.options.filters.add({strings().browser_AllFiles, ""})
 
         // Panes
         ////////////////////////
@@ -393,51 +393,56 @@ impl FileBrowserCtrl
 
         fileBrowser.applyLayout()
 
-        with fileBrowser.backButton = PushButton.create(viewTop, "Back", {0, 0, 58})
+        with fileBrowser.backButton = PushButton.create(viewTop, strings().browser_Back)
         {
             .dockStyle = .Left
             .margin.z  = 6
-            .toolTip   = "Previous folder (Alt+Left)"
+            .toolTip   = strings().browser_TipBack
             .setIcon(fileBrowser.theme().icon24(ThemeIcons24.Undo, 16))
+            .fitWidthToLabel()
             .sigPressed += func|fileBrowser|(btn) { discard fileBrowser.goBack() }
         }
 
-        with fileBrowser.forwardButton = PushButton.create(viewTop, "Forward", {0, 0, 72})
+        with fileBrowser.forwardButton = PushButton.create(viewTop, strings().browser_Forward)
         {
             .dockStyle = .Left
             .margin.z  = 6
-            .toolTip   = "Next folder (Alt+Right)"
+            .toolTip   = strings().browser_TipForward
             .setIcon(fileBrowser.theme().icon24(ThemeIcons24.Redo, 16))
+            .fitWidthToLabel()
             .sigPressed += func|fileBrowser|(btn) { discard fileBrowser.goForward() }
         }
 
-        with fileBrowser.upButton = PushButton.create(viewTop, "Up", {0, 0, 46})
+        with fileBrowser.upButton = PushButton.create(viewTop, strings().browser_Up)
         {
             .dockStyle = .Left
             .margin.z  = 10
-            .toolTip   = "Parent folder (Alt+Up)"
+            .toolTip   = strings().browser_TipUp
             .setIcon(fileBrowser.theme().icon24(ThemeIcons24.Expanded, 16))
+            .fitWidthToLabel()
             .sigPressed += func|fileBrowser|(btn) { discard fileBrowser.goUp() }
         }
 
-        with fileBrowser.refreshButton = PushButton.create(viewTop, "Refresh", {0, 0, 72})
+        with fileBrowser.refreshButton = PushButton.create(viewTop, strings().browser_Refresh)
         {
             .dockStyle = .Right
             .margin.x  = 6
-            .toolTip   = "Refresh (F5)"
+            .toolTip   = strings().browser_TipRefresh
             .setIcon(fileBrowser.theme().icon24(ThemeIcons24.Update, 16))
+            .fitWidthToLabel()
             .sigPressed += func|fileBrowser|(btn) { fileBrowser.refresh() }
         }
 
         if fileBrowser.options.mode == .CreateFile or fileBrowser.options.mode == .SelectFolder
         {
-            let btn = PushButton.create(viewTop, "New Folder", {0, 0, 90})
+            let btn = PushButton.create(viewTop, strings().browser_NewFolder)
             with btn
             {
                 .dockStyle = .Right
                 .margin.x  = 10
-                .toolTip   = "Create a folder in the current location"
+                .toolTip   = strings().browser_TipNewFolder
                 .setIcon(fileBrowser.theme().icon24(ThemeIcons24.Plus, 16))
+                .fitWidthToLabel()
                 .sigPressed += func|fileBrowser|(btn) { fileBrowser.sigNewFolderRequested.call(fileBrowser) }
             }
         }
@@ -460,14 +465,14 @@ impl FileBrowserCtrl
         form.backgroundStyle = .Window
         form.padding         = {0, 8, 15, 8}
 
-        let nameLbl0 = fileBrowser.options.mode == .SelectFolder ? "Folder Name" : "File Name"
+        let nameLbl0 = fileBrowser.options.mode == .SelectFolder ? strings().browser_FolderName : strings().browser_FileName
         fileBrowser.editFile = EditBox.create(form, "")
         discard form.addField(nameLbl0, fileBrowser.editFile)
 
         with fileBrowser.comboType = ComboBox.create(form)
         {
             if fileBrowser.options.mode == .SelectFolder do
-                .addItem("Folders")
+                .addItem(strings().browser_Folders)
             else do
                 for f, [idx] in fileBrowser.options.filters do
                     .addItem(f.name, userData0: cast(#null *void) idx)
@@ -475,7 +480,7 @@ impl FileBrowserCtrl
             .sigChanged += func|fileBrowser|(c, idx) { fileBrowser.fillFileList() }
         }
 
-        discard form.addField("Type", fileBrowser.comboType)
+        discard form.addField(strings().browser_Type, fileBrowser.comboType)
 
         with fileBrowser
         {

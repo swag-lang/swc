@@ -3,9 +3,10 @@
 // Configures the surface and buttons of a [[Gui.FormDlg]].
 struct FormDlgOptions
 {
-    title:             string = ""           // Surface title.
-    confirmButtonText: string = "OK"         // Confirmation-button text.
-    cancelButtonText:  string = "Cancel"     // Cancel-button text, or empty to omit it.
+    title:             string = ""       // Surface title.
+    confirmButtonText: string = ""       // Confirmation-button text, or empty for the localized OK.
+    showCancelButton:  bool   = true     // Whether the dialog offers a cancel button.
+    cancelButtonText:  string = ""       // Cancel-button text, or empty for the localized Cancel.
     width                     = 520's32      // Initial surface width.
     height                    = 360's32      // Initial surface height.
     resizable:         bool                  // Whether the user can resize the surface.
@@ -54,9 +55,9 @@ impl FormDlg
         result.form.dockStyle = .Center
         result.form.setAllMargins(result.themeMetrics().dialog_Padding)
 
-        result.addButton(@countof(options.confirmButtonText) ? options.confirmButtonText : "OK", Dialog.BtnOk, true)
-        if @countof(options.cancelButtonText) do
-            result.addButton(options.cancelButtonText, Dialog.BtnCancel)
+        result.addButton(@countof(options.confirmButtonText) ? options.confirmButtonText : strings().dlg_Ok, Dialog.BtnOk, true)
+        if options.showCancelButton do
+            result.addButton(@countof(options.cancelButtonText) ? options.cancelButtonText : strings().dlg_Cancel, Dialog.BtnCancel)
         result.applyLayout()
         return result
     }

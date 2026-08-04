@@ -1,0 +1,59 @@
+# French strings of the GUI module. A key omitted here keeps its English value.
+
+dlg_Ok           OK
+dlg_Cancel       Annuler
+dlg_Yes          Oui
+dlg_No           Non
+dlg_Close        Fermer
+dlg_ConfirmTitle Veuillez confirmer
+dlg_ConfirmText  Voulez-vous continuer ?
+dlg_ErrorTitle   Erreur
+
+fileDlg_TitleCreateFile   Créer un fichier
+fileDlg_TitleSelectFile   Sélectionner un fichier
+fileDlg_TitleSelectFiles  Sélectionner des fichiers
+fileDlg_TitleSelectFolder Sélectionner un dossier
+fileDlg_NewFolderTitle    Nouveau dossier
+fileDlg_NewFolderField    NOM DU DOSSIER
+fileDlg_NewFolderDefault  Nouveau dossier
+fileDlg_NewFolderHint     Nom du dossier
+fileDlg_ErrFolderName     Le nom du dossier n'est pas valide.
+fileDlg_ErrFolderExists   Un dossier portant ce nom existe déjà.
+fileDlg_ErrFolderCreate   Le dossier n'a pas pu être créé.
+fileDlg_ReplaceTitle      Ce fichier existe déjà.
+fileDlg_ReplaceText       Voulez-vous le remplacer ?
+
+browser_Shortcuts    Raccourcis
+browser_Drives       Lecteurs
+browser_Desktop      Bureau
+browser_Documents    Documents
+browser_Pictures     Images
+browser_ColName      Nom
+browser_ColModified  Modifié
+browser_AllFiles     Tous les fichiers
+browser_Back         Précédent
+browser_Forward      Suivant
+browser_Up           Parent
+browser_Refresh      Actualiser
+browser_NewFolder    Nouveau dossier
+browser_TipBack      Dossier précédent (Alt+Gauche)
+browser_TipForward   Dossier suivant (Alt+Droite)
+browser_TipUp        Dossier parent (Alt+Haut)
+browser_TipRefresh   Actualiser (F5)
+browser_TipNewFolder Créer un dossier à l'emplacement courant
+browser_FolderName   Nom du dossier
+browser_FileName     Nom du fichier
+browser_Folders      Dossiers
+browser_Type         Type
+
+prop_Copy             Copier
+prop_Paste            Coller
+prop_ResetDefault     Rétablir la valeur par défaut
+prop_MoveUp           Monter
+prop_MoveDown         Descendre
+prop_Remove           Supprimer
+prop_RemoveAll        Tout supprimer
+prop_ConfirmRemove    L'élément sera supprimé
+prop_ConfirmRemoveAll Tous les éléments seront supprimés
+prop_Search           Rechercher
+prop_All              Tout

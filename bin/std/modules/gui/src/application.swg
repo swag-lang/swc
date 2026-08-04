@@ -13,6 +13,12 @@ struct Application
 
     options: ApplicationOptions     // Diagnostics and development options.
     appIcon: Pixel.Image            // Icon used for native windows created by the application.
+
+    // Named resources of the application: theme art, fonts, theme sheets, and language
+    // files. The embedded content of every loaded module registers itself as the
+    // fallback, so a bare application needs no configuration; add a disk folder before
+    // creating the first surface to let files override any of those names.
+    resources: Resources.Bundle
     readonly
     {
         #[Swag.Late]
@@ -699,6 +705,8 @@ impl Application
             if !@isset(.theme) do
                 .theme = Memory.new'Theme()
             .style.set(.theme)
+            registerDefaultThemeResources(&.resources)
+            registerDefaultStrings(&.resources)
         }
 
         try Surface.create(surface, x, y, width, height, flags, .mainSurface)
@@ -708,7 +716,7 @@ impl Application
         {
             .renderer.setCurrentContext(surface.rc)
             .renderer.init()
-            .theme.setupDefault(.renderer)
+            .theme.setupDefault(.renderer, &.resources)
             .mainSurface = surface
 
             // Spin up the shared worker pool so the parallel rasterizers (glyph MSDF
@@ -743,6 +751,60 @@ impl Application
     mtd setAppIcon(img: Pixel.Image)
     {
         .appIcon = img
+    }
+
+    // Applies the theme sheet resource `themes/<name>.tweak` and refreshes every surface.
+    //
+    // The sheet is resolved through [[resources]], so it can come from a disk folder or
+    // from embedded bytes. Values not named by the sheet keep the current theme, which
+    // makes a sheet a delta over whatever palette is already applied.
+    mtd loadTheme(name: string) fail
+    {
+        Debug.assert(@isset(.theme), "the theme exists once the first surface is created")
+
+        var resName: String = "themes/"
+        resName += name
+        resName += ".tweak"
+        try .theme.loadSheet(&.resources, resName.toString())
+        .notifyThemeChanged()
+    }
+
+    // Applies the language `tag` to every registered string table and refreshes every surface.
+    //
+    // `"en"` restores the built-in reference strings. Any other tag resets the tables to
+    // their reference values, then applies the `lang/<tag>/<file>.tweak` resource of each
+    // registered table; a table without a file for that tag keeps its reference strings.
+    // Fails when the tag has no language file for any registered table, so a mistyped tag
+    // cannot silently present itself as applied. Menus and command-driven controls pick the
+    // new strings up on their next update; text set once at construction keeps its wording
+    // until the window is created again, so a window that must follow the switch listens
+    // for the [[NotifyKind.LanguageChanged]] notification.
+    mtd setLanguage(tag: string) fail
+    {
+        try applyLanguage(&.resources, tag)
+        .notifyLanguageChanged()
+    }
+
+    // Returns the active language tag, `"en"` by default.
+    func language()->string => activeLanguage()
+
+    // Emits a language-change notification throughout every surface tree.
+    private mtd notifyLanguageChanged()
+    {
+        func updateLanguage(wnd: *Wnd)
+        {
+            wnd.invalidate()
+            for c in wnd.children do
+                updateLanguage(c)
+
+            var evt = NotifyEvent{}
+            evt.accepted = false
+            evt.kind     = .LanguageChanged
+            wnd.sendEvent(&evt)
+        }
+
+        for s in .surfaces do
+            updateLanguage(s.wnd)
     }
 
     // Recomputes styles and emits a theme-change notification throughout every surface tree.

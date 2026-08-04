@@ -168,7 +168,7 @@ public impl MessageDlg
     {
         with let dlg = create(from, message, options)
         {
-            .addButton("OK", Dialog.BtnOk, true)
+            .addButton(strings().dlg_Ok, Dialog.BtnOk, true)
         }
 
         discard dlg.doModal()
@@ -179,8 +179,8 @@ public impl MessageDlg
     {
         with let dlg = create(from, message, options)
         {
-            .addButton("OK", Dialog.BtnOk, defaultId == Dialog.BtnOk)
-            .addButton("Cancel", Dialog.BtnCancel, defaultId == Dialog.BtnCancel)
+            .addButton(strings().dlg_Ok, Dialog.BtnOk, defaultId == Dialog.BtnOk)
+            .addButton(strings().dlg_Cancel, Dialog.BtnCancel, defaultId == Dialog.BtnCancel)
         }
 
         return dlg.doModal()
@@ -200,8 +200,8 @@ public impl MessageDlg
         {
             let srf = notnull .surface
             srf.setTitle(title)
-            .addButton("Yes", Dialog.BtnYes, defaultId == Dialog.BtnYes)
-            .addButton("No", Dialog.BtnNo, defaultId == Dialog.BtnNo)
+            .addButton(strings().dlg_Yes, Dialog.BtnYes, defaultId == Dialog.BtnYes)
+            .addButton(strings().dlg_No, Dialog.BtnNo, defaultId == Dialog.BtnNo)
         }
 
         return dlg.doModal()
@@ -219,9 +219,9 @@ public impl MessageDlg
 
         with let dlg = create(from, message, opt)
         {
-            .addButton("Yes", Dialog.BtnYes, defaultId == Dialog.BtnYes)
-            .addButton("No", Dialog.BtnNo, defaultId == Dialog.BtnNo)
-            .addButton("Cancel", Dialog.BtnCancel, defaultId == Dialog.BtnCancel)
+            .addButton(strings().dlg_Yes, Dialog.BtnYes, defaultId == Dialog.BtnYes)
+            .addButton(strings().dlg_No, Dialog.BtnNo, defaultId == Dialog.BtnNo)
+            .addButton(strings().dlg_Cancel, Dialog.BtnCancel, defaultId == Dialog.BtnCancel)
         }
 
         return dlg.doModal()
@@ -234,9 +234,18 @@ public impl MessageDlg
         while !txt.isEmpty() and txt.back() == '\n' do
             txt.removeBack()
         txt += "\n\n"
-        txt += question orelse "<b>Do you want to continue?</b>"
+        if question != null
+        {
+            txt += question
+        }
+        else
+        {
+            txt += "<b>"
+            txt += strings().dlg_ConfirmText
+            txt += "</b>"
+        }
 
-        return yesNo(from, txt.toString(), "Please confirm", defaultId, options)
+        return yesNo(from, txt.toString(), strings().dlg_ConfirmTitle, defaultId, options)
     }
 
     // Message box to show a raised error. The caller captures the error ('catch f() as err') and
@@ -267,8 +276,8 @@ public impl MessageDlg
         with let dlg = create(from, txt.toString(), opt)
         {
             let srf = notnull .surface
-            srf.setTitle("Error")
-            .addButton("OK", Dialog.BtnOk, true)
+            srf.setTitle(strings().dlg_ErrorTitle)
+            .addButton(strings().dlg_Ok, Dialog.BtnOk, true)
         }
 
         discard dlg.doModal()

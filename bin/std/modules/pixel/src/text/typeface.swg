@@ -10,7 +10,7 @@ public struct TypeFace
 {
     internal
     {
-        fullname:            string     = ""            // Cache key or source filename.
+        fullname:            String                     // Cache key or source filename, owned so a dynamic key cannot dangle.
         allocationAllocator: IAllocator = undefined     // Allocator that owns this cached value.
         buffer:              Array'u8                   // Owned font bytes kept alive for the native face.
         face:                *Face      = undefined     // Borrowed TrueType face backed by `buffer`.

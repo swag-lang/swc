@@ -48,3 +48,33 @@ struct TweakBeta
     @assert(err2 != null)
     @assert(err2 is Errors.SyntaxError)
 }
+
+namespace TweakDeep
+{
+    public struct Sheet
+    {
+        width:  f32 = 1
+        height: f32 = 2
+    }
+
+    public struct Palette
+    {
+        main: s32
+    }
+}
+
+// A folder line names the struct without its namespace, and floats parse from integers.
+#test
+{
+    var sheet:   TweakDeep.Sheet
+    var palette: TweakDeep.Palette
+    var tweak:   File.TweakFile
+
+    tweak.registerFolder'TweakDeep.Sheet(&sheet)
+    tweak.registerFolder'TweakDeep.Palette(&palette)
+
+    discard expect tweak.parse("/Sheet\nwidth 44\nheight 27.5\n/Palette\nmain 3\n")
+    @assert(sheet.width == 44)
+    @assert(sheet.height == 27.5)
+    @assert(palette.main == 3)
+}

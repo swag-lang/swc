@@ -36,8 +36,8 @@ public impl EditDlg
             .setFocus()
         }
 
-        dlg.addButton("OK", Dialog.BtnOk, true)
-        dlg.addButton("Cancel", Dialog.BtnCancel)
+        dlg.addButton(strings().dlg_Ok, Dialog.BtnOk, true)
+        dlg.addButton(strings().dlg_Cancel, Dialog.BtnCancel)
         dlg.sendResizeEvent()
         return dlg
     }
@@ -69,8 +69,8 @@ public impl EditDlg
             .setFocus()
         }
 
-        dlg.addButton("OK", Dialog.BtnOk, true)
-        dlg.addButton("Cancel", Dialog.BtnCancel)
+        dlg.addButton(strings().dlg_Ok, Dialog.BtnOk, true)
+        dlg.addButton(strings().dlg_Cancel, Dialog.BtnCancel)
         dlg.sendResizeEvent()
         return dlg
     }

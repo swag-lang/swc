@@ -46,9 +46,76 @@ private struct DefaultThemeImages
 
 private var g_DefaultThemeImages: DefaultThemeImages
 
+// Nullable adapter over [[Pixel.TypeFace.create]], so a failed creation can be caught
+// with a null result instead of a non-defaultable pointer.
 private func defaultTypeFace(name: string, bytes: const [..] u8)->#null *TypeFace fail
 {
     return try TypeFace.create(name, bytes)
+}
+
+// Registers the embedded theme art and fonts as the fallback providers of `bundle`.
+//
+// The application calls this before the first surface exists, so a disk folder added
+// to the bundle can override any of these names while a bare application keeps the
+// compiled-in theme without any configuration.
+internal func registerDefaultThemeResources(bundle: *Resources.Bundle)
+{
+    bundle.addEmbedded(DefaultImageName, DefaultImage)
+    bundle.addEmbedded(DefaultIcons24Name, DefaultIcons24)
+    bundle.addEmbedded(DefaultIcons64Name, DefaultIcons64)
+    bundle.addEmbedded(DefaultSpinName, DefaultSpin)
+    bundle.addEmbedded(DefaultFontRegularName, DefaultFontRegular)
+    bundle.addEmbedded(DefaultFontBoldName, DefaultFontBold)
+    bundle.addEmbedded(DefaultFontBoldItalicName, DefaultFontBoldItalic)
+    bundle.addEmbedded(DefaultFontItalicName, DefaultFontItalic)
+    bundle.addEmbedded(DefaultFontFsRegularName, DefaultFontFsRegular)
+    bundle.addEmbedded(DefaultFontFsBoldName, DefaultFontFsBold)
+    bundle.addEmbedded(DefaultFontFsBoldItalicName, DefaultFontFsBoldItalic)
+    bundle.addEmbedded(DefaultFontFsItalicName, DefaultFontFsItalic)
+}
+
+// Uploads one theme image, honoring a disk override from the bundle.
+//
+// Without an override, the embedded art goes through the process-wide decoded cache.
+// An override that cannot be read or decoded falls back to the embedded art, so a
+// broken theme folder degrades to the default look instead of stopping the program.
+private func addThemeImage(renderer: IRenderer, res: const *Resources.Bundle, name: string, embedded: const *Image)->Texture
+{
+    if res.isOverridden(name)
+    {
+        let bytes = catch res.load(name) as loadErr
+        if loadErr == null
+        {
+            let decoded = catch Image.decode(name, bytes.toSlice()) as decodeErr
+            if decodeErr == null do
+                return renderer.addImage(decoded)
+        }
+    }
+
+    return renderer.addImage(dref embedded)
+}
+
+// Creates the typeface behind one theme font resource, honoring a disk override.
+//
+// The process-wide typeface cache is keyed by name, so an overridden font registers
+// under a disk-flavored key and never collides with the embedded face of the same
+// name. An override that cannot be read or parsed falls back to the embedded face.
+private func themeTypeFace(res: const *Resources.Bundle, name: string, embedded: const [..] u8)->#null *TypeFace fail
+{
+    if res.isOverridden(name)
+    {
+        let bytes = catch res.load(name) as loadErr
+        if loadErr == null
+        {
+            var overrideName: String = name
+            overrideName += "#override"
+            let face = catch defaultTypeFace(overrideName.toString(), bytes.toSlice()) as faceErr
+            if faceErr == null and face != null do
+                return face
+        }
+    }
+
+    return try defaultTypeFace(name, embedded)
 }
 
 private func defaultThemeImages()->*DefaultThemeImages
@@ -112,6 +179,42 @@ struct Theme
 
 impl Theme
 {
+    // Applies a theme sheet to this theme.
+    //
+    // A sheet is a tweak text with up to three folders whose keys are the reflected field
+    // names of [[ThemeColors]], [[ThemeMetrics]] and [[ThemeImageRects]]. An omitted key
+    // keeps its current value, so a sheet only describes what it changes, and `$name`
+    // copies another key of the same folder:
+    //
+    // ```
+    // /ThemeColors
+    // btnPush_Bk       0xFF202026
+    // /ThemeMetrics
+    // btnPush_Height   32
+    // /ThemeImageRects
+    // btnPush_Normal   {{1 29 27 27} 0}
+    // btnPush_Hot      $btnPush_Normal
+    // ```
+    //
+    // An unknown key or a malformed value fails with [[Core.Errors.SyntaxError]] carrying
+    // the line number; the theme keeps the values already applied before the error. Call
+    // [[Gui.Application.notifyThemeChanged]] afterwards when the theme is already on screen.
+    mtd applySheet(sheet: string) fail
+    {
+        var tf: File.TweakFile
+        tf.registerFolder'ThemeColors(&.colors)
+        tf.registerFolder'ThemeMetrics(&.metrics)
+        tf.registerFolder'ThemeImageRects(&.rects)
+        try tf.parse(sheet)
+    }
+
+    // Loads the theme sheet resource `name` from `resources` and applies it.
+    mtd loadSheet(resources: const *Resources.Bundle, name: string) fail
+    {
+        let bytes = try resources.load(name)
+        try .applySheet(cast(string) bytes.toSlice())
+    }
+
     // Applies the dark Swag palette and its shared control geometry.
     mtd setSwagDark()
     {
@@ -158,7 +261,7 @@ impl Theme
             Memory.delete(.res.spin)
     }
 
-    private mtd setupDefault(renderer: IRenderer)
+    private mtd setupDefault(renderer: IRenderer, resources: const *Resources.Bundle)
     {
         .initialized = true
         .fonts       = renderer.fontCache()
@@ -167,41 +270,42 @@ impl Theme
         let images = defaultThemeImages()
         with me.res
         {
-            .imgWidgets = renderer.addImage(images.widgets)
+            .imgWidgets = addThemeImage(renderer, resources, DefaultImageName, &images.widgets)
 
             .icons24 = Memory.new'ImageList()
-            .icons24.set(renderer.addImage(images.icons24), 24, 24)
+            .icons24.set(addThemeImage(renderer, resources, DefaultIcons24Name, &images.icons24), 24, 24)
 
             .icons64 = Memory.new'ImageList()
-            .icons64.set(renderer.addImage(images.icons64), 64, 64)
+            .icons64.set(addThemeImage(renderer, resources, DefaultIcons64Name, &images.icons64), 64, 64)
 
             .spin = Memory.new'ImageList()
-            .spin.set(renderer.addImage(images.spin), 48, 48)
+            .spin.set(addThemeImage(renderer, resources, DefaultSpinName, &images.spin), 48, 48)
         }
 
-        .setupDefaultFonts()
+        .setupDefaultFonts(resources)
     }
 
-    // Loads the embedded typefaces and builds the default font families.
+    // Loads the default typefaces and builds the default font families, resolving each
+    // font resource through `resources` so a disk folder can override the embedded ones.
     //
     // Glyph metrics are rasterized on the CPU, so this works with either painter backend.
     // Idempotent.
-    private mtd setupDefaultFonts()
+    private mtd setupDefaultFonts(resources: const *Resources.Bundle)
     {
         with me.res
         {
             if @isset(.defaultTypeFaceR) do
                 return
 
-            .defaultTypeFaceR  = notnull expect defaultTypeFace(DefaultFontRegularName, DefaultFontRegular)
-            .defaultTypeFaceB  = notnull expect defaultTypeFace(DefaultFontBoldName, DefaultFontBold)
-            .defaultTypeFaceI  = notnull expect defaultTypeFace(DefaultFontItalicName, DefaultFontItalic)
-            .defaultTypeFaceBI = notnull expect defaultTypeFace(DefaultFontBoldItalicName, DefaultFontBoldItalic)
+            .defaultTypeFaceR  = notnull expect themeTypeFace(resources, DefaultFontRegularName, DefaultFontRegular)
+            .defaultTypeFaceB  = notnull expect themeTypeFace(resources, DefaultFontBoldName, DefaultFontBold)
+            .defaultTypeFaceI  = notnull expect themeTypeFace(resources, DefaultFontItalicName, DefaultFontItalic)
+            .defaultTypeFaceBI = notnull expect themeTypeFace(resources, DefaultFontBoldItalicName, DefaultFontBoldItalic)
 
-            .defaultFsTypeFaceR  = notnull expect defaultTypeFace(DefaultFontFsRegularName, DefaultFontFsRegular)
-            .defaultFsTypeFaceB  = notnull expect defaultTypeFace(DefaultFontFsBoldName, DefaultFontFsBold)
-            .defaultFsTypeFaceI  = notnull expect defaultTypeFace(DefaultFontFsItalicName, DefaultFontFsItalic)
-            .defaultFsTypeFaceBI = notnull expect defaultTypeFace(DefaultFontFsBoldItalicName, DefaultFontFsBoldItalic)
+            .defaultFsTypeFaceR  = notnull expect themeTypeFace(resources, DefaultFontFsRegularName, DefaultFontFsRegular)
+            .defaultFsTypeFaceB  = notnull expect themeTypeFace(resources, DefaultFontFsBoldName, DefaultFontFsBold)
+            .defaultFsTypeFaceI  = notnull expect themeTypeFace(resources, DefaultFontFsItalicName, DefaultFontFsItalic)
+            .defaultFsTypeFaceBI = notnull expect themeTypeFace(resources, DefaultFontFsBoldItalicName, DefaultFontFsBoldItalic)
 
             .fontDefault.regular    = .fonts.createFont(.defaultTypeFaceR, me.metrics.defaultFontSize)
             .fontDefault.bold       = .fonts.createFont(.defaultTypeFaceB, me.metrics.defaultFontSize)

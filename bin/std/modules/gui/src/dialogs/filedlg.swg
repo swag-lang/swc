@@ -24,7 +24,7 @@ struct FileDlgState
 struct FileDlgOptions
 {
     title:             string      = ""                                            // Surface title, or empty for a mode-specific title.
-    confirmButtonText: string      = ""                                            // Confirmation button label, or empty for "OK".
+    confirmButtonText: string      = ""                                            // Confirmation button label, or empty for the localized OK.
     initialFolder:     string      = ""                                            // Initially browsed folder, when non-empty.
     initialName:       string      = ""                                            // Initial file-name editor contents.
     showLocationsPane              = true                                          // Whether to show shortcuts and drives.
@@ -62,12 +62,12 @@ private impl FileDlg
     mtd onNewFolder()
     {
         var options: FormDlgOptions
-        options.title  = "New Folder"
+        options.title  = strings().fileDlg_NewFolderTitle
         options.width  = 440
         options.height = 220
 
         let dlg  = FormDlg.create(notnull me.surface, options)
-        let edit = dlg.form.addTextField("FOLDER NAME", "New Folder", placeholder: "Folder name")
+        let edit = dlg.form.addTextField(strings().fileDlg_NewFolderField, strings().fileDlg_NewFolderDefault, placeholder: strings().fileDlg_NewFolderHint)
         dlg.form.computeLayout()
         edit.selectAll()
         edit.setFocus()
@@ -90,7 +90,7 @@ private impl FileDlg
 
             if !Path.isValidFileName(folderName)
             {
-                MessageDlg.error(notnull dlg.surface, "The folder name is not valid.")
+                MessageDlg.error(notnull dlg.surface, strings().fileDlg_ErrFolderName)
                 edit.selectAll()
                 edit.setFocus()
                 return false
@@ -99,7 +99,7 @@ private impl FileDlg
             let path = Path.combine(browser.currentFolder, folderName.toString())
             if Directory.exists(path)
             {
-                MessageDlg.error(notnull dlg.surface, "A folder with this name already exists.")
+                MessageDlg.error(notnull dlg.surface, strings().fileDlg_ErrFolderExists)
                 edit.selectAll()
                 edit.setFocus()
                 return false
@@ -113,7 +113,7 @@ private impl FileDlg
 
         if !.browser.createFolder(edit.text())
         {
-            MessageDlg.error(notnull .surface, "The folder could not be created.")
+            MessageDlg.error(notnull .surface, strings().fileDlg_ErrFolderCreate)
             return
         }
 
@@ -142,18 +142,18 @@ impl FileDlg
             {
                 switch #complete opt.mode
                 {
-                case .CreateFile:   .setTitle("Create File")
-                case .SelectFile:   .setTitle("Select File")
-                case .SelectFiles:  .setTitle("Select Files")
-                case .SelectFolder: .setTitle("Select Folder")
+                case .CreateFile:   .setTitle(strings().fileDlg_TitleCreateFile)
+                case .SelectFile:   .setTitle(strings().fileDlg_TitleSelectFile)
+                case .SelectFiles:  .setTitle(strings().fileDlg_TitleSelectFiles)
+                case .SelectFolder: .setTitle(strings().fileDlg_TitleSelectFolder)
                 }
             }
         }
 
-        dlg.addButton(@countof(opt.confirmButtonText) ? opt.confirmButtonText : "OK",
+        dlg.addButton(@countof(opt.confirmButtonText) ? opt.confirmButtonText : strings().dlg_Ok,
                       Dialog.BtnOk,
                       true)
-        dlg.addButton("Cancel", Dialog.BtnCancel)
+        dlg.addButton(strings().dlg_Cancel, Dialog.BtnCancel)
         dlg.backgroundStyle = .Window
         srf.updateFlags(remove: .CloseButton)
 
@@ -179,7 +179,7 @@ impl FileDlg
                 let selName = dlg.browser.selectedPath()
                 if dlg.options.mode == .CreateFile and File.exists(selName)
                 {
-                    let res = MessageDlg.confirm(notnull dlg.surface, "This file already exists.", "Do you want to replace it?")
+                    let res = MessageDlg.confirm(notnull dlg.surface, strings().fileDlg_ReplaceTitle, strings().fileDlg_ReplaceText)
                     return res == Dialog.BtnYes
                 }
             }

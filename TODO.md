@@ -83,25 +83,23 @@ Use this compact format. Keep observations factual and make the next step action
   repeated mount/unmount cycles in one process, then attribute retained allocations to sCrypt,
   WinFsp, or the core allocator before changing ownership or allocation policy.
 
-### Remaining DPI work: bitmap chrome assets and the in-place capture editor
+### Remaining DPI work: icon sources and the in-place capture editor
 
 - Area: bin/std
-- Found while: making `std/gui` and `Env.Window` per-monitor DPI aware (surfaces are now
-  physical-pixel windows, the window tree stays logical, and the renderer maps painter streams
-  through `Painter.contentScale`)
-- Observation: two things still resample on a scaled display. First, the theme remains a 1x
-  bitmap atlas: `widgets.png` nine-slice tiles and the 24/64-pixel icon atlases are linearly
-  upscaled at 125-175%, so atlas borders and icons are the one soft element left in an otherwise
-  crisp UI. Second, sCapture's in-place capture editor mixes desktop-physical and logical spaces
-  in its editing overlay; the grab flow, bars, and 1:1 capture display were adapted, but the
-  gizmo/form editing interactions inside the in-place overlay have not been visually verified on
-  a scaled or mixed-DPI multi-monitor setup.
-- Evidence: gui2 at 150% shows a 1551x1169 physical window (1034x779 logical, DPI 144) with
-  crisp MSDF text, device-snapped hairlines, and correct layout; only atlas-sourced chrome is
-  interpolated. sCapture compiles and the main grab path converts spaces explicitly
-  (`capturerectwnd.swg`, `screenshot.swg`, `inplaceeditwnd.swg`).
-- Next step: for the chrome, either ship a 2x `widgets.png`/icon atlas variant selected by
-  surface scale, or draw the flat Swag-theme chrome (square fills, hairline borders) vectorially
-  through the painter; the icons want SVG sources rasterized per scale. For sCapture, run a
-  capture and in-place edit session on a 150% display and on mixed-DPI monitors, and fix the
-  remaining space mismatches the session exposes.
+- Found while: making `std/gui` and `Env.Window` per-monitor DPI aware (surfaces are physical
+  windows, the window tree stays logical, the renderer maps painter streams through
+  `Painter.contentScale`, and theme tiles sample with sharp bilinear at fractional scales)
+- Observation: the 24/64-pixel icon atlases are still 1x raster sources, so at 150% an icon is a
+  sharpened upscale rather than a re-rasterization; SVG sources rendered per scale would make
+  them native. Separately, sCapture's in-place capture editor mixes desktop-physical and logical
+  spaces in its editing overlay; the grab flow, bars, and 1:1 capture display were adapted, but
+  the gizmo/form editing interactions inside the in-place overlay have not been visually
+  verified on a scaled or mixed-DPI multi-monitor setup.
+- Evidence: gui2 and the dark default theme at 150% show crisp text, hairlines, and tile
+  borders; icons remain the only upscaled raster element. sCapture compiles and the main grab
+  path converts spaces explicitly (`capturerectwnd.swg`, `screenshot.swg`,
+  `inplaceeditwnd.swg`).
+- Next step: source the theme icons as SVG (the `Pixel` SVG support can rasterize them at the
+  surface scale when the theme initializes). For sCapture, run a capture and in-place edit
+  session on a 150% display and on mixed-DPI monitors, and fix the remaining space mismatches
+  the session exposes.

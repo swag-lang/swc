@@ -455,17 +455,13 @@ impl Painter
         params.gradientSpread    = brush.gradientSpread
         params.gradientStops     = brush.gradientStops
         params.gradientStopCount = brush.gradientStopCount
+        // Pixel mode keeps its meaning at every scale: the renderers sharpen it to
+        // one device pixel of smoothing per texel edge when the content scale makes
+        // the texel-to-pixel mapping fractional.
         if brush.type == .Hatch do
             params.interpolationMode = .Pixel
         else do
             params.interpolationMode = .curState.interpolationMode
-
-        // Nearest sampling assumes texels map 1:1 to device pixels. Under a content
-        // scale the mapping is fractional, where nearest drops and doubles texels;
-        // linear is the faithful resampling there. Hatches stay nearest: they are
-        // tiling patterns whose look depends on hard texel edges.
-        if params.interpolationMode == .Pixel and .curContentScale != 1 and brush.type != .Hatch do
-            params.interpolationMode = .Linear
 
         .lastTexture0Handle = brush.texture.handle
         .lastTexture0Type   = brush.type

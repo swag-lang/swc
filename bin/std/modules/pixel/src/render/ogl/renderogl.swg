@@ -941,7 +941,14 @@ impl RenderOgl
             glUniform4fv(cast(GLint) curShader.boundRect, 1, &params.boundRect.x)
             glUniform4fv(cast(GLint) curShader.textureRect, 1, &params.textureRect.x)
             glUniform1f(cast(GLint) curShader.uvMode, cast(GLfloat) params.uvMode)
-            glUniform1f(cast(GLint) curShader.interpolationMode, cast(GLfloat) params.interpolationMode)
+
+            // At a fractional content scale, pixel sampling switches to the sharp
+            // bilinear shader path (uniform value 2): texel edges keep one device
+            // pixel of smoothing instead of dropping texels or smearing borders.
+            var interpol = cast(GLfloat) params.interpolationMode
+            if params.interpolationMode == .Pixel and .contentScale != 1 do
+                interpol = 2.0
+            glUniform1f(cast(GLint) curShader.interpolationMode, interpol)
             glUniform1i(cast(GLint) curShader.copyMode, cast(GLint) (.blendingMode == .Copy))
             glUniform1f(cast(GLint) curShader.paintType, cast(GLfloat) cast(u32) params.type)
             glActiveTexture(GL_TEXTURE0)

@@ -16,8 +16,16 @@ impl Theme
         if !subRect or subRect.rect.isEmpty() or dstRect.isEmpty() or color.a == 0 do
             return
 
+        // Theme tiles are authored in texels; under a fractional content scale true
+        // bilinear smears their one-texel borders across device pixels until they
+        // fade out. Pixel sampling, which the renderers sharpen to one device pixel
+        // of smoothing per texel edge, keeps the authored look crisp at any scale.
+        var effInterpol = interpol
+        if painter.contentScale() != 1 do
+            effInterpol = .Pixel
+
         let oldInterpol = painter.interpolationMode()
-        painter.setInterpolationMode(interpol)
+        painter.setInterpolationMode(effInterpol)
         defer painter.setInterpolationMode(oldInterpol)
 
         if subRect.corner == 0

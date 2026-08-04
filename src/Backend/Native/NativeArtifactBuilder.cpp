@@ -351,6 +351,10 @@ void NativeArtifactBuilder::queryPaths(NativeArtifactPaths& outPaths, const uint
     else
         outPaths.name = defaultArtifactName(builder_->ctx().cmdLine());
 
+    // The mode travels in the name, so the artifact, its PDB, and its object files
+    // are all distinct from the ones another mode produces from the same sources.
+    outPaths.name += artifactModeSuffix(builder_->ctx().cmdLine());
+
     const auto buildCfgWorkDir = Utf8(builder_->compiler().buildCfg().workDir);
     if (!buildCfgWorkDir.empty())
         outPaths.workDir = fs::path(buildCfgWorkDir.c_str());

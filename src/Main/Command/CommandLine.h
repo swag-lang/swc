@@ -271,6 +271,19 @@ constexpr std::string_view commandName(const CommandKind command)
     SWC_UNREACHABLE();
 }
 
+// Suffix carried by every file a build emits, so two commands that turn the same
+// sources into different programs can never share one.
+//
+// A test build is not the same program as a normal build of the same module: it
+// compiles `#test` bodies in, answers `#command` with `Test` so the source can
+// select different constants, and forces debug info and exceptions on. Without a
+// distinct name the two overwrite each other's executable, PDB, and object files,
+// and `run` happily launches whichever was built last.
+inline std::string_view artifactModeSuffix(const CommandLine& cmdLine)
+{
+    return cmdLine.sourceDrivenTest ? ".test" : "";
+}
+
 inline std::vector<Utf8> effectiveGeneratedArtifactRunArgs(const CommandLine& cmdLine)
 {
     std::vector<Utf8> result = cmdLine.runArgs;

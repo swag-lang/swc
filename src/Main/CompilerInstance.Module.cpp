@@ -747,9 +747,16 @@ namespace
         std::vector<fs::path> artifacts;
     };
 
-    fs::path workspaceArtifactManifestPath(const fs::path& outDir)
+    // Each build mode keeps its own manifest, so alternating `test` and `run` does
+    // not make each one look stale to the other and force a rebuild every time.
+    fs::path workspaceArtifactManifestPath(const fs::path& outDir, const CommandLine& cmdLine)
     {
-        return (outDir / fs::path(std::string(K_WORKSPACE_ARTIFACT_MANIFEST_FILE))).lexically_normal();
+        return (outDir / std::format("{}{}", K_WORKSPACE_ARTIFACT_MANIFEST_FILE, artifactModeSuffix(cmdLine))).lexically_normal();
+    }
+
+    bool workspacePathIsArtifactManifest(const fs::path& path)
+    {
+        return path.filename().string().starts_with(K_WORKSPACE_ARTIFACT_MANIFEST_FILE);
     }
 
     void normalizeWorkspacePaths(std::vector<fs::path>& paths)
@@ -837,7 +844,6 @@ namespace
         if (outDir.empty())
             return;
 
-        const fs::path  manifestPath = workspaceArtifactManifestPath(outDir);
         std::error_code ec;
         for (fs::recursive_directory_iterator it(outDir, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
         {
@@ -849,7 +855,10 @@ namespace
                 continue;
 
             const fs::path normalizedPath = FileSystem::normalizePath(it->path());
-            if (FileSystem::pathEquals(normalizedPath, manifestPath))
+
+            // Skip every mode's manifest, not just this one: a manifest that listed
+            // another manifest would go stale the moment that mode was rebuilt.
+            if (workspacePathIsArtifactManifest(normalizedPath))
                 continue;
 
             fs::path relativePath = normalizedPath.lexically_relative(outDir);
@@ -898,7 +907,7 @@ namespace
                 continue;
             }
 
-            if (line == "version=1")
+            if (line == "version=2")
             {
                 if (end == content.size())
                     break;
@@ -947,7 +956,7 @@ namespace
 
     Result writeWorkspaceArtifactManifest(TaskContext& ctx, const WorkspaceArtifactManifest& manifest, const fs::path& manifestPath)
     {
-        Utf8 content = "version=1\n[inputs]\n";
+        Utf8 content = "version=2\n[inputs]\n";
         for (const fs::path& path : manifest.inputs)
         {
             content += Utf8(path);
@@ -978,7 +987,7 @@ namespace
         return Result::Error;
     }
 
-    bool workspaceArtifactsAreUpToDate(const WorkspaceArtifactManifest& manifest, const fs::path& outDir, const fs::path& compilerPath, const std::span<const fs::path> currentInputs, const std::span<const fs::path> currentDependencyDirs, const std::span<const fs::path> requiredArtifacts)
+    bool workspaceArtifactsAreUpToDate(const WorkspaceArtifactManifest& manifest, const fs::path& outDir, const fs::path& manifestPath, const fs::path& compilerPath, const std::span<const fs::path> currentInputs, const std::span<const fs::path> currentDependencyDirs, const std::span<const fs::path> requiredArtifacts)
     {
         if (!workspacePathListContainsAll(manifest.inputs, currentInputs))
             return false;
@@ -1052,12 +1061,11 @@ namespace
         // The manifest is rewritten at the end of every successful build, so its write time
         // reliably reflects when this module was last produced by the compiler.
         fs::file_time_type buildTime{};
-        const fs::path     manifestPath = workspaceArtifactManifestPath(outDir);
         if (!tryGetWorkspacePathWriteTime(buildTime, manifestPath))
             return false;
 
-        // Test builds can replace a native artifact without replacing the reusable build
-        // manifest. An artifact written after that manifest belongs to another build variant.
+        // Backstop for an artifact replaced behind the compiler's back. Build modes no
+        // longer share an artifact name, so this no longer covers test-versus-run.
         for (const fs::path& artifactPath : requiredArtifacts)
         {
             fs::file_time_type artifactTime;
@@ -1986,9 +1994,9 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
             return Result::Error;
 
         WorkspaceArtifactManifest manifest;
-        const fs::path            manifestPath = workspaceArtifactManifestPath(moduleCmdLine.outDir);
+        const fs::path            manifestPath = workspaceArtifactManifestPath(moduleCmdLine.outDir, moduleCmdLine);
         if (readWorkspaceArtifactManifest(manifest, manifestPath) &&
-            workspaceArtifactsAreUpToDate(manifest, moduleCmdLine.outDir, exeFullName_, currentInputs, currentDependencyDirs, requiredArtifacts))
+            workspaceArtifactsAreUpToDate(manifest, moduleCmdLine.outDir, manifestPath, exeFullName_, currentInputs, currentDependencyDirs, requiredArtifacts))
         {
             ScopedTimedLog moduleStage(probeCtx, ScopedTimedLog::Stage::Module);
             if (moduleCmdLine.publish && probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable)
@@ -2055,7 +2063,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
                 if (collectWorkspaceModuleDependencyDirs(manifest.dependencyDirs, *moduleCompiler, moduleCtx, moduleBuild.setup.imports) != Result::Continue)
                     return Result::Error;
                 collectWorkspaceOutputArtifacts(manifest.artifacts, moduleCmdLine.outDir);
-                if (writeWorkspaceArtifactManifest(moduleCtx, manifest, workspaceArtifactManifestPath(moduleCmdLine.outDir)) != Result::Continue)
+                if (writeWorkspaceArtifactManifest(moduleCtx, manifest, workspaceArtifactManifestPath(moduleCmdLine.outDir, moduleCmdLine)) != Result::Continue)
                     return Result::Error;
             }
 
@@ -2067,7 +2075,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
         auto link           = std::make_unique<WorkspaceModuleLink>();
         link->moduleName    = moduleBuild.name;
         link->outDir        = moduleCmdLine.outDir;
-        link->manifestPath  = workspaceArtifactManifestPath(moduleCmdLine.outDir);
+        link->manifestPath  = workspaceArtifactManifestPath(moduleCmdLine.outDir, moduleCmdLine);
         link->writeManifest = moduleCmdLine.command != CommandKind::Test && moduleCmdLine.command != CommandKind::Doc;
         if (link->writeManifest)
         {

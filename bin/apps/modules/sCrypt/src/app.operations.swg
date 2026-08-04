@@ -53,16 +53,13 @@ internal impl MainWindow
         if parseError != null or parsed.ovf or parsed.eat != @countof(text) or !parsed.value do
             failWith("The container size is invalid.", .InvalidInput)
 
-        let multiplier = .createUnit.selectedIndex == 0 ?
-                         1024'u64 * 1024 : 1024'u64 * 1024 * 1024
+        let multiplier = .createUnit.selectedIndex == 0 ? 1024'u64 * 1024 : 1024'u64 * 1024 * 1024
         if parsed.value > Swag.U64.Max / multiplier do
             failWith("The container size is too large.", .InvalidInput)
 
         let result = parsed.value * multiplier
         if result < MinimumSize do
-            failWith(Format.toString("The minimum container size is % MiB.",
-                                     (MinimumSize + 1024 * 1024 - 1) / (1024 * 1024)),
-                     .InvalidInput)
+            failWith(Format.toString("The minimum container size is % MiB.", (MinimumSize + 1024 * 1024 - 1) / (1024 * 1024)), .InvalidInput)
         return result
     }
 
@@ -230,15 +227,13 @@ internal impl MainWindow
             }
             else
             {
-                .status.setText(Format.toString("Encrypted drive mounted on %. It will unmount when sCrypt closes.",
-                                                .operationMount))
+                .status.setText(Format.toString("Encrypted drive mounted on %. It will unmount when sCrypt closes.", .operationMount))
                 .setState(.Mounted)
             }
 
         case .Unmount:
             if .operationError != null do
-                .showError("The drive was unmounted, but final synchronization stopped.",
-                           .operationError)
+                .showError("The drive was unmounted, but final synchronization stopped.", .operationError)
             .status.setText("Drive unmounted safely.")
             .setState(.Ready)
         }

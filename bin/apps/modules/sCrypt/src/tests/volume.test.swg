@@ -21,8 +21,7 @@ func emptyBytes()->const [..] u8
 func testContainerPath(tag: string)->String
 {
     let temp = Env.getSpecialDirectory(.Temp)
-    return Path.combine(temp.toString(),
-                        Format.toString("scrypt_%_%.bin", tag, Guid64.random()))
+    return Path.combine(temp.toString(), Format.toString("scrypt_%_%.bin", tag, Guid64.random()))
 }
 
 func sameTestBytes(left, right: const [..] u8)->bool
@@ -68,8 +67,7 @@ func flipHeaderByte(path: string, slot: u64)
 {
     var file = expect File.open(path, .Open, .ReadWrite, .Read)
     defer file.close()
-    let offset = Crypto.SaltSize + slot * HeaderSlotSize +
-                 HeaderRecordPrefixSize
+    let offset = Crypto.SaltSize + slot * HeaderSlotSize + HeaderRecordPrefixSize
     var byte: [1] u8
     @assert(expect file.readExactAt(offset, byte))
     byte[0] ^= 0x5A
@@ -82,17 +80,14 @@ func writeLegacyHeader(volume: *Volume)
     let sequence = volume.sequence + 1
     let slot     = 1'u32 - volume.activeSlot
     var plain    = expect volume.serialize(sequence)
-    Crypto.store32(notnull plain.buffer + #sizeof(HeaderMagic),
-                   LegacyFormatVersion)
+    Crypto.store32(notnull plain.buffer + #sizeof(HeaderMagic), LegacyFormatVersion)
     plain.resize(LegacyHeaderPlainSize)
 
     var record: Array'u8
     record.resize(HeaderSlotSize)
     let nonce      = record[0 until Crypto.NonceSize]
-    let ciphertext = record[Crypto.NonceSize until
-                            Crypto.NonceSize + LegacyHeaderPlainSize]
-    let tag = record[Crypto.NonceSize + LegacyHeaderPlainSize until
-                     HeaderSlotSize]
+    let ciphertext = record[Crypto.NonceSize until Crypto.NonceSize + LegacyHeaderPlainSize]
+    let tag        = record[Crypto.NonceSize + LegacyHeaderPlainSize until HeaderSlotSize]
     expect Crypto.seal(&volume.keys, HeaderKind, slot, plain.toSlice(), nonce, ciphertext, tag)
     expect volume.file.writeAllAt(Crypto.SaltSize + slot * HeaderSlotSize, record.toSlice())
     expect volume.file.flush()
@@ -111,8 +106,7 @@ func writeLegacyHeader(volume: *Volume)
     var storedLocator: [Crypto.RecordLocatorSize] u8
     @assert(expect volume.file.readExactAt(Crypto.SaltSize + volume.activeSlot * HeaderSlotSize, storedLocator))
     var expectedLocator = Crypto.recordLocator(volume.keys.authentication, HeaderLocatorKind, volume.activeSlot)
-    @assert(Core.Crypto.constantTimeEqual(storedLocator[until HeaderLocatorCheckSize],
-                                          expectedLocator[until HeaderLocatorCheckSize]))
+    @assert(Core.Crypto.constantTimeEqual(storedLocator[until HeaderLocatorCheckSize], expectedLocator[until HeaderLocatorCheckSize]))
     let encodedSize     = Crypto.load32(&storedLocator[HeaderLocatorCheckSize])
     let locatorMask     = Crypto.load32(&expectedLocator[HeaderLocatorCheckSize])
     let storedPlainSize = encodedSize ^ locatorMask

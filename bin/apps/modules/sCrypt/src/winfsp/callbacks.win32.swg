@@ -19,8 +19,7 @@ namespace WinFsp
         eaSize:         u32
     }
 
-    alias EmitDirFn = func(emitContext: #null *void, name: #null const [*] u8,
-                           info: const *FileInfo)->u8
+    alias EmitDirFn = func(emitContext: #null *void, name: #null const [*] u8, info: const *FileInfo)->u8
 
     func cString(value: #null const [*] u8)->string
     {
@@ -156,9 +155,7 @@ namespace WinFsp
             node.lastWriteTime = now
         if (flags & CleanupSetChangeTime) != 0 do
             node.changeTime = now
-        if (flags & (CleanupSetAllocationSize | CleanupSetArchiveBit |
-                     CleanupSetLastAccessTime | CleanupSetLastWriteTime |
-                     CleanupSetChangeTime)) != 0
+        if (flags & (CleanupSetAllocationSize | CleanupSetArchiveBit | CleanupSetLastAccessTime | CleanupSetLastWriteTime | CleanupSetChangeTime)) != 0
         {
             volume.dirty = true
             discard catch volume.commit()
@@ -226,9 +223,7 @@ namespace WinFsp
 
         let count = catch volume.writeNode(nodeId, offset, @mkslice(cast(const [*] u8) notnull buffer, length), writeToEnd != 0, constrained != 0) as err
         if err != null do
-            return statusFromError(err,
-                                   volume.freeBlockCount() ?
-                                   StatusIoDeviceError : StatusDiskFull)
+            return statusFromError(err, volume.freeBlockCount() ? StatusIoDeviceError : StatusDiskFull)
         dref transferred = count
         return fillInfo(volume, nodeId, info)
     }
@@ -354,9 +349,7 @@ namespace WinFsp
 
     func sameName(left: string, right: string)->bool
     {
-        return Utf8.compare(@mkslice(@dataof(left), @countof(left)),
-                            @mkslice(@dataof(right), @countof(right)),
-                            .UnicodeNoCase) == 0
+        return Utf8.compare(@mkslice(@dataof(left), @countof(left)), @mkslice(@dataof(right), @countof(right)), .UnicodeNoCase) == 0
     }
 
     func callbackReadDirectory(context: #null *void, nodeId: u64, marker: #null const [*] u8, emit: EmitDirFn, emitContext: #null *void, complete: *u8)->s32

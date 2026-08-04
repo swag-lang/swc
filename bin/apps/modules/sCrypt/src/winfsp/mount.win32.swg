@@ -55,8 +55,7 @@ namespace WinFsp
             params.volumeSerialNumber = volumeSerialNumber(params.volumeCreationTime)
             traceWinFspStage("volume identity initialized")
             params.fileInfoTimeout = 1000
-            params.flags           = (1'u32 << 1) | (1'u32 << 2) | (1'u32 << 3) |
-                           (1'u32 << 10) | (1'u32 << 13)
+            params.flags           = (1'u32 << 1) | (1'u32 << 2) | (1'u32 << 3) | (1'u32 << 10) | (1'u32 << 13)
             traceWinFspStage("volume flags initialized")
             let fileSystemName = Utf16.toZeroTerminated("sCrypt")
             traceWinFspStage("copying filesystem name")
@@ -67,8 +66,7 @@ namespace WinFsp
             let fsCreate   = g_WinFsp.fsCreate
             traceWinFspStage("calling FspFileSystemCreate")
             let createStatus = fsCreate(@dataof(deviceName), &params, &g_FspInterface, &.fileSystem)
-            traceWinFspStage(Format.toString("FspFileSystemCreate returned %{X}",
-                                             cast(u32) createStatus))
+            traceWinFspStage(Format.toString("FspFileSystemCreate returned %{X}", cast(u32) createStatus))
             if createStatus != StatusSuccess
             {
                 .stop()
@@ -81,22 +79,18 @@ namespace WinFsp
             let mountPoint16 = Utf16.toZeroTerminated(mountPoint)
             traceWinFspStage("calling FspFileSystemSetMountPoint")
             var status = (g_WinFsp.setMountPoint)(fileSystem, @dataof(mountPoint16))
-            traceWinFspStage(Format.toString("FspFileSystemSetMountPoint returned %{X}",
-                                             cast(u32) status))
+            traceWinFspStage(Format.toString("FspFileSystemSetMountPoint returned %{X}", cast(u32) status))
             if status == StatusSuccess
             {
                 traceWinFspStage("calling FspFileSystemStartDispatcher")
                 status = (g_WinFsp.startDispatcher)(fileSystem, 0)
-                traceWinFspStage(Format.toString("FspFileSystemStartDispatcher returned %{X}",
-                                                 cast(u32) status))
+                traceWinFspStage(Format.toString("FspFileSystemStartDispatcher returned %{X}", cast(u32) status))
             }
 
             if status != StatusSuccess
             {
                 .stop()
-                failWith(Format.toString("WinFsp could not mount drive % (NTSTATUS %{X}).",
-                                         mountPoint,
-                                         cast(u32) status))
+                failWith(Format.toString("WinFsp could not mount drive % (NTSTATUS %{X}).", mountPoint, cast(u32) status))
             }
 
             traceWinFspStage("WinFspMount initialized in place")

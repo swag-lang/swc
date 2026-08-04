@@ -65,11 +65,7 @@ namespace WinFsp
     func fspGetVolumeInfo(fileSystem: *FspFileSystem, info: *FspVolumeInfo)->s32
     {
         var label: [128] u8
-        let status = callbackGetVolumeInfo(mountedVolume(fileSystem),
-                                           &info.totalSize,
-                                           &info.freeSize,
-                                           @dataof(label),
-                                           cast(u32) @countof(label))
+        let status = callbackGetVolumeInfo(mountedVolume(fileSystem), &info.totalSize, &info.freeSize, @dataof(label), cast(u32) @countof(label))
         if status != StatusSuccess do
             return status
 
@@ -242,10 +238,7 @@ namespace WinFsp
     {
         let value  = stringFromWide(name)
         var info: FileInfo
-        let status = callbackGetDirInfoByName(mountedVolume(fileSystem),
-                                              idFromContext(fileContext),
-                                              value.buffer,
-                                              &info)
+        let status = callbackGetDirInfoByName(mountedVolume(fileSystem), idFromContext(fileContext), value.buffer, &info)
         if status != StatusSuccess do
             return status
 

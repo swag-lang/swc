@@ -41,12 +41,9 @@ func sameCryptoBytes(left, right: const [..] u8)->bool
     @assert(!(expect Crypto.open(&keys, 7, 12, nonce, cipher, tag, opened)))
 
     let locator = Crypto.recordLocator(keys.authentication, 3, 0)
-    @assert(sameCryptoBytes(locator,
-                            Crypto.recordLocator(keys.authentication, 3, 0)))
-    @assert(!sameCryptoBytes(locator,
-                             Crypto.recordLocator(keys.authentication, 3, 1)))
-    @assert(!sameCryptoBytes(locator,
-                             Crypto.recordLocator(keys.authentication, 4, 0)))
+    @assert(sameCryptoBytes(locator, Crypto.recordLocator(keys.authentication, 3, 0)))
+    @assert(!sameCryptoBytes(locator, Crypto.recordLocator(keys.authentication, 3, 1)))
+    @assert(!sameCryptoBytes(locator, Crypto.recordLocator(keys.authentication, 4, 0)))
 
     var shortNonce: [Crypto.NonceSize - 1] u8
     @assert(!(expect Crypto.open(&keys, 7, 11, shortNonce, cipher, tag, opened)))

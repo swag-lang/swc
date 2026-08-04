@@ -29,8 +29,7 @@ namespace Integration
         if @countof(args) < 3 do
             return 2
         let payload = "VISIBLE"
-        discard catch File.writeAllBytes(args[2],
-                                         @mkslice(cast(const [*] u8) @dataof(payload), @countof(payload))) as writeError
+        discard catch File.writeAllBytes(args[2], @mkslice(cast(const [*] u8) @dataof(payload), @countof(payload))) as writeError
         return writeError == null ? 0 : 1
     }
 
@@ -49,8 +48,7 @@ namespace Integration
 
     func wrongPassword()->const [..] u8
     {
-        return @mkslice(cast(const [*] u8) @dataof(WrongPasswordText),
-                        @countof(WrongPasswordText))
+        return @mkslice(cast(const [*] u8) @dataof(WrongPasswordText), @countof(WrongPasswordText))
     }
 
     func verify(condition: bool, message: string) fail
@@ -101,19 +99,14 @@ namespace Integration
         let existing16    = Utf16.toZeroTerminated(existing)
         let replacement16 = Utf16.toZeroTerminated(replacement)
         if !MoveFileExW(@dataof(existing16), @dataof(replacement16), replace ? MoveReplaceExisting : 0) do
-            failWith(Format.toString("Windows error %: cannot rename [[%]] to [[%]].",
-                                     GetLastError(),
-                                     existing,
-                                     replacement))
+            failWith(Format.toString("Windows error %: cannot rename [[%]] to [[%]].", GetLastError(), existing, replacement))
     }
 
     func setAttributes(path: string, attributes: u32) fail
     {
         let path16 = Utf16.toZeroTerminated(path)
         if !SetFileAttributesW(@dataof(path16), attributes) do
-            failWith(Format.toString("Windows error %: cannot set attributes on [[%]].",
-                                     GetLastError(),
-                                     path))
+            failWith(Format.toString("Windows error %: cannot set attributes on [[%]].", GetLastError(), path))
     }
 
     func attributes(path: string)->u32
@@ -126,9 +119,7 @@ namespace Integration
     {
         let path16 = Utf16.toZeroTerminated(path)
         if !WinFsp.RemoveDirectoryW(@dataof(path16)) do
-            failWith(Format.toString("Windows error %: cannot remove directory [[%]].",
-                                     GetLastError(),
-                                     path))
+            failWith(Format.toString("Windows error %: cannot remove directory [[%]].", GetLastError(), path))
     }
 
     func containsEntry(entries: const [..] File.FileInfo, name: string)->bool
@@ -174,8 +165,7 @@ namespace Integration
             let temp = Env.getSpecialDirectory(.Temp)
             if temp.isEmpty() do
                 failWith("Windows did not provide a temporary directory for the sandbox.")
-            result.root = Path.combine(temp,
-                                       Format.toString("sCrypt-Integration-%", Guid64.random()))
+            result.root = Path.combine(temp, Format.toString("sCrypt-Integration-%", Guid64.random()))
             Directory.create(result.root)
             result.container  = Path.combine(result.root, "integration.scrypt")
             result.source     = Path.combine(result.root, "external-source.bin")
@@ -234,8 +224,7 @@ namespace Integration
                 try .unmountVolume()
             WinFsp.removeRuntimeTree(.root)
             if Directory.exists(.root) do
-                failWith(Format.toString("The integration sandbox could not be removed: %",
-                                         .root))
+                failWith(Format.toString("The integration sandbox could not be removed: %", .root))
             .root.clear()
         }
 
@@ -258,8 +247,7 @@ namespace Integration
         trace("FS: create nested directories")
         Directory.create(documents)
         Directory.create(nested)
-        try verify(Directory.exists(documents) and Directory.exists(nested),
-                   "nested directories must be creatable")
+        try verify(Directory.exists(documents) and Directory.exists(nested), "nested directories must be creatable")
 
         let persistent = Path.combine(nested, "external-copy.bin")
         trace("FS: external copy round trip")
@@ -267,21 +255,17 @@ namespace Integration
         try verify(File.exists(persistent), "an external file must copy into the mounted drive")
         File.duplicate(box.recovered, persistent)
         let firstRecovery = try File.readAllBytes(box.recovered)
-        try verify(sameBytes(original, firstRecovery.toSlice()),
-                   "a copied file must survive a round trip through the mounted drive")
+        try verify(sameBytes(original, firstRecovery.toSlice()), "a copied file must survive a round trip through the mounted drive")
 
         let empty = Path.combine(documents, "empty.txt")
         trace("FS: empty file")
-        discard File.writeAllBytes(empty,
-                                   @mkslice(cast(const [*] u8) @dataof(""), 0))
-        try verify(File.exists(empty) and (try File.openRead(empty)).size() == 0,
-                   "zero-length files must be supported")
+        discard File.writeAllBytes(empty, @mkslice(cast(const [*] u8) @dataof(""), 0))
+        try verify(File.exists(empty) and (try File.openRead(empty)).size() == 0, "zero-length files must be supported")
 
         let unicode = Path.combine(documents, "résumé-東京.txt")
         trace("FS: Unicode file")
         let unicodePayload = "UTF-8 names are preserved"
-        discard File.writeAllBytes(unicode,
-                                   @mkslice(cast(const [*] u8) @dataof(unicodePayload), @countof(unicodePayload)))
+        discard File.writeAllBytes(unicode, @mkslice(cast(const [*] u8) @dataof(unicodePayload), @countof(unicodePayload)))
         let unicodeRead = try File.readAllText(unicode)
         try verify(unicodeRead == unicodePayload, "Unicode file names and text must round-trip")
 
@@ -292,8 +276,7 @@ namespace Integration
         discard File.writeAllBytes(overwrite, first)
         discard File.writeAllBytes(overwrite, second)
         let overwritten = try File.readAllBytes(overwrite)
-        try verify(sameBytes(overwritten.toSlice(), second),
-                   "overwriting must truncate and replace an existing file")
+        try verify(sameBytes(overwritten.toSlice(), second), "overwriting must truncate and replace an existing file")
 
         var appendStream     = try File.open(overwrite, .Append, .Write, .Zero)
         let appended: [4] u8 = [6, 5, 4, 3]
@@ -301,8 +284,7 @@ namespace Integration
         appendStream.close()
         let afterAppend            = try File.readAllBytes(overwrite)
         let expectedAppend: [7] u8 = [9, 8, 7, 6, 5, 4, 3]
-        try verify(sameBytes(afterAppend.toSlice(), expectedAppend),
-                   "append mode must add data at end of file")
+        try verify(sameBytes(afterAppend.toSlice(), expectedAppend), "append mode must add data at end of file")
 
         let sparse = Path.combine(documents, "sparse.bin")
         trace("FS: sparse file")
@@ -312,26 +294,19 @@ namespace Integration
         discard try sparseStream.write(&marker[0], #sizeof(marker))
         sparseStream.close()
         let sparseData = try File.readAllBytes(sparse)
-        try verify(sparseData.count == 128 * 1024 + 17 + #sizeof(marker),
-                   "a sparse write must extend the file to the requested offset")
-        try verify(allZero(@mkslice(sparseData.buffer, 128 * 1024 + 17)),
-                   "sparse holes must read back as zero")
-        try verify(@memcmp(sparseData.buffer + 128 * 1024 + 17,
-                           &marker[0],
-                           #sizeof(marker)) == 0,
-                   "the sparse tail must retain its data")
+        try verify(sparseData.count == 128 * 1024 + 17 + #sizeof(marker), "a sparse write must extend the file to the requested offset")
+        try verify(allZero(@mkslice(sparseData.buffer, 128 * 1024 + 17)), "sparse holes must read back as zero")
+        try verify(@memcmp(sparseData.buffer + 128 * 1024 + 17, &marker[0], #sizeof(marker)) == 0, "the sparse tail must retain its data")
 
         let renamed = Path.combine(documents, "renamed.bin")
         trace("FS: file and directory rename")
         movePath(overwrite, renamed)
-        try verify(!File.exists(overwrite) and File.exists(renamed),
-                   "files must be renameable")
+        try verify(!File.exists(overwrite) and File.exists(renamed), "files must be renameable")
 
         let renamedNested = Path.combine(documents, "Renamed-Nested")
         movePath(nested, renamedNested)
         let movedPersistent = Path.combine(renamedNested, "external-copy.bin")
-        try verify(!Directory.exists(nested) and File.exists(movedPersistent),
-                   "directories with children must be renameable")
+        try verify(!Directory.exists(nested) and File.exists(movedPersistent), "directories with children must be renameable")
 
         let replacementSource = Path.combine(documents, "replacement-source.bin")
         trace("FS: rename with replacement")
@@ -341,22 +316,18 @@ namespace Integration
         discard File.writeAllBytes(replacementTarget, first)
         movePath(replacementSource, replacementTarget, true)
         let replacementRead = try File.readAllBytes(replacementTarget)
-        try verify(!File.exists(replacementSource) and
-                   sameBytes(replacementRead.toSlice(), replacementBytes),
-                   "rename with replacement must atomically replace the destination")
+        try verify(!File.exists(replacementSource) and sameBytes(replacementRead.toSlice(), replacementBytes), "rename with replacement must atomically replace the destination")
 
         let readOnlyPath = Path.combine(documents, "readonly.bin")
         trace("FS: read-only attributes")
         discard File.writeAllBytes(readOnlyPath, first)
         try setAttributes(readOnlyPath, FileAttributeReadOnly)
-        try verify((attributes(readOnlyPath) & FileAttributeReadOnly) != 0,
-                   "read-only attributes must be reported")
+        try verify((attributes(readOnlyPath) & FileAttributeReadOnly) != 0, "read-only attributes must be reported")
         discard catch File.writeAllBytes(readOnlyPath, second) as readonlyError
         try verify(readonlyError != null, "writes to read-only files must be rejected")
         try setAttributes(readOnlyPath, FileAttributeNormal)
         discard File.writeAllBytes(readOnlyPath, second)
-        try verify(sameBytes((try File.readAllBytes(readOnlyPath)).toSlice(), second),
-                   "clearing read-only must allow writes again")
+        try verify(sameBytes((try File.readAllBytes(readOnlyPath)).toSlice(), second), "clearing read-only must allow writes again")
 
         let disposable = Path.combine(documents, "disposable.txt")
         trace("FS: file and directory deletion")
@@ -380,64 +351,57 @@ namespace Integration
             discard File.writeAllBytes(name, bytes)
         }
 
-        let entries = try Directory.enumerateFiles(bulk)
-        try verify(entries.count == 24 and containsEntry(entries.toSlice(), "item-0.bin") and containsEntry(entries.toSlice(), "item-23.bin"),
-                   "directory scans must return every created file")
+        let entries     = try Directory.enumerateFiles(bulk)
+        let scannedBulk = entries.count == 24 and
+                          containsEntry(entries.toSlice(), "item-0.bin") and
+                          containsEntry(entries.toSlice(), "item-23.bin")
+        try verify(scannedBulk, "directory scans must return every created file")
 
         let documentsEntries = try Directory.enumerate(documents, {})
-        try verify(containsEntry(documentsEntries.toSlice(), "Renamed-Nested") and
-                   containsEntry(documentsEntries.toSlice(), "résumé-東京.txt") and
-                   containsEntry(documentsEntries.toSlice(), "Bulk"),
-                   "mixed file and directory scans must preserve names")
+        let scannedDocuments = containsEntry(documentsEntries.toSlice(), "Renamed-Nested") and
+                               containsEntry(documentsEntries.toSlice(), "résumé-東京.txt") and
+                               containsEntry(documentsEntries.toSlice(), "Bulk")
+        try verify(scannedDocuments, "mixed file and directory scans must preserve names")
     }
 
     func runPersistenceScenarios(box: *Sandbox, original: const [..] u8) fail
     {
         try box.unmountVolume()
-        try verify(!Directory.exists(driveRoot(box.mountPoint)),
-                   "the drive letter must disappear after unmount")
+        try verify(!Directory.exists(driveRoot(box.mountPoint)), "the drive letter must disappear after unmount")
 
         var rejected: WinFsp.MountedVolume
         discard catch rejected.open(box.container, wrongPassword(), box.mountPoint) as passwordError
         rejected.close()
         try verify(passwordError != null, "a wrong password must not mount the container")
-        try verify(!Directory.exists(driveRoot(box.mountPoint)),
-                   "a rejected password must not leave a drive mounted")
+        try verify(!Directory.exists(driveRoot(box.mountPoint)), "a rejected password must not leave a drive mounted")
 
         try box.mountVolume(password())
-        try verify(Directory.exists(driveRoot(box.mountPoint)),
-                   "the same container must remount on the same free letter")
+        try verify(Directory.exists(driveRoot(box.mountPoint)), "the same container must remount on the same free letter")
 
         let root           = driveRoot(box.mountPoint)
         let persisted      = Path.combine(root, "Documents", "Renamed-Nested", "external-copy.bin")
         let recoveredAgain = Path.combine(box.root, "recovered-after-remount.bin")
         File.duplicate(recoveredAgain, persisted)
         let bytes = try File.readAllBytes(recoveredAgain)
-        try verify(sameBytes(original, bytes.toSlice()),
-                   "file contents must persist across unmount and remount")
+        try verify(sameBytes(original, bytes.toSlice()), "file contents must persist across unmount and remount")
 
         let bulk    = Path.combine(root, "Documents", "Bulk")
         let entries = try Directory.enumerateFiles(bulk)
-        try verify(entries.count == 24 and containsEntry(entries.toSlice(), "item-12.bin"),
-                   "directory metadata must persist across remount")
+        try verify(entries.count == 24 and containsEntry(entries.toSlice(), "item-12.bin"), "directory metadata must persist across remount")
 
         let newAfterRemount = Path.combine(root, "created-after-remount.txt")
         let text            = "mounted twice"
-        discard File.writeAllBytes(newAfterRemount,
-                                   @mkslice(cast(const [*] u8) @dataof(text), @countof(text)))
-        try verify((try File.readAllText(newAfterRemount)) == text,
-                   "the remounted drive must remain writable")
+        discard File.writeAllBytes(newAfterRemount, @mkslice(cast(const [*] u8) @dataof(text), @countof(text)))
+        try verify((try File.readAllText(newAfterRemount)) == text, "the remounted drive must remain writable")
 
         try box.unmountVolume()
-        try verify(!Directory.exists(driveRoot(box.mountPoint)),
-                   "the final unmount must release the drive letter")
+        try verify(!Directory.exists(driveRoot(box.mountPoint)), "the final unmount must release the drive letter")
     }
 
     func runInSandbox(box: *Sandbox)->u32 fail
     {
         g_CheckCount = 0
-        try verify(!WinFsp.isElevated(),
-                   "the filesystem host must use the normal Explorer security context")
+        try verify(!WinFsp.isElevated(), "the filesystem host must use the normal Explorer security context")
         Console.println("sCrypt integration sandbox: ", box.root)
         Console.println("Using temporary drive: ", box.mountPoint)
         trace(Format.toString("SANDBOX: %", box.root))
@@ -461,8 +425,7 @@ namespace Integration
         trace("STAGE: first mount")
         try box.mountVolume(password())
         trace("STAGE: first mount complete")
-        try verify(Directory.exists(driveRoot(box.mountPoint)),
-                   "the mounted drive must be visible to Windows")
+        try verify(Directory.exists(driveRoot(box.mountPoint)), "the mounted drive must be visible to Windows")
         let mountedRoot      = driveRoot(box.mountPoint)
         let visibilityMarker = Path.combine(mountedRoot, "external-process-visible.txt")
 
@@ -472,9 +435,7 @@ namespace Integration
         let probeArguments = Format.toString("% \"%\"", VisibilityProbeArgument, visibilityMarker)
         let executablePath = try Env.Process.currentExecutablePath()
         try Env.doSyncProcess(executablePath, probeArguments)
-        try verify(File.exists(visibilityMarker) and
-                   (try File.readAllText(visibilityMarker)) == "VISIBLE",
-                   "an independent non-elevated process must see the mounted drive")
+        try verify(File.exists(visibilityMarker) and (try File.readAllText(visibilityMarker)) == "VISIBLE", "an independent non-elevated process must see the mounted drive")
         try runFilesystemScenarios(box, payload.toSlice())
         trace("STAGE: live filesystem scenarios complete")
 
@@ -522,12 +483,9 @@ namespace Integration
     func runAndExit()
     {
         let running = "RUNNING\n"
-        discard catch File.writeAllBytes(resultPath(),
-                                         @mkslice(cast(const [*] u8) @dataof(running), @countof(running)))
+        discard catch File.writeAllBytes(resultPath(), @mkslice(cast(const [*] u8) @dataof(running), @countof(running)))
         let passed = run()
-        let report = passed ?
-                     Format.toString("PASS: % end-to-end checks completed successfully.", g_CheckCount) :
-                     Format.toString("FAIL: %", g_Failure)
+        let report = passed ? Format.toString("PASS: % end-to-end checks completed successfully.", g_CheckCount) : Format.toString("FAIL: %", g_Failure)
         trace(report)
         Console.println(report)
         Env.exit(passed ? 0 : 1)

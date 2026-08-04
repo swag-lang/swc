@@ -1,9 +1,8 @@
 using Core
 
-const BlockSize       = 4096'u64
-const BlockRecordSize = BlockSize + Crypto.NonceSize + Crypto.TagSize
-const HeaderSlotSize  = #command == Swag.CompilerCommand.Test ?
-                       256'u64 * 1024 : 8'u64 * 1024 * 1024
+const BlockSize              = 4096'u64
+const BlockRecordSize        = BlockSize + Crypto.NonceSize + Crypto.TagSize
+const HeaderSlotSize         = #command == Swag.CompilerCommand.Test ? 256'u64 * 1024 : 8'u64 * 1024 * 1024
 const LegacyHeaderPlainSize  = HeaderSlotSize - Crypto.NonceSize - Crypto.TagSize
 const HeaderLocatorCheckSize = 12'u64
 const HeaderRecordPrefixSize = Crypto.RecordLocatorSize + Crypto.NonceSize

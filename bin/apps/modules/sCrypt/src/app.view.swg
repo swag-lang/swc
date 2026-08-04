@@ -42,8 +42,7 @@ private func createVaultCard(parent: *Wnd, title, subtitle: string)->VaultCard
 private func createVaultFields()->Array'FormFieldDefinition
 {
     var result: retval
-    result.add({id: "create.path", label: "CONTAINER FILE",
-                placeholder: "C:\\path\\private.scrypt", actionText: "Browse"})
+    result.add({id: "create.path", label: "CONTAINER FILE", placeholder: "C:\\path\\private.scrypt", actionText: "Browse"})
 
     var capacity: FormFieldDefinition
     capacity.id          = "create.size"
@@ -53,20 +52,16 @@ private func createVaultFields()->Array'FormFieldDefinition
     capacity.choices.add({"GiB", "gib"})
     result.add(#move capacity)
 
-    result.add({id: "create.password", label: "PASSWORD",
-                kind: FormFieldKind.Password, placeholder: "Required password"})
-    result.add({id: "create.confirm", label: "CONFIRM PASSWORD",
-                kind: FormFieldKind.Password, placeholder: "Enter the password again"})
+    result.add({id: "create.password", label: "PASSWORD", kind: FormFieldKind.Password, placeholder: "Required password"})
+    result.add({id: "create.confirm", label: "CONFIRM PASSWORD", kind: FormFieldKind.Password, placeholder: "Enter the password again"})
     return result
 }
 
 private func mountVaultFields()->Array'FormFieldDefinition
 {
     var result: retval
-    result.add({id: "mount.path", label: "CONTAINER FILE",
-                placeholder: "Existing encrypted container", actionText: "Browse"})
-    result.add({id: "mount.password", label: "PASSWORD",
-                kind: FormFieldKind.Password, placeholder: "Container password"})
+    result.add({id: "mount.path", label: "CONTAINER FILE", placeholder: "Existing encrypted container", actionText: "Browse"})
+    result.add({id: "mount.password", label: "PASSWORD", kind: FormFieldKind.Password, placeholder: "Container password"})
 
     var drive: FormFieldDefinition
     drive.id    = "mount.drive"
@@ -115,8 +110,7 @@ private func createHeader(parent: *Wnd)
     title.setTextAlignment(.Left, .Center)
     title.style.setFont(parent.theme().createDefaultFont(36, .Bold), .Regular)
 
-    let subtitle = Label.create(header,
-                                "Encrypted storage that looks and behaves like a regular Windows drive.")
+    let subtitle = Label.create(header, "Encrypted storage that looks and behaves like a regular Windows drive.")
     subtitle.dockStyle = .Center
     subtitle.setTextAlignment(.Left, .Top)
     subtitle.updateFlags(add: .SecondaryText)
@@ -125,11 +119,7 @@ private func createHeader(parent: *Wnd)
 
 private func createFooter(window: *MainWindow)
 {
-    let footer = Label.create(window,
-                              "WinFsp - Windows File System Proxy, Copyright (C) Bill Zissimopoulos - github.com/winfsp/winfsp",
-                              {0, 0, 0, 24},
-                              null,
-                              .SecondaryText)
+    let footer = Label.create(window, "WinFsp - Windows File System Proxy, Copyright (C) Bill Zissimopoulos - github.com/winfsp/winfsp", {0, 0, 0, 24}, null, .SecondaryText)
     footer.dockStyle = .Bottom
     footer.margin    = {34, 4, 34, 12}
     footer.setTextAlignment(.Left, .Center)
@@ -149,8 +139,7 @@ private func createFooter(window: *MainWindow)
     statusGlyph.color = window.themeColors().label_TextLight
     statusIcon.setIcon(statusGlyph)
 
-    window.status = Label.create(statusView,
-                                 "Ready - create a vault or choose one to mount.")
+    window.status           = Label.create(statusView, "Ready - create a vault or choose one to mount.")
     window.status.dockStyle = .Center
     window.status.setTextAlignment(.Left, .Center)
     statusView.applyLayout()
@@ -221,11 +210,7 @@ private func createMountCard(window: *MainWindow, parent: *GridLayoutCtrl)->*Fra
             window.chooseContainer(window.mountPath, false)
     }
 
-    let note = Label.create(card.body,
-                            "The drive is available to Windows while sCrypt runs, then disappears when the app closes.",
-                            {0, 0, 0, 54},
-                            null,
-                            .WordWrap | .SecondaryText)
+    let note = Label.create(card.body, "The drive is available to Windows while sCrypt runs, then disappears when the app closes.", {0, 0, 0, 54}, null, .WordWrap | .SecondaryText)
     note.dockStyle = .Top
     note.setTextAlignment(.Left, .Top)
 

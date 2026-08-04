@@ -85,32 +85,24 @@ namespace WinFsp
 
     alias FspGetVolumeInfoFn     = func(*FspFileSystem, *FspVolumeInfo)->s32
     alias FspSetVolumeLabelFn    = func(*FspFileSystem, #null [*] u16, *FspVolumeInfo)->s32
-    alias FspGetSecurityByNameFn = func(*FspFileSystem, #null [*] u16, #null *u32,
-                                        #null *void, #null *u64)->s32
-    alias FspCreateFn = func(*FspFileSystem, #null [*] u16, u32, u32, u32, #null *void, u64,
-                             *#null *void, *FileInfo)->s32
-    alias FspOpenFn = func(*FspFileSystem, #null [*] u16, u32, u32,
-                           *#null *void, *FileInfo)->s32
-    alias FspOverwriteFn = func(*FspFileSystem, #null *void, u32, u8, u64, *FileInfo)->s32
-    alias FspCleanupFn   = func(*FspFileSystem, #null *void, #null [*] u16, u32)
-    alias FspCloseFn     = func(*FspFileSystem, #null *void)
-    alias FspReadFn      = func(*FspFileSystem, #null *void, #null *void, u64, u32, *u32)->s32
-    alias FspWriteFn     = func(*FspFileSystem, #null *void, #null *void, u64, u32,
-                                u8, u8, *u32, *FileInfo)->s32
-    alias FspFlushFn        = func(*FspFileSystem, #null *void, #null *FileInfo)->s32
-    alias FspGetFileInfoFn  = func(*FspFileSystem, #null *void, *FileInfo)->s32
-    alias FspSetBasicInfoFn = func(*FspFileSystem, #null *void, u32,
-                                   u64, u64, u64, u64, *FileInfo)->s32
-    alias FspSetFileSizeFn = func(*FspFileSystem, #null *void, u64, u8, *FileInfo)->s32
-    alias FspCanDeleteFn   = func(*FspFileSystem, #null *void, #null [*] u16)->s32
-    alias FspRenameFn      = func(*FspFileSystem, #null *void, #null [*] u16,
-                                  #null [*] u16, u8)->s32
-    alias FspGetSecurityFn   = func(*FspFileSystem, #null *void, #null *void, *u64)->s32
-    alias FspSetSecurityFn   = func(*FspFileSystem, #null *void, u32, #null *void)->s32
-    alias FspReadDirectoryFn = func(*FspFileSystem, #null *void, #null [*] u16,
-                                    #null [*] u16, #null *void, u32, *u32)->s32
-    alias FspGetDirInfoByNameFn = func(*FspFileSystem, #null *void,
-                                       #null [*] u16, *FspDirInfo)->s32
+    alias FspGetSecurityByNameFn = func(*FspFileSystem, #null [*] u16, #null *u32, #null *void, #null *u64)->s32
+    alias FspCreateFn            = func(*FspFileSystem, #null [*] u16, u32, u32, u32, #null *void, u64, *#null *void, *FileInfo)->s32
+    alias FspOpenFn              = func(*FspFileSystem, #null [*] u16, u32, u32, *#null *void, *FileInfo)->s32
+    alias FspOverwriteFn         = func(*FspFileSystem, #null *void, u32, u8, u64, *FileInfo)->s32
+    alias FspCleanupFn           = func(*FspFileSystem, #null *void, #null [*] u16, u32)
+    alias FspCloseFn             = func(*FspFileSystem, #null *void)
+    alias FspReadFn              = func(*FspFileSystem, #null *void, #null *void, u64, u32, *u32)->s32
+    alias FspWriteFn             = func(*FspFileSystem, #null *void, #null *void, u64, u32, u8, u8, *u32, *FileInfo)->s32
+    alias FspFlushFn             = func(*FspFileSystem, #null *void, #null *FileInfo)->s32
+    alias FspGetFileInfoFn       = func(*FspFileSystem, #null *void, *FileInfo)->s32
+    alias FspSetBasicInfoFn      = func(*FspFileSystem, #null *void, u32, u64, u64, u64, u64, *FileInfo)->s32
+    alias FspSetFileSizeFn       = func(*FspFileSystem, #null *void, u64, u8, *FileInfo)->s32
+    alias FspCanDeleteFn         = func(*FspFileSystem, #null *void, #null [*] u16)->s32
+    alias FspRenameFn            = func(*FspFileSystem, #null *void, #null [*] u16, #null [*] u16, u8)->s32
+    alias FspGetSecurityFn       = func(*FspFileSystem, #null *void, #null *void, *u64)->s32
+    alias FspSetSecurityFn       = func(*FspFileSystem, #null *void, u32, #null *void)->s32
+    alias FspReadDirectoryFn     = func(*FspFileSystem, #null *void, #null [*] u16, #null [*] u16, #null *void, u32, *u32)->s32
+    alias FspGetDirInfoByNameFn  = func(*FspFileSystem, #null *void, #null [*] u16, *FspDirInfo)->s32
 
     struct FspInterface
     {
@@ -141,8 +133,7 @@ namespace WinFsp
     #assert(#sizeof(FspInterface) == 64 * #sizeof(#null *void))
     #assert(#offsetof(FspInterface.getDirInfoByName) == 24 * #sizeof(#null *void))
 
-    alias FspFileSystemCreateFn = func(#null const [*] u16, const *FspVolumeParams,
-                                       const *FspInterface, *#null *FspFileSystem)->s32
+    alias FspFileSystemCreateFn           = func(#null const [*] u16, const *FspVolumeParams, const *FspInterface, *#null *FspFileSystem)->s32
     alias FspFileSystemDeleteFn           = func(*FspFileSystem)
     alias FspFileSystemSetMountPointFn    = func(*FspFileSystem, #null const [*] u16)->s32
     alias FspFileSystemRemoveMountPointFn = func(*FspFileSystem)
@@ -248,8 +239,7 @@ namespace WinFsp
 
     func writeGuardianStatus(path, status: string) fail
     {
-        discard File.writeAllBytes(path,
-                                   @mkslice(cast(const [*] u8) @dataof(status), @countof(status)))
+        discard File.writeAllBytes(path, @mkslice(cast(const [*] u8) @dataof(status), @countof(status)))
     }
 
     func startPortableGuardian(statusPath: string) fail
@@ -274,16 +264,14 @@ namespace WinFsp
         let parent = OpenProcess(ProcessSynchronize, 0, parsed.value)
         if !parent
         {
-            discard catch writeGuardianStatus(statusPath,
-                                              "ERROR\nThe WinFsp helper could not monitor the sCrypt process.")
+            discard catch writeGuardianStatus(statusPath, "ERROR\nThe WinFsp helper could not monitor the sCrypt process.")
             return 1
         }
 
         discard catch startPortableGuardian(statusPath) as startError
         if startError != null
         {
-            discard catch writeGuardianStatus(statusPath,
-                                              Format.toString("ERROR\n%", guardianErrorText(startError)))
+            discard catch writeGuardianStatus(statusPath, Format.toString("ERROR\n%", guardianErrorText(startError)))
             unloadWinFsp()
             discard CloseHandle(parent)
             return 1
@@ -309,8 +297,7 @@ namespace WinFsp
         if temp.isEmpty() do
             failWith("Windows did not provide a usable temporary directory.")
 
-        let communicationRoot = Path.combine(temp,
-                                             Format.toString("sCrypt-Guardian-%-%", Env.Process.currentProcessId(), Guid64.random()))
+        let communicationRoot = Path.combine(temp, Format.toString("sCrypt-Guardian-%-%", Env.Process.currentProcessId(), Guid64.random()))
         Directory.create(communicationRoot)
         let statusPath     = Path.combine(communicationRoot, "status.txt")
         let parameters     = Format.toString("% % \"%\"", WinFspGuardianArgument, Env.Process.currentProcessId(), statusPath)
@@ -323,9 +310,7 @@ namespace WinFsp
         if cast(u64) launch <= 32
         {
             removeRuntimeTree(communicationRoot)
-            failWith(Format.toString("Windows could not start the portable WinFsp helper (ShellExecute code %, Windows error %).",
-                                     cast(u64) launch,
-                                     GetLastError()))
+            failWith(Format.toString("Windows could not start the portable WinFsp helper (ShellExecute code %, Windows error %).", cast(u64) launch, GetLastError()))
         }
 
         for [attempt] in 1200
@@ -337,8 +322,7 @@ namespace WinFsp
                 status.trim()
                 if status.startsWith("READY\n") and @countof(status) > @countof("READY\n")
                 {
-                    g_WinFsp.dllPath = @mkstring(@dataof(status) + @countof("READY\n"),
-                                                 @countof(status) - @countof("READY\n"))
+                    g_WinFsp.dllPath         = @mkstring(@dataof(status) + @countof("READY\n"), @countof(status) - @countof("READY\n"))
                     g_WinFsp.guardianManaged = true
                     return
                 }
@@ -346,9 +330,7 @@ namespace WinFsp
                 if status.startsWith("ERROR\n")
                 {
                     let prefixCount = @countof("ERROR\n")
-                    let detail      = @countof(status) > prefixCount ?
-                                 @mkstring(@dataof(status) + prefixCount, @countof(status) - prefixCount) :
-                                 "The portable WinFsp helper failed."
+                    let detail      = @countof(status) > prefixCount ? @mkstring(@dataof(status) + prefixCount, @countof(status) - prefixCount) : "The portable WinFsp helper failed."
                     failWith(detail)
                 }
             }
@@ -402,10 +384,7 @@ namespace WinFsp
         if temp.isEmpty() do
             failWith("Windows did not provide a usable temporary directory.")
 
-        var root = Path.combine(temp,
-                                Format.toString("sCrypt-WinFsp-%-%",
-                                                Env.Process.currentProcessId(),
-                                                Time.Timestamp.utcNow().ticks))
+        var root = Path.combine(temp, Format.toString("sCrypt-WinFsp-%-%", Env.Process.currentProcessId(), Time.Timestamp.utcNow().ticks))
         Directory.create(root)
 
         let bin = Path.combine(root, "bin")
@@ -421,8 +400,7 @@ namespace WinFsp
         }
 
         let identity = Path.combine(bin, "winfsp.sxs")
-        discard File.writeAllBytes(identity,
-                                   @mkslice(cast(const [*] u8) @dataof("sCrypt\n"), @countof("sCrypt\n")))
+        discard File.writeAllBytes(identity, @mkslice(cast(const [*] u8) @dataof("sCrypt\n"), @countof("sCrypt\n")))
         g_WinFsp.runtimeRoot = #move root
         return dll
     }
@@ -521,9 +499,7 @@ namespace WinFsp
             return
 
         #static if #hastag("SCrypt.Integration") do
-            discard catch File.writeAllBytes(winFspStageLogPath(),
-                                             @mkslice(cast(const [*] u8) @dataof("load requested\n"),
-                                                      @countof("load requested\n")))
+            discard catch File.writeAllBytes(winFspStageLogPath(), @mkslice(cast(const [*] u8) @dataof("load requested\n"), @countof("load requested\n")))
 
         if g_WinFsp.guardianManaged
         {
@@ -603,9 +579,7 @@ namespace WinFsp
         if result < 0
         {
             endWinFspLog(logHandle)
-            failWith(Format.toString("Windows refused to register the portable WinFsp driver (HRESULT 0x%).\n\n%",
-                                     Format.toString("%{X}", cast(u32) result),
-                                     winFspLogDetail()))
+            failWith(Format.toString("Windows refused to register the portable WinFsp driver (HRESULT 0x%).\n\n%", Format.toString("%{X}", cast(u32) result), winFspLogDetail()))
         }
 
         g_WinFsp.registered = true
@@ -615,9 +589,7 @@ namespace WinFsp
         traceWinFspStage("FspFsctlStartService returned")
         endWinFspLog(logHandle)
         if startStatus < 0 do
-            failWith(Format.toString("Windows registered the portable WinFsp driver but could not start it (NTSTATUS %{X}).\n\n%",
-                                     cast(u32) startStatus,
-                                     winFspLogDetail()))
+            failWith(Format.toString("Windows registered the portable WinFsp driver but could not start it (NTSTATUS %{X}).\n\n%", cast(u32) startStatus, winFspLogDetail()))
     }
 
     func unloadWinFsp()

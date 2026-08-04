@@ -55,8 +55,7 @@ impl Volume
         if !@countof(password) do
             failWith("A password is required.", .InvalidInput)
         if requestedSize < MinimumSize do
-            failWith(Format.toString("The container must be at least % bytes.", MinimumSize),
-                     .InvalidInput)
+            failWith(Format.toString("The container must be at least % bytes.", MinimumSize), .InvalidInput)
 
         var result: retval
         var created   = false
@@ -180,11 +179,9 @@ impl Volume
 
         var locator = Crypto.recordLocator(.keys.authentication, HeaderLocatorKind, slot)
         defer Core.Crypto.secureClear(locator)
-        if Core.Crypto.constantTimeEqual(prefix[until HeaderLocatorCheckSize],
-                                         locator[until HeaderLocatorCheckSize])
+        if Core.Crypto.constantTimeEqual(prefix[until HeaderLocatorCheckSize], locator[until HeaderLocatorCheckSize])
         {
-            let plainSize = Crypto.load32(&prefix[HeaderLocatorCheckSize]) ^
-                            Crypto.load32(&locator[HeaderLocatorCheckSize])
+            let plainSize = Crypto.load32(&prefix[HeaderLocatorCheckSize]) ^ Crypto.load32(&locator[HeaderLocatorCheckSize])
             if !plainSize or plainSize > HeaderPlainSize do
                 return result
 
@@ -204,8 +201,7 @@ impl Volume
             var record: Array'u8
             record.resize(HeaderSlotSize)
             @memcpy(record.buffer, &prefix[0], #sizeof(prefix))
-            if !.file.readExactAt(offset + #sizeof(prefix),
-                                  record[#sizeof(prefix) until HeaderSlotSize]) do
+            if !.file.readExactAt(offset + #sizeof(prefix), record[#sizeof(prefix) until HeaderSlotSize]) do
                 return result
             result.plain.resize(LegacyHeaderPlainSize)
             let nonce      = record[0 until Crypto.NonceSize]
@@ -419,9 +415,7 @@ impl Volume
         var locator = Crypto.recordLocator(.keys.authentication, HeaderLocatorKind, slot)
         defer Core.Crypto.secureClear(locator)
         @memcpy(record.buffer, &locator[0], HeaderLocatorCheckSize)
-        Crypto.store32(notnull record.buffer + HeaderLocatorCheckSize,
-                       cast(u32) @countof(plain) ^
-                       Crypto.load32(&locator[HeaderLocatorCheckSize]))
+        Crypto.store32(notnull record.buffer + HeaderLocatorCheckSize, cast(u32) @countof(plain) ^ Crypto.load32(&locator[HeaderLocatorCheckSize]))
         let nonce      = record[Crypto.RecordLocatorSize until HeaderRecordPrefixSize]
         let ciphertext = record[HeaderRecordPrefixSize until HeaderRecordPrefixSize + @countof(plain)]
         let tag        = record[HeaderRecordPrefixSize + @countof(plain) until @countof(record)]

@@ -57,7 +57,7 @@ impl IActionUI for ActionCapture
 
         case .Screen0:
             evt.updatedFields |= .Name | .Icon
-            evt.name          = Format.toString("Capture Monitor 0 (%x%)", main.monitors[0].bounds.width, main.monitors[0].bounds.height)
+            evt.name          = Format.toString(appStrings().act_CaptureMonitorSize, 0, main.monitors[0].bounds.width, main.monitors[0].bounds.height)
             evt.icon          = Icon.from(&main.icons24, 5)
 
         case .Screen1:
@@ -66,19 +66,19 @@ impl IActionUI for ActionCapture
             // (idx >= monitors.count) so a machine with fewer monitors is safe.
             evt.updatedFields |= .Name | .Icon | .Disabled
             evt.disabled      = main.monitors.count <= 1
-            evt.name          = evt.disabled ? "Capture Monitor 1" : Format.toString("Capture Monitor 1 (%x%)", main.monitors[1].bounds.width, main.monitors[1].bounds.height)
+            evt.name          = evt.disabled ? Format.toString(appStrings().act_CaptureMonitor, 1) : Format.toString(appStrings().act_CaptureMonitorSize, 1, main.monitors[1].bounds.width, main.monitors[1].bounds.height)
             evt.icon          = Icon.from(&main.icons24, 5)
 
         case .Screen2:
             evt.updatedFields |= .Name | .Icon | .Disabled
             evt.disabled      = main.monitors.count <= 2
-            evt.name          = evt.disabled ? "Capture Monitor 2" : Format.toString("Capture Monitor 2 (%x%)", main.monitors[2].bounds.width, main.monitors[2].bounds.height)
+            evt.name          = evt.disabled ? Format.toString(appStrings().act_CaptureMonitor, 2) : Format.toString(appStrings().act_CaptureMonitorSize, 2, main.monitors[2].bounds.width, main.monitors[2].bounds.height)
             evt.icon          = Icon.from(&main.icons24, 5)
 
         case .Screen3:
             evt.updatedFields |= .Name | .Icon | .Disabled
             evt.disabled      = main.monitors.count <= 3
-            evt.name          = evt.disabled ? "Capture Monitor 3" : Format.toString("Capture Monitor 3 (%x%)", main.monitors[3].bounds.width, main.monitors[3].bounds.height)
+            evt.name          = evt.disabled ? Format.toString(appStrings().act_CaptureMonitor, 3) : Format.toString(appStrings().act_CaptureMonitorSize, 3, main.monitors[3].bounds.width, main.monitors[3].bounds.height)
             evt.icon          = Icon.from(&main.icons24, 5)
 
         case .HideEditor:

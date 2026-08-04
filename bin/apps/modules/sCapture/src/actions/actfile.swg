@@ -235,7 +235,7 @@ impl IActionUI for ActionFile
             let file = capture.file.toString()
 
             var editOptions: EditDlgOptions
-            editOptions.title   = "Rename Capture"
+            editOptions.title   = appStrings().dlg_TitleRenameCapture
             editOptions.message = "Capture name"
             editOptions.text    = capture.title
             let dlg = EditDlg.createSingleLine(notnull main.surface, editOptions)
@@ -270,7 +270,7 @@ impl IActionUI for ActionFile
             }
 
             let dlg = Dialog.create(notnull main.surface, 600, 400, title: appStrings().dlg_TitleDetails, flags: .Border | .CloseButton | .Resizable)
-            dlg.addButton("OK", Dialog.BtnOk, true)
+            dlg.addButton(Gui.strings().dlg_Ok, Dialog.BtnOk, true)
             let lt = StackLayoutCtrl.create(dlg)
             lt.dockStyle = .Center
             lt.padding   = 5
@@ -409,7 +409,7 @@ impl MainWnd
     {
         let dlg = Dialog.create(notnull .surface, 350, 235, title: appStrings().act_NewImage)
         dlg.addButton(appStrings().dlg_BtnCreate, Dialog.BtnOk, true)
-        dlg.addButton("Cancel", Dialog.BtnCancel)
+        dlg.addButton(Gui.strings().dlg_Cancel, Dialog.BtnCancel)
         let edit0 = EditCtrl.create(dlg, appStrings().ui_Width, "512", {90, 12}, flags: .RightAligned)
         let edit1 = EditCtrl.create(dlg, appStrings().ui_Height, "512", {90, 47}, flags: .RightAligned)
         edit0.edit.setUnsignedIntegerRange(16, 4096)

@@ -66,6 +66,12 @@ struct AppStrings
     msg_ShortcutTaken:        string = "Cannot register global shortcut '%'. "
     msg_ShortcutTakenWhy:     string = "Another running application is probably already using it!"
     msg_AboutBuild:           string = "Build on %{j}"
+    msg_ResetStyles:          string = "This will reset the styles to the default values."     // Confirmation before restoring the default quick styles.
+    dlg_TitleRenameCapture:   string = "Rename Capture"                                        // Title of the capture rename dialog.
+    dlg_TitleEnterText:       string = "Enter Text"                                            // Title of the text-entry dialog.
+    ui_Outline:               string = "Outline"                                               // Label of the outline thickness slider.
+    act_CaptureMonitor:       string = "Capture Monitor %"                                     // Capture one monitor, by index.
+    act_CaptureMonitorSize:   string = "Capture Monitor % (%x%)"                               // Capture one monitor, with its size.
     act_About:                string = "About..."
     act_ActualSize:           string = "Actual Size"
     act_Arrow:                string = "Arrow"

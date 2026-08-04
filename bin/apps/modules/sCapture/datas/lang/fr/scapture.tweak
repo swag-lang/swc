@@ -181,3 +181,9 @@ tip_InpArrow           Tracer une flèche
 tip_InpText            Ajouter une annotation texte
 tip_InpMarker          Surligner au marqueur
 flt_Jpg                JPG - Image JPEG (*.jpg)
+msg_ResetStyles        Les styles seront réinitialisés aux valeurs par défaut.
+dlg_TitleRenameCapture Renommer la capture
+dlg_TitleEnterText     Saisir le texte
+ui_Outline             Contour
+act_CaptureMonitor     Capturer l'écran %
+act_CaptureMonitorSize Capturer l'écran % (%x%)

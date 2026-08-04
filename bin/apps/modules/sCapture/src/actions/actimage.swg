@@ -152,7 +152,7 @@ impl MainWnd
 
         let dlg = Dialog.create(notnull .surface, 350, 265, title: appStrings().dlg_TitleResizeImage)
         dlg.addButton(appStrings().dlg_BtnResize, Dialog.BtnOk, true)
-        dlg.addButton("Cancel", Dialog.BtnCancel)
+        dlg.addButton(Gui.strings().dlg_Cancel, Dialog.BtnCancel)
         let edit0 = EditCtrl.create(dlg, appStrings().ui_Width, Format.toString("%", capture.width), {80, 15}, flags: .RightAligned)
         let edit1 = EditCtrl.create(dlg, appStrings().ui_Height, Format.toString("%", capture.height), {80, 50}, flags: .RightAligned)
         edit0.edit.setUnsignedIntegerRange(cast() Capture.MinSize, cast() Capture.MaxSize)
@@ -236,7 +236,7 @@ impl MainWnd
     {
         let dlg = Dialog.create(notnull .surface, 350, 265, title: title)
         dlg.addButton(appStrings().dlg_BtnResize, Dialog.BtnOk, true)
-        dlg.addButton("Cancel", Dialog.BtnCancel)
+        dlg.addButton(Gui.strings().dlg_Cancel, Dialog.BtnCancel)
 
         let ratio = cast(f32) w / h
 

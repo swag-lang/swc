@@ -603,7 +603,7 @@ impl PropWnd
     func editText(main: *MainWnd, curText: String)->String
     {
         var editOptions: EditDlgOptions
-        editOptions.title   = "Enter Text"
+        editOptions.title   = appStrings().dlg_TitleEnterText
         editOptions.message = "Press Shift+Enter to add a new line"
         editOptions.text    = curText.toString()
         let dlg = EditDlg.createMultiLine(notnull main.surface, editOptions)
@@ -786,7 +786,7 @@ impl PropWnd
                 if it.typeValue.name != #nameof(BaseForm.borderSize) or !@isset(it.sliderBox) do
                     continue
                 let sliderBox = it.sliderBox
-                sliderBox.label.setText("Outline")
+                sliderBox.label.setText(appStrings().ui_Outline)
                 sliderBox.setSignedBounds(cast() MinTextBorderSize, cast() MaxTextBorderSize)
                 sliderBox.setValueWithoutGesture((notnull .getSelectedBaseForm()).borderSize)
             }

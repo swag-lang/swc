@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
@@ -53,6 +53,13 @@ namespace
         r.add(MicroInstrOpcode::LoadAmcMemReg, tryFoldConstIndexAmc);
         r.add(MicroInstrOpcode::LoadAmcMemImm, tryFoldConstIndexAmc);
         r.add(MicroInstrOpcode::CmpAmcImm, tryFoldConstIndexAmc);
+        r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldLeaConstIntoAmcIndex);
+        r.add(MicroInstrOpcode::LoadSignedExtAmcRegMem, tryFoldLeaConstIntoAmcIndex);
+        r.add(MicroInstrOpcode::LoadZeroExtAmcRegMem, tryFoldLeaConstIntoAmcIndex);
+        r.add(MicroInstrOpcode::LoadAddrAmcRegMem, tryFoldLeaConstIntoAmcIndex);
+        r.add(MicroInstrOpcode::LoadAmcMemReg, tryFoldLeaConstIntoAmcIndex);
+        r.add(MicroInstrOpcode::LoadAmcMemImm, tryFoldLeaConstIntoAmcIndex);
+        r.add(MicroInstrOpcode::CmpAmcImm, tryFoldLeaConstIntoAmcIndex);
         r.add(MicroInstrOpcode::LoadMemReg, tryFoldConstStore);
         r.add(MicroInstrOpcode::LoadMemReg, tryFoldMemoryAddressing);
         r.add(MicroInstrOpcode::CmpRegReg, tryFoldConstCompare);

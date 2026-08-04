@@ -17,10 +17,10 @@ namespace InstructionCombine
     // a fresh operand block allocation.
     struct Action
     {
-        // 7 to hold the indexed addressing-mode opcodes (LoadAmcRegMem family:
-        // dst, base, index, dstBits, srcBits, scale, disp). Plain ALU/load
-        // rewrites use far fewer.
-        static constexpr uint8_t K_MAX_OPS = 7;
+        // 8 to hold the widest indexed addressing-mode opcode (LoadAmcMemImm:
+        // base, index, _, addrBits, valBits, scale, disp, imm). Plain
+        // ALU/load rewrites use far fewer.
+        static constexpr uint8_t K_MAX_OPS = 8;
 
         MicroInstrRef     ref            = MicroInstrRef::invalid();
         MicroInstrOpcode  newOp          = MicroInstrOpcode::Nop;
@@ -89,6 +89,7 @@ namespace InstructionCombine
     bool tryFoldZeroExtAmcLoadIntoCompare(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryFoldAmcLoadIntoCompare(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryFoldConstIndexAmc(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryFoldLeaConstIntoAmcIndex(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldMemoryAddressing(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryNarrowExtend(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldConstStore(Context& ctx, MicroInstrRef storeRef, const MicroInstr& storeInst);

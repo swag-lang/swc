@@ -17,5 +17,6 @@
     cfg.allocatorFillMemory       = #hastag("sCapture.FillMemory")
     cfg.resAppName                = "sCapture"
     cfg.resAppDescription         = "Screen capture and annotation workspace"
+    cfg.resAppIcoFileName         = "datas/appicon.ico"
     cfg.ignoreInWorkspace         = false
 }

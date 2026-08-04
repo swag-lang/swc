@@ -1,4 +1,4 @@
-using Core, Gui, Pixel
+#global using Core, Pixel, Gui
 
 const AppIcon = #include("../datas/appicon.png")
 

@@ -207,7 +207,7 @@ impl IWnd for LibraryView
             // shadow so it stays readable over any background.
             if capture and !capture.title.isEmpty()
             {
-                let font  = sCaptureFont(me.font().regular)
+                let font  = notnull me.font().regular
                 let title = capture.title.toString()
                 let cx    = it.rect.horzCenter()
                 let by    = it.rect.bottom() - 8

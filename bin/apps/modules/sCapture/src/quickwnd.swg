@@ -714,7 +714,7 @@ impl QuickWnd
             {
                 let textColor = g_App.theme.colors.btnIcon_Text
                 let rect      = (notnull paintForm.itf).boundRect()
-                painter.drawStringCenter(rect.horzCenter(), rect.bottom(), paintForm.title, sCaptureFont(btnp.font().regular), textColor)
+                painter.drawStringCenter(rect.horzCenter(), rect.bottom(), paintForm.title, notnull btnp.font().regular, textColor)
             }
         }
 

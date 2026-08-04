@@ -11,5 +11,6 @@
     cfg.name              = "sCrypt"
     cfg.resAppName        = "sCrypt"
     cfg.resAppDescription = "Encrypted virtual disk for Windows"
+    cfg.resAppIcoFileName = "datas/appicon.ico"
     cfg.ignoreInWorkspace = false
 }

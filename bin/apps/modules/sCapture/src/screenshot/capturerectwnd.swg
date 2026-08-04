@@ -182,7 +182,7 @@ impl IWnd for CaptureRectWnd
         // Dimensions
         if grabRect.width > 0 and grabRect.height > 0
         {
-            let fontR = sCaptureFont(.font().regular)
+            let fontR = notnull .font().regular
             let str   = Format.toString("% x %", grabRect.width, grabRect.height)
             var xx    = grabRect.x + 4
             var yy    = grabRect.y - fontR.height - 8

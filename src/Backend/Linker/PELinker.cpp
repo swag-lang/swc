@@ -830,8 +830,14 @@ namespace
 
         fs::path iconPath(iconFileName.c_str());
         if (iconPath.is_relative())
-            iconPath = FileSystem::absolutePathNoThrow(iconPath);
-        iconPath = iconPath.lexically_normal();
+        {
+            const CommandLine& cmdLine = builder.ctx().cmdLine();
+            if (!cmdLine.modulePath.empty())
+                iconPath = cmdLine.modulePath / iconPath;
+            else if (!cmdLine.moduleFilePath.empty())
+                iconPath = cmdLine.moduleFilePath.parent_path() / iconPath;
+        }
+        iconPath = FileSystem::absolutePathNoThrow(iconPath).lexically_normal();
 
         FileSystem::IoErrorInfo ioError;
         if (FileSystem::readBinaryFile(iconPath, outConfig.iconBytes, ioError) != Result::Continue)

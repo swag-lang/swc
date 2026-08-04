@@ -1,3 +1,5 @@
+#global using Core, Pixel, Gui
+
 var g_App: Application
 
 #premain

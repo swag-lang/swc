@@ -988,7 +988,7 @@ namespace Swag
         backend: BuildCfgBackend     // Backend options
 
         repoPath:          #null string                            // Repository access path to the module
-        resAppIcoFileName: #null string                            // For an executable, the associated icon file name
+        resAppIcoFileName: #null string                            // For an executable, the associated icon file name. Relative paths start at the module folder.
         resAppName:        #null string                            // For an executable, the associated application name
         resAppDescription: #null string                            // For an executable, the associated application description
         resAppCompany:     #null string                            // For an executable, the associated company name

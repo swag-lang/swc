@@ -63,9 +63,9 @@ glyph, another app's icon, or a letter tile.
        --ico bin/apps/modules/sName/datas/appicon.ico
    ```
 
-6. Set `BuildCfg.resAppIcoFileName` from `module.init.swg`. Decode `appicon.png`, pass it to
-   `Application.setAppIcon` before creating the first surface, and reuse it for product-specific
-   icon placements.
+6. Set `BuildCfg.resAppIcoFileName` in `module.swg`, using a path relative to the module folder.
+   Decode `appicon.png`, pass it to `Application.setAppIcon` before creating the first surface,
+   and reuse it for product-specific icon placements.
 7. Inspect the PNG and the 16, 32, 48, and 256 pixel ICO entries. Regenerate the glyph when its
    negative space closes or its product meaning disappears; do not repair a weak concept with text.
 

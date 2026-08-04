@@ -181,13 +181,19 @@ impl Theme
             Memory.delete(.res.spin)
     }
 
-    private mtd setupDefault(renderer: IRenderer)
+    // Establishes the shared theme resources against `renderer`, sharp at `dpiScale`.
+    //
+    // The caller passes the density of the surface the theme is about to draw on, because
+    // rasterizing the widgets atlas is the single most expensive step of a GUI startup and
+    // [[Theme.ensureAtlasScale]] cannot reuse a coarser atlas: building at 1 first would
+    // throw that work away on every scaled display.
+    private mtd setupDefault(renderer: IRenderer, dpiScale = 1.0'f32)
     {
         .initialized = true
         .fonts       = renderer.fontCache()
         .colors.setDark()
 
-        .ensureAtlasScale(renderer, 1)
+        .ensureAtlasScale(renderer, dpiScale)
 
         let images = defaultThemeImages()
         .res.icons.setup(renderer, &images.icons)
@@ -244,7 +250,7 @@ impl Theme
             .defaultFsTypeFaceI  = expect defaultTypeFace(DefaultFontFsItalicName, DefaultFontFsItalic)!
             .defaultFsTypeFaceBI = expect defaultTypeFace(DefaultFontFsBoldItalicName, DefaultFontFsBoldItalic)!
 
-            .fontDefault.regular    =.fonts.createFont(.defaultTypeFaceR, me.metrics.defaultFontSize)
+            .fontDefault.regular    = .fonts.createFont(.defaultTypeFaceR, me.metrics.defaultFontSize)
             .fontDefault.bold       = .fonts.createFont(.defaultTypeFaceB, me.metrics.defaultFontSize)
             .fontDefault.italic     = .fonts.createFont(.defaultTypeFaceI, me.metrics.defaultFontSize)
             .fontDefault.boldItalic = .fonts.createFont(.defaultTypeFaceBI, me.metrics.defaultFontSize)

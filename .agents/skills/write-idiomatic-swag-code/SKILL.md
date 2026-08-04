@@ -34,6 +34,37 @@ as the idiom.
   backend, role, and feature parts all use the same notation; `.test`, `.init`, and `.win32` are
   common parts, not the only valid ones. Follow the surrounding family when it is more specific.
 
+## Lay Out Statements Without a Column Budget
+
+The repository has no maximum line width: `bin/.swc-format` sets `column-limit = 0`. `swc format`
+normalizes the shape and indentation of the breaks you write, but it never adds a break to fit a
+width, and it can never remove one you added. Every line break inside a statement is permanent and
+is your decision, so a wrap made to satisfy an imagined column budget stays in the file forever.
+
+- Write one statement on one line. Do not split a call, a declaration, or an expression because
+  the line looks long; long lines are normal here, and the standard library and applications
+  routinely reach 180 to 220 columns.
+- Break a statement only when the break carries structure, one item per line:
+  - an argument that is a multi-row data table,
+  - a chain of `and` / `or` conditions,
+  - a chain of composed bit flags or packed byte reads.
+- Never split a conditional expression around its `?` or `:`. Put it on one line, or give the
+  condition a name.
+- When a statement is genuinely too dense to read on one line, extract a named local for the part
+  that carries meaning. A name beats a continuation line.
+
+```swag
+// A boolean chain earns its breaks, and the name makes the assertion readable.
+let scanned = entries.count == 24 and
+              containsEntry(entries.toSlice(), "item-0.bin") and
+              containsEntry(entries.toSlice(), "item-23.bin")
+try verify(scanned, "directory scans must return every created file")
+```
+
+Never hand-align a continuation line, a declaration column, or a trailing comment. Run
+`swc format` and let it place them; manual padding is what drifts when a neighbouring line
+changes. Follow `modify-swag-codebase` for the formatting and validation workflow.
+
 ## Return Values Directly
 
 - Return the operation's primary result. Do not make a caller declare an uninitialized value and

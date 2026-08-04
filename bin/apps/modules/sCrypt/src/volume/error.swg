@@ -24,4 +24,4 @@ struct Error
 func failWith(message: string, kind = ErrorKind.General) fail
 {
     fail Error{base: {Errors.mkString(message)}, kind: kind}
-}
+}

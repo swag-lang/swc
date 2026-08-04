@@ -95,8 +95,8 @@ namespace WinFsp
             {
                 .stop()
                 failWith(Format.toString("WinFsp could not mount drive % (NTSTATUS %{X}).",
-                                                mountPoint,
-                                                cast(u32) status))
+                                         mountPoint,
+                                         cast(u32) status))
             }
 
             traceWinFspStage("WinFspMount initialized in place")

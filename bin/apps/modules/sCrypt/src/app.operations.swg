@@ -61,8 +61,8 @@ internal impl MainWindow
         let result = parsed.value * multiplier
         if result < MinimumSize do
             failWith(Format.toString("The minimum container size is % MiB.",
-                                            (MinimumSize + 1024 * 1024 - 1) / (1024 * 1024)),
-                            .InvalidInput)
+                                     (MinimumSize + 1024 * 1024 - 1) / (1024 * 1024)),
+                     .InvalidInput)
         return result
     }
 

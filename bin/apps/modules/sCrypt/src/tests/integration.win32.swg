@@ -102,9 +102,9 @@ namespace Integration
         let replacement16 = Utf16.toZeroTerminated(replacement)
         if !MoveFileExW(@dataof(existing16), @dataof(replacement16), replace ? MoveReplaceExisting : 0) do
             failWith(Format.toString("Windows error %: cannot rename [[%]] to [[%]].",
-                                            GetLastError(),
-                                            existing,
-                                            replacement))
+                                     GetLastError(),
+                                     existing,
+                                     replacement))
     }
 
     func setAttributes(path: string, attributes: u32) fail
@@ -112,8 +112,8 @@ namespace Integration
         let path16 = Utf16.toZeroTerminated(path)
         if !SetFileAttributesW(@dataof(path16), attributes) do
             failWith(Format.toString("Windows error %: cannot set attributes on [[%]].",
-                                            GetLastError(),
-                                            path))
+                                     GetLastError(),
+                                     path))
     }
 
     func attributes(path: string)->u32
@@ -127,8 +127,8 @@ namespace Integration
         let path16 = Utf16.toZeroTerminated(path)
         if !WinFsp.RemoveDirectoryW(@dataof(path16)) do
             failWith(Format.toString("Windows error %: cannot remove directory [[%]].",
-                                            GetLastError(),
-                                            path))
+                                     GetLastError(),
+                                     path))
     }
 
     func containsEntry(entries: const [..] File.FileInfo, name: string)->bool
@@ -235,7 +235,7 @@ namespace Integration
             WinFsp.removeRuntimeTree(.root)
             if Directory.exists(.root) do
                 failWith(Format.toString("The integration sandbox could not be removed: %",
-                                                .root))
+                                         .root))
             .root.clear()
         }
 
@@ -512,7 +512,7 @@ namespace Integration
     {
         switch err
         {
-        case Error:     return (cast(Error) err).message orelse "sCrypt integration error."
+        case Error:            return (cast(Error) err).message orelse "sCrypt integration error."
         case Swag.SystemError: return (cast(Swag.SystemError) err).message orelse "Windows integration error."
         }
 

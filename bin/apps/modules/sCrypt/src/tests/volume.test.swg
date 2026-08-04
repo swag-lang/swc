@@ -83,7 +83,7 @@ func writeLegacyHeader(volume: *Volume)
     let slot     = 1'u32 - volume.activeSlot
     var plain    = expect volume.serialize(sequence)
     Crypto.store32(notnull plain.buffer + #sizeof(HeaderMagic),
-                          LegacyFormatVersion)
+                   LegacyFormatVersion)
     plain.resize(LegacyHeaderPlainSize)
 
     var record: Array'u8

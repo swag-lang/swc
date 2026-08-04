@@ -239,7 +239,7 @@ namespace WinFsp
     {
         switch err
         {
-        case Error:     return (cast(Error) err).message orelse "The portable WinFsp runtime failed."
+        case Error:            return (cast(Error) err).message orelse "The portable WinFsp runtime failed."
         case Swag.SystemError: return (cast(Swag.SystemError) err).message orelse "Windows rejected the WinFsp helper."
         }
 
@@ -324,8 +324,8 @@ namespace WinFsp
         {
             removeRuntimeTree(communicationRoot)
             failWith(Format.toString("Windows could not start the portable WinFsp helper (ShellExecute code %, Windows error %).",
-                                            cast(u64) launch,
-                                            GetLastError()))
+                                     cast(u64) launch,
+                                     GetLastError()))
         }
 
         for [attempt] in 1200
@@ -604,8 +604,8 @@ namespace WinFsp
         {
             endWinFspLog(logHandle)
             failWith(Format.toString("Windows refused to register the portable WinFsp driver (HRESULT 0x%).\n\n%",
-                                            Format.toString("%{X}", cast(u32) result),
-                                            winFspLogDetail()))
+                                     Format.toString("%{X}", cast(u32) result),
+                                     winFspLogDetail()))
         }
 
         g_WinFsp.registered = true
@@ -616,8 +616,8 @@ namespace WinFsp
         endWinFspLog(logHandle)
         if startStatus < 0 do
             failWith(Format.toString("Windows registered the portable WinFsp driver but could not start it (NTSTATUS %{X}).\n\n%",
-                                            cast(u32) startStatus,
-                                            winFspLogDetail()))
+                                     cast(u32) startStatus,
+                                     winFspLogDetail()))
     }
 
     func unloadWinFsp()

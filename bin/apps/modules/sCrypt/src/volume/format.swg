@@ -138,4 +138,4 @@ struct HeaderCandidate
     valid:    bool
     sequence: u64
     plain:    Array'u8
-}
+}

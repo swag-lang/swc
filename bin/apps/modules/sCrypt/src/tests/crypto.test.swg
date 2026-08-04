@@ -30,11 +30,11 @@ func sameCryptoBytes(left, right: const [..] u8)->bool
 
     cipher[0] ^= 1
     @assert(!(expect Crypto.open(&keys, 7, 11, nonce, cipher, tag, opened)))
-    cipher[0]                      ^= 1
+    cipher[0]               ^= 1
     tag[Crypto.TagSize - 1] ^= 1
     @assert(!(expect Crypto.open(&keys, 7, 11, nonce, cipher, tag, opened)))
     tag[Crypto.TagSize - 1] ^= 1
-    nonce[0]                       ^= 1
+    nonce[0]                ^= 1
     @assert(!(expect Crypto.open(&keys, 7, 11, nonce, cipher, tag, opened)))
     nonce[0] ^= 1
     @assert(!(expect Crypto.open(&keys, 8, 11, nonce, cipher, tag, opened)))

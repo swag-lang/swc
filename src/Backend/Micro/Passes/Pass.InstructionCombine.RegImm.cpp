@@ -84,7 +84,13 @@ namespace InstructionCombine
         const MicroOp     op     = ops[2].microOp;
         const uint64_t    imm    = ops[3].valueU64;
 
-        if (isRightIdentity(op, opBits, imm) && ctx.ssa && !ctx.ssa->isRegUsedAfter(dst, ref))
+        // Dropping or rewriting the operation also drops its flag write, and a
+        // dead RESULT does not imply dead FLAGS: constant folding can rewrite
+        // every consumer of an unrolled accumulator to a constant while an
+        // overflow guard still reads the flags of the now value-dead add.
+        const bool flagsDeadAfter = MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref);
+
+        if (isRightIdentity(op, opBits, imm) && flagsDeadAfter && ctx.ssa && !ctx.ssa->isRegUsedAfter(dst, ref))
         {
             if (!ctx.claimAll({ref}))
                 return false;
@@ -93,7 +99,7 @@ namespace InstructionCombine
         }
 
         uint64_t absorbed = 0;
-        if (isRightAbsorbing(op, opBits, imm, absorbed))
+        if (isRightAbsorbing(op, opBits, imm, absorbed) && flagsDeadAfter)
         {
             if (absorbed == 0)
                 return emitClearReg(ctx, ref, dst, opBits);

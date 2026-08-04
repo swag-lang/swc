@@ -216,6 +216,8 @@ private:
     void             spillCallLiveOut(uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending);
     void             saveRestorePinnedAcrossCall(uint32_t instructionIndex, int64_t stackDepth, std::vector<PendingInsert>& pending);
     void             flushAllMappedVirtuals(uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending);
+    void             dropMappedVirtualNoStore(uint32_t denseIndex);
+    void             flushAtBoundary(uint32_t instructionIndex, const MicroInstr& inst, uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending);
     void             clearAllMappedVirtuals();
     void             expireDeadMappings(uint32_t stamp);
     void             rewriteInstructions();
@@ -248,6 +250,14 @@ private:
     std::vector<uint32_t>                 loopDepth_;
     bool                                  functionHasLoop_ = false;
     std::vector<uint8_t>                  concreteLoopCarried_;
+
+    // Register-mapping snapshots recorded at each forward jump, consumed by
+    // the join intersection in flushAtBoundary. Keyed by the jump's
+    // instruction index; entries pair a dense virtual index with the physical
+    // register it occupied on that edge.
+    using BoundarySnapshot = SmallVector<std::pair<uint32_t, MicroReg>, 8>;
+    std::unordered_map<uint32_t, BoundarySnapshot> boundarySnapshots_;
+    bool                                           keepAcrossBoundaries_ = false;
     std::vector<uint32_t>                 virtualSpanLo_;
     std::vector<uint32_t>                 virtualSpanHi_;
     std::vector<std::vector<uint32_t>>    concreteClaimPositionsByDenseIndex_;

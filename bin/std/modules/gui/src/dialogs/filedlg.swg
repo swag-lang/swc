@@ -65,10 +65,10 @@ private impl FileDlg
         options.title  = "New Folder"
         options.width  = 440
         options.height = 220
-        options.fields.add({id: "name", label: "FOLDER NAME", initialText: "New Folder",
-                            placeholder: "Folder name"})
-        let dlg  = FormDlg.create(notnull me.surface, #move options)
-        let edit = notnull dlg.textField("name")
+
+        let dlg  = FormDlg.create(notnull me.surface, options)
+        let edit = dlg.form.addTextField("FOLDER NAME", "New Folder", placeholder: "Folder name")
+        dlg.form.computeLayout()
         edit.selectAll()
         edit.setFocus()
 

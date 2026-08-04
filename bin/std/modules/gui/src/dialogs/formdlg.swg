@@ -1,37 +1,47 @@
 #global public
 
-// Configures a modal form materialized entirely from field descriptions.
+// Configures the surface and buttons of a [[Gui.FormDlg]].
 struct FormDlgOptions
 {
-    title:             string = ""                   // Surface title.
-    confirmButtonText: string = "OK"                 // Confirmation-button text.
-    cancelButtonText:  string = "Cancel"             // Cancel-button text, or empty to omit it.
-    width                     = 520's32              // Initial surface width.
-    height                    = 360's32              // Initial surface height.
-    resizable:         bool                          // Whether the user can resize the surface.
-    formOptions:       FormLayoutOptions             // Field-layout geometry.
-    fields:            Array'FormFieldDefinition     // Fields in display order.
+    title:             string = ""           // Surface title.
+    confirmButtonText: string = "OK"         // Confirmation-button text.
+    cancelButtonText:  string = "Cancel"     // Cancel-button text, or empty to omit it.
+    width                     = 520's32      // Initial surface width.
+    height                    = 360's32      // Initial surface height.
+    resizable:         bool                  // Whether the user can resize the surface.
+    formOptions:       FormLayoutOptions     // Field-layout geometry.
 }
 
-// Modal data-driven dialog composed of a [[Gui.FormCtrl]] and standard buttons.
+// Modal dialog whose client area is a form the caller fills with typed fields.
+//
+// [[Gui.FormDlg.create]] builds the surface, its centered form, and the standard buttons.
+// Add the fields through the [[Gui.FormLayoutCtrl]] builders, arrange them once they are
+// all present, then run the dialog.
+//
+// ```swag
+// let dlg  = FormDlg.create(surface, options)
+// let name = dlg.form.addTextField("FOLDER NAME", "New Folder")
+// dlg.form.computeLayout()
+// if dlg.doModal() == Dialog.BtnOk do
+//     createFolder(name.text())
+// ```
 struct FormDlg
 {
     using dialog: Dialog     // Embedded modal-dialog behavior.
 
     readonly
     #[Swag.Late]
-    form: *FormCtrl     // Materialized form owned by the dialog.
+    form: *FormLayoutCtrl     // Form owned by the dialog, empty until the caller adds fields.
 }
 
 impl FormDlg
 {
-    // Creates a centered modal form from `options`.
+    // Creates a centered modal dialog holding an empty form and the standard buttons.
     #[Swag.Discardable]
-    func create(from: *Surface, options: FormDlgOptions)->*FormDlg
+    func create(from: *Surface, options: FormDlgOptions = {})->*FormDlg
     {
         Debug.assert(from != null)
-        Debug.assert(options.width > 0 and options.height > 0,
-                     "form dialog dimensions must be positive")
+        Debug.assert(options.width > 0 and options.height > 0, "form dialog dimensions must be positive")
 
         let result  = Wnd.create'FormDlg()
         let flags   = options.resizable ? SurfaceFlags.Resizable : SurfaceFlags.None
@@ -40,29 +50,14 @@ impl FormDlg
         surface.center(from)
         surface.minSize = {Math.min(options.width, 360), Math.min(options.height, 240)}
 
-        result.form           = FormCtrl.create(surface.view(), options.fields.toSlice(), options.formOptions)
+        result.form           = FormLayoutCtrl.create(surface.view(), options.formOptions)
         result.form.dockStyle = .Center
         result.form.setAllMargins(result.themeMetrics().dialog_Padding)
 
-        result.addButton(@countof(options.confirmButtonText) ?
-                         options.confirmButtonText : "OK",
-                         Dialog.BtnOk,
-                         true)
+        result.addButton(@countof(options.confirmButtonText) ? options.confirmButtonText : "OK", Dialog.BtnOk, true)
         if @countof(options.cancelButtonText) do
             result.addButton(options.cancelButtonText, Dialog.BtnCancel)
         result.applyLayout()
         return result
     }
-
-    // Finds a materialized field by identifier.
-    mtd findField(id: WndId)->#null const *FormField => .form.findField(id)
-
-    // Returns the text editor for `id`, or null when it has another kind.
-    mtd textField(id: WndId)->#null *EditBox => .form.textField(id)
-
-    // Returns the password editor for `id`, or null when it has another kind.
-    mtd passwordField(id: WndId)->#null *PasswordEdit => .form.passwordField(id)
-
-    // Returns the choice control for `id`, or null when it has another kind.
-    mtd choiceField(id: WndId)->#null *ComboBox => .form.choiceField(id)
 }

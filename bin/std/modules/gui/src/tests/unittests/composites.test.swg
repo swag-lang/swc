@@ -25,7 +25,7 @@ func compositeColorChanged(picker: *ColorPickerCtrl)
     CompositeColorChangedCount += 1
 }
 
-// FormDlg creates a complete modal form from data without fixed coordinates.
+// FormDlg hosts typed fields and standard buttons without fixed coordinates.
 #test
 {
     var host: Testing.HeadlessHost
@@ -34,12 +34,13 @@ func compositeColorChanged(picker: *ColorPickerCtrl)
 
     var options: FormDlgOptions
     options.title = "Credentials"
-    options.fields.add({id: "user", label: "USER", initialText: "alice"})
-    options.fields.add({id: "password", label: "PASSWORD", kind: FormFieldKind.Password})
-    let dlg = FormDlg.create(&host.surface, options)
+    let dlg      = FormDlg.create(&host.surface, options)
+    let user     = dlg.form.addTextField("USER", "alice")
+    let password = dlg.form.addPasswordField("PASSWORD")
+    dlg.form.computeLayout()
 
-    @assert((notnull dlg.textField("user")).text() == "alice")
-    @assert(dlg.passwordField("password") != null)
+    @assert(user.text() == "alice")
+    @assert(password.position.y > user.position.y)
     @assert(dlg.buttons.count == 2)
     @assert(dlg.buttons[0].id == Dialog.BtnOk)
     @assert(dlg.buttons[1].id == Dialog.BtnCancel)

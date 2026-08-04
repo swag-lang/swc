@@ -37,9 +37,22 @@ struct FormLayoutRow
 
 // Arranges labeled fields from a compact row description instead of fixed coordinates.
 //
-// Create controls with the form as their parent, then register each row with
-// [[Gui.FormLayoutCtrl.addField]]. The caller retains the concrete control pointers;
-// the form owns only their layout.
+// The `addTextField`, `addPasswordField`, and `addChoiceField` builders create a control,
+// append its labeled row, and return the concrete control, so a caller never looks a field
+// up by name. Add the optional trailing control of the row that was just appended with
+// [[Gui.FormLayoutCtrl.addRowAction]] or [[Gui.FormLayoutCtrl.addRowChoice]]. Use
+// [[Gui.FormLayoutCtrl.addField]] directly for a control the builders do not create.
+//
+// The form owns the labels it creates and the layout of every row; the caller keeps the
+// concrete control pointers.
+//
+// ```swag
+// let form = FormLayoutCtrl.create(parent)
+// let path = form.addTextField("CONTAINER FILE", placeholder: "C:\\private.scrypt")
+// let browse = form.addRowAction("Browse")
+// let password = form.addPasswordField("PASSWORD")
+// form.computeLayout()
+// ```
 struct FormLayoutCtrl
 {
     using wnd: Wnd     // Embedded wnd state.
@@ -139,6 +152,16 @@ private impl FormLayoutCtrl
 
         return cursor
     }
+
+    // Gives the row appended last its single trailing control.
+    mtd attachToLastRow(control: *Wnd)
+    {
+        Debug.assert(!.rows.isEmpty(), "a trailing control needs a field row to extend")
+        let row = .rows.backPtr()
+        Debug.assert(row.action == null, "a form row holds a single trailing control")
+        row.action = control
+        .invalidateLayout()
+    }
 }
 
 impl FormLayoutCtrl
@@ -179,6 +202,66 @@ impl FormLayoutCtrl
         let result = .rows.count
         .rows.add(#move row)
         .invalidateLayout()
+        return result
+    }
+
+    // Creates an editable text field, appends its labeled row, and returns the editor.
+    //
+    // `icon` is displayed inside the editor when it refers to a valid atlas frame.
+    mtd addTextField(label: string, text: string = "", placeholder: #null string = null, help: #null string = null, icon: Icon = {}, id: #null WndId = null)->*EditBox
+    {
+        let result = EditBox.create(me, text, id: id)
+        result.setPlaceholder(placeholder)
+        if icon.isValid() do
+            result.setIcon(icon)
+        discard .addField(label, result, null, help)
+        return result
+    }
+
+    // Creates a masked password field, appends its labeled row, and returns the editor.
+    mtd addPasswordField(label: string, placeholder: #null string = null, help: #null string = null, icon: Icon = {}, id: #null WndId = null)->*PasswordEdit
+    {
+        let result = PasswordEdit.create(me, id: id)
+        result.setPlaceholder(placeholder)
+        if icon.isValid() do
+            result.setIcon(icon)
+        discard .addField(label, result, null, help)
+        return result
+    }
+
+    // Creates a selection-only field, appends its labeled row, and returns the combo box.
+    //
+    // The combo box starts empty and without a selection. Fill it with
+    // [[Gui.ComboBox.addItem]], then select the entry the form should open on.
+    mtd addChoiceField(label: string, help: #null string = null, id: #null WndId = null)->*ComboBox
+    {
+        let result = ComboBox.create(me, id: id)
+        discard .addField(label, result, null, help)
+        return result
+    }
+
+    // Adds the trailing button of the row appended last and returns it.
+    //
+    // The button shares the height of its field and keeps its preferred width. A row holds a
+    // single trailing control, so this cannot follow [[Gui.FormLayoutCtrl.addRowChoice]] on
+    // the same row.
+    mtd addRowAction(text: string, icon: Icon = {}, id: #null WndId = null)->*PushButton
+    {
+        let result = PushButton.create(me, text, {}, id)
+        if icon.isValid() do
+            result.setIcon(icon)
+        .attachToLastRow(result)
+        return result
+    }
+
+    // Adds the trailing selector of the row appended last and returns it.
+    //
+    // Use it for the unit or qualifier of a value the field itself holds, such as the size
+    // unit beside a capacity. A row holds a single trailing control.
+    mtd addRowChoice(id: #null WndId = null)->*ComboBox
+    {
+        let result = ComboBox.create(me, id: id)
+        .attachToLastRow(result)
         return result
     }
 

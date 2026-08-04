@@ -17,41 +17,57 @@ internal enum OperationKind
     Unmount
 }
 
+// Long operation running outside the UI thread. Only one runs at a time, and the window
+// polls `job` with `timer` until the result is ready to be reported.
+struct VaultOperation
+{
+    job:      Jobs.Job          // Worker scheduled for `kind`.
+    kind:     OperationKind     // Work the job performs, or `None` while the window is idle.
+    timer:    #null *Timer      // Polls the job while it runs.
+    error:    #null any         // Failure captured by the job, or null when it succeeded.
+    path:     String            // Container file the operation acts on.
+    mount:    String            // Drive letter requested by a mount operation.
+    size:     u64               // Container size requested by a create operation.
+    password: Array'u8          // Password copy owned by the operation and wiped when it ends.
+}
+
 // Owns the complete application state. The UI thread owns this object; long
 // operations use `operation` and report their result back through the timer.
 struct MainWindow
 {
     using wnd: Wnd
 
+    // Controls of the "create a new vault" card.
     #[Swag.Late]
     {
+        createForm:      *FormLayoutCtrl
         createPath:      *EditBox
         createSize:      *EditBox
         createUnit:      *ComboBox
         createPassword:  *PasswordEdit
         confirmPassword: *PasswordEdit
         createButton:    *PushButton
-        mountPath:       *EditBox
-        drive:           *ComboBox
-        mountPassword:   *PasswordEdit
-        mountButton:     *PushButton
-        unmountButton:   *PushButton
-        status:          *Label
     }
+
+    // Controls of the "mount an existing vault" card.
+    #[Swag.Late]
+    {
+        mountForm:     *FormLayoutCtrl
+        mountPath:     *EditBox
+        mountPassword: *PasswordEdit
+        drive:         *ComboBox
+        mountButton:   *PushButton
+        unmountButton: *PushButton
+    }
+
+    #[Swag.Late]
+    status: *Label     // Single status line displayed above the footer.
 
     fileDlgState: FileDlgState
     mounted:      WinFsp.MountedVolume
     state:        AppState
     shuttingDown: bool
-
-    operation:         Jobs.Job
-    operationKind:     OperationKind
-    operationTimer:    #null *Timer
-    operationError:    #null any
-    operationPath:     String
-    operationMount:    String
-    operationSize:     u64
-    operationPassword: Array'u8
+    operation:    VaultOperation
 }
 
 internal func caughtMessage(err: #null any)->string
@@ -69,52 +85,6 @@ internal func runMainWindowOperation(data: #null *void)
 {
     let window = cast(*MainWindow) (notnull data)
     window.runOperation()
-}
-
-private func createVaultFields()->Array'FormFieldDefinition
-{
-    var result: retval
-    result.add({id: "create.path", label: "CONTAINER FILE", placeholder: "C:\\path\\private.scrypt", actionText: "Browse"})
-
-    with var capacity: FormFieldDefinition
-    {
-        .id          = "create.size"
-        .label       = "FIXED CAPACITY"
-        .initialText = "256"
-        .choices.add({"MiB", "mib"})
-        .choices.add({"GiB", "gib"})
-    }
-
-    result.add(#move capacity)
-
-    result.add({id: "create.password", label: "PASSWORD", kind: FormFieldKind.Password, placeholder: "Required password"})
-    result.add({id: "create.confirm", label: "CONFIRM PASSWORD", kind: FormFieldKind.Password, placeholder: "Enter the password again"})
-    return result
-}
-
-private func mountVaultFields()->Array'FormFieldDefinition
-{
-    var result: retval
-    result.add({id: "mount.path", label: "CONTAINER FILE", placeholder: "Existing encrypted container", actionText: "Browse"})
-    result.add({id: "mount.password", label: "PASSWORD", kind: FormFieldKind.Password, placeholder: "Container password"})
-
-    // Windows keeps A and B for floppies and C for the system disk, so the
-    // letters a user expects come first and the unusual ones stay available
-    // further down the list.
-    let available = File.availableDriveLetters()
-    with var drive: FormFieldDefinition
-    {
-        .id    = "mount.drive"
-        .label = "DRIVE LETTER"
-        .kind  = .Choice
-        for letter in available where letter >= 'D' do
-            .choices.add({Format.toString("%:", letter)})
-        for letter in available where letter < 'D' do
-            .choices.add({Format.toString("%:", letter)})
-    }
-
-    result.add(#move drive)
-    return result
 }
 
 impl MainWindow
@@ -140,20 +110,14 @@ impl MainWindow
             .setColumnTrack(0, .Fraction, 1)
             .setColumnTrack(1, .Fraction, 1)
             .setRowTrack(0, .Fraction, 1)
-            .setCell(result.createCreateCard(cards), 0, 0)
-            .setCell(result.createMountCard(cards), 1, 0)
+            .setCell(result.createNewVaultCard(cards), 0, 0)
+            .setCell(result.createMountVaultCard(cards), 1, 0)
         }
 
         result.applyLayout()
         cards.computeLayout()
         result.setState(.Ready)
         return result
-    }
-
-    // Releases any pending operation and mounted volume before application exit.
-    mtd shutdown()
-    {
-        .shutdownInternal()
     }
 
     mtd createHeader()
@@ -215,72 +179,89 @@ impl MainWindow
         statusView.applyLayout()
     }
 
-    mtd createCreateCard(parent: *GridLayoutCtrl)->*FrameWnd
+    // Creates the form of a card and docks it to the top of the card body.
+    mtd createCardForm(card: VaultCard)->*FormLayoutCtrl
+    {
+        let result = FormLayoutCtrl.create(card.body, {rowSpacing: 10})
+        result.dockStyle = .Top
+        return result
+    }
+
+    // Sizes a filled form to its rows so a card never carries a hand-tuned height.
+    mtd endCardForm(card: VaultCard, form: *FormLayoutCtrl)
+    {
+        form.computeLayout()
+        form.position.height = form.contentHeight
+        card.body.applyLayout()
+    }
+
+    mtd createNewVaultCard(parent: *GridLayoutCtrl)->*FrameWnd
     {
         let card = VaultCard.create(parent, "Create a new vault", "Choose a fixed capacity. The complete container is randomized before it is ready.")
+        let form = .createCardForm(card)
+        .createForm = form
 
-        var options: FormLayoutOptions
-        options.labelPlacement = .Above
-        options.rowSpacing     = 10
-        let definitions = createVaultFields()
-        let form        = FormCtrl.create(card.body, definitions.toSlice(), options, {0, 0, 0, 304})
-        form.dockStyle = .Top
-
-        .createPath      = notnull form.textField("create.path")
-        .createSize      = notnull form.textField("create.size")
-        .createUnit      = notnull (notnull form.findField("create.size")).accessoryChoice
-        .createPassword  = notnull form.passwordField("create.password")
-        .confirmPassword = notnull form.passwordField("create.confirm")
-        .createPath.setIcon(.theme().icon24(ThemeIcons24.OpenFile, 17))
-        let browse = notnull (notnull form.findField("create.path")).action
-        browse.setIcon(.theme().icon24(ThemeIcons24.OpenFile, 16))
-        let window = me
-        form.sigAction += func|window|(form, id)
+        .createPath = form.addTextField("CONTAINER FILE", placeholder: "C:\\path\\private.scrypt", icon: .theme().icon24(ThemeIcons24.OpenFile, 17))
+        let browse = form.addRowAction("Browse", .theme().icon24(ThemeIcons24.OpenFile, 16))
+        browse.sigPressed += func|window = me|(btn)
         {
-            discard form
-            if id == "create.path" do
-                window.chooseContainer(window.createPath, true)
+            discard btn
+            window.chooseContainer(window.createPath, true)
         }
+
+        .createSize = form.addTextField("FIXED CAPACITY", "256")
         .createSize.setUnsignedIntegerRange(1, 1024 * 1024)
+
+        // The multiplier read by `containerSize` follows this order.
+        .createUnit = form.addRowChoice()
+        .createUnit.addItem("MiB")
+        .createUnit.addItem("GiB")
+        .createUnit.setSelectedIndex(0, notify: false)
+
+        .createPassword  = form.addPasswordField("PASSWORD", placeholder: "Required password")
+        .confirmPassword = form.addPasswordField("CONFIRM PASSWORD", placeholder: "Enter the password again")
 
         let actions = StackLayoutCtrl.create(card.body, .Right, {0, 0, 0, 38})
         actions.dockStyle = .Bottom
         .createButton     = PushButton.create(actions, "Create encrypted vault", {0, 0, 228, 38}, form: .Strong)
         .createButton.setIcon(.theme().icon24(ThemeIcons24.SaveAs, 18))
-        .createButton.sigPressed += func|window|(btn)
+        .createButton.sigPressed += func|window = me|(btn)
         {
             discard btn
             window.createContainer()
         }
+
         actions.computeLayout()
-        card.body.applyLayout()
+        .endCardForm(card, form)
         return card.frame
     }
 
-    mtd createMountCard(parent: *GridLayoutCtrl)->*FrameWnd
+    mtd createMountVaultCard(parent: *GridLayoutCtrl)->*FrameWnd
     {
         let card = VaultCard.create(parent, "Mount an existing vault", "Unlock a container and expose it on any currently available drive letter.")
+        let form = .createCardForm(card)
+        .mountForm = form
 
-        var options: FormLayoutOptions
-        options.labelPlacement = .Above
-        options.rowSpacing     = 10
-        let definitions = mountVaultFields()
-        let form        = FormCtrl.create(card.body, definitions.toSlice(), options, {0, 0, 0, 224})
-        form.dockStyle = .Top
-
-        .mountPath     = notnull form.textField("mount.path")
-        .mountPassword = notnull form.passwordField("mount.password")
-        .drive         = notnull form.choiceField("mount.drive")
-        .mountPath.setIcon(.theme().icon24(ThemeIcons24.OpenFile, 17))
-        let browse = notnull (notnull form.findField("mount.path")).action
-        browse.setIcon(.theme().icon24(ThemeIcons24.OpenFile, 16))
-        let window = me
-        form.sigAction += func|window|(form, id)
+        .mountPath = form.addTextField("CONTAINER FILE", placeholder: "Existing encrypted container", icon: .theme().icon24(ThemeIcons24.OpenFile, 17))
+        let browse = form.addRowAction("Browse", .theme().icon24(ThemeIcons24.OpenFile, 16))
+        browse.sigPressed += func|window = me|(btn)
         {
-            discard form
-            if id == "mount.path" do
-                window.chooseContainer(window.mountPath, false)
+            discard btn
+            window.chooseContainer(window.mountPath, false)
         }
+
+        .mountPassword = form.addPasswordField("PASSWORD", placeholder: "Container password")
+        .drive         = form.addChoiceField("DRIVE LETTER")
+
+        // Windows keeps A and B for floppies and C for the system disk, so the letters a
+        // user expects come first and the unusual ones stay available further down.
+        let available = File.availableDriveLetters()
+        for letter in available where letter >= 'D' do
+            .drive.addItem(Format.toString("%:", letter))
+        for letter in available where letter < 'D' do
+            .drive.addItem(Format.toString("%:", letter))
+        if .drive.items.count do
+            .drive.setSelectedIndex(0, notify: false)
 
         let note = Label.create(card.body, "The drive is available to Windows while sCrypt runs, then disappears when the app closes.", {0, 0, 0, 54}, null, .WordWrap | .SecondaryText)
         note.dockStyle = .Top
@@ -290,20 +271,22 @@ impl MainWindow
         actions.dockStyle = .Bottom
         .unmountButton    = PushButton.create(actions, "Unmount", {0, 0, 140, 38})
         .unmountButton.setIcon(.theme().icon24(ThemeIcons24.Stop, 18))
-        .unmountButton.sigPressed += func|window|(btn)
+        .unmountButton.sigPressed += func|window = me|(btn)
         {
             discard btn
             window.unmountContainer()
         }
+
         .mountButton = PushButton.create(actions, "Mount drive", {0, 0, 140, 38}, form: .Strong)
         .mountButton.setIcon(.theme().icon24(ThemeIcons24.Play, 18))
-        .mountButton.sigPressed += func|window|(btn)
+        .mountButton.sigPressed += func|window = me|(btn)
         {
             discard btn
             window.mountContainer()
         }
+
         actions.computeLayout()
-        card.body.applyLayout()
+        .endCardForm(card, form)
         return card.frame
     }
 
@@ -321,15 +304,10 @@ impl MainWindow
         let ready   = state == .Ready
         let mounted = state == .Mounted
 
-        .createPath.enable(ready)
-        .createSize.enable(ready)
-        .createUnit.enable(ready)
-        .createPassword.enable(ready)
-        .confirmPassword.enable(ready)
+        // Disabling a form disables every field and trailing control it owns.
+        .createForm.enable(ready)
         .createButton.enable(ready)
-        .mountPath.enable(ready)
-        .drive.enable(ready)
-        .mountPassword.enable(ready)
+        .mountForm.enable(ready)
         .mountButton.enable(ready)
         .unmountButton.enable(mounted)
     }
@@ -376,13 +354,13 @@ impl MainWindow
 
     mtd beginOperation(kind: OperationKind)
     {
-        Debug.assert(.operationKind == .None)
-        .operationKind    = kind
-        .operationError   = null
-        .operation.lambda = &runMainWindowOperation
-        .operation.data   = me
-        .operationTimer   = .app().addTimer(50'ms, me)
-        Jobs.schedule(&.operation)
+        Debug.assert(.operation.kind == .None)
+        .operation.kind       = kind
+        .operation.error      = null
+        .operation.job.lambda = &runMainWindowOperation
+        .operation.job.data   = me
+        .operation.timer      = .app().addTimer(50'ms, me)
+        Jobs.schedule(&.operation.job)
     }
 
     mtd createContainer()
@@ -419,9 +397,9 @@ impl MainWindow
             return
         }
 
-        .operationPath = path
-        .operationSize = size
-        .operationPassword.add(.createPassword.bytes())
+        .operation.path = path
+        .operation.size = size
+        .operation.password.add(.createPassword.bytes())
         .createPassword.clear()
         .confirmPassword.clear()
         .status.setText("Creating and randomizing the container...")
@@ -451,9 +429,9 @@ impl MainWindow
             return
         }
 
-        .operationPath  = path
-        .operationMount = mountPoint
-        .operationPassword.add(.mountPassword.bytes())
+        .operation.path  = path
+        .operation.mount = mountPoint
+        .operation.password.add(.mountPassword.bytes())
         .mountPassword.clear()
         .status.setText("Starting the portable filesystem driver...")
         .setState(.Mounting)
@@ -471,110 +449,111 @@ impl MainWindow
 
     mtd runOperation()
     {
-        switch #complete .operationKind
+        switch #complete .operation.kind
         {
         case .None:
             return
 
         case .Create:
-            var volume = catch Volume.create(.operationPath.toString(), .operationPassword.toSlice(), .operationSize) as createError
-            .operationError = createError
+            var volume = catch Volume.create(.operation.path.toString(), .operation.password.toSlice(), .operation.size) as createError
+            .operation.error = createError
             if createError == null do
                 volume.close()
 
         case .Mount:
-            discard catch .mounted.open(.operationPath.toString(), .operationPassword.toSlice(), .operationMount.toString()) as mountError
-            .operationError = mountError
+            discard catch .mounted.open(.operation.path.toString(), .operation.password.toSlice(), .operation.mount.toString()) as mountError
+            .operation.error = mountError
 
         case .Unmount:
             discard catch .mounted.close() as unmountError
-            .operationError = unmountError
+            .operation.error = unmountError
         }
 
-        Core.Crypto.secureClear(.operationPassword.toSlice())
-        .operationPassword.clear()
+        Core.Crypto.secureClear(.operation.password.toSlice())
+        .operation.password.clear()
     }
 
     mtd finishOperation()
     {
-        Jobs.wait(&.operation)
-        if .operationTimer
+        Jobs.wait(&.operation.job)
+        if .operation.timer
         {
-            .removeTimer(notnull .operationTimer)
-            .operationTimer = null
+            .removeTimer(notnull .operation.timer)
+            .operation.timer = null
         }
 
-        switch #complete .operationKind
+        switch #complete .operation.kind
         {
         case .None:
             return
 
         case .Create:
-            if .operationError != null
+            if .operation.error != null
             {
-                .showError("Could not create the container.", .operationError)
+                .showError("Could not create the container.", .operation.error)
                 .status.setText("Container creation stopped.")
             }
             else
             {
                 .status.setText("Container created. It is ready to mount.")
-                .mountPath.setText(.operationPath)
+                .mountPath.setText(.operation.path)
             }
 
             .setState(.Ready)
 
         case .Mount:
-            if .operationError != null
+            if .operation.error != null
             {
-                .showError("Could not mount the virtual disk.", .operationError)
+                .showError("Could not mount the virtual disk.", .operation.error)
                 .status.setText("Mount stopped.")
                 .setState(.Ready)
             }
             else
             {
-                .status.setText(Format.toString("Encrypted drive mounted on %. It will unmount when sCrypt closes.", .operationMount))
+                .status.setText(Format.toString("Encrypted drive mounted on %. It will unmount when sCrypt closes.", .operation.mount))
                 .setState(.Mounted)
             }
 
         case .Unmount:
-            if .operationError != null do
-                .showError("The drive was unmounted, but final synchronization stopped.", .operationError)
+            if .operation.error != null do
+                .showError("The drive was unmounted, but final synchronization stopped.", .operation.error)
             .status.setText("Drive unmounted safely.")
             .setState(.Ready)
         }
 
-        .operationKind  = .None
-        .operationError = null
-        .operationPath.clear()
-        .operationMount.clear()
-        .operationSize = 0
+        .operation.kind  = .None
+        .operation.error = null
+        .operation.path.clear()
+        .operation.mount.clear()
+        .operation.size = 0
     }
 
-    mtd shutdownInternal()
+    // Releases the pending operation and the mounted volume. Safe to call more than once.
+    mtd shutdown()
     {
         if .shuttingDown do
             return
         .shuttingDown = true
 
-        if .operationTimer
+        if .operation.timer
         {
-            .removeTimer(notnull .operationTimer)
-            .operationTimer = null
+            .removeTimer(notnull .operation.timer)
+            .operation.timer = null
         }
 
-        if .operationKind != .None
+        if .operation.kind != .None
         {
-            Jobs.wait(&.operation)
-            .operationKind = .None
+            Jobs.wait(&.operation.job)
+            .operation.kind = .None
         }
 
         discard catch .mounted.close()
-        Core.Crypto.secureClear(.operationPassword.toSlice())
-        .operationPassword.clear()
+        Core.Crypto.secureClear(.operation.password.toSlice())
+        .operation.password.clear()
         .createPassword.clear()
         .confirmPassword.clear()
         .mountPassword.clear()
-        .operationError = null
+        .operation.error = null
     }
 }
 
@@ -582,14 +561,14 @@ impl IWnd for MainWindow
 {
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
-        if evt.timer == .operationTimer and Jobs.isDone(&.operation) do
+        if evt.timer == .operation.timer and Jobs.isDone(&.operation.job) do
             .finishOperation()
         .wnd.IWnd.onTimerEvent(evt)
     }
 
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
-        .shutdownInternal()
+        .shutdown()
         .wnd.IWnd.onDestroyEvent(evt)
     }
 }

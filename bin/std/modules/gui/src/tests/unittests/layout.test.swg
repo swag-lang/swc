@@ -340,44 +340,35 @@ using Swag, Core
     @assert(name.position.width == kind.position.width)
 }
 
-// FormCtrl materializes typed fields and optional actions from descriptions.
+// FormLayoutCtrl builders create each field control and return it already typed.
 #test
 {
     var host: Testing.HeadlessHost
-    host.setup(520, 320)
+    host.setup(520, 360)
     defer host.shutdown()
 
-    var definitions: Array'FormFieldDefinition
-    definitions.add({id: "name", label: "NAME", initialText: "Ada",
-                     placeholder: "Display name", actionText: "Choose"})
-    var size: FormFieldDefinition
-    size.id    = "size"
-    size.label = "SIZE"
-    size.choices.add({"MiB", "mib"})
-    size.choices.add({"GiB", "gib"})
-    size.selectedIndex = 1
-    definitions.add(#move size)
-    definitions.add({id: "secret", label: "PASSWORD", kind: FormFieldKind.Password})
-    var choice: FormFieldDefinition
-    choice.id    = "unit"
-    choice.label = "UNIT"
-    choice.kind  = .Choice
-    choice.choices.add({"MiB", "mib"})
-    choice.choices.add({"GiB", "gib"})
-    choice.selectedIndex = 1
-    definitions.add(#move choice)
+    let form = FormLayoutCtrl.create(&host.root, position: {0, 0, 480, 320})
+    let name = form.addTextField("NAME", "Ada", placeholder: "Display name")
+    let pick = form.addRowAction("Choose")
+    let size = form.addTextField("SIZE", "256", help: "Capacity of the new container.")
+    let unit = form.addRowChoice()
+    unit.addItem("MiB", "mib")
+    unit.addItem("GiB", "gib")
+    unit.setSelectedIndex(1, notify: false)
+    let secret = form.addPasswordField("PASSWORD", placeholder: "Required password")
+    form.computeLayout()
 
-    @assert(definitions[1].kind == FormFieldKind.Text)
-    @assert(definitions[1].choices.count == 2)
-    @assert(@countof(definitions[1].actionText) == 0)
+    @assert(form.rows.count == 3)
+    @assert(name.text() == "Ada")
+    @assert(unit.selectedIndex == 1)
+    @assert(form.rows[0].action == pick)
+    @assert(form.rows[1].action == unit)
+    @assert(form.rows[1].help != null)
+    @assert(form.rows[2].action == null)
 
-    let form = FormCtrl.create(&host.root, definitions.toSlice(), position: {0, 0, 480, 280})
-    @assert(form.fields.count == 4)
-    @assert((notnull form.textField("name")).text() == "Ada")
-    @assert(form.passwordField("secret") != null)
-    @assert((notnull form.choiceField("unit")).selectedIndex == 1)
-    @assert(form.textField("unit") == null)
-    @assert((notnull form.findField("name")).action != null)
-    @assert((notnull (notnull form.findField("size")).accessoryChoice).selectedIndex == 1)
+    // Each builder registers exactly one row, so the fields keep their declaration order.
+    @assert(size.position.y > name.position.y)
+    @assert(secret.position.y > size.position.y)
+    @assert(pick.position.x > name.position.x)
     @assert(form.contentHeight > 0)
 }

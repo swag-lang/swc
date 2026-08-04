@@ -88,6 +88,7 @@ namespace InstructionCombine
     bool tryFoldAmcLoadIntoZeroExtend(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryFoldZeroExtAmcLoadIntoCompare(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryFoldAmcLoadIntoCompare(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
+    bool tryFoldConstIndexAmc(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldMemoryAddressing(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryNarrowExtend(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldConstStore(Context& ctx, MicroInstrRef storeRef, const MicroInstr& storeInst);

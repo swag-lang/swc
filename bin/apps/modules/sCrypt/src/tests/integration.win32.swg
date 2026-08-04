@@ -4,7 +4,7 @@
 
 using Core
 
-namespace SCrypt.Integration
+namespace Integration
 {
     const PasswordText            = "integration horse battery staple"
     const WrongPasswordText       = "definitely not the password"
@@ -56,7 +56,7 @@ namespace SCrypt.Integration
     func verify(condition: bool, message: string) fail
     {
         if !condition do
-            SCrypt.failWith(Format.toString("Integration check failed: %", message))
+            failWith(Format.toString("Integration check failed: %", message))
         g_CheckCount += 1
     }
 
@@ -93,7 +93,7 @@ namespace SCrypt.Integration
                 return Format.toString("%:", cast(rune) ('A' + index))
         }
 
-        SCrypt.failWith("No unused drive letter is available for the integration sandbox.")
+        failWith("No unused drive letter is available for the integration sandbox.")
     }
 
     func movePath(existing, replacement: string, replace = false) fail
@@ -101,7 +101,7 @@ namespace SCrypt.Integration
         let existing16    = Utf16.toZeroTerminated(existing)
         let replacement16 = Utf16.toZeroTerminated(replacement)
         if !MoveFileExW(@dataof(existing16), @dataof(replacement16), replace ? MoveReplaceExisting : 0) do
-            SCrypt.failWith(Format.toString("Windows error %: cannot rename [[%]] to [[%]].",
+            failWith(Format.toString("Windows error %: cannot rename [[%]] to [[%]].",
                                             GetLastError(),
                                             existing,
                                             replacement))
@@ -111,7 +111,7 @@ namespace SCrypt.Integration
     {
         let path16 = Utf16.toZeroTerminated(path)
         if !SetFileAttributesW(@dataof(path16), attributes) do
-            SCrypt.failWith(Format.toString("Windows error %: cannot set attributes on [[%]].",
+            failWith(Format.toString("Windows error %: cannot set attributes on [[%]].",
                                             GetLastError(),
                                             path))
     }
@@ -125,8 +125,8 @@ namespace SCrypt.Integration
     func removeDirectory(path: string) fail
     {
         let path16 = Utf16.toZeroTerminated(path)
-        if !SCrypt.Platform.RemoveDirectoryW(@dataof(path16)) do
-            SCrypt.failWith(Format.toString("Windows error %: cannot remove directory [[%]].",
+        if !WinFsp.RemoveDirectoryW(@dataof(path16)) do
+            failWith(Format.toString("Windows error %: cannot remove directory [[%]].",
                                             GetLastError(),
                                             path))
     }
@@ -162,7 +162,7 @@ namespace SCrypt.Integration
         source:        String
         recovered:     String
         mountPoint:    String
-        mounted:       #null *SCrypt.Platform.MountedVolume
+        mounted:       #null *WinFsp.MountedVolume
         mountedActive: bool
     }
 
@@ -173,7 +173,7 @@ namespace SCrypt.Integration
             var result: retval
             let temp = Env.getSpecialDirectory(.Temp)
             if temp.isEmpty() do
-                SCrypt.failWith("Windows did not provide a temporary directory for the sandbox.")
+                failWith("Windows did not provide a temporary directory for the sandbox.")
             result.root = Path.combine(temp,
                                        Format.toString("sCrypt-Integration-%", Guid64.random()))
             Directory.create(result.root)
@@ -187,8 +187,8 @@ namespace SCrypt.Integration
         mtd mountVolume(passwordBytes: const [..] u8) fail
         {
             if .mountedActive do
-                SCrypt.failWith("The integration volume is already mounted.")
-            let mounted = Memory.new'SCrypt.Platform.MountedVolume()
+                failWith("The integration volume is already mounted.")
+            let mounted = Memory.new'WinFsp.MountedVolume()
             discard catch mounted.open(.container, passwordBytes, .mountPoint) as mountError
             if mountError != null
             {
@@ -225,16 +225,16 @@ namespace SCrypt.Integration
             }
 
             if !.root.isEmpty() do
-                SCrypt.Platform.removeRuntimeTree(.root)
+                WinFsp.removeRuntimeTree(.root)
         }
 
         mtd closeSandbox() fail
         {
             if .mountedActive do
                 try .unmountVolume()
-            SCrypt.Platform.removeRuntimeTree(.root)
+            WinFsp.removeRuntimeTree(.root)
             if Directory.exists(.root) do
-                SCrypt.failWith(Format.toString("The integration sandbox could not be removed: %",
+                failWith(Format.toString("The integration sandbox could not be removed: %",
                                                 .root))
             .root.clear()
         }
@@ -397,7 +397,7 @@ namespace SCrypt.Integration
         try verify(!Directory.exists(driveRoot(box.mountPoint)),
                    "the drive letter must disappear after unmount")
 
-        var rejected: SCrypt.Platform.MountedVolume
+        var rejected: WinFsp.MountedVolume
         discard catch rejected.open(box.container, wrongPassword(), box.mountPoint) as passwordError
         rejected.close()
         try verify(passwordError != null, "a wrong password must not mount the container")
@@ -436,7 +436,7 @@ namespace SCrypt.Integration
     func runInSandbox(box: *Sandbox)->u32 fail
     {
         g_CheckCount = 0
-        try verify(!SCrypt.Platform.isElevated(),
+        try verify(!WinFsp.isElevated(),
                    "the filesystem host must use the normal Explorer security context")
         Console.println("sCrypt integration sandbox: ", box.root)
         Console.println("Using temporary drive: ", box.mountPoint)
@@ -449,7 +449,7 @@ namespace SCrypt.Integration
 
         Console.println("Creating encrypted fixed-size container...")
         trace("STAGE: create container")
-        var created = try SCrypt.Volume.create(box.container, password(), ContainerSize)
+        var created = try Volume.create(box.container, password(), ContainerSize)
         created.close()
         try verify(File.exists(box.container), "the encrypted container must be created")
         var raw     = try File.open(box.container, .Open, .ReadWrite, .Read)
@@ -512,7 +512,7 @@ namespace SCrypt.Integration
     {
         switch err
         {
-        case SCrypt.Error:     return (cast(SCrypt.Error) err).message orelse "sCrypt integration error."
+        case Error:     return (cast(Error) err).message orelse "sCrypt integration error."
         case Swag.SystemError: return (cast(Swag.SystemError) err).message orelse "Windows integration error."
         }
 

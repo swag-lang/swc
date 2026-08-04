@@ -27,9 +27,12 @@ as the idiom.
 ## Name Source Files Consistently
 
 - Name `.swg` and `.swgs` files entirely in lowercase. Do not mirror type casing in filenames.
-- Concatenate ordinary multiword names, as in `filebrowserctrl.swg` and `gridlayoutctrl.swg`.
-- Reserve dots for established role and platform qualifiers such as `.test.swg`, `.init.swg`,
-  and `.win32.swg`. Follow the surrounding family when it has a more specific convention.
+- Concatenate the words of one symbol or indivisible concept, as in `filebrowserctrl.swg` and
+  `gridlayoutctrl.swg`.
+- Use dots to separate the named parts of a coherent file family, such as `gif.palette.swg`,
+  `app.operations.swg`, and `image.filter.grayscale.test.swg`. Platform, test, initialization,
+  backend, role, and feature parts all use the same notation; `.test`, `.init`, and `.win32` are
+  common parts, not the only valid ones. Follow the surrounding family when it is more specific.
 
 ## Return Values Directly
 

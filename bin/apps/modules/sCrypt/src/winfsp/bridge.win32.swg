@@ -2,11 +2,11 @@
 
 using Core
 
-namespace SCrypt.Platform
+namespace WinFsp
 {
     struct NativeMountContext
     {
-        volume:          *SCrypt.Volume = undefined
+        volume:          *Volume = undefined
         defaultSecurity: #null *void
     }
 
@@ -20,7 +20,7 @@ namespace SCrypt.Platform
     func mountContext(fileSystem: *FspFileSystem)->*NativeMountContext
         => cast(*NativeMountContext) notnull fileSystem.userContext
 
-    func mountedVolume(fileSystem: *FspFileSystem)->*SCrypt.Volume
+    func mountedVolume(fileSystem: *FspFileSystem)->*Volume
         => mountContext(fileSystem).volume
 
     func idFromContext(context: #null *void)->u64 => cast(u64) context
@@ -39,7 +39,7 @@ namespace SCrypt.Platform
         let context = mountContext(fileSystem)
         let node    = context.volume.nodeById(nodeId)
         if !node do
-            return SCrypt.StatusObjectNameNotFound
+            return StatusObjectNameNotFound
 
         let available = dref securitySize
         let stored    = (notnull node).security.toSlice()
@@ -47,19 +47,19 @@ namespace SCrypt.Platform
         {
             dref securitySize = @countof(stored)
             if security and available < @countof(stored) do
-                return SCrypt.StatusBufferOverflow
+                return StatusBufferOverflow
             if security do
                 @memcpy(notnull security, @dataof(stored), @countof(stored))
-            return SCrypt.StatusSuccess
+            return StatusSuccess
         }
 
         let required = cast(u64) GetSecurityDescriptorLength(context.defaultSecurity)
         dref securitySize = required
         if security and available < required do
-            return SCrypt.StatusBufferOverflow
+            return StatusBufferOverflow
         if security and required do
             @memcpy(notnull security, notnull context.defaultSecurity, required)
-        return SCrypt.StatusSuccess
+        return StatusSuccess
     }
 
     func fspGetVolumeInfo(fileSystem: *FspFileSystem, info: *FspVolumeInfo)->s32
@@ -70,7 +70,7 @@ namespace SCrypt.Platform
                                            &info.freeSize,
                                            @dataof(label),
                                            cast(u32) @countof(label))
-        if status != SCrypt.StatusSuccess do
+        if status != StatusSuccess do
             return status
 
         let label16 = Utf16.fromUtf8(cString(@dataof(label)))
@@ -78,14 +78,14 @@ namespace SCrypt.Platform
         if count do
             @memcpy(@dataof(info.volumeLabel), @dataof(label16), count * #sizeof(u16))
         info.volumeLabelLength = cast(u16) (count * #sizeof(u16))
-        return SCrypt.StatusSuccess
+        return StatusSuccess
     }
 
     func fspSetVolumeLabel(fileSystem: *FspFileSystem, label: #null [*] u16, info: *FspVolumeInfo)->s32
     {
         let value  = stringFromWide(label)
         let status = callbackSetVolumeLabel(mountedVolume(fileSystem), value.buffer)
-        return status == SCrypt.StatusSuccess ? fspGetVolumeInfo(fileSystem, info) : status
+        return status == StatusSuccess ? fspGetVolumeInfo(fileSystem, info) : status
     }
 
     func fspGetSecurityByName(fileSystem: *FspFileSystem, path: #null [*] u16, attributes: #null *u32, security: #null *void, securitySize: #null *u64)->s32
@@ -94,12 +94,12 @@ namespace SCrypt.Platform
         var nodeId: u64
         var info:   FileInfo
         let status = callbackLookup(mountedVolume(fileSystem), value.buffer, &nodeId, &info)
-        if status != SCrypt.StatusSuccess do
+        if status != StatusSuccess do
             return status
         if attributes do
             dref attributes = info.fileAttributes
         return securitySize ? copySecurity(fileSystem, nodeId, security, notnull securitySize) :
-               SCrypt.StatusSuccess
+               StatusSuccess
     }
 
     func fspCreate(fileSystem: *FspFileSystem, path: #null [*] u16, createOptions, grantedAccess, attributes: u32, security: #null *void, allocationSize: u64, fileContext: *#null *void, info: *FileInfo)->s32
@@ -111,7 +111,7 @@ namespace SCrypt.Platform
         let securitySize = security ? GetSecurityDescriptorLength(security) : 0
         var nodeId: u64
         let status       = callbackCreate(mounted, value.buffer, directory, attributes, allocationSize, security, securitySize, &nodeId, info)
-        if status == SCrypt.StatusSuccess do
+        if status == StatusSuccess do
             dref fileContext = contextFromId(nodeId)
         return status
     }
@@ -123,7 +123,7 @@ namespace SCrypt.Platform
         let value  = stringFromWide(path)
         var nodeId: u64
         let status = callbackLookup(mountedVolume(fileSystem), value.buffer, &nodeId, info)
-        if status == SCrypt.StatusSuccess do
+        if status == StatusSuccess do
             dref fileContext = contextFromId(nodeId)
         return status
     }
@@ -192,13 +192,13 @@ namespace SCrypt.Platform
         let nodeId  = idFromContext(fileContext)
         let node    = context.volume.nodeById(nodeId)
         if !node do
-            return SCrypt.StatusObjectNameNotFound
+            return StatusObjectNameNotFound
 
         let stored = (notnull node).security.toSlice()
         let input  = @countof(stored) ? cast(#null const *void) @dataof(stored) : context.defaultSecurity
         var updated: #null *void
         let status = (g_WinFsp.setSecurityDescriptor)(input, information, modification, &updated)
-        if status != SCrypt.StatusSuccess do
+        if status != StatusSuccess do
             return status
 
         let size   = GetSecurityDescriptorLength(updated)
@@ -233,7 +233,7 @@ namespace SCrypt.Platform
         var context     = FspEmitContext{buffer: buffer, length: length, transferred: transferred}
         var complete: u8
         let status      = callbackReadDirectory(mountedVolume(fileSystem), idFromContext(fileContext), markerValue.buffer, &emitFspDir, &context, &complete)
-        if status == SCrypt.StatusSuccess and complete do
+        if status == StatusSuccess and complete do
             discard (g_WinFsp.addDirInfo)(null, buffer, length, transferred)
         return status
     }
@@ -246,18 +246,18 @@ namespace SCrypt.Platform
                                               idFromContext(fileContext),
                                               value.buffer,
                                               &info)
-        if status != SCrypt.StatusSuccess do
+        if status != StatusSuccess do
             return status
 
         let name16 = Utf16.toZeroTerminated(value)
         let bytes  = #offsetof(FspDirInfo.fileName) + @countof(name16) * #sizeof(u16)
         if bytes > Swag.U16.Max do
-            return SCrypt.StatusInvalidParameter
+            return StatusInvalidParameter
         dirInfo.size     = cast(u16) bytes
         dirInfo.fileInfo = info
         if @countof(name16) > 1 do
             @memcpy(&dirInfo.fileName[0], @dataof(name16), (@countof(name16) - 1) * #sizeof(u16))
-        return SCrypt.StatusSuccess
+        return StatusSuccess
     }
 
     func makeInterface()->FspInterface

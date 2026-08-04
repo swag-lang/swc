@@ -6,7 +6,7 @@
 
 using Core
 
-namespace SCrypt.Platform
+namespace WinFsp
 {
     alias NativeHandle = #null const [*] void
 
@@ -239,7 +239,7 @@ namespace SCrypt.Platform
     {
         switch err
         {
-        case SCrypt.Error:     return (cast(SCrypt.Error) err).message orelse "The portable WinFsp runtime failed."
+        case Error:     return (cast(Error) err).message orelse "The portable WinFsp runtime failed."
         case Swag.SystemError: return (cast(Swag.SystemError) err).message orelse "Windows rejected the WinFsp helper."
         }
 
@@ -303,11 +303,11 @@ namespace SCrypt.Platform
         if g_WinFsp.guardianManaged do
             return
         if isElevated() do
-            SCrypt.failWith("Launch sCrypt normally, not with 'Run as administrator', so Windows Explorer can see the mounted drive.")
+            failWith("Launch sCrypt normally, not with 'Run as administrator', so Windows Explorer can see the mounted drive.")
 
         let temp = Env.getSpecialDirectory(.Temp)
         if temp.isEmpty() do
-            SCrypt.failWith("Windows did not provide a usable temporary directory.")
+            failWith("Windows did not provide a usable temporary directory.")
 
         let communicationRoot = Path.combine(temp,
                                              Format.toString("sCrypt-Guardian-%-%", Env.Process.currentProcessId(), Guid64.random()))
@@ -323,7 +323,7 @@ namespace SCrypt.Platform
         if cast(u64) launch <= 32
         {
             removeRuntimeTree(communicationRoot)
-            SCrypt.failWith(Format.toString("Windows could not start the portable WinFsp helper (ShellExecute code %, Windows error %).",
+            failWith(Format.toString("Windows could not start the portable WinFsp helper (ShellExecute code %, Windows error %).",
                                             cast(u64) launch,
                                             GetLastError()))
         }
@@ -349,14 +349,14 @@ namespace SCrypt.Platform
                     let detail      = @countof(status) > prefixCount ?
                                  @mkstring(@dataof(status) + prefixCount, @countof(status) - prefixCount) :
                                  "The portable WinFsp helper failed."
-                    SCrypt.failWith(detail)
+                    failWith(detail)
                 }
             }
 
             Threading.Thread.sleep(50'ms)
         }
 
-        SCrypt.failWith("The portable WinFsp helper did not become ready in time.")
+        failWith("The portable WinFsp helper did not become ready in time.")
     }
 
     func removeRuntimeTree(path: string)
@@ -396,11 +396,11 @@ namespace SCrypt.Platform
         let sourceDll           = Path.combine(executableDirectory, WinFspDllName)
         let sourceDriver        = Path.combine(executableDirectory, WinFspDriverName)
         if !File.exists(sourceDll) or !File.exists(sourceDriver) do
-            SCrypt.failWith("The signed portable WinFsp runtime is incomplete.")
+            failWith("The signed portable WinFsp runtime is incomplete.")
 
         let temp = Env.getSpecialDirectory(.Temp)
         if temp.isEmpty() do
-            SCrypt.failWith("Windows did not provide a usable temporary directory.")
+            failWith("Windows did not provide a usable temporary directory.")
 
         var root = Path.combine(temp,
                                 Format.toString("sCrypt-WinFsp-%-%",
@@ -417,7 +417,7 @@ namespace SCrypt.Platform
         if dllError != null or driverError != null or !File.exists(dll) or !File.exists(driver)
         {
             removeRuntimeTree(root)
-            SCrypt.failWith("The portable WinFsp runtime could not be staged.")
+            failWith("The portable WinFsp runtime could not be staged.")
         }
 
         let identity = Path.combine(bin, "winfsp.sxs")
@@ -445,7 +445,7 @@ namespace SCrypt.Platform
         let startService      = GetProcAddress(g_WinFsp.module, @dataof("FspFsctlStartService"))
 
         if !create or !destroy or !setMountPoint or !removeMountPoint or !startDispatcher or !stopDispatcher or !addDirInfo or !setGuard or !setSecurity or !deleteSecurity or !registerServer or !unregisterServer or !setDebugLogHandle or !startService do
-            SCrypt.failWith("The bundled WinFsp runtime does not expose the expected ABI.")
+            failWith("The bundled WinFsp runtime does not expose the expected ABI.")
 
         g_WinFsp.fsCreate                 = cast(FspFileSystemCreateFn) notnull create
         g_WinFsp.destroy                  = cast(FspFileSystemDeleteFn) notnull destroy
@@ -567,7 +567,7 @@ namespace SCrypt.Platform
                 g_WinFsp.runtimeRoot.clear()
             }
 
-            SCrypt.failWith("Windows could not load the signed WinFsp runtime.")
+            failWith("Windows could not load the signed WinFsp runtime.")
         }
 
         traceWinFspStage("resolving WinFsp exports")
@@ -603,7 +603,7 @@ namespace SCrypt.Platform
         if result < 0
         {
             endWinFspLog(logHandle)
-            SCrypt.failWith(Format.toString("Windows refused to register the portable WinFsp driver (HRESULT 0x%).\n\n%",
+            failWith(Format.toString("Windows refused to register the portable WinFsp driver (HRESULT 0x%).\n\n%",
                                             Format.toString("%{X}", cast(u32) result),
                                             winFspLogDetail()))
         }
@@ -615,7 +615,7 @@ namespace SCrypt.Platform
         traceWinFspStage("FspFsctlStartService returned")
         endWinFspLog(logHandle)
         if startStatus < 0 do
-            SCrypt.failWith(Format.toString("Windows registered the portable WinFsp driver but could not start it (NTSTATUS %{X}).\n\n%",
+            failWith(Format.toString("Windows registered the portable WinFsp driver but could not start it (NTSTATUS %{X}).\n\n%",
                                             cast(u32) startStatus,
                                             winFspLogDetail()))
     }

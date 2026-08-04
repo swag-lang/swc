@@ -1,6 +1,6 @@
 using Core
 
-namespace SCrypt.Crypto
+namespace Crypto
 {
     const SaltSize          = 32
     const NonceSize         = Core.Crypto.ChaCha20NonceSize

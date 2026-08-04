@@ -1,6 +1,6 @@
 #global if WINDOWS
 
-namespace SCrypt
+namespace WinFsp
 {
     const CleanupDelete            = 0x01'u32
     const CleanupSetAllocationSize = 0x02'u32
@@ -20,25 +20,22 @@ namespace SCrypt
     const StatusDirectoryNotEmpty   = cast #bit (s32) 0xC0000101'u32
     const StatusNotADirectory       = cast #bit (s32) 0xC0000103'u32
     const StatusIoDeviceError       = cast #bit (s32) 0xC0000185'u32
-}
 
-namespace SCrypt.Platform
-{
-    func statusFromError(err: #null any, fallback = SCrypt.StatusIoDeviceError)->s32
+    func statusFromError(err: #null any, fallback = StatusIoDeviceError)->s32
     {
         switch err
         {
-        case SCrypt.Error:
-            switch (cast(SCrypt.Error) err).kind
+        case Error:
+            switch (cast(Error) err).kind
             {
-            case .InvalidInput:      return SCrypt.StatusInvalidParameter
-            case .NotFound:          return SCrypt.StatusObjectNameNotFound
-            case .AlreadyExists:     return SCrypt.StatusObjectNameCollision
-            case .AccessDenied:      return SCrypt.StatusAccessDenied
-            case .NotDirectory:      return SCrypt.StatusNotADirectory
-            case .IsDirectory:       return SCrypt.StatusFileIsDirectory
-            case .DirectoryNotEmpty: return SCrypt.StatusDirectoryNotEmpty
-            case .DiskFull:          return SCrypt.StatusDiskFull
+            case .InvalidInput:      return StatusInvalidParameter
+            case .NotFound:          return StatusObjectNameNotFound
+            case .AlreadyExists:     return StatusObjectNameCollision
+            case .AccessDenied:      return StatusAccessDenied
+            case .NotDirectory:      return StatusNotADirectory
+            case .IsDirectory:       return StatusFileIsDirectory
+            case .DirectoryNotEmpty: return StatusDirectoryNotEmpty
+            case .DiskFull:          return StatusDiskFull
             }
         }
 

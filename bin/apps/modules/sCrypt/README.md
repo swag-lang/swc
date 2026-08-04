@@ -66,13 +66,16 @@ volume prend donc un temps proportionnel à sa taille.
 ## Architecture et portabilité
 
 ```text
-std/gui FormCtrl + PasswordEdit ---> appview.swg ---> appoperations.swg
-                                                |              |
-std/core Crypto + File + Jobs                   v              v
-             |                    format/volume/volumeio/volumeops
-             |                                  |
-             v                                  v
- security.win32.swg            winfspcallbacks/bridge/mount ---> WinFsp officiel
+std/gui FormCtrl + PasswordEdit ---> app.view.swg ---> app.operations.swg
+                                                 |                |
+std/core Crypto + File + Jobs                    v                v
+             |                    volume/{format,volume,volume.io,volume.operations}
+             |                                   |
+             v                                   v
+ security.win32.swg             winfsp/{callbacks,bridge,mount}.win32.swg
+                                                 |
+                                                 v
+                                          WinFsp officiel
 ```
 
 - `std/core` fournit désormais HMAC-SHA-256, PBKDF2-HMAC-SHA-256, ChaCha20, la comparaison en
@@ -88,16 +91,21 @@ std/core Crypto + File + Jobs                   v              v
   descriptions de champs. sCrypt les utilise pour ses deux cartes sans dupliquer labels,
   contrôles et coordonnées. Le sélecteur de fichiers standard fournit désormais historique,
   précédent, suivant, parent, actualisation, fil d’Ariane et raccourcis clavier.
-- `app.swg` possède l’état de la fenêtre, `appview.swg` décrit la vue et `appoperations.swg`
+- `app.swg` possède l’état de la fenêtre, `app.view.swg` décrit la vue et `app.operations.swg`
   orchestre les actions asynchrones. `main.swg` ne fait plus que démarrer l’application.
-- `crypto.swg` ne conserve que la dérivation des clés et l’authentification contextuelle propres au
-  format. `format.swg`, `filesystem.swg` et `blockstore.swg` isolent respectivement la
-  sérialisation, l’index logique et l’allocation. `volume.swg`, `volumeio.swg` et `volumeops.swg`
-  séparent le cycle de vie persistant, les blocs chiffrés et les opérations de fichiers.
-- `winfspabi.win32.swg` charge WinFsp dynamiquement et prépare son runtime portable.
-  `winfspstatus.win32.swg`, `winfspcallbacks.win32.swg`, `winfspbridge.win32.swg` et
-  `winfspmount.win32.swg` séparent les statuts NT, les opérations testables, l’adaptation ABI et le
-  cycle de montage.
+- `volume/crypto.swg` ne conserve que la dérivation des clés et l’authentification contextuelle
+  propres au format. `volume/format.swg`, `volume/filesystem.swg` et
+  `volume/blockallocator.swg` isolent respectivement la sérialisation, l’index logique et
+  l’allocation. `volume/volume.swg`, `volume/volume.io.swg` et
+  `volume/volume.operations.swg` séparent le cycle de vie persistant, les blocs chiffrés et les
+  opérations de fichiers.
+- `winfsp/abi.win32.swg` charge WinFsp dynamiquement et prépare son runtime portable.
+  `winfsp/status.win32.swg`, `winfsp/callbacks.win32.swg`, `winfsp/bridge.win32.swg` et
+  `winfsp/mount.win32.swg` séparent les statuts NT, les opérations testables, l’adaptation ABI et
+  le cycle de montage.
+- Les déclarations propres à l’application et au volume restent directement dans le module. Seuls
+  les vocabulaires qui forment une frontière réelle utilisent un namespace : `Crypto`, `WinFsp`
+  et le harnais `Integration`. Le préfixe redondant `SCrypt` n’est pas répliqué dans chaque nom.
 
 Un portage vers un autre OS fournit les backends système de `Core.Crypto`, `Core.Time` et
 `Core.File`, puis remplace la couche WinFsp et le sélecteur de point de montage, sans modifier les

@@ -2,7 +2,7 @@
 
 using Core
 
-namespace SCrypt.Platform
+namespace WinFsp
 {
     struct FileInfo
     {
@@ -35,67 +35,67 @@ namespace SCrypt.Platform
     func volumeSerialNumber(creationTime: u64)->u32
         => cast(u32) (creationTime & 0xFFFF_FFFF)
 
-    func fillInfo(volume: *SCrypt.Volume, nodeId: u64, output: *FileInfo)->s32
+    func fillInfo(volume: *Volume, nodeId: u64, output: *FileInfo)->s32
     {
         let node = volume.nodeById(nodeId)
         if !node do
-            return SCrypt.StatusObjectNameNotFound
+            return StatusObjectNameNotFound
         let validNode = notnull node
         output.fileAttributes = validNode.attributes
         output.allocationSize = validNode.isDirectory() ? 0 :
-                                (validNode.size + SCrypt.BlockSize - 1) / SCrypt.BlockSize * SCrypt.BlockSize
+                                (validNode.size + BlockSize - 1) / BlockSize * BlockSize
         output.fileSize       = validNode.size
         output.creationTime   = validNode.creationTime
         output.lastAccessTime = validNode.lastAccessTime
         output.lastWriteTime  = validNode.lastWriteTime
         output.changeTime     = validNode.changeTime
         output.indexNumber    = validNode.id
-        return SCrypt.StatusSuccess
+        return StatusSuccess
     }
 
     func callbackGetVolumeInfo(context: #null *void, total, free: *u64, label: [*] u8, labelCapacity: u32)->s32
     {
-        let volume = cast(*SCrypt.Volume) notnull context
+        let volume = cast(*Volume) notnull context
         dref total = volume.totalBytes()
         dref free  = volume.freeBytes()
         let count = Math.min(volume.label.length, cast(u64) labelCapacity - 1)
         if count do
             @memcpy(label, volume.label.buffer, count)
         label[count] = 0
-        return SCrypt.StatusSuccess
+        return StatusSuccess
     }
 
     func callbackSetVolumeLabel(context: #null *void, label: #null const [*] u8)->s32
     {
-        let volume = cast(*SCrypt.Volume) notnull context
+        let volume = cast(*Volume) notnull context
         let value  = cString(label)
         if @countof(value) > 32 * 4 do
-            return SCrypt.StatusInvalidParameter
+            return StatusInvalidParameter
         volume.label = value
         volume.dirty = true
         discard catch volume.commit() as err
-        return err == null ? SCrypt.StatusSuccess : statusFromError(err)
+        return err == null ? StatusSuccess : statusFromError(err)
     }
 
     func callbackLookup(context: #null *void, path: #null const [*] u8, nodeId: *u64, info: *FileInfo)->s32
     {
-        let volume = cast(*SCrypt.Volume) notnull context
+        let volume = cast(*Volume) notnull context
         let node   = volume.resolve(cString(path))
         if !node do
-            return SCrypt.StatusObjectNameNotFound
+            return StatusObjectNameNotFound
         dref nodeId = (notnull node).id
         return fillInfo(volume, dref nodeId, info)
     }
 
     func callbackCreate(context: #null *void, path: #null const [*] u8, directory: u8, attributes: u32, allocationSize: u64, security: #null const *void, securitySize: u32, nodeId: *u64, info: *FileInfo)->s32
     {
-        let volume = cast(*SCrypt.Volume) notnull context
+        let volume = cast(*Volume) notnull context
         let name   = cString(path)
         if volume.resolve(name) do
-            return SCrypt.StatusObjectNameCollision
+            return StatusObjectNameCollision
         let parent = volume.resolveParent(name).parent
         if !parent do
-            return SCrypt.StatusObjectNameNotFound
+            return StatusObjectNameNotFound
         var securityBytes = @mkslice(cast(const [*] u8) @dataof(""), 0)
         if securitySize do
             securityBytes = @mkslice(cast(const [*] u8) notnull security, securitySize)
@@ -115,20 +115,20 @@ namespace SCrypt.Platform
 
     func callbackOverwrite(context: #null *void, nodeId: u64, attributes: u32, replaceAttributes: u8, allocationSize: u64, info: *FileInfo)->s32
     {
-        let volume = cast(*SCrypt.Volume) notnull context
+        let volume = cast(*Volume) notnull context
         let node   = volume.nodeById(nodeId)
         if !node do
-            return SCrypt.StatusObjectNameNotFound
+            return StatusObjectNameNotFound
         if (notnull node).isDirectory() do
-            return SCrypt.StatusFileIsDirectory
+            return StatusFileIsDirectory
         let validNode = notnull node
         volume.freeNodeBlocks(validNode)
         validNode.size = 0
         if replaceAttributes do
-            validNode.attributes = attributes ? attributes : SCrypt.FileAttributeNormal
+            validNode.attributes = attributes ? attributes : FileAttributeNormal
         else do
             validNode.attributes |= attributes
-        validNode.changeTime    = SCrypt.volumeTimeNow()
+        validNode.changeTime    = volumeTimeNow()
         validNode.lastWriteTime = validNode.changeTime
         volume.dirty            = true
         discard catch volume.commit() as err
@@ -137,8 +137,8 @@ namespace SCrypt.Platform
 
     func callbackCleanup(context: #null *void, nodeId: u64, flags: u32)
     {
-        let volume = cast(*SCrypt.Volume) notnull context
-        if (flags & SCrypt.CleanupDelete) != 0
+        let volume = cast(*Volume) notnull context
+        if (flags & CleanupDelete) != 0
         {
             discard catch volume.deleteNode(nodeId)
             return
@@ -147,18 +147,18 @@ namespace SCrypt.Platform
         let node = volume.nodeById(nodeId)
         if !node do
             return
-        let now = SCrypt.volumeTimeNow()
-        if (flags & SCrypt.CleanupSetArchiveBit) != 0 do
-            node.attributes |= SCrypt.FileAttributeArchive
-        if (flags & SCrypt.CleanupSetLastAccessTime) != 0 do
+        let now = volumeTimeNow()
+        if (flags & CleanupSetArchiveBit) != 0 do
+            node.attributes |= FileAttributeArchive
+        if (flags & CleanupSetLastAccessTime) != 0 do
             node.lastAccessTime = now
-        if (flags & SCrypt.CleanupSetLastWriteTime) != 0 do
+        if (flags & CleanupSetLastWriteTime) != 0 do
             node.lastWriteTime = now
-        if (flags & SCrypt.CleanupSetChangeTime) != 0 do
+        if (flags & CleanupSetChangeTime) != 0 do
             node.changeTime = now
-        if (flags & (SCrypt.CleanupSetAllocationSize | SCrypt.CleanupSetArchiveBit |
-           SCrypt.CleanupSetLastAccessTime | SCrypt.CleanupSetLastWriteTime |
-           SCrypt.CleanupSetChangeTime)) != 0
+        if (flags & (CleanupSetAllocationSize | CleanupSetArchiveBit |
+           CleanupSetLastAccessTime | CleanupSetLastWriteTime |
+           CleanupSetChangeTime)) != 0
         {
             volume.dirty = true
             discard catch volume.commit()
@@ -170,20 +170,20 @@ namespace SCrypt.Platform
         if !length
         {
             dref transferred = 0
-            return SCrypt.StatusSuccess
+            return StatusSuccess
         }
 
-        let volume = cast(*SCrypt.Volume) notnull context
+        let volume = cast(*Volume) notnull context
         let node   = volume.nodeById(nodeId)
         if !node do
-            return SCrypt.StatusObjectNameNotFound
+            return StatusObjectNameNotFound
         if (notnull node).isDirectory() do
-            return SCrypt.StatusFileIsDirectory
+            return StatusFileIsDirectory
         let count = catch volume.readNode(nodeId, offset, @mkslice(cast([*] u8) notnull buffer, length)) as err
         if err != null do
             return statusFromError(err)
         dref transferred = count
-        return SCrypt.StatusSuccess
+        return StatusSuccess
     }
 
     func callbackWrite(context: #null *void, nodeId: u64, buffer: #null const *void, offset: u64, length: u32, writeToEnd, constrained: u8, transferred: *u32, info: *FileInfo)->s32
@@ -194,13 +194,13 @@ namespace SCrypt.Platform
             return callbackGetFileInfo(context, nodeId, info)
         }
 
-        let volume = cast(*SCrypt.Volume) notnull context
+        let volume = cast(*Volume) notnull context
         let node   = volume.nodeById(nodeId)
         if !node do
-            return SCrypt.StatusObjectNameNotFound
+            return StatusObjectNameNotFound
         let validNode = notnull node
         if validNode.isDirectory() do
-            return SCrypt.StatusFileIsDirectory
+            return StatusFileIsDirectory
         var writeOffset = writeToEnd ? validNode.size : offset
         var writeLength = cast(u64) length
         if constrained
@@ -214,55 +214,55 @@ namespace SCrypt.Platform
         if writeLength
         {
             if writeOffset > Swag.U64.Max - writeLength do
-                return SCrypt.StatusInvalidParameter
-            let firstBlock = writeOffset / SCrypt.BlockSize
-            let lastBlock  = (writeOffset + writeLength - 1) / SCrypt.BlockSize
+                return StatusInvalidParameter
+            let firstBlock = writeOffset / BlockSize
+            let lastBlock  = (writeOffset + writeLength - 1) / BlockSize
             var needed     = lastBlock - firstBlock + 1
-            if !constrained and writeOffset + writeLength > validNode.size and validNode.size % SCrypt.BlockSize != 0 and validNode.blockSearch(validNode.size / SCrypt.BlockSize).found do
+            if !constrained and writeOffset + writeLength > validNode.size and validNode.size % BlockSize != 0 and validNode.blockSearch(validNode.size / BlockSize).found do
                 needed += 1
             if volume.freeBlockCount() < needed do
-                return SCrypt.StatusDiskFull
+                return StatusDiskFull
         }
 
         let count = catch volume.writeNode(nodeId, offset, @mkslice(cast(const [*] u8) notnull buffer, length), writeToEnd != 0, constrained != 0) as err
         if err != null do
             return statusFromError(err,
                                    volume.freeBlockCount() ?
-                   SCrypt.StatusIoDeviceError : SCrypt.StatusDiskFull)
+                   StatusIoDeviceError : StatusDiskFull)
         dref transferred = count
         return fillInfo(volume, nodeId, info)
     }
 
     func callbackFlush(context: #null *void, nodeId: u64, info: *FileInfo)->s32
     {
-        let volume = cast(*SCrypt.Volume) notnull context
+        let volume = cast(*Volume) notnull context
         discard catch volume.commit() as err
         if err != null do
             return statusFromError(err)
         if nodeId do
             return fillInfo(volume, nodeId, info)
-        return SCrypt.StatusSuccess
+        return StatusSuccess
     }
 
     func callbackGetFileInfo(context: #null *void, nodeId: u64, info: *FileInfo)->s32
     {
-        return fillInfo(cast(*SCrypt.Volume) notnull context, nodeId, info)
+        return fillInfo(cast(*Volume) notnull context, nodeId, info)
     }
 
     func callbackSetBasicInfo(context: #null *void, nodeId: u64, attributes: u32, creationTime, lastAccessTime, lastWriteTime, changeTime: u64, info: *FileInfo)->s32
     {
-        let volume = cast(*SCrypt.Volume) notnull context
+        let volume = cast(*Volume) notnull context
         let node   = volume.nodeById(nodeId)
         if !node do
-            return SCrypt.StatusObjectNameNotFound
+            return StatusObjectNameNotFound
         let validNode = notnull node
         if attributes != Swag.U32.Max
         {
-            validNode.attributes = attributes ? attributes : SCrypt.FileAttributeNormal
+            validNode.attributes = attributes ? attributes : FileAttributeNormal
             if validNode.isDirectory() do
-                validNode.attributes |= SCrypt.FileAttributeDirectory
+                validNode.attributes |= FileAttributeDirectory
             else do
-                validNode.attributes &= ~SCrypt.FileAttributeDirectory
+                validNode.attributes &= ~FileAttributeDirectory
         }
 
         if creationTime do
@@ -279,17 +279,17 @@ namespace SCrypt.Platform
 
     func callbackSetFileSize(context: #null *void, nodeId, newSize: u64, setAllocationSize: u8, info: *FileInfo)->s32
     {
-        let volume = cast(*SCrypt.Volume) notnull context
+        let volume = cast(*Volume) notnull context
         let node   = volume.nodeById(nodeId)
         if !node do
-            return SCrypt.StatusObjectNameNotFound
+            return StatusObjectNameNotFound
         let validNode = notnull node
         if validNode.isDirectory() do
-            return SCrypt.StatusFileIsDirectory
+            return StatusFileIsDirectory
         let targetSize = setAllocationSize and newSize < validNode.size ? newSize :
                          setAllocationSize ? validNode.size : newSize
-        if targetSize > validNode.size and validNode.size % SCrypt.BlockSize != 0 and validNode.blockSearch(validNode.size / SCrypt.BlockSize).found and !volume.freeBlockCount() do
-            return SCrypt.StatusDiskFull
+        if targetSize > validNode.size and validNode.size % BlockSize != 0 and validNode.blockSearch(validNode.size / BlockSize).found and !volume.freeBlockCount() do
+            return StatusDiskFull
         discard catch volume.resizeNode(nodeId, targetSize) as err
         if err != null do
             return statusFromError(err)
@@ -298,58 +298,58 @@ namespace SCrypt.Platform
 
     func callbackCanDelete(context: #null *void, nodeId: u64)->s32
     {
-        let volume = cast(*SCrypt.Volume) notnull context
+        let volume = cast(*Volume) notnull context
         let node   = volume.nodeById(nodeId)
         if !node do
-            return SCrypt.StatusObjectNameNotFound
+            return StatusObjectNameNotFound
         if nodeId == 1 do
-            return SCrypt.StatusAccessDenied
+            return StatusAccessDenied
         let validNode = notnull node
-        if (validNode.attributes & SCrypt.FileAttributeReadOnly) != 0 do
-            return SCrypt.StatusAccessDenied
+        if (validNode.attributes & FileAttributeReadOnly) != 0 do
+            return StatusAccessDenied
         if validNode.isDirectory() and volume.hasChildren(nodeId) do
-            return SCrypt.StatusDirectoryNotEmpty
-        return SCrypt.StatusSuccess
+            return StatusDirectoryNotEmpty
+        return StatusSuccess
     }
 
     func callbackRename(context: #null *void, nodeId: u64, oldPath, newPath: #null const [*] u8, replace: u8)->s32
     {
-        let volume = cast(*SCrypt.Volume) notnull context
+        let volume = cast(*Volume) notnull context
         discard oldPath
         discard catch volume.renameNode(nodeId, cString(newPath), replace != 0) as err
-        return err == null ? SCrypt.StatusSuccess : statusFromError(err, SCrypt.StatusAccessDenied)
+        return err == null ? StatusSuccess : statusFromError(err, StatusAccessDenied)
     }
 
     func callbackGetSecurity(context: #null *void, nodeId: u64, security: #null *void, securitySize: *u32)->s32
     {
-        let volume = cast(*SCrypt.Volume) notnull context
+        let volume = cast(*Volume) notnull context
         let node   = volume.nodeById(nodeId)
         if !node do
-            return SCrypt.StatusObjectNameNotFound
+            return StatusObjectNameNotFound
         let stored    = (notnull node).security.toSlice()
         let available = dref securitySize
         dref securitySize = cast(u32) @countof(stored)
         if !@countof(stored) do
-            return SCrypt.StatusSuccess
+            return StatusSuccess
         if !security or available < @countof(stored) do
-            return security ? SCrypt.StatusBufferOverflow : SCrypt.StatusSuccess
+            return security ? StatusBufferOverflow : StatusSuccess
         @memcpy(notnull security, @dataof(stored), @countof(stored))
-        return SCrypt.StatusSuccess
+        return StatusSuccess
     }
 
     func callbackSetSecurity(context: #null *void, nodeId: u64, security: #null const *void, securitySize: u32)->s32
     {
-        let volume = cast(*SCrypt.Volume) notnull context
+        let volume = cast(*Volume) notnull context
         let node   = volume.nodeById(nodeId)
         if !node do
-            return SCrypt.StatusObjectNameNotFound
+            return StatusObjectNameNotFound
         let validNode = notnull node
         validNode.security.resize(securitySize)
         if securitySize do
             @memcpy(validNode.security.buffer, notnull security, securitySize)
-        validNode.changeTime = SCrypt.volumeTimeNow()
+        validNode.changeTime = volumeTimeNow()
         volume.dirty         = true
-        return SCrypt.StatusSuccess
+        return StatusSuccess
     }
 
     func sameName(left: string, right: string)->bool
@@ -361,12 +361,12 @@ namespace SCrypt.Platform
 
     func callbackReadDirectory(context: #null *void, nodeId: u64, marker: #null const [*] u8, emit: EmitDirFn, emitContext: #null *void, complete: *u8)->s32
     {
-        let volume    = cast(*SCrypt.Volume) notnull context
+        let volume    = cast(*Volume) notnull context
         let directory = volume.nodeById(nodeId)
         if !directory do
-            return SCrypt.StatusObjectNameNotFound
+            return StatusObjectNameNotFound
         if !(notnull directory).isDirectory() do
-            return SCrypt.StatusNotADirectory
+            return StatusNotADirectory
 
         let markerName  = cString(marker)
         var afterMarker = !@countof(markerName)
@@ -377,7 +377,7 @@ namespace SCrypt.Platform
             {
                 discard fillInfo(volume, nodeId, &info)
                 if !emit(emitContext, @dataof("."), &info) do
-                    return SCrypt.StatusSuccess
+                    return StatusSuccess
             }
             elif sameName(markerName, ".") do
                 afterMarker = true
@@ -387,7 +387,7 @@ namespace SCrypt.Platform
             {
                 discard fillInfo(volume, parentId, &info)
                 if !emit(emitContext, @dataof(".."), &info) do
-                    return SCrypt.StatusSuccess
+                    return StatusSuccess
             }
             elif sameName(markerName, "..") do
                 afterMarker = true
@@ -404,25 +404,25 @@ namespace SCrypt.Platform
 
             discard fillInfo(volume, child.id, &info)
             if !emit(emitContext, child.name.buffer, &info) do
-                return SCrypt.StatusSuccess
+                return StatusSuccess
         }
 
         dref complete = 1
-        return SCrypt.StatusSuccess
+        return StatusSuccess
     }
 
     func callbackGetDirInfoByName(context: #null *void, directoryId: u64, name: #null const [*] u8, info: *FileInfo)->s32
     {
-        let volume    = cast(*SCrypt.Volume) notnull context
+        let volume    = cast(*Volume) notnull context
         let directory = volume.nodeById(directoryId)
         if !directory do
-            return SCrypt.StatusObjectNameNotFound
+            return StatusObjectNameNotFound
         let value = cString(name)
         if value == "." do
             return fillInfo(volume, directoryId, info)
         if value == ".." do
             return fillInfo(volume, (notnull directory).parentId, info)
         let child = volume.findChild(directoryId, value)
-        return child ? fillInfo(volume, (notnull child).id, info) : SCrypt.StatusObjectNameNotFound
+        return child ? fillInfo(volume, (notnull child).id, info) : StatusObjectNameNotFound
     }
 }

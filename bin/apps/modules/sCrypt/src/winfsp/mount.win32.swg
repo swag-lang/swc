@@ -2,7 +2,7 @@
 
 using Core
 
-namespace SCrypt.Platform
+namespace WinFsp
 {
     #[Swag.NoCopy]
     struct WinFspMount
@@ -13,7 +13,7 @@ namespace SCrypt.Platform
 
     impl WinFspMount
     {
-        mtd start(volume: *SCrypt.Volume, mountPoint: string) fail
+        mtd start(volume: *Volume, mountPoint: string) fail
         {
             try loadWinFsp()
             discard catch registerPortableWinFsp() as registerError
@@ -39,7 +39,7 @@ namespace SCrypt.Platform
             if !ConvertStringSecurityDescriptorToSecurityDescriptorW(@dataof(sddl), SddlRevisionOne, &.context.defaultSecurity, null)
             {
                 .stop()
-                SCrypt.failWith("Windows could not create the volume security descriptor.")
+                failWith("Windows could not create the volume security descriptor.")
             }
 
             traceWinFspStage("default security descriptor created")
@@ -51,7 +51,7 @@ namespace SCrypt.Platform
             params.sectorsPerAllocationUnit = 8
             params.maxComponentLength       = 255
             traceWinFspStage("volume geometry initialized")
-            params.volumeCreationTime = SCrypt.volumeTimeNow()
+            params.volumeCreationTime = volumeTimeNow()
             params.volumeSerialNumber = volumeSerialNumber(params.volumeCreationTime)
             traceWinFspStage("volume identity initialized")
             params.fileInfoTimeout = 1000
@@ -69,10 +69,10 @@ namespace SCrypt.Platform
             let createStatus = fsCreate(@dataof(deviceName), &params, &g_FspInterface, &.fileSystem)
             traceWinFspStage(Format.toString("FspFileSystemCreate returned %{X}",
                                              cast(u32) createStatus))
-            if createStatus != SCrypt.StatusSuccess
+            if createStatus != StatusSuccess
             {
                 .stop()
-                SCrypt.failWith(Format.toString("WinFsp could not create the volume (NTSTATUS %{X}).", cast(u32) createStatus))
+                failWith(Format.toString("WinFsp could not create the volume (NTSTATUS %{X}).", cast(u32) createStatus))
             }
 
             let fileSystem = notnull .fileSystem
@@ -83,7 +83,7 @@ namespace SCrypt.Platform
             var status = (g_WinFsp.setMountPoint)(fileSystem, @dataof(mountPoint16))
             traceWinFspStage(Format.toString("FspFileSystemSetMountPoint returned %{X}",
                                              cast(u32) status))
-            if status == SCrypt.StatusSuccess
+            if status == StatusSuccess
             {
                 traceWinFspStage("calling FspFileSystemStartDispatcher")
                 status = (g_WinFsp.startDispatcher)(fileSystem, 0)
@@ -91,10 +91,10 @@ namespace SCrypt.Platform
                                                  cast(u32) status))
             }
 
-            if status != SCrypt.StatusSuccess
+            if status != StatusSuccess
             {
                 .stop()
-                SCrypt.failWith(Format.toString("WinFsp could not mount drive % (NTSTATUS %{X}).",
+                failWith(Format.toString("WinFsp could not mount drive % (NTSTATUS %{X}).",
                                                 mountPoint,
                                                 cast(u32) status))
             }
@@ -129,7 +129,7 @@ namespace SCrypt.Platform
     #[Swag.NoCopy]
     struct MountedVolume
     {
-        volume:     SCrypt.Volume
+        volume:     Volume
         volumeOpen: bool
         mount:      WinFspMount
     }
@@ -138,7 +138,7 @@ namespace SCrypt.Platform
     {
         mtd open(path: string, password: const [..] u8, mountPoint: string) fail
         {
-            .volume     = SCrypt.Volume.open(path, password)
+            .volume     = Volume.open(path, password)
             .volumeOpen = true
             traceWinFspStage("calling WinFspMount.start from MountedVolume.open")
             discard catch .mount.start(&.volume, mountPoint) as mountError

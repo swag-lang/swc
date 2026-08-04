@@ -51,17 +51,17 @@ internal impl MainWindow
         let text   = .createSize.text()
         let parsed = catch StrConv.parseU64(text) as parseError
         if parseError != null or parsed.ovf or parsed.eat != @countof(text) or !parsed.value do
-            SCrypt.failWith("The container size is invalid.", .InvalidInput)
+            failWith("The container size is invalid.", .InvalidInput)
 
         let multiplier = .createUnit.selectedIndex == 0 ?
                          1024'u64 * 1024 : 1024'u64 * 1024 * 1024
         if parsed.value > Swag.U64.Max / multiplier do
-            SCrypt.failWith("The container size is too large.", .InvalidInput)
+            failWith("The container size is too large.", .InvalidInput)
 
         let result = parsed.value * multiplier
-        if result < SCrypt.MinimumSize do
-            SCrypt.failWith(Format.toString("The minimum container size is % MiB.",
-                                            (SCrypt.MinimumSize + 1024 * 1024 - 1) / (1024 * 1024)),
+        if result < MinimumSize do
+            failWith(Format.toString("The minimum container size is % MiB.",
+                                            (MinimumSize + 1024 * 1024 - 1) / (1024 * 1024)),
                             .InvalidInput)
         return result
     }
@@ -175,7 +175,7 @@ internal impl MainWindow
             return
 
         case .Create:
-            var volume = catch SCrypt.Volume.create(.operationPath.toString(), .operationPassword.toSlice(), .operationSize) as createError
+            var volume = catch Volume.create(.operationPath.toString(), .operationPassword.toSlice(), .operationSize) as createError
             .operationError = createError
             if createError == null do
                 volume.close()

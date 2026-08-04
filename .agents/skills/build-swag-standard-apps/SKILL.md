@@ -27,10 +27,15 @@ strict and quiet: one generated product glyph, one voltage accent, one ink groun
   executable, title, registration identity, documentation, and URLs.
 - Derive lowercase technical suffixes from it only where the platform convention needs them,
   such as `.scapture`. Keep namespaces UpperCamelCase and functions lowerCamelCase.
-- Never put `_` in an app-owned folder or file name. Use lower camel case for source and support
-  names, such as `winfspAbi.win32.swg` and `winfspCallbacks.test.swg`; keep dots for Swag platform
-  and test suffixes. Normalize imported filenames at the module boundary when an upstream package
-  uses underscores, and record the upstream name in its notice when provenance would be unclear.
+- Do not wrap private application code in a namespace that repeats the module or product name; the
+  module already provides that boundary. Add a namespace only for a real subsystem vocabulary,
+  and name it after that subsystem, such as `WinFsp`, rather than after the application.
+- Never put `_` or uppercase letters in an app-owned folder or file name. Concatenate the words of
+  one symbol or indivisible concept, and use dots between the named parts of a coherent file
+  family, such as `app.operations.swg`, `winfsp.abi.win32.swg`, and
+  `winfsp.callbacks.test.swg`. Platform and test suffixes use this notation but do not reserve it.
+  Normalize imported filenames at the module boundary when an upstream package uses underscores,
+  and record the upstream name in its notice when provenance would be unclear.
 - Complete a rename in one pass. Migrate persisted filenames, clipboard and IPC names, file
   metadata, compiler tags, tests, comments, examples, and string-based lookups. Search the whole
   repository for every capitalization of the old name before finishing.

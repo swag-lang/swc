@@ -6,14 +6,14 @@ var g_App: Application
 
 #main
 {
-    if SCrypt.Platform.isPortableGuardianInvocation() do
-        Env.exit(SCrypt.Platform.runPortableGuardian())
+    if WinFsp.isPortableGuardianInvocation() do
+        Env.exit(WinFsp.runPortableGuardian())
 
     #static if #hastag("SCrypt.Integration")
     {
-        if SCrypt.Integration.isVisibilityProbeInvocation() do
-            Env.exit(SCrypt.Integration.runVisibilityProbe())
-        SCrypt.Integration.runAndExit()
+        if Integration.isVisibilityProbeInvocation() do
+            Env.exit(Integration.runVisibilityProbe())
+        Integration.runAndExit()
     }
 
     try Jobs.initialize()

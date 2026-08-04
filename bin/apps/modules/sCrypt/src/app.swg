@@ -40,7 +40,7 @@ struct MainWindow
     }
 
     fileDlgState: FileDlgState
-    mounted:      SCrypt.Platform.MountedVolume
+    mounted:      WinFsp.MountedVolume
     state:        AppState
     shuttingDown: bool
 
@@ -58,7 +58,7 @@ internal func caughtMessage(err: #null any)->string
 {
     switch err
     {
-    case SCrypt.Error:     return (cast(SCrypt.Error) err).message orelse "sCrypt error."
+    case Error:     return (cast(Error) err).message orelse "sCrypt error."
     case Swag.SystemError: return (cast(Swag.SystemError) err).message orelse "System error."
     }
 

@@ -1452,19 +1452,26 @@ void X64Encoder::encodeLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOff
     SWC_ASSERT(!memReg.isFloat());
     SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
 
-    // Instruction-pointer-relative form, used to read a float constant straight
-    // out of the constant segment. The displacement is left at zero and a
-    // Relative32 relocation fills in the distance once both the code and the
-    // segment have addresses; ModRM mode 00 with rm 101 is what selects it, so
-    // the four bytes are mandatory even when the distance ends up small.
+    // Instruction-pointer-relative form: a constant, or a global living in
+    // the proximity arena. The displacement is left at zero and a Relative32
+    // relocation fills in the distance once both the code and the target have
+    // addresses; ModRM mode 00 with rm 101 is what selects it, so the four
+    // bytes are mandatory even when the distance ends up small.
     if (memReg.isInstructionPointer())
     {
-        SWC_ASSERT(reg.isFloat());
         SWC_ASSERT(memOffset == 0);
-        emitSpecF64(store_, 0xF3, opBits);
-        emitRex(store_, MicroOpBits::Zero, reg, memReg);
-        emitCpuOp(store_, 0x0F);
-        emitCpuOp(store_, 0x10);
+        if (reg.isFloat())
+        {
+            emitSpecF64(store_, 0xF3, opBits);
+            emitRex(store_, MicroOpBits::Zero, reg, memReg);
+            emitCpuOp(store_, 0x0F);
+            emitCpuOp(store_, 0x10);
+        }
+        else
+        {
+            emitRex(store_, opBits, reg, memReg);
+            emitSpecCpuOp(store_, MicroOp::Move, opBits);
+        }
         emitModRm(store_, ModRmMode::Memory, reg, MODRM_RM_RIP);
         store_.pushU32(0);
         return;
@@ -1954,6 +1961,29 @@ void X64Encoder::encodeLoadMemReg(MicroReg memReg, uint64_t memOffset, MicroReg 
 {
     SWC_ASSERT(!memReg.isFloat());
     SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
+
+    // Instruction-pointer-relative store, to a global living in the proximity
+    // arena. Same shape as the RIP-relative load: zero displacement patched by
+    // a Relative32 relocation, and the four bytes are the instruction's tail.
+    if (memReg.isInstructionPointer())
+    {
+        SWC_ASSERT(memOffset == 0);
+        if (reg.isFloat())
+        {
+            emitSpecF64(store_, 0xF3, opBits);
+            emitRex(store_, MicroOpBits::Zero, reg, memReg);
+            emitCpuOp(store_, 0x0F);
+            emitCpuOp(store_, 0x11);
+        }
+        else
+        {
+            emitRex(store_, opBits, reg, memReg);
+            emitSpecCpuOp(store_, getX64RegMemOpCode(MicroOp::Move), opBits);
+        }
+        emitModRm(store_, ModRmMode::Memory, reg, MODRM_RM_RIP);
+        store_.pushU32(0);
+        return;
+    }
 
     if (reg.isFloat())
     {

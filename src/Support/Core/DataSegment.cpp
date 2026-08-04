@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Support/Core/DataSegment.h"
 #include "Support/Math/Helpers.h"
+#include "Support/Os/Os.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -382,9 +383,15 @@ std::pair<uint32_t, std::byte*> DataSegment::allocateStorageLocked(uint32_t size
     if (!largeBlocks_.empty() || size > store_.pageSize())
     {
         LargeBlock block;
-        block.offset  = Math::alignUpU32(currentExtentLocked(), align);
-        block.size    = size;
-        block.storage = std::make_unique<std::byte[]>(size);
+        block.offset = Math::alignUpU32(currentExtentLocked(), align);
+        block.size   = size;
+        if (proximityStorage_)
+        {
+            if (auto* arena = static_cast<std::byte*>(Os::allocProximityMemory(size)))
+                block.storage = LargeBlockStorage(arena, {.proximity = true});
+        }
+        if (!block.storage)
+            block.storage = LargeBlockStorage(new std::byte[size], {});
         if (zeroInit)
             std::memset(block.storage.get(), 0, size);
 

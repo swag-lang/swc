@@ -1,5 +1,6 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.h"
+#include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 #include "Support/Memory/MemoryProfile.h"
@@ -53,8 +54,21 @@ namespace
         r.add(MicroInstrOpcode::LoadAmcMemReg, tryFoldConstIndexAmc);
         r.add(MicroInstrOpcode::LoadAmcMemImm, tryFoldConstIndexAmc);
         r.add(MicroInstrOpcode::CmpAmcImm, tryFoldConstIndexAmc);
+        r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldLeaConstIntoAmcIndex);
+        r.add(MicroInstrOpcode::LoadSignedExtAmcRegMem, tryFoldLeaConstIntoAmcIndex);
+        r.add(MicroInstrOpcode::LoadZeroExtAmcRegMem, tryFoldLeaConstIntoAmcIndex);
+        r.add(MicroInstrOpcode::LoadAddrAmcRegMem, tryFoldLeaConstIntoAmcIndex);
+        r.add(MicroInstrOpcode::LoadAmcMemReg, tryFoldLeaConstIntoAmcIndex);
+        r.add(MicroInstrOpcode::LoadAmcMemImm, tryFoldLeaConstIntoAmcIndex);
+        r.add(MicroInstrOpcode::CmpAmcImm, tryFoldLeaConstIntoAmcIndex);
         r.add(MicroInstrOpcode::LoadMemReg, tryFoldConstStore);
         r.add(MicroInstrOpcode::LoadMemReg, tryFoldMemoryAddressing);
+        // Loads only for now: a folded RIP-relative STORE can still be split
+        // by a legalize conformance rewrite, which orphans its relocation and
+        // leaves an unpatched displacement writing into the code. The store
+        // side needs that interaction settled (and a DevMode MicroVerify run)
+        // before it can join.
+        r.add(MicroInstrOpcode::LoadRegMem, tryFoldGlobalAddressIntoAccess);
         r.add(MicroInstrOpcode::CmpRegReg, tryFoldConstCompare);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldConstCopy);
         r.add(MicroInstrOpcode::LoadZeroExtRegReg, tryNarrowExtend);
@@ -70,11 +84,30 @@ namespace
 
     void runPerInstructionPatterns(Context& ctx)
     {
+        // An instruction that carries a relocation is opaque to the combiner:
+        // rewriting it to another opcode would leave the relocation pointing
+        // at an encoding whose displacement the emitter no longer binds, and
+        // the patch would then overwrite the first bytes of the function.
+        // (Producing such an instruction - as the global-address fold does -
+        // is fine; it just must not be re-anchored afterwards.)
+        std::unordered_set<uint32_t> relocated;
+        if (ctx.builder)
+        {
+            relocated.reserve(ctx.builder->codeRelocations().size());
+            for (const MicroRelocation& reloc : ctx.builder->codeRelocations())
+            {
+                if (reloc.instructionRef.isValid())
+                    relocated.insert(reloc.instructionRef.get());
+            }
+        }
+
         const PatternRegistry& reg   = registry();
         const auto             view  = ctx.storage->view();
         const auto             endIt = view.end();
         for (auto it = view.begin(); it != endIt; ++it)
         {
+            if (!relocated.empty() && relocated.contains(it.current.get()))
+                continue;
             for (const PatternFn fn : reg.patternsFor(it->op))
             {
                 if (fn(ctx, it.current, *it))
@@ -97,6 +130,7 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
     ctx.storage  = context.instructions;
     ctx.operands = context.operands;
     ctx.ssa      = ssa;
+    ctx.builder  = context.builder;
 
     runPerInstructionPatterns(ctx);
 

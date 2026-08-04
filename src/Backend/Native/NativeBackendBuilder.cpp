@@ -662,16 +662,26 @@ Result NativeBackendBuilder::appendCodeRelocation(const NativeCodeRelocationTarg
         }
 
         case MicroRelocation::Kind::GlobalInitAddress:
-            record.symbolName = nativeScopedSectionBaseSymbol(compiler(), K_DATA_BASE_SYMBOL);
-            record.addend     = relocation.targetAddress;
-            writeU64(*target.bytes, patchOffset, record.addend);
-            break;
-
         case MicroRelocation::Kind::GlobalZeroAddress:
-            record.symbolName = nativeScopedSectionBaseSymbol(compiler(), K_BSS_BASE_SYMBOL);
+        {
+            const bool isInit = relocation.kind == MicroRelocation::Kind::GlobalInitAddress;
+            record.symbolName = nativeScopedSectionBaseSymbol(compiler(), isInit ? K_DATA_BASE_SYMBOL : K_BSS_BASE_SYMBOL);
             record.addend     = relocation.targetAddress;
+
+            if (relocation.form == MicroRelocation::Form::Relative32)
+            {
+                // Same shape as the constant case: REL32 resolves to
+                // target + addend - (field + 4), and the displacement is the
+                // last four bytes of the access.
+                SWC_ASSERT(relocation.relativeEndOffset == relocation.codeOffset + sizeof(uint32_t));
+                record.type = IMAGE_REL_AMD64_REL32;
+                writeU32(*target.bytes, patchOffset, static_cast<uint32_t>(record.addend));
+                break;
+            }
+
             writeU64(*target.bytes, patchOffset, record.addend);
             break;
+        }
 
         case MicroRelocation::Kind::CompilerAddress:
             SWC_UNREACHABLE();

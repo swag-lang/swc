@@ -29,6 +29,10 @@ public:
     PagedStore& operator=(PagedStore&& other) noexcept;
 
     uint32_t pageSize() const noexcept { return pageSizeValue_; }
+    // Route pages allocated from here on through the proximity arena (see
+    // Os::allocProximityMemory). Each page remembers its own origin, so
+    // enabling this on a store that already has pages is fine.
+    void enableProximityPages() noexcept { proximityPages_ = true; }
     uint32_t size() const noexcept;
     uint32_t extentSize() const noexcept;
 #if SWC_HAS_STATS
@@ -149,13 +153,14 @@ private:
 
     struct Page
     {
-        std::byte*            storage = nullptr;
-        std::atomic<uint32_t> used    = 0;
+        std::byte*            storage       = nullptr;
+        std::atomic<uint32_t> used          = 0;
+        bool                  fromProximity = false;
 
         static std::byte* allocateAligned(uint32_t size);
         static void       deallocateAligned(std::byte* p) noexcept;
 
-        explicit Page(uint32_t pageSize);
+        explicit Page(uint32_t pageSize, bool proximity = false);
         ~Page();
 
         uint8_t*       bytes() noexcept { return reinterpret_cast<uint8_t*>(storage); }
@@ -215,6 +220,7 @@ private:
     std::atomic<const std::vector<PageRange>*>                 publishedPageRanges_{nullptr};
     uint64_t                                                   totalBytes_    = 0;
     uint32_t                                                   pageSizeValue_ = K_DEFAULT_PAGE_SIZE;
+    bool                                                       proximityPages_ = false;
     Page*                                                      curPage_       = nullptr;
     uint32_t                                                   curPageIndex_  = 0;
     uint8_t*                                                   lastPtr_       = nullptr;

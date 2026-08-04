@@ -89,6 +89,16 @@ namespace Os
     bool     makeWritableExecutableMemory(void* ptr, uint32_t size);
     bool     makeExecutableMemory(void* ptr, uint32_t size);
     void     freeExecutableMemory(void* ptr);
+
+    // The proximity arena: one reserved region that both JIT code and the
+    // compile-time global data segments carve from, so a RIP-relative
+    // displacement in JIT-executed code always reaches the segment payload.
+    // Page-aligned, committed on demand, read-write; executable carves are
+    // reprotected by makeExecutableMemory. Returns null when the region is
+    // exhausted - callers fall back to ordinary allocation and RIP-relative
+    // patching range-checks the distance it can no longer guarantee.
+    void* allocProximityMemory(uint32_t size);
+    bool  isProximityMemory(const void* ptr);
     bool     addHostJitFunctionTable(JITMemory& executableMemory);
     void     removeHostJitFunctionTable(JITMemory& executableMemory);
     void     registerExternalModuleSearchPath(const fs::path& path);

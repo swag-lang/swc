@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 #include "Support/Report/Assert.h"
 
@@ -195,6 +195,113 @@ namespace InstructionCombine
             ctx.emitErase(copyRef);
         return true;
     }
+
+    namespace
+    {
+        // The addressing-piece layout shared by the AMC opcode family.
+        struct AmcLayout
+        {
+            uint8_t baseIdx  = 1;
+            uint8_t indexIdx = 2;
+            uint8_t mulIdx   = 5;
+            uint8_t addIdx   = 6;
+        };
+
+        bool amcLayoutFor(AmcLayout& out, MicroInstrOpcode op)
+        {
+            switch (op)
+            {
+                case MicroInstrOpcode::LoadAmcRegMem:
+                case MicroInstrOpcode::LoadSignedExtAmcRegMem:
+                case MicroInstrOpcode::LoadZeroExtAmcRegMem:
+                case MicroInstrOpcode::LoadAddrAmcRegMem:
+                    return true;
+                case MicroInstrOpcode::LoadAmcMemReg:
+                case MicroInstrOpcode::LoadAmcMemImm:
+                    out.baseIdx  = 0;
+                    out.indexIdx = 1;
+                    return true;
+                case MicroInstrOpcode::CmpAmcImm:
+                    out.baseIdx  = 0;
+                    out.indexIdx = 1;
+                    out.mulIdx   = 4;
+                    out.addIdx   = 5;
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        // True when `reg` holds the same SSA value at both instructions.
+        bool sameValueAt(const Context& ctx, MicroReg reg, MicroInstrRef atA, MicroInstrRef atB)
+        {
+            const auto a = ctx.ssa->reachingDef(reg, atA);
+            const auto b = ctx.ssa->reachingDef(reg, atB);
+            return a.valid() && b.valid() && a.valueId == b.valueId;
+        }
+    }
+
+    // Fold `lea idx2, [idx + C]` into the displacement of an indexed access:
+    //
+    //     LoadAddrRegMem idx2, [idx + C]
+    //     ... [base + idx2*scale + d] ...
+    //   ->
+    //     ... [base + idx*scale + (d + C*scale)] ...
+    //
+    // The row[i+1] shape of every stencil loop. The lea is left in place when
+    // other consumers remain; DCE sweeps it once the last one is folded.
+    bool tryFoldLeaConstIntoAmcIndex(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (!ctx.ssa || ctx.isClaimed(ref))
+            return false;
+
+        AmcLayout layout;
+        if (!amcLayoutFor(layout, inst.op))
+            return false;
+        if (inst.numOperands > Action::K_MAX_OPS)
+            return false;
+
+        const MicroInstrOperand* ops = inst.ops(*ctx.operands);
+        if (!ops)
+            return false;
+
+        const MicroReg index = ops[layout.indexIdx].reg;
+        if (!index.isVirtualInt())
+            return false;
+
+        const auto reaching = ctx.ssa->reachingDef(index, ref);
+        if (!reaching.valid() || reaching.isPhi || !reaching.inst)
+            return false;
+        if (reaching.inst->op != MicroInstrOpcode::LoadAddrRegMem)
+            return false;
+
+        // LoadAddrRegMem: [dst, base, opBits, off].
+        const MicroInstrOperand* leaOps = reaching.inst->ops(*ctx.operands);
+        if (!leaOps || leaOps[0].reg != index || leaOps[2].opBits != MicroOpBits::B64)
+            return false;
+        const MicroReg leaBase = leaOps[1].reg;
+        if (!leaBase.isVirtualInt())
+            return false;
+        if (!sameValueAt(ctx, leaBase, reaching.instRef, ref))
+            return false;
+
+        const uint64_t mulValue = ops[layout.mulIdx].valueU64;
+        const int64_t  newAdd   = static_cast<int64_t>(ops[layout.addIdx].valueU64) + static_cast<int64_t>(leaOps[3].valueU64 * mulValue);
+        if (newAdd != static_cast<int64_t>(static_cast<int32_t>(newAdd)))
+            return false;
+
+        if (!ctx.claimAll({ref}))
+            return false;
+
+        SmallVector<MicroInstrOperand, 8> newOps;
+        for (uint32_t i = 0; i < inst.numOperands; ++i)
+            newOps.push_back(ops[i]);
+        newOps[layout.indexIdx].reg    = leaBase;
+        newOps[layout.addIdx].valueU64 = static_cast<uint64_t>(newAdd);
+        ctx.emitRewrite(ref, inst.op, {newOps.data(), newOps.size()});
+        return true;
+    }
+
 }
 
 SWC_END_NAMESPACE();

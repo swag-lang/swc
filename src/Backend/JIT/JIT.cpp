@@ -900,6 +900,25 @@ namespace
         std::memcpy(basePtr + reloc.codeOffset, &targetAddress, sizeof(targetAddress));
     }
 
+    // Writes the distance from the end of the instruction straight to the
+    // target, for RIP-relative accesses whose target must stay the one true
+    // storage (mutable globals). The proximity arena keeps the distance
+    // within a signed 32-bit displacement.
+    void patchRelative32Direct(std::span<std::byte> writableCode, const MicroRelocation& reloc, uint64_t targetAddress)
+    {
+        auto* basePtr = reinterpret_cast<uint8_t*>(writableCode.data());
+
+        const uint64_t patchEndOffset = static_cast<uint64_t>(reloc.codeOffset) + sizeof(uint32_t);
+        SWC_ASSERT(patchEndOffset <= writableCode.size_bytes());
+        SWC_ASSERT(reloc.relativeEndOffset >= patchEndOffset);
+
+        const int64_t distance = static_cast<int64_t>(targetAddress) - static_cast<int64_t>(reinterpret_cast<uint64_t>(basePtr) + reloc.relativeEndOffset);
+        SWC_FORCE_ASSERT(distance >= std::numeric_limits<int32_t>::min() && distance <= std::numeric_limits<int32_t>::max());
+
+        const auto displacement = static_cast<int32_t>(distance);
+        std::memcpy(basePtr + reloc.codeOffset, &displacement, sizeof(displacement));
+    }
+
     // Copies the constant into the island slot reserved for it and writes the
     // distance from the end of the instruction, which is what RIP holds while
     // the load executes.
@@ -1060,6 +1079,18 @@ namespace
 
             if (reloc.form == MicroRelocation::Form::Relative32)
             {
+                if (reloc.kind == MicroRelocation::Kind::GlobalZeroAddress || reloc.kind == MicroRelocation::Kind::GlobalInitAddress)
+                {
+                    // Mutable global: the displacement must reach the real
+                    // storage, never an island copy. The proximity arena
+                    // hosts both this code and the segment payload, so the
+                    // distance fits by construction; a failure here means
+                    // the arena was exhausted and the fallback allocations
+                    // drifted out of RIP-relative range.
+                    patchRelative32Direct(writableCode, reloc, targetAddress);
+                    continue;
+                }
+
                 patchRelative32(writableCode, reloc, targetAddress, islandBase + islandSlot * K_CONSTANT_ISLAND_SLOT);
                 ++islandSlot;
                 continue;
@@ -1091,7 +1122,11 @@ void JIT::prepare(TaskContext& ctx, JITMemory& outExecutableMemory, const ByteAr
     uint32_t constantIslandCount = 0;
     for (const MicroRelocation& relocation : relocations)
     {
-        if (relocation.form == MicroRelocation::Form::Relative32)
+        // Mutable globals patch straight to their arena-resident storage and
+        // take no island slot; only immutable constants are copied.
+        if (relocation.form == MicroRelocation::Form::Relative32 &&
+            relocation.kind != MicroRelocation::Kind::GlobalZeroAddress &&
+            relocation.kind != MicroRelocation::Kind::GlobalInitAddress)
             ++constantIslandCount;
     }
 

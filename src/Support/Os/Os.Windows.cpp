@@ -1281,8 +1281,78 @@ namespace Os
         return info.dwPageSize;
     }
 
+    namespace
+    {
+        // One reserved region shared by JIT code and the compile-time global
+        // segments. Everything carved from it is mutually reachable through a
+        // signed 32-bit displacement, which is what lets JIT-executed code
+        // read a mutable global RIP-relative instead of materializing its
+        // address first. The reservation is address space, not memory: pages
+        // are committed as they are carved.
+        constexpr uint64_t K_PROXIMITY_RESERVE = 1ull << 31;
+
+        struct ProximityArena
+        {
+            std::mutex            mutex;
+            std::atomic<uint8_t*> base{nullptr};
+            uint64_t              used = 0;
+        };
+
+        ProximityArena g_proximityArena;
+
+        void* proximityCarveLocked(const uint32_t size)
+        {
+            auto& arena = g_proximityArena;
+            if (!arena.base.load(std::memory_order_relaxed))
+            {
+                auto* base = static_cast<uint8_t*>(VirtualAlloc(nullptr, K_PROXIMITY_RESERVE, MEM_RESERVE, PAGE_NOACCESS));
+                if (!base)
+                    return nullptr;
+                arena.base.store(base, std::memory_order_release);
+            }
+
+            const uint64_t pageSize = memoryPageSize();
+            const uint64_t aligned  = (static_cast<uint64_t>(size) + pageSize - 1) & ~(pageSize - 1);
+            if (arena.used + aligned > K_PROXIMITY_RESERVE)
+                return nullptr;
+
+            uint8_t* result = arena.base.load(std::memory_order_relaxed) + arena.used;
+            if (!VirtualAlloc(result, aligned, MEM_COMMIT, PAGE_READWRITE))
+                return nullptr;
+
+            arena.used += aligned;
+            return result;
+        }
+    }
+
+    void* allocProximityMemory(uint32_t size)
+    {
+        const std::unique_lock lock(g_proximityArena.mutex);
+        void*                  ptr = proximityCarveLocked(size);
+        if (ptr)
+            MemoryProfile::trackExternalAlloc(ptr, size);
+        return ptr;
+    }
+
+    bool isProximityMemory(const void* ptr)
+    {
+        const uint8_t* base = g_proximityArena.base.load(std::memory_order_acquire);
+        if (!base || !ptr)
+            return false;
+        const auto* p = static_cast<const uint8_t*>(ptr);
+        return p >= base && p < base + K_PROXIMITY_RESERVE;
+    }
+
     void* allocExecutableMemory(uint32_t size)
     {
+        // Carve from the proximity arena first, so JIT code lands within
+        // RIP-relative reach of the global segments living there. The old
+        // anywhere-in-the-address-space path stays as the exhaustion
+        // fallback; RIP-relative patching range-checks what this can no
+        // longer guarantee.
+        if (void* proximity = allocProximityMemory(size))
+            return proximity;
+
         void* ptr = VirtualAlloc(nullptr, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
         MemoryProfile::trackExternalAlloc(ptr, size);
         return ptr;
@@ -1308,6 +1378,11 @@ namespace Os
         if (!ptr)
             return;
         MemoryProfile::trackExternalFree(ptr);
+        // An arena carve is not an allocation base; its address space stays
+        // with the arena (committed pages are cheap and the JIT frees its
+        // blocks only at teardown).
+        if (isProximityMemory(ptr))
+            return;
         (void) VirtualFree(ptr, 0, MEM_RELEASE);
     }
 

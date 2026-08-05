@@ -25,6 +25,44 @@ internal enum StatusTone
     Stopped     // The latest operation stopped.
 }
 
+// What the status line is currently reporting.
+//
+// The line is named rather than written, so a language switch can say the same thing
+// again without the window having kept a copy of the sentence. Each value carries one
+// tone, which is why `setStatus` takes no second argument.
+internal enum StatusMessage
+{
+    Ready              // Nothing has run yet, or the last operation finished cleanly.
+    Randomizing        // The container is being created and filled with random bytes.
+    StartingDriver     // The portable filesystem driver is starting.
+    Unmounting         // The drive is being synchronized and unmounted.
+    CreateStopped      // Container creation stopped.
+    Created            // The container was created and is ready to mount.
+    MountStopped       // Mounting stopped.
+    Mounted            // A drive is mounted; `statusDrive` names its letter.
+    Unmounted          // The drive was unmounted safely.
+}
+
+// Rows of the "create a new vault" form, in the order `createNewVaultCard` adds them.
+//
+// The form owns the labels it creates, so re-labelling one after a language switch names
+// its row. Keep these next to the builder: they are two halves of one decision.
+internal enum CreateRow
+{
+    Path         // Container file to create.
+    Capacity     // Fixed size and its unit.
+    Password     // Password protecting the container.
+    Confirm      // Same password, entered again.
+}
+
+// Rows of the "mount an existing vault" form, in the order `createMountVaultCard` adds them.
+internal enum MountRow
+{
+    Path         // Container file to open.
+    Password     // Password unlocking the container.
+    Drive        // Drive letter the volume appears on.
+}
+
 // Long operation running outside the UI thread. Only one runs at a time, and the window
 // polls `job` with `timer` until the result is ready to be reported.
 struct VaultOperation
@@ -45,42 +83,64 @@ struct MainWindow
 {
     using wnd: Wnd
 
+    // Text of the header, kept so a language switch can say it again.
+    #[Swag.Late]
+    {
+        badge:    *Label
+        subtitle: *Label
+    }
+
     // Controls of the "create a new vault" card.
     #[Swag.Late]
     {
-        createForm:      *FormLayoutCtrl
         createPath:      *EditBox
         createSize:      *EditBox
         createUnit:      *ComboBox
         createPassword:  *PasswordEdit
         confirmPassword: *PasswordEdit
         createButton:    *PushButton
+        browseCreate:    *PushButton
     }
 
     // Controls of the "mount an existing vault" card.
     #[Swag.Late]
     {
-        mountForm:     *FormLayoutCtrl
         mountPath:     *EditBox
         mountPassword: *PasswordEdit
         drive:         *ComboBox
         mountButton:   *PushButton
         unmountButton: *PushButton
+        browseMount:   *PushButton
     }
 
     // The single status line displayed above the footer, and the glyph whose color reports its
     // tone. Both are written only through `setStatus`.
     #[Swag.Late]
     {
-        status:     *Label
-        statusIcon: *Label
+        status:         *Label
+        statusIcon:     *Label
+        languageChoice: *ComboBox
     }
+
+    // The two cards, kept whole so a language switch can re-label their headings.
+    createCard: VaultCard = undefined
+    mountCard:  VaultCard = undefined
 
     fileDlgState: FileDlgState
     mounted:      WinFsp.MountedVolume
     state:        AppState
     shuttingDown: bool
     operation:    VaultOperation
+
+    // What the status line says, and the drive letter the mounted message names.
+    statusMessage: StatusMessage
+    statusDrive:   String
+
+    // Language tag applied at start, or empty to follow the language of the account.
+    //
+    // It holds [[Gui.ReferenceLanguage]] until the user picks something else: sCrypt is an
+    // English application that speaks other languages on request, not one that guesses.
+    language: String
 }
 
 internal func caughtMessage(err: #null any)->string
@@ -119,6 +179,7 @@ impl MainWindow
         surface.setView(result)
         surface.minSize        = {1100, 790}
         result.backgroundStyle = .View
+        result.language        = ReferenceLanguage
 
         // One accent rule across the top identifies every standard Swag application surface.
         Separator.create(result, .Top, .Accent)
@@ -143,48 +204,64 @@ impl MainWindow
         result.applyLayout()
         cards.computeLayout()
         result.setState(.Ready)
-        result.setStatus(.Idle, appStrings().msg_Ready)
+        result.setStatus(.Ready)
         return result
     }
 
     mtd createHeader()
     {
-        let header = Wnd.create'Wnd(me, {0, 0, 0, 72})
+        // The header is as tall as the two rows it holds, so a wrapped explanation is not
+        // cut off by a height calibrated on the shortest of the shipped languages.
+        let header = StackLayoutCtrl.create(me, .Top)
         header.dockStyle = .Top
         header.margin    = {32, 20, 32, 0}
+        header.spacing   = 4
 
         // The badge shares the line of the product name rather than floating between the name
         // and its explanation, so the header reads as two rows instead of three.
         let titleRow = Wnd.create'Wnd(header, {0, 0, 0, 44})
         titleRow.dockStyle = .Top
 
-        // The badge is a compact claim about the product, so it is set fixed-width and sized
-        // from its own text: a hand-tuned width clips it as soon as the theme font changes.
-        let BadgeText = appStrings().ui_Badge
-        let badgeFont = .theme().createDefaultFontFS(12, .Bold)
-        let badge     = Label.create(titleRow, BadgeText, {0, 0, Painter.measureString(BadgeText, badgeFont).width}, null, .SecondaryText)
-        badge.dockStyle = .Right
-        badge.setTextAlignment(.Right, .Center)
-        badge.style.setFont(badgeFont, .Regular)
+        // The badge is a compact claim about the product, and it is measured rather than
+        // set: a hand-tuned width clips it as soon as the theme font or the language changes.
+        .badge           = Label.create(titleRow, appStrings().ui_Badge, {}, null, .SecondaryText)
+        .badge.dockStyle = .Right
+        .badge.setTextAlignment(.Right, .Center)
+        .badge.style.setFont(.theme().createDefaultFontFS(12, .Bold), .Regular)
 
         let title = Label.create(titleRow, "sCrypt")
         title.dockStyle = .Center
         title.setTextAlignment(.Left, .Center)
         title.style.setFont(.theme().createDefaultFont(34, .Bold), .Regular)
 
-        let subtitle = Label.create(header, appStrings().ui_Subtitle)
-        subtitle.dockStyle = .Center
-        subtitle.setTextAlignment(.Left, .Top)
-        subtitle.updateFlags(add: .SecondaryText)
-        header.applyLayout()
+        .subtitle           = Label.create(header, appStrings().ui_Subtitle, {}, null, .WordWrap | .SecondaryText | .AutoHeight)
+        .subtitle.dockStyle = .Top
+        .subtitle.setTextAlignment(.Left, .Top)
+        titleRow.applyLayout()
+        header.computeLayout()
     }
 
     mtd createFooter()
     {
-        let footer = Label.create(me, "WinFsp — Windows File System Proxy, Copyright (C) Bill Zissimopoulos — github.com/winfsp/winfsp", {0, 0, 0, 22}, null, .SecondaryText)
-        footer.dockStyle = .Bottom
-        footer.margin    = {32, 0, 32, 12}
-        footer.setTextAlignment(.Left, .Center)
+        // The language picker rides the credit line rather than claiming a row of its own:
+        // on a surface this compact, a row costs more than the setting is worth.
+        let footerRow = Wnd.create'Wnd(me, {0, 0, 0, 24})
+        footerRow.dockStyle = .Bottom
+        footerRow.margin    = {32, 0, 32, 12}
+
+        .languageChoice            = ComboBox.create(footerRow, {0, 0, 0, 24}, flags: .Flat)
+        .languageChoice.dockStyle  = .Right
+        .languageChoice.sigChanged += func|window = me|(combo, index)
+        {
+            discard combo
+            window.chooseLanguage(index)
+        }
+
+        let credit = Label.create(footerRow, "WinFsp — Windows File System Proxy, Copyright (C) Bill Zissimopoulos — github.com/winfsp/winfsp", {}, null, .SecondaryText)
+        credit.dockStyle = .Center
+        credit.setTextAlignment(.Left, .Center)
+        .fillLanguageChoice()
+        footerRow.applyLayout()
 
         // The status line is raised off the ground by its own fill. A border around it would
         // draw a third box on a surface that already reads without one.
@@ -204,17 +281,62 @@ impl MainWindow
         statusView.applyLayout()
     }
 
+    // Fills the language picker with the system entry and every registered language.
+    //
+    // A language is named in its own words, so the entries are not translated; only the
+    // system entry is, since it names a rule rather than a language.
+    mtd fillLanguageChoice()
+    {
+        .languageChoice.clear()
+        .languageChoice.addItem(appStrings().ui_LanguageSystem)
+        for &one in Gui.languages() do
+            .languageChoice.addItem(one.nativeName.toString())
+        .languageChoice.setSelectedIndex(.languageChoiceIndex(), notify: false)
+    }
+
+    // Returns the picker entry matching the persisted choice.
+    mtd languageChoiceIndex()->u32
+    {
+        if .language.isEmpty() do
+            return 0
+        for &one, [index] in Gui.languages() where one.tag == .language do
+            return cast(u32) index + 1
+        return 0
+    }
+
+    // Applies the language the user picked and remembers it across runs.
+    mtd chooseLanguage(index: u32)
+    {
+        let all = Gui.languages()
+        .language = index != 0 and index <= cast(u32) @countof(all) ? all[index - 1].tag : String.from("")
+        .applyLanguage()
+    }
+
+    // Applies the persisted language, or the language of the account when none was picked.
+    mtd applyLanguage()
+    {
+        let tag = .language.isEmpty() ? Gui.systemLanguage() : .language.toString()
+        catch .app().setLanguage(tag)
+    }
+
     // Reports the outcome of the latest step on the single status line.
     //
     // One glyph, three colors: the theme atlas has no monochrome success or failure glyph, and
     // borrowing a colored one would put a third hue on a two-color surface. The color alone
     // separates a line that is waiting from one that reports work, or one that stopped.
-    mtd setStatus(tone: StatusTone, text: string)
+    mtd setStatus(message: StatusMessage)
+    {
+        .statusMessage = message
+        .refreshStatus()
+    }
+
+    // Writes the current status message on the line in the active language.
+    mtd refreshStatus()
     {
         let colors = .themeColors()
 
         var glyphColor, textColor: Color = undefined
-        switch #complete tone
+        switch #complete .statusTone()
         {
         case .Idle:
             glyphColor = colors.label_TextLight
@@ -233,19 +355,48 @@ impl MainWindow
         glyph.color = glyphColor
         .statusIcon.setIcon(glyph)
         .status.setTextColor(textColor)
-        .status.setText(text)
+        .status.setText(.statusText())
+    }
+
+    // Returns the emphasis the current status message carries.
+    mtd statusTone()->StatusTone
+    {
+        switch #complete .statusMessage
+        {
+        case .Randomizing, .StartingDriver, .Unmounting, .Mounted: return .Active
+        case .CreateStopped, .MountStopped:                        return .Stopped
+        case .Ready, .Created, .Unmounted:                         return .Idle
+        }
+    }
+
+    // Returns the current status message in the active language.
+    mtd statusText()->String
+    {
+        let texts = appStrings()
+        switch #complete .statusMessage
+        {
+        case .Ready:          return String.from(texts.msg_Ready)
+        case .Randomizing:    return String.from(texts.msg_Randomizing)
+        case .StartingDriver: return String.from(texts.msg_StartingDriver)
+        case .Unmounting:     return String.from(texts.msg_Unmounting)
+        case .CreateStopped:  return String.from(texts.msg_CreateStopped)
+        case .Created:        return String.from(texts.msg_Created)
+        case .MountStopped:   return String.from(texts.msg_MountStopped)
+        case .Mounted:        return Format.toString(texts.msg_Mounted, .statusDrive)
+        case .Unmounted:      return String.from(texts.msg_Unmounted)
+        }
     }
 
     mtd createNewVaultCard(parent: *GridLayoutCtrl)->*Wnd
     {
         let card = VaultCard.create(parent, appStrings().ui_CreateCardTitle, appStrings().ui_CreateCardHelp)
         let form = card.form
-        .createForm = form
+        .createCard = card
 
         .createPath = form.addTextField(appStrings().ui_ContainerFile, placeholder: "C:\\path\\private.scrypt", icon: .theme().icon(ThemeIcons.OpenFile, 17))
         setMachineFont(.createPath)
-        let browse = form.addRowAction(appStrings().ui_Browse, .theme().icon(ThemeIcons.OpenFile, 16))
-        browse.sigPressed += func|window = me|(btn)
+        .browseCreate            = form.addRowAction(appStrings().ui_Browse, .theme().icon(ThemeIcons.OpenFile, 16))
+        .browseCreate.sigPressed += func|window = me|(btn)
         {
             discard btn
             window.chooseContainer(window.createPath, true)
@@ -265,7 +416,9 @@ impl MainWindow
         .createPassword  = form.addPasswordField(appStrings().ui_Password, placeholder: appStrings().ui_RequiredPassword)
         .confirmPassword = form.addPasswordField(appStrings().ui_ConfirmPassword, placeholder: appStrings().ui_EnterAgain)
 
-        .createButton = PushButton.create(card.actions, appStrings().ui_CreateVault, {0, 0, 224, 36}, form: .Strong)
+        // The action buttons carry no width: every caption is longer in some language, and
+        // the layout pass reads it from the button instead of a number tuned on English.
+        .createButton = PushButton.create(card.actions, appStrings().ui_CreateVault, {0, 0, 0, 36}, form: .Strong)
         .createButton.setIcon(.theme().icon(ThemeIcons.SaveAs, 18))
         .createButton.sigPressed += func|window = me|(btn)
         {
@@ -282,12 +435,12 @@ impl MainWindow
     {
         let card = VaultCard.create(parent, appStrings().ui_MountCardTitle, appStrings().ui_MountCardHelp)
         let form = card.form
-        .mountForm = form
+        .mountCard = card
 
         .mountPath = form.addTextField(appStrings().ui_ContainerFile, placeholder: appStrings().ui_ExistingContainer, icon: .theme().icon(ThemeIcons.OpenFile, 17))
         setMachineFont(.mountPath)
-        let browse = form.addRowAction(appStrings().ui_Browse, .theme().icon(ThemeIcons.OpenFile, 16))
-        browse.sigPressed += func|window = me|(btn)
+        .browseMount            = form.addRowAction(appStrings().ui_Browse, .theme().icon(ThemeIcons.OpenFile, 16))
+        .browseMount.sigPressed += func|window = me|(btn)
         {
             discard btn
             window.chooseContainer(window.mountPath, false)
@@ -310,7 +463,7 @@ impl MainWindow
         if .drive.items.count do
             .drive.setSelectedIndex(0, notify: false)
 
-        .unmountButton = PushButton.create(card.actions, appStrings().ui_Unmount, {0, 0, 136, 36})
+        .unmountButton = PushButton.create(card.actions, appStrings().ui_Unmount, {0, 0, 0, 36})
         .unmountButton.setIcon(.theme().icon(ThemeIcons.Stop, 18))
         .unmountButton.sigPressed += func|window = me|(btn)
         {
@@ -318,7 +471,7 @@ impl MainWindow
             window.unmountContainer()
         }
 
-        .mountButton = PushButton.create(card.actions, appStrings().ui_MountDrive, {0, 0, 136, 36}, form: .Strong)
+        .mountButton = PushButton.create(card.actions, appStrings().ui_MountDrive, {0, 0, 0, 36}, form: .Strong)
         .mountButton.setIcon(.theme().icon(ThemeIcons.Play, 18))
         .mountButton.sigPressed += func|window = me|(btn)
         {
@@ -346,11 +499,56 @@ impl MainWindow
         let mounted = state == .Mounted
 
         // Disabling a form disables every field and trailing control it owns.
-        .createForm.enable(ready)
+        .createCard.form.enable(ready)
         .createButton.enable(ready)
-        .mountForm.enable(ready)
+        .mountCard.form.enable(ready)
         .mountButton.enable(ready)
         .unmountButton.enable(mounted)
+    }
+
+    // Says everything the window said at construction, in the language now active.
+    //
+    // Only text set once by hand needs this: the buttons and the wrapped paragraphs
+    // re-measure themselves from the new wording, so the surface re-arranges around what
+    // the language actually costs instead of around the widths English needed.
+    mtd retranslate()
+    {
+        let texts = appStrings()
+        .surface?.setTitle(texts.ui_WindowTitle)
+
+        .badge.setText(texts.ui_Badge)
+        .subtitle.setText(texts.ui_Subtitle)
+
+        .createCard.setTexts(texts.ui_CreateCardTitle, texts.ui_CreateCardHelp)
+        .createCard.form.setRowLabel(cast(u64) CreateRow.Path, texts.ui_ContainerFile)
+        .createCard.form.setRowLabel(cast(u64) CreateRow.Capacity, texts.ui_FixedCapacity)
+        .createCard.form.setRowLabel(cast(u64) CreateRow.Password, texts.ui_Password)
+        .createCard.form.setRowLabel(cast(u64) CreateRow.Confirm, texts.ui_ConfirmPassword)
+        .createPassword.setPlaceholder(texts.ui_RequiredPassword)
+        .confirmPassword.setPlaceholder(texts.ui_EnterAgain)
+        .browseCreate.setText(texts.ui_Browse)
+        .createButton.setText(texts.ui_CreateVault)
+
+        .mountCard.setTexts(texts.ui_MountCardTitle, texts.ui_MountCardHelp)
+        .mountCard.form.setRowLabel(cast(u64) MountRow.Path, texts.ui_ContainerFile)
+        .mountCard.form.setRowLabel(cast(u64) MountRow.Password, texts.ui_Password)
+        .mountCard.form.setRowLabel(cast(u64) MountRow.Drive, texts.ui_DriveLetter)
+        .mountCard.form.setRowHelp(cast(u64) MountRow.Drive, texts.ui_DriveHelp)
+        .mountPath.setPlaceholder(texts.ui_ExistingContainer)
+        .mountPassword.setPlaceholder(texts.ui_ContainerPassword)
+        .browseMount.setText(texts.ui_Browse)
+        .mountButton.setText(texts.ui_MountDrive)
+        .unmountButton.setText(texts.ui_Unmount)
+
+        .fillLanguageChoice()
+        .refreshStatus()
+
+        .applyLayout()
+        .createCard.endForm()
+        .mountCard.endForm()
+        .createCard.actions.computeLayout()
+        .mountCard.actions.computeLayout()
+        .invalidate()
     }
 
     mtd chooseContainer(target: *EditBox, create: bool)
@@ -443,7 +641,7 @@ impl MainWindow
         .operation.password.add(.createPassword.bytes())
         .createPassword.clear()
         .confirmPassword.clear()
-        .setStatus(.Active, appStrings().msg_Randomizing)
+        .setStatus(.Randomizing)
         .setState(.Creating)
         .beginOperation(.Create)
     }
@@ -474,7 +672,7 @@ impl MainWindow
         .operation.mount = mountPoint
         .operation.password.add(.mountPassword.bytes())
         .mountPassword.clear()
-        .setStatus(.Active, appStrings().msg_StartingDriver)
+        .setStatus(.StartingDriver)
         .setState(.Mounting)
         .beginOperation(.Mount)
     }
@@ -483,7 +681,7 @@ impl MainWindow
     {
         if .state != .Mounted do
             return
-        .setStatus(.Active, appStrings().msg_Unmounting)
+        .setStatus(.Unmounting)
         .setState(.Unmounting)
         .beginOperation(.Unmount)
     }
@@ -532,11 +730,11 @@ impl MainWindow
             if .operation.error != null
             {
                 .showError(appStrings().msg_CreateFailed, .operation.error)
-                .setStatus(.Stopped, appStrings().msg_CreateStopped)
+                .setStatus(.CreateStopped)
             }
             else
             {
-                .setStatus(.Idle, appStrings().msg_Created)
+                .setStatus(.Created)
                 .mountPath.setText(.operation.path)
             }
 
@@ -546,19 +744,20 @@ impl MainWindow
             if .operation.error != null
             {
                 .showError(appStrings().msg_MountFailed, .operation.error)
-                .setStatus(.Stopped, appStrings().msg_MountStopped)
+                .setStatus(.MountStopped)
                 .setState(.Ready)
             }
             else
             {
-                .setStatus(.Active, Format.toString(appStrings().msg_Mounted, .operation.mount))
+                .statusDrive = .operation.mount
+                .setStatus(.Mounted)
                 .setState(.Mounted)
             }
 
         case .Unmount:
             if .operation.error != null do
                 .showError(appStrings().msg_UnmountSyncStopped, .operation.error)
-            .setStatus(.Idle, appStrings().msg_Unmounted)
+            .setStatus(.Unmounted)
             .setState(.Ready)
         }
 
@@ -612,8 +811,11 @@ impl IWnd for MainWindow
         if evt.kind == .Init
         {
             // Runs before the surface is first displayed: restore the persisted window
-            // placement and dialog state, then keep the window on a visible screen area.
+            // placement, language and dialog state, then keep the window on a visible
+            // screen area. The surface is built in English, and the restored language
+            // reaches it through the notification the switch below emits.
             catch g_App.loadState()
+            .applyLanguage()
             .surface?.constrainPositionToScreen(topLeft: true, margin: 10)
             evt.accepted = true
         }
@@ -624,6 +826,14 @@ impl IWnd for MainWindow
         // The browse dialogs share this state, so they reopen on the folder that held
         // the last accepted container, with its recent locations.
         catch evt.serializer.serialize("MainWindow.fileDlgState", &me.fileDlgState)
+        catch evt.serializer.serialize("MainWindow.language", &me.language)
+    }
+
+    mtd impl onNotifyEvent(evt: *NotifyEvent)
+    {
+        if evt.kind == .LanguageChanged do
+            .retranslate()
+        .wnd.IWnd.onNotifyEvent(evt)
     }
 
     mtd impl onDestroyEvent(evt: *DestroyEvent)

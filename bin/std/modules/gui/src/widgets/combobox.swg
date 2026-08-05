@@ -157,6 +157,40 @@ impl IWnd for ComboBox
         icon.paint(painter, clientRect.right() - metrics.comboBox_RightMargin, clientRect.vertCenter() - icon.sizeY * 0.5, colorText)
     }
 
+    // Reports the room the widest item needs beside the icon column and the drop-down arrow.
+    //
+    // Every item has to be readable once selected, not only the one showing now, so the
+    // widest decides. The theme combo width stays a floor, which keeps a field of short
+    // entries the regular size of the surface.
+    mtd impl measureContent(available: Math.Point)->Math.Point
+    {
+        discard available
+
+        let metrics = .themeMetrics()
+
+        var format: RichStringFormat
+        format.font = .font()
+
+        var text = 0'f32
+        for item in .items
+        {
+            let current = item!
+            if current.isSeparator do
+                continue
+            current.name.compute()
+            Painter.computeLayout({0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &current.name, format)
+            text = Math.max(text, current.name.boundRect.width)
+        }
+
+        // The right margin is the room the drop-down arrow is painted in, so the field
+        // padding is counted again before it: without that the widest entry would read as
+        // touching the arrow.
+        var width = 2 * metrics.comboBox_Padding + text + metrics.comboBox_RightMargin
+        if .maxIconSize do
+            width += cast(f32) .maxIconSize + metrics.comboBox_IconTextMargin
+        return {Math.max(width, metrics.comboBox_Width), metrics.comboBox_Height}
+    }
+
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
         switch evt.kind
@@ -337,6 +371,11 @@ impl ComboBox
 
         result.mode  = mode
         result.flags = flags
+
+        // An unstated width belongs to the items: the theme width above only gives the
+        // field a sane size until the first layout pass measures it, and stays its floor.
+        if position.width == 0 do
+            result.preferredSize.x = 0
         if result.mode == .Editable
         {
             result.editBox = EditBox.create(result, null, {})

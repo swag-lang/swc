@@ -208,6 +208,18 @@ impl IWnd for PushButton
         .postCommandEvent(.id)
         evt.accepted = true
     }
+
+    // Reports the room the caption, the optional icon, and the button padding need.
+    //
+    // The theme push-button width stays a floor, so a short caption keeps the regular
+    // button size of the surface and only a caption that would not fit widens it.
+    mtd impl measureContent(available: Math.Point)->Math.Point
+    {
+        discard available
+
+        let metrics = .themeMetrics()
+        return {Math.max(.labelWidth(), metrics.btnPush_Width), metrics.btnPush_Height}
+    }
 }
 
 impl PushButton
@@ -233,6 +245,11 @@ impl PushButton
             pos.width = parent.themeMetrics().btnPush_Width
         let res = Wnd.create'PushButton(parent, name, pos, id)
         res.form = form
+
+        // An unstated width belongs to the caption: the theme width above only gives the
+        // button a sane size until the first layout pass measures it, and stays its floor.
+        if position.width == 0 do
+            res.preferredSize.x = 0
         if id != null do
             res.updateCommandState()
         return res
@@ -247,31 +264,34 @@ impl PushButton
         .invalidate()
     }
 
-    // Sets the button width from its label, so a translated caption never clips.
+    // Pins the button width to its label instead of leaving it to the layout pass.
     //
-    // The width covers the label, the optional icon, and the horizontal button padding;
-    // `minWidth` keeps a floor under very short captions. `preferredSize` follows, so
-    // measured layouts agree with docked ones. Call it again after changing the name,
-    // the icon, or the emphasis.
+    // A button created without a width already follows its caption, so this is for a
+    // button that must carry a settled width right away — one placed by hand, or one that
+    // has to agree with a sibling before any container measures it. `minWidth` keeps a
+    // floor under very short captions. Call it again after changing the name, the icon,
+    // or the emphasis.
     mtd fitWidthToLabel(minWidth: f32 = 0)
+    {
+        .position.width  = Math.max(.labelWidth(), minWidth)
+        .preferredSize.x = .position.width
+        .invalidateLayout()
+    }
+
+    // Returns the width the caption, the optional icon, and the side margins need.
+    //
+    // The margin is [[Gui.ThemeMetrics.btnPush_TextMargin]], not the paint padding: a
+    // button that follows its caption has to look like a button, and the few pixels the
+    // painter insets by would leave the words against its border. An icon asks for the
+    // icon gap on the trailing side as well, because it is measured on its cell while
+    // the caption is measured on its ink, and the two would not read as balanced.
+    private mtd labelWidth()->f32
     {
         let metrics = .themeMetrics()
 
-        var format: RichStringFormat
-        format.font = .font()
-        if .form == .Strong do
-            format.fontStyle = .Bold
-
-        .name.compute()
-        Painter.computeLayout({0, 0, 8192, 8192}, &.name, format)
-
-        var width = .name.boundRect.width
-        if .icon.isValid() do
-            width += .icon.sizeX + metrics.iconText_Margin
-        width += 2 * metrics.btnPush_Padding
-
-        .position.width  = Math.max(width, minWidth)
-        .preferredSize.x = .position.width
-        .invalidateLayout()
+        var result = .captionWidth(bold: .form == .Strong) + 2 * metrics.btnPush_TextMargin
+        if .icon.isValid() and @countof(.name) != 0 do
+            result += metrics.iconText_Margin
+        return result
     }
 }

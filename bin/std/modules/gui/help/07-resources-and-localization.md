@@ -75,6 +75,27 @@ value, so a translation only carries what it changes.
 pick the new wording up on their next update, while text set once at
 construction must listen for the notification or be rebuilt.
 
+## Languages
+
+A tag is only presentable once it is registered with its name, so a picker can
+list what the application ships without hard-coding it:
+
+```swag
+Gui.registerLanguage("fr", "Français")
+```
+
+[[Gui.ReferenceLanguage]] — `"en"` — is always registered and always comes
+first: it names the declared reference wording and needs no resource file.
+[[Gui.languages]] returns what a picker should show, and a language is named in
+its own words, so those names are never translated.
+
+English is the language an application starts in. Following the account instead
+is a choice the user makes, not a guess the application makes on its behalf:
+[[Gui.systemLanguage]] resolves [[Core.Env.userLocaleName]] against the
+registered tags and falls back to the reference language, and
+[[Gui.Application.setSystemLanguage]] applies it. Applying a tag that was never
+registered fails rather than silently presenting itself as applied.
+
 Embed the translation and validate it when the module compiles: a mistyped key
 becomes a build error with its line number instead of a runtime fallback.
 
@@ -87,7 +108,28 @@ const FrenchStrings = #include("lang/fr/myapp.tweak")
 }
 ```
 
-Translated captions are longer than the reference wording more often than not.
-[[Gui.PushButton.fitWidthToLabel]] sizes a button from its caption, and the
-standard dialogs already size their action buttons this way, so a French or
-German caption widens its button instead of clipping.
+## Sizes belong to the text
+
+Translated wording is longer than the reference more often than not, so a
+surface that survives a language switch is one that never wrote its sizes down.
+Leave an axis unsized and the layout pass asks the window itself through
+[[Gui.IWnd.measureContent]]: a button widens with its caption, a combo box with
+its widest entry, a wrapped paragraph grows taller, and a band docked without a
+height is as tall as what it holds. An axis carrying an explicit size keeps it,
+so this is opt-in per widget and per axis.
+
+```swag
+// Width measured from the caption, height stated because the row is a design decision.
+let action = PushButton.create(card, appStrings().createVault, {0, 0, 0, 36})
+
+// A paragraph that decides its own height, whatever the language costs.
+let help = Label.create(card, appStrings().createHelp, {}, null, .WordWrap | .SecondaryText | .AutoHeight)
+help.dockStyle = .Top
+```
+
+Re-label with [[Gui.Button.setText]], [[Gui.Label.setText]] and
+[[Gui.FormLayoutCtrl.setRowLabel]] when the notification arrives, then arrange
+again: the sizes follow the new wording on their own. Prove it rather than
+trust it — `Gui.Testing.assertContentFits` walks a surface and fails on the
+first window smaller than what it says it needs, so a test that loops over
+[[Gui.languages]] is enough to keep every shipped translation honest.

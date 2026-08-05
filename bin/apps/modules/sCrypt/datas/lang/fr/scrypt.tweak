@@ -23,6 +23,7 @@ ui_CreateVault         Créer le coffre chiffré
 ui_MountDrive          Monter le lecteur
 ui_Unmount             Démonter
 ui_Desktop             Bureau
+ui_LanguageSystem      Langue du système
 dlg_TitleCreate        Créer un conteneur sCrypt
 dlg_TitleOpen          Ouvrir un conteneur chiffré
 dlg_BtnCreate          Créer

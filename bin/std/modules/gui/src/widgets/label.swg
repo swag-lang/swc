@@ -144,7 +144,48 @@ impl IWnd for Label
             painter.drawRichString(posText, &.name, sf)
         }
     }
+
+    // Reports the room the rich text and the icon need inside the label's own paddings.
+    //
+    // Both are placed independently in the same rectangle, so the content is as large as
+    // the larger of the two rather than as large as their sum.
+    mtd impl measureContent(available: Math.Point)->Math.Point
+    {
+        var result: retval
+
+        if !.name.isEmpty()
+        {
+            let sf = .getStringFormat(false)
+
+            // Wrapped text is only as tall as the width it is given; measuring it
+            // unconstrained would report one long line and hide the wrap entirely.
+            var layout = Math.Rectangle{0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}
+            if .flags.has(.WordWrap) and available.x > 0 do
+                layout.width = Math.max(available.x - .padding.x - .padding.z - .textPadding.x - .textPadding.z, 1)
+
+            .name.compute()
+            Painter.computeLayout(layout, &.name, sf, .deviceScale())
+
+            result.x = .name.boundRect.width + .textPadding.x + .textPadding.z
+            result.y = Math.max(.name.boundRect.height, sf.font.regular!.height) + .textPadding.y + .textPadding.w
+        }
+
+        if .icon.isValid()
+        {
+            result.x = Math.max(result.x, .icon.sizeX + .iconPadding.x + .iconPadding.z)
+            result.y = Math.max(result.y, .icon.sizeY + .iconPadding.y + .iconPadding.w)
+        }
+
+        if result.x > 0 do
+            result.x += .padding.x + .padding.z
+        if result.y > 0 do
+            result.y += .padding.y + .padding.w
+        return result
+    }
 }
+
+// Layout extent standing in for an unconstrained axis when measuring text.
+internal const MaxTextLayoutExtent = 8192.0'f32
 
 impl Label
 {
@@ -206,6 +247,8 @@ impl Label
             pos.height = parent.themeMetrics().label_Height
         let lbl = Wnd.create'Label(parent, "", pos, id)
         lbl.flags = flags
+        if flags.has(.AutoHeight) and position.height == 0 do
+            lbl.releaseAutomaticHeight()
         lbl.setText(name)
         return lbl
     }
@@ -233,8 +276,22 @@ impl Label
         if .flags == newFlags do
             return
         .flags = newFlags
+        if add.has(.AutoHeight) do
+            .releaseAutomaticHeight()
         .invalidate()
         .updateAutomaticHeight()
+    }
+
+    // Hands the height over to the text, so a container measures it instead of reading it.
+    //
+    // [[Gui.LabelFlags.AutoHeight]] means the text decides, and a layout pass only asks a
+    // window for its content on an axis carrying no authored size. Creating the label
+    // still leaves a sane height in `position` for a label that is painted before any
+    // layout pass runs.
+    private mtd releaseAutomaticHeight()
+    {
+        .preferredSize.y = 0
+        .invalidateLayout()
     }
 
     // Changes text alignment and updates automatic height when needed.
@@ -324,7 +381,10 @@ impl Label
 
     // Recomputes height from current text, width, font, flags, and text padding.
     //
-    // This method has no effect unless [[LabelFlags.AutoHeight]] is active.
+    // A label under a layout container does not need this: [[Gui.LabelFlags.AutoHeight]]
+    // already hands the height to the measure pass. Call it for a label placed by hand,
+    // to read the right `position.height` back straight away. The method has no effect
+    // unless `AutoHeight` is active.
     mtd updateAutomaticHeight()
     {
         if .flags.has(.AutoHeight)
@@ -333,8 +393,6 @@ impl Label
             var rect = .position
             if rect.width <= 0 do
                 rect.width = .preferredSize.x
-            if rect.height <= 0 do
-                rect.height = .preferredSize.y
             if rect.height <= 0 do
                 rect.height = sf.font.regular!.height
 
@@ -350,7 +408,7 @@ impl Label
                 height = Math.max(height, sf.font.regular!.height)
             height           += .textPadding.y + .textPadding.w
             .position.height = height
-            .preferredSize.y = height
+            .invalidateLayout()
         }
     }
 }

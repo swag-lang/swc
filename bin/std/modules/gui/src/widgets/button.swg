@@ -61,6 +61,20 @@ impl IWnd for Button
 
 impl Button
 {
+    // Replaces the caption and lets the next layout pass re-measure the button around it.
+    //
+    // A button that carries no explicit width follows its caption, so re-labelling one
+    // after a language switch is enough to make it the right size again.
+    public mtd setText(text: #null string)
+    {
+        .name.set(text)
+        .invalidate()
+        .invalidateLayout()
+    }
+
+    // Returns the displayed caption.
+    public mtd text()->string => .name.raw
+
     // Replaces the displayed icon and repaints the button.
     mtd setIcon(icon: Icon)
     {
@@ -86,6 +100,36 @@ impl Button
         .iconWidth  = width
         .iconHeight = height
         .invalidate()
+    }
+
+    // Returns the width the caption and the optional icon need side by side.
+    //
+    // The layout matches [[Gui.Theme.drawIconText]], which every button paints its
+    // content with; the padding a concrete button adds around that content is its own.
+    // `bold` measures against the bold face a strong emphasis paints the caption with.
+    internal mtd captionWidth(bold = false)->f32
+    {
+        var format: RichStringFormat
+        format.font = .font()
+        if bold do
+            format.fontStyle = .Bold
+
+        var result = 0'f32
+        if @countof(.name) != 0
+        {
+            .name.compute()
+            Painter.computeLayout({0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &.name, format)
+            result = .name.boundRect.width
+        }
+
+        if .icon.isValid()
+        {
+            result += .icon.sizeX
+            if result != .icon.sizeX do
+                result += .themeMetrics().iconText_Margin
+        }
+
+        return result
     }
 
     internal mtd clearPointerState()

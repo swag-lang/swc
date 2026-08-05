@@ -33,6 +33,57 @@ impl IWnd for StackLayoutCtrl
         .computeLayout()
         .wnd.IWnd.onResizeEvent(evt)
     }
+
+    // Reports the room the stacked children need, spacing, margins and padding included.
+    //
+    // This is what lets a docked band be as tall as what it holds instead of carrying a
+    // height written by hand: give the stack no size on its stacking axis and the layout
+    // pass asks it here. A distributing mode fills whatever it is given, so it answers
+    // for its content all the same and the container decides.
+    mtd impl measureContent(available: Math.Point)->Math.Point
+    {
+        let padding    = .padding
+        let horizontal = .isHorizontal()
+
+        var childAvailable: Math.Point
+        if horizontal do
+            childAvailable.y = Math.max(available.y - padding.y - padding.w, 0)
+        else do
+            childAvailable.x = Math.max(available.x - padding.x - padding.z, 0)
+
+        var main, cross: f32
+        var count:       u64
+        for c in .children
+        {
+            if !c.isLocallyVisible() do
+                continue
+
+            let margin = c.layoutMargin()
+            let hint   = c.measure(childAvailable)
+            main  += .preferredMain(hint) + .mainMargin(margin)
+            cross = Math.max(cross, .preferredCross(hint) + .crossMargin(margin))
+            count += 1
+        }
+
+        if !count do
+            return {}
+
+        main += cast(f32) (count - 1) * .spacing
+
+        var result: retval
+        if horizontal
+        {
+            result.x = main + padding.x + padding.z
+            result.y = cross + padding.y + padding.w
+        }
+        else
+        {
+            result.x = cross + padding.x + padding.z
+            result.y = main + padding.y + padding.w
+        }
+
+        return result
+    }
 }
 
 private impl StackLayoutCtrl

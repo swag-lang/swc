@@ -83,6 +83,18 @@ private var g_Strings: Strings
 // Returns the visible strings of the GUI module in the active language.
 func strings()->const &Strings => &g_Strings
 
+// One language the interface can present.
+//
+// `en` is registered by the GUI module itself and always available: it names the
+// reference wording declared by the string tables, so it needs no resource. Every other
+// language is a tag whose tables are read from `lang/<tag>/<file>.tweak`.
+struct Language
+{
+    tag:        String     // Short language tag, `"en"` or `"fr"`.
+    nativeName: String     // Name of the language written in that language, never translated.
+    builtin:    bool       // Whether the tag names the declared reference strings instead of a resource.
+}
+
 // One registered string table: a live struct of `string` fields owned by a module or
 // an application, plus the storage of its currently loaded translations.
 private struct StringTable
@@ -98,8 +110,9 @@ private struct StringTable
 
 private struct LocalizationState
 {
-    tables:   Array'StringTable     // Registered tables, applied in registration order.
-    language: String                // Active tag; empty means the reference `"en"`.
+    tables:    Array'StringTable     // Registered tables, applied in registration order.
+    languages: Array'Language        // Presentable languages, `ReferenceLanguage` first.
+    language:  String                // Active tag; empty means the reference `"en"`.
 }
 
 private var g_Localization: LocalizationState
@@ -130,23 +143,96 @@ func registerStrings(type: typeinfo, table: *void, file: string)
 
 // Returns the active language tag, `"en"` by default. The value is borrowed and
 // stays valid until the next language switch.
-func activeLanguage()->string => g_Localization.language.isEmpty() ? "en" : g_Localization.language.toString()
+func activeLanguage()->string => g_Localization.language.isEmpty() ? ReferenceLanguage : g_Localization.language.toString()
+
+// Tag of the reference wording declared by the string tables.
+const ReferenceLanguage = "en"
+
+// Seeds the registry with the reference language on its first use.
+//
+// Doing it here rather than at module setup keeps [[Gui.ReferenceLanguage]] first in the
+// list whoever registers first, and keeps it presentable to a program that never creates
+// a surface.
+private func ensureReferenceLanguage()
+{
+    let registry = &g_Localization.languages
+    if registry.isEmpty() do
+        registry.add({String.from(ReferenceLanguage), String.from("English"), true})
+}
+
+// Registers a language the interface can present.
+//
+// `tag` is a short language tag such as `"fr"`, and `nativeName` is the name of the
+// language written in that language, because a picker lists it beside the others rather
+// than inside a translated sentence. Registering a tag again replaces its name.
+// [[Gui.ReferenceLanguage]] is always registered and always comes first. A module or an
+// application registers its own tag next to the resources that carry it. GUI thread only.
+func registerLanguage(tag, nativeName: string)
+{
+    Debug.assert(@countof(tag) != 0, "empty language tag")
+
+    ensureReferenceLanguage()
+    for &existing in g_Localization.languages where existing.tag == tag
+    {
+        existing.nativeName = nativeName
+        return
+    }
+
+    g_Localization.languages.add({String.from(tag), String.from(nativeName), false})
+}
+
+// Returns the registered languages, [[Gui.ReferenceLanguage]] first.
+//
+// The elements are borrowed and stay valid until the next registration.
+func languages()->const [..] Language
+{
+    ensureReferenceLanguage()
+    return g_Localization.languages.toSlice()
+}
+
+// Returns the registered language named by `tag`, or `null` when no language carries it.
+func findLanguage(tag: string)->#null const *Language
+{
+    ensureReferenceLanguage()
+    for &one in g_Localization.languages where one.tag == tag do
+        return &one
+    return null
+}
+
+// Returns the registered tag that best matches the language of the user account.
+//
+// The locale reported by [[Core.Env.userLocaleName]] is a full name such as `fr-FR`, so
+// the primary language subtag decides: `fr-CA` selects a registered `fr`. Falls back to
+// [[Gui.ReferenceLanguage]] when nothing matches, which is why an application can apply
+// the result without handling a miss.
+func systemLanguage()->string
+{
+    let locale  = Env.userLocaleName()
+    let primary = Tokenize.sliceToDelimiter(locale.toString(), '-', includeDelimiter: false)
+    let found   = findLanguage(primary)
+    return found ? found.tag.toString() : ReferenceLanguage
+}
 
 // Applies the language `tag` to every registered string table.
 //
-// `"en"` restores the declared reference strings. Any other tag first resets each
-// table, then decodes its `lang/<tag>/<file>.tweak` resource from `resources`; a table
-// without a file for that tag keeps its reference strings. Fails without touching any
-// table when the tag has no file for any registered table, so a mistyped tag cannot
-// present itself as applied; a malformed file fails mid-way with the earlier tables
-// already switched. Prefer [[Application.setLanguage]], which also notifies every
+// [[Gui.ReferenceLanguage]] restores the declared reference strings. Any other tag first
+// resets each table, then decodes its `lang/<tag>/<file>.tweak` resource from
+// `resources`; a table without a file for that tag keeps its reference strings.
+//
+// Fails without touching any table when the tag is not registered through
+// [[Gui.registerLanguage]], or when no registered table has a file for it, so a mistyped
+// tag cannot present itself as applied; a malformed file fails mid-way with the earlier
+// tables already switched. Prefer [[Application.setLanguage]], which also notifies every
 // surface. GUI thread only.
 func applyLanguage(resources: const *Resources.Bundle, tag: string) fail
 {
     Debug.assert(@countof(tag) != 0, "empty language tag")
 
     let state = &g_Localization
-    if tag != "en"
+    if !findLanguage(tag) do
+        fail BadParameterError{Errors.mkString(Format.toString("language [[%]] is not registered", tag))}
+
+    if tag != ReferenceLanguage
     {
         var anyFound = false
         for &table in state.tables where resources.has(langResourceName(tag, table.file).toString()) do
@@ -158,7 +244,7 @@ func applyLanguage(resources: const *Resources.Bundle, tag: string) fail
     for &table in state.tables
     {
         resetTable(table)
-        if tag == "en" do
+        if tag == ReferenceLanguage do
             continue
 
         let resName = langResourceName(tag, table.file)
@@ -198,9 +284,10 @@ func validateStrings(type: typeinfo, content: string) fail
     try parseStringsContent(type, cast([*] u8) probe, content, null)
 }
 
-// Registers the GUI string table and its embedded translations.
+// Registers the GUI string table, the languages it ships, and its embedded translations.
 internal func registerDefaultStrings(bundle: *Resources.Bundle)
 {
+    registerLanguage("fr", "Français")
     registerStrings'Strings(&g_Strings, "gui")
     bundle.addEmbedded(FrenchStringsName, FrenchStrings)
 }

@@ -49,6 +49,16 @@ struct ThemeColors
     btnPush_StrongBorder: Color     // Semantic color used for btn push strong border.
     btnPush_StrongBk:     Color     // Semantic color used for btn push strong bk.
 
+    // A filled action answers the pointer in its own color. Falling back to the neutral
+    // hover of a plain button, it lost the accent that made it the primary action of the
+    // surface exactly when the reader was about to press it.
+    btnPush_StrongHotText:       Color     // Label of a hovered strong button.
+    btnPush_StrongHotBorder:     Color     // Border of a hovered strong button.
+    btnPush_StrongHotBk:         Color     // Fill of a hovered strong button.
+    btnPush_StrongPressedText:   Color     // Label of a pressed strong button.
+    btnPush_StrongPressedBorder: Color     // Border of a pressed strong button.
+    btnPush_StrongPressedBk:     Color     // Fill of a pressed strong button.
+
     btnPush_Text:           Color     // Semantic color used for btn push text.
     btnPush_Border:         Color     // Semantic color used for btn push border.
     btnPush_Bk:             Color     // Semantic color used for btn push bk.
@@ -120,6 +130,7 @@ struct ThemeColors
 
     label_Text:         Color     // Semantic color used for label text.
     label_TextLight:    Color     // Semantic color used for label text light.
+    label_TextFaint:    Color     // Counts, status readouts, and other text a reader only glances at.
     label_Text1:        Color     // Semantic color used for label text1.
     label_Text2:        Color     // Semantic color used for label text2.
     label_Text3:        Color     // Semantic color used for label text3.
@@ -370,6 +381,21 @@ struct ThemeColors
 
 impl ThemeColors
 {
+    // How far a filled action travels under the pointer, and under the press. Enough to
+    // be seen, never enough to read as a second color.
+    private const StrongHotShift     = 0.12'f32
+    private const StrongPressedShift = 0.26'f32
+
+    // Moves a fill by `amount` in whichever direction is visible on it.
+    //
+    // A light fill darkens and a dark one lightens. Always lightening looks obvious until
+    // the fill is Voltage, which is already at the top of red and green: mixing it with
+    // white can only raise blue, and the button reports nothing the eye can catch.
+    private func shiftState(base: Color, amount: f32)->Color
+    {
+        return base.relativeLuminance() > 0.5 ? Color.darker(base, amount) : Color.lighter(base, amount)
+    }
+
     // Sets dark.
     mtd setDark()
     {
@@ -435,6 +461,7 @@ impl ThemeColors
         .btnPush_StrongText   = White
         .btnPush_StrongBorder = White
         .btnPush_StrongBk     = Transparent
+        .setStrongStates(Color.fromArgb(White), Color.fromArgb(White), Color.fromArgb(Transparent))
 
         .btnPush_Text           = White
         .btnPush_Border         = Gray2
@@ -507,6 +534,7 @@ impl ThemeColors
 
         .label_Text         = Gray1
         .label_TextLight    = Gray2
+        .label_TextFaint    = Gray3
         .label_Text1        = 0xFFFF5555
         .label_Text2        = 0xFF55FF55
         .label_Text3        = 0xFFFF5555
@@ -827,6 +855,7 @@ impl ThemeColors
         .btnPush_StrongText   = Gray1
         .btnPush_StrongBorder = Gray1
         .btnPush_StrongBk     = Transparent
+        .setStrongStates(Color.fromArgb(Gray1), Color.fromArgb(Gray1), Color.fromArgb(Transparent))
 
         .btnPush_Text           = Gray1
         .btnPush_Border         = Gray6
@@ -899,6 +928,7 @@ impl ThemeColors
 
         .label_Text         = Gray1
         .label_TextLight    = Gray2
+        .label_TextFaint    = Gray3
         .label_Text1        = 0xFFCC0000
         .label_Text2        = 0xFF008A00
         .label_Text3        = 0xFFCC0000
@@ -1150,6 +1180,22 @@ impl ThemeColors
         .prop_CategBk     = Gray8
     }
 
+    // Derives the hover and press states of a filled action from the color it is filled
+    // with, so a palette declares that color once.
+    //
+    // The fill lightens under the pointer and darkens under the press, the way a real
+    // surface catches and loses light. A button whose three states are the same color
+    // reports nothing at the moment the reader is deciding whether to press it.
+    private mtd setStrongStates(text, border, bk: Color)
+    {
+        .btnPush_StrongHotText       = text
+        .btnPush_StrongHotBorder     = shiftState(border, StrongHotShift)
+        .btnPush_StrongHotBk         = shiftState(bk, StrongHotShift)
+        .btnPush_StrongPressedText   = text
+        .btnPush_StrongPressedBorder = shiftState(border, StrongPressedShift)
+        .btnPush_StrongPressedBk     = shiftState(bk, StrongPressedShift)
+    }
+
     private mtd applySwagAccent(accent, activeText, neutralHot, neutralPressed: Color)
     {
         .hilight              = accent
@@ -1163,15 +1209,20 @@ impl ThemeColors
         .btnPushFlat_PressedBorder = accent
         .btnPushFlat_HotBorder     = accent
 
+        // The default action lightens under the pointer and darkens under the press. Given
+        // the same accent in all three states it never answered the mouse at all.
+        let accentHot     = shiftState(accent, StrongHotShift)
+        let accentPressed = shiftState(accent, StrongPressedShift)
+
         .btnPushDefault_Text          = activeText
         .btnPushDefault_Border        = accent
         .btnPushDefault_Bk            = accent
         .btnPushDefault_PressedText   = activeText
-        .btnPushDefault_PressedBorder = accent
-        .btnPushDefault_PressedBk     = accent
+        .btnPushDefault_PressedBorder = accentPressed
+        .btnPushDefault_PressedBk     = accentPressed
         .btnPushDefault_HotText       = activeText
-        .btnPushDefault_HotBorder     = accent
-        .btnPushDefault_HotBk         = accent
+        .btnPushDefault_HotBorder     = accentHot
+        .btnPushDefault_HotBk         = accentHot
 
         .btnIcon_CheckedPressedIcon = accent
         .btnIcon_CheckedPressedText = accent
@@ -1301,7 +1352,11 @@ impl ThemeColors
         .wnd_CaptionBkNotActived     = Panel
         .wnd_CaptionText             = Text
         .wnd_CaptionNotActivatedText = SoftText
-        .wnd_Border                  = ControlLine
+
+        // With no drop shadow to cast, the outline is the only thing telling a modal box
+        // from the application under it, both cut from the same ink. It stands clearly above
+        // the ground without reaching the weight of a control border.
+        .wnd_Border                  = 0xFF5A5A66
         .view_Bk                     = View
         .dlg_Bk                      = Panel
         .dlg_BtnBarBk                = View
@@ -1309,6 +1364,7 @@ impl ThemeColors
         .btnPush_StrongText   = Ink
         .btnPush_StrongBorder = Voltage
         .btnPush_StrongBk     = Voltage
+        .setStrongStates(Color.fromArgb(Ink), Color.fromArgb(Voltage), Color.fromArgb(Voltage))
         .btnPush_Text         = Text
         .btnPush_Border       = ControlLine
         .btnPush_Bk           = Raised
@@ -1330,6 +1386,7 @@ impl ThemeColors
 
         .label_Text      = Text
         .label_TextLight = SoftText
+        .label_TextFaint = FaintText
         .label_Icon      = Text
         .disabled        = FaintText
 
@@ -1425,6 +1482,7 @@ impl ThemeColors
         .btnPush_StrongText   = Paper
         .btnPush_StrongBorder = Ink
         .btnPush_StrongBk     = Ink
+        .setStrongStates(Color.fromArgb(Paper), Color.fromArgb(Ink), Color.fromArgb(Ink))
         .btnPush_Text         = Text
         .btnPush_Border       = Line
         .btnPush_Bk           = Raised
@@ -1435,6 +1493,7 @@ impl ThemeColors
 
         .label_Text      = Text
         .label_TextLight = SoftText
+        .label_TextFaint = FaintText
         .label_Icon      = Text
         .disabled        = FaintText
 

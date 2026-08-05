@@ -19,13 +19,21 @@ using Swag, Core
     @assert(colors.view_Bk == 0xFF15151A)
     @assert(colors.wnd_Bk == 0xFF202026)
     @assert(colors.wnd_CaptionBk == 0xFF2A2A32)
-    @assert(colors.wnd_Border == 0xFF6B6B77)
+    @assert(colors.wnd_Border == 0xFF5A5A66)
     @assert(colors.btnPush_Bk == 0xFF2A2A32)
     @assert(colors.edit_Border == 0xFF6B6B77)
     @assert(colors.menuBar_SelectedBk == 0xFF41414E)
     @assert(colors.popupItem_HotBk == 0xFF41414E)
     @assert(colors.listItem_FocusSelectedBk == 0xFF52525F)
     @assert(colors.frameWnd_Border == 0xFF3D3D48)
+
+    // A filled action answers the pointer in its own color, so its three states differ.
+    // Given one accent for all of them it reported nothing at the moment of the press.
+    @assert(colors.btnPushDefault_Bk != colors.btnPushDefault_HotBk)
+    @assert(colors.btnPushDefault_Bk != colors.btnPushDefault_PressedBk)
+    @assert(colors.btnPushDefault_HotBk != colors.btnPushDefault_PressedBk)
+    @assert(colors.btnPush_StrongBk != colors.btnPush_StrongHotBk)
+    @assert(colors.btnPush_StrongBk != colors.btnPush_StrongPressedBk)
 }
 
 #test

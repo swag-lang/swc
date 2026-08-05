@@ -7,8 +7,12 @@ struct ThemeMetrics
 {
     defaultFontSize:          u32 = 14     // Theme measurement used for default font size.
     defaultFixedFontSize:     u32 = 16     // Theme measurement used for default fixed font size.
-    surfaceWnd_ShadowSize:    f32 = 0      // Theme measurement used for surface wnd shadow size.
-    surfaceWnd_CornerRadius:  f32 = 18     // Theme measurement used for surface wnd corner radius.
+    // The drawn drop shadow is off, and it is not a style choice: the margin it needs is
+    // painted opaque, because the native surface carries no per-pixel alpha, so the halo
+    // comes out as a hard dark band around the window. A surface is told from what is
+    // under it by its outline until that is fixed. See FINDINGS.md.
+    surfaceWnd_ShadowSize:    f32 = 0      // Transparent margin the drawn drop shadow would be cast into.
+    surfaceWnd_CornerRadius:  f32 = 18     // Corner of a surface. The Swag palettes square it; see setSwagDark.
     surfaceWnd_ShadowSpread:  f32 = 16     // Theme measurement used for surface wnd shadow spread.
     surfaceWnd_ShadowOffsetX: f32 = 0      // Theme measurement used for surface wnd shadow offset x.
     surfaceWnd_ShadowOffsetY: f32 = 3      // Theme measurement used for surface wnd shadow offset y.
@@ -20,6 +24,7 @@ struct ThemeMetrics
     wnd_CaptionMarginTitle:    f32 = 14       // Theme measurement used for wnd caption margin title.
     wnd_CaptionIconSize:       f32 = 20       // Side of the mark a drawn caption shows beside its title.
     wnd_CaptionButtonMargin:   f32 = 5        // Theme measurement used for wnd caption button margin.
+    wnd_CaptionButtonGlyph:    f32 = 16       // Side of a caption glyph. Chrome, so it sits at the row size of the chart.
     wnd_CaptionButtonAspect:   f32 = 1.35     // Theme measurement used for wnd caption button aspect.
     wnd_CaptionButtonMinWidth: f32 = 44       // Theme measurement used for wnd caption button min width.
     wnd_SizingBorderSize:      f32 = 8        // Theme measurement used for wnd sizing border size.

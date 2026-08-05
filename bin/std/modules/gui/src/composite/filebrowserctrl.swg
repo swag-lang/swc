@@ -603,10 +603,12 @@ impl FileBrowserCtrl
             .padding.z       = 15
         }
 
+        // A count of what a folder holds is read at a glance and never acted on, so it sits
+        // in the faintest of the three text tones rather than beside the file names.
         with fileBrowser.statusLabel = Label.create(statusBar, "", {})
         {
             .dockStyle = .Center
-            .updateFlags(add: .SecondaryText)
+            .setTextColor(statusBar.themeColors().label_TextFaint)
             .setTextAlignment(.Center, .Center)
         }
 

@@ -124,7 +124,9 @@ impl Dialog
         // there to say the same thing. Offered without one it is ambiguous — the reader
         // cannot tell what closing the window will have decided — so `addButton` is what
         // puts it on, and a caller asking for it here is ignored.
-        let surfaceFlags = SurfaceFlags.LargeCaption | SurfaceFlags.ToolWindow | (flags & ~SurfaceFlags.CloseButton)
+        // A modal box sits on an application cut from the same ink. Without an edge of its
+        // own it reads as part of the surface underneath it, so every dialog is outlined.
+        let surfaceFlags = SurfaceFlags.LargeCaption | SurfaceFlags.ToolWindow | SurfaceFlags.Border | (flags & ~SurfaceFlags.CloseButton)
         let srf          = (expect from.app.createSurface(x, y, width, height, surfaceFlags, me))!
         srf.wnd.view.backgroundStyle = .Dialog
 

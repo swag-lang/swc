@@ -132,17 +132,22 @@ impl IWnd for PushButton
                 subRectBk     = &rects.btnPush_Disabled
                 subRectBorder = &rects.btnPush_DisabledBorder
 
+            // A filled action keeps its own color through every state. Handed the neutral
+            // hover of a plain button, it dropped the accent that made it the primary action
+            // of the surface exactly as the reader reached it.
             case .isPressed:
-                colorBk       = colors.btnPush_PressedBk
-                colorBorder   = colors.btnPush_PressedBorder
-                colorText     = colors.btnPush_PressedText
+                let strong    = .form == .Strong
+                colorBk       = strong ? colors.btnPush_StrongPressedBk : colors.btnPush_PressedBk
+                colorBorder   = strong ? colors.btnPush_StrongPressedBorder : colors.btnPush_PressedBorder
+                colorText     = strong ? colors.btnPush_StrongPressedText : colors.btnPush_PressedText
                 subRectBk     = &rects.btnPush_Pressed
                 subRectBorder = &rects.btnPush_PressedBorder
 
             case .isHot:
-                colorBk       = colors.btnPush_HotBk
-                colorBorder   = colors.btnPush_HotBorder
-                colorText     = colors.btnPush_HotText
+                let strong    = .form == .Strong
+                colorBk       = strong ? colors.btnPush_StrongHotBk : colors.btnPush_HotBk
+                colorBorder   = strong ? colors.btnPush_StrongHotBorder : colors.btnPush_HotBorder
+                colorText     = strong ? colors.btnPush_StrongHotText : colors.btnPush_HotText
                 subRectBk     = &rects.btnPush_Hot
                 subRectBorder = &rects.btnPush_HotBorder
 
@@ -182,7 +187,10 @@ impl IWnd for PushButton
         format.vertAlignment = .Center
         format.flags         = .Clip
         format.font          = .font()
-        if .form == .Strong do
+        // The bold weight is what makes a filled button the primary action of the surface.
+        // A button that cannot be pressed is the primary action of nothing, and kept bold it
+        // read as a lighter grey than the plain button beside it, in the same disabled state.
+        if .form == .Strong and !bc.isDisabled do
             format.fontStyle = .Bold
         var labelPos = clientRect
         labelPos.inflate(-metrics.btnPush_Padding)

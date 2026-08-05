@@ -208,7 +208,11 @@ impl IWnd for SurfaceWnd
         if srfn.flags.has(.LargeCaption | .SmallCaption) do
             bc.painter.fillRect(posCaption, captionColor)
 
-        if srfn.flags.has(.Border) and metrics.surfaceWnd_ShadowSize > 0
+        // A window that asks for a border gets one, whether or not the theme also draws a
+        // shadow. Tied to the shadow, a theme that leaves the drop shadow to the system —
+        // as the Swag palettes do — silently lost the outline too, and a modal box over an
+        // application of the same ink had nothing at all to say where it began.
+        if srfn.flags.has(.Border)
         {
             var pen = Pen.createSolid(colors.wnd_Border, bc.painter.hairline(metrics.wnd_BorderSize))
             pen.borderPos = .Inside
@@ -382,7 +386,7 @@ impl SurfaceWnd
         {
             if !.minimizeBtn
             {
-                with me.minimizeBtn = IconButton.create(me, theme.icon(ThemeIcons.WndMinimize), {0, 0, 0, 0})
+                with me.minimizeBtn = IconButton.create(me, theme.icon(ThemeIcons.WndMinimize, theme.metrics.wnd_CaptionButtonGlyph), {0, 0, 0, 0})
                 {
                     .setForm(.RoundedRectangle)
                     .focusStrategy = .None
@@ -400,7 +404,7 @@ impl SurfaceWnd
         {
             if !.maximizeBtn
             {
-                with me.maximizeBtn = IconButton.create(me, theme.icon(ThemeIcons.WndMaximize), {0, 0, 0, 0})
+                with me.maximizeBtn = IconButton.create(me, theme.icon(ThemeIcons.WndMaximize, theme.metrics.wnd_CaptionButtonGlyph), {0, 0, 0, 0})
                 {
                     .setForm(.RoundedRectangle)
                     .focusStrategy = .None
@@ -418,7 +422,7 @@ impl SurfaceWnd
         {
             if !.closeBtn
             {
-                with me.closeBtn = IconButton.create(me, theme.icon(ThemeIcons.WndClose), {0, 0, 0, 0})
+                with me.closeBtn = IconButton.create(me, theme.icon(ThemeIcons.WndClose, theme.metrics.wnd_CaptionButtonGlyph), {0, 0, 0, 0})
                 {
                     .setForm(.RoundedRectangle)
                     .focusStrategy = .None

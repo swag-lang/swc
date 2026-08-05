@@ -147,7 +147,7 @@ impl Surface
         else do
             .wnd.padding.y = 0
 
-        if .flags.has(.Border) and .app.theme.metrics.surfaceWnd_ShadowSize > 0
+        if .flags.has(.Border)
         {
             let size = .app.theme.metrics.wnd_BorderSize
             .wnd.padding.x = size

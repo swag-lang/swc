@@ -69,6 +69,12 @@ struct EditBox
     {
         originalText: String     // Text captured when focus was gained
 
+        // Whether the reader has typed into the box since it took the focus. It is what
+        // Escape cancels, so a box the surface around it filled in — a name a file list
+        // wrote here, a value a grid pushed back — is not an edit in progress and does
+        // not hold the key back from the dialog.
+        userEdited: bool
+
         // Numeric bounds used when inputMode is S64/U64/X64/F64.
         using minMax: union
         {
@@ -104,6 +110,7 @@ impl IWnd for EditBox
         {
         case .Gained:
             .originalText = .textStorage
+            .userEdited   = false
             .timerCaret   = .surface!.app.addTimer(500'ms, me)
             .visibleCaret = true
             .computeCaretPos()
@@ -472,7 +479,7 @@ private impl EditBox
             // Escape cancels the edit in progress. With nothing typed there is no edit to
             // cancel, and the key belongs to the window around the box: swallowed here, a
             // dialog whose field holds the focus could not be dismissed with it at all.
-            return .textStorage != .originalText
+            return .userEdited
 
         case .Left:
             if ctrl do
@@ -547,6 +554,7 @@ private impl EditBox
     // Inserts a raw UTF‑8 slice without validation.
     mtd insertUtf8(s: string)
     {
+        .userEdited = true
         .deleteSelectionPrivate()
         .textStorage.insert(.selEnd, s)
         .setSelection(.selEnd + @countof(s), .selEnd + @countof(s))
@@ -1082,6 +1090,7 @@ impl EditBox
     {
         if .flags.has(.ReadOnly) do
             return
+        .userEdited = true
         if .deleteSelectionPrivate() do
             .notifyChanged()
     }
@@ -1113,6 +1122,7 @@ impl EditBox
     {
         if .textStorage == str do
             return
+        .userEdited = false
         .sigTextChanged.disable()
         .textStorage.clear()
         .selBeg, .selEnd = 0

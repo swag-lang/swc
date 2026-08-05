@@ -7,12 +7,13 @@ struct ThemeMetrics
 {
     defaultFontSize:          u32 = 14     // Theme measurement used for default font size.
     defaultFixedFontSize:     u32 = 16     // Theme measurement used for default fixed font size.
-    surfaceWnd_ShadowSize:    f32 = 12     // Transparent margin the drawn drop shadow is cast into.
-    surfaceWnd_CornerRadius:  f32 = 18     // Corner of a surface. The Swag palettes square it; see setSwagDark.
-    surfaceWnd_ShadowSpread:  f32 = 16     // Theme measurement used for surface wnd shadow spread.
-    surfaceWnd_ShadowOffsetX: f32 = 0      // Theme measurement used for surface wnd shadow offset x.
-    surfaceWnd_ShadowOffsetY: f32 = 3      // Theme measurement used for surface wnd shadow offset y.
-    surfaceWnd_ShadowLayers:  u32 = 24     // Rings the drop shadow is built from. Below one ring per device pixel of spread it bands visibly.
+    // Transparent margin the drop shadow is cast into. It has to hold the spread plus the offset,
+    // or the shadow is cut off by the edge of the window instead of fading out into it.
+    surfaceWnd_ShadowSize:    f32 = 18
+    surfaceWnd_CornerRadius:  f32 = 18     // Corner of a surface. The Swag palettes soften it to 8; see setSwagGeometry.
+    surfaceWnd_ShadowSpread:  f32 = 14     // How far the drop shadow reaches out from the body.
+    surfaceWnd_ShadowOffsetX: f32 = 0      // Sideways displacement of the drop shadow.
+    surfaceWnd_ShadowOffsetY: f32 = 4      // Downward displacement of the drop shadow, which is what lifts the window.
 
     wnd_BorderSize:            f32 = 1        // Theme measurement used for wnd border size.
     wnd_BigCaptionCY:          f32 = 42       // Theme measurement used for wnd big caption cy.

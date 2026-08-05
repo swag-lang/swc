@@ -43,7 +43,10 @@ struct ThemeColors
     wnd_BtnCloseHotBk:           Color     // Semantic color used for wnd btn close hot bk.
     wnd_BtnCloseHotIcon:         Color     // Semantic color used for wnd btn close hot icon.
     wnd_BtnClosePressedIcon:     Color     // Semantic color used for wnd btn close pressed icon.
-    wnd_Shadow:                  Color     // Semantic color used for wnd shadow.
+    // Ink of the drop shadow. Its alpha is the darkening the shadow reaches where it meets the
+    // body, not the alpha of any one ring: the shadow fades from nothing at the outer edge of the
+    // margin up to this value against the window.
+    wnd_Shadow: Color
 
     view_Bk: Color     // Semantic color used for view bk.
 
@@ -457,7 +460,7 @@ impl ThemeColors
         .wnd_BtnCloseHotBk           = 0xFFE62435
         .wnd_BtnCloseHotIcon         = White
         .wnd_BtnClosePressedIcon     = White
-        .wnd_Shadow                  = 0x70000000
+        .wnd_Shadow                  = 0x5A000000
 
         .view_Bk = 0xFF282828
 
@@ -852,7 +855,7 @@ impl ThemeColors
         .wnd_BtnCloseHotBk           = 0xFFE62435
         .wnd_BtnCloseHotIcon         = White
         .wnd_BtnClosePressedIcon     = White
-        .wnd_Shadow                  = 0x44000000
+        .wnd_Shadow                  = 0x3C000000
 
         .view_Bk = White
 

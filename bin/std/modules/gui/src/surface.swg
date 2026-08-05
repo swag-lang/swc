@@ -191,15 +191,24 @@ impl Surface
             .applySurfaceFlags()
         }
 
-        // `width` and `height` are logical units. The native layer resolves the
-        // monitor's scale and sizes the window in physical pixels; everything after
-        // this point that touches the screen is physical.
+        // `width` and `height` are the visible window the caller asked for. The margin the drop
+        // shadow is cast into is chrome around that, not room taken out of it: counted inside, a
+        // window would silently lose twice the margin the day the theme starts casting a shadow,
+        // and every layout tuned against its size would come up short — which is exactly what
+        // clipped the last field of a form off the bottom of its card.
+        let margin = surface.shadowMargin()
+        let outerW = width + 2 * cast(s32) margin
+        let outerH = height + 2 * cast(s32) margin
+
+        // These are logical units. The native layer resolves the monitor's scale and sizes the
+        // window in physical pixels; everything after this point that touches the screen is
+        // physical.
         let app = surface.app
         if app.renderer.needsNativeWindow() do
-            try createNative(app, surface, x, y, width, height, flags)
+            try createNative(app, surface, x, y, outerW, outerH, flags)
 
-        let physWidth  = cast(s32) Math.round(width * surface.dpiScale)
-        let physHeight = cast(s32) Math.round(height * surface.dpiScale)
+        let physWidth  = cast(s32) Math.round(outerW * surface.dpiScale)
+        let physHeight = cast(s32) Math.round(outerH * surface.dpiScale)
         surface.rc      = try app.renderer.createContext(surface.nativeRenderHandle(), physWidth, physHeight, mainSurface ? &mainSurface.rc : null)
         surface.painter = Painter.create(app.renderer)
 
@@ -381,7 +390,7 @@ impl Surface
 
         // Order matters: the outline first, then the shadow into the margin the outline bounds,
         // then the silhouette. Stroking the outline after the shadow leaves the margin with no
-        // coverage at all and the surface loses its shadow entirely.
+        // coverage at all and the surface loses its shadow entirely; see FINDINGS.md.
         .paintBorder()
         .paintShadowOutsideBody()
         .paintAlphaMask()
@@ -445,8 +454,21 @@ impl Surface
         .position.height = height
 
         let sz  = .size()
-        let sdw = .flags.has(.NoShadow) ? 0 : .app.theme.metrics.surfaceWnd_ShadowSize
+        let sdw = .shadowMargin()
         .wnd.setPosition({sdw, sdw, sz.x - 2 * sdw, sz.y - 2 * sdw})
+    }
+
+    // Returns the transparent margin, in logical units, the surface keeps around its body.
+    //
+    // The drop shadow is cast into it, so a surface that takes no shadow keeps none of it and its
+    // body fills the window. A maximized surface keeps its margin: the window is made that much
+    // larger than the work area, so the body still covers the screen and the margin is what hangs
+    // off the edges — see the maximized placement in the platform layer.
+    mtd const shadowMargin()->f32
+    {
+        if .flags.has(.NoShadow) do
+            return 0
+        return .app.theme.metrics.surfaceWnd_ShadowSize
     }
 
     // Returns the themed corner radius, or zero when rounding is disabled by the surface state.
@@ -512,33 +534,53 @@ impl Surface
         .painter.resetClippingRegion()
     }
 
+    // Builds the shadow out of nested rings, from the faint outer edge in to the body.
+    //
+    // The rings are filled shapes stacked on one another, so what a pixel ends up with is the
+    // product of everything painted over it, not the last value written. Handing each ring the
+    // alpha the profile asks for at its own distance therefore darkens the shadow with every ring
+    // added, and the whole picture changes the moment the ring count is tuned for smoothness. The
+    // per-ring alpha is solved from what the stack has already reached instead, so the accumulated
+    // profile is the same at any ring count and the count becomes a pure quality knob: one ring
+    // per device pixel of spread, below which the gradient bands and above which the extra rings
+    // land on a pixel that is already covered.
     private mtd paintShadow()
     {
-        if .flags.has(.NoShadow) do
-            return
-
         let metrics = &.app.theme.metrics
-        let layers  = metrics.surfaceWnd_ShadowLayers
-        if layers == 0 or metrics.surfaceWnd_ShadowSpread <= 0 or .app.theme.colors.wnd_Shadow.a == 0 do
+        let spread  = metrics.surfaceWnd_ShadowSpread
+        let color   = .app.theme.colors.wnd_Shadow
+        if .flags.has(.NoShadow) or spread <= 0 or color.a == 0 do
             return
 
         var bodyRect = .wnd.surfaceRect()
         bodyRect.offset(metrics.surfaceWnd_ShadowOffsetX, metrics.surfaceWnd_ShadowOffsetY)
 
-        let baseAlpha = cast(f32) .app.theme.colors.wnd_Shadow.a
-        for [i] in layers
+        let rings    = Math.max(1, Math.ceilS32(spread * .dpiScale))
+        let peak     = cast(f32) color.a / 255.0
+        let baseCorner = .cornerRadius()
+
+        var reached = 0.0'f32
+        for [i] in rings
         {
-            let t          = cast(f32) (layers - i) / cast(f32) layers
-            let alphaScale = (1.0 - t) * (1.0 - t)
-            let alpha      = cast(u8) Math.clamp(baseAlpha * alphaScale, 0.0, 255.0)
-            if alpha == 0 do
+            // `depth` runs 0 at the outermost ring to 1 at the body. Smoothstep gives the shadow
+            // a long faint tail where it meets the desktop and a flat shoulder against the body,
+            // which is what reads as air under the window rather than as an outline drawn around
+            // it.
+            let ringSpread = spread * cast(f32) (rings - i) / cast(f32) rings
+            let depth      = 1.0 - ringSpread / spread
+            let target     = peak * Math.smoothstep(0.0, 1.0, depth)
+
+            let alpha = 1.0 - (1.0 - target) / (1.0 - reached)
+            reached   = target
+
+            let quantized = cast(u8) Math.clamp(alpha * 255.0 + 0.5, 0.0, 255.0)
+            if quantized == 0 do
                 continue
 
-            let spread = metrics.surfaceWnd_ShadowSpread * t
-            var rect   = bodyRect
-            rect.inflate(spread)
-            let radius = .cornerRadius() + spread
-            .painter.fillRoundRect(rect, radius, radius, .app.theme.colors.wnd_Shadow.withAlpha(alpha))
+            var rect = bodyRect
+            rect.inflate(ringSpread)
+            let radius = baseCorner + ringSpread
+            .painter.fillRoundRect(rect, radius, radius, color.withAlpha(quantized))
         }
     }
 
@@ -617,8 +659,24 @@ impl Surface
         // Save position and surface state
         if @isset(.wnd.view) and .wnd.view.id != null
         {
-            if !ser.isReading() do
+            // What is persisted is the window the user sized, with the transparent margin taken
+            // back out of it. The margin is chrome the theme owns: left in the stored rectangle,
+            // an application would come back that much smaller every time the theme reached
+            // further with its shadow, and a form tuned to its card would lose its last row.
+            let margin = .shadowMargin() * .dpiScale
+
+            if !ser.isReading()
+            {
                 .savedDpiScale = .dpiScale
+                .position.inflate(-margin)
+                .restoredPosition.inflate(-margin)
+            }
+
+            defer if !ser.isReading()
+            {
+                .position.inflate(margin)
+                .restoredPosition.inflate(margin)
+            }
 
             catch ser.serialize(.wnd.view.id, .wnd.view.id ? Hash.Crc32.compute(.wnd.view.id) : 0, &.state) as err
             if err == null and ser.isReading()
@@ -642,6 +700,10 @@ impl Surface
                         .restoredPosition.height *= factor
                     }
                 }
+
+                // The margin goes back on at the scale of this session, after any rescale above.
+                .position.inflate(margin)
+                .restoredPosition.inflate(margin)
 
                 if .isMaximized
                 {

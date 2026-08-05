@@ -252,7 +252,12 @@ impl Theme
     // capsule is not the same as squaring every corner of the interface.
     private mtd setSwagGeometry()
     {
-        .metrics.surfaceWnd_CornerRadius = 0
+        // A window is the one form the chart lets round. The cut is a vocabulary for the mark and
+        // for the repeated elements of a page; carried literally onto the outline of a window it
+        // reads as a slab dropped on the desktop, next to every other application that softens
+        // that corner. A touch is enough: small enough that the surface still reads as cut, large
+        // enough that the corner is deliberate rather than a rendering accident.
+        .metrics.surfaceWnd_CornerRadius = 8
 
         .rects.btnPush_Normal         = .rects.edit_SquareBk
         .rects.btnPush_Hot            = .rects.edit_SquareBk

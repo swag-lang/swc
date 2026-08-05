@@ -96,7 +96,9 @@ glyph, another app's icon, or a letter tile.
   button carries the same corner and the same hairline stroke as the field beside it. It does not
   mean a hard right angle and a heavy outline on everything: a surface hacked out of a slab has
   missed the identity as badly as an upholstered one. Curves remain valid inside user content when
-  the app edits or displays curved content.
+  the app edits or displays curved content. The one piece of chrome that does round is the outline
+  of the window itself, softened by `surfaceWnd_CornerRadius` so the application sits on the
+  desktop instead of being dropped on it; nothing inside the window follows it.
 - Avoid card soup, repeated shadows, gradients, and ornamental illustrations.
 - Keep one dominant action per task area. Give destructive actions distance and explicit wording.
   Show progress where work is not immediate, preserve keyboard focus, and keep failure text beside

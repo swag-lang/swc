@@ -16,11 +16,21 @@ the cut, the voltage, and the ink.
 measured. What the identity refuses is softness, not craft: a form that looks hacked out
 of a slab has missed it as badly as one that looks upholstered.
 
+**Square is the default, not a law.** A touch of rounding is admissible where a hard right
+angle would read as unfinished rather than as deliberate — the outline of a window is the
+standing example: it sits on a desktop beside applications that all soften that corner, and
+carried literally the cut turns it into a slab dropped on the screen. Keep such a radius
+small enough that the surface still reads as cut (`ThemeMetrics.surfaceWnd_CornerRadius` is
+8 in the Swag palettes), apply it to the outline of a form and never to the controls inside
+it, and never let it become the reflex: everything the identity draws is square until a
+specific form argues otherwise.
+
 ## Hold The Three Constants
 
-1. **The cut.** Every corner the identity opens is cut at 45 degrees, never rounded. The
-   cut is a vocabulary, not a decoration: its width says what the corner is, and a corner
-   left square says the form stops there on purpose.
+1. **The cut.** Every corner the identity opens is cut at 45 degrees. The cut is a
+   vocabulary, not a decoration: its width says what the corner is, and a corner left
+   square says the form stops there on purpose. The refusal is of softness as a default,
+   not of every curve — see below.
 2. **The voltage.** Exactly one accent, `#F7F900`, used for the mark, one rule per
    heading, active state, and nothing else. An accent that appears everywhere accents
    nothing.

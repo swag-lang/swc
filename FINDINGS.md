@@ -286,14 +286,19 @@ Use this compact format. Keep observations factual and make the next step action
   it. An ordering that matters between disjoint regions means one of them leaves painter or
   renderer state the other depends on, and the order is currently load-bearing by accident.
 - Evidence: with the order `paintShadowOutsideBody`, `paintBorder`, the margin of gui1 reads flat
-  `#D2D2D2` (the bare backdrop) on every edge; with `paintBorder` first it reads the full gradient
-  `#D2D2D2` to `#8B8B8B`. Nothing else differs. `paintBorder` sets `setColorMaskColor` and strokes
-  a pen with `borderPos = .Inside`; `paintShadowOutsideBody` opens a clipping region, sets
-  `setColorMaskFull`, and fills rounded rectangles.
+  `#D2D2D2` (the bare backdrop) on every edge; with `paintBorder` first the same build reads a
+  clean gradient from `#D2D2D2` down to `#898989` at the body. Nothing else differs.
+  `paintBorder` sets `setColorMaskColor` and strokes a pen with `borderPos = .Inside`;
+  `paintShadowOutsideBody` opens a clipping region, sets `setColorMaskFull`, and fills rounded
+  rectangles. Fixing the separate defect where the alpha channel composited with the source alpha
+  as its own factor did not change this: the ordering was retested afterwards and still decides
+  whether there is a shadow at all.
 - Next step: dump the command stream for both orders and diff it. The suspects are the pen stroke
-  path leaving a clipping region or stencil state behind, and `setColorMaskColor` being applied to
-  the shadow fills rather than the `setColorMaskFull` that precedes them — which would explain the
-  loss exactly, since a shadow written without alpha is invisible to the compositor.
+  path leaving clipping-region or overlap state behind — `StartNoOverlap` defers drawing, and the
+  OpenGL renderer skips `DrawTriangles` outright while `overlapMode` is set — and
+  `setColorMaskColor` reaching the shadow fills rather than the `setColorMaskFull` that precedes
+  them, which would explain the loss exactly, since a shadow written without alpha is invisible to
+  the compositor.
 
 ### A menu bar does not follow a live language switch
 

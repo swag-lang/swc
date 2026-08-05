@@ -360,8 +360,18 @@ private impl RenderCpu
             return
         }
 
-        let sa  = cast(f32) src.a / 255.0
-        var out = Color.fromArgbF32(blendChannel(cast(f32) src.a / 255.0, cast(f32) dst.a / 255.0, sa, .blendingMode),
+        let sa = cast(f32) src.a / 255.0
+        let da = cast(f32) dst.a / 255.0
+
+        // The alpha channel composites with a source factor of one, not with the source alpha the
+        // colour channels use: weighting it by itself accumulates coverage as a square, so a stack
+        // of faint layers reaches almost no opacity at all. This matches the separate blend
+        // function the OpenGL renderer sets, so a CPU render and a GPU render cover the same.
+        var outA = blendChannel(sa, da, sa, .blendingMode)
+        if .blendingMode == .Alpha do
+            outA = sa + da * (1.0 - sa)
+
+        var out = Color.fromArgbF32(outA,
                                     blendChannel(cast(f32) src.r / 255.0, cast(f32) dst.r / 255.0, sa, .blendingMode),
                                     blendChannel(cast(f32) src.g / 255.0, cast(f32) dst.g / 255.0, sa, .blendingMode),
                                     blendChannel(cast(f32) src.b / 255.0, cast(f32) dst.b / 255.0, sa, .blendingMode))

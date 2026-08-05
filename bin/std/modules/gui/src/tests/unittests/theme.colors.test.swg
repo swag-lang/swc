@@ -77,17 +77,20 @@ using Swag, Core
     @assert(colors.wnd_Border.a == 255)
 }
 
+// A Swag palette carries its own geometry, and it takes the surface corner with it: the outline
+// of a window is the one piece of chrome the chart softens, so the palette narrows the default
+// rather than squaring it.
 #test
 {
     var theme: Theme
-    @assert(theme.metrics.surfaceWnd_CornerRadius != 0)
+    @assert(theme.metrics.surfaceWnd_CornerRadius == 18)
 
     theme.setSwagDark()
     @assert(theme.colors.activeRail == 0xFFF7F900)
-    @assert(theme.metrics.surfaceWnd_CornerRadius == 0)
+    @assert(theme.metrics.surfaceWnd_CornerRadius == 8)
 
     theme.metrics.surfaceWnd_CornerRadius = 18
     theme.setSwagLight()
     @assert(theme.colors.activeRail == 0xFF0B0B0D)
-    @assert(theme.metrics.surfaceWnd_CornerRadius == 0)
+    @assert(theme.metrics.surfaceWnd_CornerRadius == 8)
 }

@@ -101,12 +101,8 @@ func open(fullName: string, mode: FileMode, access: FileAccess, share: FileShare
 
     result.open(fullName, cast(FileHandle) hFile, canRead, canWrite, true)
 
-    if mode == FileMode.Append
-    {
-        var high = 0
-        discard catch SetFilePointer(hFile, 0, &high, FILE_END) as err
-        Errors.transformWinErrors(err, fullName)
-    }
+    if mode == FileMode.Append do
+        result.seek(.End, 0)
 
     return result
 }

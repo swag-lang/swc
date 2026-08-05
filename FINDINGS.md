@@ -248,24 +248,3 @@ Use this compact format. Keep observations factual and make the next step action
   temporary copy that is dropped before the body would explain both the garbage and why taking the
   address first is sound. Deciding whether a container should be returned by reference at all is
   the design half of the question; the API here now returns `const [..] T`, which behaves.
-
-### The in-place capture overlay has never run on genuinely mixed-DPI monitors
-
-- Area: bin/apps
-- Found while: closing the per-monitor DPI work on `std/gui`, the theme art and sCapture
-- Observation: sCapture's overlay covers the whole virtual desktop with one surface, so it holds
-  one logical-to-physical factor — the DPI of its own monitor — while the capture, the grab
-  rectangle and the annotation sizes are all in the physical pixels of whatever monitor the
-  selection sits on. Every conversion between the two now goes through one of two places
-  (`EditView.zoom` for the capture, `captureMonitorScale` for the chrome and the annotation
-  defaults), but the case where those two disagree has only been reasoned about, never run.
-- Evidence: a full grab, gizmo resize and arrow-drawing session at 150% is correct — the frozen
-  desktop the overlay paints back is bit-identical to the live one inside the selection (40800
-  samples), a 300-pixel drag of a gizmo anchor moves the edge exactly 300 pixels, and an arrow
-  lands where the cursor went. That session ran on two monitors *both* at 150%, so
-  `captureMonitorScale` returned the surface's own scale and the residual factor stayed 1: the
-  branch that matters on a mixed setup never executed. The same session before the fix was 23.7%
-  identical, so the check does discriminate.
-- Next step: set the two monitors to different scales (150% and 100%), then grab on the second
-  monitor and check the three things the residual factor drives: the bars keep their size, the
-  selection stays glued to the desktop, and a fresh annotation keeps its weight.

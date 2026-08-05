@@ -29,6 +29,7 @@ struct AppStrings
     ui_DriveLetter:         string = "DRIVE LETTER"
     ui_DriveHelp:           string = "The drive is available to Windows while sCrypt runs, then disappears when the app closes."
     ui_CreateVault:         string = "Create encrypted vault"
+    ui_StopCreating:        string = "Stop creating"
     ui_MountDrive:          string = "Mount drive"
     ui_Unmount:             string = "Unmount"
     ui_Desktop:             string = "Desktop"
@@ -48,7 +49,9 @@ struct AppStrings
     msg_PasswordRequired:   string = "A password is required."
     msg_PasswordMismatch:   string = "The passwords do not match."
     msg_CreateFailed:       string = "Could not create the container."
-    msg_Randomizing:        string = "Creating and randomizing the container..."
+    msg_Randomizing:        string = "Creating and randomizing the container... %{#0}%%"     // '%{#0}' is the percentage; '%%' is the percent sign itself.
+    msg_StopRequested:      string = "Stopping the container creation..."
+    msg_CreateCanceled:     string = "Container creation canceled. Nothing was left on disk."
     msg_ChooseExisting:     string = "Choose an existing container."
     msg_NoDriveLetter:      string = "No drive letter is available."
     msg_StartingDriver:     string = "Starting the portable filesystem driver..."

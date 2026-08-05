@@ -543,7 +543,7 @@ impl LibraryWnd
         // Image Size
         with res.zoomBtn = IconButton.create(res.editZoomBar, res.theme().icon(.Search), {0, 0, 120, 32})
         {
-            .name.set(appStrings().ui_BarSize)
+            .setText(appStrings().ui_BarSize)
             .updateFlags(.CenterContent)
             .setTextPosition(.Right)
             .setArrowPosition(.RightDownward)
@@ -565,7 +565,7 @@ impl LibraryWnd
         // Sort
         with res.sortBtn = IconButton.create(res.editZoomBar, res.theme().icon(.Sort), {0, 0, 120, 32})
         {
-            .name.set(appStrings().ui_BarSort)
+            .setText(appStrings().ui_BarSort)
             .updateFlags(.CenterContent)
             .setTextPosition(.Right)
             .setArrowPosition(.RightDownward)
@@ -589,7 +589,7 @@ impl LibraryWnd
         // Filter
         with res.filterBtn = IconButton.create(res.editZoomBar, res.theme().icon(.Filter), {0, 0, 120, 32})
         {
-            .name.set(appStrings().ui_BarFilter)
+            .setText(appStrings().ui_BarFilter)
             .updateFlags(.CenterContent)
             .setTextPosition(.Right)
             .setArrowPosition(.RightDownward)
@@ -613,7 +613,7 @@ impl LibraryWnd
         // Recycle bin
         with res.trashBtn = IconButton.create(res.editZoomBar, res.theme().icon(.Remove), {0, 0, 120, 32})
         {
-            .name.set(appStrings().ui_BarTrash)
+            .setText(appStrings().ui_BarTrash)
             .updateFlags(.CenterContent)
             .setTextPosition(.Right)
             .setArrowPosition(.RightDownward)

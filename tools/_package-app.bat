@@ -1,9 +1,13 @@
 @echo off
 setlocal
 
-rem Copies shared and app-owned runtime files beside one built application.
+rem Copies the app-owned runtime files beside one built application.
 rem
 rem     _package-app.bat <root> <application> <build configuration> <target architecture>
+rem
+rem The std shared libraries are not copied here: the compiler publishes them itself when the
+rem tools pass --publish, and it removes any it did not publish. Copying them from this script
+rem as well would only mean the next link deletes them again.
 
 if "%~4"=="" exit /b 1
 set "ROOT=%~1"
@@ -17,12 +21,6 @@ set "APP_DIR=%APPS_WORKSPACE%\.output\%APP_NAME%\executable\%BUILD_CFG%\%TARGET_
 if not exist "%APP_DIR%\%APP_NAME%.exe" (
     echo Application executable is missing: "%APP_DIR%\%APP_NAME%.exe"
     exit /b 1
-)
-
-for /d %%D in ("%APPS_WORKSPACE%\.dep\*") do (
-    for %%F in ("%%~fD\shared-library\%BUILD_CFG%\%TARGET_ARCH%\*.dll") do (
-        if exist "%%~fF" copy /Y "%%~fF" "%APP_DIR%\%%~nxF" >nul || exit /b 1
-    )
 )
 
 if /I "%APP_NAME%"=="sCrypt" (

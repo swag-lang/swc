@@ -1,5 +1,7 @@
+#global public
+
 // Provides shared pointer state, command-state integration, icons, and activation signals for buttons.
-public struct Button
+struct Button
 {
     using wnd: Wnd     // Embedded window behavior and presentation.
 
@@ -61,19 +63,20 @@ impl IWnd for Button
 
 impl Button
 {
-    // Replaces the caption and lets the next layout pass re-measure the button around it.
+    // Replaces the displayed label, repaints, and lets the next layout pass re-measure it.
     //
-    // A button that carries no explicit width follows its caption, so re-labelling one
-    // after a language switch is enough to make it the right size again.
-    public mtd setText(text: #null string)
+    // Pass `null` for a button that shows only its icon. The label is plain text; rich spans
+    // are set through `name` directly. A button carrying no explicit width follows its
+    // label, so re-labelling one after a language switch is enough to size it again.
+    mtd setText(text: #null string)
     {
         .name.set(text)
         .invalidate()
         .invalidateLayout()
     }
 
-    // Returns the displayed caption.
-    public mtd text()->string => .name.raw
+    // Returns the displayed label as plain text.
+    mtd text()->string => .name.raw
 
     // Replaces the displayed icon and repaints the button.
     mtd setIcon(icon: Icon)

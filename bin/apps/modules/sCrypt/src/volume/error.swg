@@ -13,6 +13,7 @@ enum ErrorKind
     DiskFull
     Corrupted
     Io
+    Canceled
 }
 
 struct Error

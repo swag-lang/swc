@@ -32,6 +32,24 @@ func pushButtonHeadlessResetCounters()
     PushButtonHeadlessRightPressedCount = 0
 }
 
+// A button that changes what it does changes what it says, so the label is writable after
+// creation and reads back as plain text.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 120)
+    defer host.shutdown()
+
+    let button = PushButton.create(&host.root, "Run", {20, 20, 90, 30})
+    @assert(button.text() == "Run")
+
+    button.setText("Stop")
+    @assert(button.text() == "Stop")
+
+    button.setText(null)
+    @assert(button.text() == "")
+}
+
 // Space and Enter activate the focused button with the same signal and command as a click.
 #test
 {

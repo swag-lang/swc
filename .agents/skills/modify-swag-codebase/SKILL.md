@@ -126,7 +126,9 @@ tools/scripts.bat [dm] run <script>
 The same rule holds when driving a program from a helper script, a debugger, or a screenshot
 harness: point it at the tool, not at the `.exe`. An application packaged by
 `tools/apps.bat build <module>` is the one exception — packaging copies its dependencies beside
-it, so the packaged executable runs on its own, which is what makes it shippable.
+it, so the packaged executable runs on its own, which is what makes it shippable. That state is
+fragile: a later `apps.bat test <module>` strips those files again, so re-run the build before
+any visual session that follows a test pass.
 
 ## Finish Cleanly
 

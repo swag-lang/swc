@@ -418,6 +418,7 @@ public:
     void                      registerDefer(AstNodeRef deferStmtRef, AstNodeRef bodyRef, AstModifierFlags modifierFlags);
     void                      registerImplicitDrop(const SymbolVariable& symVar);
     void                      registerImplicitParameterDrops();
+    bool                      hasDeferredStatements() const { return hasDeferredStatements_; }
     Result                    emitDeferredActionsForReturn();
     Result                    emitDeferredActionsUntilScopeRef(AstNodeRef scopeRef);
     Result                    emitDeferredActionsUntilBreakOwner(AstNodeRef breakOwnerRef);

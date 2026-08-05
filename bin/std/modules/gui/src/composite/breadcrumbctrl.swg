@@ -275,7 +275,7 @@ impl IWnd for BreadcrumbCtrl
             var cx = it.bodyRect.x + .padX
             if it.icon.isValid()
             {
-                it.icon.paint(painter, cx, it.bodyRect.vertCenter() - it.icon.sizeY * 0.5, iconColor)
+                it.icon.paint(painter, cx, font.opticalTop(it.bodyRect.vertCenter(), it.icon.sizeY), iconColor)
                 cx += it.icon.sizeX + .iconGap
             }
 

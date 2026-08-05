@@ -36,7 +36,7 @@ StartFont
 UpdateFont font#0
 ResetTexture0
 BindTextureFont font#0 atlas=0
-DrawTriangles n=12 bbox=(25,4)-(35,16) colors=[FFF0F0F0] cov=solid
+DrawTriangles n=12 bbox=(25,5)-(35,17) colors=[FFF0F0F0] cov=solid
 ResetTextureFont
 EndFont
 SetClippingRect 15 15 60 20

@@ -40,6 +40,7 @@ namespace __Win32RT
         func RtlCaptureStackBackTrace(framesToSkip: ULONG, framesToCapture: ULONG, backTrace: **void, backTraceHash: #null *ULONG)->USHORT
         func GetModuleHandleA(lpModuleName: #null const *u8)->#null *void
         func GetModuleHandleExA(dwFlags: DWORD, lpModuleName: #null const *u8, phModule: *#null *void)->BOOL
+        func GetCommandLineA()->#null const [*] u8
         func GetStdHandle(nStdHandle: u32)->HANDLE
         func WriteFile(hFile: HANDLE, lpBuffer: #null const *void, nNumberOfBytesToWrite: u32, lpNumberOfBytesWritten: #null *u32, lpOverlapped: #null *void)->u32
         func GetCurrentProcess()->HANDLE
@@ -241,6 +242,18 @@ func @memcmp(dst, src: #null const [*] void, size: u64)->s32
 
     func @atan2(value1, value2: f32)->f32 => atan2f(value1, value2)
     func @atan2(value1, value2: f64)->f64 => atan2(value1, value2)
+}
+
+////////////////////////////////////////////////////////////
+// The command line this process was launched with, still owned by the operating system and
+// therefore valid for the whole run. The buffer holds the executable path followed by the
+// arguments, which is the shape '@args' parses.
+func __osCommandLine()->#null string
+{
+    let cmdLine = __Win32RT.GetCommandLineA()
+    if !cmdLine do
+        return null
+    return @mkstring(cmdLine!, @countof(cast(const cstring) cmdLine!))
 }
 
 ////////////////////////////////////////////////////////////

@@ -233,10 +233,19 @@ impl IWnd for SurfaceWnd
             defer bc.painter.popClippingRect()
 
             let captionTextColor = srfn.app.isActivated ? colors.wnd_CaptionText : colors.wnd_CaptionNotActivatedText
-            if .icon.isValid()
+
+            // A window says which application it belongs to before its title is read, so the
+            // caption falls back to the application mark when the surface names no icon of
+            // its own. A caption is chrome: the mark is set at the row size of the chart and
+            // never grows with the bar it sits in.
+            var icon = .icon
+            if !icon.isValid() do
+                icon = srfn.app.appIconAt(theme.metrics.wnd_CaptionIconSize)
+            if icon.isValid()
             {
-                .icon.paint(bc.painter, posCaption.x, posCaption.vertCenter() - .icon.sizeY * 0.5, captionTextColor)
-                posCaption.x += .icon.sizeX + theme.metrics.iconText_Margin
+                let iconColor = icon.color.a ? icon.color : captionTextColor
+                icon.paint(bc.painter, posCaption.x, opticalTop(.font(), posCaption.vertCenter(), icon.sizeY), iconColor)
+                posCaption.x += icon.sizeX + theme.metrics.iconText_Margin
             }
 
             var sf: Pixel.RichStringFormat

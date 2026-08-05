@@ -32,30 +32,35 @@ impl IActionUI for ActionAbout
 
         const Date = #run Time.DateTime.now()
 
+        let texts = appStrings()
+
         var params: AboutDlgParams = undefined
-        params.surfaceTitle = "About sCapture"
+        params.surfaceTitle = "sCapture"
         params.contentTitle = Format.toString("sCapture %.%.%", #swcversion, #swcrevision, #swcbuildnum).toString()
 
+        // Three short paragraphs, in this order: when it was built, what it is made of, who
+        // holds it. Anything a reader would not act on stays out of the box.
         var msg: String
-        msg            += Format.toString(appStrings().msg_AboutBuild, Date)
+        msg            += Format.toString(texts.msg_AboutBuild, Date)
         msg            += "\n\n"
-        msg            += "<b>sCapture</b> is open source and coded in <url>Swag</url>. You can find the code <url>here</url>."
+        msg            += texts.msg_AboutSource
         msg            += "\n\n"
-        msg            += Format.toString("Copyright \u00A9 % Christophe Beaudet", Date.year)
+        msg            += Format.toString(texts.msg_AboutCopyright, Date.year)
         params.message = msg.toString()
 
-        params.surfaceIcon                                 = Icon.from(&main.appIcon, 0, 24, 24)
+        params.surfaceIcon                                 = Icon.from(&main.appIcon, 0)
+        params.surfaceIcon.color                           = Argb.White
         params.contentIcon                                 = Icon.from(&main.appIcon, 0)
-        params.contentIcon.sizeX, params.contentIcon.sizeY = 96
+        params.contentIcon.sizeX, params.contentIcon.sizeY = 64
         params.contentIcon.color                           = Argb.White
 
-        let dlg = AboutDlg.create(view.surface!, params, height: 330)
+        let dlg = AboutDlg.create(view.surface!, params, height: 300)
         dlg.labelMessage.sigLinkActivated += func(lbl, txt)
         {
             switch txt
             {
-            case "Swag": Env.openUrl("https://www.swag-lang.org/")
-            case "here": Env.openUrl("https://github.com/swag-lang/swag/tree/master/bin/apps/modules/sCapture/")
+            case "Swag":            Env.openUrl("https://www.swag-lang.org/")
+            case "here", "ici":     Env.openUrl("https://github.com/swag-lang/swag/tree/master/bin/apps/modules/sCapture/")
             }
         }
 

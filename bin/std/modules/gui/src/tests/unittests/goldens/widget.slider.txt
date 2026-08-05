@@ -12,20 +12,20 @@ ColorMask rgb-
 SetClippingRect 0 0 240 60
 Transform 1 0 0 1 20 20
 SetClippingRect 20 20 200 20
-BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(9,1)-(22,10) src=(0.112305,0.331055)-(0.135742,0.354492)
-DrawTriangles n=6 bbox=(9,1)-(22,10) colors=[FF505050] cov=solid
-BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(22,1)-(178,10) src=(0.137695,0.331055)-(0.137695,0.354492)
-DrawTriangles n=6 bbox=(22,1)-(178,10) colors=[FF505050] cov=solid
-BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(178,1)-(191,10) src=(0.139648,0.331055)-(0.163086,0.354492)
-DrawTriangles n=6 bbox=(178,1)-(191,10) colors=[FF505050] cov=solid
-BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(9,10)-(22,19) src=(0.112305,0.358398)-(0.135742,0.381836)
-DrawTriangles n=6 bbox=(9,10)-(22,19) colors=[FF505050] cov=solid
-BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(22,10)-(178,19) src=(0.137695,0.358398)-(0.137695,0.381836)
-DrawTriangles n=6 bbox=(22,10)-(178,19) colors=[FF505050] cov=solid
-BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(178,10)-(191,19) src=(0.139648,0.358398)-(0.163086,0.381836)
-DrawTriangles n=6 bbox=(178,10)-(191,19) colors=[FF505050] cov=solid
-BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(0,1)-(18,19) src=(0.168945,0.333008)-(0.21582,0.379883)
-DrawTriangles n=6 bbox=(0,1)-(18,19) colors=[FF1473E6] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(6,1)-(19,10) src=(0.112305,0.331055)-(0.135742,0.354492)
+DrawTriangles n=6 bbox=(6,1)-(19,10) colors=[FF505050] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(19,1)-(181,10) src=(0.137695,0.331055)-(0.137695,0.354492)
+DrawTriangles n=6 bbox=(19,1)-(181,10) colors=[FF505050] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(181,1)-(194,10) src=(0.139648,0.331055)-(0.163086,0.354492)
+DrawTriangles n=6 bbox=(181,1)-(194,10) colors=[FF505050] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(6,10)-(19,19) src=(0.112305,0.358398)-(0.135742,0.381836)
+DrawTriangles n=6 bbox=(6,10)-(19,19) colors=[FF505050] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(19,10)-(181,19) src=(0.137695,0.358398)-(0.137695,0.381836)
+DrawTriangles n=6 bbox=(19,10)-(181,19) colors=[FF505050] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(181,10)-(194,19) src=(0.139648,0.358398)-(0.163086,0.381836)
+DrawTriangles n=6 bbox=(181,10)-(194,19) colors=[FF505050] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(0,4)-(12,16) src=(0.168945,0.333008)-(0.21582,0.379883)
+DrawTriangles n=6 bbox=(0,4)-(12,16) colors=[FF1473E6] cov=solid
 Transform 1 0 0 1 20 20
 SetBlendingMode Alpha
 ColorMask rgb-

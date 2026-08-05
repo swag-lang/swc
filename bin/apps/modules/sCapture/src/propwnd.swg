@@ -1,11 +1,13 @@
-// The style buttons of the panel head. A sample never fills more than half of its cell:
-// the surrounding air is what separates one button from the next, so no button needs a
-// border to say where it ends (see the application chart).
-const BtnColorWidth  = 56.0
-const BtnColorHeight = 62.0
-const BtnStyleWidth  = 64.0
-const BtnStyleHeight = 62.0
-const SwatchSize     = 24.0
+// The style cells of the panel head: one square each, holding a real sample of what the cell
+// sets, at the toolbar size of the application chart. The surrounding air is what separates
+// one cell from the next, so none of them needs a border to say where it ends.
+//
+// The name each cell used to print above its sample is on its tooltip now. Stacked, it made
+// every cell twice as tall as its content to carry a word the sample already shows, and
+// turned the head of the panel into a ribbon.
+const StyleCellSize  = 36.0
+const StyleGlyphSize = 20.0
+const StyleCellGap   = 8.0
 
 const CapSize  = 6.0
 const DashSize = 6.0
@@ -20,21 +22,25 @@ func(T) enumFromUserData(data: #null *void)->T => cast(T) cast(u64) data
 func drawShapeGlyph(painter: *Painter, kind: FormShapeKind, pos: Math.Rectangle, color: Color)
 {
     var rect = pos
-    rect.inflate(-9, -9)
+    rect.inflate(-(pos.width - StyleGlyphSize) * 0.5, -(pos.height - StyleGlyphSize) * 0.5)
     rect.x     = rect.horzCenter() - rect.height * 0.5
     rect.width = rect.height
+
+    // The stroke follows the glyph: kept at the weight the larger cell used, it closes the
+    // counter of the shape and the sample reads as a filled blob.
+    let stroke = Math.max(2.0, StyleGlyphSize * 0.15)
 
     switch #complete kind
     {
     case .Ellipse:
         let radius = rect.width * 0.5
-        painter.drawEllipse(pos.horzCenter(), pos.vertCenter(), radius, radius, color, 5)
+        painter.drawEllipse(pos.horzCenter(), pos.vertCenter(), radius, radius, color, stroke)
 
     case .Rectangle:
-        painter.drawRect(rect, color, 5)
+        painter.drawRect(rect, color, stroke)
 
     case .RoundRectangle:
-        painter.drawRoundRect(rect, 5, 5, color, 5)
+        painter.drawRoundRect(rect, 5, 5, color, stroke)
     }
 }
 
@@ -123,9 +129,11 @@ impl PropWnd
         .main.editWnd.invalidate()
     }
 
-    func createArrowButton(stack: *Wnd, w, h: f32)->*IconButton
+    // One square style cell. `tip` names what the cell sets; the sample inside it shows the
+    // current value, so the name is only needed when a reader asks for it.
+    func createStyleButton(stack: *Wnd, tip: string)->*IconButton
     {
-        with let btn = IconButton.create(stack, {}, {0, 0, w, h})
+        with let btn = IconButton.create(stack, {}, {0, 0, StyleCellSize, StyleCellSize})
         {
             .setForm(.Rectangle)
             .style.addStyleSheetColors("btnIcon_Bk                  $lighterMedium")
@@ -135,9 +143,9 @@ impl PropWnd
             .style.addStyleSheetColors("btnIcon_CheckedPressedText  $btnIcon_Text")
 
             .updateFlags(.Popup | .Toggle)
-            .setArrowPosition(.Bottom)
-            .setTextPosition(.Top)
+            .setArrowPosition(.None)
             .setCheckIndicator(.None)
+            .toolTip = tip
         }
 
         return btn
@@ -355,24 +363,23 @@ impl PropWnd
         if curSel.subKind == .Highlight or curSel.subKind == .PixSel do
             return
 
-        let btn = createArrowButton(stack, BtnColorWidth, BtnColorHeight)
-
-        let curSelType = .getSelectedFormType()
-        switch curSelType
+        var tip = appStrings().ui_PropOutline
+        switch .getSelectedFormType()
         {
-        case FormLine, FormArrow, FormDraw: btn.name = appStrings().ui_PropColor
-        case FormStep:                      btn.name = appStrings().act_Text
-        default:                            btn.name = appStrings().ui_PropOutline
+        case FormLine, FormArrow, FormDraw: tip = appStrings().ui_PropColor
+        case FormStep:                      tip = appStrings().act_Text
         }
+
+        let btn = createStyleButton(stack, tip)
 
         btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
         {
             bc.painter.setParams(.Antialiased)
             let curSel = prop.getSelectedBaseForm()
             var rect   = pos
-            rect.x                  = rect.horzCenter() - SwatchSize * 0.5
-            rect.y                  = rect.vertCenter() - SwatchSize * 0.5
-            rect.width, rect.height = SwatchSize
+            rect.x                  = rect.horzCenter() - StyleGlyphSize * 0.5
+            rect.y                  = rect.vertCenter() - StyleGlyphSize * 0.5
+            rect.width, rect.height = StyleGlyphSize
             if !curSel.borderColor.isOpaque() do
                 bc.painter.drawRect(rect, Pen.createHatch(.CheckBoardLarge, Argb.DarkGray, 5))
             bc.painter.drawRect(rect, curSel.borderColor, 5)
@@ -414,16 +421,15 @@ impl PropWnd
             }
         }
 
-        let btn = createArrowButton(stack, BtnColorWidth, BtnColorHeight)
-        btn.name        = appStrings().ui_PropFill
+        let btn = createStyleButton(stack, appStrings().ui_PropFill)
         btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
         {
             bc.painter.setParams(.Antialiased)
             var curSel = prop.getSelectedBaseForm()!
             var rect   = pos
-            rect.x                  = rect.horzCenter() - SwatchSize * 0.5
-            rect.y                  = rect.vertCenter() - SwatchSize * 0.5
-            rect.width, rect.height = SwatchSize
+            rect.x                  = rect.horzCenter() - StyleGlyphSize * 0.5
+            rect.y                  = rect.vertCenter() - StyleGlyphSize * 0.5
+            rect.width, rect.height = StyleGlyphSize
             var backCol = curSel.subKind == .PixSel ? g_Main!.pixSelFillCol : curSel.backColor
             if !backCol.isOpaque() do
                 bc.painter.fillRect(rect, Brush.createHatch(.CheckBoardLarge, Argb.DarkGray))
@@ -468,8 +474,7 @@ impl PropWnd
         if curSel.subKind == .PixSel do
             return
 
-        let btn = createArrowButton(stack, BtnColorWidth, BtnColorHeight)
-        btn.name        = appStrings().act_Shape
+        let btn = createStyleButton(stack, appStrings().act_Shape)
         btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
         {
             bc.painter.setParams(.Antialiased)
@@ -486,8 +491,7 @@ impl PropWnd
         if curSelType != FormStep do
             return
 
-        let btn = createArrowButton(stack, BtnColorWidth, BtnColorHeight)
-        btn.name        = appStrings().act_Shape
+        let btn = createStyleButton(stack, appStrings().act_Shape)
         btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
         {
             bc.painter.setParams(.Antialiased)
@@ -504,8 +508,7 @@ impl PropWnd
         if curSelType != FormLine and curSelType != FormArrow do
             return
 
-        let btn = createArrowButton(stack, BtnStyleWidth, BtnStyleHeight)
-        btn.name = appStrings().ui_PropStart
+        let btn = createStyleButton(stack, appStrings().ui_PropStart)
 
         btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
         {
@@ -531,8 +534,7 @@ impl PropWnd
         if curSelType != FormLine and curSelType != FormArrow do
             return
 
-        let btn = createArrowButton(stack, BtnStyleWidth, BtnStyleHeight)
-        btn.name        = appStrings().ui_PropEnd
+        let btn = createStyleButton(stack, appStrings().ui_PropEnd)
         btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
         {
             let curSel = cast(*FormLine) prop.getSelectedBaseForm()
@@ -561,8 +563,7 @@ impl PropWnd
         if curSel.subKind == .Highlight or curSel.subKind == .PixSel do
             return
 
-        let btn = createArrowButton(stack, BtnStyleWidth, BtnStyleHeight)
-        btn.name        = appStrings().ui_PropDash
+        let btn = createStyleButton(stack, appStrings().ui_PropDash)
         btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
         {
             bc.painter.setParams(.Antialiased)
@@ -630,16 +631,15 @@ impl PropWnd
         if .getSelectedFormType() != FormCallout do
             return
 
-        let btn = createArrowButton(stack, BtnColorWidth, BtnColorHeight)
-        btn.name        = appStrings().act_Text
+        let btn = createStyleButton(stack, appStrings().act_Text)
         btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
         {
             bc.painter.setParams(.Antialiased)
             let curSel = cast(*FormCallout) prop.getSelectedBaseForm()
             var rect   = pos
-            rect.x                  = rect.horzCenter() - SwatchSize * 0.5
-            rect.y                  = rect.vertCenter() - SwatchSize * 0.5
-            rect.width, rect.height = SwatchSize
+            rect.x                  = rect.horzCenter() - StyleGlyphSize * 0.5
+            rect.y                  = rect.vertCenter() - StyleGlyphSize * 0.5
+            rect.width, rect.height = StyleGlyphSize
             if !curSel.textColor.isOpaque() do
                 bc.painter.fillRect(rect, Brush.createHatch(.CheckBoardLarge, Argb.DarkGray))
             bc.painter.fillRect(rect, curSel.textColor)
@@ -815,7 +815,11 @@ impl PropWnd
             return
         }
 
-        let stack0 = StackLayoutCtrl.create(.topLayout!, .HorizontalCenter, {0, 0, 0, BtnColorHeight + 12})
+        // The cells start at the panel margin like every row under them, instead of floating
+        // in the middle of the column: a group centred on its own is a third alignment on a
+        // surface that already has one.
+        let stack0 = StackLayoutCtrl.create(.topLayout!, .Left, {0, 0, 0, StyleCellSize})
+        stack0.spacing = StyleCellGap
         .propBackColor(stack0)
         .propBorderColor(stack0)
         .propCalloutText(stack0)
@@ -824,7 +828,8 @@ impl PropWnd
         if stack0.children.count == 0 do
             stack0.destroyNow()
 
-        let stack1 = StackLayoutCtrl.create(.topLayout!, .HorizontalCenter, {0, 0, 0, BtnStyleHeight + 12})
+        let stack1 = StackLayoutCtrl.create(.topLayout!, .Left, {0, 0, 0, StyleCellSize})
+        stack1.spacing = StyleCellGap
         .propStartCapStyle(stack1)
         .propDashStyle(stack1)
         .propEndCapStyle(stack1)
@@ -855,8 +860,11 @@ impl PropWnd
             .topLayout.mode         = .Top
             .topLayout.fitToContent = true
             .topLayout.dockStyle    = .Top
-            .topLayout.padding      = 8
-            .topLayout.padding.y    = 16
+            .topLayout.spacing      = StyleCellGap
+
+            // The head keeps the margin of the panel on both edges, and a block of air
+            // between itself and the rows the grid generates under it.
+            .topLayout.padding   = {12, 16, 12, 16}
 
             .grid           = Properties.create(prop, kind: .Panel)
             .grid.dockStyle = .Center

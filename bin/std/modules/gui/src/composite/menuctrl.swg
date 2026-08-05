@@ -135,7 +135,9 @@ public impl IWnd for MenuCtrl
 
             if selected and colors.activeRail.a
             {
-                let rail = Math.Rectangle{backPos.x, labelPos.bottom() - 4, backPos.width, 4}
+                let size = metrics.activeRail_Size
+                var rail = Math.Rectangle{backPos.x, labelPos.bottom() - size, backPos.width, size}
+                rail.inflate(-Math.min(metrics.activeRail_Margin, rail.width / 3), 0)
                 painter.fillRect(rail, colors.activeRail)
             }
 
@@ -144,7 +146,7 @@ public impl IWnd for MenuCtrl
             {
                 var icon = it.icon
                 icon.sizeX, icon.sizeY = it.size - 4
-                icon.paint(painter, labelPos.x, labelPos.vertCenter() - icon.sizeY * 0.5, colorText)
+                icon.paint(painter, labelPos.x, opticalTop(.font(), labelPos.vertCenter(), icon.sizeY), colorText)
             }
 
             // Text
@@ -228,7 +230,8 @@ public impl IWnd for MenuCtrl
             theme.drawSubRect(painter, backPos, &rects.menuPopup_HotBk, colorSel)
             if isHot and colors.activeRail.a
             {
-                let rail = Math.Rectangle{backPos.x, backPos.y, 4, backPos.height}
+                var rail = Math.Rectangle{backPos.x, backPos.y, metrics.activeRail_Size, backPos.height}
+                rail.inflate(0, -Math.min(metrics.activeRail_Margin, rail.height / 3))
                 painter.fillRect(rail, colors.activeRail)
             }
 
@@ -246,13 +249,15 @@ public impl IWnd for MenuCtrl
             format.font          = .font()
             painter.drawRichString(labelPos, &it.name, format)
 
-            let textCenterY = it.name.isEmpty() ? labelPos.vertCenter() : it.name.boundRect.vertCenter()
+            // Everything standing on the entry's line — the check mark, the glyph, the
+            // submenu arrow — is levelled with the wording, not with the row.
+            let textCenterY = labelPos.vertCenter()
 
             // Icon
             if it.checked or it.rg == .ExclusiveGroup
             {
                 var checkPos = iconPos
-                checkPos.y                      = textCenterY - it.size * 0.5
+                checkPos.y                      = opticalTop(.font(), textCenterY, it.size)
                 checkPos.width, checkPos.height = it.size
 
                 if it.rg == .ExclusiveGroup
@@ -268,7 +273,7 @@ public impl IWnd for MenuCtrl
             {
                 var icon = it.icon
                 icon.sizeX, icon.sizeY = it.size - 4
-                icon.paint(painter, iconPos.x, textCenterY - icon.sizeY * 0.5, colorText)
+                icon.paint(painter, iconPos.x, opticalTop(.font(), textCenterY, icon.sizeY), colorText)
             }
 
             // Text right
@@ -286,7 +291,7 @@ public impl IWnd for MenuCtrl
             if @isset(it.popup)
             {
                 let icon = theme.icon(ThemeIcons.RightPopupArrow)
-                icon.paint(painter, labelPos.right(), textCenterY - icon.sizeY * 0.5, colorText)
+                icon.paint(painter, labelPos.right(), opticalTop(.font(), textCenterY, icon.sizeY), colorText)
             }
         }
     }
@@ -513,7 +518,7 @@ impl MenuCtrl
         {
             var icon = i.icon
             icon.sizeX, icon.sizeY = i.size - 4
-            icon.paint(painter, labelPos.x, labelPos.vertCenter() - icon.sizeY * 0.5, colorText)
+            icon.paint(painter, labelPos.x, opticalTop(.font(), labelPos.vertCenter(), icon.sizeY), colorText)
         }
 
         painter.drawRichString(labelPos, &i.name, format)
@@ -749,9 +754,10 @@ impl MenuCtrl
 
         var x = clientRect.x
 
-        var fake: Pixel.Painter
-        fake.begin(layoutOnly: true)
-        defer fake.end()
+        // Measured at the density the glyphs are really drawn at. Laid out at a scale of
+        // one and drawn at another, the run comes out a touch wider than the width reserved
+        // for it and the entry loses its last letter to the clip.
+        let deviceScale = .deviceScale()
         var rsf: Pixel.RichStringFormat
         rsf.font = .font()
 
@@ -763,7 +769,8 @@ impl MenuCtrl
             if .onPrepareItem do
                 .onPrepareItem(i!)
             it.pos = x + metrics.menuBar_SpaceBetween * 0.5
-            fake.drawRichString({0, 0, 512, 0}, &it.name, rsf)
+            it.name.compute()
+            Pixel.Painter.computeLayout({0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &it.name, rsf, deviceScale)
             it.size = it.name.boundRect.width
             x       = it.pos + it.size + metrics.menuBar_SpaceBetween * 0.5
         }
@@ -780,9 +787,8 @@ impl MenuCtrl
         .position.width  = 0
         .position.height = clientRect.y
 
-        var fake: Pixel.Painter
-        fake.begin(layoutOnly: true)
-        defer fake.end()
+        // Measured at the density the glyphs are really drawn at; see computeLayoutBar.
+        let deviceScale = .deviceScale()
         var rsf: Pixel.RichStringFormat
         rsf.font = .font()
 
@@ -811,12 +817,14 @@ impl MenuCtrl
 
             it.size = rsf.font.regular!.height
 
-            fake.drawRichString({0, 0, 512, 0}, &it.name, rsf)
+            it.name.compute()
+            Pixel.Painter.computeLayout({0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &it.name, rsf, deviceScale)
             var w = it.name.boundRect.width
 
             if !.flags.has(.HideShortcuts) and !it.rightName.isEmpty()
             {
-                fake.drawRichString({0, 0, 512, 0}, &it.rightName, rsf)
+                it.rightName.compute()
+                Pixel.Painter.computeLayout({0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &it.rightName, rsf, deviceScale)
                 w += it.rightName.boundRect.width + rsf.font.regular!.height * 3
             }
 

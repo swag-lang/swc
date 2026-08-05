@@ -63,7 +63,9 @@ struct AppStrings
     msg_FailedLoadFile:       string = "Failed to load file: %"
     msg_ShortcutTaken:        string = "Cannot register global shortcut '%'. "
     msg_ShortcutTakenWhy:     string = "Another running application is probably already using it!"
-    msg_AboutBuild:           string = "Build on %{j}"
+    msg_AboutBuild:           string = "Build of %{f}"
+    msg_AboutSource:          string = "sCapture is open source and written in <url>Swag</url>. Its code is <url>here</url>."     // About box: what the product is made of.
+    msg_AboutCopyright:       string = "Copyright © % Christophe Beaudet"                                                    // About box: the copyright line, given the year.
     msg_ResetStyles:          string = "This will reset the styles to the default values."     // Confirmation before restoring the default quick styles.
     dlg_TitleRenameCapture:   string = "Rename Capture"                                        // Title of the capture rename dialog.
     dlg_TitleEnterText:       string = "Enter Text"                                            // Title of the text-entry dialog.

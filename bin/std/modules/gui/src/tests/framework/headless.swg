@@ -39,7 +39,8 @@ struct HeadlessHost
     root:       Wnd             // Root associated with this value.
     #[Swag.Late]
     theme:        *Theme          // Theme associated with this value.
-    mousePos:     Math.Point      // Mouse pos associated with this value.
+    boundApp:     #null *Application  // Application `bindApplication` registered this surface with.
+    mousePos:     Math.Point          // Mouse pos associated with this value.
     closed:       bool            // Closed associated with this value.
     commandCount: u32             // Number of command entries.
     lastCommand:  #null WndId     // Last command associated with this value.
@@ -110,11 +111,19 @@ impl HeadlessHost
         .surfaceWnd.focusStrategy = .None
         .surface.wnd              = &.surfaceWnd
         .surfaceWnd.view          = root
+
+        // The host's own application drives everything the code under test reaches through its
+        // surface — `Wnd.app()` resolves here — so this surface has to be on its list too, or
+        // a language or theme change asked for from inside the tree notifies nobody.
+        .app.attachSurface(&.surface)
     }
 
     // Destroys the hosted window tree, drains queued work, and restores the system clipboard backend.
     mtd shutdown()
     {
+        if .boundApp do
+            .boundApp!.detachSurface(&.surface)
+        .app.detachSurface(&.surface)
         if !.root.isPendingDestroy do
             .root.destroy()
         .pump()
@@ -131,6 +140,14 @@ impl HeadlessHost
         app.theme = .theme
 
         app.style.share(&.app.style)
+
+        // An application-wide broadcast — a language or a theme change — reaches the window tree
+        // by walking `surfaces`. A host that never joins that list turns every such notification
+        // into a no-op, so the window under test keeps the wording and the colors it was built
+        // with and the test measures nothing. Joining the list is what makes a headless surface
+        // stand in for a real one; `shutdown` takes it back out.
+        .boundApp = app
+        app.attachSurface(&.surface)
     }
 
     private mtd installAutoHook()

@@ -300,6 +300,13 @@ func __setupRuntime(flags: RuntimeFlags)
     let cxt = @getcontext()
     cxt.runtimeFlags = flags
 
+    // A native run owns its command line, and every artifact keeps its own '@pinfos', so the
+    // executable seeds its copy here and hands it down the hook chain to the modules it imports.
+    // Under the compiler the real command line belongs to 'swc' itself; the host has already
+    // filled the slot with the one the program is effectively launched with, so leave it alone.
+    if !(flags & .FromCompiler) do
+        @pinfos.args = __osCommandLine()
+
     discard installAllocator(electricMode: __buildCfg.allocatorElectricMode, detectLeaks: __buildCfg.allocatorLeaks, captureStack: __buildCfg.allocatorCaptureStack, trackAllocations: __buildCfg.allocatorTrackAllocations, fillMemory: __buildCfg.allocatorFillMemory, installInContext: !(flags & .FromCompiler))
 
     let allocator = __runtimeAllocator()

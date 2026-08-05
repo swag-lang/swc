@@ -632,7 +632,8 @@ private impl ListView
             painter.fillRect(rect, colorSel)
             if colors.activeRail.a
             {
-                let rail = Math.Rectangle{rect.x, rect.y, 4, rect.height}
+                var rail = Math.Rectangle{rect.x, rect.y, metrics.activeRail_Size, rect.height}
+                rail.inflate(0, -Math.min(metrics.activeRail_Margin, rail.height / 3))
                 painter.fillRect(rail, colors.activeRail)
             }
         }
@@ -714,7 +715,7 @@ private impl ListView
                     if canExpand
                     {
                         let expand = theme.icon(line.expanded ? .Expanded : .Collapsed)
-                        expand.paint(painter, labelPos.x, labelPos.vertCenter() - expand.sizeY * 0.5, colorExpand)
+                        expand.paint(painter, labelPos.x, opticalTop(.font(), labelPos.vertCenter(), expand.sizeY), colorExpand)
                     }
 
                     labelPos.moveLeft(metrics.list_ExpandSize)
@@ -753,7 +754,7 @@ private impl ListView
 
                     var posBox = labelPos
                     posBox.height = widthCheck
-                    posBox.y      = labelPos.vertCenter() - (posBox.height * 0.5)
+                    posBox.y      = opticalTop(.font(), labelPos.vertCenter(), posBox.height)
                     posBox.width  = posBox.height
                     if checked do
                         theme.drawSubRect(painter, posBox, &rects.btnCheck_CheckedMark, colorMark)

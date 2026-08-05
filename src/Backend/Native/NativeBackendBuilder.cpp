@@ -1123,6 +1123,12 @@ Result NativeBackendBuilder::runGeneratedArtifact()
     if (exitCode != 0)
         return reportError(DiagnosticId::cmd_err_native_artifact_failed, Diagnostic::ARG_VALUE, Os::formatProcessExitCode(exitCode));
 
+    // A clean exit is not a pass. The tally is the only evidence the tests ran, and its absence
+    // means '__testsDone' never printed one, so the executable ran none of them -- exactly the
+    // outcome a green test run must not hide.
+    if (compiler_->cmdLine().command == CommandKind::Test && !testFunctions.empty() && nativeTestsExecuted != testFunctions.size())
+        return reportError(DiagnosticId::cmd_err_native_test_count_mismatch, Diagnostic::ARG_VALUE, nativeTestsExecuted, Diagnostic::ARG_COUNT, static_cast<uint32_t>(testFunctions.size()));
+
     return Result::Continue;
 }
 

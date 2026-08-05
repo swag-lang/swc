@@ -16,7 +16,7 @@ StartFont
 UpdateFont font#0
 ResetTexture0
 BindTextureFont font#0 atlas=0
-DrawTriangles n=30 bbox=(66,6)-(96,18) colors=[FFE0E0E0] cov=solid
+DrawTriangles n=30 bbox=(66,7)-(96,19) colors=[FFE0E0E0] cov=solid
 ResetTextureFont
 EndFont
 Transform 1 0 0 1 20 20

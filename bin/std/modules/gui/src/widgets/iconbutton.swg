@@ -223,23 +223,29 @@ impl IWnd for IconButton
 
         if !flat and !overlay and .isChecked and colors.activeRail.a
         {
-            let thickness = Math.min(4'f32, Math.min(clientRect.width, clientRect.height))
+            // The rule stops short of both ends of the edge it runs along, so it reads as a
+            // mark placed against the cell rather than as a bar filling one of its sides.
+            let thickness = Math.min(metrics.activeRail_Size, Math.min(clientRect.width, clientRect.height))
             var rail      = clientRect
             switch .checkIndicator
             {
             case .Top:
                 rail.height = thickness
+                rail.inflate(-.railInset(rail.width), 0)
 
             case .Left:
                 rail.width = thickness
+                rail.inflate(0, -.railInset(rail.height))
 
             case .Right:
                 rail.x     = rail.right() - thickness
                 rail.width = thickness
+                rail.inflate(0, -.railInset(rail.height))
 
             case .None, .Bottom, .Full:
                 rail.y      = rail.bottom() - thickness
                 rail.height = thickness
+                rail.inflate(-.railInset(rail.width), 0)
             }
 
             bc.painter.fillRect(rail, colors.activeRail)
@@ -274,6 +280,20 @@ impl IWnd for IconButton
 
         var pos     = .paddedClientRect()
         let hasIcon = icon.isValid() or .iconPainter
+
+        // A rule running down one side belongs to the cell, so the content steps aside for
+        // it whether the button is checked or not: reserved only while checked, the glyph
+        // would jump sideways as the tool is picked, and pressed against it the rule would
+        // read as an outline of the glyph rather than as a mark beside it.
+        if colors.activeRail.a
+        {
+            let railRoom = metrics.activeRail_Size + metrics.activeRail_Margin
+            switch .checkIndicator
+            {
+            case .Left:  pos.moveLeft(railRoom)
+            case .Right: pos.moveRight(-railRoom)
+            }
+        }
 
         if .iconWidth do
             icon.sizeX = .iconWidth
@@ -333,7 +353,7 @@ impl IWnd for IconButton
                 posArrow.width  = h
                 posArrow.height = w
                 posArrow.x      = pos.x + marginArrow
-                posArrow.y      = pos.vertCenter() - w * 0.5
+                posArrow.y      = .lineTop(pos.vertCenter(), w)
                 theme.drawSubRect(bc.painter, posArrow, subRectBk, colorIcon)
                 pos.moveLeft(marginArrow + w + metrics.btnIcon_SpacingArrowH)
 
@@ -351,7 +371,7 @@ impl IWnd for IconButton
                 posArrow.width  = h
                 posArrow.height = w
                 posArrow.x      = pos.right() - w - marginArrow
-                posArrow.y      = pos.vertCenter() - h * 0.5
+                posArrow.y      = .lineTop(pos.vertCenter(), h)
                 theme.drawSubRect(bc.painter, posArrow, subRectBk, colorIcon)
                 pos.setRight(posArrow.x - metrics.btnIcon_SpacingArrowH)
 
@@ -360,7 +380,7 @@ impl IWnd for IconButton
                 posArrow.width  = w
                 posArrow.height = h
                 posArrow.x      = pos.right() - w - marginArrow
-                posArrow.y      = pos.vertCenter() - h * 0.5
+                posArrow.y      = .lineTop(pos.vertCenter(), h)
                 theme.drawSubRect(bc.painter, posArrow, subRectBk, colorIcon)
                 pos.setRight(posArrow.x - metrics.btnIcon_SpacingArrowH)
 
@@ -369,7 +389,7 @@ impl IWnd for IconButton
                 posArrow.width  = w
                 posArrow.height = h
                 posArrow.x      = pos.right() - w - marginArrow
-                posArrow.y      = pos.vertCenter() - h * 0.5
+                posArrow.y      = .lineTop(pos.vertCenter(), h)
                 theme.drawSubRect(bc.painter, posArrow, subRectBk, colorIcon)
                 pos.setRight(posArrow.x - metrics.btnIcon_SpacingArrowH)
 
@@ -392,7 +412,6 @@ impl IWnd for IconButton
             sf.font          = .font()
             sf.horzAlignment = .Center
             sf.vertAlignment = .Center
-            sf.flags         = .DontAdaptSingleLineHeight
             switch .textPosition
             {
             case .Left:
@@ -417,24 +436,32 @@ impl IWnd for IconButton
                 }
 
             case .Right:
-                sf.horzAlignment = .Right
+
+                // The label stands beside the glyph, not against the far edge of the cell:
+                // pushed to the other end of a wide row it reads as a second column rather
+                // than as the name of the glyph it belongs to.
+                sf.horzAlignment = .Left
                 if !hasIcon and (.arrowPosition == .Top or .arrowPosition == .Bottom) do
                     sf.horzAlignment = .Center
-                bc.painter.drawRichString(pos, &.name, sf)
-                pos.width -= .name.boundRect.width + metrics.btnIcon_SpacingTextH
 
-                if !icon.isValid() do
-                    icon.sizeX = pos.width
+                // A painter that declares no size keeps taking what the label leaves it.
+                if !icon.isValid() and !.iconWidth
+                {
+                    let textWidth = Painter.measureString(.name.raw.toString(), nnFont(sf.font.regular)).width
+                    icon.sizeX = Math.max(pos.width - textWidth - metrics.btnIcon_SpacingTextH, 0)
+                }
+
                 if pos.width < icon.sizeX
                 {
                     let ratio = icon.sizeX / icon.sizeY
                     icon.sizeX = pos.width * ratio
                     icon.sizeY = pos.width
                 }
-                else
-                {
-                    pos.width = icon.sizeX
-                }
+
+                var posText = pos
+                posText.moveLeft(icon.sizeX + metrics.btnIcon_SpacingTextH)
+                bc.painter.drawRichString(posText, &.name, sf)
+                pos.width = icon.sizeX
 
             case .Top:
                 sf.vertAlignment = .Top
@@ -486,15 +513,17 @@ impl IWnd for IconButton
         }
         else
         {
+            // A glyph on the same line as the label is placed level with the word, not with
+            // the middle of the cell; one stacked above or below it keeps the geometric edge.
             switch .textPosition
             {
             case .Left:
                 pos.x = pos.right() - icon.sizeX
-                pos.y = pos.vertCenter() - icon.sizeY * 0.5
+                pos.y = opticalTop(.font(), pos.vertCenter(), icon.sizeY)
                 icon.paint(bc.painter, pos.x, pos.y, colorIcon)
 
             case .Right:
-                pos.y = pos.vertCenter() - icon.sizeY * 0.5
+                pos.y = opticalTop(.font(), pos.vertCenter(), icon.sizeY)
                 icon.paint(bc.painter, pos.x, pos.y, colorIcon)
 
             case .Top:
@@ -569,6 +598,28 @@ impl IWnd for IconButton
 
 private impl IconButton
 {
+    // Air the active rule leaves at each end of the edge it runs along.
+    //
+    // The margin is a ceiling, not a promise: a cell too short to spare it keeps a rule
+    // covering a third of the edge rather than none at all.
+    mtd railInset(length: f32)->f32
+    {
+        return Math.min(.themeMetrics().activeRail_Margin, length / 3)
+    }
+
+    // Y of the top edge of `size` placed on the content line, `centerY` being the middle of
+    // the box it stands in.
+    //
+    // A glyph or an arrow sharing the line of a label is levelled with the word rather than
+    // with the box, or it reads as having slipped under the text. A button showing no label
+    // has nothing to be level with and keeps the middle.
+    mtd lineTop(centerY, size: f32)->f32
+    {
+        if .name.isEmpty() or .flags.has(.IconOnly) do
+            return centerY - size * 0.5
+        return opticalTop(.font(), centerY, size)
+    }
+
     mtd activateFromUser()
     {
         var stateChanged: bool

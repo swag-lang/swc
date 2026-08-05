@@ -192,7 +192,8 @@ internal impl IWnd for PopupListView
             theme.drawSubRect(painter, labelPos, &rects.selectionBox_Bk, colorSel)
             if isHot and colors.activeRail.a
             {
-                let rail = Math.Rectangle{labelPos.x, labelPos.y, 4, labelPos.height}
+                var rail = Math.Rectangle{labelPos.x, labelPos.y, metrics.activeRail_Size, labelPos.height}
+                rail.inflate(0, -Math.min(metrics.activeRail_Margin, rail.height / 3))
                 painter.fillRect(rail, colors.activeRail)
             }
 
@@ -202,7 +203,7 @@ internal impl IWnd for PopupListView
             if it.icon.isValid()
             {
                 let iconColor = it.icon.color.a ? it.icon.color : colorText
-                it.icon.paint(painter, labelPos.x, labelPos.vertCenter() - it.icon.sizeY * 0.5, iconColor)
+                it.icon.paint(painter, labelPos.x, opticalTop(.font(), labelPos.vertCenter(), it.icon.sizeY), iconColor)
             }
 
             if .list.maxIconSize do
@@ -224,7 +225,7 @@ internal impl IWnd for PopupListView
             if idx == .list.selectedIndex
             {
                 labelPos.x      = labelPos.right()
-                labelPos.y      = labelPos.vertCenter() - (fntHeight * 0.5)
+                labelPos.y      = opticalTop(.font(), labelPos.vertCenter(), fntHeight)
                 labelPos.width  = fntHeight
                 labelPos.height = fntHeight
                 theme.drawSubRect(painter, labelPos, &rects.btnCheck_CheckedMark, colorCheck)

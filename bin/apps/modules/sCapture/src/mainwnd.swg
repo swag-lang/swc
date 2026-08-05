@@ -11,7 +11,8 @@ const AppIcon         = #include("../datas/appicon.png")
 // the next. Nothing here is a container for a label stacked under an icon.
 const RailCellSize     = 36.0     // One tool cell of the left rail.
 const RailGlyphSize    = 20.0     // Every toolbar and command-row glyph.
-const RailLabelWidth   = 104.0    // Rail width when the labels option puts a word beside the glyph.
+const RailCellPadding  = 8.0      // Air a rail cell keeps on each side of what it holds.
+const RailLabelWidth   = 128.0    // Content width of a rail cell when the labels option puts a word beside the glyph.
 const CommandRowHeight = 36.0     // The single command row under the accent rail.
 const ReadoutWidth     = 88.0     // One machine readout of the command row.
 const VerbsWidth       = 156.0    // The command group: the primary action and the library.
@@ -661,6 +662,7 @@ impl MainWnd
     {
         @assert(me.parent != null)
         let parentWnd = me.parent
+        let metrics   = .themeMetrics()
         with let topMenu = MenuCtrl.createBar(parentWnd, owner: me)
         {
             .sendToBack()
@@ -668,6 +670,10 @@ impl MainWnd
             .dockStyle       = .Top
             .margin.y        = -parentWnd.padding.y
             .backgroundStyle = .Transparent
+
+            // The bar rides inside the caption, which carries the application mark on its
+            // leading edge: the first menu starts past the mark instead of over it.
+            .padding.x = metrics.wnd_CaptionMarginTitle + metrics.wnd_CaptionIconSize + metrics.menuBar_SpaceBetween * 0.5
         }
 
         // File menu
@@ -815,6 +821,10 @@ impl MainWnd
             with let b = IconButton.create(me .toolRail!, {}, position: {0, 0, RailCellSize, RailCellSize})
             {
                 .id = id
+
+                // Air on both sides of the glyph, so the column is separated from the window
+                // edge and from the canvas by space rather than by a line.
+                .setAllPaddings({RailCellPadding, 0, RailCellPadding, 0})
                 if id == ActionToolMode.Callout
                 {
                     .iconPainter = func(btn, bc, pos, flags) { drawCalloutGlyph(btn, bc, pos, flags) }
@@ -921,8 +931,13 @@ impl MainWnd
     // it widens the rail and sits beside it.
     mtd setToolRailWidth()
     {
+        let metrics    = .themeMetrics()
         let showLabels = .editorOptions.showToolBarLabels
-        let width      = showLabels ? RailLabelWidth : RailCellSize
+
+        // The rule marking the active tool runs in a lane of its own on the leading edge, so
+        // the glyph column keeps its size and its air whatever the state of the cell.
+        let lane  = metrics.activeRail_Size + metrics.activeRail_Margin
+        let width = (showLabels ? RailLabelWidth : RailCellSize) + lane
 
         for c in .toolRail.children
         {
@@ -1018,10 +1033,13 @@ impl MainWnd
             .backgroundStyle = .Window
         }
 
+        // The heading starts on the same margin as the cells and the rows under it: a title
+        // centred over a left-aligned column is a second alignment on one narrow panel.
         with res.toolTitle = Label.create(res.rightBar, "", {0, 0, 0, 26})
         {
             .dockStyle = .Top
-            .setTextPadding({12, 8, 8, 0})
+            .setTextAlignment(.Left, .Center)
+            .setTextPadding({12, 8, 12, 0})
             .setTextColor(res.themeColors().label_TextLight)
         }
 

@@ -116,6 +116,7 @@ func parseOS2(faceData: *FaceImpl) fail
     {
         faceData.xHeight   = readS16(table, 86)
         faceData.capHeight = readS16(table, 88)
+        faceData.face.setVerticalZones(faceData.xHeight, faceData.capHeight)
     }
 }
 

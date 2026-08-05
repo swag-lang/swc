@@ -118,7 +118,7 @@ internal impl Properties
                     }
                     else
                     {
-                        .updateFlags(.WordWrap | .AutoHeight | .PreserveSingleLineHeight)
+                        .updateFlags(.WordWrap | .AutoHeight)
                         .setTextAlignment(.Left, .Top)
                         .margin.y = .listNameMarginBefore
                         .margin.w = .listNameMarginAfter
@@ -153,7 +153,7 @@ internal impl Properties
                 {
                     with let labelDesc = Label.create(line, "", {0, 0, .listContentWidth(), 0})
                     {
-                        .updateFlags(.WordWrap | .AutoHeight | .PreserveSingleLineHeight)
+                        .updateFlags(.WordWrap | .AutoHeight)
                         .setTextAlignment(.Left, .Top)
                         .margin.w = .listDescMarginAfter
                         .setText(attributeString(dispDesc))

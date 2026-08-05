@@ -200,10 +200,10 @@ impl IWnd for EditBox
 
         clientRect = .editRect()
 
-        // Icon
+        // Icon, levelled with the line the box holds rather than with the box.
         if .icon.isValid()
         {
-            .icon.paint(bc.painter, clientRect.x, clientRect.vertCenter() - .icon.sizeY * 0.5, colors.edit_Text)
+            .icon.paint(bc.painter, clientRect.x, opticalTop(.font(), clientRect.vertCenter(), .icon.sizeY), colors.edit_Text)
             clientRect.x     += .icon.sizeX + metrics.iconText_Margin
             clientRect.width -= .icon.sizeX + metrics.iconText_Margin
         }

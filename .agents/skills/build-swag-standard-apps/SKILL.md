@@ -67,7 +67,13 @@ glyph, another app's icon, or a letter tile.
 6. Set `BuildCfg.resAppIcoFileName` in `module.swg`, using a path relative to the module folder.
    Decode `appicon.png`, pass it to `Application.setAppIcon` before creating the first surface,
    and reuse it for product-specific icon placements.
-7. Inspect the PNG and the 16, 32, 48, and 256 pixel ICO entries. Regenerate the glyph when its
+7. **The mark belongs in the title bar too.** A window says which application it is before its
+   title is read. `setAppIcon` covers both places at once: the native icon of the taskbar and the
+   task switcher, and the mark a drawn caption shows on its leading edge. Do not place it there by
+   hand, and do not tint it — the caption honors the icon's own colors so the two-color glyph
+   survives. A window that draws its own bar inside the caption, such as a menu bar, starts that
+   bar past the mark rather than over it.
+8. Inspect the PNG and the 16, 32, 48, and 256 pixel ICO entries. Regenerate the glyph when its
    negative space closes or its product meaning disappears; do not repair a weak concept with text.
 
 ## Build The Standard Surface
@@ -95,6 +101,11 @@ glyph, another app's icon, or a letter tile.
 - Keep one dominant action per task area. Give destructive actions distance and explicit wording.
   Show progress where work is not immediate, preserve keyboard focus, and keep failure text beside
   the operation that stopped.
+- Level a glyph with the word beside it, not with the middle of the box around it. A line box
+  reaches down to the descenders while a word is read on its capitals, so a centered icon reads as
+  having slipped under its label. `Gui.opticalTop` is the one place that rule lives; use it for
+  every icon, check mark, and arrow that shares a line with text, and never hand-tune a padding to
+  compensate for it.
 - Design both palettes together, verify narrow and minimum-size layouts, and inspect a real native
   surface rather than trusting constants alone.
 
@@ -119,7 +130,17 @@ hold it. The interface must read as an instrument at arm's length, never as a to
 
 - **Do not stack a label under a glyph.** It doubles the height of every control to carry a word
   the tooltip already carries, and turns a toolbar into a ribbon. A label belongs beside the glyph
-  when it is needed at all.
+  when it is needed at all, on the same line and starting right after it — a word pushed to the
+  far edge of a wide cell reads as a second column, not as the name of the glyph.
+- **The rule marking the active item is a mark, not a bar.** Run edge to edge at full weight it
+  competes with the very glyph it points at. Keep it thin, stop it short of both ends of the edge
+  it runs along, and give it a lane of its own: the content of a cell never touches it, and never
+  shifts sideways as the cell is checked. Reserve that lane whatever the state, and count it in
+  the width of the column, not out of the glyph's cell.
+- **Nothing sits against the edge of its cell.** A glyph flush with the window edge and a label
+  flush with the other side is not a dense toolbar, it is an unfinished one. Give every cell of a
+  rail or a command bar the same padding on both sides, and let the column be as wide as that
+  needs.
 - **Chrome shrinks so content grows.** The document, image, list, or editor is the interface;
   everything else is a thin frame around it. Measure it: at the window's declared minimum size,
   the primary content must hold the clear majority of the surface. Any panel that cannot justify

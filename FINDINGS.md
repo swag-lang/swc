@@ -183,51 +183,33 @@ Use this compact format. Keep observations factual and make the next step action
   runtime context reaches per-thread storage
   ([os_windows.swg:298](bin/runtime/os_windows.swg#L298)).
 
-### A failing assertion in a `bin/apps` test does not fail the run
+### Ten `sCrypt` tests do not pass
 
-- Area: tooling
-- Found while: adding headless layout tests to `sCrypt`
-- Observation: `apps.bat test` builds a test executable and runs it (`--no-test-jit`), and the run
-  reports success whatever the tests assert. The whole applications suite — 149 tests across
-  `sCapture` and `sCrypt` — therefore proves nothing today.
-- Evidence: inserting `#test { @assert(false) }` at the top of
-  `bin/apps/modules/sCrypt/src/tests/volume.test.swg` still gives
-  `✓ tested 25 tests`. The reported run time is the giveaway: 166 ms for 24 tests, several of
-  which build a headless GUI host with a rasterized theme — the same work takes seconds in the
-  `gui` module, whose tests do execute (a wrong expectation in `measure.test.swg` fails the run as
-  it should). Launching `sCrypt.test.exe` by hand dies with `0xC0000135`, so the test executable
-  does not even find its libraries beside it.
-- Next step: check what `swc test --no-test-jit` does with the exit code and the output of the
-  test executable it launches, and whether that executable is published with the shared libraries
-  it links against — the missing-DLL exit code suggests the launch fails and the failure is
-  swallowed. Until then, cover application behavior from a `bin/std` test where the runner is
-  known to execute.
-
-### Every GUI surface opens at its logical size in physical pixels on a scaled display
-
-- Area: bin/std
-- Found while: looking at `sCrypt` on a 150% display to check the French wording of its layout
-- Observation: `Application.createSurface` takes logical units and
-  [surface.win32.swg:369-376](bin/std/modules/gui/src/surface.win32.swg#L369-L376) resizes the
-  still-hidden window to `size * dpiScale`. That resize does not survive: the window ends up the
-  requested size in *physical* pixels. Meanwhile
-  [surface.swg:192-201](bin/std/modules/gui/src/surface.swg#L192-L201) sizes the render context and
-  the first resize event to `size * dpiScale`, so the tree is laid out for 1.5× more logical room
-  than the window actually has and the painter draws it 1.5× too large. Everything past the first
-  screenful is simply outside the window.
-- Evidence: on a 144-DPI monitor, `sCrypt` asks for 1100×790 and `GetWindowRect` reports exactly
-  1100×790 with `GetDpiForWindow` = 144; its two cards measure 764 physical pixels each and need
-  ~1616 where 1100 exist. The `gui2` example asks for 1034×779 and reports exactly 1034×779, so
-  this is not application-specific. Deleting the persisted placement changes nothing: a first-run
-  window is wrong too, which rules out the state restore.
-- Next step: `Application.createSurface` seeds `surface.position` with the *logical* rectangle
-  ([application.swg:704](bin/std/modules/gui/src/application.swg#L704)) although `position` is
-  documented as physical desktop pixels; check whether `show()` or any later
-  `setPosition(.position)` writes that logical rectangle back over the physical one the native
-  layer computed. Log the window rectangle right after `createNative`, after `Surface.create`, and
-  after `show()` — the first of the three that reports the logical size names the culprit.
-- Related: this is what makes a scaled `sCrypt` look broken whatever its language; the wording is
-  a separate matter.
+- Area: bin/apps
+- Found while: fixing the native test runner, which until now executed none of them
+- Observation: `sCrypt` runs its 26 tests in about 15 seconds and 10 do not pass. The same 10 fail
+  under the JIT runner, so they are genuine and independent of the runner change. Six of the eight
+  failing assertions are the single expression `@assert(rejectsPassword(...))`, which either means
+  `Volume.open` accepts a password or a container it should reject, or means the helper never
+  observes the error — one shared cause, with very different severities. `sCapture` is not yet
+  measured.
+- Evidence: `tools/apps.bat dm test sCrypt`. Eight assertions do not hold —
+  [mainwindow.test.swg:62](bin/apps/modules/sCrypt/src/tests/mainwindow.test.swg#L62) and
+  [:88](bin/apps/modules/sCrypt/src/tests/mainwindow.test.swg#L88) on the French wording and the
+  language picker, [volume.test.swg:148](bin/apps/modules/sCrypt/src/tests/volume.test.swg#L148),
+  [:317](bin/apps/modules/sCrypt/src/tests/volume.test.swg#L317),
+  [:338](bin/apps/modules/sCrypt/src/tests/volume.test.swg#L338),
+  [:499](bin/apps/modules/sCrypt/src/tests/volume.test.swg#L499),
+  [:564](bin/apps/modules/sCrypt/src/tests/volume.test.swg#L564) through `rejectsPassword`, and
+  [:595](bin/apps/modules/sCrypt/src/tests/volume.test.swg#L595) on a cancelled create. Two more
+  die on an uncaught `Core.Swag.SystemError` from `expect File.duplicate(salvaged, path)`
+  ([:400](bin/apps/modules/sCrypt/src/tests/volume.test.swg#L400),
+  [:433](bin/apps/modules/sCrypt/src/tests/volume.test.swg#L433)).
+- Next step: settle the `rejectsPassword` cluster first, because it is six of the ten and because
+  one of its two readings is a defect in the encryption itself. `discard catch Volume.open(path,
+  password) as openError; return openError != null` — check that `catch ... as` binds the error
+  through a `discard`, by asserting directly on `catch Volume.open(...)` with a knowingly wrong
+  password. If the binding is sound, the container format accepts input it must refuse.
 
 ### `for &x in f()` corrupts its elements when `f` returns `const &Array'T`
 

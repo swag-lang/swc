@@ -14,6 +14,14 @@ struct Application
     options: ApplicationOptions     // Diagnostics and development options.
     appIcon: Pixel.Image            // Icon used for native windows created by the application.
 
+    // Frame list uploaded from `appIcon` the first time a caption asks for it, so the drawn
+    // title bar shows the same mark as the taskbar without the application saying so twice.
+    internal
+    {
+        appIconList:   ImageList
+        appIconLoaded: bool
+    }
+
     // Named resources of the application: theme art, fonts, theme sheets, and language
     // files. The embedded content of every loaded module registers itself as the
     // fallback, so a bare application needs no configuration; add a disk folder before
@@ -398,6 +406,25 @@ private impl Application
             s.wnd.updateCommandState()
     }
 
+    // Takes part in surface-wide work a surface this application did not create.
+    //
+    // Command state and the language and theme notifications all reach a window tree by walking
+    // the surface list, so a surface that is not on it never hears about any of them. A caller
+    // that builds its own surface — a test host standing in for a native window — attaches it
+    // here. Ownership stays with the caller, which must call [[Gui.Application.detachSurface]]
+    // before the surface goes away.
+    mtd attachSurface(surface: *Surface)
+    {
+        .surfaces.addOnce(surface)
+    }
+
+    // Takes a surface attached by [[Gui.Application.attachSurface]] back off the list, without
+    // destroying it.
+    mtd detachSurface(surface: *Surface)
+    {
+        .surfaces.remove(surface)
+    }
+
     // Remove and destroy the given surface
     // To cleanly close a surface, you should call surface.destroy()
     mtd destroySurface(surface: *Surface)
@@ -617,6 +644,8 @@ impl Application
         }
 
         .deletePointers()
+        if .appIconLoaded and .appIconList.isValid() do
+            .appIconList.release(.renderer)
         if @isset(.theme) do
             .theme.freeDefault()
     }
@@ -764,10 +793,43 @@ impl Application
         .statePath = path
     }
 
-    // Selects the native application icon before the first surface is created.
+    // Selects the application icon before the first surface is created.
+    //
+    // The image becomes the native window icon — taskbar, task switcher, native caption —
+    // and the mark a drawn caption shows beside its title. A surface that wants another one
+    // there overrides it with [[Gui.Surface.setIcon]].
     mtd setAppIcon(img: Pixel.Image)
     {
-        .appIcon = img
+        .appIcon       = img
+        .appIconLoaded = false
+    }
+
+    // Returns the application mark at `size` logical pixels, or an invalid icon when the
+    // application declares none.
+    //
+    // The frame texture is uploaded once, on the first call, so this can be asked for from
+    // inside a paint without costing anything after the first frame.
+    mtd appIconAt(size: f32)->Icon
+    {
+        var result: retval
+        if !.appIcon.isValid() do
+            return result
+
+        if !.appIconLoaded
+        {
+            .appIconList.set(.renderer.addImage(.appIcon))
+            .appIconLoaded = true
+        }
+
+        if !.appIconList.isValid() do
+            return result
+
+        result = Icon.from(&.appIconList, 0, size, size)
+
+        // The mark carries its own two colors; drawn through the caption tint it would
+        // collapse to one. An explicit white leaves the raster alone.
+        result.color = Pixel.Argb.White
+        return result
     }
 
     // Applies the theme sheet resource `themes/<name>.tweak` and refreshes every surface.

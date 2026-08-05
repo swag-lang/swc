@@ -33,12 +33,22 @@ struct VolumeProgress
 impl VolumeProgress
 {
     // Arms the tracker for an operation with `total` bytes to write, clearing any earlier
-    // cancellation so a stopped operation cannot stop the next one.
+    // cancellation so a stopped operation cannot stop the next one. This belongs to the
+    // watcher: it is what says a new operation is about to start.
     mtd begin(total: u64)
+    {
+        .setTotal(total)
+        Atomic.exchange(&.canceled, 0'u8)
+    }
+
+    // Records how much the running operation has to write. The cancellation is deliberately
+    // left alone: the watcher arms the tracker, and an operation that cleared the flag on its
+    // way in would drop every cancellation asked for between those two moments — which is
+    // exactly the window in which the user hits Cancel while the job is still queued.
+    mtd setTotal(total: u64)
     {
         Atomic.exchange(&.done, 0)
         Atomic.exchange(&.total, total)
-        Atomic.exchange(&.canceled, 0'u8)
     }
 
     // Publishes how many bytes the operation has written.
@@ -173,7 +183,7 @@ impl Volume
         defer Core.Crypto.secureClear(randomChunk.toSlice())
 
         if progress do
-            progress!.begin(requestedSize)
+            progress!.setTotal(requestedSize)
 
         var offset = 0'u64
         while offset < requestedSize
@@ -535,12 +545,17 @@ impl Volume
         image.resize(.metadataSize)
         try .loadNodes(image.toSlice())
 
+        // Reading the checkpoint back is not a change, so the volume starts clean here and the
+        // replay is what decides: journal records above the checkpoint are precisely what is not
+        // consolidated yet. Clearing this after the replay instead would tell a recovered volume
+        // it has nothing to write, so its close would skip the checkpoint and the same records
+        // would be replayed again on every open, forever.
+        .dirty = false
         try .replayJournal()
 
         if .nodeById(RootNodeId) == null do
             failWith("The container has no root directory.", .Corrupted)
         try .rebuildFreeList()
-        .dirty = false
     }
 
     // Reads the node table out of a decrypted metadata image.

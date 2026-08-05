@@ -44,6 +44,8 @@ public struct Face
         maxAdvanceWidth:    s16           // Maximum horizontal advance in design units.
         underlinePosition:  s16           // Underline center relative to the baseline.
         underlineThickness: s16           // Recommended underline thickness in design units.
+        xHeight:            s16           // Height of a lowercase `x` in design units, or zero when the face declares none.
+        capHeight:          s16           // Height of an uppercase letter in design units, or zero when the face declares none.
         size:               Size          // Active pixel size and scaled metrics.
         charMap:            CharMap       // Selected Unicode character map.
     }
@@ -75,6 +77,12 @@ public impl Face
         .descender       = descender
         .height          = cast(s16) (ascender - descender + lineGap)
         .maxAdvanceWidth = maxAdvanceWidth
+    }
+
+    internal mtd setVerticalZones(xHeight, capHeight: s16)
+    {
+        .xHeight   = xHeight
+        .capHeight = capHeight
     }
 
     internal mtd setGlyphCount(glyphCount: u32)

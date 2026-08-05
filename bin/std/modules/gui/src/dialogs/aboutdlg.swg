@@ -40,41 +40,55 @@ public impl AboutDlg
         srf.setTitle(params.surfaceTitle)
         srf.center(from)
 
+        let metrics = dlg.themeMetrics()
+        let pad     = metrics.dialog_Padding
+
+        // One accent rule across the top edge, the same one every standard Swag surface
+        // carries. A box that names the product is the last place to drop the family mark.
+        Separator.create(srf.view(), .Top, .Accent)
+
+        // The text column keeps the dialog margin on the edges it touches. Its leading edge
+        // is the mark's business, so it takes nothing there.
         with let stackLayout = StackLayoutCtrl.create(srf.view())
         {
             .dockStyle = .Center
-            .padding.y = params.contentIcon.sizeY * 0.25
+            .padding   = {0, pad, pad, pad}
         }
 
+        // The product name is the one heading of the box, so it is set once, in bold, and
+        // nothing else in here competes with it.
         with dlg.labelMessageTitle = Label.create(stackLayout, params.contentTitle)
         {
-            let fontSize = cast(s32) (dlg.themeMetrics().defaultFontSize * 1.5)
-            .style.setFont(dlg.theme().createDefaultFontfamily(fontSize))
+            let fontSize = cast(u32) (metrics.defaultFontSize * 1.5)
+            .style.setFont(dlg.theme().createDefaultFont(fontSize, .Bold), .Regular)
             .dockStyle = .Top
             .setTextAlignment(.Left, .Top)
             .updateFlags(.AutoHeight)
         }
 
-        with dlg.labelMessage = Label.create(stackLayout, params.message, flags: .AutoHeight | .WordWrap)
+        with dlg.labelMessage = Label.create(stackLayout, params.message, flags: .AutoHeight | .WordWrap | .SecondaryText)
         {
             .dockStyle = .Top
+            .margin.y  = pad * 0.5
             .setTextAlignment(.Left, .Top)
         }
 
         if params.surfaceIcon.isValid()
         {
             var cpyIcon = params.surfaceIcon
-            cpyIcon.sizeX, cpyIcon.sizeY = dlg.themeMetrics().wnd_BigCaptionCY * 0.7
+            cpyIcon.sizeX, cpyIcon.sizeY = metrics.wnd_CaptionIconSize
             srf.setIcon(cpyIcon)
         }
 
         if params.contentIcon.isValid()
         {
-            let widthIconPanel = params.contentIcon.sizeX + params.contentIcon.sizeX * 0.5
-            with dlg.labelIcon = Label.create(srf.wnd.view, "", {0, 0, widthIconPanel, 0})
+            // The mark keeps one dialog margin of clear space on each side and nothing more:
+            // a panel wider than the glyph it holds is room taken from what the box has to
+            // say. It stands on the first line of the name rather than above it.
+            with dlg.labelIcon = Label.create(srf.wnd.view, "", {0, 0, params.contentIcon.sizeX + 2 * pad, 0})
             {
                 .dockStyle = .Left
-                .padding.y = params.contentIcon.sizeY * 0.25
+                .padding.y = pad
                 .setIcon(params.contentIcon)
                 .setIconAlignment(.Center, .Top)
             }

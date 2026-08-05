@@ -300,9 +300,11 @@ impl QuickWnd
             .backgroundStyle = .Window
             .updateFlags(.AlwaysShowVertical | .CompactBars | .TransparentBars)
 
+            // The presets start on the margin the rest of the panel uses, so the column of
+            // samples lines up with the style cells and the rows below them.
             .layout         = WrapLayoutCtrl.create(quick)
-            .layout.padding = 6
-            .layout.spacing = 6
+            .layout.padding = {12, 8, 12, 8}
+            .layout.spacing = 8
             .setView(quick.layout)
 
             .main = main

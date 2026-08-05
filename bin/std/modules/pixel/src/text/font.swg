@@ -100,6 +100,7 @@ public struct GlyphCache
         ascent:        f32     // Distance from the baseline to the highest recommended extent.
         descent:       f32     // Signed distance from the baseline to the lowest recommended extent.
         height:        f32     // Recommended line height.
+        capHeight:     f32     // Distance from the baseline to the top of an uppercase letter.
         underlinePos:  f32     // Underline position relative to the baseline.
         underlineSize: f32     // Recommended underline thickness.
 
@@ -136,6 +137,7 @@ public struct Font
         ascent:        f32     // Distance from the baseline to the highest recommended extent.
         descent:       f32     // Signed distance from the baseline to the lowest recommended extent.
         height:        f32     // Recommended line height.
+        capHeight:     f32     // Distance from the baseline to the top of an uppercase letter.
         underlinePos:  f32     // Underline position relative to the baseline.
         underlineSize: f32     // Recommended underline thickness.
     }
@@ -220,6 +222,14 @@ public impl FontCache
         cache.underlinePos  = mulFix(cast(s32) typeFace.face.underlinePosition, metrics.yScale) / 64.0
         cache.underlineSize = mulFix(cast(s32) typeFace.face.underlineThickness, metrics.yScale) / 64.0
 
+        // A face older than OS/2 version 2 declares no cap height. Reading a capital out of
+        // the outlines would settle it exactly, but a face that old is a fallback anyway, so
+        // take the proportion the common interface faces share rather than pay for a glyph
+        // load on every cache miss.
+        cache.capHeight = metrics.capHeight / 64.0
+        if cache.capHeight <= 0 do
+            cache.capHeight = cache.ascent * 0.72
+
         return cache
     }
 
@@ -260,6 +270,7 @@ public impl FontCache
         font.ascent        = cache.ascent * s
         font.descent       = cache.descent * s
         font.height        = cache.height * s
+        font.capHeight     = cache.capHeight * s
         font.underlinePos  = cache.underlinePos * s
         font.underlineSize = cache.underlineSize * s
 
@@ -308,6 +319,24 @@ public impl Font
     mtd const scale()->f32
     {
         return cast(f32) .size / cast(f32) .cache.refSize
+    }
+
+    // Distance from the middle of a line box to the middle of the text a reader sees in it.
+    //
+    // A line box reaches from the ascender to the descender, but a word is read on its
+    // capitals: the two middles differ by roughly half the room the descenders keep, and the
+    // value is therefore negative — what the eye calls the middle sits above the geometric
+    // one. Add it to the center of a rectangle a single line is centered in to place anything
+    // that has to look level with that line, such as a leading icon or a check mark.
+    mtd const opticalOffset()->f32
+    {
+        return (.ascent + .descent - .capHeight) * 0.5
+    }
+
+    // Y of the top edge of `size` placed level with a line of this font centered on `centerY`.
+    mtd const opticalTop(centerY, size: f32)->f32
+    {
+        return centerY + .opticalOffset() - size * 0.5
     }
 
     // The render mode requested at creation (may be .Auto)

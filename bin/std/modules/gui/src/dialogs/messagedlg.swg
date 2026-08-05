@@ -70,20 +70,27 @@ public impl MessageDlg
         return Dialog.doModal(me)
     }
 
+    // Widest a message is allowed to run before it wraps.
+    private const MaxMessageWidth = 512.0'f32
+
     private mtd adaptSizeToMessage()
     {
         let metrics = .themeMetrics()
 
-        // Evaluate size of text
-        var fake: Painter
-        fake.begin(layoutOnly: true)
-        defer fake.end()
+        // The room the message loses to the frame and to its own inset, on each side.
+        let chrome = 2 * metrics.dialog_Padding + 2 * metrics.wnd_BorderSize
+
+        // Measured at the density the glyphs are really drawn at. Laid out at a scale of one
+        // and drawn at another, a run comes out a touch wider than the width reserved for it,
+        // and a message that was measured on one line wraps onto two the box has no room for.
+        let deviceScale = .deviceScale()
         var rsf: RichStringFormat
         rsf.font          = .font()
         rsf.flags         |= .WordWrap
         rsf.horzAlignment = .label.textHorizontalAlignment
-        fake.drawRichString({0, 0, 512, 0}, &.label.name, rsf)
-        .label.name.invalidate()
+
+        .label.name.compute()
+        Painter.computeLayout({0, 0, MaxMessageWidth, MaxTextLayoutExtent}, &.label.name, rsf, deviceScale)
 
         // Width
         var w = 0'f32
@@ -92,19 +99,16 @@ public impl MessageDlg
         w += cast(f32) ((.buttons.count - 1) * metrics.dialog_BtnPadding)
         w += 2 * metrics.dialog_Padding
         w += metrics.btnPush_Width
+        w = Math.max(w, .label.name.boundRect.width + chrome)
 
-        var wl = .label.name.boundRect.width + 2 * metrics.dialog_Padding
-        wl += 2 * metrics.wnd_BorderSize
-        w  = Math.max(w, wl)
+        if .extension do
+            w = Math.max(w, .extension.position.width + chrome)
 
-        if .extension
-        {
-            var wl1 = .extension.position.width + 2 * metrics.dialog_Padding
-            wl1 += 2 * metrics.wnd_BorderSize
-            w   = Math.max(w, wl1)
-        }
+        // Height, measured a second time at the width the message will really be given: the
+        // widest line decides the box, and the box then decides how many lines there are.
+        Painter.computeLayout({0, 0, Math.max(w - chrome, 1), MaxTextLayoutExtent}, &.label.name, rsf, deviceScale)
+        .label.name.invalidate()
 
-        // Height
         var h = Math.min(512, .label.name.boundRect.height + .label.padding.y + .label.padding.w)
         if @isset(.labelIcon) do
             h += .labelIcon.position.height
@@ -122,12 +126,17 @@ public impl MessageDlg
         if ext do
             h += ext.position.height
 
-        var pos = srf.position
-        pos.width  = w
-        pos.height = h
         let sdw = srf.app.theme.metrics.surfaceWnd_ShadowSize
-        pos.width  += sdw * 2
-        pos.height += sdw * 2
+        w += sdw * 2
+        h += sdw * 2
+
+        // Everything measured above is in logical units; a surface rectangle is physical.
+        // Handed over unscaled, the box opened at a fraction of the room its message needs
+        // on any display past 100 percent: the text lost its whole band to the button bar
+        // and the reader was left with an icon and an unreachable button.
+        var pos = srf.position
+        pos.width  = w * srf.dpiScale
+        pos.height = h * srf.dpiScale
         srf.setPosition(pos)
     }
 
@@ -195,8 +204,8 @@ public impl MessageDlg
         var opt = options
         if !opt.icon.isValid()
         {
-            opt.icon      = from.app.theme.icon(ThemeIcons.Question, 64)
-            opt.iconColor = Argb.White
+            opt.icon      = from.app.theme.icon(ThemeIcons.Question, 48)
+            opt.iconColor = from.app.theme.colors.label_Text
         }
 
         with let dlg = create(from, message, opt)
@@ -214,8 +223,8 @@ public impl MessageDlg
         var opt = options
         if !opt.icon.isValid()
         {
-            opt.icon      = from.app.theme.icon(ThemeIcons.Question, 64)
-            opt.iconColor = Argb.White
+            opt.icon      = from.app.theme.icon(ThemeIcons.Question, 48)
+            opt.iconColor = from.app.theme.colors.label_Text
         }
 
         with let dlg = create(from, message, opt)
@@ -257,25 +266,30 @@ public impl MessageDlg
     // hands it in; when a SystemError is passed its message is appended to the shown text.
     func error(from: *Surface, message: #null string = null, err: #null any = null, options: MessageDlgOptions = {})
     {
+        // The detail is a paragraph under the message, and only when there is one: appended
+        // unconditionally, the separator left an empty line the box still had to be tall
+        // enough to hold.
         var txt: String = String.from(message)
-        if !txt.isEmpty() do
-            txt += "\n"
-
         if err != null
         {
             switch err
             {
             case Swag.SystemError:
                 let sysErr = cast(Swag.SystemError) err
+                if !txt.isEmpty() do
+                    txt += "\n\n"
                 txt += sysErr.message
             }
         }
 
+        // The glyph carries the severity, so it is set in the colour that reports one. Filled
+        // white it was the loudest thing on the surface and said nothing the title had not
+        // said already.
         var opt = options
         if !opt.icon.isValid()
         {
-            opt.icon      = from.app.theme.icon(.Critical, 64)
-            opt.iconColor = Argb.White
+            opt.icon      = from.app.theme.icon(.Critical, 48)
+            opt.iconColor = from.app.theme.colors.error
         }
 
         if !@countof(opt.title) do

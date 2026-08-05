@@ -1322,13 +1322,43 @@ namespace
         return emitFunctionLikeReturnNoDefers(codeGen, symbolFunc, &zeroPayload);
     }
 
+    Result emitFallibleDeferredActions(CodeGen& codeGen, const FallibleTarget& target)
+    {
+        if (target.kind == FallibleTarget::Kind::Handler)
+            return codeGen.emitDeferredActionsUntilScopeRef(target.scopeRef);
+        return codeGen.emitDeferredActionsForReturn();
+    }
+
+    // Runs the deferred actions a propagating failure unwinds through, with that failure parked
+    // for their duration.
+    //
+    // Cleanup routinely dismisses failures of its own -- 'discard catch close()' is the ordinary
+    // shape -- and a 'catch' both consumes the error in flight and clears the flag every fallible
+    // call is tested against. Left alone, the cleanup therefore swallows the very failure it is
+    // unwinding for; restored too early, in the 'catch' itself, the test that follows the guarded
+    // call reads it and jumps out, so everything after that 'catch' never runs. Parking the error
+    // across the whole deferred block is what keeps both halves right: the cleanup runs on a clean
+    // error state, and the failure is exactly as it was when the jump finally happens.
     Result emitFallibleJump(CodeGen& codeGen)
     {
         const FallibleTarget target = resolveFallibleTarget(codeGen);
-        if (target.kind == FallibleTarget::Kind::Handler)
-            SWC_RESULT(codeGen.emitDeferredActionsUntilScopeRef(target.scopeRef));
-        else
-            SWC_RESULT(codeGen.emitDeferredActionsForReturn());
+
+        if (!codeGen.hasDeferredStatements())
+        {
+            SWC_RESULT(emitFallibleDeferredActions(codeGen, target));
+            codeGen.builder().emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, target.failLabel);
+            return Result::Continue;
+        }
+
+        const SymbolFunction* pushErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::PushErr);
+        const SymbolFunction* popErr  = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::PopErr);
+        SWC_ASSERT(pushErr != nullptr && popErr != nullptr);
+        if (!pushErr || !popErr)
+            return raiseInternalCodeGenError(codeGen, "missing runtime helper '__pushErr' or '__popErr'");
+
+        SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *pushErr, std::span<const MicroReg>{}));
+        SWC_RESULT(emitFallibleDeferredActions(codeGen, target));
+        SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *popErr, std::span<const MicroReg>{}));
 
         codeGen.builder().emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, target.failLabel);
         return Result::Continue;

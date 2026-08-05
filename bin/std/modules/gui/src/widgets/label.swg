@@ -6,11 +6,10 @@ using Core, Pixel
 #[Swag.EnumFlags]
 enum LabelFlags
 {
-    None = 0                     // Uses a single line, primary text color, and caller-controlled height.
-    WordWrap                     // Wraps text to the available width.
-    SecondaryText                // Uses the theme's lower-emphasis text color.
-    AutoHeight                   // Fits the window height to laid-out text.
-    PreserveSingleLineHeight     // Preserves the font line box instead of adapting it to visible glyphs.
+    None = 0          // Uses a single line, primary text color, and caller-controlled height.
+    WordWrap          // Wraps text to the available width.
+    SecondaryText     // Uses the theme's lower-emphasis text color.
+    AutoHeight        // Fits the window height to laid-out text.
 }
 
 // Displays rich text and an optional icon, and reports activated links.
@@ -109,7 +108,16 @@ impl IWnd for Label
             switch .iconVerticalAlignment
             {
             case .Bottom: posIcon.y = posIcon.bottom() - .icon.sizeY
-            case .Center: posIcon.y = posIcon.vertCenter() - (.icon.sizeY * 0.5)
+
+            case .Center:
+
+                // Level with the text the label carries, not with the middle of the box: a
+                // glyph centered on the cell reads as having slipped below the word beside it.
+                // An icon standing alone has nothing to be level with, so it takes the middle.
+                if .name.isEmpty() or .textVerticalAlignment != .Center do
+                    posIcon.y = posIcon.vertCenter() - (.icon.sizeY * 0.5)
+                else do
+                    posIcon.y = opticalTop(.font(), posIcon.vertCenter(), .icon.sizeY)
             }
 
             // Icon
@@ -126,19 +134,6 @@ impl IWnd for Label
         {
             var posText = pos
             posText.applyPadding(.textPadding)
-
-            // Optically center the text against a vertically-centered icon. A glyph line box is
-            // descent-heavy, so geometric centering leaves the visible text sitting slightly high of
-            // a centered icon. When an icon is present, the text is vertically centered, and the
-            // caller has not already nudged it by hand (textPadding.y == 0), shift the text down by
-            // half the (negative) descent. This is the general fix for the recurring icon+text
-            // vertical-alignment mismatch — callers no longer need to hand-tune textPadding.
-            if .icon.isValid() and .textVerticalAlignment == .Center and .textPadding.y == 0
-            {
-                let font = .font().regular
-                if font do
-                    posText.y -= font.descent * 0.5
-            }
 
             let sf = .getStringFormat(bc.isDisabled)
             painter.drawRichString(posText, &.name, sf)
@@ -197,8 +192,6 @@ impl Label
         sf.flags |= .Clip
         if .flags.has(.WordWrap) do
             sf.flags.add(.WordWrap)
-        if .flags.has(.PreserveSingleLineHeight) do
-            sf.flags.add(.DontAdaptSingleLineHeight)
         sf.font          = .font()
         sf.horzAlignment = .textHorizontalAlignment
         sf.vertAlignment = .textVerticalAlignment

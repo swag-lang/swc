@@ -51,10 +51,19 @@ func __hasErr()->bool
     return @getcontext().hasError != 0
 }
 
+// Whether a failure is in flight, which is what a 'defer #fail' runs on and a 'defer #nofail'
+// stays out of.
 func __isErrContext()->bool
 {
     let cxt = @getcontext()
-    return cxt.hasError != 0 or cxt.curError != null
+    if cxt.hasError != 0 or cxt.curError != null do
+        return true
+
+    // Cleanup that unwinds a failure runs with that failure parked one frame below. The flag
+    // every fallible call is tested against has to be down for the duration, so the cleanup can
+    // call fallible code and dismiss errors of its own, but the failure is still the reason the
+    // cleanup is running and a '#fail' defer must see it.
+    return cxt.errorIndex != 0 and cxt.errors[cxt.errorIndex - 1].pushHasError != 0
 }
 
 func __pushErr()
@@ -81,6 +90,10 @@ func __popErr()
     cxt.curError            = cxt.errors[cxt.errorIndex].value
     cxt.traceIndex          = cxt.errors[cxt.errorIndex].pushTraceIndex
     cxt.errorAllocator.used = cxt.errors[cxt.errorIndex].pushUsedAlloc
+
+    // The frame is no longer live, so what it recorded must not be read by the '#fail' lookup in
+    // '__isErrContext': left set, it would answer for a frame that was popped long ago.
+    cxt.errors[cxt.errorIndex].pushHasError = 0
 }
 
 // Dismiss the error a 'catch' handler or 'as err' capture just dealt with: after it runs
@@ -116,8 +129,11 @@ func __catchErr()
         cxt.curError = cxt.errors[cxt.errorIndex].value
     cxt.errorAllocator.used = cxt.errorIndex ? cxt.errors[cxt.errorIndex - 1].pushUsedAlloc : 0
     cxt.hasError            = 0
-    if cxt.errorIndex do
+    if cxt.errorIndex
+    {
         cxt.errorIndex -= 1
+        cxt.errors[cxt.errorIndex].pushHasError = 0
+    }
 }
 
 func __failedExpect(loc: SourceCodeLocation)

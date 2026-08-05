@@ -106,8 +106,11 @@ impl IWnd for CheckButton
         let clientRect = .clientRect()
         var posBox     = clientRect
         posBox.height = metrics.btnCheck_Size
-        posBox.y      = clientRect.vertCenter() - (posBox.height * 0.5)
-        posBox.width  = posBox.height
+
+        // Level with the wording, not with the box: a mark centered on the cell reads as
+        // sitting under the label it belongs to.
+        posBox.y     = .name.isEmpty() ? clientRect.vertCenter() - posBox.height * 0.5 : opticalTop(.font(), clientRect.vertCenter(), posBox.height)
+        posBox.width = posBox.height
         if .flags.has(.RightAligned) do
             posBox.x = clientRect.right() - posBox.width
         theme.drawSubRect(painter, posBox, subRectBk, colorBk)

@@ -120,7 +120,7 @@ impl IWnd for Header
             {
                 var sortPos = labelPos
                 sortPos.x = Math.max(sortPos.x, sortPos.right() - icon.sizeX)
-                sortPos.y = sortPos.vertCenter() - (icon.sizeY * 0.5)
+                sortPos.y = opticalTop(.font(), sortPos.vertCenter(), icon.sizeY)
                 icon.paint(painter, sortPos.x, sortPos.y, colorText)
                 labelPos.width -= icon.sizeX
             }

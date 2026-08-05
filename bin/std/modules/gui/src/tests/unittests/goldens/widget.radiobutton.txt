@@ -13,14 +13,14 @@ ColorMask rgb-
 SetClippingRect 0 0 200 80
 Transform 1 0 0 1 20 20
 SetClippingRect 20 20 160 24
-BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(0,0)-(24,24) src=(0.241211,0.057617)-(0.301758,0.118164)
-DrawTriangles n=6 bbox=(0,0)-(24,24) colors=[FFF0F0F0] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(0,1)-(24,25) src=(0.241211,0.057617)-(0.301758,0.118164)
+DrawTriangles n=6 bbox=(0,1)-(24,25) colors=[FFF0F0F0] cov=solid
 SetClippingRect 48 20 132 24
 StartFont
 UpdateFont font#0
 ResetTexture0
 BindTextureFont font#0 atlas=0
-DrawTriangles n=18 bbox=(28,6)-(54,18) colors=[FFF0F0F0] cov=solid
+DrawTriangles n=18 bbox=(28,7)-(54,19) colors=[FFF0F0F0] cov=solid
 ResetTextureFont
 EndFont
 SetClippingRect 20 20 160 24

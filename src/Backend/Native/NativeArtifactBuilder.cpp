@@ -741,11 +741,13 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
     hookArgs.tlsIdPlusOne = nextVirtualIntReg(nextVirtualIntRegIndex);
     builder.emitLoadRegMem(hookArgs.tlsIdPlusOne, tlsStorageReg, 0, MicroOpBits::B64);
 
-    // A native run reads its command line from the operating system, in each artifact, so the
-    // startup thunk has nothing to hand down and passes null. Only a JIT run has a command line
-    // that exists solely in the compiler, and there it is the compiler that fills this in.
+    // '__setupRuntime' has just read the real command line from the operating system into this
+    // executable's own '@pinfos.args'. Hand that slot down the hook chain so every imported module
+    // adopts it: '@pinfos' is per-artifact, so without this '@args' answers the executable and
+    // comes back empty in every shared library, and the runtime's own 'swag.test' guard -- which
+    // is what makes a '#test' run at all -- never sees the argument the compiler passed.
     hookArgs.processArgs = nextVirtualIntReg(nextVirtualIntRegIndex);
-    builder.emitLoadRegImm(hookArgs.processArgs, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitLoadRegDataSegmentReloc(hookArgs.processArgs, DataSegmentKind::GlobalZero, builder_->compiler().nativeProcessInfosOffset() + static_cast<uint32_t>(offsetof(Runtime::ProcessInfos, args)));
 
     // The startup thunk runs compiler-generated lifecycle hooks and then hands off
     // process termination to the runtime wrapper for the active target.

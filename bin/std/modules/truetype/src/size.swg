@@ -16,6 +16,8 @@ public struct SizeMetrics
         descender:  s32     // Scaled descender below the baseline, usually negative.
         height:     s32     // Recommended baseline-to-baseline distance.
         maxAdvance: s32     // Maximum horizontal advance.
+        capHeight:  s32     // Scaled height of an uppercase letter, or zero when the face declares none.
+        xHeight:    s32     // Scaled height of a lowercase `x`, or zero when the face declares none.
     }
 }
 
@@ -31,6 +33,8 @@ impl SizeMetrics
         .descender  = scale26_6(face.descender, pixelHeight, face.unitsPerEm)
         .height     = scale26_6(face.height, pixelHeight, face.unitsPerEm)
         .maxAdvance = scale26_6(face.maxAdvanceWidth, pixelWidth, face.unitsPerEm)
+        .capHeight  = scale26_6(face.capHeight, pixelHeight, face.unitsPerEm)
+        .xHeight    = scale26_6(face.xHeight, pixelHeight, face.unitsPerEm)
     }
 }
 

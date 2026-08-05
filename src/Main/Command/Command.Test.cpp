@@ -657,11 +657,13 @@ namespace
                     });
 
                     // The JIT phase already counted the executed tests. When it is disabled the
-                    // native artifact is the one that runs them, so account for them here instead,
-                    // preferring the tally the executable reported over the static function count.
+                    // native artifact is the one that runs them, so account for them here instead.
+                    // Only the tally the executable reported counts: falling back to the static
+                    // function count reports tests that may never have run, which is how an inert
+                    // native test pass stayed green.
                     if (!compiler.cmdLine().testJit)
                     {
-                        Stats::get().numTests.fetch_add(builder.hasNativeTestSummary ? builder.nativeTestsExecuted : builder.testFunctions.size(), std::memory_order_relaxed);
+                        Stats::get().numTests.fetch_add(builder.nativeTestsExecuted, std::memory_order_relaxed);
                         Stats::get().numTestsFailed.fetch_add(builder.nativeTestsFailed, std::memory_order_relaxed);
                     }
 

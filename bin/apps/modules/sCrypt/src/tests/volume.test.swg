@@ -74,6 +74,20 @@ func flipByteAt(path: string, offset: u64)
     expect file.flush()
 }
 
+// Copies a container its volume still holds open, which is how these tests stand in for a
+// crash: the bytes on disk are whatever the last write left there. `File.duplicate` cannot do
+// it, because it reads through a handle that shares reading alone and the live volume holds
+// the file for writing.
+func snapshotContainer(destination, source: string)
+{
+    var reader = expect File.open(source, .Open, .Read, .ReadWrite)
+    defer reader.close()
+    var bytes: Array'u8
+    bytes.resize(expect reader.size())
+    @assert(expect reader.readExactAt(0, bytes.toSlice()))
+    expect File.writeAllBytes(destination, bytes.toSlice())
+}
+
 func flipHeaderByte(path: string, slot: u64)
 {
     flipByteAt(path, HeaderAreaOffset + slot * HeaderSlotSize + HeaderRecordPrefixSize)
@@ -333,6 +347,10 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     @assert(fallback.resolve("\\latest") != null)
     fallback.close()
 
+    // Recovering consolidated what the journal held into the slot that was damaged, so the
+    // container came out of that session whole again. Only damaging both slots leaves it with
+    // no checkpoint to fall back to.
+    flipHeaderByte(path, activeSlot)
     flipHeaderByte(path, 1 - activeSlot)
     @assert(rejectsPassword(path, testPassword()))
 }
@@ -396,7 +414,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     // the journal.
     @assert(volume.checkpointAt == checkpointBefore)
     @assert(volume.sequence > checkpointBefore)
-    expect File.duplicate(salvaged, path)
+    snapshotContainer(salvaged, path)
     volume.close()
 
     var recovered = expect Volume.open(salvaged, testPassword())
@@ -429,7 +447,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     discard expect volume.createNode("\\second", true, FileAttributeDirectory, emptyBytes())
     let salvaged = testContainerPath("torn_salvaged")
     defer discard catch File.delete(salvaged)
-    expect File.duplicate(salvaged, path)
+    snapshotContainer(salvaged, path)
     volume.close()
 
     // Damage the first record. The second one is intact but unreachable, because

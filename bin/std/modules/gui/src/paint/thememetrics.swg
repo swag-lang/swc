@@ -18,6 +18,7 @@ struct ThemeMetrics
     wnd_BigCaptionCY:          f32 = 42       // Theme measurement used for wnd big caption cy.
     wnd_SmallCaptionCY:        f32 = 32       // Theme measurement used for wnd small caption cy.
     wnd_CaptionMarginTitle:    f32 = 14       // Theme measurement used for wnd caption margin title.
+    wnd_CaptionIconSize:       f32 = 16       // Side of the mark a drawn caption shows beside its title.
     wnd_CaptionButtonMargin:   f32 = 5        // Theme measurement used for wnd caption button margin.
     wnd_CaptionButtonAspect:   f32 = 1.35     // Theme measurement used for wnd caption button aspect.
     wnd_CaptionButtonMinWidth: f32 = 44       // Theme measurement used for wnd caption button min width.
@@ -54,7 +55,7 @@ struct ThemeMetrics
     slider_Width:     f32 = 200     // Theme measurement used for slider width.
     slider_Height:    f32 = 26      // Theme measurement used for slider height.
     slider_TrackSize: f32 = 18      // Theme measurement used for slider track size.
-    slider_BoxSize:   f32 = 18      // Theme measurement used for slider box size.
+    slider_BoxSize:   f32 = 12      // Side of the thumb; an indicator, not a control to grab with a finger.
     slider_StepSize:  f32 = 6       // Theme measurement used for slider step size.
 
     circular_Size:       f32 = 40     // Theme measurement used for circular size.
@@ -63,7 +64,7 @@ struct ThemeMetrics
     menuPopup_Padding:         f32 = 12     // Theme measurement used for menu popup padding.
     menuPopup_SpaceLines:      f32 = 6      // Theme measurement used for menu popup space lines.
     menuPopup_ShadowSize:      f32 = 10     // Theme measurement used for menu popup shadow size.
-    menuPopup_IconMargin:      f32 = 2      // Theme measurement used for menu popup icon margin.
+    menuPopup_IconMargin:      f32 = 6      // Air between the active rule and the glyph of an entry.
     menuPopup_IconTextMargin:  f32 = 6      // Theme measurement used for menu popup icon text margin.
     menuPopup_SeparatorHeight: f32 = 8      // Theme measurement used for menu popup separator height.
     menuPopup_BarItemOverlap:  f32 = 12     // Theme measurement used for menu popup bar item overlap.
@@ -132,6 +133,13 @@ struct ThemeMetrics
 
     separator_HairlineSize: f32 = 1     // Theme measurement used for separator hairline size.
     separator_AccentSize:   f32 = 4     // Theme measurement used for separator accent size.
+
+    // The rule that marks the active item — a checked tool, the open menu, the hovered
+    // entry. It is a mark, not a bar: run edge to edge at full weight it competes with the
+    // glyph it points at, so it is thin, it stops short of both ends, and it keeps its
+    // distance from whatever it marks.
+    activeRail_Size:   f32 = 3     // Thickness of the rule.
+    activeRail_Margin: f32 = 8     // Air kept at each end of the rule, and between the rule and the content.
 
     richEdit_Padding: f32 = 5     // Theme measurement used for rich edit padding.
     toolTip_Padding:  f32 = 2     // Theme measurement used for tool tip padding.

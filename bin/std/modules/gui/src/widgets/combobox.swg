@@ -139,7 +139,7 @@ impl IWnd for ComboBox
             if item.icon.isValid()
             {
                 let iconColor = item.icon.color.a ? item.icon.color : .aniText.cur()
-                item.icon.paint(painter, itemRect.x, itemRect.vertCenter() - item.icon.sizeY * 0.5, iconColor)
+                item.icon.paint(painter, itemRect.x, opticalTop(.font(), itemRect.vertCenter(), item.icon.sizeY), iconColor)
             }
 
             if .maxIconSize do
@@ -154,7 +154,7 @@ impl IWnd for ComboBox
         }
 
         let icon = theme.icon(ThemeIcons.BottomPopupArrow)
-        icon.paint(painter, clientRect.right() - metrics.comboBox_RightMargin, clientRect.vertCenter() - icon.sizeY * 0.5, colorText)
+        icon.paint(painter, clientRect.right() - metrics.comboBox_RightMargin, opticalTop(.font(), clientRect.vertCenter(), icon.sizeY), colorText)
     }
 
     // Reports the room the widest item needs beside the icon column and the drop-down arrow.
@@ -362,15 +362,20 @@ impl ComboBox
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null, mode = ComboBoxMode.Selection, flags = ComboBoxFlags.None)->*ComboBox
     {
         Debug.assert(parent != null)
+        let metrics = parent.themeMetrics()
+
+        // The theme height is a floor, not a default. A field packed below it clips its own
+        // wording and stops matching the fields it stands beside, and a caller asking for a
+        // shorter row is really asking for a shorter row, not for a broken control.
         var pos = position
-        if pos.height == 0 do
-            pos.height = parent.themeMetrics().comboBox_Height
+        pos.height = Math.max(pos.height, metrics.comboBox_Height)
         if pos.width == 0 do
-            pos.width = parent.themeMetrics().comboBox_Width
+            pos.width = metrics.comboBox_Width
         let result = Wnd.create'ComboBox(parent, null, pos, id)
 
         result.mode  = mode
         result.flags = flags
+        result.minSize.y = metrics.comboBox_Height
 
         // An unstated width belongs to the items: the theme width above only gives the
         // field a sane size until the first layout pass measures it, and stays its floor.

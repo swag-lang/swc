@@ -216,7 +216,10 @@ impl IWnd for Tab
             theme.drawSubRect(painter, labelPos, subRectBorder, v.aniBorder.cur(), false)
         if idx == .selectedIndex and colors.activeRail.a
         {
-            let rail = Math.Rectangle{labelPos.x, labelPos.bottom() - 4, labelPos.width, 4}
+            let metrics = .themeMetrics()
+            let size    = metrics.activeRail_Size
+            var rail    = Math.Rectangle{labelPos.x, labelPos.bottom() - size, labelPos.width, size}
+            rail.inflate(-Math.min(metrics.activeRail_Margin, rail.width / 3), 0)
             painter.fillRect(rail, colors.activeRail)
         }
 

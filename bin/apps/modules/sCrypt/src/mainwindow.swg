@@ -264,12 +264,14 @@ impl MainWindow
     mtd createFooter()
     {
         // The language picker rides the credit line rather than claiming a row of its own:
-        // on a surface this compact, a row costs more than the setting is worth.
-        let footerRow = Wnd.create'Wnd(me, {0, 0, 0, 24})
+        // on a surface this compact, a row costs more than the setting is worth. The row is
+        // as tall as the picker it carries, so the field keeps the size every other field of
+        // the window has instead of being squeezed into a line of prose.
+        let footerRow = Wnd.create'Wnd(me, {0, 0, 0, .themeMetrics().comboBox_Height})
         footerRow.dockStyle = .Bottom
         footerRow.margin    = {32, 0, 32, 12}
 
-        .languageChoice            = ComboBox.create(footerRow, {0, 0, 0, 24}, flags: .Flat)
+        .languageChoice            = ComboBox.create(footerRow, {}, flags: .Flat)
         .languageChoice.dockStyle  = .Right
         .languageChoice.sigChanged += func|window = me|(combo, index)
         {

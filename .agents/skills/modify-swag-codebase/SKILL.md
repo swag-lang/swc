@@ -130,6 +130,23 @@ it, so the packaged executable runs on its own, which is what makes it shippable
 fragile: a later `apps.bat test <module>` strips those files again, so re-run the build before
 any visual session that follows a test pass.
 
+## Measure Windows From A DPI-Aware Probe
+
+Swag surfaces are per-monitor DPI aware, so their rectangles are physical pixels. A probe that
+is not aware reads them back divided by the display scale, because Windows virtualizes window
+coordinates for unaware callers. On a 150% display a correct 1650x1185 window then reads as
+1100x790 — exactly the logical size the application asked for, which reads like a scaling bug
+that is not there.
+
+Call `user32!SetProcessDPIAware()` before the first measurement in any PowerShell, script, or
+tool that queries `GetWindowRect`, captures a window, or compares a size against what the code
+requested. `GetDpiForWindow` is not a control: it answers the window's own DPI whatever the
+caller's awareness, so it reads 144 next to a virtualized rectangle and makes the pair look
+consistent.
+
+Match the marshalling too when enumerating windows: `GetClassNameW` through an ANSI-marshalled
+buffer returns the first character only, so `Swag.Gui.Surface` arrives as `S`.
+
 ## Finish Cleanly
 
 Remove temporary files and folders created during investigation or validation.

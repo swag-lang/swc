@@ -113,14 +113,13 @@ public impl TextEffect
 
 const DefaultTextTabSize: u32 = 4     // Default tab-stop width measured in space advances.
 
-// Controls wrapping, clipping, and line-height adaptation during text layout.
+// Controls wrapping and clipping during text layout.
 #[Swag.EnumFlags]
 enum StringFormatFlags
 {
-    Default                       // Use single-line, unclipped layout defaults.
-    WordWrap                      // Wrap at word boundaries within the layout width.
-    Clip                          // Clip drawing to the layout rectangle.
-    DontAdaptSingleLineHeight     // Preserve configured line height for single-line text.
+    Default      // Use single-line, unclipped layout defaults.
+    WordWrap     // Wrap at word boundaries within the layout width.
+    Clip         // Clip drawing to the layout rectangle.
 }
 
 // Reports the logical dimensions of laid-out text.
@@ -912,36 +911,21 @@ impl Painter
         var y = text.layoutRect.y
 
         // Vertical
+        //
+        // A line stands as tall as the band the font reserves for it, whatever glyphs it
+        // happens to carry, and a single line is no exception. Measured on its own ink
+        // instead, a word holding a descender would be centered lower than one without and
+        // a word holding an accent higher, so a menu bar or a column of labels would sit on
+        // as many baselines as it has words.
         var totalHeight: f32
-
-        let singleLine = lines.count == 1
-        if lines.count > 1
+        for &l, [idxLine] in lines
         {
-            totalHeight = 0
-            for &l, [idxLine] in lines
+            totalHeight += l.height
+            if idxLine != lines.count - 1
             {
-                totalHeight += l.height
-                if idxLine != lines.count - 1
-                {
-                    totalHeight += cast(f32) format.lineGap
-                    if l.hasEol do
-                        totalHeight += cast(f32) format.paragraphGap
-                }
-            }
-        }
-        elif singleLine
-        {
-            if format.flags & .DontAdaptSingleLineHeight
-            {
-                totalHeight = defaultLineHeight
-                if format.minLineHeight > 0 do
-                    totalHeight = Math.max(totalHeight, format.minLineHeight)
-            }
-            else
-            {
-                totalHeight = lines[0].measure.height
-                if format.minLineHeight > 0 do
-                    totalHeight = Math.max(totalHeight, format.minLineHeight)
+                totalHeight += cast(f32) format.lineGap
+                if l.hasEol do
+                    totalHeight += cast(f32) format.paragraphGap
             }
         }
 
@@ -950,10 +934,6 @@ impl Painter
         case .Bottom: y = pos.bottom() - totalHeight
         case .Center: y = pos.vertCenter() - (totalHeight * 0.5)
         }
-
-        // Y correction if single line
-        if singleLine and !(format.flags & .DontAdaptSingleLineHeight) do
-            y -= (lines[0].fontAscent - lines[0].measure.ascent)
 
         text.boundRect.x      = Swag.F32.Max
         text.boundRect.y      = y

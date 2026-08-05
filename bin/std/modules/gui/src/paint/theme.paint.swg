@@ -158,11 +158,12 @@ impl Theme
         // Text
         painter.drawRichString(pos, name, stringFormat)
 
-        // Icon
+        // Icon, levelled with the text it leads rather than with the box around it.
         if icon.isValid()
         {
             let centerY = stringFormat.vertAlignment == .Center ? position.vertCenter() : name.boundRect.vertCenter()
-            icon.paint(painter, name.boundRect.x - icon.sizeX - iconMargin, centerY - (icon.sizeY * 0.5), iconColor)
+            let top     = opticalTop(stringFormat.font, centerY, icon.sizeY)
+            icon.paint(painter, name.boundRect.x - icon.sizeX - iconMargin, top, iconColor)
         }
     }
 

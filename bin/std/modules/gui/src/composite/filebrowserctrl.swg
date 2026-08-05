@@ -74,17 +74,17 @@ struct FileBrowserCtrl
 
         #[Swag.Late]
         {
-            listCtrl:        *ListCtrl        // Sortable file and folder list.
-            comboPath:       *ComboBox        // Current-folder and ancestor selector.
-            editFile:        *EditBox         // File or folder name editor.
-            comboType:       *ComboBox        // Active file-type filter selector.
-            backButton:      *IconButton      // Navigates to the previous folder.
-            forwardButton:   *IconButton      // Navigates to the next folder.
-            historyButton:   *IconButton      // Opens the recent-folders drop-down menu.
-            upButton:        *IconButton      // Navigates to the parent folder.
-            refreshButton:   *IconButton      // Reloads the current folder.
-            newFolderButton: *PushButton      // Creates a folder in the current location.
-            statusLabel:     *Label           // Item count, selection summary and empty-folder hint.
+            listCtrl:        *ListCtrl       // Sortable file and folder list.
+            comboPath:       *ComboBox       // Current-folder and ancestor selector.
+            editFile:        *EditBox        // File or folder name editor.
+            comboType:       *ComboBox       // Active file-type filter selector.
+            backButton:      *IconButton     // Navigates to the previous folder.
+            forwardButton:   *IconButton     // Navigates to the next folder.
+            historyButton:   *IconButton     // Opens the recent-folders drop-down menu.
+            upButton:        *IconButton     // Navigates to the parent folder.
+            refreshButton:   *IconButton     // Reloads the current folder.
+            newFolderButton: *PushButton     // Creates a folder in the current location.
+            statusLabel:     *Label          // Item count, selection summary and empty-folder hint.
         }
     }
 
@@ -109,7 +109,7 @@ impl IWnd for FileBrowserCtrl
     {
         if .options.state
         {
-            let state = me.options.state!
+            let state = me .options.state!
             state.currentFolder       = me.currentFolder
             state.nameColumnWidth     = cast() me.listCtrl.header.itemWidthForColumn(0)
             state.modifiedColumnWidth = cast() me.listCtrl.header.itemWidthForColumn(1)
@@ -228,7 +228,7 @@ private impl FileBrowserCtrl
         treeCtrl.clear()
         .treePathStr.clear()
 
-        var l = treeCtrl.createLine("Shortcuts")
+        var l = treeCtrl.createLine(strings().browser_Shortcuts)
         l.separator = true
 
         for v in .options.shortcuts
@@ -239,7 +239,7 @@ private impl FileBrowserCtrl
             .addLocationLine(v.name, c.toString(), icon)
         }
 
-        l           = treeCtrl.createLine("Drives")
+        l           = treeCtrl.createLine(strings().browser_Drives)
         l.separator = true
 
         let volumes = catch Directory.drives()
@@ -257,18 +257,18 @@ private impl FileBrowserCtrl
     {
         var txt: String
         if .shownFolders == 0 and .shownFiles == 0 do
-            txt = "Empty folder"
+            txt = strings().browser_StatusEmpty
         else
         {
             if .shownFolders
             {
-                txt += Format.toString("% %", .shownFolders, .shownFolders == 1 ? "folder" : "folders")
+                txt += Format.toString("% %", .shownFolders, .shownFolders == 1 ? strings().browser_StatusFolder : strings().browser_StatusFolders)
                 if .shownFiles do
                     txt += ", "
             }
 
             if .shownFiles do
-                txt += Format.toString("% %", .shownFiles, .shownFiles == 1 ? "file" : "files")
+                txt += Format.toString("% %", .shownFiles, .shownFiles == 1 ? strings().browser_StatusFile : strings().browser_StatusFiles)
         }
 
         // Selection summary: count, plus the cumulated size of the selected files.
@@ -287,7 +287,7 @@ private impl FileBrowserCtrl
 
         if selCount
         {
-            txt += Format.toString("  —  % selected", selCount)
+            txt += Format.toString(strings().browser_StatusSelected, selCount)
             if selBytes do
                 txt += Format.toString(" (%)", Format.byteSize(selBytes))
         }
@@ -308,9 +308,9 @@ private impl FileBrowserCtrl
             // NOTE: both branches are kept explicitly f32. A runtime conditional
             // whose unified result is integer, fed to an f32 parameter, is currently
             // mis-lowered to a bit-reinterpret (see reference_conditional_int_to_float_miscompile).
-            .addColumn("Name", me.options.state ? cast(f32) me.options.state.nameColumnWidth : 220.0)
-            .addColumn("Modified", me.options.state ? cast(f32) me.options.state.modifiedColumnWidth : 130.0)
-            .addColumn("Size", me.options.state ? cast(f32) me.options.state.sizeColumnWidth : 90.0)
+            .addColumn(strings().browser_ColName, me.options.state ? cast(f32) me.options.state.nameColumnWidth : 220.0)
+            .addColumn(strings().browser_ColModified, me.options.state ? cast(f32) me.options.state.modifiedColumnWidth : 130.0)
+            .addColumn(strings().browser_ColSize, me.options.state ? cast(f32) me.options.state.sizeColumnWidth : 90.0)
             .header.form = .Transparent
             .header.style.addStyleSheetColors("headerItem_Separator $lighterMedium")
             .scrollWnd.style.addStyleSheetColors("scrollBar_Bk $view_Bk")
@@ -427,6 +427,7 @@ private impl FileBrowserCtrl
                     return (fi1.lastWriteTime <=> fi2.lastWriteTime) * (down ? -1 : 1)
 
                 case 2:
+
                     // Folders have no size: keep them in stable name order.
                     if fi1.isDirectory() do
                         return byName
@@ -453,13 +454,13 @@ impl FileBrowserCtrl
 
         if fileBrowser.options.shortcuts.isEmpty()
         {
-            fileBrowser.options.shortcuts.add({Env.SpecialDirectory.Desktop, "Desktop"})
-            fileBrowser.options.shortcuts.add({Env.SpecialDirectory.UserDocuments, "Documents"})
-            fileBrowser.options.shortcuts.add({Env.SpecialDirectory.UserPictures, "Pictures"})
+            fileBrowser.options.shortcuts.add({Env.SpecialDirectory.Desktop, strings().browser_Desktop})
+            fileBrowser.options.shortcuts.add({Env.SpecialDirectory.UserDocuments, strings().browser_Documents})
+            fileBrowser.options.shortcuts.add({Env.SpecialDirectory.UserPictures, strings().browser_Pictures})
         }
 
         if fileBrowser.options.mode != .SelectFolder and fileBrowser.options.filters.isEmpty() do
-            fileBrowser.options.filters.add({"All Files", ""})
+            fileBrowser.options.filters.add({strings().browser_AllFiles, ""})
 
         // Panes
         ////////////////////////
@@ -506,25 +507,25 @@ impl FileBrowserCtrl
         // truncates its buttons when the surface shrinks.
         with fileBrowser.backButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.Undo, 20), {0, 0, 30, 30})
         {
-            .dockStyle = .Left
-            .margin.z  = 4
-            .toolTip   = "Previous folder (Alt+Left)"
+            .dockStyle  = .Left
+            .margin.z   = 4
+            .toolTip    = strings().browser_TipBack
             .sigPressed += func|fileBrowser|(btn) { discard fileBrowser.goBack() }
         }
 
         with fileBrowser.forwardButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.Redo, 20), {0, 0, 30, 30})
         {
-            .dockStyle = .Left
-            .margin.z  = 4
-            .toolTip   = "Next folder (Alt+Right)"
+            .dockStyle  = .Left
+            .margin.z   = 4
+            .toolTip    = strings().browser_TipForward
             .sigPressed += func|fileBrowser|(btn) { discard fileBrowser.goForward() }
         }
 
         with fileBrowser.historyButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.BottomPopupArrow, 14), {0, 0, 22, 30})
         {
-            .dockStyle = .Left
-            .margin.z  = 4
-            .toolTip   = "Recent folders"
+            .dockStyle  = .Left
+            .margin.z   = 4
+            .toolTip    = strings().browser_TipRecent
             .sigPressed += func|fileBrowser|(btn) { fileBrowser.openRecentMenu() }
 
             // Without reusable state there is never a history to show.
@@ -534,26 +535,27 @@ impl FileBrowserCtrl
 
         with fileBrowser.upButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.ParentFolder, 20), {0, 0, 30, 30})
         {
-            .dockStyle = .Left
-            .margin.z  = 10
-            .toolTip   = "Parent folder (Alt+Up)"
+            .dockStyle  = .Left
+            .margin.z   = 10
+            .toolTip    = strings().browser_TipUp
             .sigPressed += func|fileBrowser|(btn) { discard fileBrowser.goUp() }
         }
 
         with fileBrowser.refreshButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.Update, 20), {0, 0, 30, 30})
         {
-            .dockStyle = .Right
-            .margin.x  = 4
-            .toolTip   = "Refresh (F5)"
+            .dockStyle  = .Right
+            .margin.x   = 4
+            .toolTip    = strings().browser_TipRefresh
             .sigPressed += func|fileBrowser|(btn) { fileBrowser.refresh() }
         }
 
-        with fileBrowser.newFolderButton = PushButton.create(viewTop, "New Folder", {0, 0, 126})
+        with fileBrowser.newFolderButton = PushButton.create(viewTop, strings().browser_NewFolder)
         {
             .dockStyle = .Right
             .margin.x  = 12
-            .toolTip   = "Create a folder in the current location"
+            .toolTip   = strings().browser_TipNewFolder
             .setIcon(fileBrowser.theme().icon(ThemeIcons.Plus, 16))
+            .fitWidthToLabel()
             .sigPressed += func|fileBrowser|(btn) { fileBrowser.sigNewFolderRequested.call(fileBrowser) }
         }
 
@@ -575,14 +577,14 @@ impl FileBrowserCtrl
         form.backgroundStyle = .Window
         form.padding         = {15, 8, 15, 8}
 
-        let nameLbl0 = fileBrowser.options.mode == .SelectFolder ? "Folder Name" : "File Name"
+        let nameLbl0 = fileBrowser.options.mode == .SelectFolder ? strings().browser_FolderName : strings().browser_FileName
         fileBrowser.editFile = EditBox.create(form, "")
         discard form.addField(nameLbl0, fileBrowser.editFile)
 
         with fileBrowser.comboType = ComboBox.create(form)
         {
             if fileBrowser.options.mode == .SelectFolder do
-                .addItem("Folders")
+                .addItem(strings().browser_Folders)
             else do
                 for f, [idx] in fileBrowser.options.filters do
                     .addItem(f.name, userData0: cast(#null *void) idx)
@@ -590,7 +592,7 @@ impl FileBrowserCtrl
             .sigChanged += func|fileBrowser|(c, idx) { fileBrowser.fillFileList() }
         }
 
-        discard form.addField("Type", fileBrowser.comboType)
+        discard form.addField(strings().browser_Type, fileBrowser.comboType)
 
         // Status line between the file list and the name editor.
         with let statusBar = Wnd.create'Wnd(fileBrowser, {0, 0, 0, 24})
@@ -777,7 +779,7 @@ impl FileBrowserCtrl
             {
                 let sizeItem = line.setItem(2, Format.byteSize(fi.size).toString())
                 sizeItem.horzAlign = .Right
-                .shownFiles += 1
+                .shownFiles        += 1
             }
         }
 

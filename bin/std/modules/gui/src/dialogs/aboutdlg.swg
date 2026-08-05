@@ -80,7 +80,7 @@ public impl AboutDlg
             }
         }
 
-        dlg.addButton("Close", Dialog.BtnYes, true)
+        dlg.addButton(strings().dlg_Close, Dialog.BtnYes, true)
         dlg.sendResizeEvent()
         return dlg
     }

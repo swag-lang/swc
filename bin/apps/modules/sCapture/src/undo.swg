@@ -450,7 +450,7 @@ impl Undo
                 let sp = formFontStylePtr(itf)
                 if !np do
                     continue
-                dref np           = .text
+                dref np  = .text
                 dref sp! = .fontStyle
                 formFontDirty(itf)
             }
@@ -672,7 +672,7 @@ impl Undo
                 let sp = formFontStylePtr(itf)
                 if !np do
                     continue
-                dref np           = .oldText[idx]
+                dref np  = .oldText[idx]
                 dref sp! = cast() .oldU32[idx]
                 formFontDirty(itf)
             }

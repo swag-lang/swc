@@ -116,6 +116,7 @@ const TRUNCATE_EXISTING = 5'u32
 const INVALID_HANDLE_VALUE    = cast(HANDLE) cast #bit (u64) -1's64
 const CONSOLE_TEXTMODE_BUFFER = 1'u32
 const MAX_PATH                = 260
+const LOCALE_NAME_MAX_LENGTH  = 85
 const INFINITE                = 0xFFFFFFFF
 const CREATE_SUSPENDED        = 0x00000004
 const MAXIMUM_WAIT_OBJECTS    = 64'u32
@@ -512,6 +513,8 @@ internal namespace Win32Priv
 
         func CreateDirectoryA(lpPathName: LPCSTR, lpSecurityAttributes: #null *SECURITY_ATTRIBUTES)->BOOL
         func CreateDirectoryW(lpPathName: LPCWSTR, lpSecurityAttributes: #null *SECURITY_ATTRIBUTES)->BOOL
+        func RemoveDirectoryA(lpPathName: LPCSTR)->BOOL
+        func RemoveDirectoryW(lpPathName: LPCWSTR)->BOOL
         func GetCurrentDirectoryA(nBufferLength: DWORD, lpBuffer: LPCSTR)->DWORD
         func GetCurrentDirectoryW(nBufferLength: DWORD, lpBuffer: LPCWSTR)->DWORD
         func GetTempPathA(nBufferLength: DWORD, lpBuffer: LPSTR)->DWORD
@@ -520,6 +523,7 @@ internal namespace Win32Priv
         func SetCurrentDirectoryW(lpPathName: LPCWSTR)->BOOL
         func GetFullPathNameA(lpFileName: LPCSTR, nBufferLength: DWORD, lpBuffer: LPSTR, lpFilePart: #null *LPSTR)->DWORD
         func GetFullPathNameW(lpFileName: LPCTSTR, nBufferLength: DWORD, lpBuffer: LPWSTR, lpFilePart: #null *LPWSTR)->DWORD
+        func GetUserDefaultLocaleName(lpLocaleName: LPWSTR, cchLocaleName: s32)->s32
     }
 }
 
@@ -972,5 +976,27 @@ internal namespace Win32Priv
         let res = Win32Priv.CreateDirectoryW(lpPathName, lpSecurityAttributes)
         if !res do
             failWinError(GetLastError())
+    }
+
+    func RemoveDirectoryA(lpPathName: LPCSTR) fail
+    {
+        let res = Win32Priv.RemoveDirectoryA(lpPathName)
+        if !res do
+            failWinError(GetLastError())
+    }
+
+    func RemoveDirectoryW(lpPathName: LPCWSTR) fail
+    {
+        let res = Win32Priv.RemoveDirectoryW(lpPathName)
+        if !res do
+            failWinError(GetLastError())
+    }
+
+    func GetUserDefaultLocaleName(lpLocaleName: LPWSTR, cchLocaleName: s32)->s32 fail
+    {
+        let res = Win32Priv.GetUserDefaultLocaleName(lpLocaleName, cchLocaleName)
+        if !res do
+            failWinError(GetLastError())
+        return res
     }
 }

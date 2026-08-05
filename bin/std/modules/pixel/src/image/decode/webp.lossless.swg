@@ -588,7 +588,7 @@ func losslessDecodePixels(reader: *LosslessBitReader, result: *Array'u8, width, 
     result.count = byteCount
     let output      = cast([*] u8) result.buffer!
     let groupData   = groups.buffer!
-    let huffmanData = huffmanBits ? cast([*] u8) huffmanPixels.buffer!: null
+    let huffmanData = huffmanBits ? cast([*] u8) huffmanPixels.buffer! : null
 
     var offset:       u64
     var cachedOffset: u64

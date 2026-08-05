@@ -17,7 +17,7 @@ public struct MessageDlg
 // Configures message content alignment, icon presentation, and post-creation customization.
 public struct MessageDlgOptions
 {
-    title:     string = ""                                   // Surface title; empty keeps the helper's default.
+    title:     string       = ""                             // Surface title; empty keeps the helper's default.
     icon:      Icon                                          // Optional large message icon.
     iconColor: Color                                         // Icon tint, or transparent for its descriptor color.
     textHorizontalAlignment = StringHorzAlignment.Center     // Horizontal message alignment.
@@ -171,7 +171,7 @@ public impl MessageDlg
     {
         with let dlg = create(from, message, options)
         {
-            .addButton("OK", Dialog.BtnOk, true)
+            .addButton(strings().dlg_Ok, Dialog.BtnOk, true)
         }
 
         discard dlg.doModal()
@@ -182,8 +182,8 @@ public impl MessageDlg
     {
         with let dlg = create(from, message, options)
         {
-            .addButton("OK", Dialog.BtnOk, defaultId == Dialog.BtnOk)
-            .addButton("Cancel", Dialog.BtnCancel, defaultId == Dialog.BtnCancel)
+            .addButton(strings().dlg_Ok, Dialog.BtnOk, defaultId == Dialog.BtnOk)
+            .addButton(strings().dlg_Cancel, Dialog.BtnCancel, defaultId == Dialog.BtnCancel)
         }
 
         return dlg.doModal()
@@ -201,8 +201,8 @@ public impl MessageDlg
 
         with let dlg = create(from, message, opt)
         {
-            .addButton("Yes", Dialog.BtnYes, defaultId == Dialog.BtnYes)
-            .addButton("No", Dialog.BtnNo, defaultId == Dialog.BtnNo)
+            .addButton(strings().dlg_Yes, Dialog.BtnYes, defaultId == Dialog.BtnYes)
+            .addButton(strings().dlg_No, Dialog.BtnNo, defaultId == Dialog.BtnNo)
         }
 
         return dlg.doModal()
@@ -220,9 +220,9 @@ public impl MessageDlg
 
         with let dlg = create(from, message, opt)
         {
-            .addButton("Yes", Dialog.BtnYes, defaultId == Dialog.BtnYes)
-            .addButton("No", Dialog.BtnNo, defaultId == Dialog.BtnNo)
-            .addButton("Cancel", Dialog.BtnCancel, defaultId == Dialog.BtnCancel)
+            .addButton(strings().dlg_Yes, Dialog.BtnYes, defaultId == Dialog.BtnYes)
+            .addButton(strings().dlg_No, Dialog.BtnNo, defaultId == Dialog.BtnNo)
+            .addButton(strings().dlg_Cancel, Dialog.BtnCancel, defaultId == Dialog.BtnCancel)
         }
 
         return dlg.doModal()
@@ -235,11 +235,20 @@ public impl MessageDlg
         while !txt.isEmpty() and txt.back() == '\n' do
             txt.removeBack()
         txt += "\n\n"
-        txt += question orelse "<b>Do you want to continue?</b>"
+        if question != null
+        {
+            txt += question
+        }
+        else
+        {
+            txt += "<b>"
+            txt += strings().dlg_ConfirmText
+            txt += "</b>"
+        }
 
         var opt = options
         if !@countof(opt.title) do
-            opt.title = "Please confirm"
+            opt.title = strings().dlg_ConfirmTitle
 
         return yesNo(from, txt.toString(), defaultId, opt)
     }
@@ -270,11 +279,11 @@ public impl MessageDlg
         }
 
         if !@countof(opt.title) do
-            opt.title = "Error"
+            opt.title = strings().dlg_ErrorTitle
 
         with let dlg = create(from, txt.toString(), opt)
         {
-            .addButton("OK", Dialog.BtnOk, true)
+            .addButton(strings().dlg_Ok, Dialog.BtnOk, true)
         }
 
         discard dlg.doModal()

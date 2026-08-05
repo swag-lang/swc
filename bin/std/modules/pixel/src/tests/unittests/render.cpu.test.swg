@@ -301,7 +301,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
         discard expect Jobs.initialize(4)
 
     const Height = 512
-    const Narrow = 8        // Columns the two renders have in common, and the serial width.
+    const Narrow = 8     // Columns the two renders have in common, and the serial width.
     const Wide   = 1024
 
     // Drawn once, rasterized into both targets: the geometry is in device pixels, so a pixel

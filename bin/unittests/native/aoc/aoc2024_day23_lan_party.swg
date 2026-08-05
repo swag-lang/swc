@@ -71,11 +71,11 @@ func nameToIdx(a: u8, b: u8)->u32
 impl Graph
 {
     #[Swag.Inline]
-    mtd edge(a: u32, b: u32)->bool { return me.adj![a * MaxNodes + b] }
+    mtd edge(a: u32, b: u32)->bool { return me .adj![a * MaxNodes + b] }
 
     mtd addEdge(a: u32, b: u32)
     {
-        let adj = me.adj!
+        let adj = me .adj!
         adj[a * MaxNodes + b] = true
         adj[b * MaxNodes + a] = true
         if !me.nodeUsed[a]

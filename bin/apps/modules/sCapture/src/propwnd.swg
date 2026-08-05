@@ -357,7 +357,7 @@ impl PropWnd
         switch curSelType
         {
         case FormLine, FormArrow, FormDraw: btn.name = "Color"
-        case FormStep:                      btn.name = "Text"
+        case FormStep:                      btn.name = appStrings().act_Text
         default:                            btn.name = "Outline"
         }
 
@@ -465,7 +465,7 @@ impl PropWnd
             return
 
         let btn = createArrowButton(stack, BtnColorWidth, BtnColorHeight)
-        btn.name        = "Shape"
+        btn.name        = appStrings().act_Shape
         btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
         {
             bc.painter.setParams(.Antialiased)
@@ -483,7 +483,7 @@ impl PropWnd
             return
 
         let btn = createArrowButton(stack, BtnColorWidth, BtnColorHeight)
-        btn.name        = "Shape"
+        btn.name        = appStrings().act_Shape
         btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
         {
             bc.painter.setParams(.Antialiased)
@@ -587,7 +587,7 @@ impl PropWnd
         {
             .margin.x      = 5
             .dockStyle     = .Right
-            .toolTip       = "Reset the global step count to 1"
+            .toolTip       = appStrings().tip_ResetSteps
             btn.sigPressed += func|prop = me|(btn)
             {
                 // The button outlives the panel build; the capture may be gone by the
@@ -603,7 +603,7 @@ impl PropWnd
     func editText(main: *MainWnd, curText: String)->String
     {
         var editOptions: EditDlgOptions
-        editOptions.title   = "Enter Text"
+        editOptions.title   = appStrings().dlg_TitleEnterText
         editOptions.message = "Press Shift+Enter to add a new line"
         editOptions.text    = curText.toString()
         let dlg = EditDlg.createMultiLine(main.surface!, editOptions)
@@ -627,7 +627,7 @@ impl PropWnd
             return
 
         let btn = createArrowButton(stack, BtnColorWidth, BtnColorHeight)
-        btn.name        = "Text"
+        btn.name        = appStrings().act_Text
         btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
         {
             bc.painter.setParams(.Antialiased)
@@ -786,7 +786,7 @@ impl PropWnd
                 if it.typeValue.name != #nameof(BaseForm.borderSize) or !@isset(it.sliderBox) do
                     continue
                 let sliderBox = it.sliderBox
-                sliderBox.label.setText("Outline")
+                sliderBox.label.setText(appStrings().ui_Outline)
                 sliderBox.setSignedBounds(cast() MinTextBorderSize, cast() MaxTextBorderSize)
                 sliderBox.setValueWithoutGesture(.getSelectedBaseForm()!.borderSize)
             }

@@ -79,12 +79,29 @@ twenty-seven messages. What is absent from that list is this section.
 
 ### 4. Localization
 
-- There is no string bundle or translation layer on `master`. Work exists on the `gui-resources`
-  branch — a resource bundle with localization, validated against French at build time — and has
-  not landed.
-- Finish and merge it rather than starting a second vocabulary. Coordinate with `core` roadmap
-  entry 5, which argues that `Globalization` is a twenty-nine-line stub whose name promises a
-  localization system: these two should agree on where culture data lives before either grows.
+- Landed with the `gui-resources` merge. Every application owns a `Resources.Bundle` in
+  `Application.resources` — embedded content is the guaranteed fallback, a disk folder overrides
+  by name — theme sheets drive `ThemeColors`/`ThemeMetrics`/`ThemeImageRects` from tweak text,
+  and visible strings live in tables of `string` fields whose declared values are the reference
+  English wording. `Application.setLanguage` retargets every registered table from
+  `lang/<tag>/<file>.tweak` resources, and embedded translations are validated when the module
+  compiles, so a mistyped key is a build error with its line number. `gui`, `sCapture` (language
+  option, defaults to the system) and `sCrypt` (follows the Windows language) ship fully keyed,
+  with French as the proof language. See `help/07-resources-and-localization.md`.
+- Remaining, in decreasing value:
+  - the property grid reads `#[Name]`/`#[Description]`/`#[Category]` attribute strings, which
+    are compile-time constants, so options dialogs and the form property panels keep their
+    English wording across a switch; the root [TODO.md](../../../TODO.md) carries the design
+    question (resolve the attribute string through the registered tables at grid-build time);
+  - a disk override of `theme/widgets.svg` or `theme/icons.svg` registers in the bundle but the
+    vector pipeline rasterizes the process-wide parsed cache, so only the fonts, `spin.png`,
+    theme sheets and language files honor overrides today;
+  - text set once at construction only follows a live language switch when its window listens
+    for the `LanguageChanged` notification; command-driven surfaces already refresh themselves;
+  - French is the only shipped translation, and `DateTime` month and day names stay English —
+    exactly the `Globalization` coordination this entry already pointed at (`core` roadmap
+    entry 5: number, date and name formats should live with the culture, and the language tag
+    now flows through `Env.userLocaleName`).
 
 ### 5. System integration events
 

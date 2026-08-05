@@ -161,6 +161,20 @@ public func getSystemMetric(what: SystemMetric)->s32
     unreachable
 }
 
+// Returns the user's preferred locale name, such as `"fr-FR"`, or an empty string
+// when the system cannot provide one. The part before `-` is the language tag an
+// application can hand to its localization layer.
+public func userLocaleName()->String
+{
+    var name16: [LOCALE_NAME_MAX_LENGTH] u16
+    let len = catch GetUserDefaultLocaleName(&name16[0], LOCALE_NAME_MAX_LENGTH) as err
+    if err != null or len <= 1 do
+        return ""
+
+    // The returned length includes the terminating zero.
+    return Utf8.fromUtf16(@mkslice(&name16[0], cast(u64) (len - 1)))
+}
+
 var g_SysInfo: SYSTEM_INFO
 #init
 {

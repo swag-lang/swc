@@ -58,6 +58,21 @@ func assertFormatString(value: const &String, expected: string)->bool
     @assert(assertFormatString(direct.toString(), "literal variable true A"))
 }
 
+// '%{#n}' targets an explicit 0-based argument, so translations can reorder arguments.
+#test
+{
+    let swapped = Format.toString("%{#1} then %{#0}", "first", "second")
+    @assert(assertFormatString(swapped, "second then first"))
+
+    let repeated = Format.toString("%{#0} and %{#0} again", "twice")
+    @assert(assertFormatString(repeated, "twice and twice again"))
+
+    // An indexed placeholder carries a conversion format after ':' and leaves the
+    // running position of plain '%' placeholders untouched.
+    let mixed = Format.toString("% %{#2:X} %", "a", "b", 255)
+    @assert(assertFormatString(mixed, "a FF b"))
+}
+
 // 'byteSize' scales through the 1024-based units and keeps three significant digits.
 #test
 {

@@ -1,0 +1,52 @@
+# French strings of sCrypt. A key omitted here keeps its English value.
+
+ui_WindowTitle         sCrypt — Disques virtuels privés
+
+ui_Badge               PORTABLE  |  PROTÉGÉ PAR MOT DE PASSE  |  SANS INSTALLATION
+ui_Subtitle            Un stockage chiffré qui se présente et se comporte comme un disque Windows ordinaire.
+ui_CreateCardTitle     Créer un nouveau coffre
+ui_CreateCardHelp      Choisissez une capacité fixe. Le conteneur complet est randomisé avant d'être prêt.
+ui_MountCardTitle      Monter un coffre existant
+ui_MountCardHelp       Déverrouillez un conteneur et exposez-le sur une lettre de lecteur disponible.
+ui_ContainerFile       FICHIER CONTENEUR
+ui_Browse              Parcourir
+ui_FixedCapacity       CAPACITÉ FIXE
+ui_Password            MOT DE PASSE
+ui_ConfirmPassword     CONFIRMER LE MOT DE PASSE
+ui_RequiredPassword    Mot de passe requis
+ui_EnterAgain          Saisissez à nouveau le mot de passe
+ui_ContainerPassword   Mot de passe du conteneur
+ui_ExistingContainer   Conteneur chiffré existant
+ui_DriveLetter         LETTRE DE LECTEUR
+ui_DriveHelp           Le lecteur est disponible pour Windows tant que sCrypt s'exécute, puis disparaît à la fermeture de l'application.
+ui_CreateVault         Créer le coffre chiffré
+ui_MountDrive          Monter le lecteur
+ui_Unmount             Démonter
+ui_Desktop             Bureau
+dlg_TitleCreate        Créer un conteneur sCrypt
+dlg_TitleOpen          Ouvrir un conteneur chiffré
+dlg_BtnCreate          Créer
+dlg_BtnOpen            Ouvrir
+msg_Ready              Prêt — créez un coffre ou choisissez-en un à monter.
+msg_OperationStopped   L'opération s'est arrêtée.
+msg_SystemError        Erreur système.
+msg_SizeInvalid        La taille du conteneur n'est pas valide.
+msg_SizeTooLarge       La taille du conteneur est trop grande.
+msg_SizeMinimum        La taille minimale du conteneur est de % MiB.
+msg_ChooseCreateFile   Choisissez le fichier conteneur à créer.
+msg_FileExists         Ce fichier existe déjà. Choisissez un autre nom pour éviter toute perte de données.
+msg_PasswordRequired   Un mot de passe est requis.
+msg_PasswordMismatch   Les mots de passe ne correspondent pas.
+msg_CreateFailed       Impossible de créer le conteneur.
+msg_Randomizing        Création et randomisation du conteneur...
+msg_ChooseExisting     Choisissez un conteneur existant.
+msg_NoDriveLetter      Aucune lettre de lecteur n'est disponible.
+msg_StartingDriver     Démarrage du pilote de système de fichiers portable...
+msg_Unmounting         Synchronisation et démontage du lecteur chiffré...
+msg_CreateStopped      La création du conteneur s'est arrêtée.
+msg_Created            Conteneur créé. Il est prêt à être monté.
+msg_MountFailed        Impossible de monter le disque virtuel.
+msg_MountStopped       Le montage s'est arrêté.
+msg_Mounted            Lecteur chiffré monté sur %. Il sera démonté à la fermeture de sCrypt.
+msg_UnmountSyncStopped Le lecteur a été démonté, mais la synchronisation finale s'est arrêtée.
+msg_Unmounted          Lecteur démonté en toute sécurité.

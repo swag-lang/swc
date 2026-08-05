@@ -62,6 +62,12 @@ func replaceString(dest: *String, fmt: string, values: ...)
 // ```swag
 // let x = Format.toString("my life in hexadecimal is %{X}", myLife)
 // ```
+// '%{#n}' targets the 0-based argument 'n' instead of the next one, so a translated
+// format string can reorder its arguments. An indexed placeholder does not advance the
+// running argument position, and it can carry a format option after ':'.
+// ```swag
+// let x = Format.toString("%{#1} before %{#0:X}", 255, "written")
+// ```
 // - See [[ConvertFormatInt.setFormat]] for some valid format options
 // - See [[ConvertFormatFloat.setFormat]] for some valid format options
 func toString(fmt: string, values: ...)->String
@@ -123,10 +129,28 @@ func append(buf: *ConcatBuffer, fmt: string, values: ...)
                 strFormat = @mkslice(ptrFormat, cast(u64) countFormat)
             }
 
+            // '#' starts an explicit 0-based argument index, so a translation can reorder
+            // its arguments. It targets one placeholder only and leaves the running
+            // position of the plain '%' placeholders untouched.
+            var useIdx = paramIdx
+            if strFormat != null and @countof(strFormat) and strFormat[0] == '#'u8
+            {
+                let spec                  = cast(string) @mkslice(@dataof(strFormat) + 1, @countof(strFormat) - 1)
+                let {argIdx, eatCount, ?} = expect StrConv.parseU64(spec)
+                Debug.assert(eatCount != 0, "missing argument index after '#'")
+                useIdx = cast(u32) argIdx
+
+                // An optional conversion format follows ':'.
+                strFormat = null
+                if eatCount < @countof(spec) and spec[eatCount] == ':'u8 do
+                    strFormat = @mkslice(@dataof(spec) + eatCount + 1, @countof(spec) - eatCount - 1)
+            }
+            else do
+                paramIdx += 1
+
             // Deal with the parameter
-            Debug.assert(paramIdx < numParams, "not enough 'format' parameters")
-            StrConv.convertAny(buf, values[paramIdx], convFmt, cast(#null string) strFormat)
-            paramIdx += 1
+            Debug.assert(useIdx < numParams, "not enough 'format' parameters")
+            StrConv.convertAny(buf, values[useIdx], convFmt, cast(#null string) strFormat)
         }
         else
         {

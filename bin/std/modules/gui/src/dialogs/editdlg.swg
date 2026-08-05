@@ -16,11 +16,11 @@ public struct EditDlg
 // Configures the title, message and initial contents of an [[Gui.EditDlg]].
 public struct EditDlgOptions
 {
-    title:        string = ""      // Surface title.
-    message:      string = ""      // Optional explanatory text shown above the editor.
-    text:         string = ""      // Initial editor contents.
-    selectAll     = true           // Whether the initial contents start selected.
-    editorHeight: s32    = 150     // Editor height, used by the multi-line form.
+    title:        string = ""       // Surface title.
+    message:      string = ""       // Optional explanatory text shown above the editor.
+    text:         string = ""       // Initial editor contents.
+    selectAll            = true     // Whether the initial contents start selected.
+    editorHeight: s32    = 150      // Editor height, used by the multi-line form.
 }
 
 public impl EditDlg
@@ -46,8 +46,8 @@ public impl EditDlg
             .setFocus()
         }
 
-        dlg.addButton("OK", Dialog.BtnOk, true)
-        dlg.addButton("Cancel", Dialog.BtnCancel)
+        dlg.addButton(strings().dlg_Ok, Dialog.BtnOk, true)
+        dlg.addButton(strings().dlg_Cancel, Dialog.BtnCancel)
         dlg.sendResizeEvent()
         dlg.applyOptions(options)
         return dlg
@@ -80,8 +80,8 @@ public impl EditDlg
             .setFocus()
         }
 
-        dlg.addButton("OK", Dialog.BtnOk, true)
-        dlg.addButton("Cancel", Dialog.BtnCancel)
+        dlg.addButton(strings().dlg_Ok, Dialog.BtnOk, true)
+        dlg.addButton(strings().dlg_Cancel, Dialog.BtnCancel)
         dlg.sendResizeEvent()
         dlg.applyOptions(options)
         return dlg

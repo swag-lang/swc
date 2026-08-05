@@ -160,7 +160,7 @@ impl IWnd for CaptureRectWnd
 
         // The grab rectangle lives in desktop-physical pixels; drawing works in
         // logical surface units.
-        let k = .deviceScale()
+        let k       = .deviceScale()
         var dstGrab = grabRect
         dstGrab.x      /= k
         dstGrab.y      /= k

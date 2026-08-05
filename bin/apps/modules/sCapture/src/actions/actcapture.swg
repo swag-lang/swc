@@ -32,32 +32,32 @@ impl IActionUI for ActionCapture
         {
         case .DoIt:
             evt.updatedFields |= .Name | .Icon
-            evt.name          = "Capture"
+            evt.name          = appStrings().ui_MenuCapture
             evt.icon          = main.icon(.Capture, 48)
 
         case .Area:
             evt.updatedFields |= .Name | .Icon
-            evt.name          = "Capture Area"
+            evt.name          = appStrings().act_CaptureArea
             evt.icon          = main.icon(.CaptureArea)
 
         case .LastArea:
             evt.updatedFields |= .Name | .Icon
-            evt.name          = "Capture Last Area"
+            evt.name          = appStrings().act_CaptureLastArea
             evt.icon          = main.icon(.LastArea)
 
         case .FullScreen:
             evt.updatedFields |= .Name | .Icon
-            evt.name          = "Capture Full Screen"
+            evt.name          = appStrings().act_CaptureFullScreen
             evt.icon          = main.icon(.FullScreen)
 
         case .ActiveWnd:
             evt.updatedFields |= .Name | .Icon
-            evt.name          = "Capture Active Window"
+            evt.name          = appStrings().act_CaptureActiveWindow
             evt.icon          = main.icon(.ActiveWindow)
 
         case .Screen0:
             evt.updatedFields |= .Name | .Icon
-            evt.name          = Format.toString("Capture Monitor 0 (%x%)", main.monitors[0].bounds.width, main.monitors[0].bounds.height)
+            evt.name          = Format.toString(appStrings().act_CaptureMonitorSize, 0, main.monitors[0].bounds.width, main.monitors[0].bounds.height)
             evt.icon          = main.icon(.Monitor)
 
         case .Screen1:
@@ -66,48 +66,48 @@ impl IActionUI for ActionCapture
             // (idx >= monitors.count) so a machine with fewer monitors is safe.
             evt.updatedFields |= .Name | .Icon | .Disabled
             evt.disabled      = main.monitors.count <= 1
-            evt.name          = evt.disabled ? "Capture Monitor 1" : Format.toString("Capture Monitor 1 (%x%)", main.monitors[1].bounds.width, main.monitors[1].bounds.height)
+            evt.name          = evt.disabled ? Format.toString(appStrings().act_CaptureMonitor, 1) : Format.toString(appStrings().act_CaptureMonitorSize, 1, main.monitors[1].bounds.width, main.monitors[1].bounds.height)
             evt.icon          = main.icon(.Monitor)
 
         case .Screen2:
             evt.updatedFields |= .Name | .Icon | .Disabled
             evt.disabled      = main.monitors.count <= 2
-            evt.name          = evt.disabled ? "Capture Monitor 2" : Format.toString("Capture Monitor 2 (%x%)", main.monitors[2].bounds.width, main.monitors[2].bounds.height)
+            evt.name          = evt.disabled ? Format.toString(appStrings().act_CaptureMonitor, 2) : Format.toString(appStrings().act_CaptureMonitorSize, 2, main.monitors[2].bounds.width, main.monitors[2].bounds.height)
             evt.icon          = main.icon(.Monitor)
 
         case .Screen3:
             evt.updatedFields |= .Name | .Icon | .Disabled
             evt.disabled      = main.monitors.count <= 3
-            evt.name          = evt.disabled ? "Capture Monitor 3" : Format.toString("Capture Monitor 3 (%x%)", main.monitors[3].bounds.width, main.monitors[3].bounds.height)
+            evt.name          = evt.disabled ? Format.toString(appStrings().act_CaptureMonitor, 3) : Format.toString(appStrings().act_CaptureMonitorSize, 3, main.monitors[3].bounds.width, main.monitors[3].bounds.height)
             evt.icon          = main.icon(.Monitor)
 
         case .HideEditor:
             evt.updatedFields |= .Name | .Checked
-            evt.name          = "Hide Editor Before Capture"
+            evt.name          = appStrings().act_HideEditorBefore
             evt.checked       = main.captureOptions.hideEditorBefore
             evt.accepted      = true
 
         case .CaptureCursor:
             evt.updatedFields |= .Name | .Checked
-            evt.name          = "Capture Mouse Cursor"
+            evt.name          = appStrings().act_CaptureCursor
             evt.checked       = main.captureOptions.captureCursor
             evt.accepted      = true
 
         case .ToInPlace:
             evt.updatedFields |= .Name | .Checked
-            evt.name          = "Edit Captured Area In Place"
+            evt.name          = appStrings().act_EditInPlace
             evt.checked       = main.captureOptions.inPlaceEdit
             evt.accepted      = true
 
         case .ToEditor:
             evt.updatedFields |= .Name | .Checked
-            evt.name          = "Send Capture To Editor"
+            evt.name          = appStrings().act_SendToEditor
             evt.checked       = main.captureOptions.sendToEditor
             evt.accepted      = true
 
         case .ToClipboard:
             evt.updatedFields |= .Name | .Checked
-            evt.name          = "Send Capture To Clipboard"
+            evt.name          = appStrings().act_SendToClipboard
             evt.checked       = main.captureOptions.sendToClipboard
             evt.accepted      = true
         }

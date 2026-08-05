@@ -25,41 +25,41 @@ impl IActionUI for ActionCaptureDelay
             evt.updatedFields |= .Name
             switch main.captureOptions.delay
             {
-            case 0: evt.name = "Delay Before Capture"
-            case 1: evt.name = "Delay Before Capture (1 second)"
-            case 2: evt.name = "Delay Before Capture (2 seconds)"
-            case 5: evt.name = "Delay Before Capture (5 seconds)"
-            case 9: evt.name = "Delay Before Capture (9 seconds)"
+            case 0: evt.name = appStrings().act_DelayBefore
+            case 1: evt.name = appStrings().act_Delay1
+            case 2: evt.name = appStrings().act_Delay2
+            case 5: evt.name = appStrings().act_Delay5
+            case 9: evt.name = appStrings().act_Delay9
             }
 
         case .Delay0:
             evt.updatedFields |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
-            evt.name          = "No Delay"
+            evt.name          = appStrings().act_NoDelay
             evt.checked       = main.captureOptions.delay == 0
 
         case .Delay1:
             evt.updatedFields |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
-            evt.name          = "1 second"
+            evt.name          = appStrings().act_OneSecond
             evt.checked       = main.captureOptions.delay == 1
 
         case .Delay2:
             evt.updatedFields |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
-            evt.name          = "2 seconds"
+            evt.name          = appStrings().act_TwoSeconds
             evt.checked       = main.captureOptions.delay == 2
 
         case .Delay5:
             evt.updatedFields |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
-            evt.name          = "5 seconds"
+            evt.name          = appStrings().act_FiveSeconds
             evt.checked       = main.captureOptions.delay == 5
 
         case .Delay9:
             evt.updatedFields |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
-            evt.name          = "9 seconds"
+            evt.name          = appStrings().act_NineSeconds
             evt.checked       = main.captureOptions.delay == 9
         }
 

@@ -38,17 +38,97 @@ private struct DefaultThemeImages
 {
     lock:           Sync.Mutex
     decoded:        bool
-    widgets:        Svg.Drawing                 // Vector widgets atlas, parsed once.
-    widgetsRasters: HashTable'(s32, Image)      // Rasterizations of `widgets`, by whole scale.
-    icons:          Svg.Drawing                 // Vector icon set, parsed once.
+    widgets:        Svg.Drawing                // Vector widgets atlas, parsed once.
+    widgetsRasters: HashTable'(s32, Image)     // Rasterizations of `widgets`, by whole scale.
+    icons:          Svg.Drawing                // Vector icon set, parsed once.
     spin:           Image
 }
 
+// Bundle names of the theme resources. The `Default*Name` constants above are include
+// paths relative to this file; these are the logical names a disk folder overrides.
+private const ResImageName = "theme/widgets.svg"
+private const ResIconsName = "theme/icons.svg"
+private const ResSpinName = "theme/spin.png"
+private const ResFontRegularName = "theme/segoeui.ttf"
+private const ResFontBoldName = "theme/segoeuib.ttf"
+private const ResFontBoldItalicName = "theme/segoeuiz.ttf"
+private const ResFontItalicName = "theme/segoeuii.ttf"
+private const ResFontFsRegularName = "theme/consola.ttf"
+private const ResFontFsBoldName = "theme/consolab.ttf"
+private const ResFontFsBoldItalicName = "theme/consolaz.ttf"
+private const ResFontFsItalicName = "theme/consolai.ttf"
+
 private var g_DefaultThemeImages: DefaultThemeImages
 
+// Nullable adapter over [[Pixel.TypeFace.create]], so a failed creation can be caught
+// with a null result instead of a non-defaultable pointer.
 private func defaultTypeFace(name: string, bytes: const [..] u8)->#null *TypeFace fail
 {
     return try TypeFace.create(name, bytes)
+}
+
+// Registers the embedded theme art and fonts as the fallback providers of `bundle`.
+//
+// The application calls this before the first surface exists, so a disk folder added
+// to the bundle can override any of these names while a bare application keeps the
+// compiled-in theme without any configuration.
+internal func registerDefaultThemeResources(bundle: *Resources.Bundle)
+{
+    bundle.addEmbedded(ResImageName, DefaultImage)
+    bundle.addEmbedded(ResIconsName, DefaultIcons)
+    bundle.addEmbedded(ResSpinName, DefaultSpin)
+    bundle.addEmbedded(ResFontRegularName, DefaultFontRegular)
+    bundle.addEmbedded(ResFontBoldName, DefaultFontBold)
+    bundle.addEmbedded(ResFontBoldItalicName, DefaultFontBoldItalic)
+    bundle.addEmbedded(ResFontItalicName, DefaultFontItalic)
+    bundle.addEmbedded(ResFontFsRegularName, DefaultFontFsRegular)
+    bundle.addEmbedded(ResFontFsBoldName, DefaultFontFsBold)
+    bundle.addEmbedded(ResFontFsBoldItalicName, DefaultFontFsBoldItalic)
+    bundle.addEmbedded(ResFontFsItalicName, DefaultFontFsItalic)
+}
+
+// Uploads one theme image, honoring a disk override from the bundle.
+//
+// Without an override, the embedded art goes through the process-wide decoded cache.
+// An override that cannot be read or decoded falls back to the embedded art, so a
+// broken theme folder degrades to the default look instead of stopping the program.
+private func addThemeImage(renderer: IRenderer, res: const *Resources.Bundle, name: string, embedded: const *Image)->Texture
+{
+    if res.isOverridden(name)
+    {
+        let bytes = catch res.load(name) as loadErr
+        if loadErr == null
+        {
+            let decoded = catch Image.decode(name, bytes.toSlice()) as decodeErr
+            if decodeErr == null do
+                return renderer.addImage(decoded)
+        }
+    }
+
+    return renderer.addImage(dref embedded)
+}
+
+// Creates the typeface behind one theme font resource, honoring a disk override.
+//
+// The process-wide typeface cache is keyed by name, so an overridden font registers
+// under a disk-flavored key and never collides with the embedded face of the same
+// name. An override that cannot be read or parsed falls back to the embedded face.
+private func themeTypeFace(res: const *Resources.Bundle, name: string, embedded: const [..] u8)->#null *TypeFace fail
+{
+    if res.isOverridden(name)
+    {
+        let bytes = catch res.load(name) as loadErr
+        if loadErr == null
+        {
+            var overrideName: String = name
+            overrideName += "#override"
+            let face = catch defaultTypeFace(overrideName.toString(), bytes.toSlice()) as faceErr
+            if faceErr == null and face != null do
+                return face
+        }
+    }
+
+    return try defaultTypeFace(name, embedded)
 }
 
 private func defaultThemeImages()->*DefaultThemeImages
@@ -96,9 +176,9 @@ private func defaultWidgetsImage(scale: f32)->*Image
 // Owns decoded theme textures, icon atlases, typefaces, and derived font families.
 struct ThemeResources
 {
-    imgWidgets: Texture      // Widgets atlas texture, rasterized from the vector theme document.
-    atlasScale: f32          // Device pixels per authored atlas texel; zero until the atlas is built.
-    icons:      IconSet      // The theme icon set, rasterized on demand per size and scale.
+    imgWidgets: Texture     // Widgets atlas texture, rasterized from the vector theme document.
+    atlasScale: f32         // Device pixels per authored atlas texel; zero until the atlas is built.
+    icons:      IconSet     // The theme icon set, rasterized on demand per size and scale.
     #[Swag.Late]
     {
         spin:                *ImageList     // Spin associated with this value.
@@ -138,6 +218,42 @@ struct Theme
 
 impl Theme
 {
+    // Applies a theme sheet to this theme.
+    //
+    // A sheet is a tweak text with up to three folders whose keys are the reflected field
+    // names of [[ThemeColors]], [[ThemeMetrics]] and [[ThemeImageRects]]. An omitted key
+    // keeps its current value, so a sheet only describes what it changes, and `$name`
+    // copies another key of the same folder:
+    //
+    // ```
+    // /ThemeColors
+    // btnPush_Bk       0xFF202026
+    // /ThemeMetrics
+    // btnPush_Height   32
+    // /ThemeImageRects
+    // btnPush_Normal   {{1 29 27 27} 0}
+    // btnPush_Hot      $btnPush_Normal
+    // ```
+    //
+    // An unknown key or a malformed value fails with [[Core.Errors.SyntaxError]] carrying
+    // the line number; the theme keeps the values already applied before the error. Call
+    // [[Gui.Application.notifyThemeChanged]] afterwards when the theme is already on screen.
+    mtd applySheet(sheet: string) fail
+    {
+        var tf: File.TweakFile
+        tf.registerFolder'ThemeColors(&.colors)
+        tf.registerFolder'ThemeMetrics(&.metrics)
+        tf.registerFolder'ThemeImageRects(&.rects)
+        try tf.parse(sheet)
+    }
+
+    // Loads the theme sheet resource `name` from `resources` and applies it.
+    mtd loadSheet(resources: const *Resources.Bundle, name: string) fail
+    {
+        let bytes = try resources.load(name)
+        try .applySheet(cast(string) bytes.toSlice())
+    }
+
     // Applies the dark Swag palette and its shared control geometry.
     mtd setSwagDark()
     {
@@ -186,8 +302,9 @@ impl Theme
     // The caller passes the density of the surface the theme is about to draw on, because
     // rasterizing the widgets atlas is the single most expensive step of a GUI startup and
     // [[Theme.ensureAtlasScale]] cannot reuse a coarser atlas: building at 1 first would
-    // throw that work away on every scaled display.
-    private mtd setupDefault(renderer: IRenderer, dpiScale = 1.0'f32)
+    // throw that work away on every scaled display. Fonts and remaining raster art resolve
+    // through `resources`, so a disk folder can override the embedded ones.
+    private mtd setupDefault(renderer: IRenderer, resources: const *Resources.Bundle, dpiScale = 1.0'f32)
     {
         .initialized = true
         .fonts       = renderer.fontCache()
@@ -200,10 +317,10 @@ impl Theme
         with me.res
         {
             .spin = Memory.new'ImageList()
-            .spin.set(renderer.addImage(images.spin), 48, 48)
+            .spin.set(addThemeImage(renderer, resources, ResSpinName, &images.spin), 48, 48)
         }
 
-        .setupDefaultFonts()
+        .setupDefaultFonts(resources)
     }
 
     // Keeps the widgets atlas texture at least as sharp as `scale` device pixels per authored texel.
@@ -229,26 +346,27 @@ impl Theme
         .res.atlasScale = wanted
     }
 
-    // Loads the embedded typefaces and builds the default font families.
+    // Loads the default typefaces and builds the default font families, resolving each
+    // font resource through `resources` so a disk folder can override the embedded ones.
     //
     // Glyph metrics are rasterized on the CPU, so this works with either painter backend.
     // Idempotent.
-    private mtd setupDefaultFonts()
+    private mtd setupDefaultFonts(resources: const *Resources.Bundle)
     {
         with me.res
         {
             if @isset(.defaultTypeFaceR) do
                 return
 
-            .defaultTypeFaceR  = expect defaultTypeFace(DefaultFontRegularName, DefaultFontRegular)!
-            .defaultTypeFaceB  = expect defaultTypeFace(DefaultFontBoldName, DefaultFontBold)!
-            .defaultTypeFaceI  = expect defaultTypeFace(DefaultFontItalicName, DefaultFontItalic)!
-            .defaultTypeFaceBI = expect defaultTypeFace(DefaultFontBoldItalicName, DefaultFontBoldItalic)!
+            .defaultTypeFaceR  = expect themeTypeFace(resources, ResFontRegularName, DefaultFontRegular)!
+            .defaultTypeFaceB  = expect themeTypeFace(resources, ResFontBoldName, DefaultFontBold)!
+            .defaultTypeFaceI  = expect themeTypeFace(resources, ResFontItalicName, DefaultFontItalic)!
+            .defaultTypeFaceBI = expect themeTypeFace(resources, ResFontBoldItalicName, DefaultFontBoldItalic)!
 
-            .defaultFsTypeFaceR  = expect defaultTypeFace(DefaultFontFsRegularName, DefaultFontFsRegular)!
-            .defaultFsTypeFaceB  = expect defaultTypeFace(DefaultFontFsBoldName, DefaultFontFsBold)!
-            .defaultFsTypeFaceI  = expect defaultTypeFace(DefaultFontFsItalicName, DefaultFontFsItalic)!
-            .defaultFsTypeFaceBI = expect defaultTypeFace(DefaultFontFsBoldItalicName, DefaultFontFsBoldItalic)!
+            .defaultFsTypeFaceR  = expect themeTypeFace(resources, ResFontFsRegularName, DefaultFontFsRegular)!
+            .defaultFsTypeFaceB  = expect themeTypeFace(resources, ResFontFsBoldName, DefaultFontFsBold)!
+            .defaultFsTypeFaceI  = expect themeTypeFace(resources, ResFontFsItalicName, DefaultFontFsItalic)!
+            .defaultFsTypeFaceBI = expect themeTypeFace(resources, ResFontFsBoldItalicName, DefaultFontFsBoldItalic)!
 
             .fontDefault.regular    = .fonts.createFont(.defaultTypeFaceR, me.metrics.defaultFontSize)
             .fontDefault.bold       = .fonts.createFont(.defaultTypeFaceB, me.metrics.defaultFontSize)

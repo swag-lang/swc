@@ -163,20 +163,20 @@ impl Circuit
     #[Swag.Inline]
     mtd getWire(idx: u32)->u8
     {
-        return me.wireVal![idx]
+        return me .wireVal![idx]
     }
 
     #[Swag.Inline]
     mtd setWire(idx: u32, val: u8)
     {
-        let wireVal = me.wireVal!
+        let wireVal = me .wireVal!
         wireVal[idx] = val
     }
 
     #[Swag.Inline]
     mtd isSet(idx: u32)->bool
     {
-        return me.wireVal![idx] != 255
+        return me .wireVal![idx] != 255
     }
 }
 

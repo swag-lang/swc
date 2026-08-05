@@ -268,7 +268,7 @@ impl QuickWnd
     mtd btnPopup(btn: #null *Button, pos: Math.Point)
     {
         let menu = MenuCtrl.createPopup(me)
-        menu.addItem("Remove Quick Style", "0", disabled: !btn)
+        menu.addItem(appStrings().ui_RemoveQuickStyle, "0", disabled: !btn)
         menu.addSeparator()
         menu.addItem(ActionQuickStyle.Reset)
         let res = menu.doModal(pos, autoDestroy: true)
@@ -672,7 +672,7 @@ impl QuickWnd
         if !.currentStyle do
             return
 
-        let res = MessageDlg.confirm(.surface!, "This will reset the styles to the default values.")
+        let res = MessageDlg.confirm(.surface!, appStrings().msg_ResetStyles)
         if res != MessageDlg.BtnYes do
             return
 

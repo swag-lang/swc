@@ -105,10 +105,10 @@ impl InPlaceEditWnd
         .actionBar.backgroundStyle = .Window
 
         let actions = [
-            {"save",  ThemeIcons.Save,     "Save capture as image file"},
-            {"copy",  ThemeIcons.Copy,     "Copy image to clipboard"},
-            {"edit",  ThemeIcons.Edit,     "Open in sCapture editor"},
-            {"close", ThemeIcons.WndClose, "Cancel and discard capture"}]
+            {"save",  ThemeIcons.Save,     appStrings().tip_InpSave},
+            {"copy",  ThemeIcons.Copy,     appStrings().tip_InpCopy},
+            {"edit",  ThemeIcons.Edit,     appStrings().tip_InpEdit},
+            {"close", ThemeIcons.WndClose, appStrings().tip_InpClose}]
 
         let theme = .theme()
         for action in actions do
@@ -124,13 +124,13 @@ impl InPlaceEditWnd
         .editBar.setOrientation(.Vertical)
 
         let editTools = [
-            {"draw",   CaptureIcons.Draw,      "Free draw tool"},
-            {"line",   CaptureIcons.Line,      "Draw straight line"},
-            {"circle", CaptureIcons.Circle,    "Draw circle or ellipse"},
-            {"rect",   CaptureIcons.Rect,      "Draw rectangle or square"},
-            {"arrow",  CaptureIcons.Arrow,     "Draw arrow"},
-            {"text",   CaptureIcons.Text,      "Add text annotation"},
-            {"marker", CaptureIcons.Highlight, "Highlight with marker"}]
+            {"draw",   CaptureIcons.Draw,      appStrings().tip_InpDraw},
+            {"line",   CaptureIcons.Line,      appStrings().tip_InpLine},
+            {"circle", CaptureIcons.Circle,    appStrings().tip_InpCircle},
+            {"rect",   CaptureIcons.Rect,      appStrings().tip_InpRect},
+            {"arrow",  CaptureIcons.Arrow,     appStrings().tip_InpArrow},
+            {"text",   CaptureIcons.Text,      appStrings().tip_InpText},
+            {"marker", CaptureIcons.Highlight, appStrings().tip_InpMarker}]
 
         for tool in editTools do
             .editBar.addRadioButton(main.icon(tool.item1, 48), tool.item0).toolTip = tool.item2
@@ -180,7 +180,7 @@ impl InPlaceEditWnd
         switch actionId
         {
         case "copy":
-            let cap = me.capture!
+            let cap = me .capture!
             cap.crop()
             cap.copyAll()
             exitWithResult(false)
@@ -189,7 +189,7 @@ impl InPlaceEditWnd
             exitWithResult(false)
 
         case "edit":
-            let cap = me.capture!
+            let cap = me .capture!
             cap.crop()
             exitWithResult(true)
 
@@ -201,7 +201,7 @@ impl InPlaceEditWnd
             let fileName = .newMain.getSaveAsImageName()
             if !fileName.isEmpty()
             {
-                let cap = me.capture!
+                let cap = me .capture!
                 cap.crop()
                 .newMain.doSaveAsImage(fileName)
                 exitWithResult(false)

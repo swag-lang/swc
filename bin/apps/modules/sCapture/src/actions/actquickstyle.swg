@@ -17,7 +17,7 @@ impl IActionUI for ActionQuickStyle
         {
         case .Reset:
             evt.updatedFields |= .Name
-            evt.name          = "Restore Default Styles"
+            evt.name          = appStrings().act_RestoreDefaultStyles
         }
 
         return true

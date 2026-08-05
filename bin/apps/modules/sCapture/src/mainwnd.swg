@@ -14,43 +14,43 @@ enum EditMode { Shape, Arrow, Line, Polygon, Text, Favorites, Draw, Highlight, S
 // [[Gui.IconSet]], so every glyph stays sharp at any display density.
 enum CaptureIcons
 {
-    Shape                // Shape tool.
-    Line                 // Line tool.
-    Polygon              // Polygon tool.
-    Arrow                // Arrow tool.
-    Text                 // Text tool.
-    Favorites            // Quick-style favorites.
-    Capture              // Capture trigger.
-    Draw                 // Free-hand draw tool.
-    Library              // Capture library.
-    Highlight            // Highlight tool.
-    Select               // Selection tool.
-    Step                 // Numbered-step tool.
-    Image                // Image effect.
-    Blur                 // Blur effect.
-    Pixelate             // Pixelate effect.
-    Zoom                 // Zoom effect.
-    PixSel               // Pixel-selection tool.
-    Cube                 // Capture-content effect.
-    Circle               // Circle shape.
-    Rect                 // Rectangle outline shape.
-    ViewSmall            // Small recent view.
-    ViewMedium           // Medium recent view.
-    ViewBig              // Big recent view.
-    Calendar             // Library date grouping.
-    Archive              // Library all-captures entry.
-    Monitor              // Capture one monitor.
-    FullScreen           // Capture the full screen.
-    CaptureArea          // Capture a picked area.
-    ActiveWindow         // Capture the active window.
-    LastArea             // Capture the previous area again.
-    SquareFill           // Filled badge square.
-    TextAlignLeft        // Left text alignment.
-    TextAlignCenter      // Centered text alignment.
-    TextAlignRight       // Right text alignment.
-    AlignTop             // Top vertical alignment.
-    AlignMiddle          // Middle vertical alignment.
-    AlignBottom          // Bottom vertical alignment.
+    Shape               // Shape tool.
+    Line                // Line tool.
+    Polygon             // Polygon tool.
+    Arrow               // Arrow tool.
+    Text                // Text tool.
+    Favorites           // Quick-style favorites.
+    Capture             // Capture trigger.
+    Draw                // Free-hand draw tool.
+    Library             // Capture library.
+    Highlight           // Highlight tool.
+    Select              // Selection tool.
+    Step                // Numbered-step tool.
+    Image               // Image effect.
+    Blur                // Blur effect.
+    Pixelate            // Pixelate effect.
+    Zoom                // Zoom effect.
+    PixSel              // Pixel-selection tool.
+    Cube                // Capture-content effect.
+    Circle              // Circle shape.
+    Rect                // Rectangle outline shape.
+    ViewSmall           // Small recent view.
+    ViewMedium          // Medium recent view.
+    ViewBig             // Big recent view.
+    Calendar            // Library date grouping.
+    Archive             // Library all-captures entry.
+    Monitor             // Capture one monitor.
+    FullScreen          // Capture the full screen.
+    CaptureArea         // Capture a picked area.
+    ActiveWindow        // Capture the active window.
+    LastArea            // Capture the previous area again.
+    SquareFill          // Filled badge square.
+    TextAlignLeft       // Left text alignment.
+    TextAlignCenter     // Centered text alignment.
+    TextAlignRight      // Right text alignment.
+    AlignTop            // Top vertical alignment.
+    AlignMiddle         // Middle vertical alignment.
+    AlignBottom         // Bottom vertical alignment.
 }
 
 // The parsed application icon document, shared by the main window and the headless
@@ -266,8 +266,8 @@ impl IWnd for MainWnd
                 .serialize("MainWnd.bottomSize", &me.bottomSize)
                 .serialize("MainWnd.fileDlgState", &me.fileDlgState)
                 .serialize("MainWnd.fileDlgStateInPlace", &me.fileDlgStateInPlace)
-                .serialize("MainWnd.RightBar.Pane0", &me.quickStyleBar.items[0]!.size)
-                .serialize("MainWnd.RightBar.Pane1", &me.quickStyleBar.items[1]!.size)
+                .serialize("MainWnd.RightBar.Pane0", &me .quickStyleBar.items[0]!.size)
+                .serialize("MainWnd.RightBar.Pane1", &me .quickStyleBar.items[1]!.size)
                 .serialize("MainWnd.captureOptions", &me.captureOptions)
                 .serialize("MainWnd.editorOptions", &me.editorOptions)
             }
@@ -276,6 +276,7 @@ impl IWnd for MainWnd
         if evt.serializer.isReading()
         {
             .setTheme()
+            .setLanguage()
             .quickStyleBar.sendResizeEvent()
             .setBottomSize(.bottomSize)
             .setTopBarHeight()
@@ -302,7 +303,7 @@ impl MainWnd
     mtd saveCapture(capture: *Capture)
     {
         catch capture.save() else do
-            MessageDlg.error(.surface!, Format.toString("Failed to save capture file: %", capture.file))
+            MessageDlg.error(.surface!, Format.toString(appStrings().msg_FailedSaveCapture, capture.file))
     }
 
     // Change the user-defined name of a capture and persist it. The library shows
@@ -323,7 +324,7 @@ impl MainWnd
             let full: #null *Capture = catch Capture.load(file) as err
             if err != null
             {
-                MessageDlg.error(.surface!, "Failed to rename capture", err)
+                MessageDlg.error(.surface!, appStrings().msg_FailedRename, err)
                 return
             }
 
@@ -353,7 +354,7 @@ impl MainWnd
         let full: #null *Capture = catch Capture.load(file) as err
         if err != null
         {
-            MessageDlg.error(.surface!, "Failed to copy image", err)
+            MessageDlg.error(.surface!, appStrings().msg_FailedCopyImage, err)
             return
         }
 
@@ -373,7 +374,7 @@ impl MainWnd
         let imgToLoad = catch Image.load(arg) as err
         if err != null
         {
-            MessageDlg.error(.surface!, Format.toString("Failed to load file: %", arg), err)
+            MessageDlg.error(.surface!, Format.toString(appStrings().msg_FailedLoadFile, arg), err)
             return
         }
 
@@ -443,7 +444,7 @@ impl MainWnd
             if !capture do
                 return
 
-            .embInfoFreeze              = InfoBar.create(.editWnd.view!, "Selection is frozen", .Message, flags: .Bottom)
+            .embInfoFreeze              = InfoBar.create(.editWnd.view!, appStrings().ui_Frozen, .Message, flags: .Bottom)
             .embInfoFreeze.sigDismissed += func|main = me|(ctrl)
             {
                 main.freezeSel     = false
@@ -589,8 +590,8 @@ impl MainWnd
             {
                 if !errorReg
                 {
-                    var msg = Format.toString("Cannot register global shortcut '%'. ", Input.formatKeyShortcut(modifiers, key))
-                    msg += "Another running application is probably already using it!"
+                    var msg = Format.toString(appStrings().msg_ShortcutTaken, Input.formatKeyShortcut(modifiers, key))
+                    msg += appStrings().msg_ShortcutTakenWhy
                     discard InfoBar.create(.editWnd!, msg, .Critical)
                 }
 
@@ -625,7 +626,7 @@ impl MainWnd
             .addGroup([ActionFile.SaveAsLinkedImage, ActionFile.UpdateLinkedImage, ActionFile.UnlinkImage])
             .addGroup([ActionFile.FileDetails])
             .addItems([ActionGlobal.Minimize, ActionGlobal.Exit])
-            topMenu.addPopup("File", fileMenu)
+            topMenu.addPopup(appStrings().ui_MenuFile, fileMenu)
         }
 
         // Capture menu
@@ -654,7 +655,7 @@ impl MainWnd
                 captureMenu.addPopup(delayMenu, ActionCaptureDelay.Delay)
             }
 
-            topMenu.addPopup("Capture", captureMenu)
+            topMenu.addPopup(appStrings().ui_MenuCapture, captureMenu)
 
             .addSeparator()
             .addItems([ActionCapture.ToInPlace, ActionCapture.ToEditor, ActionCapture.ToClipboard])
@@ -670,7 +671,7 @@ impl MainWnd
             .addGroup([ActionEdit.ResetRotation])
             .addGroup([ActionSelection.Freeze])
             .addItems([ActionSelection.Snap])
-            topMenu.addPopup("Edit", editMenu)
+            topMenu.addPopup(appStrings().ui_MenuEdit, editMenu)
         }
 
         // Image menu
@@ -681,7 +682,7 @@ impl MainWnd
             .addGroup([ActionImage.ResizeImage, ActionImage.ExpandImage, ActionImage.ExpandCapture, ActionImage.TrimCapture])
             .addGroup([ActionFlatten.FlattenAll])
             .addItems([ActionImage.FlipImage, ActionImage.MirrorImage, ActionImage.RotateImageRight, ActionImage.RotateImageLeft])
-            topMenu.addPopup("Image", imageMenu)
+            topMenu.addPopup(appStrings().ui_MenuImage, imageMenu)
         }
 
         // View menu
@@ -690,7 +691,7 @@ impl MainWnd
             .addGroup([ActionZoom.ZoomIn, ActionZoom.ZoomOut])
             .addGroup([ActionZoom.Zoom1, ActionZoom.ZoomFit])
             .addItems([ActionView.Clip])
-            topMenu.addPopup("View", viewMenu)
+            topMenu.addPopup(appStrings().ui_MenuView, viewMenu)
         }
 
         // Help menu
@@ -699,7 +700,7 @@ impl MainWnd
             .addItem(ActionOptions.Options)
             .addSeparator()
             .addItem(ActionAbout.About)
-            topMenu.addPopup("Help", helpMenu)
+            topMenu.addPopup(appStrings().ui_MenuHelp, helpMenu)
         }
     }
 
@@ -727,7 +728,7 @@ impl MainWnd
 
     mtd createToolbar()
     {
-        with me.editToolBar = StackLayoutCtrl.create(me.topBar!, .HorizontalCenter, {0, 0, 64, 64})
+        with me.editToolBar = StackLayoutCtrl.create(me .topBar!, .HorizontalCenter, {0, 0, 64, 64})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Window
@@ -742,7 +743,7 @@ impl MainWnd
 
         for id in toolButtons
         {
-            with let b = IconButton.create(me.editToolBar!, {}, position: {0, 0, 60, 64})
+            with let b = IconButton.create(me .editToolBar!, {}, position: {0, 0, 60, 64})
             {
                 .id = id
                 if id == ActionToolMode.Callout do
@@ -773,6 +774,29 @@ impl MainWnd
         else do
             .app().theme.setSwagLight()
         .app().notifyThemeChanged()
+    }
+
+    // Applies the language selected in the options to every string table.
+    //
+    // The tables always resolve, so a failure can only be an incomplete installation;
+    // the interface then simply stays on the reference English wording.
+    mtd setLanguage()
+    {
+        var tag = "en"
+        switch #complete .editorOptions.language
+        {
+        case .System:
+            if Utf8.startsWith(Env.userLocaleName().toString(), "fr") do
+                tag = "fr"
+
+        case .French:
+            tag = "fr"
+
+        case .English:
+            break
+        }
+
+        catch .app().setLanguage(tag)
     }
 
     mtd setTopBarHeight()
@@ -902,12 +926,12 @@ impl MainWnd
         with let quickPane = res.quickStyleBar.addPane(res.quickWnd, showTitle: true)
         {
             .preserveSize = true
-            .label?.setText("Quick Styles")
+            .label?.setText(appStrings().ui_QuickStyles)
         }
 
         with let quickStyle = res.quickStyleBar.addPane(res.propWnd, showTitle: true)
         {
-            .label?.setText("Tool Properties")
+            .label?.setText(appStrings().ui_ToolProperties)
         }
 
         res.quickStyleBar.setPaneSize(0, 300)

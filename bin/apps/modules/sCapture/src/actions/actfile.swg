@@ -33,44 +33,44 @@ impl IActionUI for ActionFile
         {
         case .NewImage:
             evt.updatedFields |= .Name
-            evt.name          = "New Image"
+            evt.name          = appStrings().act_NewImage
 
         case .NewFromClipboard:
             evt.updatedFields |= .Name | .Disabled
-            evt.name          = "New From Clipboard"
+            evt.name          = appStrings().act_NewFromClipboard
             evt.disabled      = !Clipboard.hasImage()
 
         case .SaveAsImage:
             evt.updatedFields |= .Name | .Disabled | .Icon
-            evt.name          = "Save As Image..."
+            evt.name          = appStrings().act_SaveAsImage
             evt.disabled      = !capture
             evt.icon          = main.theme().icon(.SaveAs)
 
         case .SaveAsLinkedImage:
             evt.updatedFields |= .Name | .Disabled | .Icon
-            evt.name          = "Save As Linked Image..."
+            evt.name          = appStrings().act_SaveAsLinkedImage
             evt.disabled      = !capture
             evt.icon          = main.theme().icon(.Export)
 
         case .OpenImage:
             evt.updatedFields |= .Name | .Icon
-            evt.name          = "Open Image..."
+            evt.name          = appStrings().act_OpenImage
             evt.icon          = main.theme().icon(.OpenFile)
 
         case .UpdateLinkedImage:
             evt.updatedFields |= .Name | .Disabled | .Icon
-            evt.name          = "Update Linked Image"
+            evt.name          = appStrings().act_UpdateLinkedImage
             evt.disabled      = !capture
             evt.icon          = main.theme().icon(.Update)
 
         case .UnlinkImage:
             evt.updatedFields |= .Name | .Disabled
-            evt.name          = "Unlink Image"
+            evt.name          = appStrings().act_UnlinkImage
             evt.disabled      = !capture or capture.linkedImage.length == 0
 
         case .DeleteCapture:
             evt.updatedFields |= .Name | .Disabled | .Icon
-            evt.name          = "Delete"
+            evt.name          = appStrings().act_Delete
             if main.libraryMode do
                 evt.disabled = !main.libWnd.hasSelected()
             else do
@@ -79,36 +79,36 @@ impl IActionUI for ActionFile
 
         case .DupCapture:
             evt.updatedFields |= .Name | .Disabled | .Icon
-            evt.name          = "Duplicate"
+            evt.name          = appStrings().act_Duplicate
             evt.disabled      = !capture
             evt.icon          = main.theme().icon(.Duplicate)
 
         case .RenameCapture:
             evt.updatedFields |= .Name | .Disabled
-            evt.name          = "Rename..."
+            evt.name          = appStrings().act_Rename
             evt.disabled      = !capture
 
         case .CopyImage:
             evt.updatedFields |= .Name | .Disabled | .Icon
-            evt.name          = "Copy Image to Clipboard"
+            evt.name          = appStrings().act_CopyImageToClipboard
             evt.disabled      = !capture
             evt.icon          = main.theme().icon(.Copy)
 
         case .CaptureFileLocation:
             evt.updatedFields |= .Name | .Disabled | .Icon
-            evt.name          = "Locate Capture File"
+            evt.name          = appStrings().act_LocateCaptureFile
             evt.disabled      = !capture
             evt.icon          = main.theme().icon(.OpenFile)
 
         case .LinkedFileLocation:
             evt.updatedFields |= .Name | .Disabled | .Icon
-            evt.name          = "Locate Linked Image"
+            evt.name          = appStrings().act_LocateLinkedImage
             evt.disabled      = !capture or capture.linkedImage.isEmpty()
             evt.icon          = main.theme().icon(.Link)
 
         case .FileDetails:
             evt.updatedFields |= .Name | .Disabled
-            evt.name          = "File Details"
+            evt.name          = appStrings().act_FileDetails
             if main.libraryMode do
                 evt.disabled = !main.libWnd.hasSelected()
             else do
@@ -141,7 +141,7 @@ impl IActionUI for ActionFile
             main.openImage()
 
         case .UnlinkImage:
-            let res = MessageDlg.confirm(main.surface!, "This will remove the image association.")
+            let res = MessageDlg.confirm(main.surface!, appStrings().msg_RemoveAssociation)
             if res == MessageDlg.BtnYes
             {
                 capture.linkedImage.clear()
@@ -191,7 +191,7 @@ impl IActionUI for ActionFile
             main.doSaveImage(capture, &img, capture.linkedImage)
 
         case .DeleteCapture:
-            let res = MessageDlg.confirm(main.surface!, "This will delete the capture file(s).")
+            let res = MessageDlg.confirm(main.surface!, appStrings().msg_DeleteCaptures)
             if res == MessageDlg.BtnYes
             {
                 if main.libraryMode do
@@ -213,7 +213,7 @@ impl IActionUI for ActionFile
             // so guard before dereferencing to avoid a null crash and abort the duplication.
             if !newCapture
             {
-                MessageDlg.error(main.surface!, "Failed to duplicate capture")
+                MessageDlg.error(main.surface!, appStrings().msg_FailedDuplicate)
                 break
             }
 
@@ -235,7 +235,7 @@ impl IActionUI for ActionFile
             let file = capture.file.toString()
 
             var editOptions: EditDlgOptions
-            editOptions.title   = "Rename Capture"
+            editOptions.title   = appStrings().dlg_TitleRenameCapture
             editOptions.message = "Capture name"
             editOptions.text    = capture.title
             let dlg = EditDlg.createSingleLine(main.surface!, editOptions)
@@ -250,11 +250,11 @@ impl IActionUI for ActionFile
 
         case .CaptureFileLocation:
             if !Env.showInFileExplorer(capture.file) do
-                MessageDlg.error(main.surface!, "Failed to locate capture file")
+                MessageDlg.error(main.surface!, appStrings().msg_FailedLocateCapture)
 
         case .LinkedFileLocation:
             if !Env.showInFileExplorer(capture.linkedImage) do
-                MessageDlg.error(main.surface!, "Failed to locate linked image")
+                MessageDlg.error(main.surface!, appStrings().msg_FailedLocateLinked)
 
         case .FileDetails:
 
@@ -269,15 +269,15 @@ impl IActionUI for ActionFile
                 lbl2.setTextHorizontalAlignment(.Left)
             }
 
-            let dlg = Dialog.create(main.surface!, 600, 400, title: "Details", flags: .Border | .CloseButton | .Resizable)
-            dlg.addButton("OK", Dialog.BtnOk, true)
+            let dlg = Dialog.create(main.surface!, 600, 400, title: appStrings().dlg_TitleDetails, flags: .Border | .CloseButton | .Resizable)
+            dlg.addButton(Gui.strings().dlg_Ok, Dialog.BtnOk, true)
             let lt = StackLayoutCtrl.create(dlg)
             lt.dockStyle = .Center
             lt.padding   = 5
-            addLine(lt, "<b>File</b>", Format.toString("%", capture.file))
+            addLine(lt, appStrings().ui_DetailFile, Format.toString("%", capture.file))
             if capture.linkedImage != null do
-                addLine(lt, "<b>Linked Image</b>", Format.toString("%", capture.linkedImage))
-            addLine(lt, "<b>Image Size</b>", Format.toString("%x%", capture.width, capture.height))
+                addLine(lt, appStrings().ui_DetailLinkedImage, Format.toString("%", capture.linkedImage))
+            addLine(lt, appStrings().ui_DetailImageSize, Format.toString("%x%", capture.width, capture.height))
             addLine(lt, "<b>File Size</b>", StrConv.toDisplaySize(catch File.info(capture.file).size))
             lt.computeLayout()
             discard dlg.doModal()
@@ -296,15 +296,15 @@ impl MainWnd
         {
             .state             = &me.fileDlgState
             .mode              = .SelectFile
-            .title             = "Load Image"
-            .confirmButtonText = "Load"
-            .shortcuts.add({Env.SpecialDirectory.Desktop, "Desktop"})
-            .shortcuts.add({Env.SpecialDirectory.UserPictures, "My Images"})
-            .shortcuts.add({Env.SpecialDirectory.CommonPictures, "Images"})
-            .filters.add({"PNG - Portable Network Graphics (*.png)", ".png"})
-            .filters.add({"JPG - JPEG Image (*.jpg)", ".jpg"})
-            .filters.add({"BMP - Windows Bitmap (*.bmp)", ".bmp"})
-            .filters.add({"TGA - Truevision Targa (*.tga)", ".tga"})
+            .title             = appStrings().dlg_TitleLoadImage
+            .confirmButtonText = appStrings().dlg_BtnLoad
+            .shortcuts.add({Env.SpecialDirectory.Desktop, appStrings().ui_Desktop})
+            .shortcuts.add({Env.SpecialDirectory.UserPictures, appStrings().ui_MyImages})
+            .shortcuts.add({Env.SpecialDirectory.CommonPictures, appStrings().ui_CommonImages})
+            .filters.add({appStrings().flt_Png, ".png"})
+            .filters.add({appStrings().flt_Jpg, ".jpg"})
+            .filters.add({appStrings().flt_Bmp, ".bmp"})
+            .filters.add({appStrings().flt_Tga, ".tga"})
         }
 
         let dlg = FileDlg.create(.surface!, opt)
@@ -313,7 +313,7 @@ impl MainWnd
 
         let img = catch Image.load(dlg.selectedPath()) as err
         if err != null do
-            MessageDlg.error(.surface!, "Failed to load image", err)
+            MessageDlg.error(.surface!, appStrings().msg_FailedLoadImage, err)
         else do
             .newCapture(img, dlg.selectedPath())
     }
@@ -343,7 +343,7 @@ impl MainWnd
 
         catch img.save(nameFile, optImg) else
         {
-            MessageDlg.error(.surface!, "Failed to save file")
+            MessageDlg.error(.surface!, appStrings().msg_FailedSaveFile)
             return
         }
 
@@ -375,16 +375,16 @@ impl MainWnd
         {
             .state             = &me.fileDlgState
             .mode              = .CreateFile
-            .title             = "Save As Image"
-            .confirmButtonText = "Save"
-            .shortcuts.add({Env.SpecialDirectory.Desktop, "Desktop"})
-            .shortcuts.add({Env.SpecialDirectory.UserPictures, "My Images"})
-            .shortcuts.add({Env.SpecialDirectory.CommonPictures, "Images"})
+            .title             = appStrings().dlg_TitleSaveAsImage
+            .confirmButtonText = appStrings().dlg_BtnSave
+            .shortcuts.add({Env.SpecialDirectory.Desktop, appStrings().ui_Desktop})
+            .shortcuts.add({Env.SpecialDirectory.UserPictures, appStrings().ui_MyImages})
+            .shortcuts.add({Env.SpecialDirectory.CommonPictures, appStrings().ui_CommonImages})
             .initialName = Path.fileNameWithoutExtension(capture.file) orelse ""
-            .filters.add({"PNG - Portable Network Graphics (*.png)", ".png"})
-            .filters.add({"JPG - JPEG Image (*.jpg)", ".jpg"})
-            .filters.add({"BMP - Windows Bitmap (*.bmp)", ".bmp"})
-            .filters.add({"TGA - Truevision Targa (*.tga)", ".tga"})
+            .filters.add({appStrings().flt_Png, ".png"})
+            .filters.add({appStrings().flt_Jpg, ".jpg"})
+            .filters.add({appStrings().flt_Bmp, ".bmp"})
+            .filters.add({appStrings().flt_Tga, ".tga"})
         }
 
         let dlg = FileDlg.create(.surface!, opt)
@@ -407,11 +407,11 @@ impl MainWnd
 
     mtd newImage()
     {
-        let dlg = Dialog.create(.surface!, 350, 235, title: "New Image")
-        dlg.addButton("Create", Dialog.BtnOk, true)
-        dlg.addButton("Cancel", Dialog.BtnCancel)
-        let edit0 = EditCtrl.create(dlg, "Width", "512", {90, 12}, flags: .RightAligned)
-        let edit1 = EditCtrl.create(dlg, "Height", "512", {90, 47}, flags: .RightAligned)
+        let dlg = Dialog.create(.surface!, 350, 235, title: appStrings().act_NewImage)
+        dlg.addButton(appStrings().dlg_BtnCreate, Dialog.BtnOk, true)
+        dlg.addButton(Gui.strings().dlg_Cancel, Dialog.BtnCancel)
+        let edit0 = EditCtrl.create(dlg, appStrings().ui_Width, "512", {90, 12}, flags: .RightAligned)
+        let edit1 = EditCtrl.create(dlg, appStrings().ui_Height, "512", {90, 47}, flags: .RightAligned)
         edit0.edit.setUnsignedIntegerRange(16, 4096)
         edit1.edit.setUnsignedIntegerRange(16, 4096)
         if dlg.doModal() != Dialog.BtnOk do

@@ -18,7 +18,7 @@ impl IActionUI for ActionAbout
         {
         case .About:
             evt.updatedFields |= .Name | .Icon
-            evt.name          = "About..."
+            evt.name          = appStrings().act_About
             evt.icon          = main.theme().icon(.About)
         }
 
@@ -37,7 +37,7 @@ impl IActionUI for ActionAbout
         params.contentTitle = Format.toString("sCapture %.%.%", #swcversion, #swcrevision, #swcbuildnum).toString()
 
         var msg: String
-        msg            += Format.toString("Build on %{j}", Date)
+        msg            += Format.toString(appStrings().msg_AboutBuild, Date)
         msg            += "\n\n"
         msg            += "<b>sCapture</b> is open source and coded in <url>Swag</url>. You can find the code <url>here</url>."
         msg            += "\n\n"

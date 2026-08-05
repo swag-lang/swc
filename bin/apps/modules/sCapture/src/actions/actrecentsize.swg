@@ -24,38 +24,38 @@ impl IActionUI for ActionRecentSize
         {
         case .RecentSmall:
             evt.updatedFields |= .Name | .ToolTip | .Checked | .Icon
-            evt.toolTip       = "Small recent view"
+            evt.toolTip       = appStrings().tip_SmallRecent
             evt.checked       = main.bottomSize == .Small
             evt.icon          = main.icon(.ViewSmall)
 
         case .RecentMedium:
             evt.updatedFields |= .Name | .ToolTip | .Checked | .Icon
-            evt.toolTip       = "Medium recent view"
+            evt.toolTip       = appStrings().tip_MediumRecent
             evt.checked       = main.bottomSize == .Medium
             evt.icon          = main.icon(.ViewMedium)
 
         case .RecentBig:
             evt.updatedFields |= .Name | .ToolTip | .Checked | .Icon
-            evt.toolTip       = "Big recent view"
+            evt.toolTip       = appStrings().tip_BigRecent
             evt.checked       = main.bottomSize == .Big
             evt.icon          = main.icon(.ViewBig)
 
         case .LibSmall:
             evt.updatedFields |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
-            evt.name          = "Small view"
+            evt.name          = appStrings().act_SmallView
             evt.checked       = main.libWnd.previewSize == PreviewSize.Small
 
         case .LibMedium:
             evt.updatedFields |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
-            evt.name          = "Medium view"
+            evt.name          = appStrings().act_MediumView
             evt.checked       = main.libWnd.previewSize == PreviewSize.Medium
 
         case .LibBig:
             evt.updatedFields |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
-            evt.name          = "Big view"
+            evt.name          = appStrings().act_BigView
             evt.checked       = main.libWnd.previewSize == PreviewSize.Big
         }
 

@@ -78,7 +78,7 @@ impl PropertiesCtrl
             {
                 .setIcon(ed.theme().icon(ThemeIcons.Search, 18))
                 .dockStyle = .Top
-                .setPlaceholder("Search")
+                .setPlaceholder(strings().prop_Search)
                 .margin.w       = 8
                 .sigTextChanged += func|ed|(fil) { ed.properties.setFilter(fil.text()); }
                 .updateFlags(.ClearButton)
@@ -109,7 +109,7 @@ impl PropertiesCtrl
         if @isset(.tab)
         {
             .tab.clear()
-            let tabItem = .tab.addItem("All")
+            let tabItem = .tab.addItem(strings().prop_All)
             tabItem.userData0 = cast(#null *void) .properties.sections.count
         }
 

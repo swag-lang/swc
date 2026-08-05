@@ -167,6 +167,10 @@ impl Dialog
         {
             .setForm(isDefault ? .Default : .Strong)
 
+            // The theme width stays the floor so short captions keep the familiar button
+            // size, while a longer translated caption widens its button instead of clipping.
+            .fitWidthToLabel(me.themeMetrics().btnPush_Width)
+
             .sigPressed += func|dlg = me|(btn) { dlg.closeWithResult(btn.id) }
 
             me.buttons.add(btn)

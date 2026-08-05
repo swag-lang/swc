@@ -71,15 +71,15 @@ impl Grid
     mtd idx(r: u32, c: u32)->u32 { return r * MaxDim + c }
 
     #[Swag.Inline]
-    mtd cell(r: u32, c: u32)->u8 { return me.cells![me.idx(r, c)] }
+    mtd cell(r: u32, c: u32)->u8 { return me .cells![me.idx(r, c)] }
 
     #[Swag.Inline]
     mtd isOpen(r: u32, c: u32)->bool { return me.cell(r, c) != '#' }
 
     #[Swag.Inline]
-    mtd distAt(r: u32, c: u32)->u32 { return me.dist![me.idx(r, c)] }
+    mtd distAt(r: u32, c: u32)->u32 { return me .dist![me.idx(r, c)] }
 
-    mtd setDist(r: u32, c: u32, d: u32) { let dist = me.dist!; dist[me.idx(r, c)] = d }
+    mtd setDist(r: u32, c: u32, d: u32) { let dist = me .dist!; dist[me.idx(r, c)] = d }
 
     #[Swag.Inline]
     mtd inBounds(r: s32, c: s32)->bool

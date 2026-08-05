@@ -19,7 +19,7 @@ impl IActionUI for ActionView
         {
         case .Clip:
             evt.updatedFields |= .Name | .Disabled | .Checked
-            evt.name          = "Hide Outside Box"
+            evt.name          = appStrings().act_HideOutsideBox
             evt.checked       = main.editorOptions.clipToSelection
 
             // We advertise .Disabled, so provide the state: clipping to the

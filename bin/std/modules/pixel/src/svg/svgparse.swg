@@ -14,9 +14,9 @@ struct Shape
     {
         pathList: LinePathList     // Contours, in drawing user units.
 
-        fillColor: Color               // Straight-alpha fill color.
-        hasFill:   bool                // Whether the shape is filled.
-        evenOdd:   bool                // Whether the fill uses the even-odd rule.
+        fillColor: Color     // Straight-alpha fill color.
+        hasFill:   bool      // Whether the shape is filled.
+        evenOdd:   bool      // Whether the fill uses the even-odd rule.
 
         hidden: bool     // Whether the shape is a reusable definition, not painted directly.
 
@@ -47,18 +47,18 @@ struct Drawing
 // Attribute state inherited through `svg` and `g` elements.
 private struct GroupState
 {
-    tx, ty: f32     // Accumulated translation, in drawing units.
+    tx, ty: f32         // Accumulated translation, in drawing units.
     sx, sy: f32 = 1     // Accumulated scale.
 
     fillColor: Color = Color.fromArgb(Argb.Black)     // Inherited fill color.
     hasFill:   bool  = true                           // Whether fill is enabled.
     evenOdd:   bool                                   // Inherited fill rule.
 
-    strokeColor: Color                                // Inherited stroke color.
-    strokeWidth: f32          = 1                     // Inherited stroke width, in user units.
-    hasStroke:   bool                                 // Whether stroke is enabled.
-    capStyle:    LineCapStyle = None                  // Inherited stroke cap.
-    joinStyle:   JoinStyle    = Miter                 // Inherited stroke join.
+    strokeColor: Color                    // Inherited stroke color.
+    strokeWidth: f32          = 1         // Inherited stroke width, in user units.
+    hasStroke:   bool                     // Whether stroke is enabled.
+    capStyle:    LineCapStyle = None      // Inherited stroke cap.
+    joinStyle:   JoinStyle    = Miter     // Inherited stroke join.
 
     opacity: f32 = 1     // Accumulated group opacity.
     inDefs:  bool        // Whether the element sits inside a `defs` scope.
@@ -259,8 +259,8 @@ private func applyStyleProperty(state: *GroupState, name, value: string)
                 while pos < len and value[pos] != '(' do
                     pos += 1
                 pos += 1
-                let x = scanNumber(value, &pos)
-                var y = 0'f32
+                let x    = scanNumber(value, &pos)
+                var y    = 0'f32
                 var look = pos
                 while look < len and (value[look] == ' ' or value[look] == ',') do
                     look += 1
@@ -278,8 +278,8 @@ private func applyStyleProperty(state: *GroupState, name, value: string)
                 while pos < len and value[pos] != '(' do
                     pos += 1
                 pos += 1
-                let x = scanNumber(value, &pos)
-                var y = x
+                let x    = scanNumber(value, &pos)
+                var y    = x
                 var look = pos
                 while look < len and (value[look] == ' ' or value[look] == ',') do
                     look += 1
@@ -396,8 +396,8 @@ private func appendArc(path: *LinePath, x0, y0: f32, rxIn, ryIn: f32, largeArc, 
     var angle = startAngle
     for [i] in segCount
     {
-        let a0 = angle
-        let a1 = angle + segAngle
+        let a0  = angle
+        let a1  = angle + segAngle
         let p0x = cx + rx * Math.cos(a0)
         let p0y = cy + ry * Math.sin(a0)
         let p1x = cx + rx * Math.cos(a1)
@@ -452,10 +452,10 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             {
                 if path and started do
                     path.close()
-                curX = begX
-                curY = begY
-                started    = false
-                lastCurve  = 0
+                curX      = begX
+                curY      = begY
+                started   = false
+                lastCurve = 0
                 continue
             }
         }
@@ -479,11 +479,11 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
 
             path = list.newPath()
             path.start(mapX(state, x), mapY(state, y))
-            started    = true
-            curX = x
-            curY = y
-            begX = x
-            begY = y
+            started = true
+            curX    = x
+            curY    = y
+            begX    = x
+            begY    = y
 
             // Following coordinate pairs are implicit line-to commands.
             cmd = rel ? cast(u8) 'l' : cast(u8) 'L'
@@ -556,11 +556,11 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             }
 
             path!.bezierTo(mapX(state, x), mapY(state, y), mapX(state, c1x), mapY(state, c1y), mapX(state, c2x), mapY(state, c2y))
-            ctlX = c2x
-            ctlY = c2y
-            curX = x
-            curY = y
-            lastCurve  = 'c'
+            ctlX      = c2x
+            ctlY      = c2y
+            curX      = x
+            curY      = y
+            lastCurve = 'c'
             continue
 
         case 'Q', 'q', 'T', 't':
@@ -595,16 +595,16 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             }
 
             path!.bezierTo(mapX(state, x), mapY(state, y), mapX(state, c1x), mapY(state, c1y))
-            ctlX = c1x
-            ctlY = c1y
-            curX = x
-            curY = y
-            lastCurve  = 'q'
+            ctlX      = c1x
+            ctlY      = c1y
+            curX      = x
+            curY      = y
+            lastCurve = 'q'
             continue
 
         case 'A', 'a':
-            let rx       = scanNumber(data, &pos)
-            let ry       = scanNumber(data, &pos)
+            let rx = scanNumber(data, &pos)
+            let ry = scanNumber(data, &pos)
             discard scanNumber(data, &pos)     // x-axis rotation, out of contract
             let largeArc = flag(data, &pos)
             let sweepF   = flag(data, &pos)
@@ -713,7 +713,7 @@ private func emitShapeOne(drawing: *Drawing, list: LinePathList, state: *GroupSt
     shape.hasFill = state.hasFill
     if state.hasFill
     {
-        shape.fillColor = state.fillColor
+        shape.fillColor   = state.fillColor
         shape.fillColor.a = cast(u8) Math.round(shape.fillColor.a * state.opacity)
         shape.evenOdd     = state.evenOdd
     }
@@ -721,7 +721,7 @@ private func emitShapeOne(drawing: *Drawing, list: LinePathList, state: *GroupSt
     shape.hasStroke = state.hasStroke
     if state.hasStroke
     {
-        shape.strokeColor = state.strokeColor
+        shape.strokeColor   = state.strokeColor
         shape.strokeColor.a = cast(u8) Math.round(shape.strokeColor.a * state.opacity)
         shape.strokeWidth   = state.strokeWidth * state.sx
         shape.capStyle      = state.capStyle
@@ -821,7 +821,7 @@ private impl Parser
             if .text[.pos] == '/'
             {
                 result.selfClosed = true
-                .pos += 1
+                .pos              += 1
                 continue
             }
 
@@ -856,10 +856,8 @@ private impl Parser
 
             switch name
             {
-            case "d", "x", "y", "width", "height", "rx", "ry", "cx", "cy", "r", "points", "x1", "y1", "x2", "y2", "viewBox", "id", "href", "xlink:href":
-                geo.add(name, value)
-            default:
-                applyAttribute(state, name, value)
+            case "d", "x", "y", "width", "height", "rx", "ry", "cx", "cy", "r", "points", "x1", "y1", "x2", "y2", "viewBox", "id", "href", "xlink:href": geo.add(name, value)
+            default:                                                                                                                                     applyAttribute(state, name, value)
             }
         }
 
@@ -909,8 +907,8 @@ private impl Parser
                 .pos += 1
             let name = cast(string) @mkslice(@dataof(.text) + nameStart, .pos - nameStart)
 
-            var state = parent
-            var geo:  HashTable'(String, String)
+            var state        = parent
+            var geo: HashTable'(String, String)
             let {selfClosed} = .scanAttributes(&state, &geo)
             let firstShape   = .drawing.shapes.count
 
@@ -983,6 +981,7 @@ private impl Parser
                     try .parseContent(state)
 
             case "defs":
+
                 // Definitions are parsed in local coordinates and withheld from
                 // painting; `use` elements instantiate them.
                 var defState: GroupState
@@ -1027,6 +1026,7 @@ private impl Parser
                     try .parseContent(state)
 
             default:
+
                 // Unknown element: ignore it and its whole subtree.
                 if !selfClosed do
                     try .parseContent(state)
@@ -1049,12 +1049,12 @@ private impl Parser
         {
             // Build the transformed copy fully before appending: appending can
             // reallocate the array and invalidate the source borrow.
-            var list: LinePathList
-            var fillColor, strokeColor: Color
+            var list:                        LinePathList
+            var fillColor, strokeColor:      Color
             var hasFill, hasStroke, evenOdd: bool
-            var strokeWidth: f32
-            var capStyle:  LineCapStyle = None
-            var joinStyle: JoinStyle    = Miter
+            var strokeWidth:                 f32
+            var capStyle:                    LineCapStyle = None
+            var joinStyle:                   JoinStyle    = Miter
 
             {
                 let src = &.drawing.shapes[first + i]
@@ -1077,15 +1077,19 @@ private impl Parser
                         {
                         case .Line:
                             path.lineTo(mapX(state, element.position.x + offX), mapY(state, element.position.y + offY))
+
                         case .Bezier1:
                             path.bezierTo(mapX(state, element.position.x + offX), mapY(state, element.position.y + offY), mapX(state, element.p1.x + offX), mapY(state, element.p1.y + offY))
+
                         case .Bezier2:
                             path.bezierTo(mapX(state, element.position.x + offX), mapY(state, element.position.y + offY), mapX(state, element.p1.x + offX), mapY(state, element.p1.y + offY), mapX(state, element.p2.x + offX), mapY(state, element.p2.y + offY))
+
                         case .Arc:
 
                             // An arc stores its center in `position`, its angle
                             // interval in `p1`, and its radii in `p2`.
                             path.arcTo(mapX(state, element.position.x + offX), mapY(state, element.position.y + offY), element.p2.x * state.sx, element.p2.y * state.sy, Math.Angle.fromRadians(element.p1.x), Math.Angle.fromRadians(element.p1.y))
+
                         default:
                             Debug.assert(false, "definition uses an unsupported segment type")
                         }
@@ -1204,7 +1208,7 @@ impl Drawing
         let bw = width * ss
         let bh = height * ss
 
-        var cpu: RenderCpu
+        var cpu:      RenderCpu
         let renderer: IRenderer = &cpu
         cpu.begin(bw, bh)
 

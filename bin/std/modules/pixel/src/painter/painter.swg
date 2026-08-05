@@ -455,6 +455,7 @@ impl Painter
         params.gradientSpread    = brush.gradientSpread
         params.gradientStops     = brush.gradientStops
         params.gradientStopCount = brush.gradientStopCount
+
         // Pixel mode keeps its meaning at every scale: the renderers sharpen it to
         // one device pixel of smoothing per texel edge when the content scale makes
         // the texel-to-pixel mapping fractional.

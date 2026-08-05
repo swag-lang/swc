@@ -45,6 +45,7 @@ var g_App: Application
 
     let appIcon = expect Image.decode(".png", AppIcon)
     g_App.setAppIcon(appIcon)
+    registerAppStrings(&g_App.resources)
 
     let surface = (try g_App.createSurface(0, 0, 10, 10, SurfaceFlags.StandardWindow, surfaceId: "sCapture"))!
     g_App.theme.setSwagDark()

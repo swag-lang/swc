@@ -29,6 +29,15 @@ enum EditorTheme
     Light
 }
 
+// Languages the interface can present. `System` follows the user's Windows language
+// when a translation ships for it; `English` is the built-in reference wording.
+enum EditorLanguage
+{
+    System
+    English
+    French
+}
+
 #[Swag.Using(Properties)]
 struct EditorOptions
 {
@@ -46,6 +55,9 @@ struct EditorOptions
 
     #[Description("sCapture theme")]
     theme: EditorTheme = Dark
+
+    #[Description("Language of the user interface")]
+    language: EditorLanguage = .System
 
     #[Description("Specify the background color of the capture editing window"), Opaque]
     editBackColor: Color = 0xFF2E2E2E

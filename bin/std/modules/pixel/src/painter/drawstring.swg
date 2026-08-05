@@ -163,7 +163,7 @@ public struct TextDrawInfo
     drawFont:    *Font = undefined     // Borrowed bitmap or MSDF font selected for drawing.
     snapPixels:  bool                  // Whether glyph positions snap to the device-pixel grid.
     scale:       f32                   // Scale from reference glyph metrics to logical draw units.
-    deviceScale: f32 = 1               // Physical device pixels per logical draw unit.
+    deviceScale: f32   = 1             // Physical device pixels per logical draw unit.
 
     // Translation of the transform the text is drawn under, when it is translation
     // only. Snapping accounts for it so glyph edges land on the *device* grid after

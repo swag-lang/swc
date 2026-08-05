@@ -238,7 +238,7 @@ impl LibraryWnd
             }
         }
 
-        let line = .listCtrl.createLine("All Captures", .main.icon(.Archive))
+        let line = .listCtrl.createLine(appStrings().ui_AllCaptures, .main.icon(.Archive))
         var item = line.setItem(1, Format.toString("% ", g_Library.files.count))
         item.horzAlign = .Right
 
@@ -546,7 +546,7 @@ impl LibraryWnd
         // Image Size
         with res.zoomBtn = IconButton.create(res.editZoomBar, res.theme().icon(.Search), {0, 0, 120, 32})
         {
-            .name.set("Size")
+            .name.set(appStrings().ui_BarSize)
             .updateFlags(.CenterContent)
             .setTextPosition(.Right)
             .setArrowPosition(.RightDownward)
@@ -568,7 +568,7 @@ impl LibraryWnd
         // Sort
         with res.sortBtn = IconButton.create(res.editZoomBar, res.theme().icon(.Sort), {0, 0, 120, 32})
         {
-            .name.set("Sort")
+            .name.set(appStrings().ui_BarSort)
             .updateFlags(.CenterContent)
             .setTextPosition(.Right)
             .setArrowPosition(.RightDownward)
@@ -592,7 +592,7 @@ impl LibraryWnd
         // Filter
         with res.filterBtn = IconButton.create(res.editZoomBar, res.theme().icon(.Filter), {0, 0, 120, 32})
         {
-            .name.set("Filter")
+            .name.set(appStrings().ui_BarFilter)
             .updateFlags(.CenterContent)
             .setTextPosition(.Right)
             .setArrowPosition(.RightDownward)
@@ -616,7 +616,7 @@ impl LibraryWnd
         // Recycle bin
         with res.trashBtn = IconButton.create(res.editZoomBar, res.theme().icon(.Remove), {0, 0, 120, 32})
         {
-            .name.set("Trash")
+            .name.set(appStrings().ui_BarTrash)
             .updateFlags(.CenterContent)
             .setTextPosition(.Right)
             .setArrowPosition(.RightDownward)
@@ -639,7 +639,7 @@ impl LibraryWnd
         with res.searchEdit = EditBox.create(res.editZoomBar, "", {0, 0, 180, 32}, flags: .ClearButton | .ReleaseFocusOnEnterOrEscape)
         {
             .setForm(.Rectangle)
-            .setPlaceholder("Search")
+            .setPlaceholder(appStrings().ui_Search)
             .sigTextChanged += func|res|(ed) { res.setSearch(ed.text()) }
         }
 

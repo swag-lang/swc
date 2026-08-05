@@ -1,0 +1,189 @@
+# French strings of sCapture. A key omitted here keeps its English value.
+
+ui_MenuFile            Fichier
+ui_MenuEdit            Édition
+ui_MenuView            Affichage
+ui_MenuHelp            Aide
+ui_MenuAlign           Aligner
+ui_MenuArrange         Disposer
+ui_QuickStyles         Styles rapides
+ui_ToolProperties      Propriétés de l'outil
+ui_AllCaptures         Toutes les captures
+ui_Search              Rechercher
+ui_BarSize             Taille
+ui_BarSort             Tri
+ui_BarFilter           Filtre
+ui_BarTrash            Corbeille
+ui_RemoveQuickStyle    Supprimer le style rapide
+ui_SectionEditor       Éditeur
+ui_DetailFile          <b>Fichier</b>
+ui_DetailLinkedImage   <b>Image liée</b>
+ui_DetailImageSize     <b>Taille de l'image</b>
+ui_Width               Largeur
+ui_Height              Hauteur
+ui_KeepRatio           Conserver les proportions
+ui_Frozen              La sélection est figée
+ui_Desktop             Bureau
+ui_MyImages            Mes images
+dlg_TitleDetails       Détails
+dlg_TitleLoadImage     Charger une image
+dlg_TitleSaveAsImage   Enregistrer comme image
+dlg_TitleResizeImage   Redimensionner l'image
+dlg_TitleExpandImage   Étendre l'image
+dlg_TitleExpandCapture Étendre la capture
+dlg_BtnCreate          Créer
+dlg_BtnResize          Redimensionner
+dlg_BtnLoad            Charger
+dlg_BtnSave            Enregistrer
+msg_RemoveAssociation  L'association avec l'image sera supprimée.
+msg_DeleteCaptures     Le ou les fichiers de capture seront supprimés.
+msg_EraseTrash         Toutes les captures de la corbeille seront définitivement effacées.
+msg_EraseSelected      La ou les captures sélectionnées seront définitivement effacées.
+msg_FailedDuplicate    Impossible de dupliquer la capture
+msg_FailedLocateCapture Impossible de localiser le fichier de capture
+msg_FailedLocateLinked Impossible de localiser l'image liée
+msg_FailedLoadImage    Impossible de charger l'image
+msg_FailedSaveFile     Impossible d'enregistrer le fichier
+msg_FailedSaveCapture  Impossible d'enregistrer le fichier de capture : %
+msg_FailedRename       Impossible de renommer la capture
+msg_FailedCopyImage    Impossible de copier l'image
+msg_FailedLoadFile     Impossible de charger le fichier : %
+msg_ShortcutTaken      Impossible d'enregistrer le raccourci global '%'. 
+msg_ShortcutTakenWhy   Une autre application l'utilise probablement déjà !
+msg_AboutBuild         Compilé le %{j}
+act_About              À propos...
+act_ActualSize         Taille réelle
+act_Arrow              Flèche
+act_BigView            Grandes vignettes
+act_Callout            Bulle
+act_CaptureActiveWindow Capturer la fenêtre active
+act_CaptureArea        Capturer une zone
+act_CaptureFullScreen  Capturer l'écran entier
+act_CaptureLastArea    Capturer la dernière zone
+act_CaptureCursor      Capturer le curseur de la souris
+act_ClearInsideImage   Effacer l'intérieur de l'image
+act_CopyImageToClipboard Copier l'image dans le presse-papiers
+act_Copy               Copier
+act_Cut                Couper
+act_Delay1             Délai avant capture (1 seconde)
+act_Delay2             Délai avant capture (2 secondes)
+act_Delay5             Délai avant capture (5 secondes)
+act_Delay9             Délai avant capture (9 secondes)
+act_DelayBefore        Délai avant capture
+act_OneSecond          1 seconde
+act_TwoSeconds         2 secondes
+act_FiveSeconds        5 secondes
+act_NineSeconds        9 secondes
+act_NoDelay            Sans délai
+act_DeletePermanently  Supprimer définitivement
+act_Delete             Supprimer
+act_DeselectAll        Désélectionner tous les objets
+act_FilterNoLinked     Sans image liée
+act_Draw               Dessin
+act_Duplicate          Dupliquer
+act_EditInPlace        Modifier la zone capturée sur place
+act_EmptyRecycleBin    Vider la corbeille
+act_Favorites          Favoris
+act_FileDetails        Détails du fichier
+act_SortFileSize       Taille du fichier
+act_FitToView          Ajuster à la vue
+act_FreezeSelection    Figer la sélection
+act_Group              Grouper
+act_FilterHasLinked    Avec image liée
+act_HideEditorBefore   Masquer l'éditeur avant la capture
+act_HideOutsideBox     Masquer hors du cadre
+act_Highlight          Surligneur
+act_InvertOrder        Inverser l'ordre
+act_InvertSelection    Inverser la sélection
+act_Library            Bibliothèque
+act_Line               Ligne
+act_LocateCaptureFile  Localiser le fichier de capture
+act_LocateLinkedImage  Localiser l'image liée
+act_MediumView         Vignettes moyennes
+act_Minimize           Réduire
+act_MoveBackward       Reculer
+act_MoveForward        Avancer
+act_NewFromClipboard   Nouvelle depuis le presse-papiers
+act_NewImage           Nouvelle image
+act_OldestFirst        Plus anciennes d'abord
+act_OpenImage          Ouvrir une image...
+act_PasteInsideImage   Coller à l'intérieur de l'image
+act_Paste              Coller
+act_PixSel             Pixels
+act_Polygon            Polygone
+act_Quit               Quitter
+act_RecycleBin         Corbeille
+act_Redo               Rétablir
+act_Rename             Renommer...
+act_ResetRotation      Réinitialiser la rotation
+act_RestoreDefaultStyles Rétablir les styles par défaut
+act_RestoreOriginal    Restaurer l'original
+act_Restore            Restaurer
+act_SaveAsImage        Enregistrer comme image...
+act_SaveAsLinkedImage  Enregistrer comme image liée...
+act_SelectAll          Sélectionner tous les objets
+act_SelectSimilar      Sélectionner les objets similaires
+act_Select             Sélection
+act_SendToClipboard    Envoyer la capture vers le presse-papiers
+act_SendToEditor       Envoyer la capture vers l'éditeur
+act_SendToBack         Mettre à l'arrière-plan
+act_SendToFront        Mettre au premier plan
+act_Shape              Forme
+act_ShowEditor         Afficher l'éditeur
+act_Similarity         Similarité
+act_SmallView          Petites vignettes
+act_SmallerFirst       Plus petites d'abord
+act_SnapToForms        Aimanter aux formes
+act_Step               Étape
+act_Text               Texte
+act_UnsavedLinked      Image liée non enregistrée
+act_Undo               Annuler
+act_Ungroup            Dégrouper
+act_UnlinkImage        Délier l'image
+act_UpToDateLinked     Image liée à jour
+act_UpdateLinkedImage  Mettre à jour l'image liée
+act_SortWriteTime      Date de modification
+act_ZoomIn             Zoom avant
+act_ZoomOut            Zoom arrière
+act_AlignLeft          Gauche
+act_AlignCenter        Centre
+act_AlignRight         Droite
+act_AlignTop           Haut
+act_AlignMiddle        Milieu
+act_AlignBottom        Bas
+tip_ShowLibrary        Afficher la bibliothèque de captures
+tip_SmallRecent        Petites vignettes récentes
+tip_MediumRecent       Vignettes récentes moyennes
+tip_BigRecent          Grandes vignettes récentes
+tip_ToolShape          Ajouter des cercles et des rectangles à la capture
+tip_ToolArrow          Ajouter des flèches à la capture
+tip_ToolLine           Ajouter des lignes à la capture
+tip_ToolPolygon        Ajouter des polygones à la capture
+tip_ToolText           Ajouter du texte à la capture
+tip_ToolDraw           Dessiner à main levée sur la capture
+tip_ToolHighlight      Surligner des parties de la capture
+tip_ToolStep           Ajouter des étapes numérotées
+tip_ToolImage          Ajouter des images ou des effets
+tip_ToolPixSel         Sélection de pixels
+tip_ToolCallout        Ajouter des bulles à la capture
+tip_ToolFavorites      Regrouper plusieurs styles rapides au même endroit
+tip_ToolSelect         Sélectionner les formes
+tip_ResetSteps         Réinitialiser le compteur d'étapes à 1
+tip_InpSave            Enregistrer la capture comme fichier image
+tip_InpCopy            Copier l'image dans le presse-papiers
+tip_InpEdit            Ouvrir dans l'éditeur sCapture
+tip_InpClose           Annuler et abandonner la capture
+tip_InpDraw            Dessin à main levée
+tip_InpLine            Tracer une ligne droite
+tip_InpCircle          Tracer un cercle ou une ellipse
+tip_InpRect            Tracer un rectangle ou un carré
+tip_InpArrow           Tracer une flèche
+tip_InpText            Ajouter une annotation texte
+tip_InpMarker          Surligner au marqueur
+flt_Jpg                JPG - Image JPEG (*.jpg)
+msg_ResetStyles        Les styles seront réinitialisés aux valeurs par défaut.
+dlg_TitleRenameCapture Renommer la capture
+dlg_TitleEnterText     Saisir le texte
+ui_Outline             Contour
+act_CaptureMonitor     Capturer l'écran %
+act_CaptureMonitorSize Capturer l'écran % (%x%)

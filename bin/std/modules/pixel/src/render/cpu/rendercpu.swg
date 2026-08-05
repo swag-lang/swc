@@ -30,7 +30,7 @@ struct RenderCpu
 
         worldTransform: Transform2 = Transform2.Identity
         modelTransform: Transform2 = Transform2.Identity
-        contentScale:   f32        = 1                     // Device pixels per unit of the painter stream being drawn.
+        contentScale:   f32        = 1     // Device pixels per unit of the painter stream being drawn.
 
         scissorOn:   bool
         scissorRect: Math.Rectangle

@@ -152,7 +152,7 @@ namespace WinFsp
     func fspFlush(fileSystem: *FspFileSystem, fileContext: #null *void, info: #null *FileInfo)->s32
     {
         var scratch: FileInfo
-        return callbackFlush(mountedVolume(fileSystem), idFromContext(fileContext), info ? info!: &scratch)
+        return callbackFlush(mountedVolume(fileSystem), idFromContext(fileContext), info ? info! : &scratch)
     }
 
     func fspGetFileInfo(fileSystem: *FspFileSystem, fileContext: #null *void, info: *FileInfo)->s32

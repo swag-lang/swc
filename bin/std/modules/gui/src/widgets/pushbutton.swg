@@ -246,4 +246,32 @@ impl PushButton
         .form = form
         .invalidate()
     }
+
+    // Sets the button width from its label, so a translated caption never clips.
+    //
+    // The width covers the label, the optional icon, and the horizontal button padding;
+    // `minWidth` keeps a floor under very short captions. `preferredSize` follows, so
+    // measured layouts agree with docked ones. Call it again after changing the name,
+    // the icon, or the emphasis.
+    mtd fitWidthToLabel(minWidth: f32 = 0)
+    {
+        let metrics = .themeMetrics()
+
+        var format: RichStringFormat
+        format.font = .font()
+        if .form == .Strong do
+            format.fontStyle = .Bold
+
+        .name.compute()
+        Painter.computeLayout({0, 0, 8192, 8192}, &.name, format)
+
+        var width = .name.boundRect.width
+        if .icon.isValid() do
+            width += .icon.sizeX + metrics.iconText_Margin
+        width += 2 * metrics.btnPush_Padding
+
+        .position.width  = Math.max(width, minWidth)
+        .preferredSize.x = .position.width
+        .invalidateLayout()
+    }
 }

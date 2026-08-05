@@ -49,30 +49,30 @@ internal impl IActionUI for ActionProperties
         {
         case ActionProperties.Copy:
             evt.updatedFields |= .Name | .Icon
-            evt.name          = "Copy"
+            evt.name          = strings().prop_Copy
             evt.icon          = theme.icon(.Copy)
 
         case ActionProperties.Paste:
             evt.updatedFields |= .Name | .Icon | .Disabled
-            evt.name          = "Paste"
+            evt.name          = strings().prop_Paste
             evt.icon          = theme.icon(.Paste)
             evt.disabled      = !prop.canChangeItem(item!) or !Clipboard.hasTypedValue(item.type!)
 
         case ActionProperties.ResetDefault:
             evt.updatedFields |= .Name | .Icon | .Disabled
-            evt.name          = "Reset to default"
+            evt.name          = strings().prop_ResetDefault
             evt.icon          = theme.icon(.Undo)
             evt.disabled      = !item.isModified
 
         case ActionProperties.MoveUp:
             evt.updatedFields |= .Name | .Icon | .Disabled
-            evt.name          = "Move Up"
+            evt.name          = strings().prop_MoveUp
             evt.icon          = theme.icon(.SortArrowUp)
             evt.disabled      = !arr.arrElem or !prop.canChangeItem(arr.arrItem!) or prop.arrayElementIndex(arr.arrElem!) == 0
 
         case ActionProperties.MoveDown:
             evt.updatedFields |= .Name | .Icon | .Disabled
-            evt.name          = "Move Down"
+            evt.name          = strings().prop_MoveDown
             evt.icon          = theme.icon(.SortArrowDown)
             var atEnd = true
             if arr.arrElem
@@ -85,13 +85,13 @@ internal impl IActionUI for ActionProperties
 
         case ActionProperties.Remove:
             evt.updatedFields |= .Name | .Icon | .Disabled
-            evt.name          = "Remove"
+            evt.name          = strings().prop_Remove
             evt.icon          = theme.icon(.Remove)
             evt.disabled      = !arr.arrElem or !prop.canChangeItem(arr.arrItem!)
 
         case ActionProperties.RemoveAll:
             evt.updatedFields |= .Name | .Icon | .Disabled
-            evt.name          = "Remove All"
+            evt.name          = strings().prop_RemoveAll
             evt.icon          = theme.icon(.RemoveAll)
             var empty = true
             if arr.arrItem
@@ -141,14 +141,14 @@ internal impl IActionUI for ActionProperties
         case ActionProperties.Remove:
             if !arr.arrElem do
                 break
-            if MessageDlg.confirm(prop.wnd.surface!, "This will remove the element") != Dialog.BtnYes do
+            if MessageDlg.confirm(prop.wnd.surface!, strings().prop_ConfirmRemove) != Dialog.BtnYes do
                 break
             prop.removeArrayValue(arr.arrElem)
 
         case ActionProperties.RemoveAll:
             if !arr.arrItem do
                 break
-            if MessageDlg.confirm(prop.wnd.surface!, "This will remove all elements") != Dialog.BtnYes do
+            if MessageDlg.confirm(prop.wnd.surface!, strings().prop_ConfirmRemoveAll) != Dialog.BtnYes do
                 break
             prop.clearArray(arr.arrItem)
         }

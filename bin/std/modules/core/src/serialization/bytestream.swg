@@ -56,7 +56,7 @@ public impl ByteStream
     #[Swag.NoDoc]
     mtd data()->const [*] u8
     {
-        return .writeBuffer ? .writeBuffer.buffer!: @dataof(.readBuffer)!
+        return .writeBuffer ? .writeBuffer.buffer! : @dataof(.readBuffer)!
     }
 
     // Returns true if the end of the buffer was reached during reading
@@ -120,7 +120,7 @@ public impl ByteStream
 
     // Writes a value of type 'T' in little-endian byte order.
     //
-    // Use this instead of [[writeNative]] for a persisted or transmitted format,
+    // Use this instead of [[Core.ByteStream.writeNative]] for a persisted or transmitted format,
     // so the bytes do not depend on the architecture that produced them.
     mtd(T) writeLittleEndian(value: T)
     {

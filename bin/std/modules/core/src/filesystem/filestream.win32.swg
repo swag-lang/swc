@@ -78,11 +78,10 @@ impl FileStream
         Debug.assert(.isOpen())
         Debug.assert(.canSeek)
 
-        let hFile = cast(HANDLE) .handle
-        var high  = 0'u32
-        let low   = catch GetFileSize(hFile, &high) as err
-        Errors.transformWinErrors(err)
-        return low + (cast(u64) high << 32)
+        var result: LARGE_INTEGER
+        catch GetFileSizeEx(cast(HANDLE) .handle, &result) as err
+        Errors.transformWinErrors(err, .name)
+        return cast(u64) result
     }
 
     // Changes the file length while preserving the current position when it remains in range.
@@ -116,11 +115,10 @@ impl FileStream
         Debug.assert(.isOpen())
         Debug.assert(.canSeek)
 
-        let hFile = cast(HANDLE) .handle
-        var high  = 0
-        let low   = catch SetFilePointer(hFile, 0, &high, FILE_CURRENT) as err
-        Errors.transformWinErrors(err)
-        return low + (cast(u64) high << 32)
+        var result: LARGE_INTEGER
+        catch SetFilePointerEx(cast(HANDLE) .handle, 0, &result, FILE_CURRENT) as err
+        Errors.transformWinErrors(err, .name)
+        return cast(u64) result
     }
 
     // Moves to `offset` bytes from `origin`.
@@ -128,10 +126,6 @@ impl FileStream
     {
         Debug.assert(.isOpen())
         Debug.assert(.canSeek)
-
-        let hFile = cast(HANDLE) .handle
-        let low   = cast(LONG) (offset & 0xFFFFFFFF)
-        var high  = cast(LONG) (offset >> 32)
 
         var seekMode: DWORD
         switch origin
@@ -141,8 +135,11 @@ impl FileStream
         case .End:     seekMode = FILE_END
         }
 
-        discard catch SetFilePointer(hFile, low, &high, seekMode) as err
-        Errors.transformWinErrors(err)
+        // `SetFilePointerEx` takes the whole distance as one signed 64-bit value; the split
+        // `SetFilePointer` form truncates every offset with bit 31 set, so a file of 2 GB or more
+        // cannot be addressed through it at all.
+        catch SetFilePointerEx(cast(HANDLE) .handle, cast(LARGE_INTEGER) offset, null, seekMode) as err
+        Errors.transformWinErrors(err, .name)
     }
 
     // Advances by `count` bytes from the current position.

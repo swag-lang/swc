@@ -68,6 +68,30 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     stream.close()
 }
 
+// Offsets are 64-bit all the way down to the platform call. Everything from 2 GB upward has bit 31
+// set, which a 32-bit signed distance cannot carry, so these are the offsets a container-sized file
+// actually lives at. Seeking never allocates a byte, so the file stays empty throughout.
+#test
+{
+    let fileName = CoreTests.makeFilesystemTestPath("core_file_large_offset.tmp")
+    defer discard catch File.delete(fileName)
+
+    var stream = expect File.open(fileName, File.FileMode.CreateNew, File.FileAccess.ReadWrite, File.FileShare.Read)
+    defer stream.close()
+
+    let offsets: [4] u64 = [0x7FFF_FFFF, 0x8000_0000, 0x1_0000_0000, 0x3_1234_5678]
+    for offset in offsets
+    {
+        expect stream.seek(.Begin, offset)
+        @assert(expect stream.position() == offset)
+    }
+
+    expect stream.seek(.Begin, 0x8000_0000)
+    expect stream.skip(0x8000_0000)
+    @assert(expect stream.position() == 0x1_0000_0000)
+    @assert(expect stream.size() == 0)
+}
+
 #test
 {
     let fileName = CoreTests.makeFilesystemTestPath("core_file_append_create.tmp")

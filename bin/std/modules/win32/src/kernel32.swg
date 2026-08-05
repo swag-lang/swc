@@ -488,7 +488,9 @@ internal namespace Win32Priv
         func CreateFileA(lpFileName: LPCSTR, dwDesiredAccess: DWORD, dwShareMode: DWORD, lpSecurityAttributes: #null *SECURITY_ATTRIBUTES, dwCreationDisposition: DWORD, dwFlagsAndAttributes: DWORD, hTemplateFile: HANDLE)->HANDLE
         func CreateFileW(lpFileName: LPCWSTR, dwDesiredAccess: DWORD, dwShareMode: DWORD, lpSecurityAttributes: #null *SECURITY_ATTRIBUTES, dwCreationDisposition: DWORD, dwFlagsAndAttributes: DWORD, hTemplateFile: HANDLE)->HANDLE
         func SetFilePointer(hFile: HANDLE, lDistanceToMove: LONG, lpDistanceToMoveHigh: PLONG, dwMoveMethod: DWORD)->DWORD
+        func SetFilePointerEx(hFile: HANDLE, liDistanceToMove: LARGE_INTEGER, lpNewFilePointer: #null *LARGE_INTEGER, dwMoveMethod: DWORD)->BOOL
         func GetFileSize(hFile: HANDLE, lpFileSizeHigh: LPDWORD)->DWORD
+        func GetFileSizeEx(hFile: HANDLE, lpFileSize: *LARGE_INTEGER)->BOOL
         func SetEndOfFile(hFile: HANDLE)->BOOL
         func FlushFileBuffers(hFile: HANDLE)->BOOL
 
@@ -926,12 +928,24 @@ internal namespace Win32Priv
         return low
     }
 
+    func SetFilePointerEx(hFile: HANDLE, liDistanceToMove: LARGE_INTEGER, lpNewFilePointer: #null *LARGE_INTEGER, dwMoveMethod: DWORD) fail
+    {
+        if !Win32Priv.SetFilePointerEx(hFile, liDistanceToMove, lpNewFilePointer, dwMoveMethod) do
+            failWinError(GetLastError())
+    }
+
     func GetFileSize(hFile: HANDLE, lpFileSizeHigh: LPDWORD)->DWORD fail
     {
         let low = Win32Priv.GetFileSize(hFile, lpFileSizeHigh)
         if low == INVALID_FILE_SIZE do
             failWinError(GetLastError())
         return low
+    }
+
+    func GetFileSizeEx(hFile: HANDLE, lpFileSize: *LARGE_INTEGER) fail
+    {
+        if !Win32Priv.GetFileSizeEx(hFile, lpFileSize) do
+            failWinError(GetLastError())
     }
 
     func SetEndOfFile(hFile: HANDLE) fail

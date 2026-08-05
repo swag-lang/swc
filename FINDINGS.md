@@ -252,6 +252,27 @@ Use this compact format. Keep observations factual and make the next step action
   enumeration entry through it. A `#[Name("Thickness")]` then becomes a translation key rather
   than a final wording, and the per-row workaround disappears.
 
+### The drawn surface shadow is painted opaque
+
+- Area: std/gui
+- Found while: trying to make a modal dialog stand out from the application under it
+- Observation: `ThemeMetrics.surfaceWnd_ShadowSize` reserves a transparent margin around a surface
+  for `Surface.paintShadow` to cast a soft halo into. The margin is not transparent: the surface
+  clears it with its own ground, so the halo comes out as a hard dark band around every window
+  instead of a shadow, and the window looks like it grew a black frame. The metric is therefore
+  pinned at zero, which also cost the outline until it was untied from it, and left a modal box
+  cut from the same ink as the application with nothing to separate the two.
+- Evidence: set `surfaceWnd_ShadowSize` to 12 and run any app: a solid band appears on all four
+  edges of every surface, of exactly that width, with no gradient and no blending with the desktop.
+  `paintShadow` itself is fine — it draws `surfaceWnd_ShadowLayers` rings of `wnd_Shadow` at
+  growing spreads ([surface.swg:449-478](bin/std/modules/gui/src/surface.swg#L449-L478)).
+- Next step: find out whether the native window is layered at all. `createNative` would need
+  `WS_EX_LAYERED` with per-pixel alpha, or a DWM blur-behind region, for anything drawn in that
+  margin to composite against the desktop; the renderer must also clear it to zero alpha rather
+  than to `wnd_Bk`. If per-pixel alpha is out of reach, delete the drawn shadow and its five
+  metrics instead of leaving a switch that cannot be turned on, and let the platform cast the
+  shadow.
+
 ### A menu bar does not follow a live language switch
 
 - Area: std/gui

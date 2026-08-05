@@ -155,7 +155,7 @@ internal func caughtMessage(err: #null any)->string
 {
     switch err
     {
-    case Error:            return (cast(Error) err).message orelse "sCrypt error."
+    case Error:            return (cast(Error) err).message orelse appStrings().msg_OperationStopped
     case Swag.SystemError: return (cast(Swag.SystemError) err).message orelse appStrings().msg_SystemError
     }
 

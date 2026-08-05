@@ -287,7 +287,10 @@ func drawScene(painter: *Pixel.Painter)
 
 func display()
 {
-    let layout = computeSceneLayout(g_RC.width, g_RC.height)
+    // The render context is physical device pixels; the fit is computed in logical
+    // units, and the painter maps them to device pixels on scaled displays.
+    let scale  = g_Painter.contentScale()
+    let layout = computeSceneLayout(cast(s32) Math.round(g_RC.width / scale), cast(s32) Math.round(g_RC.height / scale))
 
     g_Render.begin(g_RC)
     g_Painter.begin()
@@ -303,10 +306,11 @@ func display()
     g_Render.end()
 }
 
-func onResize(_window: *Env.Window, width, height: s32)
+func onResize(window: *Env.Window, width, height: s32)
 {
     g_RC.width  = width
     g_RC.height = height
+    g_Painter.setContentScale(window.dpiScale())
 }
 
 func nextPage()

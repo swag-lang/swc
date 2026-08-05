@@ -363,3 +363,17 @@ func reverseIndexOfByteAtLeast(value: const &String, minByte: u8)->u64
     @assert(value.contains('\u00E9'rune))
     @assert(value.indexOf('\u00E9'rune) == 3)
 }
+
+// Appending 'String' rvalues must accumulate intact content: the temporary's buffer has
+// to stay alive until 'opAssign' consumed the view produced by the implicit cast.
+#test
+{
+    var accumulator: String
+    for [i] in 32 do
+        accumulator += Format.toString("fragment-%-padded-beyond-the-small-string-size;", i)
+
+    // 32 fragments of 46 bytes plus the decimal digits of 0..31.
+    @assert(accumulator.length == 32 * 46 + 10 + 22 * 2)
+    @assert(accumulator.startsWith("fragment-0-padded"))
+    @assert(accumulator.endsWith("fragment-31-padded-beyond-the-small-string-size;"))
+}

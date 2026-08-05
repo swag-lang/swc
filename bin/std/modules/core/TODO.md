@@ -4,9 +4,9 @@ This file is the roadmap for `std/core`, measured against the standard libraries
 the Go standard library, the .NET base class library, Rust's `std` plus its de-facto crates, the
 Python standard library, and Zig's `std`.
 
-It is not the repository's discovery backlog. Compiler defects, language questions, and leads about
-other modules belong in the root [TODO.md](../../../../TODO.md). This file holds intent about this
-module.
+It is not the repository's discovery backlog. Defects and leads about other subsystems belong in
+[FINDINGS.md](../../../../FINDINGS.md); compiler and language intent belongs in the root
+[TODO.md](../../../../TODO.md). This file holds intent about this module.
 
 Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
 ships; history lives in git, not here.
@@ -171,7 +171,8 @@ should be decided deliberately and early, because entry 1 will force the questio
 non-blocking sockets arrive, and answering it under that pressure is how libraries end up with two
 concurrency models.
 
-Record the language-design half in the root TODO.md, not here.
+The language-design half is entry 4 of the language section in the root [TODO.md](../../../../TODO.md).
+Record decisions there, not here.
 
 ---
 

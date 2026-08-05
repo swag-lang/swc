@@ -6,6 +6,7 @@
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenMoveElision.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -553,6 +554,39 @@ namespace
         return Result::Continue;
     }
 
+    // A call result held in a compiler temporary owns its value: the return transfers
+    // it with 'opPostMove' instead of deep-copying it, and nothing drops the abandoned
+    // temporary. Caller-owned return storages ('retval') stay outside this rule, and so
+    // does a reference-returning call: its address is a borrowed referee, not a temp.
+    bool returnSourceIsOwnedTemporary(CodeGen& codeGen, AstNodeRef exprRef, const CodeGenNodePayload& exprPayload)
+    {
+        if (exprRef.isInvalid() || !exprPayload.isAddress())
+            return false;
+        if (exprPayload.runtimeStorageSym && exprPayload.runtimeStorageSym->hasExtraFlag(SymbolVariableFlagsE::RetVal))
+            return false;
+
+        const AstNodeRef resolvedExprRef = codeGen.viewZero(exprRef).nodeRef();
+        if (resolvedExprRef.isInvalid() || codeGen.node(resolvedExprRef).isNot(AstNodeId::CallExpr))
+            return false;
+
+        const SymbolFunction* calledFunction = singleFunctionFromView(codeGen.sema().viewStored(resolvedExprRef, SemaNodeViewPartE::Symbol));
+        if (!calledFunction)
+            calledFunction = singleFunctionFromView(codeGen.viewSymbol(resolvedExprRef));
+        if (!calledFunction || !calledFunction->returnTypeRef().isValid())
+            return false;
+        return !codeGen.typeMgr().get(calledFunction->returnTypeRef()).isReference();
+    }
+
+    // The local named by 'return exprRef' when the return can transfer its ownership:
+    // the value moves to the caller and this return's deferred actions skip its drop.
+    const SymbolVariable* returnMoveOutSource(CodeGen& codeGen, AstNodeRef exprRef)
+    {
+        const SymbolVariable* symVar = CodeGenMoveElision::directStructVariable(codeGen, exprRef);
+        if (!symVar || !CodeGenMoveElision::canMoveOutAtReturn(codeGen, *symVar))
+            return nullptr;
+        return symVar;
+    }
+
     Result emitFallibleCleanup(CodeGen& codeGen, FallibleHandlerKind kind, AstNodeRef nodeRef, bool failurePath)
     {
         switch (kind)
@@ -622,7 +656,7 @@ namespace
         return true;
     }
 
-    Result emitInlineResultStore(CodeGen& codeGen, const SemaInlinePayload& inlinePayload, AstNodeRef exprRef)
+    Result emitInlineResultStore(CodeGen& codeGen, const SemaInlinePayload& inlinePayload, AstNodeRef exprRef, const SymbolVariable* moveOutVar)
     {
         SWC_ASSERT(inlinePayload.resultVar != nullptr);
         SWC_ASSERT(exprRef.isValid());
@@ -643,18 +677,36 @@ namespace
         if (exprPayload.isAddress() && exprPayload.runtimeStorageSym == &resultVar)
             return Result::Continue;
 
-        return emitPayloadToAddress(codeGen, resultAddr, exprPayload, inlinePayload.returnTypeRef);
+        SWC_RESULT(emitPayloadToAddress(codeGen, resultAddr, exprPayload, inlinePayload.returnTypeRef));
+
+        // The inline result temporary must own its value, like a real return slot: a
+        // moved-out local or an owned call temporary transfers with 'opPostMove'; any
+        // other lifecycle source is deep-copied so the store does not alias a live value.
+        if (codeGen.typeMgr().get(inlinePayload.returnTypeRef).isReference())
+            return Result::Continue;
+        const bool movesOwnership    = moveOutVar != nullptr || returnSourceIsOwnedTemporary(codeGen, exprRef, exprPayload);
+        const auto storeLifecycleKind = movesOwnership ? CodeGen::LifecycleKind::PostMove : CodeGen::LifecycleKind::PostCopy;
+        if (!codeGen.hasLifecycle(inlinePayload.returnTypeRef, storeLifecycleKind))
+            return Result::Continue;
+        return codeGen.emitLifecycle(inlinePayload.returnTypeRef, storeLifecycleKind, resultAddr);
     }
 
     Result emitInlineReturn(CodeGen& codeGen, const SemaInlinePayload& inlinePayload, AstNodeRef exprRef)
     {
+        const SymbolVariable* moveOutVar = nullptr;
         if (inlinePayload.returnTypeRef != codeGen.typeMgr().typeVoid())
         {
             SWC_ASSERT(exprRef.isValid());
-            SWC_RESULT(emitInlineResultStore(codeGen, inlinePayload, exprRef));
+            if (!codeGen.typeMgr().get(inlinePayload.returnTypeRef).isReference())
+                moveOutVar = returnMoveOutSource(codeGen, exprRef);
+            SWC_RESULT(emitInlineResultStore(codeGen, inlinePayload, exprRef, moveOutVar));
         }
 
-        SWC_RESULT(codeGen.emitDeferredActionsUntilScopeRef(inlinePayload.inlineRootRef));
+        const SymbolVariable* previousMoveOutVar = codeGen.returnMoveOutVar();
+        codeGen.setReturnMoveOutVar(moveOutVar);
+        const Result deferredResult = codeGen.emitDeferredActionsUntilScopeRef(inlinePayload.inlineRootRef);
+        codeGen.setReturnMoveOutVar(previousMoveOutVar);
+        SWC_RESULT(deferredResult);
 
         CodeGenFrame& frame     = codeGen.frame();
         MicroLabelRef doneLabel = frame.currentInlineContext().doneLabel;
@@ -889,13 +941,13 @@ namespace
             CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, valueReg, copySize);
     }
 
-    Result emitPostCopyAfterIndirectReturnCopy(CodeGen& codeGen, TypeRef returnTypeRef, const CodeGenNodePayload& exprPayload, MicroReg outputStorageReg)
+    Result emitLifecycleAfterIndirectReturnCopy(CodeGen& codeGen, TypeRef returnTypeRef, const CodeGenNodePayload& exprPayload, MicroReg outputStorageReg, CodeGen::LifecycleKind lifecycleKind)
     {
         if (!exprPayload.isAddress() || exprPayload.reg == outputStorageReg)
             return Result::Continue;
-        if (!codeGen.hasLifecycle(returnTypeRef, CodeGen::LifecycleKind::PostCopy))
+        if (!codeGen.hasLifecycle(returnTypeRef, lifecycleKind))
             return Result::Continue;
-        return codeGen.emitLifecycle(returnTypeRef, CodeGen::LifecycleKind::PostCopy, outputStorageReg);
+        return codeGen.emitLifecycle(returnTypeRef, lifecycleKind, outputStorageReg);
     }
 
     bool isCompilerFunctionDecl(CodeGen& codeGen);
@@ -924,6 +976,21 @@ namespace
         const CodeGenNodePayload& exprPayload                = codeGen.payload(exprRef);
         const bool                delayReturnMaterialization = shouldDelayReturnMaterializationForDeferredActions(codeGen, exprRef, exprPayload);
         const bool                returnValueIsInPlace       = returnValueAlreadyInCallerStorage(codeGen, exprPayload);
+
+        // Returning a dead local or an owned temporary transfers ownership: the copy runs
+        // 'opPostMove' instead of 'opPostCopy', and the moved-out local is not dropped.
+        // Compiler-run persisted returns keep the copy semantics their machinery expects,
+        // and a reference return borrows the local rather than consuming it.
+        const SymbolVariable* moveOutVar = nullptr;
+        auto                  copyLifecycleKind = CodeGen::LifecycleKind::PostCopy;
+        if (!needsPersistentCompilerReturn && !codeGen.typeMgr().get(returnTypeRef).isReference())
+        {
+            moveOutVar = returnMoveOutSource(codeGen, exprRef);
+            if (moveOutVar != nullptr || returnSourceIsOwnedTemporary(codeGen, exprRef, exprPayload))
+                copyLifecycleKind = CodeGen::LifecycleKind::PostMove;
+        }
+
+        const SymbolVariable* previousMoveOutVar = codeGen.returnMoveOutVar();
         if (normalizedRet.isIndirect)
         {
             // Hidden first argument points to caller-provided return storage.
@@ -937,22 +1004,25 @@ namespace
                 if (exprPayload.reg != outputStorageReg && !returnValueIsInPlace)
                 {
                     CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload.reg, normalizedRet.indirectSize);
-                    SWC_RESULT(emitPostCopyAfterIndirectReturnCopy(codeGen, returnTypeRef, exprPayload, outputStorageReg));
+                    SWC_RESULT(emitLifecycleAfterIndirectReturnCopy(codeGen, returnTypeRef, exprPayload, outputStorageReg, copyLifecycleKind));
                 }
             }
             else if (!delayReturnMaterialization)
             {
                 emitIndirectReturnValuePayload(codeGen, outputStorageReg, exprPayload.reg, normalizedRet.indirectSize);
-                SWC_RESULT(emitPostCopyAfterIndirectReturnCopy(codeGen, returnTypeRef, exprPayload, outputStorageReg));
+                SWC_RESULT(emitLifecycleAfterIndirectReturnCopy(codeGen, returnTypeRef, exprPayload, outputStorageReg, copyLifecycleKind));
             }
 
-            SWC_RESULT(codeGen.emitDeferredActionsForReturn());
+            codeGen.setReturnMoveOutVar(moveOutVar);
+            const Result deferredResult = codeGen.emitDeferredActionsForReturn();
+            codeGen.setReturnMoveOutVar(previousMoveOutVar);
+            SWC_RESULT(deferredResult);
             if (delayReturnMaterialization && needsPersistentCompilerReturn)
                 CodeGenFunctionHelpers::emitPersistCompilerRunValue(codeGen, returnTypeRef, outputStorageReg, exprPayload.reg, codeGen.localStackBaseReg(), codeGen.localStackFrameSize());
             else if (delayReturnMaterialization && exprPayload.isAddress() && exprPayload.reg != outputStorageReg && !returnValueIsInPlace)
             {
                 CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload.reg, normalizedRet.indirectSize);
-                SWC_RESULT(emitPostCopyAfterIndirectReturnCopy(codeGen, returnTypeRef, exprPayload, outputStorageReg));
+                SWC_RESULT(emitLifecycleAfterIndirectReturnCopy(codeGen, returnTypeRef, exprPayload, outputStorageReg, copyLifecycleKind));
             }
             builder.emitLoadRegReg(callConv.intReturn, outputStorageReg, MicroOpBits::B64);
         }
@@ -981,7 +1051,10 @@ namespace
                     builder.emitLoadRegReg(returnValueReg, exprPayload.reg, retBits);
             }
 
-            SWC_RESULT(codeGen.emitDeferredActionsForReturn());
+            codeGen.setReturnMoveOutVar(moveOutVar);
+            const Result deferredResult = codeGen.emitDeferredActionsForReturn();
+            codeGen.setReturnMoveOutVar(previousMoveOutVar);
+            SWC_RESULT(deferredResult);
             if (delayReturnMaterialization)
             {
                 if (returnTypeInfo.isReference())
@@ -1161,12 +1234,12 @@ namespace
                     else if (exprPayload->isAddress())
                     {
                         CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload->reg, normalizedRet.indirectSize);
-                        SWC_RESULT(emitPostCopyAfterIndirectReturnCopy(codeGen, returnTypeRef, *exprPayload, outputStorageReg));
+                        SWC_RESULT(emitLifecycleAfterIndirectReturnCopy(codeGen, returnTypeRef, *exprPayload, outputStorageReg, CodeGen::LifecycleKind::PostCopy));
                     }
                     else
                     {
                         emitIndirectReturnValuePayload(codeGen, outputStorageReg, exprPayload->reg, normalizedRet.indirectSize);
-                        SWC_RESULT(emitPostCopyAfterIndirectReturnCopy(codeGen, returnTypeRef, *exprPayload, outputStorageReg));
+                        SWC_RESULT(emitLifecycleAfterIndirectReturnCopy(codeGen, returnTypeRef, *exprPayload, outputStorageReg, CodeGen::LifecycleKind::PostCopy));
                     }
                 }
                 else
@@ -1200,12 +1273,12 @@ namespace
             else if (exprPayload->isAddress())
             {
                 CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload->reg, normalizedRet.indirectSize);
-                SWC_RESULT(emitPostCopyAfterIndirectReturnCopy(codeGen, returnTypeRef, *exprPayload, outputStorageReg));
+                SWC_RESULT(emitLifecycleAfterIndirectReturnCopy(codeGen, returnTypeRef, *exprPayload, outputStorageReg, CodeGen::LifecycleKind::PostCopy));
             }
             else
             {
                 emitIndirectReturnValuePayload(codeGen, outputStorageReg, exprPayload->reg, normalizedRet.indirectSize);
-                SWC_RESULT(emitPostCopyAfterIndirectReturnCopy(codeGen, returnTypeRef, *exprPayload, outputStorageReg));
+                SWC_RESULT(emitLifecycleAfterIndirectReturnCopy(codeGen, returnTypeRef, *exprPayload, outputStorageReg, CodeGen::LifecycleKind::PostCopy));
             }
 
             builder.emitLoadRegReg(callConv.intReturn, outputStorageReg, MicroOpBits::B64);

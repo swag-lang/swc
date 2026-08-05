@@ -333,7 +333,7 @@ func makeTrackedReturn()->ReturnedTracked
     return value
 }
 
-func returnCopyInfo()->LifecycleInfo
+func returnMoveInfo()->LifecycleInfo
 {
     resetLifecycleHooks()
     let value = makeTrackedReturn()
@@ -529,8 +529,11 @@ func semaTest017()
 
 func semaTest018()
 {
-    const V = #run returnCopyInfo()
-    #assert(V.dst == 14)
+    // 'return local' moves out: 'opPostMove' shapes the returned value (4 + 20). The
+    // hook counters are not asserted here: the argument-less nested call is folded on
+    // its own, so its counter effects are invisible to this '#run'.
+    const V = #run returnMoveInfo()
+    #assert(V.dst == 24)
     #assert(V.src == 0)
 }
 

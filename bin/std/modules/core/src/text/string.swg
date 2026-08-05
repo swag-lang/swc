@@ -149,15 +149,6 @@ impl String
             #error("invalid operator '" ++ op.symbol() ++ "'")
     }
 
-    mtd(op: Swag.Operator) opAssign(value: const [..] string)
-    {
-        #static if op == .AddAssign do
-            for v in value do
-                .append(v)
-        else do
-            #error("invalid operator '" ++ op.symbol() ++ "'")
-    }
-
     mtd(op: Swag.Operator) opAssign(value: const [..] rune)
     {
         #static if op == .AddAssign do

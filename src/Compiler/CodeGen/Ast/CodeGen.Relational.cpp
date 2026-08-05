@@ -302,31 +302,19 @@ namespace
         CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
         resultPayload.reg                 = codeGen.nextVirtualIntRegister();
 
-        const MicroLabelRef samePtrLabel   = builder.createLabel();
-        const MicroLabelRef checkNullLabel = builder.createLabel();
+        const MicroLabelRef sameTypeLabel  = builder.createLabel();
+        const MicroLabelRef otherTypeLabel = builder.createLabel();
         const MicroLabelRef doneLabel      = builder.createLabel();
-        builder.emitCmpRegReg(leftPtrReg, rightPtrReg, MicroOpBits::B64);
-        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, samePtrLabel);
-        builder.emitCmpRegImm(leftPtrReg, ApInt(0, 64), MicroOpBits::B64);
-        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, checkNullLabel);
-        builder.emitCmpRegImm(rightPtrReg, ApInt(0, 64), MicroOpBits::B64);
-        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, checkNullLabel);
+        CodeGenCompareHelpers::emitTypeInfoEqualJump(codeGen, leftPtrReg, rightPtrReg, sameTypeLabel, otherTypeLabel);
 
-        const MicroReg leftCrcReg  = codeGen.nextVirtualIntRegister();
-        const MicroReg rightCrcReg = codeGen.nextVirtualIntRegister();
-        builder.emitLoadRegMem(leftCrcReg, leftPtrReg, offsetof(Runtime::TypeInfo, crc), MicroOpBits::B32);
-        builder.emitLoadRegMem(rightCrcReg, rightPtrReg, offsetof(Runtime::TypeInfo, crc), MicroOpBits::B32);
-        builder.emitCmpRegReg(leftCrcReg, rightCrcReg, MicroOpBits::B32);
-        builder.emitSetCondReg(resultPayload.reg, tokId == TokenId::SymEqualEqual ? MicroCond::Equal : MicroCond::NotEqual);
-        builder.emitLoadZeroExtendRegReg(resultPayload.reg, resultPayload.reg, MicroOpBits::B32, MicroOpBits::B8);
+        const bool wantEqual = tokId == TokenId::SymEqualEqual;
+
+        builder.placeLabel(sameTypeLabel);
+        builder.emitLoadRegImm(resultPayload.reg, ApInt(wantEqual ? 1 : 0, 32), MicroOpBits::B32);
         builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
 
-        builder.placeLabel(samePtrLabel);
-        builder.emitLoadRegImm(resultPayload.reg, ApInt(tokId == TokenId::SymEqualEqual ? 1 : 0, 32), MicroOpBits::B32);
-        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
-
-        builder.placeLabel(checkNullLabel);
-        builder.emitLoadRegImm(resultPayload.reg, ApInt(tokId == TokenId::SymEqualEqual ? 0 : 1, 32), MicroOpBits::B32);
+        builder.placeLabel(otherTypeLabel);
+        builder.emitLoadRegImm(resultPayload.reg, ApInt(wantEqual ? 0 : 1, 32), MicroOpBits::B32);
 
         builder.placeLabel(doneLabel);
         return Result::Continue;

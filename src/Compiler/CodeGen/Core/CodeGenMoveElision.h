@@ -22,6 +22,13 @@ namespace CodeGenMoveElision
     // True when 'symVar' is provably dead after the move whose resolved source node is
     // 'resolvedSourceRef': the reset and the scope-exit drop can be elided.
     bool canElideMoveSource(CodeGen& codeGen, const SymbolVariable& symVar, AstNodeRef resolvedSourceRef);
+
+    // True when 'return symVar' can transfer ownership instead of copying: the return
+    // ends the control path, so the only later observers of the local are defer bodies
+    // and captured addresses, both covered by the escape analysis. Lexically later uses
+    // sit on other control paths and read the untouched source bits, so neither the
+    // last-use nor the post-domination rule of 'canElideMoveSource' applies here.
+    bool canMoveOutAtReturn(CodeGen& codeGen, const SymbolVariable& symVar);
 }
 
 SWC_END_NAMESPACE();

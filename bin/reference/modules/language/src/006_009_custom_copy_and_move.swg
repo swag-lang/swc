@@ -65,6 +65,12 @@ its scope-exit drop: 'opDrop' is then NOT called on the reset value. A program c
 therefore not rely on counting the drops of fully consumed locals. Any use after the
 move (or any use the compiler cannot prove harmless) keeps the documented
 reset-then-drop behavior.
+
+Returning a named local moves it out the same way: the value is transferred to the
+caller, 'opPostMove' restores its invariants in the caller's storage, and the local's
+own drop is elided — the resource is released exactly once, by the caller. Only a
+local still observed after the return — by a 'defer' body or a closure — cannot move:
+the return then deep-copies through 'opPostCopy' and the local drops normally.
 */
 
 /**

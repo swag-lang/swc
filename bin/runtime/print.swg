@@ -194,23 +194,35 @@ func @print(params: ...)
             continue
         }
 
-        switch ko
+        // Dispatch on the native kind, not on type identity: a qualified payload such as
+        // '#null string' carries its own typeinfo, so matching the bare type would send it to
+        // the '?' fallback and silently drop the value it was asked to print.
+        if ko.kind == .Native
         {
-        case s8:     __printS64(cast(s8) v)
-        case s16:    __printS64(cast(s16) v)
-        case s32:    __printS64(cast(s32) v)
-        case s64:    __printS64(cast(s64) v)
-        case u8:     __printU64(cast(u8) v)
-        case u16:    __printU64(cast(u16) v)
-        case u32:    __printU64(cast(u32) v)
-        case rune:   __printU64(cast(rune) v)
-        case u64:    __printU64(cast(u64) v)
-        case f32:    __printF64(cast(f32) v)
-        case f64:    __printF64(cast(f64) v)
-        case string: __printString(cast(string) v)
-        case bool:   __printString(cast(bool) v ? "true" : "false")
-        default:     __printString("?")
+            let native = cast(const *TypeInfoNative) ko
+            let data   = @dataof(v)
+            switch native.nativeKind
+            {
+            case .S8:     __printS64(dref cast(const *s8) data)
+            case .S16:    __printS64(dref cast(const *s16) data)
+            case .S32:    __printS64(dref cast(const *s32) data)
+            case .S64:    __printS64(dref cast(const *s64) data)
+            case .U8:     __printU64(dref cast(const *u8) data)
+            case .U16:    __printU64(dref cast(const *u16) data)
+            case .U32:    __printU64(dref cast(const *u32) data)
+            case .U64:    __printU64(dref cast(const *u64) data)
+            case .Rune:   __printU64(cast(u64) dref cast(const *rune) data)
+            case .F32:    __printF64(dref cast(const *f32) data)
+            case .F64:    __printF64(dref cast(const *f64) data)
+            case .String: __printString(dref cast(const *string) data)
+            case .Bool:   __printString(dref cast(const *bool) data ? "true" : "false")
+            default:      __printString("?")
+            }
+
+            continue
         }
+
+        __printString("?")
     }
 }
 

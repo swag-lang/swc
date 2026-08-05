@@ -4,10 +4,11 @@ This file is the product roadmap for sCrypt: what the application must gain to s
 mature disk-encryption tool. It is scoped to this module and to the `bin/std` primitives sCrypt
 depends on.
 
-It is not the repository's discovery backlog. Compiler, language, and general standard-library
-leads belong in the root [TODO.md](../../../../TODO.md), which already carries the sCrypt
-working-set entry. Keep the two separate: this file holds intent about the product, the root file
-holds evidence about the platform.
+It is not the repository's discovery backlog. Platform leads and defects belong in
+[FINDINGS.md](../../../../FINDINGS.md), which already carries the sCrypt working-set entry;
+compiler and language intent belongs in the root [TODO.md](../../../../TODO.md). Keep them
+separate: this file holds intent about the product, `FINDINGS.md` holds evidence about the
+platform.
 
 Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
 ships; history lives in git, not here.
@@ -118,7 +119,7 @@ must not be reimplemented locally.
 - Fix: a bounded LRU cache of decrypted blocks, held in locked memory and wiped at unmount;
   coalescing of physically contiguous blocks into single I/O operations; and batched block
   decryption parallelized with `Jobs`. This is where the five-to-tenfold throughput factor is.
-- Related: the working-set entry in the root TODO.md. A bounded cache is also the natural place to
+- Related: the working-set entry in `FINDINGS.md`. A bounded cache is also the natural place to
   put an explicit memory budget, which that investigation will need.
 
 ### 7. Keys live in pageable memory

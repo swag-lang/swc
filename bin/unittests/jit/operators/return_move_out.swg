@@ -1,0 +1,287 @@
+#global private
+
+// 'return local' transfers ownership out of the function: the value is bit-copied into
+// the caller's storage, 'opPostMove' restores its invariants there, and the local's
+// scope-exit drop is elided, so the resource is released exactly once, by the caller.
+// Only a local observed by a 'defer' body or a closure cannot move: the return then
+// deep-copies ('opPostCopy') and the local drops normally.
+//
+// 'Tracked' carries padding so it returns through the indirect (sret) path, which is
+// where the copy and its lifecycle hook run. 'SmallTracked' fits a register: that
+// direct path transfers the bits without any hook and still elides the local's drop.
+//
+// Every maker reads the mutable 'g_seed' so the calls cannot be constant-folded: the
+// hook counters must be observable at runtime.
+
+var DropCount:     u32 = 0
+var DropTrace:     s64 = 0
+var PostCopyCount: u32 = 0
+var PostMoveCount: u32 = 0
+var g_seed:        s32 = 0
+var g_sink:        s32 = 0
+var g_cond             = true
+
+func resetHooks(seed: s32)
+{
+    DropCount     = 0
+    DropTrace     = 0
+    PostCopyCount = 0
+    PostMoveCount = 0
+    g_seed        = seed
+}
+
+struct Tracked
+{
+    value: s32 = 5
+    a:     s64
+    b:     s64
+}
+
+impl Tracked
+{
+    mtd opDrop()
+    {
+        DropCount += 1
+        DropTrace = DropTrace * 100 + cast(s64) .value
+    }
+
+    mtd opPostCopy()
+    {
+        PostCopyCount += 1
+    }
+
+    mtd opPostMove()
+    {
+        PostMoveCount += 1
+    }
+}
+
+struct SmallTracked
+{
+    value: s32 = 5
+}
+
+impl SmallTracked
+{
+    mtd opDrop()
+    {
+        DropCount += 1
+        DropTrace = DropTrace * 100 + cast(s64) .value
+    }
+}
+
+// A releasable resource without 'opPostCopy': the shape that used to dangle, because
+// the old return copied the bits and still dropped the local.
+struct Resource
+{
+    id:  s32
+    pad: [3] s64
+}
+
+impl Resource
+{
+    mtd opDrop()
+    {
+        DropCount += 1
+        DropTrace = DropTrace * 100 + cast(s64) .id
+    }
+}
+
+func fillResource(res: *Resource, id: s32)
+{
+    res.id = id
+}
+
+func makeResource()->Resource
+{
+    var result: Resource
+    fillResource(&result, g_seed)
+    return result
+}
+
+func makeTracked()->Tracked
+{
+    var result: Tracked
+    result.value = g_seed
+    return result
+}
+
+func forwardTracked()->Tracked
+{
+    return makeTracked()
+}
+
+func makeTrackedBranch()->Tracked
+{
+    var result: Tracked
+    result.value = g_seed
+    if g_cond do
+        return result
+    g_sink = result.value
+    return result
+}
+
+func makeTrackedDeferred()->Tracked
+{
+    var result: Tracked
+    result.value = g_seed
+    defer g_sink = result.value
+    return result
+}
+
+func makeSmallTracked()->SmallTracked
+{
+    var result: SmallTracked
+    result.value = g_seed
+    return result
+}
+
+#[Swag.Inline]
+func makeTrackedInline()->Tracked
+{
+    var result: Tracked
+    result.value = g_seed
+    return result
+}
+
+var g_Template = Tracked{41, 0, 0}
+
+#[Swag.Inline]
+func readTemplateInline()->Tracked
+{
+    return g_Template
+}
+
+// A drop-only local moves out: released exactly once, by the caller, with the bits intact.
+#test
+{
+    resetHooks(7)
+    {
+        var x = makeResource()
+        @assert(x.id == 7)
+    }
+    @assert(DropCount == 1)
+    @assert(DropTrace == 7)
+}
+
+// A full-lifecycle local runs 'opPostMove' on the way out, never 'opPostCopy'.
+#test
+{
+    resetHooks(9)
+    {
+        var x = makeTracked()
+        @assert(x.value == 9)
+    }
+    @assert(PostMoveCount == 1)
+    @assert(PostCopyCount == 0)
+    @assert(DropCount == 1)
+}
+
+// Forwarding an owned call result moves it again instead of deep-copying it.
+#test
+{
+    resetHooks(11)
+    {
+        var x = forwardTracked()
+        @assert(x.value == 11)
+    }
+    @assert(PostCopyCount == 0)
+    @assert(DropCount == 1)
+}
+
+// Each return site moves independently, branch or not.
+#test
+{
+    resetHooks(13)
+    g_cond = true
+    {
+        var x = makeTrackedBranch()
+        @assert(x.value == 13)
+    }
+    @assert(PostCopyCount == 0)
+    @assert(DropCount == 1)
+
+    resetHooks(17)
+    g_cond = false
+    {
+        var x = makeTrackedBranch()
+        @assert(x.value == 17)
+    }
+    @assert(g_sink == 17)
+    @assert(PostCopyCount == 0)
+    @assert(DropCount == 1)
+}
+
+// A 'defer' still observes the local after the return: the value is copied out and the
+// local keeps its normal scope-exit drop.
+#test
+{
+    resetHooks(19)
+    g_sink = 0
+    {
+        var x = makeTrackedDeferred()
+        @assert(x.value == 19)
+    }
+    @assert(g_sink == 19)
+    @assert(PostCopyCount == 1)
+    @assert(DropCount == 2)
+}
+
+// A register-returned struct transfers its bits without any hook; the local's drop is
+// still elided, so ownership stays single.
+#test
+{
+    resetHooks(21)
+    {
+        var x = makeSmallTracked()
+        @assert(x.value == 21)
+    }
+    @assert(DropCount == 1)
+    @assert(DropTrace == 21)
+}
+
+// An inlined return moves the local out: 'opPostMove' runs into the result slot and
+// the local's drop is elided. When the expansion is a real call (debug configs skip
+// inlining) the consumer copy disappears, so only the ownership invariants are pinned:
+// one move out, at most one consumer copy, one drop.
+#test
+{
+    resetHooks(23)
+    {
+        var x = makeTrackedInline()
+        @assert(x.value == 23)
+    }
+    @assert(PostMoveCount == 1)
+    @assert(PostCopyCount <= 1)
+    @assert(DropCount == 1)
+}
+
+// An inlined return of a live lvalue deep-copies it: the source stays untouched, no
+// move runs, and only the declared variable is dropped. The number of copies depends
+// on whether the expansion is a real call (debug configs skip inlining).
+#test
+{
+    resetHooks(0)
+    {
+        var x = readTemplateInline()
+        @assert(x.value == 41)
+        x.value = 1
+    }
+    @assert(g_Template.value == 41)
+    @assert(PostCopyCount >= 1)
+    @assert(PostMoveCount == 0)
+    @assert(DropCount == 1)
+    @assert(DropTrace == 1)
+}
+
+// Ownership stays one-to-one across repeated calls.
+#test
+{
+    resetHooks(3)
+    for 8
+    {
+        var x = makeResource()
+        g_sink += x.id
+    }
+    @assert(DropCount == 8)
+}

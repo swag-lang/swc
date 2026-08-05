@@ -356,7 +356,7 @@ func makeTrackedReturn()->ReturnedTracked
     return value
 }
 
-func returnCopyInfo()->LifecycleInfo
+func returnMoveInfo()->LifecycleInfo
 {
     resetLifecycleHooks()
     let value = makeTrackedReturn()
@@ -563,8 +563,11 @@ func returnCopyInfo()->LifecycleInfo
 
 #test
 {
-    let v = returnCopyInfo()
-    @assert(v.dst == 14)
+    // 'return local' moves out: 'opPostMove' shapes the returned value (4 + 20). The
+    // hook counters are not asserted here: the argument-less call is constant-folded,
+    // so they land in the compile-time image. See 'return_move_out.swg' for the counts.
+    let v = returnMoveInfo()
+    @assert(v.dst == 24)
     @assert(v.src == 0)
 }
 

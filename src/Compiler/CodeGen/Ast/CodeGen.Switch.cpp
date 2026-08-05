@@ -51,6 +51,7 @@ namespace
         SymbolFunction*                                          dynamicIsFunction   = nullptr;
         bool                                                     hasExpression       = false;
         bool                                                     useStringCompare    = false;
+        bool                                                     useTypeInfoCompare  = false;
         bool                                                     useUnsignedCond     = false;
         bool                                                     dynamicStructSwitch = false;
         bool                                                     isAnySwitch         = false;
@@ -266,11 +267,27 @@ namespace
         return Result::Continue;
     }
 
+    // 'case T' matches the same types as 'value == T', so a type switch compares runtime
+    // identity instead of the descriptor addresses a plain register compare would look at.
+    Result emitTypeInfoCompareEqualsJump(CodeGen& codeGen, const SwitchStmtCodeGenPayload& switchState, const CodeGenNodePayload& casePayload, MicroLabelRef successLabel)
+    {
+        MicroReg caseReg = MicroReg::invalid();
+        loadOperandToRegister(caseReg, codeGen, casePayload, switchState.compareTypeRef, switchState.compareOpBits);
+
+        MicroBuilder&       builder        = codeGen.builder();
+        const MicroLabelRef otherTypeLabel = builder.createLabel();
+        CodeGenCompareHelpers::emitTypeInfoEqualJump(codeGen, switchState.switchValueReg, caseReg, successLabel, otherTypeLabel);
+        builder.placeLabel(otherTypeLabel);
+        return Result::Continue;
+    }
+
     Result emitSwitchValueEqualsJump(CodeGen& codeGen, const SwitchStmtCodeGenPayload& switchState, AstNodeRef caseExprRef, MicroLabelRef successLabel)
     {
         const CodeGenNodePayload& casePayload = codeGen.payload(caseExprRef);
         if (switchState.useStringCompare)
             return emitStringCompareEqualsJump(codeGen, switchState, casePayload, successLabel);
+        if (switchState.useTypeInfoCompare)
+            return emitTypeInfoCompareEqualsJump(codeGen, switchState, casePayload, successLabel);
 
         MicroReg caseReg = MicroReg::invalid();
         loadOperandToRegister(caseReg, codeGen, casePayload, switchState.compareTypeRef, switchState.compareOpBits);
@@ -510,6 +527,7 @@ Result AstSwitchStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& c
         switchState->switchValueReg     = switchValueReg;
         switchState->compareOpBits      = compareBits;
         switchState->useStringCompare   = useStringCompare;
+        switchState->useTypeInfoCompare = compareType.isAnyTypeInfo(codeGen.ctx());
         switchState->useUnsignedCond    = compareType.usesUnsignedConditions();
         if (useStringCompare)
             switchState->stringCmpFunction = runtimeStringCompareFunction(codeGen);

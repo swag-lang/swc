@@ -4,10 +4,10 @@ This file is the roadmap for `std/gui`, measured against the desktop toolkits it
 Qt, GTK4, Avalonia, Slint, Flutter, and — for the "we render every pixel ourselves" family —
 Dear ImGui and egui.
 
-It is not the repository's discovery backlog. Compiler defects, language questions, and leads about
-other modules belong in the root [TODO.md](../../../../TODO.md), which already carries the open DPI
-entry covering the icon sources and the `sCapture` in-place editing overlay. This file holds intent
-about this module.
+It is not the repository's discovery backlog. Defects and leads about other subsystems belong in
+[FINDINGS.md](../../../../FINDINGS.md), which already carries the open DPI entry covering the icon
+sources and the `sCapture` in-place editing overlay; compiler and language intent belongs in the
+root [TODO.md](../../../../TODO.md). This file holds intent about this module.
 
 Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
 ships; history lives in git, not here.
@@ -137,7 +137,7 @@ printing through a raster path is a poor substitute.
 
 ## Out of scope
 
-**A declarative markup language.** Qt has QML, Slint and Flutter have their own. The root TODO.md
+**A declarative markup language.** Qt has QML, Slint and Flutter have their own. `FINDINGS.md`
 already records the investigation that killed `FormCtrl`: a data-described UI is only worth it when
 the caller never needs the controls back, and every consumer immediately recovered typed pointers
 by string identifier. Do not revisit this without solving the compile-time half first — that entry

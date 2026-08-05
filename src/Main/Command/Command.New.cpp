@@ -23,7 +23,7 @@ namespace
     constexpr std::string_view MODULE_SOURCE = R"(#run
 {
     let itf = @compiler
-    let cfg = notnull itf.getBuildCfg()
+    let cfg = itf.getBuildCfg()!
     cfg.backendKind = .Executable
 }
 )";

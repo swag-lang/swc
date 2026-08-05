@@ -175,6 +175,29 @@ const SwitchPointerValues = [11, 22, 33]
     #assert(V3 == 4)
 }
 
+// A nullable form is the same type as the plain one, so 'case' selects it just like '=='
+// does. Each qualified form owns a distinct descriptor, so matching descriptor addresses
+// instead of type identity would silently fall through to 'default'.
+#test
+{
+    alias NullString = #null string
+
+    func switchNullableTypeInfo(v: typeinfo)->s32
+    {
+        switch v
+        {
+        case string:
+            return 1
+        default:
+            return 2
+        }
+    }
+
+    const TN: typeinfo = NullString
+    const VN           = #run switchNullableTypeInfo(TN)
+    #assert(VN == 1)
+}
+
 #test
 {
     func switchNoExpr(a: s32, b: s32)->s32

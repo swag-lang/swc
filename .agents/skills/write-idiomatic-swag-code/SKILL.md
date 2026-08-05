@@ -11,9 +11,9 @@ forces awkward callers instead of standardizing the workaround in tests and exam
 Use every Swag programming task as a probe of the whole platform. When clean Swag code is blocked
 or made needlessly awkward, investigate whether `bin/std`, the compiler, an optimization, or the
 language design should change. Fix the underlying issue when it belongs in the current task;
-otherwise capture the finding with evidence and a next step in the root
-[TODO.md](../../../TODO.md), following `modify-swag-codebase`. Do not silently teach a workaround
-as the idiom.
+otherwise capture the finding with evidence and a next step in
+[FINDINGS.md](../../../FINDINGS.md), following `modify-swag-codebase`. Do not silently teach a
+workaround as the idiom.
 
 ## Review Before Editing
 

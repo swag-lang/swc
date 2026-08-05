@@ -23,16 +23,30 @@ local workaround merely because the original request exposed it indirectly.
   impossible to express cleanly.
 - Fix a discovered issue in the current change when it is sufficiently understood, relevant to
   the task, and can be validated without making the change unsafe or incoherent.
-- Record the issue in the root [TODO.md](../../../TODO.md) when it is uncertain, requires broader
+- Record the issue in [FINDINGS.md](../../../FINDINGS.md) when it is uncertain, requires broader
   design work, or should be handled separately. Include evidence and a concrete next investigation
   step; do not record vague wishes.
-- Search `TODO.md` before adding an entry. Enrich an existing item instead of creating a duplicate.
-- `TODO.md` holds only what is *not done*. When a task resolves, invalidates, or completes the
-  investigation of an entry, delete that entry (or cut it down to the part that genuinely remains);
-  never keep done or investigated material as a record — history lives in git, not in the roadmap.
+- Search `FINDINGS.md` before adding an entry. Enrich an existing item instead of creating a
+  duplicate.
 
-The roadmap is a discovery backlog, not a promise that every item will be implemented and not a
-substitute for fixing a root cause that is already safe and in scope.
+The discovery backlog is not a promise that every item will be implemented, and not a substitute
+for fixing a root cause that is already safe and in scope.
+
+## Keep Findings And Roadmaps Apart
+
+Two kinds of file, two different jobs. Write to the right one.
+
+- `FINDINGS.md` (repository root) holds **evidence**: something observed, with a reproduction and a
+  next investigation step. One file for the whole repository.
+- `TODO.md` holds **intent**: what a unit should become, and in which order. The root
+  [TODO.md](../../../TODO.md) covers the compiler, its `doc` and `format` commands, and the
+  language; `bin/std/modules/<module>/TODO.md` and `bin/apps/modules/<app>/TODO.md` cover their own
+  module. Entries are ordered by decreasing value and measured against the competition.
+
+Both hold only what is *not done*. When a task resolves, invalidates, or completes the
+investigation of an entry, delete that entry — or cut it down to the part that genuinely remains.
+Never keep done or investigated material as a record: history lives in git. A finding that
+graduates into a plan moves to the matching `TODO.md` and disappears from `FINDINGS.md`.
 
 ## Establish The Applicable Rules
 

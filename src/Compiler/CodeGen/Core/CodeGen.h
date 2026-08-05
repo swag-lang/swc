@@ -106,11 +106,14 @@ struct CodeGenDeferScope
 // Per-local facts gathered by the move-elision pre-walk (see CodeGenMoveElision): the
 // lexically-last use, the block owning the declaration, and whether any use can leak
 // the local's address (which forbids eliding its reset and scope-exit drop).
+// 'deferEscaped' only tracks uses inside defer bodies and closures: those are the only
+// observers that can still run after a return moved the local out.
 struct CodeGenMoveElisionVar
 {
     AstNodeRef lastUseRef   = AstNodeRef::invalid();
     AstNodeRef declBlockRef = AstNodeRef::invalid();
     bool       escaped      = false;
+    bool       deferEscaped = false;
 };
 
 struct CodeGenDeferredEmissionCursor
@@ -433,6 +436,11 @@ public:
     void                                                              markImplicitDropElided(const SymbolVariable& symVar) { elidedImplicitDrops_.insert(&symVar); }
     bool                                                              isImplicitDropElided(const SymbolVariable& symVar) const { return elidedImplicitDrops_.contains(&symVar); }
 
+    // Local moved out by the return being emitted: its drop is skipped for this return's
+    // deferred actions only, so drops emitted for other control paths are unaffected.
+    const SymbolVariable* returnMoveOutVar() const { return returnMoveOutVar_; }
+    void                  setReturnMoveOutVar(const SymbolVariable* symVar) { returnMoveOutVar_ = symVar; }
+
     void                              clearGvtdScratchLayout();
     void                              setGvtdScratchLayout(uint32_t offset, uint32_t size, std::span<const CodeGenGvtdEntry> entries);
     bool                              hasGvtdScratchLayout() const { return gvtdScratchSize_ != 0; }
@@ -475,6 +483,7 @@ private:
     std::unordered_map<const SymbolVariable*, VariablePayloadState>  variablePayloads_;
     std::unordered_map<const SymbolVariable*, CodeGenMoveElisionVar> moveElisionVars_;
     std::unordered_set<const SymbolVariable*>                        elidedImplicitDrops_;
+    const SymbolVariable*                                            returnMoveOutVar_    = nullptr;
     bool                                                             moveElisionAnalyzed_ = false;
     SymbolFunction*                                                  function_            = nullptr;
     MicroBuilder*                                                    builder_             = nullptr;

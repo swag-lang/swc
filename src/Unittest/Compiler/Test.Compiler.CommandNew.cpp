@@ -129,7 +129,7 @@ SWC_TEST_END()
 SWC_FILESYSTEM_TEST_BEGIN(Compiler_NewCommandCreatesAndExtendsWorkspace)
 {
     static constexpr std::string_view EXPECTED_MAIN   = "#main\n{\n    @print(\"Hello, world!\\n\")\n}\n";
-    static constexpr std::string_view EXPECTED_MODULE = "#run\n{\n    let itf = @compiler\n    let cfg = notnull itf.getBuildCfg()\n    cfg.backendKind = .Executable\n}\n";
+    static constexpr std::string_view EXPECTED_MODULE = "#run\n{\n    let itf = @compiler\n    let cfg = itf.getBuildCfg()!\n    cfg.backendKind = .Executable\n}\n";
 
     NewCommandTestDirectory testDir("CreatesAndExtendsWorkspace");
     const fs::path          workspacePath = testDir.path() / "workspace";

@@ -468,6 +468,7 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         variablePayloads_.clear();
         moveElisionVars_.clear();
         elidedImplicitDrops_.clear();
+        returnMoveOutVar_    = nullptr;
         moveElisionAnalyzed_ = false;
         clearGvtdScratchLayout();
         frames_.clear();
@@ -1182,6 +1183,11 @@ Result CodeGen::emitDeferredAction(const CodeGenDeferredAction& action)
 
             // The local was consumed by a '#move' that proved it dead: no drop.
             if (isImplicitDropElided(*action.variable))
+                return Result::Continue;
+
+            // The local was moved out by the return currently being emitted: ownership
+            // now lives in the return value, so this path must not drop it.
+            if (action.variable == returnMoveOutVar_)
                 return Result::Continue;
 
             CodeGenNodePayload variablePayload;

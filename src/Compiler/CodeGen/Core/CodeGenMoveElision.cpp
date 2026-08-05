@@ -156,7 +156,12 @@ namespace
 
         CodeGenMoveElisionVar& info = codeGen.moveElisionVars()[&symVar];
         info.lastUseRef             = walker.currentNodeRef();
-        if (escapeDepth > 0 || useEscapes(codeGen, walker))
+        if (escapeDepth > 0)
+        {
+            info.escaped      = true;
+            info.deferEscaped = true;
+        }
+        else if (useEscapes(codeGen, walker))
             info.escaped = true;
     }
 
@@ -255,18 +260,25 @@ const SymbolVariable* CodeGenMoveElision::directStructVariable(CodeGen& codeGen,
     return &symVar;
 }
 
+namespace
+{
+    bool isElidableLocal(CodeGen& codeGen, const SymbolVariable& symVar)
+    {
+        if (!symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal) ||
+            symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
+            symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal) ||
+            symVar.hasGlobalStorage() ||
+            symVar.isClosureCapture())
+            return false;
+        return !CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, symVar);
+    }
+}
+
 bool CodeGenMoveElision::canElideMoveSource(CodeGen& codeGen, const SymbolVariable& symVar, const AstNodeRef resolvedSourceRef)
 {
     if (resolvedSourceRef.isInvalid() || codeGen.inDeferredEmission())
         return false;
-
-    if (!symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal) ||
-        symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
-        symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal) ||
-        symVar.hasGlobalStorage() ||
-        symVar.isClosureCapture())
-        return false;
-    if (CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, symVar))
+    if (!isElidableLocal(codeGen, symVar))
         return false;
 
     if (!codeGen.moveElisionAnalyzed())
@@ -295,6 +307,29 @@ bool CodeGenMoveElision::canElideMoveSource(CodeGen& codeGen, const SymbolVariab
         if (!isPlainBlock(parent->id()))
             return false;
     }
+}
+
+bool CodeGenMoveElision::canMoveOutAtReturn(CodeGen& codeGen, const SymbolVariable& symVar)
+{
+    if (codeGen.inDeferredEmission())
+        return false;
+    if (!isElidableLocal(codeGen, symVar))
+        return false;
+
+    if (!codeGen.moveElisionAnalyzed())
+        buildAnalysis(codeGen);
+
+    const auto& vars = codeGen.moveElisionVars();
+    const auto  it   = vars.find(&symVar);
+    if (it == vars.end())
+        return false;
+
+    // Address escapes through calls or stored pointers do not block a return move-out:
+    // after the return, such observers would have seen a dropped local anyway, and a
+    // relocatable type restores its invariants through 'opPostMove'. Only defer bodies
+    // and closures can still legitimately run against the local afterwards.
+    const CodeGenMoveElisionVar& info = it->second;
+    return !info.deferEscaped && info.declBlockRef.isValid();
 }
 
 SWC_END_NAMESPACE();

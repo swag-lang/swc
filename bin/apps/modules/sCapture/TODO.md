@@ -4,10 +4,11 @@ This file is the product roadmap for sCapture, measured against the capture tool
 with: Snagit, ShareX, and the Windows Snipping Tool that now ships with video and text
 recognition. It is scoped to this module and to the `bin/std` facilities it depends on.
 
-It is not the repository's discovery backlog. Compiler, language, and general standard-library
-leads belong in the root [TODO.md](../../../../TODO.md), which already carries the open DPI entry
-covering this module's in-place editing overlay. Keep the two separate: this file holds intent
-about the product, the root file holds evidence about the platform.
+It is not the repository's discovery backlog. Platform leads and defects belong in
+[FINDINGS.md](../../../../FINDINGS.md), which already carries the open DPI entry covering this
+module's in-place editing overlay; compiler and language intent belongs in the root
+[TODO.md](../../../../TODO.md). Keep them separate: this file holds intent about the product,
+`FINDINGS.md` holds evidence about the platform.
 
 Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
 ships; history lives in git, not here.
@@ -130,7 +131,7 @@ monitor cannot be captured individually. The command list should be generated fr
 
 ### 7. Verify the in-place overlay on scaled and mixed-DPI monitors
 
-- Owned by the root TODO.md DPI entry; recorded here as a cross-reference, not duplicated. The grab
+- Owned by the `FINDINGS.md` DPI entry; recorded here as a cross-reference, not duplicated. The grab
   flow, bars, and 1:1 display were adapted for per-monitor DPI, but the gizmo and form editing
   interactions inside the in-place overlay have not been checked on a scaled or mixed-DPI setup.
 - This is the highest-traffic path in the application. It should not stay unverified.

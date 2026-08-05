@@ -4,9 +4,9 @@ This file is the roadmap for `std/pixel`, measured against the 2D graphics libra
 with: Skia, Cairo, Blend2D, NanoVG, ThorVG, and Direct2D — plus stb_image and libvips on the
 imaging side.
 
-It is not the repository's discovery backlog. Compiler defects, language questions, and leads about
-other modules belong in the root [TODO.md](../../../../TODO.md). This file holds intent about this
-module.
+It is not the repository's discovery backlog. Defects and leads about other subsystems belong in
+[FINDINGS.md](../../../../FINDINGS.md); compiler and language intent belongs in the root
+[TODO.md](../../../../TODO.md). This file holds intent about this module.
 
 Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
 ships; history lives in git, not here.

@@ -1279,8 +1279,10 @@ impl ThemeColors
         const View        = 0xFF15151A
         const Panel       = 0xFF202026
         const Raised      = 0xFF2A2A32
-        const NeutralHot  = 0xFF33333C
-        const Pressed     = 0xFF3B3B46
+        // Hover has to be seen from across the surface without shouting. A step of nine
+        // levels over the raised ground it usually sits on read as nothing at all.
+        const NeutralHot  = 0xFF41414E
+        const Pressed     = 0xFF52525F
         const Line        = 0xFF3D3D48
         const ControlLine = 0xFF6B6B77
         const Text        = 0xFFE9E9ED

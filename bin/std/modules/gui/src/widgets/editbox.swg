@@ -468,7 +468,11 @@ private impl EditBox
             .sigCancelled.call(me)
             if .flags.has(.ReleaseFocusOnEnterOrEscape) do
                 .topView().setFocus()
-            return true
+
+            // Escape cancels the edit in progress. With nothing typed there is no edit to
+            // cancel, and the key belongs to the window around the box: swallowed here, a
+            // dialog whose field holds the focus could not be dismissed with it at all.
+            return .textStorage != .originalText
 
         case .Left:
             if ctrl do

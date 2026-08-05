@@ -8,7 +8,12 @@ func testSetupMainWindow(host: *Testing.HeadlessHost)->*MainWindow
 {
     host.setup(1100, 790)
     host.bindApplication(&g_App)
+
+    // The window resolves its application through its surface, so that is the one a language
+    // switch travels through and the one that has to be able to find the translations. The
+    // module global gets them too, because the code under test reads `g_App` directly.
     registerAppStrings(&g_App.resources)
+    registerAppStrings(&host.app.resources)
 
     let result = MainWindow.create(&host.root)
     host.surfaceWnd.view = result
@@ -41,7 +46,7 @@ func testSetupMainWindow(host: *Testing.HeadlessHost)->*MainWindow
     for &one in languages()
     {
         expect g_App.setLanguage(one.tag.toString())
-        window.applyLayout()
+        host.notify(.LanguageChanged)
         Testing.assertContentFits(window)
     }
 }
@@ -54,16 +59,19 @@ func testSetupMainWindow(host: *Testing.HeadlessHost)->*MainWindow
     defer host.shutdown()
     defer discard catch g_App.setLanguage(ReferenceLanguage)
 
+    // Entry zero follows the account, so the registered languages start at one: one is the
+    // reference language and two is French. Going through the picker is what the user does, and
+    // it is what carries the change all the way to the labels.
     let englishWidth = window.unmountButton.position.width
-    expect g_App.setLanguage("fr")
-    window.applyLayout()
+    window.chooseLanguage(2)
+    host.notify(.LanguageChanged)
 
     @assert(window.unmountButton.text() == "Démonter")
     @assert(window.createButton.text() == "Créer le coffre chiffré")
     @assert(window.unmountButton.position.width != englishWidth)
 
-    expect g_App.setLanguage(ReferenceLanguage)
-    window.applyLayout()
+    window.chooseLanguage(1)
+    host.notify(.LanguageChanged)
     @assert(window.unmountButton.text() == "Unmount")
     @assert(window.unmountButton.position.width == englishWidth)
 }
@@ -82,6 +90,7 @@ func testSetupMainWindow(host: *Testing.HeadlessHost)->*MainWindow
     @assert(window.languageChoice.selectedIndex == 1)
 
     window.chooseLanguage(2)
+    host.notify(.LanguageChanged)
     @assert(window.language == "fr")
     @assert(activeLanguage() == "fr")
     @assert(window.languageChoice.selectedIndex == 2)

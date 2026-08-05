@@ -165,7 +165,9 @@ impl Dialog
 
         with let btn = PushButton.create(me.buttonBar, str, {}, id)
         {
-            .setForm(isDefault ? .Default : .Strong)
+            // One dominant action per box. Created `Strong`, every button of the bar was
+            // filled and the bar said nothing about which one Enter would press.
+            .setForm(isDefault ? .Default : .Normal)
 
             // The theme width stays the floor so short captions keep the familiar button
             // size, while a longer translated caption widens its button instead of clipping.

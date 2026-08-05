@@ -68,7 +68,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     f.gui.pump()
 
     @assert(f.gui.autoHandled)
-    @assert(f.gui.app.surfaces.count == 0)
+    @assert(f.gui.openedSurfaceCount() == 0)
 
     let capture       = f.main.getCapture()!
     let generatedPath = capture.file
@@ -138,7 +138,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     f.gui.pump()
 
     @assert(f.gui.autoHandled)
-    @assert(f.gui.app.surfaces.count == 0)
+    @assert(f.gui.openedSurfaceCount() == 0)
 
     let capture       = f.main.getCapture()!
     let generatedPath = capture.file
@@ -208,7 +208,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     f.gui.pump()
 
     @assert(f.gui.autoHandled)
-    @assert(f.gui.app.surfaces.count == 0)
+    @assert(f.gui.openedSurfaceCount() == 0)
     @assert(File.exists(pngPath))
 
     let saved = expect Image.load(pngPath)
@@ -244,7 +244,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     f.gui.pump()
 
     @assert(f.gui.autoHandled)
-    @assert(f.gui.app.surfaces.count == 0)
+    @assert(f.gui.openedSurfaceCount() == 0)
 
     let saved = expect Image.load(pngPath)
     @assert(saved.isValid())
@@ -304,7 +304,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     f.gui.pump()
 
     @assert(f.gui.autoHandled)
-    @assert(f.gui.app.surfaces.count == 0)
+    @assert(f.gui.openedSurfaceCount() == 0)
     @assert(File.exists(linkedPath))
     @assert(testSamePath(f.capture.linkedImage, linkedPath))
     @assert(f.capture.linkedUpToDate)
@@ -380,7 +380,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     f.gui.pump()
 
     @assert(f.gui.autoHandled)
-    @assert(f.gui.app.surfaces.count == 0)
+    @assert(f.gui.openedSurfaceCount() == 0)
     @assert(File.exists(linkedPath))
     @assert(f.capture.linkedUpToDate)
 
@@ -422,7 +422,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     f.gui.pump()
 
     @assert(f.gui.autoHandled)
-    @assert(f.gui.app.surfaces.count == 0)
+    @assert(f.gui.openedSurfaceCount() == 0)
     @assert(f.capture.linkedImage.isEmpty())
     @assert(!f.capture.linkedUpToDate)
 
@@ -488,7 +488,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     f.gui.pump()
 
     @assert(f.gui.autoHandled)
-    @assert(f.gui.app.surfaces.count == 0)
+    @assert(f.gui.openedSurfaceCount() == 0)
     @assert(!File.exists(capturePath))
     @assert(g_Library.files.count == 0)
 }
@@ -510,5 +510,5 @@ func testPrepareRecentLibrary(main: *MainWnd)
     f.gui.pump()
 
     @assert(f.gui.autoHandled)
-    @assert(f.gui.app.surfaces.count == 0)
+    @assert(f.gui.openedSurfaceCount() == 0)
 }

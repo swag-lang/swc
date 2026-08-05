@@ -5,6 +5,11 @@ using Core, Serialization
 // Callback invoked with the application that is processing a frame.
 alias FrameCallback = func||(*Application)
 
+// The two colors every Swag product mark is cut from: one glyph over one ground. A drawn
+// caption keys the ground out with them, so it needs no second copy of the icon.
+const MarkInk     = 0xFF0B0B0D
+const MarkVoltage = 0xFFF7F900
+
 // Owns GUI resources, top-level surfaces, input state, and the event loop.
 struct Application
 {
@@ -406,25 +411,6 @@ private impl Application
             s.wnd.updateCommandState()
     }
 
-    // Takes part in surface-wide work a surface this application did not create.
-    //
-    // Command state and the language and theme notifications all reach a window tree by walking
-    // the surface list, so a surface that is not on it never hears about any of them. A caller
-    // that builds its own surface — a test host standing in for a native window — attaches it
-    // here. Ownership stays with the caller, which must call [[Gui.Application.detachSurface]]
-    // before the surface goes away.
-    mtd attachSurface(surface: *Surface)
-    {
-        .surfaces.addOnce(surface)
-    }
-
-    // Takes a surface attached by [[Gui.Application.attachSurface]] back off the list, without
-    // destroying it.
-    mtd detachSurface(surface: *Surface)
-    {
-        .surfaces.remove(surface)
-    }
-
     // Remove and destroy the given surface
     // To cleanly close a surface, you should call surface.destroy()
     mtd destroySurface(surface: *Surface)
@@ -817,7 +803,15 @@ impl Application
 
         if !.appIconLoaded
         {
-            .appIconList.set(.renderer.addImage(.appIcon))
+            // The mark ships on its ink ground, which is what the taskbar and the file
+            // explorer need. A drawn caption already has a ground of its own, so the tile
+            // would read as a black square around the glyph: the ground is keyed out and the
+            // glyph keeps its own color. The two colors are the ones the chart declares for
+            // every product mark, so the derivation follows the same rule as the art.
+            var mark = .appIcon.convertedTo(.RGBA8)
+            mark.keyOutGround(Pixel.Color.fromArgb(MarkInk), Pixel.Color.fromArgb(MarkVoltage))
+
+            .appIconList.set(.renderer.addImage(mark))
             .appIconLoaded = true
         }
 

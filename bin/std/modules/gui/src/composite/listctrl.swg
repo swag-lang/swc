@@ -632,8 +632,7 @@ private impl ListView
             painter.fillRect(rect, colorSel)
             if colors.activeRail.a
             {
-                var rail = Math.Rectangle{rect.x, rect.y, metrics.activeRail_Size, rect.height}
-                rail.inflate(0, -Math.min(metrics.activeRail_Margin, rail.height / 3))
+                let rail = Math.Rectangle{rect.x, rect.y, metrics.activeRail_Size, rect.height}
                 painter.fillRect(rail, colors.activeRail)
             }
         }

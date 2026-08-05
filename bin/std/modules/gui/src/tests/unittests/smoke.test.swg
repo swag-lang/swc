@@ -134,12 +134,12 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     @assert(!background.isDisabled)
     @assert(disabledBackground.isDisabled)
     host.pump()
-    @assert(host.app.surfaces.count == 2)
+    @assert(host.openedSurfaceCount() == 2)
 
     background.destroy()
     disabledBackground.destroy()
     host.pump()
-    @assert(host.app.surfaces.count == 0)
+    @assert(host.openedSurfaceCount() == 0)
 }
 
 #test

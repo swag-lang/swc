@@ -192,8 +192,7 @@ internal impl IWnd for PopupListView
             theme.drawSubRect(painter, labelPos, &rects.selectionBox_Bk, colorSel)
             if isHot and colors.activeRail.a
             {
-                var rail = Math.Rectangle{labelPos.x, labelPos.y, metrics.activeRail_Size, labelPos.height}
-                rail.inflate(0, -Math.min(metrics.activeRail_Margin, rail.height / 3))
+                let rail = Math.Rectangle{labelPos.x, labelPos.y, metrics.activeRail_Size, labelPos.height}
                 painter.fillRect(rail, colors.activeRail)
             }
 

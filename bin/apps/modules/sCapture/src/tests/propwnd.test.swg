@@ -86,12 +86,12 @@ func testItemIndex(prop: *PropWnd, name: string)->u64
     // Group separator above the scale/rotate/opacity/shadow block
     @assert(testFindItem(prop, "Effects") != null)
 
-    // The x/y and w/h rows close the grid, below their own separator
+    // The x/y and w/h rows close the grid. They carry no category separator of their own: each
+    // one is named for what it holds, and a heading above them would only repeat it.
     let n = prop.grid.items.count
     @assert(n >= 3)
-    @assert(prop.grid.items[n - 1]!.typeValue.name == "size")
-    @assert(prop.grid.items[n - 2]!.typeValue.name == "position")
-    @assert(prop.grid.items[n - 3]!.typeValue.name == "Position")
+    @assert(prop.grid.items[n - 1]!.typeValue.name == appStrings().ui_PropSize)
+    @assert(prop.grid.items[n - 2]!.typeValue.name == appStrings().ui_PropPosition)
 
     // Rows span the whole panel width (they used to be clamped to editorWidth)
     @assert(border.line.position.width > 250)
@@ -120,7 +120,7 @@ func testItemIndex(prop: *PropWnd, name: string)->u64
     prop.selectionHasChanged()
     f.gui.pump()
 
-    let posItem = testFindItem(prop, "position")!
+    let posItem = testFindItem(prop, appStrings().ui_PropPosition)!
 
     // Scroll all the way down (content is taller than the prop pane)
     prop.grid.scrollWnd.setScrollPos(0, 10000)
@@ -164,8 +164,8 @@ func testItemIndex(prop: *PropWnd, name: string)->u64
     prop.selectionHasChanged()
     f.gui.pump()
 
-    let posItem  = testFindItem(prop, "position")!
-    let sizeItem = testFindItem(prop, "size")!
+    let posItem  = testFindItem(prop, appStrings().ui_PropPosition)!
+    let sizeItem = testFindItem(prop, appStrings().ui_PropSize)!
 
     // Bring the trailing rows into view before clicking them
     prop.grid.scrollWnd.setScrollPos(0, 10000)
@@ -206,8 +206,8 @@ func testItemIndex(prop: *PropWnd, name: string)->u64
     let effects = testFindItem(prop, "Effects")
     @assert(effects != null and effects.line.isVisible())
 
-    @assert(testFindItem(prop, "position") == null)
-    @assert(testFindItem(prop, "size") == null)
+    @assert(testFindItem(prop, appStrings().ui_PropPosition) == null)
+    @assert(testFindItem(prop, appStrings().ui_PropSize) == null)
 }
 
 // A pixel-selection shape hides the whole style content, separators included (no

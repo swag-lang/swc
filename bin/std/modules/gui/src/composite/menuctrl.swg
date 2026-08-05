@@ -230,8 +230,7 @@ public impl IWnd for MenuCtrl
             theme.drawSubRect(painter, backPos, &rects.menuPopup_HotBk, colorSel)
             if isHot and colors.activeRail.a
             {
-                var rail = Math.Rectangle{backPos.x, backPos.y, metrics.activeRail_Size, backPos.height}
-                rail.inflate(0, -Math.min(metrics.activeRail_Margin, rail.height / 3))
+                let rail = Math.Rectangle{backPos.x, backPos.y, metrics.activeRail_Size, backPos.height}
                 painter.fillRect(rail, colors.activeRail)
             }
 

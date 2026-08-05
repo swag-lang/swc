@@ -17,7 +17,7 @@ const CommandRowHeight = 36.0     // The single command row under the accent rai
 const ReadoutWidth     = 88.0     // One machine readout of the command row.
 const VerbsWidth       = 156.0    // The command group: the primary action and the library.
 const ReadoutsWidth    = 224.0    // The readout group: the capture size and the zoom.
-const RightBarWidth    = 240.0    // The tool column on the right.
+const RightBarWidth    = 288.0    // The tool column on the right.
 
 // Enums
 enum EditMode { Shape, Arrow, Line, Polygon, Text, Favorites, Draw, Highlight, Selection, Step, Image, PixSel, Callout }

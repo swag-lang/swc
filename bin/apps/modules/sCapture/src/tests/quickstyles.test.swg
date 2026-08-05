@@ -190,7 +190,7 @@ using Swag, Core
     f.gui.pump()
 
     @assert(f.gui.autoHandled)
-    @assert(f.gui.app.surfaces.count == 0)
+    @assert(f.gui.openedSurfaceCount() == 0)
     @assert(quick.currentStyle == &quick.qsShape)
     @assert(quick.qsShape.forms.count == defaultCount)
 
@@ -224,7 +224,7 @@ using Swag, Core
     f.gui.clickWnd(quick.layout.children[0], Input.MouseButton.Right)
 
     @assert(f.gui.autoHandled)
-    @assert(f.gui.app.surfaces.count == 0)
+    @assert(f.gui.openedSurfaceCount() == 0)
     @assert(quick.qsShape.forms.count == defaultCount)
 
     quick.destroy()

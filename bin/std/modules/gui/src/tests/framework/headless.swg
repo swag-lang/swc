@@ -39,8 +39,7 @@ struct HeadlessHost
     root:       Wnd             // Root associated with this value.
     #[Swag.Late]
     theme:        *Theme          // Theme associated with this value.
-    boundApp:     #null *Application  // Application `bindApplication` registered this surface with.
-    mousePos:     Math.Point          // Mouse pos associated with this value.
+    mousePos:     Math.Point      // Mouse pos associated with this value.
     closed:       bool            // Closed associated with this value.
     commandCount: u32             // Number of command entries.
     lastCommand:  #null WndId     // Last command associated with this value.
@@ -112,18 +111,52 @@ impl HeadlessHost
         .surface.wnd              = &.surfaceWnd
         .surfaceWnd.view          = root
 
-        // The host's own application drives everything the code under test reaches through its
-        // surface — `Wnd.app()` resolves here — so this surface has to be on its list too, or
-        // a language or theme change asked for from inside the tree notifies nobody.
-        .app.attachSurface(&.surface)
+    }
+
+    // Delivers an application-wide notification to the hosted tree.
+    //
+    // The host builds its surface by hand and keeps it off the application's surface list on
+    // purpose: that list is walked by the frame and modal loops, which drive native windows. The
+    // broadcasts that walk it — [[Gui.Application.setLanguage]] and the theme change — therefore
+    // reach nothing here, so a test that needs the tree to react to one asks for it directly.
+    mtd notify(kind: NotifyEvent.Kind)
+    {
+        func send(wnd: *Wnd, kind: NotifyEvent.Kind)
+        {
+            wnd.invalidate()
+            for c in wnd.children do
+                send(c, kind)
+
+            var evt = NotifyEvent{}
+            evt.accepted = false
+            evt.kind     = kind
+            wnd.sendEvent(&evt)
+        }
+
+        // Walk the surface, the way the application's own broadcast does: a view installed with
+        // `Surface.setView` is reparented under it and is no longer a child of the host's root.
+        // The root is still walked when nothing adopted it, which is the plain-tree case.
+        send(&.surfaceWnd, kind)
+        if !.root.parent do
+            send(&.root, kind)
+    }
+
+    // Number of surfaces open besides the host's own.
+    //
+    // This is what a test means when it checks that a dialog closed. The host's surface is on the
+    // application's list from `setup` to `shutdown`, exactly like a real one, so the raw count
+    // never returns to zero while the host is alive.
+    mtd openedSurfaceCount()->u64
+    {
+        var result = 0'u64
+        for s in .app.surfaces where s != &.surface do
+            result += 1
+        return result
     }
 
     // Destroys the hosted window tree, drains queued work, and restores the system clipboard backend.
     mtd shutdown()
     {
-        if .boundApp do
-            .boundApp!.detachSurface(&.surface)
-        .app.detachSurface(&.surface)
         if !.root.isPendingDestroy do
             .root.destroy()
         .pump()
@@ -140,14 +173,6 @@ impl HeadlessHost
         app.theme = .theme
 
         app.style.share(&.app.style)
-
-        // An application-wide broadcast — a language or a theme change — reaches the window tree
-        // by walking `surfaces`. A host that never joins that list turns every such notification
-        // into a no-op, so the window under test keeps the wording and the colors it was built
-        // with and the test measures nothing. Joining the list is what makes a headless surface
-        // stand in for a real one; `shutdown` takes it back out.
-        .boundApp = app
-        app.attachSurface(&.surface)
     }
 
     private mtd installAutoHook()

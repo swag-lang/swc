@@ -798,7 +798,7 @@ impl Painter
             {
                 line.start  = startLine
                 line.end    = cast(s32) idx
-                line.height = Math.max(defaultLineHeight, Math.max(line.measure.height, line.fontAscent - line.fontDescent))
+                line.height = Math.max(defaultLineHeight, line.fontAscent - line.fontDescent)
                 if format.minLineHeight > 0 do
                     line.height = Math.max(line.height, format.minLineHeight)
                 line.hasEol = true
@@ -840,7 +840,7 @@ impl Painter
                             line.end -= 1
                         }
 
-                        line.height = Math.max(defaultLineHeight, Math.max(line.measure.height, line.fontAscent - line.fontDescent))
+                        line.height = Math.max(defaultLineHeight, line.fontAscent - line.fontDescent)
                         if format.minLineHeight > 0 do
                             line.height = Math.max(line.height, format.minLineHeight)
                         lines.add(line)
@@ -895,7 +895,7 @@ impl Painter
         {
             line.start  = startLine
             line.end    = cast(s32) text.chunks.count
-            line.height = Math.max(defaultLineHeight, Math.max(line.measure.height, line.fontAscent - line.fontDescent))
+            line.height = Math.max(defaultLineHeight, line.fontAscent - line.fontDescent)
             if format.minLineHeight > 0 do
                 line.height = Math.max(line.height, format.minLineHeight)
             lines.add(line)

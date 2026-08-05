@@ -49,11 +49,12 @@ impl VaultCard
         // also needs less room than the theme reserves for a label at body size.
         with var options: FormLayoutOptions
         {
-            .labelHeight = 18
-            .rowSpacing  = 14
-            .helpHeight  = 40
-            .labelFont   = panel.theme().createDefaultFont(12, .Bold)
-            .labelFlags  = .SecondaryText
+            .labelHeight  = 18
+            .labelSpacing = 6
+            .rowSpacing   = 22
+            .helpHeight   = 40
+            .labelFont    = panel.theme().createDefaultFont(12, .Bold)
+            .labelFlags   = .SecondaryText
         }
 
         let form = FormLayoutCtrl.create(body, options)

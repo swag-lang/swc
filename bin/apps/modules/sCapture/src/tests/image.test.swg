@@ -117,7 +117,7 @@ using Swag, Core
     f.main.sendCommandEvent(ActionImage.ExpandCapture)
     f.gui.pump()
 
-    @assert(f.gui.app.surfaces.count == 0)
+    @assert(f.gui.openedSurfaceCount() == 0)
     @assert(modalFrames == 1)
     @assert(didClick)
     @assert(f.capture.width == 42)

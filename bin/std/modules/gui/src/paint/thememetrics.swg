@@ -18,7 +18,7 @@ struct ThemeMetrics
     wnd_BigCaptionCY:          f32 = 42       // Theme measurement used for wnd big caption cy.
     wnd_SmallCaptionCY:        f32 = 32       // Theme measurement used for wnd small caption cy.
     wnd_CaptionMarginTitle:    f32 = 14       // Theme measurement used for wnd caption margin title.
-    wnd_CaptionIconSize:       f32 = 16       // Side of the mark a drawn caption shows beside its title.
+    wnd_CaptionIconSize:       f32 = 20       // Side of the mark a drawn caption shows beside its title.
     wnd_CaptionButtonMargin:   f32 = 5        // Theme measurement used for wnd caption button margin.
     wnd_CaptionButtonAspect:   f32 = 1.35     // Theme measurement used for wnd caption button aspect.
     wnd_CaptionButtonMinWidth: f32 = 44       // Theme measurement used for wnd caption button min width.
@@ -34,7 +34,7 @@ struct ThemeMetrics
     btnPush_Width:      f32 = 100     // Theme measurement used for btn push width.
     btnPush_Height:     f32 = 30      // Theme measurement used for btn push height.
 
-    iconText_Margin: f32 = 4     // Theme measurement used for icon text margin.
+    iconText_Margin: f32 = 8     // Air between a glyph and the word it leads. Air is the first separator, so it is generous.
 
     btnCheck_Size:    f32 = 24     // Theme measurement used for btn check size.
     btnCheck_Padding: f32 = 4      // Theme measurement used for btn check padding.
@@ -135,11 +135,13 @@ struct ThemeMetrics
     separator_AccentSize:   f32 = 4     // Theme measurement used for separator accent size.
 
     // The rule that marks the active item — a checked tool, the open menu, the hovered
-    // entry. It is a mark, not a bar: run edge to edge at full weight it competes with the
-    // glyph it points at, so it is thin, it stops short of both ends, and it keeps its
-    // distance from whatever it marks.
+    // entry. It is thin, and it keeps its distance from whatever it marks.
+    //
+    // On a cell it is a mark and stops short of both ends by `activeRail_Margin`; on a row
+    // of a list or a menu it runs the whole edge, because a rule shorter than the row it
+    // marks reads as a second, smaller object inside it.
     activeRail_Size:   f32 = 3     // Thickness of the rule.
-    activeRail_Margin: f32 = 8     // Air kept at each end of the rule, and between the rule and the content.
+    activeRail_Margin: f32 = 8     // Air a cell mark keeps at each end, and between the rule and the content.
 
     richEdit_Padding: f32 = 5     // Theme measurement used for rich edit padding.
     toolTip_Padding:  f32 = 2     // Theme measurement used for tool tip padding.

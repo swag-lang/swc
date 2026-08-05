@@ -5,12 +5,27 @@
 // The name each cell used to print above its sample is on its tooltip now. Stacked, it made
 // every cell twice as tall as its content to carry a word the sample already shows, and
 // turned the head of the panel into a ribbon.
-const StyleCellSize  = 36.0
-const StyleGlyphSize = 20.0
-const StyleCellGap   = 8.0
+const StyleCellSize  = 48.0
+const StyleGlyphSize = 26.0
+const StyleCellGap   = 12.0
 
 const CapSize  = 6.0
 const DashSize = 6.0
+
+// Geometry of the popups the style cells open. A popup is sized from what it lists, so a
+// style added to an enum widens or lengthens its own list instead of falling outside it.
+const PopupRowHeight    = 36.0     // One row of the dash list.
+const PopupCapRowHeight = 44.0     // One row of the line-end list; its samples need the room.
+const PopupCellSize     = 48.0     // One square cell of the shape list.
+const PopupPadding      = 6.0      // Air the list keeps inside its frame.
+const PopupFrameInset   = 6.0      // Room the frame itself takes around its view.
+
+// Height a popup needs to show `count` rows of `rowHeight`, frame included.
+func popupHeight(count, rowHeight: f32)->f32
+{
+    let spacing = 5.0     // StackLayoutCtrl default.
+    return count * rowHeight + Math.max(count - 1, 0) * spacing + 2 * PopupPadding + 2 * PopupFrameInset
+}
 
 // The enum popup buttons stash the value they represent in the untyped 'userData'
 // slot of the widget; these two helpers keep the double cast in one place.
@@ -176,10 +191,11 @@ impl PropWnd
     // forms go through the same popup.
     mtd createPopupShapeKind(btn: *IconButton, type: typeinfo, fieldName: String)
     {
-        let frame  = btn.createAnchorPopup(180, 66)
+        let cells  = cast(f32) @countof(FormShapeKind)
+        let frame  = btn.createAnchorPopup(cells * PopupCellSize + 2 * PopupPadding + 2 * PopupFrameInset, popupHeight(1, PopupCellSize))
         let layout = frame.createView'WrapLayoutCtrl()
-        layout.itemWidth, layout.itemHeight = 48
-        layout.padding                      = 4
+        layout.itemWidth, layout.itemHeight = PopupCellSize
+        layout.padding                      = PopupPadding
 
         func selectedKind(prop: *PropWnd, type: typeinfo, fieldName: String)->FormShapeKind
         {
@@ -234,7 +250,7 @@ impl PropWnd
     // and mirrors the sample stroke accordingly.
     mtd createPopupCapStyle(btn: *IconButton, begin: bool)
     {
-        let frame  = btn.createAnchorPopup(100, @countof(LineCapStyle) * 46.0)
+        let frame  = btn.createAnchorPopup(120, popupHeight(cast(f32) @countof(LineCapStyle), PopupCapRowHeight))
         let layout = StackLayoutCtrl.create(frame, .Top)
         frame.setView(layout)
 
@@ -261,7 +277,7 @@ impl PropWnd
         let cur = selectedCap(me, begin)
         for i in LineCapStyle
         {
-            let btn0 = IconButton.create(layout, {}, {0, 0, 0, 40})
+            let btn0 = IconButton.create(layout, {}, {0, 0, 0, PopupCapRowHeight})
             btn0.userData = enumToUserData(i)
             btn0.setForm(.Rectangle)
             btn0.updateFlags(.Radio)
@@ -306,7 +322,13 @@ impl PropWnd
 
     mtd createPopupDashStyle(btn: *IconButton)
     {
-        let frame  = btn.createAnchorPopup(180, 170)
+        // The frame is as tall as what it lists. Written by hand, the height stopped
+        // matching the list the day a style was added and the last row fell outside it.
+        var count = 0'f32
+        for i in DashStyle where i != .Pattern do
+            count += 1
+
+        let frame  = btn.createAnchorPopup(180, popupHeight(count, PopupRowHeight))
         let layout = StackLayoutCtrl.create(frame, .Top)
         frame.setView(layout)
 
@@ -328,7 +350,7 @@ impl PropWnd
             if i == .Pattern do
                 continue
 
-            let btn0 = IconButton.create(layout, {}, {0, 0, 0, 32})
+            let btn0 = IconButton.create(layout, {}, {0, 0, 0, PopupRowHeight})
             btn0.userData = enumToUserData(i)
             btn0.setForm(.Rectangle)
             btn0.updateFlags(.Radio)
@@ -818,7 +840,7 @@ impl PropWnd
         // The cells start at the panel margin like every row under them, instead of floating
         // in the middle of the column: a group centred on its own is a third alignment on a
         // surface that already has one.
-        let stack0 = StackLayoutCtrl.create(.topLayout!, .Left, {0, 0, 0, StyleCellSize})
+        let stack0 = StackLayoutCtrl.create(.topLayout!, .HorizontalCenter, {0, 0, 0, StyleCellSize})
         stack0.spacing = StyleCellGap
         .propBackColor(stack0)
         .propBorderColor(stack0)
@@ -828,7 +850,7 @@ impl PropWnd
         if stack0.children.count == 0 do
             stack0.destroyNow()
 
-        let stack1 = StackLayoutCtrl.create(.topLayout!, .Left, {0, 0, 0, StyleCellSize})
+        let stack1 = StackLayoutCtrl.create(.topLayout!, .HorizontalCenter, {0, 0, 0, StyleCellSize})
         stack1.spacing = StyleCellGap
         .propStartCapStyle(stack1)
         .propDashStyle(stack1)

@@ -1,8 +1,8 @@
 // A preset cell renders a real sample of the style it applies, so it sits at the sample
 // size of the application chart rather than at the flat-swatch size. The sample keeps a
 // margin inside its cell: the air is what separates one preset from the next.
-const QuickCellSize   = 36.0
-const QuickCellMargin = 5.0
+const QuickCellSize   = 44.0
+const QuickCellMargin = 6.0
 
 // The overlay that turns the trailing cell into an "add this style" action.
 const AddCellSize  = 18.0

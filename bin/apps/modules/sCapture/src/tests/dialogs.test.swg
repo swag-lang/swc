@@ -20,5 +20,5 @@ using Swag, Core
     @assert(Gui.Testing.actionExecute'ActionAbout(main, ActionAbout.About))
     gui.pump()
     @assert(gui.autoHandled)
-    @assert(gui.app.surfaces.count == 0)
+    @assert(gui.openedSurfaceCount() == 0)
 }

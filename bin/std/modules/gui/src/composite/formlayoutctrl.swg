@@ -17,10 +17,10 @@ enum FormLabelPlacement
 struct FormLayoutOptions
 {
     labelPlacement: FormLabelPlacement = Above         // Label placement used by every row.
-    labelWidth                         = 112.0'f32     // Width of the label column in `Left` mode.
+    labelWidth                         = 112.0'f32     // Minimum width of the label column in `Left` mode.
     labelHeight                        = 22.0'f32      // Height reserved for each label.
     fieldHeight                        = 34.0'f32      // Minimum height reserved for each field.
-    helpHeight                         = 20.0'f32      // Height reserved for optional help text.
+    helpHeight                         = 20.0'f32      // Minimum height reserved for optional help text.
     labelSpacing                       = 4.0'f32       // Gap between a label and its field.
     controlSpacing                     = 8.0'f32       // Gap between a field and its optional action.
     helpSpacing                        = 4.0'f32       // Gap before optional help text.
@@ -83,6 +83,27 @@ impl IWnd for FormLayoutCtrl
 
 private impl FormLayoutCtrl
 {
+    // Returns the height the help text of `row` needs at `width`, never below its option.
+    //
+    // Help text wraps, so its height belongs to the width it will be drawn at: a sentence
+    // that fits on two lines in one language takes three in another, and a reserved
+    // height would cut the last one off.
+    mtd rowHelpHeight(row: const *FormLayoutRow, width: f32)->f32
+    {
+        if !row.help do
+            return 0
+        return Math.max(.options.helpHeight, row.help.measure({width, 0}).preferred.y)
+    }
+
+    // Returns the width of the label column in `Left` mode, never below its option.
+    mtd labelColumnWidth()->f32
+    {
+        var result = .options.labelWidth
+        for &row in .rows do
+            result = Math.max(result, row.label.measure({}).preferred.x)
+        return result
+    }
+
     mtd rowFieldHeight(row: const *FormLayoutRow, available: Math.Point)->f32
     {
         let fieldHint = row.field.measure(available)
@@ -119,20 +140,21 @@ private impl FormLayoutCtrl
 
         if row.help
         {
+            let helpHeight = .rowHelpHeight(row, client.width)
             cursor += .options.helpSpacing
-            row.help.arrange({client.x, cursor, client.width, .options.helpHeight})
-            cursor += .options.helpHeight
+            row.help.arrange({client.x, cursor, client.width, helpHeight})
+            cursor += helpHeight
         }
 
         return cursor
     }
 
-    mtd arrangeRowLeft(row: const *FormLayoutRow, client: Math.Rectangle, y: f32)->f32
+    mtd arrangeRowLeft(row: const *FormLayoutRow, client: Math.Rectangle, y: f32, labelWidth: f32)->f32
     {
-        let fieldX         = client.x + .options.labelWidth + .options.labelSpacing
-        let availableWidth = Math.max(0, client.width - .options.labelWidth - .options.labelSpacing)
+        let fieldX         = client.x + labelWidth + .options.labelSpacing
+        let availableWidth = Math.max(0, client.width - labelWidth - .options.labelSpacing)
         let height         = .rowFieldHeight(row, {availableWidth, client.height})
-        row.label.arrange({client.x, y, .options.labelWidth, height})
+        row.label.arrange({client.x, y, labelWidth, height})
 
         var actionWidth = 0'f32
         if row.action
@@ -151,9 +173,10 @@ private impl FormLayoutCtrl
 
         if row.help
         {
+            let helpHeight = .rowHelpHeight(row, availableWidth)
             cursor += .options.helpSpacing
-            row.help.arrange({fieldX, cursor, availableWidth, .options.helpHeight})
-            cursor += .options.helpHeight
+            row.help.arrange({fieldX, cursor, availableWidth, helpHeight})
+            cursor += helpHeight
         }
 
         return cursor
@@ -203,7 +226,7 @@ impl FormLayoutCtrl
             row.label.style.setFont(.options.labelFont!, .Regular)
         if help
         {
-            row.help = Label.create(me, help, flags: .WordWrap | .SecondaryText)
+            row.help = Label.create(me, help, flags: .WordWrap | .SecondaryText | .AutoHeight)
             row.help.setTextAlignment(.Left, .Top)
         }
 
@@ -273,6 +296,27 @@ impl FormLayoutCtrl
         return result
     }
 
+    // Replaces the label of row `index`.
+    //
+    // The form owns its labels, so this is how a surface says a field name again after a
+    // language switch without rebuilding the form and losing what the fields hold.
+    mtd setRowLabel(index: u64, label: string)
+    {
+        Debug.assert(index < .rows.count, "no such form row")
+        .rows[index].label.setText(label)
+        .invalidateLayout()
+    }
+
+    // Replaces the help text of row `index`, which must already have one.
+    mtd setRowHelp(index: u64, help: string)
+    {
+        Debug.assert(index < .rows.count, "no such form row")
+        let row = &.rows[index]
+        Debug.assert(row.help != null, "this form row carries no help text")
+        row.help!.setText(help)
+        .invalidateLayout()
+    }
+
     // Removes every row and destroys its controls.
     mtd clear()
     {
@@ -293,12 +337,17 @@ impl FormLayoutCtrl
     mtd computeLayout()
     {
         let client = .paddedClientRect()
+
+        // In `Left` mode the label column is shared, so it is measured once for the whole
+        // form: a column sized row by row would leave the fields on a ragged edge.
+        let labelWidth = .options.labelPlacement == .Left ? .labelColumnWidth() : 0
+
         var cursor = client.y
         for &row, [index] in .rows
         {
             cursor = .options.labelPlacement == .Above ?
                      .arrangeRowAbove(&row, client, cursor) :
-                     .arrangeRowLeft(&row, client, cursor)
+                     .arrangeRowLeft(&row, client, cursor, labelWidth)
             if index + 1 < .rows.count do
                 cursor += .options.rowSpacing
         }

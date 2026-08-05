@@ -28,9 +28,10 @@ struct ThemeMetrics
     tabBar_RoundHeight:  f32 = 28     // Theme measurement used for tab bar round height.
     tabBar_ButtonHeight: f32 = 32     // Theme measurement used for tab bar button height.
 
-    btnPush_Padding: f32 = 5       // Theme measurement used for btn push padding.
-    btnPush_Width:   f32 = 100     // Theme measurement used for btn push width.
-    btnPush_Height:  f32 = 30      // Theme measurement used for btn push height.
+    btnPush_Padding:    f32 = 5       // Theme measurement used for btn push padding.
+    btnPush_TextMargin: f32 = 14      // Room a measured caption keeps on each side of a push button.
+    btnPush_Width:      f32 = 100     // Theme measurement used for btn push width.
+    btnPush_Height:     f32 = 30      // Theme measurement used for btn push height.
 
     iconText_Margin: f32 = 4     // Theme measurement used for icon text margin.
 

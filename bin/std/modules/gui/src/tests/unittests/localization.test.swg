@@ -50,7 +50,7 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
     @assert(strings().dlg_Cancel == "Cancel")
 }
 
-// A tag with no language file for any table fails without touching the tables.
+// An unregistered tag fails without touching the tables.
 #test
 {
     var res: Resources.Bundle
@@ -58,9 +58,45 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
 
     discard catch applyLanguage(&res, "xx") as err
     @assert(err != null)
+    @assert(err is Core.Errors.BadParameterError)
+    @assert(activeLanguage() == "en")
+    @assert(strings().dlg_Ok == "OK")
+}
+
+// A registered tag with no language file for any table fails the same way.
+#test
+{
+    var res: Resources.Bundle
+    registerDefaultStrings(&res)
+    registerLanguage("xx", "Xhosa")
+
+    discard catch applyLanguage(&res, "xx") as err
+    @assert(err != null)
     @assert(err is Core.Errors.FileNotFoundError)
     @assert(activeLanguage() == "en")
     @assert(strings().dlg_Ok == "OK")
+}
+
+// The reference language always comes first, and the module registers what it ships.
+#test
+{
+    var res: Resources.Bundle
+    registerDefaultStrings(&res)
+
+    let all = languages()
+    @assert(@countof(all) >= 2)
+    @assert(all[0].tag == ReferenceLanguage)
+    @assert(all[0].builtin)
+    @assert(all[0].nativeName == "English")
+
+    let french = findLanguage("fr")
+    @assert(french != null)
+    @assert(french.nativeName == "Français")
+    @assert(!french.builtin)
+    @assert(findLanguage("zz") == null)
+
+    // The account language decides, and an unshipped one falls back to the reference.
+    @assert(findLanguage(systemLanguage()) != null)
 }
 
 // Validation rejects an unknown key and a malformed line, with the faulty line number.

@@ -88,6 +88,7 @@ struct LayoutDebugInfo
     measuredMin:       Math.Point         // Minimum size reported by measurement.
     measuredPreferred: Math.Point         // Preferred size reported by measurement.
     measuredMax:       Math.Point         // Maximum size reported by measurement.
+    contentSize:       Math.Point         // Size the window's own content reported, or zero when it reported none.
     arrangedRect:      Math.Rectangle     // Rectangle requested by the container after clamping.
     clippedX:          bool               // Whether assigned width was below the measured minimum.
     clippedY:          bool               // Whether assigned height was below the measured minimum.
@@ -174,6 +175,19 @@ interface IWnd
 
     // Handles framework notifications such as theme changes.
     mtd onNotifyEvent(evt: *NotifyEvent)
+
+    // Returns the size this window's own content needs, or zero on an axis it cannot answer.
+    //
+    // A window that draws text, an icon, or items answers with what showing them whole
+    // costs, so a caption never has to be measured by hand at the call site. `available`
+    // is the space the container can offer, which is what a window whose height follows
+    // its width — wrapped text — answers against; a zero component means the container
+    // has no constraint to give on that axis.
+    //
+    // This is a query, not a routed event: it is asked of one window and never bubbles.
+    // [[Gui.Wnd.measure]] uses the answer only on an axis the author left unsized, so an
+    // explicit size always wins.
+    mtd measureContent(available: Math.Point)->Math.Point
 }
 
 // Configures window state, clipping, paint order, and sibling ordering.
@@ -331,6 +345,13 @@ impl IWnd for Wnd
 
     // Ignores global hook events by default.
     mtd impl onHookEvent(evt: IEvent) {}
+
+    // Reports no content size by default, which keeps the authored size on both axes.
+    mtd impl measureContent(available: Math.Point)->Math.Point
+    {
+        discard available
+        return {}
+    }
 
     // Performs no additional creation work by default.
     mtd impl onCreateEvent(evt: *CreateEvent) {}
@@ -850,10 +871,12 @@ impl Wnd
     }
 
     // Resolves minimum, preferred, and maximum size for the available space.
+    //
+    // An axis the author left unsized is answered by [[Gui.IWnd.measureContent]], so a
+    // button widens with its caption and a wrapped paragraph grows taller in a language
+    // that says the same thing in more words. An axis carrying an explicit size keeps it.
     mtd measure(available: Math.Point)->SizeHint
     {
-        discard available
-
         var result: retval
 
         result.min   = .minSize
@@ -861,6 +884,19 @@ impl Wnd
         result.max.y = .maxSize.y > 0 ? .maxSize.y : Swag.F32.Max
 
         result.preferred = .preferredSize
+
+        // The content only answers where nothing was authored, which is what keeps every
+        // hand-sized surface of the repository arranged exactly as before.
+        var content: Math.Point
+        if result.preferred.x <= 0 or result.preferred.y <= 0
+        {
+            content = .itf.measureContent(available)
+            if result.preferred.x <= 0 do
+                result.preferred.x = content.x
+            if result.preferred.y <= 0 do
+                result.preferred.y = content.y
+        }
+
         if result.preferred.x <= 0 do
             result.preferred.x = .position.width
         if result.preferred.y <= 0 do
@@ -893,6 +929,7 @@ impl Wnd
         .layoutDebug.measuredMin       = result.min
         .layoutDebug.measuredPreferred = result.preferred
         .layoutDebug.measuredMax       = result.max
+        .layoutDebug.contentSize       = content
         return result
     }
 
@@ -1236,6 +1273,31 @@ impl Wnd
         .sendEvent(&evt)
     }
 
+    // Returns the width of a band docked left or right, measured when none was authored.
+    //
+    // `preferredSize` holds what the author asked for when the window was created and no
+    // layout pass ever rewrites it, so it stays the authority across resizes and language
+    // switches. Reading `position` instead would freeze the band on its first measured
+    // width, and a longer caption would never widen it again.
+    private mtd dockedWidth(pos: Math.Rectangle, client: Math.Rectangle)->f32
+    {
+        if .preferredSize.x > 0 do
+            return pos.width
+        return Math.max(.measure({client.width, pos.height}).preferred.x, 0)
+    }
+
+    // Returns the height of a band docked top or bottom, measured when none was authored.
+    //
+    // The band already carries its final width here, so wrapped text answers for the
+    // width it will really be drawn at. The authored size is read from `preferredSize`
+    // for the same reason as the horizontal case above.
+    private mtd dockedHeight(pos: Math.Rectangle, client: Math.Rectangle)->f32
+    {
+        if .preferredSize.y > 0 do
+            return pos.height
+        return Math.max(.measure({pos.width, client.height}).preferred.y, 0)
+    }
+
     private mtd clampSize(pos: *Math.Rectangle)
     {
         if .minSize.x > 0 do
@@ -1333,6 +1395,7 @@ impl Wnd
                 pos.setBottom(clientRect.bottom() - c.margin.w)
                 if c.maxSize.y > 0 and c.maxSize.y < pos.height and !(c.anchorStyle & .Bottom) do
                     pos.y = clientRect.vertCenter() - c.maxSize.y * 0.5
+                pos.width = c.dockedWidth(pos, clientRect)
                 c.setPosition(pos, false)
                 let diff = c.margin.x + pos.width + c.margin.z
                 clientRect.width -= diff
@@ -1340,11 +1403,12 @@ impl Wnd
 
             case .Right:
                 var pos = c.position
-                pos.x = clientRect.right() - pos.width - c.margin.z
                 pos.y = clientRect.y + c.margin.y
                 pos.setBottom(clientRect.bottom() - c.margin.w)
                 if c.maxSize.y > 0 and c.maxSize.y < pos.height and !(c.anchorStyle & .Bottom) do
                     pos.y = clientRect.vertCenter() - c.maxSize.y * 0.5
+                pos.width = c.dockedWidth(pos, clientRect)
+                pos.x     = clientRect.right() - pos.width - c.margin.z
                 c.setPosition(pos, false)
                 let diff = c.margin.x + pos.width + c.margin.z
                 clientRect.width -= diff
@@ -1356,6 +1420,7 @@ impl Wnd
                 pos.setRight(clientRect.right() - c.margin.z)
                 if c.maxSize.x > 0 and c.maxSize.x < pos.width and !(c.anchorStyle & .Right) do
                     pos.x = clientRect.horzCenter() - c.maxSize.x * 0.5
+                pos.height = c.dockedHeight(pos, clientRect)
                 c.setPosition(pos, false)
                 let diff = c.margin.y + pos.height + c.margin.w
                 clientRect.y      += diff
@@ -1364,10 +1429,11 @@ impl Wnd
             case .Bottom:
                 var pos = c.position
                 pos.x = clientRect.x + c.margin.x
-                pos.y = clientRect.bottom() - c.margin.w - pos.height
                 pos.setRight(clientRect.right() - c.margin.z)
                 if c.maxSize.x > 0 and c.maxSize.x < pos.width and !(c.anchorStyle & .Right) do
                     pos.x = clientRect.horzCenter() - c.maxSize.x * 0.5
+                pos.height = c.dockedHeight(pos, clientRect)
+                pos.y      = clientRect.bottom() - c.margin.w - pos.height
                 c.setPosition(pos, false)
                 let diff = c.margin.w + pos.height + c.margin.y
                 clientRect.height -= diff

@@ -85,8 +85,15 @@ twenty-seven messages. What is absent from that list is this section.
   English wording. `Application.setLanguage` retargets every registered table from
   `lang/<tag>/<file>.tweak` resources, and embedded translations are validated when the module
   compiles, so a mistyped key is a build error with its line number. `gui`, `sCapture` (language
-  option, defaults to the system) and `sCrypt` (follows the Windows language) ship fully keyed,
+  option) and `sCrypt` (picker on the credit line) ship fully keyed, both starting in English,
   with French as the proof language. See `help/07-resources-and-localization.md`.
+- A language is now a registered pair of tag and native name (`registerLanguage`, `languages`,
+  `systemLanguage`), `en` is always first and always the language an application starts in, and
+  following the account is a choice the user makes rather than a guess. Sizes follow the wording:
+  `IWnd.measureContent` lets an unsized axis be answered by the window itself, so a caption
+  widens its button, a wrapped paragraph grows taller and a band docked with no height is as
+  tall as what it holds. `Testing.assertContentFits` turns that into a check a test runs once
+  per shipped language.
 - Remaining, in decreasing value:
   - the property grid reads `#[Name]`/`#[Description]`/`#[Category]` attribute strings, which
     are compile-time constants, so options dialogs and the form property panels keep their
@@ -95,8 +102,12 @@ twenty-seven messages. What is absent from that list is this section.
   - a disk override of `theme/widgets.svg` or `theme/icons.svg` registers in the bundle but the
     vector pipeline rasterizes the process-wide parsed cache, so only the fonts, theme sheets
     and language files honor overrides today;
+  - `IconButton`, `Tab` and `Header` still measure their labels by hand instead of answering
+    `measureContent`, so a toolbar showing captions is the one surface family a longer
+    translation can still crowd;
   - text set once at construction only follows a live language switch when its window listens
-    for the `LanguageChanged` notification; command-driven surfaces already refresh themselves;
+    for the `LanguageChanged` notification; command-driven surfaces already refresh themselves,
+    and `sCrypt.MainWindow.retranslate` is the worked example of the manual half;
   - French is the only shipped translation, and `DateTime` month and day names stay English —
     exactly the `Globalization` coordination this entry already pointed at (`core` roadmap
     entry 5: number, date and name formats should live with the culture, and the language tag

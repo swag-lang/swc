@@ -7,10 +7,12 @@ using Core, Gui
 // window share this shape, and only their fields differ.
 struct VaultCard
 {
-    panel:   *Wnd             = undefined
-    body:    *Wnd             = undefined
-    form:    *FormLayoutCtrl  = undefined
-    actions: *StackLayoutCtrl = undefined
+    panel:    *Wnd             = undefined
+    body:     *Wnd             = undefined
+    form:     *FormLayoutCtrl  = undefined
+    actions:  *StackLayoutCtrl = undefined
+    title:    *Label           = undefined
+    subtitle: *Label           = undefined
 }
 
 impl VaultCard
@@ -26,7 +28,9 @@ impl VaultCard
         titleLabel.setTextAlignment(.Left, .Center)
         titleLabel.style.setFont(panel.theme().createDefaultFont(20, .Bold), .Regular)
 
-        let subtitleLabel = Label.create(panel, subtitle, {0, 0, 0, 44}, null, .WordWrap | .SecondaryText)
+        // The explanation wraps, so its height is the text's to decide: a hand-tuned one
+        // cuts the last line off as soon as the sentence is said in more words.
+        let subtitleLabel = Label.create(panel, subtitle, {}, null, .WordWrap | .SecondaryText | .AutoHeight)
         subtitleLabel.dockStyle = .Top
         subtitleLabel.margin    = {0, 4, 0, 0}
         subtitleLabel.setTextAlignment(.Left, .Top)
@@ -55,7 +59,15 @@ impl VaultCard
         let form = FormLayoutCtrl.create(body, options)
         form.dockStyle = .Top
         panel.applyLayout()
-        return {panel, body, form, actions}
+        return {panel, body, form, actions, titleLabel, subtitleLabel}
+    }
+
+    // Replaces the heading and the explanation, then re-arranges what they now need.
+    mtd setTexts(title, subtitle: string)
+    {
+        .title.setText(title)
+        .subtitle.setText(subtitle)
+        .panel.applyLayout()
     }
 
     // Sizes the filled form to its rows, then arranges the body.

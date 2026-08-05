@@ -33,6 +33,7 @@ struct AppStrings
     ui_MountDrive:          string = "Mount drive"
     ui_Unmount:             string = "Unmount"
     ui_Desktop:             string = "Desktop"
+    ui_LanguageSystem:      string = "System language"
     dlg_TitleCreate:        string = "Create an sCrypt container"
     dlg_TitleOpen:          string = "Open an encrypted container"
     dlg_BtnCreate:          string = "Create"

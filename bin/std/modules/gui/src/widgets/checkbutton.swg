@@ -131,6 +131,19 @@ impl IWnd for CheckButton
         Theme.drawIconText(painter, labelPos, .icon, &.name, format, metrics.iconText_Margin)
     }
 
+    // Reports the room the check box, its padding, and the caption need.
+    //
+    // The caption keeps the same trailing margin it has leading room, so a box followed
+    // by a long label does not end flush against the edge of the control.
+    mtd impl measureContent(available: Math.Point)->Math.Point
+    {
+        discard available
+
+        let metrics = .themeMetrics()
+        let width   = metrics.btnCheck_Size + metrics.btnCheck_Padding + .captionWidth() + metrics.btnPush_TextMargin
+        return {Math.max(width, metrics.btnPush_Width), metrics.btnPush_Height}
+    }
+
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
         if .processMouseEvent(evt) do
@@ -167,6 +180,10 @@ impl CheckButton
             pos.width = parent.themeMetrics().btnPush_Width
         let result = Wnd.create'CheckButton(parent, name, pos, id)
         result.flags = flags
+
+        // An unstated width belongs to the caption; the theme width above stays its floor.
+        if position.width == 0 do
+            result.preferredSize.x = 0
         return result
     }
 

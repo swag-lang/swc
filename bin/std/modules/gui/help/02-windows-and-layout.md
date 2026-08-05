@@ -21,6 +21,25 @@ Margins occupy space outside a control; padding reduces its client content area.
 Call [[Gui.Wnd.invalidateLayout]] after changing a value that affects measurement.
 The framework then measures and arranges the affected tree.
 
+## Let the content decide
+
+An axis you leave unsized belongs to the content. [[Gui.Wnd.measure]] asks the
+window through [[Gui.IWnd.measureContent]], and the answer becomes its preferred
+size: a caption widens its button, a list of entries widens its combo box, a
+wrapped paragraph reports the height it needs at the width it is offered, and a
+band docked with no height is as tall as what it holds. An axis carrying a size
+the caller stated keeps it, unmeasured.
+
+```swag
+// The height is a design decision; the width is the caption's business.
+let action = PushButton.create(bar, "Create encrypted vault", {0, 0, 0, 36})
+```
+
+This is what keeps a surface correct when its text changes — a translation, a
+document title, a user-supplied name. Implement `measureContent` on a custom
+control that draws its own text or items; the default reports nothing, which
+keeps the authored size on both axes.
+
 Use coordinate conversion methods on [[Gui.Wnd]] when crossing local, surface,
 and screen spaces. Keep hit testing and painting in the coordinate system named
 by the event or drawing API.

@@ -21,6 +21,40 @@ func assertPoint(pt: Math.Vector2, x, y: f32, eps: f32 = 0.001)
     @assert(Math.abs(pt.y - y) < eps)
 }
 
+// Asserts that no window in the tree is smaller than the content it says it needs.
+//
+// Every window is asked through [[Gui.IWnd.measureContent]], whatever size its author
+// gave it, so this catches the caption pinned to a width that only fitted in English as
+// surely as the paragraph a layout pass measured. Run it once per shipped language to
+// prove a surface holds its own translations. The console line names the offender,
+// because a failed assertion on a rectangle does not say which text was cut.
+func assertContentFits(root: *Wnd, tolerance = 0.5'f32)
+{
+    if !root.isLocallyVisible() do
+        return
+
+    let content = root.itf.measureContent({root.position.width, root.position.height})
+    if content.x > root.position.width + tolerance or content.y > root.position.height + tolerance
+    {
+        Console.println("content does not fit in ",
+                        root.type.name,
+                        " '",
+                        root.name.raw,
+                        "': needs ",
+                        content.x,
+                        "x",
+                        content.y,
+                        ", arranged ",
+                        root.position.width,
+                        "x",
+                        root.position.height)
+        @assert(false)
+    }
+
+    for child in root.children do
+        assertContentFits(child, tolerance)
+}
+
 // Returns a unique file path in a dedicated 'swag-tests' sub-folder of the system
 // temp folder (created on demand). A dedicated folder keeps test files out of the
 // source tree and stays nearly empty, so tests that drive a real file dialog into

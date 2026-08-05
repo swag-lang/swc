@@ -904,18 +904,12 @@ impl MainWnd
     // the interface then simply stays on the reference English wording.
     mtd setLanguage()
     {
-        var tag = "en"
+        var tag = Gui.ReferenceLanguage
         switch #complete .editorOptions.language
         {
-        case .System:
-            if Utf8.startsWith(Env.userLocaleName().toString(), "fr") do
-                tag = "fr"
-
-        case .French:
-            tag = "fr"
-
-        case .English:
-            break
+        case .System:  tag = Gui.systemLanguage()
+        case .French:  tag = "fr"
+        case .English: break
         }
 
         catch .app().setLanguage(tag)

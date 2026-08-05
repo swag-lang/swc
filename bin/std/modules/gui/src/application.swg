@@ -788,18 +788,29 @@ impl Application
 
     // Applies the language `tag` to every registered string table and refreshes every surface.
     //
-    // `"en"` restores the built-in reference strings. Any other tag resets the tables to
-    // their reference values, then applies the `lang/<tag>/<file>.tweak` resource of each
-    // registered table; a table without a file for that tag keeps its reference strings.
-    // Fails when the tag has no language file for any registered table, so a mistyped tag
-    // cannot silently present itself as applied. Menus and command-driven controls pick the
-    // new strings up on their next update; text set once at construction keeps its wording
-    // until the window is created again, so a window that must follow the switch listens
-    // for the [[Gui.NotifyEvent.Kind.LanguageChanged]] notification.
+    // [[Gui.ReferenceLanguage]] restores the built-in reference strings. Any other tag
+    // resets the tables to their reference values, then applies the
+    // `lang/<tag>/<file>.tweak` resource of each registered table; a table without a file
+    // for that tag keeps its reference strings. Fails when the tag is not registered
+    // through [[Gui.registerLanguage]] or has no language file for any registered table,
+    // so a mistyped tag cannot silently present itself as applied. Menus and
+    // command-driven controls pick the new strings up on their next update; text set once
+    // at construction keeps its wording until the window is created again, so a window
+    // that must follow the switch listens for the
+    // [[Gui.NotifyEvent.Kind.LanguageChanged]] notification.
     mtd setLanguage(tag: string) fail
     {
         try applyLanguage(&.resources, tag)
         .notifyLanguageChanged()
+    }
+
+    // Applies the registered language that best matches the language of the user account.
+    //
+    // [[Gui.systemLanguage]] falls back to [[Gui.ReferenceLanguage]], so this only fails
+    // on an installation whose language resources are missing.
+    mtd setSystemLanguage() fail
+    {
+        try .setLanguage(systemLanguage())
     }
 
     // Returns the active language tag, `"en"` by default.

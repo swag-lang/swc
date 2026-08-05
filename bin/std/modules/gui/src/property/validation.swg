@@ -270,7 +270,6 @@ private impl Properties
         {
             .updateFlags(.WordWrap | .AutoHeight)
             .setTextAlignment(.Left, .Center)
-            .focusStrategy = .None
 
             // The Label draws the severity icon on the left and the text after it (both vertically
             // centered by the Label — iconVerticalAlignment defaults to Center), like InfoBar.

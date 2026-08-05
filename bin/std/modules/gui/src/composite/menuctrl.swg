@@ -892,7 +892,8 @@ public impl MenuCtrl
         let popupParent = parent == parent.topWindow() ? parent : parent.topView()
         with let res = Wnd.create'MenuCtrl(popupParent, null, {}, id)
         {
-            .owner = owner orelse parent
+            .focusPolicy = .Click
+            .owner       = owner orelse parent
             .setAllPaddings(.themeMetrics().menuPopup_Padding)
             .wndFlags |= .Hidden
         }
@@ -907,7 +908,8 @@ public impl MenuCtrl
         Debug.assert(parent != null)
         with let res = Wnd.create'MenuCtrl(parent, null, pos, id)
         {
-            .owner = owner
+            .focusPolicy = .Click
+            .owner       = owner
             let metrics = .themeMetrics()
             if .position.height == 0 do
                 .position.height = metrics.menuBar_Height

@@ -150,7 +150,7 @@ impl PalettePicker
     {
         Debug.assert(parent != null)
         let result = Wnd.create'PalettePicker(parent, null, position, id)
-        result.focusStrategy = .OnMousePress
+        result.focusPolicy = .Tab
         return result
     }
 

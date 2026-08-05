@@ -332,8 +332,7 @@ impl Header
         if pos.height == 0 do
             pos.height = metrics.header_Height
         let result = Wnd.create'Header(parent, null, pos, id)
-        result.padding       = metrics.header_Padding
-        result.focusStrategy = .None
+        result.padding = metrics.header_Padding
         return result
     }
 

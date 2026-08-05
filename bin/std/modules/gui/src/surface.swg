@@ -33,6 +33,16 @@ struct Surface
     minSize: Math.Point     // Minimum allowed width and height in logical units; zero disables a dimension limit.
     maxSize: Math.Point     // Maximum allowed width and height in logical units; zero disables a dimension limit.
 
+    // Window Enter stands for while no focused control claims it, or `null` for none.
+    //
+    // This and [[Gui.Surface.cancelButton]] are what make a form answerable without the pointer:
+    // Enter runs the dominant action of the surface, Escape backs out of it. A focused button
+    // always answers Enter itself, so these two only speak for a keyboard that is somewhere else —
+    // in a field, in a list. Both are borrowed and never owned.
+    defaultButton: #null *Wnd
+
+    cancelButton: #null *Wnd     // Window Escape stands for, or `null` when the surface cannot be dismissed.
+
     flags:         SurfaceFlags = None     // Current presentation and window-manager flags.
     colorDisabled: Color                   // Animated tint used while the surface is disabled.
 
@@ -171,13 +181,12 @@ impl Surface
     {
         with surface
         {
-            .flags             = flags
-            .wnd               = Memory.new'SurfaceWnd()
-            .wnd.isAllocated   = true
-            .wnd.itf           = .wnd
-            .wnd.type          = SurfaceWnd
-            .wnd.surface       = surface
-            .wnd.focusStrategy = .None
+            .flags           = flags
+            .wnd             = Memory.new'SurfaceWnd()
+            .wnd.isAllocated = true
+            .wnd.itf         = .wnd
+            .wnd.type        = SurfaceWnd
+            .wnd.surface     = surface
             .wnd.computeStyle()
             .applySurfaceFlags()
         }
@@ -496,6 +505,20 @@ impl Surface
         .painter.resetClippingRegion()
     }
 
+    // Presses one of the two standard buttons of the surface, when there is one to press.
+    //
+    // The button is pressed the way Enter presses a focused one, so a widget that answers keys
+    // at all can stand for the default or the cancel action, and a button that is down or gone
+    // simply does not answer.
+    private mtd pressStandardButton(button: #null *Wnd)->bool
+    {
+        if !button do
+            return false
+        if !button.isVisible() or !button.isEnabled() do
+            return false
+        return button.sendKeyPress(Input.Key.Return)
+    }
+
     private mtd paintAlphaMask()
     {
         let rect = .wnd.surfaceRect()
@@ -513,6 +536,32 @@ impl Surface
             .painter.fillRoundRect(rect, radius, radius, Argb.Black)
         else do
             .painter.fillRect(rect, Argb.Black)
+    }
+
+    // Applies the surface-wide keyboard navigation to a key nobody claimed, and reports whether
+    // it was used.
+    //
+    // Tab and Shift+Tab walk the traversal stops of [[Gui.FocusOrder]]; Enter and Escape press
+    // [[Gui.Surface.defaultButton]] and [[Gui.Surface.cancelButton]]. Every other key belongs to
+    // whatever holds the focus, which is why this runs only once the focused window and its
+    // parents have all declined the event.
+    internal mtd navigateKey(from: *Wnd, key: Input.Key, modifiers: Input.KeyModifiers)->bool
+    {
+        switch key
+        {
+        case .Tab:
+            let backward = cast(bool) (modifiers & Input.KeyModifiers.Shift)
+            .app.setFocusVisible(true)
+            return from.focusNext(!backward)
+
+        case .Return:
+            return .pressStandardButton(.defaultButton)
+
+        case .Escape:
+            return .pressStandardButton(.cancelButton)
+        }
+
+        return false
     }
 
     // Replaces and destroys the current user view, then attaches `view` to this surface.

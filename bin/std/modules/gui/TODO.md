@@ -21,7 +21,8 @@ Qt makes you build it yourself, and most toolkits never ship one.
 Underneath: a two-pass measure and arrange layout engine, per-monitor DPI awareness with a vector
 theme atlas rasterized per scale, list virtualization through `virtualCount` and
 `onFillVirtualLine`, an action and command system with automatic state updates, an undo manager,
-and a headless test host with forty-four test files and command-stream visual regression goldens.
+keyboard traversal of a whole surface in reading order, and a headless test host with forty-five
+test files and command-stream visual regression goldens.
 
 That is a real toolkit. The gaps below are not about widget count.
 
@@ -130,19 +131,40 @@ Small, individually cheap, and each one is a visible defect rather than a missin
 
 ## Tier C — What a finished toolkit has
 
-### 6. Animation
+### 6. The two halves of keyboard navigation that are still missing
+
+Traversal itself landed: `FocusPolicy` says what takes the focus and what stops the keyboard,
+`FocusOrder` walks a surface in reading order, Tab and Shift+Tab move through it, Enter and Escape
+stand for `Surface.defaultButton` and `Surface.cancelButton`, and a ring says where the keyboard is
+only when the keyboard is what put it there. Two pieces of the same story are not there yet.
+
+- **Nothing scrolls into view.** Tab onto a control inside a `ScrollWnd` moves the focus without
+  scrolling, so the keyboard can land somewhere the eye cannot follow. `ListCtrl` and the property
+  grid are safe — each is one stop and scrolls its own rows — but a plain scrolling form is not.
+  Fix: a `Wnd.ensureVisible` that walks up to every `ScrollWnd` ancestor and shifts each one by
+  what the window's surface rectangle is missing from that scroll viewport, called from
+  `Wnd.setFocus`. Needs a test with a form taller than its viewport; the geometry is the whole
+  risk, since scroll offsets are applied to descendants at paint and hit-test time rather than to
+  their rectangles.
+- **No access keys.** `Alt` opens nothing and no caption carries an underlined letter, so reaching
+  a control still means walking to it. Fix: a mnemonic in the caption markup, an `Alt` handler on
+  the surface next to the traversal in `Surface.navigateKey`, and the underline drawn only while
+  `Alt` is held, the way Windows does it. The menu bar is the other consumer, and it needs the same
+  key to open at all.
+
+### 7. Animation
 
 No easing, no transitions, no timeline, no property animator. Every toolkit in the comparison has
 one, and it is most of the difference between a UI that works and a UI that feels finished. It also
 needs a reduced-motion setting from the moment it exists, for the same reason as entry 1.
 
-### 7. Touch, pen and gesture
+### 8. Touch, pen and gesture
 
 No `WM_POINTER`, `WM_TOUCH` or `WM_GESTURE`. Mouse and keyboard only. Most Windows laptops sold
 today have a touchscreen, and pen input matters directly for an annotation application like
 `sCapture`.
 
-### 8. A second platform
+### 9. A second platform
 
 Inherited from `core` roadmap entry 2, and gated by it: `surface.win32.swg`,
 `application.win32.swg`, `clipboard.win32.swg` and `cursor.win32.swg` are the platform surface
@@ -150,12 +172,12 @@ here, and the boundary is already drawn. Note that entries 1, 2 and 3 each need 
 implementation, so sequencing matters — building them Windows-first and porting is cheaper than
 designing all three abstractly.
 
-### 9. Docking and multi-document layouts
+### 10. Docking and multi-document layouts
 
 No dockable panels, no tab-based document host, no floating tool windows. This is what
 tool-shaped applications want, and both applications in `bin/apps` are tool-shaped.
 
-### 10. Printing
+### 11. Printing
 
 No print path and no print preview. Depends on `pixel` roadmap entry 7 for vector output, since
 printing through a raster path is a poor substitute.

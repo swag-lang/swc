@@ -373,9 +373,10 @@ impl ComboBox
             pos.width = metrics.comboBox_Width
         let result = Wnd.create'ComboBox(parent, null, pos, id)
 
-        result.mode  = mode
-        result.flags = flags
-        result.minSize.y = metrics.comboBox_Height
+        result.mode        = mode
+        result.flags       = flags
+        result.focusPolicy = .Tab
+        result.minSize.y   = metrics.comboBox_Height
 
         // An unstated width belongs to the items: the theme width above only gives the
         // field a sane size until the first layout pass measures it, and stays its floor.
@@ -383,7 +384,9 @@ impl ComboBox
             result.preferredSize.x = 0
         if result.mode == .Editable
         {
-            result.editBox = EditBox.create(result, null, {})
+            // The field is the control's own writing surface, not a second stop beside it.
+            result.editBox             = EditBox.create(result, null, {})
+            result.editBox.focusPolicy = .Inner
             result.editBox.setForm(EditBoxForm.Transparent)
         }
 

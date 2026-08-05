@@ -182,7 +182,8 @@ impl CheckButton
         if pos.width == 0 do
             pos.width = parent.themeMetrics().btnPush_Width
         let result = Wnd.create'CheckButton(parent, name, pos, id)
-        result.flags = flags
+        result.flags       = flags
+        result.focusPolicy = .Tab
 
         // An unstated width belongs to the caption; the theme width above stays its floor.
         if position.width == 0 do

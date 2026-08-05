@@ -231,6 +231,11 @@ impl IWnd for Tab
         format.flags         = .Clip
         format.font          = .font()
         Theme.drawIconText(painter, labelPos, v.icon, &v.name, format, metrics.iconText_Margin)
+
+        // The keyboard stands on one tab, not on the whole control: a ring around the control
+        // would enclose the page it shows, so the selected tab carries it.
+        if idx == .selectedIndex and .hasVisibleFocus() do
+            theme.drawFocusRing(painter, labelPos)
     }
 
     mtd impl onPaint(evt: *PaintEvent)
@@ -555,7 +560,8 @@ impl Tab
     {
         Debug.assert(parent != null)
         let result = Wnd.create'Tab(parent, null, position, id)
-        result.focusStrategy = .OnMousePress
+        result.focusPolicy = .Tab
+        result.wndFlags    |= .NoFocusRing
         result.setForm(.Flat)
         return result
     }

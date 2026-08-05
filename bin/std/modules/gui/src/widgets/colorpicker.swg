@@ -507,7 +507,8 @@ impl ColorPicker
     {
         Debug.assert(parent != null)
         let result = Wnd.create'ColorPicker(parent, null, position, id)
-        result.wndFlags |= .AfterChildrenPaint
+        result.focusPolicy = .Click
+        result.wndFlags    |= .AfterChildrenPaint
         result.setColor(Argb.Red, false)
         result.invalidatePadding = {-32, -32, -32, -32}
         return result

@@ -52,6 +52,7 @@ impl BreadcrumbCtrl
         if pos.height == 0 do
             pos.height = parent.themeMetrics().btnPush_Height
         let res = Wnd.create'BreadcrumbCtrl(parent, null, pos, id)
+        res.focusPolicy = .Click
         return res
     }
 

@@ -124,7 +124,9 @@ impl ToggleButton
             pos.height = parent.themeMetrics().btnToggle_Height
         if pos.width == 0 do
             pos.width = parent.themeMetrics().btnToggle_Width
-        return Wnd.create'ToggleButton(parent, null, pos, id)
+        let result = Wnd.create'ToggleButton(parent, null, pos, id)
+        result.focusPolicy = .Tab
+        return result
     }
 
     // Reports whether the option is on.

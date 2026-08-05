@@ -5,10 +5,13 @@ using Core, Serialization
 // Callback invoked with the application that is processing a frame.
 alias FrameCallback = func||(*Application)
 
-// The two colors every Swag product mark is cut from: one glyph over one ground. A drawn
-// caption keys the ground out with them, so it needs no second copy of the icon.
-const MarkInk     = 0xFF0B0B0D
-const MarkVoltage = 0xFFF7F900
+// Ground of every Swag product mark.
+//
+// A mark is cut from two colors, one glyph over one ground, and a drawn caption keys the ground
+// out with them so it needs no second copy of the icon.
+const MarkInk = 0xFF0B0B0D
+
+const MarkVoltage = 0xFFF7F900     // Glyph of every Swag product mark.
 
 // Owns GUI resources, top-level surfaces, input state, and the event loop.
 struct Application
@@ -67,6 +70,15 @@ struct Application
         mouseCaptureWnd:  #null *Wnd     // Window currently holding the mouse capture.
         mouseEnterWnd:    #null *Wnd     // Window the mouse last entered.
     }
+
+    // Whether the keyboard focus must be shown.
+    //
+    // Keyboard traversal turns it on and a pointer press turns it off, so a control acted on
+    // with the mouse keeps the focus without a ring around it while a surface being driven from
+    // the keyboard always says where the keyboard is. Widgets read it through
+    // [[Gui.Wnd.hasVisibleFocus]].
+    readonly
+    focusVisible: bool
 
     frameCursor: Cursor            // Cursor selected for the current frame.
     fadeDisabledSurface = true     // Whether modal-disabled surfaces fade toward the disabled theme color.
@@ -128,11 +140,19 @@ private impl Application
             return
 
         // Parent hook events
+        //
+        // An ancestor that eats a child's event has handled it, so the event says so on its way
+        // out: what follows an unaccepted key is a shortcut lookup and the keyboard navigation of
+        // the surface, and neither may run over an ancestor that answered the key itself.
         var scan = event.target.ownerOrParent()
         while scan
         {
-            if scan.hookOnChildEvent and scan.hookOnChildEvent(scan, evt) do
+            if scan.hookOnChildEvent and scan.hookOnChildEvent(scan, evt)
+            {
+                event.accepted = true
                 return
+            }
+
             scan = scan.ownerOrParent()
         }
 
@@ -275,7 +295,11 @@ private impl Application
                 else
                 {
                     evt.kind = .Pressed
-                    if targetWnd.focusStrategy == .OnMousePress do
+
+                    // The pointer says which control is being acted on, so the ring the
+                    // keyboard needs would only add noise from here on.
+                    .setFocusVisible(false)
+                    if targetWnd.focusPolicy != .None do
                         targetWnd.setFocus()
                 }
 
@@ -290,6 +314,20 @@ private impl Application
                 targetWnd.sendEvent(&evt)
             }
         }
+    }
+
+    // Puts the keyboard on the first traversal stop of the surface the keys are meant for.
+    //
+    // The innermost modal owns the keyboard while one is up; otherwise the main surface does. This
+    // is a last resort for a surface that never placed its own focus — see
+    // [[Gui.Wnd.setInitialFocus]] for saying it deliberately.
+    mtd seedKeyboardFocus()
+    {
+        var surface = .mainSurface
+        if .modalSurfaces.count do
+            surface = .modalSurfaces.back()
+        if surface do
+            surface.wnd.setInitialFocus()
     }
 
     mtd sendMouseWheelEvent(z: s32)
@@ -311,11 +349,6 @@ private impl Application
     {
         .keyboard.update()
 
-        var targetWnd = .keyboardFocusWnd
-        targetWnd = skipDisabled(targetWnd)
-        if !targetWnd do
-            return
-
         // Modifiers
         let modifiers = .keyboard.pressedModifiers()
 
@@ -324,20 +357,26 @@ private impl Application
         {
             let lastP = .keyboard.previousState.pressed[i]
             let curP  = .keyboard.currentState.pressed[i]
+
+            // A surface nothing has focused yet would be deaf to the keyboard. The first key
+            // pressed is what seeds the focus, so a window can be driven from the keyboard without
+            // having been clicked once.
+            if curP and !lastP and !.keyboardFocusWnd do
+                .seedKeyboardFocus()
+
+            var targetWnd = .keyboardFocusWnd
+            targetWnd = skipDisabled(targetWnd)
+            if !targetWnd do
+                continue
+
             if !lastP and curP
             {
                 var evt = KeyEvent{kind: .Pressed}
                 evt.key       = cast(Input.Key) i
                 evt.modifiers = modifiers
                 targetWnd.sendEvent(&evt)
-
-                // Convert key to command (shortcuts)
-                if !evt.accepted
-                {
-                    let id = targetWnd.keyShortcut(modifiers, cast(Input.Key) i)
-                    if id != null do
-                        targetWnd.sendCommandEvent(id)
-                }
+                if !evt.accepted do
+                    .routeUnhandledKey(targetWnd, cast(Input.Key) i, modifiers)
             }
             elif lastP and !curP
             {
@@ -556,6 +595,25 @@ private impl Application
         }
     }
 
+    // Gives the keyboard back to stop `index` of `root`, or to the first one when it is gone.
+    //
+    // Rings shrink and grow between two moments — a row was added, a field was hidden — so the
+    // position is clamped rather than trusted, and a tree with no stop left simply keeps no focus.
+    func restoreFocusAt(root: *Wnd, index: s64)
+    {
+        let order = FocusOrder.collect(root)
+        let count = cast(s64) order.stops.count
+        if !count do
+            return
+
+        var target = index
+        if target < 0 do
+            target = 0
+        if target >= count do
+            target = count - 1
+        order.stops[cast(u64) target].setFocus()
+    }
+
     // Runs a nested event loop for `surface` and returns the identifier passed to [[exitModal]].
     //
     // Other enabled surfaces are disabled for the duration of the loop and restored to their
@@ -566,6 +624,17 @@ private impl Application
         .endModalExit = null
         .inModalLoop  += 1
         defer .inModalLoop -= 1
+
+        // Where the keyboard stood under the modal, kept as a position in the traversal ring
+        // rather than as a pointer: the window can be destroyed while the modal runs, a position
+        // cannot dangle. An unchanged form gives the keyboard back to the very control it left.
+        var callerFocusIndex = -1's64
+        let callerFocus      = .keyboardFocusWnd
+        if callerFocus
+        {
+            let callerOrder = FocusOrder.around(callerFocus!)
+            callerFocusIndex = callerOrder.indexOf(callerFocus)
+        }
 
         var disabledSurfaces: Array'(*Surface)
         for s in .surfaces
@@ -597,10 +666,14 @@ private impl Application
         for s in disabledSurfaces do
             s.enable()
 
+        var restoreWnd: #null *Wnd
         if .modalSurfaces.count do
-            .modalSurfaces.back().wnd.view.setFocus()
+            restoreWnd = .modalSurfaces.back().wnd
         elif disabledSurfaces.count do
-            disabledSurfaces.back().wnd.view.setFocus()
+            restoreWnd = disabledSurfaces.back().wnd
+
+        if restoreWnd do
+            restoreFocusAt(restoreWnd!, callerFocusIndex)
 
         if surface do
             surface.destroy()
@@ -634,6 +707,39 @@ impl Application
             .appIconList.release(.renderer)
         if @isset(.theme) do
             .theme.freeDefault()
+    }
+
+    // Turns the keyboard-focus ring on or off, and repaints what showed it.
+    //
+    // Keyboard traversal turns it on, a pointer press turns it off. See
+    // [[Gui.Application.focusVisible]].
+    internal mtd setFocusVisible(visible: bool)
+    {
+        if .focusVisible == visible do
+            return
+        .focusVisible = visible
+        .keyboardFocusWnd?.invalidate()
+    }
+
+    // Routes a pressed key that the focused window and its parents all declined.
+    //
+    // Explicit intent comes first: a shortcut registered anywhere on the routing chain outranks
+    // every default. What is left goes to the keyboard navigation of the surface, which is why a
+    // widget wanting Tab, Enter, or Escape for itself only has to accept the event —
+    // [[Gui.RichEditCtrl]] keeps its tabulation and the property grid keeps its row-to-row Tab
+    // without either of them knowing that a traversal exists.
+    internal mtd routeUnhandledKey(from: *Wnd, key: Input.Key, modifiers: Input.KeyModifiers)
+    {
+        let id = from.keyShortcut(modifiers, key)
+        if id != null
+        {
+            from.sendCommandEvent(id)
+            return
+        }
+
+        let surface = from.surface
+        if surface do
+            discard surface.navigateKey(from, key, modifiers)
     }
 
     // Frequently queried application services and per-frame input state.

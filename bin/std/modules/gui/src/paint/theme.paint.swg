@@ -4,6 +4,50 @@ using Core, Pixel
 
 impl Theme
 {
+    // Draws the ring that says the keyboard focus is on `rect`.
+    //
+    // Call it at the end of the paint of a control that has nothing else to show for the focus —
+    // a button, a check box, a picker. A field with a caret and a list with a selected row
+    // already say it, and a second mark on them would only be noise.
+    //
+    // The ring is a rule inside the control, inset by [[Gui.ThemeMetrics.focusRing_Inset]] so it
+    // never merges with the control's own border. Draw it only while
+    // [[Gui.Wnd.hasVisibleFocus]] holds, so a control pressed with the pointer stays unmarked.
+    // Its four corners are cut at 45 degrees, by [[Gui.ThemeMetrics.focusRing_Cut]]: a square
+    // corner sitting a couple of pixels inside a rounded one crosses it, and the cut is the
+    // identity's own answer to a corner anyway.
+    mtd drawFocusRing(painter: *Painter, rect: Math.Rectangle)
+    {
+        let color = .colors.focusRing
+        if color.a == 0 do
+            return
+
+        var ring = rect
+        ring.inflate(-.metrics.focusRing_Inset)
+        if ring.isEmpty() do
+            return
+
+        // A cut wider than a third of the shorter side would eat the whole corner and leave a
+        // lozenge, so the smallest controls simply get a smaller cut.
+        let cut = Math.min(.metrics.focusRing_Cut, Math.min(ring.width, ring.height) / 3)
+        let l   = ring.x
+        let t   = ring.y
+        let r   = ring.right()
+        let b   = ring.bottom()
+
+        var path: LinePath
+        path.start(l + cut, t)
+        path.lineTo(r - cut, t)
+        path.lineTo(r, t + cut)
+        path.lineTo(r, b - cut)
+        path.lineTo(r - cut, b)
+        path.lineTo(l + cut, b)
+        path.lineTo(l, b - cut)
+        path.lineTo(l, t + cut)
+        path.close()
+        painter.drawPath(&path, color, .metrics.focusRing_Size)
+    }
+
     // Draws a themed image region, using its optional nine-slice margins.
     mtd drawSubRect(painter: *Painter, dstRect: Math.Rectangle, subRect: #null *ThemeImageRect, color: Color, center = true, interpol = InterpolationMode.Linear)
     {

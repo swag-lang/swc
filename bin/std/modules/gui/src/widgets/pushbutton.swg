@@ -244,7 +244,8 @@ impl PushButton
         if pos.width == 0 do
             pos.width = parent.themeMetrics().btnPush_Width
         let res = Wnd.create'PushButton(parent, name, pos, id)
-        res.form = form
+        res.form        = form
+        res.focusPolicy = .Tab
 
         // An unstated width belongs to the caption: the theme width above only gives the
         // button a sane size until the first layout pass measures it, and stays its floor.

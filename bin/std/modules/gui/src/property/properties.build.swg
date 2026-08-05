@@ -46,7 +46,7 @@ internal impl Properties
             // Lines never take the keyboard focus themselves: navigation lives on
             // the edView and edition on the row editors. This keeps a click on a
             // row label from stealing focus away from the navigation surface.
-            .focusStrategy = .None
+            .focusPolicy = .None
 
             if .isGridLike()
             {
@@ -446,7 +446,6 @@ internal impl Properties
 
         with let lbl = Label.create(item.line, text, {0, 0, .position.width, item.line.position.height})
         {
-            .focusStrategy = .None
             .setTextAlignment(.Left, .Center)
             .setIconHorizontalAlignment(.Left)
             .setIconPadding({(.valBarGlyphWidth - .valBarIconSize) * 0.5, 0, 0, 0})

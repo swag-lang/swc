@@ -460,8 +460,7 @@ impl SplitterCtrl
 
         let pos = position
         let res = Wnd.create'SplitterCtrl(parent, null, pos, id)
-        res.focusStrategy = .None
-        res.wndFlags      |= .AfterChildrenPaint
+        res.wndFlags |= .AfterChildrenPaint
         if vertical do
             res.flags.add(.Vertical)
         return res

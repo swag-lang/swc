@@ -38,11 +38,21 @@ enum BackgroundStyle
     View            // Uses the document or content-view background.
 }
 
-// Selects how pointer interaction changes keyboard focus.
-enum FocusStrategy
+// Selects how a window takes part in keyboard focus.
+//
+// One policy answers both questions a window has about the focus: whether a pointer press gives
+// it the focus, and what the keyboard traversal of [[Gui.FocusOrder]] does when it reaches it.
+//
+// A composite stands in the traversal once, as one control, however many windows it is built
+// from: it declares `Tab` on itself, points [[Gui.Wnd.focusDelegate]] at the window that reads
+// the keys, and declares `Inner` on that window so nothing it builds below shows up as a second
+// stop beside it.
+enum FocusPolicy
 {
-    None             // Pointer interaction does not change keyboard focus.
-    OnMousePress     // Focus the window when a mouse button is pressed over it.
+    None      // Never takes the keyboard focus; the traversal walks through to the children.
+    Click     // Takes the focus when pressed, without being a stop; the traversal walks through.
+    Tab       // Takes the focus when pressed, and is one stop of the traversal.
+    Inner     // Takes the focus when pressed, and hides itself and its children from the traversal.
 }
 
 // Selects how a layout container may size a window along one axis.
@@ -202,6 +212,7 @@ enum WndFlags
     BeforeChildrenPaint     // Enables the before-children paint phase.
     AfterChildrenPaint      // Enables the after-children overlay paint phase.
     TopMost                 // Keeps the window after normal siblings in paint order.
+    NoFocusRing             // Suppresses the keyboard-focus ring, for a control that shows the focus its own way.
 }
 
 // Forms one node in a retained GUI tree and provides layout, event, and painting services.
@@ -246,7 +257,14 @@ struct Wnd
     anchorStyle: AnchorStyle = None     // Legacy response to parent-size deltas.
     layoutSpec:  LayoutSpec             // Container-driven measurement and arrangement policy.
 
-    focusStrategy: FocusStrategy = OnMousePress     // Pointer-to-keyboard focus policy.
+    focusPolicy: FocusPolicy = None     // Pointer and traversal focus policy.
+
+    // Window the focus lands on when this one is given the focus, or `null` to take it.
+    //
+    // A composite declares the policy on itself and delegates the focus to the inner window
+    // that actually handles the keys, so a caller holding the composite never has to know
+    // which part of it edits, scrolls, or draws a caret.
+    focusDelegate: #null *Wnd
 
     backgroundStyle: BackgroundStyle = Transparent     // Semantic theme background painted before content.
     internal
@@ -652,6 +670,7 @@ impl Wnd
     {
         if .wndFlags.has(.Hidden) do
             return
+        .releaseFocus()
         .sendHideStateEvent()
         .wndFlags.add(.Hidden)
         .app().unregisterWnd(me)
@@ -672,12 +691,9 @@ impl Wnd
         {
             if .wndFlags.has(.Disabled) do
                 return
+            .releaseFocus()
             .sendDisableStateEvent()
             .wndFlags.add(.Disabled)
-
-            // Check global state
-            if .app().keyboardFocusWnd == me do
-                .topView().setFocus()
             .app().clearWndInputState(me)
         }
 
@@ -827,6 +843,17 @@ impl Wnd
             painter.pushState()
             .sendEvent(&evt)
             painter.popState()
+        }
+
+        // Where the keyboard is, drawn once for every control instead of once per widget: the
+        // ring belongs to the traversal stop, which is the whole control the user is standing on,
+        // and it goes over the content so a filled button still shows it. A control that already
+        // says it another way — a caret, a selected row, a highlighted cell — carries
+        // [[Gui.WndFlags.NoFocusRing]] and paints nothing here.
+        if .focusPolicy == .Tab and !.wndFlags.has(.NoFocusRing) and !bc.isDisabled and .hasVisibleFocus()
+        {
+            painter.setTransform(curTrs)
+            theme.drawFocusRing(painter, .clientRect())
         }
 
         bc.isDisabled = lastDisabled
@@ -1589,9 +1616,34 @@ impl Wnd
     // Keyboard
     //////////////////////////////////////////////
 
+    // Returns the window the focus lands on for this one, following the delegate chain.
+    //
+    // A window without a delegate answers itself, so this is the window that really holds the
+    // focus, rather than the one a caller happens to be holding.
+    mtd focusTarget()->*Wnd
+    {
+        var result = &me
+        while result.focusDelegate do
+            result = result.focusDelegate!
+        return result
+    }
+
+    // Reports whether keyboard traversal stops on this window.
+    mtd isFocusStop()->bool => .focusPolicy == .Tab
+
     // Requests keyboard focus after both the old and new windows approve the transition.
+    //
+    // The focus goes to [[Gui.Wnd.focusTarget]], so asking a composite for the focus reaches
+    // the part of it that reads the keys.
     mtd setFocus()
     {
+        let target = .focusTarget()
+        if target != me
+        {
+            target.setFocus()
+            return
+        }
+
         let srfn = .surface!
         if srfn.app.keyboardFocusWnd == me do
             return
@@ -1646,12 +1698,114 @@ impl Wnd
     }
 
     // Reports whether this window currently owns keyboard focus.
+    //
+    // A composite that delegates its focus answers for its delegate, so a widget asks this
+    // about itself and paints its focused state without knowing where the focus really sits.
     mtd hasFocus()->bool
     {
         let surface = .surface
         if !surface do
             return false
-        return surface.app.keyboardFocusWnd == me
+        return surface.app.keyboardFocusWnd == .focusTarget()
+    }
+
+    // Reports whether this window must show the keyboard focus.
+    //
+    // True only while the focus arrived from the keyboard: a control pressed with the pointer
+    // keeps the focus without drawing a ring around it, the way the pointer already said which
+    // control was acted on. See [[Gui.Application.focusVisible]].
+    mtd hasVisibleFocus()->bool
+    {
+        let surface = .surface
+        if !surface do
+            return false
+        return surface.app.focusVisible and .hasFocus()
+    }
+
+    // Returns the topmost structural ancestor of this window, or itself when it has no parent.
+    mtd rootWnd()->*Wnd
+    {
+        var result = &me
+        while result.parent do
+            result = result.parent!
+        return result
+    }
+
+    // Moves the keyboard focus to the next traversal stop, and reports whether one was found.
+    //
+    // The order is the reading order of the tree this window belongs to, and it wraps around,
+    // so the focus never leaves the surface it started on.
+    mtd focusNext(forward = true)->bool
+    {
+        let order = FocusOrder.around(me)
+        let next  = order.next(me, forward)
+        if !next do
+            return false
+        next.setFocus()
+        return true
+    }
+
+    // Gives the keyboard focus to the first traversal stop of this window's tree.
+    //
+    // Call it once a surface is fully built, so it opens ready for the keyboard: a form the user
+    // can start typing into, a dialog that answers Tab from its first field. A focus that already
+    // stands somewhere inside this tree is left where it is — the caller placed it on purpose —
+    // and a tree with no stop at all keeps none.
+    mtd setInitialFocus()
+    {
+        let order = FocusOrder.collect(me)
+        let focus = .focusedWindow()
+        if focus and order.indexOf(focus) >= 0 do
+            return
+        order.first()?.setFocus()
+    }
+
+    // Moves the keyboard focus out of this subtree before it stops accepting input.
+    //
+    // Hiding or disabling the window that owns the focus must not leave the keyboard pointed at
+    // something the user can no longer act on. The focus continues to the first stop that
+    // follows this subtree, wrapping around, and is simply dropped when nothing else can take
+    // it. Called before the state actually changes, so the stop it leaves from is still known.
+    internal mtd releaseFocus()
+    {
+        let focus = .focusedWindow()
+        if !focus do
+            return
+        if focus != me and !.isAncestorOf(focus) do
+            return
+
+        let order = FocusOrder.around(me)
+        let count = cast(s64) order.stops.count
+
+        // Resume after the last stop this subtree owns, so a whole form going down hands the
+        // keyboard to what follows the form rather than to the top of the surface.
+        var from = order.indexOf(me)
+        for stop, [index] in order.stops where stop == me or .isAncestorOf(stop) do
+            from = cast(s64) index
+
+        for var step = 1's64; step < count; step += 1
+        {
+            let candidate = order.stops[cast(u64) ((from + step) % count)]
+            if candidate == me or .isAncestorOf(candidate) do
+                continue
+            candidate.setFocus()
+            return
+        }
+
+        .app().keyboardFocusWnd = null
+    }
+
+    // Sends one synthetic key press to this window, and reports whether it was consumed.
+    //
+    // This is how a control is pressed without the focus being on it, the way Enter presses the
+    // default button of a surface while the keyboard is still in a field.
+    internal mtd sendKeyPress(key: Input.Key, modifiers = Input.KeyModifiers.None)->bool
+    {
+        var evt = KeyEvent{kind: .Pressed}
+        evt.key       = key
+        evt.modifiers = modifiers
+        .sendEvent(&evt)
+        return evt.accepted
     }
 
     // Registers or replaces a keyboard shortcut on this routing node.

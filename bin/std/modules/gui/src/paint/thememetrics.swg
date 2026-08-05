@@ -143,6 +143,12 @@ struct ThemeMetrics
     activeRail_Size:   f32 = 3     // Thickness of the rule.
     activeRail_Margin: f32 = 8     // Air a cell mark keeps at each end, and between the rule and the content.
 
+    // The ring that says where the keyboard is. It is a rule around a control, not a fill on
+    // it, and it keeps clear of the control's own border so the two never read as one thick edge.
+    focusRing_Size:  f32 = 1     // Thickness of the ring.
+    focusRing_Inset: f32 = 2     // Air the ring keeps inside the control's rectangle.
+    focusRing_Cut:   f32 = 4     // Width of the 45 degree cut opening each of its corners.
+
     richEdit_Padding: f32 = 5     // Theme measurement used for rich edit padding.
     toolTip_Padding:  f32 = 2     // Theme measurement used for tool tip padding.
 }

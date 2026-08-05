@@ -69,15 +69,15 @@ internal enum MountRow
 // polls `job` with `timer` until the result is ready to be reported.
 struct VaultOperation
 {
-    job:      Jobs.Job            // Worker scheduled for `kind`.
-    kind:     OperationKind       // Work the job performs, or `None` while the window is idle.
-    timer:    #null *Timer        // Polls the job while it runs.
-    error:    #null any           // Failure captured by the job, or null when it succeeded.
-    path:     String              // Container file the operation acts on.
-    mount:    String              // Drive letter requested by a mount operation.
-    size:     u64                 // Container size requested by a create operation.
-    password: Array'u8            // Password copy owned by the operation and wiped when it ends.
-    progress: VolumeProgress      // What the job has done, and the way to ask it to stop.
+    job:      Jobs.Job           // Worker scheduled for `kind`.
+    kind:     OperationKind      // Work the job performs, or `None` while the window is idle.
+    timer:    #null *Timer       // Polls the job while it runs.
+    error:    #null any          // Failure captured by the job, or null when it succeeded.
+    path:     String             // Container file the operation acts on.
+    mount:    String             // Drive letter requested by a mount operation.
+    size:     u64                // Container size requested by a create operation.
+    password: Array'u8           // Password copy owned by the operation and wiped when it ends.
+    progress: VolumeProgress     // What the job has done, and the way to ask it to stop.
 }
 
 // Owns the complete application state. The UI thread owns this object; long
@@ -226,6 +226,10 @@ impl MainWindow
         cards.computeLayout()
         result.setState(.Ready)
         result.setStatus(.Ready)
+
+        // The window opens on the first thing there is to fill in, so it can be driven from the
+        // keyboard alone: Tab walks the create card, then the mount card, then the language.
+        result.setInitialFocus()
         return result
     }
 
@@ -264,6 +268,70 @@ impl MainWindow
             discard index
             window.refreshActions()
         }
+
+        .watchSubmit()
+    }
+
+    // Follows Enter in every field, so a card can be answered from the keyboard.
+    //
+    // Enter presses the action of the card the field belongs to, not one action for the whole
+    // surface: this window carries two dominant actions, and the field being typed in is what says
+    // which of the two was meant.
+    mtd watchSubmit()
+    {
+        mtd onCreateEdit(edit: *EditBox)
+        {
+            edit.sigSubmitted += func|window = me|(box)
+            {
+                discard box
+                window.submitCreate()
+            }
+        }
+
+        mtd onCreatePassword(edit: *PasswordEdit)
+        {
+            edit.sigSubmitted += func|window = me|(box)
+            {
+                discard box
+                window.submitCreate()
+            }
+        }
+
+        .onCreateEdit(.createPath)
+        .onCreateEdit(.createSize)
+        .onCreatePassword(.createPassword)
+        .onCreatePassword(.confirmPassword)
+
+        .mountPath.sigSubmitted += func|window = me|(box)
+        {
+            discard box
+            window.submitMount()
+        }
+
+        .mountPassword.sigSubmitted += func|window = me|(box)
+        {
+            discard box
+            window.submitMount()
+        }
+    }
+
+    // Creates the container when the create form holds everything it needs.
+    //
+    // A form that cannot answer stays silent instead of opening a box: the button is already down
+    // for the same reason, so Enter says exactly what the button says.
+    mtd submitCreate()
+    {
+        if .state != .Ready or !.canCreate() do
+            return
+        .createContainer()
+    }
+
+    // Mounts the drive when the mount form holds everything it needs.
+    mtd submitMount()
+    {
+        if .state != .Ready or !.canMount() do
+            return
+        .mountContainer()
     }
 
     mtd createHeader()
@@ -287,10 +355,16 @@ impl MainWindow
         .badge.setTextAlignment(.Right, .Center)
         .badge.style.setFont(.theme().createDefaultFontFS(12, .Bold), .Regular)
 
-        let title = Label.create(titleRow, "sCrypt")
+        let titleFont = .theme().createDefaultFont(34, .Bold)
+        let title     = Label.create(titleRow, "sCrypt")
         title.dockStyle = .Center
         title.setTextAlignment(.Left, .Center)
-        title.style.setFont(.theme().createDefaultFont(34, .Bold), .Regular)
+        title.style.setFont(titleFont, .Regular)
+
+        // The row is as tall as the line box of the name. A hand-tuned height clips it, and by a
+        // fraction of a pixel: enough to cut a descender, not enough to be noticed until the name
+        // is set in another face.
+        titleRow.resize(titleRow.position.width, Math.max(titleRow.position.height, titleFont.height))
 
         .subtitle           = Label.create(header, appStrings().ui_Subtitle, {}, null, .WordWrap | .SecondaryText | .AutoHeight)
         .subtitle.dockStyle = .Top
@@ -325,7 +399,7 @@ impl MainWindow
 
         // The status line is raised off the ground by its own fill. A border around it would
         // draw a third box on a surface that already reads without one.
-        .statusView = Wnd.create'Wnd(me, {0, 0, 0, 52})
+        .statusView                 = Wnd.create'Wnd(me, {0, 0, 0, 52})
         .statusView.dockStyle       = .Bottom
         .statusView.margin          = {32, 0, 32, 12}
         .statusView.backgroundStyle = .Window
@@ -445,7 +519,7 @@ impl MainWindow
         {
         case .Randomizing, .StopRequested, .StartingDriver, .Unmounting, .Mounted: return .Active
         case .CreateStopped, .MountStopped:                                        return .Stopped
-        case .Ready, .CreateCanceled, .Created, .Unmounted:                         return .Idle
+        case .Ready, .CreateCanceled, .Created, .Unmounted:                        return .Idle
         }
     }
 
@@ -455,17 +529,17 @@ impl MainWindow
         let texts = appStrings()
         switch #complete .statusMessage
         {
-        case .Ready:           return String.from(texts.msg_Ready)
-        case .Randomizing:     return Format.toString(texts.msg_Randomizing, .statusProgress)
-        case .StopRequested:   return String.from(texts.msg_StopRequested)
-        case .CreateCanceled:  return String.from(texts.msg_CreateCanceled)
-        case .StartingDriver:  return String.from(texts.msg_StartingDriver)
-        case .Unmounting:      return String.from(texts.msg_Unmounting)
-        case .CreateStopped:   return String.from(texts.msg_CreateStopped)
-        case .Created:         return String.from(texts.msg_Created)
-        case .MountStopped:    return String.from(texts.msg_MountStopped)
-        case .Mounted:         return Format.toString(texts.msg_Mounted, .statusDrive)
-        case .Unmounted:       return String.from(texts.msg_Unmounted)
+        case .Ready:          return String.from(texts.msg_Ready)
+        case .Randomizing:    return Format.toString(texts.msg_Randomizing, .statusProgress)
+        case .StopRequested:  return String.from(texts.msg_StopRequested)
+        case .CreateCanceled: return String.from(texts.msg_CreateCanceled)
+        case .StartingDriver: return String.from(texts.msg_StartingDriver)
+        case .Unmounting:     return String.from(texts.msg_Unmounting)
+        case .CreateStopped:  return String.from(texts.msg_CreateStopped)
+        case .Created:        return String.from(texts.msg_Created)
+        case .MountStopped:   return String.from(texts.msg_MountStopped)
+        case .Mounted:        return Format.toString(texts.msg_Mounted, .statusDrive)
+        case .Unmounted:      return String.from(texts.msg_Unmounted)
         }
     }
 
@@ -623,17 +697,19 @@ impl MainWindow
         let mounted  = state == .Mounted
         let creating = state == .Creating
 
+        // The create button stays live through creation, because during creation it is what stops
+        // it. It is put in its new state before the forms go down, so the keyboard a disabled form
+        // hands on lands on the one control that still answers rather than walking to the far end
+        // of the surface.
+        .createButton.enable(creating or (ready and .canCreate()))
+        .createButton.setText(creating ? appStrings().ui_StopCreating : appStrings().ui_CreateVault)
+        .createButton.setIcon(.theme().icon(creating ? ThemeIcons.Stop : ThemeIcons.SaveAs, 18))
+
         // Disabling a form disables every field and trailing control it owns.
         .createCard.form.enable(ready)
         .mountCard.form.enable(ready)
         .mountButton.enable(ready and .canMount())
         .unmountButton.enable(mounted)
-
-        // The create button stays live through creation, because during creation it is what
-        // stops it.
-        .createButton.enable(creating or (ready and .canCreate()))
-        .createButton.setText(creating ? appStrings().ui_StopCreating : appStrings().ui_CreateVault)
-        .createButton.setIcon(.theme().icon(creating ? ThemeIcons.Stop : ThemeIcons.SaveAs, 18))
     }
 
     // Says everything the window said at construction, in the language now active.

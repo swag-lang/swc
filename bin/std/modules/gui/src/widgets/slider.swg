@@ -664,6 +664,7 @@ impl Slider
         }
 
         let res = Wnd.create'Slider(parent, null, pos, id)
+        res.focusPolicy = .Tab
         if range do
             res.flags.add(.Range)
         if vertical do

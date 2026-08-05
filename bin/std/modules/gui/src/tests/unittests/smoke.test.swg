@@ -193,11 +193,10 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     @assert(host.surfaceWnd.hitTestBorders({30, 15}) == SizingBorder.None)
     @assert(host.surfaceWnd.hitTestBorders({30, 1}) & SizingBorder.Top)
 
-    host.surfaceWnd.itf           = &host.surfaceWnd
-    host.surfaceWnd.type          = SurfaceWnd
-    host.surfaceWnd.surface       = &host.surface
-    host.surfaceWnd.focusStrategy = .None
-    host.app.mouseEnterWnd        = &host.surfaceWnd
+    host.surfaceWnd.itf     = &host.surfaceWnd
+    host.surfaceWnd.type    = SurfaceWnd
+    host.surfaceWnd.surface = &host.surface
+    host.app.mouseEnterWnd  = &host.surfaceWnd
 
     var evt = MouseEvent{kind: .Pressed}
     evt.button     = .Left

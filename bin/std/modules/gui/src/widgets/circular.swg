@@ -685,6 +685,7 @@ impl Circular
             pos.height = pos.width
 
         let res = Wnd.create'Circular(parent, null, pos, id)
+        res.focusPolicy = .Click
         if range do
             res.flags.add(.Range)
         return res

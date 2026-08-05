@@ -394,17 +394,23 @@ impl Properties
         {
             .kind = kind
 
-            .scrollWnd               = .createView'ScrollWnd()
-            .scrollWnd.dockStyle     = .Center
-            .scrollWnd.focusStrategy = .None
-            .scrollWnd.padding       = 0
+            // The grid is one stop of the keyboard traversal. Its rows and their editors are
+            // parts of it, not controls of the surface, and it moves between them itself: see
+            // the navigation and edition modes of properties.keyboard.swg.
+            .focusPolicy         = .Tab
+            .wndFlags            |= .NoFocusRing
+            .scrollWnd           = .createView'ScrollWnd()
+            .scrollWnd.dockStyle = .Center
+            .scrollWnd.padding   = 0
             .scrollWnd.updateFlags(.TransparentBars)
 
-            .edView          = .scrollWnd.createView'PropertiesView()
-            .edView.ed       = ed
-            .edView.mode     = .Top
-            .edView.spacing  = 0
-            .edView.wndFlags |= .NoScroll
+            .edView             = .scrollWnd.createView'PropertiesView()
+            .edView.ed          = ed
+            .edView.mode        = .Top
+            .edView.spacing     = 0
+            .edView.focusPolicy = .Inner
+            .edView.wndFlags    |= .NoScroll
+            .focusDelegate      = .edView
 
             let theme = parent.theme()
 

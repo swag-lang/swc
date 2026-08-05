@@ -914,14 +914,19 @@ impl ListCtrl
         Debug.assert(parent != null)
         with let list = Wnd.create'ListCtrl(parent, "", position, id)
         {
-            .scrollWnd               = .createView'ScrollWnd()
-            .scrollWnd.dockStyle     = .Center
-            .scrollWnd.focusStrategy = .None
+            // The list is one stop of the keyboard traversal, and the view inside it is what
+            // reads the keys: the rows, the selection and the scrolling all live there.
+            .focusPolicy         = .Tab
+            .wndFlags            |= .NoFocusRing
+            .scrollWnd           = .createView'ScrollWnd()
+            .scrollWnd.dockStyle = .Center
             .scrollWnd.setAllPaddings(.themeMetrics().list_Padding)
 
-            .listView          = .scrollWnd.createView'ListView()
-            .listView.list     = list
-            .listView.wndFlags |= .NoScroll
+            .listView             = .scrollWnd.createView'ListView()
+            .listView.list        = list
+            .listView.focusPolicy = .Inner
+            .listView.wndFlags    |= .NoScroll
+            .focusDelegate        = .listView
         }
 
         return list
@@ -971,6 +976,10 @@ impl ListCtrl
 
         with list
         {
+            // One stop for the whole control, on the view that reads the keys.
+            .focusPolicy = .Tab
+            .wndFlags    |= .NoFocusRing
+
             // Header
             // Need to recompute layout when header size has changed
             .header                  = Header.create(fwnd, {})
@@ -987,7 +996,6 @@ impl ListCtrl
             // Scroll that contains the list view
             .scrollWnd                 = Wnd.create'ScrollWnd(fwnd, {})
             .scrollWnd.dockStyle       = .Center
-            .scrollWnd.focusStrategy   = .None
             .scrollWnd.backgroundStyle = .Transparent
             .scrollWnd.setAllPaddings(.themeMetrics().list_Padding)
             .scrollWnd.sigScrollPositionChanged += func|header = list.header|(scrollWnd, op, np)
@@ -997,9 +1005,11 @@ impl ListCtrl
             }
 
             // ListCtrl view
-            .listView          = .scrollWnd.createView'ListView()
-            .listView.list     = list
-            .listView.wndFlags |= .NoScroll
+            .listView             = .scrollWnd.createView'ListView()
+            .listView.list        = list
+            .listView.focusPolicy = .Inner
+            .listView.wndFlags    |= .NoScroll
+            .focusDelegate        = .listView
         }
 
         return list
@@ -1592,11 +1602,5 @@ impl ListCtrl
             .collapse(line)
         else do
             .expand(line)
-    }
-
-    // Gives keyboard focus to the list viewport.
-    mtd setFocus()
-    {
-        .listView.setFocus()
     }
 }

@@ -200,8 +200,14 @@ public impl PasswordEdit
             pos.width = parent.themeMetrics().editBox_Width
 
         let result = Wnd.create'PasswordEdit(parent, null, pos, id)
-        result.focusStrategy     = .None
+
+        // One stop of the keyboard traversal for the control, on the private box that holds the
+        // caret: the mask is this window's, the editing is the box's.
+        result.focusPolicy       = .Tab
+        result.wndFlags          |= .NoFocusRing
         result.edit              = EditBox.create(result, "", result.clientRect(), flags: .ReleaseFocusOnEnterOrEscape)
+        result.edit.focusPolicy  = .Inner
+        result.focusDelegate     = result.edit
         result.edit.hookOnEvent  = func|password = result|(wnd, evt) => password.handleEditEvent(wnd, evt)
         result.edit.sigSubmitted += func|password = result|(edit)
         {
@@ -222,12 +228,6 @@ public impl PasswordEdit
 
     // Returns true when no password bytes are stored.
     mtd const isEmpty()->bool => !.byteCount
-
-    // Gives keyboard focus to the private edit box.
-    mtd setFocus() => .edit.setFocus()
-
-    // Reports whether the private edit box owns keyboard focus.
-    mtd hasFocus()->bool => .edit.hasFocus()
 
     // Selects the complete masked password.
     mtd selectAll() => .edit.selectAll()

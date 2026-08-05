@@ -20,6 +20,7 @@ struct ThemeColors
     hilightDark:          Color     // Semantic color used for hilight dark.
     hilightLightContrast: Color     // Semantic color used for hilight light contrast.
     activeRail:           Color     // Narrow rule marking active and selected controls, or transparent when unused.
+    focusRing:            Color     // Ring drawn around the control the keyboard focus is on.
     error:                Color     // Text and glyphs reporting an operation that stopped.
     disabled:             Color     // Semantic color used for disabled.
     transparent:          Color     // Semantic color used for transparent.
@@ -403,6 +404,7 @@ impl ThemeColors
         .hilightDark          = Color.darker(Color.fromArgb(Blue), 0.2)
         .hilightLightContrast = Color.contrasting(Color.fromArgb(Blue))
         .activeRail           = Transparent
+        .focusRing            = Blue
         .error                = Error
         .disabled             = Disabled
         .transparent          = Transparent
@@ -795,6 +797,7 @@ impl ThemeColors
         .hilightDark          = Color.darker(Color.fromArgb(Blue), 0.2)
         .hilightLightContrast = Color.contrasting(Color.fromArgb(Blue))
         .activeRail           = Transparent
+        .focusRing            = Blue
         .error                = Error
         .disabled             = Disabled
         .transparent          = Transparent
@@ -1157,6 +1160,7 @@ impl ThemeColors
         .hilightDark          = accent
         .hilightLightContrast = activeText
         .activeRail           = accent
+        .focusRing            = accent
 
         .btnPush_PressedBorder     = accent
         .btnPush_HotBorder         = accent
@@ -1275,10 +1279,11 @@ impl ThemeColors
     // Applies the dark Swag application palette: Voltage over Ink with neutral structure.
     mtd setSwagDark()
     {
-        const Ink         = 0xFF0B0B0D
-        const View        = 0xFF15151A
-        const Panel       = 0xFF202026
-        const Raised      = 0xFF2A2A32
+        const Ink    = 0xFF0B0B0D
+        const View   = 0xFF15151A
+        const Panel  = 0xFF202026
+        const Raised = 0xFF2A2A32
+
         // Hover has to be seen from across the surface without shouting. A step of nine
         // levels over the raised ground it usually sits on read as nothing at all.
         const NeutralHot  = 0xFF41414E
@@ -1375,19 +1380,19 @@ impl ThemeColors
 
         // A list separator row carries a group label, so it reads as a faint label,
         // not as a hairline.
-        .listItem_Separator = FaintText
-        .listItem_Line      = Line
-        .headerItem_Text       = Text
-        .headerItem_Separator  = Line
-        .header_Bk             = Panel
-        .splitView_TitleBk     = Panel
-        .splitView_Bar         = Line
-        .progressBar_Border    = ControlLine
-        .progressBar_Bk        = View
-        .prop_GridBorder       = Line
-        .prop_GridColumn       = Line
-        .prop_SectionBk        = View
-        .prop_CategBk          = View
+        .listItem_Separator   = FaintText
+        .listItem_Line        = Line
+        .headerItem_Text      = Text
+        .headerItem_Separator = Line
+        .header_Bk            = Panel
+        .splitView_TitleBk    = Panel
+        .splitView_Bar        = Line
+        .progressBar_Border   = ControlLine
+        .progressBar_Bk       = View
+        .prop_GridBorder      = Line
+        .prop_GridColumn      = Line
+        .prop_SectionBk       = View
+        .prop_CategBk         = View
 
         .applySwagAccent(Color.fromArgb(Voltage), Color.fromArgb(Ink), Color.fromArgb(NeutralHot), Color.fromArgb(Pressed))
     }
@@ -1479,19 +1484,19 @@ impl ThemeColors
 
         // A list separator row carries a group label, so it reads as a faint label,
         // not as a hairline.
-        .listItem_Separator = FaintText
-        .listItem_Line      = Line
-        .headerItem_Text       = Text
-        .headerItem_Separator  = Line
-        .header_Bk             = Panel
-        .splitView_TitleBk     = Panel
-        .splitView_Bar         = Line
-        .progressBar_Border    = Line
-        .progressBar_Bk        = Paper
-        .prop_GridBorder       = Line
-        .prop_GridColumn       = Line
-        .prop_SectionBk        = Paper
-        .prop_CategBk          = Paper
+        .listItem_Separator   = FaintText
+        .listItem_Line        = Line
+        .headerItem_Text      = Text
+        .headerItem_Separator = Line
+        .header_Bk            = Panel
+        .splitView_TitleBk    = Panel
+        .splitView_Bar        = Line
+        .progressBar_Border   = Line
+        .progressBar_Bk       = Paper
+        .prop_GridBorder      = Line
+        .prop_GridColumn      = Line
+        .prop_SectionBk       = Paper
+        .prop_CategBk         = Paper
 
         .applySwagAccent(Color.fromArgb(Ink), Color.fromArgb(Paper), Color.fromArgb(NeutralHot), Color.fromArgb(Pressed))
     }

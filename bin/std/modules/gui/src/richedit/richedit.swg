@@ -281,9 +281,12 @@ impl RichEditCtrl
 
         with ed
         {
-            .scrollWnd               = .createView'ScrollWnd()
-            .scrollWnd.dockStyle     = .Center
-            .scrollWnd.focusStrategy = .None
+            // One stop of the keyboard traversal for the whole editor, on the view that owns the
+            // caret and the key mapping.
+            .focusPolicy         = .Tab
+            .wndFlags            |= .NoFocusRing
+            .scrollWnd           = .createView'ScrollWnd()
+            .scrollWnd.dockStyle = .Center
             .scrollWnd.setAllPaddings(.themeMetrics().richEdit_Padding)
             .scrollWnd.sigScrollPositionChanged += func|ed|(scrollWnd, op, np)
             {
@@ -291,21 +294,17 @@ impl RichEditCtrl
                     ed.dirtyFirstLineView = true
             }
 
-            .edView          = .scrollWnd.createView'RichEditView()
-            .edView.ed       = ed
-            .edView.wndFlags |= .NoScroll
+            .edView             = .scrollWnd.createView'RichEditView()
+            .edView.ed          = ed
+            .edView.focusPolicy = .Inner
+            .edView.wndFlags    |= .NoScroll
+            .focusDelegate      = .edView
 
             .setDefaultMapping()
             .setDefaultStyles()
         }
 
         return ed
-    }
-
-    // Gives keyboard focus to the editable view.
-    mtd setFocus()
-    {
-        .edView.setFocus()
     }
 
     // Replaces the behavior flags and refreshes layout and painting.

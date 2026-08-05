@@ -286,13 +286,13 @@ internal impl Properties
         with item.revertButton = IconButton.create(host, .theme().icon(.Undo, .revertIconSize(h)), {0, 0, h, h})
         {
             .setForm(.Circle)
-            .updateFlags(.Overlay)      // Elegant translucent hover without an opaque box.
-            .maxSize       = {h, h}     // square: symmetric horizontally and vertically
-            .minSize       = {h, h}
-            .focusStrategy = .None     // stays out of the keyboard nav order
-            .dockStyle     = .Right
-            .margin.x      = PropRevertGap     // breathing room from the editor / previous action
-            .margin.z      = PropRevertGap
+            .updateFlags(.Overlay)     // Elegant translucent hover without an opaque box.
+            .maxSize     = {h, h}      // square: symmetric horizontally and vertically
+            .minSize     = {h, h}
+            .focusPolicy = .None     // stays out of the keyboard nav order
+            .dockStyle   = .Right
+            .margin.x    = PropRevertGap     // breathing room from the editor / previous action
+            .margin.z    = PropRevertGap
 
             .sigPressed += func|prop = me, item|(b) { prop.resetItemDefault(item) }
         }

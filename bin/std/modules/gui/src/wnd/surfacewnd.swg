@@ -385,8 +385,8 @@ impl SurfaceWnd
                 with me.minimizeBtn = IconButton.create(me, theme.icon(ThemeIcons.WndMinimize), {0, 0, 0, 0})
                 {
                     .setForm(.RoundedRectangle)
-                    .focusStrategy = .None
-                    .sigPressed    += &onMinimize
+                    .focusPolicy = .None
+                    .sigPressed  += &onMinimize
                 }
             }
         }
@@ -403,8 +403,8 @@ impl SurfaceWnd
                 with me.maximizeBtn = IconButton.create(me, theme.icon(ThemeIcons.WndMaximize), {0, 0, 0, 0})
                 {
                     .setForm(.RoundedRectangle)
-                    .focusStrategy = .None
-                    .sigPressed    += &onMaximize
+                    .focusPolicy = .None
+                    .sigPressed  += &onMaximize
                 }
             }
         }
@@ -421,8 +421,8 @@ impl SurfaceWnd
                 with me.closeBtn = IconButton.create(me, theme.icon(ThemeIcons.WndClose), {0, 0, 0, 0})
                 {
                     .setForm(.RoundedRectangle)
-                    .focusStrategy = .None
-                    .sigPressed    += &onClose
+                    .focusPolicy = .None
+                    .sigPressed  += &onClose
                     .style.addStyleSheetColors(#nameof(ThemeColors.btnIcon_HotBk) ++ " $" ++ #nameof(ThemeColors.wnd_BtnCloseBk))
                     .style.addStyleSheetColors(#nameof(ThemeColors.btnIcon_PressedBk) ++ " $" ++ #nameof(ThemeColors.wnd_BtnCloseHotBk))
                     .style.addStyleSheetColors(#nameof(ThemeColors.btnIcon_HotIcon) ++ " $" ++ #nameof(ThemeColors.wnd_BtnCloseHotIcon))

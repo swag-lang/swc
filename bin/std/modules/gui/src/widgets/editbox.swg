@@ -1071,8 +1071,9 @@ impl EditBox
 
         let result = Wnd.create'EditBox(parent, null, pos, id)
         result.setAllPaddings(result.themeMetrics().editBox_SquarePadding)
-        result.flags         = flags
-        result.focusStrategy = .OnMousePress
+        result.flags       = flags
+        result.focusPolicy = .Tab
+        result.wndFlags    |= .NoFocusRing
         result.setText(content, false)
         return result
     }

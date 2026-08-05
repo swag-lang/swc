@@ -24,66 +24,6 @@ impl IWnd for Dialog
             .closeWithResult(BtnCancel)
         evt.accepted = true
     }
-
-    mtd impl onKeyEvent(evt: *KeyEvent)
-    {
-        if evt.kind == .Pressed
-        {
-            // Pressing enter validates the default button
-            switch evt.key
-            {
-            case .Tab, .Right:
-                for btn, [idx] in .buttons
-                {
-                    if btn.form == .Default
-                    {
-                        btn.setForm(.Normal)
-                        btn.invalidate()
-                        let nextBtn = .buttons[(idx + 1) % .buttons.count]
-                        nextBtn.setForm(.Default)
-                        nextBtn.invalidate()
-                        break
-                    }
-                }
-
-            case .Left:
-                for btn, [idx] in .buttons
-                {
-                    if btn.form == .Default
-                    {
-                        btn.setForm(.Normal)
-                        btn.invalidate()
-                        let prevBtn = idx ? .buttons[idx - 1] : .buttons.back()
-                        prevBtn.setForm(.Default)
-                        prevBtn.invalidate()
-                        break
-                    }
-                }
-
-            case .Enter:
-                for btn in .buttons
-                {
-                    if btn.form == .Default
-                    {
-                        .closeWithResult(btn.id)
-                        break
-                    }
-                }
-
-            case .Escape:
-
-                // Escape is the cancel button pressed from the keyboard, so it closes
-                // exactly when there is one to press and returns what it would have
-                // returned. A box with nothing to cancel stays put rather than inventing a
-                // result its caller never offered the reader.
-                let cancel = .cancelButton()
-                if cancel do
-                    .closeWithResult(cancel.id)
-            }
-        }
-
-        evt.accepted = true
-    }
 }
 
 impl Dialog
@@ -140,7 +80,6 @@ impl Dialog
             .setAllPaddings(metrics.dialog_Padding)
         }
 
-        .setFocus()
         return srf
     }
 
@@ -151,9 +90,13 @@ impl Dialog
     }
 
     // Runs the dialog modally and returns the accepted button identifier.
+    //
+    // The box opens ready for the keyboard: the focus goes to its first control unless the caller
+    // already placed it, so a dialog can be answered and dismissed without the pointer.
     mtd doModal()->WndId
     {
         let surface = .surface!
+        surface.wnd.setInitialFocus()
         surface.bringToFront()
         surface.show()
         if .parentSurface and .parentSurface.isTopMost() do
@@ -187,9 +130,13 @@ impl Dialog
             me.buttons.add(btn)
         }
 
+        let srf = .surface!
+        if isDefault do
+            srf.defaultButton = btn
+
         if id == BtnCancel or id == BtnNo
         {
-            let srf = .surface!
+            srf.cancelButton = btn
             srf.updateFlags(add: .CloseButton)
         }
 

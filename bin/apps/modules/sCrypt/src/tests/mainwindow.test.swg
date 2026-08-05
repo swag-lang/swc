@@ -15,8 +15,9 @@ func testSetupMainWindow(host: *Testing.HeadlessHost)->*MainWindow
     registerAppStrings(&g_App.resources)
     registerAppStrings(&host.app.resources)
 
-    let result = MainWindow.create(&host.root)
-    host.surfaceWnd.view = result
+    // Built on the surface root, the way the application builds it: the window installs itself
+    // as the view of its surface, which destroys whatever view was there before.
+    let result = MainWindow.create(&host.surfaceWnd)
     result.setPosition({0, 0, 1100, 790})
     result.applyLayout()
     return result
@@ -98,6 +99,70 @@ func testSetupMainWindow(host: *Testing.HeadlessHost)->*MainWindow
     window.chooseLanguage(0)
     @assert(window.language.isEmpty())
     @assert(activeLanguage() == systemLanguage())
+}
+
+// The whole window is reachable from the keyboard, in the order it reads.
+//
+// Both cards are built with their action bar docked under a form that fills the space left over,
+// so this also pins that the traversal follows the arranged rectangles rather than the order the
+// windows were created in.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    defer host.shutdown()
+
+    let order = Gui.FocusOrder.collect(window)
+
+    // A button that cannot work is down, and the keyboard does not stop on it: on a form with
+    // nothing filled in, the three actions of the window are out of the ring.
+    @assert(order.stops.count == 11)
+    @assert(order.stops[0] == cast(*Wnd) window.createPath)
+    @assert(order.stops[6] == cast(*Wnd) window.mountPath)
+
+    // Live, each action takes its place after the card it answers for.
+    window.createButton.enable(true)
+    window.mountButton.enable(true)
+    window.unmountButton.enable(true)
+
+    let full = Gui.FocusOrder.collect(window)
+    @assert(full.stops.count == 14)
+    @assert(full.stops[0] == cast(*Wnd) window.createPath)
+    @assert(full.stops[1] == cast(*Wnd) window.browseCreate)
+    @assert(full.stops[2] == cast(*Wnd) window.createSize)
+    @assert(full.stops[3] == cast(*Wnd) window.createUnit)
+    @assert(full.stops[4] == cast(*Wnd) window.createPassword)
+    @assert(full.stops[5] == cast(*Wnd) window.confirmPassword)
+    @assert(full.stops[6] == cast(*Wnd) window.createButton)
+    @assert(full.stops[7] == cast(*Wnd) window.mountPath)
+    @assert(full.stops[8] == cast(*Wnd) window.browseMount)
+    @assert(full.stops[9] == cast(*Wnd) window.mountPassword)
+    @assert(full.stops[10] == cast(*Wnd) window.drive)
+    @assert(full.stops[11] == cast(*Wnd) window.mountButton)
+    @assert(full.stops[12] == cast(*Wnd) window.unmountButton)
+    @assert(full.stops[13] == cast(*Wnd) window.languageChoice)
+
+    // It opens on the first field, and Tab moves on from there.
+    @assert(window.createPath.hasFocus())
+    host.keyPress(Input.Key.Tab)
+    @assert(window.browseCreate.hasFocus())
+}
+
+// A form that goes down while it holds the keyboard hands it to what is still live.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    defer host.shutdown()
+
+    window.createPassword.setFocus()
+    @assert(window.createPassword.hasFocus())
+
+    // What a creation does: both forms go down and the create button stays live, because during a
+    // creation it is what stops it. The keyboard has to follow, or the next key reaches a control
+    // the user can no longer act on.
+    window.setState(.Creating)
+    @assert(window.createButton.hasFocus())
 }
 
 // The status line is named, not written, so it says the same thing in the new language.

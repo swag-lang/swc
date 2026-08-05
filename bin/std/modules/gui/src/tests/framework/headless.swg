@@ -106,11 +106,9 @@ impl HeadlessHost
         .surfaceWnd.type    = SurfaceWnd
         .surfaceWnd.surface = &.surface
         .surfaceWnd.style.share(&.app.style)
-        .surfaceWnd.position      = {0, 0, width, height}
-        .surfaceWnd.focusStrategy = .None
-        .surface.wnd              = &.surfaceWnd
-        .surfaceWnd.view          = root
-
+        .surfaceWnd.position = {0, 0, width, height}
+        .surface.wnd         = &.surfaceWnd
+        .surfaceWnd.view     = root
     }
 
     // Delivers an application-wide notification to the hosted tree.
@@ -418,11 +416,17 @@ impl HeadlessHost
     //
     // Pending events are drained first so layout and widget state match the image. The returned
     // image has the requested host dimensions; callers own it and may compare, encode, or inspect it.
-    mtd render()->Pixel.Image
+    mtd render()->Pixel.Image => .render(&.root)
+
+    // Paints one window of the host instead of the root view it created.
+    //
+    // A window installed through [[Gui.Surface.setView]] replaces that root, so an application
+    // whose main window owns the surface renders itself through this.
+    mtd render(wnd: *Wnd)->Pixel.Image
     {
         .pump()
         .surface.invalidate()
-        .surface.paintWnd(&.root)
+        .surface.paintWnd(wnd)
         return .app.renderer.readRenderTarget(&.surface.rt, 0, 0, .surface.rc.width, .surface.rc.height)
     }
 
@@ -795,7 +799,20 @@ impl HeadlessHost
     // Sends one complete simulated key press to the focused window.
     mtd keyPress(key: Input.Key, modifiers: Input.KeyModifiers = None)
     {
-        let target = .app.keyboardFocusWnd!
+        // The run loop seeds the focus on the first key when nothing holds it, so a test that
+        // types into a fresh tree behaves like a user typing into a fresh window. The root is
+        // walked directly when nothing adopted it, exactly like `notify`.
+        if !.app.keyboardFocusWnd
+        {
+            if .root.parent do
+                .surfaceWnd.setInitialFocus()
+            else do
+                .root.setInitialFocus()
+        }
+
+        let target = .app.keyboardFocusWnd
+        if !target do
+            return
 
         .setModifierKeys(modifiers, true)
         .setKeyState(key, true)
@@ -805,12 +822,10 @@ impl HeadlessHost
         evt.modifiers = modifiers
         target.sendEvent(&evt)
 
-        if !evt.accepted
-        {
-            let cmdId = target.keyShortcut(modifiers, key)
-            if cmdId != null do
-                target.sendCommandEvent(cmdId)
-        }
+        // A key nobody claimed goes exactly where the run loop sends it, so a test drives the
+        // real shortcut and navigation policy instead of a copy of it.
+        if !evt.accepted do
+            .app.routeUnhandledKey(target, key, modifiers)
 
         .setKeyState(key, false)
         evt.kind = .Released
@@ -862,6 +877,15 @@ impl HeadlessHost
     {
         .setModifierKeys(modifiers, true)
         defer me.setModifierKeys(modifiers, false)
+
+        // A press moves the keyboard focus exactly as the run loop moves it, so a test that
+        // clicks a control finds the focus where a user would.
+        if kind == .Pressed
+        {
+            .app.setFocusVisible(false)
+            if target.focusPolicy != .None do
+                target.setFocus()
+        }
 
         // Like the runtime loop, positions travel in physical screen pixels and the
         // delta is delivered in the logical units of the target surface.

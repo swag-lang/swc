@@ -170,7 +170,7 @@ internal impl Properties
             with let line = Wnd.create'Wnd(me.edView)
             {
                 .wndFlags.set(.BeforeChildrenPaint)
-                .focusStrategy = .None     // navigation lives on edView, edition on the checkbox
+                .focusPolicy = .None     // navigation lives on edView, edition on the checkbox
                 if me.isGridLike() do
                     .margin.z = me.rightMargin
                 else

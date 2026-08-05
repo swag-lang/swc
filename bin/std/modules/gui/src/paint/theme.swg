@@ -148,10 +148,14 @@ private func defaultThemeImages()->*DefaultThemeImages
 
 // Returns the shared widgets atlas rasterized at `scale` device pixels per authored texel.
 //
-// Rasterizations are cached by scale: every theme of a process asks for the same few
-// whole scales, so each is built once and themes re-created at an already-seen scale
-// (headless test hosts, notably) reuse the pixels.
-private func defaultWidgetsImage(scale: f32)->*Image
+// The atlas is rasterized through `renderer`, which is the single most expensive step of
+// a GUI startup: on a GPU backend the supersampled buffer is filled and downsampled by
+// the hardware that will later sample it, instead of one core walking sixteen million
+// pixels. Rasterizations are cached by scale, not by renderer: the backends agree on the
+// pixels, so every theme of a process asks for the same few whole scales and each is
+// built once — themes re-created at an already-seen scale (headless test hosts, notably)
+// reuse them.
+private func defaultWidgetsImage(renderer: IRenderer, scale: f32)->*Image
 {
     let cache = defaultThemeImages()
     Sync.scopedLock(&cache.lock)
@@ -170,7 +174,7 @@ private func defaultWidgetsImage(scale: f32)->*Image
     while ss > 1 and w * cast(s32) ss > 4096 do
         ss /= 2
 
-    return &cache.widgetsRasters.add(key, cache.widgets.rasterize(w, h, ss)).value
+    return &cache.widgetsRasters.add(key, cache.widgets.rasterize(renderer, w, h, ss)).value
 }
 
 // Owns decoded theme textures, icon atlases, typefaces, and derived font families.
@@ -341,7 +345,7 @@ impl Theme
         if .res.atlasScale > 0 do
             renderer.removeTexture(&.res.imgWidgets)
 
-        let image = defaultWidgetsImage(wanted)
+        let image = defaultWidgetsImage(renderer, wanted)
         .res.imgWidgets = renderer.addImage(dref image)
         .res.atlasScale = wanted
     }

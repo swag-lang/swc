@@ -8,6 +8,18 @@ private const RenderTextWidth = 360
 private const RenderTextHeight = 168
 private const RenderLayerWidth = 160
 private const RenderLayerHeight = 104
+private const RenderSvgWidth = 96
+private const RenderSvgHeight = 64
+private const RenderSvgSupersample = 4'u8
+
+// Opaque fill, translucent overlap, a stroke-only path and a hole: everything the
+// alpha-preserving replay and the supersampling resolve have to agree on.
+private const RenderSvgSource = "<svg width='96' height='64'>" ++
+                                "<rect x='6' y='6' width='40' height='24' rx='7' fill='#2E86DE'/>" ++
+                                "<circle cx='38' cy='24' r='14' fill='#EF476F' fill-opacity='0.5'/>" ++
+                                "<path d='M 56 8 L 88 8 L 88 30 Z' fill='none' stroke='#FFD166' stroke-width='4'/>" ++
+                                "<path d='M 10 38 h 34 v 20 h -34 Z M 18 52 h 18 v -8 h -18 Z' fill='#06D6A0'/>" ++
+                                "</svg>"
 
 private alias RenderParityScene = func||(IRenderer)->Image
 
@@ -230,6 +242,63 @@ private func renderLayerParityScene(renderer: IRenderer)->Image
 
     let result = renderer.readRenderTarget(&target, 0, 0, RenderLayerWidth, RenderLayerHeight)
     return result
+}
+
+// Rasterizing a vector document is a complete renderer round trip: an alpha-preserving
+// supersampled pass, its resolve, and a readback. Whichever backend owns it, the image
+// handed back has to be the same one.
+private func renderSvgParityScene(renderer: IRenderer)->Image
+{
+    let drawing = expect Svg.Drawing.parse(RenderSvgSource)
+    return drawing.rasterize(renderer, RenderSvgWidth, RenderSvgHeight, RenderSvgSupersample)
+}
+
+// Coverage accumulated through the supersampled pass leaves a couple of levels of drift on
+// a flat interior, so an authored color is compared with the tolerance the goldens use.
+private func assertSvgPixel(image: const *Image, x, y: s32, expected: Color)
+{
+    const Tolerance = 3
+    let got         = image.pixelColor(x, y)
+    @assert(Math.abs(cast(s32) got.a - cast(s32) expected.a) <= Tolerance)
+    @assert(Math.abs(cast(s32) got.r - cast(s32) expected.r) <= Tolerance)
+    @assert(Math.abs(cast(s32) got.g - cast(s32) expected.g) <= Tolerance)
+    @assert(Math.abs(cast(s32) got.b - cast(s32) expected.b) <= Tolerance)
+}
+
+// The rasterized document keeps its authored colors and coverage, and leaves the pixels it
+// does not cover white: an atlas sampler interpolates across that edge, and black there is
+// what puts a dark halo around a minified tile.
+#test
+{
+    let image = renderCpu(&renderSvgParityScene)
+    assertImage(image, RenderSvgWidth, RenderSvgHeight, .BGRA8)
+
+    // Outside every shape, and inside the hole of the last path: transparent, and white.
+    let white = Color.fromArgb(0'u8, 255'u8, 255'u8, 255'u8)
+    assertPixel(image, 2, 2, white)
+    assertPixel(image, 27, 48, white)
+
+    // Flat interiors: the rounded rect, the ring around the hole, and the stroke of the
+    // path that has no fill at all.
+    assertSvgPixel(&image, 16, 16, Color.fromArgb(255'u8, 0x2E'u8, 0x86'u8, 0xDE'u8))
+    assertSvgPixel(&image, 14, 41, Color.fromArgb(255'u8, 0x06'u8, 0xD6'u8, 0xA0'u8))
+    assertSvgPixel(&image, 70, 8, Color.fromArgb(255'u8, 0xFF'u8, 0xD1'u8, 0x66'u8))
+
+    // The half-transparent circle over the rounded rect resolves to a blend of the two,
+    // opaque because the rect below it is.
+    let blended = image.pixelColor(38, 24)
+    @assert(blended.a == 255)
+    @assert(blended.r > 0x2E and blended.r < 0xEF)
+    @assert(blended.b > 0x6F and blended.b < 0xDE)
+}
+
+// Both backends run the same submission, so the rasterized document must come out the same
+// whether a GPU or a single core filled the supersampled buffer and resolved it.
+#test
+{
+    let expected = renderCpu(&renderSvgParityScene)
+    let image    = expect renderOgl("SWAG_PIXEL_SVG_PARITY", "Pixel svg rasterize parity", RenderSvgWidth, RenderSvgHeight, &renderSvgParityScene)
+    Testing.assertImagesNear(&expected, &image, "render.parity.svg.cpu-ogl", {maxChannelDelta: 6, maxDifferentPixels: 600})
 }
 
 // Image comparisons expose separate limits for small channel drift and bounded outlier pixels.

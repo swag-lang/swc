@@ -722,14 +722,16 @@ impl Application
         {
             .renderer.setCurrentContext(surface.rc)
             .renderer.init()
-            .theme.setupDefault(.renderer, &.resources, surface.dpiScale)
-            .mainSurface = surface
 
-            // Spin up the shared worker pool so the parallel rasterizers (glyph MSDF
-            // generation, image resize/filtering, ...) actually run multi-core instead
-            // of falling back to a synchronous single thread.
+            // Spin up the shared worker pool before anything rasterizes. The theme setup
+            // right below is the heaviest CPU work of a startup and its rasterizers band
+            // themselves across the pool; starting the pool after it would leave that one
+            // step, the only one that matters, running on a single thread.
             if Jobs.isSynchronous() do
                 discard catch Jobs.initialize()
+
+            .theme.setupDefault(.renderer, &.resources, surface.dpiScale)
+            .mainSurface = surface
         }
 
         // A surface on a scaled display needs the theme atlas at least at its density.

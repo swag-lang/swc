@@ -91,7 +91,7 @@ impl IconSet
         while ss > 1 and cols * cell * cast(s32) ss > 8192 do
             ss /= 2
 
-        let image = drawing.rasterize(cols * cell, rows * cell, ss)
+        let image = drawing.rasterize(.renderer, cols * cell, rows * cell, ss)
         let list  = Memory.new'ImageList()
         list.set(.renderer.addImage(image), cell, cell)
         .lists.add(key, list)

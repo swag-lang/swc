@@ -349,9 +349,7 @@ impl RenderOgl
     // Makes `rc` current and starts a frame.
     internal mtd beginImpl(rc: RenderContext)
     {
-        .curRC = rc
-        .native.setCurrentContext(dref oglContext(.curRC))
-        .resetTransformImpl()
+        .setCurrentContextImpl(rc)
     }
 
     // Finishes and presents the current frame.
@@ -372,7 +370,14 @@ impl RenderOgl
     // Set the current rendering context
     internal mtd setCurrentContextImpl(rc: RenderContext)
     {
+        // Selecting a drawable makes it the target everything reports and draws against
+        // until something binds another one, and starts it from the identity transform.
+        // This is what the CPU backend has always done, and starting a frame is nothing
+        // more: a submission recorded before the first frame would otherwise find a
+        // zero-sized target and a zero transform, and draw nothing at all.
+        .curRC = rc
         .native.setCurrentContext(dref oglContext(rc))
+        .resetTransformImpl()
     }
 
     // Clear current render buffers

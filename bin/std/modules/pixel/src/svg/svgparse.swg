@@ -1200,7 +1200,33 @@ impl Drawing
     // `supersample` renders that many samples per axis and box-filters them down,
     // replacing the renderer's screen-space edge feather with near-exact coverage.
     // The default doubles sampling, a good balance for icon and atlas work.
+    //
+    // An application that already owns a renderer should pass it to the overload
+    // below instead: filling the supersampled buffer is the whole cost here, and a
+    // GPU backend does it in a fraction of the time.
     mtd const rasterize(width, height: s32, supersample: u8 = 2)->Image
+    {
+        Debug.assert(width > 0 and height > 0)
+
+        var cpu:      RenderCpu
+        let renderer: IRenderer = &cpu
+        cpu.begin(width, height)
+        var result = .rasterize(renderer, width, height, supersample)
+        renderer.end()
+        return result
+    }
+
+    // Rasterizes the drawing through `renderer` into an owned image of exactly
+    // `width` by `height` pixels.
+    //
+    // The result is identical whichever backend produces it, up to the raster-edge
+    // tolerance the two backends already carry elsewhere. Both the supersampled pass
+    // and its downsample happen inside the renderer, so no supersampled buffer ever
+    // crosses back to the caller: only the finished image does.
+    //
+    // The renderer must be ready to draw — its context selected and [[Pixel.IRenderer.init]]
+    // called — because this records a complete painter submission and executes it.
+    mtd const rasterize(renderer: IRenderer, width, height: s32, supersample: u8 = 2)->Image
     {
         Debug.assert(width > 0 and height > 0)
 
@@ -1208,79 +1234,64 @@ impl Drawing
         let bw = width * ss
         let bh = height * ss
 
-        var cpu:      RenderCpu
-        let renderer: IRenderer = &cpu
-        cpu.begin(bw, bh)
+        // Targets are created at the exact size instead of acquired from the pool, which
+        // rounds up to a power of two: the resolve reads the sampled target as a whole,
+        // and padding would land inside the box filter.
+        var sampled  = renderer.createRenderTarget(bw, bh)
+        var resolved: RenderTarget
+        if ss > 1 do
+            resolved = renderer.createRenderTarget(width, height)
 
         // Antialiased and translucent shapes go through the overlap-safe pass, which
         // sacrifices the destination alpha channel; render into a target with the
         // alpha-preserving replay so the result carries a correct alpha mask.
-        let rt      = renderer.acquireRenderTarget(bw, bh)
         var painter = Painter.create(renderer)
         painter.begin()
-        painter.bindRenderTarget(rt, paintAlpha: true)
+        painter.bindRenderTarget(&sampled, paintAlpha: true)
         painter.setColorMaskFull()
         painter.clear(Color.fromArgb(Argb.Zero))
         painter.setColorMaskColor()
         .paintImpl(&painter, 0, 0, cast(f32) bw / .width, true)
         painter.unbindRenderTarget()
+
+        // Box-filter the samples down with the renderer's own resolve program, the one
+        // the layer pipeline already uses. Unbinding above has resolved the alpha plane,
+        // so the sampled target is a plain texture by the time it is read here.
+        if ss > 1
+        {
+            let dstRect = Math.Rectangle{0, 0, cast(f32) width, cast(f32) height}
+            let srcRect = Math.Rectangle{0, 0, cast(f32) bw, cast(f32) bh}
+            painter.bindRenderTarget(&resolved)
+            painter.setResolveShader(ss)
+            painter.setColorMaskFull()
+            painter.setBlendingMode(.Copy)
+            painter.clear(Color.fromArgb(Argb.Zero))
+            painter.drawTexture(dstRect, srcRect, sampled.colorBuffer)
+            painter.setDefaultShader()
+            painter.unbindRenderTarget()
+        }
+
         painter.end()
         renderer.draw(&painter)
 
         // Render-target readbacks follow the bottom-up row convention, which is also
         // the storage convention of [[Pixel.Image]] buffers, so the readback is kept
         // as is: flipping here would make the drawing render upside down as a texture.
-        var big = renderer.readRenderTarget(rt, 0, 0, bw, bh)
-        renderer.releaseRenderTarget(rt)
-        renderer.end()
-        if ss == 1 do
-            return big
-
-        // Box-filter the samples down. The resolved samples carry premultiplied color,
-        // so colors average directly and divide the averaged alpha back out; fully
-        // transparent pixels become white so a tinting consumer never blends a dark
-        // fringe in.
-        Debug.assert(big.bytesPerPixel == 4)
-        var result = Image.create(width, height, big.pixelFormat)
-        let sb     = big.pixels.buffer!
-        let db     = result.pixels.buffer!
-        let area   = cast(u32) (ss * ss)
-        for [y] in height
+        if ss == 1
         {
-            for [x] in width
-            {
-                var sumA, sumC0, sumC1, sumC2: u32
-                for [j] in ss
-                {
-                    let row = ((cast(u64) (y * ss + j)) * cast(u64) bw + cast(u64) (x * ss)) * 4
-                    for [i] in ss
-                    {
-                        let p = row + cast(u64) i * 4
-                        sumA  += cast(u32) sb[p + 3]
-                        sumC0 += cast(u32) sb[p]
-                        sumC1 += cast(u32) sb[p + 1]
-                        sumC2 += cast(u32) sb[p + 2]
-                    }
-                }
-
-                let d = ((cast(u64) y) * cast(u64) width + cast(u64) x) * 4
-                if sumA == 0
-                {
-                    db[d]     = 255
-                    db[d + 1] = 255
-                    db[d + 2] = 255
-                    db[d + 3] = 0
-                }
-                else
-                {
-                    db[d]     = cast(u8) Math.min(sumC0 * 255 / sumA, 255'u32)
-                    db[d + 1] = cast(u8) Math.min(sumC1 * 255 / sumA, 255'u32)
-                    db[d + 2] = cast(u8) Math.min(sumC2 * 255 / sumA, 255'u32)
-                    db[d + 3] = cast(u8) ((sumA + area / 2) / area)
-                }
-            }
+            var only = renderer.readRenderTarget(&sampled, 0, 0, bw, bh)
+            renderer.deleteRenderTarget(&sampled)
+            return only
         }
 
+        var result = renderer.readRenderTarget(&resolved, 0, 0, width, height)
+        renderer.deleteRenderTarget(&resolved)
+        renderer.deleteRenderTarget(&sampled)
+
+        // The resolve leaves a fully transparent pixel black; make it white instead, so a
+        // consumer that tints the result, or a sampler that interpolates across the edge
+        // of a shape, never blends a dark fringe in.
+        result.setTransparentColor(Color.fromArgb(Argb.White))
         return result
     }
 }

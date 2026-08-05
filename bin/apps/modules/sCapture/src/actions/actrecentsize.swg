@@ -22,23 +22,29 @@ impl IActionUI for ActionRecentSize
 
         switch cxt.id
         {
+        // The three preview sizes live in the View menu, so each one says its name and
+        // reads as one choice among three. Announced without a wording, they were three
+        // blank lines carrying a mark and nothing a reader could act on.
         case .RecentSmall:
-            evt.updatedFields |= .Name | .ToolTip | .Checked | .Icon
+            evt.updatedFields |= .Name | .ToolTip | .Checked | .RenderingHint
+            evt.renderingHint = .ExclusiveGroup
+            evt.name          = appStrings().act_SmallView
             evt.toolTip       = appStrings().tip_SmallRecent
             evt.checked       = main.bottomSize == .Small
-            evt.icon          = main.icon(.ViewSmall)
 
         case .RecentMedium:
-            evt.updatedFields |= .Name | .ToolTip | .Checked | .Icon
+            evt.updatedFields |= .Name | .ToolTip | .Checked | .RenderingHint
+            evt.renderingHint = .ExclusiveGroup
+            evt.name          = appStrings().act_MediumView
             evt.toolTip       = appStrings().tip_MediumRecent
             evt.checked       = main.bottomSize == .Medium
-            evt.icon          = main.icon(.ViewMedium)
 
         case .RecentBig:
-            evt.updatedFields |= .Name | .ToolTip | .Checked | .Icon
+            evt.updatedFields |= .Name | .ToolTip | .Checked | .RenderingHint
+            evt.renderingHint = .ExclusiveGroup
+            evt.name          = appStrings().act_BigView
             evt.toolTip       = appStrings().tip_BigRecent
             evt.checked       = main.bottomSize == .Big
-            evt.icon          = main.icon(.ViewBig)
 
         case .LibSmall:
             evt.updatedFields |= .Name | .Checked | .RenderingHint

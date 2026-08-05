@@ -32,7 +32,7 @@ impl IActionUI for ActionOptions
         let view = main.editWnd.editView
 
         let dlg = Dialog.create(view.surface!, 800, 600, title: appStrings().dlg_TitleOptions, flags: .Border | .CloseButton | .Resizable)
-        dlg.addButton(Gui.strings().dlg_Close, Dialog.BtnYes)
+        dlg.addButton(Gui.strings().dlg_Close, Dialog.BtnCancel, true)
 
         let opt = PropertiesCtrl.create(dlg.view(), flags: .SectionTabs | .SearchBar)
         opt.setAllMargins(10)

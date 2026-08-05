@@ -36,7 +36,7 @@ public impl AboutDlg
         let dlg = Wnd.create'AboutDlg()
         let w   = width != 0 ? cast(s32) width : 500
         let h   = height != 0 ? cast(s32) height : 300
-        let srf = dlg.createSurface(from, 0, 0, w, h, .CloseButton)
+        let srf = dlg.createSurface(from, 0, 0, w, h)
         srf.setTitle(params.surfaceTitle)
         srf.center(from)
 
@@ -94,7 +94,7 @@ public impl AboutDlg
             }
         }
 
-        dlg.addButton(strings().dlg_Close, Dialog.BtnYes, true)
+        dlg.addButton(strings().dlg_Close, Dialog.BtnCancel, true)
         dlg.sendResizeEvent()
         return dlg
     }

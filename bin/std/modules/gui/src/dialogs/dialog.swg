@@ -71,20 +71,14 @@ impl IWnd for Dialog
                 }
 
             case .Escape:
-                if .surface!.flags.has(.CloseButton)
-                {
-                    .closeWithResult(BtnCancel)
-                    break
-                }
 
-                for btn in .buttons
-                {
-                    if btn.id == BtnNo or btn.id == BtnCancel
-                    {
-                        .closeWithResult(btn.id)
-                        break
-                    }
-                }
+                // Escape is the cancel button pressed from the keyboard, so it closes
+                // exactly when there is one to press and returns what it would have
+                // returned. A box with nothing to cancel stays put rather than inventing a
+                // result its caller never offered the reader.
+                let cancel = .cancelButton()
+                if cancel do
+                    .closeWithResult(cancel.id)
             }
         }
 
@@ -110,12 +104,27 @@ impl Dialog
         return dlg
     }
 
+    // Returns the button Escape and the close cross stand for, or null when the box offers
+    // no way out other than answering it.
+    mtd const cancelButton()->#null *PushButton
+    {
+        for btn in .buttons where btn.id == BtnCancel or btn.id == BtnNo do
+            return btn
+        return null
+    }
+
     // Creates and attaches the native surface used by this dialog.
     mtd createSurface(from: *Surface, x, y: s32, width = 512, height = 300, flags = SurfaceFlags.None)->*Surface
     {
         Debug.assert(from != null)
         .parentSurface = from
-        let surfaceFlags = SurfaceFlags.LargeCaption | SurfaceFlags.ToolWindow | flags
+
+        // The close cross is the dialog's to decide, never the caller's: it says "this can
+        // be dismissed without answering", which is true exactly when a cancel button is
+        // there to say the same thing. Offered without one it is ambiguous — the reader
+        // cannot tell what closing the window will have decided — so `addButton` is what
+        // puts it on, and a caller asking for it here is ignored.
+        let surfaceFlags = SurfaceFlags.LargeCaption | SurfaceFlags.ToolWindow | (flags & ~SurfaceFlags.CloseButton)
         let srf          = (expect from.app.createSurface(x, y, width, height, surfaceFlags, me))!
         srf.wnd.view.backgroundStyle = .Dialog
 

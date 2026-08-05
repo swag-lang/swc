@@ -270,7 +270,7 @@ impl IActionUI for ActionFile
             }
 
             let dlg = Dialog.create(main.surface!, 600, 400, title: appStrings().dlg_TitleDetails, flags: .Border | .CloseButton | .Resizable)
-            dlg.addButton(Gui.strings().dlg_Ok, Dialog.BtnOk, true)
+            dlg.addButton(Gui.strings().dlg_Close, Dialog.BtnCancel, true)
             let lt = StackLayoutCtrl.create(dlg)
             lt.dockStyle = .Center
             lt.padding   = 5

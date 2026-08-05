@@ -2,8 +2,8 @@ const MaxRecent = 15
 
 const RecentPadding = 8.0
 
-// Width of the Voltage corner cut marking the selected capture.
-const SelectedCutSize = 14.0
+// Width of the Voltage frame marking the selected capture.
+const SelectedFrameSize = 3.0
 
 // The linked-image badge, at the inline-badge size of the application chart.
 const LinkBadgeSize  = 16.0
@@ -187,16 +187,16 @@ impl IWnd for RecentView
             icon.paint(painter, rect.x + inset, rect.y + inset, backColor.contrasting())
         }
 
-        // The selected capture carries the mark's own vocabulary: one 45-degree cut on
-        // the corner, in Voltage. Nothing else in this bar is allowed the accent.
+        // The selected capture is framed. A corner cut said the same thing in the mark's own
+        // vocabulary, but it sat exactly where the linked badge sits and ate into it, and a
+        // cut on one corner is easy to miss on a strip of thumbnails: what a reader looks
+        // for here is which picture is being edited, and a frame says that at a glance.
+        // Nothing else in this bar is allowed the accent.
         if infos.selected
         {
-            var cut: LinePath
-            cut.start(rect.x, rect.y)
-            cut.lineTo(rect.x + SelectedCutSize, rect.y)
-            cut.lineTo(rect.x, rect.y + SelectedCutSize)
-            cut.close()
-            painter.fillPolygon(&cut, colors.hilight)
+            var frame = rect
+            frame.inflate(-SelectedFrameSize * 0.5)
+            painter.drawRect(frame, colors.hilight, SelectedFrameSize)
         }
     }
 

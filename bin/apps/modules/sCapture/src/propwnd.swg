@@ -18,13 +18,16 @@ const PopupRowHeight    = 36.0     // One row of the dash list.
 const PopupCapRowHeight = 44.0     // One row of the line-end list; its samples need the room.
 const PopupCellSize     = 48.0     // One square cell of the shape list.
 const PopupPadding      = 6.0      // Air the list keeps inside its frame.
-const PopupFrameInset   = 6.0      // Room the frame itself takes around its view.
+const PopupSpacing      = 5.0      // Gap a stack and a wrap layout leave between two items by default.
+const PopupFrameInset   = 5.0      // Room the frame itself takes around its view (frameWnd_SquarePadding).
 
-// Height a popup needs to show `count` rows of `rowHeight`, frame included.
-func popupHeight(count, rowHeight: f32)->f32
+// Room `count` items of `size` need along one axis, the air around them included.
+//
+// Every popup here is sized through this: written by hand, a dimension stopped matching its
+// list the day a style was added to an enum, and the last entry fell outside the frame.
+func popupExtent(count, size: f32)->f32
 {
-    let spacing = 5.0     // StackLayoutCtrl default.
-    return count * rowHeight + Math.max(count - 1, 0) * spacing + 2 * PopupPadding + 2 * PopupFrameInset
+    return count * size + Math.max(count - 1, 0) * PopupSpacing + 2 * PopupPadding + 2 * PopupFrameInset
 }
 
 // The enum popup buttons stash the value they represent in the untyped 'userData'
@@ -192,9 +195,10 @@ impl PropWnd
     mtd createPopupShapeKind(btn: *IconButton, type: typeinfo, fieldName: String)
     {
         let cells  = cast(f32) @countof(FormShapeKind)
-        let frame  = btn.createAnchorPopup(cells * PopupCellSize + 2 * PopupPadding + 2 * PopupFrameInset, popupHeight(1, PopupCellSize))
+        let frame  = btn.createAnchorPopup(popupExtent(cells, PopupCellSize), popupExtent(1, PopupCellSize))
         let layout = frame.createView'WrapLayoutCtrl()
         layout.itemWidth, layout.itemHeight = PopupCellSize
+        layout.spacing                      = PopupSpacing
         layout.padding                      = PopupPadding
 
         func selectedKind(prop: *PropWnd, type: typeinfo, fieldName: String)->FormShapeKind
@@ -221,7 +225,7 @@ impl PropWnd
 
         for [i] in @countof(FormShapeKind)
         {
-            let btn0 = IconButton.create(frame.view!, {})
+            let btn0 = IconButton.create(frame.view!, {}, {0, 0, PopupCellSize, PopupCellSize})
             btn0.userData = enumToUserData(i)
             btn0.setForm(.Rectangle)
             btn0.updateFlags(.Radio)
@@ -250,7 +254,7 @@ impl PropWnd
     // and mirrors the sample stroke accordingly.
     mtd createPopupCapStyle(btn: *IconButton, begin: bool)
     {
-        let frame  = btn.createAnchorPopup(120, popupHeight(cast(f32) @countof(LineCapStyle), PopupCapRowHeight))
+        let frame  = btn.createAnchorPopup(120, popupExtent(cast(f32) @countof(LineCapStyle), PopupCapRowHeight))
         let layout = StackLayoutCtrl.create(frame, .Top)
         frame.setView(layout)
 
@@ -328,7 +332,7 @@ impl PropWnd
         for i in DashStyle where i != .Pattern do
             count += 1
 
-        let frame  = btn.createAnchorPopup(180, popupHeight(count, PopupRowHeight))
+        let frame  = btn.createAnchorPopup(180, popupExtent(count, PopupRowHeight))
         let layout = StackLayoutCtrl.create(frame, .Top)
         frame.setView(layout)
 

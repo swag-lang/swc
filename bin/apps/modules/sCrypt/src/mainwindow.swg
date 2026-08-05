@@ -221,11 +221,49 @@ impl MainWindow
             .setCell(result.createMountVaultCard(cards), 1, 0)
         }
 
+        result.watchFormState()
         result.applyLayout()
         cards.computeLayout()
         result.setState(.Ready)
         result.setStatus(.Ready)
         return result
+    }
+
+    // Follows every field an action depends on, so the two buttons are never live on a form
+    // that cannot answer for them.
+    mtd watchFormState()
+    {
+        mtd onEdit(edit: *EditBox)
+        {
+            edit.sigTextChanged += func|window = me|(box)
+            {
+                discard box
+                window.refreshActions()
+            }
+        }
+
+        mtd onPassword(edit: *PasswordEdit)
+        {
+            edit.sigChanged += func|window = me|(box)
+            {
+                discard box
+                window.refreshActions()
+            }
+        }
+
+        .onEdit(.createPath)
+        .onEdit(.createSize)
+        .onEdit(.mountPath)
+        .onPassword(.createPassword)
+        .onPassword(.confirmPassword)
+        .onPassword(.mountPassword)
+
+        .drive.sigChanged += func|window = me|(combo, index)
+        {
+            discard combo
+            discard index
+            window.refreshActions()
+        }
     }
 
     mtd createHeader()
@@ -544,6 +582,40 @@ impl MainWindow
         MessageDlg.error(.surface!, detail)
     }
 
+    // Whether the create form holds everything a container needs.
+    //
+    // The capacity is not read here: it carries a default and validates as it is typed, so
+    // the only way to leave it unusable is to empty it.
+    mtd canCreate()->bool
+    {
+        return @countof(.createPath.text()) != 0 and
+               @countof(.createSize.text()) != 0 and
+               !.createPassword.isEmpty() and
+               !.confirmPassword.isEmpty()
+    }
+
+    // Whether the mount form holds everything a drive needs.
+    mtd canMount()->bool
+    {
+        return @countof(.mountPath.text()) != 0 and
+               !.mountPassword.isEmpty() and
+               !.selectedMountPoint().isEmpty()
+    }
+
+    // Puts each action in step with what its form holds.
+    //
+    // A button that cannot work says so by being down, rather than by accepting the press
+    // and answering with a box: the reader learns what is missing before acting, not after.
+    // What the form cannot know — a name already taken, a password that does not match, a
+    // capacity out of range — is still reported when the operation runs.
+    mtd refreshActions()
+    {
+        if .state != .Ready do
+            return
+        .createButton.enable(.canCreate())
+        .mountButton.enable(.canMount())
+    }
+
     mtd setState(state: AppState)
     {
         .state = state
@@ -554,12 +626,12 @@ impl MainWindow
         // Disabling a form disables every field and trailing control it owns.
         .createCard.form.enable(ready)
         .mountCard.form.enable(ready)
-        .mountButton.enable(ready)
+        .mountButton.enable(ready and .canMount())
         .unmountButton.enable(mounted)
 
         // The create button stays live through creation, because during creation it is what
         // stops it.
-        .createButton.enable(ready or creating)
+        .createButton.enable(creating or (ready and .canCreate()))
         .createButton.setText(creating ? appStrings().ui_StopCreating : appStrings().ui_CreateVault)
         .createButton.setIcon(.theme().icon(creating ? ThemeIcons.Stop : ThemeIcons.SaveAs, 18))
     }

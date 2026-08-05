@@ -253,6 +253,7 @@ impl IWnd for MainWnd
             // ever displayed (no black/empty flash on startup).
             .firstShow = false
             catch g_App.loadState()
+            .createTopMenu()
             .surface?.constrainPositionToScreen(topLeft: true, margin: 10)
             .recentWnd.scheduleLoadRecent()
             evt.accepted = true
@@ -1057,7 +1058,6 @@ impl MainWnd
             .setBottomSize(.Medium)
             .setToolRailWidth()
             .updateState()
-            .createTopMenu()
             .libWnd = LibraryWnd.create(res)
             .libWnd.hide()
         }

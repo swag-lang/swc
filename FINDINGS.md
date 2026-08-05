@@ -269,3 +269,39 @@ Use this compact format. Keep observations factual and make the next step action
   declared name and returning the displayed text — and route every generated label, unit, and
   enumeration entry through it. A `#[Name("Thickness")]` then becomes a translation key rather
   than a final wording, and the per-row workaround disappears.
+
+### A menu bar does not follow a live language switch
+
+- Area: std/gui
+- Found while: applying the sCapture language at construction instead of only on state load
+- Observation: `MenuCtrl.addPopup(name, popup)` copies the wording into the item once, so the six
+  entries of an application menu bar keep the language they were built in. Everything below them is
+  added by command id and refreshes through the command state, which is why only the bar is stale.
+  sCapture now builds its bar after reading the persisted options, so a start-up in any language is
+  correct; changing the language from the Options dialog still leaves the bar behind.
+- Evidence: with `EditorLanguage.French` persisted, a bar built during `create` reads
+  `File Capture Edit` while the tool rail beside it reads `Favoris Sélection Forme`.
+- Next step: the hook already exists — `MenuCtrl.onPrepareItem` runs for every visible item at the
+  top of `computeLayoutBar`. Either document it as the supported way to re-resolve a literal
+  label, or let `addPopup` take a resolver instead of a string so the wording is re-read on every
+  layout, the way a command-driven item already is.
+
+### A menu bar entry is clipped, and the error grows with the word
+
+- Area: std/gui
+- Found while: seeing the sCapture menu bar in French for the first time
+- Observation: the bar clips the last glyph of its longest entry. `Affichage` loses half of its
+  final `e`; `Fichier`, `Capture`, `Image` and `Aide` beside it are intact. The shortfall scales
+  with the length of the label, which points at a per-glyph difference between measuring and
+  painting rather than at a missing constant margin.
+- Evidence: `computeLayoutBar` measures into a layout-only painter with `rsf.font = .font()` and
+  stores the result as the item extent
+  ([menuctrl.swg:757-768](bin/std/modules/gui/src/composite/menuctrl.swg#L757-L768));
+  `getBarLabelRect` then hands exactly that extent to the real draw
+  ([menuctrl.swg:444-453](bin/std/modules/gui/src/composite/menuctrl.swg#L444-L453)), so any
+  advance the measuring pass under-counts is shaved off the end. Reproduce with a French sCapture:
+  the entries are set from `ui_MenuFile` and friends, and `Affichage` is the longest.
+- Next step: compare the two paths on one string — the width `RichString.boundRect` reports after a
+  `layoutOnly` `drawRichString`, against the advance the same font accumulates when actually
+  painting. If they differ per glyph, the layout-only path is the bug; if they agree, the clip
+  comes from the rounding of `item.pos`/`item.size` into the label rectangle.

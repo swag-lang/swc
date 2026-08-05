@@ -51,9 +51,10 @@ func makeAlignmentCaptureAllocator(alloc: *Allocator, captureStack: bool = false
     captureItf.alloc(&captured)
     @assert(captured.address != null)
 
-    let header = cast(*AllocatorHeader) (cast([*] u8) captured.address! - #sizeof(AllocatorHeader))
+    let header   = cast(*AllocatorHeader) (cast([*] u8) captured.address! - #sizeof(AllocatorHeader))
+    let tracking = header.tracking!
     @assert(header.magic == Allocator.MagicAlloc)
-    @assert(header.stackCount <= @countof(header.stack))
+    @assert(tracking.stackCount <= @countof(tracking.stack))
 
     captureItf.free(&captured)
     @assert(captured.address == null)

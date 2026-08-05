@@ -15,6 +15,8 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
 // ----------------------------------------------------------------------------
 #test
 {
+    @assert(#sizeof(AllocatorHeader) <= 128)
+
     var prev = 0'u64
     for [i] in AllocatorClassCount
     {
@@ -38,6 +40,44 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
     // Anything bigger than the largest class has no class (handled raw).
     let biggest = Allocator.classSize(AllocatorClassCount - 1)
     @assert(Allocator.sizeClass(biggest + 1) == AllocatorInvalidClass)
+}
+
+// ----------------------------------------------------------------------------
+// Small blocks are carved from 64 KiB pages. The allocator must not turn a
+// large live set into one VirtualAlloc region per block.
+// ----------------------------------------------------------------------------
+#test
+{
+    var alloc: Allocator
+    let itf = makeAllocator(&alloc)
+
+    const Count = 40_000
+    var addresses: [Count] #null *void
+    for [i] in Count
+    {
+        var req: AllocatorRequest
+        req.size = 32
+        itf.alloc(&req)
+        @assert(req.address != null)
+        addresses[i] = req.address
+    }
+
+    let firstHeader = cast(*AllocatorHeader) (cast([*] u8) addresses[0]! - #sizeof(AllocatorHeader))
+    @assert(firstHeader.tracking == null)
+    @assert(alloc.countOsAlloc < 128)
+
+    for [i] in Count
+    {
+        var req: AllocatorRequest
+        req.address = addresses[i]
+        req.size    = 32
+        itf.free(&req)
+    }
+
+    @assert(alloc.sizeCached <= alloc.maxCachedBytes)
+    alloc.releaseAll()
+    @assert(alloc.countOsFree == alloc.countOsAlloc)
+    @assert(alloc.sizeOsFree == alloc.sizeOsAlloc)
 }
 
 // ----------------------------------------------------------------------------
@@ -141,8 +181,8 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
         itf.free(&reqs[i])
     }
 
-    // 128 * 64 = 8192 bytes freed, but the cache is trimmed to the budget.
-    @assert(alloc.sizeCached <= alloc.maxCachedBytes + 64)
+    // The budget includes allocator metadata, not only the requested payload.
+    @assert(alloc.sizeCached <= alloc.maxCachedBytes)
 
     alloc.releaseAll()
     @assert(alloc.sizeCached == 0)
@@ -426,6 +466,79 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
         while @atomcmpxchg(&s.freerDone, 0, 0) == 0 do
             alloc.releaseRetiredHeaps()
         return 0
+    }
+
+    const PageThreadCount      = 4
+    const PageThreadAllocCount = 512
+
+    struct PageThreadShared
+    {
+        itf:   #null IAllocator
+        ready: s32
+        start: s32
+    }
+
+    func pageThread(param: *void)->Th.DWORD
+    {
+        let shared = cast(*PageThreadShared) param
+        let itf    = shared.itf!
+        var reqs: [PageThreadAllocCount] AllocatorRequest
+
+        @atomadd(&shared.ready, 1)
+        while @atomcmpxchg(&shared.start, 0, 0) == 0 {}
+
+        for [i] in PageThreadAllocCount
+        {
+            reqs[i].size = 32
+            itf.alloc(&reqs[i])
+            @assert(reqs[i].address != null)
+        }
+
+        for [i] in PageThreadAllocCount do
+            itf.free(&reqs[i])
+
+        // Deliberately omit releaseAllocatorThreadCache(): the FLS destructor
+        // must retire this heap when the foreign OS thread exits.
+        return 0
+    }
+
+    // Concurrent foreign threads keep independent heaps, share page-backed raw
+    // allocations within each heap, and retire their caches automatically.
+    #test
+    {
+        var alloc:  Allocator
+        var shared: PageThreadShared
+        let itf = makeAllocator(&alloc)
+        shared.itf = itf
+
+        var handles: [PageThreadCount] Th.HANDLE = undefined
+        for [i] in PageThreadCount
+        {
+            var tid: Th.DWORD
+            handles[i] = Th.CreateThread(null, 0, &pageThread, &shared, 0, &tid)
+            @assert(handles[i] != null)
+        }
+
+        while @atomcmpxchg(&shared.ready, 0, 0) != PageThreadCount {}
+        discard @atomxchg(&shared.start, 1)
+
+        for [i] in PageThreadCount
+        {
+            discard Th.WaitForSingleObject(handles[i], Th.INFINITE)
+            Th.CloseHandle(handles[i])
+        }
+
+        @assert(alloc.countAlloc == 0)
+        @assert(alloc.firstRetiredHeap != null)
+        @assert(alloc.countOsAlloc < 32)
+        @assert(alloc.countFree == 0)
+        @assert(alloc.sizeCached == 0)
+
+        alloc.releaseRetiredHeaps()
+        @assert(alloc.firstRetiredHeap == null)
+        @assert(alloc.countOsFree == alloc.countOsAlloc)
+        @assert(alloc.sizeOsFree == alloc.sizeOsAlloc)
+        alloc.releaseAll()
     }
 
     // Concurrency stress: many threads allocate then retire their heaps (joined,

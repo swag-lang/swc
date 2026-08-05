@@ -91,9 +91,10 @@ func contextCaptureFree(req: *AllocatorRequest)
     itf.alloc(&req)
     @assert(req.address != null)
 
-    let header = cast(*AllocatorHeader) (cast([*] u8) req.address! - #sizeof(AllocatorHeader))
+    let header   = cast(*AllocatorHeader) (cast([*] u8) req.address! - #sizeof(AllocatorHeader))
+    let tracking = header.tracking!
     @assert(header.magic == Allocator.MagicAlloc)
-    @assert(header.stackCount <= @countof(header.stack))
+    @assert(tracking.stackCount <= @countof(tracking.stack))
 
     itf.free(&req)
     @assert(req.address == null)

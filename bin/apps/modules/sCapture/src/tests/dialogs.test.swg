@@ -16,7 +16,8 @@ using Swag, Core
     let main = MainWnd.create(&gui.root)
     g_Main = main
 
-    gui.clickModalButtonWhenShown(Dialog.BtnYes)
+    // 'AboutDlg' offers one button, its Close, which carries the cancel identifier.
+    gui.clickModalButtonWhenShown(Dialog.BtnCancel)
     @assert(Gui.Testing.actionExecute'ActionAbout(main, ActionAbout.About))
     gui.pump()
     @assert(gui.autoHandled)

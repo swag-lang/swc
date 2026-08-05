@@ -299,6 +299,41 @@ func nativeForeachVisitReturn()->bool
     return false
 }
 
+// A visited source reached through a call: the receiver is an lvalue, but re-expanding it
+// per use would call again, and a body that only says '.count' names no 'me' at all.
+struct CallSourceVisits
+{
+    values: [3] s32 = [7, 8, 9]
+    count:  u64     = 3
+}
+
+impl CallSourceVisits
+{
+    #[Swag.Macro]
+    func(ptr: bool, back: bool) opVisit(const me, stmt: #code(item, index: u64))
+    {
+        #static if back do
+            #error("CallSourceVisits does not expose reverse iteration.")
+
+        for [idx] in .count
+        {
+            #static if ptr do
+                #inject(stmt, item = cast(const &s32) &me.values[idx], index = idx)
+            else do
+                #inject(stmt, item = me.values[idx], index = idx)
+        }
+    }
+}
+
+var g_CallSource:      CallSourceVisits
+var g_CallSourceCalls: u64
+
+func callSource()->const &CallSourceVisits
+{
+    g_CallSourceCalls += 1
+    return g_CallSource
+}
+
 struct(T) GenericScopedVisits
 {
     const FIRST = 1'u64
@@ -510,6 +545,33 @@ impl GenericScopedVisits
 #test
 {
     @assert(nativeForeachVisitReturn())
+}
+
+#test
+{
+    g_CallSourceCalls = 0
+    var sum           = 0
+
+    for &value, [ordinal] in callSource()
+    {
+        #assert(#typeof(value) == #type const &s32)
+        sum += value + cast(s32) ordinal
+    }
+
+    @assert(sum == 27)
+    @assert(g_CallSourceCalls == 1)
+}
+
+#test
+{
+    g_CallSourceCalls = 0
+    var sum           = 0
+
+    for value in callSource() do
+        sum += value
+
+    @assert(sum == 24)
+    @assert(g_CallSourceCalls == 1)
 }
 
 #test

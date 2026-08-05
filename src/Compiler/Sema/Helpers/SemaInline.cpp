@@ -1354,6 +1354,29 @@ namespace
         return false;
     }
 
+    // Whether evaluating this argument expression runs a call. Substituting a binding hands the
+    // expression itself to the callee body, so it is re-evaluated once per use there: free for a
+    // storage reference (`a`, `a.b`, `dref p`), but not for anything that calls.
+    bool inlineBindingExprCalls(Sema& sema, AstNodeRef exprRef)
+    {
+        if (exprRef.isInvalid())
+            return false;
+
+        const AstNode& node = sema.node(exprRef);
+        if (node.is(AstNodeId::CallExpr) || node.is(AstNodeId::IntrinsicCallExpr))
+            return true;
+
+        SmallVector<AstNodeRef> children;
+        node.collectChildrenFromAst(children, sema.ast());
+        for (const AstNodeRef childRef : children)
+        {
+            if (inlineBindingExprCalls(sema, childRef))
+                return true;
+        }
+
+        return false;
+    }
+
     bool inlineBindingNeedsRepeatedLValueMaterialization(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, const SemaClone::ParamBinding& binding)
     {
         if (!binding.exprRef.isValid() || !binding.idRef.isValid())
@@ -2040,9 +2063,14 @@ namespace
             {
                 assignInlineBindingExpr(sema, bound[0], *params[0], ufcsRef);
                 // UFCS receivers are consumed through implicit `.member` accesses, so clone-time
-                // identifier scans cannot see every use of `me`. Non-lvalue temporaries therefore
-                // need a concrete local up front to avoid re-evaluating the receiver expression.
-                bound[0].forceMaterialize = !sema.viewConstant(ufcsRef).hasConstant() && !sema.isLValue(ufcsRef);
+                // identifier scans cannot see every use of `me`, and the use counts driving the
+                // repeated-binding rules read as zero for a body that only says `.count`. A
+                // receiver expression must therefore be free to re-expand on its own: a non-lvalue
+                // temporary is not, and neither is anything that calls. `for x in makeIt()` over an
+                // `opVisit` macro is the extreme case - the body never names `me`, so the receiver
+                // is expanded nowhere and the call is simply never made.
+                bound[0].forceMaterialize = !sema.viewConstant(ufcsRef).hasConstant() &&
+                                            (!sema.isLValue(ufcsRef) || inlineBindingExprCalls(sema, ufcsRef));
                 nextParam                 = 1;
             }
             else if (hasAnyVariadic)

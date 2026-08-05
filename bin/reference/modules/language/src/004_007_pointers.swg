@@ -157,10 +157,10 @@ region is dead, not wrong.
 # Deferred Initialization with `Swag.Late`
 
 The `Swag.Late` attribute declares a **non-null** field or **global variable** whose storage
-starts unset (zero/null) and receives its value later — typically in a `#run` or `#init`
-block, or during setup. It replaces the `#null ... = null` + `!`-at-every-use
-pattern for values that are guaranteed to be set before first use but cannot be
-initialized at their declaration.
+starts unset (zero/null) and receives its value during setup — an initialization function,
+a constructor, the first stage of `main`. It replaces the `#null ... = null` +
+`!`-at-every-use pattern for values that are guaranteed to be set before first use but
+cannot be initialized at their declaration.
 
 The exposed type is non-null, so uses need no `!`; every read is guarded (a runtime
 null panic when still unset). `@isset` tests whether the value has been assigned, without
@@ -178,7 +178,7 @@ var g_lateDocStorage: LateDocResource
 #[Swag.Late]
 var g_lateDocResource: *LateDocResource     // non-null type, set later
 
-#run
+func setupLateDocResource()
 {
     g_lateDocStorage.weight = 5
     g_lateDocResource       = &g_lateDocStorage
@@ -189,7 +189,9 @@ var g_lateDocResource: *LateDocResource     // non-null type, set later
     // The type is non-null: no '!', no null test needed at the use site.
     #assert(#typeof(g_lateDocResource) == *LateDocResource)
 
-    // '@isset' confirms it was assigned (in the '#run' above).
+    // Unset until setup runs, and '@isset' says so without reading the value.
+    @assert(!@isset(g_lateDocResource))
+    setupLateDocResource()
     @assert(@isset(g_lateDocResource))
 
     // Guarded read yields the value directly.

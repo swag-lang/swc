@@ -183,53 +183,74 @@ Use this compact format. Keep observations factual and make the next step action
   runtime context reaches per-thread storage
   ([os_windows.swg:298](bin/runtime/os_windows.swg#L298)).
 
-### Ten `sCrypt` tests do not pass
+### Arming the headless modal driver for an absent button fails silently
 
-- Area: bin/apps
-- Found while: fixing the native test runner, which until now executed none of them
-- Observation: `sCrypt` runs its 26 tests in about 15 seconds and 10 do not pass. The same 10 fail
-  under the JIT runner, so they are genuine and independent of the runner change. Six of the eight
-  failing assertions are the single expression `@assert(rejectsPassword(...))`, which either means
-  `Volume.open` accepts a password or a container it should reject, or means the helper never
-  observes the error — one shared cause, with very different severities. `sCapture` is not yet
-  measured.
-- Evidence: `tools/apps.bat dm test sCrypt`. Eight assertions do not hold —
-  [mainwindow.test.swg:62](bin/apps/modules/sCrypt/src/tests/mainwindow.test.swg#L62) and
-  [:88](bin/apps/modules/sCrypt/src/tests/mainwindow.test.swg#L88) on the French wording and the
-  language picker, [volume.test.swg:148](bin/apps/modules/sCrypt/src/tests/volume.test.swg#L148),
-  [:317](bin/apps/modules/sCrypt/src/tests/volume.test.swg#L317),
-  [:338](bin/apps/modules/sCrypt/src/tests/volume.test.swg#L338),
-  [:499](bin/apps/modules/sCrypt/src/tests/volume.test.swg#L499),
-  [:564](bin/apps/modules/sCrypt/src/tests/volume.test.swg#L564) through `rejectsPassword`, and
-  [:595](bin/apps/modules/sCrypt/src/tests/volume.test.swg#L595) on a cancelled create. Two more
-  die on an uncaught `Core.Swag.SystemError` from `expect File.duplicate(salvaged, path)`
-  ([:400](bin/apps/modules/sCrypt/src/tests/volume.test.swg#L400),
-  [:433](bin/apps/modules/sCrypt/src/tests/volume.test.swg#L433)).
-- Next step: settle the `rejectsPassword` cluster first, because it is six of the ten and because
-  one of its two readings is a defect in the encryption itself. `discard catch Volume.open(path,
-  password) as openError; return openError != null` — check that `catch ... as` binds the error
-  through a `discard`, by asserting directly on `catch Volume.open(...)` with a knowingly wrong
-  password. If the binding is sound, the container format accepts input it must refuse.
+- Area: std/gui
+- Found while: the two `sCapture` dialog tests that did not pass — both armed a button their
+  dialog does not offer (`BtnYes` for `AboutDlg`, `BtnOk` for File Details), while each of those
+  boxes carries exactly one `Close` button under `BtnCancel`. Fixed in the tests.
+- Observation: `clickModalButtonWhenShown(id)` accepts any `WndId`. When no modal surface ever
+  exposes that id, the driver spins to `autoMaxFrames`, cancels the dialog, and leaves
+  `autoHandled` false — so the test fails on an assertion far from the mistake, and the failure
+  reads exactly like "the dialog never opened" even though it opened and was answered.
+- Evidence: `tools/apps.bat dm test sCapture` before the fix reported 2 of 126 not passing on
+  `@assert(autoHandled)`; the dialogs did open. `runAutoStage` returns false for both a missing
+  modal surface and a missing button ([headless.swg:191](bin/std/modules/gui/src/tests/framework/headless.swg#L191)),
+  and only the frame ceiling distinguishes them, after the fact.
+- Next step: separate the two outcomes in the driver. Remember, per stage, whether any modal
+  surface was ever seen while it was armed; on the timeout path report which of the two happened —
+  a modal that never appeared, or a modal that appeared without the requested button (naming the
+  ids it did offer). A `Debug.assert` on the second case turns a silent 60-frame spin into a
+  message that names the mistake.
 
-### `for &x in f()` corrupts its elements when `f` returns `const &Array'T`
+### A `#run` block cannot initialize a zero-segment global
 
 - Area: compiler
-- Found while: filling the `sCrypt` language picker from `Gui.languages()`
-- Observation: iterating by reference directly over a call that returns `const &Array'T` yields
-  elements whose fields are garbage. Binding the call to a pointer first and iterating the
-  dereferenced pointer over the same array is correct, so the returned reference itself is sound
-  and the defect is in what the `for` binding does with a call result.
-- Evidence: `func languages()->const &Array'Language { return g_Localization.languages }` in
-  `gui.dll`, then `for &one in Gui.languages() do combo.addItem(one.nativeName.toString())` in
-  `sCrypt`: `String.opSet` receives a garbage count and the run dies on `Memory.alloc returned
-  null`. `let all = &Gui.languages()` followed by `for &one in dref all` over the same data is
-  correct. The same source shape run in the module's own test binary did not fault, so the symptom
-  needs the shared-library boundary or a particular allocation layout.
-- Next step: reduce it to two modules — a shared library exporting `Array'T` by `const &` and an
-  executable iterating the call by reference — and inspect what the `for` lowering binds to: a
-  temporary copy that is dropped before the body would explain both the garbage and why taking the
-  address first is sound. Deciding whether a container should be returned by reference at all is
-  the design half of the question; the API here now returns `const [..] T`, which behaves.
+- Found while: the language reference's `Swag.Late` page, whose `#run` set a global and whose
+  `@isset` then failed in the native build only. The page now sets the global from a setup
+  function, which is what the attribute is for.
+- Observation: a global written by a `#run` block keeps its value into the emitted binary only
+  when the global was declared with an initializer. Without one it lives in the zero segment,
+  which the native backend emits as `.bss`, so every compile-time write is dropped. The JIT run of
+  the same `#test` sees the values, so the two halves of the language disagree about what `#run`
+  can establish.
+- Evidence: a module with `var zero: s32` and `var init: s32 = 1`, both assigned in one `#run`,
+  prints `zero 7 / init 9` under the JIT and `zero 0 / init 9` from the produced executable. Same
+  split for a struct global and for a `#[Swag.Late]` pointer. `dataSectionName` maps
+  `DataSegmentKind::GlobalZero` to `.bss`
+  ([DebugRecordCollector.cpp:50](src/Backend/Debug/DebugRecordCollector.cpp#L50)).
+- Next step: decide the rule before touching the backend, because the scalar half is the easy
+  half. Promoting a written zero-segment global to initialized data is mechanical; a *pointer*
+  written at `#run` time holds a compiler host address, and emitting those bytes verbatim would
+  ship a wild pointer — worse than the current zero. Persisting them needs the store to record a
+  `DataSegmentRelocation` at the written offset, which nothing does today because the write comes
+  from JIT-executed code rather than from a sema-built initializer. Either instrument those stores
+  or reject a `#run` write to a global that no initializer placed in the initialized segment.
+
+### A failing `@assert` reports the source line below itself
+
+- Area: compiler
+- Found while: reading the two `sCapture` dialog failures above, where the reported line pointed at
+  an assertion that was not the one failing
+- Observation: the runtime panic location of a failed `@assert` is the assertion's own column but
+  one line too far down. It misattributes every failure to the following statement, which is worse
+  than a missing location: the reported line is usually a real, passing assertion. Compile-time
+  diagnostics on the same file are correct, so the line table is sound and only the runtime
+  `SourceCodeLocation` is wrong.
+- Evidence: put `@assert(false)` on line 22 of
+  [dialogs.test.swg](bin/apps/modules/sCapture/src/tests/dialogs.test.swg) and run
+  `tools/apps.bat dm test sCapture`: the panic reads `dialogs.test.swg:23:6`. Column 6 is where
+  `assert` starts on line 22, so only the line is displaced. Reproduced a second time by injecting
+  `@assert(false)` at line 24 of `sCrypt`'s `crypto.test.swg`, reported as `:25:6`.
+- Next step: `codeGenAssert` builds the location through
+  `ConstantHelpers::makeSourceCodeLocation(sema, ref, node)`
+  ([CodeGen.Intrinsic.Call.cpp:1292](src/Compiler/CodeGen/Ast/CodeGen.Intrinsic.Call.cpp#L1292)),
+  which takes `node.codeRangeWithChildren` and ends in
+  `SourceCodeRange::fromOffset`. `codeRange()` uses the token directly and is correct, so compare
+  the two on the same node: the suspect is the offset-to-line conversion counting the newline that
+  *precedes* the span. Check whether the runtime safety checks that share this helper
+  ([CodeGenSafety.cpp:88](src/Compiler/CodeGen/Core/CodeGenSafety.cpp#L88)) are displaced too — if
+  they are, every runtime panic location in the language is off by one and the fix is one place.
 
 ### A reflected property label cannot be translated
 

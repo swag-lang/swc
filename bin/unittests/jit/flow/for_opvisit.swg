@@ -284,6 +284,53 @@ impl JitReturnVisits
     }
 }
 
+// A visited source reached through a call: the receiver is an lvalue, but re-expanding it
+// per use would call again, and a body that only says '.count' names no 'me' at all.
+struct JitCallSourceVisits
+{
+    values: [3] s32 = [7, 8, 9]
+    count:  u64     = 3
+}
+
+impl JitCallSourceVisits
+{
+    #[Swag.Macro]
+    func(ptr: bool, back: bool) opVisit(const me, stmt: #code(item, index: u64))
+    {
+        #static if back do
+            #error("JitCallSourceVisits does not expose reverse iteration.")
+
+        for [idx] in .count
+        {
+            #static if ptr do
+                #inject(stmt, item = cast(const &s32) &me.values[idx], index = idx)
+            else do
+                #inject(stmt, item = me.values[idx], index = idx)
+        }
+    }
+}
+
+var g_JitCallSource:      JitCallSourceVisits
+var g_JitCallSourceCalls: s32
+
+func jitCallSource()->const &JitCallSourceVisits
+{
+    g_JitCallSourceCalls += 1
+    return g_JitCallSource
+}
+
+func jitForeachVisitCallSource()->s32
+{
+    g_JitCallSourceCalls = 0
+    var sum              = 0
+
+    for &value, [ordinal] in jitCallSource() do
+        sum += value + cast(s32) ordinal
+
+    // The source expression belongs to the loop, not to the visit body: exactly one evaluation.
+    return g_JitCallSourceCalls == 1 ? sum : -1
+}
+
 func jitForeachVisitForward()->s32
 {
     var values = JitFieldVisits{}
@@ -391,6 +438,12 @@ func jitForeachVisitReturn()->bool
 {
     const V = #run jitForeachVisitSecondOnly()
     #assert(V == 468)
+}
+
+#test
+{
+    const V = #run jitForeachVisitCallSource()
+    #assert(V == 27)
 }
 
 #test

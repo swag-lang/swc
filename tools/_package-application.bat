@@ -29,7 +29,6 @@ if /I "%APP_NAME%"=="sCrypt" (
     copy /Y "%MODULE_DIR%\vendor\winfsp\LICENSE.txt" "%APP_DIR%\WinFsp-LICENSE.txt" >nul || exit /b 1
     copy /Y "%MODULE_DIR%\LICENSE.md" "%APP_DIR%\LICENSE.md" >nul || exit /b 1
     copy /Y "%MODULE_DIR%\THIRD-PARTY-NOTICES.md" "%APP_DIR%\THIRD-PARTY-NOTICES.md" >nul || exit /b 1
-    copy /Y "%MODULE_DIR%\README.md" "%APP_DIR%\README.md" >nul || exit /b 1
     if exist "%APP_DIR%\winfsp-2.1.25156.msi" del /Q "%APP_DIR%\winfsp-2.1.25156.msi"
 )
 

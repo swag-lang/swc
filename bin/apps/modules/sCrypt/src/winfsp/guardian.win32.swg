@@ -70,8 +70,25 @@ namespace WinFsp
         return 0
     }
 
+    // Whether this build is allowed to raise a Windows consent dialog.
+    //
+    // An ordinary test build never is: an automated run has nobody to accept the
+    // dialog, so a test that reached the elevation path would hang instead of
+    // failing. The privileged end-to-end harness is the one build that may,
+    // and it is opt-in through the `SCrypt.Integration` tag.
+    func canRequestElevation()->bool
+    {
+        #static if #command == Swag.CompilerCommand.Test and !#hastag("SCrypt.Integration") do
+            return false
+        return true
+    }
+
     func ensurePortableGuardian() fail
     {
+        // Checked before anything else, so no test run can reach ShellExecute.
+        if !canRequestElevation() do
+            failWith("This build must not request elevation. Mounting belongs to the privileged integration harness.")
+
         if g_WinFsp.guardianManaged do
             return
         if isElevated() do

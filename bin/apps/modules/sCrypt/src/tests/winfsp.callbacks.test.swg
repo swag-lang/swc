@@ -143,3 +143,14 @@ func statusForError(kind: ErrorKind)->s32
     @assert(reopened.resolve("\\docs") == null)
     reopened.close()
 }
+
+#test
+{
+    // No ordinary test run may reach the elevation path. An automated run has
+    // nobody to accept a Windows consent dialog, so a test that regressed into
+    // mounting would hang rather than fail. The guardian refuses outright in
+    // this build, and the mounting harness is not even compiled into it.
+    @assert(!WinFsp.canRequestElevation())
+    discard catch WinFsp.ensurePortableGuardian() as elevationRefused
+    @assert(elevationRefused != null)
+}

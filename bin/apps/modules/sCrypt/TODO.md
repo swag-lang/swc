@@ -180,14 +180,17 @@ locally.
 ### 15. FUSE backend for Linux and macOS
 
 - Owner: sCrypt
-- The README already describes the boundary: system backends for `Core.Crypto`, `Core.Time` and
-  `Core.File`, plus the WinFsp layer and the mount-point selector. Real work, no design risk.
+- The boundary is already where it needs to be: system backends for `Core.Crypto`, `Core.Time` and
+  `Core.File`, plus the WinFsp layer and the mount-point selector. Everything above them — the
+  container format, the logical filesystem, the password widget — is platform-independent already.
+  Real work, no design risk.
 
 ### 16. External audit
 
 - Owner: project
-- After entry 14. Until it happens, the caveat in `README.md` stays true no matter what else on
-  this list ships.
+- After entry 14. Until it happens, the format and the implementation have had no independent
+  cryptographic review, and sCrypt is not a proven replacement for VeraCrypt on critical data — no
+  matter what else on this list ships.
 
 ---
 

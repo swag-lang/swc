@@ -2,12 +2,40 @@
 #global if #os == Swag.TargetOs.Windows
 
 #foreignlib("dwmapi")
+#foreignlib("gdi32")
 using Core, Win32
+
+// Region and flags the compositor blurs behind a window, and reads its alpha through.
+private struct DWM_BLURBEHIND
+{
+    dwFlags:                DWORD
+    fEnable:                BOOL
+    hRgnBlur:               #null *void
+    fTransitionOnMaximized: BOOL
+}
+
+// Selects the fields of DWM_BLURBEHIND that carry a value.
+private const DWM_BB_ENABLE = 0x00000001'u32
+
+// Selects the region field of DWM_BLURBEHIND.
+private const DWM_BB_BLURREGION = 0x00000002'u32
 
 private #[Swag.Foreign("dwmapi")]
 {
     // Performs the dwm set window attribute operation.
     func DwmSetWindowAttribute(hWnd: HWND, dwAttribute: DWORD, pvAttribute: LPCVOID, cbAttribute: DWORD)->s32
+
+    // Applies `pBlurBehind` to `hWnd`, which is also what makes the compositor read its alpha.
+    func DwmEnableBlurBehindWindow(hWnd: HWND, pBlurBehind: const *DWM_BLURBEHIND)->s32
+}
+
+private #[Swag.Foreign("gdi32")]
+{
+    // Creates a rectangular region; an inverted rectangle yields the empty region.
+    func CreateRectRgn(x1, y1, x2, y2: s32)->#null *void
+
+    // Releases a GDI object.
+    func DeleteObject(ho: #null *void)->BOOL
 }
 
 // Defines dwmwa window corner preference.
@@ -363,6 +391,8 @@ private impl Surface
         if !result.hWnd do
             failWinError(GetLastError())
 
+        result.enablePerPixelAlpha()
+
         // The window now knows its monitor: resolve the scale and resize the still
         // hidden window from logical units to physical pixels.
         result.dpiScale = cast(f32) GetDpiForWindow(result.hWnd) / cast(f32) USER_DEFAULT_SCREEN_DPI
@@ -397,9 +427,34 @@ impl Surface
     // Returns the Win32 window handle owned by this surface.
     mtd const win32Handle()->HWND => .hWnd
 
+    // Makes the desktop compositor read the alpha channel the surface renders.
+    //
+    // Without this a window is composited as if it were opaque, whatever its framebuffer says,
+    // and the transparent margin the theme casts its drop shadow into came out as a hard band of
+    // window ground around every surface. Asking to blur behind an *empty* region is the way to
+    // say "read my alpha, blur nothing": the flags name a region, the region covers no pixel, so
+    // no blur is ever drawn and the whole window becomes alpha-composited.
+    private mtd enablePerPixelAlpha()
+    {
+        // An inverted rectangle is the empty region.
+        let emptyRegion = CreateRectRgn(0, 0, -1, -1)
+        defer if emptyRegion do
+            discard DeleteObject(emptyRegion)
+
+        var blurBehind: DWM_BLURBEHIND
+        blurBehind.dwFlags  = DWM_BB_ENABLE | DWM_BB_BLURREGION
+        blurBehind.fEnable  = TRUE
+        blurBehind.hRgnBlur = emptyRegion
+        discard DwmEnableBlurBehindWindow(.hWnd, &blurBehind)
+    }
+
     private mtd applyNativeDwmStyle()
     {
-        var cornerPreference = .cornerRadius() > 0 ? DWMWCP_ROUND : DWMWCP_DONOTROUND
+        // The corner belongs to the theme, which stamps it into the alpha channel the compositor
+        // reads. Letting the platform round the window rectangle on top of that cut the corner
+        // twice: the transparent margin the drop shadow is cast into is part of that rectangle,
+        // so the system arc sliced through the shadow instead of following the body.
+        var cornerPreference = DWMWCP_DONOTROUND
         discard DwmSetWindowAttribute(.hWnd, DWMWA_WINDOW_CORNER_PREFERENCE, cast(LPCVOID) &cornerPreference, #sizeof(cornerPreference))
 
         var borderColor = DWMWA_COLOR_NONE

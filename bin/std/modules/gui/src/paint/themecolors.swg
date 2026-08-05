@@ -34,7 +34,11 @@ struct ThemeColors
     wnd_CaptionBkNotActived:     Color     // Semantic color used for wnd caption bk not actived.
     wnd_CaptionText:             Color     // Semantic color used for wnd caption text.
     wnd_CaptionNotActivatedText: Color     // Semantic color used for wnd caption not activated text.
-    wnd_Border:                  Color     // Semantic color used for wnd border.
+
+    // Outline of a whole surface. It must be opaque: the same stroke runs past the caption
+    // ground and the body ground, so a translucent value takes both of them on and the outline
+    // visibly changes tone at the caption seam instead of reading as one line.
+    wnd_Border: Color
     wnd_BtnCloseBk:              Color     // Semantic color used for wnd btn close bk.
     wnd_BtnCloseHotBk:           Color     // Semantic color used for wnd btn close hot bk.
     wnd_BtnCloseHotIcon:         Color     // Semantic color used for wnd btn close hot icon.
@@ -448,7 +452,7 @@ impl ThemeColors
         .wnd_CaptionBkNotActived     = Gray4
         .wnd_CaptionText             = White
         .wnd_CaptionNotActivatedText = White
-        .wnd_Border                  = 0x40FFFFFF
+        .wnd_Border                  = 0xFF6A6A6A
         .wnd_BtnCloseBk              = 0xFFD61425
         .wnd_BtnCloseHotBk           = 0xFFE62435
         .wnd_BtnCloseHotIcon         = White
@@ -843,7 +847,7 @@ impl ThemeColors
         .wnd_CaptionBkNotActived     = Gray8
         .wnd_CaptionText             = Gray1
         .wnd_CaptionNotActivatedText = Gray2
-        .wnd_Border                  = 0x26000000
+        .wnd_Border                  = Gray6
         .wnd_BtnCloseBk              = 0xFFD61425
         .wnd_BtnCloseHotBk           = 0xFFE62435
         .wnd_BtnCloseHotIcon         = White

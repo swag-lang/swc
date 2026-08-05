@@ -252,26 +252,48 @@ Use this compact format. Keep observations factual and make the next step action
   enumeration entry through it. A `#[Name("Thickness")]` then becomes a translation key rather
   than a final wording, and the per-row workaround disappears.
 
-### The drawn surface shadow is painted opaque
+### A fully transparent fill is dropped even under `Copy` blending
+
+- Area: bin/std
+- Found while: giving the surface drop shadow its transparent margin back
+- Observation: `Painter.fillRect` cannot clear a region to premultiplied nothing. Every fill entry
+  point skips a fully transparent source (`color.a == 0`, then `Brush.hasVisibleAlpha`), which is
+  right under alpha compositing and wrong under `BlendingMode.Copy`, where the source replaces the
+  destination and a transparent fill is the only way to erase. The CPU renderer already states the
+  correct rule — `if src.a == 0 and .blendingMode != .Copy`
+  ([rendercpu.swg:322](bin/std/modules/pixel/src/render/cpu/rendercpu.swg#L322)) — and so does the
+  antialiasing shader, which discards a zero-coverage fragment only when `!copyMode`
+  ([aa.frag:31](bin/std/modules/pixel/src/render/ogl/shaders/aa.frag#L31)). The painter contradicts
+  both.
+- Evidence: with `setColorMaskFull` and `setBlendingMode(.Copy)`, filling a region with
+  `Color.fromArgb(0'u8, Argb.Black)` leaves it untouched; the same fill with alpha `1` clears it as
+  intended. Routing the two guards through a blend-aware painter predicate was not enough — a third
+  cull further down still drops it — so the search has to continue past `fillRect`/`hasVisibleAlpha`
+  into `fillRectRaw`, the command packer, or the renderer.
+- Next step: find the remaining cull by emitting a `Copy` fill of `a = 0` and one of `a = 1` and
+  diffing the recorded command stream, then put one blend-aware predicate on the painter — it owns
+  the blending mode, `Brush` does not — and route every `color.a == 0` and `hasVisibleAlpha` guard
+  in `src/painter` through it.
+
+### A surface outline must be stroked before its shadow, and nobody knows why
 
 - Area: std/gui
-- Found while: trying to make a modal dialog stand out from the application under it
-- Observation: `ThemeMetrics.surfaceWnd_ShadowSize` reserves a transparent margin around a surface
-  for `Surface.paintShadow` to cast a soft halo into. The margin is not transparent: the surface
-  clears it with its own ground, so the halo comes out as a hard dark band around every window
-  instead of a shadow, and the window looks like it grew a black frame. The metric is therefore
-  pinned at zero, which also cost the outline until it was untied from it, and left a modal box
-  cut from the same ink as the application with nothing to separate the two.
-- Evidence: set `surfaceWnd_ShadowSize` to 12 and run any app: a solid band appears on all four
-  edges of every surface, of exactly that width, with no gradient and no blending with the desktop.
-  `paintShadow` itself is fine — it draws `surfaceWnd_ShadowLayers` rings of `wnd_Shadow` at
-  growing spreads ([surface.swg:449-478](bin/std/modules/gui/src/surface.swg#L449-L478)).
-- Next step: find out whether the native window is layered at all. `createNative` would need
-  `WS_EX_LAYERED` with per-pixel alpha, or a DWM blur-behind region, for anything drawn in that
-  margin to composite against the desktop; the renderer must also clear it to zero alpha rather
-  than to `wnd_Bk`. If per-pixel alpha is out of reach, delete the drawn shadow and its five
-  metrics instead of leaving a switch that cannot be turned on, and let the platform cast the
-  shadow.
+- Found while: moving the surface outline above the hierarchy so docked views stop covering it
+- Observation: `Surface.paint` ends with `paintBorder`, `paintShadowOutsideBody`, `paintAlphaMask`.
+  Swapping the first two — stroking the outline after the shadow rather than before — costs the
+  surface its entire drop shadow, on all four edges, not just where the two meet. The two passes
+  touch disjoint regions: the outline is inside the body, the shadow is stencil-clipped to outside
+  it. An ordering that matters between disjoint regions means one of them leaves painter or
+  renderer state the other depends on, and the order is currently load-bearing by accident.
+- Evidence: with the order `paintShadowOutsideBody`, `paintBorder`, the margin of gui1 reads flat
+  `#D2D2D2` (the bare backdrop) on every edge; with `paintBorder` first it reads the full gradient
+  `#D2D2D2` to `#8B8B8B`. Nothing else differs. `paintBorder` sets `setColorMaskColor` and strokes
+  a pen with `borderPos = .Inside`; `paintShadowOutsideBody` opens a clipping region, sets
+  `setColorMaskFull`, and fills rounded rectangles.
+- Next step: dump the command stream for both orders and diff it. The suspects are the pen stroke
+  path leaving a clipping region or stencil state behind, and `setColorMaskColor` being applied to
+  the shadow fills rather than the `setColorMaskFull` that precedes them — which would explain the
+  loss exactly, since a shadow written without alpha is invisible to the compositor.
 
 ### A menu bar does not follow a live language switch
 

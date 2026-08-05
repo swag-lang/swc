@@ -7,16 +7,12 @@ struct ThemeMetrics
 {
     defaultFontSize:          u32 = 14     // Theme measurement used for default font size.
     defaultFixedFontSize:     u32 = 16     // Theme measurement used for default fixed font size.
-    // The drawn drop shadow is off, and it is not a style choice: the margin it needs is
-    // painted opaque, because the native surface carries no per-pixel alpha, so the halo
-    // comes out as a hard dark band around the window. A surface is told from what is
-    // under it by its outline until that is fixed. See FINDINGS.md.
-    surfaceWnd_ShadowSize:    f32 = 0      // Transparent margin the drawn drop shadow would be cast into.
+    surfaceWnd_ShadowSize:    f32 = 12     // Transparent margin the drawn drop shadow is cast into.
     surfaceWnd_CornerRadius:  f32 = 18     // Corner of a surface. The Swag palettes square it; see setSwagDark.
     surfaceWnd_ShadowSpread:  f32 = 16     // Theme measurement used for surface wnd shadow spread.
     surfaceWnd_ShadowOffsetX: f32 = 0      // Theme measurement used for surface wnd shadow offset x.
     surfaceWnd_ShadowOffsetY: f32 = 3      // Theme measurement used for surface wnd shadow offset y.
-    surfaceWnd_ShadowLayers:  u32 = 8      // Theme measurement used for surface wnd shadow layers.
+    surfaceWnd_ShadowLayers:  u32 = 24     // Rings the drop shadow is built from. Below one ring per device pixel of spread it bands visibly.
 
     wnd_BorderSize:            f32 = 1        // Theme measurement used for wnd border size.
     wnd_BigCaptionCY:          f32 = 42       // Theme measurement used for wnd big caption cy.

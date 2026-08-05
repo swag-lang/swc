@@ -361,11 +361,9 @@ impl Surface
         // physical render target through the surface scale.
         .painter.setContentScale(.dpiScale)
 
-        // Draw shadow around surface
         var myRect = Math.Rectangle{0, 0, .position.width, .position.height}
         .painter.pushClippingRect(clipRect)
         .painter.setColorMaskFull()
-        .paintShadow()
 
         // Hierarchy paint
         .painter.pushClippingRect(root.surfaceRect())
@@ -381,6 +379,10 @@ impl Surface
             .painter.fillRect(clipRect, Color.fromArgb(dbgColor))
         }
 
+        // Order matters: the outline first, then the shadow into the margin the outline bounds,
+        // then the silhouette. Stroking the outline after the shadow leaves the margin with no
+        // coverage at all and the surface loses its shadow entirely.
+        .paintBorder()
         .paintShadowOutsideBody()
         .paintAlphaMask()
         .painter.end()
@@ -455,6 +457,61 @@ impl Surface
         return .app.theme.metrics.surfaceWnd_CornerRadius
     }
 
+    // Strokes the outline of the surface, above everything the hierarchy painted.
+    //
+    // The outline is chrome and belongs on top. Drawn with the caption instead, it was covered by
+    // whatever docked against an edge: the stroke snaps to whole device pixels, so past 100% it
+    // is wider than the room the caption reserves for it, and the line read at full strength
+    // beside the caption, which nothing covers, and at half strength down the sides.
+    private mtd paintBorder()
+    {
+        if !.flags.has(.Border) do
+            return
+
+        var pen = Pen.createSolid(.app.theme.colors.wnd_Border, .painter.hairline(.app.theme.metrics.wnd_BorderSize))
+        pen.borderPos = .Inside
+
+        let body   = .wnd.surfaceRect()
+        let radius = .cornerRadius()
+
+        .painter.resetTransform()
+        .painter.setColorMaskColor()
+        if radius > 0 do
+            .painter.drawRoundRect(body, radius, radius, pen)
+        else do
+            .painter.drawRect(body, pen)
+    }
+
+    // Casts the themed drop shadow into the transparent margin, outside the body.
+    //
+    // This runs after the hierarchy, not before it, and it is the only pass that lays the shadow
+    // down. Drawn first, it was overwritten where the body is opaque and, worse, left colour
+    // without alpha under the corner: the hierarchy paints through a colour-only mask, so a
+    // shadow pixel the body did not cover kept its ink and lost its coverage, and the compositor
+    // added that ink straight onto the desktop. Painted last into a region the body cannot
+    // reach, every shadow pixel carries both.
+    private mtd paintShadowOutsideBody()
+    {
+        if .app.theme.metrics.surfaceWnd_ShadowSize <= 0 do
+            return
+
+        let radius = .cornerRadius()
+        let body   = .wnd.surfaceRect()
+
+        .painter.startClippingRegion()
+        .painter.fillRect({0, 0, .position.width, .position.height}, Argb.White)
+        .painter.setClippingRegionMode(.Clear)
+        if radius > 0 do
+            .painter.fillRoundRect(body, radius, radius, Argb.White)
+        else do
+            .painter.fillRect(body, Argb.White)
+        .painter.endClippingRegion()
+
+        .painter.setColorMaskFull()
+        .paintShadow()
+        .painter.resetClippingRegion()
+    }
+
     private mtd paintShadow()
     {
         if .flags.has(.NoShadow) do
@@ -485,26 +542,6 @@ impl Surface
         }
     }
 
-    private mtd paintShadowOutsideBody()
-    {
-        if .app.theme.metrics.surfaceWnd_ShadowSize <= 0 do
-            return
-
-        let radius = .cornerRadius()
-        if radius <= 0 do
-            return
-
-        let surfaceRect = Math.Rectangle{0, 0, .position.width, .position.height}
-
-        .painter.startClippingRegion()
-        .painter.fillRect(surfaceRect, Argb.White)
-        .painter.setClippingRegionMode(.Clear)
-        .painter.fillRoundRect(.wnd.surfaceRect(), radius, radius, Argb.White)
-        .painter.endClippingRegion()
-        .paintShadow()
-        .painter.resetClippingRegion()
-    }
-
     // Presses one of the two standard buttons of the surface, when there is one to press.
     //
     // The button is pressed the way Enter presses a focused one, so a widget that answers keys
@@ -519,19 +556,18 @@ impl Surface
         return button.sendKeyPress(Input.Key.Return)
     }
 
+    // Stamps the opaque silhouette of the surface into the alpha channel.
+    //
+    // The compositor reads this channel, so it — and not the window rectangle — is what the user
+    // sees the surface as. The corner therefore comes from the theme at any shadow size, and the
+    // platform is told to leave the window rectangle alone.
     private mtd paintAlphaMask()
     {
-        let rect = .wnd.surfaceRect()
+        let rect   = .wnd.surfaceRect()
+        let radius = .cornerRadius()
 
         .painter.resetTransform()
         .painter.setColorMaskAlpha()
-        if .app.theme.metrics.surfaceWnd_ShadowSize <= 0
-        {
-            .painter.fillRect(rect, Argb.Black)
-            return
-        }
-
-        let radius = .cornerRadius()
         if radius > 0 do
             .painter.fillRoundRect(rect, radius, radius, Argb.Black)
         else do

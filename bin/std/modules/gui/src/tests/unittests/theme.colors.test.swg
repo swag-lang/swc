@@ -56,6 +56,27 @@ using Swag, Core
     @assert(colors.frameWnd_Border == 0xFFE2E2DF)
 }
 
+// A surface outline is one stroke crossing two grounds: the caption ground down to the caption
+// seam, the body ground below it. A translucent value therefore reports a different tone above
+// and below that seam, which is what the shipped dark palette used to do (0x40FFFFFF read as
+// #7C7C7C over the caption and #707070 over the body). Every palette owes an opaque outline.
+#test
+{
+    var colors: ThemeColors
+
+    colors.setDark()
+    @assert(colors.wnd_Border.a == 255)
+
+    colors.setLight()
+    @assert(colors.wnd_Border.a == 255)
+
+    colors.setSwagDark()
+    @assert(colors.wnd_Border.a == 255)
+
+    colors.setSwagLight()
+    @assert(colors.wnd_Border.a == 255)
+}
+
 #test
 {
     var theme: Theme

@@ -81,6 +81,13 @@ impl HeadlessHost
         registerDefaultStrings(&.app.resources)
         .theme.setupDefault(.app.renderer, &.app.resources, dpiScale)
 
+        // A headless surface renders into an image, with no desktop under it: a drop shadow has
+        // nothing to fall on and a rounded corner would only punch holes in the corners of every
+        // captured pixel. Square the surface so a test reads the tree it built, not the chrome of
+        // a window that is not there; a test about the chrome sets these back itself.
+        .theme.metrics.surfaceWnd_ShadowSize   = 0
+        .theme.metrics.surfaceWnd_CornerRadius = 0
+
         .app.theme = .theme
         .app.style.own(.theme)
 

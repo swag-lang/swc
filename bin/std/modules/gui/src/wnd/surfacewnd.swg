@@ -184,15 +184,18 @@ impl IWnd for SurfaceWnd
         let srfn = .surface!
         if .isPendingDestroy do
             return
-        let bc      = evt.paintContext
-        let theme   = .theme()
-        let colors  = .themeColors()
-        let metrics = .themeMetrics()
+        let bc     = evt.paintContext
+        let theme  = .theme()
+        let colors = .themeColors()
 
         let clientRect = .clientRect()
         let radius     = srfn.cornerRadius()
 
-        if radius > 0 and metrics.surfaceWnd_ShadowSize > 0 do
+        // The ground follows the silhouette the surface stamps into its alpha channel, so a
+        // rounded surface never lays opaque ink outside its own corner. The outline is not
+        // drawn here either: the surface strokes it above the whole hierarchy, see
+        // Surface.paintBorder.
+        if radius > 0 do
             bc.painter.fillRoundRect(clientRect, radius, radius, colors.wnd_Bk)
         else do
             bc.painter.fillRect(clientRect, colors.wnd_Bk)
@@ -206,21 +209,7 @@ impl IWnd for SurfaceWnd
 
         let captionColor = srfn.app.isActivated ? colors.wnd_CaptionBk : colors.wnd_CaptionBkNotActived
         if srfn.flags.has(.LargeCaption | .SmallCaption) do
-            bc.painter.fillRect(posCaption, captionColor)
-
-        // A window that asks for a border gets one, whether or not the theme also draws a
-        // shadow. Tied to the shadow, a theme that leaves the drop shadow to the system —
-        // as the Swag palettes do — silently lost the outline too, and a modal box over an
-        // application of the same ink had nothing at all to say where it began.
-        if srfn.flags.has(.Border)
-        {
-            var pen = Pen.createSolid(colors.wnd_Border, bc.painter.hairline(metrics.wnd_BorderSize))
-            pen.borderPos = .Inside
-            if radius > 0 do
-                bc.painter.drawRoundRect(clientRect, radius, radius, pen)
-            else do
-                bc.painter.drawRect(clientRect, pen)
-        }
+            .paintCaptionBand(bc.painter, posCaption, radius, captionColor)
 
         if srfn.flags.has(.LargeCaption | .SmallCaption)
         {
@@ -263,6 +252,29 @@ impl IWnd for SurfaceWnd
 
 impl SurfaceWnd
 {
+    // Fills the caption band, following the corner of the surface at its top.
+    //
+    // A square band on a rounded surface lays opaque ink past the corner, where the surface is
+    // transparent, and the compositor adds that ink to the desktop instead of hiding it: the two
+    // top corners came out as bright wedges. The band is drawn one radius taller than it needs to
+    // be and clipped back, so only its top corners are rounded and it still meets the ground
+    // squarely along its bottom edge.
+    private mtd paintCaptionBand(painter: *Painter, band: Math.Rectangle, radius: f32, color: Color)
+    {
+        if radius <= 0
+        {
+            painter.fillRect(band, color)
+            return
+        }
+
+        var rounded = band
+        rounded.height += radius
+
+        painter.pushClippingRect(band)
+        defer painter.popClippingRect()
+        painter.fillRoundRect(rounded, radius, radius, color)
+    }
+
     mtd hitTestCaptionButton(surfacePos: Math.Point)->bool
     {
         let pos = .surfaceToLocal(surfacePos)

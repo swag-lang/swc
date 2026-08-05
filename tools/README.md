@@ -1,57 +1,67 @@
 # Repository tools
 
 All project-owned Windows batch entry points live in this directory. Run them from the
-repository root. Scripts that accept `dm` use `bin/swc_devmode.exe`; otherwise they use
-`bin/swc.exe`.
+repository root. Every tool takes the same shape:
 
-The names are verb-first and grouped by role:
+```
+tools\<tool> [dm] [<command>] [<name>] [options...]
+```
 
-- `test-*` executes tests;
-- `build-*` builds several workspaces or configurations;
-- `manage-*` forwards `build`, `run`, or `test` to one workspace;
-- `run-*`, `generate-*`, `format-*`, `package-*`, `register-*`, and `accept-*` perform one
-  explicit maintenance action;
-- `_*.bat` files are internal helpers and are not entry points.
+- `dm` uses `bin/swc_devmode.exe`; without it the tools use `bin/swc.exe`.
+- `<command>` is `build`, `run`, `test`, or `smoke`, when the tool has more than one.
+- `<name>` is the module, suite, or script to act on; without it the tool acts on everything.
+- Positionals come first and options after, so an option value is never read as a name.
+- `-h` prints the tool's own usage.
 
-## Aggregate builds and tests
+Common options: `-bc <config>` selects `release`, `debug`, or `fast-debug` (default
+`fast-debug`), `--all-cfg` repeats an aggregate tool in all three, `--run-arg <value>` passes
+an argument to what gets launched. Anything else is forwarded to the compiler.
+
+`_*.bat` files are internal helpers, not entry points.
+
+## Reaching one thing
+
+| Command | Effect |
+| --- | --- |
+| `tools\examples run gui2` | Launch one example |
+| `tools\apps run sCrypt` | Launch one application |
+| `tools\scripts snake` | Launch one standalone script |
+| `tools\std dm test core` | Test one standard-library module |
+| `tools\unittests dm sema` | Run one compiler suite |
+
+## Tests and builds
 
 | Tool | Purpose |
 | --- | --- |
-| `build-all-configurations.bat` | Build every workspace in release, debug, and fast-debug |
-| `test-all-workspaces.bat` | Run the complete test set once, in fast-debug by default |
-| `test-all-configurations.bat` | Run the complete test set in all three configurations |
-| `test-compiler-suites.bat` | Run every compiler-focused unit and source-test suite |
+| `tests.bat` | The complete test set: compiler, scripts, library, examples, applications, reference |
+| `unittests.bat` | The compiler suites: `cpp`, `lexer`, `parser`, `sema`, `jit`, `safety`, `sanity`, `native`, `workspace` |
+| `build.bat` | Build every workspace |
+| `scrypt.bat` | The privileged sCrypt/WinFsp end-to-end sandbox, kept out of `tests.bat` |
 
-## Focused tests
+## Workspaces
 
-| Tool | Purpose |
-| --- | --- |
-| `test-cpp-units.bat` | Internal C++ compiler tests |
-| `test-lexer-suite.bat` | Lexer sources and expected diagnostics |
-| `test-parser-suite.bat` | Parser sources and expected diagnostics |
-| `test-semantic-suite.bat` | Semantic sources and expected diagnostics |
-| `test-jit-suite.bat` | JIT execution tests |
-| `test-native-suite.bat` | Native encoding, linking, and execution tests |
-| `test-safety-suite.bat` | Runtime-safety tests |
-| `test-sanity-suite.bat` | Static and lifecycle sanity tests |
-| `test-workspace-suite.bat` | Multi-module workspace integration tests |
-| `test-example-scripts.bat` | Standalone example scripts in deterministic test mode |
-| `test-scrypt-integration.bat` | Privileged sCrypt/WinFsp end-to-end sandbox |
+| Tool | Commands | Purpose |
+| --- | --- | --- |
+| `std.bat` | build, test | The standard library, whole or one module |
+| `examples.bat` | build, run, test, smoke | The examples, whole or one module |
+| `apps.bat` | build, run, test, smoke | The applications; a build also packages their runtime files |
+| `reference.bat` | build, test | The executable language reference |
+| `scripts.bat` | run, smoke | The standalone example scripts; naming one runs it, naming none smokes them all |
 
-## Workspace and maintenance tools
+`test` runs a module's `#test` functions and never its `#main`. `smoke` runs the real program
+for a bounded number of frames, isolated from the machine, to prove it starts and keeps going.
+A program without `#test` is smoked: testing it would report zero tests and prove nothing.
+
+## Maintenance
 
 | Tool | Purpose |
 | --- | --- |
-| `manage-standard-library.bat` | Build or test the standard library, optionally one module |
-| `manage-examples-workspace.bat` | Build, run, or test examples, optionally one module |
-| `manage-applications-workspace.bat` | Build, run, or test applications; `run` requires one module and launches its packaged executable |
-| `manage-reference-workspace.bat` | Build or test the executable language reference |
-| `run-benchmark-campaign.bat` | Run or regenerate the cross-language performance campaign |
-| `generate-web-documentation.bat` | Regenerate brand assets and the complete website |
-| `format-source-tree.bat` | Format all Swag source workspaces |
-| `accept-test-goldens.bat` | Promote reviewed `.actual` snapshots to goldens |
-| `package-vscode-extension.bat` | Refresh extension images and build the VSIX package |
-| `register-compiler-path.bat` | Register `bin/` in the current user's environment |
+| `format.bat` | Format every Swag source workspace in place |
+| `web.bat` | Regenerate the brand assets and the complete website |
+| `goldens.bat` | Promote reviewed `.actual` snapshots to goldens |
+| `bench.bat` | Run or regenerate the cross-language performance campaign |
+| `vsix.bat` | Refresh the extension images and build the VSIX package |
+| `setup.bat` | Register `bin/` in the current user's environment |
 
 `src/Support/Memory/mimalloc/bin/bundle.bat` is intentionally not moved: it belongs to the
 vendored mimalloc distribution and retains its upstream layout.

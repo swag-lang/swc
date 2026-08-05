@@ -89,7 +89,7 @@ for the vector masters and `Pixel.ImageCanvas` for the rasters — so no asset c
 with another about where an edge is. The script owns the shape and nothing else; anything
 generic it needs belongs in `bin/std`, not in the script.
 
-`tools/generate-web-documentation.bat` runs it before generating the pages, so the assets the pages link are
+`tools/web.bat` runs it before generating the pages, so the assets the pages link are
 always cut from the current definition. To regenerate them alone:
 
 ```
@@ -111,7 +111,7 @@ two surfaces sit side by side:
    file.
 3. Paste the same path into `bench/page_template.html`, and into the `bench/bench.html` it
    has already produced.
-4. Copy the icon into the VSCode extension with `tools/package-vscode-extension.bat`.
+4. Copy the icon into the VSCode extension with `tools/vsix.bat`.
 
 ## Regenerate The Syntax Image
 
@@ -219,7 +219,7 @@ Console output, diagnostics, and documentation prose follow
 ## Verify
 
 1. Regenerate the assets and the site: `swc web/tools/brand.swgs`, then
-   `tools/generate-web-documentation.bat dm`.
+   `tools/web.bat dm`.
 2. Look at a page in both palettes and at a narrow width before calling it done.
 3. Look at the mark itself at 16, 32, and 128 pixels, not only at the size you drew it.
    If the counters close up, the crop is wrong before the mark is.

@@ -2,10 +2,10 @@
 rem Run a full performance campaign: rebuild the compiler, measure it against every
 rem other toolchain, append the result to the history, regenerate bench.html.
 rem
-rem   run-benchmark-campaign.bat                             a full campaign
-rem   run-benchmark-campaign.bat --label "what changed"      the same, with a note in the history
-rem   run-benchmark-campaign.bat --quick                     smoke test, one repetition, not recorded
-rem   run-benchmark-campaign.bat --report-only               regenerate the page, measure nothing
+rem   bench.bat                             a full campaign
+rem   bench.bat --label "what changed"      the same, with a note in the history
+rem   bench.bat --quick                     smoke test, one repetition, not recorded
+rem   bench.bat --report-only               regenerate the page, measure nothing
 rem
 rem See ..\bench\README.md before changing anything about how it measures.
 

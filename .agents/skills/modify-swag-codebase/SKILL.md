@@ -69,12 +69,12 @@ command. Otherwise, after changing any compiler C++ file, complete this sequence
 failure before continuing to the next step.
 
 1. Compile a DevMode build.
-2. Run `tools/test-all-workspaces.bat dm`.
-3. Run `tools/test-all-configurations.bat dm`.
+2. Run `tools/tests.bat dm`.
+3. Run `tools/tests.bat dm --all-cfg`.
 4. Compile the Release build, including `swc.exe`.
-5. Run `tools/test-all-workspaces.bat`.
+5. Run `tools/tests.bat`.
 
-Do not run `test-all-configurations.bat` in Release mode as part of the default workflow.
+Do not run `tests.bat --all-cfg` in Release mode as part of the default workflow.
 
 ## Validate Documentation-Only Changes
 
@@ -82,10 +82,10 @@ When a compiler change affects only the `doc` command, including refactoring sha
 for its implementation:
 
 1. Compile a DevMode build.
-2. Regenerate the repository documentation with `tools/generate-web-documentation.bat dm`.
+2. Regenerate the repository documentation with `tools/web.bat dm`.
 3. Inspect the generated HTML and its diff for correctness.
 
-Do not run `test-all-workspaces.bat`, `test-all-configurations.bat`, or the Release validation workflow for a
+Do not run `tests.bat`, `tests.bat --all-cfg`, or the Release validation workflow for a
 documentation-only change.
 
 ## Validate Formatter-Only Changes
@@ -93,10 +93,10 @@ documentation-only change.
 When a compiler change affects only the `format` command:
 
 1. Compile a DevMode build.
-2. Format the repository with `tools/format-source-tree.bat dm`.
+2. Format the repository with `tools/format.bat dm`.
 3. Inspect the resulting diff for correctness.
 
-Do not run `test-all-workspaces.bat`, `test-all-configurations.bat`, or the Release validation workflow for a
+Do not run `tests.bat`, `tests.bat --all-cfg`, or the Release validation workflow for a
 formatter-only change.
 
 ## Validate Example-Only Changes
@@ -104,7 +104,7 @@ formatter-only change.
 After changing an example under `bin/examples` without changing C++:
 
 1. Compile a DevMode build.
-2. Run only the changed example in every configuration with `tools/manage-examples-workspace.bat dm test -m <example> -bc <config>`.
+2. Run only the changed example in every configuration with `tools/examples.bat dm test <example> -bc <config>`.
 
 For other change types, run the narrowest relevant checks that demonstrate the modified behavior.
 

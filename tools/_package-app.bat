@@ -2,6 +2,8 @@
 setlocal
 
 rem Copies shared and app-owned runtime files beside one built application.
+rem
+rem     _package-app.bat <root> <application> <build configuration> <target architecture>
 
 if "%~4"=="" exit /b 1
 set "ROOT=%~1"

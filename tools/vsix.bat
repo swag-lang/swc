@@ -3,6 +3,9 @@ setlocal
 
 rem Packages the VSCode extension after refreshing its generated image assets.
 rem Install Node.js, then run `npm install -g vsce` before using this tool.
+rem
+rem     vsix.bat
+
 for %%I in ("%~f0") do set "TOOLS_DIR=%%~dpI"
 for %%I in ("%TOOLS_DIR%..") do set "ROOT=%%~fI"
 set "VSCODE_DIR=%ROOT%\vscode"

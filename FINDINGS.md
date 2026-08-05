@@ -62,7 +62,7 @@ Use this compact format. Keep observations factual and make the next step action
 - Found while: regenerating the gui widget goldens after the theme-atlas format change
 - Observation: `swc test` always arms the sandbox, and the sandbox refuses every write outside
   its root. The golden store's documented flows — create a missing golden on first run, write
-  `<name>.actual.txt`/`.png` next to a mismatching golden for `tools/accept-test-goldens.bat` —
+  `<name>.actual.txt`/`.png` next to a mismatching golden for `tools/goldens.bat` —
   both write into the module source tree, so they silently stopped working when the sandbox
   landed: a failing golden reports `[golden] cannot write ...` and leaves nothing to accept.
 - Evidence: the 13 gui golden mismatches printed `cannot write` for every actual; recording them
@@ -72,7 +72,7 @@ Use this compact format. Keep observations factual and make the next step action
 - Next step: decide where golden actuals should land under a sandbox. Candidates: the launcher
   grants the corpus root explicitly (a `swag.sandbox.corpus=<dir>` run argument the golden store
   consults), or the golden store mirrors actuals under the sandbox root at a deterministic path
-  and `accept-test-goldens.bat` harvests them. Writing straight to the source tree from a
+  and `goldens.bat` harvests them. Writing straight to the source tree from a
   sandboxed test contradicts the sandbox guarantee, so the escape must stay launcher-owned.
 
 ### Constant branches survive until the sanitizer after inlining

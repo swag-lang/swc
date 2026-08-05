@@ -111,7 +111,7 @@ glyph, another app's icon, or a letter tile.
   explanation. Use repository-relative commands and paths.
 - Add reusable build, package, and integration entry points under `tools/`; do not leave personal
   absolute paths or root-level app scripts behind.
-- Make `tools/manage-applications-workspace.bat` build, test, run, or smoke the module through the
+- Make `tools/apps.bat` build, test, run, or smoke the module through the
   shared workspace. Package runtime dependencies after a normal app build when the executable is
   not functional without them.
 
@@ -119,9 +119,9 @@ glyph, another app's icon, or a letter tile.
 
 For each changed app:
 
-1. Build it with `tools/manage-applications-workspace.bat dm build -m sName`.
-2. Run its tests with `tools/manage-applications-workspace.bat dm test -m sName`.
-3. Run its bounded startup with `tools/manage-applications-workspace.bat dm smoke -m sName`.
+1. Build it with `tools/apps.bat dm build sName`.
+2. Run its tests with `tools/apps.bat dm test sName`.
+3. Run its bounded startup with `tools/apps.bat dm smoke sName`.
 4. Run any dedicated integration script. Keep tests that need UAC, drivers, hardware, or visible
    interaction in an explicit `tools/test-<name>-integration.bat`; do not surprise the ordinary
    aggregate suite with a privilege prompt.

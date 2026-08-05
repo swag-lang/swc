@@ -537,11 +537,8 @@ impl LibraryWnd
             .backgroundStyle = .Window
         }
 
-        with view.imgSpin = ImageRect.create(res, {4, 4, 24, 24})
-        {
-            .setSpriteSheet(dref view.theme().res.spin!)
-            .hide()
-        }
+        view.imgSpin = Spinner.create(res, {4, 4})
+        view.imgSpin.hide()
 
         // Image Size
         with res.zoomBtn = IconButton.create(res.editZoomBar, res.theme().icon(.Search), {0, 0, 120, 32})

@@ -5,9 +5,8 @@ Qt, GTK4, Avalonia, Slint, Flutter, and — for the "we render every pixel ourse
 Dear ImGui and egui.
 
 It is not the repository's discovery backlog. Defects and leads about other subsystems belong in
-[FINDINGS.md](../../../../FINDINGS.md), which already carries the open DPI entry covering the icon
-sources and the `sCapture` in-place editing overlay; compiler and language intent belongs in the
-root [TODO.md](../../../../TODO.md). This file holds intent about this module.
+[FINDINGS.md](../../../../FINDINGS.md); compiler and language intent belongs in the root
+[TODO.md](../../../../TODO.md). This file holds intent about this module.
 
 Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
 ships; history lives in git, not here.
@@ -94,8 +93,8 @@ twenty-seven messages. What is absent from that list is this section.
     English wording across a switch; the root [TODO.md](../../../TODO.md) carries the design
     question (resolve the attribute string through the registered tables at grid-build time);
   - a disk override of `theme/widgets.svg` or `theme/icons.svg` registers in the bundle but the
-    vector pipeline rasterizes the process-wide parsed cache, so only the fonts, `spin.png`,
-    theme sheets and language files honor overrides today;
+    vector pipeline rasterizes the process-wide parsed cache, so only the fonts, theme sheets
+    and language files honor overrides today;
   - text set once at construction only follows a live language switch when its window listens
     for the `LanguageChanged` notification; command-driven surfaces already refresh themselves;
   - French is the only shipped translation, and `DateTime` month and day names stay English —

@@ -120,6 +120,10 @@ struct ThemeMetrics
     progressBar_ClipOffset: f32 = 2       // Theme measurement used for progress bar clip offset.
     progressBar_SpeedInf:   f32 = 0.5     // Theme measurement used for progress bar speed inf.
 
+    spinner_Size:     f32 = 24      // Side of a spinner created without a size.
+    spinner_DotCount: f32 = 8       // Number of dots forming the ring.
+    spinner_Speed:    f32 = 1.1     // Turns of the ring per second.
+
     colorPicker_RoundPick:  f32 = 6     // Theme measurement used for color picker round pick.
     colorPicker_SquarePick: f32 = 6     // Theme measurement used for color picker square pick.
 

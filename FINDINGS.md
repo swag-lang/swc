@@ -183,25 +183,23 @@ Use this compact format. Keep observations factual and make the next step action
   runtime context reaches per-thread storage
   ([os_windows.swg:298](bin/runtime/os_windows.swg#L298)).
 
-### Remaining DPI work: icon sources and the in-place capture editor
+### The in-place capture overlay has never run on genuinely mixed-DPI monitors
 
-- Area: bin/std
-- Found while: making `std/gui` and `Env.Window` per-monitor DPI aware (surfaces are physical
-  windows, the window tree stays logical, the renderer maps painter streams through
-  `Painter.contentScale`, and theme tiles sample with sharp bilinear at fractional scales)
-- Observation: the 24/64-pixel icon atlases are still 1x raster sources, so at 150% an icon is a
-  sharpened upscale rather than a re-rasterization; SVG sources rendered per scale would make
-  them native. Separately, sCapture's in-place capture editor mixes desktop-physical and logical
-  spaces in its editing overlay; the grab flow, bars, and 1:1 capture display were adapted, but
-  the gizmo/form editing interactions inside the in-place overlay have not been visually
-  verified on a scaled or mixed-DPI multi-monitor setup.
-- Evidence: gui2 and the dark default theme at 150% show crisp text, hairlines, and tile
-  borders. The theme widgets atlas, the theme icon set, and sCapture's application icon set
-  are now vector sources (`gui/src/theme/widgets.svg`, `gui/src/theme/icons.svg`,
-  `sCapture/datas/icons.svg` — the two icon sets from Fluent UI System Icons) rasterized per
-  size and scale through `Gui.IconSet`, so the only remaining raster source is the spinner
-  strip (`theme/spin.png`). sCapture compiles and the main grab path converts spaces
-  explicitly (`capturerectwnd.swg`, `screenshot.swg`, `inplaceeditwnd.swg`).
-- Next step: fold the spinner into a vector or procedural form, then run a capture and
-  in-place edit session on a 150% display and on mixed-DPI monitors, and fix the remaining
-  space mismatches the session exposes.
+- Area: bin/apps
+- Found while: closing the per-monitor DPI work on `std/gui`, the theme art and sCapture
+- Observation: sCapture's overlay covers the whole virtual desktop with one surface, so it holds
+  one logical-to-physical factor — the DPI of its own monitor — while the capture, the grab
+  rectangle and the annotation sizes are all in the physical pixels of whatever monitor the
+  selection sits on. Every conversion between the two now goes through one of two places
+  (`EditView.zoom` for the capture, `captureMonitorScale` for the chrome and the annotation
+  defaults), but the case where those two disagree has only been reasoned about, never run.
+- Evidence: a full grab, gizmo resize and arrow-drawing session at 150% is correct — the frozen
+  desktop the overlay paints back is bit-identical to the live one inside the selection (40800
+  samples), a 300-pixel drag of a gizmo anchor moves the edge exactly 300 pixels, and an arrow
+  lands where the cursor went. That session ran on two monitors *both* at 150%, so
+  `captureMonitorScale` returned the surface's own scale and the residual factor stayed 1: the
+  branch that matters on a mixed setup never executed. The same session before the fix was 23.7%
+  identical, so the check does discriminate.
+- Next step: set the two monitors to different scales (150% and 100%), then grab on the second
+  monitor and check the three things the residual factor drives: the bars keep their size, the
+  selection stays glued to the desktop, and a fresh annotation keeps its weight.

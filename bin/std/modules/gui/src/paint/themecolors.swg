@@ -349,6 +349,8 @@ struct ThemeColors
 
     imageRect_Fg: Color     // Semantic color used for image rect fg.
 
+    spinner_Dot: Color     // Semantic color used for spinner dot.
+
     embInfo_CriticalBk:      Color     // Semantic color used for emb info critical bk.
     embInfo_CriticalText:    Color     // Semantic color used for emb info critical text.
     embInfo_InformationBk:   Color     // Semantic color used for emb info information bk.
@@ -733,6 +735,8 @@ impl ThemeColors
         .colorPicker_Mark      = Gray1
 
         .imageRect_Fg = White
+
+        .spinner_Dot = Gray1
 
         // Dark theme: deep, desaturated notice backgrounds with soft, light text — so a chip reads
         // as a muted tint of the dark UI, not a loud light block. Status icons keep native colors.
@@ -1123,6 +1127,8 @@ impl ThemeColors
         .colorPicker_Mark      = Gray3
 
         .imageRect_Fg = White
+
+        .spinner_Dot = Gray1
 
         // Light theme: gentle, desaturated pastel backgrounds with soft (not fully saturated)
         // readable text, so the chips read as a light tint rather than a loud block. Status icons

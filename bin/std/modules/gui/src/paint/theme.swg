@@ -15,7 +15,6 @@ private const DefaultFontFsBoldItalicName = "../theme/consolaz.ttf"
 private const DefaultFontFsItalicName = "../theme/consolai.ttf"
 
 private const DefaultIconsName = "../theme/icons.svg"
-private const DefaultSpinName = "../theme/spin.png"
 
 private const DefaultImage = #include(DefaultImageName)
 private const DefaultFontRegular = #include(DefaultFontRegularName)
@@ -27,13 +26,11 @@ private const DefaultFontFsBold = #include(DefaultFontFsBoldName)
 private const DefaultFontFsBoldItalic = #include(DefaultFontFsBoldItalicName)
 private const DefaultFontFsItalic = #include(DefaultFontFsItalicName)
 private const DefaultIcons = #include(DefaultIconsName)
-private const DefaultSpin = #include(DefaultSpinName)
 
-// Decoded default theme images, shared by every Theme instance. Decoding the
-// embedded sources is pure CPU work whose result never changes, so it is done
-// once per process (same policy as the TypeFace/Font caches). The widgets atlas
-// and the icon set are authored as vector documents; widget rasterizations depend
-// only on the requested scale, so they are cached beside the parsed drawings.
+// Parsed default theme art, shared by every Theme instance. Parsing the embedded sources is
+// pure CPU work whose result never changes, so it is done once per process (same policy as
+// the TypeFace/Font caches). Every piece of theme art is a vector document; widget
+// rasterizations depend only on the requested scale, so they are cached beside the drawings.
 private struct DefaultThemeImages
 {
     lock:           Sync.Mutex
@@ -41,14 +38,12 @@ private struct DefaultThemeImages
     widgets:        Svg.Drawing                // Vector widgets atlas, parsed once.
     widgetsRasters: HashTable'(s32, Image)     // Rasterizations of `widgets`, by whole scale.
     icons:          Svg.Drawing                // Vector icon set, parsed once.
-    spin:           Image
 }
 
 // Bundle names of the theme resources. The `Default*Name` constants above are include
 // paths relative to this file; these are the logical names a disk folder overrides.
 private const ResImageName = "theme/widgets.svg"
 private const ResIconsName = "theme/icons.svg"
-private const ResSpinName = "theme/spin.png"
 private const ResFontRegularName = "theme/segoeui.ttf"
 private const ResFontBoldName = "theme/segoeuib.ttf"
 private const ResFontBoldItalicName = "theme/segoeuiz.ttf"
@@ -76,7 +71,6 @@ internal func registerDefaultThemeResources(bundle: *Resources.Bundle)
 {
     bundle.addEmbedded(ResImageName, DefaultImage)
     bundle.addEmbedded(ResIconsName, DefaultIcons)
-    bundle.addEmbedded(ResSpinName, DefaultSpin)
     bundle.addEmbedded(ResFontRegularName, DefaultFontRegular)
     bundle.addEmbedded(ResFontBoldName, DefaultFontBold)
     bundle.addEmbedded(ResFontBoldItalicName, DefaultFontBoldItalic)
@@ -85,27 +79,6 @@ internal func registerDefaultThemeResources(bundle: *Resources.Bundle)
     bundle.addEmbedded(ResFontFsBoldName, DefaultFontFsBold)
     bundle.addEmbedded(ResFontFsBoldItalicName, DefaultFontFsBoldItalic)
     bundle.addEmbedded(ResFontFsItalicName, DefaultFontFsItalic)
-}
-
-// Uploads one theme image, honoring a disk override from the bundle.
-//
-// Without an override, the embedded art goes through the process-wide decoded cache.
-// An override that cannot be read or decoded falls back to the embedded art, so a
-// broken theme folder degrades to the default look instead of stopping the program.
-private func addThemeImage(renderer: IRenderer, res: const *Resources.Bundle, name: string, embedded: const *Image)->Texture
-{
-    if res.isOverridden(name)
-    {
-        let bytes = catch res.load(name) as loadErr
-        if loadErr == null
-        {
-            let decoded = catch Image.decode(name, bytes.toSlice()) as decodeErr
-            if decodeErr == null do
-                return renderer.addImage(decoded)
-        }
-    }
-
-    return renderer.addImage(dref embedded)
 }
 
 // Creates the typeface behind one theme font resource, honoring a disk override.
@@ -139,7 +112,6 @@ private func defaultThemeImages()->*DefaultThemeImages
     {
         cache.widgets = expect Svg.Drawing.parse(cast(string) DefaultImage)
         cache.icons   = expect Svg.Drawing.parse(cast(string) DefaultIcons)
-        cache.spin    = expect Image.decode(DefaultSpinName, DefaultSpin)
         cache.decoded = true
     }
 
@@ -185,7 +157,6 @@ struct ThemeResources
     icons:      IconSet     // The theme icon set, rasterized on demand per size and scale.
     #[Swag.Late]
     {
-        spin:                *ImageList     // Spin associated with this value.
         defaultTypeFaceR:    *TypeFace      // Default type face r associated with this value.
         defaultTypeFaceB:    *TypeFace      // Default type face b associated with this value.
         defaultTypeFaceI:    *TypeFace      // Default type face i associated with this value.
@@ -295,10 +266,7 @@ impl Theme
 
     private mtd freeDefault()
     {
-        // A fonts-only theme (headless text measurement) never created the image lists.
         .res.icons.free()
-        if @isset(.res.spin) do
-            Memory.delete(.res.spin)
     }
 
     // Establishes the shared theme resources against `renderer`, sharp at `dpiScale`.
@@ -306,8 +274,8 @@ impl Theme
     // The caller passes the density of the surface the theme is about to draw on, because
     // rasterizing the widgets atlas is the single most expensive step of a GUI startup and
     // [[Theme.ensureAtlasScale]] cannot reuse a coarser atlas: building at 1 first would
-    // throw that work away on every scaled display. Fonts and remaining raster art resolve
-    // through `resources`, so a disk folder can override the embedded ones.
+    // throw that work away on every scaled display. The fonts resolve through `resources`,
+    // so a disk folder can override the embedded ones.
     private mtd setupDefault(renderer: IRenderer, resources: const *Resources.Bundle, dpiScale = 1.0'f32)
     {
         .initialized = true
@@ -318,11 +286,6 @@ impl Theme
 
         let images = defaultThemeImages()
         .res.icons.setup(renderer, &images.icons)
-        with me.res
-        {
-            .spin = Memory.new'ImageList()
-            .spin.set(addThemeImage(renderer, resources, ResSpinName, &images.spin), 48, 48)
-        }
 
         .setupDefaultFonts(resources)
     }

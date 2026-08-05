@@ -4,11 +4,14 @@ struct EditView
     #[Swag.Late]
     main: *MainWnd
     #[Swag.Late]
-    scroll:      *ScrollWnd
-    capture:     #null *Capture
-    zoom:        f32 = 1
-    viewMargin:  f32 = 32
-    firstPaint       = true
+    scroll:     *ScrollWnd
+    capture:    #null *Capture
+    zoom:       f32 = 1
+    viewMargin: f32 = 32
+    firstPaint      = true
+
+    // Set by [EditView.setInPlaceEdit], which owns the zoom from then on.
+    readonly
     inPlaceEdit: bool
 }
 
@@ -30,7 +33,7 @@ impl IWnd for EditView
 
         switch evt.kind
         {
-        case .Wheel:
+        case .Wheel where !.inPlaceEdit:
             if evt.modifiers & .Control
             {
                 evt.accepted = true
@@ -96,15 +99,18 @@ impl EditView
         captureRect.height = capture.height * .zoom
         if .inPlaceEdit
         {
-            captureRect.x = -capture.backImagePos.x
-            captureRect.y = -capture.backImagePos.y
-        }
-        else
-        {
-            captureRect.x = rect.horzCenter() - captureRect.width * 0.5
-            captureRect.y = rect.vertCenter() - captureRect.height * 0.5
+            // The grab origin is a desktop-physical pixel position and the view draws in
+            // logical units, so it converts through the zoom like every other capture
+            // measurement. The rectangle stays fractional: a whole desktop pixel is not a
+            // whole logical unit on a scaled display, and rounding here would slide the
+            // capture off the desktop showing through underneath.
+            captureRect.x = -capture.backImagePos.x * .zoom
+            captureRect.y = -capture.backImagePos.y * .zoom
+            return captureRect
         }
 
+        captureRect.x = rect.horzCenter() - captureRect.width * 0.5
+        captureRect.y = rect.vertCenter() - captureRect.height * 0.5
         captureRect.round()
         return captureRect
     }
@@ -112,7 +118,25 @@ impl EditView
     const MinZoom = 0.1
     const MaxZoom = 10.0
 
+    // Locks the view onto the desktop underneath, at one capture texel per device pixel.
+    //
+    // The in-place overlay draws the captured desktop back over the real one, so its zoom is
+    // a consequence of the surface density and not a user setting: [zoomIn], [zoomOut],
+    // [zoomToFit] and [setZoom] stop answering once this mode is on.
+    mtd setInPlaceEdit(deviceScale: f32)
+    {
+        .inPlaceEdit = true
+        .applyZoom(1.0 / deviceScale)
+    }
+
     mtd setZoom(z: f32, mouseCenter = false)
+    {
+        if .inPlaceEdit do
+            return
+        .applyZoom(z, mouseCenter)
+    }
+
+    private mtd applyZoom(z: f32, mouseCenter = false)
     {
         var mousePos, mousePos1: Math.Point
         if mouseCenter
@@ -138,8 +162,8 @@ impl EditView
         .invalidate()
     }
 
-    mtd canZoomIn()  => !Math.isEqualEpsilon(.zoom, MaxZoom, 0.001)
-    mtd canZoomOut() => !Math.isEqualEpsilon(.zoom, MinZoom, 0.001)
+    mtd canZoomIn()  => !.inPlaceEdit and !Math.isEqualEpsilon(.zoom, MaxZoom, 0.001)
+    mtd canZoomOut() => !.inPlaceEdit and !Math.isEqualEpsilon(.zoom, MinZoom, 0.001)
 
     mtd zoomIn()
     {
@@ -153,7 +177,7 @@ impl EditView
 
     mtd zoomToFit(canZoom = true)
     {
-        if !.capture do
+        if .inPlaceEdit or !.capture do
             return
 
         // A degenerate (zero-sized) capture would divide by zero below.

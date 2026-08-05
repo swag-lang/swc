@@ -27,14 +27,16 @@ struct InPlaceEditWnd
     editMode:         InPlaceEditMode = .Arrow
     editColor:        Color           = Argb.Red
     editColorHilight: Color           = Argb.Yellow
-    uiScale:          f32             = 1     // DPI scale of the monitor the capture sits on
+    uiScale:          f32             = 1     // Residual chrome scale, relative to the overlay surface
+    captureScale:     f32             = 1     // DPI scale of the monitor the capture sits on
 }
 
-// The GUI already scales its logical units by the overlay surface's own monitor
-// scale. The chrome only needs the *residual* factor for the monitor the captured
-// area sits on, so bars and buttons keep their intended size when that monitor
-// uses a different scale than the surface's main monitor.
-func captureUIScale(capture: *Capture, surfaceScale: f32)->f32
+// Returns the DPI scale of the monitor the captured area sits on.
+//
+// The capture holds that monitor's physical pixels, so every measurement expressed in
+// image pixels — the stroke of an annotation, the size of its text — has to follow this
+// scale to keep its intended weight against the content it annotates.
+func captureMonitorScale(capture: *Capture)->f32
 {
     let cx = cast(f32) g_DesktopX - capture.backImagePos.x + cast(f32) capture.width * 0.5
     let cy = cast(f32) g_DesktopY - capture.backImagePos.y + cast(f32) capture.height * 0.5
@@ -42,7 +44,7 @@ func captureUIScale(capture: *Capture, surfaceScale: f32)->f32
     {
         let r = m.physicalBounds
         if cx >= r.x and cx < r.right() and cy >= r.y and cy < r.bottom() do
-            return Math.max(m.scaleFactor, 1.0) / surfaceScale
+            return Math.max(m.scaleFactor, 1.0)
     }
 
     return 1.0
@@ -54,7 +56,12 @@ impl InPlaceEditWnd
     {
         with let frame = createMainFrame(main, parent, capture)
         {
-            .uiScale = captureUIScale(capture, parent.deviceScale())
+            // The GUI already scales its logical units by the overlay surface's own monitor
+            // scale, so the chrome only needs the residual factor: bars and buttons then keep
+            // their intended size when the captured area sits on a differently scaled monitor.
+            .captureScale = captureMonitorScale(capture)
+            .uiScale      = .captureScale / parent.deviceScale()
+
             .createActionBar()
             .createEditBar(main)
             .setupCapture(capture)
@@ -83,15 +90,14 @@ impl InPlaceEditWnd
 
             with let view = frame.editWnd.editView
             {
-                .dockStyle   = .Center
-                .viewMargin  = 0
-                .inPlaceEdit = true
+                .dockStyle  = .Center
+                .viewMargin = 0
                 .setCapture(capture)
 
-                // The capture is in physical desktop pixels and the view draws in
-                // logical units; this zoom shows the image exactly one texel per
-                // device pixel, aligned with the desktop underneath.
-                .setZoom(1.0 / parent.deviceScale())
+                // The capture is in physical desktop pixels and the view draws in logical
+                // units; the in-place mode shows the image exactly one texel per device
+                // pixel, aligned with the desktop underneath, and holds that zoom.
+                .setInPlaceEdit(parent.deviceScale())
                 .setFocus()
             }
         }
@@ -287,10 +293,18 @@ impl InPlaceEditWnd
 
     mtd configureMainWindowEditMode()
     {
-        const BORDER_SIZE    = 8
-        const MARKER_SIZE    = 30
-        const TEXT_SIZE      = 40
-        const TEXT_BOLD      = 2
+        // Lengths in image pixels, authored against a 100% capture and scaled to the density
+        // of the monitor grabbed: a denser monitor packs more pixels into the same content, so
+        // a fixed stroke would come out thinner and thinner against what it annotates.
+        // `ARROW_END_SIZE` stays out of it — a cap size is a multiple of the pen width, which
+        // already carries the scale.
+        let k = .captureScale
+
+        let BORDER_SIZE      = 8 * k
+        let MARKER_SIZE      = 30 * k
+        let TEXT_SIZE        = 40 * k
+        let TEXT_BOLD        = 2 * k
+        let TEXT_BORDER_SIZE = 3 * k
         const ARROW_END_SIZE = 5
 
         with me.newMain
@@ -331,7 +345,7 @@ impl InPlaceEditWnd
             case .Text:
                 .editMode               = .Text
                 .mdlFormText.fontSize   = TEXT_SIZE
-                .mdlFormText.borderSize = 3
+                .mdlFormText.borderSize = TEXT_BORDER_SIZE
                 .mdlFormText.text       = "A"
                 .mdlFormText.boldSize   = TEXT_BOLD
                 .mdlFormText.backColor  = me.editColor
@@ -346,15 +360,10 @@ impl InPlaceEditWnd
 
     mtd moveButtons()
     {
-        // The capture rectangle is in desktop-physical pixels; the bars are placed
-        // in the logical units of the overlay surface.
-        let capture = .capture!
-        let k       = .deviceScale()
-        var rect    = Math.Rectangle{-capture.backImagePos.x, -capture.backImagePos.y, capture.width, capture.height}
-        rect.x      /= k
-        rect.y      /= k
-        rect.width  /= k
-        rect.height /= k
+        // The bars are children of the edit view, so they take the very rectangle the view
+        // draws the capture into rather than converting the desktop-physical grab a second
+        // time: one conversion, and the chrome cannot drift away from the selection.
+        let rect = .editWnd.editView.getCaptureRect()
         .positionActionBar(rect)
         .positionEditBar(rect)
     }

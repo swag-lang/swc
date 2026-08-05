@@ -208,7 +208,9 @@ impl IWnd for CaptureRectWnd
             let m = Painter.measureString(str, fontR)
             painter.fillRoundRect({xx - 4, yy - 4, m.width + 8, fontR.height + 8}, 2, 2, col)
 
-            painter.drawString(xx, yy, str, fontR, Argb.White)
+            // The badge is filled with the accent, so its text must be the foreground the
+            // theme pairs with that accent: a hard-coded white disappears on a light one.
+            painter.drawString(xx, yy, str, fontR, .themeColors().hilightLightContrast)
         }
     }
 }

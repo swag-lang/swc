@@ -108,6 +108,26 @@ After changing an example under `bin/examples` without changing C++:
 
 For other change types, run the narrowest relevant checks that demonstrate the modified behavior.
 
+## Launch Every Executable Through Its Tool
+
+Never start a built binary by its path. `bin/std` compiles to shared libraries — `core.dll`,
+`pixel.dll`, `gui.dll` and the rest — and the compiler leaves the executable in its output
+directory *without* them. Run it from there and it dies before `main`, with no window and no
+diagnostic, which reads exactly like the bug you were about to investigate.
+
+The tools place the runtime files first, then launch:
+
+```
+tools/examples.bat [dm] run -m <example>
+tools/apps.bat [dm] run <module>
+tools/scripts.bat [dm] run <script>
+```
+
+The same rule holds when driving a program from a helper script, a debugger, or a screenshot
+harness: point it at the tool, not at the `.exe`. An application packaged by
+`tools/apps.bat build <module>` is the one exception — packaging copies its dependencies beside
+it, so the packaged executable runs on its own, which is what makes it shippable.
+
 ## Finish Cleanly
 
 Remove temporary files and folders created during investigation or validation.

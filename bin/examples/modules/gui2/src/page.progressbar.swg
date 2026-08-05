@@ -14,10 +14,15 @@ func createProgressBarPage(parent: *Wnd)
         prg.setValue(0.75)
     }
 
-    let right = createPanel(parent, "Infinite", "The built-in infinite mode animates itself during paint.", layout.right)
+    let right = createPanel(parent, "Infinite", "The built-in infinite mode animates itself during paint, and a spinner says the same thing where no bar fits.", layout.right)
     {
         let prg = ProgressBar.create(right, {24, 116, 330})
         prg.updateFlags(.Indeterminate)
+
+        // Three sizes of the same drawn ring: it is exact at each of them, which is the point.
+        Spinner.create(right, {24, 154, 16})
+        Spinner.create(right, {56, 154})
+        Spinner.create(right, {96, 154, 40})
     }
 
     let bottom = createPanel(parent, "Frame-driven", "One bar is advanced from the application frame callback; another shows disabled rendering.", layout.bottom)

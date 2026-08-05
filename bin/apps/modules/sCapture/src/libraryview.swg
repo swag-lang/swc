@@ -43,7 +43,7 @@ struct LibraryView
     filterMonth: u64
     filterDay:   u64
     #[Swag.Late]
-    imgSpin: *ImageRect
+    imgSpin: *Spinner
 }
 
 impl IWnd for LibraryView

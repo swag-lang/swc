@@ -5,8 +5,7 @@ with: Snagit, ShareX, and the Windows Snipping Tool that now ships with video an
 recognition. It is scoped to this module and to the `bin/std` facilities it depends on.
 
 It is not the repository's discovery backlog. Platform leads and defects belong in
-[FINDINGS.md](../../../../FINDINGS.md), which already carries the open DPI entry covering this
-module's in-place editing overlay; compiler and language intent belongs in the root
+[FINDINGS.md](../../../../FINDINGS.md); compiler and language intent belongs in the root
 [TODO.md](../../../../TODO.md). Keep them separate: this file holds intent about the product,
 `FINDINGS.md` holds evidence about the platform.
 
@@ -129,13 +128,6 @@ monitor cannot be captured individually. The command list should be generated fr
 - Fix: a tag field on `Capture`, tag chips in the library filter bar, and a batch export over the
   library selection. The date filter and search plumbing already exist to hang this on.
 
-### 7. Verify the in-place overlay on scaled and mixed-DPI monitors
-
-- Owned by the `FINDINGS.md` DPI entry; recorded here as a cross-reference, not duplicated. The grab
-  flow, bars, and 1:1 display were adapted for per-monitor DPI, but the gizmo and form editing
-  interactions inside the in-place overlay have not been checked on a scaled or mixed-DPI setup.
-- This is the highest-traffic path in the application. It should not stay unverified.
-
 ---
 
 ## Tier C — The large capture modes
@@ -143,7 +135,7 @@ monitor cannot be captured individually. The command list should be generated fr
 Both entries below are subsystems rather than features. They are what people actually buy Snagit
 for, and they are honestly expensive. Ship Tier A first.
 
-### 8. Scrolling capture
+### 7. Scrolling capture
 
 - Snagit's most-cited feature; ShareX has it too. Capture a window taller or wider than the screen
   by scrolling it and stitching the frames.
@@ -153,7 +145,7 @@ for, and they are honestly expensive. Ship Tier A first.
 - Sequence it after Tier A, and scope it to the common cases — a browser page, a document, a list
   view — rather than promising it works everywhere.
 
-### 9. Video and animated GIF recording
+### 8. Video and animated GIF recording
 
 - Snagit, ShareX and the Windows Snipping Tool all record video. sCapture does not.
 - Cost: the largest item on this list by a wide margin. It needs a frame capture loop, a hardware
@@ -166,23 +158,23 @@ for, and they are honestly expensive. Ship Tier A first.
 
 ## Tier D — Polish
 
-### 10. Templates and combined captures
+### 9. Templates and combined captures
 
 Snagit composes several captures into one laid-out image. The form model could express this
 already; what is missing is a layout description and the interface for it.
 
-### 11. Stamp library
+### 10. Stamp library
 
 A reusable graphics set placed as `FormImage` instances. Small, and it fits the existing model
 exactly. Must follow the identity rules in `design-swag-identity` rather than shipping generic
 clip art.
 
-### 12. Cross-platform capture backend
+### 11. Cross-platform capture backend
 
 `src/screenshot/screenshot.win32.swg` and the GDI dependency are the whole platform boundary on the
 capture side. The editor, the forms, the library, and the serialization are already portable.
 
-### 13. File naming convention drift
+### 12. File naming convention drift
 
 `build-swag-standard-apps` asks for dots between the named parts of a coherent file family, and
 warns against a prefix that repeats its own scope. `src/actions/actimage.swg` and its siblings
@@ -190,7 +182,7 @@ carry an `act` prefix that the `actions/` folder already provides; `action.image
 convention. Same question for `forms/formimage.swg`. Mechanical, low risk, and best done in one
 pass rather than drifting further.
 
-### 14. Module README
+### 13. Module README
 
 sCapture has none. The skill only requires one when setup, packaging, privileges, security, or
 third-party deployment need explanation, and today none of those apply — so this is a judgement

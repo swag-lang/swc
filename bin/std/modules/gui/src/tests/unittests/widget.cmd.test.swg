@@ -141,6 +141,18 @@ private func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = 
     assertPaintGolden(&host, "widget.slider")
 }
 
+// The spinner is drawn, not blitted, so its golden is the one that proves the ring exists at all:
+// the phase is pinned first, because the paint that records it also advances the animation.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(64, 64)
+    defer host.shutdown()
+    let spin = Spinner.create(&host.root, {20, 20, 24, 24})
+    spin.animationPhase = 0.25
+    assertPaintGolden(&host, "widget.spinner")
+}
+
 #test
 {
     var host: Testing.HeadlessHost

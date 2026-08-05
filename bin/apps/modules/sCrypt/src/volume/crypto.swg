@@ -3,36 +3,85 @@ using Core
 namespace Crypto
 {
     const SaltSize          = 32
-    const NonceSize         = Core.Crypto.ChaCha20NonceSize
-    const TagSize           = #sizeof(Core.Crypto.HmacSha256Digest)
-    const KeySize           = Core.Crypto.ChaCha20KeySize
+    const NonceSize         = Core.Crypto.ChaCha20Poly1305NonceSize
+    const TagSize           = Core.Crypto.ChaCha20Poly1305TagSize
+    const KeySize           = Core.Crypto.ChaCha20Poly1305KeySize
+    const MasterKeySize     = 64
     const RecordLocatorSize = 16
-    const KdfIterations     = #command == Swag.CompilerCommand.Test ? 1_000'u32 : 200_000'u32
 
+    // Domain separators folded into the master key. Two keys derived for
+    // different purposes are unrelated, so a weakness in one cannot be carried
+    // into the other.
+    const RecordKeyContext  = "sCrypt record key v3"
+    const LocatorKeyContext = "sCrypt locator key v3"
+
+    // Cost profiles offered for a key slot.
+    //
+    // A slot stores the profile it was created with, so raising the default
+    // later never invalidates an existing password.
+    enum Argon2Profile
+    {
+        Interactive                     // Roughly a tenth of a second on a desktop.
+        Moderate                        // The default: noticeable, and expensive to attack in parallel.
+        Sensitive                       // For a volume that is worth minutes of an attacker's memory.
+        Paranoid                        // The most a workstation can usually spare.
+    }
+
+    const Argon2ProfileCount = 4
+
+    // A test build derives keys with a token cost. Nothing a test writes is
+    // meant to survive, and a real profile would dominate every test run.
+    #[Swag.NoDoc]
+    const TestProfile = #command == Swag.CompilerCommand.Test
+
+    // The master key protects everything else; a slot key only ever unwraps it.
     struct Keys
     {
-        encryption:     [KeySize] u8
-        authentication: [KeySize] u8
+        record:  [KeySize] u8           // Seals metadata records and data blocks.
+        locator: [KeySize] u8           // Derives the record locators that hide the container's structure.
     }
 
     impl Keys
     {
         mtd clear()
         {
-            Core.Crypto.secureClear(.encryption)
-            Core.Crypto.secureClear(.authentication)
+            Core.Crypto.secureClear(.record)
+            Core.Crypto.secureClear(.locator)
         }
     }
 
-    func deriveKeys(password, salt: const [..] u8, iterations = KdfIterations)->Keys fail
+    func profileParameters(profile: Argon2Profile)->Core.Crypto.Argon2Parameters
     {
-        var material: [KeySize * 2] u8
-        Core.Crypto.pbkdf2HmacSha256(password, salt, iterations, material)
+        #static if TestProfile do
+            return {memoryKib: 32, iterations: 1, parallelism: 1}
 
+        switch profile
+        {
+        case .Interactive: return {memoryKib: 64 * 1024, iterations: 2, parallelism: 4}
+        case .Moderate:    return {memoryKib: 256 * 1024, iterations: 3, parallelism: 4}
+        case .Sensitive:   return {memoryKib: 1024 * 1024, iterations: 4, parallelism: 4}
+        case .Paranoid:    return {memoryKib: 2048 * 1024, iterations: 6, parallelism: 4}
+        }
+    }
+
+    // Derives the key that unwraps one key slot's copy of the master key.
+    //
+    // This is the only place a password is turned into key material, and it is
+    // deliberately expensive: Argon2id costs an attacker memory, which is what
+    // PBKDF2 never did.
+    func deriveSlotKey(password, salt: const [..] u8, profile: Argon2Profile)->[KeySize] u8 fail
+    {
         var result: retval
-        @memcpy(&result.encryption[0], &material[0], KeySize)
-        @memcpy(&result.authentication[0], &material[KeySize], KeySize)
-        Core.Crypto.secureClear(material)
+        try Core.Crypto.argon2id(password, salt, profileParameters(profile), result)
+        return result
+    }
+
+    // Expands the master key into the keys the container actually uses.
+    func deriveKeys(master: const [..] u8)->Keys fail
+    {
+        var result: retval
+        try Core.Hash.Blake2b.computeKeyed(master, RecordKeyContext, result.record)
+        try Core.Hash.Blake2b.computeKeyed(master, LocatorKeyContext, result.locator)
         return result
     }
 
@@ -55,64 +104,48 @@ namespace Crypto
                (cast(u32) data[2] << 16) | (cast(u32) data[3] << 24)
     }
 
-    func authenticationTag(key: const [..] u8, kind: u32, recordId: u64, nonce, ciphertext: const [..] u8)->[TagSize] u8
+    // Binds a record to its kind and its position. A block cannot be moved,
+    // duplicated, or replayed from another offset, because the tag covers both.
+    func associatedData(kind: u32, recordId: u64)->[12] u8
     {
-        var associated: [16] u8
-        store32(&associated[0], kind)
-        store32(&associated[4], low32(recordId))
-        store32(&associated[8], low32(recordId >> 32))
-        store32(&associated[12], low32(@countof(ciphertext)))
-
-        var hmac = Core.Crypto.HmacSha256.create(key)
-        hmac.update(associated)
-        hmac.update(nonce)
-        hmac.update(ciphertext)
-        return hmac.finalize()
+        var result: retval
+        store32(&result[0], kind)
+        store32(&result[4], low32(recordId))
+        store32(&result[8], low32(recordId >> 32))
+        return result
     }
 
     // Produces a key-dependent record locator. Its bytes can be stored in the
     // container without exposing a stable file signature.
-    func recordLocator(key: const [..] u8, kind: u32, recordId: u64)->[RecordLocatorSize] u8
+    func recordLocator(key: const [..] u8, kind: u32, recordId: u64)->[RecordLocatorSize] u8 fail
     {
         var context: [16] u8
         store32(&context[0], kind)
         store32(&context[4], low32(recordId))
         store32(&context[8], low32(recordId >> 32))
-        store32(&context[12], 0x6163_6F6C)     // "loca", used only inside the keyed HMAC.
+        store32(&context[12], 0x6163_6F6C)     // "loca", used only inside the keyed hash.
 
-        var digest = Core.Crypto.HmacSha256.compute(key, context)
         var result: retval
-        @memcpy(&result[0], &digest[0], RecordLocatorSize)
-        Core.Crypto.secureClear(digest)
+        try Core.Hash.Blake2b.computeKeyed(key, context, result)
         return result
     }
 
-    func crypt(key, nonce, source: const [..] u8, destination: [..] u8) fail
-    {
-        Core.Crypto.chacha20Xor(key, nonce, source, destination, 1)
-    }
-
+    // Encrypts and authenticates one record in a single pass over the data.
     func seal(keys: const *Keys, kind: u32, recordId: u64, plaintext: const [..] u8, nonce: [..] u8, ciphertext: [..] u8, tag: [..] u8) fail
     {
         Debug.assert(@countof(nonce) == NonceSize)
         Debug.assert(@countof(ciphertext) == @countof(plaintext))
         Debug.assert(@countof(tag) == TagSize)
         Core.Crypto.randomBytes(nonce)
-        crypt(keys.encryption, nonce, plaintext, ciphertext)
-        let value = authenticationTag(keys.authentication, kind, recordId, nonce, ciphertext)
-        @memcpy(@dataof(tag), &value[0], TagSize)
+        try Core.Crypto.chacha20Poly1305Seal(keys.record, nonce, plaintext, associatedData(kind, recordId), ciphertext, tag)
     }
 
+    // Verifies and decrypts one record. Reports whether the record was authentic
+    // for this key, kind, and position; `plaintext` is untouched when it was not.
     func open(keys: const *Keys, kind: u32, recordId: u64, nonce, ciphertext, tag: const [..] u8, plaintext: [..] u8)->bool fail
     {
         if @countof(nonce) != NonceSize or @countof(tag) != TagSize or @countof(ciphertext) != @countof(plaintext) do
             return false
-        var expected = authenticationTag(keys.authentication, kind, recordId, nonce, ciphertext)
-        let valid    = Core.Crypto.constantTimeEqual(expected, tag)
-        Core.Crypto.secureClear(expected)
-        if !valid do
-            return false
-        crypt(keys.encryption, nonce, ciphertext, plaintext)
-        return true
+        return Core.Crypto.chacha20Poly1305Open(keys.record, nonce, ciphertext, tag, associatedData(kind, recordId), plaintext)
     }
 }

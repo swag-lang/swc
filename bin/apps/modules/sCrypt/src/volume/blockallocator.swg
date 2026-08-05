@@ -21,6 +21,42 @@ impl BlockAllocator
             .free.add({0, blockCount})
     }
 
+    // Rebuilds the free list as the complement of the blocks `used` marks.
+    //
+    // The free list is derived rather than stored, which is what keeps a
+    // fragmented container from growing its header without bound, and what lets
+    // a journal record describe a change without naming a single free extent.
+    mtd rebuild(used: const *BitArray, blockCount: u64)
+    {
+        .free.clear()
+        .deferredFree.clear()
+
+        var first = 0'u64
+        var index = 0'u64
+        var inRun = false
+        while index < blockCount
+        {
+            if used.get(index)
+            {
+                if inRun
+                {
+                    .free.add({first, index - first})
+                    inRun = false
+                }
+            }
+            elif !inRun
+            {
+                first = index
+                inRun = true
+            }
+
+            index += 1
+        }
+
+        if inRun do
+            .free.add({first, blockCount - first})
+    }
+
     mtd allocate()->u64 fail
     {
         if !.free.count do

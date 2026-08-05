@@ -76,7 +76,7 @@ namespace WinFsp
         if @countof(value) > 32 * 4 do
             return StatusInvalidParameter
         volume.label = value
-        volume.dirty = true
+        volume.touchScalars()
         discard catch volume.commit() as err
         return err == null ? StatusSuccess : statusFromError(err)
     }
@@ -134,7 +134,7 @@ namespace WinFsp
             validNode.attributes |= attributes
         validNode.changeTime    = volumeTimeNow()
         validNode.lastWriteTime = validNode.changeTime
-        volume.dirty            = true
+        volume.touch(nodeId)
         discard catch volume.commit() as err
         return err == null ? fillInfo(volume, nodeId, info) : statusFromError(err)
     }
@@ -162,7 +162,7 @@ namespace WinFsp
             node.changeTime = now
         if (flags & (CleanupSetAllocationSize | CleanupSetArchiveBit | CleanupSetLastAccessTime | CleanupSetLastWriteTime | CleanupSetChangeTime)) != 0
         {
-            volume.dirty = true
+            volume.touch(nodeId)
             discard catch volume.commit()
         }
     }
@@ -273,7 +273,7 @@ namespace WinFsp
             validNode.lastWriteTime = lastWriteTime
         if changeTime do
             validNode.changeTime = changeTime
-        volume.dirty = true
+        volume.touch(nodeId)
         return fillInfo(volume, nodeId, info)
     }
 
@@ -348,7 +348,7 @@ namespace WinFsp
         if securitySize do
             @memcpy(validNode.security.buffer, security!, securitySize)
         validNode.changeTime = volumeTimeNow()
-        volume.dirty         = true
+        volume.touch(nodeId)
         return StatusSuccess
     }
 

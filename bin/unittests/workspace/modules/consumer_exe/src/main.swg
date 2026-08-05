@@ -426,6 +426,16 @@ func verifyEmptyDerivedInterfaceIs()
     @assert(gEvtClassified == 3)
 }
 
+// An imported function keeps the discardability its declaration gave it, so a call made only
+// for its effect compiles here exactly as it does inside the provider.
+func verifyImportedDiscardable()
+{
+    depDiscardableCount()
+    depDiscardableInlineCount()
+    @assert(depDiscardableCount() == 61)
+    @assert(depDiscardableInlineCount() == 67)
+}
+
 func verifyCrossDllTypeIdentity()
 {
     // The DLL-produced typeinfo for an imported type must compare equal to the
@@ -447,6 +457,7 @@ func verifyCrossDllTypeIdentity()
     verifyDllAbiCalls()
     verifyRuntimeContext()
     verifyEmptyDerivedInterfaceIs()
+    verifyImportedDiscardable()
     verifyCrossDllTypeIdentity()
     verifyImportedBorrowSummaries()
 

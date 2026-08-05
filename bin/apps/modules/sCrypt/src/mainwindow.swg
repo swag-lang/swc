@@ -29,14 +29,15 @@ internal enum StatusTone
 // polls `job` with `timer` until the result is ready to be reported.
 struct VaultOperation
 {
-    job:      Jobs.Job          // Worker scheduled for `kind`.
-    kind:     OperationKind     // Work the job performs, or `None` while the window is idle.
-    timer:    #null *Timer      // Polls the job while it runs.
-    error:    #null any         // Failure captured by the job, or null when it succeeded.
-    path:     String            // Container file the operation acts on.
-    mount:    String            // Drive letter requested by a mount operation.
-    size:     u64               // Container size requested by a create operation.
-    password: Array'u8          // Password copy owned by the operation and wiped when it ends.
+    job:      Jobs.Job            // Worker scheduled for `kind`.
+    kind:     OperationKind       // Work the job performs, or `None` while the window is idle.
+    timer:    #null *Timer        // Polls the job while it runs.
+    error:    #null any           // Failure captured by the job, or null when it succeeded.
+    path:     String              // Container file the operation acts on.
+    mount:    String              // Drive letter requested by a mount operation.
+    size:     u64                 // Container size requested by a create operation.
+    password: Array'u8            // Password copy owned by the operation and wiped when it ends.
+    progress: VolumeProgress      // What the job has done, and the way to ask it to stop.
 }
 
 // Owns the complete application state. The UI thread owns this object; long
@@ -68,12 +69,15 @@ struct MainWindow
         unmountButton: *PushButton
     }
 
-    // The single status line displayed above the footer, and the glyph whose color reports its
-    // tone. Both are written only through `setStatus`.
+    // The single status line displayed above the footer, the glyph whose color reports its tone,
+    // and the spinner that replaces the glyph while work runs. The text and the glyph are written
+    // only through `setStatus`, the spinner only through `showBusy`.
     #[Swag.Late]
     {
+        statusView: *Wnd
         status:     *Label
         statusIcon: *Label
+        statusBusy: *Spinner
     }
 
     fileDlgState: FileDlgState
@@ -92,6 +96,18 @@ internal func caughtMessage(err: #null any)->string
     }
 
     return appStrings().msg_OperationStopped
+}
+
+// Whether an operation stopped because the user asked it to, rather than because something
+// about the container or the system stopped it.
+internal func isCanceledError(err: #null any)->bool
+{
+    switch err
+    {
+    case Error as volumeError: return volumeError.kind == .Canceled
+    }
+
+    return false
 }
 
 internal func runMainWindowOperation(data: #null *void)
@@ -188,20 +204,40 @@ impl MainWindow
 
         // The status line is raised off the ground by its own fill. A border around it would
         // draw a third box on a surface that already reads without one.
-        let statusView = Wnd.create'Wnd(me, {0, 0, 0, 52})
-        statusView.dockStyle       = .Bottom
-        statusView.margin          = {32, 0, 32, 12}
-        statusView.backgroundStyle = .Window
-        statusView.padding         = {20, 8, 20, 8}
+        .statusView = Wnd.create'Wnd(me, {0, 0, 0, 52})
+        .statusView.dockStyle       = .Bottom
+        .statusView.margin          = {32, 0, 32, 12}
+        .statusView.backgroundStyle = .Window
+        .statusView.padding         = {20, 8, 20, 8}
 
-        .statusIcon           = Label.create(statusView, "", {0, 0, 24})
+        .statusIcon           = Label.create(.statusView, "", {0, 0, 24})
         .statusIcon.dockStyle = .Left
         .statusIcon.margin.z  = 12
 
-        .status           = Label.create(statusView, "")
+        // The spinner takes the glyph's place rather than a slot of its own: it is the same
+        // 24-pixel square, and a docked window that is hidden takes no room, so the status text
+        // starts at the same column whether work is running or not.
+        .statusBusy           = Spinner.create(.statusView, {0, 0, 24, 24})
+        .statusBusy.dockStyle = .Left
+        .statusBusy.margin.z  = 12
+        .statusBusy.hide()
+
+        .status           = Label.create(.statusView, "")
         .status.dockStyle = .Center
         .status.setTextAlignment(.Left, .Center)
-        statusView.applyLayout()
+        .statusView.applyLayout()
+    }
+
+    // Puts the spinner in the glyph's place while an operation runs, and takes it back when the
+    // operation ends. A spinner is the honest report for work whose remaining time is unknown;
+    // creation additionally writes its percentage onto the status line.
+    mtd showBusy(busy: bool)
+    {
+        if .statusBusy.isLocallyVisible() == busy do
+            return
+        .statusIcon.show(!busy)
+        .statusBusy.show(busy)
+        .statusView.applyLayout()
     }
 
     // Reports the outcome of the latest step on the single status line.
@@ -265,12 +301,18 @@ impl MainWindow
         .createPassword  = form.addPasswordField(appStrings().ui_Password, placeholder: appStrings().ui_RequiredPassword)
         .confirmPassword = form.addPasswordField(appStrings().ui_ConfirmPassword, placeholder: appStrings().ui_EnterAgain)
 
+        // Creation is the one operation long enough to be worth stopping, so its own button
+        // becomes the way out of it. A second control would sit dead on the card the rest of
+        // the time, and the card already has one dominant action.
         .createButton = PushButton.create(card.actions, appStrings().ui_CreateVault, {0, 0, 224, 36}, form: .Strong)
         .createButton.setIcon(.theme().icon(ThemeIcons.SaveAs, 18))
         .createButton.sigPressed += func|window = me|(btn)
         {
             discard btn
-            window.createContainer()
+            if window.state == .Creating do
+                window.stopCreating()
+            else do
+                window.createContainer()
         }
 
         card.actions.computeLayout()
@@ -342,15 +384,21 @@ impl MainWindow
     mtd setState(state: AppState)
     {
         .state = state
-        let ready   = state == .Ready
-        let mounted = state == .Mounted
+        let ready    = state == .Ready
+        let mounted  = state == .Mounted
+        let creating = state == .Creating
 
         // Disabling a form disables every field and trailing control it owns.
         .createForm.enable(ready)
-        .createButton.enable(ready)
         .mountForm.enable(ready)
         .mountButton.enable(ready)
         .unmountButton.enable(mounted)
+
+        // The create button stays live through creation, because during creation it is what
+        // stops it.
+        .createButton.enable(ready or creating)
+        .createButton.setText(creating ? appStrings().ui_StopCreating : appStrings().ui_CreateVault)
+        .createButton.setIcon(.theme().icon(creating ? ThemeIcons.Stop : ThemeIcons.SaveAs, 18))
     }
 
     mtd chooseContainer(target: *EditBox, create: bool)
@@ -401,6 +449,11 @@ impl MainWindow
         .operation.job.lambda = &runMainWindowOperation
         .operation.job.data   = me
         .operation.timer      = .app().addTimer(50'ms, me)
+
+        // Arming the tracker before the job starts is what clears the cancellation a previous
+        // operation left behind.
+        .operation.progress.begin(0)
+        .showBusy(true)
         Jobs.schedule(&.operation.job)
     }
 
@@ -443,9 +496,23 @@ impl MainWindow
         .operation.password.add(.createPassword.bytes())
         .createPassword.clear()
         .confirmPassword.clear()
-        .setStatus(.Active, appStrings().msg_Randomizing)
+        .setStatus(.Active, Format.toString(appStrings().msg_Randomizing, 0))
         .setState(.Creating)
         .beginOperation(.Create)
+    }
+
+    // Asks a running creation to stop.
+    //
+    // The worker gives up at its next chunk boundary and unwinds like any other failure, which
+    // is what deletes the partial container. The button goes down immediately so a second press
+    // cannot start anything while that is happening.
+    mtd stopCreating()
+    {
+        if .state != .Creating do
+            return
+        .operation.progress.cancel()
+        .createButton.enable(false)
+        .setStatus(.Active, appStrings().msg_StopRequested)
     }
 
     mtd mountContainer()
@@ -496,7 +563,7 @@ impl MainWindow
             return
 
         case .Create:
-            var volume = catch Volume.create(.operation.path.toString(), .operation.password.toSlice(), .operation.size) as createError
+            var volume = catch Volume.create(.operation.path.toString(), .operation.password.toSlice(), .operation.size, &.operation.progress) as createError
             .operation.error = createError
             if createError == null do
                 volume.close()
@@ -514,6 +581,19 @@ impl MainWindow
         .operation.password.clear()
     }
 
+    // Refreshes the status line of the operation that is still running.
+    //
+    // Only creation knows how far along it is; the other operations wait on the driver, and the
+    // spinner already says everything that can honestly be said about them.
+    mtd reportProgress()
+    {
+        if .operation.kind != .Create do
+            return
+        if .operation.progress.isCanceled() do
+            return
+        .setStatus(.Active, Format.toString(appStrings().msg_Randomizing, cast(s32) (.operation.progress.ratio() * 100)))
+    }
+
     mtd finishOperation()
     {
         Jobs.wait(&.operation.job)
@@ -523,13 +603,21 @@ impl MainWindow
             .operation.timer = null
         }
 
+        .showBusy(false)
+
         switch #complete .operation.kind
         {
         case .None:
             return
 
         case .Create:
-            if .operation.error != null
+            if isCanceledError(.operation.error)
+            {
+                // A creation the user stopped is an outcome, not a failure, so it reports on
+                // the status line and never opens a dialog.
+                .setStatus(.Idle, appStrings().msg_CreateCanceled)
+            }
+            elif .operation.error != null
             {
                 .showError(appStrings().msg_CreateFailed, .operation.error)
                 .setStatus(.Stopped, appStrings().msg_CreateStopped)
@@ -584,6 +672,10 @@ impl MainWindow
 
         if .operation.kind != .None
         {
+            // Randomizing a hundred-gigabyte container takes minutes. Asking it to stop before
+            // waiting is what keeps closing the window immediate; the operation unwinds and
+            // deletes the partial file on its way out.
+            .operation.progress.cancel()
             Jobs.wait(&.operation.job)
             .operation.kind = .None
         }
@@ -602,8 +694,14 @@ impl IWnd for MainWindow
 {
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
-        if evt.timer == .operation.timer and Jobs.isDone(&.operation.job) do
-            .finishOperation()
+        if evt.timer == .operation.timer
+        {
+            if Jobs.isDone(&.operation.job) do
+                .finishOperation()
+            else do
+                .reportProgress()
+        }
+
         .wnd.IWnd.onTimerEvent(evt)
     }
 

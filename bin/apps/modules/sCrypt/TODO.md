@@ -41,11 +41,16 @@ locally.
   default (release build, m=256 MiB, t=3, p=4), and rejecting a wrong password costs that four
   times over, because every key slot is probed whether or not it holds a password.
 - Evidence: `compress` in `argon2.swg` is sixteen permutation passes of 64-bit mixing per 1 KiB
-  block, and `chacha20Block` produces one 64-byte block at a time.
+  block, and `chacha20Block` produces one 64-byte block at a time. Measured on a release build:
+  `chacha20Xor` runs at about 50 MiB/s and `chacha20Poly1305Seal` at about 46 MiB/s over 4 KiB
+  blocks, while the Windows system random generator returns about 5.5 GiB/s. That two-order gap
+  is the reason container creation draws its fill from the system generator rather than from a
+  seeded key stream, and it is what caps the throughput of a mounted volume.
 - Fix: given the repository's AVX work, the ChaCha20 quarter-round and the Argon2 permutation both
   vectorize directly. Argon2's lanes are also independent within a slice, so `Jobs` can run
   `parallelism` of them at once.
-- Why it matters: the mount latency a user actually feels is almost entirely this.
+- Why it matters: the mount latency a user actually feels is almost entirely this, and every
+  block read and written pays the 46 MiB/s.
 
 ### 3. Keys live in pageable memory
 
@@ -67,21 +72,11 @@ locally.
   and skip the guardian entirely, which is also what allows an automated end-to-end test loop
   without a consent dialog on every run.
 
-### 5. Container creation draws every byte from the system CSPRNG
-
-- Owner: sCrypt
-- Problem: `Volume.create` fills the whole container through `Core.Crypto.randomBytes` in 1 MiB
-  chunks, which routes every byte through `BCryptGenRandom`. A 100 GiB container means 100 GiB of
-  system CSPRNG output.
-- Fix: draw a 32-byte seed, produce the fill from a ChaCha20 keystream, and discard the seed. The
-  result is statistically indistinguishable from random and five to twenty times faster.
-- Also: the fill loop cannot currently be interrupted. Add progress reporting and cancellation.
-
 ---
 
 ## Tier B — Perceived feature parity
 
-### 6. Mount comfort and mount-time safety
+### 5. Mount comfort and mount-time safety
 
 - Owner: sCrypt
 - Problem: one volume, one drive letter, no options. Missing: read-only mount, multiple concurrent
@@ -89,7 +84,7 @@ locally.
   on suspend, and on idle, which is a security feature rather than a convenience.
 - Why it ranks here: this is the bulk of the *perceived* gap against VeraCrypt, at moderate cost.
 
-### 7. Password management is not in the interface
+### 6. Password management is not in the interface
 
 - Owner: sCrypt
 - Problem: `Volume.changePassword`, `Volume.addPassword` and `Volume.removePassword` exist and are
@@ -100,7 +95,7 @@ locally.
 - Note: `KeySlotCount` is 4. Raising it costs one constant and a wider `keySlotMask`, but it also
   multiplies the cost of rejecting a wrong password; see entry 2.
 
-### 8. Resize
+### 7. Resize
 
 - Owner: sCrypt
 - Problem: capacity is fixed in `Volume.create` and cannot change.
@@ -111,7 +106,7 @@ locally.
   to be rewritten.
 - Shrinking requires evacuating blocks above the new limit: more work, less value, defer it.
 
-### 9. Header backup and restore
+### 8. Header backup and restore
 
 - Owner: sCrypt
 - Problem: the key slots and both header slots live in the same file, in its first megabytes. One
@@ -121,7 +116,7 @@ locally.
 - Document the trap VeraCrypt also documents: restoring a backed-up header reinstates the passwords
   that were current when the backup was taken.
 
-### 10. Keyfiles
+### 9. Keyfiles
 
 - Owner: sCrypt
 - Key slots exist, so this is now only mixing: the slot key derives from the password combined with
@@ -129,7 +124,7 @@ locally.
   secret and an associated-data input for exactly this. PKCS#11 tokens are a further step and can
   wait.
 
-### 11. Randomized block allocation
+### 10. Randomized block allocation
 
 - Owner: sCrypt
 - Problem: `BlockAllocator.allocate` always returns the lowest free block. An adversary comparing
@@ -139,7 +134,7 @@ locally.
 - Note: this now also applies to metadata pages, which are allocated the same way at every
   checkpoint.
 
-### 12. Concurrency
+### 11. Concurrency
 
 - Owner: sCrypt
 - Problem: WinFsp runs under the coarse guard strategy, so every callback is serialized and all
@@ -153,7 +148,7 @@ locally.
 
 ## Tier C — Long term
 
-### 13. Hidden volume
+### 12. Hidden volume
 
 - Owner: sCrypt
 - The format already permits it: the container is entirely random, carries no magic, and derives
@@ -165,7 +160,7 @@ locally.
 - Sequencing: last. A hidden volume that leaks is worse than no hidden volume, because it promises
   a protection it does not deliver.
 
-### 14. Format specification, test vectors, fuzzing
+### 13. Format specification, test vectors, fuzzing
 
 - Owner: sCrypt
 - An audit is not possible without a normative format document that is independent of the code,
@@ -178,7 +173,7 @@ locally.
     checkpoint rather than between them.
   - Add a scaling test at a hundred thousand files. The metadata paging test stops at 1 200.
 
-### 15. FUSE backend for Linux and macOS
+### 14. FUSE backend for Linux and macOS
 
 - Owner: sCrypt
 - The boundary is already where it needs to be: system backends for `Core.Crypto`, `Core.Time` and
@@ -186,10 +181,10 @@ locally.
   container format, the logical filesystem, the password widget — is platform-independent already.
   Real work, no design risk.
 
-### 16. External audit
+### 15. External audit
 
 - Owner: project
-- After entry 14. Until it happens, the format and the implementation have had no independent
+- After entry 13. Until it happens, the format and the implementation have had no independent
   cryptographic review, and sCrypt is not a proven replacement for VeraCrypt on critical data — no
   matter what else on this list ships.
 

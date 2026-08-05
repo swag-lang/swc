@@ -562,3 +562,77 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     flipByteAt(path, KeySlotAreaOffset)
     @assert(rejectsPassword(path, testPassword()))
 }
+
+#test
+{
+    // Creation reports how far the randomization has come, and reaches the end of it.
+    let path = testContainerPath("progress")
+    defer discard catch File.delete(path)
+
+    var progress: VolumeProgress
+    @assert(progress.ratio() == 0)
+    @assert(!progress.isCanceled())
+
+    var volume = expect Volume.create(path, testPassword(), MinimumSize, &progress)
+    volume.close()
+    @assert(progress.ratio() == 1)
+}
+
+#test
+{
+    // A creation the caller stops fails with `Canceled` and leaves nothing behind, exactly
+    // like every other failure of `create`.
+    let path = testContainerPath("cancel")
+    defer discard catch File.delete(path)
+
+    var progress: VolumeProgress
+    progress.cancel()
+    @assert(progress.isCanceled())
+
+    var stopped = catch Volume.create(path, testPassword(), MinimumSize, &progress) as cancelError
+    stopped.close()
+    @assert(cancelError != null)
+    @assert((cast(Error) cancelError).kind == .Canceled)
+    @assert(!File.exists(path))
+
+    // Arming the tracker for the next operation clears the cancellation the stopped one left.
+    progress.begin(0)
+    @assert(!progress.isCanceled())
+
+    var created = expect Volume.create(path, testPassword(), MinimumSize, &progress)
+    created.close()
+    @assert(File.exists(path))
+}
+
+#test
+{
+    // The fill is what hides which blocks of a container hold data, so it has to look like
+    // noise everywhere, including across the chunk boundary the fill loop writes on.
+    let path = testContainerPath("fillnoise")
+    defer discard catch File.delete(path)
+
+    let size = 2'u64 * 1024 * 1024
+    @assert(size > MinimumSize)
+    var volume = expect Volume.create(path, testPassword(), size)
+    volume.close()
+
+    // A window that straddles the chunk boundary, taken past every structure the container
+    // writes, so what it reads is fill and nothing else.
+    var file = expect File.open(path, .Open, .ReadWrite, .Read)
+    defer file.close()
+    var window: [8192] u8
+    @assert(expect file.readExactAt(RandomizeChunkSize - 4096, window))
+
+    var runs   = 0'u64
+    var counts: [256] u64
+    for byte, [i] in window
+    {
+        counts[byte] += 1
+        if i and window[i - 1] == byte do
+            runs += 1
+    }
+
+    @assert(runs < @countof(window) / 8)
+    for count in counts do
+        @assert(count > 0)
+}

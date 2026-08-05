@@ -20,6 +20,7 @@ ui_ExistingContainer   Conteneur chiffré existant
 ui_DriveLetter         LETTRE DE LECTEUR
 ui_DriveHelp           Le lecteur est disponible pour Windows tant que sCrypt s'exécute, puis disparaît à la fermeture de l'application.
 ui_CreateVault         Créer le coffre chiffré
+ui_StopCreating        Arrêter la création
 ui_MountDrive          Monter le lecteur
 ui_Unmount             Démonter
 ui_Desktop             Bureau
@@ -38,7 +39,9 @@ msg_FileExists         Ce fichier existe déjà. Choisissez un autre nom pour é
 msg_PasswordRequired   Un mot de passe est requis.
 msg_PasswordMismatch   Les mots de passe ne correspondent pas.
 msg_CreateFailed       Impossible de créer le conteneur.
-msg_Randomizing        Création et randomisation du conteneur...
+msg_Randomizing        Création et randomisation du conteneur... %{#0} %%
+msg_StopRequested      Arrêt de la création du conteneur...
+msg_CreateCanceled     Création du conteneur annulée. Rien n'a été laissé sur le disque.
 msg_ChooseExisting     Choisissez un conteneur existant.
 msg_NoDriveLetter      Aucune lettre de lecteur n'est disponible.
 msg_StartingDriver     Démarrage du pilote de système de fichiers portable...

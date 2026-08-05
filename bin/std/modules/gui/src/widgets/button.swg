@@ -1,5 +1,7 @@
+#global public
+
 // Provides shared pointer state, command-state integration, icons, and activation signals for buttons.
-public struct Button
+struct Button
 {
     using wnd: Wnd     // Embedded window behavior and presentation.
 
@@ -61,6 +63,19 @@ impl IWnd for Button
 
 impl Button
 {
+    // Replaces the displayed label and repaints the button.
+    //
+    // Pass `null` for a button that shows only its icon. The label is plain text; rich spans
+    // are set through `name` directly.
+    mtd setText(text: #null string)
+    {
+        .name.set(text)
+        .invalidate()
+    }
+
+    // Returns the displayed label as plain text.
+    mtd text()->string => .name.raw
+
     // Replaces the displayed icon and repaints the button.
     mtd setIcon(icon: Icon)
     {

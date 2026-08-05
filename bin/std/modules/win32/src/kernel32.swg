@@ -13,6 +13,7 @@ alias LRESULT                = s64
 alias WORD                   = u16
 alias DWORD                  = u32
 alias BOOL                   = s32
+alias BOOLEAN                = u8
 alias BYTE                   = u8
 alias LPBYTE                 = #null *BYTE
 alias LONG                   = s32

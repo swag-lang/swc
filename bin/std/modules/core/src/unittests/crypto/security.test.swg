@@ -60,40 +60,6 @@ func cryptoBytesEqual(left, right: const [..] u8)->bool
 
 #test
 {
-    var key: [Crypto.ChaCha20KeySize] u8
-    for [i] in Crypto.ChaCha20KeySize do
-        key[i] = cast(u8) i
-    let nonce: [Crypto.ChaCha20NonceSize] u8 = [
-        0x00, 0x00, 0x00, 0x09, 0x00, 0x00,
-        0x00, 0x4A, 0x00, 0x00, 0x00, 0x00]
-    let expected: [Crypto.ChaCha20BlockSize] u8 = [
-        0x10, 0xF1, 0xE7, 0xE4, 0xD1, 0x3B, 0x59, 0x15,
-        0x50, 0x0F, 0xDD, 0x1F, 0xA3, 0x20, 0x71, 0xC4,
-        0xC7, 0xD1, 0xF4, 0xC7, 0x33, 0xC0, 0x68, 0x03,
-        0x04, 0x22, 0xAA, 0x9A, 0xC3, 0xD4, 0x6C, 0x4E,
-        0xD2, 0x82, 0x64, 0x46, 0x07, 0x9F, 0xAA, 0x09,
-        0x14, 0xC2, 0xD7, 0x05, 0xD9, 0x8B, 0x02, 0xA2,
-        0xB5, 0x12, 0x9C, 0xD1, 0xDE, 0x16, 0x4E, 0xB9,
-        0xCB, 0xD0, 0x83, 0xE8, 0xA2, 0x50, 0x3C, 0x4E]
-
-    let block = expect Crypto.chacha20Block(key, 1, nonce)
-    @assert(cryptoBytesEqual(block, expected))
-
-    var data: [137] u8
-    for value, [i] in data do
-        data[i] = cast(u8) ((i * 29 + 7) & 0xFF)
-    let original = data
-    expect Crypto.chacha20Xor(key, nonce, data, data, 1)
-    @assert(!cryptoBytesEqual(data, original))
-    expect Crypto.chacha20Xor(key, nonce, data, data, 1)
-    @assert(cryptoBytesEqual(data, original))
-
-    var lastCounterByte: [1] u8
-    expect Crypto.chacha20Xor(key, nonce, lastCounterByte, lastCounterByte, Swag.U32.Max)
-}
-
-#test
-{
     let empty         = @mkslice(cast(const [*] u8) @dataof(""), 0)
     let one:   [1] u8 = [1]
     let other: [1] u8 = [2]

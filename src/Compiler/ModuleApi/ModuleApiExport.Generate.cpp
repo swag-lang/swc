@@ -73,11 +73,31 @@ namespace
         return false;
     }
 
+    // Whether the snippet already spells `marker` as an attribute.
+    //
+    // The snippet is source text, so a plain substring search also matches an identifier that
+    // happens to contain the attribute name, and a function named 'depDiscardableCount' would
+    // then lose its '#[Swag.Discardable]'. Only a spelling bounded like a member of an
+    // attribute list counts: '#[Inline]', '#[Swag.Inline]', or either inside a list.
+    bool snippetSpellsAttribute(const std::string_view snippet, const std::string_view marker)
+    {
+        for (size_t pos = snippet.find(marker); pos != std::string_view::npos; pos = snippet.find(marker, pos + 1))
+        {
+            const size_t after  = pos + marker.size();
+            const char   before = pos == 0 ? '\0' : snippet[pos - 1];
+            const char   next   = after >= snippet.size() ? '\0' : snippet[after];
+            if ((before == '[' || before == '.' || before == ' ' || before == ',') && (next == ']' || next == ','))
+                return true;
+        }
+
+        return false;
+    }
+
     void appendMissingFunctionAttributeLine(Utf8& ioPrefix, const SymbolFunction& symbolFunction, const std::string_view eol, const std::string_view snippet, const RtAttributeFlagsE flag, const std::string_view marker, const std::string_view attrText)
     {
         if (!symbolFunction.attributes().hasRtFlag(flag))
             return;
-        if (snippet.contains(marker))
+        if (snippetSpellsAttribute(snippet, marker))
             return;
 
         ioPrefix += attrText;
@@ -221,6 +241,10 @@ namespace
         appendMissingFunctionAttributeLine(prefix, symbolFunction, eol, ioSnippet, RtAttributeFlagsE::Inline, "Inline", "#[Swag.Inline]");
         appendMissingFunctionAttributeLine(prefix, symbolFunction, eol, ioSnippet, RtAttributeFlagsE::ConstExpr, "ConstExpr", "#[Swag.ConstExpr]");
         appendMissingFunctionAttributeLine(prefix, symbolFunction, eol, ioSnippet, RtAttributeFlagsE::Implicit, "Implicit", "#[Swag.Implicit]");
+
+        // 'Discardable' is a fact about the call site, not about the body: without it an
+        // importer has to write 'discard' where a caller inside the module does not.
+        appendMissingFunctionAttributeLine(prefix, symbolFunction, eol, ioSnippet, RtAttributeFlagsE::Discardable, "Discardable", "#[Swag.Discardable]");
 
         // The borrow summaries are computed facts, not source attributes: re-emit them
         // so importers can judge their call sites against this function's parameters.

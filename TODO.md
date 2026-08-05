@@ -145,18 +145,68 @@ Use this compact format. Keep observations factual and make the next step action
   lookup boundary the builders just removed, and a resource editor would ship that cost to every
   window. Only then evaluate the editor.
 
-### sCrypt integration working-set growth
+### `#[Swag.Tls]` is accepted and then ignored
 
-- Area: bin/std
-- Found while: reproducing an sCrypt WinFsp mount in the privileged integration test
-- Observation: the process working set grows far beyond the 64 MiB test container during ordinary
-  filesystem scenarios; the test still completes and cleans up normally.
-- Evidence: `tools/test-scrypt-integration.bat dm` reached about 760 MiB in release, and the same
-  34-scenario run in fast-debug reached about 835 MiB before passing, unmounting `Y:`, and exiting.
-  Windows also recorded `RADAR_PRE_LEAK_64` for an earlier sCrypt run.
-- Next step: record process heap and working-set deltas at every integration stage and across
-  repeated mount/unmount cycles in one process, then attribute retained allocations to sCrypt,
-  WinFsp, or the core allocator before changing ownership or allocation policy.
+- Area: compiler
+- Found while: attributing the sCrypt/WinFsp integration working-set growth to the runtime
+  allocator rather than to sCrypt or WinFsp
+- Observation: the attribute is parsed into `RtAttributeFlagsE::Tls`
+  ([AttributeList.h:37](src/Compiler/Sema/Core/AttributeList.h#L37), assigned at
+  [Sema.Attributes.cpp:181](src/Compiler/Sema/Ast/Sema.Attributes.cpp#L181)) and never read again;
+  no backend emits a thread-local segment. A `#[Swag.Tls]` global is an ordinary shared global, so
+  every "one copy per thread" design built on it is silently one shared copy. The language
+  reference documents the feature as working
+  ([003_005_variables.swg:128-131](bin/reference/modules/language/src/003_005_variables.swg#L128-L131)).
+- Evidence: a native program writes `0xAAAA` into a `#[Swag.Tls] var u64` on the main thread; a raw
+  `CreateThread` worker reads back `0xAAAA` (a real slot reads 0), writes `0xBBBB`, and the main
+  thread then reads `0xBBBB`. The three users in `bin/` are the allocator's per-thread heap
+  ([allocator.swg:66](bin/runtime/allocator.swg#L66)), `Random.shared()`
+  ([random.swg:3](bin/std/modules/core/src/rand/random.swg#L3)), and the Mersenne Twister plus
+  counter behind `Guid64`/`Guid128`
+  ([guid64.swg:6](bin/std/modules/core/src/system/guid64.swg#L6),
+  [guid128.swg:6](bin/std/modules/core/src/system/guid128.swg#L6)), so identifier and random
+  streams are raced on and can repeat across threads.
+- Next step: decide between implementing the attribute (a `.tls` section and an
+  `IMAGE_TLS_DIRECTORY` in the PE writer and the integrated linker, plus an equivalent under the
+  JIT) and rejecting it with a diagnostic. Either way the three `bin/` users need a mechanism that
+  exists today: an explicit slot through `__tlsAlloc`/`__tlsGetPtr`, which is already how the
+  runtime context reaches per-thread storage
+  ([os_windows.swg:298](bin/runtime/os_windows.swg#L298)).
+- Related: the allocator entry below, whose severity comes from this one.
+
+### The runtime allocator spends a page per block and strands blocks across threads
+
+- Area: bin/std | compiler
+- Found while: reproducing an sCrypt WinFsp mount in the privileged integration test, which
+  reached about 760 MiB in release and about 835 MiB in fast-debug for a 64 MiB container
+- Observation: three compounding costs, none of them specific to sCrypt. `osAlloc` takes one
+  `VirtualAlloc(MEM_RESERVE | MEM_COMMIT)` per block
+  ([allocator.swg:246](bin/runtime/allocator.swg#L246)), so any block below about 3.7 KiB costs a
+  full committed page and a 64 KiB address-space reservation. `trimThreadHeap` measures its 8 MiB
+  budget in user class bytes ([allocator.swg:493](bin/runtime/allocator.swg#L493)), which
+  understates the committed cost by the same factor, so the trim almost never fires. And because
+  the per-thread heap pointer is not actually thread-local, `threadHeap` keeps meeting a heap owned
+  by another thread, builds a replacement, and abandons the previous one without retiring it
+  ([allocator.swg:318-336](bin/runtime/allocator.swg#L318-L336)) while `freeBlock` parks blocks on
+  the remote free list of a heap nobody will ever drain
+  ([allocator.swg:927-940](bin/runtime/allocator.swg#L927-L940)).
+- Evidence: measured with a native probe reading `PROCESS_MEMORY_COUNTERS` and the allocator
+  counters. One thread holding 40 000 live 32-byte blocks (1.25 MiB of payload) takes the working
+  set from 4 MiB to 160 MiB; freeing all of them changes nothing while `sizeCached` reports
+  1250 KiB against an 8 MiB budget; `releaseAllocatorThreadCache()` returns it to 4 MiB. Four
+  concurrent raw OS threads that each allocate and free 10 000 blocks leave 64 207 regions
+  outstanding at 254 MiB, and repeating the identical round reaches 504 MiB then 752 MiB. At
+  1000 blocks per thread the same four threads issue 6304 raw allocations for 4004 requested
+  blocks with an empty retired-heap list, which is `threadHeap` rebuilding heaps it then drops.
+  sCrypt runs every filesystem callback on WinFsp's own dispatcher threads
+  ([winfspmount.win32.swg:86](bin/apps/modules/sCrypt/src/winfsp/winfspmount.win32.swg#L86)), and
+  each callback allocates, which is why the integration run lands where it does.
+- Next step: three separable decisions. Carve small blocks out of larger OS reservations instead
+  of one `VirtualAlloc` per block; account the trim budget in committed bytes rather than user
+  class bytes; and, once a real thread-local exists, make `threadHeap` retire the heap it replaces
+  and give an orphaned heap's remote free list an owner. The first alone removes most of the
+  factor of 128 measured above.
+- Related: the `#[Swag.Tls]` entry above.
 
 ### Remaining DPI work: icon sources and the in-place capture editor
 

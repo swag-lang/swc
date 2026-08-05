@@ -8,15 +8,16 @@
 ////////////////////////////////////////////////////////////
 namespace __Win32RT
 {
-    alias HANDLE  = #null *void
-    alias DWORD   = u32
-    alias SRWLOCK = #null *void
-    alias USHORT  = u16
-    alias ULONG   = u32
-    alias ULONG64 = u64
-    alias CHAR    = u8
-    alias WCHAR   = u16
-    alias BOOL    = u8
+    alias HANDLE                 = #null *void
+    alias DWORD                  = u32
+    alias SRWLOCK                = #null *void
+    alias USHORT                 = u16
+    alias ULONG                  = u32
+    alias ULONG64                = u64
+    alias CHAR                   = u8
+    alias WCHAR                  = u16
+    alias BOOL                   = u8
+    alias PFLS_CALLBACK_FUNCTION = func(#null *void)
 
     const STD_OUTPUT_HANDLE    = 0xFFFF_FFF5'u32
     const MB_CANCELTRYCONTINUE = 0x00000006
@@ -51,6 +52,10 @@ namespace __Win32RT
         func TlsAlloc()->u32
         func TlsSetValue(dwTlsIndex: u32, lpTlsValue: #null *void)
         func TlsGetValue(dwTlsIndex: u32)->#null *void
+        func FlsAlloc(lpCallback: #null PFLS_CALLBACK_FUNCTION)->u32
+        func FlsFree(dwFlsIndex: u32)->BOOL
+        func FlsSetValue(dwFlsIndex: u32, lpFlsData: #null *void)->BOOL
+        func FlsGetValue(dwFlsIndex: u32)->#null *void
         func AcquireSRWLockExclusive(SRWLock: *SRWLOCK)
         func ReleaseSRWLockExclusive(SRWLock: *SRWLOCK)
         func VirtualAlloc(lpAddress: #null *void, dwSize: ULONG64, flAllocationType: DWORD, flProtect: DWORD)->#null *void

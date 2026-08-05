@@ -495,12 +495,13 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.alloc(&req)
     @assert(req.address != null)
 
-    let header = cast(*AllocatorHeader) (cast([*] u8) req.address! - #sizeof(AllocatorHeader))
+    let header   = cast(*AllocatorHeader) (cast([*] u8) req.address! - #sizeof(AllocatorHeader))
+    let tracking = header.tracking!
     @assert(header.magic == Allocator.MagicAlloc)
-    @assert(header.stackCount <= @countof(header.stack))
+    @assert(tracking.stackCount <= @countof(tracking.stack))
     #static if #os == Swag.TargetOs.Windows do
         if !@jit() do
-            @assert(header.stackCount > 0)
+            @assert(tracking.stackCount > 0)
 
     itf.free(&req)
     alloc.releaseAll()
@@ -516,8 +517,9 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.alloc(&req)
     @assert(req.address != null)
 
-    let header = cast(*AllocatorHeader) (cast([*] u8) req.address! - #sizeof(AllocatorHeader))
-    @assert(header.stackCount == 0)
+    let header   = cast(*AllocatorHeader) (cast([*] u8) req.address! - #sizeof(AllocatorHeader))
+    let tracking = header.tracking!
+    @assert(tracking.stackCount == 0)
     @assert(alloc.firstAlloc == header)
 
     var assertReq: AllocatorRequest
@@ -546,9 +548,10 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     @assert(req.address != null)
     @assert(alloc.firstAlloc != null)
 
-    let header = cast(*AllocatorHeader) (cast([*] u8) req.address! - #sizeof(AllocatorHeader))
+    let header   = cast(*AllocatorHeader) (cast([*] u8) req.address! - #sizeof(AllocatorHeader))
+    let tracking = header.tracking!
     @assert(header == alloc.firstAlloc)
-    @assert(header.stackCount <= @countof(header.stack))
+    @assert(tracking.stackCount <= @countof(tracking.stack))
 
     itf.free(&req)
     @assert(req.address == null)
@@ -571,8 +574,9 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     for [i] in 128 do
         @assert(ptr[i] == Allocator.AllocByte)
 
-    let header = cast(*AllocatorHeader) (cast([*] u8) req.address! - #sizeof(AllocatorHeader))
-    @assert(header.stackCount <= @countof(header.stack))
+    let header   = cast(*AllocatorHeader) (cast([*] u8) req.address! - #sizeof(AllocatorHeader))
+    let tracking = header.tracking!
+    @assert(tracking.stackCount <= @countof(tracking.stack))
 
     itf.free(&req)
     alloc.releaseAll()
@@ -590,9 +594,10 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     @assert(req.address != null)
     @assert(alloc.firstAlloc != null)
 
-    let header = cast(*AllocatorHeader) (cast([*] u8) req.address! - #sizeof(AllocatorHeader))
+    let header   = cast(*AllocatorHeader) (cast([*] u8) req.address! - #sizeof(AllocatorHeader))
+    let tracking = header.tracking!
     @assert(header == alloc.firstAlloc)
-    @assert(header.stackCount <= @countof(header.stack))
+    @assert(tracking.stackCount <= @countof(tracking.stack))
 
     var assertReq: AllocatorRequest
     assertReq.address = req.address
@@ -616,14 +621,15 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     @assert(alloc.countAlloc == 1)
     @assert(alloc.firstAlloc != null)
 
-    let header = cast(*AllocatorHeader) (cast([*] u8) req.address! - #sizeof(AllocatorHeader))
+    let header   = cast(*AllocatorHeader) (cast([*] u8) req.address! - #sizeof(AllocatorHeader))
+    let tracking = header.tracking!
     @assert(header == alloc.firstAlloc)
     @assert(header.magic == Allocator.MagicAlloc)
     @assert(alloc.footer(header).magic == Allocator.MagicAlloc)
-    @assert(header.stackCount <= @countof(header.stack))
+    @assert(tracking.stackCount <= @countof(tracking.stack))
     #static if #os == Swag.TargetOs.Windows do
         if !@jit() do
-            @assert(header.stackCount > 0)
+            @assert(tracking.stackCount > 0)
 
     var assertReq: AllocatorRequest
     assertReq.address = req.address

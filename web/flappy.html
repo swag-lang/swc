@@ -52,7 +52,7 @@
 {
     <span class="SCmt">// Obtain the compiler interface and this script's mutable build configuration.</span>
     <span class="SKwd">let</span> itf = <span class="SItr">@compiler</span>
-    <span class="SKwd">let</span> cfg = <span class="SKwd">notnull</span> itf.<span class="SFct">getBuildCfg</span>()
+    <span class="SKwd">let</span> cfg = itf.<span class="SFct">getBuildCfg</span>()!
 
     <span class="SCmt">// Keep runtime safety guards outside release builds.</span>
     <span class="SCmp">#static</span> <span class="SLgc">if</span> <span class="SCmp">#cfg</span> == <span class="SStr">"release"</span> <span class="SLgc">do</span>
@@ -142,7 +142,7 @@
 <span class="SKwd">var</span> g_SoundFlap:  <span class="SCst">Audio</span>.<span class="SCst">SoundFile</span>
 
 </span></div>
-<p><span class="code-inline">g_Font</span> is a nullable pointer because font creation can return no font. Call sites use <span class="code-inline">notnull</span> only after successful asset loading establishes the invariant.</p>
+<p><span class="code-inline">g_Font</span> is a nullable pointer because font creation can return no font. Call sites use <span class="code-inline">!</span> only after successful asset loading establishes the invariant.</p>
 <div class="code-block"><span class="SCde">
 <span class="SKwd">var</span> g_Font: <span class="SItr">#null</span> *<span class="SCst">Font</span>
 
@@ -275,7 +275,7 @@
     <span class="SCmt">// Draw the score using the loaded game font.</span>
     <span class="SLgc">if</span> !g_FirstStart
     {
-        painter.<span class="SFct">drawStringCenter</span>(g_Rect.<span class="SFct">horzCenter</span>(), <span class="SNum">50</span>, <span class="SCst">Format</span>.<span class="SFct">toString</span>(<span class="SStr">"%"</span>, g_Score), <span class="SKwd">notnull</span> g_Font, <span class="SCst">Argb</span>.<span class="SCst">White</span>)
+        painter.<span class="SFct">drawStringCenter</span>(g_Rect.<span class="SFct">horzCenter</span>(), <span class="SNum">50</span>, <span class="SCst">Format</span>.<span class="SFct">toString</span>(<span class="SStr">"%"</span>, g_Score), g_Font!, <span class="SCst">Argb</span>.<span class="SCst">White</span>)
     }
 
     <span class="SCmt">// Show the start prompt before the first round.</span>

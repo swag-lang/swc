@@ -115,7 +115,7 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">using</span> <span class="SCst">Core</span>, <span class="SCst"><a href="#namespace_TrueType">TrueType</a></span>
 
 <span class="SKwd">let</span> bytes = <span class="SCst"><a href="std.core.html#namespace_Core_File">File</a></span>.<span class="SFct">readAllBytes</span>(<span class="SStr">"Inter-Regular.ttf"</span>)
-<span class="SKwd">let</span> face  = <span class="SKwd">notnull</span> (<span class="SKwd">try</span> <span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">load</span>(bytes.<span class="SFct">toSlice</span>()))
+<span class="SKwd">let</span> face  = (<span class="SKwd">try</span> <span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">load</span>(bytes.<span class="SFct">toSlice</span>()))!
 <span class="SLgc">defer</span> face.<span class="SFct">destroy</span>()
 
 <span class="SKwd">try</span> face.<span class="SFct">setPixelSize</span>(<span class="SNum">0</span>, <span class="SNum">32</span>)
@@ -131,7 +131,7 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">using</span> <span class="SCst">Core</span>, <span class="SCst"><a href="#namespace_TrueType">TrueType</a></span>
 
 <span class="SKwd">let</span> bytes = <span class="SCst"><a href="std.core.html#namespace_Core_File">File</a></span>.<span class="SFct">readAllBytes</span>(<span class="SStr">"Inter-Regular.ttf"</span>)
-<span class="SKwd">let</span> face  = <span class="SKwd">notnull</span> (<span class="SKwd">try</span> <span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">load</span>(bytes.<span class="SFct">toSlice</span>()))
+<span class="SKwd">let</span> face  = (<span class="SKwd">try</span> <span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">load</span>(bytes.<span class="SFct">toSlice</span>()))!
 <span class="SLgc">defer</span> face.<span class="SFct">destroy</span>()
 </span></div>
 <p>The input is a standalone TrueType font with <span class="code-inline">glyf</span> outlines.</p>
@@ -845,7 +845,7 @@
 <p>Loads a TrueType face from an in-memory font file.</p>
 <p>The face owns a private copy of <span class="code-inline">bytes</span>, so the input may be released after this call. Release the returned pointer with <a href="#TrueType_Face_destroy">TrueType.Face.destroy</a>. When <span class="code-inline">allocator</span> is null, the allocator active at the start of the call owns the face allocation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">let</span> bytes = <span class="SCst"><a href="std.core.html#namespace_Core_File">File</a></span>.<span class="SFct">readAllBytes</span>(<span class="SStr">"Inter-Regular.ttf"</span>)
-<span class="SKwd">let</span> face  = <span class="SKwd">notnull</span> (<span class="SKwd">try</span> <span class="SCst"><a href="#namespace_TrueType">TrueType</a></span>.<span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">load</span>(bytes.<span class="SFct">toSlice</span>()))
+<span class="SKwd">let</span> face  = (<span class="SKwd">try</span> <span class="SCst"><a href="#namespace_TrueType">TrueType</a></span>.<span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">load</span>(bytes.<span class="SFct">toSlice</span>()))!
 <span class="SLgc">defer</span> face.<span class="SFct">destroy</span>()
 </span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">load</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, allocator: <span class="SItr">#null</span> <span class="SCst">IAllocator</span> = <span class="SKwd">null</span>)-&gt;<span class="SItr">#null</span> *<span class="SCst"><a href="#TrueType_Face">Face</a></span> <span class="SKwd">fail</span></span></div>

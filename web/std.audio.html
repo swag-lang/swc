@@ -169,7 +169,7 @@
 <span class="SLgc">defer</span> <span class="SFct">destroyEngine</span>()
 
 <span class="SKwd">let</span> sound = <span class="SKwd">try</span> <span class="SCst"><a href="#Audio_SoundFile">SoundFile</a></span>.<span class="SFct">load</span>(<span class="SStr">"fixtures/alert.wav"</span>)
-<span class="SKwd">let</span> voice = <span class="SKwd">notnull</span> <span class="SKwd">try</span> <span class="SCst"><a href="#Audio_Voice">Voice</a></span>.<span class="SFct">create</span>(&amp;sound)
+<span class="SKwd">let</span> voice = <span class="SKwd">try</span> <span class="SCst"><a href="#Audio_Voice">Voice</a></span>.<span class="SFct">create</span>(&amp;sound)!
 <span class="SKwd">try</span> voice.<span class="SFct">play</span>()
 <span class="SKwd">try</span> voice.<span class="SFct">stop</span>()
 voice.<span class="SFct">destroy</span>()
@@ -179,7 +179,7 @@ voice.<span class="SFct">destroy</span>()
 <section class="api-guide"><h2 id="guide_Loading__streaming__and_voices">Loading, streaming, and voices</h2>
 <p><a href="#Audio_SoundFile_load">Audio.SoundFile.load</a> always reads and validates the WAV header. With the default <span class="code-inline">preloadData = true</span>, it also keeps the audio payload in memory. Pass <span class="code-inline">preloadData = false</span> for long sounds that should be read from disk while they play.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">let</span> music = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Audio">Audio</a></span>.<span class="SCst"><a href="#Audio_SoundFile">SoundFile</a></span>.<span class="SFct">load</span>(<span class="SStr">"assets/music.wav"</span>, preloadData = <span class="SKwd">false</span>)
-<span class="SKwd">let</span> voice = <span class="SKwd">notnull</span> <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Audio">Audio</a></span>.<span class="SCst"><a href="#Audio_Voice">Voice</a></span>.<span class="SFct">create</span>(&amp;music)
+<span class="SKwd">let</span> voice = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Audio">Audio</a></span>.<span class="SCst"><a href="#Audio_Voice">Voice</a></span>.<span class="SFct">create</span>(&amp;music)!
 <span class="SLgc">defer</span> voice.<span class="SFct">destroy</span>()
 
 <span class="SKwd">try</span> voice.<span class="SFct">setVolume</span>(<span class="SNum">0.35</span>)
@@ -191,10 +191,10 @@ voice.<span class="SFct">destroy</span>()
 </section>
 <section class="api-guide"><h2 id="guide_Buses__drivers__and_codecs">Buses, drivers, and codecs</h2>
 <p>An <a href="#Audio_Bus">Audio.Bus</a> is a submix node. Route a voice to one or more buses with <a href="#Audio_Voice_setRouting">Audio.Voice.setRouting</a>, then adjust a bus to affect every voice routed through it. A bus may itself target a parent bus, which forms a directed mixing graph.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">let</span> effects = <span class="SKwd">notnull</span> <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Audio">Audio</a></span>.<span class="SCst"><a href="#Audio_Bus">Bus</a></span>.<span class="SFct">create</span>(<span class="SNum">2</span>)
+<div class="code-block"><span class="SCde"><span class="SKwd">let</span> effects = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Audio">Audio</a></span>.<span class="SCst"><a href="#Audio_Bus">Bus</a></span>.<span class="SFct">create</span>(<span class="SNum">2</span>)!
 <span class="SLgc">defer</span> effects.<span class="SFct">destroy</span>()
 
-<span class="SKwd">let</span> voice = <span class="SKwd">notnull</span> <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Audio">Audio</a></span>.<span class="SCst"><a href="#Audio_Voice">Voice</a></span>.<span class="SFct">create</span>(&amp;sound)
+<span class="SKwd">let</span> voice = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Audio">Audio</a></span>.<span class="SCst"><a href="#Audio_Voice">Voice</a></span>.<span class="SFct">create</span>(&amp;sound)!
 <span class="SLgc">defer</span> voice.<span class="SFct">destroy</span>()
 
 <span class="SKwd">try</span> voice.<span class="SFct">setRouting</span>([effects])

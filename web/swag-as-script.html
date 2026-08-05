@@ -57,7 +57,7 @@ swc hello.swgs
 <p>A top-level <span class="code-inline">#run</span> block can update the script's build configuration before the rest of the file is compiled:</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#run</span>
 {
-    <span class="SKwd">let</span> cfg = <span class="SKwd">notnull</span> <span class="SItr">@compiler</span>.<span class="SFct">getBuildCfg</span>()
+    <span class="SKwd">let</span> cfg = <span class="SItr">@compiler</span>.<span class="SFct">getBuildCfg</span>()!
     cfg.safetyGuards = <span class="SCst">Swag</span>.<span class="SCst">SafetyWhat</span>.<span class="SCst">All</span>
 }
 </span></div>

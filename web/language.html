@@ -547,7 +547,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <p><span class="code-inline">module.swg</span> executes at compile time and configures the current module through <span class="code-inline">@compiler</span>. A minimal executable configuration looks like this:</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#run</span>
 {
-    <span class="SKwd">let</span> cfg = <span class="SKwd">notnull</span> <span class="SItr">@compiler</span>.<span class="SFct">getBuildCfg</span>()
+    <span class="SKwd">let</span> cfg = <span class="SItr">@compiler</span>.<span class="SFct">getBuildCfg</span>()!
     cfg.moduleVersion  = <span class="SNum">1</span>
     cfg.moduleRevision = <span class="SNum">0</span>
     cfg.moduleBuildNum = <span class="SNum">0</span>
@@ -742,8 +742,8 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <p><span class="code-inline">foreach</span> is no longer part of the language; the compiler recognizes it only to produce a migration diagnostic that points to <span class="code-inline">for</span>.</p>
 <p><span class="code-inline">verify</span> is no longer part of the language either, and is now an ordinary identifier. It used to be accepted on function declarations but was never executed. Express a compile-time overload contract with a <span class="code-inline">where</span> constraint, and a runtime precondition with ordinary code.</p>
 <h3 id="Values__Errors__and_Conversion">Values, Errors, and Conversion</h3>
-<div class="code-block"><span class="SCde"><span class="SKwd">cast</span>  <span class="SKwd">catch</span>  <span class="SKwd">discard</span>  <span class="SKwd">dref</span>  <span class="SKwd">expect</span>  <span class="SKwd">fail</span>  <span class="SKwd">false</span>  <span class="SKwd">notnull</span>
-<span class="SKwd">null</span>  <span class="SKwd">retval</span>  <span class="SKwd">true</span>  <span class="SKwd">try</span>  <span class="SKwd">undefined</span>
+<div class="code-block"><span class="SCde"><span class="SKwd">cast</span>  <span class="SKwd">catch</span>  <span class="SKwd">discard</span>  <span class="SKwd">dref</span>  <span class="SKwd">expect</span>  <span class="SKwd">fail</span>  <span class="SKwd">false</span>  <span class="SKwd">null</span>
+<span class="SKwd">retval</span>  <span class="SKwd">true</span>  <span class="SKwd">try</span>  <span class="SKwd">undefined</span>
 </span></div>
 <p><span class="code-inline">not</span> is reserved for future use.</p>
 <h3 id="Contextual_Source_and_Module_Names">Contextual Source and Module Names</h3>
@@ -3181,7 +3181,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 </span></div>
 <h3 id="Non-Null_by_Default">Non-Null by Default</h3>
 <p>Nullable-capable types — single-value and block pointers, slices, <span class="code-inline">string</span>, <span class="code-inline">cstring</span>, <span class="code-inline">any</span>, and <span class="code-inline">typeinfo</span> — are non-null by default: a bare <span class="code-inline">*u8</span> or <span class="code-inline">string</span> cannot be initialized with <span class="code-inline">null</span> and has no implicit default. A struct field of such a type must therefore be supplied by an aggregate initializer unless it declares an explicit non-null default. Use <span class="code-inline">#null</span> to opt into nullability when null is part of the intended contract.</p>
-<p>A <span class="code-inline">#null</span> value cannot flow into a bare (non-null) slot directly, and it cannot be dereferenced, indexed, member-accessed or called while it is still nullable: every use site needs a proof. Flow narrowing provides it implicitly (a dominating null test such as <span class="code-inline">if p == null do return</span>, <span class="code-inline">if p do ...</span>, or the left side of <span class="code-inline">and</span>/<span class="code-inline">or</span>), <span class="code-inline">notnull</span> asserts it explicitly (a safety check panics at runtime if the value is still null), and <span class="code-inline">?.</span> skips the access entirely when the value is null. Comparisons between <span class="code-inline">#null</span> and bare values of the same type are always allowed. <span class="code-inline">undefined</span> remains an explicit low-level escape hatch and must only be used when the storage is initialized manually before it is read.</p>
+<p>A <span class="code-inline">#null</span> value cannot flow into a bare (non-null) slot directly, and it cannot be dereferenced, indexed, member-accessed or called while it is still nullable: every use site needs a proof. Flow narrowing provides it implicitly (a dominating null test such as <span class="code-inline">if p == null do return</span>, <span class="code-inline">if p do ...</span>, <span class="code-inline">@assert(p != null)</span>, or the left side of <span class="code-inline">and</span>/<span class="code-inline">or</span>), the postfix <span class="code-inline">!</span> asserts it explicitly (a safety check panics at runtime if the value is still null), and <span class="code-inline">?.</span> skips the access entirely when the value is null. Comparisons between <span class="code-inline">#null</span> and bare values of the same type are always allowed. <span class="code-inline">undefined</span> remains an explicit low-level escape hatch and must only be used when the storage is initialized manually before it is read.</p>
 <p>A value with <span class="code-inline">opDrop</span> can be consumed with <span class="code-inline">#move</span> only when resetting its moved-from source does not require explicit initialization. Give required fields a default, or use <span class="code-inline">undefined</span> deliberately as the low-level escape hatch described above, before moving a droppable value.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
@@ -3204,9 +3204,13 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 }
 
 </span></div>
-<h3 id="Use-Site_Nullability_and_____">Use-Site Nullability and <span class="code-inline">?.</span></h3>
-<p>Dereferencing a value whose type is still <span class="code-inline">#null</span> is a compile-time error: the flow must prove the value non-null first. The three sanctioned routes are a dominating null test (flow narrowing), an explicit <span class="code-inline">notnull</span> assertion, and the <span class="code-inline">?.</span> guarded access, which skips the rest of the postfix chain when the tested value is null.</p>
+<h3 id="Use-Site_Nullability_______and____">Use-Site Nullability, <span class="code-inline">?.</span> and <span class="code-inline">!</span></h3>
+<p>Dereferencing a value whose type is still <span class="code-inline">#null</span> is a compile-time error: the flow must prove the value non-null first. The sanctioned routes are a dominating null test (flow narrowing), the <span class="code-inline">?.</span> guarded access, and the postfix <span class="code-inline">!</span> assertion.</p>
+<p><span class="code-inline">@assert(p != null)</span> is a dominating null test like any other: the statements after it are only reachable when the condition held, so the proof covers the remainder of the enclosing block. It reads as a precondition rather than as a per-use assertion, which suits a value that is guaranteed non-null for a whole function body. Like every other narrowing proof, it is dropped as soon as the path is reassigned.</p>
+<p><span class="code-inline">p!</span> and <span class="code-inline">p?.</span> are the two outcomes of the same test. <span class="code-inline">?.</span> skips the rest of the postfix chain when the tested value is null; <span class="code-inline">!</span> claims the value is there and panics under <span class="code-inline">Swag.SafetyWhat.Expect</span> when it is not. Being postfix, <span class="code-inline">!</span> binds tighter than every prefix form and chains freely: <span class="code-inline">p!.count</span>, <span class="code-inline">buffer![i]</span>, <span class="code-inline">handler!()</span>. Because it cannot produce an absent result, what follows keeps its plain type — <span class="code-inline">node!.count</span> is an <span class="code-inline">s64</span>, never a <span class="code-inline">#null</span> one, and needs no fallback.</p>
+<p><span class="code-inline">try</span>, <span class="code-inline">catch</span> and <span class="code-inline">expect</span> swallow everything to their right, so a <span class="code-inline">!</span> written after one of them applies to its <b>result</b>: <span class="code-inline">expect load(path)!</span> asserts the loaded value, not the fallible call. Parenthesize to assert something inside instead.</p>
 <p>A <span class="code-inline">?.</span> chain whose result is itself nullable-capable (a pointer, string, slice, interface...) simply produces the null outcome in its own type. A chain producing a plain value (an integer, a bool...) cannot carry the null outcome and must hand it to an immediate <span class="code-inline">orelse</span> fallback. A void call through <span class="code-inline">?.</span> is a statement that does nothing when the value is null.</p>
+<p>Write <span class="code-inline">!</span> where an invariant makes the value always present and a null would be a bug worth stopping on; write <span class="code-inline">?.</span> where absence is an ordinary outcome the code handles. Both are tolerated on a value the flow already proved, so a redundant one in a narrowed region is dead, not wrong.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">struct</span> <span class="SCst">OptChainRefDoc</span>
@@ -3227,9 +3231,17 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
     <span class="SLgc">if</span> p != <span class="SKwd">null</span> <span class="SLgc">do</span>
         <span class="SItr">@assert</span>(p.count == <span class="SNum">2</span>)
 
-    <span class="SCmt">// 'notnull' asserts the proof explicitly (panics at runtime if wrong).</span>
-    <span class="SKwd">let</span> q = <span class="SKwd">notnull</span> p
+    <span class="SCmt">// The postfix '!' asserts the proof explicitly (panics at runtime if wrong).</span>
+    <span class="SKwd">let</span> q = p!
     <span class="SItr">@assert</span>(q.count == <span class="SNum">2</span>)
+
+    <span class="SCmt">// '@assert' proves the path for the rest of the block, like a precondition.</span>
+    <span class="SItr">@assert</span>(p != <span class="SKwd">null</span>)
+    <span class="SItr">@assert</span>(p.count == <span class="SNum">2</span>)
+
+    <span class="SCmt">// '!' asserts instead of skipping, so the member keeps its plain type.</span>
+    <span class="SItr">@assert</span>(p!.count == <span class="SNum">2</span>)
+    <span class="SItr">@assert</span>(p!.next!.count == <span class="SNum">7</span>)
 
     <span class="SCmt">// '?.' skips the access when null; 'orelse' provides the scalar fallback.</span>
     <span class="SCmt">// 'orelse' binds loosely, so the comparison needs the parentheses.</span>
@@ -3247,8 +3259,8 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="Deferred_Initialization_with__Swag_Late_">Deferred Initialization with <span class="code-inline">Swag.Late</span></h3>
-<p>The <span class="code-inline">Swag.Late</span> attribute declares a <b>non-null</b> field or <b>global variable</b> whose storage starts unset (zero/null) and receives its value later — typically in a <span class="code-inline">#run</span> or <span class="code-inline">#init</span> block, or during setup. It replaces the <span class="code-inline">#null ... = null</span> + <span class="code-inline">notnull</span>-at-every-use pattern for values that are guaranteed to be set before first use but cannot be initialized at their declaration.</p>
-<p>The exposed type is non-null, so uses need no <span class="code-inline">notnull</span>; every read is guarded (a runtime null panic when still unset). <span class="code-inline">@isset</span> tests whether the value has been assigned, without reading it. <span class="code-inline">Swag.Late</span> needs a nullable-capable type (pointer, slice, <span class="code-inline">string</span>, <span class="code-inline">cstring</span>, interface, function): it uses the null bit pattern as the <span class="code-inline">unset</span> sentinel. A local or parameter uses <span class="code-inline">= undefined</span> definite assignment instead.</p>
+<p>The <span class="code-inline">Swag.Late</span> attribute declares a <b>non-null</b> field or <b>global variable</b> whose storage starts unset (zero/null) and receives its value later — typically in a <span class="code-inline">#run</span> or <span class="code-inline">#init</span> block, or during setup. It replaces the <span class="code-inline">#null ... = null</span> + <span class="code-inline">!</span>-at-every-use pattern for values that are guaranteed to be set before first use but cannot be initialized at their declaration.</p>
+<p>The exposed type is non-null, so uses need no <span class="code-inline">!</span>; every read is guarded (a runtime null panic when still unset). <span class="code-inline">@isset</span> tests whether the value has been assigned, without reading it. <span class="code-inline">Swag.Late</span> needs a nullable-capable type (pointer, slice, <span class="code-inline">string</span>, <span class="code-inline">cstring</span>, interface, function): it uses the null bit pattern as the <span class="code-inline">unset</span> sentinel. A local or parameter uses <span class="code-inline">= undefined</span> definite assignment instead.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">LateDocResource</span>
 {
     weight: <span class="STpe">s32</span>
@@ -3267,7 +3279,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 <span class="SFct">#test</span>
 {
-    <span class="SCmt">// The type is non-null: no 'notnull', no null test needed at the use site.</span>
+    <span class="SCmt">// The type is non-null: no '!', no null test needed at the use site.</span>
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(g_lateDocResource) == *<span class="SCst">LateDocResource</span>)
 
     <span class="SCmt">// '@isset' confirms it was assigned (in the '#run' above).</span>
@@ -3485,7 +3497,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
     <span class="SCmt">// Now store a string</span>
     a = <span class="SStr">"string"</span>
-    <span class="SItr">@assert</span>(<span class="SKwd">cast</span>(<span class="STpe">string</span>) (<span class="SKwd">notnull</span> a) == <span class="SStr">"string"</span>)
+    <span class="SItr">@assert</span>(<span class="SKwd">cast</span>(<span class="STpe">string</span>) a! == <span class="SStr">"string"</span>)
 
     <span class="SCmt">// Now store a bool</span>
     a = <span class="SKwd">true</span>
@@ -3570,7 +3582,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
     x = <span class="SStr">"string"</span>
     <span class="SItr">@assert</span>(x != <span class="SKwd">null</span>)
-    <span class="SItr">@assert</span>(<span class="SKwd">cast</span>(<span class="STpe">string</span>) (<span class="SKwd">notnull</span> x) == <span class="SStr">"string"</span>)
+    <span class="SItr">@assert</span>(<span class="SKwd">cast</span>(<span class="STpe">string</span>) x! == <span class="SStr">"string"</span>)
 
     x = <span class="SKwd">null</span>
     <span class="SItr">@assert</span>(x == <span class="SKwd">null</span>)
@@ -5087,7 +5099,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> type    = <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="SCst">Swag</span>.<span class="SCst">TypeInfoStruct</span>) <span class="SItr">#type</span> <span class="SCst">MyStruct</span>
-    <span class="SKwd">let</span> methods = <span class="SKwd">notnull</span> type.methods
+    <span class="SKwd">let</span> methods = type.methods!
     <span class="SKwd">var</span> returnX: <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="SCst">Swag</span>.<span class="SCst">TypeValue</span>
 
     <span class="SLgc">for</span> &amp;method <span class="SLgc">in</span> methods
@@ -5100,10 +5112,10 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
     }
 
     <span class="SItr">@assert</span>(returnX != <span class="SKwd">null</span>)
-    <span class="SKwd">let</span> method = <span class="SKwd">notnull</span> returnX
-    <span class="SItr">@assert</span>((<span class="SKwd">notnull</span> method.pointedType).kind == .<span class="SCst">Func</span>)
+    <span class="SKwd">let</span> method = returnX!
+    <span class="SItr">@assert</span>(method.pointedType!.kind == .<span class="SCst">Func</span>)
 
-    <span class="SKwd">let</span> call = <span class="SKwd">cast</span>(<span class="SCst">ReflectedMyStructMethod</span>) <span class="SKwd">notnull</span> method.value
+    <span class="SKwd">let</span> call = <span class="SKwd">cast</span>(<span class="SCst">ReflectedMyStructMethod</span>) method.value!
     <span class="SKwd">var</span> value: <span class="SCst">MyStruct</span>
     <span class="SItr">@assert</span>(<span class="SFct">call</span>(&amp;value) == <span class="SNum">5</span>)
 }
@@ -5937,6 +5949,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 </span></div>
 <h3 id="Drop_Elision">Drop Elision</h3>
 <p>When the source of a <span class="code-inline">#move</span> is a plain local that is provably never used again — no read or write after the move, no taken address, no capture, and a move that always executes when its scope exits — the compiler elides both the reset of the source and its scope-exit drop: <span class="code-inline">opDrop</span> is then NOT called on the reset value. A program can therefore not rely on counting the drops of fully consumed locals. Any use after the move (or any use the compiler cannot prove harmless) keeps the documented reset-then-drop behavior.</p>
+<p>Returning a named local moves it out the same way: the value is transferred to the caller, <span class="code-inline">opPostMove</span> restores its invariants in the caller's storage, and the local's own drop is elided — the resource is released exactly once, by the caller. Only a local still observed after the return — by a <span class="code-inline">defer</span> body or a closure — cannot move: the return then deep-copies through <span class="code-inline">opPostCopy</span> and the local drops normally.</p>
 <h3 id="Lifecycle_Safety">Lifecycle Safety</h3>
 <p>Reading a value abandoned by <span class="code-inline">#relocate</span> — or by <span class="code-inline">#move</span> when the type has no <span class="code-inline">opDrop</span>, which leaves the source unreset — reads stale bits. Under the <span class="code-inline">Swag.SafetyWhat.Lifecycle</span> safety guard (part of <span class="code-inline">All</span>, so enabled by default in debug configurations), the compiler reports proven reads of moved-from locals at compile time, and poisons abandoned or dropped storage with <span class="code-inline">0xDD</span> bytes at runtime so hidden violations fail deterministically instead of silently reading stale data. A <span class="code-inline">#move</span> of a type with <span class="code-inline">opDrop</span> is not concerned: the source is reset to its defaults, which is defined behavior.</p>
 <h3 id="Move_Semantics_in_Functions">Move Semantics in Functions</h3>
@@ -7184,7 +7197,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
     <span class="SLgc">if</span> data == <span class="SKwd">null</span> <span class="SLgc">do</span>
         <span class="SLgc">unreachable</span>
 
-    <span class="SKwd">let</span> usable = <span class="SKwd">notnull</span> data
+    <span class="SKwd">let</span> usable = data!
     <span class="SLgc">defer</span> <span class="SItr">@free</span>(usable)
 
     usable[<span class="SNum">0</span>] = <span class="SNum">10</span>
@@ -8197,7 +8210,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
     <span class="SItr">@assert</span>(base.kind == .<span class="SCst">Struct</span>)
 
     <span class="SKwd">let</span> type   = <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="SCst">Swag</span>.<span class="SCst">TypeInfoStruct</span>) base
-    <span class="SKwd">let</span> fields = <span class="SKwd">notnull</span> type.fields
+    <span class="SKwd">let</span> fields = type.fields!
 
     <span class="SItr">@assert</span>(type.structName == <span class="SStr">"ReflectedPoint"</span>)
     <span class="SItr">@assert</span>(type.sizeof == <span class="SItr">#sizeof</span>(<span class="SCst">ReflectedPoint</span>))
@@ -8208,10 +8221,10 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
     <span class="SItr">@assert</span>(fields[<span class="SNum">1</span>].name == <span class="SStr">"y"</span>)
     <span class="SItr">@assert</span>(fields[<span class="SNum">1</span>].offset == <span class="SItr">#offsetof</span>(<span class="SCst">ReflectedPoint</span>.y))
 
-    <span class="SKwd">let</span> methods = <span class="SKwd">notnull</span> type.methods
+    <span class="SKwd">let</span> methods = type.methods!
     <span class="SItr">@assert</span>(<span class="SItr">@countof</span>(methods) == <span class="SNum">1</span>)
     <span class="SItr">@assert</span>(methods[<span class="SNum">0</span>].name == <span class="SStr">"sum"</span>)
-    <span class="SItr">@assert</span>((<span class="SKwd">notnull</span> methods[<span class="SNum">0</span>].pointedType).kind == .<span class="SCst">Func</span>)
+    <span class="SItr">@assert</span>(methods[<span class="SNum">0</span>].pointedType!.kind == .<span class="SCst">Func</span>)
 }
 
 </span></div>
@@ -8223,7 +8236,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
     <span class="SItr">@assert</span>(base.kind == .<span class="SCst">Enum</span>)
 
     <span class="SKwd">let</span> type   = <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="SCst">Swag</span>.<span class="SCst">TypeInfoEnum</span>) base
-    <span class="SKwd">let</span> values = <span class="SKwd">notnull</span> type.values
+    <span class="SKwd">let</span> values = type.values!
 
     <span class="SItr">@assert</span>(type.rawType == <span class="STpe">u8</span>)
     <span class="SItr">@assert</span>(<span class="SItr">@countof</span>(values) == <span class="SNum">3</span>)
@@ -8252,7 +8265,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> type       = <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="SCst">Swag</span>.<span class="SCst">TypeInfoFunc</span>) <span class="SItr">#typeof</span>(reflectedAdd)
-    <span class="SKwd">let</span> parameters = <span class="SKwd">notnull</span> type.parameters
+    <span class="SKwd">let</span> parameters = type.parameters!
 
     <span class="SItr">@assert</span>(<span class="SItr">@countof</span>(parameters) == <span class="SNum">2</span>)
     <span class="SItr">@assert</span>(parameters[<span class="SNum">0</span>].name == <span class="SStr">"left"</span>)
@@ -8848,7 +8861,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
     {
         <span class="SKwd">var</span> req: <span class="SCst">Swag</span>.<span class="SCst">AllocatorRequest</span>
         req.size = size
-        <span class="SKwd">let</span> allocItf = <span class="SKwd">notnull</span> <span class="SItr">@getcontext</span>().allocator
+        <span class="SKwd">let</span> allocItf = <span class="SItr">@getcontext</span>().allocator!
         allocItf.<span class="SFct">alloc</span>(&amp;req)
         <span class="SLgc">return</span> req.address
     }
@@ -8858,11 +8871,11 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
         <span class="SKwd">var</span> req: <span class="SCst">Swag</span>.<span class="SCst">AllocatorRequest</span>
         req.address = ptr
         req.size    = size
-        <span class="SKwd">let</span> allocItf = <span class="SKwd">notnull</span> <span class="SItr">@getcontext</span>().allocator
+        <span class="SKwd">let</span> allocItf = <span class="SItr">@getcontext</span>().allocator!
         allocItf.<span class="SFct">free</span>(&amp;req)
     }
 
-    <span class="SKwd">let</span> p = <span class="SKwd">cast</span>(*<span class="STpe">s32</span>) <span class="SKwd">notnull</span> <span class="SFct">exampleAlloc</span>(<span class="SNum">4</span>)
+    <span class="SKwd">let</span> p = <span class="SKwd">cast</span>(*<span class="STpe">s32</span>) <span class="SFct">exampleAlloc</span>(<span class="SNum">4</span>)!
     <span class="SKwd">dref</span> p = <span class="SNum">1</span>
     <span class="SFct">exampleFree</span>(p, <span class="SNum">4</span>)
 
@@ -9253,7 +9266,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <span class="SFct">#message</span>(<span class="SCst">Swag</span>.<span class="SCst">CompilerMsgMask</span>.<span class="SCst">PassAfterSemantic</span>)
 {
     <span class="SKwd">let</span> itf = <span class="SItr">@compiler</span>
-    <span class="SKwd">let</span> msg = <span class="SKwd">notnull</span> itf.<span class="SFct">getMessage</span>()
+    <span class="SKwd">let</span> msg = itf.<span class="SFct">getMessage</span>()!
 
     <span class="SLgc">if</span> msg.kind != <span class="SCst">Swag</span>.<span class="SCst">CompilerMsgKind</span>.<span class="SCst">PassAfterSemantic</span> <span class="SLgc">do</span>
         <span class="SLgc">return</span>
@@ -9856,7 +9869,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <p>A module setup file commonly uses <span class="code-inline">#run</span> to configure its build:</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#run</span>
 {
-    <span class="SKwd">let</span> cfg = <span class="SKwd">notnull</span> <span class="SItr">@compiler</span>.<span class="SFct">getBuildCfg</span>()
+    <span class="SKwd">let</span> cfg = <span class="SItr">@compiler</span>.<span class="SFct">getBuildCfg</span>()!
     cfg.moduleVersion  = <span class="SNum">1</span>
     cfg.moduleRevision = <span class="SNum">0</span>
     cfg.backendKind    = .<span class="SCst">Executable</span>
@@ -9867,7 +9880,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <p>Subscribe with a mask from <span class="code-inline">Swag.CompilerMsgMask</span>:</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#message</span>(<span class="SCst">Swag</span>.<span class="SCst">CompilerMsgMask</span>.<span class="SCst">SemFunctions</span>)
 {
-    <span class="SKwd">let</span> message = <span class="SKwd">notnull</span> <span class="SItr">@compiler</span>.<span class="SFct">getMessage</span>()
+    <span class="SKwd">let</span> message = <span class="SItr">@compiler</span>.<span class="SFct">getMessage</span>()!
     <span class="SLgc">if</span> message.type == <span class="SKwd">null</span> <span class="SLgc">or</span> message.name == <span class="SKwd">null</span> <span class="SLgc">do</span>
         <span class="SLgc">return</span>
 

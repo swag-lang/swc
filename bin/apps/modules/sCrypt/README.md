@@ -78,9 +78,9 @@ std/core Crypto + File + Jobs                     v
                                            WinFsp officiel
 ```
 
-- `std/core` fournit HMAC-SHA-256, PBKDF2-HMAC-SHA-256, ChaCha20, la comparaison en temps
-  constant, l’effacement sécurisé, l’aléa cryptographique et les opérations positionnées de
-  `FileStream`. Les algorithmes sont généraux ; seul le très petit adaptateur système de
+- `std/core` fournit Argon2id, ChaCha20-Poly1305, BLAKE2b, ChaCha20, HMAC-SHA-256,
+  PBKDF2-HMAC-SHA-256, la comparaison en temps constant, l’effacement sécurisé, l’aléa
+  cryptographique et les opérations positionnées de `FileStream`. Les algorithmes sont généraux ; seul le très petit adaptateur système de
   `Core.Crypto` appelle le générateur `BCryptGenRandom` et `RtlZeroMemory`. `bcrypt.dll` fait
   partie de Windows et n’ajoute aucun composant à distribuer ou installer. La même couche
   standard fournit l’horloge UTC et la liste des lettres de lecteur disponibles ; sCrypt ne
@@ -117,15 +117,25 @@ algorithmes, le format du conteneur, le widget de mot de passe ni le système de
 
 ## Format et propriétés de sécurité
 
-- 32 octets initiaux de sel aléatoire ;
-- PBKDF2-HMAC-SHA-256, 200 000 itérations en production, produisant deux clés séparées ;
+- une clé maîtresse aléatoire de 64 octets, tirée à la création et jamais dérivée d’un mot de
+  passe ; les clés de chiffrement et de localisation en sont dérivées par BLAKE2b avec séparation
+  de domaine ;
+- quatre emplacements de clé, chacun portant son propre sel, son profil de coût et la clé maîtresse
+  enveloppée par la clé dérivée de son mot de passe. Changer un mot de passe réécrit un seul
+  emplacement ; plusieurs mots de passe peuvent coexister et l’un d’eux peut être révoqué ;
+- Argon2id, RFC 9106, par défaut m = 256 Mio, t = 3, p = 4. Les paramètres sont enregistrés par
+  emplacement, donc relever le coût plus tard n’invalide aucun mot de passe existant ;
 - deux emplacements de métadonnées alternés et authentifiés pour tolérer une interruption de
-  commit ; le format 2 n’écrit que la longueur réellement utilisée dans l’emplacement réservé et
-  sait encore ouvrir les conteneurs du format 1 ;
-- données en blocs de 4 Kio, chiffrées par ChaCha20 avec nonce aléatoire puis authentifiées par
-  HMAC-SHA-256 ;
-- écriture copy-on-write : un ancien bloc n’est recyclé qu’après publication et flush du nouvel
-  en-tête ;
+  checkpoint ; entre deux checkpoints, chaque modification n’ajoute qu’un petit enregistrement au
+  journal circulaire, relu à l’ouverture ;
+- la table des entrées vit dans des blocs chiffrés indexés par l’en-tête, et non dans l’en-tête
+  lui-même : le nombre de fichiers n’est plus plafonné par la taille d’un emplacement ;
+- données en blocs de 4 Kio, scellées en une seule passe par ChaCha20-Poly1305, RFC 8439, avec
+  nonce aléatoire ; l’étiquette couvre le genre et la position de l’enregistrement ;
+- écriture copy-on-write : un ancien bloc n’est recyclé qu’après publication et flush de
+  l’enregistrement qui cesse de le référencer ;
+- la liste des blocs libres n’est pas stockée : elle est le complément de ce que la table des
+  entrées et l’index des pages référencent, et ne peut donc pas diverger ;
 - aucun magic, nom, dossier, contenu, bloc libre ou taille de fichier interne n’est lisible sans
   mot de passe correct ; le reste du conteneur est initialisé avec des octets aléatoires.
 
@@ -159,9 +169,10 @@ create, lookup, read, write, flush, resize, security, énumération de dossiers,
 statuts d’erreur.
 
 Les primitives déplacées sont testées à leur nouvelle frontière : les tests de `std/core`
-incluent les vecteurs connus HMAC-SHA-256, PBKDF2-HMAC-SHA-256 et ChaCha20, les tailles de sortie
-PBKDF2 partielles, le chiffrement en place, l’aléa, l’effacement mémoire et les opérations de
-fichier positionnées ; les tests de `std/gui` couvrent aussi le masquage, Unicode, sélection,
+incluent les vecteurs de référence BLAKE2b (RFC 7693), Argon2id (RFC 9106), Poly1305 et
+ChaCha20-Poly1305 (RFC 8439), ainsi que HMAC-SHA-256, PBKDF2-HMAC-SHA-256 et ChaCha20, les tailles
+de sortie PBKDF2 partielles, le chiffrement en place, l’aléa, l’effacement mémoire et les
+opérations de fichier positionnées ; les tests de `std/gui` couvrent aussi le masquage, Unicode, sélection,
 suppression, neutralisation du presse-papiers et effacement de `PasswordEdit`.
 
 `tools\test-scrypt-integration.bat` construit une variante de test, demande l’élévation UAC et crée une sandbox

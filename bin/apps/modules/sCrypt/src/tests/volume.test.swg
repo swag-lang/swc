@@ -57,17 +57,16 @@ func headerDigest(path: string, slot: u64)->[32] u8
     defer file.close()
     var bytes: Array'u8
     bytes.resize(HeaderSlotSize)
-    @assert(expect file.readExactAt(Crypto.SaltSize + slot * HeaderSlotSize, bytes.toSlice()))
+    @assert(expect file.readExactAt(HeaderAreaOffset + slot * HeaderSlotSize, bytes.toSlice()))
     let result = testDigestBytes(Hash.Sha256.compute(bytes.toSlice()))
     Core.Crypto.secureClear(bytes.toSlice())
     return result
 }
 
-func flipHeaderByte(path: string, slot: u64)
+func flipByteAt(path: string, offset: u64)
 {
     var file = expect File.open(path, .Open, .ReadWrite, .Read)
     defer file.close()
-    let offset = Crypto.SaltSize + slot * HeaderSlotSize + HeaderRecordPrefixSize
     var byte: [1] u8
     @assert(expect file.readExactAt(offset, byte))
     byte[0] ^= 0x5A
@@ -75,25 +74,23 @@ func flipHeaderByte(path: string, slot: u64)
     expect file.flush()
 }
 
-func writeLegacyHeader(volume: *Volume)
+func flipHeaderByte(path: string, slot: u64)
 {
-    let sequence = volume.sequence + 1
-    let slot     = 1'u32 - volume.activeSlot
-    var plain    = expect volume.serialize(sequence)
-    Crypto.store32((plain.buffer + #sizeof(HeaderMagic))!, LegacyFormatVersion)
-    plain.resize(LegacyHeaderPlainSize)
-
-    var record: Array'u8
-    record.resize(HeaderSlotSize)
-    let nonce      = record[0 until Crypto.NonceSize]
-    let ciphertext = record[Crypto.NonceSize until Crypto.NonceSize + LegacyHeaderPlainSize]
-    let tag        = record[Crypto.NonceSize + LegacyHeaderPlainSize until HeaderSlotSize]
-    expect Crypto.seal(&volume.keys, HeaderKind, slot, plain.toSlice(), nonce, ciphertext, tag)
-    expect volume.file.writeAllAt(Crypto.SaltSize + slot * HeaderSlotSize, record.toSlice())
-    expect volume.file.flush()
-    Core.Crypto.secureClear(plain.toSlice())
-    Core.Crypto.secureClear(record.toSlice())
+    flipByteAt(path, HeaderAreaOffset + slot * HeaderSlotSize + HeaderRecordPrefixSize)
 }
+
+func secondPassword()->const [..] u8
+{
+    return @mkslice(cast(const [*] u8) @dataof("a second way in entirely"), 24)
+}
+
+func thirdPassword()->const [..] u8
+{
+    return @mkslice(cast(const [*] u8) @dataof("yet another passphrase!!"), 24)
+}
+
+// A container large enough to hold more metadata than one header slot can.
+func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
 
 #test
 {
@@ -104,8 +101,8 @@ func writeLegacyHeader(volume: *Volume)
     var volume           = expect Volume.create(path, testPassword(), MinimumSize)
     @assert(volume.containerSize == MinimumSize)
     var storedLocator: [Crypto.RecordLocatorSize] u8
-    @assert(expect volume.file.readExactAt(Crypto.SaltSize + volume.activeSlot * HeaderSlotSize, storedLocator))
-    var expectedLocator = Crypto.recordLocator(volume.keys.authentication, HeaderLocatorKind, volume.activeSlot)
+    @assert(expect volume.file.readExactAt(HeaderAreaOffset + volume.activeSlot * HeaderSlotSize, storedLocator))
+    var expectedLocator = expect Crypto.recordLocator(volume.keys.locator, HeaderLocatorKind, volume.activeSlot)
     @assert(Core.Crypto.constantTimeEqual(storedLocator[until HeaderLocatorCheckSize], expectedLocator[until HeaderLocatorCheckSize]))
     let encodedSize     = Crypto.load32(&storedLocator[HeaderLocatorCheckSize])
     let locatorMask     = Crypto.load32(&expectedLocator[HeaderLocatorCheckSize])
@@ -326,12 +323,14 @@ func writeLegacyHeader(volume: *Volume)
 
     var volume = expect Volume.create(path, testPassword(), MinimumSize)
     discard expect volume.createNode("\\latest", true, FileAttributeDirectory, emptyBytes())
-    let activeSlot = volume.activeSlot
     volume.close()
+    let activeSlot = cast(u64) volume.activeSlot
 
+    // The damaged slot falls back to the other checkpoint, and the journal
+    // records written after that checkpoint bring the volume back up to date.
     flipHeaderByte(path, activeSlot)
     var fallback = expect Volume.open(path, testPassword())
-    @assert(fallback.resolve("\\latest") == null)
+    @assert(fallback.resolve("\\latest") != null)
     fallback.close()
 
     flipHeaderByte(path, 1 - activeSlot)
@@ -340,17 +339,226 @@ func writeLegacyHeader(volume: *Volume)
 
 #test
 {
-    let path = testContainerPath("legacy_header")
+    // A change is one small journal record, not a rewrite of the whole metadata
+    // image, and an unmount consolidates the journal into a checkpoint.
+    let path = testContainerPath("journal")
     defer discard catch File.delete(path)
 
     var volume = expect Volume.create(path, testPassword(), MinimumSize)
-    discard expect volume.createNode("\\legacy", true, FileAttributeDirectory, emptyBytes())
-    expect volume.commit()
-    writeLegacyHeader(&volume)
+    let afterCreate = volume.sequence
+    @assert(volume.checkpointAt == afterCreate)
+
+    discard expect volume.createNode("\\one", true, FileAttributeDirectory, emptyBytes())
+    discard expect volume.createNode("\\two", true, FileAttributeDirectory, emptyBytes())
+    @assert(volume.sequence == afterCreate + 2)
+    @assert(volume.checkpointAt == afterCreate)
+
+    // Filling the journal forces a checkpoint rather than overwriting a record
+    // that has not been consolidated yet.
+    for [i] in JournalCapacity do
+        discard expect volume.createNode(Format.toString("\\filler_%", i), true, FileAttributeDirectory, emptyBytes())
+    @assert(volume.checkpointAt > afterCreate)
+    @assert(volume.sequence - volume.checkpointAt < JournalCapacity)
     volume.close()
 
     var reopened = expect Volume.open(path, testPassword())
-    @assert(reopened.sequence == 3)
-    @assert(reopened.resolve("\\legacy") != null)
+    @assert(reopened.resolve("\\one") != null)
+    @assert(reopened.resolve("\\two") != null)
+    for [i] in JournalCapacity do
+        @assert(reopened.resolve(Format.toString("\\filler_%", i)) != null)
+
+    // Closing consolidated everything, so nothing is left to replay.
+    @assert(reopened.sequence == reopened.checkpointAt)
     reopened.close()
+}
+
+#test
+{
+    // What a crash would leave on disk is exactly the file as it stands between
+    // operations, so copying it there and opening the copy is a faithful
+    // power-loss test. The journal is what makes those changes survive without
+    // a checkpoint having been written.
+    let path = testContainerPath("crash")
+    defer discard catch File.delete(path)
+    let salvaged = testContainerPath("crash_salvaged")
+    defer discard catch File.delete(salvaged)
+
+    var volume = expect Volume.create(path, testPassword(), MinimumSize)
+    let checkpointBefore = volume.checkpointAt
+
+    let fileId = expect volume.createNode("\\survivor.bin", false, FileAttributeNormal, emptyBytes())
+    let payload: [40] u8 = [3]
+    @assert(expect volume.writeNode(fileId, 0, payload, false, false) == #sizeof(payload))
+    expect volume.commit()
+    discard expect volume.createNode("\\also_here", true, FileAttributeDirectory, emptyBytes())
+
+    // No checkpoint has happened since creation: everything above lives only in
+    // the journal.
+    @assert(volume.checkpointAt == checkpointBefore)
+    @assert(volume.sequence > checkpointBefore)
+    expect File.duplicate(salvaged, path)
+    volume.close()
+
+    var recovered = expect Volume.open(salvaged, testPassword())
+    let node = recovered.resolve("\\survivor.bin")
+    @assert(node != null)
+    @assert(node.size == #sizeof(payload))
+    var readBack: [40] u8
+    @assert(expect recovered.readNode(node.id, 0, readBack) == #sizeof(readBack))
+    @assert(sameTestBytes(payload, readBack))
+    @assert(recovered.resolve("\\also_here") != null)
+    recovered.close()
+
+    // The salvaged container is now consolidated and still opens normally.
+    var again = expect Volume.open(salvaged, testPassword())
+    @assert(again.sequence == again.checkpointAt)
+    @assert(again.resolve("\\survivor.bin") != null)
+    again.close()
+}
+
+#test
+{
+    // A journal record that was torn stops the replay: everything after it
+    // belongs to an operation that never completed.
+    let path = testContainerPath("torn")
+    defer discard catch File.delete(path)
+
+    var volume = expect Volume.create(path, testPassword(), MinimumSize)
+    let firstSequence = volume.sequence + 1
+    discard expect volume.createNode("\\first", true, FileAttributeDirectory, emptyBytes())
+    discard expect volume.createNode("\\second", true, FileAttributeDirectory, emptyBytes())
+    let salvaged = testContainerPath("torn_salvaged")
+    defer discard catch File.delete(salvaged)
+    expect File.duplicate(salvaged, path)
+    volume.close()
+
+    // Damage the first record. The second one is intact but unreachable, because
+    // replay may not skip a missing sequence.
+    flipByteAt(salvaged, JournalAreaOffset + (firstSequence % JournalCapacity) * JournalRecordSize + HeaderRecordPrefixSize)
+
+    var recovered = expect Volume.open(salvaged, testPassword())
+    @assert(recovered.resolve("\\first") == null)
+    @assert(recovered.resolve("\\second") == null)
+    recovered.close()
+}
+
+#test
+{
+    // A container may now hold far more metadata than one header slot, because
+    // the node table lives in encrypted blocks and the header only indexes them.
+    let path = testContainerPath("paging")
+    defer discard catch File.delete(path)
+
+    const FileCount = 1200'u64
+
+    var volume = expect Volume.create(path, testPassword(), pagingContainerSize())
+    for [i] in FileCount do
+        discard expect volume.createNode(Format.toString("\\entry_%.bin", i), false, FileAttributeNormal, emptyBytes())
+    volume.close()
+
+    @assert(volume.metadataSize > HeaderPlainSize)
+    @assert(volume.metadataPages.count > 1)
+
+    var reopened = expect Volume.open(path, testPassword())
+    @assert(reopened.nodes.count == FileCount + 1)
+    for [i] in FileCount do
+        @assert(reopened.resolve(Format.toString("\\entry_%.bin", i)) != null)
+
+    // Deleting everything gives the metadata pages back too.
+    for [i] in FileCount
+    {
+        let node = reopened.resolve(Format.toString("\\entry_%.bin", i))!
+        expect reopened.deleteNode(node.id)
+    }
+
+    reopened.close()
+
+    var emptied = expect Volume.open(path, testPassword())
+    @assert(emptied.nodes.count == 1)
+    @assert(emptied.metadataPages.count == 1)
+    emptied.close()
+}
+
+#test
+{
+    // A password only ever unwraps the master key, so changing one is a single
+    // key-slot write and leaves every encrypted block alone.
+    let path = testContainerPath("keyslots")
+    defer discard catch File.delete(path)
+
+    let payload: [64] u8 = [7]
+    var volume = expect Volume.create(path, testPassword(), MinimumSize)
+    let fileId = expect volume.createNode("\\secret.bin", false, FileAttributeNormal, emptyBytes())
+    @assert(expect volume.writeNode(fileId, 0, payload, false, false) == #sizeof(payload))
+    @assert(volume.keySlotCount() == 1)
+
+    expect volume.changePassword(testPassword(), secondPassword())
+    volume.close()
+
+    @assert(rejectsPassword(path, testPassword()))
+    var reopened = expect Volume.open(path, secondPassword())
+    var readBack: [64] u8
+    let node = reopened.resolve("\\secret.bin")!
+    @assert(expect reopened.readNode(node.id, 0, readBack) == #sizeof(readBack))
+    @assert(sameTestBytes(payload, readBack))
+
+    // A second password opens the same container, and removing one leaves the
+    // other working.
+    discard expect reopened.addPassword(thirdPassword())
+    @assert(reopened.keySlotCount() == 2)
+    reopened.close()
+
+    var viaThird = expect Volume.open(path, thirdPassword())
+    @assert(viaThird.keySlotCount() == 2)
+    @assert(viaThird.resolve("\\secret.bin") != null)
+    expect viaThird.removePassword(secondPassword())
+    @assert(viaThird.keySlotCount() == 1)
+    viaThird.close()
+
+    @assert(rejectsPassword(path, secondPassword()))
+    var last = expect Volume.open(path, thirdPassword())
+    @assert(last.resolve("\\secret.bin") != null)
+
+    // The last remaining password cannot be removed: a container no password
+    // opens is unrecoverable.
+    discard catch last.removePassword(thirdPassword()) as lastError
+    @assert(lastError != null)
+
+    discard catch last.addPassword(thirdPassword()) as duplicateError
+    @assert(duplicateError != null)
+    discard catch last.changePassword(secondPassword(), testPassword()) as wrongCurrentError
+    @assert(wrongCurrentError != null)
+    last.close()
+}
+
+#test
+{
+    // Every key slot is uniformly distributed, so the slot area never says how
+    // many passwords a container has.
+    let path = testContainerPath("slotnoise")
+    defer discard catch File.delete(path)
+
+    var volume = expect Volume.create(path, testPassword(), MinimumSize)
+    volume.close()
+
+    var file = expect File.open(path, .Open, .ReadWrite, .Read)
+    var area: [KeySlotAreaSize] u8
+    @assert(expect file.readExactAt(KeySlotAreaOffset, area))
+    file.close()
+
+    // A used slot and an unused one are both noise: no run of repeated bytes
+    // marks the boundary between them.
+    var runs = 0'u64
+    for [i] in KeySlotAreaSize - 1
+    {
+        if area[i] == area[i + 1] do
+            runs += 1
+    }
+
+    @assert(runs < KeySlotAreaSize / 8)
+
+    // Damaging the only slot makes the container unopenable, which is what shows
+    // the master key really is wrapped there and nowhere else.
+    flipByteAt(path, KeySlotAreaOffset)
+    @assert(rejectsPassword(path, testPassword()))
 }

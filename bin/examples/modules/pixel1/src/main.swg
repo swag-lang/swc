@@ -103,10 +103,13 @@ func display()
     g_Render.end()
 }
 
-func onResize(_window: *Env.Window, width, height: s32)
+func onResize(window: *Env.Window, width, height: s32)
 {
+    // The client size is physical device pixels; the scene keeps drawing in logical
+    // W x H units, so the painter maps them to device pixels on scaled displays.
     g_RC.width  = width
     g_RC.height = height
+    g_Painter.setContentScale(window.dpiScale())
 }
 
 var g_Window:   Env.Window

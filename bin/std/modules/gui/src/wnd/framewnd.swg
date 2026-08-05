@@ -215,7 +215,10 @@ impl FrameWnd
     #[Swag.Discardable]
     mtd(T) createView(hook: #null HookEvent = null)->*T
     {
-        .view                 = Wnd.create'T(me, "", .position, hook: hook)
+        // The view is born at its final laid-out rectangle — the frame minus its
+        // caption and border paddings — because a hook may lay out its content from
+        // the client rectangle it sees in the create event.
+        .view                 = Wnd.create'T(me, "", .paddedClientRect(), hook: hook)
         .view.backgroundStyle = .Transparent
         .sendResizeEvent()
         return cast(*T) .view!

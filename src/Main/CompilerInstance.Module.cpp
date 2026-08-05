@@ -2166,6 +2166,21 @@ void CompilerInstance::registerImportedSharedModuleDir(const fs::path& path)
     externalModuleMgr().registerSearchPath(FileSystem::normalizePath(path));
 }
 
+// Imported interfaces name their origin module ('core'); dependency resolution may have
+// selected a differently named artifact for it — 'core.test' when a test compile binds
+// the test variants of its dependencies. Names that are not imports answer unchanged,
+// so foreign system modules ('kernel32') pass through.
+std::string_view CompilerInstance::runtimeImportLinkName(const std::string_view moduleName) const
+{
+    for (const NativeRuntimeImport& runtimeImport : nativeRuntimeImports_)
+    {
+        if (runtimeImport.moduleName.view() == moduleName)
+            return runtimeImport.linkModuleName.view();
+    }
+
+    return moduleName;
+}
+
 void CompilerInstance::adoptBuildCfg(const Runtime::BuildCfg& buildCfg)
 {
     buildCfg_ = buildCfg;

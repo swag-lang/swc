@@ -50,30 +50,38 @@ Use this compact format. Keep observations factual and make the next step action
   is what catches the codegen half.
 - Related: `bin/unittests/jit/operators/notnull_access.swg`
 
-### Cold-cache `std` test runs fail resolving core test-only exports
+### Golden snapshots cannot be recorded under the test sandbox
+
+- Area: compiler | bin/std
+- Found while: regenerating the gui widget goldens after the theme-atlas format change
+- Observation: `swc test` always arms the sandbox, and the sandbox refuses every write outside
+  its root. The golden store's documented flows — create a missing golden on first run, write
+  `<name>.actual.txt`/`.png` next to a mismatching golden for `tools/accept-test-goldens.bat` —
+  both write into the module source tree, so they silently stopped working when the sandbox
+  landed: a failing golden reports `[golden] cannot write ...` and leaves nothing to accept.
+- Evidence: the 13 gui golden mismatches printed `cannot write` for every actual; recording them
+  required launching the tests with an explicit repo-rooted sandbox
+  (`--run-arg "swag.sandbox=<repo root>"`), which redirects the special directories into the
+  repository and allows the corpus writes.
+- Next step: decide where golden actuals should land under a sandbox. Candidates: the launcher
+  grants the corpus root explicitly (a `swag.sandbox.corpus=<dir>` run argument the golden store
+  consults), or the golden store mirrors actuals under the sandbox root at a deterministic path
+  and `accept-test-goldens.bat` harvests them. Writing straight to the source tree from a
+  sandboxed test contradicts the sandbox guarantee, so the escape must stay launcher-owned.
+
+### Constant branches survive until the sanitizer after inlining
 
 - Area: compiler
-- Found while: validating a `bin/std` change with `swc test --workspace bin/std` after deleting
-  `.dep`/`.output`
-- Observation: on a cold cache, building `pixel.test` fails with `native backend cannot resolve a
-  foreign function relocation for '<jit-constant>'` requesting `tag_bin_hook_payload__read` and
-  `tag_bin_interface_probe__score` from module `core`. Those are public *test-only* symbols
-  (`TagBinHookPayload`, `TagBinInterfaceProbe` in
-  `bin/std/modules/core/src/unittests/serialization/tagbin.test.swg`): they are exported by
-  `core.test.dll` and declared in the test-variant interface, but the resolver looks them up in
-  the non-test `core` module. The suite only passes with warm caches from an earlier state.
-- Evidence: reproduces deterministically at clean HEAD (65b0e0271) in a fresh worktree with both
-  `bin/swc.exe` and `bin/swc_devmode.exe`: `build --rebuild` succeeds, the following
-  `test --workspace bin/std` stops at pixel with the two relocations above. The strings
-  `tag_bin_hook_payload__read/write/post` are present in
-  `.output/core/shared-library/fast-debug/x86_64/core.test.dll`.
-- Next step: in the native-backend foreign resolver, check how a `<jit-constant>` relocation maps
-  a module name to a concrete dll in test mode: downstream test builds must resolve `core` to
-  `core.test.dll` (where test-only exports live), or the test-variant interface must not leak
-  test-only types to dependents in the first place. Making the test types non-`public` is NOT the
-  fix: without export, runtime interface dispatch stops binding the impl (the TagBin
-  `readElement` hook is silently never called and `tagbin.test.swg:611` fails), so the `public`
-  markers are required and the resolver is the only correct place.
+- Found while: `notnull_access.swg` release-mode sanity false positive (fixed in the sanitizer)
+- Observation: inlining `redundant(null)` folds the null test to `%2 = 1; %3 = %2;
+  cmp %3, 0; je`, yet no pass folds the constant compare-and-branch before sanity runs, so the
+  dead dereference block survives the whole pre-RA pipeline. The sanitizer now prunes the
+  infeasible edge itself, but the optimizer keeps emitting the dead block.
+- Evidence: `#[Swag.PrintMicro("pre-sanity")]` on a `#test` calling `redundant(null)` shows the
+  folded guard and the unreachable dereference block still present at the sanity stage.
+- Next step: teach branch-simplify (or const-fold) to evaluate a conditional jump whose flags
+  come from a compare against an immediate on a register holding a known constant, then let DCE
+  drop the unreachable block; measure code-size impact on the release suites.
 
 ### Appending a `String` rvalue with `+=` corrupts the heap
 

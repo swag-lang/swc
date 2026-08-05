@@ -273,12 +273,18 @@ namespace ModuleApi
         // Documentation consumes the same resolved entries immediately after sema. Retain
         // them on the compiler so the renderer does not repeat the AST classification pass.
         ModuleApiFileEntries& collectedEntries = compiler.cmdLine().command == CommandKind::Doc ? compiler.prepareModuleApiPublicEntries() : localEntries;
+        // The published interface is a build product. A test compile also sees test-gated
+        // publics, and exporting them would leak symbols only the test artifacts carry into
+        // the api every later build consumes; those consumers then reference functions the
+        // plain dependency artifacts do not export.
+        const bool suppressExport = compiler.cmdLine().sourceDrivenTest;
+
         // Sema is done here, so walking the ASTs is safe now. Without an export
         // directory, only diagnostics such as public global variables are needed.
-        const bool diagnosticsOnly = exportApiDir.empty() && compiler.cmdLine().command != CommandKind::Doc;
+        const bool diagnosticsOnly = (exportApiDir.empty() || suppressExport) && compiler.cmdLine().command != CommandKind::Doc;
         SWC_RESULT(collectPublicEntries(ctx, collectedEntries, diagnosticsOnly));
 
-        if (exportApiDir.empty())
+        if (exportApiDir.empty() || suppressExport)
             return Result::Continue;
 
         const Utf8        moduleNamespace  = buildModuleNamespaceName(compiler);

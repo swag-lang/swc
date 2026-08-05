@@ -84,11 +84,17 @@ func drawRenderTargetPage(painter: *Pixel.Painter)
 {
     drawPageHeader(painter, "Pixel render targets", "Page 9 : offscreen drawing, texture reuse, source-rect sampling and brush reuse from a live render target.")
 
-    let tgt = g_Render.acquireRenderTarget(360, 220)
+    // The target stores device texels while the offscreen pass draws in logical
+    // units: allocate it at the painter's content scale so the drawing is as dense
+    // as the surface. The pooled target rounds up to a power of two, and the
+    // whole-texture previews below sample its full extent, so the content is drawn
+    // over the complete texel surface: its logical size is the texel size unscaled.
+    let scale = painter.contentScale()
+    let tgt   = g_Render.acquireRenderTarget(cast(s32) Math.ceil(360 * scale), cast(s32) Math.ceil(220 * scale))
     defer g_Render.releaseRenderTarget(tgt)
 
     painter.bindRenderTarget(tgt, true)
-    drawRenderTargetContent(painter, tgt.colorBuffer.width, tgt.colorBuffer.height)
+    drawRenderTargetContent(painter, cast(s32) Math.ceil(tgt.colorBuffer.width / scale), cast(s32) Math.ceil(tgt.colorBuffer.height / scale))
     painter.unbindRenderTarget()
 
     drawRenderTargetPreviewCard(painter, {28, 104, 924, 304}, tgt.colorBuffer)

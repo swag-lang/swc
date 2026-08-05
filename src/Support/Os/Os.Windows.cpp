@@ -1437,7 +1437,21 @@ namespace Os
         const Utf8     moduleNameUtf8{moduleName};
         const fs::path requestedPath{moduleNameUtf8.c_str()};
         if (requestedPath.has_extension())
-            return tryLoadExternalModulePath(outModuleHandle, requestedPath);
+        {
+            if (tryLoadExternalModulePath(outModuleHandle, requestedPath))
+                return true;
+
+            // An artifact mode suffix parses as an extension ('core.test'), yet such a
+            // name still designates a dll.
+            if (requestedPath.extension() != ".dll")
+            {
+                fs::path dllPath = requestedPath;
+                dllPath += ".dll";
+                return tryLoadExternalModulePath(outModuleHandle, dllPath);
+            }
+
+            return false;
+        }
 
         fs::path dllPath = requestedPath;
         dllPath.replace_extension(".dll");

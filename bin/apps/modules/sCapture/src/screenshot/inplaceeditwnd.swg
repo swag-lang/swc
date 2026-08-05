@@ -124,16 +124,16 @@ impl InPlaceEditWnd
         .editBar.setOrientation(.Vertical)
 
         let editTools = [
-            {"draw",   7,  appStrings().tip_InpDraw},
-            {"line",   1,  appStrings().tip_InpLine},
-            {"circle", 19, appStrings().tip_InpCircle},
-            {"rect",   20, appStrings().tip_InpRect},
-            {"arrow",  3,  appStrings().tip_InpArrow},
-            {"text",   4,  appStrings().tip_InpText},
-            {"marker", 9,  appStrings().tip_InpMarker}]
+            {"draw",   CaptureIcons.Draw,      appStrings().tip_InpDraw},
+            {"line",   CaptureIcons.Line,      appStrings().tip_InpLine},
+            {"circle", CaptureIcons.Circle,    appStrings().tip_InpCircle},
+            {"rect",   CaptureIcons.Rect,      appStrings().tip_InpRect},
+            {"arrow",  CaptureIcons.Arrow,     appStrings().tip_InpArrow},
+            {"text",   CaptureIcons.Text,      appStrings().tip_InpText},
+            {"marker", CaptureIcons.Highlight, appStrings().tip_InpMarker}]
 
         for tool in editTools do
-            .editBar.addRadioButton(Icon.from(&main.icons48, tool.item1), tool.item0).toolTip = tool.item2
+            .editBar.addRadioButton(main.icon(tool.item1, 48), tool.item0).toolTip = tool.item2
 
         .editBar.sigCheckedChanged += func|self = me|(btn) { self.handleEditModeChange(btn.id orelse ""); }
         .createColorPicker()

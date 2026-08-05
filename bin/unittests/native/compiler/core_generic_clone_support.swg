@@ -76,7 +76,7 @@ namespace GenericCloneCodegenSupport
     {
         mtd addNew(value: T)
         {
-            let ptr = cast #unnull (*T) @alloc(#sizeof(T))
+            let ptr = cast(*T) @alloc(#sizeof(T))!
             dref ptr = value
             .values.add(ptr)
         }
@@ -132,7 +132,7 @@ namespace GenericCloneCodegenSupport
 
         mtd addNew(value: T)
         {
-            let ptr = cast #unnull (*T) @alloc(#sizeof(T))
+            let ptr = cast(*T) @alloc(#sizeof(T))!
             dref ptr = value
             if .count == 0 do
                 .first = ptr

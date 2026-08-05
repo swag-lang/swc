@@ -8,6 +8,7 @@
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/SourceFile.h"
+#include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
 #include "Support/Math/Helpers.h"
@@ -33,7 +34,7 @@ namespace
 
     // Gathers the link library required by every foreign function referenced by a code block. The
     // dependency-module hooks are themselves foreign functions, so this also pulls in dependency libs.
-    void collectForeignLibs(std::set<Utf8>& outLibNames, const MachineCode& code)
+    void collectForeignLibs(std::set<Utf8>& outLibNames, const CompilerInstance& compiler, const MachineCode& code)
     {
         for (const MicroRelocation& relocation : code.codeRelocations)
         {
@@ -42,7 +43,12 @@ namespace
             const auto* function = relocation.targetSymbol->safeCast<SymbolFunction>();
             if (!function)
                 continue;
-            const std::string_view moduleName = function->foreignLinkModuleName().empty() ? function->foreignModuleName() : function->foreignLinkModuleName();
+
+            // An explicit link module wins; otherwise the origin module name maps to the
+            // link artifact dependency resolution selected ('core.test' in a test compile).
+            std::string_view moduleName = function->foreignLinkModuleName();
+            if (moduleName.empty())
+                moduleName = compiler.runtimeImportLinkName(function->foreignModuleName());
             if (!moduleName.empty())
                 outLibNames.insert(normalizedLibName(moduleName));
         }
@@ -541,9 +547,9 @@ namespace
             outLibNames.insert(normalizedLibName(library.view()));
         for (const NativeFunctionInfo& info : builder.functionInfos)
             if (info.machineCode)
-                collectForeignLibs(outLibNames, *info.machineCode);
+                collectForeignLibs(outLibNames, builder.compiler(), *info.machineCode);
         if (builder.startup)
-            collectForeignLibs(outLibNames, builder.startup->code);
+            collectForeignLibs(outLibNames, builder.compiler(), builder.startup->code);
 
         // Search directories: the SDK/MSVC library directories, then dependency link dirs and the folders
         // that hold imported-API artifacts.

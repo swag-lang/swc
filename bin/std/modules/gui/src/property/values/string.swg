@@ -5,7 +5,7 @@ internal impl Properties
 {
     mtd validateDynamicString(item: *PropertiesItem)
     {
-        var data = cast #unnull (*String) item.data
+        var data = cast(*String) item.data!
         if @isset(item.editBox) do
             dref data = item.editBox.text()
         .commitItemChange(item)
@@ -24,7 +24,7 @@ internal impl Properties
             return
         }
 
-        let cur = cast #unnull (*String) item.data
+        let cur = cast(*String) item.data!
         var sel = 0'u32
         for &fnt, [idx] in g_PropSysFonts
         {
@@ -41,7 +41,7 @@ internal impl Properties
         if sel == Swag.U32.Max do
             return
 
-        var data = cast #unnull (*String) item.data
+        var data = cast(*String) item.data!
         if sel == 0 do
             data.clear()
         else do
@@ -110,7 +110,7 @@ internal impl Properties
         var editWidth = cast(f32) Reflection.attributeValue(value, me.EditSize, "size", me.editorWidth)
         if !me.isGridLike() do
             editWidth = me.listContentWidthFromUseful(editWidth)
-        with let ed = EditBox.create(item.line, dref cast #unnull (*String) data)
+        with let ed = EditBox.create(item.line, dref cast(*String) data!)
         {
             if me.kind == .Panel
             {
@@ -160,7 +160,7 @@ internal impl Properties
         if !me.isGridLike() do
             editWidth = me.listContentWidthFromUseful(editWidth)
 
-        with let ed = EditBox.create(item.line, dref cast #unnull (*string) data)
+        with let ed = EditBox.create(item.line, dref cast(*string) data!)
         {
             .maxSize.x = editWidth
             if me.isGridLike() do

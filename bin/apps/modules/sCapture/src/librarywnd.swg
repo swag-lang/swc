@@ -238,7 +238,7 @@ impl LibraryWnd
             }
         }
 
-        let line = .listCtrl.createLine(appStrings().ui_AllCaptures, Icon.from(&.main.icons24, 4))
+        let line = .listCtrl.createLine(appStrings().ui_AllCaptures, .main.icon(.Archive))
         var item = line.setItem(1, Format.toString("% ", g_Library.files.count))
         item.horzAlign = .Right
 
@@ -251,7 +251,7 @@ impl LibraryWnd
         var lastLineMonth:   #null *ListLine
         var lastLineDay:     #null *ListLine
 
-        let icon1 = Icon.from(&.main.icons24, 3)
+        let icon1 = .main.icon(.Calendar)
 
         var cptYear, cptMonth, cptDay = 0
 

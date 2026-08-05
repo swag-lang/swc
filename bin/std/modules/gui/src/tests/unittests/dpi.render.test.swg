@@ -3,11 +3,11 @@
 
 using Swag, Core, Pixel
 
+// Image rows are stored bottom-up; pixelColor answers in top-down coordinates, the
+// space every window rectangle in these tests is written in.
 func pixelAt(image: const *Image, x, y: s32)->u32
 {
-    let idx = (cast(u64) y * cast(u64) image.width + cast(u64) x) * 4
-    let ptr = image.pixels.buffer! + idx
-    return dref cast(const *u32) ptr
+    return image.pixelColor(x, y).argb
 }
 
 // A device scale of 2 renders the same logical tree into a doubled physical target:
@@ -34,12 +34,13 @@ func pixelAt(image: const *Image, x, y: s32)->u32
     let outside = pixelAt(&framed, 24, 28)
     @assert(inside != outside)
 
-    // The edges sit on the device grid: just outside the left edge still shows the
-    // parent background, just inside shows the child.
+    // The edges sit on the device grid: just outside the left edge (x = 32) still
+    // shows the parent background, just inside shows the child, and likewise around
+    // the right edge (x = 96).
     @assert(pixelAt(&framed, 30, 28) == outside)
     @assert(pixelAt(&framed, 34, 28) == inside)
-    @assert(pixelAt(&framed, 62, 28) == inside)
-    @assert(pixelAt(&framed, 66, 28) == outside)
+    @assert(pixelAt(&framed, 94, 28) == inside)
+    @assert(pixelAt(&framed, 98, 28) == outside)
 }
 
 // The identical logical tree rendered at scale 1 and scale 2 must agree: the scaled

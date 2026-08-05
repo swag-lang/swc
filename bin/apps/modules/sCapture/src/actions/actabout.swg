@@ -44,7 +44,7 @@ impl IActionUI for ActionAbout
         msg            += Format.toString("Copyright \u00A9 % Christophe Beaudet", Date.year)
         params.message = msg.toString()
 
-        params.surfaceIcon                                 = Icon.from(&main.icons48, 11)
+        params.surfaceIcon                                 = Icon.from(&main.appIcon, 0, 24, 24)
         params.contentIcon                                 = Icon.from(&main.appIcon, 0)
         params.contentIcon.sizeX, params.contentIcon.sizeY = 96
         params.contentIcon.color                           = Argb.White

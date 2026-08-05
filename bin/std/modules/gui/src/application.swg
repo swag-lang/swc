@@ -722,7 +722,7 @@ impl Application
         {
             .renderer.setCurrentContext(surface.rc)
             .renderer.init()
-            .theme.setupDefault(.renderer, &.resources)
+            .theme.setupDefault(.renderer, &.resources, surface.dpiScale)
             .mainSurface = surface
 
             // Spin up the shared worker pool so the parallel rasterizers (glyph MSDF
@@ -734,6 +734,12 @@ impl Application
 
         // A surface on a scaled display needs the theme atlas at least at its density.
         .theme.ensureAtlasScale(.renderer, surface.dpiScale)
+
+        // The first surface initializes the theme only just above, so the caption and
+        // border paddings computed during Surface.create were still zero. Apply them
+        // again now: the view created below must see its final client rectangle in its
+        // create event, because callers legitimately lay out their content there.
+        surface.applySurfaceFlags()
 
         .surfaces.add(surface)
 

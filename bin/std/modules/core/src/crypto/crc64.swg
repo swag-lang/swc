@@ -41,7 +41,7 @@ impl Crc64
         if length == 0 do
             return
 
-        let bytes = cast #unnull (const [*] u8) @dataof(data)
+        let bytes = cast(const [*] u8) @dataof(data)!
         var cur   = .currentValue
         var i     = 0'u64
         switch #complete kind

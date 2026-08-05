@@ -171,7 +171,7 @@ impl Encoder
 
         if Reflection.isType(type)
         {
-            let typeType = dref cast #unnull (const **TypeInfo) data
+            let typeType = dref cast(const **TypeInfo) data!
             .serializer.writeNative(typeType ? typeType.crc : 0'u32)
             return
         }
@@ -186,7 +186,7 @@ impl Encoder
             var objType, itfType: #null typeinfo
             if itf.itable
             {
-                objType = dref cast #unnull (const *typeinfo) itf.itable
+                objType = dref cast(const *typeinfo) itf.itable!
                 itfType = type
             }
 

@@ -285,6 +285,7 @@ public:
     const std::vector<fs::path>&            importedDependencyLinkDirs() const { return importedDependencyLinkDirs_; }
     const std::vector<ModuleSetupImport>&   moduleSetupImports() const { return moduleSetupImports_; }
     const std::vector<NativeRuntimeImport>& nativeRuntimeImports() const { return nativeRuntimeImports_; }
+    std::string_view                        runtimeImportLinkName(std::string_view moduleName) const;
 
     Result                   collectFiles(TaskContext& ctx);
     Result                   runModuleSetup(TaskContext& ctx);

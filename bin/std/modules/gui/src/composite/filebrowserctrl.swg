@@ -277,7 +277,7 @@ private impl FileBrowserCtrl
         var sel      = .listCtrl.selectedLines()
         for lineIt in sel
         {
-            let fi = cast #unnull (const *FileInfo) lineIt!.userData0
+            let fi = cast(const *FileInfo) lineIt!.userData0!
             if fi.isDirectory() and .options.mode != FileDlgMode.SelectFolder do
                 continue
             selCount += 1
@@ -350,7 +350,7 @@ private impl FileBrowserCtrl
                     let l = list.focusedLine()
                     if !l do
                         break
-                    let fi = cast #unnull (const *FileInfo) l.userData0
+                    let fi = cast(const *FileInfo) l.userData0!
                     if fi.isDirectory()
                     {
                         fileBrowser.setCurrentFolder(fi.fullname)
@@ -367,7 +367,7 @@ private impl FileBrowserCtrl
                 var l = list.selectedLine()
                 if !l do
                     return
-                var fi = cast #unnull (const *FileInfo) l.userData0
+                var fi = cast(const *FileInfo) l.userData0!
                 if fi.isDirectory()
                 {
                     fileBrowser.setCurrentFolder(fi.fullname)
@@ -384,7 +384,7 @@ private impl FileBrowserCtrl
                 var txt: String
                 for l in sel
                 {
-                    let fi = cast #unnull (const *FileInfo) l!.userData0
+                    let fi = cast(const *FileInfo) l!.userData0!
                     if fi.isDirectory()
                     {
                         if fileBrowser.options.mode != .SelectFolder do
@@ -410,8 +410,8 @@ private impl FileBrowserCtrl
                 if !l1 or !l2 do
                     return 0
 
-                var fi1 = cast #unnull (*FileInfo) l1.userData0
-                var fi2 = cast #unnull (*FileInfo) l2.userData0
+                var fi1 = cast(*FileInfo) l1.userData0!
+                var fi2 = cast(*FileInfo) l2.userData0!
                 if fi1.isDirectory() and !fi2.isDirectory() do
                     return -1
                 if !fi1.isDirectory() and fi2.isDirectory() do

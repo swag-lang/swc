@@ -112,6 +112,25 @@ namespace
         return codeGen.typeMgr().get(aliasEnumTypeRef(codeGen, view.typeRef()));
     }
 
+    // How many indirections separate the left VALUE from the object its members live in.
+    // Mirrors what member resolution peels in sema: every reference layer is transparent,
+    // and a pointer is dereferenced exactly once. A plain '*T' or '&T' is one; a binding
+    // to a pointer slot ('&*T', what an 'opIndex' hands back) is two.
+    uint32_t memberAccessDerefDepth(CodeGen& codeGen, const TypeInfo& leftTypeInfo)
+    {
+        uint32_t        depth = 0;
+        const TypeInfo* walk  = &leftTypeInfo;
+        while (walk->isReference())
+        {
+            ++depth;
+            walk = &codeGen.typeMgr().get(aliasEnumTypeRef(codeGen, walk->payloadTypeRef()));
+        }
+
+        if (walk->isAnyPointer())
+            ++depth;
+        return depth;
+    }
+
     bool resolveAggregateMemberInfo(CodeGen& codeGen, const TypeInfo& aggregateType, AstNodeRef memberRef, AggregateMemberInfo& outInfo)
     {
         if (!aggregateType.isAggregateStruct())
@@ -248,6 +267,15 @@ namespace
             {
                 baseAddressReg = codeGen.nextVirtualIntRegister();
                 builder.emitLoadRegMem(baseAddressReg, leftPayload.reg, 0, MicroOpBits::B64);
+            }
+
+            // One indirection per layer beyond the first: a reference bound to a pointer
+            // slot yields the slot address, and the slot yields the object.
+            for (uint32_t remaining = memberAccessDerefDepth(codeGen, leftTypeInfo); remaining > 1; --remaining)
+            {
+                const MicroReg nextReg = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegMem(nextReg, baseAddressReg, 0, MicroOpBits::B64);
+                baseAddressReg = nextReg;
             }
         }
         else if (!shouldTreatStructMemberLeftAsValue(codeGen, node.nodeLeftRef, leftPayload))
@@ -418,11 +446,10 @@ Result AstMemberAccessExpr::codeGenPreNodeChild(const CodeGen& codeGen, const As
 {
     if (childRef == nodeLeftRef)
     {
-        // A '?.' or '!.' left side must always be materialized: its null test guards the
-        // access, even when the member itself resolves to a function and the receiver
-        // would otherwise only be produced by the call machinery.
+        // A '?.' left side must always be materialized: its null test guards the rest
+        // of the chain, even when the member itself resolves to a function and the
+        // receiver would otherwise only be produced by the call machinery.
         if (!hasFlag(AstMemberAccessExprFlagsE::OptionalAccess) &&
-            !hasFlag(AstMemberAccessExprFlagsE::NotNullAccess) &&
             canSkipCompileTimeMemberAccessLeft(const_cast<CodeGen&>(codeGen), *this))
             return Result::SkipChildren;
     }
@@ -434,8 +461,7 @@ Result AstMemberAccessExpr::codeGenPreNodeChild(const CodeGen& codeGen, const As
 
 Result AstMemberAccessExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
-    const bool optionalAccess = hasFlag(AstMemberAccessExprFlagsE::OptionalAccess);
-    if (!optionalAccess && !hasFlag(AstMemberAccessExprFlagsE::NotNullAccess))
+    if (!hasFlag(AstMemberAccessExprFlagsE::OptionalAccess))
         return Result::Continue;
 
     // Child callbacks receive the RESOLVED child (a qualification cast can rewrite
@@ -445,10 +471,6 @@ Result AstMemberAccessExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNode
     SWC_ASSERT(resolvedLeftRef.isValid());
     if (codeGen.resolvedNodeRef(childRef) != resolvedLeftRef)
         return Result::Continue;
-
-    // '!.': the opposite outcome of '?.' on the same test - panic instead of skipping.
-    if (!optionalAccess)
-        return CodeGenSafety::emitNotNullGuard(codeGen, codeGen.curNodeRef(), resolvedLeftRef, "'!.' on null value");
 
     // '?.': test the freshly generated left value and take the enclosing chain's null
     // exit when it is null. The rest of the member access then runs on a proven

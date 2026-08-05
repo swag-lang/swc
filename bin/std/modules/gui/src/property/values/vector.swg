@@ -31,7 +31,7 @@ internal impl Properties
 
         for v in typeStruct.fields
         {
-            let dataField   = cast #unnull (*f32) (data + v.offset)
+            let dataField   = cast(*f32) (data + v.offset)!
             let fieldOffset = cast(u64) v.offset
 
             with let label = Label.create(line, v.name![0 to 0], {0, 0, item.line.position.height})
@@ -84,7 +84,7 @@ internal impl IPropertyEditor for VectorEditor
 
     mtd impl construct(list: *Properties, value: Swag.TypeValue, data: #null [*] u8, parent: #null *PropertiesItem)->*PropertiesItem
     {
-        return list.constructVector(value, cast #unnull (const *Swag.TypeInfoStruct) value.pointedType, data, parent!)
+        return list.constructVector(value, cast(const *Swag.TypeInfoStruct) value.pointedType!, data, parent!)
     }
 }
 

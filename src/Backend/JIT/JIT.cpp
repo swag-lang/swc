@@ -337,7 +337,10 @@ namespace
             }
         }
 
-        const std::string_view moduleName = targetFunction.foreignModuleName();
+        // The foreign module names the artifact to load ('ucrtbase' for system foreigns,
+        // the origin module for imported interfaces); an imported module maps to the link
+        // artifact dependency resolution selected for it.
+        const std::string_view moduleName = ctx.compiler().runtimeImportLinkName(targetFunction.foreignModuleName());
         if (moduleName.empty())
         {
             if (outFailure)

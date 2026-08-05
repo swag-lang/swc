@@ -24,52 +24,64 @@ Use this compact format. Keep observations factual and make the next step action
 - Related: issue, pull request, or TODO entry if applicable
 -->
 
-### The not-null assertion launders `readonly` away
+### A reference to a nullable slot escapes the whole nullability system
 
 - Area: compiler
-- Found while: replacing `notnull` with the postfix `!`
-- Observation: the assertion yields a fresh *value*, so the qualifiers of the path it came from
-  are dropped. Taking the address of a member reached through it therefore hands out a mutable
-  pointer into storage the caller only had read access to. A short-lived intermediate design that
-  accessed *through* the path instead (an `!.` member operator) kept the qualifier and rejected
-  exactly one site out of 326 — the one below, which is how the hole was found.
-- Evidence: `SplitterCtrl.items` is declared `readonly`
-  ([splitterctrl.swg:40-42](bin/std/modules/gui/src/composite/splitterctrl.swg#L40-L42)), so from
-  outside `std/gui` the const `Array.opIndex` overload applies. `&me.quickStyleBar.items[0]!.size`
-  still compiles and produces a writable `*f32`, which sCapture uses to serialize pane sizes into
-  that `readonly` collection ([mainwnd.swg:210-213](bin/apps/modules/sCapture/src/mainwnd.swg#L210-L213)).
-  Accessing through the path would have produced `const *f32`.
-- Next step: decide whether the assertion should preserve the const/readonly qualifier of its
-  operand. It probably should — the current behavior is an unannounced escape hatch out of
-  `readonly`. Closing it needs a serialization path for `SplitterCtrl` pane sizes first
-  (`setPaneSize` exists for writes, but the serializer wants one address for read and write), then
-  a sweep of the other `!` sites that may be relying on the same laundering.
+- Found while: checking whether the postfix `!` leaks `readonly` (it does not — `readonly`
+  deliberately "restricts writing through the field's name; it does not freeze the whole value",
+  [002_009_visibility_and_exports.swg:107-109](bin/reference/modules/language/src/002_009_visibility_and_exports.swg#L107-L109))
+- Observation: `&#null *T` — a reference bound to a nullable slot, which is exactly what
+  `Array.opIndex` hands back — is not seen as nullable anywhere. `isNullable()` is asked of the
+  reference, and a reference is never nullable, so: the use-site rules let a member access through
+  it compile with no proof at all, and the postfix `!` is a silent no-op on it. The nullability
+  system simply does not apply to values reached through a reference.
+- Evidence: with `mtd const at()->const &(#null *Item)`, `bound.value` compiles unguarded and
+  `#typeof(bound.value)` reports `#null *Item` rather than the field type — member resolution
+  peels one pointer-or-reference layer and then stops, so it never reaches the struct.
+  `#typeof(bound!)` is unchanged by the assertion.
+- Next step: this needs three coordinated changes, which is why an attempt was reverted rather
+  than half-shipped. (1) The use-site check must look through the reference
+  (`SemaHelpers::unwrapAliasRefType` in `resolveMemberAccess`). (2) `notNullUnwrappedTypeRef` must
+  strip `Nullable` INSIDE the reference — rebuilding `&(#null *T)` as `&*T` rather than dropping
+  the reference, so the payload convention is untouched. (3) Member resolution must peel every
+  reference layer and then exactly one pointer (`**T` must still stop after one), and codegen must
+  do the matching double indirection — step 3 is where the reverted attempt failed: it compiled
+  but read the wrong address at run time. Start with a runtime test for `bound!.value`, since that
+  is what catches the codegen half.
 - Related: `bin/unittests/jit/operators/notnull_access.swg`
 
-### Cold-cache `std` test runs fail resolving core test-only exports
+### Golden snapshots cannot be recorded under the test sandbox
+
+- Area: compiler | bin/std
+- Found while: regenerating the gui widget goldens after the theme-atlas format change
+- Observation: `swc test` always arms the sandbox, and the sandbox refuses every write outside
+  its root. The golden store's documented flows — create a missing golden on first run, write
+  `<name>.actual.txt`/`.png` next to a mismatching golden for `tools/accept-test-goldens.bat` —
+  both write into the module source tree, so they silently stopped working when the sandbox
+  landed: a failing golden reports `[golden] cannot write ...` and leaves nothing to accept.
+- Evidence: the 13 gui golden mismatches printed `cannot write` for every actual; recording them
+  required launching the tests with an explicit repo-rooted sandbox
+  (`--run-arg "swag.sandbox=<repo root>"`), which redirects the special directories into the
+  repository and allows the corpus writes.
+- Next step: decide where golden actuals should land under a sandbox. Candidates: the launcher
+  grants the corpus root explicitly (a `swag.sandbox.corpus=<dir>` run argument the golden store
+  consults), or the golden store mirrors actuals under the sandbox root at a deterministic path
+  and `accept-test-goldens.bat` harvests them. Writing straight to the source tree from a
+  sandboxed test contradicts the sandbox guarantee, so the escape must stay launcher-owned.
+
+### Constant branches survive until the sanitizer after inlining
 
 - Area: compiler
-- Found while: validating a `bin/std` change with `swc test --workspace bin/std` after deleting
-  `.dep`/`.output`
-- Observation: on a cold cache, building `pixel.test` fails with `native backend cannot resolve a
-  foreign function relocation for '<jit-constant>'` requesting `tag_bin_hook_payload__read` and
-  `tag_bin_interface_probe__score` from module `core`. Those are public *test-only* symbols
-  (`TagBinHookPayload`, `TagBinInterfaceProbe` in
-  `bin/std/modules/core/src/unittests/serialization/tagbin.test.swg`): they are exported by
-  `core.test.dll` and declared in the test-variant interface, but the resolver looks them up in
-  the non-test `core` module. The suite only passes with warm caches from an earlier state.
-- Evidence: reproduces deterministically at clean HEAD (65b0e0271) in a fresh worktree with both
-  `bin/swc.exe` and `bin/swc_devmode.exe`: `build --rebuild` succeeds, the following
-  `test --workspace bin/std` stops at pixel with the two relocations above. The strings
-  `tag_bin_hook_payload__read/write/post` are present in
-  `.output/core/shared-library/fast-debug/x86_64/core.test.dll`.
-- Next step: in the native-backend foreign resolver, check how a `<jit-constant>` relocation maps
-  a module name to a concrete dll in test mode: downstream test builds must resolve `core` to
-  `core.test.dll` (where test-only exports live), or the test-variant interface must not leak
-  test-only types to dependents in the first place. Making the test types non-`public` is NOT the
-  fix: without export, runtime interface dispatch stops binding the impl (the TagBin
-  `readElement` hook is silently never called and `tagbin.test.swg:611` fails), so the `public`
-  markers are required and the resolver is the only correct place.
+- Found while: `notnull_access.swg` release-mode sanity false positive (fixed in the sanitizer)
+- Observation: inlining `redundant(null)` folds the null test to `%2 = 1; %3 = %2;
+  cmp %3, 0; je`, yet no pass folds the constant compare-and-branch before sanity runs, so the
+  dead dereference block survives the whole pre-RA pipeline. The sanitizer now prunes the
+  infeasible edge itself, but the optimizer keeps emitting the dead block.
+- Evidence: `#[Swag.PrintMicro("pre-sanity")]` on a `#test` calling `redundant(null)` shows the
+  folded guard and the unreachable dereference block still present at the sanity stage.
+- Next step: teach branch-simplify (or const-fold) to evaluate a conditional jump whose flags
+  come from a compare against an immediate on a register holding a known constant, then let DCE
+  drop the unreachable block; measure code-size impact on the release suites.
 
 ### Appending a `String` rvalue with `+=` corrupts the heap
 
@@ -208,13 +220,12 @@ Use this compact format. Keep observations factual and make the next step action
   the gizmo/form editing interactions inside the in-place overlay have not been visually
   verified on a scaled or mixed-DPI multi-monitor setup.
 - Evidence: gui2 and the dark default theme at 150% show crisp text, hairlines, and tile
-  borders. The theme widgets atlas and the theme icon set are now vector sources
-  (`theme/widgets.svg`, `theme/icons.svg` from Fluent UI System Icons) rasterized per scale
-  and per size, so the remaining raster sources are the spinner strip (`theme/spin.png`) and
-  sCapture's own `datas/icons24.png` / `icons48.png` annotation glyphs. sCapture compiles and
-  the main grab path converts spaces explicitly (`capturerectwnd.swg`, `screenshot.swg`,
-  `inplaceeditwnd.swg`).
-- Next step: map sCapture's annotation glyphs to vector sources the way the theme set was
-  mapped (their indexes are consumed as `Icon.from(&main.icons24, i)`), fold the spinner into a
-  vector or procedural form, then run a capture and in-place edit session on a 150% display and
-  on mixed-DPI monitors, and fix the remaining space mismatches the session exposes.
+  borders. The theme widgets atlas, the theme icon set, and sCapture's application icon set
+  are now vector sources (`gui/src/theme/widgets.svg`, `gui/src/theme/icons.svg`,
+  `sCapture/datas/icons.svg` — the two icon sets from Fluent UI System Icons) rasterized per
+  size and scale through `Gui.IconSet`, so the only remaining raster source is the spinner
+  strip (`theme/spin.png`). sCapture compiles and the main grab path converts spaces
+  explicitly (`capturerectwnd.swg`, `screenshot.swg`, `inplaceeditwnd.swg`).
+- Next step: fold the spinner into a vector or procedural form, then run a capture and
+  in-place edit session on a 150% display and on mixed-DPI monitors, and fix the remaining
+  space mismatches the session exposes.

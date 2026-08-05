@@ -49,7 +49,7 @@ func hasTypedData(fmt: ValueFormat, type: typeinfo)->bool
         return true
 
     let hglob = GetClipboardData(cast(UINT) fmt)
-    let pz    = cast #unnull (*u32) GlobalLock(hglob)
+    let pz    = cast(*u32) GlobalLock(hglob)!
     defer discard GlobalUnlock(pz)
     return dref pz == type.crc
 }
@@ -64,7 +64,7 @@ func addTypedData(fmt: ValueFormat, type: #null typeinfo, data: const [..] u8)
         return
     defer discard CloseClipboard()
     let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, @countof(data) + #sizeof(u32) + #sizeof(u64))
-    let pz    = cast #unnull ([*] u8) GlobalLock(hglob)
+    let pz    = cast([*] u8) GlobalLock(hglob)!
     defer discard GlobalUnlock(pz)
 
     // Store type CRC
@@ -99,7 +99,7 @@ func getTypedData(fmt: ValueFormat, type: #null typeinfo)->Array'u8
         let hglob = GetClipboardData(cast(UINT) fmt)
         if hglob
         {
-            let pz = cast #unnull ([*] u8) GlobalLock(hglob)
+            let pz = cast([*] u8) GlobalLock(hglob)!
             defer discard GlobalUnlock(pz)
 
             // Get type CRC, check this is correct
@@ -163,7 +163,7 @@ func addImage(image: Image)
     {
         let size  = #sizeof(Bmp.Header) + image.byteCount
         let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, size)
-        let buf   = cast #unnull ([*] u8) GlobalLock(hglob)
+        let buf   = cast([*] u8) GlobalLock(hglob)!
 
         let header = cast(*Bmp.Header) buf
         header.biSize        = #sizeof(Bmp.Header)
@@ -191,7 +191,7 @@ func addImage(image: Image)
             break
 
         let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, buffer.count())
-        let buf   = cast #unnull ([*] u8) GlobalLock(hglob)
+        let buf   = cast([*] u8) GlobalLock(hglob)!
 
         var bufCur = buf
         for b in buffer
@@ -228,7 +228,7 @@ func getImage()->Image
         if hglob
         {
             let size = GlobalSize(hglob)
-            let pz   = cast #unnull ([*] u8) GlobalLock(hglob)
+            let pz   = cast([*] u8) GlobalLock(hglob)!
             defer discard GlobalUnlock(pz)
             return catch Image.decode("clipboard.png", @mkslice(pz, size), {})
         }
@@ -241,7 +241,7 @@ func getImage()->Image
         if hglob
         {
             let size = GlobalSize(hglob)
-            let pz   = cast #unnull ([*] u8) GlobalLock(hglob)
+            let pz   = cast([*] u8) GlobalLock(hglob)!
             defer discard GlobalUnlock(pz)
             return catch Image.decode("clipboard.bmp", @mkslice(pz, size), {})
         }
@@ -285,7 +285,7 @@ func addString(str: string)
     // Ansi/utf8
     {
         let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, @countof(str) + 1)
-        let pz    = cast #unnull ([*] u8) GlobalLock(hglob)
+        let pz    = cast([*] u8) GlobalLock(hglob)!
         Memory.copy(pz, @dataof(str), @countof(str))
         pz[@countof(str)] = 0
         discard GlobalUnlock(pz)
@@ -295,7 +295,7 @@ func addString(str: string)
     // Utf16
     {
         let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, @countof(str) * 2 + 2)
-        let pz    = cast #unnull ([*] u16) GlobalLock(hglob)
+        let pz    = cast([*] u16) GlobalLock(hglob)!
         let u     = Utf16.fromUtf8(str)
         Memory.copy(pz, u.buffer, u.count * 2)
         pz[u.count] = 0
@@ -326,7 +326,7 @@ func getString()->String
         let hglob = GetClipboardData(CF_UNICODETEXT)
         if hglob
         {
-            let pz = cast #unnull ([*] u16) GlobalLock(hglob)
+            let pz = cast([*] u16) GlobalLock(hglob)!
             result = Utf8.fromUtf16(@mkslice(pz, Utf16.lengthZeroTerminated(pz)))
             discard GlobalUnlock(pz)
             return result
@@ -339,7 +339,7 @@ func getString()->String
         let hglob = GetClipboardData(CF_TEXT)
         if hglob
         {
-            let pz = cast #unnull ([*] u8) GlobalLock(hglob)
+            let pz = cast([*] u8) GlobalLock(hglob)!
             result = @mkstring(pz, @countof(cast(cstring) pz))
             discard GlobalUnlock(pz)
             return result

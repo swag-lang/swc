@@ -2,20 +2,20 @@
 
 using Core, Pixel
 
-private const DefaultImageName = "theme/widgets.svg"
+private const DefaultImageName = "../theme/widgets.svg"
 
-private const DefaultFontRegularName = "theme/segoeui.ttf"
-private const DefaultFontBoldName = "theme/segoeuib.ttf"
-private const DefaultFontBoldItalicName = "theme/segoeuiz.ttf"
-private const DefaultFontItalicName = "theme/segoeuii.ttf"
+private const DefaultFontRegularName = "../theme/segoeui.ttf"
+private const DefaultFontBoldName = "../theme/segoeuib.ttf"
+private const DefaultFontBoldItalicName = "../theme/segoeuiz.ttf"
+private const DefaultFontItalicName = "../theme/segoeuii.ttf"
 
-private const DefaultFontFsRegularName = "theme/consola.ttf"
-private const DefaultFontFsBoldName = "theme/consolab.ttf"
-private const DefaultFontFsBoldItalicName = "theme/consolaz.ttf"
-private const DefaultFontFsItalicName = "theme/consolai.ttf"
+private const DefaultFontFsRegularName = "../theme/consola.ttf"
+private const DefaultFontFsBoldName = "../theme/consolab.ttf"
+private const DefaultFontFsBoldItalicName = "../theme/consolaz.ttf"
+private const DefaultFontFsItalicName = "../theme/consolai.ttf"
 
-private const DefaultIconsName = "theme/icons.svg"
-private const DefaultSpinName = "theme/spin.png"
+private const DefaultIconsName = "../theme/icons.svg"
+private const DefaultSpinName = "../theme/spin.png"
 
 private const DefaultImage = #include(DefaultImageName)
 private const DefaultFontRegular = #include(DefaultFontRegularName)
@@ -44,6 +44,20 @@ private struct DefaultThemeImages
     spin:           Image
 }
 
+// Bundle names of the theme resources. The `Default*Name` constants above are include
+// paths relative to this file; these are the logical names a disk folder overrides.
+private const ResImageName = "theme/widgets.svg"
+private const ResIconsName = "theme/icons.svg"
+private const ResSpinName = "theme/spin.png"
+private const ResFontRegularName = "theme/segoeui.ttf"
+private const ResFontBoldName = "theme/segoeuib.ttf"
+private const ResFontBoldItalicName = "theme/segoeuiz.ttf"
+private const ResFontItalicName = "theme/segoeuii.ttf"
+private const ResFontFsRegularName = "theme/consola.ttf"
+private const ResFontFsBoldName = "theme/consolab.ttf"
+private const ResFontFsBoldItalicName = "theme/consolaz.ttf"
+private const ResFontFsItalicName = "theme/consolai.ttf"
+
 private var g_DefaultThemeImages: DefaultThemeImages
 
 // Nullable adapter over [[Pixel.TypeFace.create]], so a failed creation can be caught
@@ -60,17 +74,17 @@ private func defaultTypeFace(name: string, bytes: const [..] u8)->#null *TypeFac
 // compiled-in theme without any configuration.
 internal func registerDefaultThemeResources(bundle: *Resources.Bundle)
 {
-    bundle.addEmbedded(DefaultImageName, DefaultImage)
-    bundle.addEmbedded(DefaultIconsName, DefaultIcons)
-    bundle.addEmbedded(DefaultSpinName, DefaultSpin)
-    bundle.addEmbedded(DefaultFontRegularName, DefaultFontRegular)
-    bundle.addEmbedded(DefaultFontBoldName, DefaultFontBold)
-    bundle.addEmbedded(DefaultFontBoldItalicName, DefaultFontBoldItalic)
-    bundle.addEmbedded(DefaultFontItalicName, DefaultFontItalic)
-    bundle.addEmbedded(DefaultFontFsRegularName, DefaultFontFsRegular)
-    bundle.addEmbedded(DefaultFontFsBoldName, DefaultFontFsBold)
-    bundle.addEmbedded(DefaultFontFsBoldItalicName, DefaultFontFsBoldItalic)
-    bundle.addEmbedded(DefaultFontFsItalicName, DefaultFontFsItalic)
+    bundle.addEmbedded(ResImageName, DefaultImage)
+    bundle.addEmbedded(ResIconsName, DefaultIcons)
+    bundle.addEmbedded(ResSpinName, DefaultSpin)
+    bundle.addEmbedded(ResFontRegularName, DefaultFontRegular)
+    bundle.addEmbedded(ResFontBoldName, DefaultFontBold)
+    bundle.addEmbedded(ResFontBoldItalicName, DefaultFontBoldItalic)
+    bundle.addEmbedded(ResFontItalicName, DefaultFontItalic)
+    bundle.addEmbedded(ResFontFsRegularName, DefaultFontFsRegular)
+    bundle.addEmbedded(ResFontFsBoldName, DefaultFontFsBold)
+    bundle.addEmbedded(ResFontFsBoldItalicName, DefaultFontFsBoldItalic)
+    bundle.addEmbedded(ResFontFsItalicName, DefaultFontFsItalic)
 }
 
 // Uploads one theme image, honoring a disk override from the bundle.
@@ -162,9 +176,9 @@ private func defaultWidgetsImage(scale: f32)->*Image
 // Owns decoded theme textures, icon atlases, typefaces, and derived font families.
 struct ThemeResources
 {
-    imgWidgets: Texture                         // Widgets atlas texture, rasterized from the vector theme document.
-    atlasScale: f32                             // Device pixels per authored atlas texel; zero until the atlas is built.
-    iconLists:  HashTable'(s32, *ImageList)     // Icon frame lists by logical size, rasterized from the vector icon set.
+    imgWidgets: Texture     // Widgets atlas texture, rasterized from the vector theme document.
+    atlasScale: f32         // Device pixels per authored atlas texel; zero until the atlas is built.
+    icons:      IconSet     // The theme icon set, rasterized on demand per size and scale.
     #[Swag.Late]
     {
         spin:                *ImageList     // Spin associated with this value.
@@ -200,12 +214,6 @@ struct Theme
     #[Swag.Late]
     internal
     fonts: *Pixel.FontCache
-
-    // The renderer this theme was set up against; borrowed so on-demand resources — the
-    // icon frame lists, atlas rebuilds — can be created outside the setup call.
-    #[Swag.Late]
-    internal
-    renderer: Pixel.IRenderer
 }
 
 impl Theme
@@ -284,27 +292,32 @@ impl Theme
     private mtd freeDefault()
     {
         // A fonts-only theme (headless text measurement) never created the image lists.
-        for key, [value] in .res.iconLists do
-            Memory.delete(value)
-        .res.iconLists.clear()
+        .res.icons.free()
         if @isset(.res.spin) do
             Memory.delete(.res.spin)
     }
 
-    private mtd setupDefault(renderer: IRenderer, resources: const *Resources.Bundle)
+    // Establishes the shared theme resources against `renderer`, sharp at `dpiScale`.
+    //
+    // The caller passes the density of the surface the theme is about to draw on, because
+    // rasterizing the widgets atlas is the single most expensive step of a GUI startup and
+    // [[Theme.ensureAtlasScale]] cannot reuse a coarser atlas: building at 1 first would
+    // throw that work away on every scaled display. Fonts and remaining raster art resolve
+    // through `resources`, so a disk folder can override the embedded ones.
+    private mtd setupDefault(renderer: IRenderer, resources: const *Resources.Bundle, dpiScale = 1.0'f32)
     {
         .initialized = true
         .fonts       = renderer.fontCache()
-        .renderer    = renderer
         .colors.setDark()
 
-        .ensureAtlasScale(renderer, 1)
+        .ensureAtlasScale(renderer, dpiScale)
 
         let images = defaultThemeImages()
+        .res.icons.setup(renderer, &images.icons)
         with me.res
         {
             .spin = Memory.new'ImageList()
-            .spin.set(addThemeImage(renderer, resources, DefaultSpinName, &images.spin), 48, 48)
+            .spin.set(addThemeImage(renderer, resources, ResSpinName, &images.spin), 48, 48)
         }
 
         .setupDefaultFonts(resources)
@@ -331,46 +344,6 @@ impl Theme
         let image = defaultWidgetsImage(wanted)
         .res.imgWidgets = renderer.addImage(dref image)
         .res.atlasScale = wanted
-
-        // The icon frame lists follow the atlas density; drop them so the next
-        // request rebuilds them at the new scale.
-        for key, [value] in .res.iconLists
-        {
-            value.release(renderer)
-            Memory.delete(value)
-        }
-
-        .res.iconLists.clear()
-    }
-
-    // Returns the icon frame list for `size` logical pixels, building it on first use.
-    //
-    // Frames are rasterized from the vector icon set at `size` times the atlas scale,
-    // so icons follow the same density policy as the widgets atlas and stay sharp on
-    // any display.
-    internal mtd iconList(size: f32)->*ImageList
-    {
-        let key   = cast(s32) Math.max(Math.round(size), 1.0)
-        let found = .res.iconLists.tryFind(key)
-        if found do
-            return found.value
-
-        let images = defaultThemeImages()
-        let cols   = cast(s32) Math.round(images.icons.width / 24)
-        let rows   = cast(s32) Math.round(images.icons.height / 24)
-        let cell   = key * cast(s32) Math.max(.res.atlasScale, 1.0)
-
-        // Same supersampling policy as the widgets atlas: exact edge coverage, with
-        // the internal buffer bounded on dense displays.
-        var ss = 4'u8
-        while ss > 1 and cols * cell * cast(s32) ss > 8192 do
-            ss /= 2
-
-        let image = images.icons.rasterize(cols * cell, rows * cell, ss)
-        let list  = Memory.new'ImageList()
-        list.set(.renderer.addImage(image), cell, cell)
-        .res.iconLists.add(key, list)
-        return list
     }
 
     // Loads the default typefaces and builds the default font families, resolving each
@@ -385,15 +358,15 @@ impl Theme
             if @isset(.defaultTypeFaceR) do
                 return
 
-            .defaultTypeFaceR  = expect themeTypeFace(resources, DefaultFontRegularName, DefaultFontRegular)!
-            .defaultTypeFaceB  = expect themeTypeFace(resources, DefaultFontBoldName, DefaultFontBold)!
-            .defaultTypeFaceI  = expect themeTypeFace(resources, DefaultFontItalicName, DefaultFontItalic)!
-            .defaultTypeFaceBI = expect themeTypeFace(resources, DefaultFontBoldItalicName, DefaultFontBoldItalic)!
+            .defaultTypeFaceR  = expect themeTypeFace(resources, ResFontRegularName, DefaultFontRegular)!
+            .defaultTypeFaceB  = expect themeTypeFace(resources, ResFontBoldName, DefaultFontBold)!
+            .defaultTypeFaceI  = expect themeTypeFace(resources, ResFontItalicName, DefaultFontItalic)!
+            .defaultTypeFaceBI = expect themeTypeFace(resources, ResFontBoldItalicName, DefaultFontBoldItalic)!
 
-            .defaultFsTypeFaceR  = expect themeTypeFace(resources, DefaultFontFsRegularName, DefaultFontFsRegular)!
-            .defaultFsTypeFaceB  = expect themeTypeFace(resources, DefaultFontFsBoldName, DefaultFontFsBold)!
-            .defaultFsTypeFaceI  = expect themeTypeFace(resources, DefaultFontFsItalicName, DefaultFontFsItalic)!
-            .defaultFsTypeFaceBI = expect themeTypeFace(resources, DefaultFontFsBoldItalicName, DefaultFontFsBoldItalic)!
+            .defaultFsTypeFaceR  = expect themeTypeFace(resources, ResFontFsRegularName, DefaultFontFsRegular)!
+            .defaultFsTypeFaceB  = expect themeTypeFace(resources, ResFontFsBoldName, DefaultFontFsBold)!
+            .defaultFsTypeFaceI  = expect themeTypeFace(resources, ResFontFsItalicName, DefaultFontFsItalic)!
+            .defaultFsTypeFaceBI = expect themeTypeFace(resources, ResFontFsBoldItalicName, DefaultFontFsBoldItalic)!
 
             .fontDefault.regular    = .fonts.createFont(.defaultTypeFaceR, me.metrics.defaultFontSize)
             .fontDefault.bold       = .fonts.createFont(.defaultTypeFaceB, me.metrics.defaultFontSize)

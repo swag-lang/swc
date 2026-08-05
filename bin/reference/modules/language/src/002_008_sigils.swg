@@ -170,11 +170,9 @@ These change one operation rather than producing a value:
 }
 
 /**
-'#bit', '#unconst' and '#unnull' select a variant of the 'cast' they sit in; none
-is a type qualifier, and none can be written in a type position. '#unconst'
+'#bit' and '#unconst' select a variant of the 'cast' they sit in; neither is a
+type qualifier, and neither can be written in a type position. '#unconst'
 removes a const qualifier only where the language permits that explicit escape.
-'#unnull' lets a nullable source reach a non-null destination, guarded at run time
-by the same safety category as the postfix '!'.
 
 '#nodrop', '#move', and '#relocate' modify one assignment or one initializer.
 

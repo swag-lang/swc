@@ -279,9 +279,6 @@ AstModifierFlags Parser::parseModifiers()
             case TokenId::ModifierUnConst:
                 toSet = AstModifierFlagsE::UnConst;
                 break;
-            case TokenId::ModifierUnNull:
-                toSet = AstModifierFlagsE::UnNull;
-                break;
             case TokenId::ModifierFail:
                 toSet = AstModifierFlagsE::Fail;
                 break;

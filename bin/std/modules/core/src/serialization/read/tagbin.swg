@@ -484,7 +484,7 @@ impl TagBin
                 {
                     let value = Reflection.attributeValue(al, "name")
                     Debug.assert(value != null)
-                    reqCrcName = Hash.Crc32.compute(cast #unnull (string) value)
+                    reqCrcName = Hash.Crc32.compute(cast(string) value!)
                     ent        = sec.mapSeek.tryFind(reqCrcName)
                     if ent do
                         break
@@ -695,7 +695,7 @@ impl TagBin
 
                 let vt       = valueType!
                 let elemSize = vt.sizeof
-                let bufArr   = cast #unnull (*Array'u8) data
+                let bufArr   = cast(*Array'u8) data!
                 bufArr.count = dref countElem
                 bufArr.reserve(bufArr.count * elemSize)
                 bufArr.capacity = bufArr.count

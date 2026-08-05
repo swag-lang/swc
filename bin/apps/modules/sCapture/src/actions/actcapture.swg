@@ -33,32 +33,32 @@ impl IActionUI for ActionCapture
         case .DoIt:
             evt.updatedFields |= .Name | .Icon
             evt.name          = appStrings().ui_MenuCapture
-            evt.icon          = Icon.from(&main.icons48, 6)
+            evt.icon          = main.icon(.Capture, 48)
 
         case .Area:
             evt.updatedFields |= .Name | .Icon
             evt.name          = appStrings().act_CaptureArea
-            evt.icon          = Icon.from(&main.icons24, 7)
+            evt.icon          = main.icon(.CaptureArea)
 
         case .LastArea:
             evt.updatedFields |= .Name | .Icon
             evt.name          = appStrings().act_CaptureLastArea
-            evt.icon          = Icon.from(&main.icons24, 15)
+            evt.icon          = main.icon(.LastArea)
 
         case .FullScreen:
             evt.updatedFields |= .Name | .Icon
             evt.name          = appStrings().act_CaptureFullScreen
-            evt.icon          = Icon.from(&main.icons24, 6)
+            evt.icon          = main.icon(.FullScreen)
 
         case .ActiveWnd:
             evt.updatedFields |= .Name | .Icon
             evt.name          = appStrings().act_CaptureActiveWindow
-            evt.icon          = Icon.from(&main.icons24, 14)
+            evt.icon          = main.icon(.ActiveWindow)
 
         case .Screen0:
             evt.updatedFields |= .Name | .Icon
             evt.name          = Format.toString(appStrings().act_CaptureMonitorSize, 0, main.monitors[0].bounds.width, main.monitors[0].bounds.height)
-            evt.icon          = Icon.from(&main.icons24, 5)
+            evt.icon          = main.icon(.Monitor)
 
         case .Screen1:
 
@@ -67,19 +67,19 @@ impl IActionUI for ActionCapture
             evt.updatedFields |= .Name | .Icon | .Disabled
             evt.disabled      = main.monitors.count <= 1
             evt.name          = evt.disabled ? Format.toString(appStrings().act_CaptureMonitor, 1) : Format.toString(appStrings().act_CaptureMonitorSize, 1, main.monitors[1].bounds.width, main.monitors[1].bounds.height)
-            evt.icon          = Icon.from(&main.icons24, 5)
+            evt.icon          = main.icon(.Monitor)
 
         case .Screen2:
             evt.updatedFields |= .Name | .Icon | .Disabled
             evt.disabled      = main.monitors.count <= 2
             evt.name          = evt.disabled ? Format.toString(appStrings().act_CaptureMonitor, 2) : Format.toString(appStrings().act_CaptureMonitorSize, 2, main.monitors[2].bounds.width, main.monitors[2].bounds.height)
-            evt.icon          = Icon.from(&main.icons24, 5)
+            evt.icon          = main.icon(.Monitor)
 
         case .Screen3:
             evt.updatedFields |= .Name | .Icon | .Disabled
             evt.disabled      = main.monitors.count <= 3
             evt.name          = evt.disabled ? Format.toString(appStrings().act_CaptureMonitor, 3) : Format.toString(appStrings().act_CaptureMonitorSize, 3, main.monitors[3].bounds.width, main.monitors[3].bounds.height)
-            evt.icon          = Icon.from(&main.icons24, 5)
+            evt.icon          = main.icon(.Monitor)
 
         case .HideEditor:
             evt.updatedFields |= .Name | .Checked

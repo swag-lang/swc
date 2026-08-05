@@ -285,3 +285,46 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     @assert(gray.r >= 127 and gray.r <= 128 and gray.g == gray.r and gray.b == gray.r and gray.a == 255)
     assertPixel(image, 1, 0, Argb.Blue)
 }
+
+// A band-split rasterization stays seamless.
+//
+// A draw whose bounds are large enough is rasterized in horizontal row bands spread over the
+// job pool, so the same scene must come out identical whether or not it was split. A target
+// narrow enough to stay under the band threshold gives the serial reference at the same
+// height, so the comparison spans every band boundary: a dropped seam row, a doubly blended
+// one, or an overlap scratch plane reset over the wrong rows all break it.
+#test
+{
+    // A test process starts no pool, and a single worker keeps parallelFor serial, so the
+    // band split needs an explicit multi-worker pool to be reached at all.
+    if Jobs.workerCount() < 2 do
+        discard expect Jobs.initialize(4)
+
+    const Height = 512
+    const Narrow = 8     // Columns the two renders have in common, and the serial width.
+    const Wide   = 1024
+
+    // Drawn once, rasterized into both targets: the geometry is in device pixels, so a pixel
+    // of one render addresses the very same shape samples as that pixel of the other. The
+    // rounded corners and the two overlapping translucent paths make the shared columns carry
+    // per-row coverage rather than one flat color.
+    var painter: Painter
+    painter.begin()
+    painter.setColorMaskFull()
+    painter.clear(Color.fromArgb(255'u8, 0'u8, 0'u8, 0'u8))
+    painter.fillRect(0, 0, 1024.0, 512.0, Color.fromArgb(128'u8, 255'u8, 0'u8, 0'u8))
+    painter.fillRoundRect(0, 0, 960.0, 480.0, 24, 24, Color.fromArgb(128'u8, 0'u8, 255'u8, 0'u8))
+    painter.fillRoundRect(0, 16, 900.0, 460.0, 40, 40, Color.fromArgb(96'u8, 0'u8, 0'u8, 255'u8))
+    painter.end()
+
+    let serial = renderCpu(Narrow, Height, &painter)
+    let banded = renderCpu(Wide, Height, &painter)
+    assertImage(serial, Narrow, Height, .BGRA8)
+    assertImage(banded, Wide, Height, .BGRA8)
+
+    for var y = 0; y < Height; y += 1
+    {
+        for var x = 0; x < Narrow; x += 1 do
+            @assert(serial.pixelColor(x, y) == banded.pixelColor(x, y))
+    }
+}

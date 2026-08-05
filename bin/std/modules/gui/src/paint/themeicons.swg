@@ -71,11 +71,6 @@ impl Theme
     // the current atlas scale, and shared by every icon of that size.
     mtd icon(idx: ThemeIcons, size = 24'f32)->Icon
     {
-        var result: retval
-        result.imageList = .iconList(size)
-        result.index     = cast(s32) idx
-        result.sizeX     = size
-        result.sizeY     = size
-        return result
+        return .res.icons.icon(cast(s32) idx, size, .res.atlasScale)
     }
 }

@@ -773,7 +773,29 @@ void Sanitizer::propagateConditionalBranch(const SanitizerState& state, const Mi
 {
     const SanitizerRegInfo* subject = state.flagsSubject.isValid() ? findReg(state, state.flagsSubject) : nullptr;
 
-    bool    condTrueIfSubjectZero = false;
+    bool condTrueIfSubjectZero = false;
+    if (state.flagsSubject.isValid() && condIsZeroTest(ops[0].cpuCond, condTrueIfSubjectZero))
+    {
+        // A zero-test whose subject value the state already proves decides the branch:
+        // only the feasible edge is explored. Inlining a constant null folds the guard
+        // to a constant but leaves the guarded dereference as a not-yet-swept dead
+        // block, and walking it would report code that can never execute. The compare
+        // width is not at hand here, so a constant only counts as non-zero when its low
+        // byte is: b8 is the narrowest compare the builder emits.
+        const SanitizerValue subjectValue  = getReg(state, state.flagsSubject);
+        const bool           provenZero    = subjectValue.isZero();
+        const bool           provenNonZero = subjectValue.isConstant() && (subjectValue.constant & 0xFF) != 0;
+        if (provenZero || provenNonZero)
+        {
+            // successors = [taken (cond true), fallthrough (cond false)].
+            const bool     condIsTrue = condTrueIfSubjectZero == provenZero;
+            SanitizerState edge       = state;
+            edge.flagsSubject         = MicroReg::invalid();
+            propagate(edge, succs[condIsTrue ? 0 : 1], worklist);
+            return;
+        }
+    }
+
     int64_t slot                  = 0;
     bool    slotZeroIfSubjectZero = false;
     if (subject && condIsZeroTest(ops[0].cpuCond, condTrueIfSubjectZero) &&

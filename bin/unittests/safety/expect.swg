@@ -121,7 +121,7 @@ func expectAccessNode(present: bool)->#null *ExpectAccessNode => present ? &g_ex
     #assert(value == 42)
 }
 
-// 'cast #unnull' crosses the nullable boundary under the same safety category.
+// A cast over an asserted source is guarded by the assertion, not by the cast.
 func expectRawNode(present: bool)->#null *void => present ? cast(*void) &g_expectAccessNode : null
 
 #test
@@ -129,7 +129,7 @@ func expectRawNode(present: bool)->#null *void => present ? cast(*void) &g_expec
     #[Swag.Safety(.Expect, true)]
     func unNullCastPanic()->s32
     {
-        let node = cast #unnull (*ExpectAccessNode) expectRawNode(false)     // swc-expected-error {{safety_err_runtime}}
+        let node = cast(*ExpectAccessNode) expectRawNode(false)!     // swc-expected-error {{safety_err_runtime}}
         return node.value
     }
 
@@ -141,7 +141,7 @@ func expectRawNode(present: bool)->#null *void => present ? cast(*void) &g_expec
     #[Swag.Safety(.Expect, true)]
     func unNullCastSuccess()->s32
     {
-        let node = cast #unnull (*ExpectAccessNode) expectRawNode(true)
+        let node = cast(*ExpectAccessNode) expectRawNode(true)!
         return node.value
     }
 

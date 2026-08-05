@@ -127,12 +127,14 @@ func flipImageVertical(image: *Image)
     }
 }
 
-func renderGdiPlusOutlineImage(text: string, scale: f32)->Image
+// `density` is the device pixels per logical unit of the caller: the reference is
+// rasterized straight at device resolution so it stays crisp on scaled displays.
+func renderGdiPlusOutlineImage(text: string, scale, density: f32)->Image
 {
     initGdiPlus()
 
-    let emSize  = cast(f32) OutlineFontSize * scale
-    let border  = OutlineBorder * scale
+    let emSize  = cast(f32) OutlineFontSize * scale * density
+    let border  = OutlineBorder * scale * density
     let text16  = Utf16.toZeroTerminated(text)
     let face16  = Utf16.toZeroTerminated("Segoe UI")
     let count16 = cast(s32) (text16.count - 1)
@@ -152,7 +154,7 @@ func renderGdiPlusOutlineImage(text: string, scale: f32)->Image
     gdipCheck(GdipGetPathWorldBounds(measurePath, &bounds, null, null))
     gdipCheck(GdipDeletePath(measurePath))
 
-    let margin = cast(f32) OutlineShadowMargin
+    let margin = cast(f32) OutlineShadowMargin * density
     let localW = Math.max(cast(s32) Math.ceil(bounds.width + border * 2 + margin * 2), 1)
     let localH = Math.max(cast(s32) Math.ceil(bounds.height + border * 2 + margin * 2), 1)
 
@@ -202,7 +204,7 @@ func loadGdiReferences()
 {
     for sample, [idx] in Samples
     {
-        let image = renderGdiPlusOutlineImage("Outline", sample.scale)
+        let image = renderGdiPlusOutlineImage("Outline", sample.scale, g_Painter.contentScale())
         g_GdiText[idx] = g_Render.addImage(image)
     }
 }
@@ -296,9 +298,18 @@ func drawShadowedOutline(painter: *Pixel.Painter, area: Math.Rectangle, text: st
     let textX      = cast(f32) OutlineShadowMargin
     let textY      = cast(f32) OutlineShadowMargin
 
-    let rtText   = g_Render.acquireRenderTarget(localW, localH)
-    let rtShadow = g_Render.acquireRenderTarget(localW, localH)
-    let rtBlur   = g_Render.acquireRenderTarget(localW, localH)
+    // The targets store device texels while every drawing call stays in logical
+    // units: destination rectangles are logical, source rectangles address texels,
+    // and the painter maps logical to device at its content scale (like Pixel.Layer).
+    let density = painter.contentScale()
+    let devW    = cast(s32) Math.ceil(localW * density)
+    let devH    = cast(s32) Math.ceil(localH * density)
+    let dstRect = Math.Rectangle{0, 0, cast(f32) localW, cast(f32) localH}
+    let srcRect = Math.Rectangle{0, 0, localW * density, localH * density}
+
+    let rtText   = g_Render.acquireRenderTarget(devW, devH)
+    let rtShadow = g_Render.acquireRenderTarget(devW, devH)
+    let rtBlur   = g_Render.acquireRenderTarget(devW, devH)
 
     if superSample <= 1
     {
@@ -307,7 +318,7 @@ func drawShadowedOutline(painter: *Pixel.Painter, area: Math.Rectangle, text: st
     else
     {
         let ss      = cast(f32) superSample
-        let rtSuper = g_Render.acquireRenderTarget(localW * superSample, localH * superSample)
+        let rtSuper = g_Render.acquireRenderTarget(devW * superSample, devH * superSample)
         renderOutlineToTarget(painter, rtSuper, &outline, textX * ss, textY * ss, scale * ss, mode)
 
         with painter
@@ -320,7 +331,7 @@ func drawShadowedOutline(painter: *Pixel.Painter, area: Math.Rectangle, text: st
             .setBlendingMode(.Copy)
             .setInterpolationMode(.Linear)
             .clear(Argb.Zero)
-            .drawTexture(Math.Rectangle{0, 0, cast(f32) localW, cast(f32) localH}, Math.Rectangle{0, 0, cast(f32) (localW * superSample), cast(f32) (localH * superSample)}, rtSuper.colorBuffer)
+            .drawTexture(dstRect, Math.Rectangle{0, 0, srcRect.width * ss, srcRect.height * ss}, rtSuper.colorBuffer)
             .setShader()
             .unbindRenderTarget()
             .releaseRenderTarget(rtSuper)
@@ -338,7 +349,7 @@ func drawShadowedOutline(painter: *Pixel.Painter, area: Math.Rectangle, text: st
         .setBlendingMode(.Copy)
         .setColorMaskFull()
         .clear(Argb.Zero)
-        .drawTexture(Math.Rectangle{0, 0, cast(f32) localW, cast(f32) localH}, Math.Rectangle{0, 0, cast(f32) localW, cast(f32) localH}, rtText.colorBuffer)
+        .drawTexture(dstRect, srcRect, rtText.colorBuffer)
         .setShader()
         .unbindRenderTarget()
 
@@ -349,17 +360,16 @@ func drawShadowedOutline(painter: *Pixel.Painter, area: Math.Rectangle, text: st
         .setBlendingMode(.Copy)
         .setColorMaskFull()
         .clear(Argb.Zero)
-        .drawTexture(Math.Rectangle{0, 0, cast(f32) localW, cast(f32) localH}, Math.Rectangle{0, 0, cast(f32) localW, cast(f32) localH}, rtBlur.colorBuffer, Color.fromArgb(150, Argb.Black))
+        .drawTexture(dstRect, srcRect, rtBlur.colorBuffer, Color.fromArgb(150, Argb.Black))
         .setShader()
         .unbindRenderTarget()
     }
 
     let dst = Math.Rectangle{area.horzCenter() - localW * 0.5, area.vertCenter() - localH * 0.5, cast(f32) localW, cast(f32) localH}
-    let src = Math.Rectangle{0, 0, cast(f32) localW, cast(f32) localH}
 
     painter.setAntialiased(false)
-    painter.drawTexture(Math.Rectangle{dst.x + 5, dst.y + 5, dst.width, dst.height}, src, rtShadow.colorBuffer)
-    painter.drawTexture(dst, src, rtText.colorBuffer)
+    painter.drawTexture(Math.Rectangle{dst.x + 5, dst.y + 5, dst.width, dst.height}, srcRect, rtShadow.colorBuffer)
+    painter.drawTexture(dst, srcRect, rtText.colorBuffer)
 
     painter.releaseRenderTarget(rtText)
     painter.releaseRenderTarget(rtShadow)
@@ -368,11 +378,18 @@ func drawShadowedOutline(painter: *Pixel.Painter, area: Math.Rectangle, text: st
 
 func drawShadowedTexture(painter: *Pixel.Painter, area: Math.Rectangle, texture: Texture)
 {
-    let localW = texture.width
-    let localH = texture.height
-    let rtText = g_Render.acquireRenderTarget(localW, localH)
-    let rtBlur = g_Render.acquireRenderTarget(localW, localH)
-    let src    = Math.Rectangle{0, 0, cast(f32) localW, cast(f32) localH}
+    // The reference texture is rasterized at device density: its texel size maps back
+    // to logical units through the painter content scale. Destination rectangles are
+    // logical, source rectangles address texels.
+    let density  = painter.contentScale()
+    let devW     = texture.width
+    let devH     = texture.height
+    let logicalW = devW / density
+    let logicalH = devH / density
+    let rtText   = g_Render.acquireRenderTarget(devW, devH)
+    let rtBlur   = g_Render.acquireRenderTarget(devW, devH)
+    let src      = Math.Rectangle{0, 0, cast(f32) devW, cast(f32) devH}
+    let dstFull  = Math.Rectangle{0, 0, logicalW, logicalH}
 
     with painter
     {
@@ -382,7 +399,7 @@ func drawShadowedTexture(painter: *Pixel.Painter, area: Math.Rectangle, texture:
         .clear(Argb.Zero)
         .setColorMaskColor()
         .setBlendingMode(.Alpha)
-        .drawTexture(src, src, texture)
+        .drawTexture(dstFull, src, texture)
         .unbindRenderTarget()
 
         .bindRenderTarget(rtBlur)
@@ -392,7 +409,7 @@ func drawShadowedTexture(painter: *Pixel.Painter, area: Math.Rectangle, texture:
         .setBlendingMode(.Copy)
         .setColorMaskFull()
         .clear(Argb.Zero)
-        .drawTexture(src, src, rtText.colorBuffer)
+        .drawTexture(dstFull, src, rtText.colorBuffer)
         .setShader()
         .unbindRenderTarget()
 
@@ -403,12 +420,12 @@ func drawShadowedTexture(painter: *Pixel.Painter, area: Math.Rectangle, texture:
         .setBlendingMode(.Copy)
         .setColorMaskFull()
         .clear(Argb.Zero)
-        .drawTexture(src, src, rtBlur.colorBuffer, Color.fromArgb(150, Argb.Black))
+        .drawTexture(dstFull, src, rtBlur.colorBuffer, Color.fromArgb(150, Argb.Black))
         .setShader()
         .unbindRenderTarget()
     }
 
-    let dst = Math.Rectangle{area.horzCenter() - localW * 0.5, area.vertCenter() - localH * 0.5, cast(f32) localW, cast(f32) localH}
+    let dst = Math.Rectangle{area.horzCenter() - logicalW * 0.5, area.vertCenter() - logicalH * 0.5, logicalW, logicalH}
 
     painter.setAntialiased(false)
     painter.drawTexture(Math.Rectangle{dst.x + 5, dst.y + 5, dst.width, dst.height}, src, rtText.colorBuffer)
@@ -477,10 +494,13 @@ func display()
     g_Render.end()
 }
 
-func onResize(_window: *Env.Window, width, height: s32)
+func onResize(window: *Env.Window, width, height: s32)
 {
+    // The client size is physical device pixels; the scene keeps drawing in logical
+    // W x H units, so the painter maps them to device pixels on scaled displays.
     g_RC.width  = width
     g_RC.height = height
+    g_Painter.setContentScale(window.dpiScale())
 }
 
 #main
@@ -493,6 +513,10 @@ func onResize(_window: *Env.Window, width, height: s32)
     defer g_Render.deleteContext(&g_RC)
     g_Render.setCurrentContext(g_RC)
     g_Render.init()
+
+    // The GDI+ references rasterize at the display density, so the content scale must
+    // be known before they are generated; show() replays it through onResize anyway.
+    g_Painter.setContentScale(g_Window.dpiScale())
 
     try loadFonts()
     loadGdiReferences()

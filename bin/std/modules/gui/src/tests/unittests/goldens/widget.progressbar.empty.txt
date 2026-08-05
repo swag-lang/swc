@@ -1,4 +1,4 @@
-# tex#0 512x512 RGBA8
+# tex#0 512x512 BGRA8
 
 ResetTexture0
 Transform 1 0 0 1 0 0

@@ -1,10 +1,14 @@
-const BtnColorWidth  = 68.0
-const BtnColorHeight = 88.0
-const BtnStyleWidth  = 88.0
-const BtnStyleHeight = 68.0
+// The style buttons of the panel head. A sample never fills more than half of its cell:
+// the surrounding air is what separates one button from the next, so no button needs a
+// border to say where it ends (see the application chart).
+const BtnColorWidth  = 56.0
+const BtnColorHeight = 62.0
+const BtnStyleWidth  = 64.0
+const BtnStyleHeight = 62.0
+const SwatchSize     = 24.0
 
-const CapSize  = 8.0
-const DashSize = 8.0
+const CapSize  = 6.0
+const DashSize = 6.0
 
 // The enum popup buttons stash the value they represent in the untyped 'userData'
 // slot of the widget; these two helpers keep the double cast in one place.
@@ -356,9 +360,9 @@ impl PropWnd
         let curSelType = .getSelectedFormType()
         switch curSelType
         {
-        case FormLine, FormArrow, FormDraw: btn.name = "Color"
+        case FormLine, FormArrow, FormDraw: btn.name = appStrings().ui_PropColor
         case FormStep:                      btn.name = appStrings().act_Text
-        default:                            btn.name = "Outline"
+        default:                            btn.name = appStrings().ui_PropOutline
         }
 
         btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
@@ -366,12 +370,12 @@ impl PropWnd
             bc.painter.setParams(.Antialiased)
             let curSel = prop.getSelectedBaseForm()
             var rect   = pos
-            rect.x                  = rect.horzCenter() - 16
-            rect.y                  = rect.vertCenter() - 16
-            rect.width, rect.height = 32
+            rect.x                  = rect.horzCenter() - SwatchSize * 0.5
+            rect.y                  = rect.vertCenter() - SwatchSize * 0.5
+            rect.width, rect.height = SwatchSize
             if !curSel.borderColor.isOpaque() do
-                bc.painter.drawRoundRect(rect, 5, 5, Pen.createHatch(.CheckBoardLarge, Argb.DarkGray, 5))
-            bc.painter.drawRoundRect(rect, 5, 5, curSel.borderColor, 5)
+                bc.painter.drawRect(rect, Pen.createHatch(.CheckBoardLarge, Argb.DarkGray, 5))
+            bc.painter.drawRect(rect, curSel.borderColor, 5)
         }
 
         btn.sigPopupRequested += func|prop = me|(btn)
@@ -411,19 +415,19 @@ impl PropWnd
         }
 
         let btn = createArrowButton(stack, BtnColorWidth, BtnColorHeight)
-        btn.name        = "Fill"
+        btn.name        = appStrings().ui_PropFill
         btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
         {
             bc.painter.setParams(.Antialiased)
             var curSel = prop.getSelectedBaseForm()!
             var rect   = pos
-            rect.x                  = rect.horzCenter() - 21
-            rect.y                  = rect.vertCenter() - 21
-            rect.width, rect.height = 42
+            rect.x                  = rect.horzCenter() - SwatchSize * 0.5
+            rect.y                  = rect.vertCenter() - SwatchSize * 0.5
+            rect.width, rect.height = SwatchSize
             var backCol = curSel.subKind == .PixSel ? g_Main!.pixSelFillCol : curSel.backColor
             if !backCol.isOpaque() do
-                bc.painter.fillRoundRect(rect, 10, 10, Brush.createHatch(.CheckBoardLarge, Argb.DarkGray))
-            bc.painter.fillRoundRect(rect, 10, 10, backCol)
+                bc.painter.fillRect(rect, Brush.createHatch(.CheckBoardLarge, Argb.DarkGray))
+            bc.painter.fillRect(rect, backCol)
         }
 
         btn.sigPopupRequested += func|prop = me|(btn)
@@ -501,7 +505,7 @@ impl PropWnd
             return
 
         let btn = createArrowButton(stack, BtnStyleWidth, BtnStyleHeight)
-        btn.name = "Start"
+        btn.name = appStrings().ui_PropStart
 
         btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
         {
@@ -528,7 +532,7 @@ impl PropWnd
             return
 
         let btn = createArrowButton(stack, BtnStyleWidth, BtnStyleHeight)
-        btn.name        = "End"
+        btn.name        = appStrings().ui_PropEnd
         btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
         {
             let curSel = cast(*FormLine) prop.getSelectedBaseForm()
@@ -558,7 +562,7 @@ impl PropWnd
             return
 
         let btn = createArrowButton(stack, BtnStyleWidth, BtnStyleHeight)
-        btn.name        = "Dash"
+        btn.name        = appStrings().ui_PropDash
         btn.iconPainter = func|prop = me|(btn, bc, pos, flags)
         {
             bc.painter.setParams(.Antialiased)
@@ -583,7 +587,7 @@ impl PropWnd
 
         let stack = Wnd.create'Wnd(.topLayout, {0, 0, 0, .themeMetrics().comboBox_Height})
 
-        with let btn = PushButton.create(stack, "Reset", {0, 0, 60})
+        with let btn = PushButton.create(stack, appStrings().ui_ResetSteps, {0, 0, 60})
         {
             .margin.x      = 5
             .dockStyle     = .Right
@@ -633,12 +637,12 @@ impl PropWnd
             bc.painter.setParams(.Antialiased)
             let curSel = cast(*FormCallout) prop.getSelectedBaseForm()
             var rect   = pos
-            rect.x                  = rect.horzCenter() - 21
-            rect.y                  = rect.vertCenter() - 21
-            rect.width, rect.height = 42
+            rect.x                  = rect.horzCenter() - SwatchSize * 0.5
+            rect.y                  = rect.vertCenter() - SwatchSize * 0.5
+            rect.width, rect.height = SwatchSize
             if !curSel.textColor.isOpaque() do
-                bc.painter.fillRoundRect(rect, 10, 10, Brush.createHatch(.CheckBoardLarge, Argb.DarkGray))
-            bc.painter.fillRoundRect(rect, 10, 10, curSel.textColor)
+                bc.painter.fillRect(rect, Brush.createHatch(.CheckBoardLarge, Argb.DarkGray))
+            bc.painter.fillRect(rect, curSel.textColor)
         }
 
         btn.sigPopupRequested += func|prop = me|(btn)
@@ -683,6 +687,12 @@ impl PropWnd
         {
             let edit = EditCtrl.create(parent, label, Format.toString("%", value), flags: .ReleaseFocusOnEnterOrEscape)
             edit.setLayoutMetrics(15, 0)
+
+            // A coordinate is machine data, so it is set in the fixed-width theme family:
+            // the digits then line up between the four boxes and stop shifting as they
+            // change width.
+            edit.edit.style.setFont(prop.theme().res.fontDefaultFs)
+
             if signed do
                 edit.edit.setSignedIntegerRange()
             else do
@@ -707,15 +717,15 @@ impl PropWnd
             return StackLayoutCtrl.create(item.line!, .HorizontalFit, {0, 0, 0, 40})
         }
 
-        discard .grid.addSeparator("Position")
-
-        with let l0 = addRow(me, "position")
+        // Each row names itself, so no category separator sits above them: a heading
+        // repeating what the two rows already say is one more line to step over.
+        with let l0 = addRow(me, appStrings().ui_PropPosition)
         {
             addBox(me, l0, "x", #nameof(BaseForm.x), curSel.x, true)
             addBox(me, l0, "y", #nameof(BaseForm.y), curSel.y, true)
         }
 
-        with let l1 = addRow(me, "size")
+        with let l1 = addRow(me, appStrings().ui_PropSize)
         {
             addBox(me, l1, "w", #nameof(BaseForm.w), curSel.w, false)
             addBox(me, l1, "h", #nameof(BaseForm.h), curSel.h, false)
@@ -775,7 +785,7 @@ impl PropWnd
 
         .grid.addStructMulti(.gridBindType, cast([..] *u8) bases.toSlice(), null, onlyNamed: true)
 
-        // The generated border-size slider serves every form as "Tickness"; a text form
+        // The generated border-size slider serves every form as "Thickness"; a text form
         // edits its glyph outline instead: matching label and a much thinner range. The
         // slider keeps a normalized position, so re-set the value after the new range.
         if .gridBindType == FormText

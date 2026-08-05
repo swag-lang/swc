@@ -45,7 +45,7 @@ impl IActionUI for ActionOptions
         {
             main.setTheme()
             main.setLanguage()
-            main.setTopBarHeight()
+            main.setToolRailWidth()
             main.invalidate()
         }
 

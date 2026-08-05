@@ -1,5 +1,11 @@
 using Threading, Time
 
+// The date column, at the same width as the editor's tool column.
+const SideBarWidth  = 240.0
+const LibBarHeight  = 32.0
+const LibGlyphSize  = 16.0
+const LibButtonWide = 104.0
+
 enum PreviewSize
 {
     Small
@@ -23,8 +29,8 @@ struct LibraryWnd
         main:        *MainWnd
         view:        *LibraryView
         listCtrl:    *ListCtrl
-        editZoomBar: *Wnd
-        zoomBtn:     *IconButton
+        commandBar: *StackLayoutCtrl
+        previewSizeBtn:     *IconButton
         sortBtn:     *IconButton
         filterBtn:   *IconButton
         trashBtn:    *IconButton
@@ -50,8 +56,32 @@ struct LibraryWnd
     showUnLinkedImage:       bool = true
 }
 
+impl IWnd for LibraryWnd
+{
+    // The four drop-down buttons and the search placeholder take their wording once, when
+    // they are built, so they cannot follow a language change on their own. Every control
+    // driven by a command already refreshes itself through the command state.
+    mtd impl onNotifyEvent(evt: *NotifyEvent)
+    {
+        if evt.kind == .LanguageChanged do
+            .applyLanguage()
+    }
+}
+
 impl LibraryWnd
 {
+    mtd applyLanguage()
+    {
+        if !@isset(.previewSizeBtn) do
+            return
+
+        .previewSizeBtn.setText(appStrings().ui_BarSize)
+        .sortBtn.setText(appStrings().ui_BarSort)
+        .filterBtn.setText(appStrings().ui_BarFilter)
+        .trashBtn.setText(appStrings().ui_BarTrash)
+        .searchEdit.setPlaceholder(appStrings().ui_Search)
+    }
+
     mtd setPreviewSize(size: PreviewSize)
     {
         .previewSize = size
@@ -238,7 +268,7 @@ impl LibraryWnd
             }
         }
 
-        let line = .listCtrl.createLine(appStrings().ui_AllCaptures, .main.icon(.Archive))
+        let line = .listCtrl.createLine(appStrings().ui_AllCaptures, .main.icon(.Archive, LibGlyphSize))
         var item = line.setItem(1, Format.toString("% ", g_Library.files.count))
         item.horzAlign = .Right
 
@@ -251,7 +281,7 @@ impl LibraryWnd
         var lastLineMonth:   #null *ListLine
         var lastLineDay:     #null *ListLine
 
-        let icon1 = .main.icon(.Calendar)
+        let icon1 = .main.icon(.Calendar, LibGlyphSize)
 
         var cptYear, cptMonth, cptDay = 0
 
@@ -385,12 +415,19 @@ impl LibraryWnd
         // Collect each ancestor's full path, leaf first, by walking up the directory chain.
         // Keep 'folder' bound to a local so the slice 'p' (and every getDirectoryName slice
         // derived from it) stays backed by live memory for the whole walk.
-        let folder = .currentFolder()
+        //
+        // The walk stops at the library folder instead of climbing to the drive: this bar
+        // navigates captures, and a reader has no use for the three directories that happen
+        // to sit above them on this machine.
+        let folder  = .currentFolder()
+        let libRoot = Library.getFolder()
         var fulls: Array'String
-        var p      = folder.toString()
+        var p       = folder.toString()
         while @countof(p) != 0
         {
             fulls.add(String.from(p))
+            if p == libRoot.toString() do
+                break
             let parent = Path.directoryName(p)
             if parent == null or @countof(parent) == 0 or parent == p do
                 break
@@ -465,9 +502,14 @@ impl LibraryWnd
             .registerActions()
         }
 
-        with let rightBar = Wnd.create'Wnd(res, {0, 0, 300, 0})
+        // One rule holds both modes of the window: what can be picked stands on the left,
+        // what is picked is shown on the right. The editor puts its tools on the left and
+        // the selected form on the right; the library puts its dates on the left and the
+        // captures themselves fill the rest. The date list used to sit on the right, so
+        // switching modes swapped the meaning of the same edge.
+        with let sideBar = Wnd.create'Wnd(res, {0, 0, SideBarWidth, 0})
         {
-            .dockStyle = .Right
+            .dockStyle = .Left
         }
 
         with let scrollWnd = Wnd.create'ScrollWnd(res)
@@ -486,17 +528,10 @@ impl LibraryWnd
         scrollWnd.setView(view)
         res.view = view
 
-        // Top bar list
-        with let barList = StackLayoutCtrl.create(rightBar, .HorizontalCenter, {0, 0, 300, 32})
+        with let list = ListCtrl.createMultiColumns(sideBar)
         {
-            .dockStyle       = .Top
-            .backgroundStyle = .Window
-        }
-
-        with let list = ListCtrl.createMultiColumns(rightBar)
-        {
-            .addColumn("name", 200)
-            .addColumn("count", 70)
+            .addColumn("name", SideBarWidth - 84)
+            .addColumn("count", 56)
             .listView.style.addStyleSheetColors("listItem_SelectedBk $listItem_FocusSelectedBk")
             .setLineHeight(30)
             .updateFlags(.PreserveSelectionOnEmptyClick)
@@ -521,7 +556,7 @@ impl LibraryWnd
 
         // Folder path bar: shows the real library folder and lets the user walk it
         // (its sub-folders, incl. the recycle bin, are reachable from the chevrons).
-        with res.breadcrumb = BreadcrumbCtrl.create(res, {0, 0, 0, 32})
+        with res.breadcrumb = BreadcrumbCtrl.create(res, {0, 0, 0, LibBarHeight})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Window
@@ -531,17 +566,19 @@ impl LibraryWnd
         }
 
         // Top bar
-        with res.editZoomBar = StackLayoutCtrl.create(res, .HorizontalCenter, {0, 0, 300, 32})
+        with res.commandBar = StackLayoutCtrl.create(res, .Left, {0, 0, 0, LibBarHeight})
         {
             .dockStyle       = .Top
+            .spacing         = 4
+            .padding         = {8, 4, 8, 4}
             .backgroundStyle = .Window
         }
 
-        view.imgSpin = Spinner.create(res, {4, 4})
+        view.imgSpin = Spinner.create(scrollWnd, {8, 8})
         view.imgSpin.hide()
 
         // Image Size
-        with res.zoomBtn = IconButton.create(res.editZoomBar, res.theme().icon(.Search), {0, 0, 120, 32})
+        with res.previewSizeBtn = IconButton.create(res.commandBar, res.theme().icon(.Search, LibGlyphSize), {0, 0, LibButtonWide, LibBarHeight})
         {
             .setText(appStrings().ui_BarSize)
             .updateFlags(.CenterContent)
@@ -563,7 +600,7 @@ impl LibraryWnd
         }
 
         // Sort
-        with res.sortBtn = IconButton.create(res.editZoomBar, res.theme().icon(.Sort), {0, 0, 120, 32})
+        with res.sortBtn = IconButton.create(res.commandBar, res.theme().icon(.Sort, LibGlyphSize), {0, 0, LibButtonWide, LibBarHeight})
         {
             .setText(appStrings().ui_BarSort)
             .updateFlags(.CenterContent)
@@ -587,7 +624,7 @@ impl LibraryWnd
         }
 
         // Filter
-        with res.filterBtn = IconButton.create(res.editZoomBar, res.theme().icon(.Filter), {0, 0, 120, 32})
+        with res.filterBtn = IconButton.create(res.commandBar, res.theme().icon(.Filter, LibGlyphSize), {0, 0, LibButtonWide, LibBarHeight})
         {
             .setText(appStrings().ui_BarFilter)
             .updateFlags(.CenterContent)
@@ -611,7 +648,7 @@ impl LibraryWnd
         }
 
         // Recycle bin
-        with res.trashBtn = IconButton.create(res.editZoomBar, res.theme().icon(.Remove), {0, 0, 120, 32})
+        with res.trashBtn = IconButton.create(res.commandBar, res.theme().icon(.Remove, LibGlyphSize), {0, 0, LibButtonWide, LibBarHeight})
         {
             .setText(appStrings().ui_BarTrash)
             .updateFlags(.CenterContent)
@@ -633,7 +670,7 @@ impl LibraryWnd
         }
 
         // Live search
-        with res.searchEdit = EditBox.create(res.editZoomBar, "", {0, 0, 180, 32}, flags: .ClearButton | .ReleaseFocusOnEnterOrEscape)
+        with res.searchEdit = EditBox.create(res.commandBar, "", {0, 0, 220, LibBarHeight}, flags: .ClearButton | .ReleaseFocusOnEnterOrEscape)
         {
             .setForm(.Rectangle)
             .setPlaceholder(appStrings().ui_Search)

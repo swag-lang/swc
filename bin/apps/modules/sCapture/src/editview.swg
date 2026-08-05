@@ -78,7 +78,10 @@ impl IWnd for EditView
         painter.pushTransform()
         painter.translateTransform(captureRect.x, captureRect.y)
         .capture.gizmo.rect = Math.Rectangle{0, 0, captureRect.width, captureRect.height}
-        .capture.gizmo.paint(painter, false, .themeColors().hilight)
+        // Neutral, not Voltage: this gizmo lies over arbitrary captured pixels, where the
+        // accent competes with the content instead of reading against it. The application
+        // spends Voltage on the rail, the active tool, and the primary action only.
+        .capture.gizmo.paint(painter, false, Argb.White)
         painter.popTransform()
     }
 }

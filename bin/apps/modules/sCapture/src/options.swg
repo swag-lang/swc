@@ -42,7 +42,7 @@ enum EditorLanguage
 struct EditorOptions
 {
     #[Description("Show text labels in the main toolbar")]
-    showToolBarLabels = true
+    showToolBarLabels = false
 
     #[Description("Mask everything outside the selected capture area")]
     clipToSelection = false

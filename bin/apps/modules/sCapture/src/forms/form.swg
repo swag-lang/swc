@@ -64,7 +64,7 @@ struct BaseForm
     w, h: s32 = 32
 
     // The text forms edit this as "Outline" with a thinner range (PropWnd.bindGrid)
-    #[Name("Tickness"), SliderMinMax(MinBorderSize, MaxBorderSize)]
+    #[Name("Thickness"), SliderMinMax(MinBorderSize, MaxBorderSize)]
     borderSize: f32 = 5
     #[Name("Joins")]
     joinStyle = JoinStyle.Round
@@ -106,7 +106,7 @@ struct BaseForm
 
 impl BaseForm
 {
-    func adaptSize(size: f32, minSize, maxSize: f32, cxt: FormPaintContext, dstMin: f32 = 4, dstMax: f32 = 8)->f32
+    func adaptSize(size: f32, minSize, maxSize: f32, cxt: FormPaintContext, dstMin: f32 = 2, dstMax: f32 = 5)->f32
     {
         if !cxt.quickMode do
             return size * cxt.z

@@ -6,8 +6,6 @@ ui_MenuView            Affichage
 ui_MenuHelp            Aide
 ui_MenuAlign           Aligner
 ui_MenuArrange         Disposer
-ui_QuickStyles         Styles rapides
-ui_ToolProperties      Propriétés de l'outil
 ui_AllCaptures         Toutes les captures
 ui_Search              Rechercher
 ui_BarSize             Taille
@@ -185,5 +183,14 @@ msg_ResetStyles        Les styles seront réinitialisés aux valeurs par défaut
 dlg_TitleRenameCapture Renommer la capture
 dlg_TitleEnterText     Saisir le texte
 ui_Outline             Contour
+ui_PropFill            Fond
+ui_PropOutline         Contour
+ui_PropColor           Couleur
+ui_PropStart           Début
+ui_PropEnd             Fin
+ui_PropDash            Tirets
+ui_PropPosition        Position
+ui_PropSize            Taille
+ui_ResetSteps          Réinitialiser
 act_CaptureMonitor     Capturer l'écran %
 act_CaptureMonitorSize Capturer l'écran % (%x%)

@@ -2,6 +2,13 @@ const MaxRecent = 15
 
 const RecentPadding = 8.0
 
+// Width of the Voltage corner cut marking the selected capture.
+const SelectedCutSize = 14.0
+
+// The linked-image badge, at the inline-badge size of the application chart.
+const LinkBadgeSize  = 16.0
+const LinkBadgeGlyph = 12.0
+
 struct RecentItem
 {
     file:           String
@@ -138,7 +145,15 @@ impl IWnd for RecentView
         let colors = parent.themeColors()
 
         painter.setParams(.Antialiased)
-        painter.fillRoundRect(rect, 8, 8, colors.wnd_Bk)
+
+        // State is what the cell sits on, not a ring drawn around it: hovering and
+        // selecting raise the fill, and the accent is spent on the corner cut alone.
+        var cellColor = colors.wnd_Bk
+        if infos.selected do
+            cellColor = colors.btnIcon_PressedBk
+        elif infos.hot do
+            cellColor = colors.btnIcon_HotBk
+        painter.fillRect(rect, cellColor)
 
         if texture.isValid()
         {
@@ -164,23 +179,25 @@ impl IWnd for RecentView
         if infos.linked != null
         {
             let backColor = infos.linkedUpToDate ? colors.bk : ColorYellow
-            var icon11    = g_Main!.icon(.SquareFill, 48)
-            icon11.sizeX, icon11.sizeY = 24
-            icon11.paint(painter, rect.x + 4, rect.y + 4, backColor)
-
-            var icon12 = g_Main!.icon(.Rect, 48)
-            icon12.sizeX, icon12.sizeY = 24
-            icon12.paint(painter, rect.x + 4, rect.y + 4, backColor.contrasting())
+            painter.fillRect({rect.x, rect.y, LinkBadgeSize, LinkBadgeSize}, backColor)
 
             var icon = parent.theme().icon(.Link)
-            icon.sizeX, icon.sizeY = 16
-            icon.paint(painter, rect.x + 8, rect.y + 8, backColor.contrasting())
+            icon.sizeX, icon.sizeY = LinkBadgeGlyph
+            let inset = (LinkBadgeSize - LinkBadgeGlyph) * 0.5
+            icon.paint(painter, rect.x + inset, rect.y + inset, backColor.contrasting())
         }
 
-        if infos.hot do
-            painter.drawRoundRect(rect, 8, 8, colors.hilightLight, 2)
-        if infos.selected do
-            painter.drawRoundRect(rect, 8, 8, colors.hilightLight, 4)
+        // The selected capture carries the mark's own vocabulary: one 45-degree cut on
+        // the corner, in Voltage. Nothing else in this bar is allowed the accent.
+        if infos.selected
+        {
+            var cut: LinePath
+            cut.start(rect.x, rect.y)
+            cut.lineTo(rect.x + SelectedCutSize, rect.y)
+            cut.lineTo(rect.x, rect.y + SelectedCutSize)
+            cut.close()
+            painter.fillPolygon(&cut, colors.hilight)
+        }
     }
 
     mtd impl onPaint(evt: *PaintEvent)

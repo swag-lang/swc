@@ -17,8 +17,8 @@ func testSetupPropWnd(f: *HeadlessFixture)->*PropWnd
     let splitter = f.main.quickStyleBar
     f.main.quickWnd = QuickWnd.create(splitter, f.main)
     f.main.propWnd  = PropWnd.create(splitter, f.main)
-    discard f.main.quickStyleBar.addPane(f.main.quickWnd, showTitle: true)
-    discard f.main.quickStyleBar.addPane(f.main.propWnd, showTitle: true)
+    discard f.main.quickStyleBar.addPane(f.main.quickWnd)
+    discard f.main.quickStyleBar.addPane(f.main.propWnd)
     f.main.quickStyleBar.setPaneSize(0, 300)
     f.main.quickWnd.setDefault()
     return f.main.propWnd

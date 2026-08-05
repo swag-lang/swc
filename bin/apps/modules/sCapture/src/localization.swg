@@ -18,8 +18,6 @@ struct AppStrings
     ui_MenuHelp:              string = "Help"
     ui_MenuAlign:             string = "Align"
     ui_MenuArrange:           string = "Arrange"
-    ui_QuickStyles:           string = "Quick Styles"
-    ui_ToolProperties:        string = "Tool Properties"
     ui_AllCaptures:           string = "All Captures"
     ui_Search:                string = "Search"
     ui_BarSize:               string = "Size"
@@ -70,6 +68,15 @@ struct AppStrings
     dlg_TitleRenameCapture:   string = "Rename Capture"                                        // Title of the capture rename dialog.
     dlg_TitleEnterText:       string = "Enter Text"                                            // Title of the text-entry dialog.
     ui_Outline:               string = "Outline"                                               // Label of the outline thickness slider.
+    ui_PropFill:              string = "Fill"                                                  // Fill color swatch of the tool panel.
+    ui_PropOutline:           string = "Outline"                                               // Outline color swatch of the tool panel.
+    ui_PropColor:             string = "Color"                                                 // Stroke color swatch, for the forms that have no fill.
+    ui_PropStart:             string = "Start"                                                 // Start cap of a line or an arrow.
+    ui_PropEnd:               string = "End"                                                   // End cap of a line or an arrow.
+    ui_PropDash:              string = "Dash"                                                  // Dash pattern of a stroke.
+    ui_PropPosition:          string = "Position"                                              // Category of the position and size rows.
+    ui_PropSize:              string = "Size"                                                  // Size row of the position category.
+    ui_ResetSteps:            string = "Reset"                                                 // Restarts the numbered-step counter.
     act_CaptureMonitor:       string = "Capture Monitor %"                                     // Capture one monitor, by index.
     act_CaptureMonitorSize:   string = "Capture Monitor % (%x%)"                               // Capture one monitor, with its size.
     act_About:                string = "About..."

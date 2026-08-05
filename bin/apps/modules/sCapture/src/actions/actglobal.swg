@@ -79,11 +79,12 @@ impl MainWnd
     {
         .libraryMode = !.libraryMode
 
+        // The tool rail and the tool column belong to the editor: in library mode there is
+        // no form to draw and no form to style, so both leave instead of standing empty.
         .editWnd.show(!.libraryMode)
-        .quickStyleBar.show(!.libraryMode)
+        .rightBar.show(!.libraryMode)
         .recentBar.show(!.libraryMode)
-        .editZoomBar.show(!.libraryMode)
-        .editToolBar.show(!.libraryMode)
+        .toolRail.show(!.libraryMode)
 
         .libWnd.show(.libraryMode)
 

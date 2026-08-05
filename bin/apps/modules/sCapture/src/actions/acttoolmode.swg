@@ -32,70 +32,70 @@ impl IActionUI for ActionToolMode
         {
         case .Shape:
             evt.updatedFields |= .Icon | .Checked | .Name | .ToolTip
-            evt.icon          = main.icon(.Shape, 48)
+            evt.icon          = main.icon(.Shape, RailGlyphSize)
             evt.name          = appStrings().act_Shape
             evt.toolTip       = appStrings().tip_ToolShape
             evt.checked       = main.editMode == EditMode.Shape
 
         case .Arrow:
             evt.updatedFields |= .Icon | .Checked | .Name | .ToolTip
-            evt.icon          = main.icon(.Arrow, 48)
+            evt.icon          = main.icon(.Arrow, RailGlyphSize)
             evt.name          = appStrings().act_Arrow
             evt.toolTip       = appStrings().tip_ToolArrow
             evt.checked       = main.editMode == EditMode.Arrow
 
         case .Line:
             evt.updatedFields |= .Icon | .Checked | .Name | .ToolTip
-            evt.icon          = main.icon(.Line, 48)
+            evt.icon          = main.icon(.Line, RailGlyphSize)
             evt.name          = appStrings().act_Line
             evt.toolTip       = appStrings().tip_ToolLine
             evt.checked       = main.editMode == EditMode.Line
 
         case .Poly:
             evt.updatedFields |= .Icon | .Checked | .Name | .ToolTip
-            evt.icon          = main.icon(.Polygon, 48)
+            evt.icon          = main.icon(.Polygon, RailGlyphSize)
             evt.name          = appStrings().act_Polygon
             evt.toolTip       = appStrings().tip_ToolPolygon
             evt.checked       = main.editMode == EditMode.Polygon
 
         case .Text:
             evt.updatedFields |= .Icon | .Checked | .Name | .ToolTip
-            evt.icon          = main.icon(.Text, 48)
+            evt.icon          = main.icon(.Text, RailGlyphSize)
             evt.name          = appStrings().act_Text
             evt.toolTip       = appStrings().tip_ToolText
             evt.checked       = main.editMode == EditMode.Text
 
         case .Draw:
             evt.updatedFields |= .Icon | .Checked | .Name | .ToolTip
-            evt.icon          = main.icon(.Draw, 48)
+            evt.icon          = main.icon(.Draw, RailGlyphSize)
             evt.name          = appStrings().act_Draw
             evt.toolTip       = appStrings().tip_ToolDraw
             evt.checked       = main.editMode == EditMode.Draw
 
         case .Highlight:
             evt.updatedFields |= .Icon | .Checked | .Name | .ToolTip
-            evt.icon          = main.icon(.Highlight, 48)
+            evt.icon          = main.icon(.Highlight, RailGlyphSize)
             evt.name          = appStrings().act_Highlight
             evt.toolTip       = appStrings().tip_ToolHighlight
             evt.checked       = main.editMode == EditMode.Highlight
 
         case .Step:
             evt.updatedFields |= .Icon | .Checked | .Name | .ToolTip
-            evt.icon          = main.icon(.Step, 48)
+            evt.icon          = main.icon(.Step, RailGlyphSize)
             evt.name          = appStrings().act_Step
             evt.toolTip       = appStrings().tip_ToolStep
             evt.checked       = main.editMode == EditMode.Step
 
         case .Img:
             evt.updatedFields |= .Icon | .Checked | .Name | .ToolTip
-            evt.icon          = main.icon(.Image, 48)
+            evt.icon          = main.icon(.Image, RailGlyphSize)
             evt.name          = appStrings().ui_MenuImage
             evt.toolTip       = appStrings().tip_ToolImage
             evt.checked       = main.editMode == EditMode.Image
 
         case .PixSel:
             evt.updatedFields |= .Icon | .Checked | .Name | .ToolTip
-            evt.icon          = main.icon(.PixSel, 48)
+            evt.icon          = main.icon(.PixSel, RailGlyphSize)
             evt.name          = appStrings().act_PixSel
             evt.toolTip       = appStrings().tip_ToolPixSel
             evt.checked       = main.editMode == EditMode.PixSel
@@ -111,14 +111,14 @@ impl IActionUI for ActionToolMode
 
         case .Favorites:
             evt.updatedFields |= .Icon | .Checked | .Name | .ToolTip
-            evt.icon          = main.icon(.Favorites, 48)
+            evt.icon          = main.icon(.Favorites, RailGlyphSize)
             evt.name          = appStrings().act_Favorites
             evt.toolTip       = appStrings().tip_ToolFavorites
             evt.checked       = main.editMode == EditMode.Favorites
 
         case .Selection:
             evt.updatedFields |= .Icon | .Checked | .Name | .ToolTip
-            evt.icon          = main.icon(.Select, 48)
+            evt.icon          = main.icon(.Select, RailGlyphSize)
             evt.name          = appStrings().act_Select
             evt.toolTip       = appStrings().tip_ToolSelect
             evt.checked       = main.editMode == EditMode.Selection or (capture and capture.drawSelRect)

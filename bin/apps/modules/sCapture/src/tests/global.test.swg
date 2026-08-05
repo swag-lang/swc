@@ -12,14 +12,14 @@ func testSetupGlobalMain(main: *MainWnd)
         .dockStyle = .Bottom
     }
 
-    main.quickStyleBar           = SplitterCtrl.create(main, {0, 0, 300, 600}, vertical: true)
-    main.quickStyleBar.dockStyle = .Right
+    main.rightBar           = Wnd.create'Wnd(main, {0, 0, RightBarWidth, 0})
+    main.rightBar.dockStyle = .Right
 
-    main.editZoomBar           = StackLayoutCtrl.create(main, .HorizontalCenter, {0, 0, 300, 32})
-    main.editZoomBar.dockStyle = .Top
+    main.quickStyleBar           = SplitterCtrl.create(main.rightBar, {0, 0, RightBarWidth, 600}, vertical: true)
+    main.quickStyleBar.dockStyle = .Center
 
-    main.editToolBar           = Wnd.create'Wnd(main, {0, 0, 64, 64})
-    main.editToolBar.dockStyle = .Top
+    main.toolRail           = StackLayoutCtrl.create(main, .Top, {0, 0, RailCellSize, 0})
+    main.toolRail.dockStyle = .Left
 
     main.libWnd = LibraryWnd.create(main)
     main.libWnd.hide()

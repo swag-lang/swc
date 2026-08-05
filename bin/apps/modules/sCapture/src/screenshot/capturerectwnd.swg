@@ -12,6 +12,60 @@ func easeGrab(current, target: f32)->f32
     return Math.moveTowards(current, target, step)
 }
 
+// The selection marks: four corner brackets whose outer corner is cut at 45 degrees, the
+// mark's own vocabulary. They frame the region instead of outlining it, so the pixels
+// about to be captured stay visible under the selection.
+const BracketArm   = 26.0
+const BracketThick = 3.0
+const BracketCut   = 8.0
+const BracketHalo  = 1.5     // Ink counter-form, so the accent reads on a white capture too.
+
+// The readout badge sitting above the selection.
+const BadgePad = 6.0
+const BadgeGap = 6.0
+
+// Paints one corner bracket. `dirX` and `dirY` are +1 or -1 and point from the corner
+// toward the inside of the selection, so the same seven points serve all four corners.
+func paintCornerBracket(painter: *Painter, x, y, dirX, dirY, arm, thick, cut: f32, color: Color)
+{
+    let armX   = arm * dirX
+    let armY   = arm * dirY
+    let thickX = thick * dirX
+    let thickY = thick * dirY
+    let cutX   = cut * dirX
+    let cutY   = cut * dirY
+
+    var path: LinePath
+    path.start(x + armX, y)
+    path.lineTo(x + cutX, y)
+    path.lineTo(x, y + cutY)
+    path.lineTo(x, y + armY)
+    path.lineTo(x + thickX, y + armY)
+    path.lineTo(x + thickX, y + thickY)
+    path.lineTo(x + armX, y + thickY)
+    path.close()
+    painter.fillPolygon(&path, color)
+}
+
+// The four brackets of one selection, each backed by an ink counter-form. The overlay
+// lies over whatever is on screen, and Voltage alone disappears on a white document —
+// the chart forbids the accent on paper for exactly that reason.
+func paintCornerBrackets(painter: *Painter, rect: Math.Rectangle, color, backColor: Color)
+{
+    #[Swag.Mixin]
+    func corner(x, y, dx, dy: f32)
+    {
+        paintCornerBracket(painter, x - dx * BracketHalo, y - dy * BracketHalo, dx, dy,
+                           BracketArm + BracketHalo, BracketThick + 2 * BracketHalo, BracketCut, backColor)
+        paintCornerBracket(painter, x, y, dx, dy, BracketArm, BracketThick, BracketCut, color)
+    }
+
+    corner(rect.x, rect.y, 1, 1)
+    corner(rect.right(), rect.y, -1, 1)
+    corner(rect.x, rect.bottom(), 1, -1)
+    corner(rect.right(), rect.bottom(), -1, -1)
+}
+
 struct CaptureRectWnd
 {
     using wnd: Wnd
@@ -173,8 +227,17 @@ impl IWnd for CaptureRectWnd
         if !grabRect.isEmpty() do
             painter.drawTexture(dstGrab, grabRect, g_DesktopTexture)
 
-        let col = .themeColors().hilight
-        painter.drawRect(dstGrab, col, 2)
+        let colors = .themeColors()
+        let col    = colors.hilight
+
+        // A hairline states where the edge is; the brackets say it is a selection. A
+        // full accent rectangle would sit on top of the pixels being captured.
+        painter.setParams(.Antialiased)
+        painter.drawRect(dstGrab, colors.bk, 3)
+        painter.drawRect(dstGrab, col, 1)
+
+        if dstGrab.width >= 2 * BracketArm and dstGrab.height >= 2 * BracketArm do
+            paintCornerBrackets(painter, dstGrab, col, colors.bk)
 
         // Crosshair guides - only in manual grab mode. The cursor sits on the dragged
         // corner, so split each line around the selection instead of running it along
@@ -182,35 +245,41 @@ impl IWnd for CaptureRectWnd
         // and stays clearly visible over the dimmed background.
         if .main.captureOptions.drawCross and !.autoGrab
         {
-            let cross = Argb.White
-            let endX  = g_EndGrabX / k
-            let endY  = g_EndGrabY / k
+            // Translucent: the cross has to guide the eye without cutting the image.
+            let cross: Color = {255, 255, 255, 110}
+            let endX         = g_EndGrabX / k
+            let endY         = g_EndGrabY / k
             painter.drawLine(endX, 0, endX, dstGrab.y, cross)
             painter.drawLine(endX, dstGrab.bottom(), endX, cast(f32) g_ScreenHeight / k, cross)
             painter.drawLine(0, endY, dstGrab.x, endY, cross)
             painter.drawLine(dstGrab.right(), endY, cast(f32) g_ScreenWidth / k, endY, cross)
         }
 
-        // Dimensions, reported in physical desktop pixels: that is the size of the
-        // captured image.
+        // The readout, in physical desktop pixels: that is the size of the captured
+        // image, and the origin the user needs to reproduce the same frame later. Both
+        // are machine data, so both are set in the fixed-width theme family.
         if grabRect.width > 0 and grabRect.height > 0
         {
-            let fontR = .font().regular!
-            let str   = Format.toString("% x %", grabRect.width, grabRect.height)
-            var xx    = dstGrab.x + 4
-            var yy    = dstGrab.y - fontR.height - 8
+            let fontR = .theme().res.fontDefaultFs.regular!
+            let size  = Format.toString("%×%", grabRect.width, grabRect.height)
+            let org   = Format.toString("+%,%", grabRect.x, grabRect.y)
+
+            let mSize  = Painter.measureString(size, fontR)
+            let mOrg   = Painter.measureString(org, fontR)
+            let width  = Math.max(mSize.width, mOrg.width) + 2 * BadgePad
+            let height = 2 * fontR.height + 2 * BadgePad
+
+            var xx = dstGrab.x
+            var yy = dstGrab.y - height - BadgeGap
             if xx < 0 or yy < 0
             {
-                xx = dstGrab.x + 5
-                yy = dstGrab.y + 5
+                xx = dstGrab.x + BadgeGap
+                yy = dstGrab.y + BadgeGap
             }
 
-            let m = Painter.measureString(str, fontR)
-            painter.fillRoundRect({xx - 4, yy - 4, m.width + 8, fontR.height + 8}, 2, 2, col)
-
-            // The badge is filled with the accent, so its text must be the foreground the
-            // theme pairs with that accent: a hard-coded white disappears on a light one.
-            painter.drawString(xx, yy, str, fontR, .themeColors().hilightLightContrast)
+            painter.fillRect({xx, yy, width, height}, colors.bk)
+            painter.drawString(xx + BadgePad, yy + BadgePad, size, fontR, col)
+            painter.drawString(xx + BadgePad, yy + BadgePad + fontR.height, org, fontR, colors.label_TextLight)
         }
     }
 }

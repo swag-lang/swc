@@ -7,7 +7,8 @@ description: Build, migrate, rename, review, style, package, and test official S
 
 Make every application recognizable as part of Swag before its title is read. Keep the family
 strict and quiet: one generated product glyph, one voltage accent, one ink ground, measured
-45-degree cuts, square structure, and no decoration without information.
+45-degree cuts, square structure, small chrome around generous air, and no decoration without
+information.
 
 ## Establish The Change
 
@@ -96,6 +97,40 @@ glyph, another app's icon, or a letter tile.
   the operation that stopped.
 - Design both palettes together, verify narrow and minimum-size layouts, and inspect a real native
   surface rather than trusting constants alone.
+
+## Keep The Chrome Small And The Air Large
+
+A Swag application is quiet, and quiet is mostly a question of size. An oversized glyph reads as a
+toy: it fills its cell, it crowds its neighbour, and it forces every surface around it to grow to
+hold it. The interface must read as an instrument at arm's length, never as a touch launcher.
+
+- **A glyph takes at most half of its cell.** The rest is not spare room to reclaim; it is what
+  separates one control from the next. Take it back and the surface immediately needs a border to
+  say where a control ends, which is the failure the previous section describes.
+- **Use one size table for the whole family.** These are logical pixels, and they are ceilings.
+
+  | Placement | Glyph | Cell |
+  | --- | --- | --- |
+  | Menu entry, list row, tree row, breadcrumb | 16 | 24 |
+  | Tool rail, command bar, toolbar, primary action | 20 | 36 |
+  | Flat swatch — one color, one pattern | — | 24 |
+  | Rendered sample — a real preview of what the preset produces | — | 36 |
+  | Inline badge, status readout, indicator | 12 | 16 |
+
+- **Do not stack a label under a glyph.** It doubles the height of every control to carry a word
+  the tooltip already carries, and turns a toolbar into a ribbon. A label belongs beside the glyph
+  when it is needed at all.
+- **Chrome shrinks so content grows.** The document, image, list, or editor is the interface;
+  everything else is a thin frame around it. Measure it: at the window's declared minimum size,
+  the primary content must hold the clear majority of the surface. Any panel that cannot justify
+  its width in information is too wide.
+- **Air is the first separator, and it is generous.** Group with 16 or 24 pixels between blocks
+  and 8 within a block, and let a panel keep its outer padding at its narrowest width. Two
+  controls that need a divider to look separate are simply too close together.
+- **A dense surface is not an efficient one.** A control that is present at all times to set a
+  preference, a second title above a panel that already announces itself, a duplicated readout —
+  each costs permanent room and buys one occasional click. Move it to a menu, a context menu, or a
+  modifier gesture, and give the space to the content.
 
 ## Keep The Module Shippable
 

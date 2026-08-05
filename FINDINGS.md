@@ -182,3 +182,22 @@ Use this compact format. Keep observations factual and make the next step action
   that exists today: an explicit slot through `__tlsAlloc`/`__tlsGetPtr`, which is already how the
   runtime context reaches per-thread storage
   ([os_windows.swg:298](bin/runtime/os_windows.swg#L298)).
+
+## A reflected property label cannot be translated
+
+- Symptom: in a French session the sCapture tool panel mixes languages. The hand-built rows read
+  `Fond`, `Contour`, `Tirets`, but the rows the `Properties` grid generates from reflection read
+  `Thickness`, `Rotate`, `Opacity`, `Shadow`, and the boolean combos offer `Straight`/`Bezier` and
+  `No Shadow`/`Small`. The same holds for any application that builds a panel from attributes.
+- Evidence: the label and the combo entries come from `#[Name(...)]`, `#[Unit(...)]` and
+  `#[BoolCombo(...)]` string literals carried by the field
+  ([form.swg:66-80](bin/apps/modules/sCapture/src/forms/form.swg#L66-L80)). An attribute value is a
+  compile-time literal, so it cannot be a key resolved through `Gui.registerStrings`, and the grid
+  has no hook to remap it. sCapture works around one row only, by walking the built items and
+  re-labelling the border-size slider
+  ([propwnd.swg](bin/apps/modules/sCapture/src/propwnd.swg)) — a loop per row would not scale and
+  would still miss the combo entries.
+- Next step: give `Properties` a resolver the host installs once — a callback taking the field's
+  declared name and returning the displayed text — and have the grid route every generated label,
+  unit, and enumeration entry through it. Then a `#[Name("Thickness")]` becomes a translation key
+  rather than a final wording, and the existing per-row workaround disappears.

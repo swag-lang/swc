@@ -347,7 +347,10 @@ impl GizmoRect
         {
             if .paintSimpleBorder
             {
-                painter.drawRect(.rect, color, 2)
+                // Embossed, like the big border below: the gizmo sits on arbitrary user
+                // pixels, so it carries its own contrast instead of relying on an accent.
+                painter.drawRect(.rect, Argb.DarkGray, 3)
+                painter.drawRect(.rect, color, 1)
             }
             elif .paintBigBorder
             {
@@ -380,7 +383,7 @@ impl GizmoRect
             else
             {
                 painter.fillRect(c, Argb.White)
-                painter.drawRect(c, color, 3)
+                painter.drawRect(c, Argb.Black, 2)
             }
         }
 
@@ -391,7 +394,7 @@ impl GizmoRect
             let topY    = .rect.y
             let handleY = topY - RotateHandleDist
             let knobR   = anchorSize2 + 2
-            let knobCol = .rotateHot ? Argb.Yellow : col
+            let knobCol = .rotateHot ? Argb.White : Argb.LightGray
 
             .rotateAnchor = {cx - knobR, handleY - knobR, knobR * 2, knobR * 2}
 

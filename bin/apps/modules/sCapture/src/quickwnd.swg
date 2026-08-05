@@ -1,3 +1,13 @@
+// A preset cell renders a real sample of the style it applies, so it sits at the sample
+// size of the application chart rather than at the flat-swatch size. The sample keeps a
+// margin inside its cell: the air is what separates one preset from the next.
+const QuickCellSize   = 36.0
+const QuickCellMargin = 5.0
+
+// The overlay that turns the trailing cell into an "add this style" action.
+const AddCellSize  = 18.0
+const AddGlyphSize = 12.0
+
 struct QuickStyle
 {
     forms: Array'IForm
@@ -101,7 +111,8 @@ func quickStyleNewPaintForm(srcItf: IForm)->QuickStylePaintForm
 
     let sel  = cast(*BaseForm) @dataof(paintItf)
     let s    = cast(s32) BaseForm.adaptSize(sel.borderSize / 2, MinBorderSize, MaxBorderSize, cxt)
-    let rect = Math.Rectangle{8 + s, 8 + s, 48 - 2 * s, 48 - 2 * s}
+    let m    = QuickCellMargin + s
+    let rect = Math.Rectangle{m, m, QuickCellSize - 2 * m, QuickCellSize - 2 * m}
 
     var result: QuickStylePaintForm
     result.itf = paintItf
@@ -708,7 +719,7 @@ impl QuickWnd
             var paintForm = quickStyleNewPaintForm(btnp.formItf!)
             defer quickStyleReleasePaintForm(&paintForm)
 
-            Capture.paintForm(painter, {}, {0, 0, 64, 64}, paintForm.itf!, zoom: 1, quickMode: true)
+            Capture.paintForm(painter, {}, {0, 0, QuickCellSize, QuickCellSize}, paintForm.itf!, zoom: 1, quickMode: true)
 
             if !paintForm.title.isEmpty()
             {
@@ -776,7 +787,7 @@ impl QuickWnd
 
         for it in .currentStyle.forms
         {
-            let btn = Wnd.create'QuickButton(.layout, null, {0, 0, 64, 64})
+            let btn = Wnd.create'QuickButton(.layout, null, {0, 0, QuickCellSize, QuickCellSize})
             btn.updateFlags(.Radio)
             btn.setForm(.Rectangle)
             btn.formItf  = it
@@ -821,7 +832,7 @@ impl QuickWnd
 
         if canAddModel
         {
-            let btn = Wnd.create'QuickButton(.layout, null, {0, 0, 64, 64})
+            let btn = Wnd.create'QuickButton(.layout, null, {0, 0, QuickCellSize, QuickCellSize})
             btn.updateFlags(.Radio)
             btn.userData = cast(*void) 1'u64     // This is the model button
             btn.formItf  = formItf
@@ -837,16 +848,16 @@ impl QuickWnd
                 var rect = btn.clientRect()
                 rect.inflate(-2, -2)
                 bc.painter.setParams(.Antialiased)
-                bc.painter.drawRoundRect(rect, 5, 5, Pen.createDash(.Dash, Argb.White, 2))
+                bc.painter.drawRect(rect, Pen.createDash(.Dash, Argb.White, 1))
             }
 
-            // Button to add a new style
-            let ico  = .theme().icon(.Plus)
-            let btn1 = IconButton.create(btn, ico, {64 - 26, 2, 24, 24})
-            btn1.style.addStyleSheetColors("btnIcon_Bk          $hilight")
-            btn1.style.addStyleSheetColors("btnIcon_HotBk       $hilightLight")
-            btn1.style.addStyleSheetColors("btnIcon_PressedBk   $hilightDark")
-            btn1.style.addStyleSheetColors("btnIcon_Icon        $hilightLightContrast")
+            // Button to add a new style. Neutral, not Voltage: adding a preset is a
+            // convenience, not the primary action of the surface.
+            let ico  = .theme().icon(.Plus, AddGlyphSize)
+            let btn1 = IconButton.create(btn, ico, {QuickCellSize - AddCellSize - 2, 2, AddCellSize, AddCellSize})
+            btn1.style.addStyleSheetColors("btnIcon_Bk          $lighterBig")
+            btn1.style.addStyleSheetColors("btnIcon_HotBk       $lighterVeryBig")
+            btn1.style.addStyleSheetColors("btnIcon_PressedBk   $btnIcon_PressedBk")
             btn1.setForm(.Rectangle)
 
             .layout.sendResizeEvent()

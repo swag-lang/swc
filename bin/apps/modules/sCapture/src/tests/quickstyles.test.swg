@@ -50,12 +50,12 @@ using Swag, Core
 
     f.main.quickWnd = QuickWnd.create(f.main.quickStyleBar, f.main)
     f.main.propWnd  = PropWnd.create(f.main.quickStyleBar, f.main)
-    with let quickPane = f.main.quickStyleBar.addPane(f.main.quickWnd, showTitle: true)
+    with let quickPane = f.main.quickStyleBar.addPane(f.main.quickWnd)
     {
         .preserveSize = true
     }
 
-    discard f.main.quickStyleBar.addPane(f.main.propWnd, showTitle: true)
+    discard f.main.quickStyleBar.addPane(f.main.propWnd)
     f.main.quickStyleBar.setPaneSize(0, 300)
 
     f.main.quickWnd.setDefault()

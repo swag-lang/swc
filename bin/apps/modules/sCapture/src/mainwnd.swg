@@ -6,6 +6,18 @@ const ClipboardFormat = "Swag.sCapture"
 const IconsSvg        = #include("../datas/icons.svg")
 const AppIcon         = #include("../datas/appicon.png")
 
+// Interface metrics, taken from the application chart: a glyph never fills more than half
+// of the cell it sits in, and the space left around it is what separates one control from
+// the next. Nothing here is a container for a label stacked under an icon.
+const RailCellSize     = 36.0     // One tool cell of the left rail.
+const RailGlyphSize    = 20.0     // Every toolbar and command-row glyph.
+const RailLabelWidth   = 104.0    // Rail width when the labels option puts a word beside the glyph.
+const CommandRowHeight = 36.0     // The single command row under the accent rail.
+const ReadoutWidth     = 88.0     // One machine readout of the command row.
+const VerbsWidth       = 156.0    // The command group: the primary action and the library.
+const ReadoutsWidth    = 224.0    // The readout group: the capture size and the zoom.
+const RightBarWidth    = 240.0    // The tool column on the right.
+
 // Enums
 enum EditMode { Shape, Arrow, Line, Polygon, Text, Favorites, Draw, Highlight, Selection, Step, Image, PixSel, Callout }
 
@@ -82,16 +94,17 @@ struct MainWnd
     using wnd: Wnd
     #[Swag.Late]
     {
-        topBar, editToolBar, recentBar:  *Wnd
-        editWnd:                         *EditWnd
-        quickWnd:                        *QuickWnd
-        propWnd:                         *PropWnd
-        libWnd:                          *LibraryWnd
-        recentWnd:                       *RecentWnd
-        recentSizeBar:                   *IconBar
-        quickStyleBar:                   *SplitterCtrl
-        editZoomBar:                     *StackLayoutCtrl
-        captureBtn, libraryBtn, zoomBtn: *IconButton
+        topBar, recentBar, rightBar: *Wnd
+        toolRail:                    *StackLayoutCtrl
+        editWnd:                     *EditWnd
+        quickWnd:                    *QuickWnd
+        propWnd:                     *PropWnd
+        libWnd:                      *LibraryWnd
+        recentWnd:                   *RecentWnd
+        quickStyleBar:               *SplitterCtrl
+        toolTitle:                   *Label
+        libraryBtn, zoomBtn:         *IconButton
+        captureBtn:                  *PushButton
     }
 
     sizeBtn:       #null *IconButton
@@ -279,7 +292,7 @@ impl IWnd for MainWnd
             .setLanguage()
             .quickStyleBar.sendResizeEvent()
             .setBottomSize(.bottomSize)
-            .setTopBarHeight()
+            .setToolRailWidth()
             .updateState()
         }
     }
@@ -466,6 +479,7 @@ impl MainWnd
     mtd updateState()
     {
         .updateCommandState()
+        .updateToolTitle()
         if @isset(.propWnd) do
             .propWnd.selectionHasChanged()
         if @isset(.quickWnd) do
@@ -477,8 +491,8 @@ impl MainWnd
         .updateSizeDisplay()
         if @isset(.recentWnd)
         {
-            if @isset(.editToolBar) do
-                .editToolBar.updateCommandState()
+            if @isset(.toolRail) do
+                .toolRail.updateCommandState()
             .updateRecent()
         }
     }
@@ -496,20 +510,57 @@ impl MainWnd
             .recentWnd.updateRecent()
     }
 
+    // The two readouts of the command row. Both are machine data, set in the fixed-width
+    // theme family, so a value never changes the width of the control that holds it.
     mtd updateZoomDisplay()
     {
-        let z = cast(s32) (.editWnd.editView.zoom * 100)
-        .zoomBtn.name = Format.toString("% %%", z)
+        let z   = cast(s32) (.editWnd.editView.zoom * 100)
+        var txt = Format.toString("%", z)
+        txt += "%"
+        .zoomBtn.name = txt
         .zoomBtn.invalidate()
     }
 
     mtd updateSizeDisplay()
     {
-        let capture = .getCapture()
-        if !capture or !.sizeBtn do
+        if !.sizeBtn do
             return
-        .sizeBtn.name = Format.toString("% x %", capture.width, capture.height)
+
+        let capture = .getCapture()
+        if capture do
+            .sizeBtn.name = Format.toString("%×%", capture.width, capture.height)
+        else do
+            .sizeBtn.name = "—"
         .sizeBtn.invalidate()
+    }
+
+    // Names the surface the right column is editing. It replaces the two pane titles the
+    // panel used to carry, and unlike them it says something the reader does not know.
+    mtd updateToolTitle()
+    {
+        if !@isset(.toolTitle) do
+            return
+
+        var name = appStrings().act_Select
+        switch .getEditMode()
+        {
+        case .Shape:     name = appStrings().act_Shape
+        case .Arrow:     name = appStrings().act_Arrow
+        case .Line:      name = appStrings().act_Line
+        case .Polygon:   name = appStrings().act_Polygon
+        case .Text:      name = appStrings().act_Text
+        case .Callout:   name = appStrings().act_Callout
+        case .Draw:      name = appStrings().act_Draw
+        case .Highlight: name = appStrings().act_Highlight
+        case .Step:      name = appStrings().act_Step
+        case .Image:     name = appStrings().ui_MenuImage
+        case .PixSel:    name = appStrings().act_PixSel
+        case .Favorites: name = appStrings().act_Favorites
+        default:         break
+        }
+
+        let upper = String.toUpper(name)
+        .toolTitle.setText(upper.toString())
     }
 
     mtd registerActions()
@@ -685,11 +736,13 @@ impl MainWnd
             topMenu.addPopup(appStrings().ui_MenuImage, imageMenu)
         }
 
-        // View menu
+        // View menu. The recent-preview size lives here now, instead of on three radio
+        // buttons standing permanently beside the recent bar.
         with let viewMenu = MenuCtrl.createPopup(me.parent, owner: me)
         {
             .addGroup([ActionZoom.ZoomIn, ActionZoom.ZoomOut])
             .addGroup([ActionZoom.Zoom1, ActionZoom.ZoomFit])
+            .addGroup([ActionRecentSize.RecentSmall, ActionRecentSize.RecentMedium, ActionRecentSize.RecentBig])
             .addItems([ActionView.Clip])
             topMenu.addPopup(appStrings().ui_MenuView, viewMenu)
         }
@@ -705,32 +758,47 @@ impl MainWnd
     }
 
     // Speech-bubble glyph drawn for the Callout toolbar button: the icon sheet has no
-    // sprite for this tool, so it paints its own rounded body plus a small tail.
+    // sprite for this tool, so it paints its own rounded body plus a small tail. Its round
+    // corners are deliberate — the glyph depicts a shape the user draws, not chrome.
     func drawCalloutGlyph(btn: *IconButton, bc: *PaintContext, pos: Math.Rectangle, flags: PaintItemFlags)
     {
         bc.painter.setParams(.Antialiased)
         let col = btn.isChecked ? btn.themeColors().btnIcon_CheckedIcon : btn.themeColors().btnIcon_Icon
 
-        var body = pos
-        body.inflate(-pos.width * 0.20, -pos.height * 0.20)
-        body.height *= 0.66
+        // A custom painter is handed the whole content rectangle, not the icon extent, so
+        // the glyph places itself where a sprite of the set would have landed: centered
+        // when the cell shows no label, against the leading edge when it does.
+        var box = Math.Rectangle{pos.x, pos.vertCenter() - RailGlyphSize * 0.5, RailGlyphSize, RailGlyphSize}
+        if btn.flags.has(.IconOnly) or btn.name.isEmpty() do
+            box.x = pos.horzCenter() - RailGlyphSize * 0.5
+
+        // The sprites of the set stand on roughly three fifths of their box; the bubble
+        // matches that weight so the rail reads as one column of glyphs.
+        var body = box
+        body.inflate(-box.width * 0.20, -box.height * 0.20)
+        body.height *= 0.70
 
         let tx = body.x + body.width * 0.28
         var tail: LinePath
-        tail.start(tx, body.bottom() - 2)
-        tail.lineTo(tx + body.width * 0.26, body.bottom() - 2)
-        tail.lineTo(tx, body.bottom() + pos.height * 0.18)
+        tail.start(tx, body.bottom() - 1)
+        tail.lineTo(tx + body.width * 0.30, body.bottom() - 1)
+        tail.lineTo(tx, body.bottom() + box.height * 0.20)
         tail.close()
         bc.painter.fillPolygon(&tail, col)
 
-        bc.painter.fillRoundRect(body, 6, 6, col)
+        bc.painter.fillRoundRect(body, 3, 3, col)
     }
 
-    mtd createToolbar()
+    // The tools stand in a column against the window's left edge, one square cell each,
+    // glyph only. A horizontal ribbon of labelled tiles across the top costs a whole row
+    // of height, pushes the canvas down, and sends the eye across the window to change
+    // tool; the rail sits where the pointer already is.
+    mtd createToolRail()
     {
-        with me.editToolBar = StackLayoutCtrl.create(me .topBar!, .HorizontalCenter, {0, 0, 64, 64})
+        with me.toolRail = StackLayoutCtrl.create(me, .Top, {0, 0, RailCellSize, 0})
         {
-            .dockStyle       = .Top
+            .dockStyle       = .Left
+            .spacing         = 0
             .backgroundStyle = .Window
             .style.addStyleSheetColors("wnd_Bk $wnd_CaptionBk")
         }
@@ -743,28 +811,82 @@ impl MainWnd
 
         for id in toolButtons
         {
-            with let b = IconButton.create(me .editToolBar!, {}, position: {0, 0, 60, 64})
+            with let b = IconButton.create(me .toolRail!, {}, position: {0, 0, RailCellSize, RailCellSize})
             {
                 .id = id
-                if id == ActionToolMode.Callout do
+                if id == ActionToolMode.Callout
+                {
                     .iconPainter = func(btn, bc, pos, flags) { drawCalloutGlyph(btn, bc, pos, flags) }
+                    .setIconSize(RailGlyphSize, RailGlyphSize)
+                }
+
+                // The active tool is said once, by the Voltage glyph and the rule against
+                // the window edge. A checked fill on top of those would be a third voice.
                 .style.addStyleSheetColors("btnIcon_CheckedBk           $btnIcon_HotBk")
+                .style.addStyleSheetColors("btnIcon_CheckedText         $btnIcon_Text")
+                .style.addStyleSheetColors("btnIcon_CheckedHotText      $btnIcon_Text")
+                .style.addStyleSheetColors("btnIcon_CheckedPressedText  $btnIcon_Text")
                 .style.addStyleSheetColors("btnIcon_CheckedIcon         $btnIcon_CheckedMark")
-                .style.addStyleSheetColors("btnIcon_CheckedText         $btnIcon_CheckedMark")
                 .style.addStyleSheetColors("btnIcon_CheckedHotBk        $btnIcon_HotBk")
                 .style.addStyleSheetColors("btnIcon_CheckedHotIcon      $btnIcon_CheckedHotMark")
-                .style.addStyleSheetColors("btnIcon_CheckedHotText      $btnIcon_CheckedHotMark")
                 .style.addStyleSheetColors("btnIcon_CheckedPressedIcon  $btnIcon_CheckedMark")
-                .style.addStyleSheetColors("btnIcon_CheckedPressedText  $btnIcon_CheckedMark")
                 .updateFlags(.Radio)
-                .setCheckIndicator(.Bottom)
-                .setIconSize(48, 48)
+                .setTextPosition(.Right)
+                .setCheckIndicator(.Left)
+            }
+        }
+    }
+
+    // The command row: the two verbs of the application on one side, what the machine
+    // knows about the open capture on the other, and nothing in between.
+    mtd createCommandRow()
+    {
+        with let verbs = StackLayoutCtrl.create(me .topBar!, .Left, {0, 0, VerbsWidth, CommandRowHeight})
+        {
+            .dockStyle = .Left
+            .spacing   = 4
+            .padding   = {8, 4, 8, 4}
+        }
+
+        // The one Voltage-filled control of the window. Everything else that acts is flat.
+        .captureBtn = PushButton.create(verbs, "", {0, 0, 104, RailCellSize - 8}, ActionCapture.DoIt, .Strong)
+
+        .libraryBtn = IconButton.create(verbs, .icon(.Library, RailGlyphSize), {0, 0, RailCellSize - 8, RailCellSize - 8}, id: ActionGlobal.ShowLibrary)
+        .libraryBtn.updateFlags(.IconOnly)
+        .libraryBtn.setForm(.Rectangle)
+
+        with let readouts = StackLayoutCtrl.create(me .topBar!, .Right, {0, 0, ReadoutsWidth, CommandRowHeight})
+        {
+            .dockStyle = .Right
+            .spacing   = 4
+            .padding   = {8, 4, 8, 4}
+        }
+
+        // Zoom keeps its menu, so it stays a button; size is a pure readout and is not
+        // one. Both carry the fixed-width family, so neither jumps as its value changes.
+        with .zoomBtn = IconButton.create(readouts, {}, {0, 0, ReadoutWidth, RailCellSize - 8})
+        {
+            .updateFlags(.CenterContent)
+            .setArrowPosition(.RightDownward)
+            .setForm(.Rectangle)
+            .style.setFont(me.theme().res.fontDefaultFs)
+            .sigPressed += func|main = me|(btn)
+            {
+                var pos  = btn.surfaceRect()
+                var menu = MenuCtrl.createPopup(main)
+                menu.updateFlags(.HideShortcuts)
+                menu.addItem(ActionZoom.Zoom1)
+                menu.addItem(ActionZoom.ZoomFit)
+                discard menu.doModal({pos.horzCenter(), pos.bottom()}, .AnchorTopCenter, autoDestroy: true)
             }
         }
 
-        .captureBtn = IconButton.create(.topBar!, .icon(.Capture, 48), {0, 0, 64, 64}, id: ActionCapture.DoIt)
-        .captureBtn.setIconColor(Argb.White)
-        .libraryBtn = IconButton.create(.topBar!, .icon(.Library, 48), {64, 0, 64, 64}, id: ActionGlobal.ShowLibrary)
+        with .sizeBtn = IconButton.create(readouts, {}, {0, 0, ReadoutWidth + 24, RailCellSize - 8})
+        {
+            .updateFlags(.CenterContent | .Flat)
+            .style.setFont(me.theme().res.fontDefaultFs)
+            .setTextColor(me.themeColors().label_TextLight)
+        }
     }
 
     mtd setTheme()
@@ -799,43 +921,30 @@ impl MainWnd
         catch .app().setLanguage(tag)
     }
 
-    mtd setTopBarHeight()
+    // Applies the "show tool labels" option. The label never goes under the glyph, which
+    // would double the height of every cell to carry a word the tooltip already carries;
+    // it widens the rail and sits beside it.
+    mtd setToolRailWidth()
     {
-        var icons: Array'(*IconButton)
-        for c in .topBar.children
+        let showLabels = .editorOptions.showToolBarLabels
+        let width      = showLabels ? RailLabelWidth : RailCellSize
+
+        for c in .toolRail.children
         {
-            if c.type == IconButton do
-                icons.add(cast(*IconButton) c)
+            if c.type != IconButton do
+                continue
+            let btn = cast(*IconButton) c
+            if showLabels do
+                btn.updateFlags(remove: .IconOnly)
+            else do
+                btn.updateFlags(.IconOnly)
+            btn.position.width  = width
+            btn.position.height = RailCellSize
         }
 
-        for c in .editToolBar.children
-        {
-            if c.type == IconButton do
-                icons.add(cast(*IconButton) c)
-        }
-
-        for c in icons
-        {
-            if .editorOptions.showToolBarLabels
-            {
-                c.updateFlags(remove: .IconOnly)
-                c.position.width, c.position.height = 64
-                c.setIconSize(48, 48)
-                .libraryBtn.position.x = 64
-            }
-            else
-            {
-                c.updateFlags(.IconOnly)
-                c.position.width, c.position.height = 40
-                c.setIconSize(32, 32)
-                .libraryBtn.position.x = 48
-            }
-        }
-
-        .topBar.position.height = .editorOptions.showToolBarLabels ? 68 : 50
+        .toolRail.position.width = width
+        .toolRail.sendResizeEvent()
         .editWnd.sendResizeEvent()
-        .topBar.sendResizeEvent()
-        .editToolBar.sendResizeEvent()
         .applyLayout()
     }
 
@@ -848,7 +957,7 @@ impl MainWnd
     func create(parent: *Wnd)->*MainWnd
     {
         let srf = parent.surface!
-        srf.minSize = {1152, 512}
+        srf.minSize = {1024, 512}
 
         var imgApp: Image
         #static if #command == Swag.CompilerCommand.Test do
@@ -874,15 +983,17 @@ impl MainWnd
         // One Voltage rail identifies every standard Swag application surface.
         Separator.create(res, .Top, .Accent)
 
-        // Create top bar
-        with res.topBar = Wnd.create'Wnd(res, {0, 0, 64, 68})
+        // One command row, the same height in both modes, instead of the former stack of
+        // a command bar and a centered tool ribbon.
+        with res.topBar = Wnd.create'Wnd(res, {0, 0, 0, CommandRowHeight})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Window
             .style.addStyleSheetColors("wnd_Bk $wnd_CaptionBk")
         }
 
-        res.createToolbar()
+        res.createCommandRow()
+        res.createToolRail()
 
         // Main edit area
         with res.editWnd = EditWnd.create(res, res)
@@ -891,20 +1002,12 @@ impl MainWnd
             .sigScrollSizeChanged += func|res|(scroll, old, new) { res.updateZoomDisplay(); }
         }
 
-        // Recent bar
+        // Recent bar. The three preview-size buttons that used to stand permanently at its
+        // left are gone: a control shown at all times to set a preference costs permanent
+        // room and buys one occasional click. The size lives in the View menu.
         with res.recentBar = Wnd.create'Wnd(res, {0, 0, 0, 128})
         {
             .dockStyle = .Bottom
-        }
-
-        with res.recentSizeBar = IconBar.create(res.recentBar, 20)
-        {
-            .setOrientation(.Vertical)
-            .dockStyle = .Left
-            .setItemPadding(0)
-            .addRadioButton({}, ActionRecentSize.RecentSmall)
-            .addRadioButton({}, ActionRecentSize.RecentMedium)
-            .addRadioButton({}, ActionRecentSize.RecentBig)
         }
 
         with res.recentWnd = RecentWnd.create(res.recentBar, res)
@@ -912,10 +1015,24 @@ impl MainWnd
             .dockStyle = .Center
         }
 
-        // Right bar
-        with res.quickStyleBar = SplitterCtrl.create(res, {0, 0, 300, 600}, vertical: true)
+        // Right bar: one column, one heading naming the tool it edits. The two pane titles
+        // it replaces said what the reader could already see; this one does not.
+        with res.rightBar = Wnd.create'Wnd(res, {0, 0, RightBarWidth, 0})
         {
-            .dockStyle = .Right
+            .dockStyle       = .Right
+            .backgroundStyle = .Window
+        }
+
+        with res.toolTitle = Label.create(res.rightBar, "", {0, 0, 0, 26})
+        {
+            .dockStyle = .Top
+            .setTextPadding({12, 8, 8, 0})
+            .setTextColor(res.themeColors().label_TextLight)
+        }
+
+        with res.quickStyleBar = SplitterCtrl.create(res.rightBar, {0, 0, RightBarWidth, 600}, vertical: true)
+        {
+            .dockStyle = .Center
             .flags.add(.HideDividers)
             .backgroundStyle = .Window
         }
@@ -923,52 +1040,28 @@ impl MainWnd
         res.quickWnd = QuickWnd.create(res.quickStyleBar, res)
         res.propWnd  = PropWnd.create(res.quickStyleBar, res)
 
-        with let quickPane = res.quickStyleBar.addPane(res.quickWnd, showTitle: true)
+        with let quickPane = res.quickStyleBar.addPane(res.quickWnd)
         {
             .preserveSize = true
-            .label?.setText(appStrings().ui_QuickStyles)
         }
 
-        with let quickStyle = res.quickStyleBar.addPane(res.propWnd, showTitle: true)
-        {
-            .label?.setText(appStrings().ui_ToolProperties)
-        }
-
-        res.quickStyleBar.setPaneSize(0, 300)
-
-        // Bottom bar
-        with res.editZoomBar = StackLayoutCtrl.create(res, .HorizontalCenter, {0, 0, 300, 32})
-        {
-            .dockStyle       = .Bottom
-            .backgroundStyle = .Window
-        }
-
-        let ic = res.theme().icon(.Search, 20)
-        with res.zoomBtn = IconButton.create(res.editZoomBar, ic, {0, 0, 120, 32})
-        {
-            .updateFlags(.CenterContent)
-            .setTextPosition(.Right)
-            .setArrowPosition(.RightUpward)
-            .sigPressed += func|res|(btn)
-            {
-                var pos  = btn.surfaceRect()
-                var menu = MenuCtrl.createPopup(res)
-                menu.updateFlags(.HideShortcuts)
-                menu.addItem(ActionZoom.Zoom1)
-                menu.addItem(ActionZoom.ZoomFit)
-                discard menu.doModal({pos.horzCenter(), pos.y}, .AnchorBottomCenter, autoDestroy: true)
-            }
-        }
+        discard res.quickStyleBar.addPane(res.propWnd)
+        res.quickStyleBar.setPaneSize(0, 168)
 
         // Initialize everything
         with res
         {
+            // Theme and language before anything is built from a string: they used to be
+            // applied only while reading the persisted state, so a first run — which has no
+            // state to read — stayed on the reference English wording whatever the locale.
+            .setTheme()
+            .setLanguage()
             .registerActions()
             .registerShortcuts()
             .updateZoomDisplay()
             .updateSizeDisplay()
             .setBottomSize(.Medium)
-            .setTopBarHeight()
+            .setToolRailWidth()
             .updateState()
             .createTopMenu()
             .libWnd = LibraryWnd.create(res)

@@ -177,6 +177,13 @@ fill first, space it second, and rule it only when neither works — and expect 
 not one per group. [build-swag-standard-apps](../build-swag-standard-apps/SKILL.md) governs an
 application surface; this section governs a page.
 
+**Air is part of the identity, on a page and in a window alike.** Nothing that does not carry
+information includes the space a form does not need: a glyph blown up until it fills its cell, a
+control sized for a fingertip, a panel wider than the data in it. A Swag surface is recognized as
+much by what it leaves empty as by the cut, the voltage, and the ink — clean first, dense never.
+The size ceilings that hold that line in an application live in
+[build-swag-standard-apps](../build-swag-standard-apps/SKILL.md).
+
 ## Match The Editor
 
 `vscode/themes/swag-dark.json` uses the same token colors as the documentation, so code

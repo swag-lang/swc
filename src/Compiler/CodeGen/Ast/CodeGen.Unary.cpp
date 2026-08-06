@@ -4,6 +4,7 @@
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenReferenceHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -112,12 +113,18 @@ namespace
 
     Result codeGenUnaryDeref(CodeGen& codeGen, AstNodeRef nodeExprRef)
     {
-        MicroBuilder&             builder      = codeGen.builder();
-        const CodeGenNodePayload& childPayload = codeGen.payload(nodeExprRef);
-        const SemaNodeView        childView    = codeGen.viewType(nodeExprRef);
+        MicroBuilder&      builder   = codeGen.builder();
+        const SemaNodeView childView = codeGen.viewType(nodeExprRef);
         SWC_ASSERT(childView.type());
 
-        const TypeRef             resultTypeRef = resolveDerefResultTypeRef(codeGen, childView.typeRef());
+        // A reference bound to a pointer slot dereferences the pointer it names, so the
+        // reference layers are resolved down to the slot's address first. Sema settled that
+        // the operand ends up a pointer, so this leaves exactly one indirection to emit.
+        CodeGenNodePayload childPayload   = codeGen.payload(nodeExprRef);
+        TypeRef            operandTypeRef = childView.typeRef();
+        CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, childPayload, operandTypeRef);
+
+        const TypeRef             resultTypeRef = resolveDerefResultTypeRef(codeGen, operandTypeRef);
         const CodeGenNodePayload& payload       = codeGen.setPayloadAddress(codeGen.curNodeRef(), resultTypeRef);
         if (childPayload.isAddress())
             builder.emitLoadRegMem(payload.reg, childPayload.reg, 0, MicroOpBits::B64);

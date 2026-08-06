@@ -30,11 +30,33 @@ namespace
 {
     constexpr uint32_t K_INVALID_ORDINAL = std::numeric_limits<uint32_t>::max();
 
+    // A register value known at compile time, and the WIDTH it is known at: a narrower
+    // definition says nothing about the bits above it, which a wider reader would observe.
+    // Every producer records the width it actually wrote and every consumer refuses to read
+    // wider than that.
     struct KnownValue
     {
         uint64_t    value  = 0;
         MicroOpBits opBits = MicroOpBits::B64;
     };
+
+    KnownValue makeKnownValue(uint64_t value, MicroOpBits opBits)
+    {
+        return {.value = value & getBitsMask(opBits), .opBits = opBits};
+    }
+
+    // The part of a known value a definition of 'writeBits' leaves behind: the copy carries
+    // the low 'writeBits' bits, and anything the source itself did not define stays unknown.
+    KnownValue narrowKnownValue(const KnownValue& source, MicroOpBits writeBits)
+    {
+        const MicroOpBits resultBits = getNumBits(writeBits) < getNumBits(source.opBits) ? writeBits : source.opBits;
+        return makeKnownValue(source.value, resultBits);
+    }
+
+    bool isKnownAtLeast(const KnownValue& value, MicroOpBits readBits)
+    {
+        return getNumBits(value.opBits) >= getNumBits(readBits);
+    }
 
     struct KnownValueTraits
     {
@@ -91,24 +113,31 @@ namespace
                 if (ops[0].reg != valueInfo.reg || !valueInfo.reg.isVirtualInt())
                     return false;
 
-                outValue.value  = ops[2].valueU64;
-                outValue.opBits = ops[1].opBits;
+                outValue = makeKnownValue(ops[2].valueU64, ops[1].opBits);
                 return true;
 
             case MicroInstrOpcode::ClearReg:
                 if (ops[0].reg != valueInfo.reg || !valueInfo.reg.isVirtualInt())
                     return false;
 
-                outValue.value  = 0;
-                outValue.opBits = ops[1].opBits;
+                outValue = makeKnownValue(0, ops[1].opBits);
                 return true;
 
             case MicroInstrOpcode::LoadRegReg:
             {
-                if (ops[0].reg != valueInfo.reg || !valueInfo.reg.isVirtualInt() || ops[2].opBits != MicroOpBits::B64)
+                if (ops[0].reg != valueInfo.reg || !valueInfo.reg.isVirtualInt())
                     return false;
 
-                return tryGetKnownReachingValue(outValue, context, knownValues, knownFlags, ops[1].reg, valueInfo.instRef);
+                // A narrower copy still carries a known value, just a narrower one. This is the
+                // shape every materialized boolean takes ('%2 = 1' then a 'b8' copy into the
+                // register the guard compares), so refusing it would leave the guard unfolded
+                // until another pass happens to collapse the copy.
+                KnownValue inputValue;
+                if (!tryGetKnownReachingValue(inputValue, context, knownValues, knownFlags, ops[1].reg, valueInfo.instRef))
+                    return false;
+
+                outValue = narrowKnownValue(inputValue, ops[2].opBits);
+                return true;
             }
 
             case MicroInstrOpcode::OpBinaryRegImm:
@@ -119,14 +148,15 @@ namespace
                 KnownValue inputValue;
                 if (!tryGetKnownReachingValue(inputValue, context, knownValues, knownFlags, ops[0].reg, valueInfo.instRef))
                     return false;
+                if (!isKnownAtLeast(inputValue, ops[1].opBits))
+                    return false;
 
                 uint64_t   foldedValue = 0;
                 const auto status      = MicroPassHelpers::foldBinaryImmediate(foldedValue, inputValue.value, ops[3].valueU64, ops[2].microOp, ops[1].opBits);
                 if (status != Math::FoldStatus::Ok)
                     return false;
 
-                outValue.value  = foldedValue;
-                outValue.opBits = ops[1].opBits;
+                outValue = makeKnownValue(foldedValue, ops[1].opBits);
                 return true;
             }
 
@@ -141,14 +171,15 @@ namespace
                     return false;
                 if (!tryGetKnownReachingValue(rhs, context, knownValues, knownFlags, ops[1].reg, valueInfo.instRef))
                     return false;
+                if (!isKnownAtLeast(lhs, ops[2].opBits) || !isKnownAtLeast(rhs, ops[2].opBits))
+                    return false;
 
                 uint64_t   foldedValue = 0;
                 const auto status      = MicroPassHelpers::foldBinaryImmediate(foldedValue, lhs.value, rhs.value, ops[3].microOp, ops[2].opBits);
                 if (status != Math::FoldStatus::Ok)
                     return false;
 
-                outValue.value  = foldedValue;
-                outValue.opBits = ops[2].opBits;
+                outValue = makeKnownValue(foldedValue, ops[2].opBits);
                 return true;
             }
 
@@ -375,6 +406,8 @@ namespace
                 KnownValue lhsValue;
                 if (!tryGetKnownReachingValue(lhsValue, context, knownValues, knownFlags, flagOps[0].reg, flagDefRef))
                     return false;
+                if (!isKnownAtLeast(lhsValue, flagOps[1].opBits))
+                    return false;
 
                 return tryEvaluateCompareCondition(outTaken, lhsValue.value, flagOps[2].valueU64, flagOps[1].opBits, jumpCond);
             }
@@ -389,6 +422,8 @@ namespace
                 if (!tryGetKnownReachingValue(lhsValue, context, knownValues, knownFlags, flagOps[0].reg, flagDefRef))
                     return false;
                 if (!tryGetKnownReachingValue(rhsValue, context, knownValues, knownFlags, flagOps[1].reg, flagDefRef))
+                    return false;
+                if (!isKnownAtLeast(lhsValue, flagOps[2].opBits) || !isKnownAtLeast(rhsValue, flagOps[2].opBits))
                     return false;
 
                 return tryEvaluateCompareCondition(outTaken, lhsValue.value, rhsValue.value, flagOps[2].opBits, jumpCond);

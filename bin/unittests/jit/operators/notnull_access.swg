@@ -126,6 +126,20 @@ func notNullThroughRef(box: *NotNullBox)->s32
     return bound!.inner.count == 7 ? bound!.value : -1
 }
 
+// 'dref' reads through the reference layer too: the binding dereferences like the pointer
+// it names, so the assertion is what discharges the proof, and the write lands in the object.
+func notNullDerefThroughRef(box: *NotNullBox)->s32
+{
+    let bound = box.at()
+    return (dref bound!).value
+}
+
+func notNullWriteThroughRef(box: *NotNullBox, newValue: s32)
+{
+    let bound           = box.atMut()
+    (dref bound!).value = newValue
+}
+
 // A cast whose source is asserted first: the assertion binds tighter than the cast.
 func notNullCastOperand(raw: #null *void)->s32
 {
@@ -197,6 +211,11 @@ func notNullAssign(newValue: s32)
     var box = NotNullBox{slot: &g_notNullNode}
     @assert(notNullThroughConstRef(&box) == 42)
     @assert(notNullThroughRef(&box) == 42)
+    @assert(notNullDerefThroughRef(&box) == 42)
+
+    notNullWriteThroughRef(&box, 17)
+    @assert(g_notNullNode.value == 17)
+    g_notNullNode.value = 42
 
     func twelve()->s32 => 12
     @assert(notNullCall(&twelve) == 12)

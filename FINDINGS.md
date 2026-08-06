@@ -15,12 +15,19 @@ safe to validate. Add it here when it needs separate investigation, broader desi
 evidence. Search before adding an entry, enrich existing entries instead of duplicating them, and
 remove or update entries when later work resolves or disproves them.
 
+Every entry carries a permanent `F-NNN` identifier, which is how a finding is named everywhere else.
+Take the next one from the counter below and advance it; never renumber an entry and never reuse an
+identifier, so a reference made today still resolves after the entry is gone. Entry order in this
+file is free and carries no priority.
+
+Next identifier: F-024
+
 ## Open Investigations
 
 <!--
 Use this compact format. Keep observations factual and make the next step actionable.
 
-### Short descriptive title
+### F-000 — Short descriptive title
 
 - Area: compiler | bin/std | language | tooling | documentation
 - Found while: task, test, or file that exposed the issue
@@ -30,7 +37,7 @@ Use this compact format. Keep observations factual and make the next step action
 - Related: issue, pull request, or TODO entry if applicable
 -->
 
-### Two sCapture modal-dialog tests fail on master
+### F-016 — Two sCapture modal-dialog tests fail on master
 
 - Area: bin/apps
 - Found while: validating the GUI theme rewrite, which needed a baseline to attribute failures to
@@ -45,7 +52,7 @@ Use this compact format. Keep observations factual and make the next step action
   (About, File Details) rather than a `MessageDlg`, which is the difference from the passing
   modal tests.
 
-### sCapture keeps a dark editor matte after switching to the light theme
+### F-017 — sCapture keeps a dark editor matte after switching to the light theme
 
 - Area: bin/apps
 - Found while: comparing sCapture in both Swag palettes through the gui10 theme inspector
@@ -60,33 +67,7 @@ Use this compact format. Keep observations factual and make the next step action
   or whether an application is expected to version its settings. The same question applies to any
   future option whose default becomes theme-derived.
 
-### A reference to a nullable slot escapes the whole nullability system
-
-- Area: compiler
-- Found while: checking whether the postfix `!` leaks `readonly` (it does not — `readonly`
-  deliberately "restricts writing through the field's name; it does not freeze the whole value",
-  [002_009_visibility_and_exports.swg:107-109](bin/reference/modules/language/src/002_009_visibility_and_exports.swg#L107-L109))
-- Observation: `&#null *T` — a reference bound to a nullable slot, which is exactly what
-  `Array.opIndex` hands back — is not seen as nullable anywhere. `isNullable()` is asked of the
-  reference, and a reference is never nullable, so: the use-site rules let a member access through
-  it compile with no proof at all, and the postfix `!` is a silent no-op on it. The nullability
-  system simply does not apply to values reached through a reference.
-- Evidence: with `mtd const at()->const &(#null *Item)`, `bound.value` compiles unguarded and
-  `#typeof(bound.value)` reports `#null *Item` rather than the field type — member resolution
-  peels one pointer-or-reference layer and then stops, so it never reaches the struct.
-  `#typeof(bound!)` is unchanged by the assertion.
-- Next step: this needs three coordinated changes, which is why an attempt was reverted rather
-  than half-shipped. (1) The use-site check must look through the reference
-  (`SemaHelpers::unwrapAliasRefType` in `resolveMemberAccess`). (2) `notNullUnwrappedTypeRef` must
-  strip `Nullable` INSIDE the reference — rebuilding `&(#null *T)` as `&*T` rather than dropping
-  the reference, so the payload convention is untouched. (3) Member resolution must peel every
-  reference layer and then exactly one pointer (`**T` must still stop after one), and codegen must
-  do the matching double indirection — step 3 is where the reverted attempt failed: it compiled
-  but read the wrong address at run time. Start with a runtime test for `bound!.value`, since that
-  is what catches the codegen half.
-- Related: `bin/unittests/jit/operators/notnull_access.swg`
-
-### The sandbox is armed twice per run, and the second attempt fails the whole process
+### F-018 — The sandbox is armed twice per run, and the second attempt fails the whole process
 
 - Area: bin/std | compiler
 - Found while: validating a runtime allocator rewrite, where `tools/scripts.bat smoke` failed
@@ -112,7 +93,7 @@ Use this compact format. Keep observations factual and make the next step action
   from "the arguments were re-adopted empty". Whichever it is, `enterSandbox` should also treat a
   second arm with no explicit root as a no-op rather than a fatal mismatch.
 
-### Golden snapshots cannot be recorded under the test sandbox
+### F-002 — Golden snapshots cannot be recorded under the test sandbox
 
 - Area: compiler | bin/std
 - Found while: regenerating the gui widget goldens after the theme-atlas format change
@@ -131,21 +112,7 @@ Use this compact format. Keep observations factual and make the next step action
   and `goldens.bat` harvests them. Writing straight to the source tree from a
   sandboxed test contradicts the sandbox guarantee, so the escape must stay launcher-owned.
 
-### Constant branches survive until the sanitizer after inlining
-
-- Area: compiler
-- Found while: `notnull_access.swg` release-mode sanity false positive (fixed in the sanitizer)
-- Observation: inlining `redundant(null)` folds the null test to `%2 = 1; %3 = %2;
-  cmp %3, 0; je`, yet no pass folds the constant compare-and-branch before sanity runs, so the
-  dead dereference block survives the whole pre-RA pipeline. The sanitizer now prunes the
-  infeasible edge itself, but the optimizer keeps emitting the dead block.
-- Evidence: `#[Swag.PrintMicro("pre-sanity")]` on a `#test` calling `redundant(null)` shows the
-  folded guard and the unreachable dereference block still present at the sanity stage.
-- Next step: teach branch-simplify (or const-fold) to evaluate a conditional jump whose flags
-  come from a compare against an immediate on a register holding a known constant, then let DCE
-  drop the unreachable block; measure code-size impact on the release suites.
-
-### Droppable call-result temporaries are never dropped
+### F-004 — Droppable call-result temporaries are never dropped
 
 - Area: compiler
 - Found while: fixing the `String`-rvalue `+=` heap corruption (root cause was the return
@@ -158,37 +125,42 @@ Use this compact format. Keep observations factual and make the next step action
   `Format.toString` itself leaks its inner `ConcatBuffer.toString` temporary per call.
 - Evidence: micro dump of `g_Str += Format.toString(...)` shows no drop call anywhere after
   `String.opAssign`; a Tracer struct counting drops confirms zero drops for the `discard` and
-  argument-cast shapes while `var x = makeThing()` drops exactly once.
-- Next step: mark function-owned result storages in sema (cast-source, discard, optional
-  chains, index temporaries — call-argument storages are callee-dropped and `retval` storages
-  are caller-owned, so both stay out), then flush their drops in CodeGen at the end of the
-  consuming statement: register `{flushRootRef, storageSym}` at call emission, where the flush
-  root is the nearest ancestor that is a block child, and emit the pending drops in the
-  generic `postNode` when it closes. Loop conditions need the condition node as flush root.
+  argument-cast shapes while `var x = makeThing()` drops exactly once. An implementation of the
+  statement-end flush below was written, measured, and reverted: it took the `core` suite from
+  green to 36 crashing tests, then to 5 failing ones once the ownership transfers were found, and
+  the last 5 are the design question, not a defect in the mechanism.
+- Next step: settle the lifetime question FIRST, because the mechanism is straightforward and the
+  rule is not. Dropping at the end of the consuming statement is what a temporary means everywhere
+  else, but `bin/std` currently keeps views into temporaries alive past that point:
+  `splitArgumentsEx` stores `Latin1.trim(split[0])` — a `string` into the buffer of an `Array`
+  temporary — into the array it returns
+  ([commandline.swg:93-100](bin/std/modules/core/src/system/commandline.swg#L93-L100)), and
+  `textreader`/`reflection`/`log` do the same shape. Either those sites are wrong and get fixed, or
+  a temporary lives to the end of its block, which needs its slot zeroed on entry so a path that
+  never produced a value still drops nothing.
+- Next step (mechanism, once the rule is settled): register `{flushRootRef, storageSym}` when a
+  call's result lands in a compiler temporary and flush in the generic `CodeGen::postNode`. Four
+  things the reverted attempt had to get right, each of which cost a debugging session:
+  (1) read the storage with `CodeGen::runtimeStorageSymbol`, the way the sret argument reads it —
+  the node payload's `runtimeStorageSym` is overwritten by a surrounding cast, so it names the
+  cast's slot and the drop lands on the wrong stack offset; (2) resolve the address UNCACHED
+  (`resolveLocalStackPayload(sym, false)`), since the call can sit in another block; (3) clear the
+  pending list per function in `CodeGen::start`, or an unflushed entry drops a slot belonging to
+  the next function's frame; (4) cancel the pending drop wherever a consumer takes over the bits
+  instead of copying them — a plain `=` store with no `opPostCopy` and no source reset
+  (`emitAssignLifecycle`), and a return that moves out (`returnSourceIsOwnedTemporary`, whose
+  comment already states that nothing drops the abandoned temporary). Registration must also stand
+  down inside a lazily-evaluated region (ternary, `and`/`or`, `orelse`, `?.`, `try`/`catch`), where
+  a skipped path leaves the slot unwritten.
+- Next step (flush root): the nearest ancestor that is a block child, EXCEPT that a statement
+  keeping the value it evaluates — a `for` range, a `switch` value, a `with` subject — must flush
+  after the whole statement, while a loop condition flushes per evaluation. `for` needs more than
+  that: it lowers through the `opVisit` macro, so the range expression is emitted inside an
+  expansion and the ancestor walk lands inside the macro body, dropping the container before the
+  first iteration (`for one in probeList()` then counts 0 elements). A flush point taken from the
+  visit stack cannot see through an expansion; the root has to come from the pre-expansion AST.
 
-### A folded `typeinfo ==` answers differently from the same comparison at run time
-
-- Area: compiler
-- Found while: fixing `switch` over a `typeinfo`, which compared descriptor addresses and so
-  never selected `case string` for a `#null string` (`CodeGenCompareHelpers::emitTypeInfoEqualJump`
-  is now the single rule for both `==` and `case`)
-- Observation: type identity at run time is the runtime hash, which deliberately ignores the
-  qualifiers — `#null string` and `string` are the same type, as `@typecmp` documents. Constant
-  folding does not follow that rule: `sameTypeValuePayload` rejects the pair on
-  `leftType.flags() != rightType.flags()`. The same source expression therefore reports `false`
-  when both sides fold and `true` when either side is a variable.
-- Evidence: `alias NullString = #null string; const TN: typeinfo = NullString; #assert(TN ==
-  string)` fails, while `var a: typeinfo = NullString; @assert(a == string)` passes
-  ([switch_type.swg](bin/unittests/native/flow/switch_type.swg)). A `#run` of a function that
-  switches on the same constant does match `case string`, because that comparison goes through
-  codegen.
-- Next step: decide which answer is the language rule, then make one side follow the other.
-  Aligning the fold on the runtime hash is the consistent choice, but `sameTypeValuePayload` also
-  answers `#typeof(a) == #typeof(b)` for generic and compile-time code, so the flag comparison has
-  to be replaced by the runtime-hash rule (`TypeRuntimeHash`) only where the operands are
-  typeinfo values, and the generic paths audited for cases that rely on the stricter answer.
-
-### Data-driven UI resource for `std/gui`
+### F-006 — Data-driven UI resource for `std/gui`
 
 - Area: bin/std
 - Found while: simplifying the sCrypt vault cards after `FormCtrl` was judged too heavy
@@ -212,7 +184,7 @@ Use this compact format. Keep observations factual and make the next step action
   lookup boundary the builders just removed, and a resource editor would ship that cost to every
   window. Only then evaluate the editor.
 
-### A thread-local global cannot hold a droppable type
+### F-019 — A thread-local global cannot hold a droppable type
 
 - Area: compiler
 - Found while: implementing `#[Swag.Tls]`, which until then was parsed and then ignored
@@ -233,7 +205,7 @@ Use this compact format. Keep observations factual and make the next step action
   type-erased drop the `@gvtd` table already builds — reuse that shape rather than inventing a
   second one.
 
-### Arming the headless modal driver for an absent button fails silently
+### F-020 — Arming the headless modal driver for an absent button fails silently
 
 - Area: std/gui
 - Found while: the two `sCapture` dialog tests that did not pass — both armed a button their
@@ -253,7 +225,7 @@ Use this compact format. Keep observations factual and make the next step action
   ids it did offer). A `Debug.assert` on the second case turns a silent 60-frame spin into a
   message that names the mistake.
 
-### A `#run` block cannot initialize a zero-segment global
+### F-021 — A `#run` block cannot initialize a zero-segment global
 
 - Area: compiler
 - Found while: the language reference's `Swag.Late` page, whose `#run` set a global and whose
@@ -277,7 +249,7 @@ Use this compact format. Keep observations factual and make the next step action
   from JIT-executed code rather than from a sema-built initializer. Either instrument those stores
   or reject a `#run` write to a global that no initializer placed in the initialized segment.
 
-### A failing `@assert` reports the source line below itself
+### F-022 — A failing `@assert` reports the source line below itself
 
 - Area: compiler
 - Found while: reading the two `sCapture` dialog failures above, where the reported line pointed at
@@ -302,7 +274,7 @@ Use this compact format. Keep observations factual and make the next step action
   ([CodeGenSafety.cpp:88](src/Compiler/CodeGen/Core/CodeGenSafety.cpp#L88)) are displaced too — if
   they are, every runtime panic location in the language is off by one and the fix is one place.
 
-### A per-frame event can be sent but never asked for
+### F-023 — A per-frame event can be sent but never asked for
 
 - Area: std/gui
 - Found while: making the sCapture property panel follow a live language switch
@@ -328,7 +300,7 @@ Use this compact format. Keep observations factual and make the next step action
   change notification (a posted event is the obvious one). Whichever way it goes, the
   `FormImage.kind` rebuild has to end up actually running.
 
-### A fully transparent fill is dropped even under `Copy` blending
+### F-011 — A fully transparent fill is dropped even under `Copy` blending
 
 - Area: bin/std
 - Found while: giving the surface drop shadow its transparent margin back
@@ -351,7 +323,7 @@ Use this compact format. Keep observations factual and make the next step action
   the blending mode, `Brush` does not — and route every `color.a == 0` and `hasVisibleAlpha` guard
   in `src/painter` through it.
 
-### A surface outline must be stroked before its shadow, and nobody knows why
+### F-012 — A surface outline must be stroked before its shadow, and nobody knows why
 
 - Area: std/gui
 - Found while: moving the surface outline above the hierarchy so docked views stop covering it
@@ -376,3 +348,25 @@ Use this compact format. Keep observations factual and make the next step action
   them, which would explain the loss exactly, since a shadow written without alpha is invisible to
   the compositor.
 
+### F-015 — Calling through a reference to a function pointer never reaches a backend
+
+- Area: compiler
+- Found while: closing the use-site nullability hole on a call through a reference (`&#null
+  func()->T` now needs a proof like every other nullable value)
+- Observation: a call whose callee is a reference to a function value compiles, and then no backend
+  can emit the function that contains it. The JIT dies on a hardware exception and the native
+  backend refuses the relocation, both while emitting the CALLER of that function, which reads like
+  a linker problem rather than a lowering gap. Sema is happy; only codegen is not.
+- Evidence: a struct holding `fn: func()->s32` with `mtd const atFn()->const &(func()->s32)`, then
+  `let fn = h.atFn(); return fn()`. JIT: `native backend cannot resolve a local function relocation
+  for 'probeCallPlain'` / `local target function has no prepared JIT address`; native
+  (`--no-test-jit`): the same message with an empty name. The nullable spelling of the same shape is
+  now rejected in sema, so only the plain one reaches codegen
+  ([sema_err_nullable_use_site.swg](bin/unittests/errors/sema/sema_err_nullable_use_site.swg) pins
+  the rejection). Reproduced identically on the pre-change compiler, so it predates that work.
+- Next step: find what the callee payload holds for a reference-typed call target.
+  `materializeCallTargetReg` receives the payload of the callee expression; for a reference it is
+  the address of the slot holding the code pointer, which needs one load before the call, and the
+  emitted relocation suggests it is instead treated as a direct local target. Compare against
+  `normalizeIndexReferenceOperand`/`CodeGenReferenceHelpers::unwrapAliasRefPayload`, which is how
+  the index and `dref` paths resolve the same reference layer.

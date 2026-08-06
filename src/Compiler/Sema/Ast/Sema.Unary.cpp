@@ -57,6 +57,28 @@ namespace
         return sema.typeMgr().get(typeRef);
     }
 
+    // The type 'dref' operates on. A reference bound to a POINTER slot — '&#null *T', what a
+    // container's 'opIndex' hands back — dereferences like the pointer it names, so the
+    // reference layers are looked through and the nullability of the slot is the nullability
+    // of the dereference. A reference to anything else keeps its own type: it already IS the
+    // value, and 'dref' on it stays an operand-type error rather than a second indirection.
+    TypeRef derefOperandTypeRef(Sema& sema, const SemaNodeView& view)
+    {
+        TypeRef typeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), view.typeRef());
+        SWC_ASSERT(typeRef.isValid());
+
+        while (sema.typeMgr().get(typeRef).isReference())
+        {
+            const TypeRef pointeeTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), sema.typeMgr().get(typeRef).payloadTypeRef());
+            if (pointeeTypeRef.isInvalid() || !sema.typeMgr().get(pointeeTypeRef).isPointerOrReference())
+                break;
+
+            typeRef = pointeeTypeRef;
+        }
+
+        return typeRef;
+    }
+
     Result constantFoldPlus(Sema& sema, ConstantRef& result, const SemaNodeView& view)
     {
         if (view.type()->isInt())
@@ -418,7 +440,7 @@ namespace
 
     Result checkDRef(Sema& sema, const SemaNodeView& view)
     {
-        const TypeInfo& type = aliasEnumType(sema, view);
+        const TypeInfo& type = sema.typeMgr().get(derefOperandTypeRef(sema, view));
         if (!type.isAnyPointer())
             return SemaError::raiseUnaryOperandType(sema, sema.curNodeRef(), view.nodeRef(), view.typeRef());
 
@@ -432,7 +454,7 @@ namespace
 
     Result semaDRef(Sema& sema, AstUnaryExpr& node, const SemaNodeView& view)
     {
-        const TypeInfo& type          = aliasEnumType(sema, view);
+        const TypeInfo& type          = sema.typeMgr().get(derefOperandTypeRef(sema, view));
         const TypeRef   resultTypeRef = type.dereferenceTypeRef(sema.ctx());
 
         SWC_RESULT(sema.waitSemaCompleted(&sema.typeMgr().get(resultTypeRef), node.nodeExprRef));

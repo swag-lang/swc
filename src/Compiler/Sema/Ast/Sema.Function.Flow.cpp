@@ -1359,10 +1359,12 @@ namespace
 
         // Use-site nullability: invoking a function value reads its code pointer.
         // Narrowing was already applied to the live callee view, so a remaining
-        // '#null' means no dominating test proves this call safe.
+        // '#null' means no dominating test proves this call safe. A binding to a
+        // nullable slot ('&#null func()->T', what an 'opIndex' hands back) is exactly as
+        // nullable as the slot it names, so the reference layer is looked through first.
         if (nodeCallee.typeRef().isValid())
         {
-            const TypeRef calleeTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), nodeCallee.typeRef());
+            const TypeRef calleeTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), nodeCallee.typeRef());
             if (calleeTypeRef.isValid())
             {
                 const TypeInfo& calleeType = sema.typeMgr().get(calleeTypeRef);

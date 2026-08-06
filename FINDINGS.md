@@ -21,7 +21,7 @@ identifier, so a reference made today still resolves after the entry is gone. En
 identifier, ascending: a new one goes at the end, a deleted one leaves a gap, and position carries
 no priority.
 
-Next identifier: F-034
+Next identifier: F-035
 
 ## Open Investigations
 
@@ -456,3 +456,25 @@ Use this compact format. Keep observations factual and make the next step action
   cheaply; the allocator's answer is a spill. Audit the remaining pre-RA producers of
   copy-then-operate pairs (the float paths in particular) against the same rule: when the target
   has a non-destructive encoding, emit it and let the allocator see two independent sources.
+
+### F-034 — Unrolling a loop does not hand it to the vectorizer
+
+- Area: compiler/backend
+- Found while: chasing the second half of the ChaCha20 gap, once the round loop was fixed
+  ([F-033](#f-033--the-vectorizer-emitted-destructive-shapes-and-the-allocator-paid-for-them-in-memory))
+- Observation: after the rounds were fixed, the dominant cost became the key-stream application -
+  sixteen words XOR-ed one at a time, a loop the unroller refuses because `K_MAX_TRIPS` is 8. The
+  obvious move (raise it to 16, since `K_MAX_TOTAL_INSTR` already bounds the blow-up) unrolls the
+  loop and buys nothing: the sixteen copies stay scalar, so the whole function doubles - 187 to
+  377 instructions - for the loop overhead alone. The gain hoped for was the SLP pass seeing
+  sixteen adjacent stores; it does not see them.
+- Evidence: the unrolled body keeps 16 `load_addr_amc_reg_mem`, 71 loads and 49 zero-extensions.
+  The indexed (Amc) addressing survives unrolling instead of folding into constant offsets, and an
+  Amc access is exactly what makes the SLP scan give up on a block
+  (`hasUnresolvedMemRead`/`Write`). Raising the limit also perturbed the round loop, 23
+  instructions to 39. Reverted; the limit stays at 8.
+- Next step: the missing step is constant-index folding after unrolling, not a bigger unroller. A
+  cloned body whose induction variable is now a constant should have `[base + i*4]` rewritten to
+  `[base + K]`, which is what turns the Amc form into the constant-offset form the vectorizer
+  reads. Check whether instruction-combine already does this and is simply not re-run after the
+  unroll, or whether it has no rule for Amc-with-constant-index at all.

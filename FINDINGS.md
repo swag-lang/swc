@@ -520,10 +520,18 @@ Use this compact format. Keep observations factual and make the next step action
   the JIT is fine, so the broken shape needs the surrounding std modules. Unit tests, the native
   optimizer tests and the earlier phases of `tests.bat dm` all pass, which is what let it get as
   far as the scripts.
-- Next step: the prime suspect is that `OpBinaryRegRegReg` could only exist AFTER register
-  allocation until now, so every pre-RA pass predates it. Its operand layout differs from the
-  two-address forms - the micro-op lives at index 4, not 3 - so any pass reading `ops[3].microOp`
-  positionally instead of through `MicroInstrDef::microOpIndex` misreads a three-operand
-  instruction as something else. Grep the pre-RA passes for positional operand reads before
-  re-attempting; instruction-combine, value numbering and LICM are the ones that rewrite
-  arithmetic. Failing that, bisect by restricting the fold to one MicroOp at a time.
+- Ruled out by inspection, so the next attempt does not re-walk them: value numbering keys
+  instructions through an explicit per-opcode shape table and simply declines the ones it does not
+  list, so a three-operand form is never numbered, let alone numbered wrongly; copy elimination and
+  dead-code elimination make no positional operand assumptions; the encoder's conformance rules for
+  `OpBinaryRegReg` only fire on integer shapes (shift counts in rcx, mul/div in rax/rdx), which
+  float operations never reach. Above all, the vectorizer already emits `OpBinaryRegRegReg` pre-RA
+  and that path is sound - but at B128. The defect is therefore specific to the B32/B64 float form,
+  not to the opcode existing before allocation.
+- Next step: two suspects remain. LICM treats an adjacent copy plus two-address compute as a pair it
+  hoists together (`isEligiblePairedComputeOpcode`), and the fused form is not in its eligible list;
+  that should only cost a missed hoist, but the interaction is worth confirming rather than
+  assuming. Otherwise it is the register allocator meeting a float destination that is write-only,
+  where every float three-operand instruction it has seen so far arrived after allocation. Bisect
+  cheaply first: restrict the fold to `FloatAdd` alone and run `tools/scripts.bat dm` - a crash
+  there means the shape, a pass means the operation.

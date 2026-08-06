@@ -22,6 +22,7 @@ TASKS = [
     ("dijkstra", "Dijkstra", "grille 800&times;800, tas binaire"),
     ("raytrace", "lancer de rayons", "480&times;360, f64, r&eacute;cursion"),
     ("leven", "Levenshtein", "40 requ&ecirc;tes contre 6000 mots"),
+    ("chacha", "ChaCha20", "1 Mio de flot de cl&eacute;, lanes 32 bits, rotations"),
 ]
 TASK_IDS = [t[0] for t in TASKS]
 

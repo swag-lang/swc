@@ -259,6 +259,18 @@ namespace
         ENCODE_CASE("vec_shl32_xmm2_16", "66 0F 72 F2 10", b.emitOpBinaryRegImm(XMM2, ApInt(16, 8), MicroOp::VecShiftLeft32, MicroOpBits::B128););
         ENCODE_CASE("vec_shr32_xmm2_7", "66 0F 72 D2 07", b.emitOpBinaryRegImm(XMM2, ApInt(7, 8), MicroOp::VecShiftRight32, MicroOpBits::B128););
         ENCODE_CASE("vec_shl32_xmm9_12", "66 41 0F 72 F1 0C", b.emitOpBinaryRegImm(XMM9, ApInt(12, 8), MicroOp::VecShiftLeft32, MicroOpBits::B128););
+        // VEX forms of the same packed operations: the destination is named
+        // separately, so the copy legacy SSE needs in front of them disappears.
+        ENCODE_CASE("vec_add32_vex_xmm1_xmm2_xmm3", "C5 E9 FE CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecAdd32, MicroOpBits::B128););
+        ENCODE_CASE("vec_xor_vex_xmm1_xmm2_xmm3", "C5 E9 EF CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecXor, MicroOpBits::B128););
+        ENCODE_CASE("vec_or_vex_xmm9_xmm2_xmm3", "C5 69 EB CB", b.emitOpBinaryRegRegReg(XMM9, XMM2, XMM3, MicroOp::VecOr, MicroOpBits::B128););
+        ENCODE_CASE("vec_add32_vex_xmm1_xmm2_xmm9", "C4 C1 69 FE C9", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM9, MicroOp::VecAdd32, MicroOpBits::B128););
+        // The shift group carries its opcode in the ModRM.reg field, so the
+        // destination travels in vvvv and the source in r/m.
+        ENCODE_CASE("vec_shl32_vex_xmm1_xmm2_16", "C5 F1 72 F2 10", b.emitOpBinaryRegRegImm(XMM1, XMM2, ApInt(16, 8), MicroOp::VecShiftLeft32, MicroOpBits::B128););
+        ENCODE_CASE("vec_shr32_vex_xmm1_xmm2_16", "C5 F1 72 D2 10", b.emitOpBinaryRegRegImm(XMM1, XMM2, ApInt(16, 8), MicroOp::VecShiftRight32, MicroOpBits::B128););
+        ENCODE_CASE("vec_shl32_vex_xmm9_xmm2_12", "C5 B1 72 F2 0C", b.emitOpBinaryRegRegImm(XMM9, XMM2, ApInt(12, 8), MicroOp::VecShiftLeft32, MicroOpBits::B128););
+        ENCODE_CASE("vec_shl32_vex_xmm1_xmm9_12", "C4 C1 71 72 F1 0C", b.emitOpBinaryRegRegImm(XMM1, XMM9, ApInt(12, 8), MicroOp::VecShiftLeft32, MicroOpBits::B128););
         ENCODE_CASE("vec_shuffle32_xmm1_xmm2", "66 0F 70 CA 39", b.emitVecShuffleRegRegImm(XMM1, XMM2, 0x39, MicroOpBits::B128););
         ENCODE_CASE("vec_shuffle32_xmm9_xmm1", "66 44 0F 70 C9 93", b.emitVecShuffleRegRegImm(XMM9, XMM1, 0x93, MicroOpBits::B128););
         ENCODE_CASE("op_binary_reg_reg_shl_rcx", "49 D3 E2", b.emitOpBinaryRegReg(R10, RCX, MicroOp::ShiftLeft, MicroOpBits::B64););

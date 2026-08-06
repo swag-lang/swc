@@ -632,6 +632,28 @@ namespace
         store.pushU8(static_cast<uint8_t>((vvvv << 3) | pp));
     }
 
+    // The 0F-map opcode byte of a 128-bit packed integer operation. The same
+    // byte serves the legacy 66 0F form and its VEX counterpart.
+    uint8_t vecPackedOpcodeByte(MicroOp op)
+    {
+        switch (op)
+        {
+            case MicroOp::VecAdd32:
+                return 0xFE;
+            case MicroOp::VecSub32:
+                return 0xFA;
+            case MicroOp::VecAnd:
+                return 0xDB;
+            case MicroOp::VecOr:
+                return 0xEB;
+            case MicroOp::VecXor:
+                return 0xEF;
+            default:
+                SWC_INTERNAL_ERROR();
+        }
+        return 0;
+    }
+
     uint8_t getX64OpCode(MicroOp op)
     {
         switch (op)
@@ -2500,32 +2522,10 @@ void X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp 
     {
         SWC_ASSERT(opBits == MicroOpBits::B128 && regDst.isFloat() && regSrc.isFloat());
 
-        uint8_t opcodeByte = 0;
-        switch (op)
-        {
-            case MicroOp::VecAdd32:
-                opcodeByte = 0xFE;
-                break;
-            case MicroOp::VecSub32:
-                opcodeByte = 0xFA;
-                break;
-            case MicroOp::VecAnd:
-                opcodeByte = 0xDB;
-                break;
-            case MicroOp::VecOr:
-                opcodeByte = 0xEB;
-                break;
-            case MicroOp::VecXor:
-                opcodeByte = 0xEF;
-                break;
-            default:
-                SWC_INTERNAL_ERROR();
-        }
-
         emitCpuOp(store_, 0x66);
         emitRex(store_, MicroOpBits::Zero, regDst, regSrc);
         emitCpuOp(store_, 0x0F);
-        emitCpuOp(store_, opcodeByte);
+        emitCpuOp(store_, vecPackedOpcodeByte(op));
         emitModRm(store_, regDst, regSrc);
         return;
     }
@@ -3447,6 +3447,19 @@ void X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, const
 void X64Encoder::encodeOpBinaryRegRegReg(MicroReg regDst, MicroReg regSrc1, MicroReg regSrc2, MicroOp op, MicroOpBits opBits)
 {
     SWC_ASSERT(regDst.isFloat() && regSrc1.isFloat() && regSrc2.isFloat());
+
+    // 128-bit packed integer: the VEX form of the same 66 0F <op> encoding the
+    // two-operand shape uses, with the untouched source named in vvvv instead
+    // of having to be copied into the destination first.
+    if (isVecMicroOp(op))
+    {
+        SWC_ASSERT(opBits == MicroOpBits::B128);
+        emitVex(store_, 0x66, microRegToX64Reg(regDst), microRegToX64Reg(regSrc1), microRegToX64Reg(regSrc2));
+        emitCpuOp(store_, vecPackedOpcodeByte(op));
+        emitModRm(store_, regDst, regSrc2);
+        return;
+    }
+
     SWC_ASSERT(opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
 
     // Same mandatory prefix the two-operand form would carry: F2/F3 select the
@@ -3459,6 +3472,22 @@ void X64Encoder::encodeOpBinaryRegRegReg(MicroReg regDst, MicroReg regSrc1, Micr
     emitVex(store_, mandatoryPrefix, microRegToX64Reg(regDst), microRegToX64Reg(regSrc1), microRegToX64Reg(regSrc2));
     emitCpuOp(store_, op);
     emitModRm(store_, regDst, regSrc2);
+}
+
+void X64Encoder::encodeOpBinaryRegRegImm(MicroReg regDst, MicroReg regSrc, MicroOp op, MicroOpBits opBits, uint64_t value)
+{
+    // vpslld/vpsrld xmm1, xmm2, imm8 (VEX.NDD.128.66.0F.WIG 72 /6|/2 ib). The
+    // shift-by-immediate group puts its opcode extension in the ModRM.reg
+    // field, so the destination travels in vvvv and the source in r/m - the
+    // reverse of the three-operand arithmetic form.
+    SWC_ASSERT(op == MicroOp::VecShiftLeft32 || op == MicroOp::VecShiftRight32);
+    SWC_ASSERT(opBits == MicroOpBits::B128 && regDst.isFloat() && regSrc.isFloat());
+    SWC_ASSERT(value <= 31);
+
+    emitVex(store_, 0x66, X64Reg::Rax, microRegToX64Reg(regDst), microRegToX64Reg(regSrc));
+    emitCpuOp(store_, 0x72);
+    emitModRm(store_, op == MicroOp::VecShiftLeft32 ? MODRM_REG_6 : MODRM_REG_2, regSrc);
+    emitValue(store_, value, MicroOpBits::B8);
 }
 
 void X64Encoder::encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits)

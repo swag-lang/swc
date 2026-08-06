@@ -280,6 +280,9 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
         case MicroInstrOpcode::OpBinaryRegRegReg:
             encoder.encodeOpBinaryRegRegReg(ops[0].reg, ops[1].reg, ops[2].reg, ops[4].microOp, ops[3].opBits);
             break;
+        case MicroInstrOpcode::OpBinaryRegRegImm:
+            encoder.encodeOpBinaryRegRegImm(ops[0].reg, ops[1].reg, ops[3].microOp, ops[2].opBits, ops[4].valueU64);
+            break;
         default:
             SWC_UNREACHABLE();
     }

@@ -37,6 +37,18 @@ namespace PostRaPeephole
                     return false;
             }
         }
+
+        // The 128-bit packed integer operations the vectorizer emits are in the
+        // same position as the scalar float ones: legacy SSE writes the result
+        // back into one of its inputs, VEX names all three registers. Their
+        // three-operand forms are AVX1, like the float ones, so one encoder
+        // capability covers both.
+        bool foldableIntoThreeOperand(const MicroOp op, const MicroOpBits opBits)
+        {
+            if (opBits == MicroOpBits::B128)
+                return isVecMicroOp(op);
+            return (opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64) && hasThreeOperandForm(op);
+        }
     }
 
     // Fold a float operand's reload into the operation that consumes it.
@@ -229,6 +241,103 @@ namespace PostRaPeephole
         return true;
     }
 
+    // The same fold for a packed shift by an immediate. A rotate needs its
+    // source twice - once shifted left, once right - so the vectorizer copies
+    // it before each destructive shift, and the register allocator was giving
+    // one of those copies a stack home rather than a register: in a vectorized
+    // ChaCha20 round loop that was four stores and four reloads per iteration,
+    // on the dependency chain. VEX names the destination separately, so the
+    // copy disappears and the pressure that caused the spill with it.
+    bool tryFoldCopyIntoVecShiftImm(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        if (!ctx.encoder || !ctx.encoder->supportsNonDestructiveFloatBinary())
+            return false;
+        if (copyInst.op != MicroInstrOpcode::LoadRegReg || copyInst.numOperands < 3)
+            return false;
+
+        const MicroInstrOperand* copyOps = ctx.operandsFor(copyRef);
+        if (!copyOps || copyOps[2].opBits != MicroOpBits::B128)
+            return false;
+
+        const MicroReg dst = copyOps[0].reg;
+        const MicroReg src = copyOps[1].reg;
+        if (!dst.isFloat() || !src.isFloat() || dst == src)
+            return false;
+
+        constexpr uint32_t K_MAX_SCAN = 12;
+
+        MicroInstrRef     opRef  = ctx.nextRef(copyRef);
+        const MicroInstr* opInst = nullptr;
+        for (uint32_t step = 0; step < K_MAX_SCAN; ++step)
+        {
+            const MicroInstr* candidate = ctx.instruction(opRef);
+            if (!candidate)
+                return false;
+
+            if (candidate->op == MicroInstrOpcode::OpBinaryRegImm && candidate->numOperands >= 4)
+            {
+                const MicroInstrOperand* candidateOps = ctx.operandsFor(opRef);
+                if (candidateOps && candidateOps[0].reg == dst)
+                {
+                    opInst = candidate;
+                    break;
+                }
+            }
+
+            if (candidate->op == MicroInstrOpcode::Label)
+                return false;
+
+            const MicroInstrFlags flags = MicroInstr::info(candidate->op).flags;
+            if (flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
+                flags.has(MicroInstrFlagsE::JumpInstruction) ||
+                flags.has(MicroInstrFlagsE::IsCallInstruction))
+                return false;
+
+            const MicroInstrUseDef useDef = candidate->collectUseDef(*ctx.operands, ctx.encoder);
+            for (const MicroReg reg : useDef.defs)
+            {
+                if (reg == dst || reg == src)
+                    return false;
+            }
+            for (const MicroReg reg : useDef.uses)
+            {
+                if (reg == dst)
+                    return false;
+            }
+
+            opRef = ctx.nextRef(opRef);
+        }
+
+        if (!opInst)
+            return false;
+
+        const MicroInstrOperand* shiftOps = ctx.operandsFor(opRef);
+        if (!shiftOps || shiftOps[1].opBits != MicroOpBits::B128)
+            return false;
+
+        const MicroOp shiftOp = shiftOps[2].microOp;
+        if (shiftOp != MicroOp::VecShiftLeft32 && shiftOp != MicroOp::VecShiftRight32)
+            return false;
+
+        const uint64_t shiftValue = shiftOps[3].valueU64;
+        if (shiftValue > 31)
+            return false;
+
+        if (!ctx.claimAll({copyRef, opRef}))
+            return false;
+
+        MicroInstrOperand newOps[5] = {};
+        newOps[0].reg      = dst;
+        newOps[1].reg      = src;
+        newOps[2].opBits   = MicroOpBits::B128;
+        newOps[3].microOp  = shiftOp;
+        newOps[4].valueU64 = shiftValue;
+
+        ctx.emitRewrite(opRef, MicroInstrOpcode::OpBinaryRegRegImm, std::span{newOps, 5}, true);
+        ctx.emitErase(copyRef);
+        return true;
+    }
+
     bool tryFoldCopyIntoFloatBinary(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
     {
         if (!ctx.encoder || !ctx.encoder->supportsNonDestructiveFloatBinary())
@@ -320,9 +429,7 @@ namespace PostRaPeephole
         const MicroOpBits opBits = binOps[2].opBits;
         if (opBits != copyOps[2].opBits)
             return false;
-        if (opBits != MicroOpBits::B32 && opBits != MicroOpBits::B64)
-            return false;
-        if (!hasThreeOperandForm(binOps[3].microOp))
+        if (!foldableIntoThreeOperand(binOps[3].microOp, opBits))
             return false;
 
         if (!ctx.claimAll({copyRef, opRef}))

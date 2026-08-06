@@ -477,13 +477,15 @@ SWC_MICRO_INSTR_DEF(
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
     })
-// Non-destructive three-operand float arithmetic: dst = src1 op src2, with dst
+// Non-destructive three-operand arithmetic: dst = src1 op src2, with dst
 // distinct from both. Legacy SSE has no such shape - it only writes back into
 // one of its inputs - so building `c = a * b` means copying a into c first, and
 // those copies survive to the hot loop. AVX's VEX encoding takes the three
-// registers directly. Created after register allocation by the post-RA peephole,
-// which is the first point where the copy and the operation are known to concern
-// the same physical registers; nothing before then emits this opcode.
+// registers directly. Two producers: the post-RA peephole folds an existing
+// copy into the operation, which is the first point where both are known to
+// concern the same physical registers; and the vectorizer emits this form
+// directly for its 128-bit packed operations, where letting the copy reach the
+// register allocator at all was what made it spill.
 SWC_MICRO_INSTR_DEF(
     OpBinaryRegRegReg,
     MicroInstrDef{
@@ -615,6 +617,25 @@ SWC_MICRO_INSTR_DEF(
         .regModes              = {MicroInstrRegMode::Def, MicroInstrRegMode::Use, MicroInstrRegMode::None},
         .special               = MicroInstrRegSpecial::None,
         .microOpIndex          = 0,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::Zero,
+        .memBaseOperandIndex   = 0,
+        .memOffsetOperandIndex = 0,
+    })
+
+// Non-destructive shift-by-immediate: dst = src <op> imm, with dst distinct
+// from src. Legacy SSE shifts write back into their input, so a rotate - which
+// needs its source twice - has to copy it first, and that copy is what the
+// register allocator was spilling in vectorized ChaCha rounds. VEX names the
+// destination separately. Layout [dst, src, opBits, microOp, imm]. Created
+// after register allocation by the post-RA peephole, like the three-operand
+// arithmetic form; nothing before then emits this opcode.
+SWC_MICRO_INSTR_DEF(
+    OpBinaryRegRegImm,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::Def, MicroInstrRegMode::Use, MicroInstrRegMode::None},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 3,
         .callConvIndex         = 0,
         .flags                 = MicroInstrFlagsE::Zero,
         .memBaseOperandIndex   = 0,

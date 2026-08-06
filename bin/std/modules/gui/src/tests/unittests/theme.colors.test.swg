@@ -22,7 +22,7 @@ using Swag, Core
     @assert(colors.view_Bk == 0xFF15151A)
     @assert(colors.wnd_Bk == 0xFF202026)
     @assert(colors.wnd_CaptionBk == 0xFF2A2A32)
-    @assert(colors.wnd_Border == 0xFF5A5A66)
+    @assert(colors.wnd_Border == 0xFF4A4A57)
     @assert(colors.btnPush_Bk == 0xFF2A2A32)
     @assert(colors.edit_Border == 0xFF6B6B77)
     @assert(colors.menuBar_SelectedBk == 0xFF41414E)
@@ -44,19 +44,28 @@ using Swag, Core
     var colors: ThemeColors
     colors.setSwagLight()
 
-    @assert(colors.bk == 0xFFFFFFFF)
+    @assert(colors.bk == 0xFFF2F2F7)
+    @assert(colors.view_Bk == 0xFFFFFFFF)
     @assert(colors.text == 0xFF1B1B1D)
     @assert(colors.hilight == 0xFF0B0B0D)
-    @assert(colors.hilightLightContrast == 0xFFFFFFFF)
     @assert(colors.activeRail == 0xFF0B0B0D)
-    @assert(colors.btnPush_StrongBk == 0xFF0B0B0D)
-    @assert(colors.btnPush_StrongText == 0xFFFFFFFF)
     @assert(colors.btnIcon_CheckedBk == 0x00000000)
     @assert(colors.btnIcon_CheckedIcon == 0xFF0B0B0D)
-    @assert(colors.menuBar_SelectedBk == 0xFFF0F0ED)
-    @assert(colors.popupItem_HotBk == 0xFFF0F0ED)
-    @assert(colors.listItem_FocusSelectedBk == 0xFFE7E7E3)
-    @assert(colors.frameWnd_Border == 0xFFE2E2DF)
+    @assert(colors.menuBar_SelectedBk == 0xFFECECF4)
+    @assert(colors.popupItem_HotBk == 0xFFECECF4)
+    @assert(colors.listItem_FocusSelectedBk == 0xFFE0E0EB)
+    @assert(colors.frameWnd_Border == 0xFFE3E3EC)
+
+    // The light palette points in ink and fills in Voltage, which is the whole reason the accent
+    // is two tokens. A filled action that lost the brand — or a hairline drawn in it — is the
+    // defect this pins: on paper, yellow parts from white by less than a tenth of a step of
+    // luminance, and ink parts from it by everything.
+    @assert(colors.btnPush_StrongBk == 0xFFF7F900)
+    @assert(colors.btnPush_StrongBorder == 0xFF0B0B0D)
+    @assert(colors.btnPush_StrongText == 0xFF0B0B0D)
+    @assert(colors.hilightLightContrast == 0xFF0B0B0D)
+    @assert(colors.btnToggle_OnBk == 0xFFF7F900)
+    @assert(colors.progressBar_Mark == 0xFFF7F900)
 }
 
 // A surface outline is one stroke crossing two grounds: the caption ground down to the caption
@@ -78,8 +87,21 @@ using Swag, Core
 // the theme it was derived from, and a black-and-white interface grows a blue button. Since
 // every color comes from `apply`, the check is that no two palettes agree on a value that
 // their tokens disagree about — which is what a shared ground would produce.
+//
+// The brand pair is the one thing both Swag modes deliberately agree on: Voltage fills the same
+// block under the same ink whichever way up the theme is read, and that is what makes the two
+// modes one identity. Those parts are found rather than listed — change nothing but
+// `accentGround` and `onAccent`, and whatever moves is what the pair answers for — so the check
+// keeps its full strength over everything else.
 #test
 {
+    var brandA, brandB: ThemeColors
+    var probe = ThemeColors.swagDarkPalette()
+    brandA.apply(probe)
+    probe.accentGround = 0xFF010203
+    probe.onAccent     = 0xFF040506
+    brandB.apply(probe)
+
     var dark, light: ThemeColors
     dark.setSwagDark()
     light.setSwagLight()
@@ -87,6 +109,7 @@ using Swag, Core
     let darkStruct  = cast(const *TypeInfoStruct) #typeof(ThemeColors)
     var shared      = 0'u32
     var opaquePairs = 0'u32
+    var brandParts  = 0'u32
 
     for field in darkStruct.fields
     {
@@ -95,17 +118,29 @@ using Swag, Core
         if a.a == 0 or b.a == 0 do
             continue
 
+        let ba = dref cast(const *Pixel.Color) (cast(const [*] u8) &brandA + field.offset)
+        let bb = dref cast(const *Pixel.Color) (cast(const [*] u8) &brandB + field.offset)
+        if ba != bb
+        {
+            brandParts += 1
+            continue
+        }
+
         opaquePairs += 1
         if a == b do
             shared += 1
     }
 
-    // What legitimately survives a mode change is the handful of colors that mean the same
-    // thing on any ground: the four of the close button, and the white an image is tinted
-    // with. Five today; the bound leaves room for one or two more of the same kind, and
-    // nothing like the twenty-two the delta-based palettes used to share by accident.
+    // What legitimately survives a mode change, once the brand parts are set aside, is the
+    // handful of colors that mean the same thing on any ground: the four of the close button,
+    // and the white an image is tinted with. Five today; the bound leaves room for one or two
+    // more of the same kind, and nothing like the twenty-two the delta-based palettes used to
+    // share by accident.
     @assert(opaquePairs > 200)
     @assert(shared <= 8)
+
+    // And the brand really does reach a set of parts rather than one button.
+    @assert(brandParts > 10)
 }
 
 // A Swag palette carries its own geometry, and it takes the surface corner with it: the outline

@@ -53,8 +53,11 @@ in this order and do not add to the set: namespace slate, struct blue, interface
 enum teal, const amber, alias cyan, attr pink, func green. Their exact values live in
 `documentationStyles()` in `src/Doc/DocPage.cpp`.
 
-Never place voltage on paper: yellow on white is unreadable. On a light ground the mark
-is ink.
+Never place voltage on paper **as a mark**: a yellow rule, ring or glyph on white is a mark
+nobody sees, so on a light ground the mark is ink. Voltage still **fills** there — a block of
+it under ink is the most recognizable thing the chart owns, and it is how a light surface
+carries the identity at all. The interface names the two roles apart; see the accent pair in
+[design-swag-themes](../design-swag-themes/SKILL.md).
 
 ## Cut The Mark
 

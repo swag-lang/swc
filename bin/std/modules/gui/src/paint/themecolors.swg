@@ -746,9 +746,11 @@ impl ThemeColors
         .popupItem_HotRightText = p.softText
         .popupItem_HotBk        = p.selectHot
 
-        // A scroll bar is furniture: its track is the ground it sits on until the pointer
-        // arrives, and the thumb climbs from faint to full as the reader engages with it.
-        .scrollBar_Bk         = p.view
+        // A scroll bar is furniture: its track is whatever it sits on until the pointer arrives,
+        // and the thumb climbs from faint to full as the reader engages with it. The track is
+        // therefore nothing at all rather than a ground of its own — painted in the view color it
+        // was a band of the wrong tone down every panel, list and editor it did not belong to.
+        .scrollBar_Bk         = .transparent
         .scrollBar_HotBk      = .veilSoft
         .scrollBar_DisabledBk = .transparent
         .scrollBar_Box        = p.faintText

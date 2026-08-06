@@ -3,11 +3,14 @@
 using Core, Pixel
 
 // Selects the semantic presentation of an information bar.
+//
+// Each kind is one ground, one ink and one glyph, all three answered by the palette, so the
+// three notices of a surface are told apart before they are read.
 enum InfoBarKind
 {
     Critical        // Presents a critical error.
     Information     // Presents informational guidance.
-    Message         // Presents a neutral status message.
+    Message         // Presents a state the reader should know about, without reporting a failure.
 }
 
 // Configures information-bar placement and lifetime.
@@ -66,6 +69,13 @@ impl IWnd for InfoBar
     }
 }
 
+// The bar is one line of text with a glyph in front of it, so the glyph is sized against the
+// wording rather than against the band: blown up to fill the height it stopped being a sign and
+// became a picture, and it took the air in front of the message with it.
+private const IconSize = 20.0
+private const IconLeft = 14.0
+private const TextLeft = IconLeft + IconSize + 12.0
+
 private impl InfoBar
 {
     mtd applyTheme()
@@ -77,25 +87,28 @@ private impl InfoBar
         {
             .style.clearStyleSheetColors()
             .backgroundStyle = .Window
-            switch me.kind
+            switch #complete me.kind
             {
             case .Critical:
-                .setIcon(theme.icon(.Critical, 28))
+                .setIcon(theme.icon(.Critical, IconSize))
                 .style.addStyleSheetColors(Format.toString("wnd_Bk 0x%{X}", colors.embInfo_CriticalBk.argb))
                 .setTextColor(colors.embInfo_CriticalText)
 
             case .Information:
-                .setIcon(theme.icon(.Information, 28))
+                .setIcon(theme.icon(.Information, IconSize))
                 .style.addStyleSheetColors(Format.toString("wnd_Bk 0x%{X}", colors.embInfo_InformationBk.argb))
                 .setTextColor(colors.embInfo_InformationText)
 
             case .Message:
-                .setIcon(theme.icon(.Information, 28))
+                .setIcon(theme.icon(.Warning, IconSize))
                 .style.addStyleSheetColors(Format.toString("wnd_Bk 0x%{X}", colors.embInfo_MessageBk.argb))
                 .setTextColor(colors.embInfo_MessageText)
             }
 
-            .setIconColor(Argb.White)
+            // The glyph is the wording said in one shape, so it is written in the same ink. Left
+            // white it was the one part of the bar the palette did not answer for: a hard disc
+            // on the dark grounds, and all but invisible on the light pastels.
+            .setIconColor(.textColor)
         }
 
         .closeButton.setIconColor(.label.textColor)
@@ -127,8 +140,8 @@ impl InfoBar
         {
             .setTextHorizontalAlignment(.Left)
             .setIconHorizontalAlignment(.Left)
-            .setIconPadding({10, 0, 0, 0})
-            .setTextPadding({50, 4, 0, 0})
+            .setIconPadding({IconLeft, 0, 0, 0})
+            .setTextPadding({TextLeft, 0, 0, 0})
             .dockStyle = .Center
         }
 

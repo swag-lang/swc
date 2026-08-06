@@ -19,6 +19,7 @@
 SWC_BEGIN_NAMESPACE();
 
 struct AstCompilerFunc;
+enum class TokenId : uint16_t;
 class Job;
 class SourceView;
 class Sema;
@@ -197,11 +198,9 @@ public:
     std::unique_ptr<NativeBackendBuilder> takeDeferredBuilder();
 
     void                                registerNativeCodeFunction(SymbolFunction* symbol);
-    void                                registerNativeTestFunction(SymbolFunction* symbol);
-    void                                registerNativeInitFunction(SymbolFunction* symbol);
-    void                                registerNativePreMainFunction(SymbolFunction* symbol);
-    void                                registerNativeDropFunction(SymbolFunction* symbol);
-    void                                registerNativeMainFunction(SymbolFunction* symbol);
+    // Registers a '#test'/'#init'/'#premain'/'#drop'/'#main' body in the native artifact, in the
+    // bucket its own token names.
+    void                                registerNativeCompilerFunction(TokenId funcTokenId, SymbolFunction* symbol);
     void                                registerNativeGlobalVariable(SymbolVariable* symbol);
     void                                registerNativeGlobalFunctionInitTarget(SymbolFunction* symbol);
     void                                registerPreparedJitFunction(SymbolFunction* symbol);

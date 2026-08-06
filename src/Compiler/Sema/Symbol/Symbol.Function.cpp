@@ -1232,4 +1232,17 @@ const SymbolStruct* SymbolFunction::ownerStruct() const
     return nullptr;
 }
 
+const SymbolFunction* SymbolFunction::parentLexicalFunction() const
+{
+    const SymbolMap* map = ownerSymMap();
+    while (map)
+    {
+        if (map->isFunction())
+            return &map->cast<SymbolFunction>();
+        map = map->ownerSymMap();
+    }
+
+    return nullptr;
+}
+
 SWC_END_NAMESPACE();

@@ -18,27 +18,6 @@ namespace
         bool valid() const { return minPiece != INVALID_PIECE; }
     };
 
-    bool isAssignTokenId(const TokenId id)
-    {
-        switch (id)
-        {
-            case TokenId::SymEqual:
-            case TokenId::SymPlusEqual:
-            case TokenId::SymMinusEqual:
-            case TokenId::SymAsteriskEqual:
-            case TokenId::SymSlashEqual:
-            case TokenId::SymPercentEqual:
-            case TokenId::SymAmpersandEqual:
-            case TokenId::SymPipeEqual:
-            case TokenId::SymCircumflexEqual:
-            case TokenId::SymLowerLowerEqual:
-            case TokenId::SymGreaterGreaterEqual:
-                return true;
-            default:
-                return false;
-        }
-    }
-
     class Classifier
     {
     public:
@@ -1148,7 +1127,7 @@ namespace
                     if (leftSpan.valid())
                     {
                         const uint32_t op = nextCodeAfterOperand(leftSpan.maxPiece);
-                        if (op != INVALID_PIECE && isAssignTokenId(model_->piece(op).id))
+                        if (op != INVALID_PIECE && Token::isOpAssign(model_->piece(op).id))
                             addRole(op, FormatRoleE::AssignOp);
                     }
                     break;

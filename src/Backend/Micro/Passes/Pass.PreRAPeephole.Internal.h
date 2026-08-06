@@ -1,5 +1,6 @@
 #pragma once
 #include "Backend/Micro/MicroInstr.h"
+#include "Backend/Micro/Passes/Pass.Peephole.Core.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/SmallVector.h"
 
@@ -23,46 +24,26 @@ namespace PreRaPeephole
         bool              allocOps       = false;
     };
 
-    struct Context
+    struct Context : MicroPeephole::RewriteQueue<Action>
     {
-        MicroBuilder*                builder  = nullptr;
-        MicroStorage*                storage  = nullptr;
-        MicroOperandStorage*         operands = nullptr;
-        std::unordered_set<uint32_t> claimed;
+        MicroBuilder* builder = nullptr;
         // Instructions carrying a relocation: rewriting or consuming one
         // would leave the relocation unbound, so claimAll refuses them.
         std::unordered_set<uint32_t> relocated;
-        SmallVector<Action>          actions;
 
-        bool                     isClaimed(MicroInstrRef ref) const;
-        bool                     isRelocated(MicroInstrRef ref) const { return relocated.contains(ref.get()); }
-        bool                     claimAll(std::initializer_list<MicroInstrRef> refs);
-        void                     emitErase(MicroInstrRef ref);
-        void                     emitRewrite(MicroInstrRef ref, MicroInstrOpcode newOp, std::span<const MicroInstrOperand> newOps, bool allocNewBlock = false);
-        const MicroInstr*        instruction(MicroInstrRef ref) const;
-        const MicroInstrOperand* operandsFor(MicroInstrRef ref) const;
-        MicroInstrRef            nextRef(MicroInstrRef ref) const;
+        bool isRelocated(MicroInstrRef ref) const { return relocated.contains(ref.get()); }
+        bool claimAll(std::initializer_list<MicroInstrRef> refs);
     };
 
     using PatternFn = bool (*)(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
 
-    struct PatternRegistry
-    {
-        static constexpr size_t K_OPCODE_COUNT = MICRO_INSTR_OPCODE_INFOS.size();
-
-        std::array<SmallVector<PatternFn, 2>, K_OPCODE_COUNT> byOpcode;
-
-        void                       add(MicroInstrOpcode op, PatternFn fn);
-        std::span<const PatternFn> patternsFor(MicroInstrOpcode op) const;
-    };
+    using PatternRegistry = MicroPeephole::PatternRegistry<PatternFn>;
 
     bool     hasVirtualForbiddenPhysRegs(const Context& ctx, MicroReg reg);
     void     mergeVirtualForbiddenRegs(const Context& ctx, MicroReg fromReg, MicroReg toReg);
     bool     buildUseOnlyRegRewrite(Action& outAction, const MicroInstr& consumer, const MicroInstrOperand* ops, MicroReg fromReg, MicroReg toReg);
     uint64_t extendBits(uint64_t value, MicroOpBits srcBits, MicroOpBits dstBits, bool isSigned);
     void     setMaskedImmediateValue(MicroInstrOperand& op, uint64_t value, MicroOpBits bits);
-
-    void applyAction(const Context& ctx, const Action& action);
 
     bool tryForwardConstantLike(Context& ctx, MicroInstrRef defRef, const MicroInstr& defInst);
     bool tryFoldCopyAddIntoLoadAddress(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);

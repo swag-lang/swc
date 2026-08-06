@@ -10,32 +10,7 @@ namespace
 
     bool isSymbolOperatorId(const TokenId id)
     {
-        switch (id)
-        {
-            case TokenId::SymPlus:
-            case TokenId::SymMinus:
-            case TokenId::SymAsterisk:
-            case TokenId::SymSlash:
-            case TokenId::SymPercent:
-            case TokenId::SymAmpersand:
-            case TokenId::SymPipe:
-            case TokenId::SymCircumflex:
-            case TokenId::SymLowerLower:
-            case TokenId::SymGreaterGreater:
-            case TokenId::SymPlusPlus:
-            case TokenId::SymEqualEqual:
-            case TokenId::SymBangEqual:
-            case TokenId::SymLess:
-            case TokenId::SymLessEqual:
-            case TokenId::SymLessEqualGreater:
-            case TokenId::SymGreater:
-            case TokenId::SymGreaterEqual:
-            case TokenId::SymAmpersandAmpersand:
-            case TokenId::SymPipePipe:
-                return true;
-            default:
-                return false;
-        }
+        return Token::isOpArithmeticOrBitwise(id) || Token::isOpRelational(id) || Token::isOpLogical(id) || id == TokenId::SymPlusPlus;
     }
 
     bool isAssignRole(const FormatPiece& piece)

@@ -125,19 +125,6 @@ namespace
         return std::ranges::find(params, &symVar) != params.end();
     }
 
-    const SymbolFunction* parentLexicalFunction(const SymbolFunction& function)
-    {
-        const SymbolMap* map = function.ownerSymMap();
-        while (map)
-        {
-            if (map->isFunction())
-                return &map->cast<SymbolFunction>();
-            map = map->ownerSymMap();
-        }
-
-        return nullptr;
-    }
-
     const SymbolFunction* localFunctionBoundaryForOuterVariable(const SymbolFunction& currentFn, const SymbolVariable& symVar)
     {
         if (symVar.hasGlobalStorage())
@@ -160,7 +147,7 @@ namespace
             if (decl && decl->is(AstNodeId::FunctionDecl))
                 return fn;
 
-            fn = parentLexicalFunction(*fn);
+            fn = fn->parentLexicalFunction();
         }
 
         return nullptr;

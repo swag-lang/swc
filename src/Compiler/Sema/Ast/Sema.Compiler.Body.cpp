@@ -700,26 +700,8 @@ Result AstCompilerFunc::semaPostNode(Sema& sema) const
     }
 
     sym.setSemaCompleted(sema.ctx());
-    switch (tokenId)
-    {
-        case TokenId::CompilerFuncTest:
-            sema.compiler().registerNativeTestFunction(&sym);
-            break;
-        case TokenId::CompilerFuncInit:
-            sema.compiler().registerNativeInitFunction(&sym);
-            break;
-        case TokenId::CompilerFuncDrop:
-            sema.compiler().registerNativeDropFunction(&sym);
-            break;
-        case TokenId::CompilerFuncMain:
-            sema.compiler().registerNativeMainFunction(&sym);
-            break;
-        case TokenId::CompilerFuncPreMain:
-            sema.compiler().registerNativePreMainFunction(&sym);
-            break;
-        default:
-            break;
-    }
+    if (Token::isNativeArtifactCompilerFunc(tokenId))
+        sema.compiler().registerNativeCompilerFunction(tokenId, &sym);
 
     if (tokenId != TokenId::CompilerRun)
         return Result::Continue;

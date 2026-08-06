@@ -107,42 +107,6 @@ namespace
         return outBits != MicroOpBits::Zero;
     }
 
-    TypeRef unwrapAliasEnumTypeRef(const TypeManager& typeMgr, const TaskContext& ctx, TypeRef typeRef)
-    {
-        if (!typeRef.isValid())
-            return TypeRef::invalid();
-
-        const TypeRef unwrappedTypeRef = typeMgr.get(typeRef).unwrapAliasEnum(ctx, typeRef);
-        if (unwrappedTypeRef.isValid())
-            return unwrappedTypeRef;
-
-        return typeRef;
-    }
-
-    TypeRef interfaceObjectStructTypeRef(CodeGen& codeGen, TypeRef sourceTypeRef)
-    {
-        const TypeRef resolvedSourceTypeRef = unwrapAliasEnumTypeRef(codeGen.typeMgr(), codeGen.ctx(), sourceTypeRef);
-        if (!resolvedSourceTypeRef.isValid())
-            return TypeRef::invalid();
-
-        const TypeInfo& sourceType = codeGen.typeMgr().get(resolvedSourceTypeRef);
-        if (sourceType.isStruct())
-            return resolvedSourceTypeRef;
-
-        if (!sourceType.isAnyPointer() && !sourceType.isReference() && !sourceType.isMoveReference())
-            return TypeRef::invalid();
-
-        const TypeRef objectTypeRef = unwrapAliasEnumTypeRef(codeGen.typeMgr(), codeGen.ctx(), sourceType.payloadTypeRef());
-        if (!objectTypeRef.isValid())
-            return TypeRef::invalid();
-
-        const TypeInfo& objectType = codeGen.typeMgr().get(objectTypeRef);
-        if (!objectType.isStruct())
-            return TypeRef::invalid();
-
-        return objectTypeRef;
-    }
-
     MicroReg materializePointerLikeInterfaceObjectReg(CodeGen& codeGen, const CodeGenNodePayload& srcPayload)
     {
         if (!srcPayload.isAddress())
@@ -203,8 +167,8 @@ namespace
         outSteps.clear();
         const TypeManager& typeMgr = codeGen.typeMgr();
 
-        srcStructTypeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), srcStructTypeRef);
-        dstStructTypeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), dstStructTypeRef);
+        srcStructTypeRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), srcStructTypeRef);
+        dstStructTypeRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), dstStructTypeRef);
         if (!srcStructTypeRef.isValid() || !dstStructTypeRef.isValid())
             return false;
 
@@ -222,8 +186,8 @@ namespace
     bool resolveUsingPointerLikeCastPath(CodeGen& codeGen, TypeRef sourceTypeRef, TypeRef dstTypeRef, SmallVector<SymbolStructUsingPathStep>& outSteps)
     {
         const TypeManager& typeMgr               = codeGen.typeMgr();
-        const TypeRef      resolvedSourceTypeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), sourceTypeRef);
-        const TypeRef      resolvedDstTypeRef    = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), dstTypeRef);
+        const TypeRef      resolvedSourceTypeRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), sourceTypeRef);
+        const TypeRef      resolvedDstTypeRef    = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), dstTypeRef);
         if (!resolvedSourceTypeRef.isValid() || !resolvedDstTypeRef.isValid())
             return false;
 
@@ -243,7 +207,7 @@ namespace
             return false;
 
         const TypeManager& typeMgr               = codeGen.typeMgr();
-        const TypeRef      resolvedSourceTypeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), sourceTypeRef);
+        const TypeRef      resolvedSourceTypeRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), sourceTypeRef);
         const TypeRef      sourceTypeToCheck     = resolvedSourceTypeRef.isValid() ? resolvedSourceTypeRef : sourceTypeRef;
         if (!sourceTypeToCheck.isValid())
             return false;
@@ -258,7 +222,7 @@ namespace
         MicroReg pointeeAddressReg = srcPayload.reg;
         if (dstType.isReference() || dstType.isMoveReference())
         {
-            const TypeRef resolvedDstPointeeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), dstType.payloadTypeRef());
+            const TypeRef resolvedDstPointeeRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), dstType.payloadTypeRef());
             const TypeRef dstPointeeTypeRef     = resolvedDstPointeeRef.isValid() ? resolvedDstPointeeRef : dstType.payloadTypeRef();
             if (!dstPointeeTypeRef.isValid())
                 return false;
@@ -279,7 +243,7 @@ namespace
         }
         else
         {
-            const TypeRef resolvedDstPointeeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), dstType.payloadTypeRef());
+            const TypeRef resolvedDstPointeeRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), dstType.payloadTypeRef());
             const TypeRef dstPointeeTypeRef     = resolvedDstPointeeRef.isValid() ? resolvedDstPointeeRef : dstType.payloadTypeRef();
             if (!dstPointeeTypeRef.isValid())
                 return false;
@@ -304,7 +268,7 @@ namespace
             return false;
 
         const TypeManager& typeMgr               = codeGen.typeMgr();
-        const TypeRef      resolvedSourceTypeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), sourceTypeRef);
+        const TypeRef      resolvedSourceTypeRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), sourceTypeRef);
         const TypeRef      sourceTypeToCheck     = resolvedSourceTypeRef.isValid() ? resolvedSourceTypeRef : sourceTypeRef;
         if (!sourceTypeToCheck.isValid())
             return false;
@@ -316,7 +280,7 @@ namespace
         if (!(dstType.isReference() || dstType.isMoveReference() || dstType.isAnyPointer()))
             return false;
 
-        const TypeRef resolvedDstPointeeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), dstType.payloadTypeRef());
+        const TypeRef resolvedDstPointeeRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), dstType.payloadTypeRef());
         const TypeRef dstPointeeTypeRef     = resolvedDstPointeeRef.isValid() ? resolvedDstPointeeRef : dstType.payloadTypeRef();
         if (!dstPointeeTypeRef.isValid())
             return false;
@@ -357,8 +321,8 @@ namespace
     bool tryEmitReferenceToPointerCast(CodeGen& codeGen, const CodeGenNodePayload& srcPayload, TypeRef sourceTypeRef, TypeRef dstTypeRef)
     {
         const TypeManager& typeMgr               = codeGen.typeMgr();
-        const TypeRef      resolvedSourceTypeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), sourceTypeRef);
-        const TypeRef      resolvedDstTypeRef    = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), dstTypeRef);
+        const TypeRef      resolvedSourceTypeRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), sourceTypeRef);
+        const TypeRef      resolvedDstTypeRef    = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), dstTypeRef);
         if (!resolvedSourceTypeRef.isValid() || !resolvedDstTypeRef.isValid())
             return false;
 
@@ -367,8 +331,8 @@ namespace
         if (!sourceType.isReference() || !dstType.isAnyPointer())
             return false;
 
-        const TypeRef sourcePointeeTypeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), sourceType.payloadTypeRef());
-        const TypeRef dstPointeeTypeRef    = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), dstType.payloadTypeRef());
+        const TypeRef sourcePointeeTypeRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), sourceType.payloadTypeRef());
+        const TypeRef dstPointeeTypeRef    = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), dstType.payloadTypeRef());
         if (!sourcePointeeTypeRef.isValid() || !dstPointeeTypeRef.isValid())
             return false;
         if (sourcePointeeTypeRef != dstPointeeTypeRef && dstPointeeTypeRef != typeMgr.typeVoid())
@@ -395,7 +359,7 @@ namespace
         TypeRef            readTypeRef          = sourceTypeRef;
         CodeGenNodePayload readPayload          = sourcePayloadForCast(codeGen, srcNodeRef);
         const TypeManager& typeMgr              = codeGen.typeMgr();
-        const TypeRef      sourceTypeToCheckRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), sourceTypeRef);
+        const TypeRef      sourceTypeToCheckRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), sourceTypeRef);
         const TypeInfo&    sourceType           = typeMgr.get(sourceTypeToCheckRef.isValid() ? sourceTypeToCheckRef : sourceTypeRef);
         if (sourceType.isAnyPointer())
         {
@@ -450,8 +414,8 @@ namespace
     {
         outHandled                            = false;
         const TypeManager& typeMgr            = codeGen.typeMgr();
-        const TypeRef      resolvedSourceRef  = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), sourceTypeRef);
-        const TypeRef      resolvedDstTypeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), dstTypeRef);
+        const TypeRef      resolvedSourceRef  = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), sourceTypeRef);
+        const TypeRef      resolvedDstTypeRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), dstTypeRef);
         if (!resolvedSourceRef.isValid() || !resolvedDstTypeRef.isValid())
             return Result::Continue;
 
@@ -460,7 +424,7 @@ namespace
         if (!(sourceType.isReference() || sourceType.isMoveReference()))
             return Result::Continue;
 
-        const TypeRef pointeeTypeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), sourceType.payloadTypeRef());
+        const TypeRef pointeeTypeRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), sourceType.payloadTypeRef());
         if (!pointeeTypeRef.isValid())
             return Result::Continue;
 
@@ -481,7 +445,7 @@ namespace
         SWC_ASSERT(readTypeRef.isValid());
         SWC_ASSERT(readPayload.isAddress());
 
-        const TypeRef     resolvedReadTypeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), readTypeRef);
+        const TypeRef     resolvedReadTypeRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), readTypeRef);
         const TypeInfo&   readType            = typeMgr.get(resolvedReadTypeRef.isValid() ? resolvedReadTypeRef : readTypeRef);
         const MicroOpBits srcOpBits           = CodeGenTypeHelpers::numericOrBoolBits(readType);
         const MicroOpBits dstOpBits           = CodeGenTypeHelpers::numericOrBoolBits(dstType);
@@ -578,7 +542,7 @@ namespace
 
     Result emitUsingPointerLikeCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef sourceTypeRef, TypeRef dstTypeRef, const SmallVector<SymbolStructUsingPathStep>& usingPath)
     {
-        const TypeRef resolvedSourceTypeRef = unwrapAliasEnumTypeRef(codeGen.typeMgr(), codeGen.ctx(), sourceTypeRef);
+        const TypeRef resolvedSourceTypeRef = codeGen.typeMgr().unwrapAliasEnumOrSelf(codeGen.ctx(), sourceTypeRef);
         SWC_ASSERT(resolvedSourceTypeRef.isValid());
 
         const CodeGenNodePayload srcPayload = sourcePayloadForCast(codeGen, srcNodeRef);
@@ -892,30 +856,6 @@ namespace
         return cstrReg;
     }
 
-    void emitCStringCountReg(CodeGen& codeGen, MicroReg countReg, MicroReg cstrReg)
-    {
-        MicroBuilder& builder = codeGen.builder();
-        builder.emitClearReg(countReg, MicroOpBits::B64);
-
-        const MicroLabelRef loopLabel = builder.createLabel();
-        const MicroLabelRef doneLabel = builder.createLabel();
-        builder.emitCmpRegImm(cstrReg, ApInt(0, 64), MicroOpBits::B64);
-        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
-
-        const MicroReg scanReg = codeGen.nextVirtualIntRegister();
-        builder.emitLoadRegReg(scanReg, cstrReg, MicroOpBits::B64);
-        builder.placeLabel(loopLabel);
-
-        const MicroReg charReg = codeGen.nextVirtualIntRegister();
-        builder.emitLoadRegMem(charReg, scanReg, 0, MicroOpBits::B8);
-        builder.emitCmpRegImm(charReg, ApInt(0, 64), MicroOpBits::B8);
-        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
-        builder.emitOpBinaryRegImm(scanReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
-        builder.emitOpBinaryRegImm(countReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
-        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopLabel);
-        builder.placeLabel(doneLabel);
-    }
-
     Result emitCStringToStringOrSliceCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef dstTypeRef, const TypeInfo& dstType)
     {
         SWC_ASSERT(dstType.isString() || dstType.isSlice());
@@ -925,7 +865,7 @@ namespace
         const MicroReg           cstrReg    = emitLoadCStringReg(codeGen, srcPayload);
 
         const MicroReg countReg = codeGen.nextVirtualIntRegister();
-        emitCStringCountReg(codeGen, countReg, cstrReg);
+        CodeGenMemoryHelpers::emitCStringCountReg(codeGen, countReg, cstrReg);
 
         const MicroReg runtimeValueReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
         builder.emitLoadMemReg(runtimeValueReg, offsetof(Runtime::Slice<std::byte>, ptr), cstrReg, MicroOpBits::B64);
@@ -1112,7 +1052,7 @@ namespace
 
         const SemaNodeView srcView = codeGen.viewType(srcNodeRef);
         SWC_ASSERT(srcView.type());
-        const TypeRef   resolvedSrcTypeRef = unwrapAliasEnumTypeRef(codeGen.typeMgr(), codeGen.ctx(), srcView.typeRef());
+        const TypeRef   resolvedSrcTypeRef = codeGen.typeMgr().unwrapAliasEnumOrSelf(codeGen.ctx(), srcView.typeRef());
         const TypeInfo& resolvedSrcType    = codeGen.typeMgr().get(resolvedSrcTypeRef);
         if (!resolvedSrcType.isAny())
         {
@@ -1120,7 +1060,7 @@ namespace
             return Result::Continue;
         }
 
-        const TypeRef   resolvedDstTypeRef = unwrapAliasEnumTypeRef(codeGen.typeMgr(), codeGen.ctx(), dstTypeRef);
+        const TypeRef   resolvedDstTypeRef = codeGen.typeMgr().unwrapAliasEnumOrSelf(codeGen.ctx(), dstTypeRef);
         const TypeInfo& dstType            = codeGen.typeMgr().get(resolvedDstTypeRef);
         if (dstType.isAny())
         {
@@ -1368,8 +1308,8 @@ namespace
 
         TypeManager& typeMgr = codeGen.typeMgr();
 
-        const TypeRef   resolvedSrcTypeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), sourceTypeRef);
-        const TypeRef   resolvedDstTypeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), dstTypeRef);
+        const TypeRef   resolvedSrcTypeRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), sourceTypeRef);
+        const TypeRef   resolvedDstTypeRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), dstTypeRef);
         const TypeInfo& resolvedSrcType    = typeMgr.get(resolvedSrcTypeRef);
         const TypeInfo& resolvedDstType    = typeMgr.get(resolvedDstTypeRef);
         if (resolvedSrcType.isAny())
@@ -1381,7 +1321,7 @@ namespace
             return emitFunctionToClosureCast(codeGen, srcNodeRef, sourceTypeRef, dstTypeRef);
         if (resolvedSrcType.isInterface() && resolvedDstType.isAnyPointer())
         {
-            const TypeRef dstPointeeTypeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), resolvedDstType.payloadTypeRef());
+            const TypeRef dstPointeeTypeRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), resolvedDstType.payloadTypeRef());
             if (dstPointeeTypeRef.isValid() && typeMgr.get(dstPointeeTypeRef).isStruct())
                 return emitDynamicStructCast(codeGen, srcNodeRef, dstPointeeTypeRef, false);
         }
@@ -1560,7 +1500,7 @@ namespace
             return Result::Continue;
         }
 
-        const TypeRef interfaceObjectTypeRef = interfaceObjectStructTypeRef(codeGen, sourceTypeRef);
+        const TypeRef interfaceObjectTypeRef = interfaceObjectStructTypeRef(codeGen.typeMgr(), codeGen.ctx(), sourceTypeRef);
         if (interfaceObjectTypeRef.isValid() && dstType.isInterface())
         {
             SWC_ASSERT(castPayload && castPayload->runtimeStorageSym != nullptr);

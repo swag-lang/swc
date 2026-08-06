@@ -294,24 +294,8 @@ namespace
         if (nodeRightView.cstRef().isValid())
             SWC_RESULT(checkRightConstant(sema, op, nodeRef, nodeRightView));
 
-        switch (op)
-        {
-            case TokenId::SymEqual:
-            case TokenId::SymPlusEqual:
-            case TokenId::SymMinusEqual:
-            case TokenId::SymAsteriskEqual:
-            case TokenId::SymSlashEqual:
-            case TokenId::SymAmpersandEqual:
-            case TokenId::SymPipeEqual:
-            case TokenId::SymCircumflexEqual:
-            case TokenId::SymPercentEqual:
-            case TokenId::SymLowerLowerEqual:
-            case TokenId::SymGreaterGreaterEqual:
-                return Result::Continue;
-
-            default:
-                SWC_INTERNAL_ERROR();
-        }
+        SWC_INTERNAL_CHECK(Token::isOpAssign(op));
+        return Result::Continue;
     }
 
     Result assignDecomposition(Sema& sema, const Token& tok, const AstAssignList& assignList, AstModifierFlags modifierFlags, SemaNodeView nodeRightView)

@@ -29,33 +29,6 @@ namespace
 {
     constexpr uint64_t K_WINDOWS_STACK_PROBE_PAGE_SIZE = 4096;
 
-    const SymbolVariable* resolveCanonicalParameter(const SymbolFunction& symbolFunc, const SymbolVariable& symVar)
-    {
-        if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
-            return nullptr;
-
-        const auto& params = symbolFunc.parameters();
-        if (symVar.hasParameterIndex() && symVar.parameterIndex() < params.size())
-        {
-            const SymbolVariable* canonicalParam = params[symVar.parameterIndex()];
-            if (canonicalParam && canonicalParam != &symVar)
-                return canonicalParam;
-        }
-
-        if (!symVar.idRef().isValid())
-            return nullptr;
-
-        for (const SymbolVariable* param : params)
-        {
-            if (!param || param == &symVar)
-                continue;
-            if (param->idRef() == symVar.idRef())
-                return param;
-        }
-
-        return nullptr;
-    }
-
     bool needsWindowsStackProbe(CodeGen& codeGen, uint64_t sizeInBytes)
     {
         return sizeInBytes > K_WINDOWS_STACK_PROBE_PAGE_SIZE &&
@@ -417,6 +390,62 @@ bool CodeGenFunctionHelpers::isBorrowedIndirectParameter(CodeGen& codeGen, const
     return normalizedParam.isIndirect && !normalizedParam.needsIndirectCopy;
 }
 
+void CodeGenFunctionHelpers::emitLocalStackFramePrologue(CodeGen& codeGen, CallConvKind callConvKind)
+{
+    if (!codeGen.hasLocalStackFrame())
+        return;
+
+    const CallConv& callConv  = CallConv::get(callConvKind);
+    MicroBuilder&   builder   = codeGen.builder();
+    const uint32_t  frameSize = codeGen.localStackFrameSize();
+    SWC_ASSERT(frameSize != 0);
+
+    // RegAlloc picks the physical register for the frame base. Forbidding every transient
+    // (caller-saved) one, plus the stack and frame pointers, leaves only persistent registers,
+    // so neither a call nor later instruction selection can clobber the active frame base.
+    const MicroReg        frameBaseReg = codeGen.nextVirtualIntRegister();
+    SmallVector<MicroReg> forbiddenRegs;
+    for (const MicroReg reg : callConv.intTransientRegs)
+        forbiddenRegs.push_back(reg);
+    forbiddenRegs.push_back(callConv.stackPointer);
+    if (callConv.framePointer.isValid())
+        forbiddenRegs.push_back(callConv.framePointer);
+    builder.addVirtualRegForbiddenPhysRegs(frameBaseReg, forbiddenRegs.span());
+
+    builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(frameSize, 64), MicroOp::Subtract, MicroOpBits::B64);
+    builder.emitLoadRegReg(frameBaseReg, callConv.stackPointer, MicroOpBits::B64);
+    codeGen.setLocalStackBaseReg(frameBaseReg);
+    codeGen.function().setDebugStackFrameSize(frameSize);
+    codeGen.function().setDebugStackBaseReg(frameBaseReg);
+}
+
+const SymbolVariable* CodeGenFunctionHelpers::resolveCanonicalParameter(const SymbolFunction& symbolFunc, const SymbolVariable& symVar)
+{
+    if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
+        return nullptr;
+
+    const auto& params = symbolFunc.parameters();
+    if (symVar.hasParameterIndex() && symVar.parameterIndex() < params.size())
+    {
+        const SymbolVariable* canonicalParam = params[symVar.parameterIndex()];
+        if (canonicalParam && canonicalParam != &symVar)
+            return canonicalParam;
+    }
+
+    if (!symVar.idRef().isValid())
+        return nullptr;
+
+    for (const SymbolVariable* param : params)
+    {
+        if (!param || param == &symVar)
+            continue;
+        if (param->idRef() == symVar.idRef())
+            return param;
+    }
+
+    return nullptr;
+}
+
 void CodeGenFunctionHelpers::emitLoadFunctionParameterToReg(CodeGen& codeGen, const SymbolFunction& symbolFunc, const FunctionParameterInfo& paramInfo, MicroReg dstReg)
 {
     const CallConv& callConv = CallConv::get(symbolFunc.callConvKind());
@@ -447,7 +476,7 @@ void CodeGenFunctionHelpers::emitLoadFunctionParameterToReg(CodeGen& codeGen, co
 
 CodeGenNodePayload CodeGenFunctionHelpers::materializeFunctionParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, const FunctionParameterInfo& paramInfo)
 {
-    const SymbolVariable* canonicalParam = resolveCanonicalParameter(symbolFunc, symVar);
+    const SymbolVariable* canonicalParam = CodeGenFunctionHelpers::resolveCanonicalParameter(symbolFunc, symVar);
     const SymbolVariable& payloadSym     = canonicalParam ? *canonicalParam : symVar;
     if (const CodeGenNodePayload* symbolPayload = codeGen.variablePayload(payloadSym))
     {

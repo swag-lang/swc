@@ -6,7 +6,9 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Compiler/Sema/Type/TypeManager.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 
@@ -299,6 +301,74 @@ Result Cast::retargetLiteralRuntimeStorageIfNeeded(Sema& sema, AstNodeRef nodeRe
         return Result::Continue;
 
     return SemaHelpers::attachRuntimeStorageIfNeeded(sema, nodeRef, sema.node(nodeRef), storageTypeRef, "__literal_runtime_storage");
+}
+
+namespace
+{
+    bool usingPathHasPointerStep(const SmallVector<SymbolStructUsingPathStep>& usingPath)
+    {
+        for (const auto& step : usingPath)
+        {
+            if (step.isPointer)
+                return true;
+        }
+
+        return false;
+    }
+
+    Result resolveUsingStructCastPath(Sema& sema, const CastRequest& castRequest, TypeRef srcStructTypeRef, TypeRef dstStructTypeRef, SmallVector<SymbolStructUsingPathStep>& outSteps, bool& outFound)
+    {
+        outFound = false;
+        outSteps.clear();
+
+        srcStructTypeRef = sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), srcStructTypeRef);
+        dstStructTypeRef = sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), dstStructTypeRef);
+        if (!srcStructTypeRef.isValid() || !dstStructTypeRef.isValid())
+            return Result::Continue;
+
+        const TypeInfo& srcStructType = sema.typeMgr().get(srcStructTypeRef);
+        const TypeInfo& dstStructType = sema.typeMgr().get(dstStructTypeRef);
+        if (!srcStructType.isStruct() || !dstStructType.isStruct())
+            return Result::Continue;
+
+        SWC_RESULT(sema.waitSemaCompleted(&srcStructType, castRequest.errorNodeRef));
+        SWC_RESULT(sema.waitSemaCompleted(&dstStructType, castRequest.errorNodeRef));
+
+        outFound = srcStructType.payloadSymStruct().resolveUsingFieldPath(sema.ctx(), dstStructType.payloadSymStruct(), outSteps);
+        return Result::Continue;
+    }
+}
+
+Result resolveUsingStructCastPathWithoutPointerStep(Sema& sema, const CastRequest& castRequest, TypeRef srcStructTypeRef, TypeRef dstStructTypeRef, bool& outFound)
+{
+    SmallVector<SymbolStructUsingPathStep> usingPath;
+    bool                                   hasUsingPath = false;
+    SWC_RESULT(resolveUsingStructCastPath(sema, castRequest, srcStructTypeRef, dstStructTypeRef, usingPath, hasUsingPath));
+    outFound = hasUsingPath && !usingPathHasPointerStep(usingPath);
+    return Result::Continue;
+}
+
+TypeRef interfaceObjectStructTypeRef(const TypeManager& typeMgr, const TaskContext& ctx, TypeRef sourceTypeRef)
+{
+    const TypeRef resolvedSourceTypeRef = typeMgr.unwrapAliasEnumOrSelf(ctx, sourceTypeRef);
+    if (!resolvedSourceTypeRef.isValid())
+        return TypeRef::invalid();
+
+    const TypeInfo& sourceType = typeMgr.get(resolvedSourceTypeRef);
+    if (sourceType.isStruct())
+        return resolvedSourceTypeRef;
+
+    if (!sourceType.isAnyPointer() && !sourceType.isReference() && !sourceType.isMoveReference())
+        return TypeRef::invalid();
+
+    const TypeRef objectTypeRef = typeMgr.unwrapAliasEnumOrSelf(ctx, sourceType.payloadTypeRef());
+    if (!objectTypeRef.isValid())
+        return TypeRef::invalid();
+
+    if (!typeMgr.get(objectTypeRef).isStruct())
+        return TypeRef::invalid();
+
+    return objectTypeRef;
 }
 
 bool resolveDynamicStructCastSourceInfo(Sema& sema, AstNodeRef sourceRef, TypeRef sourceTypeRef, DynamicStructCastSourceInfo& outInfo)

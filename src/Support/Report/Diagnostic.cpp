@@ -281,51 +281,7 @@ void Diagnostic::addDidYouMeanNote(const std::optional<Utf8>& suggestion)
 
 void Diagnostic::addArgument(std::string_view name, std::string_view arg)
 {
-    Utf8 sanitized;
-    sanitized.reserve(arg.size());
-
-    const auto*    ptr = reinterpret_cast<const char8_t*>(arg.data());
-    const char8_t* end = ptr + arg.size();
-    while (ptr < end)
-    {
-        auto [buf, wc, eat] = Utf8Helper::decodeOneChar(ptr, end);
-        if (!buf)
-        {
-            ptr++;
-            continue;
-        }
-
-        if ((wc < 128 && !std::isprint(static_cast<int>(wc))) || wc >= 128)
-        {
-            char hex[10];
-            (void) std::snprintf(hex, sizeof(hex), "\\x%02X", static_cast<uint32_t>(wc));
-            sanitized += hex;
-            ptr = buf;
-        }
-        else if (wc == '\t' || wc == '\n' || wc == '\r')
-        {
-            sanitized += ' ';
-
-            ptr = buf;
-        }
-        else
-        {
-            while (ptr < buf)
-                sanitized += static_cast<char>(*ptr++);
-        }
-    }
-
-    // Replace it if the same argument already exists
-    for (Argument& a : arguments_)
-    {
-        if (a.name == name)
-        {
-            a.val = std::move(sanitized);
-            return;
-        }
-    }
-
-    arguments_.emplace_back(DiagnosticArgument{.name = name, .val = std::move(sanitized)});
+    setDiagnosticArgument(arguments_, name, arg);
 }
 
 void Diagnostic::removeArgument(const std::string_view name)

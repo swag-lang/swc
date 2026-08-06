@@ -31,33 +31,6 @@ namespace
         return unwrapped.isValid() ? unwrapped : typeRef;
     }
 
-    TypeRef normalizeBindingType(Sema& sema, TypeRef typeRef)
-    {
-        // Bindings are tracked on the storage they ultimately expose. Strip aliases,
-        // enum wrappers and references so later checks compare the carried payload,
-        // not the syntax that happened to produce it.
-        while (typeRef.isValid())
-        {
-            const TypeInfo& typeInfo  = sema.typeMgr().get(typeRef);
-            const TypeRef   unwrapped = typeInfo.unwrap(sema.ctx(), TypeRef::invalid(), TypeExpandE::Alias | TypeExpandE::Enum);
-            if (unwrapped.isValid())
-            {
-                typeRef = unwrapped;
-                continue;
-            }
-
-            if (typeInfo.isReference())
-            {
-                typeRef = typeInfo.payloadTypeRef();
-                continue;
-            }
-
-            break;
-        }
-
-        return typeRef;
-    }
-
     TypeRef expressionTypeRef(Sema& sema, AstNodeRef nodeRef)
     {
         if (nodeRef.isInvalid())
@@ -749,142 +722,36 @@ namespace
         return resolvedRef;
     }
 
-    IdentifierRef namedArgumentIdentifier(Sema& sema, AstNodeRef childRef)
-    {
-        const AstNode& childNode = sema.node(childRef);
-        if (childNode.isNot(AstNodeId::NamedArgument))
-            return IdentifierRef::invalid();
-
-        return sema.idMgr().addIdentifier(sema.ctx(), childNode.codeRef());
-    }
-
-    template<typename T>
-    bool resolveAggregateChildIndex(Sema& sema, std::span<const AstNodeRef> children, AstNodeRef childRef, size_t memberCount, const T& resolveNamedIndex, size_t& outIndex)
-    {
-        outIndex = 0;
-        if (!memberCount)
-            return false;
-
-        std::vector<uint8_t> assigned(memberCount, 0);
-        size_t               nextPos = 0;
-
-        for (const AstNodeRef currentChildRef : children)
-        {
-            const IdentifierRef namedIdRef = namedArgumentIdentifier(sema, currentChildRef);
-            if (namedIdRef.isValid())
-            {
-                size_t namedIndex = 0;
-                if (!resolveNamedIndex(namedIdRef, namedIndex) || namedIndex >= memberCount)
-                {
-                    if (currentChildRef == childRef)
-                        return false;
-                    continue;
-                }
-
-                if (currentChildRef == childRef)
-                {
-                    outIndex = namedIndex;
-                    return true;
-                }
-
-                assigned[namedIndex] = 1;
-                continue;
-            }
-
-            while (nextPos < memberCount && assigned[nextPos])
-                ++nextPos;
-
-            if (currentChildRef == childRef)
-            {
-                if (nextPos >= memberCount)
-                    return false;
-
-                outIndex = nextPos;
-                return true;
-            }
-
-            if (nextPos < memberCount)
-            {
-                assigned[nextPos] = 1;
-                ++nextPos;
-            }
-        }
-
-        return false;
-    }
-
     TypeRef structLikeChildTargetType(Sema& sema, std::span<const AstNodeRef> children, AstNodeRef childRef, TypeRef targetTypeRef)
     {
-        const TypeRef targetRef = normalizeBindingType(sema, targetTypeRef);
+        const TypeRef targetRef = SemaHelpers::unwrapBindingType(sema.ctx(), targetTypeRef);
         if (!targetRef.isValid())
             return TypeRef::invalid();
 
-        const TypeInfo& targetType = sema.typeMgr().get(targetRef);
-        size_t          fieldIndex = 0;
-
-        if (targetType.isStruct())
-        {
-            const SymbolStruct& targetStruct   = targetType.payloadSymStruct();
-            const auto&         fields         = targetStruct.fields();
-            const auto          findFieldIndex = [&](IdentifierRef idRef, size_t& outIndex) {
-                return targetStruct.tryGetFieldIndexByName(outIndex, idRef);
-            };
-
-            const bool found = resolveAggregateChildIndex(sema, children, childRef, fields.size(), findFieldIndex, fieldIndex);
-            if (!found || fieldIndex >= fields.size() || !fields[fieldIndex])
-                return TypeRef::invalid();
-
-            return fields[fieldIndex]->typeRef();
-        }
-
-        if (!targetType.isAggregateStruct())
+        SemaHelpers::AggregateChildSlot slot;
+        if (!SemaHelpers::resolveAggregateChildSlot(sema, slot, sema.typeMgr().get(targetRef), children, childRef))
             return TypeRef::invalid();
 
-        const auto& aggregate          = targetType.payloadAggregate();
-        const auto  resolveMemberIndex = [&](IdentifierRef idRef, size_t& outIndex) {
-            return targetType.tryGetAggregateMemberIndexByName(outIndex, sema.ctx(), idRef);
-        };
-
-        const bool found = resolveAggregateChildIndex(sema, children, childRef, aggregate.types.size(), resolveMemberIndex, fieldIndex);
-        if (!found || fieldIndex >= aggregate.types.size())
-            return TypeRef::invalid();
-
-        return aggregate.types[fieldIndex];
+        return slot.typeRef;
     }
 
     bool structLikeChildProjectionComponent(Sema& sema, SemaEscapeProjectionComponent& outComponent, std::span<const AstNodeRef> children, AstNodeRef childRef, TypeRef targetTypeRef)
     {
-        const TypeRef targetRef = normalizeBindingType(sema, targetTypeRef);
+        const TypeRef targetRef = SemaHelpers::unwrapBindingType(sema.ctx(), targetTypeRef);
         if (!targetRef.isValid())
             return false;
 
-        const TypeInfo& targetType = sema.typeMgr().get(targetRef);
-        size_t          fieldIndex = 0;
-        if (targetType.isStruct())
-        {
-            const SymbolStruct& targetStruct   = targetType.payloadSymStruct();
-            const auto&         fields         = targetStruct.fields();
-            const auto          findFieldIndex = [&](IdentifierRef idRef, size_t& outIndex) {
-                return targetStruct.tryGetFieldIndexByName(outIndex, idRef);
-            };
-            if (!resolveAggregateChildIndex(sema, children, childRef, fields.size(), findFieldIndex, fieldIndex) || fieldIndex >= fields.size() || !fields[fieldIndex])
-                return false;
-            outComponent = {.kind = SemaEscapeProjectionKind::Field, .field = fields[fieldIndex]};
-            return true;
-        }
-
-        if (!targetType.isAggregateStruct())
+        SemaHelpers::AggregateChildSlot slot;
+        if (!SemaHelpers::resolveAggregateChildSlot(sema, slot, sema.typeMgr().get(targetRef), children, childRef))
             return false;
 
-        const auto& aggregate          = targetType.payloadAggregate();
-        const auto  resolveMemberIndex = [&](IdentifierRef idRef, size_t& outIndex) {
-            return targetType.tryGetAggregateMemberIndexByName(outIndex, sema.ctx(), idRef);
-        };
-        if (!resolveAggregateChildIndex(sema, children, childRef, aggregate.types.size(), resolveMemberIndex, fieldIndex))
-            return false;
-        outComponent = {.kind = SemaEscapeProjectionKind::ConstantIndex, .index = fieldIndex};
+        if (slot.field)
+            outComponent = {.kind = SemaEscapeProjectionKind::Field, .field = slot.field};
+        else
+            outComponent = {.kind = SemaEscapeProjectionKind::ConstantIndex, .index = slot.index};
         return true;
     }
+
 
     bool aggregateLiteralChildren(Sema& sema, SmallVector<AstNodeRef>& outChildren, AstNodeRef exprRef)
     {

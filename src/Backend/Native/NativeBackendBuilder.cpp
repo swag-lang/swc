@@ -205,22 +205,6 @@ namespace
         return builder.compiler().srcView(symbol.srcViewRef()).file();
     }
 
-    bool isNativeArtifactCompilerFunction(const TokenId tokenId)
-    {
-        switch (tokenId)
-        {
-            case TokenId::CompilerFuncTest:
-            case TokenId::CompilerFuncInit:
-            case TokenId::CompilerFuncDrop:
-            case TokenId::CompilerFuncMain:
-            case TokenId::CompilerFuncPreMain:
-                return true;
-
-            default:
-                return false;
-        }
-    }
-
     bool isRuntimeArtifactFunction(const NativeBackendBuilder& builder, const SymbolFunction& symbol)
     {
         if (symbol.attributes().hasRtFlag(RtAttributeFlagsE::Macro) || symbol.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
@@ -240,7 +224,7 @@ namespace
             return true;
 
         const TokenId tokenId = builder.compiler().srcView(symbol.srcViewRef()).token(symbol.tokRef()).id;
-        return isNativeArtifactCompilerFunction(tokenId);
+        return Token::isNativeArtifactCompilerFunc(tokenId);
     }
 
     bool shouldPrepareFile(const SourceFile* file)

@@ -18,6 +18,7 @@
 SWC_BEGIN_NAMESPACE();
 
 struct CastRequest;
+enum class TaskStateKind : uint8_t;
 class SymbolNamespace;
 class SymbolFunction;
 class SymbolVariable;
@@ -504,6 +505,8 @@ public:
     Result      waitTyped(const Symbol* symbol, const SourceCodeRef& codeRef);
     Result      waitSemaCompleted(const TypeInfo* type, AstNodeRef nodeRef);
     Result      waitTypeInfoGeneration(AstNodeRef nodeRef, const SourceCodeRef& codeRef = SourceCodeRef::invalid());
+    // Records why this job cannot go on and hands the worker back to the scheduler.
+    Result      parkOnSymbol(TaskStateKind kind, const Symbol* blockingSymbol, AstNodeRef nodeRef, const SourceCodeRef& codeRef);
     Result      makeRuntimeTypeInfo(ConstantRef& outRef, TypeRef typeRef, AstNodeRef ownerNodeRef);
     Result      prepareFunctionSignature(AstNodeRef functionRef);
     static void waitDone(TaskContext& ctx, JobClientId clientId);

@@ -38,26 +38,13 @@ namespace
         return function && function->attributes().hasRtFlag(RtAttributeFlagsE::Macro);
     }
 
-    const SymbolFunction* parentLexicalFunction(const SymbolFunction& function)
-    {
-        const SymbolMap* map = function.ownerSymMap();
-        while (map)
-        {
-            if (map->isFunction())
-                return &map->cast<SymbolFunction>();
-            map = map->ownerSymMap();
-        }
-
-        return nullptr;
-    }
-
     bool isMacroFunctionOrNestedInMacro(const SymbolFunction* function)
     {
         while (function)
         {
             if (isMacroFunction(function))
                 return true;
-            function = parentLexicalFunction(*function);
+            function = function->parentLexicalFunction();
         }
 
         return false;
@@ -1220,15 +1207,16 @@ namespace
         return Result::Continue;
     }
 
-    Result semaCompilerSizeOf(Sema& sema, const AstCompilerCallOne& node)
+    // '#sizeof' and '#alignof' differ only in the layout number they read; the operand has to
+    // clear the very same generic and completeness hurdles first.
+    Result semaCompilerLayoutQuery(Sema& sema, const AstCompilerCallOne& node, DiagnosticId invalidOperandId, bool wantAlignment)
     {
         const AstNodeRef childRef = node.nodeArgRef;
         SemaNodeView     view(sema, childRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
         SWC_RESULT(instantiateCompilerGenericTypeOperand(sema, view));
-        if (isUnresolvedGenericRootCompilerTypeOperand(sema, view))
-            return SemaError::raise(sema, DiagnosticId::sema_err_invalid_sizeof, childRef);
-        if (!view.typeRef().isValid())
-            return SemaError::raise(sema, DiagnosticId::sema_err_invalid_sizeof, childRef);
+        if (isUnresolvedGenericRootCompilerTypeOperand(sema, view) || !view.typeRef().isValid())
+            return SemaError::raise(sema, invalidOperandId, childRef);
+
         TypeRef typeRef = TypeRef::invalid();
         SWC_RESULT(resolveCompilerOperandConcreteType(sema, view, childRef, typeRef));
 
@@ -1237,15 +1225,20 @@ namespace
         {
             const auto& symStruct = typeInfo.payloadSymStruct();
             if (symStruct.isGenericRoot() && !symStruct.isGenericInstance())
-                return SemaError::raise(sema, DiagnosticId::sema_err_invalid_sizeof, childRef);
+                return SemaError::raise(sema, invalidOperandId, childRef);
         }
 
         assertConcreteStructCompilerSizeOperand(typeInfo);
         SWC_RESULT(sema.waitSemaCompleted(&typeInfo, childRef));
-        const uint64_t sizeOf = typeInfo.sizeOf(sema.ctx());
-        assertConcreteStructCompilerSizeValue(typeInfo, sizeOf);
-        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), sizeOf));
+        const uint64_t value = wantAlignment ? typeInfo.alignOf(sema.ctx()) : typeInfo.sizeOf(sema.ctx());
+        assertConcreteStructCompilerSizeValue(typeInfo, value);
+        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), value));
         return Result::Continue;
+    }
+
+    Result semaCompilerSizeOf(Sema& sema, const AstCompilerCallOne& node)
+    {
+        return semaCompilerLayoutQuery(sema, node, DiagnosticId::sema_err_invalid_sizeof, false);
     }
 
     Result semaCompilerOffsetOf(Sema& sema, const AstCompilerCallOne& node)
@@ -1266,30 +1259,7 @@ namespace
 
     Result semaCompilerAlignOf(Sema& sema, const AstCompilerCallOne& node)
     {
-        const AstNodeRef childRef = node.nodeArgRef;
-        SemaNodeView     view(sema, childRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
-        SWC_RESULT(instantiateCompilerGenericTypeOperand(sema, view));
-        if (isUnresolvedGenericRootCompilerTypeOperand(sema, view))
-            return SemaError::raise(sema, DiagnosticId::sema_err_invalid_alignof, childRef);
-        if (!view.typeRef().isValid())
-            return SemaError::raise(sema, DiagnosticId::sema_err_invalid_alignof, childRef);
-        TypeRef typeRef = TypeRef::invalid();
-        SWC_RESULT(resolveCompilerOperandConcreteType(sema, view, childRef, typeRef));
-
-        const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
-        if (typeInfo.isStruct())
-        {
-            const auto& symStruct = typeInfo.payloadSymStruct();
-            if (symStruct.isGenericRoot() && !symStruct.isGenericInstance())
-                return SemaError::raise(sema, DiagnosticId::sema_err_invalid_alignof, childRef);
-        }
-
-        assertConcreteStructCompilerSizeOperand(typeInfo);
-        SWC_RESULT(sema.waitSemaCompleted(&typeInfo, childRef));
-        const uint64_t alignOf = typeInfo.alignOf(sema.ctx());
-        assertConcreteStructCompilerSizeValue(typeInfo, alignOf);
-        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), alignOf));
-        return Result::Continue;
+        return semaCompilerLayoutQuery(sema, node, DiagnosticId::sema_err_invalid_alignof, true);
     }
 
     Result semaCompilerNameOf(Sema& sema, const AstCompilerCallOne& node)
@@ -1433,7 +1403,9 @@ namespace
         return Result::Continue;
     }
 
-    Result semaCompilerSafety(Sema& sema, const AstCompilerCallOne& node)
+    // '#safety' and '#sanity' both answer "is this guard on right here", against their own
+    // build-configuration set.
+    Result semaCompilerGuardQuery(Sema& sema, const AstCompilerCallOne& node, bool wantSanity)
     {
         const TaskContext& ctx      = sema.ctx();
         const AstNodeRef   childRef = node.nodeArgRef;
@@ -1449,34 +1421,24 @@ namespace
         SWC_ASSERT(constant->isInt());
         SWC_ASSERT(constant->getInt().fits64());
 
-        const auto          requestedSafety = static_cast<Runtime::SafetyWhat>(constant->getInt().asI64());
-        const bool          enabled         = sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, requestedSafety);
-        const ConstantValue value           = ConstantValue::makeBool(ctx, enabled);
+        const auto          requested  = static_cast<Runtime::SafetyWhat>(constant->getInt().asI64());
+        const auto&         attributes = sema.frame().currentAttributes();
+        const bool          enabled    = wantSanity
+                                             ? attributes.hasSanity(sema.buildCfg().sanityGuards, requested)
+                                             : attributes.hasRuntimeSafety(sema.buildCfg().safetyGuards, requested);
+        const ConstantValue value      = ConstantValue::makeBool(ctx, enabled);
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
         return Result::Continue;
     }
 
+    Result semaCompilerSafety(Sema& sema, const AstCompilerCallOne& node)
+    {
+        return semaCompilerGuardQuery(sema, node, false);
+    }
+
     Result semaCompilerSanity(Sema& sema, const AstCompilerCallOne& node)
     {
-        const TaskContext& ctx      = sema.ctx();
-        const AstNodeRef   childRef = node.nodeArgRef;
-        SWC_RESULT(SemaCheck::isConstant(sema, childRef));
-
-        const SemaNodeView view = sema.viewConstant(childRef);
-        SWC_ASSERT(view.cst() != nullptr);
-
-        const ConstantValue* constant = view.cst();
-        if (constant->isEnumValue())
-            constant = &sema.cstMgr().get(constant->getEnumValue());
-
-        SWC_ASSERT(constant->isInt());
-        SWC_ASSERT(constant->getInt().fits64());
-
-        const auto          requestedSanity = static_cast<Runtime::SafetyWhat>(constant->getInt().asI64());
-        const bool          enabled         = sema.frame().currentAttributes().hasSanity(sema.buildCfg().sanityGuards, requestedSanity);
-        const ConstantValue value           = ConstantValue::makeBool(ctx, enabled);
-        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
-        return Result::Continue;
+        return semaCompilerGuardQuery(sema, node, true);
     }
 
     Result semaCompilerLocation(Sema& sema, const AstCompilerCallOne& node)

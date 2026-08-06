@@ -21,7 +21,7 @@ identifier, so a reference made today still resolves after the entry is gone. En
 identifier, ascending: a new one goes at the end, a deleted one leaves a gap, and position carries
 no priority.
 
-Next identifier: F-033
+Next identifier: F-034
 
 ## Open Investigations
 
@@ -431,3 +431,24 @@ Use this compact format. Keep observations factual and make the next step action
   without the field scan, the way `typeHasBorrowableStorage` already does for owner views. Try it
   behind the usual sweep (build every workspace, zero-hit baseline) and triage: the risk is that
   every owner passed by value starts feeding the stores and frees summaries.
+
+### F-033 — Removing duplicated C++ bodies barely shrinks the Release executable
+
+- Area: build
+- Found while: factoring roughly 1400 lines of duplicated helpers out of the compiler sources
+- Observation: the Release link already runs `/OPT:ICF` (`EnableCOMDATFolding`) on top of LTCG, so
+  two byte-identical function bodies in different translation units cost two source copies but a
+  single copy in the image. Deleting them is worth doing for the sources; it is not a lever on the
+  binary.
+- Evidence: 1399 net source lines removed across 84 files (verbatim twins such as `builtinTypeRef`,
+  `canReflectTypeRef`, `emitCStringCountReg`, `applyAction`, `collectLoopBody`, plus the token
+  classification moved into `Tokens.Def.inc`) moved `bin/swc.exe` from 5 082 624 to 5 073 920
+  bytes — 8 704 bytes, 0.17%. The Release configuration already carries `/O2`, `/GL`, `/Gy`,
+  `/OPT:REF`, `/OPT:ICF` and `RuntimeTypeInfo=false`, so the usual size switches are all on.
+- Next step: measure where the image actually goes before spending more on it. Dump the section
+  sizes and the largest COMDATs (`link /dump /headers`, `/dump /disasm`, or a map file with
+  `/MAP`), and separate code from the read-only data the diagnostic, token, and instruction tables
+  contribute. Only two levers are likely to matter and both must be weighed against the rule that
+  the compiler may never get slower: cutting template instantiation in the hot headers, and
+  trimming inlining pressure (`/Ob1` on the cold command/report/doc translation units only, never
+  on sema, codegen, or the micro passes).

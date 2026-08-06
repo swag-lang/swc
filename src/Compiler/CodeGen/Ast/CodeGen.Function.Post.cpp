@@ -721,39 +721,12 @@ namespace
         return Result::Continue;
     }
 
-    const SymbolVariable* resolveCanonicalParameter(const SymbolFunction& symbolFunc, const SymbolVariable& symVar)
-    {
-        if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
-            return nullptr;
-
-        const auto& params = symbolFunc.parameters();
-        if (symVar.hasParameterIndex() && symVar.parameterIndex() < params.size())
-        {
-            const SymbolVariable* canonicalParam = params[symVar.parameterIndex()];
-            if (canonicalParam && canonicalParam != &symVar)
-                return canonicalParam;
-        }
-
-        if (!symVar.idRef().isValid())
-            return nullptr;
-
-        for (const SymbolVariable* param : params)
-        {
-            if (!param || param == &symVar)
-                continue;
-            if (param->idRef() == symVar.idRef())
-                return param;
-        }
-
-        return nullptr;
-    }
-
     CodeGenNodePayload resolveClosureCaptureSourcePayload(CodeGen& codeGen, const SymbolVariable& symVar)
     {
         if (symVar.isClosureCapture())
             return CodeGenFunctionHelpers::resolveClosureCapturePayload(codeGen, symVar);
 
-        if (const SymbolVariable* canonicalParam = resolveCanonicalParameter(codeGen.function(), symVar))
+        if (const SymbolVariable* canonicalParam = CodeGenFunctionHelpers::resolveCanonicalParameter(codeGen.function(), symVar))
             return resolveClosureCaptureSourcePayload(codeGen, *canonicalParam);
 
         if (CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, symVar))

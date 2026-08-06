@@ -4,6 +4,7 @@
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenReferenceHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenStructHelpers.h"
@@ -58,30 +59,6 @@ namespace
         return copyReg;
     }
 
-    void emitCStringCountReg(CodeGen& codeGen, MicroReg countReg, MicroReg cstrReg)
-    {
-        MicroBuilder& builder = codeGen.builder();
-        builder.emitClearReg(countReg, MicroOpBits::B64);
-
-        const MicroLabelRef loopLabel = builder.createLabel();
-        const MicroLabelRef doneLabel = builder.createLabel();
-        builder.emitCmpRegImm(cstrReg, ApInt(0, 64), MicroOpBits::B64);
-        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
-
-        const MicroReg scanReg = codeGen.nextVirtualIntRegister();
-        builder.emitLoadRegReg(scanReg, cstrReg, MicroOpBits::B64);
-        builder.placeLabel(loopLabel);
-
-        const MicroReg charReg = codeGen.nextVirtualIntRegister();
-        builder.emitLoadRegMem(charReg, scanReg, 0, MicroOpBits::B8);
-        builder.emitCmpRegImm(charReg, ApInt(0, 64), MicroOpBits::B8);
-        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
-        builder.emitOpBinaryRegImm(scanReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
-        builder.emitOpBinaryRegImm(countReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
-        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopLabel);
-        builder.placeLabel(doneLabel);
-    }
-
     // Element count of the value being sliced. A pointer has none: it is a bare address, and
     // the range is what gives it a length, so there is nothing to compare an upper bound to.
     bool emitSliceSourceCountReg(CodeGen& codeGen, MicroReg countReg, const TypeInfo& indexedType, const CodeGenNodePayload& indexedPayload, MicroReg baseReg)
@@ -102,7 +79,7 @@ namespace
 
         if (indexedType.isCString())
         {
-            emitCStringCountReg(codeGen, countReg, baseReg);
+            CodeGenMemoryHelpers::emitCStringCountReg(codeGen, countReg, baseReg);
             return true;
         }
 

@@ -83,7 +83,7 @@ Result MicroPostRaPeepholePass::run(MicroPassContext& context)
         return Result::Continue;
 
     for (const Action& action : ctx.actions)
-        applyAction(ctx, action);
+        MicroPeephole::applyAction(ctx, action);
 
     context.passChanged = true;
     return Result::Continue;

@@ -682,22 +682,11 @@ Result AstRelationalExpr::codeGenPostNode(CodeGen& codeGen) const
             return emitSpecialRelational(codeGen, tok.id, calledFn, resultTypeRef, *relationalPayload);
     }
 
-    switch (tok.id)
-    {
-        case TokenId::SymEqualEqual:
-        case TokenId::SymBangEqual:
-        case TokenId::SymLess:
-        case TokenId::SymLessEqual:
-        case TokenId::SymGreater:
-        case TokenId::SymGreaterEqual:
-            return emitRelationalBool(codeGen, *this, tok.id);
+    if (tok.id == TokenId::SymLessEqualGreater)
+        return emitThreeWayCompare(codeGen, *this);
 
-        case TokenId::SymLessEqualGreater:
-            return emitThreeWayCompare(codeGen, *this);
-
-        default:
-            SWC_UNREACHABLE();
-    }
+    SWC_INTERNAL_CHECK(Token::isOpRelational(tok.id));
+    return emitRelationalBool(codeGen, *this, tok.id);
 }
 
 SWC_END_NAMESPACE();

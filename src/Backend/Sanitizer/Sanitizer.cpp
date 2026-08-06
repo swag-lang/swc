@@ -869,6 +869,36 @@ void Sanitizer::dropZeros(SanitizerState& state)
             value = {};
 }
 
+void Sanitizer::reportLoadFromPoisonedRange(const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops, const SanitizerState& state, const std::unordered_map<int64_t, uint64_t>& poisoned, DiagnosticId id)
+{
+    if (poisoned.empty())
+        return;
+
+    switch (inst.op)
+    {
+        case MicroInstrOpcode::LoadRegMem:
+        case MicroInstrOpcode::LoadSignedExtRegMem:
+        case MicroInstrOpcode::LoadZeroExtRegMem:
+        case MicroInstrOpcode::LoadVecRegMem:
+            break;
+        default:
+            return;
+    }
+
+    int64_t slot = 0;
+    if (!resolveStackSlot(state, ops[def.memBaseOperandIndex].reg, ops[def.memOffsetOperandIndex].valueU64, slot))
+        return;
+
+    for (const auto& [rangeStart, rangeSize] : poisoned)
+    {
+        if (slot >= rangeStart && slot < rangeStart + static_cast<int64_t>(rangeSize))
+        {
+            report(inst, id);
+            return;
+        }
+    }
+}
+
 void Sanitizer::report(const MicroInstr& inst, DiagnosticId id)
 {
     const SourceCodeRef& codeRef = inst.debugSourceInfo.sourceCodeRef;

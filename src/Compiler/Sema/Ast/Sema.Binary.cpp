@@ -348,26 +348,10 @@ namespace
 
     Result constantFold(Sema& sema, ConstantRef& result, TokenId op, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
-        switch (op)
-        {
-            case TokenId::SymPlusPlus:
-                return constantFoldPlusPlus(sema, result, node, nodeLeftView, nodeRightView);
-
-            case TokenId::SymPlus:
-            case TokenId::SymMinus:
-            case TokenId::SymAsterisk:
-            case TokenId::SymSlash:
-            case TokenId::SymPercent:
-            case TokenId::SymAmpersand:
-            case TokenId::SymPipe:
-            case TokenId::SymCircumflex:
-            case TokenId::SymGreaterGreater:
-            case TokenId::SymLowerLower:
-                return constantFoldOp(sema, result, op, node, nodeLeftView, nodeRightView);
-
-            default:
-                break;
-        }
+        if (op == TokenId::SymPlusPlus)
+            return constantFoldPlusPlus(sema, result, node, nodeLeftView, nodeRightView);
+        if (Token::isOpArithmeticOrBitwise(op))
+            return constantFoldOp(sema, result, op, node, nodeLeftView, nodeRightView);
 
         return Result::Error;
     }
@@ -518,51 +502,32 @@ namespace
                 break;
         }
 
-        switch (op)
+        if (Token::isOpArithmeticOrBitwise(op) && !handledPointerArithmetic)
         {
-            case TokenId::SymPlusPlus:
-                break;
-
-            case TokenId::SymPlus:
-            case TokenId::SymMinus:
-            case TokenId::SymAsterisk:
-            case TokenId::SymSlash:
-            case TokenId::SymPercent:
-            case TokenId::SymAmpersand:
-            case TokenId::SymPipe:
-            case TokenId::SymCircumflex:
-            case TokenId::SymGreaterGreater:
-            case TokenId::SymLowerLower:
-                if (handledPointerArithmetic)
-                    break;
-                if (node.modifierFlags.has(AstModifierFlagsE::Promote) &&
-                    leftAliasType.isScalarNumeric() &&
-                    rightAliasType.isScalarNumeric())
-                {
-                    const TypeRef promotedTypeRef = sema.typeMgr().promote(nodeLeftView.typeRef(), nodeRightView.typeRef(), true);
-                    SWC_RESULT(Cast::castIfNeeded(sema, nodeLeftView, promotedTypeRef, CastKind::Promotion));
-                    SWC_RESULT(Cast::castIfNeeded(sema, nodeRightView, promotedTypeRef, CastKind::Promotion));
-                    resultTypeRef = promotedTypeRef;
-                }
-                else if (leftAliasType.isScalarNumeric() &&
-                         rightAliasType.isScalarNumeric() &&
-                         !leftAliasType.isCharRune() &&
-                         !rightAliasType.isCharRune() &&
-                         nodeLeftView.typeRef() != nodeRightView.typeRef() &&
-                         op != TokenId::SymGreaterGreater &&
-                         op != TokenId::SymLowerLower)
-                {
-                    SWC_RESULT(Cast::castPromote(sema, nodeLeftView, nodeRightView, CastKind::Promotion));
-                    resultTypeRef = nodeLeftView.typeRef();
-                }
-                else
-                {
-                    SWC_RESULT(SemaHelpers::castBinaryRightToLeft(sema, op, sema.curNodeRef(), nodeLeftView, nodeRightView, CastKind::Implicit));
-                }
-                break;
-
-            default:
-                break;
+            if (node.modifierFlags.has(AstModifierFlagsE::Promote) &&
+                leftAliasType.isScalarNumeric() &&
+                rightAliasType.isScalarNumeric())
+            {
+                const TypeRef promotedTypeRef = sema.typeMgr().promote(nodeLeftView.typeRef(), nodeRightView.typeRef(), true);
+                SWC_RESULT(Cast::castIfNeeded(sema, nodeLeftView, promotedTypeRef, CastKind::Promotion));
+                SWC_RESULT(Cast::castIfNeeded(sema, nodeRightView, promotedTypeRef, CastKind::Promotion));
+                resultTypeRef = promotedTypeRef;
+            }
+            else if (leftAliasType.isScalarNumeric() &&
+                     rightAliasType.isScalarNumeric() &&
+                     !leftAliasType.isCharRune() &&
+                     !rightAliasType.isCharRune() &&
+                     nodeLeftView.typeRef() != nodeRightView.typeRef() &&
+                     op != TokenId::SymGreaterGreater &&
+                     op != TokenId::SymLowerLower)
+            {
+                SWC_RESULT(Cast::castPromote(sema, nodeLeftView, nodeRightView, CastKind::Promotion));
+                resultTypeRef = nodeLeftView.typeRef();
+            }
+            else
+            {
+                SWC_RESULT(SemaHelpers::castBinaryRightToLeft(sema, op, sema.curNodeRef(), nodeLeftView, nodeRightView, CastKind::Implicit));
+            }
         }
 
         sema.setType(sema.curNodeRef(), resultTypeRef);
@@ -594,26 +559,11 @@ namespace
         if (nodeRightView.cstRef().isValid())
             SWC_RESULT(checkRightConstant(sema, op, sema.curNodeRef(), nodeRightView));
 
-        switch (op)
-        {
-            case TokenId::SymPlusPlus:
-                return checkPlusPlus(sema, node, nodeLeftView, nodeRightView);
+        if (op == TokenId::SymPlusPlus)
+            return checkPlusPlus(sema, node, nodeLeftView, nodeRightView);
 
-            case TokenId::SymPlus:
-            case TokenId::SymMinus:
-            case TokenId::SymAsterisk:
-            case TokenId::SymSlash:
-            case TokenId::SymPercent:
-            case TokenId::SymAmpersand:
-            case TokenId::SymPipe:
-            case TokenId::SymCircumflex:
-            case TokenId::SymGreaterGreater:
-            case TokenId::SymLowerLower:
-                return checkOp(sema, nodeRef, op, node, nodeLeftView, nodeRightView);
-
-            default:
-                SWC_INTERNAL_ERROR();
-        }
+        SWC_INTERNAL_CHECK(Token::isOpArithmeticOrBitwise(op));
+        return checkOp(sema, nodeRef, op, node, nodeLeftView, nodeRightView);
     }
 }
 

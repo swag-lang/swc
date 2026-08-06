@@ -57,6 +57,14 @@ struct UserDefinedLiteralSuffixInfo
 
 bool resolveDynamicStructCastSourceInfo(Sema& sema, AstNodeRef sourceRef, TypeRef sourceTypeRef, DynamicStructCastSourceInfo& outInfo);
 
+// The struct a value converted to an interface refers to: the struct itself, or the one behind
+// a pointer or a reference. Invalid when the source cannot designate a struct at all.
+TypeRef interfaceObjectStructTypeRef(const TypeManager& typeMgr, const TaskContext& ctx, TypeRef sourceTypeRef);
+
+// Whether the destination struct is reachable from the source one through 'using' fields only,
+// with no pointer hop on the way — the shape a cast can lower to a plain field offset.
+Result resolveUsingStructCastPathWithoutPointerStep(Sema& sema, const CastRequest& castRequest, TypeRef srcStructTypeRef, TypeRef dstStructTypeRef, bool& outFound);
+
 struct Cast
 {
     static Result  castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);

@@ -25,16 +25,16 @@ namespace
         return !symbolStruct.isGenericRoot() || symbolStruct.isGenericInstance();
     }
 
-    uint64_t checkedStructLayoutSize(const SymbolStruct& symbolStruct, const uint64_t sizeInBytes)
+    // Layout numbers of a concrete struct are never zero once its layout ran. Returns 0 for the
+    // shapes that legitimately have no layout (a generic root, or a struct still being laid out).
+    uint64_t checkedStructLayoutValue(const SymbolStruct& symbolStruct, const uint64_t value, const char* what)
     {
         if (!isConcreteStructLayoutPending(symbolStruct))
             return 0;
 
-        // Generic roots intentionally have no layout, but every concrete struct
-        // reaching this point must have been through layout computation. The dev
-        // detail below is tuned for races/missing waits in the sema pipeline.
 #if SWC_DEV_MODE
-        if (!sizeInBytes)
+        // The detail below is tuned for races and missing waits in the sema pipeline.
+        if (!value)
         {
             Utf8 detail;
             detail += std::format("  structPtr={} semaCompleted={} typed={} declared={} genericRoot={} genericInstance={} union={} fields={} declNodeRef={}\n",
@@ -47,39 +47,24 @@ namespace
                                   symbolStruct.isUnion(),
                                   symbolStruct.fields().size(),
                                   symbolStruct.declNodeRef().get());
-            swcAssertDetail("sizeInBytes != 0", __FILE__, __LINE__, detail.view());
+            swcAssertDetail(what, __FILE__, __LINE__, detail.view());
         }
+#else
+        SWC_UNUSED(what);
 #endif
 
-        SWC_ASSERT(sizeInBytes != 0);
-        return sizeInBytes;
+        SWC_ASSERT(value != 0);
+        return value;
+    }
+
+    uint64_t checkedStructLayoutSize(const SymbolStruct& symbolStruct, const uint64_t sizeInBytes)
+    {
+        return checkedStructLayoutValue(symbolStruct, sizeInBytes, "sizeInBytes != 0");
     }
 
     uint32_t checkedStructLayoutAlignment(const SymbolStruct& symbolStruct, const uint32_t alignment)
     {
-        if (!isConcreteStructLayoutPending(symbolStruct))
-            return 0;
-
-#if SWC_DEV_MODE
-        if (!alignment)
-        {
-            Utf8 detail;
-            detail += std::format("  structPtr={} semaCompleted={} typed={} declared={} genericRoot={} genericInstance={} union={} fields={} declNodeRef={}\n",
-                                  static_cast<const void*>(&symbolStruct),
-                                  symbolStruct.isSemaCompleted(),
-                                  symbolStruct.isTyped(),
-                                  symbolStruct.isDeclared(),
-                                  symbolStruct.isGenericRoot(),
-                                  symbolStruct.isGenericInstance(),
-                                  symbolStruct.isUnion(),
-                                  symbolStruct.fields().size(),
-                                  symbolStruct.declNodeRef().get());
-            swcAssertDetail("alignment != 0", __FILE__, __LINE__, detail.view());
-        }
-#endif
-
-        SWC_ASSERT(alignment != 0);
-        return alignment;
+        return static_cast<uint32_t>(checkedStructLayoutValue(symbolStruct, alignment, "alignment != 0"));
     }
 
     bool compareFunctionOrder(const SymbolFunction* left, const SymbolFunction* right)

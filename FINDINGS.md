@@ -381,8 +381,21 @@ Use this compact format. Keep observations factual and make the next step action
   zero and now poisons that object instead of bailing the whole function - without this, a
   function whose first local's address escapes (every inlined pointer-parameter home) lost all
   scalar promotion, the inline indices stayed in memory, and the SLP pass never fired.
-- Next step: re-measure `chacha20Xor` with the interleaved DLL-swap harness on a quiet machine
-  before drawing any throughput conclusion. Not covered yet, in likely order of value:
-  parameter-rooted chunks (`chachaRounds` over a caller's array keeps its round-trips), loops
-  whose exit is a taken branch rather than a fall-through, splat constants and vector build of
-  mixed-source chunks (would vectorize the state INITIALIZATION), and the AVX2 256-bit tier.
+- Measured (2026-08-06, interleaved ABBA DLL-swap, 6 pairs, medians of 8 in-process samples,
+  every run asserting by file size which core.dll it staged): pure double-rounds kernel
+  121.6 -> 196.6 MQR/s (+62%, the vectorized side won every pair), `chacha20Block` key-stream
+  generation 88.8 -> 113.1 MiB/s (+27%), end-to-end `chacha20Xor` 90.5 -> 109.4 MiB/s (+21%
+  median; +3-4% on the pairs that landed in the machine's stable phase - the block-level
+  plumbing around the rounds still dominates end-to-end). The kernel gain is bounded by the
+  packed dependency chain, not by instruction count: the scalar rounds run four independent
+  chains in parallel on the out-of-order core, so 6x fewer instructions buys ~1.6x, the known
+  single-block ChaCha SIMD profile. Beware: every earlier throughput comparison (including the
+  original "unchanged, 34.4 vs 34.0" measurement) compared two identical vectorized binaries -
+  `--cpu-vectorize` from the command line assigned its value but never raised
+  `cpuVectorizeExplicit`, so the override was silently dropped; fixed alongside this pass.
+- Next step, in likely order of value: process several blocks per loop iteration (the real
+  SIMD ChaCha win: four independent block states fill the packed dependency chain and the
+  counter is the only lane-varying input, which also needs splat constants and vector build of
+  mixed-source chunks), parameter-rooted chunks (`chachaRounds` over a caller's array keeps
+  its round-trips), loops whose exit is a taken branch rather than a fall-through, and the
+  AVX2 256-bit tier.

@@ -17,8 +17,9 @@ remove or update entries when later work resolves or disproves them.
 
 Every entry carries a permanent `F-NNN` identifier, which is how a finding is named everywhere else.
 Take the next one from the counter below and advance it; never renumber an entry and never reuse an
-identifier, so a reference made today still resolves after the entry is gone. Entry order in this
-file is free and carries no priority.
+identifier, so a reference made today still resolves after the entry is gone. Entries are sorted by
+identifier, ascending: a new one goes at the end, a deleted one leaves a gap, and position carries
+no priority.
 
 Next identifier: F-025
 
@@ -36,62 +37,6 @@ Use this compact format. Keep observations factual and make the next step action
 - Next step: smallest useful investigation
 - Related: issue, pull request, or TODO entry if applicable
 -->
-
-### F-016 — Two sCapture modal-dialog tests fail on master
-
-- Area: bin/apps
-- Found while: validating the GUI theme rewrite, which needed a baseline to attribute failures to
-- Observation: `dialogs.test.swg:23` and `files.test.swg:513` both fail on `@assert(gui.autoHandled)`
-  — the headless modal driver arms `clickModalButtonWhenShown` and the dialog is never reported as
-  handled. Two of the 126 sCapture tests; the other 124 and all 28 sCrypt tests pass.
-- Evidence: reproduced identically in a pristine `git worktree add --detach ../swc-basecheck
-  d02f74d99` with no local change, so it is not caused by the theme work. Same two tests, same
-  asserts, same commit.
-- Next step: instrument `Gui.Testing.HeadlessHost.clickModalButtonWhenShown` to report which
-  surface it inspected and which button id it looked for; both failing cases open a real modal
-  (About, File Details) rather than a `MessageDlg`, which is the difference from the passing
-  modal tests.
-
-### F-017 — sCapture keeps a dark editor matte after switching to the light theme
-
-- Area: bin/apps
-- Found while: comparing sCapture in both Swag palettes through the gui10 theme inspector
-- Observation: the matte around the capture is `EditorOptions.editBackColor`, whose default was a
-  fixed `0xFF2E2E2E`. It now defaults to transparent, meaning "follow the theme", and `EditView`
-  resolves it to `view_Bk` — but an existing installation has the old opaque value persisted, so
-  it keeps a near-black matte under a white interface.
-- Evidence: [editview.swg](bin/apps/modules/sCapture/src/editview.swg),
-  [options.swg](bin/apps/modules/sCapture/src/options.swg). A fresh profile picks up the theme; a
-  profile written before this change does not.
-- Next step: decide whether the options loader should migrate the one legacy value to transparent,
-  or whether an application is expected to version its settings. The same question applies to any
-  future option whose default becomes theme-derived.
-
-### F-018 — The sandbox is armed twice per run, and the second attempt fails the whole process
-
-- Area: bin/std | compiler
-- Found while: validating a runtime allocator rewrite, where `tools/scripts.bat smoke` failed
-  intermittently and the failure had to be cleared as pre-existing
-- Observation: `Env`'s sandbox `#init` hook runs more than once in a single script run. The first
-  call carries the launcher's explicit root and arms correctly; a later call arrives with an empty
-  run-argument value, falls back to `defaultSandboxRoot()`, and is rejected by
-  "the sandbox root cannot change once armed". The rejection is fatal by design, so the run dies
-  with `compiler panic: sandbox setup failed` — and it dies at a different script on every attempt,
-  which is what makes the suite look flaky rather than broken.
-- Evidence: printing inside `enterSandbox` over three `tools/scripts.bat smoke -bc release` runs
-  gives, in the same process, `rootLen=56 armed=false exists=true` followed by
-  `rootLen=84 armed=true exists=false` (84 is `<temp>/swag-sandbox/run-<pid>`, the default root).
-  Two of three runs failed. Reproduced identically with the baseline runtime, so this is not
-  allocator-related. Separately, `%TEMP%/swag-sandbox` had accumulated 3871 `run-<pid>` directories:
-  nothing ever removes a sandbox root, so the name is not the private-per-run identity it claims.
-- Next step: find out which stage runs the hook the second time and why the run argument is empty
-  there. The prime suspect is the runtime hook chain, where `PreMain` is emitted twice with
-  separate guards — a runtime stage and a compiler stage
-  ([NativeArtifactBuilder.cpp:298-304](src/Backend/Native/NativeArtifactBuilder.cpp#L298-L304)) —
-  against a single `Init` guard, combined with process-argument adoption that differs between the
-  two. Print the stage and `@pinfos` arguments from the hook to tell "the hook runs twice" apart
-  from "the arguments were re-adopted empty". Whichever it is, `enterSandbox` should also treat a
-  second arm with no explicit root as a no-op rather than a fatal mismatch.
 
 ### F-002 — Golden snapshots cannot be recorded under the test sandbox
 
@@ -183,6 +128,132 @@ Use this compact format. Keep observations factual and make the next step action
   typed accessors cannot be generated at compile time, a UI resource reintroduces exactly the
   lookup boundary the builders just removed, and a resource editor would ship that cost to every
   window. Only then evaluate the editor.
+
+### F-011 — A fully transparent fill is dropped even under `Copy` blending
+
+- Area: bin/std
+- Found while: giving the surface drop shadow its transparent margin back
+- Observation: `Painter.fillRect` cannot clear a region to premultiplied nothing. Every fill entry
+  point skips a fully transparent source (`color.a == 0`, then `Brush.hasVisibleAlpha`), which is
+  right under alpha compositing and wrong under `BlendingMode.Copy`, where the source replaces the
+  destination and a transparent fill is the only way to erase. The CPU renderer already states the
+  correct rule — `if src.a == 0 and .blendingMode != .Copy`
+  ([rendercpu.swg:322](bin/std/modules/pixel/src/render/cpu/rendercpu.swg#L322)) — and so does the
+  antialiasing shader, which discards a zero-coverage fragment only when `!copyMode`
+  ([aa.frag:31](bin/std/modules/pixel/src/render/ogl/shaders/aa.frag#L31)). The painter contradicts
+  both.
+- Evidence: with `setColorMaskFull` and `setBlendingMode(.Copy)`, filling a region with
+  `Color.fromArgb(0'u8, Argb.Black)` leaves it untouched; the same fill with alpha `1` clears it as
+  intended. Routing the two guards through a blend-aware painter predicate was not enough — a third
+  cull further down still drops it — so the search has to continue past `fillRect`/`hasVisibleAlpha`
+  into `fillRectRaw`, the command packer, or the renderer.
+- Next step: find the remaining cull by emitting a `Copy` fill of `a = 0` and one of `a = 1` and
+  diffing the recorded command stream, then put one blend-aware predicate on the painter — it owns
+  the blending mode, `Brush` does not — and route every `color.a == 0` and `hasVisibleAlpha` guard
+  in `src/painter` through it.
+
+### F-012 — A surface outline must be stroked before its shadow, and nobody knows why
+
+- Area: std/gui
+- Found while: moving the surface outline above the hierarchy so docked views stop covering it
+- Observation: `Surface.paint` ends with `paintBorder`, `paintShadowOutsideBody`, `paintAlphaMask`.
+  Swapping the first two — stroking the outline after the shadow rather than before — costs the
+  surface its entire drop shadow, on all four edges, not just where the two meet. The two passes
+  touch disjoint regions: the outline is inside the body, the shadow is stencil-clipped to outside
+  it. An ordering that matters between disjoint regions means one of them leaves painter or
+  renderer state the other depends on, and the order is currently load-bearing by accident.
+- Evidence: with the order `paintShadowOutsideBody`, `paintBorder`, the margin of gui1 reads flat
+  `#D2D2D2` (the bare backdrop) on every edge; with `paintBorder` first the same build reads a
+  clean gradient from `#D2D2D2` down to `#898989` at the body. Nothing else differs.
+  `paintBorder` sets `setColorMaskColor` and strokes a pen with `borderPos = .Inside`;
+  `paintShadowOutsideBody` opens a clipping region, sets `setColorMaskFull`, and fills rounded
+  rectangles. Fixing the separate defect where the alpha channel composited with the source alpha
+  as its own factor did not change this: the ordering was retested afterwards and still decides
+  whether there is a shadow at all.
+- Next step: dump the command stream for both orders and diff it. The suspects are the pen stroke
+  path leaving clipping-region or overlap state behind — `StartNoOverlap` defers drawing, and the
+  OpenGL renderer skips `DrawTriangles` outright while `overlapMode` is set — and
+  `setColorMaskColor` reaching the shadow fills rather than the `setColorMaskFull` that precedes
+  them, which would explain the loss exactly, since a shadow written without alpha is invisible to
+  the compositor.
+
+### F-015 — Calling through a reference to a function pointer never reaches a backend
+
+- Area: compiler
+- Found while: closing the use-site nullability hole on a call through a reference (`&#null
+  func()->T` now needs a proof like every other nullable value)
+- Observation: a call whose callee is a reference to a function value compiles, and then no backend
+  can emit the function that contains it. The JIT dies on a hardware exception and the native
+  backend refuses the relocation, both while emitting the CALLER of that function, which reads like
+  a linker problem rather than a lowering gap. Sema is happy; only codegen is not.
+- Evidence: a struct holding `fn: func()->s32` with `mtd const atFn()->const &(func()->s32)`, then
+  `let fn = h.atFn(); return fn()`. JIT: `native backend cannot resolve a local function relocation
+  for 'probeCallPlain'` / `local target function has no prepared JIT address`; native
+  (`--no-test-jit`): the same message with an empty name. The nullable spelling of the same shape is
+  now rejected in sema, so only the plain one reaches codegen
+  ([sema_err_nullable_use_site.swg](bin/unittests/errors/sema/sema_err_nullable_use_site.swg) pins
+  the rejection). Reproduced identically on the pre-change compiler, so it predates that work.
+- Next step: find what the callee payload holds for a reference-typed call target.
+  `materializeCallTargetReg` receives the payload of the callee expression; for a reference it is
+  the address of the slot holding the code pointer, which needs one load before the call, and the
+  emitted relocation suggests it is instead treated as a direct local target. Compare against
+  `normalizeIndexReferenceOperand`/`CodeGenReferenceHelpers::unwrapAliasRefPayload`, which is how
+  the index and `dref` paths resolve the same reference layer.
+### F-016 — Two sCapture modal-dialog tests fail on master
+
+- Area: bin/apps
+- Found while: validating the GUI theme rewrite, which needed a baseline to attribute failures to
+- Observation: `dialogs.test.swg:23` and `files.test.swg:513` both fail on `@assert(gui.autoHandled)`
+  — the headless modal driver arms `clickModalButtonWhenShown` and the dialog is never reported as
+  handled. Two of the 126 sCapture tests; the other 124 and all 28 sCrypt tests pass.
+- Evidence: reproduced identically in a pristine `git worktree add --detach ../swc-basecheck
+  d02f74d99` with no local change, so it is not caused by the theme work. Same two tests, same
+  asserts, same commit.
+- Next step: instrument `Gui.Testing.HeadlessHost.clickModalButtonWhenShown` to report which
+  surface it inspected and which button id it looked for; both failing cases open a real modal
+  (About, File Details) rather than a `MessageDlg`, which is the difference from the passing
+  modal tests.
+
+### F-017 — sCapture keeps a dark editor matte after switching to the light theme
+
+- Area: bin/apps
+- Found while: comparing sCapture in both Swag palettes through the gui10 theme inspector
+- Observation: the matte around the capture is `EditorOptions.editBackColor`, whose default was a
+  fixed `0xFF2E2E2E`. It now defaults to transparent, meaning "follow the theme", and `EditView`
+  resolves it to `view_Bk` — but an existing installation has the old opaque value persisted, so
+  it keeps a near-black matte under a white interface.
+- Evidence: [editview.swg](bin/apps/modules/sCapture/src/editview.swg),
+  [options.swg](bin/apps/modules/sCapture/src/options.swg). A fresh profile picks up the theme; a
+  profile written before this change does not.
+- Next step: decide whether the options loader should migrate the one legacy value to transparent,
+  or whether an application is expected to version its settings. The same question applies to any
+  future option whose default becomes theme-derived.
+
+### F-018 — The sandbox is armed twice per run, and the second attempt fails the whole process
+
+- Area: bin/std | compiler
+- Found while: validating a runtime allocator rewrite, where `tools/scripts.bat smoke` failed
+  intermittently and the failure had to be cleared as pre-existing
+- Observation: `Env`'s sandbox `#init` hook runs more than once in a single script run. The first
+  call carries the launcher's explicit root and arms correctly; a later call arrives with an empty
+  run-argument value, falls back to `defaultSandboxRoot()`, and is rejected by
+  "the sandbox root cannot change once armed". The rejection is fatal by design, so the run dies
+  with `compiler panic: sandbox setup failed` — and it dies at a different script on every attempt,
+  which is what makes the suite look flaky rather than broken.
+- Evidence: printing inside `enterSandbox` over three `tools/scripts.bat smoke -bc release` runs
+  gives, in the same process, `rootLen=56 armed=false exists=true` followed by
+  `rootLen=84 armed=true exists=false` (84 is `<temp>/swag-sandbox/run-<pid>`, the default root).
+  Two of three runs failed. Reproduced identically with the baseline runtime, so this is not
+  allocator-related. Separately, `%TEMP%/swag-sandbox` had accumulated 3871 `run-<pid>` directories:
+  nothing ever removes a sandbox root, so the name is not the private-per-run identity it claims.
+- Next step: find out which stage runs the hook the second time and why the run argument is empty
+  there. The prime suspect is the runtime hook chain, where `PreMain` is emitted twice with
+  separate guards — a runtime stage and a compiler stage
+  ([NativeArtifactBuilder.cpp:298-304](src/Backend/Native/NativeArtifactBuilder.cpp#L298-L304)) —
+  against a single `Init` guard, combined with process-argument adoption that differs between the
+  two. Print the stage and `@pinfos` arguments from the hook to tell "the hook runs twice" apart
+  from "the arguments were re-adopted empty". Whichever it is, `enterSandbox` should also treat a
+  second arm with no explicit root as a no-op rather than a fatal mismatch.
 
 ### F-019 — A thread-local global cannot hold a droppable type
 
@@ -303,73 +374,3 @@ Use this compact format. Keep observations factual and make the next step action
   `ProgressBar` open regions of their own during the hierarchy paint and call
   `resetClippingRegion`, which disables the stencil outright.
 
-### F-011 — A fully transparent fill is dropped even under `Copy` blending
-
-- Area: bin/std
-- Found while: giving the surface drop shadow its transparent margin back
-- Observation: `Painter.fillRect` cannot clear a region to premultiplied nothing. Every fill entry
-  point skips a fully transparent source (`color.a == 0`, then `Brush.hasVisibleAlpha`), which is
-  right under alpha compositing and wrong under `BlendingMode.Copy`, where the source replaces the
-  destination and a transparent fill is the only way to erase. The CPU renderer already states the
-  correct rule — `if src.a == 0 and .blendingMode != .Copy`
-  ([rendercpu.swg:322](bin/std/modules/pixel/src/render/cpu/rendercpu.swg#L322)) — and so does the
-  antialiasing shader, which discards a zero-coverage fragment only when `!copyMode`
-  ([aa.frag:31](bin/std/modules/pixel/src/render/ogl/shaders/aa.frag#L31)). The painter contradicts
-  both.
-- Evidence: with `setColorMaskFull` and `setBlendingMode(.Copy)`, filling a region with
-  `Color.fromArgb(0'u8, Argb.Black)` leaves it untouched; the same fill with alpha `1` clears it as
-  intended. Routing the two guards through a blend-aware painter predicate was not enough — a third
-  cull further down still drops it — so the search has to continue past `fillRect`/`hasVisibleAlpha`
-  into `fillRectRaw`, the command packer, or the renderer.
-- Next step: find the remaining cull by emitting a `Copy` fill of `a = 0` and one of `a = 1` and
-  diffing the recorded command stream, then put one blend-aware predicate on the painter — it owns
-  the blending mode, `Brush` does not — and route every `color.a == 0` and `hasVisibleAlpha` guard
-  in `src/painter` through it.
-
-### F-012 — A surface outline must be stroked before its shadow, and nobody knows why
-
-- Area: std/gui
-- Found while: moving the surface outline above the hierarchy so docked views stop covering it
-- Observation: `Surface.paint` ends with `paintBorder`, `paintShadowOutsideBody`, `paintAlphaMask`.
-  Swapping the first two — stroking the outline after the shadow rather than before — costs the
-  surface its entire drop shadow, on all four edges, not just where the two meet. The two passes
-  touch disjoint regions: the outline is inside the body, the shadow is stencil-clipped to outside
-  it. An ordering that matters between disjoint regions means one of them leaves painter or
-  renderer state the other depends on, and the order is currently load-bearing by accident.
-- Evidence: with the order `paintShadowOutsideBody`, `paintBorder`, the margin of gui1 reads flat
-  `#D2D2D2` (the bare backdrop) on every edge; with `paintBorder` first the same build reads a
-  clean gradient from `#D2D2D2` down to `#898989` at the body. Nothing else differs.
-  `paintBorder` sets `setColorMaskColor` and strokes a pen with `borderPos = .Inside`;
-  `paintShadowOutsideBody` opens a clipping region, sets `setColorMaskFull`, and fills rounded
-  rectangles. Fixing the separate defect where the alpha channel composited with the source alpha
-  as its own factor did not change this: the ordering was retested afterwards and still decides
-  whether there is a shadow at all.
-- Next step: dump the command stream for both orders and diff it. The suspects are the pen stroke
-  path leaving clipping-region or overlap state behind — `StartNoOverlap` defers drawing, and the
-  OpenGL renderer skips `DrawTriangles` outright while `overlapMode` is set — and
-  `setColorMaskColor` reaching the shadow fills rather than the `setColorMaskFull` that precedes
-  them, which would explain the loss exactly, since a shadow written without alpha is invisible to
-  the compositor.
-
-### F-015 — Calling through a reference to a function pointer never reaches a backend
-
-- Area: compiler
-- Found while: closing the use-site nullability hole on a call through a reference (`&#null
-  func()->T` now needs a proof like every other nullable value)
-- Observation: a call whose callee is a reference to a function value compiles, and then no backend
-  can emit the function that contains it. The JIT dies on a hardware exception and the native
-  backend refuses the relocation, both while emitting the CALLER of that function, which reads like
-  a linker problem rather than a lowering gap. Sema is happy; only codegen is not.
-- Evidence: a struct holding `fn: func()->s32` with `mtd const atFn()->const &(func()->s32)`, then
-  `let fn = h.atFn(); return fn()`. JIT: `native backend cannot resolve a local function relocation
-  for 'probeCallPlain'` / `local target function has no prepared JIT address`; native
-  (`--no-test-jit`): the same message with an empty name. The nullable spelling of the same shape is
-  now rejected in sema, so only the plain one reaches codegen
-  ([sema_err_nullable_use_site.swg](bin/unittests/errors/sema/sema_err_nullable_use_site.swg) pins
-  the rejection). Reproduced identically on the pre-change compiler, so it predates that work.
-- Next step: find what the callee payload holds for a reference-typed call target.
-  `materializeCallTargetReg` receives the payload of the callee expression; for a reference it is
-  the address of the slot holding the code pointer, which needs one load before the call, and the
-  emitted relocation suggests it is instead treated as a direct local target. Compare against
-  `normalizeIndexReferenceOperand`/`CodeGenReferenceHelpers::unwrapAliasRefPayload`, which is how
-  the index and `dref` paths resolve the same reference layer.

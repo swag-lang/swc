@@ -61,8 +61,8 @@ impl GizmoPoints
                 var rect: Math.Rectangle = undefined
                 for c, [i] in .anchors
                 {
-                    rect.x                  = c.x - .anchorSize * 0.5
-                    rect.y                  = c.y - .anchorSize * 0.5
+                    rect.x = c.x - .anchorSize * 0.5
+                    rect.y = c.y - .anchorSize * 0.5
                     rect.width, rect.height = .anchorSize
                     if rect.contains(pos)
                     {

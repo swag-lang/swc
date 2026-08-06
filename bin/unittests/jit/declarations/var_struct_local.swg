@@ -115,7 +115,7 @@ struct LocalVarKeyEvent
     {
         var n: LocalVarNode = {
             pos: {x: 3, y: 8},
-            state: {enabled: false, weight: 12},
+            state: {enabled: false, weight: 12}
             }
 
         if n.state.enabled
@@ -194,7 +194,7 @@ struct LocalVarKeyEvent
             a8: 9,
             a9: 10,
             a10: 11,
-            a11: 12,
+            a11: 12
             }
 
         return v.a0 + v.a5 + v.a11

@@ -93,7 +93,7 @@ func makeRuntimeHolder()->LambdaRuntimeHolder
     return {
         unary: func(value) => value + 4,
         predicate: func(left, right) => left < right,
-        defaulted: func(value) => value + 2,
+        defaulted: func(value) => value + 2
         }
 }
 
@@ -102,8 +102,8 @@ func makeArrayHolder()->LambdaArrayHolder
     return {
         callbacks: [
             func(value) => value + 1,
-            func(value) => value * 2,
-        ],
+            func(value) => value * 2
+        ]
         }
 }
 
@@ -121,7 +121,7 @@ func squareValue(value: s32)->s32 => value * value
         return {
             total: cast(s64) payload.base + cast(s64) values[0] + cast(s64) values[3] + cast(s64) cast(s32) boxed,
             mirrored: [values[3], values[2], values[1], values[0]],
-            pair: {a: payload.step + cast(s32) payload.marks[1], b: cast(s32) payload.marks[2]},
+            pair: {a: payload.step + cast(s32) payload.marks[1], b: cast(s32) payload.marks[2]}
             }
     }
 
@@ -315,13 +315,13 @@ func squareValue(value: s32)->s32 => value * value
     var holder:        LambdaRuntimeHolder = {
         unary: func(value) => value + 4,
         predicate: func(left, right) => left == right,
-        defaulted: func(value) => value + 5,
+        defaulted: func(value) => value + 5
         }
 
     let explicit = LambdaRuntimeHolder{
         unary: func(value) => value - 2,
         predicate: func(left, right) => left < right,
-        defaulted: seedDefaulted,
+        defaulted: seedDefaulted
         }
 
     holder.unary     = func(value) => value * 5
@@ -345,7 +345,7 @@ func squareValue(value: s32)->s32 => value * value
     var callbacks: [3] LambdaUnary = [
         func(value) => value + 1,
         func(value) => value * 2,
-        func(value) => value - 3,
+        func(value) => value - 3
         ]
     callbacks[1] = func(value)
     {

@@ -115,7 +115,7 @@ struct WorkflowState
 {
     var flow = WorkflowState{
         accum: WorkflowAssignBox{a: 1, b: 2},
-        slots: WorkflowIndexBox{first: 10, second: 20},
+        slots: WorkflowIndexBox{first: 10, second: 20}
         }
 
     flow.target = 7's32

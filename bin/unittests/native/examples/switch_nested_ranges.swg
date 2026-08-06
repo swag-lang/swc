@@ -8,7 +8,7 @@ enum CustomerPlan: s32
     Trial,
     Standard,
     Business,
-    Enterprise,
+    Enterprise
 }
 
 enum TicketPriority: s32
@@ -16,7 +16,7 @@ enum TicketPriority: s32
     Low,
     Normal,
     High,
-    Critical,
+    Critical
 }
 
 enum TicketChannel: s32
@@ -24,7 +24,7 @@ enum TicketChannel: s32
     Email,
     Chat,
     Phone,
-    Api,
+    Api
 }
 
 enum ProductArea: s32
@@ -33,7 +33,7 @@ enum ProductArea: s32
     Identity,
     Automation,
     Security,
-    Analytics,
+    Analytics
 }
 
 struct SupportTicket
@@ -312,7 +312,7 @@ func buildTriageDecision(ticket: SupportTicket)->TriageDecision
         area: ProductArea.Security,
         impactedUsers: 850,
         waitedMinutes: 12,
-        subjectTag: "security-breach",
+        subjectTag: "security-breach"
         }
 
     let securityDecision = buildTriageDecision(securityIncident)
@@ -332,7 +332,7 @@ func buildTriageDecision(ticket: SupportTicket)->TriageDecision
         area: ProductArea.Billing,
         impactedUsers: 3,
         waitedMinutes: 30,
-        subjectTag: "invoice-copy",
+        subjectTag: "invoice-copy"
         }
 
     let billingDecision = buildTriageDecision(billingRequest)
@@ -352,7 +352,7 @@ func buildTriageDecision(ticket: SupportTicket)->TriageDecision
         area: ProductArea.Identity,
         impactedUsers: 18,
         waitedMinutes: 80,
-        subjectTag: "mfa-lockout",
+        subjectTag: "mfa-lockout"
         }
 
     let identityDecision = buildTriageDecision(identityLockout)
@@ -372,7 +372,7 @@ func buildTriageDecision(ticket: SupportTicket)->TriageDecision
         area: ProductArea.Analytics,
         impactedUsers: 320,
         waitedMinutes: 90,
-        subjectTag: "dashboard-timeout",
+        subjectTag: "dashboard-timeout"
         }
 
     let analyticsDecision = buildTriageDecision(analyticsBacklog)

@@ -52,7 +52,7 @@ enum VariadicStrictFlag: u32
 {
     A,
     B,
-    C,
+    C
 }
 
 #[Swag.Strict]

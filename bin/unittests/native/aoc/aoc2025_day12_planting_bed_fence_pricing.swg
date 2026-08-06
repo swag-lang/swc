@@ -184,7 +184,7 @@ func analyzeFencePricing(layout: const [..] string)->FencePricingReport
         "AAAA",
         "BBCD",
         "BBCC",
-        "EEEC",
+        "EEEC"
         ]
 
     let sampleReport = analyzeFencePricing(sampleBeds)
@@ -198,7 +198,7 @@ func analyzeFencePricing(layout: const [..] string)->FencePricingReport
         "AAAA",
         "ABBA",
         "ABBA",
-        "AAAA",
+        "AAAA"
         ]
 
     let courtyardReport = analyzeFencePricing(courtyardBeds)

@@ -32,7 +32,7 @@ func(T, N: s32 = 2) partialCount(values: [N] T)->s32 => N
 
 #test
 {
-    func(T) localDouble(value: T)                         => 2 * value
+    func(T) localDouble(value: T) => 2 * value
     func(T = s32, V = s32) localMixedMultiply(a: T, b: V) => a * b
 
     @assert(localDouble'(s32)(21) == 42)

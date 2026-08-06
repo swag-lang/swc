@@ -48,11 +48,11 @@ impl IActionUI for ActionAbout
         msg            += Format.toString(texts.msg_AboutCopyright, Date.year)
         params.message = msg.toString()
 
-        params.surfaceIcon                                 = Icon.from(&main.appIcon, 0)
-        params.surfaceIcon.color                           = Argb.White
-        params.contentIcon                                 = Icon.from(&main.appIcon, 0)
+        params.surfaceIcon       = Icon.from(&main.appIcon, 0)
+        params.surfaceIcon.color = Argb.White
+        params.contentIcon       = Icon.from(&main.appIcon, 0)
         params.contentIcon.sizeX, params.contentIcon.sizeY = 64
-        params.contentIcon.color                           = Argb.White
+        params.contentIcon.color = Argb.White
 
         let dlg = AboutDlg.create(view.surface!, params, height: 300)
         dlg.labelMessage.sigLinkActivated += func(lbl, txt)

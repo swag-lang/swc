@@ -228,9 +228,9 @@ namespace ResizeTools
                     break
                 }
 
-                nonZeroFound                   = true
+                nonZeroFound = true
                 res.row[u].weights[src - left] = resf
-                totalWeight                    += resf
+                totalWeight  += resf
             }
 
             // Normalize weight of neighboring points

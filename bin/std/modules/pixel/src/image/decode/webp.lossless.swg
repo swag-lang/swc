@@ -42,19 +42,19 @@ const LOSSLESS_DISTANCE_MAP: [120] u8 = [
     0x64, 0x6C, 0x42, 0x4E, 0x76, 0x7A, 0x21, 0x2F, 0x75, 0x7B,
     0x31, 0x3F, 0x63, 0x6D, 0x52, 0x5E, 0x00, 0x74, 0x7C, 0x41,
     0x4F, 0x10, 0x20, 0x62, 0x6E, 0x30, 0x73, 0x7D, 0x51, 0x5F,
-    0x40, 0x72, 0x7E, 0x61, 0x6F, 0x50, 0x71, 0x7F, 0x60, 0x70,]
+    0x40, 0x72, 0x7E, 0x61, 0x6F, 0x50, 0x71, 0x7F, 0x60, 0x70]
 
 const LOSSLESS_CODE_LENGTH_ORDER: [19] u8 = [
-    17, 18, 0, 1, 2, 3, 4, 5, 16, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,]
+    17, 18, 0, 1, 2, 3, 4, 5, 16, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
 
-const LOSSLESS_REPEAT_BITS:    [3] u8                       = [2, 3, 7]
-const LOSSLESS_REPEAT_OFFSETS: [3] u8                       = [3, 3, 11]
+const LOSSLESS_REPEAT_BITS:    [3] u8 = [2, 3, 7]
+const LOSSLESS_REPEAT_OFFSETS: [3] u8 = [3, 3, 11]
 const LOSSLESS_ALPHABET_SIZES: [LOSSLESS_HUFFMAN_TREES] u32 = [
     LOSSLESS_LITERAL_CODES + LOSSLESS_LENGTH_CODES,
     LOSSLESS_LITERAL_CODES,
     LOSSLESS_LITERAL_CODES,
     LOSSLESS_LITERAL_CODES,
-    LOSSLESS_DISTANCE_CODES,]
+    LOSSLESS_DISTANCE_CODES]
 
 struct LosslessBitReader
 {
@@ -463,7 +463,7 @@ func losslessDecodeTransform(reader: *LosslessBitReader, transform: *LosslessTra
             transform.pixels[offset + 1] = cast(u8) (cast(u32) transform.pixels[offset + 1] + transform.pixels[offset - 3])
             transform.pixels[offset + 2] = cast(u8) (cast(u32) transform.pixels[offset + 2] + transform.pixels[offset - 2])
             transform.pixels[offset + 3] = cast(u8) (cast(u32) transform.pixels[offset + 3] + transform.pixels[offset - 1])
-            offset                       += 4
+            offset += 4
         }
 
         transform.pixels.resize(4 * 256)
@@ -664,7 +664,7 @@ func losslessDecodePixels(reader: *LosslessBitReader, result: *Array'u8, width, 
                            output[cachedOffset + 2] |
                            (cast(u32) output[cachedOffset + 3] << 24)
                 colorCache[(argb * LOSSLESS_COLOR_CACHE_MULTIPLIER) >> colorCacheShift] = argb
-                cachedOffset                                                            += 4
+                cachedOffset += 4
             }
 
             green -= LOSSLESS_LITERAL_CODES + LOSSLESS_LENGTH_CODES

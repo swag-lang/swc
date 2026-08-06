@@ -57,7 +57,7 @@ impl AutoScopeUnaryBox
 func semaTest002()
 {
     var value: AutoScopeUnaryBox's32 = {value: 42}
-    let inverted                     = ~value
+    let inverted = ~value
     #assert(#typeof(inverted) == AutoScopeUnaryBox's32)
     #assert(#typeof(inverted.value) == s32)
 }

@@ -49,7 +49,7 @@ struct Header
 {
     using wnd: Wnd     // Embedded window behavior and presentation.
 
-    form                  = HeaderForm.Flat             // Background and border presentation.
+    form = HeaderForm.Flat                              // Background and border presentation.
     itemPadding:      f32 = 5                           // Horizontal inset applied to each item label.
     sigLayoutChanged: SigArray'func||(*Header)          // Emitted after an effective column width changes.
     sigColumnClicked: SigArray'func||(*Header, u32)     // Emitted after the user clicks a column.

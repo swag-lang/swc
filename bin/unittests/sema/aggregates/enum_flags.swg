@@ -39,14 +39,14 @@ enum JJ { A, B, C }
 enum LL: u64
 {
     A = 0x80000000,
-    B,
+    B
 }
 
 #[Swag.EnumFlags]
 enum NN: u64
 {
     A = 0,
-    B,
+    B
 }
 #assert(NN.A == 0)
 #assert(NN.B == 1)
@@ -68,7 +68,7 @@ enum QQ0: u32
 {
     A,
     B,
-    AB = A | B,
+    AB = A | B
 }
 #assert(#typeof(QQ0.AB) == QQ0)
 #assert(cast(u32) QQ0.AB == 3)
@@ -83,7 +83,7 @@ enum RR: u8
     E,
     F,
     G,
-    H,
+    H
 }
 #assert(RR.A == 1)
 #assert(RR.B == 2)

@@ -172,7 +172,7 @@ func semaNonNullConstruction()
 
     var defaultItem:     SemaNonNullStringDefault
     var defaultArray:    [2] SemaNonNullStringDefault
-    let omittedDefaults                               = SemaNonNullDefaultContainer{}
+    let omittedDefaults = SemaNonNullDefaultContainer{}
     let partialDefaults: [2] SemaNonNullStringDefault = [{value: "explicit"}]
 
     // A bare (non-null) pointer can widen to '#null'.
@@ -181,7 +181,7 @@ func semaNonNullConstruction()
     var widened:      #null *SemaNonNullItem = migrated
     widened = null     // the qualifier is real: null flows into it below
     widened = migrated
-    let completeSet                                               = cast(SemaNonNullCompleteSet) &first
+    let completeSet = cast(SemaNonNullCompleteSet) &first
     let genericRequired: SemaNonNullGenericBox'(*SemaNonNullItem) = {value: &first}
     var genericDefault:  SemaNonNullGenericBox'SemaNonNullStringDefault
     #assert(#typeof(migrated) == *SemaNonNullItem)
@@ -198,7 +198,7 @@ func semaNonNullConstruction()
     let nested                            = SemaNonNullNested{holder: {required: &first}}
     let array:      [2] SemaNonNullHolder = [
         {required: &first},
-        {required: &second, count: 8},
+        {required: &second, count: 8}
         ]
     let pointerArray:  [2] *SemaNonNullItem   = [&first, &second]
     let aliasedHolder: SemaNonNullHolderAlias = {required: &first}
@@ -212,7 +212,7 @@ func semaNonNullConstruction()
         text: text,
         ctext: ctext,
         boxed: boxed,
-        reflectedType: reflectedType,
+        reflectedType: reflectedType
         }
 
     let nullableValuePointer:      #null *SemaNonNullItem     = null
@@ -242,7 +242,7 @@ func semaNonNullConstruction()
 
     // 'undefined' remains an explicit low-level escape hatch from initialization checks.
     var undefinedPointer: *SemaNonNullItem = undefined
-    var undefinedHolder                    = SemaNonNullUndefinedHolder{}
+    var undefinedHolder = SemaNonNullUndefinedHolder{}
 
     // Explicitly nullable pointers retain their default.
     var nullableDefault: #null *SemaNonNullItem

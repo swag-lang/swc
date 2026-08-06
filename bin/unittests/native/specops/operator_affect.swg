@@ -243,10 +243,10 @@ impl RuntimeLiteralOverloadTarget
 }
 
 const RuntimeConstSetOne: RuntimeConstSetVector2 = 1.0
-const RuntimePaletteCardOne                      = RuntimePaletteCard{"gray", RuntimePaletteSource.Gray}
-const RuntimePaletteCards                        = [
+const RuntimePaletteCardOne = RuntimePaletteCard{"gray", RuntimePaletteSource.Gray}
+const RuntimePaletteCards   = [
     RuntimePaletteCard{"gray", RuntimePaletteSource.Gray},
-    RuntimePaletteCard{"blue", RuntimePaletteSource.Blue},
+    RuntimePaletteCard{"blue", RuntimePaletteSource.Blue}
     ]
 const RuntimePaletteColors: [2] RuntimePaletteColor = [RuntimePaletteSource.Gray, RuntimePaletteSource.Blue]
 #assert(RuntimeConstSetOne.x == 1.0)

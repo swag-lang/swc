@@ -168,7 +168,7 @@ func(T) applyAuditDiff(base: T, diff: const &AuditDiff'T)->T
         rollout: .Manual,
         pauseSeconds: 20,
         alertsEnabled: false,
-        owner: "ops@contoso.test",
+        owner: "ops@contoso.test"
         }
 
     let after: DeployConfig =
@@ -177,7 +177,7 @@ func(T) applyAuditDiff(base: T, diff: const &AuditDiff'T)->T
         rollout: .Progressive,
         pauseSeconds: 20,
         alertsEnabled: true,
-        owner: "ops@contoso.test",
+        owner: "ops@contoso.test"
         }
 
     let diff    = buildAuditDiff'(DeployConfig)(before, after)
@@ -218,7 +218,7 @@ func(T) applyAuditDiff(base: T, diff: const &AuditDiff'T)->T
         maxBins: 48,
         maxLoadKg: 1200,
         requiresScan: true,
-        overflowContact: "night-shift@warehouse.test",
+        overflowContact: "night-shift@warehouse.test"
         }
 
     let after: WarehouseLimits =
@@ -226,7 +226,7 @@ func(T) applyAuditDiff(base: T, diff: const &AuditDiff'T)->T
         maxBins: 48,
         maxLoadKg: 1800,
         requiresScan: false,
-        overflowContact: "dispatch@warehouse.test",
+        overflowContact: "dispatch@warehouse.test"
         }
 
     let diff    = buildAuditDiff'(WarehouseLimits)(before, after)

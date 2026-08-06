@@ -17,7 +17,7 @@ const VP8_CATEGORY_PROB: [48] u8 = [
     173, 148, 140, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     176, 155, 140, 135, 0, 0, 0, 0, 0, 0, 0, 0,
     180, 157, 141, 134, 130, 0, 0, 0, 0, 0, 0, 0,
-    254, 254, 243, 230, 196, 177, 153, 140, 133, 130, 129, 0,]
+    254, 254, 243, 230, 196, 177, 153, 140, 133, 130, 129, 0]
 
 func vp8Pack4(values: *[4] u8, shift: s32)->u32
 {
@@ -115,7 +115,7 @@ func vp8InverseWht(decoder: *Vp8Decoder)
         decoder.coeff[output + 16] = cast(s16) ((a3 + a2) >> 3)
         decoder.coeff[output + 32] = cast(s16) ((a0 - a1) >> 3)
         decoder.coeff[output + 48] = cast(s16) ((a3 - a2) >> 3)
-        output                     += 64
+        output += 64
     }
 }
 
@@ -316,14 +316,14 @@ func vp8PrepareYbr(decoder: *Vp8Decoder, mbX, mbY: s32)
         while x < 16
         {
             decoder.ybr[17][x] = 0x7F
-            x                  += 1
+            x += 1
         }
 
         x = 23
         while x < 32
         {
             decoder.ybr[17][x] = 0x7F
-            x                  += 1
+            x += 1
         }
     }
     else
@@ -355,7 +355,7 @@ func vp8PrepareYbr(decoder: *Vp8Decoder, mbX, mbY: s32)
         decoder.ybr[y][25] = decoder.ybr[0][25]
         decoder.ybr[y][26] = decoder.ybr[0][26]
         decoder.ybr[y][27] = decoder.ybr[0][27]
-        y                  += 4
+        y += 4
     }
 }
 

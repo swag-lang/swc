@@ -44,21 +44,21 @@ alias StrictVoidAlias = void
 {
     var pv: u8
     var p:  [*] StrictVoidAlias = cast([*] StrictVoidAlias) &pv
-    let a                       = p + 1     // swc-expected-error {{sema_err_pointer_arithmetic_void_ptr}}
+    let a = p + 1     // swc-expected-error {{sema_err_pointer_arithmetic_void_ptr}}
 }
 
 #test
 {
     var pv: u8
     var p:  [*] StrictVoidAlias = cast([*] StrictVoidAlias) &pv
-    let a                       = 1 + p     // swc-expected-error {{sema_err_pointer_arithmetic_void_ptr}}
+    let a = 1 + p     // swc-expected-error {{sema_err_pointer_arithmetic_void_ptr}}
 }
 
 #test
 {
     var pv: u8
     var p:  [*] StrictVoidAlias = cast([*] StrictVoidAlias) &pv
-    let a                       = p - 1     // swc-expected-error {{sema_err_pointer_arithmetic_void_ptr}}
+    let a = p - 1     // swc-expected-error {{sema_err_pointer_arithmetic_void_ptr}}
 }
 
 #test
@@ -66,7 +66,7 @@ alias StrictVoidAlias = void
     var pv: u8
     var p:  [*] StrictVoidAlias = cast([*] StrictVoidAlias) &pv
     var q:  [*] StrictVoidAlias = cast([*] StrictVoidAlias) &pv
-    let a                       = p - q     // swc-expected-error {{sema_err_pointer_arithmetic_void_ptr}}
+    let a = p - q     // swc-expected-error {{sema_err_pointer_arithmetic_void_ptr}}
 }
 
 #test
@@ -87,12 +87,12 @@ alias StrictVoidAlias = void
 {
     var pv: u8
     var p:  [*] StrictVoidAlias = cast([*] StrictVoidAlias) &pv
-    let a                       = p[0]     // swc-expected-error {{sema_err_pointer_arithmetic_void_ptr}}
+    let a = p[0]     // swc-expected-error {{sema_err_pointer_arithmetic_void_ptr}}
 }
 
 #test
 {
     var pv: u8
     var p:  [*] StrictVoidAlias = cast([*] StrictVoidAlias) &pv
-    let a                       = p[0 until 1]     // swc-expected-error {{sema_err_pointer_arithmetic_void_ptr}}
+    let a = p[0 until 1]     // swc-expected-error {{sema_err_pointer_arithmetic_void_ptr}}
 }

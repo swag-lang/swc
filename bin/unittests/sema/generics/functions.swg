@@ -137,7 +137,7 @@ func semaTest004()
 
 func semaTest005()
 {
-    func(T) localDouble(value: T)                         => 2 * value
+    func(T) localDouble(value: T) => 2 * value
     func(T = s32, V = s32) localMixedMultiply(a: T, b: V) => a * b
 
     #assert(localDouble'(s32)(21) == 42)

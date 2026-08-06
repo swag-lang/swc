@@ -1300,7 +1300,7 @@ func borrowEscapeRetainVisitor(visitor: BorrowEscapeVisitor)
 func borrowEscapeRetainedClosure()
 {
     var local:   s32
-    let pLocal                       = &local
+    let pLocal = &local
     let visitor: BorrowEscapeVisitor = func|pLocal|()->s32 { return dref pLocal }
     borrowEscapeRetainVisitor(visitor)     // swc-expected-error {{sanity_err_borrow_escape}}
 }

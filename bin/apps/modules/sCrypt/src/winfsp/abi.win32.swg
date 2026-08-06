@@ -172,12 +172,12 @@ namespace WinFsp
         // and the staged runtime tree are shared by every mount, so they are released when the
         // last one goes and not before. Mounts start and stop on the single worker the shell
         // schedules its operations on, so this needs no atomic.
-        mountCount:               u32
+        mountCount: u32
 
-        portable:                 bool
-        registered:               bool
-        guardianManaged:          bool
-        guardianProcess:          bool
+        portable:        bool
+        registered:      bool
+        guardianManaged: bool
+        guardianProcess: bool
     }
 
     var g_WinFsp: WinFspApi

@@ -617,8 +617,8 @@ impl Circular
 
         let changed = !.hasLowerValue or !.hasUpperValue or newLower != .lowerRatio or newUpper != .upperRatio
         .hasLowerValue, .hasUpperValue = true
-        .lowerRatio                    = newLower
-        .upperRatio                    = newUpper
+        .lowerRatio = newLower
+        .upperRatio = newUpper
         if changed
         {
             .startChange()

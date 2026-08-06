@@ -61,12 +61,12 @@ func solvePuzzle(puzzle: LightPuzzle)->u32
 {
     let lobbyPanel = LightPuzzle{
         targetMask: 6,
-        buttonMasks: [8, 10, 4, 12, 5, 3],
+        buttonMasks: [8, 10, 4, 12, 5, 3]
         }
 
     let stagePanel = LightPuzzle{
         targetMask: 15,
-        buttonMasks: [1, 2, 4, 8, 3, 12],
+        buttonMasks: [1, 2, 4, 8, 3, 12]
         }
 
     @assert(solvePuzzle(lobbyPanel) == 2'u32)

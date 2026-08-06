@@ -72,7 +72,7 @@ func auditBanks(banks: const [..] string)->BatteryAudit
         "987654321111111",
         "811111111111119",
         "234234234234278",
-        "818181911112111",
+        "818181911112111"
         ]
 
     let sampleAudit = auditBanks(sampleBanks)
@@ -92,7 +92,7 @@ func auditBanks(banks: const [..] string)->BatteryAudit
         "7000000009",
         "4545454545",
         "6601234506",
-        "1111111188",
+        "1111111188"
         ]
 
     let depotAudit = auditBanks(depotBanks)

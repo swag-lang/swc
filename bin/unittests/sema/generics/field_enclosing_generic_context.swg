@@ -210,7 +210,7 @@ func semaTest001()
     var trailingValueDefaultHolder:        TrailingValueDefaultHolder'(u16, 6)           = undefined
     var splitValueDefaultHolder:           SplitValueDefaultHolder'u32                   = undefined
     let methodBufferContext:               MethodBufferContext'(u16, 9)
-    let distinctMethodBuffer                                                             = methodBufferContext.makeWithDistinctName'f32()
+    let distinctMethodBuffer = methodBufferContext.makeWithDistinctName'f32()
     var partialMiddleDefaultHolder:        PartialMiddleDefaultHolder'(u32, f64)         = undefined
     var partialTrailingValueDefaultHolder: PartialTrailingValueDefaultHolder'(u16, 8)    = undefined
     var partialBufferHolder:               PartialBufferHolder'(bool, 5)                 = undefined

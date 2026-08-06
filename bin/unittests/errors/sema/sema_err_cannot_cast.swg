@@ -187,7 +187,7 @@ func narrowLimitTakes(p: *NarrowLimitNode) {}
     // reassignment flows back through the loop's back edge.
     var storage: NarrowLimitNode
     var p:       #null *NarrowLimitNode = &storage
-    var i                               = 0
+    var i = 0
     if p
     {
         while i < 2

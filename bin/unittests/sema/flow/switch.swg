@@ -160,7 +160,7 @@ func semaTest011()
 
 func semaTest012()
 {
-    var c                            = '{'
+    var c = '{'
     var garbage, group, score, count = 0
     switch
     {

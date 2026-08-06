@@ -135,7 +135,7 @@ func append(buf: *ConcatBuffer, fmt: string, values: ...)
             var useIdx = paramIdx
             if strFormat != null and @countof(strFormat) and strFormat[0] == '#'u8
             {
-                let spec                  = cast(string) @mkslice(@dataof(strFormat) + 1, @countof(strFormat) - 1)
+                let spec = cast(string) @mkslice(@dataof(strFormat) + 1, @countof(strFormat) - 1)
                 let {argIdx, eatCount, ?} = expect StrConv.parseU64(spec)
                 Debug.assert(eatCount != 0, "missing argument index after '#'")
                 useIdx = cast(u32) argIdx

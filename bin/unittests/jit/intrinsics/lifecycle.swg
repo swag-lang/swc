@@ -1253,7 +1253,7 @@ func intrinsicInitRuntimeCountStructInfo()->s32
 func intrinsicFieldPointerResizeRuntimeInitInfo()->s32
 {
     var storage: [4] ResizeTracked = [ResizeTracked{9}, ResizeTracked{8}, ResizeTracked{7}, ResizeTracked{6}]
-    var values                     = ResizeBuffer{cast([*] ResizeTracked) &storage[0], 1}
+    var values = ResizeBuffer{cast([*] ResizeTracked) &storage[0], 1}
     values.resize(3)
     return storage[0].value * 1000 + storage[1].value * 100 + storage[2].value * 10 + storage[3].value
 }
@@ -1261,7 +1261,7 @@ func intrinsicFieldPointerResizeRuntimeInitInfo()->s32
 func intrinsicFieldPointerResizeRuntimeDropIgnoredInfo()->s32
 {
     var storage: [4] ResizeTracked = [ResizeTracked{9}, ResizeTracked{8}, ResizeTracked{7}, ResizeTracked{6}]
-    var values                     = ResizeBuffer{cast([*] ResizeTracked) &storage[0], 3}
+    var values = ResizeBuffer{cast([*] ResizeTracked) &storage[0], 3}
     values.resize(1)
     return storage[0].value * 1000 + storage[1].value * 100 + storage[2].value * 10 + cast(s32) values.count
 }
@@ -1270,7 +1270,7 @@ func intrinsicRemoveAtDropOnlyInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
     var storage: [3] DropOnlyTracked = [DropOnlyTracked{1}, DropOnlyTracked{2}, DropOnlyTracked{3}]
-    var values                       = RemoveBuffer{cast([*] DropOnlyTracked) &storage[0], 3}
+    var values = RemoveBuffer{cast([*] DropOnlyTracked) &storage[0], 3}
     values.removeAt(1)
     return {storage[0].value, storage[1].value, cast(s32) values.count, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }

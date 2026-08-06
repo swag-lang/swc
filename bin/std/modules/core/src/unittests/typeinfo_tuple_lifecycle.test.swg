@@ -166,8 +166,8 @@ func testCoreTupleAliasRuntimeLifecycle()->bool
     if first.id != 7 or second.id != 7 or first.value != "tuple-default" or second.value != "tuple-default" do
         return false
 
-    first.id                        = 1
-    second.id                       = 2
+    first.id  = 1
+    second.id = 2
     CoreTupleLifecyclePostCopyOrder = 0
     Memory.postCopyType(value, aliasType)
     if CoreTupleLifecyclePostCopyOrder != 12 do

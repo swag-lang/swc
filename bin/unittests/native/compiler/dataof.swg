@@ -137,7 +137,7 @@ impl ConstDataOfSpecBuffer
 #test
 {
     var value: DataOfSpecBuffer = {data: [4, 5, 6]}
-    let p                       = @dataof(value)
+    let p = @dataof(value)
     #assert(#typeof(p) == [*] s32)
     p[1] = 42
     @assert(value.data[0] == 4)
@@ -157,7 +157,7 @@ impl ConstDataOfSpecBuffer
 #test
 {
     var value: StrictDataOfArray = cast(StrictDataOfArray) [10, 20, 30]
-    let p                        = @dataof(value)
+    let p = @dataof(value)
     #assert(#typeof(p) == [*] s32)
     p[1] = 44
     @assert(value[0] == 10)
@@ -168,7 +168,7 @@ impl ConstDataOfSpecBuffer
 #test
 {
     const value: StrictDataOfArray = cast(StrictDataOfArray) [7, 8, 9]
-    const p                        = @dataof(value)
+    const p = @dataof(value)
     #assert(#typeof(p) == const [*] s32)
     #assert(dref p == 7)
     @assert(p[1] == 8)

@@ -43,7 +43,7 @@ impl Timestamp
     mtd const toDateTime()->DateTime
     {
         var dateTime: retval = undefined
-        {dateTime.year, dateTime.month, dateTime.day}                           = ticksToDate(.ticks)
+        {dateTime.year, dateTime.month, dateTime.day} = ticksToDate(.ticks)
         {dateTime.hour, dateTime.minute, dateTime.second, dateTime.millisecond} = ticksToTime(.ticks)
         return dateTime
     }

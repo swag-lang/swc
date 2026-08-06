@@ -4,7 +4,7 @@ const GlobalZero = 0
 enum Mode
 {
     A = 1,
-    B = 2,
+    B = 2
 }
 
 const Folded   = 2 + 3

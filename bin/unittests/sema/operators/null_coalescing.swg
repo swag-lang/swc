@@ -12,7 +12,7 @@ const F         = E orelse "f"
 #assert(F == "e")
 
 const S0: #null const [..] u8 = null
-const S1                      = S0 orelse "abc"
+const S1 = S0 orelse "abc"
 #assert(#typeof(S1) == const [..] u8)
 #assert(S1[0] == 'a')
 #assert(S1[1] == 'b')

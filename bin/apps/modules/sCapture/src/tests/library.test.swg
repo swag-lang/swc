@@ -66,7 +66,7 @@ using Swag, Core, File
     @assert(evt.disabled)
 
     f.main.libWnd.view.focusItem = 0
-    evt                          = Gui.Testing.commandState(ActionLibSel.Right)
+    evt = Gui.Testing.commandState(ActionLibSel.Right)
     @assert(Gui.Testing.actionUpdate'ActionLibSel(libWnd, ActionLibSel.Right, &evt))
     @assert(!evt.disabled)
 }

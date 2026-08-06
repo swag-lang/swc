@@ -169,7 +169,7 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
         "#.#.O..#",
         "#...O..#",
         "#......#",
-        "########",
+        "########"
         ]
 
     let sampleReport = simulateWarehouse(sampleLayout, "<^^>>>vv<v>>v<<")
@@ -189,7 +189,7 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
         "#..#..#",
         "#..O..#",
         "#.....#",
-        "#######",
+        "#######"
         ]
 
     let compactReport = simulateWarehouse(compactLayout, ">>>v<<")

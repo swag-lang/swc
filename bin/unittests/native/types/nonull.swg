@@ -196,23 +196,23 @@ func nativeNonNullConstruction()->bool
     let nested                              = NativeNonNullNested{holder: {required: &first}}
     let array:      [2] NativeNonNullHolder = [
         {required: &first},
-        {required: &second, count: 8},
+        {required: &second, count: 8}
         ]
     let genericRequired: NativeNonNullGenericBox'(*NativeNonNullItem) = {value: &first}
     var genericDefault:  NativeNonNullGenericBox'NativeNonNullStringDefault
-    let pointerArray:    [2] *NativeNonNullItem                       = [&first, &second]
-    let aliasedHolder:   NativeNonNullHolderAlias                     = {required: &first}
-    let pointerDefault                                                = NativeNonNullPointerDefault{}
-    var moveDefaultSource                                             = NativeNonNullMoveDefault{required: "explicit"}
-    let moveDefaultTarget                                             = #move moveDefaultSource
-    let families                                                      = NativeNonNullFamilies{
+    let pointerArray:    [2] *NativeNonNullItem   = [&first, &second]
+    let aliasedHolder:   NativeNonNullHolderAlias = {required: &first}
+    let pointerDefault                            = NativeNonNullPointerDefault{}
+    var moveDefaultSource                         = NativeNonNullMoveDefault{required: "explicit"}
+    let moveDefaultTarget                         = #move moveDefaultSource
+    let families                                  = NativeNonNullFamilies{
         valuePointer: direct,
         blockPointer: block,
         slice: slice,
         text: text,
         ctext: ctext,
         boxed: boxed,
-        reflectedType: reflectedType,
+        reflectedType: reflectedType
         }
 
     #assert(#typeof(families.valuePointer) == *NativeNonNullItem)
@@ -272,7 +272,7 @@ func nativeNonNullConstruction()->bool
         return false
     var defaultItem:     NativeNonNullStringDefault
     var defaultArray:    [2] NativeNonNullStringDefault
-    let omittedDefaults                                 = NativeNonNullDefaultContainer{}
+    let omittedDefaults = NativeNonNullDefaultContainer{}
     let partialDefaults: [2] NativeNonNullStringDefault = [{value: "explicit"}]
 
     if defaultItem.value != "fallback" do
@@ -297,7 +297,7 @@ func nativeNonNullConstruction()->bool
 
     // 'undefined' remains an explicit low-level escape hatch; its value must not be read.
     var undefinedPointer: *NativeNonNullItem = undefined
-    var undefinedHolder                      = NativeNonNullUndefinedHolder{}
+    var undefinedHolder = NativeNonNullUndefinedHolder{}
     #assert(#typeof(undefinedPointer) == *NativeNonNullItem)
     #assert(#typeof(undefinedHolder.required) == *NativeNonNullItem)
 

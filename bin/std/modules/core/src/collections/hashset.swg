@@ -190,7 +190,7 @@ impl HashSet
         }
 
         Memory.free(table, .capacity * #sizeof(HashSetEntry'(K)), .allocator)
-        .table                      = null
+        .table = null
         .count, .capacity, .deleted = 0
     }
 
@@ -391,7 +391,7 @@ impl HashSet
                 }
 
                 table[targetIndex].hash = hashVal
-                .count                  += 1
+                .count += 1
                 return true
             }
 

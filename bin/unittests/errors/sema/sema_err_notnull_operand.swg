@@ -18,7 +18,7 @@ func notNullOperandPlain()->s32 { return 42 }
     // `expect` no longer unwraps nullability: a plain nullable value is not fallible.
     var storage: NotNullOperandNode
     var p:       #null *NotNullOperandNode = &storage
-    let q                                  = expect p     // swc-expected-error {{sema_err_error_mgmt_operand_not_fallible}}
+    let q = expect p     // swc-expected-error {{sema_err_error_mgmt_operand_not_fallible}}
 }
 
 #test

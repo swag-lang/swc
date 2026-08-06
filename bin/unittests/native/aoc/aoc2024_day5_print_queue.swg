@@ -81,7 +81,7 @@ const SampleScenario: PrintQueueScenario =
         {before: 75, after: 61},
         {before: 47, after: 29},
         {before: 75, after: 13},
-        {before: 53, after: 13},
+        {before: 53, after: 13}
     ],
     updateCount: 6'u32,
     updates:
@@ -91,8 +91,8 @@ const SampleScenario: PrintQueueScenario =
         {count: 3'u32, pages: [75, 29, 13, 0, 0]},
         {count: 5'u32, pages: [75, 97, 47, 61, 53]},
         {count: 3'u32, pages: [61, 13, 29, 0, 0]},
-        {count: 5'u32, pages: [97, 13, 75, 29, 47]},
-    ],
+        {count: 5'u32, pages: [97, 13, 75, 29, 47]}
+    ]
     }
 
 const TieBreakScenario: PrintQueueScenario =
@@ -101,15 +101,15 @@ const TieBreakScenario: PrintQueueScenario =
     rules:
     [
         {before: 10, after: 30},
-        {before: 20, after: 30},
+        {before: 20, after: 30}
     ],
     updateCount: 3'u32,
     updates:
     [
         {count: 3'u32, pages: [10, 20, 30, 0, 0]},
         {count: 3'u32, pages: [30, 20, 10, 0, 0]},
-        {count: 3'u32, pages: [30, 10, 20, 0, 0]},
-    ],
+        {count: 3'u32, pages: [30, 10, 20, 0, 0]}
+    ]
     }
 
 func clearUpdate(result: &Update)

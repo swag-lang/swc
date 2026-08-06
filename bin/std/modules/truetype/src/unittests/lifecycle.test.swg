@@ -93,7 +93,7 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
     defer scratchB.release()
     defer context.allocator = originalAllocator
 
-    let bytes                  = loadFontBytes()
+    let bytes = loadFontBytes()
     let allocatorA: IAllocator = &scratchA
     let allocatorB: IAllocator = &scratchB
     context.allocator = allocatorA

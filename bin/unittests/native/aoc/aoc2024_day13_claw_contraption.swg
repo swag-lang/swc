@@ -60,7 +60,7 @@ enum ParseState: u8
     WantA,
     WantB,
     WantPrize,
-    Done,
+    Done
 }
 
 // Parse a number from bytes starting at pos; advances pos past the digits.

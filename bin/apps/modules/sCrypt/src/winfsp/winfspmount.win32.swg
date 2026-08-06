@@ -9,7 +9,7 @@ namespace WinFsp
     {
         fileSystem:   #null *FspFileSystem
         context:      #null *NativeMountContext
-        holdsRuntime: bool                        // Whether this mount counts towards `g_WinFsp.mountCount`.
+        holdsRuntime: bool     // Whether this mount counts towards `g_WinFsp.mountCount`.
     }
 
     impl WinFspMount

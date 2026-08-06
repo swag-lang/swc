@@ -15,7 +15,7 @@ const CapRows = [
     CapRow{"Triangle / Triangle", .Triangle, .Triangle, Argb.MediumSeaGreen},
     CapRow{"Arrow / None", .ArrowAnchor, .None, Argb.DarkOrange},
     CapRow{"None / Arrow 2", .None, .ArrowAnchor2, Argb.MediumPurple},
-    CapRow{"Round anchor / Square anchor", .RoundAnchor, .SquareAnchor, Argb.Goldenrod},]
+    CapRow{"Round anchor / Square anchor", .RoundAnchor, .SquareAnchor, Argb.Goldenrod}]
 
 func makeCapPath(left, right, y: f32)->LinePath
 {

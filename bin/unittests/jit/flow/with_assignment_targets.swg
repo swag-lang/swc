@@ -11,7 +11,7 @@ namespace JitWithAssignNs
 enum JitWithAssignColor
 {
     Red,
-    Blue,
+    Blue
 }
 
 struct JitWithAssignPoint
@@ -160,9 +160,9 @@ func jitWithAssignmentsAndScopes()->s32
 
 func jitWithNestedMemberTarget()->s32
 {
-    var point                         = jitWithAssignMakePoint(4, 5)
+    var point = jitWithAssignMakePoint(4, 5)
     var wrapper: JitWithAssignWrapper = undefined
-    var total                         = 0
+    var total = 0
     wrapper.holder.ptr = &point
 
     with wrapper.holder

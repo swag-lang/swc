@@ -77,7 +77,7 @@ func auditRotations(lines: const [..] string, startPosition: s32)->SafeAudit
         "L1",
         "L99",
         "R14",
-        "L82",
+        "L82"
         ]
 
     let entranceAudit = auditRotations(entranceSheet, 50)
@@ -94,7 +94,7 @@ func auditRotations(lines: const [..] string, startPosition: s32)->SafeAudit
         "R1",
         "R99",
         "L49",
-        "L50",
+        "L50"
         ]
 
     let cashRoomAudit = auditRotations(cashRoomSheet, 50)

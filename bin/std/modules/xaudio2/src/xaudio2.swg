@@ -184,7 +184,7 @@ struct XAUDIO2_BUFFER
 struct XAUDIO2_BUFFER_WMA
 {
     pDecodedPacketCumulativeBytes: const *UINT32
-    PacketCount:                   UINT32
+    PacketCount: UINT32
 }
 
 struct XAUDIO2_VOICE_STATE

@@ -162,10 +162,9 @@ argument.
     @assert(total == 60)
 
     // Inline form: the code literal is a normal argument.
-    call(10,
-         #code(a, b) {
-             total = a + b
-         })
+    call(10, #code(a, b) {
+        total = a + b
+    })
     @assert(total == 30)
 
     // Partial binder: only the first parameter is renamed, like 'for'.

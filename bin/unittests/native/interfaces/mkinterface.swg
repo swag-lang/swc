@@ -60,7 +60,7 @@ func validateRuntimeInterface(itf: IAction, expectedType: const *Swag.TypeInfoSt
     @assert(rawConst == constPtr)
 
     let constFromDeref: const IAction = dref constPtr
-    let rawFromDeref                  = cast(const *UndoAction) @dataof(constFromDeref)
+    let rawFromDeref = cast(const *UndoAction) @dataof(constFromDeref)
     #assert(#typeof(constFromDeref) == const IAction)
     @assert(rawFromDeref != null)
 

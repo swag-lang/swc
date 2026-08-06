@@ -11,7 +11,7 @@ namespace ParserWithNs
 enum ParserWithColor
 {
     Red,
-    Blue,
+    Blue
 }
 
 struct ParserWithPoint

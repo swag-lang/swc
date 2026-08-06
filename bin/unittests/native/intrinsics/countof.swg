@@ -354,12 +354,12 @@ func loopSignedRef(value: &s32)->s32
 
 #test
 {
-    var kind                   = RefCountKind.C
+    var kind = RefCountKind.C
     var kindRef: &RefCountKind = &kind
     @assert(@countof(kindRef) == 4)
     @assert(countEnumRef(kindRef) == 4)
 
-    let counted                              = RefCountedRuntime{count: 11}
+    let counted = RefCountedRuntime{count: 11}
     let countedRef: const &RefCountedRuntime = &counted
     @assert(@countof(countedRef) == 11)
     @assert(countSpecOpRef(countedRef) == 11)

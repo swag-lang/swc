@@ -36,7 +36,7 @@ impl InlineForeachMoveTracked
     mtd opPostMove()
     {
         InlineForeachMovePostMoveCount += 1
-        .value                         += 20
+        .value += 20
     }
 }
 

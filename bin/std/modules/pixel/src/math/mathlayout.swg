@@ -121,7 +121,7 @@ private func mathSpacingMu(left, right: MathAtomClass)->f32
 
 private func mathPrepareNode(node: *MathNode, style: MathStyle)
 {
-    node.style                                                    = style
+    node.style = style
     node.metrics.width, node.metrics.ascent, node.metrics.descent = 0
     node.offsets.clear()
     node.offsets.resize(node.children.count)

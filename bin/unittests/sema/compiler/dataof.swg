@@ -111,7 +111,7 @@ func semaTest008()
 func semaTest009()
 {
     var value: DataOfSpecBuffer = {data: [4, 5, 6]}
-    var p                       = @dataof(value)
+    var p = @dataof(value)
     #assert(#typeof(p) == [*] s32)
     p[1] = 42
     @assert(value.data[0] == 4)

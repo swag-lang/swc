@@ -11,7 +11,7 @@ namespace SemaWithNs
 enum SemaWithColor
 {
     Red,
-    Blue,
+    Blue
 }
 
 struct SemaWithPoint

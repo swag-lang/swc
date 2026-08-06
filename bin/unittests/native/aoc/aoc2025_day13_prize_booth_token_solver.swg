@@ -67,7 +67,7 @@ func analyzeMachines(machines: const [..] PrizeMachine, prizeOffset: s64)->Prize
         {buttonAX: 94, buttonAY: 34, buttonBX: 22, buttonBY: 67, prizeX: 8400,  prizeY: 5400},
         {buttonAX: 26, buttonAY: 66, buttonBX: 67, buttonBY: 21, prizeX: 12748, prizeY: 12176},
         {buttonAX: 17, buttonAY: 86, buttonBX: 84, buttonBY: 37, prizeX: 7870,  prizeY: 6450},
-        {buttonAX: 69, buttonAY: 23, buttonBX: 27, buttonBY: 71, prizeX: 18641, prizeY: 10279},
+        {buttonAX: 69, buttonAY: 23, buttonBX: 27, buttonBY: 71, prizeX: 18641, prizeY: 10279}
         ]
 
     let sampleReport     = analyzeMachines(sampleMachines, 0)
@@ -82,7 +82,7 @@ func analyzeMachines(machines: const [..] PrizeMachine, prizeOffset: s64)->Prize
         [
         {buttonAX: 4, buttonAY: 2, buttonBX: 1, buttonBY: 3, prizeX: 9,  prizeY: 7},
         {buttonAX: 6, buttonAY: 1, buttonBX: 2, buttonBY: 3, prizeX: 22, prizeY: 11},
-        {buttonAX: 5, buttonAY: 4, buttonBX: 2, buttonBY: 1, prizeX: 18, prizeY: 11},
+        {buttonAX: 5, buttonAY: 4, buttonBX: 2, buttonBY: 1, prizeX: 18, prizeY: 11}
         ]
 
     let arcadeReport       = analyzeMachines(arcadeMachines, 0)

@@ -857,7 +857,7 @@ private impl Parser
             switch name
             {
             case "d", "x", "y", "width", "height", "rx", "ry", "cx", "cy", "r", "points", "x1", "y1", "x2", "y2", "viewBox", "id", "href", "xlink:href": geo.add(name, value)
-            default:                                                                                                                                     applyAttribute(state, name, value)
+            default: applyAttribute(state, name, value)
             }
         }
 

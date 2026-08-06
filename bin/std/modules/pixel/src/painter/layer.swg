@@ -248,8 +248,8 @@ impl Layer
             let margin = Math.max(info.shadow.margin, 0)
             dstRect.offset(info.shadow.offsetX - cast(f32) margin, info.shadow.offsetY - cast(f32) margin)
             dstRect.width, dstRect.height += cast(f32) (2 * margin)
-            srcRect                       = Math.Rectangle{0, 0, (.width + 2 * margin) * .deviceScale, (.height + 2 * margin) * .deviceScale}
-            texture                       = .shadowTarget!.colorBuffer
+            srcRect = Math.Rectangle{0, 0, (.width + 2 * margin) * .deviceScale, (.height + 2 * margin) * .deviceScale}
+            texture = .shadowTarget!.colorBuffer
         }
         else do
             .resolve()

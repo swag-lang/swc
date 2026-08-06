@@ -200,7 +200,7 @@ const ConstSetOne: ConstSetVector2 = 1.0
 const ConstPaletteCardOne          = ConstPaletteCard{"gray", ConstPaletteSource.Gray}
 const ConstPaletteCards            = [
     ConstPaletteCard{"gray", ConstPaletteSource.Gray},
-    ConstPaletteCard{"blue", ConstPaletteSource.Blue},
+    ConstPaletteCard{"blue", ConstPaletteSource.Blue}
     ]
 const ConstPaletteColors: [2] ConstPaletteColor = [ConstPaletteSource.Gray, ConstPaletteSource.Blue]
 #assert(ConstSetOne.x == 1.0)

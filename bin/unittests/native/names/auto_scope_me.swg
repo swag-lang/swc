@@ -61,6 +61,6 @@ impl AutoScopeUnaryBox
 #test
 {
     var value: AutoScopeUnaryBox's32 = {value: 42}
-    let inverted                     = ~value
+    let inverted = ~value
     @assert(inverted.value == -43)
 }

@@ -127,7 +127,7 @@ positional and named entries cannot be mixed.
 
 #test
 {
-    let point                        = {x: 10.0, y: 20.0}
+    let point = {x: 10.0, y: 20.0}
     let {y: vertical, x: horizontal} = point
     @assert(horizontal == 10.0)
     @assert(vertical == 20.0)

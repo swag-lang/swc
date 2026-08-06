@@ -44,7 +44,7 @@ struct RotationCard
 
 const RotationCards = [
     RotationCard{angle: 10.0'deg},
-    RotationCard{angle: -12.0'deg},
+    RotationCard{angle: -12.0'deg}
     ]
 
 #assert(RotationCards[0].angle.radians == 10.0'f32 * DegreesToRadians)

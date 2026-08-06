@@ -199,7 +199,7 @@ alias TypedVariadicAlias = s32
 
     const p0: TypedVariadicPair = {a: 2, b: 3}
     const p1: TypedVariadicPair = {a: 5, b: 7}
-    const V0                    = #run variadicTypedWithHead(1, p0, p1)
+    const V0 = #run variadicTypedWithHead(1, p0, p1)
     #assert(V0 == 18)
 }
 
@@ -212,7 +212,7 @@ alias TypedVariadicAlias = s32
 
     const p0: TypedVariadicPair = {a: 2, b: 3}
     const p1: TypedVariadicPair = {a: 5, b: 7}
-    const V0                    = #run variadicTyped(p0, p1)
+    const V0 = #run variadicTyped(p0, p1)
     #assert(V0 == 17)
 }
 
@@ -250,7 +250,7 @@ alias TypedVariadicAlias = s32
 
     const v0: TypedVariadicPayload = {arr: [9, 8, 7], flag: true, tag: 5'u8}
     const v1: TypedVariadicPayload = {arr: [3, 2, 1], flag: false, tag: 4'u8}
-    const V0                       = #run variadicTyped(v0, v1)
+    const V0 = #run variadicTyped(v0, v1)
     #assert(#typeof(V0) == u64)
     #assert(V0 == 21'u64)
 }
@@ -335,7 +335,7 @@ alias TypedVariadicAlias = s32
     const p0: TypedVariadicPayload = {arr: [1, 2, 3], flag: true, tag: 4'u8}
     const p1: TypedVariadicPayload = {arr: [5, 6, 7], flag: false, tag: 8'u8}
     const p2: TypedVariadicPayload = {arr: [9, 10, 11], flag: true, tag: 12'u8}
-    const V0                       = #run variadicTypedStressPayload(p0, p1, p2)
+    const V0 = #run variadicTypedStressPayload(p0, p1, p2)
     #assert(V0 == 83'u64)
 }
 
@@ -372,6 +372,6 @@ alias TypedVariadicAlias = s32
 
     const p0: TypedVariadicPair = {a: 2, b: 3}
     const p1: TypedVariadicPair = {a: 5, b: 7}
-    const V0                    = #run variadicTypedPairForward(p0, p1)
+    const V0 = #run variadicTypedPairForward(p0, p1)
     #assert(V0 == 17)
 }

@@ -118,7 +118,7 @@ func auditSplitterRack(plan: const [..] string)->SplitterAudit
         "..^...^.....^..",
         "...............",
         ".^.^.^.^.^...^.",
-        "...............",
+        "..............."
         ]
 
     let sampleAudit = auditSplitterRack(samplePlan)
@@ -138,7 +138,7 @@ func auditSplitterRack(plan: const [..] string)->SplitterAudit
         ".........",
         "..^...^..",
         ".........",
-        ".^.^.^.^.",
+        ".^.^.^.^."
         ]
 
     let serviceAudit = auditSplitterRack(servicePlan)

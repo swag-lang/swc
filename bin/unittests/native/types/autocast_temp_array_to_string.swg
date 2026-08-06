@@ -18,7 +18,7 @@ func autocastTempArrayToStringConsume(text: string)->u8
         if flag do
             return ['h'u8, 'e'u8, 'l'u8, 'l'u8, 'o'u8]
         return ['w'u8, 'o'u8, 'r'u8, 'l'u8, 'd'u8]
-    },
+    }
         }
 
     let text: string = holder.cb(false)

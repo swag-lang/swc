@@ -4,5 +4,5 @@
 enum FileLevelAttrEnum
 {
     A,
-    B,
+    B
 }

@@ -158,7 +158,7 @@ impl Decoder
                     s = extendSign(.getBits2(s), s)
                 }
 
-                s                       += .lastDcVal[componentId]
+                s += .lastDcVal[componentId]
                 .lastDcVal[componentId] = s
 
                 p[0] = cast(s16) (s * q[0])
@@ -241,7 +241,7 @@ impl Decoder
                 }
 
                 .blockMaxZagSet[rowBlock] = k
-                rowBlock                  += 1
+                rowBlock += 1
             }
 
             .restartsLeft -= 1

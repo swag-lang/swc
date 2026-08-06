@@ -32,14 +32,14 @@ func consumeSemaNonNullMoveArray(value: SemaNonNullMoveArrayNestedAlias)->bool
 func semaNonNullMoveArrayDefaults()
 {
     var initSource: SemaNonNullMoveArrayNestedAlias = [{value: "init-a"}, {value: "init-b"}]
-    let initTarget                                  = #move initSource
+    let initTarget = #move initSource
 
     var assignSource: [2] SemaNonNullMoveArrayDefault = [{value: "assign-a"}, {value: "assign-b"}]
     var assignTarget: [2] SemaNonNullMoveArrayDefault = [{value: "old-a"}, {value: "old-b"}]
     assignTarget = #move assignSource
 
     var callSource: SemaNonNullMoveArrayNestedAlias = [{value: "call-a"}, {value: "call-b"}]
-    let callResult                                  = consumeSemaNonNullMoveArray(#move callSource)
+    let callResult = consumeSemaNonNullMoveArray(#move callSource)
 
     var escapeSource = SemaNonNullMoveUndefinedEscape{value: "explicit"}
     let escapeTarget = #move escapeSource

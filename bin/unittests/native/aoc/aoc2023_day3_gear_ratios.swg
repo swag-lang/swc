@@ -116,7 +116,7 @@ func parseGrid(bytes: const [..] u8)->Grid
         }
 
         result.cells[result.height * MaxDim + col] = ch
-        col                                        += 1
+        col += 1
     }
 
     if col > 0
@@ -427,7 +427,7 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
                     {
                         gears.entries[g].adjCount  += 1
                         gears.entries[g].secondVal = entry.value
-                        found                      = true
+                        found = true
                         break
                     }
                 }

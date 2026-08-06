@@ -540,7 +540,7 @@ impl Deflate
             {
                 for var l = numCodes[i]; l > 0; l -= 1
                 {
-                    j                                           -= 1
+                    j -= 1
                     d.huffCodeSizes[tableNum, syms[j].symIndex] = cast(u8) i
                 }
             }
@@ -580,25 +580,25 @@ impl Deflate
         while i <= 143
         {
             d.huffCodeSizes[0, i] = 8
-            i                     += 1
+            i += 1
         }
 
         while i <= 255
         {
             d.huffCodeSizes[0, i] = 9
-            i                     += 1
+            i += 1
         }
 
         while i <= 279
         {
             d.huffCodeSizes[0, i] = 7
-            i                     += 1
+            i += 1
         }
 
         while i <= 287
         {
             d.huffCodeSizes[0, i] = 8
-            i                     += 1
+            i += 1
         }
 
         Memory.set(d.huffCodeSizes[1], 5, 32)
@@ -621,8 +621,8 @@ impl Deflate
                 while rleRepeatCount
                 {
                     packedCodeSizes[numPackedCodeSizes] = prevCodeSize
-                    numPackedCodeSizes                  += 1
-                    rleRepeatCount                      -= 1
+                    numPackedCodeSizes += 1
+                    rleRepeatCount     -= 1
                 }
             }
             else
@@ -649,8 +649,8 @@ impl Deflate
                 while rleZCount
                 {
                     packedCodeSizes[numPackedCodeSizes] = 0
-                    numPackedCodeSizes                  += 1
-                    rleZCount                           -= 1
+                    numPackedCodeSizes += 1
+                    rleZCount          -= 1
                 }
             }
             elif rleZCount <= 10
@@ -680,7 +680,7 @@ impl Deflate
 
         var codeSizesToPack: [MaxHuffSymbols0 + MaxHuffSymbols1] u8 = undefined
         var packedCodeSizes: [MaxHuffSymbols0 + MaxHuffSymbols1] u8 = undefined
-        var prevCodeSize                                            = 0xFF'u8
+        var prevCodeSize = 0xFF'u8
 
         d.huffCount[0, 256] = 1
 
@@ -971,11 +971,11 @@ impl Deflate
                     d.dict[dstPos] = c
                     if dstPos < (MaxMatchLen - 1) do
                         d.dict[LzDictSize + dstPos] = c
-                    hash                            = ((hash << LzHashShift) ^ c) & (LzHashSize - 1)
+                    hash         = ((hash << LzHashShift) ^ c) & (LzHashSize - 1)
                     d.next[insPos & LzDictSizeMask] = d.hash[hash]
-                    d.hash[hash]                    = cast(u16) insPos
-                    dstPos                          = (dstPos + 1) & LzDictSizeMask
-                    insPos                          += 1
+                    d.hash[hash] = cast(u16) insPos
+                    dstPos       = (dstPos + 1) & LzDictSizeMask
+                    insPos       += 1
                 }
             }
             else
@@ -994,10 +994,10 @@ impl Deflate
                     {
                         let insPos: u32 = d.lookaheadPos + (d.lookaheadSize - 1) - 2
                         var hash:   u32 = (cast(u32) d.dict[insPos & LzDictSizeMask] << (LzHashShift * 2))
-                        hash                            = (hash ^ (cast(u32) d.dict[(insPos + 1) & LzDictSizeMask] << LzHashShift) ^ c)
-                        hash                            &= (LzHashSize - 1)
+                        hash         = (hash ^ (cast(u32) d.dict[(insPos + 1) & LzDictSizeMask] << LzHashShift) ^ c)
+                        hash         &= (LzHashSize - 1)
                         d.next[insPos & LzDictSizeMask] = d.hash[hash]
-                        d.hash[hash]                    = cast(u16) insPos
+                        d.hash[hash] = cast(u16) insPos
                     }
                 }
             }

@@ -49,7 +49,7 @@ impl BadMultiIndexAssign
 #test
 {
     var value: GenericMissingConstUnaryMe's32 = {value: 1}
-    let result                                = -value
+    let result = -value
     #assert(#typeof(result) == GenericMissingConstUnaryMe's32)
 }
 

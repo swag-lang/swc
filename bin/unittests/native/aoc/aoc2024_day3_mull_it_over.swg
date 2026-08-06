@@ -96,8 +96,8 @@ func tokenizeClean(bytes: const [..] u8)->TokenStream
         {
             @assert(result.count < MaxTokens)
             result.tokens[result.count].kind = TokenKind.Dont
-            result.count                     += 1
-            i                                += 7
+            result.count += 1
+            i            += 7
             continue
         }
 
@@ -105,8 +105,8 @@ func tokenizeClean(bytes: const [..] u8)->TokenStream
         {
             @assert(result.count < MaxTokens)
             result.tokens[result.count].kind = TokenKind.Do
-            result.count                     += 1
-            i                                += 4
+            result.count += 1
+            i            += 4
             continue
         }
 
@@ -190,7 +190,7 @@ func emitToken(kind: TokenKind, lhs: s32, rhs: s32)
     scanTokens.tokens[scanTokens.count].kind = kind
     scanTokens.tokens[scanTokens.count].lhs  = lhs
     scanTokens.tokens[scanTokens.count].rhs  = rhs
-    scanTokens.count                         += 1
+    scanTokens.count += 1
 }
 
 #[Swag.Mixin]

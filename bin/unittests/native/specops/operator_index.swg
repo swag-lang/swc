@@ -106,7 +106,7 @@ struct RuntimeIndexHolder
 {
     var holder = RuntimeIndexHolder{
         value: RuntimeValueIndexBox{first: 1, second: 2},
-        refs: RuntimeRefIndexBox{buffer: [20, 30]},
+        refs: RuntimeRefIndexBox{buffer: [20, 30]}
         }
 
     let nested    = holder.value[1]
@@ -203,7 +203,7 @@ func readRuntimeWideIndexedSlot(values: const &[128] bool, slot: RuntimeWideInde
 #test
 {
     const values: [RuntimeIndexedSlot] s32 = [0, 1, 2]
-    const first                            = values[RuntimeIndexedSlot.First]
+    const first = values[RuntimeIndexedSlot.First]
     @assert(first == 0)
 
     var index = RuntimeIndexedSlot.Third

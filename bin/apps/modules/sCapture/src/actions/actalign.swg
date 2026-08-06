@@ -24,15 +24,13 @@ impl IActionUI for ActionAlign
     {
         let main = cast(*MainWnd) cxt.wnd!
 
-        if updateFromTable(cxt,
-                           evt,
-                           [
-                               {AlignLeft,   appStrings().act_AlignLeft,   .MultiSel},
-                               {AlignCenter, appStrings().act_AlignCenter, .MultiSel},
-                               {AlignRight,  appStrings().act_AlignRight,  .MultiSel},
-                               {AlignTop,    appStrings().act_AlignTop,    .MultiSel},
-                               {AlignMiddle, appStrings().act_AlignMiddle, .MultiSel},
-                               {AlignBottom, appStrings().act_AlignBottom, .MultiSel}])
+        if updateFromTable(cxt, evt, [
+            {AlignLeft,   appStrings().act_AlignLeft,   .MultiSel},
+            {AlignCenter, appStrings().act_AlignCenter, .MultiSel},
+            {AlignRight,  appStrings().act_AlignRight,  .MultiSel},
+            {AlignTop,    appStrings().act_AlignTop,    .MultiSel},
+            {AlignMiddle, appStrings().act_AlignMiddle, .MultiSel},
+            {AlignBottom, appStrings().act_AlignBottom, .MultiSel}])
         {
             return true
         }

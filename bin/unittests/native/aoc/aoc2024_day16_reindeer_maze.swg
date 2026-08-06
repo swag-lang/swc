@@ -169,8 +169,8 @@ func solve(text: string)->u64
     // Start facing East (dir=0)
     let startDir: u32 = 0
     best[stateIdx(m.sr, m.sc, startDir)] = 0
-    queue[0]                             = QEntry{r: m.sr, c: m.sc, dir: startDir, cost: 0}
-    tail                                 = 1
+    queue[0] = QEntry{r: m.sr, c: m.sc, dir: startDir, cost: 0}
+    tail     = 1
 
     // C-style for loop: process queue
     for var qi: u32 = 0; qi < tail; qi += 1

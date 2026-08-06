@@ -97,7 +97,7 @@ const GL_KHR_context_flush_control = 1
 
 /* ---------------------------- GL_KHR_no_error ---------------------------- */
 
-const GL_KHR_no_error                  = 1
+const GL_KHR_no_error = 1
 const GL_CONTEXT_FLAG_NO_ERROR_BIT_KHR = 0x00000008
 
 /* -------------------- GL_KHR_parallel_shader_compile --------------------- */

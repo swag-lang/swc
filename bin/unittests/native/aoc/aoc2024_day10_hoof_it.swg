@@ -89,7 +89,7 @@ func parseGrid(text: string)->Grid
         }
 
         result.cells[result.height * MaxDim + col] = ch - '0'
-        col                                        += 1
+        col += 1
     }
 
     if col > 0

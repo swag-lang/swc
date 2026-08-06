@@ -196,23 +196,23 @@ func jitNonNullConstruction()->bool
     let nested                           = JitNonNullNested{holder: {required: &first}}
     let array:      [2] JitNonNullHolder = [
         {required: &first},
-        {required: &second, count: 8},
+        {required: &second, count: 8}
         ]
     let genericRequired: JitNonNullGenericBox'(*JitNonNullItem) = {value: &first}
     var genericDefault:  JitNonNullGenericBox'JitNonNullStringDefault
-    let pointerArray:    [2] *JitNonNullItem                    = [&first, &second]
-    let aliasedHolder:   JitNonNullHolderAlias                  = {required: &first}
-    let pointerDefault                                          = JitNonNullPointerDefault{}
-    var moveDefaultSource                                       = JitNonNullMoveDefault{required: "explicit"}
-    let moveDefaultTarget                                       = #move moveDefaultSource
-    let families                                                = JitNonNullFamilies{
+    let pointerArray:    [2] *JitNonNullItem   = [&first, &second]
+    let aliasedHolder:   JitNonNullHolderAlias = {required: &first}
+    let pointerDefault                         = JitNonNullPointerDefault{}
+    var moveDefaultSource                      = JitNonNullMoveDefault{required: "explicit"}
+    let moveDefaultTarget                      = #move moveDefaultSource
+    let families                               = JitNonNullFamilies{
         valuePointer: direct,
         blockPointer: block,
         slice: slice,
         text: text,
         ctext: ctext,
         boxed: boxed,
-        reflectedType: reflectedType,
+        reflectedType: reflectedType
         }
 
     #assert(#typeof(families.valuePointer) == *JitNonNullItem)
@@ -272,7 +272,7 @@ func jitNonNullConstruction()->bool
         return false
     var defaultItem:     JitNonNullStringDefault
     var defaultArray:    [2] JitNonNullStringDefault
-    let omittedDefaults                              = JitNonNullDefaultContainer{}
+    let omittedDefaults = JitNonNullDefaultContainer{}
     let partialDefaults: [2] JitNonNullStringDefault = [{value: "explicit"}]
 
     @assert(defaultItem.value == "fallback")
@@ -295,7 +295,7 @@ func jitNonNullConstruction()->bool
 
     // 'undefined' remains an explicit low-level escape hatch; its value must not be read.
     var undefinedPointer: *JitNonNullItem = undefined
-    var undefinedHolder                   = JitNonNullUndefinedHolder{}
+    var undefinedHolder = JitNonNullUndefinedHolder{}
     #assert(#typeof(undefinedPointer) == *JitNonNullItem)
     #assert(#typeof(undefinedHolder.required) == *JitNonNullItem)
 

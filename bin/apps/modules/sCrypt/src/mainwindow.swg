@@ -35,25 +35,25 @@ internal enum StatusTone
 // tone, which is why `setStatus` takes no second argument.
 internal enum StatusMessage
 {
-    Ready              // Nothing has run yet, or the last operation finished cleanly.
-    Randomizing        // The container is being filled with random bytes; `statusProgress` says how far.
-    StopRequested      // The user asked the running operation to stop.
-    CreateCanceled     // Creation stopped on request and left nothing behind.
-    StartingDriver     // The portable filesystem driver is starting.
-    Unmounting         // The drive is being synchronized and unmounted.
-    CreateStopped      // Container creation stopped.
-    Created            // The container was created and is ready to mount.
-    MountStopped       // Mounting stopped.
-    Mounted            // A drive is mounted; `statusDrive` names its letter.
-    Unmounted          // The drive was unmounted safely.
-    Growing            // The added region is being randomized; `statusProgress` says how far.
-    GrowCanceled       // Growing stopped on request and left the container at its previous size.
-    GrowStopped        // Growing stopped.
-    Grown              // The container is larger; `statusDrive` says by how much it now holds.
-    ChangingPassword   // The key slot is being rewritten.
-    PasswordChanged    // The container now opens with the new password.
-    PasswordRemoved    // The container now opens without a password.
-    PasswordStopped    // The password change stopped.
+    Ready                // Nothing has run yet, or the last operation finished cleanly.
+    Randomizing          // The container is being filled with random bytes; `statusProgress` says how far.
+    StopRequested        // The user asked the running operation to stop.
+    CreateCanceled       // Creation stopped on request and left nothing behind.
+    StartingDriver       // The portable filesystem driver is starting.
+    Unmounting           // The drive is being synchronized and unmounted.
+    CreateStopped        // Container creation stopped.
+    Created              // The container was created and is ready to mount.
+    MountStopped         // Mounting stopped.
+    Mounted              // A drive is mounted; `statusDrive` names its letter.
+    Unmounted            // The drive was unmounted safely.
+    Growing              // The added region is being randomized; `statusProgress` says how far.
+    GrowCanceled         // Growing stopped on request and left the container at its previous size.
+    GrowStopped          // Growing stopped.
+    Grown                // The container is larger; `statusDrive` says by how much it now holds.
+    ChangingPassword     // The key slot is being rewritten.
+    PasswordChanged      // The container now opens with the new password.
+    PasswordRemoved      // The container now opens without a password.
+    PasswordStopped      // The password change stopped.
 }
 
 // Rows of the "create a new vault" form, in the order `createNewVaultCard` adds them.
@@ -103,21 +103,21 @@ struct StartupVault
 // polls `job` with `timer` until the result is ready to be reported.
 struct VaultOperation
 {
-    job:         Jobs.Job           // Worker scheduled for `kind`.
-    kind:        OperationKind      // Work the job performs, or `None` while the window is idle.
-    timer:       #null *Timer       // Polls the job while it runs.
-    error:       #null any          // Failure captured by the job, or null when it succeeded.
-    path:        String             // Container file the operation acts on.
-    mount:       String             // Drive letter requested by a mount operation.
-    size:        u64                // Container size requested by a create or a grow.
-    password:    Array'u8           // Password copy owned by the operation and wiped when it ends.
-    replacement: Array'u8           // New password of a change, empty when the change removes it.
+    job:         Jobs.Job                        // Worker scheduled for `kind`.
+    kind:        OperationKind                   // Work the job performs, or `None` while the window is idle.
+    timer:       #null *Timer                    // Polls the job while it runs.
+    error:       #null any                       // Failure captured by the job, or null when it succeeded.
+    path:        String                          // Container file the operation acts on.
+    mount:       String                          // Drive letter requested by a mount operation.
+    size:        u64                             // Container size requested by a create or a grow.
+    password:    Array'u8                        // Password copy owned by the operation and wiped when it ends.
+    replacement: Array'u8                        // New password of a change, empty when the change removes it.
     volume:      #null *WinFsp.MountedVolume     // Mount a mount operation produced, or the one an unmount closes.
 
     // What the result has to report but the wiped inputs no longer say.
-    usedPassword:   bool     // Whether the container was opened with a password.
-    removesPassword: bool    // Whether a password change leaves the container without one.
-    fromStartup:    bool     // Whether the mount came from the startup list rather than from the card.
+    usedPassword:    bool     // Whether the container was opened with a password.
+    removesPassword: bool     // Whether a password change leaves the container without one.
+    fromStartup:     bool     // Whether the mount came from the startup list rather than from the card.
 
     progress: VolumeProgress     // What the job has done, and the way to ask it to stop.
 }
@@ -738,11 +738,9 @@ impl MainWindow
              .Unmounting,
              .Mounted,
              .Growing,
-             .ChangingPassword:
-            return .Active
+             .ChangingPassword: return .Active
 
-        case .CreateStopped, .MountStopped, .GrowStopped, .PasswordStopped:
-            return .Stopped
+        case .CreateStopped, .MountStopped, .GrowStopped, .PasswordStopped: return .Stopped
 
         case .Ready,
              .CreateCanceled,
@@ -751,8 +749,7 @@ impl MainWindow
              .GrowCanceled,
              .Grown,
              .PasswordChanged,
-             .PasswordRemoved:
-            return .Idle
+             .PasswordRemoved: return .Idle
         }
     }
 
@@ -876,7 +873,7 @@ impl MainWindow
             window.mountContainer()
         }
 
-        .resizeButton = PushButton.create(card.actions, appStrings().ui_Resize, {0, 0, 0, 36})
+        .resizeButton            = PushButton.create(card.actions, appStrings().ui_Resize, {0, 0, 0, 36})
         .resizeButton.sigPressed += func|window = me|(btn)
         {
             discard btn
@@ -886,7 +883,7 @@ impl MainWindow
                 window.growVault()
         }
 
-        .passwordButton = PushButton.create(card.actions, appStrings().ui_ChangePassword, {0, 0, 0, 36})
+        .passwordButton            = PushButton.create(card.actions, appStrings().ui_ChangePassword, {0, 0, 0, 36})
         .passwordButton.sigPressed += func|window = me|(btn)
         {
             discard btn
@@ -1237,9 +1234,9 @@ impl MainWindow
         options.width             = 520
         options.height            = 300
 
-        let dialog     = FormDlg.create(.surface!, options)
+        let dialog      = FormDlg.create(.surface!, options)
         let newPassword = dialog.form.addPasswordField(appStrings().ui_NewPassword, placeholder: appStrings().ui_OptionalPassword, help: appStrings().ui_RemovePasswordHelp)
-        let confirm    = dialog.form.addPasswordField(appStrings().ui_ConfirmPassword, placeholder: appStrings().ui_EnterAgain)
+        let confirm     = dialog.form.addPasswordField(appStrings().ui_ConfirmPassword, placeholder: appStrings().ui_EnterAgain)
         dialog.form.computeLayout()
         if dialog.doModal() != Dialog.BtnOk do
             return

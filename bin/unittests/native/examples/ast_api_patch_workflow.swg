@@ -198,7 +198,7 @@ func(T) applyPatch(patch: const &ApiPatch'T, base: T)->T
         auditRetentionDays: 30,
         ssoEnabled: false,
         billingEmail: "billing@acme.test",
-        tier: .Growth,
+        tier: .Growth
         }
 
     var patch: ApiPatch'TenantSettings
@@ -233,7 +233,7 @@ func(T) applyPatch(patch: const &ApiPatch'T, base: T)->T
         auditRetentionDays: 365,
         ssoEnabled: true,
         billingEmail: "finance@northwind.test",
-        tier: .Enterprise,
+        tier: .Enterprise
         }
 
     var patch: ApiPatch'TenantSettings
@@ -246,7 +246,7 @@ func(T) applyPatch(patch: const &ApiPatch'T, base: T)->T
         auditRetentionDays: 0,
         ssoEnabled: false,
         billingEmail: "",
-        tier: .Starter,
+        tier: .Starter
         }
 
     let rebuilt = applyPatch'(TenantSettings)(patch, blank)
@@ -272,7 +272,7 @@ func(T) applyPatch(patch: const &ApiPatch'T, base: T)->T
         dailyDigest: true,
         weeklyReport: false,
         escalationMinutes: 45,
-        smsEnabled: false,
+        smsEnabled: false
         }
 
     var patch: ApiPatch'NotificationPolicy

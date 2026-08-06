@@ -34,7 +34,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     host.setup(240, 120)
     defer host.shutdown()
     host.theme.metrics.surfaceWnd_CornerRadius = 18
-    host.surface.flags                         = SurfaceFlags.StandardWindow
+    host.surface.flags = SurfaceFlags.StandardWindow
 
     @assert(host.surface.cornerRadius() == 18)
 
@@ -117,16 +117,15 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
 
     var frameCount: u32
     var didClick:   bool
-    let result = host.app.doModalLoop(surface,
-                                      func|host = &host, button, frames = &frameCount, didClick = &didClick|(app)
-                                      {
-                                          dref frames += 1
-                                          if !dref didClick
-                                          {
-                                              host.clickWnd(button)
-                                              dref didClick = true
-                                          }
-                                      })
+    let result = host.app.doModalLoop(surface, func|host = &host, button, frames = &frameCount, didClick = &didClick|(app)
+    {
+        dref frames += 1
+        if !dref didClick
+        {
+            host.clickWnd(button)
+            dref didClick = true
+        }
+    })
 
     @assert(result == GuiHeadlessSmoke_ModalExit)
     @assert(frameCount == 1)

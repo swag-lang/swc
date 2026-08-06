@@ -308,7 +308,7 @@ func __exit()
     __Win32RT.ExitProcess(0)
 }
 
-func __tlsAlloc()                         => cast(u64) __Win32RT.TlsAlloc()
+func __tlsAlloc() => cast(u64) __Win32RT.TlsAlloc()
 func __tlsSetValue(id: u64, value: *void) => __Win32RT.TlsSetValue(cast(u32) id, value)
 func __tlsGetValue(id: u64)->#null *void  => __Win32RT.TlsGetValue(cast(u32) id)
 

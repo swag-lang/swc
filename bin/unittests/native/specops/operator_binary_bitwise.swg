@@ -118,7 +118,7 @@ impl GenBitwisePair
 {
     var a:    GenBitwisePair'u64 = {x: 0xDEAD_BEEF, y: 0xCAFE_BABE}
     var zero: GenBitwisePair'u64 = {x: 0, y: 0}
-    let result                   = a | zero
+    let result = a | zero
 
     @assert(result.x == 0xDEAD_BEEF'u64)
     @assert(result.y == 0xCAFE_BABE'u64)

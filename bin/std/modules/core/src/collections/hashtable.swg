@@ -219,7 +219,7 @@ impl HashTable
         }
 
         Memory.free(table, .capacity * #sizeof(HashTableEntry'(K, V)), .allocator)
-        .table                                      = null
+        .table = null
         .count, .capacity, .deleted, .growThreshold = 0
     }
 

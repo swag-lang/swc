@@ -98,7 +98,7 @@ func parseGrid(text: string)->Grid
         }
 
         cells[g.height * MaxDim + col] = ch
-        col                            += 1
+        col += 1
     }
 
     if col > 0
@@ -212,8 +212,8 @@ func floodFill(g: *Grid, startR, startC: u32, visited: [*] bool)->Region
     var head: u32
     var tail: u32
 
-    queue[tail]                       = packPos(startR, startC)
-    tail                              += 1
+    queue[tail] = packPos(startR, startC)
+    tail        += 1
     visited[startR * MaxDim + startC] = true
 
     for MaxQueue

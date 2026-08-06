@@ -190,7 +190,7 @@ func analyzeRoute(layout: const [..] string)->RouteReport
         "#....E#",
         "#.#.#.#",
         "#S....#",
-        "#######",
+        "#######"
         ]
 
     let sampleRoute = analyzeRoute(sampleHall)
@@ -204,7 +204,7 @@ func analyzeRoute(layout: const [..] string)->RouteReport
         "#S#....E#",
         "#.#.###.#",
         "#...#...#",
-        "#########",
+        "#########"
         ]
 
     let serviceRoute = analyzeRoute(serviceHall)

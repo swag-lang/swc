@@ -77,10 +77,10 @@ impl IOrelseProbe for OrelseProbe
 {
     func interfaceFallback()->bool
     {
-        var probe                       = OrelseProbe{value: 55}
+        var probe    = OrelseProbe{value: 55}
         var primary: #null IOrelseProbe = null
-        let fallback                    = @mkinterface(&probe, #typeof(probe), IOrelseProbe)
-        let resolved                    = primary orelse fallback
+        let fallback = @mkinterface(&probe, #typeof(probe), IOrelseProbe)
+        let resolved = primary orelse fallback
         return resolved.id() == 55
     }
 

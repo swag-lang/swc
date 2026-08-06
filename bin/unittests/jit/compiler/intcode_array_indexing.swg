@@ -42,7 +42,7 @@ func nextPermutation5(values: &[5] s32)->bool
 
 internal func(N: s32) runIntcodeProgram(prg: [N] s32, input: const [2] s32)->s32
 {
-    var op                     = prg
+    var op = prg
     var ip, output, inputIndex = 0
     while op[ip] != 99
     {

@@ -52,7 +52,7 @@ func(A, B) makePairSecond(a: A, b: B)->B => b
 
 #test
 {
-    func(T) localDouble(value: T)                         => 2 * value
+    func(T) localDouble(value: T) => 2 * value
     func(T = s32, V = s32) localMixedMultiply(a: T, b: V) => a * b
 
     @assert(localDouble'(s32)(21) == 42)

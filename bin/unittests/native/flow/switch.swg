@@ -16,7 +16,7 @@ const SwitchPointerValues = [11, 22, 33]
 enum SwitchStrictAliasEnum: s32
 {
     A = 1,
-    B = 2,
+    B = 2
 }
 
 #[Swag.Strict]
@@ -100,7 +100,7 @@ alias StrictSwitchF32       = f32
     enum E: s32
     {
         A = 1,
-        B = 2,
+        B = 2
     }
 
     var v: E = E.B
@@ -125,7 +125,7 @@ alias StrictSwitchF32       = f32
     enum E: s32
     {
         A = 1,
-        B = 2,
+        B = 2
     }
 
     const expected = E.A
@@ -166,7 +166,7 @@ alias StrictSwitchF32       = f32
     {
         A = 1,
         B = 2,
-        C = 3,
+        C = 3
     }
 
     var v: E = .A
@@ -178,7 +178,7 @@ alias StrictSwitchF32       = f32
     enum E: s32
     {
         A = 1,
-        B = 2,
+        B = 2
     }
 
     var v: E = E.B
@@ -282,7 +282,7 @@ alias StrictSwitchF32       = f32
 
 #test
 {
-    var c                            = '{'
+    var c = '{'
     var garbage, group, score, count = 0
     switch
     {

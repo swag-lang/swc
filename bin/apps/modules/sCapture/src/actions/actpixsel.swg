@@ -14,13 +14,11 @@ impl IActionUI for ActionPixSel
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        return updateFromTable(cxt,
-                               evt,
-                               [
-                                   {Clear,     "Clear",      .PixSel, hideDisabled: true},
-                                   {Fill,      "Fill",       .PixSel, hideDisabled: true},
-                                   {SmartFill, "Smart Fill", .PixSel, hideDisabled: true},
-                                   {SmartMove, "Smart Move", .PixSel, hideDisabled: true}])
+        return updateFromTable(cxt, evt, [
+            {Clear,     "Clear",      .PixSel, hideDisabled: true},
+            {Fill,      "Fill",       .PixSel, hideDisabled: true},
+            {SmartFill, "Smart Fill", .PixSel, hideDisabled: true},
+            {SmartMove, "Smart Move", .PixSel, hideDisabled: true}])
     }
 
     mtd impl execute(cxt: ActionContext)->bool
@@ -214,7 +212,7 @@ impl MainWnd
                             if xx < pmask.width and yy < pmask.height
                             {
                                 var pix1 = pmask.pixels.buffer! + xx * pmask.bytesPerPixel
-                                pix1                  += yy * pmask.width * pmask.bytesPerPixel
+                                pix1 += yy * pmask.width * pmask.bytesPerPixel
                                 dref cast(*u32) pix1! = 0xFFFFFFFF
                             }
                         }

@@ -275,90 +275,90 @@ impl RichString
                 .addChunk(byteIdx)
                 under.add(UnderlineStyle.Underline)
                 byteIdx, scan, startChunk += 3
-                count                     -= 3
-                handled                   = true
+                count   -= 3
+                handled = true
 
             case Utf8.startsWith(sl, "</u>"):
                 .addChunk(byteIdx)
                 if under.count > 1 do
                     under.removeBack()
                 byteIdx, scan, startChunk += 4
-                count                     -= 4
-                handled                   = true
+                count   -= 4
+                handled = true
 
             case Utf8.startsWith(sl, "<b>"):
                 .addChunk(byteIdx)
                 isBold.add(true)
                 byteIdx, scan, startChunk += 3
-                count                     -= 3
-                handled                   = true
+                count   -= 3
+                handled = true
 
             case Utf8.startsWith(sl, "</b>"):
                 .addChunk(byteIdx)
                 if isBold.count > 1 do
                     isBold.removeBack()
                 byteIdx, scan, startChunk += 4
-                count                     -= 4
-                handled                   = true
+                count   -= 4
+                handled = true
 
             case Utf8.startsWith(sl, "<i>"):
                 .addChunk(byteIdx)
                 isItalic.add(true)
                 byteIdx, scan, startChunk += 3
-                count                     -= 3
-                handled                   = true
+                count   -= 3
+                handled = true
 
             case Utf8.startsWith(sl, "</i>"):
                 .addChunk(byteIdx)
                 if isItalic.count > 1 do
                     isItalic.removeBack()
                 byteIdx, scan, startChunk += 4
-                count                     -= 4
-                handled                   = true
+                count   -= 4
+                handled = true
 
             case Utf8.startsWith(sl, "<p1>"):
                 .addChunk(byteIdx)
                 colorFg.add(1)
                 byteIdx, scan, startChunk += 4
-                count                     -= 4
-                handled                   = true
+                count   -= 4
+                handled = true
 
             case Utf8.startsWith(sl, "<p2>"):
                 .addChunk(byteIdx)
                 colorFg.add(2)
                 byteIdx, scan, startChunk += 4
-                count                     -= 4
-                handled                   = true
+                count   -= 4
+                handled = true
 
             case Utf8.startsWith(sl, "<p3>"):
                 .addChunk(byteIdx)
                 colorFg.add(3)
                 byteIdx, scan, startChunk += 4
-                count                     -= 4
-                handled                   = true
+                count   -= 4
+                handled = true
 
             case Utf8.startsWith(sl, "</p>"):
                 .addChunk(byteIdx)
                 if colorFg.count > 1 do
                     colorFg.removeBack()
                 byteIdx, scan, startChunk += 4
-                count                     -= 4
-                handled                   = true
+                count   -= 4
+                handled = true
 
             case Utf8.startsWith(sl, "<url>"):
                 .addChunk(byteIdx)
                 isUrl.add(true)
                 byteIdx, scan, startChunk += 5
-                count                     -= 5
-                handled                   = true
+                count   -= 5
+                handled = true
 
             case Utf8.startsWith(sl, "</url>"):
                 .addChunk(byteIdx)
                 if isUrl.count > 1 do
                     isUrl.removeBack()
                 byteIdx, scan, startChunk += 6
-                count                     -= 6
-                handled                   = true
+                count   -= 6
+                handled = true
             }
 
             if handled do

@@ -66,7 +66,7 @@ func sliceRefWindow()->u64
 
 func textRefWindow()->string
 {
-    let text                   = "string"
+    let text = "string"
     let textRef: const &string = &text
     return textRef[1 to 3]
 }

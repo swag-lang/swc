@@ -79,7 +79,7 @@ Strings can be sliced, but the result must be declared as 'const' since strings 
 */
 #test
 {
-    let str                     = "string"
+    let str = "string"
     let strSlice: const [..] u8 = @mkslice(@dataof(str), 2)
     @assert(strSlice[0] == 's')
     @assert(strSlice[1] == 't')

@@ -162,7 +162,7 @@ func semaTest005()
     #assert(@countof(arrayRef) == 6)
 
     var flat:     [6] u8
-    let slice                    = cast([..] u8) flat
+    let slice = cast([..] u8) flat
     var sliceRef: const &[..] u8 = &slice
     #assert(#typeof(@countof(sliceRef)) == u64)
     #assert(#typeof(countSliceRef(sliceRef)) == u64)
@@ -174,12 +174,12 @@ func semaTest005()
     #assert(#typeof(countUnsignedRef(numberRef)) == u32)
     #assert(#typeof(loopUnsignedRef(numberRef)) == u32)
 
-    var kind                   = RefCountKind.B
+    var kind = RefCountKind.B
     var kindRef: &RefCountKind = &kind
     #assert(@countof(kindRef) == 4)
     #assert(#typeof(countEnumRef(kindRef)) == u64)
 
-    let spec                               = RefCountedBySpecOp{count: 11}
+    let spec = RefCountedBySpecOp{count: 11}
     let specRef: const &RefCountedBySpecOp = &spec
     #assert(@countof(specRef) == 11)
     #assert(#typeof(countSpecOpRef(specRef)) == u64)

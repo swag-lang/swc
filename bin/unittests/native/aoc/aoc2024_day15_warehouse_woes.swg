@@ -50,7 +50,7 @@ enum Tile: u8
     Empty = 0,
     Wall  = 1,
     Box   = 2,
-    Robot = 3,
+    Robot = 3
 }
 
 // #stringof exercise: compile-time value stringification

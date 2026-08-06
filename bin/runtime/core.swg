@@ -195,7 +195,7 @@ func @tableof(structType, itfType: const *TypeInfoStruct)->#null const *void
 
 const __MAX_ARGUMENTS = 512
 var __argv: [__MAX_ARGUMENTS] string = undefined
-var __argc                           = 0'u32
+var __argc = 0'u32
 
 func __convertArgcArgv(args: const [*] u8)
 {

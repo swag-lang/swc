@@ -6,7 +6,7 @@ using Swag, Core
 #test
 {
     const pixels = [
-        0'u8, 0'u8, 0'u8, 0'u8, 10'u8, 20'u8, 30'u8, 1'u8, 40'u8, 50'u8, 60'u8, 255'u8,]
+        0'u8, 0'u8, 0'u8, 0'u8, 10'u8, 20'u8, 30'u8, 1'u8, 40'u8, 50'u8, 60'u8, 255'u8]
 
     var img = makeImage(3, 1, .RGBA8, pixels)
     img.setTransparentColor(Color.fromArgb(Argb.White))
@@ -20,7 +20,7 @@ using Swag, Core
 #test
 {
     const pixels = [
-        0'u8, 0'u8, 0'u8, 0'u8,]
+        0'u8, 0'u8, 0'u8, 0'u8]
 
     var img = makeImage(1, 1, .BGRA8, pixels)
     img.setTransparentColor(Color.fromArgb(255'u8, 10'u8, 20'u8, 30'u8))
@@ -31,7 +31,7 @@ using Swag, Core
 #test
 {
     const pixels = [
-        1'u8, 2'u8, 3'u8,]
+        1'u8, 2'u8, 3'u8]
 
     var img = makeImage(1, 1, .BGR8, pixels)
     img.setTransparentColor(Color.fromArgb(Argb.White))

@@ -14,7 +14,7 @@ enum ReactorNode: s32
     Relay,
     Buffer,
     Chamber,
-    Output,
+    Output
 }
 
 const NodeCount         = 10

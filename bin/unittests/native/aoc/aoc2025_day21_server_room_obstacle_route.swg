@@ -179,7 +179,7 @@ func analyzeObstacleDrops(drops: const [..] ByteDrop, gridSize, initialDropCount
         {1, 0},
         {0, 5},
         {1, 6},
-        {2, 0},
+        {2, 0}
         ]
 
     let sampleReport = analyzeObstacleDrops(sampleDrops, 7, 12)
@@ -197,7 +197,7 @@ func analyzeObstacleDrops(drops: const [..] ByteDrop, gridSize, initialDropCount
         {3, 2},
         {2, 3},
         {1, 3},
-        {0, 3},
+        {0, 3}
         ]
 
     let compactReport = analyzeObstacleDrops(compactDrops, 5, 4)

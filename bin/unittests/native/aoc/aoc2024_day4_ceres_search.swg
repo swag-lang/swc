@@ -66,7 +66,7 @@ const Directions: [8] Direction =
     Direction.Left,
     Direction.Up,
     Direction.UpRight,
-    Direction.UpLeft,
+    Direction.UpLeft
     ]
 
 // ---------------------------------------------------------------------------
@@ -114,7 +114,7 @@ func parseGrid(bytes: const [..] u8)->Grid
         }
 
         result.cells[result.rowCount * MaxGridCols + col] = ch
-        col                                               += 1
+        col += 1
     }
 
     if col > 0

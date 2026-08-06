@@ -94,7 +94,7 @@ func auditForkliftAccess(plan: const [..] string)->ForkliftAudit
         ".@.@.@.@@@",
         "@.@@@.@@@@",
         ".@@@@@@@@.",
-        "@.@.@@@.@.",
+        "@.@.@@@.@."
         ]
 
     let sampleAudit = auditForkliftAccess(samplePlan)
@@ -115,7 +115,7 @@ func auditForkliftAccess(plan: const [..] string)->ForkliftAudit
         "@@.@@.",
         ".@@@@.",
         "..@@..",
-        "...@..",
+        "...@.."
         ]
 
     let loadingBayAudit = auditForkliftAccess(loadingBayPlan)

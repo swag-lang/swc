@@ -50,7 +50,7 @@ const N = 8
     var src: [N] s32 = [1, 2, 3, 4, 5, 6, 7, 8]
 
     let add:   func||(s32, s32)->s32 = func(a: s32, b: s32)->s32 { return a + b }
-    var total: s32                   = 0
+    var total: s32 = 0
     for [i] in @countof(src) do
         total = add(total, src[i])
 
@@ -75,7 +75,7 @@ const N = 8
     var src: [4] s32 = [10, 20, 30, 40]
     var dst: [4] s32
 
-    var offset                      = 5
+    var offset = 5
     let addOffset: func||(s32)->s32 = func|offset|(x: s32)->s32 { return x + offset }
     for [i] in @countof(src) do
         dst[i] = addOffset(src[i])

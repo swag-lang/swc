@@ -539,7 +539,7 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) fail
         rowVotes: rowVotesBuffer,
         width: width,
         left: left,
-        top: top,}
+        top: top}
 
     let samples = cast(u64) width * cast(u64) rows
     if rows >= 2 and samples >= MsdfParallelMinSamples and !Jobs.isSynchronous()

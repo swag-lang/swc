@@ -235,7 +235,7 @@ private impl SplitterCtrl
         {
             // Compute the current total sizes of panes
             var countNotPreserve, countPreserve = 0
-            var totalSize                       = 0'f32
+            var totalSize = 0'f32
             for item, [idx] in .items
             {
                 let it = item!

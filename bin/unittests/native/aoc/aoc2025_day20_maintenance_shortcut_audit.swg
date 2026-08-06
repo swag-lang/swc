@@ -241,7 +241,7 @@ func analyzeShortcuts(layout: const [..] string)->ShortcutReport
         "#.#...#.#.#...#",
         "#.#.#.#.#.#.###",
         "#...#...#...###",
-        "###############",
+        "###############"
         ]
 
     let sampleReport = analyzeShortcuts(sampleMap)

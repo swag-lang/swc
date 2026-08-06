@@ -268,7 +268,7 @@ using Swag, Core
     @assert(Gui.Testing.actionUpdate'ActionImage(f.main, ActionImage.RestoreOrg, &evt))
     @assert(evt.disabled)
     f.capture.backImgOriginal = Image.create(5, 5, .BGRA8)
-    evt                       = Gui.Testing.commandState(ActionImage.RestoreOrg)
+    evt = Gui.Testing.commandState(ActionImage.RestoreOrg)
     @assert(Gui.Testing.actionUpdate'ActionImage(f.main, ActionImage.RestoreOrg, &evt))
     @assert(!evt.disabled)
 }
@@ -460,7 +460,7 @@ using Swag, Core
     @assert(evt.disabled)
 
     f.capture.linkedImage = "linked.png"
-    evt                   = Gui.Testing.commandState(ActionFile.UnlinkImage)
+    evt = Gui.Testing.commandState(ActionFile.UnlinkImage)
     @assert(Gui.Testing.actionUpdate'ActionFile(f.main, ActionFile.UnlinkImage, &evt))
     @assert(!evt.disabled)
 

@@ -13,7 +13,7 @@ struct SliceTempArrayRuntimeStorageHolder
         if flag do
             return [11'u16, 12, 13, 14]
         return [21'u16, 22, 23, 24]
-    },
+    }
         }
 
     let tail = holder.cb(true)[2 to]

@@ -293,14 +293,14 @@ impl RefCountedRuntime
 {
     func countEnumRef()->u64
     {
-        var kind                   = RefCountKind.C
+        var kind = RefCountKind.C
         var kindRef: &RefCountKind = &kind
         return @countof(kindRef)
     }
 
     func countSpecRef()->u64
     {
-        let value                              = RefCountedRuntime{count: 11}
+        let value = RefCountedRuntime{count: 11}
         let valueRef: const &RefCountedRuntime = &value
         return @countof(valueRef)
     }

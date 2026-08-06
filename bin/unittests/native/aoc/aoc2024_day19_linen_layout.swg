@@ -127,7 +127,7 @@ func parseInput(text: string)->{ patterns: PatternList, designs: DesignList }
         if pat.len > 0 and result.patterns.count < MaxPatterns
         {
             result.patterns.items[result.patterns.count] = pat
-            result.patterns.count                        += 1
+            result.patterns.count += 1
         }
     }
 
@@ -171,7 +171,7 @@ func parseInput(text: string)->{ patterns: PatternList, designs: DesignList }
         if des.len > 0 and result.designs.count < MaxDesigns
         {
             result.designs.items[result.designs.count] = des
-            result.designs.count                       += 1
+            result.designs.count += 1
         }
     }
 

@@ -590,7 +590,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         piecesTexture[i, cast(s8) PiecesEnum.Knight - 1] = rdr.addImage(img.cropped(384, y, 128, 128))
         piecesTexture[i, cast(s8) PiecesEnum.Rook - 1]   = rdr.addImage(img.cropped(512, y, 128, 128))
         piecesTexture[i, cast(s8) PiecesEnum.Pawn - 1]   = rdr.addImage(img.cropped(640, y, 128, 128))
-        y                                                = 128
+        y = 128
     }
 
     surface.show()

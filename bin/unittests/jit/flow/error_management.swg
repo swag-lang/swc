@@ -169,7 +169,7 @@ func aggregateSuccess(seed: s32)->AggregateResult fail
     return AggregateResult{
         first: seed,
         second: seed + 1,
-        payload: [seed + 2, seed + 3, seed + 4],
+        payload: [seed + 2, seed + 3, seed + 4]
         }
 }
 
@@ -249,7 +249,7 @@ func aggregateDeferFail()->AggregateResult fail
     return AggregateResult{
         first: 10,
         second: 11,
-        payload: [12, 13, 14],
+        payload: [12, 13, 14]
         }
 }
 

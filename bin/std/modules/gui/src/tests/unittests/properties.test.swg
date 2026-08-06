@@ -336,7 +336,7 @@ struct PropHeadlessArrayData
 struct PropHeadlessColorData
 {
     f0, f1, f2, f3, f4, f5, f6, f7: s32
-    tint:                           Pixel.Color
+    tint: Pixel.Color
     f8, f9, f10, f11, f12, f13:     s32
 }
 

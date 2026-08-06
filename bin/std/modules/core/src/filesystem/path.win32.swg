@@ -89,7 +89,7 @@ func rootLength(fullname: string)->u32
         return true
     }
 
-    var i                     = 0'u32
+    var i = 0'u32
     var volumeSeparatorLength = 2'u32
 
     // Length to the colon "C:"

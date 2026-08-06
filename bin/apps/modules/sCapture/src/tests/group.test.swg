@@ -126,7 +126,7 @@ using Swag, Core
     defer f.shutdown()
     f.capture.width, f.capture.widthOrg   = 64
     f.capture.height, f.capture.heightOrg = 48
-    f.capture.backImg                     = Image.create(64, 48, .BGRA8)
+    f.capture.backImg = Image.create(64, 48, .BGRA8)
 
     let a = testAddShape(f.capture, 1, 2, 10, 11)
     discard testAddShape(f.capture, 20, 2, 10, 11)

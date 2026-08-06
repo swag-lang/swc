@@ -45,7 +45,7 @@ impl HeadlessFixture
         let localCapture = Memory.new'Capture()
         localCapture.width, localCapture.widthOrg   = 400
         localCapture.height, localCapture.heightOrg = 300
-        localCapture.backImg                        = Image.create(400, 300, .BGRA8)
+        localCapture.backImg = Image.create(400, 300, .BGRA8)
         .editView.setCapture(localCapture)
         .capture = localCapture
 

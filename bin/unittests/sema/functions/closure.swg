@@ -36,7 +36,7 @@ func semaTest002()
 
 func semaTest003()
 {
-    var total                    = 0
+    var total = 0
     let refCapture: ClosureUnary = func|&total|(value: s32)->s32 { total += value; return total }
     #assert(#typeof(refCapture) == ClosureUnary)
 }

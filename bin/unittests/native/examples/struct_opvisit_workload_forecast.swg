@@ -126,7 +126,7 @@ func maxAdjacentRise(forecast: WorkloadForecast)->s32
         tuesday: 28,
         wednesday: 32,
         thursday: 29,
-        friday: 35,
+        friday: 35
         }
 
     @assert(totalStops(forecast) == 148)

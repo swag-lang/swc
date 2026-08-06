@@ -185,7 +185,7 @@ impl IWnd for RichEditView
         var i: u64
         if edn.dirtyFirstLineView or edn.recomputeScroll
         {
-            i                        = 0
+            i = 0
             edn.firstVisibleLineView = Swag.U64.Max
         }
         else

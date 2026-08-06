@@ -218,7 +218,7 @@ func sequenceCost(path: PathBuffer, depth: u32)->u64
             }
 
             DirectionalMemo[depth][fromIndex][toIndex] = best
-            total                                      += best
+            total += best
         }
 
         current = next
@@ -297,7 +297,7 @@ func complexitySum(codes: const [..] string, depth: u32)->u64
         "980A",
         "179A",
         "456A",
-        "379A",
+        "379A"
         ]
 
     @assert(complexitySum(sampleCodes, 2) == 126_384'u64)

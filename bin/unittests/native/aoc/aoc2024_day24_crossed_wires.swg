@@ -423,7 +423,7 @@ func addSwapped(result: *SwappedResult, c0: u8, c1: u8, c2: u8)
         result.names[result.count][0] = c0
         result.names[result.count][1] = c1
         result.names[result.count][2] = c2
-        result.count                  += 1
+        result.count += 1
     }
 }
 

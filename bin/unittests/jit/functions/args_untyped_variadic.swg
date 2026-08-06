@@ -316,7 +316,7 @@ enum VariadicKind: u16
 
     const pair0: VariadicPair = {a: 2, b: 3}
     const pair1: VariadicPair = {a: 5, b: 7}
-    const V0                  = #run variadicAny(pair0, pair1)
+    const V0 = #run variadicAny(pair0, pair1)
     #assert(V0 == 17)
 }
 
@@ -384,7 +384,7 @@ enum VariadicKind: u16
 
     const pair0: VariadicPair = {a: 2, b: 3}
     const pair1: VariadicPair = {a: 5, b: 7}
-    const V0                  = #run variadicAny(pair0, pair1)
+    const V0 = #run variadicAny(pair0, pair1)
     #assert(V0 == 17)
 }
 
@@ -675,7 +675,7 @@ enum VariadicKind: u16
     const head:    VariadicPair    = {a: 11, b: 22}
     const tail:    VariadicPair    = {a: 33, b: 44}
     const payload: VariadicPayload = {arr: [1, 2, 3], flag: false, tag: 9'u8}
-    const V0                       = #run variadicAnyStressWithHead(head, tail, payload, VariadicKind.A, "head-check", false, 1.25'f32, cast(*void) 0x99'u64)
+    const V0 = #run variadicAnyStressWithHead(head, tail, payload, VariadicKind.A, "head-check", false, 1.25'f32, cast(*void) 0x99'u64)
     #assert(V0)
 }
 

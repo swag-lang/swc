@@ -213,7 +213,7 @@ func planCables(pointLines: const [..] string, attemptedLinks: u32)->CablePlan
         "941,993,340",
         "862,61,35",
         "984,92,344",
-        "425,690,689",
+        "425,690,689"
         ]
 
     let samplePlan = planCables(samplePoints, 10)
@@ -233,7 +233,7 @@ func planCables(pointLines: const [..] string, attemptedLinks: u32)->CablePlan
         "10,0,0",
         "11,0,0",
         "20,0,0",
-        "25,0,0",
+        "25,0,0"
         ]
 
     let corridorPlan = planCables(corridorPoints, 5)

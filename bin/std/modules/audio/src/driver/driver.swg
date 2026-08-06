@@ -232,7 +232,7 @@ impl Driver
             back.recycle()
         else
         {
-            back                        = Memory.new'Voice(.allocationAllocator)
+            back = Memory.new'Voice(.allocationAllocator)
             back.allocationAllocator    = .allocationAllocator
             back.streamBuffer.allocator = .allocationAllocator
             for &buffer in back.decodedBuffers do

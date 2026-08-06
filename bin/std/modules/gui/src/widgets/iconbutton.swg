@@ -387,8 +387,8 @@ impl IWnd for IconButton
             switch #complete .arrowPosition
             {
             case .Left, .Right, .RightUpward, .RightDownward: nw += metrics.btnIcon_WidthArrow + metrics.btnIcon_SpacingArrowH
-            case .Top, .Bottom:                               nh += metrics.btnIcon_HeightArrow + metrics.btnIcon_SpacingArrowV
-            case .None:                                       break
+            case .Top, .Bottom: nh += metrics.btnIcon_HeightArrow + metrics.btnIcon_SpacingArrowV
+            case .None:         break
             }
 
             let fontR = nnFont(.font().regular)

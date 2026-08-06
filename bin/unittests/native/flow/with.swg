@@ -11,7 +11,7 @@ namespace NativeWithNs
 enum NativeWithColor
 {
     Red,
-    Blue,
+    Blue
 }
 
 struct NativeWithPoint

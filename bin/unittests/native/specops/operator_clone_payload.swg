@@ -31,8 +31,8 @@ impl ClonePayloadSetTarget
     mtd opSet(value: s32)
     {
         gClonePayloadOpSetCalls += 1
-        .value                  = value + 2
-        .calls                  += 1
+        .value = value + 2
+        .calls += 1
     }
 }
 

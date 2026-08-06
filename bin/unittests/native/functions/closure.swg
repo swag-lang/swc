@@ -125,7 +125,7 @@ func makeNested(base: s32)->func||()->s32
 // Local variables inside control flow within closure bodies must be accessible.
 #test
 {
-    var arr                   = [10, 20, 30]
+    var arr = [10, 20, 30]
     var fct: func||(s32)->s32 = undefined
     fct = func|arr|(extra: s32)->s32
     {
@@ -153,7 +153,7 @@ func makeNested(base: s32)->func||()->s32
 #test
 {
     var fct: func||(s32)->s32 = undefined
-    let base                  = 100
+    let base = 100
     fct = func|base|(x: s32)->s32
     {
         var result = base

@@ -7,7 +7,7 @@ enum Test
 {
     A = 1,
     B = 2,
-    C = 3,
+    C = 3
 }
 #assert(#nameof(Test.A) == "A")
 #assert(#nameof(Test.B) == "B")

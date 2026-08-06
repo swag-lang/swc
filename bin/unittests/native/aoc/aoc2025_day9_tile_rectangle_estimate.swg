@@ -103,7 +103,7 @@ func estimateReplacementArea(pointLines: const [..] string)->RectangleEstimate
         "9,5",
         "2,5",
         "2,3",
-        "7,3",
+        "7,3"
         ]
 
     let sampleEstimate = estimateReplacementArea(sampleTiles)
@@ -122,7 +122,7 @@ func estimateReplacementArea(pointLines: const [..] string)->RectangleEstimate
         "8,6",
         "4,9",
         "1,9",
-        "1,4",
+        "1,4"
         ]
 
     let lobbyEstimate = estimateReplacementArea(lobbyTiles)

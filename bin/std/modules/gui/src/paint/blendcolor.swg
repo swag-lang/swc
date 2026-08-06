@@ -26,9 +26,9 @@ impl BlendColor
     {
         if wnd.app().dirtyTheme != .themeCrc
         {
-            .themeCrc                       = wnd.app().dirtyTheme
+            .themeCrc = wnd.app().dirtyTheme
             .curVec4, .startVec4, .destVec4 = target.toVector4()
-            .factor                         = 1.0
+            .factor   = 1.0
             return
         }
 

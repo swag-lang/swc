@@ -980,7 +980,7 @@ const GL_WEIGHTED_AVERAGE_ARB       = 0x9367
 
 /* ------------------------- GL_ARB_texture_gather ------------------------- */
 
-const GL_ARB_texture_gather                        = 1
+const GL_ARB_texture_gather = 1
 const GL_MIN_PROGRAM_TEXTURE_GATHER_OFFSET_ARB     = 0x8E5E
 const GL_MAX_PROGRAM_TEXTURE_GATHER_OFFSET_ARB     = 0x8E5F
 const GL_MAX_PROGRAM_TEXTURE_GATHER_COMPONENTS_ARB = 0x8F9F

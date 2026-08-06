@@ -76,7 +76,7 @@ enum Channel: u8
 #test
 {
     let levels: [Channel] s32 = [10, 20, 30]
-    var sum                   = 0
+    var sum = 0
 
     for value, [channel] in levels
     {

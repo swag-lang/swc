@@ -811,10 +811,10 @@ impl Painter
             .paintParams  = .Default
             .paintQuality = .Normal
             .transform.setIdentity()
-            .interpolationMode                       = .Pixel
-            .blendingMode                            = .Alpha
+            .interpolationMode = .Pixel
+            .blendingMode      = .Alpha
             .colorMask.r, .colorMask.g, .colorMask.b = true
-            .colorMask.a                             = false
+            .colorMask.a       = false
         }
 
         .resetClippingRect()

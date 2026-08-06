@@ -7,7 +7,7 @@ enum TOTO: const [..] s32
     B = 0
 }
 
-enum A : B { B = 0, C = 1, }
+enum A : B { B = 0, C = 1 }
 
 enum A : u32 { Z }
 enum A : *T { Z }

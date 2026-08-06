@@ -144,22 +144,22 @@ func nonNullRequiresInitFallible()->*NonNullRequiresInitItem fail
 
 #test
 {
-    var item                                  = NonNullRequiresInitItem{value: 1}
+    var item = NonNullRequiresInitItem{value: 1}
     let values: [2] NonNullRequiresInitHolder = [{required: &item}]     // swc-expected-error {{sema_err_type_requires_init}}
 }
 
 #test
 {
-    var item                                     = NonNullRequiresInitItem{value: 1}
+    var item = NonNullRequiresInitItem{value: 1}
     let values: [2, 2] NonNullRequiresInitHolder = [
         [{required: &item}, {required: &item}],
-        [{required: &item}],     // swc-expected-error {{sema_err_type_requires_init}}
+        [{required: &item}]     // swc-expected-error {{sema_err_type_requires_init}}
         ]
 }
 
 #test
 {
-    var item                          = NonNullRequiresInitItem{value: 1}
+    var item = NonNullRequiresInitItem{value: 1}
     var ptr: *NonNullRequiresInitItem = &item
     @init(&ptr)     // swc-expected-error {{sema_err_type_requires_init}}
 }

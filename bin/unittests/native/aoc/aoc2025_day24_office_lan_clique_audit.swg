@@ -325,7 +325,7 @@ func auditLan(connections: const [..] string)->LanAudit
         "co-tc",
         "wh-qp",
         "tb-vc",
-        "td-yn",
+        "td-yn"
         ]
 
     let sampleAudit = auditLan(sampleConnections)
@@ -341,7 +341,7 @@ func auditLan(connections: const [..] string)->LanAudit
         "aa-tt",
         "bb-cc",
         "bb-tt",
-        "cc-tt",
+        "cc-tt"
         ]
 
     let compactAudit = auditLan(compactConnections)

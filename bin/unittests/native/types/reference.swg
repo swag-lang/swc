@@ -156,8 +156,8 @@ func writeVecRef(target: &Vec2, value: Vec2)
 #test
 {
     var values: RefIndexBuffer = {values: [12]}
-    var total                  = 1's32
-    var index                  = 0's64
+    var total = 1's32
+    var index = 0's64
 
     let valueRef: &s32 = &values.ref1(index)
     total    += valueRef

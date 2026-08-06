@@ -3,19 +3,19 @@
 enum SignedCode: s32
 {
     Neg = -5,
-    Pos = 9,
+    Pos = 9
 }
 
 enum UnsignedCode: u16
 {
     A = 7,
-    B = 255,
+    B = 255
 }
 
 enum TinyCode: u8
 {
     Zero  = 0,
-    Three = 3,
+    Three = 3
 }
 
 #[Swag.EnumFlags]
@@ -24,7 +24,7 @@ enum Flags16: u16
     Read  = 1,
     Write = 2,
     Exec  = 4,
-    High  = 0x8000,
+    High  = 0x8000
 }
 
 #assert(cast(s32) SignedCode.Neg == -5)

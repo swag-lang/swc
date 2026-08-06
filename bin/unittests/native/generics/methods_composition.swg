@@ -65,7 +65,7 @@ impl Counter
     @assert(b.value == 42)
 
     let c2: Container'string = {value: "boxed", count: 1}
-    let b2                   = c2.toBox()
+    let b2 = c2.toBox()
     @assert(b2.value == "boxed")
 
     let c3: Container'bool = {value: true, count: 0}
@@ -81,7 +81,7 @@ impl Counter
     @assert(p.second == 10)
 
     let words: Container'string = {value: "alpha", count: 2}
-    let pair                    = words.pairWith("beta")
+    let pair = words.pairWith("beta")
     @assert(pair.first == "alpha")
     @assert(pair.second == "beta")
 }

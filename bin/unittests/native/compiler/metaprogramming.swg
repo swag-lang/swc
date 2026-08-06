@@ -630,7 +630,7 @@ namespace compiler4844
     // #run builds a typed array at compile time
     #test
     {
-        const N                   = 4
+        const N = 4
         const PowerOfTwo: [N] s32 = #run
         {
             var arr: [N] s32

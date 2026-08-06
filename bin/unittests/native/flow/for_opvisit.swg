@@ -577,7 +577,7 @@ impl GenericScopedVisits
 #test
 {
     let values:  GenericScopedVisits's32 = {values: [10, 20, 30]}
-    var sum                              = 0
+    var sum = 0
     var indexes: u64
 
     for value, [ordinal] in values

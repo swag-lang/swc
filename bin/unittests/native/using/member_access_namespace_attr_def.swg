@@ -8,7 +8,7 @@ namespace Compress
         enum CompressionLevel
         {
             Default,
-            BestSpeed,
+            BestSpeed
         }
     }
 }

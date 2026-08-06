@@ -119,7 +119,7 @@ struct MainWnd
     bottomSize:                                BottomSize = Medium
     pixSelFillCol:                             Color      = Argb.White
     inPlaceEdit, snap, freezeSel, libraryMode: bool
-    firstShow                                             = true
+    firstShow = true
     fileDlgState, fileDlgStateInPlace:         FileDlgState
     captureOptions:                            CaptureOptions
     editorOptions:                             EditorOptions

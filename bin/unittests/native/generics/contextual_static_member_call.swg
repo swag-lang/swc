@@ -42,7 +42,7 @@ impl ContextStaticBox
 #test
 {
     var v: ContextStaticVec2's32 = {x: 3, y: 4}
-    let doubled                  = v.doubled()
+    let doubled = v.doubled()
 
     #assert(#typeof(doubled) == ContextStaticVec2's32)
     @assert(doubled.x == 6)
@@ -52,8 +52,8 @@ impl ContextStaticBox
 #test
 {
     var box: ContextStaticBox's32 = {value: {x: 10, y: 20}}
-    let expanded                  = box.expanded()
-    let aliased                   = box.expandedViaAlias()
+    let expanded = box.expanded()
+    let aliased  = box.expandedViaAlias()
 
     #assert(#typeof(expanded) == ContextStaticVec2's32)
     #assert(#typeof(aliased) == ContextStaticVec2's32)

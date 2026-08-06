@@ -788,7 +788,7 @@ impl String
 
         // Find 'what', and returns the byte index of it
         mtd const indexOf(what: string, startByteIndex = 0'u64, comparisonType = Utf8.ComparisonType.Latin1)->u64 => Utf8.indexOf(.toSlice(), what, startByteIndex, comparisonType)
-        mtd const indexOf(what: rune, startByteIndex = 0'u64)->u64                                                => Utf8.indexOf(.toSlice(), what, startByteIndex)
+        mtd const indexOf(what: rune, startByteIndex = 0'u64)->u64 => Utf8.indexOf(.toSlice(), what, startByteIndex)
     }
 }
 

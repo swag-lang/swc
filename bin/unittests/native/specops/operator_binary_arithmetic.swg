@@ -67,7 +67,7 @@ impl GenBinaryPair
 {
     var a: GenBinaryPair'u32 = {x: 10, y: 20}
     var b: GenBinaryPair'u32 = {x: 3, y: 7}
-    let sum                  = a + b
+    let sum = a + b
 
     #assert(#typeof(sum) == GenBinaryPair'u32)
     @assert(sum.x == 13)
@@ -123,7 +123,7 @@ impl GenBinaryPair
 {
     var a: GenBinaryPair'u32 = {x: 17, y: 25}
     var b: GenBinaryPair'u32 = {x: 5, y: 7}
-    let rem                  = a % b
+    let rem = a % b
 
     @assert(rem.x == 2)
     @assert(rem.y == 4)
@@ -208,7 +208,7 @@ impl GenBinaryPair
 {
     var a: GenBinaryPair's16 = {x: 100, y: -200}
     var b: GenBinaryPair's16 = {x: 50, y: 300}
-    let sum                  = a + b
+    let sum = a + b
 
     #assert(#typeof(sum) == GenBinaryPair's16)
     @assert(sum.x == 150)

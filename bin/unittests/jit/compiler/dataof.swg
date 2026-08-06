@@ -31,7 +31,7 @@ impl ConstDataOfSpecBuffer
     func mutateThroughSpecOp()->s32
     {
         var value: DataOfSpecBuffer = {data: [11, 22, 33]}
-        let p                       = @dataof(value)
+        let p = @dataof(value)
         p[1] = 44
         return p[0] + p[1] + value.data[2]
     }

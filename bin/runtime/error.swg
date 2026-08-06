@@ -36,7 +36,7 @@ func __setErrRaw(data: *void, type: const *Swag.TypeInfoStruct)
     if type.opPostCopy do
         type.opPostCopy(ptr)
     cxt.errors[cxt.errorIndex].value = @mkany(ptr, type)
-    cxt.hasError                     = 1
+    cxt.hasError = 1
 }
 
 func __setErr(err: any)
@@ -131,7 +131,7 @@ func __catchErr()
     cxt.hasError            = 0
     if cxt.errorIndex
     {
-        cxt.errorIndex                          -= 1
+        cxt.errorIndex -= 1
         cxt.errors[cxt.errorIndex].pushHasError = 0
     }
 }

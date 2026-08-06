@@ -332,8 +332,8 @@ func testPrepareRecentLibrary(main: *MainWnd)
     defer discard catch File.delete(capturePath)
     let linkedPath = Gui.Testing.tempFilePath("scapture-", ".png")
     defer discard catch File.delete(linkedPath)
-    f.capture.linkedImage                       = linkedPath
-    f.capture.linkedUpToDate                    = false
+    f.capture.linkedImage    = linkedPath
+    f.capture.linkedUpToDate = false
     f.main.editorOptions.confirmLinkedOverwrite = false
 
     f.main.sendCommandEvent(ActionFile.UpdateLinkedImage)
@@ -370,8 +370,8 @@ func testPrepareRecentLibrary(main: *MainWnd)
     defer discard catch File.delete(capturePath)
     let linkedPath = Gui.Testing.tempFilePath("scapture-", ".png")
     defer discard catch File.delete(linkedPath)
-    f.capture.linkedImage                       = linkedPath
-    f.capture.linkedUpToDate                    = false
+    f.capture.linkedImage    = linkedPath
+    f.capture.linkedUpToDate = false
     f.main.editorOptions.confirmLinkedOverwrite = true
 
     f.gui.clickModalButtonWhenShown(Dialog.BtnYes)

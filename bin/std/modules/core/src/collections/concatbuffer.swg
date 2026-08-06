@@ -208,10 +208,10 @@ impl ConcatBuffer
             return
 
         let firstBucket = .firstBucket
-        .curBucket, .lastBucket                    = firstBucket
-        .currentSP                                 = firstBucket.data
+        .curBucket, .lastBucket = firstBucket
+        .currentSP              = firstBucket.data
         firstBucket.countBefore, firstBucket.count = 0
-        .isAtEnd                                   = true
+        .isAtEnd                = true
     }
 
     // Appends a native type (like u8, s32, f64) to the buffer.
@@ -280,7 +280,7 @@ impl ConcatBuffer
                 while num > remain
                 {
                     Memory.copy(.currentSP, slicePtr, remain)
-                    num                  -= remain
+                    num -= remain
                     slicePtr, .currentSP += remain
                     if !num do
                         return

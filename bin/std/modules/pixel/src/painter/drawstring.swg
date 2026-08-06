@@ -346,10 +346,10 @@ impl Painter
     {
         Debug.assert(font != null, "invalid font")
 
-        result.font                                                                                = font
-        result.tabSize                                                                             = tabSize
-        result.letterSpacing                                                                       = letterSpacing
-        result.hasInk                                                                              = false
+        result.font          = font
+        result.tabSize       = tabSize
+        result.letterSpacing = letterSpacing
+        result.hasInk        = false
         result.metrics.ascent, result.metrics.descent, result.metrics.width, result.metrics.height = 0
         result.glyphs.clear()
         result.glyphs.reserve(@countof(text))

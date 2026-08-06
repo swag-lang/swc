@@ -17,7 +17,7 @@ const StaticDefaultValue = FileLevelDefaultEnum.A
 enum FileLevelDefaultEnum
 {
     A,
-    B,
+    B
 }
 
 #[Swag.Compiler]

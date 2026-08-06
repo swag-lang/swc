@@ -108,7 +108,7 @@ func canCompare(type: #null typeinfo)->bool
         switch typeNative.nativeKind
         {
         case .S8, .S16, .S32, .S64, .U8, .U16, .U32, .U64, .F32, .F64, .Rune, .String: return true
-        default:                                                                       return false
+        default: return false
         }
 
     case .Struct:

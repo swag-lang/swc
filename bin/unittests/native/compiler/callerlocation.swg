@@ -348,7 +348,7 @@ alias GlobalLocFn = func(loc = #callerlocation)->SourceCodeLocation
 
 func globalFunctionTypeTarget(loc: SourceCodeLocation)->SourceCodeLocation => loc
 
-var GlobalAliasFunctionTypeValue:  GlobalLocFn                                     = &globalFunctionTypeTarget
+var GlobalAliasFunctionTypeValue:  GlobalLocFn = &globalFunctionTypeTarget
 var DirectGlobalFunctionTypeValue: func(loc = #callerlocation)->SourceCodeLocation = &globalFunctionTypeTarget
 
 func globalAliasFunctionTypeCaller()->SourceCodeLocation

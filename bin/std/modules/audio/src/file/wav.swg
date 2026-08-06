@@ -212,7 +212,7 @@ func readChunkFmt(file: *SoundFile, stream: *File.FileStream, chunkSize: u32) fa
                     {
                     case Memory.bytesEqual(&wfex.subFormat, GUID_PCM):        file.setEncodingFormat(WAVE_FORMAT_PCM)
                     case Memory.bytesEqual(&wfex.subFormat, GUID_IEEE_FLOAT): file.setEncodingFormat(WAVE_FORMAT_IEEE_FLOAT)
-                    default:                                                  fail UnsupportedFormatError{"unsupported wav format"}
+                    default: fail UnsupportedFormatError{"unsupported wav format"}
                     }
                 }
             }

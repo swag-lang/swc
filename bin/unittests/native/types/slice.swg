@@ -137,7 +137,7 @@ var A: #null [..] s32
     @assert(sub[0] == 20)
     @assert(sub[1] == 77)
 
-    let text                   = "string"
+    let text = "string"
     let textRef: const &string = &text
     @assert(textRef[1 to 3] == "tri")
 }

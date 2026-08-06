@@ -143,7 +143,7 @@ enum Test
 {
     A = 1,
     B = 2,
-    C = 3,
+    C = 3
 }
 
 #assert(#kindof(Test) == s32)
@@ -158,20 +158,20 @@ enum EN { A }
 enum ArrayBacked: const [2] s32
 {
     A = [1, 2],
-    B = [10, 20],
+    B = [10, 20]
 }
 #assert(#typeof(ArrayBacked).rawType == const [2] s32)
 
 enum StrictArrayAliasBacked: EnumStrictArrayAlias
 {
-    A = cast(EnumStrictArrayAlias) [3, 4],
+    A = cast(EnumStrictArrayAlias) [3, 4]
 }
 #assert(#typeof(StrictArrayAliasBacked).rawType == const [2] s32)
 
 enum SliceBacked: const [..] s32
 {
     A = [1, 2],
-    B = [10, 20, 30],
+    B = [10, 20, 30]
 }
 const SliceBackedA = cast(const [..] s32) SliceBacked.A
 const SliceBackedB = cast(const [..] s32) SliceBacked.B

@@ -3,7 +3,7 @@
 enum State
 {
     Idle,
-    Running,
+    Running
 }
 
 #test

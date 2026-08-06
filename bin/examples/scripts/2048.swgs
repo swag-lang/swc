@@ -35,8 +35,8 @@ func paintGrid(wnd: *Wnd, painter: *Painter)
     var rectGrid: Math.Rectangle
 
     let size = CellSize * CellCount
-    rectGrid.x                      = rect.horzCenter() - size * 0.5
-    rectGrid.y                      = rect.bottom() - size - 3 * Margin
+    rectGrid.x = rect.horzCenter() - size * 0.5
+    rectGrid.y = rect.bottom() - size - 3 * Margin
     rectGrid.width, rectGrid.height = size
 
     painter.setAntialiased(true)
@@ -100,7 +100,7 @@ func randValue()
         var cell: Cell
         cell.x, cell.xd, cell.nxd = x
         cell.y, cell.yd, cell.nyd = y
-        cell.val                  = Random.shared().nextBool() ? 2 : 4
+        cell.val = Random.shared().nextBool() ? 2 : 4
         g_Cells.add(cell)
         break
     }
@@ -201,7 +201,7 @@ func keyboard(wnd: *Wnd)
     case kb.isKeyJustPressed(.Right): g_MoveDirX = 1
     case kb.isKeyJustPressed(.Up):    g_MoveDirY = -1
     case kb.isKeyJustPressed(.Down):  g_MoveDirY = 1
-    default:                          g_MoveDirX, g_MoveDirY = 0
+    default: g_MoveDirX, g_MoveDirY = 0
     }
 
     var recom = true

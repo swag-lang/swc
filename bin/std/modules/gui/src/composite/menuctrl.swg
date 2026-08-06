@@ -268,7 +268,7 @@ public impl IWnd for MenuCtrl
             if it.checked or it.rg == .ExclusiveGroup
             {
                 var checkPos = iconPos
-                checkPos.y                      = opticalTop(.font(), textCenterY, it.size)
+                checkPos.y = opticalTop(.font(), textCenterY, it.size)
                 checkPos.width, checkPos.height = it.size
 
                 if it.rg == .ExclusiveGroup

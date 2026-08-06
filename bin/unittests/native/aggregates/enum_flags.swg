@@ -6,7 +6,7 @@ enum TestFlags: u32
     A,
     B,
     C,
-    AB = A | B,
+    AB = A | B
 }
 
 #[Swag.Strict]
@@ -19,7 +19,7 @@ enum RefTestFlags: u32
     A,
     B,
     C,
-    D,
+    D
 }
 
 struct RefTestFlagBuffer
@@ -39,7 +39,7 @@ enum ImplicitRefTestFlags
     West,
     East,
     North,
-    South,
+    South
 }
 
 struct ImplicitRefTestFlagBuffer

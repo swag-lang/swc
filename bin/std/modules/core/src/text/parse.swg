@@ -129,7 +129,7 @@ func parseU64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
         {
             let one = Tokenize.eatCount(str, 2)
             {result.value, result.eat, result.ovf} = try parseX64(one)
-            result.eat                             += 2
+            result.eat += 2
             return result
         }
 
@@ -137,7 +137,7 @@ func parseU64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
         {
             let one = Tokenize.eatCount(str, 2)
             {result.value, result.eat, result.ovf} = try parseB64(one)
-            result.eat                             += 2
+            result.eat += 2
             return result
         }
     }
@@ -336,7 +336,7 @@ func parseBool(str: string)->{ value: bool, eat: u32 } fail
     {
     case "1", "true", "TRUE", "True":    result.value = true
     case "0", "false", "FALSE", "False": result.value = false
-    default:                             fail SyntaxError{}
+    default: fail SyntaxError{}
     }
 
     result.eat = cast(u32) @countof(sub)

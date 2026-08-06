@@ -39,7 +39,7 @@ func nullSafetyEnabled()->bool
 #test
 {
     var p: #null *NullDerefItem = null
-    let q                       = p!
+    let q = p!
     q.x = 1     // swc-expected-error {{sanity_err_null_deref}}
 }
 
@@ -48,7 +48,7 @@ func nullSafetyEnabled()->bool
 #test
 {
     var p: #null *NullDerefItem = null
-    let q                       = p!
+    let q = p!
     q.y = 2     // swc-expected-error {{sanity_err_null_deref}}
 }
 
@@ -66,7 +66,7 @@ func nullSafetyEnabled()->bool
 #test
 {
     var p: #null *NullDerefItem = null
-    var q                       = p!
+    var q = p!
     q.x = 3     // swc-expected-error {{sanity_err_null_deref}}
 }
 
@@ -76,7 +76,7 @@ func nullSafetyEnabled()->bool
 #test
 {
     var p: #null *NullDerefItem = null
-    let q                       = p!
+    let q = p!
     @assert(q.x == 0)     // swc-expected-error {{sanity_err_null_deref}}
 }
 

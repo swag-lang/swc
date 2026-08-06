@@ -34,7 +34,7 @@ func semaTest003()
 {
     let holder:   ConstAddrHolder       = {value: {x: 123}}
     var valueRef: const &ConstAddrValue = &holder.value
-    let result                          = readConstAddr(&holder.value)
+    let result = readConstAddr(&holder.value)
 
     #assert(#typeof(valueRef) == const &ConstAddrValue)
     #assert(#typeof(result) == s32)
@@ -174,8 +174,8 @@ func semaTest012()
 func semaTest013()
 {
     var values: RefIndexBuffer = {values: [12]}
-    var total                  = 1's32
-    var index                  = 0's64
+    var total = 1's32
+    var index = 0's64
 
     let valueRef: &s32 = &values.ref1(index)
     total    += valueRef

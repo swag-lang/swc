@@ -735,7 +735,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     @assert(reopened.blockCount == originalBlocks + 64)
 
     var readBack: [64] u8
-    let node     = reopened.resolve("\\kept.bin")!
+    let node = reopened.resolve("\\kept.bin")!
     @assert(expect reopened.readNode(node.id, 0, readBack) == #sizeof(readBack))
     @assert(sameTestBytes(payload, readBack))
 

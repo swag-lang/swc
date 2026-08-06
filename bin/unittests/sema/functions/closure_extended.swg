@@ -37,8 +37,8 @@ alias ClosureNullary = func||()->s32
 
 var GlobalSeed = 41
 
-func addOne(value: s32)->s32                                              => value + 1
-func acceptUnary(cb: ClosureUnary)->ClosureUnary                          => cb
+func addOne(value: s32)->s32 => value + 1
+func acceptUnary(cb: ClosureUnary)->ClosureUnary => cb
 func acceptNullary(cb: #null ClosureNullary = null)->#null ClosureNullary => cb
 
 impl PathOwner
@@ -75,8 +75,8 @@ func semaTest002()
 func semaTest003()
 {
     let globalReader: ClosureNullary = func()->s32 { return GlobalSeed }
-    let fromLambda                   = acceptUnary(func(value: s32)->s32 { return value * 2 })
-    let fromNull                     = acceptNullary()
+    let fromLambda = acceptUnary(func(value: s32)->s32 { return value * 2 })
+    let fromNull   = acceptNullary()
 
     #assert(#typeof(globalReader) == ClosureNullary)
     #assert(#typeof(fromLambda) == ClosureUnary)

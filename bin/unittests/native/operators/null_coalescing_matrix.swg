@@ -74,9 +74,9 @@ func nonNullSliceWins()->bool
 func nullInterfaceFallbackWritesThroughSelectedReceiver()->bool
 {
     var value: #null INullCoalescingProbe = null
-    var fallbackProbe                     = NullCoalescingProbe{tag: 77}
-    let fallback                          = @mkinterface(&fallbackProbe, #typeof(fallbackProbe), INullCoalescingProbe)
-    let selected                          = value orelse fallback
+    var fallbackProbe = NullCoalescingProbe{tag: 77}
+    let fallback      = @mkinterface(&fallbackProbe, #typeof(fallbackProbe), INullCoalescingProbe)
+    let selected      = value orelse fallback
 
     var written: u64 = 0
     selected.write(&written)

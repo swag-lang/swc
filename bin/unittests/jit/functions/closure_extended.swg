@@ -35,7 +35,7 @@ struct PathOwner
 const GlobalBonus = 2
 var GlobalSeed = 40
 
-func addOne(value: s32)->s32                            => value + 1
+func addOne(value: s32)->s32 => value + 1
 func invokeUnary(cb: func||(s32)->s32, value: s32)->s32 => cb(value)
 func relayUnary(cb: func||(s32)->s32)->func||(s32)->s32 => cb
 
@@ -324,7 +324,7 @@ func runMePathCapture()->s32
     let globalReader: func||()->s32 = func()->s32 { return GlobalSeed + GlobalBonus }
     @assert(globalReader() == 42)
 
-    var text                      = "abc"
+    var text = "abc"
     let byValue: func||()->string = func|text|()->string { return text }
     let byRef:   func||()->string = func|&text|()->string { return text }
 

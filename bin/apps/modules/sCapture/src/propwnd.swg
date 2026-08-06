@@ -198,8 +198,8 @@ impl PropWnd
         let frame  = btn.createAnchorPopup(popupExtent(cells, PopupCellSize), popupExtent(1, PopupCellSize))
         let layout = frame.createView'WrapLayoutCtrl()
         layout.itemWidth, layout.itemHeight = PopupCellSize
-        layout.spacing                      = PopupSpacing
-        layout.padding                      = PopupPadding
+        layout.spacing = PopupSpacing
+        layout.padding = PopupPadding
 
         func selectedKind(prop: *PropWnd, type: typeinfo, fieldName: String)->FormShapeKind
         {
@@ -393,7 +393,7 @@ impl PropWnd
         switch .getSelectedFormType()
         {
         case FormLine, FormArrow, FormDraw: tip = appStrings().ui_PropColor
-        case FormStep:                      tip = appStrings().act_Text
+        case FormStep: tip = appStrings().act_Text
         }
 
         let btn = createStyleButton(stack, tip)
@@ -403,8 +403,8 @@ impl PropWnd
             bc.painter.setParams(.Antialiased)
             let curSel = prop.getSelectedBaseForm()
             var rect   = pos
-            rect.x                  = rect.horzCenter() - StyleGlyphSize * 0.5
-            rect.y                  = rect.vertCenter() - StyleGlyphSize * 0.5
+            rect.x = rect.horzCenter() - StyleGlyphSize * 0.5
+            rect.y = rect.vertCenter() - StyleGlyphSize * 0.5
             rect.width, rect.height = StyleGlyphSize
             if !curSel.borderColor.isOpaque() do
                 bc.painter.drawRect(rect, Pen.createHatch(.CheckBoardLarge, Argb.DarkGray, 5))
@@ -453,8 +453,8 @@ impl PropWnd
             bc.painter.setParams(.Antialiased)
             var curSel = prop.getSelectedBaseForm()!
             var rect   = pos
-            rect.x                  = rect.horzCenter() - StyleGlyphSize * 0.5
-            rect.y                  = rect.vertCenter() - StyleGlyphSize * 0.5
+            rect.x = rect.horzCenter() - StyleGlyphSize * 0.5
+            rect.y = rect.vertCenter() - StyleGlyphSize * 0.5
             rect.width, rect.height = StyleGlyphSize
             var backCol = curSel.subKind == .PixSel ? g_Main!.pixSelFillCol : curSel.backColor
             if !backCol.isOpaque() do
@@ -663,8 +663,8 @@ impl PropWnd
             bc.painter.setParams(.Antialiased)
             let curSel = cast(*FormCallout) prop.getSelectedBaseForm()
             var rect   = pos
-            rect.x                  = rect.horzCenter() - StyleGlyphSize * 0.5
-            rect.y                  = rect.vertCenter() - StyleGlyphSize * 0.5
+            rect.x = rect.horzCenter() - StyleGlyphSize * 0.5
+            rect.y = rect.vertCenter() - StyleGlyphSize * 0.5
             rect.width, rect.height = StyleGlyphSize
             if !curSel.textColor.isOpaque() do
                 bc.painter.fillRect(rect, Brush.createHatch(.CheckBoardLarge, Argb.DarkGray))

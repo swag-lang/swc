@@ -110,7 +110,7 @@ impl TelemetrySeries
         band: {low: -40.0, high: 120.0},
         samples: [0.0'f32, 0.0, 0.0],
         next: 0,
-        filled: 0,
+        filled: 0
         }
 
     @assert(temperature.ingest(18.0'f32) == 18.0'f32)
@@ -135,7 +135,7 @@ impl TelemetrySeries
         band: {low: -40.0, high: 120.0},
         samples: [18.0'f32, 21.0, 24.0],
         next: 0,
-        filled: 3,
+        filled: 3
         }
 
     @assert(temperature.ingest(30.0'f32) == 30.0'f32)
@@ -154,7 +154,7 @@ impl TelemetrySeries
         band: {low: 0.0, high: 100.0},
         samples: [0.0'f64, 0.0, 0.0, 0.0],
         next: 0,
-        filled: 0,
+        filled: 0
         }
 
     @assert(humidity.ingest(40.0'f64) == 40.0'f64)
@@ -176,7 +176,7 @@ impl TelemetrySeries
         band: {low: 90.0, high: 110.0},
         samples: [0.0'f64, 0.0, 0.0],
         next: 0,
-        filled: 0,
+        filled: 0
         }
 
     @assert(pressure.ingest(40.0'f64) == 94.0'f64)

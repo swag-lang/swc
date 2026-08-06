@@ -34,11 +34,11 @@ struct GridLayoutCtrl
 {
     using wnd: Wnd     // Embedded wnd state.
 
-    flags                  = GridLayoutFlags.None     // Active grid sizing options.
-    numColumns:        s32                            // Number of columns.
-    numRows:           s32                            // Number of rows.
-    horizontalSpacing: f32 = 5                        // Gap between adjacent columns.
-    verticalSpacing:   f32 = 5                        // Gap between adjacent rows.
+    flags = GridLayoutFlags.None     // Active grid sizing options.
+    numColumns:        s32           // Number of columns.
+    numRows:           s32           // Number of rows.
+    horizontalSpacing: f32 = 5       // Gap between adjacent columns.
+    verticalSpacing:   f32 = 5       // Gap between adjacent rows.
 
     internal
     {

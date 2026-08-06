@@ -95,7 +95,7 @@ func floodFill(x, y: s32)
 
 func setup()
 {
-    g_Lost, g_Win                        = false
+    g_Lost, g_Win = false
     g_NumMines, g_NumMarks, g_Discovered = 0
     fillGrid()
 }

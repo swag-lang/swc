@@ -500,8 +500,8 @@ impl Volume
         .containerSize = requestedSize
         .blockCount    = newBlockCount
         .blocks.extend(previousBlockCount, newBlockCount - previousBlockCount)
-        .scalarsDirty  = true
-        .dirty         = true
+        .scalarsDirty = true
+        .dirty        = true
         try .checkpoint()
 
         committed = true

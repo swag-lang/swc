@@ -100,7 +100,7 @@ func semaTest001()
 func semaTest002()
 {
     let wrapped: LocalWrap's32 = {value: 7}
-    let clone                  = wrapped.cloneThroughHelper()
+    let clone = wrapped.cloneThroughHelper()
 
     #assert(#typeof(clone) == LocalWrap's32)
     #assert(#typeof(clone.value) == s32)

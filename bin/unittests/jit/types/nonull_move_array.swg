@@ -32,7 +32,7 @@ func consumeJitNonNullMoveArray(value: JitNonNullMoveArrayNestedAlias)->bool
 #test
 {
     var source: JitNonNullMoveArrayNestedAlias = [{value: "init-a"}, {value: "init-b"}]
-    let target                                 = #move source
+    let target = #move source
     @assert(target[0].value == "init-a" and target[1].value == "init-b")
     @assert(source[0].value == "reset" and source[1].value == "reset")
 }

@@ -33,7 +33,7 @@ func makeTime()->DestructAssignTime
 func makeDateTime()->DestructAssignDateTime
 {
     var result: retval = undefined
-    {result.year, result.month, result.day}                         = makeDate()
+    {result.year, result.month, result.day} = makeDate()
     {result.hour, result.minute, result.second, result.millisecond} = makeTime()
     return result
 }

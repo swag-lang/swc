@@ -285,7 +285,7 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
         {name: "y01", value: 1},
         {name: "y02", value: 1},
         {name: "y03", value: 1},
-        {name: "y04", value: 1},
+        {name: "y04", value: 1}
         ]
 
     const sampleGates: [36] LogicGate =
@@ -325,7 +325,7 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
         {left: "y03", op: GateOp.Or,  right: "x01", output: "nrd"},
         {left: "hwm", op: GateOp.And, right: "bqk", output: "z03"},
         {left: "tgd", op: GateOp.Xor, right: "rvg", output: "z12"},
-        {left: "tnw", op: GateOp.Or,  right: "pbm", output: "gnj"},
+        {left: "tnw", op: GateOp.Or,  right: "pbm", output: "gnj"}
         ]
 
     let sampleAudit = auditBoard(sampleInputs, sampleGates)
@@ -339,7 +339,7 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
         {name: "x02", value: 1},
         {name: "y00", value: 1},
         {name: "y01", value: 1},
-        {name: "y02", value: 0},
+        {name: "y02", value: 0}
         ]
 
     const swappedAdder: [12] LogicGate =
@@ -355,7 +355,7 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
         {left: "x02", op: GateOp.And, right: "y02", output: "a02"},
         {left: "s02", op: GateOp.Xor, right: "c02", output: "z02"},
         {left: "s02", op: GateOp.And, right: "c02", output: "t02"},
-        {left: "t02", op: GateOp.Or,  right: "a02", output: "z03"},
+        {left: "t02", op: GateOp.Or,  right: "a02", output: "z03"}
         ]
 
     let swappedAudit = auditBoard(swappedInputs, swappedAdder)

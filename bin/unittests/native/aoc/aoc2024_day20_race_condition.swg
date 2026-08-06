@@ -367,7 +367,7 @@ func solve(text: string, minSaving: u32)->SolveResult
     cells[0 * MaxDim + 0] = '#'; cells[0 * MaxDim + 1] = '#'; cells[0 * MaxDim + 2] = '#'
     cells[1 * MaxDim + 0] = '#'; cells[1 * MaxDim + 1] = 'S'; cells[1 * MaxDim + 2] = '#'
     cells[2 * MaxDim + 0] = '#'; cells[2 * MaxDim + 1] = '#'; cells[2 * MaxDim + 2] = '#'
-    g.sr                  = 1; g.sc = 1; g.er = 1; g.ec = 1
+    g.sr = 1; g.sc = 1; g.er = 1; g.ec = 1
     tracePath(&g)
     @assert(g.pathLen == 0'u32)
 }

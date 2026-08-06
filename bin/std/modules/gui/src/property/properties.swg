@@ -509,9 +509,9 @@ impl Properties
         if !.externUndoMgr do
             .undoMgr.clear()
 
-        .generation                   += 1
-        .dragItem                     = null
-        .dragCmd                      = null
+        .generation += 1
+        .dragItem   = null
+        .dragCmd    = null
         .hotItem, .selItem, .menuItem = null
 
         .freeDefaultRoots()

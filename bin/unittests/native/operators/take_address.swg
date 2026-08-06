@@ -42,7 +42,7 @@ alias StrictAddressArray = [3] s32
 #test
 {
     var x: StrictAddressArray = cast(StrictAddressArray) [1, 2, 3]
-    var px                    = &x
+    var px = &x
     #assert(#typeof(px) == [*]StrictAddressArray)
     @assert(px == &x)
 }

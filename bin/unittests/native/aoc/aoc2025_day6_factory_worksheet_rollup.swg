@@ -163,7 +163,7 @@ func rollupWorksheet(sheet: const [..] string)->WorksheetRollup
         "123 328  51 64 ",
         " 45 64  387 23 ",
         "  6 98  215 314",
-        "*   +   *   +  ",
+        "*   +   *   +  "
         ]
 
     let sampleRollup = rollupWorksheet(sampleSheet)
@@ -180,7 +180,7 @@ func rollupWorksheet(sheet: const [..] string)->WorksheetRollup
         "125   75 340",
         "  7        8",
         "      25    ",
-        "*    +    * ",
+        "*    +    * "
         ]
 
     let eveningRollup = rollupWorksheet(eveningSheet)

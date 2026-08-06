@@ -16,7 +16,6 @@ using Core, Pixel
 // propertieseditors (IPropertyEditor), validation (PropValidation), + values/.
 
 // To notify a struct about properties changes
-#[Swag.Warning("Wrn0006", .Disable)]
 interface IPropertyNotify
 {
     // 'item' is null when the change is not tied to a live row anymore: an undo/redo restore

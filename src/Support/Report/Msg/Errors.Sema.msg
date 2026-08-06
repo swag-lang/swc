@@ -1,4 +1,7 @@
 SWC_DIAG_DEF(sema_warn_compiler_warning, Warning, "compile-time warning: {because}")
+SWC_DIAG_DEF(sema_warn_unreachable_code, Warning, "unreachable code; [help] remove it, or move it before the statement that stops the flow")
+
+SWC_DIAG_DEF(sema_err_unknown_warning, Error, "'#[Swag.Warning]' does not accept value '{value}'; it accepts a warning identifier, or 'all' for every warning")
 
 SWC_DIAG_DEF(sema_err_expr_not_const, Error, "expression needs a compile-time value")
 SWC_DIAG_DEF(sema_err_invalid_type, Error, "expression has type '{type}', but this context needs '{requested-type}'")

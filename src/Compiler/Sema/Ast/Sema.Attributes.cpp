@@ -14,6 +14,7 @@
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Compiler/SourceFile.h"
 #include "Main/Global.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Logger.h"
 #include "Support/Report/SyntaxColor.h"
@@ -337,6 +338,31 @@ namespace
         return Result::Continue;
     }
 
+    Result collectWarningOptions(Sema& sema, std::span<const ResolvedCallArgument> args, AttributeList& outAttributes)
+    {
+        SWC_ASSERT(args.size() >= 2);
+
+        const ConstantValue* what = nullptr;
+        SWC_RESULT(collectResolvedConstantValue(sema, args[0], what));
+        SWC_ASSERT(what != nullptr);
+        SWC_ASSERT(what->isString());
+
+        uint64_t levelValue = 0;
+        SWC_RESULT(collectResolvedEnumMaskValue(sema, args[1], levelValue));
+
+        const auto                level   = static_cast<WarningLevel>(levelValue);
+        const std::optional<Utf8> unknown = outAttributes.warnings.addList(what->getString(), level);
+        if (!unknown.has_value())
+            return Result::Continue;
+
+        const AstNodeRef errorRef = args[0].argRef.isValid() ? args[0].argRef : sema.curNodeRef();
+        auto             diag     = SemaError::report(sema, DiagnosticId::sema_err_unknown_warning, errorRef);
+        diag.addArgument(Diagnostic::ARG_VALUE, unknown.value());
+        diag.addDidYouMeanNote(Utf8Helper::bestMatch(unknown.value(), WarningPolicy::allIdNames()));
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
     Result collectBorrowSummaryOptions(Sema& sema, std::span<const ResolvedCallArgument> args, AttributeList& outAttributes)
     {
         SWC_ASSERT(!args.empty());
@@ -486,6 +512,7 @@ namespace
         const IdentifierRef      safetyIdRef        = sema.idMgr().addIdentifier("Safety");
         const IdentifierRef      sanityIdRef        = sema.idMgr().addIdentifier("Sanity");
         const IdentifierRef      borrowSummaryIdRef = sema.idMgr().addIdentifier("BorrowSummary");
+        const IdentifierRef      warningIdRef       = sema.idMgr().addIdentifier("Warning");
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Optimize))
             return collectOptimizeLevel(sema, args, outAttributes);
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::PrintMicro))
@@ -498,6 +525,8 @@ namespace
             return collectSanityOptions(sema, resolvedArgs, outAttributes);
         if (idRef == borrowSummaryIdRef)
             return collectBorrowSummaryOptions(sema, resolvedArgs, outAttributes);
+        if (idRef == warningIdRef)
+            return collectWarningOptions(sema, resolvedArgs, outAttributes);
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Foreign))
             return collectForeignOptions(sema, resolvedArgs, outAttributes);
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Operators))

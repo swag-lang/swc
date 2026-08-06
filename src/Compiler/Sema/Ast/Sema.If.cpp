@@ -349,8 +349,8 @@ Result AstIfStmt::semaPostNode(Sema& sema) const
     // Guard-style early exits: when exactly one branch terminates the local flow, the
     // statements after the `if` can only be reached through the surviving branch, so its
     // narrowing facts hold for the remainder of the enclosing block.
-    const bool thenStops = SemaHelpers::narrowStopsLocalFlow(sema, nodeIfBlockRef);
-    const bool elseStops = nodeElseBlockRef.isValid() && SemaHelpers::narrowStopsLocalFlow(sema, nodeElseBlockRef);
+    const bool thenStops = SemaHelpers::stopsLocalFlow(sema, nodeIfBlockRef);
+    const bool elseStops = nodeElseBlockRef.isValid() && SemaHelpers::stopsLocalFlow(sema, nodeElseBlockRef);
     if (thenStops == elseStops)
         return Result::Continue;
 

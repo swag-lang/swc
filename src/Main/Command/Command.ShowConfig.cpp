@@ -11,6 +11,7 @@
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
@@ -51,6 +52,9 @@ namespace
         addBoolEntry(entries, "Syntax colors", cmdLine.syntaxColor);
         addBoolEntry(entries, "One-line diagnostics", cmdLine.diagOneLine);
         addBoolEntry(entries, "Diagnostic IDs", cmdLine.errorId);
+        addInfoEntry(entries, "Warnings as errors", Utf8Helper::join(cmdLine.warnAsErrors, "|"));
+        addInfoEntry(entries, "Warnings as warnings", Utf8Helper::join(cmdLine.warnAsWarnings, "|"));
+        addInfoEntry(entries, "Warnings disabled", Utf8Helper::join(cmdLine.warnDisabled, "|"));
         addBoolEntry(entries, "Silent", cmdLine.silent);
         addBoolEntry(entries, "Stats", cmdLine.stats);
         addBoolEntry(entries, "Publish", cmdLine.publish);

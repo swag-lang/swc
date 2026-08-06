@@ -70,12 +70,12 @@ impl Log
 
         if .formatFlags & .Line
         {
-            .buf.appendAny(loc.lineStart + 1)
+            .buf.appendAny(loc.lineStart)
             .buf.appendString(" ")
         }
         elif .formatFlags & .FullLoc
         {
-            .buf.appendFormat("%:%:%:% ", loc.lineStart + 1, loc.colStart + 1, loc.lineEnd + 1, loc.colEnd + 1)
+            .buf.appendFormat("%:%:%:% ", loc.lineStart, loc.colStart, loc.lineEnd, loc.colEnd)
         }
     }
 

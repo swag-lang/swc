@@ -1015,6 +1015,44 @@ Result CommandLineParser::parse(int argc, char* argv[])
     return checkCommandLine(ctx);
 }
 
+Result CommandLineParser::buildWarningPolicy(TaskContext& ctx) const
+{
+    struct WarningOption
+    {
+        const std::vector<Utf8>* values;
+        WarningLevel             level;
+        std::string_view         longForm;
+    };
+
+    // Read in this order, so the last option that names a warning decides it.
+    const WarningOption options[] = {
+        {&cmdLine_->warnAsErrors, WarningLevel::Error, "--warn-as-error"},
+        {&cmdLine_->warnAsWarnings, WarningLevel::Warning, "--warn-as-warning"},
+        {&cmdLine_->warnDisabled, WarningLevel::Disable, "--warn-disable"},
+    };
+
+    cmdLine_->warningPolicy.reset();
+
+    for (const WarningOption& option : options)
+    {
+        for (const Utf8& value : *option.values)
+        {
+            const std::optional<Utf8> unknown = cmdLine_->warningPolicy.addList(value, option.level);
+            if (!unknown.has_value())
+                continue;
+
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_unknown_warning);
+            diag.addArgument(Diagnostic::ARG_ARG, option.longForm);
+            diag.addArgument(Diagnostic::ARG_VALUE, unknown.value());
+            diag.addDidYouMeanNote(Utf8Helper::bestMatch(unknown.value(), WarningPolicy::allIdNames()));
+            diag.report(ctx);
+            return Result::Error;
+        }
+    }
+
+    return Result::Continue;
+}
+
 Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
 {
     if (cmdLine_->command == CommandKind::New)
@@ -1061,6 +1099,8 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
 
     if (!cmdLine_->verboseVerifyFilter.empty())
         cmdLine_->verboseVerify = true;
+
+    SWC_RESULT(buildWarningPolicy(ctx));
 
     if (cmdLine_->devFull)
     {

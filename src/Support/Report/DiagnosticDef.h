@@ -12,6 +12,15 @@ enum class DiagnosticSeverity
     Help,
 };
 
+// How a warning is reported once the policy layers have had their say.
+// Must stay in sync with 'Swag.WarningLevel' in "bin/runtime/api.swg".
+enum class WarningLevel : uint8_t
+{
+    Disable,
+    Warning,
+    Error,
+};
+
 enum class DiagnosticId
 {
     None = 0,

@@ -249,31 +249,6 @@ Use this compact format. Keep observations factual and make the next step action
   from JIT-executed code rather than from a sema-built initializer. Either instrument those stores
   or reject a `#run` write to a global that no initializer placed in the initialized segment.
 
-### F-022 — A failing `@assert` reports the source line below itself
-
-- Area: compiler
-- Found while: reading the two `sCapture` dialog failures above, where the reported line pointed at
-  an assertion that was not the one failing
-- Observation: the runtime panic location of a failed `@assert` is the assertion's own column but
-  one line too far down. It misattributes every failure to the following statement, which is worse
-  than a missing location: the reported line is usually a real, passing assertion. Compile-time
-  diagnostics on the same file are correct, so the line table is sound and only the runtime
-  `SourceCodeLocation` is wrong.
-- Evidence: put `@assert(false)` on line 22 of
-  [dialogs.test.swg](bin/apps/modules/sCapture/src/tests/dialogs.test.swg) and run
-  `tools/apps.bat dm test sCapture`: the panic reads `dialogs.test.swg:23:6`. Column 6 is where
-  `assert` starts on line 22, so only the line is displaced. Reproduced a second time by injecting
-  `@assert(false)` at line 24 of `sCrypt`'s `crypto.test.swg`, reported as `:25:6`.
-- Next step: `codeGenAssert` builds the location through
-  `ConstantHelpers::makeSourceCodeLocation(sema, ref, node)`
-  ([CodeGen.Intrinsic.Call.cpp:1292](src/Compiler/CodeGen/Ast/CodeGen.Intrinsic.Call.cpp#L1292)),
-  which takes `node.codeRangeWithChildren` and ends in
-  `SourceCodeRange::fromOffset`. `codeRange()` uses the token directly and is correct, so compare
-  the two on the same node: the suspect is the offset-to-line conversion counting the newline that
-  *precedes* the span. Check whether the runtime safety checks that share this helper
-  ([CodeGenSafety.cpp:88](src/Compiler/CodeGen/Core/CodeGenSafety.cpp#L88)) are displaced too — if
-  they are, every runtime panic location in the language is off by one and the fix is one place.
-
 ### F-023 — A per-frame event can be sent but never asked for
 
 - Area: std/gui

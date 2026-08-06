@@ -93,6 +93,7 @@ private:
     bool                       processArgument(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, bool invertBoolean, const Utf8* inlineValue, size_t& index, const std::vector<Utf8>& args);
     bool                       reportEnumError(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, const Utf8& value);
     bool                       reportIntError(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, const Utf8& value);
+    Result                     buildWarningPolicy(TaskContext& ctx) const;
     Result                     checkCommandLine(TaskContext& ctx) const;
     void                       registerConfigEntry(const ArgInfo& info, StructConfigAssignHook hook);
     void                       registerCommands();

@@ -32,8 +32,9 @@ About 241 000 lines of C++ in 653 files, and almost none of it is borrowed.
   they need and are woken by the producer (`JobManager::wake`, with a lock-free presence filter
   over wait keys), rather than running as ordered phases. Ordering constraints that other
   compilers resolve with declaration order or forward declarations dissolve here.
-- **529 diagnostics** with source snippets, notes, and help lines, driven by a message table
-  (`Support/Report/Msg`) rather than scattered string literals.
+- **535 diagnostics** with source snippets, notes, and help lines, driven by a message table
+  (`Support/Report/Msg`) rather than scattered string literals. Each one is named, and a warning's
+  name is what the three policy layers address it by.
 - **A `format` command with about 140 options** and a cascading `.swc-format`, and a `doc`
   command that renders a full documentation site with no script and no server.
 - Throughput today: `std/core` — 291 files, 50 690 lines — rebuilds in **2.1 s** in fast-debug
@@ -187,19 +188,6 @@ This entry is first in the tier because the three below cannot be judged without
   every dependency's 12 000 lines of generated source on each keystroke is not viable, and one
   with a serialized interface and per-file caching mostly falls out. Sequence it accordingly, and
   fix the extension's task commands now regardless.
-
-### 9. Warnings have no policy layer
-
-- Problem: 529 diagnostics, of which a handful are warnings, and no control surface at all — no
-  `-Werror`, no per-diagnostic enable or disable, no source-level suppression. The `Diagnostics`
-  section of every command offers only identifier display, one-line rendering and path style.
-- Consequence: a warning cannot be promoted for CI, and cannot be silenced at the one site where
-  it is wrong — so the only available answers are "live with it" and "delete the check". That is
-  the pressure that keeps analyses like escape checking out of the default path.
-- Fix: name every diagnostic (the identifiers already exist), then add a policy layer: a CLI
-  level, a build-configuration level, and a source-level suppression that names the diagnostic.
-  Design it together with the language question in the safety entry below — the two answers must
-  agree.
 
 ---
 
@@ -377,8 +365,9 @@ This section holds design questions that are open by choice rather than by accid
   wrong shape for a language rule, and Swag has not said which one this is.
 - The decision to make: name the subset of these checks that is part of the language — always on,
   not togglable, and specified in the reference — and leave the rest explicitly as tooling. Rust
-  drew that line at the borrow checker and it is the reason its guarantee means something. Doing
-  this needs entry 9's policy layer to exist first.
+  drew that line at the borrow checker and it is the reason its guarantee means something. The
+  warning policy layer this needed now exists (`#[Swag.Warning]`, `cfg.warnings`, `--warn-*`), so
+  the remaining work is the decision, not the mechanism.
 
 ---
 

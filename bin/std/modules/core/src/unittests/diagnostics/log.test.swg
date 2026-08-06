@@ -28,7 +28,7 @@ func makeExpectedShortLine(prefix: string, loc: Swag.SourceCodeLocation, text: s
 
     result.append(Path.fileName(loc.fileName))
     result.append(":")
-    result.appendFormat("%", loc.lineStart + 1)
+    result.appendFormat("%", loc.lineStart)
     result.append(" ")
     result.append(text)
     return result
@@ -39,13 +39,13 @@ func makeExpectedFullLoc(loc: Swag.SourceCodeLocation, text: string)->String
     var result: retval
     result.append(loc.fileName)
     result.append(":")
-    result.appendFormat("%", loc.lineStart + 1)
+    result.appendFormat("%", loc.lineStart)
     result.append(":")
-    result.appendFormat("%", loc.colStart + 1)
+    result.appendFormat("%", loc.colStart)
     result.append(":")
-    result.appendFormat("%", loc.lineEnd + 1)
+    result.appendFormat("%", loc.lineEnd)
     result.append(":")
-    result.appendFormat("%", loc.colEnd + 1)
+    result.appendFormat("%", loc.colEnd)
     result.append(" ")
     result.append(text)
     return result

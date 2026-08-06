@@ -648,7 +648,7 @@ func __logStackTrace(wh: [..] *void, startAfter: #null *Swag.SourceCodeLocation 
         {
             if !info.hasLine do
                 continue
-            if startAfter.lineStart + 1 != info.line do
+            if startAfter.lineStart != info.line do
                 continue
             let afterName = startAfter.fileName
             if @countof(info.file) != @countof(afterName) do

@@ -24,7 +24,6 @@ internal impl NativeRenderOgl
     // Creates a rendering context for a window handle.
     //
     // When `mainRC` is provided, it is borrowed instead of creating a new context.
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd createWindowContext(hWnd: HWND, width, height: s32, mainRC: HGLRC = null)->OglContext fail
     {
         var result = try .createContextForDeviceContext(GetDC(hWnd), width, height, mainRC)
@@ -34,7 +33,6 @@ internal impl NativeRenderOgl
     }
 
     // Creates a rendering context for an environment window.
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd createContext(window: &Env.Window, width, height: s32, mainRC: HGLRC = null)->OglContext fail
     {
         return try .createWindowContext(cast(HWND) window.nativeHandle, width, height, mainRC)
@@ -43,7 +41,6 @@ internal impl NativeRenderOgl
     // Creates a rendering context for an existing device context.
     //
     // The device context remains caller-owned. A supplied `mainRC` is borrowed.
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd createDeviceContext(hdc: HDC, width, height: s32, mainRC: HGLRC = null)->OglContext fail
     {
         return try .createContextForDeviceContext(hdc, width, height, mainRC)
@@ -54,7 +51,6 @@ internal impl NativeRenderOgl
     // 'HWND' and 'HDC' are the same handle type, so the two public overloads above cannot be
     // told apart at a call site. Everything that needs this work calls it here by its own name
     // instead of picking between them.
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     private mtd createContextForDeviceContext(hdc: HDC, width, height: s32, mainRC: HGLRC)->OglContext fail
     {
         var result: retval
@@ -80,7 +76,6 @@ internal impl NativeRenderOgl
     }
 
     // Releases native resources owned by `rc`.
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd dropContext(rc: OglContext)
     {
         catch wglMakeCurrent(null, null)
@@ -91,21 +86,18 @@ internal impl NativeRenderOgl
     }
 
     // Deletes a renderer-owned shared OpenGL context after its last drawable is gone.
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd deleteContextHandle(hRC: HGLRC)
     {
         catch wglDeleteContext(hRC)
     }
 
     // Makes `rc` current on the calling thread.
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd setCurrentContext(rc: OglContext)
     {
         catch wglMakeCurrent(rc.hDC, rc.hRC)
     }
 
     // Presents the current back buffer for `rc`.
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd swapBuffers(rc: OglContext)
     {
         expect SwapBuffers(rc.hDC)

@@ -511,7 +511,6 @@ func convertRune(buf: *ConcatBuffer, value: rune)
 }
 
 // Templated version. Convert a value of type 'T'
-#[Swag.Warning("Wrn0006", .Disable)]
 func(T) convert(buf: *ConcatBuffer, value: T, convFmt: ConvertFormat, strFormat: #null string)
 {
     #static if Reflection.isInteger(T)

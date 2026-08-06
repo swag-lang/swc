@@ -17,6 +17,18 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    // Whether a statement of 'blockRef' provably ends the block's local flow. A trailing
+    // block written after a call is that call's '#code' argument rather than a statement of
+    // the block, and whether it runs at all is the callee's decision, so it never ends the
+    // flow. A warning that can be promoted to an error has to be trustworthy, so a statement
+    // that merely promises to leave the block ('@panic', 'unreachable') does not count.
+    bool stopsBlockFlow(Sema& sema, AstNodeRef blockRef, AstNodeRef childRef)
+    {
+        if (childRef.isInvalid() || sema.isImplicitCodeBlockArg(blockRef, childRef))
+            return false;
+        return SemaHelpers::stopsLocalFlow(sema, childRef, SemaHelpers::LocalFlowStop::Guaranteed);
+    }
+
     bool isConstAssignmentTargetImpl(Sema& sema, AstNodeRef leftExprRef, const SemaNodeView& leftView);
 
     Diagnostic reportReadOnlyAssignment(Sema& sema, AstNodeRef leftExprRef)
@@ -736,6 +748,34 @@ bool SemaCheck::isImmutableBinding(Sema& sema, AstNodeRef nodeRef)
 bool SemaCheck::isReadOnlyParameterPath(Sema& sema, AstNodeRef nodeRef)
 {
     return readOnlyAggregateParameterPath(sema, nodeRef) != nullptr;
+}
+
+void SemaCheck::unreachableCode(Sema& sema, AstNodeRef blockRef, AstNodeRef childRef)
+{
+    if (!stopsBlockFlow(sema, blockRef, childRef))
+        return;
+
+    SmallVector<AstNodeRef> children;
+    sema.node(blockRef).collectChildrenFromAst(children, sema.ast());
+
+    uint32_t index = 0;
+    while (index < children.size32() && children[index] != childRef)
+        index++;
+    if (index + 1 >= children.size32())
+        return;
+
+    // One report per block: everything past the first jump is unreachable for that same
+    // reason, so only the first one speaks.
+    for (uint32_t before = 0; before < index; before++)
+    {
+        if (stopsBlockFlow(sema, blockRef, children[before]))
+            return;
+    }
+
+    auto diag = SemaError::report(sema, DiagnosticId::sema_warn_unreachable_code, children[index + 1]);
+    diag.addNote(DiagnosticId::sema_note_flow_stops_here);
+    SemaError::addSpan(sema, diag.last(), childRef);
+    diag.report(sema.ctx());
 }
 
 SWC_END_NAMESPACE();

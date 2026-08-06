@@ -403,6 +403,7 @@ func deferStackAddressAfterSkippedBranch()->*u8
     return value
 }
 
+#[Swag.Warning("sema_warn_unreachable_code", .Disable)]
 func deferEarlyReturnBeforeRegistration()->s64
 {
     resetDeferTrace()

@@ -46,6 +46,7 @@
 }
 
 // For with continue skipping all processing
+#[Swag.Warning("sema_warn_unreachable_code", .Disable)]
 #test
 {
     var sum = 0

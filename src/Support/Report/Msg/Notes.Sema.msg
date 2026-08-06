@@ -66,4 +66,5 @@ SWC_DIAG_DEF(sema_note_expected_signature, Note, "expected signature: '{value}'"
 SWC_DIAG_DEF(sema_note_attribute_declared_usage, Note, "the attribute declares what it accepts here")
 SWC_DIAG_DEF(sema_note_field_access_declared_here, Note, "field '{sym}' declares its access here")
 SWC_DIAG_DEF(sema_note_runtime_raise_location, Note, "raised at {value}")
+SWC_DIAG_DEF(sema_note_flow_stops_here, Note, "the flow of the block stops here")
 SWC_DIAG_DEF(sema_help_missing_spec_op, Help, "operator overload '{spec-op}' is not implemented for current-module type '{decl-sym}'")

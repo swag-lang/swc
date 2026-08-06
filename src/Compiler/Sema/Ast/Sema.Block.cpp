@@ -245,6 +245,18 @@ Result AstParenExpr::semaPostNode(Sema& sema)
     return Result::Continue;
 }
 
+Result AstFunctionBody::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef)
+{
+    SemaCheck::unreachableCode(sema, sema.curNodeRef(), childRef);
+    return Result::Continue;
+}
+
+Result AstSwitchCaseBody::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef)
+{
+    SemaCheck::unreachableCode(sema, sema.curNodeRef(), childRef);
+    return Result::Continue;
+}
+
 Result AstEmbeddedBlock::semaPreNode(Sema& sema)
 {
     const auto& node = sema.curNode().cast<AstEmbeddedBlock>();
@@ -292,6 +304,12 @@ Result AstEmbeddedBlock::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
         sema.pushFramePopOnPostNode(frame, sema.curNodeRef());
     }
 
+    return Result::Continue;
+}
+
+Result AstEmbeddedBlock::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef)
+{
+    SemaCheck::unreachableCode(sema, sema.curNodeRef(), childRef);
     return Result::Continue;
 }
 

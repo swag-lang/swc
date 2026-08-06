@@ -386,7 +386,6 @@ impl RenderOgl
     }
 
     // Clear current render buffers
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     internal mtd clearImpl()
     {
         glClearStencil(0)
@@ -412,13 +411,11 @@ impl RenderOgl
     }
 
     // Reset the scissor
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     internal mtd resetScissorRectImpl()
     {
         glDisable(GL_SCISSOR_TEST)
     }
 
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     internal func GLDebugMessageCallback(Source: GLenum, Type: GLenum, Id: GLuint, Severity: GLenum, Length: GLsizei, Message: const *GLchar, UserParam: const *void)
     {
     // @print(cast(cstring) (Message));
@@ -556,7 +553,6 @@ impl RenderOgl
     }
 
     // Create a render target
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     internal mtd createRenderTargetImpl(w, h: s32)->RenderTarget
     {
         Debug.assert(w > 0 and h > 0)
@@ -585,7 +581,6 @@ impl RenderOgl
     }
 
     // Delete a render target
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     internal mtd deleteRenderTargetImpl(rt: *RenderTarget)
     {
         if rt.handle == InvalidRenderTargetHandle or !rt.colorBuffer.isValid() do
@@ -611,7 +606,6 @@ impl RenderOgl
     }
 
     // Register an image for rendering
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     internal mtd addImageImpl(image: const *Image)->Texture
     {
         if !image.isValid()
@@ -665,7 +659,6 @@ impl RenderOgl
     }
 
     // Update content of texture
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     internal mtd updateTextureImpl(texture: Texture, pixels: const *u8)
     {
         let fmt       = pixelFormatToNative(texture.pixelFormat)
@@ -675,7 +668,6 @@ impl RenderOgl
     }
 
     // Reads a texture into owned CPU memory in `pixelFormat`.
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     internal mtd readTexturePixelsImpl(texture: Texture, pixelFormat: PixelFormat)->Array'u8
     {
         var result: retval
@@ -689,7 +681,6 @@ impl RenderOgl
     }
 
     // Unregister a texture created with 'addImage'
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     internal mtd removeTextureImpl(texture: *Texture)
     {
         if !texture.isValid() do

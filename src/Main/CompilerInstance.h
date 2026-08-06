@@ -12,6 +12,7 @@
 #include "Support/Core/Result.h"
 #include "Support/Core/Utf8.h"
 #include "Support/Memory/Arena.h"
+#include "Support/Report/WarningPolicy.h"
 #include "Support/Thread/JobManager.h"
 #include "Support/Thread/RaceCondition.h"
 
@@ -147,6 +148,7 @@ public:
     const std::byte*                dataSegmentAddress(DataSegmentKind kind, uint32_t offset) const;
     Runtime::BuildCfg&              buildCfg() { return buildCfg_; }
     const Runtime::BuildCfg&        buildCfg() const { return buildCfg_; }
+    const WarningPolicy&            warningPolicy() const { return warningPolicy_; }
     const Utf8&                     lastArtifactLabel() const { return lastArtifactLabel_; }
     void                            setLastArtifactLabel(Utf8 label) { lastArtifactLabel_ = std::move(label); }
     void                            clearLastArtifactLabel() { lastArtifactLabel_.clear(); }
@@ -391,6 +393,7 @@ private:
     void              registerImportedDependencyLinkDir(const fs::path& path);
     void              registerImportedSharedModuleDir(const fs::path& path);
     void              adoptBuildCfg(const Runtime::BuildCfg& buildCfg);
+    Result            adoptModuleBuildCfg(TaskContext& ctx, const Runtime::BuildCfg& buildCfg);
     Result            captureModuleSetupSnapshot(const TaskContext& ctx, const CommandLine& setupCmdLine, ModuleSetupSnapshot& outSnapshot) const;
     Result            applyModuleSetupInputs(TaskContext& ctx, const ModuleSetupSnapshot& setupSnapshot);
     static bool       isWorkspaceModuleActive(const WorkspaceModuleBuild& moduleBuild);
@@ -432,6 +435,7 @@ private:
     DataSegment                                    globalInitSegment_;
     DataSegment                                    compilerSegment_;
     Runtime::BuildCfg                              buildCfg_{};
+    WarningPolicy                                  warningPolicy_;
     std::optional<ModuleApiFileEntries>            moduleApiPublicEntries_;
     bool                                           moduleSetupMode_ = false;
     std::vector<ModuleSetupImport>                 moduleSetupImports_;

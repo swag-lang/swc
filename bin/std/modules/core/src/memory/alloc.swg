@@ -20,7 +20,7 @@ private func allocationSizeError(kind: string, size: u64, hint: #null string, lo
     result.append(" at ")
     result.append(location.fileName)
     result.append(":")
-    result.appendFormat("%", location.lineStart + 1)
+    result.appendFormat("%", location.lineStart)
     return result
 }
 

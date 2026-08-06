@@ -570,7 +570,7 @@ TypeRef SemaHelpers::nullNarrowedTypeRef(Sema& sema, AstNodeRef nodeRef, TypeRef
     return sema.typeMgr().addType(resultType);
 }
 
-bool SemaHelpers::narrowStopsLocalFlow(Sema& sema, AstNodeRef nodeRef)
+bool SemaHelpers::stopsLocalFlow(Sema& sema, AstNodeRef nodeRef, LocalFlowStop stop)
 {
     if (nodeRef.isInvalid())
         return false;
@@ -582,23 +582,25 @@ bool SemaHelpers::narrowStopsLocalFlow(Sema& sema, AstNodeRef nodeRef)
         case AstNodeId::BreakStmt:
         case AstNodeId::ContinueStmt:
         case AstNodeId::FallThroughStmt:
-        case AstNodeId::UnreachableStmt:
         case AstNodeId::FailExpr:
             return true;
 
+        case AstNodeId::UnreachableStmt:
+            return stop == LocalFlowStop::Declared;
+
         case AstNodeId::IntrinsicCallExpr:
-            return sema.token(node.codeRef()).id == TokenId::IntrinsicPanic;
+            return stop == LocalFlowStop::Declared && sema.token(node.codeRef()).id == TokenId::IntrinsicPanic;
 
         case AstNodeId::IfStmt:
         {
             const auto& ifStmt = node.cast<AstIfStmt>();
-            return ifStmt.nodeElseBlockRef.isValid() && narrowStopsLocalFlow(sema, ifStmt.nodeIfBlockRef) && narrowStopsLocalFlow(sema, ifStmt.nodeElseBlockRef);
+            return ifStmt.nodeElseBlockRef.isValid() && stopsLocalFlow(sema, ifStmt.nodeIfBlockRef, stop) && stopsLocalFlow(sema, ifStmt.nodeElseBlockRef, stop);
         }
 
         case AstNodeId::IfVarDecl:
         {
             const auto& ifVarDecl = node.cast<AstIfVarDecl>();
-            return ifVarDecl.nodeElseBlockRef.isValid() && narrowStopsLocalFlow(sema, ifVarDecl.nodeIfBlockRef) && narrowStopsLocalFlow(sema, ifVarDecl.nodeElseBlockRef);
+            return ifVarDecl.nodeElseBlockRef.isValid() && stopsLocalFlow(sema, ifVarDecl.nodeIfBlockRef, stop) && stopsLocalFlow(sema, ifVarDecl.nodeElseBlockRef, stop);
         }
 
         case AstNodeId::EmbeddedBlock:
@@ -611,7 +613,7 @@ bool SemaHelpers::narrowStopsLocalFlow(Sema& sema, AstNodeRef nodeRef)
             node.collectChildrenFromAst(children, sema.ast());
             if (children.empty())
                 return false;
-            return narrowStopsLocalFlow(sema, children.back());
+            return stopsLocalFlow(sema, children.back(), stop);
         }
 
         default:

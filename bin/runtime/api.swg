@@ -297,22 +297,24 @@ namespace Swag
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.File | AttributeUsage.Scope), AttrMulti]
     attr Optimize(level: bool)
 
-    // Warning behavior for [[Warning]] attribute
+    // How a warning is reported. See [[Warning]].
     enum WarningLevel: u8
     {
-        Enable      // Enable the given warning
-        Disable     // Disable the given warning
-        Error       // Force the given warning to be raised as an error
+        Disable     // Do not report the warning
+        Warning     // Report the warning as a warning
+        Error       // Report the warning as an error
     }
 
-    // Change the behavior of a given warning or list of warnings.
-    // For example:
+    // Decide how one warning, a list of warnings, or every warning is reported inside the
+    // annotated declaration, block, or file. A warning is named by its diagnostic identifier,
+    // the string `--diagnostic-id` prints; `"all"` names every warning at once.
     // ```swag
-    // #[Swag.Warning("Wrn0006", Swag.WarningLevel.Error)
-    // #[Swag.Warning("Wrn0002|Wrn0006", Swag.WarningLevel.Disable)
-    // #global #[Swag.Warning("Wrn0005", Swag.WarningLevel.Enable)]
+    // #[Swag.Warning("sema_warn_unreachable_code", .Disable)]
+    // #[Swag.Warning("sema_warn_unreachable_code|sema_warn_compiler_warning", .Error)]
+    // #global #[Swag.Warning("all", .Error)]
     // ```
-    // You can also change the warning behaviors for the whole module in your [[BuildCfg]]
+    // A decision that names a warning outranks a decision that says `"all"`, and this
+    // attribute outranks both [[BuildCfgWarnings]] and the `--warn-*` command-line options.
     #[AttrUsage(AttributeUsage.All | AttributeUsage.File | AttributeUsage.Scope), AttrMulti]
     attr Warning(what: string, level: WarningLevel)
 
@@ -950,6 +952,26 @@ namespace Swag
         hasSymbolIndex           = true                      // List every documented symbol in the sidebar of an 'api like' page
     }
 
+    // How a module reports its warnings.
+    // Each field lists warning identifiers separated with `|`, and accepts `"all"` to name
+    // every warning at once. A field that names a warning outranks a field that says `"all"`,
+    // whichever field it is, and every field here is outranked by [[Warning]] written on a
+    // declaration, a block, or a file.
+    // ```swag
+    // #run
+    // {
+    //     let cfg = @compiler.getBuildCfg()!
+    //     cfg.warnings.asErrors = "all"
+    //     cfg.warnings.disabled = "sema_warn_unreachable_code"
+    // }
+    // ```
+    struct BuildCfgWarnings
+    {
+        asErrors:   #null string     // Warnings reported as errors
+        asWarnings: #null string     // Warnings reported as warnings
+        disabled:   #null string     // Warnings not reported at all
+    }
+
     // The current module build configuration.
     // See [[ICompiler]]
     struct BuildCfg
@@ -972,11 +994,7 @@ namespace Swag
         allocatorFillMemory       = false                   // Fill allocated/freed memory with debug patterns
         errorStackTrace           = true                    // Add stack trace in case a 'fail' is raised
 
-        warnAsErrors:        #null string     // Force some warnings to be treated as errors. Format is "WrnXXXX|WrnXXXX..."
-        warnAsWarning:       #null string     // Override 'warnAsErrors', restoring warnings as warnings
-        warnAsDisabled:      #null string     // Disable some specific warnings
-        warnDefaultDisabled: bool             // All warnings are disabled, except those specified above
-        warnDefaultErrors:   bool             // All warnings are treated as errors, except those specified above
+        warnings: BuildCfgWarnings     // How this module reports its warnings
 
         backendKind    = BuildCfgBackendKind.Executable     // Backend type (executable, shared library, static library, export...)
         backendSubKind = BuildCfgBackendSubKind.Console     // Backend sub kind

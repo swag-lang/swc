@@ -95,6 +95,5 @@ impl ICodec for CodecPcmToPcm16
         }
 
         fail UnsupportedFormatError{"invalid encoding"}
-        return {0, 0}
     }
 }

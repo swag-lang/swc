@@ -147,18 +147,18 @@ namespace
         return isFrontEndError(diagnostic);
     }
 
-    bool addGeneratedSourceOrigin(TaskContext& ctx, Diagnostic& diagnostic)
+    void addGeneratedSourceOrigin(TaskContext& ctx, Diagnostic& diagnostic)
     {
         if (!ctx.hasCompiler() || diagnostic.elements().empty())
-            return false;
+            return;
 
         const DiagnosticElement& primary = *diagnostic.elements().front();
         if (!primary.hasSpans() || primary.id() == DiagnosticId::sema_err_ast_recursive_expansion)
-            return false;
+            return;
 
         const SourceView* sourceView = primary.srcView();
         if (!sourceView)
-            return false;
+            return;
 
         std::vector<SourceCodeRange>      originRanges;
         std::unordered_set<SourceViewRef> visitedViews;
@@ -180,7 +180,7 @@ namespace
         }
 
         if (originRanges.empty())
-            return false;
+            return;
 
         constexpr size_t maxDisplayedOrigins = 4;
         const size_t     sequentialOrigins   = originRanges.size() > maxDisplayedOrigins ? maxDisplayedOrigins - 1 : originRanges.size();
@@ -195,8 +195,6 @@ namespace
             diagnostic.addNote(DiagnosticId::sema_note_generated_source_root);
             diagnostic.last().addSpan(originRanges.back());
         }
-
-        return true;
     }
 }
 
@@ -342,6 +340,42 @@ Diagnostic Diagnostic::get(DiagnosticId id, FileRef file)
     return diag;
 }
 
+void Diagnostic::setSourceWarningLevels(const std::optional<WarningLevel>& blanketLevel, const std::optional<WarningLevel>& level)
+{
+    sourceBlanketWarningLevel_ = blanketLevel;
+    sourceWarningLevel_        = level;
+}
+
+bool Diagnostic::applyWarningPolicy(const TaskContext& ctx)
+{
+    DiagnosticElement& primary = *elements_.front();
+    if (primary.severity() != DiagnosticSeverity::Warning)
+        return true;
+
+    WarningLevelQuery query;
+    query.id                 = primary.id();
+    query.cmdLine            = &ctx.cmdLine().warningPolicy;
+    query.buildCfg           = ctx.hasCompiler() ? &ctx.compiler().warningPolicy() : nullptr;
+    query.sourceBlanketLevel = sourceBlanketWarningLevel_;
+    query.sourceLevel        = sourceWarningLevel_;
+
+    switch (resolveWarningLevel(query))
+    {
+        case WarningLevel::Disable:
+            return false;
+        case WarningLevel::Warning:
+            return true;
+        case WarningLevel::Error:
+            break;
+    }
+
+    // Elements are shared with the diagnostic this copy came from, so the promoted one gets
+    // its own element rather than turning the original's warning into an error too.
+    elements_.front() = std::make_shared<DiagnosticElement>(primary);
+    elements_.front()->setSeverity(DiagnosticSeverity::Error);
+    return true;
+}
+
 void Diagnostic::report(TaskContext& ctx) const
 {
     if (elements_.empty())
@@ -351,9 +385,11 @@ void Diagnostic::report(TaskContext& ctx) const
     if (ctx.silencedDiagnosticId() != DiagnosticId::None && elements_.front()->id() == ctx.silencedDiagnosticId())
         return;
 
-    Diagnostic        contextualDiagnostic = *this;
-    const bool        contextualized       = addGeneratedSourceOrigin(ctx, contextualDiagnostic);
-    const Diagnostic& reportedDiagnostic   = contextualized ? contextualDiagnostic : *this;
+    Diagnostic reportedDiagnostic = *this;
+    if (!reportedDiagnostic.applyWarningPolicy(ctx))
+        return;
+
+    addGeneratedSourceOrigin(ctx, reportedDiagnostic);
 
     DiagnosticBuilder eng(ctx, reportedDiagnostic);
     const Utf8        msg     = eng.build();
@@ -385,7 +421,7 @@ void Diagnostic::report(TaskContext& ctx) const
         dismiss = false;
 
     // Count only diagnostics that are not suppressed by source-driven expectations.
-    switch (elements_.front()->severity())
+    switch (reportedDiagnostic.elements_.front()->severity())
     {
         case DiagnosticSeverity::Error:
             if (!dismiss && ctx.reportToStats())
@@ -398,7 +434,7 @@ void Diagnostic::report(TaskContext& ctx) const
                 {
                     SourceFile& file = ctx.compiler().file(fileOwner_);
                     file.setHasError();
-                    const SourceCodeRange startRange = elements_.front()->codeRange(0, ctx);
+                    const SourceCodeRange startRange = reportedDiagnostic.elements_.front()->codeRange(0, ctx);
                     file.addErrorLineRange(startRange.line, codeRangeEndLine(ctx, startRange));
                 }
             }

@@ -33,6 +33,7 @@ func semaTest003()
     }
 }
 
+#[Swag.Warning("sema_warn_unreachable_code", .Disable)]
 func semaTest004()
 {
     #scope(Loop)

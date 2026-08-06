@@ -6,6 +6,7 @@
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Core/Utf8.h"
+#include "Support/Report/WarningPolicy.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -83,6 +84,7 @@ struct AttributeList
     uint64_t                            freesParamsMask         = 0;
     SmallVector4<Utf8>                  printMicroPassOptions;
     SmallVector4<Utf8>                  printAstStageOptions;
+    WarningPolicy                       warnings;
     std::optional<bool>                 backendOptimize;
     bool                                hasForeign = false;
     Utf8                                foreignModuleName;
@@ -104,6 +106,7 @@ struct AttributeList
                freesParamsMask == 0 &&
                printMicroPassOptions.empty() &&
                printAstStageOptions.empty() &&
+               warnings.empty() &&
                !backendOptimize.has_value() &&
                !hasForeign &&
                foreignModuleName.empty() &&

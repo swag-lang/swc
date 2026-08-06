@@ -118,7 +118,7 @@ it does not make a private method public in source code.
 |---|---|
 | 'Safety(what: SafetyWhat, value: bool)' | Enable or disable runtime guards |
 | 'Sanity(what: SafetyWhat, value: bool)' | Enable or disable static proven-fault checks |
-| 'Warning(what: string, level: WarningLevel)' | Enable, disable, or promote diagnostic IDs |
+| 'Warning(what: string, level: WarningLevel)' | Disable, restore, or promote named warnings |
 | 'BorrowSummary(returns, stores = 0, into = 0, frees = 0)' | Describe pointer escape and invalidation behavior |
 
 'SafetyWhat' is shared by runtime safety and static sanity, although not every

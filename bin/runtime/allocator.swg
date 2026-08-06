@@ -1296,7 +1296,7 @@ impl Allocator
             @print("\n")
             @print("\x1b[36m")
             @print("source: ")
-            @print(tracking.loc.fileName, ":", tracking.loc.lineStart + 1, "\n")
+            @print(tracking.loc.fileName, ":", tracking.loc.lineStart, "\n")
             if tracking.stackCount do
                 __logStackTrace(@mkslice(&tracking.stack[0], tracking.stackCount), &tracking.loc, false)
             @print("---------------------------------------\n")

@@ -20,14 +20,12 @@ public struct Json
 public impl Json
 {
     // Returns version.
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd version()->u32
     {
         return 0
     }
 
     // Returns whether textual.
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd isTextual()->bool
     {
         return true
@@ -176,11 +174,9 @@ public impl Json
     }
 
     // Begins root.
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd beginRoot() fail {}
 
     // Performs the end root operation.
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd endRoot() fail {}
 
     // Begins section.
@@ -232,11 +228,9 @@ public impl Json
     }
 
     // Performs the end element operation.
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd endElement(_val: TypeValue) fail {}
 
     // Begins value.
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd beginValue() fail {}
 
     // Performs the end value operation.

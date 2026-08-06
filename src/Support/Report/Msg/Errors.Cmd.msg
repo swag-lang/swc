@@ -36,6 +36,7 @@ SWC_DIAG_DEF(cmdline_err_tag_int_out_of_range, Error, "integer compiler tag '{ar
 SWC_DIAG_DEF(cmdline_err_tag_float_missing_value, Error, "floating-point compiler tag '{arg}' has no value")
 SWC_DIAG_DEF(cmdline_err_tag_float_invalid_literal, Error, "compiler tag '{arg}' contains a malformed floating-point literal")
 SWC_DIAG_DEF(cmdline_err_tag_float_non_finite, Error, "floating-point compiler tag '{arg}' needs a finite value")
+SWC_DIAG_DEF(cmdline_err_unknown_warning, Error, "argument '{arg}' does not accept value '{value}'; it accepts a warning identifier, or 'all' for every warning")
 
 SWC_DIAG_DEF(cmd_err_no_input, Error, "no input file specified")
 SWC_DIAG_DEF(cmd_err_config_read_failed, Error, "cannot read config file '{path}': {because}")
@@ -118,3 +119,4 @@ SWC_DIAG_DEF(cmd_err_workspace_ignored_dependency, Error, "workspace module '{sy
 SWC_DIAG_DEF(cmd_err_workspace_requested_module_missing, Error, "workspace '{path}' does not contain module '{sym}'")
 SWC_DIAG_DEF(cmd_err_workspace_requested_module_ignored, Error, "requested workspace module '{sym}' is marked 'ignoreInWorkspace'")
 SWC_DIAG_DEF(cmd_err_workspace_dependency_sync_failed, Error, "cannot synchronize workspace dependency '{path}': {because}")
+SWC_DIAG_DEF(cmd_err_build_cfg_unknown_warning, Error, "build configuration field 'warnings.{arg}' does not accept value '{value}'; it accepts warning identifiers separated with '|', or 'all' for every warning")

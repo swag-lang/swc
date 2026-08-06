@@ -527,6 +527,16 @@ namespace Runtime
         .length = 24,
     };
 
+    // Each field lists warning identifiers separated with '|', and accepts 'all' to name
+    // every warning at once. A field that names a warning outranks a field that says 'all',
+    // whichever field it is.
+    struct BuildCfgWarnings
+    {
+        String asErrors;
+        String asWarnings;
+        String disabled;
+    };
+
     struct BuildCfg
     {
         uint32_t moduleVersion  = 0;
@@ -547,11 +557,7 @@ namespace Runtime
         bool       allocatorFillMemory       = false;
         bool       errorStackTrace           = true;
 
-        String warnAsErrors;
-        String warnAsWarning;
-        String warnAsDisabled;
-        bool   warnDefaultDisabled = false;
-        bool   warnDefaultErrors   = false;
+        BuildCfgWarnings warnings;
 
         BuildCfgBackendKind    backendKind    = BuildCfgBackendKind::Executable;
         BuildCfgBackendSubKind backendSubKind = BuildCfgBackendSubKind::Console;

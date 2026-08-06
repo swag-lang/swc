@@ -20,14 +20,12 @@ public struct Xml
 public impl Xml
 {
     // Returns version.
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd version()->u32
     {
         return 0
     }
 
     // Returns whether textual.
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd isTextual()->bool
     {
         return true
@@ -152,7 +150,6 @@ public impl Xml
         .readEndTag()
     }
 
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     {
         // Begins struct.
         mtd beginStruct(structType: typeinfo, structData: const *u8)->bool fail

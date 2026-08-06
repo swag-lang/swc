@@ -467,6 +467,7 @@ func deferReturnDropInfo()->DeferDropInfo
 #test
 {
     // compiler2346
+    #[Swag.Warning("sema_warn_unreachable_code", .Disable)]
     func deferEarlyReturnBeforeRegistration()->s64
     {
         resetDeferTrace()

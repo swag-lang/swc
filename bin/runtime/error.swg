@@ -233,7 +233,7 @@ func __printPanicReport(message: #null string, loc: SourceCodeLocation)
     @print("-------------\n")
     @print("message: ", message, "\n")
     @print("source:  ")
-    @print(loc.fileName, ":", loc.lineStart + 1, ":", loc.colStart + 1, "\n")
+    @print(loc.fileName, ":", loc.lineStart, ":", loc.colStart, "\n")
     @print("\n")
 
     // Print the error stack trace if available
@@ -245,9 +245,9 @@ func __printPanicReport(message: #null string, loc: SourceCodeLocation)
             @print("  originates at ")
             @print(cxt.traces[i].fileName)
             @print(":")
-            @print(cast(s64) cxt.traces[i].lineStart + 1)
+            @print(cast(s64) cxt.traces[i].lineStart)
             @print(":")
-            @print(cast(s64) cxt.traces[i].colStart + 1)
+            @print(cast(s64) cxt.traces[i].colStart)
             @print("\n")
         }
 

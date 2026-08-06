@@ -26,6 +26,7 @@ namespace SemaCheck
     Result noMoveRefType(Sema& sema, TypeRef typeRef, const SourceCodeRef& errorRef);
     Result noCopyOfNonCopyable(Sema& sema, AstNodeRef srcRef, TypeRef srcTypeRef, TypeRef destTypeRef, AstModifierFlags modifierFlags, bool destReferenceBinds);
     Result checkMoveSourceCanReset(Sema& sema, AstNodeRef srcRef, TypeRef typeRef, AstModifierFlags modifierFlags);
+    void   unreachableCode(Sema& sema, AstNodeRef blockRef, AstNodeRef childRef);
 }
 
 SWC_END_NAMESPACE();

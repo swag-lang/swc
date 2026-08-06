@@ -170,6 +170,15 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Diagnostics, "all", "--diagnostic-one-line", "-dl",
         &cmdLine_->diagOneLine,
         "Render each diagnostic on one line");
+    add(HelpOptionGroup::Diagnostics, "all", "--warn-as-error", "-we",
+        &cmdLine_->warnAsErrors,
+        "Report the named warnings as errors; repeat the option, or separate names with '|', and use 'all' for every warning");
+    add(HelpOptionGroup::Diagnostics, "all", "--warn-as-warning", "-ww",
+        &cmdLine_->warnAsWarnings,
+        "Report the named warnings as warnings, undoing a blanket '--warn-as-error' or '--warn-disable'");
+    add(HelpOptionGroup::Diagnostics, "all", "--warn-disable", "-wo",
+        &cmdLine_->warnDisabled,
+        "Do not report the named warnings at all");
 
     add(HelpOptionGroup::Logging, "all", "--log-ascii", "-la",
         &cmdLine_->logAscii,

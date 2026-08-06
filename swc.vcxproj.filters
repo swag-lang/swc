@@ -252,6 +252,9 @@
     <ClCompile Include="src\Unittest\Support\Test.Support.Utf8.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>
+    <ClCompile Include="src\Unittest\Support\Test.Support.WarningPolicy.cpp">
+      <Filter>src\Unittest</Filter>
+    </ClCompile>
     <ClCompile Include="src\Unittest\Test.Support.PagedStore.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>
@@ -871,6 +874,9 @@
       <Filter>src\Support\Report</Filter>
     </ClCompile>
     <ClCompile Include="src\Support\Report\DiagnosticElement.cpp">
+      <Filter>src\Support\Report</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Report\WarningPolicy.cpp">
       <Filter>src\Support\Report</Filter>
     </ClCompile>
     <ClCompile Include="src\Support\Report\Logger.cpp">
@@ -1590,6 +1596,9 @@
       <Filter>src\Support\Report</Filter>
     </ClInclude>
     <ClInclude Include="src\Support\Report\DiagnosticElement.h">
+      <Filter>src\Support\Report</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Report\WarningPolicy.h">
       <Filter>src\Support\Report</Filter>
     </ClInclude>
     <ClInclude Include="src\Support\Report\Logger.h">

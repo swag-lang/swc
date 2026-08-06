@@ -33,6 +33,7 @@
     }
 }
 
+#[Swag.Warning("sema_warn_unreachable_code", .Disable)]
 #test
 {
     #scope(Loop)

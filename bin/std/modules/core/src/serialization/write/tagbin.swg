@@ -105,7 +105,6 @@ private impl TagBin
 impl TagBin
 {
     // Tagbin is a binary format.
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd isTextual()->bool
     {
         return false
@@ -257,7 +256,6 @@ impl TagBin
     }
 
     // Ends the current element (stubbed out)
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd endElement(val: TypeValue)
     {
         // If section is raw, then we just have values without versioning
@@ -304,11 +302,9 @@ impl TagBin
     }
 
     // Begins a value (stubbed out)
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd beginValue() {}
 
     // Ends a value (stubbed out)
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd endValue() {}
 
     // Begins a sequence and determines if elements can be written in bulk as raw data
@@ -362,7 +358,6 @@ impl TagBin
     }
 
     // Ends a sequence (stubbed out)
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd endSequence() {}
 
     /////////////////////////////////

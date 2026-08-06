@@ -3,6 +3,7 @@
 #include "Main/FileSystem.h"
 #include "Support/Core/Utf8.h"
 #include "Support/Report/Assert.h"
+#include "Support/Report/WarningPolicy.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -214,6 +215,13 @@ struct CommandLine
     std::set<Utf8>    fileFilter;
     std::vector<Utf8> tags;
     std::vector<Utf8> runArgs;
+
+    // Raw '--warn-*' values, in the order the options accept them. They become
+    // 'warningPolicy' once the command line is fully parsed and validated.
+    std::vector<Utf8> warnAsErrors;
+    std::vector<Utf8> warnAsWarnings;
+    std::vector<Utf8> warnDisabled;
+    WarningPolicy     warningPolicy;
 
     // Frames a smoke run renders before stopping.
     uint32_t smokeFrames = SWAG_SMOKE_DEFAULT_FRAMES;

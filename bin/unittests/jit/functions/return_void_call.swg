@@ -7,12 +7,14 @@ func markReturnVoidCall(value: s32)
     gReturnVoidCallValue = value
 }
 
+#[Swag.Warning("sema_warn_unreachable_code", .Disable)]
 func shortcutImplicitReturnVoidCall()
 {
     return markReturnVoidCall(1)
     gReturnVoidCallValue = 99
 }
 
+#[Swag.Warning("sema_warn_unreachable_code", .Disable)]
 func shortcutExplicitReturnVoidCall()->void
 {
     return markReturnVoidCall(2)

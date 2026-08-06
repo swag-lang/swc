@@ -417,6 +417,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
     @assert(count == 1)
 }
 
+#[Swag.Warning("sema_warn_unreachable_code", .Disable)]
 #test
 {
     var sum = 0

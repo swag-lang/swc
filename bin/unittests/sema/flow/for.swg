@@ -133,6 +133,7 @@ func semaTest016()
     }
 }
 
+#[Swag.Warning("sema_warn_unreachable_code", .Disable)]
 func semaTest017()
 {
     for [i] in 10

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Core/SemaFrame.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
@@ -201,6 +202,17 @@ namespace
         diag.last().addSpan(codeRange);
         return diag;
     }
+
+    // A warning obeys the '#[Swag.Warning]' attributes in scope where it is raised. Only sema
+    // knows them, so the decision is stamped here and read back by Diagnostic::report.
+    void applySourceWarningLevels(const Sema& sema, Diagnostic& diag, DiagnosticId id)
+    {
+        if (Diagnostic::diagIdSeverity(id) != DiagnosticSeverity::Warning)
+            return;
+
+        const WarningPolicy& policy = sema.frame().currentAttributes().warnings;
+        diag.setSourceWarningLevels(policy.blanketLevel(), policy.levelOf(id));
+    }
 }
 
 SourceCodeRange SemaError::getNodeCodeRange(Sema& sema, AstNodeRef atNodeRef, ReportLocation location)
@@ -309,6 +321,7 @@ Diagnostic SemaError::build(Sema& sema, DiagnosticId id, const SourceCodeRef& at
     else
         diag = Diagnostic::get(id, FileRef::invalid());
     setReportArguments(sema, diag, atCodeRef);
+    applySourceWarningLevels(sema, diag, id);
     return diag;
 }
 
@@ -334,6 +347,7 @@ Diagnostic SemaError::build(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef, R
     const FileRef fileRef = sema.srcView(sema.node(atNodeRef).srcViewRef()).fileRef();
     Diagnostic    diag    = buildDiagnostic(id, fileRef, getNodeCodeRange(sema, atNodeRef, location));
     setReportArguments(sema, diag, atNodeRef);
+    applySourceWarningLevels(sema, diag, id);
     return diag;
 }
 

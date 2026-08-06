@@ -22,6 +22,7 @@
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
 #include "Support/Math/Hash.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Support/Math/Sha256.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Assert.h"
@@ -97,9 +98,9 @@ namespace
         std::vector<std::unique_ptr<Utf8>> newOwnedStrings;
 
         ownBuildCfgString(buildCfg.moduleNamespace, newOwnedStrings);
-        ownBuildCfgString(buildCfg.warnAsErrors, newOwnedStrings);
-        ownBuildCfgString(buildCfg.warnAsWarning, newOwnedStrings);
-        ownBuildCfgString(buildCfg.warnAsDisabled, newOwnedStrings);
+        ownBuildCfgString(buildCfg.warnings.asErrors, newOwnedStrings);
+        ownBuildCfgString(buildCfg.warnings.asWarnings, newOwnedStrings);
+        ownBuildCfgString(buildCfg.warnings.disabled, newOwnedStrings);
         ownBuildCfgString(buildCfg.name, newOwnedStrings);
         ownBuildCfgString(buildCfg.outDir, newOwnedStrings);
         ownBuildCfgString(buildCfg.workDir, newOwnedStrings);
@@ -2187,6 +2188,49 @@ void CompilerInstance::adoptBuildCfg(const Runtime::BuildCfg& buildCfg)
     ownBuildCfgStrings(buildCfg_, ownedBuildCfgStrings_);
 }
 
+Result CompilerInstance::adoptModuleBuildCfg(TaskContext& ctx, const Runtime::BuildCfg& buildCfg)
+{
+    adoptBuildCfg(buildCfg);
+    reapplyExplicitBuildCfgOverrides(buildCfg_, cmdLine());
+    ownBuildCfgStrings(buildCfg_, ownedBuildCfgStrings_);
+
+    struct WarningField
+    {
+        const Runtime::String* value;
+        WarningLevel           level;
+        std::string_view       name;
+    };
+
+    // Read in this order, so the last field that names a warning decides it.
+    const WarningField fields[] = {
+        {&buildCfg_.warnings.asErrors, WarningLevel::Error, "asErrors"},
+        {&buildCfg_.warnings.asWarnings, WarningLevel::Warning, "asWarnings"},
+        {&buildCfg_.warnings.disabled, WarningLevel::Disable, "disabled"},
+    };
+
+    warningPolicy_.reset();
+
+    for (const WarningField& field : fields)
+    {
+        if (!field.value->ptr || !field.value->length)
+            continue;
+
+        const std::string_view    names   = {field.value->ptr, field.value->length};
+        const std::optional<Utf8> unknown = warningPolicy_.addList(names, field.level);
+        if (!unknown.has_value())
+            continue;
+
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_build_cfg_unknown_warning);
+        diag.addArgument(Diagnostic::ARG_ARG, field.name);
+        diag.addArgument(Diagnostic::ARG_VALUE, unknown.value());
+        diag.addDidYouMeanNote(Utf8Helper::bestMatch(unknown.value(), WarningPolicy::allIdNames()));
+        diag.report(ctx);
+        return Result::Error;
+    }
+
+    return Result::Continue;
+}
+
 Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, const CommandLine& setupCmdLine, ModuleSetupSnapshot& outSnapshot) const
 {
     SWC_UNUSED(ctx);
@@ -2338,9 +2382,7 @@ Result CompilerInstance::runModuleSetup(TaskContext& ctx)
 
     if (precomputedModuleSetup_)
     {
-        adoptBuildCfg(precomputedModuleSetup_->buildCfg);
-        reapplyExplicitBuildCfgOverrides(buildCfg_, cmdLine());
-        ownBuildCfgStrings(buildCfg_, ownedBuildCfgStrings_);
+        SWC_RESULT(adoptModuleBuildCfg(ctx, precomputedModuleSetup_->buildCfg));
         return applyModuleSetupInputs(ctx, *precomputedModuleSetup_);
     }
 
@@ -2357,9 +2399,7 @@ Result CompilerInstance::runModuleSetup(TaskContext& ctx)
 
     ModuleSetupSnapshot setupSnapshot;
     SWC_RESULT(captureModuleSetupSnapshot(ctx, setupCmdLine, setupSnapshot));
-    adoptBuildCfg(setupSnapshot.buildCfg);
-    reapplyExplicitBuildCfgOverrides(buildCfg_, cmdLine());
-    ownBuildCfgStrings(buildCfg_, ownedBuildCfgStrings_);
+    SWC_RESULT(adoptModuleBuildCfg(ctx, setupSnapshot.buildCfg));
     return applyModuleSetupInputs(ctx, setupSnapshot);
 }
 
@@ -2375,10 +2415,7 @@ Result CompilerInstance::prepareModuleBuildConfig(TaskContext& ctx)
         return Result::Continue;
 
     SWC_ASSERT(precomputedModuleSetup_ != nullptr);
-    adoptBuildCfg(precomputedModuleSetup_->buildCfg);
-    reapplyExplicitBuildCfgOverrides(buildCfg_, cmdLine());
-    ownBuildCfgStrings(buildCfg_, ownedBuildCfgStrings_);
-    return Result::Continue;
+    return adoptModuleBuildCfg(ctx, precomputedModuleSetup_->buildCfg);
 }
 
 void CompilerInstance::appendResolvedFiles(std::vector<fs::path>& paths, FileFlags flags)

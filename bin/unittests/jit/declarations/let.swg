@@ -756,6 +756,7 @@ enum IfElseKind: u16
 
 #test
 {
+    #[Swag.Warning("sema_warn_unreachable_code", .Disable)]
     func useIfLocalOutside(flag: bool)->s32
     {
         if flag
@@ -776,6 +777,7 @@ enum IfElseKind: u16
 
 #test
 {
+    #[Swag.Warning("sema_warn_unreachable_code", .Disable)]
     func useElseLocalOutside(flag: bool)->s32
     {
         if flag

@@ -30,7 +30,6 @@ struct Json
 impl Json
 {
     // Returns true indicating this writer produces textual output.
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd isTextual()->bool
     {
         return true
@@ -99,11 +98,9 @@ impl Json
     }
 
     // Begins the root element (no-op for JSON).
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd beginRoot() {}
 
     // Ends the root element (no-op for JSON).
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd endRoot() {}
 
     // Begins a JSON array.
@@ -191,11 +188,9 @@ impl Json
     }
 
     // Ends a named JSON element (no-op).
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd endElement(val: TypeValue) {}
 
     // Begins a JSON value (no-op).
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd beginValue() {}
 
     // Ends a JSON value and appends a comma and optional newline.

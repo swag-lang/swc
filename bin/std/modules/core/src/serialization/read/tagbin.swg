@@ -323,7 +323,6 @@ impl TagBin
 
     // Finish reading the root container.
     // Currently no cleanup is required, but this maintains the symmetric begin/end API.
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd endRoot() fail {}
 
     // Begin reading a new section with the specified 'kind'.
@@ -625,12 +624,10 @@ impl TagBin
 
     // Begin reading a value within the current context.
     // Currently no special processing is required, but this maintains the symmetric API.
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd beginValue() fail {}
 
     // Finish reading a value within the current context.
     // Currently no cleanup is required, but this maintains the symmetric API.
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd endValue() fail {}
 
     // Begin reading a sequence (array) of elements of type 'typeElem'.
@@ -730,12 +727,10 @@ impl TagBin
 
     // Finish reading the current sequence.
     // Currently no cleanup is required, but this maintains the symmetric API.
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd endSequence() fail {}
 
     // Advance to the next element in the current sequence.
     // Decrements 'countElem' and returns false when no more elements remain.
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd toNextSequenceElement(countElem: *u64)->bool
     {
         if dref countElem == 0 do
@@ -746,7 +741,6 @@ impl TagBin
 
     // Check if this serializer uses textual representation.
     // Always returns false since this is a binary serializer.
-    #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd isTextual()->bool
     {
         return false

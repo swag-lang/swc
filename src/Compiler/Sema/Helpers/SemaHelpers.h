@@ -38,7 +38,20 @@ namespace SemaHelpers
     bool    extractNarrowPath(Sema& sema, AstNodeRef nodeRef, SmallVector4<const Symbol*>& outPath);
     void    collectNarrowGuards(Sema& sema, AstNodeRef condRef, NarrowGuards& out);
     TypeRef nullNarrowedTypeRef(Sema& sema, AstNodeRef nodeRef, TypeRef typeRef);
-    bool    narrowStopsLocalFlow(Sema& sema, AstNodeRef nodeRef);
+    // Which statements count as leaving the enclosing block. 'Guaranteed' keeps only the
+    // ones that always do; 'Declared' adds the two that merely promise to and can still fall
+    // through. '@panic' returns to its caller whenever a panic hook is installed — which is
+    // exactly what the '#test' runner does, so one failing test does not end the run — and
+    // under '#run', where the compiler decides whether execution continues
+    // ('@panic' in bin/runtime/error.swg). 'unreachable' lowers to nothing once
+    // '#[Swag.Safety(.Unreachable, false)]' turns its guard off.
+    enum class LocalFlowStop : uint8_t
+    {
+        Guaranteed,
+        Declared,
+    };
+
+    bool    stopsLocalFlow(Sema& sema, AstNodeRef nodeRef, LocalFlowStop stop = LocalFlowStop::Declared);
     void    addNarrowFacts(SemaFrame& frame, std::span<const SemaNarrowFact> facts);
     void    killNarrowFactsForLoopBody(Sema& sema, AstNodeRef bodyRef, SemaFrame& frame);
     void    killNarrowPathAfterStatement(Sema& sema, AstNodeRef exprRef, bool nonNull);

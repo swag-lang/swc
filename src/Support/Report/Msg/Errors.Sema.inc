@@ -1,4 +1,7 @@
 SWC_DIAG_DEF(sema_warn_compiler_warning)
+SWC_DIAG_DEF(sema_warn_unreachable_code)
+
+SWC_DIAG_DEF(sema_err_unknown_warning)
 
 SWC_DIAG_DEF(sema_err_expr_not_const)
 SWC_DIAG_DEF(sema_err_invalid_type)

@@ -887,7 +887,7 @@ namespace
             // a span. The runtime location still carries the raw coordinates —
             // reporting them beats reporting nothing.
             Utf8 rawLocation{std::string_view{location->fileName.ptr, location->fileName.length}};
-            rawLocation += std::format(":{}:{}", location->lineStart + 1, location->colStart + 1);
+            rawLocation += std::format(":{}:{}", location->lineStart, location->colStart);
             report.diag.addNote(DiagnosticId::sema_note_runtime_raise_location);
             report.diag.last().addArgument(Diagnostic::ARG_VALUE, rawLocation);
         }

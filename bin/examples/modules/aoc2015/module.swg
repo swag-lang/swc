@@ -11,5 +11,4 @@
     cfg.backendKind       = .Executable
     cfg.ignoreInWorkspace = false
     cfg.backendSubKind    = .Default
-    cfg.warnAsDisabled    = "Wrn0006"
 }

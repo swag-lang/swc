@@ -122,6 +122,7 @@ namespace compiler241
 namespace compiler242
 {
     //
+    #[Swag.Warning("sema_warn_unreachable_code", .Disable)]
     func main()->s32
     {
         var a = 0

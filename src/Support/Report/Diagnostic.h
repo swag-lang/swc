@@ -2,6 +2,7 @@
 #include "Compiler/SourceFile.h"
 #include "Support/Core/Utf8.h"
 #include "Support/Report/DiagnosticElement.h"
+#include "Support/Report/WarningPolicy.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -71,6 +72,11 @@ public:
     void                                                   setSilent(bool silent) { silent_ = silent; }
     bool                                                   silent() const { return silent_; }
 
+    // What the '#[Swag.Warning]' attributes in scope where this diagnostic was built say
+    // about it. Only a warning carries them, and only sema knows them, so they are stamped
+    // at build time and read back by report().
+    void setSourceWarningLevels(const std::optional<WarningLevel>& blanketLevel, const std::optional<WarningLevel>& level);
+
     DiagnosticElement& addElement(DiagnosticId id);
     void               addNote(DiagnosticId id);
     void               addDidYouMeanNote(const std::optional<Utf8>& suggestion);
@@ -104,8 +110,14 @@ public:
     void report(TaskContext& ctx) const;
 
 private:
+    // Settles a warning against the policy layers and rewrites this diagnostic to match.
+    // Returns false when the warning is disabled and must not be reported or counted.
+    bool applyWarningPolicy(const TaskContext& ctx);
+
     std::vector<std::shared_ptr<DiagnosticElement>> elements_;
     std::vector<Argument>                           arguments_;
+    std::optional<WarningLevel>                     sourceBlanketWarningLevel_;
+    std::optional<WarningLevel>                     sourceWarningLevel_;
     FileRef                                         fileOwner_ = FileRef::invalid();
     bool                                            silent_    = false;
 };

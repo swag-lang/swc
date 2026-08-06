@@ -21,7 +21,7 @@ identifier, so a reference made today still resolves after the entry is gone. En
 identifier, ascending: a new one goes at the end, a deleted one leaves a gap, and position carries
 no priority.
 
-Next identifier: F-026
+Next identifier: F-027
 
 ## Open Investigations
 
@@ -215,28 +215,6 @@ Use this compact format. Keep observations factual and make the next step action
   type-erased drop the `@gvtd` table already builds — reuse that shape rather than inventing a
   second one.
 
-### F-025 — Escape in the property grid commits the edit it is supposed to cancel
-
-- Area: std/gui
-- Found while: putting the dialog keyboard model on its feet. `EditBox` now reverts to the text it
-  was given when it took the focus if — and only if — it carries
-  `EditBoxFlags.ReleaseFocusOnEnterOrEscape`, which is the flag that says the box is an edit of its
-  own. The property grid never lets its editors see either key, so its own answer to Escape is the
-  one that counts, and that answer is wrong.
-- Observation: `Properties.editKeyEvent` maps `Return` and `Escape` to the same
-  `commitEdit()` ([properties.keyboard.swg:186](bin/std/modules/gui/src/property/properties.keyboard.swg#L186)),
-  which moves the focus back to the grid view; the editor's `sigFocusLost` then writes the typed
-  value through. So typing over a value and pressing Escape stores what was typed. Every grid the
-  reader has ever used undoes it instead, and the undo stack makes the write a second surprise.
-- Evidence: `commitEdit()` is the only exit from edition mode; the two cases share one `case` arm.
-  `EditBox.restoreOriginalText` already exists and does exactly what cancelling needs, and
-  `EditBox.originalText` is captured on `FocusEvent.Gained`, so the value to put back is on hand.
-- Next step: split the arm. `Return` keeps `commitEdit()`; `Escape` restores the editor to the
-  value the row held before edition, then returns to navigation without notifying — for an
-  `EditBox` that is `restoreOriginalText()`, and a `ComboBox`/`Slider` row needs the equivalent
-  captured on the same focus event. Pin it with a headless test that types into a grid row, presses
-  Escape, and asserts both the stored value and the empty undo stack.
-
 ### F-020 — Arming the headless modal driver for an absent button fails silently
 
 - Area: std/gui
@@ -335,3 +313,24 @@ Use this compact format. Keep observations factual and make the next step action
   A cheaper answer may be to park only while at least one candidate type has an `impl` block whose
   body has not run.
 
+### F-026 — Escape in the property grid commits the edit it is supposed to cancel
+
+- Area: std/gui
+- Found while: putting the dialog keyboard model on its feet. `EditBox` now reverts to the text it
+  was given when it took the focus if — and only if — it carries
+  `EditBoxFlags.ReleaseFocusOnEnterOrEscape`, which is the flag that says the box is an edit of its
+  own. The property grid never lets its editors see either key, so its own answer to Escape is the
+  one that counts, and that answer is wrong.
+- Observation: `Properties.editKeyEvent` maps `Return` and `Escape` to the same
+  `commitEdit()` ([properties.keyboard.swg:186](bin/std/modules/gui/src/property/properties.keyboard.swg#L186)),
+  which moves the focus back to the grid view; the editor's `sigFocusLost` then writes the typed
+  value through. So typing over a value and pressing Escape stores what was typed. Every grid the
+  reader has ever used undoes it instead, and the undo stack makes the write a second surprise.
+- Evidence: `commitEdit()` is the only exit from edition mode; the two cases share one `case` arm.
+  `EditBox.restoreOriginalText` already exists and does exactly what cancelling needs, and
+  `EditBox.originalText` is captured on `FocusEvent.Gained`, so the value to put back is on hand.
+- Next step: split the arm. `Return` keeps `commitEdit()`; `Escape` restores the editor to the
+  value the row held before edition, then returns to navigation without notifying — for an
+  `EditBox` that is `restoreOriginalText()`, and a `ComboBox`/`Slider` row needs the equivalent
+  captured on the same focus event. Pin it with a headless test that types into a grid row, presses
+  Escape, and asserts both the stored value and the empty undo stack.

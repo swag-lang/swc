@@ -437,6 +437,46 @@ private impl Tab
         return Swag.U32.Max
     }
 
+    // Returns the width one tab needs for its label, its optional icon, and the item padding.
+    mtd itemContentWidth(v: *TabItem)->f32
+    {
+        let font = nnFont(.font().regular)
+        var result = Painter.measureString(v.item.name.raw, font).width
+        if v.item.icon.isValid() do
+            result += v.item.icon.sizeX + .themeMetrics().iconText_Margin
+        return result + .itemPadding
+    }
+
+    // Returns the width every tab needs side by side under the content policy.
+    mtd contentWidth()->f32
+    {
+        var result = 0'f32
+        for v in .items do
+            result += Math.max(.itemContentWidth(v!), .minimumItemWidth)
+        return result
+    }
+
+    // Reports the room every tab needs side by side, and the height of the bar.
+    //
+    // Only the content policy answers with the wording: the equal and fixed policies decide
+    // a width themselves, so what they need is that width once per tab. The height is the
+    // bar alone — the page below it is measured by whatever the tab hosts.
+    mtd impl measureContent(available: Math.Point)->Math.Point
+    {
+        discard available
+
+        var width = 0'f32
+        switch .layout
+        {
+        case .Equal:   width = Math.max(.minimumItemWidth, 0) * cast(f32) .items.count
+        case .Fixed:   width = Math.max(.fixedItemWidth, .minimumItemWidth) * cast(f32) .items.count
+        case .Content: width = .contentWidth()
+        }
+
+        let padding = .padding
+        return {width + padding.x + padding.z, .barHeight + padding.y + padding.w}
+    }
+
     mtd computeTabLayout()
     {
         let rect = .itemBarRect()
@@ -464,22 +504,10 @@ private impl Tab
             }
 
         case .Content:
-            let font = nnFont(.font().regular)
             for vIt in .items
             {
-                let v   = vIt!
-                let mes = Painter.measureString(v.item.name.raw, font)
-
-                // Text
-                v.width = mes.width
-
-                // Icon
-                if v.item.icon.isValid() do
-                    v.width += v.item.icon.sizeX + .themeMetrics().iconText_Margin
-
-                // Margin
-                v.width += .itemPadding
-
+                let v = vIt!
+                v.width       = .itemContentWidth(v)
                 .mostRightPos += v.width
             }
         }

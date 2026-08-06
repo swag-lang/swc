@@ -73,6 +73,17 @@ struct Strings
     prop_ConfirmRemoveAll: string = "This will remove all elements"     // Confirmation before clearing a list.
     prop_Search:           string = "Search"                            // Placeholder of the property search box.
     prop_All:              string = "All"                               // Tab showing every category.
+
+    // Wording of the [[Gui.ApplicationOptions]] rows a property grid generates from
+    // reflection. An attribute value is a compile-time constant, so the declared English is
+    // the key [[Gui.Properties.resolveText]] looks up; keep both sides in step.
+    prop_CategoryDebug:       string = "Debug"                                                          // Category of the development diagnostics.
+    prop_ShowClipRect:        string = "Show Clip Rect"                                                 // Label of [[Gui.ApplicationOptions.showClipRect]].
+    prop_ShowClipRectDesc:    string = "Display an overlay of the current drawing clipping rectangle"   // Description of [[Gui.ApplicationOptions.showClipRect]].
+    prop_ShowLayoutRects:     string = "Show Layout Rects"                                              // Label of [[Gui.ApplicationOptions.showLayoutRects]].
+    prop_ShowLayoutRectsDesc: string = "Display layout rectangles computed by layout controls"          // Description of [[Gui.ApplicationOptions.showLayoutRects]].
+    prop_DumpLayoutTree:      string = "Dump Layout Tree"                                               // Label of [[Gui.ApplicationOptions.dumpLayoutTree]].
+    prop_DumpLayoutTreeDesc:  string = "Enable layout tree dumps from debug tooling"                    // Description of [[Gui.ApplicationOptions.dumpLayoutTree]].
 }
 
 private const FrenchStringsName = "lang/fr/gui.tweak"

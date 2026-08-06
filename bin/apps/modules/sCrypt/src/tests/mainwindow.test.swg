@@ -182,3 +182,40 @@ func testSetupMainWindow(host: *Testing.HeadlessHost)->*MainWindow
     expect g_App.setLanguage("fr")
     @assert(Utf8.startsWith(window.statusText().toString(), "Lecteur chiffré monté sur Z:"))
 }
+
+// A failure says its sentence in the active language, not the diagnostic the layer wrote.
+//
+// The volume layer reports an ErrorKind and an English diagnostic for whoever reads a
+// report; what the reader is shown comes from the string table.
+#test
+{
+    var host: Testing.HeadlessHost
+    discard testSetupMainWindow(&host)
+    defer host.shutdown()
+    defer discard catch g_App.setLanguage(ReferenceLanguage)
+
+    func messageFor(kind: ErrorKind)->string
+    {
+        catch failWith("an English diagnostic nobody reads", kind) as err
+        return caughtMessage(err)
+    }
+
+    // The English diagnostic never reaches the reader, in either language.
+    @assert(messageFor(.PasswordOrDamaged) == "The password is incorrect or the container is damaged.")
+    @assert(messageFor(.Corrupted) == "The container is damaged.")
+    @assert(messageFor(.PasswordRequired) == "A password is required.")
+    @assert(messageFor(.Canceled) == "The operation stopped.")
+
+    // Every way a container can refuse to open answers the same sentence: telling a wrong
+    // password from a damaged container is exactly what the format refuses to do.
+    @assert(messageFor(.PasswordOrDamaged) != messageFor(.Corrupted))
+
+    expect g_App.setLanguage("fr")
+    @assert(messageFor(.PasswordOrDamaged) == "Le mot de passe est incorrect ou le conteneur est endommagé.")
+    @assert(messageFor(.PasswordRequired) == appStrings().msg_PasswordRequired)
+    @assert(messageFor(.DiskFull) == appStrings().msg_ErrDiskFull)
+
+    // A kind that means nothing to a reader reads as the generic damaged-container wording.
+    @assert(messageFor(.DirectoryNotEmpty) == appStrings().msg_ErrDamaged)
+    @assert(messageFor(.NotDirectory) == appStrings().msg_ErrDamaged)
+}

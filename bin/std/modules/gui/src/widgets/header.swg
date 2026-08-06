@@ -77,6 +77,20 @@ struct Header
 
 impl IWnd for Header
 {
+    // Reports the room the configured columns occupy, and the height of the bar.
+    //
+    // The width is what the columns are set to, not what their labels need: a column width
+    // is chosen by the owning list or dragged by the reader, and a column deliberately
+    // narrower than its label is a state the header supports rather than a misfit. Use
+    // [[Gui.Header.setItemMinimumWidth]] to keep a label from being squeezed out.
+    mtd impl measureContent(available: Math.Point)->Math.Point
+    {
+        discard available
+
+        let metrics = .themeMetrics()
+        return {.contentWidth() + .padding.z, metrics.header_Height}
+    }
+
     mtd paintItem(bc: PaintContext, item: *HeaderItem, idx: u32, x: f32)
     {
         let painter = bc.painter

@@ -65,6 +65,16 @@ internal enum MountRow
     Drive        // Drive letter the volume appears on.
 }
 
+// What the capacity field of the create form holds, or why it cannot be used.
+//
+// The form judges itself, so the reason is already the sentence a reader sees rather than a
+// kind the shell would have to translate.
+internal struct ContainerSize
+{
+    bytes: u64        // Requested capacity in bytes, meaningful when `error` is empty.
+    error: String     // Why the field cannot be used, in the active language; empty when it can.
+}
+
 // Long operation running outside the UI thread. Only one runs at a time, and the window
 // polls `job` with `timer` until the result is ready to be reported.
 struct VaultOperation
@@ -151,15 +161,64 @@ struct MainWindow
     language: String
 }
 
+// The sentence a reader sees for `err`, in the active language.
+//
+// The volume and filesystem layers report an [[ErrorKind]] and an English diagnostic; the
+// kind is what the shell can say something about, and the diagnostic goes to the debugger
+// output for whoever reads a report. A kind that means nothing to a reader — a metadata
+// record declaring an implausible entry count — reads as the generic damaged-container
+// wording, because the detail is for a report and not for someone trying to mount a drive.
 internal func caughtMessage(err: #null any)->string
 {
+    let s = appStrings()
+
     switch err
     {
-    case Error:            return (cast(Error) err).message orelse appStrings().msg_OperationStopped
-    case Swag.SystemError: return (cast(Swag.SystemError) err).message orelse appStrings().msg_SystemError
+    case Error as volumeError:
+        logDiagnostic(volumeError.message)
+        switch #complete volumeError.kind
+        {
+        case .PasswordRequired:  return s.msg_PasswordRequired
+        case .SizeTooSmall:      return Format.toString(s.msg_SizeMinimum, (MinimumSize + 1024 * 1024 - 1) / (1024 * 1024)).toString()
+        case .PasswordOrDamaged: return s.msg_ErrPasswordOrDamaged
+        case .Corrupted:         return s.msg_ErrDamaged
+        case .NotFound:          return s.msg_ErrNotFound
+        case .AlreadyExists:     return s.msg_ErrAlreadyExists
+        case .AccessDenied:      return s.msg_ErrAccessDenied
+        case .DiskFull:          return s.msg_ErrDiskFull
+        case .Io:                return s.msg_ErrIo
+        case .Canceled:          return s.msg_OperationStopped
+
+        // Kinds a reader cannot act on: they name a shape the filesystem layer refuses,
+        // never a container a reader chose.
+        case .General,
+             .InvalidInput,
+             .NotDirectory,
+             .IsDirectory,
+             .DirectoryNotEmpty: return s.msg_ErrDamaged
+        }
+
+    case Swag.SystemError as systemError:
+        logDiagnostic(systemError.message)
+        return s.msg_SystemError
     }
 
-    return appStrings().msg_OperationStopped
+    return s.msg_OperationStopped
+}
+
+// Sends the English diagnostic of a failure to the debugger output.
+//
+// It is deliberately not shown: the reader gets the sentence for the kind, and this is the
+// line whoever reads a report needs to tell two failures of the same kind apart.
+private func logDiagnostic(message: #null string)
+{
+    if !message do
+        return
+
+    // Built as one owned string: it carries its terminator, which is what the debugger
+    // output expects, and a view over a longer buffer would not.
+    let line = Format.toString("sCrypt: %\n", message!)
+    Debugger.log(line.toString())
 }
 
 // Whether an operation stopped because the user asked it to, rather than because something
@@ -776,20 +835,37 @@ impl MainWindow
             target.setText(dialog.selectedPath())
     }
 
-    mtd containerSize()->u64 fail
+    // Reads the capacity field, or says why it cannot be used.
+    //
+    // The reason is already the sentence a reader sees: this is the shell judging its own
+    // form, not the volume layer reporting a container, so it owns the wording outright.
+    mtd containerSize()->ContainerSize
     {
+        var result: retval
+
         let text   = .createSize.text()
         let parsed = catch StrConv.parseU64(text) as parseError
-        if parseError != null or parsed.ovf or parsed.eat != @countof(text) or !parsed.value do
-            failWith(appStrings().msg_SizeInvalid, .InvalidInput)
+        if parseError != null or parsed.ovf or parsed.eat != @countof(text) or !parsed.value
+        {
+            result.error = appStrings().msg_SizeInvalid
+            return result
+        }
 
         let multiplier = .createUnit.selectedIndex == 0 ? 1024'u64 * 1024 : 1024'u64 * 1024 * 1024
-        if parsed.value > Swag.U64.Max / multiplier do
-            failWith(appStrings().msg_SizeTooLarge, .InvalidInput)
+        if parsed.value > Swag.U64.Max / multiplier
+        {
+            result.error = appStrings().msg_SizeTooLarge
+            return result
+        }
 
-        let result = parsed.value * multiplier
-        if result < MinimumSize do
-            failWith(Format.toString(appStrings().msg_SizeMinimum, (MinimumSize + 1024 * 1024 - 1) / (1024 * 1024)), .InvalidInput)
+        let bytes = parsed.value * multiplier
+        if bytes < MinimumSize
+        {
+            result.error = Format.toString(appStrings().msg_SizeMinimum, (MinimumSize + 1024 * 1024 - 1) / (1024 * 1024))
+            return result
+        }
+
+        result.bytes = bytes
         return result
     }
 
@@ -842,15 +918,15 @@ impl MainWindow
             return
         }
 
-        let size = catch .containerSize() as sizeError
-        if sizeError != null
+        let size = .containerSize()
+        if !size.error.isEmpty()
         {
-            .showError(appStrings().msg_CreateFailed, sizeError)
+            .showError(size.error.toString())
             return
         }
 
         .operation.path = path
-        .operation.size = size
+        .operation.size = size.bytes
         .operation.password.add(.createPassword.bytes())
         .createPassword.clear()
         .confirmPassword.clear()

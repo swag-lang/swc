@@ -176,3 +176,34 @@ func iconButtonHeadlessReset()
     @assert(host.app.mouseEnterWnd == null)
     @assert(host.app.mouseCaptureWnd == null)
 }
+
+// An icon button answers what its content needs, so a longer wording widens the button
+// instead of being crowded by it.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 200)
+    defer host.shutdown()
+
+    let icon = host.root.theme().icon(ThemeIcons.Play, 18)
+    let btn  = IconButton.create(&host.root, icon, {0, 0, 80, 30}, IconButtonHeadless_Command)
+    btn.setText("Save")
+    btn.setTextPosition(.Right)
+
+    let short = btn.itf.measureContent({320, 200})
+    btn.setText("Enregistrer sous")
+    let long = btn.itf.measureContent({320, 200})
+    @assert(long.x > short.x)
+    @assert(long.y == short.y)
+
+    // Stacked, the same wording grows the other axis instead.
+    btn.setTextPosition(.Bottom)
+    let stacked = btn.itf.measureContent({320, 200})
+    @assert(stacked.y > short.y)
+
+    // A button hiding its label answers for the icon alone, whatever the wording is.
+    btn.updateFlags(.IconOnly)
+    let hidden = btn.itf.measureContent({320, 200})
+    btn.setText("A much longer caption nobody sees")
+    @assert(btn.itf.measureContent({320, 200}).x == hidden.x)
+}

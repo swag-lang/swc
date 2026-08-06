@@ -13,14 +13,31 @@ internal impl Properties
         return cast(string) value!
     }
 
+    // The string an attribute declares, as the reader sees it: an attribute value is a
+    // compile-time constant, so the installed resolver is what can turn it into a
+    // translation. See Properties.setTextResolver.
+    func attributeText(value: #null any)->string
+    {
+        return resolveText(attributeString(value))
+    }
+
     // Display name of a field: its Properties.Name attribute, or its beautified raw name.
+    //
+    // Both are declared in source, so both go through the text resolver and a field labels
+    // itself the same way whether or not it carries an explicit name. A synthetic value
+    // carries no type — a section header names itself with a string its caller already
+    // chose, and translating that string a second time is not this grid's business.
     // Public so custom editors can label their widgets the same way the built-ins do.
     public func itemDisplayName(value: Swag.TypeValue)->String
     {
         let attrName = Reflection.attributeValue(value, Properties.Name, "name")
         if attrName != null do
-            return attributeString(attrName)
-        return Utf8.beautifyName(value.name orelse "")
+            return attributeText(attrName)
+
+        let beautified = Utf8.beautifyName(value.name orelse "")
+        if value.pointedType == null do
+            return beautified
+        return resolveText(beautified.toString())
     }
 
     // Create a row for 'value' (field typeinfo + name) bound to 'data' under 'parentItem'.
@@ -143,9 +160,10 @@ internal impl Properties
         let dispDesc = Reflection.attributeValue(value, Properties.Description, "desc")
         if dispDesc != null
         {
+            let descText = attributeText(dispDesc)
             item.filter += " "
-            item.filter += attributeString(dispDesc)
-            item.assignDescription(attributeString(dispDesc))
+            item.filter += descText
+            item.assignDescription(descText)
 
             if flags.has(.Description)
             {
@@ -156,7 +174,7 @@ internal impl Properties
                         .updateFlags(.WordWrap | .AutoHeight)
                         .setTextAlignment(.Left, .Top)
                         .margin.w = .listDescMarginAfter
-                        .setText(attributeString(dispDesc))
+                        .setText(descText)
                         item.assignDescriptionLabel(labelDesc)
                     }
                 }
@@ -367,10 +385,14 @@ internal impl Properties
         .updateStates()
     }
 
-    // Create one category/subgroup header row under 'parentForCateg'. A top-level category (whose
-    // parent is the section, not another category) stays at level 0 like a full-width divider; a
-    // category nested under another keeps addItem's level (parent + 1) so it and its fields indent
-    // one step further.
+    // Create one category/subgroup header row under 'parentForCateg', named by the segment its
+    // Category attribute declares. A top-level category (whose parent is the section, not another
+    // category) stays at level 0 like a full-width divider; a category nested under another keeps
+    // addItem's level (parent + 1) so it and its fields indent one step further.
+    //
+    // The row keeps the declared segment as its identity — a host looks a category up by the name
+    // it wrote, and the nested-path matching in addStructInternal compares against it — so only
+    // the header shown to the reader goes through the text resolver.
     mtd addCategoryHeader(name: #null string, parentForCateg: #null *PropertiesItem)->*PropertiesItem
     {
         // Panel: a category paints as a thin separator line, not a titled header
@@ -384,6 +406,7 @@ internal impl Properties
 
         let v    = Swag.TypeValue{name: name}
         let item = .addItem(v, null, parentForCateg)
+        item.label.setText(resolveText(name orelse ""))
         item.label.style.setFont(&.fontCategory)
         item.flags.add(.Category | .NoSeparator | .Expanded | .NoFocus)
         if !parentForCateg!.flags.has(.Category) do
@@ -402,9 +425,9 @@ internal impl Properties
         if let space = Reflection.attributeValue(value, .Gap, "size") do
             .addSpacerRow(parentItem, cast(s32) space)
         if let header = Reflection.attributeValue(value, .Heading, "text") do
-            .addHeaderRow(attributeString(header), parentItem)
+            .addHeaderRow(attributeText(header), parentItem)
         if let help = Reflection.attributeValue(value, .HelpBox, "text") do
-            .addNoteRow(attributeString(help), parentItem)
+            .addNoteRow(attributeText(help), parentItem)
     }
 
     // A blank vertical gap ('size' px). It paints nothing (paintBackItem short-circuits on .Spacer).

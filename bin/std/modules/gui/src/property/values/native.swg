@@ -135,7 +135,7 @@ internal impl Properties
 
             let unit = Reflection.attributeValue(value, .Unit, "value")
             if unit != null do
-                slider.edit.setUnit(cast(string) (unit))
+                slider.edit.setUnit(attributeText(unit))
 
             let minV = cast(f32) Reflection.attributeValue(value, .SliderMinMax, "min")!
             let maxV = cast(f32) Reflection.attributeValue(value, .SliderMinMax, "max")!
@@ -170,7 +170,7 @@ internal impl Properties
 
         let unit = Reflection.attributeValue(value, .Unit, "value")
         if unit != null do
-            ctrl.edit.setUnit(cast(string) (unit))
+            ctrl.edit.setUnit(attributeText(unit))
 
         item.assignEditBox(ctrl.edit)
 
@@ -236,7 +236,7 @@ internal impl Properties
 
             let unit = Reflection.attributeValue(value, .Unit, "value")
             if unit != null do
-                slider.edit.setUnit(cast(string) (unit))
+                slider.edit.setUnit(attributeText(unit))
 
             let minV = cast(f32) Reflection.attributeValue(value, .SliderMinMax, "min")!
             let maxV = cast(f32) Reflection.attributeValue(value, .SliderMinMax, "max")!
@@ -258,7 +258,7 @@ internal impl Properties
             with let ed = EditBox.create(item.line, value.name)
             {
                 if unit != null do
-                    .setUnit(cast(string) (unit))
+                    .setUnit(attributeText(unit))
                 .maxSize.x = editWidth
                 if me.isGridLike() do
                     .dockStyle = .CenterKeepSizeVert

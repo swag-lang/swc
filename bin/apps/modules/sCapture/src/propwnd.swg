@@ -1030,4 +1030,17 @@ impl IWnd for PropWnd
             .selectionHasChanged()
         }
     }
+
+    // The panel is generated from attribute literals resolved when each row is built, and
+    // the swatches beside it take their captions the same way, so the whole thing follows a
+    // language switch by being built again.
+    //
+    // Built here and not through `needRebuild`: the deferral exists for a rebuild asked for
+    // from inside the grid's own change notification, and a language notification arrives
+    // from outside it.
+    mtd impl onNotifyEvent(evt: *NotifyEvent)
+    {
+        if evt.kind == .LanguageChanged do
+            .selectionHasChanged()
+    }
 }

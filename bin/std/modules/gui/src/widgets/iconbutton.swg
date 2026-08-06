@@ -88,6 +88,79 @@ struct IconButton
 
 impl IWnd for IconButton
 {
+    // Reports the room the icon, the label, the arrow, and the indicator rail need.
+    //
+    // The label sits beside the icon or under it, so the axis it grows along follows
+    // [[Gui.IconButton.textPosition]]: a toolbar showing captions widens with a longer
+    // translation rather than crowding it. A button hiding its label
+    // ([[Gui.IconButtonFlags.IconOnly]]) answers for its icon alone.
+    mtd impl measureContent(available: Math.Point)->Math.Point
+    {
+        discard available
+
+        let metrics = .themeMetrics()
+
+        var iconWidth  = .iconWidth != 0 ? .iconWidth : .icon.sizeX
+        var iconHeight = .iconHeight != 0 ? .iconHeight : .icon.sizeY
+        if !.icon.isValid()
+        {
+            iconWidth  = 0
+            iconHeight = 0
+        }
+
+        var width  = iconWidth
+        var height = iconHeight
+
+        let showsLabel = !.name.isEmpty() and !.flags.has(.IconOnly)
+        if showsLabel
+        {
+            .name.compute()
+            var format: RichStringFormat
+            format.font = .font()
+            Painter.computeLayout({0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &.name, format, .deviceScale())
+
+            let labelWidth  = .name.boundRect.width
+            let labelHeight = .name.boundRect.height
+            switch #complete .textPosition
+            {
+            case .Left, .Right:
+                width  += labelWidth + (iconWidth != 0 ? metrics.btnIcon_SpacingTextH : 0)
+                height = Math.max(height, labelHeight)
+
+            case .Top, .Bottom:
+                width  = Math.max(width, labelWidth)
+                height += labelHeight + (iconHeight != 0 ? metrics.btnIcon_SpacingTextV : 0)
+            }
+        }
+
+        // The arrow stands on one side of the whole group, with its own margin and spacing.
+        let arrowW = metrics.btnIcon_WidthArrow
+        let arrowH = metrics.btnIcon_HeightArrow
+        switch #complete .arrowPosition
+        {
+        case .None:
+            break
+        case .Left, .Right, .RightUpward, .RightDownward:
+            width  += arrowW + metrics.btnIcon_MarginArrow + metrics.btnIcon_SpacingArrowH
+            height = Math.max(height, arrowH)
+        case .Top, .Bottom:
+            width  = Math.max(width, arrowW)
+            height += arrowH + metrics.btnIcon_MarginArrow + metrics.btnIcon_SpacingArrowV
+        }
+
+        // The checked-state rail runs in a lane of its own, so it never eats into the group.
+        // A full indicator is a background fill and asks for nothing.
+        switch #complete .checkIndicator
+        {
+        case .None, .Full:  break
+        case .Left, .Right: width += metrics.activeRail_Size + metrics.activeRail_Margin
+        case .Bottom, .Top: height += metrics.activeRail_Size + metrics.activeRail_Margin
+        }
+
+        let padding = 2 * metrics.btnIcon_Padding
+        return {width + padding, height + padding}
+    }
+
     mtd impl onHookEvent(evt: IEvent)
     {
         if !.popup do

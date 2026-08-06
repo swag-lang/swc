@@ -126,11 +126,23 @@ impl HeadlessHost
     // reach nothing here, so a test that needs the tree to react to one asks for it directly.
     mtd notify(kind: NotifyEvent.Kind)
     {
+        // Tolerant of a handler that rebuilds its own content, the way the application's own
+        // broadcast is: children are taken as a snapshot, and a window that left the tree
+        // meanwhile is skipped rather than sent to.
         func send(wnd: *Wnd, kind: NotifyEvent.Kind)
         {
+            if !wnd.surface do
+                return
+
             wnd.invalidate()
-            for c in wnd.children do
+
+            var children: Array'(*Wnd)
+            children.add(wnd.children.toSlice())
+            for c in children do
                 send(c, kind)
+
+            if !wnd.surface do
+                return
 
             var evt = NotifyEvent{}
             evt.accepted = false

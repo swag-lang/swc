@@ -196,3 +196,90 @@ ui_PropSize            Taille
 ui_ResetSteps          Réinitialiser
 act_CaptureMonitor     Capturer l'écran %
 act_CaptureMonitorSize Capturer l'écran % (%x%)
+
+# Rows the property grid generates from reflection.
+prop_Align                 Alignement
+prop_AlignVertical         Alignement vertical
+prop_EndSize               Taille de fin
+prop_Effects               Effets
+prop_Font                  Police
+prop_FontStyle             Style de police
+prop_Joins                 Jointures
+prop_Kind                  Type
+prop_Line                  Ligne
+prop_Opacity               Opacité
+prop_Place                 Placement
+prop_Rotate                Rotation
+prop_Round                 Arrondi
+prop_Scale                 Échelle
+prop_Shadow                Ombre
+prop_Size                  Taille
+prop_StartSize             Taille de début
+prop_Step                  Numérotation
+prop_Strength              Intensité
+prop_Text                  Texte
+prop_Thickness             Épaisseur
+
+prop_Straight              Droite
+prop_Bezier                Courbe
+prop_NoShadow              Sans ombre
+prop_Small                 Petite
+
+prop_JoinNone              Aucune
+prop_JoinBevel             Biseau
+prop_JoinMiter             Pointue
+prop_JoinMiterBevel        Pointue ou biseau
+
+prop_StyleRegular          Normal
+prop_StyleBold             Gras
+prop_StyleItalic           Italique
+prop_StyleBoldItalic       Gras italique
+
+prop_AlignLeftTop          Gauche/Haut
+prop_AlignRightBottom      Droite/Bas
+prop_Center                Centre
+
+prop_KindImage             Image
+prop_KindBlur              Flou
+prop_KindPixelate          Pixelisation
+prop_KindZoom              Loupe
+prop_KindCapture           Capture
+
+prop_PlaceFrame            Cadre
+prop_PlaceFree             Libre
+
+prop_DrawCross             Afficher la croix
+prop_DrawCrossDesc         Afficher une grande croix à la position de la souris pendant la capture
+prop_CaptureCursor         Capturer le curseur
+prop_CaptureCursorDesc     Inclure le curseur de la souris dans l'image capturée
+prop_HideEditorBefore      Masquer l'éditeur avant
+prop_HideEditorBeforeDesc  Masquer temporairement l'éditeur avant de démarrer la capture
+prop_SendToEditor          Envoyer vers l'éditeur
+prop_SendToEditorDesc      Envoyer l'image capturée vers l'éditeur
+prop_SendToClipboard       Envoyer vers le presse-papiers
+prop_SendToClipboardDesc   Copier l'image capturée dans le presse-papiers
+prop_InPlaceEdit           Édition sur place
+prop_InPlaceEditDesc       Annoter la zone capturée directement sur l'écran
+prop_Delay                 Délai
+prop_DelayDesc             Définir le délai, en secondes, avant la capture
+prop_ShowToolBarLabels     Afficher les libellés
+prop_ShowToolBarLabelsDesc Afficher les libellés textuels dans la barre d'outils principale
+prop_ClipToSelection       Masquer hors sélection
+prop_ClipToSelectionDesc   Masquer tout ce qui sort de la zone de capture sélectionnée
+prop_ConfirmLinked         Confirmer l'écrasement
+prop_ConfirmLinkedDesc     Demander confirmation avant d'écraser une image liée à une capture
+prop_HideOnClose           Réduire à la fermeture
+prop_HideOnCloseDesc       Réduire l'éditeur au lieu de le fermer
+prop_Theme                 Thème
+prop_ThemeDesc             Thème de sCapture
+prop_Language              Langue
+prop_LanguageDesc          Langue de l'interface
+prop_EditBackColor         Couleur de fond
+prop_EditBackColorDesc     Couleur de fond de la fenêtre d'édition de la capture
+
+prop_ThemeDark             Sombre
+prop_ThemeLight            Clair
+
+prop_LanguageSystem        Système
+prop_LanguageEnglish       Anglais
+prop_LanguageFrench        Français

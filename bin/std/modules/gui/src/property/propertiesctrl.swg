@@ -145,6 +145,18 @@ impl PropertiesCtrl
         .fillSections()
     }
 
+    // Removes every row, along with the section tabs and the section list built from them.
+    //
+    // The counterpart of [[Gui.PropertiesCtrl.addStruct]]: a caller that adds the same
+    // structures again gets a grid rebuilt from scratch, which is what makes a generated
+    // panel follow a language switch. The search text and the scroll position are not
+    // preserved.
+    mtd clear()
+    {
+        .properties.clear()
+        .fillSections()
+    }
+
     // Give the keyboard focus to the property grid (navigation mode), so the whole
     // control can be driven by keyboard.
     mtd focusProperties()

@@ -95,20 +95,21 @@ twenty-seven messages. What is absent from that list is this section.
   widens its button, a wrapped paragraph grows taller and a band docked with no height is as
   tall as what it holds. `Testing.assertContentFits` turns that into a check a test runs once
   per shipped language.
+- A property attribute carries a compile-time literal, so `Properties.setTextResolver` is what
+  turns a declared `#[Name("Thickness")]` into a key: every generated label, description,
+  category segment, heading, note, unit and enumeration entry passes through the installed
+  resolver, then through the strings this module declares, then stands as declared. `sCapture`
+  resolves its whole panel and options dialog that way. A menu bar entry built from a
+  `MenuLabelResolver` re-reads its wording on every layout the way a command-driven item does,
+  so the bar follows a switch instead of keeping the language it was built in.
 - Remaining, in decreasing value:
-  - the property grid reads `#[Name]`/`#[Description]`/`#[Category]` attribute strings, which
-    are compile-time constants, so options dialogs and the form property panels keep their
-    English wording across a switch; the root [TODO.md](../../../TODO.md) carries the design
-    question (resolve the attribute string through the registered tables at grid-build time);
   - a disk override of `theme/widgets.svg` or `theme/icons.svg` registers in the bundle but the
     vector pipeline rasterizes the process-wide parsed cache, so only the fonts, theme sheets
     and language files honor overrides today;
-  - `IconButton`, `Tab` and `Header` still measure their labels by hand instead of answering
-    `measureContent`, so a toolbar showing captions is the one surface family a longer
-    translation can still crowd;
   - text set once at construction only follows a live language switch when its window listens
-    for the `LanguageChanged` notification; command-driven surfaces already refresh themselves,
-    and `sCrypt.MainWindow.retranslate` is the worked example of the manual half;
+    for the `LanguageChanged` notification; command-driven surfaces, menu bars built from a
+    resolver, and grids rebuilt on the notification already refresh themselves, and
+    `sCrypt.MainWindow.retranslate` is the worked example of the manual half;
   - French is the only shipped translation, and `DateTime` month and day names stay English —
     exactly the `Globalization` coordination this entry already pointed at (`core` roadmap
     entry 5: number, date and name formats should live with the culture, and the language tag

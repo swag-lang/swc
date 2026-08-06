@@ -108,6 +108,42 @@ const FrenchStrings = #include("lang/fr/myapp.tweak")
 }
 ```
 
+## Wording a literal cannot carry
+
+Two places state a wording where a string table cannot reach: a property
+attribute and a menu item built from a literal. Both have a hook.
+
+A property attribute value is a compile-time constant, so the grid generates
+`#[Properties.Name("Thickness")]` exactly as declared. Install one resolver and
+that literal becomes a key instead — every label, description, category
+segment, heading, note, unit and enumeration entry the grid builds passes
+through it:
+
+```swag
+Properties.setTextResolver(func(key: string)->#null string
+{
+    switch key
+    {
+    case "Thickness": return appStrings().propThickness
+    }
+    return null
+})
+```
+
+Answer `null` for a string the resolver does not own: the strings this module
+declares answer next, and the declared wording stands when nobody does. Rows
+resolve as they are built, so rebuild a grid that has to follow a switch —
+[[Gui.PropertiesCtrl.clear]] and the same `addStruct` calls again.
+
+A menu bar copies the wording into its item once, so the entries of a bar built
+at start-up would keep the language they were built in while everything below
+them refreshes through the command state. Build them from a
+[[Gui.MenuLabelResolver]] instead, and the label is read again on every layout:
+
+```swag
+topMenu.addPopup(func()->string => appStrings().menuFile, fileMenu)
+```
+
 ## Sizes belong to the text
 
 Translated wording is longer than the reference more often than not, so a

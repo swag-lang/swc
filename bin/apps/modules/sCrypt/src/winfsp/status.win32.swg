@@ -28,7 +28,9 @@ namespace WinFsp
         case Error:
             switch (cast(Error) err).kind
             {
-            case .InvalidInput:      return StatusInvalidParameter
+            case .InvalidInput,
+                 .PasswordRequired,
+                 .SizeTooSmall:      return StatusInvalidParameter
             case .NotFound:          return StatusObjectNameNotFound
             case .AlreadyExists:     return StatusObjectNameCollision
             case .AccessDenied:      return StatusAccessDenied

@@ -184,7 +184,7 @@ impl RefSlotBoxDoc
 {
     var target: RefSlotDoc
     target.count = 3
-    var box      = RefSlotBoxDoc{slot: &target}
+    var box = RefSlotBoxDoc{slot: &target}
 
     // The binding keeps the reference, and the slot's '#null' with it.
     let bound = box.at()

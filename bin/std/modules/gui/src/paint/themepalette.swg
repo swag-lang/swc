@@ -50,11 +50,20 @@ struct ThemePalette
     faintText: Color
     disabled:  Color
 
-    // The one color the interface spends on what matters, and the ink drawn on a fill of it.
-    // Every accented part of every widget comes from this pair, so a theme changes its
-    // accent by changing two values.
-    accent:   Color
-    onAccent: Color
+    // The one color the interface spends on what matters, in its two roles, and the ink drawn
+    // on a fill of it. Every accented part of every widget comes from these three values.
+    //
+    // `accent` is what the theme *points* with — a rail, a ring, a rule, a mark — so it has to
+    // stay legible as a hairline on the grounds above. `accentGround` is the block it *fills*
+    // to say "this is the thing to do", and carries `onAccent` as its ink.
+    //
+    // Nearly every theme gives the two the same value, and then this is one decision written
+    // twice. A brand accent is where they part: Voltage fills beautifully under ink and
+    // vanishes as a hairline on paper, so the light Swag palette points in ink and still fills
+    // in Voltage. That is what keeps the two modes one identity rather than two.
+    accent:       Color
+    accentGround: Color
+    onAccent:     Color
 
     // Whether the theme marks the active item — a checked tool, the open menu, the selected
     // row — with a rule in the accent, or by filling the item instead. It is a decision, not

@@ -121,13 +121,24 @@ impl IWnd for Tab
         var colorText:     Color
         var colorBorder:   Color
 
+        // A tab says it is the selected one exactly once, in the vocabulary of its own form. A
+        // round, button or push-button tab is a shape, and the shape carries the state; the
+        // accent rule drawn across it as well cuts through the form and reports the same thing
+        // twice. Only a tab with no shape of its own is marked by the rule — and there the rule
+        // takes the place of the neutral underline instead of stacking a second bar under it.
+        let railed = colors.activeRail.a != 0 and (.itemForm == .Flat or .itemForm == .Transparent)
+
         switch #complete .itemForm
         {
         case .Flat:
             if idx == .selectedIndex
             {
-                subRect   = &rects.tabItem_FlatSelected
-                colorImg  = colors.tabItem_FlatSelected
+                if !railed
+                {
+                    subRect  = &rects.tabItem_FlatSelected
+                    colorImg = colors.tabItem_FlatSelected
+                }
+
                 colorText = colors.tabItem_SelectedText
             }
             elif idx == .hotIndex
@@ -203,8 +214,16 @@ impl IWnd for Tab
                 colorBorder   = colors.tabItem_PushButtonBorder
             }
 
+        // A transparent tab draws no ground at all, so the wording is the only thing that can
+        // report the state. It still has to be drawn: left to the default it was written in a
+        // transparent ink and the bar came out empty.
         case .Transparent:
-            break
+            if idx == .selectedIndex do
+                colorText = colors.tabItem_SelectedText
+            elif idx == .hotIndex do
+                colorText = colors.tabItem_HotText
+            else do
+                colorText = colors.tabItem_Text
         }
 
         v.aniImg.apply(me, colorImg)
@@ -214,11 +233,10 @@ impl IWnd for Tab
             theme.drawSubRect(painter, labelPos, subRect, v.aniImg.cur())
         if subRectBorder do
             theme.drawSubRect(painter, labelPos, subRectBorder, v.aniBorder.cur(), false)
-        if idx == .selectedIndex and colors.activeRail.a
+        if railed and idx == .selectedIndex
         {
-            let metrics = .themeMetrics()
-            let size    = metrics.activeRail_Size
-            var rail    = Math.Rectangle{labelPos.x, labelPos.bottom() - size, labelPos.width, size}
+            let size = metrics.activeRail_Size
+            var rail = Math.Rectangle{labelPos.x, labelPos.bottom() - size, labelPos.width, size}
             rail.inflate(-Math.min(metrics.activeRail_Margin, rail.width / 3), 0)
             painter.fillRect(rail, colors.activeRail)
         }
@@ -414,7 +432,7 @@ private impl Tab
     {
         var rect = .paddedClientRect()
         if .buttonPopup do
-            rect.setRight(.buttonPopup.position.x - 4)
+            rect.setRight(.buttonPopup.position.x - .themeMetrics().tabBar_PopupButtonMargin)
         return rect
     }
 
@@ -440,7 +458,7 @@ private impl Tab
     // Returns the width one tab needs for its label, its optional icon, and the item padding.
     mtd itemContentWidth(v: *TabItem)->f32
     {
-        let font = nnFont(.font().regular)
+        let font   = nnFont(.font().regular)
         var result = Painter.measureString(v.item.name.raw, font).width
         if v.item.icon.isValid() do
             result += v.item.icon.sizeX + .themeMetrics().iconText_Margin
@@ -531,12 +549,13 @@ private impl Tab
     mtd createDestroyButtonPopup()
     {
         let barRect = .paddedClientRect()
+        let metrics = .themeMetrics()
         if .mostRightPos > barRect.right()
         {
             // Create a button if there are too many items for the given size
             if !.buttonPopup
             {
-                let btnPopup = IconButton.create(me, .theme().icon(ThemeIcons.SortArrowDown), {})
+                let btnPopup = IconButton.create(me, .theme().icon(ThemeIcons.SortArrowDown, metrics.tabBar_PopupButtonGlyph), {})
                 .buttonPopup = btnPopup
                 btnPopup.setForm(.Circle)
                 btnPopup.sigPressed += func|tab = me|(btn)
@@ -546,9 +565,9 @@ private impl Tab
                 }
             }
 
-            let x  = barRect.right() - 32
-            let bp = .buttonPopup!
-            bp.setPosition({x, (.barHeight * 0.5) - 12, 24, 24})
+            let size = metrics.tabBar_PopupButtonSize
+            let bp   = .buttonPopup!
+            bp.setPosition({barRect.right() - size - metrics.tabBar_PopupButtonMargin, (.barHeight - size) * 0.5, size, size})
         }
         elif .buttonPopup
         {

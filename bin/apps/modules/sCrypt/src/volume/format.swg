@@ -31,10 +31,10 @@ const HeaderSlotCount        = 2'u64
 // One journal record covers one metadata change. A change that does not fit
 // forces an immediate checkpoint instead, which is the honest fallback rather
 // than a variable-size circular buffer.
-const JournalRecordSize  = 4096'u64
-const JournalPlainSize   = JournalRecordSize - HeaderRecordPrefixSize - Crypto.TagSize
-const JournalCapacity    = #command == Swag.CompilerCommand.Test ? 16'u64 : 256'u64
-const JournalAreaSize    = JournalCapacity * JournalRecordSize
+const JournalRecordSize = 4096'u64
+const JournalPlainSize  = JournalRecordSize - HeaderRecordPrefixSize - Crypto.TagSize
+const JournalCapacity   = #command == Swag.CompilerCommand.Test ? 16'u64 : 256'u64
+const JournalAreaSize   = JournalCapacity * JournalRecordSize
 
 const KeySlotAreaOffset = 0'u64
 const HeaderAreaOffset  = KeySlotAreaOffset + KeySlotAreaSize
@@ -54,11 +54,11 @@ const FormatVersion = 3'u32
 
 // Record kinds mixed into every nonce and locator, so a record of one kind can
 // never be decrypted as another.
-const HeaderKind        = 1'u32
-const DataKind          = 2'u32
-const HeaderLocatorKind = 3'u32
-const MetadataPageKind  = 5'u32
-const JournalKind       = 6'u32
+const HeaderKind         = 1'u32
+const DataKind           = 2'u32
+const HeaderLocatorKind  = 3'u32
+const MetadataPageKind   = 5'u32
+const JournalKind        = 6'u32
 const JournalLocatorKind = 7'u32
 
 // The root directory always exists and always has this identifier.

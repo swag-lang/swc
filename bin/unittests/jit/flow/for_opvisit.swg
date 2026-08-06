@@ -322,7 +322,7 @@ func jitCallSource()->const &JitCallSourceVisits
 func jitForeachVisitCallSource()->s32
 {
     g_JitCallSourceCalls = 0
-    var sum              = 0
+    var sum = 0
 
     for &value, [ordinal] in jitCallSource() do
         sum += value + cast(s32) ordinal

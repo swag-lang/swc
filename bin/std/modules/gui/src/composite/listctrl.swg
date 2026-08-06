@@ -702,6 +702,20 @@ private impl ListView
             labelPos.x -= .scrollPos.x
             labelPos.x += .list.leftTextMargin + line.leftTextMargin
 
+            // A row keeps its content clear of its own leading edge. Pressed against it, the
+            // glyph sits on the selection band with nothing between them — and, in a theme that
+            // rails, directly against the rule marking the current row, which then reads as an
+            // outline drawn around the glyph rather than as a mark beside it. A list with a
+            // header takes that air from the header's own column inset instead; adding it here
+            // as well would slide every cell out from under its title.
+            if !@isset(.list.header)
+            {
+                var gutter = metrics.activeRail_Margin
+                if colors.activeRail.a do
+                    gutter += metrics.activeRail_Size
+                labelPos.moveLeft(gutter)
+            }
+
             if idxItem == 0
             {
                 // Ident level

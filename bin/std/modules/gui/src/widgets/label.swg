@@ -107,7 +107,8 @@ impl IWnd for Label
 
             switch .iconVerticalAlignment
             {
-            case .Bottom: posIcon.y = posIcon.bottom() - .icon.sizeY
+            case .Bottom:
+                posIcon.y = posIcon.bottom() - .icon.sizeY
 
             case .Center:
 

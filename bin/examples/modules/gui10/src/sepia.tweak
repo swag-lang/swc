@@ -1,7 +1,7 @@
 # A complete theme, written the way anyone shipping an application would write one.
 #
 # Nothing here is special to this example: it is a tweak sheet, it names palette tokens, and
-# the toolkit derives the three hundred parts of the interface from them. Thirty-four values
+# the toolkit derives the three hundred parts of the interface from them. Thirty-five values
 # is the whole surface a theme has to answer for, which is why a theme file can be reviewed
 # in one screen — and why it cannot answer for a button and forget the field beside it.
 #
@@ -32,7 +32,10 @@ softText            0xFF5F5443
 faintText           0xFF8A7C64
 disabled            0xFFA2937B
 
+# The accent points and fills with the same color here: a burnt amber is legible both as a
+# hairline on paper and as a block under the page tone.
 accent              0xFF9A6B18
+accentGround        0xFF9A6B18
 onAccent            0xFFFBF7EF
 
 # A rule marks the active item, in the accent, the way the Swag palettes do.

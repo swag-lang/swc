@@ -136,7 +136,7 @@ impl IWnd for PushButton
             // hover of a plain button, it dropped the accent that made it the primary action
             // of the surface exactly as the reader reached it.
             case .isPressed:
-                let strong    = .form == .Strong
+                let strong = .form == .Strong
                 colorBk       = strong ? colors.btnPush_StrongPressedBk : colors.btnPush_PressedBk
                 colorBorder   = strong ? colors.btnPush_StrongPressedBorder : colors.btnPush_PressedBorder
                 colorText     = strong ? colors.btnPush_StrongPressedText : colors.btnPush_PressedText
@@ -144,7 +144,7 @@ impl IWnd for PushButton
                 subRectBorder = &rects.btnPush_PressedBorder
 
             case .isHot:
-                let strong    = .form == .Strong
+                let strong = .form == .Strong
                 colorBk       = strong ? colors.btnPush_StrongHotBk : colors.btnPush_HotBk
                 colorBorder   = strong ? colors.btnPush_StrongHotBorder : colors.btnPush_HotBorder
                 colorText     = strong ? colors.btnPush_StrongHotText : colors.btnPush_HotText
@@ -187,6 +187,7 @@ impl IWnd for PushButton
         format.vertAlignment = .Center
         format.flags         = .Clip
         format.font          = .font()
+
         // The bold weight is what makes a filled button the primary action of the surface.
         // A button that cannot be pressed is the primary action of nothing, and kept bold it
         // read as a lighter grey than the plain button beside it, in the same disabled state.

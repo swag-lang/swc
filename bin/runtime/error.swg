@@ -131,7 +131,7 @@ func __catchErr()
     cxt.hasError            = 0
     if cxt.errorIndex
     {
-        cxt.errorIndex -= 1
+        cxt.errorIndex                          -= 1
         cxt.errors[cxt.errorIndex].pushHasError = 0
     }
 }

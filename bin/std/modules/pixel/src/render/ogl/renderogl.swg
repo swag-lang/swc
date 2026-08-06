@@ -272,6 +272,7 @@ private impl RenderOgl
             glDisable(GL_BLEND)
 
         case .Alpha:
+
             // The alpha channel composites with its own factors. Running it through the colour
             // rule scales the source alpha by itself, so coverage accumulates as the square of
             // what was asked for and a stack of faint layers reaches almost no opacity at all:

@@ -25,8 +25,8 @@ func testNonce()->[Crypto.ChaCha20NonceSize] u8
 // RFC 8439 section 2.3.2.
 #test
 {
-    let key   = testKey()
-    let nonce = testNonce()
+    let key                                     = testKey()
+    let nonce                                   = testNonce()
     let expected: [Crypto.ChaCha20BlockSize] u8 = [
         0x10, 0xF1, 0xE7, 0xE4, 0xD1, 0x3B, 0x59, 0x15,
         0x50, 0x0F, 0xDD, 0x1F, 0xA3, 0x20, 0x71, 0xC4,

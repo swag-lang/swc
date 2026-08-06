@@ -23,14 +23,14 @@ impl Image
 
         // The axis the two colors span, and the inverse of its squared length, so the
         // projection of a pixel onto it is one dot product per pixel.
-        let dr = cast(f32) foreground.r - cast(f32) ground.r
-        let dg = cast(f32) foreground.g - cast(f32) ground.g
-        let db = cast(f32) foreground.b - cast(f32) ground.b
+        let dr   = cast(f32) foreground.r - cast(f32) ground.r
+        let dg   = cast(f32) foreground.g - cast(f32) ground.g
+        let db   = cast(f32) foreground.b - cast(f32) ground.b
         let len2 = dr * dr + dg * dg + db * db
         if len2 <= 0 do
             return
 
-        let bgra = .pixelFormat == .BGRA8
+        let bgra          = .pixelFormat == .BGRA8
         var axis: [8] f32 = undefined
         axis[0] = cast(f32) (bgra ? ground.b : ground.r)
         axis[1] = cast(f32) ground.g
@@ -46,7 +46,7 @@ impl Image
         front[1] = foreground.g
         front[2] = bgra ? foreground.r : foreground.b
 
-        var params = { axis: axis, front: front }
+        var params = {axis: axis, front: front}
         .visitPixels(&params)
         {
             let p = cast(*#decltype(params)) userData!

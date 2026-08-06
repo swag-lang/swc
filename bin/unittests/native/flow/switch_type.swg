@@ -60,7 +60,7 @@ const TN: typeinfo = NullString
 #test
 {
     var text: #null string = "value"
-    var a: typeinfo        = #typeof(text)
+    var a:    typeinfo     = #typeof(text)
     @assert(a == string)
 
     var hit = 0
@@ -79,7 +79,7 @@ const TN: typeinfo = NullString
 #test
 {
     var ptr: #null *s32
-    var a: typeinfo = #typeof(ptr)
+    var a:   typeinfo = #typeof(ptr)
     @assert(a == *s32)
 
     var hit = 0

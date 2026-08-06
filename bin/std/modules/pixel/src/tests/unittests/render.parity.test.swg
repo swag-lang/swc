@@ -258,7 +258,7 @@ private func renderSvgParityScene(renderer: IRenderer)->Image
 private func assertSvgPixel(image: const *Image, x, y: s32, expected: Color)
 {
     const Tolerance = 3
-    let got         = image.pixelColor(x, y)
+    let got = image.pixelColor(x, y)
     @assert(Math.abs(cast(s32) got.a - cast(s32) expected.a) <= Tolerance)
     @assert(Math.abs(cast(s32) got.r - cast(s32) expected.r) <= Tolerance)
     @assert(Math.abs(cast(s32) got.g - cast(s32) expected.g) <= Tolerance)

@@ -1969,6 +1969,7 @@ struct PropAlignData
         case "Thickness": return "Epaisseur"
         case "Debug":     return "Diagnostics"
         }
+
         return null
     })
 
@@ -1998,6 +1999,7 @@ struct PropAlignData
         case "Straight": return "Droite"
         case "Bezier":   return "Courbe"
         }
+
         return null
     })
 

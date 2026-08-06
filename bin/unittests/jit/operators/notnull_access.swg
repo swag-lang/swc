@@ -136,7 +136,7 @@ func notNullDerefThroughRef(box: *NotNullBox)->s32
 
 func notNullWriteThroughRef(box: *NotNullBox, newValue: s32)
 {
-    let bound           = box.atMut()
+    let bound = box.atMut()
     (dref bound!).value = newValue
 }
 

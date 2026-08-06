@@ -26,8 +26,10 @@
   <g id="menubar_anchor_bk" transform="translate(281 1)">
     <path d="M 10 0 L 17 0 A 10 10 0 0 1 27 10 L 27 39 L 27 39 L 0 39 L 0 39 L 0 10 A 10 10 0 0 1 10 0 Z" fill="#ffffff"/>
   </g>
+  <!-- Open at the bottom: the two sides run on into the popup and meet its own outline, so an
+       open menu is one shape. Closed here, the bar item read as a button with a panel under it. -->
   <g id="menubar_anchor_border" transform="translate(309 1)">
-    <path d="M 10.5 0 L 16.5 0 A 10.5 10.5 0 0 1 27 10.5 L 27 28.5 A 10.5 10.5 0 0 1 16.5 39 L 10.5 39 A 10.5 10.5 0 0 1 0 28.5 L 0 10.5 A 10.5 10.5 0 0 1 10.5 0 Z M 10.5 1 A 9.5 9.5 0 0 0 1 10.5 L 1 28.5 A 9.5 9.5 0 0 0 10.5 38 L 16.5 38 A 9.5 9.5 0 0 0 26 28.5 L 26 10.5 A 9.5 9.5 0 0 0 16.5 1 Z " fill="#ffffff"/>
+    <path d="M 10.5 0 L 16.5 0 A 10.5 10.5 0 0 1 27 10.5 L 27 39 L 26 39 L 26 10.5 A 9.5 9.5 0 0 0 16.5 1 L 10.5 1 A 9.5 9.5 0 0 0 1 10.5 L 1 39 L 0 39 L 0 10.5 A 10.5 10.5 0 0 1 10.5 0 Z " fill="#ffffff"/>
   </g>
   <g id="menubar_popupsel_bk" transform="translate(337 1)">
     <use href="#shared2"/>

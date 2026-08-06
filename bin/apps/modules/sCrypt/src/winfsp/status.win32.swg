@@ -30,7 +30,8 @@ namespace WinFsp
             {
             case .InvalidInput,
                  .PasswordRequired,
-                 .SizeTooSmall:      return StatusInvalidParameter
+                 .SizeTooSmall: return StatusInvalidParameter
+
             case .NotFound:          return StatusObjectNameNotFound
             case .AlreadyExists:     return StatusObjectNameCollision
             case .AccessDenied:      return StatusAccessDenied

@@ -66,10 +66,32 @@ Voltage, Ink — cannot wash a hovered row with it, which is why `selectHot` and
 exist beside `hot` and `pressed`. A system-blue palette sets them to a tint of its accent; a
 brand palette repeats the neutral pair. Both work, and the widgets never know.
 
-`onAccent` is the only ink allowed on a fill of `accent`. When a widget draws a glyph over
-something that may or may not be the accent, it has to pick between the two — see
-`checkedInk` in `apply`, where a checked tool takes the accent beside a rail and `onAccent`
-over a fill. Getting this wrong makes a blue glyph disappear into a blue square.
+`onAccent` is the only ink allowed on a fill of `accentGround`. When a widget draws a glyph over
+something that may or may not be filled, it has to pick between the two — see `checkedInk` in
+`apply`, where a checked tool takes the accent beside a rail and `onAccent` over a fill. Getting
+this wrong makes a blue glyph disappear into a blue square.
+
+### The accent has two roles, and one palette may split them
+
+`accent` is what the theme **points** with — a rail, a ring, a rule, a mark — so it has to read
+as a hairline on the grounds. `accentGround` is the block it **fills**, and carries `onAccent`.
+Nearly every palette gives them the same value; a brand color is where they part. Voltage fills
+beautifully under ink and vanishes as a hairline on paper, so `swagLightPalette` points in Ink
+and still fills in Voltage — which is what keeps the two Swag modes one identity rather than a
+brand theme beside a black-and-white one.
+
+Two consequences hold whenever they differ:
+
+- A filled action takes its border from `accent` and its fill from `accentGround`. Yellow parts
+  from white by less than a tenth of a step of luminance, so a Voltage block with no rule around
+  it reads as a smudge rather than as a control.
+- The hot and pressed states shift the two separately: `accentHot`/`accentPressed` for the mark,
+  `groundHot`/`groundPressed` for the block.
+
+Because the two Swag palettes deliberately agree on the brand pair, the shared-color test in
+`theme.colors.test.swg` finds the parts it answers for rather than listing them — it applies the
+palette twice with a different pair and sets aside whatever moved. Keep that shape if you add a
+part: a hand-written exception list is what lets a real mode leak slip in beside it.
 
 ### Every state must differ from the one before it
 

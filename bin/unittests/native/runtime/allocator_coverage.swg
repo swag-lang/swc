@@ -402,7 +402,7 @@ func freeOne(itf: IAllocator, address: #null *void)
     var size = 24'u64
     while size < 300_000
     {
-        size *= 3
+        size     *= 3
         req.size = size
         itf.realloc(&req)
         @assert(req.address != null)

@@ -178,16 +178,35 @@ internal func caughtMessage(err: #null any)->string
         logDiagnostic(volumeError.message)
         switch #complete volumeError.kind
         {
-        case .PasswordRequired:  return s.msg_PasswordRequired
-        case .SizeTooSmall:      return Format.toString(s.msg_SizeMinimum, (MinimumSize + 1024 * 1024 - 1) / (1024 * 1024)).toString()
-        case .PasswordOrDamaged: return s.msg_ErrPasswordOrDamaged
-        case .Corrupted:         return s.msg_ErrDamaged
-        case .NotFound:          return s.msg_ErrNotFound
-        case .AlreadyExists:     return s.msg_ErrAlreadyExists
-        case .AccessDenied:      return s.msg_ErrAccessDenied
-        case .DiskFull:          return s.msg_ErrDiskFull
-        case .Io:                return s.msg_ErrIo
-        case .Canceled:          return s.msg_OperationStopped
+        case .PasswordRequired:
+            return s.msg_PasswordRequired
+
+        case .SizeTooSmall:
+            return Format.toString(s.msg_SizeMinimum, (MinimumSize + 1024 * 1024 - 1) / (1024 * 1024)).toString()
+
+        case .PasswordOrDamaged:
+            return s.msg_ErrPasswordOrDamaged
+
+        case .Corrupted:
+            return s.msg_ErrDamaged
+
+        case .NotFound:
+            return s.msg_ErrNotFound
+
+        case .AlreadyExists:
+            return s.msg_ErrAlreadyExists
+
+        case .AccessDenied:
+            return s.msg_ErrAccessDenied
+
+        case .DiskFull:
+            return s.msg_ErrDiskFull
+
+        case .Io:
+            return s.msg_ErrIo
+
+        case .Canceled:
+            return s.msg_OperationStopped
 
         // Kinds a reader cannot act on: they name a shape the filesystem layer refuses,
         // never a container a reader chose.
@@ -195,7 +214,8 @@ internal func caughtMessage(err: #null any)->string
              .InvalidInput,
              .NotDirectory,
              .IsDirectory,
-             .DirectoryNotEmpty: return s.msg_ErrDamaged
+             .DirectoryNotEmpty:
+            return s.msg_ErrDamaged
         }
 
     case Swag.SystemError as systemError:

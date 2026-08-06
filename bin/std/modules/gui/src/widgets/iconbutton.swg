@@ -140,9 +140,11 @@ impl IWnd for IconButton
         {
         case .None:
             break
+
         case .Left, .Right, .RightUpward, .RightDownward:
             width  += arrowW + metrics.btnIcon_MarginArrow + metrics.btnIcon_SpacingArrowH
             height = Math.max(height, arrowH)
+
         case .Top, .Bottom:
             width  = Math.max(width, arrowW)
             height += arrowH + metrics.btnIcon_MarginArrow + metrics.btnIcon_SpacingArrowV

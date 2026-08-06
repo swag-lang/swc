@@ -112,32 +112,32 @@ public impl Poly1305
             .bufferCount = 0
         }
 
-        var h = .accumulator
+        var h     = .accumulator
         var carry = h[1] >> 26
         h[1] &= LimbMask
         for [i] in 2 to 4
         {
-            h[i] += carry
+            h[i]  += carry
             carry = h[i] >> 26
-            h[i] &= LimbMask
+            h[i]  &= LimbMask
         }
 
-        h[0] += carry * 5
+        h[0]  += carry * 5
         carry = h[0] >> 26
-        h[0] &= LimbMask
-        h[1] += carry
+        h[0]  &= LimbMask
+        h[1]  += carry
 
         // Compute `h - p` and keep it only when it did not borrow, which is the
         // branch-free way to reduce the last time.
         var g: [5] u64
-        g[0] = h[0] + 5
+        g[0]  = h[0] + 5
         carry = g[0] >> 26
-        g[0] &= LimbMask
+        g[0]  &= LimbMask
         for [i] in 1 to 3
         {
-            g[i] = h[i] + carry
+            g[i]  = h[i] + carry
             carry = g[i] >> 26
-            g[i] &= LimbMask
+            g[i]  &= LimbMask
         }
 
         g[4] = h[4] + carry - (1 << 26)
@@ -227,13 +227,13 @@ public impl Poly1305
         var carry = 0'u64
         for [i] in 5
         {
-            d[i] += carry
-            carry = d[i] >> 26
+            d[i]            += carry
+            carry           = d[i] >> 26
             .accumulator[i] = d[i] & LimbMask
         }
 
         .accumulator[0] += carry * 5
-        carry = .accumulator[0] >> 26
+        carry           = .accumulator[0] >> 26
         .accumulator[0] &= LimbMask
         .accumulator[1] += carry
 

@@ -15,10 +15,10 @@ using Core
 struct KeySlot
 {
     salt:    [Crypto.SaltSize] u8
-    mask:    u8                                     // One-time pad for the profile byte, so the slot area carries no readable structure.
-    profile: u8                                     // Cost profile, masked. Its value modulo the profile count selects the profile.
+    mask:    u8     // One-time pad for the profile byte, so the slot area carries no readable structure.
+    profile: u8     // Cost profile, masked. Its value modulo the profile count selects the profile.
     nonce:   [Crypto.NonceSize] u8
-    wrapped: [Crypto.MasterKeySize] u8              // The master key, sealed by the key derived from this slot's password.
+    wrapped: [Crypto.MasterKeySize] u8     // The master key, sealed by the key derived from this slot's password.
     tag:     [Crypto.TagSize] u8
 }
 
@@ -98,11 +98,11 @@ impl KeySlot
 
         var offset = 0'u64
         @memcpy(&result[offset], &.salt[0], Crypto.SaltSize)
-        offset += Crypto.SaltSize
+        offset         += Crypto.SaltSize
         result[offset] = .mask
-        offset += 1
+        offset         += 1
         result[offset] = .profile
-        offset += 1
+        offset         += 1
         @memcpy(&result[offset], &.nonce[0], Crypto.NonceSize)
         offset += Crypto.NonceSize
         @memcpy(&result[offset], &.wrapped[0], Crypto.MasterKeySize)
@@ -120,11 +120,11 @@ impl KeySlot
         var result: retval
         var offset = 0'u64
         @memcpy(&result.salt[0], @dataof(record) + offset, Crypto.SaltSize)
-        offset += Crypto.SaltSize
-        result.mask = record[offset]
-        offset += 1
+        offset         += Crypto.SaltSize
+        result.mask    = record[offset]
+        offset         += 1
         result.profile = record[offset]
-        offset += 1
+        offset         += 1
         @memcpy(&result.nonce[0], @dataof(record) + offset, Crypto.NonceSize)
         offset += Crypto.NonceSize
         @memcpy(&result.wrapped[0], @dataof(record) + offset, Crypto.MasterKeySize)

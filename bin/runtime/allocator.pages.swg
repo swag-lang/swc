@@ -35,8 +35,10 @@ enum AllocatorPageState
 {
     // The page holds no block and its units are decommitted.
     Free
+
     // A live thread heap owns the page and serves allocations from it.
     Owned
+
     // The owning heap retired while blocks were still live; any thread may adopt the page.
     Abandoned
 }
@@ -65,6 +67,7 @@ struct AllocatorPage
     // Blocks handed out, including those still waiting on 'remoteFree'. Only the owning thread
     // writes it, so the fast paths need no atomic to keep it exact.
     used: u32
+
     // Blocks pushed by another thread and not yet collected. Live blocks are 'used - remoteCount'.
     remoteCount: u32
 
@@ -84,6 +87,7 @@ struct AllocatorSegment
     // Bit i marks page i as carrying blocks. Pages are claimed by several threads at once, so the
     // mask moves only through compare-exchange.
     pageMask: u64
+
     // Pages the segment can ever hand out, which is 64 for small pages and 8 for medium ones.
     usableMask: u64
 
@@ -103,23 +107,24 @@ struct AllocatorArena
     // what makes recovering a page from any address safe at any time, and it costs address space
     // rather than memory. The base is kept because it is the only record of what was reserved.
     reserveBase: #null [*] u8
+
     // First segment-aligned address, and the bump cursor over the segments already created.
     base: u64
     used: u64
     end:  u64
 }
 
-private var g_AllocatorArenaMutex:  MutexRW
-private var g_AllocatorArenas:      [AllocatorMaxArenas] AllocatorArena
-private var g_AllocatorArenaCount:  u32
+private var g_AllocatorArenaMutex: MutexRW
+private var g_AllocatorArenas: [AllocatorMaxArenas] AllocatorArena
+private var g_AllocatorArenaCount: u32
 private var g_AllocatorFreeSegment: #null *AllocatorSegment
-private var g_AllocatorKeySeed:     u64
+private var g_AllocatorKeySeed: u64
 
 // Committed bytes and the OS calls behind them, published for the allocator's statistics.
-var g_AllocatorCommittedBytes: u64
-var g_AllocatorOsCommitCount:  u64
+var g_AllocatorCommittedBytes:  u64
+var g_AllocatorOsCommitCount:   u64
 var g_AllocatorOsDecommitCount: u64
-var g_AllocatorOsReserveCount: u64
+var g_AllocatorOsReserveCount:  u64
 
 func atomicGet(addr: *u32)->u32 => @atomcmpxchg(addr, 0, 0)
 func atomicGet(addr: *u64)->u64 => @atomcmpxchg(addr, 0, 0)
@@ -348,8 +353,8 @@ impl AllocatorPage
         if .carved < .areaEnd
         {
             let block = .carved
-            .carved   += cast(u64) .blockSize
-            .used     += 1
+            .carved += cast(u64) .blockSize
+            .used   += 1
             return block
         }
 
@@ -533,8 +538,8 @@ private func allocatorCreateSegment(unitShift: u32)->#null *AllocatorSegment
 
     let segment = cast(*AllocatorSegment) base
     @memset(cast(*void) base, 0, AllocatorSegmentHeaderBytes)
-    segment.unitShift = unitShift
-    segment.pageCount = AllocatorUnitsPerSegment >> unitShift
+    segment.unitShift  = unitShift
+    segment.pageCount  = AllocatorUnitsPerSegment >> unitShift
     segment.usableMask = segment.pageCount >= 64 ? ~0'u64 : (1'u64 << segment.pageCount) - 1
     segment.magic      = AllocatorSegmentMagic
 
@@ -586,9 +591,9 @@ func allocatorReleaseSegment(segment: *AllocatorSegment)
     g_AllocatorArenaMutex.lock()
     defer g_AllocatorArenaMutex.unlock()
 
-    segment.allocator   = null
-    segment.prevSegment = null
-    segment.nextSegment = g_AllocatorFreeSegment
+    segment.allocator      = null
+    segment.prevSegment    = null
+    segment.nextSegment    = g_AllocatorFreeSegment
     g_AllocatorFreeSegment = segment
 }
 

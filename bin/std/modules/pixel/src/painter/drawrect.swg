@@ -24,10 +24,11 @@ impl Painter
         if width == 0 or height == 0 or !pen.brush.hasVisibleAlpha() or pen.size == 0 do
             return
 
+        // Snap the edges rather than the origin and the extent apart; see drawRoundRect.
         var l = Math.round(left)
         var t = Math.round(top)
-        var w = Math.round(width)
-        var h = Math.round(height)
+        var w = Math.round(left + width) - l
+        var h = Math.round(top + height) - t
 
         switch #complete pen.borderPos
         {
@@ -132,29 +133,46 @@ impl Painter
         if width == 0 or height == 0 or !pen.brush.hasVisibleAlpha() or pen.size == 0 do
             return
 
-        var l = Math.round(left)
-        var t = Math.round(top)
-        var w = Math.round(width)
-        var h = Math.round(height)
+        // Snap the four edges, not the position and the extent apart. Rounded on its own, a
+        // width lands the far edge a whole unit off whenever the two round in opposite
+        // directions, and the stroke stops tracing the shape it was measured from.
+        let l = Math.round(left)
+        let t = Math.round(top)
+        var w = Math.round(left + width) - l
+        var h = Math.round(top + height) - t
 
+        var rx = radiusX
+        var ry = radiusY
+
+        // Move the corner radii with the inset. A corner is a quarter circle whose centre sits
+        // one radius in from each edge, so insetting the rectangle alone keeps the original
+        // radius around a centre that has moved: the stroke then pulls away from the outline it
+        // traces by the inset times root two at forty-five degrees, and every rounded window
+        // showed a ring of its own body colour outside its border.
+        var x = l
+        var y = t
         switch #complete pen.borderPos
         {
         case .None:
             let o = 0.5
-            l += o
-            t += o
-            w -= 2 * o
-            h -= 2 * o
+            x  += o
+            y  += o
+            w  -= 2 * o
+            h  -= 2 * o
+            rx = Math.max(0, rx - o)
+            ry = Math.max(0, ry - o)
 
         case .Inside:
             let o = 0.5 + pen.size * 0.5
-            l += o
-            t += o
-            w -= 2 * o
-            h -= 2 * o
+            x  += o
+            y  += o
+            w  -= 2 * o
+            h  -= 2 * o
+            rx = Math.max(0, rx - o)
+            ry = Math.max(0, ry - o)
         }
 
-        .sharedLinePath.setRoundRect(l, t, w, h, radiusX, radiusY)
+        .sharedLinePath.setRoundRect(x, y, w, h, rx, ry)
         .drawPath(&.sharedLinePath, pen)
     }
 

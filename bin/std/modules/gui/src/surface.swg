@@ -479,6 +479,22 @@ impl Surface
         return .app.theme.metrics.surfaceWnd_CornerRadius
     }
 
+    // Returns the rectangle the outline, the silhouette and the shadow all work from.
+    //
+    // The three are passes over one shape and have to agree to the pixel, so the rounding
+    // happens once, here. Left to each pass, they did not: a stroke snaps its rectangle to whole
+    // units and a fill does not, and the body is a fractional height at any display scale that is
+    // not a whole number — so the border traced a rectangle half a device pixel inside the
+    // silhouette it was supposed to close, worst at the bottom edge, where the two roundings
+    // disagreed and the corners showed body colour outside their own outline.
+    private mtd const bodyShape()->Math.Rectangle
+    {
+        let body = .wnd.surfaceRect()
+        let l    = Math.round(body.x)
+        let t    = Math.round(body.y)
+        return {l, t, Math.round(body.right()) - l, Math.round(body.bottom()) - t}
+    }
+
     // Strokes the outline of the surface, above everything the hierarchy painted.
     //
     // The outline is chrome and belongs on top. Drawn with the caption instead, it was covered by
@@ -493,7 +509,7 @@ impl Surface
         var pen = Pen.createSolid(.app.theme.colors.wnd_Border, .painter.hairline(.app.theme.metrics.wnd_BorderSize))
         pen.borderPos = .Inside
 
-        let body   = .wnd.surfaceRect()
+        let body   = .bodyShape()
         let radius = .cornerRadius()
 
         .painter.resetTransform()
@@ -518,7 +534,7 @@ impl Surface
             return
 
         let radius = .cornerRadius()
-        let body   = .wnd.surfaceRect()
+        let body   = .bodyShape()
 
         .painter.startClippingRegion()
         .painter.fillRect({0, 0, .position.width, .position.height}, Argb.White)
@@ -552,7 +568,7 @@ impl Surface
         if .flags.has(.NoShadow) or spread <= 0 or color.a == 0 do
             return
 
-        var bodyRect = .wnd.surfaceRect()
+        var bodyRect = .bodyShape()
         bodyRect.offset(metrics.surfaceWnd_ShadowOffsetX, metrics.surfaceWnd_ShadowOffsetY)
 
         let rings      = Math.max(1, Math.ceilS32(spread * .dpiScale))
@@ -605,7 +621,7 @@ impl Surface
     // platform is told to leave the window rectangle alone.
     private mtd paintAlphaMask()
     {
-        let rect   = .wnd.surfaceRect()
+        let rect   = .bodyShape()
         let radius = .cornerRadius()
 
         .painter.resetTransform()

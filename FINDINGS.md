@@ -20,7 +20,7 @@ Take the next one from the counter below and advance it; never renumber an entry
 identifier, so a reference made today still resolves after the entry is gone. Entry order in this
 file is free and carries no priority.
 
-Next identifier: F-024
+Next identifier: F-025
 
 ## Open Investigations
 
@@ -274,6 +274,34 @@ Use this compact format. Keep observations factual and make the next step action
   which then needs a different deferral for a rebuild asked for from inside the grid's own
   change notification (a posted event is the obvious one). Whichever way it goes, the
   `FormImage.kind` rebuild has to end up actually running.
+
+### F-024 — A rounded surface keeps its body colour outside its own silhouette
+
+- Area: std/gui
+- Found while: closing the corner artefacts of the window outline
+- Observation: the hierarchy paints the body as a **square** through a colour-only mask
+  (`setColorMaskColor`), and the silhouette is cut afterwards by `paintAlphaMask`, which writes
+  the alpha channel and nothing else. The four corner squares — inside the body rectangle, outside
+  the rounded outline — therefore end the frame carrying full-strength ground ink under whatever
+  partial coverage the drop shadow gave them. The blit does not premultiply, so the compositor
+  adds that ink straight onto the desktop and the corner reads brighter than anything actually in
+  the frame. It is the same failure the comment on `paintShadowOutsideBody` already records for
+  the shadow, surviving in the one region no pass owns.
+- Evidence: gui10 on the neutral dark palette, window at 60,40 sized 2235x1448 on a 150% display,
+  desktop `#95A3A4`. Two device pixels outside the bottom-left arc, at screen (89,1445), the frame
+  reads `#A8B4B4` — lighter than the desktop behind it and lighter than every colour the window
+  draws. Straight edges are clean at the same magnification, because there the outline and the
+  silhouette coincide and no pixel is left half-covered. The stencil and the silhouette are both
+  correct: replacing `paintShadow` with an opaque fill inside the shadow's clipping region shows a
+  region that follows the arc exactly, and the alpha mask cuts the same arc.
+- Next step: the region has to be erased rather than painted over, and
+  [F-011](#f-011--a-fully-transparent-fill-is-dropped-even-under-copy-blending) is what blocks it —
+  a `Copy` fill of a fully transparent colour is exactly the operation, and the painter drops it.
+  Fix F-011 first, then clear the margin to premultiplied nothing at the top of
+  `paintShadowOutsideBody`, inside the region it already builds. The alternative — stencilling the
+  hierarchy to the rounded body — does not work as the clipping region stands: `ColorPicker` and
+  `ProgressBar` open regions of their own during the hierarchy paint and call
+  `resetClippingRegion`, which disables the stencil outright.
 
 ### F-011 — A fully transparent fill is dropped even under `Copy` blending
 

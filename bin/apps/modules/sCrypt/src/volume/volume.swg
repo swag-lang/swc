@@ -125,13 +125,16 @@ impl Volume
 
     // Creates an encrypted container of `requestedSize` bytes that `password` opens.
     //
+    // An empty `password` is a container that opens without one. Everything else is unchanged:
+    // the blocks are encrypted under the same master key, and the key slot wraps it exactly the
+    // same way. What an empty password gives up is the protection of the wrapping, not the
+    // encryption — a virtual drive that is private on disk rather than locked.
+    //
     // Randomizing the container dominates the call, so `progress` reports how far it has come
     // and carries the caller's cancellation. A canceled creation fails with `.Canceled` and
     // deletes the partial file, exactly like any other failure.
     func create(path: string, password: const [..] u8, requestedSize: u64, progress: #null *VolumeProgress = null)->Volume fail
     {
-        if !@countof(password) do
-            failWith("A password is required.", .PasswordRequired)
         if requestedSize < MinimumSize do
             failWith(Format.toString("The container must be at least % bytes.", MinimumSize), .SizeTooSmall)
 
@@ -235,11 +238,9 @@ impl Volume
         return result
     }
 
+    // Opens the container `password` unlocks, or an unprotected one when `password` is empty.
     func open(path: string, password: const [..] u8)->Volume fail
     {
-        if !@countof(password) do
-            failWith("A password is required.", .PasswordRequired)
-
         var result: retval
         result.dirty = false
         result.path  = path
@@ -357,10 +358,13 @@ impl Volume
     //
     // This rewrites one key slot and nothing else: the master key, and therefore
     // every encrypted block in the container, is untouched.
+    //
+    // An empty `replacement` removes the protection: the slot then unwraps under the
+    // empty password, which is how a container stops asking for one. That is a
+    // deliberate downgrade a caller states outright, unlike [[Volume.addPassword]],
+    // which refuses to add an unprotected way into a container that has one.
     mtd changePassword(current, replacement: const [..] u8, profile = Crypto.Argon2Profile.Moderate) fail
     {
-        if !@countof(replacement) do
-            failWith("A password is required.", .PasswordRequired)
         let index = try .findKeySlot(current)
         if index == Swag.U64.Max do
             failWith("The current password is incorrect.", .AccessDenied)
@@ -373,6 +377,9 @@ impl Volume
     // slot and a slot whose password is unknown are the same random bytes, which
     // is exactly the property that hides how many passwords exist. The container
     // therefore keeps the record in its encrypted header instead.
+    // An empty `additional` is refused: a second way in that needs no password would
+    // undo the protection of every other slot without saying so. Removing the
+    // protection is [[Volume.changePassword]] with an empty replacement.
     mtd addPassword(additional: const [..] u8, profile = Crypto.Argon2Profile.Moderate)->u64 fail
     {
         if !@countof(additional) do
@@ -420,6 +427,85 @@ impl Volume
 
     // Number of passwords that currently open this container.
     mtd const keySlotCount()->u64 => @bitcountnz(.keySlotMask)
+
+    // Extends the container to `requestedSize` bytes and gives the new blocks to the free list.
+    //
+    // Growing writes nothing an existing block owns: the file is extended, the added region is
+    // filled with random bytes like a fresh container, and only then does a checkpoint publish
+    // the new geometry. Until that checkpoint lands, the header still describes the old size,
+    // so an interruption at any point leaves a container that opens exactly as it did before.
+    //
+    // The fill dominates the call, so `progress` reports how far it has come and carries the
+    // caller's cancellation, as in [[Volume.create]]. A stopped growth fails with `.Canceled`
+    // and puts the file back to its previous length.
+    //
+    // Shrinking is not offered: blocks above the new limit would have to be evacuated first,
+    // and a container that has to be rewritten to lose space is not worth the risk.
+    mtd grow(requestedSize: u64, progress: #null *VolumeProgress = null) fail
+    {
+        if requestedSize <= .containerSize do
+            failWith("A container can only grow.", .InvalidInput)
+
+        let newBlockCount = (requestedSize - DataOffset) / BlockRecordSize
+        if newBlockCount <= .blockCount do
+            failWith("The requested size does not add a single block.", .InvalidInput)
+
+        // Everything below is undone by putting the file back to the length the durable header
+        // already claims. `committed` is set on the last line, so every failure — including the
+        // cancellation — unwinds through here.
+        let previousSize       = .containerSize
+        let previousBlockCount = .blockCount
+        var previousFree: Array'FreeExtent
+        previousFree.add(.blocks.free.toSlice())
+
+        var committed = false
+        defer
+        {
+            if !committed
+            {
+                .blocks.free   = #move previousFree
+                .containerSize = previousSize
+                .blockCount    = previousBlockCount
+                discard catch .file.resize(previousSize)
+            }
+        }
+
+        .file.resize(requestedSize)
+
+        // The added region has to look like the rest of the container, or the growth would draw
+        // a visible line between the blocks that hold data and the ones that never have.
+        var randomChunk: Array'u8
+        randomChunk.resize(RandomizeChunkSize)
+        defer Core.Crypto.secureClear(randomChunk.toSlice())
+
+        if progress do
+            progress!.setTotal(requestedSize - previousSize)
+
+        var offset = previousSize
+        while offset < requestedSize
+        {
+            if progress and progress!.isCanceled() do
+                failWith("Growing the container was canceled.", .Canceled)
+
+            let count = Math.min(requestedSize - offset, randomChunk.count)
+            Core.Crypto.randomBytes(randomChunk[0 until count])
+            .file.writeAllAt(offset, randomChunk[0 until count])
+            offset += count
+
+            if progress do
+                progress!.publish(offset - previousSize)
+        }
+
+        .file.flush()
+        .containerSize = requestedSize
+        .blockCount    = newBlockCount
+        .blocks.extend(previousBlockCount, newBlockCount - previousBlockCount)
+        .scalarsDirty  = true
+        .dirty         = true
+        try .checkpoint()
+
+        committed = true
+    }
 
     mtd readHeader(slot: u32)->HeaderCandidate fail
     {

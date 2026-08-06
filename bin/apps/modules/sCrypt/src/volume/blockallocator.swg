@@ -57,6 +57,26 @@ impl BlockAllocator
             .free.add({first, blockCount - first})
     }
 
+    // Adds the blocks `[first, first + count)` to the free list.
+    //
+    // A container only ever grows at its end, so the new blocks sit above every block that
+    // exists: they either extend the last free extent or become one of their own. Nothing
+    // else in the list can be touched by them.
+    mtd extend(first, count: u64)
+    {
+        if !count do
+            return
+
+        if .free.count and .free.back().first + .free.back().count == first
+        {
+            .free.backPtr().count += count
+            return
+        }
+
+        Debug.assert(!.free.count or .free.back().first + .free.back().count < first)
+        .free.add({first, count})
+    }
+
     mtd allocate()->u64 fail
     {
         if !.free.count do

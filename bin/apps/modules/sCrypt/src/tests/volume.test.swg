@@ -295,11 +295,6 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     let path = testContainerPath("validation")
     defer discard catch File.delete(path)
 
-    var emptyAttempt = catch Volume.create(path, emptyBytes(), MinimumSize) as emptyError
-    emptyAttempt.close()
-    @assert(emptyError != null)
-    @assert(!File.exists(path))
-
     var smallAttempt = catch Volume.create(path, testPassword(), MinimumSize - 1) as sizeError
     smallAttempt.close()
     @assert(sizeError != null)
@@ -652,4 +647,127 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     @assert(runs < @countof(window) / 8)
     for count in counts do
         @assert(count > 0)
+}
+
+#test
+{
+    // A container with no password is a container whose key slot the empty password opens.
+    // Everything else about it is unchanged: the blocks are encrypted under the same kind of
+    // master key, and it reports nothing about itself that a protected one would not.
+    let path = testContainerPath("nopassword")
+    defer discard catch File.delete(path)
+
+    let payload: [32] u8 = [3]
+    var volume           = expect Volume.create(path, emptyBytes(), MinimumSize)
+    let fileId           = expect volume.createNode("\\open.bin", false, FileAttributeNormal, emptyBytes())
+    @assert(expect volume.writeNode(fileId, 0, payload, false, false) == #sizeof(payload))
+    @assert(volume.keySlotCount() == 1)
+    volume.close()
+
+    // It opens without one, and refuses a password all the same: an unprotected container is
+    // not one that takes anything.
+    @assert(rejectsPassword(path, testPassword()))
+    var reopened = expect Volume.open(path, emptyBytes())
+    var readBack: [32] u8
+    let node     = reopened.resolve("\\open.bin")!
+    @assert(expect reopened.readNode(node.id, 0, readBack) == #sizeof(readBack))
+    @assert(sameTestBytes(payload, readBack))
+
+    // Protecting it afterwards is one key-slot write, and it reads back exactly the same.
+    expect reopened.changePassword(emptyBytes(), testPassword())
+    reopened.close()
+
+    @assert(rejectsPassword(path, emptyBytes()))
+    var protected = expect Volume.open(path, testPassword())
+    @assert(protected.resolve("\\open.bin") != null)
+
+    // A second way in still has to be a password: an unprotected slot beside a protected one
+    // would undo the protection without saying so.
+    discard catch protected.addPassword(emptyBytes()) as emptyAddError
+    @assert(emptyAddError != null)
+
+    // Taking the protection back off is the same call the other way round.
+    expect protected.changePassword(testPassword(), emptyBytes())
+    protected.close()
+
+    @assert(rejectsPassword(path, testPassword()))
+    var open = expect Volume.open(path, emptyBytes())
+    @assert(open.resolve("\\open.bin") != null)
+    open.close()
+}
+
+#test
+{
+    // Growing extends the file, randomizes what it added, and publishes the new geometry in
+    // one checkpoint. Everything the container held is where it was.
+    let path = testContainerPath("grow")
+    defer discard catch File.delete(path)
+
+    let payload: [64] u8 = [9]
+    var volume           = expect Volume.create(path, testPassword(), MinimumSize)
+    let fileId           = expect volume.createNode("\\kept.bin", false, FileAttributeNormal, emptyBytes())
+    @assert(expect volume.writeNode(fileId, 0, payload, false, false) == #sizeof(payload))
+
+    let originalBlocks = volume.blockCount
+    let originalFree   = volume.freeBlockCount()
+
+    // A container can only grow, and only by something: neither of those is a size a caller
+    // can reasonably have meant.
+    discard catch volume.grow(MinimumSize) as sameError
+    @assert(sameError != null)
+    discard catch volume.grow(MinimumSize - 1) as smallerError
+    @assert(smallerError != null)
+
+    let grownSize = MinimumSize + 64 * BlockRecordSize
+    expect volume.grow(grownSize)
+    @assert(volume.containerSize == grownSize)
+    @assert(volume.blockCount == originalBlocks + 64)
+    @assert(volume.freeBlockCount() == originalFree + 64)
+    volume.close()
+
+    @assert(expect File.info(path).size == grownSize)
+
+    // The new geometry survives the round trip, and the added blocks are usable: the free list
+    // is derived from what the node table references, so a block that was never published
+    // would simply never be handed out.
+    var reopened = expect Volume.open(path, testPassword())
+    @assert(reopened.containerSize == grownSize)
+    @assert(reopened.blockCount == originalBlocks + 64)
+
+    var readBack: [64] u8
+    let node     = reopened.resolve("\\kept.bin")!
+    @assert(expect reopened.readNode(node.id, 0, readBack) == #sizeof(readBack))
+    @assert(sameTestBytes(payload, readBack))
+
+    let addedId = expect reopened.createNode("\\added.bin", false, FileAttributeNormal, emptyBytes())
+    @assert(expect reopened.writeNode(addedId, 0, payload, false, false) == #sizeof(payload))
+    reopened.close()
+}
+
+#test
+{
+    // A growth the caller stops puts the file back to the length its durable header claims,
+    // so the container opens exactly as it did before it was asked to grow.
+    let path = testContainerPath("growcancel")
+    defer discard catch File.delete(path)
+
+    var volume = expect Volume.create(path, testPassword(), MinimumSize)
+    discard expect volume.createNode("\\kept.bin", false, FileAttributeNormal, emptyBytes())
+    volume.close()
+
+    var progress: VolumeProgress
+    progress.cancel()
+
+    var stopped = expect Volume.open(path, testPassword())
+    discard catch stopped.grow(MinimumSize + 64 * BlockRecordSize, &progress) as cancelError
+    @assert(cancelError != null)
+    @assert((cast(Error) cancelError).kind == .Canceled)
+    @assert(stopped.containerSize == MinimumSize)
+    stopped.close()
+
+    @assert(expect File.info(path).size == MinimumSize)
+    var reopened = expect Volume.open(path, testPassword())
+    @assert(reopened.containerSize == MinimumSize)
+    @assert(reopened.resolve("\\kept.bin") != null)
+    reopened.close()
 }

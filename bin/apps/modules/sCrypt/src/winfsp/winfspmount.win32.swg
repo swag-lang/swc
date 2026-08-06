@@ -7,8 +7,9 @@ namespace WinFsp
     #[Swag.NoCopy]
     struct WinFspMount
     {
-        fileSystem: #null *FspFileSystem
-        context:    #null *NativeMountContext
+        fileSystem:   #null *FspFileSystem
+        context:      #null *NativeMountContext
+        holdsRuntime: bool                        // Whether this mount counts towards `g_WinFsp.mountCount`.
     }
 
     impl WinFspMount
@@ -16,6 +17,12 @@ namespace WinFsp
         mtd start(volume: *Volume, mountPoint: string) fail
         {
             try loadWinFsp()
+
+            // The reference is taken the moment the runtime is up, before anything that can
+            // fail: every failure below unwinds through `stop`, and that is what releases it.
+            .holdsRuntime       = true
+            g_WinFsp.mountCount += 1
+
             discard catch registerPortableWinFsp() as registerError
             if registerError != null
             {
@@ -115,7 +122,17 @@ namespace WinFsp
                 .context = null
             }
 
-            unloadWinFsp()
+            // The library, the driver registration and the staged runtime tree are shared, so
+            // only the mount that turns the count to zero may take them down. Unloading them
+            // under a drive that is still exposed would take that drive with them.
+            if .holdsRuntime
+            {
+                .holdsRuntime = false
+                Debug.assert(g_WinFsp.mountCount != 0)
+                g_WinFsp.mountCount -= 1
+                if !g_WinFsp.mountCount do
+                    unloadWinFsp()
+            }
         }
 
         mtd opDrop() { .stop() }

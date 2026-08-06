@@ -6,7 +6,7 @@ using Swag, Core, Gui
 // Builds the real main window inside a headless surface of the shipped minimum size.
 func testSetupMainWindow(host: *Testing.HeadlessHost)->*MainWindow
 {
-    host.setup(1100, 790)
+    host.setup(cast(f32) MainWindow.WindowWidth, cast(f32) MainWindow.WindowHeight)
     host.bindApplication(&g_App)
 
     // The window resolves its application through its surface, so that is the one a language
@@ -18,7 +18,7 @@ func testSetupMainWindow(host: *Testing.HeadlessHost)->*MainWindow
     // Built on the surface root, the way the application builds it: the window installs itself
     // as the view of its surface, which destroys whatever view was there before.
     let result = MainWindow.create(&host.surfaceWnd)
-    result.setPosition({0, 0, 1100, 790})
+    result.setPosition({0, 0, cast(f32) MainWindow.WindowWidth, cast(f32) MainWindow.WindowHeight})
     result.applyLayout()
     return result
 }
@@ -63,18 +63,23 @@ func testSetupMainWindow(host: *Testing.HeadlessHost)->*MainWindow
     // Entry zero follows the account, so the registered languages start at one: one is the
     // reference language and two is French. Going through the picker is what the user does, and
     // it is what carries the change all the way to the labels.
-    let englishWidth = window.unmountButton.position.width
+    let unmount      = window.mountedDrives.unmountButton
+    let englishWidth = unmount.position.width
     window.chooseLanguage(2)
     host.notify(.LanguageChanged)
 
-    @assert(window.unmountButton.text() == "Démonter")
+    @assert(unmount.text() == "Démonter")
     @assert(window.createButton.text() == "Créer le coffre chiffré")
-    @assert(window.unmountButton.position.width != englishWidth)
+    @assert(unmount.position.width != englishWidth)
+
+    // The third card follows too, headings and all.
+    @assert(window.mountedDrives.list.header.itemAt(cast(u32) MountedColumn.Startup).name.raw == "AU DÉMARRAGE")
+    @assert(window.mountedDrives.empty.text() == "Aucun lecteur monté.")
 
     window.chooseLanguage(1)
     host.notify(.LanguageChanged)
-    @assert(window.unmountButton.text() == "Unmount")
-    @assert(window.unmountButton.position.width == englishWidth)
+    @assert(unmount.text() == "Unmount")
+    @assert(unmount.position.width == englishWidth)
 }
 
 // Picking a language remembers it, and the system entry restores "follow the account".
@@ -115,18 +120,21 @@ func testSetupMainWindow(host: *Testing.HeadlessHost)->*MainWindow
     let order = Gui.FocusOrder.collect(window)
 
     // A button that cannot work is down, and the keyboard does not stop on it: on a form with
-    // nothing filled in, the three actions of the window are out of the ring.
+    // nothing filled in, all four actions of the window are out of the ring. So is the band,
+    // which is not on the surface at all while no drive is mounted.
     @assert(order.stops.count == 11)
     @assert(order.stops[0] == cast(*Wnd) window.createPath)
     @assert(order.stops[6] == cast(*Wnd) window.mountPath)
 
-    // Live, each action takes its place after the card it answers for.
+    // Live, each action takes its place after the card it answers for, and the dominant one
+    // comes last on its card because the bar stacks from its right edge.
     window.createButton.enable(true)
     window.mountButton.enable(true)
-    window.unmountButton.enable(true)
+    window.resizeButton.enable(true)
+    window.passwordButton.enable(true)
 
     let full = Gui.FocusOrder.collect(window)
-    @assert(full.stops.count == 14)
+    @assert(full.stops.count == 15)
     @assert(full.stops[0] == cast(*Wnd) window.createPath)
     @assert(full.stops[1] == cast(*Wnd) window.browseCreate)
     @assert(full.stops[2] == cast(*Wnd) window.createSize)
@@ -138,9 +146,10 @@ func testSetupMainWindow(host: *Testing.HeadlessHost)->*MainWindow
     @assert(full.stops[8] == cast(*Wnd) window.browseMount)
     @assert(full.stops[9] == cast(*Wnd) window.mountPassword)
     @assert(full.stops[10] == cast(*Wnd) window.drive)
-    @assert(full.stops[11] == cast(*Wnd) window.mountButton)
-    @assert(full.stops[12] == cast(*Wnd) window.unmountButton)
-    @assert(full.stops[13] == cast(*Wnd) window.languageChoice)
+    @assert(full.stops[11] == cast(*Wnd) window.passwordButton)
+    @assert(full.stops[12] == cast(*Wnd) window.resizeButton)
+    @assert(full.stops[13] == cast(*Wnd) window.mountButton)
+    @assert(full.stops[14] == cast(*Wnd) window.languageChoice)
 
     // It opens on the first field, and Tab moves on from there.
     @assert(window.createPath.hasFocus())
@@ -173,7 +182,7 @@ func testSetupMainWindow(host: *Testing.HeadlessHost)->*MainWindow
     defer host.shutdown()
     defer discard catch g_App.setLanguage(ReferenceLanguage)
 
-    @assert(window.statusText() == "Ready — create a vault or choose one to mount.")
+    @assert(window.statusText() == "Ready — create a vault or choose one to open.")
 
     window.statusDrive = "Z:"
     window.setStatus(.Mounted)
@@ -218,4 +227,115 @@ func testSetupMainWindow(host: *Testing.HeadlessHost)->*MainWindow
     // A kind that means nothing to a reader reads as the generic damaged-container wording.
     @assert(messageFor(.DirectoryNotEmpty) == appStrings().msg_ErrDamaged)
     @assert(messageFor(.NotDirectory) == appStrings().msg_ErrDamaged)
+}
+
+// A form with no password in it is a form that can act: an empty password is a vault that
+// opens without one, not a field left blank.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    defer host.shutdown()
+
+    @assert(!window.canCreate())
+    window.createPath.setText("C:\\open.scrypt")
+    @assert(window.canCreate())
+    @assert(window.createButton.isEnabled())
+
+    // The two actions that change a container need the file and nothing else, because the
+    // password they need may legitimately be empty.
+    @assert(!window.canModifyVault())
+    window.mountPath.setText("C:\\open.scrypt")
+    @assert(window.canModifyVault())
+    @assert(window.canMount())
+    @assert(window.passwordButton.isEnabled())
+    @assert(window.resizeButton.isEnabled())
+}
+
+// The drives card shows a table only while it has a drive to put in it, and says so
+// plainly the rest of the time.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    defer host.shutdown()
+
+    @assert(!window.mountedDrives.list.isLocallyVisible())
+    @assert(window.mountedDrives.empty.isLocallyVisible())
+    @assert(window.mountedDrives.selectedIndex() == Swag.U64.Max)
+    @assert(!window.mountedDrives.unmountButton.isEnabled())
+
+    window.mountedDrives.drives.add({null, String.from("C:\\vaults\\one.scrypt"), String.from("X:"), true, false})
+    window.mountedDrives.drives.add({null, String.from("C:\\vaults\\two.scrypt"), String.from("Y:"), false, true})
+    window.mountedDrives.refresh()
+
+    @assert(window.mountedDrives.list.isLocallyVisible())
+    @assert(!window.mountedDrives.empty.isLocallyVisible())
+    @assert(window.mountedDrives.list.lineCount() == 2)
+
+    // The row a drive occupies is the row the drive list gives it, and the mark it carries
+    // travels with it. A row names the vault, not the folder it happens to sit in.
+    @assert(!window.mountedDrives.list.isLineChecked(0))
+    @assert(window.mountedDrives.list.isLineChecked(1))
+    @assert(window.mountedDrives.list.lineAt(1)!.itemAt(cast(u32) MountedColumn.Drive).name.raw == "Y:")
+    @assert(window.mountedDrives.list.lineAt(1)!.itemAt(cast(u32) MountedColumn.Vault).name.raw == "two.scrypt")
+
+    // The list opens on its first row, so the one action of the card is live straight away.
+    window.setState(.Ready)
+    @assert(window.mountedDrives.selectedIndex() == 0)
+    @assert(window.mountedDrives.unmountButton.isEnabled())
+
+    // Handing a drive over drops its row, and the card goes back to its one line with the last.
+    discard window.mountedDrives.detach(0)
+    @assert(window.mountedDrives.list.lineCount() == 1)
+    discard window.mountedDrives.detach(0)
+    @assert(window.mountedDrives.empty.isLocallyVisible())
+    @assert(!window.mountedDrives.unmountButton.isEnabled())
+}
+
+// Checking a drive puts it in the list sCrypt mounts at its next start, and unchecking it
+// takes it back out. Unmounting the drive afterwards leaves the mark alone.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    defer host.shutdown()
+
+    window.mountedDrives.drives.add({null, String.from("C:\\one.scrypt"), String.from("X:"), true, false})
+    window.mountedDrives.refresh()
+
+    window.mountedDrives.list.setLineChecked(0, true)
+    @assert(window.startupVaults.count == 1)
+    @assert(window.startupVaults[0].path == "C:\\one.scrypt")
+    @assert(window.startupVaults[0].drive == "X:")
+    @assert(window.startupVaults[0].needsPassword)
+
+    discard window.mountedDrives.detach(0)
+    @assert(window.startupVaults.count == 1)
+
+    window.mountedDrives.drives.add({null, String.from("C:\\one.scrypt"), String.from("X:"), true, true})
+    window.mountedDrives.refresh()
+    window.mountedDrives.list.setLineChecked(0, false)
+    @assert(window.startupVaults.isEmpty())
+}
+
+// A capacity is read back the way a reader wrote it, and refused when it says nothing.
+#test
+{
+    var host: Testing.HeadlessHost
+    discard testSetupMainWindow(&host)
+    defer host.shutdown()
+
+    @assert(capacityText(256 * 1024 * 1024) == "256 MiB")
+    @assert(capacityText(2 * 1024 * 1024 * 1024) == "2 GiB")
+
+    // A size that is not a whole gibibyte stays in mebibytes rather than growing a decimal.
+    @assert(capacityText(1536 * 1024 * 1024) == "1536 MiB")
+
+    @assert(parseCapacity("256", 0).bytes == 256 * 1024 * 1024)
+    @assert(parseCapacity("2", 1).bytes == 2 * 1024 * 1024 * 1024)
+    @assert(!parseCapacity("", 0).error.isEmpty())
+    @assert(!parseCapacity("0", 0).error.isEmpty())
+    @assert(!parseCapacity("12x", 0).error.isEmpty())
+    @assert(!parseCapacity("18446744073709551615", 1).error.isEmpty())
 }

@@ -1875,7 +1875,7 @@ namespace
                 const uint64_t baseOff = entriesOffset + i * sizeof(Runtime::Gvtd);
 
                 const MicroReg ptrReg = codeGen.nextVirtualIntRegister();
-                builder.emitLoadRegDataSegmentReloc(ptrReg, entry.variable->globalStorageKind(), entry.variable->offset());
+                CodeGenMemoryHelpers::emitGlobalVariableAddress(codeGen, ptrReg, *entry.variable);
                 builder.emitLoadMemReg(scratchReg, baseOff + offsetof(Runtime::Gvtd, ptr), ptrReg, MicroOpBits::B64);
 
                 const MicroReg opDropReg = codeGen.nextVirtualIntRegister();

@@ -791,7 +791,7 @@ namespace
             globalPayload.typeRef = symVar.typeRef();
             globalPayload.setIsAddress();
             globalPayload.reg = codeGen.nextVirtualIntRegister();
-            codeGen.builder().emitLoadRegDataSegmentReloc(globalPayload.reg, symVar.globalStorageKind(), symVar.offset());
+            CodeGenMemoryHelpers::emitGlobalVariableAddress(codeGen, globalPayload.reg, symVar);
             return globalPayload;
         }
 

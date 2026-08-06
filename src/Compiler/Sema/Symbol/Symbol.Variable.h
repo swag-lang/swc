@@ -73,6 +73,18 @@ public:
     void                  setGlobalStorage(DataSegmentKind kind, uint32_t offset);
     DataSegmentKind       globalStorageKind() const { return globalStorageKind_; }
 
+    // A '#[Swag.Tls]' global. Its global storage holds the value every thread starts from, and the
+    // address a use resolves to is the calling thread's own copy of it, so the address is not a
+    // link-time constant and has to be materialized by a call.
+    bool     isThreadLocal() const noexcept { return threadLocalSize_ != 0; }
+    uint32_t threadLocalSize() const noexcept { return threadLocalSize_; }
+    uint32_t threadLocalIdOffset() const noexcept { return threadLocalIdOffset_; }
+    void     setThreadLocalStorage(uint32_t idOffset, uint32_t size) noexcept
+    {
+        threadLocalIdOffset_ = idOffset;
+        threadLocalSize_     = size;
+    }
+
     MemberAccess memberAccess() const noexcept { return memberAccess_; }
     void         setMemberAccess(MemberAccess access) noexcept { memberAccess_ = access; }
 
@@ -88,6 +100,8 @@ private:
     SymbolFunction* globalFunctionInit_    = nullptr;
     SymbolVariable* closureCapturedSource_ = nullptr;
     uint32_t        closureCaptureOffset_  = 0;
+    uint32_t        threadLocalIdOffset_   = 0;
+    uint32_t        threadLocalSize_       = 0;
     MemberAccess    memberAccess_          = MemberAccess::Public;
 };
 

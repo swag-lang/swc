@@ -142,7 +142,7 @@ namespace
         if (storageSym.hasGlobalStorage())
         {
             outStorageReg = codeGen.nextVirtualIntRegister();
-            codeGen.builder().emitLoadRegDataSegmentReloc(outStorageReg, storageSym.globalStorageKind(), storageSym.offset());
+            CodeGenMemoryHelpers::emitGlobalVariableAddress(codeGen, outStorageReg, storageSym);
             return outStorageReg.isValid();
         }
 

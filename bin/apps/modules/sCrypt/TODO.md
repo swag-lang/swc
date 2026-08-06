@@ -74,37 +74,44 @@ locally.
 
 ---
 
-## Tier B — Perceived feature parity
+## Tier B — Perceived feature parity
 
 ### 5. Mount comfort and mount-time safety
 
 - Owner: sCrypt
-- Problem: one volume, one drive letter, no options. Missing: read-only mount, multiple concurrent
-  volumes, favorites, mount at logon, and forced unmount — plus automatic unmount on session lock,
-  on suspend, and on idle, which is a security feature rather than a convenience.
-- Why it ranks here: this is the bulk of the *perceived* gap against VeraCrypt, at moderate cost.
+- Shipped: several volumes at once, each on its own letter, listed in the third card of the window;
+  a per-vault mark that mounts it again at the next start, with one password prompt per protected
+  vault; and containers that open without a password at all.
+- Missing: read-only mount, forced unmount when a handle keeps a volume busy, and automatic unmount
+  on session lock, on suspend, and on idle — the last three are a security feature rather than a
+  convenience, and they are what remains of the *perceived* gap against VeraCrypt.
+- Note: the startup list is persisted with `needsPassword` beside each path, which is what keeps a
+  start quiet for an unprotected vault. It is not a hint an attacker could not obtain in one Argon2
+  attempt, but it does mean the state file says which vaults have no password.
 
-### 6. Password management is not in the interface
+### 6. Additional passwords are not in the interface
 
 - Owner: sCrypt
-- Problem: `Volume.changePassword`, `Volume.addPassword` and `Volume.removePassword` exist and are
-  tested, but nothing in `mainwindow.swg` or `vaultcard.swg` reaches them. The capability ships
-  without a way to use it.
-- Fix: a key-slot panel on the vault card — change password, add a password, revoke one, and a
-  cost-profile selector backed by `Crypto.Argon2Profile`.
+- Shipped: changing the password of a container, and removing it by leaving the new one empty,
+  through the `Password…` action of the open-vault card.
+- Problem: `Volume.addPassword` and `Volume.removePassword` still have no way in. A container can
+  hold four passwords and the interface only ever writes the one a reader opened it with.
+- Fix: a key-slot list on that dialog — add a password, revoke one — plus a cost-profile selector
+  backed by `Crypto.Argon2Profile`. Both need a way to show how many slots are in use without
+  claiming which of them is which.
 - Note: `KeySlotCount` is 4. Raising it costs one constant and a wider `keySlotMask`, but it also
   multiplies the cost of rejecting a wrong password; see entry 2.
 
-### 7. Resize
+### 7. Shrinking a container
 
 - Owner: sCrypt
-- Problem: capacity is fixed in `Volume.create` and cannot change.
-- Fix: growing is straightforward — extend the file, fill the new region with random bytes, update
-  `blockCount` and `containerSize`, and checkpoint. Note that `restore` cross-checks `storedSize`
-  against the actual file size, so the growth must be a committed operation rather than an external
-  file extension. The free list is derived from what the node table references, so nothing else has
-  to be rewritten.
-- Shrinking requires evacuating blocks above the new limit: more work, less value, defer it.
+- Shipped: growing, through `Volume.grow` and the `Capacity…` action. The file is extended, the
+  added region is randomized like a fresh container, and only then does a checkpoint publish the
+  new geometry, so an interruption leaves the container exactly as it was.
+- Problem: capacity can only go up.
+- Fix: evacuating every block above the new limit, then truncating. More work than growing, and far
+  less value — a container that has to be rewritten to lose space is a poor trade. Ranked here
+  because it is the other half of a capacity a reader can change, not because it is urgent.
 
 ### 8. Header backup and restore
 

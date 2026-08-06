@@ -30,7 +30,7 @@ var g_App: Application
     g_App.setAppIcon(appIcon)
     registerAppStrings(&g_App.resources)
 
-    let surface = (try g_App.createSurface(80, 50, 1100, 790, SurfaceFlags.StandardWindow, surfaceId: "sCrypt"))!
+    let surface = (try g_App.createSurface(80, 50, MainWindow.WindowWidth, MainWindow.WindowHeight, SurfaceFlags.StandardWindow, surfaceId: "sCrypt"))!
     g_App.theme.setSwagDark()
     g_App.notifyThemeChanged()
 

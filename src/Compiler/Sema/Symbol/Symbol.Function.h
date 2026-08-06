@@ -98,7 +98,7 @@ public:
     // address). Legitimate in itself - that is what 'append', 'reserve' and 'clear' are
     // for - but it tells every view into that payload apart from every other method
     // call, which is what the invalidation check needs.
-    uint64_t reallocatesParamsMask() const noexcept { return reallocatesParamsMask_; }
+    uint64_t reallocatesParamsMask() const noexcept;
     void     addReallocatesParam(size_t paramIndex) noexcept
     {
         if (paramIndex < 64)

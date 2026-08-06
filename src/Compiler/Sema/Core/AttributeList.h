@@ -82,6 +82,7 @@ struct AttributeList
     uint64_t                            storesParamsMask        = 0;
     uint64_t                            storesIntoParamPairs    = 0;
     uint64_t                            freesParamsMask         = 0;
+    uint64_t                            reallocatesParamsMask   = 0;
     SmallVector4<Utf8>                  printMicroPassOptions;
     SmallVector4<Utf8>                  printAstStageOptions;
     WarningPolicy                       warnings;
@@ -104,6 +105,7 @@ struct AttributeList
                storesParamsMask == 0 &&
                storesIntoParamPairs == 0 &&
                freesParamsMask == 0 &&
+               reallocatesParamsMask == 0 &&
                printMicroPassOptions.empty() &&
                printAstStageOptions.empty() &&
                warnings.empty() &&
@@ -182,13 +184,15 @@ struct AttributeList
     // bit i of 'returns' = the return value may borrow parameter #i, bit i of 'stores'
     // = parameter #i may be stored beyond the call, bit (i*8+j) of 'into' = parameter
     // #j may be stored into storage reachable from parameter #i, bit i of 'frees' =
-    // the call invalidates what parameter #i points to.
-    void addBorrowSummary(uint64_t returnsMask, uint64_t storesMask, uint64_t intoPairs, uint64_t freesMask)
+    // the call invalidates what parameter #i points to, bit i of 'reallocates' = the
+    // call may move or release the payload parameter #i owns.
+    void addBorrowSummary(uint64_t returnsMask, uint64_t storesMask, uint64_t intoPairs, uint64_t freesMask, uint64_t reallocatesMask)
     {
         returnBorrowsParamsMask |= returnsMask;
         storesParamsMask |= storesMask;
         storesIntoParamPairs |= intoPairs;
         freesParamsMask |= freesMask;
+        reallocatesParamsMask |= reallocatesMask;
     }
 
     void setBackendOptimize(bool value)

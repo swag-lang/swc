@@ -448,6 +448,8 @@ namespace
     // carrier came from a value that does not free it - its pointee may live anywhere.
     const SymbolVariable* carrierBaseStorageRoot(Sema& sema, AstNodeRef baseRef, bool forAssignment, uint32_t depth);
 
+    const SymbolVariable* ownedPayloadStorageRootAt(Sema& sema, AstNodeRef resolvedRef, bool forAssignment, uint32_t depth);
+
     const SymbolVariable* ownedPayloadStorageRoot(Sema& sema, AstNodeRef carrierRef, bool forAssignment, uint32_t depth)
     {
         if (carrierRef.isInvalid() || depth > K_STORAGE_WALK_BUDGET)
@@ -455,6 +457,17 @@ namespace
 
         const AstNodeRef resolvedRef = sema.viewZero(carrierRef).nodeRef();
         if (resolvedRef.isInvalid())
+            return nullptr;
+
+        return ownedPayloadStorageRootAt(sema, resolvedRef, forAssignment, depth);
+    }
+
+    // Same walk, entered on a node the caller ALREADY resolved. Re-resolving it would
+    // undo that: the operand of a self-substituted cast resolves back to the cast, and
+    // the walk would then see a cast where its caller carefully saw the member access.
+    const SymbolVariable* ownedPayloadStorageRootAt(Sema& sema, AstNodeRef resolvedRef, bool forAssignment, uint32_t depth)
+    {
+        if (resolvedRef.isInvalid() || depth > K_STORAGE_WALK_BUDGET)
             return nullptr;
 
         const AstNode& node = sema.node(resolvedRef);
@@ -2034,7 +2047,7 @@ namespace
                 // ('set.table', 'string.buffer') addresses memory that value releases
                 // when it dies: the read borrows the owner, whatever the left side of
                 // the access borrowed to reach it.
-                if (const SymbolVariable* ownerVar = ownedPayloadStorageRoot(sema, resolvedRef, false, 0))
+                if (const SymbolVariable* ownerVar = ownedPayloadStorageRootAt(sema, resolvedRef, false, 0))
                 {
                     const TypeRef memberTypeRef = expressionTypeRef(sema, resolvedRef);
                     SemaEscapeInfo ownedInfo    = variableStorageInfo(sema, *ownerVar, resolvedRef, memberTypeRef);

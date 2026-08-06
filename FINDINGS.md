@@ -479,27 +479,32 @@ Use this compact format. Keep observations factual and make the next step action
   reads. Check whether instruction-combine already does this and is simply not re-run after the
   unroll, or whether it has no rule for Amc-with-constant-index at all.
 
-### F-035 — The reallocation summary stops at the module boundary, leaving the invalidation check inert
+### F-035 — Two gaps keep the borrow-invalidation check from firing on any real code
 
 - Area: compiler
 - Found while: building the borrow-invalidation check (a view read after the storage it views was
   moved), on branch `worktree-safety-push`
-- Observation: the check itself works — a view taken from a local owner, a call that can move that
-  owner's payload, and a read of the view afterwards are all detected, with the read located by
-  source order so a view that is refreshed or never read again stays silent. What gates it is a new
-  `SymbolFunction::reallocatesParamsMask`, seeded where a payload the parameter OWNS reaches
-  `IAllocator.free`/`realloc` and propagated by the existing summary fixpoint. That mask is not part
-  of `#[Swag.BorrowSummary]`, so an imported callee reports zero and the check never fires on the
-  standard collections — which is every interesting case.
-- Evidence: `String.append` and `String.clear` both come back with `reallocates=0` and `frees=0` at
-  the judgement point, because the attribute carries neither (the frees bit is deliberately
-  suppressed for owned-payload releases: releasing the buffer does not release the container).
-  Within one module the chain is complete: `append` -> `reserve` -> `Memory.free(.buffer, ...)`
-  seeds through the `viaOwnedPayload` edge.
-- Next step: serialize the mask as a fifth `BorrowSummary` argument, exactly as `frees` was added —
-  `api.swg` attribute, `AttributeList`, `collectBorrowSummaryOptions`, the OR in the
-  `SymbolFunction` getter, and `ModuleApiExport.Generate.cpp`. Then re-sweep every workspace and
-  triage: the trigger becomes real for imported types, so this is where the false-positive cost of
-  the check is actually measured. Two shapes were already ruled out by hand and must stay silent —
-  an interface or pointer to the value itself (`let r: IRenderer = &cpu; cpu.begin(...)`), and a
-  method that only reads or assigns fields (`host.mouseDown` with a view of `host.root`'s metrics).
+- Observation: the mechanism is complete and the summary now crosses module boundaries
+  (`reallocatesParamsMask` is the fifth `#[Swag.BorrowSummary]` argument, emitted and consumed),
+  but two independent gaps leave it silent on everything that matters.
+  (1) SEEDING: `String.reserve` produces no summary edge at all for its
+  `Memory.free(.buffer, .capacity, .allocator)` call, so `String` never gains the bit and neither
+  does `append` above it. `HashSet.reserve`, `HashTable.reserve` and
+  `Reflection.appendDynamicArrayElement` do gain it through the same path, so the machinery works —
+  something about that particular site does not reach `ownedPayloadStorageRoot`.
+  (2) CANDIDATES: the check only considers views whose tracked info `isLocalBorrow()`. A view
+  obtained from a method (`tbl.tryFind(...)`, `arr.toSlice()`) is bound as a `DeferredCall` instead,
+  so the most common way to take a view into a container is not a candidate at all.
+- Evidence: the generated `core.swg` API carries `BorrowSummary(..., 1)` on exactly four functions,
+  none of them a `String` method; `Core.String.reserve` emits no `[mk]` edge to `Memory.free` while
+  `Core.HashSet.reserve` does. The suspected cause of (1) is the nullability narrowing on
+  `if .buffer and .buffer != cast() &.padding[0]`, which likely replaces the member access with a
+  narrowed binding the owned-payload walk does not recognize — unverified.
+- Next step: fix (1) first, it is the smaller one — dump the resolved node kind of `.buffer` at that
+  argument and teach `ownedPayloadStorageRoot` whatever narrowing produced. Then (2): bind a view
+  from a call as a real borrow of the receiver when the callee's return summary says so, which needs
+  the same deferred judgement the invalidation check already uses. Only after both does the
+  false-positive cost get measured, and that is the point of the exercise — every workspace is
+  currently clean precisely because nothing fires. Two shapes must stay silent when it does: an
+  interface or pointer to the value itself (`let r: IRenderer = &cpu; cpu.begin(...)`), and a method
+  that only reads or assigns fields (`host.mouseDown` with a view of `host.root`'s metrics).

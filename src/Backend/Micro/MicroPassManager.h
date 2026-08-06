@@ -34,6 +34,7 @@ class MicroDeadCodeEliminationPass;
 class MicroBranchSimplifyPass;
 class MicroLoopUnrollPass;
 class MicroSlpVectorizePass;
+class MicroVecLoopPromotePass;
 
 // Post-RA optimization passes (operate on physical registers)
 class MicroPostRaPeepholePass;
@@ -100,6 +101,7 @@ private:
     std::unique_ptr<MicroBranchSimplifyPass>          branchSimplifyPass_;
     std::unique_ptr<MicroLoopUnrollPass>              loopUnrollPass_;
     std::unique_ptr<MicroSlpVectorizePass>            slpVectorizePass_;
+    std::unique_ptr<MicroVecLoopPromotePass>          vecLoopPromotePass_;
 
     // Post-RA optimization passes
     std::unique_ptr<MicroPostRaPeepholePass>     postRaPeepholePass_;

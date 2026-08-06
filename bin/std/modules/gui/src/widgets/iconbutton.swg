@@ -248,7 +248,9 @@ impl IWnd for IconButton
                 rail.inflate(-.railInset(rail.width), 0)
             }
 
-            bc.painter.fillRect(rail, colors.activeRail)
+            // A tool that cannot be picked keeps its mark, at the weight of everything else
+            // it cannot do. Drawn at full accent, the rule says the tool is available.
+            bc.painter.fillRect(rail, bc.isDisabled ? colors.btnIcon_CheckedDisabledMark : colors.activeRail)
         }
         elif !flat and !overlay and .isChecked and .checkIndicator != .None
         {

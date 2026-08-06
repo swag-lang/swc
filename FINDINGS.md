@@ -30,6 +30,36 @@ Use this compact format. Keep observations factual and make the next step action
 - Related: issue, pull request, or TODO entry if applicable
 -->
 
+### Two sCapture modal-dialog tests fail on master
+
+- Area: bin/apps
+- Found while: validating the GUI theme rewrite, which needed a baseline to attribute failures to
+- Observation: `dialogs.test.swg:23` and `files.test.swg:513` both fail on `@assert(gui.autoHandled)`
+  — the headless modal driver arms `clickModalButtonWhenShown` and the dialog is never reported as
+  handled. Two of the 126 sCapture tests; the other 124 and all 28 sCrypt tests pass.
+- Evidence: reproduced identically in a pristine `git worktree add --detach ../swc-basecheck
+  d02f74d99` with no local change, so it is not caused by the theme work. Same two tests, same
+  asserts, same commit.
+- Next step: instrument `Gui.Testing.HeadlessHost.clickModalButtonWhenShown` to report which
+  surface it inspected and which button id it looked for; both failing cases open a real modal
+  (About, File Details) rather than a `MessageDlg`, which is the difference from the passing
+  modal tests.
+
+### sCapture keeps a dark editor matte after switching to the light theme
+
+- Area: bin/apps
+- Found while: comparing sCapture in both Swag palettes through the gui10 theme inspector
+- Observation: the matte around the capture is `EditorOptions.editBackColor`, whose default was a
+  fixed `0xFF2E2E2E`. It now defaults to transparent, meaning "follow the theme", and `EditView`
+  resolves it to `view_Bk` — but an existing installation has the old opaque value persisted, so
+  it keeps a near-black matte under a white interface.
+- Evidence: [editview.swg](bin/apps/modules/sCapture/src/editview.swg),
+  [options.swg](bin/apps/modules/sCapture/src/options.swg). A fresh profile picks up the theme; a
+  profile written before this change does not.
+- Next step: decide whether the options loader should migrate the one legacy value to transparent,
+  or whether an application is expected to version its settings. The same question applies to any
+  future option whose default becomes theme-derived.
+
 ### A reference to a nullable slot escapes the whole nullability system
 
 - Area: compiler

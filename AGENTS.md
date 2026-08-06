@@ -31,6 +31,11 @@ the editor theme, also read and follow
 [design-swag-identity](.agents/skills/design-swag-identity/SKILL.md): the mark, the
 palette, and the 45 degree cut are one system.
 
+When the change touches a GUI theme — a palette token, a semantic color, the way a widget
+picks its colors, or a theme sheet — also read and follow
+[design-swag-themes](.agents/skills/design-swag-themes/SKILL.md): every color is derived
+from a small set of tokens, and the `gui10` inspector is how the result is judged.
+
 When adding, migrating, renaming, styling, packaging, or testing an official application under
 `bin/apps`, also read and follow
 [build-swag-standard-apps](.agents/skills/build-swag-standard-apps/SKILL.md): every shipped app

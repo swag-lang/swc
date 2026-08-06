@@ -223,6 +223,9 @@ namespace
             case MicroInstrOpcode::LoadZeroExtRegReg:
             case MicroInstrOpcode::LoadAddrRegMem:
             case MicroInstrOpcode::LoadCondRegReg:
+            case MicroInstrOpcode::LoadVecRegMem:
+            case MicroInstrOpcode::StoreVecMemReg:
+            case MicroInstrOpcode::VecShuffleRegRegImm:
             case MicroInstrOpcode::OpUnaryMem:
             case MicroInstrOpcode::OpBinaryRegReg:
             case MicroInstrOpcode::OpBinaryRegImm:

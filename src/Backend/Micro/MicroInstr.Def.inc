@@ -604,3 +604,19 @@ SWC_MICRO_INSTR_DEF(
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
     })
+
+// Packed four-lane permute (pshufd): dst = shuffle(src, control), with dst
+// distinct from src allowed. The only non-destructive reg/reg/imm shape in
+// the instruction set, hence its own opcode: [dst, src, opBits, control].
+// Does not touch the CPU flags.
+SWC_MICRO_INSTR_DEF(
+    VecShuffleRegRegImm,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::Def, MicroInstrRegMode::Use, MicroInstrRegMode::None},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 0,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::Zero,
+        .memBaseOperandIndex   = 0,
+        .memOffsetOperandIndex = 0,
+    })

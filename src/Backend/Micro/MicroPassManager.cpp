@@ -22,6 +22,7 @@
 #include "Backend/Micro/Passes/Pass.PrologEpilogSanitize.h"
 #include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
 #include "Backend/Micro/Passes/Pass.Sanity.h"
+#include "Backend/Micro/Passes/Pass.SlpVectorize.h"
 #include "Backend/Micro/Passes/Pass.StackAdjustNormalize.h"
 #include "Backend/Micro/Passes/Pass.StrengthReduction.h"
 #include "Backend/Micro/Passes/Pass.ValueNumbering.h"
@@ -434,6 +435,7 @@ MicroPassManager::MicroPassManager()
     deadCodeEliminationPass_ = std::make_unique<MicroDeadCodeEliminationPass>();
     branchSimplifyPass_      = std::make_unique<MicroBranchSimplifyPass>();
     loopUnrollPass_          = std::make_unique<MicroLoopUnrollPass>();
+    slpVectorizePass_        = std::make_unique<MicroSlpVectorizePass>();
 
     // Post-RA optimization passes
     postRaPeepholePass_     = std::make_unique<MicroPostRaPeepholePass>();
@@ -448,6 +450,7 @@ void MicroPassManager::clear()
 {
     startPasses_.clear();
     preRaLoopPasses_.clear();
+    vectorizePasses_.clear();
     raLoopPasses_.clear();
     preRaAnalysisPasses_.clear();
     postRaSetupPasses_.clear();
@@ -496,6 +499,12 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
         // unroll folds the per-copy constant counters through extends and
         // address modes.
         addPreRaLoopPass(*loopUnrollPass_);
+
+        // Runs once after the loop above has converged, on the canonical
+        // scalar IR. Self-gated on the build configuration's cpuVectorize
+        // setting; when it rewrites something, the pre-RA loop runs again to
+        // clean up the dead scalar chains.
+        addVectorizePass(*slpVectorizePass_);
     }
 
     // Static null-dereference sanity analysis (read-only). Runs once, before the
@@ -547,6 +556,16 @@ Result MicroPassManager::run(MicroPassContext& context) const
     SWC_ASSERT(context.builder);
     const uint32_t preRaMaxIterations = std::max<uint32_t>(loopIterationLimit(context, optimizationIterationLimit(context.builder->backendBuildCfg())), 1);
     SWC_RESULT(runLoopPasses(context, preRaLoopPasses_, preRaMaxIterations, true, "pre-ra-optimization-loop", verifyCache));
+
+    // Auto-vectorization runs once on the converged scalar IR. When it fires,
+    // the pre-RA loop runs again: the scalar chains it strands are dead code,
+    // and the packed sequence itself benefits from copy elimination.
+    if (!vectorizePasses_.empty())
+    {
+        SWC_RESULT(runLinearPasses(context, vectorizePasses_, verifyCache));
+        if (context.passChanged)
+            SWC_RESULT(runLoopPasses(context, preRaLoopPasses_, preRaMaxIterations, true, "post-vectorize-cleanup-loop", verifyCache));
+    }
 
 #if SWC_HAS_STATS
     context.statsInstrAfterPreRaOptim = context.instructions->count();

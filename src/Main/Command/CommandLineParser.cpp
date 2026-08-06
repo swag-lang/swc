@@ -253,6 +253,7 @@ namespace
             buildCfg.backend.fpMathNoInf        = true;
             buildCfg.backend.fpMathNoSignedZero = true;
             buildCfg.backend.inlineMode         = Runtime::BuildCfgBackendInlineMode::Auto;
+            buildCfg.backend.cpuVectorize       = Runtime::BuildCfgBackendCpuVectorize::Sse2;
         }
         else
         {
@@ -275,6 +276,8 @@ namespace
 
         if (cmdLine.backendOptimize.has_value())
             buildCfg.backend.optimize = cmdLine.backendOptimize.value();
+        if (cmdLine.cpuVectorizeExplicit)
+            buildCfg.backend.cpuVectorize = cmdLine.cpuVectorize;
 
         buildCfg.backendKind = cmdLine.backendKind;
 

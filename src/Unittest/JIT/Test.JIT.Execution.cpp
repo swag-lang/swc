@@ -311,6 +311,99 @@ namespace
         builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(16, 64), MicroOp::Add, MicroOpBits::B64);
         builder.emitRet();
     }
+
+    // Packed 128-bit integer forms executed directly: load, add, shift, xor,
+    // shuffle, store, then a scalar readback compared lane by lane.
+    uint32_t packedOpsData[12];
+
+    void buildReturnZeroAfterPackedIntegerOps(MicroBuilder& builder, const CallConv& callConv)
+    {
+        constexpr MicroReg r8   = MicroReg::intReg(8);
+        constexpr MicroReg rdx  = MicroReg::intReg(3);
+        constexpr MicroReg xmm1 = MicroReg::floatReg(1);
+        constexpr MicroReg xmm2 = MicroReg::floatReg(2);
+        constexpr MicroReg xmm3 = MicroReg::floatReg(3);
+        constexpr MicroReg xmm4 = MicroReg::floatReg(4);
+
+        builder.emitLoadRegPtrImm(r8, reinterpret_cast<uint64_t>(packedOpsData));
+        builder.emitLoadVecRegMem(xmm1, r8, 0, MicroOpBits::B128);
+        builder.emitLoadVecRegMem(xmm2, r8, 16, MicroOpBits::B128);
+        builder.emitOpBinaryRegReg(xmm1, xmm2, MicroOp::VecAdd32, MicroOpBits::B128);
+        builder.emitLoadRegReg(xmm3, xmm1, MicroOpBits::B128);
+        builder.emitOpBinaryRegImm(xmm3, ApInt(4, 8), MicroOp::VecShiftLeft32, MicroOpBits::B128);
+        builder.emitOpBinaryRegReg(xmm3, xmm1, MicroOp::VecXor, MicroOpBits::B128);
+        builder.emitVecShuffleRegRegImm(xmm4, xmm3, 0x39, MicroOpBits::B128);
+        builder.emitStoreVecMemReg(r8, 32, xmm4, MicroOpBits::B128);
+
+        // acc |= (out[i] ^ expected[i]) for the four lanes.
+        // in = {1,2,3,4}, key = {0x10,0x20,0x30,0x40}: sum s = in+key,
+        // t = (s << 4) ^ s, out = lanes of t rotated down by one.
+        static constexpr uint32_t EXPECTED[4] = {0x202, 0x303, 0x404, 0x101};
+        builder.emitClearReg(callConv.intReturn, MicroOpBits::B64);
+        for (uint32_t lane = 0; lane < 4; ++lane)
+        {
+            builder.emitLoadRegMem(rdx, r8, 32 + lane * 4, MicroOpBits::B32);
+            builder.emitOpBinaryRegImm(rdx, ApInt(EXPECTED[lane], 32), MicroOp::Xor, MicroOpBits::B32);
+            builder.emitOpBinaryRegReg(callConv.intReturn, rdx, MicroOp::Or, MicroOpBits::B64);
+        }
+        builder.emitRet();
+    }
+
+    // End-to-end auto-vectorization: scalar lanes written by hand, the SLP
+    // pass grouping them into packed code, and a scalar readback verifying
+    // the values. The data lives outside the frame so scalar promotion
+    // cannot dissolve the memory accesses the vectorizer seeds on.
+    uint32_t slpLanesData[16];
+
+    void buildReturnZeroAfterSlpVectorizedLanes(MicroBuilder& builder, const CallConv& callConv)
+    {
+        Runtime::BuildCfgBackend buildCfg{};
+        buildCfg.optimize     = true;
+        buildCfg.cpuVectorize = Runtime::BuildCfgBackendCpuVectorize::Sse2;
+        builder.setBackendBuildCfg(buildCfg);
+
+        constexpr MicroReg rdx      = MicroReg::intReg(3);
+        constexpr MicroReg r10      = MicroReg::intReg(10);
+        constexpr MicroReg basePtr  = MicroReg::virtualIntReg(0);
+        constexpr uint32_t laneBase = 1;
+
+        builder.emitLoadRegPtrImm(basePtr, reinterpret_cast<uint64_t>(slpLanesData));
+
+        const auto computeLabel = builder.createLabel();
+        builder.placeLabel(computeLabel);
+
+        // out[i] = rol((in[i] + key[i]) ^ mask[i], 7), one scalar chain per lane.
+        for (uint32_t lane = 0; lane < 4; ++lane)
+        {
+            const MicroReg laneReg  = MicroReg::virtualIntReg(laneBase + lane * 2);
+            const MicroReg otherReg = MicroReg::virtualIntReg(laneBase + lane * 2 + 1);
+            builder.emitLoadRegMem(laneReg, basePtr, lane * 4, MicroOpBits::B32);
+            builder.emitLoadRegMem(otherReg, basePtr, 16 + lane * 4, MicroOpBits::B32);
+            builder.emitOpBinaryRegReg(laneReg, otherReg, MicroOp::Add, MicroOpBits::B32);
+            builder.emitOpBinaryRegMem(laneReg, basePtr, 32 + lane * 4, MicroOp::Xor, MicroOpBits::B32);
+            builder.emitOpBinaryRegImm(laneReg, ApInt(7, 8), MicroOp::RotateLeft, MicroOpBits::B32);
+            builder.emitLoadMemReg(basePtr, 48 + lane * 4, laneReg, MicroOpBits::B32);
+        }
+
+        // The packed replacement writes flags at the insertion point, which
+        // is only legal because this definition kills them first.
+        builder.emitClearReg(r10, MicroOpBits::B64);
+
+        const auto verifyLabel = builder.createLabel();
+        builder.placeLabel(verifyLabel);
+
+        // acc |= (out[i] ^ expected[i]) for the four lanes.
+        // in = {1,2,3,4}, key = {0x10,0x20,0x30,0x40}, mask = {0xAA,0xBB,0xCC,0xDD}.
+        static constexpr uint32_t EXPECTED[4] = {0x5D80, 0x4C80, 0x7F80, 0x4C80};
+        builder.emitClearReg(callConv.intReturn, MicroOpBits::B64);
+        for (uint32_t lane = 0; lane < 4; ++lane)
+        {
+            builder.emitLoadRegMem(rdx, basePtr, 48 + lane * 4, MicroOpBits::B32);
+            builder.emitOpBinaryRegImm(rdx, ApInt(EXPECTED[lane], 32), MicroOp::Xor, MicroOpBits::B32);
+            builder.emitOpBinaryRegReg(callConv.intReturn, rdx, MicroOp::Or, MicroOpBits::B64);
+        }
+        builder.emitRet();
+    }
 }
 
 SWC_TEST_BEGIN(JIT_Return42)
@@ -340,6 +433,38 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(JIT_B32LoadAndZeroExtendKeepsUpperBitsClear)
 {
     SWC_RESULT(runCase(ctx, &buildReturnOneAfterB32LoadAndZeroExtend, 1));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JIT_PackedIntegerOps)
+{
+    static constexpr uint32_t IN[4]  = {1, 2, 3, 4};
+    static constexpr uint32_t KEY[4] = {0x10, 0x20, 0x30, 0x40};
+    for (uint32_t lane = 0; lane < 4; ++lane)
+    {
+        packedOpsData[lane]     = IN[lane];
+        packedOpsData[4 + lane] = KEY[lane];
+        packedOpsData[8 + lane] = 0;
+    }
+
+    SWC_RESULT(runCase(ctx, &buildReturnZeroAfterPackedIntegerOps, 0));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JIT_SlpVectorizedLanes)
+{
+    static constexpr uint32_t IN[4]   = {1, 2, 3, 4};
+    static constexpr uint32_t KEY[4]  = {0x10, 0x20, 0x30, 0x40};
+    static constexpr uint32_t MASK[4] = {0xAA, 0xBB, 0xCC, 0xDD};
+    for (uint32_t lane = 0; lane < 4; ++lane)
+    {
+        slpLanesData[lane]      = IN[lane];
+        slpLanesData[4 + lane]  = KEY[lane];
+        slpLanesData[8 + lane]  = MASK[lane];
+        slpLanesData[12 + lane] = 0;
+    }
+
+    SWC_RESULT(runCase(ctx, &buildReturnZeroAfterSlpVectorizedLanes, 0));
 }
 SWC_TEST_END()
 

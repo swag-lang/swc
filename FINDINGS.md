@@ -21,7 +21,7 @@ identifier, so a reference made today still resolves after the entry is gone. En
 identifier, ascending: a new one goes at the end, a deleted one leaves a gap, and position carries
 no priority.
 
-Next identifier: F-025
+Next identifier: F-027
 
 ## Open Investigations
 
@@ -373,4 +373,41 @@ Use this compact format. Keep observations factual and make the next step action
   hierarchy to the rounded body — does not work as the clipping region stands: `ColorPicker` and
   `ProgressBar` open regions of their own during the hierarchy paint and call
   `resetClippingRegion`, which disables the stencil outright.
+
+### F-025 — mem2reg can attribute accesses to a stale offset after address arithmetic
+
+- Area: compiler/backend
+- Found while: tracing why `chacha20Block` never promoted its inlined parameter homes
+- Observation: pass 1 of `Pass.MemToReg.cpp` records `lea ar, [fb + off]` into `addrRegOffset`
+  and never invalidates the entry when `ar` is later redefined by plain arithmetic
+  (`ar += reg`). Pass 2 does flag the redefinition as an escape and poisons the variable at the
+  ORIGINAL offset, but subsequent accesses through `ar` still resolve against that original
+  offset, so a store through the modified pointer can be attributed to a slot the pointer no
+  longer addresses. Today the poisoning of the original variable happens to block the promotion
+  of the mis-attributed slot itself, and variable-index addressing normally goes through the
+  Amc forms (whose result register is untracked), which is why no miscompile has been observed —
+  the hole needs a hand-written `lea` + register add + constant-offset store to line up.
+- Next step: in pass 2, move a redefined tracked register into `badAddrReg` at the redefinition
+  point (position-aware, since the map is currently flow-insensitive), or verify while
+  classifying accesses that the base register's definition still is the recorded lea.
+
+### F-026 — ChaCha20 throughput is bounded by memory round-trips, not by round arithmetic
+
+- Area: std/core (crypto), compiler/backend
+- Found while: benchmarking the auto-vectorized ChaCha20 rounds (sCrypt entry 2)
+- Observation: with the rounds fully vectorized (the double-round loop compiles to ~90 packed
+  instructions instead of ~500 scalar ones, `chacha20Block` overall 2794 -> 915), end-to-end
+  `chacha20Xor` throughput did not move measurably (medians 34.4 vs 34.0 MiB/s vectorized vs
+  scalar, DLL-swap interleaved protocol, though on a machine whose baseline drifted 2-40 MiB/s
+  between sweeps). Two structural costs dominate: the vectorized state is loaded from and
+  stored back to the frame on EVERY round-loop iteration (10 x 4 loads + 4 stores of 16 bytes,
+  each on the store-to-load forwarding latency chain), where hand-written SIMD keeps the four
+  row vectors in registers across all ten iterations; and the per-block plumbing around the
+  rounds (key-stream application, marshalling, wipes) is byte- and word-granular — the
+  word-at-a-time key-stream application and `load32`/`store32` word accesses landed with this
+  investigation, the register-resident state did not.
+- Next step: teach the backend to keep vectorized memory locations in vector registers across
+  loop iterations (a vector-width mem2reg, or letting the SLP pass claim whole-loop regions),
+  then re-measure with the interleaved DLL-swap harness on a quiet machine before drawing any
+  throughput conclusion.
 

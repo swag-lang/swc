@@ -1124,6 +1124,12 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
     ///////////////////////////////////////////
     if (inst.op == MicroInstrOpcode::OpBinaryRegImm)
     {
+        // The packed shift forms are emitted by the vectorizer already in their
+        // exact encodable shape (float register, B128, imm8 count); the scalar
+        // normalizations below would corrupt them.
+        if (isVecMicroOp(ops[2].microOp))
+            return false;
+
         if (ops[1].opBits != MicroOpBits::B8 &&
             ops[1].opBits != MicroOpBits::B16 &&
             ops[1].opBits != MicroOpBits::B32 &&
@@ -1957,6 +1963,19 @@ void X64Encoder::encodeStoreVecMemReg(MicroReg memReg, uint64_t memOffset, Micro
     emitModRm(store_, memOffset, regSrc, memReg);
 }
 
+// pshufd xmm, xmm, imm8   (66 0F 70 /r ib) : four-lane 32-bit permute.
+void X64Encoder::encodeVecShuffleRegRegImm(MicroReg regDst, MicroReg regSrc, uint64_t control, MicroOpBits opBits)
+{
+    SWC_ASSERT(opBits == MicroOpBits::B128 && regDst.isFloat() && regSrc.isFloat());
+    SWC_ASSERT(control <= 0xFF);
+    emitCpuOp(store_, 0x66);
+    emitRex(store_, MicroOpBits::Zero, regDst, regSrc);
+    emitCpuOp(store_, 0x0F);
+    emitCpuOp(store_, 0x70);
+    emitModRm(store_, regDst, regSrc);
+    emitValue(store_, control, MicroOpBits::B8);
+}
+
 void X64Encoder::encodeLoadMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits)
 {
     SWC_ASSERT(!memReg.isFloat());
@@ -2474,6 +2493,44 @@ void X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp 
     SWC_ASSERT(op != MicroOp::ConvertUIntToFloat64);
 
     ///////////////////////////////////////////
+    // 128-bit packed integer forms (SSE2): 66 0F <op> /r with the destination
+    // in the reg field. The lane width is carried by the operation itself;
+    // opBits is the full vector width.
+    if (isVecMicroOp(op))
+    {
+        SWC_ASSERT(opBits == MicroOpBits::B128 && regDst.isFloat() && regSrc.isFloat());
+
+        uint8_t opcodeByte = 0;
+        switch (op)
+        {
+            case MicroOp::VecAdd32:
+                opcodeByte = 0xFE;
+                break;
+            case MicroOp::VecSub32:
+                opcodeByte = 0xFA;
+                break;
+            case MicroOp::VecAnd:
+                opcodeByte = 0xDB;
+                break;
+            case MicroOp::VecOr:
+                opcodeByte = 0xEB;
+                break;
+            case MicroOp::VecXor:
+                opcodeByte = 0xEF;
+                break;
+            default:
+                SWC_INTERNAL_ERROR();
+        }
+
+        emitCpuOp(store_, 0x66);
+        emitRex(store_, MicroOpBits::Zero, regDst, regSrc);
+        emitCpuOp(store_, 0x0F);
+        emitCpuOp(store_, opcodeByte);
+        emitModRm(store_, regDst, regSrc);
+        return;
+    }
+
+    ///////////////////////////////////////////
     if (regDst.isFloat() && regSrc.isInt())
     {
         emitSpecF64(store_, 0xF3, opBits);
@@ -2731,6 +2788,23 @@ void X64Encoder::encodeOpBinaryMemReg(MicroReg memReg, uint64_t memOffset, Micro
 void X64Encoder::encodeOpBinaryRegImm(MicroReg reg, const ApInt& valueInt, MicroOp op, MicroOpBits opBits)
 {
     const uint64_t value = immediateToU64(valueInt);
+
+    ///////////////////////////////////////////
+    // pslld/psrld xmm, imm8 (66 0F 72 /6|/2 ib): packed 32-bit lane shift by
+    // an immediate count.
+    if (op == MicroOp::VecShiftLeft32 || op == MicroOp::VecShiftRight32)
+    {
+        SWC_ASSERT(opBits == MicroOpBits::B128 && reg.isFloat());
+        SWC_ASSERT(value <= 31);
+        emitCpuOp(store_, 0x66);
+        emitRex(store_, MicroOpBits::Zero, MicroReg{}, reg);
+        emitCpuOp(store_, 0x0F);
+        emitCpuOp(store_, 0x72);
+        emitModRm(store_, op == MicroOp::VecShiftLeft32 ? MODRM_REG_6 : MODRM_REG_2, reg);
+        emitValue(store_, value, MicroOpBits::B8);
+        return;
+    }
+
     ///////////////////////////////////////////
 
     if (op == MicroOp::FloatRound)

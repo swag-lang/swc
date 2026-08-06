@@ -204,7 +204,14 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         if (it.current == frameBaseDefRef)
             continue;
 
-        if (inst.op == MicroInstrOpcode::LoadAddrRegMem && ops[1].reg == frameBase)
+        // `lea ar, [fb + off]`, and its degenerate spelling `mov ar, fb`: the
+        // front end passes the address of a frame object at offset zero (an
+        // error payload, a first local) as a plain copy of the base, and
+        // treating that copy as an untrackable escape used to abandon the
+        // whole function.
+        const bool isAddrLea  = inst.op == MicroInstrOpcode::LoadAddrRegMem && ops[1].reg == frameBase;
+        const bool isBaseCopy = inst.op == MicroInstrOpcode::LoadRegReg && ops[1].reg == frameBase && ops[2].opBits == MicroOpBits::B64;
+        if (isAddrLea || isBaseCopy)
         {
             const MicroReg ar = ops[0].reg;
             if (!ar.isVirtualInt() || ar == frameBase)
@@ -212,7 +219,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             else if (addrRegOffset.contains(ar))
                 badAddrReg.insert(ar);
             else
-                addrRegOffset[ar] = ops[3].valueU64;
+                addrRegOffset[ar] = isAddrLea ? ops[3].valueU64 : 0;
         }
     }
 
@@ -254,8 +261,17 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         }
     }
 
-    // Poison the variable containing 'offset'; false when the offset belongs to
-    // no known variable and the caller must fall back to the whole-function bail.
+    // An escape at an offset outside every known variable exposes an object the
+    // analysis cannot bound - a compiler temporary such as an error payload,
+    // which the front end does not list as a local. Frame objects are disjoint,
+    // so that unknown object cannot overlap a known variable: the sound answer
+    // is to treat all frame space OUTSIDE the known variables as reachable
+    // through the escaped pointer, and keep promoting inside them.
+    bool unknownSpaceEscaped = false;
+
+    // Poison the variable containing 'offset'; false only when no extent
+    // information is available at all and the caller must fall back to the
+    // whole-function bail.
     auto poisonEscapedOffset = [&](const uint64_t offset) -> bool {
         if (!rangesUsable)
             return false;
@@ -268,7 +284,9 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 found          = true;
             }
         }
-        return found;
+        if (!found)
+            unknownSpaceEscaped = true;
+        return true;
     };
 
     // The escaped offset of a tracked register, when it has a single known one.
@@ -299,6 +317,9 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         if (ref == frameBaseDefRef)
             continue;
         if (inst.op == MicroInstrOpcode::LoadAddrRegMem && ops[1].reg == frameBase)
+            continue;
+        // The `mov ar, fb` address definition recognized by pass 1.
+        if (inst.op == MicroInstrOpcode::LoadRegReg && ops[1].reg == frameBase && ops[2].opBits == MicroOpBits::B64 && addrRegOffset.contains(ops[0].reg))
             continue;
 
         MicroReg baseReg   = MicroReg::invalid();
@@ -434,17 +455,31 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         return false;
     };
 
+    auto insideKnownVariable = [&](const uint64_t lo, const uint64_t hi) -> bool {
+        for (const FrameVarRange& range : varRanges)
+        {
+            if (lo >= range.lo && hi <= range.hi)
+                return true;
+        }
+        return false;
+    };
+
     for (auto& [offset, slot] : slots)
     {
         if (slot.accesses.empty() || !slot.hasWrite)
             continue;
 
         // A slot inside an escaped variable can be written behind the scalar
-        // analysis's back through the escaped pointer.
+        // analysis's back through the escaped pointer. When an escape landed
+        // outside every known variable, the whole unknown part of the frame is
+        // reachable through it and only slots inside known variables remain
+        // promotable.
         bool touchesPoisoned = false;
         for (const SlotAccess& acc : slot.accesses)
         {
-            if (overlapsPoisonedVariable(acc.offset, acc.offset + getNumBytes(acc.bits)))
+            const uint64_t lo = acc.offset;
+            const uint64_t hi = acc.offset + getNumBytes(acc.bits);
+            if (overlapsPoisonedVariable(lo, hi) || (unknownSpaceEscaped && !insideKnownVariable(lo, hi)))
             {
                 touchesPoisoned = true;
                 break;

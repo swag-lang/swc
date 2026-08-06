@@ -8,6 +8,10 @@ var g_Image:   Image
 const W, H = 1024
 const UX   = 300
 
+// Room for the title bar the surface draws inside the size it is given. Without it the view is
+// shorter than the image and the noise is cut off along the bottom edge.
+const CaptionRoom = 48
+
 #[Swag.Using(Gui.Properties)]
 struct NoiseParams
 {
@@ -102,5 +106,5 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
     try Jobs.initialize()
 
-    Application.runSurface(100, 100, W + UX - 46, H - 31, title: "Noise", canSize: false, hook: &onEvent)
+    Application.runSurface(100, 100, W + UX, H + CaptionRoom, title: "Noise", canSize: false, hook: &onEvent)
 }

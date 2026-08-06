@@ -975,6 +975,19 @@ Result Sema::waitIdentifier(IdentifierRef idRef, const SourceCodeRef& codeRef)
     return Result::Pause;
 }
 
+Result Sema::waitAutoScopeMember(IdentifierRef idRef, TypeRef candidateTypeRef, const SourceCodeRef& codeRef)
+{
+    // A `.member` whose scope is already decided resolves like the qualified spelling of the
+    // same access, so it waits the same way. The scope keeps growing while the type's other
+    // `impl` blocks are analysed — a mixin minting a constant there has not necessarily run —
+    // and answering "no such member" from a lookup that merely came back empty turns a
+    // publication order into a compilation error.
+    const Result result = waitIdentifier(idRef, codeRef);
+    if (result == Result::Pause)
+        ctx().state().autoScopeTypeRef = candidateTypeRef;
+    return result;
+}
+
 Result Sema::waitPredefined(IdentifierManager::PredefinedName name, TypeRef& typeRef, const SourceCodeRef& codeRef)
 {
     typeRef = typeMgr().runtimeType(name);

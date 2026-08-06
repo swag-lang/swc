@@ -35,13 +35,19 @@ private const DefaultSmokeFrames = 50'u32
 
 // Builds a private sandbox root for this process under the real temporary directory.
 //
-// Computed before anything is armed, so the temporary directory it starts from is the real one
-// and not a redirection of itself. The name comes from the process id rather than a random
-// value: this runs as the first init hook of the program, ahead of whatever seeds a generator,
-// and it makes the folder easy to match to a run that failed.
-private func defaultSandboxRoot()->String
+// The starting point is read from the machine rather than through [[Env.getSpecialDirectory]],
+// which answers inside the sandbox once one is armed. A process that also executes code at
+// compile time runs this hook more than once, and a root computed through the redirection would
+// nest a second one under the first, which [[Env.enterSandbox]] rejects as a change of root.
+// Reading the real directory makes the answer the same on every pass, which is what turns a
+// repeated arming into the no-op it is meant to be.
+//
+// The name comes from the process id rather than a random value: this runs as the first init
+// hook of the program, ahead of whatever seeds a generator, and it makes the folder easy to
+// match to a run that failed.
+internal func defaultSandboxRoot()->String
 {
-    var result = Path.combine(getSpecialDirectory(.Temp).toString(), "swag-sandbox")
+    var result = Path.combine(realSpecialDirectory(.Temp).toString(), "swag-sandbox")
     var name   = String.from("run-")
     name   += Format.toString("%", currentProcessId())
     result = Path.combine(result.toString(), name.toString())
@@ -65,8 +71,13 @@ private func defaultSandboxRoot()->String
         catch enterSandbox(root.toString()) else
         {
             // Continuing unsandboxed would let the run reach real machine state, which is
-            // exactly what the caller asked to prevent.
-            @print("[swag.sandbox] cannot arm the sandbox at '", root, "'\n")
+            // exactly what the caller asked to prevent. The message is the only trace left
+            // before the run dies, so it names both roots: that is what tells an unusable
+            // request apart from a second arming that disagrees with the first.
+            @print("[swag.sandbox] cannot arm the sandbox at '", root.toString(), "'")
+            if g_Sandboxed do
+                @print(", already armed at '", g_SandboxRoot.toString(), "'")
+            @print("\n")
             abortUnsandboxed()
         }
     }

@@ -41,6 +41,16 @@
 using Gui, Core, Pixel
 const Scale = 3.0
 
+// The board the game draws into, before scaling. Everything is placed inside it from the map
+// origin, so it is also what the window has to be able to show: asking for less clips the maze
+// against the right edge instead of leaving it the margin the layout assumes.
+const BoardWidth  = 300.0
+const BoardHeight = 345.0
+
+// Room for the title bar the surface draws inside the size it is given. The board is centred in
+// whatever is left, so this only has to be generous, not exact.
+const CaptionRoom = 48
+
 var g_Wnd:      #null *Wnd
 var g_DataPath: String
 var g_Painter:  #null *Painter
@@ -1468,6 +1478,12 @@ func display()
 {
     let rect = theWnd().clientRect()
     thePainter().fillRect(rect, Argb.Black)
+
+    // Centre the board in the view, so a window that is not exactly the board's size splits the
+    // difference between both sides instead of pushing the maze against one edge.
+    let boardX = (rect.width - BoardWidth * Scale) * 0.5
+    let boardY = (rect.height - BoardHeight * Scale) * 0.5
+    thePainter().translateTransform(boardX, boardY)
     thePainter().scaleTransform(Scale, Scale)
 
     switch g_Mode
@@ -2240,5 +2256,5 @@ func loadBindTextures()
             expect Audio.setOutputVolume(0)
     }
 
-    Application.runSurface(100, 100, cast(s32) (300 * Scale) - 150, cast(s32) (345 * Scale) - 31, title: "Pacman", hook: &onEvent, init: &muteForTest)
+    Application.runSurface(100, 100, cast(s32) (BoardWidth * Scale), cast(s32) (BoardHeight * Scale) + CaptionRoom, title: "Pacman", hook: &onEvent, init: &muteForTest)
 }

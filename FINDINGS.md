@@ -21,7 +21,7 @@ identifier, so a reference made today still resolves after the entry is gone. En
 identifier, ascending: a new one goes at the end, a deleted one leaves a gap, and position carries
 no priority.
 
-Next identifier: F-025
+Next identifier: F-026
 
 ## Open Investigations
 
@@ -151,21 +151,6 @@ Use this compact format. Keep observations factual and make the next step action
   emitted relocation suggests it is instead treated as a direct local target. Compare against
   `normalizeIndexReferenceOperand`/`CodeGenReferenceHelpers::unwrapAliasRefPayload`, which is how
   the index and `dref` paths resolve the same reference layer.
-### F-016 — Two sCapture modal-dialog tests fail on master
-
-- Area: bin/apps
-- Found while: validating the GUI theme rewrite, which needed a baseline to attribute failures to
-- Observation: `dialogs.test.swg:23` and `files.test.swg:513` both fail on `@assert(gui.autoHandled)`
-  — the headless modal driver arms `clickModalButtonWhenShown` and the dialog is never reported as
-  handled. Two of the 126 sCapture tests; the other 124 and all 28 sCrypt tests pass.
-- Evidence: reproduced identically in a pristine `git worktree add --detach ../swc-basecheck
-  d02f74d99` with no local change, so it is not caused by the theme work. Same two tests, same
-  asserts, same commit.
-- Next step: instrument `Gui.Testing.HeadlessHost.clickModalButtonWhenShown` to report which
-  surface it inspected and which button id it looked for; both failing cases open a real modal
-  (About, File Details) rather than a `MessageDlg`, which is the difference from the passing
-  modal tests.
-
 ### F-017 — sCapture keeps a dark editor matte after switching to the light theme
 
 - Area: bin/apps
@@ -181,31 +166,33 @@ Use this compact format. Keep observations factual and make the next step action
   or whether an application is expected to version its settings. The same question applies to any
   future option whose default becomes theme-derived.
 
-### F-018 — The sandbox is armed twice per run, and the second attempt fails the whole process
+### F-018 — A sandbox root is never removed, and the process id does not make it private
 
-- Area: bin/std | compiler
+- Area: bin/std
 - Found while: validating a runtime allocator rewrite, where `tools/scripts.bat smoke` failed
-  intermittently and the failure had to be cleared as pre-existing
-- Observation: `Env`'s sandbox `#init` hook runs more than once in a single script run. The first
-  call carries the launcher's explicit root and arms correctly; a later call arrives with an empty
-  run-argument value, falls back to `defaultSandboxRoot()`, and is rejected by
-  "the sandbox root cannot change once armed". The rejection is fatal by design, so the run dies
-  with `compiler panic: sandbox setup failed` — and it dies at a different script on every attempt,
-  which is what makes the suite look flaky rather than broken.
-- Evidence: printing inside `enterSandbox` over three `tools/scripts.bat smoke -bc release` runs
-  gives, in the same process, `rootLen=56 armed=false exists=true` followed by
-  `rootLen=84 armed=true exists=false` (84 is `<temp>/swag-sandbox/run-<pid>`, the default root).
-  Two of three runs failed. Reproduced identically with the baseline runtime, so this is not
-  allocator-related. Separately, `%TEMP%/swag-sandbox` had accumulated 3871 `run-<pid>` directories:
-  nothing ever removes a sandbox root, so the name is not the private-per-run identity it claims.
-- Next step: find out which stage runs the hook the second time and why the run argument is empty
-  there. The prime suspect is the runtime hook chain, where `PreMain` is emitted twice with
-  separate guards — a runtime stage and a compiler stage
-  ([NativeArtifactBuilder.cpp:298-304](src/Backend/Native/NativeArtifactBuilder.cpp#L298-L304)) —
-  against a single `Init` guard, combined with process-argument adoption that differs between the
-  two. Print the stage and `@pinfos` arguments from the hook to tell "the hook runs twice" apart
-  from "the arguments were re-adopted empty". Whichever it is, `enterSandbox` should also treat a
-  second arm with no explicit root as a no-op rather than a fatal mismatch.
+  intermittently; the fatal half of that failure is fixed, this half is not
+- Observation: nothing ever removes a sandbox root, and the root is named after the process id,
+  which the operating system reuses. A run whose id matches a dead run's therefore adopts that
+  run's leftover files instead of starting on an empty private root — the opposite of what the
+  sandbox promises. `createDirectoryTree` accepts an existing directory silently, so nothing
+  reports it.
+- Evidence: `%TEMP%/swag-sandbox` holds 4125 `run-<pid>` directories, 846 of them non-empty. Id
+  reuse is not theoretical at that density: one `tools/scripts.bat dm smoke` pass of 21 scripts
+  handed pid 29356 to two different script processes. A stale root can change behavior rather
+  than just waste space, which is what
+  [F-017](#f-017--scapture-keeps-a-dark-editor-matte-after-switching-to-the-light-theme) shows for
+  a persisted option.
+- Next step: make a default root start empty, and keep the two deletion questions apart. Clearing
+  a *default* root at arming time is the safe half — no live process can hold that id, the
+  launcher did not name the directory, and an explicit root (the golden-recording flow, which
+  points the sandbox at the repository) must never be touched. Removing the root at exit is the
+  separate half and needs the `#drop` ordering checked first, since another module's drop hook may
+  still write inside it. Neither may become an enumerate-and-delete sweep over `swag-sandbox`.
+- Related: the fatal half — the hook arming a second time and being rejected with "the sandbox
+  root cannot change once armed" — was `defaultSandboxRoot` reading `getSpecialDirectory(.Temp)`,
+  which answers *inside* an armed sandbox, so the second pass computed a root nested under the
+  first (`<root>/Temp/swag-sandbox/run-<pid>`). It now reads `realSpecialDirectory(.Temp)`, which
+  makes a repeated arming the no-op `enterSandbox` documents.
 
 ### F-019 — A thread-local global cannot hold a droppable type
 
@@ -298,4 +285,31 @@ Use this compact format. Keep observations factual and make the next step action
   change notification (a posted event is the obvious one). Whichever way it goes, the
   `FormImage.kind` rebuild has to end up actually running.
 
+
+### F-025 — An ambiguous `.member` still reads "not published yet" as "not there"
+
+- Area: compiler
+- Found while: fixing the same race for the unambiguous case, which was making `sCapture` fail to
+  compile with 18 to 26 errors per attempt, a different set every run
+- Observation: `probeAutoMemberCandidates` looks every candidate up with `noWaitOnEmpty`, because
+  with several candidates it must step over the ones that legitimately lack the name. An empty
+  result therefore means both "this scope has no such member" and "this scope has not published it
+  yet", and the two are indistinguishable. With exactly one candidate the lookup now waits, like
+  the qualified spelling of the same access; with more than one it still decides immediately and
+  reports `sema_err_cannot_compute_auto_scope`.
+- Evidence: a member minted by a `#[Swag.Mixin]` inside one `impl` block of a type arrives when
+  that block's body runs, and a struct is marked sema-completed once its `impl` blocks are
+  *registered* — `decPendingImplRegistrations` fires before the body
+  ([Sema.Impl.cpp:157-166](src/Compiler/Sema/Ast/Sema.Impl.cpp#L157-L166)) — so a lookup on a
+  "complete" type can still miss members. Every sCapture failure was that shape:
+  `struct 'ActionQuickStyle' has no field 'Reset'` for a `Reset` that `newCmdId("Reset")` mints in
+  a neighbouring `impl` block. The single-candidate half is fixed; a `with` block or a method
+  carrying binding vars puts more than one candidate in scope and reopens it.
+- Next step: reproduce it deliberately before changing anything — a type whose id is minted by a
+  mixin, used as `.Id` inside a `with` block over an unrelated value, in a module big enough to
+  spread the jobs. Then decide whether the multi-candidate path can park too: waiting on each
+  candidate in turn is wrong (one of them is expected to lack the name), so the wait has to be
+  "no candidate can still grow", which needs a scope-settled predicate the compiler does not have.
+  A cheaper answer may be to park only while at least one candidate type has an `impl` block whose
+  body has not run.
 

@@ -76,6 +76,20 @@ using Swag
     @assert(Directory.exists(docs))
 }
 
+// The private root is computed from the machine's temporary directory, never from the sandbox's
+// stand-in for it. The arming hook runs again in a process that also executes code at compile
+// time, and a root recomputed through the redirection nests under the one already armed, which
+// is rejected as a change of root and kills the whole run.
+#test
+{
+    if !Env.isSandboxed() do
+        return
+
+    let standIn = Env.getSpecialDirectory(.Temp)
+    let root    = Env.defaultSandboxRoot()
+    @assert(!Env.isInsideDirectory(standIn.toString(), root.toString()))
+}
+
 // A real write lands in the sandbox and a real write outside is refused, through the public
 // file API rather than the guard alone.
 #test

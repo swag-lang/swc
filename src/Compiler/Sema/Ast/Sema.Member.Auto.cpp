@@ -740,6 +740,15 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
             if (!candidate.typeRef.isValid())
                 return raiseCannotComputeAutoScopeMember(sema, sema.curNodeRef(), idRef);
 
+            // One candidate means the scope is settled, so `.member` is the qualified access
+            // written short and must wait like it. The probe above cannot wait — with several
+            // candidates it has to step over the ones that legitimately lack the name — so an
+            // empty result there says "not published yet" and "not there" with one voice. Park
+            // on the name instead: a member minted by a mixin in another `impl` block of the
+            // same type arrives after that block runs, and only a stalled wait proves absence.
+            if (candidate.symMap)
+                return sema.waitAutoScopeMember(idRef, candidate.typeRef, rightCodeRef);
+
             const TypeInfo& typeInfo = sema.typeMgr().get(candidate.typeRef);
 
             auto diagId = DiagnosticId::sema_err_auto_scope_missing_enum_value;

@@ -485,6 +485,7 @@ public:
     void       processCurrentPostNodePopsNow();
 
     Result      waitIdentifier(IdentifierRef idRef, const SourceCodeRef& codeRef);
+    Result      waitAutoScopeMember(IdentifierRef idRef, TypeRef candidateTypeRef, const SourceCodeRef& codeRef);
     Result      waitPredefined(IdentifierManager::PredefinedName name, TypeRef& typeRef, const SourceCodeRef& codeRef);
     Result      waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind kind, SymbolFunction*& symbol, const SourceCodeRef& codeRef);
     Result      waitCompilerDefined(IdentifierRef idRef, const SourceCodeRef& codeRef);

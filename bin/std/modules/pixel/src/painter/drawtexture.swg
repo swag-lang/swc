@@ -7,7 +7,7 @@ impl Painter
     // Draw a texture image
     mtd drawTexture(x, y, width, height: f32, texture: Texture, color: Color = Color.fromArgb(Argb.White))
     {
-        if width == 0 or height == 0 or color.a == 0 do
+        if width == 0 or height == 0 or .isInvisible(color) do
             return
 
         let brush = Brush{color: color, type: BrushType.Texture, texture: texture, uvMode: .Fill}
@@ -21,7 +21,7 @@ impl Painter
 
     mtd drawTexture(x, y: f32, texture: Texture, color: Color = Color.fromArgb(Argb.White))
     {
-        if color.a == 0 do
+        if .isInvisible(color) do
             return
 
         let brush = Brush{color: color, type: BrushType.Texture, texture: texture, uvMode: .Fill}
@@ -31,7 +31,7 @@ impl Painter
     // Draw a portion of an image
     mtd drawTexture(x, y, width, height: f32, srcRect: Math.Rectangle, texture: Texture, color: Color = Color.fromArgb(Argb.White))
     {
-        if srcRect.isEmpty() or width == 0 or height == 0 or color.a == 0 do
+        if srcRect.isEmpty() or width == 0 or height == 0 or .isInvisible(color) do
             return
 
         let brush = Brush{color: color, type: BrushType.Texture, texture: texture, uvMode: .FillSubRect, uvRect: srcRect}
@@ -45,7 +45,7 @@ impl Painter
 
     mtd drawTexture(x, y: f32, srcRect: Math.Rectangle, texture: Texture, color: Color = Color.fromArgb(Argb.White))
     {
-        if srcRect.isEmpty() or color.a == 0 do
+        if srcRect.isEmpty() or .isInvisible(color) do
             return
 
         let brush = Brush{color: color, type: BrushType.Texture, texture: texture, uvMode: .FillSubRect, uvRect: srcRect}

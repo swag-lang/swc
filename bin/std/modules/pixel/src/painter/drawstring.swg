@@ -598,7 +598,7 @@ impl Painter
             return
 
         // Nothing visible: no face fill and no outline/glow/shadow either.
-        if !brush.hasVisibleAlpha() and effect.outlineColor.a == 0 and effect.glowColor.a == 0 and !effect.hasShadow() do
+        if .isInvisible(brush) and effect.outlineColor.a == 0 and effect.glowColor.a == 0 and !effect.hasShadow() do
             return
 
         var info = Painter.computeTextDrawInfo(font, zoom, .textTransformScale())
@@ -698,7 +698,7 @@ impl Painter
     // Draw a simple string
     mtd drawString(left, top: f32, text: string, font: *Font, color: Color, under = UnderlineStyle.None, zoom = 1.0)
     {
-        if @countof(text) == 0 or color.a == 0 do
+        if @countof(text) == 0 or .isInvisible(color) do
             return
 
         let brush = Brush.createSolid(color)
@@ -708,7 +708,7 @@ impl Painter
     // Draw a simple string
     mtd drawString(left, top: f32, text: string, font: *Font, brush: Brush, under = UnderlineStyle.None, zoom = 1.0)
     {
-        if @countof(text) == 0 or !brush.hasVisibleAlpha() do
+        if @countof(text) == 0 or .isInvisible(brush) do
             return
         if .layoutOnly do
             return

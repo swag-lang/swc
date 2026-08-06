@@ -2,4 +2,4 @@ ResetTexture0
 Transform 1 0 0 1 0 0
 SetBlendingMode Alpha
 ColorMask rgb-
-DrawTriangles n=6 bbox=(10,21)-(111,72) colors=[FFFF0000] cov=solid
+DrawTriangles n=6 bbox=(10,21)-(111,71) colors=[FFFF0000] cov=solid

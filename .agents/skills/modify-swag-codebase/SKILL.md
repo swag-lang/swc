@@ -51,8 +51,9 @@ does not.
   deleted.
 - Never renumber and never reuse. A deleted entry takes its identifier with it, so `F-012` in an
   old commit message still means what it meant.
-- Entry order in the file is free. The identifiers are not sorted by anything and carry no
-  priority.
+- Keep the entries sorted by identifier, ascending. A new entry always carries the highest
+  identifier, so it goes at the end; a deleted one leaves a gap, and the gap stays. Position is
+  mechanical and carries no priority — it only makes an entry findable by its number.
 
 ## Keep Findings And Roadmaps Apart
 

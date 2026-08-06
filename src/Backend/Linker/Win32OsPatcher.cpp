@@ -284,6 +284,10 @@ namespace
 
     ByteArray buildManifest()
     {
+        // DPI awareness is declared here rather than opted into at runtime: the manifest makes
+        // the OS set it at process creation, before any injected DLL can claim the process
+        // awareness first. Left to a runtime call, that race made the same binary come up
+        // per-monitor aware on one launch and DWM-stretched (blurry) on the next.
         static constexpr char MANIFEST[] =
             "<?xml version='1.0' encoding='UTF-8' standalone='yes'?>\r\n"
             "<assembly xmlns='urn:schemas-microsoft-com:asm.v1' manifestVersion='1.0'>\r\n"
@@ -294,6 +298,12 @@ namespace
             "      </requestedPrivileges>\r\n"
             "    </security>\r\n"
             "  </trustInfo>\r\n"
+            "  <application xmlns='urn:schemas-microsoft-com:asm.v3'>\r\n"
+            "    <windowsSettings>\r\n"
+            "      <dpiAwareness xmlns='http://schemas.microsoft.com/SMI/2016/WindowsSettings'>PerMonitorV2</dpiAwareness>\r\n"
+            "      <dpiAware xmlns='http://schemas.microsoft.com/SMI/2005/WindowsSettings'>true</dpiAware>\r\n"
+            "    </windowsSettings>\r\n"
+            "  </application>\r\n"
             "</assembly>\r\n";
 
         const auto* begin = reinterpret_cast<const std::byte*>(MANIFEST);

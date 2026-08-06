@@ -388,12 +388,15 @@ impl Surface
             .painter.fillRect(clipRect, Color.fromArgb(dbgColor))
         }
 
-        // Order matters: the outline first, then the shadow into the margin the outline bounds,
-        // then the silhouette. Stroking the outline after the shadow leaves the margin with no
-        // coverage at all and the surface loses its shadow entirely; see FINDINGS.md.
+        // Order matters. An antialiased pen stroke replays through the renderer's no-overlap
+        // path, which clears the destination alpha of the whole scissor region to use it as a
+        // scratch channel and leaves it at zero — so the outline must come first, before any
+        // pass whose alpha has to survive to the compositor. The silhouette then premultiplies
+        // the body ink and stamps its coverage, and the shadow pass erases the margin before
+        // laying its rings down, so it relies on the silhouette's fringe being in place.
         .paintBorder()
+        .paintSilhouette()
         .paintShadowOutsideBody()
-        .paintAlphaMask()
         .painter.end()
 
         // Paint to surface render target. The direct scissor works in physical
@@ -482,17 +485,20 @@ impl Surface
     // Returns the rectangle the outline, the silhouette and the shadow all work from.
     //
     // The three are passes over one shape and have to agree to the pixel, so the rounding
-    // happens once, here. Left to each pass, they did not: a stroke snaps its rectangle to whole
-    // units and a fill does not, and the body is a fractional height at any display scale that is
-    // not a whole number — so the border traced a rectangle half a device pixel inside the
-    // silhouette it was supposed to close, worst at the bottom edge, where the two roundings
-    // disagreed and the corners showed body colour outside their own outline.
+    // happens once, here — and on the DEVICE grid, not the logical one. A whole logical
+    // coordinate lands between two device pixels at any fractional display scale whenever the
+    // window's physical size makes it so, and the edge then reads as a half-covered column
+    // whose look changes with the size parity — the same window came back crisp or soft
+    // depending on the size the last session saved.
     private mtd const bodyShape()->Math.Rectangle
     {
+        let k    = .dpiScale
         let body = .wnd.surfaceRect()
-        let l    = Math.round(body.x)
-        let t    = Math.round(body.y)
-        return {l, t, Math.round(body.right()) - l, Math.round(body.bottom()) - t}
+        let l    = Math.round(body.x * k) / k
+        let t    = Math.round(body.y * k) / k
+        let r    = Math.round(body.right() * k) / k
+        let b    = Math.round(body.bottom() * k) / k
+        return {l, t, r - l, b - t}
     }
 
     // Strokes the outline of the surface, above everything the hierarchy painted.
@@ -522,12 +528,15 @@ impl Surface
 
     // Casts the themed drop shadow into the transparent margin, outside the body.
     //
-    // This runs after the hierarchy, not before it, and it is the only pass that lays the shadow
-    // down. Drawn first, it was overwritten where the body is opaque and, worse, left colour
-    // without alpha under the corner: the hierarchy paints through a colour-only mask, so a
-    // shadow pixel the body did not cover kept its ink and lost its coverage, and the compositor
-    // added that ink straight onto the desktop. Painted last into a region the body cannot
-    // reach, every shadow pixel carries both.
+    // The compositor reads this window premultiplied, so a margin pixel must carry ink times
+    // coverage — and the hierarchy leaves it carrying full-strength ground ink under no
+    // coverage at all, because it paints the body as a square through a colour-only mask. The
+    // pass therefore first erases its whole region to premultiplied nothing with a transparent
+    // 'Copy' fill, then blends the rings onto that clean ground: alpha-compositing shadow ink
+    // over transparent black accumulates exactly ink times coverage in the colour channels and
+    // coverage in alpha, which is the premultiplied value the compositor expects. The region
+    // excludes the body and the silhouette's antialiased fringe, so the arc pixels the
+    // silhouette premultiplied stay untouched.
     private mtd paintShadowOutsideBody()
     {
         if .app.theme.metrics.surfaceWnd_ShadowSize <= 0 do
@@ -546,6 +555,9 @@ impl Surface
         .painter.endClippingRegion()
 
         .painter.setColorMaskFull()
+        .painter.setBlendingMode(.Copy)
+        .painter.fillRect({0, 0, .position.width, .position.height}, Color.fromArgb(Argb.Zero))
+        .painter.setBlendingMode(.Alpha)
         .paintShadow()
         .painter.resetClippingRegion()
     }
@@ -614,17 +626,32 @@ impl Surface
         return button.sendKeyPress(Input.Key.Return)
     }
 
-    // Stamps the opaque silhouette of the surface into the alpha channel.
+    // Stamps the silhouette of the surface: its coverage into the alpha channel, and that
+    // same coverage multiplied into the body ink.
     //
-    // The compositor reads this channel, so it — and not the window rectangle — is what the user
-    // sees the surface as. The corner therefore comes from the theme at any shadow size, and the
-    // platform is told to leave the window rectangle alone.
-    private mtd paintAlphaMask()
+    // The compositor reads this window premultiplied, so the alpha channel — and not the
+    // window rectangle — is what the user sees the surface as, and every pixel's colour must
+    // carry its coverage. Inside the body the coverage is one and the ink is untouched; along
+    // the antialiased edge of the arc it is fractional, and multiplying the ink by it
+    // ([[Pixel.BlendingMode.DstIn]]) is what keeps the corner from compositing brighter than
+    // both the window and the desktop behind it.
+    private mtd paintSilhouette()
     {
         let rect   = .bodyShape()
         let radius = .cornerRadius()
 
         .painter.resetTransform()
+
+        // Premultiply the body ink by the silhouette coverage.
+        .painter.setColorMaskColor()
+        .painter.setBlendingMode(.DstIn)
+        if radius > 0 do
+            .painter.fillRoundRect(rect, radius, radius, Argb.White)
+        else do
+            .painter.fillRect(rect, Argb.White)
+        .painter.setBlendingMode(.Alpha)
+
+        // Stamp the same coverage into the alpha channel.
         .painter.setColorMaskAlpha()
         if radius > 0 do
             .painter.fillRoundRect(rect, radius, radius, Argb.Black)

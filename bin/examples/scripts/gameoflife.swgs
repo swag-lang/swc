@@ -7,11 +7,30 @@ const GridSize = 60
 var g_Grid:   [2, GridSize, GridSize] bool
 var g_CurGen: s32
 
+// Where the board sits in the view, and how big one cell is.
+//
+// The cell is a whole number of pixels, so every grid line lands on one and the lattice stays
+// even; a fractional cell rounds two neighbouring lines onto the same pixel and the board grows
+// a seam. What the rounding leaves over is split between both sides, which is what keeps the
+// board centred: dropped where it falls, it all lands right and bottom and the board reads as
+// pushed into a corner.
+func boardGeometry(wnd: *Wnd)->{ cell, x, y: f32 }
+{
+    var result: retval
+    let rect    = wnd.clientRect()
+    result.cell = Math.floor(Math.min(rect.width, rect.height) / GridSize)
+    let side    = result.cell * GridSize
+    result.x    = Math.floor((rect.width - side) * 0.5)
+    result.y    = Math.floor((rect.height - side) * 0.5)
+    return result
+}
+
 func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
     let leftPressed  = wnd.app().mouse.isButtonPressed(.Left)
     let rightPressed = wnd.app().mouse.isButtonPressed(.Right)
-    let cellSize     = Math.min(wnd.position.width, wnd.position.height) / GridSize
+    let board        = boardGeometry(wnd)
+    let cellSize     = board.cell
 
     switch evt
     {
@@ -19,8 +38,8 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         if leftPressed or rightPressed
         {
             let pos = wnd.surfaceToLocal(mouseEvt.surfacePos)
-            let x   = cast(s32) (pos.x / cellSize)
-            let y   = cast(s32) (pos.y / cellSize)
+            let x   = cast(s32) ((pos.x - board.x) / cellSize)
+            let y   = cast(s32) ((pos.y - board.y) / cellSize)
             if x < 1 or x >= GridSize - 1 or y < 1 or y >= GridSize - 1 do
                 break
             g_Grid[g_CurGen, x, y] = leftPressed ? true : false
@@ -79,10 +98,11 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         painter.clear(Argb.White)
         for [i] in 1 until GridSize - 1
         {
-            let x = i * cellSize
-            let w = Math.min(wnd.position.width, wnd.position.height) - (2 * cellSize)
-            painter.drawRect(cellSize, x, w, cellSize, Argb.Black)
-            painter.drawRect(x, cellSize, cellSize, w, Argb.Black)
+            let x = board.x + i * cellSize
+            let y = board.y + i * cellSize
+            let w = cellSize * (GridSize - 2)
+            painter.drawRect(board.x + cellSize, y, w, cellSize, Argb.Black)
+            painter.drawRect(x, board.y + cellSize, cellSize, w, Argb.Black)
         }
 
         // Paint generation
@@ -92,8 +112,8 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
             {
                 if g_Grid[g_CurGen, i, j]
                 {
-                    let x = i * cellSize
-                    let y = j * cellSize
+                    let x = board.x + i * cellSize
+                    let y = board.y + j * cellSize
                     painter.fillRect(x + 1, y + 1, cellSize - 2, cellSize - 2, Argb.Black)
                 }
             }

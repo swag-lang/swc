@@ -126,6 +126,7 @@ void TaskState::setNone()
     symbol                   = nullptr;
     waiterSymbol             = nullptr;
     jitEmissionError         = false;
+    autoScopeTypeRef         = TypeRef::invalid();
 }
 
 void TaskState::setRunJit(const SymbolFunction* function, AstNodeRef currentNodeRef, const SourceCodeRef& currentCodeRef)

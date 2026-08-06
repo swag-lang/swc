@@ -266,6 +266,14 @@ private impl RenderOgl
     {
         .blendingMode = bm
 
+        // The fragment shader must know when a zero-alpha fragment is meaningful: its
+        // zero-coverage discard is an optimization under alpha compositing and a bug under
+        // 'Copy', where a transparent source is the erase operation. The uniform lives per
+        // program, so it is refreshed here and on every program switch, never only when a
+        // texture brush happens to be bound.
+        if .curShader do
+            glUniform1i(cast(GLint) .curShader.copyMode, cast(GLint) (bm == .Copy))
+
         switch #complete bm
         {
         case .Copy:
@@ -306,6 +314,11 @@ private impl RenderOgl
             glEnable(GL_BLEND)
             glBlendFunc(GL_ONE, GL_ONE)
             glBlendEquation(GL_MAX)
+
+        case .DstIn:
+            glEnable(GL_BLEND)
+            glBlendFuncSeparate(GL_ZERO, GL_SRC_ALPHA, GL_ZERO, GL_SRC_ALPHA)
+            glBlendEquation(GL_FUNC_ADD)
         }
     }
 
@@ -951,7 +964,6 @@ impl RenderOgl
             if params.interpolationMode == .Pixel and .contentScale != 1 do
                 interpol = 2.0
             glUniform1f(cast(GLint) curShader.interpolationMode, interpol)
-            glUniform1i(cast(GLint) curShader.copyMode, cast(GLint) (.blendingMode == .Copy))
             glUniform1f(cast(GLint) curShader.paintType, cast(GLfloat) cast(u32) params.type)
             glActiveTexture(GL_TEXTURE0)
 
@@ -1168,6 +1180,10 @@ impl RenderOgl
         glUseProgram(cast(GLuint) .curShader.handle)
         glUniformMatrix4fv(cast(GLint) .curShader.mvp, 1, GL_FALSE, &.orthoMatrix.m[0, 0])
         glUniformMatrix4fv(cast(GLint) .curShader.mdl, 1, GL_FALSE, &.modelMatrix.m[0, 0])
+
+        // Uniforms are per program: the incoming program's copyMode may be stale from an
+        // earlier frame, so realign it with the current blending mode; see setBlendingMode.
+        glUniform1i(cast(GLint) .curShader.copyMode, cast(GLint) (.blendingMode == .Copy))
     }
 
     // Acquires a pooled render target at least as large as the requested size.

@@ -143,6 +143,42 @@ namespace
             diag.addArgument(Diagnostic::ARG_VALUE, state.waiterSymbol->name(ctx));
         diag.report(ctx);
     }
+
+    // Says that a `.member` never resolved, against the scope the auto-scope wait recorded.
+    // Reached only once publication is over, which is what makes the absence a fact.
+    void reportMissingAutoScopeMember(Sema& sema, TaskContext& ctx, const TaskState& state)
+    {
+        const TypeInfo& typeInfo = sema.typeMgr().get(state.autoScopeTypeRef);
+
+        auto diagId = DiagnosticId::sema_err_auto_scope_missing_enum_value;
+        if (typeInfo.isStruct() || typeInfo.isAggregateStruct())
+            diagId = DiagnosticId::sema_err_auto_scope_missing_struct_member;
+
+        auto diag = SemaError::report(sema, diagId, state.codeRef);
+        diag.addArgument(Diagnostic::ARG_VALUE, sema.idMgr().get(state.idRef).name);
+        diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, state.autoScopeTypeRef);
+
+        if (diagId == DiagnosticId::sema_err_auto_scope_missing_struct_member)
+        {
+            const Utf8 availableFields = SemaError::formatStructMemberList(sema, state.autoScopeTypeRef);
+            if (!availableFields.empty())
+            {
+                diag.addNote(DiagnosticId::sema_note_available_struct_fields);
+                diag.last().addArgument(Diagnostic::ARG_VALUES, availableFields);
+            }
+        }
+        else
+        {
+            const Utf8 availableValues = SemaError::formatEnumValueList(ctx, typeInfo.payloadSymEnum());
+            if (!availableValues.empty())
+            {
+                diag.addNote(DiagnosticId::sema_note_available_enum_values);
+                diag.last().addArgument(Diagnostic::ARG_VALUES, availableValues);
+            }
+        }
+
+        diag.report(ctx);
+    }
 }
 
 void SemaCycle::addNodeIfNeeded(const Symbol* sym)
@@ -292,6 +328,15 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
 
         if (state.kind == TaskStateKind::SemaWaitIdentifier)
         {
+            // Nothing can be published any more, so an auto-scope wait has its answer: the
+            // member is genuinely absent from the scope the wait recorded. Report it against
+            // that type, and list what the type does offer, rather than as a bare unknown name.
+            if (state.autoScopeTypeRef.isValid())
+            {
+                reportMissingAutoScopeMember(*sema, ctx, state);
+                continue;
+            }
+
             auto diag = SemaError::report(*sema, DiagnosticId::sema_err_unknown_symbol, state.codeRef);
             diag.addArgument(Diagnostic::ARG_SYM, state.idRef);
             diag.report(ctx);

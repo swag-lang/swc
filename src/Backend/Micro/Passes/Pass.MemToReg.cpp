@@ -191,8 +191,13 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         return Result::Continue;
 
     // ---- Pass 1: collect address registers `lea ar, [fb + off]`. ----
-    std::unordered_map<MicroReg, uint64_t> addrRegOffset;
-    std::unordered_set<MicroReg>           badAddrReg;
+    struct AddrRegInfo
+    {
+        uint64_t      offset = 0;
+        MicroInstrRef defRef = MicroInstrRef::invalid();
+    };
+    std::unordered_map<MicroReg, AddrRegInfo> addrRegOffset;
+    std::unordered_set<MicroReg>              badAddrReg;
 
     for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
     {
@@ -219,7 +224,31 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             else if (addrRegOffset.contains(ar))
                 badAddrReg.insert(ar);
             else
-                addrRegOffset[ar] = isAddrLea ? ops[3].valueU64 : 0;
+                addrRegOffset[ar] = {isAddrLea ? ops[3].valueU64 : 0, it.current};
+        }
+    }
+
+    // A tracked address register redefined by anything other than its recorded
+    // definition — plain arithmetic (`ar += reg`), an unrelated copy, a second
+    // lea — no longer points at its recorded offset. The map is flow-insensitive
+    // and a loop can run the redefinition before an access that appears earlier
+    // in the linear order, so the register is disqualified everywhere: accesses
+    // through it stop resolving, and its remaining appearances read as
+    // unexplainable escapes.
+    if (!addrRegOffset.empty())
+    {
+        for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
+        {
+            SmallVector<MicroInstrRegOperandRef> regRefs;
+            it->collectRegOperands(operands, regRefs, context.encoder);
+            for (const auto& rref : regRefs)
+            {
+                if (!rref.reg || !rref.def)
+                    continue;
+                const auto found = addrRegOffset.find(*rref.reg);
+                if (found != addrRegOffset.end() && it.current != found->second.defRef)
+                    badAddrReg.insert(*rref.reg);
+            }
         }
     }
 
@@ -296,8 +325,26 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         const auto found = addrRegOffset.find(reg);
         if (found == addrRegOffset.end())
             return false;
-        outOffset = found->second;
+        outOffset = found->second.offset;
         return true;
+    };
+
+    // Same, for the appearances that use the pointer AS the address of the
+    // object it points to: stored as a plain value, or the base of an indexed
+    // (Amc) access. There the frame base itself is meaningful: it is the
+    // address of the object at offset zero - the store-operand spelling of the
+    // degenerate `mov ar, fb` the collection pass models - and the front end
+    // produces it whenever the address of a function's FIRST local escapes or
+    // is indexed (an inlined callee's pointer parameter home, a `state[i]`
+    // over a first local). Everywhere else - plain arithmetic on the base - a
+    // frame-base appearance keeps the whole-function bail.
+    auto escapedObjectOffset = [&](const MicroReg reg, uint64_t& outOffset) -> bool {
+        if (reg == frameBase && !badAddrReg.contains(reg))
+        {
+            outOffset = 0;
+            return true;
+        }
+        return trackedEscapeOffset(reg, outOffset);
     };
 
     // ---- Pass 2: classify accesses; an unexplained escape poisons the
@@ -339,7 +386,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 if (found != addrRegOffset.end() && !badAddrReg.contains(reg))
                 {
                     baseReg   = reg;
-                    baseSlot  = found->second + extraOffset;
+                    baseSlot  = found->second.offset + extraOffset;
                     baseValid = true;
                 }
             }
@@ -394,11 +441,49 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 break;
         }
 
-        // Moving a tracked pointer as a value means the address escapes.
-        if (baseValid && valueReg.isValid() && isTracked(valueReg))
+        // An indexed (Amc) access reaches an unknown offset INSIDE the object
+        // its base points to: the base is not a whole-function escape, it
+        // exposes exactly that object - poison it and keep going, like any
+        // other address escape. Index and stored-value registers still go
+        // through the generic escape scan below.
+        MicroReg amcBase = MicroReg::invalid();
+        switch (inst.op)
+        {
+            case MicroInstrOpcode::LoadAmcRegMem:
+            case MicroInstrOpcode::LoadSignedExtAmcRegMem:
+            case MicroInstrOpcode::LoadZeroExtAmcRegMem:
+            case MicroInstrOpcode::LoadAddrAmcRegMem:
+                amcBase = ops[1].reg;
+                break;
+            case MicroInstrOpcode::LoadAmcMemReg:
+            case MicroInstrOpcode::LoadAmcMemImm:
+            case MicroInstrOpcode::CmpAmcImm:
+                amcBase = ops[0].reg;
+                break;
+            default:
+                break;
+        }
+        if (amcBase.isValid() && (amcBase == frameBase || isTracked(amcBase)))
         {
             uint64_t escapedOffset = 0;
-            if (!trackedEscapeOffset(valueReg, escapedOffset) || !poisonEscapedOffset(escapedOffset))
+            if (!escapedObjectOffset(amcBase, escapedOffset) || !poisonEscapedOffset(escapedOffset))
+            {
+                bail = true;
+                break;
+            }
+        }
+
+        // Moving a tracked pointer as a value means the address escapes. Only
+        // a STORE moves it as a plain value; a load overwrites the register,
+        // which the redefinition sweep above already disqualified.
+        const bool storesTrackedValue = inst.op == MicroInstrOpcode::LoadMemReg &&
+                                        baseValid && valueReg.isValid() && isTracked(valueReg);
+        if (baseValid && valueReg.isValid() && isTracked(valueReg))
+        {
+            uint64_t   escapedOffset = 0;
+            const bool resolved      = storesTrackedValue ? escapedObjectOffset(valueReg, escapedOffset)
+                                                          : trackedEscapeOffset(valueReg, escapedOffset);
+            if (!resolved || !poisonEscapedOffset(escapedOffset))
             {
                 bail = true;
                 break;
@@ -416,8 +501,10 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         {
             if (!rref.reg || !isTracked(*rref.reg))
                 continue;
-            const bool isExplainedBase = baseValid && *rref.reg == baseReg && isHandledScalarMemOp(inst.op);
-            if (isExplainedBase)
+            const bool isExplainedBase    = baseValid && *rref.reg == baseReg && isHandledScalarMemOp(inst.op);
+            const bool isExplainedValue   = storesTrackedValue && *rref.reg == valueReg;
+            const bool isExplainedAmcBase = amcBase.isValid() && *rref.reg == amcBase;
+            if (isExplainedBase || isExplainedValue || isExplainedAmcBase)
                 continue;
             uint64_t escapedOffset = 0;
             if (!trackedEscapeOffset(*rref.reg, escapedOffset) || !poisonEscapedOffset(escapedOffset))

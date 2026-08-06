@@ -26,6 +26,7 @@
 #include "Backend/Micro/Passes/Pass.StackAdjustNormalize.h"
 #include "Backend/Micro/Passes/Pass.StrengthReduction.h"
 #include "Backend/Micro/Passes/Pass.ValueNumbering.h"
+#include "Backend/Micro/Passes/Pass.VecLoopPromote.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/Utf8Helper.h"
@@ -436,6 +437,7 @@ MicroPassManager::MicroPassManager()
     branchSimplifyPass_      = std::make_unique<MicroBranchSimplifyPass>();
     loopUnrollPass_          = std::make_unique<MicroLoopUnrollPass>();
     slpVectorizePass_        = std::make_unique<MicroSlpVectorizePass>();
+    vecLoopPromotePass_      = std::make_unique<MicroVecLoopPromotePass>();
 
     // Post-RA optimization passes
     postRaPeepholePass_     = std::make_unique<MicroPostRaPeepholePass>();
@@ -492,6 +494,14 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
         // preheader. Runs after instruction-combine so address modes (lea) are
         // already formed, and before DCE so any now-redundant copies are cleaned.
         addPreRaLoopPass(*licmPass_);
+        // Claim loop regions for packed stack chunks: hoist their load to the
+        // preheader, sink their store to the exit, keep the value in one
+        // loop-carried vector register inside. A no-op until the SLP pass has
+        // produced packed accesses, so during the first pre-RA convergence it
+        // never fires; in the post-vectorize cleanup loop it runs after DCE
+        // has removed the dead scalar chains that would otherwise still read
+        // the promoted locations.
+        addPreRaLoopPass(*vecLoopPromotePass_);
         addPreRaLoopPass(*deadCodeEliminationPass_);
         addPreRaLoopPass(*branchSimplifyPass_);
         // Full-unrolls small counted loops. Runs last in the sweep so the

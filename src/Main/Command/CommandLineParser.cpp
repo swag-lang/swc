@@ -331,8 +331,13 @@ namespace
             return;
         }
 
-        if (const auto* t = std::get_if<EnumIntTarget>(&target); t && t->target == &cmdLine.backendKind)
-            cmdLine.artifactKindExplicit = true;
+        if (const auto* t = std::get_if<EnumIntTarget>(&target))
+        {
+            if (t->target == &cmdLine.backendKind)
+                cmdLine.artifactKindExplicit = true;
+            else if (t->target == &cmdLine.cpuVectorize)
+                cmdLine.cpuVectorizeExplicit = true;
+        }
     }
 }
 

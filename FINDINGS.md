@@ -359,23 +359,6 @@ Use this compact format. Keep observations factual and make the next step action
   read. Until it is, a cheap net is worth measuring: warn when a `string` derived from a local
   `String` is passed to a generic instantiated on `string`.
 
-### F-028 — mem2reg can attribute accesses to a stale offset after address arithmetic
-
-- Area: compiler/backend
-- Found while: tracing why `chacha20Block` never promoted its inlined parameter homes
-- Observation: pass 1 of `Pass.MemToReg.cpp` records `lea ar, [fb + off]` into `addrRegOffset`
-  and never invalidates the entry when `ar` is later redefined by plain arithmetic
-  (`ar += reg`). Pass 2 does flag the redefinition as an escape and poisons the variable at the
-  ORIGINAL offset, but subsequent accesses through `ar` still resolve against that original
-  offset, so a store through the modified pointer can be attributed to a slot the pointer no
-  longer addresses. Today the poisoning of the original variable happens to block the promotion
-  of the mis-attributed slot itself, and variable-index addressing normally goes through the
-  Amc forms (whose result register is untracked), which is why no miscompile has been observed —
-  the hole needs a hand-written `lea` + register add + constant-offset store to line up.
-- Next step: in pass 2, move a redefined tracked register into `badAddrReg` at the redefinition
-  point (position-aware, since the map is currently flow-insensitive), or verify while
-  classifying accesses that the base register's definition still is the recorded lea.
-
 ### F-029 — ChaCha20 throughput is bounded by memory round-trips, not by round arithmetic
 
 - Area: std/core (crypto), compiler/backend
@@ -384,17 +367,38 @@ Use this compact format. Keep observations factual and make the next step action
   instructions instead of ~500 scalar ones, `chacha20Block` overall 2794 -> 915), end-to-end
   `chacha20Xor` throughput did not move measurably (medians 34.4 vs 34.0 MiB/s vectorized vs
   scalar, DLL-swap interleaved protocol, though on a machine whose baseline drifted 2-40 MiB/s
-  between sweeps). Two structural costs dominate: the vectorized state is loaded from and
-  stored back to the frame on EVERY round-loop iteration (10 x 4 loads + 4 stores of 16 bytes,
-  each on the store-to-load forwarding latency chain), where hand-written SIMD keeps the four
-  row vectors in registers across all ten iterations; and the per-block plumbing around the
-  rounds (key-stream application, marshalling, wipes) is byte- and word-granular — the
-  word-at-a-time key-stream application and `load32`/`store32` word accesses landed with this
-  investigation, the register-resident state did not.
-- Next step: teach the backend to keep vectorized memory locations in vector registers across
-  loop iterations (a vector-width mem2reg, or letting the SLP pass claim whole-loop regions),
-  then re-measure with the interleaved DLL-swap harness on a quiet machine before drawing any
-  throughput conclusion.
+  between sweeps). Two structural costs were identified: the vectorized state round-tripping
+  through the frame on every round-loop iteration, and the byte-/word-granular per-block
+  plumbing (the word-at-a-time key-stream application landed with the original investigation).
+- Status: the register-resident half is implemented. `Pass.VecLoopPromote` claims the loop
+  region the block-scoped SLP pass cannot see: the packed load of a frame chunk moves to the
+  preheader, the packed store to the loop's unique fall-through exit, and the body accesses
+  become 128-bit copies of one loop-carried virtual register, which the allocator pins in a
+  callee-saved XMM (verified on the ChaCha rounds: the ten iterations run entirely in
+  xmm6-xmm9, with four packed loads before the loop and four packed stores after it). Two
+  mem2reg escape refinements feed it on real shapes: a frame-base APPEARING AS A VALUE (stored
+  to a slot) or as the BASE OF AN INDEXED Amc access is the address of the object at offset
+  zero and now poisons that object instead of bailing the whole function - without this, a
+  function whose first local's address escapes (every inlined pointer-parameter home) lost all
+  scalar promotion, the inline indices stayed in memory, and the SLP pass never fired.
+- Measured (2026-08-06, interleaved ABBA DLL-swap, 6 pairs, medians of 8 in-process samples,
+  every run asserting by file size which core.dll it staged): pure double-rounds kernel
+  121.6 -> 196.6 MQR/s (+62%, the vectorized side won every pair), `chacha20Block` key-stream
+  generation 88.8 -> 113.1 MiB/s (+27%), end-to-end `chacha20Xor` 90.5 -> 109.4 MiB/s (+21%
+  median; +3-4% on the pairs that landed in the machine's stable phase - the block-level
+  plumbing around the rounds still dominates end-to-end). The kernel gain is bounded by the
+  packed dependency chain, not by instruction count: the scalar rounds run four independent
+  chains in parallel on the out-of-order core, so 6x fewer instructions buys ~1.6x, the known
+  single-block ChaCha SIMD profile. Beware: every earlier throughput comparison (including the
+  original "unchanged, 34.4 vs 34.0" measurement) compared two identical vectorized binaries -
+  `--cpu-vectorize` from the command line assigned its value but never raised
+  `cpuVectorizeExplicit`, so the override was silently dropped; fixed alongside this pass.
+- Next step, in likely order of value: process several blocks per loop iteration (the real
+  SIMD ChaCha win: four independent block states fill the packed dependency chain and the
+  counter is the only lane-varying input, which also needs splat constants and vector build of
+  mixed-source chunks), parameter-rooted chunks (`chachaRounds` over a caller's array keeps
+  its round-trips), loops whose exit is a taken branch rather than a fall-through, and the
+  AVX2 256-bit tier.
 
 ### F-030 — A control can hold the keyboard on a surface that refuses input
 

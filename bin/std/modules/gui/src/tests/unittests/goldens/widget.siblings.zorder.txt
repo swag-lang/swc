@@ -13,30 +13,48 @@ ColorMask rgb-
 SetClippingRect 0 0 240 120
 Transform 1 0 0 1 10 10
 SetClippingRect 10 10 100 30
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(0,0)-(13,13) src=(0.00293,0.00293)-(0.026367,0.026367)
+DrawTriangles n=6 bbox=(0,0)-(13,13) colors=[FF353535] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(13,0)-(87,13) src=(0.02832,0.00293)-(0.02832,0.026367)
+DrawTriangles n=6 bbox=(13,0)-(87,13) colors=[FF353535] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(87,0)-(100,13) src=(0.030273,0.00293)-(0.053711,0.026367)
+DrawTriangles n=6 bbox=(87,0)-(100,13) colors=[FF353535] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(0,13)-(13,17) src=(0.00293,0.02832)-(0.026367,0.02832)
+DrawTriangles n=6 bbox=(0,13)-(13,17) colors=[FF353535] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(13,13)-(87,17) src=(0.02832,0.02832)-(0.02832,0.02832)
+DrawTriangles n=6 bbox=(13,13)-(87,17) colors=[FF353535] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(87,13)-(100,17) src=(0.030273,0.02832)-(0.053711,0.02832)
+DrawTriangles n=6 bbox=(87,13)-(100,17) colors=[FF353535] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(0,17)-(13,30) src=(0.00293,0.030273)-(0.026367,0.053711)
+DrawTriangles n=6 bbox=(0,17)-(13,30) colors=[FF353535] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(13,17)-(87,30) src=(0.02832,0.030273)-(0.02832,0.053711)
+DrawTriangles n=6 bbox=(13,17)-(87,30) colors=[FF353535] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(87,17)-(100,30) src=(0.030273,0.030273)-(0.053711,0.053711)
+DrawTriangles n=6 bbox=(87,17)-(100,30) colors=[FF353535] cov=solid
 BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(0,0)-(13,13) src=(0.057617,0.00293)-(0.081055,0.026367)
-DrawTriangles n=6 bbox=(0,0)-(13,13) colors=[FF808080] cov=solid
+DrawTriangles n=6 bbox=(0,0)-(13,13) colors=[FF606060] cov=solid
 BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(13,0)-(87,13) src=(0.083008,0.00293)-(0.083008,0.026367)
-DrawTriangles n=6 bbox=(13,0)-(87,13) colors=[FF808080] cov=solid
+DrawTriangles n=6 bbox=(13,0)-(87,13) colors=[FF606060] cov=solid
 BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(87,0)-(100,13) src=(0.084961,0.00293)-(0.108398,0.026367)
-DrawTriangles n=6 bbox=(87,0)-(100,13) colors=[FF808080] cov=solid
+DrawTriangles n=6 bbox=(87,0)-(100,13) colors=[FF606060] cov=solid
 BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(0,13)-(13,17) src=(0.057617,0.02832)-(0.081055,0.02832)
-DrawTriangles n=6 bbox=(0,13)-(13,17) colors=[FF808080] cov=solid
+DrawTriangles n=6 bbox=(0,13)-(13,17) colors=[FF606060] cov=solid
 BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(13,13)-(87,17) src=(0.083008,0.02832)-(0.083008,0.02832)
-DrawTriangles n=6 bbox=(13,13)-(87,17) colors=[FF808080] cov=solid
+DrawTriangles n=6 bbox=(13,13)-(87,17) colors=[FF606060] cov=solid
 BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(87,13)-(100,17) src=(0.084961,0.02832)-(0.108398,0.02832)
-DrawTriangles n=6 bbox=(87,13)-(100,17) colors=[FF808080] cov=solid
+DrawTriangles n=6 bbox=(87,13)-(100,17) colors=[FF606060] cov=solid
 BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(0,17)-(13,30) src=(0.057617,0.030273)-(0.081055,0.053711)
-DrawTriangles n=6 bbox=(0,17)-(13,30) colors=[FF808080] cov=solid
+DrawTriangles n=6 bbox=(0,17)-(13,30) colors=[FF606060] cov=solid
 BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(13,17)-(87,30) src=(0.083008,0.030273)-(0.083008,0.053711)
-DrawTriangles n=6 bbox=(13,17)-(87,30) colors=[FF808080] cov=solid
+DrawTriangles n=6 bbox=(13,17)-(87,30) colors=[FF606060] cov=solid
 BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(87,17)-(100,30) src=(0.084961,0.030273)-(0.108398,0.053711)
-DrawTriangles n=6 bbox=(87,17)-(100,30) colors=[FF808080] cov=solid
+DrawTriangles n=6 bbox=(87,17)-(100,30) colors=[FF606060] cov=solid
 SetClippingRect 15 15 90 20
 StartFont
 UpdateFont font#0
 ResetTexture0
 BindTextureFont font#0 atlas=0
-DrawTriangles n=6 bbox=(46,10)-(55,22) colors=[FFF0F0F0] cov=solid
+DrawTriangles n=6 bbox=(46,10)-(55,22) colors=[FFE0E0E0] cov=solid
 ResetTextureFont
 EndFont
 SetClippingRect 10 10 100 30
@@ -52,30 +70,48 @@ ColorMask rgb-
 SetClippingRect 0 0 240 120
 Transform 1 0 0 1 10 50
 SetClippingRect 10 50 100 30
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(0,0)-(13,13) src=(0.00293,0.00293)-(0.026367,0.026367)
+DrawTriangles n=6 bbox=(0,0)-(13,13) colors=[FF353535] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(13,0)-(87,13) src=(0.02832,0.00293)-(0.02832,0.026367)
+DrawTriangles n=6 bbox=(13,0)-(87,13) colors=[FF353535] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(87,0)-(100,13) src=(0.030273,0.00293)-(0.053711,0.026367)
+DrawTriangles n=6 bbox=(87,0)-(100,13) colors=[FF353535] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(0,13)-(13,17) src=(0.00293,0.02832)-(0.026367,0.02832)
+DrawTriangles n=6 bbox=(0,13)-(13,17) colors=[FF353535] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(13,13)-(87,17) src=(0.02832,0.02832)-(0.02832,0.02832)
+DrawTriangles n=6 bbox=(13,13)-(87,17) colors=[FF353535] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(87,13)-(100,17) src=(0.030273,0.02832)-(0.053711,0.02832)
+DrawTriangles n=6 bbox=(87,13)-(100,17) colors=[FF353535] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(0,17)-(13,30) src=(0.00293,0.030273)-(0.026367,0.053711)
+DrawTriangles n=6 bbox=(0,17)-(13,30) colors=[FF353535] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(13,17)-(87,30) src=(0.02832,0.030273)-(0.02832,0.053711)
+DrawTriangles n=6 bbox=(13,17)-(87,30) colors=[FF353535] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(87,17)-(100,30) src=(0.030273,0.030273)-(0.053711,0.053711)
+DrawTriangles n=6 bbox=(87,17)-(100,30) colors=[FF353535] cov=solid
 BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(0,0)-(13,13) src=(0.057617,0.00293)-(0.081055,0.026367)
-DrawTriangles n=6 bbox=(0,0)-(13,13) colors=[FF808080] cov=solid
+DrawTriangles n=6 bbox=(0,0)-(13,13) colors=[FF606060] cov=solid
 BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(13,0)-(87,13) src=(0.083008,0.00293)-(0.083008,0.026367)
-DrawTriangles n=6 bbox=(13,0)-(87,13) colors=[FF808080] cov=solid
+DrawTriangles n=6 bbox=(13,0)-(87,13) colors=[FF606060] cov=solid
 BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(87,0)-(100,13) src=(0.084961,0.00293)-(0.108398,0.026367)
-DrawTriangles n=6 bbox=(87,0)-(100,13) colors=[FF808080] cov=solid
+DrawTriangles n=6 bbox=(87,0)-(100,13) colors=[FF606060] cov=solid
 BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(0,13)-(13,17) src=(0.057617,0.02832)-(0.081055,0.02832)
-DrawTriangles n=6 bbox=(0,13)-(13,17) colors=[FF808080] cov=solid
+DrawTriangles n=6 bbox=(0,13)-(13,17) colors=[FF606060] cov=solid
 BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(13,13)-(87,17) src=(0.083008,0.02832)-(0.083008,0.02832)
-DrawTriangles n=6 bbox=(13,13)-(87,17) colors=[FF808080] cov=solid
+DrawTriangles n=6 bbox=(13,13)-(87,17) colors=[FF606060] cov=solid
 BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(87,13)-(100,17) src=(0.084961,0.02832)-(0.108398,0.02832)
-DrawTriangles n=6 bbox=(87,13)-(100,17) colors=[FF808080] cov=solid
+DrawTriangles n=6 bbox=(87,13)-(100,17) colors=[FF606060] cov=solid
 BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(0,17)-(13,30) src=(0.057617,0.030273)-(0.081055,0.053711)
-DrawTriangles n=6 bbox=(0,17)-(13,30) colors=[FF808080] cov=solid
+DrawTriangles n=6 bbox=(0,17)-(13,30) colors=[FF606060] cov=solid
 BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(13,17)-(87,30) src=(0.083008,0.030273)-(0.083008,0.053711)
-DrawTriangles n=6 bbox=(13,17)-(87,30) colors=[FF808080] cov=solid
+DrawTriangles n=6 bbox=(13,17)-(87,30) colors=[FF606060] cov=solid
 BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(87,17)-(100,30) src=(0.084961,0.030273)-(0.108398,0.053711)
-DrawTriangles n=6 bbox=(87,17)-(100,30) colors=[FF808080] cov=solid
+DrawTriangles n=6 bbox=(87,17)-(100,30) colors=[FF606060] cov=solid
 SetClippingRect 15 55 90 20
 StartFont
 UpdateFont font#0
 ResetTexture0
 BindTextureFont font#0 atlas=0
-DrawTriangles n=6 bbox=(47,10)-(54,22) colors=[FFF0F0F0] cov=solid
+DrawTriangles n=6 bbox=(47,10)-(54,22) colors=[FFE0E0E0] cov=solid
 ResetTextureFont
 EndFont
 SetClippingRect 10 50 100 30

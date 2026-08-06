@@ -1,0 +1,59 @@
+# A complete theme, written the way anyone shipping an application would write one.
+#
+# Nothing here is special to this example: it is a tweak sheet, it names palette tokens, and
+# the toolkit derives the three hundred parts of the interface from them. Thirty-four values
+# is the whole surface a theme has to answer for, which is why a theme file can be reviewed
+# in one screen — and why it cannot answer for a button and forget the field beside it.
+#
+# Load it with Theme.applySheet, or drop it in an application's resource folder as
+# themes/<name>.tweak and call Application.loadTheme.
+
+/ThemePalette
+
+# Grounds, back to front. Warm paper rather than white: the page is the whole point of a
+# reading theme, and pure white is the one value paper never is.
+ground              0xFFF3EDE1
+view                0xFFFBF7EF
+panel               0xFFEAE2D2
+raised              0xFFFBF7EF
+hot                 0xFFE6DCC8
+pressed             0xFFDBCFB6
+
+# The accent is warm enough to wash a row with, so selection uses it rather than repeating
+# the neutral hover.
+selectHot           0xFFF0E2C4
+selectPressed       0xFFE4D0A4
+
+line                0xFFD9CDB6
+controlLine         0xFFB9A98C
+
+text                0xFF2C2519
+softText            0xFF5F5443
+faintText           0xFF8A7C64
+disabled            0xFFA2937B
+
+accent              0xFF9A6B18
+onAccent            0xFFFBF7EF
+
+# A rule marks the active item, in the accent, the way the Swag palettes do.
+railed              true
+
+error               0xFFA32B1C
+criticalBk          0xFFF2DCD6
+criticalText        0xFF8A3428
+infoBk              0xFFDDE5EA
+infoText            0xFF2F5468
+noticeBk            0xFFF1E6C4
+noticeText          0xFF715C1F
+
+rich1               0xFFA32B1C
+rich2               0xFF3F6B27
+rich3               0xFF2A5A87
+
+# Veils darken on a light ground.
+veil                0xFF000000
+shadow              0x36000000
+
+caption             0xFFEAE2D2
+captionInactive     0xFFF3EDE1
+windowBorder        0xFFC8B99E

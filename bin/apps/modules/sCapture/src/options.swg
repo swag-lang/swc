@@ -62,6 +62,10 @@ struct EditorOptions
     #[Description("Language of the user interface")]
     language: EditorLanguage = .English
 
-    #[Description("Specify the background color of the capture editing window"), Opaque]
-    editBackColor: Color = 0xFF2E2E2E
+    // Transparent means the editor follows the theme, which is what it does until somebody
+    // picks a color: a matte fixed in the options stays dark when the interface turns white,
+    // and the one surface the application exists to show is then framed by the wrong theme.
+    // The picker is opaque, so it can never produce this value by accident.
+    #[Description("Background color of the capture editing window, or transparent to follow the theme"), Opaque]
+    editBackColor: Color = 0
 }

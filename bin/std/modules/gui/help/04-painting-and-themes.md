@@ -11,10 +11,31 @@ The theme is separated into:
 
 | Part | Role |
 |---|---|
-| [[Gui.ThemeColors]] | Semantic colors for controls and states |
+| [[Gui.ThemePalette]] | The thirty-odd decisions a theme makes |
+| [[Gui.ThemeColors]] | Semantic colors for controls and states, all derived from the palette |
 | [[Gui.ThemeMetrics]] | Sizes, spacing, borders, and timing |
 | [[Gui.ThemeImageRects]] | Regions in the theme image atlas |
 | [[Gui.ThemeStyle]] | A control's resolved font, colors, and resources |
+
+A palette is where a theme is written: grounds, rules, ink, one accent and the ink
+drawn on it, status hues, a veil, and the chrome of a window.
+[[Gui.ThemeColors.apply]] turns those into a value for every painted part, which is
+what makes a theme complete by construction — it cannot answer for a button and
+forget the field beside it. The four shipped palettes ([[Gui.Theme.setDark]],
+[[Gui.Theme.setLight]], [[Gui.Theme.setSwagDark]], [[Gui.Theme.setSwagLight]]) are
+token lists and nothing else, and each also restores the geometry it implies.
+
+```swag
+var palette = Gui.ThemeColors.swagDarkPalette()
+palette.accent   = 0xFF00A0FF
+palette.onAccent = 0xFF000000
+app.theme.setPalette(palette)
+app.notifyThemeChanged()
+```
+
+`bin/examples/modules/gui10` is the theme inspector: it lists every color of every
+palette by reflection, flags any value one palette answers for and another does not,
+and shows every widget in every state.
 
 Read theme data through the current window so custom controls respect local style
 overrides:

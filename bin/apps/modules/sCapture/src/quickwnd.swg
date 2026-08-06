@@ -857,8 +857,8 @@ impl QuickWnd
             // convenience, not the primary action of the surface.
             let ico  = .theme().icon(.Plus, AddGlyphSize)
             let btn1 = IconButton.create(btn, ico, {QuickCellSize - AddCellSize - 2, 2, AddCellSize, AddCellSize})
-            btn1.style.addStyleSheetColors("btnIcon_Bk          $lighterBig")
-            btn1.style.addStyleSheetColors("btnIcon_HotBk       $lighterVeryBig")
+            btn1.style.addStyleSheetColors("btnIcon_Bk          $veilMedium")
+            btn1.style.addStyleSheetColors("btnIcon_HotBk       $veilStrong")
             btn1.style.addStyleSheetColors("btnIcon_PressedBk   $btnIcon_PressedBk")
             btn1.setForm(.Rectangle)
 

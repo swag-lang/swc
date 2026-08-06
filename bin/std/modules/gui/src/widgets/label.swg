@@ -220,9 +220,9 @@ impl Label
                 sf.palette[0] = theme.colors.label_TextLight
             else do
                 sf.palette[0] = theme.colors.label_Text
-            sf.palette[1]  = theme.colors.label_Text1
-            sf.palette[2]  = theme.colors.label_Text2
-            sf.palette[3]  = theme.colors.label_Text3
+            sf.palette[1]  = theme.colors.richColor1
+            sf.palette[2]  = theme.colors.richColor2
+            sf.palette[3]  = theme.colors.richColor3
             sf.colorUrl    = theme.colors.url_Text
             sf.colorHotUrl = theme.colors.url_HotText
         }

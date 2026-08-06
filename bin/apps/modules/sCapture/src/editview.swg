@@ -54,9 +54,11 @@ impl IWnd for EditView
         let painter = evt.paintContext.painter
 
         // Background
+        let matte = .main.editorOptions.editBackColor.a ? .main.editorOptions.editBackColor : .themeColors().view_Bk
+
         var rect = .clientRect()
         rect.offset(.scrollPos)
-        painter.fillRect(rect, Argb.Black)
+        painter.fillRect(rect, matte)
         if !.capture do
             return
 
@@ -67,7 +69,7 @@ impl IWnd for EditView
         .capture.paint(painter, clip, captureRect)
 
         // Around capture
-        var col = .main.editorOptions.editBackColor
+        var col = matte
         col.a = .main.editorOptions.clipToSelection ? 255 : 200
         painter.fillRect({rect.x, rect.y, captureRect.x, rect.height}, col)
         painter.fillRect({captureRect.x, rect.y, captureRect.width, captureRect.y}, col)

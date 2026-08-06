@@ -81,7 +81,9 @@ twenty-seven messages. What is absent from that list is this section.
 
 - Landed with the `gui-resources` merge. Every application owns a `Resources.Bundle` in
   `Application.resources` — embedded content is the guaranteed fallback, a disk folder overrides
-  by name — theme sheets drive `ThemeColors`/`ThemeMetrics`/`ThemeImageRects` from tweak text,
+  by name — theme sheets drive `ThemePalette`/`ThemeColors`/`ThemeMetrics`/`ThemeImageRects` from
+  tweak text, and a sheet naming palette tokens re-derives the whole interface, so a user theme is
+  thirty lines rather than three hundred,
   and visible strings live in tables of `string` fields whose declared values are the reference
   English wording. `Application.setLanguage` retargets every registered table from
   `lang/<tag>/<file>.tweak` resources, and embedded translations are validated when the module

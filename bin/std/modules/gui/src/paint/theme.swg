@@ -157,14 +157,14 @@ struct ThemeResources
     icons:      IconSet     // The theme icon set, rasterized on demand per size and scale.
     #[Swag.Late]
     {
-        defaultTypeFaceR:    *TypeFace      // Default type face r associated with this value.
-        defaultTypeFaceB:    *TypeFace      // Default type face b associated with this value.
-        defaultTypeFaceI:    *TypeFace      // Default type face i associated with this value.
-        defaultTypeFaceBI:   *TypeFace      // Default type face bi associated with this value.
-        defaultFsTypeFaceR:  *TypeFace      // Default fs type face r associated with this value.
-        defaultFsTypeFaceB:  *TypeFace      // Default fs type face b associated with this value.
-        defaultFsTypeFaceI:  *TypeFace      // Default fs type face i associated with this value.
-        defaultFsTypeFaceBI: *TypeFace      // Default fs type face bi associated with this value.
+        defaultTypeFaceR:    *TypeFace     // Default type face r associated with this value.
+        defaultTypeFaceB:    *TypeFace     // Default type face b associated with this value.
+        defaultTypeFaceI:    *TypeFace     // Default type face i associated with this value.
+        defaultTypeFaceBI:   *TypeFace     // Default type face bi associated with this value.
+        defaultFsTypeFaceR:  *TypeFace     // Default fs type face r associated with this value.
+        defaultFsTypeFaceB:  *TypeFace     // Default fs type face b associated with this value.
+        defaultFsTypeFaceI:  *TypeFace     // Default fs type face i associated with this value.
+        defaultFsTypeFaceBI: *TypeFace     // Default fs type face bi associated with this value.
     }
 
     fontDefault:   FontFamily     // Font default associated with this value.
@@ -174,10 +174,16 @@ struct ThemeResources
 // Groups all render resources, colors, metrics, and atlas rectangles for one GUI theme.
 struct Theme
 {
-    res:     ThemeResources      // Res associated with this value.
-    rects:   ThemeImageRects     // Rects associated with this value.
-    metrics: ThemeMetrics        // Metrics associated with this value.
-    colors:  ThemeColors         // Colors associated with this value.
+    res:     ThemeResources      // Decoded art, fonts, and font families of the theme.
+    rects:   ThemeImageRects     // Regions of the theme atlas each part is drawn from.
+    metrics: ThemeMetrics        // Logical dimensions, spacing, and timings.
+    colors:  ThemeColors         // One color per painted part, derived from `palette`.
+
+    // The tokens the colors were derived from. A theme sheet that names one of them
+    // re-derives the whole palette, which is what makes a theme file thirty lines rather
+    // than three hundred; a sheet that names a color instead overrides that one part.
+    readonly
+    palette: ThemePalette
 
     // Whether the theme was set up. A theme is established once against a renderer, so the
     // flag is a result to read, never a switch to flip.
@@ -195,12 +201,16 @@ impl Theme
 {
     // Applies a theme sheet to this theme.
     //
-    // A sheet is a tweak text with up to three folders whose keys are the reflected field
-    // names of [[ThemeColors]], [[ThemeMetrics]] and [[ThemeImageRects]]. An omitted key
-    // keeps its current value, so a sheet only describes what it changes, and `$name`
-    // copies another key of the same folder:
+    // A sheet is a tweak text with up to four folders whose keys are the reflected field
+    // names of [[Gui.ThemePalette]], [[Gui.ThemeColors]], [[Gui.ThemeMetrics]] and
+    // [[Gui.ThemeImageRects]]. An omitted key keeps its current value, so a sheet only
+    // describes what it changes, and `$name` copies another key of the same folder:
     //
     // ```
+    // /ThemePalette
+    // ground           0xFF161310
+    // text             0xFFEDE4D4
+    // accent           0xFFD79921
     // /ThemeColors
     // btnPush_Bk       0xFF202026
     // /ThemeMetrics
@@ -210,16 +220,53 @@ impl Theme
     // btnPush_Hot      $btnPush_Normal
     // ```
     //
+    // A whole theme is written in the first folder: naming any palette token re-derives
+    // every color from the tokens, so a sheet of thirty lines answers for the three hundred
+    // parts of the interface and cannot leave one of them behind. The other folders are for
+    // the parts a theme wants different from what its own tokens derive, and they are read
+    // after the derivation whatever order they appear in.
+    //
     // An unknown key or a malformed value fails with [[Core.Errors.SyntaxError]] carrying
     // the line number; the theme keeps the values already applied before the error. Call
     // [[Gui.Application.notifyThemeChanged]] afterwards when the theme is already on screen.
     mtd applySheet(sheet: string) fail
     {
-        var tf: File.TweakFile
-        tf.registerFolder'ThemeColors(&.colors)
-        tf.registerFolder'ThemeMetrics(&.metrics)
-        tf.registerFolder'ThemeImageRects(&.rects)
-        try tf.parse(sheet)
+        // The two layers of a sheet cannot be filled in one pass: deriving the palette would
+        // overwrite the individual parts the same text asks for. So the sheet is read twice,
+        // each pass keeping the folders it owns and sending the others to a scratch copy —
+        // which is also what lets a sheet name its folders in any order.
+        var palette        = .palette
+        var scratchColors  = .colors
+        var scratchMetrics = .metrics
+        var scratchRects   = .rects
+
+        var tokens: File.TweakFile
+        tokens.registerFolder'ThemePalette(&palette)
+        tokens.registerFolder'ThemeColors(&scratchColors)
+        tokens.registerFolder'ThemeMetrics(&scratchMetrics)
+        tokens.registerFolder'ThemeImageRects(&scratchRects)
+        try tokens.parse(sheet)
+
+        if palette != .palette do
+            .setPalette(palette)
+
+        var scratchPalette = .palette
+        var parts: File.TweakFile
+        parts.registerFolder'ThemePalette(&scratchPalette)
+        parts.registerFolder'ThemeColors(&.colors)
+        parts.registerFolder'ThemeMetrics(&.metrics)
+        parts.registerFolder'ThemeImageRects(&.rects)
+        try parts.parse(sheet)
+    }
+
+    // Derives every color of the theme from `palette`.
+    //
+    // The tokens are kept, so a later sheet that changes one of them re-derives from the
+    // whole set rather than from the defaults.
+    mtd setPalette(palette: ThemePalette)
+    {
+        .palette = palette
+        .colors.apply(palette)
     }
 
     // Loads the theme sheet resource `name` from `resources` and applies it.
@@ -229,18 +276,47 @@ impl Theme
         try .applySheet(cast(string) bytes.toSlice())
     }
 
+    // Applies the neutral dark palette and the geometry the theme atlas was authored with.
+    mtd setDark()
+    {
+        .setPalette(ThemeColors.darkPalette())
+        .setDefaultGeometry()
+    }
+
+    // Applies the neutral light palette and the geometry the theme atlas was authored with.
+    mtd setLight()
+    {
+        .setPalette(ThemeColors.lightPalette())
+        .setDefaultGeometry()
+    }
+
     // Applies the dark Swag palette and its shared control geometry.
     mtd setSwagDark()
     {
-        .colors.setSwagDark()
+        .setPalette(ThemeColors.swagDarkPalette())
         .setSwagGeometry()
     }
 
     // Applies the light Swag palette and its shared control geometry.
     mtd setSwagLight()
     {
-        .colors.setSwagLight()
+        .setPalette(ThemeColors.swagLightPalette())
         .setSwagGeometry()
+    }
+
+    // Restores the geometry the theme atlas was authored with.
+    //
+    // Every palette has to answer for the shape of a control as well as for its color, or
+    // a surface leaving the Swag palette keeps square push buttons and a barely cut window
+    // under a blue accent — a mix no palette ever described. The declared values of
+    // [[Gui.ThemeImageRects]] and [[Gui.ThemeMetrics]] are that authored geometry, which is
+    // why restoring it is an initialization rather than a second list of numbers to keep in
+    // step with the first.
+    private mtd setDefaultGeometry()
+    {
+        var defaults: ThemeMetrics
+        .metrics.surfaceWnd_CornerRadius = defaults.surfaceWnd_CornerRadius
+        @init(&.rects, 1)
     }
 
     // Gives a push button the geometry the theme already gives an edit box.
@@ -285,7 +361,7 @@ impl Theme
     {
         .initialized = true
         .fonts       = renderer.fontCache()
-        .colors.setDark()
+        .setDark()
 
         .ensureAtlasScale(renderer, dpiScale)
 

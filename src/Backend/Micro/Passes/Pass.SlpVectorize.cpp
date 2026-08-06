@@ -228,12 +228,19 @@ namespace
             Copy,
             BinaryRegReg,
             BinaryRegImm,
+            // Non-destructive forms: the destination is a register of its own,
+            // so the packed value feeding the operation is not overwritten and
+            // needs no copy. Emitted instead of the Copy pairs above wherever
+            // the encoder has the VEX encodings.
+            BinaryRegRegReg,
+            BinaryRegRegImm,
             Shuffle,
         };
 
         Kind     kind = Kind::Copy;
         uint32_t dst  = 0;
         uint32_t src  = 0;
+        uint32_t src2 = 0;
         MicroOp  op   = MicroOp::VecXor;
         uint64_t imm  = 0;
         uint32_t rootKey    = K_INVALID_ID;
@@ -595,10 +602,11 @@ namespace
     class TreeBuilder
     {
     public:
-        TreeBuilder(SlpFunctionContext& fn, BlockScan& scan, VectorPlan& plan) :
+        TreeBuilder(SlpFunctionContext& fn, BlockScan& scan, VectorPlan& plan, bool nonDestructive) :
             fn_(fn),
             scan_(scan),
-            plan_(plan)
+            plan_(plan),
+            nonDestructive_(nonDestructive)
         {
         }
 
@@ -681,8 +689,15 @@ namespace
                     }
 
                     const uint32_t dstReg = allocReg();
-                    plan_.ops.push_back(PlanInstr{.kind = PlanInstr::Kind::Copy, .dst = dstReg, .src = lhsReg});
-                    plan_.ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegReg, .dst = dstReg, .src = rhsReg, .op = vecOp});
+                    if (nonDestructive_)
+                    {
+                        plan_.ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegRegReg, .dst = dstReg, .src = lhsReg, .src2 = rhsReg, .op = vecOp});
+                    }
+                    else
+                    {
+                        plan_.ops.push_back(PlanInstr{.kind = PlanInstr::Kind::Copy, .dst = dstReg, .src = lhsReg});
+                        plan_.ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegReg, .dst = dstReg, .src = rhsReg, .op = vecOp});
+                    }
                     plan_.arithmeticOps++;
                     remember(tuple, dstReg);
                     return dstReg;
@@ -705,9 +720,9 @@ namespace
                         case LaneOp::ShiftLeft:
                         case LaneOp::ShiftRight:
                         {
-                            const uint32_t dstReg = allocReg();
-                            plan_.ops.push_back(PlanInstr{.kind = PlanInstr::Kind::Copy, .dst = dstReg, .src = lhsReg});
-                            plan_.ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegImm, .dst = dstReg, .op = n0.op == LaneOp::ShiftLeft ? MicroOp::VecShiftLeft32 : MicroOp::VecShiftRight32, .imm = n0.imm});
+                            const MicroOp  shiftOp = n0.op == LaneOp::ShiftLeft ? MicroOp::VecShiftLeft32 : MicroOp::VecShiftRight32;
+                            const uint32_t dstReg  = allocReg();
+                            emitShift(dstReg, lhsReg, shiftOp, n0.imm);
                             plan_.arithmeticOps++;
                             remember(tuple, dstReg);
                             return dstReg;
@@ -715,13 +730,23 @@ namespace
 
                         case LaneOp::RotateLeft:
                         {
-                            // rol k == (x << k) | (x >> (32 - k))
+                            // rol k == (x << k) | (x >> (32 - k)). Both halves
+                            // read the same source, which is exactly the shape
+                            // a destructive shift cannot express without a
+                            // copy - and the copy the register allocator was
+                            // giving a stack home rather than a register.
                             const uint32_t leftReg  = allocReg();
                             const uint32_t rightReg = allocReg();
-                            plan_.ops.push_back(PlanInstr{.kind = PlanInstr::Kind::Copy, .dst = leftReg, .src = lhsReg});
-                            plan_.ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegImm, .dst = leftReg, .op = MicroOp::VecShiftLeft32, .imm = n0.imm});
-                            plan_.ops.push_back(PlanInstr{.kind = PlanInstr::Kind::Copy, .dst = rightReg, .src = lhsReg});
-                            plan_.ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegImm, .dst = rightReg, .op = MicroOp::VecShiftRight32, .imm = 32 - n0.imm});
+                            emitShift(leftReg, lhsReg, MicroOp::VecShiftLeft32, n0.imm);
+                            emitShift(rightReg, lhsReg, MicroOp::VecShiftRight32, 32 - n0.imm);
+                            if (nonDestructive_)
+                            {
+                                const uint32_t orReg = allocReg();
+                                plan_.ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegRegReg, .dst = orReg, .src = leftReg, .src2 = rightReg, .op = MicroOp::VecOr});
+                                plan_.arithmeticOps += 3;
+                                remember(tuple, orReg);
+                                return orReg;
+                            }
                             plan_.ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegReg, .dst = leftReg, .src = rightReg, .op = MicroOp::VecOr});
                             plan_.arithmeticOps += 3;
                             remember(tuple, leftReg);
@@ -746,6 +771,18 @@ namespace
     private:
 
         uint32_t allocReg() { return plan_.nextPlanReg++; }
+
+        // A shift by an immediate, in whichever form the target offers.
+        void emitShift(uint32_t dstReg, uint32_t srcReg, MicroOp shiftOp, uint64_t imm)
+        {
+            if (nonDestructive_)
+            {
+                plan_.ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegRegImm, .dst = dstReg, .src = srcReg, .op = shiftOp, .imm = imm});
+                return;
+            }
+            plan_.ops.push_back(PlanInstr{.kind = PlanInstr::Kind::Copy, .dst = dstReg, .src = srcReg});
+            plan_.ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegImm, .dst = dstReg, .op = shiftOp, .imm = imm});
+        }
 
         void remember(const TupleKey& tuple, uint32_t reg)
         {
@@ -813,6 +850,7 @@ namespace
         SlpFunctionContext& fn_;
         BlockScan&          scan_;
         VectorPlan&         plan_;
+        bool                nonDestructive_ = false;
     };
 
     // ------------------------------------------------------------------
@@ -1335,7 +1373,7 @@ namespace
 
         // Build the seed groups: complete 16-byte chunks of candidates.
         VectorPlan             plan;
-        TreeBuilder            builder(fn, scan, plan);
+        TreeBuilder            builder(fn, scan, plan, fn.encoder && fn.encoder->supportsNonDestructiveFloatBinary());
         std::vector<SeedGroup> groups;
 
         for (auto& [rootKey, candidates] : candidatesByRoot)
@@ -1546,6 +1584,28 @@ namespace
                     ops[2].microOp = planInstr.op;
                     ops[3].setImmediateValue(ApInt(planInstr.imm, 64));
                     fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::OpBinaryRegImm, ops);
+                    break;
+                }
+                case PlanInstr::Kind::BinaryRegRegReg:
+                {
+                    std::array<MicroInstrOperand, 5> ops;
+                    ops[0].reg     = planRegs[planInstr.dst];
+                    ops[1].reg     = planRegs[planInstr.src];
+                    ops[2].reg     = planRegs[planInstr.src2];
+                    ops[3].opBits  = MicroOpBits::B128;
+                    ops[4].microOp = planInstr.op;
+                    fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::OpBinaryRegRegReg, ops);
+                    break;
+                }
+                case PlanInstr::Kind::BinaryRegRegImm:
+                {
+                    std::array<MicroInstrOperand, 5> ops;
+                    ops[0].reg     = planRegs[planInstr.dst];
+                    ops[1].reg     = planRegs[planInstr.src];
+                    ops[2].opBits  = MicroOpBits::B128;
+                    ops[3].microOp = planInstr.op;
+                    ops[4].setImmediateValue(ApInt(planInstr.imm, 64));
+                    fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::OpBinaryRegRegImm, ops);
                     break;
                 }
                 case PlanInstr::Kind::Shuffle:

@@ -21,7 +21,7 @@ identifier, so a reference made today still resolves after the entry is gone. En
 identifier, ascending: a new one goes at the end, a deleted one leaves a gap, and position carries
 no priority.
 
-Next identifier: F-033
+Next identifier: F-034
 
 ## Open Investigations
 
@@ -431,3 +431,28 @@ Use this compact format. Keep observations factual and make the next step action
   without the field scan, the way `typeHasBorrowableStorage` already does for owner views. Try it
   behind the usual sweep (build every workspace, zero-hit baseline) and triage: the risk is that
   every owner passed by value starts feeding the stores and frees summaries.
+
+### F-033 — The reallocation summary stops at the module boundary, leaving the invalidation check inert
+
+- Area: compiler
+- Found while: building the borrow-invalidation check (a view read after the storage it views was
+  moved), on branch `worktree-safety-push`
+- Observation: the check itself works — a view taken from a local owner, a call that can move that
+  owner's payload, and a read of the view afterwards are all detected, with the read located by
+  source order so a view that is refreshed or never read again stays silent. What gates it is a new
+  `SymbolFunction::reallocatesParamsMask`, seeded where a payload the parameter OWNS reaches
+  `IAllocator.free`/`realloc` and propagated by the existing summary fixpoint. That mask is not part
+  of `#[Swag.BorrowSummary]`, so an imported callee reports zero and the check never fires on the
+  standard collections — which is every interesting case.
+- Evidence: `String.append` and `String.clear` both come back with `reallocates=0` and `frees=0` at
+  the judgement point, because the attribute carries neither (the frees bit is deliberately
+  suppressed for owned-payload releases: releasing the buffer does not release the container).
+  Within one module the chain is complete: `append` -> `reserve` -> `Memory.free(.buffer, ...)`
+  seeds through the `viaOwnedPayload` edge.
+- Next step: serialize the mask as a fifth `BorrowSummary` argument, exactly as `frees` was added —
+  `api.swg` attribute, `AttributeList`, `collectBorrowSummaryOptions`, the OR in the
+  `SymbolFunction` getter, and `ModuleApiExport.Generate.cpp`. Then re-sweep every workspace and
+  triage: the trigger becomes real for imported types, so this is where the false-positive cost of
+  the check is actually measured. Two shapes were already ruled out by hand and must stay silent —
+  an interface or pointer to the value itself (`let r: IRenderer = &cpu; cpu.begin(...)`), and a
+  method that only reads or assigns fields (`host.mouseDown` with a view of `host.root`'s metrics).

@@ -57,6 +57,27 @@ struct SemaEscapeDeferredCheck
     DiagnosticId    noteId = {};
     Utf8            noteSymName;
     SourceCodeRange noteRange;
+    // A second note, for the checks that need to show two places at once (where a view
+    // was taken, and where it is read again after its storage moved).
+    DiagnosticId    note2Id = {};
+    Utf8            note2SymName;
+    SourceCodeRange note2Range;
+    // Judged against the callee's REALLOCATES summary: the call can move or release the
+    // payload its receiver owns, so a view into that payload read afterwards is stale.
+    bool judgeReallocates = false;
+    Utf8 valueName;
+};
+
+// A structural change of storage that a local view was reading. Recorded where the flow
+// state proves the view is live, and judged once the whole body is resolved - only then
+// can the identifiers that come AFTER the change be matched to their symbols.
+struct SemaBorrowInvalidation
+{
+    const SymbolVariable* viewVar   = nullptr;
+    const SymbolVariable* sourceVar = nullptr;
+    const SymbolFunction* callee    = nullptr;
+    SourceCodeRange       mutationRange;
+    Utf8                  mutationName;
 };
 
 // How a callee's summary propagates into the caller's when a call receives one of the
@@ -119,6 +140,15 @@ namespace SemaEscape
     // loop is iterating (the receiver roots at an active iteration borrow, and the callee
     // is a non-const, non-operator method: add/remove/clear/free ...).
     Result checkIterationMutation(Sema& sema, AstNodeRef callRef, const SymbolFunction& calledFn);
+
+    // Records a resolved call that structurally changes storage a local view is reading
+    // ('let v: string = s; s.append("..."); use(v)'). The iteration check above is this
+    // same rule restricted to loops.
+    void noteBorrowInvalidation(Sema& sema, AstNodeRef callRef, const SymbolFunction& calledFn);
+
+    // Judges the recorded changes against the fully resolved body: a read of the view
+    // written after the change reads storage the change may have moved or freed.
+    Result reportBorrowInvalidations(Sema& sema, AstNodeRef declRef);
 
     // Called on every resolved opaque call: records the "callee stores its argument"
     // deferred checks for borrowed arguments, and the stores-propagation edges for

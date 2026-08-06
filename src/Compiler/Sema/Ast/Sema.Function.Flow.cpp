@@ -1437,6 +1437,10 @@ namespace
         // method (Array.add, remove, ...) is still caught at its call site.
         SWC_RESULT(SemaEscape::checkIterationMutation(sema, sema.curNodeRef(), calledFn));
 
+        // The same rule outside a loop: a view of storage this call can move or free,
+        // judged once the body is resolved.
+        SemaEscape::noteBorrowInvalidation(sema, sema.curNodeRef(), calledFn);
+
         const TypeInfo& returnType = sema.typeMgr().get(calledFn.returnTypeRef());
         if (!returnType.isVoid() &&
             !calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Discardable) &&

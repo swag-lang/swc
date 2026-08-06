@@ -93,6 +93,18 @@ public:
             freesParamsMask_ |= 1ULL << paramIndex;
     }
 
+    // Bit i set = the call may MOVE OR RELEASE the heap payload that parameter #i owns
+    // (it reaches an 'IAllocator.free/realloc' with that payload as the request
+    // address). Legitimate in itself - that is what 'append', 'reserve' and 'clear' are
+    // for - but it tells every view into that payload apart from every other method
+    // call, which is what the invalidation check needs.
+    uint64_t reallocatesParamsMask() const noexcept { return reallocatesParamsMask_; }
+    void     addReallocatesParam(size_t paramIndex) noexcept
+    {
+        if (paramIndex < 64)
+            reallocatesParamsMask_ |= 1ULL << paramIndex;
+    }
+
     // Bit (into*8 + stored) = parameter #stored may be stored into storage reachable
     // from parameter #into ('me.list = item' -> pair (item -> me)). Judged at call
     // sites where the 'into' argument provably outlives the stored one (a global).
@@ -246,6 +258,7 @@ private:
     uint64_t                                  storesParamsMask_        = 0;
     uint64_t                                  storesIntoParamPairs_    = 0;
     uint64_t                                  freesParamsMask_         = 0;
+    uint64_t                                  reallocatesParamsMask_   = 0;
     TypeRef                                   returnType_              = TypeRef::invalid();
     uint8_t                                   rtAttributeBitIndex_     = K_INVALID_RT_ATTRIBUTE_BIT_INDEX;
     SpecOpKind                                specOpKind_              = SpecOpKind::None;

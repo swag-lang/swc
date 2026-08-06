@@ -1579,7 +1579,22 @@ namespace
                 const SemaEscapeInfo  carried     = reqVar ? sema.variableEscapeInfoIncludingProjections(*reqVar) : SemaEscapeInfo{};
                 if (carried.viaOwnedPayload)
                 {
-                    // Nothing to record: the owner is releasing its own payload.
+                    // The owner is releasing its own payload: not a free of the pointer
+                    // the caller handed over, but every view INTO that payload dies here.
+                    // This is what tells 'append', 'reserve' and 'clear' apart from a
+                    // method that only reads or assigns fields.
+                    if (carried.kind == SemaEscapeKind::Parameter)
+                    {
+                        if (SymbolFunction* callerFn = sema.currentFunction())
+                        {
+                            const uint64_t origins = parameterOriginsMask(*callerFn, carried);
+                            for (size_t i = 0; i < 64; ++i)
+                            {
+                                if (origins & (1ULL << i))
+                                    callerFn->addReallocatesParam(i);
+                            }
+                        }
+                    }
                 }
                 else if (carried.kind == SemaEscapeKind::Parameter)
                 {
@@ -2618,6 +2633,147 @@ namespace
     // Walked with an explicit worklist, not recursion: an expanded/substituted body can be
     // deep or self-referential, and a recursive descent would overflow the stack. The
     // budget bounds total work so a substitution cycle terminates instead of spinning.
+    // The declaration of the function being analyzed, so a check can look at what comes
+    // AFTER the node it fired on. The whole declaration is the scan root rather than the
+    // body alone: a '#test' block, an init/drop block and a plain function are all
+    // different node kinds, and nothing before a body mentions its locals.
+    AstNodeRef currentFunctionDeclRef(Sema& sema)
+    {
+        const SymbolFunction* fn = sema.currentFunction();
+        return fn ? fn->declNodeRef() : AstNodeRef::invalid();
+    }
+
+    // Does this call structurally change its receiver? Only a method can, a 'const' one
+    // cannot, and the lifecycle hooks the compiler inserts on its own (copy, move, drop)
+    // are not a change the program wrote. Every other non-const method is taken as one:
+    // 'add', 'clear', 'reserve', 'opSet' and friends can all move or free the storage.
+    bool isStructuralMutationCallee(Sema& sema, const SymbolFunction& calledFn)
+    {
+        if (!calledFn.isMethod() || calledFn.isConst())
+            return false;
+
+        const Utf8             calleeName = calledFn.name(sema.ctx());
+        const std::string_view view{calleeName};
+        return view != "opPostCopy" && view != "opPostMove" && view != "opDrop" && view != "opVisit";
+    }
+
+    // Does this view point at the VARIABLE rather than into what the variable owns? An
+    // interface object, a pointer or a reference to the value itself keeps addressing
+    // the same frame slot however much its payload is reallocated - it is the handle
+    // through which the change is made, not something the change invalidates. A view of
+    // a different type ('string' of a 'String', '*u8' into an array's buffer) points
+    // into the payload, and that is what moves.
+    bool viewAliasesVariableItself(Sema& sema, const SymbolVariable& viewVar, const SymbolVariable& sourceVar)
+    {
+        const TypeRef viewTypeRef = unwrapAliasEnum(sema, viewVar.typeRef());
+        if (!viewTypeRef.isValid())
+            return false;
+
+        const TypeInfo& viewType = sema.typeMgr().get(viewTypeRef);
+        if (viewType.isInterface() || viewType.isAny())
+            return true;
+
+        if (!viewType.isAnyPointer() && !viewType.isReference())
+            return false;
+
+        const TypeRef pointeeTypeRef = unwrapAliasEnum(sema, viewType.payloadTypeRef());
+        const TypeRef sourceTypeRef  = unwrapAliasEnum(sema, sourceVar.typeRef());
+        return pointeeTypeRef.isValid() && pointeeTypeRef == sourceTypeRef;
+    }
+
+    // The variable whose storage a method call may change: the root of its receiver.
+    const SymbolVariable* mutatedReceiverRoot(Sema& sema, AstNodeRef callRef)
+    {
+        SmallVector<ResolvedCallArgument> args;
+        sema.appendResolvedCallArguments(callRef, args);
+
+        AstNodeRef receiverRef = AstNodeRef::invalid();
+        for (const ResolvedCallArgument& arg : args)
+        {
+            if (arg.passKind == CallArgumentPassKind::InterfaceObject)
+                continue;
+            receiverRef = argumentValueRef(sema, arg.argRef);
+            break;
+        }
+
+        AstNodeRef projectedRef = syntacticMethodReceiverRef(sema, callRef);
+        if (projectedRef.isInvalid())
+            projectedRef = receiverRef;
+        if (projectedRef.isInvalid())
+            return nullptr;
+
+        bool whole = false;
+        return storageRootVariable(sema, projectedRef, false, whole);
+    }
+
+    // The first READ of 'symVar' written after 'afterRange', or invalid when the next
+    // thing that happens to it is a write - reassigning a view refreshes it, so what
+    // follows reads the new one.
+    //
+    // Source order, not control flow: a view read on a path that also refreshes it is
+    // rare enough that the simpler rule is worth its precision, and erring toward
+    // silence keeps the check out of the way of correct programs.
+    AstNodeRef firstReadAfter(Sema& sema, AstNodeRef bodyRef, const SourceCodeRange& afterRange, const SymbolVariable& symVar)
+    {
+        struct Occurrence
+        {
+            AstNodeRef nodeRef;
+            uint32_t   offset  = 0;
+            bool       isWrite = false;
+        };
+
+        SmallVector<Occurrence> found;
+        SmallVector<std::pair<AstNodeRef, AstNodeRef>> worklist;
+        worklist.push_back({bodyRef, AstNodeRef::invalid()});
+
+        uint32_t                budget = 16384;
+        SmallVector<AstNodeRef> children;
+        while (!worklist.empty() && budget != 0)
+        {
+            budget--;
+            const auto [nodeRef, parentRef] = worklist.back();
+            worklist.pop_back();
+            if (nodeRef.isInvalid())
+                continue;
+
+            const AstNode& node = sema.node(nodeRef);
+            if (node.is(AstNodeId::Identifier) && identifierVariable(sema, nodeRef) == &symVar)
+            {
+                const SourceCodeRange range = node.codeRange(sema.ctx());
+                if (range.srcView == afterRange.srcView && range.offset > afterRange.offset)
+                {
+                    // The destination of an assignment, or the name being declared, is
+                    // where the view is refreshed rather than consumed.
+                    bool isWrite = false;
+                    if (parentRef.isValid())
+                    {
+                        const AstNode& parent = sema.node(parentRef);
+                        if (parent.is(AstNodeId::AssignStmt))
+                            isWrite = sema.viewZero(parent.cast<AstAssignStmt>().nodeLeftRef).nodeRef() == nodeRef;
+                        else if (parent.is(AstNodeId::SingleVarDecl) || parent.is(AstNodeId::MultiVarDecl))
+                            isWrite = true;
+                    }
+
+                    found.push_back({nodeRef, range.offset, isWrite});
+                }
+            }
+
+            children.clear();
+            node.collectChildrenFromAst(children, sema.ast());
+            for (const AstNodeRef childRef : children)
+            {
+                if (childRef.isValid())
+                    worklist.push_back({childRef, nodeRef});
+            }
+        }
+
+        if (found.empty())
+            return AstNodeRef::invalid();
+
+        std::ranges::sort(found, [](const Occurrence& a, const Occurrence& b) { return a.offset < b.offset; });
+        return found.front().isWrite ? AstNodeRef::invalid() : found.front().nodeRef;
+    }
+
     bool mutationFollowedByLoopExit(Sema& sema, AstNodeRef bodyRef, AstNodeRef callRef)
     {
         if (bodyRef.isInvalid() || callRef.isInvalid())
@@ -2992,6 +3148,126 @@ namespace SemaEscape
         return rootStorageOf(sema, exprRef);
     }
 
+    // A structural change of storage that a local view is reading. The iteration check
+    // below is the same rule restricted to loops; this one covers every view:
+    // 'let v: string = s' then 's.append("...")' then reading 'v' reads a buffer the
+    // append may have moved.
+    //
+    // Only the RECORDING happens here, where the flow state proves the view is live.
+    // Whether the view is read afterwards cannot be answered yet - the statements that
+    // follow are not resolved, so their identifiers carry no symbol.
+    void noteBorrowInvalidation(Sema& sema, AstNodeRef callRef, const SymbolFunction& calledFn)
+    {
+        if (!lifecycleSanityEnabled(sema) || !isStructuralMutationCallee(sema, calledFn))
+            return;
+
+        // Inline and macro expansions are re-analyzed at every call site with the
+        // caller's flow state, but their nodes live in the CALLEE's body: the source
+        // ordering the judgement relies on does not hold there.
+        if (SemaHelpers::effectiveInlinePayload(sema))
+            return;
+
+        const SymbolVariable* root = mutatedReceiverRoot(sema, callRef);
+        if (!root)
+            return;
+
+        const SourceCodeRange mutationRange = sema.node(callRef).codeRange(sema.ctx());
+        if (!mutationRange.srcView)
+            return;
+
+        // Only a value that OWNS a heap payload can have that payload moved or freed by
+        // a method call. A plain aggregate has nothing to reallocate, so a view into it
+        // survives any change to its fields.
+        if (!hasOwningLifecycle(sema, root->typeRef()))
+            return;
+
+        for (const auto& [viewVar, info] : sema.variableEscapeInfos())
+        {
+            if (!viewVar || viewVar == root || !info.isLocalBorrow() || info.sourceVar != root)
+                continue;
+            if (!isLocalVariableStorage(sema, *viewVar) || !isLocalVariableStorage(sema, *root))
+                continue;
+            if (viewAliasesVariableItself(sema, *viewVar, *root))
+                continue;
+
+            SemaBorrowInvalidation record;
+            record.viewVar       = viewVar;
+            record.sourceVar     = root;
+            record.callee        = &calledFn;
+            record.mutationRange = mutationRange;
+            record.mutationName  = calledFn.name(sema.ctx());
+            sema.addBorrowInvalidation(record);
+        }
+    }
+
+    Result reportBorrowInvalidations(Sema& sema, AstNodeRef declRef)
+    {
+        if (declRef.isInvalid() || sema.borrowInvalidations().empty())
+            return Result::Continue;
+
+        const SymbolFunction* currentFn = sema.currentFunction();
+        if (!currentFn)
+            return Result::Continue;
+
+        // A nested function completes first: it judges only the views declared in it and
+        // leaves the enclosing body's records alone. Ownership is decided on the view's
+        // symbol rather than on source ranges, because a '#test' or '#init' block spans
+        // no more than its own keyword.
+        SmallVector<SemaBorrowInvalidation> mine;
+        SmallVector<SemaBorrowInvalidation> rest;
+        for (const SemaBorrowInvalidation& record : sema.borrowInvalidations())
+        {
+            const bool inside = record.viewVar &&
+                                (record.viewVar->isFunctionLocalVariable(*currentFn) || currentFn->containsLocalVariable(*record.viewVar));
+            (inside ? mine : rest).push_back(record);
+        }
+
+        sema.setBorrowInvalidations(rest.span());
+        if (mine.empty())
+            return Result::Continue;
+
+        // Source order, so the report does not depend on the order the calls were
+        // analyzed in.
+        std::ranges::sort(mine, [](const SemaBorrowInvalidation& a, const SemaBorrowInvalidation& b) {
+            if (a.mutationRange.offset != b.mutationRange.offset)
+                return a.mutationRange.offset < b.mutationRange.offset;
+            return a.viewVar < b.viewVar;
+        });
+
+        // Whether the callee can really move the payload is a summary fact, and summaries
+        // are only final once the module has no pending sema job: hand the finished
+        // wording over and let 'reportDeferredChecks' apply the condition.
+        for (const SemaBorrowInvalidation& record : mine)
+        {
+            const AstNodeRef readRef = firstReadAfter(sema, declRef, record.mutationRange, *record.viewVar);
+            if (readRef.isInvalid())
+                continue;
+
+            SemaEscapeDeferredCheck check;
+            check.callee           = record.callee;
+            check.paramIndex       = 0; // the receiver
+            check.judgeReallocates = true;
+            check.diagId           = DiagnosticId::sanity_err_borrow_invalidated;
+            check.fileRef          = sema.srcView(sema.node(declRef).srcViewRef()).fileRef();
+            check.siteRange        = record.mutationRange;
+            check.symName          = record.sourceVar->name(sema.ctx());
+            check.valueName        = record.mutationName;
+            check.what             = record.viewVar->name(sema.ctx());
+
+            check.noteId      = DiagnosticId::sema_note_borrow_taken_here;
+            check.noteSymName = record.viewVar->name(sema.ctx());
+            check.noteRange   = record.viewVar->codeRange(sema.ctx());
+
+            check.note2Id      = DiagnosticId::sema_note_borrow_read_here;
+            check.note2SymName = record.viewVar->name(sema.ctx());
+            check.note2Range   = sema.node(readRef).codeRange(sema.ctx());
+
+            sema.ctx().compiler().addDeferredEscapeCheck(std::move(check));
+        }
+
+        return Result::Continue;
+    }
+
     Result checkIterationMutation(Sema& sema, AstNodeRef callRef, const SymbolFunction& calledFn)
     {
         if (!lifecycleSanityEnabled(sema))
@@ -3187,12 +3463,33 @@ namespace SemaEscape
                             changed = true;
                         }
                         // The same forwarding edge chains the FREES summary: a wrapper
-                        // handing its parameter to a freeing callee frees it too. Not when
-                        // what was handed over is a payload the parameter OWNS: 'clear'
-                        // releases the buffer, it does not release the container.
-                        if (!edge.viaOwnedPayload && (edge.callee->freesParamsMask() & calleeBit) && !(edge.caller->freesParamsMask() & callerBit))
+                        // handing its parameter to a freeing callee frees it too. When
+                        // what was handed over is a payload the parameter OWNS, the
+                        // conclusion changes rather than disappears: releasing the buffer
+                        // does not release the container, but it does move it, and that is
+                        // what invalidates the views into it.
+                        if (edge.callee->freesParamsMask() & calleeBit)
                         {
-                            edge.caller->addFreesParam(edge.callerParamIndex);
+                            if (edge.viaOwnedPayload)
+                            {
+                                if (!(edge.caller->reallocatesParamsMask() & callerBit))
+                                {
+                                    edge.caller->addReallocatesParam(edge.callerParamIndex);
+                                    changed = true;
+                                }
+                            }
+                            else if (!(edge.caller->freesParamsMask() & callerBit))
+                            {
+                                edge.caller->addFreesParam(edge.callerParamIndex);
+                                changed = true;
+                            }
+                        }
+
+                        // A method that hands its receiver to one that reallocates the
+                        // payload reallocates it too: 'append' through 'reserve'.
+                        if ((edge.callee->reallocatesParamsMask() & calleeBit) && !(edge.caller->reallocatesParamsMask() & callerBit))
+                        {
+                            edge.caller->addReallocatesParam(edge.callerParamIndex);
                             changed = true;
                         }
                         break;
@@ -3271,7 +3568,14 @@ namespace SemaEscape
             previous = &check;
 
             DiagnosticId diagId = check.diagId;
-            if (check.judgeAlways)
+            if (check.judgeReallocates)
+            {
+                // A method that cannot move or release what its receiver owns leaves
+                // every view into that payload valid.
+                if (!((check.callee->reallocatesParamsMask() >> check.paramIndex) & 1))
+                    continue;
+            }
+            else if (check.judgeAlways)
             {
                 // Certain from the callee's identity: no summary to consult.
             }
@@ -3312,6 +3616,8 @@ namespace SemaEscape
             diag.last().addSpan(check.siteRange);
             if (!check.symName.empty())
                 diag.addArgument(Diagnostic::ARG_SYM, check.symName);
+            if (!check.valueName.empty())
+                diag.addArgument(Diagnostic::ARG_VALUE, check.valueName);
             diag.addArgument(Diagnostic::ARG_WHAT, check.what);
             if (check.typeRef.isValid())
                 diag.addArgument(Diagnostic::ARG_TYPE, check.typeRef);
@@ -3322,6 +3628,14 @@ namespace SemaEscape
                 if (!check.noteSymName.empty())
                     diag.last().addArgument(Diagnostic::ARG_SYM, check.noteSymName);
                 diag.last().addSpan(check.noteRange);
+            }
+
+            if (check.note2Id != DiagnosticId::None)
+            {
+                diag.addNote(check.note2Id);
+                if (!check.note2SymName.empty())
+                    diag.last().addArgument(Diagnostic::ARG_SYM, check.note2SymName);
+                diag.last().addSpan(check.note2Range);
             }
 
             for (const SemaEscapeDeferredGuard& guard : check.guards)

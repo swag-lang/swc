@@ -5,8 +5,8 @@ using Core
 // Defines logical dimensions, spacing, and animation timing for themed GUI elements.
 struct ThemeMetrics
 {
-    defaultFontSize:          u32 = 14     // Theme measurement used for default font size.
-    defaultFixedFontSize:     u32 = 16     // Theme measurement used for default fixed font size.
+    defaultFontSize:      u32 = 14     // Theme measurement used for default font size.
+    defaultFixedFontSize: u32 = 16     // Theme measurement used for default fixed font size.
     // Transparent margin the drop shadow is cast into. It has to hold the spread plus the offset,
     // or the shadow is cut off by the edge of the window instead of fading out into it.
     surfaceWnd_ShadowSize:    f32 = 18
@@ -30,6 +30,13 @@ struct ThemeMetrics
     tabBar_FlatHeight:   f32 = 40     // Theme measurement used for tab bar flat height.
     tabBar_RoundHeight:  f32 = 28     // Theme measurement used for tab bar round height.
     tabBar_ButtonHeight: f32 = 32     // Theme measurement used for tab bar button height.
+
+    // The button a bar grows when it cannot show every tab. It is chrome standing in the row
+    // of tabs, so the glyph keeps air inside the button and the button keeps air on both
+    // sides: drawn at the size of the button it read as an arrow wedged into a circle.
+    tabBar_PopupButtonSize:   f32 = 24     // Side of the overflow button.
+    tabBar_PopupButtonGlyph:  f32 = 16     // Side of its glyph.
+    tabBar_PopupButtonMargin: f32 = 8      // Air it keeps from the last tab, and from the edge of the bar.
 
     btnPush_Padding:    f32 = 5       // Theme measurement used for btn push padding.
     btnPush_TextMargin: f32 = 14      // Room a measured caption keeps on each side of a push button.

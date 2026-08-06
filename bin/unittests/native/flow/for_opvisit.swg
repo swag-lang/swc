@@ -550,7 +550,7 @@ impl GenericScopedVisits
 #test
 {
     g_CallSourceCalls = 0
-    var sum           = 0
+    var sum = 0
 
     for &value, [ordinal] in callSource()
     {
@@ -565,7 +565,7 @@ impl GenericScopedVisits
 #test
 {
     g_CallSourceCalls = 0
-    var sum           = 0
+    var sum = 0
 
     for value in callSource() do
         sum += value

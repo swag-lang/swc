@@ -26,16 +26,16 @@ struct LibraryWnd
 
     #[Swag.Late]
     {
-        main:        *MainWnd
-        view:        *LibraryView
-        listCtrl:    *ListCtrl
-        commandBar: *StackLayoutCtrl
-        previewSizeBtn:     *IconButton
-        sortBtn:     *IconButton
-        filterBtn:   *IconButton
-        trashBtn:    *IconButton
-        searchEdit:  *EditBox
-        breadcrumb:  *BreadcrumbCtrl
+        main:           *MainWnd
+        view:           *LibraryView
+        listCtrl:       *ListCtrl
+        commandBar:     *StackLayoutCtrl
+        previewSizeBtn: *IconButton
+        sortBtn:        *IconButton
+        filterBtn:      *IconButton
+        trashBtn:       *IconButton
+        searchEdit:     *EditBox
+        breadcrumb:     *BreadcrumbCtrl
     }
 
     previewSize: PreviewSize

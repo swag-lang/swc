@@ -9,15 +9,15 @@ const AppIcon         = #include("../datas/appicon.png")
 // Interface metrics, taken from the application chart: a glyph never fills more than half
 // of the cell it sits in, and the space left around it is what separates one control from
 // the next. Nothing here is a container for a label stacked under an icon.
-const RailCellSize     = 36.0     // One tool cell of the left rail.
-const RailGlyphSize    = 20.0     // Every toolbar and command-row glyph.
-const RailCellPadding  = 8.0      // Air a rail cell keeps on each side of what it holds.
-const RailLabelWidth   = 128.0    // Content width of a rail cell when the labels option puts a word beside the glyph.
-const CommandRowHeight = 36.0     // The single command row under the accent rail.
-const ReadoutWidth     = 88.0     // One machine readout of the command row.
-const VerbsWidth       = 156.0    // The command group: the primary action and the library.
-const ReadoutsWidth    = 224.0    // The readout group: the capture size and the zoom.
-const RightBarWidth    = 288.0    // The tool column on the right.
+const RailCellSize     = 36.0      // One tool cell of the left rail.
+const RailGlyphSize    = 20.0      // Every toolbar and command-row glyph.
+const RailCellPadding  = 8.0       // Air a rail cell keeps on each side of what it holds.
+const RailLabelWidth   = 128.0     // Content width of a rail cell when the labels option puts a word beside the glyph.
+const CommandRowHeight = 36.0      // The single command row under the accent rail.
+const ReadoutWidth     = 88.0      // One machine readout of the command row.
+const VerbsWidth       = 156.0     // The command group: the primary action and the library.
+const ReadoutsWidth    = 224.0     // The readout group: the capture size and the zoom.
+const RightBarWidth    = 288.0     // The tool column on the right.
 
 // Enums
 enum EditMode { Shape, Arrow, Line, Polygon, Text, Favorites, Draw, Highlight, Selection, Step, Image, PixSel, Callout }
@@ -518,7 +518,7 @@ impl MainWnd
     {
         let z   = cast(s32) (.editWnd.editView.zoom * 100)
         var txt = Format.toString("%", z)
-        txt += "%"
+        txt           += "%"
         .zoomBtn.name = txt
         .zoomBtn.invalidate()
     }

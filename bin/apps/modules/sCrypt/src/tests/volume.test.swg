@@ -361,7 +361,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     let path = testContainerPath("journal")
     defer discard catch File.delete(path)
 
-    var volume = expect Volume.create(path, testPassword(), MinimumSize)
+    var volume      = expect Volume.create(path, testPassword(), MinimumSize)
     let afterCreate = volume.sequence
     @assert(volume.checkpointAt == afterCreate)
 
@@ -400,10 +400,10 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     let salvaged = testContainerPath("crash_salvaged")
     defer discard catch File.delete(salvaged)
 
-    var volume = expect Volume.create(path, testPassword(), MinimumSize)
+    var volume           = expect Volume.create(path, testPassword(), MinimumSize)
     let checkpointBefore = volume.checkpointAt
 
-    let fileId = expect volume.createNode("\\survivor.bin", false, FileAttributeNormal, emptyBytes())
+    let fileId           = expect volume.createNode("\\survivor.bin", false, FileAttributeNormal, emptyBytes())
     let payload: [40] u8 = [3]
     @assert(expect volume.writeNode(fileId, 0, payload, false, false) == #sizeof(payload))
     expect volume.commit()
@@ -417,7 +417,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     volume.close()
 
     var recovered = expect Volume.open(salvaged, testPassword())
-    let node = recovered.resolve("\\survivor.bin")
+    let node      = recovered.resolve("\\survivor.bin")
     @assert(node != null)
     @assert(node.size == #sizeof(payload))
     var readBack: [40] u8
@@ -440,7 +440,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     let path = testContainerPath("torn")
     defer discard catch File.delete(path)
 
-    var volume = expect Volume.create(path, testPassword(), MinimumSize)
+    var volume        = expect Volume.create(path, testPassword(), MinimumSize)
     let firstSequence = volume.sequence + 1
     discard expect volume.createNode("\\first", true, FileAttributeDirectory, emptyBytes())
     discard expect volume.createNode("\\second", true, FileAttributeDirectory, emptyBytes())
@@ -504,8 +504,8 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     defer discard catch File.delete(path)
 
     let payload: [64] u8 = [7]
-    var volume = expect Volume.create(path, testPassword(), MinimumSize)
-    let fileId = expect volume.createNode("\\secret.bin", false, FileAttributeNormal, emptyBytes())
+    var volume           = expect Volume.create(path, testPassword(), MinimumSize)
+    let fileId           = expect volume.createNode("\\secret.bin", false, FileAttributeNormal, emptyBytes())
     @assert(expect volume.writeNode(fileId, 0, payload, false, false) == #sizeof(payload))
     @assert(volume.keySlotCount() == 1)
 
@@ -515,7 +515,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     @assert(rejectsPassword(path, testPassword()))
     var reopened = expect Volume.open(path, secondPassword())
     var readBack: [64] u8
-    let node = reopened.resolve("\\secret.bin")!
+    let node     = reopened.resolve("\\secret.bin")!
     @assert(expect reopened.readNode(node.id, 0, readBack) == #sizeof(readBack))
     @assert(sameTestBytes(payload, readBack))
 
@@ -640,7 +640,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     var window: [8192] u8
     @assert(expect file.readExactAt(RandomizeChunkSize - 4096, window))
 
-    var runs   = 0'u64
+    var runs = 0'u64
     var counts: [256] u64
     for byte, [i] in window
     {

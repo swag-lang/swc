@@ -22,9 +22,9 @@ private func layoutCentered(font: *Font, text: string, box: Math.Rectangle)->Ric
     result.compute()
 
     var format: RichStringFormat
-    format.font.regular    = font
-    format.vertAlignment   = .Center
-    format.horzAlignment   = .Left
+    format.font.regular  = font
+    format.vertAlignment = .Center
+    format.horzAlignment = .Left
     Painter.computeLayout(box, &result, format, 1)
     return result
 }
@@ -48,7 +48,7 @@ private func layoutCentered(font: *Font, text: string, box: Math.Rectangle)->Ric
     let font = makeBaselineTestFont(&cache)
 
     // A line box centered on this point, and the baseline the glyphs then stand on.
-    const Center   = 50.0'f32
+    const Center = 50.0'f32
     let baseline   = Center - font.height * 0.5 + font.ascent
     let opticalMid = font.opticalTop(Center, 0)
 
@@ -69,9 +69,9 @@ private func layoutCentered(font: *Font, text: string, box: Math.Rectangle)->Ric
     let font = makeBaselineTestFont(&cache)
     let box  = Math.Rectangle{0, 0, 400, 40}
 
-    let plain    = layoutCentered(font, "Ficher", box)     // No descender, no accent.
-    let descend  = layoutCentered(font, "Capture", box)    // Carries a descender.
-    let accented = layoutCentered(font, "Édition", box)    // Carries an accent.
+    let plain    = layoutCentered(font, "Ficher", box)      // No descender, no accent.
+    let descend  = layoutCentered(font, "Capture", box)     // Carries a descender.
+    let accented = layoutCentered(font, "Édition", box)     // Carries an accent.
 
     @assert(plain.boundRect.y == descend.boundRect.y)
     @assert(plain.boundRect.y == accented.boundRect.y)

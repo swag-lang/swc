@@ -455,9 +455,13 @@ impl ThemeColors
     // what each part of the interface is allowed to be.
     mtd apply(p: ThemePalette)
     {
-        // A filled action travels in its own color, whatever that color is.
+        // A filled action travels in its own color, whatever that color is. The mark and the
+        // block travel separately, because a palette is allowed to point with one color and
+        // fill with another — see the accent pair in [[Gui.ThemePalette]].
         let accentHot     = shiftState(p.accent, StrongHotShift)
         let accentPressed = shiftState(p.accent, StrongPressedShift)
+        let groundHot     = shiftState(p.accentGround, StrongHotShift)
+        let groundPressed = shiftState(p.accentGround, StrongPressedShift)
 
         .richColor1 = p.rich1
         .richColor2 = p.rich2
@@ -498,10 +502,14 @@ impl ThemeColors
         .dlg_Bk       = p.panel
         .dlg_BtnBarBk = p.view
 
+        // The outline comes from the mark and the fill from the block, which is the same color
+        // wherever the two agree. Where they do not, the outline is what gives a Voltage button
+        // an edge on paper: yellow and white part by less than a tenth of a step of luminance,
+        // so a filled action with no rule around it reads as a smudge rather than as a control.
         .btnPush_StrongText   = p.onAccent
         .btnPush_StrongBorder = p.accent
-        .btnPush_StrongBk     = p.accent
-        .setStrongStates(p.onAccent, p.accent, p.accent)
+        .btnPush_StrongBk     = p.accentGround
+        .setStrongStates(p.onAccent, p.accent, p.accentGround)
 
         .btnPush_Text           = p.text
         .btnPush_Border         = p.controlLine
@@ -538,13 +546,13 @@ impl ThemeColors
         // a surface is expected to show one or the other, never both.
         .btnPushDefault_Text           = p.onAccent
         .btnPushDefault_Border         = p.accent
-        .btnPushDefault_Bk             = p.accent
+        .btnPushDefault_Bk             = p.accentGround
         .btnPushDefault_PressedText    = p.onAccent
         .btnPushDefault_PressedBorder  = accentPressed
-        .btnPushDefault_PressedBk      = accentPressed
+        .btnPushDefault_PressedBk      = groundPressed
         .btnPushDefault_HotText        = p.onAccent
         .btnPushDefault_HotBorder      = accentHot
-        .btnPushDefault_HotBk          = accentHot
+        .btnPushDefault_HotBk          = groundHot
         .btnPushDefault_DisabledText   = p.disabled
         .btnPushDefault_DisabledBorder = p.line
         .btnPushDefault_DisabledBk     = .transparent
@@ -572,15 +580,15 @@ impl ThemeColors
         .btnIcon_CheckedIcon         = checkedInk
         .btnIcon_CheckedText         = checkedInk
         .btnIcon_CheckedBk           = .transparent
-        .btnIcon_CheckedMark         = p.accent
+        .btnIcon_CheckedMark         = p.accentGround
         .btnIcon_CheckedHotIcon      = checkedInk
         .btnIcon_CheckedHotText      = checkedInk
         .btnIcon_CheckedHotBk        = p.hot
-        .btnIcon_CheckedHotMark      = accentHot
+        .btnIcon_CheckedHotMark      = groundHot
         .btnIcon_CheckedPressedIcon  = checkedInk
         .btnIcon_CheckedPressedText  = checkedInk
         .btnIcon_CheckedPressedBk    = p.pressed
-        .btnIcon_CheckedPressedMark  = accentPressed
+        .btnIcon_CheckedPressedMark  = groundPressed
         .btnIcon_CheckedDisabledIcon = p.disabled
         .btnIcon_CheckedDisabledText = p.disabled
         .btnIcon_CheckedDisabledBk   = .transparent
@@ -662,13 +670,13 @@ impl ThemeColors
         .btnToggle_OffPressedBk     = p.pressed
         .btnToggle_OnBorder         = p.accent
         .btnToggle_OnMark           = p.onAccent
-        .btnToggle_OnBk             = p.accent
+        .btnToggle_OnBk             = p.accentGround
         .btnToggle_OnHotBorder      = accentHot
         .btnToggle_OnHotMark        = p.onAccent
-        .btnToggle_OnHotBk          = accentHot
+        .btnToggle_OnHotBk          = groundHot
         .btnToggle_OnPressedBorder  = accentPressed
         .btnToggle_OnPressedMark    = p.onAccent
-        .btnToggle_OnPressedBk      = accentPressed
+        .btnToggle_OnPressedBk      = groundPressed
         .btnToggle_DisabledBorder   = p.disabled
         .btnToggle_DisabledMark     = p.disabled
         .btnToggle_DisabledBk       = .transparent
@@ -676,7 +684,7 @@ impl ThemeColors
         .slider_BkLeft            = p.pressed
         .slider_BkMiddle          = p.pressed
         .slider_BkRight           = p.pressed
-        .slider_HilightBk         = p.accent
+        .slider_HilightBk         = p.accentGround
         .slider_Mark              = p.accent
         .slider_HotMark           = accentHot
         .slider_PressedMark       = accentPressed
@@ -801,7 +809,7 @@ impl ThemeColors
 
         .progressBar_Border         = p.controlLine
         .progressBar_Bk             = p.view
-        .progressBar_Mark           = p.accent
+        .progressBar_Mark           = p.accentGround
         .progressBar_DisabledBorder = p.line
         .progressBar_DisabledBk     = .transparent
         .progressBar_DisabledMark   = p.disabled
@@ -886,19 +894,26 @@ impl ThemeColors
         result.faintText = 0xFF7C7C7C
         result.disabled  = 0xFF6E6E6E
 
-        result.accent   = 0xFF1473E6
-        result.onAccent = 0xFFFFFFFF
+        // A system accent works as a hairline and as a block alike, so both roles take it.
+        result.accent       = 0xFF1473E6
+        result.accentGround = 0xFF1473E6
+        result.onAccent     = 0xFFFFFFFF
 
         // A neutral theme marks the active item by filling it, so it draws no rail.
         result.railed = false
 
-        result.error        = 0xFFFF6666     // readable on a dark ground, unlike pure red
-        result.criticalBk   = 0xFF4A2E2E
-        result.criticalText = 0xFFE6ADAD
-        result.infoBk       = 0xFF2B3A4C
-        result.infoText     = 0xFFAEC8E6
-        result.noticeBk     = 0xFF46402A
-        result.noticeText   = 0xFFE6D2A2
+        result.error = 0xFFFF6666     // readable on a dark ground, unlike pure red
+
+        // Notices, dark. The three grounds sit at one weight and differ only in hue, the way
+        // the light pastels do: a notice is recognized by its color, not by how much of the
+        // surface it takes. Carrying more chroma than that, they read as three slabs of mud
+        // rather than as a tinted band, and the red one weighed twice what the blue one did.
+        result.criticalBk   = 0xFF3A262A
+        result.criticalText = 0xFFF0B7BB
+        result.infoBk       = 0xFF222C3C
+        result.infoText     = 0xFFB6D2F2
+        result.noticeBk     = 0xFF382F20
+        result.noticeText   = 0xFFF2DDA8
 
         result.rich1 = 0xFFF08A8A
         result.rich2 = 0xFF8FD48F
@@ -937,8 +952,9 @@ impl ThemeColors
         result.faintText = 0xFF7E7E7E
         result.disabled  = 0xFF9A9A9A
 
-        result.accent   = 0xFF1473E6
-        result.onAccent = 0xFFFFFFFF
+        result.accent       = 0xFF1473E6
+        result.accentGround = 0xFF1473E6
+        result.onAccent     = 0xFFFFFFFF
 
         result.railed = false
 
@@ -994,18 +1010,20 @@ impl ThemeColors
         result.faintText = 0xFF91919D
         result.disabled  = 0xFF91919D
 
-        result.accent   = 0xFFF7F900
-        result.onAccent = 0xFF0B0B0D
+        // Voltage points and fills alike on ink, so both roles take it.
+        result.accent       = 0xFFF7F900
+        result.accentGround = 0xFFF7F900
+        result.onAccent     = 0xFF0B0B0D
 
         result.railed = true
 
         result.error        = 0xFFFF6666
-        result.criticalBk   = 0xFF4A2E2E
-        result.criticalText = 0xFFE6ADAD
-        result.infoBk       = 0xFF2B3A4C
-        result.infoText     = 0xFFAEC8E6
-        result.noticeBk     = 0xFF46402A
-        result.noticeText   = 0xFFE6D2A2
+        result.criticalBk   = 0xFF3A262A
+        result.criticalText = 0xFFF0B7BB
+        result.infoBk       = 0xFF222C3C
+        result.infoText     = 0xFFB6D2F2
+        result.noticeBk     = 0xFF382F20
+        result.noticeText   = 0xFFF2DDA8
 
         result.rich1 = 0xFFF08A8A
         result.rich2 = 0xFF8FD48F
@@ -1017,42 +1035,56 @@ impl ThemeColors
         result.caption         = 0xFF2A2A32
         result.captionInactive = 0xFF202026
 
-        // With no drop shadow to cast, the outline is the only thing telling a modal box
-        // from the application under it, both cut from the same ink. It stands clearly above
-        // the ground without reaching the weight of a control border.
-        result.windowBorder = 0xFF5A5A66
+        // The outline is what tells a window from the desktop, and a modal box from the
+        // application under it, both cut from the same ink. It has to be found, not noticed:
+        // taken up toward the weight of a control border it read as a bright frame drawn
+        // around a near-black surface.
+        result.windowBorder = 0xFF4A4A57
 
         return result
     }
 
-    // The light Swag palette: Ink over Paper.
+    // The light Swag palette: Ink and Voltage over Paper.
     //
-    // The accent is Ink itself, so the surface has no color at all until something needs
-    // pointing at. Everything the dark palette says with Voltage, this one says with black.
+    // It is the dark palette read the other way up, not a second identity. The theme still
+    // points in one color and fills in one color; what the mode changes is which of them can
+    // do which. Ink points, because a Voltage hairline on paper is a hairline nobody sees.
+    // Voltage still fills, because a block of it under ink is the most recognizable thing the
+    // chart owns — dropping it was what left the light theme black and white.
+    //
+    // Its greys carry the violet cast of the dark palette's, so the two are one family. Warm
+    // paper under cool ink was the other half of the inelegance: no surface here is neutral,
+    // and every one of them was leaning the wrong way.
     func swagLightPalette()->ThemePalette
     {
         var result: retval
 
-        result.ground  = 0xFFFFFFFF
+        // Paper is what a document is made of, not what the whole screen is made of. Given
+        // white for the application ground, the view, the panels and the controls alike, the
+        // theme had no ladder left: a dialog could only be told from the page behind it by a
+        // hairline, and a field only by its border. The ground steps back instead, and each
+        // layer nearer the reader is nearer paper.
+        result.ground  = 0xFFF2F2F7
+        result.panel   = 0xFFFAFAFD
         result.view    = 0xFFFFFFFF
-        result.panel   = 0xFFF7F7F5
         result.raised  = 0xFFFFFFFF
-        result.hot     = 0xFFF0F0ED
-        result.pressed = 0xFFE7E7E3
+        result.hot     = 0xFFECECF4
+        result.pressed = 0xFFE0E0EB
 
         result.selectHot     = result.hot
         result.selectPressed = result.pressed
 
-        result.line        = 0xFFE2E2DF
-        result.controlLine = 0xFFCBCBC6
+        result.line        = 0xFFE3E3EC
+        result.controlLine = 0xFFC5C5D2
 
         result.text      = 0xFF1B1B1D
         result.softText  = 0xFF55555C
         result.faintText = 0xFF83838D
         result.disabled  = 0xFF83838D
 
-        result.accent   = 0xFF0B0B0D
-        result.onAccent = 0xFFFFFFFF
+        result.accent       = 0xFF0B0B0D
+        result.accentGround = 0xFFF7F900
+        result.onAccent     = 0xFF0B0B0D
 
         result.railed = true
 
@@ -1072,8 +1104,11 @@ impl ThemeColors
         result.shadow = 0x3C000000
 
         result.caption         = 0xFFFFFFFF
-        result.captionInactive = 0xFFF7F7F5
-        result.windowBorder    = 0xFFE2E2DF
+        result.captionInactive = 0xFFF2F2F7
+
+        // A white window on a white desktop has nothing but this line to stand on, so the
+        // light outline carries more weight than the dark one rather than less.
+        result.windowBorder = 0xFFD5D5E0
 
         return result
     }

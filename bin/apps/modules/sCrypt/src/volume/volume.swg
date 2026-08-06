@@ -86,21 +86,21 @@ struct Volume
     label:         String
     containerSize: u64
     blockCount:    u64
-    sequence:      u64                  // Sequence of the last durable change, checkpoint or journal record.
-    checkpointAt:  u64                  // Sequence of the last checkpoint; journal records above it are live.
+    sequence:      u64     // Sequence of the last durable change, checkpoint or journal record.
+    checkpointAt:  u64     // Sequence of the last checkpoint; journal records above it are live.
     nextNodeId:    u64
     activeSlot:    u32
-    keySlotMask:   u32                  // Which key slots hold a password; kept in the encrypted header, never in the slot area.
-    metadataPages: Array'u64            // Physical blocks holding the metadata image, in order.
-    metadataSize:  u64                  // Exact byte count of that image.
+    keySlotMask:   u32           // Which key slots hold a password; kept in the encrypted header, never in the slot area.
+    metadataPages: Array'u64     // Physical blocks holding the metadata image, in order.
+    metadataSize:  u64           // Exact byte count of that image.
     nodes:         Array'Node
     nodeLookup:    NodeIndex
     blocks:        BlockAllocator
-    touched:       Array'u64            // Nodes changed since the last journal record.
+    touched:       Array'u64     // Nodes changed since the last journal record.
     touchedSet:    HashSet'u64
-    removed:       Array'u64            // Nodes deleted since the last journal record.
-    scalarsDirty:  bool                 // Whether a scalar such as the label or the next identifier changed.
-    dirty:         bool                 // Whether anything at all is not yet in a checkpoint.
+    removed:       Array'u64     // Nodes deleted since the last journal record.
+    scalarsDirty:  bool          // Whether a scalar such as the label or the next identifier changed.
+    dirty:         bool          // Whether anything at all is not yet in a checkpoint.
 }
 
 impl Volume
@@ -388,7 +388,7 @@ impl Volume
             // The slot is reserved before it is written, so an interrupted add
             // wastes a slot instead of letting a later one overwrite a password
             // that already works.
-            .keySlotMask |= keySlotBit(index)
+            .keySlotMask  |= keySlotBit(index)
             .scalarsDirty = true
             .dirty        = true
             try .checkpoint()
@@ -412,7 +412,7 @@ impl Volume
             failWith("The last password cannot be removed.", .AccessDenied)
 
         try .eraseKeySlot(index)
-        .keySlotMask &= ~keySlotBit(index)
+        .keySlotMask  &= ~keySlotBit(index)
         .scalarsDirty = true
         .dirty        = true
         try .checkpoint()
@@ -504,7 +504,7 @@ impl Volume
         if version != FormatVersion do
             failWith("The container format version is not supported.", .Corrupted)
 
-        .sequence   = reader.readLittleEndian'u64()
+        .sequence     = reader.readLittleEndian'u64()
         .checkpointAt = .sequence
         let storedSize = reader.readLittleEndian'u64()
         .blockCount   = reader.readLittleEndian'u64()
@@ -561,7 +561,7 @@ impl Volume
     // Reads the node table out of a decrypted metadata image.
     mtd loadNodes(image: const [..] u8) fail
     {
-        var reader = ByteStream.openRead(image)
+        var reader    = ByteStream.openRead(image)
         let nodeCount = reader.readLittleEndian'u64()
         if !nodeCount or nodeCount > MaximumNodeCount do
             failWith("The container declares an implausible number of entries.", .Corrupted)
@@ -569,7 +569,7 @@ impl Volume
         .nodes.reserve(nodeCount)
         for nodeCount
         {
-            let node = try Node.deserialize(&reader, .blockCount)
+            let node      = try Node.deserialize(&reader, .blockCount)
             let nodeIndex = .nodes.count
             .nodes.add(#move node)
             if !.nodeLookup.add(&.nodes[nodeIndex], nodeIndex) do
@@ -675,7 +675,7 @@ impl Volume
 
         .metadataPages = #move pages
         .metadataSize  = imageSize
-        .sequence     += 1
+        .sequence      += 1
 
         let slot  = 1'u32 - .activeSlot
         var plain = try .serializeHeader()
@@ -690,10 +690,10 @@ impl Volume
         .blocks.completeCommit()
 
         .checkpointAt = .sequence
-        .activeSlot = slot
+        .activeSlot   = slot
         .clearPending()
-        .dirty      = false
-        committed   = true
+        .dirty    = false
+        committed = true
     }
 
     // Writes one locator-prefixed, sealed record into a fixed-size area.
@@ -903,7 +903,7 @@ impl Volume
                 break
             try .applyJournal(record)
             .sequence = record.sequence
-            expected += 1
+            expected  += 1
         }
 
         .dirty = .sequence != .checkpointAt
@@ -924,7 +924,7 @@ impl Volume
             if index != Swag.U64.Max do
                 .removeNodeAt(index)
 
-            var copy = node
+            var copy   = node
             let target = .nodes.count
             .nodes.add(#move copy)
             if !.nodeLookup.add(&.nodes[target], target) do

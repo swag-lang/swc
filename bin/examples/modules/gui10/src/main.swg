@@ -58,7 +58,7 @@ const ThemeVariantCount = 5
 
 // A theme written as a tweak sheet rather than in code, which is how anyone shipping an
 // application writes one. Reading it beside the palettes above is the point of having it
-// here: the same thirty-four tokens, the same three hundred parts derived from them, and
+// here: the same thirty-five tokens, the same three hundred parts derived from them, and
 // nothing in the toolkit that knows the difference.
 const SheetTheme = #include("sepia.tweak")
 

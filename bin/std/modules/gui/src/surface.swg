@@ -555,8 +555,8 @@ impl Surface
         var bodyRect = .wnd.surfaceRect()
         bodyRect.offset(metrics.surfaceWnd_ShadowOffsetX, metrics.surfaceWnd_ShadowOffsetY)
 
-        let rings    = Math.max(1, Math.ceilS32(spread * .dpiScale))
-        let peak     = cast(f32) color.a / 255.0
+        let rings      = Math.max(1, Math.ceilS32(spread * .dpiScale))
+        let peak       = cast(f32) color.a / 255.0
         let baseCorner = .cornerRadius()
 
         var reached = 0.0'f32
@@ -571,7 +571,7 @@ impl Surface
             let target     = peak * Math.smoothstep(0.0, 1.0, depth)
 
             let alpha = 1.0 - (1.0 - target) / (1.0 - reached)
-            reached   = target
+            reached = target
 
             let quantized = cast(u8) Math.clamp(alpha * 255.0 + 0.5, 0.0, 255.0)
             if quantized == 0 do

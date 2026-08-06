@@ -88,7 +88,7 @@ func filledBytes(count: u64, value: u8)->Array'u8
     // Every parameter that would make a derivation meaningless is rejected
     // before any memory is allocated.
     let salt = filledBytes(16, 0x11)
-    var tag:  [32] u8
+    var tag: [32] u8
 
     discard catch Crypto.argon2id("password", salt.toSlice(), {memoryKib: 32, iterations: 0, parallelism: 1}, tag) as noPass
     @assert(noPass != null)

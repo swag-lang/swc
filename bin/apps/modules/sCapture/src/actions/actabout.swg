@@ -59,8 +59,8 @@ impl IActionUI for ActionAbout
         {
             switch txt
             {
-            case "Swag":            Env.openUrl("https://www.swag-lang.org/")
-            case "here", "ici":     Env.openUrl("https://github.com/swag-lang/swag/tree/master/bin/apps/modules/sCapture/")
+            case "Swag":        Env.openUrl("https://www.swag-lang.org/")
+            case "here", "ici": Env.openUrl("https://github.com/swag-lang/swag/tree/master/bin/apps/modules/sCapture/")
             }
         }
 

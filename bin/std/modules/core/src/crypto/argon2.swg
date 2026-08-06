@@ -10,11 +10,11 @@ public const Argon2MinSaltSize = 8
 // Smallest tag Argon2 produces, in bytes.
 public const Argon2MinTagSize = 4
 
-private const Argon2Words        = Argon2BlockSize / #sizeof(u64)
-private const Argon2SyncPoints   = 4
+private const Argon2Words = Argon2BlockSize / #sizeof(u64)
+private const Argon2SyncPoints = 4
 private const Argon2AddressCount = Argon2Words
-private const Argon2Version      = 0x13
-private const Argon2TypeId       = 2
+private const Argon2Version = 0x13
+private const Argon2TypeId = 2
 
 // Cost parameters for one Argon2id derivation.
 //
@@ -24,9 +24,9 @@ private const Argon2TypeId       = 2
 // was already derived.
 public struct Argon2Parameters
 {
-    memoryKib:   u32 = 65536                // Memory cost in kibibytes, at least eight times `parallelism`.
-    iterations:  u32 = 3                    // Number of passes over memory, at least one.
-    parallelism: u32 = 4                    // Number of independent lanes, at least one.
+    memoryKib:   u32 = 65536     // Memory cost in kibibytes, at least eight times `parallelism`.
+    iterations:  u32 = 3         // Number of passes over memory, at least one.
+    parallelism: u32 = 4         // Number of independent lanes, at least one.
 }
 
 #[Swag.Inline]
@@ -78,7 +78,7 @@ private func permute(block: [*] u64, base, stride: u64)
 // later passes do.
 private func compress(destination: [*] u64, x, y: const [*] u64, accumulate: bool)
 {
-    var mixed: [Argon2Words] u64
+    var mixed:  [Argon2Words] u64
     var result: [Argon2Words] u64
     for [i] in Argon2Words
     {
@@ -332,7 +332,7 @@ public func argon2id(password, salt, secret, associatedData: const [..] u8, para
                 var previous = lane * laneLength + (slice * segmentLength + start + laneLength - 1) % laneLength
                 for [step] in start until segmentLength
                 {
-                    let index = slice * segmentLength + step
+                    let index   = slice * segmentLength + step
                     let current = lane * laneLength + index
 
                     var random: u64

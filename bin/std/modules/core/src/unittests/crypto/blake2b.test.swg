@@ -37,7 +37,7 @@ func assertBlake2b(data: const [..] u8, expected: string)
     // input is split across a block boundary.
     var streamed: Array'u8
     streamed.resize(reference.count)
-    var hash = expect Hash.Blake2b.create(reference.count)
+    var hash   = expect Hash.Blake2b.create(reference.count)
     var offset = 0'u64
     while offset < @countof(data)
     {
@@ -61,8 +61,8 @@ func assertBlake2b(data: const [..] u8, expected: string)
 {
     // A digest length is bound into the state, so a shorter digest is not a
     // prefix of a longer one.
-    var short:  [32] u8
-    var long:   [64] u8
+    var short: [32] u8
+    var long:  [64] u8
     expect Hash.Blake2b.compute("abc", short)
     expect Hash.Blake2b.compute("abc", long)
     @assert(!Crypto.constantTimeEqual(short, long[0 until 32]))
@@ -76,7 +76,7 @@ func assertBlake2b(data: const [..] u8, expected: string)
 {
     // Keyed mode prepends a padded key block, so it never matches the unkeyed
     // digest of the same message.
-    let key: [4] u8 = [1, 2, 3, 4]
+    let key:     [4] u8 = [1, 2, 3, 4]
     var keyed:   [32] u8
     var unkeyed: [32] u8
     expect Hash.Blake2b.computeKeyed(key, "abc", keyed)
@@ -87,7 +87,7 @@ func assertBlake2b(data: const [..] u8, expected: string)
     var fullKey: [64] u8
     for [i] in 64 do
         fullKey[i] = cast(u8) i
-    let input: [1] u8 = [0]
+    let input:  [1] u8 = [0]
     var digest: [64] u8
     expect Hash.Blake2b.computeKeyed(fullKey, input, digest)
     let expected = hexBytes("961f6dd1e4dd30f63901690c512e78e4b45e4742ed197c3c5e45c549fd25f2e4187b0bc9fe30492b16b0d0bc4ef9b0f34c7003fac09a5ef1532e69430234cebd")
@@ -108,7 +108,7 @@ func assertBlake2b(data: const [..] u8, expected: string)
     @assert(lengthMismatch != null)
 
     var oversizedKey: [Hash.Blake2bMaxKeySize + 1] u8
-    var digest: [32] u8
+    var digest:       [32] u8
     discard catch Hash.Blake2b.computeKeyed(oversizedKey, "abc", digest) as hugeKey
     @assert(hugeKey != null)
 }

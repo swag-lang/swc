@@ -21,10 +21,10 @@ namespace Crypto
     // later never invalidates an existing password.
     enum Argon2Profile
     {
-        Interactive                     // Roughly a tenth of a second on a desktop.
-        Moderate                        // The default: noticeable, and expensive to attack in parallel.
-        Sensitive                       // For a volume that is worth minutes of an attacker's memory.
-        Paranoid                        // The most a workstation can usually spare.
+        Interactive     // Roughly a tenth of a second on a desktop.
+        Moderate        // The default: noticeable, and expensive to attack in parallel.
+        Sensitive       // For a volume that is worth minutes of an attacker's memory.
+        Paranoid        // The most a workstation can usually spare.
     }
 
     const Argon2ProfileCount = 4
@@ -37,8 +37,8 @@ namespace Crypto
     // The master key protects everything else; a slot key only ever unwraps it.
     struct Keys
     {
-        record:  [KeySize] u8           // Seals metadata records and data blocks.
-        locator: [KeySize] u8           // Derives the record locators that hide the container's structure.
+        record:  [KeySize] u8     // Seals metadata records and data blocks.
+        locator: [KeySize] u8     // Derives the record locators that hide the container's structure.
     }
 
     impl Keys

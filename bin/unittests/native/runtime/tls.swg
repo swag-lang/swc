@@ -60,9 +60,9 @@ var g_Point: TlsPoint
         result.seenPointX  = g_Point.x
         result.seenPointY  = g_Point.y
 
-        g_Counter  = 0xBBBB
-        g_Zero     = 7
-        g_Point.x  = 99
+        g_Counter         = 0xBBBB
+        g_Zero            = 7
+        g_Point.x         = 99
         result.ownCounter = g_Counter
         return 0
     }

@@ -1237,7 +1237,7 @@ impl Drawing
         // Targets are created at the exact size instead of acquired from the pool, which
         // rounds up to a power of two: the resolve reads the sampled target as a whole,
         // and padding would land inside the box filter.
-        var sampled  = renderer.createRenderTarget(bw, bh)
+        var sampled = renderer.createRenderTarget(bw, bh)
         var resolved: RenderTarget
         if ss > 1 do
             resolved = renderer.createRenderTarget(width, height)

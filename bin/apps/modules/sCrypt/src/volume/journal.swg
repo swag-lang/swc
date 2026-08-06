@@ -13,11 +13,11 @@ using Core
 // an operation that never completed.
 struct JournalRecord
 {
-    sequence:   u64                     // Position in the single sequence shared with checkpoints.
+    sequence:   u64     // Position in the single sequence shared with checkpoints.
     nextNodeId: u64
     label:      String
-    removed:    Array'u64               // Nodes this change deleted.
-    upserted:   Array'Node              // Nodes this change created or modified, in full.
+    removed:    Array'u64      // Nodes this change deleted.
+    upserted:   Array'Node     // Nodes this change created or modified, in full.
 }
 
 impl JournalRecord

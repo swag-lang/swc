@@ -55,8 +55,7 @@ func paintCornerBrackets(painter: *Painter, rect: Math.Rectangle, color, backCol
     #[Swag.Mixin]
     func corner(x, y, dx, dy: f32)
     {
-        paintCornerBracket(painter, x - dx * BracketHalo, y - dy * BracketHalo, dx, dy,
-                           BracketArm + BracketHalo, BracketThick + 2 * BracketHalo, BracketCut, backColor)
+        paintCornerBracket(painter, x - dx * BracketHalo, y - dy * BracketHalo, dx, dy, BracketArm + BracketHalo, BracketThick + 2 * BracketHalo, BracketCut, backColor)
         paintCornerBracket(painter, x, y, dx, dy, BracketArm, BracketThick, BracketCut, color)
     }
 

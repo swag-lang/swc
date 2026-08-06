@@ -890,7 +890,7 @@ impl PropWnd
 
             // The head keeps the margin of the panel on both edges, and a block of air
             // between itself and the rows the grid generates under it.
-            .topLayout.padding   = {12, 16, 12, 16}
+            .topLayout.padding = {12, 16, 12, 16}
 
             .grid           = Properties.create(prop, kind: .Panel)
             .grid.dockStyle = .Center

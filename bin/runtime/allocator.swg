@@ -49,6 +49,7 @@ struct AllocatorHeader
     tracking:  #null *AllocatorTracking
     alignment: u32
     isTracked: bool
+
     // An electric block ends flush against a reserved guard page, so it carries no footer: a write
     // one byte past the request faults instead of waiting for the free to notice a broken pattern.
     isElectric: bool
@@ -67,12 +68,15 @@ struct AllocatorStats
     // Blocks handed to callers and not yet returned, and the bytes their size classes reserve.
     countAlloc: u64
     sizeAlloc:  u64
+
     // Blocks sitting on a page free list, and the committed page bytes not currently handed out.
     countFree:  u64
     sizeCached: u64
+
     // Pages and segments this allocator holds.
     countPage:    u64
     countSegment: u64
+
     // Bytes committed from the operating system, and the calls that moved them. Both are process
     // wide, because segments are drawn from reservations shared by every allocator.
     sizeCommitted:   u64
@@ -110,6 +114,7 @@ struct Allocator
 {
     // Guards the diagnostic quarantine and the tracked-allocation list.
     mutex: MutexRW
+
     // Guards the segment list, the thread-heap list, and the abandoned pages.
     segmentMutex: MutexRW
 
@@ -1135,7 +1140,7 @@ impl Allocator
         defer .segmentMutex.unlock()
 
         var prevAbandoned: #null *AllocatorPage
-        var abandoned: #null *AllocatorPage = .firstAbandoned
+        var abandoned:     #null *AllocatorPage = .firstAbandoned
         while abandoned
         {
             let next = abandoned.nextPage

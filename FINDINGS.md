@@ -479,32 +479,36 @@ Use this compact format. Keep observations factual and make the next step action
   reads. Check whether instruction-combine already does this and is simply not re-run after the
   unroll, or whether it has no rule for Amc-with-constant-index at all.
 
-### F-035 — Two gaps keep the borrow-invalidation check from firing on any real code
+### F-035 — The borrow-invalidation check is built but still fires on nothing
 
 - Area: compiler
 - Found while: building the borrow-invalidation check (a view read after the storage it views was
   moved), on branch `worktree-safety-push`
-- Observation: the mechanism is complete and the summary now crosses module boundaries
-  (`reallocatesParamsMask` is the fifth `#[Swag.BorrowSummary]` argument, emitted and consumed),
-  but two independent gaps leave it silent on everything that matters.
-  (1) SEEDING: `String.reserve` produces no summary edge at all for its
-  `Memory.free(.buffer, .capacity, .allocator)` call, so `String` never gains the bit and neither
-  does `append` above it. `HashSet.reserve`, `HashTable.reserve` and
-  `Reflection.appendDynamicArrayElement` do gain it through the same path, so the machinery works —
-  something about that particular site does not reach `ownedPayloadStorageRoot`.
-  (2) CANDIDATES: the check only considers views whose tracked info `isLocalBorrow()`. A view
-  obtained from a method (`tbl.tryFind(...)`, `arr.toSlice()`) is bound as a `DeferredCall` instead,
-  so the most common way to take a view into a container is not a candidate at all.
-- Evidence: the generated `core.swg` API carries `BorrowSummary(..., 1)` on exactly four functions,
-  none of them a `String` method; `Core.String.reserve` emits no `[mk]` edge to `Memory.free` while
-  `Core.HashSet.reserve` does. The suspected cause of (1) is the nullability narrowing on
-  `if .buffer and .buffer != cast() &.padding[0]`, which likely replaces the member access with a
-  narrowed binding the owned-payload walk does not recognize — unverified.
-- Next step: fix (1) first, it is the smaller one — dump the resolved node kind of `.buffer` at that
-  argument and teach `ownedPayloadStorageRoot` whatever narrowing produced. Then (2): bind a view
-  from a call as a real borrow of the receiver when the callee's return summary says so, which needs
-  the same deferred judgement the invalidation check already uses. Only after both does the
-  false-positive cost get measured, and that is the point of the exercise — every workspace is
-  currently clean precisely because nothing fires. Two shapes must stay silent when it does: an
-  interface or pointer to the value itself (`let r: IRenderer = &cpu; cpu.begin(...)`), and a method
-  that only reads or assigns fields (`host.mouseDown` with a view of `host.root`'s metrics).
+- Observation: the mechanism is complete, the `reallocatesParamsMask` summary crosses module
+  boundaries as the fifth `#[Swag.BorrowSummary]` argument, and mapping the body `me` to the
+  signature receiver took `core` from 4 functions carrying the bit to 65, `String.reserve` and
+  `String.append` among them. The check still reports nothing, and three separate things are in the
+  way.
+  (1) The request variable an allocator call is handed carries NO borrow when the freed pointer is
+  an owned payload: in a self-contained `Owner.grow` doing `req.address = .buffer` then
+  `itf.free(&req)`, the seed sees `kind=None`. Ruled out: the nullability narrowing of an enclosing
+  `if .buffer` (removing the guard changes nothing).
+  (2) The check only considers views whose tracked info `isLocalBorrow()`. A view obtained from a
+  method (`tbl.tryFind(...)`, `arr.toSlice()`) is bound as a `DeferredCall`, so the most common way
+  to take a view into a container is not a candidate at all.
+  (3) A scratch module compiled with `swc test -d <dir>` resolves `swag@std` OUTSIDE the worktree,
+  so probes there silently measure the main checkout's standard library. Any probe of a summary
+  that crosses a module boundary has to live in `bin/unittests`, or it measures the wrong compiler.
+- Evidence: `[seed] reqVar=1 kind=0 owned=0` in a hand-written owner whose `grow` frees its own
+  buffer through `IAllocator.free`; the generated `core.swg` carries `BorrowSummary(1, 0, 0, 0, 1)`
+  on `String.append` while the importing module reads every mask of that same function as zero,
+  which (3) explains.
+- Next step: start at (1), since without it the summary is empty whatever else is fixed — trace
+  `applyAssignment` for `req.address = .buffer` and find where the owned-payload info is dropped
+  between `expressionEscapeInfoWithTarget` and `setProjectionEscapeInfo`. Then (2): bind a view from
+  a call as a real borrow of the receiver when the callee's return summary says so, reusing the
+  deferred judgement the check already has. Only then does the false-positive cost become
+  measurable, and that is the whole point — every workspace is clean today because nothing fires,
+  which proves nothing. Two shapes must stay silent when it does: an interface or pointer to the
+  value itself (`let r: IRenderer = &cpu; cpu.begin(...)`), and a method that only reads or assigns
+  fields (`host.mouseDown` with a view of `host.root`'s metrics).

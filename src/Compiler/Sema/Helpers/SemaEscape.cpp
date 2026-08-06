@@ -449,6 +449,7 @@ namespace
     const SymbolVariable* carrierBaseStorageRoot(Sema& sema, AstNodeRef baseRef, bool forAssignment, uint32_t depth);
 
     const SymbolVariable* ownedPayloadStorageRootAt(Sema& sema, AstNodeRef resolvedRef, bool forAssignment, uint32_t depth);
+    const SymbolVariable* signatureParameterFor(Sema& sema, const SymbolVariable& symVar);
 
     const SymbolVariable* ownedPayloadStorageRoot(Sema& sema, AstNodeRef carrierRef, bool forAssignment, uint32_t depth)
     {
@@ -2047,21 +2048,27 @@ namespace
                 // ('set.table', 'string.buffer') addresses memory that value releases
                 // when it dies: the read borrows the owner, whatever the left side of
                 // the access borrowed to reach it.
-                if (const SymbolVariable* ownerVar = ownedPayloadStorageRootAt(sema, resolvedRef, false, 0))
+                if (const SymbolVariable* ownedRoot = ownedPayloadStorageRootAt(sema, resolvedRef, false, 0))
                 {
-                    const TypeRef memberTypeRef = expressionTypeRef(sema, resolvedRef);
-                    SemaEscapeInfo ownedInfo    = variableStorageInfo(sema, *ownerVar, resolvedRef, memberTypeRef);
+                    // A method body has TWO 'me' symbols and the one the body reads
+                    // carries no Parameter flag, so it matches nothing in the signature:
+                    // map it to the receiver, or the borrow names an origin the summary
+                    // cannot express and the whole edge is dropped.
+                    const SymbolVariable* sigParam = signatureParameterFor(sema, *ownedRoot);
+                    const SymbolVariable& ownerVar = sigParam ? *sigParam : *ownedRoot;
+
+                    const TypeRef  memberTypeRef = expressionTypeRef(sema, resolvedRef);
+                    SemaEscapeInfo ownedInfo     = variableStorageInfo(sema, ownerVar, resolvedRef, memberTypeRef);
                     if (ownedInfo.hasBorrow())
                     {
                         // A by-value parameter is neither copied nor dropped by the
                         // callee: only its SLOT is frame storage. What it owns stays the
                         // caller's, so the payload is a caller borrow feeding the summary,
                         // not a frame borrow.
-                        if (ownedInfo.kind == SemaEscapeKind::Local && ownerVar->hasExtraFlag(SymbolVariableFlagsE::Parameter))
-                        {
+                        if (ownedInfo.kind == SemaEscapeKind::Local && ownerVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
                             ownedInfo.kind = SemaEscapeKind::Parameter;
-                            setParameterOrigin(sema, ownedInfo, *ownerVar);
-                        }
+                        if (ownedInfo.kind == SemaEscapeKind::Parameter)
+                            setParameterOrigin(sema, ownedInfo, ownerVar);
 
                         ownedInfo.typeRef         = memberTypeRef;
                         ownedInfo.viaOwnedPayload = true;

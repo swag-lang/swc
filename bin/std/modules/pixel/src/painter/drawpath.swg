@@ -723,7 +723,9 @@ impl Painter
     // Simplified drawPath method using the optimized approach
     mtd drawPath(cxt: *Context)
     {
-        if cxt.pen.size < 1 or cxt.path.polygon.points.isEmpty() do
+        // The degenerate-pen cull works in device pixels: a hairline on a 125% display is
+        // 0.8 logical units yet exactly one device pixel wide, and must draw.
+        if cxt.pen.size * .curContentScale < 1 or cxt.path.polygon.points.isEmpty() do
             return
 
         cxt.penSize    = cxt.pen.size

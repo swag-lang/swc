@@ -312,6 +312,7 @@ private impl RenderCpu
         case .SubDst: return Math.max(dst - src, 0.0)
         case .Min:    return Math.min(src, dst)
         case .Max:    return Math.max(src, dst)
+        case .DstIn:  return dst * srcAlpha
         }
 
         return src
@@ -319,6 +320,8 @@ private impl RenderCpu
 
     mtd blendPixel(image: *Image, x, y: s32, src: Color)
     {
+        // A zero-alpha source is coverage, not ink: the OpenGL shader discards it under
+        // every mode except 'Copy', where a transparent write is the erase operation.
         if src.a == 0 and .blendingMode != .Copy do
             return
 

@@ -108,6 +108,9 @@
             <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
             <StackReserveSize>8388608</StackReserveSize>
         </Link>
+        <Manifest>
+            <AdditionalManifestFiles>swc.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
+        </Manifest>
     </ItemDefinitionGroup>
     <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Stats|x64'">
         <ClCompile>
@@ -131,6 +134,9 @@
             <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
             <StackReserveSize>8388608</StackReserveSize>
         </Link>
+        <Manifest>
+            <AdditionalManifestFiles>swc.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
+        </Manifest>
     </ItemDefinitionGroup>
     <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DevMode|x64'">
         <ClCompile>
@@ -154,6 +160,9 @@
             <LinkTimeCodeGeneration>UseFastLinkTimeCodeGeneration</LinkTimeCodeGeneration>
             <StackReserveSize>8388608</StackReserveSize>
         </Link>
+        <Manifest>
+            <AdditionalManifestFiles>swc.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
+        </Manifest>
     </ItemDefinitionGroup>
     <ItemGroup>
         <ClCompile Include="src\Support\Math\Sha256.cpp"/>

@@ -7,7 +7,7 @@ impl Painter
     // Draw an arc between two angles
     mtd drawArc(centerX, centerY: f32, radius: f32, startAngle, endAngle: Math.Angle, color: Color, penSize: f32 = 1)
     {
-        if radius == 0 or color.a == 0 do
+        if radius == 0 or .isInvisible(color) do
             return
         if Math.isZeroEpsilon(endAngle.radians - startAngle.radians) do
             return
@@ -20,7 +20,7 @@ impl Painter
 
     mtd drawArc(centerX, centerY: f32, radius: f32, startAngle, endAngle: Math.Angle, pen: Pen)
     {
-        if radius == 0 or !pen.brush.hasVisibleAlpha() do
+        if radius == 0 or .isInvisible(pen.brush) do
             return
         if Math.isZeroEpsilon(endAngle.radians - startAngle.radians) do
             return
@@ -31,7 +31,7 @@ impl Painter
     // Draw an empty circle
     mtd drawCircle(centerX, centerY: f32, radius: f32, color: Color, penSize: f32 = 1)
     {
-        if radius == 0 or color.a == 0 do
+        if radius == 0 or .isInvisible(color) do
             return
 
         let pen = Pen.createSolid(color, penSize)
@@ -46,7 +46,7 @@ impl Painter
     // Draw a solid circle
     mtd fillCircle(centerX, centerY: f32, radius: f32, brush: Brush)
     {
-        if radius == 0 or !brush.hasVisibleAlpha() do
+        if radius == 0 or .isInvisible(brush) do
             return
         .sharedLinePath.setEllipse(centerX, centerY, radius, radius)
         .fillPath(&.sharedLinePath, brush)
@@ -54,7 +54,7 @@ impl Painter
 
     mtd fillCircle(centerX, centerY: f32, radius: f32, color: Color)
     {
-        if radius == 0 or color.a == 0 do
+        if radius == 0 or .isInvisible(color) do
             return
 
         let brush = Brush.createSolid(color)
@@ -65,7 +65,7 @@ impl Painter
     // Draw an empty ellipse
     mtd drawEllipse(centerX, centerY: f32, radiusX, radiusY: f32, color: Color, penSize: f32 = 1)
     {
-        if radiusX == 0 or radiusY == 0 or color.a == 0 or penSize == 0 do
+        if radiusX == 0 or radiusY == 0 or .isInvisible(color) or penSize == 0 do
             return
 
         let pen = Pen.createSolid(color, penSize)
@@ -74,7 +74,7 @@ impl Painter
 
     mtd drawEllipse(centerX, centerY: f32, radiusX, radiusY: f32, pen: Pen)
     {
-        if radiusX == 0 or radiusY == 0 or !pen.brush.hasVisibleAlpha() do
+        if radiusX == 0 or radiusY == 0 or .isInvisible(pen.brush) do
             return
 
         var rX = radiusX
@@ -107,7 +107,7 @@ impl Painter
     // Draw a solid ellipse
     mtd fillEllipse(centerX, centerY: f32, radiusX, radiusY: f32, brush: Brush)
     {
-        if radiusX == 0 or radiusY == 0 or !brush.hasVisibleAlpha() do
+        if radiusX == 0 or radiusY == 0 or .isInvisible(brush) do
             return
         .sharedLinePath.setEllipseRaw(centerX, centerY, radiusX, radiusY)
         .fillPath(&.sharedLinePath, brush)
@@ -115,7 +115,7 @@ impl Painter
 
     mtd fillEllipse(centerX, centerY: f32, radiusX, radiusY: f32, color: Color)
     {
-        if radiusX == 0 or radiusY == 0 or color.a == 0 do
+        if radiusX == 0 or radiusY == 0 or .isInvisible(color) do
             return
 
         let brush = Brush.createSolid(color)

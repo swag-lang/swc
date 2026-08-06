@@ -12,7 +12,7 @@ impl Painter
 
     mtd drawLine(startX, startY, endX, endY: f32, color: Color, penSize: f32 = 1)
     {
-        if (startX == endX and startY == endY) or color.a == 0 or penSize == 0 do
+        if (startX == endX and startY == endY) or .isInvisible(color) or penSize == 0 do
             return
 
         let pen = Pen.createSolid(color, penSize)
@@ -21,7 +21,7 @@ impl Painter
 
     mtd drawLine(startX, startY, endX, endY: f32, pen: Pen)
     {
-        if (startX == endX and startY == endY) or !pen.brush.hasVisibleAlpha() or pen.size == 0 do
+        if (startX == endX and startY == endY) or .isInvisible(pen.brush) or pen.size == 0 do
             return
         .sharedLinePath.start(startX, startY)
         .sharedLinePath.lineTo(endX, endY)
@@ -34,7 +34,7 @@ impl Painter
     // or fully transparent pen produces no geometry.
     mtd drawBezier(startX, startY, endX, endY: f32, ptX, ptY: f32, pen: Pen)
     {
-        if (startX == endX and startY == endY) or !pen.brush.hasVisibleAlpha() or pen.size == 0 do
+        if (startX == endX and startY == endY) or .isInvisible(pen.brush) or pen.size == 0 do
             return
         .sharedLinePath.start(startX, startY)
         .sharedLinePath.bezierTo(endX, endY, ptX, ptY)

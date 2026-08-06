@@ -58,10 +58,15 @@ internal impl NativeRenderOgl
         result.width  = width
         result.height = height
 
+        // Double buffering is not an option here: without it rendering lands straight in the
+        // compositor's redirection surface, which can be sampled mid-frame — and with paint-on-
+        // dirty a torn frame stays on screen until the next invalidation, so the same window
+        // came up clean or half-drawn depending on the launch. Composition support keeps the
+        // swap DWM-friendly on every driver.
         var pfd: PIXELFORMATDESCRIPTOR
         pfd.nSize        = #sizeof(pfd)
         pfd.nVersion     = 1
-        pfd.dwFlags      = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL
+        pfd.dwFlags      = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER | PFD_SUPPORT_COMPOSITION
         pfd.iPixelType   = PFD_TYPE_RGBA
         pfd.cStencilBits = 8
         pfd.cColorBits   = 24

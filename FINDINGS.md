@@ -129,54 +129,6 @@ Use this compact format. Keep observations factual and make the next step action
   lookup boundary the builders just removed, and a resource editor would ship that cost to every
   window. Only then evaluate the editor.
 
-### F-011 — A fully transparent fill is dropped even under `Copy` blending
-
-- Area: bin/std
-- Found while: giving the surface drop shadow its transparent margin back
-- Observation: `Painter.fillRect` cannot clear a region to premultiplied nothing. Every fill entry
-  point skips a fully transparent source (`color.a == 0`, then `Brush.hasVisibleAlpha`), which is
-  right under alpha compositing and wrong under `BlendingMode.Copy`, where the source replaces the
-  destination and a transparent fill is the only way to erase. The CPU renderer already states the
-  correct rule — `if src.a == 0 and .blendingMode != .Copy`
-  ([rendercpu.swg:322](bin/std/modules/pixel/src/render/cpu/rendercpu.swg#L322)) — and so does the
-  antialiasing shader, which discards a zero-coverage fragment only when `!copyMode`
-  ([aa.frag:31](bin/std/modules/pixel/src/render/ogl/shaders/aa.frag#L31)). The painter contradicts
-  both.
-- Evidence: with `setColorMaskFull` and `setBlendingMode(.Copy)`, filling a region with
-  `Color.fromArgb(0'u8, Argb.Black)` leaves it untouched; the same fill with alpha `1` clears it as
-  intended. Routing the two guards through a blend-aware painter predicate was not enough — a third
-  cull further down still drops it — so the search has to continue past `fillRect`/`hasVisibleAlpha`
-  into `fillRectRaw`, the command packer, or the renderer.
-- Next step: find the remaining cull by emitting a `Copy` fill of `a = 0` and one of `a = 1` and
-  diffing the recorded command stream, then put one blend-aware predicate on the painter — it owns
-  the blending mode, `Brush` does not — and route every `color.a == 0` and `hasVisibleAlpha` guard
-  in `src/painter` through it.
-
-### F-012 — A surface outline must be stroked before its shadow, and nobody knows why
-
-- Area: std/gui
-- Found while: moving the surface outline above the hierarchy so docked views stop covering it
-- Observation: `Surface.paint` ends with `paintBorder`, `paintShadowOutsideBody`, `paintAlphaMask`.
-  Swapping the first two — stroking the outline after the shadow rather than before — costs the
-  surface its entire drop shadow, on all four edges, not just where the two meet. The two passes
-  touch disjoint regions: the outline is inside the body, the shadow is stencil-clipped to outside
-  it. An ordering that matters between disjoint regions means one of them leaves painter or
-  renderer state the other depends on, and the order is currently load-bearing by accident.
-- Evidence: with the order `paintShadowOutsideBody`, `paintBorder`, the margin of gui1 reads flat
-  `#D2D2D2` (the bare backdrop) on every edge; with `paintBorder` first the same build reads a
-  clean gradient from `#D2D2D2` down to `#898989` at the body. Nothing else differs.
-  `paintBorder` sets `setColorMaskColor` and strokes a pen with `borderPos = .Inside`;
-  `paintShadowOutsideBody` opens a clipping region, sets `setColorMaskFull`, and fills rounded
-  rectangles. Fixing the separate defect where the alpha channel composited with the source alpha
-  as its own factor did not change this: the ordering was retested afterwards and still decides
-  whether there is a shadow at all.
-- Next step: dump the command stream for both orders and diff it. The suspects are the pen stroke
-  path leaving clipping-region or overlap state behind — `StartNoOverlap` defers drawing, and the
-  OpenGL renderer skips `DrawTriangles` outright while `overlapMode` is set — and
-  `setColorMaskColor` reaching the shadow fills rather than the `setColorMaskFull` that precedes
-  them, which would explain the loss exactly, since a shadow written without alpha is invisible to
-  the compositor.
-
 ### F-015 — Calling through a reference to a function pointer never reaches a backend
 
 - Area: compiler
@@ -346,31 +298,4 @@ Use this compact format. Keep observations factual and make the next step action
   change notification (a posted event is the obvious one). Whichever way it goes, the
   `FormImage.kind` rebuild has to end up actually running.
 
-### F-024 — A rounded surface keeps its body colour outside its own silhouette
-
-- Area: std/gui
-- Found while: closing the corner artefacts of the window outline
-- Observation: the hierarchy paints the body as a **square** through a colour-only mask
-  (`setColorMaskColor`), and the silhouette is cut afterwards by `paintAlphaMask`, which writes
-  the alpha channel and nothing else. The four corner squares — inside the body rectangle, outside
-  the rounded outline — therefore end the frame carrying full-strength ground ink under whatever
-  partial coverage the drop shadow gave them. The blit does not premultiply, so the compositor
-  adds that ink straight onto the desktop and the corner reads brighter than anything actually in
-  the frame. It is the same failure the comment on `paintShadowOutsideBody` already records for
-  the shadow, surviving in the one region no pass owns.
-- Evidence: gui10 on the neutral dark palette, window at 60,40 sized 2235x1448 on a 150% display,
-  desktop `#95A3A4`. Two device pixels outside the bottom-left arc, at screen (89,1445), the frame
-  reads `#A8B4B4` — lighter than the desktop behind it and lighter than every colour the window
-  draws. Straight edges are clean at the same magnification, because there the outline and the
-  silhouette coincide and no pixel is left half-covered. The stencil and the silhouette are both
-  correct: replacing `paintShadow` with an opaque fill inside the shadow's clipping region shows a
-  region that follows the arc exactly, and the alpha mask cuts the same arc.
-- Next step: the region has to be erased rather than painted over, and
-  [F-011](#f-011--a-fully-transparent-fill-is-dropped-even-under-copy-blending) is what blocks it —
-  a `Copy` fill of a fully transparent colour is exactly the operation, and the painter drops it.
-  Fix F-011 first, then clear the margin to premultiplied nothing at the top of
-  `paintShadowOutsideBody`, inside the region it already builds. The alternative — stencilling the
-  hierarchy to the rounded body — does not work as the clipping region stands: `ColorPicker` and
-  `ProgressBar` open regions of their own during the hierarchy paint and call
-  `resetClippingRegion`, which disables the stencil outright.
 

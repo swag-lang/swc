@@ -94,6 +94,7 @@ enum BlendingMode
     SubDst     // Subtract source components from the destination.
     Min        // Keep the minimum source/destination component.
     Max        // Keep the maximum source/destination component.
+    DstIn      // Multiply the destination by the source alpha, ignoring the source color.
 }
 
 // Captures the complete mutable drawing state of a [[Pixel.Painter]].
@@ -1125,6 +1126,23 @@ impl Painter
         let cmd = .newCommand(.SetBlendingMode, true)
         cmd.blendingMode.mode  = mode
         .curState.blendingMode = mode
+    }
+
+    // Reports whether painting with `color` cannot change the destination.
+    //
+    // Both renderers drop a zero-alpha fragment under every blending mode except
+    // [[Pixel.BlendingMode.Copy]], where the source replaces the destination whatever its
+    // alpha: there a fully transparent fill is the erase operation, and must reach the
+    // renderer instead of being culled at the recording boundary.
+    internal mtd const isInvisible(color: Color)->bool
+    {
+        return color.a == 0 and .curState.blendingMode != .Copy
+    }
+
+    // Reports whether painting with `brush` cannot change the destination; see the color overload.
+    internal mtd const isInvisible(brush: Brush)->bool
+    {
+        return !brush.hasVisibleAlpha() and .curState.blendingMode != .Copy
     }
 
     // Sets the writable framebuffer channels from a mask value.

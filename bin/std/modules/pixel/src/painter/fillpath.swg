@@ -221,7 +221,7 @@ public impl Painter
     // Fill the polygon with the given color
     mtd fillPolygon(path: *LinePath, color: Color)
     {
-        if color.a == 0 do
+        if .isInvisible(color) do
             return
 
         let brush = Brush.createSolid(color)
@@ -231,7 +231,7 @@ public impl Painter
     // Fill the polygon with the given 'brush'
     mtd fillPolygon(path: *LinePath, brush: Brush)
     {
-        if !brush.hasVisibleAlpha() do
+        if .isInvisible(brush) do
             return
 
         path.flatten(.curState.paintQuality)

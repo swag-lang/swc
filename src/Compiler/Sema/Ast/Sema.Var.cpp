@@ -212,6 +212,19 @@ namespace
         }
 
         symVar.setGlobalStorage(storageKind, offset);
+
+        // A thread-local global keeps its declared value in ordinary global storage, which becomes
+        // the template every thread copies on first access. What it also needs is a slot to hold
+        // the storage index claimed for it at run time; the zero segment owns that, so the index
+        // starts at zero and the runtime reads "not claimed yet" from it.
+        if (!isCompilerGlobal && symVar.attributes().hasRtFlag(RtAttributeFlagsE::Tls))
+        {
+            const auto [tlsIdOffset, tlsIdStorage] = ctx.compiler().globalZeroSegment().reserve<uint64_t>();
+            if (tlsIdStorage)
+                *tlsIdStorage = 0;
+            symVar.setThreadLocalStorage(tlsIdOffset, size);
+        }
+
         return Result::Continue;
     }
 

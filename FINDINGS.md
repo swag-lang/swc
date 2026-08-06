@@ -56,6 +56,32 @@ Use this compact format. Keep observations factual and make the next step action
   is what catches the codegen half.
 - Related: `bin/unittests/jit/operators/notnull_access.swg`
 
+### The sandbox is armed twice per run, and the second attempt fails the whole process
+
+- Area: bin/std | compiler
+- Found while: validating a runtime allocator rewrite, where `tools/scripts.bat smoke` failed
+  intermittently and the failure had to be cleared as pre-existing
+- Observation: `Env`'s sandbox `#init` hook runs more than once in a single script run. The first
+  call carries the launcher's explicit root and arms correctly; a later call arrives with an empty
+  run-argument value, falls back to `defaultSandboxRoot()`, and is rejected by
+  "the sandbox root cannot change once armed". The rejection is fatal by design, so the run dies
+  with `compiler panic: sandbox setup failed` — and it dies at a different script on every attempt,
+  which is what makes the suite look flaky rather than broken.
+- Evidence: printing inside `enterSandbox` over three `tools/scripts.bat smoke -bc release` runs
+  gives, in the same process, `rootLen=56 armed=false exists=true` followed by
+  `rootLen=84 armed=true exists=false` (84 is `<temp>/swag-sandbox/run-<pid>`, the default root).
+  Two of three runs failed. Reproduced identically with the baseline runtime, so this is not
+  allocator-related. Separately, `%TEMP%/swag-sandbox` had accumulated 3871 `run-<pid>` directories:
+  nothing ever removes a sandbox root, so the name is not the private-per-run identity it claims.
+- Next step: find out which stage runs the hook the second time and why the run argument is empty
+  there. The prime suspect is the runtime hook chain, where `PreMain` is emitted twice with
+  separate guards — a runtime stage and a compiler stage
+  ([NativeArtifactBuilder.cpp:298-304](src/Backend/Native/NativeArtifactBuilder.cpp#L298-L304)) —
+  against a single `Init` guard, combined with process-argument adoption that differs between the
+  two. Print the stage and `@pinfos` arguments from the hook to tell "the hook runs twice" apart
+  from "the arguments were re-adopted empty". Whichever it is, `enterSandbox` should also treat a
+  second arm with no explicit root as a no-op rather than a fatal mismatch.
+
 ### Golden snapshots cannot be recorded under the test sandbox
 
 - Area: compiler | bin/std
@@ -156,32 +182,26 @@ Use this compact format. Keep observations factual and make the next step action
   lookup boundary the builders just removed, and a resource editor would ship that cost to every
   window. Only then evaluate the editor.
 
-### `#[Swag.Tls]` is accepted and then ignored
+### A thread-local global cannot hold a droppable type
 
 - Area: compiler
-- Found while: attributing the sCrypt/WinFsp integration working-set growth to the runtime
-  allocator rather than to sCrypt or WinFsp
-- Observation: the attribute is parsed into `RtAttributeFlagsE::Tls`
-  ([AttributeList.h:37](src/Compiler/Sema/Core/AttributeList.h#L37), assigned at
-  [Sema.Attributes.cpp:181](src/Compiler/Sema/Ast/Sema.Attributes.cpp#L181)) and never read again;
-  no backend emits a thread-local segment. A `#[Swag.Tls]` global is an ordinary shared global, so
-  every "one copy per thread" design built on it is silently one shared copy. The language
-  reference documents the feature as working
-  ([003_005_variables.swg:128-131](bin/reference/modules/language/src/003_005_variables.swg#L128-L131)).
-- Evidence: a native program writes `0xAAAA` into a `#[Swag.Tls] var u64` on the main thread; a raw
-  `CreateThread` worker reads back `0xAAAA` (a real slot reads 0), writes `0xBBBB`, and the main
-  thread then reads `0xBBBB`. The remaining users in `bin/` are `Random.shared()`
-  ([random.swg:3](bin/std/modules/core/src/rand/random.swg#L3)) and the Mersenne Twister plus counter
-  behind `Guid64`/`Guid128`
-  ([guid64.swg:6](bin/std/modules/core/src/system/guid64.swg#L6),
-  [guid128.swg:6](bin/std/modules/core/src/system/guid128.swg#L6)), so identifier and random
-  streams are raced on and can repeat across threads.
-- Next step: decide between implementing the attribute (a `.tls` section and an
-  `IMAGE_TLS_DIRECTORY` in the PE writer and the integrated linker, plus an equivalent under the
-  JIT) and rejecting it with a diagnostic. Either way the remaining `bin/` users need a mechanism
-  that exists today: an explicit slot through `__tlsAlloc`/`__tlsGetPtr`, which is already how the
-  runtime context reaches per-thread storage
-  ([os_windows.swg:298](bin/runtime/os_windows.swg#L298)).
+- Found while: implementing `#[Swag.Tls]`, which until then was parsed and then ignored
+- Observation: a thread-local global now has one copy per thread, created from the declared value on
+  first access and released when the thread ends. What is released is the storage, not the value:
+  nothing calls `opDrop` on it. Shutdown cannot stand in for that either, because it runs on one
+  thread and dropping only that thread's copy would pick an arbitrary one, so thread-local globals
+  are excluded from the shutdown drop list on purpose. A `#[Swag.Tls] var s: String` therefore leaks
+  every thread's buffer, silently.
+- Evidence: `collectGvtdEntriesRec` skips `symVar->isThreadLocal()`
+  ([CodeGen.Function.cpp](src/Compiler/CodeGen/Ast/CodeGen.Function.cpp)), and the fiber-local
+  destructor `__releaseTlsVar` ([os_windows.swg](bin/runtime/os_windows.swg)) frees the block
+  without knowing its type. The three users in `bin/` — `Random.shared()`, and the generator behind
+  `Guid64`/`Guid128` — are plain value types, so nothing leaks today.
+- Next step: decide whether to reject the combination or support it. Rejecting is one diagnostic on
+  a global that carries `Swag.Tls` and a type with a lifecycle, and it is honest. Supporting it
+  means the per-thread block has to carry a drop hook the destructor can call, which is the same
+  type-erased drop the `@gvtd` table already builds — reuse that shape rather than inventing a
+  second one.
 
 ### Ten `sCrypt` tests do not pass
 

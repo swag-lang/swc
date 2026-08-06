@@ -45,6 +45,12 @@ namespace
                 if (storageKind != DataSegmentKind::GlobalZero && storageKind != DataSegmentKind::GlobalInit)
                     continue;
 
+                // A thread-local global has one copy per thread, and shutdown runs on one of them.
+                // Dropping only that copy would pick an arbitrary thread's value and leave the rest
+                // untouched, so no copy is dropped at all: a droppable type is not usable here yet.
+                if (symVar->isThreadLocal())
+                    continue;
+
                 const SymbolFunction* opDrop = nullptr;
                 uint32_t              sizeOf = 0;
                 uint32_t              count  = 0;

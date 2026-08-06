@@ -1,11 +1,30 @@
 #global namespace Swag
 
-const AllocatorClassCount   = 28'u32
+// The runtime allocator.
+//
+// Two paths, chosen by the request and never mixed up at free time because a block's address says
+// which one produced it:
+//
+//   - The page path serves every request up to 64 KiB with an ordinary alignment. Blocks are carved
+//     from segment pages (see allocator.pages.swg), carry no header, and are recovered on free by
+//     masking the address down to its page. The whole path is free of locks and, on the owning
+//     thread, free of atomics.
+//   - The header path serves larger blocks, over-aligned blocks, and every allocation made while a
+//     diagnostic mode is on. It keeps a header, a footer, and optional tracking, which is what
+//     leak reports, electric mode, and the double-free diagnostic need.
+
+const AllocatorClassCount   = 45'u32
 const AllocatorInvalidClass = 0xFFFF_FFFF'u32
 
-// A page fits one Windows allocation-granularity region, including raw metadata.
-private const AllocatorPageSize = 64'u64 * 1024
-private const AllocatorPageMaxClass = 4096'u64
+// Classes 0 to 32 are carved from 64 KiB pages, the rest from 512 KiB pages, so that every class
+// holds at least eight blocks per page.
+const AllocatorMediumFirstClass = 33'u32
+const AllocatorMaxClassSize     = 65536'u64
+
+// Blocks of class 1 and above are a multiple of 16 bytes and start on a 16-byte boundary, so the
+// page path already satisfies any alignment up to that. Anything stricter takes the header path.
+const AllocatorPagePathAlignment = 16'u32
+
 private const AllocatorInvalidFlsId = 0xFFFF_FFFF'u64
 
 struct AllocatorTracking
@@ -17,22 +36,23 @@ struct AllocatorTracking
     allocId:    u32
 }
 
+// Carried only by header-path blocks. A page-path block has none of this: its size and owner are
+// recovered from the page table.
 struct AllocatorHeader
 {
-    allocAddr:  #null [*] void
-    allocSize:  u64
-    userSize:   u64
-    blockSize:  u64
-    prev:       #null *AllocatorHeader
-    next:       #null *AllocatorHeader
-    prevFree:   #null *AllocatorHeader
-    nextFree:   #null *AllocatorHeader
-    tracking:   #null *AllocatorTracking
-    classIndex: u32
-    alignment:  u32
-    isTracked:  bool
+    allocAddr: #null [*] void
+    allocSize: u64
+    userSize:  u64
+    blockSize: u64
+    prev:      #null *AllocatorHeader
+    next:      #null *AllocatorHeader
+    tracking:  #null *AllocatorTracking
+    alignment: u32
+    isTracked: bool
+    // An electric block ends flush against a reserved guard page, so it carries no footer: a write
+    // one byte past the request faults instead of waiting for the free to notice a broken pattern.
+    isElectric: bool
     magic:      u32
-    ownerHeap:  #null *void
 }
 
 struct AllocatorFooter
@@ -40,53 +60,47 @@ struct AllocatorFooter
     magic: u32
 }
 
-struct AllocatorRawBlock
+// An exact snapshot of what the allocator holds. Producing it walks the segment and heap lists, so
+// the fast paths keep no counter and pay nothing for statistics that nobody is reading.
+struct AllocatorStats
 {
-    address: #null [*] void
-    size:    u64
-
-    internal
-    {
-        // A partially carved page owns one reference; every issued block owns another.
-        refCount: u32
-    }
-}
-
-struct AllocatorClass
-{
-    firstFree:   #null *AllocatorHeader
-    cachedBytes: u64
-    cachedCount: u32
+    // Blocks handed to callers and not yet returned, and the bytes their size classes reserve.
+    countAlloc: u64
+    sizeAlloc:  u64
+    // Blocks sitting on a page free list, and the committed page bytes not currently handed out.
+    countFree:  u64
+    sizeCached: u64
+    // Pages and segments this allocator holds.
+    countPage:    u64
+    countSegment: u64
+    // Bytes committed from the operating system, and the calls that moved them. Both are process
+    // wide, because segments are drawn from reservations shared by every allocator.
+    sizeCommitted:   u64
+    countOsCommit:   u64
+    countOsDecommit: u64
+    countOsReserve:  u64
 }
 
 struct AllocatorThreadClass
 {
-    firstFree:   #null *AllocatorHeader
-    remoteFree:  #null *AllocatorHeader
-    cachedBytes: u64
-    cachedCount: u32
-
-    internal
-    {
-        pageAddress: #null [*] u8
-        pageOffset:  u64
-        pageSize:    u64
-    }
+    // The page the fast path serves from, plus every other page this heap owns for the class.
+    page:  #null *AllocatorPage
+    first: #null *AllocatorPage
+    last:  #null *AllocatorPage
 }
 
 struct AllocatorThreadHeap
 {
-    allocator:   #null *void
-    nextRetired: #null *AllocatorThreadHeap
-    threadId:    u64
-    classes:     [AllocatorClassCount] AllocatorThreadClass
-    cachedBytes: u64
-    cachedCount: u32
-    activeCount: u32
-    retired:     u32
+    allocator: #null *void
+    nextHeap:  #null *AllocatorThreadHeap
+    prevHeap:  #null *AllocatorThreadHeap
+    threadId:  u64
+    retired:   u32
+    classes:   [AllocatorClassCount] AllocatorThreadClass
 }
 
-// FLS provides both real thread isolation and a destructor for foreign OS threads.
+// Fiber-local storage gives both real per-thread isolation and a destructor that runs on a thread
+// the runtime never started, which is what lets an OS-owned callback thread give its pages back.
 private var g_AllocatorThreadHeapFlsId = AllocatorInvalidFlsId
 
 #[Swag.Tls]
@@ -94,56 +108,42 @@ private var g_AllocatorThreadHeapFallback: #null *AllocatorThreadHeap
 
 struct Allocator
 {
-    mutex:            MutexRW
-    classes:          [AllocatorClassCount] AllocatorClass
-    firstAlloc:       #null *AllocatorHeader
-    firstFree:        #null *AllocatorHeader
-    lastFree:         #null *AllocatorHeader
-    firstRetiredHeap: #null *AllocatorThreadHeap
-    sizeAlloc:        u64
-    sizeFree:         u64
-    sizeCached:       u64
-    sizeOsAlloc:      u64
-    sizeOsFree:       u64
-    countAlloc:       u32
-    countFree:        u32
-    countOsAlloc:     u32
-    countOsFree:      u32
-    nextId:           u32
-    installMagic:     u32 = 0
+    // Guards the diagnostic quarantine and the tracked-allocation list.
+    mutex: MutexRW
+    // Guards the segment list, the thread-heap list, and the abandoned pages.
+    segmentMutex: MutexRW
 
-    maxCachedSize:     u64
-    maxCachedBytes:    u64
-    maxFreeSize:       u64
-    showMaxLeaks:      u32
-    breakOnAllocId:    u32
-    captureAllocStack: bool
-    detectLeaks:       bool
-    trackAllocations:  bool
-    fillAlloc:         bool
-    fillFree:          bool
-    electricMode:      bool
+    firstSegment:   #null *AllocatorSegment
+    firstHeap:      #null *AllocatorThreadHeap
+    firstAbandoned: #null *AllocatorPage
+
+    // Header-path bookkeeping. Live blocks are always counted; the tracked list and the quarantine
+    // exist only while a diagnostic mode is on.
+    firstAlloc:      #null *AllocatorHeader
+    firstQuarantine: #null *AllocatorHeader
+    lastQuarantine:  #null *AllocatorHeader
+    headerCount:     u64
+    headerBytes:     u64
+    quarantineBytes: u64
+    quarantineCount: u64
+
+    nextId:       u32
+    installMagic: u32 = 0
+
+    // Bounds the diagnostic quarantine, which holds freed blocks so a later double free or use
+    // after free is reported instead of faulting on unmapped memory.
+    maxQuarantineBytes: u64
+    showMaxLeaks:       u32
+    breakOnAllocId:     u32
+    captureAllocStack:  bool
+    detectLeaks:        bool
+    trackAllocations:   bool
+    fillAlloc:          bool
+    fillFree:           bool
+    electricMode:       bool
 }
 
 private var g_DefaultAllocator: Allocator
-
-private func atomicLoadHeader(slot: *#null *AllocatorHeader)->#null *AllocatorHeader
-{
-    return cast(#null *AllocatorHeader) @atomcmpxchg(cast(*u64) slot, 0'u64, 0'u64)
-}
-
-private func atomicExchangeHeader(slot: *#null *AllocatorHeader, value: #null *AllocatorHeader)->#null *AllocatorHeader
-{
-    return cast(#null *AllocatorHeader) @atomxchg(cast(*u64) slot, cast(u64) value)
-}
-
-private func atomicCompareExchangeHeader(slot: *#null *AllocatorHeader, compareTo, exchangeWith: #null *AllocatorHeader)->#null *AllocatorHeader
-{
-    return cast(#null *AllocatorHeader) @atomcmpxchg(cast(*u64) slot, cast(u64) compareTo, cast(u64) exchangeWith)
-}
-
-private func atomicGet(addr: *u32)->u32 => @atomcmpxchg(addr, 0, 0)
-private func atomicGet(addr: *u64)->u64 => @atomcmpxchg(addr, 0, 0)
 
 private func retireAllocatorThreadHeap(value: #null *void)
 {
@@ -180,7 +180,7 @@ private func allocatorThreadHeapFlsId()->u64
         return 0
 }
 
-private func currentAllocatorThreadHeap()->#null *AllocatorThreadHeap
+func currentAllocatorThreadHeap()->#null *AllocatorThreadHeap
 {
     #static if #os == Swag.TargetOs.Windows do
         return cast(#null *AllocatorThreadHeap) __Win32RT.FlsGetValue(cast(u32) allocatorThreadHeapFlsId())
@@ -194,14 +194,6 @@ private func setCurrentAllocatorThreadHeap(heap: #null *AllocatorThreadHeap)
         @assert(__Win32RT.FlsSetValue(cast(u32) allocatorThreadHeapFlsId(), heap) != 0)
     else do
         g_AllocatorThreadHeapFallback = heap
-}
-
-private func allocatorThreadHeapIsCurrent(heap, current: *AllocatorThreadHeap)->bool
-{
-    #static if #os == Swag.TargetOs.Windows do
-        return heap == current
-    else do
-        return heap == current and heap.threadId == currentThreadId()
 }
 
 private func currentThreadId()->u64
@@ -220,52 +212,40 @@ impl Allocator
     const FreeByte       = 0xFB
     const InstalledMagic = 0xA110CA7E
 
+    // Class 0 is 8 bytes, classes 1 to 8 step by 16 up to 128, and every class above that splits a
+    // power of two into four. The widest step is a fifth of the class it lands in, which is the
+    // bound on how much of a page-path block a request can leave unused.
     func classSize(index: u32)->u64
     {
-        switch index
-        {
-        case 0:  return 8
-        case 1:  return 16
-        case 2:  return 24
-        case 3:  return 32
-        case 4:  return 48
-        case 5:  return 64
-        case 6:  return 80
-        case 7:  return 96
-        case 8:  return 128
-        case 9:  return 160
-        case 10: return 192
-        case 11: return 256
-        case 12: return 320
-        case 13: return 384
-        case 14: return 512
-        case 15: return 768
-        case 16: return 1024
-        case 17: return 1536
-        case 18: return 2048
-        case 19: return 3072
-        case 20: return 4096
-        case 21: return 6144
-        case 22: return 8192
-        case 23: return 12288
-        case 24: return 16384
-        case 25: return 24576
-        case 26: return 32768
-        case 27: return 65536
-        }
+        if index == 0 do
+            return 8
+        if index <= 8 do
+            return cast(u64) index * 16
 
-        return 0
+        let bucket = 7 + (index - 9) / 4
+        let step   = (index - 9) % 4
+        return cast(u64) (5 + step) << (bucket - 2)
     }
 
+    // The inverse of 'classSize', in a handful of instructions and with no table walk.
     func sizeClass(size: u64)->u32
     {
-        for [i] in AllocatorClassCount
-        {
-            if size <= classSize(i) do
-                return i
-        }
+        if size <= 8 do
+            return 0
+        if size <= 128 do
+            return cast(u32) ((size + 15) >> 4)
+        if size > AllocatorMaxClassSize do
+            return AllocatorInvalidClass
 
-        return AllocatorInvalidClass
+        let value  = size - 1
+        let bucket = 63 - cast(u32) @bitcountlz(value)
+        let step   = cast(u32) ((value >> (bucket - 2)) & 3)
+        return 9 + (bucket - 7) * 4 + step
+    }
+
+    func classUnitShift(index: u32)->u32
+    {
+        return index >= AllocatorMediumFirstClass ? AllocatorMediumUnitShift : AllocatorSmallUnitShift
     }
 
     func memAlign(value: u64, alignment: u32)->u64
@@ -310,17 +290,15 @@ impl Allocator
 
     mtd configure(electricMode: bool, detectLeaks: bool, captureStack: bool, trackAllocations: bool, fillMemory: bool)
     {
-        .maxCachedSize     = 64 * 1024
-        .maxCachedBytes    = 8 * 1024 * 1024
-        .maxFreeSize       = 16 * 1024 * 1024
-        .showMaxLeaks      = 100
-        .breakOnAllocId    = 0
-        .captureAllocStack = captureStack
-        .detectLeaks       = detectLeaks
-        .trackAllocations  = trackAllocations
-        .fillAlloc         = fillMemory
-        .fillFree          = fillMemory
-        .electricMode      = electricMode
+        .maxQuarantineBytes = 16 * 1024 * 1024
+        .showMaxLeaks       = 100
+        .breakOnAllocId     = 0
+        .captureAllocStack  = captureStack
+        .detectLeaks        = detectLeaks
+        .trackAllocations   = trackAllocations
+        .fillAlloc          = fillMemory
+        .fillFree           = fillMemory
+        .electricMode       = electricMode
     }
 
     mtd installed()->bool
@@ -328,15 +306,66 @@ impl Allocator
         return .installMagic == InstalledMagic
     }
 
-    mtd osAlloc(size: u64)->#null [*] u8
+    mtd diagnosticMode()->bool
     {
-        #static if #os == Swag.TargetOs.Windows do
-            return cast(#null [*] u8) __Win32RT.VirtualAlloc(null, size, __Win32RT.MEM_RESERVE | __Win32RT.MEM_COMMIT, __Win32RT.PAGE_READWRITE)
-        else do
-            return cast(#null [*] u8) @alloc(size)
+        return .trackAllocations or .captureAllocStack or .electricMode or .breakOnAllocId != 0
     }
 
-    mtd osFree(address: #null *void)
+    // ###################################################################################
+    // Operating system blocks, used by the header path and by the thread-heap records
+    // ###################################################################################
+
+    mtd osAlloc(size: u64)->#null [*] u8
+    {
+        let rounded = memAlign(size, cast(u32) AllocatorCommitGranularity)
+
+        #static if #os == Swag.TargetOs.Windows
+        {
+            let address = cast(#null [*] u8) __Win32RT.VirtualAlloc(null, rounded, __Win32RT.MEM_RESERVE | __Win32RT.MEM_COMMIT, __Win32RT.PAGE_READWRITE)
+            if !address do
+                return null
+        }
+        else
+        {
+            let address = cast(#null [*] u8) @alloc(rounded)
+            if !address do
+                return null
+        }
+
+        atomicAddU64(&g_AllocatorCommittedBytes, rounded)
+        atomicAddU64(&g_AllocatorOsCommitCount, 1)
+        return address
+    }
+
+    // Reserves one extra page past the block and leaves it uncommitted. Electric mode places the
+    // user data flush against it, so an overflow of a single byte faults at the instruction that
+    // writes it rather than at the next consistency check.
+    mtd osAllocGuarded(commitBytes: u64)->#null [*] u8
+    {
+        #static if #os == Swag.TargetOs.Windows
+        {
+            let address = cast(#null [*] u8) __Win32RT.VirtualAlloc(null, commitBytes + AllocatorCommitGranularity, __Win32RT.MEM_RESERVE, __Win32RT.PAGE_READWRITE)
+            if !address do
+                return null
+            if !__Win32RT.VirtualAlloc(address, commitBytes, __Win32RT.MEM_COMMIT, __Win32RT.PAGE_READWRITE)
+            {
+                discard __Win32RT.VirtualFree(address, 0, __Win32RT.MEM_RELEASE)
+                return null
+            }
+        }
+        else
+        {
+            let address = cast(#null [*] u8) @alloc(commitBytes)
+            if !address do
+                return null
+        }
+
+        atomicAddU64(&g_AllocatorCommittedBytes, commitBytes)
+        atomicAddU64(&g_AllocatorOsCommitCount, 1)
+        return address
+    }
+
+    mtd osFree(address: #null *void, size: u64)
     {
         if !address do
             return
@@ -345,104 +374,46 @@ impl Allocator
             discard __Win32RT.VirtualFree(address, 0, __Win32RT.MEM_RELEASE)
         else do
             @free(cast(#null [*] void) address)
+
+        atomicSubU64(&g_AllocatorCommittedBytes, size)
+        atomicAddU64(&g_AllocatorOsDecommitCount, 1)
     }
 
-    mtd osAllocationSize(size: u64)->u64
-    {
-        #static if #os == Swag.TargetOs.Windows do
-            return memAlign(size, 4096)
-        else do
-            return size
-    }
+    // ###################################################################################
+    // Thread heaps
+    // ###################################################################################
 
-    mtd rawAlloc(size: u64, alignment: u32 = 0)->#null [*] u8
+    mtd allocateThreadHeap()->#null *AllocatorThreadHeap
     {
-        let align = cast(u64) (alignment != 0 ? alignment : cast(u32) #sizeof(*void))
-        let bytes = size + align - 1 + #sizeof(AllocatorRawBlock)
-        let raw   = .osAlloc(bytes)
-        if !raw do
+        let address = .osAlloc(#sizeof(AllocatorThreadHeap))
+        if !address do
             return null
 
-        var user = raw + #sizeof(AllocatorRawBlock)
-        user = cast([*] u8) ((cast(u64) user + align - 1) & ~(align - 1))
-
-        let rawBlock = cast(*AllocatorRawBlock) (user - #sizeof(AllocatorRawBlock))
-        rawBlock.address  = cast([*] void) raw
-        rawBlock.size     = .osAllocationSize(bytes)
-        rawBlock.refCount = 1
-        .statAdd(&.countOsAlloc, 1)
-        .statAdd(&.sizeOsAlloc, rawBlock.size)
-        return user
-    }
-
-    mtd rawAllocationSize(address: *void)->u64
-    {
-        let rawBlock = cast(*AllocatorRawBlock) (cast([*] u8) address - #sizeof(AllocatorRawBlock))
-        return rawBlock.size
-    }
-
-    mtd rawAddRef(address: *void)
-    {
-        let rawBlock = cast(*AllocatorRawBlock) (cast([*] u8) address - #sizeof(AllocatorRawBlock))
-        let oldCount = @atomadd(&rawBlock.refCount, 1)
-        @assert(oldCount > 0)
-    }
-
-    mtd rawFree(address: #null *void)
-    {
-        if !address do
-            return
-
-        let rawBlock = cast(*AllocatorRawBlock) (cast([*] u8) address - #sizeof(AllocatorRawBlock))
-        while true
-        {
-            let oldCount = atomicGet(&rawBlock.refCount)
-            @assert(oldCount > 0)
-            if @atomcmpxchg(&rawBlock.refCount, oldCount, oldCount - 1) != oldCount do
-                continue
-            if oldCount != 1 do
-                return
-            break
-        }
-
-        let rawAddress = rawBlock.address
-        let rawSize    = rawBlock.size
-        .statAdd(&.countOsFree, 1)
-        .statAdd(&.sizeOsFree, rawSize)
-        .osFree(rawAddress)
-    }
-
-    mtd allocateThreadHeap()->*AllocatorThreadHeap
-    {
-        let address = .rawAlloc(#sizeof(AllocatorThreadHeap))!
         @memset(address, 0, #sizeof(AllocatorThreadHeap))
         let heap = cast(*AllocatorThreadHeap) address
         heap.allocator = me
-        #static if #os != Swag.TargetOs.Windows do
-            heap.threadId = currentThreadId()
+        heap.threadId  = currentThreadId()
+
+        .segmentMutex.lock()
+        heap.nextHeap = .firstHeap
+        if .firstHeap do
+            .firstHeap.prevHeap = heap
+        .firstHeap = heap
+        .segmentMutex.unlock()
+
         return heap
     }
 
-    mtd retireThreadHeap(heap: *AllocatorThreadHeap)
+    mtd threadHeap()->#null *AllocatorThreadHeap
     {
-        if @atomxchg(&heap.retired, 1) != 0 do
-            return
-
-        .releaseThreadHeap(heap)
-
-        .mutex.lock()
-        heap.nextRetired  = .firstRetiredHeap
-        .firstRetiredHeap = heap
-        .mutex.unlock()
-    }
-
-    mtd threadHeap()->*AllocatorThreadHeap
-    {
+        // 'retired' is only ever set from the owning thread, so reading it needs no barrier here.
         let heap = currentAllocatorThreadHeap()
-        if heap and heap.allocator == me and allocatorThreadHeapIsCurrent(heap, heap) do
+        if heap and heap.allocator == me and heap.retired == 0 do
             return heap
 
-        if heap and allocatorThreadHeapIsCurrent(heap, heap)
+        // The slot holds another allocator's heap, which happens when a program installs a second
+        // allocator on a thread that already allocated. Give the old one back before replacing it.
+        if heap
         {
             setCurrentAllocatorThreadHeap(null)
             let oldAllocator = cast(#null *Allocator) heap.allocator
@@ -451,263 +422,249 @@ impl Allocator
         }
 
         let newHeap = .allocateThreadHeap()
+        if !newHeap do
+            return null
+
         setCurrentAllocatorThreadHeap(newHeap)
         return newHeap
     }
 
-    mtd fastPathEnabled(request: *AllocatorRequest, classIndex: u32)->bool
+    // Gives every page the heap still owns back: emptied ones to their segment, the rest to the
+    // abandoned list where any thread can adopt them. The page table outlives the heap, so a
+    // remote free racing with this only ever lands on storage that is still mapped.
+    mtd retireThreadHeap(heap: *AllocatorThreadHeap)
     {
-        if .diagnosticMode() do
-            return false
-        if classIndex == AllocatorInvalidClass do
-            return false
-        if request.alignment > #sizeof(*void) do
-            return false
-        return true
-    }
-
-    mtd diagnosticMode()->bool
-    {
-        return .trackAllocations or .captureAllocStack or .electricMode or .breakOnAllocId != 0
-    }
-
-    mtd statAdd(value: *u64, delta: u64)
-    {
-        discard @atomadd(value, delta)
-    }
-
-    mtd statAdd(value: *u32, delta: u32)
-    {
-        discard @atomadd(value, delta)
-    }
-
-    mtd statSub(value: *u64, delta: u64)
-    {
-        while true
-        {
-            let oldValue = atomicGet(value)
-            @assert(oldValue >= delta)
-            if @atomcmpxchg(value, oldValue, oldValue - delta) == oldValue do
-                return
-        }
-    }
-
-    mtd statSub(value: *u32, delta: u32)
-    {
-        while true
-        {
-            let oldValue = atomicGet(value)
-            @assert(oldValue >= delta)
-            if @atomcmpxchg(value, oldValue, oldValue - delta) == oldValue do
-                return
-        }
-    }
-
-    mtd decActive(heap: *AllocatorThreadHeap)->u32
-    {
-        while true
-        {
-            let oldValue = atomicGet(&heap.activeCount)
-            @assert(oldValue > 0)
-            if @atomcmpxchg(&heap.activeCount, oldValue, oldValue - 1) == oldValue do
-                return oldValue
-        }
-    }
-
-    mtd shouldCache(header: *AllocatorHeader)->bool
-    {
-        if .electricMode do
-            return false
-        if .diagnosticMode() and !header.tracking do
-            return false
-        if header.classIndex == AllocatorInvalidClass do
-            return false
-        if header.alignment > #sizeof(*void) do
-            return false
-        if header.blockSize > .maxCachedSize do
-            return false
-        return true
-    }
-
-    mtd pushThreadLocal(heap: *AllocatorThreadHeap, header: *AllocatorHeader)
-    {
-        let cls = &heap.classes[header.classIndex]
-        header.prevFree  = null
-        header.nextFree  = cls.firstFree
-        cls.firstFree    = header
-        cls.cachedBytes  += header.allocSize
-        cls.cachedCount  += 1
-        heap.cachedBytes += header.allocSize
-        heap.cachedCount += 1
-        .statAdd(&.sizeCached, header.allocSize)
-        .statAdd(&.sizeFree, header.userSize)
-        .statAdd(&.countFree, 1)
-    }
-
-    mtd releaseRetiredRemote(heap: *AllocatorThreadHeap, classIndex: u32)
-    {
-        let cls  = &heap.classes[classIndex]
-        var list = atomicExchangeHeader(&cls.remoteFree, null)
-        while list
-        {
-            let next = list.nextFree
-            .releaseUncached(list)
-            list = next
-        }
-    }
-
-    mtd pushThreadRemote(heap: *AllocatorThreadHeap, header: *AllocatorHeader)->bool
-    {
-        let cls = &heap.classes[header.classIndex]
-        while true
-        {
-            if atomicGet(&heap.retired) != 0 do
-                return false
-
-            let oldHead = atomicLoadHeader(&cls.remoteFree)
-            header.prevFree = null
-            header.nextFree = oldHead
-            if atomicCompareExchangeHeader(&cls.remoteFree, oldHead, header) == oldHead
-            {
-                if atomicGet(&heap.retired) != 0 do
-                    .releaseRetiredRemote(heap, header.classIndex)
-                return true
-            }
-        }
-    }
-
-    mtd drainThreadRemote(heap: *AllocatorThreadHeap, classIndex: u32)
-    {
-        let cls  = &heap.classes[classIndex]
-        var list = atomicExchangeHeader(&cls.remoteFree, null)
-        while list
-        {
-            let next = list.nextFree
-            .pushThreadLocal(heap, list)
-            list = next
-        }
-    }
-
-    mtd releaseThreadCached(heap: *AllocatorThreadHeap, classIndex: u32)
-    {
-        let cls    = &heap.classes[classIndex]
-        let header = cls.firstFree
-        if !header do
+        if @atomxchg(&heap.retired, 1) != 0 do
             return
 
-        .checkFree(header)
-        cls.firstFree = header.nextFree
-        @assert(cls.cachedCount > 0)
-        @assert(cls.cachedBytes >= header.allocSize)
-        @assert(heap.cachedCount > 0)
-        @assert(heap.cachedBytes >= header.allocSize)
-        cls.cachedCount  -= 1
-        cls.cachedBytes  -= header.allocSize
-        heap.cachedCount -= 1
-        heap.cachedBytes -= header.allocSize
-        .statSub(&.sizeCached, header.allocSize)
-        .statSub(&.sizeFree, header.userSize)
-        .statSub(&.countFree, 1)
+        .segmentMutex.lock()
 
-        .rawFree(header.allocAddr)
+        for [i] in AllocatorClassCount
+        {
+            let cls  = &heap.classes[i]
+            var scan = cls.first
+            while scan
+            {
+                let next = scan.nextPage
+                scan.collectRemote()
+                if scan.used == 0 do
+                    allocatorSegmentOf(scan).releasePage(scan)
+                else
+                {
+                    scan.ownerHeap  = null
+                    scan.state      = .Abandoned
+                    scan.prevPage   = null
+                    scan.nextPage   = .firstAbandoned
+                    .firstAbandoned = scan
+                }
+
+                scan = next
+            }
+
+            cls.page  = null
+            cls.first = null
+            cls.last  = null
+        }
+
+        .unlinkHeap(heap)
+        .segmentMutex.unlock()
+
+        .osFree(heap, #sizeof(AllocatorThreadHeap))
     }
 
-    mtd trimThreadHeap(heap: *AllocatorThreadHeap)
+    // Unlinks a heap from the allocator's list. The caller holds the segment mutex.
+    mtd unlinkHeap(heap: *AllocatorThreadHeap)
     {
-        while heap.cachedBytes > .maxCachedBytes
+        if heap.prevHeap do
+            heap.prevHeap.nextHeap = heap.nextHeap
+        else do
+            .firstHeap = heap.nextHeap
+
+        if heap.nextHeap do
+            heap.nextHeap.prevHeap = heap.prevHeap
+
+        heap.prevHeap = null
+        heap.nextHeap = null
+    }
+
+    // ###################################################################################
+    // Page path
+    // ###################################################################################
+
+    mtd linkPage(heap: *AllocatorThreadHeap, page: *AllocatorPage)
+    {
+        let cls = &heap.classes[page.classIndex]
+        page.prevPage = cls.last
+        page.nextPage = null
+        if cls.last do
+            cls.last.nextPage = page
+        else do
+            cls.first = page
+        cls.last = page
+    }
+
+    mtd unlinkPage(heap: *AllocatorThreadHeap, page: *AllocatorPage)
+    {
+        let cls = &heap.classes[page.classIndex]
+        if page.prevPage do
+            page.prevPage.nextPage = page.nextPage
+        else do
+            cls.first = page.nextPage
+
+        if page.nextPage do
+            page.nextPage.prevPage = page.prevPage
+        else do
+            cls.last = page.prevPage
+
+        if cls.page == page do
+            cls.page = null
+        page.prevPage = null
+        page.nextPage = null
+    }
+
+    // Adopts an abandoned page of the class, or carves a new one out of a segment. The caller must
+    // not hold the segment mutex.
+    mtd acquirePageForClass(heap: *AllocatorThreadHeap, classIndex: u32)->#null *AllocatorPage
+    {
+        let blockSize = cast(u32) classSize(classIndex)
+        let unitShift = classUnitShift(classIndex)
+
+        .segmentMutex.lock()
+        defer .segmentMutex.unlock()
+
+        var prev: #null *AllocatorPage
+        var scan: #null *AllocatorPage = .firstAbandoned
+        while scan
         {
-            var released = false
-            for [i] in AllocatorClassCount
+            let next = scan.nextPage
+            if scan.classIndex == classIndex
             {
-                if heap.classes[i].firstFree
+                if !prev do
+                    .firstAbandoned = next
+                else do
+                    prev.nextPage = next
+
+                scan.prevPage  = null
+                scan.nextPage  = null
+                scan.state     = .Owned
+                scan.ownerHeap = heap
+                scan.collectRemote()
+                .linkPage(heap, scan)
+                return scan
+            }
+
+            prev = scan
+            scan = next
+        }
+
+        var segment: #null *AllocatorSegment = .firstSegment
+        while segment
+        {
+            if segment.unitShift == unitShift
+            {
+                let page = segment.acquirePage(classIndex, blockSize)
+                if page
                 {
-                    .releaseThreadCached(heap, i)
-                    released = true
-                    break
+                    page.ownerHeap = heap
+                    .linkPage(heap, page)
+                    return page
                 }
             }
 
-            if !released do
-                return
+            segment = segment.nextSegment
         }
-    }
 
-    mtd releaseThreadPage(heap: *AllocatorThreadHeap, classIndex: u32)
-    {
-        let cls     = &heap.classes[classIndex]
-        let address = cls.pageAddress
-        if !address do
-            return
-
-        cls.pageAddress = null
-        cls.pageOffset  = 0
-        cls.pageSize    = 0
-        .rawFree(address)
-    }
-
-    mtd releaseThreadHeap(heap: *AllocatorThreadHeap)
-    {
-        for [i] in AllocatorClassCount
-        {
-            .drainThreadRemote(heap, i)
-            while heap.classes[i].firstFree do
-                .releaseThreadCached(heap, i)
-            .releaseThreadPage(heap, i)
-        }
-    }
-
-    mtd releaseThreadHeapRecord(heap: *AllocatorThreadHeap)
-    {
-        .rawFree(heap)
-    }
-
-    mtd releaseRetiredHeaps()
-    {
-        var prev: #null *AllocatorThreadHeap
-        var heap: #null *AllocatorThreadHeap = .firstRetiredHeap
-        while heap
-        {
-            let next = heap.nextRetired
-            if atomicGet(&heap.activeCount) == 0
-            {
-                if !prev do
-                    .firstRetiredHeap = next
-                else do
-                    prev.nextRetired = next
-                .releaseThreadHeapRecord(heap)
-            }
-            else do
-                prev = heap
-            heap = next
-        }
-    }
-
-    mtd acquireThreadCached(heap: *AllocatorThreadHeap, classIndex: u32, size: u64)->#null *AllocatorHeader
-    {
-        .drainThreadRemote(heap, classIndex)
-
-        let cls    = &heap.classes[classIndex]
-        let header = cls.firstFree
-        if !header do
+        let fresh = allocatorAcquireSegment(me, unitShift)
+        if !fresh do
             return null
 
-        .checkFree(header)
-        cls.firstFree = header.nextFree
-        @assert(cls.cachedCount > 0)
-        @assert(cls.cachedBytes >= header.allocSize)
-        @assert(heap.cachedCount > 0)
-        @assert(heap.cachedBytes >= header.allocSize)
-        cls.cachedCount  -= 1
-        cls.cachedBytes  -= header.allocSize
-        heap.cachedCount -= 1
-        heap.cachedBytes -= header.allocSize
-        .statSub(&.sizeCached, header.allocSize)
-        .statSub(&.sizeFree, header.userSize)
-        .statSub(&.countFree, 1)
+        fresh.nextSegment = .firstSegment
+        if .firstSegment do
+            .firstSegment.prevSegment = fresh
+        .firstSegment = fresh
 
-        header.prevFree, header.nextFree = null
-        header.userSize                  = size
-        return header
+        let page = fresh.acquirePage(classIndex, blockSize)
+        if !page do
+            return null
+
+        page.ownerHeap = heap
+        .linkPage(heap, page)
+        return page
+    }
+
+    // Runs when the current page has nothing left: collects what other threads freed, then looks
+    // through the heap's other pages, then asks for a new one.
+    mtd acquireBlockSlow(heap: *AllocatorThreadHeap, classIndex: u32)->u64
+    {
+        let cls = &heap.classes[classIndex]
+
+        if cls.page
+        {
+            cls.page.collectRemote()
+            let block = cls.page.acquireBlock()
+            if block != 0 do
+                return block
+        }
+
+        var scan = cls.first
+        while scan
+        {
+            let next = scan.nextPage
+            if scan != cls.page
+            {
+                scan.collectRemote()
+                let block = scan.acquireBlock()
+                if block != 0
+                {
+                    cls.page = scan
+                    return block
+                }
+            }
+
+            scan = next
+        }
+
+        let page = .acquirePageForClass(heap, classIndex)
+        if !page do
+            return 0
+
+        cls.page = page
+        return page.acquireBlock()
+    }
+
+    #[Swag.Inline]
+    mtd acquireBlock(heap: *AllocatorThreadHeap, classIndex: u32)->u64
+    {
+        let page = heap.classes[classIndex].page
+        if page
+        {
+            let block = page.acquireBlock()
+            if block != 0 do
+                return block
+        }
+
+        return .acquireBlockSlow(heap, classIndex)
+    }
+
+    // Decommits a page whose last block just came back. The page the fast path is serving from is
+    // kept, so an allocate/free pair on a single block never touches the operating system.
+    mtd retirePage(heap: *AllocatorThreadHeap, page: *AllocatorPage)
+    {
+        let cls = &heap.classes[page.classIndex]
+        if cls.page == page do
+            return
+
+        .unlinkPage(heap, page)
+        allocatorSegmentOf(page).releasePage(page)
+    }
+
+    // ###################################################################################
+    // Header path
+    // ###################################################################################
+
+    mtd headerOf(address: u64)->*AllocatorHeader
+    {
+        return cast(*AllocatorHeader) (address - #sizeof(AllocatorHeader))
     }
 
     mtd userAddress(header: *AllocatorHeader)->[*] u8
@@ -720,23 +677,30 @@ impl Allocator
         return cast(*AllocatorFooter) (.userAddress(header) + header.userSize)
     }
 
+    // An electric block has no footer: the byte after its last one belongs to the guard page.
+    mtd footerMagic(header: *AllocatorHeader)->u32
+    {
+        return header.isElectric ? header.magic : .footer(header).magic
+    }
+
+    mtd setFooterMagic(header: *AllocatorHeader, value: u32)
+    {
+        if !header.isElectric do
+            .footer(header).magic = value
+    }
+
     mtd checkFree(header: *AllocatorHeader)
     {
-        let foot = .footer(header)
-        if header.magic != MagicFree or foot.magic != MagicFree
-        {
+        if header.magic != MagicFree or .footerMagic(header) != MagicFree do
             @panic("memory block corruption", #curlocation)
-        }
     }
 
     mtd checkAllocated(header: *AllocatorHeader, callerLoc = #callerlocation)
     {
-        let foot = .footer(header)
+        let footMagic = .footerMagic(header)
         if (header.magic != MagicAlloc and header.magic != MagicFree) or
-           (foot.magic != MagicAlloc and foot.magic != MagicFree)
-        {
+           (footMagic != MagicAlloc and footMagic != MagicFree) do
             @panic("memory block corruption", callerLoc)
-        }
 
         if header.magic == MagicFree
         {
@@ -748,13 +712,13 @@ impl Allocator
         }
     }
 
-    mtd assertIsAllocated(addr: #null *void, callerLoc = #callerlocation)
+    mtd linkAllocated(header: *AllocatorHeader)
     {
-        if !addr do
-            return
-
-        let header = cast(*AllocatorHeader) (cast([*] u8) addr - #sizeof(AllocatorHeader))
-        .checkAllocated(header, callerLoc)
+        header.prev = null
+        header.next = .firstAlloc
+        if header.next do
+            header.next.prev = header
+        .firstAlloc = header
     }
 
     mtd unlinkAllocated(header: *AllocatorHeader)
@@ -767,214 +731,93 @@ impl Allocator
         if header.next do
             header.next.prev = header.prev
 
-        header.prev, header.next = null
-    }
-
-    mtd linkAllocated(header: *AllocatorHeader)
-    {
         header.prev = null
-        header.next = .firstAlloc
-        if header.next do
-            header.next.prev = header
-        .firstAlloc = header
+        header.next = null
     }
 
-    mtd unlinkFree(header: *AllocatorHeader)
+    // Holds a freed block instead of unmapping it, so that a second free or a read through the
+    // stale pointer is reported rather than turned into an access violation.
+    mtd quarantine(header: *AllocatorHeader)
     {
-        if !header.prev do
-            .firstFree = header.next
+        header.prev = .lastQuarantine
+        header.next = null
+        if .lastQuarantine do
+            .lastQuarantine.next = header
         else do
-            header.prev.next = header.next
+            .firstQuarantine = header
+        .lastQuarantine  = header
+        .quarantineBytes += header.allocSize
+        .quarantineCount += 1
 
-        if header.next do
-            header.next.prev = header.prev
-        else do
-            .lastFree = header.prev
-
-        let isCached = header.classIndex != AllocatorInvalidClass and (header.prevFree or header.nextFree or .classes[header.classIndex].firstFree == header)
-        if isCached
+        // Electric mode never evicts: an address it handed out is never handed out again, so a
+        // pointer kept past its free can never reach a different, live allocation.
+        while !.electricMode and .firstQuarantine and .quarantineBytes > .maxQuarantineBytes
         {
-            let cls = &.classes[header.classIndex]
-            if !header.prevFree do
-                cls.firstFree = header.nextFree
+            let oldest = .firstQuarantine!
+            .checkFree(oldest)
+            .firstQuarantine = oldest.next
+            if .firstQuarantine do
+                .firstQuarantine.prev = null
             else do
-                header.prevFree.nextFree = header.nextFree
-
-            if header.nextFree do
-                header.nextFree.prevFree = header.prevFree
-
-            @assert(cls.cachedCount > 0)
-            @assert(cls.cachedBytes >= header.allocSize)
-            cls.cachedCount -= 1
-            cls.cachedBytes -= header.allocSize
-            @assert(.sizeCached >= header.allocSize)
-            .statSub(&.sizeCached, header.allocSize)
+                .lastQuarantine = null
+            @assert(.quarantineBytes >= oldest.allocSize)
+            .quarantineBytes -= oldest.allocSize
+            .quarantineCount -= 1
+            .osFree(oldest.allocAddr, oldest.allocSize)
         }
-
-        @assert(.countFree > 0)
-        @assert(.sizeFree >= header.userSize)
-        .statSub(&.countFree, 1)
-        .statSub(&.sizeFree, header.userSize)
-        header.prev, header.next         = null
-        header.prevFree, header.nextFree = null
     }
 
-    mtd linkFree(header: *AllocatorHeader)
+    mtd allocateHeaderBlock(request: *AllocatorRequest, classIndex: u32)
     {
-        header.prev = null
-        header.next = .firstFree
-        if .firstFree do
-            .firstFree.prev = header
-        .firstFree = header
-        if !.lastFree do
-            .lastFree = header
+        let alignment    = @max(request.alignment, AllocatorPagePathAlignment)
+        let trackingSize = .diagnosticMode() ? cast(u64) #sizeof(AllocatorTracking) : 0'u64
+        let prefix       = memAlign(trackingSize + #sizeof(AllocatorHeader), alignment)
+        let blockSize    = classIndex == AllocatorInvalidClass ? request.size : classSize(classIndex)
 
-        .statAdd(&.countFree, 1)
-        .statAdd(&.sizeFree, header.userSize)
+        var allocSize: u64
+        var base:      #null [*] u8
+        var userAddr:  u64
 
-        if .shouldCache(header)
+        if .electricMode
         {
-            let cls = &.classes[header.classIndex]
-            header.prevFree = null
-            header.nextFree = cls.firstFree
-            if cls.firstFree do
-                cls.firstFree.prevFree = header
-            cls.firstFree   = header
-            cls.cachedCount += 1
-            cls.cachedBytes += header.allocSize
-            .statAdd(&.sizeCached, header.allocSize)
+            // The request ends exactly where the committed range does, so the reserved page beyond
+            // it turns the first byte of an overflow into an access violation.
+            allocSize = memAlign(prefix + alignment + request.size, cast(u32) AllocatorCommitGranularity)
+            base      = .osAllocGuarded(allocSize)
+            if base do
+                userAddr = (cast(u64) base + allocSize - request.size) & ~(cast(u64) alignment - 1)
         }
-    }
-
-    mtd releaseBlock(header: *AllocatorHeader)
-    {
-        .checkFree(header)
-        .unlinkFree(header)
-
-        .releaseUncached(header)
-    }
-
-    mtd releaseUncached(header: *AllocatorHeader)
-    {
-        .checkFree(header)
-
-        let freeAddr = header.allocAddr
-
-        @memset(header, FreeByte, #sizeof(AllocatorHeader))
-        .rawFree(freeAddr)
-    }
-
-    mtd releaseOldest()
-    {
-        if .lastFree do
-            .releaseBlock(.lastFree)
-    }
-
-    mtd trim()
-    {
-        while .lastFree and (.sizeCached > .maxCachedBytes or (.maxFreeSize and .sizeFree > .maxFreeSize)) do
-            .releaseOldest()
-    }
-
-    mtd acquireCached(classIndex: u32, size: u64)->#null *AllocatorHeader
-    {
-        if .electricMode or classIndex == AllocatorInvalidClass do
-            return null
-
-        let cls    = &.classes[classIndex]
-        let header = cls.firstFree
-        if !header do
-            return null
-
-        .checkFree(header)
-        .unlinkFree(header)
-        header.userSize = size
-        return header
-    }
-
-    mtd allocateBlock(request: *AllocatorRequest, blockSize: u64, classIndex: u32)->#null *AllocatorHeader
-    {
-        let alignment    = request.alignment != 0 ? request.alignment : cast(u32) #sizeof(*void)
-        let rawAlignment = @max(alignment, cast(u32) #sizeof(*void))
-        let trackingSize = .diagnosticMode() ? #sizeof(AllocatorTracking) : 0
-        let toAddAlign   = memAlign(trackingSize + #sizeof(AllocatorHeader), rawAlignment)
-
-        let allocSize = toAddAlign + blockSize + #sizeof(AllocatorFooter)
-        let address   = .rawAlloc(allocSize, rawAlignment)
-        if !address do
-            return null
-
-        var userAddr = cast([*] u8) address
-        userAddr += toAddAlign
-
-        let header = cast(*AllocatorHeader) (userAddr - #sizeof(AllocatorHeader))
-        header.allocAddr  = address
-        header.allocSize  = .rawAllocationSize(address)
-        header.tracking   = .diagnosticMode() ? cast(*AllocatorTracking) address : null
-        header.blockSize  = blockSize
-        header.classIndex = classIndex
-        header.alignment  = alignment
-        return header
-    }
-
-    mtd allocatePageBlock(heap: *AllocatorThreadHeap, blockSize: u64, classIndex: u32)->#null *AllocatorHeader
-    {
-        let alignment  = cast(u32) #sizeof(*void)
-        let toAddAlign = memAlign(#sizeof(AllocatorHeader), alignment)
-        let stride     = memAlign(toAddAlign + blockSize + #sizeof(AllocatorFooter), alignment)
-        let cls        = &heap.classes[classIndex]
-
-        if !cls.pageAddress
+        else
         {
-            let rawOverhead = #sizeof(AllocatorRawBlock) + cast(u64) alignment - 1
-            let pagePayload = AllocatorPageSize - rawOverhead
-            let pageSize    = pagePayload - pagePayload % stride
-            @assert(pageSize >= stride)
-
-            let address = .rawAlloc(pageSize, alignment)
-            if !address do
-                return null
-
-            cls.pageAddress = address
-            cls.pageOffset  = 0
-            cls.pageSize    = pageSize
+            allocSize = memAlign(prefix + alignment + blockSize + #sizeof(AllocatorFooter), cast(u32) AllocatorCommitGranularity)
+            base      = .osAlloc(allocSize)
+            if base do
+                userAddr = memAlign(cast(u64) base + prefix, alignment)
         }
 
-        let pageAddress  = cls.pageAddress!
-        let blockAddress = pageAddress + cls.pageOffset
-        .rawAddRef(pageAddress)
+        if !base
+        {
+            request.address = null
+            return
+        }
 
-        cls.pageOffset += stride
-        @assert(cls.pageOffset <= cls.pageSize)
-        if cls.pageOffset == cls.pageSize do
-            .releaseThreadPage(heap, classIndex)
-
-        let userAddress = blockAddress + toAddAlign
-        let header      = cast(*AllocatorHeader) (userAddress - #sizeof(AllocatorHeader))
-        header.allocAddr  = cast([*] void) pageAddress
-        header.allocSize  = stride
-        header.tracking   = null
+        let header = .headerOf(userAddr)
+        header.allocAddr  = cast([*] void) base
+        header.allocSize  = allocSize
+        header.userSize   = request.size
         header.blockSize  = blockSize
-        header.classIndex = classIndex
+        header.tracking   = .diagnosticMode() ? cast(*AllocatorTracking) base : null
         header.alignment  = alignment
-        return header
-    }
+        header.isTracked  = .trackAllocations
+        header.isElectric = .electricMode
+        header.magic      = MagicAlloc
+        header.prev       = null
+        header.next       = null
 
-    mtd setupAllocatedHeader(header: *AllocatorHeader, request: *AllocatorRequest, heap: *AllocatorThreadHeap)
-    {
-        header.magic                     = MagicAlloc
-        header.userSize                  = request.size
-        header.ownerHeap                 = heap
-        header.prev, header.next         = null
-        header.prevFree, header.nextFree = null
-        header.isTracked                 = .trackAllocations
-        discard @atomadd(&heap.activeCount, 1)
-
-        let foot = .footer(header)
-        foot.magic = MagicAlloc
+        .setFooterMagic(header, MagicAlloc)
 
         if .fillAlloc do
-            @memset(.userAddress(header), AllocByte, request.size)
+            @memset(cast(*void) userAddr, AllocByte, request.size)
 
         let tracking = header.tracking
         if tracking
@@ -987,11 +830,52 @@ impl Allocator
                 @assert(false)
         }
 
-        .statAdd(&.countAlloc, 1)
-        .statAdd(&.sizeAlloc, request.size)
+        atomicAddU64(&.headerCount, 1)
+        atomicAddU64(&.headerBytes, blockSize)
         if header.isTracked do
             .linkAllocated(header)
-        request.address = .userAddress(header)
+
+        request.address = cast(*void) userAddr
+    }
+
+    mtd freeHeaderBlock(address: u64, callerLoc: SourceCodeLocation)
+    {
+        let header = .headerOf(address)
+        .checkAllocated(header, callerLoc)
+
+        if header.isTracked do
+            .unlinkAllocated(header)
+
+        atomicSubU64(&.headerCount, 1)
+        atomicSubU64(&.headerBytes, header.blockSize)
+
+        if .fillFree do
+            @memset(cast(*void) address, FreeByte, header.userSize)
+
+        header.magic = MagicFree
+        .setFooterMagic(header, MagicFree)
+        if header.tracking do
+            header.tracking.loc = callerLoc
+
+        if .diagnosticMode() do
+            .quarantine(header)
+        else do
+            .osFree(header.allocAddr, header.allocSize)
+    }
+
+    // ###################################################################################
+    // Public operations
+    // ###################################################################################
+
+    // A page-path block needs no header, so a request only leaves that path when it asks for more
+    // than a page can carve, for a stricter alignment, or while a diagnostic mode is recording.
+    mtd usesHeaderPath(request: *AllocatorRequest, classIndex: u32)->bool
+    {
+        if .diagnosticMode() do
+            return true
+        if classIndex == AllocatorInvalidClass do
+            return true
+        return request.alignment > AllocatorPagePathAlignment
     }
 
     mtd allocate(request: *AllocatorRequest)
@@ -1004,34 +888,38 @@ impl Allocator
             return
         }
 
-        let classIndex = sizeClass(request.size)
-        let blockSize  = classIndex == AllocatorInvalidClass ? request.size : classSize(classIndex)
-        let heap       = .threadHeap()
+        var classIndex = sizeClass(request.size)
 
-        var header: #null *AllocatorHeader
-        if .fastPathEnabled(request, classIndex) do
-            header = .acquireThreadCached(heap, classIndex, request.size)
-        else
+        // The 8-byte class is the only one that is not 16-byte aligned.
+        if classIndex == 0 and request.alignment > 8 do
+            classIndex = 1
+
+        if .usesHeaderPath(request, classIndex)
         {
-            if .diagnosticMode() do
-                header = .acquireCached(classIndex, request.size)
+            .allocateHeaderBlock(request, classIndex)
+            return
         }
 
-        if !header
-        {
-            if .fastPathEnabled(request, classIndex) and blockSize <= AllocatorPageMaxClass do
-                header = .allocatePageBlock(heap, blockSize, classIndex)
-            else do
-                header = .allocateBlock(request, blockSize, classIndex)
-        }
-
-        if !header
+        let heap = .threadHeap()
+        if !heap
         {
             request.address = null
             return
         }
 
-        .setupAllocatedHeader(header, request, heap)
+        let block = .acquireBlock(heap, classIndex)
+        if block == 0
+        {
+            request.address = null
+            return
+        }
+
+        // Fill the whole block, not only the request: the page path keeps no user size, so a later
+        // reallocation inside the same class must find the pattern everywhere it can now reach.
+        if .fillAlloc do
+            @memset(cast(*void) block, AllocByte, classSize(classIndex))
+
+        request.address = cast(*void) block
     }
 
     mtd reallocate(request: *AllocatorRequest)
@@ -1048,29 +936,43 @@ impl Allocator
             return
         }
 
-        let oldAddress = request.address
-        let oldHeader  = cast(*AllocatorHeader) (cast([*] u8) oldAddress - #sizeof(AllocatorHeader))
-        .checkAllocated(oldHeader, request.callerLoc)
+        let oldAddress = cast(u64) request.address!
+        let oldPage    = allocatorPageOf(oldAddress)
 
-        if request.size <= oldHeader.blockSize and (request.alignment == 0 or request.alignment <= oldHeader.alignment)
+        var oldBlockSize: u64
+        if oldPage
         {
-            let oldSize = oldHeader.userSize
-            let oldFoot = .footer(oldHeader)
-            oldFoot.magic      = 0
-            oldHeader.userSize = request.size
-            let newFoot = .footer(oldHeader)
-            newFoot.magic = MagicAlloc
+            .checkPageAddress(oldPage, oldAddress, request.callerLoc)
+            oldBlockSize = oldPage.blockSize
+        }
+        else
+        {
+            let oldHeader = .headerOf(oldAddress)
+            .checkAllocated(oldHeader, request.callerLoc)
+            oldBlockSize = oldHeader.blockSize
 
-            if .fillAlloc and oldSize < request.size do
-                @memset(.userAddress(oldHeader) + oldSize, AllocByte, request.size - oldSize)
+            // Growing inside the block the header already covers only moves the footer.
+            if request.size <= oldHeader.blockSize and request.alignment <= oldHeader.alignment and !oldHeader.isElectric
+            {
+                let oldSize = oldHeader.userSize
+                .setFooterMagic(oldHeader, 0)
+                oldHeader.userSize = request.size
+                .setFooterMagic(oldHeader, MagicAlloc)
 
-            .statSub(&.sizeAlloc, oldSize)
-            .statAdd(&.sizeAlloc, request.size)
-            request.address = oldAddress
-            return
+                if .fillAlloc and oldSize < request.size do
+                    @memset(.userAddress(oldHeader) + oldSize, AllocByte, request.size - oldSize)
+
+                return
+            }
         }
 
-        let copySize = @min(oldHeader.userSize, request.size)
+        // A page block keeps its address whenever the request still fits its class, which is what
+        // makes a growing buffer stop calling the operating system.
+        if oldPage and request.size <= oldBlockSize and request.alignment <= AllocatorPagePathAlignment and !.diagnosticMode()
+        {
+            request.address = cast(*void) oldAddress
+            return
+        }
 
         var allocReq = dref request
         allocReq.address = null
@@ -1081,14 +983,23 @@ impl Allocator
             return
         }
 
-        @memcpy(allocReq.address, oldAddress, copySize)
+        @memcpy(allocReq.address, cast(*void) oldAddress, @min(oldBlockSize, request.size))
 
         var freeReq = dref request
-        freeReq.address = oldAddress
-        freeReq.size    = oldHeader.userSize
+        freeReq.address = cast(*void) oldAddress
         .freeBlock(&freeReq)
 
         request.address = allocReq.address
+    }
+
+    // Rejects an address that no live block of the page starts, which covers a stale pointer, an
+    // interior pointer, and a pointer into a page that has already gone back to its segment.
+    mtd checkPageAddress(page: *AllocatorPage, address: u64, callerLoc: SourceCodeLocation)
+    {
+        if page.state == AllocatorPageState.Free do
+            @panic("memory block is not allocated", callerLoc)
+        if !page.isBlockAddress(address) do
+            @panic("memory block address is not the start of an allocation", callerLoc)
     }
 
     mtd freeBlock(request: *AllocatorRequest)
@@ -1096,60 +1007,176 @@ impl Allocator
         if !request.address do
             return
 
-        let userAddr = cast([*] u8) request.address
-        let header   = cast(*AllocatorHeader) (userAddr - #sizeof(AllocatorHeader))
-        .checkAllocated(header, request.callerLoc)
-        let foot = .footer(header)
-
-        // Every allocated block records its owner heap ('setupAllocatedHeader').
-        let ownerHeap = cast(*AllocatorThreadHeap) header.ownerHeap!
-
-        if header.isTracked do
-            .unlinkAllocated(header)
-
-        .statSub(&.countAlloc, 1)
-        .statSub(&.sizeAlloc, header.userSize)
-
-        if .fillFree do
-            @memset(userAddr, FreeByte, header.userSize)
-
-        header.magic = MagicFree
-        foot.magic   = MagicFree
-        if header.tracking do
-            header.tracking.loc = request.callerLoc
-
+        let address = cast(u64) request.address!
         request.address = null
 
-        if .fastPathEnabled(request, header.classIndex)
+        let page = allocatorPageOf(address)
+        if !page
         {
-            let heap = currentAllocatorThreadHeap()
-            if heap and allocatorThreadHeapIsCurrent(ownerHeap, heap) and atomicGet(&ownerHeap.retired) == 0
-            {
-                .pushThreadLocal(ownerHeap, header)
-                .trimThreadHeap(ownerHeap)
-            }
-            else
-            {
-                if !.pushThreadRemote(ownerHeap, header) do
-                    .releaseUncached(header)
-            }
-        }
-        else
-        {
-            if .diagnosticMode()
-            {
-                .linkFree(header)
-                .trim()
-            }
-            else do
-                .releaseUncached(header)
+            .freeHeaderBlock(address, request.callerLoc)
+            return
         }
 
-        // Decrement activeCount LAST. It pins ownerHeap: a retired heap is only reclaimed
-        // once activeCount hits 0, and the hand-off above (pushThreadRemote in particular)
-        // still dereferences ownerHeap after we no longer own the block. Decrementing earlier
-        // would let the heap be freed out from under that access.
-        discard .decActive(ownerHeap)
+        .checkPageAddress(page, address, request.callerLoc)
+
+        if .fillFree do
+            @memset(cast(*void) address, FreeByte, page.blockSize)
+
+        // Only the owning thread may touch the page's own free list; anyone else hands the block
+        // over through the page's atomic list, which the owner drains when it runs dry.
+        let heap = currentAllocatorThreadHeap()
+        if heap and page.ownerHeap == heap
+        {
+            if page.freeList == page.encode(address) do
+                @panic("memory block is freed twice", request.callerLoc)
+
+            page.releaseBlock(address)
+            if page.used == 0 do
+                .retirePage(heap, page)
+        }
+        else do
+            page.pushRemote(address)
+    }
+
+    mtd assertIsAllocated(addr: #null *void, callerLoc = #callerlocation)
+    {
+        if !addr do
+            return
+
+        let address = cast(u64) addr!
+        let page    = allocatorPageOf(address)
+        if page
+        {
+            .checkPageAddress(page, address, callerLoc)
+
+            // Being a block of the page is not enough: a freed block still looks like one. Walking
+            // the free list is what separates the two, and only a caller that asked for the check
+            // pays for it.
+            if page.holdsFreeBlock(address) do
+                @panic("memory block is not allocated", callerLoc)
+            return
+        }
+
+        .checkAllocated(.headerOf(address), callerLoc)
+    }
+
+    // ###################################################################################
+    // Statistics and teardown
+    // ###################################################################################
+
+    // Walks the pages this allocator holds. Exact when the caller is the only thread allocating.
+    mtd stats()->AllocatorStats
+    {
+        var result: retval
+
+        .segmentMutex.lock()
+        defer .segmentMutex.unlock()
+
+        var segment: #null *AllocatorSegment = .firstSegment
+        while segment
+        {
+            result.countSegment += 1
+            for [i] in segment.pageCount
+            {
+                let page = &segment.pages[i]
+                if page.state == AllocatorPageState.Free do
+                    continue
+
+                let live = page.liveCount()
+                result.countPage  += 1
+                result.countAlloc += live
+                result.sizeAlloc  += cast(u64) live * page.blockSize
+                result.countFree  += (page.carved - page.areaStart) / page.blockSize - live
+                result.sizeCached += page.capacityBytes() - cast(u64) live * page.blockSize
+            }
+
+            segment = segment.nextSegment
+        }
+
+        result.countAlloc += atomicGet(&.headerCount)
+        result.sizeAlloc  += atomicGet(&.headerBytes)
+        result.countFree  += .quarantineCount
+        result.sizeCached += .quarantineBytes
+
+        result.sizeCommitted   = atomicGet(&g_AllocatorCommittedBytes)
+        result.countOsCommit   = atomicGet(&g_AllocatorOsCommitCount)
+        result.countOsDecommit = atomicGet(&g_AllocatorOsDecommitCount)
+        result.countOsReserve  = atomicGet(&g_AllocatorOsReserveCount)
+        return result
+    }
+
+    // Gives idle memory back: every page with no live block is decommitted, and every segment left
+    // without a page returns to the shared pool.
+    mtd trim()
+    {
+        let heap = currentAllocatorThreadHeap()
+        if heap and heap.allocator == me
+        {
+            for [i] in AllocatorClassCount
+            {
+                let cls  = &heap.classes[i]
+                var scan = cls.first
+                while scan
+                {
+                    let next = scan.nextPage
+                    scan.collectRemote()
+                    if scan.used == 0 and scan != cls.page
+                    {
+                        .unlinkPage(heap, scan)
+                        allocatorSegmentOf(scan).releasePage(scan)
+                    }
+
+                    scan = next
+                }
+            }
+        }
+
+        .segmentMutex.lock()
+        defer .segmentMutex.unlock()
+
+        var prevAbandoned: #null *AllocatorPage
+        var abandoned: #null *AllocatorPage = .firstAbandoned
+        while abandoned
+        {
+            let next = abandoned.nextPage
+            abandoned.collectRemote()
+            if abandoned.used == 0
+            {
+                if !prevAbandoned do
+                    .firstAbandoned = next
+                else do
+                    prevAbandoned.nextPage = next
+                allocatorSegmentOf(abandoned).releasePage(abandoned)
+            }
+            else do
+                prevAbandoned = abandoned
+
+            abandoned = next
+        }
+
+        .releaseEmptySegments()
+    }
+
+    // Returns every segment without a live page. The caller holds the segment mutex.
+    mtd releaseEmptySegments()
+    {
+        var segment: #null *AllocatorSegment = .firstSegment
+        while segment
+        {
+            let next = segment.nextSegment
+            if segment.isEmpty()
+            {
+                if segment.prevSegment do
+                    segment.prevSegment.nextSegment = next
+                else do
+                    .firstSegment = next
+                if next do
+                    next.prevSegment = segment.prevSegment
+                allocatorReleaseSegment(segment)
+            }
+
+            segment = next
+        }
     }
 
     mtd releaseAll()
@@ -1158,28 +1185,61 @@ impl Allocator
         if heap and heap.allocator == me
         {
             setCurrentAllocatorThreadHeap(null)
-            discard @atomxchg(&heap.retired, 1)
-            .releaseThreadHeap(heap)
+            .retireThreadHeap(heap)
         }
 
-        while .firstFree do
-            .releaseBlock(.firstFree)
+        .segmentMutex.lock()
+
+        // Any heap still registered belongs to a thread that never came back. Its pages go with it.
+        while .firstHeap
+        {
+            let other = .firstHeap!
+            .unlinkHeap(other)
+            .osFree(other, #sizeof(AllocatorThreadHeap))
+        }
+
+        var segment: #null *AllocatorSegment = .firstSegment
+        while segment
+        {
+            let next = segment.nextSegment
+            for [i] in segment.pageCount
+            {
+                let page = &segment.pages[i]
+                if page.state != AllocatorPageState.Free
+                {
+                    page.used = 0
+                    segment.releasePage(page)
+                }
+            }
+
+            allocatorReleaseSegment(segment)
+            segment = next
+        }
+
+        .firstSegment   = null
+        .firstAbandoned = null
+        .segmentMutex.unlock()
+
+        while .firstQuarantine
+        {
+            let header = .firstQuarantine!
+            .firstQuarantine = header.next
+            .osFree(header.allocAddr, header.allocSize)
+        }
+
+        .lastQuarantine  = null
+        .quarantineBytes = 0
+        .quarantineCount = 0
 
         while .firstAlloc
         {
-            let header = .firstAlloc
+            let header = .firstAlloc!
             .unlinkAllocated(header)
-
-            // Every tracked allocated block records its owner heap ('setupAllocatedHeader').
-            discard .decActive(cast(*AllocatorThreadHeap) header.ownerHeap!)
-            .statSub(&.countAlloc, 1)
-            .statSub(&.sizeAlloc, header.userSize)
-
-            .rawFree(header.allocAddr)
+            .osFree(header.allocAddr, header.allocSize)
         }
 
-        if heap and heap.allocator == me and atomicGet(&heap.activeCount) == 0 do
-            .releaseThreadHeapRecord(heap)
+        atomicSubU64(&.headerCount, atomicGet(&.headerCount))
+        atomicSubU64(&.headerBytes, atomicGet(&.headerBytes))
     }
 
     mtd checkAllMemory()
@@ -1191,7 +1251,7 @@ impl Allocator
             header = header.next
         }
 
-        header = .firstFree
+        header = .firstQuarantine
         while header
         {
             .checkFree(header)
@@ -1201,28 +1261,28 @@ impl Allocator
 
     mtd printLeaks()
     {
-        if .countAlloc == 0 or !.detectLeaks do
+        if !.detectLeaks do
             return
 
-        var scan = .firstAlloc
+        let snapshot = .stats()
+        let live     = snapshot.countAlloc
+        if live == 0 do
+            return
 
         @print("\nSwag allocator: memory remains allocated\n")
         @print("---------------------------------------\n")
-        @print(.countAlloc)
-        if .countAlloc == 1
-        {
+        @print(live)
+        if live == 1 do
             @print(" allocation, totaling ")
-        }
-        else
-        {
+        else do
             @print(" allocations, totaling ")
-        }
 
-        printDisplaySize(.sizeAlloc)
+        printDisplaySize(snapshot.sizeAlloc)
         @print("\n")
         @print("---------------------------------------\n")
 
-        var cpt = 0
+        var scan = .firstAlloc
+        var cpt  = 0
         while scan
         {
             .checkAllocated(scan)
@@ -1246,7 +1306,7 @@ impl Allocator
             if .showMaxLeaks and cpt >= .showMaxLeaks
             {
                 @print("\x1b[91m")
-                @print("remaining allocation details omitted; ", .countAlloc, " allocations remain in total\n")
+                @print("remaining allocation details omitted\n")
                 @print("\x1b[97m")
                 break
             }
@@ -1258,12 +1318,9 @@ impl Allocator
         if !.installed() do
             return
 
-        // Serialize against concurrent retireThreadHeap()/releaseRetiredHeaps() touching the
-        // retired-heap list. Unlock before the memset (which zeroes the mutex itself).
         .mutex.lock()
         .printLeaks()
         .releaseAll()
-        .releaseRetiredHeaps()
         .mutex.unlock()
 
         @init(me, 1)
@@ -1282,7 +1339,6 @@ impl Allocator
 
         .printLeaks()
         .releaseAll()
-        .releaseRetiredHeaps()
     }
 }
 
@@ -1350,12 +1406,11 @@ func defaultAllocator()->*Allocator
     return &g_DefaultAllocator
 }
 
+// Gives the calling thread's pages back without waiting for the thread to exit.
 func releaseAllocatorThreadCache()
 {
     let heap = currentAllocatorThreadHeap()
     if !heap do
-        return
-    if !allocatorThreadHeapIsCurrent(heap, heap) do
         return
 
     setCurrentAllocatorThreadHeap(null)

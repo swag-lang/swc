@@ -30,8 +30,10 @@ namespace __Win32RT
     const SRWLOCK_INIT         = cast(SRWLOCK) null
     const MEM_COMMIT           = 0x0000_1000'u32
     const MEM_RESERVE          = 0x0000_2000'u32
+    const MEM_DECOMMIT         = 0x0000_4000'u32
     const MEM_RELEASE          = 0x0000_8000'u32
     const PAGE_READWRITE       = 0x0000_0004'u32
+    const PAGE_NOACCESS        = 0x0000_0001'u32
 
     #[Swag.Foreign("kernel32")]
     {
@@ -331,6 +333,62 @@ func __tlsGetPtr(id: u64, size: u64, init: const *void)->#null *void
     discard __runtimeAllocator()
 
     return ptr
+}
+
+////////////////////////////////////////////////////////////
+// Releases the copy a thread made of a thread-local global.
+private func __releaseTlsVar(value: #null *void)
+{
+    if value do
+        @free(cast(#null [*] void) value)
+}
+
+// Returns the calling thread's copy of a thread-local global, creating it on first access.
+//
+// 'idSlot' is module storage holding the storage index for that one global, claimed on first use;
+// 'init' is the module's copy of its declared initial value, which every thread starts from. The
+// copy comes from the C allocator rather than the Swag one, because the Swag allocator itself
+// reaches this path and would otherwise recurse. Fiber-local storage is used rather than the plain
+// thread slot so that the copy is released when the thread ends, including on a thread the runtime
+// never started.
+func __tlsVarPtr(idSlot: *u64, size: u64, init: const *void)->#null *void
+{
+    using __Win32RT
+
+    var id = @atomcmpxchg(idSlot, 0, 0)
+    if id == 0
+    {
+        // Windows guarantees only 128 fiber-local indices, which is one per thread-local global.
+        // Running out has to be said out loud: carrying on would hand every thread the same copy,
+        // which is exactly the bug this attribute exists to prevent.
+        let slot = FlsAlloc(&__releaseTlsVar)
+        if slot == 0xFFFF_FFFF do
+            @panic("too many thread-local globals for the platform", #curlocation)
+
+        // The index is stored biased by one so that zero keeps meaning "not claimed yet".
+        let claimed  = cast(u64) slot + 1
+        let previous = @atomcmpxchg(idSlot, 0, claimed)
+        if previous == 0 do
+            id = claimed
+        else
+        {
+            discard FlsFree(cast(u32) (claimed - 1))
+            id = previous
+        }
+    }
+
+    let index = cast(u32) (id - 1)
+    let known = FlsGetValue(index)
+    if known do
+        return known
+
+    let created = @alloc(size)
+    if !created do
+        return null
+
+    @memcpy(created, init, size)
+    discard FlsSetValue(index, created)
+    return created
 }
 
 ////////////////////////////////////////////////////////////

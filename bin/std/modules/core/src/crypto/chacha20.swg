@@ -13,20 +13,15 @@ const ChaCha20BlockSize = 64
 #[Swag.Inline]
 private func add32(left, right: u32)->u32 => cast(u32) ((cast(u64) left + right) & 0xFFFF_FFFF)
 
+// The wire format is little-endian, which is the target's byte order: one
+// unaligned word access replaces the byte-at-a-time assembly.
 #[Swag.Inline]
-private func load32(data: const [*] u8)->u32
-{
-    return cast(u32) data[0] | (cast(u32) data[1] << 8) |
-           (cast(u32) data[2] << 16) | (cast(u32) data[3] << 24)
-}
+private func load32(data: const [*] u8)->u32 => dref cast(const *u32) data
 
 #[Swag.Inline]
 private func store32(data: [*] u8, value: u32)
 {
-    data[0] = cast(u8) (value & 0xFF)
-    data[1] = cast(u8) ((value >> 8) & 0xFF)
-    data[2] = cast(u8) ((value >> 16) & 0xFF)
-    data[3] = cast(u8) ((value >> 24) & 0xFF)
+    dref cast(*u32) data = value
 }
 
 #[Swag.Inline]
@@ -110,8 +105,23 @@ func chacha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, initia
     {
         var block = chacha20Block(key, counter, nonce)
         let count = Math.min(@countof(source) - offset, ChaCha20BlockSize)
-        for [i] in count do
-            destination[offset + i] = source[offset + i] ^ block[i]
+
+        // Apply the key stream a word at a time; the tail of the final
+        // partial block falls back to bytes.
+        let src = @dataof(source) + offset
+        let dst = @dataof(destination) + offset
+        var i   = 0'u64
+        while i + 8 <= count
+        {
+            dref cast(*u64) (dst + i) = (dref cast(const *u64) (src + i)) ^ (dref cast(const *u64) &block[i])
+            i += 8
+        }
+        while i < count
+        {
+            dst[i] = src[i] ^ block[i]
+            i += 1
+        }
+
         secureClear(block)
         offset += count
         if offset < @countof(source) do

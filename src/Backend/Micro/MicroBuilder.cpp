@@ -476,6 +476,16 @@ void MicroBuilder::emitStoreVecMemReg(MicroReg memReg, uint64_t memOffset, Micro
     ops[3].valueU64         = memOffset;
 }
 
+void MicroBuilder::emitVecShuffleRegRegImm(MicroReg regDst, MicroReg regSrc, uint8_t control, MicroOpBits opBits)
+{
+    const auto&        inst = addInstruction(MicroInstrOpcode::VecShuffleRegRegImm, 4);
+    MicroInstrOperand* ops  = inst.ops(operands_);
+    ops[0].reg              = regDst;
+    ops[1].reg              = regSrc;
+    ops[2].opBits           = opBits;
+    ops[3].valueU64         = control;
+}
+
 void MicroBuilder::emitLoadRegImm(MicroReg reg, const ApInt& value, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::LoadRegImm, 3);

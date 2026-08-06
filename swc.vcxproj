@@ -284,6 +284,7 @@
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.MemToReg.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.LoopInvariantCodeMotion.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.LoopUnroll.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.SlpVectorize.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.StackAdjustNormalize.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.StrengthReduction.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.ValueNumbering.cpp"/>
@@ -609,6 +610,7 @@
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.LoopUnroll.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.PrologEpilogSanitize.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.RegisterAllocation.h"/>
+        <ClInclude Include="src\Backend\\Micro\Passes\Pass.SlpVectorize.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.StackAdjustNormalize.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.StrengthReduction.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.ValueNumbering.h"/>

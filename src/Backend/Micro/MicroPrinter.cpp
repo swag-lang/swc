@@ -196,6 +196,22 @@ namespace
                 return "test";
             case MicroOp::Xor:
                 return "xor";
+            case MicroOp::VecAdd32:
+                return "vec.add32";
+            case MicroOp::VecAnd:
+                return "vec.and";
+            case MicroOp::VecOr:
+                return "vec.or";
+            case MicroOp::VecShiftLeft32:
+                return "vec.shl32";
+            case MicroOp::VecShiftRight32:
+                return "vec.shr32";
+            case MicroOp::VecShuffle32:
+                return "vec.shuffle32";
+            case MicroOp::VecSub32:
+                return "vec.sub32";
+            case MicroOp::VecXor:
+                return "vec.xor";
         }
 
         SWC_UNREACHABLE();
@@ -601,6 +617,8 @@ namespace
                 return std::format("{} = vec128 {}", regName(ops[0].reg, regPrintMode, encoder), memBaseOffsetString(ops[1].reg, ops[3].valueU64, regPrintMode, encoder));
             case MicroInstrOpcode::StoreVecMemReg:
                 return std::format("{} = vec128 {}", memBaseOffsetString(ops[0].reg, ops[3].valueU64, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder));
+            case MicroInstrOpcode::VecShuffleRegRegImm:
+                return std::format("{} = {}({}, {})", regName(ops[0].reg, regPrintMode, encoder), tagInstructionToken("vec.shuffle32"), regName(ops[1].reg, regPrintMode, encoder), hexU64(ops[3].valueU64));
             case MicroInstrOpcode::LoadSignedExtRegMem:
                 return naturalExtendInstruction(regName(ops[0].reg, regPrintMode, encoder), memBaseOffsetString(ops[1].reg, ops[4].valueU64, regPrintMode, encoder), true, ops[2].opBits, ops[3].opBits);
             case MicroInstrOpcode::LoadZeroExtRegMem:

@@ -82,6 +82,8 @@ namespace
         buildCfg.backendKind = effectiveBackendKind(cmdLine, buildCfg.backendKind);
         if (cmdLine.backendOptimize.has_value())
             buildCfg.backend.optimize = cmdLine.backendOptimize.value();
+        if (cmdLine.cpuVectorizeExplicit)
+            buildCfg.backend.cpuVectorize = cmdLine.cpuVectorize;
 
         if (cmdLine.artifactNameExplicit)
             buildCfg.name = cmdLine.defaultBuildCfg.name;

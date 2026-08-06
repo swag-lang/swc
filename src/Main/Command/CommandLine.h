@@ -131,9 +131,10 @@ struct CommandLine
 {
     CommandKind command = CommandKind::Syntax;
 
-    Runtime::TargetOs            targetOs    = Runtime::TargetOs::Windows;
-    Runtime::TargetArch          targetArch  = Runtime::TargetArch::X86_64;
-    Runtime::BuildCfgBackendKind backendKind = Runtime::BuildCfgBackendKind::Executable;
+    Runtime::TargetOs                    targetOs     = Runtime::TargetOs::Windows;
+    Runtime::TargetArch                  targetArch   = Runtime::TargetArch::X86_64;
+    Runtime::BuildCfgBackendKind         backendKind  = Runtime::BuildCfgBackendKind::Executable;
+    Runtime::BuildCfgBackendCpuVectorize cpuVectorize = Runtime::BuildCfgBackendCpuVectorize::None;
 
 #if defined(_M_X64) || defined(__x86_64__)
     Utf8 targetCpu = "x86_64";
@@ -171,6 +172,7 @@ struct CommandLine
     bool sourceDrivenTest        = false;
     bool buildCfgExplicit        = false;
     bool artifactKindExplicit    = false;
+    bool cpuVectorizeExplicit    = false;
     bool artifactNameExplicit    = false;
     bool moduleNamespaceExplicit = false;
     bool outDirExplicit          = false;

@@ -36,21 +36,22 @@ locally.
 ### 2. The crypto primitives are scalar
 
 - Owner: `bin/std` (`bin/std/modules/core/src/crypto/`)
-- Problem: `chacha20.swg`, `poly1305.swg` and `argon2.swg` are all straightforward scalar
-  implementations. Argon2id measures 403 ms at the Interactive profile and 2 396 ms at the Moderate
-  default (release build, m=256 MiB, t=3, p=4), and rejecting a wrong password costs that four
-  times over, because every key slot is probed whether or not it holds a password.
-- Evidence: `compress` in `argon2.swg` is sixteen permutation passes of 64-bit mixing per 1 KiB
-  block, and `chacha20Block` produces one 64-byte block at a time. Measured on a release build:
-  `chacha20Xor` runs at about 50 MiB/s and `chacha20Poly1305Seal` at about 46 MiB/s over 4 KiB
-  blocks, while the Windows system random generator returns about 5.5 GiB/s. That two-order gap
-  is the reason container creation draws its fill from the system generator rather than from a
-  seeded key stream, and it is what caps the throughput of a mounted volume.
-- Fix: given the repository's AVX work, the ChaCha20 quarter-round and the Argon2 permutation both
-  vectorize directly. Argon2's lanes are also independent within a slice, so `Jobs` can run
-  `parallelism` of them at once.
+- Problem: `poly1305.swg` and `argon2.swg` are straightforward scalar implementations, and
+  `chacha20.swg`, although its rounds now auto-vectorize, is still bounded by memory traffic.
+  Argon2id measures 403 ms at the Interactive profile and 2 396 ms at the Moderate default
+  (release build, m=256 MiB, t=3, p=4), and rejecting a wrong password costs that four times
+  over, because every key slot is probed whether or not it holds a password.
+- Done so far: the backend's SSE2 auto-vectorizer (release builds, `cpuVectorize`) compiles the
+  ChaCha20 double-round loop to packed code (~90 instructions instead of ~500 scalar ones), and
+  the key-stream application and 32-bit marshalling work a word at a time instead of a byte at a
+  time. Measured throughput did not move yet: the packed state still round-trips through the
+  frame on every round iteration, which is the store-forwarding chain F-029 in `FINDINGS.md`
+  documents, with the re-measurement protocol to use once that lands.
+- Fix: keep the four state rows register-resident across the ten rounds (backend work, F-029),
+  then revisit `poly1305` and the Argon2 permutation. Argon2's lanes are also independent within
+  a slice, so `Jobs` can run `parallelism` of them at once.
 - Why it matters: the mount latency a user actually feels is almost entirely this, and every
-  block read and written pays the 46 MiB/s.
+  block read and written pays the key-stream rate.
 
 ### 3. Keys live in pageable memory
 

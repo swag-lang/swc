@@ -120,7 +120,45 @@ enum class MicroOp : uint8_t
     Subtract,
     Test,
     Xor,
+
+    // 128-bit packed integer operations on the float register file (SSE2).
+    // Appended after the scalar operations to keep prior enum values stable.
+    // The bitwise forms are lane-agnostic; the arithmetic and shift forms name
+    // their lane width. Shifts take an immediate count; VecShuffle32 is the
+    // four-lane permute (pshufd) and lives on its own opcode because it is the
+    // only non-destructive reg/reg/imm shape in the instruction set.
+    VecAdd32,
+    VecAnd,
+    VecOr,
+    VecShiftLeft32,
+    VecShiftRight32,
+    VecShuffle32,
+    VecSub32,
+    VecXor,
 };
+
+// True for the 128-bit packed operations, which only the auto-vectorizer
+// creates: they run on the float register file, ignore the CPU flags, and
+// keep their immediate operands verbatim (a shift count or a shuffle
+// control), so scalar rewrites must leave them alone.
+inline bool isVecMicroOp(const MicroOp op)
+{
+    switch (op)
+    {
+        case MicroOp::VecAdd32:
+        case MicroOp::VecAnd:
+        case MicroOp::VecOr:
+        case MicroOp::VecShiftLeft32:
+        case MicroOp::VecShiftRight32:
+        case MicroOp::VecShuffle32:
+        case MicroOp::VecSub32:
+        case MicroOp::VecXor:
+            return true;
+
+        default:
+            return false;
+    }
+}
 
 enum class MicroCond : uint8_t
 {

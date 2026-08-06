@@ -53,6 +53,7 @@ protected:
     void encodeLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits) override;
     void encodeLoadVecRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits) override;
     void encodeStoreVecMemReg(MicroReg memReg, uint64_t memOffset, MicroReg regSrc, MicroOpBits opBits) override;
+    void encodeVecShuffleRegRegImm(MicroReg regDst, MicroReg regSrc, uint64_t control, MicroOpBits opBits) override;
     void encodeLoadRegImm(MicroReg reg, const ApInt& value, MicroOpBits opBits) override;
     void encodeLoadRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits opBits) override;
     void encodeLoadSignedExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc) override;

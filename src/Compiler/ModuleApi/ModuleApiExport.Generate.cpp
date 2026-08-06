@@ -250,13 +250,14 @@ namespace
         // so importers can judge their call sites against this function's parameters.
         // The export runs after the final sema drain, so the masks include the
         // transitive bits added by the summary fixpoint.
-        const uint64_t returnsMask = symbolFunction.returnBorrowsParamsMask();
-        const uint64_t storesMask  = symbolFunction.storesParamsMask();
-        const uint64_t intoPairs   = symbolFunction.storesIntoParamPairs();
-        const uint64_t freesMask   = symbolFunction.freesParamsMask();
-        if ((returnsMask != 0 || storesMask != 0 || intoPairs != 0 || freesMask != 0) && !ioSnippet.contains("BorrowSummary"))
+        const uint64_t returnsMask     = symbolFunction.returnBorrowsParamsMask();
+        const uint64_t storesMask      = symbolFunction.storesParamsMask();
+        const uint64_t intoPairs       = symbolFunction.storesIntoParamPairs();
+        const uint64_t freesMask       = symbolFunction.freesParamsMask();
+        const uint64_t reallocatesMask = symbolFunction.reallocatesParamsMask();
+        if ((returnsMask != 0 || storesMask != 0 || intoPairs != 0 || freesMask != 0 || reallocatesMask != 0) && !ioSnippet.contains("BorrowSummary"))
         {
-            prefix += std::format("#[Swag.BorrowSummary({}, {}, {}, {})]", returnsMask, storesMask, intoPairs, freesMask);
+            prefix += std::format("#[Swag.BorrowSummary({}, {}, {}, {}, {})]", returnsMask, storesMask, intoPairs, freesMask, reallocatesMask);
             prefix += eol;
         }
 

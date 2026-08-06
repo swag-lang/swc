@@ -29,6 +29,11 @@ struct DiagnosticArgument
 
 using DiagnosticArguments = std::vector<DiagnosticArgument>;
 
+// Stores 'arg' under 'name', replacing any entry already under that name. The text is flattened
+// to one printable line first: a tab or a line break becomes a space and anything else outside
+// printable ASCII becomes a '\xNN' escape, so quoted user text cannot break the diagnostic layout.
+void setDiagnosticArgument(DiagnosticArguments& arguments, std::string_view name, std::string_view arg);
+
 class DiagnosticElement
 {
 public:

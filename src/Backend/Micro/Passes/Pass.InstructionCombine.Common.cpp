@@ -156,11 +156,6 @@ namespace InstructionCombine
 
     //===-- Context methods -------------------------------------------------===//
 
-    bool Context::isClaimed(MicroInstrRef ref) const
-    {
-        return claimed.contains(ref.get());
-    }
-
     bool Context::claimAll(std::initializer_list<MicroInstrRef> refs, bool allowRelocated)
     {
         for (const MicroInstrRef ref : refs)
@@ -169,74 +164,6 @@ namespace InstructionCombine
         for (const MicroInstrRef ref : refs)
             claimed.insert(ref.get());
         return true;
-    }
-
-    void Context::emitErase(MicroInstrRef ref)
-    {
-        Action a;
-        a.ref   = ref;
-        a.erase = true;
-        actions.push_back(a);
-    }
-
-    void Context::emitRewrite(MicroInstrRef ref, MicroInstrOpcode newOp, std::span<const MicroInstrOperand> newOps, bool allocNewBlock)
-    {
-        SWC_ASSERT(newOps.size() <= Action::K_MAX_OPS);
-        Action a;
-        a.ref      = ref;
-        a.newOp    = newOp;
-        a.numOps   = static_cast<uint8_t>(newOps.size());
-        a.allocOps = allocNewBlock;
-        for (size_t i = 0; i < newOps.size(); ++i)
-            a.ops[i] = newOps[i];
-        actions.push_back(a);
-    }
-
-    //===-- Action application ---------------------------------------------===//
-
-    void applyAction(const Context& ctx, const Action& action)
-    {
-        SWC_ASSERT(ctx.storage);
-        SWC_ASSERT(ctx.operands);
-
-        if (action.erase)
-        {
-            ctx.storage->erase(action.ref);
-            return;
-        }
-
-        MicroInstr* inst = ctx.storage->ptr(action.ref);
-        SWC_ASSERT(inst);
-
-        if (action.allocOps)
-        {
-            const auto [newRef, opsBlock] = ctx.operands->emplaceUninitArray(action.numOps);
-            for (uint8_t i = 0; i < action.numOps; ++i)
-                opsBlock[i] = action.ops[i];
-            inst->opsRef = newRef;
-        }
-        else if (action.numOps > 0)
-        {
-            MicroInstrOperand* existing = inst->ops(*ctx.operands);
-            SWC_ASSERT(existing);
-            for (uint8_t i = 0; i < action.numOps; ++i)
-                existing[i] = action.ops[i];
-        }
-
-        inst->op          = action.newOp;
-        inst->numOperands = action.numOps;
-    }
-
-    //===-- Registry --------------------------------------------------------===//
-
-    void PatternRegistry::add(MicroInstrOpcode op, PatternFn fn)
-    {
-        byOpcode[static_cast<size_t>(op)].push_back(fn);
-    }
-
-    std::span<const PatternFn> PatternRegistry::patternsFor(MicroInstrOpcode op) const
-    {
-        return byOpcode[static_cast<size_t>(op)].span();
     }
 }
 

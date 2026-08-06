@@ -602,6 +602,7 @@
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.Internal.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.Legalize.h"/>
+        <ClInclude Include="src\Backend\\Micro\Passes\Pass.Peephole.Core.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.PreRAPeephole.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.PreRAPeephole.Internal.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.PostRAPeephole.h"/>

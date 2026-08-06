@@ -21,7 +21,7 @@ identifier, so a reference made today still resolves after the entry is gone. En
 identifier, ascending: a new one goes at the end, a deleted one leaves a gap, and position carries
 no priority.
 
-Next identifier: F-037
+Next identifier: F-038
 
 ## Open Investigations
 
@@ -535,3 +535,32 @@ Use this compact format. Keep observations factual and make the next step action
   where every float three-operand instruction it has seen so far arrived after allocation. Bisect
   cheaply first: restrict the fold to `FloatAdd` alone and run `tools/scripts.bat dm` - a crash
   there means the shape, a pass means the operation.
+
+### F-037 — Source duplication is nearly free in the executable, and templating it costs
+
+- Area: build
+- Found while: two rounds of factoring roughly 1600 lines of duplicated helpers out of the
+  compiler sources
+- Observation: the Release link runs `/OPT:ICF` (`EnableCOMDATFolding`) on top of LTCG, so two
+  byte-identical function bodies in different translation units cost two source copies but a
+  single copy in the image. Deleting them is worth doing for the sources; it is not a lever on the
+  binary. The reverse also holds, and is the sharper half: collapsing near-identical functions into
+  a template gives every instantiation its own body, and folding only reclaims the instantiations
+  that come out identical — which the interesting ones, differing by a constant, never do.
+- Evidence: round one removed 1398 net source lines across 85 files (verbatim twins such as
+  `builtinTypeRef`, `canReflectTypeRef`, `emitCStringCountReg`, `applyAction`, `collectLoopBody`,
+  plus the token classification moved into `Tokens.Def.inc`) and moved `bin/swc.exe` by only
+  10 240 bytes, 0.2% — of which 1 536 bytes came not from deleting anything but from putting two
+  helpers back inline in their headers after sharing them had cost them their inlining. Round two
+  removed a further 210 lines, mostly by templating families of two and three near-identical
+  functions, and the executable grew 3 072 bytes. The Release configuration already carries `/O2`,
+  `/GL`, `/Gy`, `/OPT:REF`, `/OPT:ICF` and `RuntimeTypeInfo=false`, so the usual size switches are
+  all on. Compile time and peak memory were unchanged throughout: identical CPU median over twelve
+  order-alternated rounds.
+- Next step: measure where the image actually goes before spending more on it. Dump the section
+  sizes and the largest COMDATs (`link /dump /headers`, `/dump /disasm`, or a map file with
+  `/MAP`), and separate code from the read-only data the diagnostic, token, and instruction tables
+  contribute. Only two levers are likely to matter and both must be weighed against the rule that
+  the compiler may never get slower: cutting template instantiation in the hot headers, and
+  trimming inlining pressure (`/Ob1` on the cold command/report/doc translation units only, never
+  on sema, codegen, or the micro passes).

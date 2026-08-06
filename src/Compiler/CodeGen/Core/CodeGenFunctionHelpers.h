@@ -11,6 +11,7 @@ class SymbolFunction;
 class SymbolVariable;
 class Sema;
 class TypeInfo;
+enum class CallConvKind : uint8_t;
 struct CallConv;
 struct CodeGenNodePayload;
 
@@ -27,6 +28,14 @@ namespace CodeGenFunctionHelpers
         bool        isRegisterArg     = false;
         uint8_t     numBits           = 0;
     };
+
+    // The parameter symbol the function itself declares for 'symVar', when 'symVar' is a
+    // clone that carries the same slot or name. Null when 'symVar' already is the canonical one.
+    const SymbolVariable* resolveCanonicalParameter(const SymbolFunction& symbolFunc, const SymbolVariable& symVar);
+
+    // Opens the local stack frame: reserves it on the stack and pins its base in a virtual
+    // register constrained to a callee-saved one, so the base survives every call the body makes.
+    void                  emitLocalStackFramePrologue(CodeGen& codeGen, CallConvKind callConvKind);
 
     bool                  functionUsesIndirectReturnStorage(CodeGen& codeGen, const SymbolFunction& symbolFunc);
     bool                  usesCallerReturnStorage(CodeGen& codeGen, const SymbolVariable& symVar);

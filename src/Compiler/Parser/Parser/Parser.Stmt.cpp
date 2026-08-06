@@ -285,41 +285,10 @@ AstNodeRef Parser::parseIntrinsicInit()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseIntrinsicDrop()
+template<AstNodeId NODE_ID>
+AstNodeRef Parser::parseLifecycleIntrinsic()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicDrop>(consume());
-    const TokenRef openRef  = ref();
-
-    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
-    nodePtr->nodeWhatRef = parseExpression();
-    if (consumeIf(TokenId::SymComma).isValid())
-        nodePtr->nodeCountRef = parseExpression();
-    else
-        nodePtr->nodeCountRef.setInvalid();
-    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
-
-    return nodeRef;
-}
-
-AstNodeRef Parser::parseIntrinsicPostCopy()
-{
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicPostCopy>(consume());
-    const TokenRef openRef  = ref();
-
-    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
-    nodePtr->nodeWhatRef = parseExpression();
-    if (consumeIf(TokenId::SymComma).isValid())
-        nodePtr->nodeCountRef = parseExpression();
-    else
-        nodePtr->nodeCountRef.setInvalid();
-    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
-
-    return nodeRef;
-}
-
-AstNodeRef Parser::parseIntrinsicPostMove()
-{
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicPostMove>(consume());
+    auto [nodeRef, nodePtr] = ast_->makeNode<NODE_ID>(consume());
     const TokenRef openRef  = ref();
 
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
@@ -1029,11 +998,11 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::IntrinsicInit:
             return parseIntrinsicInit();
         case TokenId::IntrinsicDrop:
-            return parseIntrinsicDrop();
+            return parseLifecycleIntrinsic<AstNodeId::IntrinsicDrop>();
         case TokenId::IntrinsicPostCopy:
-            return parseIntrinsicPostCopy();
+            return parseLifecycleIntrinsic<AstNodeId::IntrinsicPostCopy>();
         case TokenId::IntrinsicPostMove:
-            return parseIntrinsicPostMove();
+            return parseLifecycleIntrinsic<AstNodeId::IntrinsicPostMove>();
 
         case TokenId::KwdExpect:
         case TokenId::KwdCatch:

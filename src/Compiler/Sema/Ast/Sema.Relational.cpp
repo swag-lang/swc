@@ -786,22 +786,11 @@ namespace
 
     Result check(Sema& sema, TokenId op, const AstRelationalExpr& node, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
     {
-        switch (op)
-        {
-            case TokenId::SymEqualEqual:
-            case TokenId::SymBangEqual:
-                return checkEqualEqual(sema, node, nodeLeftView, nodeRightView);
+        if (Token::isOpEquality(op))
+            return checkEqualEqual(sema, node, nodeLeftView, nodeRightView);
 
-            case TokenId::SymLess:
-            case TokenId::SymLessEqual:
-            case TokenId::SymGreater:
-            case TokenId::SymGreaterEqual:
-            case TokenId::SymLessEqualGreater:
-                return checkCompareEqual(sema, node, nodeLeftView, nodeRightView);
-
-            default:
-                SWC_UNREACHABLE();
-        }
+        SWC_INTERNAL_CHECK(Token::isOpOrdering(op));
+        return checkCompareEqual(sema, node, nodeLeftView, nodeRightView);
     }
 }
 

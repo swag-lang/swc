@@ -12,6 +12,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
@@ -171,26 +172,6 @@ namespace
     void collectIntrinsicInitArgs(SmallVector<AstNodeRef>& outArgs, const Ast& ast, const AstIntrinsicInit& node)
     {
         ast.appendNodes(outArgs, node.spanArgsRef);
-    }
-
-    bool intrinsicInitTreatsArgsAsStructTuple(CodeGen& codeGen, TypeRef fillTypeRef, const SmallVector<AstNodeRef>& args)
-    {
-        if (args.empty() || !fillTypeRef.isValid())
-            return false;
-
-        const TypeInfo& fillType = codeGen.typeMgr().get(fillTypeRef);
-        if (!fillType.isStruct())
-            return false;
-        if (args.size() != 1)
-            return true;
-
-        const SemaNodeView argView = codeGen.viewType(args.front());
-        if (!argView.type())
-            return true;
-        if (argView.typeRef() == fillTypeRef)
-            return false;
-
-        return !argView.type()->isStruct() && !argView.type()->isAggregateStruct();
     }
 
     Result emitIntrinsicInitStore(CodeGen& codeGen, TypeRef fillTypeRef, const CodeGenNodePayload& srcPayload, MicroReg dstAddressReg)
@@ -371,7 +352,7 @@ namespace
         }
 
         CodeGenNodePayload srcPayload;
-        if (intrinsicInitTreatsArgsAsStructTuple(codeGen, targetInfo.fillTypeRef, args))
+        if (SemaHelpers::intrinsicInitTreatsArgsAsStructTuple(codeGen.sema(), targetInfo.fillTypeRef, args))
         {
             SWC_RESULT(buildIntrinsicInitTuplePayload(codeGen, node, targetInfo.fillTypeRef, args, srcPayload));
         }

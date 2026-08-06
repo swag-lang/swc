@@ -46,47 +46,35 @@ namespace
     // A stage names itself with a verb: what it is doing while it runs, what it has done once it
     // is over. The two scope stages are the exception, because they report a whole workspace or
     // module rather than one kind of work.
-    std::string_view stageActiveLabel(const Stage stage)
+    struct StageLabels
+    {
+        std::string_view active;
+        std::string_view done;
+    };
+
+    StageLabels stageLabels(const Stage stage)
     {
         switch (stage)
         {
-            case Stage::Workspace: return "workspace";
-            case Stage::Module: return "module";
-            case Stage::Format: return "formatting";
-            case Stage::Syntax: return "reading";
-            case Stage::Sema: return "checking";
-            case Stage::Doc: return "documenting";
-            case Stage::JIT: return "executing";
-            case Stage::Micro: return "tuning";
-            case Stage::Build: return "forging";
-            case Stage::Run: return "running";
-            case Stage::Test: return "testing";
-            case Stage::Verify: return "verifying";
-            case Stage::Unittest: return "testing";
+            case Stage::Workspace: return {"workspace", "workspace"};
+            case Stage::Module: return {"module", "module"};
+            case Stage::Format: return {"formatting", "formatted"};
+            case Stage::Syntax: return {"reading", "read"};
+            case Stage::Sema: return {"checking", "checked"};
+            case Stage::Doc: return {"documenting", "documented"};
+            case Stage::JIT: return {"executing", "executed"};
+            case Stage::Micro: return {"tuning", "tuned"};
+            case Stage::Build: return {"forging", "forged"};
+            case Stage::Run: return {"running", "ran"};
+            case Stage::Test: return {"testing", "tested"};
+            case Stage::Verify: return {"verifying", "verified"};
+            case Stage::Unittest: return {"testing", "tested"};
         }
         SWC_UNREACHABLE();
     }
 
-    std::string_view stageDoneLabel(const Stage stage)
-    {
-        switch (stage)
-        {
-            case Stage::Workspace: return "workspace";
-            case Stage::Module: return "module";
-            case Stage::Format: return "formatted";
-            case Stage::Syntax: return "read";
-            case Stage::Sema: return "checked";
-            case Stage::Doc: return "documented";
-            case Stage::JIT: return "executed";
-            case Stage::Micro: return "tuned";
-            case Stage::Build: return "forged";
-            case Stage::Run: return "ran";
-            case Stage::Test: return "tested";
-            case Stage::Verify: return "verified";
-            case Stage::Unittest: return "tested";
-        }
-        SWC_UNREACHABLE();
-    }
+    std::string_view stageActiveLabel(const Stage stage) { return stageLabels(stage).active; }
+    std::string_view stageDoneLabel(const Stage stage) { return stageLabels(stage).done; }
 
     // The last word of a run. It says how the command ended, not what it produced.
     std::string_view commandOutcomeLabel(const ScopedTimedLog::StageOutcome outcome)

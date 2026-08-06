@@ -727,7 +727,9 @@ namespace
         return Result::Continue;
     }
 
-    Result codeGenMemCopyIntrinsic(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
+    // '@memcpy' and '@memmove' lower to an inline block copy only when the size is a constant;
+    // otherwise the runtime call stands. They differ solely in overlap handling.
+    Result codeGenMemBlockIntrinsic(CodeGen& codeGen, const AstIntrinsicCallExpr& node, bool mayOverlap)
     {
         SmallVector<AstNodeRef> children;
         codeGen.ast().appendNodes(children, node.spanChildrenRef);
@@ -745,7 +747,10 @@ namespace
 
         const MicroReg dstReg = materializeIntrinsicIntArgReg(codeGen, dstPayload, MicroOpBits::B64);
         const MicroReg srcReg = materializeIntrinsicIntArgReg(codeGen, srcPayload, MicroOpBits::B64);
-        CodeGenMemoryHelpers::emitMemCopy(codeGen, dstReg, srcReg, sizeInBytes);
+        if (mayOverlap)
+            CodeGenMemoryHelpers::emitMemMove(codeGen, dstReg, srcReg, sizeInBytes);
+        else
+            CodeGenMemoryHelpers::emitMemCopy(codeGen, dstReg, srcReg, sizeInBytes);
         return Result::Continue;
     }
 
@@ -774,28 +779,6 @@ namespace
 
         const MicroReg valueReg = materializeIntrinsicIntArgReg(codeGen, valuePayload, MicroOpBits::B8);
         CodeGenMemoryHelpers::emitMemSet(codeGen, dstReg, valueReg, sizeInBytes);
-        return Result::Continue;
-    }
-
-    Result codeGenMemMoveIntrinsic(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
-    {
-        SmallVector<AstNodeRef> children;
-        codeGen.ast().appendNodes(children, node.spanChildrenRef);
-        SWC_ASSERT(children.size() == 3);
-
-        const AstNodeRef          dstRef     = children[0];
-        const AstNodeRef          srcRef     = children[1];
-        const AstNodeRef          sizeRef    = children[2];
-        const CodeGenNodePayload& dstPayload = codeGen.payload(dstRef);
-        const CodeGenNodePayload& srcPayload = codeGen.payload(srcRef);
-
-        uint32_t sizeInBytes = 0;
-        if (!tryGetIntrinsicMemSizeConst(codeGen, sizeRef, sizeInBytes))
-            return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, node.nodeExprRef);
-
-        const MicroReg dstReg = materializeIntrinsicIntArgReg(codeGen, dstPayload, MicroOpBits::B64);
-        const MicroReg srcReg = materializeIntrinsicIntArgReg(codeGen, srcPayload, MicroOpBits::B64);
-        CodeGenMemoryHelpers::emitMemMove(codeGen, dstReg, srcReg, sizeInBytes);
         return Result::Continue;
     }
 
@@ -2095,11 +2078,11 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
         case TokenId::IntrinsicRound:
             return codeGenRoundAwayFromZero(codeGen, *this);
         case TokenId::IntrinsicMemCpy:
-            return codeGenMemCopyIntrinsic(codeGen, *this);
+            return codeGenMemBlockIntrinsic(codeGen, *this, false);
         case TokenId::IntrinsicMemSet:
             return codeGenMemSetIntrinsic(codeGen, *this);
         case TokenId::IntrinsicMemMove:
-            return codeGenMemMoveIntrinsic(codeGen, *this);
+            return codeGenMemBlockIntrinsic(codeGen, *this, true);
         case TokenId::IntrinsicMemCmp:
             return codeGenMemCmpIntrinsic(codeGen, *this);
         case TokenId::IntrinsicAtomicAdd:

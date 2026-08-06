@@ -97,6 +97,11 @@ public:
     static LifecycleFlags lifecycleFlagsOfType(TaskContext& ctx, const TypeInfo& type);
     static LifecycleFlags lifecycleFlagsOfTypeRef(TaskContext& ctx, TypeRef typeRef);
 
+    // The function type a reflected method entry should carry, or invalid when the method
+    // cannot appear in runtime metadata at all (compiler-only, or a signature that names a
+    // type reflection cannot describe).
+    static TypeRef reflectedMethodTypeRef(TaskContext& ctx, const SymbolFunction& symFunc);
+
 private:
     enum class LayoutKind
     {

@@ -96,7 +96,7 @@ bool DiagnosticElement::isNoteOrHelp() const
     return severity_ == DiagnosticSeverity::Note || severity_ == DiagnosticSeverity::Help;
 }
 
-void DiagnosticElement::addArgument(std::string_view name, std::string_view arg)
+void setDiagnosticArgument(DiagnosticArguments& arguments, std::string_view name, std::string_view arg)
 {
     Utf8 sanitized;
     sanitized.reserve(arg.size());
@@ -131,8 +131,7 @@ void DiagnosticElement::addArgument(std::string_view name, std::string_view arg)
         }
     }
 
-    // Replace it if the same argument already exists
-    for (DiagnosticArgument& a : arguments_)
+    for (DiagnosticArgument& a : arguments)
     {
         if (a.name == name)
         {
@@ -141,7 +140,12 @@ void DiagnosticElement::addArgument(std::string_view name, std::string_view arg)
         }
     }
 
-    arguments_.emplace_back(DiagnosticArgument{.name = name, .val = std::move(sanitized)});
+    arguments.emplace_back(DiagnosticArgument{.name = name, .val = std::move(sanitized)});
+}
+
+void DiagnosticElement::addArgument(std::string_view name, std::string_view arg)
+{
+    setDiagnosticArgument(arguments_, name, arg);
 }
 
 // Format a string by replacing registered arguments

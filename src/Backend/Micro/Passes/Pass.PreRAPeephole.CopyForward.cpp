@@ -62,32 +62,9 @@ namespace PreRaPeephole
         }
     }
 
-    bool tryFoldCopyAddIntoLoadAddress(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
+    bool tryFoldCopyAddIntoLoadAddress(Context& ctx, const MicroInstrRef firstRef, const MicroInstr& firstInst)
     {
-        if (ctx.isClaimed(copyRef))
-            return false;
-
-        const MicroInstrRef addRef = ctx.nextRef(copyRef);
-        if (!addRef.isValid() || ctx.isClaimed(addRef))
-            return false;
-
-        const MicroInstr* addInst = ctx.instruction(addRef);
-        if (!addInst)
-            return false;
-        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, addRef))
-            return false;
-
-        Action rewrite;
-        if (!buildCopyAddLoadAddressRewrite(rewrite, copyInst, ctx.operandsFor(copyRef), *addInst, ctx.operandsFor(addRef)))
-            return false;
-
-        if (!ctx.claimAll({copyRef, addRef}))
-            return false;
-
-        rewrite.ref = copyRef;
-        ctx.actions.push_back(rewrite);
-        ctx.emitErase(addRef);
-        return true;
+        return tryFoldAdjacentPair(ctx, firstRef, firstInst, buildCopyAddLoadAddressRewrite);
     }
 
     bool tryForwardCopy(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)

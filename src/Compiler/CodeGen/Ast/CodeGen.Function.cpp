@@ -246,35 +246,6 @@ namespace
         codeGen.setLocalStackFrameSize(static_cast<uint32_t>(frameSize));
     }
 
-    void emitLocalStackFramePrologue(CodeGen& codeGen, CallConvKind callConvKind)
-    {
-        if (!codeGen.hasLocalStackFrame())
-            return;
-
-        const CallConv& callConv  = CallConv::get(callConvKind);
-        MicroBuilder&   builder   = codeGen.builder();
-        const uint32_t  frameSize = codeGen.localStackFrameSize();
-        SWC_ASSERT(frameSize != 0);
-
-        // Materialize the local stack base into a virtual register. RegAlloc will assign
-        // it a physical register — we constrain it to a persistent (callee-saved) register
-        // by forbidding all transient (caller-saved) registers, so it survives calls.
-        const MicroReg        frameBaseReg = codeGen.nextVirtualIntRegister();
-        SmallVector<MicroReg> forbiddenRegs;
-        for (const MicroReg reg : callConv.intTransientRegs)
-            forbiddenRegs.push_back(reg);
-        forbiddenRegs.push_back(callConv.stackPointer);
-        if (callConv.framePointer.isValid())
-            forbiddenRegs.push_back(callConv.framePointer);
-        builder.addVirtualRegForbiddenPhysRegs(frameBaseReg, forbiddenRegs.span());
-
-        builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(frameSize, 64), MicroOp::Subtract, MicroOpBits::B64);
-        builder.emitLoadRegReg(frameBaseReg, callConv.stackPointer, MicroOpBits::B64);
-        codeGen.setLocalStackBaseReg(frameBaseReg);
-        codeGen.function().setDebugStackFrameSize(frameSize);
-        codeGen.function().setDebugStackBaseReg(frameBaseReg);
-    }
-
     void spillParametersToDebugSlots(CodeGen& codeGen, const SymbolFunction& symbolFunc)
     {
         if (!codeGen.isDebugInfoEnabled())
@@ -563,7 +534,7 @@ namespace
         {
             MicroBuilder&           builder = codeGen.builder();
             const ScopedDebugNoStep noStep(builder, true);
-            emitLocalStackFramePrologue(codeGen, callConvKind);
+            CodeGenFunctionHelpers::emitLocalStackFramePrologue(codeGen, callConvKind);
             emitCurrentFunctionIndirectReturnStoragePrologue(codeGen, callConv);
         }
 

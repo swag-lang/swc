@@ -10,6 +10,7 @@ class Sema;
 struct SemaNodeView;
 class TaskContext;
 class CompilerInstance;
+enum class TokenId : uint16_t;
 
 enum class RuntimeTypeKind : uint32_t
 {
@@ -76,6 +77,9 @@ public:
     TypeRef typeValuePtrU8() const { return typeValuePtrU8_; }
     TypeRef typeConstValuePtrU8() const { return typeConstValuePtrU8_; }
 
+    // Maps a native type keyword ('s32', 'bool', ...) to its type. Invalid for any other token.
+    TypeRef builtinType(TokenId tokenId) const;
+
     TypeRef typeInt(uint32_t bits, TypeInfo::Sign sign) const;
     TypeRef typeInt() const { return typeInt_; }
     TypeRef typeIntSigned() const { return typeIntSigned_; }
@@ -97,6 +101,17 @@ public:
     TypeRef         unwrapAliasEnum(const TaskContext& ctx, TypeRef typeRef) const;
     TypeRef         promote(TypeRef lhs, TypeRef rhs, bool force32BitInts) const;
     static uint32_t chooseConcreteScalarWidth(uint32_t minRequiredBits, bool& overflow);
+
+    // Like unwrapAliasEnum, but keeps the type itself when it is neither an alias nor an enum.
+    // Inline, and reaching TypeInfo directly, because the cast paths call it on every operand.
+    TypeRef unwrapAliasEnumOrSelf(const TaskContext& ctx, TypeRef typeRef) const
+    {
+        if (!typeRef.isValid())
+            return TypeRef::invalid();
+
+        const TypeRef unwrappedTypeRef = get(typeRef).unwrapAliasEnum(ctx, typeRef);
+        return unwrappedTypeRef.isValid() ? unwrappedTypeRef : typeRef;
+    }
 
     bool    isTypeInfoRuntimeStruct(IdentifierRef idRef) const;
     bool    isRuntimeTypeInfoPointer(const TaskContext& ctx, TypeRef typeRef) const;

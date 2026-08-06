@@ -203,19 +203,6 @@ namespace
                 inlinePayload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Mixin));
     }
 
-    const SymbolFunction* parentLexicalFunction(const SymbolFunction& function)
-    {
-        const SymbolMap* map = function.ownerSymMap();
-        while (map)
-        {
-            if (map->isFunction())
-                return &map->cast<SymbolFunction>();
-            map = map->ownerSymMap();
-        }
-
-        return nullptr;
-    }
-
     bool functionOrLexicalParentUsesCallerScope(const SymbolFunction* function)
     {
         while (function)
@@ -224,7 +211,7 @@ namespace
                 function->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
                 return true;
 
-            function = parentLexicalFunction(*function);
+            function = function->parentLexicalFunction();
         }
 
         return false;
@@ -281,7 +268,7 @@ namespace
             if (decl && decl->is(AstNodeId::FunctionDecl))
                 return fn;
 
-            fn = parentLexicalFunction(*fn);
+            fn = fn->parentLexicalFunction();
         }
 
         return nullptr;

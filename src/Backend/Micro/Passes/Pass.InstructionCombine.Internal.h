@@ -1,5 +1,6 @@
 #pragma once
 #include "Backend/Micro/MicroInstr.h"
+#include "Backend/Micro/Passes/Pass.Peephole.Core.h"
 #include "Backend/Micro/MicroSsaState.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/SmallVector.h"
@@ -33,45 +34,27 @@ namespace InstructionCombine
 
     // Context threaded through every pattern. Pointers (not references) so the
     // struct stays assignable and matches project conventions.
-    struct Context
+    struct Context : MicroPeephole::RewriteQueue<Action>
     {
-        MicroStorage*                storage  = nullptr;
-        MicroOperandStorage*         operands = nullptr;
-        const MicroSsaState*         ssa      = nullptr;
-        MicroBuilder*                builder  = nullptr;
-        std::unordered_set<uint32_t> claimed;
+        const MicroSsaState* ssa     = nullptr;
+        MicroBuilder*        builder = nullptr;
         // Instructions that carry a relocation. Rewriting or erasing one
         // drops the relocation binding - the patch then lands wherever
         // codeOffset zero points - so claimAll refuses them unless a rule
         // that explicitly manages the relocation opts in.
         std::unordered_set<uint32_t> relocated;
-        SmallVector<Action>          actions;
 
-        bool isClaimed(MicroInstrRef ref) const;
         bool isRelocated(MicroInstrRef ref) const { return relocated.contains(ref.get()); }
 
         // Claim every ref atomically: returns false without side-effects if
         // any was already claimed, or if one carries a relocation the caller
         // did not take responsibility for.
         bool claimAll(std::initializer_list<MicroInstrRef> refs, bool allowRelocated = false);
-
-        void emitErase(MicroInstrRef ref);
-        void emitRewrite(MicroInstrRef ref, MicroInstrOpcode newOp, std::span<const MicroInstrOperand> newOps, bool allocNewBlock = false);
     };
 
     using PatternFn = bool (*)(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
 
-    struct PatternRegistry
-    {
-        static constexpr size_t K_OPCODE_COUNT = MICRO_INSTR_OPCODE_INFOS.size();
-
-        std::array<SmallVector<PatternFn, 2>, K_OPCODE_COUNT> byOpcode;
-
-        void                       add(MicroInstrOpcode op, PatternFn fn);
-        std::span<const PatternFn> patternsFor(MicroInstrOpcode op) const;
-    };
-
-    void applyAction(const Context& ctx, const Action& action);
+    using PatternRegistry = MicroPeephole::PatternRegistry<PatternFn>;
 
     //===-- Shared helpers --------------------------------------------------===//
 

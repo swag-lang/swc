@@ -326,22 +326,6 @@ namespace
         return result;
     }
 
-    bool isNativeArtifactCompilerFunction(const TokenId tokenId)
-    {
-        switch (tokenId)
-        {
-            case TokenId::CompilerFuncTest:
-            case TokenId::CompilerFuncInit:
-            case TokenId::CompilerFuncDrop:
-            case TokenId::CompilerFuncMain:
-            case TokenId::CompilerFuncPreMain:
-                return true;
-
-            default:
-                return false;
-        }
-    }
-
     bool isRuntimeTestFunction(const CompilerInstance& compiler, const SymbolFunction& function)
     {
         if (function.attributes().hasRtFlag(RtAttributeFlagsE::Compiler))
@@ -357,7 +341,7 @@ namespace
             return true;
 
         const TokenId tokenId = compiler.srcView(function.srcViewRef()).token(function.tokRef()).id;
-        return isNativeArtifactCompilerFunction(tokenId);
+        return Token::isNativeArtifactCompilerFunc(tokenId);
     }
 
     bool shouldRunNativeArtifactFunction(const CompilerInstance& compiler, const SymbolFunction& function)

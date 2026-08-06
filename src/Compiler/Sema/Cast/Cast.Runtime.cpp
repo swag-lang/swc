@@ -119,42 +119,6 @@ namespace
         return nested;
     }
 
-    TypeRef unwrapAliasEnumTypeRef(const TypeManager& typeMgr, const TaskContext& ctx, TypeRef typeRef)
-    {
-        if (!typeRef.isValid())
-            return TypeRef::invalid();
-
-        const TypeRef unwrappedTypeRef = typeMgr.get(typeRef).unwrapAliasEnum(ctx, typeRef);
-        if (unwrappedTypeRef.isValid())
-            return unwrappedTypeRef;
-
-        return typeRef;
-    }
-
-    TypeRef interfaceObjectStructTypeRef(Sema& sema, TypeRef sourceTypeRef)
-    {
-        const TypeRef resolvedSourceTypeRef = unwrapAliasEnumTypeRef(sema.typeMgr(), sema.ctx(), sourceTypeRef);
-        if (!resolvedSourceTypeRef.isValid())
-            return TypeRef::invalid();
-
-        const TypeInfo& sourceType = sema.typeMgr().get(resolvedSourceTypeRef);
-        if (sourceType.isStruct())
-            return resolvedSourceTypeRef;
-
-        if (!sourceType.isAnyPointer() && !sourceType.isReference() && !sourceType.isMoveReference())
-            return TypeRef::invalid();
-
-        const TypeRef objectTypeRef = unwrapAliasEnumTypeRef(sema.typeMgr(), sema.ctx(), sourceType.payloadTypeRef());
-        if (!objectTypeRef.isValid())
-            return TypeRef::invalid();
-
-        const TypeInfo& objectType = sema.typeMgr().get(objectTypeRef);
-        if (!objectType.isStruct())
-            return TypeRef::invalid();
-
-        return objectTypeRef;
-    }
-
     Result constantFoldPointerLikeFromValue(Sema& sema, ConstantRef srcCstRef, TypeRef srcTypeRef, TypeRef dstTypeRef, ConstantRef& outCstRef)
     {
         const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
@@ -172,48 +136,6 @@ namespace
         }
 
         outCstRef = addValuePointerConstant(sema, dstType.payloadTypeRef(), dstType.flags(), ptr);
-        return Result::Continue;
-    }
-
-    bool usingPathHasPointerStep(const SmallVector<SymbolStructUsingPathStep>& usingPath)
-    {
-        for (const auto& step : usingPath)
-        {
-            if (step.isPointer)
-                return true;
-        }
-
-        return false;
-    }
-
-    Result resolveUsingStructCastPath(Sema& sema, const CastRequest& castRequest, TypeRef srcStructTypeRef, TypeRef dstStructTypeRef, SmallVector<SymbolStructUsingPathStep>& outSteps, bool& outFound)
-    {
-        outFound = false;
-        outSteps.clear();
-
-        srcStructTypeRef = unwrapAliasEnumTypeRef(sema.typeMgr(), sema.ctx(), srcStructTypeRef);
-        dstStructTypeRef = unwrapAliasEnumTypeRef(sema.typeMgr(), sema.ctx(), dstStructTypeRef);
-        if (!srcStructTypeRef.isValid() || !dstStructTypeRef.isValid())
-            return Result::Continue;
-
-        const TypeInfo& srcStructType = sema.typeMgr().get(srcStructTypeRef);
-        const TypeInfo& dstStructType = sema.typeMgr().get(dstStructTypeRef);
-        if (!srcStructType.isStruct() || !dstStructType.isStruct())
-            return Result::Continue;
-
-        SWC_RESULT(sema.waitSemaCompleted(&srcStructType, castRequest.errorNodeRef));
-        SWC_RESULT(sema.waitSemaCompleted(&dstStructType, castRequest.errorNodeRef));
-
-        outFound = srcStructType.payloadSymStruct().resolveUsingFieldPath(sema.ctx(), dstStructType.payloadSymStruct(), outSteps);
-        return Result::Continue;
-    }
-
-    Result resolveUsingStructCastPathWithoutPointerStep(Sema& sema, const CastRequest& castRequest, TypeRef srcStructTypeRef, TypeRef dstStructTypeRef, bool& outFound)
-    {
-        SmallVector<SymbolStructUsingPathStep> usingPath;
-        bool                                   hasUsingPath = false;
-        SWC_RESULT(resolveUsingStructCastPath(sema, castRequest, srcStructTypeRef, dstStructTypeRef, usingPath, hasUsingPath));
-        outFound = hasUsingPath && !usingPathHasPointerStep(usingPath);
         return Result::Continue;
     }
 
@@ -255,8 +177,8 @@ namespace
         if (srcTypeRef == dstTypeRef)
             return true;
 
-        srcTypeRef = unwrapAliasEnumTypeRef(sema.typeMgr(), sema.ctx(), srcTypeRef);
-        dstTypeRef = unwrapAliasEnumTypeRef(sema.typeMgr(), sema.ctx(), dstTypeRef);
+        srcTypeRef = sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), srcTypeRef);
+        dstTypeRef = sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), dstTypeRef);
         if (srcTypeRef == dstTypeRef)
             return true;
         if (!srcTypeRef.isValid() || !dstTypeRef.isValid())
@@ -505,7 +427,7 @@ Result Cast::castToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcType
 
     if (srcType.isInterface() && castRequest.kind == CastKind::Explicit)
     {
-        const TypeRef dstPointeeTypeRef = unwrapAliasEnumTypeRef(typeMgr, sema.ctx(), dstType.payloadTypeRef());
+        const TypeRef dstPointeeTypeRef = typeMgr.unwrapAliasEnumOrSelf(sema.ctx(), dstType.payloadTypeRef());
         if (dstPointeeTypeRef.isValid())
         {
             const TypeInfo& dstPointeeType = typeMgr.get(dstPointeeTypeRef);
@@ -1124,7 +1046,7 @@ Result Cast::castToInterface(Sema& sema, CastRequest& castRequest, TypeRef srcTy
         return Result::Continue;
     }
 
-    const TypeRef objectStructTypeRef = interfaceObjectStructTypeRef(sema, srcTypeRef);
+    const TypeRef objectStructTypeRef = interfaceObjectStructTypeRef(sema.typeMgr(), sema.ctx(), srcTypeRef);
     if (objectStructTypeRef.isValid())
     {
         const TypeInfo&     objectStructType = sema.typeMgr().get(objectStructTypeRef);

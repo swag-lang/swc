@@ -167,6 +167,49 @@ void TypeManager::setup(TaskContext& ctx)
     buildPromoteTable();
 }
 
+TypeRef TypeManager::builtinType(TokenId tokenId) const
+{
+    switch (tokenId)
+    {
+        case TokenId::TypeS8:
+            return typeS8_;
+        case TokenId::TypeS16:
+            return typeS16_;
+        case TokenId::TypeS32:
+            return typeS32_;
+        case TokenId::TypeS64:
+            return typeS64_;
+        case TokenId::TypeU8:
+            return typeU8_;
+        case TokenId::TypeU16:
+            return typeU16_;
+        case TokenId::TypeU32:
+            return typeU32_;
+        case TokenId::TypeU64:
+            return typeU64_;
+        case TokenId::TypeF32:
+            return typeF32_;
+        case TokenId::TypeF64:
+            return typeF64_;
+        case TokenId::TypeBool:
+            return typeBool_;
+        case TokenId::TypeString:
+            return typeString_;
+        case TokenId::TypeVoid:
+            return typeVoid_;
+        case TokenId::TypeAny:
+            return typeAny_;
+        case TokenId::TypeCString:
+            return typeCString_;
+        case TokenId::TypeRune:
+            return typeRune_;
+        case TokenId::TypeTypeInfo:
+            return typeTypeInfo_;
+        default:
+            return TypeRef::invalid();
+    }
+}
+
 TypeRef TypeManager::typeInt(uint32_t bits, TypeInfo::Sign sign) const
 {
     if (bits == 0)

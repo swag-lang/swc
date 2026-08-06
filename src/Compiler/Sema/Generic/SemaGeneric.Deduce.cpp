@@ -159,144 +159,6 @@ namespace
         return sema.typeMgr().get(effectiveTypeRef).isAnyVariadic();
     }
 
-    TypeRef builtinTypeRef(Sema& sema, const AstBuiltinType& builtinType)
-    {
-        const Token&       tok     = sema.token(builtinType.codeRef());
-        const TypeManager& typeMgr = sema.typeMgr();
-
-        switch (tok.id)
-        {
-            case TokenId::TypeS8:
-                return typeMgr.typeInt(8, TypeInfo::Sign::Signed);
-            case TokenId::TypeS16:
-                return typeMgr.typeInt(16, TypeInfo::Sign::Signed);
-            case TokenId::TypeS32:
-                return typeMgr.typeInt(32, TypeInfo::Sign::Signed);
-            case TokenId::TypeS64:
-                return typeMgr.typeInt(64, TypeInfo::Sign::Signed);
-            case TokenId::TypeU8:
-                return typeMgr.typeInt(8, TypeInfo::Sign::Unsigned);
-            case TokenId::TypeU16:
-                return typeMgr.typeInt(16, TypeInfo::Sign::Unsigned);
-            case TokenId::TypeU32:
-                return typeMgr.typeInt(32, TypeInfo::Sign::Unsigned);
-            case TokenId::TypeU64:
-                return typeMgr.typeInt(64, TypeInfo::Sign::Unsigned);
-            case TokenId::TypeF32:
-                return typeMgr.typeF32();
-            case TokenId::TypeF64:
-                return typeMgr.typeF64();
-            case TokenId::TypeBool:
-                return typeMgr.typeBool();
-            case TokenId::TypeString:
-                return typeMgr.typeString();
-            case TokenId::TypeVoid:
-                return typeMgr.typeVoid();
-            case TokenId::TypeAny:
-                return typeMgr.typeAny();
-            case TokenId::TypeCString:
-                return typeMgr.typeCString();
-            case TokenId::TypeRune:
-                return typeMgr.typeRune();
-            case TokenId::TypeTypeInfo:
-                return typeMgr.typeTypeInfo();
-            default:
-                return TypeRef::invalid();
-        }
-    }
-
-    TypeRef typeRefFromTypeNode(Sema& sema, AstNodeRef typeNodeRef)
-    {
-        if (typeNodeRef.isInvalid())
-            return TypeRef::invalid();
-
-        // Generic deduction sometimes runs on a declaration AST before the regular
-        // semantic payload for that exact type node is available. Reconstruct the
-        // structural type when the stored view has not been produced yet.
-        const TypeRef typeRef = sema.viewType(typeNodeRef).typeRef();
-        if (typeRef.isValid())
-            return typeRef;
-
-        const AstNode& typeNode = sema.node(typeNodeRef);
-        if (const auto* builtinType = typeNode.safeCast<AstBuiltinType>())
-            return builtinTypeRef(sema, *builtinType);
-
-        if (const auto* codeType = typeNode.safeCast<AstCodeType>())
-        {
-            // Bare '#code' and '#code(params)' have no payload type node: void block.
-            if (codeType->nodeTypeRef.isInvalid())
-                return sema.typeMgr().addType(TypeInfo::makeCodeBlock(sema.typeMgr().typeVoid()));
-            const TypeRef payloadTypeRef = typeRefFromTypeNode(sema, codeType->nodeTypeRef);
-            return payloadTypeRef.isValid() ? sema.typeMgr().addType(TypeInfo::makeCodeBlock(payloadTypeRef)) : TypeRef::invalid();
-        }
-
-        if (typeNode.is(AstNodeId::VariadicType))
-            return sema.typeMgr().typeVariadic();
-
-        if (const auto* typedVariadicType = typeNode.safeCast<AstTypedVariadicType>())
-        {
-            const TypeRef elementTypeRef = typeRefFromTypeNode(sema, typedVariadicType->nodeTypeRef);
-            return elementTypeRef.isValid() ? sema.typeMgr().addType(TypeInfo::makeTypedVariadic(elementTypeRef)) : TypeRef::invalid();
-        }
-
-        if (const auto* refType = typeNode.safeCast<AstReferenceType>())
-        {
-            const TypeRef pointeeTypeRef = typeRefFromTypeNode(sema, refType->nodePointeeTypeRef);
-            return pointeeTypeRef.isValid() ? sema.typeMgr().addType(TypeInfo::makeReference(pointeeTypeRef)) : TypeRef::invalid();
-        }
-
-        if (const auto* moveRefType = typeNode.safeCast<AstMoveRefType>())
-        {
-            const TypeRef pointeeTypeRef = typeRefFromTypeNode(sema, moveRefType->nodePointeeTypeRef);
-            return pointeeTypeRef.isValid() ? sema.typeMgr().addType(TypeInfo::makeMoveReference(pointeeTypeRef)) : TypeRef::invalid();
-        }
-
-        if (const auto* valuePtrType = typeNode.safeCast<AstValuePointerType>())
-        {
-            const TypeRef pointeeTypeRef = typeRefFromTypeNode(sema, valuePtrType->nodePointeeTypeRef);
-            return pointeeTypeRef.isValid() ? sema.typeMgr().addType(TypeInfo::makeValuePointer(pointeeTypeRef)) : TypeRef::invalid();
-        }
-
-        if (const auto* blockPtrType = typeNode.safeCast<AstBlockPointerType>())
-        {
-            const TypeRef pointeeTypeRef = typeRefFromTypeNode(sema, blockPtrType->nodePointeeTypeRef);
-            return pointeeTypeRef.isValid() ? sema.typeMgr().addType(TypeInfo::makeBlockPointer(pointeeTypeRef)) : TypeRef::invalid();
-        }
-
-        if (const auto* sliceType = typeNode.safeCast<AstSliceType>())
-        {
-            const TypeRef elementTypeRef = typeRefFromTypeNode(sema, sliceType->nodePointeeTypeRef);
-            return elementTypeRef.isValid() ? sema.typeMgr().addType(TypeInfo::makeSlice(elementTypeRef)) : TypeRef::invalid();
-        }
-
-        if (const auto* namedType = typeNode.safeCast<AstNamedType>())
-        {
-            const SemaNodeView identView = sema.viewNodeTypeSymbol(namedType->nodeIdentRef);
-            if (identView.typeRef().isValid())
-                return identView.typeRef();
-            if (identView.sym() && identView.sym()->isType())
-                return identView.sym()->typeRef();
-
-            if (const auto* ident = sema.node(namedType->nodeIdentRef).safeCast<AstIdentifier>())
-            {
-                MatchContext lookUpCxt;
-                lookUpCxt.codeRef         = ident->codeRef();
-                lookUpCxt.noWaitOnEmpty   = true;
-                const IdentifierRef idRef = SemaHelpers::resolveIdentifier(sema, ident->codeRef());
-                if (Match::match(sema, lookUpCxt, idRef) == Result::Continue)
-                {
-                    for (const Symbol* sym : lookUpCxt.symbols())
-                    {
-                        if (sym && sym->isType() && sym->typeRef().isValid())
-                            return sym->typeRef();
-                    }
-                }
-            }
-        }
-
-        return TypeRef::invalid();
-    }
-
     bool isVariadicTypeNode(Sema& sema, AstNodeRef typeNodeRef)
     {
         if (typeNodeRef.isInvalid())
@@ -306,7 +168,7 @@ namespace
         if (typeNode.is(AstNodeId::VariadicType) || typeNode.is(AstNodeId::TypedVariadicType))
             return true;
 
-        return isVariadicTypeRef(sema, typeRefFromTypeNode(sema, typeNodeRef));
+        return isVariadicTypeRef(sema, SemaHelpers::structuralTypeRefFromTypeNode(sema, typeNodeRef));
     }
 
     void appendFunctionParamNodes(Sema& sema, AstNodeRef nodeParamsRef, SmallVector<AstNodeRef>& outParams)
@@ -352,7 +214,7 @@ namespace
             SemaGeneric::GenericFunctionParamDesc desc;
             desc.idRef           = SemaHelpers::resolveIdentifier(sema, {varDecl.srcViewRef(), varDecl.tokNameRef});
             desc.typeRef         = varDecl.typeOrInitRef();
-            desc.resolvedTypeRef = typeRefFromTypeNode(sema, desc.typeRef);
+            desc.resolvedTypeRef = SemaHelpers::structuralTypeRefFromTypeNode(sema, desc.typeRef);
             desc.defaultRef      = varDecl.nodeInitRef;
             desc.isVariadic      = isVariadicTypeNode(sema, desc.typeRef);
             desc.hasExplicitType = varDecl.nodeTypeRef.isValid();
@@ -370,7 +232,7 @@ namespace
                 SemaGeneric::GenericFunctionParamDesc desc;
                 desc.idRef           = SemaHelpers::resolveIdentifier(sema, {multiVar.srcViewRef(), tokNameRef});
                 desc.typeRef         = multiVar.typeOrInitRef();
-                desc.resolvedTypeRef = typeRefFromTypeNode(sema, desc.typeRef);
+                desc.resolvedTypeRef = SemaHelpers::structuralTypeRefFromTypeNode(sema, desc.typeRef);
                 desc.defaultRef      = multiVar.nodeInitRef;
                 desc.isVariadic      = isVariadicTypeNode(sema, desc.typeRef);
                 desc.hasExplicitType = multiVar.nodeTypeRef.isValid();
@@ -1280,7 +1142,7 @@ namespace
                     SemaGeneric::GenericFunctionParamDesc desc;
                     desc.idRef           = symParam->idRef();
                     desc.typeRef         = varDecl.typeOrInitRef();
-                    desc.resolvedTypeRef = symParam->typeRef().isValid() ? symParam->typeRef() : typeRefFromTypeNode(*declSema, desc.typeRef);
+                    desc.resolvedTypeRef = symParam->typeRef().isValid() ? symParam->typeRef() : SemaHelpers::structuralTypeRefFromTypeNode(*declSema, desc.typeRef);
                     desc.defaultRef      = varDecl.nodeInitRef;
                     desc.isVariadic      = isVariadicTypeRef(*declSema, symParam->typeRef()) || isVariadicTypeNode(*declSema, desc.typeRef);
                     desc.hasExplicitType = varDecl.nodeTypeRef.isValid();

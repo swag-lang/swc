@@ -36,6 +36,44 @@ namespace MicroPassHelpers
 
     MicroDomTree computeInstructionDominators(const MicroControlFlowGraph& cfg, uint32_t entry);
 
+    // The operand holding the condition code, for the opcodes that read the CPU flags through one.
+    // Inline: the combine passes ask this of every instruction they scan.
+    inline bool conditionOperandIndex(MicroInstrOpcode op, uint8_t& outIdx)
+    {
+        switch (op)
+        {
+            case MicroInstrOpcode::JumpCond:
+            case MicroInstrOpcode::JumpCondImm:
+                outIdx = 0;
+                return true;
+            case MicroInstrOpcode::SetCondReg:
+                outIdx = 1;
+                return true;
+            case MicroInstrOpcode::LoadCondRegReg:
+                outIdx = 2;
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    // A natural loop on the per-instruction CFG: the header a back edge lands on, the tails those
+    // back edges leave from, and the membership map of everything that reaches a tail without
+    // leaving the header behind.
+    struct NaturalLoop
+    {
+        uint32_t              header = MicroDomTree::K_INVALID_NODE;
+        SmallVector<uint32_t> tails;
+        std::vector<uint8_t>  inBody;
+        uint32_t              bodySize = 0;
+
+        void collectBody(const MicroControlFlowGraph& cfg);
+    };
+
+    // Every natural loop of the CFG, keyed by header and with its body already collected. Empty
+    // when no back edge closes a loop.
+    std::unordered_map<uint32_t, NaturalLoop> findNaturalLoops(const MicroControlFlowGraph& cfg, const MicroDomTree& dom);
+
     // The unique entry instruction of the per-instruction CFG, or
     // K_INVALID_NODE when there is no entry or more than one.
     uint32_t findSingleCfgEntry(const MicroControlFlowGraph& cfg);

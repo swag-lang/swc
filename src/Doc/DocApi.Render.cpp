@@ -637,6 +637,45 @@ namespace
         content += "</tbody>\n</table>\n";
     }
 
+    // The four summary tables a namespace or an owner publishes, in the order they are rendered.
+    struct DocItemBuckets
+    {
+        std::vector<const DocItem*> types;
+        std::vector<const DocItem*> enumerations;
+        std::vector<const DocItem*> constants;
+        std::vector<const DocItem*> functions;
+    };
+
+    DocItemBuckets bucketDocItems(const std::vector<const DocItem*>& items)
+    {
+        DocItemBuckets buckets;
+        for (const DocItem* item : items)
+        {
+            switch (item->kind)
+            {
+                case DocItemKind::Struct:
+                case DocItemKind::Interface:
+                case DocItemKind::Alias:
+                    buckets.types.push_back(item);
+                    break;
+                case DocItemKind::Enum:
+                    buckets.enumerations.push_back(item);
+                    break;
+                case DocItemKind::Constant:
+                    buckets.constants.push_back(item);
+                    break;
+                case DocItemKind::Function:
+                case DocItemKind::Attribute:
+                    buckets.functions.push_back(item);
+                    break;
+                case DocItemKind::Namespace:
+                    break;
+            }
+        }
+
+        return buckets;
+    }
+
     void renderNamespaceItem(Utf8& content, const DocRenderContext& renderCtx, const DocNamespace& docNamespace)
     {
         const Utf8 anchor = std::format("namespace_{}", DocMarkdown::makeAnchor(docNamespace.fullName));
@@ -645,39 +684,13 @@ namespace
         content += "</div>\n";
         content.append(std::format("<p>Public API declared directly in <span class=\"code-inline\">{}</span>.</p>\n", Utf8Helper::escapeHtml(docNamespace.fullName)));
 
-        std::vector<const DocItem*> types;
-        std::vector<const DocItem*> enumerations;
-        std::vector<const DocItem*> constants;
-        std::vector<const DocItem*> functions;
-        for (const DocItem* item : docNamespace.items)
-        {
-            switch (item->kind)
-            {
-                case DocItemKind::Struct:
-                case DocItemKind::Interface:
-                case DocItemKind::Alias:
-                    types.push_back(item);
-                    break;
-                case DocItemKind::Enum:
-                    enumerations.push_back(item);
-                    break;
-                case DocItemKind::Constant:
-                    constants.push_back(item);
-                    break;
-                case DocItemKind::Function:
-                case DocItemKind::Attribute:
-                    functions.push_back(item);
-                    break;
-                case DocItemKind::Namespace:
-                    break;
-            }
-        }
+        const DocItemBuckets buckets = bucketDocItems(docNamespace.items);
 
         renderNamespaceTable(content, "Namespaces", std::format("{}_namespaces", anchor), docNamespace.children);
-        renderSummaryTable(content, renderCtx, "Types", std::format("{}_types", anchor), types, true, false);
-        renderSummaryTable(content, renderCtx, "Enumerations", std::format("{}_enumerations", anchor), enumerations, false, false);
-        renderSummaryTable(content, renderCtx, "Constants", std::format("{}_constants", anchor), constants, false, false);
-        renderSummaryTable(content, renderCtx, "Functions", std::format("{}_functions", anchor), functions, false, false);
+        renderSummaryTable(content, renderCtx, "Types", std::format("{}_types", anchor), buckets.types, true, false);
+        renderSummaryTable(content, renderCtx, "Enumerations", std::format("{}_enumerations", anchor), buckets.enumerations, false, false);
+        renderSummaryTable(content, renderCtx, "Constants", std::format("{}_constants", anchor), buckets.constants, false, false);
+        renderSummaryTable(content, renderCtx, "Functions", std::format("{}_functions", anchor), buckets.functions, false, false);
         content += "</section>\n";
     }
 
@@ -687,39 +700,13 @@ namespace
         if (ownerIt == itemsByOwner.end())
             return;
 
-        std::vector<const DocItem*> types;
-        std::vector<const DocItem*> enumerations;
-        std::vector<const DocItem*> constants;
-        std::vector<const DocItem*> functions;
-        for (const DocItem* item : ownerIt->second)
-        {
-            switch (item->kind)
-            {
-                case DocItemKind::Struct:
-                case DocItemKind::Interface:
-                case DocItemKind::Alias:
-                    types.push_back(item);
-                    break;
-                case DocItemKind::Enum:
-                    enumerations.push_back(item);
-                    break;
-                case DocItemKind::Constant:
-                    constants.push_back(item);
-                    break;
-                case DocItemKind::Function:
-                case DocItemKind::Attribute:
-                    functions.push_back(item);
-                    break;
-                case DocItemKind::Namespace:
-                    break;
-            }
-        }
+        const DocItemBuckets buckets = bucketDocItems(ownerIt->second);
 
         const Utf8 anchor = DocMarkdown::makeAnchor(ownerName);
-        renderSummaryTable(content, renderCtx, "Nested types", std::format("{}_types", anchor), types, true, true);
-        renderSummaryTable(content, renderCtx, "Enumerations", std::format("{}_enumerations", anchor), enumerations, false, true);
-        renderSummaryTable(content, renderCtx, "Constants", std::format("{}_constants", anchor), constants, false, true);
-        renderSummaryTable(content, renderCtx, "Methods", std::format("{}_methods", anchor), functions, false, true);
+        renderSummaryTable(content, renderCtx, "Nested types", std::format("{}_types", anchor), buckets.types, true, true);
+        renderSummaryTable(content, renderCtx, "Enumerations", std::format("{}_enumerations", anchor), buckets.enumerations, false, true);
+        renderSummaryTable(content, renderCtx, "Constants", std::format("{}_constants", anchor), buckets.constants, false, true);
+        renderSummaryTable(content, renderCtx, "Methods", std::format("{}_methods", anchor), buckets.functions, false, true);
     }
 
     void renderDocItem(Utf8& content, DocRenderContext& renderCtx, const SourcePaths& sourcePaths, const DocItem& item, const bool runtime)

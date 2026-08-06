@@ -79,26 +79,6 @@ namespace
         return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_type_requires_init, sema.node(whatRef).codeRef(), fillTypeRef);
     }
 
-    bool intrinsicInitTreatsArgsAsStructTuple(Sema& sema, TypeRef fillTypeRef, const SmallVector<AstNodeRef>& args)
-    {
-        if (args.empty() || !fillTypeRef.isValid())
-            return false;
-
-        const TypeInfo& fillType = sema.typeMgr().get(fillTypeRef);
-        if (!fillType.isStruct())
-            return false;
-        if (args.size() != 1)
-            return true;
-
-        const SemaNodeView argView = sema.viewType(args.front());
-        if (!argView.type())
-            return true;
-        if (argView.typeRef() == fillTypeRef)
-            return false;
-
-        return !argView.type()->isStruct() && !argView.type()->isAggregateStruct();
-    }
-
     LoopSemaPayload& ensureLoopSemaPayload(Sema& sema, AstNodeRef nodeRef)
     {
         if (auto* payload = sema.semaPayload<LoopSemaPayload>(nodeRef))
@@ -179,7 +159,7 @@ Result AstIntrinsicInit::semaPostNode(Sema& sema) const
         return Result::Continue;
     }
 
-    if (intrinsicInitTreatsArgsAsStructTuple(sema, fillTypeRef, args))
+    if (SemaHelpers::intrinsicInitTreatsArgsAsStructTuple(sema, fillTypeRef, args))
     {
         const TypeInfo& fillType = sema.typeMgr().get(fillTypeRef);
         SWC_ASSERT(fillType.isStruct());

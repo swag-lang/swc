@@ -137,6 +137,8 @@ public:
     SymbolFunctionFlags                 semanticFlags() const noexcept { return extraFlags().mask(K_SEMANTIC_FLAGS); }
     SymbolStruct*                       ownerStruct();
     const SymbolStruct*                 ownerStruct() const;
+    // The nearest enclosing function in the lexical chain, for a local or nested function.
+    const SymbolFunction*               parentLexicalFunction() const;
 
     void             setExtraFlags(EnumFlags<AstFunctionFlagsE> parserFlags);
     bool             isClosure() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Closure); }

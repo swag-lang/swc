@@ -162,73 +162,10 @@ namespace
 
 Result AstBuiltinType::semaPostNode(Sema& sema) const
 {
-    const Token&       tok     = sema.token(codeRef());
-    const TypeManager& typeMgr = sema.typeMgr();
-    const AstNodeRef   nodeRef = sema.curNodeRef();
-
-    switch (tok.id)
-    {
-        case TokenId::TypeS8:
-            sema.setType(nodeRef, typeMgr.typeInt(8, TypeInfo::Sign::Signed));
-            return Result::Continue;
-        case TokenId::TypeS16:
-            sema.setType(nodeRef, typeMgr.typeInt(16, TypeInfo::Sign::Signed));
-            return Result::Continue;
-        case TokenId::TypeS32:
-            sema.setType(nodeRef, typeMgr.typeInt(32, TypeInfo::Sign::Signed));
-            return Result::Continue;
-        case TokenId::TypeS64:
-            sema.setType(nodeRef, typeMgr.typeInt(64, TypeInfo::Sign::Signed));
-            return Result::Continue;
-
-        case TokenId::TypeU8:
-            sema.setType(nodeRef, typeMgr.typeInt(8, TypeInfo::Sign::Unsigned));
-            return Result::Continue;
-        case TokenId::TypeU16:
-            sema.setType(nodeRef, typeMgr.typeInt(16, TypeInfo::Sign::Unsigned));
-            return Result::Continue;
-        case TokenId::TypeU32:
-            sema.setType(nodeRef, typeMgr.typeInt(32, TypeInfo::Sign::Unsigned));
-            return Result::Continue;
-        case TokenId::TypeU64:
-            sema.setType(nodeRef, typeMgr.typeInt(64, TypeInfo::Sign::Unsigned));
-            return Result::Continue;
-
-        case TokenId::TypeF32:
-            sema.setType(nodeRef, typeMgr.typeF32());
-            return Result::Continue;
-        case TokenId::TypeF64:
-            sema.setType(nodeRef, typeMgr.typeF64());
-            return Result::Continue;
-
-        case TokenId::TypeBool:
-            sema.setType(nodeRef, typeMgr.typeBool());
-            return Result::Continue;
-        case TokenId::TypeString:
-            sema.setType(nodeRef, typeMgr.typeString());
-            return Result::Continue;
-
-        case TokenId::TypeVoid:
-            sema.setType(nodeRef, typeMgr.typeVoid());
-            return Result::Continue;
-        case TokenId::TypeAny:
-            sema.setType(nodeRef, typeMgr.typeAny());
-            return Result::Continue;
-        case TokenId::TypeCString:
-            sema.setType(nodeRef, typeMgr.typeCString());
-            return Result::Continue;
-        case TokenId::TypeRune:
-            sema.setType(nodeRef, typeMgr.typeRune());
-            return Result::Continue;
-        case TokenId::TypeTypeInfo:
-            sema.setType(nodeRef, typeMgr.typeTypeInfo());
-            return Result::Continue;
-
-        default:
-            break;
-    }
-
-    SWC_INTERNAL_ERROR();
+    const TypeRef typeRef = sema.typeMgr().builtinType(sema.token(codeRef()).id);
+    SWC_INTERNAL_CHECK(typeRef.isValid());
+    sema.setType(sema.curNodeRef(), typeRef);
+    return Result::Continue;
 }
 
 Result AstVariadicType::semaPostNode(Sema& sema)

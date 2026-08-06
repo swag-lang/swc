@@ -852,6 +852,30 @@ void CodeGenMemoryHelpers::emitMemSet(CodeGen& codeGen, MicroReg dstReg, MicroRe
     emitMemSetLoop(builder, dstRegTmp, sizeInBytes, 8, fillReg, countReg);
 }
 
+void CodeGenMemoryHelpers::emitCStringCountReg(CodeGen& codeGen, MicroReg countReg, MicroReg cstrReg)
+{
+    MicroBuilder& builder = codeGen.builder();
+    builder.emitClearReg(countReg, MicroOpBits::B64);
+
+    const MicroLabelRef loopLabel = builder.createLabel();
+    const MicroLabelRef doneLabel = builder.createLabel();
+    builder.emitCmpRegImm(cstrReg, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
+
+    const MicroReg scanReg = codeGen.nextVirtualIntRegister();
+    builder.emitLoadRegReg(scanReg, cstrReg, MicroOpBits::B64);
+    builder.placeLabel(loopLabel);
+
+    const MicroReg charReg = codeGen.nextVirtualIntRegister();
+    builder.emitLoadRegMem(charReg, scanReg, 0, MicroOpBits::B8);
+    builder.emitCmpRegImm(charReg, ApInt(0, 64), MicroOpBits::B8);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
+    builder.emitOpBinaryRegImm(scanReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(countReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopLabel);
+    builder.placeLabel(doneLabel);
+}
+
 void CodeGenMemoryHelpers::emitMemZero(CodeGen& codeGen, MicroReg dstReg, uint32_t sizeInBytes)
 {
     if (!sizeInBytes)

@@ -164,34 +164,6 @@ namespace
         codeGen.setLocalStackFrameSize(static_cast<uint32_t>(frameSize));
     }
 
-    void emitCompilerFunctionStackPrologue(CodeGen& codeGen, CallConvKind callConvKind)
-    {
-        if (!codeGen.hasLocalStackFrame())
-            return;
-
-        const CallConv& callConv  = CallConv::get(callConvKind);
-        MicroBuilder&   builder   = codeGen.builder();
-        const uint32_t  frameSize = codeGen.localStackFrameSize();
-        SWC_ASSERT(frameSize != 0);
-
-        // Keep compiler-run locals on a persistent virtual base register so later instruction
-        // selection and register allocation cannot accidentally clobber the active frame base.
-        const MicroReg        frameBaseReg = codeGen.nextVirtualIntRegister();
-        SmallVector<MicroReg> forbiddenRegs;
-        for (const MicroReg reg : callConv.intTransientRegs)
-            forbiddenRegs.push_back(reg);
-        forbiddenRegs.push_back(callConv.stackPointer);
-        if (callConv.framePointer.isValid())
-            forbiddenRegs.push_back(callConv.framePointer);
-        builder.addVirtualRegForbiddenPhysRegs(frameBaseReg, forbiddenRegs.span());
-
-        builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(frameSize, 64), MicroOp::Subtract, MicroOpBits::B64);
-        builder.emitLoadRegReg(frameBaseReg, callConv.stackPointer, MicroOpBits::B64);
-        codeGen.setLocalStackBaseReg(frameBaseReg);
-        codeGen.function().setDebugStackFrameSize(frameSize);
-        codeGen.function().setDebugStackBaseReg(frameBaseReg);
-    }
-
     void emitCompilerFunctionStackEpilogue(CodeGen& codeGen, CallConvKind callConvKind)
     {
         if (!codeGen.hasLocalStackFrame())
@@ -333,7 +305,7 @@ namespace
         SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos;
         collectCompilerFunctionParameterInfos(paramInfos, codeGen, codeGen.function());
         buildCompilerFunctionStackLayout(codeGen);
-        emitCompilerFunctionStackPrologue(codeGen, callConvKind);
+        CodeGenFunctionHelpers::emitLocalStackFramePrologue(codeGen, callConvKind);
 
         if (returnTypeRef.isValid())
         {
@@ -412,7 +384,7 @@ Result AstCompilerRunBlock::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeR
     SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos;
     collectCompilerFunctionParameterInfos(paramInfos, codeGen, codeGen.function());
     buildCompilerFunctionStackLayout(codeGen);
-    emitCompilerFunctionStackPrologue(codeGen, callConvKind);
+    CodeGenFunctionHelpers::emitLocalStackFramePrologue(codeGen, callConvKind);
 
     codeGen.ensureCurrentFunctionIndirectReturnReg(callConvKind);
 
@@ -444,7 +416,7 @@ Result AstCompilerRunExpr::codeGenPreNode(CodeGen& codeGen)
     SWC_ASSERT(!callConv.intArgRegs.empty());
 
     buildCompilerFunctionStackLayout(codeGen);
-    emitCompilerFunctionStackPrologue(codeGen, callConvKind);
+    CodeGenFunctionHelpers::emitLocalStackFramePrologue(codeGen, callConvKind);
 
     // Compiler-run entry points receive the caller output buffer in the first integer argument.
     const MicroReg            outputStorageReg = callConv.intArgRegs[0];

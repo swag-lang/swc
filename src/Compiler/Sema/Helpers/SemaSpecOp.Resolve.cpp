@@ -381,28 +381,6 @@ namespace
         return waitVisitSpecOpRegistration(sema, ownerStruct, opVisitId, node.codeRef());
     }
 
-    bool isSupportedAssignSpecOp(TokenId tokId)
-    {
-        switch (tokId)
-        {
-            case TokenId::SymEqual:
-            case TokenId::SymPlusEqual:
-            case TokenId::SymMinusEqual:
-            case TokenId::SymAsteriskEqual:
-            case TokenId::SymSlashEqual:
-            case TokenId::SymAmpersandEqual:
-            case TokenId::SymPipeEqual:
-            case TokenId::SymCircumflexEqual:
-            case TokenId::SymPercentEqual:
-            case TokenId::SymLowerLowerEqual:
-            case TokenId::SymGreaterGreaterEqual:
-                return true;
-
-            default:
-                return false;
-        }
-    }
-
     const SymbolStruct* structSpecOpOwner(Sema& sema, const SemaNodeView& view)
     {
         if (!view.type())
@@ -557,25 +535,32 @@ namespace
         return Result::Continue;
     }
 
-    Result collectAssignSpecOpCandidates(Sema& sema, const SymbolStruct& ownerStruct, const SourceCodeRef& codeRef, TokenId tokId, SmallVector<Symbol*>& outCandidates)
+    // Candidates for an assignment written on a struct: 'opSet'/'opAssign' for a plain receiver,
+    // 'opIndexSet'/'opIndexAssign' for an indexed one. A compound assignment carries the operator
+    // it stands for as a synthetic generic argument.
+    Result collectAssignSpecOpCandidates(Sema& sema, const SymbolStruct& ownerStruct, const SourceCodeRef& codeRef, TokenId tokId, bool indexed, SmallVector<Symbol*>& outCandidates)
     {
         outCandidates.clear();
-        if (!isSupportedAssignSpecOp(tokId))
+        if (!Token::isOpAssign(tokId))
             return Result::Continue;
 
-        const bool          isSimpleAssign = tokId == TokenId::SymEqual;
-        const IdentifierRef opId           = isSimpleAssign ? sema.idMgr().predefined(IdentifierManager::PredefinedName::OpSet) : sema.idMgr().predefined(IdentifierManager::PredefinedName::OpAssign);
-        AstNodeRef          genericArg     = AstNodeRef::invalid();
-        if (!isSimpleAssign)
-        {
-            const std::optional<SpecOperator> op = assignSpecOperator(tokId);
-            SWC_ASSERT(op.has_value());
-            SWC_RESULT(makeSyntheticOperatorArg(genericArg, sema, codeRef, *op));
-        }
+        using Name                       = IdentifierManager::PredefinedName;
+        const bool          isSimple     = tokId == TokenId::SymEqual;
+        const Name          setName      = indexed ? Name::OpIndexSet : Name::OpSet;
+        const Name          assignName   = indexed ? Name::OpIndexAssign : Name::OpAssign;
+        const IdentifierRef opId         = sema.idMgr().predefined(isSimple ? setName : assignName);
 
-        if (genericArg.isValid())
-            return collectSpecOpCandidates(sema, ownerStruct, opId, std::span{&genericArg, 1}, outCandidates);
-        return collectSpecOpCandidates(sema, ownerStruct, opId, std::span<const AstNodeRef>{}, outCandidates);
+        if (isSimple)
+            return collectSpecOpCandidates(sema, ownerStruct, opId, std::span<const AstNodeRef>{}, outCandidates);
+
+        const std::optional<SpecOperator> op = assignSpecOperator(tokId);
+        SWC_ASSERT(op.has_value());
+        AstNodeRef genericArg = AstNodeRef::invalid();
+        SWC_RESULT(makeSyntheticOperatorArg(genericArg, sema, codeRef, *op));
+        if (genericArg.isInvalid())
+            return collectSpecOpCandidates(sema, ownerStruct, opId, std::span<const AstNodeRef>{}, outCandidates);
+
+        return collectSpecOpCandidates(sema, ownerStruct, opId, std::span{&genericArg, 1}, outCandidates);
     }
 
     bool canConsumeLambdaBinding(Sema& sema, AstNodeRef nodeRef)
@@ -655,27 +640,6 @@ namespace
         }
 
         return nullptr;
-    }
-
-    Result collectIndexAssignSpecOpCandidates(Sema& sema, const SymbolStruct& ownerStruct, const SourceCodeRef& codeRef, TokenId tokId, SmallVector<Symbol*>& outCandidates)
-    {
-        outCandidates.clear();
-        if (!isSupportedAssignSpecOp(tokId))
-            return Result::Continue;
-
-        const bool          isSimpleAssign = tokId == TokenId::SymEqual;
-        const IdentifierRef opId           = isSimpleAssign ? sema.idMgr().predefined(IdentifierManager::PredefinedName::OpIndexSet) : sema.idMgr().predefined(IdentifierManager::PredefinedName::OpIndexAssign);
-        AstNodeRef          genericArg     = AstNodeRef::invalid();
-        if (!isSimpleAssign)
-        {
-            const std::optional<SpecOperator> op = assignSpecOperator(tokId);
-            SWC_ASSERT(op.has_value());
-            SWC_RESULT(makeSyntheticOperatorArg(genericArg, sema, codeRef, *op));
-        }
-
-        if (genericArg.isValid())
-            return collectSpecOpCandidates(sema, ownerStruct, opId, std::span{&genericArg, 1}, outCandidates);
-        return collectSpecOpCandidates(sema, ownerStruct, opId, std::span<const AstNodeRef>{}, outCandidates);
     }
 
     void appendIndexArgs(const Ast& ast, const AstIndexListExpr& node, SmallVector<AstNodeRef>& outArgs)
@@ -1043,7 +1007,7 @@ Result SemaSpecOp::collectSetCandidates(Sema& sema, const SymbolStruct& ownerStr
 {
     UserDefinedLiteralSuffixInfo suffixInfo;
     if (!Cast::resolveUserDefinedLiteralSuffix(sema, valueRef, suffixInfo))
-        return collectAssignSpecOpCandidates(sema, ownerStruct, codeRef, TokenId::SymEqual, outCandidates);
+        return collectAssignSpecOpCandidates(sema, ownerStruct, codeRef, TokenId::SymEqual, false, outCandidates);
 
     const IdentifierRef opSetLiteralId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpSetLiteral);
     const AstNodeRef    genericArg     = makeSyntheticStringConstantArg(sema, codeRef, suffixInfo.suffix);
@@ -1057,7 +1021,7 @@ Result SemaSpecOp::resolveAssignLambdaBindingType(Sema& sema, const AstAssignStm
         return Result::Continue;
 
     const Token& tok = sema.token(node.codeRef());
-    if (!isSupportedAssignSpecOp(tok.id))
+    if (!Token::isOpAssign(tok.id))
         return Result::Continue;
 
     const SymbolStruct* ownerStruct = structSpecOpOwner(sema, leftView);
@@ -1070,7 +1034,7 @@ Result SemaSpecOp::resolveAssignLambdaBindingType(Sema& sema, const AstAssignStm
     if (tok.id == TokenId::SymEqual)
         SWC_RESULT(collectSetCandidates(sema, *ownerStruct, node.codeRef(), node.nodeRightRef, candidates));
     else
-        SWC_RESULT(collectAssignSpecOpCandidates(sema, *ownerStruct, node.codeRef(), tok.id, candidates));
+        SWC_RESULT(collectAssignSpecOpCandidates(sema, *ownerStruct, node.codeRef(), tok.id, false, candidates));
 
     TypeRef compareTypeRef = TypeRef::invalid();
     for (const Symbol* candidate : candidates)
@@ -1083,7 +1047,7 @@ Result SemaSpecOp::resolveAssignLambdaBindingType(Sema& sema, const AstAssignStm
         if (!param || param->typeRef().isInvalid())
             continue;
 
-        const TypeRef resolvedTypeRef = SemaHelpers::unwrapLambdaBindingType(sema.ctx(), param->typeRef());
+        const TypeRef resolvedTypeRef = SemaHelpers::unwrapBindingType(sema.ctx(), param->typeRef());
         if (resolvedTypeRef.isInvalid() || !sema.typeMgr().get(resolvedTypeRef).isFunction())
             continue;
 
@@ -1125,7 +1089,7 @@ Result SemaSpecOp::tryResolveAssign(Sema& sema, const AstAssignStmt& node, const
     if (tok.id == TokenId::SymEqual)
         SWC_RESULT(collectSetCandidates(sema, *ownerStruct, node.codeRef(), node.nodeRightRef, candidates));
     else
-        SWC_RESULT(collectAssignSpecOpCandidates(sema, *ownerStruct, node.codeRef(), tok.id, candidates));
+        SWC_RESULT(collectAssignSpecOpCandidates(sema, *ownerStruct, node.codeRef(), tok.id, false, candidates));
     if (candidates.empty())
         return Result::Continue;
 
@@ -1452,7 +1416,7 @@ namespace
             {
                 const Token&         tok = sema.token(assignNode.codeRef());
                 SmallVector<Symbol*> candidates;
-                SWC_RESULT(collectIndexAssignSpecOpCandidates(sema, *ownerStruct, assignNode.codeRef(), tok.id, candidates));
+                SWC_RESULT(collectAssignSpecOpCandidates(sema, *ownerStruct, assignNode.codeRef(), tok.id, true, candidates));
                 if (tok.id == TokenId::SymEqual)
                 {
                     deferToSimpleAssignWriteSpecOp = !candidates.empty();
@@ -1577,7 +1541,7 @@ Result SemaSpecOp::tryResolveIndexAssign(Sema& sema, const AstAssignStmt& node, 
     outHandled = false;
 
     const Token& tok = sema.token(node.codeRef());
-    if (!isSupportedAssignSpecOp(tok.id))
+    if (!Token::isOpAssign(tok.id))
         return Result::Continue;
 
     const AstNodeRef leftNodeRef = node.nodeLeftRef;
@@ -1598,7 +1562,7 @@ Result SemaSpecOp::tryResolveIndexAssign(Sema& sema, const AstAssignStmt& node, 
     SWC_RESULT(SemaCheck::isAssignable(sema, indexedExprRef, sema.viewNodeTypeSymbol(indexedExprRef)));
 
     SmallVector<Symbol*> candidates;
-    SWC_RESULT(collectIndexAssignSpecOpCandidates(sema, *ownerStruct, node.codeRef(), tok.id, candidates));
+    SWC_RESULT(collectAssignSpecOpCandidates(sema, *ownerStruct, node.codeRef(), tok.id, true, candidates));
     if (candidates.empty())
         return Result::Continue;
 
@@ -1921,24 +1885,12 @@ Result SemaSpecOp::tryResolveRelational(Sema& sema, const AstRelationalExpr& nod
 
     const Token&  tok     = sema.token(node.codeRef());
     IdentifierRef opIdRef = IdentifierRef::invalid();
-    switch (tok.id)
-    {
-        case TokenId::SymEqualEqual:
-        case TokenId::SymBangEqual:
-            opIdRef = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpEquals);
-            break;
-
-        case TokenId::SymLess:
-        case TokenId::SymLessEqual:
-        case TokenId::SymGreater:
-        case TokenId::SymGreaterEqual:
-        case TokenId::SymLessEqualGreater:
-            opIdRef = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpCompare);
-            break;
-
-        default:
-            return Result::Continue;
-    }
+    if (Token::isOpEquality(tok.id))
+        opIdRef = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpEquals);
+    else if (Token::isOpOrdering(tok.id))
+        opIdRef = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpCompare);
+    else
+        return Result::Continue;
 
     if (!leftView.type())
         return Result::Continue;

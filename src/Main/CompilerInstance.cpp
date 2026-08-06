@@ -712,85 +712,45 @@ void CompilerInstance::registerNativeCodeFunction(SymbolFunction* symbol)
         notifyAlive();
 }
 
-void CompilerInstance::registerNativeTestFunction(SymbolFunction* symbol)
+void CompilerInstance::registerNativeCompilerFunction(TokenId funcTokenId, SymbolFunction* symbol)
 {
     SWC_ASSERT(symbol != nullptr);
     SWC_ASSERT(symbol->isSemaCompleted());
     if (!canRegisterNativeFunction(*this, *symbol, false))
         return;
 
-    bool inserted = false;
+    std::vector<SymbolFunction*>*        bucket    = nullptr;
+    std::unordered_set<SymbolFunction*>* bucketSet = nullptr;
+    switch (funcTokenId)
     {
-        const std::scoped_lock lock(nativeCodeSegmentMutex_, nativeSpecialFunctionsMutex_);
-        inserted = appendUniqueBuckets({{&nativeCodeSegment_, &nativeCodeSegmentSet_}, {&nativeTestFunctions_, &nativeTestFunctionsSet_}}, symbol);
+        case TokenId::CompilerFuncTest:
+            bucket    = &nativeTestFunctions_;
+            bucketSet = &nativeTestFunctionsSet_;
+            break;
+        case TokenId::CompilerFuncInit:
+            bucket    = &nativeInitFunctions_;
+            bucketSet = &nativeInitFunctionsSet_;
+            break;
+        case TokenId::CompilerFuncPreMain:
+            bucket    = &nativePreMainFunctions_;
+            bucketSet = &nativePreMainFunctionsSet_;
+            break;
+        case TokenId::CompilerFuncDrop:
+            bucket    = &nativeDropFunctions_;
+            bucketSet = &nativeDropFunctionsSet_;
+            break;
+        case TokenId::CompilerFuncMain:
+            bucket    = &nativeMainFunctions_;
+            bucketSet = &nativeMainFunctionsSet_;
+            break;
+        default:
+            SWC_INTERNAL_ERROR();
     }
 
-    if (inserted)
-        notifyAlive();
-}
-
-void CompilerInstance::registerNativeInitFunction(SymbolFunction* symbol)
-{
-    SWC_ASSERT(symbol != nullptr);
-    SWC_ASSERT(symbol->isSemaCompleted());
-    if (!canRegisterNativeFunction(*this, *symbol, false))
-        return;
-
     bool inserted = false;
     {
         const std::scoped_lock lock(nativeCodeSegmentMutex_, nativeSpecialFunctionsMutex_);
-        inserted = appendUniqueBuckets({{&nativeCodeSegment_, &nativeCodeSegmentSet_}, {&nativeInitFunctions_, &nativeInitFunctionsSet_}}, symbol);
-    }
-
-    if (inserted)
-        notifyAlive();
-}
-
-void CompilerInstance::registerNativePreMainFunction(SymbolFunction* symbol)
-{
-    SWC_ASSERT(symbol != nullptr);
-    SWC_ASSERT(symbol->isSemaCompleted());
-    if (!canRegisterNativeFunction(*this, *symbol, false))
-        return;
-
-    bool inserted = false;
-    {
-        const std::scoped_lock lock(nativeCodeSegmentMutex_, nativeSpecialFunctionsMutex_);
-        inserted = appendUniqueBuckets({{&nativeCodeSegment_, &nativeCodeSegmentSet_}, {&nativePreMainFunctions_, &nativePreMainFunctionsSet_}}, symbol);
-    }
-
-    if (inserted)
-        notifyAlive();
-}
-
-void CompilerInstance::registerNativeDropFunction(SymbolFunction* symbol)
-{
-    SWC_ASSERT(symbol != nullptr);
-    SWC_ASSERT(symbol->isSemaCompleted());
-    if (!canRegisterNativeFunction(*this, *symbol, false))
-        return;
-
-    bool inserted = false;
-    {
-        const std::scoped_lock lock(nativeCodeSegmentMutex_, nativeSpecialFunctionsMutex_);
-        inserted = appendUniqueBuckets({{&nativeCodeSegment_, &nativeCodeSegmentSet_}, {&nativeDropFunctions_, &nativeDropFunctionsSet_}}, symbol);
-    }
-
-    if (inserted)
-        notifyAlive();
-}
-
-void CompilerInstance::registerNativeMainFunction(SymbolFunction* symbol)
-{
-    SWC_ASSERT(symbol != nullptr);
-    SWC_ASSERT(symbol->isSemaCompleted());
-    if (!canRegisterNativeFunction(*this, *symbol, false))
-        return;
-
-    bool inserted = false;
-    {
-        const std::scoped_lock lock(nativeCodeSegmentMutex_, nativeSpecialFunctionsMutex_);
-        inserted = appendUniqueBuckets({{&nativeCodeSegment_, &nativeCodeSegmentSet_}, {&nativeMainFunctions_, &nativeMainFunctionsSet_}}, symbol);
+        inserted = appendUniqueBuckets({{&nativeCodeSegment_, &nativeCodeSegmentSet_}, {bucket, bucketSet}}, symbol);
     }
 
     if (inserted)

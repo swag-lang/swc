@@ -619,6 +619,8 @@ namespace
                 return std::format("{} = vec128 {}", memBaseOffsetString(ops[0].reg, ops[3].valueU64, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder));
             case MicroInstrOpcode::VecShuffleRegRegImm:
                 return std::format("{} = {}({}, {})", regName(ops[0].reg, regPrintMode, encoder), tagInstructionToken("vec.shuffle32"), regName(ops[1].reg, regPrintMode, encoder), hexU64(ops[3].valueU64));
+            case MicroInstrOpcode::OpBinaryRegRegImm:
+                return std::format("{} = {}({}, {})", regName(ops[0].reg, regPrintMode, encoder), tagInstructionToken(microOpName(ops[3].microOp)), regName(ops[1].reg, regPrintMode, encoder), hexU64(ops[4].valueU64));
             case MicroInstrOpcode::LoadSignedExtRegMem:
                 return naturalExtendInstruction(regName(ops[0].reg, regPrintMode, encoder), memBaseOffsetString(ops[1].reg, ops[4].valueU64, regPrintMode, encoder), true, ops[2].opBits, ops[3].opBits);
             case MicroInstrOpcode::LoadZeroExtRegMem:

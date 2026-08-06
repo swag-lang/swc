@@ -23,63 +23,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-
-    bool canReflectTypeRef(TaskContext& ctx, TypeRef typeRef, std::unordered_set<TypeRef>& visiting);
-
-    bool canReflectFunctionSignature(TaskContext& ctx, const SymbolFunction& symFunc, std::unordered_set<TypeRef>& visiting)
-    {
-        if (!symFunc.returnTypeRef().isValid() || !canReflectTypeRef(ctx, symFunc.returnTypeRef(), visiting))
-            return false;
-
-        for (const SymbolVariable* param : symFunc.parameters())
-        {
-            if (!param || !param->typeRef().isValid() || !canReflectTypeRef(ctx, param->typeRef(), visiting))
-                return false;
-        }
-
-        return true;
-    }
-
-    bool canReflectTypeRef(TaskContext& ctx, TypeRef typeRef, std::unordered_set<TypeRef>& visiting)
-    {
-        if (!typeRef.isValid())
-            return false;
-
-        // Reflection eligibility is a graph property. A cycle already on the
-        // recursion stack is acceptable: the emitted TypeInfo cache will wire the
-        // back-reference through relocations once all entries have offsets.
-        if (!visiting.insert(typeRef).second)
-            return true;
-
-        const TypeInfo& type = ctx.typeMgr().get(typeRef);
-        bool            ok   = true;
-
-        if (type.isArray())
-            ok = canReflectTypeRef(ctx, type.payloadArrayElemTypeRef(), visiting);
-        else if (type.isSlice() || type.isAnyPointer() || type.isReference() || type.isMoveReference() || type.isTypeValue() || type.isTypedVariadic() || type.isCodeBlock())
-            ok = canReflectTypeRef(ctx, type.payloadTypeRef(), visiting);
-        else if (type.isAlias())
-            ok = canReflectTypeRef(ctx, type.payloadSymAlias().underlyingTypeRef(), visiting);
-        else if (type.isEnum())
-            ok = canReflectTypeRef(ctx, type.payloadSymEnum().underlyingTypeRef(), visiting);
-        else if (type.isAggregateStruct() || type.isAggregateArray())
-        {
-            for (const TypeRef fieldTypeRef : type.payloadAggregate().types)
-            {
-                if (!canReflectTypeRef(ctx, fieldTypeRef, visiting))
-                {
-                    ok = false;
-                    break;
-                }
-            }
-        }
-        else if (type.isFunction())
-            ok = canReflectFunctionSignature(ctx, type.payloadSymFunction(), visiting);
-
-        visiting.erase(typeRef);
-        return ok;
-    }
-
     template<typename T>
     constexpr T enumOr(T a, T b)
     {
@@ -474,23 +417,6 @@ namespace
         }
     }
 
-    TypeRef reflectedMethodTypeRef(TaskContext& ctx, const SymbolFunction& symFunc)
-    {
-        if (symFunc.attributes().hasRtFlag(RtAttributeFlagsE::Macro) ||
-            symFunc.attributes().hasRtFlag(RtAttributeFlagsE::Mixin) ||
-            symFunc.attributes().hasRtFlag(RtAttributeFlagsE::Compiler))
-            return TypeRef::invalid();
-
-        std::unordered_set<TypeRef> visiting;
-        if (!canReflectFunctionSignature(ctx, symFunc, visiting))
-            return TypeRef::invalid();
-
-        if (symFunc.typeRef().isValid())
-            return symFunc.typeRef();
-
-        return ctx.typeMgr().addType(TypeInfo::makeFunction(const_cast<SymbolFunction*>(&symFunc), TypeInfoFlagsE::Zero));
-    }
-
     bool canReflectMethodValue(const SymbolFunction& symFunc)
     {
         if (symFunc.hasExtraFlag(SymbolFunctionFlagsE::WhereConstraintFailed))
@@ -782,7 +708,7 @@ namespace
                 if (!symMethod)
                     continue;
 
-                const TypeRef methodTypeRef = reflectedMethodTypeRef(ctx, *symMethod);
+                const TypeRef methodTypeRef = TypeGen::reflectedMethodTypeRef(ctx, *symMethod);
                 if (!methodTypeRef.isValid())
                     continue;
 

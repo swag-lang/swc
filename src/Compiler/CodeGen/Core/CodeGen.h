@@ -423,6 +423,8 @@ public:
     Result                    emitDeferredActionsUntilScopeRef(AstNodeRef scopeRef);
     Result                    emitDeferredActionsUntilBreakOwner(AstNodeRef breakOwnerRef);
     Result                    emitDeferredActionsUntilSwitchCase(AstNodeRef switchCaseRef);
+    Result                    emitDeferredActionsUntilOwner(AstNodeRef CodeGenDeferScope::* ownerField, AstNodeRef ownerRef);
+    Result                    emitDeferredActionsDownTo(size_t stopScopeIndex);
     Result                    emitNodeNow(AstNodeRef nodeRef);
     void                      invalidateNodePayloadRegs(AstNodeRef nodeRef);
     bool                      containsNodeId(AstNodeRef nodeRef, AstNodeId nodeId);

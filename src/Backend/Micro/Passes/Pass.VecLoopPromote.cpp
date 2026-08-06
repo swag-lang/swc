@@ -31,6 +31,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    using NaturalLoop = MicroPassHelpers::NaturalLoop;
+
     constexpr uint32_t K_INVALID                = std::numeric_limits<uint32_t>::max();
     constexpr uint32_t K_CHUNK_BYTES            = 16;
     constexpr uint32_t K_MAX_ROOT_CHAIN         = 32;
@@ -281,47 +283,6 @@ namespace
         access.isVecStore = isWrite && vecStore;
         outAccesses.push_back(access);
         return true;
-    }
-
-    struct NaturalLoop
-    {
-        uint32_t              header = K_INVALID;
-        SmallVector<uint32_t> tails;
-        std::vector<uint8_t>  inBody;
-        uint32_t              bodySize = 0;
-    };
-
-    void collectLoopBody(const MicroControlFlowGraph& cfg, NaturalLoop& loop)
-    {
-        const uint32_t n = cfg.instructionCount();
-        loop.inBody.assign(n, 0);
-        loop.inBody[loop.header] = 1;
-        std::vector<uint32_t> stack;
-        for (const uint32_t t : loop.tails)
-        {
-            if (t < n && !loop.inBody[t])
-            {
-                loop.inBody[t] = 1;
-                stack.push_back(t);
-            }
-        }
-        while (!stack.empty())
-        {
-            const uint32_t x = stack.back();
-            stack.pop_back();
-            for (const uint32_t p : cfg.predecessors(x))
-            {
-                if (p < n && !loop.inBody[p])
-                {
-                    loop.inBody[p] = 1;
-                    stack.push_back(p);
-                }
-            }
-        }
-        uint32_t size = 0;
-        for (const uint8_t b : loop.inBody)
-            size += b;
-        loop.bodySize = size;
     }
 
     // Attempts the promotion on one loop. Returns true when the IR changed.
@@ -648,31 +609,14 @@ Result MicroVecLoopPromotePass::run(MicroPassContext& context)
 
     const MicroPassHelpers::MicroDomTree dom = MicroPassHelpers::computeInstructionDominators(cfg, entry);
 
-    std::unordered_map<uint32_t, NaturalLoop> loopsByHeader;
-    for (uint32_t u = 0; u < n; ++u)
-    {
-        if (!dom.reachable(u))
-            continue;
-        for (const uint32_t v : cfg.successors(u))
-        {
-            if (v < n && dom.dominates(v, u))
-            {
-                NaturalLoop& loop = loopsByHeader[v];
-                loop.header       = v;
-                loop.tails.push_back(u);
-            }
-        }
-    }
+    std::unordered_map<uint32_t, NaturalLoop> loopsByHeader = MicroPassHelpers::findNaturalLoops(cfg, dom);
     if (loopsByHeader.empty())
         return Result::Continue;
 
     std::vector<NaturalLoop*> loops;
     loops.reserve(loopsByHeader.size());
     for (auto& loop : loopsByHeader | std::views::values)
-    {
-        collectLoopBody(cfg, loop);
         loops.push_back(&loop);
-    }
     std::ranges::sort(loops, [](const NaturalLoop* a, const NaturalLoop* b) {
         if (a->bodySize != b->bodySize)
             return a->bodySize < b->bodySize;

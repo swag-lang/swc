@@ -21,7 +21,7 @@ identifier, so a reference made today still resolves after the entry is gone. En
 identifier, ascending: a new one goes at the end, a deleted one leaves a gap, and position carries
 no priority.
 
-Next identifier: F-035
+Next identifier: F-041
 
 ## Open Investigations
 
@@ -335,30 +335,6 @@ Use this compact format. Keep observations factual and make the next step action
   captured on the same focus event. Pin it with a headless test that types into a grid row, presses
   Escape, and asserts both the stored value and the empty undo stack.
 
-### F-027 — A container of views outlives what it views, and only one configuration says so
-
-- Area: compiler | language
-- Found while: `tools/tests.bat dm --all-cfg`, where `aoc2017` was the one example that crashed,
-  in the `debug` configuration only
-- Observation: `HashSet'(string)` stores views. Filling one from a `String` that is rebuilt and
-  released on every iteration leaves every key pointing at a freed buffer, and nothing rejects it:
-  the implicit `String`-to-`string` conversion at the call is all it takes. The program then
-  depends on the allocator leaving freed bytes readable — which `fast-debug` and `release` do, so
-  both pass, and `debug` faults. A defect that only one configuration reports is worse than one
-  that always fails, because the two green runs are read as proof.
-- Evidence: `day6A` held `var set: HashSet'(string)` and added a per-cycle `var val: String`
-  ([6A.swg](bin/examples/modules/aoc2017/src/6A.swg)); the generated executable died with
-  `0xC0000005` after about 7 seconds, deterministically, and only under `-bc debug`. The same
-  puzzle's `day6B` had it right with `HashTable'(String, u64)`, so the two spellings sat side by
-  side. Reproduced identically with the compiler built from `5d9244592`, so it long predates the
-  current work. Fixed by giving the set owned keys.
-- Next step: this is the borrow-escape check's own case — a view derived from a local, stored into
-  a container that outlives it. Check whether the gated lifetime analysis already models "the
-  callee keeps the view" for a generic container, since `add` taking `string` by value is what
-  hides the escape; a parameter that is stored needs to be distinguishable from one that is only
-  read. Until it is, a cheap net is worth measuring: warn when a `string` derived from a local
-  `String` is passed to a generic instantiated on `string`.
-
 ### F-029 — ChaCha20 throughput is bounded by memory round-trips, not by round arithmetic
 
 - Area: std/core (crypto), compiler/backend
@@ -435,7 +411,161 @@ Use this compact format. Keep observations factual and make the next step action
   Escape is not obviously so while the surface names a cancel action. Mark only what was used, the
   way `EditBox.keyPressed` already does ([editbox.swg:372](bin/std/modules/gui/src/widgets/editbox.swg#L372)).
 
-### F-032 — A check box does not line up with the fields of the form it stands in
+### F-032 — A by-value owning argument carries no borrow, so its payload escapes unjudged
+
+- Area: compiler
+- Found while: closing the container-of-views hole F-027 described (now detected: a store into a
+  container's `[*] T` payload is summarized, and judged wherever the container outlives what was
+  stored into it)
+- Observation: `typeCanCarryBorrow` excludes structs with an owning lifecycle, so an argument of
+  such a type produces no borrow at a call site. A callee that hands back its parameter's owned
+  payload records the return summary correctly, but no call site is ever judged against it.
+  Passing the same value by POINTER works, because a pointer is a carrier.
+- Evidence: `borrowEscapeHeapParamPayload(box: BorrowEscapeHeapBox)->[*] BorrowEscapeSlot`
+  returning `box.slots!` is silent at every call site, while the `*BorrowEscapeHeapBox` spelling
+  right next to it errors ([borrow_escape.swg](bin/unittests/sanity/borrow_escape.swg), section
+  "Owned payloads"). The exclusion dates from the field-scan rule: a bitwise walk of an owner's
+  fields would confuse ownership with borrowing.
+- Next step: the exclusion is about SCANNING an owner's fields, not about the owner being unable
+  to lend anything — a by-value owning argument should yield a borrow rooted at that argument
+  without the field scan, the way `typeHasBorrowableStorage` already does for owner views. Try it
+  behind the usual sweep (build every workspace, zero-hit baseline) and triage: the risk is that
+  every owner passed by value starts feeding the stores and frees summaries.
+
+### F-033 — The vectorizer emitted destructive shapes and the allocator paid for them in memory
+
+- Area: compiler/backend
+- Found while: closing the ChaCha20 gap the new `bench/` task exposed (swag 2.26x clang-cl, the
+  worst of the seven tasks; the other six sit between 0.98x and 1.64x)
+- Observation: the SLP vectorizer expanded every packed operation into the two-address shape
+  legacy SSE requires - a copy of one operand into the destination, then the operation in place.
+  A rotate needs its source twice, so it produced two copies; the register allocator gave one of
+  them a stack home instead of one of the six free XMM registers, and the vectorized ChaCha round
+  loop carried four stores and four reloads per iteration, all on the store-to-load forwarding
+  chain. The copies were the cause: the post-RA peephole that folds a copy into a VEX
+  three-operand form (which now also covers the packed operations) never saw them, because the
+  allocator had already turned one into a spill/reload pair.
+- Evidence: the round loop went from 40 instructions with 8 memory operations to 23 with none,
+  once the vectorizer emitted `OpBinaryRegRegReg` / `OpBinaryRegRegImm` directly instead of
+  copy-then-operate. Read clang's assembly first: it does not vectorize these rounds at all - it
+  keeps the sixteen state words in sixteen scalar registers with `rol` and touches no memory in
+  the loop - which is what made the memory traffic on our side stand out as the anomaly rather
+  than the vectorization itself.
+- Next step: the same shape almost certainly appears elsewhere. Any pass that emits a two-address
+  sequence pre-RA is asking the allocator to preserve a value it has no instruction to preserve
+  cheaply; the allocator's answer is a spill. Audit the remaining pre-RA producers of
+  copy-then-operate pairs (the float paths in particular) against the same rule: when the target
+  has a non-destructive encoding, emit it and let the allocator see two independent sources.
+
+### F-034 — Unrolling a loop does not hand it to the vectorizer
+
+- Area: compiler/backend
+- Found while: chasing the second half of the ChaCha20 gap, once the round loop was fixed
+  ([F-033](#f-033--the-vectorizer-emitted-destructive-shapes-and-the-allocator-paid-for-them-in-memory))
+- Observation: after the rounds were fixed, the dominant cost became the key-stream application -
+  sixteen words XOR-ed one at a time, a loop the unroller refuses because `K_MAX_TRIPS` is 8. The
+  obvious move (raise it to 16, since `K_MAX_TOTAL_INSTR` already bounds the blow-up) unrolls the
+  loop and buys nothing: the sixteen copies stay scalar, so the whole function doubles - 187 to
+  377 instructions - for the loop overhead alone. The gain hoped for was the SLP pass seeing
+  sixteen adjacent stores; it does not see them.
+- Evidence: the unrolled body keeps 16 `load_addr_amc_reg_mem`, 71 loads and 49 zero-extensions.
+  The indexed (Amc) addressing survives unrolling instead of folding into constant offsets, and an
+  Amc access is exactly what makes the SLP scan give up on a block
+  (`hasUnresolvedMemRead`/`Write`). Raising the limit also perturbed the round loop, 23
+  instructions to 39. Reverted; the limit stays at 8.
+- Next step: the missing step is constant-index folding after unrolling, not a bigger unroller. A
+  cloned body whose induction variable is now a constant should have `[base + i*4]` rewritten to
+  `[base + K]`, which is what turns the Amc form into the constant-offset form the vectorizer
+  reads. Check whether instruction-combine already does this and is simply not re-run after the
+  unroll, or whether it has no rule for Amc-with-constant-index at all.
+
+### F-035 — The reallocation summary stops at the module boundary, leaving the invalidation check inert
+
+- Area: compiler
+- Found while: building the borrow-invalidation check (a view read after the storage it views was
+  moved), on branch `worktree-safety-push`
+- Observation: the check itself works — a view taken from a local owner, a call that can move that
+  owner's payload, and a read of the view afterwards are all detected, with the read located by
+  source order so a view that is refreshed or never read again stays silent. What gates it is a new
+  `SymbolFunction::reallocatesParamsMask`, seeded where a payload the parameter OWNS reaches
+  `IAllocator.free`/`realloc` and propagated by the existing summary fixpoint. That mask is not part
+  of `#[Swag.BorrowSummary]`, so an imported callee reports zero and the check never fires on the
+  standard collections — which is every interesting case.
+- Evidence: `String.append` and `String.clear` both come back with `reallocates=0` and `frees=0` at
+  the judgement point, because the attribute carries neither (the frees bit is deliberately
+  suppressed for owned-payload releases: releasing the buffer does not release the container).
+  Within one module the chain is complete: `append` -> `reserve` -> `Memory.free(.buffer, ...)`
+  seeds through the `viaOwnedPayload` edge.
+- Next step: serialize the mask as a fifth `BorrowSummary` argument, exactly as `frees` was added —
+  `api.swg` attribute, `AttributeList`, `collectBorrowSummaryOptions`, the OR in the
+  `SymbolFunction` getter, and `ModuleApiExport.Generate.cpp`. Then re-sweep every workspace and
+  triage: the trigger becomes real for imported types, so this is where the false-positive cost of
+  the check is actually measured. Two shapes were already ruled out by hand and must stay silent —
+  an interface or pointer to the value itself (`let r: IRenderer = &cpu; cpu.begin(...)`), and a
+  method that only reads or assigns fields (`host.mouseDown` with a view of `host.root`'s metrics).
+
+### F-036 — Folding copy-then-operate before register allocation miscompiles
+
+- Area: compiler/backend
+- Found while: generalizing [F-033](#f-033--the-vectorizer-emitted-destructive-shapes-and-the-allocator-paid-for-them-in-memory)
+  to the float paths, which show the same shape: `raytrace`'s intersect loop carried 16 copies and
+  11 stores in a loop that only computes, and the post-RA fold converted 6 pairs out of ~22
+- Observation: rewriting an adjacent `mov %d, %a` / `%d op= %b` into `%d = %a op %b` in the
+  PRE-RA peephole does what it promises statically - the loop's copies drop 16 to 6, its stores
+  11 to 5, and three-operand forms go 6 to 22 - and then every script crashes with 0xC0000005
+  under the JIT, after compiling cleanly. The same rewrite is sound post-RA, where it has shipped
+  for a while.
+- Evidence: `tools/scripts.bat dm` fails on every script, right after "tuned"; the failure is an
+  access violation in JIT-executed code, not a compiler error. Minimal float arithmetic through
+  the JIT is fine, so the broken shape needs the surrounding std modules. Unit tests, the native
+  optimizer tests and the earlier phases of `tests.bat dm` all pass, which is what let it get as
+  far as the scripts.
+- Ruled out by inspection, so the next attempt does not re-walk them: value numbering keys
+  instructions through an explicit per-opcode shape table and simply declines the ones it does not
+  list, so a three-operand form is never numbered, let alone numbered wrongly; copy elimination and
+  dead-code elimination make no positional operand assumptions; the encoder's conformance rules for
+  `OpBinaryRegReg` only fire on integer shapes (shift counts in rcx, mul/div in rax/rdx), which
+  float operations never reach. Above all, the vectorizer already emits `OpBinaryRegRegReg` pre-RA
+  and that path is sound - but at B128. The defect is therefore specific to the B32/B64 float form,
+  not to the opcode existing before allocation.
+- Next step: two suspects remain. LICM treats an adjacent copy plus two-address compute as a pair it
+  hoists together (`isEligiblePairedComputeOpcode`), and the fused form is not in its eligible list;
+  that should only cost a missed hoist, but the interaction is worth confirming rather than
+  assuming. Otherwise it is the register allocator meeting a float destination that is write-only,
+  where every float three-operand instruction it has seen so far arrived after allocation. Bisect
+  cheaply first: restrict the fold to `FloatAdd` alone and run `tools/scripts.bat dm` - a crash
+  there means the shape, a pass means the operation.
+
+### F-037 — Source duplication is nearly free in the executable, and templating it costs
+
+- Area: build
+- Found while: two rounds of factoring roughly 1600 lines of duplicated helpers out of the
+  compiler sources
+- Observation: the Release link runs `/OPT:ICF` (`EnableCOMDATFolding`) on top of LTCG, so two
+  byte-identical function bodies in different translation units cost two source copies but a
+  single copy in the image. Deleting them is worth doing for the sources; it is not a lever on the
+  binary. The reverse also holds, and is the sharper half: collapsing near-identical functions into
+  a template gives every instantiation its own body, and folding only reclaims the instantiations
+  that come out identical — which the interesting ones, differing by a constant, never do.
+- Evidence: round one removed 1398 net source lines across 85 files (verbatim twins such as
+  `builtinTypeRef`, `canReflectTypeRef`, `emitCStringCountReg`, `applyAction`, `collectLoopBody`,
+  plus the token classification moved into `Tokens.Def.inc`) and moved `bin/swc.exe` by only
+  10 240 bytes, 0.2% — of which 1 536 bytes came not from deleting anything but from putting two
+  helpers back inline in their headers after sharing them had cost them their inlining. Round two
+  removed a further 210 lines, mostly by templating families of two and three near-identical
+  functions, and the executable grew 3 072 bytes. The Release configuration already carries `/O2`,
+  `/GL`, `/Gy`, `/OPT:REF`, `/OPT:ICF` and `RuntimeTypeInfo=false`, so the usual size switches are
+  all on. Compile time and peak memory were unchanged throughout: identical CPU median over twelve
+  order-alternated rounds.
+- Next step: measure where the image actually goes before spending more on it. Dump the section
+  sizes and the largest COMDATs (`link /dump /headers`, `/dump /disasm`, or a map file with
+  `/MAP`), and separate code from the read-only data the diagnostic, token, and instruction tables
+  contribute. Only two levers are likely to matter and both must be weighed against the rule that
+  the compiler may never get slower: cutting template instantiation in the hot headers, and
+  trimming inlining pressure (`/Ob1` on the cold command/report/doc translation units only, never
+  on sema, codegen, or the micro passes).
+
+### F-038 — A check box does not line up with the fields of the form it stands in
 
 - Area: std/gui
 - Found while: adding the read-only option to the sCrypt open-vault card, which put the first
@@ -454,7 +584,7 @@ Use this compact format. Keep observations factual and make the next step action
   from the theme rather than from a constant in the widget — `ThemeImageRect` is where the atlas
   already describes itself.
 
-### F-033 — The sCapture main window cannot be painted headlessly
+### F-039 — The sCapture main window cannot be painted headlessly
 
 - Area: apps/sCapture
 - Found while: photographing both shipped surfaces in every palette, to review them without a
@@ -477,7 +607,7 @@ Use this compact format. Keep observations factual and make the next step action
   no appearance regression in the one application that *is* a visual tool can ever fail a test.
   The same photograph is one test away for sCrypt and impossible here.
 
-### F-034 — sCapture dies when its window is moved and resized in one call
+### F-040 — sCapture dies when its window is moved and resized in one call
 
 - Area: apps/sCapture, std/gui
 - Found while: driving the shipped window from a script to photograph its pages. The window opens

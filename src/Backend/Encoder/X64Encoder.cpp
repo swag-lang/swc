@@ -343,6 +343,25 @@ namespace
         return canEncodeOpImmediate(value.as64(), opBits);
     }
 
+    // The immediate an operand carries, wide or not, measured against the width it encodes at.
+    bool immediateFitsOperand(const MicroInstrOperand& op, MicroOpBits opBits)
+    {
+        return op.hasWideImmediateValue() ? canEncodeOpImmediate(op.wideImmediateValue(), opBits) : canEncodeOpImmediate(op.valueU64, opBits);
+    }
+
+    // The four widths every integer form encodes. Anything else has to be normalized first, so
+    // this records the issue and answers whether the caller should stop.
+    bool requireStandardIntOpBits(MicroConformanceIssue& outIssue, MicroOpBits opBits, uint8_t operandIndex, MicroOpBits normalized = MicroOpBits::B64)
+    {
+        if (opBits == MicroOpBits::B8 || opBits == MicroOpBits::B16 || opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64)
+            return false;
+
+        outIssue.kind             = MicroConformanceIssueKind::NormalizeOpBits;
+        outIssue.operandIndex     = operandIndex;
+        outIssue.normalizedOpBits = normalized;
+        return true;
+    }
+
     uint64_t immediateToU64(const ApInt& value)
     {
         SWC_INTERNAL_CHECK(value.fit64());
@@ -630,6 +649,28 @@ namespace
         store.pushU8(0xC4);
         store.pushU8(static_cast<uint8_t>((extDst ? 0 : 0x80) | 0x40 | 0x01));
         store.pushU8(static_cast<uint8_t>((vvvv << 3) | pp));
+    }
+
+    // The 0F-map opcode byte of a 128-bit packed integer operation. The same
+    // byte serves the legacy 66 0F form and its VEX counterpart.
+    uint8_t vecPackedOpcodeByte(MicroOp op)
+    {
+        switch (op)
+        {
+            case MicroOp::VecAdd32:
+                return 0xFE;
+            case MicroOp::VecSub32:
+                return 0xFA;
+            case MicroOp::VecAnd:
+                return 0xDB;
+            case MicroOp::VecOr:
+                return 0xEB;
+            case MicroOp::VecXor:
+                return 0xEF;
+            default:
+                SWC_INTERNAL_ERROR();
+        }
+        return 0;
     }
 
     uint8_t getX64OpCode(MicroOp op)
@@ -975,16 +1016,8 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
     {
         const MicroOp op = ops[3].microOp;
 
-        if (ops[2].opBits != MicroOpBits::B8 &&
-            ops[2].opBits != MicroOpBits::B16 &&
-            ops[2].opBits != MicroOpBits::B32 &&
-            ops[2].opBits != MicroOpBits::B64)
-        {
-            outIssue.kind             = MicroConformanceIssueKind::NormalizeOpBits;
-            outIssue.operandIndex     = 2;
-            outIssue.normalizedOpBits = MicroOpBits::B64;
+        if (requireStandardIntOpBits(outIssue, ops[2].opBits, 2))
             return true;
-        }
 
         const bool isB8SignedMul = op == MicroOp::MultiplySigned && ops[2].opBits == MicroOpBits::B8;
         if (op == MicroOp::MultiplyUnsigned || isB8SignedMul)
@@ -1005,16 +1038,8 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
     {
         const MicroOp op = ops[3].microOp;
 
-        if (ops[2].opBits != MicroOpBits::B8 &&
-            ops[2].opBits != MicroOpBits::B16 &&
-            ops[2].opBits != MicroOpBits::B32 &&
-            ops[2].opBits != MicroOpBits::B64)
-        {
-            outIssue.kind             = MicroConformanceIssueKind::NormalizeOpBits;
-            outIssue.operandIndex     = 2;
-            outIssue.normalizedOpBits = MicroOpBits::B64;
+        if (requireStandardIntOpBits(outIssue, ops[2].opBits, 2))
             return true;
-        }
 
         if (!ops[0].reg.isInt() || !ops[1].reg.isInt() || !supportsOpBinaryMemReg(op))
         {
@@ -1077,16 +1102,8 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
             return true;
         }
 
-        if (ops[1].opBits != MicroOpBits::B8 &&
-            ops[1].opBits != MicroOpBits::B16 &&
-            ops[1].opBits != MicroOpBits::B32 &&
-            ops[1].opBits != MicroOpBits::B64)
-        {
-            outIssue.kind             = MicroConformanceIssueKind::NormalizeOpBits;
-            outIssue.operandIndex     = 1;
-            outIssue.normalizedOpBits = MicroOpBits::B64;
+        if (requireStandardIntOpBits(outIssue, ops[1].opBits, 1))
             return true;
-        }
 
         const bool     immediateIsWide = ops[2].hasWideImmediateValue();
         const bool     immediateFits64 = !immediateIsWide || ops[2].wideImmediateValue().fit64();
@@ -1130,16 +1147,8 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
         if (isVecMicroOp(ops[2].microOp))
             return false;
 
-        if (ops[1].opBits != MicroOpBits::B8 &&
-            ops[1].opBits != MicroOpBits::B16 &&
-            ops[1].opBits != MicroOpBits::B32 &&
-            ops[1].opBits != MicroOpBits::B64)
-        {
-            outIssue.kind             = MicroConformanceIssueKind::NormalizeOpBits;
-            outIssue.operandIndex     = 1;
-            outIssue.normalizedOpBits = MicroOpBits::B64;
+        if (requireStandardIntOpBits(outIssue, ops[1].opBits, 1))
             return true;
-        }
 
         const bool isB8SignedMulImm = ops[2].microOp == MicroOp::MultiplySigned && ops[1].opBits == MicroOpBits::B8;
         if (!supportsOpBinaryRegImm(ops[2].microOp) || requiresRegImmRewrite(ops[2].microOp) || isB8SignedMulImm)
@@ -1169,7 +1178,7 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
             return true;
         }
 
-        const bool immediateIsEncodable = !ops[3].hasWideImmediateValue() ? canEncodeOpImmediate(ops[3].valueU64, ops[1].opBits) : canEncodeOpImmediate(ops[3].wideImmediateValue(), ops[1].opBits);
+        const bool immediateIsEncodable = immediateFitsOperand(ops[3], ops[1].opBits);
         if (!immediateIsEncodable)
         {
             outIssue.kind = MicroConformanceIssueKind::RewriteRegImmToRegReg;
@@ -1178,43 +1187,15 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
     }
 
     ///////////////////////////////////////////
-    if (inst.op == MicroInstrOpcode::CmpRegImm)
+    // Both compare-with-immediate forms answer the same two questions; only the operand carrying
+    // the immediate moves, because the memory form spends two operands on its address.
+    if (inst.op == MicroInstrOpcode::CmpRegImm || inst.op == MicroInstrOpcode::CmpMemImm)
     {
-        if (ops[1].opBits != MicroOpBits::B8 &&
-            ops[1].opBits != MicroOpBits::B16 &&
-            ops[1].opBits != MicroOpBits::B32 &&
-            ops[1].opBits != MicroOpBits::B64)
-        {
-            outIssue.kind             = MicroConformanceIssueKind::NormalizeOpBits;
-            outIssue.operandIndex     = 1;
-            outIssue.normalizedOpBits = MicroOpBits::B64;
+        if (requireStandardIntOpBits(outIssue, ops[1].opBits, 1))
             return true;
-        }
 
-        const bool immediateIsEncodable = !ops[2].hasWideImmediateValue() ? canEncodeOpImmediate(ops[2].valueU64, ops[1].opBits) : canEncodeOpImmediate(ops[2].wideImmediateValue(), ops[1].opBits);
-        if (!immediateIsEncodable)
-        {
-            outIssue.kind = MicroConformanceIssueKind::RewriteRegImmToRegReg;
-            return true;
-        }
-    }
-
-    ///////////////////////////////////////////
-    if (inst.op == MicroInstrOpcode::CmpMemImm)
-    {
-        if (ops[1].opBits != MicroOpBits::B8 &&
-            ops[1].opBits != MicroOpBits::B16 &&
-            ops[1].opBits != MicroOpBits::B32 &&
-            ops[1].opBits != MicroOpBits::B64)
-        {
-            outIssue.kind             = MicroConformanceIssueKind::NormalizeOpBits;
-            outIssue.operandIndex     = 1;
-            outIssue.normalizedOpBits = MicroOpBits::B64;
-            return true;
-        }
-
-        const bool immediateIsEncodable = !ops[3].hasWideImmediateValue() ? canEncodeOpImmediate(ops[3].valueU64, ops[1].opBits) : canEncodeOpImmediate(ops[3].wideImmediateValue(), ops[1].opBits);
-        if (!immediateIsEncodable)
+        const uint32_t immediateIndex = inst.op == MicroInstrOpcode::CmpRegImm ? 2 : 3;
+        if (!immediateFitsOperand(ops[immediateIndex], ops[1].opBits))
         {
             outIssue.kind = MicroConformanceIssueKind::RewriteRegImmToRegReg;
             return true;
@@ -1224,16 +1205,8 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
     ///////////////////////////////////////////
     if (inst.op == MicroInstrOpcode::OpBinaryMemImm)
     {
-        if (ops[1].opBits != MicroOpBits::B8 &&
-            ops[1].opBits != MicroOpBits::B16 &&
-            ops[1].opBits != MicroOpBits::B32 &&
-            ops[1].opBits != MicroOpBits::B64)
-        {
-            outIssue.kind             = MicroConformanceIssueKind::NormalizeOpBits;
-            outIssue.operandIndex     = 1;
-            outIssue.normalizedOpBits = MicroOpBits::B64;
+        if (requireStandardIntOpBits(outIssue, ops[1].opBits, 1))
             return true;
-        }
 
         if (!supportsOpBinaryMemImm(ops[2].microOp))
         {
@@ -1254,7 +1227,7 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
             return true;
         }
 
-        const bool immediateIsEncodable = !ops[4].hasWideImmediateValue() ? canEncodeOpImmediate(ops[4].valueU64, ops[1].opBits) : canEncodeOpImmediate(ops[4].wideImmediateValue(), ops[1].opBits);
+        const bool immediateIsEncodable = immediateFitsOperand(ops[4], ops[1].opBits);
         if (!immediateIsEncodable)
         {
             outIssue.kind = MicroConformanceIssueKind::RewriteRegImmToRegReg;
@@ -1287,7 +1260,7 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
             return true;
         }
 
-        const bool immediateIsEncodable = !ops[3].hasWideImmediateValue() ? canEncodeOpImmediate(ops[3].valueU64, ops[1].opBits) : canEncodeOpImmediate(ops[3].wideImmediateValue(), ops[1].opBits);
+        const bool immediateIsEncodable = immediateFitsOperand(ops[3], ops[1].opBits);
         if (ops[1].opBits == MicroOpBits::B64 && !immediateIsEncodable)
         {
             outIssue.kind = MicroConformanceIssueKind::SplitLoadMemImm64;
@@ -1321,7 +1294,7 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
     ///////////////////////////////////////////
     if (inst.op == MicroInstrOpcode::LoadAmcMemImm)
     {
-        const bool immediateIsEncodable = !ops[7].hasWideImmediateValue() ? canEncodeOpImmediate(ops[7].valueU64, ops[4].opBits) : canEncodeOpImmediate(ops[7].wideImmediateValue(), ops[4].opBits);
+        const bool immediateIsEncodable = immediateFitsOperand(ops[7], ops[4].opBits);
         if (ops[4].opBits == MicroOpBits::B64 && !immediateIsEncodable)
         {
             outIssue.kind = MicroConformanceIssueKind::SplitLoadAmcMemImm64;
@@ -2500,32 +2473,10 @@ void X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp 
     {
         SWC_ASSERT(opBits == MicroOpBits::B128 && regDst.isFloat() && regSrc.isFloat());
 
-        uint8_t opcodeByte = 0;
-        switch (op)
-        {
-            case MicroOp::VecAdd32:
-                opcodeByte = 0xFE;
-                break;
-            case MicroOp::VecSub32:
-                opcodeByte = 0xFA;
-                break;
-            case MicroOp::VecAnd:
-                opcodeByte = 0xDB;
-                break;
-            case MicroOp::VecOr:
-                opcodeByte = 0xEB;
-                break;
-            case MicroOp::VecXor:
-                opcodeByte = 0xEF;
-                break;
-            default:
-                SWC_INTERNAL_ERROR();
-        }
-
         emitCpuOp(store_, 0x66);
         emitRex(store_, MicroOpBits::Zero, regDst, regSrc);
         emitCpuOp(store_, 0x0F);
-        emitCpuOp(store_, opcodeByte);
+        emitCpuOp(store_, vecPackedOpcodeByte(op));
         emitModRm(store_, regDst, regSrc);
         return;
     }
@@ -3447,6 +3398,19 @@ void X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, const
 void X64Encoder::encodeOpBinaryRegRegReg(MicroReg regDst, MicroReg regSrc1, MicroReg regSrc2, MicroOp op, MicroOpBits opBits)
 {
     SWC_ASSERT(regDst.isFloat() && regSrc1.isFloat() && regSrc2.isFloat());
+
+    // 128-bit packed integer: the VEX form of the same 66 0F <op> encoding the
+    // two-operand shape uses, with the untouched source named in vvvv instead
+    // of having to be copied into the destination first.
+    if (isVecMicroOp(op))
+    {
+        SWC_ASSERT(opBits == MicroOpBits::B128);
+        emitVex(store_, 0x66, microRegToX64Reg(regDst), microRegToX64Reg(regSrc1), microRegToX64Reg(regSrc2));
+        emitCpuOp(store_, vecPackedOpcodeByte(op));
+        emitModRm(store_, regDst, regSrc2);
+        return;
+    }
+
     SWC_ASSERT(opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
 
     // Same mandatory prefix the two-operand form would carry: F2/F3 select the
@@ -3459,6 +3423,22 @@ void X64Encoder::encodeOpBinaryRegRegReg(MicroReg regDst, MicroReg regSrc1, Micr
     emitVex(store_, mandatoryPrefix, microRegToX64Reg(regDst), microRegToX64Reg(regSrc1), microRegToX64Reg(regSrc2));
     emitCpuOp(store_, op);
     emitModRm(store_, regDst, regSrc2);
+}
+
+void X64Encoder::encodeOpBinaryRegRegImm(MicroReg regDst, MicroReg regSrc, MicroOp op, MicroOpBits opBits, uint64_t value)
+{
+    // vpslld/vpsrld xmm1, xmm2, imm8 (VEX.NDD.128.66.0F.WIG 72 /6|/2 ib). The
+    // shift-by-immediate group puts its opcode extension in the ModRM.reg
+    // field, so the destination travels in vvvv and the source in r/m - the
+    // reverse of the three-operand arithmetic form.
+    SWC_ASSERT(op == MicroOp::VecShiftLeft32 || op == MicroOp::VecShiftRight32);
+    SWC_ASSERT(opBits == MicroOpBits::B128 && regDst.isFloat() && regSrc.isFloat());
+    SWC_ASSERT(value <= 31);
+
+    emitVex(store_, 0x66, X64Reg::Rax, microRegToX64Reg(regDst), microRegToX64Reg(regSrc));
+    emitCpuOp(store_, 0x72);
+    emitModRm(store_, op == MicroOp::VecShiftLeft32 ? MODRM_REG_6 : MODRM_REG_2, regSrc);
+    emitValue(store_, value, MicroOpBits::B8);
 }
 
 void X64Encoder::encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits)

@@ -18,6 +18,7 @@
 SWC_BEGIN_NAMESPACE();
 
 struct CastRequest;
+enum class TaskStateKind : uint8_t;
 class SymbolNamespace;
 class SymbolFunction;
 class SymbolVariable;
@@ -65,6 +66,11 @@ struct SemaEscapeInfo
     SmallVector4<std::shared_ptr<const SemaEscapeDeferredCallSnapshot>> deferredCalls;
     // Lexical depth of the storage backing a Materialized borrow (0 = unknown).
     uint32_t sourceScopeDepth = 0;
+    // The borrow designates a payload the source OWNS (a buffer read out of a value with
+    // an owning lifecycle), not the source's own storage. Releasing such a payload is
+    // what the owner is for, so it must not feed the "this callee frees the pointer you
+    // handed it" summary.
+    bool viaOwnedPayload = false;
 
     bool hasBorrow() const { return kind != SemaEscapeKind::None; }
     bool isLocalBorrow() const { return kind == SemaEscapeKind::Local && sourceVar != nullptr; }
@@ -409,12 +415,26 @@ public:
     bool isImplicitCodeBlockArg(AstNodeRef parentRef, AstNodeRef childRef) const;
 
     const SemaEscapeInfo* variableEscapeInfo(const SymbolVariable& symVar) const;
+    // Every local currently known to borrow something, for the checks that start from the
+    // BORROWED storage instead of the borrowing variable.
+    const std::unordered_map<const SymbolVariable*, SemaEscapeInfo>& variableEscapeInfos() const { return variableEscapeInfos_; }
     void                  setVariableEscapeInfo(const SymbolVariable& symVar, const SemaEscapeInfo& info);
     void                  clearVariableEscapeInfo(const SymbolVariable& symVar);
     SemaEscapeInfo        variableEscapeInfoIncludingProjections(const SymbolVariable& symVar) const;
     SemaEscapeInfo        projectionEscapeInfoIncludingWildcards(const SemaEscapeProjection& projection) const;
     void                  setProjectionEscapeInfo(const SemaEscapeProjection& projection, const SemaEscapeInfo& info);
     void                  clearProjectionEscapeInfo(const SemaEscapeProjection& projection);
+
+    // Structural changes of storage a local view was reading, judged once the body they
+    // sit in is fully resolved (SemaEscape::reportBorrowInvalidations).
+    std::span<const SemaBorrowInvalidation> borrowInvalidations() const { return borrowInvalidations_.span(); }
+    void                                    addBorrowInvalidation(const SemaBorrowInvalidation& record) { borrowInvalidations_.push_back(record); }
+    void                                    setBorrowInvalidations(std::span<const SemaBorrowInvalidation> records)
+    {
+        borrowInvalidations_.clear();
+        for (const SemaBorrowInvalidation& record : records)
+            borrowInvalidations_.push_back(record);
+    }
 
     // Lexical depth of the scope a local variable is declared in (0 = unknown).
     uint32_t variableScopeDepth(const SymbolVariable& symVar) const;
@@ -499,6 +519,8 @@ public:
     Result      waitTyped(const Symbol* symbol, const SourceCodeRef& codeRef);
     Result      waitSemaCompleted(const TypeInfo* type, AstNodeRef nodeRef);
     Result      waitTypeInfoGeneration(AstNodeRef nodeRef, const SourceCodeRef& codeRef = SourceCodeRef::invalid());
+    // Records why this job cannot go on and hands the worker back to the scheduler.
+    Result      parkOnSymbol(TaskStateKind kind, const Symbol* blockingSymbol, AstNodeRef nodeRef, const SourceCodeRef& codeRef);
     Result      makeRuntimeTypeInfo(ConstantRef& outRef, TypeRef typeRef, AstNodeRef ownerNodeRef);
     Result      prepareFunctionSignature(AstNodeRef functionRef);
     static void waitDone(TaskContext& ctx, JobClientId clientId);
@@ -595,6 +617,7 @@ private:
         std::unordered_map<SemaEscapeProjection, SemaEscapeInfo, SemaEscapeProjectionHash> mergedProjectionState;
     };
 
+    SmallVector4<SemaBorrowInvalidation>                                               borrowInvalidations_;
     std::unordered_map<const SymbolVariable*, SemaEscapeInfo>                          variableEscapeInfos_;
     std::unordered_map<SemaEscapeProjection, SemaEscapeInfo, SemaEscapeProjectionHash> projectionEscapeInfos_;
     std::unordered_map<const SymbolVariable*, uint32_t>                                variableScopeDepths_;

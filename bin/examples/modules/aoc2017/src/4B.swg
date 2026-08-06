@@ -23,7 +23,10 @@ func day4B()
     for l in lines
     {
         let s = Tokenize.split(l, " ")
-        var set: HashSet'(string)
+
+        // The set owns its keys: 'str' is rebuilt on every word and released with the
+        // iteration, so a set of views would be left pointing at freed buffers.
+        var set: HashSet'String
 
         for w in s
         {

@@ -10,22 +10,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace SemaRuntime
 {
-    inline bool isNativeArtifactCompilerFunction(const TokenId tokenId)
-    {
-        switch (tokenId)
-        {
-            case TokenId::CompilerFuncTest:
-            case TokenId::CompilerFuncInit:
-            case TokenId::CompilerFuncDrop:
-            case TokenId::CompilerFuncMain:
-            case TokenId::CompilerFuncPreMain:
-                return true;
-
-            default:
-                return false;
-        }
-    }
-
     inline const SymbolFunction* transparentLocationFunction(const SymbolFunction* function)
     {
         while (function)
@@ -65,7 +49,7 @@ namespace SemaRuntime
             return false;
 
         const TokenId tokenId = sema.srcView(symbol.srcViewRef()).token(symbol.tokRef()).id;
-        return !isNativeArtifactCompilerFunction(tokenId);
+        return !Token::isNativeArtifactCompilerFunc(tokenId);
     }
 
     inline bool isCompilerOnlyVariable(const SymbolVariable& symbol)
@@ -97,7 +81,7 @@ namespace SemaRuntime
             return true;
 
         const TokenId tokenId = sema.srcView(symbol.srcViewRef()).token(symbol.tokRef()).id;
-        return isNativeArtifactCompilerFunction(tokenId);
+        return Token::isNativeArtifactCompilerFunc(tokenId);
     }
 
     inline bool isCompilerEvalContextNode(const Sema& sema, const AstNode& node)
@@ -120,7 +104,7 @@ namespace SemaRuntime
             case AstNodeId::CompilerShortFunc:
             {
                 const TokenId tokenId = sema.token(node.codeRef()).id;
-                return !isNativeArtifactCompilerFunction(tokenId);
+                return !Token::isNativeArtifactCompilerFunc(tokenId);
             }
 
             default:

@@ -257,6 +257,12 @@ public:
     void setPayloadArray(std::span<const std::byte> bytes) { payloadArray_.val = normalizePayloadBytes(bytes); }
 
 private:
+    // Constructs this value's payload from another's, for whichever kind 'kind_' already says it
+    // is. Copy and move differ only in how the one non-trivial arm - the aggregate - is built, so
+    // OTHER carries that difference and every other arm is written once.
+    template<typename OTHER>
+    void constructPayloadFrom(OTHER&& other);
+
     static std::span<const std::byte> normalizePayloadBytes(std::span<const std::byte> bytes) noexcept;
     static uint64_t                   packDataSegmentRef(DataSegmentRef ref) noexcept;
     static DataSegmentRef             unpackDataSegmentRef(uint64_t packedRef) noexcept;

@@ -1253,6 +1253,9 @@
     <ClInclude Include="src\Backend\\Micro\Passes\Pass.PostRADeadCodeElim.h">
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClInclude>
+    <ClInclude Include="src\Backend\\Micro\Passes\Pass.Peephole.Core.h">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClInclude>
     <ClInclude Include="src\Backend\\Micro\Passes\Pass.PreRAPeephole.h">
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClInclude>

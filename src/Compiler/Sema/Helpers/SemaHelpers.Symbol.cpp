@@ -429,40 +429,27 @@ Result SemaHelpers::checkBinaryOperandTypes(Sema& sema, AstNodeRef nodeRef, Toke
             break;
     }
 
-    switch (op)
+    // Arithmetic works on any scalar number; the bitwise operators need integers, except when
+    // both sides are the very same flags enum, where they combine enumerators.
+    if (Token::isOpArithmetic(op))
     {
-        case TokenId::SymSlash:
-        case TokenId::SymPercent:
-        case TokenId::SymPlus:
-        case TokenId::SymMinus:
-        case TokenId::SymAsterisk:
-            if (!aliasType(sema, leftView).isScalarNumeric())
-                return SemaError::raiseBinaryOperandType(sema, nodeRef, leftRef, leftView.typeRef(), rightView.typeRef());
-            if (!aliasType(sema, rightView).isScalarNumeric())
-                return SemaError::raiseBinaryOperandType(sema, nodeRef, rightRef, leftView.typeRef(), rightView.typeRef());
-            break;
-
-        case TokenId::SymAmpersand:
-        case TokenId::SymPipe:
-        case TokenId::SymCircumflex:
-        case TokenId::SymGreaterGreater:
-        case TokenId::SymLowerLower:
-            if (op == TokenId::SymAmpersand || op == TokenId::SymPipe || op == TokenId::SymCircumflex)
-            {
-                const bool leftEnumFlags  = aliasType(sema, leftView).isEnumFlags();
-                const bool rightEnumFlags = aliasType(sema, rightView).isEnumFlags();
-                if (leftEnumFlags && rightEnumFlags && leftView.typeRef() == rightView.typeRef())
-                    break;
-            }
-
+        if (!aliasType(sema, leftView).isScalarNumeric())
+            return SemaError::raiseBinaryOperandType(sema, nodeRef, leftRef, leftView.typeRef(), rightView.typeRef());
+        if (!aliasType(sema, rightView).isScalarNumeric())
+            return SemaError::raiseBinaryOperandType(sema, nodeRef, rightRef, leftView.typeRef(), rightView.typeRef());
+    }
+    else if (Token::isOpBitwise(op))
+    {
+        const bool sameFlagsEnum = op != TokenId::SymGreaterGreater && op != TokenId::SymLowerLower &&
+                                   aliasType(sema, leftView).isEnumFlags() && aliasType(sema, rightView).isEnumFlags() &&
+                                   leftView.typeRef() == rightView.typeRef();
+        if (!sameFlagsEnum)
+        {
             if (!aliasType(sema, leftView).isIntLike())
                 return SemaError::raiseBinaryOperandType(sema, nodeRef, leftRef, leftView.typeRef(), rightView.typeRef());
             if (!aliasType(sema, rightView).isIntLike())
                 return SemaError::raiseBinaryOperandType(sema, nodeRef, rightRef, leftView.typeRef(), rightView.typeRef());
-            break;
-
-        default:
-            break;
+        }
     }
 
     return Result::Continue;

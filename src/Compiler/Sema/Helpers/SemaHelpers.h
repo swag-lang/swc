@@ -35,6 +35,26 @@ namespace SemaHelpers
         SmallVector2<SemaNarrowFact> whenFalse;
     };
 
+    // One member of a struct-like aggregate literal, as reached by a given child expression:
+    // a declared field when the target is a struct, otherwise the positional member of an
+    // anonymous aggregate struct.
+    struct AggregateChildSlot
+    {
+        const SymbolVariable* field   = nullptr;
+        size_t                index   = 0;
+        TypeRef               typeRef = TypeRef::invalid();
+    };
+
+    bool    resolveAggregateChildSlot(Sema& sema, AggregateChildSlot& outSlot, const TypeInfo& targetType, std::span<const AstNodeRef> children, AstNodeRef childRef);
+    // Intrinsics that hand back their numeric argument's own type, alias included, instead of
+    // the underlying builtin one.
+    bool    isAliasPreservingNumericIntrinsic(TokenId tokenId);
+    // Dividing by a literal zero is an error whether it is written '/' or '/='. Call it only
+    // once the right operand is known to be constant.
+    Result  checkDivideByZeroConstant(Sema& sema, TokenId op, AstNodeRef nodeRef, const SemaNodeView& nodeRightView);
+    // Whether '@init(what, args...)' spells out a struct's fields one by one, rather than
+    // handing it a single value of its own type to copy.
+    bool    intrinsicInitTreatsArgsAsStructTuple(Sema& sema, TypeRef fillTypeRef, const SmallVector<AstNodeRef>& args);
     bool    extractNarrowPath(Sema& sema, AstNodeRef nodeRef, SmallVector4<const Symbol*>& outPath);
     void    collectNarrowGuards(Sema& sema, AstNodeRef condRef, NarrowGuards& out);
     TypeRef nullNarrowedTypeRef(Sema& sema, AstNodeRef nodeRef, TypeRef typeRef);
@@ -73,7 +93,10 @@ namespace SemaHelpers
     AstNodeRef               resolveTransparentExprSourceRef(Sema& sema, AstNodeRef nodeRef);
     AstNodeRef               resolveTransparentConditionExprSourceRef(Sema& sema, AstNodeRef nodeRef);
     void                     preferContextualAutoMemberBindingType(Sema& sema, AstNodeRef exprRef);
-    TypeRef                  unwrapLambdaBindingType(TaskContext& ctx, TypeRef typeRef);
+    // The storage a binding ultimately exposes: aliases, enum wrappers and references
+    // stripped, so later checks compare the carried payload and not the syntax that
+    // happened to produce it.
+    TypeRef                  unwrapBindingType(TaskContext& ctx, TypeRef typeRef);
     TypeRef                  ensureStructTypeRef(Sema& sema, SymbolStruct& symStruct);
     TypeRef                  unwrapAliasRefType(TaskContext& ctx, TypeRef typeRef);
     const SymbolFunction*    resolveLambdaBindingFunction(Sema& sema);
@@ -134,6 +157,7 @@ namespace SemaHelpers
     Result                   resolveCountOfResult(Sema& sema, CountOfResultInfo& outResult, AstNodeRef exprRef);
     Result                   intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRef exprRef);
     bool                     isTypeLikeTypeRef(const TaskContext& ctx, TypeRef typeRef);
+    TypeRef                  structuralTypeRefFromTypeNode(Sema& sema, AstNodeRef typeNodeRef);
     TypeRef                  resolveRepresentedTypeRef(Sema& sema, const SemaNodeView& view);
     void                     normalizeTypeOperandToConstant(Sema& sema, SemaNodeView& view);
     TypeRef                  normalizeTypeLikeValueTypeRef(Sema& sema, TypeRef typeRef, ConstantRef cstRef, AstNodeRef ownerNodeRef);

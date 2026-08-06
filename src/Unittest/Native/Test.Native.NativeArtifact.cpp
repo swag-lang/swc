@@ -916,11 +916,11 @@ var GAddOne: UnaryFn = &addOne
     SymbolFunction* const dropFunction               = compiler.nativeDropFunctions().front();
 
     compiler.registerNativeCodeFunction(codeFunction);
-    compiler.registerNativeTestFunction(testFunction);
-    compiler.registerNativeInitFunction(initFunction);
-    compiler.registerNativePreMainFunction(preMainFunction);
-    compiler.registerNativeMainFunction(mainFunction);
-    compiler.registerNativeDropFunction(dropFunction);
+    compiler.registerNativeCompilerFunction(TokenId::CompilerFuncTest, testFunction);
+    compiler.registerNativeCompilerFunction(TokenId::CompilerFuncInit, initFunction);
+    compiler.registerNativeCompilerFunction(TokenId::CompilerFuncPreMain, preMainFunction);
+    compiler.registerNativeCompilerFunction(TokenId::CompilerFuncMain, mainFunction);
+    compiler.registerNativeCompilerFunction(TokenId::CompilerFuncDrop, dropFunction);
     compiler.registerNativeGlobalVariable(globalFunctionPtr);
     compiler.registerNativeGlobalFunctionInitTarget(addOneFunction);
     compiler.registerPreparedJitFunction(addOneFunction);

@@ -2,6 +2,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/Micro/MicroStorage.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 
 // Forward a LoadRegImm into its consumer so the materializing register
@@ -163,25 +164,6 @@ namespace InstructionCombine
 
         // Operand index of the MicroCond for each UsesCpuFlags opcode we
         // handle. Anything else causes us to bail out of the swap.
-        bool flagConsumerCondIndex(MicroInstrOpcode op, uint8_t& outIdx)
-        {
-            switch (op)
-            {
-                case MicroInstrOpcode::JumpCond:
-                case MicroInstrOpcode::JumpCondImm:
-                    outIdx = 0;
-                    return true;
-                case MicroInstrOpcode::SetCondReg:
-                    outIdx = 1;
-                    return true;
-                case MicroInstrOpcode::LoadCondRegReg:
-                    outIdx = 2;
-                    return true;
-                default:
-                    return false;
-            }
-        }
-
         struct FlagConsumer
         {
             MicroInstrRef ref;
@@ -208,7 +190,7 @@ namespace InstructionCombine
                 if (usesFlags)
                 {
                     uint8_t condIdx = 0;
-                    if (!flagConsumerCondIndex(inst.op, condIdx))
+                    if (!MicroPassHelpers::conditionOperandIndex(inst.op, condIdx))
                         return false;
 
                     const MicroInstrOperand* ops = inst.ops(*ctx.operands);

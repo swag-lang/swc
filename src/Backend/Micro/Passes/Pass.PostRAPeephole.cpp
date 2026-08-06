@@ -39,6 +39,7 @@ namespace
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoFloatBinary);
         r.add(MicroInstrOpcode::OpBinaryRegMem, tryUseSelfOperandForFloatBinary);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyIntoFloatBinary);
+        r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyIntoVecShiftImm);
         r.add(MicroInstrOpcode::LoadRegReg, tryForwardCopy);
         return r;
     }
@@ -83,7 +84,7 @@ Result MicroPostRaPeepholePass::run(MicroPassContext& context)
         return Result::Continue;
 
     for (const Action& action : ctx.actions)
-        applyAction(ctx, action);
+        MicroPeephole::applyAction(ctx, action);
 
     context.passChanged = true;
     return Result::Continue;

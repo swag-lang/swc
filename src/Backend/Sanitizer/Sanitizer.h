@@ -61,6 +61,12 @@ public:
     // run as having found something so the pass can abort codegen.
     void report(const MicroInstr& inst, DiagnosticId id);
 
+    // Reports 'id' when 'inst' is a plain load whose stack slot falls inside one of the
+    // poisoned ranges. Address computations and indexed forms are left alone: the first is a
+    // legitimate way to (re)initialize through an out-parameter, the second cannot prove the
+    // range it touches.
+    void reportLoadFromPoisonedRange(const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops, const SanitizerState& state, const std::unordered_map<int64_t, uint64_t>& poisoned, DiagnosticId id);
+
 private:
     // Register / slot access.
     static const SanitizerRegInfo* findReg(const SanitizerState& state, MicroReg reg);

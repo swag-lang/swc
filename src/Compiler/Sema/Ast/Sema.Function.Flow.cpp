@@ -545,7 +545,7 @@ namespace
 
 namespace
 {
-    using SemaHelpers::unwrapLambdaBindingType;
+    using SemaHelpers::unwrapBindingType;
 
     const SymbolFunction* resolveCalledFunction(Sema& sema, Symbol* sym)
     {
@@ -1110,7 +1110,7 @@ namespace
             if (!paramTypeRef.isValid())
                 continue;
 
-            const TypeRef resolvedTypeRef = unwrapLambdaBindingType(sema.ctx(), paramTypeRef);
+            const TypeRef resolvedTypeRef = unwrapBindingType(sema.ctx(), paramTypeRef);
             if (!resolvedTypeRef.isValid() || !sema.typeMgr().get(resolvedTypeRef).isFunction())
                 continue;
 
@@ -1248,32 +1248,6 @@ namespace
         return SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Math, node.codeRef());
     }
 
-    bool isAliasPreservingNumericIntrinsic(TokenId tokenId)
-    {
-        switch (tokenId)
-        {
-            case TokenId::IntrinsicAbs:
-            case TokenId::IntrinsicMin:
-            case TokenId::IntrinsicMax:
-            case TokenId::IntrinsicRol:
-            case TokenId::IntrinsicRor:
-            case TokenId::IntrinsicByteSwap:
-            case TokenId::IntrinsicBitCountNz:
-            case TokenId::IntrinsicBitCountTz:
-            case TokenId::IntrinsicBitCountLz:
-            case TokenId::IntrinsicAtomicAdd:
-            case TokenId::IntrinsicAtomicAnd:
-            case TokenId::IntrinsicAtomicOr:
-            case TokenId::IntrinsicAtomicXor:
-            case TokenId::IntrinsicAtomicXchg:
-            case TokenId::IntrinsicAtomicCmpXchg:
-                return true;
-
-            default:
-                return false;
-        }
-    }
-
     TypeRef aliasStorageTypeRef(Sema& sema, TypeRef typeRef)
     {
         if (!typeRef.isValid())
@@ -1302,7 +1276,7 @@ namespace
     Result applyAliasPreservingIntrinsicResultType(Sema& sema, const AstIntrinsicCallExpr& node, std::span<AstNodeRef> args)
     {
         const TokenId tokenId = sema.token(node.codeRef()).id;
-        if (!isAliasPreservingNumericIntrinsic(tokenId) || args.empty())
+        if (!SemaHelpers::isAliasPreservingNumericIntrinsic(tokenId) || args.empty())
             return Result::Continue;
 
         const TypeRef selectedReturnTypeRef = sema.viewType(sema.curNodeRef()).typeRef();
@@ -1436,6 +1410,10 @@ namespace
         // iterating. Checked before inline/const-fold expansion so an inlined mutating
         // method (Array.add, remove, ...) is still caught at its call site.
         SWC_RESULT(SemaEscape::checkIterationMutation(sema, sema.curNodeRef(), calledFn));
+
+        // The same rule outside a loop: a view of storage this call can move or free,
+        // judged once the body is resolved.
+        SemaEscape::noteBorrowInvalidation(sema, sema.curNodeRef(), calledFn);
 
         const TypeInfo& returnType = sema.typeMgr().get(calledFn.returnTypeRef());
         if (!returnType.isVoid() &&

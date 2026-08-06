@@ -46,7 +46,7 @@ namespace
 
 }
 
-TypeRef SemaHelpers::unwrapLambdaBindingType(TaskContext& ctx, TypeRef typeRef)
+TypeRef SemaHelpers::unwrapBindingType(TaskContext& ctx, TypeRef typeRef)
 {
     while (typeRef.isValid())
     {
@@ -108,7 +108,7 @@ TypeRef SemaHelpers::unwrapAliasRefType(TaskContext& ctx, TypeRef typeRef)
 
 SymbolFunction* SemaHelpers::callableTypeFunction(TaskContext& ctx, TypeRef typeRef)
 {
-    typeRef = unwrapLambdaBindingType(ctx, typeRef);
+    typeRef = unwrapBindingType(ctx, typeRef);
     if (!typeRef.isValid())
         return nullptr;
 
@@ -124,7 +124,7 @@ const SymbolFunction* SemaHelpers::resolveLambdaBindingFunction(Sema& sema)
     const std::span<const TypeRef> bindingTypes = sema.frame().bindingTypes();
     for (size_t bindingIndex = bindingTypes.size(); bindingIndex > 0; --bindingIndex)
     {
-        const TypeRef bindingTypeRef = unwrapLambdaBindingType(sema.ctx(), bindingTypes[bindingIndex - 1]);
+        const TypeRef bindingTypeRef = unwrapBindingType(sema.ctx(), bindingTypes[bindingIndex - 1]);
         if (!bindingTypeRef.isValid())
             continue;
 

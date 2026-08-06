@@ -1114,7 +1114,8 @@ func borrowEscapeChainedArgHarmless()->s32
 // ---------------------------------------------------------------------------
 // Stores-into-parameter pairs: a callee that stores one argument into storage
 // reachable from another ('container.add(&item)') escapes when the container
-// argument is a GLOBAL and the stored one borrows a local.
+// provably outlives the stored borrow - a GLOBAL container, or a local container
+// declared in a SHALLOWER scope than the borrowed source.
 // ---------------------------------------------------------------------------
 
 struct BorrowEscapeContainer
@@ -1163,6 +1164,181 @@ func borrowEscapePairForwardGlobal()
 {
     var local: s32
     borrowEscapePairForward(&borrowEscapeGlobalContainer, &local)     // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+// A local container declared OUTSIDE the block the borrow is born in is still
+// readable once that block is gone: filling it from a per-iteration local leaves it
+// holding freed storage. This is the shape a set of views filled from a rebuilt
+// owner has.
+func borrowEscapePairOuterScope()
+{
+    var c: BorrowEscapeContainer
+    for 3
+    {
+        var v: s32
+        c.add(&v)     // swc-expected-error {{sanity_err_borrow_escape}}
+    }
+}
+
+// A temporary dies at the end of its statement, whatever the container's scope.
+struct BorrowEscapeViewBox
+{
+    text: string = ""
+}
+
+impl BorrowEscapeViewBox
+{
+    #[Swag.NoInline]
+    mtd set(value: string)
+    {
+        .text = value
+    }
+}
+
+func borrowEscapePairTemporary()
+{
+    var box: BorrowEscapeViewBox
+    box.set(borrowEscapeMakeOwner())     // swc-expected-error {{sanity_err_borrow_temporary}}
+}
+
+// ---------------------------------------------------------------------------
+// Owned payloads. A '[*] T' held by a value with an owning lifecycle addresses
+// memory that value frees when it dies, so reaching through it stays inside the
+// owner's storage - which is how the standard collections store their elements
+// (a buffer reached from the receiver, sometimes through a local or an accessor).
+// ---------------------------------------------------------------------------
+
+struct BorrowEscapeSlot
+{
+    item: #null *s32
+}
+
+struct BorrowEscapeHeapBox
+{
+    slots:  #null [*] BorrowEscapeSlot
+    parent: #null *s32                    // a back-reference, NOT a payload this box owns
+}
+
+impl BorrowEscapeHeapBox
+{
+    // An owning lifecycle is what ties the payload's life to the box's.
+    mtd opDrop() {}
+
+    #[Swag.NoInline]
+    mtd slotsPtr()->[*] BorrowEscapeSlot
+    {
+        return .slots!
+    }
+
+    // Straight through the payload member.
+    #[Swag.NoInline]
+    mtd addDirect(item: *s32)
+    {
+        .slots![0].item = item
+    }
+
+    // Through a local bound to the payload member.
+    #[Swag.NoInline]
+    mtd addThroughLocal(item: *s32)
+    {
+        let table     = .slots!
+        table[0].item = item
+    }
+
+    // Through a local bound to an accessor call: only the accessor's return summary
+    // says the result reaches the receiver.
+    #[Swag.NoInline]
+    mtd addThroughAccessor(item: *s32)
+    {
+        let table     = .slotsPtr()
+        table[0].item = item
+    }
+}
+
+func borrowEscapeHeapDirect()
+{
+    var box: BorrowEscapeHeapBox
+    for 3
+    {
+        var v: s32
+        box.addDirect(&v)     // swc-expected-error {{sanity_err_borrow_escape}}
+    }
+}
+
+func borrowEscapeHeapThroughLocal()
+{
+    var box: BorrowEscapeHeapBox
+    for 3
+    {
+        var v: s32
+        box.addThroughLocal(&v)     // swc-expected-error {{sanity_err_borrow_escape}}
+    }
+}
+
+func borrowEscapeHeapThroughAccessor()
+{
+    var box: BorrowEscapeHeapBox
+    for 3
+    {
+        var v: s32
+        box.addThroughAccessor(&v)     // swc-expected-error {{sanity_err_borrow_escape}}
+    }
+}
+
+// Same scope: the box and the borrow die together and nothing reads the box after.
+func borrowEscapeHeapSameScope()
+{
+    var v: s32
+    var box: BorrowEscapeHeapBox
+    box.addDirect(&v)
+}
+
+// A single-object pointer inside an owning value is a reference to something that
+// value does not own: reading it borrows nothing.
+func borrowEscapeHeapBackRef()->#null *s32
+{
+    var box: BorrowEscapeHeapBox
+    return box.parent
+}
+
+// A by-value parameter is neither copied nor dropped by the callee, so what it owns
+// stays the caller's: handing its payload back is a caller borrow, not a frame one.
+// (The call site is not judged for a by-value owner: an owning struct is not itself
+// a borrow carrier, so no argument borrow reaches the summary.)
+#[Swag.NoInline]
+func borrowEscapeHeapParamPayload(box: BorrowEscapeHeapBox)->[*] BorrowEscapeSlot
+{
+    return box.slots!
+}
+
+// Reached through a pointer, the same payload feeds the return summary and the call
+// site is judged against the box's real lifetime.
+#[Swag.NoInline]
+func borrowEscapeHeapParamPayloadPtr(box: *BorrowEscapeHeapBox)->[*] BorrowEscapeSlot
+{
+    return box.slots!
+}
+
+func borrowEscapeHeapParamPayloadCallSite()->[*] BorrowEscapeSlot
+{
+    var box: BorrowEscapeHeapBox
+    return borrowEscapeHeapParamPayloadPtr(&box)     // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+// A global box outlives the frame, so its payload never dangles.
+var borrowEscapeGlobalHeapBox: BorrowEscapeHeapBox
+
+func borrowEscapeHeapGlobalPayload()->[*] BorrowEscapeSlot
+{
+    return borrowEscapeGlobalHeapBox.slots!
+}
+
+// '!' only asserts non-nullness: it must not hide where the storage came from.
+func borrowEscapeNotNullTransparent()->#null *s32
+{
+    var local: s32
+    var p:     #null *s32 = &local
+    return p!     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // ---------------------------------------------------------------------------

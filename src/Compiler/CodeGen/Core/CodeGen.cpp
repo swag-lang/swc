@@ -1317,6 +1317,12 @@ Result CodeGen::emitDeferredActionsUntilScopeRef(AstNodeRef scopeRef)
     if (!findInnermostDeferScopeIndex(scopeRef, stopScopeIndex))
         return Result::Continue;
 
+    return emitDeferredActionsDownTo(stopScopeIndex);
+}
+
+Result CodeGen::emitDeferredActionsDownTo(size_t stopScopeIndex)
+{
+    // Emission may already be part-way through a scope; resume from that cursor when it exists.
     if (!deferredEmissionCursors_.empty())
     {
         const auto& cursor = deferredEmissionCursors_.back();
@@ -1324,72 +1330,34 @@ Result CodeGen::emitDeferredActionsUntilScopeRef(AstNodeRef scopeRef)
     }
 
     return emitDeferredActionsFrom(deferScopes_.size() - 1, deferScopes_.back().actions.size(), stopScopeIndex, true);
+}
+
+Result CodeGen::emitDeferredActionsUntilOwner(AstNodeRef CodeGenDeferScope::* ownerField, AstNodeRef ownerRef)
+{
+    if (!hasDeferredStatements_)
+        return Result::Continue;
+
+    ownerRef = resolvedNodeRef(ownerRef);
+    if (ownerRef.isInvalid())
+        return Result::Continue;
+
+    for (size_t i = deferScopes_.size(); i != 0; --i)
+    {
+        if (deferScopes_[i - 1].*ownerField == ownerRef)
+            return emitDeferredActionsDownTo(i - 1);
+    }
+
+    return Result::Continue;
 }
 
 Result CodeGen::emitDeferredActionsUntilBreakOwner(AstNodeRef breakOwnerRef)
 {
-    if (!hasDeferredStatements_)
-        return Result::Continue;
-
-    breakOwnerRef = resolvedNodeRef(breakOwnerRef);
-    if (breakOwnerRef.isInvalid())
-        return Result::Continue;
-
-    size_t stopScopeIndex = 0;
-    bool   foundStopScope = false;
-    for (size_t i = deferScopes_.size(); i != 0; --i)
-    {
-        if (deferScopes_[i - 1].breakOwnerRef == breakOwnerRef)
-        {
-            stopScopeIndex = i - 1;
-            foundStopScope = true;
-            break;
-        }
-    }
-
-    if (!foundStopScope)
-        return Result::Continue;
-
-    if (!deferredEmissionCursors_.empty())
-    {
-        const auto& cursor = deferredEmissionCursors_.back();
-        return emitDeferredActionsFrom(cursor.scopeIndex, cursor.nextActionCount, stopScopeIndex, true);
-    }
-
-    return emitDeferredActionsFrom(deferScopes_.size() - 1, deferScopes_.back().actions.size(), stopScopeIndex, true);
+    return emitDeferredActionsUntilOwner(&CodeGenDeferScope::breakOwnerRef, breakOwnerRef);
 }
 
 Result CodeGen::emitDeferredActionsUntilSwitchCase(AstNodeRef switchCaseRef)
 {
-    if (!hasDeferredStatements_)
-        return Result::Continue;
-
-    switchCaseRef = resolvedNodeRef(switchCaseRef);
-    if (switchCaseRef.isInvalid())
-        return Result::Continue;
-
-    size_t stopScopeIndex = 0;
-    bool   foundStopScope = false;
-    for (size_t i = deferScopes_.size(); i != 0; --i)
-    {
-        if (deferScopes_[i - 1].switchCaseRef == switchCaseRef)
-        {
-            stopScopeIndex = i - 1;
-            foundStopScope = true;
-            break;
-        }
-    }
-
-    if (!foundStopScope)
-        return Result::Continue;
-
-    if (!deferredEmissionCursors_.empty())
-    {
-        const auto& cursor = deferredEmissionCursors_.back();
-        return emitDeferredActionsFrom(cursor.scopeIndex, cursor.nextActionCount, stopScopeIndex, true);
-    }
-
-    return emitDeferredActionsFrom(deferScopes_.size() - 1, deferScopes_.back().actions.size(), stopScopeIndex, true);
+    return emitDeferredActionsUntilOwner(&CodeGenDeferScope::switchCaseRef, switchCaseRef);
 }
 
 bool CodeGen::currentInstructionBlocksFallthrough() const

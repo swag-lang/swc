@@ -371,6 +371,70 @@ uint32_t MicroPassHelpers::findSingleCfgEntry(const MicroControlFlowGraph& cfg)
     return entry;
 }
 
+void MicroPassHelpers::NaturalLoop::collectBody(const MicroControlFlowGraph& cfg)
+{
+    const uint32_t n = cfg.instructionCount();
+    inBody.assign(n, 0);
+    inBody[header] = 1;
+
+    // Backward reachability from every tail, stopping at the header: that is exactly the set of
+    // instructions the loop can execute.
+    std::vector<uint32_t> stack;
+    for (const uint32_t tail : tails)
+    {
+        if (tail < n && !inBody[tail])
+        {
+            inBody[tail] = 1;
+            stack.push_back(tail);
+        }
+    }
+
+    while (!stack.empty())
+    {
+        const uint32_t node = stack.back();
+        stack.pop_back();
+        for (const uint32_t pred : cfg.predecessors(node))
+        {
+            if (pred < n && !inBody[pred])
+            {
+                inBody[pred] = 1;
+                stack.push_back(pred);
+            }
+        }
+    }
+
+    bodySize = 0;
+    for (const uint8_t member : inBody)
+        bodySize += member;
+}
+
+std::unordered_map<uint32_t, MicroPassHelpers::NaturalLoop> MicroPassHelpers::findNaturalLoops(const MicroControlFlowGraph& cfg, const MicroDomTree& dom)
+{
+    const uint32_t                            n = cfg.instructionCount();
+    std::unordered_map<uint32_t, NaturalLoop> loopsByHeader;
+
+    for (uint32_t u = 0; u < n; ++u)
+    {
+        if (!dom.reachable(u))
+            continue;
+        for (const uint32_t v : cfg.successors(u))
+        {
+            // A back edge is an edge to a node that dominates its own source.
+            if (v < n && dom.dominates(v, u))
+            {
+                NaturalLoop& loop = loopsByHeader[v];
+                loop.header       = v;
+                loop.tails.push_back(u);
+            }
+        }
+    }
+
+    for (NaturalLoop& loop : loopsByHeader | std::views::values)
+        loop.collectBody(cfg);
+
+    return loopsByHeader;
+}
+
 MicroPassHelpers::MicroDomTree MicroPassHelpers::computeInstructionDominators(const MicroControlFlowGraph& cfg, const uint32_t entry)
 {
     const uint32_t n = cfg.instructionCount();

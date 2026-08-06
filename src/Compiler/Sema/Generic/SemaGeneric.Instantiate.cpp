@@ -454,32 +454,25 @@ namespace SemaGeneric
             }
         };
 
+        // The three paused-child run caches live on the TaskContext rather than behind a
+        // process-wide mutex: a TaskContext is job-owned, and only one worker executes a given job
+        // at a time, so a lookup never has to be serialized against another worker.
+        template<typename MAP>
+        MAP& taskLocalRunCache(std::shared_ptr<void>& cache)
+        {
+            if (!cache)
+                cache = std::make_shared<MAP>();
+            return *std::static_pointer_cast<MAP>(cache);
+        }
+
         std::unordered_map<GenericNodeRunKey, CachedSemaRun, GenericNodeRunKeyHash>& genericNodeRuns(TaskContext& ctx)
         {
-            auto& cache = ctx.genericNodeRunCache();
-            if (!cache)
-            {
-                // TaskContext is job-owned and only one worker executes a given job at a
-                // time. Keep this paused-child cache there instead of routing every
-                // generic-node lookup through a global mutex.
-                cache = std::make_shared<std::unordered_map<GenericNodeRunKey, CachedSemaRun, GenericNodeRunKeyHash>>();
-            }
-
-            return *std::static_pointer_cast<std::unordered_map<GenericNodeRunKey, CachedSemaRun, GenericNodeRunKeyHash>>(cache);
+            return taskLocalRunCache<std::unordered_map<GenericNodeRunKey, CachedSemaRun, GenericNodeRunKeyHash>>(ctx.genericNodeRunCache());
         }
 
         std::unordered_map<GenericInstanceNodeRunKey, CachedSemaRun, GenericInstanceNodeRunKeyHash>& genericInstanceNodeRuns(TaskContext& ctx)
         {
-            auto& cache = ctx.genericInstanceNodeRunCache();
-            if (!cache)
-            {
-                // Generic-instance runs are keyed by task context already, so keep their
-                // paused-child cache with that owning task instead of funnelling every
-                // lookup through a process-wide mutex.
-                cache = std::make_shared<std::unordered_map<GenericInstanceNodeRunKey, CachedSemaRun, GenericInstanceNodeRunKeyHash>>();
-            }
-
-            return *std::static_pointer_cast<std::unordered_map<GenericInstanceNodeRunKey, CachedSemaRun, GenericInstanceNodeRunKeyHash>>(cache);
+            return taskLocalRunCache<std::unordered_map<GenericInstanceNodeRunKey, CachedSemaRun, GenericInstanceNodeRunKeyHash>>(ctx.genericInstanceNodeRunCache());
         }
 
         template<typename RUN, typename K, typename I>
@@ -703,16 +696,7 @@ namespace SemaGeneric
 
         std::unordered_map<GenericImplBlockRunKey, CachedSemaRun, GenericImplBlockRunKeyHash>& genericImplBlockRuns(TaskContext& ctx)
         {
-            auto& cache = ctx.genericImplBlockRunCache();
-            if (!cache)
-            {
-                // Generic impl-block runs are keyed by task context, so keep their
-                // paused-child cache on that owning task instead of serializing every
-                // lookup behind a process-wide mutex.
-                cache = std::make_shared<std::unordered_map<GenericImplBlockRunKey, CachedSemaRun, GenericImplBlockRunKeyHash>>();
-            }
-
-            return *std::static_pointer_cast<std::unordered_map<GenericImplBlockRunKey, CachedSemaRun, GenericImplBlockRunKeyHash>>(cache);
+            return taskLocalRunCache<std::unordered_map<GenericImplBlockRunKey, CachedSemaRun, GenericImplBlockRunKeyHash>>(ctx.genericImplBlockRunCache());
         }
 
         void appendResolvedBindingText(Sema& sema, std::span<const GenericParamDesc> params, std::span<const GenericResolvedArg> resolvedArgs, SmallVector<IdentifierRef>& seenIds, Utf8& out)

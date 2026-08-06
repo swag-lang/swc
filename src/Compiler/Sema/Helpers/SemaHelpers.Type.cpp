@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Match/Match.h"
+#include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
@@ -866,30 +867,6 @@ Result SemaHelpers::finalizeDefaultValue(Sema& sema, AstNodeRef defaultValueRef,
 
 namespace
 {
-    TypeRef normalizeBindingType(TaskContext& ctx, TypeRef typeRef)
-    {
-        while (typeRef.isValid())
-        {
-            const TypeInfo& typeInfo  = ctx.typeMgr().get(typeRef);
-            const TypeRef   unwrapped = typeInfo.unwrap(ctx, TypeRef::invalid(), TypeExpandE::Alias | TypeExpandE::Enum);
-            if (unwrapped.isValid())
-            {
-                typeRef = unwrapped;
-                continue;
-            }
-
-            if (typeInfo.isReference())
-            {
-                typeRef = typeInfo.payloadTypeRef();
-                continue;
-            }
-
-            break;
-        }
-
-        return typeRef;
-    }
-
     IdentifierRef namedArgumentIdentifier(Sema& sema, AstNodeRef childRef)
     {
         const AstNode& childNode = sema.node(childRef);
@@ -899,8 +876,16 @@ namespace
         return sema.idMgr().addIdentifier(sema.ctx(), childNode.codeRef());
     }
 
-    template<typename T>
-    bool resolveAggregateChildIndex(Sema& sema, std::span<const AstNodeRef> children, AstNodeRef childRef, size_t memberCount, const T& resolveNamedIndex, size_t& outIndex)
+    bool resolveNamedMemberIndex(Sema& sema, const TypeInfo& targetType, IdentifierRef idRef, size_t& outIndex)
+    {
+        if (targetType.isStruct())
+            return targetType.payloadSymStruct().tryGetFieldIndexByName(outIndex, idRef);
+        return targetType.tryGetAggregateMemberIndexByName(outIndex, sema.ctx(), idRef);
+    }
+
+    // Walks the literal's children in order, assigning each one its slot: a named argument
+    // takes the member it names, a positional one takes the next slot no name has claimed.
+    bool resolveAggregateChildIndex(Sema& sema, const TypeInfo& targetType, std::span<const AstNodeRef> children, AstNodeRef childRef, size_t memberCount, size_t& outIndex)
     {
         outIndex = 0;
         if (!memberCount)
@@ -915,7 +900,7 @@ namespace
             if (namedIdRef.isValid())
             {
                 size_t namedIndex = 0;
-                if (!resolveNamedIndex(namedIdRef, namedIndex) || namedIndex >= memberCount)
+                if (!resolveNamedMemberIndex(sema, targetType, namedIdRef, namedIndex) || namedIndex >= memberCount)
                 {
                     if (currentChildRef == childRef)
                         return false;
@@ -953,30 +938,6 @@ namespace
 
         return false;
     }
-
-    struct StructFieldIndexResolver
-    {
-        const SymbolStruct* targetStruct = nullptr;
-
-        bool operator()(const IdentifierRef idRef, size_t& outIndex) const
-        {
-            SWC_ASSERT(targetStruct != nullptr);
-            return targetStruct->tryGetFieldIndexByName(outIndex, idRef);
-        }
-    };
-
-    struct AggregateMemberIndexResolver
-    {
-        const TaskContext* ctx        = nullptr;
-        const TypeInfo*    targetType = nullptr;
-
-        bool operator()(const IdentifierRef idRef, size_t& outIndex) const
-        {
-            SWC_ASSERT(ctx != nullptr);
-            SWC_ASSERT(targetType != nullptr);
-            return targetType->tryGetAggregateMemberIndexByName(outIndex, *ctx, idRef);
-        }
-    };
 
 }
 
@@ -1078,47 +1039,214 @@ Result SemaHelpers::resolveDestructuringFieldIndices(Sema& sema, SmallVector<siz
     return Result::Continue;
 }
 
+bool SemaHelpers::intrinsicInitTreatsArgsAsStructTuple(Sema& sema, TypeRef fillTypeRef, const SmallVector<AstNodeRef>& args)
+{
+    if (args.empty() || !fillTypeRef.isValid())
+        return false;
+
+    if (!sema.typeMgr().get(fillTypeRef).isStruct())
+        return false;
+    if (args.size() != 1)
+        return true;
+
+    const SemaNodeView argView = sema.viewType(args.front());
+    if (!argView.type())
+        return true;
+    if (argView.typeRef() == fillTypeRef)
+        return false;
+
+    return !argView.type()->isStruct() && !argView.type()->isAggregateStruct();
+}
+
+Result SemaHelpers::checkDivideByZeroConstant(Sema& sema, TokenId op, AstNodeRef nodeRef, const SemaNodeView& nodeRightView)
+{
+    const TokenId canonicalOp = Token::canonicalBinary(op);
+    if (canonicalOp != TokenId::SymSlash && canonicalOp != TokenId::SymPercent)
+        return Result::Continue;
+
+    const TypeRef aliasTypeRef = sema.typeMgr().get(nodeRightView.typeRef()).unwrap(sema.ctx(), nodeRightView.typeRef(), TypeExpandE::Alias);
+    SWC_ASSERT(aliasTypeRef.isValid());
+    const TypeInfo& type = sema.typeMgr().get(aliasTypeRef);
+
+    if (type.isFloat() && nodeRightView.cst()->getFloat().isZero())
+        return SemaError::raiseDivZero(sema, nodeRef, nodeRightView.nodeRef());
+    if (type.isIntLike() && nodeRightView.cst()->getIntLike().isZero())
+        return SemaError::raiseDivZero(sema, nodeRef, nodeRightView.nodeRef());
+
+    return Result::Continue;
+}
+
+bool SemaHelpers::isAliasPreservingNumericIntrinsic(TokenId tokenId)
+{
+    switch (tokenId)
+    {
+        case TokenId::IntrinsicAbs:
+        case TokenId::IntrinsicMin:
+        case TokenId::IntrinsicMax:
+        case TokenId::IntrinsicRol:
+        case TokenId::IntrinsicRor:
+        case TokenId::IntrinsicByteSwap:
+        case TokenId::IntrinsicBitCountNz:
+        case TokenId::IntrinsicBitCountTz:
+        case TokenId::IntrinsicBitCountLz:
+        case TokenId::IntrinsicAtomicAdd:
+        case TokenId::IntrinsicAtomicAnd:
+        case TokenId::IntrinsicAtomicOr:
+        case TokenId::IntrinsicAtomicXor:
+        case TokenId::IntrinsicAtomicXchg:
+        case TokenId::IntrinsicAtomicCmpXchg:
+            return true;
+
+        default:
+            return false;
+    }
+}
+
+bool SemaHelpers::resolveAggregateChildSlot(Sema& sema, AggregateChildSlot& outSlot, const TypeInfo& targetType, std::span<const AstNodeRef> children, AstNodeRef childRef)
+{
+    outSlot = {};
+
+    const bool isStruct = targetType.isStruct();
+    if (!isStruct && !targetType.isAggregateStruct())
+        return false;
+
+    const size_t memberCount = isStruct ? targetType.payloadSymStruct().fields().size() : targetType.payloadAggregate().types.size();
+    size_t       index       = 0;
+    if (!resolveAggregateChildIndex(sema, targetType, children, childRef, memberCount, index) || index >= memberCount)
+        return false;
+
+    if (!isStruct)
+    {
+        outSlot.index   = index;
+        outSlot.typeRef = targetType.payloadAggregate().types[index];
+        return true;
+    }
+
+    const SymbolVariable* field = targetType.payloadSymStruct().fields()[index];
+    if (!field)
+        return false;
+
+    outSlot.field   = field;
+    outSlot.index   = index;
+    outSlot.typeRef = field->typeRef();
+    return true;
+}
+
+TypeRef SemaHelpers::structuralTypeRefFromTypeNode(Sema& sema, AstNodeRef typeNodeRef)
+{
+    if (typeNodeRef.isInvalid())
+        return TypeRef::invalid();
+
+    // Generic deduction and overload matching sometimes run on a declaration AST before the
+    // regular semantic payload for that exact type node is available. Reconstruct the
+    // structural type when the stored view has not been produced yet.
+    const TypeRef typeRef = sema.viewType(typeNodeRef).typeRef();
+    if (typeRef.isValid())
+        return typeRef;
+
+    TypeManager&   typeMgr  = sema.typeMgr();
+    const AstNode& typeNode = sema.node(typeNodeRef);
+
+    if (const auto* builtinType = typeNode.safeCast<AstBuiltinType>())
+        return typeMgr.builtinType(sema.token(builtinType->codeRef()).id);
+
+    if (const auto* codeType = typeNode.safeCast<AstCodeType>())
+    {
+        // Bare '#code' and '#code(params)' have no payload type node: void block.
+        if (codeType->nodeTypeRef.isInvalid())
+            return typeMgr.addType(TypeInfo::makeCodeBlock(typeMgr.typeVoid()));
+        const TypeRef payloadTypeRef = structuralTypeRefFromTypeNode(sema, codeType->nodeTypeRef);
+        return payloadTypeRef.isValid() ? typeMgr.addType(TypeInfo::makeCodeBlock(payloadTypeRef)) : TypeRef::invalid();
+    }
+
+    if (typeNode.is(AstNodeId::VariadicType))
+        return typeMgr.typeVariadic();
+
+    if (const auto* typedVariadicType = typeNode.safeCast<AstTypedVariadicType>())
+    {
+        const TypeRef elementTypeRef = structuralTypeRefFromTypeNode(sema, typedVariadicType->nodeTypeRef);
+        return elementTypeRef.isValid() ? typeMgr.addType(TypeInfo::makeTypedVariadic(elementTypeRef)) : TypeRef::invalid();
+    }
+
+    if (const auto* refType = typeNode.safeCast<AstReferenceType>())
+    {
+        const TypeRef pointeeTypeRef = structuralTypeRefFromTypeNode(sema, refType->nodePointeeTypeRef);
+        return pointeeTypeRef.isValid() ? typeMgr.addType(TypeInfo::makeReference(pointeeTypeRef)) : TypeRef::invalid();
+    }
+
+    if (const auto* moveRefType = typeNode.safeCast<AstMoveRefType>())
+    {
+        const TypeRef pointeeTypeRef = structuralTypeRefFromTypeNode(sema, moveRefType->nodePointeeTypeRef);
+        return pointeeTypeRef.isValid() ? typeMgr.addType(TypeInfo::makeMoveReference(pointeeTypeRef)) : TypeRef::invalid();
+    }
+
+    if (const auto* valuePtrType = typeNode.safeCast<AstValuePointerType>())
+    {
+        const TypeRef pointeeTypeRef = structuralTypeRefFromTypeNode(sema, valuePtrType->nodePointeeTypeRef);
+        return pointeeTypeRef.isValid() ? typeMgr.addType(TypeInfo::makeValuePointer(pointeeTypeRef)) : TypeRef::invalid();
+    }
+
+    if (const auto* blockPtrType = typeNode.safeCast<AstBlockPointerType>())
+    {
+        const TypeRef pointeeTypeRef = structuralTypeRefFromTypeNode(sema, blockPtrType->nodePointeeTypeRef);
+        return pointeeTypeRef.isValid() ? typeMgr.addType(TypeInfo::makeBlockPointer(pointeeTypeRef)) : TypeRef::invalid();
+    }
+
+    if (const auto* sliceType = typeNode.safeCast<AstSliceType>())
+    {
+        const TypeRef elementTypeRef = structuralTypeRefFromTypeNode(sema, sliceType->nodePointeeTypeRef);
+        return elementTypeRef.isValid() ? typeMgr.addType(TypeInfo::makeSlice(elementTypeRef)) : TypeRef::invalid();
+    }
+
+    if (const auto* namedType = typeNode.safeCast<AstNamedType>())
+    {
+        const SemaNodeView identView = sema.viewNodeTypeSymbol(namedType->nodeIdentRef);
+        if (identView.typeRef().isValid())
+            return identView.typeRef();
+        if (identView.sym() && identView.sym()->isType())
+            return identView.sym()->typeRef();
+
+        if (const auto* ident = sema.node(namedType->nodeIdentRef).safeCast<AstIdentifier>())
+        {
+            MatchContext lookUpCxt;
+            lookUpCxt.codeRef         = ident->codeRef();
+            lookUpCxt.noWaitOnEmpty   = true;
+            const IdentifierRef idRef = resolveIdentifier(sema, ident->codeRef());
+            if (Match::match(sema, lookUpCxt, idRef) == Result::Continue)
+            {
+                for (const Symbol* sym : lookUpCxt.symbols())
+                {
+                    if (sym && sym->isType() && sym->typeRef().isValid())
+                        return sym->typeRef();
+                }
+            }
+        }
+    }
+
+    return TypeRef::invalid();
+}
+
 Result SemaHelpers::resolveStructLikeChildBindingType(Sema& sema, std::span<const AstNodeRef> children, AstNodeRef childRef, TypeRef targetTypeRef, TypeRef& outTypeRef)
 {
     outTypeRef              = TypeRef::invalid();
-    const TypeRef targetRef = normalizeBindingType(sema.ctx(), targetTypeRef);
+    const TypeRef targetRef = SemaHelpers::unwrapBindingType(sema.ctx(), targetTypeRef);
     if (!targetRef.isValid())
         return Result::Continue;
 
     const TypeInfo& targetType = sema.typeMgr().get(targetRef);
-    size_t          fieldIndex = 0;
-
     if (targetType.isStruct())
-    {
         SWC_RESULT(sema.waitSemaCompleted(&targetType, childRef));
-        const SymbolStruct&            targetStruct = targetType.payloadSymStruct();
-        const auto&                    fields       = targetStruct.fields();
-        const StructFieldIndexResolver findFieldIndex{.targetStruct = &targetStruct};
-        const bool                     found = resolveAggregateChildIndex(sema, children, childRef, fields.size(), findFieldIndex, fieldIndex);
-        if (!found || fieldIndex >= fields.size() || !fields[fieldIndex])
-            return Result::Continue;
 
-        outTypeRef = fields[fieldIndex]->typeRef();
-        return Result::Continue;
-    }
-
-    if (!targetType.isAggregateStruct())
-        return Result::Continue;
-
-    const auto&                        aggregate = targetType.payloadAggregate();
-    const AggregateMemberIndexResolver resolveMemberIndex{.ctx = &sema.ctx(), .targetType = &targetType};
-    const bool                         found = resolveAggregateChildIndex(sema, children, childRef, aggregate.types.size(), resolveMemberIndex, fieldIndex);
-    if (!found || fieldIndex >= aggregate.types.size())
-        return Result::Continue;
-
-    outTypeRef = aggregate.types[fieldIndex];
+    AggregateChildSlot slot;
+    if (resolveAggregateChildSlot(sema, slot, targetType, children, childRef))
+        outTypeRef = slot.typeRef;
     return Result::Continue;
 }
 
 Result SemaHelpers::resolveArrayLikeChildBindingType(Sema& sema, std::span<const AstNodeRef> children, AstNodeRef childRef, TypeRef targetTypeRef, TypeRef& outTypeRef)
 {
     outTypeRef              = TypeRef::invalid();
-    const TypeRef targetRef = normalizeBindingType(sema.ctx(), targetTypeRef);
+    const TypeRef targetRef = SemaHelpers::unwrapBindingType(sema.ctx(), targetTypeRef);
     if (!targetRef.isValid())
         return Result::Continue;
 

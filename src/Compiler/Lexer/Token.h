@@ -7,7 +7,7 @@ SWC_BEGIN_NAMESPACE();
 class SourceView;
 class SourceFile;
 
-enum class TokenIdKindE : uint16_t
+enum class TokenIdKindE : uint32_t
 {
     Zero      = 0,
     Trivia    = 1 << 0,
@@ -23,6 +23,15 @@ enum class TokenIdKindE : uint16_t
     Modifier  = 1 << 10,
     Reserved  = 1 << 11,
     Uniq      = 1 << 13,
+
+    // Operator families. '++' is deliberately absent: concatenation shares no operand rule
+    // with the numeric operators, and every site that accepts it handles it on its own.
+    OpArithmetic = 1 << 14, // + - * / %
+    OpBitwise    = 1 << 15, // & | ^ << >>
+    OpEquality   = 1 << 16, // == !=
+    OpOrdering   = 1 << 17, // < <= > >= <=>
+    OpLogical    = 1 << 18, // and or && ||
+    OpAssign     = 1 << 19, // = and every compound assignment
 };
 using TokenIdKind = EnumFlags<TokenIdKindE>;
 
@@ -114,6 +123,33 @@ struct Token
     static bool isModifier(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Modifier); }
     static bool isSpecialWord(TokenId id) { return isKeyword(id) || isCompiler(id) || isIntrinsic(id) || isType(id) || isModifier(id); }
     static bool isReserved(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Reserved); }
+    // The compiler function blocks that turn into a symbol in the native artifact, as opposed
+    // to the ones the compiler consumes itself ('#run', '#ast', '#message').
+    static bool isNativeArtifactCompilerFunc(TokenId id)
+    {
+        switch (id)
+        {
+            case TokenId::CompilerFuncTest:
+            case TokenId::CompilerFuncInit:
+            case TokenId::CompilerFuncDrop:
+            case TokenId::CompilerFuncMain:
+            case TokenId::CompilerFuncPreMain:
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    static bool isOpArithmetic(TokenId id) { return toKind(id).hasAll(TokenIdKindE::OpArithmetic); }
+    static bool isOpBitwise(TokenId id) { return toKind(id).hasAll(TokenIdKindE::OpBitwise); }
+    static bool isOpArithmeticOrBitwise(TokenId id) { return toKind(id).hasAny(TokenIdKindE::OpArithmetic | TokenIdKindE::OpBitwise); }
+    static bool isOpEquality(TokenId id) { return toKind(id).hasAll(TokenIdKindE::OpEquality); }
+    static bool isOpOrdering(TokenId id) { return toKind(id).hasAll(TokenIdKindE::OpOrdering); }
+    static bool isOpRelational(TokenId id) { return toKind(id).hasAny(TokenIdKindE::OpEquality | TokenIdKindE::OpOrdering); }
+    static bool isOpLogical(TokenId id) { return toKind(id).hasAll(TokenIdKindE::OpLogical); }
+    static bool isOpAssign(TokenId id) { return toKind(id).hasAll(TokenIdKindE::OpAssign); }
+    static bool isOpCompoundAssign(TokenId id) { return isOpAssign(id) && id != TokenId::SymEqual; }
 
 #if SWC_HAS_TOKEN_DEBUG_INFO
     const char8_t*  dbgPtr     = nullptr;

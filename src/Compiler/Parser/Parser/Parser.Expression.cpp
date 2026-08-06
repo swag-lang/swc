@@ -136,23 +136,7 @@ namespace
 
     bool isBinaryOperator(TokenId id)
     {
-        switch (id)
-        {
-            case TokenId::SymPlus:
-            case TokenId::SymMinus:
-            case TokenId::SymAsterisk:
-            case TokenId::SymSlash:
-            case TokenId::SymPercent:
-            case TokenId::SymAmpersand:
-            case TokenId::SymPipe:
-            case TokenId::SymGreaterGreater:
-            case TokenId::SymLowerLower:
-            case TokenId::SymPlusPlus:
-            case TokenId::SymCircumflex:
-                return true;
-            default:
-                return false;
-        }
+        return Token::isOpArithmeticOrBitwise(id) || id == TokenId::SymPlusPlus;
     }
 
     int getRelationalPrecedence(TokenId id)
@@ -174,37 +158,6 @@ namespace
 
             default:
                 return -1;
-        }
-    }
-
-    bool isRelationalOperator(TokenId id)
-    {
-        switch (id)
-        {
-            case TokenId::SymEqualEqual:
-            case TokenId::SymBangEqual:
-            case TokenId::SymLessEqual:
-            case TokenId::SymGreaterEqual:
-            case TokenId::SymLess:
-            case TokenId::SymGreater:
-            case TokenId::SymLessEqualGreater:
-                return true;
-            default:
-                return false;
-        }
-    }
-
-    bool isLogicalOperator(TokenId id)
-    {
-        switch (id)
-        {
-            case TokenId::KwdAnd:
-            case TokenId::KwdOr:
-            case TokenId::SymAmpersandAmpersand:
-            case TokenId::SymPipePipe:
-                return true;
-            default:
-                return false;
         }
     }
 
@@ -637,7 +590,7 @@ AstNodeRef Parser::parseLogicalExpr(int minPrecedence)
     while (true)
     {
         const TokenId opId = id();
-        if (!isLogicalOperator(opId))
+        if (!Token::isOpLogical(opId))
             break;
 
         if (isAny(TokenId::SymAmpersandAmpersand, TokenId::SymPipePipe))
@@ -1086,7 +1039,7 @@ AstNodeRef Parser::parseRelationalExpr(int minPrecedence)
     while (true)
     {
         const TokenId opId = id();
-        if (!isRelationalOperator(opId))
+        if (!Token::isOpRelational(opId))
             break;
 
         const int precedence = getRelationalPrecedence(opId);

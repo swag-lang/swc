@@ -1049,52 +1049,40 @@ Result Sema::waitImplRegistrations(IdentifierRef idRef, const SourceCodeRef& cod
     return Result::Pause;
 }
 
+Result Sema::parkOnSymbol(TaskStateKind kind, const Symbol* blockingSymbol, AstNodeRef nodeRef, const SourceCodeRef& codeRef)
+{
+    if (shouldAbortWait(*this, blockingSymbol))
+        return Result::Error;
+
+    const AstNodeRef waitNodeRef = fallbackWaitNodeRef(*this, nodeRef);
+    TaskState&       wait        = ctx().state();
+    wait.kind                    = kind;
+    wait.nodeRef                 = waitNodeRef;
+    wait.codeRef                 = fallbackWaitCodeRef(*this, waitNodeRef, codeRef);
+    wait.symbol                  = blockingSymbol;
+    wait.waiterSymbol            = guessCurrentSymbol(*this);
+    return Result::Pause;
+}
+
 Result Sema::waitDeclared(const Symbol* symbol, const SourceCodeRef& codeRef)
 {
     if (!symbol || symbol->isDeclared())
         return Result::Continue;
-    if (shouldAbortWait(*this, symbol))
-        return Result::Error;
-    const AstNodeRef waitNodeRef = fallbackWaitNodeRef(*this, curNodeRef());
-    TaskState&       wait        = ctx().state();
-    wait.kind                    = TaskStateKind::SemaWaitSymDeclared;
-    wait.nodeRef                 = waitNodeRef;
-    wait.codeRef                 = fallbackWaitCodeRef(*this, waitNodeRef, codeRef);
-    wait.symbol                  = symbol;
-    wait.waiterSymbol            = guessCurrentSymbol(*this);
-    return Result::Pause;
+    return parkOnSymbol(TaskStateKind::SemaWaitSymDeclared, symbol, curNodeRef(), codeRef);
 }
 
 Result Sema::waitTyped(const Symbol* symbol, const SourceCodeRef& codeRef)
 {
     if (!symbol || symbol->isTyped())
         return Result::Continue;
-    if (shouldAbortWait(*this, symbol))
-        return Result::Error;
-    const AstNodeRef waitNodeRef = fallbackWaitNodeRef(*this, curNodeRef());
-    TaskState&       wait        = ctx().state();
-    wait.kind                    = TaskStateKind::SemaWaitSymTyped;
-    wait.nodeRef                 = waitNodeRef;
-    wait.codeRef                 = fallbackWaitCodeRef(*this, waitNodeRef, codeRef);
-    wait.symbol                  = symbol;
-    wait.waiterSymbol            = guessCurrentSymbol(*this);
-    return Result::Pause;
+    return parkOnSymbol(TaskStateKind::SemaWaitSymTyped, symbol, curNodeRef(), codeRef);
 }
 
 Result Sema::waitSemaCompletedNoLazy(const Symbol* symbol, const SourceCodeRef& codeRef)
 {
     if (!symbol || symbol->isSemaCompleted())
         return Result::Continue;
-    if (shouldAbortWait(*this, symbol))
-        return Result::Error;
-    const AstNodeRef waitNodeRef = fallbackWaitNodeRef(*this, curNodeRef());
-    TaskState&       wait        = ctx().state();
-    wait.kind                    = TaskStateKind::SemaWaitSymSemaCompleted;
-    wait.nodeRef                 = waitNodeRef;
-    wait.codeRef                 = fallbackWaitCodeRef(*this, waitNodeRef, codeRef);
-    wait.symbol                  = symbol;
-    wait.waiterSymbol            = guessCurrentSymbol(*this);
-    return Result::Pause;
+    return parkOnSymbol(TaskStateKind::SemaWaitSymSemaCompleted, symbol, curNodeRef(), codeRef);
 }
 
 Result Sema::waitSemaCompleted(const Symbol* symbol, const SourceCodeRef& codeRef)
@@ -1149,62 +1137,26 @@ Result Sema::waitCodeGenCompleted(const Symbol* symbol, const SourceCodeRef& cod
 {
     if (!symbol || symbol->isCodeGenCompleted())
         return Result::Continue;
-    if (shouldAbortWait(*this, symbol))
-        return Result::Error;
-    const AstNodeRef waitNodeRef = fallbackWaitNodeRef(*this, curNodeRef());
-    TaskState&       wait        = ctx().state();
-    wait.kind                    = TaskStateKind::SemaWaitSymCodeGenCompleted;
-    wait.nodeRef                 = waitNodeRef;
-    wait.codeRef                 = fallbackWaitCodeRef(*this, waitNodeRef, codeRef);
-    wait.symbol                  = symbol;
-    wait.waiterSymbol            = guessCurrentSymbol(*this);
-    return Result::Pause;
+    return parkOnSymbol(TaskStateKind::SemaWaitSymCodeGenCompleted, symbol, curNodeRef(), codeRef);
 }
 
 Result Sema::waitCodeGenPreSolved(const Symbol* symbol, const SourceCodeRef& codeRef)
 {
     if (!symbol || symbol->isCodeGenPreSolved() || symbol->isCodeGenCompleted())
         return Result::Continue;
-    if (shouldAbortWait(*this, symbol))
-        return Result::Error;
-    const AstNodeRef waitNodeRef = fallbackWaitNodeRef(*this, curNodeRef());
-    TaskState&       wait        = ctx().state();
-    wait.kind                    = TaskStateKind::SemaWaitSymCodeGenPreSolved;
-    wait.nodeRef                 = waitNodeRef;
-    wait.codeRef                 = fallbackWaitCodeRef(*this, waitNodeRef, codeRef);
-    wait.symbol                  = symbol;
-    wait.waiterSymbol            = guessCurrentSymbol(*this);
-    return Result::Pause;
+    return parkOnSymbol(TaskStateKind::SemaWaitSymCodeGenPreSolved, symbol, curNodeRef(), codeRef);
 }
 
 Result Sema::waitSemaCompleted(const TypeInfo* type, AstNodeRef nodeRef)
 {
     if (!type || type->isCompleted(ctx()))
         return Result::Continue;
-    const Symbol* blockingSymbol = type->getNotCompletedSymbol(ctx());
-    if (shouldAbortWait(*this, blockingSymbol))
-        return Result::Error;
-    const AstNodeRef waitNodeRef = fallbackWaitNodeRef(*this, nodeRef);
-    TaskState&       wait        = ctx().state();
-    wait.kind                    = TaskStateKind::SemaWaitTypeCompleted;
-    wait.nodeRef                 = waitNodeRef;
-    wait.codeRef                 = fallbackWaitCodeRef(*this, waitNodeRef);
-    wait.symbol                  = blockingSymbol;
-    wait.waiterSymbol            = guessCurrentSymbol(*this);
-    return Result::Pause;
+    return parkOnSymbol(TaskStateKind::SemaWaitTypeCompleted, type->getNotCompletedSymbol(ctx()), nodeRef, SourceCodeRef::invalid());
 }
 
 Result Sema::waitTypeInfoGeneration(AstNodeRef nodeRef, const SourceCodeRef& codeRef)
 {
-    if (shouldAbortWait(*this))
-        return Result::Error;
-    const AstNodeRef waitNodeRef = fallbackWaitNodeRef(*this, nodeRef);
-    TaskState&       wait        = ctx().state();
-    wait.kind                    = TaskStateKind::SemaWaitTypeInfoGeneration;
-    wait.nodeRef                 = waitNodeRef;
-    wait.codeRef                 = fallbackWaitCodeRef(*this, waitNodeRef, codeRef);
-    wait.waiterSymbol            = guessCurrentSymbol(*this);
-    return Result::Pause;
+    return parkOnSymbol(TaskStateKind::SemaWaitTypeInfoGeneration, nullptr, nodeRef, codeRef);
 }
 
 Result Sema::makeRuntimeTypeInfo(ConstantRef& outRef, TypeRef typeRef, AstNodeRef ownerNodeRef)

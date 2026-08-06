@@ -13528,7 +13528,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">close</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_File_FileStream_flush" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.flush</span> <a class="api-item-permalink" href="#Core_File_FileStream_flush" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.win32.swg#L105">src</a></div>
+<div class="api-item api-item-func"><span id="Core_File_FileStream_flush" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.flush</span> <a class="api-item-permalink" href="#Core_File_FileStream_flush" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.win32.swg#L104">src</a></div>
 <p>Commits buffered file data and metadata to the underlying device.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">flush</span>() <span class="SKwd">fail</span></span></div>
 </section>
@@ -13543,7 +13543,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_File_FileStream_position" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.position</span> <a class="api-item-permalink" href="#Core_File_FileStream_position" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.win32.swg#L115">src</a></div>
+<div class="api-item api-item-func"><span id="Core_File_FileStream_position" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.position</span> <a class="api-item-permalink" href="#Core_File_FileStream_position" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.win32.swg#L114">src</a></div>
 <p>Returns the current absolute byte position.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">position</span>()-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span></span></div>
 </section>
@@ -13570,12 +13570,12 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span>(<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>) <span class="SFct">readValue</span>(buffer: *<span class="SCst"><a href="#Core_Input_Key_T">T</a></span>)-&gt;<span class="STpe">bool</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_File_FileStream_resize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.resize</span> <a class="api-item-permalink" href="#Core_File_FileStream_resize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.win32.swg#L91">src</a></div>
+<div class="api-item api-item-func"><span id="Core_File_FileStream_resize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.resize</span> <a class="api-item-permalink" href="#Core_File_FileStream_resize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.win32.swg#L90">src</a></div>
 <p>Changes the file length while preserving the current position when it remains in range. Shrinking past the current position leaves the position at the new end of the file.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">resize</span>(newSize: <span class="STpe">u64</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_File_FileStream_seek" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.seek</span> <a class="api-item-permalink" href="#Core_File_FileStream_seek" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.win32.swg#L128">src</a></div>
+<div class="api-item api-item-func"><span id="Core_File_FileStream_seek" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.seek</span> <a class="api-item-permalink" href="#Core_File_FileStream_seek" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.win32.swg#L126">src</a></div>
 <p>Moves to <span class="code-inline">offset</span> bytes from <span class="code-inline">origin</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">seek</span>(origin: <span class="SCst"><a href="#Core_File_SeekOrigin">SeekOrigin</a></span>, offset: <span class="STpe">u64</span>) <span class="SKwd">fail</span></span></div>
 </section>
@@ -13585,7 +13585,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">size</span>()-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_File_FileStream_skip" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.skip</span> <a class="api-item-permalink" href="#Core_File_FileStream_skip" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.win32.swg#L150">src</a></div>
+<div class="api-item api-item-func"><span id="Core_File_FileStream_skip" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FileStream.skip</span> <a class="api-item-permalink" href="#Core_File_FileStream_skip" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/filestream.win32.swg#L147">src</a></div>
 <p>Advances by <span class="code-inline">count</span> bytes from the current position.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">skip</span>(count: <span class="STpe">u64</span>) <span class="SKwd">fail</span></span></div>
 </section>
@@ -13683,12 +13683,12 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">open</span>(fullName: <span class="STpe">string</span>, mode: <span class="SCst"><a href="#Core_File_FileMode">FileMode</a></span>, access: <span class="SCst"><a href="#Core_File_FileAccess">FileAccess</a></span>, share: <span class="SCst"><a href="#Core_File_FileShare">FileShare</a></span>)-&gt;<span class="SCst"><a href="#Core_File_FileStream">FileStream</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_File_openRead" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">File.openRead</span> <a class="api-item-permalink" href="#Core_File_openRead" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/file.win32.swg#L116">src</a></div>
+<div class="api-item api-item-func"><span id="Core_File_openRead" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">File.openRead</span> <a class="api-item-permalink" href="#Core_File_openRead" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/file.win32.swg#L112">src</a></div>
 <p>Creates a new file stream for reading</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">openRead</span>(fullName: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="#Core_File_FileStream">FileStream</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_File_openWrite" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">File.openWrite</span> <a class="api-item-permalink" href="#Core_File_openWrite" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/file.win32.swg#L122">src</a></div>
+<div class="api-item api-item-func"><span id="Core_File_openWrite" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">File.openWrite</span> <a class="api-item-permalink" href="#Core_File_openWrite" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/file.win32.swg#L118">src</a></div>
 <p>Creates a new file stream for writing</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">openWrite</span>(fullName: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="#Core_File_FileStream">FileStream</a></span> <span class="SKwd">fail</span></span></div>
 </section>
@@ -16084,8 +16084,9 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">seedU32</span>(value1, value2: <span class="STpe">u32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Random_shared" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Random.shared</span> <a class="api-item-permalink" href="#Core_Random_shared" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/rand/random.swg#L8">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Random_shared" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Random.shared</span> <a class="api-item-permalink" href="#Core_Random_shared" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/rand/random.swg#L12">src</a></div>
 <p>Returns the default generator for the current thread.</p>
+<p>Each thread owns its generator, so no call is ever raced against another thread's. Each also starts from the same fixed state, which makes a single-threaded program reproducible and means two threads that never seed produce the same sequence. Seed it when the streams must differ.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">shared</span>()-&gt;*<span class="SFct">Generator</span>'<span class="SCst"><a href="#Core_Random_MultiplyWithCarry32">MultiplyWithCarry32</a></span> =&gt;</span></div>
 </section>
 <section class="api-symbol">

@@ -1792,9 +1792,14 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <h3 id="Special_Variables">Special Variables</h3>
 <p>Swag provides attributes that modify how variables are stored or accessed.</p>
 <h4 id="Thread-Local_Storage">Thread-Local Storage</h4>
-<p>Global variables marked with <span class="code-inline">#[Swag.Tls]</span> are stored in thread-local storage. Each thread has its own copy of the variable.</p>
+<p>A global variable marked with <span class="code-inline">#[Swag.Tls]</span> has one copy per thread. Each thread gets its own on first access, starting from the declared value rather than from whatever another thread left behind, and the copy is released when the thread ends.</p>
+<p>The copy is per thread, so its address is too: taking a pointer to a thread-local global answers the calling thread's copy, and handing that pointer to another thread points it at storage that thread does not own.</p>
+<div class="blockquote blockquote-attention">
+<div class="blockquote-title-block"><span class="blockquote-title">Attention</span></div>
+<p>A thread-local global must hold a plain value. Its per-thread copies are released without being dropped, so a type with an <span class="code-inline">opDrop</span> leaks on every thread that touches it.</p>
+</div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Tls]</span>
-<span class="SKwd">var</span> <span class="SCst">G</span> = <span class="SNum">0</span>     <span class="SCmt">// Thread-local global variable</span>
+<span class="SKwd">var</span> <span class="SCst">G</span> = <span class="SNum">0</span>     <span class="SCmt">// One copy per thread, each starting at 0</span>
 
 </span></div>
 <h4 id="Global_Variables">Global Variables</h4>
@@ -3258,8 +3263,44 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 }
 
 </span></div>
+<h3 id="Nullability_Through_a_Reference">Nullability Through a Reference</h3>
+<p>A reference is transparent, so a binding to a nullable slot — what a container's <span class="code-inline">opIndex</span> hands back — is exactly as unproven as the slot it names. Every use site looks through the reference layer: reaching a member, dereferencing, indexing and calling through such a binding all need the same proof they would need on the slot itself, and the postfix <span class="code-inline">!</span> strips the nullability inside the reference so what follows reads the object.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">RefSlotDoc</span>
+{
+    count: <span class="STpe">s64</span>
+}
+
+<span class="SKwd">alias</span> <span class="SCst">RefSlot</span> = <span class="SItr">#null</span> *<span class="SCst">RefSlotDoc</span>
+
+<span class="SKwd">struct</span> <span class="SCst">RefSlotBoxDoc</span>
+{
+    slot: <span class="SCst">RefSlot</span>
+}
+
+<span class="SKwd">impl</span> <span class="SCst">RefSlotBoxDoc</span>
+{
+    <span class="SCmt">// What a container's 'opIndex' hands back: a reference to a nullable slot.</span>
+    <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">at</span>()-&gt;<span class="SKwd">const</span> &amp;<span class="SCst">RefSlot</span> =&gt; &amp;.slot
+}
+
+<span class="SFct">#test</span>
+{
+    <span class="SKwd">var</span> target: <span class="SCst">RefSlotDoc</span>
+    target.count = <span class="SNum">3</span>
+    <span class="SKwd">var</span> box      = <span class="SCst">RefSlotBoxDoc</span>{slot: &amp;target}
+
+    <span class="SCmt">// The binding keeps the reference, and the slot's '#null' with it.</span>
+    <span class="SKwd">let</span> bound = box.<span class="SFct">at</span>()
+    <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(bound) == <span class="SItr">#type</span> <span class="SKwd">const</span> &amp;<span class="SCst">RefSlot</span>)
+
+    <span class="SCmt">// 'bound.count' would be rejected: the slot can still be null.</span>
+    <span class="SItr">@assert</span>(bound!.count == <span class="SNum">3</span>)
+    <span class="SItr">@assert</span>((<span class="SKwd">dref</span> bound!).count == <span class="SNum">3</span>)
+}
+
+</span></div>
 <h3 id="Deferred_Initialization_with__Swag_Late_">Deferred Initialization with <span class="code-inline">Swag.Late</span></h3>
-<p>The <span class="code-inline">Swag.Late</span> attribute declares a <b>non-null</b> field or <b>global variable</b> whose storage starts unset (zero/null) and receives its value later — typically in a <span class="code-inline">#run</span> or <span class="code-inline">#init</span> block, or during setup. It replaces the <span class="code-inline">#null ... = null</span> + <span class="code-inline">!</span>-at-every-use pattern for values that are guaranteed to be set before first use but cannot be initialized at their declaration.</p>
+<p>The <span class="code-inline">Swag.Late</span> attribute declares a <b>non-null</b> field or <b>global variable</b> whose storage starts unset (zero/null) and receives its value during setup — an initialization function, a constructor, the first stage of <span class="code-inline">main</span>. It replaces the <span class="code-inline">#null ... = null</span> + <span class="code-inline">!</span>-at-every-use pattern for values that are guaranteed to be set before first use but cannot be initialized at their declaration.</p>
 <p>The exposed type is non-null, so uses need no <span class="code-inline">!</span>; every read is guarded (a runtime null panic when still unset). <span class="code-inline">@isset</span> tests whether the value has been assigned, without reading it. <span class="code-inline">Swag.Late</span> needs a nullable-capable type (pointer, slice, <span class="code-inline">string</span>, <span class="code-inline">cstring</span>, interface, function): it uses the null bit pattern as the <span class="code-inline">unset</span> sentinel. A local or parameter uses <span class="code-inline">= undefined</span> definite assignment instead.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">LateDocResource</span>
 {
@@ -3271,7 +3312,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <span class="SAtr">#[Swag.Late]</span>
 <span class="SKwd">var</span> g_lateDocResource: *<span class="SCst">LateDocResource</span>     <span class="SCmt">// non-null type, set later</span>
 
-<span class="SFct">#run</span>
+<span class="SKwd">func</span> <span class="SFct">setupLateDocResource</span>()
 {
     g_lateDocStorage.weight = <span class="SNum">5</span>
     g_lateDocResource       = &amp;g_lateDocStorage
@@ -3282,7 +3323,9 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
     <span class="SCmt">// The type is non-null: no '!', no null test needed at the use site.</span>
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(g_lateDocResource) == *<span class="SCst">LateDocResource</span>)
 
-    <span class="SCmt">// '@isset' confirms it was assigned (in the '#run' above).</span>
+    <span class="SCmt">// Unset until setup runs, and '@isset' says so without reading the value.</span>
+    <span class="SItr">@assert</span>(!<span class="SItr">@isset</span>(g_lateDocResource))
+    <span class="SFct">setupLateDocResource</span>()
     <span class="SItr">@assert</span>(<span class="SItr">@isset</span>(g_lateDocResource))
 
     <span class="SCmt">// Guarded read yields the value directly.</span>

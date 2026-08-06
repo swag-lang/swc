@@ -21,7 +21,7 @@ identifier, so a reference made today still resolves after the entry is gone. En
 identifier, ascending: a new one goes at the end, a deleted one leaves a gap, and position carries
 no priority.
 
-Next identifier: F-032
+Next identifier: F-033
 
 ## Open Investigations
 
@@ -335,30 +335,6 @@ Use this compact format. Keep observations factual and make the next step action
   captured on the same focus event. Pin it with a headless test that types into a grid row, presses
   Escape, and asserts both the stored value and the empty undo stack.
 
-### F-027 — A container of views outlives what it views, and only one configuration says so
-
-- Area: compiler | language
-- Found while: `tools/tests.bat dm --all-cfg`, where `aoc2017` was the one example that crashed,
-  in the `debug` configuration only
-- Observation: `HashSet'(string)` stores views. Filling one from a `String` that is rebuilt and
-  released on every iteration leaves every key pointing at a freed buffer, and nothing rejects it:
-  the implicit `String`-to-`string` conversion at the call is all it takes. The program then
-  depends on the allocator leaving freed bytes readable — which `fast-debug` and `release` do, so
-  both pass, and `debug` faults. A defect that only one configuration reports is worse than one
-  that always fails, because the two green runs are read as proof.
-- Evidence: `day6A` held `var set: HashSet'(string)` and added a per-cycle `var val: String`
-  ([6A.swg](bin/examples/modules/aoc2017/src/6A.swg)); the generated executable died with
-  `0xC0000005` after about 7 seconds, deterministically, and only under `-bc debug`. The same
-  puzzle's `day6B` had it right with `HashTable'(String, u64)`, so the two spellings sat side by
-  side. Reproduced identically with the compiler built from `5d9244592`, so it long predates the
-  current work. Fixed by giving the set owned keys.
-- Next step: this is the borrow-escape check's own case — a view derived from a local, stored into
-  a container that outlives it. Check whether the gated lifetime analysis already models "the
-  callee keeps the view" for a generic container, since `add` taking `string` by value is what
-  hides the escape; a parameter that is stored needs to be distinguishable from one that is only
-  read. Until it is, a cheap net is worth measuring: warn when a `string` derived from a local
-  `String` is passed to a generic instantiated on `string`.
-
 ### F-029 — ChaCha20 throughput is bounded by memory round-trips, not by round arithmetic
 
 - Area: std/core (crypto), compiler/backend
@@ -434,3 +410,24 @@ Use this compact format. Keep observations factual and make the next step action
 - Next step: decide which keys a rich edit really claims. Tab is deliberate and documented;
   Escape is not obviously so while the surface names a cancel action. Mark only what was used, the
   way `EditBox.keyPressed` already does ([editbox.swg:372](bin/std/modules/gui/src/widgets/editbox.swg#L372)).
+
+### F-032 — A by-value owning argument carries no borrow, so its payload escapes unjudged
+
+- Area: compiler
+- Found while: closing the container-of-views hole F-027 described (now detected: a store into a
+  container's `[*] T` payload is summarized, and judged wherever the container outlives what was
+  stored into it)
+- Observation: `typeCanCarryBorrow` excludes structs with an owning lifecycle, so an argument of
+  such a type produces no borrow at a call site. A callee that hands back its parameter's owned
+  payload records the return summary correctly, but no call site is ever judged against it.
+  Passing the same value by POINTER works, because a pointer is a carrier.
+- Evidence: `borrowEscapeHeapParamPayload(box: BorrowEscapeHeapBox)->[*] BorrowEscapeSlot`
+  returning `box.slots!` is silent at every call site, while the `*BorrowEscapeHeapBox` spelling
+  right next to it errors ([borrow_escape.swg](bin/unittests/sanity/borrow_escape.swg), section
+  "Owned payloads"). The exclusion dates from the field-scan rule: a bitwise walk of an owner's
+  fields would confuse ownership with borrowing.
+- Next step: the exclusion is about SCANNING an owner's fields, not about the owner being unable
+  to lend anything — a by-value owning argument should yield a borrow rooted at that argument
+  without the field scan, the way `typeHasBorrowableStorage` already does for owner views. Try it
+  behind the usual sweep (build every workspace, zero-hit baseline) and triage: the risk is that
+  every owner passed by value starts feeding the stores and frees summaries.

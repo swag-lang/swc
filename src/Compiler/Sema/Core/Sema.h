@@ -65,6 +65,11 @@ struct SemaEscapeInfo
     SmallVector4<std::shared_ptr<const SemaEscapeDeferredCallSnapshot>> deferredCalls;
     // Lexical depth of the storage backing a Materialized borrow (0 = unknown).
     uint32_t sourceScopeDepth = 0;
+    // The borrow designates a payload the source OWNS (a buffer read out of a value with
+    // an owning lifecycle), not the source's own storage. Releasing such a payload is
+    // what the owner is for, so it must not feed the "this callee frees the pointer you
+    // handed it" summary.
+    bool viaOwnedPayload = false;
 
     bool hasBorrow() const { return kind != SemaEscapeKind::None; }
     bool isLocalBorrow() const { return kind == SemaEscapeKind::Local && sourceVar != nullptr; }

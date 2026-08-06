@@ -425,6 +425,146 @@ namespace
         }
     }
 
+    // A BLOCK pointer held by a value with an OWNING lifecycle addresses memory that
+    // value releases when it dies: '[*] T' is how the language spells "a buffer of
+    // elements", which is what an owner allocates and frees.
+    //
+    // A plain '*T' is deliberately excluded: a single-object pointer inside an owner is
+    // just as often a back-reference to something it does not own (a parent window, a
+    // callback target), and rooting those at the holder invents borrows that do not
+    // exist.
+    bool isOwnedPayloadCarrier(Sema& sema, TypeRef typeRef)
+    {
+        typeRef = unwrapAliasEnum(sema, typeRef);
+        if (!typeRef.isValid())
+            return false;
+
+        return sema.typeMgr().get(typeRef).isBlockPointer();
+    }
+
+    // The variable owning the storage a carrier EXPRESSION addresses, when that carrier
+    // was read out of an owning value ('me.table', 'set.buffer'): writing through it
+    // writes into the owner, and reading through it borrows the owner. Null when the
+    // carrier came from a value that does not free it - its pointee may live anywhere.
+    const SymbolVariable* carrierBaseStorageRoot(Sema& sema, AstNodeRef baseRef, bool forAssignment, uint32_t depth);
+
+    const SymbolVariable* ownedPayloadStorageRoot(Sema& sema, AstNodeRef carrierRef, bool forAssignment, uint32_t depth)
+    {
+        if (carrierRef.isInvalid() || depth > K_STORAGE_WALK_BUDGET)
+            return nullptr;
+
+        const AstNodeRef resolvedRef = sema.viewZero(carrierRef).nodeRef();
+        if (resolvedRef.isInvalid())
+            return nullptr;
+
+        const AstNode& node = sema.node(resolvedRef);
+        switch (node.id())
+        {
+            case AstNodeId::ParenExpr:
+                return ownedPayloadStorageRoot(sema, node.cast<AstParenExpr>().nodeExprRef, forAssignment, depth + 1);
+            case AstNodeId::InitializerExpr:
+                return ownedPayloadStorageRoot(sema, node.cast<AstInitializerExpr>().nodeExprRef, forAssignment, depth + 1);
+            case AstNodeId::AutoCastExpr:
+                return ownedPayloadStorageRoot(sema, node.cast<AstAutoCastExpr>().nodeExprRef, forAssignment, depth + 1);
+            case AstNodeId::AsCastExpr:
+                return ownedPayloadStorageRoot(sema, node.cast<AstAsCastExpr>().nodeExprRef, forAssignment, depth + 1);
+            case AstNodeId::ErrorManagementExpr:
+                return ownedPayloadStorageRoot(sema, node.cast<AstErrorManagementExpr>().nodeExprRef, forAssignment, depth + 1);
+            case AstNodeId::CastExpr:
+            {
+                const AstNodeRef operandRef = node.cast<AstCastExpr>().nodeExprRef;
+                if (castOperandSelfSubstituted(sema, resolvedRef, operandRef))
+                    return nullptr;
+                return ownedPayloadStorageRoot(sema, operandRef, forAssignment, depth + 1);
+            }
+
+            case AstNodeId::MemberAccessExpr:
+                break;
+
+            default:
+                return nullptr;
+        }
+
+        if (!isOwnedPayloadCarrier(sema, expressionTypeRef(sema, resolvedRef)))
+            return nullptr;
+
+        // The value the member was read out of, seen through the pointer or reference
+        // used to reach it ('me' is a '*Vec', the owning type is 'Vec').
+        const AstNodeRef leftRef        = node.cast<AstMemberAccessExpr>().nodeLeftRef;
+        const TypeRef    rawLeftTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, leftRef));
+        TypeRef          leftTypeRef    = unwrapAliasEnum(sema, rawLeftTypeRef);
+        const bool       leftIsCarrier  = isDirectBorrowCarrier(sema, rawLeftTypeRef);
+        if (leftTypeRef.isValid())
+        {
+            const TypeInfo& leftType = sema.typeMgr().get(leftTypeRef);
+            if (leftType.isAnyPointer())
+                leftTypeRef = unwrapAliasEnum(sema, leftType.payloadTypeRef());
+        }
+
+        if (!hasOwningLifecycle(sema, leftTypeRef))
+            return nullptr;
+
+        // Reached through a POINTER, the owner is whatever that pointer designates, not
+        // the pointer variable: a local '*Array' aimed at caller storage owns nothing,
+        // and its payload must not be rooted at the frame.
+        if (leftIsCarrier)
+            return carrierBaseStorageRoot(sema, leftRef, forAssignment, depth + 1);
+
+        bool leftWhole = false;
+        return storageRootVariable(sema, leftRef, forAssignment, leftWhole, depth + 1);
+    }
+
+    // The storage root of an expression reached THROUGH a carrier ('dref p', 'p.field',
+    // 'p[i]'): the pointee is a root only when the carrier is tracked - a pointer holding
+    // a local borrow, a pointer parameter (caller-owned storage), a local bound to either
+    // of those, or a payload owned by a known value.
+    const SymbolVariable* carrierBaseStorageRoot(Sema& sema, AstNodeRef baseRef, bool forAssignment, uint32_t depth)
+    {
+        bool                  baseWhole = false;
+        const SymbolVariable* baseVar   = storageRootVariable(sema, baseRef, forAssignment, baseWhole, depth + 1);
+        if (baseVar && baseWhole)
+        {
+            const SemaEscapeInfo* baseInfo = sema.variableEscapeInfo(*baseVar);
+            if (baseInfo && baseInfo->isLocalBorrow())
+                return baseInfo->sourceVar;
+
+            // Data reached through a pointer/reference parameter (including the body 'me'
+            // binding) belongs to the caller: root at the parameter so returns feed the
+            // borrow summary. Same for a local that was bound to such a pointer.
+            if (!forAssignment)
+            {
+                if (baseInfo && baseInfo->kind == SemaEscapeKind::Parameter && baseInfo->sourceVar)
+                    return baseInfo->sourceVar;
+
+                const SemaEscapeInfo baseStorage = variableStorageInfo(sema, *baseVar, baseRef, TypeRef::invalid());
+                if (baseStorage.kind == SemaEscapeKind::Parameter && baseStorage.sourceVar)
+                    return baseStorage.sourceVar;
+            }
+
+            return nullptr;
+        }
+
+        return ownedPayloadStorageRoot(sema, baseRef, forAssignment, depth);
+    }
+
+    // The storage root of 'base[i]'. Indexing a builtin array or slice stays inside the
+    // indexed storage; indexing a raw pointer is a dereference and follows the carrier
+    // rules.
+    const SymbolVariable* indexedStorageRoot(Sema& sema, AstNodeRef indexedRef, bool forAssignment, uint32_t depth)
+    {
+        if (isArrayStorageExpr(sema, indexedRef))
+        {
+            bool indexedWhole = false;
+            return storageRootVariable(sema, indexedRef, forAssignment, indexedWhole, depth + 1);
+        }
+
+        const TypeRef indexedTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, indexedRef));
+        if (!isDirectBorrowCarrier(sema, indexedTypeRef))
+            return nullptr;
+
+        return carrierBaseStorageRoot(sema, indexedRef, forAssignment, depth);
+    }
+
     const SymbolVariable* storageRootVariableAt(Sema& sema, AstNodeRef resolvedRef, bool forAssignment, bool& outWholeVariable, uint32_t depth)
     {
         outWholeVariable = false;
@@ -448,6 +588,11 @@ namespace
             case AstNodeId::AsCastExpr:
                 return storageRootVariable(sema, node.cast<AstAsCastExpr>().nodeExprRef, forAssignment, outWholeVariable, depth + 1);
 
+            // 'p!' only asserts non-nullness, and 'try'/'catch'/'expect' hand back the
+            // value of their operand: none of them changes what storage is designated.
+            case AstNodeId::ErrorManagementExpr:
+                return storageRootVariable(sema, node.cast<AstErrorManagementExpr>().nodeExprRef, forAssignment, outWholeVariable, depth + 1);
+
             case AstNodeId::CastExpr:
             {
                 const AstNodeRef operandRef = node.cast<AstCastExpr>().nodeExprRef;
@@ -462,33 +607,8 @@ namespace
                 const TypeRef    leftTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, leftRef));
                 if (isDirectBorrowCarrier(sema, leftTypeRef))
                 {
-                    // Accessing storage through a pointer that itself borrows a known local
-                    // stays inside that local's storage: keep tracking on the borrowed root.
-                    bool leftWholeVariable = false;
-                    if (const SymbolVariable* leftVar = storageRootVariable(sema, leftRef, forAssignment, leftWholeVariable, depth + 1); leftVar && leftWholeVariable)
-                    {
-                        const SemaEscapeInfo* leftInfo = sema.variableEscapeInfo(*leftVar);
-                        if (leftInfo && leftInfo->isLocalBorrow())
-                        {
-                            outWholeVariable = false;
-                            return leftInfo->sourceVar;
-                        }
-
-                        // Data reached through a pointer/reference parameter (including the
-                        // body 'me' binding) belongs to the caller: root at the parameter so
-                        // returns feed the borrow summary.
-                        if (!forAssignment)
-                        {
-                            const SemaEscapeInfo leftStorage = variableStorageInfo(sema, *leftVar, leftRef, TypeRef::invalid());
-                            if (leftStorage.kind == SemaEscapeKind::Parameter && leftStorage.sourceVar)
-                            {
-                                outWholeVariable = false;
-                                return leftStorage.sourceVar;
-                            }
-                        }
-                    }
-
-                    return nullptr;
+                    outWholeVariable = false;
+                    return carrierBaseStorageRoot(sema, leftRef, forAssignment, depth);
                 }
 
                 // A member access never designates the WHOLE variable, whatever the
@@ -500,32 +620,12 @@ namespace
             }
 
             case AstNodeId::IndexExpr:
-            {
-                const auto& index = node.cast<AstIndexExpr>();
-                if (isArrayStorageExpr(sema, index.nodeExprRef))
-                {
-                    bool                  indexedWhole = false;
-                    const SymbolVariable* indexedRoot  = storageRootVariable(sema, index.nodeExprRef, forAssignment, indexedWhole, depth + 1);
-                    outWholeVariable                   = false;
-                    return indexedRoot;
-                }
-
-                return nullptr;
-            }
+                outWholeVariable = false;
+                return indexedStorageRoot(sema, node.cast<AstIndexExpr>().nodeExprRef, forAssignment, depth);
 
             case AstNodeId::IndexListExpr:
-            {
-                const auto& index = node.cast<AstIndexListExpr>();
-                if (isArrayStorageExpr(sema, index.nodeExprRef))
-                {
-                    bool                  indexedWhole = false;
-                    const SymbolVariable* indexedRoot  = storageRootVariable(sema, index.nodeExprRef, forAssignment, indexedWhole, depth + 1);
-                    outWholeVariable                   = false;
-                    return indexedRoot;
-                }
-
-                return nullptr;
-            }
+                outWholeVariable = false;
+                return indexedStorageRoot(sema, node.cast<AstIndexListExpr>().nodeExprRef, forAssignment, depth);
 
             case AstNodeId::UnaryExpr:
             {
@@ -536,31 +636,8 @@ namespace
                 // or caller-owned pointee is not a borrow root.
                 if (sema.token(node.codeRef()).id == TokenId::KwdDRef)
                 {
-                    bool operandWholeVariable = false;
-                    if (const SymbolVariable* operandVar = storageRootVariable(sema, unary.nodeExprRef, forAssignment, operandWholeVariable, depth + 1); operandVar && operandWholeVariable)
-                    {
-                        const SemaEscapeInfo* operandInfo = sema.variableEscapeInfo(*operandVar);
-                        if (operandInfo && operandInfo->isLocalBorrow())
-                        {
-                            outWholeVariable = false;
-                            return operandInfo->sourceVar;
-                        }
-
-                        // Data reached through a pointer/reference parameter (including the
-                        // body 'me' binding) belongs to the caller: root at the parameter so
-                        // returns feed the borrow summary.
-                        if (!forAssignment)
-                        {
-                            const SemaEscapeInfo operandStorage = variableStorageInfo(sema, *operandVar, unary.nodeExprRef, TypeRef::invalid());
-                            if (operandStorage.kind == SemaEscapeKind::Parameter && operandStorage.sourceVar)
-                            {
-                                outWholeVariable = false;
-                                return operandStorage.sourceVar;
-                            }
-                        }
-                    }
-
-                    return nullptr;
+                    outWholeVariable = false;
+                    return carrierBaseStorageRoot(sema, unary.nodeExprRef, forAssignment, depth);
                 }
 
                 return forAssignment ? nullptr : storageRootVariable(sema, unary.nodeExprRef, forAssignment, outWholeVariable, depth + 1);
@@ -1323,6 +1400,52 @@ namespace
         }
     }
 
+    // Does the container argument of a stores-into-parameter pair provably outlive the
+    // borrowed one? A callee that keeps its argument is only a fault at sites where the
+    // keeper is still readable after the borrowed storage is gone.
+    //
+    // A global container outlives every frame value, so any frame borrow handed to it
+    // dangles. Two locals of the same scope die together in reverse declaration order and
+    // nothing can observe the container afterwards: only a STRICTLY deeper source (a loop
+    // body, an inner block) leaves the container holding freed storage while it is still
+    // in use - which is exactly the 'set of views filled from a per-iteration owner'
+    // fault.
+    //
+    // A container reached through one of THIS function's parameters is deliberately NOT
+    // judged here. It does outlive the frame, but "an object holds a pointer to a caller
+    // buffer for the duration of one operation" is an ordinary design (a codec keeping
+    // its input and output spans in its state), and the pair still propagates to this
+    // function's own summary, to be judged where the container's real lifetime is known.
+    bool intoArgumentOutlivesStored(Sema& sema, const SemaEscapeInfo& intoInfo, const SemaEscapeInfo& storedInfo)
+    {
+        if (intoInfo.kind == SemaEscapeKind::Static)
+            return true;
+
+        if (!intoInfo.isLocalBorrow())
+            return false;
+
+        // Feeding a container from its own storage is not an escape.
+        if (storedInfo.sourceVar == intoInfo.sourceVar)
+            return false;
+
+        const uint32_t intoDepth = sema.variableScopeDepth(*intoInfo.sourceVar);
+        if (!intoDepth)
+            return false;
+
+        // A temporary dies with the statement that built it; the named container is
+        // still there on the next one.
+        if (storedInfo.isTemporaryBorrow())
+            return true;
+
+        // Inline expansions open their own scopes: their depths do not compare with the
+        // enclosing function's.
+        if (SemaHelpers::effectiveInlinePayload(sema))
+            return false;
+
+        const uint32_t storedDepth = storedInfo.isMaterializedBorrow() ? storedInfo.sourceScopeDepth : (storedInfo.sourceVar ? sema.variableScopeDepth(*storedInfo.sourceVar) : 0);
+        return storedDepth && storedDepth > intoDepth;
+    }
+
     // Snapshots the borrows carried by the arguments of an opaque call into check
     // templates (escaping borrows) and proto-edges (caller-parameter arguments). The
     // flow state is only valid NOW, so the argument side is captured eagerly; the
@@ -1445,13 +1568,20 @@ namespace
             // is legitimate) is a certain fault.
             // Interface dispatch pairs the request as the sole non-receiver argument
             // (the runtime receiver object does not consume a slot).
+            // Releasing a payload READ OUT of a parameter ('me.buffer') frees what that
+            // object owns, not the pointer the caller handed over: it is the whole point
+            // of a 'clear' or a destructor, and must not mark the object itself freed.
             if (calleeIsAllocFree && collectPairs)
             {
                 const AstNodeRef      reqValueRef = argumentValueRef(sema, arg.argRef);
                 bool                  reqWhole    = false;
                 const SymbolVariable* reqVar      = reqValueRef.isValid() ? storageRootVariable(sema, reqValueRef, false, reqWhole) : nullptr;
                 const SemaEscapeInfo  carried     = reqVar ? sema.variableEscapeInfoIncludingProjections(*reqVar) : SemaEscapeInfo{};
-                if (carried.kind == SemaEscapeKind::Parameter)
+                if (carried.viaOwnedPayload)
+                {
+                    // Nothing to record: the owner is releasing its own payload.
+                }
+                else if (carried.kind == SemaEscapeKind::Parameter)
                 {
                     SymbolFunction* callerFn = sema.currentFunction();
                     if (callerFn)
@@ -1490,6 +1620,7 @@ namespace
                     edge.callee           = fn;
                     edge.callerParamIndex = static_cast<uint32_t>(callerParamIndex);
                     edge.calleeParamIndex = static_cast<uint32_t>(thisParam);
+                    edge.viaOwnedPayload  = info.viaOwnedPayload;
                     outCapture.edges.push_back(edge);
                     parameterMappings.push_back({static_cast<uint32_t>(callerParamIndex), static_cast<uint32_t>(thisParam)});
                 }
@@ -1532,10 +1663,9 @@ namespace
             outCapture.checks.push_back(std::move(check));
         }
 
-        // Cross-argument pairs: 'g_container.add(&local)' escapes when the callee
-        // stores the borrowed argument into storage reachable from the container
-        // argument. Only a GLOBAL destination argument provably outlives the borrow;
-        // caller-parameter destinations would need pair transitivity (future).
+        // Cross-argument pairs: 'container.add(&local)' escapes when the callee stores
+        // the borrowed argument into storage reachable from the container argument AND
+        // that container outlives what was borrowed (see 'intoArgumentOutlivesStored').
         if (collectPairs)
         {
             for (const auto& [callerInto, calleeInto] : parameterMappings)
@@ -1559,7 +1689,7 @@ namespace
 
             for (const auto& [intoParam, intoInfo] : argBorrows)
             {
-                if (intoInfo.kind != SemaEscapeKind::Static || intoParam >= 8)
+                if (intoParam >= 8)
                     continue;
 
                 for (const auto& [storedParam, storedInfo] : argBorrows)
@@ -1567,6 +1697,8 @@ namespace
                     if (storedParam == intoParam || storedParam >= 8)
                         continue;
                     if (!storedInfo.isLocalBorrow() && !storedInfo.isTemporaryBorrow() && !storedInfo.isMaterializedBorrow())
+                        continue;
+                    if (!intoArgumentOutlivesStored(sema, intoInfo, storedInfo))
                         continue;
 
                     SemaEscapeDeferredCheck check;
@@ -1668,6 +1800,104 @@ namespace
             sema.setProjectionEscapeInfo(*projection, info);
         else
             sema.setVariableEscapeInfo(symVar, info);
+    }
+
+    // The variable an assignment destination is ultimately reached through, ignoring what
+    // the storage walk can prove about provenance: the innermost identifier of a
+    // member/index/dereference chain. 'table[i].key' gives 'table'.
+    const SymbolVariable* destinationBaseVariable(Sema& sema, AstNodeRef nodeRef, uint32_t depth = 0)
+    {
+        if (nodeRef.isInvalid() || depth > K_STORAGE_WALK_BUDGET)
+            return nullptr;
+
+        const AstNodeRef resolvedRef = sema.viewZero(nodeRef).nodeRef();
+        if (resolvedRef.isInvalid())
+            return nullptr;
+
+        const AstNode& node = sema.node(resolvedRef);
+        switch (node.id())
+        {
+            case AstNodeId::Identifier:
+                return identifierVariable(sema, resolvedRef);
+            case AstNodeId::ParenExpr:
+                return destinationBaseVariable(sema, node.cast<AstParenExpr>().nodeExprRef, depth + 1);
+            case AstNodeId::InitializerExpr:
+                return destinationBaseVariable(sema, node.cast<AstInitializerExpr>().nodeExprRef, depth + 1);
+            case AstNodeId::AutoCastExpr:
+                return destinationBaseVariable(sema, node.cast<AstAutoCastExpr>().nodeExprRef, depth + 1);
+            case AstNodeId::AsCastExpr:
+                return destinationBaseVariable(sema, node.cast<AstAsCastExpr>().nodeExprRef, depth + 1);
+            case AstNodeId::ErrorManagementExpr:
+                return destinationBaseVariable(sema, node.cast<AstErrorManagementExpr>().nodeExprRef, depth + 1);
+            case AstNodeId::CastExpr:
+            {
+                const AstNodeRef operandRef = node.cast<AstCastExpr>().nodeExprRef;
+                if (castOperandSelfSubstituted(sema, resolvedRef, operandRef))
+                    return nullptr;
+                return destinationBaseVariable(sema, operandRef, depth + 1);
+            }
+            case AstNodeId::MemberAccessExpr:
+                return destinationBaseVariable(sema, node.cast<AstMemberAccessExpr>().nodeLeftRef, depth + 1);
+            case AstNodeId::IndexExpr:
+                return destinationBaseVariable(sema, node.cast<AstIndexExpr>().nodeExprRef, depth + 1);
+            case AstNodeId::IndexListExpr:
+                return destinationBaseVariable(sema, node.cast<AstIndexListExpr>().nodeExprRef, depth + 1);
+            case AstNodeId::UnaryExpr:
+                if (sema.token(node.codeRef()).id == TokenId::KwdDRef)
+                    return destinationBaseVariable(sema, node.cast<AstUnaryExpr>().nodeExprRef, depth + 1);
+                return nullptr;
+            default:
+                return nullptr;
+        }
+    }
+
+    // A parameter borrow stored through a local that an ACCESSOR call handed back
+    // ('let table = .tablePtr(); table[i].key = key'). The store reaches the accessor's
+    // receiver exactly when the accessor returns a borrow of it - a fact only the final
+    // return summary holds, so record an edge for the fixpoint instead of deciding here.
+    void recordAccessorStoreIntoParamPair(Sema& sema, AstNodeRef leftRef, const SemaEscapeInfo& info)
+    {
+        SymbolFunction* currentFn = sema.currentFunction();
+        if (!currentFn)
+            return;
+
+        const SymbolVariable* baseVar = destinationBaseVariable(sema, leftRef);
+        if (!baseVar)
+            return;
+
+        const SemaEscapeInfo* baseInfo = sema.variableEscapeInfo(*baseVar);
+        if (!baseInfo || !baseInfo->isDeferredCallBorrow())
+            return;
+
+        const uint64_t origins = parameterOriginsMask(*currentFn, info);
+        if (!origins)
+            return;
+
+        for (const auto& snapshot : baseInfo->deferredCalls)
+        {
+            if (!snapshot)
+                continue;
+
+            for (const SemaEscapeSummaryEdge& protoEdge : snapshot->edges)
+            {
+                if (protoEdge.caller != currentFn || !protoEdge.callee)
+                    continue;
+                if (protoEdge.callerParamIndex >= 8)
+                    continue;
+
+                for (size_t storedIndex = 0; storedIndex < 8; ++storedIndex)
+                {
+                    if (!(origins & (1ULL << storedIndex)) || storedIndex == protoEdge.callerParamIndex)
+                        continue;
+
+                    SemaEscapeSummaryEdge edge = protoEdge;
+                    edge.kind                  = SemaEscapeSummaryEdgeKind::ReturnToPair;
+                    edge.callerIntoParamIndex  = protoEdge.callerParamIndex;
+                    edge.callerParamIndex      = static_cast<uint32_t>(storedIndex);
+                    sema.ctx().compiler().addEscapeSummaryEdge(edge);
+                }
+            }
+        }
     }
 
     // A DeferredCall borrow provably escaping: judge its captured checks and edges at
@@ -1783,6 +2013,32 @@ namespace
                     SemaEscapeInfo projectedInfo = sema.projectionEscapeInfoIncludingWildcards(projection);
                     if (projectedInfo.hasBorrow())
                         return projectedInfo;
+                }
+
+                // A payload carrier read out of a value with an owning lifecycle
+                // ('set.table', 'string.buffer') addresses memory that value releases
+                // when it dies: the read borrows the owner, whatever the left side of
+                // the access borrowed to reach it.
+                if (const SymbolVariable* ownerVar = ownedPayloadStorageRoot(sema, resolvedRef, false, 0))
+                {
+                    const TypeRef memberTypeRef = expressionTypeRef(sema, resolvedRef);
+                    SemaEscapeInfo ownedInfo    = variableStorageInfo(sema, *ownerVar, resolvedRef, memberTypeRef);
+                    if (ownedInfo.hasBorrow())
+                    {
+                        // A by-value parameter is neither copied nor dropped by the
+                        // callee: only its SLOT is frame storage. What it owns stays the
+                        // caller's, so the payload is a caller borrow feeding the summary,
+                        // not a frame borrow.
+                        if (ownedInfo.kind == SemaEscapeKind::Local && ownerVar->hasExtraFlag(SymbolVariableFlagsE::Parameter))
+                        {
+                            ownedInfo.kind = SemaEscapeKind::Parameter;
+                            setParameterOrigin(sema, ownedInfo, *ownerVar);
+                        }
+
+                        ownedInfo.typeRef         = memberTypeRef;
+                        ownedInfo.viaOwnedPayload = true;
+                        return ownedInfo;
+                    }
                 }
 
                 SemaEscapeInfo info = expressionEscapeInfoRec(sema, node.cast<AstMemberAccessExpr>().nodeLeftRef, budget);
@@ -2687,6 +2943,14 @@ namespace SemaEscape
                     }
                 }
             }
+            else if (!pairRoot && !leftIsBareVar && currentFn)
+            {
+                // The store goes through a local bound to an ACCESSOR call
+                // ('let table = .tablePtr(); table[i] = key'). Whether it reaches the
+                // receiver depends on the accessor's return summary, which is not final
+                // yet: record an edge and let the fixpoint decide.
+                recordAccessorStoreIntoParamPair(sema, leftRef, info);
+            }
         }
 
         if (dstVar)
@@ -2923,8 +3187,10 @@ namespace SemaEscape
                             changed = true;
                         }
                         // The same forwarding edge chains the FREES summary: a wrapper
-                        // handing its parameter to a freeing callee frees it too.
-                        if ((edge.callee->freesParamsMask() & calleeBit) && !(edge.caller->freesParamsMask() & callerBit))
+                        // handing its parameter to a freeing callee frees it too. Not when
+                        // what was handed over is a payload the parameter OWNS: 'clear'
+                        // releases the buffer, it does not release the container.
+                        if (!edge.viaOwnedPayload && (edge.callee->freesParamsMask() & calleeBit) && !(edge.caller->freesParamsMask() & callerBit))
                         {
                             edge.caller->addFreesParam(edge.callerParamIndex);
                             changed = true;
@@ -2933,6 +3199,19 @@ namespace SemaEscape
 
                     case SemaEscapeSummaryEdgeKind::PairToPair:
                         if (SymbolFunction::hasStoresIntoPair(edge.callee->storesIntoParamPairs(), edge.calleeIntoParamIndex, edge.calleeParamIndex) &&
+                            !SymbolFunction::hasStoresIntoPair(edge.caller->storesIntoParamPairs(), edge.callerIntoParamIndex, edge.callerParamIndex))
+                        {
+                            edge.caller->addStoresIntoParam(edge.callerIntoParamIndex, edge.callerParamIndex);
+                            changed = true;
+                        }
+                        break;
+
+                    // 'let table = .tablePtr(); table[i] = key': the store lands in
+                    // whatever the accessor handed back. It reaches the receiver exactly
+                    // when the accessor returns a borrow of it - which only the (final)
+                    // return summary can say.
+                    case SemaEscapeSummaryEdgeKind::ReturnToPair:
+                        if ((edge.callee->returnBorrowsParamsMask() & calleeBit) &&
                             !SymbolFunction::hasStoresIntoPair(edge.caller->storesIntoParamPairs(), edge.callerIntoParamIndex, edge.callerParamIndex))
                         {
                             edge.caller->addStoresIntoParam(edge.callerIntoParamIndex, edge.callerParamIndex);

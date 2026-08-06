@@ -243,10 +243,12 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
 
 #test
 {
+    // The array holds views: the literals are static, so the elements stay valid. A
+    // temporary 'String' here would leave every element pointing at a freed buffer.
     var values: Array'string
-    values.add(String.from("11111111111111111111111111111111"))
-    values.add(String.from("22222222222222222222222222222222"))
-    values.add(String.from("33333333333333333333333333333333"))
+    values.add("11111111111111111111111111111111")
+    values.add("22222222222222222222222222222222")
+    values.add("33333333333333333333333333333333")
 
     Reflection.removeDynamicArrayElement(&values, #typeof(string), 1)
 

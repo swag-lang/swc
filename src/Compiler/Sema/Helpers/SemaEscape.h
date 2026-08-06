@@ -39,7 +39,7 @@ struct SemaEscapeDeferredCheck
     SmallVector4<SemaEscapeDeferredGuard> guards;
     // Judged against the callee's PAIR summary instead: parameter #paramIndex stored
     // into storage reachable from parameter #intoParamIndex, whose argument at this
-    // site is a global.
+    // site provably outlives the borrowed one.
     bool     judgePairs     = false;
     uint32_t intoParamIndex = 0;
     // No summary condition at all: the fault is certain from the callee's identity
@@ -66,7 +66,9 @@ enum class SemaEscapeSummaryEdgeKind : uint8_t
     ReturnToReturn, // return-position call: callee returns #j -> caller returns #i
     ReturnToStores, // result stored durably: callee returns #j -> caller stores #i
     StoresToStores, // any call: callee stores #j -> caller stores #i
-    PairToPair,     // callee stores #j into #k -> caller stores mapped #i into #h
+    PairToPair,   // callee stores #j into #k -> caller stores mapped #i into #h
+    ReturnToPair, // callee RETURNS storage of #j, and the caller stored #i through that
+                  // result: caller stores #i into its own parameter #h
 };
 
 // A call that hands one of the caller's own parameters to the callee: whatever the
@@ -82,6 +84,10 @@ struct SemaEscapeSummaryEdge
     uint32_t                  callerIntoParamIndex = 0;
     uint32_t                  calleeIntoParamIndex = 0;
     SemaEscapeSummaryEdgeKind kind                 = SemaEscapeSummaryEdgeKind::ReturnToReturn;
+    // The argument was a payload the parameter OWNS, not the parameter's own storage.
+    // The borrow still propagates, but the FREES summary must not: releasing what an
+    // object owns does not release the object.
+    bool viaOwnedPayload = false;
 };
 
 // The captured argument borrows of one opaque call. Checks are templates whose site,

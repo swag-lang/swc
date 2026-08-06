@@ -923,6 +923,139 @@ SWC_TEST_BEGIN(FormatWrap_SourceSelectsLiteralLayout)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatWrap_HugTrailingTableArgument)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo()\n"
+        "{\n"
+        "    target(cxt,\n"
+        "           evt,\n"
+        "           [\n"
+        "               {1, 2},\n"
+        "               {3, 4}])\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo()\n"
+        "{\n"
+        "    target(cxt, evt, [\n"
+        "        {1, 2},\n"
+        "        {3, 4}])\n"
+        "}\n";
+
+    FormatOptions options;
+    options.indentStyle                 = FormatIndentStyle::Spaces;
+    options.indentWidth                 = 4;
+    options.continuationIndentWidth     = 4;
+    options.sourceSelectsArgumentLayout = true;
+    options.argumentListLayout          = FormatListLayout::HangingAlign;
+    options.binPackArguments            = FormatBinPackStyle::OnePerLine;
+    options.hugTrailingBlockArgument    = true;
+    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_HugTrailingClosureArgument)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo()\n"
+        "{\n"
+        "    target(null,\n"
+        "           func(app)\n"
+        "           {\n"
+        "               app.step()\n"
+        "           })\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo()\n"
+        "{\n"
+        "    target(null, func(app)\n"
+        "    {\n"
+        "        app.step()\n"
+        "    })\n"
+        "}\n";
+
+    FormatOptions options;
+    options.indentStyle                 = FormatIndentStyle::Spaces;
+    options.indentWidth                 = 4;
+    options.continuationIndentWidth     = 4;
+    options.sourceSelectsArgumentLayout = true;
+    options.argumentListLayout          = FormatListLayout::HangingAlign;
+    options.binPackArguments            = FormatBinPackStyle::OnePerLine;
+    options.hugTrailingBlockArgument    = true;
+    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_HugTrailingBlockLiteralItem)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo()\n"
+        "{\n"
+        "    let rules = [\n"
+        "        first,\n"
+        "        second,\n"
+        "        [\n"
+        "            {1, 2},\n"
+        "            {3, 4}]]\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo()\n"
+        "{\n"
+        "    let rules = [first, second, [\n"
+        "        {1, 2},\n"
+        "        {3, 4}]]\n"
+        "}\n";
+
+    FormatOptions options;
+    options.indentStyle                = FormatIndentStyle::Spaces;
+    options.indentWidth                = 4;
+    options.continuationIndentWidth    = 4;
+    options.sourceSelectsLiteralLayout = true;
+    options.literalListLayout          = FormatListLayout::HangingAlign;
+    options.hugTrailingBlockItem       = true;
+    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_HugSkipsEarlierMultilineArgument)
+{
+    // The first argument already owns a block, so the call has no single
+    // trailing block to hug and keeps the one-argument-per-line layout.
+    static constexpr std::string_view SOURCE =
+        "func foo()\n"
+        "{\n"
+        "    target([\n"
+        "               {1, 2},\n"
+        "               {3, 4}],\n"
+        "           [\n"
+        "               {5, 6}])\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo()\n"
+        "{\n"
+        "    target([\n"
+        "               {1, 2},\n"
+        "               {3, 4}],\n"
+        "           [\n"
+        "               {5, 6}])\n"
+        "}\n";
+
+    FormatOptions options;
+    options.indentStyle                 = FormatIndentStyle::Spaces;
+    options.indentWidth                 = 4;
+    options.continuationIndentWidth     = 4;
+    options.sourceSelectsArgumentLayout = true;
+    options.argumentListLayout          = FormatListLayout::HangingAlign;
+    options.binPackArguments            = FormatBinPackStyle::OnePerLine;
+    options.hugTrailingBlockArgument    = true;
+    return checkWrapRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

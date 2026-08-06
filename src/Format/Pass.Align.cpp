@@ -412,13 +412,58 @@ namespace
                 target         = std::max(target, naturalCols[i]);
             }
 
+            // A table of names of every length is still a table; one line standing
+            // far away from all the others is not, and aligning on it turns the
+            // column into a stripe of whitespace. Sort the group by anchor column
+            // and drop an end while it is separated from the rest by a gap wider
+            // than the option allows. A dropped line keeps the single space it
+            // would have on its own.
+            std::vector<bool> aligned(group.size(), true);
+            if (options_->alignOutlierGap > 0 && group.size() >= 2)
+            {
+                std::vector<size_t> order(group.size());
+                std::iota(order.begin(), order.end(), size_t{0});
+                std::ranges::sort(order, [&](const size_t lhs, const size_t rhs) { return naturalCols[lhs] < naturalCols[rhs]; });
+
+                size_t first = 0;
+                size_t last  = order.size() - 1;
+                while (last > first)
+                {
+                    const uint32_t topGap    = naturalCols[order[last]] - naturalCols[order[last - 1]];
+                    const uint32_t bottomGap = naturalCols[order[first + 1]] - naturalCols[order[first]];
+                    if (std::max(topGap, bottomGap) <= options_->alignOutlierGap)
+                        break;
+                    if (topGap >= bottomGap)
+                        aligned[order[last--]] = false;
+                    else
+                        aligned[order[first++]] = false;
+                }
+
+                if (last == first)
+                    aligned.assign(group.size(), false);
+
+                target = 0;
+                for (size_t i = 0; i < group.size(); ++i)
+                {
+                    if (aligned[i])
+                        target = std::max(target, naturalCols[i]);
+                }
+            }
+
             for (size_t i = 0; i < group.size(); ++i)
             {
                 const auto [lineStart, anchor] = group[i];
                 SWC_UNUSED(lineStart);
 
-                // Pad the gap so the anchor lands on the target column.
                 const uint32_t prevEndCol = currentCols[i] - model_->gapColumns(anchor);
+                if (!aligned[i])
+                {
+                    if (model_->gapColumns(anchor) != 1)
+                        model_->setGapSpaces(anchor, 1);
+                    continue;
+                }
+
+                // Pad the gap so the anchor lands on the target column.
                 if (target > prevEndCol && currentCols[i] != target)
                     model_->setGapSpaces(anchor, target - prevEndCol);
             }

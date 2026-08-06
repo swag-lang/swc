@@ -35,7 +35,7 @@ About 241 000 lines of C++ in 653 files, and almost none of it is borrowed.
 - **535 diagnostics** with source snippets, notes, and help lines, driven by a message table
   (`Support/Report/Msg`) rather than scattered string literals. Each one is named, and a warning's
   name is what the three policy layers address it by.
-- **A `format` command with about 140 options** and a cascading `.swc-format`, and a `doc`
+- **A `format` command with 130 options** and a cascading `.swc-format`, and a `doc`
   command that renders a full documentation site with no script and no server.
 - Throughput today: `std/core` — 291 files, 50 690 lines — rebuilds in **2.1 s** in fast-debug
   (`swc build --workspace bin/std --workspace-module core --rebuild --stats`). A hello-world
@@ -96,7 +96,7 @@ These three shape every other entry. Nothing below Tier A gets structurally easi
   refactoring sema feels dangerous, and "ultra-clean architecture" is not reachable through code
   nobody dares to move.
 - Fix: those three first, as table-driven C++ suites — a list of (inputs, expected ranking) rows,
-  not compiled programs. `src/Unittest/Format` (5 043 lines) and `src/Unittest/Micro` (4 874
+  not compiled programs. `src/Unittest/Format` (5 225 lines) and `src/Unittest/Micro` (4 874
   lines) already show the shape and already carry the subsystems that get refactored most freely.
 - This is the cheapest entry in Tier A and the one that makes the other two safe.
 
@@ -242,22 +242,27 @@ script and needs no server, deliberately
 
 Measured against clang-format, rustfmt, gofmt, prettier, black and `zig fmt`.
 
-Where it stands: 8 328 lines, about 140 options covering whitespace, indentation, wrapping,
-braces, switch layout, alignment (including two-column declaration grids), spacing, attributes,
-comments, `using` blocks and numeric literals; a cascading `.swc-format` resolved from the file's
-directory upward with parent inheritance
-([FormatOptionsLoader.cpp:289-317](src/Format/FormatOptionsLoader.cpp#L289-L317)); `swc-format
-off`/`on` regions; nine passes over a token-and-AST model; and 5 043 lines of C++ tests, the
+Where it stands: 8 488 lines, 130 options covering whitespace, indentation, wrapping, braces,
+switch layout, alignment (including two-column declaration grids and outlier exclusion), spacing,
+attributes, comments, `using` blocks and numeric literals; a cascading `.swc-format` resolved from
+the file's directory upward with parent inheritance
+([FormatOptionsLoader.cpp](src/Format/FormatOptionsLoader.cpp)); `swc-format off`/`on` regions;
+nine passes over a token-and-AST model; and 5 225 lines of C++ tests over 205 cases, the
 best-tested subsystem in the compiler. On option count it is already in clang-format's league.
 
 ### 1. It cannot be used in CI, and cannot be used by an editor
 
 Three missing modes, all small, all blocking real use.
 
-- **No check mode.** There is no `--check`, no `--list-different`, no diff output, and no exit-code
+- **No check mode.** `--dry-run` suppresses the write and the stats block counts what *would* be
+  rewritten, but there is no `--check`, no `--list-different`, no diff output, and no exit-code
   contract for "this file was not formatted". clang-format has `--dry-run -Werror`, rustfmt
   `--check`, gofmt `-l` and `-d`, prettier `--check`. Without it, formatting cannot be enforced on
-  a branch — which is exactly what a canonical style needs.
+  a branch — which is exactly what a canonical style needs. It also leaves an author unable to
+  answer "which file did that run touch, and why": a rewrite whose only effect is the configured
+  end-of-line style is invisible to `git diff` and to an IDE diff, so a run that reports N
+  rewritten files can look like it changed nothing at all. `--list-different` naming the files is
+  the smallest fix for both.
 - **No stdin/stdout.** The command reads paths and writes files back in place. Every editor
   integration wants to format a buffer that may not be on disk, and to receive the result rather
   than have the file rewritten under it.
@@ -281,6 +286,12 @@ Three missing modes, all small, all blocking real use.
   per construct, locally. clang-format solves a penalty function over the whole unwrapped line and
   prettier searches a Wadler-style document for the best fit. On dense nested expressions that
   difference is visible.
+- The cost of that shows up as options. Every shape a solver would have found had to be named and
+  implemented by hand: `hug-trailing-block-argument` for the call whose last argument is a data
+  table or a closure, `align-outlier-gap` for the run that one long line would otherwise stretch
+  across the screen. Both are right, both are local, and neither generalizes — the next such shape
+  will need a twelfth option. That is the argument for the solver, and it should be weighed before
+  the option count grows again.
 - Separately, a file that fails to parse is counted and skipped
   ([FormatJob.cpp:40](src/Format/FormatJob.cpp#L40)). clang-format formats broken files because it
   works on tokens — which is what makes format-on-type possible.

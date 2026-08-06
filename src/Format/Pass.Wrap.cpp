@@ -21,12 +21,13 @@ namespace
     {
         std::optional<bool> forceSingleLine;
         std::optional<bool> sourceSelectsLayout;
+        std::optional<bool> hugTrailingBlock;
         FormatListLayout    layout  = FormatListLayout::Preserve;
         FormatBinPackStyle  binPack = FormatBinPackStyle::Preserve;
 
         bool active() const
         {
-            return forceSingleLine.value_or(false) || sourceSelectsLayout.has_value() ||
+            return forceSingleLine.value_or(false) || sourceSelectsLayout.has_value() || hugTrailingBlock.value_or(false) ||
                    layout != FormatListLayout::Preserve || binPack != FormatBinPackStyle::Preserve;
         }
     };
@@ -38,6 +39,7 @@ namespace
         std::vector<uint32_t> items;
         std::optional<bool>   forceSingleLine;
         std::optional<bool>   sourceSelectsLayout;
+        std::optional<bool>   hugTrailingBlock;
         FormatListLayout      layout     = FormatListLayout::Preserve;
         FormatBinPackStyle    binPack    = FormatBinPackStyle::Preserve;
         ListLineMode          lineMode   = ListLineMode::Unchanged;
@@ -45,6 +47,7 @@ namespace
         bool                  hasComment = false;
         bool                  canJoin    = false;
         bool                  literal    = false;
+        bool                  hug        = false;
     };
 
     struct LogicalPolicy
@@ -129,6 +132,7 @@ namespace
                 return {
                     .forceSingleLine     = options_->forceSingleLineArgumentLists,
                     .sourceSelectsLayout = options_->sourceSelectsArgumentLayout,
+                    .hugTrailingBlock    = options_->hugTrailingBlockArgument,
                     .layout              = options_->argumentListLayout,
                     .binPack             = options_->binPackArguments,
                 };
@@ -139,6 +143,7 @@ namespace
                 return {
                     .forceSingleLine     = options_->forceSingleLineLiteralLists,
                     .sourceSelectsLayout = options_->sourceSelectsLiteralLayout,
+                    .hugTrailingBlock    = options_->hugTrailingBlockItem,
                     .layout              = options_->literalListLayout,
                     .binPack             = options_->binPackLiteralItems,
                 };
@@ -172,6 +177,7 @@ namespace
                 state.closePiece          = open.match;
                 state.forceSingleLine     = policy.forceSingleLine;
                 state.sourceSelectsLayout = policy.sourceSelectsLayout;
+                state.hugTrailingBlock    = policy.hugTrailingBlock;
                 state.layout              = policy.layout;
                 state.binPack             = policy.binPack;
                 state.literal             = open.hasRole(FormatRoleE::LiteralOpen);
@@ -329,6 +335,56 @@ namespace
             }
         }
 
+        // A call whose last argument is the only multiline one reads as a header
+        // followed by a block: `f(a, b, [` then the rows, then `])`. Splitting the
+        // scalar arguments one per line only to reach that block hides the header
+        // and pushes the block far to the right, so detect the shape here and let
+        // the list keep its opening line.
+        bool wantsHug(const ListState& state) const
+        {
+            if (!state.hugTrailingBlock.value_or(false) || state.hasComment || state.items.size() < 2)
+                return false;
+
+            const uint32_t last = state.items.back();
+            if (!isMultilineLiteralItem(last))
+                return false;
+
+            for (uint32_t i = state.openPiece + 1; i < last; ++i)
+            {
+                if (model_->piece(i).removed)
+                    continue;
+                if (isItemStart(state, i))
+                {
+                    if (!FormatPassUtil::canEditGap(*model_, i))
+                        return false;
+                    continue;
+                }
+                // An earlier argument that spans lines has its own block to place.
+                if (model_->gapHasNewline(i))
+                    return false;
+            }
+
+            if (!FormatPassUtil::canEditGap(*model_, last))
+                return false;
+
+            for (uint32_t i = last + 1; i <= state.closePiece; ++i)
+            {
+                if (!model_->piece(i).removed && model_->gapHasNewline(i))
+                    return true;
+            }
+            return false;
+        }
+
+        void hugItems(const ListState& state) const
+        {
+            for (size_t i = 0; i < state.items.size(); ++i)
+            {
+                const uint32_t item = state.items[i];
+                if (model_->gapHasNewline(item))
+                    model_->setGapSpaces(item, i == 0 ? spacesAfterOpen(state) : spacesAfterComma());
+            }
+        }
+
         bool firstItemsShareSourceLine(const ListState& state) const
         {
             if (state.items.size() < 2)
@@ -434,6 +490,13 @@ namespace
         {
             if (!state.editable)
                 return;
+
+            state.hug = wantsHug(state);
+            if (state.hug)
+            {
+                state.lineMode = ListLineMode::MultiLine;
+                return;
+            }
 
             if (state.forceSingleLine.value_or(false))
             {
@@ -680,6 +743,12 @@ namespace
 
         void applyListShape(const ListState& state) const
         {
+            if (state.hug)
+            {
+                hugItems(state);
+                return;
+            }
+
             switch (state.layout)
             {
                 case FormatListLayout::HangingIndent:
@@ -717,7 +786,7 @@ namespace
 
         void packExistingLines(const ListState& state) const
         {
-            if (state.binPack != FormatBinPackStyle::Pack || state.hasComment || !listIsMultiline(state))
+            if (state.hug || state.binPack != FormatBinPackStyle::Pack || state.hasComment || !listIsMultiline(state))
                 return;
 
             const uint32_t requiredBreak = requiredPackedBreak(state);
@@ -1126,7 +1195,7 @@ namespace
 
         void applyOnePerLine(const ListState& state, const Utf8& indent) const
         {
-            if (state.binPack != FormatBinPackStyle::OnePerLine || state.items.size() < 2 || state.hasComment)
+            if (state.hug || state.binPack != FormatBinPackStyle::OnePerLine || state.items.size() < 2 || state.hasComment)
                 return;
 
             for (size_t i = 1; i < state.items.size(); ++i)
@@ -1139,7 +1208,7 @@ namespace
 
         void alignBrokenItems(const ListState& state, const Utf8& indent) const
         {
-            if (state.layout == FormatListLayout::Preserve || state.hasComment)
+            if (state.hug || state.layout == FormatListLayout::Preserve || state.hasComment)
                 return;
 
             for (const uint32_t item : state.items)
@@ -1197,7 +1266,13 @@ namespace
         void alignMultilineItemContents(const ListState& state, const size_t itemIndex) const
         {
             const uint32_t item = state.items[itemIndex];
-            if (!model_->gapHasNewline(item) || !isMultilineLiteralItem(item))
+            if (!isMultilineLiteralItem(item))
+                return;
+
+            // A hugged block keeps its opening token on the call line, so its own
+            // gap carries no newline; its content still has to follow that line.
+            const bool hugged = state.hug && itemIndex + 1 == state.items.size();
+            if (!hugged && !model_->gapHasNewline(item))
                 return;
 
             const uint32_t rangeEnd = itemIndex + 1 < state.items.size() ? model_->prevPiece(state.items[itemIndex + 1])

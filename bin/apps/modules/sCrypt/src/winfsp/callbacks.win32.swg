@@ -286,8 +286,9 @@ namespace WinFsp
         let validNode = node!
         if validNode.isDirectory() do
             return StatusFileIsDirectory
-        let targetSize = setAllocationSize and newSize < validNode.size ? newSize :
-                         setAllocationSize ? validNode.size : newSize
+
+        // Setting the allocation size can only shrink the node down to what it already holds.
+        let targetSize = setAllocationSize ? Math.min(newSize, validNode.size) : newSize
         if targetSize > validNode.size and validNode.size % BlockSize != 0 and validNode.blockSearch(validNode.size / BlockSize).found and !volume.freeBlockCount() do
             return StatusDiskFull
         discard catch volume.resizeNode(nodeId, targetSize) as err

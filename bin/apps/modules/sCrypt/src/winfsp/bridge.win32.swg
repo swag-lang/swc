@@ -94,8 +94,7 @@ namespace WinFsp
             return status
         if attributes do
             dref attributes = info.fileAttributes
-        return securitySize ? copySecurity(fileSystem, nodeId, security, securitySize!) :
-               StatusSuccess
+        return securitySize ? copySecurity(fileSystem, nodeId, security, securitySize!) : StatusSuccess
     }
 
     func fspCreate(fileSystem: *FspFileSystem, path: #null [*] u16, createOptions, grantedAccess, attributes: u32, security: #null *void, allocationSize: u64, fileContext: *#null *void, info: *FileInfo)->s32

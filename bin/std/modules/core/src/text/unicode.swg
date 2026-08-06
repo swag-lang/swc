@@ -339,8 +339,8 @@ func caseChangeTo(wCase: WantedCase, r: rune, caseRange: const [..] CaseRange)->
             {
                 // In an Upper-Lower sequence, which always starts with
                 // an UpperCase letter, the real deltas always look like:
-                //	{0, 1, 0}    UpperCase (Lower is next)
-                //	{-1, 0, -1}  LowerCase (Upper, Title are previous)
+                //     {0, 1, 0}    UpperCase (Lower is next)
+                //     {-1, 0, -1}  LowerCase (Upper, Title are previous)
                 // The characters at even offsets from the beginning of the
                 // sequence are upper case; the ones at odd offsets are lower.
                 // The correct mapping can be done by clearing or setting the low

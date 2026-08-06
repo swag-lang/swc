@@ -699,6 +699,87 @@ SWC_TEST_BEGIN(FormatAlign_OperandsOutsideBracketAnchorOnStatement)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatAlign_OutlierGapLeavesLongLineAlone)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo()\n"
+        "{\n"
+        "    a = 1\n"
+        "    bb = 2\n"
+        "    thisNameIsFarLongerThanTheOthers = 3\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo()\n"
+        "{\n"
+        "    a  = 1\n"
+        "    bb = 2\n"
+        "    thisNameIsFarLongerThanTheOthers = 3\n"
+        "}\n";
+
+    FormatOptions options;
+    options.alignConsecutiveAssignments = FormatAlignMode::Consecutive;
+    options.alignOutlierGap             = 16;
+    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatAlign_OutlierGapKeepsGradedTable)
+{
+    // Every step is inside the allowed gap, so the whole run is one table even
+    // though the first and last names are far apart.
+    static constexpr std::string_view SOURCE =
+        "func foo()\n"
+        "{\n"
+        "    a = 1\n"
+        "    aaaaaaaaaa = 2\n"
+        "    aaaaaaaaaaaaaaaaaaaa = 3\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo()\n"
+        "{\n"
+        "    a                    = 1\n"
+        "    aaaaaaaaaa           = 2\n"
+        "    aaaaaaaaaaaaaaaaaaaa = 3\n"
+        "}\n";
+
+    FormatOptions options;
+    options.alignConsecutiveAssignments = FormatAlignMode::Consecutive;
+    options.alignOutlierGap             = 16;
+    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatAlign_OutlierGapDropsBothEnds)
+{
+    // A pair that only stands next to each other keeps its column; the two
+    // lines isolated at either end of the group are left with one space.
+    static constexpr std::string_view SOURCE =
+        "func foo()\n"
+        "{\n"
+        "    a = 1\n"
+        "    someMiddleName = 2\n"
+        "    someMiddleNam = 3\n"
+        "    andThisOneIsTheLongestNameOfThemAll = 4\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo()\n"
+        "{\n"
+        "    a = 1\n"
+        "    someMiddleName = 2\n"
+        "    someMiddleNam  = 3\n"
+        "    andThisOneIsTheLongestNameOfThemAll = 4\n"
+        "}\n";
+
+    FormatOptions options;
+    options.alignConsecutiveAssignments = FormatAlignMode::Consecutive;
+    options.alignOutlierGap             = 8;
+    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

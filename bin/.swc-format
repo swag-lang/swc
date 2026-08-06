@@ -167,6 +167,15 @@ argument-list-layout = hanging-align
 # Possible values: preserve, hanging-indent, hanging-align, vertical, block
 parameter-list-layout = hanging-align
 
+# A call whose last argument is the only multi-line one reads as a header
+# followed by a block, so `f(a, b, [` stays together and the data table, struct
+# literal, closure or `#code` block indents under the statement instead of
+# hanging off the open parenthesis with one argument per line.
+hug-trailing-block-argument = true
+
+# Same rule for the last item of an array or struct literal.
+hug-trailing-block-item = true
+
 # How to lay out items across lines in array and struct literals.
 # Possible values: preserve, pack, one-per-line
 bin-pack-literal-items = preserve
@@ -263,6 +272,10 @@ blank-line-between-cases = multi-line
 # terminators stay).
 remove-redundant-semicolons = true
 
+# Drop a `,` sitting directly before its closing `)`, `]`, or `}`. It separates
+# nothing, and the code base writes its lists without one.
+remove-trailing-commas = true
+
 # Drop the parentheses wrapping a whole control-statement condition.
 remove-condition-parentheses = true
 
@@ -308,6 +321,13 @@ align-struct-fields = consecutive
 # Align `=` on adjacent enum value definitions.
 # Possible values: preserve, none, consecutive, across-blanks, all
 align-enum-values = consecutive
+
+# Column distance past which a line is an outlier its alignment group leaves
+# alone (0 always aligns). A table of names of every length is still a table;
+# one line standing this far from all the others is not, and aligning on it
+# turns the column into a stripe of whitespace. The outlier keeps a single
+# space and the rest of the group aligns among themselves.
+align-outlier-gap = 16
 
 # Two-column ("grid") alignment for the declaration family. A declaration has up
 # to two columns — the type (after `:`) and the initializer (`=`). The options

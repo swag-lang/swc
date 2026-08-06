@@ -29,8 +29,7 @@ func vp8YuvToR(y, v: s32)->u8
 
 func vp8YuvToG(y, u, v: s32)->u8
 {
-    return vp8Clip8((vp8MultiplyHigh(y, 19077) - vp8MultiplyHigh(u, 6419) -
-                     vp8MultiplyHigh(v, 13320) + 8708) >> WEBP_YUV_FIX)
+    return vp8Clip8((vp8MultiplyHigh(y, 19077) - vp8MultiplyHigh(u, 6419) - vp8MultiplyHigh(v, 13320) + 8708) >> WEBP_YUV_FIX)
 }
 
 func vp8YuvToB(y, u: s32)->u8
@@ -170,7 +169,7 @@ func flipRgbaRows(pixels: *Array'u8, width, height: s32)
 
 func decodeLossless(container: Container, options: DecodeOptions)->Image fail
 {
-    let imageData                        = @mkslice(cast(const [*] u8) container.image.data!, container.image.size)
+    let imageData = @mkslice(cast(const [*] u8) container.image.data!, container.image.size)
     var reader:        LosslessBitReader = undefined
     var width, height: s32
     losslessDecodeHeader(&reader, imageData, &width, &height)
@@ -228,7 +227,7 @@ func vp8DecodeAlpha(container: Container, width, height: s32, alpha: *Array'u8) 
         compressed[4] = losslessWrap8(cast(s32) (heightMinusOne >> 10))
         Memory.copy(cast([*] u8) (compressed.buffer + 5)!, source + 1, container.alpha.size - 1)
 
-        var rgba:                        Array'u8
+        var rgba: Array'u8
         var decodedWidth, decodedHeight: s32
         losslessDecode(compressed.toSlice(), &rgba, &decodedWidth, &decodedHeight)
         if decodedWidth != width or decodedHeight != height do
@@ -343,7 +342,7 @@ func decodeLossy(container: Container, options: DecodeOptions)->Image fail
         {
             let skip      = vp8Reconstruct(&decoder, mbX, mbY)
             var parameter = decoder.filterParams[decoder.segment][decoder.usePredY16 ? 0 : 1]
-            parameter.inner                                        = parameter.inner or !skip
+            parameter.inner = parameter.inner or !skip
             decoder.perMbFilterParams[decoder.mbWidth * mbY + mbX] = parameter
         }
     }

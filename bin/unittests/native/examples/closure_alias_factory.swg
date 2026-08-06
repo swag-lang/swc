@@ -73,12 +73,7 @@ func buildQuote(plan: SubscriptionPlan, order: TeamOrder, supportFeeRule: Suppor
 // SaaS subscription quote with closure discounts
 #test
 {
-    const growthPlan: SubscriptionPlan =
-        {
-        code: "growth",
-        baseSeatPriceCents: 2400,
-        includedSeats: 3,
-        }
+    const growthPlan: SubscriptionPlan = {code: "growth", baseSeatPriceCents: 2400, includedSeats: 3}
 
     let supportFeeRule: SupportFeeRule = func(needsPrioritySupport: bool)->s32
     {
@@ -87,13 +82,8 @@ func buildQuote(plan: SubscriptionPlan, order: TeamOrder, supportFeeRule: Suppor
         return 0
     }
 
-    let startupQuote = buildQuote(growthPlan,
-                                  {
-                                      requestedSeats: 8,
-                                      analyticsAddOnCents: 1200,
-                                      needsPrioritySupport: false,
-                                  },
-                                  supportFeeRule)
+    let startupOrder = TeamOrder{requestedSeats: 8, analyticsAddOnCents: 1200, needsPrioritySupport: false}
+    let startupQuote = buildQuote(growthPlan, startupOrder, supportFeeRule)
 
     @assert(startupQuote.billableSeats == 5)
     @assert(startupQuote.seatSubtotalCents == 12000)
@@ -101,13 +91,8 @@ func buildQuote(plan: SubscriptionPlan, order: TeamOrder, supportFeeRule: Suppor
     @assert(startupQuote.supportCents == 0)
     @assert(startupQuote.totalCents == 13200)
 
-    let scaleUpQuote = buildQuote(growthPlan,
-                                  {
-                                      requestedSeats: 12,
-                                      analyticsAddOnCents: 5000,
-                                      needsPrioritySupport: true,
-                                  },
-                                  supportFeeRule)
+    let scaleUpOrder = TeamOrder{requestedSeats: 12, analyticsAddOnCents: 5000, needsPrioritySupport: true}
+    let scaleUpQuote = buildQuote(growthPlan, scaleUpOrder, supportFeeRule)
 
     @assert(scaleUpQuote.billableSeats == 9)
     @assert(scaleUpQuote.seatSubtotalCents == 21600)
@@ -115,13 +100,8 @@ func buildQuote(plan: SubscriptionPlan, order: TeamOrder, supportFeeRule: Suppor
     @assert(scaleUpQuote.supportCents == 2500)
     @assert(scaleUpQuote.totalCents == 27900)
 
-    let enterpriseQuote = buildQuote(growthPlan,
-                                     {
-                                         requestedSeats: 22,
-                                         analyticsAddOnCents: 9000,
-                                         needsPrioritySupport: true,
-                                     },
-                                     supportFeeRule)
+    let enterpriseOrder = TeamOrder{requestedSeats: 22, analyticsAddOnCents: 9000, needsPrioritySupport: true}
+    let enterpriseQuote = buildQuote(growthPlan, enterpriseOrder, supportFeeRule)
 
     @assert(enterpriseQuote.billableSeats == 19)
     @assert(enterpriseQuote.seatSubtotalCents == 45600)

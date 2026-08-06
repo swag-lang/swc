@@ -89,6 +89,8 @@ namespace
         schema.add("force-single-line-literal-lists", &options.forceSingleLineLiteralLists, "Place every editable array and struct literal item list on one line, regardless of the column limit");
         schema.add("source-selects-literal-layout", &options.sourceSelectsLiteralLayout, "Use the literal's source shape to choose single-line or multiline layout");
         schema.addEnum("literal-list-layout", &options.literalListLayout, listLayoutChoices, "Choose the layout of multiline array and struct literal item lists");
+        schema.add("hug-trailing-block-argument", &options.hugTrailingBlockArgument, "Keep the arguments before a trailing multiline block argument on the call line");
+        schema.add("hug-trailing-block-item", &options.hugTrailingBlockItem, "Keep the items before a trailing multiline block item on the literal's opening line");
 
         const std::initializer_list<std::pair<const char*, FormatLogicalLayout>> logicalLayoutChoices = {
             {"preserve", FormatLogicalLayout::Preserve},
@@ -140,6 +142,7 @@ namespace
         schema.addEnum("blank-line-between-cases", &options.blankLineBetweenCases, {{"preserve", FormatCaseBlankStyle::Preserve}, {"never", FormatCaseBlankStyle::Never}, {"always", FormatCaseBlankStyle::Always}, {"multi-line", FormatCaseBlankStyle::MultiLine}}, "Choose the blank lines between `case` arms");
 
         schema.add("remove-redundant-semicolons", &options.removeRedundantSemicolons, "Drop `;` at end of line");
+        schema.add("remove-trailing-commas", &options.removeTrailingCommas, "Drop a `,` sitting directly before its closing bracket");
         schema.add("remove-condition-parentheses", &options.removeConditionParentheses, "Drop the parentheses wrapping a whole control-statement condition");
         schema.add("one-statement-per-line", &options.oneStatementPerLine, "Put independent statements separated by `;` on separate lines");
         schema.add("one-enum-value-per-line", &options.oneEnumValuePerLine, "Put every value of a multi-value enum on its own line and remove separator commas");
@@ -173,6 +176,7 @@ namespace
         schema.add("align-trailing-comments", &options.alignTrailingComments, "Align trailing `//` comments into a shared column");
         schema.add("trailing-comment-min-spaces", &options.trailingCommentMinSpaces, "Set the minimum spaces between code and a trailing `//` comment");
         schema.add("trailing-comment-max-column", &options.trailingCommentMaxColumn, "Set the maximum trailing-comment column; use 0 to disable the cap");
+        schema.add("align-outlier-gap", &options.alignOutlierGap, "Set the column distance past which a line is an outlier its alignment group leaves alone; use 0 to always align");
         schema.add("align-operands", &options.alignOperands, "Align operands in wrapped binary expressions");
         schema.add("align-after-open-bracket", &options.alignAfterOpenBracket, "Align wrapped arguments with their opening `(` or `[`");
         schema.add("align-array-columns", &options.alignArrayColumns, "Align the columns of multi-line array-of-struct literals");

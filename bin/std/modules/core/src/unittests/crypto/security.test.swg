@@ -20,8 +20,7 @@ func cryptoBytesEqual(left, right: const [..] u8)->bool
         0xEF, 0x4D, 0x59, 0xA1, 0x49, 0x46, 0x17, 0x59,
         0x97, 0x47, 0x9D, 0xBC, 0x2D, 0x1A, 0x3C, 0xD8]
 
-    let actual = Crypto.HmacSha256.compute(key,
-                                           @mkslice(cast(const [*] u8) @dataof(text), @countof(text)))
+    let actual = Crypto.HmacSha256.compute(key, @mkslice(cast(const [*] u8) @dataof(text), @countof(text)))
     @assert(cryptoBytesEqual(actual, expected))
 
     var incremental = Crypto.HmacSha256.create(key)

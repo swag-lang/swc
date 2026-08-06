@@ -50,8 +50,7 @@ namespace WinFsp
     func winFspStageLogPath()->String
     {
         let temp = Env.getSpecialDirectory(.Temp)
-        return temp.isEmpty() ? "sCrypt-WinFsp-stage.log" :
-               Path.combine(temp, "sCrypt-WinFsp-stage.log")
+        return temp.isEmpty() ? "sCrypt-WinFsp-stage.log" : Path.combine(temp, "sCrypt-WinFsp-stage.log")
     }
 
     func traceWinFspStage(message: string)

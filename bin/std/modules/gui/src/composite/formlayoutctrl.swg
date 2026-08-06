@@ -345,9 +345,7 @@ impl FormLayoutCtrl
         var cursor = client.y
         for &row, [index] in .rows
         {
-            cursor = .options.labelPlacement == .Above ?
-                     .arrangeRowAbove(&row, client, cursor) :
-                     .arrangeRowLeft(&row, client, cursor, labelWidth)
+            cursor = .options.labelPlacement == .Above ? .arrangeRowAbove(&row, client, cursor) : .arrangeRowLeft(&row, client, cursor, labelWidth)
             if index + 1 < .rows.count do
                 cursor += .options.rowSpacing
         }

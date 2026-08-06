@@ -171,10 +171,11 @@ private
             {
                 let expectedColor = expected.pixelColor(x, y)
                 let actualColor   = actual.pixelColor(x, y)
-                let delta         = Math.max(Math.abs(cast(s32) expectedColor.a - actualColor.a),
-                                             Math.max(Math.abs(cast(s32) expectedColor.r - actualColor.r),
-                                                      Math.max(Math.abs(cast(s32) expectedColor.g - actualColor.g),
-                                                               Math.abs(cast(s32) expectedColor.b - actualColor.b))))
+                let deltaA        = Math.abs(cast(s32) expectedColor.a - actualColor.a)
+                let deltaR        = Math.abs(cast(s32) expectedColor.r - actualColor.r)
+                let deltaG        = Math.abs(cast(s32) expectedColor.g - actualColor.g)
+                let deltaB        = Math.abs(cast(s32) expectedColor.b - actualColor.b)
+                let delta         = Math.max(Math.max(deltaA, deltaR), Math.max(deltaG, deltaB))
                 result.maxChannelDelta = Math.max(result.maxChannelDelta, cast(u8) delta)
                 if delta <= options.maxChannelDelta do
                     continue

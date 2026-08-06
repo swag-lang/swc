@@ -777,6 +777,37 @@ namespace
         }
     }
 
+    // `[1, 2, 3,]` → `[1, 2, 3]`. A comma sitting against its closing bracket
+    // separates nothing; the base writes 38 000 lists without one.
+    void removeTrailingCommas(FormatModel& model)
+    {
+        if (!model.options().removeTrailingCommas.value_or(false))
+            return;
+
+        for (uint32_t i = 0; i < model.numPieces(); ++i)
+        {
+            const FormatPiece& piece = model.piece(i);
+            if (piece.removed || piece.frozen || piece.isNot(TokenId::SymComma) ||
+                piece.hasRole(FormatRoleE::ClosureCaptureComma))
+                continue;
+            if (!FormatPassUtil::canEditGap(model, i))
+                continue;
+
+            uint32_t next = model.nextPiece(i);
+            while (next != INVALID_PIECE && model.piece(next).isComment)
+                next = model.nextPiece(next);
+            if (next == INVALID_PIECE)
+                continue;
+
+            const FormatPiece& closer = model.piece(next);
+            if (closer.isNot(TokenId::SymRightBracket) && closer.isNot(TokenId::SymRightCurly) &&
+                closer.isNot(TokenId::SymRightParen))
+                continue;
+
+            model.removePiece(i);
+        }
+    }
+
     // `if (cond)` → `if cond` when the parentheses wrap the entire condition.
     void removeConditionParentheses(FormatModel& model)
     {
@@ -836,6 +867,7 @@ namespace FormatPass
         normalizeUsingFields(model);
         normalizeAggregateMembers(model);
         removeRedundantSemicolons(model);
+        removeTrailingCommas(model);
     }
 
     void shortBlocks(FormatModel& model)

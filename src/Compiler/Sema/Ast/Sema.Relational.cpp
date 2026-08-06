@@ -85,6 +85,13 @@ namespace
         return false;
     }
 
+    // Two 'typeinfo' values name the same type when their runtime hashes match. That hash is what
+    // the generated code compares — reflection exports it as 'TypeInfo.crc', and both
+    // 'CodeGenCompareHelpers::emitTypeInfoEqualJump' and '@typecmp' answer from it — so folding the
+    // comparison on anything stricter would let one expression report 'false' where the same
+    // expression reports 'true' at run time. The hash deliberately ignores the '#null' qualifier at
+    // every nesting depth, which is exactly the pair that used to disagree: '#null string' against
+    // 'string'.
     bool sameTypeValuePayload(Sema& sema, TypeRef leftTypeRef, TypeRef rightTypeRef)
     {
         if (leftTypeRef == rightTypeRef)
@@ -94,15 +101,7 @@ namespace
 
         const TypeInfo& leftType  = sema.typeMgr().get(leftTypeRef);
         const TypeInfo& rightType = sema.typeMgr().get(rightTypeRef);
-        if (leftType.kind() != rightType.kind())
-            return false;
-        if (leftType.flags() != rightType.flags())
-            return false;
-
-        if (leftType.isFunction())
-            return leftType.payloadSymFunction().sameTypeSignature(rightType.payloadSymFunction());
-
-        return leftType == rightType;
+        return leftType.runtimeHash(sema.ctx()) == rightType.runtimeHash(sema.ctx());
     }
 
     bool sameTypeInfoIdentity(Sema& sema, ConstantRef leftCstRef, ConstantRef rightCstRef)

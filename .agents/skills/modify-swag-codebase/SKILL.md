@@ -28,9 +28,31 @@ local workaround merely because the original request exposed it indirectly.
   step; do not record vague wishes.
 - Search `FINDINGS.md` before adding an entry. Enrich an existing item instead of creating a
   duplicate.
+- Give the new entry the identifier the `Next identifier` line at the top of `FINDINGS.md` names,
+  then advance that line. See the rule below.
 
 The discovery backlog is not a promise that every item will be implemented, and not a substitute
 for fixing a root cause that is already safe and in scope.
+
+## Number Every Finding
+
+Every `FINDINGS.md` entry carries a permanent identifier in its heading:
+
+```
+### F-023 — A menu bar does not follow a live language switch
+```
+
+The identifier is how a finding is named everywhere else — in conversation, in a commit message, in
+a `TODO.md` entry, in a code comment. A title gets rewritten and a position moves; the identifier
+does not.
+
+- Take the next identifier from the `Next identifier` line at the top of `FINDINGS.md`, then
+  advance that line. It is the counter, not the entry count: it keeps rising as entries are
+  deleted.
+- Never renumber and never reuse. A deleted entry takes its identifier with it, so `F-012` in an
+  old commit message still means what it meant.
+- Entry order in the file is free. The identifiers are not sorted by anything and carry no
+  priority.
 
 ## Keep Findings And Roadmaps Apart
 

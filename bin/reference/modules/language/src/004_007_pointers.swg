@@ -154,6 +154,48 @@ region is dead, not wrong.
 }
 
 /**
+# Nullability Through a Reference
+
+A reference is transparent, so a binding to a nullable slot — what a container's `opIndex`
+hands back — is exactly as unproven as the slot it names. Every use site looks through the
+reference layer: reaching a member, dereferencing, indexing and calling through such a
+binding all need the same proof they would need on the slot itself, and the postfix `!`
+strips the nullability inside the reference so what follows reads the object.
+*/
+struct RefSlotDoc
+{
+    count: s64
+}
+
+alias RefSlot = #null *RefSlotDoc
+
+struct RefSlotBoxDoc
+{
+    slot: RefSlot
+}
+
+impl RefSlotBoxDoc
+{
+    // What a container's 'opIndex' hands back: a reference to a nullable slot.
+    mtd const at()->const &RefSlot => &.slot
+}
+
+#test
+{
+    var target: RefSlotDoc
+    target.count = 3
+    var box      = RefSlotBoxDoc{slot: &target}
+
+    // The binding keeps the reference, and the slot's '#null' with it.
+    let bound = box.at()
+    #assert(#typeof(bound) == #type const &RefSlot)
+
+    // 'bound.count' would be rejected: the slot can still be null.
+    @assert(bound!.count == 3)
+    @assert((dref bound!).count == 3)
+}
+
+/**
 # Deferred Initialization with `Swag.Late`
 
 The `Swag.Late` attribute declares a **non-null** field or **global variable** whose storage

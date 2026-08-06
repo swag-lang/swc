@@ -21,7 +21,7 @@ identifier, so a reference made today still resolves after the entry is gone. En
 identifier, ascending: a new one goes at the end, a deleted one leaves a gap, and position carries
 no priority.
 
-Next identifier: F-027
+Next identifier: F-028
 
 ## Open Investigations
 
@@ -334,3 +334,27 @@ Use this compact format. Keep observations factual and make the next step action
   `EditBox` that is `restoreOriginalText()`, and a `ComboBox`/`Slider` row needs the equivalent
   captured on the same focus event. Pin it with a headless test that types into a grid row, presses
   Escape, and asserts both the stored value and the empty undo stack.
+
+### F-027 — A container of views outlives what it views, and only one configuration says so
+
+- Area: compiler | language
+- Found while: `tools/tests.bat dm --all-cfg`, where `aoc2017` was the one example that crashed,
+  in the `debug` configuration only
+- Observation: `HashSet'(string)` stores views. Filling one from a `String` that is rebuilt and
+  released on every iteration leaves every key pointing at a freed buffer, and nothing rejects it:
+  the implicit `String`-to-`string` conversion at the call is all it takes. The program then
+  depends on the allocator leaving freed bytes readable — which `fast-debug` and `release` do, so
+  both pass, and `debug` faults. A defect that only one configuration reports is worse than one
+  that always fails, because the two green runs are read as proof.
+- Evidence: `day6A` held `var set: HashSet'(string)` and added a per-cycle `var val: String`
+  ([6A.swg](bin/examples/modules/aoc2017/src/6A.swg)); the generated executable died with
+  `0xC0000005` after about 7 seconds, deterministically, and only under `-bc debug`. The same
+  puzzle's `day6B` had it right with `HashTable'(String, u64)`, so the two spellings sat side by
+  side. Reproduced identically with the compiler built from `5d9244592`, so it long predates the
+  current work. Fixed by giving the set owned keys.
+- Next step: this is the borrow-escape check's own case — a view derived from a local, stored into
+  a container that outlives it. Check whether the gated lifetime analysis already models "the
+  callee keeps the view" for a generic container, since `add` taking `string` by value is what
+  hides the escape; a parameter that is stored needs to be distinguishable from one that is only
+  read. Until it is, a cheap net is worth measuring: warn when a `string` derived from a local
+  `String` is passed to a generic instantiated on `string`.

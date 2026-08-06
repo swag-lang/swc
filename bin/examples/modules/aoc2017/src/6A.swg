@@ -29,7 +29,9 @@ func day6A()
     let slice  = Tokenize.split(line, " ")
     var blocks = Slice.map(slice[to], func(x) => expect StrConv.toS32(x))
 
-    var set: HashSet'(string)
+    // The set owns its keys: 'val' is rebuilt every cycle and released with the iteration, so a
+    // set of views would be left pointing at freed buffers after the first one.
+    var set: HashSet'String
     var total = 0
     for
     {

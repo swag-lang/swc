@@ -23,53 +23,60 @@ local workaround merely because the original request exposed it indirectly.
   impossible to express cleanly.
 - Fix a discovered issue in the current change when it is sufficiently understood, relevant to
   the task, and can be validated without making the change unsafe or incoherent.
-- Record the issue in [FINDINGS.md](../../../FINDINGS.md) when it is uncertain, requires broader
-  design work, or should be handled separately. Include evidence and a concrete next investigation
-  step; do not record vague wishes.
-- Search `FINDINGS.md` before adding an entry. Enrich an existing item instead of creating a
-  duplicate.
-- Give the new entry the identifier the `Next identifier` line at the top of `FINDINGS.md` names,
-  then advance that line. See the rule below.
+- Record the issue in the matching `backlog/findings.<area>.md` when it is uncertain, requires
+  broader design work, or should be handled separately. Include evidence and a concrete next
+  investigation step; do not record vague wishes.
+- Search every `backlog/findings.*` file before adding an entry. Enrich an existing item instead of
+  creating a duplicate.
+- Give the new entry the identifier the `Next identifier` line in
+  [backlog/README.md](../../../backlog/README.md) names, then advance that line. See the rule below.
 
 The discovery backlog is not a promise that every item will be implemented, and not a substitute
 for fixing a root cause that is already safe and in scope.
 
 ## Number Every Finding
 
-Every `FINDINGS.md` entry carries a permanent identifier in its heading:
+Every finding carries a permanent identifier in its heading:
 
 ```
 ### F-023 — A menu bar does not follow a live language switch
 ```
 
 The identifier is how a finding is named everywhere else — in conversation, in a commit message, in
-a `TODO.md` entry, in a code comment. A title gets rewritten and a position moves; the identifier
-does not.
+a `backlog/todo.*` entry, in a code comment. A title gets rewritten, a position moves, and an entry
+changes file; the identifier does not.
 
-- Take the next identifier from the `Next identifier` line at the top of `FINDINGS.md`, then
-  advance that line. It is the counter, not the entry count: it keeps rising as entries are
-  deleted.
+- Take the next identifier from the `Next identifier` line in
+  [backlog/README.md](../../../backlog/README.md), then advance that line. It is the counter, not
+  the entry count: it keeps rising as entries are deleted, and it is shared by every
+  `findings.*` file.
 - Never renumber and never reuse. A deleted entry takes its identifier with it, so `F-012` in an
   old commit message still means what it meant.
-- Keep the entries sorted by identifier, ascending. A new entry always carries the highest
-  identifier, so it goes at the end; a deleted one leaves a gap, and the gap stays. Position is
+- Keep each file sorted by identifier, ascending. A new entry always carries the highest identifier
+  of its file, so it goes at the end; a deleted one leaves a gap, and the gap stays. Position is
   mechanical and carries no priority — it only makes an entry findable by its number.
 
 ## Keep Findings And Roadmaps Apart
 
-Two kinds of file, two different jobs. Write to the right one.
+The whole backlog lives in [backlog/](../../../backlog/) — nowhere else. Two kinds of file, two
+different jobs. Write to the right one, and read
+[backlog/README.md](../../../backlog/README.md) for the full layout and the entry format.
 
-- `FINDINGS.md` (repository root) holds **evidence**: something observed, with a reproduction and a
-  next investigation step. One file for the whole repository.
-- `TODO.md` holds **intent**: what a unit should become, and in which order. The root
-  [TODO.md](../../../TODO.md) covers the compiler, its `doc` and `format` commands, and the
-  language; `bin/std/modules/<module>/TODO.md` and `bin/apps/modules/<app>/TODO.md` cover their own
-  module. Entries are ordered by decreasing value and measured against the competition.
+- `backlog/findings.<area>.md` holds **evidence**: something observed, with a reproduction and a
+  next investigation step. Split by the area the issue will be *fixed* in — `compiler`,
+  `optimization`, `safety`, `gui`, `tooling` — not by the task that noticed it.
+- `backlog/todo.<unit>.md` holds **intent**: what a unit should become, and in which order.
+  One file per unit: `compiler`, `language`, `doc`, `format`, `runtime`, each `bin/std` module,
+  each application. Entries are ordered by decreasing value and measured against the competition.
+
+Create a new file only when a real cluster forms; a category holding one entry costs more to
+navigate than it saves.
 
 Both hold only what is *not done*. When a task resolves, invalidates, or completes the
 investigation of an entry, delete that entry — or cut it down to the part that genuinely remains.
 Never keep done or investigated material as a record: history lives in git. A finding that
-graduates into a plan moves to the matching `TODO.md` and disappears from `FINDINGS.md`.
+graduates into a plan moves to the matching `backlog/todo.*` file and disappears from the
+`findings.*` one.
 
 ## Establish The Applicable Rules
 

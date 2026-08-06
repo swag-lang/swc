@@ -41,3 +41,8 @@ When adding, migrating, renaming, styling, packaging, or testing an official app
 [build-swag-standard-apps](.agents/skills/build-swag-standard-apps/SKILL.md): every shipped app
 uses the `sName` product convention, a specific generated icon, the standard Swag surface, and the
 applications workspace validation flow.
+
+Everything this repository intends to do, and every lead it has recorded and not yet explained,
+lives in [backlog/](backlog/): `todo.<unit>.md` for intent, `findings.<area>.md` for evidence.
+[backlog/README.md](backlog/README.md) states which file a new entry goes in and how it is
+numbered.

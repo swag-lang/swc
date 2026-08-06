@@ -14,16 +14,19 @@ result to `history.json`, and regenerates `bench.html`. Nothing else is needed.
 | `tools\bench.bat --quick` | one repetition, no cooldown; proves the plumbing works and is **not** recorded |
 | `tools\bench.bat --report-only` | rebuild the normalized history and page from raw campaigns, measure nothing |
 | `tools\bench.bat --no-build` | measure the binary already in `bin/`, useful when iterating on the harness |
+| `py driver.py --tasks chacha --quick` | sweep one task while working on it; a partial sweep is **never** recorded |
 
 A full campaign takes roughly twenty-five minutes, most of it in the two-minute cooldown,
 the NativeAOT publishes and CPython.
 
 ## What is measured
 
-Six programs, written by hand and identically in swag, C++, Rust, Swift, C#, JavaScript, Lua
+Seven programs, written by hand and identically in swag, C++, Rust, Swift, C#, JavaScript, Lua
 and Python. None of them uses a standard library container: each reimplements its own hash
 map, heap or matrix, so the benchmark measures the compiler rather than somebody's hash
-table. Every port prints the same checksum, and **a campaign that reports a checksum mismatch
+table. `chacha` is the one written against a published specification rather than invented
+here: the same ChaCha20 rounds every port implements word for word, which is what makes it a
+fair reading of 32-bit lane arithmetic and of whatever each compiler does with it. Every port prints the same checksum, and **a campaign that reports a checksum mismatch
 has measured nothing** — fix the ports before believing any number.
 
 Fourteen runtimes in total: swag native and JIT in both configurations, two C++ compilers,
@@ -88,7 +91,7 @@ an asterisk in the report, because its commit alone will not reproduce it.
 | `history.py` | the compact, normalised record |
 | `mkpage.py`, `page_template.html` | the report; every figure comes from JSON, never from an edit |
 | `results/` | one raw campaign per file, kept whole so a past number can be re-derived |
-| `src/` | the six tasks in every language |
+| `src/` | the seven tasks in every language |
 
 ## After a campaign
 

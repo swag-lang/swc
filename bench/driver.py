@@ -89,12 +89,24 @@ def main():
     ap.add_argument("--cooldown", type=int, default=120)
     ap.add_argument("--label", default="", help="short note stored with this campaign")
     ap.add_argument("--quick", action="store_true", help="1 repetition, no cooldown; smoke test only")
+    ap.add_argument("--tasks", default="",
+                    help="comma-separated subset of the tasks to sweep, for iterating on one of "
+                         "them; a partial sweep is never recorded")
     args = ap.parse_args()
 
     if args.quick:
         args.repeats = 1
         args.build_repeats = 1
         args.cooldown = 0
+
+    tasks = tc.TASKS
+    if args.tasks:
+        tasks = [t.strip() for t in args.tasks.split(",") if t.strip()]
+        unknown = [t for t in tasks if t not in tc.TASKS]
+        if unknown:
+            print("unknown task(s): %s" % ", ".join(unknown))
+            print("known tasks: %s" % ", ".join(tc.TASKS))
+            return 1
 
     t = tc.discover()
     gone = tc.missing(t)
@@ -187,7 +199,7 @@ def main():
     sys.stdout.flush()
 
     # ------------------------------------------------------------------ the sweep
-    for task in tc.TASKS:
+    for task in tasks:
         print("== %s ==" % task)
         built = {}
         errors = {}
@@ -253,7 +265,7 @@ def main():
 
     # --------------------------------------------------------------- checksums
     bad = []
-    for task in tc.TASKS:
+    for task in tasks:
         seen = {}
         for name, entry in results["tasks"][task].items():
             c = entry.get("run", {}).get("check")
@@ -275,6 +287,12 @@ def main():
         # results/, so leaving a one-repetition campaign there would quietly turn the
         # published page into noise.
         print("quick run: nothing recorded, one repetition proves nothing")
+        return 0
+
+    if len(tasks) != len(tc.TASKS):
+        # Same reason: the page and the normalized history both read a campaign as
+        # covering every task, and a subset would silently publish gaps.
+        print("partial sweep (%s): nothing recorded" % ", ".join(tasks))
         return 0
 
     stamp = results["meta"]["stamp"]

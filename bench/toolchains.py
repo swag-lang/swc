@@ -14,7 +14,7 @@ BENCH = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(BENCH, "src")
 OUT = os.path.join(BENCH, "out")
 
-TASKS = ["wordfreq", "csvagg", "sha256", "dijkstra", "raytrace", "leven"]
+TASKS = ["wordfreq", "csvagg", "sha256", "dijkstra", "raytrace", "leven", "chacha"]
 NEEDS_MAP = {"wordfreq", "csvagg"}
 
 def _first(pattern):

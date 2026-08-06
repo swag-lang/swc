@@ -21,7 +21,7 @@ identifier, so a reference made today still resolves after the entry is gone. En
 identifier, ascending: a new one goes at the end, a deleted one leaves a gap, and position carries
 no priority.
 
-Next identifier: F-035
+Next identifier: F-036
 
 ## Open Investigations
 
@@ -478,3 +478,27 @@ Use this compact format. Keep observations factual and make the next step action
   `[base + K]`, which is what turns the Amc form into the constant-offset form the vectorizer
   reads. Check whether instruction-combine already does this and is simply not re-run after the
   unroll, or whether it has no rule for Amc-with-constant-index at all.
+
+### F-035 — Folding copy-then-operate before register allocation miscompiles
+
+- Area: compiler/backend
+- Found while: generalizing [F-033](#f-033--the-vectorizer-emitted-destructive-shapes-and-the-allocator-paid-for-them-in-memory)
+  to the float paths, which show the same shape: `raytrace`'s intersect loop carried 16 copies and
+  11 stores in a loop that only computes, and the post-RA fold converted 6 pairs out of ~22
+- Observation: rewriting an adjacent `mov %d, %a` / `%d op= %b` into `%d = %a op %b` in the
+  PRE-RA peephole does what it promises statically - the loop's copies drop 16 to 6, its stores
+  11 to 5, and three-operand forms go 6 to 22 - and then every script crashes with 0xC0000005
+  under the JIT, after compiling cleanly. The same rewrite is sound post-RA, where it has shipped
+  for a while.
+- Evidence: `tools/scripts.bat dm` fails on every script, right after "tuned"; the failure is an
+  access violation in JIT-executed code, not a compiler error. Minimal float arithmetic through
+  the JIT is fine, so the broken shape needs the surrounding std modules. Unit tests, the native
+  optimizer tests and the earlier phases of `tests.bat dm` all pass, which is what let it get as
+  far as the scripts.
+- Next step: the prime suspect is that `OpBinaryRegRegReg` could only exist AFTER register
+  allocation until now, so every pre-RA pass predates it. Its operand layout differs from the
+  two-address forms - the micro-op lives at index 4, not 3 - so any pass reading `ops[3].microOp`
+  positionally instead of through `MicroInstrDef::microOpIndex` misreads a three-operand
+  instruction as something else. Grep the pre-RA passes for positional operand reads before
+  re-attempting; instruction-combine, value numbering and LICM are the ones that rewrite
+  arithmetic. Failing that, bisect by restricting the fold to one MicroOp at a time.

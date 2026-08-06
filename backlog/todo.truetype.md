@@ -3,9 +3,10 @@
 This file is the roadmap for `std/truetype`, measured against the font libraries it competes with:
 FreeType, stb_truetype, HarfBuzz for shaping, and msdfgen for distance fields.
 
-It is not the repository's discovery backlog. Cross-cutting leads and defects belong in
-[FINDINGS.md](../../../../FINDINGS.md); compiler and language intent belongs in the root
-[TODO.md](../../../../TODO.md). This file holds intent about this module.
+It is not the repository's discovery backlog. Cross-cutting leads and defects belong in the
+`findings.*` files, which hold evidence; compiler and language intent belongs in
+[todo.compiler.md](todo.compiler.md) and [todo.language.md](todo.language.md). This file holds
+intent about `bin/std/modules/truetype`. [README.md](README.md) has the whole layout.
 
 Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
 ships; history lives in git, not here.

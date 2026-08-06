@@ -1,10 +1,10 @@
 # Runtime Allocator Roadmap
 
-This file tracks the work still required for the Swag runtime allocator to demonstrate performance
-and memory behavior comparable to the vendored
-[mimalloc](../../src/Support/Memory/mimalloc/readme.md). Defects and investigation leads belong in
-[FINDINGS.md](../../FINDINGS.md); completed work disappears from this file because its history lives
-in git.
+This file is the roadmap for `bin/runtime`, and tracks the work still required for the Swag runtime
+allocator to demonstrate performance and memory behavior comparable to the vendored
+[mimalloc](../src/Support/Memory/mimalloc/readme.md). Defects and investigation leads belong in the
+`findings.*` files, which hold evidence; this file holds intent. [README.md](README.md) has the
+whole layout. Completed work disappears from this file because its history lives in git.
 
 The allocator now has two paths, and which one produced a block is recoverable from its address, so
 the two never have to be told apart by a flag. The page path serves every request up to 64 KiB:
@@ -56,9 +56,10 @@ The remaining work below is what turns that into a measured allocator contract.
   the thread heap (measured at 4 ns per call, against 2 ns for `TlsGetValue` and 1 ns for a plain
   global read); the `IAllocator` interface dispatch and the `AllocatorRequest` the caller fills;
   the block-address validation on free; the diagnostic-mode test at every entry point.
-- Real thread-local storage would remove most of the first item, and it is a language gap of its
-  own: `#[Swag.Tls]` is accepted and ignored (see [FINDINGS.md](../../FINDINGS.md)). Sequence that
-  decision before micro-tuning anything else here.
+- Real thread-local storage would remove most of the first item. `#[Swag.Tls]` now lowers to a
+  per-thread copy, so the mechanism is there; what it still cannot hold is a value with a drop
+  ([F-019](findings.compiler.md#f-019--a-thread-local-global-cannot-hold-a-droppable-type)).
+  Sequence that decision before micro-tuning anything else here.
 - Measure with entry 1 before and after, not with a probe written for the occasion.
 
 ### 3. Return idle memory without being asked

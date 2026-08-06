@@ -5,13 +5,14 @@ the Go standard library, the .NET base class library, Rust's `std` plus its de-f
 Python standard library, and Zig's `std`.
 
 It is not the repository's discovery backlog. Defects and leads about other subsystems belong in
-[FINDINGS.md](../../../../FINDINGS.md); compiler and language intent belongs in the root
-[TODO.md](../../../../TODO.md). This file holds intent about this module.
+the `findings.*` files, which hold evidence; compiler intent belongs in
+[todo.compiler.md](todo.compiler.md) and language intent in [todo.language.md](todo.language.md).
+This file holds intent about `bin/std/modules/core`. [README.md](README.md) has the whole layout.
 
 Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
 ships; history lives in git, not here.
 
-Read [design-swag-bin-modules](../../../../.agents/skills/design-swag-bin-modules/SKILL.md) before
+Read [design-swag-bin-modules](../.agents/skills/design-swag-bin-modules/SKILL.md) before
 acting on any entry that proposes a boundary change. Several entries below deliberately argue for a
 new module rather than growth inside `core`.
 
@@ -124,7 +125,7 @@ independent: neither blocks the other, and neither should be allowed to block ev
   X25519 signatures and key agreement, and RSA.
 - Two entries elsewhere depend on this. Entry 1 needs AES and the signature primitives before TLS
   is possible. The sCrypt roadmap asks for Argon2id and a single-pass AEAD in this same folder —
-  see `bin/apps/modules/sCrypt/TODO.md` entries 4 and 5. Do them as one campaign, not three.
+  see [todo.scrypt.md](todo.scrypt.md) entries 4 and 5. Do them as one campaign, not three.
 
 ---
 
@@ -171,8 +172,8 @@ should be decided deliberately and early, because entry 1 will force the questio
 non-blocking sockets arrive, and answering it under that pressure is how libraries end up with two
 concurrency models.
 
-The language-design half is entry 4 of the language section in the root [TODO.md](../../../../TODO.md).
-Record decisions there, not here.
+The language-design half is entry 4 of [todo.language.md](todo.language.md). Record decisions
+there, not here.
 
 ---
 

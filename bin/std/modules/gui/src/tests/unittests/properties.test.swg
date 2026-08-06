@@ -28,6 +28,16 @@ struct PropHeadlessEnumData
     choice: PropHeadlessChoice = .Mid
 }
 
+// Carries one of each presentation attribute a text resolver has to reach.
+struct PropHeadlessResolvedData
+{
+    #[Category("Numbers"), Name("Count")]
+    count: s32 = 42
+
+    #[Name("Line"), BoolCombo("Straight", "Bezier")]
+    bezier: bool
+}
+
 struct PropHeadlessSliderData
 {
     #[SliderMinMax(0, 100)]
@@ -1941,4 +1951,81 @@ struct PropAlignData
     host.root.applyLayout()
     host.pump()
     assertAligned(prop)
+}
+
+// A field the resolver claims shows its answer; a field it declines keeps the declared
+// wording, and the module's own strings answer after it.
+#test
+{
+    // Whatever this test installs, the next one starts with the declared strings.
+    defer Properties.setTextResolver(null)
+
+    @assert(Properties.resolveText("Thickness") == "Thickness")
+
+    Properties.setTextResolver(func(key: string)->#null string
+    {
+        switch key
+        {
+        case "Thickness": return "Epaisseur"
+        case "Debug":     return "Diagnostics"
+        }
+        return null
+    })
+
+    @assert(Properties.resolveText("Thickness") == "Epaisseur")
+    @assert(Properties.resolveText("Count") == "Count")
+
+    // An installed resolver outranks the module's own wording for the same key, and the
+    // module still answers for the keys the resolver declines.
+    @assert(Properties.resolveText("Debug") == "Diagnostics")
+    @assert(Properties.resolveText("Show Clip Rect") == strings().prop_ShowClipRect)
+
+    Properties.setTextResolver(null)
+    @assert(Properties.resolveText("Thickness") == "Thickness")
+}
+
+// Every generated row goes through the resolver: the field label, the category header,
+// and the two entries of a boolean combo.
+#test
+{
+    defer Properties.setTextResolver(null)
+    Properties.setTextResolver(func(key: string)->#null string
+    {
+        switch key
+        {
+        case "Numbers":  return "Nombres"
+        case "Count":    return "Nombre"
+        case "Straight": return "Droite"
+        case "Bezier":   return "Courbe"
+        }
+        return null
+    })
+
+    var host: Testing.HeadlessHost
+    host.setup(600, 400)
+    defer host.shutdown()
+
+    var data: PropHeadlessResolvedData
+    let prop = Properties.create(&host.root, {0, 0, 560, 360})
+    prop.addStruct(data)
+    host.root.applyLayout()
+    host.pump()
+
+    var sawCategory, sawLabel, sawCombo = false
+    for item in prop.items
+    {
+        let it = item!
+        if !@isset(it.label) do
+            continue
+        if it.label.text() == "Nombres" do
+            sawCategory = true
+        if it.label.text() == "Nombre" do
+            sawLabel = true
+        if @isset(it.comboBox) and it.comboBox.items.count == 2 and it.comboBox.items[0]!.name.raw == "Droite" do
+            sawCombo = true
+    }
+
+    @assert(sawCategory)
+    @assert(sawLabel)
+    @assert(sawCombo)
 }

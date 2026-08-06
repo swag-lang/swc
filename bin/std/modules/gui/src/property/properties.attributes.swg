@@ -2,6 +2,15 @@
 
 using Core, Pixel
 
+// Turns a string declared by a property attribute into the text the grid shows.
+//
+// The argument is the literal the attribute carries — `#[Properties.Name("Thickness")]`
+// passes `"Thickness"` — and the result is what the reader sees. An attribute value is a
+// compile-time constant, so this is what lets a declared wording act as a translation key.
+// Answer `null` for a string the resolver does not own: the module that declared it answers
+// next, and the declared wording is what remains when nobody does.
+alias PropertyTextResolver = func(string)->#null string
+
 impl Properties
 {
     // Start a new category. A "/"-separated name opens nested subgroups: Category("Transform/Advanced")
@@ -62,4 +71,77 @@ impl Properties
     // "Paste" context-menu action is disabled. See also IPropertyNotify.isItemReadOnly for a
     // dynamic (runtime) equivalent.
     attr ReadOnly()
+}
+
+// The resolver every generated label passes through; `null` shows the declared strings.
+private var g_TextResolver: #null PropertyTextResolver
+
+impl Properties
+{
+    // Installs the resolver every string a property attribute declares passes through.
+    //
+    // Every label, description, category segment, heading, note, unit, and enumeration entry
+    // the grid generates from reflection is resolved through `resolver`, so an application
+    // that translates its interface makes `#[Properties.Name("Thickness")]` a key rather than
+    // a final wording. One resolver serves every grid in the process, and the strings this
+    // module declares itself are resolved after it, so an application only answers for its
+    // own. Pass `null` to show the declared strings again.
+    //
+    // Install it before building a grid — a row already built keeps the text it was created
+    // with — and rebuild the grids that must follow a language switch. GUI thread only.
+    //
+    // ```swag
+    // Properties.setTextResolver(func(key: string)->#null string
+    // {
+    //     switch key
+    //     {
+    //     case "Thickness": return appStrings().prop_Thickness
+    //     }
+    //     return null
+    // })
+    // ```
+    func setTextResolver(resolver: #null PropertyTextResolver)
+    {
+        g_TextResolver = resolver
+    }
+
+    // Returns the text to show for a string declared by a property attribute.
+    //
+    // Consults the installed resolver first, then the strings this module declares itself,
+    // and answers `text` unchanged when neither owns it. Custom editors registered through
+    // [[Gui.Properties.registerEditor]] call this so their labels follow the same resolution
+    // as the built-in ones.
+    func resolveText(text: string)->string
+    {
+        let resolver = g_TextResolver
+        if resolver
+        {
+            if let resolved = resolver(text) do
+                return resolved
+        }
+
+        return moduleText(text)
+    }
+
+    // Wording of the property strings this module declares, in the active language.
+    //
+    // [[Gui.ApplicationOptions]] is the only struct the module reflects into a grid, so this
+    // is the whole set. It answers after the installed resolver, which lets an application
+    // override a diagnostic label without having to know the rest.
+    private func moduleText(text: string)->string
+    {
+        let s = strings()
+        switch text
+        {
+        case "Debug":                                                        return s.prop_CategoryDebug
+        case "Show Clip Rect":                                               return s.prop_ShowClipRect
+        case "Display an overlay of the current drawing clipping rectangle": return s.prop_ShowClipRectDesc
+        case "Show Layout Rects":                                            return s.prop_ShowLayoutRects
+        case "Display layout rectangles computed by layout controls":        return s.prop_ShowLayoutRectsDesc
+        case "Dump Layout Tree":                                             return s.prop_DumpLayoutTree
+        case "Enable layout tree dumps from debug tooling":                  return s.prop_DumpLayoutTreeDesc
+        }
+
+        return text
+    }
 }

@@ -54,3 +54,12 @@ msg_MountStopped       Le montage s'est arrêté.
 msg_Mounted            Lecteur chiffré monté sur %. Il sera démonté à la fermeture de sCrypt.
 msg_UnmountSyncStopped Le lecteur a été démonté, mais la synchronisation finale s'est arrêtée.
 msg_Unmounted          Lecteur démonté en toute sécurité.
+
+# Sentences a failure shows, one per ErrorKind.
+msg_ErrPasswordOrDamaged Le mot de passe est incorrect ou le conteneur est endommagé.
+msg_ErrDamaged           Le conteneur est endommagé.
+msg_ErrNotFound          Le conteneur est introuvable.
+msg_ErrAlreadyExists     Un fichier portant ce nom existe déjà.
+msg_ErrAccessDenied      L'accès au conteneur a été refusé.
+msg_ErrDiskFull          Il n'y a plus de place dans le conteneur.
+msg_ErrIo                Le conteneur n'a pas pu être lu ou écrit.

@@ -208,7 +208,7 @@ internal impl Properties
             itemB.assignCheckBox(ed)
 
             let dispDesc    = Reflection.attributeValue(v, Properties.Description, "desc")
-            let dispDescStr = dispDesc == null ? "" : cast(string) (dispDesc)
+            let dispDescStr = dispDesc == null ? "" : attributeText(dispDesc)
             itemB.filter += dispDescStr
 
             var labelWidth = me.position.width - item.line.position.height
@@ -288,7 +288,7 @@ internal impl Properties
             if !.isEnumValueShown(item, v) do
                 continue
             let dn = Reflection.attributeValue(v, Properties.Name, "name")
-            item.comboBox.addItem(dn == null ? v.name : cast(string) (dn), userData0: cast(#null *void) idx)
+            item.comboBox.addItem(dn == null ? resolveText(v.name orelse "") : attributeText(dn), userData0: cast(#null *void) idx)
         }
 
         .refreshEnum(item)

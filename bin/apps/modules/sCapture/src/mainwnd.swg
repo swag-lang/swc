@@ -684,7 +684,7 @@ impl MainWnd
             .addGroup([ActionFile.SaveAsLinkedImage, ActionFile.UpdateLinkedImage, ActionFile.UnlinkImage])
             .addGroup([ActionFile.FileDetails])
             .addItems([ActionGlobal.Minimize, ActionGlobal.Exit])
-            topMenu.addPopup(appStrings().ui_MenuFile, fileMenu)
+            topMenu.addPopup(func()->string => appStrings().ui_MenuFile, fileMenu)
         }
 
         // Capture menu
@@ -713,7 +713,7 @@ impl MainWnd
                 captureMenu.addPopup(delayMenu, ActionCaptureDelay.Delay)
             }
 
-            topMenu.addPopup(appStrings().ui_MenuCapture, captureMenu)
+            topMenu.addPopup(func()->string => appStrings().ui_MenuCapture, captureMenu)
 
             .addSeparator()
             .addItems([ActionCapture.ToInPlace, ActionCapture.ToEditor, ActionCapture.ToClipboard])
@@ -729,7 +729,7 @@ impl MainWnd
             .addGroup([ActionEdit.ResetRotation])
             .addGroup([ActionSelection.Freeze])
             .addItems([ActionSelection.Snap])
-            topMenu.addPopup(appStrings().ui_MenuEdit, editMenu)
+            topMenu.addPopup(func()->string => appStrings().ui_MenuEdit, editMenu)
         }
 
         // Image menu
@@ -740,7 +740,7 @@ impl MainWnd
             .addGroup([ActionImage.ResizeImage, ActionImage.ExpandImage, ActionImage.ExpandCapture, ActionImage.TrimCapture])
             .addGroup([ActionFlatten.FlattenAll])
             .addItems([ActionImage.FlipImage, ActionImage.MirrorImage, ActionImage.RotateImageRight, ActionImage.RotateImageLeft])
-            topMenu.addPopup(appStrings().ui_MenuImage, imageMenu)
+            topMenu.addPopup(func()->string => appStrings().ui_MenuImage, imageMenu)
         }
 
         // View menu. The recent-preview size lives here now, instead of on three radio
@@ -751,7 +751,7 @@ impl MainWnd
             .addGroup([ActionZoom.Zoom1, ActionZoom.ZoomFit])
             .addGroup([ActionRecentSize.RecentSmall, ActionRecentSize.RecentMedium, ActionRecentSize.RecentBig])
             .addItems([ActionView.Clip])
-            topMenu.addPopup(appStrings().ui_MenuView, viewMenu)
+            topMenu.addPopup(func()->string => appStrings().ui_MenuView, viewMenu)
         }
 
         // Help menu
@@ -760,7 +760,7 @@ impl MainWnd
             .addItem(ActionOptions.Options)
             .addSeparator()
             .addItem(ActionAbout.About)
-            topMenu.addPopup(appStrings().ui_MenuHelp, helpMenu)
+            topMenu.addPopup(func()->string => appStrings().ui_MenuHelp, helpMenu)
         }
     }
 

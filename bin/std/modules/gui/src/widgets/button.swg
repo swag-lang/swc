@@ -120,8 +120,11 @@ impl Button
         var result = 0'f32
         if @countof(.name) != 0
         {
+            // Measured at the density the glyphs are really drawn at: laid out at a scale of
+            // one and drawn at another, the run comes out wider than the width a caller sized
+            // the button to, and the caption loses its last letter to the clip.
             .name.compute()
-            Painter.computeLayout({0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &.name, format)
+            Painter.computeLayout({0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &.name, format, .deviceScale())
             result = .name.boundRect.width
         }
 

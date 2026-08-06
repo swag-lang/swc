@@ -63,6 +63,16 @@ struct AppStrings
     msg_Mounted:            string = "Encrypted drive mounted on %. It will unmount when sCrypt closes."
     msg_UnmountSyncStopped: string = "The drive was unmounted, but final synchronization stopped."
     msg_Unmounted:          string = "Drive unmounted safely."
+
+    // What a failure of each [[ErrorKind]] says. The volume layer reports the kind and an
+    // English diagnostic for a report; these are the sentences a reader sees instead.
+    msg_ErrPasswordOrDamaged: string = "The password is incorrect or the container is damaged."     // The container did not open, and the format refuses to say which of the two it was.
+    msg_ErrDamaged:           string = "The container is damaged."                                  // An open container no longer reads back what it stored.
+    msg_ErrNotFound:          string = "The container could not be found."                          // The named container or entry does not exist.
+    msg_ErrAlreadyExists:     string = "A file with this name already exists."                      // The name is taken.
+    msg_ErrAccessDenied:      string = "Access to the container was refused."                       // The entry exists and refuses the operation.
+    msg_ErrDiskFull:          string = "There is no room left in the container."                    // No room is left for blocks, metadata, or key slots.
+    msg_ErrIo:                string = "The container could not be read or written."                // The underlying file could not be reached.
 }
 
 private const FrenchStringsName = "lang/fr/scrypt.tweak"

@@ -19,6 +19,15 @@ impl HeadlessFixture
         .gui.setup(width, height)
         .gui.bindApplication(&g_App)
 
+        // Same string wiring as `main`: the table, its embedded translations, and the resolver
+        // the generated property rows go through. Registering again is a no-op.
+        //
+        // Both bundles get them. The host owns its own application, and that is the one a
+        // language switch travels through; the module global gets them too, because the code
+        // under test reads `g_App` directly.
+        registerAppStrings(&g_App.resources)
+        registerAppStrings(&.gui.app.resources)
+
         .main  = Wnd.create'MainWnd(&.gui.root, {x: 0, y: 0, width: width, height: height})
         g_Main = .main
         let renderer = .gui.app.renderer

@@ -63,3 +63,11 @@ prop_ConfirmRemove    L'élément sera supprimé
 prop_ConfirmRemoveAll Tous les éléments seront supprimés
 prop_Search           Rechercher
 prop_All              Tout
+
+prop_CategoryDebug       Débogage
+prop_ShowClipRect        Afficher le rectangle de découpe
+prop_ShowClipRectDesc    Superposer le rectangle de découpe du dessin en cours
+prop_ShowLayoutRects     Afficher les rectangles de disposition
+prop_ShowLayoutRectsDesc Afficher les rectangles calculés par les contrôles de disposition
+prop_DumpLayoutTree      Tracer l'arbre de disposition
+prop_DumpLayoutTreeDesc  Autoriser les traces de l'arbre de disposition depuis les outils de diagnostic

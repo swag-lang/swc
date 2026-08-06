@@ -74,26 +74,9 @@ locally.
 
 ---
 
-### 5. Every failure the reader sees is written in English
-
-- Owner: sCrypt
-- Problem: the interface is fully localized, but the sentence a failed operation actually shows is
-  not. `failWith` carries a literal at all seventy-six of its call sites across `src/volume` and
-  `src/winfsp`, and `showError` puts that literal straight in front of the reader. A French session
-  reports "The password is incorrect or the container is damaged." under a French title, in a
-  French box, beside French buttons.
-- Fix: the volume layer already carries an `ErrorKind`; the shell should say the sentence, not the
-  layer. Widen `ErrorKind` to the distinctions a reader can act on (wrong password, damaged
-  container, unsupported version, disk full, canceled, already exists), map each to a localized key
-  in `mainwindow.swg`, and keep the English literal as the diagnostic detail behind it — a log
-  line, not the headline.
-- Note: a kind that means nothing to a reader — a journal record declaring an implausible entry
-  count — maps to the generic damaged-container wording. The literal is for whoever reads a report,
-  not for whoever is trying to mount a drive.
-
 ## Tier B — Perceived feature parity
 
-### 6. Mount comfort and mount-time safety
+### 5. Mount comfort and mount-time safety
 
 - Owner: sCrypt
 - Problem: one volume, one drive letter, no options. Missing: read-only mount, multiple concurrent
@@ -101,7 +84,7 @@ locally.
   on suspend, and on idle, which is a security feature rather than a convenience.
 - Why it ranks here: this is the bulk of the *perceived* gap against VeraCrypt, at moderate cost.
 
-### 7. Password management is not in the interface
+### 6. Password management is not in the interface
 
 - Owner: sCrypt
 - Problem: `Volume.changePassword`, `Volume.addPassword` and `Volume.removePassword` exist and are
@@ -112,7 +95,7 @@ locally.
 - Note: `KeySlotCount` is 4. Raising it costs one constant and a wider `keySlotMask`, but it also
   multiplies the cost of rejecting a wrong password; see entry 2.
 
-### 8. Resize
+### 7. Resize
 
 - Owner: sCrypt
 - Problem: capacity is fixed in `Volume.create` and cannot change.
@@ -123,7 +106,7 @@ locally.
   to be rewritten.
 - Shrinking requires evacuating blocks above the new limit: more work, less value, defer it.
 
-### 9. Header backup and restore
+### 8. Header backup and restore
 
 - Owner: sCrypt
 - Problem: the key slots and both header slots live in the same file, in its first megabytes. One
@@ -133,7 +116,7 @@ locally.
 - Document the trap VeraCrypt also documents: restoring a backed-up header reinstates the passwords
   that were current when the backup was taken.
 
-### 10. Keyfiles
+### 9. Keyfiles
 
 - Owner: sCrypt
 - Key slots exist, so this is now only mixing: the slot key derives from the password combined with
@@ -141,7 +124,7 @@ locally.
   secret and an associated-data input for exactly this. PKCS#11 tokens are a further step and can
   wait.
 
-### 11. Randomized block allocation
+### 10. Randomized block allocation
 
 - Owner: sCrypt
 - Problem: `BlockAllocator.allocate` always returns the lowest free block. An adversary comparing
@@ -151,7 +134,7 @@ locally.
 - Note: this now also applies to metadata pages, which are allocated the same way at every
   checkpoint.
 
-### 12. Concurrency
+### 11. Concurrency
 
 - Owner: sCrypt
 - Problem: WinFsp runs under the coarse guard strategy, so every callback is serialized and all
@@ -165,7 +148,7 @@ locally.
 
 ## Tier C — Long term
 
-### 13. Hidden volume
+### 12. Hidden volume
 
 - Owner: sCrypt
 - The format already permits it: the container is entirely random, carries no magic, and derives
@@ -177,7 +160,7 @@ locally.
 - Sequencing: last. A hidden volume that leaks is worse than no hidden volume, because it promises
   a protection it does not deliver.
 
-### 14. Format specification, test vectors, fuzzing
+### 13. Format specification, test vectors, fuzzing
 
 - Owner: sCrypt
 - An audit is not possible without a normative format document that is independent of the code,
@@ -190,7 +173,7 @@ locally.
     checkpoint rather than between them.
   - Add a scaling test at a hundred thousand files. The metadata paging test stops at 1 200.
 
-### 15. FUSE backend for Linux and macOS
+### 14. FUSE backend for Linux and macOS
 
 - Owner: sCrypt
 - The boundary is already where it needs to be: system backends for `Core.Crypto`, `Core.Time` and
@@ -198,10 +181,10 @@ locally.
   container format, the logical filesystem, the password widget — is platform-independent already.
   Real work, no design risk.
 
-### 16. External audit
+### 15. External audit
 
 - Owner: project
-- After entry 14. Until it happens, the format and the implementation have had no independent
+- After entry 13. Until it happens, the format and the implementation have had no independent
   cryptographic review, and sCrypt is not a proven replacement for VeraCrypt on critical data — no
   matter what else on this list ships.
 

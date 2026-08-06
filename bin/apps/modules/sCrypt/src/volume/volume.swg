@@ -131,9 +131,9 @@ impl Volume
     func create(path: string, password: const [..] u8, requestedSize: u64, progress: #null *VolumeProgress = null)->Volume fail
     {
         if !@countof(password) do
-            failWith("A password is required.", .InvalidInput)
+            failWith("A password is required.", .PasswordRequired)
         if requestedSize < MinimumSize do
-            failWith(Format.toString("The container must be at least % bytes.", MinimumSize), .InvalidInput)
+            failWith(Format.toString("The container must be at least % bytes.", MinimumSize), .SizeTooSmall)
 
         var result: retval
         var created   = false
@@ -238,7 +238,7 @@ impl Volume
     func open(path: string, password: const [..] u8)->Volume fail
     {
         if !@countof(password) do
-            failWith("A password is required.", .InvalidInput)
+            failWith("A password is required.", .PasswordRequired)
 
         var result: retval
         result.dirty = false
@@ -253,7 +253,7 @@ impl Volume
 
         result.containerSize = result.file.size()
         if result.containerSize < MinimumSize do
-            failWith("The password is incorrect or the container is damaged.", .Corrupted)
+            failWith("The password is incorrect or the container is damaged.", .PasswordOrDamaged)
         result.blockCount = (result.containerSize - DataOffset) / BlockRecordSize
 
         try result.unlock(password)
@@ -270,7 +270,7 @@ impl Volume
         elif second.valid do
             selected = &second
         else do
-            failWith("The password is incorrect or the container is damaged.", .Corrupted)
+            failWith("The password is incorrect or the container is damaged.", .PasswordOrDamaged)
 
         let validHeader = selected!
         result.activeSlot = validHeader == &first ? 0 : 1
@@ -281,7 +281,7 @@ impl Volume
         // first.
         discard catch result.restore(validHeader.plain.toSlice()) as parseError
         if parseError != null do
-            failWith("The password is incorrect or the container is damaged.", .Corrupted)
+            failWith("The password is incorrect or the container is damaged.", .PasswordOrDamaged)
 
         completed = true
         return result
@@ -296,7 +296,7 @@ impl Volume
         var area: [KeySlotAreaSize] u8
         defer Core.Crypto.secureClear(area)
         if !.file.readExactAt(KeySlotAreaOffset, area) do
-            failWith("The password is incorrect or the container is damaged.", .Corrupted)
+            failWith("The password is incorrect or the container is damaged.", .PasswordOrDamaged)
 
         for [index] in KeySlotCount
         {
@@ -309,7 +309,7 @@ impl Volume
             }
         }
 
-        failWith("The password is incorrect or the container is damaged.", .Corrupted)
+        failWith("The password is incorrect or the container is damaged.", .PasswordOrDamaged)
     }
 
     // Writes the key slot at `index` so that `password` unwraps the master key.
@@ -360,7 +360,7 @@ impl Volume
     mtd changePassword(current, replacement: const [..] u8, profile = Crypto.Argon2Profile.Moderate) fail
     {
         if !@countof(replacement) do
-            failWith("A password is required.", .InvalidInput)
+            failWith("A password is required.", .PasswordRequired)
         let index = try .findKeySlot(current)
         if index == Swag.U64.Max do
             failWith("The current password is incorrect.", .AccessDenied)
@@ -376,7 +376,7 @@ impl Volume
     mtd addPassword(additional: const [..] u8, profile = Crypto.Argon2Profile.Moderate)->u64 fail
     {
         if !@countof(additional) do
-            failWith("A password is required.", .InvalidInput)
+            failWith("A password is required.", .PasswordRequired)
         if (try .findKeySlot(additional)) != Swag.U64.Max do
             failWith("That password already opens this container.", .AlreadyExists)
 

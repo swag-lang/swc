@@ -302,26 +302,31 @@ Use this compact format. Keep observations factual and make the next step action
   ([CodeGenSafety.cpp:88](src/Compiler/CodeGen/Core/CodeGenSafety.cpp#L88)) are displaced too — if
   they are, every runtime panic location in the language is off by one and the fix is one place.
 
-### A reflected property label cannot be translated
+### A per-frame event can be sent but never asked for
 
 - Area: std/gui
-- Found while: giving sCapture its own surface and translating its tool panel
-- Observation: in a French session the panel mixes languages. The hand-built rows read `Fond`,
-  `Contour`, `Tirets`, while the rows the `Properties` grid generates from reflection read
-  `Thickness`, `Rotate`, `Opacity`, `Shadow`, and the boolean combos offer `Straight`/`Bezier`
-  and `No Shadow`/`Small`. This holds for any application that builds a panel from attributes.
-- Evidence: the label and the combo entries come from `#[Name(...)]`, `#[Unit(...)]` and
-  `#[BoolCombo(...)]` string literals carried by the field
-  ([form.swg:66-80](bin/apps/modules/sCapture/src/forms/form.swg#L66-L80)). An attribute value is a
-  compile-time literal, so it cannot be a key resolved through `Gui.registerStrings`, and the grid
-  has no hook to remap it. sCapture works around one row only, by walking the built items and
-  re-labelling the border-size slider
-  ([propwnd.swg](bin/apps/modules/sCapture/src/propwnd.swg)) — a loop per row would not scale and
-  would still miss the combo entries.
-- Next step: give `Properties` a resolver the host installs once — a callback taking the field's
-  declared name and returning the displayed text — and route every generated label, unit, and
-  enumeration entry through it. A `#[Name("Thickness")]` then becomes a translation key rather
-  than a final wording, and the per-row workaround disappears.
+- Found while: making the sCapture property panel follow a live language switch
+- Observation: `Application.sendFrameEvents` walks `Application.frameEvents`, and nothing in
+  the repository ever adds to it. `registerFrameEvent` and `unregisterFrameEvent` are declared
+  `internal` and have no caller, so the array is empty for the whole run and the call is a
+  no-op every frame. The only `FrameEvent` a window actually receives is the single
+  `firstFrame` one `Application.run` sends to each surface view before the loop starts, which
+  means `IWnd.onFrameEvent` is a first-frame hook wearing the name of a per-frame one.
+- Evidence: `grep -rn registerFrameEvent bin --include=*.swg` returns the two declarations and
+  no call. Two consumers already depend on the missing half: `MainWnd.onFrameEvent` in
+  sCapture only tests `evt.firstFrame`, so it works by accident, while
+  `PropWnd.needRebuild` never drains — `PropWnd.onFrameEvent` is the only place that clears
+  it ([propwnd.swg:1025](bin/apps/modules/sCapture/src/propwnd.swg#L1025)) and PropWnd is not
+  a surface view, so the deferred rebuild that
+  [propwnd.swg:998](bin/apps/modules/sCapture/src/propwnd.swg#L998) asks for after a
+  `FormImage.kind` change silently never happens.
+- Next step: decide which of the two the interface means. Either publish the registration —
+  a `Wnd` flag next to `BeforeChildrenPaint`, or a public `registerFrameEvent` — and send the
+  event from `runFrame` to everything registered, which makes `PropWnd.needRebuild` work as
+  written; or drop `frameEvents` and `sendFrameEvents` and rename the hook for what it is,
+  which then needs a different deferral for a rebuild asked for from inside the grid's own
+  change notification (a posted event is the obvious one). Whichever way it goes, the
+  `FormImage.kind` rebuild has to end up actually running.
 
 ### A fully transparent fill is dropped even under `Copy` blending
 
@@ -371,38 +376,3 @@ Use this compact format. Keep observations factual and make the next step action
   them, which would explain the loss exactly, since a shadow written without alpha is invisible to
   the compositor.
 
-### A menu bar does not follow a live language switch
-
-- Area: std/gui
-- Found while: applying the sCapture language at construction instead of only on state load
-- Observation: `MenuCtrl.addPopup(name, popup)` copies the wording into the item once, so the six
-  entries of an application menu bar keep the language they were built in. Everything below them is
-  added by command id and refreshes through the command state, which is why only the bar is stale.
-  sCapture now builds its bar after reading the persisted options, so a start-up in any language is
-  correct; changing the language from the Options dialog still leaves the bar behind.
-- Evidence: with `EditorLanguage.French` persisted, a bar built during `create` reads
-  `File Capture Edit` while the tool rail beside it reads `Favoris Sélection Forme`.
-- Next step: the hook already exists — `MenuCtrl.onPrepareItem` runs for every visible item at the
-  top of `computeLayoutBar`. Either document it as the supported way to re-resolve a literal
-  label, or let `addPopup` take a resolver instead of a string so the wording is re-read on every
-  layout, the way a command-driven item already is.
-
-### A menu bar entry is clipped, and the error grows with the word
-
-- Area: std/gui
-- Found while: seeing the sCapture menu bar in French for the first time
-- Observation: the bar clips the last glyph of its longest entry. `Affichage` loses half of its
-  final `e`; `Fichier`, `Capture`, `Image` and `Aide` beside it are intact. The shortfall scales
-  with the length of the label, which points at a per-glyph difference between measuring and
-  painting rather than at a missing constant margin.
-- Evidence: `computeLayoutBar` measures into a layout-only painter with `rsf.font = .font()` and
-  stores the result as the item extent
-  ([menuctrl.swg:757-768](bin/std/modules/gui/src/composite/menuctrl.swg#L757-L768));
-  `getBarLabelRect` then hands exactly that extent to the real draw
-  ([menuctrl.swg:444-453](bin/std/modules/gui/src/composite/menuctrl.swg#L444-L453)), so any
-  advance the measuring pass under-counts is shaved off the end. Reproduce with a French sCapture:
-  the entries are set from `ui_MenuFile` and friends, and `Affichage` is the longest.
-- Next step: compare the two paths on one string — the width `RichString.boundRect` reports after a
-  `layoutOnly` `drawRichString`, against the advance the same font accumulates when actually
-  painting. If they differ per glyph, the layout-only path is the bug; if they agree, the clip
-  comes from the rounding of `item.pos`/`item.size` into the label rectangle.

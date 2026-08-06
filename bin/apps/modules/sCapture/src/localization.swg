@@ -215,6 +215,96 @@ struct AppStrings
     flt_Jpg:                  string = "JPG - JPEG Image (*.jpg)"
     flt_Bmp:                  string = "BMP - Windows Bitmap (*.bmp)"
     flt_Tga:                  string = "TGA - Truevision Targa (*.tga)"
+
+    // Wording of the rows the property grid generates from reflection. A property attribute
+    // carries a compile-time literal, so the declared English below *is* the key
+    // [[resolvePropertyText]] matches: adding a row means adding a `prop_` field whose
+    // declared value repeats the attribute string exactly.
+    prop_Align:          string = "Align"             // Label of the horizontal text alignment.
+    prop_AlignVertical:  string = "Vertical Align"    // Label of the vertical text alignment.
+    prop_EndSize:        string = "End Size"          // Label of the end-cap size of a line.
+    prop_Effects:        string = "Effects"           // Category of the scale, rotation, opacity and shadow rows.
+    prop_Font:           string = "Font"              // Label of the font family.
+    prop_FontStyle:      string = "Font Style"        // Label of the font style.
+    prop_Joins:          string = "Joins"             // Label of the stroke join style.
+    prop_Kind:           string = "Kind"              // Label of the image-form kind.
+    prop_Line:           string = "Line"              // Label of the straight-or-curved choice.
+    prop_Opacity:        string = "Opacity"           // Label of the opacity slider.
+    prop_Place:          string = "Place"             // Label of the image placement.
+    prop_Rotate:         string = "Rotate"            // Label of the rotation slider.
+    prop_Round:          string = "Round"             // Corner-rounding slider, and the join style using a circular arc.
+    prop_Scale:          string = "Scale"             // Label of the scale slider.
+    prop_Shadow:         string = "Shadow"            // Label of the drop-shadow choice.
+    prop_Size:           string = "Size"              // Label of the font size.
+    prop_StartSize:      string = "Start Size"        // Label of the start-cap size of a line.
+    prop_Step:           string = "Step"              // Label of the step-numbering choice.
+    prop_Strength:       string = "Strength"          // Label of the effect strength.
+    prop_Text:           string = "Text"              // Label of the edited text.
+    prop_Thickness:      string = "Thickness"         // Label of the stroke thickness.
+
+    prop_Straight: string = "Straight"      // Line entry: a segment.
+    prop_Bezier:   string = "Bezier"        // Line entry: a curve.
+    prop_NoShadow: string = "No Shadow"     // Shadow entry: none.
+    prop_Small:    string = "Small"         // Shadow entry: a small one.
+
+    prop_JoinNone:       string = "None"           // Join style with no explicit corner geometry.
+    prop_JoinBevel:      string = "Bevel"          // Join style cutting the outer corner.
+    prop_JoinMiter:      string = "Miter"          // Join style extending both edges.
+    prop_JoinMiterBevel: string = "MiterBevel"     // Join style mitering when it can, beveling otherwise.
+
+    prop_StyleRegular:    string = "Regular"        // Upright font style with normal weight.
+    prop_StyleBold:       string = "Bold"           // Upright font style with bold weight.
+    prop_StyleItalic:     string = "Italic"         // Slanted font style with normal weight.
+    prop_StyleBoldItalic: string = "BoldItalic"     // Slanted font style with bold weight.
+
+    prop_AlignLeftTop:     string = "LeftTop"         // Text alignment against the left or top edge.
+    prop_AlignRightBottom: string = "RightBottom"     // Text alignment against the right or bottom edge.
+    prop_Center:           string = "Center"          // Alignment or placement on the center, for text and for an image alike.
+
+    prop_KindImage:    string = "Image"        // Image form showing a picture.
+    prop_KindBlur:     string = "Blur"         // Image form blurring what it covers.
+    prop_KindPixelate: string = "Pixelate"     // Image form pixelating what it covers.
+    prop_KindZoom:     string = "Zoom"         // Image form magnifying what it covers.
+    prop_KindCapture:  string = "Capture"      // Image form showing another capture.
+
+    prop_PlaceFrame:  string = "Frame"      // Image placement filling the frame.
+    prop_PlaceFree:   string = "Free"       // Image placement left to the reader.
+
+    prop_DrawCross:              string = "Draw Cross"                                                   // Label of [[CaptureOptions.drawCross]].
+    prop_DrawCrossDesc:          string = "Show a large cross at the mouse position during capture"      // Description of [[CaptureOptions.drawCross]].
+    prop_CaptureCursor:          string = "Capture Cursor"                                               // Label of [[CaptureOptions.captureCursor]].
+    prop_CaptureCursorDesc:      string = "Include the mouse cursor in the captured image"               // Description of [[CaptureOptions.captureCursor]].
+    prop_HideEditorBefore:       string = "Hide Editor Before"                                           // Label of [[CaptureOptions.hideEditorBefore]].
+    prop_HideEditorBeforeDesc:   string = "Temporarily hide the editor before starting the capture"      // Description of [[CaptureOptions.hideEditorBefore]].
+    prop_SendToEditor:           string = "Send To Editor"                                               // Label of [[CaptureOptions.sendToEditor]].
+    prop_SendToEditorDesc:       string = "Send the captured image to the editor"                        // Description of [[CaptureOptions.sendToEditor]].
+    prop_SendToClipboard:        string = "Send To Clipboard"                                            // Label of [[CaptureOptions.sendToClipboard]].
+    prop_SendToClipboardDesc:    string = "Copy the captured image to the clipboard"                     // Description of [[CaptureOptions.sendToClipboard]].
+    prop_InPlaceEdit:            string = "In Place Edit"                                                // Label of [[CaptureOptions.inPlaceEdit]].
+    prop_InPlaceEditDesc:        string = "Edit captured area in place"                                  // Description of [[CaptureOptions.inPlaceEdit]].
+    prop_Delay:                  string = "Delay"                                                        // Label of [[CaptureOptions.delay]].
+    prop_DelayDesc:              string = "Set the delay time, in seconds, before capturing"             // Description of [[CaptureOptions.delay]].
+    prop_ShowToolBarLabels:      string = "Show Tool Bar Labels"                                         // Label of [[EditorOptions.showToolBarLabels]].
+    prop_ShowToolBarLabelsDesc:  string = "Show text labels in the main toolbar"                         // Description of [[EditorOptions.showToolBarLabels]].
+    prop_ClipToSelection:        string = "Clip To Selection"                                            // Label of [[EditorOptions.clipToSelection]].
+    prop_ClipToSelectionDesc:    string = "Mask everything outside the selected capture area"            // Description of [[EditorOptions.clipToSelection]].
+    prop_ConfirmLinked:          string = "Confirm Linked Overwrite"                                     // Label of [[EditorOptions.confirmLinkedOverwrite]].
+    prop_ConfirmLinkedDesc:      string = "Require confirmation before overwriting a capture-linked image"     // Description of [[EditorOptions.confirmLinkedOverwrite]].
+    prop_HideOnClose:            string = "Hide On Close"                                                // Label of [[EditorOptions.hideOnClose]].
+    prop_HideOnCloseDesc:        string = "Minimize the editor instead of closing it"                    // Description of [[EditorOptions.hideOnClose]].
+    prop_Theme:                  string = "Theme"                                                        // Label of [[EditorOptions.theme]].
+    prop_ThemeDesc:              string = "sCapture theme"                                               // Description of [[EditorOptions.theme]].
+    prop_Language:               string = "Language"                                                     // Label of [[EditorOptions.language]].
+    prop_LanguageDesc:           string = "Language of the user interface"                               // Description of [[EditorOptions.language]].
+    prop_EditBackColor:          string = "Edit Back Color"                                              // Label of [[EditorOptions.editBackColor]].
+    prop_EditBackColorDesc:      string = "Specify the background color of the capture editing window"   // Description of [[EditorOptions.editBackColor]].
+
+    prop_ThemeDark:  string = "Dark"      // Theme entry: the dark one.
+    prop_ThemeLight: string = "Light"     // Theme entry: the light one.
+
+    prop_LanguageSystem:  string = "System"      // Language entry: follow the Windows language.
+    prop_LanguageEnglish: string = "English"     // Language entry: the reference wording.
+    prop_LanguageFrench:  string = "French"      // Language entry: French.
 }
 
 private const FrenchStringsName = "lang/fr/scapture.tweak"
@@ -222,14 +312,50 @@ private const FrenchStrings = #include("../datas/lang/fr/scapture.tweak")
 
 private var g_AppStrings: AppStrings
 
+// The reference English of every key, held apart from the live table.
+//
+// A language switch retargets [[appStrings]], and matching an attribute literal has to keep
+// comparing against the wording the attributes declare. This table is never registered, so
+// it keeps the values the struct declares for the whole run.
+private var g_PropertyKeys: AppStrings
+
+// Prefix of the fields that carry the wording of a generated property row.
+private const PropertyKeyPrefix = "prop_"
+
 // Returns the visible strings of sCapture in the active language.
 func appStrings()->const &AppStrings => &g_AppStrings
 
-// Registers the sCapture string table and its embedded translations.
+// Returns the active wording of a string declared by a property attribute.
+//
+// The grid builds its rows from compile-time attribute literals, so the literal is the key:
+// the `prop_` field whose reference English repeats it answers with its wording in the
+// active language. Answers `null` for a string no field claims, which is what leaves a
+// symbol such as `"%"` or `"1...2...3..."` alone.
+func resolvePropertyText(key: string)->#null string
+{
+    let type      = cast(const *Swag.TypeInfoStruct) #typeof(AppStrings)
+    let reference = cast(const [*] u8) &g_PropertyKeys
+    let active    = cast(const [*] u8) &g_AppStrings
+
+    for f in type.fields!
+    {
+        let field = f!
+        if !Utf8.startsWith(field.name orelse "", PropertyKeyPrefix) do
+            continue
+        if dref cast(const *string) (reference + field.offset) != key do
+            continue
+        return dref cast(const *string) (active + field.offset)
+    }
+
+    return null
+}
+
+// Registers the sCapture string table, its embedded translations, and its property resolver.
 func registerAppStrings(bundle: *Core.Resources.Bundle)
 {
     Gui.registerStrings'AppStrings(&g_AppStrings, "scapture")
     bundle.addEmbedded(FrenchStringsName, FrenchStrings)
+    Gui.Properties.setTextResolver(&resolvePropertyText)
 }
 
 // Build-time validation of the embedded translations: a mistyped key in a language
@@ -237,4 +363,41 @@ func registerAppStrings(bundle: *Core.Resources.Bundle)
 #run
 {
     expect Gui.validateStrings'AppStrings(cast(string) FrenchStrings)
+    checkPropertyKeysAreDistinct()
+}
+
+// Fails the build when two `prop_` fields declare the same reference English.
+//
+// [[resolvePropertyText]] matches on that English and answers with the first field that
+// carries it, so a repeated one would silently give every site the wording of whichever
+// field came first — the kind of defect that only shows up in the language nobody on the
+// team reads. Two sites that genuinely say the same English word share one field instead.
+private func checkPropertyKeysAreDistinct()
+{
+    var keys: AppStrings
+    let type = cast(const *Swag.TypeInfoStruct) #typeof(AppStrings)
+    let data = cast(const [*] u8) &keys
+
+    for f in type.fields!
+    {
+        let field = f!
+        let name  = field.name orelse ""
+        if !Utf8.startsWith(name, PropertyKeyPrefix) do
+            continue
+
+        let value = dref cast(const *string) (data + field.offset)
+        for g in type.fields!
+        {
+            let other = g!
+            if other.offset >= field.offset do
+                break
+            if !Utf8.startsWith(other.name orelse "", PropertyKeyPrefix) do
+                continue
+            if dref cast(const *string) (data + other.offset) != value do
+                continue
+
+            let clash = Format.toString("property key [[%]] is declared by both [[%]] and [[%]]", value, other.name orelse "", name)
+            Debug.assert(false, clash.toString())
+        }
+    }
 }

@@ -171,6 +171,11 @@ impl IWnd for ComboBox
         var format: RichStringFormat
         format.font = .font()
 
+        // Measured at the density the glyphs are really drawn at, the way the label and the
+        // menu bar measure theirs: a layout at a scale of one under-counts every advance,
+        // and the widest entry is where that shows.
+        let deviceScale = .deviceScale()
+
         var text = 0'f32
         for item in .items
         {
@@ -178,7 +183,7 @@ impl IWnd for ComboBox
             if current.isSeparator do
                 continue
             current.name.compute()
-            Painter.computeLayout({0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &current.name, format)
+            Painter.computeLayout({0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &current.name, format, deviceScale)
             text = Math.max(text, current.name.boundRect.width)
         }
 

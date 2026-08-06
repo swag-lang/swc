@@ -979,13 +979,27 @@ impl Application
     func language()->string => activeLanguage()
 
     // Emits a language-change notification throughout every surface tree.
+    //
+    // Rebuilding its own content is the supported answer to this notification — a panel
+    // generated from reflection has no other way to change language — so the walk is written
+    // to survive a handler that restructures the tree under it: children are taken as a
+    // snapshot, and a window that left the tree meanwhile is skipped rather than sent to.
     private mtd notifyLanguageChanged()
     {
         func updateLanguage(wnd: *Wnd)
         {
+            if !wnd.surface do
+                return
+
             wnd.invalidate()
-            for c in wnd.children do
+
+            var children: Array'(*Wnd)
+            children.add(wnd.children.toSlice())
+            for c in children do
                 updateLanguage(c)
+
+            if !wnd.surface do
+                return
 
             var evt = NotifyEvent{}
             evt.accepted = false

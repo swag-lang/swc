@@ -16,11 +16,23 @@ public enum MenuFlags
     HideShortcuts     // Hides command shortcut labels.
 }
 
+// Answers the label of a menu item every time the menu computes its layout.
+//
+// An item built from a literal keeps the wording it was built with, because the string is
+// copied into the item once. An item built from a resolver reads its label again on every
+// layout, the way an item driven by a command identifier already does, which is what lets a
+// menu bar follow a language switch.
+public alias MenuLabelResolver = func()->string
+
 // Stores one command, submenu, or separator in a [[Gui.MenuCtrl]].
 public struct PopupMenuItem
 {
     using item: Item           // Embedded item state.
     rightName:  RichString     // Optional right-aligned shortcut label.
+
+    // Re-reads 'name' on every layout, or `null` when the label was set once.
+    nameResolver: #null MenuLabelResolver
+
     #[Swag.Late]
     popup:     *MenuCtrl                           // Popup associated with this value.
     pos:       f32                                 // Pos associated with this value.
@@ -309,6 +321,15 @@ public impl IWnd for MenuCtrl
         .hideSubVisible()
         .removeTimer()
         .showHotPopup()
+    }
+
+    // A resolver is read while the layout is computed, and a menu bar only recomputes it
+    // when something marks it dirty. A longer translation also changes where every entry
+    // after it starts, so the whole bar has to be measured again.
+    mtd impl onNotifyEvent(evt: *NotifyEvent)
+    {
+        if evt.kind == .LanguageChanged do
+            .dirtyLayout = true
     }
 
     mtd impl onMouseEvent(evt: *MouseEvent)
@@ -767,6 +788,8 @@ impl MenuCtrl
                 continue
             if .onPrepareItem do
                 .onPrepareItem(i!)
+            if it.nameResolver do
+                it.name.set(it.nameResolver())
             it.pos = x + metrics.menuBar_SpaceBetween * 0.5
             it.name.compute()
             Pixel.Painter.computeLayout({0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &it.name, rsf, deviceScale)
@@ -802,6 +825,8 @@ impl MenuCtrl
 
             if .onPrepareItem do
                 .onPrepareItem(i!)
+            if it.nameResolver do
+                it.name.set(it.nameResolver())
             if idx do
                 .position.height += metrics.menuPopup_SpaceLines
             it.pos = .position.height
@@ -1001,6 +1026,21 @@ public impl MenuCtrl
         return .addPopup(name: null, popup: popup, id: id)
     }
 
+    // Adds a command whose label is re-read on every layout.
+    //
+    // Use this rather than a literal for a label that has to follow a language switch; see
+    // [[Gui.MenuLabelResolver]].
+    #[Swag.Discardable]
+    mtd addItem(name: MenuLabelResolver, id: WndId, icon: Icon = {}, rightName: #null string = null, disabled = false, checked = false)->*PopupMenuItem
+    {
+        with let mitem = .addItem(name(), id, icon, rightName, disabled, checked)
+        {
+            .nameResolver = name
+        }
+
+        return mitem
+    }
+
     // Adds a submenu with explicit presentation and returns its mutable item descriptor.
     #[Swag.Discardable]
     mtd addPopup(name: #null string, popup: *MenuCtrl, icon: Icon = {}, id: #null WndId = null)->*PopupMenuItem
@@ -1016,6 +1056,22 @@ public impl MenuCtrl
         popup.ownerMenu = me
         .items.add(mitem)
         .dirtyLayout = true
+        return mitem
+    }
+
+    // Adds a submenu whose label is re-read on every layout.
+    //
+    // This is what a menu bar uses: `addPopup(name, popup)` copies the wording into the item
+    // once, so the six entries of an application bar would otherwise keep the language they
+    // were built in while everything below them refreshes through the command state.
+    #[Swag.Discardable]
+    mtd addPopup(name: MenuLabelResolver, popup: *MenuCtrl, icon: Icon = {}, id: #null WndId = null)->*PopupMenuItem
+    {
+        with let mitem = .addPopup(name(), popup, icon, id)
+        {
+            .nameResolver = name
+        }
+
         return mitem
     }
 

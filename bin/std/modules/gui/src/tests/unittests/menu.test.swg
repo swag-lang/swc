@@ -9,6 +9,11 @@ const Menu_Quit = "Menu.Quit"
 
 var MenuSelectedCount: u32
 
+// Stands for a string table field: a resolver reads it again on every layout.
+var MenuResolvedLabel: string = "Open"
+
+func menuResolvedLabel()->string => MenuResolvedLabel
+
 func menuCommandSelected(menu: *MenuCtrl, id: WndId)
 {
     discard menu
@@ -44,6 +49,100 @@ func menuCommandSelected(menu: *MenuCtrl, id: WndId)
     @assert(sub.items.count == 2)
     sub.clear()
     @assert(sub.items.isEmpty())
+}
+
+// An entry built from a resolver re-reads its label on every layout; one built from a
+// literal keeps the wording it was created with.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 200)
+    defer host.shutdown()
+
+    MenuResolvedLabel = "Open"
+    let bar = MenuCtrl.createBar(&host.root, {0, 0, 300, 0})
+    bar.addItem("New", Menu_New)
+    bar.addItem(&menuResolvedLabel, Menu_Open)
+
+    // The resolver already answers once, so the item is usable before any layout.
+    @assert(bar.items[1]!.name.raw == "Open")
+
+    MenuResolvedLabel = "Ouvrir"
+    bar.computeLayoutBar()
+    @assert(bar.items[1]!.name.raw == "Ouvrir")
+    @assert(bar.items[0]!.name.raw == "New")
+
+    // A longer label widens its own entry and pushes the next one along.
+    let widened = bar.items[1]!.size
+    MenuResolvedLabel = "Ouvrir un fichier"
+    bar.computeLayoutBar()
+    @assert(bar.items[1]!.size > widened)
+}
+
+// A submenu carries a resolver the same way, and a language change asks the bar to
+// measure itself again.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 200)
+    defer host.shutdown()
+
+    MenuResolvedLabel = "File"
+    let sub = MenuCtrl.createPopup(&host.root)
+    sub.addItem("Quit", Menu_Quit)
+
+    let bar = MenuCtrl.createBar(&host.root, {0, 0, 300, 0})
+    bar.addPopup(&menuResolvedLabel, sub)
+    @assert(bar.items[0]!.name.raw == "File")
+    @assert(bar.items[0]!.popup == sub)
+
+    bar.computeLayoutBar()
+    bar.dirtyLayout = false
+
+    MenuResolvedLabel = "Fichier"
+    var evt = NotifyEvent{}
+    evt.kind = .LanguageChanged
+    bar.sendEvent(&evt)
+    @assert(bar.dirtyLayout)
+
+    bar.computeLayoutBar()
+    @assert(bar.items[0]!.name.raw == "Fichier")
+}
+
+// A bar entry reserves what its label really occupies at the density it is drawn at.
+//
+// Laid out at a scale of one and drawn at another, a run comes out wider than the width
+// reserved for it and the entry loses its last glyph to the clip — a shortfall that grows
+// with the word, so a long translation is where it shows.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(400, 200, 1.5)
+    defer host.shutdown()
+
+    let bar = MenuCtrl.createBar(&host.root, {0, 0, 380, 0})
+    bar.addItem("Affichage", Menu_New)
+    bar.computeLayoutBar()
+
+    var rsf: Pixel.RichStringFormat
+    rsf.font = bar.font()
+
+    func measure(text: string, format: Pixel.RichStringFormat, scale: f32)->f32
+    {
+        var run: Pixel.RichString
+        run.set(text)
+        run.compute()
+        Pixel.Painter.computeLayout({0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &run, format, scale)
+        return run.boundRect.width
+    }
+
+    let drawn = measure("Affichage", rsf, bar.deviceScale())
+    @assert(bar.deviceScale() == 1.5)
+    @assert(bar.items[0]!.size >= drawn)
+
+    // The scale is what decides: measuring at one under-counts every glyph advance, which
+    // is exactly the width the entry used to be short of.
+    @assert(measure("Affichage", rsf, 1.0) <= drawn)
 }
 
 // Headless tests can drive modal popup menus through the normal mouse pipeline.

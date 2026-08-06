@@ -231,3 +231,44 @@ func testItemIndex(prop: *PropWnd, name: string)->u64
     let effects = testFindItem(prop, "Effects")
     @assert(effects != null and !effects.line.isVisible())
 }
+
+// A French session shows the generated rows in French.
+//
+// Every row here comes from a compile-time attribute literal, so this exercises the whole
+// chain: the resolver sCapture installs, the key lookup against the reference English, and
+// the rebuild the panel does when the notification arrives.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    let prop = testSetupPropWnd(&f)
+
+    // Whatever this test switches to, the next one starts on the reference wording.
+    defer discard catch f.gui.app.setLanguage(Gui.ReferenceLanguage)
+
+    discard testAddText(f.capture, 10, 20, 100, 50)
+    f.capture.selection.add(0)
+    prop.selectionHasChanged()
+    f.gui.pump()
+
+    // A slider row carries its label, and a combo row its entries. Both come from an
+    // attribute literal: #[Name("Size")] and the JoinStyle case names.
+    @assert(testFindItem(prop, #nameof(FormText.fontSize))!.sliderBox.label.name == "Size")
+    @assert(testFindItem(prop, #nameof(BaseForm.joinStyle))!.comboBox.items[1]!.name.raw == "Round")
+
+    expect f.gui.app.setLanguage("fr")
+
+    // The resolver answers from the live table, so it is French before a single row is built.
+    @assert(Properties.resolveText("Size") == "Taille")
+
+    f.gui.notify(.LanguageChanged)
+    f.gui.pump()
+
+    @assert(testFindItem(prop, #nameof(FormText.fontSize))!.sliderBox.label.name == "Taille")
+    @assert(testFindItem(prop, #nameof(BaseForm.joinStyle))!.comboBox.items[1]!.name.raw == "Arrondi")
+
+    // A category keeps the segment its attribute declares as its identity, whatever the
+    // language shows: a host looks a category up by the name it wrote.
+    @assert(testFindItem(prop, "Effects") != null)
+}

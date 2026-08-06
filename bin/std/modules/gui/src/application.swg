@@ -595,46 +595,22 @@ private impl Application
         }
     }
 
-    // Gives the keyboard back to stop `index` of `root`, or to the first one when it is gone.
-    //
-    // Rings shrink and grow between two moments — a row was added, a field was hidden — so the
-    // position is clamped rather than trusted, and a tree with no stop left simply keeps no focus.
-    func restoreFocusAt(root: *Wnd, index: s64)
-    {
-        let order = FocusOrder.collect(root)
-        let count = cast(s64) order.stops.count
-        if !count do
-            return
-
-        var target = index
-        if target < 0 do
-            target = 0
-        if target >= count do
-            target = count - 1
-        order.stops[cast(u64) target].setFocus()
-    }
-
     // Runs a nested event loop for `surface` and returns the identifier passed to [[exitModal]].
     //
     // Other enabled surfaces are disabled for the duration of the loop and restored to their
     // previous state afterwards. The modal surface is destroyed when the loop ends.
-    public mtd doModalLoop(surface: #null *Surface, cb: #null func||(*Application) = null)->WndId
+    //
+    // `restoreTo` is the surface the keyboard belongs to once the box is gone — the one that
+    // raised it. It is asked for its own focus rather than being handed a position captured here,
+    // because a box that opens ready for the keyboard has already moved it onto itself by the
+    // time this runs: what was read here was a rank inside the box, applied to the ring of the
+    // form underneath it. See [[Gui.Surface.focusWnd]].
+    public mtd doModalLoop(surface: #null *Surface, cb: #null func||(*Application) = null, restoreTo: #null *Surface = null)->WndId
     {
         .endModal     = false
         .endModalExit = null
         .inModalLoop  += 1
         defer .inModalLoop -= 1
-
-        // Where the keyboard stood under the modal, kept as a position in the traversal ring
-        // rather than as a pointer: the window can be destroyed while the modal runs, a position
-        // cannot dangle. An unchanged form gives the keyboard back to the very control it left.
-        var callerFocusIndex = -1's64
-        let callerFocus      = .keyboardFocusWnd
-        if callerFocus
-        {
-            let callerOrder = FocusOrder.around(callerFocus!)
-            callerFocusIndex = callerOrder.indexOf(callerFocus)
-        }
 
         var disabledSurfaces: Array'(*Surface)
         for s in .surfaces
@@ -666,14 +642,27 @@ private impl Application
         for s in disabledSurfaces do
             s.enable()
 
-        var restoreWnd: #null *Wnd
-        if .modalSurfaces.count do
-            restoreWnd = .modalSurfaces.back().wnd
-        elif disabledSurfaces.count do
-            restoreWnd = disabledSurfaces.back().wnd
+        // The keyboard is given back only when the box took it: a loop run without a surface of
+        // its own — a captured pop-up, a colour picker — never moved it, and moving it now would
+        // be the box choosing for a form that was never left.
+        let focus = .keyboardFocusWnd
+        var mustRestore = !focus
+        if focus and surface and focus.surface == surface do
+            mustRestore = true
 
-        if restoreWnd do
-            restoreFocusAt(restoreWnd!, callerFocusIndex)
+        // A box opened over another box gives the keyboard back to that one; otherwise it goes to
+        // the surface that raised it. The last surface re-enabled is only a last resort: it is the
+        // end of the application's list, which is not necessarily where the reader was.
+        var restoreSurface: #null *Surface
+        if .modalSurfaces.count do
+            restoreSurface = .modalSurfaces.back()
+        elif restoreTo and restoreTo != surface do
+            restoreSurface = restoreTo
+        elif disabledSurfaces.count do
+            restoreSurface = disabledSurfaces.back()
+
+        if mustRestore and restoreSurface do
+            discard restoreSurface.restoreFocus()
 
         if surface do
             surface.destroy()

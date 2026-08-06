@@ -73,6 +73,21 @@ struct Surface
         isDirty:   bool                                                    // Whether a repaint is pending.
     }
 
+    // Where the keyboard stood on this surface, kept so a surface a modal box covered resumes at
+    // the control the reader left rather than at the top of its traversal.
+    //
+    // The application holds one focus at a time but shows several surfaces, so this is what tells
+    // them apart. Three things are recorded together: the tree that was being walked, the window
+    // the keyboard goes back to when it is still in that tree, and the rank that answers when it
+    // is gone — a row removed, a field hidden. The window is only ever compared against the stops
+    // that exist now, never followed, so a stale one cannot be read.
+    internal
+    {
+        focusRoot:  #null *Wnd     // Tree the traversal was walking, as [[Gui.FocusOrder.around]] sees it.
+        focusWnd:   #null *Wnd     // Last window that held the keyboard on this surface.
+        focusIndex: s64    = -1    // Its rank in that tree's ring, for when it is gone.
+    }
+
     using state: SurfaceState     // Serializable placement and maximized state.
 }
 
@@ -657,6 +672,45 @@ impl Surface
             .painter.fillRoundRect(rect, radius, radius, Argb.Black)
         else do
             .painter.fillRect(rect, Argb.Black)
+    }
+
+    // Records the window the keyboard just landed on, as the surface's own focus.
+    //
+    // See [[Gui.Surface.focusWnd]]. Called by [[Gui.Wnd.setFocus]], which is the one way the
+    // focus moves, so a surface knows where its keyboard stands whether or not it is the one
+    // the application is currently sending keys to.
+    internal mtd noteFocus(wnd: *Wnd)
+    {
+        let root    = wnd.rootWnd()
+        .focusRoot  = root
+        .focusWnd   = wnd
+        .focusIndex = FocusOrder.collect(root).indexOf(wnd)
+    }
+
+    // Gives the keyboard back to where it stood on this surface, and reports whether it landed.
+    //
+    // The control it left is preferred, and it is recognized by comparing it against the stops
+    // that are there now — never by following it, so a control destroyed meanwhile is simply not
+    // found. What answers then is the rank it had, clamped to a ring that may have shrunk.
+    internal mtd restoreFocus()->bool
+    {
+        let order = FocusOrder.collect(.focusRoot orelse .wnd)
+        if order.stops.isEmpty() do
+            return false
+
+        for stop in order.stops where stop == .focusWnd
+        {
+            stop.setFocus()
+            return true
+        }
+
+        var target = .focusIndex
+        if target < 0 do
+            target = 0
+        if target >= cast(s64) order.stops.count do
+            target = cast(s64) order.stops.count - 1
+        order.stops[cast(u64) target].setFocus()
+        return true
     }
 
     // Applies the surface-wide keyboard navigation to a key nobody claimed, and reports whether

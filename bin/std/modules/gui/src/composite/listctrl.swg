@@ -90,7 +90,7 @@ struct ListCtrl
     sigLeftDoubleClicked: SigArray'func||(*ListCtrl, Math.Point)                           // Emitted for a left double click, with the local position.
     sigExpanded:          SigArray'func||(*ListCtrl, *ListLine)                            // Emitted after a row expands.
     sigCollapsed:         SigArray'func||(*ListCtrl, *ListLine)                            // Emitted after a row collapses.
-    sigKeyPressed:        SigArray'func||(*ListCtrl, *KeyEvent)                            // Emitted after a key press reaches the list.
+    sigKeyPressed:        SigArray'func||(*ListCtrl, *KeyEvent)                            // Emitted for a key press before the list reads it; accept the event to claim the key.
     onFillVirtualLine:    #null func(*ListCtrl, #null *ListLine, u32)                      // Fills a transient row before a virtual row is painted.
     compareLines:         #null func(#null *ListLine, #null *ListLine, u32, bool)->s32     // Compares two rows for custom sorting.
 
@@ -191,13 +191,23 @@ impl IWnd for ListView
             .list.computeLayout()
     }
 
+    // Reads the keys that move through the lines, and declines every other one.
+    //
+    // What the list does not use belongs to the surface: Escape backs out of the box the list sits
+    // in and Tab leaves the list. Marking every key handled — which an empty list did too — made a
+    // file box unanswerable from the keyboard, since that is the control it opens the keyboard on.
+    //
+    // [[Gui.ListCtrl.sigKeyPressed]] is offered the key first and claims it by accepting the
+    // event, so a browsing gesture answering Enter is not also read here as a row folding.
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
-        evt.accepted = true
+        evt.accepted = false
         if evt.kind != .Pressed do
             return
 
         .list.sigKeyPressed.call(.list, evt)
+        if evt.accepted do
+            return
 
         let lineCount = .list.lineCount()
         if !lineCount do
@@ -222,6 +232,7 @@ impl IWnd for ListView
         switch evt.key
         {
         case .Space where focusLine:
+            evt.accepted = true
             if focusLine!.canCheck
             {
                 for l in .list.selModel
@@ -245,6 +256,7 @@ impl IWnd for ListView
             }
 
         case .Enter where focusLine:
+            evt.accepted = true
             if focusLine!.canCheck
             {
                 for l in .list.selModel
@@ -302,9 +314,11 @@ impl IWnd for ListView
             selChanged = true
 
         case .Left where focusLine:
+            evt.accepted = true
             .list.collapse(focusLine!)
 
         case .Right where focusLine:
+            evt.accepted = true
             .list.expand(focusLine!)
 
         case .PageDown:
@@ -328,6 +342,7 @@ impl IWnd for ListView
 
         if selChanged
         {
+            evt.accepted = true
             if !shift or .list.selectionMode == .Single
             {
                 .list.selModel.clear()

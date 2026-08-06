@@ -157,6 +157,60 @@ func testSetupMainWindow(host: *Testing.HeadlessHost)->*MainWindow
     @assert(window.browseCreate.hasFocus())
 }
 
+// The file box is opened, backed out of, and left behind without the keyboard going missing.
+//
+// This is the whole browse gesture done from the keyboard: Tab to the action, Space to open the
+// box, Escape to leave it, and the form resumes at the control the box was opened from.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    defer host.shutdown()
+
+    // Walk to the browse action of the mount card the way the reader does.
+    @assert(window.createPath.hasFocus())
+    for 7 do
+        host.keyPress(Input.Key.Tab)
+    @assert(window.browseMount.hasFocus())
+
+    // The box runs a nested loop, so the way out is armed before it opens. Escape has to reach
+    // the cancel action of the box from the file list the box opens the keyboard on. A box that
+    // does not answer it is closed by hand after a few frames, so this fails on its assertion
+    // rather than pumping frames until the runner gives up on it.
+    var frames = 0's32
+    var forced: bool
+    host.app.sigFrame += func|host = &host, frames = &frames, forced = &forced|(app)
+    {
+        if !host.openedSurfaceCount() do
+            return
+
+        dref frames += 1
+        if dref frames == 1 do
+            host.keyPress(Input.Key.Escape)
+        elif dref frames > 30
+        {
+            dref forced = true
+            app.exitModal(Gui.Dialog.BtnCancel)
+        }
+    }
+
+    host.keyPress(Input.Key.Space)
+    // A zero frame count means the browse action never opened the box; `forced` means the box
+    // opened and Escape was not what closed it.
+    @assert(frames != 0)
+    @assert(!forced)
+    @assert(host.openedSurfaceCount() == 0)
+
+    // Nothing was chosen, and the keyboard is back where it was.
+    @assert(@countof(window.mountPath.text()) == 0)
+    @assert(window.browseMount.hasFocus())
+
+    host.keyPress(Input.Key.Tab)
+    @assert(window.mountPassword.hasFocus())
+    host.keyPress(Input.Key.Tab, Input.KeyModifiers.Shift)
+    @assert(window.browseMount.hasFocus())
+}
+
 // A form that goes down while it holds the keyboard hands it to what is still live.
 #test
 {

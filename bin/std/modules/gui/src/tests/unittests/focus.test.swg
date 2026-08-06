@@ -141,6 +141,27 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     @assert(second.submit.hasFocus())
 }
 
+// A control taken off the surface hands the keyboard on rather than dropping it.
+//
+// Destroying is deferred, so a focus left pointing into the window is only cleared a frame later,
+// with nothing to say where it should have gone. The next Tab then restarted at the top.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(400, 200)
+    defer host.shutdown()
+
+    let card = focusHeadlessCard(&host.root, {10, 10, 200, 180})
+    card.browse.setFocus()
+    @assert(card.browse.hasFocus())
+
+    card.browse.destroy()
+    @assert(card.submit.hasFocus())
+
+    host.pump()
+    @assert(card.submit.hasFocus())
+}
+
 // A composite is one stop, and the focus lands on the part of it that reads the keys.
 #test
 {
@@ -263,6 +284,127 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     @assert(field.hasFocus())
 }
 
+// A list keeps the keys it reads and hands back the ones it does not.
+//
+// A control that marks every key handled makes the surface it sits on unanswerable: the box cannot
+// be backed out of and the traversal cannot leave the control. A file box opens the keyboard on its
+// file list, which is exactly where Escape and Tab have to keep working.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 260)
+    defer host.shutdown()
+    host.recordCommands()
+
+    let list   = ListCtrl.createSimple(&host.root, {10, 10, 200, 120})
+    let ok     = PushButton.create(&host.root, "Ok", {10, 150, 80, 24}, FocusHeadless_Default)
+    let cancel = PushButton.create(&host.root, "Cancel", {100, 150, 80, 24}, FocusHeadless_Cancel)
+    list.createLine("a")
+    list.createLine("b")
+    list.createLine("c")
+
+    host.surface.defaultButton = ok
+    host.surface.cancelButton  = cancel
+
+    // What the list reads stays with the list.
+    list.setFocus()
+    @assert(list.hasFocus())
+    host.keyPress(Input.Key.Down)
+    @assert(list.isLineSelected(0))
+    @assert(list.hasFocus())
+
+    // What it does not read goes to the surface.
+    host.keyPress(Input.Key.Escape)
+    @assert(host.lastCommand == FocusHeadless_Cancel)
+    @assert(list.hasFocus())
+
+    host.keyPress(Input.Key.Tab)
+    @assert(ok.hasFocus())
+    host.keyPress(Input.Key.Tab, Input.KeyModifiers.Shift)
+    @assert(list.hasFocus())
+
+    // An empty list has nothing to read at all, and still must not eat the way out.
+    list.clear()
+    host.keyPress(Input.Key.Tab)
+    @assert(ok.hasFocus())
+}
+
+// The accent stands on the action Enter would run, which a focused button is.
+//
+// A box names one dominant action, and the keyboard can stand on another. Left where it was
+// created, the fill said Enter would run something other than what the ring points at.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 240)
+    defer host.shutdown()
+
+    let field  = EditBox.create(&host.root, "", {10, 10, 200, 24})
+    let bar    = Wnd.create'Wnd(&host.root, {10, 60, 300, 40})
+    let ok     = PushButton.create(bar, "Ok", {0, 0, 80, 24}, form: .Default)
+    let cancel = PushButton.create(bar, "Cancel", {90, 0, 80, 24})
+
+    host.surface.defaultButton = ok
+    host.surface.cancelButton  = cancel
+
+    // The keyboard is in a field, so the box answers Enter with the action it named.
+    field.setFocus()
+    @assert(ok.paintedForm() == .Default)
+    @assert(cancel.paintedForm() == .Normal)
+
+    host.keyPress(Input.Key.Tab)
+    @assert(ok.hasFocus())
+    @assert(ok.paintedForm() == .Default)
+
+    // The arrows walk the bar and the fill follows them.
+    host.keyPress(Input.Key.Right)
+    @assert(cancel.hasFocus())
+    @assert(cancel.paintedForm() == .Default)
+    @assert(ok.paintedForm() == .Normal)
+
+    host.keyPress(Input.Key.Left)
+    @assert(ok.hasFocus())
+    @assert(ok.paintedForm() == .Default)
+    @assert(cancel.paintedForm() == .Normal)
+
+    // Back on the field, the box shows its own default again.
+    host.keyPress(Input.Key.Tab, Input.KeyModifiers.Shift)
+    @assert(field.hasFocus())
+    @assert(ok.paintedForm() == .Default)
+    @assert(cancel.paintedForm() == .Normal)
+}
+
+// A box gives the keyboard back to the control it was opened from.
+//
+// The surface under a modal keeps its own focus while the box runs, so backing out of the box
+// resumes the form where the reader left it instead of restarting the traversal somewhere else.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(400, 240)
+    defer host.shutdown()
+
+    let card = focusHeadlessCard(&host.root, {10, 10, 200, 180})
+    card.browse.setFocus()
+    @assert(card.browse.hasFocus())
+
+    let dlg = Dialog.create(&host.surface, 260, 150, title: "Pick")
+    dlg.addButton("Ok", Dialog.BtnOk, true)
+    dlg.addButton("Cancel", Dialog.BtnCancel)
+
+    host.clickModalButtonWhenShown(Dialog.BtnCancel)
+    @assert(dlg.doModal() == Dialog.BtnCancel)
+    @assert(host.autoHandled)
+
+    // The box is queued for destruction on the way out; the surface is gone once that is drained.
+    host.pump()
+    @assert(host.openedSurfaceCount() == 0)
+
+    @assert(card.browse.hasFocus())
+    host.keyPress(Input.Key.Tab)
+    @assert(card.submit.hasFocus())
+}
+
 // A stop alone in its group answers the arrows with the whole ring, and a modified arrow is a
 // gesture of the control rather than a traversal.
 #test
@@ -377,6 +519,38 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     @assert(button.hasFocus() and !button.hasVisibleFocus())
     let pressed = host.render()
     @assert(Memory.compare(pressed.pixels.buffer, ringed.pixels.buffer, pressed.byteCount) != 0)
+}
+
+// What an action bar looks like when the keyboard has moved off the action the box named.
+//
+// The image is the contract: one filled action at a time, and it is the one the ring stands on,
+// so the bar never shows two answers to the same question.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 64)
+    defer host.shutdown()
+
+    let bar    = Wnd.create'Wnd(&host.root, {0, 0, 240, 64})
+    let ok     = PushButton.create(bar, "Ok", {20, 16, 90, 32}, form: .Default)
+    let cancel = PushButton.create(bar, "Cancel", {130, 16, 90, 32})
+
+    host.surface.defaultButton = ok
+    host.surface.cancelButton  = cancel
+
+    ok.setFocus()
+    host.app.setFocusVisible(true)
+    host.settleAnimations()
+    let onDefault = host.render()
+    Pixel.Testing.assertImageGolden(&onDefault, "focus.default.on.named.action")
+
+    // The fill crosses the bar as an animation, so the image is taken once it has arrived.
+    host.keyPress(Input.Key.Right)
+    @assert(cancel.hasFocus())
+    host.settleAnimations()
+    let onOther = host.render()
+    @assert(Memory.compare(onOther.pixels.buffer, onDefault.pixels.buffer, onOther.byteCount) != 0)
+    Pixel.Testing.assertImageGolden(&onOther, "focus.default.follows.keyboard")
 }
 
 // The same ring on a button filled with the accent, which is the one a box opens on.

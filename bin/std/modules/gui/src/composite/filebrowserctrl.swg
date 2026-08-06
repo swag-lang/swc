@@ -314,6 +314,9 @@ private impl FileBrowserCtrl
             .header.form = .Transparent
             .header.style.addStyleSheetColors("headerItem_Separator $veilSoft")
             .scrollWnd.style.addStyleSheetColors("scrollBar_Bk $view_Bk")
+            // A key the browsing gesture claims is marked handled, so the list does not read it a
+            // second time as a movement of its own: Enter opens what is selected instead of also
+            // folding the row, and Alt and an arrow browse instead of also folding it.
             .sigKeyPressed += func|fileBrowser = me|(list, evt)
             {
                 switch evt.key
@@ -323,28 +326,41 @@ private impl FileBrowserCtrl
                     {
                         if !fileBrowser.goBack() do
                             discard fileBrowser.goUp()
+                        evt.accepted = true
                     }
 
                 case .BrowserBack:
                     discard fileBrowser.goBack()
+                    evt.accepted = true
 
                 case .BrowserForward:
                     discard fileBrowser.goForward()
+                    evt.accepted = true
 
                 case .BrowserRefresh, .F5:
                     fileBrowser.refresh()
+                    evt.accepted = true
 
                 case .Left:
-                    if evt.modifiers.equals(.Alt) do
+                    if evt.modifiers.equals(.Alt)
+                    {
                         discard fileBrowser.goBack()
+                        evt.accepted = true
+                    }
 
                 case .Right:
-                    if evt.modifiers.equals(.Alt) do
+                    if evt.modifiers.equals(.Alt)
+                    {
                         discard fileBrowser.goForward()
+                        evt.accepted = true
+                    }
 
                 case .Up:
-                    if evt.modifiers.equals(.Alt) do
+                    if evt.modifiers.equals(.Alt)
+                    {
                         discard fileBrowser.goUp()
+                        evt.accepted = true
+                    }
 
                 case .Enter:
                     let l = list.focusedLine()
@@ -354,11 +370,13 @@ private impl FileBrowserCtrl
                     if fi.isDirectory()
                     {
                         fileBrowser.setCurrentFolder(fi.fullname)
+                        evt.accepted = true
                     }
                     elif fileBrowser.options.mode != .SelectFolder
                     {
                         fileBrowser.sigAccepted.call(fileBrowser)
                         list.setFocus()
+                        evt.accepted = true
                     }
                 }
             }

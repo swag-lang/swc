@@ -125,7 +125,7 @@ impl Dialog
         surface.show()
         if .parentSurface and .parentSurface.isTopMost() do
             surface.setTopMost()
-        return surface.app.doModalLoop(surface)
+        return surface.app.doModalLoop(surface, restoreTo: .parentSurface)
     }
 
     // Adds an action button and optionally makes it the default keyboard action.

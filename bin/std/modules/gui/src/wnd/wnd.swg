@@ -555,9 +555,19 @@ impl Wnd
     mtd destroy()
     {
         let srfn = .surface!
-        .wndFlags.add(.Hidden)
-        if .isPendingDestroy do
+        if .isPendingDestroy
+        {
+            .wndFlags.add(.Hidden)
             return
+        }
+
+        // The keyboard does not go down with the window: it continues to the stop that follows,
+        // exactly as when the window is hidden. Done while the window is still in the traversal,
+        // so where it stood is still known — otherwise the focus is simply dropped when the window
+        // is finally unregistered, and the next Tab restarts at the top of the surface.
+        .releaseFocus()
+
+        .wndFlags.add(.Hidden)
         .isPendingDestroy = true
         for c in .children do
             c.destroy()
@@ -1683,8 +1693,17 @@ impl Wnd
 
         var evt = FocusEvent{kind: FocusEvent.Kind.Gained, other: last}
         srfn.app.keyboardFocusWnd = me
+        srfn.noteFocus(me)
         .sendEvent(&evt)
         .invalidate()
+
+        // The dominant action of a surface is drawn on whichever action the keyboard would run,
+        // so the button that carries it when the keyboard is elsewhere repaints on every move.
+        // Both surfaces are told: the focus can cross from one to the other.
+        let lastSurface = last ? last.surface : null
+        if lastSurface do
+            lastSurface.defaultButton?.invalidate()
+        srfn.defaultButton?.invalidate()
 
         .ownerNotifyEvent(.ChildFocusChanged)
     }

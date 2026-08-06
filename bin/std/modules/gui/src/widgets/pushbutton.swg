@@ -55,7 +55,16 @@ impl IWnd for PushButton
         var colorBorder:   Color = undefined
         var colorText:     Color = undefined
 
-        if .form == .Default
+        // The emphasis is decided here rather than stored, because it follows the keyboard. The
+        // ring has to be told too: it is drawn after the content and points in the accent, so a
+        // button that has just become the dominant one needs it in the ink of that fill.
+        let form = .paintedForm()
+        if form == .Default or form == .Strong do
+            .wndFlags.add(.FocusRingOnAccent)
+        else do
+            .wndFlags.remove(.FocusRingOnAccent)
+
+        if form == .Default
         {
             switch
             {
@@ -88,7 +97,7 @@ impl IWnd for PushButton
                 subRectBorder = &rects.btnPush_NormalBorder
             }
         }
-        elif .form == .Flat
+        elif form == .Flat
         {
             switch
             {
@@ -136,7 +145,7 @@ impl IWnd for PushButton
             // hover of a plain button, it dropped the accent that made it the primary action
             // of the surface exactly as the reader reached it.
             case .isPressed:
-                let strong = .form == .Strong
+                let strong = form == .Strong
                 colorBk       = strong ? colors.btnPush_StrongPressedBk : colors.btnPush_PressedBk
                 colorBorder   = strong ? colors.btnPush_StrongPressedBorder : colors.btnPush_PressedBorder
                 colorText     = strong ? colors.btnPush_StrongPressedText : colors.btnPush_PressedText
@@ -144,7 +153,7 @@ impl IWnd for PushButton
                 subRectBorder = &rects.btnPush_PressedBorder
 
             case .isHot:
-                let strong = .form == .Strong
+                let strong = form == .Strong
                 colorBk       = strong ? colors.btnPush_StrongHotBk : colors.btnPush_HotBk
                 colorBorder   = strong ? colors.btnPush_StrongHotBorder : colors.btnPush_HotBorder
                 colorText     = strong ? colors.btnPush_StrongHotText : colors.btnPush_HotText
@@ -152,7 +161,7 @@ impl IWnd for PushButton
                 subRectBorder = &rects.btnPush_HotBorder
 
             default:
-                if .form == .Strong
+                if form == .Strong
                 {
                     colorBk     = colors.btnPush_StrongBk
                     colorBorder = colors.btnPush_StrongBorder
@@ -191,7 +200,7 @@ impl IWnd for PushButton
         // The bold weight is what makes a filled button the primary action of the surface.
         // A button that cannot be pressed is the primary action of nothing, and kept bold it
         // read as a lighter grey than the plain button beside it, in the same disabled state.
-        if .form == .Strong and !bc.isDisabled do
+        if form == .Strong and !bc.isDisabled do
             format.fontStyle = .Bold
         var labelPos = clientRect
         labelPos.inflate(-metrics.btnPush_Padding)
@@ -254,7 +263,7 @@ impl PushButton
             pos.width = parent.themeMetrics().btnPush_Width
         let res = Wnd.create'PushButton(parent, name, pos, id)
         res.focusPolicy = .Tab
-        res.applyForm(form)
+        res.form        = form
 
         // An unstated width belongs to the caption: the theme width above only gives the
         // button a sane size until the first layout pass measures it, and stays its floor.
@@ -265,27 +274,44 @@ impl PushButton
         return res
     }
 
+    // Returns the emphasis the button is drawn with, which is not always the one it was given.
+    //
+    // A surface that names a dominant action draws it filled, and the reader takes that fill to
+    // mean "this is what Enter runs". A focused button runs Enter itself, so once the keyboard
+    // stands on another action the fill has to be there and not on the one the box was built
+    // around — otherwise the box shows two answers to the same question, and the wrong one is
+    // the loud one. It goes back to the named action as soon as the keyboard leaves the bar.
+    //
+    // Only the two plain emphases take part. A flat button belongs to a tool bar and a strong one
+    // carries its own color through every state; neither stands for the answer to a box.
+    mtd paintedForm()->PushButtonForm
+    {
+        if .form == .Flat or .form == .Strong do
+            return .form
+
+        let srf = .surface
+        if !srf or !srf.defaultButton do
+            return .form
+
+        var dominant = srf.defaultButton!
+        let focus    = srf.app.keyboardFocusWnd
+        if focus and focus != dominant and focus.surface == srf and focus.type == PushButton
+        {
+            let other = cast(*PushButton) focus
+            if other.form == .Normal or other.form == .Default do
+                dominant = focus
+        }
+
+        return dominant == cast(*Wnd) me ? PushButtonForm.Default : PushButtonForm.Normal
+    }
+
     // Changes visual emphasis and repaints the button.
     mtd setForm(form: PushButtonForm)
     {
         if .form == form do
             return
-        .applyForm(form)
-        .invalidate()
-    }
-
-    // Records the emphasis and the ink the focus ring needs to stay visible over it.
-    //
-    // The default and the strong action are blocks of the accent, and the ring points in the
-    // accent: drawn there in its usual color it disappears into the fill, which is precisely the
-    // button a dialog opens the keyboard on.
-    private mtd applyForm(form: PushButtonForm)
-    {
         .form = form
-        if form == .Default or form == .Strong do
-            .wndFlags.add(.FocusRingOnAccent)
-        else do
-            .wndFlags.remove(.FocusRingOnAccent)
+        .invalidate()
     }
 
     // Pins the button width to its label instead of leaving it to the layout pass.

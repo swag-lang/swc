@@ -21,7 +21,7 @@ identifier, so a reference made today still resolves after the entry is gone. En
 identifier, ascending: a new one goes at the end, a deleted one leaves a gap, and position carries
 no priority.
 
-Next identifier: F-030
+Next identifier: F-032
 
 ## Open Investigations
 
@@ -395,3 +395,38 @@ Use this compact format. Keep observations factual and make the next step action
   loop iterations (a vector-width mem2reg, or letting the SLP pass claim whole-loop regions),
   then re-measure with the interleaved DLL-swap harness on a quiet machine before drawing any
   throughput conclusion.
+
+### F-030 — A control can hold the keyboard on a surface that refuses input
+
+- Area: std/gui
+- Found while: making the file box answer Escape and give the keyboard back on the way out.
+- Observation: `Wnd.setFocus` checks that the window itself is enabled and never that its surface
+  is ([wnd.swg:1651](bin/std/modules/gui/src/wnd/wnd.swg#L1651)). While a box is up, every other
+  surface is disabled by `Application.doModalLoop`, yet anything still running on one of them — a
+  timer, a frame handler, a signal from a background job — can call `setFocus` and take
+  `keyboardFocusWnd` with it. Delivery is filtered afterwards by `Application.skipDisabled`, so the
+  keys are simply dropped: the box under the reader's hands goes deaf with nothing to say why.
+- Evidence: a surface now records its own focus (`Surface.noteFocus`), so a steal also writes a
+  control of the wrong surface into that record, and the box hands the keyboard to it when it
+  closes — the failure this file's neighbours were just fixed for, reachable by another route.
+- Next step: refuse the focus in `setFocus` when the target surface is disabled, then confirm no
+  legitimate caller places the focus before the surface it belongs to is enabled — the construction
+  paths and the `Surface.enable` ordering at the end of `doModalLoop` are what to check first. Pin
+  it with a headless test whose frame handler focuses a control of the caller surface while a
+  dialog runs, and which asserts the box still answers Escape.
+
+### F-031 — A rich edit inside a dialog makes the box unanswerable from the keyboard
+
+- Area: std/gui
+- Found while: fixing the same defect in `ListView`, which is what a file box opens the keyboard on.
+- Observation: `RichEditView.onKeyEvent` marks every pressed key handled
+  ([richeditview.swg:133](bin/std/modules/gui/src/richedit/richeditview.swg#L133)) and declines
+  Escape and Enter only when the editor carries `RichEditFlags.AutoLoseFocus`. An editor without
+  that flag therefore eats Escape, Tab, and Shift+Tab, so a box built around one can be neither
+  dismissed nor traversed without the pointer.
+- Evidence: `Application.sendKeyboardEvents` reaches `routeUnhandledKey` — and through it the
+  shortcut chain and `Surface.navigateKey` — only for a key nobody accepted, which is exactly the
+  route `ListView` was blocking until this task.
+- Next step: decide which keys a rich edit really claims. Tab is deliberate and documented;
+  Escape is not obviously so while the surface names a cancel action. Mark only what was used, the
+  way `EditBox.keyPressed` already does ([editbox.swg:372](bin/std/modules/gui/src/widgets/editbox.swg#L372)).

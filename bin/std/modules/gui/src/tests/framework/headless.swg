@@ -449,6 +449,28 @@ impl HeadlessHost
         return .app.renderer.readRenderTarget(&.surface.rt, 0, 0, .surface.rc.width, .surface.rc.height)
     }
 
+    // Repaints the hosted tree until its colour animations have reached their targets.
+    //
+    // A blended colour advances one step per paint, so an image captured right after a state
+    // change shows the state the widget is leaving rather than the one it is entering — a bar whose
+    // dominant action has just moved still shows it on the button it left. A test that photographs
+    // a widget whose colours have just changed settles it first.
+    //
+    // `wnd` is the window to paint, defaulting to the root view the way
+    // [[Testing.HeadlessHost.render]] does. A [[Gui.BlendColor]] crosses in
+    // `1 / (deltaSeconds * speed)` paints, which is eight at the frame delta a host without a
+    // clock reports, so the default leaves room for a slower one.
+    mtd settleAnimations(wnd: #null *Wnd = null, steps: u32 = 16)
+    {
+        let target = wnd orelse &.root
+        for steps
+        {
+            .pump()
+            .surface.invalidate()
+            .surface.paintWnd(target)
+        }
+    }
+
     // Fires one active timer immediately and drains resulting queues.
     mtd fireTimer(timer: #null *Timer)
     {

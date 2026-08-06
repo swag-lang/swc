@@ -1,5 +1,6 @@
 #pragma once
 #include "Backend/Micro/MicroInstr.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.Peephole.Core.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/SmallVector.h"
@@ -44,6 +45,38 @@ namespace PreRaPeephole
     bool     buildUseOnlyRegRewrite(Action& outAction, const MicroInstr& consumer, const MicroInstrOperand* ops, MicroReg fromReg, MicroReg toReg);
     uint64_t extendBits(uint64_t value, MicroOpBits srcBits, MicroOpBits dstBits, bool isSigned);
     void     setMaskedImmediateValue(MicroInstrOperand& op, uint64_t value, MicroOpBits bits);
+
+    // Folds an instruction and its immediate successor into one, when 'buildRewrite' recognizes the
+    // pair. The flags check is what makes that safe: the survivor carries the first instruction's
+    // flag effect, so nothing downstream may still be reading the second's.
+    template<typename BUILD>
+    bool tryFoldAdjacentPair(Context& ctx, MicroInstrRef firstRef, const MicroInstr& firstInst, BUILD buildRewrite)
+    {
+        if (ctx.isClaimed(firstRef))
+            return false;
+
+        const MicroInstrRef secondRef = ctx.nextRef(firstRef);
+        if (!secondRef.isValid() || ctx.isClaimed(secondRef))
+            return false;
+
+        const MicroInstr* secondInst = ctx.instruction(secondRef);
+        if (!secondInst)
+            return false;
+        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, secondRef))
+            return false;
+
+        Action rewrite;
+        if (!buildRewrite(rewrite, firstInst, ctx.operandsFor(firstRef), *secondInst, ctx.operandsFor(secondRef)))
+            return false;
+
+        if (!ctx.claimAll({firstRef, secondRef}))
+            return false;
+
+        rewrite.ref = firstRef;
+        ctx.actions.push_back(rewrite);
+        ctx.emitErase(secondRef);
+        return true;
+    }
 
     bool tryForwardConstantLike(Context& ctx, MicroInstrRef defRef, const MicroInstr& defInst);
     bool tryFoldCopyAddIntoLoadAddress(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);

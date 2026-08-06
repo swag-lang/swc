@@ -343,6 +343,25 @@ namespace
         return canEncodeOpImmediate(value.as64(), opBits);
     }
 
+    // The immediate an operand carries, wide or not, measured against the width it encodes at.
+    bool immediateFitsOperand(const MicroInstrOperand& op, MicroOpBits opBits)
+    {
+        return op.hasWideImmediateValue() ? canEncodeOpImmediate(op.wideImmediateValue(), opBits) : canEncodeOpImmediate(op.valueU64, opBits);
+    }
+
+    // The four widths every integer form encodes. Anything else has to be normalized first, so
+    // this records the issue and answers whether the caller should stop.
+    bool requireStandardIntOpBits(MicroConformanceIssue& outIssue, MicroOpBits opBits, uint8_t operandIndex, MicroOpBits normalized = MicroOpBits::B64)
+    {
+        if (opBits == MicroOpBits::B8 || opBits == MicroOpBits::B16 || opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64)
+            return false;
+
+        outIssue.kind             = MicroConformanceIssueKind::NormalizeOpBits;
+        outIssue.operandIndex     = operandIndex;
+        outIssue.normalizedOpBits = normalized;
+        return true;
+    }
+
     uint64_t immediateToU64(const ApInt& value)
     {
         SWC_INTERNAL_CHECK(value.fit64());
@@ -997,16 +1016,8 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
     {
         const MicroOp op = ops[3].microOp;
 
-        if (ops[2].opBits != MicroOpBits::B8 &&
-            ops[2].opBits != MicroOpBits::B16 &&
-            ops[2].opBits != MicroOpBits::B32 &&
-            ops[2].opBits != MicroOpBits::B64)
-        {
-            outIssue.kind             = MicroConformanceIssueKind::NormalizeOpBits;
-            outIssue.operandIndex     = 2;
-            outIssue.normalizedOpBits = MicroOpBits::B64;
+        if (requireStandardIntOpBits(outIssue, ops[2].opBits, 2))
             return true;
-        }
 
         const bool isB8SignedMul = op == MicroOp::MultiplySigned && ops[2].opBits == MicroOpBits::B8;
         if (op == MicroOp::MultiplyUnsigned || isB8SignedMul)
@@ -1027,16 +1038,8 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
     {
         const MicroOp op = ops[3].microOp;
 
-        if (ops[2].opBits != MicroOpBits::B8 &&
-            ops[2].opBits != MicroOpBits::B16 &&
-            ops[2].opBits != MicroOpBits::B32 &&
-            ops[2].opBits != MicroOpBits::B64)
-        {
-            outIssue.kind             = MicroConformanceIssueKind::NormalizeOpBits;
-            outIssue.operandIndex     = 2;
-            outIssue.normalizedOpBits = MicroOpBits::B64;
+        if (requireStandardIntOpBits(outIssue, ops[2].opBits, 2))
             return true;
-        }
 
         if (!ops[0].reg.isInt() || !ops[1].reg.isInt() || !supportsOpBinaryMemReg(op))
         {
@@ -1099,16 +1102,8 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
             return true;
         }
 
-        if (ops[1].opBits != MicroOpBits::B8 &&
-            ops[1].opBits != MicroOpBits::B16 &&
-            ops[1].opBits != MicroOpBits::B32 &&
-            ops[1].opBits != MicroOpBits::B64)
-        {
-            outIssue.kind             = MicroConformanceIssueKind::NormalizeOpBits;
-            outIssue.operandIndex     = 1;
-            outIssue.normalizedOpBits = MicroOpBits::B64;
+        if (requireStandardIntOpBits(outIssue, ops[1].opBits, 1))
             return true;
-        }
 
         const bool     immediateIsWide = ops[2].hasWideImmediateValue();
         const bool     immediateFits64 = !immediateIsWide || ops[2].wideImmediateValue().fit64();
@@ -1152,16 +1147,8 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
         if (isVecMicroOp(ops[2].microOp))
             return false;
 
-        if (ops[1].opBits != MicroOpBits::B8 &&
-            ops[1].opBits != MicroOpBits::B16 &&
-            ops[1].opBits != MicroOpBits::B32 &&
-            ops[1].opBits != MicroOpBits::B64)
-        {
-            outIssue.kind             = MicroConformanceIssueKind::NormalizeOpBits;
-            outIssue.operandIndex     = 1;
-            outIssue.normalizedOpBits = MicroOpBits::B64;
+        if (requireStandardIntOpBits(outIssue, ops[1].opBits, 1))
             return true;
-        }
 
         const bool isB8SignedMulImm = ops[2].microOp == MicroOp::MultiplySigned && ops[1].opBits == MicroOpBits::B8;
         if (!supportsOpBinaryRegImm(ops[2].microOp) || requiresRegImmRewrite(ops[2].microOp) || isB8SignedMulImm)
@@ -1191,7 +1178,7 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
             return true;
         }
 
-        const bool immediateIsEncodable = !ops[3].hasWideImmediateValue() ? canEncodeOpImmediate(ops[3].valueU64, ops[1].opBits) : canEncodeOpImmediate(ops[3].wideImmediateValue(), ops[1].opBits);
+        const bool immediateIsEncodable = immediateFitsOperand(ops[3], ops[1].opBits);
         if (!immediateIsEncodable)
         {
             outIssue.kind = MicroConformanceIssueKind::RewriteRegImmToRegReg;
@@ -1200,43 +1187,15 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
     }
 
     ///////////////////////////////////////////
-    if (inst.op == MicroInstrOpcode::CmpRegImm)
+    // Both compare-with-immediate forms answer the same two questions; only the operand carrying
+    // the immediate moves, because the memory form spends two operands on its address.
+    if (inst.op == MicroInstrOpcode::CmpRegImm || inst.op == MicroInstrOpcode::CmpMemImm)
     {
-        if (ops[1].opBits != MicroOpBits::B8 &&
-            ops[1].opBits != MicroOpBits::B16 &&
-            ops[1].opBits != MicroOpBits::B32 &&
-            ops[1].opBits != MicroOpBits::B64)
-        {
-            outIssue.kind             = MicroConformanceIssueKind::NormalizeOpBits;
-            outIssue.operandIndex     = 1;
-            outIssue.normalizedOpBits = MicroOpBits::B64;
+        if (requireStandardIntOpBits(outIssue, ops[1].opBits, 1))
             return true;
-        }
 
-        const bool immediateIsEncodable = !ops[2].hasWideImmediateValue() ? canEncodeOpImmediate(ops[2].valueU64, ops[1].opBits) : canEncodeOpImmediate(ops[2].wideImmediateValue(), ops[1].opBits);
-        if (!immediateIsEncodable)
-        {
-            outIssue.kind = MicroConformanceIssueKind::RewriteRegImmToRegReg;
-            return true;
-        }
-    }
-
-    ///////////////////////////////////////////
-    if (inst.op == MicroInstrOpcode::CmpMemImm)
-    {
-        if (ops[1].opBits != MicroOpBits::B8 &&
-            ops[1].opBits != MicroOpBits::B16 &&
-            ops[1].opBits != MicroOpBits::B32 &&
-            ops[1].opBits != MicroOpBits::B64)
-        {
-            outIssue.kind             = MicroConformanceIssueKind::NormalizeOpBits;
-            outIssue.operandIndex     = 1;
-            outIssue.normalizedOpBits = MicroOpBits::B64;
-            return true;
-        }
-
-        const bool immediateIsEncodable = !ops[3].hasWideImmediateValue() ? canEncodeOpImmediate(ops[3].valueU64, ops[1].opBits) : canEncodeOpImmediate(ops[3].wideImmediateValue(), ops[1].opBits);
-        if (!immediateIsEncodable)
+        const uint32_t immediateIndex = inst.op == MicroInstrOpcode::CmpRegImm ? 2 : 3;
+        if (!immediateFitsOperand(ops[immediateIndex], ops[1].opBits))
         {
             outIssue.kind = MicroConformanceIssueKind::RewriteRegImmToRegReg;
             return true;
@@ -1246,16 +1205,8 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
     ///////////////////////////////////////////
     if (inst.op == MicroInstrOpcode::OpBinaryMemImm)
     {
-        if (ops[1].opBits != MicroOpBits::B8 &&
-            ops[1].opBits != MicroOpBits::B16 &&
-            ops[1].opBits != MicroOpBits::B32 &&
-            ops[1].opBits != MicroOpBits::B64)
-        {
-            outIssue.kind             = MicroConformanceIssueKind::NormalizeOpBits;
-            outIssue.operandIndex     = 1;
-            outIssue.normalizedOpBits = MicroOpBits::B64;
+        if (requireStandardIntOpBits(outIssue, ops[1].opBits, 1))
             return true;
-        }
 
         if (!supportsOpBinaryMemImm(ops[2].microOp))
         {
@@ -1276,7 +1227,7 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
             return true;
         }
 
-        const bool immediateIsEncodable = !ops[4].hasWideImmediateValue() ? canEncodeOpImmediate(ops[4].valueU64, ops[1].opBits) : canEncodeOpImmediate(ops[4].wideImmediateValue(), ops[1].opBits);
+        const bool immediateIsEncodable = immediateFitsOperand(ops[4], ops[1].opBits);
         if (!immediateIsEncodable)
         {
             outIssue.kind = MicroConformanceIssueKind::RewriteRegImmToRegReg;
@@ -1309,7 +1260,7 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
             return true;
         }
 
-        const bool immediateIsEncodable = !ops[3].hasWideImmediateValue() ? canEncodeOpImmediate(ops[3].valueU64, ops[1].opBits) : canEncodeOpImmediate(ops[3].wideImmediateValue(), ops[1].opBits);
+        const bool immediateIsEncodable = immediateFitsOperand(ops[3], ops[1].opBits);
         if (ops[1].opBits == MicroOpBits::B64 && !immediateIsEncodable)
         {
             outIssue.kind = MicroConformanceIssueKind::SplitLoadMemImm64;
@@ -1343,7 +1294,7 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
     ///////////////////////////////////////////
     if (inst.op == MicroInstrOpcode::LoadAmcMemImm)
     {
-        const bool immediateIsEncodable = !ops[7].hasWideImmediateValue() ? canEncodeOpImmediate(ops[7].valueU64, ops[4].opBits) : canEncodeOpImmediate(ops[7].wideImmediateValue(), ops[4].opBits);
+        const bool immediateIsEncodable = immediateFitsOperand(ops[7], ops[4].opBits);
         if (ops[4].opBits == MicroOpBits::B64 && !immediateIsEncodable)
         {
             outIssue.kind = MicroConformanceIssueKind::SplitLoadAmcMemImm64;

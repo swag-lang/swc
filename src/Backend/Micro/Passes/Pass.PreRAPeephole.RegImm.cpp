@@ -45,30 +45,7 @@ namespace PreRaPeephole
 
     bool tryCombineAdjacentRegImm(Context& ctx, const MicroInstrRef firstRef, const MicroInstr& firstInst)
     {
-        if (ctx.isClaimed(firstRef))
-            return false;
-
-        const MicroInstrRef secondRef = ctx.nextRef(firstRef);
-        if (!secondRef.isValid() || ctx.isClaimed(secondRef))
-            return false;
-
-        const MicroInstr* secondInst = ctx.instruction(secondRef);
-        if (!secondInst)
-            return false;
-        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, secondRef))
-            return false;
-
-        Action rewrite;
-        if (!buildAdjacentRegImmRewrite(rewrite, firstInst, ctx.operandsFor(firstRef), *secondInst, ctx.operandsFor(secondRef)))
-            return false;
-
-        if (!ctx.claimAll({firstRef, secondRef}))
-            return false;
-
-        rewrite.ref = firstRef;
-        ctx.actions.push_back(rewrite);
-        ctx.emitErase(secondRef);
-        return true;
+        return tryFoldAdjacentPair(ctx, firstRef, firstInst, buildAdjacentRegImmRewrite);
     }
 }
 

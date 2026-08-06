@@ -97,6 +97,22 @@ much cleaner it reads.
 - Measure when a change touches sema, codegen, or a micro pass: compare compile time and peak
   memory on the same workspace before and after.
 
+### A Template Buys Source Lines With Binary Size
+
+Collapsing near-identical functions into a template is the right call when the difference is a
+type or a compile-time constant, and it is the only way to share code without adding an indirect
+call. It is not free: every instantiation is its own body, and the linker's identical-COMDAT
+folding only reclaims the ones that come out byte-identical — which the interesting instantiations,
+the ones that differ by a constant, never do. Two hand-written twins the linker was already folding
+become two instantiations it cannot.
+
+Measured on this repository: a round of factoring that removed 226 source lines, mostly by
+templating families of two and three near-identical functions, grew `swc.exe` by 3 072 bytes.
+
+So reach for a template when it removes a real maintenance hazard — a list that must be kept in
+step across copies, a family a new case has to be added to twice — and check the executable size
+afterwards. When the only gain is a shorter file, a plain parameter is the better trade.
+
 ## Enforce Invariants
 
 - Avoid unnecessary defensive programming.

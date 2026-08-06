@@ -49,6 +49,9 @@ namespace SemaHelpers
     // Intrinsics that hand back their numeric argument's own type, alias included, instead of
     // the underlying builtin one.
     bool    isAliasPreservingNumericIntrinsic(TokenId tokenId);
+    // Dividing by a literal zero is an error whether it is written '/' or '/='. Call it only
+    // once the right operand is known to be constant.
+    Result  checkDivideByZeroConstant(Sema& sema, TokenId op, AstNodeRef nodeRef, const SemaNodeView& nodeRightView);
     // Whether '@init(what, args...)' spells out a struct's fields one by one, rather than
     // handing it a single value of its own type to copy.
     bool    intrinsicInitTreatsArgsAsStructTuple(Sema& sema, TypeRef fillTypeRef, const SmallVector<AstNodeRef>& args);

@@ -1058,6 +1058,24 @@ bool SemaHelpers::intrinsicInitTreatsArgsAsStructTuple(Sema& sema, TypeRef fillT
     return !argView.type()->isStruct() && !argView.type()->isAggregateStruct();
 }
 
+Result SemaHelpers::checkDivideByZeroConstant(Sema& sema, TokenId op, AstNodeRef nodeRef, const SemaNodeView& nodeRightView)
+{
+    const TokenId canonicalOp = Token::canonicalBinary(op);
+    if (canonicalOp != TokenId::SymSlash && canonicalOp != TokenId::SymPercent)
+        return Result::Continue;
+
+    const TypeRef aliasTypeRef = sema.typeMgr().get(nodeRightView.typeRef()).unwrap(sema.ctx(), nodeRightView.typeRef(), TypeExpandE::Alias);
+    SWC_ASSERT(aliasTypeRef.isValid());
+    const TypeInfo& type = sema.typeMgr().get(aliasTypeRef);
+
+    if (type.isFloat() && nodeRightView.cst()->getFloat().isZero())
+        return SemaError::raiseDivZero(sema, nodeRef, nodeRightView.nodeRef());
+    if (type.isIntLike() && nodeRightView.cst()->getIntLike().isZero())
+        return SemaError::raiseDivZero(sema, nodeRef, nodeRightView.nodeRef());
+
+    return Result::Continue;
+}
+
 bool SemaHelpers::isAliasPreservingNumericIntrinsic(TokenId tokenId)
 {
     switch (tokenId)

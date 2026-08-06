@@ -36,6 +36,27 @@ namespace MicroPassHelpers
 
     MicroDomTree computeInstructionDominators(const MicroControlFlowGraph& cfg, uint32_t entry);
 
+    // The operand holding the condition code, for the opcodes that read the CPU flags through one.
+    // Inline: the combine passes ask this of every instruction they scan.
+    inline bool conditionOperandIndex(MicroInstrOpcode op, uint8_t& outIdx)
+    {
+        switch (op)
+        {
+            case MicroInstrOpcode::JumpCond:
+            case MicroInstrOpcode::JumpCondImm:
+                outIdx = 0;
+                return true;
+            case MicroInstrOpcode::SetCondReg:
+                outIdx = 1;
+                return true;
+            case MicroInstrOpcode::LoadCondRegReg:
+                outIdx = 2;
+                return true;
+            default:
+                return false;
+        }
+    }
+
     // A natural loop on the per-instruction CFG: the header a back edge lands on, the tails those
     // back edges leave from, and the membership map of everything that reaches a tail without
     // leaving the header behind.

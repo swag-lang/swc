@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/MicroReg.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 
 // Load into source-operand folding (register destination).
@@ -359,25 +360,6 @@ namespace InstructionCombine
     {
         // Operand index of the MicroCond for each UsesCpuFlags opcode this
         // fold understands; anything else blocks the rewrite.
-        bool cmpFoldConsumerCondIndex(MicroInstrOpcode op, uint8_t& outIdx)
-        {
-            switch (op)
-            {
-                case MicroInstrOpcode::JumpCond:
-                case MicroInstrOpcode::JumpCondImm:
-                    outIdx = 0;
-                    return true;
-                case MicroInstrOpcode::SetCondReg:
-                    outIdx = 1;
-                    return true;
-                case MicroInstrOpcode::LoadCondRegReg:
-                    outIdx = 2;
-                    return true;
-                default:
-                    return false;
-            }
-        }
-
         // Conditions whose verdict is unchanged when a compare of a
         // zero-extended value is narrowed to the source width: unsigned
         // orders and equality. Signed orders are not — 0x80..0xFF flip sign
@@ -422,7 +404,7 @@ namespace InstructionCombine
                 if (info.flags.has(MicroInstrFlagsE::UsesCpuFlags))
                 {
                     uint8_t condIdx = 0;
-                    if (!cmpFoldConsumerCondIndex(inst.op, condIdx))
+                    if (!MicroPassHelpers::conditionOperandIndex(inst.op, condIdx))
                         return false;
 
                     const MicroInstrOperand* ops = inst.ops(*ctx.operands);

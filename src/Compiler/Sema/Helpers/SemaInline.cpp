@@ -949,7 +949,8 @@ namespace
         return Result::Continue;
     }
 
-    AstNodeRef makeInlineBodyFromShort(Sema& sema, const AstFunctionDecl& decl, const SemaClone::CloneContext& cloneContext)
+    template<AstNodeId BLOCK_ID>
+    AstNodeRef makeBodyFromShort(Sema& sema, const AstFunctionDecl& decl, const SemaClone::CloneContext& cloneContext)
     {
         if (decl.nodeBodyRef.isInvalid())
             return AstNodeRef::invalid();
@@ -961,30 +962,11 @@ namespace
         auto [returnRef, returnPtr] = sema.ast().makeNode<AstNodeId::ReturnStmt>(decl.tokRef());
         returnPtr->nodeExprRef      = clonedExprRef;
 
-        auto [blockRef, blockPtr] = sema.ast().makeNode<AstNodeId::EmbeddedBlock>(decl.tokRef());
+        auto [blockRef, blockPtr] = sema.ast().makeNode<BLOCK_ID>(decl.tokRef());
         SmallVector<AstNodeRef> statements;
         statements.push_back(returnRef);
         blockPtr->spanChildrenRef = sema.ast().pushSpan(statements.span());
         return blockRef;
-    }
-
-    AstNodeRef makeMixinBodyFromShort(Sema& sema, const AstFunctionDecl& decl, const SemaClone::CloneContext& cloneContext)
-    {
-        if (decl.nodeBodyRef.isInvalid())
-            return AstNodeRef::invalid();
-
-        const AstNodeRef clonedExprRef = SemaClone::cloneAst(sema, decl.nodeBodyRef, cloneContext);
-        if (clonedExprRef.isInvalid())
-            return AstNodeRef::invalid();
-
-        auto [returnRef, returnPtr] = sema.ast().makeNode<AstNodeId::ReturnStmt>(decl.tokRef());
-        returnPtr->nodeExprRef      = clonedExprRef;
-
-        auto [bodyRef, bodyPtr] = sema.ast().makeNode<AstNodeId::FunctionBody>(decl.tokRef());
-        SmallVector<AstNodeRef> statements;
-        statements.push_back(returnRef);
-        bodyPtr->spanChildrenRef = sema.ast().pushSpan(statements.span());
-        return bodyRef;
     }
 
     TokenRef materializedInlineBindingTokRef(Sema& sema, const SymbolVariable& sourceParam, AstNodeRef exprRef)
@@ -1747,14 +1729,15 @@ namespace
         return Result::Continue;
     }
 
-    AstNodeRef inlineBodyRef(Sema& sema, const AstFunctionDecl& decl, const SemaClone::CloneContext& cloneContext, std::span<const AstNodeRef> prefixStatements)
+    template<AstNodeId BLOCK_ID>
+    AstNodeRef bodyRefForInline(Sema& sema, const AstFunctionDecl& decl, const SemaClone::CloneContext& cloneContext, std::span<const AstNodeRef> prefixStatements)
     {
         if (decl.hasFlag(AstFunctionFlagsE::Short))
         {
-            const AstNodeRef shortBodyRef = makeInlineBodyFromShort(sema, decl, cloneContext);
+            const AstNodeRef shortBodyRef = makeBodyFromShort<BLOCK_ID>(sema, decl, cloneContext);
             if (shortBodyRef.isInvalid())
                 return AstNodeRef::invalid();
-            return buildInlineRoot(sema, decl, AstNodeId::EmbeddedBlock, prefixStatements, shortBodyRef);
+            return buildInlineRoot(sema, decl, BLOCK_ID, prefixStatements, shortBodyRef);
         }
 
         if (decl.nodeBodyRef.isInvalid())
@@ -1764,27 +1747,7 @@ namespace
         if (clonedBodyRef.isInvalid())
             return AstNodeRef::invalid();
 
-        return buildInlineRoot(sema, decl, AstNodeId::EmbeddedBlock, prefixStatements, clonedBodyRef);
-    }
-
-    AstNodeRef mixinBodyRef(Sema& sema, const AstFunctionDecl& decl, const SemaClone::CloneContext& cloneContext, std::span<const AstNodeRef> prefixStatements)
-    {
-        if (decl.hasFlag(AstFunctionFlagsE::Short))
-        {
-            const AstNodeRef shortBodyRef = makeMixinBodyFromShort(sema, decl, cloneContext);
-            if (shortBodyRef.isInvalid())
-                return AstNodeRef::invalid();
-            return buildInlineRoot(sema, decl, AstNodeId::FunctionBody, prefixStatements, shortBodyRef);
-        }
-
-        if (decl.nodeBodyRef.isInvalid())
-            return AstNodeRef::invalid();
-
-        const AstNodeRef clonedBodyRef = SemaClone::cloneAst(sema, decl.nodeBodyRef, cloneContext);
-        if (clonedBodyRef.isInvalid())
-            return AstNodeRef::invalid();
-
-        return buildInlineRoot(sema, decl, AstNodeId::FunctionBody, prefixStatements, clonedBodyRef);
+        return buildInlineRoot(sema, decl, BLOCK_ID, prefixStatements, clonedBodyRef);
     }
 
     void setInlinePayloadRecursive(Sema& sema, AstNodeRef nodeRef, SemaInlinePayload* inlinePayload)
@@ -2478,7 +2441,9 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     // references by name in the caller. Marked / macro / mixin inlines keep their established
     // (re-resolving) behavior to avoid regressing intrinsic-argument and overload handling.
     cloneContext.preserveResolvedSymbols = isAutoSelected;
-    const AstNodeRef inlineRootRef       = isMixin ? mixinBodyRef(sema, *decl, cloneContext, materializedBindings.span()) : inlineBodyRef(sema, *decl, cloneContext, materializedBindings.span());
+    const AstNodeRef inlineRootRef       = isMixin
+                                              ? bodyRefForInline<AstNodeId::FunctionBody>(sema, *decl, cloneContext, materializedBindings.span())
+                                              : bodyRefForInline<AstNodeId::EmbeddedBlock>(sema, *decl, cloneContext, materializedBindings.span());
     if (inlineRootRef.isInvalid())
         return Result::Continue;
     sema.node(inlineRootRef).setCodeRef(sema.node(callRef).codeRef());

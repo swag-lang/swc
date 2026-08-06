@@ -534,30 +534,10 @@ namespace
         return Result::Continue;
     }
 
-    Result checkRightConstant(Sema& sema, TokenId op, AstNodeRef nodeRef, const SemaNodeView& nodeRightView)
-    {
-        const TypeInfo& type = aliasType(sema, nodeRightView);
-        switch (op)
-        {
-            case TokenId::SymSlash:
-            case TokenId::SymPercent:
-                if (type.isFloat() && nodeRightView.cst()->getFloat().isZero())
-                    return SemaError::raiseDivZero(sema, nodeRef, nodeRightView.nodeRef());
-                if (type.isIntLike() && nodeRightView.cst()->getIntLike().isZero())
-                    return SemaError::raiseDivZero(sema, nodeRef, nodeRightView.nodeRef());
-                break;
-
-            default:
-                break;
-        }
-
-        return Result::Continue;
-    }
-
     Result check(Sema& sema, TokenId op, AstNodeRef nodeRef, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         if (nodeRightView.cstRef().isValid())
-            SWC_RESULT(checkRightConstant(sema, op, sema.curNodeRef(), nodeRightView));
+            SWC_RESULT(SemaHelpers::checkDivideByZeroConstant(sema, op, sema.curNodeRef(), nodeRightView));
 
         if (op == TokenId::SymPlusPlus)
             return checkPlusPlus(sema, node, nodeLeftView, nodeRightView);

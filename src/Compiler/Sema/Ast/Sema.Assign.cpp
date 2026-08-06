@@ -257,26 +257,6 @@ namespace
             symVar.addExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
     }
 
-    Result checkRightConstant(Sema& sema, TokenId op, AstNodeRef nodeRef, const SemaNodeView& nodeRightView)
-    {
-        const TypeInfo& type = aliasType(sema, nodeRightView);
-        switch (op)
-        {
-            case TokenId::SymSlashEqual:
-            case TokenId::SymPercentEqual:
-                if (type.isFloat() && nodeRightView.cst()->getFloat().isZero())
-                    return SemaError::raiseDivZero(sema, nodeRef, nodeRightView.nodeRef());
-                if (type.isIntLike() && nodeRightView.cst()->getIntLike().isZero())
-                    return SemaError::raiseDivZero(sema, nodeRef, nodeRightView.nodeRef());
-                break;
-
-            default:
-                break;
-        }
-
-        return Result::Continue;
-    }
-
     Result castAndResultType(Sema& sema, TokenId op, const SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
     {
         const TokenId binOp                = op == TokenId::SymEqual ? op : Token::assignToBinary(op);
@@ -292,7 +272,7 @@ namespace
     Result check(Sema& sema, TokenId op, AstNodeRef nodeRef, const SemaNodeView& nodeRightView)
     {
         if (nodeRightView.cstRef().isValid())
-            SWC_RESULT(checkRightConstant(sema, op, nodeRef, nodeRightView));
+            SWC_RESULT(SemaHelpers::checkDivideByZeroConstant(sema, op, nodeRef, nodeRightView));
 
         SWC_INTERNAL_CHECK(Token::isOpAssign(op));
         return Result::Continue;
@@ -402,7 +382,7 @@ namespace
         }
 
         if (nodeRightView.cstRef().isValid())
-            SWC_RESULT(checkRightConstant(sema, tok.id, sema.curNodeRef(), nodeRightView));
+            SWC_RESULT(SemaHelpers::checkDivideByZeroConstant(sema, tok.id, sema.curNodeRef(), nodeRightView));
 
         for (const auto leftRef : leftRefs)
         {

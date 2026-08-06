@@ -223,10 +223,10 @@ private:
     AstNodeRef parseIntrinsicCall(uint32_t numParams);
     AstNodeRef parseIntrinsicCallConstantExpr();
     AstNodeRef parseIntrinsicCallExpr(uint32_t numParams);
-    AstNodeRef parseIntrinsicDrop();
+    // '@drop', '@postcopy' and '@postmove' share one syntax: a target and an optional count.
+    template<AstNodeId NODE_ID>
+    AstNodeRef parseLifecycleIntrinsic();
     AstNodeRef parseIntrinsicInit();
-    AstNodeRef parseIntrinsicPostCopy();
-    AstNodeRef parseIntrinsicPostMove();
     AstNodeRef parseIntrinsicValue();
     AstNodeRef parseLogicalExpr(int minPrecedence);
     AstNodeRef parseLambdaExpression();

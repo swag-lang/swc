@@ -140,11 +140,8 @@ ConstantValue::ConstantValue()
 {
 }
 
-ConstantValue::ConstantValue(const ConstantValue& other) :
-    kind_(other.kind_),
-    typeRef_(other.typeRef_),
-    dataSegmentRef_(other.dataSegmentRef_.load(std::memory_order_relaxed)),
-    payloadBorrowed_(other.payloadBorrowed_)
+template<typename OTHER>
+void ConstantValue::constructPayloadFrom(OTHER&& other)
 {
     switch (kind_)
     {
@@ -189,11 +186,20 @@ ConstantValue::ConstantValue(const ConstantValue& other) :
             break;
         case ConstantKind::AggregateStruct:
         case ConstantKind::AggregateArray:
-            std::construct_at(&payloadAggregate_.val, other.payloadAggregate_.val);
+            std::construct_at(&payloadAggregate_.val, std::forward<OTHER>(other).payloadAggregate_.val);
             break;
         default:
             SWC_UNREACHABLE();
     }
+}
+
+ConstantValue::ConstantValue(const ConstantValue& other) :
+    kind_(other.kind_),
+    typeRef_(other.typeRef_),
+    dataSegmentRef_(other.dataSegmentRef_.load(std::memory_order_relaxed)),
+    payloadBorrowed_(other.payloadBorrowed_)
+{
+    constructPayloadFrom(other);
 }
 
 ConstantValue::ConstantValue(ConstantValue&& other) noexcept :
@@ -202,54 +208,7 @@ ConstantValue::ConstantValue(ConstantValue&& other) noexcept :
     dataSegmentRef_(other.dataSegmentRef_.load(std::memory_order_relaxed)),
     payloadBorrowed_(other.payloadBorrowed_)
 {
-    switch (kind_)
-    {
-        case ConstantKind::Invalid:
-        case ConstantKind::Bool:
-            payloadBool_ = other.payloadBool_;
-            break;
-        case ConstantKind::Char:
-        case ConstantKind::Rune:
-            payloadCharRune_ = other.payloadCharRune_;
-            break;
-        case ConstantKind::String:
-            payloadString_ = other.payloadString_;
-            break;
-        case ConstantKind::Struct:
-            payloadStruct_ = other.payloadStruct_;
-            break;
-        case ConstantKind::Array:
-            payloadArray_ = other.payloadArray_;
-            break;
-        case ConstantKind::Int:
-            payloadInt_ = other.payloadInt_;
-            break;
-        case ConstantKind::Float:
-            payloadFloat_ = other.payloadFloat_;
-            break;
-        case ConstantKind::ValuePointer:
-        case ConstantKind::BlockPointer:
-            payloadPointer_ = other.payloadPointer_;
-            break;
-        case ConstantKind::Slice:
-            payloadSlice_ = other.payloadSlice_;
-            break;
-        case ConstantKind::TypeValue:
-            payloadTypeValue_ = other.payloadTypeValue_;
-            break;
-        case ConstantKind::Null:
-        case ConstantKind::Undefined:
-            break;
-        case ConstantKind::EnumValue:
-            payloadEnumValue_ = other.payloadEnumValue_;
-            break;
-        case ConstantKind::AggregateStruct:
-        case ConstantKind::AggregateArray:
-            std::construct_at(&payloadAggregate_.val, std::move(other.payloadAggregate_.val));
-            break;
-        default:
-            SWC_UNREACHABLE();
-    }
+    constructPayloadFrom(std::move(other));
 
     other.kind_ = ConstantKind::Invalid;
     other.dataSegmentRef_.store(packDataSegmentRef({}), std::memory_order_relaxed);

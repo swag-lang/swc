@@ -89,7 +89,7 @@ namespace
             payload.typeRef = symVar.typeRef();
             payload.setIsAddress();
             payload.reg = codeGen.nextVirtualIntRegister();
-            codeGen.builder().emitLoadRegDataSegmentReloc(payload.reg, symVar.globalStorageKind(), symVar.offset());
+            CodeGenMemoryHelpers::emitGlobalVariableAddress(codeGen, payload.reg, symVar);
             return payload;
         }
 
@@ -553,7 +553,7 @@ namespace
         storagePayload.typeRef = storageSym->typeRef();
         storagePayload.setIsAddress();
         storagePayload.reg = codeGen.nextVirtualIntRegister();
-        codeGen.builder().emitLoadRegDataSegmentReloc(storagePayload.reg, storageSym->globalStorageKind(), storageSym->offset());
+        CodeGenMemoryHelpers::emitGlobalVariableAddress(codeGen, storagePayload.reg, *storageSym);
         outStorageReg = storagePayload.reg;
         return outStorageReg.isValid();
     }

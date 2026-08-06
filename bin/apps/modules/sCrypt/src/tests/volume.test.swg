@@ -167,7 +167,6 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     var reopened = expect Volume.open(path, testPassword())
     let node     = reopened.resolve("\\documents\\renamed.bin")
     @assert(node != null)
-    @assert(node != null)
     @assert(node.size == #sizeof(source))
     @assert(sameTestBytes(node.security.toSlice(), security))
     var reopenedData: [7000] u8

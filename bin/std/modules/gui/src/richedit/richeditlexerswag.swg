@@ -369,23 +369,43 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("#complete", State.Modifier)
     }
 
+    // Contrast every syntax color is guaranteed to reach against the editor's ground, which
+    // is the WCAG ratio for body text: code is read for longer than any label of the
+    // interface, so it does not get a lower bar.
+    private const SyntaxContrast = 4.5'f32
+
+    // Returns `argb` moved until it is readable on `ground`, keeping its hue.
+    //
+    // The hues below belong to the language, not to the theme: a reader who has learned that
+    // green is a comment keeps that knowledge when the interface turns white. What the theme
+    // decides is how far each hue has to travel to stay legible, and on a dark ground these
+    // values already clear the bar, so the familiar palette is left exactly as it is.
+    private func onGround(argb: u32, ground: Color)->Color
+    {
+        var result = Color.fromArgb(argb)
+        result.ensureContrast(ground, SyntaxContrast)
+        return result
+    }
+
     mtd impl setupTheme(ed: *RichEditCtrl)
     {
         using RichEditLexerSwag.Style
-        ed.styles[cast(u64) Comment].colFg      = 0xFF6A9955
-        ed.styles[cast(u64) Keyword].colFg      = 0xFF569CD6
-        ed.styles[cast(u64) Control].colFg      = 0xFFD8A0DF
-        ed.styles[cast(u64) Intrinsic].colFg    = 0xFFDCDCAA
-        ed.styles[cast(u64) Builtin].colFg      = 0xFFF67F56
-        ed.styles[cast(u64) Function].colFg     = 0xFFFF7411
-        ed.styles[cast(u64) Preprocessor].colFg = 0xFFAAAAAA
-        ed.styles[cast(u64) CharEscape].colFg   = 0xFFD7BA7D
-        ed.styles[cast(u64) Type].colFg         = 0xFFF6CC86
-        ed.styles[cast(u64) Class].colFg        = 0xFF4EC9B0
-        ed.styles[cast(u64) String].colFg       = 0xFFCE9178
-        ed.styles[cast(u64) Character].colFg    = 0xFFCE9178
-        ed.styles[cast(u64) Numeric].colFg      = 0xFFB5CEA8
-        ed.styles[cast(u64) Error].colFg        = 0xFFF44747
+        let ground = ed.themeColors().richEdit_Bk
+
+        ed.styles[cast(u64) Comment].colFg      = onGround(0xFF6A9955, ground)
+        ed.styles[cast(u64) Keyword].colFg      = onGround(0xFF569CD6, ground)
+        ed.styles[cast(u64) Control].colFg      = onGround(0xFFD8A0DF, ground)
+        ed.styles[cast(u64) Intrinsic].colFg    = onGround(0xFFDCDCAA, ground)
+        ed.styles[cast(u64) Builtin].colFg      = onGround(0xFFF67F56, ground)
+        ed.styles[cast(u64) Function].colFg     = onGround(0xFFFF7411, ground)
+        ed.styles[cast(u64) Preprocessor].colFg = onGround(0xFFAAAAAA, ground)
+        ed.styles[cast(u64) CharEscape].colFg   = onGround(0xFFD7BA7D, ground)
+        ed.styles[cast(u64) Type].colFg         = onGround(0xFFF6CC86, ground)
+        ed.styles[cast(u64) Class].colFg        = onGround(0xFF4EC9B0, ground)
+        ed.styles[cast(u64) String].colFg       = onGround(0xFFCE9178, ground)
+        ed.styles[cast(u64) Character].colFg    = onGround(0xFFCE9178, ground)
+        ed.styles[cast(u64) Numeric].colFg      = onGround(0xFFB5CEA8, ground)
+        ed.styles[cast(u64) Error].colFg        = onGround(0xFFF44747, ground)
     }
 
     mtd impl insertRune(ed: *RichEditCtrl, ch: rune)->bool

@@ -25,12 +25,16 @@ var app: Application
 
 ## Theme sheets
 
-A theme sheet is a tweak text with up to three folders whose keys are the
-reflected field names of [[Gui.ThemeColors]], [[Gui.ThemeMetrics]], and
+A theme sheet is a tweak text with up to four folders whose keys are the reflected
+field names of [[Gui.ThemePalette]], [[Gui.ThemeColors]], [[Gui.ThemeMetrics]], and
 [[Gui.ThemeImageRects]]. An omitted key keeps its current value, so a sheet is a
 delta over the active theme, and `$name` copies another key of the same folder:
 
 ```
+/ThemePalette
+ground           0xFF161310
+text             0xFFEDE4D4
+accent           0xFFD79921
 /ThemeColors
 btnPush_Bk       0xFF202026
 /ThemeMetrics
@@ -39,6 +43,14 @@ btnPush_Height   32
 btnPush_Normal   {{1 29 27 27} 0}
 btnPush_Hot      $btnPush_Normal
 ```
+
+A whole theme is the first folder and nothing else: naming any palette token
+re-derives every semantic color from the tokens, so a sheet of thirty lines answers
+for the three hundred parts of the interface and cannot leave one of them carrying
+the color of the theme it started from. The other folders are for the parts a theme
+wants different from what its own tokens derive, and they are read after the
+derivation whatever order they appear in.
+`bin/examples/modules/gui10/src/sepia.tweak` is a complete worked sheet.
 
 Apply a sheet with [[Gui.Theme.applySheet]], or resolve
 `themes/<name>.tweak` through the bundle and refresh every surface with

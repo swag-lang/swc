@@ -3,8 +3,12 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
+#include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Main/CompilerInstance.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -468,6 +472,46 @@ namespace
         builder.emitCmpRegImm(countReg, ApInt(0, 64), MicroOpBits::B64);
         builder.emitJumpToLabel(MicroCond::NotZero, MicroOpBits::B32, loopLabel);
     }
+}
+
+// Materializes the address a use of a global variable resolves to.
+//
+// An ordinary global is a fixed location, so its address is a relocation against the data segment.
+// A '#[Swag.Tls]' global is not: the segment holds the value every thread starts from, and the
+// address is the calling thread's own copy, which only the runtime can produce. Every path that
+// reaches a global goes through here, so the two cannot drift apart.
+void CodeGenMemoryHelpers::emitGlobalVariableAddress(CodeGen& codeGen, MicroReg reg, const SymbolVariable& symVar)
+{
+    MicroBuilder& builder = codeGen.builder();
+
+    if (!symVar.isThreadLocal())
+    {
+        builder.emitLoadRegDataSegmentReloc(reg, symVar.globalStorageKind(), symVar.offset());
+        return;
+    }
+
+    const IdentifierRef   idRef       = codeGen.idMgr().predefined(IdentifierManager::PredefinedName::RuntimeTlsVarPtr);
+    const SymbolFunction* tlsVarPtrFn = idRef.isValid() ? codeGen.compiler().runtimeFunctionSymbol(idRef) : nullptr;
+    SWC_ASSERT(tlsVarPtrFn);
+    if (!tlsVarPtrFn)
+    {
+        builder.emitLoadRegDataSegmentReloc(reg, symVar.globalStorageKind(), symVar.offset());
+        return;
+    }
+
+    const MicroReg idSlotReg = codeGen.nextVirtualIntRegister();
+    builder.emitLoadRegDataSegmentReloc(idSlotReg, DataSegmentKind::GlobalZero, symVar.threadLocalIdOffset());
+
+    const MicroReg sizeReg = codeGen.nextVirtualIntRegister();
+    builder.emitLoadRegImm(sizeReg, ApInt(static_cast<uint64_t>(symVar.threadLocalSize()), 64), MicroOpBits::B64);
+
+    const MicroReg templateReg = codeGen.nextVirtualIntRegister();
+    builder.emitLoadRegDataSegmentReloc(templateReg, symVar.globalStorageKind(), symVar.offset());
+
+    const MicroReg args[]   = {idSlotReg, sizeReg, templateReg};
+    const Result   callSent = CodeGenCallHelpers::emitRuntimeCallWithDirectArgsToReg(codeGen, *tlsVarPtrFn, args, reg);
+    SWC_ASSERT(callSent == Result::Continue);
+    SWC_UNUSED(callSent);
 }
 
 void CodeGenMemoryHelpers::loadOperandToRegister(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef regTypeRef, MicroOpBits opBits)

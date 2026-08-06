@@ -494,7 +494,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
 }
 
 // File Details opens a real modal dialog after reading the saved capture size
-// from disk; the headless modal helper closes it through the normal OK button.
+// from disk; the headless modal helper closes it through its one Close button.
 #test
 {
     var f: HeadlessFixture
@@ -504,7 +504,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
 
     let capturePath = testPrepareSavedCapture(f.capture)
     defer discard catch File.delete(capturePath)
-    f.gui.clickModalButtonWhenShown(Dialog.BtnOk)
+    f.gui.clickModalButtonWhenShown(Dialog.BtnCancel)
 
     f.main.sendCommandEvent(ActionFile.FileDetails)
     f.gui.pump()

@@ -252,7 +252,7 @@ namespace
             globalPayload.typeRef = payloadSym.typeRef();
             globalPayload.setIsAddress();
             globalPayload.reg = codeGen.nextVirtualIntRegister();
-            codeGen.builder().emitLoadRegDataSegmentReloc(globalPayload.reg, payloadSym.globalStorageKind(), payloadSym.offset());
+            CodeGenMemoryHelpers::emitGlobalVariableAddress(codeGen, globalPayload.reg, payloadSym);
             return globalPayload;
         }
 

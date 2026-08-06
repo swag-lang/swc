@@ -125,11 +125,20 @@ Swag provides attributes that modify how variables are stored or accessed.
 /**
 ## Thread-Local Storage
 
-Global variables marked with '#[Swag.Tls]' are stored in thread-local storage.
-Each thread has its own copy of the variable.
+A global variable marked with '#[Swag.Tls]' has one copy per thread. Each thread gets its own on
+first access, starting from the declared value rather than from whatever another thread left
+behind, and the copy is released when the thread ends.
+
+The copy is per thread, so its address is too: taking a pointer to a thread-local global answers
+the calling thread's copy, and handing that pointer to another thread points it at storage that
+thread does not own.
+
+> ATTENTION:
+> A thread-local global must hold a plain value. Its per-thread copies are released without being
+> dropped, so a type with an 'opDrop' leaks on every thread that touches it.
 */
 #[Swag.Tls]
-var G = 0     // Thread-local global variable
+var G = 0     // One copy per thread, each starting at 0
 
 /**
 ## Global Variables

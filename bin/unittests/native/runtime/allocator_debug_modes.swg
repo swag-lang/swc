@@ -17,20 +17,21 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
     alloc.setup()
     @assert(alloc.installed())
     @assert(alloc.firstAlloc == null)
-    @assert(alloc.firstFree == null)
-    @assert(alloc.lastFree == null)
-    @assert(alloc.firstRetiredHeap == null)
-    @assert(alloc.countAlloc == 0)
-    @assert(alloc.countFree == 0)
-    @assert(alloc.countOsAlloc == 0)
-    @assert(alloc.countOsFree == 0)
-    @assert(alloc.sizeAlloc == 0)
-    @assert(alloc.sizeFree == 0)
-    @assert(alloc.sizeOsAlloc == 0)
-    @assert(alloc.sizeOsFree == 0)
-    @assert(alloc.maxCachedSize == 64 * 1024)
-    @assert(alloc.maxCachedBytes == 8 * 1024 * 1024)
-    @assert(alloc.maxFreeSize == 16 * 1024 * 1024)
+    @assert(alloc.firstQuarantine == null)
+    @assert(alloc.lastQuarantine == null)
+    @assert(alloc.firstSegment == null)
+    @assert(alloc.firstHeap == null)
+    @assert(alloc.firstAbandoned == null)
+
+    let stats = alloc.stats()
+    @assert(stats.countAlloc == 0)
+    @assert(stats.countFree == 0)
+    @assert(stats.sizeAlloc == 0)
+    @assert(stats.sizeCached == 0)
+    @assert(stats.countPage == 0)
+    @assert(stats.countSegment == 0)
+
+    @assert(alloc.maxQuarantineBytes == 16 * 1024 * 1024)
     @assert(alloc.showMaxLeaks == 100)
     @assert(alloc.detectLeaks)
     @assert(!alloc.trackAllocations)
@@ -46,7 +47,7 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
     req.hint = "debug-no-stack"
     itf.alloc(&req)
     @assert(req.address != null)
-    @assert(alloc.countAlloc == 1)
+    @assert(alloc.stats().countAlloc == 1)
     @assert(alloc.firstAlloc != null)
 
     let header   = cast(*AllocatorHeader) (cast([*] u8) req.address! - #sizeof(AllocatorHeader))
@@ -60,16 +61,16 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
 
     itf.free(&req)
     @assert(req.address == null)
-    @assert(alloc.countAlloc == 0)
-    @assert(alloc.countFree == 1)
-    @assert(alloc.firstFree == header)
+    @assert(alloc.stats().countAlloc == 0)
+    @assert(alloc.stats().countFree == 1)
+    @assert(alloc.firstQuarantine == header)
 
     let freed = alloc.userAddress(header)
     for [i] in 144 do
         @assert(freed[i] == Allocator.FreeByte)
 
     alloc.releaseAll()
-    @assert(alloc.countFree == 0)
+    @assert(alloc.stats().countFree == 0)
 }
 
 #test
@@ -94,8 +95,8 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
 
     var freeAll: AllocatorRequest
     itf.freeAll(&freeAll)
-    @assert(alloc.countAlloc == 0)
-    @assert(alloc.countFree == 0)
+    @assert(alloc.stats().countAlloc == 0)
+    @assert(alloc.stats().countFree == 0)
 }
 
 #test
@@ -111,7 +112,7 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
         @assert(reqs[i].address != null)
     }
 
-    @assert(alloc.countAlloc == 8)
+    @assert(alloc.stats().countAlloc == 8)
     @assert(alloc.firstAlloc != null)
     alloc.checkAllMemory()
 
@@ -121,8 +122,8 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
         @assert(reqs[i].address == null)
     }
 
-    @assert(alloc.countAlloc == 0)
-    @assert(alloc.countFree == 8)
+    @assert(alloc.stats().countAlloc == 0)
+    @assert(alloc.stats().countFree == 8)
     alloc.checkAllMemory()
     alloc.releaseAll()
 }
@@ -155,7 +156,7 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
     untracked.size = 80
     itf.alloc(&untracked)
     @assert(untracked.address != null)
-    @assert(alloc.countAlloc == 1)
+    @assert(alloc.stats().countAlloc == 1)
     @assert(alloc.firstAlloc == null)
 
     alloc.configure(false, true, false, true, true)
@@ -192,21 +193,22 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
         req.size = 512
         itf.alloc(&req)
         @assert(req.address != null)
-        @assert(alloc.countOsAlloc >= 2)
 
-        let header   = cast(*AllocatorHeader) (cast([*] u8) req.address! - #sizeof(AllocatorHeader))
-        let rawBlock = cast(*AllocatorRawBlock) (cast([*] u8) header.allocAddr! - #sizeof(AllocatorRawBlock))
-        @assert(rawBlock.address != null)
-        @assert(rawBlock.size == header.allocSize)
+        // A diagnostic block is its own operating-system region, which is what lets its tracking
+        // record sit in front of it and its bounds be checked exactly.
+        let header = cast(*AllocatorHeader) (cast([*] u8) req.address! - #sizeof(AllocatorHeader))
+        @assert(header.allocAddr != null)
         @assert(header.allocSize % 4096 == 0)
-        @assert(cast(u64) rawBlock.address % 4096 == 0)
+        @assert(cast(u64) header.allocAddr % 4096 == 0)
+        @assert(header.tracking == cast(*AllocatorTracking) header.allocAddr)
+        @assert(allocatorPageOf(cast(u64) req.address!) == null)
 
         itf.free(&req)
         @assert(req.address == null)
 
         var freeAll: AllocatorRequest
         itf.freeAll(&freeAll)
-        @assert(alloc.countOsFree == alloc.countOsAlloc)
-        @assert(alloc.sizeOsFree == alloc.sizeOsAlloc)
+        @assert(alloc.stats().countAlloc == 0)
+        @assert(alloc.stats().countFree == 0)
     }
 }

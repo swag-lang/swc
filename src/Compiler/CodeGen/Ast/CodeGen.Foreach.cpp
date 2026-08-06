@@ -155,7 +155,7 @@ namespace
             symbolPayload.typeRef = symVar.typeRef();
             symbolPayload.setIsAddress();
             symbolPayload.reg = codeGen.nextVirtualIntRegister();
-            codeGen.builder().emitLoadRegDataSegmentReloc(symbolPayload.reg, symVar.globalStorageKind(), symVar.offset());
+            CodeGenMemoryHelpers::emitGlobalVariableAddress(codeGen, symbolPayload.reg, symVar);
             codeGen.setVariablePayload(symVar, symbolPayload);
             return symbolPayload;
         }

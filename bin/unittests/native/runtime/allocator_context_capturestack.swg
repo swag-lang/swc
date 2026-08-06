@@ -32,8 +32,8 @@ func contextCaptureFree(req: *AllocatorRequest)
         return
 
     let alloc       = defaultAllocator()
-    let beforeCount = alloc.countAlloc
-    let beforeSize  = alloc.sizeAlloc
+    let beforeCount = alloc.stats().countAlloc
+    let beforeSize  = alloc.stats().sizeAlloc
 
     var req = contextCaptureAlloc(80)
     @assert(req.address != null)
@@ -53,8 +53,8 @@ func contextCaptureFree(req: *AllocatorRequest)
         @assert(grown[i] == cast(u8) (i + 9))
 
     contextCaptureFree(&req)
-    @assert(alloc.countAlloc == beforeCount)
-    @assert(alloc.sizeAlloc == beforeSize)
+    @assert(alloc.stats().countAlloc == beforeCount)
+    @assert(alloc.stats().sizeAlloc == beforeSize)
 }
 
 #test
@@ -63,7 +63,7 @@ func contextCaptureFree(req: *AllocatorRequest)
         return
 
     let alloc       = defaultAllocator()
-    let beforeCount = alloc.countAlloc
+    let beforeCount = alloc.stats().countAlloc
 
     var reqs: [8] AllocatorRequest
     for [i] in 8
@@ -72,12 +72,12 @@ func contextCaptureFree(req: *AllocatorRequest)
         @assert(reqs[i].address != null)
     }
 
-    @assert(alloc.countAlloc == beforeCount + 8)
+    @assert(alloc.stats().countAlloc == beforeCount + 8)
 
     for [i] in 8 do
         contextCaptureFree(&reqs[i])
 
-    @assert(alloc.countAlloc == beforeCount)
+    @assert(alloc.stats().countAlloc == beforeCount)
 }
 
 #test

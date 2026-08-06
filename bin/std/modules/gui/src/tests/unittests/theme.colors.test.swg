@@ -2,6 +2,9 @@
 
 using Swag, Core
 
+// The Swag dark palette is the shipped look of every standard application, so the tokens it
+// resolves to are pinned rather than described: a change here is a change to sCrypt and
+// sCapture, and it should have to be written down.
 #test
 {
     var colors: ThemeColors
@@ -62,24 +65,53 @@ using Swag, Core
 // #7C7C7C over the caption and #707070 over the body). Every palette owes an opaque outline.
 #test
 {
-    var colors: ThemeColors
+    for palette in [ThemeColors.darkPalette(), ThemeColors.lightPalette(), ThemeColors.swagDarkPalette(), ThemeColors.swagLightPalette()]
+    {
+        var colors: ThemeColors
+        colors.apply(palette)
+        @assert(colors.wnd_Border.a == 255)
+    }
+}
 
-    colors.setDark()
-    @assert(colors.wnd_Border.a == 255)
+// Every palette answers for every part. The defect this rules out is the one a reader
+// actually meets: a theme derived from another one keeps the hover, the border or the ink of
+// the theme it was derived from, and a black-and-white interface grows a blue button. Since
+// every color comes from `apply`, the check is that no two palettes agree on a value that
+// their tokens disagree about — which is what a shared ground would produce.
+#test
+{
+    var dark, light: ThemeColors
+    dark.setSwagDark()
+    light.setSwagLight()
 
-    colors.setLight()
-    @assert(colors.wnd_Border.a == 255)
+    let darkStruct  = cast(const *TypeInfoStruct) #typeof(ThemeColors)
+    var shared      = 0'u32
+    var opaquePairs = 0'u32
 
-    colors.setSwagDark()
-    @assert(colors.wnd_Border.a == 255)
+    for field in darkStruct.fields
+    {
+        let a = dref cast(const *Pixel.Color) (cast(const [*] u8) &dark + field.offset)
+        let b = dref cast(const *Pixel.Color) (cast(const [*] u8) &light + field.offset)
+        if a.a == 0 or b.a == 0 do
+            continue
 
-    colors.setSwagLight()
-    @assert(colors.wnd_Border.a == 255)
+        opaquePairs += 1
+        if a == b do
+            shared += 1
+    }
+
+    // What legitimately survives a mode change is the handful of colors that mean the same
+    // thing on any ground: the four of the close button, and the white an image is tinted
+    // with. Five today; the bound leaves room for one or two more of the same kind, and
+    // nothing like the twenty-two the delta-based palettes used to share by accident.
+    @assert(opaquePairs > 200)
+    @assert(shared <= 8)
 }
 
 // A Swag palette carries its own geometry, and it takes the surface corner with it: the outline
 // of a window is the one piece of chrome the chart softens, so the palette narrows the default
-// rather than squaring it.
+// rather than squaring it. Leaving a Swag palette has to give that geometry back, or a surface
+// that switches to a neutral theme keeps square buttons under a blue accent.
 #test
 {
     var theme: Theme
@@ -88,9 +120,18 @@ using Swag, Core
     theme.setSwagDark()
     @assert(theme.colors.activeRail == 0xFFF7F900)
     @assert(theme.metrics.surfaceWnd_CornerRadius == 8)
+    @assert(theme.rects.btnPush_Normal.rect == theme.rects.edit_SquareBk.rect)
 
-    theme.metrics.surfaceWnd_CornerRadius = 18
     theme.setSwagLight()
     @assert(theme.colors.activeRail == 0xFF0B0B0D)
     @assert(theme.metrics.surfaceWnd_CornerRadius == 8)
+
+    theme.setDark()
+    @assert(theme.colors.activeRail.a == 0)
+    @assert(theme.metrics.surfaceWnd_CornerRadius == 18)
+    @assert(theme.rects.btnPush_Normal.rect != theme.rects.edit_SquareBk.rect)
+
+    theme.setSwagLight()
+    theme.setLight()
+    @assert(theme.metrics.surfaceWnd_CornerRadius == 18)
 }

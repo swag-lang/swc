@@ -312,7 +312,7 @@ private impl FileBrowserCtrl
             .addColumn(strings().browser_ColModified, me.options.state ? cast(f32) me.options.state.modifiedColumnWidth : 130.0)
             .addColumn(strings().browser_ColSize, me.options.state ? cast(f32) me.options.state.sizeColumnWidth : 90.0)
             .header.form = .Transparent
-            .header.style.addStyleSheetColors("headerItem_Separator $lighterMedium")
+            .header.style.addStyleSheetColors("headerItem_Separator $veilSoft")
             .scrollWnd.style.addStyleSheetColors("scrollBar_Bk $view_Bk")
             .sigKeyPressed += func|fileBrowser = me|(list, evt)
             {

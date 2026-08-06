@@ -30,6 +30,36 @@ Use this compact format. Keep observations factual and make the next step action
 - Related: issue, pull request, or TODO entry if applicable
 -->
 
+### Two sCapture modal-dialog tests fail on master
+
+- Area: bin/apps
+- Found while: validating the GUI theme rewrite, which needed a baseline to attribute failures to
+- Observation: `dialogs.test.swg:23` and `files.test.swg:513` both fail on `@assert(gui.autoHandled)`
+  — the headless modal driver arms `clickModalButtonWhenShown` and the dialog is never reported as
+  handled. Two of the 126 sCapture tests; the other 124 and all 28 sCrypt tests pass.
+- Evidence: reproduced identically in a pristine `git worktree add --detach ../swc-basecheck
+  d02f74d99` with no local change, so it is not caused by the theme work. Same two tests, same
+  asserts, same commit.
+- Next step: instrument `Gui.Testing.HeadlessHost.clickModalButtonWhenShown` to report which
+  surface it inspected and which button id it looked for; both failing cases open a real modal
+  (About, File Details) rather than a `MessageDlg`, which is the difference from the passing
+  modal tests.
+
+### sCapture keeps a dark editor matte after switching to the light theme
+
+- Area: bin/apps
+- Found while: comparing sCapture in both Swag palettes through the gui10 theme inspector
+- Observation: the matte around the capture is `EditorOptions.editBackColor`, whose default was a
+  fixed `0xFF2E2E2E`. It now defaults to transparent, meaning "follow the theme", and `EditView`
+  resolves it to `view_Bk` — but an existing installation has the old opaque value persisted, so
+  it keeps a near-black matte under a white interface.
+- Evidence: [editview.swg](bin/apps/modules/sCapture/src/editview.swg),
+  [options.swg](bin/apps/modules/sCapture/src/options.swg). A fresh profile picks up the theme; a
+  profile written before this change does not.
+- Next step: decide whether the options loader should migrate the one legacy value to transparent,
+  or whether an application is expected to version its settings. The same question applies to any
+  future option whose default becomes theme-derived.
+
 ### A reference to a nullable slot escapes the whole nullability system
 
 - Area: compiler
@@ -55,6 +85,32 @@ Use this compact format. Keep observations factual and make the next step action
   but read the wrong address at run time. Start with a runtime test for `bound!.value`, since that
   is what catches the codegen half.
 - Related: `bin/unittests/jit/operators/notnull_access.swg`
+
+### The sandbox is armed twice per run, and the second attempt fails the whole process
+
+- Area: bin/std | compiler
+- Found while: validating a runtime allocator rewrite, where `tools/scripts.bat smoke` failed
+  intermittently and the failure had to be cleared as pre-existing
+- Observation: `Env`'s sandbox `#init` hook runs more than once in a single script run. The first
+  call carries the launcher's explicit root and arms correctly; a later call arrives with an empty
+  run-argument value, falls back to `defaultSandboxRoot()`, and is rejected by
+  "the sandbox root cannot change once armed". The rejection is fatal by design, so the run dies
+  with `compiler panic: sandbox setup failed` — and it dies at a different script on every attempt,
+  which is what makes the suite look flaky rather than broken.
+- Evidence: printing inside `enterSandbox` over three `tools/scripts.bat smoke -bc release` runs
+  gives, in the same process, `rootLen=56 armed=false exists=true` followed by
+  `rootLen=84 armed=true exists=false` (84 is `<temp>/swag-sandbox/run-<pid>`, the default root).
+  Two of three runs failed. Reproduced identically with the baseline runtime, so this is not
+  allocator-related. Separately, `%TEMP%/swag-sandbox` had accumulated 3871 `run-<pid>` directories:
+  nothing ever removes a sandbox root, so the name is not the private-per-run identity it claims.
+- Next step: find out which stage runs the hook the second time and why the run argument is empty
+  there. The prime suspect is the runtime hook chain, where `PreMain` is emitted twice with
+  separate guards — a runtime stage and a compiler stage
+  ([NativeArtifactBuilder.cpp:298-304](src/Backend/Native/NativeArtifactBuilder.cpp#L298-L304)) —
+  against a single `Init` guard, combined with process-argument adoption that differs between the
+  two. Print the stage and `@pinfos` arguments from the hook to tell "the hook runs twice" apart
+  from "the arguments were re-adopted empty". Whichever it is, `enterSandbox` should also treat a
+  second arm with no explicit root as a no-op rather than a fatal mismatch.
 
 ### Golden snapshots cannot be recorded under the test sandbox
 
@@ -156,52 +212,95 @@ Use this compact format. Keep observations factual and make the next step action
   lookup boundary the builders just removed, and a resource editor would ship that cost to every
   window. Only then evaluate the editor.
 
-### `#[Swag.Tls]` is accepted and then ignored
+### A thread-local global cannot hold a droppable type
 
 - Area: compiler
-- Found while: attributing the sCrypt/WinFsp integration working-set growth to the runtime
-  allocator rather than to sCrypt or WinFsp
-- Observation: the attribute is parsed into `RtAttributeFlagsE::Tls`
-  ([AttributeList.h:37](src/Compiler/Sema/Core/AttributeList.h#L37), assigned at
-  [Sema.Attributes.cpp:181](src/Compiler/Sema/Ast/Sema.Attributes.cpp#L181)) and never read again;
-  no backend emits a thread-local segment. A `#[Swag.Tls]` global is an ordinary shared global, so
-  every "one copy per thread" design built on it is silently one shared copy. The language
-  reference documents the feature as working
-  ([003_005_variables.swg:128-131](bin/reference/modules/language/src/003_005_variables.swg#L128-L131)).
-- Evidence: a native program writes `0xAAAA` into a `#[Swag.Tls] var u64` on the main thread; a raw
-  `CreateThread` worker reads back `0xAAAA` (a real slot reads 0), writes `0xBBBB`, and the main
-  thread then reads `0xBBBB`. The remaining users in `bin/` are `Random.shared()`
-  ([random.swg:3](bin/std/modules/core/src/rand/random.swg#L3)) and the Mersenne Twister plus counter
-  behind `Guid64`/`Guid128`
-  ([guid64.swg:6](bin/std/modules/core/src/system/guid64.swg#L6),
-  [guid128.swg:6](bin/std/modules/core/src/system/guid128.swg#L6)), so identifier and random
-  streams are raced on and can repeat across threads.
-- Next step: decide between implementing the attribute (a `.tls` section and an
-  `IMAGE_TLS_DIRECTORY` in the PE writer and the integrated linker, plus an equivalent under the
-  JIT) and rejecting it with a diagnostic. Either way the remaining `bin/` users need a mechanism
-  that exists today: an explicit slot through `__tlsAlloc`/`__tlsGetPtr`, which is already how the
-  runtime context reaches per-thread storage
-  ([os_windows.swg:298](bin/runtime/os_windows.swg#L298)).
+- Found while: implementing `#[Swag.Tls]`, which until then was parsed and then ignored
+- Observation: a thread-local global now has one copy per thread, created from the declared value on
+  first access and released when the thread ends. What is released is the storage, not the value:
+  nothing calls `opDrop` on it. Shutdown cannot stand in for that either, because it runs on one
+  thread and dropping only that thread's copy would pick an arbitrary one, so thread-local globals
+  are excluded from the shutdown drop list on purpose. A `#[Swag.Tls] var s: String` therefore leaks
+  every thread's buffer, silently.
+- Evidence: `collectGvtdEntriesRec` skips `symVar->isThreadLocal()`
+  ([CodeGen.Function.cpp](src/Compiler/CodeGen/Ast/CodeGen.Function.cpp)), and the fiber-local
+  destructor `__releaseTlsVar` ([os_windows.swg](bin/runtime/os_windows.swg)) frees the block
+  without knowing its type. The three users in `bin/` — `Random.shared()`, and the generator behind
+  `Guid64`/`Guid128` — are plain value types, so nothing leaks today.
+- Next step: decide whether to reject the combination or support it. Rejecting is one diagnostic on
+  a global that carries `Swag.Tls` and a type with a lifecycle, and it is honest. Supporting it
+  means the per-thread block has to carry a drop hook the destructor can call, which is the same
+  type-erased drop the `@gvtd` table already builds — reuse that shape rather than inventing a
+  second one.
 
-### `for &x in f()` corrupts its elements when `f` returns `const &Array'T`
+### Arming the headless modal driver for an absent button fails silently
+
+- Area: std/gui
+- Found while: the two `sCapture` dialog tests that did not pass — both armed a button their
+  dialog does not offer (`BtnYes` for `AboutDlg`, `BtnOk` for File Details), while each of those
+  boxes carries exactly one `Close` button under `BtnCancel`. Fixed in the tests.
+- Observation: `clickModalButtonWhenShown(id)` accepts any `WndId`. When no modal surface ever
+  exposes that id, the driver spins to `autoMaxFrames`, cancels the dialog, and leaves
+  `autoHandled` false — so the test fails on an assertion far from the mistake, and the failure
+  reads exactly like "the dialog never opened" even though it opened and was answered.
+- Evidence: `tools/apps.bat dm test sCapture` before the fix reported 2 of 126 not passing on
+  `@assert(autoHandled)`; the dialogs did open. `runAutoStage` returns false for both a missing
+  modal surface and a missing button ([headless.swg:191](bin/std/modules/gui/src/tests/framework/headless.swg#L191)),
+  and only the frame ceiling distinguishes them, after the fact.
+- Next step: separate the two outcomes in the driver. Remember, per stage, whether any modal
+  surface was ever seen while it was armed; on the timeout path report which of the two happened —
+  a modal that never appeared, or a modal that appeared without the requested button (naming the
+  ids it did offer). A `Debug.assert` on the second case turns a silent 60-frame spin into a
+  message that names the mistake.
+
+### A `#run` block cannot initialize a zero-segment global
 
 - Area: compiler
-- Found while: filling the `sCrypt` language picker from `Gui.languages()`
-- Observation: iterating by reference directly over a call that returns `const &Array'T` yields
-  elements whose fields are garbage. Binding the call to a pointer first and iterating the
-  dereferenced pointer over the same array is correct, so the returned reference itself is sound
-  and the defect is in what the `for` binding does with a call result.
-- Evidence: `func languages()->const &Array'Language { return g_Localization.languages }` in
-  `gui.dll`, then `for &one in Gui.languages() do combo.addItem(one.nativeName.toString())` in
-  `sCrypt`: `String.opSet` receives a garbage count and the run dies on `Memory.alloc returned
-  null`. `let all = &Gui.languages()` followed by `for &one in dref all` over the same data is
-  correct. The same source shape run in the module's own test binary did not fault, so the symptom
-  needs the shared-library boundary or a particular allocation layout.
-- Next step: reduce it to two modules — a shared library exporting `Array'T` by `const &` and an
-  executable iterating the call by reference — and inspect what the `for` lowering binds to: a
-  temporary copy that is dropped before the body would explain both the garbage and why taking the
-  address first is sound. Deciding whether a container should be returned by reference at all is
-  the design half of the question; the API here now returns `const [..] T`, which behaves.
+- Found while: the language reference's `Swag.Late` page, whose `#run` set a global and whose
+  `@isset` then failed in the native build only. The page now sets the global from a setup
+  function, which is what the attribute is for.
+- Observation: a global written by a `#run` block keeps its value into the emitted binary only
+  when the global was declared with an initializer. Without one it lives in the zero segment,
+  which the native backend emits as `.bss`, so every compile-time write is dropped. The JIT run of
+  the same `#test` sees the values, so the two halves of the language disagree about what `#run`
+  can establish.
+- Evidence: a module with `var zero: s32` and `var init: s32 = 1`, both assigned in one `#run`,
+  prints `zero 7 / init 9` under the JIT and `zero 0 / init 9` from the produced executable. Same
+  split for a struct global and for a `#[Swag.Late]` pointer. `dataSectionName` maps
+  `DataSegmentKind::GlobalZero` to `.bss`
+  ([DebugRecordCollector.cpp:50](src/Backend/Debug/DebugRecordCollector.cpp#L50)).
+- Next step: decide the rule before touching the backend, because the scalar half is the easy
+  half. Promoting a written zero-segment global to initialized data is mechanical; a *pointer*
+  written at `#run` time holds a compiler host address, and emitting those bytes verbatim would
+  ship a wild pointer — worse than the current zero. Persisting them needs the store to record a
+  `DataSegmentRelocation` at the written offset, which nothing does today because the write comes
+  from JIT-executed code rather than from a sema-built initializer. Either instrument those stores
+  or reject a `#run` write to a global that no initializer placed in the initialized segment.
+
+### A failing `@assert` reports the source line below itself
+
+- Area: compiler
+- Found while: reading the two `sCapture` dialog failures above, where the reported line pointed at
+  an assertion that was not the one failing
+- Observation: the runtime panic location of a failed `@assert` is the assertion's own column but
+  one line too far down. It misattributes every failure to the following statement, which is worse
+  than a missing location: the reported line is usually a real, passing assertion. Compile-time
+  diagnostics on the same file are correct, so the line table is sound and only the runtime
+  `SourceCodeLocation` is wrong.
+- Evidence: put `@assert(false)` on line 22 of
+  [dialogs.test.swg](bin/apps/modules/sCapture/src/tests/dialogs.test.swg) and run
+  `tools/apps.bat dm test sCapture`: the panic reads `dialogs.test.swg:23:6`. Column 6 is where
+  `assert` starts on line 22, so only the line is displaced. Reproduced a second time by injecting
+  `@assert(false)` at line 24 of `sCrypt`'s `crypto.test.swg`, reported as `:25:6`.
+- Next step: `codeGenAssert` builds the location through
+  `ConstantHelpers::makeSourceCodeLocation(sema, ref, node)`
+  ([CodeGen.Intrinsic.Call.cpp:1292](src/Compiler/CodeGen/Ast/CodeGen.Intrinsic.Call.cpp#L1292)),
+  which takes `node.codeRangeWithChildren` and ends in
+  `SourceCodeRange::fromOffset`. `codeRange()` uses the token directly and is correct, so compare
+  the two on the same node: the suspect is the offset-to-line conversion counting the newline that
+  *precedes* the span. Check whether the runtime safety checks that share this helper
+  ([CodeGenSafety.cpp:88](src/Compiler/CodeGen/Core/CodeGenSafety.cpp#L88)) are displaced too — if
+  they are, every runtime panic location in the language is off by one and the fix is one place.
 
 ### A per-frame event can be sent but never asked for
 

@@ -1728,6 +1728,8 @@ Result AstFunctionDecl::semaPostNode(Sema& sema)
         SWC_RESULT(SemaUndefined::checkFunction(sema, sym, declNode.nodeBodyRef, checkReturnContract));
     }
 
+    SWC_RESULT(SemaEscape::reportBorrowInvalidations(sema, sema.curNodeRef()));
+
     SemaPurity::computePurityFlag(sema, sym);
     sym.removeExtraFlag(SymbolFunctionFlagsE::LazyGenericBody);
     sym.removeExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning);
@@ -1745,6 +1747,8 @@ Result AstFunctionExpr::semaPostNode(Sema& sema) const
 
     if (SemaUndefined::wantsCheck(sema, sym))
         SWC_RESULT(SemaUndefined::checkFunction(sema, sym, nodeBodyRef));
+
+    SWC_RESULT(SemaEscape::reportBorrowInvalidations(sema, sema.curNodeRef()));
 
     SemaPurity::computePurityFlag(sema, sym);
     sym.setSemaCompleted(sema.ctx());

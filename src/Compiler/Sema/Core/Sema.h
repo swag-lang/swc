@@ -414,12 +414,26 @@ public:
     bool isImplicitCodeBlockArg(AstNodeRef parentRef, AstNodeRef childRef) const;
 
     const SemaEscapeInfo* variableEscapeInfo(const SymbolVariable& symVar) const;
+    // Every local currently known to borrow something, for the checks that start from the
+    // BORROWED storage instead of the borrowing variable.
+    const std::unordered_map<const SymbolVariable*, SemaEscapeInfo>& variableEscapeInfos() const { return variableEscapeInfos_; }
     void                  setVariableEscapeInfo(const SymbolVariable& symVar, const SemaEscapeInfo& info);
     void                  clearVariableEscapeInfo(const SymbolVariable& symVar);
     SemaEscapeInfo        variableEscapeInfoIncludingProjections(const SymbolVariable& symVar) const;
     SemaEscapeInfo        projectionEscapeInfoIncludingWildcards(const SemaEscapeProjection& projection) const;
     void                  setProjectionEscapeInfo(const SemaEscapeProjection& projection, const SemaEscapeInfo& info);
     void                  clearProjectionEscapeInfo(const SemaEscapeProjection& projection);
+
+    // Structural changes of storage a local view was reading, judged once the body they
+    // sit in is fully resolved (SemaEscape::reportBorrowInvalidations).
+    std::span<const SemaBorrowInvalidation> borrowInvalidations() const { return borrowInvalidations_.span(); }
+    void                                    addBorrowInvalidation(const SemaBorrowInvalidation& record) { borrowInvalidations_.push_back(record); }
+    void                                    setBorrowInvalidations(std::span<const SemaBorrowInvalidation> records)
+    {
+        borrowInvalidations_.clear();
+        for (const SemaBorrowInvalidation& record : records)
+            borrowInvalidations_.push_back(record);
+    }
 
     // Lexical depth of the scope a local variable is declared in (0 = unknown).
     uint32_t variableScopeDepth(const SymbolVariable& symVar) const;
@@ -600,6 +614,7 @@ private:
         std::unordered_map<SemaEscapeProjection, SemaEscapeInfo, SemaEscapeProjectionHash> mergedProjectionState;
     };
 
+    SmallVector4<SemaBorrowInvalidation>                                               borrowInvalidations_;
     std::unordered_map<const SymbolVariable*, SemaEscapeInfo>                          variableEscapeInfos_;
     std::unordered_map<SemaEscapeProjection, SemaEscapeInfo, SemaEscapeProjectionHash> projectionEscapeInfos_;
     std::unordered_map<const SymbolVariable*, uint32_t>                                variableScopeDepths_;

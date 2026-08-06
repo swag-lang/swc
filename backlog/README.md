@@ -14,6 +14,11 @@ investigation of an entry, delete that entry — or cut it down to the part that
 Never keep done or investigated material as a record: history lives in git. A finding that
 graduates into a plan moves to the matching `todo.*` file and disappears from the `findings.*` one.
 
+[prompts.md](prompts.md) is a third kind of file: one copy-pasteable prompt per long-running
+campaign — generated-code performance, safety, compiler code mass, compilation speed, compiler
+memory. A campaign spans many sessions and many failed attempts, so each prompt states the target,
+the numbers as they stand, and the condition under which the work is allowed to stop.
+
 ## Intent
 
 | File | Unit |

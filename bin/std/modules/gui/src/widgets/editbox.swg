@@ -34,11 +34,19 @@ enum EditBoxCheckResult
 // Optional behaviour modifiers for the EditBox.
 enum EditBoxFlags
 {
-    None = 0                        // Uses editable left-aligned text without a clear button.
-    ReleaseFocusOnEnterOrEscape     // Releases focus after Enter or Escape.
-    ReadOnly                        // Prevents edits while preserving focus and selection.
-    RightAligned                    // Aligns text to the trailing edge.
-    ClearButton                     // Shows a clear button while content is non-empty.
+    None = 0     // Uses editable left-aligned text without a clear button.
+
+    // Makes the box an edit of its own that Enter and Escape end.
+    //
+    // Enter submits it, Escape puts back the text the box held when it took the focus, and both
+    // release the focus and keep the key. This is for a box that stands for a passing task —
+    // renaming an item in place, filtering a list — and never for a field of a form, whose Enter
+    // belongs to the dialog's default action and whose Escape dismisses the dialog.
+    ReleaseFocusOnEnterOrEscape
+
+    ReadOnly         // Prevents edits while preserving focus and selection.
+    RightAligned     // Aligns text to the trailing edge.
+    ClearButton      // Shows a clear button while content is non-empty.
 }
 
 // Edits and validates a single line of text, optionally as a bounded numeric value.
@@ -58,7 +66,7 @@ struct EditBox
         icon:           Icon                                           // Optional leading icon.
         unit:           String                                         // Optional trailing unit, such as "kg".
         form      = EditBoxForm.Rectangle                              // Current background geometry.
-        flags     = EditBoxFlags.ReleaseFocusOnEnterOrEscape           // Active interaction and presentation options.
+        flags     = EditBoxFlags.None                                  // Active interaction and presentation options.
         inputMode = EditBoxInputMode.Text                              // Current built-in validation mode.
         maximumLength:  s32                                            // Maximum rune count, or zero for no limit.
         trailingMargin: f32                                            // Extra trailing inset in logical units.
@@ -67,13 +75,9 @@ struct EditBox
 
     internal
     {
-        originalText: String     // Text captured when focus was gained
-
-        // Whether the reader has typed into the box since it took the focus. It is what
-        // Escape cancels, so a box the surface around it filled in — a name a file list
-        // wrote here, a value a grid pushed back — is not an edit in progress and does
-        // not hold the key back from the dialog.
-        userEdited: bool
+        // Text the box held when it took the focus. It is what Escape puts back, so an edit
+        // the reader backs out of leaves the value the surface around it had written here.
+        originalText: String
 
         // Numeric bounds used when inputMode is S64/U64/X64/F64.
         using minMax: union
@@ -110,7 +114,6 @@ impl IWnd for EditBox
         {
         case .Gained:
             .originalText = .textStorage
-            .userEdited   = false
             .timerCaret   = .surface!.app.addTimer(500'ms, me)
             .visibleCaret = true
             .computeCaretPos()
@@ -465,21 +468,31 @@ private impl EditBox
                 return true
             }
 
+        // Enter and Escape belong to the box only when it is an edit of its own — see
+        // [[Gui.EditBoxFlags.ReleaseFocusOnEnterOrEscape]]. A plain field is one control of the
+        // window around it: it says what happened through its signals and hands the key on, so
+        // Enter presses the dialog's default action and Escape dismisses the box, from inside a
+        // field exactly as from anywhere else.
         case .Return:
             .sigSubmitted.call(me)
-            if .flags.has(.ReleaseFocusOnEnterOrEscape) do
-                .topView().setFocus()
+            if !.flags.has(.ReleaseFocusOnEnterOrEscape) do
+                return false
+            .topView().setFocus()
             return true
 
         case .Escape:
-            .sigCancelled.call(me)
-            if .flags.has(.ReleaseFocusOnEnterOrEscape) do
-                .topView().setFocus()
+            if !.flags.has(.ReleaseFocusOnEnterOrEscape)
+            {
+                .sigCancelled.call(me)
+                return false
+            }
 
-            // Escape cancels the edit in progress. With nothing typed there is no edit to
-            // cancel, and the key belongs to the window around the box: swallowed here, a
-            // dialog whose field holds the focus could not be dismissed with it at all.
-            return .userEdited
+            // Cancelling an edit is what puts back what was there before it, so the signal
+            // reports a box that already reads the way the reader asked for.
+            .restoreOriginalText()
+            .sigCancelled.call(me)
+            .topView().setFocus()
+            return true
 
         case .Left:
             if ctrl do
@@ -554,7 +567,6 @@ private impl EditBox
     // Inserts a raw UTF‑8 slice without validation.
     mtd insertUtf8(s: string)
     {
-        .userEdited = true
         .deleteSelectionPrivate()
         .textStorage.insert(.selEnd, s)
         .setSelection(.selEnd + @countof(s), .selEnd + @countof(s))
@@ -1068,7 +1080,7 @@ impl EditBox
 {
     // Creates a single-line edit box.
     #[Swag.Discardable]
-    func create(parent: *Wnd, content: #null string, position: Math.Rectangle = {}, id: #null WndId = null, flags: EditBoxFlags = .ReleaseFocusOnEnterOrEscape)->*EditBox
+    func create(parent: *Wnd, content: #null string, position: Math.Rectangle = {}, id: #null WndId = null, flags: EditBoxFlags = .None)->*EditBox
     {
         Debug.assert(parent != null)
         var pos = position
@@ -1091,7 +1103,6 @@ impl EditBox
     {
         if .flags.has(.ReadOnly) do
             return
-        .userEdited = true
         if .deleteSelectionPrivate() do
             .notifyChanged()
     }
@@ -1123,7 +1134,6 @@ impl EditBox
     {
         if .textStorage == str do
             return
-        .userEdited = false
         .sigTextChanged.disable()
         .textStorage.clear()
         .selBeg, .selEnd = 0

@@ -99,6 +99,41 @@ impl FocusOrder
         return .stops[cast(u64) ((index + step) % count)]
     }
 
+    // Returns the stop before or after `from` inside its own group, wrapping around that group.
+    //
+    // A group is the stops that share one parent: the buttons of a command bar, the options of a
+    // panel, the fields a form places on one line. It is what the arrow keys walk, the way a
+    // dialog box walks the controls of one group and leaves Tab to cross the whole box — so
+    // Left and Right on an action bar choose between the actions instead of wandering into the
+    // content above them.
+    //
+    // A stop alone in its group has no group to walk, and answering nothing would make the arrows
+    // read as broken on exactly the surfaces that place one control per row. It falls back to the
+    // full ring, which is [[Gui.FocusOrder.next]].
+    mtd const nextInGroup(from: #null *Wnd, forward = true)->#null *Wnd
+    {
+        let index = .indexOf(from)
+        if index < 0 do
+            return .next(from, forward)
+
+        let parent = .stops[cast(u64) index].parent
+        var group: Array'(*Wnd)
+        var current = 0's64
+        for stop in .stops where stop.parent == parent
+        {
+            if stop == .stops[cast(u64) index] do
+                current = cast(s64) group.count
+            group.add(stop)
+        }
+
+        let count = cast(s64) group.count
+        if count < 2 do
+            return .next(from, forward)
+
+        let step = forward ? 1's64 : count - 1
+        return group[cast(u64) ((current + step) % count)]
+    }
+
     // Returns the first stop, or `null` when the tree holds none.
     mtd const first()->#null *Wnd => .stops.count ? .stops[0] : null
 

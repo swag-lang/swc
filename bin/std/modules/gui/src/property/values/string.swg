@@ -167,7 +167,7 @@ internal impl Properties
                 .dockStyle = .CenterKeepSizeVert
             else do
                 .preferredSize.x = editWidth
-            .updateFlags(.ReadOnly, .ReleaseFocusOnEnterOrEscape)
+            .updateFlags(.ReadOnly)
         }
 
         me.adaptCondensedControl(ed)

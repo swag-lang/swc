@@ -635,10 +635,16 @@ impl Surface
     // Applies the surface-wide keyboard navigation to a key nobody claimed, and reports whether
     // it was used.
     //
-    // Tab and Shift+Tab walk the traversal stops of [[Gui.FocusOrder]]; Enter and Escape press
-    // [[Gui.Surface.defaultButton]] and [[Gui.Surface.cancelButton]]. Every other key belongs to
-    // whatever holds the focus, which is why this runs only once the focused window and its
-    // parents have all declined the event.
+    // Tab and Shift+Tab walk the whole ring of [[Gui.FocusOrder]]; the four arrows walk the group
+    // the focus stands in, so an action bar answers Left and Right by choosing between its own
+    // actions. Enter and Escape press [[Gui.Surface.defaultButton]] and
+    // [[Gui.Surface.cancelButton]]. Every other key belongs to whatever holds the focus, which is
+    // why this runs only once the focused window and its parents have all declined the event —
+    // a field keeps its caret arrows and a list keeps its rows without knowing a traversal exists.
+    //
+    // The arrows navigate bare only. Shift, Control, and Alt turn an arrow into a gesture of its
+    // own — extend a selection, jump by word, reach a drop-down — and a surface that answered
+    // those would take them from the control that declined this press but means to claim the next.
     internal mtd navigateKey(from: *Wnd, key: Input.Key, modifiers: Input.KeyModifiers)->bool
     {
         switch key
@@ -647,6 +653,13 @@ impl Surface
             let backward = cast(bool) (modifiers & Input.KeyModifiers.Shift)
             .app.setFocusVisible(true)
             return from.focusNext(!backward)
+
+        case .Left, .Up, .Right, .Down:
+            if modifiers != .None do
+                return false
+            let forward = key == .Right or key == .Down
+            .app.setFocusVisible(true)
+            return from.focusNextInGroup(forward)
 
         case .Return:
             return .pressStandardButton(.defaultButton)

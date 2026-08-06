@@ -213,6 +213,7 @@ enum WndFlags
     AfterChildrenPaint      // Enables the after-children overlay paint phase.
     TopMost                 // Keeps the window after normal siblings in paint order.
     NoFocusRing             // Suppresses the keyboard-focus ring, for a control that shows the focus its own way.
+    FocusRingOnAccent       // Draws the keyboard-focus ring in the ink of the accent, for a control filled with it.
 }
 
 // Forms one node in a retained GUI tree and provides layout, event, and painting services.
@@ -853,7 +854,7 @@ impl Wnd
         if .focusPolicy == .Tab and !.wndFlags.has(.NoFocusRing) and !bc.isDisabled and .hasVisibleFocus()
         {
             painter.setTransform(curTrs)
-            theme.drawFocusRing(painter, .clientRect())
+            theme.drawFocusRing(painter, .clientRect(), .wndFlags.has(.FocusRingOnAccent))
         }
 
         bc.isDisabled = lastDisabled
@@ -1745,18 +1746,43 @@ impl Wnd
         return true
     }
 
+    // Moves the keyboard focus inside its own group, and reports whether another stop was found.
+    //
+    // This is what the arrow keys walk; see [[Gui.FocusOrder.nextInGroup]] for what a group is.
+    mtd focusNextInGroup(forward = true)->bool
+    {
+        let order = FocusOrder.around(me)
+        let next  = order.nextInGroup(me, forward)
+        if !next do
+            return false
+        next.setFocus()
+        return true
+    }
+
     // Gives the keyboard focus to the first traversal stop of this window's tree.
     //
     // Call it once a surface is fully built, so it opens ready for the keyboard: a form the user
     // can start typing into, a dialog that answers Tab from its first field. A focus that already
     // stands somewhere inside this tree is left where it is — the caller placed it on purpose —
     // and a tree with no stop at all keeps none.
-    mtd setInitialFocus()
+    //
+    // `preferred` is the stop to open on when the reading order is not what the surface means by
+    // "start here": a box whose answer is a default action opens on that action, so the first
+    // Enter presses what the box says it will and not what happens to read first. It is ignored
+    // when it is not a stop of this tree.
+    mtd setInitialFocus(preferred: #null *Wnd = null)
     {
         let order = FocusOrder.collect(me)
         let focus = .focusedWindow()
         if focus and order.indexOf(focus) >= 0 do
             return
+
+        if preferred and order.indexOf(preferred) >= 0
+        {
+            preferred.setFocus()
+            return
+        }
+
         order.first()?.setFocus()
     }
 

@@ -205,7 +205,7 @@ public impl PasswordEdit
         // caret: the mask is this window's, the editing is the box's.
         result.focusPolicy       = .Tab
         result.wndFlags          |= .NoFocusRing
-        result.edit              = EditBox.create(result, "", result.clientRect(), flags: .ReleaseFocusOnEnterOrEscape)
+        result.edit              = EditBox.create(result, "", result.clientRect())
         result.edit.focusPolicy  = .Inner
         result.focusDelegate     = result.edit
         result.edit.hookOnEvent  = func|password = result|(wnd, evt) => password.handleEditEvent(wnd, evt)

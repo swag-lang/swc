@@ -137,9 +137,11 @@ Small, individually cheap, and each one is a visible defect rather than a missin
 ### 6. The two halves of keyboard navigation that are still missing
 
 Traversal itself landed: `FocusPolicy` says what takes the focus and what stops the keyboard,
-`FocusOrder` walks a surface in reading order, Tab and Shift+Tab move through it, Enter and Escape
-stand for `Surface.defaultButton` and `Surface.cancelButton`, and a ring says where the keyboard is
-only when the keyboard is what put it there. Two pieces of the same story are not there yet.
+`FocusOrder` walks a surface in reading order, Tab and Shift+Tab move through the whole ring while
+the four arrows move inside one group, Enter and Escape stand for `Surface.defaultButton` and
+`Surface.cancelButton` from anywhere including a field, a modal opens on the control it means to be
+answered from, and a ring says where the keyboard is — over an accent fill too. Two pieces of the
+same story are not there yet.
 
 - **Nothing scrolls into view.** Tab onto a control inside a `ScrollWnd` moves the focus without
   scrolling, so the keyboard can land somewhere the eye cannot follow. `ListCtrl` and the property

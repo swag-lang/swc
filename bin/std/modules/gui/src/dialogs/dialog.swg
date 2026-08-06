@@ -44,6 +44,23 @@ impl Dialog
         return dlg
     }
 
+    // Returns the control the box opens the keyboard on, or null to take the reading order.
+    //
+    // A box with something to fill in opens on that, and its default action still answers Enter,
+    // because a field hands the key on rather than consuming it. A box that is only a question has
+    // no such control: the first key the reader presses is the answer, and a focused button answers
+    // Enter itself, so the box opens on the action it names as its default instead of on whichever
+    // button reads first — which is how a confirmation defaulting to `No` would have answered `Yes`.
+    mtd keyboardEntry()->#null *Wnd
+    {
+        let first = FocusOrder.collect(.surface!.wnd).first()
+        if !first do
+            return null
+        for btn in .buttons where cast(*Wnd) btn == first do
+            return .surface!.defaultButton
+        return null
+    }
+
     // Returns the button Escape and the close cross stand for, or null when the box offers
     // no way out other than answering it.
     mtd const cancelButton()->#null *PushButton
@@ -93,12 +110,17 @@ impl Dialog
 
     // Runs the dialog modally and returns the accepted button identifier.
     //
-    // The box opens ready for the keyboard: the focus goes to its first control unless the caller
-    // already placed it, so a dialog can be answered and dismissed without the pointer.
+    // The box opens ready for the keyboard: the focus goes where [[Gui.Dialog.keyboardEntry]] says,
+    // unless the caller already placed it, so a dialog can be answered and dismissed without the
+    // pointer.
+    //
+    // The ring showing where the keys will go is turned on with the box rather than by the first
+    // Tab. A modal is a question, and the reader has to be told what pressing Enter now decides.
     mtd doModal()->WndId
     {
         let surface = .surface!
-        surface.wnd.setInitialFocus()
+        surface.wnd.setInitialFocus(.keyboardEntry())
+        surface.app.setFocusVisible(true)
         surface.bringToFront()
         surface.show()
         if .parentSurface and .parentSurface.isTopMost() do

@@ -16,9 +16,13 @@ impl Theme
     // Its four corners are cut at 45 degrees, by [[Gui.ThemeMetrics.focusRing_Cut]]: a square
     // corner sitting a couple of pixels inside a rounded one crosses it, and the cut is the
     // identity's own answer to a corner anyway.
-    mtd drawFocusRing(painter: *Painter, rect: Math.Rectangle)
+    //
+    // `onAccent` is for a control filled with the accent — the default action of a dialog — whose
+    // fill the ring would otherwise be drawn in and disappear into. See
+    // [[Gui.ThemeColors.focusRingOnAccent]].
+    mtd drawFocusRing(painter: *Painter, rect: Math.Rectangle, onAccent = false)
     {
-        let color = .colors.focusRing
+        let color = onAccent ? .colors.focusRingOnAccent : .colors.focusRing
         if color.a == 0 do
             return
 

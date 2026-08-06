@@ -27,6 +27,14 @@ struct ThemeColors
     hilightLightContrast: Color     // Ink legible on a fill of the accent.
     activeRail:           Color     // Narrow rule marking active and selected controls, or transparent when unused.
     focusRing:            Color     // Ring drawn around the control the keyboard focus is on.
+
+    // The same ring, on a control whose own fill is the accent.
+    //
+    // The ring points in the accent, so drawn over a block of it there is nothing left to see —
+    // and the default action of a dialog, which is exactly the control the keyboard opens on, is
+    // such a block.
+    focusRingOnAccent: Color
+
     error:                Color     // Text and glyphs reporting an operation that stopped.
     disabled:             Color     // Ink and rules of anything the reader cannot act on.
     transparent:          Color     // Nothing drawn. Always zero; named so a sheet can point a part at it.
@@ -477,6 +485,7 @@ impl ThemeColors
         .hilightLightContrast = p.onAccent
         .activeRail           = p.railed ? p.accent : .transparent
         .focusRing            = p.accent
+        .focusRingOnAccent    = p.onAccent
         .error                = p.error
         .disabled             = p.disabled
         .transparent          = 0

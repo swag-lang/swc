@@ -253,8 +253,8 @@ impl PushButton
         if pos.width == 0 do
             pos.width = parent.themeMetrics().btnPush_Width
         let res = Wnd.create'PushButton(parent, name, pos, id)
-        res.form        = form
         res.focusPolicy = .Tab
+        res.applyForm(form)
 
         // An unstated width belongs to the caption: the theme width above only gives the
         // button a sane size until the first layout pass measures it, and stays its floor.
@@ -270,8 +270,22 @@ impl PushButton
     {
         if .form == form do
             return
-        .form = form
+        .applyForm(form)
         .invalidate()
+    }
+
+    // Records the emphasis and the ink the focus ring needs to stay visible over it.
+    //
+    // The default and the strong action are blocks of the accent, and the ring points in the
+    // accent: drawn there in its usual color it disappears into the fill, which is precisely the
+    // button a dialog opens the keyboard on.
+    private mtd applyForm(form: PushButtonForm)
+    {
+        .form = form
+        if form == .Default or form == .Strong do
+            .wndFlags.add(.FocusRingOnAccent)
+        else do
+            .wndFlags.remove(.FocusRingOnAccent)
     }
 
     // Pins the button width to its label instead of leaving it to the layout pass.

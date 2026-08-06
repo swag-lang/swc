@@ -222,7 +222,9 @@ impl RadioButton
     // Selects the next or previous option of this button's group, and reports whether one was
     // found.
     //
-    // The order is the order the options were created in, it does not wrap, and an ungrouped
+    // The order is the order the options were created in and it wraps, so the arrows stay inside
+    // the group however long they are held: a group that let the last option pass the key on
+    // would hand the keyboard to whatever stands beside it, which is what Tab is for. An ungrouped
     // button has nothing to move to. The selected option takes the keyboard with it, so the ring
     // keeps standing on the option that is checked.
     mtd selectSibling(forward: bool)->bool
@@ -244,11 +246,12 @@ impl RadioButton
             group.add(other)
         }
 
-        let target = current + (forward ? 1 : -1)
-        if target < 0 or target >= cast(s64) group.count do
+        let count = cast(s64) group.count
+        if count < 2 do
             return false
 
-        let next = group[cast(u64) target]
+        let step = forward ? 1's64 : count - 1
+        let next = group[cast(u64) ((current + step) % count)]
         next.selectFromUser()
         next.setFocus()
         return true

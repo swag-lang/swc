@@ -190,6 +190,11 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     @assert(c.isChecked())
     @assert(c.hasFocus())
 
+    // The group wraps rather than handing the keyboard to the button beside it.
+    host.keyPress(Input.Key.Down)
+    @assert(a.isChecked())
+    @assert(a.hasFocus())
+
     host.keyPress(Input.Key.Tab)
     @assert(after.hasFocus())
 }
@@ -229,6 +234,121 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     @assert(host.commandCount == previous)
 }
 
+// The arrows walk the group the focus stands in; Tab is what crosses the whole box.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(400, 200)
+    defer host.shutdown()
+
+    let field = EditBox.create(&host.root, "", {10, 10, 200, 24})
+    let bar   = Wnd.create'Wnd(&host.root, {10, 60, 300, 40})
+    let yes   = PushButton.create(bar, "Yes", {0, 0, 80, 24})
+    let no    = PushButton.create(bar, "No", {90, 0, 80, 24})
+    let more  = PushButton.create(bar, "More", {180, 0, 80, 24})
+
+    yes.setFocus()
+    host.keyPress(Input.Key.Right)
+    @assert(no.hasFocus())
+    host.keyPress(Input.Key.Down)
+    @assert(more.hasFocus())
+
+    // The bar wraps on itself rather than reaching the field above it.
+    host.keyPress(Input.Key.Right)
+    @assert(yes.hasFocus())
+    host.keyPress(Input.Key.Left)
+    @assert(more.hasFocus())
+
+    host.keyPress(Input.Key.Tab)
+    @assert(field.hasFocus())
+}
+
+// A stop alone in its group answers the arrows with the whole ring, and a modified arrow is a
+// gesture of the control rather than a traversal.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(400, 200)
+    defer host.shutdown()
+
+    let alone = PushButton.create(&host.root, "A", {10, 10, 80, 24})
+    let box   = Wnd.create'Wnd(&host.root, {10, 60, 200, 40})
+    let inner = PushButton.create(box, "B", {0, 0, 80, 24})
+
+    inner.setFocus()
+    host.keyPress(Input.Key.Right)
+    @assert(alone.hasFocus())
+
+    host.keyPress(Input.Key.Right, Input.KeyModifiers.Shift)
+    @assert(alone.hasFocus())
+    host.keyPress(Input.Key.Right, Input.KeyModifiers.Control)
+    @assert(alone.hasFocus())
+}
+
+// A box opens on the action it names as its default, with the ring already showing.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 240)
+    defer host.shutdown()
+
+    let dlg = Dialog.create(&host.surface, 260, 150, title: "Confirm")
+    dlg.addButton("Yes", Dialog.BtnYes)
+    let no = dlg.addButton("No", Dialog.BtnNo, true)
+
+    var checked: bool
+    host.app.sigFrame += func|host = &host, no, checked = &checked|(app)
+    {
+        discard app
+        if dref checked do
+            return
+        dref checked = true
+
+        // Reading order would have opened on `Yes`, and a focused button answers Enter itself:
+        // the box would have answered yes to a question whose default is no.
+        @assert(no.hasFocus())
+        @assert(no.hasVisibleFocus())
+        @assert(host.clickModalButton(Dialog.BtnNo))
+    }
+
+    @assert(dlg.doModal() == Dialog.BtnNo)
+    @assert(checked)
+}
+
+// A box with something to fill in opens on that instead, and its default still answers Enter.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 240)
+    defer host.shutdown()
+
+    let dlg   = Dialog.create(&host.surface, 260, 160, title: "Rename")
+    let field = EditBox.create(dlg.view(), "name", {20, 20, 180, 26})
+    dlg.addButton("Ok", Dialog.BtnOk, true)
+    dlg.addButton("Cancel", Dialog.BtnCancel)
+
+    // The bar is docked, so it only stands below the field once the box has been laid out — and
+    // reading order is what decides which of the two the keyboard opens on.
+    dlg.applyLayout()
+
+    var checked: bool
+    host.app.sigFrame += func|host = &host, field, checked = &checked|(app)
+    {
+        discard app
+        if dref checked do
+            return
+        dref checked = true
+
+        @assert(field.hasFocus())
+
+        // The field declines Enter, so the box still answers with the action it named.
+        host.keyPress(Input.Key.Return)
+    }
+
+    @assert(dlg.doModal() == Dialog.BtnOk)
+    @assert(checked)
+}
+
 // What the ring looks like on a control that has nothing else to show for the focus.
 //
 // The image is the contract: a rule inside the button, one accent, and nothing on the same button
@@ -257,4 +377,25 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     @assert(button.hasFocus() and !button.hasVisibleFocus())
     let pressed = host.render()
     @assert(Memory.compare(pressed.pixels.buffer, ringed.pixels.buffer, pressed.byteCount) != 0)
+}
+
+// The same ring on a button filled with the accent, which is the one a box opens on.
+//
+// The ring points in the accent, so over that fill it has to be drawn in the ink the fill carries
+// or there is nothing left to see. The image is the contract.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(120, 64)
+    defer host.shutdown()
+
+    let button = PushButton.create(&host.root, "Go", {20, 16, 80, 32}, form: .Default)
+    let idle   = host.render()
+
+    host.keyPress(Input.Key.Tab)
+    @assert(button.hasVisibleFocus())
+
+    let ringed = host.render()
+    @assert(Memory.compare(ringed.pixels.buffer, idle.pixels.buffer, ringed.byteCount) != 0)
+    Pixel.Testing.assertImageGolden(&ringed, "focus.ring.pushbutton.default")
 }

@@ -3,6 +3,9 @@
 
 using Swag, Core
 
+const EditHeadless_Default = "EditHeadless.Default"
+const EditHeadless_Cancel  = "EditHeadless.Cancel"
+
 var EditHeadlessEnterCount:  u32
 var EditHeadlessEscapeCount: u32
 
@@ -358,4 +361,57 @@ func editHeadlessEscape(eb: *EditBox)
 
     host.keyPress(Input.Key.Escape)
     @assert(EditHeadlessEscapeCount == 1)
+}
+
+// A field of a form hands Enter and Escape to the surface, whatever was typed into it.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 120)
+    defer host.shutdown()
+    host.recordCommands()
+
+    let ok     = PushButton.create(&host.root, "Ok", {10, 10, 80, 24}, EditHeadless_Default)
+    let cancel = PushButton.create(&host.root, "Cancel", {100, 10, 80, 24}, EditHeadless_Cancel)
+    let field  = EditBox.create(&host.root, "kept", {10, 50, 200, 26})
+
+    host.surface.defaultButton = ok
+    host.surface.cancelButton  = cancel
+
+    field.setFocus()
+    field.setText("typed")
+
+    host.keyPress(Input.Key.Return)
+    @assert(host.lastCommand == EditHeadless_Default)
+
+    host.keyPress(Input.Key.Escape)
+    @assert(host.lastCommand == EditHeadless_Cancel)
+
+    // The field neither answered for the box nor undid itself: it is one control of a form the
+    // reader is dismissing whole.
+    @assert(field.text() == "typed")
+    @assert(field.hasFocus())
+}
+
+// A box that is an edit of its own keeps both keys: Escape puts back what it was given and
+// releases the focus, and the surface never hears about it.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 120)
+    defer host.shutdown()
+    host.recordCommands()
+
+    let cancel = PushButton.create(&host.root, "Cancel", {100, 10, 80, 24}, EditHeadless_Cancel)
+    let field  = EditBox.create(&host.root, "kept", {10, 50, 200, 26}, null, EditBoxFlags.ReleaseFocusOnEnterOrEscape)
+    host.surface.cancelButton = cancel
+
+    field.setFocus()
+    field.setText("typed")
+
+    let before = host.commandCount
+    host.keyPress(Input.Key.Escape)
+    @assert(host.commandCount == before)
+    @assert(field.text() == "kept")
+    @assert(!field.hasFocus())
 }

@@ -24,6 +24,8 @@ ui_ContainerPassword   Vide si le coffre n'en a pas
 ui_ExistingContainer   Conteneur chiffré
 ui_DriveLetter         LETTRE DE LECTEUR
 ui_DriveHelp           Le lecteur est disponible pour Windows tant que sCrypt s'exécute, et apparaît dans la liste de droite.
+ui_ReadOnly            Monter en lecture seule
+ui_ReadOnlyHelp        Le lecteur s'ouvre en lecture seule : rien ne peut ajouter au coffre, le modifier ni en supprimer tant qu'il est monté.
 ui_RemovePasswordHelp  Laissez vide pour supprimer le mot de passe. Le coffre s'ouvrira alors sans mot de passe.
 ui_CurrentCapacityHelp Actuellement %. Un coffre ne peut que grandir.
 ui_CreateVault         Créer le coffre chiffré
@@ -73,6 +75,7 @@ msg_Created            Conteneur créé. Il est prêt à être ouvert.
 msg_MountFailed        Impossible de monter le disque virtuel.
 msg_MountStopped       Le montage s'est arrêté.
 msg_Mounted            Lecteur chiffré monté sur %.
+msg_MountedReadOnly    Lecteur chiffré monté en lecture seule sur %.
 msg_UnmountSyncStopped Le lecteur a été démonté, mais la synchronisation finale s'est arrêtée.
 msg_Unmounted          Lecteur démonté en toute sécurité.
 msg_OnlyGrows          Un coffre ne peut que grandir. Choisissez une capacité supérieure à l'actuelle.
@@ -93,6 +96,7 @@ msg_ErrDamaged           Le conteneur est endommagé.
 msg_ErrNotFound          Le conteneur est introuvable.
 msg_ErrAlreadyExists     Un fichier portant ce nom existe déjà.
 msg_ErrAccessDenied      L'accès au conteneur a été refusé.
+msg_ErrReadOnly          Le coffre est monté en lecture seule.
 msg_ErrDiskFull          Il n'y a plus de place dans le conteneur.
 msg_ErrIo                Le conteneur n'a pas pu être lu ou écrit.
 msg_ErrInvalidRequest    Le conteneur ne peut pas répondre à cette demande.

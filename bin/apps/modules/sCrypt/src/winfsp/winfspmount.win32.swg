@@ -4,6 +4,16 @@ using Core
 
 namespace WinFsp
 {
+    // Bits of `FSP_FSCTL_VOLUME_PARAMS.Flags`, which WinFsp declares as a bitfield and therefore
+    // gives no names an importer can use. The positions are the declaration order of that
+    // bitfield; they are part of the driver ABI and move only with a new WinFsp version.
+    const VolumeCasePreservedNames   = 1'u32 << 1
+    const VolumeUnicodeOnDisk        = 1'u32 << 2
+    const VolumePersistentAcls       = 1'u32 << 3
+    const VolumeReadOnly             = 1'u32 << 9
+    const VolumePostCleanupModified  = 1'u32 << 10
+    const VolumePassDirectoryName    = 1'u32 << 13
+
     #[Swag.NoCopy]
     struct WinFspMount
     {
@@ -62,7 +72,14 @@ namespace WinFsp
             params.volumeSerialNumber = volumeSerialNumber(params.volumeCreationTime)
             traceWinFspStage("volume identity initialized")
             params.fileInfoTimeout = 1000
-            params.flags           = (1'u32 << 1) | (1'u32 << 2) | (1'u32 << 3) | (1'u32 << 10) | (1'u32 << 13)
+            params.flags           = VolumeCasePreservedNames | VolumeUnicodeOnDisk | VolumePersistentAcls | VolumePostCleanupModified | VolumePassDirectoryName
+
+            // Saying it here is what makes Explorer, and every program that asks Windows before
+            // it tries, treat the drive as read only. The volume refuses the write on its own
+            // too — see [[Volume.open]] — but a refusal that arrives as a failed write is a
+            // program reporting an error, where this one is a drive that never offered.
+            if volume.readOnly do
+                params.flags |= VolumeReadOnly
             traceWinFspStage("volume flags initialized")
             let fileSystemName = Utf16.toZeroTerminated("sCrypt")
             traceWinFspStage("copying filesystem name")

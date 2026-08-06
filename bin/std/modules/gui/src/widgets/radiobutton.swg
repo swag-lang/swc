@@ -119,6 +119,11 @@ impl IWnd for RadioButton
             labelPos.x += posBox.width + metrics.btnCheck_Padding
         labelPos.width -= posBox.width + metrics.btnCheck_Padding
         Theme.drawIconText(bc.painter, labelPos, .icon, &.name, format, metrics.iconText_Margin)
+
+        // The box and the wording are one target, and the ring is drawn around that rather than
+        // around the cell the layout gave the control. See [[Gui.Button.markerFocusRect]].
+        if !bc.isDisabled and .showsFocusRing() do
+            theme.drawFocusRing(bc.painter, .markerFocusRect(posBox))
     }
 
     // Reports the room the radio box, its padding, and the caption need.
@@ -180,6 +185,10 @@ impl RadioButton
         let result = Wnd.create'RadioButton(parent, name, pos, id)
         result.flags       = flags
         result.focusPolicy = .Tab
+
+        // The ring is drawn by the paint, around the box and its wording rather than around the
+        // cell, so the generic one is turned off.
+        result.wndFlags |= .NoFocusRing
 
         // An unstated width belongs to the caption; the theme width above stays its floor.
         if position.width == 0 do

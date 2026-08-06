@@ -43,9 +43,9 @@ struct FormLayoutRow
 
 // Arranges labeled fields from a compact row description instead of fixed coordinates.
 //
-// The `addTextField`, `addPasswordField`, and `addChoiceField` builders create a control,
-// append its labeled row, and return the concrete control, so a caller never looks a field
-// up by name. Add the optional trailing control of the row that was just appended with
+// The `addTextField`, `addPasswordField`, `addChoiceField`, and `addOptionField` builders
+// create a control, append its row, and return the concrete control, so a caller never looks
+// a field up by name. Add the optional trailing control of the row that was just appended with
 // [[Gui.FormLayoutCtrl.addRowAction]] or [[Gui.FormLayoutCtrl.addRowChoice]]. Use
 // [[Gui.FormLayoutCtrl.addField]] directly for a control the builders do not create.
 //
@@ -119,8 +119,18 @@ private impl FormLayoutCtrl
 
     mtd arrangeRowAbove(row: const *FormLayoutRow, client: Math.Rectangle, y: f32)->f32
     {
-        row.label.arrange({client.x, y, client.width, .options.labelHeight})
-        var cursor = y + .options.labelHeight + .options.labelSpacing
+        // A row with no name spends no line on one. An option carries its wording on the control
+        // itself, and a blank label above it reserves the height of a name that is not there —
+        // which reads as the option having drifted away from the field it qualifies.
+        var cursor = y
+        if @countof(row.label.name) != 0
+        {
+            row.label.arrange({client.x, y, client.width, .options.labelHeight})
+            cursor += .options.labelHeight + .options.labelSpacing
+        }
+        else do
+            row.label.arrange({client.x, y, client.width, 0})
+
         let height = .rowFieldHeight(row, {client.width, client.height})
 
         var actionWidth = 0'f32
@@ -268,6 +278,19 @@ impl FormLayoutCtrl
     {
         let result = ComboBox.create(me, id: id)
         discard .addField(label, result, null, help)
+        return result
+    }
+
+    // Creates an option the reader turns on or off, appends its row, and returns the check box.
+    //
+    // The wording belongs to the box and the label column is left empty on purpose: an option
+    // already says what checking it does, and a name beside it would only say the same thing
+    // twice. The box therefore lines up under the fields rather than under their names, which is
+    // where the reader is already looking.
+    mtd addOptionField(text: string, help: #null string = null, id: #null WndId = null)->*CheckButton
+    {
+        let result = CheckButton.create(me, text, id: id)
+        discard .addField("", result, null, help)
         return result
     }
 

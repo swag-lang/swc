@@ -573,3 +573,50 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     @assert(Memory.compare(ringed.pixels.buffer, idle.pixels.buffer, ringed.byteCount) != 0)
     Pixel.Testing.assertImageGolden(&ringed, "focus.ring.pushbutton.default")
 }
+
+// The ring takes the corner of the control, and the corner is a decision the palette makes.
+//
+// The Swag palettes point a push button at the edit tiles, so the same button is a capsule under
+// the neutral theme and a square-cornered tile under theirs. The image is the contract: a mark
+// shaped for the capsule and carried onto the tile crosses its own control at all four corners.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(120, 64)
+    defer host.shutdown()
+
+    host.theme.setSwagDark()
+    host.theme.metrics.surfaceWnd_ShadowSize   = 0
+    host.theme.metrics.surfaceWnd_CornerRadius = 0
+    host.app.notifyThemeChanged()
+
+    let button = PushButton.create(&host.root, "Go", {20, 16, 80, 32})
+    host.keyPress(Input.Key.Tab)
+    @assert(button.hasVisibleFocus())
+
+    host.settleAnimations()
+    let ringed = host.render()
+    Pixel.Testing.assertImageGolden(&ringed, "focus.ring.pushbutton.swag")
+}
+
+// The ring on a switch that is on, which is the state a keyboard most often lands on.
+//
+// A switched-on toggle is filled with the accent, and the accent is what the ring points in, so
+// the ring has to be drawn in the ink that fill carries. The image is the contract; before it
+// existed the mark simply disappeared on half of the toggles of a surface.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(96, 56)
+    defer host.shutdown()
+
+    let toggle = ToggleButton.create(&host.root, {20, 15, 56, 26})
+    toggle.setChecked(true)
+
+    host.keyPress(Input.Key.Tab)
+    @assert(toggle.hasVisibleFocus())
+
+    host.settleAnimations()
+    let ringed = host.render()
+    Pixel.Testing.assertImageGolden(&ringed, "focus.ring.toggle.on")
+}

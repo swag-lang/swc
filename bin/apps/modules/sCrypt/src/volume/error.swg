@@ -16,6 +16,7 @@ enum ErrorKind
     NotFound              // The named entry, or a password slot, does not exist.
     AlreadyExists         // The name is taken.
     AccessDenied          // The entry exists and refuses the operation.
+    WriteProtected        // The container is open read only and refuses every change.
     NotDirectory          // A directory was needed, and the entry is a file.
     IsDirectory           // A file was needed, and the entry is a directory.
     DirectoryNotEmpty     // The directory still holds entries.

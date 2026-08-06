@@ -82,6 +82,8 @@ struct Strings
     prop_ShowClipRectDesc:    string = "Display an overlay of the current drawing clipping rectangle"     // Description of [[Gui.ApplicationOptions.showClipRect]].
     prop_ShowLayoutRects:     string = "Show Layout Rects"                                                // Label of [[Gui.ApplicationOptions.showLayoutRects]].
     prop_ShowLayoutRectsDesc: string = "Display layout rectangles computed by layout controls"            // Description of [[Gui.ApplicationOptions.showLayoutRects]].
+    prop_ShowFocusRings:      string = "Show Focus Rings"                                                 // Label of [[Gui.ApplicationOptions.showFocusRings]].
+    prop_ShowFocusRingsDesc:  string = "Draw the keyboard-focus ring on every control that can take the keyboard"     // Description of [[Gui.ApplicationOptions.showFocusRings]].
     prop_DumpLayoutTree:      string = "Dump Layout Tree"                                                 // Label of [[Gui.ApplicationOptions.dumpLayoutTree]].
     prop_DumpLayoutTreeDesc:  string = "Enable layout tree dumps from debug tooling"                      // Description of [[Gui.ApplicationOptions.dumpLayoutTree]].
 }

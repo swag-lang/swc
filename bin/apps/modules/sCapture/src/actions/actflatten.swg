@@ -15,8 +15,8 @@ impl IActionUI for ActionFlatten
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
         return updateFromTable(cxt, evt, [
-            {Flatten,    "Flatten",     .Selection},
-            {FlattenAll, "Flatten All", .Forms}])
+            {Flatten,    appStrings().act_Flatten,    .Selection},
+            {FlattenAll, appStrings().act_FlattenAll, .Forms}])
     }
 
     mtd impl execute(cxt: ActionContext)->bool

@@ -104,6 +104,32 @@ disabled dial whose ring was the enabled ring, a disabled checked tool wearing t
 rail, a disabled icon painted white — all three shipped, and all three read as *more* available
 than the enabled control beside them.
 
+### A mark drawn over a control takes that control's shape
+
+The keyboard-focus ring is the worked example, and every rule it follows applies to anything else
+drawn *over* a control rather than *by* it.
+
+- **Take the corner from what you are marking, not from the theme.** A palette decides the shape of
+  a control — `setSwagGeometry` points a push button at the edit tiles, so the same button is a
+  capsule under one palette and a square-cornered tile under another. A mark with a corner of its
+  own therefore crosses its own control at four places in exactly one of them.
+  [[Gui.ThemeImageRect.radius]] is where a tile says what corner it draws, so a widget publishes it
+  from the tile it painted ([[Gui.Wnd.focusRingRadius]]) and the mark steps it in by its own inset
+  to stay concentric.
+- **Keep clear of the border, and check that you did.** A mark inset by less than the border it
+  sits inside merges with it and reads as a thicker edge rather than as a second thing. The Swag
+  palettes are where this shows first, because they point and border in the same Ink.
+- **A mark that points in the accent has to be told what it lands on.** The accent is invisible on
+  a control filled with that same accent — a dialog's default action, a switched-on toggle, a
+  picked tool. Publish the fill ([[Gui.Wnd.focusRingGround]]) and let the theme pick between
+  `focusRing` and `focusRingOnAccent` by contrast. Deciding by contrast rather than by a flag each
+  widget sets is what makes it hold in a palette nobody wrote the widget for — and the flag it
+  replaced was, in fact, set on push buttons and forgotten on toggles and tool buttons.
+- **Hug the content when the cell is not the control.** A check box laid out in a column of a form
+  takes the column's width, and a ring around that encloses as much empty ground as content. Widgets
+  in that shape carry `WndFlags.NoFocusRing` and draw their own mark around the marker and its
+  wording — see [[Gui.Button.markerFocusRect]].
+
 ### Never hardcode a color in a widget
 
 A literal in a widget is a color no theme can answer for. The exceptions are named and few:
@@ -156,7 +182,20 @@ it is the tool for this work. `tools/examples.bat run gui10`.
   follow the reader into the other mode. Run it after any change to `apply`.
 - **Metrics** — every `ThemeMetrics` value.
 - **Widgets** — every widget in every state a palette answers for. Hover and press are left to
-  the pointer, which is why this page is scrolled through by hand.
+  the pointer, which is why this page is scrolled through by hand. Its **focus rings** switch turns
+  on [[Gui.ApplicationOptions.showFocusRings]].
+
+### Show a singular state on everything at once
+
+Only one control of a surface can hold the keyboard, so the focus mark is the one state the wall
+cannot show by standing still — and judging it by tabbing is one screen per control, times one pass
+per palette. `showFocusRings` draws the ring on every traversal stop instead, which turns that walk
+into four images and is what made the toggle and the tool button confess that their ring had never
+been visible at all.
+
+Any state with the same shape — a singular one you would otherwise have to drive the surface into —
+deserves the same treatment: a diagnostic in `ApplicationOptions`, a switch on the wall, and no
+attempt to reproduce it by hand.
 
 The sheets are built from reflection, so a field added to either struct appears without touching
 the example. Do not hand-list names there.

@@ -7,6 +7,7 @@ struct MountedDrive
     path:          String                          // Container file the drive reads and writes.
     drive:         String                          // Drive letter Windows shows it on.
     needsPassword: bool                            // Whether a password was needed to open the container.
+    readOnly:      bool                            // Whether the drive was mounted for reading alone.
     atStartup:     bool                            // Whether sCrypt mounts this container again the next time it starts.
 }
 
@@ -49,8 +50,11 @@ impl MountedDrives
     // Width of the two columns whose content has a known shape. The vault name takes what they
     // leave, because it is the one column a reader actually needs wide.
     const StartupColumnWidth = 92'f32
-    const DriveColumnWidth   = 62'f32
+    const DriveColumnWidth   = 78'f32
     const MinimumVaultWidth  = 120'f32
+
+    // Side of the padlock a read-only drive carries, at the row size of the chart.
+    const LockIconSize = 16'f32
 
     func create(parent: *Wnd)->MountedDrives
     {
@@ -83,6 +87,12 @@ impl MountedDrives
         list.addColumn(appStrings().ui_ColDrive, DriveColumnWidth)
         list.addColumn(appStrings().ui_ColVault, MinimumVaultWidth)
 
+        // Only a read-only drive carries a padlock, and the lane it stands in is reserved on every
+        // row whatever the state: sized to its content, the column would put the letters of two
+        // drives at two different places and the reader would read the difference as a typo.
+        list.setIconSize(LockIconSize)
+        list.header.itemAt(cast(u32) MountedColumn.Drive).reservesIconSpace = true
+
         // An empty table is a card with a heading and nothing under it, which reads as a table
         // that failed to load. One quiet line says the truth instead, and steps aside the
         // moment there is a row to show.
@@ -107,7 +117,14 @@ impl MountedDrives
         {
             let line = .list.createLine("")
             line.canCheck = true
-            line.setItem(cast(u32) MountedColumn.Drive, one.drive.toString())
+
+            // The padlock is the whole of what says the drive is read only, so it stands on the
+            // letter itself: a mark in the vault column would read as a property of the file,
+            // and the file is exactly as writable as it ever was.
+            var driveIcon: Icon
+            if one.readOnly do
+                driveIcon = .list.theme().icon(ThemeIcons.Lock, LockIconSize)
+            line.setItem(cast(u32) MountedColumn.Drive, one.drive.toString(), driveIcon)
             line.setItem(cast(u32) MountedColumn.Vault, Path.fileName(one.path.toString()) orelse one.path.toString())
         }
 

@@ -14,9 +14,13 @@ namespace WinFsp
 
     impl MountedVolume
     {
-        mtd open(path: string, password: const [..] u8, mountPoint: string) fail
+        // Opens the container and exposes it on `mountPoint`.
+        //
+        // `readOnly` travels no further than [[Volume.open]] and the volume parameters WinFsp is
+        // given: the drive is what carries the state, so nothing here has to remember it.
+        mtd open(path: string, password: const [..] u8, mountPoint: string, readOnly = false) fail
         {
-            .volume     = Volume.open(path, password)
+            .volume     = Volume.open(path, password, readOnly)
             .volumeOpen = true
             traceWinFspStage("calling WinFspMount.start from MountedVolume.open")
             discard catch .mount.start(&.volume, mountPoint) as mountError
@@ -41,7 +45,7 @@ namespace WinFsp
                     .volumeOpen = false
                 }
 
-                if .volume.dirty do
+                if .volume.dirty and !.volume.readOnly do
                     .volume.commit()
             }
         }

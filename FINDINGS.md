@@ -21,7 +21,7 @@ identifier, so a reference made today still resolves after the entry is gone. En
 identifier, ascending: a new one goes at the end, a deleted one leaves a gap, and position carries
 no priority.
 
-Next identifier: F-032
+Next identifier: F-035
 
 ## Open Investigations
 
@@ -434,3 +434,65 @@ Use this compact format. Keep observations factual and make the next step action
 - Next step: decide which keys a rich edit really claims. Tab is deliberate and documented;
   Escape is not obviously so while the surface names a cancel action. Mark only what was used, the
   way `EditBox.keyPressed` already does ([editbox.swg:372](bin/std/modules/gui/src/widgets/editbox.swg#L372)).
+
+### F-032 — A check box does not line up with the fields of the form it stands in
+
+- Area: std/gui
+- Found while: adding the read-only option to the sCrypt open-vault card, which put the first
+  check box of that surface directly under a column of edit boxes.
+- Observation: `ThemeMetrics.btnCheck_Size` is 24 and is what `CheckButton` and `RadioButton`
+  place their marker with, but the atlas tiles behind it carry their shape inset inside their cell
+  (`check_bk` is a 22-unit square at 5,5 of a 32-unit tile), so the *ink* of the box starts about
+  3.75 logical pixels inside the rectangle the widget was given. A box placed at the left edge of a
+  form column therefore reads as indented against every field above it.
+- Evidence: measured on the rendered surface, `bin/apps/modules/sCrypt` in `swagLightPalette`: the
+  edit borders of the middle card start at x=572 and the check box ink starts at x=575.
+- Next step: decide who owns the difference. Either the tiles fill their cell and `btnCheck_Size`
+  becomes the ink (which changes the drawn box everywhere, from about 16.5 to 24 logical pixels),
+  or the widgets learn the inset and place the cell so the ink lands on the rectangle they were
+  given. The second keeps the drawn size and is the smaller change, but it needs the inset to come
+  from the theme rather than from a constant in the widget — `ThemeImageRect` is where the atlas
+  already describes itself.
+
+### F-033 — The sCapture main window cannot be painted headlessly
+
+- Area: apps/sCapture
+- Found while: photographing both shipped surfaces in every palette, to review them without a
+  desktop. sCrypt renders; sCapture faults.
+- Observation: a headless host that builds the real window with `MainWnd.create(&gui.root)` — the
+  same call `dialogs.test.swg` already makes and which succeeds — dies with an access violation
+  (0xC0000005) as soon as that window is laid out and painted. Creating it and never painting it is
+  fine, which is what every existing test does.
+- Evidence: reproduced four times, in release, with and without a `Capture` set on the edit view,
+  with and without `Library.init` through `testUseScratchLibrary`, and with and without a theme
+  broadcast — the fault survives all six combinations, so it is neither the capture, nor the
+  library, nor the harness change made in the same task. The 127 other tests of the module pass in
+  the same binary.
+- Next step: bisect the paint rather than the setup. `MainWnd.create` builds a command row, a tool
+  rail, an edit window, a recent bar and a right bar; hide them one at a time before the first
+  `settleAnimations` and find which subtree faults. The likely shapes are a renderer resource a
+  real start creates and the fixture does not, or a monitor list — `Env.getMonitors()` is read at
+  construction and is empty on a headless run.
+- Why it matters beyond the crash: sCapture has 128 tests and none of them can see the window, so
+  no appearance regression in the one application that *is* a visual tool can ever fail a test.
+  The same photograph is one test away for sCrypt and impossible here.
+
+### F-034 — sCapture dies when its window is moved and resized in one call
+
+- Area: apps/sCapture, std/gui
+- Found while: driving the shipped window from a script to photograph its pages. The window opens
+  maximized across a two-monitor desktop, so a capture has to bring it back onto one screen first.
+- Observation: `SetWindowPos(hwnd, HWND_TOPMOST, 40, 40, 2400, 1500, 0)` — one call that moves,
+  resizes and raises — kills the process three times out of four. The same call with `SWP_NOSIZE`
+  (move only) has never killed it. Dragging the window by hand does not either, which is why the
+  application looks healthy in normal use.
+- Evidence: reproduced from a plain PowerShell driver against the packaged build, four attempts,
+  three deaths, no window left behind. `GetWindowRect` on the survivor returns the requested
+  rectangle, so the call itself succeeds before the process goes.
+- Suspicion, not conclusion: the two monitors of this desktop are at different scales, so that one
+  call crosses a DPI boundary *and* changes the client size in the same message. The surface
+  rebuilds its render target on a size change and re-reads its scale on a DPI change; doing both
+  from one message is the path a hand-drag never takes.
+- Next step: reproduce with a minimal `gui2`-sized example under the same two-monitor arrangement,
+  then bisect: move-only across the boundary, resize-only on one screen, then both. If it is the
+  DPI crossing, `Surface` is where the ordering of the two rebuilds is decided.

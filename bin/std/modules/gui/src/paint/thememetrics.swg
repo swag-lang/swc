@@ -154,9 +154,13 @@ struct ThemeMetrics
 
     // The ring that says where the keyboard is. It is a rule around a control, not a fill on
     // it, and it keeps clear of the control's own border so the two never read as one thick edge.
-    focusRing_Size:  f32 = 1     // Thickness of the ring.
-    focusRing_Inset: f32 = 2     // Air the ring keeps inside the control's rectangle.
-    focusRing_Cut:   f32 = 4     // Width of the 45 degree cut opening each of its corners.
+    //
+    // Its corner is the corner of the control it marks, taken from the tile that control paints
+    // and stepped in by the inset so the two stay concentric. `focusRing_Radius` is the corner it
+    // keeps of its own, so a control with square edges is still marked by a ring and not by a box.
+    focusRing_Size:   f32 = 1     // Thickness of the ring.
+    focusRing_Inset:  f32 = 3     // Air the ring keeps inside the control's rectangle.
+    focusRing_Radius: f32 = 3     // Softest corner the ring takes when the control lends it none.
 
     richEdit_Padding: f32 = 5     // Theme measurement used for rich edit padding.
     toolTip_Padding:  f32 = 2     // Theme measurement used for tool tip padding.

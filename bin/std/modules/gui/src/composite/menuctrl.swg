@@ -133,9 +133,15 @@ public impl IWnd for MenuCtrl
             backPos.width += metrics.menuBar_SpaceBetween
             if selected and @isset(it.popup) and .subVisible == it.popup
             {
-                backPos.height += metrics.menuPopup_BarItemOverlap
-                theme.drawSubRect(painter, backPos, &rects.menuPopup_BarAnchorBk, colors.menuPopup_Bk)
-                theme.drawSubRect(painter, backPos, &rects.menuPopup_BarAnchorBorder, colors.menuPopup_Border, interpol: .Pixel)
+                // Fill past the bar, outline only to it — the same split the popup makes in
+                // [[Gui.MenuCtrl.paintPopupBarAnchor]], and for the same reason.
+                var anchorBk = backPos
+                anchorBk.height += metrics.menuPopup_BarItemOverlap
+                theme.drawSubRect(painter, anchorBk, &rects.menuPopup_BarAnchorBk, colors.menuPopup_Bk)
+
+                var anchorBorder = anchorBk
+                anchorBorder.setBottom(backPos.bottom() + metrics.wnd_BorderSize)
+                theme.drawSubRect(painter, anchorBorder, &rects.menuPopup_BarAnchorBorder, colors.menuPopup_Border, interpol: .Pixel)
             }
             elif selected and @isset(it.popup)
             {
@@ -516,10 +522,19 @@ impl MenuCtrl
         if anchorRect.isEmpty() do
             return
 
+        // The fill runs past the top of the body, which is what opens the mouth of the anchor: it
+        // repaints the stretch of the popup's own outline the two shapes share, so the bar item
+        // and the popup read as one form rather than as a box sitting on a lid.
         var anchorBk = anchorRect
         anchorBk.setBottom(bodyRect.y + metrics.menuPopup_BarItemOverlap)
         theme.drawSubRect(painter, anchorBk, &rects.menuPopup_BarAnchorBk, colors.menuPopup_Bk)
-        theme.drawSubRect(painter, anchorBk, &rects.menuPopup_BarAnchorBorder, colors.menuPopup_Border, interpol: .Pixel)
+
+        // The outline stops on that line instead of following the fill down. Carried the whole
+        // way it ended a dozen pixels inside the body, and the two sides of the anchor read as
+        // stubs hanging off the shape they were meant to continue.
+        var anchorBorder = anchorBk
+        anchorBorder.setBottom(bodyRect.y + metrics.wnd_BorderSize)
+        theme.drawSubRect(painter, anchorBorder, &rects.menuPopup_BarAnchorBorder, colors.menuPopup_Border, interpol: .Pixel)
 
         let i        = (.ownerMenu!.items[.popupBarItemIdx])!
         var labelPos = anchorRect

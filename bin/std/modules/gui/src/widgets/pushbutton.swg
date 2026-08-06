@@ -55,15 +55,8 @@ impl IWnd for PushButton
         var colorBorder:   Color = undefined
         var colorText:     Color = undefined
 
-        // The emphasis is decided here rather than stored, because it follows the keyboard. The
-        // ring has to be told too: it is drawn after the content and points in the accent, so a
-        // button that has just become the dominant one needs it in the ink of that fill.
+        // The emphasis is decided here rather than stored, because it follows the keyboard.
         let form = .paintedForm()
-        if form == .Default or form == .Strong do
-            .wndFlags.add(.FocusRingOnAccent)
-        else do
-            .wndFlags.remove(.FocusRingOnAccent)
-
         if form == .Default
         {
             switch
@@ -183,6 +176,14 @@ impl IWnd for PushButton
         let clientRect = .clientRect()
         .aniBk.apply(me, colorBk)
         theme.drawSubRect(bc.painter, clientRect, subRectBk, .aniBk.cur())
+
+        // The ring is drawn last, over a button whose shape and fill were only just decided, so it
+        // is told both: the Swag palettes point a push button at the edit tiles, and a pill is not
+        // marked like a square corner; a button that has become the dominant action of the surface
+        // is filled with the accent the ring itself points in. The fill it is told about is the
+        // animated one, so the ring stays readable through a hover rather than only at rest.
+        .focusRingRadius = subRectBk!.radius
+        .focusRingGround = .aniBk.cur()
 
         // Border
         .aniBorder.apply(me, colorBorder)

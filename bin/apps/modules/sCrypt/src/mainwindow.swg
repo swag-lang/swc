@@ -45,6 +45,7 @@ internal enum StatusMessage
     Created              // The container was created and is ready to mount.
     MountStopped         // Mounting stopped.
     Mounted              // A drive is mounted; `statusDrive` names its letter.
+    MountedReadOnly      // A drive is mounted for reading alone; `statusDrive` names its letter.
     Unmounted            // The drive was unmounted safely.
     Growing              // The added region is being randomized; `statusProgress` says how far.
     GrowCanceled         // Growing stopped on request and left the container at its previous size.
@@ -74,6 +75,7 @@ internal enum MountRow
     Path         // Container file to open.
     Password     // Password unlocking the container, or empty when it has none.
     Drive        // Drive letter the volume appears on.
+    ReadOnly     // Whether the drive opens for reading alone.
 }
 
 // What a capacity field holds, or why it cannot be used.
@@ -97,6 +99,7 @@ struct StartupVault
     path:          String     // Container file to mount.
     drive:         String     // Drive letter it was last mounted on.
     needsPassword: bool       // Whether opening it needs a password.
+    readOnly:      bool       // Whether it was mounted read only, which the next start repeats.
 }
 
 // Long operation running outside the UI thread. Only one runs at a time, and the window
@@ -115,6 +118,7 @@ struct VaultOperation
     volume:      #null *WinFsp.MountedVolume     // Mount a mount operation produced, or the one an unmount closes.
 
     // What the result has to report but the wiped inputs no longer say.
+    readOnly:        bool     // Whether a mount operation exposes the drive read only.
     usedPassword:    bool     // Whether the container was opened with a password.
     removesPassword: bool     // Whether a password change leaves the container without one.
     fromStartup:     bool     // Whether the mount came from the startup list rather than from the card.
@@ -153,6 +157,7 @@ struct MainWindow
         mountPath:      *EditBox
         mountPassword:  *PasswordEdit
         drive:          *ComboBox
+        readOnly:       *CheckButton
         mountButton:    *PushButton
         passwordButton: *PushButton
         resizeButton:   *PushButton
@@ -241,6 +246,9 @@ internal func caughtMessage(err: #null any)->string
 
         case .AccessDenied:
             return s.msg_ErrAccessDenied
+
+        case .WriteProtected:
+            return s.msg_ErrReadOnly
 
         case .DiskFull:
             return s.msg_ErrDiskFull
@@ -737,6 +745,7 @@ impl MainWindow
              .StartingDriver,
              .Unmounting,
              .Mounted,
+             .MountedReadOnly,
              .Growing,
              .ChangingPassword: return .Active
 
@@ -769,6 +778,7 @@ impl MainWindow
         case .Created:          return String.from(texts.msg_Created)
         case .MountStopped:     return String.from(texts.msg_MountStopped)
         case .Mounted:          return Format.toString(texts.msg_Mounted, .statusDrive)
+        case .MountedReadOnly:  return Format.toString(texts.msg_MountedReadOnly, .statusDrive)
         case .Unmounted:        return String.from(texts.msg_Unmounted)
         case .Growing:          return Format.toString(texts.msg_Growing, .statusProgress)
         case .GrowCanceled:     return String.from(texts.msg_GrowCanceled)
@@ -857,6 +867,10 @@ impl MainWindow
         .drive = form.addChoiceField(appStrings().ui_DriveLetter, help: appStrings().ui_DriveHelp)
         setMachineFont(.drive)
         .fillDriveChoice()
+
+        // Under the letter rather than beside the password: it says what the drive will be, not
+        // how the container is opened, and a reader deciding on a letter is already there.
+        .readOnly = form.addOptionField(appStrings().ui_ReadOnly, help: appStrings().ui_ReadOnlyHelp)
 
         // The action bar stacks from its right edge, so the dominant action is created first and
         // ends up under the reader's thumb, with the two secondary ones to its left.
@@ -1029,6 +1043,8 @@ impl MainWindow
         .mountCard.form.setRowLabel(cast(u64) MountRow.Password, texts.ui_Password)
         .mountCard.form.setRowLabel(cast(u64) MountRow.Drive, texts.ui_DriveLetter)
         .mountCard.form.setRowHelp(cast(u64) MountRow.Drive, texts.ui_DriveHelp)
+        .mountCard.form.setRowHelp(cast(u64) MountRow.ReadOnly, texts.ui_ReadOnlyHelp)
+        .readOnly.setText(texts.ui_ReadOnly)
         .mountPath.setPlaceholder(texts.ui_ExistingContainer)
         .mountPassword.setPlaceholder(texts.ui_ContainerPassword)
         .browseMount.setText(texts.ui_Browse)
@@ -1181,15 +1197,16 @@ impl MainWindow
 
         .operation.password.add(.mountPassword.bytes())
         .mountPassword.clear()
-        .startMount(String.from(path), mountPoint, false)
+        .startMount(String.from(path), mountPoint, false, .readOnly.state == .Checked)
     }
 
     // Starts the mount the password already staged in the operation opens.
-    mtd startMount(path, mountPoint: String, fromStartup: bool)
+    mtd startMount(path, mountPoint: String, fromStartup: bool, readOnly: bool)
     {
         .operation.path         = path
         .operation.mount        = mountPoint
         .operation.fromStartup  = fromStartup
+        .operation.readOnly     = readOnly
         .operation.usedPassword = .operation.password.count != 0
         .setStatus(.StartingDriver)
         .setState(.Mounting)
@@ -1343,7 +1360,7 @@ impl MainWindow
 
         case .Mount:
             let mounted = Memory.new'WinFsp.MountedVolume()
-            discard catch mounted.open(.operation.path.toString(), .operation.password.toSlice(), .operation.mount.toString()) as mountError
+            discard catch mounted.open(.operation.path.toString(), .operation.password.toSlice(), .operation.mount.toString(), .operation.readOnly) as mountError
             .operation.error = mountError
             if mountError != null
             {
@@ -1452,7 +1469,7 @@ impl MainWindow
             {
                 .rememberMountedDrive()
                 .statusDrive = .operation.mount
-                .setStatus(.Mounted)
+                .setStatus(.operation.readOnly ? .MountedReadOnly : .Mounted)
             }
 
             .fillDriveChoice()
@@ -1517,13 +1534,17 @@ impl MainWindow
             .path          = me.operation.path
             .drive         = me.operation.mount
             .needsPassword = me.operation.usedPassword
+            .readOnly      = me.operation.readOnly
             .atStartup     = known != Swag.U64.Max
         }
 
         // The letter is remembered as the one actually used, so a startup vault comes back on
         // the drive it was last seen on rather than on the one it was first marked with.
-        if known != Swag.U64.Max do
-            .startupVaults[known].drive = .operation.mount
+        if known != Swag.U64.Max
+        {
+            .startupVaults[known].drive    = .operation.mount
+            .startupVaults[known].readOnly = .operation.readOnly
+        }
 
         .mountedDrives.drives.add(#move entry)
         .mountedDrives.refresh()
@@ -1568,7 +1589,7 @@ impl MainWindow
 
             if known != Swag.U64.Max do
                 .startupVaults.removeAtOrdered(known)
-            .startupVaults.add({one.path, one.drive, one.needsPassword})
+            .startupVaults.add({one.path, one.drive, one.needsPassword, one.readOnly})
         }
     }
 
@@ -1590,7 +1611,7 @@ impl MainWindow
             if entry.needsPassword and !.askStartupPassword(entry.path.toString()) do
                 continue
 
-            .startMount(entry.path, entry.drive, true)
+            .startMount(entry.path, entry.drive, true, entry.readOnly)
             return
         }
     }

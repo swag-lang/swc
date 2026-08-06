@@ -122,7 +122,7 @@ func testSetupMainWindow(host: *Testing.HeadlessHost)->*MainWindow
     // A button that cannot work is down, and the keyboard does not stop on it: on a form with
     // nothing filled in, all four actions of the window are out of the ring. So is the band,
     // which is not on the surface at all while no drive is mounted.
-    @assert(order.stops.count == 11)
+    @assert(order.stops.count == 12)
     @assert(order.stops[0] == cast(*Wnd) window.createPath)
     @assert(order.stops[6] == cast(*Wnd) window.mountPath)
 
@@ -134,7 +134,7 @@ func testSetupMainWindow(host: *Testing.HeadlessHost)->*MainWindow
     window.passwordButton.enable(true)
 
     let full = Gui.FocusOrder.collect(window)
-    @assert(full.stops.count == 15)
+    @assert(full.stops.count == 16)
     @assert(full.stops[0] == cast(*Wnd) window.createPath)
     @assert(full.stops[1] == cast(*Wnd) window.browseCreate)
     @assert(full.stops[2] == cast(*Wnd) window.createSize)
@@ -146,10 +146,11 @@ func testSetupMainWindow(host: *Testing.HeadlessHost)->*MainWindow
     @assert(full.stops[8] == cast(*Wnd) window.browseMount)
     @assert(full.stops[9] == cast(*Wnd) window.mountPassword)
     @assert(full.stops[10] == cast(*Wnd) window.drive)
-    @assert(full.stops[11] == cast(*Wnd) window.passwordButton)
-    @assert(full.stops[12] == cast(*Wnd) window.resizeButton)
-    @assert(full.stops[13] == cast(*Wnd) window.mountButton)
-    @assert(full.stops[14] == cast(*Wnd) window.languageChoice)
+    @assert(full.stops[11] == cast(*Wnd) window.readOnly)
+    @assert(full.stops[12] == cast(*Wnd) window.passwordButton)
+    @assert(full.stops[13] == cast(*Wnd) window.resizeButton)
+    @assert(full.stops[14] == cast(*Wnd) window.mountButton)
+    @assert(full.stops[15] == cast(*Wnd) window.languageChoice)
 
     // It opens on the first field, and Tab moves on from there.
     @assert(window.createPath.hasFocus())
@@ -319,8 +320,8 @@ func testSetupMainWindow(host: *Testing.HeadlessHost)->*MainWindow
     @assert(window.mountedDrives.selectedIndex() == Swag.U64.Max)
     @assert(!window.mountedDrives.unmountButton.isEnabled())
 
-    window.mountedDrives.drives.add({null, String.from("C:\\vaults\\one.scrypt"), String.from("X:"), true, false})
-    window.mountedDrives.drives.add({null, String.from("C:\\vaults\\two.scrypt"), String.from("Y:"), false, true})
+    window.mountedDrives.drives.add({null, String.from("C:\\vaults\\one.scrypt"), String.from("X:"), true, false, false})
+    window.mountedDrives.drives.add({null, String.from("C:\\vaults\\two.scrypt"), String.from("Y:"), false, false, true})
     window.mountedDrives.refresh()
 
     @assert(window.mountedDrives.list.isLocallyVisible())
@@ -355,7 +356,7 @@ func testSetupMainWindow(host: *Testing.HeadlessHost)->*MainWindow
     let window = testSetupMainWindow(&host)
     defer host.shutdown()
 
-    window.mountedDrives.drives.add({null, String.from("C:\\one.scrypt"), String.from("X:"), true, false})
+    window.mountedDrives.drives.add({null, String.from("C:\\one.scrypt"), String.from("X:"), true, false, false})
     window.mountedDrives.refresh()
 
     window.mountedDrives.list.setLineChecked(0, true)
@@ -367,7 +368,7 @@ func testSetupMainWindow(host: *Testing.HeadlessHost)->*MainWindow
     discard window.mountedDrives.detach(0)
     @assert(window.startupVaults.count == 1)
 
-    window.mountedDrives.drives.add({null, String.from("C:\\one.scrypt"), String.from("X:"), true, true})
+    window.mountedDrives.drives.add({null, String.from("C:\\one.scrypt"), String.from("X:"), true, false, true})
     window.mountedDrives.refresh()
     window.mountedDrives.list.setLineChecked(0, false)
     @assert(window.startupVaults.isEmpty())
@@ -392,4 +393,40 @@ func testSetupMainWindow(host: *Testing.HeadlessHost)->*MainWindow
     @assert(!parseCapacity("0", 0).error.isEmpty())
     @assert(!parseCapacity("12x", 0).error.isEmpty())
     @assert(!parseCapacity("18446744073709551615", 1).error.isEmpty())
+}
+
+// What the shipped window looks like.
+//
+// The tests above read the window: they ask what a button says, whether a form can act, whether
+// the layout holds a language. None of them can see it. This image is the only thing that reports
+// a color that stopped reading, a control that lost its ground, or a row that drifted out of its
+// column - the class of defect an assertion never catches because nothing about it is wrong enough
+// to fail.
+//
+// It is one image, of the palette sCrypt ships on. Photographing the other three costs a full
+// repaint of a 1500 by 850 surface each, which is minutes on the default configuration, and the
+// palettes themselves are already pinned by the toolkit's own tests. To review them by hand, put
+// `setSwagLight`, `setDark` and `setLight` on their own hosts here and read the images: one host
+// per palette, never one host repainted, because a render target keeps what the last paint left
+// and a translucent fill then composites over the palette before it.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    defer host.shutdown()
+
+    host.theme.setSwagDark()
+
+    // The chrome is not part of what this image pins: a headless surface has no desktop under it,
+    // so its shadow falls on nothing and its rounded corner only punches holes in the captured
+    // pixels. `HeadlessHost.setup` squares it for that reason, and applying a palette puts the
+    // geometry of that palette back, so it is squared again here.
+    host.theme.metrics.surfaceWnd_ShadowSize   = 0
+    host.theme.metrics.surfaceWnd_CornerRadius = 0
+    host.notify(.ThemeChanged)
+    window.applyLayout()
+    host.settleAnimations(window, 6)
+
+    var image = host.render(window)
+    Pixel.Testing.assertImageGolden(&image, "scrypt.surface")
 }

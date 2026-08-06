@@ -4,10 +4,10 @@ using Core, Pixel
 
 // Identifies a glyph of the theme's vector icon set.
 //
-// The set is one vector document (`theme/icons.svg`, Fluent UI System Icons, MIT
-// License); the theme rasterizes it on demand at the requested display size and the
-// current atlas scale, so any size stays sharp on any display. The declaration
-// order is the glyph order of the document grid.
+// The set is one vector document, `theme/icons.svg`: mostly Fluent UI System Icons (MIT License),
+// with the few glyphs that set does not carry drawn onto the same grid at the same weight. The
+// theme rasterizes it on demand at the requested display size and the current atlas scale, so any
+// size stays sharp on any display. The declaration order is the glyph order of the document grid.
 enum ThemeIcons
 {
     WndMinimize          // Window-caption minimize glyph.
@@ -61,6 +61,7 @@ enum ThemeIcons
     Critical             // Critical error status.
     Information          // Informational status.
     HourGlass            // Waiting or in-progress status.
+    Lock                 // Closed padlock, for a protected or read-only object.
 }
 
 impl Theme

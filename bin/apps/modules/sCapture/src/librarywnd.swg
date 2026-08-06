@@ -1,10 +1,18 @@
 using Threading, Time
 
-// The date column, at the same width as the editor's tool column.
-const SideBarWidth  = 240.0
+// The date column. It is wider than the editor's tool column on purpose: the tool column carries
+// one word per row and this one carries a sentence — "All Captures" is two words in English and
+// four in French, and a column sized to the English clipped the French in the very first row.
+const SideBarWidth  = 280.0
 const LibBarHeight  = 32.0
 const LibGlyphSize  = 16.0
 const LibButtonWide = 104.0
+
+// The count column of the date list, and what the rows spend before their name: the expander lane
+// the tree reserves on every row, plus the padding of the list. The name column takes what those
+// two leave, so widening the bar widens the only column that carries wording.
+const LibCountWidth  = 56.0
+const LibRowIndent   = 28.0
 
 enum PreviewSize
 {
@@ -441,8 +449,11 @@ impl LibraryWnd
             var nm = Path.fileName(fp) orelse ""
             if @countof(nm) == 0 do
                 nm = fp
+            // At the row size of the chart, like every other glyph of this window. A breadcrumb
+            // draws the icon it is handed at the size it is handed, and the theme default is the
+            // 24 of a command bar — which next to a path reads as a button that lost its button.
             let isTrash = trashFolder == fp
-            let icon    = isTrash ? .theme().icon(.Remove) : .theme().icon(.OpenFile)
+            let icon    = isTrash ? .theme().icon(.Remove, LibGlyphSize) : .theme().icon(.OpenFile, LibGlyphSize)
             .breadcrumb.addItem(nm, icon, tag: fp)
         }
     }
@@ -530,8 +541,8 @@ impl LibraryWnd
 
         with let list = ListCtrl.createMultiColumns(sideBar)
         {
-            .addColumn("name", SideBarWidth - 84)
-            .addColumn("count", 56)
+            .addColumn("name", SideBarWidth - LibCountWidth - LibRowIndent)
+            .addColumn("count", LibCountWidth)
             .listView.style.addStyleSheetColors("listItem_SelectedBk $listItem_FocusSelectedBk")
             .setLineHeight(30)
             .updateFlags(.PreserveSelectionOnEmptyClick)

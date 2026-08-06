@@ -61,6 +61,7 @@ act_CaptureArea        Capturer une zone
 act_CaptureFullScreen  Capturer l'écran entier
 act_CaptureLastArea    Capturer la dernière zone
 act_CaptureCursor      Capturer le curseur de la souris
+act_Clear              Effacer
 act_ClearInsideImage   Effacer l'intérieur de l'image
 act_CopyImageToClipboard Copier l'image dans le presse-papiers
 act_Copy               Copier
@@ -79,16 +80,23 @@ act_DeletePermanently  Supprimer définitivement
 act_Delete             Supprimer
 act_DeselectAll        Désélectionner tous les objets
 act_FilterNoLinked     Sans image liée
+act_ExpandCapture      Agrandir la capture...
+act_ExpandImage        Agrandir l'image...
 act_Draw               Dessin
 act_Duplicate          Dupliquer
 act_EditInPlace        Modifier la zone capturée sur place
 act_EmptyRecycleBin    Vider la corbeille
 act_Favorites          Favoris
+act_Fill               Remplir
 act_FileDetails        Détails du fichier
 act_SortFileSize       Taille du fichier
 act_FitToView          Ajuster à la vue
+act_Flatten            Aplatir
+act_FlattenAll         Tout aplatir
+act_FlipImage          Retourner verticalement
 act_FreezeSelection    Figer la sélection
 act_Group              Grouper
+act_MirrorImage        Retourner horizontalement
 act_FilterHasLinked    Avec image liée
 act_HideEditorBefore   Masquer l'éditeur avant la capture
 act_HideOutsideBox     Masquer hors du cadre
@@ -127,8 +135,13 @@ act_Select             Sélection
 act_SendToClipboard    Envoyer la capture vers le presse-papiers
 act_SendToEditor       Envoyer la capture vers l'éditeur
 act_SendToBack         Mettre à l'arrière-plan
+act_ResizeImage        Redimensionner l'image...
+act_RotateImageLeft    Pivoter vers la gauche
+act_RotateImageRight   Pivoter vers la droite
 act_SendToFront        Mettre au premier plan
 act_Shape              Forme
+act_SmartFill          Remplissage intelligent
+act_SmartMove          Déplacement intelligent
 act_ShowEditor         Afficher l'éditeur
 act_Similarity         Similarité
 act_SmallView          Petites vignettes
@@ -136,6 +149,7 @@ act_SmallerFirst       Plus petites d'abord
 act_SnapToForms        Aimanter aux formes
 act_Step               Étape
 act_Text               Texte
+act_TrimCapture        Rogner la capture
 act_UnsavedLinked      Image liée non enregistrée
 act_Undo               Annuler
 act_Ungroup            Dégrouper

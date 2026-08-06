@@ -47,8 +47,9 @@ created them. Nothing has to be numbered, and nothing has to be renumbered when 
 control is inserted.
 
 Call [[Gui.Wnd.setInitialFocus]] once a surface is built so it opens ready for the
-keyboard; [[Gui.Wnd.hasVisibleFocus]] is what a widget paints its focus ring from, and
-it is true only while the keyboard is what moved the focus.
+keyboard; [[Gui.Wnd.hasVisibleFocus]] is true only while the keyboard is what moved the
+focus, and [[Gui.Wnd.showsFocusRing]] is what a widget paints its focus ring from: it
+adds the diagnostic that draws every ring of a surface at once.
 
 Call [[Gui.Wnd.destroy]] from handlers. Destruction is deferred until dispatch is
 safe; do not retain control pointers after their destroy event.

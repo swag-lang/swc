@@ -2,6 +2,14 @@
 
 using Core, Pixel
 
+// Contrast under which the accent stops being readable as a hairline on the ground it is drawn
+// over, and the focus ring steps to the ink meant for a filled control.
+//
+// It is far below the bar for text on purpose. A rule the reader is looking for needs the two
+// colors to be plainly different, not legible at a glance the way a word is: held to the text
+// ratio, every ordinary button of the dark palette would have lost its blue ring to a white one.
+private const FocusRingMinContrast = 1.5'f32
+
 impl Theme
 {
     // Draws the ring that says the keyboard focus is on `rect`.
@@ -12,44 +20,40 @@ impl Theme
     //
     // The ring is a rule inside the control, inset by [[Gui.ThemeMetrics.focusRing_Inset]] so it
     // never merges with the control's own border. Draw it only while
-    // [[Gui.Wnd.hasVisibleFocus]] holds, so a control pressed with the pointer stays unmarked.
-    // Its four corners are cut at 45 degrees, by [[Gui.ThemeMetrics.focusRing_Cut]]: a square
-    // corner sitting a couple of pixels inside a rounded one crosses it, and the cut is the
-    // identity's own answer to a corner anyway.
+    // [[Gui.Wnd.showsFocusRing]] holds, so a control pressed with the pointer stays unmarked.
     //
-    // `onAccent` is for a control filled with the accent — the default action of a dialog — whose
-    // fill the ring would otherwise be drawn in and disappear into. See
-    // [[Gui.ThemeColors.focusRingOnAccent]].
-    mtd drawFocusRing(painter: *Painter, rect: Math.Rectangle, onAccent = false)
+    // `corner` is the corner of the control, which the ring follows: stepped in by the inset it
+    // stays concentric with the outline it sits inside, and a pill keeps its ends round instead
+    // of carrying a box. A control with no shape of its own — a check box and its label, a
+    // slider, a tab — passes zero and gets [[Gui.ThemeMetrics.focusRing_Radius]], which is the
+    // softest corner the ring ever takes.
+    //
+    // `ground` is the fill the ring will be drawn over, which a control publishes so the ring can
+    // be read on it: the accent is what the theme points with, but a control filled with that same
+    // accent — the default action of a dialog, a switched-on toggle, a picked tool — would swallow
+    // it. Left at zero the ring keeps the accent. See [[Gui.ThemeColors.focusRingOnAccent]].
+    mtd drawFocusRing(painter: *Painter, rect: Math.Rectangle, corner = 0'f32, ground: Color = {})
     {
-        let color = onAccent ? .colors.focusRingOnAccent : .colors.focusRing
+        // Deciding by contrast rather than by a flag the widget has to remember is what keeps the
+        // ring readable in a palette nobody wrote it for: a sheet is free to fill the dominant
+        // action with something that is not the accent, and the ring follows without being told.
+        var color = .colors.focusRing
+        if ground.a != 0 and color.contrastRatio(ground) < FocusRingMinContrast do
+            color = .colors.focusRingOnAccent
         if color.a == 0 do
             return
 
-        var ring = rect
-        ring.inflate(-.metrics.focusRing_Inset)
+        let inset = .metrics.focusRing_Inset
+        var ring  = rect
+        ring.inflate(-inset)
         if ring.isEmpty() do
             return
 
-        // A cut wider than a third of the shorter side would eat the whole corner and leave a
-        // lozenge, so the smallest controls simply get a smaller cut.
-        let cut = Math.min(.metrics.focusRing_Cut, Math.min(ring.width, ring.height) / 3)
-        let l   = ring.x
-        let t   = ring.y
-        let r   = ring.right()
-        let b   = ring.bottom()
-
-        var path: LinePath
-        path.start(l + cut, t)
-        path.lineTo(r - cut, t)
-        path.lineTo(r, t + cut)
-        path.lineTo(r, b - cut)
-        path.lineTo(r - cut, b)
-        path.lineTo(l + cut, b)
-        path.lineTo(l, b - cut)
-        path.lineTo(l, t + cut)
-        path.close()
-        painter.drawPath(&path, color, .metrics.focusRing_Size)
+        // A radius over half the shorter side would leave a lozenge rather than a ring, so the
+        // smallest controls simply stop at the round end their own shape already has.
+        var radius = Math.max(corner - inset, .metrics.focusRing_Radius)
+        radius = Math.min(radius, Math.min(ring.width, ring.height) / 2)
+        painter.drawRoundRect(ring, radius, radius, color, .metrics.focusRing_Size)
     }
 
     // Draws a themed image region, using its optional nine-slice margins.

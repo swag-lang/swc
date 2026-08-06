@@ -771,3 +771,61 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     @assert(reopened.resolve("\\kept.bin") != null)
     reopened.close()
 }
+
+// A container opened read only refuses every change, and the refusal is the file handle's.
+//
+// The guarantee is not a flag callers are trusted to honour: the file itself is opened without
+// write access, so a change that slipped past the checks below would be refused by Windows. What
+// the checks add is the *kind*, which is what the filesystem bridge turns into the NTSTATUS a
+// program expects from a write-protected volume.
+#test
+{
+    let path = testContainerPath("readonly")
+    defer discard catch File.delete(path)
+
+    var built          = expect Volume.create(path, testPassword(), MinimumSize)
+    let fileId         = expect built.createNode("\\note.txt", false, FileAttributeNormal, emptyBytes())
+    let stored: [4] u8 = [7, 8, 9, 10]
+    @assert(expect built.writeNode(fileId, 0, stored, false, false) == 4)
+    expect built.commit()
+    built.close()
+
+    var volume = expect Volume.open(path, testPassword(), readOnly: true)
+    defer volume.close()
+    @assert(volume.readOnly)
+
+    // Reading is untouched: a read-only mount is a mount, not a refusal to open.
+    let node = volume.resolve("\\note.txt")
+    @assert(node != null)
+    var readBack: [4] u8
+    @assert(expect volume.readNode(node.id, 0, readBack) == 4)
+    @assert(sameTestBytes(readBack, stored))
+
+    // Every way in reports the same kind, whether it would have written a byte, a name, or a
+    // key slot.
+    func refuses(err: #null any)->bool
+    {
+        if err == null do
+            return false
+        switch err
+        {
+        case Error as volumeError:
+            return volumeError.kind == .WriteProtected
+        }
+
+        return false
+    }
+
+    @assert(refuses(catch volume.writeNode(node.id, 0, stored, false, false)))
+    @assert(refuses(catch volume.createNode("\\second.txt", false, FileAttributeNormal, emptyBytes())))
+    @assert(refuses(catch volume.renameNode(node.id, "\\other.txt", false)))
+    @assert(refuses(catch volume.resizeNode(node.id, 0)))
+    @assert(refuses(catch volume.deleteNode(node.id)))
+    @assert(refuses(catch volume.commit()))
+    @assert(refuses(catch volume.checkpoint()))
+    @assert(refuses(catch volume.changePassword(testPassword(), secondPassword())))
+
+    // And nothing was staged either: a read-only mount that quietly marked the container dirty
+    // would try to write it back the moment it closed.
+    @assert(!volume.dirty)
+}

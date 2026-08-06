@@ -33,6 +33,8 @@ struct AppStrings
     ui_ExistingContainer:   string = "Encrypted container"
     ui_DriveLetter:         string = "DRIVE LETTER"
     ui_DriveHelp:           string = "The drive is available to Windows while sCrypt runs, and appears in the list on the right."
+    ui_ReadOnly:            string = "Mount read only"
+    ui_ReadOnlyHelp:        string = "The drive opens for reading alone: nothing can add to the vault, change it, or delete from it while it is mounted."
     ui_RemovePasswordHelp:  string = "Leave it empty to remove the password. The vault then opens without one."
     ui_CurrentCapacityHelp: string = "Currently %. A vault can only grow."
     ui_CreateVault:         string = "Create encrypted vault"
@@ -82,6 +84,7 @@ struct AppStrings
     msg_MountFailed:        string = "Could not mount the virtual disk."
     msg_MountStopped:       string = "Mount stopped."
     msg_Mounted:            string = "Encrypted drive mounted on %."
+    msg_MountedReadOnly:    string = "Encrypted drive mounted read only on %."
     msg_UnmountSyncStopped: string = "The drive was unmounted, but final synchronization stopped."
     msg_Unmounted:          string = "Drive unmounted safely."
     msg_OnlyGrows:          string = "A vault can only grow. Choose a capacity above the current one."
@@ -103,6 +106,7 @@ struct AppStrings
     msg_ErrNotFound:          string = "The container could not be found."                          // The named container or entry does not exist.
     msg_ErrAlreadyExists:     string = "A file with this name already exists."                      // The name is taken.
     msg_ErrAccessDenied:      string = "Access to the container was refused."                       // The entry exists and refuses the operation.
+    msg_ErrReadOnly:          string = "The vault is mounted read only."                            // The container refuses every change.
     msg_ErrDiskFull:          string = "There is no room left in the container."                    // No room is left for blocks, metadata, or key slots.
     msg_ErrIo:                string = "The container could not be read or written."                // The underlying file could not be reached.
     msg_ErrInvalidRequest:    string = "The container cannot answer that request."                  // The operation asked for something the container refuses outright.

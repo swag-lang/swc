@@ -134,6 +134,16 @@ impl HeadlessHost
             if !wnd.surface do
                 return
 
+            // A theme change is not only an event: a style that carries a font or a sheet keeps a
+            // private copy of the theme it was computed against, and only a recompute replaces it.
+            // Without this the tree goes on painting the palette it was built under — which reads
+            // as a palette that does nothing, and is the whole of what a test here is looking at.
+            if kind == .ThemeChanged
+            {
+                wnd.style.dirty = true
+                wnd.computeStyle()
+            }
+
             wnd.invalidate()
 
             var children: Array'(*Wnd)

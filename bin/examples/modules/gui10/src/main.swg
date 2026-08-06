@@ -21,6 +21,7 @@ const BarGap           = 10.0
 const PageBottomMargin = 46.0
 const FilterWidth      = 260.0
 const IssuesWidth      = 180.0
+const RingsWidth       = 130.0
 
 var app:        Application
 var g_Surface:  #null *Surface
@@ -30,6 +31,7 @@ var g_SubTitle: #null *Label
 var g_Footer:   #null *Label
 var g_Filter:   #null *EditBox
 var g_Issues:   #null *CheckButton
+var g_Rings:    #null *CheckButton
 var g_Sheet:    #null *SheetWnd
 var g_Widgets:  #null *WidgetWall
 
@@ -276,6 +278,7 @@ func layoutRootView()
 
     g_Filter!.setPosition({RootMargin + contentWidth - FilterWidth, barY, FilterWidth, BarHeight})
     g_Issues!.setPosition({RootMargin + contentWidth - FilterWidth - IssuesWidth - 12, barY, IssuesWidth, BarHeight})
+    g_Rings!.setPosition({RootMargin + contentWidth - FilterWidth - IssuesWidth - RingsWidth - 24, barY, RingsWidth, BarHeight})
 
     let pageY      = barY + BarHeight + BarGap
     let pageHeight = Math.max(rect.height - pageY - PageBottomMargin, 120.0)
@@ -301,6 +304,7 @@ func onRootEvent(view: *Wnd, evt: IEvent)->bool
         g_Footer   = null
         g_Filter   = null
         g_Issues   = null
+        g_Rings    = null
         g_Sheet    = null
         g_Widgets  = null
         g_ThemeButtons.clear()
@@ -392,6 +396,17 @@ func createRootView()
     let issues = CheckButton.create(view, "flagged rows only", {})
     g_Issues          = issues
     issues.sigChanged += func(box) { g_Sheet!.view.setIssuesOnly(box.state == .Checked) }
+
+    // Only one control of a surface can hold the keyboard, so the focus mark is the one state
+    // the wall cannot show by standing still. The diagnostic draws every ring at once, which is
+    // how the mark is judged against every shape a palette answers for rather than one at a time.
+    let rings = CheckButton.create(view, "focus rings", {})
+    g_Rings          = rings
+    rings.sigChanged += func(box)
+    {
+        app.options.showFocusRings = box.state == .Checked
+        g_View!.invalidate()
+    }
 
     g_Sheet   = SheetWnd.create(view)
     g_Widgets = WidgetWall.create(view)

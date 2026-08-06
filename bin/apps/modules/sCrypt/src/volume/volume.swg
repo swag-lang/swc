@@ -101,10 +101,26 @@ struct Volume
     removed:       Array'u64     // Nodes deleted since the last journal record.
     scalarsDirty:  bool          // Whether a scalar such as the label or the next identifier changed.
     dirty:         bool          // Whether anything at all is not yet in a checkpoint.
+
+    // Whether this volume refuses every change. See [[Volume.open]]: the file itself is opened
+    // without write access, so the refusal is the operating system's and not a promise this
+    // layer makes to itself.
+    readonly
+    readOnly: bool
 }
 
 impl Volume
 {
+    // Refuses an operation that would change a container opened read only.
+    //
+    // Every entry point that can reach the file goes through it first, so a caller gets the same
+    // answer whether it asks to write a byte, to rename an entry, or to rewrite a key slot.
+    mtd requireWritable() fail
+    {
+        if .readOnly do
+            failWith("The container is mounted read only.", .WriteProtected)
+    }
+
     mtd close()
     {
         if .file.isOpen()
@@ -239,12 +255,21 @@ impl Volume
     }
 
     // Opens the container `password` unlocks, or an unprotected one when `password` is empty.
-    func open(path: string, password: const [..] u8)->Volume fail
+    //
+    // `readOnly` opens the file without write access at all, so nothing above this layer has to
+    // be trusted to leave the container alone: the operating system refuses the write, and every
+    // operation that would have needed one fails with [[ErrorKind.WriteProtected]] before it is
+    // attempted. It is also what lets a container be read while another tool holds it.
+    func open(path: string, password: const [..] u8, readOnly = false)->Volume fail
     {
         var result: retval
-        result.dirty = false
-        result.path  = path
-        result.file  = File.open(path, .Open, .ReadWrite, .Read)
+        result.dirty    = false
+        result.readOnly = readOnly
+        result.path     = path
+        if readOnly do
+            result.file = File.open(path, .Open, .Read, .Read)
+        else do
+            result.file = File.open(path, .Open, .ReadWrite, .Read)
         var completed = false
         defer
         {
@@ -316,6 +341,7 @@ impl Volume
     // Writes the key slot at `index` so that `password` unwraps the master key.
     mtd writeKeySlot(index: u64, password: const [..] u8, profile: Crypto.Argon2Profile) fail
     {
+        try .requireWritable()
         var slot = try KeySlot.create(password, .master, profile, index)
         defer slot.clear()
         let record = try slot.encode()
@@ -327,6 +353,7 @@ impl Volume
     // held no longer opens the container.
     mtd eraseKeySlot(index: u64) fail
     {
+        try .requireWritable()
         var record: [KeySlotSize] u8
         Core.Crypto.randomBytes(record)
         .file.writeAllAt(KeySlotAreaOffset + index * KeySlotSize, record)
@@ -443,6 +470,7 @@ impl Volume
     // and a container that has to be rewritten to lose space is not worth the risk.
     mtd grow(requestedSize: u64, progress: #null *VolumeProgress = null) fail
     {
+        try .requireWritable()
         if requestedSize <= .containerSize do
             failWith("A container can only grow.", .InvalidInput)
 
@@ -725,6 +753,7 @@ impl Volume
     // entirely usable.
     mtd checkpoint() fail
     {
+        try .requireWritable()
         if !.dirty do
             return
 
@@ -917,6 +946,7 @@ impl Volume
     // the volume closes.
     mtd commit() fail
     {
+        try .requireWritable()
         if !.dirty do
             return
         if !.touched.count and !.removed.count and !.scalarsDirty do
@@ -1162,6 +1192,7 @@ impl Volume
 
     mtd resizeNode(nodeId, newSize: u64) fail
     {
+        try .requireWritable()
         let node = .nodeById(nodeId)!
         if node.isDirectory() do
             failWith("Cannot resize a directory.", .IsDirectory)
@@ -1208,6 +1239,7 @@ impl Volume
 
     mtd writeNode(nodeId: u64, offset: u64, source: const [..] u8, writeToEnd, constrained: bool)->u32 fail
     {
+        try .requireWritable()
         let node = .nodeById(nodeId)
         if !node do
             failWith("File handle is no longer valid.", .NotFound)
@@ -1268,6 +1300,7 @@ impl Volume
 
     mtd createNode(path: string, directory: bool, attributes: u32, security: const [..] u8)->u64 fail
     {
+        try .requireWritable()
         let {parent, name} = .resolveParent(path)
         if parent == null or !parent!.isDirectory() do
             failWith("Parent directory does not exist.", .NotFound)
@@ -1324,6 +1357,7 @@ impl Volume
 
     mtd deleteNode(id: u64) fail
     {
+        try .requireWritable()
         if id == 1 do
             failWith("Cannot delete the root directory.", .AccessDenied)
         let index = .nodeIndex(id)
@@ -1342,6 +1376,7 @@ impl Volume
 
     mtd renameNode(id: u64, newPath: string, replace: bool) fail
     {
+        try .requireWritable()
         if id == 1 do
             failWith("Cannot rename the root directory.", .AccessDenied)
         let {parent, name} = .resolveParent(newPath)

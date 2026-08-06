@@ -77,6 +77,12 @@ impl IWnd for ToggleButton
         .aniBorder.apply(me, colorBorder)
         .aniMark.apply(me, colorMark)
 
+        // A toggle switched on is filled with the accent, which is what the ring points in, so the
+        // ring is told what it will be drawn over. Left to the accent it was invisible on exactly
+        // the state a reader most often lands on with the keyboard.
+        .focusRingRadius = subRectBk!.radius
+        .focusRingGround = .aniBk.cur()
+
         // Box
         let clientRect = .clientRect()
         theme.drawSubRect(bc.painter, clientRect, subRectBk, .aniBk.cur())

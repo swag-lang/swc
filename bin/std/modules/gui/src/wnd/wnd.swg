@@ -213,7 +213,6 @@ enum WndFlags
     AfterChildrenPaint      // Enables the after-children overlay paint phase.
     TopMost                 // Keeps the window after normal siblings in paint order.
     NoFocusRing             // Suppresses the keyboard-focus ring, for a control that shows the focus its own way.
-    FocusRingOnAccent       // Draws the keyboard-focus ring in the ink of the accent, for a control filled with it.
 }
 
 // Forms one node in a retained GUI tree and provides layout, event, and painting services.
@@ -259,6 +258,21 @@ struct Wnd
     layoutSpec:  LayoutSpec             // Container-driven measurement and arrangement policy.
 
     focusPolicy: FocusPolicy = None     // Pointer and traversal focus policy.
+
+    // Corner of the shape this window paints, which the keyboard-focus ring follows so the two
+    // never cross. A widget that draws a themed tile publishes it from that tile while painting —
+    // see [[Gui.ThemeImageRect.radius]] — because the tile a palette points a control at is the
+    // only thing that knows whether the control is a pill or a square this frame.
+    //
+    // Left at zero the ring keeps the soft corner of [[Gui.ThemeMetrics.focusRing_Radius]], which
+    // is what a control with no shape of its own — a check box and its label, a slider, a tab —
+    // should be marked with.
+    focusRingRadius: f32
+
+    // Fill the keyboard-focus ring will be drawn over, published the same way and for the same
+    // reason: the ring points in the accent, and a control filled with that accent would swallow
+    // it. A fully transparent value means the ring is not drawn over any known fill.
+    focusRingGround: Color
 
     // Window the focus lands on when this one is given the focus, or `null` to take it.
     //
@@ -861,10 +875,10 @@ impl Wnd
         // and it goes over the content so a filled button still shows it. A control that already
         // says it another way — a caret, a selected row, a highlighted cell — carries
         // [[Gui.WndFlags.NoFocusRing]] and paints nothing here.
-        if .focusPolicy == .Tab and !.wndFlags.has(.NoFocusRing) and !bc.isDisabled and .hasVisibleFocus()
+        if .focusPolicy == .Tab and !.wndFlags.has(.NoFocusRing) and !bc.isDisabled and .showsFocusRing()
         {
             painter.setTransform(curTrs)
-            theme.drawFocusRing(painter, .clientRect(), .wndFlags.has(.FocusRingOnAccent))
+            theme.drawFocusRing(painter, .clientRect(), .focusRingRadius, .focusRingGround)
         }
 
         bc.isDisabled = lastDisabled
@@ -1740,6 +1754,20 @@ impl Wnd
         if !surface do
             return false
         return surface.app.focusVisible and .hasFocus()
+    }
+
+    // Reports whether the paint must draw the keyboard-focus ring on this window.
+    //
+    // It is [[Gui.Wnd.hasVisibleFocus]] plus the diagnostic that shows every ring of a surface at
+    // once: only one control can hold the keyboard, so judging the mark against every shape a
+    // palette answers for is otherwise a walk through the whole tab order, one screen at a time.
+    // See [[Gui.ApplicationOptions.showFocusRings]].
+    mtd showsFocusRing()->bool
+    {
+        let surface = .surface
+        if !surface do
+            return false
+        return surface.app.options.showFocusRings or .hasVisibleFocus()
     }
 
     // Returns the topmost structural ancestor of this window, or itself when it has no parent.

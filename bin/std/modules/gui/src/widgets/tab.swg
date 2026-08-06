@@ -251,9 +251,21 @@ impl IWnd for Tab
         Theme.drawIconText(painter, labelPos, v.icon, &v.name, format, metrics.iconText_Margin)
 
         // The keyboard stands on one tab, not on the whole control: a ring around the control
-        // would enclose the page it shows, so the selected tab carries it.
-        if idx == .selectedIndex and .hasVisibleFocus() do
-            theme.drawFocusRing(painter, labelPos)
+        // would enclose the page it shows, so the selected tab carries it. A form that grounds
+        // its tab lends the ring that ground's corner; a flat or transparent bar has none, and
+        // the ring keeps its own.
+        if idx == .selectedIndex and .showsFocusRing()
+        {
+            var ringGround: Color
+            var ringCorner = 0'f32
+            if subRect
+            {
+                ringCorner = subRect!.radius
+                ringGround = v.aniImg.cur()
+            }
+
+            theme.drawFocusRing(painter, labelPos, ringCorner, ringGround)
+        }
     }
 
     mtd impl onPaint(evt: *PaintEvent)

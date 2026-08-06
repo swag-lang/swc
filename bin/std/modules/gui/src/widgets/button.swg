@@ -1,5 +1,7 @@
 #global public
 
+using Core
+
 // Provides shared pointer state, command-state integration, icons, and activation signals for buttons.
 struct Button
 {
@@ -135,6 +137,34 @@ impl Button
                 result += .themeMetrics().iconText_Margin
         }
 
+        return result
+    }
+
+    // Returns the rectangle the keyboard-focus ring belongs on, for a button that draws a marker
+    // beside a caption rather than a ground of its own.
+    //
+    // The traversal stop is the whole cell, but a check box or a radio button is almost never as
+    // wide as what it shows: laid out in a column of a form it takes the column's width, and a
+    // ring around that encloses as much empty ground as content. The mark closes on the marker and
+    // its wording instead, keeping the air the ring would have kept inside a control that has a
+    // shape — and never leaving the cell, so it cannot reach the option on the next line.
+    //
+    // Call it after the caption is drawn: the ink of the wording is what it measures.
+    internal mtd markerFocusRect(box: Math.Rectangle)->Math.Rectangle
+    {
+        let inset = .themeMetrics().focusRing_Inset
+
+        var result: retval = box
+        if @countof(.name) != 0 do
+            result.combine(.name.boundRect)
+
+        // The same distance the ring keeps inside a control that has a shape, kept here outside
+        // the content instead, and then given back because [[Gui.Theme.drawFocusRing]] insets the
+        // rectangle it is handed. The cell is the ceiling: a mark reaching past it would collide
+        // with the option on the next line.
+        result.inflate(inset)
+        result.intersect(.clientRect())
+        result.inflate(inset)
         return result
     }
 

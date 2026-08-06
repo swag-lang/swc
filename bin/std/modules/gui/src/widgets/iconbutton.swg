@@ -232,6 +232,11 @@ impl IWnd for IconButton
         case .RoundedRectangle: subRectBk = &rects.btnIcon_RoundSquareBk
         }
 
+        // The form is the shape, so the focus ring follows it and a circular tool is never
+        // marked with a box. It is published even for a flat button, which paints no box: the
+        // ring is the only edge such a button has, and it stands for the form all the same.
+        .focusRingRadius = subRectBk!.radius
+
         var paintFlags: PaintItemFlags = .None
         switch
         {
@@ -290,10 +295,18 @@ impl IWnd for IconButton
         let clientRect = .clientRect()
         let flat       = .flags.has(.Flat)
         let overlay    = .flags.has(.Overlay)
+
+        // The focus ring is drawn over the last fill this method leaves under it, and every branch
+        // below can change that. It points in the accent, and a picked tool is filled with the
+        // accent, so it has to be told; a flat or overlay button paints no box at all, and
+        // publishing one would send the ring after a fill that is not there.
+        .focusRingGround = {}
+
         if !flat and !overlay
         {
             .aniBk.apply(me, colorBk)
             theme.drawSubRect(bc.painter, clientRect, subRectBk, .aniBk.cur())
+            .focusRingGround = .aniBk.cur()
         }
 
         if !flat and !overlay and .isChecked and colors.activeRail.a
@@ -353,6 +366,15 @@ impl IWnd for IconButton
             }
 
             theme.drawSubRect(bc.painter, clientRect, subRectBk, colorChecked)
+
+            // The checked mark covers the background it was drawn over, so it becomes the ground
+            // the ring has to read on — and when it fills the cell it is also the shape the ring
+            // has to follow. An indicator on one edge leaves the box in charge of both.
+            if .checkIndicator == .Full
+            {
+                .focusRingRadius = subRectBk!.radius
+                .focusRingGround = colorChecked
+            }
         }
 
         var pos     = .paddedClientRect()

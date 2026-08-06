@@ -69,5 +69,7 @@ prop_ShowClipRect        Afficher le rectangle de découpe
 prop_ShowClipRectDesc    Superposer le rectangle de découpe du dessin en cours
 prop_ShowLayoutRects     Afficher les rectangles de disposition
 prop_ShowLayoutRectsDesc Afficher les rectangles calculés par les contrôles de disposition
+prop_ShowFocusRings      Afficher les anneaux de focus
+prop_ShowFocusRingsDesc  Dessiner l'anneau de focus clavier sur tous les contrôles qui peuvent le recevoir
 prop_DumpLayoutTree      Tracer l'arbre de disposition
 prop_DumpLayoutTreeDesc  Autoriser les traces de l'arbre de disposition depuis les outils de diagnostic

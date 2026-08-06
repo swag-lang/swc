@@ -82,10 +82,12 @@ locally.
 - Owner: sCrypt
 - Shipped: several volumes at once, each on its own letter, listed in the third card of the window;
   a per-vault mark that mounts it again at the next start, with one password prompt per protected
-  vault; and containers that open without a password at all.
-- Missing: read-only mount, forced unmount when a handle keeps a volume busy, and automatic unmount
-  on session lock, on suspend, and on idle — the last three are a security feature rather than a
-  convenience, and they are what remains of the *perceived* gap against VeraCrypt.
+  vault; containers that open without a password at all; and a read-only mount, which opens the
+  file without write access at all, declares `ReadOnlyVolume` to WinFsp, and refuses every change
+  in the volume layer with `ErrorKind.WriteProtected`.
+- Missing: forced unmount when a handle keeps a volume busy, and automatic unmount on session lock,
+  on suspend, and on idle — both are a security feature rather than a convenience, and they are
+  what remains of the *perceived* gap against VeraCrypt.
 - Note: the startup list is persisted with `needsPassword` beside each path, which is what keeps a
   start quiet for an unprotected vault. It is not a hint an attacker could not obtain in one Argon2
   attempt, but it does mean the state file says which vaults have no password.

@@ -90,6 +90,8 @@ impl IWnd for ComboBox
         subRectBk     = &rects.edit_SquareBk
         subRectBorder = &rects.edit_SquareBorder
 
+        .focusRingRadius = subRectBk!.radius
+
         switch
         {
         case bc.isDisabled:
@@ -125,7 +127,10 @@ impl IWnd for ComboBox
         {
             theme.drawSubRect(painter, clientRect, subRectBk, .aniBk.cur())
             theme.drawSubRect(painter, clientRect, subRectBorder, .aniBorder.cur())
+            .focusRingGround = .aniBk.cur()
         }
+        else do
+            .focusRingGround = {}
 
         // Item
         if !.editBox and .selectedIndex < .items.count

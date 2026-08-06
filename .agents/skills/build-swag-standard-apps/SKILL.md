@@ -155,6 +155,63 @@ hold it. The interface must read as an instrument at arm's length, never as a to
   each costs permanent room and buys one occasional click. Move it to a menu, a context menu, or a
   modifier gesture, and give the space to the content.
 
+## Let An Option Carry Its Own Wording
+
+A form is a column of named fields, and an option is not one of them. A check box already says what
+checking it does, so a name beside it repeats the sentence the box carries and a blank label above
+it reserves the height of a name that is not there — which reads as the option having drifted away
+from the field it qualifies.
+
+- Add it with [[Gui.FormLayoutCtrl.addOptionField]], which leaves the label column empty and spends
+  no line on it. The box then lines up under the fields rather than under their names, which is
+  where the reader is already looking.
+- Put it under the field it qualifies, not at the bottom of the card. An option about what a drive
+  *will be* belongs under the letter it takes, not beside the password that opened it.
+- Give it the same help paragraph a field gets when what it does is not obvious from four words.
+  The wording on the box says what it is; the paragraph says what it costs.
+
+## Look At The Surface, Not Only At Its Assertions
+
+An application's tests read its window — what a button says, whether a form can act, whether the
+layout survives a language. None of that can see it. A color that stopped reading, a control that
+lost its ground, a row that drifted out of its column: an assertion never catches any of it,
+because nothing about it is wrong enough to fail.
+
+Photograph the window instead. `Gui.Testing.HeadlessHost` renders a real window tree without a
+desktop, so the picture costs a test rather than a screenshot session — and it keeps working when
+the desktop is unavailable, which is exactly when a screenshot session is not.
+
+```swag
+var host: Testing.HeadlessHost
+let window = testSetupMainWindow(&host)
+defer host.shutdown()
+
+host.theme.setSwagDark()
+host.theme.metrics.surfaceWnd_ShadowSize   = 0     // No desktop under it: the shadow falls on
+host.theme.metrics.surfaceWnd_CornerRadius = 0     // nothing and the corner punches holes.
+host.notify(.ThemeChanged)
+window.applyLayout()
+host.settleAnimations(window, 6)
+
+var image = host.render(window)
+Pixel.Testing.assertImageGolden(&image, "sname.surface")
+```
+
+Three things this gets wrong if they are not said:
+
+- **One host per palette, never one host repainted.** A render target keeps what the last paint
+  left, and a fill the theme makes translucent then composites over the palette before it. Two of
+  four images came out that way once, and they were wrong in the direction that reads as a defect
+  of the palette rather than of the harness.
+- **A theme change is not only an event.** A style carrying a font or a sheet keeps a private copy
+  of the theme it was computed against, and `Application.notifyThemeChanged` walks the surfaces the
+  application created — not the one a headless host builds by hand. `HeadlessHost.notify` is what
+  reaches it.
+- **Commit one image, not one per palette.** A full repaint of a large surface is minutes on the
+  default configuration, and the palettes themselves are pinned by the toolkit's own tests. Shoot
+  the palette the application ships on, and put the others on their own hosts only while reviewing
+  by hand.
+
 ## Keep The Module Shippable
 
 - Put the app at `bin/apps/modules/sName` with `module.swg`, `src/`, `src/tests/*.test.swg`, and a

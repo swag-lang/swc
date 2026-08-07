@@ -1,4 +1,4 @@
-const SIZE = 262144; // 32-bit words, one mebibyte of key stream
+const SIZE = 4194304; // 32-bit words, sixteen mebibytes of key stream
 
 let seed = 12345;
 function rnd() {

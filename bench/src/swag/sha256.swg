@@ -1,4 +1,4 @@
-const SIZE = 524288'u64
+const SIZE = 8388608'u64
 const M32  = 0xFFFFFFFF'u64
 
 const KTAB: [64] u64 = [

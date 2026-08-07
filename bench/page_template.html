@@ -478,6 +478,8 @@ table.tasks tbody td { color: var(--soft); }
 .hunit { font-size: 9px; letter-spacing: .1em; }
 .hend { font-size: 10px; }
 
+.hband { fill: var(--faint); opacity: .16; stroke: none; }
+
 .hline { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
 
 .hline.h-a { stroke: var(--g-swag); }
@@ -501,12 +503,15 @@ table.tasks tbody td { color: var(--soft); }
 .sm { border-top: 1px solid var(--line); padding-top: 8px; }
 
 .sm b {
+    display: block;
     font-family: var(--mono);
     font-size: .7rem;
     letter-spacing: .08em;
     color: var(--soft);
     font-weight: 400;
 }
+
+.sm b .mode { letter-spacing: 0; color: var(--faint); }
 
 footer {
     border-top: 1px solid var(--line);
@@ -536,11 +541,11 @@ footer {
 <div class="hero">
     <div class="wrap">
         <div class="rule"></div>
-        <span class="eyebrow">6 t&acirc;ches &middot; 14 runtimes &middot; checksums identiques</span>
+        <span class="eyebrow">{{ntasks}} t&acirc;ches &middot; {{nruntimes}} runtimes &middot; checksums identiques</span>
         <h1>swc produit du code <b>{{swag_geo}}&times;</b> plus lent, et le produit <b>{{build_edge}}&times;</b> plus vite.</h1>
-        <p class="lede">Six programmes r&eacute;alistes &eacute;crits &agrave; la main &agrave; l'identique en swag, C++, Rust,
+        <p class="lede">{{ntasks}} programmes r&eacute;alistes &eacute;crits &agrave; la main &agrave; l'identique en swag, C++, Rust,
         Swift, C#, JavaScript, Lua et Python. M&ecirc;me algorithme, m&ecirc;me g&eacute;n&eacute;rateur al&eacute;atoire,
-        m&ecirc;me section chronom&eacute;tr&eacute;e. Les 84 binaires produisent le m&ecirc;me checksum &mdash; c'est la
+        m&ecirc;me section chronom&eacute;tr&eacute;e. Les {{nbinaries}} binaires produisent le m&ecirc;me checksum &mdash; c'est la
         preuve qu'on compare bien le m&ecirc;me travail.</p>
         <div class="stats">{{stats}}</div>
     </div>
@@ -685,17 +690,32 @@ footer {
 
 <section id="methode">
     <div class="sh"><span class="eyebrow">07</span><h2>M&eacute;thode et limites</h2></div>
-    <p class="lede">Deux d&eacute;fauts de mesure ont d&ucirc; &ecirc;tre corrig&eacute;s avant que ces chiffres
-    soient publiables. Ils sont list&eacute;s ici parce qu'ils changeaient les r&eacute;sultats.</p>
+    <p class="lede">Chaque r&egrave;gle ci-dessous a &eacute;t&eacute; mesur&eacute;e sur le rapport entre deux
+    binaires qui ne changent jamais &mdash; la seule chose que ce banc ait le droit d'affirmer. Chacune
+    d&eacute;pla&ccedil;ait ce rapport ; c'est pourquoi elle est l&agrave;.</p>
 
     <ul class="method">
         <li><b>Machine</b><span>Intel Core Ultra 9 185H, 16 c&oelig;urs / 22 threads, Windows 11, sur secteur.</span></li>
         <li><b>Mesure</b><span><code>CreateProcess</code> suspendu, plac&eacute; dans un job object, puis repris.
         Temps par <code>QueryPerformanceCounter</code>, m&eacute;moire par <code>QueryInformationJobObject</code>.</span></li>
-        <li><b>R&eacute;p&eacute;titions</b><span>Cinq passes en <em>round-robin</em> : passe 1 de tous les runtimes,
-        puis passe 2, etc. Minimum retenu.</span></li>
-        <li><b>Calibration</b><span>Charge de r&eacute;f&eacute;rence avant et apr&egrave;s la campagne :
-        {{calib_start}}&nbsp;ms puis {{calib_end}}&nbsp;ms, soit {{drift}}&nbsp;% de d&eacute;rive.</span></li>
+        <li><b>&Eacute;pinglage</b><span>Chaque ex&eacute;cution chronom&eacute;tr&eacute;e est confin&eacute;e aux
+        c&oelig;urs performants (masque {{pin_mask}}, {{pin_cores}} c&oelig;urs), un processeur logique par c&oelig;ur
+        physique. Laiss&eacute; au planificateur, un processus court tombe assez souvent sur un c&oelig;ur E ou basse
+        consommation pour d&eacute;placer de 10&nbsp;% le rapport entre deux binaires inchang&eacute;s ; &eacute;pingl&eacute;,
+        de 2&nbsp;%. Les compilations ne sont jamais &eacute;pingl&eacute;es : elles doivent prendre toute la machine.</span></li>
+        <li><b>&Eacute;chantillons</b><span>Chaque runtime est mesur&eacute; jusqu'&agrave;
+        {{budget_ms}}&nbsp;ms de temps mesur&eacute; par t&acirc;che, de {{min_reps}} &agrave; {{max_reps}} passes,
+        r&eacute;parties sur toute la fen&ecirc;tre et non group&eacute;es en fin de course. L'ordre du round-robin
+        tourne &agrave; chaque cycle : &agrave; ordre fixe, le premier runtime est toujours mesur&eacute; au m&ecirc;me
+        point de la mont&eacute;e en temp&eacute;rature. Minimum retenu, tous les &eacute;chantillons
+        conserv&eacute;s.</span></li>
+        <li><b>Calibration</b><span>Charge de r&eacute;f&eacute;rence avant chaque t&acirc;che et aux deux bouts
+        du balayage : {{calib_start}}&nbsp;ms puis {{calib_end}}&nbsp;ms, {{machine_spread}}&nbsp;% d'&eacute;cart
+        maximal sur toute la campagne. Deux extr&eacute;mit&eacute;s ne suffisaient pas : une compilation
+        lanc&eacute;e en parall&egrave;le a d&eacute;j&agrave; multipli&eacute; par dix toutes les compilations
+        d'une t&acirc;che avant de dispara&icirc;tre, campagne propre aux deux bouts et fiction au milieu.
+        Au-del&agrave; de {{drift_limit}}&nbsp;%, la campagne est archiv&eacute;e sans &ecirc;tre
+        publi&eacute;e.</span></li>
         <li><b>Correction du contexte</b><span>Les runtimes non-Swag sont suppos&eacute;s stables.
         Leur variation m&eacute;diane par rapport &agrave; la premi&egrave;re campagne propre corrige
         s&eacute;par&eacute;ment les temps d'ex&eacute;cution et de compilation de Swag.</span></li>
@@ -705,10 +725,17 @@ footer {
         <li><b>D&eacute;faut corrig&eacute; nº2</b><span>Les r&eacute;p&eacute;titions &eacute;taient group&eacute;es
         par runtime : une p&eacute;riode lente tombait enti&egrave;rement sur un seul langage. D'o&ugrave; le
         round-robin.</span></li>
+        <li><b>D&eacute;faut corrig&eacute; nº3</b><span><code>sha256</code> et <code>chacha</code> duraient 3,5 et
+        1,9&nbsp;ms, l&agrave; o&ugrave; la r&eacute;solution de la machine est de &plusmn;10 et &plusmn;27&nbsp;% :
+        ils mesuraient la machine. Charges multipli&eacute;es par seize, ce qui change leur checksum et remet leur
+        historique &agrave; z&eacute;ro.</span></li>
+        <li><b>Protocole</b><span>nº{{protocol}}. Deux campagnes de protocoles diff&eacute;rents ne sont pas
+        comparables et ne partagent jamais un historique ; les pr&eacute;c&eacute;dentes sont conserv&eacute;es
+        &agrave; part, comme pi&egrave;ces, et lues par rien.</span></li>
     </ul>
 
     <div class="note">
-        <p><b>Ce que ce banc ne dit pas.</b> Six t&acirc;ches ne sont pas un profil d'application. Tous les
+        <p><b>Ce que ce banc ne dit pas.</b> {{ntasks}} t&acirc;ches ne sont pas un profil d'application. Tous les
         compilateurs visent le jeu d'instructions x86-64 de base &mdash; aucun <code>-march=native</code>, aucun LTO.
         Les mesures C# JIT incluent l'&eacute;chauffement du JIT &agrave; l'int&eacute;rieur de la section
         chronom&eacute;tr&eacute;e, ce qui est la r&eacute;alit&eacute; d'un programme court mais p&eacute;nalise

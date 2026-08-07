@@ -1,4 +1,4 @@
-local SIZE = 524288
+local SIZE = 8388608
 
 local floor = math.floor
 local U = 4294967296

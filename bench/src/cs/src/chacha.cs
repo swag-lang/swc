@@ -3,7 +3,7 @@ using System.Diagnostics;
 
 static class Bench
 {
-    const ulong NWORDS = 262144; // 32-bit words, one mebibyte of key stream
+    const ulong NWORDS = 4194304; // 32-bit words, sixteen mebibytes of key stream
     const ulong M32 = 0xFFFFFFFF;
 
     static ulong gSeed = 12345;

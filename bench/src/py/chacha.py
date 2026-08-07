@@ -1,6 +1,6 @@
 import time
 
-SIZE = 262144  # 32-bit words, one mebibyte of key stream
+SIZE = 4194304  # 32-bit words, sixteen mebibytes of key stream
 M = 0xffffffff
 
 seed = 12345

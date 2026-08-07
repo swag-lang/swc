@@ -1,6 +1,6 @@
 #include "common.h"
 
-static const u64 MSGSIZE = 524288;
+static const u64 MSGSIZE = 8388608;
 static const u64 M32  = 0xFFFFFFFFull;
 
 static const u64 KTAB[64] = {

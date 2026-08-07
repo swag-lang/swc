@@ -58,6 +58,11 @@ inline constexpr std::string_view SWAG_TEST_RUN_ARG = "swag.test";
 // the work, so nothing here has to know where that ends up.
 inline constexpr std::string_view SWAG_SANDBOX_RUN_ARG = "swag.sandbox";
 
+// Grants the isolated process one directory outside its sandbox that stays writable: the
+// sources whose tests are running. A test keeps its reference data next to itself, so this
+// is what lets a snapshot be recorded without giving the run the machine back.
+inline constexpr std::string_view SWAG_SANDBOX_CORPUS_RUN_ARG = "swag.sandbox.corpus";
+
 // Bounds a smoke run: the program stops after this many rendered frames. Carried as
 // 'swag.smoke=<frames>' so the budget belongs to the launcher, not to each application.
 inline constexpr std::string_view SWAG_SMOKE_RUN_ARG = "swag.smoke";
@@ -313,6 +318,17 @@ inline std::vector<Utf8> effectiveGeneratedArtifactRunArgs(const CommandLine& cm
         !hasRunArgNamed(result, SWAG_SANDBOX_RUN_ARG))
     {
         result.emplace_back(SWAG_SANDBOX_RUN_ARG);
+    }
+
+    // A test records its reference data beside the source that produces it, which the sandbox
+    // refuses like any other write outside itself. The sources under test are granted back, and
+    // only them, so recording a snapshot stays possible while the machine does not. A smoke run
+    // records nothing and is granted nothing.
+    if (cmdLine.command == CommandKind::Test && !hasRunArgNamed(result, SWAG_SANDBOX_CORPUS_RUN_ARG))
+    {
+        const fs::path& corpus = cmdLine.modulePath.empty() ? cmdLine.workspacePath : cmdLine.modulePath;
+        if (!corpus.empty())
+            result.emplace_back(std::format("{}={}", SWAG_SANDBOX_CORPUS_RUN_ARG, corpus.string()));
     }
 
     return result;

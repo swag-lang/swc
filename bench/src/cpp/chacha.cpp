@@ -1,6 +1,6 @@
 #include "common.h"
 
-static const u64 NWORDS = 262144; // 32-bit words, one mebibyte of key stream
+static const u64 NWORDS = 4194304; // 32-bit words, sixteen mebibytes of key stream
 static const u64 M32  = 0xFFFFFFFF;
 
 typedef uint32_t u32;

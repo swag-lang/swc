@@ -1,6 +1,6 @@
 use std::time::Instant;
 
-const SIZE: u64 = 524288;
+const SIZE: u64 = 8388608;
 const M32: u64 = 0xFFFFFFFF;
 
 static mut G_SEED: u64 = 12345;

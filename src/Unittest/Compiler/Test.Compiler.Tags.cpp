@@ -238,6 +238,54 @@ SWC_TEST_BEGIN(Compiler_TestCommandKeepsExplicitSandboxRoot)
 }
 SWC_TEST_END()
 
+// The sources under test are granted back to the isolated process, so a test can record the
+// reference data that lives beside it. The module is the grant when there is one.
+SWC_TEST_BEGIN(Compiler_TestCommandGrantsTheModuleAsCorpus)
+{
+    CommandLine cmdLine;
+    cmdLine.command       = CommandKind::Test;
+    cmdLine.workspacePath = fs::path("C:/repo/bin/std");
+    cmdLine.modulePath    = fs::path("C:/repo/bin/std/modules/pixel");
+
+    const Utf8              expected = std::format("{}={}", SWAG_SANDBOX_CORPUS_RUN_ARG, cmdLine.modulePath.string());
+    const std::vector<Utf8> runArgs  = effectiveGeneratedArtifactRunArgs(cmdLine);
+    if (runArgs.size() != 3)
+        return Result::Error;
+    if (runArgs[2] != expected)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+// A whole workspace is tested in one run, so the grant widens to the workspace exactly when no
+// single module was named.
+SWC_TEST_BEGIN(Compiler_TestCommandGrantsTheWorkspaceWithoutAModule)
+{
+    CommandLine cmdLine;
+    cmdLine.command       = CommandKind::Test;
+    cmdLine.workspacePath = fs::path("C:/repo/bin/apps");
+
+    const Utf8              expected = std::format("{}={}", SWAG_SANDBOX_CORPUS_RUN_ARG, cmdLine.workspacePath.string());
+    const std::vector<Utf8> runArgs  = effectiveGeneratedArtifactRunArgs(cmdLine);
+    if (runArgs.size() != 3)
+        return Result::Error;
+    if (runArgs[2] != expected)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+// A smoke run is the real program: it records nothing, so it is granted nothing.
+SWC_TEST_BEGIN(Compiler_SmokeCommandGrantsNoCorpus)
+{
+    CommandLine cmdLine;
+    cmdLine.command    = CommandKind::Smoke;
+    cmdLine.modulePath = fs::path("C:/repo/bin/apps/modules/sCrypt");
+
+    const std::vector<Utf8> runArgs = effectiveGeneratedArtifactRunArgs(cmdLine);
+    if (hasRunArgNamed(runArgs, SWAG_SANDBOX_CORPUS_RUN_ARG))
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

@@ -6,25 +6,6 @@ being compiled by it.
 Conventions, the identifier counter, and the rest of the backlog are in [README.md](README.md).
 Entries are sorted by identifier, ascending; position carries no priority.
 
-### F-002 — Golden snapshots cannot be recorded under the test sandbox
-
-- Area: compiler | bin/std
-- Found while: regenerating the gui widget goldens after the theme-atlas format change
-- Observation: `swc test` always arms the sandbox, and the sandbox refuses every write outside
-  its root. The golden store's documented flows — create a missing golden on first run, write
-  `<name>.actual.txt`/`.png` next to a mismatching golden for `tools/goldens.bat` —
-  both write into the module source tree, so they silently stopped working when the sandbox
-  landed: a failing golden reports `[golden] cannot write ...` and leaves nothing to accept.
-- Evidence: the 13 gui golden mismatches printed `cannot write` for every actual; recording them
-  required launching the tests with an explicit repo-rooted sandbox
-  (`--run-arg "swag.sandbox=<repo root>"`), which redirects the special directories into the
-  repository and allows the corpus writes.
-- Next step: decide where golden actuals should land under a sandbox. Candidates: the launcher
-  grants the corpus root explicitly (a `swag.sandbox.corpus=<dir>` run argument the golden store
-  consults), or the golden store mirrors actuals under the sandbox root at a deterministic path
-  and `goldens.bat` harvests them. Writing straight to the source tree from a
-  sandboxed test contradicts the sandbox guarantee, so the escape must stay launcher-owned.
-
 ### F-018 — A sandbox root is never removed, and the process id does not make it private
 
 - Area: bin/std

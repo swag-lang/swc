@@ -3,7 +3,7 @@ using System.Diagnostics;
 
 static class Bench
 {
-    const ulong MSGSIZE = 524288;
+    const ulong MSGSIZE = 8388608;
     const ulong M32 = 0xFFFFFFFF;
 
     static ulong gSeed = 12345;

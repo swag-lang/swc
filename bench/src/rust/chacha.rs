@@ -1,6 +1,6 @@
 use std::time::Instant;
 
-const SIZE: u64 = 262144; // 32-bit words, one mebibyte of key stream
+const SIZE: u64 = 4194304; // 32-bit words, sixteen mebibytes of key stream
 const M32: u64 = 0xFFFFFFFF;
 
 static mut G_SEED: u64 = 12345;

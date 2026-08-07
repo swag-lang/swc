@@ -57,6 +57,48 @@ using Swag
     @assert(!Env.isInsideSandbox("C:/Windows/System32/nope.txt"))
 }
 
+// The corpus is the one place outside the sandbox a run may write. 'swc test' grants the module
+// it is testing, so the sources this file lives in accept a write while the machine still does not.
+#test
+{
+    if !Env.isSandboxed() do
+        return
+
+    let corpus = Env.corpusRoot()
+    @assert(@countof(corpus) != 0)
+    @assert(Env.isInsideCorpus(corpus))
+
+    let inside = Path.combine(corpus, "corpus-write.txt")
+    expect Env.guardWrite(inside.toString())
+
+    @assert(!Env.isInsideCorpus("C:/Windows/System32/nope.txt"))
+    catch Env.guardWrite("C:/Windows/System32/nope.txt") as err
+    @assert(err != null)
+}
+
+// An empty root is a launcher mistake, and answering it with a grant would turn a corpus that
+// was never configured into one that contains everything.
+#test
+{
+    catch Env.grantCorpus("") as err
+    @assert(err != null)
+}
+
+// Granting the same root again is the no-op a hook running twice needs; a different one is
+// refused, because code may already hold paths derived from the first.
+#test
+{
+    let corpus = Env.corpusRoot()
+    if @countof(corpus) == 0 do
+        return
+
+    expect Env.grantCorpus(corpus)
+
+    catch Env.grantCorpus(Env.getSpecialDirectory(.Temp).toString()) as err
+    @assert(err != null)
+    @assert(Env.corpusRoot() == corpus)
+}
+
 // Every well-known directory answers inside the sandbox, and two different kinds stay
 // distinct so an application that separates documents from settings still sees two places.
 #test

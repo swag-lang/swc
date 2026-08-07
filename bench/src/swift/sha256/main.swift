@@ -1,7 +1,7 @@
 import WinSDK
 import Foundation
 
-let MSGSIZE = 524288
+let MSGSIZE = 8388608
 let M32: UInt64 = 0xFFFFFFFF
 
 var gSeed: UInt64 = 12345

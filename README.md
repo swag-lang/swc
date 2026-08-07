@@ -66,50 +66,54 @@ moving with it.
 
 # How fast
 
-Six programs, written by hand and identically in every language, none of them using a standard library
+<!-- bench:begin -->
+Seven programs, written by hand and identically in every language, none of them using a standard library
 container: each one reimplements its own hash map, heap, or matrix, so the benchmark measures the
 compiler rather than somebody's hash table. All ports print the same checksum.
 
 Milliseconds, lower is better. `swc` in `release`, `clang-cl /O2`,
 `rustc -C opt-level=3 -C codegen-units=1`, one campaign on a Windows laptop
-([`20260802-195919`](bench/results/20260802-195919.json)).
+([`20260807-113624`](bench/results/20260807-113624.json)).
 
 **Execution.** The same program compiled natively, then run again through the compiler's JIT, then
 against the other runtimes:
 
 | program | swc | swc JIT | clang-cl | rustc | LuaJIT | Node 20 | CPython 3.12 |
 |---|---|---|---|---|---|---|---|
-| `wordfreq` | 70.7 | 67.7 | 46.8 | 48.9 | 121.0 | 160.9 | 1984.8 |
-| `csvagg` | 27.4 | 27.8 | 15.0 | 18.4 | 76.0 | 65.2 | 2172.5 |
-| `sha256` | 3.2 | 3.3 | 2.1 | 2.1 | 30.0 | 43.2 | 1392.2 |
-| `dijkstra` | 41.1 | 41.9 | 38.4 | 41.2 | 126.0 | 129.1 | 1784.9 |
-| `raytrace` | 21.0 | 21.5 | 9.0 | 9.9 | 26.0 | 36.6 | 773.5 |
-| `leven` | 17.2 | 17.3 | 11.5 | 12.6 | 52.0 | 64.7 | 2701.2 |
+| `wordfreq` | 76.9 | 75.5 | 58.2 | 59.5 | 143.0 | 192.6 | 2411.8 |
+| `csvagg` | 29.8 | 25.2 | 16.9 | 23.3 | 86.0 | 82.9 | 2964.5 |
+| `sha256` | 57.7 | 58.6 | 42.1 | 41.6 | 553.0 | 633.2 | 24920.0 |
+| `dijkstra` | 46.4 | 47.5 | 47.6 | 49.6 | 152.0 | 151.4 | 2376.3 |
+| `raytrace` | 16.3 | 17.2 | 10.5 | 11.8 | 29.0 | 44.3 | 948.1 |
+| `leven` | 22.5 | 22.9 | 15.6 | 15.0 | 67.0 | 82.4 | 3434.1 |
+| `chacha` | 30.8 | 29.9 | 23.8 | 35.3 | 1210.0 | 299.6 | 28386.8 |
 
 **Compilation**, from source to a linked executable:
 
 | program | swc | clang-cl | rustc |
 |---|---|---|---|
-| `wordfreq` | 75.3 | 343.5 | 270.0 |
-| `csvagg` | 81.8 | 354.5 | 344.8 |
-| `sha256` | 77.1 | 330.4 | 213.7 |
-| `dijkstra` | 78.5 | 361.2 | 264.0 |
-| `raytrace` | 75.8 | 337.7 | 201.1 |
-| `leven` | 80.1 | 345.2 | 287.6 |
+| `wordfreq` | 107.4 | 432.5 | 324.8 |
+| `csvagg` | 116.3 | 454.9 | 411.1 |
+| `sha256` | 105.6 | 418.1 | 265.8 |
+| `dijkstra` | 99.8 | 369.0 | 268.4 |
+| `raytrace` | 103.0 | 395.7 | 244.3 |
+| `leven` | 105.9 | 432.4 | 343.5 |
+| `chacha` | 170.2 | 471.6 | 334.2 |
 
-Native code runs within about **1.6x of clang-cl** on those six programs (geometric mean), while the
-compiler produces them roughly **4x faster** than `clang-cl` and **3x faster** than `rustc`, linker
-included. A hello world compiles and links in 66 ms.
+Native code runs within about **1.4x of clang-cl** on those seven programs (geometric mean), while the
+compiler produces them roughly **3.7x faster** than `clang-cl` and **2.7x faster** than `rustc`, linker
+included. A hello world compiles and links in 112 ms.
 
-The JIT lands **within one percent of the native backend** here, which is what makes compile-time
+The JIT lands **within 1 percent of the native backend** here, which is what makes compile-time
 execution, `#test`, and script mode usable rather than a slow mode you avoid: on the same programs it
-is about **2.8x faster than LuaJIT**, **3.4x faster than Node**, and **78x faster than CPython**.
+is about **4.5x faster than LuaJIT**, **4.3x faster than Node**, and **130x faster than CPython**.
 
 > [!NOTE]
 > Raw milliseconds are not comparable between campaigns — the same machine drifts by more than ten
 > percent between sessions — so the recorded history normalizes every measurement against ten control
-> runtimes. See [bench/](bench) for the method, the fourteen runtimes, and the two rules that keep the
-> numbers honest.
+> runtimes, and states the resolution below which it can see nothing at all. See [bench/](bench) for
+> the method, the fourteen runtimes, and the rules that keep the numbers honest.
+<!-- bench:end -->
 
 # One binary
 

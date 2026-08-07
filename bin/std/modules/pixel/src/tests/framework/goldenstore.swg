@@ -24,6 +24,9 @@ struct ImageGoldenOptions
 // where it gets reviewed and committed. A name whose golden no longer matches writes the produced
 // text next to it as '<name>.actual.txt', prints the first differing line, and fails. Accepting
 // the new output is therefore a copy, which 'tools\goldens.bat' does in bulk.
+//
+// Both writes land in the module source tree, which a sandboxed run reaches only through the
+// corpus 'swc test' grants it. See [[Core.Env.grantCorpus]].
 func assertGolden(painter: const *Painter, name: string, level = DumpLevel.Full, loc = #callerlocation)
 {
     let dump = dumpPainter(painter, level)
@@ -219,6 +222,7 @@ private
             if errDir != null
             {
                 Console.println("[image] cannot create ", dir)
+                reportSandboxRefusal(dir)
                 return false
             }
         }
@@ -227,10 +231,24 @@ private
         if errWrite != null
         {
             Console.println("[image] cannot write ", path)
+            reportSandboxRefusal(path)
             return false
         }
 
         return true
+    }
+
+    // Names the isolation when it is what refused the write. A golden lives in the module source
+    // tree, outside the sandbox a test runs in, so recording one depends on the launcher having
+    // granted that tree as the corpus. Without the explanation the failure reads as a permission
+    // problem on a file the reader can see is perfectly writable.
+    func reportSandboxRefusal(path: string)
+    {
+        if !Env.isSandboxed() or Env.isInsideCorpus(path) do
+            return
+
+        Console.println("         it is outside the sandbox at ", Env.sandboxRoot())
+        Console.println("         run the test with 'swag.sandbox.corpus=<directory>' to record there")
     }
 
     // Goldens sit in a 'goldens' folder beside the test source file, so a test and its snapshots
@@ -266,13 +284,17 @@ private
             if errDir != null
             {
                 Console.println("[golden] cannot create ", dir)
+                reportSandboxRefusal(dir)
                 return
             }
         }
 
         discard catch File.writeAllBytes(path, @mkslice(@dataof(text), @countof(text))) as errWrite
-        if errWrite != null do
+        if errWrite != null
+        {
             Console.println("[golden] cannot write ", path)
+            reportSandboxRefusal(path)
+        }
     }
 
     func splitLines(text: string)->Array'String

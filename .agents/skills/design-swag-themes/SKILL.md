@@ -211,10 +211,8 @@ After changing `apply`, a palette, or a widget's color choice:
    dark and light palettes do not agree on more than a handful of colors, and cover the sheet
    layers.
 2. The command-stream goldens under `bin/std/modules/gui/src/tests/unittests/goldens/` change
-   whenever a widget's colors do. Record them deliberately: run the suite with
-   `--run-arg "swag.sandbox=<repo>"` so the sandbox lets the `.actual` files be written, then
-   `tools/goldens.bat` to accept them, then delete the `Temp/` folder the sandbox materializes
-   at the repository root. Review the diff — a golden that changed for a part you did not touch
-   is a finding.
+   whenever a widget's colors do. A failing test leaves its `.actual` file beside the golden it
+   diverged from; `tools/goldens.bat` accepts them in bulk. Review the diff — a golden that
+   changed for a part you did not touch is a finding.
 3. `tools/examples.bat smoke gui10` walks every page of every palette.
 4. Look at the four palettes in gui10 before saying the change is done.

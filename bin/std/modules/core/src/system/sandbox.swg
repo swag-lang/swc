@@ -15,17 +15,25 @@ performs on startup are refused.
 It is armed by the runtime from the process command line before any `#init`, `#premain` or
 `#main` code runs, so an application needs no knowledge of it.
 
+A run may also be granted a *corpus*: one directory outside the root that stays writable, for a
+test whose reference data lives with its source. See [[Env.grantCorpus]].
+
 > ATTENTION:
 > A refused operation fails; it is never a silent no-op. Isolation that quietly does nothing
 > produces the same wrong-but-green result the sandbox exists to prevent.
 */
 private var g_SandboxRoot: String
+private var g_CorpusRoot: String
 private var g_Sandboxed: bool
 private var g_DeniedCount: u64
 
 // Run argument the compiler passes to a generated executable to isolate it. Either on its
 // own, letting the process pick a private root, or followed by '=' and an explicit one.
 private const SandboxArg = "swag.sandbox"
+
+// Run argument granting a corpus, as 'swag.sandbox.corpus=<directory>'. The compiler's 'test'
+// command passes the module or workspace whose tests are running.
+private const CorpusArg = "swag.sandbox.corpus"
 
 // Run argument bounding a smoke run, as 'swag.smoke=<frames>'.
 private const SmokeArg = "swag.smoke"
@@ -78,6 +86,19 @@ internal func defaultSandboxRoot()->String
             if g_Sandboxed do
                 @print(", already armed at '", g_SandboxRoot.toString(), "'")
             @print("\n")
+            abortUnsandboxed()
+        }
+    }
+
+    let corpus = findRunArgument(CorpusArg)
+    if corpus.found
+    {
+        catch grantCorpus(corpus.value.toString()) else
+        {
+            // A grant that does not hold is worse than no grant at all: the run keeps going and
+            // every recording it was launched to make is refused one by one, which reads as a
+            // test failure rather than as a launcher mistake.
+            @print("[swag.sandbox] cannot grant the corpus at '", corpus.value.toString(), "'\n")
             abortUnsandboxed()
         }
     }
@@ -139,6 +160,38 @@ private func createDirectoryTree(path: string) fail
     try Directory.create(path)
 }
 
+// Grants `root` as the corpus: the one directory outside the sandbox a run may still write.
+//
+// A test keeps its reference data next to its own source, so recording one — creating a snapshot
+// that does not exist yet, or leaving the produced one beside the reference it diverged from —
+// means writing into the sources under test. The sandbox refuses that, and it is right to: the
+// escape belongs to whoever launched the run, not to the test asking for it. `swc test` grants
+// the module or workspace it is testing, and nothing else; the machine stays out of reach.
+//
+// `root` must already exist. Granting twice with the same root is accepted; changing a granted
+// root is not, because code may already hold paths derived from the previous one.
+func grantCorpus(root: string) fail
+{
+    if @countof(root) == 0 do
+        fail BadParameterError{"a corpus needs a root directory"}
+
+    let normalized = absolutePath(root)
+
+    if !g_CorpusRoot.isEmpty()
+    {
+        if normalized == g_CorpusRoot do
+            return
+        fail BadParameterError{"the corpus root cannot change once granted"}
+    }
+
+    // Never created, unlike the sandbox root: a corpus is an existing source tree, and a missing
+    // one means the launcher named the wrong place rather than a place still to make.
+    if !Directory.exists(normalized) do
+        fail FileNotFoundError{"the corpus root does not exist", fileName: normalized.toString()}
+
+    g_CorpusRoot = normalized
+}
+
 // Reports whether the process is isolated from real machine state.
 func isSandboxed()->bool => g_Sandboxed
 
@@ -167,6 +220,9 @@ func smokeFrames()->u32
 
 // Returns the sandbox root, or an empty string when the process is not sandboxed.
 func sandboxRoot()->string => g_SandboxRoot.toString()
+
+// Returns the corpus root, or an empty string when the run was granted none.
+func corpusRoot()->string => g_CorpusRoot.toString()
 
 // Returns how many system mutations have been refused so far.
 //
@@ -221,6 +277,9 @@ func isInsideSandbox(path: string)->bool
     return isInsideDirectory(g_SandboxRoot.toString(), path)
 }
 
+// Reports whether `path` is inside the granted corpus. Answers false when there is none.
+func isInsideCorpus(path: string)->bool => isInsideDirectory(g_CorpusRoot.toString(), path)
+
 // Returns the sandbox stand-in for a well-known system directory, creating it on demand.
 //
 // Each kind gets its own sub-folder, so an application that puts its data under the documents
@@ -237,7 +296,7 @@ internal func sandboxSpecialDirectory(what: SpecialDirectory)->String
     return result
 }
 
-// Fails when `path` would be written outside the sandbox.
+// Fails when `path` would be written outside the sandbox and outside the granted corpus.
 //
 // Every operation in [[Core.File]] and [[Core.Directory]] that creates, modifies or removes
 // something calls this first. Outside a sandbox it is a single boolean test.
@@ -245,7 +304,7 @@ internal func guardWrite(path: string) fail
 {
     if !g_Sandboxed do
         return
-    if isInsideSandbox(path) do
+    if isInsideSandbox(path) or isInsideCorpus(path) do
         return
     fail SandboxError{"refusing to write outside the sandbox", path: absolutePath(path).toString()}
 }

@@ -1,7 +1,7 @@
 import WinSDK
 import Foundation
 
-let NWORDS = 262144 // 32-bit words, one mebibyte of key stream
+let NWORDS = 4194304 // 32-bit words, sixteen mebibytes of key stream
 let M32: UInt64 = 0xFFFFFFFF
 
 var gSeed: UInt64 = 12345

@@ -72,7 +72,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--label", default="", help="short note stored with this campaign")
     ap.add_argument("--quick", action="store_true",
-                    help="1 repetition, no cooldown; smoke test, not recorded")
+                    help="1 sample, no warm-up; smoke test, not recorded")
     ap.add_argument("--no-build", action="store_true", help="measure the binary already built")
     ap.add_argument("--report-only", action="store_true",
                     help="regenerate the page from the existing history, measure nothing")

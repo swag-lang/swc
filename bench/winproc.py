@@ -3,10 +3,16 @@
 Why a job object rather than psutil: every compiler here spawns helpers (link.exe,
 MSBuild nodes, ILC), so the interesting number is the peak committed memory of the
 whole process tree, which is exactly `PeakJobMemoryUsed`.
+
+A timed run is also pinned to one fixed performance core. This machine is a hybrid:
+six P cores, eight E cores and two low-power cores that a short process lands on
+often enough to double its time. Unpinned, the same binary measured over and over
+moved between 38 and 50 ms; pinned, the whole series fits in 2 %.
 """
 import ctypes
 import ctypes.wintypes as w
 import os
+import struct
 import subprocess
 import tempfile
 import time
@@ -24,6 +30,7 @@ FILE_SHARE_WRITE = 0x00000002
 CREATE_ALWAYS = 2
 FILE_ATTRIBUTE_NORMAL = 0x80
 JobObjectExtendedLimitInformation = 9
+JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x00002000
 ERROR_ACCESS_DENIED = 5
 ERROR_SHARING_VIOLATION = 32
 RETRIES = 12
@@ -81,8 +88,95 @@ def _env_block(env):
     return ctypes.create_unicode_buffer("\0".join(items) + "\0\0")
 
 
-def run(cmd, cwd=None, env=None):
-    """Run `cmd` (list) and return timings, peak memory and captured output."""
+def _system_times():
+    idle, kernel, user = FILETIME(), FILETIME(), FILETIME()
+    if not k32.GetSystemTimes(ctypes.byref(idle), ctypes.byref(kernel),
+                              ctypes.byref(user)):
+        return None
+    # Kernel time includes idle time, so total is kernel + user and busy is what is
+    # left once idle is taken out.
+    return _ft(idle), _ft(kernel) + _ft(user)
+
+
+def system_busy_pct(window_s=1.0):
+    """Share of the machine somebody else is using, over `window_s`.
+
+    Nothing of ours is running while this samples, so whatever it reports belongs to
+    another process. A campaign measured against a busy machine is not a measurement,
+    and this is how the driver knows before spending twenty minutes finding out.
+    """
+    first = _system_times()
+    if not first:
+        return 0.0
+    time.sleep(window_s)
+    second = _system_times()
+    if not second:
+        return 0.0
+    idle = second[0] - first[0]
+    total = second[1] - first[1]
+    if total <= 0:
+        return 0.0
+    return max(0.0, min(100.0, (1.0 - idle / total) * 100.0))
+
+
+def topology():
+    """Every logical processor as (index, core, efficiency class), highest class first.
+
+    `GetSystemCpuSetInformation` is the only interface that names the efficiency class,
+    which is what separates a P core from an E core on a hybrid part.
+    """
+    buf = ctypes.create_string_buffer(1 << 16)
+    returned = w.ULONG()
+    if not k32.GetSystemCpuSetInformation(buf, ctypes.sizeof(buf), ctypes.byref(returned),
+                                          w.HANDLE(0), 0):
+        return []
+    cpus = []
+    offset = 0
+    while offset < returned.value:
+        size, kind = struct.unpack_from("<II", buf, offset)
+        if not size:
+            break
+        if kind == 0:  # CpuSetInformation
+            _, _, logical, core, _, _, efficiency, _ = struct.unpack_from("<IHBBBBBB", buf,
+                                                                          offset + 8)
+            cpus.append((logical, core, efficiency))
+        offset += size
+    return cpus
+
+
+def _pin_mask():
+    """The performance cores, one logical processor each, as an affinity mask.
+
+    Both halves of that sentence were measured. Leaving the choice to the scheduler
+    lets a short process land on an E core or on one of the two low-power cores, and
+    the ratio between two unchanged binaries then moves by 10 % from one block of
+    measurements to the next. Pinning to a *single* P core is worse still: the ratio
+    is no steadier and the core is 5 % slower than the one the scheduler would have
+    picked, because it is not the favoured core of this part. One logical processor
+    per physical core keeps a hyperthread sibling from stealing half the core, and
+    leaving all six available lets the scheduler still avoid a core that is busy.
+    Same mask for every runtime — a comparison has to be fair, not maximal.
+    """
+    cpus = topology()
+    if not cpus:
+        return 0
+    best = max(efficiency for _, _, efficiency in cpus)
+    cores = sorted({core for _, core, efficiency in cpus if efficiency == best})
+    mask = 0
+    for core in cores:
+        mask |= 1 << min(logical for logical, c, e in cpus if c == core and e == best)
+    return mask
+
+
+PIN_MASK = _pin_mask()
+
+
+def run(cmd, cwd=None, env=None, pin=False, priority=None):
+    """Run `cmd` (list) and return timings, peak memory and captured output.
+
+    `pin` confines the process to the performance cores. Use it for anything whose
+    duration is the result — never for a build, which is meant to use the whole machine.
+    """
     sa = SECURITY_ATTRIBUTES(ctypes.sizeof(SECURITY_ATTRIBUTES), None, True)
     fd_out, path_out = tempfile.mkstemp(suffix=".out")
     fd_err, path_err = tempfile.mkstemp(suffix=".err")
@@ -105,6 +199,18 @@ def run(cmd, cwd=None, env=None):
     h_job = k32.CreateJobObjectW(None, None)
     if not h_job:
         raise ctypes.WinError(ctypes.get_last_error())
+
+    # Kill the whole tree when the last handle to the job goes away. The normal path
+    # already terminates the job after the wait, so this only matters when the driver
+    # itself dies — interrupted at the keyboard, or killed by whatever launched it.
+    # Without it, a campaign stopped in the middle of a NativeAOT publish leaves the
+    # compiler running, and it is still burning the machine when the next campaign
+    # starts: a reference workload that takes 45 ms measured 873 ms that way. The one
+    # rule this file already had, applied to its own death.
+    limits = JOBOBJECT_EXTENDED_LIMIT_INFORMATION()
+    limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+    k32.SetInformationJobObject(h_job, JobObjectExtendedLimitInformation,
+                                ctypes.byref(limits), ctypes.sizeof(limits))
 
     cmdline = subprocess.list2cmdline(cmd)
     envblock = _env_block(env if env is not None else dict(os.environ))
@@ -136,6 +242,13 @@ def run(cmd, cwd=None, env=None):
         time.sleep(RETRY_DELAY)
 
     k32.AssignProcessToJobObject(h_job, pi.hProcess)
+    # The process is still suspended, so the affinity is in place before its first
+    # instruction: it can never start on one core and be measured on another.
+    mask = PIN_MASK if pin is True else (pin or 0)
+    if mask:
+        k32.SetProcessAffinityMask(pi.hProcess, ctypes.c_size_t(mask))
+    if priority:
+        k32.SetPriorityClass(pi.hProcess, priority)
     k32.ResumeThread(pi.hThread)
     k32.WaitForSingleObject(pi.hProcess, INFINITE)
     k32.QueryPerformanceCounter(ctypes.byref(t1))

@@ -111,3 +111,49 @@ func useAfterConditionalFree(cond: bool)->s32
     @assert(dref q == 5)
     myFree(q, 4)
 }
+
+// ---------------------------------------------------------------------------
+// Releasing an object that merely CARRIES a pointer to the receiver frees that
+// object, never the receiver. The FREES summary must not travel up from there:
+// it did, and the report came out on a caller three frames away, on a value
+// that had nothing to do with the release.
+// ---------------------------------------------------------------------------
+
+struct UafCarrier
+{
+    owner: #null *UafHost
+}
+
+struct UafHost
+{
+    value: s32
+}
+
+impl UafHost
+{
+    // 'p' carries the receiver and is released; only 'p' dies.
+    #[Swag.Sanity(.Lifecycle, true)]
+    mtd setup()
+    {
+        let p = cast(*UafCarrier) myAlloc(#sizeof(UafCarrier))
+        p.owner = me
+        myFree(p, #sizeof(UafCarrier))
+        .value = 1
+    }
+}
+
+// One more frame, because the wrong conclusion was reached by summary propagation
+// and only showed up at the end of the chain.
+#[Swag.Sanity(.Lifecycle, true)]
+func uafCarrierThroughFrame(host: *UafHost)
+{
+    host.setup()
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    var host: UafHost
+    uafCarrierThroughFrame(&host)
+    @assert(host.value == 1)
+}

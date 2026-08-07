@@ -106,4 +106,39 @@ A test drives the whole path with no desktop under it:
 `Testing.HeadlessHost.dragFilesOver` moves a gesture across the tree, and
 `Testing.HeadlessHost.cancelDrag` ends one the way Escape does.
 
-Dragging *out* of a Swag window is not implemented yet.
+## Dragging out of a window
+
+[[Gui.Wnd.startDrag]] carries a payload to whatever the pointer is released on, and answers with
+the single effect the target settled on. The same [[Gui.DragData]] is what a source fills:
+[[Gui.DragData.addFile]], [[Gui.DragData.setText]] and [[Gui.DragData.setImage]] say what is on
+offer, and offering several is the useful case rather than a redundant one — a folder takes the
+file, a picture editor takes the bitmap, and each target picks what it understands.
+
+```swag
+var data: DragData
+data.addFile(exportedPath)
+try data.setImage(picture)
+discard thumbnail.startDrag(&data, DropEffect.Copy)
+```
+
+A press only becomes a drag once the pointer has travelled far enough, which
+[[Gui.Wnd.exceedsDragThreshold]] answers from the distance the desktop is configured with, so a
+shaky hand on a click does not start dragging.
+
+Two consequences of the desktop running the gesture are worth knowing before writing the handler.
+The call does not return until the drop, and the window stops painting for that whole time — every
+application that drags behaves this way. And the button that started the drag comes back up
+*inside* that loop, so the control has to forget its own press before calling, rather than waiting
+for a release event that will never arrive:
+
+```swag
+if evt.kind == .Move and .pressedItem != Swag.U64.Max
+{
+    if .exceedsDragThreshold(.pressOrigin, evt.surfacePos)
+    {
+        .pressedItem = Swag.U64.Max     // no release event follows the gesture
+        .dragOutItem()
+        return
+    }
+}
+```

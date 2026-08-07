@@ -173,6 +173,51 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher
     @assert(pickDropEffect(DropEffect.Link, Input.KeyModifiers.None) == DropEffect.Link)
 }
 
+// A payload a source builds reads back through the same accessors a target uses.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(200, 200)
+    defer host.shutdown()
+
+    var data: DragData
+    @assert(!data.hasFiles() and !data.hasText() and !data.hasImage())
+
+    data.addFile("c:/tmp/one.png")
+    data.setText("beside it")
+    var source = Testing.indexedImage(5, 3)
+    expect data.setImage(source)
+
+    @assert(data.singleFile() == "c:/tmp/one.png")
+    @assert(data.text == "beside it")
+    @assert(data.hasImage())
+
+    // A picture handed in is the one handed back, with no encode-decode round trip in between.
+    let held = data.image()!
+    @assert(held.width == 5 and held.height == 3)
+
+    data.clear()
+    @assert(!data.hasFiles() and !data.hasText() and !data.hasImage())
+    @assert(data.image() == null)
+}
+
+// A drag started with no desktop under it, or with nothing to carry, goes nowhere.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(200, 200)
+    defer host.shutdown()
+
+    let catcher = makeCatcher(&host.root, {10, 10, 80, 80})
+
+    var empty: DragData
+    @assert(catcher.startDrag(&empty) == DropEffect.None)
+
+    var data: DragData
+    data.setText("nowhere to go")
+    @assert(catcher.startDrag(&data) == DropEffect.None)
+}
+
 // A drop on nothing is refused without reaching any window.
 #test
 {

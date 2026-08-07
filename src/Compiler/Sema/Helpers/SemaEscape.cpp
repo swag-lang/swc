@@ -1566,6 +1566,7 @@ namespace
                     edge.callerParamIndex = static_cast<uint32_t>(callerParamIndex);
                     edge.calleeParamIndex = static_cast<uint32_t>(thisParam);
                     edge.viaOwnedPayload  = info.viaOwnedPayload;
+                    edge.viaStoredField   = info.viaStoredField;
                     outCapture.edges.push_back(edge);
                     parameterMappings.push_back({static_cast<uint32_t>(callerParamIndex), static_cast<uint32_t>(thisParam)});
                 }
@@ -3445,8 +3446,10 @@ namespace SemaEscape
                         // what was handed over is a payload the parameter OWNS, the
                         // conclusion changes rather than disappears: releasing the buffer
                         // does not release the container, but it does move it, and that is
-                        // what invalidates the views into it.
-                        if (edge.callee->freesParamsMask() & calleeBit)
+                        // what invalidates the views into it. When the argument merely
+                        // CARRIES the parameter in a field, there is no conclusion at all:
+                        // the callee frees the carrier, which is not the parameter.
+                        if ((edge.callee->freesParamsMask() & calleeBit) && !edge.viaStoredField)
                         {
                             if (edge.viaOwnedPayload)
                             {

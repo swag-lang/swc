@@ -125,6 +125,10 @@ struct SemaEscapeSummaryEdge
     // The borrow still propagates, but the FREES summary must not: releasing what an
     // object owns does not release the object.
     bool viaOwnedPayload = false;
+    // The argument only CARRIES the parameter in one of its fields; its own storage is a
+    // distinct allocation. The borrow still propagates, and so does the STORES summary,
+    // but the FREES summary must not: releasing the carrier releases the carrier.
+    bool viaStoredField = false;
 };
 
 // The captured argument borrows of one opaque call. Checks are templates whose site,

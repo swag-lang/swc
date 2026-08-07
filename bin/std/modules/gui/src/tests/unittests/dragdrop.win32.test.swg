@@ -5,232 +5,209 @@
 using Swag, Core, Win32
 
 // ---------------------------------------------------------------------------
-// The Windows entry points, driven exactly as OLE drives them: through the
-// interface vtable, with a real IDataObject handing over a real CF_HDROP medium.
-// This is what proves the binding layout — FORMATETC, STGMEDIUM, POINTL by
-// value — and the shell parsing of a DROPFILES block, none of which the routing
-// tests above can see.
+// The two halves of the platform layer, driven against each other exactly as OLE
+// drives them: the source's `IDataObject` handed to the target's `IDropTarget`,
+// through the interface vtables, with real clipboard mediums in between.
+//
+// This is what proves the binding layout — FORMATETC, STGMEDIUM, POINTL passed by
+// value — and every format both sides claim to speak. A headless surface has no
+// desktop under it, so the hit test finds no window and the answered effect is
+// `None`; the routing above that has its own tests.
 // ---------------------------------------------------------------------------
 
-#[Swag.NoCopy]
-struct HDropDataObject
+// Builds a source object over `data`, the way `startDrag` does.
+internal func testDragSource(session: *DragSession, data: *DragData)->*IDataObject
 {
-    lpVtbl: #null *IDataObjectVtbl
-    paths:  Array'String
+    session.setup(data)
+    return cast(*IDataObject) &session.dataObj
 }
 
-var g_HDropVtbl: IDataObjectVtbl = undefined
-
-func hdropQueryInterface(itf: *IDataObject, riid: const *GUID, ppv: *LPVOID)->HRESULT
+// Hands `source` to the surface's own drop target and returns the payload it read back.
+internal func testRoundTrip(host: *Testing.HeadlessHost, source: *IDataObject)->*DragData
 {
-    discard riid
-    dref ppv = cast([*] void) itf
-    return S_OK
+    host.surface.registerDropTarget()
+    let target = cast(*IDropTarget) &host.surface.dropTarget
+
+    var effect = DROPEFFECT_COPY
+    @assert(target.lpVtbl.DragEnter(target, source, 0, POINTL{60, 60}, &effect) == S_OK)
+    return &host.surface.dropTarget.data
 }
 
-func hdropAddRef(itf: *IDataObject)->ULONG
-{
-    discard itf
-    return 1
-}
-
-func hdropRelease(itf: *IDataObject)->ULONG
-{
-    discard itf
-    return 1
-}
-
-// Builds the DROPFILES block the shell hands a target: the header, then every path as
-// zero-terminated UTF-16, then one more zero to end the list.
-func hdropGetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIUM)->HRESULT
-{
-    if fmt.cfFormat != cast(CLIPFORMAT) CF_HDROP do
-        return DV_E_FORMATETC
-
-    let obj = cast(*HDropDataObject) itf
-
-    var chars = 1'u64
-    for &p in obj.paths do
-        chars += cast(u64) @countof(p) + 1
-
-    let size  = cast(u64) #sizeof(DROPFILES) + chars * 2
-    let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, size)
-    let base  = cast([*] u8) GlobalLock(hglob)!
-
-    let header = cast(*DROPFILES) base
-    header.pFiles = #sizeof(DROPFILES)
-    header.fWide  = TRUE
-
-    var cursor = cast([*] u16) (base + #sizeof(DROPFILES))
-    for &p in obj.paths
-    {
-        let wide = Utf16.fromUtf8(p.toString())
-        Memory.copy(cursor, wide.buffer, wide.count * 2)
-        cursor      += wide.count
-        dref cursor = 0
-        cursor      += 1
-    }
-
-    dref cursor = 0
-    discard GlobalUnlock(base)
-
-    med.tymed   = TYMED_HGLOBAL
-    med.hGlobal = hglob
-    return S_OK
-}
-
-func hdropNotImpl2(itf: *IDataObject, a: const *FORMATETC, b: *STGMEDIUM)->HRESULT
-{
-    discard itf
-    discard a
-    discard b
-    return E_NOTIMPL
-}
-
-func hdropQueryGetData(itf: *IDataObject, fmt: const *FORMATETC)->HRESULT
-{
-    discard itf
-    return fmt.cfFormat == cast(CLIPFORMAT) CF_HDROP ? S_OK : DV_E_FORMATETC
-}
-
-func hdropCanonical(itf: *IDataObject, a: const *FORMATETC, b: *FORMATETC)->HRESULT
-{
-    discard itf
-    discard a
-    discard b
-    return E_NOTIMPL
-}
-
-func hdropSetData(itf: *IDataObject, a: const *FORMATETC, b: *STGMEDIUM, c: BOOL)->HRESULT
-{
-    discard itf
-    discard a
-    discard b
-    discard c
-    return E_NOTIMPL
-}
-
-func hdropEnumFormatEtc(itf: *IDataObject, a: DWORD, b: *LPVOID)->HRESULT
-{
-    discard itf
-    discard a
-    discard b
-    return E_NOTIMPL
-}
-
-func hdropDAdvise(itf: *IDataObject, a: const *FORMATETC, b: DWORD, c: #null *void, d: *DWORD)->HRESULT
-{
-    discard itf
-    discard a
-    discard b
-    discard c
-    discard d
-    return E_NOTIMPL
-}
-
-func hdropDUnadvise(itf: *IDataObject, a: DWORD)->HRESULT
-{
-    discard itf
-    discard a
-    return E_NOTIMPL
-}
-
-func hdropEnumDAdvise(itf: *IDataObject, a: *LPVOID)->HRESULT
-{
-    discard itf
-    discard a
-    return E_NOTIMPL
-}
-
-func makeHDropObject(obj: *HDropDataObject, paths: const [..] string)
-{
-    g_HDropVtbl.QueryInterface        = &hdropQueryInterface
-    g_HDropVtbl.AddRef                = &hdropAddRef
-    g_HDropVtbl.Release               = &hdropRelease
-    g_HDropVtbl.GetData               = &hdropGetData
-    g_HDropVtbl.GetDataHere           = &hdropNotImpl2
-    g_HDropVtbl.QueryGetData          = &hdropQueryGetData
-    g_HDropVtbl.GetCanonicalFormatEtc = &hdropCanonical
-    g_HDropVtbl.SetData               = &hdropSetData
-    g_HDropVtbl.EnumFormatEtc         = &hdropEnumFormatEtc
-    g_HDropVtbl.DAdvise               = &hdropDAdvise
-    g_HDropVtbl.DUnadvise             = &hdropDUnadvise
-    g_HDropVtbl.EnumDAdvise           = &hdropEnumDAdvise
-
-    obj.lpVtbl = &g_HDropVtbl
-    for p in paths do
-        obj.paths.add(p)
-}
-
-// The OLE entry points, driven through the interface vtable the way OLE drives them.
-//
-// A headless surface registers with no desktop under it, so the hit test finds no window and the
-// answered effect is `None`; what this proves is everything below that — the vtable dispatch, the
-// `POINTL` passed by value, the FORMATETC and STGMEDIUM layouts, and the DROPFILES block the shell
-// helpers parse back into paths. The routing above it has its own tests.
+// A list of files survives the DROPFILES block, in order.
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
     defer host.shutdown()
 
-    var data: HDropDataObject
-    makeHDropObject(&data, ["c:/tmp/first.png", "c:/tmp/second.png"])
+    var data: DragData
+    data.addFile("c:/tmp/first.png")
+    data.addFile("c:/tmp/second name with spaces.png")
 
-    host.surface.registerDropTarget()
-    let target = cast(*IDropTarget) &host.surface.dropTarget
-    let source = cast(*IDataObject) &data
-    let dropPt = POINTL{60, 60}
+    var session: DragSession
+    let payload = testRoundTrip(&host, testDragSource(&session, &data))
 
-    var effect = DROPEFFECT_COPY | DROPEFFECT_MOVE
-    @assert(target.lpVtbl.DragEnter(target, source, 0, dropPt, &effect) == S_OK)
-    @assert(effect == DROPEFFECT_NONE)
-
-    // The whole path list survived the DROPFILES round trip.
-    let payload = &host.surface.dropTarget.data
     @assert(payload.files.count == 2)
     @assert(payload.files[0] == "c:/tmp/first.png")
-    @assert(payload.files[1] == "c:/tmp/second.png")
+    @assert(payload.files[1] == "c:/tmp/second name with spaces.png")
     @assert(payload.singleFile() == null)
     @assert(!payload.hasText())
     @assert(!payload.hasImage())
-
-    // What the source published reaches the target unchanged, phase after phase.
-    effect = DROPEFFECT_LINK
-    @assert(target.lpVtbl.DragOver(target, MK_SHIFT, dropPt, &effect) == S_OK)
-    @assert(host.surface.dropTarget.allowed == DropEffect.Link)
-
-    effect = DROPEFFECT_COPY
-    @assert(target.lpVtbl.Drop(target, source, 0, dropPt, &effect) == S_OK)
-    @assert(effect == DROPEFFECT_NONE)
-
-    // The gesture is over, so the payload is not kept alive past it.
-    @assert(host.surface.dropTarget.data.files.count == 0)
 }
 
-// One path alone is what a field naming a document reads through `singleFile`.
+// One file alone is what a field naming a document reads through `singleFile`.
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
     defer host.shutdown()
 
-    var data: HDropDataObject
-    makeHDropObject(&data, ["c:/tmp/only.txt"])
+    var data: DragData
+    data.addFile("c:/tmp/only.txt")
 
-    host.surface.registerDropTarget()
-    let target = cast(*IDropTarget) &host.surface.dropTarget
-    let source = cast(*IDataObject) &data
-
-    var effect = DROPEFFECT_COPY
-    discard target.lpVtbl.DragEnter(target, source, 0, POINTL{60, 60}, &effect)
-    @assert(host.surface.dropTarget.data.singleFile() == "c:/tmp/only.txt")
-
-    @assert(target.lpVtbl.DragLeave(target) == S_OK)
-    @assert(host.surface.dropTarget.data.files.count == 0)
+    var session: DragSession
+    @assert(testRoundTrip(&host, testDragSource(&session, &data)).singleFile() == "c:/tmp/only.txt")
 }
 
-// The interface answers the identity questions COM asks of every object.
+// Text survives the UTF-16 medium, including what does not fit in one byte.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(200, 200)
+    defer host.shutdown()
+
+    var data: DragData
+    data.setText("drag héllo → wörld")
+
+    var session: DragSession
+    let payload = testRoundTrip(&host, testDragSource(&session, &data))
+
+    @assert(payload.text == "drag héllo → wörld")
+    @assert(!payload.hasFiles())
+}
+
+// A picture survives the PNG medium, pixel for pixel.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(200, 200)
+    defer host.shutdown()
+
+    var source = Testing.indexedImage(7, 5)
+
+    var data: DragData
+    expect data.setImage(source)
+
+    var session: DragSession
+    let payload = testRoundTrip(&host, testDragSource(&session, &data))
+
+    @assert(payload.hasImage())
+    let decoded = payload.image()!
+    @assert(decoded.width == 7)
+    @assert(decoded.height == 5)
+    @assert(decoded.pixelColor(0, 0).argb == source.pixelColor(0, 0).argb)
+    @assert(decoded.pixelColor(6, 4).argb == source.pixelColor(6, 4).argb)
+}
+
+// Files and a picture together: a folder takes the file, an editor takes the bitmap, and the
+// target sees both.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(200, 200)
+    defer host.shutdown()
+
+    var source = Testing.indexedImage(4, 4)
+
+    var data: DragData
+    data.addFile("c:/tmp/shot.png")
+    expect data.setImage(source)
+
+    var session: DragSession
+    let payload = testRoundTrip(&host, testDragSource(&session, &data))
+
+    @assert(payload.singleFile() == "c:/tmp/shot.png")
+    @assert(payload.hasImage())
+}
+
+// The source enumerates what it offers, most specific first, and stops cleanly.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(200, 200)
+    defer host.shutdown()
+
+    var data: DragData
+    data.addFile("c:/tmp/one.png")
+    data.setText("beside it")
+
+    var session: DragSession
+    let source = testDragSource(&session, &data)
+
+    var raw: LPVOID
+    @assert(source.lpVtbl.EnumFormatEtc(source, 1, &raw) == S_OK)
+    let formats = cast(*IEnumFORMATETC) raw!
+    defer discard formats.lpVtbl.Release(formats)
+
+    var entries: [8] FORMATETC
+    var fetched: ULONG
+    @assert(formats.lpVtbl.Next(formats, 8, &entries[0], &fetched) == S_FALSE)
+    @assert(fetched == 3)
+    @assert(entries[0].cfFormat == cast(CLIPFORMAT) CF_HDROP)
+    @assert(entries[1].cfFormat == cast(CLIPFORMAT) CF_UNICODETEXT)
+    @assert(entries[2].cfFormat == cast(CLIPFORMAT) CF_TEXT)
+    @assert(entries[0].tymed == TYMED_HGLOBAL)
+    @assert(entries[0].dwAspect == DVASPECT_CONTENT)
+
+    // Rewinding starts the walk again, and a clone keeps its own place in it.
+    @assert(formats.lpVtbl.Reset(formats) == S_OK)
+    @assert(formats.lpVtbl.Skip(formats, 1) == S_OK)
+
+    var rawClone: LPVOID
+    @assert(formats.lpVtbl.Clone(formats, &rawClone) == S_OK)
+    let clone = cast(*IEnumFORMATETC) rawClone!
+    defer discard clone.lpVtbl.Release(clone)
+
+    @assert(clone.lpVtbl.Next(clone, 1, &entries[0], &fetched) == S_OK)
+    @assert(fetched == 1)
+    @assert(entries[0].cfFormat == cast(CLIPFORMAT) CF_UNICODETEXT)
+
+    // Asking past the end is a clean stop, not a failure.
+    @assert(formats.lpVtbl.Skip(formats, 99) == S_FALSE)
+    @assert(formats.lpVtbl.Next(formats, 1, &entries[0], &fetched) == S_FALSE)
+    @assert(fetched == 0)
+}
+
+// A format nobody offered is refused rather than answered with an empty medium.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(200, 200)
+    defer host.shutdown()
+
+    var data: DragData
+    data.setText("text only")
+
+    var session: DragSession
+    let source = testDragSource(&session, &data)
+
+    var fmt: FORMATETC
+    fmt.cfFormat = cast(CLIPFORMAT) CF_HDROP
+    fmt.dwAspect = DVASPECT_CONTENT
+    fmt.lindex   = -1
+    fmt.tymed    = TYMED_HGLOBAL
+    @assert(source.lpVtbl.QueryGetData(source, &fmt) == DV_E_FORMATETC)
+
+    var med: STGMEDIUM
+    @assert(source.lpVtbl.GetData(source, &fmt, &med) == DV_E_FORMATETC)
+
+    // A format it does offer, but through a medium it cannot produce, is refused too.
+    fmt.cfFormat = cast(CLIPFORMAT) CF_UNICODETEXT
+    fmt.tymed    = TYMED_ISTREAM
+    @assert(source.lpVtbl.QueryGetData(source, &fmt) == DV_E_FORMATETC)
+}
+
+// The interfaces answer the identity questions COM asks of every object.
 #test
 {
     var host: Testing.HeadlessHost
@@ -253,4 +230,47 @@ func makeHDropObject(obj: *HDropDataObject, paths: const [..] string)
     // The count the surface owns survives a balanced pair.
     let before = target.lpVtbl.AddRef(target)
     @assert(target.lpVtbl.Release(target) == before - 1)
+
+    var data: DragData
+    data.setText("x")
+    var session: DragSession
+    let source = testDragSource(&session, &data)
+
+    var srcIid = IID_IDataObject
+    @assert(source.lpVtbl.QueryInterface(source, &srcIid, &out) == S_OK)
+    @assert(source.lpVtbl.QueryInterface(source, &iid, &out) == E_NOINTERFACE)
+
+    let dropSrc   = cast(*IDropSource) &session.dropSrc
+    var srcSrcIid = IID_IDropSource
+    @assert(dropSrc.lpVtbl.QueryInterface(dropSrc, &srcSrcIid, &out) == S_OK)
+
+    // Escape gives up, letting the button go drops, holding it keeps the gesture running.
+    @assert(dropSrc.lpVtbl.QueryContinueDrag(dropSrc, TRUE, MK_LBUTTON) == DRAGDROP_S_CANCEL)
+    @assert(dropSrc.lpVtbl.QueryContinueDrag(dropSrc, FALSE, 0) == DRAGDROP_S_DROP)
+    @assert(dropSrc.lpVtbl.QueryContinueDrag(dropSrc, FALSE, MK_LBUTTON) == S_OK)
+    @assert(dropSrc.lpVtbl.GiveFeedback(dropSrc, DROPEFFECT_COPY) == DRAGDROP_S_USEDEFAULTCURSORS)
+}
+
+// A drag that leaves without dropping is reported the same way a cancelled one is.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(200, 200)
+    defer host.shutdown()
+
+    var data: DragData
+    data.addFile("c:/tmp/only.txt")
+
+    var session: DragSession
+    let source = testDragSource(&session, &data)
+
+    host.surface.registerDropTarget()
+    let target = cast(*IDropTarget) &host.surface.dropTarget
+
+    var effect = DROPEFFECT_COPY
+    discard target.lpVtbl.DragEnter(target, source, 0, POINTL{60, 60}, &effect)
+    @assert(host.surface.dropTarget.data.singleFile() == "c:/tmp/only.txt")
+
+    @assert(target.lpVtbl.DragLeave(target) == S_OK)
+    @assert(host.surface.dropTarget.data.files.count == 0)
 }

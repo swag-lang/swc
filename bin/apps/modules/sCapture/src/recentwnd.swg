@@ -38,6 +38,11 @@ struct RecentView
     items:     ArrayPtr'RecentItem
     selected:  u64 = Swag.U64.Max
     hotItem:   u64 = Swag.U64.Max
+
+    // Where the pointer went down on a thumbnail, so a move far enough from it becomes a drag
+    // out of the application rather than a click. `Swag.U64.Max` means no press is being tracked.
+    pressedItem: u64 = Swag.U64.Max
+    pressOrigin: Math.Point
 }
 
 impl RecentView
@@ -111,11 +116,33 @@ impl IWnd for RecentView
             .hotItem = ht
         }
 
+        // A thumbnail dragged far enough leaves the application with the capture it stands for.
+        // The press is forgotten first: the gesture runs the desktop's own loop, the button comes
+        // back up inside it, and no release event follows it back here.
+        if evt.kind == .Move and .pressedItem != Swag.U64.Max
+        {
+            if .exceedsDragThreshold(.pressOrigin, evt.surfacePos)
+            {
+                .pressedItem = Swag.U64.Max
+                .main.dragOutCapture(me)
+                return
+            }
+        }
+
+        if evt.kind == .Released and evt.button == .Left do
+            .pressedItem = Swag.U64.Max
+
         if evt.kind == .Pressed and .hotItem != Swag.U64.Max
         {
             if evt.button == .Left or evt.button == .Right
             {
                 .select(.hotItem)
+                if evt.button == .Left
+                {
+                    .pressedItem = .hotItem
+                    .pressOrigin = evt.surfacePos
+                }
+
                 if evt.button == .Right
                 {
                     with let menu = MenuCtrl.createPopup(me)

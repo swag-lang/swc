@@ -17,12 +17,16 @@ enum DropEffect
     Link         // Records a reference to the payload rather than its content.
 }
 
-// Payload carried by one drag gesture.
+// Payload of one drag gesture, in both directions.
 //
-// The value is owned by the framework and borrowed by the window handling the gesture: it stays
-// valid for the duration of one [[Gui.DragDropEvent]] callback and no longer, so a target that
-// wants to keep a path, a text, or an image copies it out. Every accessor is safe on a drag that
-// carries nothing of that kind.
+// A target reads it: the value belongs to the framework and is borrowed for the duration of one
+// [[Gui.DragDropEvent]] callback and no longer, so a window that wants to keep a path, a text or
+// an image copies it out. Every accessor is safe on a drag that carries nothing of that kind.
+//
+// A source fills it: [[Gui.DragData.addFile]], [[Gui.DragData.setText]] and
+// [[Gui.DragData.setImage]] say what the gesture offers, and [[Gui.Wnd.startDrag]] carries it to
+// whatever the pointer is released on. Offering both a file and an image is the useful case
+// rather than a redundant one — a folder takes the file, a picture editor takes the bitmap.
 //
 // The image is decoded lazily, because a drag hovering a window announces its formats long before
 // anything is dropped: [[Gui.DragData.hasImage]] answers from the raw bytes and
@@ -87,31 +91,60 @@ impl DragData
     }
 
     // Empties the payload so the same storage can carry the next gesture.
-    internal mtd clear()
+    mtd clear()
     {
         @drop(me, 1)
         @init(me, 1)
     }
 
-    // Appends one path. The platform layer fills a payload as it reads a native drag.
-    internal mtd addFile(path: String)
+    // Appends one path to the payload.
+    //
+    // A source offers its files in the order it adds them, and that is the order the target
+    // reads them back in.
+    mtd addFile(path: String)
     {
         .files.add(path)
     }
 
-    // Replaces the text. The platform layer fills a payload as it reads a native drag.
-    internal mtd setText(value: String)
+    // Replaces the text of the payload.
+    mtd setText(value: String)
     {
         .text = value
     }
 
-    // Replaces the undecoded image, `name` carrying the extension that selects the decoder.
-    internal mtd setImage(name: string, bytes: const [..] u8)
+    // Replaces the image of the payload with one already encoded.
+    //
+    // `name` only has to carry the extension that names the encoding, `"drag.png"` for PNG bytes
+    // or `"drag.bmp"` for a device-independent bitmap. Nothing is decoded here.
+    mtd setImage(name: string, bytes: const [..] u8)
     {
         .imageBytes.clear()
         .imageBytes.add(bytes)
         .imageName    = name
         .imageDecoded = false
+        .imageValue   = {}
+    }
+
+    // Replaces the image of the payload with a picture to encode.
+    //
+    // The bytes are produced now, because a source is asked for them at unpredictable moments
+    // once the gesture is running. PNG is what is stored: it is lossless, every application
+    // reads it, and the platform layer derives the bitmap forms it also has to offer from the
+    // picture itself rather than from these bytes.
+    mtd setImage(image: Pixel.Image) fail
+    {
+        var opt: Pixel.Png.EncodeOptions
+        opt.compressionLevel = .BestSpeed
+
+        var img    = image
+        var buffer = try img.encode("drag.png", opt)
+        buffer.makeLinear()
+
+        .imageBytes.clear()
+        .imageBytes.add(buffer.toSlice()!)
+        .imageName    = "drag.png"
+        .imageDecoded = true
+        .imageValue   = image
     }
 }
 

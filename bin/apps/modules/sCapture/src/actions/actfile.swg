@@ -367,6 +367,54 @@ impl MainWnd
             .newCapture(dref img)
     }
 
+    // Writes `img` as a PNG beside the temporary files and returns its path.
+    //
+    // A library file is a capture, which nothing outside this application reads; what a folder,
+    // a mail client or a document editor is handed has to be a picture. The name is the
+    // capture's, so the file that lands where it is dropped is recognizable rather than a
+    // generated identifier.
+    mtd exportForDrag(capture: *Capture, img: *Image)->String fail
+    {
+        let temp   = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
+        let folder = Path.combine(temp.toString(), "sCapture")
+        if !Directory.exists(folder) do
+            try Directory.create(folder)
+
+        var name = String.from(Path.fileNameWithoutExtension(capture.file) orelse "capture")
+        name += ".png"
+
+        let path = Path.combine(folder.toString(), name.toString())
+        try img.save(path)
+        return path
+    }
+
+    // Hands the current capture to another application, as a file and as a picture.
+    //
+    // Both are offered because the two useful destinations want different things: a folder or a
+    // mail draft takes the file, a picture editor pastes the bitmap. `from` is the window the
+    // gesture started on, which is what the desktop anchors it to.
+    //
+    // This blocks until the drop, so the caller must have forgotten its own press first: the
+    // button comes back up inside the loop the desktop runs and no release event follows.
+    mtd dragOutCapture(from: *Wnd)
+    {
+        let capture = .getCapture()
+        if !capture do
+            return
+
+        Cursor.activateWait()
+        var img = capture.toImage()
+
+        var data: DragData
+        discard catch data.setImage(img)
+
+        let exported = catch .exportForDrag(capture, &img) as err
+        if err == null do
+            data.addFile(exported)
+
+        discard from.startDrag(&data, .Copy)
+    }
+
     mtd doSaveImage(capture: *Capture, img: *Image, nameFile: String)
     {
         // Which encoder runs is the registry's decision, taken from the extension.

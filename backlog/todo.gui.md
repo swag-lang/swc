@@ -66,31 +66,39 @@ twenty-seven messages. What is absent from that list is this section.
 - The caret geometry needed to position the candidate window is already computed — `EditBox`
   measures snapped caret positions today.
 
-### 3. Drag and drop only goes one way
+### 3. Drag and drop has no polish layer
 
-- Incoming landed. Every surface registers an `IDropTarget` as it is created, so nothing has to
-  opt in: `DragDropEvent` is routed to the window under the pointer and bubbles like any other
-  input event, `DragData` carries the files, the text and the bitmap a source offers — the image
-  decoded only when the target asks for it — and `DropEffect` is the one vocabulary both sides
-  speak, with `pickDropEffect` answering the desktop convention for the modifiers held. An
-  `EditBox` takes dropped text at the caret and, with `EditBoxFlags.AcceptFileDrop`, a path;
-  `Properties.FilePath` marks the field of a grid that wants one. `sCrypt` opens a container
-  dropped anywhere on its window and `sCapture` opens a picture dropped on its editor, one
-  capture per file. `Testing.HeadlessHost` drives the whole path without a desktop.
-- Outgoing is not there. `DoDragDrop` needs a Swag-side `IDataObject` and `IDropSource`, which is
-  where the remaining work is: twelve methods and an `IEnumFORMATETC`, against the seven of
-  `IDropTarget`. The bindings are in place (`Win32.IDropSource`, `Win32.IDataObjectVtbl`,
-  `Win32.DoDragDrop`), and `dragdrop.win32.swg` is where the object belongs.
-- Consequence while it is missing: a capture cannot be dragged out of `sCapture` into another
-  application, which is `sCapture` roadmap entry 1, and text cannot be dragged between two Swag
-  windows — a `Move` answered by a target has nobody to ask for the deletion, which is why
-  `EditBox` never answers one.
-- Also missing on the incoming side: `readGlobalFormat` in `dragdrop.win32.swg` asks for
-  `TYMED_HGLOBAL` only, so a source that publishes a format solely as an `IStream` — which is how
-  some browsers hand over a large image — reads as offering nothing; no drag image is drawn over
-  the target (`IDropTargetHelper`); `CFSTR_FILEDESCRIPTORW` is not read, so a mail attachment
-  dragged out of a client offers no file; and a list has no insertion feedback of its own, so a
-  target that wants to say *where* the drop will land has to paint that itself.
+Both directions ship. Every surface registers an `IDropTarget` as it is created, so nothing has to
+opt in: a `DragDropEvent` is routed to the window under the pointer and bubbles like any other
+input event, `DragData` is the payload in both directions — files, text, and a bitmap decoded only
+when a target asks for it — and `DropEffect` is the one vocabulary both sides speak, with
+`pickDropEffect` answering the desktop convention for the modifiers held. `Wnd.startDrag` runs the
+outgoing gesture through a Swag `IDataObject`, `IEnumFORMATETC` and `IDropSource`, and
+`Wnd.exceedsDragThreshold` says when a press has become one. An `EditBox` takes dropped text at the
+character under the pointer and, with `EditBoxFlags.AcceptFileDrop`, a path; `Properties.FilePath`
+marks the grid field that wants one. `sCrypt` opens a container dropped anywhere on its window,
+`sCapture` opens pictures dropped on its editor and drags a capture out of its recent strip as a
+file and a bitmap at once. The unit tests drive the source object into the target object through
+the interface vtables, so both halves check each other with no desktop involved.
+
+What is left is what makes it feel finished:
+
+- The source window stops painting for the length of the gesture, because `DoDragDrop` runs the
+  desktop's own modal loop. Pumping a frame from `GiveFeedback` is the obvious answer and the
+  reason it is not done yet: that callback fires from inside the loop, and running the application
+  frame there re-enters everything the frame touches.
+- No drag image follows the pointer. `IDropTargetHelper` and `IDragSourceHelper` are what draw the
+  picture being dragged, and a drag with nothing under the cursor but an arrow reads as a lesser
+  gesture than the same drag out of Explorer.
+- A target cannot say *where* a drop will land. A list has no insertion feedback of its own, so a
+  control that wants to show the gap between two rows paints it itself.
+- `readGlobalFormat` asks for `TYMED_HGLOBAL` only, so a source publishing a format solely as an
+  `IStream` — which is how some browsers hand over a large image — reads as offering nothing.
+- `CFSTR_FILEDESCRIPTORW` is neither read nor offered, so a mail attachment dragged out of a client
+  carries no file, and a capture cannot be dragged into one without touching the disk first.
+- Deferred rendering is not available to a source: `sCapture` writes its PNG to the temporary
+  folder before the gesture starts rather than when the target asks, so a cancelled drag still
+  leaves the file behind.
 
 ---
 

@@ -71,6 +71,11 @@ struct SemaEscapeInfo
     // what the owner is for, so it must not feed the "this callee frees the pointer you
     // handed it" summary.
     bool viaOwnedPayload = false;
+    // The borrow was reached only through a FIELD this value holds: 'p.owner = me' makes
+    // 'p' carry the receiver without 'p' being it. Every escape rule still applies — the
+    // carrier must not outlive what it points at — but the FREES summary must not:
+    // releasing the carrier releases the carrier's own storage and nothing else.
+    bool viaStoredField = false;
 
     bool hasBorrow() const { return kind != SemaEscapeKind::None; }
     bool isLocalBorrow() const { return kind == SemaEscapeKind::Local && sourceVar != nullptr; }
@@ -83,6 +88,9 @@ struct SemaEscapeInfo
         if (kind == SemaEscapeKind::Parameter && other.kind == SemaEscapeKind::Parameter)
         {
             parameterOriginsMask |= other.parameterOriginsMask;
+            // One direct borrow among the merged facts is enough to make the value stand
+            // for the parameter's storage.
+            viaStoredField = viaStoredField && other.viaStoredField;
             return;
         }
 

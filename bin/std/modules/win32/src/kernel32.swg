@@ -430,6 +430,7 @@ const FIND_FIRST_EX_ON_DISK_ENTRIES_ONLY = 4
 
     func GetSystemInfo(lpSystemInfo: *SYSTEM_INFO)
     func GlobalAlloc(uFlags: UINT, dwBytes: SIZE_T)->HGLOBAL
+    func GlobalFree(hMem: HGLOBAL)->HGLOBAL
     func LocalFree(hLocal: HLOCAL)->HLOCAL
     func GlobalLock(hMem: HGLOBAL)->LPVOID
     func GlobalUnlock(hMem: HGLOBAL)->BOOL

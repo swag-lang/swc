@@ -157,6 +157,60 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(f.main.recentWnd.recentView.selected == 0)
 }
 
+// Dragging a capture out exports it as a PNG named after it, which is what lands in the folder
+// it is dropped on.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
+    testRegisterIoActions(f.main)
+    testPrepareRecentLibrary(f.main)
+
+    f.capture.width   = 18
+    f.capture.height  = 11
+    f.capture.backImg = Gui.Testing.indexedImage(18, 11)
+    f.capture.file    = testTempCapturePath()
+
+    var img      = f.capture.toImage()
+    let exported = expect f.main.exportForDrag(f.capture, &img)
+    defer discard catch File.delete(exported)
+
+    @assert(File.exists(exported))
+    @assert(Path.lowercaseExtension(exported) == ".png")
+    @assert(Path.fileNameWithoutExtension(exported) == Path.fileNameWithoutExtension(f.capture.file))
+
+    // What was written is the capture, readable by anything that reads a PNG.
+    let readBack = expect Image.load(exported)
+    @assert(readBack.width == 18)
+    @assert(readBack.height == 11)
+}
+
+// The whole drag-out path runs with no desktop under it: nothing is carried, and the file the
+// gesture would have handed over is still produced.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
+    testRegisterIoActions(f.main)
+    testPrepareRecentLibrary(f.main)
+
+    f.capture.width   = 9
+    f.capture.height  = 6
+    f.capture.backImg = Gui.Testing.indexedImage(9, 6)
+    f.capture.file    = testTempCapturePath()
+
+    f.main.dragOutCapture(f.editView)
+
+    let temp     = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
+    var expected = String.from(Path.fileNameWithoutExtension(f.capture.file) orelse "capture")
+    expected += ".png"
+    let exported = Path.combine(Path.combine(temp.toString(), "sCapture").toString(), expected.toString())
+    defer discard catch File.delete(exported)
+    @assert(File.exists(exported))
+}
+
 // A picture dropped on the editor opens it, exactly as the Open command does.
 #test
 {

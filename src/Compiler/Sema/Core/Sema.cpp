@@ -290,15 +290,23 @@ void Sema::clearVariableEscapeInfo(const SymbolVariable& symVar)
 
 SemaEscapeInfo Sema::variableEscapeInfoIncludingProjections(const SymbolVariable& symVar) const
 {
-    SemaEscapeInfo result;
-    if (const SemaEscapeInfo* info = variableEscapeInfo(symVar))
-        result = *info;
+    SemaEscapeInfo            result;
+    const SemaEscapeInfo* own = variableEscapeInfo(symVar);
+    if (own)
+        result = *own;
 
     for (const auto& [projection, info] : projectionEscapeInfos_)
     {
         if (projection.root == &symVar)
             result.mergeFrom(info);
     }
+
+    // A parameter borrow the value only reached through one of its fields says the value
+    // CARRIES the parameter, not that it IS it. The distinction only matters to the FREES
+    // summary, which is why every other consumer can ignore the flag.
+    if (result.kind == SemaEscapeKind::Parameter && (!own || own->kind != SemaEscapeKind::Parameter))
+        result.viaStoredField = true;
+
     return result;
 }
 

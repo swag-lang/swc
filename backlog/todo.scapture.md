@@ -32,18 +32,19 @@ effects that makes a capture look produced, and output.
 
 ### 1. Local output destinations
 
-- Problem: a capture leaves the application as a file or as a bitmap on the clipboard, and that is
-  all. Three ordinary destinations are missing: drag-out of the current capture into another
-  application, copy-as-file rather than copy-as-bitmap, and printing.
-- Fix: three local output paths, none of which needs a network. Drag-out and copy-as-file are the
-  same shell data object seen from two angles, so do them together; printing is separate.
+- Problem: a capture leaves the application as a file, as a bitmap on the clipboard, or dragged
+  out of the recent strip. Two ordinary destinations are still missing: copy-as-file rather than
+  copy-as-bitmap, and printing.
+- Fix: copy-as-file is the drag-out data object seen from the clipboard side — `DragData` already
+  builds every medium it needs, so what is missing is `OleSetClipboard` over the same object.
+  Printing is separate and depends on `pixel` roadmap entry 7 for vector output.
 - Why first: the file half of this entry has shipped — both dialogs now offer every format the
-  pixel codec registry supports — so what is left is the part a user reaches for when the
-  destination is not a file at all.
-- Note: drag-*in* landed with the toolkit — a picture dropped on the editor opens as a capture, one
-  per file, and a bitmap dragged out of a web page becomes a capture with nothing linked to it.
-  Drag-out waits on `gui` roadmap entry 3, which now needs only the source half of it: the
-  `IDataObject` this entry wants is the same one copy-as-file needs.
+  pixel codec registry supports — and so has drag-out: a thumbnail dragged out of the recent strip
+  carries the capture as a PNG *and* as a bitmap, so a folder gets a file and a picture editor
+  gets the picture.
+- Note: the PNG a drag offers is written to the temporary folder when the gesture starts, not when
+  the target asks for it, so a cancelled drag leaves the file behind. Deferred rendering is `gui`
+  roadmap entry 3.
 
 ### 2. Grab Text
 

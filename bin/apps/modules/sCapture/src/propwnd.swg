@@ -907,6 +907,11 @@ impl PropWnd
             .grid.setNotify(prop)
         }
 
+        // The panel defers a rebuild to the next frame (see `needRebuild`), so it has to ask for
+        // the per-frame event: the one a surface view is sent before the loop starts is a startup
+        // hook, and this panel is not a surface view. Asking is what makes the deferral run at
+        // all — the registration used to be internal and unreachable, so it never did.
+        prop.app().registerFrameEvent(prop)
         return prop
     }
 }

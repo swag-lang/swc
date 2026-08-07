@@ -154,12 +154,12 @@ using Swag, Core
 
     theme.setSwagDark()
     @assert(theme.colors.activeRail == 0xFFF7F900)
-    @assert(theme.metrics.surfaceWnd_CornerRadius == 8)
+    @assert(theme.metrics.surfaceWnd_CornerRadius == 12)
     @assert(theme.rects.btnPush_Normal.rect == theme.rects.edit_SquareBk.rect)
 
     theme.setSwagLight()
     @assert(theme.colors.activeRail == 0xFF0B0B0D)
-    @assert(theme.metrics.surfaceWnd_CornerRadius == 8)
+    @assert(theme.metrics.surfaceWnd_CornerRadius == 12)
 
     theme.setDark()
     @assert(theme.colors.activeRail.a == 0)

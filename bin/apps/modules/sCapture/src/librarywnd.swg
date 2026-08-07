@@ -585,9 +585,6 @@ impl LibraryWnd
             .backgroundStyle = .Window
         }
 
-        view.imgSpin = Spinner.create(scrollWnd, {8, 8})
-        view.imgSpin.hide()
-
         // Image Size
         with res.previewSizeBtn = IconButton.create(res.commandBar, res.theme().icon(.Search, LibGlyphSize), {0, 0, LibButtonWide, LibBarHeight})
         {
@@ -687,6 +684,14 @@ impl LibraryWnd
             .setPlaceholder(appStrings().ui_Search)
             .sigTextChanged += func|res|(ed) { res.setSearch(ed.text()) }
         }
+
+        // Reading the library is what this reports, and the command bar is where the state of the
+        // window is said. Standing in the grid instead — which is where it stood, at 8,8 of the
+        // scroll window — put it exactly on the first capture cell, which already carries its own
+        // hour glass while its picture loads, so the two placeholders landed on one thumbnail. The
+        // bar stacks its visible children, so hiding the spinner closes the gap it stood in.
+        view.imgSpin = Spinner.create(res.commandBar, {0, 0, LibGlyphSize, LibGlyphSize})
+        view.imgSpin.hide()
 
         res.setPreviewSize(.Small)
         res.setSortMethod(res.sortMethod)

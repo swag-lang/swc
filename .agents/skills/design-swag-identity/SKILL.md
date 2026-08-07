@@ -17,13 +17,30 @@ measured. What the identity refuses is softness, not craft: a form that looks ha
 of a slab has missed it as badly as one that looks upholstered.
 
 **Square is the default, not a law.** A touch of rounding is admissible where a hard right
-angle would read as unfinished rather than as deliberate — the outline of a window is the
-standing example: it sits on a desktop beside applications that all soften that corner, and
-carried literally the cut turns it into a slab dropped on the screen. Keep such a radius
-small enough that the surface still reads as cut (`ThemeMetrics.surfaceWnd_CornerRadius` is
-8 in the Swag palettes), apply it to the outline of a form and never to the controls inside
-it, and never let it become the reflex: everything the identity draws is square until a
-specific form argues otherwise.
+angle would read as unfinished rather than as deliberate. Two forms have argued for it and
+won, and both are worth knowing because they are the pattern:
+
+- **The outline of a window.** It sits on a desktop beside applications that all soften that
+  corner, and carried literally the cut turns it into a slab dropped on the screen.
+  `ThemeMetrics.surfaceWnd_CornerRadius` is 12 in the Swag palettes — it was 8, which read as a
+  bevel on a square window rather than as a decision. **A radius too small to be seen is worse
+  than none**: it costs the same pixels and reports nothing.
+- **A repeated cell that holds content.** A thumbnail in a strip, a swatch, a preview tile: a
+  grid of hard right angles reads as a contact sheet rather than as an interface, and a
+  selection frame drawn square around a picture reads as a crop mark rather than as a state.
+  Take the corner the theme already gives a raised cell — `btnIcon_RoundSquareBk.radius`,
+  which is 4 — rather than naming a new number beside it.
+
+The bounds still hold. Keep the radius small enough that the surface reads as cut; apply it to
+the outline of a form or to the cell of a repeated element, never to the chrome between them; and
+never let it become the reflex — everything the identity draws is square until a specific form
+argues otherwise, and "it looks friendlier" is not an argument.
+
+**A mark drawn over a rounded thing takes that thing's corner, stepped in by its own inset.** A
+frame inset by half its weight is concentric with the cell only if its radius is the cell's minus
+that same half weight; drawn at the cell's radius it crosses the cell's edge at four places. See
+the focus-ring rule in [design-swag-themes](../design-swag-themes/SKILL.md), which is the same
+rule for the same reason.
 
 ## Hold The Three Constants
 

@@ -47,6 +47,23 @@ func testSetupGlobalMain(main: *MainWnd)
 
     testSetupGlobalMain(f.main)
 
+    // The wait indicator of a library scan stands in the command bar, not over the captures. It
+    // used to be a child of the scroll window at 8,8 — which is exactly where the view's own
+    // padding puts the first thumbnail, so it landed on a cell that already carries an hour glass
+    // while its picture loads. The bar is where the state of this window is said, and a control
+    // standing there covers nothing; hidden, it leaves no gap, because the bar stacks only what
+    // is visible.
+    let bar     = f.main.libWnd.commandBar
+    let spinner = cast(*Wnd) f.main.libWnd.view.imgSpin!
+    @assert(spinner.parent == cast(*Wnd) bar)
+    @assert(!spinner.isLocallyVisible())
+
+    let packed = bar.measure({}).preferred.x
+    spinner.show()
+    @assert(bar.measure({}).preferred.x > packed)
+    spinner.hide()
+    @assert(bar.measure({}).preferred.x == packed)
+
     var evt = Gui.Testing.commandState(ActionGlobal.ShowLibrary)
     @assert(Gui.Testing.actionUpdate'ActionGlobal(f.main, ActionGlobal.ShowLibrary, &evt))
     @assert(!evt.name.isEmpty())

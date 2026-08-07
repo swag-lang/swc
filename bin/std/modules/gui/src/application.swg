@@ -550,10 +550,20 @@ private impl Application
 
     mtd sendFrameEvents()
     {
-        for t in .frameEvents
+        // What a window defers to the next frame is often a rebuild, and a rebuild destroys
+        // windows — `destroyWnd` then takes them out of this very list. So the walk re-reads the
+        // count and the element at each step instead of holding an iterator over it, and only
+        // advances when the element it just handed the event to is still where it was.
+        var index = 0'u64
+        while index < .frameEvents.count
         {
+            let target = .frameEvents[index]
+
             var evt = FrameEvent{}
-            t.sendEvent(&evt)
+            target.sendEvent(&evt)
+
+            if index < .frameEvents.count and .frameEvents[index] == target do
+                index += 1
         }
     }
 
@@ -1187,13 +1197,26 @@ impl Application
         }
     }
 
-    internal mtd registerFrameEvent(target: *Wnd)
+    // Asks for [[Gui.IWnd.onFrameEvent]] on `target` at the start of every rendered frame.
+    //
+    // A surface view is sent one `FrameEvent` before the loop starts, carrying `firstFrame`; that
+    // is a startup hook. This is the per-frame half, and it is how a window defers work to the
+    // next frame — a rebuild asked for from inside a change notification, where rebuilding on the
+    // spot would destroy the control that is reporting.
+    //
+    // Registration was `internal` and had no caller, so `sendFrameEvents` walked an empty array
+    // for the whole run and every deferral written against it silently never happened.
+    //
+    // Register once and unregister before the window goes; [[Gui.Application.destroyWnd]] also
+    // drops a destroyed window from the list, so a normal teardown needs nothing.
+    mtd registerFrameEvent(target: *Wnd)
     {
         Debug.assert(!.frameEvents.contains(target))
         .frameEvents.add(target)
     }
 
-    internal mtd unregisterFrameEvent(target: *Wnd)
+    // Stops sending `target` the per-frame event. Sending it one it no longer wants is harmless.
+    mtd unregisterFrameEvent(target: *Wnd)
     {
         .frameEvents.remove(target)
     }

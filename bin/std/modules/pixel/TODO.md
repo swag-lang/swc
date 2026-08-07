@@ -75,7 +75,9 @@ Two separate problems in the same feature.
   radial and sweep gradients natively. The capability exists on both sides and nothing connects
   them.
 - Also unparsed: `text`, `tspan`, `image`, `clipPath`, `mask`, `pattern`, `marker`, `symbol`,
-  `filter`, and the `stroke-dasharray`, `fill-opacity` and `stroke-opacity` attributes.
+  `filter`, and the `stroke-dasharray` attribute. `fill-opacity`, `stroke-opacity` and `opacity`
+  ARE parsed (`applyStyleProperty` in `svgparse.swg`), which is what the drop-shadow tile of the
+  theme atlas is built out of.
 - This constrains the repository directly: the GUI theme is vector — `gui/src/theme/widgets.svg`
   and `icons.svg` — so the parser's coverage is the theme's design vocabulary.
 

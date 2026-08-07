@@ -331,9 +331,10 @@ impl Theme
         // A window is the one form the chart lets round. The cut is a vocabulary for the mark and
         // for the repeated elements of a page; carried literally onto the outline of a window it
         // reads as a slab dropped on the desktop, next to every other application that softens
-        // that corner. A touch is enough: small enough that the surface still reads as cut, large
-        // enough that the corner is deliberate rather than a rendering accident.
-        .metrics.surfaceWnd_CornerRadius = 8
+        // that corner. The radius still has to be seen to do its job: at 8 the corner read as a
+        // bevel on a square window rather than as a decision, so it is 12 — deliberate against
+        // the desktop, and still well short of the 18 the neutral palettes use.
+        .metrics.surfaceWnd_CornerRadius = 12
 
         .rects.btnPush_Normal         = .rects.edit_SquareBk
         .rects.btnPush_Hot            = .rects.edit_SquareBk

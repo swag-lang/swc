@@ -125,11 +125,11 @@ impl IWnd for Header
         // Sort mark
         if .sortDirection != .None and .sortColumn == item.column
         {
-            var icon: Icon = undefined
-            if .sortDirection == .Ascending do
-                icon = theme.icon(ThemeIcons.SortArrowDown)
-            else do
-                icon = theme.icon(ThemeIcons.SortArrowUp)
+            // The marker points the way the column is ordered: up for ascending, down for
+            // descending. It named the two the right way round and drew them the wrong way
+            // round, so a column sorted A to Z carried the marker of a column sorted Z to A.
+            let glyph = .sortDirection == .Ascending ? ThemeIcons.ChevronUp : ThemeIcons.ChevronDown
+            let icon  = theme.icon(glyph, metrics.chevron_Size)
             if labelPos.width > icon.sizeX
             {
                 var sortPos = labelPos

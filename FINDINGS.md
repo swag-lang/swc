@@ -21,7 +21,7 @@ identifier, so a reference made today still resolves after the entry is gone. En
 identifier, ascending: a new one goes at the end, a deleted one leaves a gap, and position carries
 no priority.
 
-Next identifier: F-041
+Next identifier: F-042
 
 ## Open Investigations
 
@@ -258,33 +258,6 @@ Use this compact format. Keep observations factual and make the next step action
   `DataSegmentRelocation` at the written offset, which nothing does today because the write comes
   from JIT-executed code rather than from a sema-built initializer. Either instrument those stores
   or reject a `#run` write to a global that no initializer placed in the initialized segment.
-
-### F-023 — A per-frame event can be sent but never asked for
-
-- Area: std/gui
-- Found while: making the sCapture property panel follow a live language switch
-- Observation: `Application.sendFrameEvents` walks `Application.frameEvents`, and nothing in
-  the repository ever adds to it. `registerFrameEvent` and `unregisterFrameEvent` are declared
-  `internal` and have no caller, so the array is empty for the whole run and the call is a
-  no-op every frame. The only `FrameEvent` a window actually receives is the single
-  `firstFrame` one `Application.run` sends to each surface view before the loop starts, which
-  means `IWnd.onFrameEvent` is a first-frame hook wearing the name of a per-frame one.
-- Evidence: `grep -rn registerFrameEvent bin --include=*.swg` returns the two declarations and
-  no call. Two consumers already depend on the missing half: `MainWnd.onFrameEvent` in
-  sCapture only tests `evt.firstFrame`, so it works by accident, while
-  `PropWnd.needRebuild` never drains — `PropWnd.onFrameEvent` is the only place that clears
-  it ([propwnd.swg:1025](bin/apps/modules/sCapture/src/propwnd.swg#L1025)) and PropWnd is not
-  a surface view, so the deferred rebuild that
-  [propwnd.swg:998](bin/apps/modules/sCapture/src/propwnd.swg#L998) asks for after a
-  `FormImage.kind` change silently never happens.
-- Next step: decide which of the two the interface means. Either publish the registration —
-  a `Wnd` flag next to `BeforeChildrenPaint`, or a public `registerFrameEvent` — and send the
-  event from `runFrame` to everything registered, which makes `PropWnd.needRebuild` work as
-  written; or drop `frameEvents` and `sendFrameEvents` and rename the hook for what it is,
-  which then needs a different deferral for a rebuild asked for from inside the grid's own
-  change notification (a posted event is the obvious one). Whichever way it goes, the
-  `FormImage.kind` rebuild has to end up actually running.
-
 
 ### F-025 — An ambiguous `.member` still reads "not published yet" as "not there"
 
@@ -607,11 +580,20 @@ Use this compact format. Keep observations factual and make the next step action
   broadcast — the fault survives all six combinations, so it is neither the capture, nor the
   library, nor the harness change made in the same task. The 127 other tests of the module pass in
   the same binary.
-- Next step: bisect the paint rather than the setup. `MainWnd.create` builds a command row, a tool
-  rail, an edit window, a recent bar and a right bar; hide them one at a time before the first
-  `settleAnimations` and find which subtree faults. The likely shapes are a renderer resource a
-  real start creates and the fixture does not, or a monitor list — `Env.getMonitors()` is read at
-  construction and is empty on a headless run.
+- Narrowed (2026-08-06), and the bisection this entry used to propose is now ruled out:
+  - creation and `applyLayout()` both complete; two `HeadlessHost.pump()` calls complete. The
+    fault is on the FIRST PAINT — which is what `settleAnimations` and `render` do and what
+    `pump` does not, since `pump` only drains the posted, destroy and delete queues.
+  - hiding every direct child of the window before painting (`topBar`, `toolRail`, `recentBar`,
+    `rightBar`, `editWnd`) does NOT avoid it. So it is not one subtree: it is the window's own
+    paint, or the surface chrome painted around it.
+- Next step: instrument the paint rather than the tree. `Surface.paintWnd` is the entry; find
+  whether the fault is inside it or in the `readRenderTarget` that follows, then compare against
+  `sCrypt`, whose main window paints through the same call — the difference is that sCrypt's
+  window installs itself as the view of its surface (`MainWindow.create(&host.surfaceWnd)`) while
+  sCapture's is built as a child of the host root (`MainWnd.create(&gui.root)`), so the two paint
+  through different parents. Build the probe in `-bc debug`: a use-after-free reads clean in
+  fast-debug and release.
 - Why it matters beyond the crash: sCapture has 128 tests and none of them can see the window, so
   no appearance regression in the one application that *is* a visual tool can ever fail a test.
   The same photograph is one test away for sCrypt and impossible here.
@@ -628,6 +610,12 @@ Use this compact format. Keep observations factual and make the next step action
 - Evidence: reproduced from a plain PowerShell driver against the packaged build, four attempts,
   three deaths, no window left behind. `GetWindowRect` on the survivor returns the requested
   rectangle, so the call itself succeeds before the process goes.
+- Did NOT reproduce on 2026-08-06: four fresh runs of the identical call, four survivals, the
+  window landing exactly on the requested 40,40 2400x1500 each time. The window opened at
+  268,73 2821x1563 — on one monitor and not maximized — so the DPI boundary this entry suspects
+  was never crossed. That is a negative result about the driver, not about the defect: the
+  reproduction has to start from the maximized two-monitor state the original run had, or the
+  call never does the thing that kills it.
 - Suspicion, not conclusion: the two monitors of this desktop are at different scales, so that one
   call crosses a DPI boundary *and* changes the client size in the same message. The surface
   rebuilds its render target on a size change and re-reads its scale on a DPI change; doing both
@@ -635,3 +623,30 @@ Use this compact format. Keep observations factual and make the next step action
 - Next step: reproduce with a minimal `gui2`-sized example under the same two-monitor arrangement,
   then bisect: move-only across the boundary, resize-only on one screen, then both. If it is the
   DPI crossing, `Surface` is where the ordering of the two rebuilds is decided.
+
+### F-041 — `Wnd.invalidateLayout` marks a window dirty and nothing ever reads the mark
+
+- Area: std/gui
+- Found while: making a `FormLayoutCtrl` answer for its own height, so a card's help paragraph stops
+  being cut off in a longer translation
+- Observation: `invalidateLayout` sets `Wnd.layoutDirty`, `measure` clears it, and **nothing else in
+  the repository reads it**. So there is no deferred layout pass: a window whose content changed
+  without its rectangle changing is never re-arranged. `resize` returns early when the size is
+  unchanged, which is the common case for a re-labelled control — the band keeps its width and the
+  caption inside it needs more room.
+- Evidence: `grep -rn layoutDirty bin --include=*.swg` returns three sites, all writes
+  ([wnd.swg:301](bin/std/modules/gui/src/wnd/wnd.swg#L301),
+  [wnd.swg:914](bin/std/modules/gui/src/wnd/wnd.swg#L914),
+  [wnd.swg:980](bin/std/modules/gui/src/wnd/wnd.swg#L980)). Measured directly: with
+  `FormLayoutCtrl` arranging only from `onResizeEvent`, sCrypt's French "Parcourir" button stayed at
+  its English 104 while its own measure asked for 115, and
+  `Testing.assertContentFits` caught it. `VaultCard.endForm` now calls `form.computeLayout()` by
+  hand for exactly this reason, and every other container that arranges children carries the same
+  latent hole — `invalidateLayout` reads like a request and is a no-op.
+- Next step: decide whether the toolkit wants a layout pass at all. Either drain the dirty windows
+  once per frame — `Application.runFrame` already walks the surfaces, and the flag exists — which
+  makes `invalidateLayout` mean what it says and lets the hand-written `computeLayout` calls go; or
+  delete `layoutDirty` and `invalidateLayout` and make every mutator arrange immediately, which is
+  honest but pays the cost on each of the twenty-odd setters that call it today. Do not add a third
+  state. Pin whichever way it goes with a headless test that re-labels a control inside a docked
+  band and asserts the band re-measured without anything being resized.

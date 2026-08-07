@@ -55,6 +55,109 @@ func currentEnvironment()->ProcessEnvironment
     return result
 }
 
+// Returns the value of the environment variable `name` in the current process.
+//
+// Answers an empty string when the variable is unset, which a variable holding nothing is
+// indistinguishable from. Read [[Core.Env.currentEnvironment]] instead when that difference
+// matters, or when more than a couple of variables are wanted.
+func variable(name: string)->String
+{
+    let name16 = Utf16.toZeroTerminated(name)
+
+    let needed = GetEnvironmentVariableW(@dataof(name16), null, 0)
+    if !needed do
+        return ""
+
+    var buffer: Array'u16
+    buffer.resize(needed)
+
+    let written = GetEnvironmentVariableW(@dataof(name16), @dataof(buffer.toSlice()), needed)
+    if !written or written >= needed do
+        return ""
+    return Utf8.fromUtf16(@mkslice(@dataof(buffer.toSlice()), cast(u64) written))
+}
+
+// Returns `value` spelled so the system parses it back as exactly one argument.
+//
+// A value holding a space, a tab or a quote is wrapped, and the backslashes in front of a
+// wrapping quote are doubled, which is what the command-line grammar needs to give the child the
+// string that was passed here. Use it for any argument that comes from a path or from input
+// rather than from a literal; [[Core.Env.joinArguments]] does it for a whole list.
+func quoteArgument(value: string)->String
+{
+    var result: retval
+    appendQuoted(&result, value)
+    return result
+}
+
+// Returns `arguments` joined into the one command line the system parses back into them.
+//
+// This is what [[Core.Env.StartInfo.arguments]] expects when the values are not already a
+// command line, so a caller never has to know the quoting rules of the platform.
+func joinArguments(arguments: const [..] string)->String
+{
+    var result: retval
+    for argument in arguments
+    {
+        if @index != 0 do
+            result.append(" ")
+        appendQuoted(&result, argument)
+    }
+
+    return result
+}
+
+private func appendQuoted(commandLine: *String, argument: string)
+{
+    var mustQuote = @countof(argument) == 0
+    for [i] in @countof(argument)
+    {
+        let c = argument[i]
+        if c == ' ' or c == '\t' or c == '"' do
+            mustQuote = true
+    }
+
+    if !mustQuote
+    {
+        commandLine.append(argument)
+        return
+    }
+
+    commandLine.append("\"")
+
+    var slashes = 0'u64
+    for [i] in @countof(argument)
+    {
+        let c = argument[i]
+        if c == '\\'
+        {
+            slashes += 1
+            continue
+        }
+
+        // A run of backslashes is literal unless a quote follows it, where the grammar reads
+        // each pair as one backslash; doubling the run is what keeps the pairs balanced.
+        if c == '"'
+        {
+            for slashes * 2 + 1 do
+                commandLine.append("\\")
+            commandLine.append("\"")
+        }
+        else
+        {
+            for slashes do
+                commandLine.append("\\")
+            commandLine.append(c)
+        }
+
+        slashes = 0
+    }
+
+    for slashes * 2 do
+        commandLine.append("\\")
+    commandLine.append("\"")
+}
+
 // Returns `path` written with the separator Windows programs expect.
 //
 // The path helpers of the library produce the portable separator, and the system itself takes

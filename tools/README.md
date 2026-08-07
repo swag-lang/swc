@@ -17,7 +17,24 @@ Common options: `-bc <config>` selects `release`, `debug`, or `fast-debug` (defa
 `fast-debug`), `--all-cfg` repeats an aggregate tool in all three, `--run-arg <value>` passes
 an argument to what gets launched. Anything else is forwarded to the compiler.
 
-`_*.bat` files are internal helpers, not entry points.
+`_run.bat` is the shared launcher, not an entry point.
+
+## How a tool is built
+
+Each `<tool>.bat` is a five-line shim: it names itself, hands its raw command line over in an
+environment variable, and calls `_run.bat`. Everything a tool does lives in the Swag program
+under [src/](src), one file per family, entered through `src/main.swgs`.
+
+The command line travels in a variable rather than in arguments because `cmd.exe` splits a batch
+argument on `=` as well as on whitespace, so `--run-arg swag.smoke=50` would arrive as two
+tokens. The variable carries it verbatim, quoting included.
+
+`tools/swc.exe` is the compiler the tools themselves run on, and `tools/host` is the standard
+library it was proved against. Both are pinned, and neither is ever the compiler under test: a
+tool has to be able to report that a freshly built compiler is broken, which it cannot do if that
+compiler is what compiled and ran it. `promote.bat` installs a new pair, and the rule for running
+it is one line long — promote only after `tests.bat --all-cfg` is green with `bin/swc.exe`.
+Nothing in `promote.bat` checks that, deliberately: the check is the campaign.
 
 ## Reaching one thing
 
@@ -62,6 +79,7 @@ A program without `#test` is smoked: testing it would report zero tests and prov
 | `bench.bat` | Run or regenerate the cross-language performance campaign |
 | `vsix.bat` | Refresh the extension images and build the VSIX package |
 | `setup.bat` | Register `bin/` in the current user's environment |
+| `promote.bat` | Install a validated `bin/swc.exe` as the pinned compiler the tools run on |
 
 `src/Support/Memory/mimalloc/bin/bundle.bat` is intentionally not moved: it belongs to the
 vendored mimalloc distribution and retains its upstream layout.

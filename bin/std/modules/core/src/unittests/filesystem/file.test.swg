@@ -105,3 +105,29 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
 
     discard expect File.delete(fileName)
 }
+
+#test
+{
+    let source = CoreTests.makeFilesystemTestPath("core_file_move_source.tmp")
+    let target = CoreTests.makeFilesystemTestPath("core_file_move_target.tmp")
+
+    defer
+    {
+        if File.exists(source.toString()) do
+            discard catch File.delete(source.toString())
+        if File.exists(target.toString()) do
+            discard catch File.delete(target.toString())
+    }
+
+    discard expect File.writeAllBytes(source.toString(), @mkslice(cast(const [*] u8) @dataof("moved"), 5))
+    expect File.move(target.toString(), source.toString())
+
+    @assert(!File.exists(source.toString()))
+    @assert(File.exists(target.toString()))
+    @assert((expect File.readAllText(target.toString())) == "moved")
+
+    // Moving over an existing file replaces it rather than refusing.
+    discard expect File.writeAllBytes(source.toString(), @mkslice(cast(const [*] u8) @dataof("again"), 5))
+    expect File.move(target.toString(), source.toString())
+    @assert((expect File.readAllText(target.toString())) == "again")
+}

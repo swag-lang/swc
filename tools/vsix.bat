@@ -1,20 +1,12 @@
 @echo off
 setlocal
 
-rem Packages the VSCode extension after refreshing its generated image assets.
-rem Install Node.js, then run `npm install -g vsce` before using this tool.
+rem Refreshes the extension images and builds the VSIX package.
 rem
-rem     vsix.bat
+rem This is a shim. The tool itself is the Swag program under src/; everything here does is
+rem name it and hand its command line over. Run it with -h for the usage.
 
-for %%I in ("%~f0") do set "TOOLS_DIR=%%~dpI"
-for %%I in ("%TOOLS_DIR%..") do set "ROOT=%%~fI"
-set "VSCODE_DIR=%ROOT%\vscode"
-
-xcopy "%ROOT%\web\imgs\swag_icon.png" "%VSCODE_DIR%\images\" /Y || exit /b 1
-xcopy "%ROOT%\web\imgs\syntax.png" "%VSCODE_DIR%\images\" /Y || exit /b 1
-
-pushd "%VSCODE_DIR%" || exit /b 1
-call vsce.cmd package
-set "PACKAGE_ERROR=%ERRORLEVEL%"
-popd
-exit /b %PACKAGE_ERROR%
+set "SWAG_TOOL_NAME=vsix"
+set "SWAG_TOOL_ARGS=%*"
+call "%~dp0_run.bat"
+exit /b %ERRORLEVEL%

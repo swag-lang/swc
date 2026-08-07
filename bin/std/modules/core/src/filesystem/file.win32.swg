@@ -15,6 +15,21 @@ func delete(fullName: string) fail
     Errors.transformWinErrors(err, fullName)
 }
 
+// Moves `oldName` to `newName`, replacing whatever is already there.
+//
+// The move is atomic when both paths sit on one volume, and a copy followed by a delete when
+// they do not, which is what makes it work across drives at the cost of that guarantee.
+func move(newName, oldName: string) fail
+{
+    try Env.guardWrite(oldName)
+    try Env.guardWrite(newName)
+
+    let winOld = Utf16.toZeroTerminated(oldName)
+    let winNew = Utf16.toZeroTerminated(newName)
+    catch MoveFileExW(@dataof(winOld), @dataof(winNew), MOVEFILE_REPLACE_EXISTING | MOVEFILE_COPY_ALLOWED) as err
+    Errors.transformWinErrors(err, oldName)
+}
+
 // Change the file write date/time
 func touch(fullName: string) fail
 {

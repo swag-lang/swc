@@ -127,7 +127,7 @@ it — `tools/tests.bat plan bin/std/modules/gui/src/widgets/tab.swg` — which 
 change is known in advance.
 
 A path matching no surface selects the whole set, so an unmapped file costs time rather than
-coverage. When that happens, add the surface to [tools/_scope.bat](../../../tools/_scope.bat)
+coverage. When that happens, add the surface to [tools/src/scope.swg](../../../tools/src/scope.swg)
 rather than leaving the next change to pay for it again.
 
 ## Validate C++ Changes

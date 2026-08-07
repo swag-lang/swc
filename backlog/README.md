@@ -69,7 +69,7 @@ The identifier is how a finding is named everywhere else — in conversation, in
 a `todo.*` entry, in a code comment. A title gets rewritten, a position moves, and an entry changes
 file; the identifier does not.
 
-Next identifier: F-078
+Next identifier: F-079
 
 - Take the next identifier from the line above, then advance it. It is the counter, not the entry
   count: it keeps rising as entries are deleted, and it is shared by every `findings.*` file.

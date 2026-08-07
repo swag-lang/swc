@@ -1,5 +1,7 @@
 bin/*.exe
 bin/*.pdb
+tools/swc.exe
+tools/host/
 .tmp/
 .output/
 .dep/

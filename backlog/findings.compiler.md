@@ -190,3 +190,28 @@ Entries are sorted by identifier, ascending; position carries no priority.
   `typeinfo` of the reference rather than of the pointee, or the address of the reference slot
   rather than of the value. Decide then whether the fix is to strip the reference where the
   argument is boxed, or to have the conversion follow it.
+
+### F-078 — A conditional expression yielding an owning value copies it without its post-copy
+
+- Area: compiler
+- Found while: porting `tools/*.bat` to Swag, where a tool picked its command as
+  `options.command.isEmpty() ? String.from("build") : options.command`.
+- Observation: a conditional expression whose branches produce a struct that owns memory hands
+  the result over without running `opPostCopy`, so the result aliases the buffer of the branch it
+  took. Dropping it frees memory the original still points at. Nothing reports anything at the
+  point of the mistake: the program keeps running and dies later, in an unrelated teardown.
+- Evidence, reduced to one `#test`: `var source = String.from("value")`, then in an inner scope
+  `let picked = source.isEmpty() ? String.from("other") : source` followed by
+  `@assert(picked == "value")`. The assertion passes; leaving the inner scope frees the buffer,
+  and the next use of `source` crashes with `EXCEPTION_ACCESS_VIOLATION`. The unreduced case cost
+  a whole `apps test sCapture` run to surface: every test passed, and the process died in the
+  tool's `#main` epilogue afterwards.
+- Next step: compare what code generation emits for the two arms of a conditional against what a
+  plain assignment from the same expression emits, in `CodeGen.Conditional.cpp`. A plain
+  `let picked = source` runs the post-copy, so the question is whether the conditional path skips
+  the lifecycle call, or whether it materializes into a slot the caller then treats as already
+  constructed. Decide at the same time what a conditional mixing a temporary and a borrowed value
+  should mean: forcing a copy on both arms is the simple answer, moving the temporary and copying
+  the other is the fast one.
+- Related: [[reference_conditional_int_to_float_miscompile]] touched the same generator for a
+  different reason, so the two may share a root.

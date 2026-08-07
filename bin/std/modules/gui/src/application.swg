@@ -71,6 +71,14 @@ struct Application
         mouseEnterWnd:    #null *Wnd     // Window the mouse last entered.
     }
 
+    // Drag and drop tracking. A gesture carrying a payload gets no mouse events at all, so the
+    // window it is over and the position it reached are followed apart from the pointer state.
+    internal
+    {
+        dragEnterWnd:  #null *Wnd     // Window the drag last entered, or `null` outside a gesture.
+        dragScreenPos: Math.Point     // Last position a drag reported, in physical screen pixels.
+    }
+
     // Whether the keyboard focus must be shown.
     //
     // Keyboard traversal turns it on and a pointer press turns it off, so a control acted on
@@ -171,27 +179,21 @@ private impl Application
         }
     }
 
-    func skipDisabled(wnd: #null *Wnd)->#null *Wnd
-    {
-        if !wnd do
-            return null
-        if wnd.surface!.isDisabled do
-            return null
-        var scan = wnd
-        while scan
-        {
-            let cur = scan
-            if cur.isEnabled() do
-                break
-            scan = cur.parent
-        }
-
-        return scan
-    }
-
     mtd sendMouseEvents()
     {
         .mouse.update()
+
+        // A drag in flight owns the pointer, and the gesture is already being delivered as its
+        // own event to the window under it. The pointer state polled here would only tell a
+        // second, contradictory story: a control lighting up as the payload passes over it, a
+        // release fired when the payload is dropped, and — the visible one — a cursor set at
+        // frame rate over the copy, move and refuse shapes the source is drawing, which takes
+        // the pointer back to an arrow the moment it stops moving.
+        if .dragEnterWnd
+        {
+            .frameCursor.clear()
+            return
+        }
 
         let mousePos = .mouse.position()
 
@@ -473,6 +475,8 @@ private impl Application
             .mouseCaptureWnd = null
         if wnd == .keyboardFocusWnd or wnd.isOwnerOf(.keyboardFocusWnd) do
             .keyboardFocusWnd = null
+        if wnd == .dragEnterWnd or wnd.isOwnerOf(.dragEnterWnd) do
+            .dragEnterWnd = null
 
         // Be sure there's no timer for that window
         for t in .timers
@@ -655,7 +659,7 @@ private impl Application
         // The keyboard is given back only when the box took it: a loop run without a surface of
         // its own — a captured pop-up, a colour picker — never moved it, and moving it now would
         // be the box choosing for a form that was never left.
-        let focus = .keyboardFocusWnd
+        let focus       = .keyboardFocusWnd
         var mustRestore = !focus
         if focus and surface and focus.surface == surface do
             mustRestore = true
@@ -772,6 +776,8 @@ impl Application
             .mouseCaptureWnd = null
         if wnd == .keyboardFocusWnd or wnd.isOwnerOf(.keyboardFocusWnd) do
             .keyboardFocusWnd = null
+        if wnd == .dragEnterWnd or wnd.isOwnerOf(.dragEnterWnd) do
+            .dragEnterWnd = null
     }
 
     // Kept for callers that still bound their own run; a smoke run already bounds itself.
@@ -1113,18 +1119,40 @@ impl Application
         }
     }
 
-    internal mtd windowAtMouse()->#null *Wnd
+    internal mtd windowAtMouse()->#null *Wnd => .windowAt(.mouse.position())
+
+    // Returns the deepest window under a physical screen position, or `null` when none is there.
+    internal mtd windowAt(screenPos: Math.Point)->#null *Wnd
     {
-        var mousePos      = .mouse.position()
-        let targetSurface = .surfaceAt(mousePos.x, mousePos.y)
+        let targetSurface = .surfaceAt(screenPos.x, screenPos.y)
         if !targetSurface do
             return null
-        let surface = targetSurface
-        surface.screenToSurface(&mousePos)
-        if !surface.isMaximized and surface.wnd.hitTestBorders(mousePos) != SizingBorder.None do
+
+        var surfacePos = screenPos
+        let surface    = targetSurface
+        surface.screenToSurface(&surfacePos)
+        if !surface.isMaximized and surface.wnd.hitTestBorders(surfacePos) != SizingBorder.None do
             return surface.wnd
-        let targetWnd = surface.wnd.windowAt(mousePos.x, mousePos.y)
-        return targetWnd
+        return surface.wnd.windowAt(surfacePos.x, surfacePos.y)
+    }
+
+    // Returns `wnd` or its closest enabled ancestor, or `null` when nothing there takes input.
+    internal func skipDisabled(wnd: #null *Wnd)->#null *Wnd
+    {
+        if !wnd do
+            return null
+        if wnd.surface!.isDisabled do
+            return null
+        var scan = wnd
+        while scan
+        {
+            let cur = scan
+            if cur.isEnabled() do
+                break
+            scan = cur.parent
+        }
+
+        return scan
     }
 
     // Set activated state

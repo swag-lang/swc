@@ -53,6 +53,10 @@ struct HeadlessHost
     autoMaxFrames:     u32                 // Auto max frames associated with this value.
     autoStages:        Array'AutoStage     // Auto stages associated with this value.
     autoStage:         u32                 // Auto stage associated with this value.
+
+    // Payload the simulated drag helpers hand to the routing, reused across one gesture the
+    // way the platform layer reuses the one it reads from the source.
+    dragData: DragData
 }
 
 impl HeadlessHost
@@ -819,6 +823,70 @@ impl HeadlessHost
         .mouseDown(fromPt, button, modifiers)
         .moveMouse(toPt, modifiers)
         .mouseUp(toPt, button, modifiers)
+    }
+
+    // Moves a simulated drag carrying `files` over a screen position and returns the effect
+    // the window under it commits to.
+    //
+    // The gesture goes through the same routing a native drag does, so entering and leaving are
+    // derived here too: calling this twice over two windows tells the first it was left.
+    mtd dragFilesOver(pt: Math.Point, files: const [..] string, allowed = DropEffect.Copy, modifiers: Input.KeyModifiers = None)->DropEffect
+    {
+        .dragData.clear()
+        for f in files do
+            .dragData.addFile(f)
+        return .app.dragUpdateTo(.mouseTargetAt(pt), pt, &.dragData, allowed, modifiers)
+    }
+
+    // Releases a simulated drag carrying `files` on a screen position and returns the effect
+    // the window under it performed.
+    mtd dropFiles(pt: Math.Point, files: const [..] string, allowed = DropEffect.Copy, modifiers: Input.KeyModifiers = None)->DropEffect
+    {
+        .dragData.clear()
+        for f in files do
+            .dragData.addFile(f)
+        let effect = .app.dragDropTo(.mouseTargetAt(pt), pt, &.dragData, allowed, modifiers)
+        .pump()
+        return effect
+    }
+
+    // Releases a simulated drag carrying `text` on a screen position.
+    mtd dropText(pt: Math.Point, text: string, allowed = DropEffect.Copy, modifiers: Input.KeyModifiers = None)->DropEffect
+    {
+        .dragData.clear()
+        .dragData.setText(text)
+        let effect = .app.dragDropTo(.mouseTargetAt(pt), pt, &.dragData, allowed, modifiers)
+        .pump()
+        return effect
+    }
+
+    // Releases a simulated drag carrying `files` on the centre of one window.
+    //
+    // The window is the target, rather than whatever a hit test finds there: this is the drop
+    // counterpart of [[Testing.HeadlessHost.clickWnd]], for a test that names the control it is
+    // aiming at. The event still bubbles from there, so a window that declines hands it to its
+    // parent exactly as a real drop does.
+    mtd dropFilesOnWnd(wnd: *Wnd, files: const [..] string, allowed = DropEffect.Copy, modifiers: Input.KeyModifiers = None)->DropEffect
+    {
+        Debug.assert(wnd != null)
+
+        .dragData.clear()
+        for f in files do
+            .dragData.addFile(f)
+
+        var pt = wnd.surfaceRect().center()
+        wnd.surface!.surfaceToScreen(&pt)
+        let effect = .app.dragDropTo(wnd, pt, &.dragData, allowed, modifiers)
+        .pump()
+        return effect
+    }
+
+    // Ends a simulated drag without dropping, the way the user pressing escape does.
+    mtd cancelDrag()
+    {
+        .app.dragLeave(&.dragData)
+        .dragData.clear()
+        .pump()
     }
 
     // Sends one simulated mouse-wheel event at a screen position.

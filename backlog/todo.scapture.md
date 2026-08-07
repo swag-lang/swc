@@ -62,7 +62,10 @@ monitor cannot be captured individually. The command list should be generated fr
   `bin/std/modules/pixel/src/image/encode/encode.swg` already registers eight encoders — BMP, TGA,
   JPG, PNG, GIF, TIFF, ICO and WebP. Six of them are simply not offered.
 - Also missing: drag-out of the current capture into another application, copy-as-file rather than
-  copy-as-bitmap, and printing.
+  copy-as-bitmap, and printing. Drag-*in* landed with the toolkit: a picture dropped on the editor
+  opens as a capture, one per file, and a bitmap dragged out of a web page becomes a capture with
+  nothing linked to it. Drag-out waits on `gui` roadmap entry 3, which now needs only the source
+  half — an `IDataObject` and an `IDropSource`.
 - Fix: replace the hardcoded extension branch with a dispatch through the encoder registry and
   build the filter list from it, so a new encoder in `bin/std` shows up here for free. Then add the
   three local output paths. None of this needs a network.

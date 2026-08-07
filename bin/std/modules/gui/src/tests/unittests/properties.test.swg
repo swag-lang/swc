@@ -1839,6 +1839,45 @@ impl IPropertyNotify for PropFilterHost
     @assert(data.choice == .Low)
 }
 
+// A String field naming a document, and one holding free text beside it.
+struct PropDropData
+{
+    #[Properties.Name("Source"), Properties.FilePath]
+    source: String
+
+    #[Properties.Name("Note")]
+    note: String
+}
+
+// A file dropped on a FilePath field fills it, and commits with the focus like a typed value.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(420, 200)
+    defer host.shutdown()
+
+    var data: PropDropData
+    let prop = Properties.create(&host.root, {0, 0, 420, 200}, .List)
+    prop.addStruct(data, "S")
+    prop.edView.sendResizeEvent()
+    host.root.applyLayout()
+    host.pump()
+
+    let sourceItem = findFieldItem(prop, "source")!
+    let noteItem   = findFieldItem(prop, "note")!
+
+    @assert(host.dropFilesOnWnd(sourceItem.editBox, ["c:/assets/mesh.obj"]) == DropEffect.Copy)
+    @assert(sourceItem.editBox.text() == "c:/assets/mesh.obj")
+
+    // The editor holds it until the focus leaves, which is when a typed value lands too.
+    prop.validateDynamicString(sourceItem)
+    @assert(data.source == "c:/assets/mesh.obj")
+
+    // A field that did not ask for paths refuses them and keeps what it had.
+    @assert(host.dropFilesOnWnd(noteItem.editBox, ["c:/assets/mesh.obj"]) == DropEffect.None)
+    @assert(noteItem.editBox.text() == "")
+}
+
 struct PropSameCategData
 {
     #[Properties.Category("Debug"), Properties.Name("First"), Properties.Description("A long description that should wrap over the full control width, not over the value column")]

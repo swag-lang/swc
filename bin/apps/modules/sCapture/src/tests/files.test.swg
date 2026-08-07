@@ -157,6 +157,83 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(f.main.recentWnd.recentView.selected == 0)
 }
 
+// A picture dropped on the editor opens it, exactly as the Open command does.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
+    testRegisterIoActions(f.main)
+    testPrepareRecentLibrary(f.main)
+
+    let sourcePath = Gui.Testing.tempFilePath("scapture-drop-", ".png")
+    defer discard catch File.delete(sourcePath)
+    var source = Gui.Testing.indexedImage(23, 17)
+    expect source.save(sourcePath)
+
+    @assert(f.gui.dropFilesOnWnd(f.editView, [sourcePath.toString()]) == Gui.DropEffect.Copy)
+
+    let capture       = f.main.getCapture()!
+    let generatedPath = capture.file
+    defer
+    {
+        discard catch File.delete(generatedPath)
+        g_Library.files.clear()
+    }
+
+    @assert(capture.width == 23)
+    @assert(capture.height == 17)
+    @assert(testSamePath(capture.linkedImage, sourcePath))
+    @assert(File.exists(generatedPath))
+    @assert(f.main.recentWnd.recentView.items.count == 1)
+}
+
+// Several pictures dropped at once open one capture each, in the order they were listed.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
+    testRegisterIoActions(f.main)
+    testPrepareRecentLibrary(f.main)
+
+    let firstPath = Gui.Testing.tempFilePath("scapture-drop-a-", ".png")
+    let lastPath  = Gui.Testing.tempFilePath("scapture-drop-b-", ".png")
+    defer discard catch File.delete(firstPath)
+    defer discard catch File.delete(lastPath)
+    var first = Gui.Testing.indexedImage(12, 9)
+    var last  = Gui.Testing.indexedImage(31, 7)
+    expect first.save(firstPath)
+    expect last.save(lastPath)
+
+    @assert(f.gui.dropFilesOnWnd(f.editView, [firstPath.toString(), lastPath.toString()]) == Gui.DropEffect.Copy)
+
+    defer g_Library.files.clear()
+    @assert(f.main.recentWnd.recentView.items.count == 2)
+
+    // The last one dropped is the one left on the easel.
+    let capture = f.main.getCapture()!
+    defer discard catch File.delete(capture.file)
+    @assert(capture.width == 31)
+    @assert(capture.height == 7)
+    @assert(testSamePath(capture.linkedImage, lastPath))
+}
+
+// A file no decoder claims is refused, and leaves the editor on what it was showing.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
+    testRegisterIoActions(f.main)
+    testPrepareRecentLibrary(f.main)
+
+    let before = f.main.getCapture()
+    @assert(f.gui.dropFilesOnWnd(f.editView, ["c:/notes/readme.txt"]) == Gui.DropEffect.None)
+    @assert(f.main.getCapture() == before)
+    @assert(f.main.recentWnd.recentView.items.count == 0)
+}
+
 // Save As Image writes a real PNG that can be loaded back with sCapture metadata.
 #test
 {

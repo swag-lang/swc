@@ -5,6 +5,7 @@ using Swag
 
 alias HRESULT  = s32
 alias SHSTDAPI = HRESULT
+alias HDROP    = #null const *void
 
 const S_OK    = 0's32
 const S_FALSE = 1's32
@@ -231,6 +232,16 @@ struct SHSTOCKICONINFO
     szPath:         [MAX_PATH] WCHAR
 }
 
+struct DROPFILES
+{
+    pFiles: DWORD
+    pt:     POINT
+    fNC:    BOOL
+    fWide:  BOOL
+}
+
+#assert(#sizeof(DROPFILES) == 20)
+
 struct GUID
 {
     Data1: u32
@@ -320,6 +331,10 @@ internal namespace Shell32Priv
 {
     func SHGetFileInfoA(pszPath: LPCSTR, dwFileAttributes: DWORD, psfi: *SHFILEINFOA, cbFileInfo: UINT, uFlags: UINT)->DWORD_PTR
     func SHGetFileInfoW(pszPath: LPCWSTR, dwFileAttributes: DWORD, psfi: *SHFILEINFOW, cbFileInfo: UINT, uFlags: UINT)->DWORD_PTR
+    func DragAcceptFiles(hWnd: HWND, fAccept: BOOL)
+    func DragQueryFileW(hDrop: HDROP, iFile: UINT, lpszFile: #null LPWSTR, cch: UINT)->UINT
+    func DragQueryPoint(hDrop: HDROP, ppt: *POINT)->BOOL
+    func DragFinish(hDrop: HDROP)
 }
 
 #[Inline]

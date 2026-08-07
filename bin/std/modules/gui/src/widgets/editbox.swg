@@ -43,10 +43,18 @@ enum EditBoxFlags
     // renaming an item in place, filtering a list — and never for a field of a form, whose Enter
     // belongs to the dialog's default action and whose Escape dismisses the dialog.
     ReleaseFocusOnEnterOrEscape
-
     ReadOnly         // Prevents edits while preserving focus and selection.
     RightAligned     // Aligns text to the trailing edge.
     ClearButton      // Shows a clear button while content is non-empty.
+
+    // Makes a file dragged from the desktop replace the content with its path.
+    //
+    // This is what a field naming a document is for: one file dropped anywhere on the box
+    // fills it, exactly as picking that file from a browse dialog would, and the box emits its
+    // usual change notification. A drag carrying several files is refused, because a single
+    // field has nothing to say about the others. Without this flag a box still takes dropped
+    // *text*, which is what every text field on the desktop does.
+    AcceptFileDrop
 }
 
 // Edits and validates a single line of text, optionally as a bounded numeric value.
@@ -350,6 +358,51 @@ impl IWnd for EditBox
         }
     }
 
+    // Takes text, and optionally a file path, released on the box.
+    //
+    // The caret follows the pointer while the payload hovers, so the reader sees where the text
+    // will land before letting go. A path always replaces the whole content, because a field
+    // naming one document has no second place to put it. Only copy and link are ever answered:
+    // this box never asks a source to delete what it dragged, and a file is read, not moved.
+    mtd impl onDragDropEvent(evt: *DragDropEvent)
+    {
+        let takesFile = .flags.has(.AcceptFileDrop) and evt.data.singleFile() != null
+        let takesText = !takesFile and evt.data.hasText()
+        if .flags.has(.ReadOnly) or (!takesFile and !takesText)
+        {
+            evt.accepted = false
+            return
+        }
+
+        switch evt.kind
+        {
+        case .Enter:
+            .isHot = true
+            .invalidate()
+
+        case .Leave:
+            .isHot = false
+            .invalidate()
+
+        case .Over:
+            if takesText do
+                .moveCaretToDropPoint(evt.surfacePos)
+
+        case .Drop:
+            .isHot = false
+            .setFocus()
+            if takesFile do
+                .setText(evt.data.singleFile())
+            else
+            {
+                .moveCaretToDropPoint(evt.surfacePos)
+                .insertString(evt.data.text.toString())
+            }
+        }
+
+        evt.effect = pickDropEffect(evt.allowed & (DropEffect.Copy | DropEffect.Link), evt.modifiers)
+    }
+
     // Blinking caret timer handler.
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
@@ -552,6 +605,14 @@ private impl EditBox
         }
 
         return false
+    }
+
+    // Collapses the selection onto the character a dragged payload is hovering.
+    mtd moveCaretToDropPoint(surfacePos: Math.Point)
+    {
+        let x = .byteIndexAt(.surfaceToLocal(surfacePos).x)
+        .setSelection(x, x)
+        .forceVisibleCaret()
     }
 
     // Inserts an arbitrary UTF‑8 string (after deleting the current selection).

@@ -65,3 +65,83 @@ Entries are sorted by identifier, ascending; position carries no priority.
   boundary — a C++ test in `src/Unittest` that hands the sanitizer a micro-IR sequence sema cannot
   produce — rather than a `.swg` fixture that no longer compiles. If it does not, deleting it
   removes a check whose only remaining role is to duplicate a language rule.
+
+### F-073 — Freeing an object that holds a back-pointer is judged to free the pointee
+
+- Area: compiler
+- Found while: adding an OLE drop target to `std/gui`, whose registration allocates a COM object,
+  points it back at the surface, and releases it again when `RegisterDragDrop` refuses.
+- Observation: the FREES summary is seeded from the *origins* of the freed address, and
+  `addFreedBorrowOrigins` takes every parameter the freed pointer can reach
+  ([SemaEscape.cpp:1281-1289](../src/Compiler/Sema/Helpers/SemaEscape.cpp#L1281-L1289)). A fresh heap
+  object that merely stores `me` reaches `me`, so releasing that object marks the enclosing method as
+  FREES on its receiver. The summary then climbs the call graph and the caller is told its own
+  storage was released. `addReturnBorrowOrigins`, ten lines above, already makes exactly the
+  distinction that is missing here: `info.viaOwnedPayload` separates "a view into what the parameter
+  owns" from "a fresh object holding a back-reference to it", and only the first is invalidated by
+  the parameter's own release.
+- Evidence: this file, built with `swc test -d <dir>`, reports
+  `freeing borrowed data from local variable 'h'` on the `consume(&h, ...)` call:
+
+  ```swag
+  #global private
+  #global #[Swag.Sanity(.Lifecycle, true)]
+  using Swag
+
+  func myAlloc(size: u64)->*void
+  {
+      var req: AllocatorRequest
+      req.size = size
+      let allocItf = @getcontext().allocator!
+      allocItf.alloc(&req)
+      return req.address!
+  }
+
+  func myFree(ptr: *void, size: u64)
+  {
+      var req: AllocatorRequest
+      req.address = ptr
+      req.size    = size
+      let allocItf = @getcontext().allocator!
+      allocItf.free(&req)
+  }
+
+  struct Inner { owner: #null *Host }
+  struct Host { value: s32 }
+
+  impl Host
+  {
+      mtd setup()
+      {
+          let p = cast(*Inner) myAlloc(#sizeof(Inner))
+          p.owner = me
+          myFree(p, #sizeof(Inner))
+          .value = 1
+      }
+  }
+
+  func createHost(h: *Host) { h.setup() }
+
+  func consume(h: *Host, view: const [..] u8)->u64
+  {
+      createHost(h)
+      return @countof(view) + cast(u64) h.value
+  }
+
+  #test
+  {
+      var buf: [16] u8
+      var h: Host
+      @assert(consume(&h, @mkslice(&buf[0], 16)) == 17)     // reported, wrongly
+  }
+  ```
+
+  Removing `p.owner = me` compiles clean, which is the whole difference. In `std/gui` the same shape
+  travelled from `Surface.registerDropTarget` up through `createNative` and `createSurface` until
+  `MessageDlg.confirm` was told that `txt.toString()` pointed at freed memory — a report six frames
+  away from the release, on a value that has nothing to do with it.
+- Next step: give `addFreedBorrowOrigins` the test `addReturnBorrowOrigins` already applies, so a
+  parameter enters the FREES mask only when the released address *is* that parameter or a view into
+  the payload it owns, never when it is a distinct allocation that stores it. Then add the case above
+  to `bin/unittests/sanity/use_after_free.swg` as a must-compile fixture beside the proven positives,
+  and re-check that the genuine `sanity_err_free_borrowed` cases in that file still fire.

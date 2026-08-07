@@ -66,14 +66,31 @@ twenty-seven messages. What is absent from that list is this section.
 - The caret geometry needed to position the candidate window is already computed — `EditBox`
   measures snapped caret positions today.
 
-### 3. No drag and drop
+### 3. Drag and drop only goes one way
 
-- Problem: no `WM_DROPFILES` and no `IDropTarget`. Nothing can be dragged into a Swag window from
-  Explorer or from another application, and nothing can be dragged out.
-- Consequence: the most natural gesture on a desktop is unavailable. `sCapture` roadmap entry 1
-  asks for drag-out of a capture into another application, and that request lands here.
-- Fix: `IDropTarget` for incoming drops, with a drop event routed through the existing widget
-  hit-testing, and `DoDragDrop` for outgoing. Register file and bitmap formats first.
+- Incoming landed. Every surface registers an `IDropTarget` as it is created, so nothing has to
+  opt in: `DragDropEvent` is routed to the window under the pointer and bubbles like any other
+  input event, `DragData` carries the files, the text and the bitmap a source offers — the image
+  decoded only when the target asks for it — and `DropEffect` is the one vocabulary both sides
+  speak, with `pickDropEffect` answering the desktop convention for the modifiers held. An
+  `EditBox` takes dropped text at the caret and, with `EditBoxFlags.AcceptFileDrop`, a path;
+  `Properties.FilePath` marks the field of a grid that wants one. `sCrypt` opens a container
+  dropped anywhere on its window and `sCapture` opens a picture dropped on its editor, one
+  capture per file. `Testing.HeadlessHost` drives the whole path without a desktop.
+- Outgoing is not there. `DoDragDrop` needs a Swag-side `IDataObject` and `IDropSource`, which is
+  where the remaining work is: twelve methods and an `IEnumFORMATETC`, against the seven of
+  `IDropTarget`. The bindings are in place (`Win32.IDropSource`, `Win32.IDataObjectVtbl`,
+  `Win32.DoDragDrop`), and `dragdrop.win32.swg` is where the object belongs.
+- Consequence while it is missing: a capture cannot be dragged out of `sCapture` into another
+  application, which is `sCapture` roadmap entry 1, and text cannot be dragged between two Swag
+  windows — a `Move` answered by a target has nobody to ask for the deletion, which is why
+  `EditBox` never answers one.
+- Also missing on the incoming side: `readGlobalFormat` in `dragdrop.win32.swg` asks for
+  `TYMED_HGLOBAL` only, so a source that publishes a format solely as an `IStream` — which is how
+  some browsers hand over a large image — reads as offering nothing; no drag image is drawn over
+  the target (`IDropTargetHelper`); `CFSTR_FILEDESCRIPTORW` is not read, so a mail attachment
+  dragged out of a client offers no file; and a list has no insertion feedback of its own, so a
+  target that wants to say *where* the drop will land has to paint that itself.
 
 ---
 

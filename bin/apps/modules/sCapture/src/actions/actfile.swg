@@ -318,6 +318,44 @@ impl MainWnd
             .newCapture(img, dlg.selectedPath())
     }
 
+    // Whether a dragged payload holds anything this editor can open.
+    //
+    // A file counts when one of the registered decoders claims its name, which is the same
+    // question [[Pixel.Image.load]] asks; a payload with no such file counts when the source
+    // offers a bitmap of its own. Reading it is deliberately cheap: this runs on every mouse
+    // move of a drag hovering the window, and the image itself is only decoded on the drop.
+    mtd hasDroppableImage(data: *DragData)->bool
+    {
+        for &f in data.files
+        {
+            if Image.canLoad(f.toString()) do
+                return true
+        }
+
+        return data.hasImage()
+    }
+
+    // Opens everything a dropped payload holds, one capture per image.
+    //
+    // Files win over the bitmap when both are offered: a file keeps the capture linked to what
+    // it came from, and the bitmap beside it is the same picture with that link thrown away.
+    mtd openDroppedImages(data: *DragData)
+    {
+        var opened = false
+        for &f in data.files where Image.canLoad(f.toString())
+        {
+            .loadExternalImage(f)
+            opened = true
+        }
+
+        if opened do
+            return
+
+        let img = data.image()
+        if img do
+            .newCapture(dref img)
+    }
+
     mtd doSaveImage(capture: *Capture, img: *Image, nameFile: String)
     {
         var optImg: #null any = null

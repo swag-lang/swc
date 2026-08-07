@@ -98,6 +98,9 @@ struct NativeSurface
     // WM_DPICHANGED it triggers when crossing a DPI boundary must update the scale
     // without adopting the OS-suggested rectangle (which assumes an old-DPI size).
     inAppPlacement: bool
+
+    dropTarget:       SurfaceDropTarget     // OLE drop target of this window, owned by it.
+    dropTargetActive: bool                  // Whether that target is registered with OLE.
 }
 
 // Fixed notification-area icon id. A surface owns at most one tray icon.
@@ -406,6 +409,7 @@ private impl Surface
         }
 
         result.applyNativeDwmStyle()
+        result.registerDropTarget()
     }
 
     mtd destroyNative()
@@ -414,6 +418,7 @@ private impl Surface
         if !.hWnd do
             return
 
+        .revokeDropTarget()
         .removeTrayIcon()
         catch DestroyWindow(.hWnd)
         .hWnd = null

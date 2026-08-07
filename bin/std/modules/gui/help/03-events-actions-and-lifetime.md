@@ -53,3 +53,57 @@ adds the diagnostic that draws every ring of a surface at once.
 
 Call [[Gui.Wnd.destroy]] from handlers. Destruction is deferred until dispatch is
 safe; do not retain control pointers after their destroy event.
+
+## Taking a drop from the desktop
+
+Every surface is a drop target from the moment it is created, so a window takes drags
+from Explorer and from other applications without asking for anything. A gesture
+carrying a payload is delivered as a [[Gui.DragDropEvent]] to the window under the
+pointer, and it bubbles to the ancestors exactly like a mouse event: a control that
+ignores drops costs nothing, and a container can answer for the whole of its content.
+
+Four phases bracket one gesture. `Enter` and `Leave` say when the pointer is over the
+window, which is what a drop highlight is turned on and off by — `Leave` is delivered
+when the drag is cancelled or dropped elsewhere too, so a highlight is never stuck on.
+`Over` repeats while the pointer moves inside the window, and `Drop` is the release.
+
+A target claims the gesture by setting [[Gui.DragDropEvent.effect]] to one member of
+[[Gui.DragDropEvent.allowed]]; leaving it at `None` rejects the drop and lets the event
+bubble further. [[Gui.pickDropEffect]] answers the desktop convention — `Control`
+copies, `Shift` moves, both together link — restricted to what the source permits, so a
+target that has no policy of its own is one line:
+
+```swag
+mtd impl onDragDropEvent(evt: *DragDropEvent)
+{
+    let path = evt.data.singleFile()
+    if !path or !Path.hasExtension(path!, ".scrypt")
+    {
+        evt.accepted = false
+        return
+    }
+
+    if evt.kind == .Drop do
+        .openContainer(path)
+    evt.effect = pickDropEffect(evt.allowed & (DropEffect.Copy | DropEffect.Link), evt.modifiers)
+}
+```
+
+[[Gui.DragData]] is the payload, borrowed for the duration of one callback: a target
+that wants to keep a path, a text or an image copies it out. It answers safely whatever
+the drag carries — [[Gui.DragData.hasFiles]], [[Gui.DragData.singleFile]],
+[[Gui.DragData.hasText]] and [[Gui.DragData.hasImage]] are all cheap, and only
+[[Gui.DragData.image]] pays for a decode. That matters because a drag hovering a window
+asks the same questions on every mouse move.
+
+Two controls already answer for themselves. An [[Gui.EditBox]] takes dropped text at the
+character under the pointer, and with [[Gui.EditBoxFlags.AcceptFileDrop]] a single
+dropped file replaces its content with that path — which is what a field naming a
+document wants, and what `Properties.FilePath` declares on a property-grid row.
+
+A test drives the whole path with no desktop under it:
+`Testing.HeadlessHost.dropFilesOnWnd` releases a payload on one control,
+`Testing.HeadlessHost.dragFilesOver` moves a gesture across the tree, and
+`Testing.HeadlessHost.cancelDrag` ends one the way Escape does.
+
+Dragging *out* of a Swag window is not implemented yet.

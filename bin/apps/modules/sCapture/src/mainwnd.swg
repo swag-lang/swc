@@ -221,6 +221,26 @@ impl IWnd for MainWnd
         }
     }
 
+    // Takes an image dropped on the editor, from the desktop or from another application.
+    //
+    // Dropping a picture is the shortest way to open one, so it does exactly what the Open
+    // command does — and a drag carrying several files opens one capture per file, which the
+    // dialog cannot do at all. A drag that carries no file but carries a bitmap, the way an
+    // image dragged out of a web page does, becomes a capture with nothing linked to it.
+    mtd impl onDragDropEvent(evt: *DragDropEvent)
+    {
+        if !.hasDroppableImage(evt.data)
+        {
+            evt.accepted = false
+            return
+        }
+
+        if evt.kind == .Drop do
+            .openDroppedImages(evt.data)
+
+        evt.effect = pickDropEffect(evt.allowed & (DropEffect.Copy | DropEffect.Link), evt.modifiers)
+    }
+
     mtd impl onSysCommandEvent(evt: *SysCommandEvent)
     {
         evt.accepted = false

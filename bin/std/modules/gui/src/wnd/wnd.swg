@@ -153,6 +153,12 @@ interface IWnd
     // Handles pointer buttons, movement, wheel input, and cursor queries.
     mtd onMouseEvent(evt: *MouseEvent)
 
+    // Handles a drag and drop gesture passing over, or released on, this window.
+    //
+    // A window claims the gesture by setting [[Gui.DragDropEvent.effect]]; leaving it at `None`
+    // lets the event bubble to the parent the way an unhandled mouse event does.
+    mtd onDragDropEvent(evt: *DragDropEvent)
+
     // Handles a platform window-system command.
     mtd onSysCommandEvent(evt: *SysCommandEvent)
 
@@ -345,6 +351,9 @@ impl IWnd for Wnd
         case MouseEvent as ptr where ptr.kind != .Accept:
             .itf.onMouseEvent(ptr)
 
+        case DragDropEvent as ptr:
+            .itf.onDragDropEvent(ptr)
+
         case ThemeEvent as ptr:
             .itf.onThemeEvent(ptr)
 
@@ -443,6 +452,12 @@ impl IWnd for Wnd
 
     // Declines pointer input by default.
     mtd impl onMouseEvent(evt: *MouseEvent)
+    {
+        evt.accepted = false
+    }
+
+    // Declines dropped payloads by default.
+    mtd impl onDragDropEvent(evt: *DragDropEvent)
     {
         evt.accepted = false
     }

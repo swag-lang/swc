@@ -61,6 +61,13 @@ impl Properties
     // the theme's default font and stores an empty string.
     attr FontName()
 
+    // String edition that takes a file dragged from the desktop, whose path replaces the value.
+    //
+    // Marks a field that names a document rather than holding free text: dropping one file on
+    // its editor fills it, which is the gesture a reader reaches for before a browse dialog.
+    // The value commits the way a typed one does, when the editor loses the focus.
+    attr FilePath()
+
     // Restricts color editing to opaque colors.
     attr Opaque()
 

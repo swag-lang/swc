@@ -452,6 +452,53 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     @assert(!parseCapacity("18446744073709551615", 1).error.isEmpty())
 }
 
+// A container dropped on the path field of a card fills it, exactly as browsing to it would.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    defer host.shutdown()
+
+    window.showTab(MainWindow.OpenTabIndex)
+    @assert(host.dropFilesOnWnd(window.mountPath, ["c:/vaults/private.scrypt"]) == DropEffect.Copy)
+    @assert(window.mountPath.text() == "c:/vaults/private.scrypt")
+
+    // Filling the field is what makes the action live, whether a dialog or a drop wrote it.
+    @assert(window.mountButton.isEnabled())
+}
+
+// A container dropped anywhere else on the window opens the page that mounts one.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    defer host.shutdown()
+
+    window.showTab(0)
+    @assert(host.dropFilesOnWnd(window, ["c:/vaults/private.scrypt"]) == DropEffect.Copy)
+
+    @assert(window.tabs.selectedIndex == MainWindow.OpenTabIndex)
+    @assert(window.mountPath.text() == "c:/vaults/private.scrypt")
+    @assert(window.mountPath.hasFocus())
+}
+
+// Anything that is not a container is refused, and leaves the window where it was.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    defer host.shutdown()
+
+    window.showTab(0)
+    @assert(host.dropFilesOnWnd(window, ["c:/photos/holiday.png"]) == DropEffect.None)
+    @assert(window.tabs.selectedIndex == 0)
+    @assert(window.mountPath.text() == "")
+
+    // Two containers name no single vault to open.
+    @assert(host.dropFilesOnWnd(window, ["c:/vaults/a.scrypt", "c:/vaults/b.scrypt"]) == DropEffect.None)
+    @assert(window.tabs.selectedIndex == 0)
+}
+
 // What the shipped window looks like.
 //
 // The tests above read the window: they ask what a button says, whether a form can act, whether

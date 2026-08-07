@@ -18,6 +18,13 @@ struct AppStrings
     ui_MountCardTitle:      string = "Open an existing vault"
     ui_MountCardHelp:       string = "Unlock a container and expose it on any available drive letter. The same file and password also change its password or grow it."
     ui_MountedCardTitle:    string = "Mounted drives"
+
+    // One word per tab. The card under it says the whole sentence, so a tab that repeats it
+    // spends the width of a heading to name what the heading already names.
+    ui_CreateTab:           string = "Create"
+    ui_OpenTab:             string = "Open"
+    ui_MountedTab:          string = "Mounted"
+
     ui_MountedCardHelp:     string = "Every drive sCrypt currently exposes. Check one to have it mounted again the next time sCrypt starts."
     ui_NoDriveMounted:      string = "No drive is mounted."
     ui_ContainerFile:       string = "CONTAINER FILE"
@@ -32,7 +39,7 @@ struct AppStrings
     ui_ContainerPassword:   string = "Empty if the vault has none"
     ui_ExistingContainer:   string = "Encrypted container"
     ui_DriveLetter:         string = "DRIVE LETTER"
-    ui_DriveHelp:           string = "The drive is available to Windows while sCrypt runs, and appears in the list on the right."
+    ui_DriveHelp:           string = "The drive is available to Windows while sCrypt runs, and appears under Mounted."
     ui_ReadOnly:            string = "Mount read only"
     ui_ReadOnlyHelp:        string = "The drive opens for reading alone: nothing can add to the vault, change it, or delete from it while it is mounted."
     ui_RemovePasswordHelp:  string = "Leave it empty to remove the password. The vault then opens without one."

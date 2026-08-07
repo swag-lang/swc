@@ -151,6 +151,8 @@
 <li><a href="#_013_001_error_management_swg">Error Management</a></li>
 <li><a href="#_013_002_safety_swg">Safety</a></li>
 <li><a href="#_013_003_sanity_swg">Sanity</a></li>
+<li><a href="#_013_004_borrowing_swg">Borrowing</a></li>
+<li><a href="#_013_005_warnings_swg">Warnings</a></li>
 </ul>
 </li>
 <li><a href="#_014_000_compile-time_evaluation_swg">Compile-time Evaluation</a>
@@ -2514,7 +2516,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <p>Strings can be sliced, but the result must be declared as <span class="code-inline">const</span> since strings are immutable.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">let</span> str                     = <span class="SStr">"string"</span>
+    <span class="SKwd">let</span> str = <span class="SStr">"string"</span>
     <span class="SKwd">let</span> strSlice: <span class="SKwd">const</span> [..] <span class="STpe">u8</span> = <span class="SItr">@mkslice</span>(<span class="SItr">@dataof</span>(str), <span class="SNum">2</span>)
     <span class="SItr">@assert</span>(strSlice[<span class="SNum">0</span>] == '<span class="SFct">s</span>')
     <span class="SItr">@assert</span>(strSlice[<span class="SNum">1</span>] == '<span class="SFct">t</span>')
@@ -2731,7 +2733,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <div class="code-block"><span class="SCde">
 <span class="SFct">#test</span>
 {
-    <span class="SKwd">let</span> point                        = {x: <span class="SNum">10.0</span>, y: <span class="SNum">20.0</span>}
+    <span class="SKwd">let</span> point = {x: <span class="SNum">10.0</span>, y: <span class="SNum">20.0</span>}
     <span class="SKwd">let</span> {y: vertical, x: horizontal} = point
     <span class="SItr">@assert</span>(horizontal == <span class="SNum">10.0</span>)
     <span class="SItr">@assert</span>(vertical == <span class="SNum">20.0</span>)
@@ -3287,7 +3289,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 {
     <span class="SKwd">var</span> target: <span class="SCst">RefSlotDoc</span>
     target.count = <span class="SNum">3</span>
-    <span class="SKwd">var</span> box      = <span class="SCst">RefSlotBoxDoc</span>{slot: &amp;target}
+    <span class="SKwd">var</span> box = <span class="SCst">RefSlotBoxDoc</span>{slot: &amp;target}
 
     <span class="SCmt">// The binding keeps the reference, and the slot's '#null' with it.</span>
     <span class="SKwd">let</span> bound = box.<span class="SFct">at</span>()
@@ -4228,7 +4230,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> levels: [<span class="SCst">Channel</span>] <span class="STpe">s32</span> = [<span class="SNum">10</span>, <span class="SNum">20</span>, <span class="SNum">30</span>]
-    <span class="SKwd">var</span> sum                   = <span class="SNum">0</span>
+    <span class="SKwd">var</span> sum = <span class="SNum">0</span>
 
     <span class="SLgc">for</span> value, [channel] <span class="SLgc">in</span> levels
     {
@@ -7742,8 +7744,8 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <tbody>
 <tr><td>'Safety(what: SafetyWhat, value: bool)'</td><td>Enable or disable runtime guards</td></tr>
 <tr><td>'Sanity(what: SafetyWhat, value: bool)'</td><td>Enable or disable static proven-fault checks</td></tr>
-<tr><td>'Warning(what: string, level: WarningLevel)'</td><td>Enable, disable, or promote diagnostic IDs</td></tr>
-<tr><td>'BorrowSummary(returns, stores = 0, into = 0, frees = 0)'</td><td>Describe pointer escape and invalidation behavior</td></tr>
+<tr><td>'Warning(what: string, level: WarningLevel)'</td><td>Disable, restore, or promote named warnings</td></tr>
+<tr><td>'BorrowSummary(returns, stores = 0, into = 0, frees = 0, reallocates = 0)'</td><td>Describe pointer escape and invalidation behavior</td></tr>
 </tbody>
 </table>
 <p><span class="code-inline">SafetyWhat</span> is shared by runtime safety and static sanity, although not every flag has meaningful behavior in both systems. See the dedicated safety and sanity chapters before overriding defaults.</p>
@@ -8345,13 +8347,15 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h2 id="_013_000_error_management_and_safety_swg">Error Management and Safety</h2>
-<p>Swag separates three concerns:</p>
+<p>Swag separates four concerns:</p>
 <ul>
 <li>fallible functions propagate error values with <span class="code-inline">fail</span>, <span class="code-inline">try</span>, and <span class="code-inline">catch</span>;</li>
 <li>runtime safety guards detect invalid operations in generated code;</li>
-<li>static sanity checks reject faults the compiler can prove.</li>
+<li>static sanity checks reject faults the compiler can prove;</li>
+<li>the borrow rules reject programs where a view outlives what it views;</li>
+<li>warnings report code that compiles but is very likely a mistake.</li>
 </ul>
-<p>Build configuration selects defaults, and attributes can narrow them for a declaration or scope.</p>
+<p>Build configuration selects defaults for the first three, and attributes can narrow them for a declaration or scope. The borrow rules are different in kind: they are part of the language and no attribute or build configuration turns them off.</p>
 <h3 id="_013_001_error_management_swg">Error Management</h3>
 <h3 id="Error_Management">Error Management</h3>
 <p>Swag models errors as values. A function marked with <span class="code-inline">fail</span> can either return its normal result or exit early with 'fail errorValue'. The caller then chooses whether to propagate, catch, dismiss, or expect success.</p>
@@ -8803,96 +8807,17 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 }
 
 </span></div>
-<h3 id="Returning_the_Address_of_a_Local">Returning the Address of a Local</h3>
-<p>The frame dies with the return, so the address of a local is always dangling (<span class="code-inline">.Memory</span>).</p>
+<div class="blockquote blockquote-note">
+<div class="blockquote-title-block"><span class="blockquote-title">Note</span></div>
+<p>A view that borrows function-local storage — the address of a local, a slice of a local array, a <span class="code-inline">string</span> of a local <span class="code-inline">Core.String</span> — is governed by the <b>borrow rules</b>, which are part of the language rather than of this layer: no attribute and no build configuration turns them off. See the <span class="code-inline">Borrowing</span> section.</p>
+</div>
 <div class="code-block"><span class="SCde"><span class="SKwd">var</span> sanityGlobalValue: <span class="STpe">s32</span>
 
 <span class="SKwd">func</span> <span class="SFct">sanityGlobalAddress</span>()-&gt;*<span class="STpe">s32</span>
 {
     <span class="SCmt">// var v: s32</span>
-    <span class="SCmt">// return &amp;v  // Uncomment: error, returns the address of a local</span>
+    <span class="SCmt">// return &amp;v  // Uncomment: error, the view outlives 'v' (a language rule)</span>
     <span class="SLgc">return</span> &amp;sanityGlobalValue     <span class="SCmt">// A global outlives the call</span>
-}
-
-</span></div>
-<h3 id="Borrow_Escapes">Borrow Escapes</h3>
-<p>Views that borrow function-local storage — pointers, slices, strings, <span class="code-inline">any</span>, interfaces, closures capturing by address — must not outlive that storage (<span class="code-inline">.Lifecycle</span>). Returning them, storing them into a global, or writing them through a caller-visible pointer is a compile-time error. This includes views of an OWNER's heap payload (a <span class="code-inline">string</span> view of a local <span class="code-inline">Core.String</span>, for example): the payload is freed when the owner drops, and a local owner drops with its scope.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">var</span> sanityGlobalBuffer: [<span class="SNum">4</span>] <span class="STpe">u8</span>
-
-<span class="SFct">#test</span>
-{
-    <span class="SKwd">func</span> <span class="SFct">makeView</span>()-&gt;<span class="SKwd">const</span> [..] <span class="STpe">u8</span>
-    {
-        <span class="SCmt">// var buf: [4] u8</span>
-        <span class="SCmt">// return cast(const [..] u8) buf  // Uncomment: error, borrow escapes</span>
-        <span class="SLgc">return</span> <span class="SKwd">cast</span>(<span class="SKwd">const</span> [..] <span class="STpe">u8</span>) sanityGlobalBuffer     <span class="SCmt">// A global's storage is fine</span>
-    }
-
-    <span class="SItr">@assert</span>(<span class="SItr">@countof</span>(<span class="SFct">makeView</span>()) == <span class="SNum">4</span>)
-}
-
-</span></div>
-<p>The analysis follows borrows across local bindings — including a call result bound to a local and returned later ('let p = passthrough(&amp;v); return p') — control-flow joins, and even opaque calls: a function whose return value may borrow one of its parameters is summarized, and the call site is checked against what was really passed in. The summaries chain, so wrapping a borrowing function does not hide the borrow, and they cross module boundaries through the generated module API (the <span class="code-inline">Swag.BorrowSummary</span> attribute).</p>
-<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
-{
-    <span class="SKwd">func</span> <span class="SFct">passthrough</span>(p: *<span class="STpe">s32</span>)-&gt;*<span class="STpe">s32</span>
-    {
-        <span class="SLgc">return</span> p
-    }
-
-    <span class="SKwd">func</span> <span class="SFct">wrapper</span>(p: *<span class="STpe">s32</span>)-&gt;*<span class="STpe">s32</span>
-    {
-        <span class="SLgc">return</span> <span class="SFct">passthrough</span>(p)     <span class="SCmt">// Inherits the summary of 'passthrough'</span>
-    }
-
-    <span class="SKwd">func</span> <span class="SFct">caller</span>()-&gt;*<span class="STpe">s32</span>
-    {
-        <span class="SCmt">// var v: s32</span>
-        <span class="SCmt">// return wrapper(&amp;v)  // Uncomment: error, borrows a local through the chain</span>
-        <span class="SLgc">return</span> <span class="SFct">wrapper</span>(&amp;sanityGlobalValue)     <span class="SCmt">// Caller-owned data flows through</span>
-    }
-
-    <span class="SItr">@assert</span>(<span class="SFct">caller</span>() == &amp;sanityGlobalValue)
-}
-
-</span></div>
-<p>An aggregate can carry several independent borrows. Swag keeps every parameter origin in function summaries and tracks local borrows by field path. Assigning a sibling field therefore neither hides nor inherits another field's borrow. Constant array indices are tracked independently; a dynamic index conservatively overlaps every element. Opaque-call snapshots also survive control-flow joins and compose through arbitrarily deep local call chains.</p>
-<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
-{
-    <span class="SKwd">struct</span> <span class="SCst">Views</span>
-    {
-        local:  *<span class="STpe">s32</span>
-        global: *<span class="STpe">s32</span>
-    }
-
-    <span class="SKwd">var</span> local: <span class="STpe">s32</span>
-    <span class="SKwd">var</span> views: <span class="SCst">Views</span> = <span class="SKwd">undefined</span>
-    views.local  = &amp;local
-    views.global = &amp;sanityGlobalValue
-    <span class="SItr">@assert</span>(views.global == &amp;sanityGlobalValue)
-}
-
-</span></div>
-<h3 id="Stored_Arguments">Stored Arguments</h3>
-<p>A callee that stores its parameter into storage that outlives the call (a global) makes any borrowed argument escape, whatever happens to the call result. This summary is inferred like the return summary, chains through wrappers, and crosses module boundaries the same way. Storing one parameter into storage reachable from ANOTHER (<span class="code-inline">container.add(&amp;item)</span>) is summarized as a pair: the call site errors when the container argument is a global and the stored one borrows a local.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">var</span> sanityGlobalStash: <span class="SItr">#null</span> *<span class="STpe">s32</span>
-
-<span class="SKwd">func</span> <span class="SFct">sanityStash</span>(p: *<span class="STpe">s32</span>)
-{
-    sanityGlobalStash = p     <span class="SCmt">// Legal here: 'p' is caller-owned. Judged at call sites.</span>
-}
-
-<span class="SFct">#test</span>
-{
-    <span class="SKwd">func</span> <span class="SFct">caller</span>()
-    {
-        <span class="SCmt">// var v: s32</span>
-        <span class="SCmt">// sanityStash(&amp;v)  // Uncomment: error, the callee keeps the borrow</span>
-        <span class="SFct">sanityStash</span>(&amp;sanityGlobalValue)     <span class="SCmt">// A global outlives everything</span>
-    }
-
-    <span class="SFct">caller</span>()
-    <span class="SItr">@assert</span>(sanityGlobalStash == &amp;sanityGlobalValue)
 }
 
 </span></div>
@@ -8947,12 +8872,15 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="Opting_Out">Opting Out</h3>
-<p>Like safety, sanity can be disabled per scope with the attribute. Disabling <span class="code-inline">.Lifecycle</span> turns the whole borrow analysis off for that function.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Sanity(.Lifecycle, false), Swag.Sanity(.Memory, false)]</span>
+<p>Like safety, sanity can be disabled per scope with the attribute. Disabling <span class="code-inline">.Lifecycle</span> turns off the analyses above that prove a lifetime fault — the use-after-free, double-free and use-after-move proofs. It does <b>not</b> reach the borrow rules: those are language rules and stay on.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">var</span> sanityOptedOutValue: <span class="STpe">s32</span>
+
+<span class="SAtr">#[Swag.Sanity(.Lifecycle, false), Swag.Sanity(.Memory, false)]</span>
 <span class="SKwd">func</span> <span class="SFct">sanityOptedOut</span>()-&gt;*<span class="STpe">s32</span>
 {
-    <span class="SKwd">var</span> v: <span class="STpe">s32</span>
-    <span class="SLgc">return</span> &amp;v     <span class="SCmt">// Accepted: the analysis is off here</span>
+    <span class="SCmt">// A frame borrow would still be rejected here: what the attribute switches off is</span>
+    <span class="SCmt">// the proof machinery, not the rule.</span>
+    <span class="SLgc">return</span> &amp;sanityOptedOutValue
 }
 
 </span></div>
@@ -8965,6 +8893,201 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 }
 
 </span></div>
+<h3 id="_013_004_borrowing_swg">Borrowing</h3>
+<h3 id="Borrowing">Borrowing</h3>
+<p>A <b>view</b> is a value that reads storage it does not own: a pointer, a reference, a slice, a <span class="code-inline">string</span>, an <span class="code-inline">any</span>, an interface, a closure capturing by address. Swag has one rule about views, and the compiler enforces it on every program:</p>
+<div class="blockquote blockquote-default">
+<p>A view must not outlive the storage it views.</p>
+</div>
+<p>Nothing has to be written down for this. There are no lifetime parameters, no borrow sigils, no ownership annotations: the compiler infers what it needs from the code as written. What it cannot prove, it says nothing about.</p>
+<p>The rule is part of the language, not of the sanity tooling. <span class="code-inline">#[Swag.Sanity]</span> and <span class="code-inline">buildCfg.sanityGuards</span> select which <i>proofs of a runtime fault</i> the compiler attempts — use after free, use after move, a read of uninitialized storage — and none of them reaches the rule below. A guarantee a caller can switch off is not a guarantee, so whether a program is accepted never depends on an attribute.</p>
+<h3 id="Escaping_the_Frame">Escaping the Frame</h3>
+<p>Function-local storage dies with the frame, so a view of it must not leave: not through a return value, not into a global, not through a caller-visible pointer, not inside a closure that itself escapes.</p>
+<p>This includes views of what a value OWNS. A local <span class="code-inline">Core.String</span> frees its buffer when it drops, and a local drops at the end of its scope, so a <span class="code-inline">string</span> view of it dies with the owner even though the buffer lives on the heap.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">var</span> borrowGlobalBuffer: [<span class="SNum">4</span>] <span class="STpe">u8</span>
+<span class="SKwd">var</span> borrowGlobalValue:  <span class="STpe">s32</span>
+
+<span class="SFct">#test</span>
+{
+    <span class="SKwd">func</span> <span class="SFct">makeView</span>()-&gt;<span class="SKwd">const</span> [..] <span class="STpe">u8</span>
+    {
+        <span class="SCmt">// var buf: [4] u8</span>
+        <span class="SCmt">// return cast(const [..] u8) buf  // Uncomment: error, the view outlives 'buf'</span>
+        <span class="SLgc">return</span> <span class="SKwd">cast</span>(<span class="SKwd">const</span> [..] <span class="STpe">u8</span>) borrowGlobalBuffer     <span class="SCmt">// A global's storage is fine</span>
+    }
+
+    <span class="SItr">@assert</span>(<span class="SItr">@countof</span>(<span class="SFct">makeView</span>()) == <span class="SNum">4</span>)
+}
+
+</span></div>
+<p>A temporary is the same story with a shorter life: it dies at the end of the statement that built it, so binding a view of one is already too late. Name the owner first.</p>
+<h3 id="Across_Calls">Across Calls</h3>
+<p>The rule is not confined to one function body. Each function carries a summary of what it does with the storage its parameters view: whether the result borrows a parameter, whether the callee keeps one, whether it frees one, whether it can move what a parameter owns. Summaries are inferred, never written, they chain through wrappers, and they cross module boundaries in the generated module API (the <span class="code-inline">Swag.BorrowSummary</span> attribute).</p>
+<p>The call site is then judged against what was really passed in. Wrapping a borrowing function does not hide the borrow.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">func</span> <span class="SFct">passthrough</span>(p: *<span class="STpe">s32</span>)-&gt;*<span class="STpe">s32</span>
+    {
+        <span class="SLgc">return</span> p
+    }
+
+    <span class="SKwd">func</span> <span class="SFct">wrapper</span>(p: *<span class="STpe">s32</span>)-&gt;*<span class="STpe">s32</span>
+    {
+        <span class="SLgc">return</span> <span class="SFct">passthrough</span>(p)     <span class="SCmt">// Inherits the summary of 'passthrough'</span>
+    }
+
+    <span class="SKwd">func</span> <span class="SFct">caller</span>()-&gt;*<span class="STpe">s32</span>
+    {
+        <span class="SCmt">// var v: s32</span>
+        <span class="SCmt">// return wrapper(&amp;v)  // Uncomment: error, borrows a local through the chain</span>
+        <span class="SLgc">return</span> <span class="SFct">wrapper</span>(&amp;borrowGlobalValue)     <span class="SCmt">// Caller-owned data flows through</span>
+    }
+
+    <span class="SItr">@assert</span>(<span class="SFct">caller</span>() == &amp;borrowGlobalValue)
+}
+
+</span></div>
+<p>An aggregate can carry several independent borrows. Every parameter origin is kept in the summaries, and local borrows are tracked by field path, so assigning a sibling field neither hides nor inherits another field's borrow. Constant array indices are tracked independently; a dynamic index conservatively overlaps every element.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">struct</span> <span class="SCst">Views</span>
+    {
+        local:  *<span class="STpe">s32</span>
+        global: *<span class="STpe">s32</span>
+    }
+
+    <span class="SKwd">var</span> local: <span class="STpe">s32</span>
+    <span class="SKwd">var</span> views: <span class="SCst">Views</span> = <span class="SKwd">undefined</span>
+    views.local  = &amp;local
+    views.global = &amp;borrowGlobalValue
+    <span class="SItr">@assert</span>(views.global == &amp;borrowGlobalValue)
+}
+
+</span></div>
+<h3 id="Arguments_a_Callee_Keeps">Arguments a Callee Keeps</h3>
+<p>A callee that stores its parameter into storage outliving the call makes any borrowed argument escape, whatever happens to the call result. Storing one parameter into storage reachable from ANOTHER — <span class="code-inline">container.add(&amp;item)</span> — is summarized as a pair, and the call site errors whenever the container provably outlives what was stored in it: a global container, or a local container declared in a shallower scope than the borrowed source.</p>
+<p>Reaching into a container counts even when it goes through the container's own heap buffer. A '[*] T' held by a value with an owning lifecycle addresses memory that value frees when it dies, so a store through it — directly, through a local, or through an accessor method — is a store into the container. That is what makes filling a collection of views from a per-iteration owner an error:</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">var</span> set: <span class="SFct">HashSet</span>'(<span class="STpe">string</span>)
+<span class="SLgc">for</span> line <span class="SLgc">in</span> lines
+{
+    <span class="SKwd">var</span> key: <span class="SCst">String</span> = <span class="SFct">build</span>(line)
+    set.<span class="SFct">add</span>(key)     <span class="SCmt">// Error: 'set' outlives 'key', and it keeps a view of it</span>
+}
+</span></div>
+<p>A plain <span class="code-inline">*T</span> field is deliberately not treated this way: a single-object pointer inside an owner is just as often a back-reference to something it does not own.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">var</span> borrowGlobalStash: <span class="SItr">#null</span> *<span class="STpe">s32</span>
+
+<span class="SKwd">func</span> <span class="SFct">borrowStash</span>(p: *<span class="STpe">s32</span>)
+{
+    borrowGlobalStash = p     <span class="SCmt">// Legal here: 'p' is caller-owned. Judged at call sites.</span>
+}
+
+<span class="SFct">#test</span>
+{
+    <span class="SKwd">func</span> <span class="SFct">caller</span>()
+    {
+        <span class="SCmt">// var v: s32</span>
+        <span class="SCmt">// borrowStash(&amp;v)  // Uncomment: error, the callee keeps the borrow</span>
+        <span class="SFct">borrowStash</span>(&amp;borrowGlobalValue)     <span class="SCmt">// A global outlives everything</span>
+    }
+
+    <span class="SFct">caller</span>()
+    <span class="SItr">@assert</span>(borrowGlobalStash == &amp;borrowGlobalValue)
+}
+
+</span></div>
+<h3 id="Storage_That_Moves_Under_a_View">Storage That Moves Under a View</h3>
+<p>Outliving the storage is not only about scopes. A container that grows, shrinks or is released moves the very bytes a view was reading, and the view is stale from that moment even though its owner is still perfectly alive.</p>
+<p>The compiler knows which methods can do this: a method that hands what its receiver owns to the allocator — directly, or through any chain of calls — is summarized as one that can move the payload. A method that only reads or assigns fields is not, and a <span class="code-inline">const</span> method cannot be. Taking the view again after the change is the fix.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">var</span> text: <span class="SCst">String</span>
+text.<span class="SFct">append</span>(<span class="SStr">"hello"</span>)
+
+<span class="SKwd">let</span> view = text.<span class="SFct">toString</span>()     <span class="SCmt">// A view into 'text's buffer</span>
+text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)          <span class="SCmt">// Error: 'append' can move that buffer...</span>
+<span class="SCst">Console</span>.<span class="SFct">print</span>(view)            <span class="SCmt">// ...and this reads the old one</span>
+</span></div>
+<p>Two things are deliberately not affected. A view of the value ITSELF — a pointer to it, or an interface built from it — keeps addressing the same slot however much the payload is reallocated: it is the handle the change is made through, not something the change invalidates. And a value that merely <i>reaches</i> the container is not a view into it: a factory method handing back a fresh object that holds a back-reference to its receiver survives any reallocation of what that receiver owns. Only a result read OUT of the payload goes stale, and the summaries record that as a separate fact.</p>
+<h3 id="Iterating_and_Mutating">Iterating and Mutating</h3>
+<p>The same rule inside a loop is what other languages call iterator invalidation. A loop reads a snapshot of the collection, so adding to it, removing from it or clearing it while it is being iterated is an error.</p>
+<p>Iteration is tracked at the storage level, so mutating a sibling field of a shared owner is fine. Mutating and then leaving the loop right away — the find-then-remove-then-return shape — is fine too: the snapshot is never read again.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">var</span> values: [<span class="SNum">4</span>] <span class="STpe">s32</span>
+    <span class="SKwd">var</span> total:  <span class="STpe">s32</span>
+    <span class="SLgc">for</span> v <span class="SLgc">in</span> values <span class="SLgc">do</span>
+        total += v
+    <span class="SItr">@assert</span>(total == <span class="SNum">0</span>)
+}
+
+</span></div>
+<h3 id="What_the_Rule_Does_Not_Do">What the Rule Does Not Do</h3>
+<p>It never guesses. Where the compiler cannot see the whole story — a pointer whose provenance is opaque, a conditional release the flow state cannot follow — it stays silent rather than reject a correct program. A missed case is a bug in the analysis; a rejected correct program would be a bug in the language.</p>
+<p>There is no opt-out, so there is also nothing to reach for when a program is rejected: the answer is always to make the storage really outlive the view. Own the data instead of viewing it, move the storage to where it lives long enough, or take the view again after the change.</p>
+<h3 id="_013_005_warnings_swg">Warnings</h3>
+<h3 id="Warnings">Warnings</h3>
+<p>A warning reports code that compiles but is very likely a mistake. Unlike an error it does not stop the build, so it needs a way to be silenced where it is wrong and a way to be promoted where it must not be ignored.</p>
+<p>Every warning is named by its diagnostic identifier — the same string <span class="code-inline">--diagnostic-id</span> prints next to it, for instance <span class="code-inline">sema_warn_unreachable_code</span>. The name <span class="code-inline">"all"</span> stands for every warning wherever a warning list is accepted.</p>
+<p>Three layers decide how a warning is reported. From the outermost in:</p>
+<table class="table-markdown">
+<thead>
+<tr><th>Layer</th><th>Where</th></tr>
+</thead>
+<tbody>
+<tr><td>Command line</td><td><span class="code-inline">--warn-as-error</span>, <span class="code-inline">--warn-as-warning</span>, <span class="code-inline">--warn-disable</span></td></tr>
+<tr><td>Build configuration</td><td><span class="code-inline">cfg.warnings.asErrors</span>, <span class="code-inline">cfg.warnings.asWarnings</span>, <span class="code-inline">cfg.warnings.disabled</span></td></tr>
+<tr><td>Source</td><td><span class="code-inline">#[Swag.Warning]</span> on a declaration, a block, or a file</td></tr>
+</tbody>
+</table>
+<p>A decision that names a warning outranks a decision that says <span class="code-inline">"all"</span>, and at equal reach the innermost layer wins. So 'swc build --warn-as-error all' turns every warning into an error for that build, while a site that already declared '#[Swag.Warning("sema_warn_unreachable_code", .Disable)]' stays silent: naming a warning is a deliberate act, and it is not overridden from further out.</p>
+<h3 id="Silencing_a_Warning_at_One_Site">Silencing a Warning at One Site</h3>
+<p><span class="code-inline">#[Swag.Warning]</span> takes a warning name and a <span class="code-inline">Swag.WarningLevel</span>: <span class="code-inline">.Disable</span> does not report it at all, <span class="code-inline">.Warning</span> reports it as a warning, and <span class="code-inline">.Error</span> reports it as an error.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Warning("sema_warn_unreachable_code", .Disable)]</span>
+<span class="SKwd">func</span> <span class="SFct">firstDraft</span>()-&gt;<span class="STpe">s32</span>
+{
+    <span class="SLgc">return</span> <span class="SNum">1</span>
+    <span class="SLgc">return</span> <span class="SNum">2</span>     <span class="SCmt">// Deliberate: the second branch of the computation, still to be written</span>
+}
+
+</span></div>
+<p>The attribute reaches everything it is written on. On a declaration it covers that declaration, on a block it covers the statements inside, and with <span class="code-inline">#global</span> it covers the whole file.</p>
+<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SAtr">#[Swag.Warning("all", .Error)]</span>
+</span></div>
+<p>Several decisions compose, so a file can go silent except for the one warning it still wants to hear about.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Warning("all", .Disable), Swag.Warning("sema_warn_unreachable_code", .Error)]</span>
+<span class="SKwd">func</span> <span class="SFct">everythingOffExceptOne</span>()-&gt;<span class="STpe">s32</span>
+{
+    <span class="SLgc">return</span> <span class="SNum">1</span>
+}
+
+</span></div>
+<h3 id="Unreachable_Code">Unreachable Code</h3>
+<p><span class="code-inline">sema_warn_unreachable_code</span> reports a statement that follows a jump in the same block: <span class="code-inline">return</span>, <span class="code-inline">break</span>, <span class="code-inline">continue</span>, <span class="code-inline">fallthrough</span>, or <span class="code-inline">fail</span>. The statement compiles, but nothing can ever run it.</p>
+<p>Only those five count. <span class="code-inline">@panic</span> and <span class="code-inline">unreachable</span> announce that control never reaches them, but neither is guaranteed to leave the block: <span class="code-inline">@panic</span> returns to its caller whenever a panic hook is installed, which is what the <span class="code-inline">#test</span> runner does so one failing test does not end the run, and <span class="code-inline">unreachable</span> lowers to nothing once '#[Swag.Safety(.Unreachable, false)]' turns its guard off. The code after either one is not reported.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">size</span>()-&gt;<span class="STpe">s32</span>
+{
+    <span class="SLgc">return</span> <span class="SNum">1</span>
+    <span class="SKwd">let</span> unused = <span class="SNum">2</span>     <span class="SCmt">// warning: unreachable code</span>
+    <span class="SLgc">return</span> unused
+}
+</span></div>
+<p>Only the first such statement in a block is reported: everything after it is unreachable for the same reason.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SItr">@assert</span>(<span class="SFct">firstDraft</span>() == <span class="SNum">1</span>)
+    <span class="SItr">@assert</span>(<span class="SFct">everythingOffExceptOne</span>() == <span class="SNum">1</span>)
+}
+
+</span></div>
+<h3 id="Setting_the_Policy_for_a_Whole_Module">Setting the Policy for a Whole Module</h3>
+<p>Each field of <span class="code-inline">cfg.warnings</span> takes warning names separated with <span class="code-inline">|</span>.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#run</span>
+{
+    <span class="SKwd">let</span> cfg = <span class="SItr">@compiler</span>.<span class="SFct">getBuildCfg</span>()!
+    cfg.warnings.asErrors = <span class="SStr">"all"</span>
+    cfg.warnings.disabled = <span class="SStr">"sema_warn_unreachable_code"</span>
+}
+</span></div>
+<p>That module reports every warning as an error, except unreachable code, which it does not report at all.</p>
 <h2 id="_014_000_compile-time_evaluation_swg">Compile-time Evaluation</h2>
 <h3 id="Compile-Time_Execution">Compile-Time Execution</h3>
 <p>Swag reuses the language for compile-time work. Constant expressions evaluate pure computations needed by types and declarations; <span class="code-inline">#run</span> executes arbitrary compile-time code; directives select or validate source; <span class="code-inline">#message</span> observes compiler events.</p>
@@ -8984,7 +9107,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
     <span class="SFct">constexprSquare</span>(<span class="SNum">1</span>),
     <span class="SFct">constexprSquare</span>(<span class="SNum">2</span>),
     <span class="SFct">constexprSquare</span>(<span class="SNum">3</span>),
-    <span class="SFct">constexprSquare</span>(<span class="SNum">4</span>),]
+    <span class="SFct">constexprSquare</span>(<span class="SNum">4</span>)]
 
 <span class="SCmp">#assert</span>(<span class="SCst">ConstexprSquares</span>[<span class="SNum">0</span>] == <span class="SNum">1</span>)
 <span class="SCmp">#assert</span>(<span class="SCst">ConstexprSquares</span>[<span class="SNum">1</span>] == <span class="SNum">4</span>)
@@ -9142,7 +9265,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <p>Example: initializing a static array at compile time.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">const</span> <span class="SCst">N</span>                   = <span class="SNum">4</span>
+    <span class="SKwd">const</span> <span class="SCst">N</span> = <span class="SNum">4</span>
     <span class="SKwd">const</span> <span class="SCst">PowerOfTwo</span>: [<span class="SCst">N</span>] <span class="STpe">s32</span> = <span class="SFct">#run</span>
     {
         <span class="SKwd">var</span> arr: [<span class="SCst">N</span>] <span class="STpe">s32</span>
@@ -9420,10 +9543,9 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
     <span class="SKwd">var</span> a = <span class="SNum">0</span>
 
     <span class="SCmt">// Inline code argument</span>
-    <span class="SFct">doItTwice</span>(<span class="SNum">4</span>,
-              <span class="SItr">#code</span> {
-                  a += value
-              })
+    <span class="SFct">doItTwice</span>(<span class="SNum">4</span>, <span class="SItr">#code</span> {
+        a += value
+    })
 
     <span class="SCmt">// Separate trailing block</span>
     <span class="SFct">doItTwice</span>(<span class="SNum">2</span>)
@@ -9623,10 +9745,9 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
     <span class="SItr">@assert</span>(total == <span class="SNum">60</span>)
 
     <span class="SCmt">// Inline form: the code literal is a normal argument.</span>
-    <span class="SFct">call</span>(<span class="SNum">10</span>,
-         <span class="SItr">#code</span>(a, b) {
-             total = a + b
-         })
+    <span class="SFct">call</span>(<span class="SNum">10</span>, <span class="SItr">#code</span>(a, b) {
+        total = a + b
+    })
     <span class="SItr">@assert</span>(total == <span class="SNum">30</span>)
 
     <span class="SCmt">// Partial binder: only the first parameter is renamed, like 'for'.</span>
@@ -10015,5 +10136,911 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 </footer>
 </section>
 </main>
+<script>
+(function (rows) {
+    "use strict";
+
+    var nav = document.querySelector(".site-nav");
+    if (!nav || !rows.length)
+        return;
+
+    var KINDS = {
+        n: "namespace", s: "struct", i: "interface", e: "enum",
+        c: "const", a: "alias", t: "attr", f: "func", h: "section"
+    };
+    var LIMIT = 30;
+
+    // A row is "kind|name|anchor|summary". The summary is the remainder of the row, so it
+    // is the only field allowed to hold the separator.
+    var items = [];
+    for (var r = 0; r < rows.length; r++) {
+        var row = rows[r];
+        var kindEnd = row.indexOf("|");
+        var nameEnd = row.indexOf("|", kindEnd + 1);
+        var anchorEnd = row.indexOf("|", nameEnd + 1);
+        var name = row.slice(kindEnd + 1, nameEnd);
+        items.push({
+            kind: KINDS[row.slice(0, kindEnd)] || "func",
+            name: name,
+            lower: name.toLowerCase(),
+            anchor: row.slice(nameEnd + 1, anchorEnd),
+            detail: row.slice(anchorEnd + 1)
+        });
+    }
+
+    // Where a name really starts: after a qualifier, and at every word boundary inside it.
+    function isBoundary(name, at) {
+        if (!at)
+            return true;
+        var previous = name.charAt(at - 1);
+        if (previous === "." || previous === "_")
+            return true;
+        return previous === previous.toLowerCase() && name.charAt(at) !== name.charAt(at).toLowerCase();
+    }
+
+    // An exact name wins, then one starting on a boundary, then any substring, then the
+    // characters merely in order. A shorter name breaks a tie, so "add" stays above
+    // "addRange" for the same query.
+    function rank(item, query) {
+        var lower = item.lower;
+        var positions = [];
+        var value;
+        var at = lower.indexOf(query);
+        if (at >= 0) {
+            value = lower.length === query.length ? 1000 : (isBoundary(item.name, at) ? 800 : 600);
+            value -= at * 0.5;
+            for (var c = 0; c < query.length; c++)
+                positions.push(at + c);
+        } else {
+            var typed = 0;
+            var run = 0;
+            value = 300;
+            for (var i = 0; i < lower.length && typed < query.length; i++) {
+                if (lower.charAt(i) !== query.charAt(typed)) {
+                    run = 0;
+                    continue;
+                }
+                run++;
+                value += run + (isBoundary(item.name, i) ? 6 : 0);
+                positions.push(i);
+                typed++;
+            }
+            if (typed < query.length)
+                return null;
+            value -= (positions[positions.length - 1] - positions[0]) * 0.4;
+        }
+        return { value: value - lower.length * 0.2, positions: positions, item: item };
+    }
+
+    function search(query) {
+        var found = [];
+        for (var i = 0; i < items.length; i++) {
+            var hit = rank(items[i], query);
+            if (hit)
+                found.push(hit);
+        }
+        found.sort(function (left, right) {
+            if (left.value !== right.value)
+                return right.value - left.value;
+            return left.item.name < right.item.name ? -1 : 1;
+        });
+        return found;
+    }
+
+    function escape(text) {
+        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function highlight(name, positions) {
+        var html = "";
+        var done = 0;
+        var at = 0;
+        while (at < positions.length) {
+            var start = positions[at];
+            var end = start + 1;
+            while (at + 1 < positions.length && positions[at + 1] === end) {
+                end++;
+                at++;
+            }
+            html += escape(name.slice(done, start)) + "<mark>" + escape(name.slice(start, end)) + "</mark>";
+            done = end;
+            at++;
+        }
+        return html + escape(name.slice(done));
+    }
+
+    var form = document.createElement("form");
+    form.className = "site-search";
+    form.setAttribute("role", "search");
+
+    var input = document.createElement("input");
+    input.type = "search";
+    input.className = "site-search-input";
+    input.placeholder = "Search this page";
+    input.setAttribute("aria-label", "Search this page");
+    input.setAttribute("aria-controls", "search-panel");
+    input.setAttribute("aria-expanded", "false");
+    input.setAttribute("autocomplete", "off");
+    input.setAttribute("spellcheck", "false");
+
+    var shortcut = document.createElement("kbd");
+    shortcut.className = "site-search-shortcut";
+    shortcut.textContent = "/";
+
+    var panel = document.createElement("div");
+    panel.id = "search-panel";
+    panel.className = "search-panel";
+    panel.setAttribute("role", "listbox");
+    panel.hidden = true;
+
+    form.appendChild(input);
+    form.appendChild(shortcut);
+    form.appendChild(panel);
+    nav.insertBefore(form, nav.querySelector(".site-links"));
+
+    var hits = [];
+    var current = -1;
+
+    function close() {
+        panel.hidden = true;
+        input.setAttribute("aria-expanded", "false");
+    }
+
+    function select(at) {
+        var rendered = panel.querySelectorAll(".search-hit");
+        for (var i = 0; i < rendered.length; i++) {
+            var isCurrent = i === at;
+            rendered[i].classList.toggle("is-current", isCurrent);
+            rendered[i].setAttribute("aria-selected", isCurrent ? "true" : "false");
+            if (isCurrent)
+                rendered[i].scrollIntoView({ block: "nearest" });
+        }
+        current = at;
+    }
+
+    function render() {
+        var query = input.value.trim().toLowerCase();
+        if (!query) {
+            hits = [];
+            close();
+            return;
+        }
+
+        var found = search(query);
+        hits = found.slice(0, LIMIT);
+
+        var html = "";
+        for (var i = 0; i < hits.length; i++) {
+            var item = hits[i].item;
+            html += '<a class="search-hit search-hit-' + item.kind + '" role="option" href="#' + item.anchor + '">' +
+                '<span class="kind-chip kind-' + item.kind + '">' + item.kind + "</span>" +
+                '<span class="search-hit-name">' + highlight(item.name, hits[i].positions) + "</span>" +
+                (item.detail ? '<span class="search-hit-detail">' + escape(item.detail) + "</span>" : "");
+            html += "</a>";
+        }
+        if (!hits.length)
+            html = '<p class="search-none">No match on this page.</p>';
+        else if (found.length > hits.length)
+            html += '<p class="search-more">' + hits.length + " of " + found.length + " matches</p>";
+
+        panel.innerHTML = html;
+        panel.hidden = false;
+        input.setAttribute("aria-expanded", "true");
+        select(hits.length ? 0 : -1);
+    }
+
+    function open(at) {
+        if (at < 0 || at >= hits.length)
+            return;
+        window.location.hash = "#" + hits[at].item.anchor;
+        close();
+    }
+
+    input.addEventListener("input", render);
+    input.addEventListener("focus", render);
+
+    input.addEventListener("keydown", function (event) {
+        if (event.key === "ArrowDown")
+            select(Math.min(current + 1, hits.length - 1));
+        else if (event.key === "ArrowUp")
+            select(Math.max(current - 1, 0));
+        else if (event.key === "Enter")
+            open(current);
+        else if (event.key === "Escape") {
+            input.value = "";
+            close();
+            input.blur();
+        } else
+            return;
+        event.preventDefault();
+    });
+
+    form.addEventListener("submit", function (event) {
+        event.preventDefault();
+        open(current);
+    });
+
+    panel.addEventListener("click", function () {
+        close();
+    });
+
+    document.addEventListener("click", function (event) {
+        if (!form.contains(event.target))
+            close();
+    });
+
+    // The box is reachable without the mouse from anywhere on the page, and the browser's
+    // own find stays available: "/" is only taken when nothing else is being typed into.
+    document.addEventListener("keydown", function (event) {
+        if (event.defaultPrevented || event.altKey)
+            return;
+        var active = document.activeElement;
+        var typing = active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.isContentEditable);
+        var takes = (event.key === "/" && !typing) || ((event.ctrlKey || event.metaKey) && event.key === "k");
+        if (!takes)
+            return;
+        event.preventDefault();
+        input.focus();
+        input.select();
+    });
+})
+([
+"h|Introduction|_001_000_introduction_swg|",
+"h|Using This Reference|_001_001_using_this_reference_swg|",
+"h|What This Reference Covers|What_This_Reference_Covers|",
+"h|Running the Examples|Running_the_Examples|",
+"h|How to Read the Examples|How_to_Read_the_Examples|",
+"h|Accuracy and Scope|Accuracy_and_Scope|",
+"h|Language Tour|_001_002_language_tour_swg|",
+"h|Values and Mutability|Values_and_Mutability|",
+"h|Data with Behavior|Data_with_Behavior|",
+"h|Collections and Iteration|Collections_and_Iteration|",
+"h|Branching|Branching|",
+"h|Functions and Generic Code|Functions_and_Generic_Code|",
+"h|Recoverable Errors|Recoverable_Errors|",
+"h|Compile-Time Programming|Compile-Time_Programming|",
+"h|Hello World and Beyond|_001_003_hello_world_and_beyond_swg|",
+"h|The Smallest Executable|The_Smallest_Executable|",
+"h|Compute Part of the Message at Compile Time|Compute_Part_of_the_Message_at_Compile_Time|",
+"h|Reusable Compile-Time Functions|Reusable_Compile-Time_Functions|",
+"h|Generate a Declaration|Generate_a_Declaration|",
+"h|Swc Command Line|_001_004_swc_command_line_swg|",
+"h|The swc Command Line|The__swc__Command_Line|",
+"h|Creating a Starter|Creating_a_Starter|",
+"h|Selecting Input|Selecting_Input|",
+"h|Build Configurations|Build_Configurations|",
+"h|Common Workflows|Common_Workflows|",
+"h|Documentation Generation|Documentation_Generation|",
+"h|Test Controls|Test_Controls|",
+"h|Modules and Source Code|_002_000_modules_and_source_code_swg|",
+"h|Workspaces Modules and Dependencies|_002_001_workspaces_modules_and_dependencies_swg|",
+"h|Workspaces and Modules|Workspaces_and_Modules|",
+"h|The module.swg File|The__module_swg__File|",
+"h|Importing Another Module|Importing_Another_Module|",
+"h|Source Files|_002_002_source_files_swg|",
+"h|Source Files|Source_Files|",
+"h|Script Files|Script_Files|",
+"h|Global Declaration Order|_002_003_global_declaration_order_swg|",
+"h|Top-Level Declaration Order|Top-Level_Declaration_Order|",
+"h|Comments|_002_004_comments_swg|",
+"h|Comments|Comments|",
+"h|Nested Comments|Nested_Comments|",
+"h|Semicolons|_002_005_semicolons_swg|",
+"h|Statement Termination in Swag|Statement_Termination_in_Swag|",
+"h|Bodyless Declarations|Bodyless_Declarations|",
+"h|Semicolons|Semicolons|",
+"h|Identifiers|_002_006_identifiers_swg|",
+"h|Naming|Naming|",
+"h|Compiler Instructions|Compiler_Instructions|",
+"h|Intrinsics|Intrinsics|",
+"h|Keywords|_002_007_keywords_swg|",
+"h|Language Keyword Index|Language_Keyword_Index|",
+"h|Declarations and Organization|Declarations_and_Organization|",
+"h|Control Flow and Expressions|Control_Flow_and_Expressions|",
+"h|Values, Errors, and Conversion|Values__Errors__and_Conversion|",
+"h|Contextual Source and Module Names|Contextual_Source_and_Module_Names|",
+"h|Built-In Types|Built-In_Types|",
+"h|Compiler Directives|Compiler_Directives|",
+"h|Compile-Time Introspection|Compile-Time_Introspection|",
+"h|Compiler Context Values|Compiler_Context_Values|",
+"h|Modifiers|Modifiers|",
+"h|Runtime and Compiler Intrinsics|Runtime_and_Compiler_Intrinsics|",
+"h|Sigils|_002_008_sigils_swg|",
+"h|Compiler Names: # and @|Compiler_Names______and____|",
+"h|Modifier or Attribute|Modifier_or_Attribute|",
+"h|Directives and Static Queries|Directives_and_Static_Queries|",
+"h|Intrinsic Values and Operations|Intrinsic_Values_and_Operations|",
+"h|Related Names with Different Semantics|Related_Names_with_Different_Semantics|",
+"h|The Four Modifier Families|The_Four_Modifier_Families|",
+"h|Type Qualifiers|Type_Qualifiers|",
+"h|Passing Modes|Passing_Modes|",
+"h|Operation Modifiers|Operation_Modifiers|",
+"h|Statement Selectors|Statement_Selectors|",
+"h|Where Modifiers Go|Where_Modifiers_Go|",
+"h|Choosing the Narrowest Scope|Choosing_the_Narrowest_Scope|",
+"h|Contextual Keywords Are Different|Contextual_Keywords_Are_Different|",
+"h|Visibility and Exports|_002_009_visibility_and_exports_swg|",
+"h|Visibility|Visibility|",
+"h|Applying Visibility to a Group or File|Applying_Visibility_to_a_Group_or_File|",
+"h|Member Access|Member_Access|",
+"h|Exporting a File's API|Exporting_a_File_s_API|",
+"h|Module Lifecycle|_002_010_module_lifecycle_swg|",
+"h|Module Entry Points and Hooks|Module_Entry_Points_and_Hooks|",
+"h|Initialization|Initialization|",
+"h|Executable Entry|Executable_Entry|",
+"h|Shutdown|Shutdown|",
+"h|Fundamentals|_003_000_fundamentals_swg|",
+"h|Basic Types|_003_001_basic_types_swg|",
+"h|Signed Integers|Signed_Integers|",
+"h|Unsigned Integers|Unsigned_Integers|",
+"h|Floating-Point Types|Floating-Point_Types|",
+"h|Boolean Type|Boolean_Type|",
+"h|String Type|String_Type|",
+"h|Rune Type|Rune_Type|",
+"h|Type Reflection|Type_Reflection|",
+"h|Type Creation with #decltype|Type_Creation_with___decltype_|",
+"h|Number Literals|_003_002_number_literals_swg|",
+"h|Number Representations|Number_Representations|",
+"h|Digit Separators|Digit_Separators|",
+"h|Default Integer Types|Default_Integer_Types|",
+"h|Booleans|Booleans|",
+"h|Floating-Point Values|Floating-Point_Values|",
+"h|Default Floating-Point Type|Default_Floating-Point_Type|",
+"h|Literal Suffix|Literal_Suffix|",
+"h|String|_003_003_string_swg|",
+"h|UTF-8 Encoding|UTF-8_Encoding|",
+"h|String Comparison|String_Comparison|",
+"h|The rune Type|The__rune__Type|",
+"h|String Indexing|String_Indexing|",
+"h|String Concatenation|String_Concatenation|",
+"h|Null Strings|Null_Strings|",
+"h|Character Literals|Character_Literals|",
+"h|Default Type of Character Literals|Default_Type_of_Character_Literals|",
+"h|Specifying Character Literal Types|Specifying_Character_Literal_Types|",
+"h|Escape Sequences|Escape_Sequences|",
+"h|ASCII and Unicode Escape Sequences|ASCII_and_Unicode_Escape_Sequences|",
+"h|Raw Strings|Raw_Strings|",
+"h|Multiline Raw Strings|Multiline_Raw_Strings|",
+"h|Multiline Strings|Multiline_Strings|",
+"h|The #stringof and #nameof Intrinsics|The___stringof__and___nameof__Intrinsics|",
+"h|Constants|_003_004_constants_swg|",
+"h|Constants with const|Constants_with__const_|",
+"h|Constants with Complex Types|Constants_with_Complex_Types|",
+"h|Static Arrays|Static_Arrays|",
+"h|Multidimensional Arrays|Multidimensional_Arrays|",
+"h|Key Difference Between let and const|Key_Difference_Between__let__and__const_|",
+"h|Variables|_003_005_variables_swg|",
+"h|Variable Declaration|Variable_Declaration|",
+"h|Multiple Variable Declarations|Multiple_Variable_Declarations|",
+"h|Default Initialization|Default_Initialization|",
+"h|Uninitialized Variables|Uninitialized_Variables|",
+"h|Type Inference|Type_Inference|",
+"h|Special Variables|Special_Variables|",
+"h|Thread-Local Storage|Thread-Local_Storage|",
+"h|Global Variables|Global_Variables|",
+"h|Compile-Time Variables|Compile-Time_Variables|",
+"h|Operators|_003_006_operators_swg|",
+"h|Arithmetic Operators|Arithmetic_Operators|",
+"h|Bitwise Operators|Bitwise_Operators|",
+"h|Assignment Operators|Assignment_Operators|",
+"h|Unary Operators|Unary_Operators|",
+"h|Comparison Operators|Comparison_Operators|",
+"h|Logical Operators|Logical_Operators|",
+"h|Ternary Operator|Ternary_Operator|",
+"h|Spaceship Operator|Spaceship_Operator|",
+"h|Null-Coalescing Operator|Null-Coalescing_Operator|",
+"h|Type Promotion|Type_Promotion|",
+"h|Operator Precedence|Operator_Precedence|",
+"h|Cast|_003_007_cast_swg|",
+"h|Explicit Cast with cast|Explicit_Cast_with__cast_|",
+"h|Automatic Cast with cast()|Automatic_Cast_with__cast___|",
+"h|Bit Cast|Bit_Cast|",
+"h|Implicit Casts|Implicit_Casts|",
+"h|Implicit Cast Rules|Implicit_Cast_Rules|",
+"h|Disallowed Implicit Casts|Disallowed_Implicit_Casts|",
+"h|Alias|_003_008_alias_swg|",
+"h|Type Alias|Type_Alias|",
+"h|Basic Type Alias|Basic_Type_Alias|",
+"h|Aliasing Primitive Types|Aliasing_Primitive_Types|",
+"h|Strict Type Alias|Strict_Type_Alias|",
+"h|Name Alias|Name_Alias|",
+"h|Function Name Alias|Function_Name_Alias|",
+"h|Variable and Namespace Alias|Variable_and_Namespace_Alias|",
+"h|Data Structures|_004_000_data_structures_swg|",
+"h|Array|_004_001_array_swg|",
+"h|Static Arrays in Swag|Static_Arrays_in_Swag|",
+"h|Declaring a Static Array|Declaring_a_Static_Array|",
+"h|Array Size and Memory|Array_Size_and_Memory|",
+"h|Obtaining the Address of an Array|Obtaining_the_Address_of_an_Array|",
+"h|Array Literals|Array_Literals|",
+"h|Type Deduction in Arrays|Type_Deduction_in_Arrays|",
+"h|Default Initialization|Default_Initialization|",
+"h|Preventing Default Initialization|Preventing_Default_Initialization|",
+"h|Constant Arrays|Constant_Arrays|",
+"h|Type Inference from Array Literals|Type_Inference_from_Array_Literals|",
+"h|Multi-Dimensional Arrays|Multi-Dimensional_Arrays|",
+"h|C/C++ Style Nested Arrays|C_C___Style_Nested_Arrays|",
+"h|Array Size Deduction|Array_Size_Deduction|",
+"h|Single Value Initialization|Single_Value_Initialization|",
+"h|Slice|_004_002_slice_swg|",
+"h|Slices in Swag|Slices_in_Swag|",
+"h|Initializing Slices|Initializing_Slices|",
+"h|Accessing Slice Data|Accessing_Slice_Data|",
+"h|Creating Slices with @mkslice|Creating_Slices_with___mkslice_|",
+"h|Slicing Strings|Slicing_Strings|",
+"h|Slicing with a Range|Slicing_with_a_Range|",
+"h|Inclusive and Exclusive Slicing|Inclusive_and_Exclusive_Slicing|",
+"h|Empty Slices|Empty_Slices|",
+"h|Slicing to the End|Slicing_to_the_End|",
+"h|Slicing from the Start|Slicing_from_the_Start|",
+"h|Slicing Arrays|Slicing_Arrays|",
+"h|Slicing a Slice|Slicing_a_Slice|",
+"h|Transforming a Pointer into a Slice|Transforming_a_Pointer_into_a_Slice|",
+"h|Tuple|_004_003_tuple_swg|",
+"h|Tuples in Swag|Tuples_in_Swag|",
+"h|Accessing Tuple Values|Accessing_Tuple_Values|",
+"h|Named Fields in Tuples|Named_Fields_in_Tuples|",
+"h|Automatic Field Naming|Automatic_Field_Naming|",
+"h|Tuple Assignment and Compatibility|Tuple_Assignment_and_Compatibility|",
+"h|Positional Tuple Destructuring|Positional_Tuple_Destructuring|",
+"h|Ignoring Fields During Positional Destructuring|Ignoring_Fields_During_Positional_Destructuring|",
+"h|Named Tuple Destructuring|Named_Tuple_Destructuring|",
+"h|Destructuring Assignment|Destructuring_Assignment|",
+"h|Enum|_004_004_enum_swg|",
+"h|Enums in Swag|Enums_in_Swag|",
+"h|Enum Underlying Type|Enum_Underlying_Type|",
+"h|Custom Enum Underlying Type|Custom_Enum_Underlying_Type|",
+"h|Default and Custom Enum Values|Default_and_Custom_Enum_Values|",
+"h|Incremental Enum Values|Incremental_Enum_Values|",
+"h|Non-Integer Enum Values|Non-Integer_Enum_Values|",
+"h|Counting Enum Values|Counting_Enum_Values|",
+"h|Using using with Enums|Using__using__with_Enums|",
+"h|Enums as Flags|Enums_as_Flags|",
+"h|Enums with Arrays|Enums_with_Arrays|",
+"h|Enums with Slices|Enums_with_Slices|",
+"h|Importing Enum Values|Importing_Enum_Values|",
+"h|Accessing Imported Enum Values|Accessing_Imported_Enum_Values|",
+"h|Enum-indexed Arrays|Enum-indexed_Arrays|",
+"h|Specific Enum Attributes|Specific_Enum_Attributes|",
+"h|Enum Type Inference|Enum_Type_Inference|",
+"h|Type Inference in switch|Type_Inference_in__switch_|",
+"h|Simplified Enum Syntax|Simplified_Enum_Syntax|",
+"h|Simplified Enum Flags Syntax|Simplified_Enum_Flags_Syntax|",
+"h|Simplified Enum Syntax in Functions|Simplified_Enum_Syntax_in_Functions|",
+"h|Iterating Over Enum Values|Iterating_Over_Enum_Values|",
+"h|Impl|_004_005_impl_swg|",
+"h|Implementing Methods for Enums in Swag|Implementing_Methods_for_Enums_in_Swag|",
+"h|Defining Enum Methods with impl|Defining_Enum_Methods_with__impl_|",
+"h|Simplifying Calls with using|Simplifying_Calls_with__using_|",
+"h|Uniform Function Call Syntax (UFCS)|Uniform_Function_Call_Syntax__UFCS_|",
+"h|Union|_004_006_union_swg|",
+"h|The union Type in Swag|The__union__Type_in_Swag|",
+"h|How Unions Work|How_Unions_Work|",
+"h|Pointers|_004_007_pointers_swg|",
+"h|Single-Value Pointers|Single-Value_Pointers|",
+"h|Null Pointers|Null_Pointers|",
+"h|Non-Null by Default|Non-Null_by_Default|",
+"h|Use-Site Nullability, ?. and !|Use-Site_Nullability_______and____|",
+"h|Nullability Through a Reference|Nullability_Through_a_Reference|",
+"h|Deferred Initialization with Swag.Late|Deferred_Initialization_with__Swag_Late_|",
+"h|Taking the Address of a Variable|Taking_the_Address_of_a_Variable|",
+"h|Dereferencing a Pointer|Dereferencing_a_Pointer|",
+"h|Pointers to Const Data|Pointers_to_Const_Data|",
+"h|Combining const with Pointers|Combining__const__with_Pointers|",
+"h|Multi-Value Pointers|Multi-Value_Pointers|",
+"h|Pointer Arithmetic and Array Elements|Pointer_Arithmetic_and_Array_Elements|",
+"h|Dereferencing with Indexing|Dereferencing_with_Indexing|",
+"h|References|_004_008_references_swg|",
+"h|References in Swag|References_in_Swag|",
+"h|Assigning Through References|Assigning_Through_References|",
+"h|References Bind Once|References_Bind_Once|",
+"h|Passing References to Functions|Passing_References_to_Functions|",
+"h|Using References with Structs|Using_References_with_Structs|",
+"h|Equivalent Reference Passing|Equivalent_Reference_Passing|",
+"h|Any|_004_009_any_swg|",
+"h|The any Type in Swag|The__any__Type_in_Swag|",
+"h|Working with any and Pointers|Working_with__any__and_Pointers|",
+"h|Type Information and any|Type_Information_and__any_|",
+"h|Retrieving Values from any|Retrieving_Values_from__any_|",
+"h|Arrays of any|Arrays_of__any_|",
+"h|Nullability of any|Nullability_of__any_|",
+"h|Type Checking with any|Type_Checking_with__any_|",
+"h|Control Flow|_005_000_control_flow_swg|",
+"h|If|_005_001_if_swg|",
+"h|Basic Usage of if|Basic_Usage_of__if_|",
+"h|Variable Declaration in if|Variable_Declaration_in__if_|",
+"h|Adding Conditions with where|Adding_Conditions_with__where_|",
+"h|For|_005_002_for_swg|",
+"h|The for Loop|The__for__Loop|",
+"h|Basic Usage|Basic_Usage|",
+"h|Using @index|Using___index_|",
+"h|Naming the Loop Index|Naming_the_Loop_Index|",
+"h|Looping Over Arrays and Slices|Looping_Over_Arrays_and_Slices|",
+"h|Reverse Looping|Reverse_Looping|",
+"h|Using break and continue|Using__break__and__continue_|",
+"h|Exiting Early with break|Exiting_Early_with__break_|",
+"h|Skipping Iterations with continue|Skipping_Iterations_with__continue_|",
+"h|Ranges|Ranges|",
+"h|Looping Over a Range with to|Looping_Over_a_Range_with__to_|",
+"h|Excluding the Last Value with until|Excluding_the_Last_Value_with__until_|",
+"h|Empty Ranges|Empty_Ranges|",
+"h|Reverse Range Looping|Reverse_Range_Looping|",
+"h|Infinite Loop|Infinite_Loop|",
+"h|Using where Clause|Using__where__Clause|",
+"h|Basic where Clause|Basic__where__Clause|",
+"h|Filtering Arrays with where|Filtering_Arrays_with__where_|",
+"h|Complex Conditions with where|Complex_Conditions_with__where_|",
+"h|Filtering Ranges with where|Filtering_Ranges_with__where_|",
+"h|Combining #reverse and where|Combining___reverse__and__where_|",
+"h|C-like for|C-like__for_|",
+"h|Accessing Loop Index with @index|Accessing_Loop_Index_with___index_|",
+"h|Using break and continue in for Loops|Using__break__and__continue__in__for__Loops|",
+"h|Nested for Loops|Nested__for__Loops|",
+"h|Iterating Over Arrays with for|Iterating_Over_Arrays_with__for_|",
+"h|For Elements|_005_003_for_elements_swg|",
+"h|Element Iteration with for|Element_Iteration_with__for_|",
+"h|Naming Only the Index|Naming_Only_the_Index|",
+"h|Naming the Value and Index|Naming_the_Value_and_Index|",
+"h|Enum-Indexed Arrays|Enum-Indexed_Arrays|",
+"h|Reverse Order with #reverse|Reverse_Order_with___reverse_|",
+"h|Visiting Arrays and Slices|Visiting_Arrays_and_Slices|",
+"h|Multi-dimensional Arrays|Multi-dimensional_Arrays|",
+"h|Modifying Elements with &|Modifying_Elements_with____|",
+"h|Filtering with where|Filtering_with__where_|",
+"h|While|_005_004_while_swg|",
+"h|The while Loop|The__while__Loop|",
+"h|Breaking Out of a while Loop|Breaking_Out_of_a__while__Loop|",
+"h|Skipping Iterations with continue|Skipping_Iterations_with__continue_|",
+"h|Nested while Loops|Nested__while__Loops|",
+"h|Using while with Complex Conditions|Using__while__with_Complex_Conditions|",
+"h|Switch|_005_005_switch_swg|",
+"h|The switch Statement|The__switch__Statement|",
+"h|Multiple Values in a case|Multiple_Values_in_a__case_|",
+"h|Using switch with Various Types|Using__switch__with_Various_Types|",
+"h|Intentional Fallthrough with fallthrough|Intentional_Fallthrough_with__fallthrough_|",
+"h|Exiting a case Early with break|Exiting_a__case__Early_with__break_|",
+"h|Handling Empty Cases with break|Handling_Empty_Cases_with__break_|",
+"h|Variable and Expression Cases|Variable_and_Expression_Cases|",
+"h|Enum Case Values|Enum_Case_Values|",
+"h|The #complete Modifier|The___complete__Modifier|",
+"h|Matching Ranges in a switch Statement|Matching_Ranges_in_a__switch__Statement|",
+"h|Overlapping Ranges|Overlapping_Ranges|",
+"h|Using the where Clause in switch|Using_the__where__Clause_in__switch_|",
+"h|Using where with default|Using__where__with__default_|",
+"h|Switching on Type with any or interface|Switching_on_Type_with__any__or__interface_|",
+"h|Switch Statement with Type Guard and Variable Binding|Switch_Statement_with_Type_Guard_and_Variable_Binding|",
+"h|Switch Without an Expression|Switch_Without_an_Expression|",
+"h|Break|_005_006_break_swg|",
+"h|The break Statement|The__break__Statement|",
+"h|Default Behavior|Default_Behavior|",
+"h|Named Scopes with #scope|Named_Scopes_with___scope_|",
+"h|Using continue with Named Scopes|Using__continue__with_Named_Scopes|",
+"h|Unnamed Scopes|Unnamed_Scopes|",
+"h|Scopes with Simple Statements|Scopes_with_Simple_Statements|",
+"h|Structs|_006_000_structs_swg|",
+"h|Declaration|_006_001_declaration_swg|",
+"h|Basic Struct Declaration|Basic_Struct_Declaration|",
+"h|Field Separators|Field_Separators|",
+"h|Anonymous Structs|Anonymous_Structs|",
+"h|Default Field Values|Default_Field_Values|",
+"h|Struct Initialization|Struct_Initialization|",
+"h|Const Structs|Const_Structs|",
+"h|Structs as Function Arguments|Structs_as_Function_Arguments|",
+"h|Impl|_006_002_impl_swg|",
+"h|Struct Methods and Constants|Struct_Methods_and_Constants|",
+"h|Multiple impl Blocks|Multiple__impl__Blocks|",
+"h|Method Syntax Sugar|Method_Syntax_Sugar|",
+"h|Method Reflection|Method_Reflection|",
+"h|Offset|_006_003_offset_swg|",
+"h|Custom Field Layout with Swag.Offset|Custom_Field_Layout_with__Swag_Offset_|",
+"h|Using Swag.Offset for Indexed Field Access|Using__Swag_Offset__for_Indexed_Field_Access|",
+"h|Packing|_006_004_packing_swg|",
+"h|Default Struct Packing|Default_Struct_Packing|",
+"h|Reducing Packing|Reducing_Packing|",
+"h|Struct Size and Alignment|Struct_Size_and_Alignment|",
+"h|Enforcing Alignment with Swag.Align|Enforcing_Alignment_with__Swag_Align_|",
+"h|Field-Specific Alignment|Field-Specific_Alignment|",
+"h|Operator Overloading|_006_005_operator_overloading_swg|",
+"h|Custom Assignment|_006_006_custom_assignment_swg|",
+"h|Custom Assignment Behavior with opSet|Custom_Assignment_Behavior_with__opSet_|",
+"h|Optimizing Initialization with Swag.FullInit|Optimizing_Initialization_with__Swag_FullInit_|",
+"h|Handling Function Arguments and Automatic Conversion|Handling_Function_Arguments_and_Automatic_Conversion|",
+"h|Using opSet in Constant Expressions|Using__opSet__in_Constant_Expressions|",
+"h|Custom Loop|_006_007_custom_loop_swg|",
+"h|Implementing opCount for Iteration|Implementing__opCount__for_Iteration|",
+"h|Custom Iteration|_006_008_custom_iteration_swg|",
+"h|The opVisit Iteration Hook|The__opVisit__Iteration_Hook|",
+"h|Iterating Over Struct Fields|Iterating_Over_Struct_Fields|",
+"h|Extending opVisit: Reverse Order Iteration|Extending__opVisit___Reverse_Order_Iteration|",
+"h|Reverse Order Iteration|Reverse_Order_Iteration|",
+"h|Visiting Elements in Dynamic Arrays|Visiting_Elements_in_Dynamic_Arrays|",
+"h|Custom opVisit for Dynamic Arrays|Custom__opVisit__for_Dynamic_Arrays|",
+"h|Iterating Over a Dynamic Array|Iterating_Over_a_Dynamic_Array|",
+"h|Visiting by Pointer|Visiting_by_Pointer|",
+"h|Named Variants of opVisit|Named_Variants_of__opVisit_|",
+"h|Iterating Over Adjacent Pairs|Iterating_Over_Adjacent_Pairs|",
+"h|Custom Copy and Move|_006_009_custom_copy_and_move_swg|",
+"h|Drop Elision|Drop_Elision|",
+"h|Lifecycle Safety|Lifecycle_Safety|",
+"h|Move Semantics in Functions|Move_Semantics_in_Functions|",
+"h|Custom Literals|_006_010_custom_literals_swg|",
+"h|User-Defined Literals|User-Defined_Literals|",
+"h|Literal Suffixes|Literal_Suffixes|",
+"h|Interface|_006_011_interface_swg|",
+"h|Interface Declaration|Interface_Declaration|",
+"h|Implementing an Interface|Implementing_an_Interface|",
+"h|Implementing the Interface for Another Struct|Implementing_the_Interface_for_Another_Struct|",
+"h|Using the Interface|Using_the_Interface|",
+"h|Accessing Interface Methods Directly|Accessing_Interface_Methods_Directly|",
+"h|Interface as a Type|Interface_as_a_Type|",
+"h|Default Implementation in Interfaces|Default_Implementation_in_Interfaces|",
+"h|Functions|_007_000_functions_swg|",
+"h|Declaration|_007_001_declaration_swg|",
+"h|Function Declarations|Function_Declarations|",
+"h|Returning Values from Functions|Returning_Values_from_Functions|",
+"h|Inferring Return Types|Inferring_Return_Types|",
+"h|Defining Parameters in Functions|Defining_Parameters_in_Functions|",
+"h|Using Default Parameter Values|Using_Default_Parameter_Values|",
+"h|Inferred Parameter Types|Inferred_Parameter_Types|",
+"h|Overloading Functions|Overloading_Functions|",
+"h|Nested Functions|Nested_Functions|",
+"h|Named Parameters and Parameter Order|Named_Parameters_and_Parameter_Order|",
+"h|Returning Multiple Values with Anonymous Structs|Returning_Multiple_Values_with_Anonymous_Structs|",
+"h|Lambda|_007_002_lambda_swg|",
+"h|Lambdas|Lambdas|",
+"h|Null Lambdas|Null_Lambdas|",
+"h|Using Lambdas as Function Parameters|Using_Lambdas_as_Function_Parameters|",
+"h|Anonymous Functions|Anonymous_Functions|",
+"h|Passing Anonymous Functions as Parameters|Passing_Anonymous_Functions_as_Parameters|",
+"h|Inferred Parameter Types in Anonymous Functions|Inferred_Parameter_Types_in_Anonymous_Functions|",
+"h|Omitting Types When Assigning Lambdas|Omitting_Types_When_Assigning_Lambdas|",
+"h|Lambdas with Default Parameter Values|Lambdas_with_Default_Parameter_Values|",
+"h|Closure|_007_003_closure_swg|",
+"h|Closures|Closures|",
+"h|Declaring a Closure|Declaring_a_Closure|",
+"h|Init-Capture and Aliases|Init-Capture_and_Aliases|",
+"h|Capturing Variables by Reference|Capturing_Variables_by_Reference|",
+"h|Aliased Reference Capture|Aliased_Reference_Capture|",
+"h|Assigning Lambdas to Closure Variables|Assigning_Lambdas_to_Closure_Variables|",
+"h|Capturing Complex Types|Capturing_Complex_Types|",
+"h|Modifying Captured Variables|Modifying_Captured_Variables|",
+"h|Variadic Parameters|_007_004_variadic_parameters_swg|",
+"h|Variadic Functions|Variadic_Functions|",
+"h|Working with Variadic Parameters as Slices|Working_with_Variadic_Parameters_as_Slices|",
+"h|Forcing Variadic Parameters to a Specific Type|Forcing_Variadic_Parameters_to_a_Specific_Type|",
+"h|Passing Variadic Parameters Between Functions|Passing_Variadic_Parameters_Between_Functions|",
+"h|Combining Fixed and Variadic Parameters|Combining_Fixed_and_Variadic_Parameters|",
+"h|Handling Different Types in Variadic Parameters|Handling_Different_Types_in_Variadic_Parameters|",
+"h|Function Overloading|_007_005_function_overloading_swg|",
+"h|Function Overloading|Function_Overloading|",
+"h|Ufcs|_007_006_ufcs_swg|",
+"h|Uniform Function Call Syntax (UFCS)|Uniform_Function_Call_Syntax__UFCS_|",
+"h|Static Functions as Methods|Static_Functions_as_Methods|",
+"h|UFCS with Multiple Parameters|UFCS_with_Multiple_Parameters|",
+"h|UFCS and Function Overloading|UFCS_and_Function_Overloading|",
+"h|Discard|_007_007_discard_swg|",
+"h|Return Value Usage|Return_Value_Usage|",
+"h|Swag.Discardable Attribute|_Swag_Discardable__Attribute|",
+"h|Retval|_007_008_retval_swg|",
+"h|The retval Special Type|The__retval__Special_Type|",
+"h|Optimizing Return Values|Optimizing_Return_Values|",
+"h|Returning Arrays Efficiently|Returning_Arrays_Efficiently|",
+"h|Intrinsics|_008_000_intrinsics_swg|",
+"h|Intrinsics|Intrinsics|",
+"h|Compile Time and Runtime|Compile_Time_and_Runtime|",
+"h|Failure Behavior|Failure_Behavior|",
+"h|Init|_008_001_init_swg|",
+"h|@init Intrinsic|__init__Intrinsic|",
+"h|Scalars - Default Initialization|Scalars_-_Default_Initialization|",
+"h|Scalars - Initialization with a Specific Value|Scalars_-_Initialization_with_a_Specific_Value|",
+"h|Arrays - Count-Based Default Initialization|Arrays_-_Count-Based_Default_Initialization|",
+"h|Arrays - Initialization with a Specific Value|Arrays_-_Initialization_with_a_Specific_Value|",
+"h|Structs - Reset to Declared Defaults|Structs_-_Reset_to_Declared_Defaults|",
+"h|Structs - Initialization with Specific Field Values|Structs_-_Initialization_with_Specific_Field_Values|",
+"h|Arrays of Structs - Bulk Initialization and Reinitialization|Arrays_of_Structs_-_Bulk_Initialization_and_Reinitialization|",
+"h|Drop|_008_002_drop_swg|",
+"h|@drop Intrinsic|__drop__Intrinsic|",
+"h|Value and Type Intrinsics|_008_003_value_and_type_intrinsics_swg|",
+"h|Counts and Data Pointers|Counts_and_Data_Pointers|",
+"h|Constructing Non-Owning Views|Constructing_Non-Owning_Views|",
+"h|Constructing and Inspecting any|Constructing_and_Inspecting__any_|",
+"h|Math and Bit Intrinsics|_008_004_math_and_bit_intrinsics_swg|",
+"h|Integer Helpers|Integer_Helpers|",
+"h|Byte Order and Rotation|Byte_Order_and_Rotation|",
+"h|Floating-Point Math|Floating-Point_Math|",
+"h|Memory and Atomic Intrinsics|_008_005_memory_and_atomic_intrinsics_swg|",
+"h|Raw Memory|Raw_Memory|",
+"h|Allocation|Allocation|",
+"h|Atomic Read-Modify-Write|Atomic_Read-Modify-Write|",
+"h|Generics|_009_000_generics_swg|",
+"h|Functions|_009_001_functions_swg|",
+"h|Generic Functions|Generic_Functions|",
+"h|Multiple and Explicit Arguments|Multiple_and_Explicit_Arguments|",
+"h|Defaults|Defaults|",
+"h|Compile-Time Value Parameters|Compile-Time_Value_Parameters|",
+"h|Specialization Aliases|Specialization_Aliases|",
+"h|Structs|_009_002_structs_swg|",
+"h|Generic Structs|Generic_Structs|",
+"h|Type and Value Parameters|Type_and_Value_Parameters|",
+"h|Generic Methods|Generic_Methods|",
+"h|Where Constraints|_009_003_where_constraints_swg|",
+"h|Generic where Constraints|Generic__where__Constraints|",
+"h|Function Specialization|Function_Specialization|",
+"h|Block-based Constraints|Block-based_Constraints|",
+"h|Generic Struct Constraints|Generic_Struct_Constraints|",
+"h|Generic Methods with Inherited Arguments|Generic_Methods_with_Inherited_Arguments|",
+"h|Attributes|_010_000_attributes_swg|",
+"h|User Attributes|_010_001_user_attributes_swg|",
+"h|User Attributes|User_Attributes|",
+"h|Attributes with Parameters|Attributes_with_Parameters|",
+"h|Attributes with Default Values|Attributes_with_Default_Values|",
+"h|Restricting Attribute Usage|Restricting_Attribute_Usage|",
+"h|Scopes and Broadcasting|Scopes_and_Broadcasting|",
+"h|Applying Attributes|Applying_Attributes|",
+"h|Multiple Usages|Multiple_Usages|",
+"h|Retrieving Attributes at Runtime|Retrieving_Attributes_at_Runtime|",
+"h|Predefined Attributes|_010_002_predefined_attributes_swg|",
+"h|Predefined Attributes|Predefined_Attributes|",
+"h|Declaring Attributes|Declaring_Attributes|",
+"h|Name Resolution|Name_Resolution|",
+"h|Compile-Time Execution and Code Generation|Compile-Time_Execution_and_Code_Generation|",
+"h|Metaprogramming and Call Semantics|Metaprogramming_and_Call_Semantics|",
+"h|Operators, Matching, and Enums|Operators__Matching__and_Enums|",
+"h|Layout, Ownership, and Export|Layout__Ownership__and_Export|",
+"h|Safety and Diagnostics|Safety_and_Diagnostics|",
+"h|Native Interoperability|Native_Interoperability|",
+"h|Documentation|Documentation|",
+"h|Scoping|_011_000_scoping_swg|",
+"h|Namespace|_011_001_namespace_swg|",
+"h|Namespaces|Namespaces|",
+"h|Nested Namespaces|Nested_Namespaces|",
+"h|Qualified Namespace Access|Qualified_Namespace_Access|",
+"h|Internal Scopes|Internal_Scopes|",
+"h|Exporting Symbols|Exporting_Symbols|",
+"h|Defer|_011_002_defer_swg|",
+"h|The defer Statement|The__defer__Statement|",
+"h|Deferring a Block|Deferring_a_Block|",
+"h|defer and Control Flow|_defer__and_Control_Flow|",
+"h|Deferred Execution Order|Deferred_Execution_Order|",
+"h|Example: Resource Management|Example__Resource_Management|",
+"h|Example: Error Handling|Example__Error_Handling|",
+"h|Using|_011_003_using_swg|",
+"h|using with Enums and Namespaces|_using__with_Enums_and_Namespaces|",
+"h|using with Struct Fields|_using__with_Struct_Fields|",
+"h|With|_011_004_with_swg|",
+"h|The with Statement|The__with__Statement|",
+"h|with and a Namespace|_with__and_a_Namespace|",
+"h|with on a Variable|_with__on_a_Variable|",
+"h|Calling Functions inside with|Calling_Functions_inside__with_|",
+"h|Using Names from a with Namespace|Using_Names_from_a__with__Namespace|",
+"h|Declaring a Variable with with|Declaring_a_Variable_with__with_|",
+"h|Assignment inside with|Assignment_inside__with_|",
+"h|Type Reflection|_012_000_type_reflection_swg|",
+"h|Types as Values|Types_as_Values|",
+"h|Using #typeof to Inspect Types|Using___typeof__to_Inspect_Types|",
+"h|Understanding the Result of #typeof|Understanding_the_Result_of___typeof_|",
+"h|Working with TypeInfo Structures|Working_with__TypeInfo__Structures|",
+"h|The #decltype Query|The___decltype__Query|",
+"h|Using #decltype with Compile-Time Expressions|Using___decltype__with_Compile-Time_Expressions|",
+"h|Aggregate Reflection|_012_001_aggregate_reflection_swg|",
+"h|Struct and Enum Reflection|Struct_and_Enum_Reflection|",
+"h|Function and Container Reflection|_012_002_function_and_container_reflection_swg|",
+"h|Function Reflection|Function_Reflection|",
+"h|Pointer, Array, and Slice Reflection|Pointer__Array__and_Slice_Reflection|",
+"h|Error Management and Safety|_013_000_error_management_and_safety_swg|",
+"h|Error Management|_013_001_error_management_swg|",
+"h|Error Management|Error_Management|",
+"h|Catching Errors|Catching_Errors|",
+"h|Handling on Failure with 'catch ... else'|Handling_on_Failure_with__catch_____else_|",
+"h|Dismissing Errors|Dismissing_Errors|",
+"h|Propagating Errors|Propagating_Errors|",
+"h|Implicit try|Implicit_try|",
+"h|Error-Handling Blocks|Error-Handling_Blocks|",
+"h|Expect|Expect|",
+"h|Defer on Error Paths|Defer_on_Error_Paths|",
+"h|Safety|_013_002_safety_swg|",
+"h|Runtime Safety Checks|Runtime_Safety_Checks|",
+"h|Overflow Safety|Overflow_Safety|",
+"h|Disabling Overflow Safety with #wrap|Disabling_Overflow_Safety_with___wrap_|",
+"h|Global Overflow Safety Control|Global_Overflow_Safety_Control|",
+"h|Promoting Operations to Prevent Overflow|Promoting_Operations_to_Prevent_Overflow|",
+"h|Information Loss During Casting|Information_Loss_During_Casting|",
+"h|Disabling Overflow Safety Globally|Disabling_Overflow_Safety_Globally|",
+"h|Dynamic Cast Type Safety|Dynamic_Cast_Type_Safety|",
+"h|Array Bounds Checking|Array_Bounds_Checking|",
+"h|Safety When Indexing a Slice|Safety_When_Indexing_a_Slice|",
+"h|Safety When Slicing a Sized Value|Safety_When_Slicing_a_Sized_Value|",
+"h|Safety on Loop Ranges|Safety_on_Loop_Ranges|",
+"h|Math Safety|Math_Safety|",
+"h|Checking Invalid Math Intrinsic Arguments|Checking_Invalid_Math_Intrinsic_Arguments|",
+"h|Switch Safety|Switch_Safety|",
+"h|Boolean Safety|Boolean_Safety|",
+"h|NaN Safety|NaN_Safety|",
+"h|Sanity|_013_003_sanity_swg|",
+"h|Static Sanity Checks|Static_Sanity_Checks|",
+"h|Proven Runtime Faults|Proven_Runtime_Faults|",
+"h|Use After Free and Double Free|Use_After_Free_and_Double_Free|",
+"h|Use of Moved-From Values|Use_of_Moved-From_Values|",
+"h|Opting Out|Opting_Out|",
+"h|The #sanity Intrinsic|The___sanity__Intrinsic|",
+"h|Borrowing|_013_004_borrowing_swg|",
+"h|Borrowing|Borrowing|",
+"h|Escaping the Frame|Escaping_the_Frame|",
+"h|Across Calls|Across_Calls|",
+"h|Arguments a Callee Keeps|Arguments_a_Callee_Keeps|",
+"h|Storage That Moves Under a View|Storage_That_Moves_Under_a_View|",
+"h|Iterating and Mutating|Iterating_and_Mutating|",
+"h|What the Rule Does Not Do|What_the_Rule_Does_Not_Do|",
+"h|Warnings|_013_005_warnings_swg|",
+"h|Warnings|Warnings|",
+"h|Silencing a Warning at One Site|Silencing_a_Warning_at_One_Site|",
+"h|Unreachable Code|Unreachable_Code|",
+"h|Setting the Policy for a Whole Module|Setting_the_Policy_for_a_Whole_Module|",
+"h|Compile-time Evaluation|_014_000_compile-time_evaluation_swg|",
+"h|Compile-Time Execution|Compile-Time_Execution|",
+"h|Constexpr|_014_001_constexpr_swg|",
+"h|Constant-Evaluable Functions|Constant-Evaluable_Functions|",
+"h|Branches, Loops, and Recursion|Branches__Loops__and_Recursion|",
+"h|Constant User-Defined Values|Constant_User-Defined_Values|",
+"h|Static Conditions and Types|Static_Conditions_and_Types|",
+"h|Failure Is a Compile-Time Diagnostic|Failure_Is_a_Compile-Time_Diagnostic|",
+"h|Run|_014_002_run_swg|",
+"h|Forced Compile-Time Execution with #run|Forced_Compile-Time_Execution_with___run_|",
+"h|The #run Block|The___run__Block|",
+"h|The #run Expression|The___run__Expression|",
+"h|Compiler Instructions|_014_003_compiler_instructions_swg|",
+"h|The #assert Directive|The___assert__Directive|",
+"h|The #defined Query|The___defined__Query|",
+"h|Static Control with #static|Static_Control_with___static_|",
+"h|The #command and #cfg Values|The___command__and___cfg__Values|",
+"h|The #error and #warning Directives|The___error__and___warning__Directives|",
+"h|The #global Directive|The___global__Directive|",
+"h|The #foreignlib Directive|The___foreignlib__Directive|",
+"h|Code Inspection|_014_004_code_inspection_swg|",
+"h|Code Inspection|Code_Inspection|",
+"h|Metaprogramming|_015_000_metaprogramming_swg|",
+"h|Metaprogramming|Metaprogramming|",
+"h|Mixins|_015_001_mixins_swg|",
+"h|Mixins|Mixins|",
+"h|Basic Example of a Mixin|Basic_Example_of_a_Mixin|",
+"h|Mixins with Parameters|Mixins_with_Parameters|",
+"h|Mixins with Code Blocks|Mixins_with_Code_Blocks|",
+"h|Passing Code Blocks in Separate Statements|Passing_Code_Blocks_in_Separate_Statements|",
+"h|Mixins with Block Parameters|Mixins_with_Block_Parameters|",
+"h|Unique Variable Names with #uniq0 through #uniq9|Unique_Variable_Names_with___uniq0__through___uniq9_|",
+"h|Macros|_015_002_macros_swg|",
+"h|Macros|Macros|",
+"h|Macro Scope|Macro_Scope|",
+"h|Macros with #code Parameters|Macros_with___code__Parameters|",
+"h|Expression #code Parameters|Expression___code__Parameters|",
+"h|Injection Hygiene|Injection_Hygiene|",
+"h|Declared Block Parameters|Declared_Block_Parameters|",
+"h|Renaming Block Parameters at the Call Site|Renaming_Block_Parameters_at_the_Call_Site|",
+"h|Mutable Block Parameters|Mutable_Block_Parameters|",
+"h|Performance Considerations with Macros|Performance_Considerations_with_Macros|",
+"h|Handling break and continue in User Code with Macros|Handling__break__and__continue__in_User_Code_with_Macros|",
+"h|Another example:|Another_example_|",
+"h|Generated Code with Ast|_015_003_generated_code_with_ast_swg|",
+"h|The #ast Block|The___ast__Block|",
+"h|Basic #ast Usage|Basic___ast__Usage|",
+"h|Returning Source from #ast|Returning_Source_from___ast_|",
+"h|Generating Structs and Enums|Generating_Structs_and_Enums|",
+"h|Generating Generic Code|Generating_Generic_Code|",
+"h|Constructing Strings in #ast|Constructing_Strings_in___ast_|",
+"h|Real-World Example|Real-World_Example|",
+"h|#ast at Global Scope|__ast__at_Global_Scope|",
+"h|Compiler Interface|_015_004_compiler_interface_swg|",
+"h|The Compiler Interface|The_Compiler_Interface|",
+"h|Reading the Build Configuration|Reading_the_Build_Configuration|",
+"h|Receiving Compiler Messages|Receiving_Compiler_Messages|",
+"h|Compiling Generated Source|Compiling_Generated_Source|",
+"h|Interoperability|_016_000_interoperability_swg|",
+"h|Foreign Functions|_016_001_foreign_functions_swg|",
+"h|Foreign Functions|Foreign_Functions|",
+"h|Renamed Symbols and Separate Link Names|Renamed_Symbols_and_Separate_Link_Names|",
+"h|C Abi Data|_016_002_c_abi_data_swg|",
+"h|Data at a C ABI Boundary|Data_at_a_C_ABI_Boundary|",
+]);
+</script>
 </body>
 </html>

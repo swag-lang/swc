@@ -41,6 +41,7 @@ the numbers as they stand, and the condition under which the work is allowed to 
 | File | Area |
 | --- | --- |
 | [findings.compiler.md](findings.compiler.md) | Frontend, semantic analysis, and code generation defects |
+| [findings.language.md](findings.language.md) | Language rules that surprise: overloaded spellings, defaults, and silent conversions |
 | [findings.optimization.md](findings.optimization.md) | Backend optimization passes, register allocation, and generated-code performance |
 | [findings.safety.md](findings.safety.md) | Borrow, lifetime, and sanity analysis |
 | [findings.gui.md](findings.gui.md) | `std/gui` and the applications built on it |
@@ -62,7 +63,7 @@ The identifier is how a finding is named everywhere else — in conversation, in
 a `todo.*` entry, in a code comment. A title gets rewritten, a position moves, and an entry changes
 file; the identifier does not.
 
-Next identifier: F-070
+Next identifier: F-073
 
 - Take the next identifier from the line above, then advance it. It is the counter, not the entry
   count: it keeps rising as entries are deleted, and it is shared by every `findings.*` file.

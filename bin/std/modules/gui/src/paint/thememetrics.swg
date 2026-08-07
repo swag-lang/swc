@@ -5,8 +5,8 @@ using Core
 // Defines logical dimensions, spacing, and animation timing for themed GUI elements.
 struct ThemeMetrics
 {
-    defaultFontSize:      u32 = 14     // Theme measurement used for default font size.
-    defaultFixedFontSize: u32 = 16     // Theme measurement used for default fixed font size.
+    defaultFontSize:      u32 = 13     // Theme measurement used for default font size.
+    defaultFixedFontSize: u32 = 14     // Theme measurement used for default fixed font size.
     // Transparent margin the drop shadow is cast into. It has to hold the spread plus the offset,
     // or the shadow is cut off by the edge of the window instead of fading out into it.
     surfaceWnd_ShadowSize:    f32 = 18

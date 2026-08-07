@@ -309,7 +309,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary>Functions<span class="toc-count">922</span></summary>
+<summary>Functions<span class="toc-count">923</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Gui_Properties_BoolCombo">Properties.BoolCombo</a></li>
@@ -1092,6 +1092,7 @@
 <li><a href="#Gui_Tab_selectedItem">Tab.selectedItem</a></li>
 <li><a href="#Gui_Tab_setForm">Tab.setForm</a></li>
 <li><a href="#Gui_Tab_setForms">Tab.setForms</a></li>
+<li><a href="#Gui_Tab_setItemName">Tab.setItemName</a></li>
 <li><a href="#Gui_Tab_setLayout">Tab.setLayout</a></li>
 <li><a href="#Gui_Tab_setSelectedIndex">Tab.setSelectedIndex</a></li>
 <li><a href="#Gui_ToggleButton_create">ToggleButton.create</a></li>
@@ -3579,6 +3580,8 @@ help.dockStyle = .<span class="SCst">Top</span>
 <tr><td class="code-type"><a href="#Gui_Tab_setForm">Tab.setForm</a></td><td><p>Applies a coordinated predefined presentation and width policy.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_Tab_setForms">Tab.setForms</a></td><td><p>Replaces the bar, item, and selected-page presentation independently.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Tab_setItemName">Tab.setItemName</a></td><td><p>Replaces the label of one tab and measures the bar again around the new wording.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_Tab_setLayout">Tab.setLayout</a></td><td><p>Configures width measurement and validates non-negative sizing values.</p>
 </td></tr>
@@ -10403,6 +10406,8 @@ busy.<span class="SFct">hide</span>()
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_Tab_setForms">setForms</a></td><td><p>Replaces the bar, item, and selected-page presentation independently.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Gui_Tab_setItemName">setItemName</a></td><td><p>Replaces the label of one tab and measures the bar again around the new wording.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Gui_Tab_setLayout">setLayout</a></td><td><p>Configures width measurement and validates non-negative sizing values.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_Tab_setSelectedIndex">setSelectedIndex</a></td><td><p>Selects one tab and emits a change signal when the effective item changes.</p>
@@ -17220,7 +17225,7 @@ btnPush_Hot      $btnPush_Normal
 <span class="SKwd">mtd</span> <span class="SFct">addItem</span>(name: <span class="STpe">string</span>, icon: <span class="SCst"><a href="#Gui_Icon">Icon</a></span> = {}, view: <span class="SItr">#null</span> *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span> = <span class="SKwd">null</span>)-&gt;*<span class="SCst"><a href="#Gui_TabItem">TabItem</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Tab_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Tab.clear</span> <a class="api-item-permalink" href="#Gui_Tab_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/widgets/tab.swg#L753">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Tab_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Tab.clear</span> <a class="api-item-permalink" href="#Gui_Tab_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/widgets/tab.swg#L767">src</a></div>
 <p>Removes all tabs and destroys every page view previously transferred to the control.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>()</span></div>
 </section>
@@ -17231,12 +17236,12 @@ btnPush_Hot      $btnPush_Normal
 <span class="SKwd">func</span> <span class="SFct">create</span>(parent: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, position: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span> = {}, id: <span class="SItr">#null</span> <span class="SCst"><a href="#Gui_WndId">WndId</a></span> = <span class="SKwd">null</span>)-&gt;*<span class="SCst"><a href="#Gui_Tab">Tab</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Tab_removeItemAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Tab.removeItemAt</span> <a class="api-item-permalink" href="#Gui_Tab_removeItemAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/widgets/tab.swg#L719">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Tab_removeItemAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Tab.removeItemAt</span> <a class="api-item-permalink" href="#Gui_Tab_removeItemAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/widgets/tab.swg#L733">src</a></div>
 <p>Removes one tab, destroys its owned page, and selects the nearest remaining tab.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">removeItemAt</span>(index: <span class="STpe">u32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Tab_selectedItem" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Tab.selectedItem</span> <a class="api-item-permalink" href="#Gui_Tab_selectedItem" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/widgets/tab.swg#L796">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Tab_selectedItem" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Tab.selectedItem</span> <a class="api-item-permalink" href="#Gui_Tab_selectedItem" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/widgets/tab.swg#L810">src</a></div>
 <p>Returns the selected item, or null when the control is empty.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">selectedItem</span>()-&gt;<span class="SItr">#null</span> *<span class="SCst"><a href="#Gui_TabItem">TabItem</a></span></span></div>
 </section>
@@ -17251,12 +17256,18 @@ btnPush_Hot      $btnPush_Normal
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setForms</span>(bar: <span class="SCst"><a href="#Gui_TabBarForm">TabBarForm</a></span>, item: <span class="SCst"><a href="#Gui_TabItemForm">TabItemForm</a></span>, view: <span class="SCst"><a href="#Gui_TabViewForm">TabViewForm</a></span>)</span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Tab_setItemName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Tab.setItemName</span> <a class="api-item-permalink" href="#Gui_Tab_setItemName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/widgets/tab.swg#L724">src</a></div>
+<p>Replaces the label of one tab and measures the bar again around the new wording.</p>
+<p>A language switch is what needs this. Under the <span class="code-inline">Content</span> policy a tab is exactly as wide as its label, so a renamed tab that is not measured again keeps the width of the wording it no longer shows — and the strip either clips the new label or leaves a gap where the old one ended.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setItemName</span>(index: <span class="STpe">u32</span>, name: <span class="STpe">string</span>)</span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_Tab_setLayout" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Tab.setLayout</span> <a class="api-item-permalink" href="#Gui_Tab_setLayout" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/widgets/tab.swg#L678">src</a></div>
 <p>Configures width measurement and validates non-negative sizing values.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setLayout</span>(layout: <span class="SCst"><a href="#Gui_TabLayout">TabLayout</a></span>, minimumItemWidth = <span class="SNum">25</span>'<span class="STpe">f32</span>, fixedItemWidth = <span class="SNum">100</span>'<span class="STpe">f32</span>, itemPadding = <span class="SNum">25</span>'<span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Tab_setSelectedIndex" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Tab.setSelectedIndex</span> <a class="api-item-permalink" href="#Gui_Tab_setSelectedIndex" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/widgets/tab.swg#L771">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Tab_setSelectedIndex" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Tab.setSelectedIndex</span> <a class="api-item-permalink" href="#Gui_Tab_setSelectedIndex" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/widgets/tab.swg#L785">src</a></div>
 <p>Selects one tab and emits a change signal when the effective item changes.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setSelectedIndex</span>(index: <span class="STpe">u32</span>)</span></div>
 </section>
@@ -18004,5 +18015,1429 @@ btnPush_Hot      $btnPush_Normal
 </footer>
 </section>
 </main>
+<script>
+(function (rows) {
+    "use strict";
+
+    var nav = document.querySelector(".site-nav");
+    if (!nav || !rows.length)
+        return;
+
+    var KINDS = {
+        n: "namespace", s: "struct", i: "interface", e: "enum",
+        c: "const", a: "alias", t: "attr", f: "func", h: "section"
+    };
+    var LIMIT = 30;
+
+    // A row is "kind|name|anchor|summary". The summary is the remainder of the row, so it
+    // is the only field allowed to hold the separator.
+    var items = [];
+    for (var r = 0; r < rows.length; r++) {
+        var row = rows[r];
+        var kindEnd = row.indexOf("|");
+        var nameEnd = row.indexOf("|", kindEnd + 1);
+        var anchorEnd = row.indexOf("|", nameEnd + 1);
+        var name = row.slice(kindEnd + 1, nameEnd);
+        items.push({
+            kind: KINDS[row.slice(0, kindEnd)] || "func",
+            name: name,
+            lower: name.toLowerCase(),
+            anchor: row.slice(nameEnd + 1, anchorEnd),
+            detail: row.slice(anchorEnd + 1)
+        });
+    }
+
+    // Where a name really starts: after a qualifier, and at every word boundary inside it.
+    function isBoundary(name, at) {
+        if (!at)
+            return true;
+        var previous = name.charAt(at - 1);
+        if (previous === "." || previous === "_")
+            return true;
+        return previous === previous.toLowerCase() && name.charAt(at) !== name.charAt(at).toLowerCase();
+    }
+
+    // An exact name wins, then one starting on a boundary, then any substring, then the
+    // characters merely in order. A shorter name breaks a tie, so "add" stays above
+    // "addRange" for the same query.
+    function rank(item, query) {
+        var lower = item.lower;
+        var positions = [];
+        var value;
+        var at = lower.indexOf(query);
+        if (at >= 0) {
+            value = lower.length === query.length ? 1000 : (isBoundary(item.name, at) ? 800 : 600);
+            value -= at * 0.5;
+            for (var c = 0; c < query.length; c++)
+                positions.push(at + c);
+        } else {
+            var typed = 0;
+            var run = 0;
+            value = 300;
+            for (var i = 0; i < lower.length && typed < query.length; i++) {
+                if (lower.charAt(i) !== query.charAt(typed)) {
+                    run = 0;
+                    continue;
+                }
+                run++;
+                value += run + (isBoundary(item.name, i) ? 6 : 0);
+                positions.push(i);
+                typed++;
+            }
+            if (typed < query.length)
+                return null;
+            value -= (positions[positions.length - 1] - positions[0]) * 0.4;
+        }
+        return { value: value - lower.length * 0.2, positions: positions, item: item };
+    }
+
+    function search(query) {
+        var found = [];
+        for (var i = 0; i < items.length; i++) {
+            var hit = rank(items[i], query);
+            if (hit)
+                found.push(hit);
+        }
+        found.sort(function (left, right) {
+            if (left.value !== right.value)
+                return right.value - left.value;
+            return left.item.name < right.item.name ? -1 : 1;
+        });
+        return found;
+    }
+
+    function escape(text) {
+        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function highlight(name, positions) {
+        var html = "";
+        var done = 0;
+        var at = 0;
+        while (at < positions.length) {
+            var start = positions[at];
+            var end = start + 1;
+            while (at + 1 < positions.length && positions[at + 1] === end) {
+                end++;
+                at++;
+            }
+            html += escape(name.slice(done, start)) + "<mark>" + escape(name.slice(start, end)) + "</mark>";
+            done = end;
+            at++;
+        }
+        return html + escape(name.slice(done));
+    }
+
+    var form = document.createElement("form");
+    form.className = "site-search";
+    form.setAttribute("role", "search");
+
+    var input = document.createElement("input");
+    input.type = "search";
+    input.className = "site-search-input";
+    input.placeholder = "Search this page";
+    input.setAttribute("aria-label", "Search this page");
+    input.setAttribute("aria-controls", "search-panel");
+    input.setAttribute("aria-expanded", "false");
+    input.setAttribute("autocomplete", "off");
+    input.setAttribute("spellcheck", "false");
+
+    var shortcut = document.createElement("kbd");
+    shortcut.className = "site-search-shortcut";
+    shortcut.textContent = "/";
+
+    var panel = document.createElement("div");
+    panel.id = "search-panel";
+    panel.className = "search-panel";
+    panel.setAttribute("role", "listbox");
+    panel.hidden = true;
+
+    form.appendChild(input);
+    form.appendChild(shortcut);
+    form.appendChild(panel);
+    nav.insertBefore(form, nav.querySelector(".site-links"));
+
+    var hits = [];
+    var current = -1;
+
+    function close() {
+        panel.hidden = true;
+        input.setAttribute("aria-expanded", "false");
+    }
+
+    function select(at) {
+        var rendered = panel.querySelectorAll(".search-hit");
+        for (var i = 0; i < rendered.length; i++) {
+            var isCurrent = i === at;
+            rendered[i].classList.toggle("is-current", isCurrent);
+            rendered[i].setAttribute("aria-selected", isCurrent ? "true" : "false");
+            if (isCurrent)
+                rendered[i].scrollIntoView({ block: "nearest" });
+        }
+        current = at;
+    }
+
+    function render() {
+        var query = input.value.trim().toLowerCase();
+        if (!query) {
+            hits = [];
+            close();
+            return;
+        }
+
+        var found = search(query);
+        hits = found.slice(0, LIMIT);
+
+        var html = "";
+        for (var i = 0; i < hits.length; i++) {
+            var item = hits[i].item;
+            html += '<a class="search-hit search-hit-' + item.kind + '" role="option" href="#' + item.anchor + '">' +
+                '<span class="kind-chip kind-' + item.kind + '">' + item.kind + "</span>" +
+                '<span class="search-hit-name">' + highlight(item.name, hits[i].positions) + "</span>" +
+                (item.detail ? '<span class="search-hit-detail">' + escape(item.detail) + "</span>" : "");
+            html += "</a>";
+        }
+        if (!hits.length)
+            html = '<p class="search-none">No match on this page.</p>';
+        else if (found.length > hits.length)
+            html += '<p class="search-more">' + hits.length + " of " + found.length + " matches</p>";
+
+        panel.innerHTML = html;
+        panel.hidden = false;
+        input.setAttribute("aria-expanded", "true");
+        select(hits.length ? 0 : -1);
+    }
+
+    function open(at) {
+        if (at < 0 || at >= hits.length)
+            return;
+        window.location.hash = "#" + hits[at].item.anchor;
+        close();
+    }
+
+    input.addEventListener("input", render);
+    input.addEventListener("focus", render);
+
+    input.addEventListener("keydown", function (event) {
+        if (event.key === "ArrowDown")
+            select(Math.min(current + 1, hits.length - 1));
+        else if (event.key === "ArrowUp")
+            select(Math.max(current - 1, 0));
+        else if (event.key === "Enter")
+            open(current);
+        else if (event.key === "Escape") {
+            input.value = "";
+            close();
+            input.blur();
+        } else
+            return;
+        event.preventDefault();
+    });
+
+    form.addEventListener("submit", function (event) {
+        event.preventDefault();
+        open(current);
+    });
+
+    panel.addEventListener("click", function () {
+        close();
+    });
+
+    document.addEventListener("click", function (event) {
+        if (!form.contains(event.target))
+            close();
+    });
+
+    // The box is reachable without the mouse from anywhere on the page, and the browser's
+    // own find stays available: "/" is only taken when nothing else is being typed into.
+    document.addEventListener("keydown", function (event) {
+        if (event.defaultPrevented || event.altKey)
+            return;
+        var active = document.activeElement;
+        var typing = active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.isContentEditable);
+        var takes = (event.key === "/" && !typing) || ((event.ctrlKey || event.metaKey) && event.key === "k");
+        if (!takes)
+            return;
+        event.preventDefault();
+        input.focus();
+        input.select();
+    });
+})
+([
+"n|Gui|namespace_Gui|",
+"n|Gui.Clipboard|namespace_Gui_Clipboard|",
+"n|Gui.Testing|namespace_Gui_Testing|",
+"n|Gui.ToolTip|namespace_Gui_ToolTip|",
+"s|Gui.ActionContext|Gui_ActionContext|Identifies the window and command currently evaluated by an action.",
+"s|Gui.Application|Gui_Application|Owns GUI resources, top-level surfaces, input state, and the event loop.",
+"s|Gui.ApplicationOptions|Gui_ApplicationOptions|Development diagnostics available to a GUI application.",
+"s|Gui.CommandEvent|Gui_CommandEvent|Requests execution of a command identified by id.",
+"s|Gui.CommandStateEvent|Gui_CommandStateEvent|Carries computed presentation state for a command between handlers and presenters.",
+"s|Gui.CreateEvent|Gui_CreateEvent|Signals creation of a window.",
+"s|Gui.DestroyEvent|Gui_DestroyEvent|Signals destruction of a window.",
+"s|Gui.Event|Gui_Event|Common routing state embedded by every GUI event.",
+"s|Gui.FocusEvent|Gui_FocusEvent|Carries a keyboard-focus transition or validation request.",
+"s|Gui.FrameEvent|Gui_FrameEvent|Signals one application frame.",
+"s|Gui.InvalidateEvent|Gui_InvalidateEvent|Requests repainting of a window.",
+"s|Gui.Item|Gui_Item|Common label, icon, command, and caller-data payload used by item controls.",
+"s|Gui.KeyEvent|Gui_KeyEvent|Carries a key transition or character input.",
+"s|Gui.Language|Gui_Language|One language the interface can present.",
+"s|Gui.MouseEvent|Gui_MouseEvent|Carries a mouse transition, motion, wheel delta, or cursor query.",
+"s|Gui.MoveEvent|Gui_MoveEvent|Signals a window move.",
+"s|Gui.Movie|Gui_Movie|Plays a sprite sheet or animated GIF as a sequence of image frames.",
+"s|Gui.NotifyEvent|Gui_NotifyEvent|Carries a semantic notification emitted by a control.",
+"s|Gui.PaintEvent|Gui_PaintEvent|Carries the context for one phase of window painting.",
+"s|Gui.QuitEvent|Gui_QuitEvent|Requests application termination.",
+"s|Gui.ResizeEvent|Gui_ResizeEvent|Signals a window resize.",
+"s|Gui.SelModel|Gui_SelModel|Maintains a set of selected indices as sorted, disjoint ranges.",
+"s|Gui.SelRange|Gui_SelRange|Inclusive range of selected indices.",
+"s|Gui.SerializeStateEvent|Gui_SerializeStateEvent|Requests serialization or restoration of window state.",
+"s|Gui.SigArray|Gui_SigArray|Ordered collection of callbacks that can be suspended as a nested scope.",
+"s|Gui.StateEvent|Gui_StateEvent|Signals a window-state transition.",
+"s|Gui.Strings|Gui_Strings|Visible strings of the GUI module.",
+"s|Gui.Surface|Gui_Surface|Top-level drawable window managed by an Application.",
+"s|Gui.SurfaceState|Gui_SurfaceState|Serializable placement and display state of a surface.",
+"s|Gui.SysCommandEvent|Gui_SysCommandEvent|Carries a command requested by the host window system.",
+"s|Gui.SysUserEvent|Gui_SysUserEvent|Carries an application-defined message received from the host window system.",
+"s|Gui.ThemeEvent|Gui_ThemeEvent|Signals a theme-style change.",
+"s|Gui.Timer|Gui_Timer|Repeating timer that sends Gui.TimerEvent values to one target window.",
+"s|Gui.TimerEvent|Gui_TimerEvent|Signals that a registered timer has elapsed.",
+"s|Gui.UndoManager|Gui_UndoManager|Owns a linear undo/redo timeline with optional command grouping.",
+"s|Gui.BreadcrumbCtrl|Gui_BreadcrumbCtrl|Displays a horizontal path whose levels can be activated or expanded into child menus.",
+"s|Gui.BreadcrumbItem|Gui_BreadcrumbItem|Describes one level in a BreadcrumbCtrl.",
+"s|Gui.ColorPickerCtrl|Gui_ColorPickerCtrl|Combines color planes, channel editors, an eyedropper, and an optional palette into one picker.",
+"s|Gui.ComboCtrl|Gui_ComboCtrl|Pairs a descriptive label with a combo box in one horizontal row.",
+"s|Gui.EditCtrl|Gui_EditCtrl|Pairs a descriptive label with a single-line edit box in one horizontal row.",
+"s|Gui.FileBrowserCtrl|Gui_FileBrowserCtrl|Embeds location navigation, a sortable file list, a status line, and name and type editors.",
+"s|Gui.FormLayoutCtrl|Gui_FormLayoutCtrl|Arranges labeled fields from a compact row description instead of fixed coordinates.",
+"s|Gui.FormLayoutOptions|Gui_FormLayoutOptions|Configures the geometry and the label presentation shared by every row in a",
+"s|Gui.FormLayoutRow|Gui_FormLayoutRow|Describes one field row owned and arranged by a Gui.FormLayoutCtrl.",
+"s|Gui.GridLayoutCtrl|Gui_GridLayoutCtrl|Arranges child windows in configurable rows, columns, and spanning cells.",
+"s|Gui.GridTrack|Gui_GridTrack|Defines one row or column of a GridLayoutCtrl.",
+"s|Gui.InfoBar|Gui_InfoBar|Displays a themed inline message with a dismiss action.",
+"s|Gui.ListCtrl|Gui_ListCtrl|Displays selectable flat, multi-column, hierarchical, or virtual rows.",
+"s|Gui.ListItem|Gui_ListItem|Stores one cell in a Gui.ListLine.",
+"s|Gui.ListLine|Gui_ListLine|Stores one row and its optional child rows in a Gui.ListCtrl.",
+"s|Gui.ListView|Gui_ListView|Hosts the scrollable, painted row viewport of a Gui.ListCtrl.",
+"s|Gui.MenuCtrl|Gui_MenuCtrl|Displays either a persistent menu bar or a modal popup menu.",
+"s|Gui.NavigationHistory|Gui_NavigationHistory|Stores linear string locations for back and forward navigation.",
+"s|Gui.PopupListCtrl|Gui_PopupListCtrl|Displays a temporary list that commits one highlighted item or reports cancellation.",
+"s|Gui.PopupListCtrlItem|Gui_PopupListCtrlItem|Stores one selectable item or separator in a popup list.",
+"s|Gui.PopupMenuItem|Gui_PopupMenuItem|Stores one command, submenu, or separator in a Gui.MenuCtrl.",
+"s|Gui.SliderCtrl|Gui_SliderCtrl|Combines a label, slider, and validated numeric editor into one control.",
+"s|Gui.SplitterCtrl|Gui_SplitterCtrl|Arranges resizable panes separated by draggable dividers.",
+"s|Gui.SplitterItem|Gui_SplitterItem|Configures one pane managed by a SplitterCtrl.",
+"s|Gui.StackLayoutCtrl|Gui_StackLayoutCtrl|Arranges visible children as a one-dimensional stack.",
+"s|Gui.WrapLayoutCtrl|Gui_WrapLayoutCtrl|Flows visible children left to right and wraps them into additional rows.",
+"s|Gui.AboutDlg|Gui_AboutDlg|Displays application identity, title, descriptive rich text, and optional icons.",
+"s|Gui.AboutDlgParams|Gui_AboutDlgParams|Configures the content and icons of an Gui.AboutDlg.",
+"s|Gui.Dialog|Gui_Dialog|Owns a modal surface, a content view, and an optional validated action bar.",
+"s|Gui.EditDlg|Gui_EditDlg|Prompts for either a single line or a block of rich text.",
+"s|Gui.EditDlgOptions|Gui_EditDlgOptions|Configures the title, message and initial contents of an Gui.EditDlg.",
+"s|Gui.FileDlg|Gui_FileDlg|Thin modal wrapper around the reusable 'FileBrowserCtrl' composite.",
+"s|Gui.FileDlgOptions|Gui_FileDlgOptions|Configures a Gui.FileDlg or embedded Gui.FileBrowserCtrl.",
+"s|Gui.FileDlgState|Gui_FileDlgState|Stores reusable file-dialog placement and browsing state between invocations.",
+"s|Gui.FormDlg|Gui_FormDlg|Modal dialog whose client area is a form the caller fills with typed fields.",
+"s|Gui.FormDlgOptions|Gui_FormDlgOptions|Configures the surface and buttons of a Gui.FormDlg.",
+"s|Gui.MessageDlg|Gui_MessageDlg|Displays a rich message, optional icon and extension, and caller-defined action buttons.",
+"s|Gui.MessageDlgOptions|Gui_MessageDlgOptions|Configures message content alignment, icon presentation, and post-creation customization.",
+"s|Gui.BlendColor|Gui_BlendColor|Used to animate the blending of a color.",
+"s|Gui.Cursor|Gui_Cursor|Lightweight descriptor for a shared system cursor.",
+"s|Gui.Icon|Gui_Icon|Describes one frame of an Gui.ImageList and its logical draw size.",
+"s|Gui.IconSet|Gui_IconSet|Rasterizes a vector icon document into shared frame lists, one per display size.",
+"s|Gui.ImageList|Gui_ImageList|Describes a texture atlas split into equally sized animation or icon frames.",
+"s|Gui.PaintContext|Gui_PaintContext|Supplies the painter, renderer, and inherited disabled state for one paint event.",
+"s|Gui.PaintImage|Gui_PaintImage|Renders a callback into an owned offscreen image through the GUI renderer.",
+"s|Gui.Theme|Gui_Theme|Groups all render resources, colors, metrics, and atlas rectangles for one GUI theme.",
+"s|Gui.ThemeColors|Gui_ThemeColors|Defines the semantic color palette consumed by GUI controls and painters.",
+"s|Gui.ThemeImageRect|Gui_ThemeImageRect|Describes a scalable region in the theme atlas.",
+"s|Gui.ThemeImageRects|Gui_ThemeImageRects|Maps GUI parts to scalable regions in the theme atlas.",
+"s|Gui.ThemeMetrics|Gui_ThemeMetrics|Defines logical dimensions, spacing, and animation timing for themed GUI elements.",
+"s|Gui.ThemePalette|Gui_ThemePalette|The decisions a theme actually makes.",
+"s|Gui.ThemeResources|Gui_ThemeResources|Owns decoded theme textures, icon atlases, typefaces, and derived font families.",
+"s|Gui.ThemeStyle|Gui_ThemeStyle|Applies local font, color, and metric overrides on top of a shared theme.",
+"s|Gui.ThemeStyleRef|Gui_ThemeStyleRef|Shares one owned theme between copied window styles.",
+"s|Gui.PropValidationResult|Gui_PropValidationResult|Returns one validation severity and its optional user-facing explanation.",
+"s|Gui.Properties|Gui_Properties|Builds and edits reflected structure fields with validation, filtering, defaults, and undo support.",
+"s|Gui.PropertiesCtrl|Gui_PropertiesCtrl|Combines a property editor with optional section navigation, tabs, and search.",
+"s|Gui.PropertiesItem|Gui_PropertiesItem|One row of the property grid: its window, the bound field (typeinfo + address, plus one",
+"s|Gui.RichEditCtrl|Gui_RichEditCtrl|Provides a multiline rich-text editor with styling, selection, undo, and pluggable lexing.",
+"s|Gui.RichEditCursor|Gui_RichEditCursor|Identifies one rune position and preferred horizontal coordinate in a rich document.",
+"s|Gui.RichEditLexerSwag|Gui_RichEditLexerSwag|Provides syntax highlighting for Swag source code.",
+"s|Gui.RichEditLine|Gui_RichEditLine|Stores one logical rich-text line and its per-rune style references.",
+"s|Gui.RichEditRuneStyle|Gui_RichEditRuneStyle|Describes foreground, background, face, and underline styling for one text run.",
+"s|Gui.RichEditUndo|Gui_RichEditUndo|Stores one reversible rich-edit text or selection operation.",
+"s|Gui.RichEditView|Gui_RichEditView|Paints a Gui.RichEditCtrl document and handles its direct input gestures.",
+"s|Gui.Testing.AutoEdit|Gui_Testing_AutoEdit|One labelled edit box of a modal to fill before accepting it.",
+"s|Gui.Testing.AutoStage|Gui_Testing_AutoStage|One step of the auto UI driver (see clickModalButtonWhenShown and friends).",
+"s|Gui.Testing.HeadlessHost|Gui_Testing_HeadlessHost|Hosts deterministic GUI trees, input, timers, modal dialogs, and rendering without an OS window.",
+"s|Gui.Button|Gui_Button|Provides shared pointer state, command-state integration, icons, and activation signals for buttons.",
+"s|Gui.CheckButton|Gui_CheckButton|Lets the user enable an option or choose among three check states.",
+"s|Gui.Circular|Gui_Circular|Provides a circular single-value or range slider.",
+"s|Gui.ColorPicker|Gui_ColorPicker|Selects a color component or component pair from a rendered gradient.",
+"s|Gui.ComboBox|Gui_ComboBox|Displays a compact selection field with a drop-down list.",
+"s|Gui.ComboBoxItem|Gui_ComboBoxItem|Stores one selectable item or separator in a combo box.",
+"s|Gui.EditBox|Gui_EditBox|Edits and validates a single line of text, optionally as a bounded numeric value.",
+"s|Gui.Header|Gui_Header|Displays named, optionally sortable and resizable columns.",
+"s|Gui.HeaderItem|Gui_HeaderItem|Describes one column displayed by a header.",
+"s|Gui.IconBar|Gui_IconBar|Arranges icon buttons and forwards their action and checked-state signals.",
+"s|Gui.IconButton|Gui_IconButton|Displays an icon action with optional label, checked state, arrow, and owned popup.",
+"s|Gui.ImageRect|Gui_ImageRect|Displays a texture, sprite-sheet animation, or animated GIF inside a window.",
+"s|Gui.Label|Gui_Label|Displays rich text and an optional icon, and reports activated links.",
+"s|Gui.PalettePicker|Gui_PalettePicker|Displays a wrapping palette and lets the user select one color.",
+"s|Gui.PasswordEdit|Gui_PasswordEdit|Edits a password without storing its plaintext in a regular text backing store.",
+"s|Gui.ProgressBar|Gui_ProgressBar|Displays finite progress or indeterminate activity.",
+"s|Gui.PushButton|Gui_PushButton|Invokes an action from pointer or keyboard input.",
+"s|Gui.RadioButton|Gui_RadioButton|Lets the user select one option from an optional group.",
+"s|Gui.Separator|Gui_Separator|Draws a plain rule between the docked block before it and the one after it.",
+"s|Gui.Slider|Gui_Slider|Provides a linear single-value or range slider.",
+"s|Gui.Spinner|Gui_Spinner|Reports that work is under way, without claiming to know how much is left.",
+"s|Gui.Tab|Gui_Tab|Displays a selectable tab bar and one owned page view at a time.",
+"s|Gui.TabItem|Gui_TabItem|Describes one tab label and its optional owned page view.",
+"s|Gui.ToggleButton|Gui_ToggleButton|Lets the user switch a Boolean option on or off.",
+"s|Gui.FocusOrder|Gui_FocusOrder|Keyboard traversal stops of one window tree, in the order the eye reads them.",
+"s|Gui.FrameWnd|Gui_FrameWnd|Hosts one view inside an optional themed frame, border, shadow, and callout anchor.",
+"s|Gui.KeyShortcut|Gui_KeyShortcut|Routes a key combination to a command identifier and optional target window.",
+"s|Gui.LayoutDebugInfo|Gui_LayoutDebugInfo|Records the most recent measure and arrange decisions for diagnostics.",
+"s|Gui.LayoutSpec|Gui_LayoutSpec|Configures container-driven sizing and alignment for one child window.",
+"s|Gui.ScrollWnd|Gui_ScrollWnd|Hosts one view in a scrollable viewport with optional smooth panning and scrollbars.",
+"s|Gui.SizeHint|Gui_SizeHint|Describes the minimum, preferred, and maximum size produced by measurement.",
+"s|Gui.SurfaceWnd|Gui_SurfaceWnd|Provides the root GUI frame and native caption controls for a Gui.Surface.",
+"s|Gui.Wnd|Gui_Wnd|Forms one node in a retained GUI tree and provides layout, event, and painting services.",
+"i|Gui.IActionUI|Gui_IActionUI|Handles command discovery, presentation-state updates, and execution.",
+"i|Gui.IEvent|Gui_IEvent|Marker interface implemented by every GUI event.",
+"i|Gui.IUndoCommand|Gui_IUndoCommand|One atomic, reversible change owned by an UndoManager.",
+"i|Gui.IPropertyEditor|Gui_IPropertyEditor|A pluggable property editor. Register an implementing type with Properties.registerEditor",
+"i|Gui.IPropertyNotify|Gui_IPropertyNotify|To notify a struct about properties changes",
+"i|Gui.IRichEditLexer|Gui_IRichEditLexer|Assigns syntax styles to rich-editor lines and optionally handles inserted runes.",
+"i|Gui.IWnd|Gui_IWnd|Receives lifecycle, input, paint, command, and notification events for a Wnd.",
+"e|Gui.CommandStateEvent.Kind|Gui_CommandStateEvent_Kind|Selects whether command state is being computed or applied.",
+"e|Gui.CommandStateEvent.RenderingHint|Gui_CommandStateEvent_RenderingHint|Provides presentation hints for a command.",
+"e|Gui.CommandStateEvent.UpdatedFields|Gui_CommandStateEvent_UpdatedFields|Selects which command-state fields carry an updated value.",
+"e|Gui.FocusEvent.Kind|Gui_FocusEvent_Kind|Identifies a keyboard-focus transition.",
+"e|Gui.KeyEvent.Kind|Gui_KeyEvent_Kind|Identifies a keyboard transition.",
+"e|Gui.MouseEvent.Kind|Gui_MouseEvent_Kind|Identifies a mouse action or transition.",
+"e|Gui.MovieSource|Gui_MovieSource|Identifies the backing source of a Gui.Movie.",
+"e|Gui.NotifyEvent.Kind|Gui_NotifyEvent_Kind|Identifies the semantic notification sent by a control.",
+"e|Gui.PaintEvent.Kind|Gui_PaintEvent_Kind|Identifies the phase of window painting.",
+"e|Gui.PaintItemFlags|Gui_PaintItemFlags|Describes the interaction state in which an item is painted.",
+"e|Gui.StateEvent.Kind|Gui_StateEvent_Kind|Identifies the window-state transition.",
+"e|Gui.SurfaceFlags|Gui_SurfaceFlags|Configures a surface's native chrome, resize behavior, and Z-order class.",
+"e|Gui.SysCommandEvent.Kind|Gui_SysCommandEvent_Kind|Identifies a command requested by the host window system.",
+"e|Gui.ColorPickerFlags|Gui_ColorPickerFlags|Configures the channels available in a color picker control.",
+"e|Gui.ColorPickerViewMode|Gui_ColorPickerViewMode|Selects the two-dimensional plane and the companion channel slider shown by a color picker control.",
+"e|Gui.FormLabelPlacement|Gui_FormLabelPlacement|Selects where a form places labels relative to their fields.",
+"e|Gui.GridLayoutFlags|Gui_GridLayoutFlags|Configures sizing policies applied by a grid layout.",
+"e|Gui.GridTrackKind|Gui_GridTrackKind|Selects how a grid row or column obtains its size.",
+"e|Gui.InfoBarFlags|Gui_InfoBarFlags|Configures information-bar placement and lifetime.",
+"e|Gui.InfoBarKind|Gui_InfoBarKind|Selects the semantic presentation of an information bar.",
+"e|Gui.ListFlags|Gui_ListFlags|Configures list presentation and pointer behavior.",
+"e|Gui.ListSelectionMode|Gui_ListSelectionMode|Selects how rows can be selected in a list control.",
+"e|Gui.MenuFlags|Gui_MenuFlags|Configures menu presentation.",
+"e|Gui.PopupPosition|Gui_PopupPosition|Selects how a popup menu is positioned around its anchor point.",
+"e|Gui.SplitterFlags|Gui_SplitterFlags|Configures splitter orientation and divider painting.",
+"e|Gui.StackLayoutMode|Gui_StackLayoutMode|Selects the direction and distribution policy of a stack layout.",
+"e|Gui.FileDlgMode|Gui_FileDlgMode|Selects what a file dialog accepts.",
+"e|Gui.CursorShape|Gui_CursorShape|Selects a standard system cursor shape.",
+"e|Gui.ThemeIcons|Gui_ThemeIcons|Identifies a glyph of the theme's vector icon set.",
+"e|Gui.PropDefaultState|Gui_PropDefaultState|Result of IPropertyNotify.isItemAtDefault. Auto lets the grid run its built-in comparison.",
+"e|Gui.PropValidation|Gui_PropValidation|Per-item validation state for the property grid, in increasing severity. A field can be",
+"e|Gui.PropertiesAddItemFlags|Gui_PropertiesAddItemFlags|Selects the standard labels created by Properties.addItem.",
+"e|Gui.PropertiesCtrlFlags|Gui_PropertiesCtrlFlags|Configures optional navigation and filtering UI around a property editor.",
+"e|Gui.PropertiesItemFlags|Gui_PropertiesItemFlags|Controls the presentation and interaction of a PropertiesItem.",
+"e|Gui.PropertiesKind|Gui_PropertiesKind|Selects the layout density and presentation of a property editor.",
+"e|Gui.RichEditCommand|Gui_RichEditCommand|Identifies an editor action that can be bound to a keyboard shortcut.",
+"e|Gui.RichEditFlags|Gui_RichEditFlags|Configures editing, selection display, wrapping, and keyboard behavior.",
+"e|Gui.RichEditForm|Gui_RichEditForm|Selects the editor's theme treatment.",
+"e|Gui.RichEditLexerSwag.Style|Gui_RichEditLexerSwag_Style|Identifies a syntax style emitted by the Swag lexer.",
+"e|Gui.RichEditUndoType|Gui_RichEditUndoType|Selects rich edit undo type.",
+"e|Gui.Testing.AutoStageKind|Gui_Testing_AutoStageKind|Selects one action performed by the deterministic modal UI driver.",
+"e|Gui.CheckButtonFlags|Gui_CheckButtonFlags|Configures check button interaction and marker placement.",
+"e|Gui.CheckState|Gui_CheckState|Selects the unchecked, checked, or indeterminate state displayed by a check button.",
+"e|Gui.CircularFlags|Gui_CircularFlags|Configures circular-slider value behavior.",
+"e|Gui.CircularMarkerForm|Gui_CircularMarkerForm|Selects how current values are marked on the track.",
+"e|Gui.CircularStepForm|Gui_CircularStepForm|Selects how discrete positions are drawn around the track.",
+"e|Gui.ColorPickerMode|Gui_ColorPickerMode|Selects the color components mapped to the picker's horizontal and vertical axes.",
+"e|Gui.ComboBoxFlags|Gui_ComboBoxFlags|Configures combo box presentation.",
+"e|Gui.ComboBoxMode|Gui_ComboBoxMode|Selects whether a combo box displays a selection or editable text.",
+"e|Gui.EditBoxCheckResult|Gui_EditBoxCheckResult|Possible outcomes when validating the EditBox content.",
+"e|Gui.EditBoxFlags|Gui_EditBoxFlags|Optional behaviour modifiers for the EditBox.",
+"e|Gui.EditBoxForm|Gui_EditBoxForm|Specifies the visual geometry of the EditBox.",
+"e|Gui.EditBoxInputMode|Gui_EditBoxInputMode|Defines the type of input that the EditBox should accept and validate.",
+"e|Gui.HeaderFlags|Gui_HeaderFlags|Configures header interaction.",
+"e|Gui.HeaderForm|Gui_HeaderForm|Selects header background and border presentation.",
+"e|Gui.HeaderSortDirection|Gui_HeaderSortDirection|Indicates the direction displayed by a column sort marker.",
+"e|Gui.IconBarOrientation|Gui_IconBarOrientation|Selects the axis along which an icon bar arranges its buttons.",
+"e|Gui.IconButtonArrowPosition|Gui_IconButtonArrowPosition|Selects arrow placement and direction around icon button content.",
+"e|Gui.IconButtonCheckIndicator|Gui_IconButtonCheckIndicator|Selects checked-state indicator placement.",
+"e|Gui.IconButtonFlags|Gui_IconButtonFlags|Configures icon button interaction and content presentation.",
+"e|Gui.IconButtonForm|Gui_IconButtonForm|Selects icon button background geometry.",
+"e|Gui.IconButtonTextPosition|Gui_IconButtonTextPosition|Selects label placement relative to the icon.",
+"e|Gui.LabelFlags|Gui_LabelFlags|Configures label text layout and theme emphasis.",
+"e|Gui.ProgressBarFlags|Gui_ProgressBarFlags|Configures progress bar presentation.",
+"e|Gui.PushButtonForm|Gui_PushButtonForm|Selects push button visual emphasis.",
+"e|Gui.RadioButtonFlags|Gui_RadioButtonFlags|Configures radio button marker placement.",
+"e|Gui.SeparatorForm|Gui_SeparatorForm|Selects the weight and the meaning of a Gui.Separator.",
+"e|Gui.SliderFlags|Gui_SliderFlags|Configures linear-slider behavior and presentation.",
+"e|Gui.TabBarForm|Gui_TabBarForm|Selects tab bar background presentation.",
+"e|Gui.TabForm|Gui_TabForm|Selects a coordinated tab bar, item, and page presentation.",
+"e|Gui.TabItemForm|Gui_TabItemForm|Selects individual tab presentation.",
+"e|Gui.TabLayout|Gui_TabLayout|Selects how tab widths are measured.",
+"e|Gui.TabViewForm|Gui_TabViewForm|Selects the selected page frame presentation.",
+"e|Gui.AnchorStyle|Gui_AnchorStyle|Selects which edges or dimensions follow a parent's size delta.",
+"e|Gui.BackgroundStyle|Gui_BackgroundStyle|Selects a semantic theme background for a window.",
+"e|Gui.DockStyle|Gui_DockStyle|Selects automatic placement within the parent's padded client rectangle.",
+"e|Gui.FocusPolicy|Gui_FocusPolicy|Selects how a window takes part in keyboard focus.",
+"e|Gui.FrameWndAnchor|Gui_FrameWndAnchor|Selects the edge from which a popup callout anchor protrudes.",
+"e|Gui.FrameWndFlags|Gui_FrameWndFlags|Configures optional frame decoration.",
+"e|Gui.FrameWndForm|Gui_FrameWndForm|Selects the background and border geometry of a frame window.",
+"e|Gui.LayoutAlign|Gui_LayoutAlign|Selects placement within the cross-axis space assigned by a container.",
+"e|Gui.ScrollWndFlags|Gui_ScrollWndFlags|Configures scrollbar presentation and visibility.",
+"e|Gui.SizePolicy|Gui_SizePolicy|Selects how a layout container may size a window along one axis.",
+"e|Gui.SizingBorder|Gui_SizingBorder|Selects sizing border.",
+"e|Gui.WndFlags|Gui_WndFlags|Configures window state, clipping, paint order, and sibling ordering.",
+"c|Gui.MarkInk|Gui_MarkInk|Ground of every Swag product mark.",
+"c|Gui.MarkVoltage|Gui_MarkVoltage|Glyph of every Swag product mark.",
+"c|Gui.ReferenceLanguage|Gui_ReferenceLanguage|Tag of the reference wording declared by the string tables.",
+"c|Gui.PasswordEdit.MaximumByteLength|Gui_PasswordEdit_MaximumByteLength|Maximum number of UTF-8 plaintext bytes held by one password edit.",
+"a|Gui.Clipboard.ValueFormat|Gui_Clipboard_ValueFormat|Names the value format type.",
+"a|Gui.FrameCallback|Gui_FrameCallback|Callback invoked with the application that is processing a frame.",
+"a|Gui.WndId|Gui_WndId|Stable, non-null identifier used by windows, commands, and modal results.",
+"a|Gui.MenuLabelResolver|Gui_MenuLabelResolver|Answers the label of a menu item every time the menu computes its layout.",
+"a|Gui.PropertyTextResolver|Gui_PropertyTextResolver|Turns a string declared by a property attribute into the text the grid shows.",
+"a|Gui.RichEditStyleRef|Gui_RichEditStyleRef|Names the rich edit style ref type.",
+"a|Gui.HookEvent|Gui_HookEvent|Names the hook event type.",
+"t|Gui.Properties.BoolCombo|Gui_Properties_BoolCombo|Bool edition with a two-entries combo box instead of a check box; 'off' is the",
+"t|Gui.Properties.Category|Gui_Properties_Category|Start a new category. A \"/\"-separated name opens nested subgroups: Category(\"Transform/Advanced\")",
+"t|Gui.Properties.Description|Gui_Properties_Description|Adds explanatory text below the field label.",
+"t|Gui.Properties.EditSize|Gui_Properties_EditSize|Sets the preferred width of the field editor.",
+"t|Gui.Properties.FontName|Gui_Properties_FontName|String edition with a combo box of the system font families; the first entry is",
+"t|Gui.Properties.Gap|Gui_Properties_Gap|Decorator: insert an empty vertical gap ('size' px) above the field.",
+"t|Gui.Properties.Heading|Gui_Properties_Heading|Decorator: insert a bold, non-collapsible divider label above the field.",
+"t|Gui.Properties.HelpBox|Gui_Properties_HelpBox|Decorator: insert an informational note bar above the field.",
+"t|Gui.Properties.KeepAlpha|Gui_Properties_KeepAlpha|Preserves the field's alpha channel while editing its color.",
+"t|Gui.Properties.MinMax|Gui_Properties_MinMax|Constrains numeric editing to an inclusive minimum and maximum.",
+"t|Gui.Properties.MultiLine|Gui_Properties_MultiLine|String edition with an extra '...' button opening a multi-line edition dialog.",
+"t|Gui.Properties.Name|Gui_Properties_Name|Replaces the reflected field name with a presentation label.",
+"t|Gui.Properties.Opaque|Gui_Properties_Opaque|Restricts color editing to opaque colors.",
+"t|Gui.Properties.ReadOnly|Gui_Properties_ReadOnly|Mark a field read-only: it is shown but its editor is grayed and non-editable, and the",
+"t|Gui.Properties.RecalcLayout|Gui_Properties_RecalcLayout|Recomputes the property layout after this field changes.",
+"t|Gui.Properties.SliderMinMax|Gui_Properties_SliderMinMax|Edits a floating-point value with a slider over the supplied range.",
+"t|Gui.Properties.Unit|Gui_Properties_Unit|Displays a unit suffix beside the field editor.",
+"f|Gui.Application.addTimer|Gui_Application_addTimer|Creates a repeating timer that sends TimerEvent values to target.",
+"f|Gui.Application.appIconAt|Gui_Application_appIconAt|Returns the application mark at size logical pixels, or an invalid icon when the",
+"f|Gui.Application.applyTestArgs|Gui_Application_applyTestArgs|Kept for callers that still bound their own run; a smoke run already bounds itself.",
+"f|Gui.Application.createSurface|Gui_Application_createSurface|Creates an initially hidden top-level surface.",
+"f|Gui.Application.deltaSeconds|Gui_Application_deltaSeconds|Returns the duration of the current frame, in seconds.",
+"f|Gui.Application.directoryIcon|Gui_Application_directoryIcon|Returns the native shell icon for a directory.",
+"f|Gui.Application.doModalLoop|Gui_Application_doModalLoop|Runs a nested event loop for surface and returns the identifier passed to exitModal.",
+"f|Gui.Application.exitModal|Gui_Application_exitModal|Ends the innermost modal loop with exitId as its result.",
+"f|Gui.Application.fileIcon|Gui_Application_fileIcon|Returns the native shell icon for a file name or extension.",
+"f|Gui.Application.invalidate|Gui_Application_invalidate|Schedules every surface for a complete repaint.",
+"f|Gui.Application.keyboardRef|Gui_Application_keyboardRef|Returns a mutable borrow of the keyboard state.",
+"f|Gui.Application.language|Gui_Application_language|Returns the active language tag, \"en\" by default.",
+"f|Gui.Application.loadState|Gui_Application_loadState|Loads serializable surface placement from the configured state file.",
+"f|Gui.Application.loadTheme|Gui_Application_loadTheme|Applies the theme sheet resource themes/\u003Cname>.tweak and refreshes every surface.",
+"f|Gui.Application.mouseCapture|Gui_Application_mouseCapture|Returns the window currently holding mouse capture.",
+"f|Gui.Application.mouseRef|Gui_Application_mouseRef|Returns a mutable borrow of the mouse state.",
+"f|Gui.Application.notifyThemeChanged|Gui_Application_notifyThemeChanged|Recomputes styles and emits a theme-change notification throughout every surface tree.",
+"f|Gui.Application.opDrop|Gui_Application_opDrop|Releases resources owned by this value.",
+"f|Gui.Application.postEvent|Gui_Application_postEvent|Queues an event from any thread for delivery during the next frame.",
+"f|Gui.Application.postQuitEvent|Gui_Application_postQuitEvent|Posts a thread-safe request to leave the event loop with quitCode.",
+"f|Gui.Application.registerFrameEvent|Gui_Application_registerFrameEvent|Asks for Gui.IWnd.onFrameEvent on target at the start of every rendered frame.",
+"f|Gui.Application.registerHotKey|Gui_Application_registerHotKey|Registers or replaces a system-wide keyboard shortcut routed to target as wndId.",
+"f|Gui.Application.removeTimer|Gui_Application_removeTimer|Removes and destroys a timer created by addTimer.",
+"f|Gui.Application.run|Gui_Application_run|Processes frames until a quit event is received and returns its exit code.",
+"f|Gui.Application.runFrame|Gui_Application_runFrame|Processes one complete input, event, paint, and frame-callback cycle.",
+"f|Gui.Application.runSurface|Gui_Application_runSurface|Creates a main surface and runs its application until shutdown.",
+"f|Gui.Application.saveState|Gui_Application_saveState|Saves serializable surface placement to the configured state file.",
+"f|Gui.Application.sendEvent|Gui_Application_sendEvent|Delivers an event synchronously through the GUI routing chain.",
+"f|Gui.Application.setAppIcon|Gui_Application_setAppIcon|Selects the application icon before the first surface is created.",
+"f|Gui.Application.setFrameCursor|Gui_Application_setFrameCursor|Selects the cursor for the current frame; the next frame restores automatic selection.",
+"f|Gui.Application.setGlobalHotKeysEnabled|Gui_Application_setGlobalHotKeysEnabled|Enables or disables all shortcuts registered with registerHotKey.",
+"f|Gui.Application.setLanguage|Gui_Application_setLanguage|Applies the language tag to every registered string table and refreshes every surface.",
+"f|Gui.Application.setRenderer|Gui_Application_setRenderer|Selects the renderer borrowed by every painter and surface of this application.",
+"f|Gui.Application.setStatePath|Gui_Application_setStatePath|Selects the file used to persist surface placement with saveState and loadState.",
+"f|Gui.Application.setSystemLanguage|Gui_Application_setSystemLanguage|Applies the registered language that best matches the language of the user account.",
+"f|Gui.Application.unregisterAllHotKeys|Gui_Application_unregisterAllHotKeys|Unregisters every system-wide keyboard shortcut owned by this application.",
+"f|Gui.Application.unregisterFrameEvent|Gui_Application_unregisterFrameEvent|Stops sending target the per-frame event. Sending it one it no longer wants is harmless.",
+"f|Gui.Application.unregisterHotKey|Gui_Application_unregisterHotKey|Unregisters a system-wide keyboard shortcut and returns whether it existed.",
+"f|Gui.Clipboard.addImage|Gui_Clipboard_addImage|Replaces the clipboard contents with image in native bitmap and PNG formats.",
+"f|Gui.Clipboard.addString|Gui_Clipboard_addString|Adds or replaces UTF-8 text in UTF-16 and legacy formats without clearing other formats.",
+"f|Gui.Clipboard.addTypedData|Gui_Clipboard_addTypedData|Adds or replaces a raw payload and optional type fingerprint without clearing other formats.",
+"f|Gui.Clipboard.addTypedValue|Gui_Clipboard_addTypedValue|Copies a supported value or serializable typed value to the clipboard.",
+"f|Gui.Clipboard.clear|Gui_Clipboard_clear|Removes every value from the clipboard.",
+"f|Gui.Clipboard.getImage|Gui_Clipboard_getImage|Returns a decoded copy of the clipboard image, or an invalid image when unavailable.",
+"f|Gui.Clipboard.getString|Gui_Clipboard_getString|Returns clipboard text converted to UTF-8, or an empty string when unavailable.",
+"f|Gui.Clipboard.getTypedData|Gui_Clipboard_getTypedData|Returns a copy of the raw payload stored under fmt, when its optional type matches.",
+"f|Gui.Clipboard.getTypedValue|Gui_Clipboard_getTypedValue|Decodes a clipboard value into initialized storage and reports success.",
+"f|Gui.Clipboard.hasFormat|Gui_Clipboard_hasFormat|Reports whether the clipboard contains fmt.",
+"f|Gui.Clipboard.hasImage|Gui_Clipboard_hasImage|Reports whether the clipboard contains a decodable image.",
+"f|Gui.Clipboard.hasString|Gui_Clipboard_hasString|Reports whether the clipboard contains text.",
+"f|Gui.Clipboard.hasTypedData|Gui_Clipboard_hasTypedData|Reports whether fmt exists and, when provided, carries the requested type fingerprint.",
+"f|Gui.Clipboard.hasTypedValue|Gui_Clipboard_hasTypedValue|Reports whether the clipboard contains a value compatible with type.",
+"f|Gui.Clipboard.isFake|Gui_Clipboard_isFake|Reports whether clipboard calls go to the process-local store rather than to the system.",
+"f|Gui.Clipboard.registerFormat|Gui_Clipboard_registerFormat|Registers a named native clipboard format.",
+"f|Gui.Clipboard.resetFake|Gui_Clipboard_resetFake|Empties the process-local store.",
+"f|Gui.Event.create|Gui_Event_create|Allocates an owned event for Wnd.postEvent; the event queue releases it after dispatch.",
+"f|Gui.IActionUI.accept|Gui_IActionUI_accept|Reports whether this action handles the command in context.",
+"f|Gui.IActionUI.execute|Gui_IActionUI_execute|Executes an accepted command.",
+"f|Gui.IActionUI.update|Gui_IActionUI_update|Updates presentation state for an accepted command.",
+"f|Gui.IUndoCommand.redo|Gui_IUndoCommand_redo|Applies or reapplies the change.",
+"f|Gui.IUndoCommand.undo|Gui_IUndoCommand_undo|Reverts the change.",
+"f|Gui.Movie.clear|Gui_Movie_clear|Removes all content.",
+"f|Gui.Movie.isValid|Gui_Movie_isValid|Reports whether a playable source is loaded.",
+"f|Gui.Movie.load|Gui_Movie_load|Loads an animated GIF from a file without changing the movie on failure.",
+"f|Gui.Movie.setFrameIndex|Gui_Movie_setFrameIndex|Selects a frame, clamping the index to the loaded frame range.",
+"f|Gui.Movie.setPaused|Gui_Movie_setPaused|Pauses or resumes time-based playback.",
+"f|Gui.Movie.setSpriteSheet|Gui_Movie_setSpriteSheet|Uses a borrowed image-list atlas as the frame source.",
+"f|Gui.Movie.update|Gui_Movie_update|Advances playback by deltaSeconds and reports whether the frame changed.",
+"f|Gui.SelModel.clear|Gui_SelModel_clear|Removes every selected range.",
+"f|Gui.SelModel.isEmpty|Gui_SelModel_isEmpty|Reports whether no index is selected.",
+"f|Gui.SelModel.isSelected|Gui_SelModel_isSelected|Reports whether index is selected.",
+"f|Gui.SelModel.opVisit|Gui_SelModel_opVisit|Block parameters: item is the selected index and index its selection ordinal.",
+"f|Gui.SelModel.rangeCount|Gui_SelModel_rangeCount|Returns the number of selected ranges.",
+"f|Gui.SelModel.rangeIndexContaining|Gui_SelModel_rangeIndexContaining|Returns the index of the range containing index, or Swag.U32.Max when unselected.",
+"f|Gui.SelModel.ranges|Gui_SelModel_ranges|Returns a read-only view of the selected ranges in ascending order.",
+"f|Gui.SelModel.select|Gui_SelModel_select|Selects one index.",
+"f|Gui.SelModel.selectRange|Gui_SelModel_selectRange|Selects the inclusive range between first and last.",
+"f|Gui.SelModel.selectedCount|Gui_SelModel_selectedCount|Returns the number of selected indices.",
+"f|Gui.SelModel.setSelected|Gui_SelModel_setSelected|Sets the selected state of one index.",
+"f|Gui.SelModel.unselect|Gui_SelModel_unselect|Unselects one index.",
+"f|Gui.SelModel.unselectRange|Gui_SelModel_unselectRange|Unselects the inclusive range between first and last.",
+"f|Gui.Surface.bringToFront|Gui_Surface_bringToFront|Brings the surface to the front of its current Z-order group.",
+"f|Gui.Surface.center|Gui_Surface_center|Centers this surface over from without changing its size.",
+"f|Gui.Surface.constrainPositionToScreen|Gui_Surface_constrainPositionToScreen|Moves the surface inside the closest monitor's bounds.",
+"f|Gui.Surface.cornerRadius|Gui_Surface_cornerRadius|Returns the themed corner radius, or zero when rounding is disabled by the surface state.",
+"f|Gui.Surface.destroy|Gui_Surface_destroy|Schedules the surface and its complete window tree for destruction.",
+"f|Gui.Surface.disable|Gui_Surface_disable|Disables input for the surface.",
+"f|Gui.Surface.enable|Gui_Surface_enable|Enables input for the surface.",
+"f|Gui.Surface.hide|Gui_Surface_hide|Hides the surface without destroying it.",
+"f|Gui.Surface.invalidate|Gui_Surface_invalidate|Schedules the complete surface for repainting.",
+"f|Gui.Surface.invalidateRect|Gui_Surface_invalidateRect|Adds a rectangle in surface coordinates to the pending repaint region.",
+"f|Gui.Surface.isTopMost|Gui_Surface_isTopMost|Returns whether the surface belongs to the topmost Z-order group.",
+"f|Gui.Surface.removeTrayIcon|Gui_Surface_removeTrayIcon|Removes the notification-area icon owned by this surface, if any.",
+"f|Gui.Surface.renderingContext|Gui_Surface_renderingContext|Returns the drawable and viewport of this surface.",
+"f|Gui.Surface.requestClose|Gui_Surface_requestClose|Requests a close through the regular system-command event path.",
+"f|Gui.Surface.requestMaximize|Gui_Surface_requestMaximize|Requests maximization through the regular system-command event path.",
+"f|Gui.Surface.requestMinimize|Gui_Surface_requestMinimize|Requests minimization through the regular system-command event path.",
+"f|Gui.Surface.requestRestore|Gui_Surface_requestRestore|Requests restoration through the regular system-command event path.",
+"f|Gui.Surface.screenToSurface|Gui_Surface_screenToSurface|Converts pt in place from physical screen pixels to logical surface coordinates.",
+"f|Gui.Surface.sendCustomMessage|Gui_Surface_sendCustomMessage|Send a custom message to the surface application with name 'surfaceId'",
+"f|Gui.Surface.setIcon|Gui_Surface_setIcon|Changes the icon displayed in the surface title bar.",
+"f|Gui.Surface.setPosition|Gui_Surface_setPosition|Sets the surface bounds in physical screen pixels, clamped to Gui.Surface.minSize and Gui.Surface.maxSize.",
+"f|Gui.Surface.setTitle|Gui_Surface_setTitle|Changes the surface title, or clears it when name is null.",
+"f|Gui.Surface.setTopMost|Gui_Surface_setTopMost|Enables or disables placement above all non-topmost windows.",
+"f|Gui.Surface.setTrayIcon|Gui_Surface_setTrayIcon|Show 'icon' for this surface in the notification area (system tray), with an",
+"f|Gui.Surface.setView|Gui_Surface_setView|Replaces and destroys the current user view, then attaches view to this surface.",
+"f|Gui.Surface.shadowMargin|Gui_Surface_shadowMargin|Returns the transparent margin, in logical units, the surface keeps around its body.",
+"f|Gui.Surface.show|Gui_Surface_show|Shows the surface and emits its one-time initialization event when needed.",
+"f|Gui.Surface.showMaximized|Gui_Surface_showMaximized|Shows the surface maximized and preserves its previous bounds for restoration.",
+"f|Gui.Surface.showMinimized|Gui_Surface_showMinimized|Shows the surface minimized.",
+"f|Gui.Surface.showNormal|Gui_Surface_showNormal|Restores a minimized or maximized surface to its normal bounds.",
+"f|Gui.Surface.size|Gui_Surface_size|Returns the logical client size of the surface.",
+"f|Gui.Surface.surfaceToScreen|Gui_Surface_surfaceToScreen|Converts pt in place from logical surface coordinates to physical screen pixels.",
+"f|Gui.Surface.updateFlags|Gui_Surface_updateFlags|Adds and removes runtime-changeable surface flags.",
+"f|Gui.Surface.view|Gui_Surface_view|Returns the root user view displayed by the surface.",
+"f|Gui.Surface.win32Handle|Gui_Surface_win32Handle|Returns the Win32 window handle owned by this surface.",
+"f|Gui.Timer.restart|Gui_Timer_restart|Restarts the period from the current instant.",
+"f|Gui.ToolTip.hide|Gui_ToolTip_hide|Hides the current or pending tooltip.",
+"f|Gui.ToolTip.show|Gui_ToolTip_show|Shows str near surfacePos, after delay, for owner.",
+"f|Gui.UndoManager.appliedCount|Gui_UndoManager_appliedCount|Returns the number of commands currently applied.",
+"f|Gui.UndoManager.canRedo|Gui_UndoManager_canRedo|Reports whether at least one command group can be redone.",
+"f|Gui.UndoManager.canUndo|Gui_UndoManager_canUndo|Reports whether at least one command group can be undone.",
+"f|Gui.UndoManager.clear|Gui_UndoManager_clear|Drops every owned command and resets the timeline.",
+"f|Gui.UndoManager.count|Gui_UndoManager_count|Returns the number of commands on the timeline, including the redo tail.",
+"f|Gui.UndoManager.newSerial|Gui_UndoManager_newSerial|Returns a fresh group identifier for commands that must be undone and redone together.",
+"f|Gui.UndoManager.opDrop|Gui_UndoManager_opDrop|Releases resources owned by this value.",
+"f|Gui.UndoManager.push|Gui_UndoManager_push|Allocates a heap copy of cmd (which must implement IUndoCommand), pushes it as its own",
+"f|Gui.UndoManager.pushCmd|Gui_UndoManager_pushCmd|Push a command onto the timeline. Any redo tail is discarded first (its commands are",
+"f|Gui.UndoManager.redo|Gui_UndoManager_redo|Reapplies the next command group, if any.",
+"f|Gui.UndoManager.undo|Gui_UndoManager_undo|Reverts the previous command group, if any.",
+"f|Gui.activeLanguage|Gui_activeLanguage|Returns the active language tag, \"en\" by default. The value is borrowed and",
+"f|Gui.applyLanguage|Gui_applyLanguage|Applies the language tag to every registered string table.",
+"f|Gui.findLanguage|Gui_findLanguage|Returns the registered language named by tag, or null when no language carries it.",
+"f|Gui.languages|Gui_languages|Returns the registered languages, Gui.ReferenceLanguage first.",
+"f|Gui.newCmdId|Gui_newCmdId|Declares a command identifier whose value is qualified by the current scope name.",
+"f|Gui.registerLanguage|Gui_registerLanguage|Registers a language the interface can present.",
+"f|Gui.registerStrings|Gui_registerStrings|Registers a string table so language switches retarget it.",
+"f|Gui.strings|Gui_strings|Returns the visible strings of the GUI module in the active language.",
+"f|Gui.systemLanguage|Gui_systemLanguage|Returns the registered tag that best matches the language of the user account.",
+"f|Gui.validateStrings|Gui_validateStrings|Decodes content against the string table type T without touching any live table.",
+"f|Gui.BreadcrumbCtrl.addItem|Gui_BreadcrumbCtrl_addItem|Appends a level and returns its index.",
+"f|Gui.BreadcrumbCtrl.clear|Gui_BreadcrumbCtrl_clear|Removes every level and clears pointer interaction state.",
+"f|Gui.BreadcrumbCtrl.create|Gui_BreadcrumbCtrl_create|Creates an empty breadcrumb control.",
+"f|Gui.BreadcrumbCtrl.itemAt|Gui_BreadcrumbCtrl_itemAt|Returns the level at index.",
+"f|Gui.BreadcrumbCtrl.layout|Gui_BreadcrumbCtrl_layout|Recomputes per-level bounds in control-local coordinates.",
+"f|Gui.BreadcrumbCtrl.openMenu|Gui_BreadcrumbCtrl_openMenu|Open the drop-down for the level at 'index', letting the app fill it, and report the",
+"f|Gui.BreadcrumbCtrl.removeItemsFrom|Gui_BreadcrumbCtrl_removeItemsFrom|Removes index and every level after it.",
+"f|Gui.BreadcrumbCtrl.setLayoutMetrics|Gui_BreadcrumbCtrl_setLayoutMetrics|Changes body padding, icon spacing, and child-arrow padding.",
+"f|Gui.ColorPickerCtrl.color|Gui_ColorPickerCtrl_color|Returns the selected color.",
+"f|Gui.ColorPickerCtrl.create|Gui_ColorPickerCtrl_create|Creates a color picker with channel planes, numeric editors, and an eyedropper.",
+"f|Gui.ColorPickerCtrl.createWithPalette|Gui_ColorPickerCtrl_createWithPalette|Creates a color picker with a nine-item palette above it.",
+"f|Gui.ColorPickerCtrl.setColor|Gui_ColorPickerCtrl_setColor|Changes the selected color and optionally emits sigColorChanged once.",
+"f|Gui.ColorPickerCtrl.setColorPreservingAlpha|Gui_ColorPickerCtrl_setColorPreservingAlpha|Changes the selected RGB channels while preserving alpha.",
+"f|Gui.ColorPickerCtrl.setMode|Gui_ColorPickerCtrl_setMode|Changes the channel plane and companion slider while preserving the selected color.",
+"f|Gui.ColorPickerCtrl.setOriginalColor|Gui_ColorPickerCtrl_setOriginalColor|Changes the comparison color shown in the original-color preview.",
+"f|Gui.ComboCtrl.create|Gui_ComboCtrl_create|Creates a labelled combo box.",
+"f|Gui.ComboCtrl.setLayoutMetrics|Gui_ComboCtrl_setLayoutMetrics|Changes label width, combo width, and spacing, then reapplies layout.",
+"f|Gui.EditCtrl.create|Gui_EditCtrl_create|Creates a labelled single-line edit box.",
+"f|Gui.EditCtrl.setLayoutMetrics|Gui_EditCtrl_setLayoutMetrics|Changes label width, edit width, and spacing, then reapplies layout.",
+"f|Gui.FileBrowserCtrl.canGoBack|Gui_FileBrowserCtrl_canGoBack|Returns whether a previous folder is available in this browser session.",
+"f|Gui.FileBrowserCtrl.canGoForward|Gui_FileBrowserCtrl_canGoForward|Returns whether a later folder is available in this browser session.",
+"f|Gui.FileBrowserCtrl.create|Gui_FileBrowserCtrl_create|Creates an embedded file browser inside parent.",
+"f|Gui.FileBrowserCtrl.createFolder|Gui_FileBrowserCtrl_createFolder|Creates a folder inside Gui.FileBrowserCtrl.currentFolder and refreshes the list on success.",
+"f|Gui.FileBrowserCtrl.fileName|Gui_FileBrowserCtrl_fileName|Returns the current contents of the file or folder name editor.",
+"f|Gui.FileBrowserCtrl.goBack|Gui_FileBrowserCtrl_goBack|Navigates to the previous folder; returns false when history has no valid entry.",
+"f|Gui.FileBrowserCtrl.goForward|Gui_FileBrowserCtrl_goForward|Navigates to the next folder; returns false when history has no valid entry.",
+"f|Gui.FileBrowserCtrl.goUp|Gui_FileBrowserCtrl_goUp|Navigates to the parent folder; returns false at a root or when it is unavailable.",
+"f|Gui.FileBrowserCtrl.hasValidSelection|Gui_FileBrowserCtrl_hasValidSelection|Returns whether the current selection satisfies the configured dialog mode.",
+"f|Gui.FileBrowserCtrl.noteAccepted|Gui_FileBrowserCtrl_noteAccepted|Records the accepted selection into the reusable dialog state.",
+"f|Gui.FileBrowserCtrl.recordRecentFolder|Gui_FileBrowserCtrl_recordRecentFolder|Puts folder at the front of the recent list, keeping at most eight unique entries.",
+"f|Gui.FileBrowserCtrl.refresh|Gui_FileBrowserCtrl_refresh|Refresh the file list of the current folder.",
+"f|Gui.FileBrowserCtrl.selectedPath|Gui_FileBrowserCtrl_selectedPath|Returns the first selected full path, or an empty string when selection is invalid.",
+"f|Gui.FileBrowserCtrl.selectedPaths|Gui_FileBrowserCtrl_selectedPaths|Returns all selected full paths in display order.",
+"f|Gui.FileBrowserCtrl.setCurrentFolder|Gui_FileBrowserCtrl_setCurrentFolder|Navigates to folder; returns false when it does not name an existing directory.",
+"f|Gui.FileBrowserCtrl.setFileName|Gui_FileBrowserCtrl_setFileName|Changes the contents of the file or folder name editor.",
+"f|Gui.FileBrowserCtrl.typedFolderTarget|Gui_FileBrowserCtrl_typedFolderTarget|Returns the folder the name editor points to, or an empty string.",
+"f|Gui.FormLayoutCtrl.addChoiceField|Gui_FormLayoutCtrl_addChoiceField|Creates a selection-only field, appends its labeled row, and returns the combo box.",
+"f|Gui.FormLayoutCtrl.addField|Gui_FormLayoutCtrl_addField|Appends a labeled field and returns its row index.",
+"f|Gui.FormLayoutCtrl.addOptionField|Gui_FormLayoutCtrl_addOptionField|Creates an option the reader turns on or off, appends its row, and returns the check box.",
+"f|Gui.FormLayoutCtrl.addPasswordField|Gui_FormLayoutCtrl_addPasswordField|Creates a masked password field, appends its labeled row, and returns the editor.",
+"f|Gui.FormLayoutCtrl.addRowAction|Gui_FormLayoutCtrl_addRowAction|Adds the trailing button of the row appended last and returns it.",
+"f|Gui.FormLayoutCtrl.addRowChoice|Gui_FormLayoutCtrl_addRowChoice|Adds the trailing selector of the row appended last and returns it.",
+"f|Gui.FormLayoutCtrl.addTextField|Gui_FormLayoutCtrl_addTextField|Creates an editable text field, appends its labeled row, and returns the editor.",
+"f|Gui.FormLayoutCtrl.clear|Gui_FormLayoutCtrl_clear|Removes every row and destroys its controls.",
+"f|Gui.FormLayoutCtrl.computeLayout|Gui_FormLayoutCtrl_computeLayout|Arranges every row inside the padded client rectangle.",
+"f|Gui.FormLayoutCtrl.create|Gui_FormLayoutCtrl_create|Creates an empty form layout inside parent.",
+"f|Gui.FormLayoutCtrl.setRowHelp|Gui_FormLayoutCtrl_setRowHelp|Replaces the help text of row index, which must already have one.",
+"f|Gui.FormLayoutCtrl.setRowLabel|Gui_FormLayoutCtrl_setRowLabel|Replaces the label of row index.",
+"f|Gui.GridLayoutCtrl.computeLayout|Gui_GridLayoutCtrl_computeLayout|Recomputes track sizes and arranges every assigned child.",
+"f|Gui.GridLayoutCtrl.create|Gui_GridLayoutCtrl_create|Creates an empty grid with numColumns columns and numRows rows.",
+"f|Gui.GridLayoutCtrl.setCell|Gui_GridLayoutCtrl_setCell|Assigns child to a cell and optional column/row span.",
+"f|Gui.GridLayoutCtrl.setColumnSize|Gui_GridLayoutCtrl_setColumnSize|Sets one column to a fixed pixel size.",
+"f|Gui.GridLayoutCtrl.setColumnTrack|Gui_GridLayoutCtrl_setColumnTrack|Configures one column track.",
+"f|Gui.GridLayoutCtrl.setRowSize|Gui_GridLayoutCtrl_setRowSize|Sets one row to a fixed pixel size.",
+"f|Gui.GridLayoutCtrl.setRowTrack|Gui_GridLayoutCtrl_setRowTrack|Configures one row track.",
+"f|Gui.InfoBar.create|Gui_InfoBar_create|Creates and lays out an information bar.",
+"f|Gui.InfoBar.dismiss|Gui_InfoBar_dismiss|Emits sigDismissed and destroys the bar.",
+"f|Gui.InfoBar.setKind|Gui_InfoBar_setKind|Changes semantic presentation and reapplies current theme colors.",
+"f|Gui.InfoBar.setText|Gui_InfoBar_setText|Changes the displayed message.",
+"f|Gui.ListCtrl.addColumn|Gui_ListCtrl_addColumn|Adds a named column to the list header.",
+"f|Gui.ListCtrl.checkedLines|Gui_ListCtrl_checkedLines|Returns the retained rows currently checked, or an empty array in virtual mode.",
+"f|Gui.ListCtrl.clear|Gui_ListCtrl_clear|Removes all retained or virtual rows and clears selection, checks, and focus.",
+"f|Gui.ListCtrl.clearCheckedLines|Gui_ListCtrl_clearCheckedLines|Clears all checked rows and emits Gui.ListCtrl.sigCheckedChanged when needed.",
+"f|Gui.ListCtrl.clearFocusedLine|Gui_ListCtrl_clearFocusedLine|Clears the keyboard-focused row without changing selection.",
+"f|Gui.ListCtrl.collapse|Gui_ListCtrl_collapse|Collapse the given line",
+"f|Gui.ListCtrl.collapseAll|Gui_ListCtrl_collapseAll|Collapse all lines",
+"f|Gui.ListCtrl.computeLayout|Gui_ListCtrl_computeLayout|Compute global layout, once all lines have been added",
+"f|Gui.ListCtrl.createLine|Gui_ListCtrl_createLine|Creates an empty root or child row and returns its retained object.",
+"f|Gui.ListCtrl.createMultiColumns|Gui_ListCtrl_createMultiColumns|Creates a list control configured for multiple columns.",
+"f|Gui.ListCtrl.createSimple|Gui_ListCtrl_createSimple|Creates a list without a column header.",
+"f|Gui.ListCtrl.ensureVisibleLine|Gui_ListCtrl_ensureVisibleLine|Scrolls enough to make the row at idx fully visible.",
+"f|Gui.ListCtrl.expand|Gui_ListCtrl_expand|Expand the given line",
+"f|Gui.ListCtrl.firstVisibleLineIndex|Gui_ListCtrl_firstVisibleLineIndex|Returns the first visible row index, or Swag.U32.Max when empty.",
+"f|Gui.ListCtrl.focusedLine|Gui_ListCtrl_focusedLine|Returns the retained row with keyboard focus, or null in virtual mode or without focus.",
+"f|Gui.ListCtrl.hasVisibleCheckBoxes|Gui_ListCtrl_hasVisibleCheckBoxes|Returns whether this value has visible check boxes.",
+"f|Gui.ListCtrl.isLineChecked|Gui_ListCtrl_isLineChecked|Reports whether the row at index is checked.",
+"f|Gui.ListCtrl.isLineSelected|Gui_ListCtrl_isLineSelected|Reports whether the row at index is selected.",
+"f|Gui.ListCtrl.lastVisibleLineIndex|Gui_ListCtrl_lastVisibleLineIndex|Returns the last visible row index, or Swag.U32.Max when empty.",
+"f|Gui.ListCtrl.lineAt|Gui_ListCtrl_lineAt|Returns the visible row at index.",
+"f|Gui.ListCtrl.lineCount|Gui_ListCtrl_lineCount|Returns the number of visible or virtual rows.",
+"f|Gui.ListCtrl.lineHeight|Gui_ListCtrl_lineHeight|Returns the effective row height for the current font and configuration.",
+"f|Gui.ListCtrl.selectLine|Gui_ListCtrl_selectLine|Selects or unselects one row and emits Gui.ListCtrl.sigSelectionChanged when needed.",
+"f|Gui.ListCtrl.selectLines|Gui_ListCtrl_selectLines|Selects or unselects an inclusive row range.",
+"f|Gui.ListCtrl.selectedLine|Gui_ListCtrl_selectedLine|Returns a selected line",
+"f|Gui.ListCtrl.selectedLines|Gui_ListCtrl_selectedLines|Returns the retained rows currently selected, or an empty array in virtual mode.",
+"f|Gui.ListCtrl.setColumnWidth|Gui_ListCtrl_setColumnWidth|Changes one header column width.",
+"f|Gui.ListCtrl.setFirstColumnIconMargin|Gui_ListCtrl_setFirstColumnIconMargin|Controls whether the first column reserves icon space for rows without icons.",
+"f|Gui.ListCtrl.setFocusedIndex|Gui_ListCtrl_setFocusedIndex|Moves keyboard focus to one row without changing selection.",
+"f|Gui.ListCtrl.setHorizontalExtent|Gui_ListCtrl_setHorizontalExtent|Sets an explicit content width; zero derives it from the view or header.",
+"f|Gui.ListCtrl.setIconSize|Gui_ListCtrl_setIconSize|Changes the square icon draw size; zero preserves icon descriptor sizes.",
+"f|Gui.ListCtrl.setIndentWidth|Gui_ListCtrl_setIndentWidth|Changes the indentation applied at each hierarchy level.",
+"f|Gui.ListCtrl.setLeftTextMargin|Gui_ListCtrl_setLeftTextMargin|Changes the leading text margin shared by all rows.",
+"f|Gui.ListCtrl.setLineChecked|Gui_ListCtrl_setLineChecked|Changes the checked state of one checkable row.",
+"f|Gui.ListCtrl.setLineHeight|Gui_ListCtrl_setLineHeight|Sets a fixed row height; zero derives it from the current font.",
+"f|Gui.ListCtrl.setSelectionMode|Gui_ListCtrl_setSelectionMode|Changes the row-selection policy and normalizes the current selection.",
+"f|Gui.ListCtrl.setVirtualCount|Gui_ListCtrl_setVirtualCount|Switches to virtual mode with count logical rows.",
+"f|Gui.ListCtrl.sort|Gui_ListCtrl_sort|Sort the list by a given column",
+"f|Gui.ListCtrl.toggleExpand|Gui_ListCtrl_toggleExpand|Collapse the given line",
+"f|Gui.ListCtrl.unselectAll|Gui_ListCtrl_unselectAll|Clears the selected row set and emits Gui.ListCtrl.sigSelectionChanged when needed.",
+"f|Gui.ListCtrl.updateFlags|Gui_ListCtrl_updateFlags|Adds and removes presentation or pointer options, then repaints the list.",
+"f|Gui.ListLine.canExpand|Gui_ListLine_canExpand|Returns whether this value can expand.",
+"f|Gui.ListLine.isParentOf|Gui_ListLine_isParentOf|Returns whether parent of.",
+"f|Gui.ListLine.itemAt|Gui_ListLine_itemAt|Returns the cell assigned to column.",
+"f|Gui.ListLine.setItem|Gui_ListLine_setItem|Initialize a given column item",
+"f|Gui.MenuCtrl.addGroup|Gui_MenuCtrl_addGroup|Adds a command group followed by a separator.",
+"f|Gui.MenuCtrl.addItem|Gui_MenuCtrl_addItem|Adds a command whose label, icon, and state come from its command identifier.",
+"f|Gui.MenuCtrl.addItems|Gui_MenuCtrl_addItems|Adds commands whose labels, icons, and states come from their identifiers.",
+"f|Gui.MenuCtrl.addPopup|Gui_MenuCtrl_addPopup|Adds a submenu whose presentation comes from a command identifier.",
+"f|Gui.MenuCtrl.addSeparator|Gui_MenuCtrl_addSeparator|Add a separator. Consecutive separators (and a leading one) are collapsed so callers",
+"f|Gui.MenuCtrl.clear|Gui_MenuCtrl_clear|Removes every command, submenu entry, and separator.",
+"f|Gui.MenuCtrl.computeLayoutPopup|Gui_MenuCtrl_computeLayoutPopup|Computes layout popup.",
+"f|Gui.MenuCtrl.createBar|Gui_MenuCtrl_createBar|Creates a persistent horizontal menu bar.",
+"f|Gui.MenuCtrl.createPopup|Gui_MenuCtrl_createPopup|Creates a hidden popup menu owned by owner, or by parent when omitted.",
+"f|Gui.MenuCtrl.doModal|Gui_MenuCtrl_doModal|Runs a popup menu modally and returns its selected command, or null when dismissed.",
+"f|Gui.MenuCtrl.isModalEnded|Gui_MenuCtrl_isModalEnded|Reports whether the current modal popup loop has ended.",
+"f|Gui.MenuCtrl.itemAt|Gui_MenuCtrl_itemAt|Returns the item at index.",
+"f|Gui.MenuCtrl.modalResult|Gui_MenuCtrl_modalResult|Returns the selected modal command, or null when dismissed or still running.",
+"f|Gui.MenuCtrl.removeItemAt|Gui_MenuCtrl_removeItemAt|Removes one item and invalidates cached menu layout.",
+"f|Gui.MenuCtrl.setFramePainting|Gui_MenuCtrl_setFramePainting|Selects whether an enclosing frame paints the popup border and shadow.",
+"f|Gui.MenuCtrl.updateFlags|Gui_MenuCtrl_updateFlags|Adds and removes presentation options, then invalidates cached layout.",
+"f|Gui.MenuCtrl.updateState|Gui_MenuCtrl_updateState|Updates state.",
+"f|Gui.NavigationHistory.canGoBack|Gui_NavigationHistory_canGoBack|Returns whether a location exists before the current one.",
+"f|Gui.NavigationHistory.canGoForward|Gui_NavigationHistory_canGoForward|Returns whether a location exists after the current one.",
+"f|Gui.NavigationHistory.clear|Gui_NavigationHistory_clear|Removes every location and resets the current position.",
+"f|Gui.NavigationHistory.goBack|Gui_NavigationHistory_goBack|Moves backward and returns the new current location.",
+"f|Gui.NavigationHistory.goForward|Gui_NavigationHistory_goForward|Moves forward and returns the new current location.",
+"f|Gui.NavigationHistory.push|Gui_NavigationHistory_push|Appends path, discarding any forward branch after the current position.",
+"f|Gui.PopupListCtrl.addItem|Gui_PopupListCtrl_addItem|Appends a selectable item and returns its stable heap object.",
+"f|Gui.PopupListCtrl.addSeparator|Gui_PopupListCtrl_addSeparator|Appends a non-selectable separator and returns its stable heap object.",
+"f|Gui.PopupListCtrl.cancel|Gui_PopupListCtrl_cancel|Closes the popup and reports cancellation.",
+"f|Gui.PopupListCtrl.commitHighlighted|Gui_PopupListCtrl_commitHighlighted|Closes the popup and commits the highlighted item, if any.",
+"f|Gui.PopupListCtrl.create|Gui_PopupListCtrl_create|Creates a hidden popup list owned by the top view of owner.",
+"f|Gui.PopupListCtrl.highlightFirst|Gui_PopupListCtrl_highlightFirst|Highlights the first selectable item.",
+"f|Gui.PopupListCtrl.highlightLast|Gui_PopupListCtrl_highlightLast|Highlights the last selectable item.",
+"f|Gui.PopupListCtrl.moveHighlight|Gui_PopupListCtrl_moveHighlight|Moves the highlighted item by a signed distance, skipping separators.",
+"f|Gui.PopupListCtrl.setSelectedIndex|Gui_PopupListCtrl_setSelectedIndex|Sets the item highlighted when the popup opens, or clears it with U32.Max.",
+"f|Gui.PopupListCtrl.show|Gui_PopupListCtrl_show|Shows the popup at the supplied surface coordinates and requested width.",
+"f|Gui.SliderCtrl.create|Gui_SliderCtrl_create|Creates a labelled numeric slider.",
+"f|Gui.SliderCtrl.setAutomaticValueWidth|Gui_SliderCtrl_setAutomaticValueWidth|Enables or disables automatic growth of the numeric editor to fit its configured range.",
+"f|Gui.SliderCtrl.setFloatBounds|Gui_SliderCtrl_setFloatBounds|Configures floating-point bounds and input validation.",
+"f|Gui.SliderCtrl.setLayoutMetrics|Gui_SliderCtrl_setLayoutMetrics|Changes the label width, value-editor width, and spacing between child controls.",
+"f|Gui.SliderCtrl.setSignedBounds|Gui_SliderCtrl_setSignedBounds|Configures signed-integer bounds and input validation.",
+"f|Gui.SliderCtrl.setUnsignedBounds|Gui_SliderCtrl_setUnsignedBounds|Configures unsigned-integer bounds and input validation.",
+"f|Gui.SliderCtrl.setValue|Gui_SliderCtrl_setValue|Sets the value and emits the normal value-change gesture.",
+"f|Gui.SliderCtrl.setValueWithoutGesture|Gui_SliderCtrl_setValueWithoutGesture|Sets the value without emitting a value-change gesture.",
+"f|Gui.SliderCtrl.value|Gui_SliderCtrl_value|Returns the current value.",
+"f|Gui.SplitterCtrl.addPane|Gui_SplitterCtrl_addPane|Adds pane and optionally creates a title label for it.",
+"f|Gui.SplitterCtrl.create|Gui_SplitterCtrl_create|Creates an empty horizontal or vertical splitter.",
+"f|Gui.SplitterCtrl.isPaneVisible|Gui_SplitterCtrl_isPaneVisible|Reports whether a pane participates in layout.",
+"f|Gui.SplitterCtrl.isVertical|Gui_SplitterCtrl_isVertical|Reports whether panes are stacked vertically.",
+"f|Gui.SplitterCtrl.setPaneSize|Gui_SplitterCtrl_setPaneSize|Sets a pane size while respecting its limits and resizing adjacent visible panes.",
+"f|Gui.SplitterCtrl.setPaneVisible|Gui_SplitterCtrl_setPaneVisible|Shows or hides a pane and its optional title.",
+"f|Gui.StackLayoutCtrl.applyLayout|Gui_StackLayoutCtrl_applyLayout|Recomputes the arrangement after a parent layout pass.",
+"f|Gui.StackLayoutCtrl.computeLayout|Gui_StackLayoutCtrl_computeLayout|Recomputes the arrangement of all visible children.",
+"f|Gui.StackLayoutCtrl.create|Gui_StackLayoutCtrl_create|Creates an empty stack using mode.",
+"f|Gui.WrapLayoutCtrl.computeLayout|Gui_WrapLayoutCtrl_computeLayout|Recomputes the flow of all visible children.",
+"f|Gui.WrapLayoutCtrl.create|Gui_WrapLayoutCtrl_create|Creates an empty wrapping layout.",
+"f|Gui.AboutDlg.create|Gui_AboutDlg_create|Creates an about dialog; zero dimensions use the standard 500 by 300 size.",
+"f|Gui.Dialog.addButton|Gui_Dialog_addButton|Adds an action button and optionally makes it the default keyboard action.",
+"f|Gui.Dialog.cancelButton|Gui_Dialog_cancelButton|Returns the button Escape and the close cross stand for, or null when the box offers",
+"f|Gui.Dialog.closeWithResult|Gui_Dialog_closeWithResult|Validates and submits a modal result, returning whether the dialog was allowed to close.",
+"f|Gui.Dialog.create|Gui_Dialog_create|Creates and centers a dialog surface owned by from.",
+"f|Gui.Dialog.createSurface|Gui_Dialog_createSurface|Creates and attaches the native surface used by this dialog.",
+"f|Gui.Dialog.doModal|Gui_Dialog_doModal|Runs the dialog modally and returns the accepted button identifier.",
+"f|Gui.Dialog.keyboardEntry|Gui_Dialog_keyboardEntry|Returns the control the box opens the keyboard on, or null to take the reading order.",
+"f|Gui.Dialog.view|Gui_Dialog_view|Returns the content view above the action bar.",
+"f|Gui.EditDlg.createMultiLine|Gui_EditDlg_createMultiLine|Creates a resizable multi-line text prompt, centered on its owner.",
+"f|Gui.EditDlg.createSingleLine|Gui_EditDlg_createSingleLine|Creates a single-line text prompt, centered on its owner.",
+"f|Gui.EditDlg.setMessage|Gui_EditDlg_setMessage|Creates or updates an explanatory message above the editor.",
+"f|Gui.EditDlg.setText|Gui_EditDlg_setText|Replaces the editor contents.",
+"f|Gui.EditDlg.text|Gui_EditDlg_text|Returns a copy of the editor contents.",
+"f|Gui.FileDlg.create|Gui_FileDlg_create|Creates the file dialog (own OS surface), hosting a FileBrowserCtrl.",
+"f|Gui.FileDlg.selectedPath|Gui_FileDlg_selectedPath|Returns the first selected full path, or an empty string when no valid selection exists.",
+"f|Gui.FileDlg.selectedPaths|Gui_FileDlg_selectedPaths|Returns all selected full paths in display order.",
+"f|Gui.FormDlg.create|Gui_FormDlg_create|Creates a centered modal dialog holding an empty form and the standard buttons.",
+"f|Gui.MessageDlg.confirm|Gui_MessageDlg_confirm|Shows a standardized confirmation question with Yes and No actions.",
+"f|Gui.MessageDlg.create|Gui_MessageDlg_create|Creates a message dialog without adding action buttons.",
+"f|Gui.MessageDlg.doModal|Gui_MessageDlg_doModal|Adapts the surface to its content, centers it on its owner, and returns the modal result.",
+"f|Gui.MessageDlg.error|Gui_MessageDlg_error|Message box to show a raised error. The caller captures the error ('catch f() as err') and",
+"f|Gui.MessageDlg.ok|Gui_MessageDlg_ok|Shows a modal message with one OK action.",
+"f|Gui.MessageDlg.okCancel|Gui_MessageDlg_okCancel|Shows a modal message with OK and Cancel actions.",
+"f|Gui.MessageDlg.setExtension|Gui_MessageDlg_setExtension|Docks one extension below the message content.",
+"f|Gui.MessageDlg.setIcon|Gui_MessageDlg_setIcon|Creates or replaces the large message icon; an invalid icon leaves it unchanged.",
+"f|Gui.MessageDlg.setIconColor|Gui_MessageDlg_setIconColor|Changes the large icon tint.",
+"f|Gui.MessageDlg.yesNo|Gui_MessageDlg_yesNo|Shows a modal question with Yes and No actions.",
+"f|Gui.MessageDlg.yesNoCancel|Gui_MessageDlg_yesNoCancel|Shows a modal question with Yes, No, and Cancel actions.",
+"f|Gui.BlendColor.apply|Gui_BlendColor_apply|Apply the color lerp to reach 'target'",
+"f|Gui.BlendColor.cur|Gui_BlendColor_cur|Returns the current interpolated color.",
+"f|Gui.BlendColor.reset|Gui_BlendColor_reset|Reset the blend",
+"f|Gui.Cursor.activate|Gui_Cursor_activate|Activates the cursor for the current thread.",
+"f|Gui.Cursor.activateWait|Gui_Cursor_activateWait|Activates the standard wait cursor.",
+"f|Gui.Cursor.clear|Gui_Cursor_clear|Restores an invalid cursor descriptor without destroying the shared system cursor.",
+"f|Gui.Cursor.from|Gui_Cursor_from|Returns the shared native cursor for a standard cursor shape.",
+"f|Gui.Cursor.isValid|Gui_Cursor_isValid|Returns true if the cursor is defined",
+"f|Gui.Icon.clear|Gui_Icon_clear|Restores an invalid icon with the default draw size.",
+"f|Gui.Icon.from|Gui_Icon_from|Creates a borrowed icon descriptor for one atlas frame.",
+"f|Gui.Icon.isValid|Gui_Icon_isValid|Reports whether the icon refers to a valid atlas frame.",
+"f|Gui.Icon.paint|Gui_Icon_paint|Paint icon at the given position",
+"f|Gui.Icon.set|Gui_Icon_set|Replaces the referenced frame and logical draw size.",
+"f|Gui.IconSet.free|Gui_IconSet_free|Releases every frame texture and list.",
+"f|Gui.IconSet.icon|Gui_IconSet_icon|Creates an icon descriptor for glyph index displayed at size logical pixels.",
+"f|Gui.IconSet.setup|Gui_IconSet_setup|Establishes the vector source and the renderer that owns the frame textures.",
+"f|Gui.ImageList.columnCount|Gui_ImageList_columnCount|Returns the number of complete frame columns in the atlas.",
+"f|Gui.ImageList.create|Gui_ImageList_create|Creates a frame atlas descriptor.",
+"f|Gui.ImageList.isValid|Gui_ImageList_isValid|Reports whether the atlas and frame geometry are valid.",
+"f|Gui.ImageList.release|Gui_ImageList_release|Releases the atlas back to the renderer that created it, and empties the list.",
+"f|Gui.ImageList.rowCount|Gui_ImageList_rowCount|Returns the number of complete frame rows in the atlas.",
+"f|Gui.ImageList.set|Gui_ImageList_set|Replaces the atlas descriptor after validating its frame geometry.",
+"f|Gui.PaintImage.draw|Gui_PaintImage_draw|Renders one callback and returns the resulting image.",
+"f|Gui.PaintImage.init|Gui_PaintImage_init|Initializes an offscreen target of w by h pixels.",
+"f|Gui.PaintImage.opDrop|Gui_PaintImage_opDrop|Releases resources owned by this value.",
+"f|Gui.Theme.applySheet|Gui_Theme_applySheet|Applies a theme sheet to this theme.",
+"f|Gui.Theme.createDefaultFont|Gui_Theme_createDefaultFont|Create a default font with the given size",
+"f|Gui.Theme.createDefaultFontFS|Gui_Theme_createDefaultFontFS|Create a default font (fixed size) with the given size",
+"f|Gui.Theme.createDefaultFontfamily|Gui_Theme_createDefaultFontfamily|Create a default font family with the given size",
+"f|Gui.Theme.drawFocusRing|Gui_Theme_drawFocusRing|Draws the ring that says the keyboard focus is on rect.",
+"f|Gui.Theme.drawIconText|Gui_Theme_drawIconText|Draws rich text with an optional leading icon inside position.",
+"f|Gui.Theme.drawSubRect|Gui_Theme_drawSubRect|Draws a themed image region, using its optional nine-slice margins.",
+"f|Gui.Theme.ensureAtlasScale|Gui_Theme_ensureAtlasScale|Keeps the widgets atlas texture at least as sharp as scale device pixels per authored texel.",
+"f|Gui.Theme.icon|Gui_Theme_icon|Creates an icon descriptor for a theme glyph displayed at size logical pixels.",
+"f|Gui.Theme.loadSheet|Gui_Theme_loadSheet|Loads the theme sheet resource name from resources and applies it.",
+"f|Gui.Theme.setDark|Gui_Theme_setDark|Applies the neutral dark palette and the geometry the theme atlas was authored with.",
+"f|Gui.Theme.setLight|Gui_Theme_setLight|Applies the neutral light palette and the geometry the theme atlas was authored with.",
+"f|Gui.Theme.setPalette|Gui_Theme_setPalette|Derives every color of the theme from palette.",
+"f|Gui.Theme.setSwagDark|Gui_Theme_setSwagDark|Applies the dark Swag palette and its shared control geometry.",
+"f|Gui.Theme.setSwagLight|Gui_Theme_setSwagLight|Applies the light Swag palette and its shared control geometry.",
+"f|Gui.Theme.setTextColors|Gui_Theme_setTextColors|Sets text colors.",
+"f|Gui.ThemeColors.apply|Gui_ThemeColors_apply|Derives every semantic color of the theme from p.",
+"f|Gui.ThemeColors.darkPalette|Gui_ThemeColors_darkPalette|The neutral dark palette.",
+"f|Gui.ThemeColors.lightPalette|Gui_ThemeColors_lightPalette|The neutral light palette.",
+"f|Gui.ThemeColors.setDark|Gui_ThemeColors_setDark|Applies the neutral dark palette: a gray interface on a system blue accent.",
+"f|Gui.ThemeColors.setLight|Gui_ThemeColors_setLight|Applies the neutral light palette: the same interface on paper.",
+"f|Gui.ThemeColors.setSwagDark|Gui_ThemeColors_setSwagDark|Applies the dark Swag application palette: Voltage over Ink with neutral structure.",
+"f|Gui.ThemeColors.setSwagLight|Gui_ThemeColors_setSwagLight|Applies the light Swag application palette: Ink over Paper with neutral structure.",
+"f|Gui.ThemeColors.swagDarkPalette|Gui_ThemeColors_swagDarkPalette|The dark Swag palette: Voltage over Ink.",
+"f|Gui.ThemeColors.swagLightPalette|Gui_ThemeColors_swagLightPalette|The light Swag palette: Ink and Voltage over Paper.",
+"f|Gui.ThemeStyle.addStyleSheetColors|Gui_ThemeStyle_addStyleSheetColors|Adds style sheet colors.",
+"f|Gui.ThemeStyle.addStyleSheetMetrics|Gui_ThemeStyle_addStyleSheetMetrics|Adds style sheet metrics.",
+"f|Gui.ThemeStyle.clearFont|Gui_ThemeStyle_clearFont|Removes every local font-face override.",
+"f|Gui.ThemeStyle.clearStyleSheetColors|Gui_ThemeStyle_clearStyleSheetColors|Removes every local color override.",
+"f|Gui.ThemeStyle.create|Gui_ThemeStyle_create|Creates a private theme copy from a parent style.",
+"f|Gui.ThemeStyle.opDrop|Gui_ThemeStyle_opDrop|Releases resources owned by this value.",
+"f|Gui.ThemeStyle.own|Gui_ThemeStyle_own|Takes ownership of a theme, as the sole holder for now.",
+"f|Gui.ThemeStyle.resolvedFont|Gui_ThemeStyle_resolvedFont|Returns the local font slots with missing faces inherited from the theme default.",
+"f|Gui.ThemeStyle.setFont|Gui_ThemeStyle_setFont|Sets font.",
+"f|Gui.ThemeStyle.setStyleSheetColors|Gui_ThemeStyle_setStyleSheetColors|Sets style sheet colors.",
+"f|Gui.ThemeStyle.setStyleSheetMetrics|Gui_ThemeStyle_setStyleSheetMetrics|Sets style sheet metrics.",
+"f|Gui.ThemeStyle.share|Gui_ThemeStyle_share|Takes a reference on the theme another style already holds.",
+"f|Gui.IPropertyEditor.canEdit|Gui_IPropertyEditor_canEdit|Return true if this editor should handle a field of type 'type'.",
+"f|Gui.IPropertyEditor.construct|Gui_IPropertyEditor_construct|Build the editor row(s) for 'value' (the field at 'data') under 'parent' and return the",
+"f|Gui.IPropertyNotify.fillPopupMenu|Gui_IPropertyNotify_fillPopupMenu|Called when the user right-clicks a row: add custom menu items (each with a unique",
+"f|Gui.IPropertyNotify.isEnumValueVisible|Gui_IPropertyNotify_isEnumValueVisible|Return false to hide one value of an enum field (a value that makes no sense for the",
+"f|Gui.IPropertyNotify.isItemAtDefault|Gui_IPropertyNotify_isItemAtDefault|Customize the \"is this field still at its default value?\" test, used to decide whether the",
+"f|Gui.IPropertyNotify.isItemEnabled|Gui_IPropertyNotify_isItemEnabled|Returns whether item enabled.",
+"f|Gui.IPropertyNotify.isItemReadOnly|Gui_IPropertyNotify_isItemReadOnly|Return true to make 'item' read-only at runtime: shown but not editable, and \"Paste\" is",
+"f|Gui.IPropertyNotify.isItemVisible|Gui_IPropertyNotify_isItemVisible|Returns whether item visible.",
+"f|Gui.IPropertyNotify.itemHasChanged|Gui_IPropertyNotify_itemHasChanged|'item' is null when the change is not tied to a live row anymore: an undo/redo restore",
+"f|Gui.IPropertyNotify.onPopupCommand|Gui_IPropertyNotify_onPopupCommand|Called with the command id chosen in the popup menu when it is not one of the built-in",
+"f|Gui.IPropertyNotify.resetItemToDefault|Gui_IPropertyNotify_resetItemToDefault|Reset 'item' to its default value yourself; return true once handled. Return false (the",
+"f|Gui.IPropertyNotify.validateItem|Gui_IPropertyNotify_validateItem|Return a validation state + message for 'item'. Called on build and after every",
+"f|Gui.Properties.addItem|Gui_Properties_addItem|Create a row for 'value' (field typeinfo + name) bound to 'data' under 'parentItem'.",
+"f|Gui.Properties.addSeparator|Gui_Properties_addSeparator|A thin horizontal separator row, the same look as a Panel category divider. Public so a",
+"f|Gui.Properties.addStruct|Gui_Properties_addStruct|Add a new struct to display.",
+"f|Gui.Properties.addStructMulti|Gui_Properties_addStructMulti|Add several instances of the SAME struct type for multi-selection editing.",
+"f|Gui.Properties.canRedo|Gui_Properties_canRedo|Returns whether this value can redo.",
+"f|Gui.Properties.canUndo|Gui_Properties_canUndo|Returns whether this value can undo.",
+"f|Gui.Properties.clear|Gui_Properties_clear|Drop every displayed struct and row, keeping the widget alive so a new content can be",
+"f|Gui.Properties.clearUndo|Gui_Properties_clearUndo|Drop the whole undo history (e.g. after loading a fresh object into the grid).",
+"f|Gui.Properties.commitItemChange|Gui_Properties_commitItemChange|Commits a value written by an editor, including propagation, undo, refresh, validation,",
+"f|Gui.Properties.create|Gui_Properties_create|Creates a new Properties instance",
+"f|Gui.Properties.endAppendRows|Gui_Properties_endAppendRows|To be called once after appending custom rows (addItem / addSeparator) from outside the",
+"f|Gui.Properties.focusNavigation|Gui_Properties_focusNavigation|Give the keyboard focus to the grid in navigation mode. Selects the first",
+"f|Gui.Properties.isGridLike|Gui_Properties_isGridLike|True for the grid-family modes (Grid and Condensed). They share the same",
+"f|Gui.Properties.isItemReadOnly|Gui_Properties_isItemReadOnly|Returns true if the given item is read-only: a static string, a field tagged with the",
+"f|Gui.Properties.itemDisplayName|Gui_Properties_itemDisplayName|Display name of a field: its Properties.Name attribute, or its beautified raw name.",
+"f|Gui.Properties.redo|Gui_Properties_redo|Reapplies the latest reverted property edit when possible.",
+"f|Gui.Properties.refresh|Gui_Properties_refresh|Refresh all displayed values.",
+"f|Gui.Properties.registerEditor|Gui_Properties_registerEditor|Register a custom editor type T (which must implement IPropertyEditor) for ALL grids.",
+"f|Gui.Properties.resolveText|Gui_Properties_resolveText|Returns the text to show for a string declared by a property attribute.",
+"f|Gui.Properties.setCurrentSection|Gui_Properties_setCurrentSection|Only display a given section.",
+"f|Gui.Properties.setEditorWidth|Gui_Properties_setEditorWidth|Sets the preferred maximum width of value editors and refreshes the current layout.",
+"f|Gui.Properties.setExternalUndoMgr|Gui_Properties_setExternalUndoMgr|Record the grid's undo commands into an external UndoManager instead of the grid's own",
+"f|Gui.Properties.setFilter|Gui_Properties_setFilter|Show hidden content depending on the input 'filter'.",
+"f|Gui.Properties.setNameColumnWidth|Gui_Properties_setNameColumnWidth|Sets the requested label-column width in grid layouts.",
+"f|Gui.Properties.setNotify|Gui_Properties_setNotify|Set the host-level notify interface, consulted for every row in addition to the",
+"f|Gui.Properties.setRevertButtonsVisible|Gui_Properties_setRevertButtonsVisible|Shows or hides reset-to-default affordances for modified values.",
+"f|Gui.Properties.setTextResolver|Gui_Properties_setTextResolver|Installs the resolver every string a property attribute declares passes through.",
+"f|Gui.Properties.setUndoEnabled|Gui_Properties_setUndoEnabled|Turn recording on/off (e.g. to batch programmatic changes without polluting the history).",
+"f|Gui.Properties.setUsingFieldsLast|Gui_Properties_setUsingFieldsLast|Controls whether reflected using fields are appended after the struct's own fields.",
+"f|Gui.Properties.undo|Gui_Properties_undo|Reverts the latest recorded property edit when possible.",
+"f|Gui.PropertiesCtrl.addStruct|Gui_PropertiesCtrl_addStruct|Appends one reflected structure and rebuilds section navigation.",
+"f|Gui.PropertiesCtrl.clear|Gui_PropertiesCtrl_clear|Removes every row, along with the section tabs and the section list built from them.",
+"f|Gui.PropertiesCtrl.create|Gui_PropertiesCtrl_create|Creates a property editor and its requested navigation controls.",
+"f|Gui.PropertiesCtrl.focusProperties|Gui_PropertiesCtrl_focusProperties|Give the keyboard focus to the property grid (navigation mode), so the whole",
+"f|Gui.IRichEditLexer.compute|Gui_IRichEditLexer_compute|Recomputes lexical state and styles for line, with adjacent-line context.",
+"f|Gui.IRichEditLexer.insertRune|Gui_IRichEditLexer_insertRune|Handles ch before the editor's default insertion; returns true when consumed.",
+"f|Gui.IRichEditLexer.setup|Gui_IRichEditLexer_setup|Initializes lexer-owned state and style mappings for ed.",
+"f|Gui.IRichEditLexer.setupTheme|Gui_IRichEditLexer_setupTheme|Reapplies lexer-specific colors after the editor theme changes.",
+"f|Gui.RichEditCtrl.addMapping|Gui_RichEditCtrl_addMapping|Binds key and modifiers to cmd; existing entries are retained.",
+"f|Gui.RichEditCtrl.addText|Gui_RichEditCtrl_addText|Append a text with a given style",
+"f|Gui.RichEditCtrl.advanceRuneX|Gui_RichEditCtrl_advanceRuneX|Advances the cached horizontal position by one rune.",
+"f|Gui.RichEditCtrl.canRedo|Gui_RichEditCtrl_canRedo|Returns whether this value can redo.",
+"f|Gui.RichEditCtrl.canUndo|Gui_RichEditCtrl_canUndo|Returns whether this value can undo.",
+"f|Gui.RichEditCtrl.caretRect|Gui_RichEditCtrl_caretRect|Returns caret pos.",
+"f|Gui.RichEditCtrl.charPressed|Gui_RichEditCtrl_charPressed|Simulate a keyboard character pressed",
+"f|Gui.RichEditCtrl.checkSelection|Gui_RichEditCtrl_checkSelection|Normalizes selection endpoints and refreshes selection geometry.",
+"f|Gui.RichEditCtrl.clear|Gui_RichEditCtrl_clear|Clear content",
+"f|Gui.RichEditCtrl.clearMapping|Gui_RichEditCtrl_clearMapping|Removes every keyboard shortcut mapping.",
+"f|Gui.RichEditCtrl.clearSelection|Gui_RichEditCtrl_clearSelection|Collapses the selection at the active cursor.",
+"f|Gui.RichEditCtrl.clearUndo|Gui_RichEditCtrl_clearUndo|Clears both undo and redo history.",
+"f|Gui.RichEditCtrl.commandForShortcut|Gui_RichEditCtrl_commandForShortcut|Returns the command bound to a shortcut, or RichEditCommand.None when unbound.",
+"f|Gui.RichEditCtrl.computeTextDrawInfo|Gui_RichEditCtrl_computeTextDrawInfo|Returns text draw info.",
+"f|Gui.RichEditCtrl.copyToClipboard|Gui_RichEditCtrl_copyToClipboard|Copies the selected text to the active clipboard backend.",
+"f|Gui.RichEditCtrl.create|Gui_RichEditCtrl_create|Creates a rich-text editor as a child of the requested window.",
+"f|Gui.RichEditCtrl.cursorAt|Gui_RichEditCtrl_cursorAt|Returns cursor pos from point.",
+"f|Gui.RichEditCtrl.cursorDisplayPosition|Gui_RichEditCtrl_cursorDisplayPosition|Returns cursor display pos.",
+"f|Gui.RichEditCtrl.deleteBegLine|Gui_RichEditCtrl_deleteBegLine|Delete a given text at the start of each selected line",
+"f|Gui.RichEditCtrl.deleteLeft|Gui_RichEditCtrl_deleteLeft|Deletes the selection or the rune immediately before the cursor.",
+"f|Gui.RichEditCtrl.deleteLine|Gui_RichEditCtrl_deleteLine|Deletes every selected logical line, or the cursor line when no selection exists.",
+"f|Gui.RichEditCtrl.deleteRight|Gui_RichEditCtrl_deleteRight|Deletes the selection or the rune immediately after the cursor.",
+"f|Gui.RichEditCtrl.deleteSelection|Gui_RichEditCtrl_deleteSelection|Deletes the current selection and returns whether text was removed.",
+"f|Gui.RichEditCtrl.deleteWordLeft|Gui_RichEditCtrl_deleteWordLeft|Deletes the selection or the word immediately before the cursor.",
+"f|Gui.RichEditCtrl.deleteWordRight|Gui_RichEditCtrl_deleteWordRight|Deletes the selection or the word immediately after the cursor.",
+"f|Gui.RichEditCtrl.ensureCaretIsVisible|Gui_RichEditCtrl_ensureCaretIsVisible|Scrolls just enough to reveal the active caret.",
+"f|Gui.RichEditCtrl.ensureCursorIsVisible|Gui_RichEditCtrl_ensureCursorIsVisible|Scrolls to reveal a cursor, optionally centering it in the viewport.",
+"f|Gui.RichEditCtrl.evaluateSize|Gui_RichEditCtrl_evaluateSize|Evaluate the rendering size",
+"f|Gui.RichEditCtrl.executeCommand|Gui_RichEditCtrl_executeCommand|Execute a command",
+"f|Gui.RichEditCtrl.insertBegLine|Gui_RichEditCtrl_insertBegLine|Insert text at the start of each selected line",
+"f|Gui.RichEditCtrl.insertRune|Gui_RichEditCtrl_insertRune|Insert a rune",
+"f|Gui.RichEditCtrl.insertText|Gui_RichEditCtrl_insertText|Insert a text with a given style",
+"f|Gui.RichEditCtrl.isReadOnly|Gui_RichEditCtrl_isReadOnly|Returns true if the rich edit is read only",
+"f|Gui.RichEditCtrl.isSelectionEmpty|Gui_RichEditCtrl_isSelectionEmpty|Returns whether selection empty.",
+"f|Gui.RichEditCtrl.keyPressed|Gui_RichEditCtrl_keyPressed|Simulate a keyboard pressed",
+"f|Gui.RichEditCtrl.lexAll|Gui_RichEditCtrl_lexAll|Lex the full text",
+"f|Gui.RichEditCtrl.lineHeight|Gui_RichEditCtrl_lineHeight|Returns line height.",
+"f|Gui.RichEditCtrl.moveCursorDown|Gui_RichEditCtrl_moveCursorDown|Moves the cursor one visual line downward.",
+"f|Gui.RichEditCtrl.moveCursorEndFile|Gui_RichEditCtrl_moveCursorEndFile|Moves a cursor to the end of the document.",
+"f|Gui.RichEditCtrl.moveCursorEndLine|Gui_RichEditCtrl_moveCursorEndLine|Moves a cursor to the end of its logical line.",
+"f|Gui.RichEditCtrl.moveCursorLeft|Gui_RichEditCtrl_moveCursorLeft|Moves a cursor one rune to the left and reports whether it changed.",
+"f|Gui.RichEditCtrl.moveCursorPageDown|Gui_RichEditCtrl_moveCursorPageDown|Moves a cursor downward by one viewport page.",
+"f|Gui.RichEditCtrl.moveCursorPageUp|Gui_RichEditCtrl_moveCursorPageUp|Moves a cursor upward by one viewport page.",
+"f|Gui.RichEditCtrl.moveCursorRight|Gui_RichEditCtrl_moveCursorRight|Moves a cursor one rune to the right and reports whether it changed.",
+"f|Gui.RichEditCtrl.moveCursorStartFile|Gui_RichEditCtrl_moveCursorStartFile|Moves a cursor to the start of the document.",
+"f|Gui.RichEditCtrl.moveCursorStartLine|Gui_RichEditCtrl_moveCursorStartLine|Moves a cursor to the start of its logical line.",
+"f|Gui.RichEditCtrl.moveCursorUp|Gui_RichEditCtrl_moveCursorUp|Moves a cursor to the closest position on the preceding visual line.",
+"f|Gui.RichEditCtrl.moveCursorWordLeft|Gui_RichEditCtrl_moveCursorWordLeft|Moves a cursor to the preceding word boundary.",
+"f|Gui.RichEditCtrl.moveCursorWordRight|Gui_RichEditCtrl_moveCursorWordRight|Moves a cursor to the following word boundary, optionally including trailing space.",
+"f|Gui.RichEditCtrl.pasteFromClipboard|Gui_RichEditCtrl_pasteFromClipboard|Replaces the selection with text from the active clipboard backend.",
+"f|Gui.RichEditCtrl.popUndo|Gui_RichEditCtrl_popUndo|Removes and returns the newest undo record.",
+"f|Gui.RichEditCtrl.pushUndo|Gui_RichEditCtrl_pushUndo|Appends one undo record and clears redo history.",
+"f|Gui.RichEditCtrl.redo|Gui_RichEditCtrl_redo|Reapplies the newest reverted edit.",
+"f|Gui.RichEditCtrl.runeAt|Gui_RichEditCtrl_runeAt|Returns the rune and style at a document cursor.",
+"f|Gui.RichEditCtrl.runeSize|Gui_RichEditCtrl_runeSize|Returns rune size.",
+"f|Gui.RichEditCtrl.scrollLineDown|Gui_RichEditCtrl_scrollLineDown|Scrolls the viewport downward by one logical line.",
+"f|Gui.RichEditCtrl.scrollLineUp|Gui_RichEditCtrl_scrollLineUp|Scrolls the viewport upward by one logical line.",
+"f|Gui.RichEditCtrl.selectAll|Gui_RichEditCtrl_selectAll|Selects the complete document.",
+"f|Gui.RichEditCtrl.selectWord|Gui_RichEditCtrl_selectWord|Selects the word containing the active cursor.",
+"f|Gui.RichEditCtrl.selectedText|Gui_RichEditCtrl_selectedText|Returns the selected plain text.",
+"f|Gui.RichEditCtrl.selectionEnd|Gui_RichEditCtrl_selectionEnd|Returns end selection.",
+"f|Gui.RichEditCtrl.selectionStart|Gui_RichEditCtrl_selectionStart|Returns beg selection.",
+"f|Gui.RichEditCtrl.setCursorPos|Gui_RichEditCtrl_setCursorPos|Sets cursor pos.",
+"f|Gui.RichEditCtrl.setDefaultMapping|Gui_RichEditCtrl_setDefaultMapping|Replaces all mappings with the editor's conventional shortcut table.",
+"f|Gui.RichEditCtrl.setFlags|Gui_RichEditCtrl_setFlags|Replaces the behavior flags and refreshes layout and painting.",
+"f|Gui.RichEditCtrl.setForm|Gui_RichEditCtrl_setForm|Applies one of the predefined editor theme treatments.",
+"f|Gui.RichEditCtrl.setLexer|Gui_RichEditCtrl_setLexer|Associate a lexer",
+"f|Gui.RichEditCtrl.setRectangularSelection|Gui_RichEditCtrl_setRectangularSelection|Sets rectangular selection.",
+"f|Gui.RichEditCtrl.setSelection|Gui_RichEditCtrl_setSelection|Sets selection.",
+"f|Gui.RichEditCtrl.setText|Gui_RichEditCtrl_setText|Replaces the complete document text and clears incompatible cursor state.",
+"f|Gui.RichEditCtrl.tabAdvance|Gui_RichEditCtrl_tabAdvance|Returns tab offset.",
+"f|Gui.RichEditCtrl.text|Gui_RichEditCtrl_text|Returns the complete plain text.",
+"f|Gui.RichEditCtrl.textAndStyles|Gui_RichEditCtrl_textAndStyles|Returns the complete text and one style reference per rune.",
+"f|Gui.RichEditCtrl.undo|Gui_RichEditCtrl_undo|Reverts the newest recorded edit.",
+"f|Gui.RichEditCtrl.xGlyphSize|Gui_RichEditCtrl_xGlyphSize|Returns x extent.",
+"f|Gui.Testing.HeadlessHost.acceptModalFileDialog|Gui_Testing_HeadlessHost_acceptModalFileDialog|Same auto-driver as clickModalButtonWhenShown for a file dialog: fills the",
+"f|Gui.Testing.HeadlessHost.bindApplication|Gui_Testing_HeadlessHost_bindApplication|Binds another Application instance to this host: the code under test may read",
+"f|Gui.Testing.HeadlessHost.capturedPopupMenu|Gui_Testing_HeadlessHost_capturedPopupMenu|Returns captured popup menu.",
+"f|Gui.Testing.HeadlessHost.click|Gui_Testing_HeadlessHost_click|Performs one complete simulated mouse click at a screen position.",
+"f|Gui.Testing.HeadlessHost.clickModalButton|Gui_Testing_HeadlessHost_clickModalButton|Activates a visible modal button by identifier and reports whether it was found.",
+"f|Gui.Testing.HeadlessHost.clickModalButtonWhenShown|Gui_Testing_HeadlessHost_clickModalButtonWhenShown|Arms the auto UI driver to click 'button' in the topmost modal surface as soon",
+"f|Gui.Testing.HeadlessHost.clickPopupMenuItem|Gui_Testing_HeadlessHost_clickPopupMenuItem|Activates an item in the captured popup menu and reports whether it was found.",
+"f|Gui.Testing.HeadlessHost.clickPopupMenuItemWhenShown|Gui_Testing_HeadlessHost_clickPopupMenuItemWhenShown|Arms the auto UI driver to click item 'id' of the captured popup menu as soon",
+"f|Gui.Testing.HeadlessHost.clickWnd|Gui_Testing_HeadlessHost_clickWnd|Clicks the center of a window.",
+"f|Gui.Testing.HeadlessHost.close|Gui_Testing_HeadlessHost_close|Marks the host closed and queues destruction of its root window.",
+"f|Gui.Testing.HeadlessHost.closeOnCommand|Gui_Testing_HeadlessHost_closeOnCommand|Records commands and closes the host when cmdId reaches the root.",
+"f|Gui.Testing.HeadlessHost.deleteQueuedObjects|Gui_Testing_HeadlessHost_deleteQueuedObjects|Releases objects queued for deferred deletion.",
+"f|Gui.Testing.HeadlessHost.dismissPopupMenu|Gui_Testing_HeadlessHost_dismissPopupMenu|Dismisses the captured popup menu, returning false when none is open.",
+"f|Gui.Testing.HeadlessHost.doubleClick|Gui_Testing_HeadlessHost_doubleClick|Performs one simulated double click at a screen position.",
+"f|Gui.Testing.HeadlessHost.drag|Gui_Testing_HeadlessHost_drag|Drags a simulated mouse button between two screen positions.",
+"f|Gui.Testing.HeadlessHost.findEditCtrlByLabel|Gui_Testing_HeadlessHost_findEditCtrlByLabel|Finds edit ctrl by label.",
+"f|Gui.Testing.HeadlessHost.findFileBrowserCtrl|Gui_Testing_HeadlessHost_findFileBrowserCtrl|Finds file browser ctrl.",
+"f|Gui.Testing.HeadlessHost.fireTimer|Gui_Testing_HeadlessHost_fireTimer|Fires one active timer immediately and drains resulting queues.",
+"f|Gui.Testing.HeadlessHost.fireTimers|Gui_Testing_HeadlessHost_fireTimers|Fires every currently registered timer once.",
+"f|Gui.Testing.HeadlessHost.focus|Gui_Testing_HeadlessHost_focus|Gives keyboard focus to a window and drains resulting events.",
+"f|Gui.Testing.HeadlessHost.keyPress|Gui_Testing_HeadlessHost_keyPress|Sends one complete simulated key press to the focused window.",
+"f|Gui.Testing.HeadlessHost.mouseDown|Gui_Testing_HeadlessHost_mouseDown|Presses a simulated mouse button at a screen position.",
+"f|Gui.Testing.HeadlessHost.mouseTargetAt|Gui_Testing_HeadlessHost_mouseTargetAt|Returns mouse target.",
+"f|Gui.Testing.HeadlessHost.mouseUp|Gui_Testing_HeadlessHost_mouseUp|Releases a simulated mouse button at a screen position.",
+"f|Gui.Testing.HeadlessHost.mouseWheel|Gui_Testing_HeadlessHost_mouseWheel|Sends one simulated mouse-wheel event at a screen position.",
+"f|Gui.Testing.HeadlessHost.moveMouse|Gui_Testing_HeadlessHost_moveMouse|Moves the simulated pointer and emits enter, leave, and move events.",
+"f|Gui.Testing.HeadlessHost.moveToPopupMenuItem|Gui_Testing_HeadlessHost_moveToPopupMenuItem|Moves the simulated pointer to a captured popup item found by label.",
+"f|Gui.Testing.HeadlessHost.notify|Gui_Testing_HeadlessHost_notify|Delivers an application-wide notification to the hosted tree.",
+"f|Gui.Testing.HeadlessHost.openPopupSubMenu|Gui_Testing_HeadlessHost_openPopupSubMenu|Opens a captured popup submenu found by label.",
+"f|Gui.Testing.HeadlessHost.openPopupSubMenuWhenShown|Gui_Testing_HeadlessHost_openPopupSubMenuWhenShown|Arms the auto UI driver to open the submenu labelled 'label' of the captured",
+"f|Gui.Testing.HeadlessHost.openedSurfaceCount|Gui_Testing_HeadlessHost_openedSurfaceCount|Number of surfaces open besides the host's own.",
+"f|Gui.Testing.HeadlessHost.pump|Gui_Testing_HeadlessHost_pump|Drains posted events, destruction events, and deferred object deletion.",
+"f|Gui.Testing.HeadlessHost.pumpDestroyEvents|Gui_Testing_HeadlessHost_pumpDestroyEvents|Drains pending window-destruction events.",
+"f|Gui.Testing.HeadlessHost.pumpPostedEvents|Gui_Testing_HeadlessHost_pumpPostedEvents|Drains the application's posted event queue.",
+"f|Gui.Testing.HeadlessHost.pumpTimerQueues|Gui_Testing_HeadlessHost_pumpTimerQueues|Applies deferred timer additions and removals.",
+"f|Gui.Testing.HeadlessHost.recordCommands|Gui_Testing_HeadlessHost_recordCommands|Records command count and the most recent identifier at the root event boundary.",
+"f|Gui.Testing.HeadlessHost.render|Gui_Testing_HeadlessHost_render|Paints the complete hosted tree with the software renderer and returns owned BGRA pixels.",
+"f|Gui.Testing.HeadlessHost.runFrames|Gui_Testing_HeadlessHost_runFrames|Sends and drains exactly count application frames.",
+"f|Gui.Testing.HeadlessHost.sendMouseEvent|Gui_Testing_HeadlessHost_sendMouseEvent|Sends mouse event.",
+"f|Gui.Testing.HeadlessHost.sendRune|Gui_Testing_HeadlessHost_sendRune|Sends rune.",
+"f|Gui.Testing.HeadlessHost.setKeyState|Gui_Testing_HeadlessHost_setKeyState|Sets key state.",
+"f|Gui.Testing.HeadlessHost.setModalEditText|Gui_Testing_HeadlessHost_setModalEditText|Sets modal edit text.",
+"f|Gui.Testing.HeadlessHost.setModalFileSelection|Gui_Testing_HeadlessHost_setModalFileSelection|Sets modal file selection.",
+"f|Gui.Testing.HeadlessHost.setModifierKeys|Gui_Testing_HeadlessHost_setModifierKeys|Sets modifier keys.",
+"f|Gui.Testing.HeadlessHost.settleAnimations|Gui_Testing_HeadlessHost_settleAnimations|Repaints the hosted tree until its colour animations have reached their targets.",
+"f|Gui.Testing.HeadlessHost.setup|Gui_Testing_HeadlessHost_setup|Initializes a headless application, theme, surface, and root window of the requested size.",
+"f|Gui.Testing.HeadlessHost.shortcut|Gui_Testing_HeadlessHost_shortcut|Sends one simulated shortcut key press with explicit modifiers.",
+"f|Gui.Testing.HeadlessHost.shutdown|Gui_Testing_HeadlessHost_shutdown|Destroys the hosted window tree, drains queued work, and restores the system clipboard backend.",
+"f|Gui.Testing.HeadlessHost.thenClickModalButton|Gui_Testing_HeadlessHost_thenClickModalButton|Appends one more step to the armed sequence: once the previous step succeeded,",
+"f|Gui.Testing.HeadlessHost.thenClickPopupMenuItem|Gui_Testing_HeadlessHost_thenClickPopupMenuItem|Appends one more step to the armed sequence: click item 'id' of the captured",
+"f|Gui.Testing.HeadlessHost.thenOpenPopupSubMenu|Gui_Testing_HeadlessHost_thenOpenPopupSubMenu|Appends one more step to the armed sequence: open the submenu labelled 'label'",
+"f|Gui.Testing.HeadlessHost.withModalEdit|Gui_Testing_HeadlessHost_withModalEdit|Fills the labelled edit box of the modal with 'text' before the last armed",
+"f|Gui.Testing.HeadlessHost.wndAt|Gui_Testing_HeadlessHost_wndAt|Returns the deepest visible window at a screen position, including surface borders.",
+"f|Gui.Testing.actionAccept|Gui_Testing_actionAccept|Asks action type T whether it accepts the command, through its IActionUI interface.",
+"f|Gui.Testing.actionExecute|Gui_Testing_actionExecute|Executes action type T through its IActionUI interface, as the command dispatch would.",
+"f|Gui.Testing.actionUpdate|Gui_Testing_actionUpdate|Updates the command state of action type T through its IActionUI interface.",
+"f|Gui.Testing.assertContentFits|Gui_Testing_assertContentFits|Asserts that no window in the tree is smaller than the content it says it needs.",
+"f|Gui.Testing.assertPoint|Gui_Testing_assertPoint|Asserts that 'pt' equals the given coordinates within 'eps'.",
+"f|Gui.Testing.assertRect|Gui_Testing_assertRect|Asserts that 'rect' equals the given coordinates within 'eps'.",
+"f|Gui.Testing.commandState|Gui_Testing_commandState|Returns a command state event for the given command id.",
+"f|Gui.Testing.countNonZeroBytes|Gui_Testing_countNonZeroBytes|Number of non-zero bytes in the image pixels (cheap \"something was painted\" probe).",
+"f|Gui.Testing.indexedImage|Gui_Testing_indexedImage|Deterministic BGRA test image: every pixel derives from its coordinates, so a",
+"f|Gui.Testing.tempFilePath|Gui_Testing_tempFilePath|Returns a unique file path in a dedicated 'swag-tests' sub-folder of the system",
+"f|Gui.Button.clearIcon|Gui_Button_clearIcon|Removes the displayed icon and repaints the button.",
+"f|Gui.Button.setIcon|Gui_Button_setIcon|Replaces the displayed icon and repaints the button.",
+"f|Gui.Button.setIconSize|Gui_Button_setIconSize|Overrides the icon draw size; zero on either axis preserves that axis from the icon descriptor.",
+"f|Gui.Button.setText|Gui_Button_setText|Replaces the displayed label, repaints, and lets the next layout pass re-measure it.",
+"f|Gui.Button.text|Gui_Button_text|Returns the displayed label as plain text.",
+"f|Gui.CheckButton.create|Gui_CheckButton_create|Creates a check button with an optional command identifier and initial options.",
+"f|Gui.CheckButton.isChecked|Gui_CheckButton_isChecked|Reports whether the option is selected.",
+"f|Gui.CheckButton.isIndeterminate|Gui_CheckButton_isIndeterminate|Reports whether the represented values have mixed states.",
+"f|Gui.CheckButton.setState|Gui_CheckButton_setState|Changes the displayed state without emitting a change signal or command.",
+"f|Gui.CheckButton.toggle|Gui_CheckButton_toggle|Advances to the next state and emits the same notifications as a user action.",
+"f|Gui.CheckButton.updateFlags|Gui_CheckButton_updateFlags|Adds and removes interaction and placement options, then repaints the button.",
+"f|Gui.Circular.create|Gui_Circular_create|Creates a circular slider, optionally with independent range markers.",
+"f|Gui.Circular.lowerValue|Gui_Circular_lowerValue|Returns the lower value in configured value-space units.",
+"f|Gui.Circular.maximum|Gui_Circular_maximum|Returns the inclusive maximum accepted by the control.",
+"f|Gui.Circular.minimum|Gui_Circular_minimum|Returns the inclusive minimum accepted by the control.",
+"f|Gui.Circular.setAngleRange|Gui_Circular_setAngleRange|Configures the clockwise angular span used for the value range.",
+"f|Gui.Circular.setBounds|Gui_Circular_setBounds|Configures inclusive bounds and an optional value-space step.",
+"f|Gui.Circular.setLowerValue|Gui_Circular_setLowerValue|Sets the lower value and emits one start/change/end transaction.",
+"f|Gui.Circular.setRange|Gui_Circular_setRange|Sets both range endpoints and emits at most one change notification.",
+"f|Gui.Circular.setStepCount|Gui_Circular_setStepCount|Changes the number of dot or tick step indicators.",
+"f|Gui.Circular.setStepForm|Gui_Circular_setStepForm|Changes the visual form of step indicators.",
+"f|Gui.Circular.setUpperValue|Gui_Circular_setUpperValue|Sets the upper value and emits one start/change/end transaction.",
+"f|Gui.Circular.setValue|Gui_Circular_setValue|Sets the single value, emitting start/change/end signals as one transaction.",
+"f|Gui.Circular.setValueWithoutGesture|Gui_Circular_setValueWithoutGesture|Sets the single value without emitting start/end transaction signals.",
+"f|Gui.Circular.step|Gui_Circular_step|Returns the configured value-space step, or zero for continuous values.",
+"f|Gui.Circular.upperValue|Gui_Circular_upperValue|Returns the upper value in configured value-space units.",
+"f|Gui.Circular.value|Gui_Circular_value|Returns the single value, or the lower value in range mode.",
+"f|Gui.ColorPicker.color|Gui_ColorPicker_color|Returns the selected color.",
+"f|Gui.ColorPicker.create|Gui_ColorPicker_create|Creates a saturation-lightness picker initialized to opaque red.",
+"f|Gui.ColorPicker.setColor|Gui_ColorPicker_setColor|Replaces the selected color.",
+"f|Gui.ColorPicker.setHsl|Gui_ColorPicker_setHsl|Replaces the HSL components while preserving alpha.",
+"f|Gui.ColorPicker.setHsla|Gui_ColorPicker_setHsla|Replaces the HSL and alpha components, clamped to 0, 1.",
+"f|Gui.ColorPicker.setMode|Gui_ColorPicker_setMode|Changes the component mapping without changing the selected color.",
+"f|Gui.ComboBox.addItem|Gui_ComboBox_addItem|Appends a selectable item and returns its stable heap object.",
+"f|Gui.ComboBox.addSeparator|Gui_ComboBox_addSeparator|Appends a non-selectable separator and returns its stable heap object.",
+"f|Gui.ComboBox.clear|Gui_ComboBox_clear|Removes every item and silently clears the selection and editable text.",
+"f|Gui.ComboBox.clearSelection|Gui_ComboBox_clearSelection|Removes the current selection and optionally emits the change signal.",
+"f|Gui.ComboBox.create|Gui_ComboBox_create|Creates a selection or editable combo box with optional presentation flags.",
+"f|Gui.ComboBox.openPopup|Gui_ComboBox_openPopup|Opens the drop-down without moving keyboard focus away from the combo box.",
+"f|Gui.ComboBox.removeItemAt|Gui_ComboBox_removeItemAt|Removes one item while preserving order and adjusts the selection silently.",
+"f|Gui.ComboBox.selectedItem|Gui_ComboBox_selectedItem|Returns the selected item, or null when the combo box has no selection.",
+"f|Gui.ComboBox.setSelectedIndex|Gui_ComboBox_setSelectedIndex|Selects one selectable item and optionally emits the change signal and command.",
+"f|Gui.ComboBox.updateFlags|Gui_ComboBox_updateFlags|Adds and removes presentation options, then repaints the combo box.",
+"f|Gui.EditBox.create|Gui_EditBox_create|Creates a single-line edit box.",
+"f|Gui.EditBox.deleteSelection|Gui_EditBox_deleteSelection|Deletes the selected text.",
+"f|Gui.EditBox.isValid|Gui_EditBox_isValid|Returns true when the current content is valid.",
+"f|Gui.EditBox.restoreOriginalText|Gui_EditBox_restoreOriginalText|Restores the text captured when focus was gained.",
+"f|Gui.EditBox.selectAll|Gui_EditBox_selectAll|Selects the whole content.",
+"f|Gui.EditBox.selection|Gui_EditBox_selection|Returns the selected byte range.",
+"f|Gui.EditBox.setFloatingPointRange|Gui_EditBox_setFloatingPointRange|Accepts 64-bit floating-point values in the inclusive range.",
+"f|Gui.EditBox.setForm|Gui_EditBox_setForm|Sets the visual form of the EditBox.",
+"f|Gui.EditBox.setHexadecimalRange|Gui_EditBox_setHexadecimalRange|Accepts unsigned hexadecimal integers in the inclusive range.",
+"f|Gui.EditBox.setIcon|Gui_EditBox_setIcon|Changes the leading icon.",
+"f|Gui.EditBox.setMaximumLength|Gui_EditBox_setMaximumLength|Changes the maximum rune count; zero removes the limit.",
+"f|Gui.EditBox.setPlaceholder|Gui_EditBox_setPlaceholder|Changes the placeholder displayed while content is empty.",
+"f|Gui.EditBox.setSelection|Gui_EditBox_setSelection|Sets the current selection.",
+"f|Gui.EditBox.setSignedIntegerRange|Gui_EditBox_setSignedIntegerRange|Accepts signed 64-bit integers in the inclusive range.",
+"f|Gui.EditBox.setText|Gui_EditBox_setText|Replaces the content and optionally emits one sigTextChanged notification.",
+"f|Gui.EditBox.setTextInput|Gui_EditBox_setTextInput|Selects unrestricted built-in text input; a custom validator still applies.",
+"f|Gui.EditBox.setTrailingMargin|Gui_EditBox_setTrailingMargin|Changes the extra trailing inset.",
+"f|Gui.EditBox.setUnit|Gui_EditBox_setUnit|Changes the trailing unit.",
+"f|Gui.EditBox.setUnsignedIntegerRange|Gui_EditBox_setUnsignedIntegerRange|Accepts unsigned 64-bit integers in the inclusive range.",
+"f|Gui.EditBox.setValidator|Gui_EditBox_setValidator|Changes the custom validator; null restores built-in validation.",
+"f|Gui.EditBox.text|Gui_EditBox_text|Returns the current text.",
+"f|Gui.EditBox.updateFlags|Gui_EditBox_updateFlags|Adds and removes interaction options.",
+"f|Gui.Header.addColumn|Gui_Header_addColumn|Appends a logical column with a non-negative initial width.",
+"f|Gui.Header.clearSortIndicator|Gui_Header_clearSortIndicator|Removes the current sort marker.",
+"f|Gui.Header.contentWidth|Gui_Header_contentWidth|Returns the complete width occupied by columns, separators, and leading padding.",
+"f|Gui.Header.create|Gui_Header_create|Creates an empty header using the current theme height by default.",
+"f|Gui.Header.itemAt|Gui_Header_itemAt|Returns the column at one display-order index.",
+"f|Gui.Header.itemForColumn|Gui_Header_itemForColumn|Returns the item for one logical column identifier.",
+"f|Gui.Header.itemPositionAt|Gui_Header_itemPositionAt|Returns the leading position at one display-order index.",
+"f|Gui.Header.itemPositionForColumn|Gui_Header_itemPositionForColumn|Returns the leading position for one logical column identifier.",
+"f|Gui.Header.itemWidthAt|Gui_Header_itemWidthAt|Returns the effective width at one display-order index.",
+"f|Gui.Header.itemWidthForColumn|Gui_Header_itemWidthForColumn|Returns the effective width for one logical column identifier.",
+"f|Gui.Header.setItemWidth|Gui_Header_setItemWidth|Sets an item width by display-order index and applies its configured limits.",
+"f|Gui.Header.setItemWidthForColumn|Gui_Header_setItemWidthForColumn|Sets an item width by logical column identifier and applies its configured limits.",
+"f|Gui.Header.setItemWidthLimits|Gui_Header_setItemWidthLimits|Configures inclusive width limits by display-order index and clamps the current width.",
+"f|Gui.Header.setSortIndicator|Gui_Header_setSortIndicator|Shows a sort direction for one logical column.",
+"f|Gui.Header.updateFlags|Gui_Header_updateFlags|Adds and removes interaction options and clears transient hover state when clicks are disabled.",
+"f|Gui.IconBar.addButton|Gui_IconBar_addButton|Appends an icon button with optional command identifier and interaction flags.",
+"f|Gui.IconBar.addRadioButton|Gui_IconBar_addRadioButton|Appends a radio-style button that remains checked after its first activation.",
+"f|Gui.IconBar.addToggleButton|Gui_IconBar_addToggleButton|Appends a toggle button that flips checked state on every activation.",
+"f|Gui.IconBar.buttonById|Gui_IconBar_buttonById|Returns the child icon button carrying one command identifier, or null when absent.",
+"f|Gui.IconBar.create|Gui_IconBar_create|Creates an empty icon bar with a non-negative icon size and item padding.",
+"f|Gui.IconBar.setIconSize|Gui_IconBar_setIconSize|Changes the square icon size and immediately updates every child button.",
+"f|Gui.IconBar.setItemPadding|Gui_IconBar_setItemPadding|Changes padding around every icon and immediately recomputes the bar size.",
+"f|Gui.IconBar.setOrientation|Gui_IconBar_setOrientation|Changes the layout axis and immediately recomputes the bar size.",
+"f|Gui.IconButton.clearIcon|Gui_IconButton_clearIcon|Removes the displayed icon.",
+"f|Gui.IconButton.create|Gui_IconButton_create|Creates an icon button with optional command identifier and interaction flags.",
+"f|Gui.IconButton.createAnchorPopup|Gui_IconButton_createAnchorPopup|Creates and owns a popup anchored above or below the button.",
+"f|Gui.IconButton.hidePopup|Gui_IconButton_hidePopup|Closes and destroys the owned popup, if any.",
+"f|Gui.IconButton.setArrowPosition|Gui_IconButton_setArrowPosition|Changes arrow placement and direction and repaints the button.",
+"f|Gui.IconButton.setCheckIndicator|Gui_IconButton_setCheckIndicator|Changes checked-state indicator placement and repaints the button.",
+"f|Gui.IconButton.setChecked|Gui_IconButton_setChecked|Changes checked state silently for a radio or toggle button.",
+"f|Gui.IconButton.setForm|Gui_IconButton_setForm|Changes background geometry and repaints the button.",
+"f|Gui.IconButton.setIcon|Gui_IconButton_setIcon|Replaces the displayed icon.",
+"f|Gui.IconButton.setIconColor|Gui_IconButton_setIconColor|Changes the icon tint; a transparent color restores the current theme color.",
+"f|Gui.IconButton.setIconPainter|Gui_IconButton_setIconPainter|Installs a custom icon painter, or restores descriptor painting when null.",
+"f|Gui.IconButton.setIconSize|Gui_IconButton_setIconSize|Overrides the icon draw size; zero preserves an axis from the icon descriptor.",
+"f|Gui.IconButton.setTextColor|Gui_IconButton_setTextColor|Changes the label color; a transparent color restores the current theme color.",
+"f|Gui.IconButton.setTextPosition|Gui_IconButton_setTextPosition|Changes label placement relative to the icon and repaints the button.",
+"f|Gui.IconButton.updateFlags|Gui_IconButton_updateFlags|Adds and removes interaction options and repaints the button.",
+"f|Gui.ImageRect.clear|Gui_ImageRect_clear|Releases renderer-owned content and restores an empty image window.",
+"f|Gui.ImageRect.create|Gui_ImageRect_create|Creates an empty image window.",
+"f|Gui.ImageRect.loadGif|Gui_ImageRect_loadGif|Loads and displays an animated GIF without changing the current content on failure.",
+"f|Gui.ImageRect.setFrameDuration|Gui_ImageRect_setFrameDuration|Changes the duration of every frame, in seconds.",
+"f|Gui.ImageRect.setFrameIndex|Gui_ImageRect_setFrameIndex|Selects a frame, clamping the index to the available range.",
+"f|Gui.ImageRect.setImage|Gui_ImageRect_setImage|Uploads and displays an owned copy of an image.",
+"f|Gui.ImageRect.setImageList|Gui_ImageRect_setImageList|Displays the first frame of a borrowed image-list atlas without animation.",
+"f|Gui.ImageRect.setLooping|Gui_ImageRect_setLooping|Enables or disables restart after the final frame.",
+"f|Gui.ImageRect.setPaused|Gui_ImageRect_setPaused|Pauses or resumes time-based playback.",
+"f|Gui.ImageRect.setSpriteSheet|Gui_ImageRect_setSpriteSheet|Uses a borrowed image-list atlas as an animated sprite sheet.",
+"f|Gui.ImageRect.setTexture|Gui_ImageRect_setTexture|Displays a borrowed renderer texture as one frame.",
+"f|Gui.Label.create|Gui_Label_create|Creates a label with optional wrapping, sizing, and link behavior.",
+"f|Gui.Label.setIcon|Gui_Label_setIcon|Changes the displayed icon.",
+"f|Gui.Label.setIconAlignment|Gui_Label_setIconAlignment|Changes icon alignment.",
+"f|Gui.Label.setIconColor|Gui_Label_setIconColor|Changes the explicit icon color; transparent restores automatic coloring.",
+"f|Gui.Label.setIconHorizontalAlignment|Gui_Label_setIconHorizontalAlignment|Changes horizontal icon alignment.",
+"f|Gui.Label.setIconPadding|Gui_Label_setIconPadding|Changes icon insets.",
+"f|Gui.Label.setIconVerticalAlignment|Gui_Label_setIconVerticalAlignment|Changes vertical icon alignment.",
+"f|Gui.Label.setText|Gui_Label_setText|Replaces the displayed rich text and reapplies automatic sizing.",
+"f|Gui.Label.setTextAlignment|Gui_Label_setTextAlignment|Changes text alignment and updates automatic height when needed.",
+"f|Gui.Label.setTextColor|Gui_Label_setTextColor|Changes the explicit text color; transparent restores theme coloring.",
+"f|Gui.Label.setTextHorizontalAlignment|Gui_Label_setTextHorizontalAlignment|Changes horizontal text alignment.",
+"f|Gui.Label.setTextPadding|Gui_Label_setTextPadding|Changes text insets and updates automatic height when needed.",
+"f|Gui.Label.setTextVerticalAlignment|Gui_Label_setTextVerticalAlignment|Changes vertical text alignment.",
+"f|Gui.Label.text|Gui_Label_text|Returns the displayed plain text.",
+"f|Gui.Label.updateAutomaticHeight|Gui_Label_updateAutomaticHeight|Recomputes height from current text, width, font, flags, and text padding.",
+"f|Gui.Label.updateFlags|Gui_Label_updateFlags|Adds and removes label options, then updates layout and presentation.",
+"f|Gui.PalettePicker.addColor|Gui_PalettePicker_addColor|Appends one color.",
+"f|Gui.PalettePicker.addColors|Gui_PalettePicker_addColors|Appends all colors in insertion order.",
+"f|Gui.PalettePicker.addHueRamp|Gui_PalettePicker_addHueRamp|Appends evenly spaced hues without duplicating the circular endpoint.",
+"f|Gui.PalettePicker.addLightnessRamp|Gui_PalettePicker_addLightnessRamp|Appends a lightness ramp that includes both endpoints when possible.",
+"f|Gui.PalettePicker.addSaturationRamp|Gui_PalettePicker_addSaturationRamp|Appends a saturation ramp that includes both endpoints when possible.",
+"f|Gui.PalettePicker.clear|Gui_PalettePicker_clear|Removes every color and clears the selection without notification.",
+"f|Gui.PalettePicker.clearSelection|Gui_PalettePicker_clearSelection|Clears the current selection and optionally emits Gui.PalettePicker.sigSelectionChanged.",
+"f|Gui.PalettePicker.create|Gui_PalettePicker_create|Creates an empty palette picker.",
+"f|Gui.PalettePicker.setItemMetrics|Gui_PalettePicker_setItemMetrics|Changes color-item size and spacing.",
+"f|Gui.PalettePicker.setSelectedIndex|Gui_PalettePicker_setSelectedIndex|Selects one color by index and optionally emits Gui.PalettePicker.sigSelectionChanged.",
+"f|Gui.PasswordEdit.bytes|Gui_PasswordEdit_bytes|Returns a borrowed view of the UTF-8 plaintext bytes.",
+"f|Gui.PasswordEdit.clear|Gui_PasswordEdit_clear|Clears the plaintext and visible mask, optionally emitting Gui.PasswordEdit.sigChanged.",
+"f|Gui.PasswordEdit.create|Gui_PasswordEdit_create|Creates an empty password edit with an optional command identifier.",
+"f|Gui.PasswordEdit.isEmpty|Gui_PasswordEdit_isEmpty|Returns true when no password bytes are stored.",
+"f|Gui.PasswordEdit.selectAll|Gui_PasswordEdit_selectAll|Selects the complete masked password.",
+"f|Gui.PasswordEdit.setForm|Gui_PasswordEdit_setForm|Changes the edit-box background and border form.",
+"f|Gui.PasswordEdit.setIcon|Gui_PasswordEdit_setIcon|Changes the leading icon.",
+"f|Gui.PasswordEdit.setPlaceholder|Gui_PasswordEdit_setPlaceholder|Changes the placeholder displayed while the password is empty.",
+"f|Gui.ProgressBar.create|Gui_ProgressBar_create|Creates a progress bar with optional initial presentation options.",
+"f|Gui.ProgressBar.setValue|Gui_ProgressBar_setValue|Sets finite progress after clamping it to the zero-to-one range.",
+"f|Gui.ProgressBar.updateFlags|Gui_ProgressBar_updateFlags|Adds and removes presentation options and restarts indeterminate animation when needed.",
+"f|Gui.PushButton.clearIcon|Gui_PushButton_clearIcon|Removes the displayed icon.",
+"f|Gui.PushButton.create|Gui_PushButton_create|Creates a push button with optional command identifier and visual emphasis.",
+"f|Gui.PushButton.fitWidthToLabel|Gui_PushButton_fitWidthToLabel|Pins the button width to its label instead of leaving it to the layout pass.",
+"f|Gui.PushButton.paintedForm|Gui_PushButton_paintedForm|Returns the emphasis the button is drawn with, which is not always the one it was given.",
+"f|Gui.PushButton.setForm|Gui_PushButton_setForm|Changes visual emphasis and repaints the button.",
+"f|Gui.PushButton.setIcon|Gui_PushButton_setIcon|Replaces the displayed icon.",
+"f|Gui.PushButton.setIconSize|Gui_PushButton_setIconSize|Overrides the icon draw size; zero preserves an axis from the icon descriptor.",
+"f|Gui.RadioButton.create|Gui_RadioButton_create|Creates a radio button with an optional command identifier and initial options.",
+"f|Gui.RadioButton.isChecked|Gui_RadioButton_isChecked|Reports whether this option is selected.",
+"f|Gui.RadioButton.selectSibling|Gui_RadioButton_selectSibling|Selects the next or previous option of this button's group, and reports whether one was",
+"f|Gui.RadioButton.setChecked|Gui_RadioButton_setChecked|Changes the selected state without emitting a change signal or command.",
+"f|Gui.RadioButton.uncheckGroupSiblings|Gui_RadioButton_uncheckGroupSiblings|Clears selected sibling radios from the same non-null group.",
+"f|Gui.RadioButton.updateFlags|Gui_RadioButton_updateFlags|Adds and removes marker placement options, then repaints the button.",
+"f|Gui.Separator.create|Gui_Separator_create|Creates a rule docked against one edge of parent.",
+"f|Gui.Slider.create|Gui_Slider_create|Creates a horizontal slider, optionally configured for ranges or vertical layout.",
+"f|Gui.Slider.lowerValue|Gui_Slider_lowerValue|Returns the lower value in configured value-space units.",
+"f|Gui.Slider.maximum|Gui_Slider_maximum|Returns the inclusive maximum accepted by the slider.",
+"f|Gui.Slider.minimum|Gui_Slider_minimum|Returns the inclusive minimum accepted by the slider.",
+"f|Gui.Slider.setBounds|Gui_Slider_setBounds|Configures inclusive bounds and an optional value-space step.",
+"f|Gui.Slider.setLowerValue|Gui_Slider_setLowerValue|Sets the lower value and emits one start/change/end transaction.",
+"f|Gui.Slider.setRange|Gui_Slider_setRange|Sets both range endpoints and emits at most one change notification.",
+"f|Gui.Slider.setUpperValue|Gui_Slider_setUpperValue|Sets the upper value and emits one start/change/end transaction.",
+"f|Gui.Slider.setValue|Gui_Slider_setValue|Sets the single value, emitting start/change/end signals as one transaction.",
+"f|Gui.Slider.setValueWithoutGesture|Gui_Slider_setValueWithoutGesture|Sets the single value without emitting start/end transaction signals.",
+"f|Gui.Slider.step|Gui_Slider_step|Returns the configured value-space step, or zero for continuous values.",
+"f|Gui.Slider.stepBy|Gui_Slider_stepBy|Move the active value by one keyboard step (dir = +1/-1). Public so a host",
+"f|Gui.Slider.upperValue|Gui_Slider_upperValue|Returns the upper value in configured value-space units.",
+"f|Gui.Slider.value|Gui_Slider_value|Returns the single value, or the lower value in range mode.",
+"f|Gui.Spinner.create|Gui_Spinner_create|Creates a spinner, square by default and sized by the theme when position says nothing.",
+"f|Gui.Tab.addItem|Gui_Tab_addItem|Appends a tab and transfers ownership of its optional page view to this control.",
+"f|Gui.Tab.clear|Gui_Tab_clear|Removes all tabs and destroys every page view previously transferred to the control.",
+"f|Gui.Tab.create|Gui_Tab_create|Creates an empty, keyboard-focusable tab control.",
+"f|Gui.Tab.removeItemAt|Gui_Tab_removeItemAt|Removes one tab, destroys its owned page, and selects the nearest remaining tab.",
+"f|Gui.Tab.selectedItem|Gui_Tab_selectedItem|Returns the selected item, or null when the control is empty.",
+"f|Gui.Tab.setForm|Gui_Tab_setForm|Applies a coordinated predefined presentation and width policy.",
+"f|Gui.Tab.setForms|Gui_Tab_setForms|Replaces the bar, item, and selected-page presentation independently.",
+"f|Gui.Tab.setItemName|Gui_Tab_setItemName|Replaces the label of one tab and measures the bar again around the new wording.",
+"f|Gui.Tab.setLayout|Gui_Tab_setLayout|Configures width measurement and validates non-negative sizing values.",
+"f|Gui.Tab.setSelectedIndex|Gui_Tab_setSelectedIndex|Selects one tab and emits a change signal when the effective item changes.",
+"f|Gui.ToggleButton.create|Gui_ToggleButton_create|Creates a toggle button with an optional command identifier.",
+"f|Gui.ToggleButton.isChecked|Gui_ToggleButton_isChecked|Reports whether the option is on.",
+"f|Gui.ToggleButton.setChecked|Gui_ToggleButton_setChecked|Changes the state without emitting a change signal or command.",
+"f|Gui.ToggleButton.toggle|Gui_ToggleButton_toggle|Flips the state and emits the same notifications as a user action.",
+"f|Gui.FocusOrder.around|Gui_FocusOrder_around|Collects the traversal stops of the whole tree wnd belongs to.",
+"f|Gui.FocusOrder.collect|Gui_FocusOrder_collect|Collects the traversal stops of the tree rooted at root, root included.",
+"f|Gui.FocusOrder.first|Gui_FocusOrder_first|Returns the first stop, or null when the tree holds none.",
+"f|Gui.FocusOrder.indexOf|Gui_FocusOrder_indexOf|Returns the position of the stop wnd belongs to, or -1 when it belongs to none.",
+"f|Gui.FocusOrder.last|Gui_FocusOrder_last|Returns the last stop, or null when the tree holds none.",
+"f|Gui.FocusOrder.next|Gui_FocusOrder_next|Returns the stop before or after the one from belongs to, wrapping around the ring.",
+"f|Gui.FocusOrder.nextInGroup|Gui_FocusOrder_nextInGroup|Returns the stop before or after from inside its own group, wrapping around that group.",
+"f|Gui.FrameWnd.createView|Gui_FrameWnd_createView|Creates and attaches a typed child as this frame's view.",
+"f|Gui.FrameWnd.setFrameFlags|Gui_FrameWnd_setFrameFlags|Adds and removes frame decoration flags.",
+"f|Gui.FrameWnd.setFrameForm|Gui_FrameWnd_setFrameForm|Changes the frame geometry and updates content padding.",
+"f|Gui.FrameWnd.setView|Gui_FrameWnd_setView|Replaces and destroys the current view, then attaches what to this frame.",
+"f|Gui.IWnd.measureContent|Gui_IWnd_measureContent|Returns the size this window's own content needs, or zero on an axis it cannot answer.",
+"f|Gui.IWnd.onAfterPaint|Gui_IWnd_onAfterPaint|Paints overlays scheduled after child windows.",
+"f|Gui.IWnd.onApplyStateEvent|Gui_IWnd_onApplyStateEvent|Applies command state to a presentation window.",
+"f|Gui.IWnd.onBeforePaint|Gui_IWnd_onBeforePaint|Paints content scheduled before child windows.",
+"f|Gui.IWnd.onCommandEvent|Gui_IWnd_onCommandEvent|Handles a command not consumed by an attached action.",
+"f|Gui.IWnd.onComputeStateEvent|Gui_IWnd_onComputeStateEvent|Supplies current enabled, checked, visible, and text state for a command.",
+"f|Gui.IWnd.onCreateEvent|Gui_IWnd_onCreateEvent|Handles attachment to a surface and completion of construction.",
+"f|Gui.IWnd.onDestroyEvent|Gui_IWnd_onDestroyEvent|Handles destruction before owned resources and storage are released.",
+"f|Gui.IWnd.onEvent|Gui_IWnd_onEvent|Dispatches an arbitrary event to its typed callback.",
+"f|Gui.IWnd.onFocusEvent|Gui_IWnd_onFocusEvent|Handles keyboard-focus negotiation and changes.",
+"f|Gui.IWnd.onFrameEvent|Gui_IWnd_onFrameEvent|Handles the start of a rendered application frame.",
+"f|Gui.IWnd.onHookEvent|Gui_IWnd_onHookEvent|Observes an event registered through the application's global hook list.",
+"f|Gui.IWnd.onKeyEvent|Gui_IWnd_onKeyEvent|Handles keyboard presses, releases, and character input.",
+"f|Gui.IWnd.onMouseEvent|Gui_IWnd_onMouseEvent|Handles pointer buttons, movement, wheel input, and cursor queries.",
+"f|Gui.IWnd.onNotifyEvent|Gui_IWnd_onNotifyEvent|Handles framework notifications such as theme changes.",
+"f|Gui.IWnd.onPaint|Gui_IWnd_onPaint|Paints the window's primary content.",
+"f|Gui.IWnd.onResizeEvent|Gui_IWnd_onResizeEvent|Handles a change to the window's logical size.",
+"f|Gui.IWnd.onSerializeStateEvent|Gui_IWnd_onSerializeStateEvent|Reads or writes persistent UI state through the supplied serializer.",
+"f|Gui.IWnd.onStateEvent|Gui_IWnd_onStateEvent|Handles visibility or enabled-state changes.",
+"f|Gui.IWnd.onSysCommandEvent|Gui_IWnd_onSysCommandEvent|Handles a platform window-system command.",
+"f|Gui.IWnd.onSysUserEvent|Gui_IWnd_onSysUserEvent|Handles an application-defined platform message.",
+"f|Gui.IWnd.onThemeEvent|Gui_IWnd_onThemeEvent|Handles a resolved-theme change.",
+"f|Gui.IWnd.onTimerEvent|Gui_IWnd_onTimerEvent|Handles expiration of a timer owned by this window.",
+"f|Gui.ScrollWnd.scrollPosition|Gui_ScrollWnd_scrollPosition|Returns the current viewport origin in content coordinates.",
+"f|Gui.ScrollWnd.scrollableClientRect|Gui_ScrollWnd_scrollableClientRect|Returns the complete virtual content rectangle.",
+"f|Gui.ScrollWnd.setScrollPos|Gui_ScrollWnd_setScrollPos|Sets and clamps the viewport origin in content coordinates.",
+"f|Gui.ScrollWnd.setScrollSize|Gui_ScrollWnd_setScrollSize|Sets the non-negative virtual content size and clamps the current position.",
+"f|Gui.ScrollWnd.updateFlags|Gui_ScrollWnd_updateFlags|Adds and removes scrollbar options and immediately recomputes the viewport.",
+"f|Gui.Wnd.addTimer|Gui_Wnd_addTimer|Register a new timer for the given 'target'",
+"f|Gui.Wnd.ancestorById|Gui_Wnd_ancestorById|Retrieve the parent with the given id",
+"f|Gui.Wnd.app|Gui_Wnd_app|Returns the application that owns this window.",
+"f|Gui.Wnd.applyLayout|Gui_Wnd_applyLayout|Apply the current layout (children constraints)",
+"f|Gui.Wnd.arrange|Gui_Wnd_arrange|Clamps and applies a container-assigned rectangle, recording diagnostics.",
+"f|Gui.Wnd.bringToFront|Gui_Wnd_bringToFront|Moves this window after normal siblings so it is painted in front of them.",
+"f|Gui.Wnd.captureMouse|Gui_Wnd_captureMouse|Captures platform pointer input for this window.",
+"f|Gui.Wnd.childById|Gui_Wnd_childById|Retrieve the child with the given id",
+"f|Gui.Wnd.clientRect|Gui_Wnd_clientRect|Returns the unpadded local client rectangle.",
+"f|Gui.Wnd.computeStyle|Gui_Wnd_computeStyle|Computes style.",
+"f|Gui.Wnd.create|Gui_Wnd_create|Allocates a concrete window with an empty name and rectangle.",
+"f|Gui.Wnd.destroy|Gui_Wnd_destroy|Destroy the window",
+"f|Gui.Wnd.destroyNow|Gui_Wnd_destroyNow|Destroy the window",
+"f|Gui.Wnd.detachChild|Gui_Wnd_detachChild|Removes a child from this window's child list without destroying it.",
+"f|Gui.Wnd.deviceScale|Gui_Wnd_deviceScale|Number of physical device pixels covered by one logical unit of this window.",
+"f|Gui.Wnd.disable|Gui_Wnd_disable|Disable the window",
+"f|Gui.Wnd.dumpLayoutTree|Gui_Wnd_dumpLayoutTree|Prints this subtree's last measure and arrange decisions when diagnostics are enabled.",
+"f|Gui.Wnd.enable|Gui_Wnd_enable|Enable/Disable the window",
+"f|Gui.Wnd.fitPosInParent|Gui_Wnd_fitPosInParent|Be sure rect is fully inside the parent rectangle (if possible)",
+"f|Gui.Wnd.focusNext|Gui_Wnd_focusNext|Moves the keyboard focus to the next traversal stop, and reports whether one was found.",
+"f|Gui.Wnd.focusNextInGroup|Gui_Wnd_focusNextInGroup|Moves the keyboard focus inside its own group, and reports whether another stop was found.",
+"f|Gui.Wnd.focusTarget|Gui_Wnd_focusTarget|Returns the window the focus lands on for this one, following the delegate chain.",
+"f|Gui.Wnd.focusedWindow|Gui_Wnd_focusedWindow|Returns the keyboard-focused window on this surface, if any.",
+"f|Gui.Wnd.font|Gui_Wnd_font|Returns the resolved font family.",
+"f|Gui.Wnd.hasFocus|Gui_Wnd_hasFocus|Reports whether this window currently owns keyboard focus.",
+"f|Gui.Wnd.hasVisibleFocus|Gui_Wnd_hasVisibleFocus|Reports whether this window must show the keyboard focus.",
+"f|Gui.Wnd.hide|Gui_Wnd_hide|Hide the window",
+"f|Gui.Wnd.invalidate|Gui_Wnd_invalidate|Force the window to be repainted",
+"f|Gui.Wnd.invalidateLayout|Gui_Wnd_invalidateLayout|Marks cached measurement dirty and propagates the invalidation to the root.",
+"f|Gui.Wnd.invalidateRect|Gui_Wnd_invalidateRect|Invalidates one local rectangle after converting it to surface coordinates.",
+"f|Gui.Wnd.isAncestorOf|Gui_Wnd_isAncestorOf|Reports whether child is a structural descendant of this window.",
+"f|Gui.Wnd.isDisabled|Gui_Wnd_isDisabled|Reports whether this window or a structural ancestor is disabled.",
+"f|Gui.Wnd.isEnabled|Gui_Wnd_isEnabled|Reports whether this window and every structural ancestor are enabled.",
+"f|Gui.Wnd.isFocusStop|Gui_Wnd_isFocusStop|Reports whether keyboard traversal stops on this window.",
+"f|Gui.Wnd.isHidden|Gui_Wnd_isHidden|Reports whether this window or a structural ancestor is hidden.",
+"f|Gui.Wnd.isLocallyEnabled|Gui_Wnd_isLocallyEnabled|Reports this window's own enabled flag, independently of its ancestors.",
+"f|Gui.Wnd.isLocallyVisible|Gui_Wnd_isLocallyVisible|Reports this window's own visibility flag, independently of its ancestors.",
+"f|Gui.Wnd.isOwnerOf|Gui_Wnd_isOwnerOf|Reports whether child reaches this window through owner-or-parent routing.",
+"f|Gui.Wnd.isVisible|Gui_Wnd_isVisible|Reports whether this window and every structural ancestor are visible.",
+"f|Gui.Wnd.keyShortcut|Gui_Wnd_keyShortcut|Resolves a shortcut locally, then through the owner or parent chain.",
+"f|Gui.Wnd.keyShortcutName|Gui_Wnd_keyShortcutName|Formats the first shortcut associated with wndId in the routing chain.",
+"f|Gui.Wnd.layoutMargin|Gui_Wnd_layoutMargin|Returns the component-wise sum of legacy and container layout margins.",
+"f|Gui.Wnd.localToSurface|Gui_Wnd_localToSurface|Convert a local coordinate to a surface coordinate",
+"f|Gui.Wnd.measure|Gui_Wnd_measure|Resolves minimum, preferred, and maximum size for the available space.",
+"f|Gui.Wnd.mouseCapture|Gui_Wnd_mouseCapture|Returns the window that currently owns pointer capture.",
+"f|Gui.Wnd.move|Gui_Wnd_move|Move the wnd",
+"f|Gui.Wnd.moveLastChildrenTo|Gui_Wnd_moveLastChildrenTo|Moves the last count children to index, keeping their relative order.",
+"f|Gui.Wnd.notifyEvent|Gui_Wnd_notifyEvent|Send a notification event",
+"f|Gui.Wnd.ownerNotifyEvent|Gui_Wnd_ownerNotifyEvent|Send a notification event",
+"f|Gui.Wnd.ownerOrParent|Gui_Wnd_ownerOrParent|Returns the explicit owner when present, otherwise the structural parent.",
+"f|Gui.Wnd.paddedClientRect|Gui_Wnd_paddedClientRect|Returns the local client rectangle inset by padding.",
+"f|Gui.Wnd.paint|Gui_Wnd_paint|Paints this window and its visible descendants into bc in z-order.",
+"f|Gui.Wnd.postCommandEvent|Gui_Wnd_postCommandEvent|Posts command event.",
+"f|Gui.Wnd.postEvent|Gui_Wnd_postEvent|Posts event.",
+"f|Gui.Wnd.postInvalidateEvent|Gui_Wnd_postInvalidateEvent|Posts invalidate event.",
+"f|Gui.Wnd.postQuitEvent|Gui_Wnd_postQuitEvent|Posts quit event.",
+"f|Gui.Wnd.postResizeEvent|Gui_Wnd_postResizeEvent|Posts resize event.",
+"f|Gui.Wnd.processEvent|Gui_Wnd_processEvent|Invokes the local hook, then dispatches the event unless the hook consumes it.",
+"f|Gui.Wnd.rectRelativeTo|Gui_Wnd_rectRelativeTo|Returns this window's rectangle relative to wnd, or to the root when null.",
+"f|Gui.Wnd.registerAction|Gui_Wnd_registerAction|Register one new action",
+"f|Gui.Wnd.registerKeyShortcut|Gui_Wnd_registerKeyShortcut|Registers or replaces a keyboard shortcut on this routing node.",
+"f|Gui.Wnd.releaseMouse|Gui_Wnd_releaseMouse|Releases the application's current pointer capture.",
+"f|Gui.Wnd.removeTimer|Gui_Wnd_removeTimer|Removes a timer previously created for this window.",
+"f|Gui.Wnd.resize|Gui_Wnd_resize|Resize the wnd",
+"f|Gui.Wnd.rootWnd|Gui_Wnd_rootWnd|Returns the topmost structural ancestor of this window, or itself when it has no parent.",
+"f|Gui.Wnd.screenToSurface|Gui_Wnd_screenToSurface|Convert a physical screen coordinate to a logical surface coordinate (relative to my surface)",
+"f|Gui.Wnd.sendCommandEvent|Gui_Wnd_sendCommandEvent|Send the command event with the given id to the window.",
+"f|Gui.Wnd.sendComputeCommandStateEvent|Gui_Wnd_sendComputeCommandStateEvent|Send the command state event with the given id to the window.",
+"f|Gui.Wnd.sendCreateEvent|Gui_Wnd_sendCreateEvent|Sends create event.",
+"f|Gui.Wnd.sendDisableStateEvent|Gui_Wnd_sendDisableStateEvent|Sends disable state event.",
+"f|Gui.Wnd.sendEvent|Gui_Wnd_sendEvent|Sends event.",
+"f|Gui.Wnd.sendHideStateEvent|Gui_Wnd_sendHideStateEvent|Sends hide state event.",
+"f|Gui.Wnd.sendResizeEvent|Gui_Wnd_sendResizeEvent|Sends resize event.",
+"f|Gui.Wnd.sendStateEvent|Gui_Wnd_sendStateEvent|Sends state event.",
+"f|Gui.Wnd.sendToBack|Gui_Wnd_sendToBack|Moves this window before all siblings so it is painted behind them.",
+"f|Gui.Wnd.serializeState|Gui_Wnd_serializeState|Offers persistent-state serialization to this window, then recursively to children if declined.",
+"f|Gui.Wnd.setAllMargins|Gui_Wnd_setAllMargins|Replaces all four margins with value.",
+"f|Gui.Wnd.setAllPaddings|Gui_Wnd_setAllPaddings|Replaces all four paddings with value.",
+"f|Gui.Wnd.setFocus|Gui_Wnd_setFocus|Requests keyboard focus after both the old and new windows approve the transition.",
+"f|Gui.Wnd.setInitialFocus|Gui_Wnd_setInitialFocus|Gives the keyboard focus to the first traversal stop of this window's tree.",
+"f|Gui.Wnd.setMargin|Gui_Wnd_setMargin|Updates selected outer margins; Swag.F32.Inf leaves an edge unchanged.",
+"f|Gui.Wnd.setPadding|Gui_Wnd_setPadding|Updates selected inner paddings; Swag.F32.Inf leaves an edge unchanged.",
+"f|Gui.Wnd.setParent|Gui_Wnd_setParent|Reparents this window, or detaches it when who is null.",
+"f|Gui.Wnd.setPosition|Gui_Wnd_setPosition|Move and size the wnd",
+"f|Gui.Wnd.show|Gui_Wnd_show|Show the window",
+"f|Gui.Wnd.showsFocusRing|Gui_Wnd_showsFocusRing|Reports whether the paint must draw the keyboard-focus ring on this window.",
+"f|Gui.Wnd.surfaceRect|Gui_Wnd_surfaceRect|Returns this window's rectangle in surface coordinates.",
+"f|Gui.Wnd.surfaceToLocal|Gui_Wnd_surfaceToLocal|Convert a surface coordinate to a local coordinate (relative to me)",
+"f|Gui.Wnd.theme|Gui_Wnd_theme|Returns the resolved theme.",
+"f|Gui.Wnd.themeColors|Gui_Wnd_themeColors|Returns the resolved theme colors.",
+"f|Gui.Wnd.themeMetrics|Gui_Wnd_themeMetrics|Returns the resolved theme metrics.",
+"f|Gui.Wnd.themeRects|Gui_Wnd_themeRects|Returns the resolved theme image rectangles.",
+"f|Gui.Wnd.timing|Gui_Wnd_timing|Returns the current frame timing.",
+"f|Gui.Wnd.topView|Gui_Wnd_topView|Returns the root content view of this window's surface.",
+"f|Gui.Wnd.topWindow|Gui_Wnd_topWindow|Returns the root surface window.",
+"f|Gui.Wnd.updateCommandState|Gui_Wnd_updateCommandState|Main function to update command state of various windows/widgets.",
+"f|Gui.Wnd.windowAt|Gui_Wnd_windowAt|Returns the topmost descendant at parent-space coordinates.",
+"h|Application and surfaces|guide_Application_and_surfaces|",
+"h|Windows and layout|guide_Windows_and_layout|",
+"h|Events, actions, and lifetime|guide_Events__actions__and_lifetime|",
+"h|Painting and themes|guide_Painting_and_themes|",
+"h|Controls and dialogs|guide_Controls_and_dialogs|",
+"h|Rich text and properties|guide_Rich_text_and_properties|",
+"h|Resources and localization|guide_Resources_and_localization|",
+]);
+</script>
 </body>
 </html>

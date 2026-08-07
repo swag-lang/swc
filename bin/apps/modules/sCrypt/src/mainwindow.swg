@@ -176,6 +176,12 @@ struct MainWindow
         languageChoice: *ComboBox
     }
 
+    // The three cards are pages of one tab strip rather than columns of one grid: a vault is
+    // created, then opened, then watched, and a reader is only ever doing one of the three. Shown
+    // side by side they cost the width of all three at once and leave two of them idle.
+    #[Swag.Late]
+    tabs: *Tab
+
     // The two cards, kept whole so a language switch can re-label their headings, and the band
     // that says which drives the window currently exposes.
     createCard: VaultCard = undefined
@@ -368,11 +374,11 @@ internal func parseCapacity(text: string, unitIndex: u32)->ContainerSize
 
 impl MainWindow
 {
-    // Size the three cards need side by side. The third one holds a table rather than a form,
-    // so it asks for a little less width than the two that do.
-    const WindowWidth        = 1500's32
-    const WindowHeight       = 850's32
-    const DrivesColumnWeight = 0.85'f32
+    // Size one card needs, not three: the tab strip shows a single page at a time. The width is
+    // the widest card's form plus its padding, and French wraps widest, so it is the language
+    // that sizes this. The height is the tallest card, which is the one that opens a vault.
+    const WindowWidth  = 720's32
+    const WindowHeight = 890's32
 
     func create(parent: *Wnd)->*MainWindow
     {
@@ -389,33 +395,81 @@ impl MainWindow
         result.createHeader()
         result.createFooter()
 
-        // Three columns, left to right in the order a vault goes through them: create it, open
-        // it, then watch the drive it became.
-        let cards = GridLayoutCtrl.create(result, 3, 1)
-        with cards
+        // Three pages, in the order a vault goes through them: create it, open it, then watch the
+        // drive it became.
+        let tabs = Tab.create(result)
+        result.tabs = tabs
+        with tabs
         {
-            .dockStyle         = .Center
-            .margin            = {32, 16, 32, 16}
-            .horizontalSpacing = 24
-            .setColumnTrack(0, .Fraction, 1)
-            .setColumnTrack(1, .Fraction, 1)
-            .setColumnTrack(2, .Fraction, DrivesColumnWeight)
-            .setRowTrack(0, .Fraction, 1)
-            .setCell(result.createNewVaultCard(cards), 0, 0)
-            .setCell(result.createOpenVaultCard(cards), 1, 0)
-            .setCell(result.createMountedDrivesCard(cards), 2, 0)
+            .dockStyle = .Center
+            .margin    = {32, 16, 32, 16}
+            .setForm(.Button)
+            .addItem(appStrings().ui_CreateTab, view: result.createNewVaultCard(tabs))
+            .addItem(appStrings().ui_OpenTab, view: result.createOpenVaultCard(tabs))
+            .addItem(appStrings().ui_MountedTab, view: result.createMountedDrivesCard(tabs))
+        }
+
+        tabs.sigSelectionChanged += func|window = result|(tab)
+        {
+            discard tab
+            window.arrangeCards()
         }
 
         result.watchFormState()
         result.applyLayout()
-        cards.computeLayout()
         result.setState(.Ready)
         result.setStatus(.Ready)
 
         // The window opens on the first thing there is to fill in, so it can be driven from the
-        // keyboard alone: Tab walks the create card, then the open card, then the drives.
-        result.setInitialFocus()
+        // keyboard alone. Only the page on show is in the ring: the strip is what moves between
+        // the three, and a hidden card holds no keyboard stop.
+        result.setInitialFocus(result.initialStop())
         return result
+    }
+
+    // The stop the window opens on: the first thing there is to fill in on the page that is up.
+    //
+    // The strip reads first, so it is what the keyboard would otherwise start on — and the first
+    // key press would then change page instead of typing into the form the reader is looking at.
+    mtd initialStop()->#null *Wnd
+    {
+        switch .tabs.selectedIndex
+        {
+        case 0:
+            return .createPath
+        case 1:
+            return .mountPath
+        default:
+            return .mountedDrives.list
+        }
+    }
+
+    // Finishes the card the strip has just brought up.
+    //
+    // A page is given its real width the moment it is shown, and that is the first width its card
+    // has ever been measured at. A card is only correct after the pass that arranges its body
+    // around a subtitle whose own height depends on that width — the same pass a language switch
+    // needs, and for the same reason. Without it the body of a page opened for the first time is
+    // short by that difference, and the body clips the last help paragraph of the form: the form
+    // reports a height that ends inside a body which is not the body it was measured against.
+    //
+    // The layout is re-run from the window down, because the strip positions its page after it
+    // announces the change, so the page still carries its old rectangle when this is called.
+    mtd arrangeCards()
+    {
+        .applyLayout()
+        .createCard.endForm()
+        .mountCard.endForm()
+    }
+
+    // Brings one page of the strip up.
+    //
+    // Nothing else: selecting is what arranges the page, through the signal below. A caller that
+    // arranged the card itself would be running a pass a mouse click does not, which is exactly
+    // how a card clipped in the shipped window went on passing its own containment test.
+    mtd showTab(index: u32)
+    {
+        .tabs.setSelectedIndex(index)
     }
 
     // Follows every field an action depends on, so no action is ever live on a form
@@ -576,7 +630,10 @@ impl MainWindow
             window.chooseLanguage(index)
         }
 
-        let credit = Label.create(footerRow, "WinFsp — Windows File System Proxy, Copyright (C) Bill Zissimopoulos — github.com/winfsp/winfsp", {}, null, .SecondaryText)
+        // The attribution keeps what it owes: the product, the holder, and where it comes from.
+        // Expanding the acronym as well made the line the widest thing on the surface, and the
+        // window is now one card wide.
+        let credit = Label.create(footerRow, "WinFsp — Copyright (C) Bill Zissimopoulos — github.com/winfsp/winfsp", {}, null, .SecondaryText)
         credit.dockStyle = .Center
         credit.setTextAlignment(.Left, .Center)
         .fillLanguageChoice()
@@ -608,7 +665,7 @@ impl MainWindow
         .statusView.applyLayout()
     }
 
-    mtd createMountedDrivesCard(parent: *GridLayoutCtrl)->*Wnd
+    mtd createMountedDrivesCard(parent: *Wnd)->*Wnd
     {
         .mountedDrives = MountedDrives.create(parent)
 
@@ -794,7 +851,7 @@ impl MainWindow
         }
     }
 
-    mtd createNewVaultCard(parent: *GridLayoutCtrl)->*Wnd
+    mtd createNewVaultCard(parent: *Wnd)->*Wnd
     {
         let card = VaultCard.create(parent, appStrings().ui_CreateCardTitle, appStrings().ui_CreateCardHelp)
         let form = card.form
@@ -848,7 +905,7 @@ impl MainWindow
         return card.panel
     }
 
-    mtd createOpenVaultCard(parent: *GridLayoutCtrl)->*Wnd
+    mtd createOpenVaultCard(parent: *Wnd)->*Wnd
     {
         let card = VaultCard.create(parent, appStrings().ui_MountCardTitle, appStrings().ui_MountCardHelp)
         let form = card.form
@@ -1031,6 +1088,10 @@ impl MainWindow
 
         .badge.setText(texts.ui_Badge)
         .subtitle.setText(texts.ui_Subtitle)
+
+        .tabs.setItemName(0, texts.ui_CreateTab)
+        .tabs.setItemName(1, texts.ui_OpenTab)
+        .tabs.setItemName(2, texts.ui_MountedTab)
 
         .createCard.setTexts(texts.ui_CreateCardTitle, texts.ui_CreateCardHelp)
         .createCard.form.setRowLabel(cast(u64) CreateRow.Path, texts.ui_ContainerFile)
@@ -1753,6 +1814,13 @@ impl IWnd for MainWindow
 
         // Paths and drive letters only: a password is never written anywhere.
         catch evt.serializer.serialize("MainWindow.startupVaults", &me.startupVaults)
+
+        // The window reopens on the page it was left on, so a reader who only ever mounts an
+        // existing vault does not walk past the creation form at every start.
+        var selectedTab = .tabs.selectedIndex
+        catch evt.serializer.serialize("MainWindow.selectedTab", &selectedTab)
+        if evt.serializer.isReading() do
+            .showTab(Math.min(selectedTab, cast(u32) .tabs.items.count - 1))
     }
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)

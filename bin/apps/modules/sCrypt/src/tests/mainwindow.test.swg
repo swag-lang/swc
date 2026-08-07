@@ -18,7 +18,17 @@ func testSetupMainWindow(host: *Testing.HeadlessHost)->*MainWindow
     // Built on the surface root, the way the application builds it: the window installs itself
     // as the view of its surface, which destroys whatever view was there before.
     let result = MainWindow.create(&host.surfaceWnd)
-    result.setPosition({0, 0, cast(f32) MainWindow.WindowWidth, cast(f32) MainWindow.WindowHeight})
+
+    // The shipped surface draws its own caption and border, and its view sits inside them, so the
+    // window is that much smaller than the size passed to `createSurface`. The host builds no
+    // chrome at all, so a window given the whole rectangle is measured taller than the one that
+    // ships — and 43 logical pixels is exactly the room the last help paragraph of a card needs.
+    // A card clipped in the real window went on passing the containment test below for that
+    // reason, in every language, for as long as the test sized the window itself.
+    let metrics = host.theme.metrics
+    let border  = metrics.wnd_BorderSize
+    let caption = Math.max(metrics.wnd_BigCaptionCY, border)
+    result.setPosition({0, 0, cast(f32) MainWindow.WindowWidth - 2 * border, cast(f32) MainWindow.WindowHeight - caption - border})
     result.applyLayout()
     return result
 }
@@ -37,11 +47,14 @@ func testSetupMainWindow(host: *Testing.HeadlessHost)->*MainWindow
 
 // A card's form has to end inside the card, in every language.
 //
-// The three cards share the row of a grid, so each is exactly as tall as the window and no
-// taller: a form that grows past its body is not pushed down, it is cut off at the bottom edge.
-// That is what a longer translation does to the last help paragraph of a card, and neither the
-// form nor the body reports it — the form is sized by its own measure, so it always "fits"
-// itself, and the body answers for no content size at all.
+// A card is exactly as tall as the page it fills and no taller: a form that grows past its body
+// is not pushed down, it is cut off at the bottom edge. That is what a longer translation does to
+// the last help paragraph of a card, and neither the form nor the body reports it — the form is
+// sized by its own measure, so it always "fits" itself, and the body answers for no content size
+// at all.
+//
+// Bring the card's page up before measuring it. A tab that is not on show is not arranged, so its
+// body answers a negative height and the comparison passes on a card nobody sized.
 func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
 {
     let room   = card.body.clientRect().height
@@ -67,9 +80,15 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
         expect g_App.setLanguage(one.tag.toString())
         host.notify(.LanguageChanged)
         Testing.assertContentFits(window)
+
+        window.showTab(0)
         assertFormEndsInsideCard(&window.createCard)
+
+        window.showTab(1)
         assertFormEndsInsideCard(&window.mountCard)
     }
+
+    window.showTab(0)
 }
 
 // A language switch re-labels the buttons and re-measures them around the new wording.
@@ -126,25 +145,34 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     @assert(activeLanguage() == systemLanguage())
 }
 
-// The whole window is reachable from the keyboard, in the order it reads.
+// The page on show is reachable from the keyboard, in the order it reads, and it is the only
+// page in the ring.
 //
-// Both cards are built with their action bar docked under a form that fills the space left over,
-// so this also pins that the traversal follows the arranged rectangles rather than the order the
-// windows were created in.
+// The strip comes first, because moving between the three pages is the first thing the keyboard
+// can do here. A card is built with its action bar docked under a form that fills the space left
+// over, so this also pins that the traversal follows the arranged rectangles rather than the
+// order the windows were created in.
 #test
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
     defer host.shutdown()
 
+    // It opens on the first field to fill in and not on the strip, even though the strip is what
+    // reads first, and Tab moves on from there.
+    @assert(window.createPath.hasFocus())
+    host.keyPress(Input.Key.Tab)
+    @assert(window.browseCreate.hasFocus())
+
     let order = Gui.FocusOrder.collect(window)
 
     // A button that cannot work is down, and the keyboard does not stop on it: on a form with
-    // nothing filled in, all four actions of the window are out of the ring. So is the band,
-    // which is not on the surface at all while no drive is mounted.
-    @assert(order.stops.count == 12)
-    @assert(order.stops[0] == cast(*Wnd) window.createPath)
-    @assert(order.stops[6] == cast(*Wnd) window.mountPath)
+    // nothing filled in, the action of the create page is out of the ring. So is every control
+    // of the two pages that are not on show.
+    @assert(order.stops.count == 8)
+    @assert(order.stops[0] == cast(*Wnd) window.tabs)
+    @assert(order.stops[1] == cast(*Wnd) window.createPath)
+    @assert(order.stops[7] == cast(*Wnd) window.languageChoice)
 
     // Live, each action takes its place after the card it answers for, and the dominant one
     // comes last on its card because the bar stacks from its right edge.
@@ -154,28 +182,34 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     window.passwordButton.enable(true)
 
     let full = Gui.FocusOrder.collect(window)
-    @assert(full.stops.count == 16)
-    @assert(full.stops[0] == cast(*Wnd) window.createPath)
-    @assert(full.stops[1] == cast(*Wnd) window.browseCreate)
-    @assert(full.stops[2] == cast(*Wnd) window.createSize)
-    @assert(full.stops[3] == cast(*Wnd) window.createUnit)
-    @assert(full.stops[4] == cast(*Wnd) window.createPassword)
-    @assert(full.stops[5] == cast(*Wnd) window.confirmPassword)
-    @assert(full.stops[6] == cast(*Wnd) window.createButton)
-    @assert(full.stops[7] == cast(*Wnd) window.mountPath)
-    @assert(full.stops[8] == cast(*Wnd) window.browseMount)
-    @assert(full.stops[9] == cast(*Wnd) window.mountPassword)
-    @assert(full.stops[10] == cast(*Wnd) window.drive)
-    @assert(full.stops[11] == cast(*Wnd) window.readOnly)
-    @assert(full.stops[12] == cast(*Wnd) window.passwordButton)
-    @assert(full.stops[13] == cast(*Wnd) window.resizeButton)
-    @assert(full.stops[14] == cast(*Wnd) window.mountButton)
-    @assert(full.stops[15] == cast(*Wnd) window.languageChoice)
+    @assert(full.stops.count == 9)
+    @assert(full.stops[0] == cast(*Wnd) window.tabs)
+    @assert(full.stops[1] == cast(*Wnd) window.createPath)
+    @assert(full.stops[2] == cast(*Wnd) window.browseCreate)
+    @assert(full.stops[3] == cast(*Wnd) window.createSize)
+    @assert(full.stops[4] == cast(*Wnd) window.createUnit)
+    @assert(full.stops[5] == cast(*Wnd) window.createPassword)
+    @assert(full.stops[6] == cast(*Wnd) window.confirmPassword)
+    @assert(full.stops[7] == cast(*Wnd) window.createButton)
+    @assert(full.stops[8] == cast(*Wnd) window.languageChoice)
 
-    // It opens on the first field, and Tab moves on from there.
-    @assert(window.createPath.hasFocus())
-    host.keyPress(Input.Key.Tab)
-    @assert(window.browseCreate.hasFocus())
+    // Bringing up another page swaps the whole middle of the ring for that page's controls, and
+    // the dominant action still comes last on its card because the bar stacks from its right edge.
+    window.showTab(1)
+    let opened = Gui.FocusOrder.collect(window)
+    @assert(opened.stops.count == 10)
+    @assert(opened.stops[0] == cast(*Wnd) window.tabs)
+    @assert(opened.stops[1] == cast(*Wnd) window.mountPath)
+    @assert(opened.stops[2] == cast(*Wnd) window.browseMount)
+    @assert(opened.stops[3] == cast(*Wnd) window.mountPassword)
+    @assert(opened.stops[4] == cast(*Wnd) window.drive)
+    @assert(opened.stops[5] == cast(*Wnd) window.readOnly)
+    @assert(opened.stops[6] == cast(*Wnd) window.passwordButton)
+    @assert(opened.stops[7] == cast(*Wnd) window.resizeButton)
+    @assert(opened.stops[8] == cast(*Wnd) window.mountButton)
+    @assert(opened.stops[9] == cast(*Wnd) window.languageChoice)
+
+    window.showTab(0)
 }
 
 // The file box is opened, backed out of, and left behind without the keyboard going missing.
@@ -188,10 +222,12 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     let window = testSetupMainWindow(&host)
     defer host.shutdown()
 
-    // Walk to the browse action of the mount card the way the reader does.
-    @assert(window.createPath.hasFocus())
-    for 7 do
-        host.keyPress(Input.Key.Tab)
+    // Walk to the browse action of the mount card the way the reader does: bring its page up,
+    // then Tab from the field the page opens on to the action beside it.
+    window.showTab(1)
+    window.mountPath.setFocus()
+    @assert(window.mountPath.hasFocus())
+    host.keyPress(Input.Key.Tab)
     @assert(window.browseMount.hasFocus())
 
     // The box runs a nested loop, so the way out is armed before it opens. Escape has to reach
@@ -424,8 +460,12 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
 // column - the class of defect an assertion never catches because nothing about it is wrong enough
 // to fail.
 //
+// It is the page the window opens on. The other two are pinned by the containment test above,
+// which brings each one up and measures it in every language; what an image adds over that is the
+// look of the surface, and the three pages share it.
+//
 // It is one image, of the palette sCrypt ships on. Photographing the other three costs a full
-// repaint of a 1500 by 850 surface each, which is minutes on the default configuration, and the
+// repaint of the whole surface each, which is minutes on the default configuration, and the
 // palettes themselves are already pinned by the toolkit's own tests. To review them by hand, put
 // `setSwagLight`, `setDark` and `setLight` on their own hosts here and read the images: one host
 // per palette, never one host repainted, because a render target keeps what the last paint left

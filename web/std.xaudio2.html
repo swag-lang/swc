@@ -1383,5 +1383,370 @@
 </footer>
 </section>
 </main>
+<script>
+(function (rows) {
+    "use strict";
+
+    var nav = document.querySelector(".site-nav");
+    if (!nav || !rows.length)
+        return;
+
+    var KINDS = {
+        n: "namespace", s: "struct", i: "interface", e: "enum",
+        c: "const", a: "alias", t: "attr", f: "func", h: "section"
+    };
+    var LIMIT = 30;
+
+    // A row is "kind|name|anchor|summary". The summary is the remainder of the row, so it
+    // is the only field allowed to hold the separator.
+    var items = [];
+    for (var r = 0; r < rows.length; r++) {
+        var row = rows[r];
+        var kindEnd = row.indexOf("|");
+        var nameEnd = row.indexOf("|", kindEnd + 1);
+        var anchorEnd = row.indexOf("|", nameEnd + 1);
+        var name = row.slice(kindEnd + 1, nameEnd);
+        items.push({
+            kind: KINDS[row.slice(0, kindEnd)] || "func",
+            name: name,
+            lower: name.toLowerCase(),
+            anchor: row.slice(nameEnd + 1, anchorEnd),
+            detail: row.slice(anchorEnd + 1)
+        });
+    }
+
+    // Where a name really starts: after a qualifier, and at every word boundary inside it.
+    function isBoundary(name, at) {
+        if (!at)
+            return true;
+        var previous = name.charAt(at - 1);
+        if (previous === "." || previous === "_")
+            return true;
+        return previous === previous.toLowerCase() && name.charAt(at) !== name.charAt(at).toLowerCase();
+    }
+
+    // An exact name wins, then one starting on a boundary, then any substring, then the
+    // characters merely in order. A shorter name breaks a tie, so "add" stays above
+    // "addRange" for the same query.
+    function rank(item, query) {
+        var lower = item.lower;
+        var positions = [];
+        var value;
+        var at = lower.indexOf(query);
+        if (at >= 0) {
+            value = lower.length === query.length ? 1000 : (isBoundary(item.name, at) ? 800 : 600);
+            value -= at * 0.5;
+            for (var c = 0; c < query.length; c++)
+                positions.push(at + c);
+        } else {
+            var typed = 0;
+            var run = 0;
+            value = 300;
+            for (var i = 0; i < lower.length && typed < query.length; i++) {
+                if (lower.charAt(i) !== query.charAt(typed)) {
+                    run = 0;
+                    continue;
+                }
+                run++;
+                value += run + (isBoundary(item.name, i) ? 6 : 0);
+                positions.push(i);
+                typed++;
+            }
+            if (typed < query.length)
+                return null;
+            value -= (positions[positions.length - 1] - positions[0]) * 0.4;
+        }
+        return { value: value - lower.length * 0.2, positions: positions, item: item };
+    }
+
+    function search(query) {
+        var found = [];
+        for (var i = 0; i < items.length; i++) {
+            var hit = rank(items[i], query);
+            if (hit)
+                found.push(hit);
+        }
+        found.sort(function (left, right) {
+            if (left.value !== right.value)
+                return right.value - left.value;
+            return left.item.name < right.item.name ? -1 : 1;
+        });
+        return found;
+    }
+
+    function escape(text) {
+        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function highlight(name, positions) {
+        var html = "";
+        var done = 0;
+        var at = 0;
+        while (at < positions.length) {
+            var start = positions[at];
+            var end = start + 1;
+            while (at + 1 < positions.length && positions[at + 1] === end) {
+                end++;
+                at++;
+            }
+            html += escape(name.slice(done, start)) + "<mark>" + escape(name.slice(start, end)) + "</mark>";
+            done = end;
+            at++;
+        }
+        return html + escape(name.slice(done));
+    }
+
+    var form = document.createElement("form");
+    form.className = "site-search";
+    form.setAttribute("role", "search");
+
+    var input = document.createElement("input");
+    input.type = "search";
+    input.className = "site-search-input";
+    input.placeholder = "Search this page";
+    input.setAttribute("aria-label", "Search this page");
+    input.setAttribute("aria-controls", "search-panel");
+    input.setAttribute("aria-expanded", "false");
+    input.setAttribute("autocomplete", "off");
+    input.setAttribute("spellcheck", "false");
+
+    var shortcut = document.createElement("kbd");
+    shortcut.className = "site-search-shortcut";
+    shortcut.textContent = "/";
+
+    var panel = document.createElement("div");
+    panel.id = "search-panel";
+    panel.className = "search-panel";
+    panel.setAttribute("role", "listbox");
+    panel.hidden = true;
+
+    form.appendChild(input);
+    form.appendChild(shortcut);
+    form.appendChild(panel);
+    nav.insertBefore(form, nav.querySelector(".site-links"));
+
+    var hits = [];
+    var current = -1;
+
+    function close() {
+        panel.hidden = true;
+        input.setAttribute("aria-expanded", "false");
+    }
+
+    function select(at) {
+        var rendered = panel.querySelectorAll(".search-hit");
+        for (var i = 0; i < rendered.length; i++) {
+            var isCurrent = i === at;
+            rendered[i].classList.toggle("is-current", isCurrent);
+            rendered[i].setAttribute("aria-selected", isCurrent ? "true" : "false");
+            if (isCurrent)
+                rendered[i].scrollIntoView({ block: "nearest" });
+        }
+        current = at;
+    }
+
+    function render() {
+        var query = input.value.trim().toLowerCase();
+        if (!query) {
+            hits = [];
+            close();
+            return;
+        }
+
+        var found = search(query);
+        hits = found.slice(0, LIMIT);
+
+        var html = "";
+        for (var i = 0; i < hits.length; i++) {
+            var item = hits[i].item;
+            html += '<a class="search-hit search-hit-' + item.kind + '" role="option" href="#' + item.anchor + '">' +
+                '<span class="kind-chip kind-' + item.kind + '">' + item.kind + "</span>" +
+                '<span class="search-hit-name">' + highlight(item.name, hits[i].positions) + "</span>" +
+                (item.detail ? '<span class="search-hit-detail">' + escape(item.detail) + "</span>" : "");
+            html += "</a>";
+        }
+        if (!hits.length)
+            html = '<p class="search-none">No match on this page.</p>';
+        else if (found.length > hits.length)
+            html += '<p class="search-more">' + hits.length + " of " + found.length + " matches</p>";
+
+        panel.innerHTML = html;
+        panel.hidden = false;
+        input.setAttribute("aria-expanded", "true");
+        select(hits.length ? 0 : -1);
+    }
+
+    function open(at) {
+        if (at < 0 || at >= hits.length)
+            return;
+        window.location.hash = "#" + hits[at].item.anchor;
+        close();
+    }
+
+    input.addEventListener("input", render);
+    input.addEventListener("focus", render);
+
+    input.addEventListener("keydown", function (event) {
+        if (event.key === "ArrowDown")
+            select(Math.min(current + 1, hits.length - 1));
+        else if (event.key === "ArrowUp")
+            select(Math.max(current - 1, 0));
+        else if (event.key === "Enter")
+            open(current);
+        else if (event.key === "Escape") {
+            input.value = "";
+            close();
+            input.blur();
+        } else
+            return;
+        event.preventDefault();
+    });
+
+    form.addEventListener("submit", function (event) {
+        event.preventDefault();
+        open(current);
+    });
+
+    panel.addEventListener("click", function () {
+        close();
+    });
+
+    document.addEventListener("click", function (event) {
+        if (!form.contains(event.target))
+            close();
+    });
+
+    // The box is reachable without the mouse from anywhere on the page, and the browser's
+    // own find stays available: "/" is only taken when nothing else is being typed into.
+    document.addEventListener("keydown", function (event) {
+        if (event.defaultPrevented || event.altKey)
+            return;
+        var active = document.activeElement;
+        var typing = active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.isContentEditable);
+        var takes = (event.key === "/" && !typing) || ((event.ctrlKey || event.metaKey) && event.key === "k");
+        if (!takes)
+            return;
+        event.preventDefault();
+        input.focus();
+        input.select();
+    });
+})
+([
+"n|XAudio2|namespace_XAudio2|",
+"s|XAudio2.IXAudio2|XAudio2_IXAudio2|",
+"s|XAudio2.IXAudio2EngineCallback|XAudio2_IXAudio2EngineCallback|",
+"s|XAudio2.IXAudio2EngineCallbackItf|XAudio2_IXAudio2EngineCallbackItf|",
+"s|XAudio2.IXAudio2Itf|XAudio2_IXAudio2Itf|",
+"s|XAudio2.IXAudio2MasteringVoice|XAudio2_IXAudio2MasteringVoice|",
+"s|XAudio2.IXAudio2MasteringVoiceItf|XAudio2_IXAudio2MasteringVoiceItf|",
+"s|XAudio2.IXAudio2SourceVoice|XAudio2_IXAudio2SourceVoice|",
+"s|XAudio2.IXAudio2SourceVoiceItf|XAudio2_IXAudio2SourceVoiceItf|",
+"s|XAudio2.IXAudio2SubmixVoice|XAudio2_IXAudio2SubmixVoice|",
+"s|XAudio2.IXAudio2SubmixVoiceItf|XAudio2_IXAudio2SubmixVoiceItf|",
+"s|XAudio2.IXAudio2Voice|XAudio2_IXAudio2Voice|",
+"s|XAudio2.IXAudio2VoiceCallback|XAudio2_IXAudio2VoiceCallback|",
+"s|XAudio2.IXAudio2VoiceCallbackItf|XAudio2_IXAudio2VoiceCallbackItf|",
+"s|XAudio2.IXAudio2VoiceItf|XAudio2_IXAudio2VoiceItf|",
+"s|XAudio2.WAVEFORMATEX|XAudio2_WAVEFORMATEX|",
+"s|XAudio2.WAVEFORMATEXTENSIBLE|XAudio2_WAVEFORMATEXTENSIBLE|",
+"s|XAudio2.XAUDIO2_BUFFER|XAudio2_XAUDIO2_BUFFER|",
+"s|XAudio2.XAUDIO2_BUFFER_WMA|XAudio2_XAUDIO2_BUFFER_WMA|",
+"s|XAudio2.XAUDIO2_DEBUG_CONFIGURATION|XAudio2_XAUDIO2_DEBUG_CONFIGURATION|",
+"s|XAudio2.XAUDIO2_EFFECT_CHAIN|XAudio2_XAUDIO2_EFFECT_CHAIN|",
+"s|XAudio2.XAUDIO2_FILTER_PARAMETERS|XAudio2_XAUDIO2_FILTER_PARAMETERS|",
+"s|XAudio2.XAUDIO2_PERFORMANCE_DATA|XAudio2_XAUDIO2_PERFORMANCE_DATA|",
+"s|XAudio2.XAUDIO2_SEND_DESCRIPTOR|XAudio2_XAUDIO2_SEND_DESCRIPTOR|",
+"s|XAudio2.XAUDIO2_VOICE_DETAILS|XAudio2_XAUDIO2_VOICE_DETAILS|",
+"s|XAudio2.XAUDIO2_VOICE_SENDS|XAudio2_XAUDIO2_VOICE_SENDS|",
+"s|XAudio2.XAUDIO2_VOICE_STATE|XAudio2_XAUDIO2_VOICE_STATE|",
+"e|XAudio2.AUDIO_STREAM_CATEGORY|XAudio2_AUDIO_STREAM_CATEGORY|",
+"e|XAudio2.XAUDIO2_FILTER_TYPE|XAudio2_XAUDIO2_FILTER_TYPE|Used in XAUDIO2FILTERPARAMETERS below",
+"c|XAudio2.FORMAT_EXTENSIBLE|XAudio2_FORMAT_EXTENSIBLE|",
+"c|XAudio2.Processor1|XAudio2_Processor1|",
+"c|XAudio2.Processor10|XAudio2_Processor10|",
+"c|XAudio2.Processor11|XAudio2_Processor11|",
+"c|XAudio2.Processor12|XAudio2_Processor12|",
+"c|XAudio2.Processor13|XAudio2_Processor13|",
+"c|XAudio2.Processor14|XAudio2_Processor14|",
+"c|XAudio2.Processor15|XAudio2_Processor15|",
+"c|XAudio2.Processor16|XAudio2_Processor16|",
+"c|XAudio2.Processor17|XAudio2_Processor17|",
+"c|XAudio2.Processor18|XAudio2_Processor18|",
+"c|XAudio2.Processor19|XAudio2_Processor19|",
+"c|XAudio2.Processor2|XAudio2_Processor2|",
+"c|XAudio2.Processor20|XAudio2_Processor20|",
+"c|XAudio2.Processor21|XAudio2_Processor21|",
+"c|XAudio2.Processor22|XAudio2_Processor22|",
+"c|XAudio2.Processor23|XAudio2_Processor23|",
+"c|XAudio2.Processor24|XAudio2_Processor24|",
+"c|XAudio2.Processor25|XAudio2_Processor25|",
+"c|XAudio2.Processor26|XAudio2_Processor26|",
+"c|XAudio2.Processor27|XAudio2_Processor27|",
+"c|XAudio2.Processor28|XAudio2_Processor28|",
+"c|XAudio2.Processor29|XAudio2_Processor29|",
+"c|XAudio2.Processor3|XAudio2_Processor3|",
+"c|XAudio2.Processor30|XAudio2_Processor30|",
+"c|XAudio2.Processor31|XAudio2_Processor31|",
+"c|XAudio2.Processor32|XAudio2_Processor32|",
+"c|XAudio2.Processor4|XAudio2_Processor4|",
+"c|XAudio2.Processor5|XAudio2_Processor5|",
+"c|XAudio2.Processor6|XAudio2_Processor6|",
+"c|XAudio2.Processor7|XAudio2_Processor7|",
+"c|XAudio2.Processor8|XAudio2_Processor8|",
+"c|XAudio2.Processor9|XAudio2_Processor9|",
+"c|XAudio2.X3DAUDIO_HANDLE_BYTESIZE|XAudio2_X3DAUDIO_HANDLE_BYTESIZE|",
+"c|XAudio2.X3DAUDIO_SPEED_OF_SOUND|XAudio2_X3DAUDIO_SPEED_OF_SOUND|",
+"c|XAudio2.XAUDIO2_1024_QUANTUM|XAudio2_XAUDIO2_1024_QUANTUM|Used in XAudio2Create to specify nondefault processing quantum of 21.33 ms (1024 samples at 48KHz)",
+"c|XAudio2.XAUDIO2_ANY_PROCESSOR|XAudio2_XAUDIO2_ANY_PROCESSOR|",
+"c|XAudio2.XAUDIO2_COMMIT_ALL|XAudio2_XAUDIO2_COMMIT_ALL|Used in IXAudio2::CommitChanges",
+"c|XAudio2.XAUDIO2_COMMIT_NOW|XAudio2_XAUDIO2_COMMIT_NOW|Used as an OperationSet argument",
+"c|XAudio2.XAUDIO2_DEBUG_ENGINE|XAudio2_XAUDIO2_DEBUG_ENGINE|Used in XAudio2Create",
+"c|XAudio2.XAUDIO2_DEFAULT_CHANNELS|XAudio2_XAUDIO2_DEFAULT_CHANNELS|Used in CreateMasteringVoice",
+"c|XAudio2.XAUDIO2_DEFAULT_FREQ_RATIO|XAudio2_XAUDIO2_DEFAULT_FREQ_RATIO|Default MaxFrequencyRatio argument",
+"c|XAudio2.XAUDIO2_DEFAULT_SAMPLERATE|XAudio2_XAUDIO2_DEFAULT_SAMPLERATE|Used in CreateMasteringVoice",
+"c|XAudio2.XAUDIO2_END_OF_STREAM|XAudio2_XAUDIO2_END_OF_STREAM|Used in XAUDIO2BUFFER.Flags",
+"c|XAudio2.XAUDIO2_INVALID_OPSET|XAudio2_XAUDIO2_INVALID_OPSET|Not allowed for OperationSet arguments",
+"c|XAudio2.XAUDIO2_LOG_API_CALLS|XAudio2_XAUDIO2_LOG_API_CALLS|Public API function entries and exits.",
+"c|XAudio2.XAUDIO2_LOG_DETAIL|XAudio2_XAUDIO2_LOG_DETAIL|More detailed chit-chat.",
+"c|XAudio2.XAUDIO2_LOG_ERRORS|XAudio2_XAUDIO2_LOG_ERRORS|For handled errors with serious effects.",
+"c|XAudio2.XAUDIO2_LOG_FUNC_CALLS|XAudio2_XAUDIO2_LOG_FUNC_CALLS|Internal function entries and exits.",
+"c|XAudio2.XAUDIO2_LOG_INFO|XAudio2_XAUDIO2_LOG_INFO|Informational chit-chat (e.g. state changes).",
+"c|XAudio2.XAUDIO2_LOG_LOCKS|XAudio2_XAUDIO2_LOG_LOCKS|Usage of critical sections and mutexes.",
+"c|XAudio2.XAUDIO2_LOG_MEMORY|XAudio2_XAUDIO2_LOG_MEMORY|Memory heap usage information.",
+"c|XAudio2.XAUDIO2_LOG_STREAMING|XAudio2_XAUDIO2_LOG_STREAMING|Audio streaming information.",
+"c|XAudio2.XAUDIO2_LOG_TIMING|XAudio2_XAUDIO2_LOG_TIMING|Delays detected and other timing data.",
+"c|XAudio2.XAUDIO2_LOG_WARNINGS|XAudio2_XAUDIO2_LOG_WARNINGS|For handled errors that may be recoverable.",
+"c|XAudio2.XAUDIO2_LOOP_INFINITE|XAudio2_XAUDIO2_LOOP_INFINITE|Used in XAUDIO2BUFFER.LoopCount",
+"c|XAudio2.XAUDIO2_MAX_AUDIO_CHANNELS|XAudio2_XAUDIO2_MAX_AUDIO_CHANNELS|Maximum channels in an audio stream",
+"c|XAudio2.XAUDIO2_MAX_BUFFERS_SYSTEM|XAudio2_XAUDIO2_MAX_BUFFERS_SYSTEM|Maximum buffers allowed for system threads (Xbox 360 only)",
+"c|XAudio2.XAUDIO2_MAX_BUFFER_BYTES|XAudio2_XAUDIO2_MAX_BUFFER_BYTES|Maximum bytes allowed in a source buffer",
+"c|XAudio2.XAUDIO2_MAX_FILTER_FREQUENCY|XAudio2_XAUDIO2_MAX_FILTER_FREQUENCY|Maximum XAUDIO2FILTERPARAMETERS.Frequency",
+"c|XAudio2.XAUDIO2_MAX_FILTER_ONEOVERQ|XAudio2_XAUDIO2_MAX_FILTER_ONEOVERQ|Maximum XAUDIO2FILTERPARAMETERS.OneOverQ",
+"c|XAudio2.XAUDIO2_MAX_FREQ_RATIO|XAudio2_XAUDIO2_MAX_FREQ_RATIO|Maximum MaxFrequencyRatio argument",
+"c|XAudio2.XAUDIO2_MAX_INSTANCES|XAudio2_XAUDIO2_MAX_INSTANCES|Maximum simultaneous XAudio2 objects on Xbox 360",
+"c|XAudio2.XAUDIO2_MAX_LOOP_COUNT|XAudio2_XAUDIO2_MAX_LOOP_COUNT|Maximum non-infinite XAUDIO2BUFFER.LoopCount",
+"c|XAudio2.XAUDIO2_MAX_QUEUED_BUFFERS|XAudio2_XAUDIO2_MAX_QUEUED_BUFFERS|Maximum buffers allowed in a voice queue",
+"c|XAudio2.XAUDIO2_MAX_SAMPLE_RATE|XAudio2_XAUDIO2_MAX_SAMPLE_RATE|Maximum audio sample rate supported",
+"c|XAudio2.XAUDIO2_MAX_VOLUME_LEVEL|XAudio2_XAUDIO2_MAX_VOLUME_LEVEL|Maximum acceptable volume level (2^24)",
+"c|XAudio2.XAUDIO2_MIN_FREQ_RATIO|XAudio2_XAUDIO2_MIN_FREQ_RATIO|Minimum SetFrequencyRatio argument",
+"c|XAudio2.XAUDIO2_MIN_SAMPLE_RATE|XAudio2_XAUDIO2_MIN_SAMPLE_RATE|Minimum audio sample rate supported",
+"c|XAudio2.XAUDIO2_NO_LOOP_REGION|XAudio2_XAUDIO2_NO_LOOP_REGION|Used in XAUDIO2BUFFER.LoopCount",
+"c|XAudio2.XAUDIO2_NO_VIRTUAL_AUDIO_CLIENT|XAudio2_XAUDIO2_NO_VIRTUAL_AUDIO_CLIENT|Used in CreateMasteringVoice to create a virtual audio client",
+"c|XAudio2.XAUDIO2_PLAY_TAILS|XAudio2_XAUDIO2_PLAY_TAILS|Used in IXAudio2SourceVoice::Stop",
+"c|XAudio2.XAUDIO2_SEND_USEFILTER|XAudio2_XAUDIO2_SEND_USEFILTER|Used in XAUDIO2SENDDESCRIPTOR.Flags",
+"c|XAudio2.XAUDIO2_STOP_ENGINE_WHEN_IDLE|XAudio2_XAUDIO2_STOP_ENGINE_WHEN_IDLE|Used in XAudio2Create to force the engine to Stop when no source voices are Started, and Start when a voice is...",
+"c|XAudio2.XAUDIO2_VOICE_NOPITCH|XAudio2_XAUDIO2_VOICE_NOPITCH|Used in IXAudio2::CreateSourceVoice",
+"c|XAudio2.XAUDIO2_VOICE_NOSAMPLESPLAYED|XAudio2_XAUDIO2_VOICE_NOSAMPLESPLAYED|Used in IXAudio2SourceVoice::GetState",
+"c|XAudio2.XAUDIO2_VOICE_NOSRC|XAudio2_XAUDIO2_VOICE_NOSRC|Used in IXAudio2::CreateSourceVoice",
+"c|XAudio2.XAUDIO2_VOICE_USEFILTER|XAudio2_XAUDIO2_VOICE_USEFILTER|Used in IXAudio2::CreateSource/SubmixVoice",
+"a|XAudio2.FLOAT32|XAudio2_FLOAT32|",
+"a|XAudio2.UINT32|XAudio2_UINT32|",
+"a|XAudio2.UINT64|XAudio2_UINT64|",
+"a|XAudio2.X3DAUDIO_HANDLE|XAudio2_X3DAUDIO_HANDLE|",
+"a|XAudio2.XAUDIO2_PROCESSOR|XAudio2_XAUDIO2_PROCESSOR|",
+"f|XAudio2.X3DAudioInitialize|XAudio2_X3DAudioInitialize|",
+"f|XAudio2.XAudio2Create|XAudio2_XAudio2Create|",
+]);
+</script>
 </body>
 </html>

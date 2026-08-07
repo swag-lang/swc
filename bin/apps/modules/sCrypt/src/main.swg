@@ -30,7 +30,11 @@ var g_App: Application
     g_App.setAppIcon(appIcon)
     registerAppStrings(&g_App.resources)
 
-    let surface = (try g_App.createSurface(80, 50, MainWindow.WindowWidth, MainWindow.WindowHeight, SurfaceFlags.StandardWindow, surfaceId: "sCrypt"))!
+    // Not a resizable window. The three pages are forms of a fixed number of fields, and the
+    // strip already shows one at a time: there is nothing to gain room for, so a size grip and a
+    // maximize button would only offer a window shape none of the pages is laid out for.
+    const WindowFlags = SurfaceFlags.LargeCaption | SurfaceFlags.MinimizeButton | SurfaceFlags.CloseButton | SurfaceFlags.Border
+    let surface = (try g_App.createSurface(80, 50, MainWindow.WindowWidth, MainWindow.WindowHeight, WindowFlags, surfaceId: "sCrypt"))!
     g_App.theme.setSwagDark()
     g_App.notifyThemeChanged()
 

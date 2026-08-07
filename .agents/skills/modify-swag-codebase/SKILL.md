@@ -92,11 +92,50 @@ graduates into a plan moves to the matching `backlog/todo.*` file and disappears
 - Keep each individual test below 40 seconds of runtime, excluding compilation time.
 - Exercise behavior at its real boundary instead of manufacturing a source test for a command-line, linker, backend, runtime, or internal-only path.
 
+## Close Every Downstream Regression With A Suite Test
+
+`bin/unittests` is the net. A compiler defect that a script, an example, an application or a
+`bin/std` module exposed is a defect the suites should have caught first, and the fix is not
+finished until they would.
+
+- Add the test to the suite that could have seen it: `lexer`, `parser` and `sema` for a
+  diagnostic, `jit` for compile-time execution, `safety` and `sanity` for a guard, `native` for
+  emitted code, `workspace` for anything crossing a module boundary.
+- Watch it fail without the fix before keeping it. A test that passes either way records nothing.
+- Reduce it to the language construct. A suite source is standalone: a case that still needs
+  `gui` to reproduce is a `bin/std` test, not a suite test.
+- Record an `F-0xx` in [backlog/findings.compiler.md](../../../backlog/findings.compiler.md) when
+  the case genuinely does not reduce, saying why. That is the only accepted outcome other than a
+  new test.
+
+This is also what makes validation cheaper over time. As long as a class of regression can only be
+caught by running thirty-one examples for seven minutes, that is what every campaign has to keep
+doing; once the suites hold it, twenty seconds answer the same question.
+
+## Validate What The Change Touches
+
+Ask the tooling which surfaces a change reaches instead of running everything by reflex:
+
+```
+tools/tests.bat plan          what the working tree selects, without running it
+tools/tests.bat changed       run exactly that
+```
+
+The selection maps each changed path to a surface, adds whatever imports a selected `bin/std`
+module, and runs the union. Naming a path answers the same question about a file *before* touching
+it — `tools/tests.bat plan bin/std/modules/gui/src/widgets/tab.swg` — which is how the cost of a
+change is known in advance.
+
+A path matching no surface selects the whole set, so an unmapped file costs time rather than
+coverage. When that happens, add the surface to [tools/_scope.bat](../../../tools/_scope.bat)
+rather than leaving the next change to pay for it again.
+
 ## Validate C++ Changes
 
-Use one of the narrower workflows below when the change only affects the `doc` or `format`
-command. Otherwise, after changing any compiler C++ file, complete this sequence. Fix every
-failure before continuing to the next step.
+Sema, code generation, the micro backend, the JIT, the runtime support and the driver sit under
+every compiled program, so a change to any of them selects the whole set — `tests.bat plan` says
+so, and this sequence is what running it means. Fix every failure before continuing to the next
+step.
 
 1. Compile a DevMode build.
 2. Run `tools/tests.bat dm`.
@@ -105,6 +144,11 @@ failure before continuing to the next step.
 5. Run `tools/tests.bat`.
 
 Do not run `tests.bat --all-cfg` in Release mode as part of the default workflow.
+
+The compiler areas that do *not* sit under every program have their own narrower workflow:
+`src/Doc` and `src/Format` below, `src/Unittest` in the C++ suite alone, and `src/Backend/Linker`
+and `src/Backend/Debug` in the suites that emit a real image plus the applications and the
+reference. Run `tools/tests.bat changed` and it picks the right one.
 
 ## Validate Documentation-Only Changes
 
@@ -116,27 +160,31 @@ for its implementation:
 3. Inspect the generated HTML and its diff for correctness.
 
 Do not run `tests.bat`, `tests.bat --all-cfg`, or the Release validation workflow for a
-documentation-only change.
+documentation-only change. `tests.bat changed` reports the regeneration as a step to take rather
+than taking it: a test command must never rewrite a tracked file.
 
 ## Validate Formatter-Only Changes
 
 When a compiler change affects only the `format` command:
 
 1. Compile a DevMode build.
-2. Format the repository with `tools/format.bat dm`.
-3. Inspect the resulting diff for correctness.
+2. Run the C++ formatter suite with `tools/unittests.bat dm cpp`.
+3. Format the repository with `tools/format.bat dm`.
+4. Inspect the resulting diff for correctness.
 
 Do not run `tests.bat`, `tests.bat --all-cfg`, or the Release validation workflow for a
-formatter-only change.
+formatter-only change. `tests.bat changed` runs step 2 and reports step 3, for the same reason:
+`format.bat` rewrites tracked sources, so it is a maintenance step and never a test.
 
-## Validate Example-Only Changes
+## Validate Swag-Only Changes
 
-After changing an example under `bin/examples` without changing C++:
+After changing sources under `bin/` without changing C++, `tools/tests.bat changed --all-cfg` is
+the whole workflow: it runs the changed example, script or application, the `bin/std` module and
+everything that imports it, and nothing else.
 
-1. Compile a DevMode build.
-2. Run only the changed example in every configuration with `tools/examples.bat dm test <example> -bc <config>`.
-
-For other change types, run the narrowest relevant checks that demonstrate the modified behavior.
+Reach for one tool directly only to iterate on a single failure. An example declares no `#test`,
+so it is smoked rather than tested — `tools/examples.bat dm smoke <example> -bc <config>` — while
+a `bin/std` module and an application carry both.
 
 ## Launch Every Executable Through Its Tool
 

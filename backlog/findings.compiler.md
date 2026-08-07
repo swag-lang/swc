@@ -150,3 +150,23 @@ Entries are sorted by identifier, ascending; position carries no priority.
   "no candidate can still grow", which needs a scope-settled predicate the compiler does not have.
   A cheaper answer may be to park only while at least one candidate type has an `impl` block whose
   body has not run.
+
+### F-072 — A generic type publishes neither its fields nor its methods
+
+- Area: compiler
+- Found while: indexing the API pages for the `doc` search box, which mirrors what the page renders.
+- Observation: on an `.Api` page a generic type documents its declaration and nothing else. `Core.Array`
+  and `Core.HashTable` render their comment and their signature, with no `Fields` table, no `Methods`
+  table, and no standalone entry for any method. A non-generic type beside them is complete:
+  `Core.String` renders both tables, `Core.Log` renders its methods.
+- Evidence: in `web/std.core.html`, `id="Core_Array"` is followed directly by the next symbol, while
+  `id="Core_String"` carries `<h3>Fields</h3>` and `id="Core_String_methods"`. No `id="Core_Array_add"`
+  exists anywhere on the page, although `Array.add` is public and documented. Fields are collected by
+  `renderMemberTable` and methods by the owner buckets, both keyed on the symbol reached through
+  `DocApi::collectDocItems` ([DocApi.Collect.cpp:568-604](../src/Doc/DocApi.Collect.cpp#L568-L604)).
+- Next step: dump the symbols `collectSymbolTree` returns for `Core.Array` and check where they are
+  dropped — whether `documentationOwner` resolves the generic root, whether `canDocumentMember` rejects
+  a member whose owner is a generic struct, or whether the members hang off an instantiated clone that
+  `isCurrentModuleSourceFile` then rejects. The answer decides whether the fix belongs in collection or
+  in the owner mapping.
+- Related: [todo.doc.md](todo.doc.md) entry 2, whose search index is missing the same symbols.

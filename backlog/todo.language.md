@@ -7,8 +7,11 @@ implements it is [todo.compiler.md](todo.compiler.md).
 Open compiler defects and language-rule inconsistencies with evidence — the folded `typeinfo ==`
 that disagrees with the runtime comparison, nullability that does not survive a reference,
 a `#run` write that never reaches the emitted binary — are in
-[findings.compiler.md](findings.compiler.md) and are not repeated here. This file holds design
-questions that are open by choice rather than by accident.
+[findings.compiler.md](findings.compiler.md) and are not repeated here. Language rules that behave
+exactly as specified and surprise anyway — a positional pattern that ignores the field names it
+spells, a grouped default that reaches every name in the group, a `#scope` that swallows `break` —
+are in [findings.language.md](findings.language.md). This file holds design questions that are open
+by choice rather than by accident.
 
 Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
 ships; history lives in git, not here.

@@ -369,6 +369,7 @@
         <ClCompile Include="src\Doc\DocGenerator.cpp"/>
         <ClCompile Include="src\Doc\DocMarkdown.cpp"/>
         <ClCompile Include="src\Doc\DocPage.cpp"/>
+        <ClCompile Include="src\Doc\DocSearch.cpp"/>
         <ClCompile Include="src\Compiler\Lexer\Lexer.cpp"/>
         <ClCompile Include="src\Compiler\Lexer\SourceCodeRange.cpp"/>
         <ClCompile Include="src\Compiler\Lexer\SourceView.cpp"/>
@@ -682,6 +683,7 @@
         <ClInclude Include="src\Doc\DocGenerator.h"/>
         <ClInclude Include="src\Doc\DocMarkdown.h"/>
         <ClInclude Include="src\Doc\DocPage.h"/>
+        <ClInclude Include="src\Doc\DocSearch.h"/>
         <ClInclude Include="src\Doc\DocTypes.h"/>
         <ClInclude Include="src\Compiler\Lexer\Lexer.h"/>
         <ClInclude Include="src\Compiler\Lexer\SourceCodeRange.h"/>

@@ -108,6 +108,42 @@ namespace
         return comment;
     }
 
+    // What the reader can reach on an API page: every namespace, every documented symbol under
+    // its qualified spelling, and the guides that open the page.
+    std::vector<DocSearchEntry> collectSearchEntries(const DocApiDocument& document)
+    {
+        std::vector<DocSearchEntry> entries;
+        entries.reserve(document.items.size() + document.namespaceNames.size() + document.guides.size());
+
+        std::unordered_set<Utf8> namespaceNames;
+        for (const Utf8& name : document.namespaceNames)
+        {
+            namespaceNames.insert(name);
+            entries.push_back({.name = name, .anchor = std::format("namespace_{}", DocMarkdown::makeAnchor(name)), .kind = 'n'});
+        }
+
+        for (const DocItem& item : document.items)
+        {
+            if (item.overloads.empty() || namespaceNames.contains(item.fullName))
+                continue;
+
+            Utf8 detail;
+            for (const Utf8& line : item.overloads.front().commentLines)
+            {
+                if (!Utf8Helper::trim(line).empty())
+                {
+                    detail = DocSearch::summarize(line);
+                    break;
+                }
+            }
+            entries.push_back({.name = item.fullName, .anchor = DocMarkdown::makeAnchor(item.fullName), .detail = std::move(detail), .kind = DocSearch::kindLetter(item.kind)});
+        }
+
+        for (const DocGuide& guide : document.guides)
+            entries.push_back({.name = guide.title, .anchor = guide.anchor, .kind = 'h'});
+        return entries;
+    }
+
     Utf8 defaultModuleDocComment(const CompilerInstance& compiler)
     {
         for (const SourceFile* file : compiler.files())
@@ -184,8 +220,17 @@ Result DocApi::generate(TaskContext& ctx, DocPageOptions options, const bool run
     toc.append(std::format("<h2>{}</h2>\n", Utf8Helper::escapeHtml(options.titleToc)));
     toc += document.toc;
 
-    outPath         = DocFile::outputPath(ctx.compiler(), options);
-    const Utf8 page = DocPage::construct(options, toc, content, false);
+    const std::vector<DocSearchEntry> searchEntries = collectSearchEntries(document);
+
+    outPath = DocFile::outputPath(ctx.compiler(), options);
+
+    const DocPageContent pageContent = {
+        .toc           = toc,
+        .article       = content,
+        .searchEntries = searchEntries,
+    };
+
+    const Utf8 page = DocPage::construct(options, pageContent);
     return DocFile::write(ctx, outPath, page);
 }
 SWC_END_NAMESPACE();

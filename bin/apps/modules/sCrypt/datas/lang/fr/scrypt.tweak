@@ -10,6 +10,9 @@ ui_MountCardTitle      Ouvrir un coffre existant
 ui_MountCardHelp       Déverrouillez un conteneur et exposez-le sur une lettre de lecteur disponible. Le même fichier et le même mot de passe permettent aussi de changer ce mot de passe ou d'agrandir le coffre.
 ui_MountedCardTitle    Lecteurs montés
 ui_MountedCardHelp     Tous les lecteurs actuellement exposés par sCrypt. Cochez-en un pour qu'il soit remonté au prochain démarrage de sCrypt.
+ui_CreateTab           Créer
+ui_OpenTab             Ouvrir
+ui_MountedTab          Montés
 ui_NoDriveMounted      Aucun lecteur monté.
 ui_ContainerFile       FICHIER CONTENEUR
 ui_Browse              Parcourir
@@ -23,7 +26,7 @@ ui_EnterAgain          Saisissez à nouveau le mot de passe
 ui_ContainerPassword   Vide si le coffre n'en a pas
 ui_ExistingContainer   Conteneur chiffré
 ui_DriveLetter         LETTRE DE LECTEUR
-ui_DriveHelp           Le lecteur est disponible pour Windows tant que sCrypt s'exécute, et apparaît dans la liste de droite.
+ui_DriveHelp           Le lecteur est disponible pour Windows tant que sCrypt s'exécute, et apparaît sous Montés.
 ui_ReadOnly            Monter en lecture seule
 ui_ReadOnlyHelp        Le lecteur s'ouvre en lecture seule : rien ne peut ajouter au coffre, le modifier ni en supprimer tant qu'il est monté.
 ui_RemovePasswordHelp  Laissez vide pour supprimer le mot de passe. Le coffre s'ouvrira alors sans mot de passe.

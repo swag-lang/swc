@@ -196,8 +196,13 @@ surface, take these rules from it:
   not repaint a block.
 - **Both palettes, always.** Every rule must be written for light and dark. Dark is
   selected by `prefers-color-scheme` unless the page commits with `data-theme`.
-- **No script.** A page is one static file. Interaction that needs more than CSS —
-  `<details>`, `:target`, `:hover` — is not added. A unit test enforces this.
+- **One script, and it is the search box.** A page is one static file that reaches nothing:
+  no server, no second file, no font, no network. Interaction that CSS can carry —
+  `<details>`, `:target`, `:hover` — is written in CSS and stays there. Exactly one exception
+  was argued and won: a page over a few hundred symbols is not navigable by scrolling, so the
+  page prints its own index and one inline script that searches it. That index covers the page
+  it sits in and nothing else, which is what keeps the file self-contained. A unit test enforces
+  the count: one `<script`, inline, no `src`.
 
 These rules are written for a generated page, where a reader scans a long document and a rule
 tells them where one entry ends. **On an application surface a line costs more than it pays.**
@@ -260,6 +265,6 @@ Console output, diagnostics, and documentation prose follow
 2. Look at a page in both palettes and at a narrow width before calling it done.
 3. Look at the mark itself at 16, 32, and 128 pixels, not only at the size you drew it.
    If the counters close up, the crop is wrong before the mark is.
-4. Confirm no page gained a script element, an external font, or a second accent.
+4. Confirm no page gained a second script element, an external font, or a second accent.
 5. When the geometry moved, confirm the four consumers agree: the generated assets, the
    inlined `--swag-mark`, the extension icon, and the mark inlined in `bench/`.

@@ -41,6 +41,12 @@ Entries are sorted by identifier, ascending; position carries no priority.
   than just waste space, which is what
   [F-017](findings.gui.md#f-017--scapture-keeps-a-dark-editor-matte-after-switching-to-the-light-theme)
   shows for a persisted option.
+- Also: this now gates work rather than merely wasting space. The campaign's remaining cost is
+  fifty-three programs launched one at a time, each holding roughly one core for one to five
+  seconds, and overlapping them is the only lever left on it. Two live runs cannot share an id, so
+  concurrency does not raise the collision rate per run; what it removes is the ability to
+  attribute the failure when one does collide, since the runs no longer stand in a sequence.
+  Fixing this is what makes the campaign safe to parallelize, not merely tidier.
 - Next step: make a default root start empty, and keep the two deletion questions apart. Clearing
   a *default* root at arming time is the safe half — no live process can hold that id, the
   launcher did not name the directory, and an explicit root (the golden-recording flow, which
@@ -81,3 +87,45 @@ Entries are sorted by identifier, ascending; position carries no priority.
   the compiler may never get slower: cutting template instantiation in the hot headers, and
   trimming inlining pressure (`/Ob1` on the cold command/report/doc translation units only, never
   on sema, codegen, or the micro passes).
+
+### F-070 — The test command opts out of artifact reuse, so every campaign rebuilds everything
+
+- Area: compiler
+- Found while: measuring the repository campaign in order to scope it to what changed
+- Observation: `shouldTryReuseWorkspaceArtifacts` returns false for `Test` and `Doc`
+  ([CompilerInstance.Module.cpp:1086-1092](../src/Main/CompilerInstance.Module.cpp#L1086-L1092)),
+  so a test invocation recompiles its module even when nothing has changed since the last one.
+  `build` and `smoke` reuse. The exclusion may now be vestigial: the comment just above it
+  ([lines 1070-1071](../src/Main/CompilerInstance.Module.cpp#L1070-L1071)) records that build modes
+  no longer share an artifact name, which was the reason a test artifact could not be trusted.
+- Evidence: on an unchanged tree, `tools/std.bat build` reports every module `up-to-date` in
+  1.4 s, while `tools/std.bat test` over the same sources costs more than two minutes. The
+  campaign runs `test` for the source suites, the standard library, the applications and the
+  reference, so this is most of its cost, repeated in each of the three configurations.
+- Next step: check whether dropping `CommandKind::Test` from that exclusion is now safe, keeping
+  two things forced whatever the artifact's freshness — the tests must still *run*, and the
+  source-driven `Verify` directives must still be evaluated. Reuse here means skipping the
+  compile, never skipping the execution. Measure a second `tools/tests.bat` pass on an untouched
+  tree before and after.
+- Related: entry 2 of [todo.compiler.md](todo.compiler.md), which is the same problem one level
+  down — the unit of reuse is the module, so even a reusing command rebuilds all of `core` for a
+  one-line edit.
+
+### F-071 — Every #test runs twice, and only an all-or-nothing flag says otherwise
+
+- Area: compiler
+- Found while: the same measurement
+- Observation: `finishTestCommand` runs the JIT pass and then the native artifact
+  ([Command.Test.cpp:624-652](../src/Main/Command/Command.Test.cpp#L624-L652)). Two backends
+  executing the same assertions is real coverage, and it is the point. What is missing is any way
+  to ask for one of them per *suite* or per *configuration*: `--no-test-jit` is the only lever,
+  it covers a whole invocation, and the campaign is inconsistent about it — the applications and
+  the workspace suite pass it, the standard library, the source suites and the reference do not.
+- Evidence: `core` tested with both passes costs 9.02 s against 5.02 s with `--no-test-jit`, so
+  the JIT pass is 44% of that module's test cost. Multiplied by eleven modules and three
+  configurations, that is the single largest repeated item in the campaign, and the JIT half of it
+  is already covered for the language itself by the `jit` suite — 310 files in 3.2 s.
+- Next step: decide what the second execution is for, per corpus rather than globally. The
+  language suites need both because the two backends disagreeing *is* the defect they hunt; a
+  `bin/std` module may only need both in the configuration where inlining is most aggressive.
+  Whatever is decided has to be expressible, which today it is not.

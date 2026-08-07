@@ -288,5 +288,276 @@
 </footer>
 </section>
 </main>
+<script>
+(function (rows) {
+    "use strict";
+
+    var nav = document.querySelector(".site-nav");
+    if (!nav || !rows.length)
+        return;
+
+    var KINDS = {
+        n: "namespace", s: "struct", i: "interface", e: "enum",
+        c: "const", a: "alias", t: "attr", f: "func", h: "section"
+    };
+    var LIMIT = 30;
+
+    // A row is "kind|name|anchor|summary". The summary is the remainder of the row, so it
+    // is the only field allowed to hold the separator.
+    var items = [];
+    for (var r = 0; r < rows.length; r++) {
+        var row = rows[r];
+        var kindEnd = row.indexOf("|");
+        var nameEnd = row.indexOf("|", kindEnd + 1);
+        var anchorEnd = row.indexOf("|", nameEnd + 1);
+        var name = row.slice(kindEnd + 1, nameEnd);
+        items.push({
+            kind: KINDS[row.slice(0, kindEnd)] || "func",
+            name: name,
+            lower: name.toLowerCase(),
+            anchor: row.slice(nameEnd + 1, anchorEnd),
+            detail: row.slice(anchorEnd + 1)
+        });
+    }
+
+    // Where a name really starts: after a qualifier, and at every word boundary inside it.
+    function isBoundary(name, at) {
+        if (!at)
+            return true;
+        var previous = name.charAt(at - 1);
+        if (previous === "." || previous === "_")
+            return true;
+        return previous === previous.toLowerCase() && name.charAt(at) !== name.charAt(at).toLowerCase();
+    }
+
+    // An exact name wins, then one starting on a boundary, then any substring, then the
+    // characters merely in order. A shorter name breaks a tie, so "add" stays above
+    // "addRange" for the same query.
+    function rank(item, query) {
+        var lower = item.lower;
+        var positions = [];
+        var value;
+        var at = lower.indexOf(query);
+        if (at >= 0) {
+            value = lower.length === query.length ? 1000 : (isBoundary(item.name, at) ? 800 : 600);
+            value -= at * 0.5;
+            for (var c = 0; c < query.length; c++)
+                positions.push(at + c);
+        } else {
+            var typed = 0;
+            var run = 0;
+            value = 300;
+            for (var i = 0; i < lower.length && typed < query.length; i++) {
+                if (lower.charAt(i) !== query.charAt(typed)) {
+                    run = 0;
+                    continue;
+                }
+                run++;
+                value += run + (isBoundary(item.name, i) ? 6 : 0);
+                positions.push(i);
+                typed++;
+            }
+            if (typed < query.length)
+                return null;
+            value -= (positions[positions.length - 1] - positions[0]) * 0.4;
+        }
+        return { value: value - lower.length * 0.2, positions: positions, item: item };
+    }
+
+    function search(query) {
+        var found = [];
+        for (var i = 0; i < items.length; i++) {
+            var hit = rank(items[i], query);
+            if (hit)
+                found.push(hit);
+        }
+        found.sort(function (left, right) {
+            if (left.value !== right.value)
+                return right.value - left.value;
+            return left.item.name < right.item.name ? -1 : 1;
+        });
+        return found;
+    }
+
+    function escape(text) {
+        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function highlight(name, positions) {
+        var html = "";
+        var done = 0;
+        var at = 0;
+        while (at < positions.length) {
+            var start = positions[at];
+            var end = start + 1;
+            while (at + 1 < positions.length && positions[at + 1] === end) {
+                end++;
+                at++;
+            }
+            html += escape(name.slice(done, start)) + "<mark>" + escape(name.slice(start, end)) + "</mark>";
+            done = end;
+            at++;
+        }
+        return html + escape(name.slice(done));
+    }
+
+    var form = document.createElement("form");
+    form.className = "site-search";
+    form.setAttribute("role", "search");
+
+    var input = document.createElement("input");
+    input.type = "search";
+    input.className = "site-search-input";
+    input.placeholder = "Search this page";
+    input.setAttribute("aria-label", "Search this page");
+    input.setAttribute("aria-controls", "search-panel");
+    input.setAttribute("aria-expanded", "false");
+    input.setAttribute("autocomplete", "off");
+    input.setAttribute("spellcheck", "false");
+
+    var shortcut = document.createElement("kbd");
+    shortcut.className = "site-search-shortcut";
+    shortcut.textContent = "/";
+
+    var panel = document.createElement("div");
+    panel.id = "search-panel";
+    panel.className = "search-panel";
+    panel.setAttribute("role", "listbox");
+    panel.hidden = true;
+
+    form.appendChild(input);
+    form.appendChild(shortcut);
+    form.appendChild(panel);
+    nav.insertBefore(form, nav.querySelector(".site-links"));
+
+    var hits = [];
+    var current = -1;
+
+    function close() {
+        panel.hidden = true;
+        input.setAttribute("aria-expanded", "false");
+    }
+
+    function select(at) {
+        var rendered = panel.querySelectorAll(".search-hit");
+        for (var i = 0; i < rendered.length; i++) {
+            var isCurrent = i === at;
+            rendered[i].classList.toggle("is-current", isCurrent);
+            rendered[i].setAttribute("aria-selected", isCurrent ? "true" : "false");
+            if (isCurrent)
+                rendered[i].scrollIntoView({ block: "nearest" });
+        }
+        current = at;
+    }
+
+    function render() {
+        var query = input.value.trim().toLowerCase();
+        if (!query) {
+            hits = [];
+            close();
+            return;
+        }
+
+        var found = search(query);
+        hits = found.slice(0, LIMIT);
+
+        var html = "";
+        for (var i = 0; i < hits.length; i++) {
+            var item = hits[i].item;
+            html += '<a class="search-hit search-hit-' + item.kind + '" role="option" href="#' + item.anchor + '">' +
+                '<span class="kind-chip kind-' + item.kind + '">' + item.kind + "</span>" +
+                '<span class="search-hit-name">' + highlight(item.name, hits[i].positions) + "</span>" +
+                (item.detail ? '<span class="search-hit-detail">' + escape(item.detail) + "</span>" : "");
+            html += "</a>";
+        }
+        if (!hits.length)
+            html = '<p class="search-none">No match on this page.</p>';
+        else if (found.length > hits.length)
+            html += '<p class="search-more">' + hits.length + " of " + found.length + " matches</p>";
+
+        panel.innerHTML = html;
+        panel.hidden = false;
+        input.setAttribute("aria-expanded", "true");
+        select(hits.length ? 0 : -1);
+    }
+
+    function open(at) {
+        if (at < 0 || at >= hits.length)
+            return;
+        window.location.hash = "#" + hits[at].item.anchor;
+        close();
+    }
+
+    input.addEventListener("input", render);
+    input.addEventListener("focus", render);
+
+    input.addEventListener("keydown", function (event) {
+        if (event.key === "ArrowDown")
+            select(Math.min(current + 1, hits.length - 1));
+        else if (event.key === "ArrowUp")
+            select(Math.max(current - 1, 0));
+        else if (event.key === "Enter")
+            open(current);
+        else if (event.key === "Escape") {
+            input.value = "";
+            close();
+            input.blur();
+        } else
+            return;
+        event.preventDefault();
+    });
+
+    form.addEventListener("submit", function (event) {
+        event.preventDefault();
+        open(current);
+    });
+
+    panel.addEventListener("click", function () {
+        close();
+    });
+
+    document.addEventListener("click", function (event) {
+        if (!form.contains(event.target))
+            close();
+    });
+
+    // The box is reachable without the mouse from anywhere on the page, and the browser's
+    // own find stays available: "/" is only taken when nothing else is being typed into.
+    document.addEventListener("keydown", function (event) {
+        if (event.defaultPrevented || event.altKey)
+            return;
+        var active = document.activeElement;
+        var typing = active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.isContentEditable);
+        var takes = (event.key === "/" && !typing) || ((event.ctrlKey || event.metaKey) && event.key === "k");
+        if (!takes)
+            return;
+        event.preventDefault();
+        input.focus();
+        input.select();
+    });
+})
+([
+"n|XInput|namespace_XInput|",
+"s|XInput.XINPUT_GAMEPAD|XInput_XINPUT_GAMEPAD|",
+"s|XInput.XINPUT_STATE|XInput_XINPUT_STATE|",
+"s|XInput.XINPUT_VIBRATION|XInput_XINPUT_VIBRATION|",
+"c|XInput.XINPUT_GAMEPAD_A|XInput_XINPUT_GAMEPAD_A|",
+"c|XInput.XINPUT_GAMEPAD_B|XInput_XINPUT_GAMEPAD_B|",
+"c|XInput.XINPUT_GAMEPAD_BACK|XInput_XINPUT_GAMEPAD_BACK|",
+"c|XInput.XINPUT_GAMEPAD_DPAD_DOWN|XInput_XINPUT_GAMEPAD_DPAD_DOWN|",
+"c|XInput.XINPUT_GAMEPAD_DPAD_LEFT|XInput_XINPUT_GAMEPAD_DPAD_LEFT|",
+"c|XInput.XINPUT_GAMEPAD_DPAD_RIGHT|XInput_XINPUT_GAMEPAD_DPAD_RIGHT|",
+"c|XInput.XINPUT_GAMEPAD_DPAD_UP|XInput_XINPUT_GAMEPAD_DPAD_UP|",
+"c|XInput.XINPUT_GAMEPAD_LEFT_SHOULDER|XInput_XINPUT_GAMEPAD_LEFT_SHOULDER|",
+"c|XInput.XINPUT_GAMEPAD_LEFT_THUMB|XInput_XINPUT_GAMEPAD_LEFT_THUMB|",
+"c|XInput.XINPUT_GAMEPAD_RIGHT_SHOULDER|XInput_XINPUT_GAMEPAD_RIGHT_SHOULDER|",
+"c|XInput.XINPUT_GAMEPAD_RIGHT_THUMB|XInput_XINPUT_GAMEPAD_RIGHT_THUMB|",
+"c|XInput.XINPUT_GAMEPAD_START|XInput_XINPUT_GAMEPAD_START|",
+"c|XInput.XINPUT_GAMEPAD_X|XInput_XINPUT_GAMEPAD_X|",
+"c|XInput.XINPUT_GAMEPAD_Y|XInput_XINPUT_GAMEPAD_Y|",
+"f|XInput.XInputGetState|XInput_XInputGetState|",
+"f|XInput.XInputSetState|XInput_XInputSetState|",
+]);
+</script>
 </body>
 </html>

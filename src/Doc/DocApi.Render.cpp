@@ -872,11 +872,10 @@ void DocApi::renderApiDocument(TaskContext& ctx, DocApiDocument& document, const
     }
 
     document.content += "<section class=\"api-overview\">\n<h2 id=\"api-reference\">API reference</h2>\n<p>Use these summaries to find the right entry point. Every linked symbol also has one standalone, fully qualified reference entry below.</p>\n";
-    std::vector<Utf8> namespaceNames;
-    namespaceNames.reserve(namespaces.size());
+    document.namespaceNames.reserve(namespaces.size());
     for (const DocNamespace& docNamespace : namespaces)
-        namespaceNames.push_back(docNamespace.fullName);
-    renderNamespaceTable(document.content, "Namespaces", "summary-namespaces", namespaceNames);
+        document.namespaceNames.push_back(docNamespace.fullName);
+    renderNamespaceTable(document.content, "Namespaces", "summary-namespaces", document.namespaceNames);
     renderSummaryTable(document.content, renderCtx, "Types", "summary-types", types, true, false);
     renderSummaryTable(document.content, renderCtx, "Enumerations", "summary-enumerations", enumerations, false, false);
     renderSummaryTable(document.content, renderCtx, "Constants", "summary-constants", constants, false, false);

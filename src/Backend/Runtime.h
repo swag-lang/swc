@@ -520,6 +520,7 @@ namespace Runtime
         BuildCfgDocTheme theme              = BuildCfgDocTheme::Auto;
         bool             hasSwagWatermark   = true;
         bool             hasSymbolIndex     = true;
+        bool             hasSearch          = true;
     };
 
     inline constexpr String DEFAULT_REGISTERED_BUILD_CFGS = {

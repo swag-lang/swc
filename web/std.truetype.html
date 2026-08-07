@@ -934,5 +934,298 @@
 </footer>
 </section>
 </main>
+<script>
+(function (rows) {
+    "use strict";
+
+    var nav = document.querySelector(".site-nav");
+    if (!nav || !rows.length)
+        return;
+
+    var KINDS = {
+        n: "namespace", s: "struct", i: "interface", e: "enum",
+        c: "const", a: "alias", t: "attr", f: "func", h: "section"
+    };
+    var LIMIT = 30;
+
+    // A row is "kind|name|anchor|summary". The summary is the remainder of the row, so it
+    // is the only field allowed to hold the separator.
+    var items = [];
+    for (var r = 0; r < rows.length; r++) {
+        var row = rows[r];
+        var kindEnd = row.indexOf("|");
+        var nameEnd = row.indexOf("|", kindEnd + 1);
+        var anchorEnd = row.indexOf("|", nameEnd + 1);
+        var name = row.slice(kindEnd + 1, nameEnd);
+        items.push({
+            kind: KINDS[row.slice(0, kindEnd)] || "func",
+            name: name,
+            lower: name.toLowerCase(),
+            anchor: row.slice(nameEnd + 1, anchorEnd),
+            detail: row.slice(anchorEnd + 1)
+        });
+    }
+
+    // Where a name really starts: after a qualifier, and at every word boundary inside it.
+    function isBoundary(name, at) {
+        if (!at)
+            return true;
+        var previous = name.charAt(at - 1);
+        if (previous === "." || previous === "_")
+            return true;
+        return previous === previous.toLowerCase() && name.charAt(at) !== name.charAt(at).toLowerCase();
+    }
+
+    // An exact name wins, then one starting on a boundary, then any substring, then the
+    // characters merely in order. A shorter name breaks a tie, so "add" stays above
+    // "addRange" for the same query.
+    function rank(item, query) {
+        var lower = item.lower;
+        var positions = [];
+        var value;
+        var at = lower.indexOf(query);
+        if (at >= 0) {
+            value = lower.length === query.length ? 1000 : (isBoundary(item.name, at) ? 800 : 600);
+            value -= at * 0.5;
+            for (var c = 0; c < query.length; c++)
+                positions.push(at + c);
+        } else {
+            var typed = 0;
+            var run = 0;
+            value = 300;
+            for (var i = 0; i < lower.length && typed < query.length; i++) {
+                if (lower.charAt(i) !== query.charAt(typed)) {
+                    run = 0;
+                    continue;
+                }
+                run++;
+                value += run + (isBoundary(item.name, i) ? 6 : 0);
+                positions.push(i);
+                typed++;
+            }
+            if (typed < query.length)
+                return null;
+            value -= (positions[positions.length - 1] - positions[0]) * 0.4;
+        }
+        return { value: value - lower.length * 0.2, positions: positions, item: item };
+    }
+
+    function search(query) {
+        var found = [];
+        for (var i = 0; i < items.length; i++) {
+            var hit = rank(items[i], query);
+            if (hit)
+                found.push(hit);
+        }
+        found.sort(function (left, right) {
+            if (left.value !== right.value)
+                return right.value - left.value;
+            return left.item.name < right.item.name ? -1 : 1;
+        });
+        return found;
+    }
+
+    function escape(text) {
+        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function highlight(name, positions) {
+        var html = "";
+        var done = 0;
+        var at = 0;
+        while (at < positions.length) {
+            var start = positions[at];
+            var end = start + 1;
+            while (at + 1 < positions.length && positions[at + 1] === end) {
+                end++;
+                at++;
+            }
+            html += escape(name.slice(done, start)) + "<mark>" + escape(name.slice(start, end)) + "</mark>";
+            done = end;
+            at++;
+        }
+        return html + escape(name.slice(done));
+    }
+
+    var form = document.createElement("form");
+    form.className = "site-search";
+    form.setAttribute("role", "search");
+
+    var input = document.createElement("input");
+    input.type = "search";
+    input.className = "site-search-input";
+    input.placeholder = "Search this page";
+    input.setAttribute("aria-label", "Search this page");
+    input.setAttribute("aria-controls", "search-panel");
+    input.setAttribute("aria-expanded", "false");
+    input.setAttribute("autocomplete", "off");
+    input.setAttribute("spellcheck", "false");
+
+    var shortcut = document.createElement("kbd");
+    shortcut.className = "site-search-shortcut";
+    shortcut.textContent = "/";
+
+    var panel = document.createElement("div");
+    panel.id = "search-panel";
+    panel.className = "search-panel";
+    panel.setAttribute("role", "listbox");
+    panel.hidden = true;
+
+    form.appendChild(input);
+    form.appendChild(shortcut);
+    form.appendChild(panel);
+    nav.insertBefore(form, nav.querySelector(".site-links"));
+
+    var hits = [];
+    var current = -1;
+
+    function close() {
+        panel.hidden = true;
+        input.setAttribute("aria-expanded", "false");
+    }
+
+    function select(at) {
+        var rendered = panel.querySelectorAll(".search-hit");
+        for (var i = 0; i < rendered.length; i++) {
+            var isCurrent = i === at;
+            rendered[i].classList.toggle("is-current", isCurrent);
+            rendered[i].setAttribute("aria-selected", isCurrent ? "true" : "false");
+            if (isCurrent)
+                rendered[i].scrollIntoView({ block: "nearest" });
+        }
+        current = at;
+    }
+
+    function render() {
+        var query = input.value.trim().toLowerCase();
+        if (!query) {
+            hits = [];
+            close();
+            return;
+        }
+
+        var found = search(query);
+        hits = found.slice(0, LIMIT);
+
+        var html = "";
+        for (var i = 0; i < hits.length; i++) {
+            var item = hits[i].item;
+            html += '<a class="search-hit search-hit-' + item.kind + '" role="option" href="#' + item.anchor + '">' +
+                '<span class="kind-chip kind-' + item.kind + '">' + item.kind + "</span>" +
+                '<span class="search-hit-name">' + highlight(item.name, hits[i].positions) + "</span>" +
+                (item.detail ? '<span class="search-hit-detail">' + escape(item.detail) + "</span>" : "");
+            html += "</a>";
+        }
+        if (!hits.length)
+            html = '<p class="search-none">No match on this page.</p>';
+        else if (found.length > hits.length)
+            html += '<p class="search-more">' + hits.length + " of " + found.length + " matches</p>";
+
+        panel.innerHTML = html;
+        panel.hidden = false;
+        input.setAttribute("aria-expanded", "true");
+        select(hits.length ? 0 : -1);
+    }
+
+    function open(at) {
+        if (at < 0 || at >= hits.length)
+            return;
+        window.location.hash = "#" + hits[at].item.anchor;
+        close();
+    }
+
+    input.addEventListener("input", render);
+    input.addEventListener("focus", render);
+
+    input.addEventListener("keydown", function (event) {
+        if (event.key === "ArrowDown")
+            select(Math.min(current + 1, hits.length - 1));
+        else if (event.key === "ArrowUp")
+            select(Math.max(current - 1, 0));
+        else if (event.key === "Enter")
+            open(current);
+        else if (event.key === "Escape") {
+            input.value = "";
+            close();
+            input.blur();
+        } else
+            return;
+        event.preventDefault();
+    });
+
+    form.addEventListener("submit", function (event) {
+        event.preventDefault();
+        open(current);
+    });
+
+    panel.addEventListener("click", function () {
+        close();
+    });
+
+    document.addEventListener("click", function (event) {
+        if (!form.contains(event.target))
+            close();
+    });
+
+    // The box is reachable without the mouse from anywhere on the page, and the browser's
+    // own find stays available: "/" is only taken when nothing else is being typed into.
+    document.addEventListener("keydown", function (event) {
+        if (event.defaultPrevented || event.altKey)
+            return;
+        var active = document.activeElement;
+        var typing = active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.isContentEditable);
+        var takes = (event.key === "/" && !typing) || ((event.ctrlKey || event.metaKey) && event.key === "k");
+        if (!takes)
+            return;
+        event.preventDefault();
+        input.focus();
+        input.select();
+    });
+})
+([
+"n|TrueType|namespace_TrueType|",
+"s|TrueType.BBox|TrueType_BBox|Stores an axis-aligned font-space bounding box.",
+"s|TrueType.Bitmap|TrueType_Bitmap|Describes the borrowed pixels produced for the current glyph.",
+"s|TrueType.CharMap|TrueType_CharMap|Describes the Unicode character map selected for a TrueType.Face.",
+"s|TrueType.Face|TrueType_Face|Owns one parsed TrueType font face and its reusable glyph workspace.",
+"s|TrueType.GlyphMetrics|TrueType_GlyphMetrics|Contains the measurements of the current glyph.",
+"s|TrueType.GlyphSlot|TrueType_GlyphSlot|Holds the outline, metrics, and bitmap of the most recently loaded glyph.",
+"s|TrueType.Matrix|TrueType_Matrix|Stores a 2x2 affine linear transform in 16.16 fixed-point form.",
+"s|TrueType.Outline|TrueType_Outline|Exposes the borrowed contours of the current scalable glyph.",
+"s|TrueType.OutlineCommand|TrueType_OutlineCommand|Represents one path operation produced by TrueType.Outline.decompose.",
+"s|TrueType.Size|TrueType_Size|Associates the active metrics with their owning TrueType.Face.",
+"s|TrueType.SizeMetrics|TrueType_SizeMetrics|Contains the active size and scaled face metrics.",
+"s|TrueType.Vector|TrueType_Vector|Stores a two-dimensional point or displacement.",
+"e|TrueType.GlyphFormat|TrueType_GlyphFormat|Identifies which representation is active in a TrueType.GlyphSlot.",
+"e|TrueType.LoadFlag|TrueType_LoadFlag|Controls how a glyph is loaded into the reusable slot.",
+"e|TrueType.OutlineCommandKind|TrueType_OutlineCommandKind|Identifies one operation in a decomposed glyph contour.",
+"e|TrueType.PixelMode|TrueType_PixelMode|Identifies the storage layout of a rendered TrueType.Bitmap.",
+"e|TrueType.StyleFlag|TrueType_StyleFlag|Describes style traits declared by a font face.",
+"c|TrueType.Matrix.Identity|TrueType_Matrix_Identity|Identity transform in 16.16 fixed-point form.",
+"f|TrueType.Face.destroy|TrueType_Face_destroy|Releases this face and every resource borrowed from it.",
+"f|TrueType.Face.getKerning|TrueType_Face_getKerning|Returns horizontal kerning between two glyph indices.",
+"f|TrueType.Face.glyphIndex|TrueType_Face_glyphIndex|Resolves a Unicode scalar value to a glyph index.",
+"f|TrueType.Face.hasChar|TrueType_Face_hasChar|Returns whether the selected character map contains a glyph for charCode.",
+"f|TrueType.Face.hasKerning|TrueType_Face_hasKerning|Returns whether the face contains supported kerning pairs.",
+"f|TrueType.Face.hintVertical|TrueType_Face_hintVertical|Aligns important vertical zones of the current outline to whole pixels.",
+"f|TrueType.Face.isBold|TrueType_Face_isBold|Returns whether the font declares a bold style.",
+"f|TrueType.Face.isItalic|TrueType_Face_isItalic|Returns whether the font declares an italic style.",
+"f|TrueType.Face.load|TrueType_Face_load|Loads a TrueType face from an in-memory font file.",
+"f|TrueType.Face.loadChar|TrueType_Face_loadChar|Resolves and loads a Unicode scalar value into the reusable slot.",
+"f|TrueType.Face.loadGlyph|TrueType_Face_loadGlyph|Loads a glyph by index into the face's reusable slot.",
+"f|TrueType.Face.renderGlyph|TrueType_Face_renderGlyph|Rasterizes the current outline into an 8-bit grayscale bitmap.",
+"f|TrueType.Face.renderGlyphMsdf|TrueType_Face_renderGlyphMsdf|Renders the current outline as a multi-channel signed-distance field.",
+"f|TrueType.Face.renderGlyphSdf|TrueType_Face_renderGlyphSdf|Renders the current outline as a single-channel signed-distance field.",
+"f|TrueType.Face.setPixelSize|TrueType_Face_setPixelSize|Selects the pixel dimensions used by subsequent glyph loads.",
+"f|TrueType.GlyphSlot.oblique|TrueType_GlyphSlot_oblique|Applies a synthetic italic slant to the current outline.",
+"f|TrueType.Outline.decompose|TrueType_Outline_decompose|Converts the contours into an owned sequence of path commands.",
+"f|TrueType.Outline.embolden|TrueType_Outline_embolden|Thickens the current outline by the requested 26.6 fixed-point strength.",
+"f|TrueType.Outline.transform|TrueType_Outline_transform|Applies a 16.16 fixed-point linear transform to every point.",
+"f|TrueType.Outline.translate|TrueType_Outline_translate|Translates every point by a 26.6 fixed-point offset.",
+"f|TrueType.PixelMode.bytesPerPixel|TrueType_PixelMode_bytesPerPixel|Returns the number of bytes occupied by one pixel in this mode.",
+"h|Loading fonts and glyphs|guide_Loading_fonts_and_glyphs|",
+"h|Metrics, outlines, and rendering|guide_Metrics__outlines__and_rendering|",
+]);
+</script>
 </body>
 </html>

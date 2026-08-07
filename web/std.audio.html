@@ -1029,5 +1029,324 @@ voice.<span class="SFct">destroy</span>()
 </footer>
 </section>
 </main>
+<script>
+(function (rows) {
+    "use strict";
+
+    var nav = document.querySelector(".site-nav");
+    if (!nav || !rows.length)
+        return;
+
+    var KINDS = {
+        n: "namespace", s: "struct", i: "interface", e: "enum",
+        c: "const", a: "alias", t: "attr", f: "func", h: "section"
+    };
+    var LIMIT = 30;
+
+    // A row is "kind|name|anchor|summary". The summary is the remainder of the row, so it
+    // is the only field allowed to hold the separator.
+    var items = [];
+    for (var r = 0; r < rows.length; r++) {
+        var row = rows[r];
+        var kindEnd = row.indexOf("|");
+        var nameEnd = row.indexOf("|", kindEnd + 1);
+        var anchorEnd = row.indexOf("|", nameEnd + 1);
+        var name = row.slice(kindEnd + 1, nameEnd);
+        items.push({
+            kind: KINDS[row.slice(0, kindEnd)] || "func",
+            name: name,
+            lower: name.toLowerCase(),
+            anchor: row.slice(nameEnd + 1, anchorEnd),
+            detail: row.slice(anchorEnd + 1)
+        });
+    }
+
+    // Where a name really starts: after a qualifier, and at every word boundary inside it.
+    function isBoundary(name, at) {
+        if (!at)
+            return true;
+        var previous = name.charAt(at - 1);
+        if (previous === "." || previous === "_")
+            return true;
+        return previous === previous.toLowerCase() && name.charAt(at) !== name.charAt(at).toLowerCase();
+    }
+
+    // An exact name wins, then one starting on a boundary, then any substring, then the
+    // characters merely in order. A shorter name breaks a tie, so "add" stays above
+    // "addRange" for the same query.
+    function rank(item, query) {
+        var lower = item.lower;
+        var positions = [];
+        var value;
+        var at = lower.indexOf(query);
+        if (at >= 0) {
+            value = lower.length === query.length ? 1000 : (isBoundary(item.name, at) ? 800 : 600);
+            value -= at * 0.5;
+            for (var c = 0; c < query.length; c++)
+                positions.push(at + c);
+        } else {
+            var typed = 0;
+            var run = 0;
+            value = 300;
+            for (var i = 0; i < lower.length && typed < query.length; i++) {
+                if (lower.charAt(i) !== query.charAt(typed)) {
+                    run = 0;
+                    continue;
+                }
+                run++;
+                value += run + (isBoundary(item.name, i) ? 6 : 0);
+                positions.push(i);
+                typed++;
+            }
+            if (typed < query.length)
+                return null;
+            value -= (positions[positions.length - 1] - positions[0]) * 0.4;
+        }
+        return { value: value - lower.length * 0.2, positions: positions, item: item };
+    }
+
+    function search(query) {
+        var found = [];
+        for (var i = 0; i < items.length; i++) {
+            var hit = rank(items[i], query);
+            if (hit)
+                found.push(hit);
+        }
+        found.sort(function (left, right) {
+            if (left.value !== right.value)
+                return right.value - left.value;
+            return left.item.name < right.item.name ? -1 : 1;
+        });
+        return found;
+    }
+
+    function escape(text) {
+        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function highlight(name, positions) {
+        var html = "";
+        var done = 0;
+        var at = 0;
+        while (at < positions.length) {
+            var start = positions[at];
+            var end = start + 1;
+            while (at + 1 < positions.length && positions[at + 1] === end) {
+                end++;
+                at++;
+            }
+            html += escape(name.slice(done, start)) + "<mark>" + escape(name.slice(start, end)) + "</mark>";
+            done = end;
+            at++;
+        }
+        return html + escape(name.slice(done));
+    }
+
+    var form = document.createElement("form");
+    form.className = "site-search";
+    form.setAttribute("role", "search");
+
+    var input = document.createElement("input");
+    input.type = "search";
+    input.className = "site-search-input";
+    input.placeholder = "Search this page";
+    input.setAttribute("aria-label", "Search this page");
+    input.setAttribute("aria-controls", "search-panel");
+    input.setAttribute("aria-expanded", "false");
+    input.setAttribute("autocomplete", "off");
+    input.setAttribute("spellcheck", "false");
+
+    var shortcut = document.createElement("kbd");
+    shortcut.className = "site-search-shortcut";
+    shortcut.textContent = "/";
+
+    var panel = document.createElement("div");
+    panel.id = "search-panel";
+    panel.className = "search-panel";
+    panel.setAttribute("role", "listbox");
+    panel.hidden = true;
+
+    form.appendChild(input);
+    form.appendChild(shortcut);
+    form.appendChild(panel);
+    nav.insertBefore(form, nav.querySelector(".site-links"));
+
+    var hits = [];
+    var current = -1;
+
+    function close() {
+        panel.hidden = true;
+        input.setAttribute("aria-expanded", "false");
+    }
+
+    function select(at) {
+        var rendered = panel.querySelectorAll(".search-hit");
+        for (var i = 0; i < rendered.length; i++) {
+            var isCurrent = i === at;
+            rendered[i].classList.toggle("is-current", isCurrent);
+            rendered[i].setAttribute("aria-selected", isCurrent ? "true" : "false");
+            if (isCurrent)
+                rendered[i].scrollIntoView({ block: "nearest" });
+        }
+        current = at;
+    }
+
+    function render() {
+        var query = input.value.trim().toLowerCase();
+        if (!query) {
+            hits = [];
+            close();
+            return;
+        }
+
+        var found = search(query);
+        hits = found.slice(0, LIMIT);
+
+        var html = "";
+        for (var i = 0; i < hits.length; i++) {
+            var item = hits[i].item;
+            html += '<a class="search-hit search-hit-' + item.kind + '" role="option" href="#' + item.anchor + '">' +
+                '<span class="kind-chip kind-' + item.kind + '">' + item.kind + "</span>" +
+                '<span class="search-hit-name">' + highlight(item.name, hits[i].positions) + "</span>" +
+                (item.detail ? '<span class="search-hit-detail">' + escape(item.detail) + "</span>" : "");
+            html += "</a>";
+        }
+        if (!hits.length)
+            html = '<p class="search-none">No match on this page.</p>';
+        else if (found.length > hits.length)
+            html += '<p class="search-more">' + hits.length + " of " + found.length + " matches</p>";
+
+        panel.innerHTML = html;
+        panel.hidden = false;
+        input.setAttribute("aria-expanded", "true");
+        select(hits.length ? 0 : -1);
+    }
+
+    function open(at) {
+        if (at < 0 || at >= hits.length)
+            return;
+        window.location.hash = "#" + hits[at].item.anchor;
+        close();
+    }
+
+    input.addEventListener("input", render);
+    input.addEventListener("focus", render);
+
+    input.addEventListener("keydown", function (event) {
+        if (event.key === "ArrowDown")
+            select(Math.min(current + 1, hits.length - 1));
+        else if (event.key === "ArrowUp")
+            select(Math.max(current - 1, 0));
+        else if (event.key === "Enter")
+            open(current);
+        else if (event.key === "Escape") {
+            input.value = "";
+            close();
+            input.blur();
+        } else
+            return;
+        event.preventDefault();
+    });
+
+    form.addEventListener("submit", function (event) {
+        event.preventDefault();
+        open(current);
+    });
+
+    panel.addEventListener("click", function () {
+        close();
+    });
+
+    document.addEventListener("click", function (event) {
+        if (!form.contains(event.target))
+            close();
+    });
+
+    // The box is reachable without the mouse from anywhere on the page, and the browser's
+    // own find stays available: "/" is only taken when nothing else is being typed into.
+    document.addEventListener("keydown", function (event) {
+        if (event.defaultPrevented || event.altKey)
+            return;
+        var active = document.activeElement;
+        var typing = active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.isContentEditable);
+        var takes = (event.key === "/" && !typing) || ((event.ctrlKey || event.metaKey) && event.key === "k");
+        if (!takes)
+            return;
+        event.preventDefault();
+        input.focus();
+        input.select();
+    });
+})
+([
+"n|Audio|namespace_Audio|",
+"s|Audio.Bus|Audio_Bus|Groups voices in a controllable submix.",
+"s|Audio.Voice|Audio_Voice|Controls one playback instance of a sound file.",
+"s|Audio.Codec|Audio_Codec|Stores the source, destination, and concrete type of a codec instance.",
+"s|Audio.CodecProgress|Audio_CodecProgress|Reports the byte-level progress of one incremental codec operation.",
+"s|Audio.SoundFile|Audio_SoundFile|Describes a validated sound source that may be prefetched or streamed.",
+"i|Audio.ICodec|Audio_ICodec|Converts encoded audio incrementally between sound-file encodings.",
+"e|Audio.VoiceCreateFlags|Audio_VoiceCreateFlags|Selects optional backend capabilities for a new voice.",
+"e|Audio.VoicePlayFlags|Audio_VoicePlayFlags|Controls one playback run and its end-of-playback lifetime.",
+"e|Audio.DriverKind|Audio_DriverKind|Selects the engine backend.",
+"e|Audio.SoundFileEncoding|Audio_SoundFileEncoding|Describes the in-memory encoding of sound samples.",
+"e|Audio.SoundFileFields|Audio_SoundFileFields|Identifies which sound-file properties were discovered while loading.",
+"c|Audio.Voice.DecodedBufferSize|Audio_Voice_DecodedBufferSize|Capacity in bytes of each decoded streaming buffer.",
+"c|Audio.Voice.NumDecodedBuffers|Audio_Voice_NumDecodedBuffers|Number of decoded buffers rotated during streaming.",
+"c|Audio.Voice.StreamBufferSize|Audio_Voice_StreamBufferSize|Number of encoded bytes read per streaming step.",
+"f|Audio.Bus.create|Audio_Bus_create|Creates a bus with the requested channel count.",
+"f|Audio.Bus.destroy|Audio_Bus_destroy|Destroys the native submix and frees this bus immediately.",
+"f|Audio.Bus.setVolumeDb|Audio_Bus_setVolumeDb|Sets the bus gain in decibels.",
+"f|Audio.Bus.volumeDb|Audio_Bus_volumeDb|Returns the current bus gain in decibels.",
+"f|Audio.Voice.create|Audio_Voice_create|Creates a controllable playback instance for a sound file.",
+"f|Audio.Voice.destroy|Audio_Voice_destroy|Schedules this voice and its native resources for destruction.",
+"f|Audio.Voice.isPlaying|Audio_Voice_isPlaying|Returns whether the voice is currently marked as playing.",
+"f|Audio.Voice.opDrop|Audio_Voice_opDrop|Releases codec and streaming resources owned by this value.",
+"f|Audio.Voice.pause|Audio_Voice_pause|Pauses playback while preserving the current stream position.",
+"f|Audio.Voice.play|Audio_Voice_play|Creates and immediately starts a voice.",
+"f|Audio.Voice.setVolumeDb|Audio_Voice_setVolumeDb|Sets this voice's gain in decibels.",
+"f|Audio.Voice.stop|Audio_Voice_stop|Stops playback, discards queued backend buffers, and rewinds to the beginning.",
+"f|Audio.Voice.volumeDb|Audio_Voice_volumeDb|Returns this voice's current gain in decibels.",
+"f|Audio.activeDriverKind|Audio_activeDriverKind|Returns the resolved backend of the current engine, or Default before creation.",
+"f|Audio.createEngine|Audio_createEngine|Creates the process-wide audio engine.",
+"f|Audio.createNoSoundEngine|Audio_createNoSoundEngine|Creates the process-wide engine without opening an audio device.",
+"f|Audio.decibelsToLinearGain|Audio_decibelsToLinearGain|Converts a gain in decibels to a linear amplitude ratio.",
+"f|Audio.destroyEngine|Audio_destroyEngine|Destroys the process-wide audio engine and its backend resources.",
+"f|Audio.isEngineCreated|Audio_isEngineCreated|Returns whether the process-wide audio engine is currently available.",
+"f|Audio.linearGainToDecibels|Audio_linearGainToDecibels|Converts a linear amplitude ratio to decibels.",
+"f|Audio.outputVolume|Audio_outputVolume|Returns the current mastering output gain as a linear value.",
+"f|Audio.outputVolumeDb|Audio_outputVolumeDb|Returns the mastering output gain in decibels.",
+"f|Audio.setOutputVolume|Audio_setOutputVolume|Sets the mastering output gain.",
+"f|Audio.setOutputVolumeDb|Audio_setOutputVolumeDb|Sets the mastering output gain in decibels.",
+"f|Audio.ICodec.canDecode|Audio_ICodec_canDecode|Returns whether this codec can consume encoding.",
+"f|Audio.ICodec.canEncode|Audio_ICodec_canEncode|Returns whether this codec can produce encoding.",
+"f|Audio.ICodec.decode|Audio_ICodec_decode|Decodes one chunk and reports produced and consumed byte counts.",
+"f|Audio.ICodec.initialize|Audio_ICodec_initialize|Initializes decoder state and returns the number of input bytes consumed.",
+"f|Audio.registerCodec|Audio_registerCodec|Registers a codec implementation for subsequent voice creation.",
+"f|Audio.Bus.setVolume|Audio_Bus_setVolume|Sets this bus's linear gain.",
+"f|Audio.Bus.volume|Audio_Bus_volume|Returns this bus's current linear gain.",
+"f|Audio.Voice.frequencyRatio|Audio_Voice_frequencyRatio|Returns the current playback frequency ratio.",
+"f|Audio.Voice.setFrequencyRatio|Audio_Voice_setFrequencyRatio|Sets the playback frequency ratio.",
+"f|Audio.Voice.setRouting|Audio_Voice_setRouting|Replaces the buses that receive this voice.",
+"f|Audio.Voice.setVolume|Audio_Voice_setVolume|Sets this voice's linear gain.",
+"f|Audio.Voice.volume|Audio_Voice_volume|Returns this voice's current linear gain.",
+"f|Audio.SoundFile.durationInSeconds|Audio_SoundFile_durationInSeconds|Returns the playback duration in seconds.",
+"f|Audio.SoundFile.hasField|Audio_SoundFile_hasField|Returns whether the loader validated the requested property.",
+"f|Audio.SoundFile.isDataPreloaded|Audio_SoundFile_isDataPreloaded|Returns whether the complete payload is retained in memory.",
+"f|Audio.SoundFile.load|Audio_SoundFile_load|Loads and validates a WAV sound file.",
+"f|Audio.SoundFile.numChannels|Audio_SoundFile_numChannels|Returns the number of interleaved channels.",
+"f|Audio.SoundFile.payloadSize|Audio_SoundFile_payloadSize|Returns the payload size in bytes.",
+"f|Audio.SoundFile.preloadedData|Audio_SoundFile_preloadedData|Returns the payload bytes retained in memory.",
+"f|Audio.SoundFile.sampleEncoding|Audio_SoundFile_sampleEncoding|Returns the validated payload encoding.",
+"f|Audio.SoundFile.sampleFrameCount|Audio_SoundFile_sampleFrameCount|Returns the number of sample frames across all channels.",
+"f|Audio.SoundFile.sampleRateHz|Audio_SoundFile_sampleRateHz|Returns the sample rate in hertz.",
+"f|Audio.SoundFile.sampleStorageBits|Audio_SoundFile_sampleStorageBits|Returns the storage width of one channel sample, in bits.",
+"f|Audio.SoundFile.sampleValidBits|Audio_SoundFile_sampleValidBits|Returns the significant width of one sample, in bits.",
+"f|Audio.SoundFile.sourcePath|Audio_SoundFile_sourcePath|Returns the source path used to load this sound.",
+"f|Audio.SoundFile.speakerChannelMask|Audio_SoundFile_speakerChannelMask|Returns the speaker-position mask, or zero when the source omits it.",
+"h|Engine and first sound|guide_Engine_and_first_sound|",
+"h|Loading, streaming, and voices|guide_Loading__streaming__and_voices|",
+"h|Buses, drivers, and codecs|guide_Buses__drivers__and_codecs|",
+]);
+</script>
 </body>
 </html>

@@ -52,6 +52,7 @@ struct DocPageOptions
     uint32_t                  accentColor        = 0;
     bool                      hasSwagWatermark   = true;
     bool                      hasSymbolIndex     = true;
+    bool                      hasSearch          = true;
 };
 
 struct DocOverload
@@ -97,6 +98,7 @@ struct DocApiDocument
 {
     std::vector<DocItem>           items;
     std::vector<DocGuide>          guides;
+    std::vector<Utf8>              namespaceNames;
     std::unordered_map<Utf8, Utf8> references;
     std::unordered_map<Utf8, Utf8> externalReferences;
     std::unordered_map<Utf8, Utf8> externalModules;

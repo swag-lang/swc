@@ -1958,5 +1958,473 @@
 </footer>
 </section>
 </main>
+<script>
+(function (rows) {
+    "use strict";
+
+    var nav = document.querySelector(".site-nav");
+    if (!nav || !rows.length)
+        return;
+
+    var KINDS = {
+        n: "namespace", s: "struct", i: "interface", e: "enum",
+        c: "const", a: "alias", t: "attr", f: "func", h: "section"
+    };
+    var LIMIT = 30;
+
+    // A row is "kind|name|anchor|summary". The summary is the remainder of the row, so it
+    // is the only field allowed to hold the separator.
+    var items = [];
+    for (var r = 0; r < rows.length; r++) {
+        var row = rows[r];
+        var kindEnd = row.indexOf("|");
+        var nameEnd = row.indexOf("|", kindEnd + 1);
+        var anchorEnd = row.indexOf("|", nameEnd + 1);
+        var name = row.slice(kindEnd + 1, nameEnd);
+        items.push({
+            kind: KINDS[row.slice(0, kindEnd)] || "func",
+            name: name,
+            lower: name.toLowerCase(),
+            anchor: row.slice(nameEnd + 1, anchorEnd),
+            detail: row.slice(anchorEnd + 1)
+        });
+    }
+
+    // Where a name really starts: after a qualifier, and at every word boundary inside it.
+    function isBoundary(name, at) {
+        if (!at)
+            return true;
+        var previous = name.charAt(at - 1);
+        if (previous === "." || previous === "_")
+            return true;
+        return previous === previous.toLowerCase() && name.charAt(at) !== name.charAt(at).toLowerCase();
+    }
+
+    // An exact name wins, then one starting on a boundary, then any substring, then the
+    // characters merely in order. A shorter name breaks a tie, so "add" stays above
+    // "addRange" for the same query.
+    function rank(item, query) {
+        var lower = item.lower;
+        var positions = [];
+        var value;
+        var at = lower.indexOf(query);
+        if (at >= 0) {
+            value = lower.length === query.length ? 1000 : (isBoundary(item.name, at) ? 800 : 600);
+            value -= at * 0.5;
+            for (var c = 0; c < query.length; c++)
+                positions.push(at + c);
+        } else {
+            var typed = 0;
+            var run = 0;
+            value = 300;
+            for (var i = 0; i < lower.length && typed < query.length; i++) {
+                if (lower.charAt(i) !== query.charAt(typed)) {
+                    run = 0;
+                    continue;
+                }
+                run++;
+                value += run + (isBoundary(item.name, i) ? 6 : 0);
+                positions.push(i);
+                typed++;
+            }
+            if (typed < query.length)
+                return null;
+            value -= (positions[positions.length - 1] - positions[0]) * 0.4;
+        }
+        return { value: value - lower.length * 0.2, positions: positions, item: item };
+    }
+
+    function search(query) {
+        var found = [];
+        for (var i = 0; i < items.length; i++) {
+            var hit = rank(items[i], query);
+            if (hit)
+                found.push(hit);
+        }
+        found.sort(function (left, right) {
+            if (left.value !== right.value)
+                return right.value - left.value;
+            return left.item.name < right.item.name ? -1 : 1;
+        });
+        return found;
+    }
+
+    function escape(text) {
+        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function highlight(name, positions) {
+        var html = "";
+        var done = 0;
+        var at = 0;
+        while (at < positions.length) {
+            var start = positions[at];
+            var end = start + 1;
+            while (at + 1 < positions.length && positions[at + 1] === end) {
+                end++;
+                at++;
+            }
+            html += escape(name.slice(done, start)) + "<mark>" + escape(name.slice(start, end)) + "</mark>";
+            done = end;
+            at++;
+        }
+        return html + escape(name.slice(done));
+    }
+
+    var form = document.createElement("form");
+    form.className = "site-search";
+    form.setAttribute("role", "search");
+
+    var input = document.createElement("input");
+    input.type = "search";
+    input.className = "site-search-input";
+    input.placeholder = "Search this page";
+    input.setAttribute("aria-label", "Search this page");
+    input.setAttribute("aria-controls", "search-panel");
+    input.setAttribute("aria-expanded", "false");
+    input.setAttribute("autocomplete", "off");
+    input.setAttribute("spellcheck", "false");
+
+    var shortcut = document.createElement("kbd");
+    shortcut.className = "site-search-shortcut";
+    shortcut.textContent = "/";
+
+    var panel = document.createElement("div");
+    panel.id = "search-panel";
+    panel.className = "search-panel";
+    panel.setAttribute("role", "listbox");
+    panel.hidden = true;
+
+    form.appendChild(input);
+    form.appendChild(shortcut);
+    form.appendChild(panel);
+    nav.insertBefore(form, nav.querySelector(".site-links"));
+
+    var hits = [];
+    var current = -1;
+
+    function close() {
+        panel.hidden = true;
+        input.setAttribute("aria-expanded", "false");
+    }
+
+    function select(at) {
+        var rendered = panel.querySelectorAll(".search-hit");
+        for (var i = 0; i < rendered.length; i++) {
+            var isCurrent = i === at;
+            rendered[i].classList.toggle("is-current", isCurrent);
+            rendered[i].setAttribute("aria-selected", isCurrent ? "true" : "false");
+            if (isCurrent)
+                rendered[i].scrollIntoView({ block: "nearest" });
+        }
+        current = at;
+    }
+
+    function render() {
+        var query = input.value.trim().toLowerCase();
+        if (!query) {
+            hits = [];
+            close();
+            return;
+        }
+
+        var found = search(query);
+        hits = found.slice(0, LIMIT);
+
+        var html = "";
+        for (var i = 0; i < hits.length; i++) {
+            var item = hits[i].item;
+            html += '<a class="search-hit search-hit-' + item.kind + '" role="option" href="#' + item.anchor + '">' +
+                '<span class="kind-chip kind-' + item.kind + '">' + item.kind + "</span>" +
+                '<span class="search-hit-name">' + highlight(item.name, hits[i].positions) + "</span>" +
+                (item.detail ? '<span class="search-hit-detail">' + escape(item.detail) + "</span>" : "");
+            html += "</a>";
+        }
+        if (!hits.length)
+            html = '<p class="search-none">No match on this page.</p>';
+        else if (found.length > hits.length)
+            html += '<p class="search-more">' + hits.length + " of " + found.length + " matches</p>";
+
+        panel.innerHTML = html;
+        panel.hidden = false;
+        input.setAttribute("aria-expanded", "true");
+        select(hits.length ? 0 : -1);
+    }
+
+    function open(at) {
+        if (at < 0 || at >= hits.length)
+            return;
+        window.location.hash = "#" + hits[at].item.anchor;
+        close();
+    }
+
+    input.addEventListener("input", render);
+    input.addEventListener("focus", render);
+
+    input.addEventListener("keydown", function (event) {
+        if (event.key === "ArrowDown")
+            select(Math.min(current + 1, hits.length - 1));
+        else if (event.key === "ArrowUp")
+            select(Math.max(current - 1, 0));
+        else if (event.key === "Enter")
+            open(current);
+        else if (event.key === "Escape") {
+            input.value = "";
+            close();
+            input.blur();
+        } else
+            return;
+        event.preventDefault();
+    });
+
+    form.addEventListener("submit", function (event) {
+        event.preventDefault();
+        open(current);
+    });
+
+    panel.addEventListener("click", function () {
+        close();
+    });
+
+    document.addEventListener("click", function (event) {
+        if (!form.contains(event.target))
+            close();
+    });
+
+    // The box is reachable without the mouse from anywhere on the page, and the browser's
+    // own find stays available: "/" is only taken when nothing else is being typed into.
+    document.addEventListener("keydown", function (event) {
+        if (event.defaultPrevented || event.altKey)
+            return;
+        var active = document.activeElement;
+        var typing = active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.isContentEditable);
+        var takes = (event.key === "/" && !typing) || ((event.ctrlKey || event.metaKey) && event.key === "k");
+        if (!takes)
+            return;
+        event.preventDefault();
+        input.focus();
+        input.select();
+    });
+})
+([
+"n|Gdi32|namespace_Gdi32|",
+"s|Gdi32.BITMAP|Gdi32_BITMAP|",
+"s|Gdi32.BITMAPINFO|Gdi32_BITMAPINFO|",
+"s|Gdi32.BITMAPINFOHEADER|Gdi32_BITMAPINFOHEADER|",
+"s|Gdi32.ENUMLOGFONTEXA|Gdi32_ENUMLOGFONTEXA|",
+"s|Gdi32.ENUMLOGFONTEXW|Gdi32_ENUMLOGFONTEXW|",
+"s|Gdi32.LOGFONTA|Gdi32_LOGFONTA|",
+"s|Gdi32.LOGFONTW|Gdi32_LOGFONTW|",
+"s|Gdi32.NEWTEXTMETRICA|Gdi32_NEWTEXTMETRICA|",
+"s|Gdi32.NEWTEXTMETRICW|Gdi32_NEWTEXTMETRICW|",
+"s|Gdi32.PIXELFORMATDESCRIPTOR|Gdi32_PIXELFORMATDESCRIPTOR|",
+"s|Gdi32.RGBQUAD|Gdi32_RGBQUAD|",
+"s|Gdi32.TEXTMETRICA|Gdi32_TEXTMETRICA|",
+"s|Gdi32.TEXTMETRICW|Gdi32_TEXTMETRICW|",
+"c|Gdi32.ANSI_CHARSET|Gdi32_ANSI_CHARSET|",
+"c|Gdi32.ANSI_FIXED_FONT|Gdi32_ANSI_FIXED_FONT|",
+"c|Gdi32.ANSI_VAR_FONT|Gdi32_ANSI_VAR_FONT|",
+"c|Gdi32.ARABIC_CHARSET|Gdi32_ARABIC_CHARSET|",
+"c|Gdi32.ASPECTX|Gdi32_ASPECTX|",
+"c|Gdi32.ASPECTXY|Gdi32_ASPECTXY|",
+"c|Gdi32.ASPECTY|Gdi32_ASPECTY|",
+"c|Gdi32.BALTIC_CHARSET|Gdi32_BALTIC_CHARSET|",
+"c|Gdi32.BITSPIXEL|Gdi32_BITSPIXEL|",
+"c|Gdi32.BI_BITFIELDS|Gdi32_BI_BITFIELDS|",
+"c|Gdi32.BI_JPEG|Gdi32_BI_JPEG|",
+"c|Gdi32.BI_PNG|Gdi32_BI_PNG|",
+"c|Gdi32.BI_RGB|Gdi32_BI_RGB|",
+"c|Gdi32.BI_RLE4|Gdi32_BI_RLE4|",
+"c|Gdi32.BI_RLE8|Gdi32_BI_RLE8|",
+"c|Gdi32.BKMODE_LAST|Gdi32_BKMODE_LAST|",
+"c|Gdi32.BLACKNESS|Gdi32_BLACKNESS|dest = BLACK",
+"c|Gdi32.BLACK_BRUSH|Gdi32_BLACK_BRUSH|",
+"c|Gdi32.BLACK_PEN|Gdi32_BLACK_PEN|",
+"c|Gdi32.BLTALIGNMENT|Gdi32_BLTALIGNMENT|",
+"c|Gdi32.CAPTUREBLT|Gdi32_CAPTUREBLT|Include layered windows",
+"c|Gdi32.CHINESEBIG5_CHARSET|Gdi32_CHINESEBIG5_CHARSET|",
+"c|Gdi32.CLIPCAPS|Gdi32_CLIPCAPS|",
+"c|Gdi32.COLORMGMTCAPS|Gdi32_COLORMGMTCAPS|",
+"c|Gdi32.COLORRES|Gdi32_COLORRES|",
+"c|Gdi32.CURVECAPS|Gdi32_CURVECAPS|",
+"c|Gdi32.DEFAULT_CHARSET|Gdi32_DEFAULT_CHARSET|",
+"c|Gdi32.DEFAULT_PALETTE|Gdi32_DEFAULT_PALETTE|",
+"c|Gdi32.DESKTOPHORZRES|Gdi32_DESKTOPHORZRES|",
+"c|Gdi32.DESKTOPVERTRES|Gdi32_DESKTOPVERTRES|",
+"c|Gdi32.DEVICE_DEFAULT_FONT|Gdi32_DEVICE_DEFAULT_FONT|",
+"c|Gdi32.DEVICE_FONTTYPE|Gdi32_DEVICE_FONTTYPE|",
+"c|Gdi32.DIB_PAL_COLORS|Gdi32_DIB_PAL_COLORS|",
+"c|Gdi32.DIB_RGB_COLORS|Gdi32_DIB_RGB_COLORS|",
+"c|Gdi32.DKGRAY_BRUSH|Gdi32_DKGRAY_BRUSH|",
+"c|Gdi32.DRIVERVERSION|Gdi32_DRIVERVERSION|",
+"c|Gdi32.DSTINVERT|Gdi32_DSTINVERT|dest = (NOT dest)",
+"c|Gdi32.EASTEUROPE_CHARSET|Gdi32_EASTEUROPE_CHARSET|",
+"c|Gdi32.FW_BLACK|Gdi32_FW_BLACK|",
+"c|Gdi32.FW_BOLD|Gdi32_FW_BOLD|",
+"c|Gdi32.FW_DEMIBOLD|Gdi32_FW_DEMIBOLD|",
+"c|Gdi32.FW_DONTCARE|Gdi32_FW_DONTCARE|",
+"c|Gdi32.FW_EXTRABOLD|Gdi32_FW_EXTRABOLD|",
+"c|Gdi32.FW_EXTRALIGHT|Gdi32_FW_EXTRALIGHT|",
+"c|Gdi32.FW_HEAVY|Gdi32_FW_HEAVY|",
+"c|Gdi32.FW_LIGHT|Gdi32_FW_LIGHT|",
+"c|Gdi32.FW_MEDIUM|Gdi32_FW_MEDIUM|",
+"c|Gdi32.FW_NORMAL|Gdi32_FW_NORMAL|",
+"c|Gdi32.FW_REGULAR|Gdi32_FW_REGULAR|",
+"c|Gdi32.FW_SEMIBOLD|Gdi32_FW_SEMIBOLD|",
+"c|Gdi32.FW_THIN|Gdi32_FW_THIN|",
+"c|Gdi32.FW_ULTRABOLD|Gdi32_FW_ULTRABOLD|",
+"c|Gdi32.FW_ULTRALIGHT|Gdi32_FW_ULTRALIGHT|",
+"c|Gdi32.GB2312_CHARSET|Gdi32_GB2312_CHARSET|",
+"c|Gdi32.GDI_ERROR|Gdi32_GDI_ERROR|",
+"c|Gdi32.GRAY_BRUSH|Gdi32_GRAY_BRUSH|",
+"c|Gdi32.GREEK_CHARSET|Gdi32_GREEK_CHARSET|",
+"c|Gdi32.HANGEUL_CHARSET|Gdi32_HANGEUL_CHARSET|",
+"c|Gdi32.HANGUL_CHARSET|Gdi32_HANGUL_CHARSET|",
+"c|Gdi32.HEBREW_CHARSET|Gdi32_HEBREW_CHARSET|",
+"c|Gdi32.HOLLOW_BRUSH|Gdi32_HOLLOW_BRUSH|",
+"c|Gdi32.HORZRES|Gdi32_HORZRES|",
+"c|Gdi32.HORZSIZE|Gdi32_HORZSIZE|",
+"c|Gdi32.JOHAB_CHARSET|Gdi32_JOHAB_CHARSET|",
+"c|Gdi32.LF_FACESIZE|Gdi32_LF_FACESIZE|",
+"c|Gdi32.LF_FULLFACESIZE|Gdi32_LF_FULLFACESIZE|",
+"c|Gdi32.LINECAPS|Gdi32_LINECAPS|",
+"c|Gdi32.LOGPIXELSX|Gdi32_LOGPIXELSX|",
+"c|Gdi32.LOGPIXELSY|Gdi32_LOGPIXELSY|",
+"c|Gdi32.LTGRAY_BRUSH|Gdi32_LTGRAY_BRUSH|",
+"c|Gdi32.MAC_CHARSET|Gdi32_MAC_CHARSET|",
+"c|Gdi32.MERGECOPY|Gdi32_MERGECOPY|dest = (source AND pattern)",
+"c|Gdi32.MERGEPAINT|Gdi32_MERGEPAINT|dest = (NOT source) OR dest",
+"c|Gdi32.NOMIRRORBITMAP|Gdi32_NOMIRRORBITMAP|Do not Mirror the bitmap in this call",
+"c|Gdi32.NOTSRCCOPY|Gdi32_NOTSRCCOPY|dest = (NOT source)",
+"c|Gdi32.NOTSRCERASE|Gdi32_NOTSRCERASE|dest = (NOT src) AND (NOT dest)",
+"c|Gdi32.NULL_BRUSH|Gdi32_NULL_BRUSH|",
+"c|Gdi32.NULL_PEN|Gdi32_NULL_PEN|",
+"c|Gdi32.NUMBRUSHES|Gdi32_NUMBRUSHES|",
+"c|Gdi32.NUMCOLORS|Gdi32_NUMCOLORS|",
+"c|Gdi32.NUMFONTS|Gdi32_NUMFONTS|",
+"c|Gdi32.NUMMARKERS|Gdi32_NUMMARKERS|",
+"c|Gdi32.NUMPENS|Gdi32_NUMPENS|",
+"c|Gdi32.NUMRESERVED|Gdi32_NUMRESERVED|",
+"c|Gdi32.OEM_CHARSET|Gdi32_OEM_CHARSET|",
+"c|Gdi32.OEM_FIXED_FONT|Gdi32_OEM_FIXED_FONT|",
+"c|Gdi32.OPAQUE|Gdi32_OPAQUE|",
+"c|Gdi32.PATCOPY|Gdi32_PATCOPY|dest = pattern",
+"c|Gdi32.PATINVERT|Gdi32_PATINVERT|dest = pattern XOR dest",
+"c|Gdi32.PATPAINT|Gdi32_PATPAINT|dest = DPSnoo",
+"c|Gdi32.PDEVICESIZE|Gdi32_PDEVICESIZE|",
+"c|Gdi32.PFD_DEPTH_DONTCARE|Gdi32_PFD_DEPTH_DONTCARE|",
+"c|Gdi32.PFD_DIRECT3D_ACCELERATED|Gdi32_PFD_DIRECT3D_ACCELERATED|",
+"c|Gdi32.PFD_DOUBLEBUFFER|Gdi32_PFD_DOUBLEBUFFER|",
+"c|Gdi32.PFD_DOUBLEBUFFER_DONTCARE|Gdi32_PFD_DOUBLEBUFFER_DONTCARE|",
+"c|Gdi32.PFD_DRAW_TO_BITMAP|Gdi32_PFD_DRAW_TO_BITMAP|",
+"c|Gdi32.PFD_DRAW_TO_WINDOW|Gdi32_PFD_DRAW_TO_WINDOW|",
+"c|Gdi32.PFD_GENERIC_ACCELERATED|Gdi32_PFD_GENERIC_ACCELERATED|",
+"c|Gdi32.PFD_GENERIC_FORMAT|Gdi32_PFD_GENERIC_FORMAT|",
+"c|Gdi32.PFD_MAIN_PLANE|Gdi32_PFD_MAIN_PLANE|",
+"c|Gdi32.PFD_NEED_PALETTE|Gdi32_PFD_NEED_PALETTE|",
+"c|Gdi32.PFD_NEED_SYSTEM_PALETTE|Gdi32_PFD_NEED_SYSTEM_PALETTE|",
+"c|Gdi32.PFD_OVERLAY_PLANE|Gdi32_PFD_OVERLAY_PLANE|",
+"c|Gdi32.PFD_STEREO|Gdi32_PFD_STEREO|",
+"c|Gdi32.PFD_STEREO_DONTCARE|Gdi32_PFD_STEREO_DONTCARE|",
+"c|Gdi32.PFD_SUPPORT_COMPOSITION|Gdi32_PFD_SUPPORT_COMPOSITION|",
+"c|Gdi32.PFD_SUPPORT_DIRECTDRAW|Gdi32_PFD_SUPPORT_DIRECTDRAW|",
+"c|Gdi32.PFD_SUPPORT_GDI|Gdi32_PFD_SUPPORT_GDI|",
+"c|Gdi32.PFD_SUPPORT_OPENGL|Gdi32_PFD_SUPPORT_OPENGL|",
+"c|Gdi32.PFD_SWAP_COPY|Gdi32_PFD_SWAP_COPY|",
+"c|Gdi32.PFD_SWAP_EXCHANGE|Gdi32_PFD_SWAP_EXCHANGE|",
+"c|Gdi32.PFD_SWAP_LAYER_BUFFERS|Gdi32_PFD_SWAP_LAYER_BUFFERS|",
+"c|Gdi32.PFD_TYPE_COLORINDEX|Gdi32_PFD_TYPE_COLORINDEX|",
+"c|Gdi32.PFD_TYPE_RGBA|Gdi32_PFD_TYPE_RGBA|",
+"c|Gdi32.PFD_UNDERLAY_PLANE|Gdi32_PFD_UNDERLAY_PLANE|",
+"c|Gdi32.PHYSICALHEIGHT|Gdi32_PHYSICALHEIGHT|",
+"c|Gdi32.PHYSICALOFFSETX|Gdi32_PHYSICALOFFSETX|",
+"c|Gdi32.PHYSICALOFFSETY|Gdi32_PHYSICALOFFSETY|",
+"c|Gdi32.PHYSICALWIDTH|Gdi32_PHYSICALWIDTH|",
+"c|Gdi32.PLANES|Gdi32_PLANES|",
+"c|Gdi32.POLYGONALCAPS|Gdi32_POLYGONALCAPS|",
+"c|Gdi32.PS_ALTERNATE|Gdi32_PS_ALTERNATE|",
+"c|Gdi32.PS_DASH|Gdi32_PS_DASH|",
+"c|Gdi32.PS_DASHDOT|Gdi32_PS_DASHDOT|...",
+"c|Gdi32.PS_DASHDOTDOT|Gdi32_PS_DASHDOTDOT|....",
+"c|Gdi32.PS_DOT|Gdi32_PS_DOT|.......",
+"c|Gdi32.PS_INSIDEFRAME|Gdi32_PS_INSIDEFRAME|",
+"c|Gdi32.PS_NULL|Gdi32_PS_NULL|",
+"c|Gdi32.PS_SOLID|Gdi32_PS_SOLID|",
+"c|Gdi32.PS_STYLE_MASK|Gdi32_PS_STYLE_MASK|",
+"c|Gdi32.PS_USERSTYLE|Gdi32_PS_USERSTYLE|",
+"c|Gdi32.RASTERCAPS|Gdi32_RASTERCAPS|",
+"c|Gdi32.RASTER_FONTTYPE|Gdi32_RASTER_FONTTYPE|",
+"c|Gdi32.RUSSIAN_CHARSET|Gdi32_RUSSIAN_CHARSET|",
+"c|Gdi32.SCALINGFACTORX|Gdi32_SCALINGFACTORX|",
+"c|Gdi32.SCALINGFACTORY|Gdi32_SCALINGFACTORY|",
+"c|Gdi32.SHADEBLENDCAPS|Gdi32_SHADEBLENDCAPS|",
+"c|Gdi32.SHIFTJIS_CHARSET|Gdi32_SHIFTJIS_CHARSET|",
+"c|Gdi32.SIZEPALETTE|Gdi32_SIZEPALETTE|",
+"c|Gdi32.SRCAND|Gdi32_SRCAND|dest = source AND dest",
+"c|Gdi32.SRCCOPY|Gdi32_SRCCOPY|dest = source",
+"c|Gdi32.SRCERASE|Gdi32_SRCERASE|dest = source AND (NOT dest )",
+"c|Gdi32.SRCINVERT|Gdi32_SRCINVERT|dest = source XOR dest",
+"c|Gdi32.SRCPAINT|Gdi32_SRCPAINT|dest = source OR dest",
+"c|Gdi32.SYMBOL_CHARSET|Gdi32_SYMBOL_CHARSET|",
+"c|Gdi32.SYSTEM_FIXED_FONT|Gdi32_SYSTEM_FIXED_FONT|",
+"c|Gdi32.SYSTEM_FONT|Gdi32_SYSTEM_FONT|",
+"c|Gdi32.TECHNOLOGY|Gdi32_TECHNOLOGY|",
+"c|Gdi32.TEXTCAPS|Gdi32_TEXTCAPS|",
+"c|Gdi32.THAI_CHARSET|Gdi32_THAI_CHARSET|",
+"c|Gdi32.TRANSPARENT|Gdi32_TRANSPARENT|",
+"c|Gdi32.TRUETYPE_FONTTYPE|Gdi32_TRUETYPE_FONTTYPE|",
+"c|Gdi32.TURKISH_CHARSET|Gdi32_TURKISH_CHARSET|",
+"c|Gdi32.VERTRES|Gdi32_VERTRES|",
+"c|Gdi32.VERTSIZE|Gdi32_VERTSIZE|",
+"c|Gdi32.VIETNAMESE_CHARSET|Gdi32_VIETNAMESE_CHARSET|",
+"c|Gdi32.VREFRESH|Gdi32_VREFRESH|",
+"c|Gdi32.WHITENESS|Gdi32_WHITENESS|dest = WHITE",
+"c|Gdi32.WHITE_BRUSH|Gdi32_WHITE_BRUSH|",
+"c|Gdi32.WHITE_PEN|Gdi32_WHITE_PEN|",
+"a|Gdi32.FONTENUMPROCA|Gdi32_FONTENUMPROCA|",
+"a|Gdi32.FONTENUMPROCW|Gdi32_FONTENUMPROCW|",
+"a|Gdi32.HFONT|Gdi32_HFONT|",
+"a|Gdi32.HGDIOBJ|Gdi32_HGDIOBJ|",
+"a|Gdi32.HPEN|Gdi32_HPEN|",
+"f|Gdi32.BitBlt|Gdi32_BitBlt|",
+"f|Gdi32.ChoosePixelFormat|Gdi32_ChoosePixelFormat|",
+"f|Gdi32.CreateCompatibleBitmap|Gdi32_CreateCompatibleBitmap|",
+"f|Gdi32.CreateCompatibleDC|Gdi32_CreateCompatibleDC|",
+"f|Gdi32.CreateDIBSection|Gdi32_CreateDIBSection|",
+"f|Gdi32.CreateFontIndirectA|Gdi32_CreateFontIndirectA|",
+"f|Gdi32.CreateFontIndirectW|Gdi32_CreateFontIndirectW|",
+"f|Gdi32.CreatePen|Gdi32_CreatePen|",
+"f|Gdi32.CreateSolidBrush|Gdi32_CreateSolidBrush|",
+"f|Gdi32.DeleteDC|Gdi32_DeleteDC|",
+"f|Gdi32.DeleteObject|Gdi32_DeleteObject|",
+"f|Gdi32.DescribePixelFormat|Gdi32_DescribePixelFormat|",
+"f|Gdi32.EnumFontFamiliesA|Gdi32_EnumFontFamiliesA|",
+"f|Gdi32.EnumFontFamiliesExA|Gdi32_EnumFontFamiliesExA|",
+"f|Gdi32.EnumFontFamiliesExW|Gdi32_EnumFontFamiliesExW|",
+"f|Gdi32.EnumFontFamiliesW|Gdi32_EnumFontFamiliesW|",
+"f|Gdi32.GdiFlush|Gdi32_GdiFlush|",
+"f|Gdi32.GetBitmapBits|Gdi32_GetBitmapBits|",
+"f|Gdi32.GetDIBits|Gdi32_GetDIBits|",
+"f|Gdi32.GetDeviceCaps|Gdi32_GetDeviceCaps|",
+"f|Gdi32.GetFontData|Gdi32_GetFontData|",
+"f|Gdi32.GetObjectA|Gdi32_GetObjectA|",
+"f|Gdi32.GetObjectW|Gdi32_GetObjectW|",
+"f|Gdi32.GetPixel|Gdi32_GetPixel|",
+"f|Gdi32.GetStockObject|Gdi32_GetStockObject|",
+"f|Gdi32.LineTo|Gdi32_LineTo|",
+"f|Gdi32.MoveTo|Gdi32_MoveTo|",
+"f|Gdi32.RGB|Gdi32_RGB|",
+"f|Gdi32.Rectangle|Gdi32_Rectangle|",
+"f|Gdi32.SelectObject|Gdi32_SelectObject|",
+"f|Gdi32.SetBitmapBits|Gdi32_SetBitmapBits|",
+"f|Gdi32.SetBkColor|Gdi32_SetBkColor|",
+"f|Gdi32.SetBkMode|Gdi32_SetBkMode|",
+"f|Gdi32.SetPixelFormat|Gdi32_SetPixelFormat|",
+"f|Gdi32.SetTextColor|Gdi32_SetTextColor|",
+"f|Gdi32.SwapBuffers|Gdi32_SwapBuffers|",
+"f|Gdi32.TextOutA|Gdi32_TextOutA|",
+"f|Gdi32.TextOutW|Gdi32_TextOutW|",
+]);
+</script>
 </body>
 </html>

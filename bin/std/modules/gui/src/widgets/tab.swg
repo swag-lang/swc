@@ -714,6 +714,20 @@ impl Tab
         return item
     }
 
+    // Replaces the label of one tab and measures the bar again around the new wording.
+    //
+    // A language switch is what needs this. Under the `Content` policy a tab is exactly as wide as
+    // its label, so a renamed tab that is not measured again keeps the width of the wording it no
+    // longer shows — and the strip either clips the new label or leaves a gap where the old one
+    // ended.
+    mtd setItemName(index: u32, name: string)
+    {
+        Debug.assert(index < .items.count)
+        .items[index]!.name = name
+        .sendResizeEvent()
+        .invalidate()
+    }
+
     // Removes one tab, destroys its owned page, and selects the nearest remaining tab.
     mtd removeItemAt(index: u32)
     {

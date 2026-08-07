@@ -153,6 +153,9 @@
     <ClCompile Include="src\Doc\DocPage.cpp">
       <Filter>src\Doc</Filter>
     </ClCompile>
+    <ClCompile Include="src\Doc\DocSearch.cpp">
+      <Filter>src\Doc</Filter>
+    </ClCompile>
     <ClCompile Include="src\Main\Command\Command.Doc.cpp">
       <Filter>src\Main\Command</Filter>
     </ClCompile>
@@ -1473,6 +1476,9 @@
       <Filter>src\Doc</Filter>
     </ClInclude>
     <ClInclude Include="src\Doc\DocPage.h">
+      <Filter>src\Doc</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Doc\DocSearch.h">
       <Filter>src\Doc</Filter>
     </ClInclude>
     <ClInclude Include="src\Doc\DocTypes.h">

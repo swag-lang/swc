@@ -788,6 +788,10 @@ impl Surface
                 .restoredPosition.inflate(margin)
             }
 
+            // The size the application asked for, kept across the read below so a surface that
+            // cannot be resized can put it back.
+            let declaredSize = Math.Point{.position.width, .position.height}
+
             catch ser.serialize(.wnd.view.id, .wnd.view.id ? Hash.Crc32.compute(.wnd.view.id) : 0, &.state) as err
             if err == null and ser.isReading()
             {
@@ -814,6 +818,20 @@ impl Surface
                 // The margin goes back on at the scale of this session, after any rescale above.
                 .position.inflate(margin)
                 .restoredPosition.inflate(margin)
+
+                // A surface the user cannot resize comes back where it was, not how big it was.
+                // Its size belongs to the application: a stored one was written by a build whose
+                // layout may since have changed, and there is no grip to correct it with — so a
+                // window redesigned to be smaller would open at its old size forever, holding
+                // content arranged for neither. The top left is still the reader's to keep.
+                if !.flags.has(.Resizable)
+                {
+                    .position.width          = declaredSize.x
+                    .position.height         = declaredSize.y
+                    .restoredPosition.width  = declaredSize.x
+                    .restoredPosition.height = declaredSize.y
+                    .isMaximized             = false
+                }
 
                 if .isMaximized
                 {

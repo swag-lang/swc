@@ -46,6 +46,14 @@ namespace
         bool     ready_ = false;
     };
 
+    size_t countOccurrences(const std::string_view text, const std::string_view needle)
+    {
+        size_t count = 0;
+        for (size_t at = text.find(needle); at != std::string_view::npos; at = text.find(needle, at + needle.size()))
+            count++;
+        return count;
+    }
+
     Runtime::String runtimeString(const std::string_view value)
     {
         return {
@@ -428,7 +436,14 @@ func hidden(value: s32)->s32
         return Result::Error;
     if (!content.contains("<link rel=\"stylesheet\" type=\"text/css\" href=\"style.css\">"))
         return Result::Error;
-    if (content.contains("<script") || content.contains("<?php"))
+
+    // A page owns everything it needs. It carries exactly one script, the one that searches the
+    // index printed below it, and that script is inline: it asks for no second file.
+    if (countOccurrences(content, "<script") != 1 || !content.contains("<script>") || content.contains("<?php"))
+        return Result::Error;
+    if (!content.contains(R"("s|Compiler_doc_test.DocApi.Counter|Compiler_doc_test_DocApi_Counter|A small public value used to verify methods and anonymous storage.")"))
+        return Result::Error;
+    if (!content.contains(R"("n|Compiler_doc_test.DocApi|namespace_Compiler_doc_test_DocApi|")"))
         return Result::Error;
 
     // The kind of a symbol drives its accent, in the card and in the summary tables.
@@ -441,7 +456,7 @@ func hidden(value: s32)->s32
 
     const fs::path stylesheetPath = directory.root() / "style.css";
     SWC_RESULT(FileSystem::readTextFile(stylesheetPath, content, ioError));
-    if (!content.contains(".site-header") || !content.contains(".code-block"))
+    if (!content.contains(".site-header") || !content.contains(".code-block") || !content.contains(".search-panel"))
         return Result::Error;
     if (!content.contains("--swag-measure: 120ch;"))
         return Result::Error;

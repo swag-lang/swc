@@ -53,6 +53,7 @@ namespace
         result.accentColor         = genDoc.accentColor;
         result.hasSwagWatermark    = genDoc.hasSwagWatermark;
         result.hasSymbolIndex      = genDoc.hasSymbolIndex;
+        result.hasSearch           = genDoc.hasSearch;
 
         if (!compiler.cmdLine().docCss.empty())
             result.css = compiler.cmdLine().docCss;
@@ -237,8 +238,18 @@ namespace
         }
         toc += "</ul>\n";
 
-        outPath         = DocFile::outputPath(ctx.compiler(), options);
-        const Utf8 page = DocPage::construct(options, toc, content, false);
+        std::vector<DocSearchEntry> searchEntries;
+        DocSearch::collectHeadings(searchEntries, content);
+
+        outPath = DocFile::outputPath(ctx.compiler(), options);
+
+        const DocPageContent pageContent = {
+            .toc           = toc,
+            .article       = content,
+            .searchEntries = searchEntries,
+        };
+
+        const Utf8 page = DocPage::construct(options, pageContent);
         return DocFile::write(ctx, outPath, page);
     }
 
@@ -336,7 +347,17 @@ namespace
             DocPageOptions pageOptions = options;
             if (path.stem() != "index")
                 pageOptions.titleContent = Utf8Helper::toTitle(path.stem().string());
-            const Utf8 page            = DocPage::construct(pageOptions, {}, content, true);
+
+            std::vector<DocSearchEntry> searchEntries;
+            DocSearch::collectHeadings(searchEntries, content);
+
+            const DocPageContent pageContent = {
+                .article       = content,
+                .searchEntries = searchEntries,
+                .singlePage    = true,
+            };
+
+            const Utf8 page = DocPage::construct(pageOptions, pageContent);
             SWC_RESULT(DocFile::write(ctx, outPath, page));
             outPaths.push_back(std::move(outPath));
         }

@@ -1,5 +1,5 @@
 # tex#0 352x352 BGRA8
-# font#0 segoeui.ttf size=14 mode=Bitmap
+# font#0 segoeui.ttf size=13 mode=Bitmap
 
 ResetTexture0
 Transform 1 0 0 1 0 0
@@ -20,7 +20,7 @@ StartFont
 UpdateFont font#0
 ResetTexture0
 BindTextureFont font#0 atlas=0
-DrawTriangles n=18 bbox=(28,7)-(54,19) colors=[FFE0E0E0] cov=solid
+DrawTriangles n=18 bbox=(28,7)-(52,18) colors=[FFE0E0E0] cov=solid
 ResetTextureFont
 EndFont
 SetClippingRect 20 20 160 24

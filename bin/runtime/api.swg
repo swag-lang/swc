@@ -954,6 +954,7 @@ namespace Swag
         theme                    = BuildCfgDocTheme.Auto     // Which palette the generated pages use
         hasSwagWatermark         = true                      // Generate a swag watermark at the bottom of each page
         hasSymbolIndex           = true                      // List every documented symbol in the sidebar of an 'api like' page
+        hasSearch                = true                      // Add a search box, and the index of the page it searches
     }
 
     // How a module reports its warnings.

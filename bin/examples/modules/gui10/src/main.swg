@@ -8,8 +8,8 @@
 
 using Core, Gui, Pixel
 
-const W = 1500
-const H = 960
+const W = 1280
+const H = 860
 
 const MaxPages          = 4
 const TestFramesPerPage = 30

@@ -1,15 +1,15 @@
 using Core, Gui, Pixel
 
-const W                    = 1320
-const H                    = 860
+const W                    = 1140
+const H                    = 780
 const MaxPages             = 4
 const TestFramesPerPage    = 40
 const RootMargin           = 24.0
-const PageTop              = 116.0
-const PageBottomMargin     = 58.0
-const PanelGap             = 24.0
-const TopPanelHeight       = 300.0
-const MinBottomPanelHeight = 230.0
+const PageTop              = 96.0
+const PageBottomMargin     = 44.0
+const PanelGap             = 20.0
+const TopPanelHeight       = 260.0
+const MinBottomPanelHeight = 214.0
 const ThemeButtonWidth     = 152.0
 const HeaderGap            = 18.0
 

@@ -8,7 +8,7 @@
 #import("audio", location: "swag@std")
 
 using Gui, Core, Pixel
-const W, H = 900
+const W, H = 760
 
 const OBS_SIZE           = 10.0
 const PLAYER_SPEED       = 400

@@ -106,5 +106,5 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
 #main
 {
-    Application.runSurface(100, 100, 978, 769, title: "Matrix", hook: &onEvent)
+    Application.runSurface(100, 100, 800, 630, title: "Matrix", hook: &onEvent)
 }

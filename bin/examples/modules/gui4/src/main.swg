@@ -1,13 +1,13 @@
 using Core, Gui, Pixel
 using Properties
 
-const W                = 1600
-const H                = 1000
+const W                = 1360
+const H                = 900
 const RootMargin       = 24.0
-const PageTop          = 104.0
-const PageBottomMargin = 50.0
+const PageTop          = 88.0
+const PageBottomMargin = 40.0
 const SplitGap         = 24.0
-const InspectorWidth   = 660.0
+const InspectorWidth   = 560.0
 const ThemeButtonWidth = 152.0
 const HeaderGap        = 18.0
 const NumCards         = 3

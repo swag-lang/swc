@@ -3,8 +3,8 @@ using Core, Gui, Pixel
 // GUI9 - showcase of the predefined dialogs and of the reusable FileBrowserCtrl
 // composite (the file-browsing control extracted from FileDlg, usable on its own).
 
-const W = 1120
-const H = 760
+const W = 960
+const H = 680
 
 var app:        Application
 var g_Surface:  #null *Surface

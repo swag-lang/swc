@@ -170,5 +170,5 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
 #main
 {
-    Application.runSurface(100, 100, 984, 572, title: "Pendulum", borders: false, hook: &onEvent)
+    Application.runSurface(100, 100, 820, 480, title: "Pendulum", borders: false, hook: &onEvent)
 }

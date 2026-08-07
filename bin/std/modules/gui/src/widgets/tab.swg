@@ -567,7 +567,7 @@ private impl Tab
             // Create a button if there are too many items for the given size
             if !.buttonPopup
             {
-                let btnPopup = IconButton.create(me, .theme().icon(ThemeIcons.SortArrowDown, metrics.tabBar_PopupButtonGlyph), {})
+                let btnPopup = IconButton.create(me, .theme().icon(ThemeIcons.ChevronDown, metrics.tabBar_PopupButtonGlyph), {})
                 .buttonPopup = btnPopup
                 btnPopup.setForm(.Circle)
                 btnPopup.sigPressed += func|tab = me|(btn)

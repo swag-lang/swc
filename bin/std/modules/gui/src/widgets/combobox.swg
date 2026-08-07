@@ -158,8 +158,12 @@ impl IWnd for ComboBox
             painter.drawRichString(itemRect, &item.name, format)
         }
 
-        let icon = theme.icon(ThemeIcons.BottomPopupArrow)
-        icon.paint(painter, clientRect.right() - metrics.comboBox_RightMargin, opticalTop(.font(), clientRect.vertCenter(), icon.sizeY), colorText)
+        // The right margin is the band the field reserves for its marker, so the marker is
+        // centered in that band rather than hung off its leading edge: the glyph then keeps
+        // the same air on both sides whatever size the theme gives it.
+        let icon  = theme.icon(ThemeIcons.ChevronDown, metrics.chevron_Size)
+        let iconX = clientRect.right() - (metrics.comboBox_RightMargin + icon.sizeX) * 0.5
+        icon.paint(painter, iconX, opticalTop(.font(), clientRect.vertCenter(), icon.sizeY), colorText)
     }
 
     // Reports the room the widest item needs beside the icon column and the drop-down arrow.

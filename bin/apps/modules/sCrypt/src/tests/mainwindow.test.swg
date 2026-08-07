@@ -35,6 +35,24 @@ func testSetupMainWindow(host: *Testing.HeadlessHost)->*MainWindow
     @assert(window.language == ReferenceLanguage)
 }
 
+// A card's form has to end inside the card, in every language.
+//
+// The three cards share the row of a grid, so each is exactly as tall as the window and no
+// taller: a form that grows past its body is not pushed down, it is cut off at the bottom edge.
+// That is what a longer translation does to the last help paragraph of a card, and neither the
+// form nor the body reports it — the form is sized by its own measure, so it always "fits"
+// itself, and the body answers for no content size at all.
+func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
+{
+    let room   = card.body.clientRect().height
+    let needed = card.form.position.bottom()
+    if needed > room + tolerance
+    {
+        Console.println("form does not end inside its card: needs ", needed, ", body holds ", room)
+        @assert(false)
+    }
+}
+
 // Every shipped language holds the surface: nothing is arranged smaller than the text it
 // has to show. This is what a caption or a wrapped paragraph sized by hand cannot promise.
 #test
@@ -49,6 +67,8 @@ func testSetupMainWindow(host: *Testing.HeadlessHost)->*MainWindow
         expect g_App.setLanguage(one.tag.toString())
         host.notify(.LanguageChanged)
         Testing.assertContentFits(window)
+        assertFormEndsInsideCard(&window.createCard)
+        assertFormEndsInsideCard(&window.mountCard)
     }
 }
 
@@ -196,6 +216,7 @@ func testSetupMainWindow(host: *Testing.HeadlessHost)->*MainWindow
     }
 
     host.keyPress(Input.Key.Space)
+
     // A zero frame count means the browse action never opened the box; `forced` means the box
     // opened and Escape was not what closed it.
     @assert(frames != 0)
@@ -258,7 +279,7 @@ func testSetupMainWindow(host: *Testing.HeadlessHost)->*MainWindow
     defer host.shutdown()
     defer discard catch g_App.setLanguage(ReferenceLanguage)
 
-    func messageFor(kind: ErrorKind)->string
+    func messageFor(kind: ErrorKind)->String
     {
         catch failWith("an English diagnostic nobody reads", kind) as err
         return caughtMessage(err)

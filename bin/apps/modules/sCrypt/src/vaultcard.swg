@@ -71,14 +71,17 @@ impl VaultCard
         .panel.applyLayout()
     }
 
-    // Sizes the filled form to its rows, then arranges the body.
+    // Arranges the body around the filled form, then the rows inside it.
     //
-    // Call it once the fields and the trailing controls of the card are all present, so the
-    // card never carries a hand-tuned form height.
+    // Call it once the fields and the trailing controls of the card are all present, and again
+    // after a language switch. The form answers for its own height, so nothing here has to be
+    // told what that height is — but a row has to be arranged again even when the form's box did
+    // not move, which is exactly what a re-labelled control does: the band stays the same size
+    // and the caption inside it needs more room. `FormLayoutCtrl` only re-arranges on a resize,
+    // so the pass is asked for here rather than waited for.
     mtd endForm()
     {
-        .form.computeLayout()
-        .form.position.height = .form.contentHeight
         .body.applyLayout()
+        .form.computeLayout()
     }
 }

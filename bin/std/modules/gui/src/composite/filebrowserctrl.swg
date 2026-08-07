@@ -539,7 +539,7 @@ impl FileBrowserCtrl
             .sigPressed += func|fileBrowser|(btn) { discard fileBrowser.goForward() }
         }
 
-        with fileBrowser.historyButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.BottomPopupArrow, 14), {0, 0, 22, 30})
+        with fileBrowser.historyButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.ChevronDown, fileBrowser.themeMetrics().chevron_Size), {0, 0, 22, 30})
         {
             .dockStyle  = .Left
             .margin.z   = 4

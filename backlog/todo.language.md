@@ -72,21 +72,3 @@ ships; history lives in git, not here.
 - The forcing function is already scheduled: entry 1 of [todo.core.md](todo.core.md) puts
   non-blocking sockets on the path, and deciding this *under* that pressure is how languages end up
   with two concurrency models. Decide it early and deliberately, and record the decision here.
-
-### 5. Where the safety story ends is undecided
-
-- Shipped and coherent: move semantics, `#move`/`#fwd`/`#relocate`, use-site nullability with
-  narrowing and the postfix `!`, `= undefined` definite assignment, `#late` fields, and a static
-  sanity layer that proves division by zero, overflow, null dereference and constant out-of-bounds
-  indexing at compile time.
-- Open: borrow-escape checking reports as errors, but through the sanity layer, which is togglable
-  per module, per file and per function (`#[Swag.Sanity]`, `buildCfg.sanityGuards`). So whether a
-  program is accepted depends on an attribute. That is the right shape for an analysis and the
-  wrong shape for a language rule, and Swag has not said which one this is.
-- The decision to make: name the subset of these checks that is part of the language — always on,
-  not togglable, and specified in the reference — and leave the rest explicitly as tooling. Rust
-  drew that line at the borrow checker and it is the reason its guarantee means something. The
-  warning policy layer this needed now exists (`#[Swag.Warning]`, `cfg.warnings`, `--warn-*`), so
-  the remaining work is the decision, not the mechanism.
-- The state of the analyses themselves is evidence, not intent:
-  [findings.safety.md](findings.safety.md) holds what currently fires and what does not.

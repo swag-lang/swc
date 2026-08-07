@@ -96,9 +96,12 @@ glyph, another app's icon, or a letter tile.
   button carries the same corner and the same hairline stroke as the field beside it. It does not
   mean a hard right angle and a heavy outline on everything: a surface hacked out of a slab has
   missed the identity as badly as an upholstered one. Curves remain valid inside user content when
-  the app edits or displays curved content. The one piece of chrome that does round is the outline
-  of the window itself, softened by `surfaceWnd_CornerRadius` so the application sits on the
-  desktop instead of being dropped on it; nothing inside the window follows it.
+  the app edits or displays curved content. Two things round, and only these two: the outline of
+  the window itself, softened by `surfaceWnd_CornerRadius` so the application sits on the desktop
+  instead of being dropped on it, and a repeated cell that holds content — a thumbnail strip, a
+  swatch grid, a preview tile — at the corner the theme already gives a raised cell
+  (`ThemeImageRects.btnIcon_RoundSquareBk.radius`). Read the radius from the theme rather than
+  naming a number; the chrome between those cells does not follow either of them.
 - Avoid card soup, repeated shadows, gradients, and ornamental illustrations.
 - Keep one dominant action per task area. Give destructive actions distance and explicit wording.
   Show progress where work is not immediate, preserve keyboard focus, and keep failure text beside
@@ -169,6 +172,34 @@ from the field it qualifies.
   *will be* belongs under the letter it takes, not beside the password that opened it.
 - Give it the same help paragraph a field gets when what it does is not obvious from four words.
   The wording on the box says what it is; the paragraph says what it costs.
+
+## Ship A Feature In Every Language It Will Be Read In
+
+A feature that puts words on a surface is not finished when it works in English. The wording is
+part of the layout, and a translation is longer — French runs 15 to 25 percent longer than English
+on ordinary interface prose, and one sentence in ten needs a whole extra line. **Check every
+shipped language before calling the feature done**, and check it at the window's declared minimum
+size, which is the width the text has least room in.
+
+- **Look at the picture, in each language.** An assertion cannot see a caption cut in half or a
+  help paragraph missing its last line. Render the surface headlessly per language while reviewing
+  by hand, and keep the one language-independent assertion the module already has — see
+  `Testing.assertContentFits`, which fails when a window is arranged smaller than its content.
+- **Assert the containment the check cannot infer.** `assertContentFits` compares a window against
+  its own measure, so a band sized by that same measure always "fits" itself. What breaks is a
+  band overflowing its parent, and no generic check sees it: a card whose height comes from a grid
+  row does not grow for a longer form, it clips it. Write that comparison down for each card the
+  feature touches — sCrypt's `assertFormEndsInsideCard` is the worked example — and run it over
+  every entry of `Gui.languages()`.
+- **Prefer adapting the text to adapting the interface.** Shortening a sentence is one edit in two
+  files and costs nothing; reflowing a card changes the layout for every language including the
+  ones that were fine. Say the same thing in fewer words first. Only when the wording is already
+  as short as it can be honestly get is it the layout's turn — and then fix the measurement rather
+  than adding room: a height that has to be re-tuned per language is a height that was authored
+  where it should have been measured.
+- **Translate at the same time as you write.** A key added to the reference table and left out of
+  `datas/lang/<tag>/*.tweak` silently falls back to English, so the feature ships half translated
+  and nothing reports it. The `#run` validation catches a mistyped key, never a missing one.
 
 ## Look At The Surface, Not Only At Its Assertions
 

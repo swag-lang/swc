@@ -19,6 +19,14 @@ var g_outer: #null func||(u32)
 var g_inner: #null func||(u32)
 var g_sink:  u32
 
+// The closures under test are stored in globals, so what they capture has to outlive the
+// frame that builds them: the subject storage lives here rather than in the '#test' body.
+// Register pressure and capture-context reloads are what this file guards, and neither
+// depends on where the captured boxes are allocated.
+var g_owner: Owner
+var g_color: Box
+var g_item:  Box
+
 #[Swag.NoInline]
 func blend(x, y: u32)->u32 => ((x << 1) ^ (y >> 1) ^ (x & y)) & 0xFFFFFF
 
@@ -31,9 +39,6 @@ impl Owner
     // - uses captures early, then runs a loop with calls;
     // - builds a nested closure that re-captures everything and writes back
     //   through the captured pointers.
-    // Intentionally stores a closure capturing caller-local pointers into 'g_outer'
-    // (invoked before the owners die): opt out of the stored-argument check.
-    #[Swag.Sanity(.Lifecycle, false)]
     mtd build(color: *Box, item: *Box, opaque: bool, keepAlpha: bool)
     {
         let prop = me
@@ -82,20 +87,18 @@ impl Owner
 
 #test
 {
-    var owner: Owner
-    owner.tag = 7
-    var color, item: Box
-    owner.build(&color, &item, true, false)
+    g_owner.tag = 7
+    g_owner.build(&g_color, &g_item, true, false)
 
     let outerFn = g_outer!
     outerFn(0)
     // The early use must have written through the captured pointers.
-    @assert(owner.pop == &item)
-    @assert(item.a == 1)
+    @assert(g_owner.pop == &g_item)
+    @assert(g_item.a == 1)
 
     let innerFn = g_inner!
     innerFn(5)
     // The nested closure must write through the re-captured pointers.
-    @assert(color.v == (5 | 0x10) + 7)
-    @assert(item.v == (5 | 0x10))
+    @assert(g_color.v == (5 | 0x10) + 7)
+    @assert(g_item.v == (5 | 0x10))
 }

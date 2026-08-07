@@ -1,271 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Swag GUI theme atlas, vector source. Each group is one tile of the 512x512
+<!-- Swag GUI theme atlas, vector source. Each group is one tile of the 352x352
      atlas coordinate space declared by ThemeImageRects (themerects.swg): the
      theme rasterizes this document at the surface scale to rebuild the atlas
-     texture. Tiles are white masks tinted at draw time by the theme colors. -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <defs>
-    <circle id="shared0" cx="13.5" cy="13.5" r="12.5" fill="#ffffff"/>
-    <path id="shared1" d="M 13.5 1 L 13.5 1 A 12.5 12.5 0 0 1 26 13.5 L 26 13.5 A 12.5 12.5 0 0 1 13.5 26 L 13.5 26 A 12.5 12.5 0 0 1 1 13.5 L 1 13.5 A 12.5 12.5 0 0 1 13.5 1 Z M 13.5 2.52 A 10.98 10.98 0 0 0 2.52 13.5 L 2.52 13.5 A 10.98 10.98 0 0 0 13.5 24.48 L 13.5 24.48 A 10.98 10.98 0 0 0 24.48 13.5 L 24.48 13.5 A 10.98 10.98 0 0 0 13.5 2.52 Z " fill="#ffffff"/>
-    <rect id="shared2" x="0" y="0" width="27" height="27" rx="10" fill="#ffffff"/>
-    <path id="shared3" d="M 10.5 0 L 16.5 0 A 10.5 10.5 0 0 1 27 10.5 L 27 16.5 A 10.5 10.5 0 0 1 16.5 27 L 10.5 27 A 10.5 10.5 0 0 1 0 16.5 L 0 10.5 A 10.5 10.5 0 0 1 10.5 0 Z M 10.5 1 A 9.5 9.5 0 0 0 1 10.5 L 1 16.5 A 9.5 9.5 0 0 0 10.5 26 L 16.5 26 A 9.5 9.5 0 0 0 26 16.5 L 26 10.5 A 9.5 9.5 0 0 0 16.5 1 Z " fill="#ffffff"/>
-    <rect id="shared4" x="0" y="0" width="27" height="27" fill="#ffffff"/>
-    <rect id="shared5" x="1" y="1" width="25" height="25" rx="4" fill="#ffffff"/>
-    <path id="shared6" d="M 13.5 1 L 13.5 1 A 12.5 12.5 0 0 1 26 13.5 L 26 13.5 A 12.5 12.5 0 0 1 13.5 26 L 13.5 26 A 12.5 12.5 0 0 1 1 13.5 L 1 13.5 A 12.5 12.5 0 0 1 13.5 1 Z M 13.5 2.62 A 10.88 10.88 0 0 0 2.62 13.5 L 2.62 13.5 A 10.88 10.88 0 0 0 13.5 24.38 L 13.5 24.38 A 10.88 10.88 0 0 0 24.38 13.5 L 24.38 13.5 A 10.88 10.88 0 0 0 13.5 2.62 Z " fill="#ffffff"/>
-    <circle id="shared7" cx="13.5" cy="13.5" r="8.5" fill="#ffffff"/>
-  </defs>
-  <g id="btnpush_bk" transform="translate(1 1)">
-    <use href="#shared0"/>
+     texture. Tiles are white masks tinted at draw time by the theme colors.
+
+     Every shape appears here exactly once. A tile is a shape, not a part: the
+     round fill below serves the push button, the round edit box, the toggle, the
+     progress bar, the round tool button, the slider step and the round tab bar,
+     because all seven are the same circle — each of them names this one tile with
+     its own nine-slice corner in themerects.swg. Two tiles with the same geometry
+     are the defect this document is kept free of, so before adding one, look for
+     the shape you are about to draw again.
+
+     Holes in the coordinate space are deliberate: a tile keeps its address when a
+     duplicate beside it is removed, so a rect in themerects.swg stays readable
+     against this file's history. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 352 352">
+  <!-- The round fill and its hairline. Every round control of the interface is one of
+       these two, so the border weight is decided once: one authored unit, mapped 1:1
+       by the nine-slice corner, which is the `wnd_BorderSize` hairline the square
+       controls already draw. Three tiles used to answer for it at 1.01, 1.52 and 1.62
+       units, so a push button, a round field and a toggle carried three weights. -->
+  <g id="round_bk" transform="translate(1 1)">
+    <circle cx="13.5" cy="13.5" r="12.5" fill="#ffffff"/>
   </g>
-  <g id="btnpush_border" transform="translate(29 1)">
-    <use href="#shared1"/>
-  </g>
-  <g id="wnd_captionbk" transform="translate(57 1)">
-    <rect x="0" y="0" width="72" height="27" fill="#ffffff"/>
-  </g>
-  <g id="menubar_anchor_bk" transform="translate(281 1)">
-    <path d="M 10 0 L 17 0 A 10 10 0 0 1 27 10 L 27 39 L 27 39 L 0 39 L 0 39 L 0 10 A 10 10 0 0 1 10 0 Z" fill="#ffffff"/>
-  </g>
-  <!-- Open at the bottom: the two sides run on into the popup and meet its own outline, so an
-       open menu is one shape. Closed here, the bar item read as a button with a panel under it. -->
-  <g id="menubar_anchor_border" transform="translate(309 1)">
-    <path d="M 10.5 0 L 16.5 0 A 10.5 10.5 0 0 1 27 10.5 L 27 39 L 26 39 L 26 10.5 A 9.5 9.5 0 0 0 16.5 1 L 10.5 1 A 9.5 9.5 0 0 0 1 10.5 L 1 39 L 0 39 L 0 10.5 A 10.5 10.5 0 0 1 10.5 0 Z " fill="#ffffff"/>
-  </g>
-  <g id="menubar_popupsel_bk" transform="translate(337 1)">
-    <use href="#shared2"/>
-  </g>
-  <g id="menubar_popupsel_border" transform="translate(365 1)">
-    <use href="#shared3"/>
-  </g>
-  <g id="btnicon_square_bk" transform="translate(1 29)">
-    <use href="#shared4"/>
-  </g>
-  <g id="check_border" transform="translate(57 29)">
-    <path d="M 9 5 L 23 5 A 4 4 0 0 1 27 9 L 27 23 A 4 4 0 0 1 23 27 L 9 27 A 4 4 0 0 1 5 23 L 5 9 A 4 4 0 0 1 9 5 Z M 9 6.53 A 2.47 2.47 0 0 0 6.53 9 L 6.53 23 A 2.47 2.47 0 0 0 9 25.47 L 23 25.47 A 2.47 2.47 0 0 0 25.47 23 L 25.47 9 A 2.47 2.47 0 0 0 23 6.53 Z " fill="#ffffff"/>
-  </g>
-  <g id="check_bk" transform="translate(90 29)">
-    <rect x="5" y="5" width="22" height="22" rx="4" fill="#ffffff"/>
-  </g>
-  <g id="radio_border" transform="translate(123 29)">
-    <path d="M 16 5 L 16 5 A 11 11 0 0 1 27 16 L 27 16 A 11 11 0 0 1 16 27 L 16 27 A 11 11 0 0 1 5 16 L 5 16 A 11 11 0 0 1 16 5 Z M 16 6.51 A 9.49 9.49 0 0 0 6.51 16 L 6.51 16 A 9.49 9.49 0 0 0 16 25.49 L 16 25.49 A 9.49 9.49 0 0 0 25.49 16 L 25.49 16 A 9.49 9.49 0 0 0 16 6.51 Z " fill="#ffffff"/>
-  </g>
-  <g id="radio_bk" transform="translate(156 29)">
-    <circle cx="16" cy="16" r="10.98" fill="#ffffff"/>
-  </g>
-  <g id="check_undef_mark" transform="translate(90 62)">
-    <rect x="9" y="9" width="14" height="14" rx="2.5" fill="#ffffff"/>
-  </g>
-  <g id="radio_mark" transform="translate(123 62)">
-    <circle cx="16" cy="16" r="5.98" fill="#ffffff"/>
-  </g>
-  <g id="edit_square_bk" transform="translate(1 57)">
-    <use href="#shared5"/>
-  </g>
-  <g id="edit_square_border" transform="translate(29 57)">
-    <path d="M 5 1 L 22 1 A 4 4 0 0 1 26 5 L 26 22 A 4 4 0 0 1 22 26 L 5 26 A 4 4 0 0 1 1 22 L 1 5 A 4 4 0 0 1 5 1 Z M 5 2 A 3 3 0 0 0 2 5 L 2 22 A 3 3 0 0 0 5 25 L 22 25 A 3 3 0 0 0 25 22 L 25 5 A 3 3 0 0 0 22 2 Z " fill="#ffffff"/>
-  </g>
-  <g id="edit_round_bk" transform="translate(1 85)">
-    <use href="#shared0"/>
-  </g>
-  <g id="edit_round_border" transform="translate(29 85)">
-    <use href="#shared6"/>
-  </g>
-  <g id="tab_flat_sel" transform="translate(57 95)">
-    <rect x="0" y="24" width="27" height="2" fill="#ffffff"/>
-  </g>
-  <g id="tabview_flat_bk" transform="translate(125 95)">
-    <use href="#shared4"/>
-  </g>
-  <g id="tabview_round_bk" transform="translate(153 95)">
-    <path d="M 1 0 L 26 0 L 26 0 L 26 13.5 A 12.5 12.5 0 0 1 13.5 26 L 13.5 26 A 12.5 12.5 0 0 1 1 13.5 L 1 0 Z" fill="#ffffff"/>
-  </g>
-  <g id="edit_flat_border" transform="translate(29 113)">
-    <rect x="3" y="25" width="21" height="1" fill="#ffffff"/>
-  </g>
-  <g id="toggle_bk" transform="translate(1 141)">
-    <use href="#shared0"/>
-  </g>
-  <g id="toggle_border" transform="translate(29 141)">
-    <path d="M 13.5 1 L 13.5 1 A 12.5 12.5 0 0 1 26 13.5 L 26 13.5 A 12.5 12.5 0 0 1 13.5 26 L 13.5 26 A 12.5 12.5 0 0 1 1 13.5 L 1 13.5 A 12.5 12.5 0 0 1 13.5 1 Z M 13.5 2.01 A 11.49 11.49 0 0 0 2.01 13.5 L 2.01 13.5 A 11.49 11.49 0 0 0 13.5 24.99 L 13.5 24.99 A 11.49 11.49 0 0 0 24.99 13.5 L 24.99 13.5 A 11.49 11.49 0 0 0 13.5 2.01 Z " fill="#ffffff"/>
-  </g>
-  <g id="toggle_mark" transform="translate(57 141)">
-    <use href="#shared7"/>
-  </g>
-  <g id="btnicon_round_bk" transform="translate(85 141)">
-    <use href="#shared0"/>
-  </g>
-  <g id="progress_bk" transform="translate(113 141)">
-    <use href="#shared0"/>
-  </g>
-  <g id="progress_border" transform="translate(141 141)">
-    <use href="#shared6"/>
-  </g>
-  <g id="progress_mark" transform="translate(169 141)">
-    <circle cx="13.5" cy="13.5" r="9.76" fill="#ffffff"/>
-  </g>
-  <g id="slider_bkmid" transform="translate(29 169)">
-    <rect x="0" y="10" width="27" height="7" fill="#ffffff"/>
-  </g>
-  <g id="slider_mark" transform="translate(86 170)">
-    <circle cx="12.5" cy="12.5" r="12.5" fill="#ffffff"/>
-  </g>
-  <g id="slider_step" transform="translate(113 169)">
-    <use href="#shared0"/>
-  </g>
-  <g id="menupopup_bk" transform="translate(1 197)">
-    <use href="#shared2"/>
-  </g>
-  <g id="menupopup_border" transform="translate(29 197)">
-    <use href="#shared3"/>
-  </g>
-  <g id="hot_bk" transform="translate(57 197)">
-    <rect x="0" y="0" width="27" height="27" rx="4" fill="#ffffff"/>
-  </g>
-  <g id="split_horz_bk" transform="translate(85 197)">
-    <rect x="0" y="9" width="27" height="9" fill="#ffffff"/>
-  </g>
-  <g id="split_horz_hot" transform="translate(113 197)">
-    <rect x="0" y="2" width="27" height="23" fill="#ffffff"/>
-  </g>
-  <g id="colorpicker_bk" transform="translate(141 197)">
-    <rect x="2" y="2" width="23" height="23" rx="5" fill="#ffffff"/>
-  </g>
-  <g id="colorpicker_border" transform="translate(169 197)">
-    <path d="M 6 0 L 21 0 A 6 6 0 0 1 27 6 L 27 21 A 6 6 0 0 1 21 27 L 6 27 A 6 6 0 0 1 0 21 L 0 6 A 6 6 0 0 1 6 0 Z M 6 2 A 4 4 0 0 0 2 6 L 2 21 A 4 4 0 0 0 6 25 L 21 25 A 4 4 0 0 0 25 21 L 25 6 A 4 4 0 0 0 21 2 Z " fill="#ffffff"/>
-  </g>
-  <g id="menubar_bk" transform="translate(1 225)">
-    <use href="#shared4"/>
-  </g>
-  <g id="header_flat_bk" transform="translate(57 225)">
-    <use href="#shared5"/>
-  </g>
-  <g id="split_vert_bk" transform="translate(85 225)">
-    <rect x="9" y="0" width="9" height="27" fill="#ffffff"/>
-  </g>
-  <g id="split_vert_hot" transform="translate(113 225)">
-    <rect x="2" y="0" width="23" height="27" fill="#ffffff"/>
-  </g>
-  <g id="btnicon_roundsquare_bk" transform="translate(141 225)">
-    <use href="#shared5"/>
-  </g>
-  <g id="scrollbar_bk" transform="translate(1 253)">
-    <use href="#shared4"/>
-  </g>
-  <g id="scrollbar_box" transform="translate(29 253)">
-    <rect x="2" y="2" width="23" height="23" rx="7.5" fill="#ffffff"/>
-  </g>
-  <g id="header_round_bk" transform="translate(57 253)">
-    <path d="M 13.5 2 L 13.5 2 A 11.5 11.5 0 0 1 25 13.5 L 25 25 L 25 25 L 2 25 L 2 25 L 2 13.5 A 11.5 11.5 0 0 1 13.5 2 Z" fill="#ffffff"/>
-  </g>
-  <g id="checked_bottom" transform="translate(1 281)">
-    <rect x="0" y="23" width="27" height="3" fill="#ffffff"/>
-  </g>
-  <g id="checked_top" transform="translate(29 281)">
-    <rect x="0" y="1" width="27" height="3" fill="#ffffff"/>
-  </g>
-  <g id="checked_left" transform="translate(57 281)">
-    <rect x="1" y="0" width="3" height="27" fill="#ffffff"/>
-  </g>
-  <g id="checked_right" transform="translate(85 281)">
-    <rect x="23" y="0" width="3" height="27" fill="#ffffff"/>
-  </g>
-  <g id="slider_bkmid_v" transform="translate(29 309)">
-    <rect x="10" y="0" width="7" height="27" fill="#ffffff"/>
-  </g>
-  <g id="tabbar_round_bk" transform="translate(85 309)">
-    <use href="#shared0"/>
-  </g>
-  <g id="tab_button_sel" transform="translate(113 309)">
-    <circle cx="13.5" cy="13.51" r="11.58" fill="#ffffff"/>
-  </g>
-  <g id="tab_pushbtn_border" transform="translate(141 309)">
-    <use href="#shared1"/>
-  </g>
-  <g id="checked_square" transform="translate(169 309)">
-    <use href="#shared4"/>
-  </g>
-  <g id="checked_round" transform="translate(197 309)">
-    <use href="#shared0"/>
-  </g>
-  <g id="checked_roundsquare" transform="translate(225 309)">
-    <use href="#shared5"/>
-  </g>
-  <g id="circular_mark" transform="translate(113 337)">
-    <use href="#shared7"/>
-  </g>
-  <g id="colorpicker_roundpick" transform="translate(141 169)">
-    <path d="M 13.5 0 L 13.5 0 A 13.5 13.5 0 0 1 27 13.5 L 27 13.5 A 13.5 13.5 0 0 1 13.5 27 L 13.5 27 A 13.5 13.5 0 0 1 0 13.5 L 0 13.5 A 13.5 13.5 0 0 1 13.5 0 Z M 13.5 4.98 A 8.52 8.52 0 0 0 4.98 13.5 L 4.98 13.5 A 8.52 8.52 0 0 0 13.5 22.02 L 13.5 22.02 A 8.52 8.52 0 0 0 22.02 13.5 L 22.02 13.5 A 8.52 8.52 0 0 0 13.5 4.98 Z " fill="#ffffff"/>
-  </g>
-  <g id="colorpicker_squarepick" transform="translate(169 169)">
-    <path d="M 7 0 L 20 0 A 7 7 0 0 1 27 7 L 27 20 A 7 7 0 0 1 20 27 L 7 27 A 7 7 0 0 1 0 20 L 0 7 A 7 7 0 0 1 7 0 Z M 7 4 A 3 3 0 0 0 4 7 L 4 20 A 3 3 0 0 0 7 23 L 20 23 A 3 3 0 0 0 23 20 L 23 7 A 3 3 0 0 0 20 4 Z " fill="#ffffff"/>
+  <g id="round_border" transform="translate(29 1)">
+    <path d="M 13.5 1 L 13.5 1 A 12.5 12.5 0 0 1 26 13.5 L 26 13.5 A 12.5 12.5 0 0 1 13.5 26 L 13.5 26 A 12.5 12.5 0 0 1 1 13.5 L 1 13.5 A 12.5 12.5 0 0 1 13.5 1 Z M 13.5 2 A 11.5 11.5 0 0 0 2 13.5 L 2 13.5 A 11.5 11.5 0 0 0 13.5 25 L 13.5 25 A 11.5 11.5 0 0 0 25 13.5 L 25 13.5 A 11.5 11.5 0 0 0 13.5 2 Z " fill="#ffffff"/>
   </g>
   <g id="wnd_border" transform="translate(130 1)">
     <path d="M 0 0 L 27 0 L 27 27 L 0 27 Z M 3 3 L 3 24 L 24 24 L 24 3 Z" fill="#ffffff"/>
-  </g>
-  <g id="dlg_btnbar" transform="translate(29 29)">
-    <rect x="0" y="0" width="27" height="27" fill="#ffffff"/>
-    <rect x="0" y="0" width="27" height="1" fill="#808080"/>
-  </g>
-  <g id="check_mark" transform="translate(57 62)">
-    <polyline points="9.5,15.5 13,19 21.5,10.5" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
-  </g>
-  <g id="menuitem_checkmark" transform="translate(156 62)">
-    <polyline points="8.8,16.2 11.8,19.4 23.2,9.2" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-  </g>
-  <g id="edit_flat_bk" transform="translate(1 113)">
-  </g>
-  <g id="menubar_border" transform="translate(29 225)">
-  </g>
-  <g id="tab_round_sel" transform="translate(85 95)">
-    <path d="M 4.6 25 L 4.6 8 A 6.7 6.7 0 0 1 11.3 1.3 L 27.7 1.3 A 6.7 6.7 0 0 1 34.4 8 L 34.4 25 Z" fill="#ffffff"/>
-  </g>
-  <g id="slider_bkleft" transform="translate(1 169)">
-    <path d="M 27 10.2 L 3.7 10.2 A 3.3 3.3 0 0 0 0.4 13.5 A 3.3 3.3 0 0 0 3.7 16.8 L 27 16.8 Z" fill="#ffffff"/>
-  </g>
-  <g id="slider_bkright" transform="translate(57 169)">
-    <path d="M 0 10.2 L 23.3 10.2 A 3.3 3.3 0 0 1 26.6 13.5 A 3.3 3.3 0 0 1 23.3 16.8 L 0 16.8 Z" fill="#ffffff"/>
-  </g>
-  <g id="slider_bkleft_v" transform="translate(1 309)">
-    <path d="M 10.2 27 L 10.2 3.7 A 3.3 3.3 0 0 1 13.5 0.4 A 3.3 3.3 0 0 1 16.8 3.7 L 16.8 27 Z" fill="#ffffff"/>
-  </g>
-  <g id="slider_bkright_v" transform="translate(57 309)">
-    <path d="M 10.2 0 L 10.2 23.3 A 3.3 3.3 0 0 0 13.5 26.6 A 3.3 3.3 0 0 0 16.8 23.3 L 16.8 0 Z" fill="#ffffff"/>
-  </g>
-  <g id="arrow_down" transform="translate(1 337)">
-    <polygon points="0.8,2 26.2,2 13.5,25.4" fill="#ffffff"/>
-  </g>
-  <g id="arrow_up" transform="translate(57 337)">
-    <polygon points="0.8,25 26.2,25 13.5,1.6" fill="#ffffff"/>
-  </g>
-  <g id="arrow_left" transform="translate(29 337)">
-    <polygon points="25,0.8 25,26.2 1.6,13.5" fill="#ffffff"/>
-  </g>
-  <g id="arrow_right" transform="translate(85 337)">
-    <polygon points="2,0.8 2,26.2 25.4,13.5" fill="#ffffff"/>
-  </g>
-  <g id="anchor_top" transform="translate(141 253)">
-    <path d="M 2.4 26.2 L 13.5 1.7 L 24.6 26.2" fill="none" stroke="#ffffff" stroke-width="2.1" stroke-linejoin="round"/>
-  </g>
-  <g id="anchor_bottom" transform="translate(169 253)">
-    <path d="M 2.4 0.8 L 13.5 25.3 L 24.6 0.8" fill="none" stroke="#ffffff" stroke-width="2.1" stroke-linejoin="round"/>
-  </g>
-  <g id="anchor_left" transform="translate(225 253)">
-    <path d="M 26.2 2.4 L 1.7 13.5 L 26.2 24.6" fill="none" stroke="#ffffff" stroke-width="2.1" stroke-linejoin="round"/>
-  </g>
-  <g id="anchor_right" transform="translate(197 253)">
-    <path d="M 0.8 2.4 L 25.3 13.5 L 0.8 24.6" fill="none" stroke="#ffffff" stroke-width="2.1" stroke-linejoin="round"/>
-  </g>
-  <g id="anchor_top_bk" transform="translate(141 281)">
-    <polygon points="13.5,1.5 25.9,28 1.1,28" fill="#ffffff"/>
-  </g>
-  <g id="anchor_bottom_bk" transform="translate(169 281)">
-    <polygon points="13.5,25.5 25.9,-1 1.1,-1" fill="#ffffff"/>
-  </g>
-  <g id="anchor_left_bk" transform="translate(225 281)">
-    <polygon points="1.5,13.5 28,1.1 28,25.9" fill="#ffffff"/>
-  </g>
-  <g id="anchor_right_bk" transform="translate(197 281)">
-    <polygon points="25.5,13.5 -1,1.1 -1,25.9" fill="#ffffff"/>
   </g>
   <g id="shadow" transform="translate(189 1)">
     <rect x="2.5" y="2.5" width="61" height="61" rx="1" fill="#ffffff" fill-opacity="0"/>
@@ -312,5 +75,173 @@
     <rect x="23" y="23" width="20" height="20" rx="5.12" fill="#ffffff" fill-opacity="0.79"/>
     <rect x="24.5" y="24.5" width="17" height="17" rx="1.71" fill="#ffffff" fill-opacity="0.79"/>
     <rect x="25" y="25" width="16" height="16" rx="1.71" fill="#ffffff" fill-opacity="0.8"/>
+  </g>
+  <g id="menubar_anchor_bk" transform="translate(281 1)">
+    <path d="M 10 0 L 17 0 A 10 10 0 0 1 27 10 L 27 39 L 27 39 L 0 39 L 0 39 L 0 10 A 10 10 0 0 1 10 0 Z" fill="#ffffff"/>
+  </g>
+  <!-- Open at the bottom: the two sides run on into the popup and meet its own outline, so an
+       open menu is one shape. Closed here, the bar item read as a button with a panel under it. -->
+  <g id="menubar_anchor_border" transform="translate(309 1)">
+    <path d="M 10.5 0 L 16.5 0 A 10.5 10.5 0 0 1 27 10.5 L 27 39 L 26 39 L 26 10.5 A 9.5 9.5 0 0 0 16.5 1 L 10.5 1 A 9.5 9.5 0 0 0 1 10.5 L 1 39 L 0 39 L 0 10.5 A 10.5 10.5 0 0 1 10.5 0 Z " fill="#ffffff"/>
+  </g>
+  <!-- The plain square fill. It serves every part that is a flat block of one color — a square
+       tool button, a flat tab view, a menu bar, a scrollbar track, a window caption — because a
+       white square nine-sliced at any corner is still a white square. -->
+  <g id="square_bk" transform="translate(1 29)">
+    <rect x="0" y="0" width="27" height="27" fill="#ffffff"/>
+  </g>
+  <g id="dlg_btnbar" transform="translate(29 29)">
+    <rect x="0" y="0" width="27" height="27" fill="#ffffff"/>
+    <rect x="0" y="0" width="27" height="1" fill="#808080"/>
+  </g>
+  <g id="check_border" transform="translate(57 29)">
+    <path d="M 9 5 L 23 5 A 4 4 0 0 1 27 9 L 27 23 A 4 4 0 0 1 23 27 L 9 27 A 4 4 0 0 1 5 23 L 5 9 A 4 4 0 0 1 9 5 Z M 9 6.53 A 2.47 2.47 0 0 0 6.53 9 L 6.53 23 A 2.47 2.47 0 0 0 9 25.47 L 23 25.47 A 2.47 2.47 0 0 0 25.47 23 L 25.47 9 A 2.47 2.47 0 0 0 23 6.53 Z " fill="#ffffff"/>
+  </g>
+  <g id="check_bk" transform="translate(90 29)">
+    <rect x="5" y="5" width="22" height="22" rx="4" fill="#ffffff"/>
+  </g>
+  <g id="radio_border" transform="translate(123 29)">
+    <path d="M 16 5 L 16 5 A 11 11 0 0 1 27 16 L 27 16 A 11 11 0 0 1 16 27 L 16 27 A 11 11 0 0 1 5 16 L 5 16 A 11 11 0 0 1 16 5 Z M 16 6.51 A 9.49 9.49 0 0 0 6.51 16 L 6.51 16 A 9.49 9.49 0 0 0 16 25.49 L 16 25.49 A 9.49 9.49 0 0 0 25.49 16 L 25.49 16 A 9.49 9.49 0 0 0 16 6.51 Z " fill="#ffffff"/>
+  </g>
+  <g id="radio_bk" transform="translate(156 29)">
+    <circle cx="16" cy="16" r="10.98" fill="#ffffff"/>
+  </g>
+  <!-- The rounded-square fill and its hairline: the edit tile, which the Swag palettes also
+       point the push button at, plus the flat header and the rounded-square tool button. -->
+  <g id="roundsquare_bk" transform="translate(1 57)">
+    <rect x="1" y="1" width="25" height="25" rx="4" fill="#ffffff"/>
+  </g>
+  <g id="roundsquare_border" transform="translate(29 57)">
+    <path d="M 5 1 L 22 1 A 4 4 0 0 1 26 5 L 26 22 A 4 4 0 0 1 22 26 L 5 26 A 4 4 0 0 1 1 22 L 1 5 A 4 4 0 0 1 5 1 Z M 5 2 A 3 3 0 0 0 2 5 L 2 22 A 3 3 0 0 0 5 25 L 22 25 A 3 3 0 0 0 25 22 L 25 5 A 3 3 0 0 0 22 2 Z " fill="#ffffff"/>
+  </g>
+  <g id="check_mark" transform="translate(57 62)">
+    <polyline points="9.5,15.5 13,19 21.5,10.5" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g id="check_undef_mark" transform="translate(90 62)">
+    <rect x="9" y="9" width="14" height="14" rx="2.5" fill="#ffffff"/>
+  </g>
+  <g id="radio_mark" transform="translate(123 62)">
+    <circle cx="16" cy="16" r="5.98" fill="#ffffff"/>
+  </g>
+  <g id="menuitem_checkmark" transform="translate(156 62)">
+    <polyline points="8.8,16.2 11.8,19.4 23.2,9.2" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g id="tab_flat_sel" transform="translate(57 95)">
+    <rect x="0" y="24" width="27" height="2" fill="#ffffff"/>
+  </g>
+  <g id="tab_round_sel" transform="translate(85 95)">
+    <path d="M 4.6 25 L 4.6 8 A 6.7 6.7 0 0 1 11.3 1.3 L 27.7 1.3 A 6.7 6.7 0 0 1 34.4 8 L 34.4 25 Z" fill="#ffffff"/>
+  </g>
+  <g id="tabview_round_bk" transform="translate(153 95)">
+    <path d="M 1 0 L 26 0 L 26 0 L 26 13.5 A 12.5 12.5 0 0 1 13.5 26 L 13.5 26 A 12.5 12.5 0 0 1 1 13.5 L 1 0 Z" fill="#ffffff"/>
+  </g>
+  <g id="edit_flat_border" transform="translate(29 113)">
+    <rect x="3" y="25" width="21" height="1" fill="#ffffff"/>
+  </g>
+  <g id="toggle_mark" transform="translate(57 141)">
+    <circle cx="13.5" cy="13.5" r="8.5" fill="#ffffff"/>
+  </g>
+  <g id="progress_mark" transform="translate(169 141)">
+    <circle cx="13.5" cy="13.5" r="9.76" fill="#ffffff"/>
+  </g>
+  <g id="slider_bkleft" transform="translate(1 169)">
+    <path d="M 27 10.2 L 3.7 10.2 A 3.3 3.3 0 0 0 0.4 13.5 A 3.3 3.3 0 0 0 3.7 16.8 L 27 16.8 Z" fill="#ffffff"/>
+  </g>
+  <g id="slider_bkmid" transform="translate(29 169)">
+    <rect x="0" y="10" width="27" height="7" fill="#ffffff"/>
+  </g>
+  <g id="slider_bkright" transform="translate(57 169)">
+    <path d="M 0 10.2 L 23.3 10.2 A 3.3 3.3 0 0 1 26.6 13.5 A 3.3 3.3 0 0 1 23.3 16.8 L 0 16.8 Z" fill="#ffffff"/>
+  </g>
+  <g id="slider_mark" transform="translate(86 170)">
+    <circle cx="12.5" cy="12.5" r="12.5" fill="#ffffff"/>
+  </g>
+  <g id="colorpicker_roundpick" transform="translate(141 169)">
+    <path d="M 13.5 0 L 13.5 0 A 13.5 13.5 0 0 1 27 13.5 L 27 13.5 A 13.5 13.5 0 0 1 13.5 27 L 13.5 27 A 13.5 13.5 0 0 1 0 13.5 L 0 13.5 A 13.5 13.5 0 0 1 13.5 0 Z M 13.5 4.98 A 8.52 8.52 0 0 0 4.98 13.5 L 4.98 13.5 A 8.52 8.52 0 0 0 13.5 22.02 L 13.5 22.02 A 8.52 8.52 0 0 0 22.02 13.5 L 22.02 13.5 A 8.52 8.52 0 0 0 13.5 4.98 Z " fill="#ffffff"/>
+  </g>
+  <g id="colorpicker_squarepick" transform="translate(169 169)">
+    <path d="M 7 0 L 20 0 A 7 7 0 0 1 27 7 L 27 20 A 7 7 0 0 1 20 27 L 7 27 A 7 7 0 0 1 0 20 L 0 7 A 7 7 0 0 1 7 0 Z M 7 4 A 3 3 0 0 0 4 7 L 4 20 A 3 3 0 0 0 7 23 L 20 23 A 3 3 0 0 0 23 20 L 23 7 A 3 3 0 0 0 20 4 Z " fill="#ffffff"/>
+  </g>
+  <!-- The popup fill and its hairline: a menu popup, and the bar anchor a popup hangs from. -->
+  <g id="popup_bk" transform="translate(1 197)">
+    <rect x="0" y="0" width="27" height="27" rx="10" fill="#ffffff"/>
+  </g>
+  <g id="popup_border" transform="translate(29 197)">
+    <path d="M 10.5 0 L 16.5 0 A 10.5 10.5 0 0 1 27 10.5 L 27 16.5 A 10.5 10.5 0 0 1 16.5 27 L 10.5 27 A 10.5 10.5 0 0 1 0 16.5 L 0 10.5 A 10.5 10.5 0 0 1 10.5 0 Z M 10.5 1 A 9.5 9.5 0 0 0 1 10.5 L 1 16.5 A 9.5 9.5 0 0 0 10.5 26 L 16.5 26 A 9.5 9.5 0 0 0 26 16.5 L 26 10.5 A 9.5 9.5 0 0 0 16.5 1 Z " fill="#ffffff"/>
+  </g>
+  <g id="hot_bk" transform="translate(57 197)">
+    <rect x="0" y="0" width="27" height="27" rx="4" fill="#ffffff"/>
+  </g>
+  <g id="split_horz_bk" transform="translate(85 197)">
+    <rect x="0" y="9" width="27" height="9" fill="#ffffff"/>
+  </g>
+  <g id="split_horz_hot" transform="translate(113 197)">
+    <rect x="0" y="2" width="27" height="23" fill="#ffffff"/>
+  </g>
+  <g id="colorpicker_bk" transform="translate(141 197)">
+    <rect x="2" y="2" width="23" height="23" rx="5" fill="#ffffff"/>
+  </g>
+  <g id="colorpicker_border" transform="translate(169 197)">
+    <path d="M 6 0 L 21 0 A 6 6 0 0 1 27 6 L 27 21 A 6 6 0 0 1 21 27 L 6 27 A 6 6 0 0 1 0 21 L 0 6 A 6 6 0 0 1 6 0 Z M 6 2 A 4 4 0 0 0 2 6 L 2 21 A 4 4 0 0 0 6 25 L 21 25 A 4 4 0 0 0 25 21 L 25 6 A 4 4 0 0 0 21 2 Z " fill="#ffffff"/>
+  </g>
+  <g id="split_vert_bk" transform="translate(85 225)">
+    <rect x="9" y="0" width="9" height="27" fill="#ffffff"/>
+  </g>
+  <g id="split_vert_hot" transform="translate(113 225)">
+    <rect x="2" y="0" width="23" height="27" fill="#ffffff"/>
+  </g>
+  <g id="scrollbar_box" transform="translate(29 253)">
+    <rect x="2" y="2" width="23" height="23" rx="7.5" fill="#ffffff"/>
+  </g>
+  <g id="header_round_bk" transform="translate(57 253)">
+    <path d="M 13.5 2 L 13.5 2 A 11.5 11.5 0 0 1 25 13.5 L 25 25 L 25 25 L 2 25 L 2 25 L 2 13.5 A 11.5 11.5 0 0 1 13.5 2 Z" fill="#ffffff"/>
+  </g>
+  <g id="anchor_top" transform="translate(141 253)">
+    <path d="M 2.4 26.2 L 13.5 1.7 L 24.6 26.2" fill="none" stroke="#ffffff" stroke-width="2.1" stroke-linejoin="round"/>
+  </g>
+  <g id="anchor_bottom" transform="translate(169 253)">
+    <path d="M 2.4 0.8 L 13.5 25.3 L 24.6 0.8" fill="none" stroke="#ffffff" stroke-width="2.1" stroke-linejoin="round"/>
+  </g>
+  <g id="anchor_right" transform="translate(197 253)">
+    <path d="M 0.8 2.4 L 25.3 13.5 L 0.8 24.6" fill="none" stroke="#ffffff" stroke-width="2.1" stroke-linejoin="round"/>
+  </g>
+  <g id="anchor_left" transform="translate(225 253)">
+    <path d="M 26.2 2.4 L 1.7 13.5 L 26.2 24.6" fill="none" stroke="#ffffff" stroke-width="2.1" stroke-linejoin="round"/>
+  </g>
+  <g id="checked_bottom" transform="translate(1 281)">
+    <rect x="0" y="23" width="27" height="3" fill="#ffffff"/>
+  </g>
+  <g id="checked_top" transform="translate(29 281)">
+    <rect x="0" y="1" width="27" height="3" fill="#ffffff"/>
+  </g>
+  <g id="checked_left" transform="translate(57 281)">
+    <rect x="1" y="0" width="3" height="27" fill="#ffffff"/>
+  </g>
+  <g id="checked_right" transform="translate(85 281)">
+    <rect x="23" y="0" width="3" height="27" fill="#ffffff"/>
+  </g>
+  <g id="anchor_top_bk" transform="translate(141 281)">
+    <polygon points="13.5,1.5 25.9,28 1.1,28" fill="#ffffff"/>
+  </g>
+  <g id="anchor_bottom_bk" transform="translate(169 281)">
+    <polygon points="13.5,25.5 25.9,-1 1.1,-1" fill="#ffffff"/>
+  </g>
+  <g id="anchor_right_bk" transform="translate(197 281)">
+    <polygon points="25.5,13.5 -1,1.1 -1,25.9" fill="#ffffff"/>
+  </g>
+  <g id="anchor_left_bk" transform="translate(225 281)">
+    <polygon points="1.5,13.5 28,1.1 28,25.9" fill="#ffffff"/>
+  </g>
+  <g id="slider_bkleft_v" transform="translate(1 309)">
+    <path d="M 10.2 27 L 10.2 3.7 A 3.3 3.3 0 0 1 13.5 0.4 A 3.3 3.3 0 0 1 16.8 3.7 L 16.8 27 Z" fill="#ffffff"/>
+  </g>
+  <g id="slider_bkmid_v" transform="translate(29 309)">
+    <rect x="10" y="0" width="7" height="27" fill="#ffffff"/>
+  </g>
+  <g id="slider_bkright_v" transform="translate(57 309)">
+    <path d="M 10.2 0 L 10.2 23.3 A 3.3 3.3 0 0 0 13.5 26.6 A 3.3 3.3 0 0 0 16.8 23.3 L 16.8 0 Z" fill="#ffffff"/>
+  </g>
+  <g id="tab_button_sel" transform="translate(113 309)">
+    <circle cx="13.5" cy="13.51" r="11.58" fill="#ffffff"/>
   </g>
 </svg>

@@ -86,6 +86,22 @@ struct IconButton
     }
 }
 
+// Returns the chevron a given arrow placement points with.
+//
+// `RightUpward` and `RightDownward` place the arrow where `Right` does and point it elsewhere,
+// which is why the placement alone cannot say which glyph to draw.
+private func arrowGlyph(position: IconButtonArrowPosition)->ThemeIcons
+{
+    switch #complete position
+    {
+    case .Left:                 return .ChevronLeft
+    case .Top, .RightUpward:    return .ChevronUp
+    case .Right:                return .ChevronRight
+    case .Bottom, .RightDownward: return .ChevronDown
+    case .None:                 return .ChevronDown
+    }
+}
+
 impl IWnd for IconButton
 {
     // Reports the room the icon, the label, the arrow, and the indicator rail need.
@@ -133,21 +149,21 @@ impl IWnd for IconButton
             }
         }
 
-        // The arrow stands on one side of the whole group, with its own margin and spacing.
-        let arrowW = metrics.btnIcon_WidthArrow
-        let arrowH = metrics.btnIcon_HeightArrow
+        // The arrow stands on one side of the whole group, with its own margin and spacing. It is
+        // a chevron of the theme icon set, so its box is square whichever way it points.
+        let arrowSize = metrics.chevron_Size
         switch #complete .arrowPosition
         {
         case .None:
             break
 
         case .Left, .Right, .RightUpward, .RightDownward:
-            width  += arrowW + metrics.btnIcon_MarginArrow + metrics.btnIcon_SpacingArrowH
-            height = Math.max(height, arrowH)
+            width  += arrowSize + metrics.btnIcon_MarginArrow + metrics.btnIcon_SpacingArrowH
+            height = Math.max(height, arrowSize)
 
         case .Top, .Bottom:
-            width  = Math.max(width, arrowW)
-            height += arrowH + metrics.btnIcon_MarginArrow + metrics.btnIcon_SpacingArrowV
+            width  = Math.max(width, arrowSize)
+            height += arrowSize + metrics.btnIcon_MarginArrow + metrics.btnIcon_SpacingArrowV
         }
 
         // The checked-state rail runs in a lane of its own, so it never eats into the group.
@@ -408,8 +424,8 @@ impl IWnd for IconButton
 
             switch #complete .arrowPosition
             {
-            case .Left, .Right, .RightUpward, .RightDownward: nw += metrics.btnIcon_WidthArrow + metrics.btnIcon_SpacingArrowH
-            case .Top, .Bottom: nh += metrics.btnIcon_HeightArrow + metrics.btnIcon_SpacingArrowV
+            case .Left, .Right, .RightUpward, .RightDownward: nw += metrics.chevron_Size + metrics.btnIcon_SpacingArrowH
+            case .Top, .Bottom: nh += metrics.chevron_Size + metrics.btnIcon_SpacingArrowV
             case .None:         break
             }
 
@@ -438,69 +454,40 @@ impl IWnd for IconButton
             pos.height = nh
         }
 
-        // Arrow
+        // Arrow. It is a chevron of the theme icon set — the same glyph a combo box, a submenu and
+        // a tree row use — so the button says "there is more this way" in the one shape the rest of
+        // the interface says it in. Its box is square, and the ink inside it is centered, so one
+        // size answers for every direction.
         if .arrowPosition != .None
         {
-            var posArrow = pos
-            let w        = metrics.btnIcon_WidthArrow
-            let h        = metrics.btnIcon_HeightArrow
+            let side  = metrics.chevron_Size
+            let arrow = theme.icon(arrowGlyph(.arrowPosition), side)
 
+            var arrowX, arrowY: f32
             switch .arrowPosition
             {
             case .Left:
-                subRectBk       = &rects.btnIcon_ArrowLeft
-                posArrow.width  = h
-                posArrow.height = w
-                posArrow.x      = pos.x + marginArrow
-                posArrow.y      = .lineTop(pos.vertCenter(), w)
-                theme.drawSubRect(bc.painter, posArrow, subRectBk, colorIcon)
-                pos.moveLeft(marginArrow + w + metrics.btnIcon_SpacingArrowH)
+                arrowX = pos.x + marginArrow
+                arrowY = .lineTop(pos.vertCenter(), side)
+                pos.moveLeft(marginArrow + side + metrics.btnIcon_SpacingArrowH)
 
             case .Top:
-                subRectBk       = &rects.btnIcon_ArrowUp
-                posArrow.width  = w
-                posArrow.height = h
-                posArrow.x      = pos.horzCenter() - w * 0.5
-                posArrow.y      = pos.y + marginArrow
-                theme.drawSubRect(bc.painter, posArrow, subRectBk, colorIcon)
-                pos.moveTop(marginArrow + h + metrics.btnIcon_SpacingArrowV)
+                arrowX = pos.horzCenter() - side * 0.5
+                arrowY = pos.y + marginArrow
+                pos.moveTop(marginArrow + side + metrics.btnIcon_SpacingArrowV)
 
-            case .Right:
-                subRectBk       = &rects.btnIcon_ArrowRight
-                posArrow.width  = h
-                posArrow.height = w
-                posArrow.x      = pos.right() - w - marginArrow
-                posArrow.y      = .lineTop(pos.vertCenter(), h)
-                theme.drawSubRect(bc.painter, posArrow, subRectBk, colorIcon)
-                pos.setRight(posArrow.x - metrics.btnIcon_SpacingArrowH)
-
-            case .RightUpward:
-                subRectBk       = &rects.btnIcon_ArrowUp
-                posArrow.width  = w
-                posArrow.height = h
-                posArrow.x      = pos.right() - w - marginArrow
-                posArrow.y      = .lineTop(pos.vertCenter(), h)
-                theme.drawSubRect(bc.painter, posArrow, subRectBk, colorIcon)
-                pos.setRight(posArrow.x - metrics.btnIcon_SpacingArrowH)
-
-            case .RightDownward:
-                subRectBk       = &rects.btnIcon_ArrowDown
-                posArrow.width  = w
-                posArrow.height = h
-                posArrow.x      = pos.right() - w - marginArrow
-                posArrow.y      = .lineTop(pos.vertCenter(), h)
-                theme.drawSubRect(bc.painter, posArrow, subRectBk, colorIcon)
-                pos.setRight(posArrow.x - metrics.btnIcon_SpacingArrowH)
+            case .Right, .RightUpward, .RightDownward:
+                arrowX = pos.right() - side - marginArrow
+                arrowY = .lineTop(pos.vertCenter(), side)
+                pos.setRight(arrowX - metrics.btnIcon_SpacingArrowH)
 
             case .Bottom:
-                subRectBk       = &rects.btnIcon_ArrowDown
-                posArrow.width  = w
-                posArrow.height = h
-                posArrow.x      = pos.horzCenter() - w * 0.5
-                posArrow.y      = pos.bottom() - h - marginArrow
-                theme.drawSubRect(bc.painter, posArrow, subRectBk, colorIcon)
-                pos.setBottom(posArrow.y - metrics.btnIcon_SpacingArrowV)
+                arrowX = pos.horzCenter() - side * 0.5
+                arrowY = pos.bottom() - side - marginArrow
+                pos.setBottom(arrowY - metrics.btnIcon_SpacingArrowV)
             }
+
+            arrow.paint(bc.painter, arrowX, arrowY, colorIcon)
         }
 
         // Name

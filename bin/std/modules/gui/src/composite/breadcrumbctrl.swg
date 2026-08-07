@@ -137,7 +137,7 @@ impl BreadcrumbCtrl
 
             if it.hasArrow
             {
-                let aw = .arrowPad + m.btnIcon_HeightArrow + .arrowPad
+                let aw = .arrowPad + m.chevron_Size + .arrowPad
                 it.arrowRect = {x, client.y, aw, client.height}
                 x            += aw
             }
@@ -254,7 +254,6 @@ impl IWnd for BreadcrumbCtrl
         let painter = evt.paintContext.painter
         let theme   = .theme()
         let colors  = .themeColors()
-        let rects   = .themeRects()
         let m       = .themeMetrics()
         let font    = nnFont(.font().regular)
 
@@ -288,13 +287,9 @@ impl IWnd for BreadcrumbCtrl
                 if hotArr do
                     painter.fillRoundRect(it.arrowRect, 4, 4, colors.btnIcon_HotBk)
 
-                var posArrow: Math.Rectangle
-                posArrow.width  = m.btnIcon_HeightArrow
-                posArrow.height = m.btnIcon_WidthArrow
-                posArrow.x      = it.arrowRect.horzCenter() - posArrow.width * 0.5
-                posArrow.y      = it.arrowRect.vertCenter() - posArrow.height * 0.5
+                let arrow      = theme.icon(ThemeIcons.ChevronRight, m.chevron_Size)
                 let arrowColor = hotArr ? colors.btnIcon_HotText : colors.btnIcon_Icon
-                theme.drawSubRect(painter, posArrow, &rects.btnIcon_ArrowRight, arrowColor)
+                arrow.paint(painter, it.arrowRect.horzCenter() - arrow.sizeX * 0.5, it.arrowRect.vertCenter() - arrow.sizeY * 0.5, arrowColor)
             }
         }
     }

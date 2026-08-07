@@ -10,7 +10,7 @@ struct ThemeMetrics
     // Transparent margin the drop shadow is cast into. It has to hold the spread plus the offset,
     // or the shadow is cut off by the edge of the window instead of fading out into it.
     surfaceWnd_ShadowSize:    f32 = 18
-    surfaceWnd_CornerRadius:  f32 = 18     // Corner of a surface. The Swag palettes soften it to 8; see setSwagGeometry.
+    surfaceWnd_CornerRadius:  f32 = 18     // Corner of a surface. The Swag palettes soften it to 12; see setSwagGeometry.
     surfaceWnd_ShadowSpread:  f32 = 14     // How far the drop shadow reaches out from the body.
     surfaceWnd_ShadowOffsetX: f32 = 0      // Sideways displacement of the drop shadow.
     surfaceWnd_ShadowOffsetY: f32 = 4      // Downward displacement of the drop shadow, which is what lifts the window.
@@ -44,6 +44,15 @@ struct ThemeMetrics
     btnPush_Height:     f32 = 30      // Theme measurement used for btn push height.
 
     iconText_Margin: f32 = 8     // Air between a glyph and the word it leads. Air is the first separator, so it is generous.
+
+    // Side of the box a chevron is drawn in — the drop-down of a field, the submenu marker of a
+    // menu entry, the disclosure of a tree or a property row, the sort order of a column, the
+    // arrow of a menu button. One decision for all of them, because they are one glyph
+    // ([[Gui.ThemeIcons.ChevronDown]] and its three siblings) and a reader reads them as one.
+    //
+    // It is an indicator, not a control, so it sits at the smallest cell of the chart: the ink is
+    // five sixths of this box wide and half that tall.
+    chevron_Size: f32 = 14
 
     btnCheck_Size:    f32 = 24     // Theme measurement used for btn check size.
     btnCheck_Padding: f32 = 4      // Theme measurement used for btn check padding.
@@ -98,8 +107,6 @@ struct ThemeMetrics
     popupList_IconTextMargin:   f32 = 6     // Theme measurement used for popup list icon text margin.
     popupList_SeparatorPadding: f32 = 4     // Theme measurement used for popup list separator padding.
 
-    btnIcon_WidthArrow:    f32 = 10     // Theme measurement used for btn icon width arrow.
-    btnIcon_HeightArrow:   f32 = 6      // Theme measurement used for btn icon height arrow.
     btnIcon_Padding:       f32 = 4      // Theme measurement used for btn icon padding.
     btnIcon_MarginArrow:   f32 = 4      // Theme measurement used for btn icon margin arrow.
     btnIcon_SpacingIcon:   f32 = 4      // Theme measurement used for btn icon spacing icon.

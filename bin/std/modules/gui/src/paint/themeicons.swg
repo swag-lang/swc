@@ -14,11 +14,17 @@ enum ThemeIcons
     WndMaximize          // Window-caption maximize glyph.
     WndClose             // Window-caption close glyph.
     Search               // Search action glyph.
-    RightPopupArrow      // Right-facing submenu indicator.
-    BottomPopupArrow     // Down-facing popup indicator.
-    SortArrowDown        // Descending sort indicator.
-    SortArrowUp          // Ascending sort indicator.
-    SortArrowRight       // Right-facing sort indicator.
+
+    // The chevron family: one solid triangle per direction, and the only marker the interface
+    // uses to say "there is more this way". A drop-down, a submenu, a tree branch, a property
+    // row, a sort order and the arrow of a menu button are all one of these four, so a reader
+    // learns the shape once. Draw them at [[Gui.ThemeMetrics.chevron_Size]]; they were seven
+    // glyphs in two disagreeing styles, two of them exact duplicates of two others.
+    ChevronUp            // Points up: an ascending sort, a value that grows.
+    ChevronDown          // Points down: a drop-down, an expanded branch, a descending sort.
+    ChevronLeft          // Points left: a step back, a panel that closes leftward.
+    ChevronRight         // Points right: a submenu, a collapsed branch, a step forward.
+
     Picker               // Eyedropper or picker action glyph.
     Play                 // Media play action glyph.
     Pause                // Media pause action glyph.
@@ -34,8 +40,6 @@ enum ThemeIcons
     Copy                 // Clipboard copy action.
     Paste                // Clipboard paste action.
     Cut                  // Clipboard cut action.
-    Expanded             // Expanded tree-node indicator.
-    Collapsed            // Collapsed tree-node indicator.
     RemoveAll            // Remove-all action glyph.
     Remove               // Remove action glyph.
     Options              // Options or settings action.

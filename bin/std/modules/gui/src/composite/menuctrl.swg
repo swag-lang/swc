@@ -257,6 +257,13 @@ public impl IWnd for MenuCtrl
             labelPos.moveLeft(metrics.menuPopup_IconTextMargin + it.size)
             labelPos.width -= it.size
 
+            // An entry that opens a submenu reserves the band its marker stands in, so the
+            // wording is elided before the chevron instead of running under it. The marker used
+            // to be hung off the right edge of the body, which put its ink in the popup's own
+            // padding and, at the size it was drawn, past it.
+            if @isset(it.popup) do
+                labelPos.width -= metrics.chevron_Size + metrics.menuPopup_IconTextMargin
+
             // Text
             var format: RichStringFormat
             theme.setTextColors(&format, colorText)
@@ -307,8 +314,8 @@ public impl IWnd for MenuCtrl
             // Right icon
             if @isset(it.popup)
             {
-                let icon = theme.icon(ThemeIcons.RightPopupArrow)
-                icon.paint(painter, labelPos.right(), opticalTop(.font(), textCenterY, icon.sizeY), colorText)
+                let icon = theme.icon(ThemeIcons.ChevronRight, metrics.chevron_Size)
+                icon.paint(painter, labelPos.right() + metrics.menuPopup_IconTextMargin, opticalTop(.font(), textCenterY, icon.sizeY), colorText)
             }
         }
     }

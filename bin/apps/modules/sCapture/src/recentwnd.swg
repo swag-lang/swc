@@ -146,14 +146,20 @@ impl IWnd for RecentView
 
         painter.setParams(.Antialiased)
 
+        // The corner the theme already gives a raised cell, taken from the tile rather than
+        // named again here, so a thumbnail carries the same corner as the tool button beside it.
+        // A hard right angle on a repeated cell reads as unfinished, and a selection frame drawn
+        // square around a picture reads as a crop mark rather than as a state.
+        let corner = parent.themeRects().btnIcon_RoundSquareBk.radius
+
         // State is what the cell sits on, not a ring drawn around it: hovering and
-        // selecting raise the fill, and the accent is spent on the corner cut alone.
+        // selecting raise the fill, and the accent is spent on the frame alone.
         var cellColor = colors.wnd_Bk
         if infos.selected do
             cellColor = colors.btnIcon_PressedBk
         elif infos.hot do
             cellColor = colors.btnIcon_HotBk
-        painter.fillRect(rect, cellColor)
+        painter.fillRoundRect(rect, corner, corner, cellColor)
 
         if texture.isValid()
         {
@@ -179,7 +185,7 @@ impl IWnd for RecentView
         if infos.linked != null
         {
             let backColor = infos.linkedUpToDate ? colors.bk : ColorYellow
-            painter.fillRect({rect.x, rect.y, LinkBadgeSize, LinkBadgeSize}, backColor)
+            painter.fillRoundRect({rect.x, rect.y, LinkBadgeSize, LinkBadgeSize}, corner, corner, backColor)
 
             var icon = parent.theme().icon(.Link)
             icon.sizeX, icon.sizeY = LinkBadgeGlyph
@@ -196,7 +202,12 @@ impl IWnd for RecentView
         {
             var frame = rect
             frame.inflate(-SelectedFrameSize * 0.5)
-            painter.drawRect(frame, colors.hilight, SelectedFrameSize)
+
+            // The frame is inset by half its own weight, so its centre line runs where the cell's
+            // edge runs — and its corner is the cell's corner stepped in by that same half weight,
+            // which is what keeps the two concentric instead of crossing at four places.
+            let frameCorner = Math.max(corner - SelectedFrameSize * 0.5, 0.0)
+            painter.drawRoundRect(frame, frameCorner, frameCorner, colors.hilight, SelectedFrameSize)
         }
     }
 

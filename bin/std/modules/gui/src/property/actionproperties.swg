@@ -67,13 +67,13 @@ internal impl IActionUI for ActionProperties
         case ActionProperties.MoveUp:
             evt.updatedFields |= .Name | .Icon | .Disabled
             evt.name          = strings().prop_MoveUp
-            evt.icon          = theme.icon(.SortArrowUp)
+            evt.icon          = theme.icon(.ChevronUp)
             evt.disabled      = !arr.arrElem or !prop.canChangeItem(arr.arrItem!) or prop.arrayElementIndex(arr.arrElem!) == 0
 
         case ActionProperties.MoveDown:
             evt.updatedFields |= .Name | .Icon | .Disabled
             evt.name          = strings().prop_MoveDown
-            evt.icon          = theme.icon(.SortArrowDown)
+            evt.icon          = theme.icon(.ChevronDown)
             var atEnd = true
             if arr.arrElem
             {

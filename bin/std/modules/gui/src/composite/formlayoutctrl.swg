@@ -79,6 +79,25 @@ impl IWnd for FormLayoutCtrl
         .computeLayout()
         .wnd.IWnd.onResizeEvent(evt)
     }
+
+    // Reports the height the filled rows need at `available.x`.
+    //
+    // A form has no height of its own to author: it is exactly as tall as its rows, and a row
+    // carrying a wrapped help paragraph is as tall as that paragraph is at the width it will be
+    // drawn at. Answering here is what makes a docked form re-measure itself on every layout pass
+    // — after a language switch, and after the window is narrowed — instead of keeping the height
+    // it happened to need when it was filled. Until it did, the last help paragraph of a card was
+    // simply cut off in a language that says the same thing in more words, and
+    // [[Gui.Testing.assertContentFits]] could not see it either, because a window that reports no
+    // content size is exempt from that check.
+    //
+    // The width is left to the caller: a form is a band, and a band takes the width it is docked
+    // into.
+    mtd impl measureContent(available: Math.Point)->Math.Point
+    {
+        let width = Math.max(available.x - .padding.x - .padding.z, 0)
+        return {0, .rowsHeight(width) + .padding.y + .padding.w}
+    }
 }
 
 private impl FormLayoutCtrl
@@ -117,7 +136,12 @@ private impl FormLayoutCtrl
         return result
     }
 
-    mtd arrangeRowAbove(row: const *FormLayoutRow, client: Math.Rectangle, y: f32)->f32
+    // Advances the cursor past `row`, arranging its controls when `place` is set.
+    //
+    // The measure pass and the arrange pass are one walk on purpose: a form sized by one rule and
+    // drawn by another is how a wrapped paragraph ends up short of a line that nobody can account
+    // for.
+    mtd arrangeRowAbove(row: const *FormLayoutRow, client: Math.Rectangle, y: f32, place: bool)->f32
     {
         // A row with no name spends no line on one. An option carries its wording on the control
         // itself, and a blank label above it reserves the height of a name that is not there —
@@ -125,10 +149,11 @@ private impl FormLayoutCtrl
         var cursor = y
         if @countof(row.label.name) != 0
         {
-            row.label.arrange({client.x, y, client.width, .options.labelHeight})
+            if place do
+                row.label.arrange({client.x, y, client.width, .options.labelHeight})
             cursor += .options.labelHeight + .options.labelSpacing
         }
-        else do
+        elif place do
             row.label.arrange({client.x, y, client.width, 0})
 
         let height = .rowFieldHeight(row, {client.width, client.height})
@@ -143,28 +168,34 @@ private impl FormLayoutCtrl
 
         let actionGap  = row.action ? .options.controlSpacing : 0
         let fieldWidth = Math.max(0, client.width - actionWidth - actionGap)
-        row.field.arrange({client.x, cursor, fieldWidth, height})
-        if row.action do
-            row.action.arrange({client.x + fieldWidth + actionGap, cursor, actionWidth, height})
+        if place
+        {
+            row.field.arrange({client.x, cursor, fieldWidth, height})
+            if row.action do
+                row.action.arrange({client.x + fieldWidth + actionGap, cursor, actionWidth, height})
+        }
+
         cursor += height
 
         if row.help
         {
             let helpHeight = .rowHelpHeight(row, client.width)
             cursor += .options.helpSpacing
-            row.help.arrange({client.x, cursor, client.width, helpHeight})
+            if place do
+                row.help.arrange({client.x, cursor, client.width, helpHeight})
             cursor += helpHeight
         }
 
         return cursor
     }
 
-    mtd arrangeRowLeft(row: const *FormLayoutRow, client: Math.Rectangle, y: f32, labelWidth: f32)->f32
+    mtd arrangeRowLeft(row: const *FormLayoutRow, client: Math.Rectangle, y: f32, labelWidth: f32, place: bool)->f32
     {
         let fieldX         = client.x + labelWidth + .options.labelSpacing
         let availableWidth = Math.max(0, client.width - labelWidth - .options.labelSpacing)
         let height         = .rowFieldHeight(row, {availableWidth, client.height})
-        row.label.arrange({client.x, y, labelWidth, height})
+        if place do
+            row.label.arrange({client.x, y, labelWidth, height})
 
         var actionWidth = 0'f32
         if row.action
@@ -176,20 +207,53 @@ private impl FormLayoutCtrl
 
         let actionGap  = row.action ? .options.controlSpacing : 0
         let fieldWidth = Math.max(0, availableWidth - actionWidth - actionGap)
-        row.field.arrange({fieldX, y, fieldWidth, height})
-        if row.action do
-            row.action.arrange({fieldX + fieldWidth + actionGap, y, actionWidth, height})
+        if place
+        {
+            row.field.arrange({fieldX, y, fieldWidth, height})
+            if row.action do
+                row.action.arrange({fieldX + fieldWidth + actionGap, y, actionWidth, height})
+        }
+
         var cursor = y + height
 
         if row.help
         {
             let helpHeight = .rowHelpHeight(row, availableWidth)
             cursor += .options.helpSpacing
-            row.help.arrange({fieldX, cursor, availableWidth, helpHeight})
+            if place do
+                row.help.arrange({fieldX, cursor, availableWidth, helpHeight})
             cursor += helpHeight
         }
 
         return cursor
+    }
+
+    // Walks every row inside `client`, arranging as it goes when `place` is set, and returns the
+    // height the rows need.
+    mtd walkRows(client: Math.Rectangle, place: bool)->f32
+    {
+        // In `Left` mode the label column is shared, so it is measured once for the whole
+        // form: a column sized row by row would leave the fields on a ragged edge.
+        let labelWidth = .options.labelPlacement == .Left ? .labelColumnWidth() : 0
+
+        var cursor = client.y
+        for &row, [index] in .rows
+        {
+            cursor = .options.labelPlacement == .Above ? .arrangeRowAbove(&row, client, cursor, place) : .arrangeRowLeft(&row, client, cursor, labelWidth, place)
+            if index + 1 < .rows.count do
+                cursor += .options.rowSpacing
+        }
+
+        return Math.max(0, cursor - client.y)
+    }
+
+    // Returns the height the rows need in a client area `width` wide, without moving anything.
+    mtd rowsHeight(width: f32)->f32
+    {
+        var client = .paddedClientRect()
+        client.x, client.y = 0
+        client.width = width
+        return .walkRows(client, false)
     }
 
     // Gives the row appended last its single trailing control.
@@ -359,20 +423,6 @@ impl FormLayoutCtrl
     // Arranges every row inside the padded client rectangle.
     mtd computeLayout()
     {
-        let client = .paddedClientRect()
-
-        // In `Left` mode the label column is shared, so it is measured once for the whole
-        // form: a column sized row by row would leave the fields on a ragged edge.
-        let labelWidth = .options.labelPlacement == .Left ? .labelColumnWidth() : 0
-
-        var cursor = client.y
-        for &row, [index] in .rows
-        {
-            cursor = .options.labelPlacement == .Above ? .arrangeRowAbove(&row, client, cursor) : .arrangeRowLeft(&row, client, cursor, labelWidth)
-            if index + 1 < .rows.count do
-                cursor += .options.rowSpacing
-        }
-
-        .contentHeight = Math.max(0, cursor - client.y)
+        .contentHeight = .walkRows(.paddedClientRect(), true)
     }
 }

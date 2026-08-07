@@ -265,10 +265,13 @@ namespace Swag
     // what parameter #i points to (it reaches [[IAllocator.free]] or
     // [[IAllocator.realloc]]); bit 'i' of 'reallocates' means the call may move or
     // release the heap payload parameter #i OWNS, which is what invalidates the views
-    // taken into it. Emitted automatically in generated module APIs so summaries cross
+    // taken into it; bit 'i' of 'returnsPayload' means the returned value is a view INTO
+    // that payload rather than merely a value that can reach parameter #i, which is what
+    // tells a container accessor apart from a factory handing back an object that keeps a
+    // back-reference. Emitted automatically in generated module APIs so summaries cross
     // module boundaries; can also be written manually on a [[Foreign]] function.
     #[AttrUsage(AttributeUsage.Function)]
-    attr BorrowSummary(returns: u64, stores: u64 = 0, into: u64 = 0, frees: u64 = 0, reallocates: u64 = 0)
+    attr BorrowSummary(returns: u64, stores: u64 = 0, into: u64 = 0, frees: u64 = 0, reallocates: u64 = 0, returnsPayload: u64 = 0)
 
     // All safety checks
     #[Swag.EnumFlags]

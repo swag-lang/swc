@@ -38,7 +38,7 @@ func createColumnsPage(parent: *Wnd)
     queue.updateFlags(.AlternateLines)
     queue.addColumn("Task", 180, app.theme.icon(.Edit, 16))
     queue.addColumn("State", 110)
-    queue.addColumn("Priority", 90, app.theme.icon(.SortArrowDown, 16))
+    queue.addColumn("Priority", 90, app.theme.icon(.ChevronDown, 16))
     queue.addColumn("Assignee", 120)
     for [i] in 16
     {

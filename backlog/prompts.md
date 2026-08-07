@@ -143,8 +143,9 @@ end of the campaign, the new ratio table next to the one above.
 
 ```
 You are running a long campaign on Swag's safety guarantees. Read AGENTS.md and the skills it
-points to first, then backlog/todo.language.md entry 5, backlog/findings.safety.md, and
-backlog/findings.compiler.md.
+points to first, then backlog/findings.safety.md, backlog/findings.compiler.md, and the language
+reference page bin/reference/modules/language/src/013_004_borrowing.swg, which states what the
+language currently guarantees.
 
 WORK IN A SEPARATE WORKTREE
 
@@ -159,8 +160,8 @@ else's in-flight code rather than from your check.
 
 Know the trap that comes WITH a worktree, because it has already cost a session: a scratch module
 compiled with swc test -d <dir> resolves swag@std OUTSIDE the worktree, so it silently measures the
-main checkout's standard library rather than yours (F-035, reason 3). Any probe of behavior that
-crosses a module boundary has to live in bin/unittests inside the worktree.
+main checkout's standard library rather than yours. Any probe of behavior that crosses a module
+boundary has to live in bin/unittests inside the worktree.
 
 Before the first change, build and run the full test sequence AT BASELINE in the new worktree and
 record the result. Any failure there is pre-existing, not yours.
@@ -181,25 +182,17 @@ The classes that must be caught at compile time, with no annotation:
   - A borrow escaping the scope that owns it, including through a return value, an out parameter,
     a container store, or a captured closure.
 
-Where it stands: the sanity layer already proves division by zero, integer overflow, null
-dereference, constant out-of-bounds indexing, undefined reads, stack escape, use-after-free and
-use-after-move (src/Backend/Sanitizer/Checks, nine checks). Move semantics, use-site nullability
-with narrowing and the postfix !, = undefined definite assignment, and #late fields all ship. The
-analysis core is src/Compiler/Sema/Helpers/SemaEscape.cpp, 3542 lines. Tests live in
-bin/unittests/sanity and bin/unittests/safety.
+Where it stands: all four classes are caught, and the line is drawn. The borrow rules live in
+src/Compiler/Sema/Helpers/SemaEscape.cpp, are always on, and consult no attribute and no build
+configuration - they are the language, and the reference says so. What stays under
+#[Swag.Sanity] is the other half: the backend analyses that PROVE a runtime fault (division by
+zero, overflow, null dereference, constant out-of-bounds, undefined read, use after free, use
+after move) in src/Backend/Sanitizer/Checks. Tests live in bin/unittests/sanity - borrow_escape,
+borrow_invalidation, collection_mutation - and bin/unittests/safety.
 
-Two things are open and both are load-bearing:
-
-  - F-032: a by-value owning argument carries no borrow, so a callee handing back its parameter's
-    owned payload is never judged at any call site. The pointer spelling of the same code errors.
-  - F-035: the borrow-invalidation check is fully built and fires on NOTHING, for three separate
-    reasons, all three written down.
-
-And one decision, entry 5 of backlog/todo.language.md: borrow checking currently reports through
-the sanity layer, which is togglable per module, per file and per function. Whether a program is
-accepted therefore depends on an attribute. That is the right shape for an analysis and the wrong
-shape for a language rule. Part of this campaign is to name the subset that is the LANGUAGE -
-always on, not togglable, specified in the reference - and leave the rest as tooling.
+What is left is precision, and every open item is written down as a finding: a view judged by
+source order rather than by control flow (F-041), views into a global owner's payload never judged
+(F-042), and a backend check the language rule has made unreachable from source (F-043).
 
 THE LOOP
 
@@ -215,11 +208,15 @@ For each check, in this order, and do not skip step 1:
      tools/std.bat, tools/apps.bat, tools/examples.bat, tools/reference.bat. The baseline is zero
      hits. Every workspace being clean today proves nothing, because nothing fires - the sweep only
      becomes evidence once the check works.
+     A 'build' sweep is HALF a sweep: it never compiles the '#test' bodies, and a quarter of the
+     standard library's interesting code lives there (Array's self-append test is where the first
+     false positive of the invalidation check turned up, long after build.bat came back clean).
+     Sweep with 'test' as well, or just run tools/tests.bat dm and read its first failure.
   4. Triage every hit, one at a time, into exactly one of two buckets: a real defect in bin/ (fix
      it, it is a genuine find) or a false positive (fix the analysis). There is no third bucket.
-  5. Never silence a false positive by narrowing the check until it stops firing. That is how this
-     ends up back at F-035, complete and useless. If a shape genuinely cannot be judged, say so as
-     a finding and leave the check firing on what it can prove.
+  5. Never silence a false positive by narrowing the check until it stops firing. That is how a
+     check ends up complete and useless, firing on nothing. If a shape genuinely cannot be judged,
+     say so as a finding and leave the check firing on what it can prove.
   6. tools/tests.bat dm, then --all-cfg, then the Release sequence.
 
 DO NOT STOP AT THE FIRST FAILURE
@@ -230,10 +227,9 @@ expect at least one shape that needs a piece of information sema does not curren
 that happens, the answer is usually to extend the summary that already crosses module boundaries
 (#[Swag.BorrowSummary]), not to give up on the shape.
 
-The campaign ends when the four classes above are caught, the whole tree is clean, and the
-language/tooling line is written down in backlog/todo.language.md and the reference. It does not
-end because a check was noisy, because one shape needed information that was not there, or because
-a sweep came back with hits.
+A round ends when its class is caught, the whole tree is clean, and what the language guarantees is
+written down in the reference. It does not end because a check was noisy, because one shape needed
+information that was not there, or because a sweep came back with hits.
 
 RULES
 
@@ -243,7 +239,16 @@ RULES
     would reject that is correct.
   - Probes that test a summary crossing a module boundary must live in bin/unittests. A scratch
     module compiled with swc test -d <dir> resolves swag@std OUTSIDE your worktree and silently
-    measures the main checkout's standard library (F-035, reason 3).
+    measures the main checkout's standard library.
+  - A clean sweep is only evidence once you have proved the check fires. Plant a deliberate fault
+    in a module that imports std, watch it be reported, then remove it - a check that silently
+    reaches nothing looks exactly like a clean tree.
+  - A language rule must reach the same verdict in every build configuration, so never branch it on
+    something the configuration also drives. Testing '#[Inline]' is the trap: it reads like a
+    property of the callee and behaves like a property of the build, and it made a view visible in
+    fast-debug and invisible in release. Ask what actually happened - an expanded call no longer
+    resolves to a CallExpr - instead of asking what was requested. '--all-cfg' is what catches
+    this, and it catches nothing if you only ever run the default configuration.
   - Compile time is a constraint: a whole-program analysis that doubles sema is not acceptable.
     Measure it.
   - Every defect the analysis finds in bin/ gets fixed in the same campaign. That is the proof the

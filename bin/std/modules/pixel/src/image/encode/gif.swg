@@ -36,10 +36,7 @@ impl Encoder
 
 internal impl IImageEncoder for Encoder
 {
-    mtd impl canEncode(fileName: string)->bool
-    {
-        return Path.lowercaseExtension(fileName) == ".gif"
-    }
+    mtd impl format()->ImageFormat => {"GIF - Graphics Interchange Format", ".gif"}
 
     mtd impl encode(result: *ConcatBuffer, image: Image, options: #null any) fail
     {

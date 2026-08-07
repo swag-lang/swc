@@ -3,11 +3,14 @@
 
 using Swag, Core
 
+func testAddMonitorAt(main: *MainWnd, rect: Math.Rectangle)
+{
+    main.monitors.add({bounds: rect, workArea: rect, scaleFactor: 1, physicalBounds: rect, physicalWorkArea: rect})
+}
+
 func testAddMonitor(main: *MainWnd, idx: u32)
 {
-    let x    = cast(f32) idx * 320
-    let rect = Math.Rectangle{x, 0, 320, 240}
-    main.monitors.add({bounds: rect, workArea: rect, scaleFactor: 1, physicalBounds: rect, physicalWorkArea: rect})
+    testAddMonitorAt(main, {cast(f32) idx * 320, 0, 320, 240})
 }
 
 // Capture command states cover every toolbar/menu entry, including monitor
@@ -43,21 +46,28 @@ func testAddMonitor(main: *MainWnd, idx: u32)
     @assert(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.ActiveWnd, &evt))
     @assert(!evt.name.isEmpty())
 
-    evt = Gui.Testing.commandState(ActionCapture.Screen0)
-    @assert(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.Screen0, &evt))
-    @assert(!evt.name.isEmpty())
+    // One command per connected monitor, minted on demand: the sixth is reachable
+    // exactly like the first, and each carries a distinct id and an enabled state.
+    for [idx] in @countof(f.main.monitors)
+    {
+        let id = ActionCapture.screenId(idx)
 
-    evt = Gui.Testing.commandState(ActionCapture.Screen1)
-    @assert(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.Screen1, &evt))
-    @assert(!evt.name.isEmpty())
+        // A minted id must still carry the owning scope: `acceptOwnCmdIds` routes a
+        // command to its action by that prefix alone.
+        @assert(Utf8.startsWith(id, "ActionCapture."))
+        @assert(ActionCapture.screenIndex(id) == idx)
+        evt = Gui.Testing.commandState(id)
+        @assert(Gui.Testing.actionUpdate'ActionCapture(f.main, id, &evt))
+        @assert(!evt.name.isEmpty())
+        @assert(!evt.disabled)
+    }
 
-    evt = Gui.Testing.commandState(ActionCapture.Screen2)
-    @assert(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.Screen2, &evt))
+    // A command whose monitor is gone stays answerable and reports itself disabled.
+    let goneId = ActionCapture.screenId(f.main.monitors.count)
+    evt = Gui.Testing.commandState(goneId)
+    @assert(Gui.Testing.actionUpdate'ActionCapture(f.main, goneId, &evt))
     @assert(!evt.name.isEmpty())
-
-    evt = Gui.Testing.commandState(ActionCapture.Screen3)
-    @assert(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.Screen3, &evt))
-    @assert(!evt.name.isEmpty())
+    @assert(evt.disabled)
 }
 
 // Full-screen OS capture is tested without creating a sCapture library file:
@@ -129,10 +139,18 @@ func testAddMonitor(main: *MainWnd, idx: u32)
     f.main.captureOptions.sendToEditor     = false
     f.main.captureOptions.inPlaceEdit      = false
     f.main.captureOptions.delay            = 0
-    f.main.monitors.clear()
-    testAddMonitor(f.main, 0)
 
-    @assert(Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.Screen0))
+    // Five monitors, and the fifth is the one captured: the per-monitor commands used to
+    // stop at four, so a monitor past that could not be captured on its own. The first
+    // four stay tiny and the fifth is the only one with a distinctive size, so the grab
+    // rectangle proves which monitor was read. All sit at the desktop origin to keep the
+    // real screen grab inside any display.
+    f.main.monitors.clear()
+    for 4 do
+        testAddMonitorAt(f.main, {0, 0, 8, 8})
+    testAddMonitorAt(f.main, {0, 0, 320, 240})
+
+    @assert(Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.screenId(4)))
 
     let img = Clipboard.getImage()
     @assert(img.isValid())

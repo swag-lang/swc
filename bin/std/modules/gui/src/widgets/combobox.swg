@@ -141,10 +141,13 @@ impl IWnd for ComboBox
             itemRect.width -= metrics.comboBox_RightMargin
             itemRect.moveLeft(metrics.comboBox_Padding)
 
+            // Plainly centered, like the field's own marker below: the entry beside it is
+            // centered on its capitals, so both sit on the middle of the field whatever face
+            // the field is set in.
             if item.icon.isValid()
             {
                 let iconColor = item.icon.color.a ? item.icon.color : .aniText.cur()
-                item.icon.paint(painter, itemRect.x, opticalTop(.font(), itemRect.vertCenter(), item.icon.sizeY), iconColor)
+                item.icon.paint(painter, itemRect.x, itemRect.vertCenter() - item.icon.sizeY * 0.5, iconColor)
             }
 
             if .maxIconSize do
@@ -152,7 +155,7 @@ impl IWnd for ComboBox
 
             theme.setTextColors(&format, .aniText.cur())
             format.horzAlignment = .Left
-            format.vertAlignment = .Center
+            format.vertAlignment = .OpticalCenter
             format.flags         = .Clip
             format.font          = .font()
             painter.drawRichString(itemRect, &item.name, format)
@@ -163,7 +166,7 @@ impl IWnd for ComboBox
         // the same air on both sides whatever size the theme gives it.
         let icon  = theme.icon(ThemeIcons.ChevronDown, metrics.chevron_Size)
         let iconX = clientRect.right() - (metrics.comboBox_RightMargin + icon.sizeX) * 0.5
-        icon.paint(painter, iconX, opticalTop(.font(), clientRect.vertCenter(), icon.sizeY), colorText)
+        icon.paint(painter, iconX, clientRect.vertCenter() - icon.sizeY * 0.5, colorText)
     }
 
     // Reports the room the widest item needs beside the icon column and the drop-down arrow.

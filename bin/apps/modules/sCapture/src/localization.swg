@@ -225,10 +225,6 @@ struct AppStrings
     tip_InpArrow:             string = "Draw arrow"
     tip_InpText:              string = "Add text annotation"
     tip_InpMarker:            string = "Highlight with marker"
-    flt_Png:                  string = "PNG - Portable Network Graphics (*.png)"
-    flt_Jpg:                  string = "JPG - JPEG Image (*.jpg)"
-    flt_Bmp:                  string = "BMP - Windows Bitmap (*.bmp)"
-    flt_Tga:                  string = "TGA - Truevision Targa (*.tga)"
 
     // Wording of the rows the property grid generates from reflection. A property attribute
     // carries a compile-time literal, so the declared English below *is* the key

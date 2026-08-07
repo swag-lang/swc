@@ -273,10 +273,7 @@ func decodeRle(result: *Image, header: Header, palette: Palette, src, last: cons
 
 internal impl IImageDecoder for Decoder
 {
-    func impl canDecode(me, fileName: string)->bool
-    {
-        return Path.lowercaseExtension(fileName) == ".tga"
-    }
+    func impl format(me)->ImageFormat => {"TGA - Truevision Targa", ".tga"}
 
     func impl decode(me, buffer: const [..] u8, options: DecodeOptions)->Image fail
     {

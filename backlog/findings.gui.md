@@ -1,8 +1,11 @@
-# Findings — Gui And Applications
+# Findings — Gui
 
-`std/gui`, the widgets and dialogs it ships, and the applications built on it. Intent for the same
-units is [todo.gui.md](todo.gui.md), [todo.scapture.md](todo.scapture.md) and
-[todo.scrypt.md](todo.scrypt.md).
+`std/gui`, and the widgets and dialogs it ships. Intent for the same unit is
+[todo.gui.md](todo.gui.md).
+
+An entry noticed while working on an application belongs here when `std/gui` is where it will be
+fixed; an entry that will be fixed inside the application goes to that application's own file, such
+as [findings.scapture.md](findings.scapture.md).
 
 Conventions, the identifier counter, and the rest of the backlog are in [README.md](README.md).
 Entries are sorted by identifier, ascending; position carries no priority.
@@ -30,21 +33,6 @@ Entries are sorted by identifier, ascending; position carries no priority.
   typed accessors cannot be generated at compile time, a UI resource reintroduces exactly the
   lookup boundary the builders just removed, and a resource editor would ship that cost to every
   window. Only then evaluate the editor.
-
-### F-017 — sCapture keeps a dark editor matte after switching to the light theme
-
-- Area: bin/apps
-- Found while: comparing sCapture in both Swag palettes through the gui10 theme inspector
-- Observation: the matte around the capture is `EditorOptions.editBackColor`, whose default was a
-  fixed `0xFF2E2E2E`. It now defaults to transparent, meaning "follow the theme", and `EditView`
-  resolves it to `view_Bk` — but an existing installation has the old opaque value persisted, so
-  it keeps a near-black matte under a white interface.
-- Evidence: [editview.swg](../bin/apps/modules/sCapture/src/editview.swg),
-  [options.swg](../bin/apps/modules/sCapture/src/options.swg). A fresh profile picks up the theme; a
-  profile written before this change does not.
-- Next step: decide whether the options loader should migrate the one legacy value to transparent,
-  or whether an application is expected to version its settings. The same question applies to any
-  future option whose default becomes theme-derived.
 
 ### F-020 — Arming the headless modal driver for an absent button fails silently
 
@@ -134,71 +122,16 @@ Entries are sorted by identifier, ascending; position carries no priority.
   3.75 logical pixels inside the rectangle the widget was given. A box placed at the left edge of a
   form column therefore reads as indented against every field above it.
 - Evidence: measured on the rendered surface, `bin/apps/modules/sCrypt` in `swagLightPalette`: the
-  edit borders of the middle card start at x=572 and the check box ink starts at x=575.
+  edit borders of the middle card start at x=572 and the check box ink starts at x=575. The same
+  inset exists vertically on other atlas glyphs: in `scrypt.surface.png` the folder icon of the
+  container-file field is drawn in a 17-unit cell whose middle lands on the middle of the box, and
+  its ink still comes out about a pixel above that middle.
 - Next step: decide who owns the difference. Either the tiles fill their cell and `btnCheck_Size`
   becomes the ink (which changes the drawn box everywhere, from about 16.5 to 24 logical pixels),
   or the widgets learn the inset and place the cell so the ink lands on the rectangle they were
   given. The second keeps the drawn size and is the smaller change, but it needs the inset to come
   from the theme rather than from a constant in the widget — `ThemeImageRect` is where the atlas
   already describes itself.
-
-### F-039 — The sCapture main window cannot be painted headlessly
-
-- Area: apps/sCapture
-- Found while: photographing both shipped surfaces in every palette, to review them without a
-  desktop. sCrypt renders; sCapture faults.
-- Observation: a headless host that builds the real window with `MainWnd.create(&gui.root)` — the
-  same call `dialogs.test.swg` already makes and which succeeds — dies with an access violation
-  (0xC0000005) as soon as that window is laid out and painted. Creating it and never painting it is
-  fine, which is what every existing test does.
-- Evidence: reproduced four times, in release, with and without a `Capture` set on the edit view,
-  with and without `Library.init` through `testUseScratchLibrary`, and with and without a theme
-  broadcast — the fault survives all six combinations, so it is neither the capture, nor the
-  library, nor the harness change made in the same task. The 127 other tests of the module pass in
-  the same binary.
-- Narrowed (2026-08-06), and the bisection this entry used to propose is now ruled out:
-  - creation and `applyLayout()` both complete; two `HeadlessHost.pump()` calls complete. The
-    fault is on the FIRST PAINT — which is what `settleAnimations` and `render` do and what
-    `pump` does not, since `pump` only drains the posted, destroy and delete queues.
-  - hiding every direct child of the window before painting (`topBar`, `toolRail`, `recentBar`,
-    `rightBar`, `editWnd`) does NOT avoid it. So it is not one subtree: it is the window's own
-    paint, or the surface chrome painted around it.
-- Next step: instrument the paint rather than the tree. `Surface.paintWnd` is the entry; find
-  whether the fault is inside it or in the `readRenderTarget` that follows, then compare against
-  `sCrypt`, whose main window paints through the same call — the difference is that sCrypt's
-  window installs itself as the view of its surface (`MainWindow.create(&host.surfaceWnd)`) while
-  sCapture's is built as a child of the host root (`MainWnd.create(&gui.root)`), so the two paint
-  through different parents. Build the probe in `-bc debug`: a use-after-free reads clean in
-  fast-debug and release.
-- Why it matters beyond the crash: sCapture has 128 tests and none of them can see the window, so
-  no appearance regression in the one application that *is* a visual tool can ever fail a test.
-  The same photograph is one test away for sCrypt and impossible here.
-
-### F-040 — sCapture dies when its window is moved and resized in one call
-
-- Area: apps/sCapture, std/gui
-- Found while: driving the shipped window from a script to photograph its pages. The window opens
-  maximized across a two-monitor desktop, so a capture has to bring it back onto one screen first.
-- Observation: `SetWindowPos(hwnd, HWND_TOPMOST, 40, 40, 2400, 1500, 0)` — one call that moves,
-  resizes and raises — kills the process three times out of four. The same call with `SWP_NOSIZE`
-  (move only) has never killed it. Dragging the window by hand does not either, which is why the
-  application looks healthy in normal use.
-- Evidence: reproduced from a plain PowerShell driver against the packaged build, four attempts,
-  three deaths, no window left behind. `GetWindowRect` on the survivor returns the requested
-  rectangle, so the call itself succeeds before the process goes.
-- Did NOT reproduce on 2026-08-06: four fresh runs of the identical call, four survivals, the
-  window landing exactly on the requested 40,40 2400x1500 each time. The window opened at
-  268,73 2821x1563 — on one monitor and not maximized — so the DPI boundary this entry suspects
-  was never crossed. That is a negative result about the driver, not about the defect: the
-  reproduction has to start from the maximized two-monitor state the original run had, or the
-  call never does the thing that kills it.
-- Suspicion, not conclusion: the two monitors of this desktop are at different scales, so that one
-  call crosses a DPI boundary *and* changes the client size in the same message. The surface
-  rebuilds its render target on a size change and re-reads its scale on a DPI change; doing both
-  from one message is the path a hand-drag never takes.
-- Next step: reproduce with a minimal `gui2`-sized example under the same two-monitor arrangement,
-  then bisect: move-only across the boundary, resize-only on one screen, then both. If it is the
-  DPI crossing, `Surface` is where the ordering of the two rebuilds is decided.
 
 ### F-044 — `Wnd.invalidateLayout` marks a window dirty and nothing ever reads the mark
 
@@ -226,3 +159,30 @@ Entries are sorted by identifier, ascending; position carries no priority.
   honest but pays the cost on each of the twenty-odd setters that call it today. Do not add a third
   state. Pin whichever way it goes with a headless test that re-labels a control inside a docked
   band and asserts the band re-measured without anything being resized.
+
+### F-073 — Text outside a framed field is still centered on its line box, so its height follows the face
+
+- Area: std/gui
+- Found while: fixing the vertical alignment of the sCrypt container-file field, which is set in
+  the fixed-width theme family and read as riding high inside its own box.
+- Observation: a single line was centered by putting its *line box* on the middle of the rectangle,
+  which hands the placement to the internal leading of the face. Measured on the shipped theme:
+  Segoe UI at 13 has `ascent 14.03, descent -3.27, capHeight 9.11`, so its capitals sit 0.83
+  logical pixels below the middle of its line box; the fixed family at 14 has
+  `ascent 10.40, descent -3.60, capHeight 8.94` and sits 1.07 above. Two fields of one form set in
+  the two families therefore put their words 1.9 pixels apart, and neither on the middle of the
+  frame the reader compares them against. `EditBox` and `ComboBox` now center on the capitals
+  through `StringVertAlignment.OpticalCenter`; every other widget still centers on the line box.
+- Evidence: `Pixel.Font.opticalLineTop` and the `OpticalCenter` case in
+  [drawstring.swg](../bin/std/modules/pixel/src/painter/drawstring.swg). Before the fix, in
+  `bin/apps/modules/sCrypt/src/tests/goldens/scrypt.surface.png`: the "256" digits of the capacity
+  field spanned rows 352..360 in a box spanning 342..373, one pixel above its middle, while the
+  password placeholder below it sat exactly on the middle of its own box.
+- Next step: decide whether the rest of the toolkit follows. A label, a menu entry and a list row
+  are read against their neighbours rather than against a frame, and they all share the interface
+  family, so line-box centering is consistent among them today — the defect only shows where a
+  frame is drawn or where two families meet. If it does follow, `Gui.opticalTop` degenerates to a
+  plain centering and its twenty-odd call sites go with it, and every golden holding text moves by
+  the offset of its face; that is the whole cost, and it is why the change stopped at the two
+  widgets that draw a frame. Pin the decision with a headless test that puts one field of each
+  family side by side and asserts their capitals share a center.

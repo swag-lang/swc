@@ -198,11 +198,13 @@ internal impl IWnd for PopupListView
 
             labelPos.moveLeft(metrics.popupList_Padding)
 
-            // Icon
+            // Icon, plainly centered, because the entry beside it is centered on its capitals: a
+            // drop-down shows the very entries the field above it shows, so the two have to place
+            // them by the same rule or the list steps away from the field as it opens.
             if it.icon.isValid()
             {
                 let iconColor = it.icon.color.a ? it.icon.color : colorText
-                it.icon.paint(painter, labelPos.x, opticalTop(.font(), labelPos.vertCenter(), it.icon.sizeY), iconColor)
+                it.icon.paint(painter, labelPos.x, labelPos.vertCenter() - it.icon.sizeY * 0.5, iconColor)
             }
 
             if .list.maxIconSize do
@@ -215,7 +217,7 @@ internal impl IWnd for PopupListView
             // Text
             theme.setTextColors(&format, colorText)
             format.horzAlignment = .Left
-            format.vertAlignment = .Center
+            format.vertAlignment = .OpticalCenter
             format.flags         = .Clip
             format.font          = .font()
             painter.drawRichString(labelPos, &it.name, format)
@@ -224,7 +226,7 @@ internal impl IWnd for PopupListView
             if idx == .list.selectedIndex
             {
                 labelPos.x      = labelPos.right()
-                labelPos.y      = opticalTop(.font(), labelPos.vertCenter(), fntHeight)
+                labelPos.y      = labelPos.vertCenter() - fntHeight * 0.5
                 labelPos.width  = fntHeight
                 labelPos.height = fntHeight
                 theme.drawSubRect(painter, labelPos, &rects.btnCheck_CheckedMark, colorCheck)

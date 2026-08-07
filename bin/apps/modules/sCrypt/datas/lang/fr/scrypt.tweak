@@ -7,7 +7,7 @@ ui_Subtitle            Un stockage chiffré qui se présente et se comporte comm
 ui_CreateCardTitle     Créer un nouveau coffre
 ui_CreateCardHelp      Choisissez une capacité fixe. Le conteneur complet est randomisé avant d'être prêt.
 ui_MountCardTitle      Ouvrir un coffre existant
-ui_MountCardHelp       Déverrouillez un conteneur et exposez-le sur une lettre de lecteur disponible. Le même fichier et le même mot de passe permettent aussi de changer ce mot de passe ou d'agrandir le coffre.
+ui_MountCardHelp       Déverrouillez un conteneur et exposez-le sur une lettre de lecteur disponible. Agrandir le coffre et changer son mot de passe demandent ce même mot de passe.
 ui_MountedCardTitle    Lecteurs montés
 ui_MountedCardHelp     Tous les lecteurs actuellement exposés par sCrypt. Cochez-en un pour qu'il soit remonté au prochain démarrage de sCrypt.
 ui_CreateTab           Créer
@@ -19,6 +19,8 @@ ui_Browse              Parcourir
 ui_FixedCapacity       CAPACITÉ FIXE
 ui_NewCapacity         NOUVELLE CAPACITÉ
 ui_Password            MOT DE PASSE
+ui_CurrentPassword     MOT DE PASSE ACTUEL
+ui_CurrentPasswordHelp Le coffre ne change que pour qui peut déjà l'ouvrir.
 ui_NewPassword         NOUVEAU MOT DE PASSE
 ui_ConfirmPassword     CONFIRMER LE MOT DE PASSE
 ui_OptionalPassword    Facultatif — laissez vide pour aucun

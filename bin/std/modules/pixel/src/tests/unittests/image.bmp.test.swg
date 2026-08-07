@@ -761,10 +761,6 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 // The encoder is called directly (not through Image.save) to test BMP encoding
 // logic independently of the encoder registry.
 
-// Bmp.Encoder.canEncode recognises .bmp and rejects other extensions.
-#test
-{}
-
 // Encode a BGR8 4x4 image (row stride 12 bytes - already 4-byte aligned, no padding needed).
 #test
 {

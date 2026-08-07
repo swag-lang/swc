@@ -252,10 +252,7 @@ public struct EncodeOptions
 
 internal impl IImageEncoder for Encoder
 {
-    mtd impl canEncode(fileName: string)->bool
-    {
-        return Path.lowercaseExtension(fileName) == ".png"
-    }
+    mtd impl format()->ImageFormat => {"PNG - Portable Network Graphics", ".png"}
 
     mtd impl encode(result: *ConcatBuffer, image: Image, options: #null any) fail
     {

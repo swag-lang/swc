@@ -330,10 +330,7 @@ impl Encoder
 
 internal impl IImageEncoder for Encoder
 {
-    mtd impl canEncode(fileName: string)->bool
-    {
-        return Path.lowercaseExtension(fileName) == ".webp"
-    }
+    mtd impl format()->ImageFormat => {"WebP - Google WebP", ".webp"}
 
     mtd impl encode(result: *ConcatBuffer, image: Image, options: #null any) fail
     {

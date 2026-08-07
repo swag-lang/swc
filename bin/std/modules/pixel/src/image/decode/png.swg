@@ -428,10 +428,7 @@ impl Decoder
 
 internal impl IImageDecoder for Decoder
 {
-    mtd impl canDecode(fileName: string)->bool
-    {
-        return Path.lowercaseExtension(fileName) == ".png"
-    }
+    mtd impl format()->ImageFormat => {"PNG - Portable Network Graphics", ".png"}
 
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
     {

@@ -13,12 +13,18 @@ ships; history lives in git, not here.
 
 ## Where the module already stands
 
-Eleven tables parsed — `cmap`, `glyf`, `head`, `hhea`, `hmtx`, `loca`, `maxp`, `name`, `post`,
-`kern`, `OS/2`. Composite glyphs, a matrix transform, outline commands, grayscale rasterization,
-vertical hinting, and both single- and multi-channel signed distance fields. Character map formats
-4 and 12, both binary-searched. A `Face`/`GlyphSlot` model that mirrors FreeType closely enough to
-be familiar on sight, and ten test files covering composites, hinting, kerning, lifecycle,
+Twelve tables parsed — `cmap`, `glyf`, `GPOS`, `head`, `hhea`, `hmtx`, `loca`, `maxp`, `name`,
+`post`, `kern`, `OS/2` — plus the `ttcf` collection header. Composite glyphs, a matrix transform,
+outline commands, grayscale rasterization, vertical hinting, and both single- and multi-channel
+signed distance fields. Character map formats 0, 4, 6, 12 and 13, all binary-searched, and format
+14 for variation sequences. Kerning from the `GPOS` `kern` feature, with the legacy `kern` table as
+the fallback. A `Face`/`GlyphSlot` model that mirrors FreeType closely enough to be familiar on
+sight, and eleven test files covering collections, composites, hinting, kerning, lifecycle,
 outlines, parsing and rendering.
+
+A collection is also searchable without being loaded: `Face.familyNameAt` reads one member's offset
+table and `name` table and nothing else, so finding one face of `msgothic.ttc` costs a name lookup
+rather than nine megabytes per candidate. That is what `pixel` selects a system face with.
 
 Two things stand out as genuinely ahead of the field. MSDF generation lives in the module rather
 than in a separate project, which is what GPU text actually wants — FreeType ships SDF but not
@@ -31,47 +37,33 @@ The gaps are about coverage: which fonts load at all, and whether text is positi
 
 ## Tier A — Fonts that cannot load
 
-### 1. Only bare TrueType files are accepted
+### 1. CFF and web-font containers are still rejected
 
-- Problem: `parseFace` in `src/parse.swg` accepts a file whose first four bytes are `0x00010000` or
-  `true`, and faults on anything else. That rejects three container formats that are not exotic:
+- `ttcf` collections now load, and `pixel` selects the right member of one. Two containers remain,
+  and both are now reported by name rather than as an unknown format:
   - `OTTO` — OpenType with CFF outlines. Every Adobe font, a large share of Google Fonts, and a
     great many system fonts are CFF rather than `glyf`.
-  - `ttcf` — TrueType Collection. A single file holding several faces.
   - `wOFF` and `wOF2` — the web font containers, and the form most downloadable fonts arrive in.
 - This is not theoretical, and it reaches the applications. `TypeFace.createFromHfont` in
-  `bin/std/modules/pixel/src/text/typeface.win32.swg` calls `GetFontData(hdc, 0, 0, ...)`, which
-  returns the whole font file — so for a collection it hands back a buffer starting with `ttcf`,
-  and for an OpenType font a buffer starting with `OTTO`. Both then fail in `Face.load`. A stock
-  Windows install ships several collections, and any user-installed OTF is in the same position.
+  `bin/std/modules/pixel/src/text/typeface.win32.swg` hands `Face.load` whatever GDI returns for an
+  installed font, and for an OpenType font that buffer starts with `OTTO`. Any user-installed OTF
+  is refused, by name, and there is nothing above this module that can do anything about it.
 - Fix, in value order:
-  1. `ttcf`: read the collection header, expose a face index on `Face.load`. This is a small
-     parser change and it unblocks a whole class of system fonts immediately.
-  2. `OTTO`: a CFF charstring interpreter producing the same `Outline` the `glyf` loader produces.
+  1. `OTTO`: a CFF charstring interpreter producing the same `Outline` the `glyf` loader produces.
      This is the largest single piece of work in the module, and it is what closes the gap with
      FreeType and stb_truetype on font coverage.
-  3. WOFF and WOFF2: container decompression over the existing parser. WOFF is zlib, which
+  2. WOFF and WOFF2: container decompression over the existing parser. WOFF is zlib, which
      `Core` already has; WOFF2 needs Brotli, so weigh it separately.
-
-### 2. Kerning does not work on modern fonts
-
-- Problem: `Face.hasKerning` and `Face.getKerning` read the legacy `kern` table. Modern fonts put
-  kerning in `GPOS` and frequently ship no `kern` table at all, so `hasKerning` answers false and
-  text renders unkerned.
-- Consequence: this is not a hard failure, it is a quiet quality loss. Text looks slightly wrong
-  everywhere and nothing reports it.
-- Fix: read the `GPOS` pair-adjustment lookups. Full shaping is entry 3; kerning alone is a
-  bounded subset of `GPOS` and worth doing first, because it fixes the visible problem at a
-  fraction of the cost.
 
 ---
 
 ## Tier B — Text that is positioned wrongly
 
-### 3. No shaping
+### 2. No shaping
 
-- Problem: there is no `GSUB` or `GPOS` processing. A character maps to a glyph through `cmap` and
-  advances by `hmtx`, and that is the whole pipeline.
+- Problem: `GPOS` is read for pair adjustment only, and there is no `GSUB` processing at all. A
+  character maps to a glyph through `cmap`, advances by `hmtx`, and is kerned. That is the whole
+  pipeline.
 - What that costs, in increasing severity:
   - No ligatures and no contextual alternates, so Latin text loses `fi`, `fl` and any stylistic
     feature the font declares.
@@ -81,44 +73,44 @@ The gaps are about coverage: which fonts load at all, and whether text is positi
     conjuncts. Thai marks stack wrongly. For these scripts the output is not imperfect, it is
     incorrect.
 - Fix: HarfBuzz is the reference implementation and the honest comparison. A full port is a
-  project in its own right. A defensible staged path is `GPOS` kerning (entry 2), then `GSUB`
-  ligature and substitution lookups, then mark attachment, and to state plainly in the module
-  documentation which scripts are supported rather than failing silently on the rest.
+  project in its own right. The staged path now continues with `GSUB` ligature and substitution
+  lookups, then mark attachment, and states plainly in the module documentation which scripts are
+  supported rather than failing silently on the rest.
+- What the kerning work already provides: `src/gpos.swg` has coverage tables in both formats, class
+  definitions in both formats, value-record decoding, and extension-lookup resolution. Every one of
+  those is needed by the rest of `GPOS` and by `GSUB`, so shaping starts from the lookup navigation
+  rather than from the bytes.
 - Sequencing note: decide early whether this module owns shaping or whether shaping becomes a
   separate module above it. FreeType and HarfBuzz are deliberately separate, and that separation
   has held up well for twenty years.
-
-### 4. Character map coverage
-
-- Formats 4 and 12 are implemented. Missing: format 0 and 6 for old and small fonts, format 13 for
-  last-resort fonts, and format 14 for Unicode Variation Sequences.
-- Format 14 is the one that matters — it selects between CJK regional variants and between the text
-  and emoji presentations of the same code point.
-- Small, well-bounded work.
 
 ---
 
 ## Tier C — Font classes not covered
 
-### 5. Variable fonts
+### 3. Variable fonts
 
 - No `fvar`, `gvar`, `avar` or `HVAR`. A variable font loads only at its default instance, so a
   single file that should provide a whole weight and width range provides one static face.
 - Variable fonts are now the normal shipping form for large families, so this is a coverage gap
   rather than an exotic feature. It depends on entry 1 for CFF2-based variable fonts.
 
-### 6. Color fonts and emoji
+### 4. Color fonts and emoji
 
 - No `COLR`/`CPAL` layered color, no `sbix` or `CBDT` bitmap strikes, no `SVG` table. Emoji do not
   render.
 - `COLR` version 0 is the cheapest useful subset: layered glyph references with a palette, which
   the existing outline pipeline can already draw.
+- The `cmap` format-14 subtable is read, so `Face.glyphIndexVariant` already resolves the emoji and
+  text presentation selectors. What is missing is a glyph to draw for the emoji one.
 
-### 7. Vertical writing
+### 5. Vertical writing
 
 - No `vhea` or `vmtx`. Vertical CJK layout has no metrics to work from.
+- Small and well-bounded: the two tables mirror `hhea` and `hmtx`, which `parseFace` and
+  `buildGlyphMetrics` already read, run-length compression included.
 
-### 8. TrueType bytecode hinting
+### 6. TrueType bytecode hinting
 
 - `Face.hintVertical` is a vertical hinting heuristic, not the TrueType interpreter — `fpgm`,
   `prep` and `cvt ` are not executed.

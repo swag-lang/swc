@@ -202,12 +202,19 @@ impl IAllocator for ScratchAllocator
             return
         }
 
-        @memcpy(newAddress, oldAddress, @min(oldSize, request.size))
+        // A null old address is a plain allocation, and 'oldSize' then describes a
+        // block that no longer exists: 'Array.opPostCopy' clears the buffer of a copy
+        // before reallocating it, precisely so the old contents are not carried over.
+        if oldAddress
+        {
+            @memcpy(newAddress, oldAddress, @min(oldSize, request.size))
 
-        var freeRequest: AllocatorRequest
-        freeRequest.address = oldAddress
-        freeRequest.size    = oldSize
-        .free(&freeRequest)
+            var freeRequest: AllocatorRequest
+            freeRequest.address = oldAddress
+            freeRequest.size    = oldSize
+            .free(&freeRequest)
+        }
+
         request.address = newAddress
     }
 

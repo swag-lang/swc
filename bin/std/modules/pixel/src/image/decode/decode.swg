@@ -1,9 +1,10 @@
 using Swag, Core, Core.Errors
 
+// One registered decoder: the format it reads, and the type that reads it.
 struct ImageDecoder
 {
-    type: const *TypeInfoStruct
-    itf:  IImageDecoder
+    format: ImageFormat
+    type:   const *TypeInfoStruct
 }
 
 // Controls which parts of an encoded image are materialized.
@@ -17,8 +18,12 @@ public struct DecodeOptions
 // Defines a decoder selected by filename extension and applied to encoded bytes.
 public interface IImageDecoder
 {
-    // Reports whether this decoder accepts the filename extension.
-    mtd canDecode(filename: string)->bool
+    // Describes the format this decoder reads.
+    //
+    // The registry stores the result once, at registration, and derives extension
+    // matching from it. It is called on a decoder with no instance behind it, so it
+    // must return a constant and must not read the decoder's own state.
+    mtd format()->ImageFormat
 
     // Decodes one complete encoded buffer according to `opt`.
     //
@@ -33,17 +38,9 @@ impl Image
     // Find the decoder that can treat 'fileName'
     func getDecoder(fileName: string)->#null *ImageDecoder
     {
-        var found: #null *ImageDecoder
-        for &decoder in decoders
-        {
-            if decoder.itf.canDecode(fileName)
-            {
-                found = decoder
-                break
-            }
-        }
-
-        return found
+        for &decoder in decoders where decoder.format.matches(fileName) do
+            return decoder
+        return null
     }
 
     // Decode the given image buffer with the given decoder
@@ -75,23 +72,25 @@ public impl Image
         for &decoder in decoders where decoder.type == #typeof(T) do
             return
 
-        var decoder: ImageDecoder = undefined
-        decoder.type = #typeof(T)
-        decoder.itf  = @mkinterface(null, #typeof(T), IImageDecoder)
-        decoders.add(decoder)
+        let itf = @mkinterface(null, #typeof(T), IImageDecoder)
+        decoders.add({itf.format(), #typeof(T)})
+    }
+
+    // Returns the format read by each registered decoder, in registration order.
+    //
+    // The result is owned by the caller and is a snapshot: registering another decoder
+    // afterwards does not change it. Use it to build the format list of an open dialog.
+    func decodableFormats()->Array'ImageFormat
+    {
+        var result: retval
+        result.reserve(decoders.count)
+        for &decoder in decoders do
+            result.add(decoder.format)
+        return result
     }
 
     // Returns 'true' if the given filename has a corresponding decoder
-    func canLoad(fileName: string)->bool
-    {
-        for &decoder in decoders
-        {
-            if decoder.itf.canDecode(fileName) do
-                return true
-        }
-
-        return false
-    }
+    func canLoad(fileName: string)->bool => getDecoder(fileName) != null
 
     // Decode the given image buffer
     func decode(fileName: string, bytes: #null const [..] u8, options: DecodeOptions = {})->Image fail

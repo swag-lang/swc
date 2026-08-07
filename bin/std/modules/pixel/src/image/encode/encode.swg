@@ -1,16 +1,21 @@
 using Swag, Core, Core.Errors
 
+// One registered encoder: the format it writes, and the type that writes it.
 struct ImageEncoder
 {
-    type: const *TypeInfoStruct
-    itf:  IImageEncoder
+    format: ImageFormat
+    type:   const *TypeInfoStruct
 }
 
 // Defines an encoder selected by filename extension.
 public interface IImageEncoder
 {
-    // Reports whether this encoder accepts the filename extension.
-    mtd canEncode(filename: string)->bool
+    // Describes the format this encoder writes.
+    //
+    // The registry stores the result once, at registration, and derives extension
+    // matching from it. It is called on an encoder with no instance behind it, so it
+    // must return a constant and must not read the encoder's own state.
+    mtd format()->ImageFormat
 
     // Appends an encoded image to `buf`.
     //
@@ -23,6 +28,14 @@ public impl Image
 {
     private var encoders: Array'ImageEncoder
 
+    // Returns the registered encoder claiming `fileName`, or `null` when none does.
+    private func getEncoder(fileName: string)->#null const *ImageEncoder
+    {
+        for &encoder in encoders where encoder.format.matches(fileName) do
+            return encoder
+        return null
+    }
+
     // Registers an encoder type unless it is already present.
     func(T) registerEncoder()
     {
@@ -31,23 +44,25 @@ public impl Image
         for &encoder in encoders where encoder.type == #typeof(T) do
             return
 
-        var encoder: ImageEncoder = undefined
-        encoder.type = #typeof(T)
-        encoder.itf  = @mkinterface(null, #typeof(T), IImageEncoder)
-        encoders.add(encoder)
+        let itf = @mkinterface(null, #typeof(T), IImageEncoder)
+        encoders.add({itf.format(), #typeof(T)})
+    }
+
+    // Returns the format written by each registered encoder, in registration order.
+    //
+    // The result is owned by the caller and is a snapshot: registering another encoder
+    // afterwards does not change it. Use it to build the format list of a save dialog.
+    func encodableFormats()->Array'ImageFormat
+    {
+        var result: retval
+        result.reserve(encoders.count)
+        for &encoder in encoders do
+            result.add(encoder.format)
+        return result
     }
 
     // Returns 'true' if the given filename has a corresponding encoder
-    func canSave(fileName: string)->bool
-    {
-        for &encoder in encoders
-        {
-            if encoder.itf.canEncode(fileName) do
-                return true
-        }
-
-        return false
-    }
+    func canSave(fileName: string)->bool => getEncoder(fileName) != null
 
     // Encodes the image to an owned segmented memory buffer.
     //
@@ -58,17 +73,7 @@ public impl Image
         if !.pixels.buffer do
             fail InvalidFormatError{"invalid image"}
 
-        // Find the encoder that can treat 'fileName'
-        var found: #null *ImageEncoder
-        for &encoder in encoders
-        {
-            if encoder.itf.canEncode(fileName)
-            {
-                found = encoder
-                break
-            }
-        }
-
+        let found = getEncoder(fileName)
         if !found do
             fail UnsupportedFormatError{"no matching image encoder"}
         let safeFound = found!

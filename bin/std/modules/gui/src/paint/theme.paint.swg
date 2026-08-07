@@ -213,8 +213,20 @@ impl Theme
         // Icon, levelled with the text it leads rather than with the box around it.
         if icon.isValid()
         {
-            let centerY = stringFormat.vertAlignment == .Center ? position.vertCenter() : name.boundRect.vertCenter()
-            let top     = opticalTop(stringFormat.font, centerY, icon.sizeY)
+            // A line centered on its own capitals already sits where the eye reads it, so the
+            // glyph only has to share that center; a line centered on its box needs the offset
+            // between the two. See [[Pixel.Font.opticalLineTop]].
+            var top: f32
+            if stringFormat.vertAlignment == .OpticalCenter
+            {
+                top = position.vertCenter() - icon.sizeY * 0.5
+            }
+            else
+            {
+                let centerY = stringFormat.vertAlignment == .Center ? position.vertCenter() : name.boundRect.vertCenter()
+                top = opticalTop(stringFormat.font, centerY, icon.sizeY)
+            }
+
             icon.paint(painter, name.boundRect.x - icon.sizeX - iconMargin, top, iconColor)
         }
     }

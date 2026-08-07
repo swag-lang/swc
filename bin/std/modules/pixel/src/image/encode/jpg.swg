@@ -338,11 +338,7 @@ impl Encoder
 
 internal impl IImageEncoder for Encoder
 {
-    mtd impl canEncode(fileName: string)->bool
-    {
-        let ext = Path.lowercaseExtension(fileName)
-        return ext == ".jpg" or ext == ".jpeg"
-    }
+    mtd impl format()->ImageFormat => {"JPEG - Joint Photographic Experts Group", ".jpg;.jpeg"}
 
     mtd impl encode(result: *ConcatBuffer, image: Image, options: #null any) fail
     {

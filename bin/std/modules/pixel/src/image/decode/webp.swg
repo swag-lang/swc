@@ -362,10 +362,7 @@ func decodeLossy(container: Container, options: DecodeOptions)->Image fail
 
 internal impl IImageDecoder for Decoder
 {
-    mtd impl canDecode(fileName: string)->bool
-    {
-        return Path.lowercaseExtension(fileName) == ".webp"
-    }
+    mtd impl format()->ImageFormat => {"WebP - Google WebP", ".webp"}
 
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
     {

@@ -372,6 +372,79 @@ internal func parseCapacity(text: string, unitIndex: u32)->ContainerSize
     return result
 }
 
+// What the change-password box asks for.
+//
+// The password the container opens with today is asked for here rather than read off the open
+// card. A credential typed to mount a drive is not permission to take the vault over, and a field
+// left filled in would otherwise hand that permission to whoever reaches the keyboard next. The
+// container refuses a wrong password either way; what the box adds is that nothing is changed
+// until the reader has said it.
+internal struct PasswordChangeFields
+{
+    current:     *PasswordEdit     // Password the vault opens with today.
+    replacement: *PasswordEdit     // Password it opens with from now on, or empty to remove it.
+    confirm:     *PasswordEdit     // `replacement`, entered again.
+}
+
+// What the grow box asks for.
+internal struct VaultGrowFields
+{
+    current:  *PasswordEdit     // Password the vault opens with.
+    capacity: *EditBox          // Capacity the vault should hold from now on.
+    unit:     *ComboBox         // Unit `capacity` is written in; `parseCapacity` reads this order.
+}
+
+// Fills `dialog` with what a password change asks for, and returns its fields.
+//
+// Built apart from the gesture that opens the box so the shape of the form can be measured in
+// every language without running a modal loop.
+internal func buildPasswordChangeForm(dialog: *FormDlg)->PasswordChangeFields
+{
+    let texts = appStrings()
+    let form  = dialog.form
+
+    let current     = form.addPasswordField(texts.ui_CurrentPassword, placeholder: texts.ui_ContainerPassword, help: texts.ui_CurrentPasswordHelp)
+    let replacement = form.addPasswordField(texts.ui_NewPassword, placeholder: texts.ui_OptionalPassword, help: texts.ui_RemovePasswordHelp)
+    let confirm     = form.addPasswordField(texts.ui_ConfirmPassword, placeholder: texts.ui_EnterAgain)
+
+    form.computeLayout()
+    return {current, replacement, confirm}
+}
+
+// Fills `dialog` with what growing a vault of `currentSize` bytes asks for, and returns its fields.
+//
+// The password comes first here as it does in the box above: every box that changes a vault opens
+// on the one question that has to be answered before any of the others matter.
+internal func buildVaultGrowForm(dialog: *FormDlg, currentSize: u64)->VaultGrowFields
+{
+    let texts = appStrings()
+    let form  = dialog.form
+
+    let current = form.addPasswordField(texts.ui_CurrentPassword, placeholder: texts.ui_ContainerPassword, help: texts.ui_CurrentPasswordHelp)
+
+    // The field opens on the capacity the vault already has, in the unit that says it in whole
+    // numbers. A reader raises a number they can see rather than typing one blind against a
+    // sentence underneath.
+    const Gibibyte = 1024'u64 * 1024 * 1024
+    let inGibibytes = currentSize >= Gibibyte and !(currentSize % Gibibyte)
+    let divisor     = inGibibytes ? Gibibyte : 1024'u64 * 1024
+    let rounded     = Format.toString("%", (currentSize + divisor - 1) / divisor)
+
+    let capacity = form.addTextField(texts.ui_NewCapacity, rounded.toString(), help: Format.toString(texts.ui_CurrentCapacityHelp, capacityText(currentSize)).toString())
+    capacity.setUnsignedIntegerRange(1, 1024 * 1024)
+    capacity.selectAll()
+    setMachineFont(capacity)
+
+    let unit = form.addRowChoice()
+    unit.addItem("MiB")
+    unit.addItem("GiB")
+    unit.setSelectedIndex(inGibibytes ? 1 : 0, notify: false)
+    setMachineFont(unit)
+
+    form.computeLayout()
+    return {current, capacity, unit}
+}
+
 impl MainWindow
 {
     // Size one card needs, not three: the tab strip shows a single page at a time. The width is
@@ -939,9 +1012,10 @@ impl MainWindow
         // ends up under the reader's thumb, with the two secondary ones to its left.
         //
         // Those two are secondary on purpose: mounting is what a reader comes to this card for,
-        // and changing the password or the capacity is what the same file and the same password
-        // happen to also allow. Both name what they change rather than what they do, because
-        // both open a box that asks for the rest.
+        // and changing the password or the capacity is what the same file happens to also allow.
+        // Both name what they change rather than what they do, because both open a box that asks
+        // for the rest — starting with the password the container opens with, which is never
+        // taken from the field above.
         .mountButton = PushButton.create(card.actions, appStrings().ui_MountDrive, {0, 0, 0, 36}, form: .Strong)
         .mountButton.setIcon(.theme().icon(ThemeIcons.Play, 18))
         .mountButton.sigPressed += func|window = me|(btn)
@@ -1296,7 +1370,8 @@ impl MainWindow
         .beginOperation(.Unmount)
     }
 
-    // Asks for a new password, then rewrites the key slot the current one opens.
+    // Asks for the password the vault opens with today and the one it should open with from now
+    // on, then rewrites the key slot.
     //
     // An empty new password removes the protection, which is the whole of "remove a password":
     // a container no password opens at all is unrecoverable and is never offered.
@@ -1318,30 +1393,28 @@ impl MainWindow
         options.width             = 520
         options.height            = 300
 
-        let dialog      = FormDlg.create(.surface!, options)
-        let newPassword = dialog.form.addPasswordField(appStrings().ui_NewPassword, placeholder: appStrings().ui_OptionalPassword, help: appStrings().ui_RemovePasswordHelp)
-        let confirm     = dialog.form.addPasswordField(appStrings().ui_ConfirmPassword, placeholder: appStrings().ui_EnterAgain)
-        dialog.form.computeLayout()
+        let dialog = FormDlg.create(.surface!, options)
+        let fields = buildPasswordChangeForm(dialog)
         if dialog.doModal() != Dialog.BtnOk do
             return
 
-        if !Core.Crypto.constantTimeEqual(newPassword.bytes(), confirm.bytes())
+        if !Core.Crypto.constantTimeEqual(fields.replacement.bytes(), fields.confirm.bytes())
         {
             .showError(appStrings().msg_PasswordMismatch)
             return
         }
 
         .operation.path = path
-        .operation.password.add(.mountPassword.bytes())
-        .operation.replacement.add(newPassword.bytes())
-        .operation.removesPassword = confirm.isEmpty()
-        .mountPassword.clear()
+        .operation.password.add(fields.current.bytes())
+        .operation.replacement.add(fields.replacement.bytes())
+        .operation.removesPassword = fields.replacement.isEmpty()
         .setStatus(.ChangingPassword)
         .setState(.ChangingPassword)
         .beginOperation(.ChangePassword)
     }
 
-    // Asks for a larger capacity, then extends the container to it.
+    // Asks for the password the vault opens with and a larger capacity, then extends the
+    // container to it.
     mtd growVault()
     {
         if .state != .Ready or !.canModifyVault() do
@@ -1367,29 +1440,12 @@ impl MainWindow
         options.width             = 520
         options.height            = 240
 
-        // The field opens on the capacity the vault already has, in the unit that says it in
-        // whole numbers. A reader raises a number they can see rather than typing one blind
-        // against a sentence underneath.
-        let inGibibytes = info.size >= 1024 * 1024 * 1024 and !(info.size % (1024 * 1024 * 1024))
-        let divisor     = inGibibytes ? 1024'u64 * 1024 * 1024 : 1024'u64 * 1024
-        let current     = Format.toString("%", (info.size + divisor - 1) / divisor)
-
-        let dialog   = FormDlg.create(.surface!, options)
-        let capacity = dialog.form.addTextField(appStrings().ui_NewCapacity, current.toString(), help: Format.toString(appStrings().ui_CurrentCapacityHelp, capacityText(info.size)).toString())
-        capacity.setUnsignedIntegerRange(1, 1024 * 1024)
-        capacity.selectAll()
-        setMachineFont(capacity)
-
-        let unit = dialog.form.addRowChoice()
-        unit.addItem("MiB")
-        unit.addItem("GiB")
-        unit.setSelectedIndex(inGibibytes ? 1 : 0, notify: false)
-        setMachineFont(unit)
-        dialog.form.computeLayout()
+        let dialog = FormDlg.create(.surface!, options)
+        let fields = buildVaultGrowForm(dialog, info.size)
         if dialog.doModal() != Dialog.BtnOk do
             return
 
-        let size = parseCapacity(capacity.text(), unit.selectedIndex)
+        let size = parseCapacity(fields.capacity.text(), fields.unit.selectedIndex)
         if !size.error.isEmpty()
         {
             .showError(size.error.toString())
@@ -1404,8 +1460,7 @@ impl MainWindow
 
         .operation.path = path
         .operation.size = size.bytes
-        .operation.password.add(.mountPassword.bytes())
-        .mountPassword.clear()
+        .operation.password.add(fields.current.bytes())
         .statusProgress = 0
         .setStatus(.Growing)
         .setState(.Growing)

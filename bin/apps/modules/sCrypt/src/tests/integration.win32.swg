@@ -434,7 +434,9 @@ namespace Integration
         // Pass the complete marker path, which cannot end in a path separator.
         let probeArguments = Format.toString("% \"%\"", VisibilityProbeArgument, visibilityMarker)
         let executablePath = try Env.Process.currentExecutablePath()
-        try Env.doSyncProcess(executablePath, probeArguments)
+        var probe          = try Env.startProcess(executablePath, probeArguments)
+        let probeExitCode  = try probe.waitForExit()
+        try verify(probeExitCode == 0, "the visibility probe must exit without reporting a failure")
         try verify(File.exists(visibilityMarker) and (try File.readAllText(visibilityMarker)) == "VISIBLE", "an independent non-elevated process must see the mounted drive")
         try runFilesystemScenarios(box, payload.toSlice())
         trace("STAGE: live filesystem scenarios complete")

@@ -66,7 +66,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
   produce — rather than a `.swg` fixture that no longer compiles. If it does not, deleting it
   removes a check whose only remaining role is to duplicate a language rule.
 
-### F-073 — Freeing an object that holds a back-pointer is judged to free the pointee
+### F-077 — Freeing an object that holds a back-pointer is judged to free the pointee
 
 - Area: compiler
 - Found while: adding an OLE drop target to `std/gui`, whose registration allocates a COM object,

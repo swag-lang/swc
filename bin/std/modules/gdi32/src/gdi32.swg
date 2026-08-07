@@ -428,8 +428,6 @@ func RGB(r, g, b: s32)->COLORREF
 
 #[Foreign("Gdi32"), Discardable]
 {
-    func GetObjectA(h: HANDLE, c: s32, pv: LPVOID)->s32
-    func GetObjectW(h: HANDLE, c: s32, pv: LPVOID)->s32
     func SelectObject(hdc: HDC, h: HGDIOBJ)->HGDIOBJ
     func GetDeviceCaps(hdc: HDC, index: s32)->s32
     func GdiFlush()->BOOL

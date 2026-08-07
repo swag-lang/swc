@@ -5,6 +5,7 @@ func imageTag(x1, x2, x3, x4: u32)->u32 => (x1 << 24) | (x2 << 16) | (x3 << 8) |
 
 const TAG_CMAP = imageTag('c'u32, 'm'u32, 'a'u32, 'p'u32)
 const TAG_GLYF = imageTag('g'u32, 'l'u32, 'y'u32, 'f'u32)
+const TAG_GPOS = imageTag('G'u32, 'P'u32, 'O'u32, 'S'u32)
 const TAG_HEAD = imageTag('h'u32, 'e'u32, 'a'u32, 'd'u32)
 const TAG_HHEA = imageTag('h'u32, 'h'u32, 'e'u32, 'a'u32)
 const TAG_HMTX = imageTag('h'u32, 'm'u32, 't'u32, 'x'u32)
@@ -14,6 +15,16 @@ const TAG_NAME = imageTag('n'u32, 'a'u32, 'm'u32, 'e'u32)
 const TAG_POST = imageTag('p'u32, 'o'u32, 's'u32, 't'u32)
 const TAG_KERN = imageTag('k'u32, 'e'u32, 'r'u32, 'n'u32)
 const TAG_OS2  = imageTag('O'u32, 'S'u32, '/'u32, '2'u32)
+
+// Container signatures found at offset zero of a font file. Only the two bare
+// sfnt spellings carry `glyf` outlines this module can read; the rest name a
+// container it recognizes well enough to say so.
+const TAG_SFNT = 0x0001_0000'u32
+const TAG_TRUE = imageTag('t'u32, 'r'u32, 'u'u32, 'e'u32)
+const TAG_TTCF = imageTag('t'u32, 't'u32, 'c'u32, 'f'u32)
+const TAG_OTTO = imageTag('O'u32, 'T'u32, 'T'u32, 'O'u32)
+const TAG_WOFF = imageTag('w'u32, 'O'u32, 'F'u32, 'F'u32)
+const TAG_WOF2 = imageTag('w'u32, 'O'u32, 'F'u32, '2'u32)
 
 struct TableRecord
 {
@@ -49,6 +60,10 @@ struct FaceImpl
     macStyle:         u16
     indexToLocFormat: s16
 
+    // Format-14 subtable holding the Unicode variation sequences, when the face
+    // declares one. It supplements the selected map instead of replacing it.
+    variationCMap: #null const [..] u8
+
     // Blue-zone metrics for vertical hinting, in font design units (0 = unknown).
     xHeight:   s16
     capHeight: s16
@@ -61,6 +76,13 @@ struct FaceImpl
     // Horizontal kerning pairs from the legacy 'kern' table (format 0).
     // Key = (leftGlyph << 16) | rightGlyph, value = kerning in font design units.
     kernPairs: HashTable'(u32, s16)
+
+    // Pair-adjustment subtables the GPOS 'kern' feature reaches, as offsets into
+    // 'gposTable'. Class-based subtables describe a glyph-pair matrix far too large
+    // to expand, so kerning is resolved per query rather than precomputed. These
+    // answer before 'kernPairs', which covers the pairs they leave at zero.
+    gposTable:         #null const [..] u8
+    gposPairSubtables: Array'u32
 }
 
 impl FaceImpl
@@ -76,6 +98,7 @@ impl FaceImpl
         .outlineContours.clear()
         .bitmapPixels.clear()
         .kernPairs.free()
+        .gposPairSubtables.clear()
     }
 }
 

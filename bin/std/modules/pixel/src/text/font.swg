@@ -333,11 +333,13 @@ public impl Font
 
     // Distance from the middle of a line box to the middle of the text a reader sees in it.
     //
-    // A line box reaches from the ascender to the descender, but a word is read on its
-    // capitals: the two middles differ by roughly half the room the descenders keep, and the
-    // value is therefore negative — what the eye calls the middle sits above the geometric
-    // one. Add it to the center of a rectangle a single line is centered in to place anything
-    // that has to look level with that line, such as a leading icon or a check mark.
+    // A line box reaches from the ascender to the descender, but a word is read on its capitals,
+    // and the two middles are not the same point: the ascender keeps room above the capitals for
+    // accents the word may not carry, and the descender keeps room below the baseline for tails it
+    // may not carry either. The sign therefore belongs to the face, not to the rule — a text face
+    // with generous accent room reads low in its line box, a compact one reads high. Add it to the
+    // center of a rectangle a single line box is centered in to place anything that has to look
+    // level with that line, such as a leading icon or a check mark.
     mtd const opticalOffset()->f32
     {
         return (.ascent + .descent - .capHeight) * 0.5
@@ -347,6 +349,18 @@ public impl Font
     mtd const opticalTop(centerY, size: f32)->f32
     {
         return centerY + .opticalOffset() - size * 0.5
+    }
+
+    // Y of the top of a line box of this font whose capitals are centered on `centerY`.
+    //
+    // This is how a single line is centered in something a reader sees the edges of — a field, a
+    // cell, a button. Centering the line *box* instead hands the placement to the internal leading
+    // of the face: two fields of one form, one set in the interface face and one in the fixed-width
+    // one, then put their words on centers a couple of pixels apart, and neither on the center of
+    // the frame around it. What the eye compares is the ink, so it is the ink that is centered.
+    mtd const opticalLineTop(centerY: f32)->f32
+    {
+        return centerY - .height * 0.5 - .opticalOffset()
     }
 
     // The render mode requested at creation (may be .Auto)

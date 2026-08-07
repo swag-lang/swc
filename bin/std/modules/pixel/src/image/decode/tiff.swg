@@ -176,11 +176,7 @@ func unpackBits(dst: [*] u8, expected: u64, src, last: const [*] u8) fail
 
 internal impl IImageDecoder for Decoder
 {
-    mtd impl canDecode(fileName: string)->bool
-    {
-        let ext = Path.lowercaseExtension(fileName)
-        return ext == ".tif" or ext == ".tiff"
-    }
+    mtd impl format()->ImageFormat => {"TIFF - Tagged Image File Format", ".tif;.tiff"}
 
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
     {

@@ -3,6 +3,11 @@ using Swag, Core
 const NAME_ID_FAMILY = 1'u16
 const NAME_ID_STYLE  = 2'u16
 
+// What a face is called when its 'name' table declares no record this module can
+// read. Both are reported like any other name, so a caller never sees an empty one.
+const DEFAULT_FAMILY_NAME = "Unknown"
+const DEFAULT_STYLE_NAME  = "Regular"
+
 func scoreNameRecord(platformID, encodingID, languageID: u16)->s32
 {
     var score = 0
@@ -50,42 +55,46 @@ func decodeNameRecord(nameTable: #null const [..] u8, stringOffset, recordOffset
     return String.from(cast(#null string) raw)
 }
 
-func parseNames(faceData: *FaceImpl) fail
+// Decodes the best-scoring record a 'name' table holds for 'nameID', or an empty
+// string when it declares none this module can read.
+func decodeBestName(nameTable: #null const [..] u8, nameID: u16)->String fail
 {
-    let nameTable    = getTableSlice(faceData, TAG_NAME, 0x91)
+    var result: retval
+
     let count        = readU16(nameTable, 2)
     let stringOffset = readU16(nameTable, 4)
-
-    var bestFamilyScore = -1
-    var bestStyleScore  = -1
-    var familyName: String
-    var styleName:  String
+    var bestScore    = -1
 
     for count
     {
-        let base       = 6'u64 + cast(u64) @index * 12
+        let base = 6'u64 + cast(u64) @index * 12
+        if readU16(nameTable, base + 6) != nameID do
+            continue
+
         let platformID = readU16(nameTable, base + 0)
         let encodingID = readU16(nameTable, base + 2)
         let languageID = readU16(nameTable, base + 4)
-        let nameID     = readU16(nameTable, base + 6)
         let score      = scoreNameRecord(platformID, encodingID, languageID)
+        if score <= bestScore do
+            continue
 
-        if nameID == NAME_ID_FAMILY and score > bestFamilyScore
-        {
-            familyName      = decodeNameRecord(nameTable, stringOffset, base)
-            bestFamilyScore = score
-        }
-        elif nameID == NAME_ID_STYLE and score > bestStyleScore
-        {
-            styleName      = decodeNameRecord(nameTable, stringOffset, base)
-            bestStyleScore = score
-        }
+        result    = decodeNameRecord(nameTable, stringOffset, base)
+        bestScore = score
     }
 
+    return result
+}
+
+func parseNames(faceData: *FaceImpl) fail
+{
+    let nameTable = getTableSlice(faceData, TAG_NAME, 0x91)
+
+    var familyName = decodeBestName(nameTable, NAME_ID_FAMILY)
+    var styleName  = decodeBestName(nameTable, NAME_ID_STYLE)
     if familyName.length == 0 do
-        familyName = "Unknown"
+        familyName = DEFAULT_FAMILY_NAME
     if styleName.length == 0 do
-        styleName = "Regular"
+        styleName = DEFAULT_STYLE_NAME
     faceData.face.setNames(familyName, styleName)
 }
 
@@ -138,14 +147,19 @@ func parseCMap(faceData: *FaceImpl) fail
         let subTable   = getSlice(cmapTable, offset, @countof(cmapTable) - offset)
         let format     = readU16(subTable, 0)
 
-        var score = scoreNameRecord(platformID, encodingID, 0)
-        if format == 12 do
-            score += 50
-        elif format == 4 do
-            score += 40
-        else do
+        // Variation sequences supplement the selected map rather than compete with
+        // it: they resolve a base character already mapped elsewhere.
+        if format == 14
+        {
+            faceData.variationCMap = subTable
+            continue
+        }
+
+        let formatScore = scoreCMapFormat(format)
+        if formatScore < 0 do
             continue
 
+        let score = formatScore + scoreNameRecord(platformID, encodingID, 0)
         if score > bestScore
         {
             bestSlice = subTable
@@ -155,7 +169,7 @@ func parseCMap(faceData: *FaceImpl) fail
         }
     }
 
-    if bestFmt != 4 and bestFmt != 12 do
+    if bestScore < 0 do
         fault(0x96)
 
     faceData.chosenCMap = bestSlice!
@@ -264,21 +278,101 @@ func initFaceRecords(faceData: *FaceImpl)
     faceData.face.initializeRecords()
 }
 
-func parseFace(faceData: *FaceImpl) fail
+// Rejects an offset table this module cannot read, naming the container it found
+// instead of reporting every one of them as an unknown format.
+func checkSfntVersion(data: #null const [..] u8, offset: u64) fail
 {
-    let data = faceData.fontData.toSlice()
+    let tag = readU32(data, offset)
+    if tag == TAG_OTTO do
+        fault(0x0D)
+    if tag == TAG_WOFF or tag == TAG_WOF2 do
+        fault(0x0E)
+    if tag != TAG_SFNT and tag != TAG_TRUE do
+        fault(0x02)
+}
+
+// Returns how many faces the font data holds: the face count of a `ttcf`
+// collection, and one for a bare font file.
+func countFacesIn(data: #null const [..] u8)->u32 fail
+{
+    if @countof(data) < 12 do
+        fault(0x02)
+    if readU32(data, 0) == TAG_TTCF do
+        return readU32(data, 8)
+
+    checkSfntVersion(data, 0)
+    return 1
+}
+
+// Returns the offset of the offset table 'faceIndex' selects.
+//
+// A collection stores one such offset per face after a twelve-byte header; every
+// table record inside a member still addresses the whole file, so only the
+// directory moves.
+func findFaceOffset(data: #null const [..] u8, faceIndex: u32)->u64 fail
+{
     if @countof(data) < 12 do
         fault(0x02)
 
-    if readU32(data, 0) != 0x00010000 and readU32(data, 0) != imageTag('t'u32, 'r'u32, 'u'u32, 'e'u32) do
-        fault(0x02)
+    var offset = 0'u64
+    if readU32(data, 0) == TAG_TTCF
+    {
+        if faceIndex >= readU32(data, 8) do
+            fault(0x0F)
+        offset = cast(u64) readU32(data, 12 + cast(u64) faceIndex * 4)
+    }
+    elif faceIndex != 0
+    {
+        fault(0x0F)
+    }
 
-    let numTables = readU16(data, 4)
+    checkSfntVersion(data, offset)
+    return offset
+}
+
+// Locates one table of the directory at 'faceOffset', without building a face.
+func findTableAt(data: #null const [..] u8, faceOffset: u64, tag: u32)->#null const [..] u8 fail
+{
+    let numTables = readU16(data, faceOffset + 4)
+    for numTables
+    {
+        let base = faceOffset + 12 + cast(u64) @index * 16
+        if readU32(data, base) != tag do
+            continue
+        return getSlice(data, readU32(data, base + 8), readU32(data, base + 12))
+    }
+
+    return null
+}
+
+// Returns the family name one face of a font file declares.
+//
+// Only the offset table and the 'name' table are read, which is what lets a
+// collection be searched for a family without loading each of its faces in turn.
+func familyNameIn(data: #null const [..] u8, faceIndex: u32)->String fail
+{
+    let faceOffset = findFaceOffset(data, faceIndex)
+    let nameTable  = findTableAt(data, faceOffset, TAG_NAME)
+    if !nameTable do
+        fault(0x91)
+
+    let familyName = decodeBestName(nameTable, NAME_ID_FAMILY)
+    if familyName.length == 0 do
+        return DEFAULT_FAMILY_NAME
+    return familyName
+}
+
+func parseFace(faceData: *FaceImpl, faceIndex: u32) fail
+{
+    let data       = faceData.fontData.toSlice()
+    let faceOffset = findFaceOffset(data, faceIndex)
+
+    let numTables = readU16(data, faceOffset + 4)
     faceData.tables.resize(numTables)
 
     for numTables
     {
-        let base = 12'u64 + cast(u64) @index * 16
+        let base = faceOffset + 12 + cast(u64) @index * 16
         faceData.tables[@index].tag    = readU32(data, base + 0)
         faceData.tables[@index].offset = readU32(data, base + 8)
         faceData.tables[@index].length = readU32(data, base + 12)
@@ -315,6 +409,7 @@ func parseFace(faceData: *FaceImpl) fail
     parseNames(faceData)
     parsePost(faceData)
     parseKern(faceData)
+    parseGpos(faceData)
     parseOS2(faceData)
 
     var style = StyleFlag.None

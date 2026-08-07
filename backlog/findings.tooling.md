@@ -20,7 +20,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
   reuse is not theoretical at that density: one `tools/scripts.bat dm smoke` pass of 21 scripts
   handed pid 29356 to two different script processes. A stale root can change behavior rather
   than just waste space, which is what
-  [F-017](findings.gui.md#f-017--scapture-keeps-a-dark-editor-matte-after-switching-to-the-light-theme)
+  [F-017](findings.scapture.md#f-017--scapture-keeps-a-dark-editor-matte-after-switching-to-the-light-theme)
   shows for a persisted option.
 - Also: this now gates work rather than merely wasting space. The campaign's remaining cost is
   fifty-three programs launched one at a time, each holding roughly one core for one to five
@@ -110,3 +110,25 @@ Entries are sorted by identifier, ascending; position carries no priority.
   language suites need both because the two backends disagreeing *is* the defect they hunt; a
   `bin/std` module may only need both in the configuration where inlining is most aggressive.
   Whatever is decided has to be expressible, which today it is not.
+
+### F-073 — `swc format` silently skips every path under a dot directory
+
+- Area: tooling
+- Found while: validating a `bin/std` change made in a git worktree under `.claude/worktrees/`
+- Observation: the file discovery behind `swc format` drops any path holding a segment that starts
+  with a dot, and it drops it without a word. `tools/format.bat` run from such a checkout reports
+  `formatted 0 files` then `clean`, which reads exactly like a conformant tree. Nothing was read.
+- Evidence, with the same `bin/.swc-format` and the same badly formatted source in both places:
+  - `swc format -d <scratch>/fmt` reports `1 file • 1 rewritten file` and fixes the file.
+  - `swc format -d <scratch>/.dotdir` reports `0 files`. Only the directory name differs.
+  - From a worktree at `swc/.claude/worktrees/<name>`, `-d bin`, `-d bin/std`,
+    `-d bin/std/modules/truetype/src` and `-f <one file>` all report `0 files`, against a source
+    deliberately given six-space indentation and padded `=` signs.
+- Why it matters beyond worktrees: the skip is silent and it applies to `-f` as well as to `-d`,
+  so a file named explicitly is discarded rather than refused. A tool asked to format one file by
+  name that answers `clean` without opening it reports the opposite of what happened.
+- Next step: separate two rules that are currently one. Traversal should keep skipping dot
+  directories, because `.output`, `.tmp`, `.dep` and `.git` are exactly what it must not walk
+  into. A path named explicitly through `-f` should never be filtered. And a run that ends with
+  zero inputs should say so: `format.bat` on an empty selection and `format.bat` on a conformant
+  tree print the same thing today, which is what let this go unnoticed.

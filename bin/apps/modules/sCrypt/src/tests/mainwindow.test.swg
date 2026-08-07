@@ -354,14 +354,104 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     @assert(window.canCreate())
     @assert(window.createButton.isEnabled())
 
-    // The two actions that change a container need the file and nothing else, because the
-    // password they need may legitimately be empty.
+    // The two actions that change a container need the file and nothing else: the password they
+    // act on is the one their own box asks for, never what this card happens to be holding.
     @assert(!window.canModifyVault())
     window.mountPath.setText("C:\\open.scrypt")
     @assert(window.canModifyVault())
     @assert(window.canMount())
     @assert(window.passwordButton.isEnabled())
     @assert(window.resizeButton.isEnabled())
+}
+
+// Opens `dialog`, backs straight out of it, and reports that the box really came up.
+//
+// Nothing here answers the form: what has to run is the box itself, because that is what measures
+// the surface against the fields it was given.
+func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
+{
+    host.clickModalButtonWhenShown(Dialog.BtnCancel)
+    @assert(dialog.doModal() == Dialog.BtnCancel)
+    @assert(host.autoHandled)
+}
+
+// A box that changes a vault opens on the password the vault already has.
+//
+// This is the whole of the rule: the container refuses a wrong password either way, so what the
+// box adds is that the reader has to say it. Read off the open card instead, a password typed to
+// mount a drive becomes permission to take the vault over, and a field left filled in hands that
+// permission to whoever reaches the keyboard next.
+#test
+{
+    var host: Testing.HeadlessHost
+    discard testSetupMainWindow(&host)
+    defer host.shutdown()
+
+    let texts = appStrings()
+
+    var options: FormDlgOptions
+    let change = FormDlg.create(&host.surface, options)
+    let fields = buildPasswordChangeForm(change)
+
+    @assert(change.form.rows.count == 3)
+    @assert(change.form.rows[0].field == cast(*Wnd) fields.current)
+    @assert(change.form.rows[0].label.name.raw == texts.ui_CurrentPassword)
+    @assert(change.form.rows[1].field == cast(*Wnd) fields.replacement)
+    @assert(change.form.rows[2].field == cast(*Wnd) fields.confirm)
+    openAndDismiss(&host, change)
+
+    // Growing asks the same question first, and in the same words: one shape for every box that
+    // changes a vault is one thing to learn instead of two.
+    let grow       = FormDlg.create(&host.surface, options)
+    let growFields = buildVaultGrowForm(grow, 512 * 1024 * 1024)
+
+    @assert(grow.form.rows.count == 2)
+    @assert(grow.form.rows[0].field == cast(*Wnd) growFields.current)
+    @assert(grow.form.rows[0].label.name.raw == texts.ui_CurrentPassword)
+    @assert(growFields.capacity.text() == "512")
+    @assert(growFields.unit.selectedIndex == 0)
+    openAndDismiss(&host, grow)
+}
+
+// Both boxes end up as tall as what they ask for, in every language.
+//
+// A dialog height is measured, not authored: a help paragraph takes one more line in a language
+// that says the same thing in more words, and a box tuned on English cuts that line off with
+// nothing reporting it.
+#test
+{
+    var host: Testing.HeadlessHost
+    discard testSetupMainWindow(&host)
+    defer host.shutdown()
+    defer discard catch g_App.setLanguage(ReferenceLanguage)
+
+    func assertFormFits(host: *Testing.HeadlessHost, dialog: *FormDlg)
+    {
+        openAndDismiss(host, dialog)
+        let form   = dialog.form
+        let needed = form.measure({form.position.width, 0}).preferred.y
+        if needed > form.position.height + 0.5
+        {
+            Console.println("form does not end inside its box: needs ", needed, ", box holds ", form.position.height)
+            @assert(false)
+        }
+    }
+
+    for &one in languages()
+    {
+        expect g_App.setLanguage(one.tag.toString())
+        host.notify(.LanguageChanged)
+
+        var options: FormDlgOptions
+
+        let change = FormDlg.create(&host.surface, options)
+        discard buildPasswordChangeForm(change)
+        assertFormFits(&host, change)
+
+        let grow = FormDlg.create(&host.surface, options)
+        discard buildVaultGrowForm(grow, 512 * 1024 * 1024)
+        assertFormFits(&host, grow)
+    }
 }
 
 // The drives card shows a table only while it has a drive to put in it, and says so

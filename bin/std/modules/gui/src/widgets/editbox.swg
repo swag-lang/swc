@@ -218,10 +218,11 @@ impl IWnd for EditBox
 
         clientRect = .editRect()
 
-        // Icon, levelled with the line the box holds rather than with the box.
+        // Icon, plainly centered: the line beside it is centered on its own capitals, so the two
+        // are level on the middle of the box and stay level whatever face the box is set in.
         if .icon.isValid()
         {
-            .icon.paint(bc.painter, clientRect.x, opticalTop(.font(), clientRect.vertCenter(), .icon.sizeY), colors.edit_Text)
+            .icon.paint(bc.painter, clientRect.x, clientRect.vertCenter() - .icon.sizeY * 0.5, colors.edit_Text)
             clientRect.x     += .icon.sizeX + metrics.iconText_Margin
             clientRect.width -= .icon.sizeX + metrics.iconText_Margin
         }
@@ -231,7 +232,7 @@ impl IWnd for EditBox
         {
             var format: RichStringFormat
             format.palette[0]    = colors.edit_Note
-            format.vertAlignment = .Center
+            format.vertAlignment = .OpticalCenter
             format.flags         = .Clip
             format.font          = .font()
             Theme.drawIconText(bc.painter, clientRect, {}, &.name, format, metrics.iconText_Margin)
@@ -252,6 +253,13 @@ impl IWnd for EditBox
         painter.pushClippingRect(clientRect)
         painter.translateTransform(-.scrollPosX, 0)
 
+        // The one line the box holds is centered on the band it is read on, not on its line box:
+        // set in the fixed-width family a box centered the other way puts its text a couple of
+        // pixels above the middle of its frame, and beside a box set in the interface family a
+        // couple of pixels below it. The selection and the caret follow the line, so they are
+        // placed from the same Y.
+        let y = fontR.opticalLineTop(clientRect.vertCenter())
+
         // Selection
         if .selBeg != .selEnd and .hasFocus()
         {
@@ -261,14 +269,13 @@ impl IWnd for EditBox
             else do
                 pos.x += .posSelBeg
             pos.x      -= .rightTextMargin()
-            pos.y      = clientRect.vertCenter() - fontR.height * 0.5
+            pos.y      = y
             pos.height = fontR.height
             pos.width  = .posSelEnd - .posSelBeg
             bc.painter.fillRect(pos, colors.edit_SelectedBk)
         }
 
         // Content
-        let y         = clientRect.vertCenter() - fontR.height * 0.5
         let editRight = clientRect.right()
         if .flags.has(.RightAligned)
         {
@@ -881,7 +888,7 @@ private impl EditBox
 
         result.x      -= .rightTextMargin()
         result.height = font.height
-        result.y      = clientRect.vertCenter() - result.height * 0.5
+        result.y      = font.opticalLineTop(clientRect.vertCenter())
 
         result.width = 2
         return result

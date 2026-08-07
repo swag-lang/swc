@@ -199,11 +199,7 @@ func decodeDib(result: *Image, dib: DibHeader, src, last: const [*] u8) fail
 
 internal impl IImageDecoder for Decoder
 {
-    mtd impl canDecode(fileName: string)->bool
-    {
-        let ext = Path.lowercaseExtension(fileName)
-        return ext == ".ico" or ext == ".cur"
-    }
+    mtd impl format()->ImageFormat => {"ICO - Windows Icon and Cursor", ".ico;.cur"}
 
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
     {

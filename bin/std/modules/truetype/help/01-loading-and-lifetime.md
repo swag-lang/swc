@@ -12,7 +12,34 @@ let face  = (try Face.load(bytes.toSlice()))!
 defer face.destroy()
 ```
 
-The input is a standalone TrueType font with `glyf` outlines.
+The input is a TrueType font with `glyf` outlines. OpenType files carrying CFF
+outlines (`OTTO`) and WOFF containers are recognized and reported as unsupported,
+so a failure names what the file actually is.
+
+## Font collections
+
+A `ttcf` collection packs several faces into one file, which is how Windows ships
+many of its font families. [[TrueType.Face.countFaces]] reports how many a buffer
+holds and [[TrueType.Face.loadAt]] selects one; [[TrueType.Face.load]] takes the
+first. A bare font file answers a count of one, so the same code path serves both.
+
+Looking for one member by name does not mean loading the others.
+[[TrueType.Face.familyNameAt]] reads a face's `name` table and nothing else, so a
+collection can be searched first and loaded once.
+
+```swag
+let bytes = File.readAllBytes("msgothic.ttc")
+let count = try Face.countFaces(bytes.toSlice())
+for count
+{
+    if (try Face.familyNameAt(bytes.toSlice(), @index)) != "MS PGothic" do
+        continue
+
+    let face = (try Face.loadAt(bytes.toSlice(), @index))!
+    defer face.destroy()
+    break
+}
+```
 
 ## The reusable glyph slot
 
@@ -40,6 +67,31 @@ zero is the conventional missing-glyph entry, so a zero result means that the
 requested character has no distinct glyph. Use [[TrueType.Face.loadChar]] for the
 simple one-step path.
 
-Kerning also operates on glyph indices. Query [[TrueType.Face.hasKerning]] once,
-then call [[TrueType.Face.getKerning]] only when the face contains supported
-legacy kerning pairs.
+A variation selector qualifies the character before it, choosing between the forms
+of one code point — a CJK regional variant, or the text and emoji presentations.
+[[TrueType.Face.glyphIndexVariant]] resolves the pair and falls back to the plain
+lookup when the face registers no distinct glyph, so it is always safe to call;
+[[TrueType.Face.hasVariant]] answers whether the face registers the pair at all.
+
+## Kerning
+
+Kerning operates on glyph indices. Query [[TrueType.Face.hasKerning]] once, then
+call [[TrueType.Face.getKerning]] only when the face carries kerning data.
+
+The `GPOS` `kern` feature answers first, and the legacy `kern` table answers for any
+pair it leaves at zero. Most modern faces ship only `GPOS`, which is why reading it
+matters; a face carrying both states many of its pairs behind contextual lookups
+that this module does not run, and its legacy table is the designer's own flattening
+of exactly those rules. Reading both is what keeps either kind of face kerned.
+
+Mark attachment and contextual positioning are still missing, and they need a shaper
+rather than a wider kerning query.
+
+```swag
+if face.hasKerning()
+{
+    let left  = face.glyphIndex('A')
+    let right = face.glyphIndex('V')
+    let pen   = face.getKerning(left, right).x / 64.0
+}
+```

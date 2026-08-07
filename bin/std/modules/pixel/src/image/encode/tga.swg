@@ -95,10 +95,7 @@ func writeTgaRle(result: *ConcatBuffer, image: Image)
 
 internal impl IImageEncoder for Encoder
 {
-    mtd impl canEncode(fileName: string)->bool
-    {
-        return Path.lowercaseExtension(fileName) == ".tga"
-    }
+    mtd impl format()->ImageFormat => {"TGA - Truevision Targa", ".tga"}
 
     mtd impl encode(result: *ConcatBuffer, image: Image, options: #null any) fail
     {

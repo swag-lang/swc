@@ -53,9 +53,9 @@ independent: neither blocks the other, and neither should be allowed to block ev
   HTTP parser out of the module every program links. Staged:
   1. Sockets — TCP and UDP, blocking, with addresses and DNS resolution. Winsock on Windows, BSD
      sockets elsewhere. This is the layer everything else sits on.
-  2. Non-blocking and readiness notification. This is where the async design question in entry 11
+  2. Non-blocking and readiness notification. This is where the async design question in entry 10
      becomes unavoidable, so decide that first rather than around it.
-  3. TLS. Depends on entry 6 for AES and the signature primitives. Consider binding the platform
+  3. TLS. Depends on entry 5 for AES and the signature primitives. Consider binding the platform
      provider — Schannel, Secure Transport, OpenSSL — before writing one.
   4. HTTP/1.1 client, then server.
 
@@ -93,18 +93,7 @@ independent: neither blocks the other, and neither should be allowed to block ev
   present — encoding a struct should need no schema and no annotations.
 - This is the highest value-to-effort entry in the module. Do it before anything in Tier C.
 
-### 4. Process control is two functions
-
-- Problem: `system/process.swg` offers `startProcess`, `doSyncProcess` and `waitForExit`. There is
-  no standard output or standard error capture, no standard input, no exit code, no kill, no
-  working directory, and no environment override.
-- Consequence: nothing can drive another program and read its result. Every build tool, test
-  runner, formatter integration and script that shells out is blocked, which is why this
-  repository's own tooling lives in `.bat` files.
-- Fix: pipe redirection for the three standard streams, exit code, termination, working directory,
-  and an environment block. Bounded work with immediate payoff for the repository itself.
-
-### 5. Globalization is a stub that implies more than it delivers
+### 4. Globalization is a stub that implies more than it delivers
 
 - Problem: the whole area is twenty-nine lines. `CultureInfo` holds one `NumberFormatInfo`, which
   holds a negative sign, a positive sign and a decimal separator.
@@ -116,7 +105,7 @@ independent: neither blocks the other, and neither should be allowed to block ev
 - Related: `bin/apps` and `std/gui` now have localization work in flight on the `gui-resources`
   branch. Coordinate rather than building a second vocabulary.
 
-### 6. Cryptography has hashes but almost no ciphers
+### 5. Cryptography has hashes but almost no ciphers
 
 - Present: Adler-32, CRC-32, CRC-64, MD5, SHA-1, SHA-256, HMAC-SHA-256, PBKDF2, ChaCha20, and
   several non-cryptographic hashes.
@@ -131,20 +120,20 @@ independent: neither blocks the other, and neither should be allowed to block ev
 
 ## Tier C — Coverage
 
-### 7. Archive formats
+### 6. Archive formats
 
 `compress` has raw deflate, inflate and a zlib wrapper, so the hard part is done. Missing: the
 gzip container, ZIP, and TAR. Reading a `.zip` is among the most common I/O tasks there is, and it
 is a thin layer over what already exists. Modern codecs — Zstandard, LZ4 — are a separate and
 lower-priority question.
 
-### 8. Time zones
+### 7. Time zones
 
 `time` handles UTC and local. There is no IANA zone database, no historical offsets, and no DST
 rules for an arbitrary zone. Any application that schedules or displays times across regions is
 stuck at the boundary.
 
-### 9. Missing collections
+### 8. Missing collections
 
 Present: `Array`, `ArrayPtr`, `BitArray`, `ConcatBuffer`, `HashSet`, `HashTable`, `List`,
 `StaticArray`. Missing, in order of how often they are wanted:
@@ -154,13 +143,13 @@ Present: `Array`, `ArrayPtr`, `BitArray`, `ConcatBuffer`, `HashSet`, `HashTable`
 - A deque or ring buffer.
 - A priority queue.
 
-### 10. Memory-mapped files and filesystem watching
+### 9. Memory-mapped files and filesystem watching
 
 Neither exists. Memory mapping matters for any large file read — the sCrypt container is one
 example already in the repository. Watching matters for any tool that reacts to edits, which
 includes anything this repository would want to build around the formatter or the compiler.
 
-### 11. Concurrency beyond parallel fan-out
+### 10. Concurrency beyond parallel fan-out
 
 `Jobs` gives parallel visiting and parallel loops, and there are atomics, mutexes, read-write locks
 and events. There is no future or task type, no channels, and no condition variable. There is no
@@ -182,6 +171,6 @@ there, not here.
 **A package registry client.** That belongs to the tooling around the compiler, not to the standard
 library, even after entry 1 makes it possible.
 
-**Bundling ICU.** Entry 5 should grow toward what applications need from the platform's own locale
+**Bundling ICU.** Entry 4 should grow toward what applications need from the platform's own locale
 data. Vendoring a multi-megabyte dependency into the module every program links is the wrong shape
 for that need.

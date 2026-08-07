@@ -126,7 +126,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
   cheaply first: restrict the fold to `FloatAdd` alone and run `tools/scripts.bat dm` - a crash
   there means the shape, a pass means the operation.
 
-### F-041 — Tracking frame addresses transitively through mem2reg does not pay on its own
+### F-066 — Tracking frame addresses transitively through mem2reg does not pay on its own
 
 - Area: compiler/backend
 - Found while: closing the generated-code gap `bench/` measures (campaign 20260806-202546,
@@ -149,10 +149,10 @@ Entries are sorted by identifier, ascending; position carries no priority.
   were masking rather than in the derivation itself. Only re-attempt this alongside a change that
   makes the newly promoted slots pay — and measure the loop bodies, not the function totals: this
   attempt's whole visible effect was a perturbation of register allocation.
-- Related: [F-042](#f-042--instruction-combine-folds-a-slot-load-into-an-operand-and-mem2reg-then-refuses-the-slot),
-  [F-043](#f-043--a-hot-loops-base-pointer-loses-its-register-to-the-cold-code-around-it)
+- Related: [F-067](#f-067--instruction-combine-folds-a-slot-load-into-an-operand-and-mem2reg-then-refuses-the-slot),
+  [F-068](#f-068--a-hot-loops-base-pointer-loses-its-register-to-the-cold-code-around-it)
 
-### F-042 — Instruction-combine folds a slot load into an operand and mem2reg then refuses the slot
+### F-067 — Instruction-combine folds a slot load into an operand and mem2reg then refuses the slot
 
 - Area: compiler/backend
 - Found while: the same campaign, tracing why sha256's eight compression-state words never leave
@@ -174,7 +174,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
   syntactic shape that a *later* fold rewrites will decay the same way as the pre-RA loop
   converges; instruction-combine's memory folds are the ones that rewrite the most shapes.
 
-### F-043 — A hot loop's base pointer loses its register to the cold code around it
+### F-068 — A hot loop's base pointer loses its register to the cold code around it
 
 - Area: compiler/backend
 - Found while: the same campaign, asking why the identical loop compiles differently in two places
@@ -203,7 +203,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
   the ranking itself instead — a hull scoped to the loop region rather than the whole span — is the
   same idea done pre-RA, and is what four earlier attempts at a global allocator foundered on.
 
-### F-044 — A byte the loop compares is loaded again to use it
+### F-069 — A byte the loop compares is loaded again to use it
 
 - Area: compiler/backend
 - Found while: reading csvagg's digit loop after the hoisting pass above

@@ -72,8 +72,8 @@ public func runWeb(context: *Context, options: *Options)->s32 fail
         try Directory.create(webDir.toString())
 
     var brand: Array'String
-    brand.add(Path.combine(webDir.toString(), "tools", "brand.swgs"))
     options.appendExtra(&brand)
+    brand.add(Path.combine(webDir.toString(), "tools", "brand.swgs"))
 
     let brandLine = joinArguments(brand.toSlice())
 

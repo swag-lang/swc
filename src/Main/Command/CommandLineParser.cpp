@@ -130,6 +130,28 @@ namespace
         cmdLine.files.insert(scriptPath);
     }
 
+    // Returns where the script sits on the command line, or args.size() when there is none.
+    //
+    // A script names itself, and it is recognized wherever it sits: what comes before it
+    // configures the compilation, and what comes after is the script's own command line. The
+    // search only runs when the first token is not a command, so `swc test -f some.swgs` keeps
+    // meaning what it always meant.
+    size_t findScriptArgument(const std::vector<Utf8>& args, const CommandKind firstTokenCommand)
+    {
+        if (!args.empty() && firstTokenCommand != CommandKind::Invalid)
+            return args.size();
+
+        for (size_t i = 0; i < args.size(); i++)
+        {
+            if (args[i].empty() || args[i][0] == '-')
+                continue;
+            if (isSwagScriptPath(fs::path(args[i].c_str())))
+                return i;
+        }
+
+        return args.size();
+    }
+
     void splitInlineOptionValue(const Utf8& raw, Utf8& lookup, std::optional<Utf8>& inlineValue)
     {
         lookup = raw;
@@ -886,35 +908,40 @@ Result CommandLineParser::parse(int argc, char* argv[])
 
     SWC_RESULT(applyConfigFile(ctx, args));
 
-    size_t argStartIndex = 0;
-    if (!args.empty() && !args[0].empty() && args[0][0] != '-')
+    size_t       argStartIndex    = 0;
+    const Utf8   firstToken       = args.empty() ? Utf8{} : args[0];
+    const auto   firstTokenIsFlag = !firstToken.empty() && firstToken[0] == '-';
+    const size_t scriptIndex      = findScriptArgument(args, firstTokenIsFlag ? CommandKind::Invalid : isAllowedCommand(firstToken));
+
+    if (scriptIndex != args.size())
+    {
+        configureScriptCommand(*cmdLine_, fs::path(args[scriptIndex].c_str()));
+        command_ = commandName(cmdLine_->command);
+
+        // The script reads these itself, through '@args'. The compiler hands them over without
+        // looking at them, so a tool written as a script is free to take '-bc' or '--help' and
+        // mean its own thing by them.
+        for (size_t i = scriptIndex + 1; i < args.size(); i++)
+            cmdLine_->runArgs.push_back(args[i]);
+        args.resize(scriptIndex);
+    }
+    else if (!args.empty() && !args[0].empty() && args[0][0] != '-')
     {
         const Utf8& candidate = args[0];
         cmdLine_->command     = isAllowedCommand(candidate);
         if (cmdLine_->command == CommandKind::Invalid)
         {
-            if (isSwagScriptPath(fs::path(candidate.c_str())))
-            {
-                configureScriptCommand(*cmdLine_, fs::path(candidate.c_str()));
-                command_      = commandName(cmdLine_->command);
-                argStartIndex = 1;
-            }
-            else
-            {
-                Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_command);
-                setReportArguments(diag, candidate);
-                diag.addArgument(Diagnostic::ARG_VALUES, getAllowedCommands());
-                diag.addDidYouMeanNote(suggestCommand(candidate));
-                diag.report(ctx);
-                return Result::Error;
-            }
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_command);
+            setReportArguments(diag, candidate);
+            diag.addArgument(Diagnostic::ARG_VALUES, getAllowedCommands());
+            diag.addDidYouMeanNote(suggestCommand(candidate));
+            diag.report(ctx);
+            return Result::Error;
         }
-        else
-        {
-            cmdLine_->commandExplicit = true;
-            command_                  = candidate;
-            argStartIndex             = 1;
-        }
+
+        cmdLine_->commandExplicit = true;
+        command_                  = candidate;
+        argStartIndex             = 1;
     }
     else if (cmdLine_->commandExplicit)
     {

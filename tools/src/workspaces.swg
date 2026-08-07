@@ -386,29 +386,27 @@ private func scriptFiles(scriptsDir: string)->Array'String
 // The bare marker takes the default frame budget, and an explicit one always wins.
 private func runOneScript(context: *Context, options: *Options, command: string, script: string)->s32 fail
 {
+    // The compiler reads what comes before the script and hands everything after it to the
+    // script itself, so the two halves are built in that order.
     var arguments: Array'String
-    arguments.add(String.from(script))
     arguments.add(String.from("--build-cfg"))
     arguments.add(options.buildCfg)
+    options.appendWorkspace(&arguments)
+    options.appendExtra(&arguments)
+
+    arguments.add(String.from(script))
 
     if command == "smoke"
     {
-        if !options.hasRunArgument("swag.smoke")
-        {
-            arguments.add(String.from("--run-arg"))
+        if !options.hasRunArgument("swag.smoke") do
             arguments.add(String.from("swag.smoke"))
-        }
-
-        if !options.hasRunArgument("swag.sandbox")
-        {
-            arguments.add(String.from("--run-arg"))
+        if !options.hasRunArgument("swag.sandbox") do
             arguments.add(String.from("swag.sandbox"))
-        }
     }
 
-    options.appendRunArguments(&arguments)
-    options.appendWorkspace(&arguments)
-    options.appendExtra(&arguments)
+    for value in options.runArguments do
+        arguments.add(value)
+
     return try context.runCompiler(arguments.toSlice())
 }
 

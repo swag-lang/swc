@@ -9,6 +9,11 @@ const SimulationSpeed = 50'f32
 const MaxFrameStep    = 1'f32
 const FixedStep       = 0.05'f32
 
+// Width the sliders and their edit boxes need. The pendulum hangs from the middle of what is left
+// of the window, not from the middle of the window: measured against the whole width it leans
+// into the panel as soon as the window is not much wider than the panel is.
+const PanelWidth = 360.0
+
 var r1            = 125.0
 var r2            = 125.0
 var m1            = 10.0
@@ -70,11 +75,11 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     {
     case CreateEvent:
         let rect = wnd.clientRect()
-        cx = rect.width / 3
+        cx = (rect.width - PanelWidth) * 0.5
         cy = 50
         restartPendulum()
 
-        let panel = StackLayoutCtrl.create(wnd, .Top, {0, 0, 360})
+        let panel = StackLayoutCtrl.create(wnd, .Top, {0, 0, PanelWidth})
         panel.padding   = 10
         panel.spacing   = 5
         panel.dockStyle = .Right
@@ -170,5 +175,5 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
 #main
 {
-    Application.runSurface(100, 100, 820, 480, title: "Pendulum", borders: false, hook: &onEvent)
+    Application.runSurface(100, 100, 900, 500, title: "Pendulum", borders: false, hook: &onEvent)
 }

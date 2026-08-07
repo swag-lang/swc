@@ -3,8 +3,67 @@
 using Gui, Core, Pixel
 
 const CellCount = 4
-const CellSize  = 128.0
-const Margin    = 8.0
+
+// The board was drawn at this cell size, and every other measurement of the game is a ratio of
+// it: the gap a cell keeps inside itself, the corner it is cut with, the pop a new tile arrives
+// with, and the size of the digits on it. Held as ratios they follow the window; held as pixels
+// they only ever fit the one window they were tuned in.
+const CellRef     = 128.0
+const MarginRatio = 8.0 / CellRef
+const CornerRatio = 8.0 / CellRef
+const PopRatio    = 40.0 / CellRef
+const BandRatio   = 120.0 / CellRef     // Room the score keeps above the board, air included.
+const OuterRatio  = 16.0 / CellRef      // Air between the window edge and the board, on all four sides.
+const LabelRatio  = 20.0 / CellRef      // Center of the caption inside the band.
+const ScoreRatio  = 60.0 / CellRef      // Center of the score inside the band.
+
+// Where the board sits in the window, and at what size.
+struct BoardLayout
+{
+    grid:   Math.Rectangle     // Square the cells are laid out in.
+    cell:   f32                // Side of one cell, its gap included.
+    margin: f32                // Gap kept inside a cell, and around the board.
+    corner: f32                // Corner radius of the board and of every tile.
+    zoom:   f32                // Scale the authored type and the pop animation are drawn at.
+    labelY: f32                // Center of the "score" caption.
+    scoreY: f32                // Center of the score itself.
+}
+
+// Measures the board for `rect`.
+//
+// One unknown decides the whole frame: the cell. Everything else — the gap, the corner, the band
+// the score is written in, the digits — is a ratio of it, so the score cannot be sized against
+// the window while the type that fills it is sized against the cell. Solving for the cell once,
+// against both the width and the height, is what keeps the score off the board at any shape.
+func boardLayout(rect: Math.Rectangle)->BoardLayout
+{
+    var result: retval
+
+    // Across: the outer air, the gap the board keeps around its cells, and the four cells.
+    // Down: the same, with the score's band added above the board.
+    const AcrossRatio = CellCount + 2 * MarginRatio + 2 * OuterRatio
+    const DownRatio   = CellCount + 2 * MarginRatio + 2 * OuterRatio + BandRatio
+
+    result.cell   = Math.min(rect.width / AcrossRatio, rect.height / DownRatio)
+    result.margin = result.cell * MarginRatio
+    result.corner = result.cell * CornerRatio
+    result.zoom   = result.cell / CellRef
+
+    // What is left over once the frame is measured goes above and below it in equal parts, so a
+    // window that is not the board's shape holds it in the middle instead of against an edge.
+    let outer = result.cell * OuterRatio
+    let band  = result.cell * BandRatio
+    let size  = result.cell * CellCount
+    let top   = outer + Math.max((rect.height - result.cell * DownRatio) * 0.5, 0)
+
+    result.grid.x = rect.horzCenter() - size * 0.5
+    result.grid.y = top + band + result.margin
+    result.grid.width, result.grid.height = size
+
+    result.labelY = top + result.cell * LabelRatio
+    result.scoreY = top + result.cell * ScoreRatio
+    return result
+}
 
 struct Cell
 {
@@ -18,40 +77,32 @@ struct Cell
     remove:   bool
 }
 
-var g_Cells:    Array'Cell
-var g_Font:     #null *Font
-var g_MoveDirX: s32
-var g_MoveDirY: s32
-var g_IsMoving: bool
-var g_GameOver: bool
-var g_Score:    s32
-
-const RoundCorners = 8.0
+var g_Cells:     Array'Cell
+var g_Font:      #null *Font
+var g_LabelFont: #null *Font
+var g_MoveDirX:  s32
+var g_MoveDirY:  s32
+var g_IsMoving:  bool
+var g_GameOver:  bool
+var g_Score:     s32
 
 func paintGrid(wnd: *Wnd, painter: *Painter)
 {
-    let rect = wnd.clientRect()
-
-    var rectGrid: Math.Rectangle
-
-    let size = CellSize * CellCount
-    rectGrid.x = rect.horzCenter() - size * 0.5
-    rectGrid.y = rect.bottom() - size - 3 * Margin
-    rectGrid.width, rectGrid.height = size
+    let layout = boardLayout(wnd.clientRect())
+    let cellW  = layout.cell - (2 * layout.margin)
 
     painter.setAntialiased(true)
-    var rectBack = rectGrid
-    rectBack.inflate(Margin)
-    painter.fillRoundRect(rectBack, RoundCorners, RoundCorners, Color.fromRgb(187, 173, 160))
+    var rectBack = layout.grid
+    rectBack.inflate(layout.margin)
+    painter.fillRoundRect(rectBack, layout.corner, layout.corner, Color.fromRgb(187, 173, 160))
 
-    const CellSizeW = CellSize - (2 * Margin)
-    for [x] in 4
+    for [x] in CellCount
     {
-        for [y] in 4
+        for [y] in CellCount
         {
-            let xi = rectGrid.x + (x * CellSize) + Margin
-            let yi = rectGrid.y + (y * CellSize) + Margin
-            painter.fillRoundRect(xi, yi, CellSizeW, CellSizeW, RoundCorners, RoundCorners, Color.fromRgb(204, 192, 178))
+            let xi = layout.grid.x + (x * layout.cell) + layout.margin
+            let yi = layout.grid.y + (y * layout.cell) + layout.margin
+            painter.fillRoundRect(xi, yi, cellW, cellW, layout.corner, layout.corner, Color.fromRgb(204, 192, 178))
         }
     }
 
@@ -59,8 +110,8 @@ func paintGrid(wnd: *Wnd, painter: *Painter)
     {
         var color: Color
 
-        let xi = rectGrid.x + (c.x * CellSize) + Margin
-        let yi = rectGrid.y + (c.y * CellSize) + Margin
+        let xi = layout.grid.x + (c.x * layout.cell) + layout.margin
+        let yi = layout.grid.y + (c.y * layout.cell) + layout.margin
 
         switch c.val
         {
@@ -75,8 +126,8 @@ func paintGrid(wnd: *Wnd, painter: *Painter)
         default:  color = Color.fromRgb(238, 194, 46)
         }
 
-        let off = (1 - c.z) * 40
-        painter.fillRoundRect(xi + off, yi + off, CellSizeW - 2 * off, CellSizeW - 2 * off, RoundCorners, RoundCorners, color)
+        let off = (1 - c.z) * layout.cell * PopRatio
+        painter.fillRoundRect(xi + off, yi + off, cellW - 2 * off, cellW - 2 * off, layout.corner, layout.corner, color)
         if !c.val do
             continue
 
@@ -84,7 +135,7 @@ func paintGrid(wnd: *Wnd, painter: *Painter)
         let str  = Format.toString("%", c.val)
         var zoom = c.z
         zoom -= (cast(f32) str.length * 0.08)
-        painter.drawStringCenter(xi + (CellSizeW * 0.5), yi + (CellSizeW * 0.5), str, g_Font!, Argb.Black, zoom: zoom)
+        painter.drawStringCenter(xi + (cellW * 0.5), yi + (cellW * 0.5), str, g_Font!, Argb.Black, zoom: zoom * layout.zoom)
     }
 }
 
@@ -262,7 +313,8 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     switch evt
     {
     case CreateEvent:
-        g_Font = wnd.theme().createDefaultFont(50)
+        g_Font      = wnd.theme().createDefaultFont(50)
+        g_LabelFont = wnd.theme().createDefaultFont(25)
         randValue()
         randValue()
 
@@ -272,9 +324,10 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
         painter.fillRect(rect, Color.fromRgb(43, 43, 43))
 
-        painter.drawStringCenter(rect.horzCenter(), 20, "score", wnd.theme().createDefaultFont(25), Argb.White)
+        let layout = boardLayout(rect)
+        painter.drawStringCenter(rect.horzCenter(), layout.labelY, "score", g_LabelFont!, Argb.White, zoom: layout.zoom)
         let str = Format.toString("%", g_Score)
-        painter.drawStringCenter(rect.horzCenter(), 60, str, g_Font!, Argb.White)
+        painter.drawStringCenter(rect.horzCenter(), layout.scoreY, str, g_Font!, Argb.White, zoom: layout.zoom)
 
         keyboard(wnd)
         paintGrid(wnd, painter)
@@ -288,5 +341,5 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
 #main
 {
-    Application.runSurface(100, 100, 554, 699, title: "2048", hook: &onEvent)
+    Application.runSurface(100, 100, 480, 620, title: "2048", hook: &onEvent)
 }

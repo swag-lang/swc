@@ -17,11 +17,11 @@ var g_CurGen: s32
 func boardGeometry(wnd: *Wnd)->{ cell, x, y: f32 }
 {
     var result: retval
-    let rect    = wnd.clientRect()
+    let rect = wnd.clientRect()
     result.cell = Math.floor(Math.min(rect.width, rect.height) / GridSize)
-    let side    = result.cell * GridSize
-    result.x    = Math.floor((rect.width - side) * 0.5)
-    result.y    = Math.floor((rect.height - side) * 0.5)
+    let side = result.cell * GridSize
+    result.x = Math.floor((rect.width - side) * 0.5)
+    result.y = Math.floor((rect.height - side) * 0.5)
     return result
 }
 

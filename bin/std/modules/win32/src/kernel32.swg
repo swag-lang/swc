@@ -128,6 +128,9 @@ const CREATE_UNICODE_ENVIRONMENT = 0x00000400
 const STARTF_USESHOWWINDOW = 0x00000001
 const STARTF_USESTDHANDLES = 0x00000100
 
+const MOVEFILE_REPLACE_EXISTING = 0x00000001
+const MOVEFILE_COPY_ALLOWED     = 0x00000002
+
 const HANDLE_FLAG_INHERIT            = 0x00000001
 const HANDLE_FLAG_PROTECT_FROM_CLOSE = 0x00000002
 
@@ -407,6 +410,7 @@ const FIND_FIRST_EX_ON_DISK_ENTRIES_ONLY = 4
     func GetCommandLineW()->#null const [*] u16
     func GetEnvironmentStringsW()->#null [*] WCHAR
     func FreeEnvironmentStringsW(penv: #null [*] WCHAR)->BOOL
+    func GetEnvironmentVariableW(lpName: LPCWSTR, lpBuffer: #null LPWSTR, nSize: DWORD)->DWORD
 
     func GetProcAddress(hModule: HMODULE, lpProcName: LPCSTR)->#null const *void
     func GetCurrentProcess()->HANDLE
@@ -497,6 +501,7 @@ internal namespace Win32Priv
 
         func WriteFile(hFile: HANDLE, lpBuffer: LPCVOID, nNumberOfBytesToWrite: DWORD, lpNumberOfBytesWritten: LPDWORD, lpOverlapped: LPOVERLAPPED)->BOOL
         func DeleteFileA(lpFileName: LPCSTR)->BOOL
+        func MoveFileExW(lpExistingFileName: LPCWSTR, lpNewFileName: #null LPCWSTR, dwFlags: DWORD)->BOOL
         func DeleteFileW(lpFileName: LPCWSTR)->BOOL
         func GetFileAttributesA(lpFileName: LPCSTR)->DWORD
         func GetFileAttributesW(lpFileName: LPCWSTR)->DWORD
@@ -666,6 +671,12 @@ internal namespace Win32Priv
     func TerminateProcess(hProcess: HANDLE, uExitCode: UINT) fail
     {
         if !Win32Priv.TerminateProcess(hProcess, uExitCode) do
+            failWinError(GetLastError())
+    }
+
+    func MoveFileExW(lpExistingFileName: LPCWSTR, lpNewFileName: #null LPCWSTR, dwFlags: DWORD) fail
+    {
+        if !Win32Priv.MoveFileExW(lpExistingFileName, lpNewFileName, dwFlags) do
             failWinError(GetLastError())
     }
 

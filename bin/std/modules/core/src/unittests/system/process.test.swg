@@ -154,3 +154,26 @@ func systemExecutablePath(name: string)->String
     // A discarded stream is not captured, so nothing reaches this side.
     @assert(@countof(process.standardOutput()) == 0)
 }
+
+#test
+{
+    // A value the grammar can pass through untouched keeps its exact spelling.
+    @assert(Env.quoteArgument("plain").toString() == "plain")
+    @assert(Env.quoteArgument("").toString() == "\"\"")
+    @assert(Env.quoteArgument("with space").toString() == "\"with space\"")
+    @assert(Env.quoteArgument("say \"hi\"").toString() == "\"say \\\"hi\\\"\"")
+    @assert(Env.quoteArgument("c:\\dir\\").toString() == "c:\\dir\\")
+
+    // A trailing backslash inside a wrapped value has to be doubled, or it would escape the
+    // closing quote and swallow the argument that follows.
+    @assert(Env.quoteArgument("c:\\my dir\\").toString() == "\"c:\\my dir\\\\\"")
+    @assert(Env.joinArguments(["a", "b c", ""]).toString() == "a \"b c\" \"\"")
+}
+
+#test
+{
+    // A variable the process really has, read one at a time.
+    let path = Env.variable("Path")
+    @assert(!path.isEmpty())
+    @assert(Env.variable("SWAG_NO_SUCH_VARIABLE_HERE").isEmpty())
+}

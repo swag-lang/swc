@@ -192,6 +192,30 @@ This entry is first in the tier because the three below cannot be judged without
 
 ---
 
+### 9. A script is not yet a full substitute for a shell script
+
+A `.swgs` should replace a `.bat`, a `.ps1` or a `.py` outright: as simple to run, and more
+capable. It is close. Three gaps are left, and `tools/` is the proof either way — it is the
+repository's own scripting, and it still carries batch launchers because of them.
+
+- **A missing `swag@std` stops everything.** `resolveSwagStdOutputRoot` resolves
+  `<SWAG_PATH>/std/.output` and fails when it is absent, so a fresh clone runs no script at all
+  until the library is built by hand. Build the dependency on demand instead of refusing: it is
+  the difference between `python script.py` and a script that first asks for an install step.
+- **A script cannot say which files it is made of, once.** `#load` does not nest — a file
+  reached by `#load` cannot `#load` another, and the paths resolve against the entry script. A
+  script spread over several sources therefore repeats the whole list in every entry point,
+  where a Python script says `import` once. Either make `#load` nest and resolve relative to the
+  loading file, or give a script a module file of its own.
+- **Nothing associates `.swgs` with the compiler.** Double-clicking one should run it.
+  `Env.associateFileExtension` already exists; what is missing is the registration step and a
+  rule for which compiler answers. The one worth having: in script mode, a `swc.exe` sitting
+  beside the script wins over the one on the path, so dropping a known-good compiler next to a
+  set of scripts pins them with no ceremony at all.
+
+Two pieces already landed and are what makes the rest worth finishing: a script takes its own
+command line, and the compiler recognizes it wherever it sits.
+
 ## Out of scope
 
 **Adopting LLVM.** The self-contained path to machine code — encoder, linker, debug info, JIT — is

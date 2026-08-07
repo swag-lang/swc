@@ -49,13 +49,61 @@ namespace
         SmallVector<SlotAccess> accesses;
     };
 
+    // The memory-operand ALU and compare forms read (and for the mem-destination
+    // ones also write) exactly one slot, just like a load or a store. Leaving
+    // them out did not make the analysis safe, it made it self-defeating:
+    // instruction-combine folds `load t, [slot]` + `op d, t` into
+    // `op d, [slot]`, so a slot an earlier sweep could have promoted became an
+    // unexplained escape on the next one and the whole variable was condemned
+    // to memory. That is what keeps sha256's eight compression-state words in
+    // the frame.
+    bool isMemOperandAluOp(MicroInstrOpcode op)
+    {
+        return op == MicroInstrOpcode::OpBinaryRegMem ||
+               op == MicroInstrOpcode::OpBinaryMemReg ||
+               op == MicroInstrOpcode::OpBinaryMemImm ||
+               op == MicroInstrOpcode::OpUnaryMem ||
+               op == MicroInstrOpcode::CmpMemReg ||
+               op == MicroInstrOpcode::CmpMemImm;
+    }
+
     bool isHandledScalarMemOp(MicroInstrOpcode op)
     {
         return op == MicroInstrOpcode::LoadRegMem ||
                op == MicroInstrOpcode::LoadMemReg ||
                op == MicroInstrOpcode::LoadMemImm ||
                op == MicroInstrOpcode::LoadSignedExtRegMem ||
-               op == MicroInstrOpcode::LoadZeroExtRegMem;
+               op == MicroInstrOpcode::LoadZeroExtRegMem ||
+               isMemOperandAluOp(op);
+    }
+
+    // The register whose class the slot must match, or an invalid register when
+    // the instruction carries an immediate instead (the slot's class is then
+    // resolved from its other accesses, exactly as for LoadMemImm).
+    MicroReg slotValueRegister(MicroInstrOpcode op, const MicroInstrOperand* ops)
+    {
+        switch (op)
+        {
+            case MicroInstrOpcode::LoadRegMem:
+            case MicroInstrOpcode::LoadSignedExtRegMem:
+            case MicroInstrOpcode::LoadZeroExtRegMem:
+            case MicroInstrOpcode::OpBinaryRegMem:
+                return ops[0].reg;
+            case MicroInstrOpcode::LoadMemReg:
+            case MicroInstrOpcode::OpBinaryMemReg:
+            case MicroInstrOpcode::CmpMemReg:
+                return ops[1].reg;
+            default:
+                return MicroReg::invalid();
+        }
+    }
+
+    bool carriesImmediateSlotWrite(MicroInstrOpcode op)
+    {
+        return op == MicroInstrOpcode::LoadMemImm ||
+               op == MicroInstrOpcode::OpBinaryMemImm ||
+               op == MicroInstrOpcode::OpUnaryMem ||
+               op == MicroInstrOpcode::CmpMemImm;
     }
 
     bool isPromotableBits(MicroOpBits bits)
@@ -437,6 +485,64 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                     hasPending = true;
                 }
                 break;
+
+            // `reg op= [slot]` — one read of the slot at the operation width.
+            case MicroInstrOpcode::OpBinaryRegMem:
+                resolveBase(ops[1].reg, ops[4].valueU64);
+                valueReg = ops[0].reg;
+                if (baseValid)
+                {
+                    pending    = {ref, baseSlot, ops[2].opBits, false};
+                    hasPending = true;
+                }
+                break;
+
+            // `[slot] op= reg` and `[slot] op= imm` — read-modify-write.
+            case MicroInstrOpcode::OpBinaryMemReg:
+                resolveBase(ops[0].reg, ops[4].valueU64);
+                valueReg = ops[1].reg;
+                if (baseValid)
+                {
+                    pending    = {ref, baseSlot, ops[2].opBits, true};
+                    hasPending = true;
+                }
+                break;
+            case MicroInstrOpcode::OpBinaryMemImm:
+                resolveBase(ops[0].reg, ops[3].valueU64);
+                if (baseValid)
+                {
+                    pending    = {ref, baseSlot, ops[1].opBits, true};
+                    hasPending = true;
+                }
+                break;
+            case MicroInstrOpcode::OpUnaryMem:
+                resolveBase(ops[0].reg, ops[3].valueU64);
+                if (baseValid)
+                {
+                    pending    = {ref, baseSlot, ops[1].opBits, true};
+                    hasPending = true;
+                }
+                break;
+
+            // `cmp [slot], reg` and `cmp [slot], imm` — one read.
+            case MicroInstrOpcode::CmpMemReg:
+                resolveBase(ops[0].reg, ops[3].valueU64);
+                valueReg = ops[1].reg;
+                if (baseValid)
+                {
+                    pending    = {ref, baseSlot, ops[2].opBits, false};
+                    hasPending = true;
+                }
+                break;
+            case MicroInstrOpcode::CmpMemImm:
+                resolveBase(ops[0].reg, ops[2].valueU64);
+                if (baseValid)
+                {
+                    pending    = {ref, baseSlot, ops[1].opBits, false};
+                    hasPending = true;
+                }
+                break;
+
             default:
                 break;
         }
@@ -603,10 +709,10 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 ok = false;
                 break;
             }
-            if (inst->op == MicroInstrOpcode::LoadMemImm)
-                continue; // class resolved from reg accesses
-            const MicroReg valueReg = (inst->op == MicroInstrOpcode::LoadRegMem) ? iops[0].reg : iops[1].reg;
-            const bool     regFloat = valueReg.isAnyFloat();
+            const MicroReg valueReg = slotValueRegister(inst->op, iops);
+            if (!valueReg.isValid())
+                continue; // an immediate form: class resolved from the reg accesses
+            const bool regFloat = valueReg.isAnyFloat();
             if (!regFloat && !valueReg.isAnyInt())
             {
                 ok = false;
@@ -628,13 +734,14 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
 
         if (isFloat)
         {
-            // A float slot initialized via an integer immediate store can't be
-            // turned into a float register copy safely — skip it.
+            // A float slot reached by an integer immediate — a store, an
+            // in-place operation or a compare — can't be turned into a float
+            // register form safely, since the immediate has no float encoding.
             bool hasImm = false;
             for (const SlotAccess& acc : slot.accesses)
             {
                 const MicroInstr* inst = storage.ptr(acc.ref);
-                if (inst && inst->op == MicroInstrOpcode::LoadMemImm)
+                if (inst && carriesImmediateSlotWrite(inst->op))
                 {
                     hasImm = true;
                     break;
@@ -768,6 +875,50 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                                         ? MicroInstrOpcode::LoadSignedExtRegReg
                                         : MicroInstrOpcode::LoadZeroExtRegReg;
                 inst->numOperands = 4;
+            }
+            // The memory-operand ALU and compare forms lose their memory
+            // operand and become the register form of the same operation. Only
+            // the base and, where the operand order shifts, the immediate move;
+            // the operation and its width are already the slot's.
+            else if (inst->op == MicroInstrOpcode::OpBinaryRegMem)
+            {
+                ops[1].reg        = vreg;
+                inst->op          = MicroInstrOpcode::OpBinaryRegReg;
+                inst->numOperands = 4;
+            }
+            else if (inst->op == MicroInstrOpcode::OpBinaryMemReg)
+            {
+                ops[0].reg        = vreg;
+                inst->op          = MicroInstrOpcode::OpBinaryRegReg;
+                inst->numOperands = 4;
+            }
+            else if (inst->op == MicroInstrOpcode::OpBinaryMemImm)
+            {
+                const MicroInstrOperand imm = ops[4];
+                ops[0].reg                  = vreg;
+                ops[3]                      = imm;
+                inst->op                    = MicroInstrOpcode::OpBinaryRegImm;
+                inst->numOperands           = 4;
+            }
+            else if (inst->op == MicroInstrOpcode::OpUnaryMem)
+            {
+                ops[0].reg        = vreg;
+                inst->op          = MicroInstrOpcode::OpUnaryReg;
+                inst->numOperands = 3;
+            }
+            else if (inst->op == MicroInstrOpcode::CmpMemReg)
+            {
+                ops[0].reg        = vreg;
+                inst->op          = MicroInstrOpcode::CmpRegReg;
+                inst->numOperands = 3;
+            }
+            else if (inst->op == MicroInstrOpcode::CmpMemImm)
+            {
+                const MicroInstrOperand imm = ops[3];
+                ops[0].reg                  = vreg;
+                ops[2]                      = imm;
+                inst->op                    = MicroInstrOpcode::CmpRegImm;
+                inst->numOperands           = 3;
             }
         }
     }

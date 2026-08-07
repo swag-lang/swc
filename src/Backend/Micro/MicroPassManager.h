@@ -39,6 +39,7 @@ class MicroVecLoopPromotePass;
 // Post-RA optimization passes (operate on physical registers)
 class MicroPostRaPeepholePass;
 class MicroPostRaDeadCodeElimPass;
+class MicroPostRaLoopHoistPass;
 
 class MicroPassManager
 {
@@ -106,6 +107,7 @@ private:
     // Post-RA optimization passes
     std::unique_ptr<MicroPostRaPeepholePass>     postRaPeepholePass_;
     std::unique_ptr<MicroPostRaDeadCodeElimPass> postRaDeadCodeElimPass_;
+    std::unique_ptr<MicroPostRaLoopHoistPass>    postRaLoopHoistPass_;
 };
 
 SWC_END_NAMESPACE();

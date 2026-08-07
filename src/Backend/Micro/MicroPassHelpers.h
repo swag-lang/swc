@@ -78,6 +78,54 @@ namespace MicroPassHelpers
     // K_INVALID_NODE when there is no entry or more than one.
     uint32_t findSingleCfgEntry(const MicroControlFlowGraph& cfg);
 
+    // Exact physical-register liveness over the per-instruction CFG, for the
+    // passes that run after register allocation. A backward fixed point seeded
+    // at the exits with the ABI live-out set (return registers, callee-saved
+    // registers, stack and frame pointers).
+    //
+    // Post-RA passes that guessed liveness with a bounded linear scan forward
+    // from an instruction had to answer "live" whenever the scan met a jump,
+    // which is every value defined at the bottom of a loop body — exactly where
+    // the interesting ones are. This answers the question instead of declining
+    // it.
+    struct MicroPhysLiveness
+    {
+        // One bit per physical register: 0-31 integer, 32-63 float. Post-RA
+        // there is nothing else to track, and a bitmask keeps the fixed point
+        // to a machine word per instruction — a set of MicroReg values scanned
+        // linearly instead cost 4-10% of a whole `core` rebuild.
+        static constexpr uint32_t K_FLOAT_BIT_BASE = 32;
+        static constexpr uint32_t K_INVALID_BIT    = 64;
+
+        static uint32_t bitOf(const MicroReg reg)
+        {
+            if (reg.isInt() && reg.index() < K_FLOAT_BIT_BASE)
+                return reg.index();
+            if (reg.isFloat() && reg.index() < K_FLOAT_BIT_BASE)
+                return K_FLOAT_BIT_BASE + reg.index();
+            return K_INVALID_BIT;
+        }
+
+        std::vector<MicroInstrUseDef> useDefs;
+        std::vector<uint64_t>         liveIn;
+        std::vector<uint64_t>         liveOut;
+        bool                          valid = false;
+
+        bool isLiveOut(uint32_t index, MicroReg reg) const
+        {
+            if (!valid || index >= liveOut.size())
+                return true; // unknown: answer conservatively
+            const uint32_t bit = bitOf(reg);
+            if (bit >= K_INVALID_BIT)
+                return true; // a register the mask cannot name: assume live
+            return (liveOut[index] & (1ull << bit)) != 0;
+        }
+    };
+
+    // Fills 'out' from the context's CFG. Leaves it invalid (and every query
+    // conservative) when the CFG does not support liveness.
+    void computePhysicalLiveness(MicroPhysLiveness& out, const MicroPassContext& context);
+
     bool violatesEncoderConformance(const MicroPassContext& context, const MicroInstr& inst, const MicroInstrOperand* ops);
     bool instructionActuallyUsesCpuFlags(const MicroInstr& inst, const MicroInstrOperand* ops);
     bool areCpuFlagsDeadAfter(const MicroStorage& storage, const MicroOperandStorage& operands, MicroInstrRef afterRef);

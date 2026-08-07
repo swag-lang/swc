@@ -125,3 +125,97 @@ Entries are sorted by identifier, ascending; position carries no priority.
   where every float three-operand instruction it has seen so far arrived after allocation. Bisect
   cheaply first: restrict the fold to `FloatAdd` alone and run `tools/scripts.bat dm` - a crash
   there means the shape, a pass means the operation.
+
+### F-041 — Tracking frame addresses transitively through mem2reg does not pay on its own
+
+- Area: compiler/backend
+- Found while: closing the generated-code gap `bench/` measures (campaign 20260806-202546,
+  geometric mean 1.41-1.54x the better of clang-cl and MSVC over two baseline campaigns)
+- Observation: mem2reg roots its address tracking at the frame base only, so `mov %x, %ar` and
+  `lea %x, [%ar + off]` — a copy of a known frame address, and a second-level offset from one —
+  both read as escapes and poison the whole variable. Instrumenting the escape analysis, those two
+  shapes are the top cause in the timed function of five of the seven bench tasks (csvagg main
+  56 and 29 times, chacha main 222, wordfreq 24, leven 16). Deriving them transitively instead —
+  a bounded fixed point over copies and constant leas, with disqualification propagating down the
+  chain — is a correct generalization and buys nothing measurable.
+- Evidence: two A/B sweeps per binary on csvagg, leven, sha256 and wordfreq, each sweep
+  self-normalized by the clang-cl and MSVC numbers measured in it: csvagg -7%, leven +12%,
+  sha256 +1%, wordfreq +6%, every one of them smaller than the same binary's own spread across
+  sweeps (csvagg's baseline alone ranged 1.473x to 1.785x). Statically it costs instructions:
+  csvagg main 781 -> 796, leven 526 -> 538, sha256 main 449 -> 421. Reading the loop bodies
+  explains it — no hot loop changed, and csvagg's four byte-scan loops got worse, `p += 1` going
+  from `add r8, 1` to `lea r10, [r8+1]` plus `mov r8, r10`. Reverted.
+- Next step: the escape counts were real but not binding, so the remaining value is in what they
+  were masking rather than in the derivation itself. Only re-attempt this alongside a change that
+  makes the newly promoted slots pay — and measure the loop bodies, not the function totals: this
+  attempt's whole visible effect was a perturbation of register allocation.
+- Related: [F-042](#f-042--instruction-combine-folds-a-slot-load-into-an-operand-and-mem2reg-then-refuses-the-slot),
+  [F-043](#f-043--a-hot-loops-base-pointer-loses-its-register-to-the-cold-code-around-it)
+
+### F-042 — Instruction-combine folds a slot load into an operand and mem2reg then refuses the slot
+
+- Area: compiler/backend
+- Found while: the same campaign, tracing why sha256's eight compression-state words never leave
+  the frame
+- Observation: instruction-combine folds `load t, [slot]` + `op d, t` into `op d, [slot]`, and
+  mem2reg's escape analysis did not list the memory-operand ALU and compare forms among the scalar
+  accesses it understands. A slot an earlier sweep could have promoted therefore became an
+  unexplained escape on the next one, and the whole variable was condemned to memory — the
+  optimizer defeating itself, and irreversibly, because the pre-RA loop only ever folds further.
+  Fixed by recognizing `OpBinaryRegMem`, `OpBinaryMemReg`, `OpBinaryMemImm`, `OpUnaryMem`,
+  `CmpMemReg` and `CmpMemImm` as accesses of one slot and rewriting them to their register forms
+  on promotion.
+- Evidence: `OpBinaryRegMem` was the top escape cause in sha256's timed function (28 occurrences
+  against a background of 8). A probe holding the compression loop in its own function went from
+  319 to 196 instructions; the minimal shape that reproduces it — eight locals initialized from a
+  pointer parameter — went from 174 to 140. Diagnosis method: a temporary env-gated trace in the
+  escape scan printing the opcode of every unexplained tracked register, attributed per function.
+- Next step: the same self-defeating pattern is worth auditing elsewhere. Any analysis keyed on a
+  syntactic shape that a *later* fold rewrites will decay the same way as the pre-RA loop
+  converges; instruction-combine's memory folds are the ones that rewrite the most shapes.
+
+### F-043 — A hot loop's base pointer loses its register to the cold code around it
+
+- Area: compiler/backend
+- Found while: the same campaign, asking why the identical loop compiles differently in two places
+- Observation: the register allocator grants a value a register for its whole live range, ranked by
+  `benefit / spanLength`. A pointer a hot loop dereferences on every iteration lives for the whole
+  function, so its density is microscopic, and it loses to short-lived values in cold code — in the
+  bench tasks, to the *untimed* data-generation loops that share `main` with the timed one. The
+  allocator then reloads it from its stack home once per iteration, forever.
+- Evidence: decisive and cheap to reproduce — the same csvagg scan loop compiles to 7 instructions
+  with a reload of `text` inside `main`, and to 6 instructions with no memory operation at all when
+  the loop is moved to a small function (`scratchpad` probe `iso5`), which is exactly what clang-cl
+  emits. The digit loop goes 16 instructions / 5 memory operations inside `main` to 14 / 0 isolated.
+- Status: the case that needs no write-back is fixed. `Pass.PostRALoopHoist` splits a
+  loop-invariant reload's live range at the loop boundary — the load moves to the preheader, other
+  loads of the same slot in the body become register copies or disappear — guarded by exact
+  post-RA physical liveness (`MicroPassHelpers::computePhysicalLiveness`, factored out of the
+  post-RA dead-code pass). No loop in `bench/` regressed; the hot ones went 7/2 to 6/1 (csvagg's
+  four scan loops), 12/2 to 11/1 (the FNV loop of `mapProbe`, shared by four tasks), 16/6 to 15/4
+  (csvagg's digit loop) and 243/100 to 226/86 (sha256's block loop), in instructions/memory
+  operations per iteration.
+- Next step: the loop-CARRIED case is what remains, and it is where the rest of the gap is —
+  csvagg's `qty` and sha256's `a`..`h` still round-trip through the frame on every iteration. That
+  needs the load hoisted to the preheader AND the store sunk to every exit edge, which
+  `Pass.VecLoopPromote` already does for packed chunks with a single fall-through exit; the digit
+  loops have two exits, so the sinking has to handle an edge set rather than one point. Attacking
+  the ranking itself instead — a hull scoped to the loop region rather than the whole span — is the
+  same idea done pre-RA, and is what four earlier attempts at a global allocator foundered on.
+
+### F-044 — A byte the loop compares is loaded again to use it
+
+- Area: compiler/backend
+- Found while: reading csvagg's digit loop after the hoisting pass above
+- Observation: `while p < eol and text[p] != ',' { qty = qty * 10 + (text[p] - 48) }` reads the same
+  byte twice — once through `cmp_amc_imm [base + p], ','` and once through
+  `load_amc_reg_mem r, [base + p]`. Instruction-combine folded the first load into the compare,
+  which leaves nothing for the second to reuse, and value numbering does not number indexed memory
+  reads so it never merges them.
+- Evidence: csvagg's digit loop, 15 instructions with 4 memory operations, of which two are this
+  one byte. clang-cl reads it once into a register and both compares and uses that.
+- Next step: two candidate rules, and the cheaper one first — decline the fold into a compare when
+  the loaded value has another use (the fold is only a win when it kills the load), or number
+  indexed loads in value numbering when no intervening write can alias them. The first is local to
+  `Pass.InstructionCombine.LoadFold`; the second is worth more but needs the aliasing question the
+  post-RA hoist above already answers conservatively.

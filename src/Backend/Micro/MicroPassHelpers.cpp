@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/MicroPassHelpers.h"
+#include "Backend/ABI/CallConv.h"
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
@@ -369,6 +370,110 @@ uint32_t MicroPassHelpers::findSingleCfgEntry(const MicroControlFlowGraph& cfg)
         }
     }
     return entry;
+}
+
+void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const MicroPassContext& context)
+{
+    out.valid = false;
+    if (!context.builder || !context.instructions || !context.operands)
+        return;
+
+    const MicroControlFlowGraph& cfg = context.builder->controlFlowGraph();
+    if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness())
+        return;
+
+    const auto     instructionRefs = cfg.instructionRefs();
+    const auto     successors      = cfg.successors();
+    const auto     predecessors    = cfg.predecessors();
+    const uint32_t instCount       = static_cast<uint32_t>(instructionRefs.size());
+    if (!instCount)
+        return;
+
+    // A register the mask cannot name (a special, or an index past the word)
+    // contributes nothing to the set, and isLiveOut answers "live" for it, so
+    // dropping it here stays conservative on both sides.
+    auto maskOf = [](const MicroReg reg) -> uint64_t {
+        const uint32_t bit = MicroPhysLiveness::bitOf(reg);
+        return bit < MicroPhysLiveness::K_INVALID_BIT ? 1ull << bit : 0ull;
+    };
+
+    out.useDefs.assign(instCount, {});
+    for (uint32_t i = 0; i < instCount; ++i)
+    {
+        const MicroInstr* inst = context.instructions->ptr(instructionRefs[i]);
+        if (!inst)
+            return;
+        out.useDefs[i] = inst->collectUseDef(*context.operands, context.encoder);
+    }
+
+    const CallConv& conv        = CallConv::get(context.callConvKind);
+    uint64_t        exitLiveOut = 0;
+    if (context.usesIntReturnRegOnRet)
+        exitLiveOut |= maskOf(conv.intReturn);
+    if (context.usesFloatReturnRegOnRet)
+        exitLiveOut |= maskOf(conv.floatReturn);
+    exitLiveOut |= maskOf(conv.stackPointer);
+    exitLiveOut |= maskOf(conv.framePointer);
+    for (const MicroReg reg : conv.intPersistentRegs)
+        exitLiveOut |= maskOf(reg);
+    for (const MicroReg reg : conv.floatPersistentRegs)
+        exitLiveOut |= maskOf(reg);
+
+    out.liveIn.assign(instCount, 0);
+    out.liveOut.assign(instCount, 0);
+    for (uint32_t i = 0; i < instCount; ++i)
+    {
+        if (successors[i].empty())
+            out.liveOut[i] = exitLiveOut;
+    }
+
+    std::vector<uint8_t>  inWorklist(instCount, 1);
+    std::vector<uint32_t> worklist;
+    worklist.reserve(instCount);
+    for (uint32_t i = 0; i < instCount; ++i)
+        worklist.push_back(i);
+
+    while (!worklist.empty())
+    {
+        const uint32_t i = worklist.back();
+        worklist.pop_back();
+        inWorklist[i] = 0;
+
+        uint64_t newOut = 0;
+        if (successors[i].empty())
+        {
+            newOut = exitLiveOut;
+        }
+        else
+        {
+            for (const uint32_t succ : successors[i])
+                newOut |= out.liveIn[succ];
+        }
+
+        out.liveOut[i] = newOut;
+
+        // live_in = (live_out \ defs) | uses
+        uint64_t newIn = newOut;
+        for (const MicroReg def : out.useDefs[i].defs)
+            newIn &= ~maskOf(def);
+        for (const MicroReg use : out.useDefs[i].uses)
+            newIn |= maskOf(use);
+
+        if (newIn != out.liveIn[i])
+        {
+            out.liveIn[i] = newIn;
+            for (const uint32_t pred : predecessors[i])
+            {
+                if (!inWorklist[pred])
+                {
+                    worklist.push_back(pred);
+                    inWorklist[pred] = 1;
+                }
+            }
+        }
+    }
+
+    out.valid = true;
 }
 
 void MicroPassHelpers::NaturalLoop::collectBody(const MicroControlFlowGraph& cfg)

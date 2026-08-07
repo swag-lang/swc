@@ -60,6 +60,9 @@ bench/, on a machine where all three are measured in the same campaign. Concrete
   - Geometric mean across all tasks at or below 1.15x that same best-of-both.
   - No task regressed, ever, at any point in the campaign.
 
+This is the only thing being optimized here. Compile time is not a competing goal in this
+campaign - see RULES.
+
 Where it stands, campaign 20260806-174758 (run ms, lower is better):
 
   task      swag    clang-cl  msvc    swag / best-of-both
@@ -117,8 +120,12 @@ RULES
     believed, and the Release sequence before anything is recorded. A pass that miscompiles under
     the JIT but passes unit tests is the known failure mode here - tools/scripts.bat dm is what
     catches it (see F-036).
-  - Never make the compiler slower to make the output faster without saying so explicitly and
-    measuring both. Compile time is campaign 4's target and it is a real constraint here.
+  - Generated-code quality outranks compile time in this campaign. A backend optimization that
+    works is never reverted because it costs compile time: generating better code legitimately
+    takes longer, and campaign 4 is where compile time is bought back. Measure the cost, say it
+    explicitly, and then make the implementation cheaper - a slow analysis is a slow analysis, not
+    a reason to give up the optimization. Only a change that is BOTH slower to compile AND not
+    better in the generated code gets reverted.
   - Never change what a bench task computes. That silently resets the history.
   - A/B two swc.exe binaries by CPU time, alternating order, sampling before the process exits.
   - Findings you cannot chase now go in backlog/findings.optimization.md with evidence and a next

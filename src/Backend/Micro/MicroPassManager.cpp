@@ -16,6 +16,7 @@
 #include "Backend/Micro/Passes/Pass.LoopUnroll.h"
 #include "Backend/Micro/Passes/Pass.MemToReg.h"
 #include "Backend/Micro/Passes/Pass.PostRADeadCodeElim.h"
+#include "Backend/Micro/Passes/Pass.PostRALoopHoist.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.h"
 #include "Backend/Micro/Passes/Pass.PreRAPeephole.h"
 #include "Backend/Micro/Passes/Pass.PrologEpilog.h"
@@ -442,6 +443,7 @@ MicroPassManager::MicroPassManager()
     // Post-RA optimization passes
     postRaPeepholePass_     = std::make_unique<MicroPostRaPeepholePass>();
     postRaDeadCodeElimPass_ = std::make_unique<MicroPostRaDeadCodeElimPass>();
+    postRaLoopHoistPass_    = std::make_unique<MicroPostRaLoopHoistPass>();
 }
 
 MicroPassManager::~MicroPassManager()                                      = default;
@@ -535,6 +537,11 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
     {
         addPostRaOptimPass(*postRaPeepholePass_);
         addPostRaOptimPass(*postRaDeadCodeElimPass_);
+        // Splits a loop-invariant reload's live range at the loop boundary. Runs
+        // after the peephole has folded what it can, so the loads it sees are
+        // the ones that survive, and inside the sweep loop so the dead-code pass
+        // of the next iteration collects anything it strands.
+        addPostRaOptimPass(*postRaLoopHoistPass_);
     }
     addFinalPass(*prologEpilogSanitizePass_);
     addFinalPass(*emitPass_);

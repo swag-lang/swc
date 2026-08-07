@@ -104,25 +104,31 @@ namespace PostRaPeephole
 
                 const MicroInstrUseDef ud = inst->collectUseDef(*ctx.operands, ctx.encoder);
 
-                // Any read or write of `dst` before the copy means `dst`
-                // carries a meaningful value there; retargeting would clobber
-                // or shadow it.
+                const bool defsSrc = regInList(ud.defs.span(), src);
+                const bool usesSrc = regInList(ud.uses.span(), src);
+
+                // The producer is allowed to read `dst`: its operands are read
+                // before its destination is written, so retargeting it at `dst`
+                // computes the same value. That is the `x = x + 1` shape every
+                // scan loop ends with — `lea t, [x + 1]` then `mov x, t` — and
+                // refusing it left one instruction per iteration in the hottest
+                // loops of the benchmark. Every OTHER read or write of `dst`
+                // before the copy still blocks: `dst` carries a live value
+                // there, and retargeting would clobber or shadow it.
+                if (defsSrc && !usesSrc)
+                {
+                    prevRef = cur;
+                    prev    = inst;
+                    break;
+                }
+
                 if (regInList(ud.uses.span(), dst))
                     return false;
                 if (regInList(ud.defs.span(), dst))
                     return false;
 
-                const bool defsSrc = regInList(ud.defs.span(), src);
-                const bool usesSrc = regInList(ud.uses.span(), src);
-
                 if (defsSrc)
-                {
-                    if (usesSrc)
-                        return false; // UseDef of src: not a pure producer.
-                    prevRef = cur;
-                    prev    = inst;
-                    break;
-                }
+                    return false; // UseDef of src: not a pure producer.
                 if (usesSrc)
                     return false; // Intermediate read of src's future value.
 
@@ -147,16 +153,16 @@ namespace PostRaPeephole
         if (!prevOps)
             return false;
 
-        // The producer must write exactly `src` at ops[0], with no other defs
-        // and no use of `dst` anywhere in its operands.
+        // The producer must write exactly `src` at ops[0], with no other defs.
+        // It may read `dst` (see the walk above); the encoder is asked below
+        // whether the retargeted form, where source and destination coincide,
+        // is encodable at all.
         const MicroInstrUseDef prevUseDef = prev->collectUseDef(*ctx.operands, ctx.encoder);
         if (prevUseDef.isCall)
             return false;
         if (prevUseDef.defs.size() != 1 || prevUseDef.defs[0] != src)
             return false;
         if (prevOps[0].reg != src)
-            return false;
-        if (regInList(prevUseDef.uses.span(), dst))
             return false;
 
         if (!regDeadAfter(ctx, copyRef, src))

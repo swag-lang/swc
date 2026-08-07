@@ -193,6 +193,7 @@
         <ClCompile Include="src\Unittest\Micro\Test.Micro.CopyElimination.cpp"/>
         <ClCompile Include="src\Unittest\Micro\Test.Micro.InstructionCombine.cpp"/>
         <ClCompile Include="src\Unittest\Micro\Test.Micro.MemToReg.cpp"/>
+        <ClCompile Include="src\Unittest\Micro\Test.Micro.PostRALoopHoist.cpp"/>
         <ClCompile Include="src\Unittest\Micro\Test.Micro.PostRAPeephole.cpp"/>
         <ClCompile Include="src\Unittest\Micro\Test.Micro.PreRAPeephole.cpp"/>
         <ClCompile Include="src\Unittest\Micro\Test.Micro.PrologEpilogSanitize.cpp"/>
@@ -274,6 +275,7 @@
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PostRAPeephole.Flags.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PostRAPeephole.Trivial.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PostRADeadCodeElim.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.PostRALoopHoist.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PreRAPeephole.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PreRAPeephole.AddressForward.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PreRAPeephole.Common.cpp"/>
@@ -608,6 +610,7 @@
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.PostRAPeephole.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.PostRAPeephole.Internal.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.PostRADeadCodeElim.h"/>
+        <ClInclude Include="src\Backend\\Micro\Passes\Pass.PostRALoopHoist.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.PrologEpilog.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.MemToReg.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.LoopInvariantCodeMotion.h"/>

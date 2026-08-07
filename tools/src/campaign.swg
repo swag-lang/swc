@@ -18,8 +18,8 @@ public func runTests(context: *Context, options: *Options)->s32 fail
 {
     if !options.module.isEmpty() and options.command.isEmpty()
     {
-        @print("tests.bat runs a whole set and takes no name. Use unittests.bat, std.bat, examples.bat,\n")
-        @print("apps.bat, reference.bat, or scripts.bat to reach one suite, module, or script.\n")
+        @print("tests.swgs runs a whole set and takes no name. Use unittests.swgs, std.swgs, examples.swgs,\n")
+        @print("apps.swgs, reference.swgs, or scripts.swgs to reach one suite, module, or script.\n")
         return 1
     }
 
@@ -48,8 +48,8 @@ public func runBuild(context: *Context, options: *Options)->s32 fail
 {
     if !options.module.isEmpty()
     {
-        @print("build.bat builds every workspace and takes no name. Use std.bat, examples.bat,\n")
-        @print("apps.bat, or reference.bat to build one workspace or one module.\n")
+        @print("build.swgs builds every workspace and takes no name. Use std.swgs, examples.swgs,\n")
+        @print("apps.swgs, or reference.swgs to build one workspace or one module.\n")
         return 1
     }
 
@@ -401,9 +401,9 @@ private func reportScope(context: *Context, options: *Options, scope: *Scope)
     // Both rewrite tracked files, so neither belongs inside a test command. They are named here
     // because the change that selected them is validated by reading what they produce.
     if scope.doc do
-        reportLine("also", "regenerate with tools/web.bat and read the diff", &reported)
+        reportLine("also", "regenerate with tools/web.swgs and read the diff", &reported)
     if scope.format do
-        reportLine("also", "reformat with tools/format.bat and read the diff", &reported)
+        reportLine("also", "reformat with tools/format.swgs and read the diff", &reported)
     if !scope.warnProject.isEmpty() do
         reportLine("note", Format.toString("% may carry a compile flag; run the whole set by hand if it does", scope.warnProject.toString()).toString(), &reported)
     if !reported do

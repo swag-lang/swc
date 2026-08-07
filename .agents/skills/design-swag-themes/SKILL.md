@@ -172,7 +172,7 @@ them.
 ## Verify With gui10, Not With The Apps
 
 [`bin/examples/modules/gui10`](../../../bin/examples/modules/gui10) is the theme inspector, and
-it is the tool for this work. `tools/examples.bat run gui10`.
+it is the tool for this work. `tools/examples.swgs run gui10`.
 
 - **Colors** — every `ThemeColors` value of the active palette, by reflection, over the grounds
   it is drawn on, with a checkerboard behind anything translucent.
@@ -207,12 +207,12 @@ the theme, and the parts they do not use are exactly the ones a change breaks si
 
 After changing `apply`, a palette, or a widget's color choice:
 
-1. `tools/std.bat test -m gui` — the palette tests pin the shipped Swag values, assert the
+1. `tools/std.swgs test -m gui` — the palette tests pin the shipped Swag values, assert the
    dark and light palettes do not agree on more than a handful of colors, and cover the sheet
    layers.
 2. The command-stream goldens under `bin/std/modules/gui/src/tests/unittests/goldens/` change
    whenever a widget's colors do. A failing test leaves its `.actual` file beside the golden it
-   diverged from; `tools/goldens.bat` accepts them in bulk. Review the diff — a golden that
+   diverged from; `tools/goldens.swgs` accepts them in bulk. Review the diff — a golden that
    changed for a part you did not touch is a finding.
-3. `tools/examples.bat smoke gui10` walks every page of every palette.
+3. `tools/examples.swgs smoke gui10` walks every page of every palette.
 4. Look at the four palettes in gui10 before saying the change is done.

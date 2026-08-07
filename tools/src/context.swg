@@ -4,9 +4,10 @@ using Core
 
 // Where the repository is, which compiler the tools drive, and how to start it.
 //
-// The compiler named here is the one under test, never the one running these tools: `_run.bat`
-// pins that one in `tools/` and keeps its own standard library beside it, so a tool can still
-// report that a freshly built compiler is broken.
+// The compiler named here is the one under test, which is not necessarily the one running the
+// tool: a tool is a script, so it runs on whichever compiler was asked to run it, and it drives
+// `bin/swc.exe` as a child process. That separation is what lets a tool report that a freshly
+// built compiler is broken.
 public struct Context
 {
     root:       String                     // Repository root, from the launcher.
@@ -28,15 +29,15 @@ public impl Context
 {
     // Builds the context the launcher describes.
     //
-    // `SWAG_TOOL_ROOT` is the repository root the shim resolved from its own location, which is
-    // what lets a tool be launched from anywhere rather than only from the root.
-    func create(options: Options)->Context fail
+    // `rootDirectory` comes from the calling script's own path, so a tool is launched from
+    // anywhere without anything being configured or exported first.
+    func create(rootDirectory: string, options: Options)->Context fail
     {
         var result: retval
 
-        var root = launcherVariable("SWAG_TOOL_ROOT")
+        var root = String.from(rootDirectory)
         if root.isEmpty() do
-            fail Errors.BadParameterError{"the launcher did not name the repository root"}
+            fail Errors.BadParameterError{"the tool could not locate the repository"}
         Path.normalize(&root)
 
         result.root       = root
@@ -153,5 +154,3 @@ public func joinArguments(arguments: const [..] String)->String
     return Env.joinArguments(plain.toSlice())
 }
 
-// Reads the launcher variable `name`.
-public func launcherVariable(name: string)->String => Env.variable(name)

@@ -1,13 +1,13 @@
 # Repository tools
 
-All project-owned Windows batch entry points live in this directory. Run them from the
-repository root. Every tool takes the same shape:
+All project-owned entry points of this repository live in this directory. Each one is a Swag
+script: run it by name, or double-click it. Every tool takes the same shape:
 
 ```
-tools\<tool> [dm] [<command>] [<name>] [options...]
+tools\<tool>.swgs [dm] [<command>] [<name>] [options...]
 ```
 
-- `dm` uses `bin/swc_devmode.exe`; without it the tools use `bin/swc.exe`.
+- `dm` uses `bin/swc_devmode.exe`; without it the tools drive `bin/swc.exe`.
 - `<command>` is `build`, `run`, `test`, or `smoke`, when the tool has more than one.
 - `<name>` is the module, suite, or script to act on; without it the tool acts on everything.
 - Positionals come first and options after, so an option value is never read as a name.
@@ -17,24 +17,15 @@ Common options: `-bc <config>` selects `release`, `debug`, or `fast-debug` (defa
 `fast-debug`), `--all-cfg` repeats an aggregate tool in all three, `--run-arg <value>` passes
 an argument to what gets launched. Anything else is forwarded to the compiler.
 
-`_run.bat` is the shared launcher, not an entry point.
-
 ## How a tool is built
 
-Each `<tool>.bat` is a five-line shim: it names itself, hands its raw command line over in an
-environment variable, and calls `_run.bat`. Everything a tool does lives in the Swag program
-under [src/](src), one file per family, entered through `src/main.swgs`.
+A tool is an ordinary Swag script. It states the sources it is made of, and calls into the
+shared implementation under [src/](src), one file per family. There is no launcher, no wrapper,
+and no environment protocol: the compiler hands a script everything after its own path, and a
+script finds the repository from its own location.
 
-The command line travels in a variable rather than in arguments because `cmd.exe` splits a batch
-argument on `=` as well as on whitespace, so `--run-arg swag.smoke=50` would arrive as two
-tokens. The variable carries it verbatim, quoting included.
-
-`tools/swc.exe` is the compiler the tools themselves run on, and `tools/host` is the standard
-library it was proved against. Both are pinned, and neither is ever the compiler under test: a
-tool has to be able to report that a freshly built compiler is broken, which it cannot do if that
-compiler is what compiled and ran it. `promote.bat` installs a new pair, and the rule for running
-it is one line long — promote only after `tests.bat --all-cfg` is green with `bin/swc.exe`.
-Nothing in `promote.bat` checks that, deliberately: the check is the campaign.
+The compiler a tool *drives* is `bin/swc.exe`, started as a child process and never the one that
+ran the tool. That is what lets a tool say that a freshly built compiler is broken.
 
 ## Reaching one thing
 
@@ -50,20 +41,20 @@ Nothing in `promote.bat` checks that, deliberately: the check is the campaign.
 
 | Tool | Purpose |
 | --- | --- |
-| `tests.bat` | The complete test set: compiler, scripts, library, examples, applications, reference |
-| `unittests.bat` | The compiler suites: `cpp`, `lexer`, `parser`, `sema`, `jit`, `safety`, `sanity`, `native`, `workspace` |
-| `build.bat` | Build every workspace |
-| `scrypt.bat` | The privileged sCrypt/WinFsp end-to-end sandbox, kept out of `tests.bat` |
+| `tests.swgs` | The complete test set: compiler, scripts, library, examples, applications, reference |
+| `unittests.swgs` | The compiler suites: `cpp`, `lexer`, `parser`, `sema`, `jit`, `safety`, `sanity`, `native`, `workspace` |
+| `build.swgs` | Build every workspace |
+| `scrypt.swgs` | The privileged sCrypt/WinFsp end-to-end sandbox, kept out of `tests.swgs` |
 
 ## Workspaces
 
 | Tool | Commands | Purpose |
 | --- | --- | --- |
-| `std.bat` | build, test | The standard library, whole or one module |
-| `examples.bat` | build, run, test, smoke | The examples, whole or one module |
-| `apps.bat` | build, run, test, smoke | The applications; a build also packages their runtime files |
-| `reference.bat` | build, test | The executable language reference |
-| `scripts.bat` | run, smoke | The standalone example scripts; naming one runs it, naming none smokes them all |
+| `std.swgs` | build, test | The standard library, whole or one module |
+| `examples.swgs` | build, run, test, smoke | The examples, whole or one module |
+| `apps.swgs` | build, run, test, smoke | The applications; a build also packages their runtime files |
+| `reference.swgs` | build, test | The executable language reference |
+| `scripts.swgs` | run, smoke | The standalone example scripts; naming one runs it, naming none smokes them all |
 
 `test` runs a module's `#test` functions and never its `#main`. `smoke` runs the real program
 for a bounded number of frames, isolated from the machine, to prove it starts and keeps going.
@@ -73,13 +64,12 @@ A program without `#test` is smoked: testing it would report zero tests and prov
 
 | Tool | Purpose |
 | --- | --- |
-| `format.bat` | Format every Swag source workspace in place |
-| `web.bat` | Regenerate the brand assets and the complete website |
-| `goldens.bat` | Promote reviewed `.actual` snapshots to goldens |
-| `bench.bat` | Run or regenerate the cross-language performance campaign |
-| `vsix.bat` | Refresh the extension images and build the VSIX package |
-| `setup.bat` | Register `bin/` in the current user's environment |
-| `promote.bat` | Install a validated `bin/swc.exe` as the pinned compiler the tools run on |
+| `format.swgs` | Format every Swag source workspace in place |
+| `web.swgs` | Regenerate the brand assets and the complete website |
+| `goldens.swgs` | Promote reviewed `.actual` snapshots to goldens |
+| `bench.swgs` | Run or regenerate the cross-language performance campaign |
+| `vsix.swgs` | Refresh the extension images and build the VSIX package |
+| `setup.swgs` | Register `bin/` in the current user's environment |
 
-`src/Support/Memory/mimalloc/bin/bundle.bat` is intentionally not moved: it belongs to the
-vendored mimalloc distribution and retains its upstream layout.
+The one batch file left in the repository is `src/Support/Memory/mimalloc/bin/bundle.bat`: it
+belongs to the vendored mimalloc distribution and retains its upstream layout.

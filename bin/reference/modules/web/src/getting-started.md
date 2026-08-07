@@ -13,7 +13,7 @@ named `swc`; `Swag` is the language name.
 1. Clone [swag-lang/swc](https://github.com/swag-lang/swc).
 2. Follow [Build Swag from source](how-to-build-swag.html). The project pins the
    Visual Studio `v145` C++ toolset and Windows SDK `10.0.26100.0`.
-3. From the repository root, run `tools\setup.bat`.
+3. From the repository root, run `tools\setup.swgs`.
 4. Open a new terminal and verify the installation with `swc help`.
 
 The registration script adds the repository's `bin` directory to the user

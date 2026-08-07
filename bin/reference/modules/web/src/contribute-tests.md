@@ -8,15 +8,15 @@ select the appropriate stage, configuration, JIT path, or native path.
 
 | Location | Use it for | Runner |
 |---|---|---|
-| `bin/unittests/lexer` | Tokens, trivia, escapes, and literal scanning | `tools\unittests.bat dm lexer` |
-| `bin/unittests/parser` | Grammar and source structure | `tools\unittests.bat dm parser` |
-| `bin/unittests/sema` | Types, overloads, generics, attributes, and semantic rules | `tools\unittests.bat dm sema` |
+| `bin/unittests/lexer` | Tokens, trivia, escapes, and literal scanning | `tools\unittests.swgs dm lexer` |
+| `bin/unittests/parser` | Grammar and source structure | `tools\unittests.swgs dm parser` |
+| `bin/unittests/sema` | Types, overloads, generics, attributes, and semantic rules | `tools\unittests.swgs dm sema` |
 | `bin/unittests/errors/<stage>` | Expected diagnostics at a compiler stage | Matching stage runner |
-| `bin/unittests/jit` | Compile-time and in-memory execution | `tools\unittests.bat dm jit` |
-| `bin/unittests/safety` | Runtime safety guards | `tools\unittests.bat dm safety` |
-| `bin/unittests/sanity` | Static and lifecycle sanity analysis | `tools\unittests.bat dm sanity` |
-| `bin/unittests/native` | Encoding, linking, PDBs, and native execution | `tools\unittests.bat dm native` |
-| `src/Unittest` | C++ internals without a source-language boundary | `tools\unittests.bat dm cpp` |
+| `bin/unittests/jit` | Compile-time and in-memory execution | `tools\unittests.swgs dm jit` |
+| `bin/unittests/safety` | Runtime safety guards | `tools\unittests.swgs dm safety` |
+| `bin/unittests/sanity` | Static and lifecycle sanity analysis | `tools\unittests.swgs dm sanity` |
+| `bin/unittests/native` | Encoding, linking, PDBs, and native execution | `tools\unittests.swgs dm native` |
+| `src/Unittest` | C++ internals without a source-language boundary | `tools\unittests.swgs dm cpp` |
 
 Do not add a source test for a command-line, linker, backend, runtime, or
 internal-only behavior when its real boundary has a dedicated harness.
@@ -63,18 +63,18 @@ harness normally consumes.
 Build the `DevMode|x64` compiler first, then run the narrow layer:
 
 ```text
-tools\unittests.bat dm sema
+tools\unittests.swgs dm sema
 ```
 
 Before submitting a compiler change, follow the validation sequence in the
 repository's `AGENTS.md`. The common aggregate commands are:
 
 ```text
-tools\tests.bat dm
-tools\tests.bat dm --all-cfg
+tools\tests.swgs dm
+tools\tests.swgs dm --all-cfg
 ```
 
-`tests.bat` runs the default suite once. `tests.bat --all-cfg` repeats it for
+`tests.swgs` runs the default suite once. `tests.swgs --all-cfg` repeats it for
 `release`, `debug`, and `fast-debug` language configurations.
 
 ## Keep failures reviewable
@@ -85,7 +85,7 @@ tools\tests.bat dm --all-cfg
   input without a recorded seed.
 - Keep passing tests silent; use temporary `@print` calls only while debugging.
 - Review any `*.actual.txt` snapshot before accepting it with
-  `tools\goldens.bat`.
+  `tools\goldens.swgs`.
 - Retain a regression test after the compiler fix lands.
 
 The executable [language reference](language.html) is also a regression suite,

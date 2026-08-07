@@ -41,7 +41,7 @@ All intermediate C++ files stay under the repository's `.tmp/x64` tree.
 Run this once from the repository root:
 
 ```text
-tools\setup.bat
+tools\setup.swgs
 ```
 
 Open a new terminal afterward. The script adds `bin` to the user `PATH` and
@@ -63,15 +63,15 @@ useful while iterating:
 
 | Command | Scope |
 |---|---|
-| `tools\unittests.bat dm cpp` | Internal C++ unit tests |
-| `tools\unittests.bat dm lexer` | Lexer source tests and expected diagnostics |
-| `tools\unittests.bat dm parser` | Parser source tests and expected diagnostics |
-| `tools\unittests.bat dm sema` | Semantic source tests and expected diagnostics |
-| `tools\unittests.bat dm jit` | JIT execution tests |
-| `tools\unittests.bat dm native` | Native code generation and execution tests |
-| `tools\reference.bat dm test` | Executable language reference |
-| `tools\tests.bat dm` | Full default DevMode test suite |
-| `tools\tests.bat dm --all-cfg` | Default suite in `release`, `debug`, and `fast-debug` |
+| `tools\unittests.swgs dm cpp` | Internal C++ unit tests |
+| `tools\unittests.swgs dm lexer` | Lexer source tests and expected diagnostics |
+| `tools\unittests.swgs dm parser` | Parser source tests and expected diagnostics |
+| `tools\unittests.swgs dm sema` | Semantic source tests and expected diagnostics |
+| `tools\unittests.swgs dm jit` | JIT execution tests |
+| `tools\unittests.swgs dm native` | Native code generation and execution tests |
+| `tools\reference.swgs dm test` | Executable language reference |
+| `tools\tests.swgs dm` | Full default DevMode test suite |
+| `tools\tests.swgs dm --all-cfg` | Default suite in `release`, `debug`, and `fast-debug` |
 
 The repository's [agent guide](https://github.com/swag-lang/swc/blob/master/AGENTS.md)
 defines the required validation sequence for each change type.
@@ -81,7 +81,7 @@ defines the required validation sequence for each change type.
 After a DevMode build, regenerate the complete documentation site with:
 
 ```text
-tools\web.bat dm
+tools\web.swgs dm
 ```
 
 The command rebuilds the brand assets, standard-library API pages, runtime API,

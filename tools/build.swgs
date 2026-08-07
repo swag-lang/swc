@@ -1,0 +1,15 @@
+#import("core", location: "swag@std")
+
+#load("src/args.swg")
+#load("src/context.swg")
+#load("src/scope.swg")
+#load("src/suites.swg")
+#load("src/workspaces.swg")
+#load("src/campaign.swg")
+#load("src/maintenance.swg")
+#load("src/usage.swg")
+#load("src/entry.swg")
+
+using Core
+
+#main { Env.exit(cast #bit (u32) Tool.launch("build")) }

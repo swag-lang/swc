@@ -161,7 +161,7 @@ Install Visual Studio 2026 or its Build Tools with the **Desktop development wit
 
 ```
 msbuild swc.sln /m /p:Configuration=Release /p:Platform=x64
-tools\setup.bat
+tools\setup.swgs
 ```
 
 Open a new terminal afterwards: the script adds `bin` to the user `PATH` and sets `SWAG_PATH`, which

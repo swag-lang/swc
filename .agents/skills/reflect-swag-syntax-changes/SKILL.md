@@ -26,7 +26,7 @@ The reference lives in `bin/reference/modules/language/src/` and is COMPILED AND
 - Add or adjust a `#test` that exercises the new form so the doc proves itself.
 - Follow [../write-swag-compiler-messages/SKILL.md](../write-swag-compiler-messages/SKILL.md)
   for any prose, and [../modify-swag-codebase/SKILL.md](../modify-swag-codebase/SKILL.md)
-  for validation (`tools/reference.bat dm test` must stay green).
+  for validation (`tools/reference.swgs dm test` must stay green).
 
 ## 2. Update The VSCode Extension
 
@@ -53,6 +53,6 @@ success.
 
 ## Finish Cleanly
 
-A syntax change is done only when: the compiler accepts the new form, `reference.bat dm test`
+A syntax change is done only when: the compiler accepts the new form, `reference.swgs dm test`
 is green with updated docs, the grammar matches, and (for keyword/modifier changes) the
 bumped extension is packaged and installed. Report which of these you completed.

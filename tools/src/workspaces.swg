@@ -144,7 +144,7 @@ public func runApps(context: *Context, options: *Options)->s32 fail
 
     if command == "run" and options.module.isEmpty()
     {
-        @print("Running an application needs its name: apps.bat run <module>\n")
+        @print("Running an application needs its name: apps.swgs run <module>\n")
         return 1
     }
 

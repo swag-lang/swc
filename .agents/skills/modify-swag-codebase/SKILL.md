@@ -117,13 +117,13 @@ doing; once the suites hold it, twenty seconds answer the same question.
 Ask the tooling which surfaces a change reaches instead of running everything by reflex:
 
 ```
-tools/tests.bat plan          what the working tree selects, without running it
-tools/tests.bat changed       run exactly that
+tools/tests.swgs plan          what the working tree selects, without running it
+tools/tests.swgs changed       run exactly that
 ```
 
 The selection maps each changed path to a surface, adds whatever imports a selected `bin/std`
 module, and runs the union. Naming a path answers the same question about a file *before* touching
-it — `tools/tests.bat plan bin/std/modules/gui/src/widgets/tab.swg` — which is how the cost of a
+it — `tools/tests.swgs plan bin/std/modules/gui/src/widgets/tab.swg` — which is how the cost of a
 change is known in advance.
 
 A path matching no surface selects the whole set, so an unmapped file costs time rather than
@@ -133,22 +133,22 @@ rather than leaving the next change to pay for it again.
 ## Validate C++ Changes
 
 Sema, code generation, the micro backend, the JIT, the runtime support and the driver sit under
-every compiled program, so a change to any of them selects the whole set — `tests.bat plan` says
+every compiled program, so a change to any of them selects the whole set — `tests.swgs plan` says
 so, and this sequence is what running it means. Fix every failure before continuing to the next
 step.
 
 1. Compile a DevMode build.
-2. Run `tools/tests.bat dm`.
-3. Run `tools/tests.bat dm --all-cfg`.
+2. Run `tools/tests.swgs dm`.
+3. Run `tools/tests.swgs dm --all-cfg`.
 4. Compile the Release build, including `swc.exe`.
-5. Run `tools/tests.bat`.
+5. Run `tools/tests.swgs`.
 
-Do not run `tests.bat --all-cfg` in Release mode as part of the default workflow.
+Do not run `tests.swgs --all-cfg` in Release mode as part of the default workflow.
 
 The compiler areas that do *not* sit under every program have their own narrower workflow:
 `src/Doc` and `src/Format` below, `src/Unittest` in the C++ suite alone, and `src/Backend/Linker`
 and `src/Backend/Debug` in the suites that emit a real image plus the applications and the
-reference. Run `tools/tests.bat changed` and it picks the right one.
+reference. Run `tools/tests.swgs changed` and it picks the right one.
 
 ## Validate Documentation-Only Changes
 
@@ -156,11 +156,11 @@ When a compiler change affects only the `doc` command, including refactoring sha
 for its implementation:
 
 1. Compile a DevMode build.
-2. Regenerate the repository documentation with `tools/web.bat dm`.
+2. Regenerate the repository documentation with `tools/web.swgs dm`.
 3. Inspect the generated HTML and its diff for correctness.
 
-Do not run `tests.bat`, `tests.bat --all-cfg`, or the Release validation workflow for a
-documentation-only change. `tests.bat changed` reports the regeneration as a step to take rather
+Do not run `tests.swgs`, `tests.swgs --all-cfg`, or the Release validation workflow for a
+documentation-only change. `tests.swgs changed` reports the regeneration as a step to take rather
 than taking it: a test command must never rewrite a tracked file.
 
 ## Validate Formatter-Only Changes
@@ -168,22 +168,22 @@ than taking it: a test command must never rewrite a tracked file.
 When a compiler change affects only the `format` command:
 
 1. Compile a DevMode build.
-2. Run the C++ formatter suite with `tools/unittests.bat dm cpp`.
-3. Format the repository with `tools/format.bat dm`.
+2. Run the C++ formatter suite with `tools/unittests.swgs dm cpp`.
+3. Format the repository with `tools/format.swgs dm`.
 4. Inspect the resulting diff for correctness.
 
-Do not run `tests.bat`, `tests.bat --all-cfg`, or the Release validation workflow for a
-formatter-only change. `tests.bat changed` runs step 2 and reports step 3, for the same reason:
-`format.bat` rewrites tracked sources, so it is a maintenance step and never a test.
+Do not run `tests.swgs`, `tests.swgs --all-cfg`, or the Release validation workflow for a
+formatter-only change. `tests.swgs changed` runs step 2 and reports step 3, for the same reason:
+`format.swgs` rewrites tracked sources, so it is a maintenance step and never a test.
 
 ## Validate Swag-Only Changes
 
-After changing sources under `bin/` without changing C++, `tools/tests.bat changed --all-cfg` is
+After changing sources under `bin/` without changing C++, `tools/tests.swgs changed --all-cfg` is
 the whole workflow: it runs the changed example, script or application, the `bin/std` module and
 everything that imports it, and nothing else.
 
 Reach for one tool directly only to iterate on a single failure. An example declares no `#test`,
-so it is smoked rather than tested — `tools/examples.bat dm smoke <example> -bc <config>` — while
+so it is smoked rather than tested — `tools/examples.swgs dm smoke <example> -bc <config>` — while
 a `bin/std` module and an application carry both.
 
 ## Launch Every Executable Through Its Tool
@@ -196,16 +196,16 @@ diagnostic, which reads exactly like the bug you were about to investigate.
 The tools place the runtime files first, then launch:
 
 ```
-tools/examples.bat [dm] run -m <example>
-tools/apps.bat [dm] run <module>
-tools/scripts.bat [dm] run <script>
+tools/examples.swgs [dm] run -m <example>
+tools/apps.swgs [dm] run <module>
+tools/scripts.swgs [dm] run <script>
 ```
 
 The same rule holds when driving a program from a helper script, a debugger, or a screenshot
 harness: point it at the tool, not at the `.exe`. An application packaged by
-`tools/apps.bat build <module>` is the one exception — packaging copies its dependencies beside
+`tools/apps.swgs build <module>` is the one exception — packaging copies its dependencies beside
 it, so the packaged executable runs on its own, which is what makes it shippable. That state is
-fragile: a later `apps.bat test <module>` strips those files again, so re-run the build before
+fragile: a later `apps.swgs test <module>` strips those files again, so re-run the build before
 any visual session that follows a test pass.
 
 ## Measure Windows From A DPI-Aware Probe

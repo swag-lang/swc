@@ -12,7 +12,7 @@ public func printUsage(name: string)->s32
 """
 Runs the repository test set, whole or scoped to what changed.
 
-  tests.bat [dm] [changed|plan] [<path>] [options...]
+  tests.swgs [dm] [changed|plan] [<path>] [options...]
 
   dm                 use the DevMode compiler
   changed            run only what the working-tree change requires
@@ -39,7 +39,7 @@ of coverage.
 """
 Runs the compiler test suites.
 
-  unittests.bat [dm] [<suite>] [options...]
+  unittests.swgs [dm] [<suite>] [options...]
 
   dm                 use the DevMode compiler, and run the C++ suite
   <suite>            cpp lexer parser sema jit safety sanity native workspace
@@ -54,7 +54,7 @@ forwarded to the compiler, for instance --seed, --num-cores, or --randomize.
 """
 Builds or tests the standard library.
 
-  std.bat [dm] [build|test] [<module>] [options...]
+  std.swgs [dm] [build|test] [<module>] [options...]
 
   dm                 use the DevMode compiler
   <module>           one of bin/std/modules, for instance core or pixel
@@ -69,7 +69,7 @@ Testing always builds the workspace first. Modules without a unit test are skipp
 """
 Builds, runs, tests, or smokes the examples workspace.
 
-  examples.bat [dm] [build|run|test|smoke] [<module>] [options...]
+  examples.swgs [dm] [build|run|test|smoke] [<module>] [options...]
 
   dm                 use the DevMode compiler
   <module>           one of bin/examples/modules, for instance gui2 or pixel4
@@ -77,8 +77,8 @@ Builds, runs, tests, or smokes the examples workspace.
   --frames <count>   bound a run or a smoke to that many frames
   --run-timeout <s>  fail a run or a smoke that outlives that many seconds
 
-  examples.bat run gui2        launch one example
-  examples.bat dm test gui2    run its tests with the DevMode compiler
+  examples.swgs run gui2        launch one example
+  examples.swgs dm test gui2    run its tests with the DevMode compiler
 
 The standard library is built first. 'smoke' proves a program starts and keeps
 going for a bounded number of frames, isolated from the machine.
@@ -89,7 +89,7 @@ going for a bounded number of frames, isolated from the machine.
 """
 Builds, runs, tests, or smokes the applications workspace.
 
-  apps.bat [dm] [build|run|test|smoke] [<module>] [options...]
+  apps.swgs [dm] [build|run|test|smoke] [<module>] [options...]
 
   dm                 use the DevMode compiler
   <module>           one of bin/apps/modules, for instance sCrypt or sCapture
@@ -97,8 +97,8 @@ Builds, runs, tests, or smokes the applications workspace.
   --frames <count>   bound a smoke to that many frames
   --run-arg <value>  an argument for the launched application
 
-  apps.bat run sCrypt          launch one application
-  apps.bat dm test sCapture    run its tests with the DevMode compiler
+  apps.swgs run sCrypt          launch one application
+  apps.swgs dm test sCapture    run its tests with the DevMode compiler
 
 Every command places each application's runtime files beside its executable, so a
 packaged application stays launchable after a test pass. 'run' needs a module name
@@ -110,7 +110,7 @@ and launches the packaged executable from its own directory.
 """
 Builds or tests the executable language reference.
 
-  reference.bat [dm] [build|test] [options...]
+  reference.swgs [dm] [build|test] [options...]
 
   dm                 use the DevMode compiler
   build              compile every page without running its samples
@@ -123,16 +123,16 @@ Builds or tests the executable language reference.
 """
 Runs one standalone example script, or smokes every one of them.
 
-  scripts.bat [dm] [run|smoke] [<script>] [options...]
+  scripts.swgs [dm] [run|smoke] [<script>] [options...]
 
   dm                          use the DevMode compiler
   <script>                    a name from bin/examples/scripts, with or without .swgs
   -bc <config>                release, debug, or fast-debug (default fast-debug)
   --run-arg swag.smoke=<n>    bound the run to that many frames
 
-  scripts.bat snake            launch one script
-  scripts.bat                  smoke every script
-  scripts.bat smoke snake      smoke that one
+  scripts.swgs snake            launch one script
+  scripts.swgs                  smoke every script
+  scripts.swgs smoke snake      smoke that one
 
 Naming a script runs it; naming none smokes them all, isolated from the machine.
 """)
@@ -142,7 +142,7 @@ Naming a script runs it; naming none smokes them all, isolated from the machine.
 """
 Builds every repository workspace.
 
-  build.bat [dm] [options...]
+  build.swgs [dm] [options...]
 
   dm                 use the DevMode compiler
   -bc <config>       release, debug, or fast-debug (default fast-debug)
@@ -157,7 +157,7 @@ reference, and the multi-module workspace suite.
 """
 Formats every Swag source workspace in the repository, in place.
 
-  format.bat [dm] [options...]
+  format.swgs [dm] [options...]
 
 This rewrites tracked sources. It is a maintenance step, never a test.
 """)
@@ -167,7 +167,7 @@ This rewrites tracked sources. It is a maintenance step, never a test.
 """
 Promotes the snapshots a failing test left behind into their goldens.
 
-  goldens.bat
+  goldens.swgs
 
 A golden mismatch writes '<name>.actual.txt' or '<name>.actual.png' next to its
 reference and fails. Once reviewed, this moves every actual over its golden.
@@ -178,7 +178,7 @@ reference and fails. Once reviewed, this moves every actual over its golden.
 """
 Regenerates the brand assets and the complete website under web/.
 
-  web.bat [dm] [options...]
+  web.swgs [dm] [options...]
 
 Cuts the mark, the icons and the favicons first, then documents the bin/std and
 bin/reference workspaces.
@@ -189,10 +189,10 @@ bin/reference workspaces.
 """
 Runs the privileged sCrypt/WinFsp end-to-end sandbox.
 
-  scrypt.bat [dm]
+  scrypt.swgs [dm]
 
 Builds sCrypt with the SCrypt.Integration tag, runs it, prints its report, then
-rebuilds a normal sCrypt. It mounts a real volume, so it stays out of tests.bat.
+rebuilds a normal sCrypt. It mounts a real volume, so it stays out of tests.swgs.
 """)
 
     case "vsix":
@@ -200,7 +200,7 @@ rebuilds a normal sCrypt. It mounts a real volume, so it stays out of tests.bat.
 """
 Packages the VSCode extension after refreshing its generated images.
 
-  vsix.bat
+  vsix.swgs
 
 Install Node.js, then 'npm install -g vsce', before using this.
 """)
@@ -210,7 +210,7 @@ Install Node.js, then 'npm install -g vsce', before using this.
 """
 Registers bin/ in the current user's environment.
 
-  setup.bat
+  setup.swgs
 """)
 
     case "bench":
@@ -218,10 +218,10 @@ Registers bin/ in the current user's environment.
 """
 Runs or regenerates the cross-language performance campaign.
 
-  bench.bat                             a full campaign
-  bench.bat --label "what changed"      the same, with a note in the history
-  bench.bat --quick                     smoke test, one repetition, not recorded
-  bench.bat --report-only               regenerate the page, measure nothing
+  bench.swgs                             a full campaign
+  bench.swgs --label "what changed"      the same, with a note in the history
+  bench.swgs --quick                     smoke test, one repetition, not recorded
+  bench.swgs --report-only               regenerate the page, measure nothing
 
 See bench/README.md before changing anything about how it measures.
 """)

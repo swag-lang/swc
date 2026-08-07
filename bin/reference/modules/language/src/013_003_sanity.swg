@@ -45,145 +45,19 @@ in 'release', where the runtime guard is off.
 }
 
 /**
-# Returning the Address of a Local
-
-The frame dies with the return, so the address of a local is always dangling
-('.Memory').
+> NOTE:
+> A view that borrows function-local storage — the address of a local, a slice of a
+> local array, a 'string' of a local 'Core.String' — is governed by the **borrow rules**,
+> which are part of the language rather than of this layer: no attribute and no build
+> configuration turns them off. See the 'Borrowing' section.
 */
 var sanityGlobalValue: s32
 
 func sanityGlobalAddress()->*s32
 {
     // var v: s32
-    // return &v  // Uncomment: error, returns the address of a local
+    // return &v  // Uncomment: error, the view outlives 'v' (a language rule)
     return &sanityGlobalValue     // A global outlives the call
-}
-
-/**
-# Borrow Escapes
-
-Views that borrow function-local storage — pointers, slices, strings, 'any',
-interfaces, closures capturing by address — must not outlive that storage
-('.Lifecycle'). Returning them, storing them into a global, or writing them through
-a caller-visible pointer is a compile-time error. This includes views of an OWNER's
-heap payload (a 'string' view of a local 'Core.String', for example): the payload is
-freed when the owner drops, and a local owner drops with its scope.
-*/
-var sanityGlobalBuffer: [4] u8
-
-#test
-{
-    func makeView()->const [..] u8
-    {
-        // var buf: [4] u8
-        // return cast(const [..] u8) buf  // Uncomment: error, borrow escapes
-        return cast(const [..] u8) sanityGlobalBuffer     // A global's storage is fine
-    }
-
-    @assert(@countof(makeView()) == 4)
-}
-
-/**
-The analysis follows borrows across local bindings — including a call result bound
-to a local and returned later ('let p = passthrough(&v); return p') — control-flow
-joins, and even opaque calls: a function whose return value may borrow one of its
-parameters is summarized, and the call site is checked against what was really
-passed in. The summaries chain, so wrapping a borrowing function does not hide the
-borrow, and they cross module boundaries through the generated module API (the
-'Swag.BorrowSummary' attribute).
-*/
-#test
-{
-    func passthrough(p: *s32)->*s32
-    {
-        return p
-    }
-
-    func wrapper(p: *s32)->*s32
-    {
-        return passthrough(p)     // Inherits the summary of 'passthrough'
-    }
-
-    func caller()->*s32
-    {
-        // var v: s32
-        // return wrapper(&v)  // Uncomment: error, borrows a local through the chain
-        return wrapper(&sanityGlobalValue)     // Caller-owned data flows through
-    }
-
-    @assert(caller() == &sanityGlobalValue)
-}
-
-/**
-An aggregate can carry several independent borrows. Swag keeps every parameter
-origin in function summaries and tracks local borrows by field path. Assigning a
-sibling field therefore neither hides nor inherits another field's borrow. Constant
-array indices are tracked independently; a dynamic index conservatively overlaps
-every element. Opaque-call snapshots also survive control-flow joins and compose
-through arbitrarily deep local call chains.
-*/
-#test
-{
-    struct Views
-    {
-        local:  *s32
-        global: *s32
-    }
-
-    var local: s32
-    var views: Views = undefined
-    views.local  = &local
-    views.global = &sanityGlobalValue
-    @assert(views.global == &sanityGlobalValue)
-}
-
-/**
-# Stored Arguments
-
-A callee that stores its parameter into storage that outlives the call (a global)
-makes any borrowed argument escape, whatever happens to the call result. This
-summary is inferred like the return summary, chains through wrappers, and crosses
-module boundaries the same way. Storing one parameter into storage reachable from
-ANOTHER ('container.add(&item)') is summarized as a pair, and the call site errors
-whenever the container provably outlives what was stored in it: a global container,
-or a local container declared in a shallower scope than the borrowed source.
-
-Reaching into a container counts even when it goes through the container's own heap
-buffer. A `[*] T` held by a value with an owning lifecycle addresses memory that
-value frees when it dies, so a store through it - directly, through a local, or
-through an accessor method - is a store into the container. That is what makes
-filling a collection of views from a per-iteration owner an error:
-
-```swag
-var set: HashSet'(string)
-for line in lines
-{
-    var key: String = build(line)
-    set.add(key)     // Error: 'set' outlives 'key', and it keeps a view of it
-}
-```
-
-A plain `*T` field is deliberately not treated this way: a single-object pointer
-inside an owner is just as often a back-reference to something it does not own.
-*/
-var sanityGlobalStash: #null *s32
-
-func sanityStash(p: *s32)
-{
-    sanityGlobalStash = p     // Legal here: 'p' is caller-owned. Judged at call sites.
-}
-
-#test
-{
-    func caller()
-    {
-        // var v: s32
-        // sanityStash(&v)  // Uncomment: error, the callee keeps the borrow
-        sanityStash(&sanityGlobalValue)     // A global outlives everything
-    }
-
-    caller()
-    @assert(sanityGlobalStash == &sanityGlobalValue)
 }
 
 /**
@@ -253,13 +127,18 @@ cannot prove still fail deterministically.
 # Opting Out
 
 Like safety, sanity can be disabled per scope with the attribute. Disabling
-'.Lifecycle' turns the whole borrow analysis off for that function.
+'.Lifecycle' turns off the analyses above that prove a lifetime fault — the
+use-after-free, double-free and use-after-move proofs. It does **not** reach the
+borrow rules: those are language rules and stay on.
 */
+var sanityOptedOutValue: s32
+
 #[Swag.Sanity(.Lifecycle, false), Swag.Sanity(.Memory, false)]
 func sanityOptedOut()->*s32
 {
-    var v: s32
-    return &v     // Accepted: the analysis is off here
+    // A frame borrow would still be rejected here: what the attribute switches off is
+    // the proof machinery, not the rule.
+    return &sanityOptedOutValue
 }
 
 /**

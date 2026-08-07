@@ -14,6 +14,16 @@
 
 SWC_BEGIN_NAMESPACE();
 
+// The borrow rules in this file are part of the LANGUAGE, not of the sanity tooling, and
+// nothing here consults '#[Swag.Sanity]' or 'buildCfg.sanityGuards'. A program that lets a
+// view outlive the storage it views is not a Swag program, and whether it is accepted must
+// not depend on an attribute: a guarantee a caller can switch off is not a guarantee.
+//
+// What stays under '.Lifecycle' is the other half - the backend analyses that PROVE a
+// runtime fault (use after free, use after move, a read of uninitialized storage). Those
+// answer "this run will certainly fault", and how much of that a compiler can prove is a
+// property of the compiler, not of the language.
+
 namespace
 {
     // Recursive shape probes are conservative filters, not proof engines. The caps keep
@@ -176,6 +186,16 @@ namespace
         return !paramType.isAnyPointer() && !paramType.isReference() && !paramType.isAnyVariadic();
     }
 
+    // Does a by-value parameter really behave like a local? An OWNING one does not: the
+    // callee neither copies nor drops it, so what it owns stays the caller's and only its
+    // slot lives in this frame. Rooting such a parameter at the frame would report every
+    // accessor of an owner taken by value as an escape; rooting it at the signature moves
+    // the judgement to the call site, where the argument's real lifetime is known.
+    bool isFrameLocalParameterStorage(Sema& sema, const SymbolVariable& symVar)
+    {
+        return isByValueParameterStorage(sema, symVar) && !hasOwningLifecycle(sema, symVar.typeRef());
+    }
+
     bool isLocalVariableStorage(Sema& sema, const SymbolVariable& symVar)
     {
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::GlobalStorage) ||
@@ -184,7 +204,7 @@ namespace
             return false;
 
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
-            return isByValueParameterStorage(sema, symVar);
+            return isFrameLocalParameterStorage(sema, symVar);
 
         if (const SymbolFunction* currentFn = sema.currentFunction())
         {
@@ -236,7 +256,7 @@ namespace
             info.kind = SemaEscapeKind::Static;
         else if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
         {
-            info.kind = isByValueParameterStorage(sema, symVar) ? SemaEscapeKind::Local : SemaEscapeKind::Parameter;
+            info.kind = isFrameLocalParameterStorage(sema, symVar) ? SemaEscapeKind::Local : SemaEscapeKind::Parameter;
             if (info.kind == SemaEscapeKind::Parameter)
                 setParameterOrigin(sema, info, symVar);
         }
@@ -472,7 +492,14 @@ namespace
                 return nullptr;
         }
 
-        if (!isOwnedPayloadCarrier(sema, expressionTypeRef(sema, resolvedRef)))
+        // An implicit conversion SUBSTITUTES the member-access node, so its resolved type
+        // is the CONVERTED one: a '[*] u8' payload assigned to an 'AllocatorRequest.address'
+        // field reads back as '*void' and stops looking like a payload. Whether a member is
+        // storage its owner frees is a property of the FIELD's declaration, so decide on
+        // that and fall back to the expression only when the field symbol is unavailable.
+        const SymbolVariable* memberField   = identifierVariable(sema, resolvedRef);
+        const TypeRef         memberTypeRef = memberField ? memberField->typeRef() : expressionTypeRef(sema, resolvedRef);
+        if (!isOwnedPayloadCarrier(sema, memberTypeRef))
             return nullptr;
 
         // The value the member was read out of, seen through the pointer or reference
@@ -765,7 +792,6 @@ namespace
             outComponent = {.kind = SemaEscapeProjectionKind::ConstantIndex, .index = slot.index};
         return true;
     }
-
 
     bool aggregateLiteralChildren(Sema& sema, SmallVector<AstNodeRef>& outChildren, AstNodeRef exprRef)
     {
@@ -1231,8 +1257,16 @@ namespace
         const uint64_t origins = parameterOriginsMask(fn, info);
         for (size_t i = 0; i < 64; ++i)
         {
-            if (origins & (1ULL << i))
-                fn.addReturnBorrowsParam(i);
+            if (!(origins & (1ULL << i)))
+                continue;
+            fn.addReturnBorrowsParam(i);
+
+            // A result read OUT of what the parameter owns is a view the parameter's own
+            // reallocation moves. A result that merely reaches the parameter - a fresh
+            // object holding a back-reference to it - is not, and only this flag can tell
+            // the invalidation check which of the two it is looking at.
+            if (info.viaOwnedPayload)
+                fn.addReturnsPayloadParam(i);
         }
     }
 
@@ -1270,6 +1304,7 @@ namespace
             check.noteSymName = check.symName;
             check.noteRange   = info.sourceVar->codeRange(sema.ctx());
             check.ownerSource = hasOwningLifecycle(sema, info.sourceVar->typeRef());
+            check.borrowedVar = info.sourceVar;
             return;
         }
 
@@ -1377,11 +1412,18 @@ namespace
         if (!fn)
             return false;
 
-        // Inline expansions are analyzed within the caller with exact information: the
-        // summary path only covers opaque calls.
-        if (fn->attributes().hasRtFlag(RtAttributeFlagsE::Inline) ||
-            fn->attributes().hasRtFlag(RtAttributeFlagsE::Macro) ||
-            fn->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+        // Whether an expansion happened is not a question for the attributes: a call that
+        // was expanded no longer resolves to a CallExpr at all, and the walk above would
+        // have stopped. Reading '#[Inline]' instead made the verdict depend on whether the
+        // build configuration inlines - and an imported '#[Inline]' accessor is never
+        // expanded anyway, because its body does not cross the module boundary (the
+        // generated API declares it '#[Swag.Foreign]' and keeps the attribute). Both
+        // mistakes dropped 'String.toString' and its kind out of the analysis.
+        //
+        // A macro or a mixin is a different matter: it is expanded from source before this
+        // point, and its parameters are code rather than values, so there is no summary to
+        // pair them against.
+        if (fn->attributes().hasRtFlag(RtAttributeFlagsE::Macro) || fn->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
             return false;
 
         const auto& params = fn->parameters();
@@ -1433,8 +1475,15 @@ namespace
             if (paramTypeRef.isValid() && sema.typeMgr().get(paramTypeRef).isAnyVariadic())
                 break;
 
-            // A parameter that cannot carry a borrow can neither return nor store one.
-            if (paramTypeRef.isValid() && !typeCanCarryBorrowImpl(sema, paramTypeRef))
+            // A parameter that cannot carry a borrow can neither return nor store one -
+            // with one exception. 'typeCanCarryBorrow' refuses to SCAN the fields of an
+            // owner, because a bitwise walk of them would confuse ownership with
+            // borrowing; that says nothing about the owner being unable to LEND what it
+            // holds, which is exactly what an accessor taking it by value hands back.
+            // Without this, the pointer spelling of a call errors and the by-value one
+            // right next to it is silent.
+            const bool paramIsByValueOwner = paramTypeRef.isValid() && typeHasBorrowableStorage(sema, paramTypeRef) && hasOwningLifecycle(sema, paramTypeRef);
+            if (paramTypeRef.isValid() && !typeCanCarryBorrowImpl(sema, paramTypeRef) && !paramIsByValueOwner)
                 continue;
 
             uint32_t             budget = K_EXPR_BUDGET;
@@ -2129,13 +2178,6 @@ namespace
         return type.isReference() ? type.payloadTypeRef() : typeRef;
     }
 
-    // The borrow checks are STATIC sanity checks under the Lifecycle flag: when the
-    // sanity is disabled, the whole analysis is skipped (no tracking, no reports).
-    bool lifecycleSanityEnabled(Sema& sema)
-    {
-        return sema.frame().currentAttributes().hasSanity(sema.buildCfg().sanityGuards, Runtime::SafetyWhat::Lifecycle);
-    }
-
     Result reportBorrowEscape(Sema& sema, AstNodeRef atNodeRef, const SemaEscapeInfo& info, std::string_view what)
     {
         if (info.isTemporaryBorrow() || info.isMaterializedBorrow())
@@ -2593,14 +2635,15 @@ namespace
         return storageRootVariable(sema, projectedRef, false, whole);
     }
 
-    // The first READ of 'symVar' written after 'afterRange', or invalid when the next
-    // thing that happens to it is a write - reassigning a view refreshes it, so what
-    // follows reads the new one.
+    // The first READ of 'symVar' written at or after 'afterOffset', or invalid when the
+    // next thing that happens to it is a write - reassigning a view refreshes it, so what
+    // follows reads the new one. 'afterRange' only names the file; the offset is separate
+    // because the mutation's own arguments run before it and must not count.
     //
     // Source order, not control flow: a view read on a path that also refreshes it is
     // rare enough that the simpler rule is worth its precision, and erring toward
     // silence keeps the check out of the way of correct programs.
-    AstNodeRef firstReadAfter(Sema& sema, AstNodeRef bodyRef, const SourceCodeRange& afterRange, const SymbolVariable& symVar)
+    AstNodeRef firstReadAfter(Sema& sema, AstNodeRef bodyRef, const SourceCodeRange& afterRange, uint32_t afterOffset, const SymbolVariable& symVar)
     {
         struct Occurrence
         {
@@ -2609,7 +2652,7 @@ namespace
             bool       isWrite = false;
         };
 
-        SmallVector<Occurrence> found;
+        SmallVector<Occurrence>                        found;
         SmallVector<std::pair<AstNodeRef, AstNodeRef>> worklist;
         worklist.push_back({bodyRef, AstNodeRef::invalid()});
 
@@ -2627,7 +2670,7 @@ namespace
             if (node.is(AstNodeId::Identifier) && identifierVariable(sema, nodeRef) == &symVar)
             {
                 const SourceCodeRange range = node.codeRange(sema.ctx());
-                if (range.srcView == afterRange.srcView && range.offset > afterRange.offset)
+                if (range.srcView == afterRange.srcView && range.offset >= afterOffset)
                 {
                     // The destination of an assignment, or the name being declared, is
                     // where the view is refreshed rather than consumed.
@@ -2659,6 +2702,50 @@ namespace
 
         std::ranges::sort(found, [](const Occurrence& a, const Occurrence& b) { return a.offset < b.offset; });
         return found.front().isWrite ? AstNodeRef::invalid() : found.front().nodeRef;
+    }
+
+    // Is this local a view INTO what 'root' owns, and under what condition? A view taken
+    // straight out of the storage ('let v = buf.data') is one unconditionally. A view
+    // handed back by a call ('let v = buf.view()') is one exactly when that call's result
+    // reads the payload of the argument 'root' was passed as - which only the callee's
+    // final summary can say, so the condition travels as a guard instead of being decided
+    // here. The guard asks the PAYLOAD question, not the weaker "may borrow" one: a
+    // factory returning a fresh object that keeps a pointer to its receiver borrows it,
+    // but reallocating the receiver's payload leaves that object perfectly valid.
+    //
+    // Reading the captured call snapshot is what makes the most common spelling of "take
+    // a view into a container" a candidate at all: an accessor result is bound as a
+    // DeferredCall, never as a plain local borrow.
+    bool viewRoutesToStorage(const SemaEscapeInfo& info, const SymbolVariable& root, SmallVector4<SemaEscapeDeferredGuard>& outGuards)
+    {
+        if (info.isLocalBorrow())
+            return info.sourceVar == &root;
+
+        if (!info.isDeferredCallBorrow())
+            return false;
+
+        for (const auto& snapshot : info.deferredCalls)
+        {
+            if (!snapshot)
+                continue;
+
+            for (const SemaEscapeDeferredCheck& check : snapshot->checks)
+            {
+                if (check.borrowedVar != &root || !check.callee)
+                    continue;
+
+                // Every call the result travelled through has to hand the view on. The
+                // check already carries the guards of the calls before it; this one adds
+                // the call that produced the value.
+                outGuards.clear();
+                for (const SemaEscapeDeferredGuard& guard : check.guards)
+                    outGuards.push_back({guard.callee, guard.paramIndex, true});
+                outGuards.push_back({check.callee, check.paramIndex, true});
+                return true;
+            }
+        }
+
+        return false;
     }
 
     bool mutationFollowedByLoopExit(Sema& sema, AstNodeRef bodyRef, AstNodeRef callRef)
@@ -2712,9 +2799,6 @@ namespace SemaEscape
 
     Result checkVariableInitializer(Sema& sema, const SymbolVariable& symVar, AstNodeRef initRef, TypeRef targetTypeRef)
     {
-        if (!lifecycleSanityEnabled(sema))
-            return Result::Continue;
-
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) || symVar.isClosureCapture())
         {
             sema.clearVariableEscapeInfo(symVar);
@@ -2839,9 +2923,6 @@ namespace SemaEscape
 
     Result applyAssignment(Sema& sema, AstNodeRef leftRef, AstNodeRef rightRef)
     {
-        if (!lifecycleSanityEnabled(sema))
-            return Result::Continue;
-
         const TypeRef targetTypeRef = destinationTypeRef(sema, leftRef);
 
         bool                  wholeVariable = false;
@@ -3014,9 +3095,6 @@ namespace SemaEscape
     // storage's borrow so uses of 'it' escaping the loop are tracked like any pointer.
     void bindForeachAddressAlias(Sema& sema, const SymbolVariable& symVar, AstNodeRef exprRef)
     {
-        if (!lifecycleSanityEnabled(sema))
-            return;
-
         uint32_t       budget = K_EXPR_BUDGET;
         SemaEscapeInfo info   = expressionEscapeInfoRec(sema, exprRef, budget);
         if (!info.hasBorrow() && expressionMayExposeStorageBorrow(sema, exprRef))
@@ -3030,7 +3108,7 @@ namespace SemaEscape
 
     const SymbolVariable* iterationSourceRoot(Sema& sema, AstNodeRef exprRef)
     {
-        if (!lifecycleSanityEnabled(sema) || exprRef.isInvalid())
+        if (exprRef.isInvalid())
             return nullptr;
         return rootStorageOf(sema, exprRef);
     }
@@ -3045,7 +3123,7 @@ namespace SemaEscape
     // follow are not resolved, so their identifiers carry no symbol.
     void noteBorrowInvalidation(Sema& sema, AstNodeRef callRef, const SymbolFunction& calledFn)
     {
-        if (!lifecycleSanityEnabled(sema) || !isStructuralMutationCallee(sema, calledFn))
+        if (!isStructuralMutationCallee(sema, calledFn))
             return;
 
         // Inline and macro expansions are re-analyzed at every call site with the
@@ -3062,6 +3140,11 @@ namespace SemaEscape
         if (!mutationRange.srcView)
             return;
 
+        // The whole call expression, arguments included: a view named in them is read
+        // before the callee runs, so it is not a read of storage the callee moved.
+        const SourceCodeRange evaluationRange   = sema.node(callRef).codeRangeWithChildren(sema.ctx(), sema.ast());
+        const uint32_t        evaluationEndSpan = evaluationRange.srcView == mutationRange.srcView ? evaluationRange.offset + evaluationRange.len : mutationRange.offset + mutationRange.len;
+
         // Only a value that OWNS a heap payload can have that payload moved or freed by
         // a method call. A plain aggregate has nothing to reallocate, so a view into it
         // survives any change to its fields.
@@ -3070,19 +3153,25 @@ namespace SemaEscape
 
         for (const auto& [viewVar, info] : sema.variableEscapeInfos())
         {
-            if (!viewVar || viewVar == root || !info.isLocalBorrow() || info.sourceVar != root)
+            if (!viewVar || viewVar == root)
                 continue;
             if (!isLocalVariableStorage(sema, *viewVar) || !isLocalVariableStorage(sema, *root))
                 continue;
             if (viewAliasesVariableItself(sema, *viewVar, *root))
                 continue;
 
+            SmallVector4<SemaEscapeDeferredGuard> guards;
+            if (!viewRoutesToStorage(info, *root, guards))
+                continue;
+
             SemaBorrowInvalidation record;
-            record.viewVar       = viewVar;
-            record.sourceVar     = root;
-            record.callee        = &calledFn;
-            record.mutationRange = mutationRange;
-            record.mutationName  = calledFn.name(sema.ctx());
+            record.viewVar             = viewVar;
+            record.sourceVar           = root;
+            record.callee              = &calledFn;
+            record.mutationRange       = mutationRange;
+            record.evaluationEndOffset = evaluationEndSpan;
+            record.mutationName        = calledFn.name(sema.ctx());
+            record.guards              = guards;
             sema.addBorrowInvalidation(record);
         }
     }
@@ -3126,7 +3215,7 @@ namespace SemaEscape
         // wording over and let 'reportDeferredChecks' apply the condition.
         for (const SemaBorrowInvalidation& record : mine)
         {
-            const AstNodeRef readRef = firstReadAfter(sema, declRef, record.mutationRange, *record.viewVar);
+            const AstNodeRef readRef = firstReadAfter(sema, declRef, record.mutationRange, record.evaluationEndOffset, *record.viewVar);
             if (readRef.isInvalid())
                 continue;
 
@@ -3134,6 +3223,7 @@ namespace SemaEscape
             check.callee           = record.callee;
             check.paramIndex       = 0; // the receiver
             check.judgeReallocates = true;
+            check.guards           = record.guards;
             check.diagId           = DiagnosticId::sanity_err_borrow_invalidated;
             check.fileRef          = sema.srcView(sema.node(declRef).srcViewRef()).fileRef();
             check.siteRange        = record.mutationRange;
@@ -3157,9 +3247,6 @@ namespace SemaEscape
 
     Result checkIterationMutation(Sema& sema, AstNodeRef callRef, const SymbolFunction& calledFn)
     {
-        if (!lifecycleSanityEnabled(sema))
-            return Result::Continue;
-
         // Only a method can mutate its receiver, a 'const' method cannot, and operator
         // methods (opIndex/opIndexSet/opSlice/opData/opCount/opCast/opVisit ...) are
         // element or view access rather than a structural change of the collection.
@@ -3237,9 +3324,6 @@ namespace SemaEscape
 
     Result checkReturn(Sema& sema, AstNodeRef returnRef, AstNodeRef exprRef, TypeRef returnTypeRef, const SymbolFunction* inlineSourceFn)
     {
-        if (!lifecycleSanityEnabled(sema))
-            return Result::Continue;
-
         if (!typeCanCarryBorrowImpl(sema, returnTypeRef))
             return Result::Continue;
 
@@ -3301,9 +3385,6 @@ namespace SemaEscape
 
     void noteCallArguments(Sema& sema, AstNodeRef callRef)
     {
-        if (!lifecycleSanityEnabled(sema))
-            return;
-
         recordDeferredCallBorrow(sema, callRef, callRef, "a stored call argument", DeferredCallUse::Argument, false);
     }
 
@@ -3331,6 +3412,16 @@ namespace SemaEscape
                         if ((edge.callee->returnBorrowsParamsMask() & calleeBit) && !(edge.caller->returnBorrowsParamsMask() & callerBit))
                         {
                             edge.caller->addReturnBorrowsParam(edge.callerParamIndex);
+                            changed = true;
+                        }
+
+                        // A wrapper that hands back what an accessor read out of the
+                        // payload returns a view into that payload too - but only when the
+                        // argument WAS the payload's owner, not when the caller passed
+                        // something the callee merely reached through.
+                        if ((edge.callee->returnsPayloadParamsMask() & calleeBit) && !(edge.caller->returnsPayloadParamsMask() & callerBit))
+                        {
+                            edge.caller->addReturnsPayloadParam(edge.callerParamIndex);
                             changed = true;
                         }
                         break;
@@ -3494,7 +3585,10 @@ namespace SemaEscape
             }
 
             const bool guardMiss = std::ranges::any_of(check.guards, [](const SemaEscapeDeferredGuard& guard) {
-                return !guard.callee || !(guard.callee->returnBorrowsParamsMask() & (1ULL << guard.paramIndex));
+                if (!guard.callee)
+                    return true;
+                const uint64_t mask = guard.requirePayload ? guard.callee->returnsPayloadParamsMask() : guard.callee->returnBorrowsParamsMask();
+                return !(mask & (1ULL << guard.paramIndex));
             });
             if (guardMiss)
                 continue;

@@ -21,9 +21,9 @@ namespace
     using ModuleApiExport::findExportDeclRoot;
     using ModuleApiExport::isCurrentModuleSourceFile;
     using ModuleApiExport::isExportedPublicDeclScope;
+    using ModuleApiExport::ModuleApiGeneratedRoot;
     using ModuleApiExport::moduleApiNodeSourceView;
     using ModuleApiExport::moduleApiSnippetStartTokRef;
-    using ModuleApiExport::ModuleApiGeneratedRoot;
     using ModuleApiExport::sameNamespacePath;
     using ModuleApiExport::sourceTokenByteEnd;
     using ModuleApiExport::sourceTokenByteStart;
@@ -250,14 +250,15 @@ namespace
         // so importers can judge their call sites against this function's parameters.
         // The export runs after the final sema drain, so the masks include the
         // transitive bits added by the summary fixpoint.
-        const uint64_t returnsMask     = symbolFunction.returnBorrowsParamsMask();
-        const uint64_t storesMask      = symbolFunction.storesParamsMask();
-        const uint64_t intoPairs       = symbolFunction.storesIntoParamPairs();
-        const uint64_t freesMask       = symbolFunction.freesParamsMask();
-        const uint64_t reallocatesMask = symbolFunction.reallocatesParamsMask();
-        if ((returnsMask != 0 || storesMask != 0 || intoPairs != 0 || freesMask != 0 || reallocatesMask != 0) && !ioSnippet.contains("BorrowSummary"))
+        const uint64_t returnsMask        = symbolFunction.returnBorrowsParamsMask();
+        const uint64_t storesMask         = symbolFunction.storesParamsMask();
+        const uint64_t intoPairs          = symbolFunction.storesIntoParamPairs();
+        const uint64_t freesMask          = symbolFunction.freesParamsMask();
+        const uint64_t reallocatesMask    = symbolFunction.reallocatesParamsMask();
+        const uint64_t returnsPayloadMask = symbolFunction.returnsPayloadParamsMask();
+        if ((returnsMask != 0 || storesMask != 0 || intoPairs != 0 || freesMask != 0 || reallocatesMask != 0 || returnsPayloadMask != 0) && !ioSnippet.contains("BorrowSummary"))
         {
-            prefix += std::format("#[Swag.BorrowSummary({}, {}, {}, {}, {})]", returnsMask, storesMask, intoPairs, freesMask, reallocatesMask);
+            prefix += std::format("#[Swag.BorrowSummary({}, {}, {}, {}, {}, {})]", returnsMask, storesMask, intoPairs, freesMask, reallocatesMask, returnsPayloadMask);
             prefix += eol;
         }
 

@@ -23,6 +23,10 @@ struct SemaEscapeDeferredGuard
 {
     const SymbolFunction* callee     = nullptr;
     uint32_t              paramIndex = 0;
+    // Judged against the callee's RETURNS-PAYLOAD summary instead of its RETURN one: the
+    // result must be a view INTO what the parameter owns, not merely a value that can
+    // reach it. Only the invalidation check needs the stronger question.
+    bool requirePayload = false;
 
     bool operator==(const SemaEscapeDeferredGuard&) const noexcept = default;
 };
@@ -47,16 +51,19 @@ struct SemaEscapeDeferredCheck
     bool judgeAlways = false;
     // The borrowed source is an owner (its payload lives on the heap): freeing it is
     // legitimate, so a FREES-only match must stay silent.
-    bool            ownerSource = false;
-    DiagnosticId    diagId      = {};
-    FileRef         fileRef;
-    SourceCodeRange siteRange;
-    Utf8            symName;
-    Utf8            what;
-    TypeRef         typeRef;
-    DiagnosticId    noteId = {};
-    Utf8            noteSymName;
-    SourceCodeRange noteRange;
+    bool ownerSource = false;
+    // The local the borrowed argument roots at. 'symName' is what the diagnostic prints;
+    // this is the identity, for the checks that must match a route back to a variable.
+    const SymbolVariable* borrowedVar = nullptr;
+    DiagnosticId          diagId      = {};
+    FileRef               fileRef;
+    SourceCodeRange       siteRange;
+    Utf8                  symName;
+    Utf8                  what;
+    TypeRef               typeRef;
+    DiagnosticId          noteId = {};
+    Utf8                  noteSymName;
+    SourceCodeRange       noteRange;
     // A second note, for the checks that need to show two places at once (where a view
     // was taken, and where it is read again after its storage moved).
     DiagnosticId    note2Id = {};
@@ -77,7 +84,16 @@ struct SemaBorrowInvalidation
     const SymbolVariable* sourceVar = nullptr;
     const SymbolFunction* callee    = nullptr;
     SourceCodeRange       mutationRange;
-    Utf8                  mutationName;
+    // Where the call's own text ends. Arguments are evaluated BEFORE the callee runs, so
+    // a view named inside them is read before the change, not after it: the search for a
+    // later read starts past the whole call expression, not past its name.
+    uint32_t evaluationEndOffset = 0;
+    Utf8     mutationName;
+    // What the view's provenance depends on. A view taken straight out of the storage
+    // needs nothing; one obtained from an accessor call only aliases the receiver when
+    // that accessor's return summary says so, and summaries are final only once the
+    // module is drained.
+    SmallVector4<SemaEscapeDeferredGuard> guards;
 };
 
 // How a callee's summary propagates into the caller's when a call receives one of the
@@ -87,9 +103,9 @@ enum class SemaEscapeSummaryEdgeKind : uint8_t
     ReturnToReturn, // return-position call: callee returns #j -> caller returns #i
     ReturnToStores, // result stored durably: callee returns #j -> caller stores #i
     StoresToStores, // any call: callee stores #j -> caller stores #i
-    PairToPair,   // callee stores #j into #k -> caller stores mapped #i into #h
-    ReturnToPair, // callee RETURNS storage of #j, and the caller stored #i through that
-                  // result: caller stores #i into its own parameter #h
+    PairToPair,     // callee stores #j into #k -> caller stores mapped #i into #h
+    ReturnToPair,   // callee RETURNS storage of #j, and the caller stored #i through that
+                    // result: caller stores #i into its own parameter #h
 };
 
 // A call that hands one of the caller's own parameters to the callee: whatever the

@@ -5,13 +5,14 @@ struct PtrHolder
     value: *u8
 }
 
-// Lifecycle safety is disabled so the borrow analysis is skipped: this function must
-// still compile and run at compile time to exercise the const-extraction error below.
-#[Swag.Sanity(.Lifecycle, false)]
+// The pointer must outlive the call, so it addresses a global: the borrow rules are part
+// of the language and a frame borrow could not leave this function at all. What is under
+// test is the const extraction below, not the lifetime.
+var ptrHolderSource: u8 = 1
+
 func makePtrHolder()->PtrHolder
 {
-    var local: u8 = 1
-    return {value: &local}
+    return {value: &ptrHolderSource}
 }
 
 struct FnHolder

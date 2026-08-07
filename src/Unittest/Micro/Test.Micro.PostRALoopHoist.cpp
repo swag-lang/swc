@@ -219,6 +219,94 @@ SWC_TEST_BEGIN(PostRALoopHoist_DestinationLiveAtPreheader_Blocks)
 }
 SWC_TEST_END()
 
+// The accumulator shape: the body loads a slot, computes, and stores it back on
+// every iteration because the allocator gave the value a memory home. The load
+// and the store must leave the loop, replaced by one seeding load before it and
+// one write-back after it.
+SWC_TEST_BEGIN(PostRALoopHoist_CarriedSlot_LeavesTheLoop)
+{
+    const CallConv& conv = CallConv::get(CallConvKind::Swag);
+    const MicroReg  sp   = conv.stackPointer;
+    const MicroReg  acc  = conv.intTransientRegs[3];
+    const MicroReg  cnt  = conv.intTransientRegs[4];
+    MicroBuilder    builder(ctx);
+
+    const MicroLabelRef top  = builder.createLabel();
+    const MicroLabelRef done = builder.createLabel();
+    builder.emitLoadRegImm(cnt, ApInt(0, 64), MicroOpBits::B64);
+    builder.placeLabel(top);
+    builder.emitCmpRegImm(cnt, ApInt(10, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::GreaterOrEqual, MicroOpBits::B64, done);
+    builder.emitLoadRegMem(acc, sp, 0x40, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(acc, ApInt(3, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitLoadMemReg(sp, 0x40, acc, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(cnt, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, top);
+    builder.placeLabel(done);
+    builder.emitRet();
+
+    SWC_RESULT(runPostRaLoopHoistPass(builder));
+
+    // One load and one store remain, and both are outside the loop: the load
+    // before the loop label, the write-back after the exit label.
+    if (countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 1)
+        return Result::Error;
+    if (countOpcode(builder, MicroInstrOpcode::LoadMemReg) != 1)
+        return Result::Error;
+
+    const uint32_t posLoad  = firstPosition(builder, MicroInstrOpcode::LoadRegMem);
+    const uint32_t posLabel = firstPosition(builder, MicroInstrOpcode::Label);
+    const uint32_t posStore = firstPosition(builder, MicroInstrOpcode::LoadMemReg);
+    const uint32_t posRet   = firstPosition(builder, MicroInstrOpcode::Ret);
+    if (posLoad > posLabel)
+        return Result::Error;
+    if (posStore + 1 != posRet)
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// The same shape, except the register also carries something across the
+// iteration outside the load/store window. Promoting it would lose that value.
+SWC_TEST_BEGIN(PostRALoopHoist_CarriedRegisterReusedElsewhere_Blocks)
+{
+    const CallConv& conv = CallConv::get(CallConvKind::Swag);
+    const MicroReg  sp   = conv.stackPointer;
+    const MicroReg  acc  = conv.intTransientRegs[3];
+    const MicroReg  cnt  = conv.intTransientRegs[4];
+    MicroBuilder    builder(ctx);
+
+    const MicroLabelRef top  = builder.createLabel();
+    const MicroLabelRef done = builder.createLabel();
+    builder.emitLoadRegImm(cnt, ApInt(0, 64), MicroOpBits::B64);
+    builder.placeLabel(top);
+    builder.emitCmpRegImm(cnt, ApInt(10, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::GreaterOrEqual, MicroOpBits::B64, done);
+    builder.emitLoadRegMem(acc, sp, 0x40, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(acc, ApInt(3, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitLoadMemReg(sp, 0x40, acc, MicroOpBits::B64);
+    // After the store, the register is reused as scratch for the counter.
+    builder.emitLoadRegImm(acc, ApInt(1, 64), MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(cnt, acc, MicroOp::Add, MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, top);
+    builder.placeLabel(done);
+    builder.emitRet();
+
+    SWC_RESULT(runPostRaLoopHoistPass(builder));
+
+    // The load and the store stay where they were, inside the loop.
+    const uint32_t posLoad  = firstPosition(builder, MicroInstrOpcode::LoadRegMem);
+    const uint32_t posLabel = firstPosition(builder, MicroInstrOpcode::Label);
+    if (posLoad < posLabel)
+        return Result::Error;
+    if (countOpcode(builder, MicroInstrOpcode::LoadMemReg) != 1)
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

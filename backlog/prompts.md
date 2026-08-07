@@ -95,7 +95,19 @@ Pick the task with the worst ratio that you have not already exhausted, then:
      Partial sweeps are never recorded; they are for your inner loop only.
   5. Validate correctness before believing any number: tools/tests.bat dm, then
      tools/tests.bat dm --all-cfg. A checksum mismatch in bench means you measured nothing.
-  6. Keep or revert on the measurement, not on how good the idea was.
+  6. Judge the change against clang-cl and MSVC's output, not against the clock. The clock on this
+     machine drifts more than most single changes are worth (two campaigns of the SAME binary
+     measured a geometric mean of 1.41x and 1.54x, and drift inside one sweep reached +37%), and
+     the context factor does not remove it. So: a change that provably moves the emitted code
+     toward what the best compilers emit is kept even when the measurement is flat or slightly
+     negative. They are right; matching them comes first, and beating them comes later.
+     What "provably" means here is the per-loop count, which is deterministic: instructions and
+     memory operations per iteration of each hot loop, before and after, next to the same loop in
+     clang's assembly. A change is only reverted when the emitted code is not better - not when the
+     benchmark fails to see that it is.
+     One consequence worth planning around: a change can be a necessary step whose own measurement
+     is flat, or even briefly negative, because it enables the next one. Say so, keep it, and name
+     the follow-up.
   7. Record a full campaign only when you have a result worth keeping:
      tools\bench.bat --label "what changed". That takes ~25 minutes; do not spend one per experiment.
 
@@ -111,8 +123,9 @@ one does not repeat them. When something does not work:
   - Take the next hypothesis from the same mechanism, or move to the next task.
 
 The campaign ends when the goal above is met, or when you have run out of hypotheses on every task
-- meaning three consecutive rounds across the whole task set produced no measurable gain. It does
-not end because one pass turned out to miscompile, one idea lost 2%, or one task resisted.
+- meaning three consecutive rounds across the whole task set left the emitted code no closer to
+what clang-cl and MSVC emit. It does not end because one pass turned out to miscompile, one idea
+lost 2%, or one task resisted.
 
 RULES
 

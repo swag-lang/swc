@@ -145,10 +145,16 @@ Entries are sorted by identifier, ascending; position carries no priority.
   csvagg main 781 -> 796, leven 526 -> 538, sha256 main 449 -> 421. Reading the loop bodies
   explains it — no hot loop changed, and csvagg's four byte-scan loops got worse, `p += 1` going
   from `add r8, 1` to `lea r10, [r8+1]` plus `mov r8, r10`. Reverted.
+- Re-tested on top of F-067 and F-068, on the suspicion that the `lea`+`mov` regression was only
+  the copy-forwarding gap those rounds closed. It is not: judged on the loop bodies rather than the
+  clock, the emitted code moves AWAY from clang-cl. csvagg's four byte-scan loops go back from 6
+  instructions to 7 (clang-cl emits 6), leven's inner loop 206/80 to 218/89, and over every loop
+  body 3258 to 3299 instructions and 1170 to 1180 memory operations. Reverted a second time.
 - Next step: the escape counts were real but not binding, so the remaining value is in what they
-  were masking rather than in the derivation itself. Only re-attempt this alongside a change that
-  makes the newly promoted slots pay — and measure the loop bodies, not the function totals: this
-  attempt's whole visible effect was a perturbation of register allocation.
+  were masking rather than in the derivation itself. Do not re-attempt the derivation on its own a
+  third time. If it returns, it has to come with an explanation of why promoting those extra slots
+  makes register allocation emit FEWER memory operations in the loops, not more — the two
+  measurements so far both say it emits more.
 - Related: [F-067](#f-067--instruction-combine-folds-a-slot-load-into-an-operand-and-mem2reg-then-refuses-the-slot),
   [F-068](#f-068--a-hot-loops-base-pointer-loses-its-register-to-the-cold-code-around-it)
 
@@ -195,13 +201,25 @@ Entries are sorted by identifier, ascending; position carries no priority.
   four scan loops), 12/2 to 11/1 (the FNV loop of `mapProbe`, shared by four tasks), 16/6 to 15/4
   (csvagg's digit loop) and 243/100 to 226/86 (sha256's block loop), in instructions/memory
   operations per iteration.
-- Next step: the loop-CARRIED case is what remains, and it is where the rest of the gap is —
-  csvagg's `qty` and sha256's `a`..`h` still round-trip through the frame on every iteration. That
-  needs the load hoisted to the preheader AND the store sunk to every exit edge, which
-  `Pass.VecLoopPromote` already does for packed chunks with a single fall-through exit; the digit
-  loops have two exits, so the sinking has to handle an edge set rather than one point. Attacking
-  the ranking itself instead — a hull scoped to the loop region rather than the whole span — is the
-  same idea done pre-RA, and is what four earlier attempts at a global allocator foundered on.
+- Status of the loop-CARRIED case: also fixed, for the shape where one register carries the value.
+  The same pass now promotes a slot the body reads once and writes once through a register that
+  carries nothing else across the iteration: the load and the store leave the loop, the register is
+  seeded before it and written back once on the single instruction every exit converges on. Two
+  supporting details mattered. The register has to be free, and it was not: a redundant reload of an
+  already-hoisted slot used to be left behind as a register copy, which pinned the register the
+  accumulator needed — pointing that reload's readers at the hoisted register instead frees it, and
+  is worth an instruction on its own. And the preheader usually stores the initial value into the
+  slot already, so the seeding load is skipped when the register still holds it. Measured on
+  csvagg's digit loops: 15/4 to 12/2 and 12/3 to 10/1, instructions/memory operations per iteration.
+- Next step: the shapes still refused, in order of what they would buy. sha256's `a`..`h` are eight
+  slots at once and each one's register IS reused between its load and store, so the
+  carries-nothing-else test fails on all eight — that needs the eight promoted together, or the
+  ranking fixed pre-RA. leven's DP loop writes `row1[y+1]` through a program pointer, which makes
+  the body opaque to the aliasing model; the model is "any non-frame write may alias any frame
+  slot", and it could be sharpened to "a program pointer cannot alias a REGISTER-ALLOCATOR spill
+  slot" if the allocator recorded where its spill area starts. Attacking the ranking itself — a hull
+  scoped to the loop region rather than the whole span — is the same idea done pre-RA, and is what
+  four earlier attempts at a global allocator foundered on.
 
 ### F-069 — A byte the loop compares is loaded again to use it
 

@@ -78,11 +78,12 @@ struct AttributeList
     RtAttributeFlags                    rtFlags = RtAttributeFlagsE::Zero;
     SmallVector4<RuntimeSafetyOverride> runtimeSafetyOverrides;
     SmallVector4<RuntimeSafetyOverride> sanityOverrides;
-    uint64_t                            returnBorrowsParamsMask = 0;
-    uint64_t                            storesParamsMask        = 0;
-    uint64_t                            storesIntoParamPairs    = 0;
-    uint64_t                            freesParamsMask         = 0;
-    uint64_t                            reallocatesParamsMask   = 0;
+    uint64_t                            returnBorrowsParamsMask  = 0;
+    uint64_t                            storesParamsMask         = 0;
+    uint64_t                            storesIntoParamPairs     = 0;
+    uint64_t                            freesParamsMask          = 0;
+    uint64_t                            reallocatesParamsMask    = 0;
+    uint64_t                            returnsPayloadParamsMask = 0;
     SmallVector4<Utf8>                  printMicroPassOptions;
     SmallVector4<Utf8>                  printAstStageOptions;
     WarningPolicy                       warnings;
@@ -106,6 +107,7 @@ struct AttributeList
                storesIntoParamPairs == 0 &&
                freesParamsMask == 0 &&
                reallocatesParamsMask == 0 &&
+               returnsPayloadParamsMask == 0 &&
                printMicroPassOptions.empty() &&
                printAstStageOptions.empty() &&
                warnings.empty() &&
@@ -185,14 +187,17 @@ struct AttributeList
     // = parameter #i may be stored beyond the call, bit (i*8+j) of 'into' = parameter
     // #j may be stored into storage reachable from parameter #i, bit i of 'frees' =
     // the call invalidates what parameter #i points to, bit i of 'reallocates' = the
-    // call may move or release the payload parameter #i owns.
-    void addBorrowSummary(uint64_t returnsMask, uint64_t storesMask, uint64_t intoPairs, uint64_t freesMask, uint64_t reallocatesMask)
+    // call may move or release the payload parameter #i owns, bit i of 'returnsPayload'
+    // = the return value is a view INTO that payload rather than merely a value that can
+    // reach parameter #i.
+    void addBorrowSummary(uint64_t returnsMask, uint64_t storesMask, uint64_t intoPairs, uint64_t freesMask, uint64_t reallocatesMask, uint64_t returnsPayloadMask)
     {
         returnBorrowsParamsMask |= returnsMask;
         storesParamsMask |= storesMask;
         storesIntoParamPairs |= intoPairs;
         freesParamsMask |= freesMask;
         reallocatesParamsMask |= reallocatesMask;
+        returnsPayloadParamsMask |= returnsPayloadMask;
     }
 
     void setBackendOptimize(bool value)

@@ -1,7 +1,7 @@
 #global private
-// The lifecycle (borrow) analysis is per-function: force it for the whole file so
-// the expected errors fire whatever the surrounding configuration says. Functions
-// testing the disabled behavior override it back to false locally.
+// The borrow rules are part of the language and need no attribute to fire. The file
+// keeps one only to pair with the functions near the end that set it to false and are
+// reported all the same.
 #global #[Swag.Sanity(.Lifecycle, true)]
 using Swag
 
@@ -536,20 +536,20 @@ func borrowEscapeInlineCaller()->u64
     return cast(u64) dref p
 }
 
-// Disabling the Lifecycle sanity turns the whole borrow analysis off: the same
-// escapes compile without any diagnostic. The Memory sanity is disabled too, so the
-// codegen sanitizer does not catch the escape in its place.
+// The borrow rules are part of the language: '#[Swag.Sanity(.Lifecycle, false)]' governs
+// the analyses that PROVE a runtime fault, and leaves these rules alone. An escape is
+// reported whatever the attributes in scope say.
 #[Swag.Sanity(.Lifecycle, false), Swag.Sanity(.Memory, false)]
 func borrowEscapeSanityOff()->*s32
 {
     var v: s32
-    return &v
+    return &v     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 #[Swag.Sanity(.Lifecycle, false)]
 func borrowEscapeSanityOffTemporary()->u64
 {
-    let s: string = borrowEscapeMakeOwner()
+    let s: string = borrowEscapeMakeOwner()     // swc-expected-error {{sanity_err_borrow_temporary}}
     return @countof(s)
 }
 
@@ -1216,7 +1216,7 @@ struct BorrowEscapeSlot
 struct BorrowEscapeHeapBox
 {
     slots:  #null [*] BorrowEscapeSlot
-    parent: #null *s32                    // a back-reference, NOT a payload this box owns
+    parent: #null *s32     // a back-reference, NOT a payload this box owns
 }
 
 impl BorrowEscapeHeapBox
@@ -1241,7 +1241,7 @@ impl BorrowEscapeHeapBox
     #[Swag.NoInline]
     mtd addThroughLocal(item: *s32)
     {
-        let table     = .slots!
+        let table = .slots!
         table[0].item = item
     }
 
@@ -1250,7 +1250,7 @@ impl BorrowEscapeHeapBox
     #[Swag.NoInline]
     mtd addThroughAccessor(item: *s32)
     {
-        let table     = .slotsPtr()
+        let table = .slotsPtr()
         table[0].item = item
     }
 }
@@ -1288,7 +1288,7 @@ func borrowEscapeHeapThroughAccessor()
 // Same scope: the box and the borrow die together and nothing reads the box after.
 func borrowEscapeHeapSameScope()
 {
-    var v: s32
+    var v:   s32
     var box: BorrowEscapeHeapBox
     box.addDirect(&v)
 }
@@ -1302,13 +1302,65 @@ func borrowEscapeHeapBackRef()->#null *s32
 }
 
 // A by-value parameter is neither copied nor dropped by the callee, so what it owns
-// stays the caller's: handing its payload back is a caller borrow, not a frame one.
-// (The call site is not judged for a by-value owner: an owning struct is not itself
-// a borrow carrier, so no argument borrow reaches the summary.)
+// stays the caller's: handing its payload back is a caller borrow, not a frame one,
+// and the call site is judged against the box that was really passed.
 #[Swag.NoInline]
 func borrowEscapeHeapParamPayload(box: BorrowEscapeHeapBox)->[*] BorrowEscapeSlot
 {
     return box.slots!
+}
+
+func borrowEscapeHeapParamPayloadByValue()->[*] BorrowEscapeSlot
+{
+    var box: BorrowEscapeHeapBox
+    return borrowEscapeHeapParamPayload(box)     // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
+// A global box outlives the frame, so the same call hands back storage that survives.
+func borrowEscapeHeapParamPayloadByValueGlobal()->[*] BorrowEscapeSlot
+{
+    return borrowEscapeHeapParamPayload(borrowEscapeGlobalHeapBox)
+}
+
+// The caller's own box belongs to ITS caller: the borrow travels into this function's
+// summary instead of being reported here.
+func borrowEscapeHeapParamPayloadForward(box: BorrowEscapeHeapBox)->[*] BorrowEscapeSlot
+{
+    return borrowEscapeHeapParamPayload(box)
+}
+
+// A callee that hands back caller-independent storage stays silent whatever was passed.
+#[Swag.NoInline]
+func borrowEscapeHeapParamPayloadStatic(box: BorrowEscapeHeapBox)->[*] BorrowEscapeSlot
+{
+    return borrowEscapeGlobalHeapBox.slots!
+}
+
+func borrowEscapeHeapParamPayloadByValueStatic()->[*] BorrowEscapeSlot
+{
+    var box: BorrowEscapeHeapBox
+    return borrowEscapeHeapParamPayloadStatic(box)
+}
+
+// A by-value owner read for a plain value borrows nothing: no summary, no report.
+#[Swag.NoInline]
+func borrowEscapeHeapParamCount(box: BorrowEscapeHeapBox)->#null *s32
+{
+    return box.parent
+}
+
+func borrowEscapeHeapParamCountByValue()->#null *s32
+{
+    var box: BorrowEscapeHeapBox
+    return borrowEscapeHeapParamCount(box)
+}
+
+// The result kept local never escapes.
+func borrowEscapeHeapParamPayloadLocalOnly()->#null *s32
+{
+    var box: BorrowEscapeHeapBox
+    let table = borrowEscapeHeapParamPayload(box)
+    return table[0].item
 }
 
 // Reached through a pointer, the same payload feeds the return summary and the call

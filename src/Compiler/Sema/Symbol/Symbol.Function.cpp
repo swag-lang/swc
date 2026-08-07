@@ -846,6 +846,11 @@ uint64_t SymbolFunction::reallocatesParamsMask() const noexcept
     return reallocatesParamsMask_ | (hasAttributes() ? attributes().reallocatesParamsMask : 0);
 }
 
+uint64_t SymbolFunction::returnsPayloadParamsMask() const noexcept
+{
+    return returnsPayloadParamsMask_ | (hasAttributes() ? attributes().returnsPayloadParamsMask : 0);
+}
+
 bool SymbolFunction::tryGetParameterIndexByName(size_t& outIndex, const IdentifierRef name, const size_t startIndex) const noexcept
 {
     for (size_t index = startIndex; index < parameters_.size(); ++index)

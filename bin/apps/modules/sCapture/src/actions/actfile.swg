@@ -287,6 +287,18 @@ impl IActionUI for ActionFile
     }
 }
 
+// Offers exactly the image formats the pixel codec registry supports, so a codec added
+// to `bin/std` appears in both file dialogs without a change here. The format spelling
+// `preferred` names is listed first, because the dialog preselects the first filter and
+// appends its first extension to a name typed without one.
+private func addImageFilters(opt: *FileDlgOptions, formats: const [..] ImageFormat, preferred = ".png")
+{
+    for &format in formats where format.matches(preferred) do
+        opt.filters.add({format.name, format.extensions})
+    for &format in formats where !format.matches(preferred) do
+        opt.filters.add({format.name, format.extensions})
+}
+
 impl MainWnd
 {
     mtd openImage()
@@ -301,11 +313,10 @@ impl MainWnd
             .shortcuts.add({Env.SpecialDirectory.Desktop, appStrings().ui_Desktop})
             .shortcuts.add({Env.SpecialDirectory.UserPictures, appStrings().ui_MyImages})
             .shortcuts.add({Env.SpecialDirectory.CommonPictures, appStrings().ui_CommonImages})
-            .filters.add({appStrings().flt_Png, ".png"})
-            .filters.add({appStrings().flt_Jpg, ".jpg"})
-            .filters.add({appStrings().flt_Bmp, ".bmp"})
-            .filters.add({appStrings().flt_Tga, ".tga"})
         }
+
+        let formats = Image.decodableFormats()
+        addImageFilters(&opt, formats.toSlice())
 
         let dlg = FileDlg.create(.surface!, opt)
         if dlg.doModal() != Dialog.BtnOk do
@@ -320,17 +331,21 @@ impl MainWnd
 
     mtd doSaveImage(capture: *Capture, img: *Image, nameFile: String)
     {
+        // Which encoder runs is the registry's decision, taken from the extension.
+        // Only the two formats that expose encoding options are tuned here; every other
+        // encoder writes with its own defaults.
+        let ext               = Path.lowercaseExtension(nameFile)
         var optImg: #null any = null
         var optPng: Png.EncodeOptions
         var optJpg: Jpg.EncodeOptions
 
-        if Path.lowercaseExtension(nameFile) == ".png"
+        if ext == ".png"
         {
             optPng.compressionLevel = Core.Compress.Deflate.CompressionLevel.BestSpeed
             optPng.filtering        = false
             optImg                  = optPng
         }
-        elif Path.lowercaseExtension(nameFile) == ".jpg"
+        elif ext == ".jpg" or ext == ".jpeg"
         {
             optJpg.quality = 95
             optImg         = optJpg
@@ -341,9 +356,10 @@ impl MainWnd
         md.value = capture.file.toSlice()
         img.metadata.add(md)
 
-        catch img.save(nameFile, optImg) else
+        catch img.save(nameFile, optImg) as err
+        if err != null
         {
-            MessageDlg.error(.surface!, appStrings().msg_FailedSaveFile)
+            MessageDlg.error(.surface!, appStrings().msg_FailedSaveFile, err)
             return
         }
 
@@ -381,11 +397,17 @@ impl MainWnd
             .shortcuts.add({Env.SpecialDirectory.UserPictures, appStrings().ui_MyImages})
             .shortcuts.add({Env.SpecialDirectory.CommonPictures, appStrings().ui_CommonImages})
             .initialName = Path.fileNameWithoutExtension(capture.file) orelse ""
-            .filters.add({appStrings().flt_Png, ".png"})
-            .filters.add({appStrings().flt_Jpg, ".jpg"})
-            .filters.add({appStrings().flt_Bmp, ".bmp"})
-            .filters.add({appStrings().flt_Tga, ".tga"})
         }
+
+        // A capture already linked to an image keeps that format preselected, so saving
+        // it again does not silently change the format. PNG otherwise: it is lossless,
+        // and a capture is text and flat color far more often than it is a photograph.
+        var preferred = capture.linkedImage.toString()
+        if !Image.canSave(preferred) do
+            preferred = ".png"
+
+        let formats = Image.encodableFormats()
+        addImageFilters(&opt, formats.toSlice(), preferred)
 
         let dlg = FileDlg.create(.surface!, opt)
         if .inPlaceEdit do

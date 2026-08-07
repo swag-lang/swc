@@ -20,7 +20,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
   reuse is not theoretical at that density: one `tools/scripts.bat dm smoke` pass of 21 scripts
   handed pid 29356 to two different script processes. A stale root can change behavior rather
   than just waste space, which is what
-  [F-017](findings.gui.md#f-017--scapture-keeps-a-dark-editor-matte-after-switching-to-the-light-theme)
+  [F-017](findings.scapture.md#f-017--scapture-keeps-a-dark-editor-matte-after-switching-to-the-light-theme)
   shows for a persisted option.
 - Also: this now gates work rather than merely wasting space. The campaign's remaining cost is
   fifty-three programs launched one at a time, each holding roughly one core for one to five

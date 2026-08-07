@@ -289,8 +289,16 @@ namespace
         raiseJitProcessTerminationException("ExitProcess", exitCode);
     }
 
-    BOOL WINAPI jitBlockedTerminateProcess(HANDLE, const UINT exitCode)
+    BOOL WINAPI jitBlockedTerminateProcess(HANDLE processHandle, const UINT exitCode)
     {
+        // Stopping a process the compile-time code started is ordinary work, and a build script
+        // that drives another program has to be able to give up on it. Only the compiler's own
+        // process is off limits. An identifier of zero means the handle answers for no process
+        // this call can name, which is refused rather than guessed at.
+        const DWORD targetProcessId = GetProcessId(processHandle);
+        if (targetProcessId != 0 && targetProcessId != GetCurrentProcessId())
+            return TerminateProcess(processHandle, exitCode);
+
         raiseJitProcessTerminationException("TerminateProcess", exitCode);
     }
 #endif

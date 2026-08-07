@@ -8,16 +8,40 @@ impl ActionCapture
     newCmdId("Area")
     newCmdId("LastArea")
     newCmdId("FullScreen")
-    newCmdId("Screen0")
-    newCmdId("Screen1")
-    newCmdId("Screen2")
-    newCmdId("Screen3")
     newCmdId("ActiveWnd")
     newCmdId("HideEditor")
     newCmdId("CaptureCursor")
     newCmdId("ToInPlace")
     newCmdId("ToEditor")
     newCmdId("ToClipboard")
+
+    // The per-monitor commands are minted from the live monitor list rather than
+    // declared one by one, so the fifth monitor of a machine is as addressable as the
+    // first. A `WndId` is a borrowed string that a menu item and a queued command event
+    // both outlive, so the ids are cached here and kept for the process lifetime; there
+    // is one per monitor, so the cache stays a handful of entries.
+    private var screenIds: Array'String
+
+    // Returns the command id capturing the monitor at `index` in `MainWnd.monitors`.
+    func screenId(index: u64)->WndId
+    {
+        if screenIds.count <= index
+        {
+            screenIds.reserve(index + 1)
+            while screenIds.count <= index do
+                screenIds.add(Format.toString("%.Screen%", #scopename, screenIds.count))
+        }
+
+        return screenIds[index]
+    }
+
+    // Returns the monitor `id` captures, or `Swag.U64.Max` when it captures no monitor.
+    func screenIndex(id: WndId)->u64
+    {
+        for &minted, [index] in screenIds where minted == id do
+            return index
+        return Swag.U64.Max
+    }
 }
 
 impl IActionUI for ActionCapture
@@ -27,6 +51,18 @@ impl IActionUI for ActionCapture
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
         let main = cast(*MainWnd) cxt.wnd!
+
+        // A per-monitor command names its monitor by index. The entry stays visible but
+        // disabled when that monitor was disconnected after the menu was built.
+        let monitor = ActionCapture.screenIndex(cxt.id)
+        if monitor != Swag.U64.Max
+        {
+            evt.updatedFields |= .Name | .Icon | .Disabled
+            evt.disabled      = monitor >= main.monitors.count
+            evt.name          = evt.disabled ? Format.toString(appStrings().act_CaptureMonitor, monitor) : Format.toString(appStrings().act_CaptureMonitorSize, monitor, main.monitors[monitor].bounds.width, main.monitors[monitor].bounds.height)
+            evt.icon          = main.icon(.Monitor)
+            return true
+        }
 
         switch cxt.id
         {
@@ -54,32 +90,6 @@ impl IActionUI for ActionCapture
             evt.updatedFields |= .Name | .Icon
             evt.name          = appStrings().act_CaptureActiveWindow
             evt.icon          = main.icon(.ActiveWindow)
-
-        case .Screen0:
-            evt.updatedFields |= .Name | .Icon
-            evt.name          = Format.toString(appStrings().act_CaptureMonitorSize, 0, main.monitors[0].bounds.width, main.monitors[0].bounds.height)
-            evt.icon          = main.icon(.Monitor)
-
-        case .Screen1:
-
-            // Screen<N> maps to monitors[N]; guard the read like the execute path
-            // (idx >= monitors.count) so a machine with fewer monitors is safe.
-            evt.updatedFields |= .Name | .Icon | .Disabled
-            evt.disabled      = main.monitors.count <= 1
-            evt.name          = evt.disabled ? Format.toString(appStrings().act_CaptureMonitor, 1) : Format.toString(appStrings().act_CaptureMonitorSize, 1, main.monitors[1].bounds.width, main.monitors[1].bounds.height)
-            evt.icon          = main.icon(.Monitor)
-
-        case .Screen2:
-            evt.updatedFields |= .Name | .Icon | .Disabled
-            evt.disabled      = main.monitors.count <= 2
-            evt.name          = evt.disabled ? Format.toString(appStrings().act_CaptureMonitor, 2) : Format.toString(appStrings().act_CaptureMonitorSize, 2, main.monitors[2].bounds.width, main.monitors[2].bounds.height)
-            evt.icon          = main.icon(.Monitor)
-
-        case .Screen3:
-            evt.updatedFields |= .Name | .Icon | .Disabled
-            evt.disabled      = main.monitors.count <= 3
-            evt.name          = evt.disabled ? Format.toString(appStrings().act_CaptureMonitor, 3) : Format.toString(appStrings().act_CaptureMonitorSize, 3, main.monitors[3].bounds.width, main.monitors[3].bounds.height)
-            evt.icon          = main.icon(.Monitor)
 
         case .HideEditor:
             evt.updatedFields |= .Name | .Checked
@@ -119,6 +129,13 @@ impl IActionUI for ActionCapture
     {
         let main = cast(*MainWnd) cxt.wnd!
 
+        let monitor = ActionCapture.screenIndex(cxt.id)
+        if monitor != Swag.U64.Max
+        {
+            main.captureScreen(.Monitor, monitor)
+            return true
+        }
+
         switch cxt.id
         {
         case .DoIt:          main.captureScreen(.Area)
@@ -126,10 +143,6 @@ impl IActionUI for ActionCapture
         case .LastArea:      main.captureScreen(.LastArea)
         case .FullScreen:    main.captureScreen(.FullScreen)
         case .ActiveWnd:     main.captureScreen(.ActiveWindow)
-        case .Screen0:       main.captureScreen(.Screen0)
-        case .Screen1:       main.captureScreen(.Screen1)
-        case .Screen2:       main.captureScreen(.Screen2)
-        case .Screen3:       main.captureScreen(.Screen3)
         case .ToInPlace:     main.captureOptions.inPlaceEdit = !main.captureOptions.inPlaceEdit
         case .HideEditor:    main.captureOptions.hideEditorBefore = !main.captureOptions.hideEditorBefore
         case .CaptureCursor: main.captureOptions.captureCursor = !main.captureOptions.captureCursor
@@ -185,8 +198,8 @@ impl MainWnd
         }
     }
 
-    mtd captureScreen(mode: CaptureMode)
+    mtd captureScreen(mode: CaptureMode, monitorIndex: u64 = 0)
     {
-        catch screenShot(me, mode)
+        catch screenShot(me, mode, monitorIndex)
     }
 }

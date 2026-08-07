@@ -81,6 +81,13 @@ impl IWnd for EditView
         painter.translateTransform(captureRect.x, captureRect.y)
         .capture.gizmo.rect = Math.Rectangle{0, 0, captureRect.width, captureRect.height}
 
+        // The drag is where the minimum capture size is enforced, so the undo record the
+        // gizmo produces is already valid and stays an exact inverse of itself. The gizmo
+        // works in view pixels, hence the zoom. There is no maximum: a capture is as wide
+        // as the screens it was taken from.
+        .capture.gizmo.minSizeX = Capture.MinSize * .zoom
+        .capture.gizmo.minSizeY = Capture.MinSize * .zoom
+
         // Neutral, not Voltage: this gizmo lies over arbitrary captured pixels, where the
         // accent competes with the content instead of reading against it. The application
         // spends Voltage on the rail, the active tool, and the primary action only.

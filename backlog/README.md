@@ -44,12 +44,18 @@ the numbers as they stand, and the condition under which the work is allowed to 
 | [findings.language.md](findings.language.md) | Language rules that surprise: overloaded spellings, defaults, and silent conversions |
 | [findings.optimization.md](findings.optimization.md) | Backend optimization passes, register allocation, and generated-code performance |
 | [findings.safety.md](findings.safety.md) | Borrow, lifetime, and sanity analysis |
-| [findings.gui.md](findings.gui.md) | `std/gui` and the applications built on it |
+| [findings.gui.md](findings.gui.md) | `std/gui`, and the widgets and dialogs it ships |
+| [findings.scapture.md](findings.scapture.md) | The sCapture application |
 | [findings.tooling.md](findings.tooling.md) | The build, the sandbox, and the test harness |
 
 Put an entry in the file whose area it will be *fixed* in, not the one it was noticed from. Create
 a new file only when a real cluster forms — a category holding one entry costs more to navigate
 than it saves.
+
+An application follows the same rule as a module: it gets its own `findings.<app>.md` beside its
+`todo.<app>.md` once it has entries of its own, and a lead an application merely *exposed* stays in
+the file of the unit that will fix it. So sCrypt has no findings file today: everything it has
+surfaced so far will be fixed in `std/gui`, and an empty file would only be one more place to look.
 
 ## Number Every Finding
 
@@ -63,7 +69,7 @@ The identifier is how a finding is named everywhere else — in conversation, in
 a `todo.*` entry, in a code comment. A title gets rewritten, a position moves, and an entry changes
 file; the identifier does not.
 
-Next identifier: F-076
+Next identifier: F-077
 
 - Take the next identifier from the line above, then advance it. It is the counter, not the entry
   count: it keeps rising as entries are deleted, and it is shared by every `findings.*` file.

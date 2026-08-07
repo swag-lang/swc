@@ -279,6 +279,36 @@ using Swag, Core
     @assert(line.xa == 100)
 }
 
+// A capture wider than Capture.MaxSize survives a trim and its undo intact. That size is
+// an input bound of the resize and expand dialogs, not a property of a capture: two
+// 2560-wide monitors produce a full-screen grab past it, and clamping the undo replay
+// used to truncate it permanently.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+
+    const Wide = Capture.MaxSize + 1024
+    f.capture.width  = Wide
+    f.capture.height = Capture.MaxSize + 512
+
+    var trim = f.capture.newUndo(.MoveCapture)
+    trim.newSizeX = -100
+    trim.newSizeY = -50
+    f.capture.pushUndo(trim)
+    @assert(f.capture.width == Wide - 100)
+    @assert(f.capture.height == Capture.MaxSize + 462)
+
+    f.capture.undo()
+    @assert(f.capture.width == Wide)
+    @assert(f.capture.height == Capture.MaxSize + 512)
+
+    f.capture.redo()
+    @assert(f.capture.width == Wide - 100)
+    @assert(f.capture.height == Capture.MaxSize + 462)
+}
+
 // Text, font, rotation and style-model undo records restore user-editable form state.
 #test
 {

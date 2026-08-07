@@ -7,10 +7,7 @@ internal struct Encoder {}
 
 internal impl IImageEncoder for Encoder
 {
-    mtd impl canEncode(fileName: string)->bool
-    {
-        return Path.lowercaseExtension(fileName) == ".bmp"
-    }
+    mtd impl format()->ImageFormat => {"BMP - Windows Bitmap", ".bmp"}
 
     mtd impl encode(result: *ConcatBuffer, image: Image, options: #null any) fail
     {

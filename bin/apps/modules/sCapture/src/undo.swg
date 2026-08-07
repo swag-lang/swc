@@ -528,14 +528,21 @@ impl Undo
             baseForm.moveBaseForm(.newPosX, .newPosY, .newSizeX, .newSizeY)
 
         case .MoveCapture:
+
+            // No size clamp here. An undo command must replay exactly, and `undoIt`
+            // subtracts the very same delta, so a bound applied on one side only would
+            // make undo return a different capture than the one it started from.
+            // `Capture.MaxSize` in particular is an input bound of the resize and expand
+            // dialogs: a full-screen grab across two 2560-wide monitors legitimately
+            // exceeds it, and trimming then undoing must not truncate it. The size the
+            // deltas can reach is bounded where they are authored — the resize gizmo and
+            // those dialogs.
             capture.backImagePos.x += .newPosX
             capture.backImagePos.y += .newPosY
             for f in capture.forms do
                 f.moveForm(.newPosX, .newPosY)
             capture.width  += .newSizeX
             capture.height += .newSizeY
-            capture.width  = Math.clamp(capture.width, Capture.MinSize, Capture.MaxSize)
-            capture.height = Math.clamp(capture.height, Capture.MinSize, Capture.MaxSize)
 
         case .OffsetSelection:
             foreachSelected'BaseForm(capture, .selection)

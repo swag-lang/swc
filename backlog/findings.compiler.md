@@ -170,3 +170,23 @@ Entries are sorted by identifier, ascending; position carries no priority.
   `isCurrentModuleSourceFile` then rejects. The answer decides whether the fix belongs in collection or
   in the owner mapping.
 - Related: [todo.doc.md](todo.doc.md) entry 2, whose search index is missing the same symbols.
+
+### F-076 — A struct reaching a variadic parameter through a reference formats as `?`
+
+- Area: compiler
+- Found while: building the child environment block of `Env.startProcess`, which formats the name
+  and the value of every variable a `HashTable` visit hands over.
+- Observation: passing a `const &String` to a variadic `any` parameter loses the value. The same
+  `String` passed by value formats correctly, so the reference is what the boxing mishandles. It
+  is silent: nothing fails, and the output is one `?` per argument, which reads like a formatting
+  option rather than a lost value.
+- Evidence: with `let direct = String.from("hello")`, `Format.toString("%", direct)` answers
+  `hello`, while a `func f(value: const &String) => Format.toString("%", value)` answers `?`.
+  Identical under the JIT and from the forged executable. This is how every `for key, [value] in
+  table` reaches its bindings — `opVisit` casts them to `const &K` and `const &V` — so
+  `Format.toString("%=%", key, value)` over a `HashTable'(String, String)` answers `?=?`.
+- Next step: inspect what the variadic boxing records for a reference argument. The `?` is what a
+  formatter prints for a type it cannot convert, so the question is whether the `any` carries the
+  `typeinfo` of the reference rather than of the pointee, or the address of the reference slot
+  rather than of the value. Decide then whether the fix is to strip the reference where the
+  argument is boxed, or to have the conversion follow it.

@@ -16,7 +16,7 @@ struct AppStrings
     ui_CreateCardTitle:     string = "Create a new vault"
     ui_CreateCardHelp:      string = "Choose a fixed capacity. The complete container is randomized before it is ready."
     ui_MountCardTitle:      string = "Open an existing vault"
-    ui_MountCardHelp:       string = "Unlock a container and expose it on any available drive letter. The same file and password also change its password or grow it."
+    ui_MountCardHelp:       string = "Unlock a container and expose it on any available drive letter. Growing the vault and changing its password ask for that same password."
     ui_MountedCardTitle:    string = "Mounted drives"
 
     // One word per tab. The card under it says the whole sentence, so a tab that repeats it
@@ -32,6 +32,8 @@ struct AppStrings
     ui_FixedCapacity:       string = "FIXED CAPACITY"
     ui_NewCapacity:         string = "NEW CAPACITY"
     ui_Password:            string = "PASSWORD"
+    ui_CurrentPassword:     string = "CURRENT PASSWORD"
+    ui_CurrentPasswordHelp: string = "The vault only changes for whoever can already open it."
     ui_NewPassword:         string = "NEW PASSWORD"
     ui_ConfirmPassword:     string = "CONFIRM PASSWORD"
     ui_OptionalPassword:    string = "Optional — leave empty for none"

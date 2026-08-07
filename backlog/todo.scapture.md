@@ -4,7 +4,8 @@ This file is the product roadmap for sCapture, measured against the capture tool
 with: Snagit, ShareX, and the Windows Snipping Tool that now ships with video and text
 recognition. It is scoped to this module and to the `bin/std` facilities it depends on.
 
-It is not the repository's discovery backlog. Platform leads and defects belong in
+It is not the repository's discovery backlog. Leads and defects of this application belong in
+[findings.scapture.md](findings.scapture.md), platform leads in
 [findings.gui.md](findings.gui.md) and its neighbours; compiler and language intent belongs in
 [todo.compiler.md](todo.compiler.md) and [todo.language.md](todo.language.md). Keep them separate:
 this file holds intent about the product, the `findings.*` files hold evidence about the platform.
@@ -27,47 +28,18 @@ effects that makes a capture look produced, and output.
 
 ---
 
-## Known defects
-
-These are bugs, not roadmap items. Fix them rather than scheduling them; they are recorded here
-only so they are not lost.
-
-### Capture size is clamped to 4096 on undo of a move or resize
-
-`UndoAction.MoveCapture` in `src/undo.swg` clamps `capture.width` and `capture.height` to
-`Capture.MaxSize`, which is 4096. That constant belongs to the manual resize and expand dialogs in
-`src/actions/actimage.swg`, where it is a sensible input bound. It does not belong on the undo
-path, because a capture is not created through those dialogs.
-
-Two side-by-side 2560-wide monitors, or one 5120-wide ultrawide, produce a full-screen capture
-wider than 4096. Trimming or expanding it and then undoing silently truncates the capture. The
-capture is already in the library at that point, so the loss is persisted.
-
-### Per-monitor capture stops at four monitors
-
-`ActionCapture` mints `Screen0` through `Screen3` in `src/actions/actcapture.swg`, and
-`setGrabBounds` in `src/screenshot/screenshot.swg` maps them onto `main.monitors` by index. A fifth
-monitor cannot be captured individually. The command list should be generated from
-`main.monitors`, not written out four times.
-
----
-
 ## Tier A — Table stakes
 
-### 1. Export formats and local output destinations
+### 1. Local output destinations
 
-- Problem: `ActionFile` offers PNG and JPG and nothing else — see the two filter lists in
-  `src/actions/actfile.swg`, and the extension test in the save path that branches on exactly those
-  two strings. This is a self-imposed restriction, not a capability limit:
-  `bin/std/modules/pixel/src/image/encode/encode.swg` already registers eight encoders — BMP, TGA,
-  JPG, PNG, GIF, TIFF, ICO and WebP. Six of them are simply not offered.
-- Also missing: drag-out of the current capture into another application, copy-as-file rather than
-  copy-as-bitmap, and printing.
-- Fix: replace the hardcoded extension branch with a dispatch through the encoder registry and
-  build the filter list from it, so a new encoder in `bin/std` shows up here for free. Then add the
-  three local output paths. None of this needs a network.
-- Why first: the export half is close to free and the user hits it every time they need anything
-  other than a PNG.
+- Problem: a capture leaves the application as a file or as a bitmap on the clipboard, and that is
+  all. Three ordinary destinations are missing: drag-out of the current capture into another
+  application, copy-as-file rather than copy-as-bitmap, and printing.
+- Fix: three local output paths, none of which needs a network. Drag-out and copy-as-file are the
+  same shell data object seen from two angles, so do them together; printing is separate.
+- Why first: the file half of this entry has shipped — both dialogs now offer every format the
+  pixel codec registry supports — so what is left is the part a user reaches for when the
+  destination is not a file at all.
 
 ### 2. Grab Text
 
@@ -119,8 +91,8 @@ monitor cannot be captured individually. The command list should be generated fr
 - Fix: an explicit format version in the file, a documented schema, and a load path that maps
   versions forward deliberately. The alias table then records history instead of carrying it.
 - Why here rather than Tier A: it is not blocking today, because additive changes are safe. It is
-  the thing that will make Tier A entries 1 and 3 more expensive than they need to be, since both
-  add persisted fields.
+  the thing that will make Tier A entry 3 more expensive than it needs to be, since capture-level
+  effects add persisted fields.
 
 ### 6. Library tags and batch operations
 

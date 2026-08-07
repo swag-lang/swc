@@ -127,7 +127,7 @@ impl Movie
     mtd load(fileName: string) fail
     {
         var validator: Gif.Decoder
-        if !validator.IImageDecoder.canDecode(fileName) do
+        if !validator.IImageDecoder.format().matches(fileName) do
             fail UnsupportedFormatError{"unsupported format"}
 
         var bytes = File.readAllBytes(fileName)

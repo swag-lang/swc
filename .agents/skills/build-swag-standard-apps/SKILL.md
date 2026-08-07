@@ -107,10 +107,13 @@ glyph, another app's icon, or a letter tile.
   Show progress where work is not immediate, preserve keyboard focus, and keep failure text beside
   the operation that stopped.
 - Level a glyph with the word beside it, not with the middle of the box around it. A line box
-  reaches down to the descenders while a word is read on its capitals, so a centered icon reads as
-  having slipped under its label. `Gui.opticalTop` is the one place that rule lives; use it for
-  every icon, check mark, and arrow that shares a line with text, and never hand-tune a padding to
-  compensate for it.
+  reaches from the ascender to the descender while a word is read on its capitals, and the gap
+  between those two middles belongs to the face, so a glyph centered on the cell reads as having
+  slipped off its label. Two places own that rule and there is never a third: `Gui.opticalTop`
+  levels a glyph with a line whose *box* is centered, and `Pixel.Font.opticalLineTop` centers the
+  line on its capitals instead — which is what a control drawing a frame around one line does, so
+  that the same field reads the same whichever family it is set in. Never hand-tune a padding to
+  compensate for either.
 - Design both palettes together, verify narrow and minimum-size layouts, and inspect a real native
   surface rather than trusting constants alone.
 

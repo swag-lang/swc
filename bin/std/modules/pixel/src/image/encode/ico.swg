@@ -7,10 +7,7 @@ internal struct Encoder {}
 
 internal impl IImageEncoder for Encoder
 {
-    mtd impl canEncode(fileName: string)->bool
-    {
-        return Path.lowercaseExtension(fileName) == ".ico"
-    }
+    mtd impl format()->ImageFormat => {"ICO - Windows Icon", ".ico"}
 
     // Encode a single image as a 32-bit BGRA DIB icon entry with an empty AND mask.
     // The alpha channel carries transparency; the AND mask is left fully opaque.

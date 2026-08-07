@@ -7,13 +7,17 @@ func nnFont(font: #null *Font)->*Font
     return font!
 }
 
-// Y of the top edge of `size` placed level with a line of `family` centered on `centerY`.
+// Y of the top edge of `size` placed level with a line box of `family` centered on `centerY`.
 //
-// Every glyph a widget sets beside a word goes through this: an icon, a check mark, a
-// drop-down arrow. Centering them on the cell instead drops them below the word, because a
-// line box reaches down to the descenders while the word is read on its capitals. See
-// [[Pixel.Font.opticalOffset]]. A family without a regular face falls back to the plain
-// center, which is all that can be said without metrics.
+// Every glyph a widget sets beside a word centered that way goes through this: an icon, a check
+// mark, a drop-down arrow. Centering them on the cell instead leaves them off the word by the
+// difference between the middle of the line box and the middle of the capitals, which belongs to
+// the face. See [[Pixel.Font.opticalOffset]]. A family without a regular face falls back to the
+// plain center, which is all that can be said without metrics.
+//
+// A widget that centers its line on the capitals — a field, a cell, anything with a frame the
+// reader sees — needs no offset at all: see [[Pixel.Font.opticalLineTop]] and center the glyph on
+// the same point.
 func opticalTop(family: #null const *FontFamily, centerY, size: f32)->f32
 {
     if !family do

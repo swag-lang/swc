@@ -2,14 +2,11 @@ using Core, Win32, Gdi32, Pixel
 
 enum CaptureMode
 {
-    Area
-    LastArea
-    FullScreen
-    Screen0
-    Screen1
-    Screen2
-    Screen3
-    ActiveWindow
+    Area             // Interactive rectangle, drawn by the user over the frozen desktop.
+    LastArea         // The rectangle of the previous area capture.
+    FullScreen       // The whole virtual desktop, every monitor at once.
+    Monitor          // One monitor, named by its index in `MainWnd.monitors`.
+    ActiveWindow     // The window that was in the foreground before the capture.
 }
 
 var g_StartGrabX:     f32
@@ -136,7 +133,11 @@ func captureRect(main: *MainWnd)->#null *Capture fail
     return try performInPlaceEdit(img, sf, main)
 }
 
-func setGrabBounds(main: *MainWnd, captureMode: CaptureMode)->bool
+// Sets the grab rectangle for a non-interactive capture mode.
+//
+// Returns false when the mode has no fixed rectangle, or when `monitorIndex` names no
+// connected monitor: the caller then falls back to the interactive selector.
+func setGrabBounds(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64)->bool
 {
     switch captureMode
     {
@@ -154,11 +155,10 @@ func setGrabBounds(main: *MainWnd, captureMode: CaptureMode)->bool
         g_EndGrabX   = r.right()
         g_EndGrabY   = r.bottom()
 
-    case .Screen0, .Screen1, .Screen2, .Screen3:
-        let idx = cast(s32) captureMode - cast(s32) CaptureMode.Screen0
-        if cast(u64) idx >= main.monitors.count do
+    case .Monitor:
+        if monitorIndex >= main.monitors.count do
             return false
-        let rect = screenToDesktopRect(main.monitors[idx].physicalBounds)
+        let rect = screenToDesktopRect(main.monitors[monitorIndex].physicalBounds)
         g_StartGrabX = rect.x
         g_StartGrabY = rect.y
         g_EndGrabX   = rect.x + rect.width
@@ -175,7 +175,8 @@ func setGrabBounds(main: *MainWnd, captureMode: CaptureMode)->bool
     return true
 }
 
-func screenShot(main: *MainWnd, captureMode: CaptureMode) fail
+// Runs one capture in `captureMode`, `monitorIndex` naming the monitor of `.Monitor`.
+func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0) fail
 {
     let awareness = SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)
     defer discard SetThreadDpiAwarenessContext(awareness)
@@ -197,7 +198,7 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode) fail
 
     // Capture
     var capture: #null *Capture
-    if !setGrabBounds(main, captureMode) do
+    if !setGrabBounds(main, captureMode, monitorIndex) do
         capture = captureRect(main)
     else
     {

@@ -51,6 +51,7 @@ alias WAITORTIMERCALLBACK    = func(#null *void, BOOL)
 
 const STD_INPUT_HANDLE      = cast #bit (DWORD) -10
 const STD_OUTPUT_HANDLE     = cast #bit (DWORD) -11
+const STD_ERROR_HANDLE      = cast #bit (DWORD) -12
 const ATTACH_PARENT_PROCESS = cast #bit (DWORD) -1
 
 const FALSE = 0
@@ -121,6 +122,14 @@ const LOCALE_NAME_MAX_LENGTH  = 85
 const INFINITE                = 0xFFFFFFFF
 const CREATE_SUSPENDED        = 0x00000004
 const MAXIMUM_WAIT_OBJECTS    = 64'u32
+
+const CREATE_UNICODE_ENVIRONMENT = 0x00000400
+
+const STARTF_USESHOWWINDOW = 0x00000001
+const STARTF_USESTDHANDLES = 0x00000100
+
+const HANDLE_FLAG_INHERIT            = 0x00000001
+const HANDLE_FLAG_PROTECT_FROM_CLOSE = 0x00000002
 
 const FORMAT_MESSAGE_ALLOCATE_BUFFER = 0x00000100
 const FORMAT_MESSAGE_IGNORE_INSERTS  = 0x00000200
@@ -396,6 +405,8 @@ const FIND_FIRST_EX_ON_DISK_ENTRIES_ONLY = 4
     func DebugActiveProcess(procId: DWORD)
     func GetCommandLineA()->#null const [*] u8
     func GetCommandLineW()->#null const [*] u16
+    func GetEnvironmentStringsW()->#null [*] WCHAR
+    func FreeEnvironmentStringsW(penv: #null [*] WCHAR)->BOOL
 
     func GetProcAddress(hModule: HMODULE, lpProcName: LPCSTR)->#null const *void
     func GetCurrentProcess()->HANDLE
@@ -445,6 +456,7 @@ const FIND_FIRST_EX_ON_DISK_ENTRIES_ONLY = 4
     func SetWaitableTimer(hTimer: HANDLE, lpDueTime: const *LARGE_INTEGER, lPeriod: LONG, pfnCompletionRoutine: #null *void, lpArgToCompletionRoutine: LPVOID, fResume: BOOL)->BOOL
 
     func ReadFile(hFile: HANDLE, lpBuffer: LPVOID, nNumberOfBytesToRead: DWORD, lpNumberOfBytesRead: LPDWORD, lpOverlapped: LPOVERLAPPED)->BOOL
+    func PeekNamedPipe(hNamedPipe: HANDLE, lpBuffer: #null LPVOID, nBufferSize: DWORD, lpBytesRead: #null LPDWORD, lpTotalBytesAvail: #null LPDWORD, lpBytesLeftThisMessage: #null LPDWORD)->BOOL
     func CloseHandle(handle: HANDLE)
     func RtlZeroMemory(destination: LPVOID, length: SIZE_T)->LPVOID
     func FileTimeToLocalFileTime(lpFileTime: const *FILETIME, lpLocalFileTime: *FILETIME)->BOOL
@@ -472,6 +484,10 @@ internal namespace Win32Priv
 
         func CreateProcessA(lpApplicationName: LPCSTR, lpCommandLine: LPCSTR, lpProcessAttributes: #null *SECURITY_ATTRIBUTES, lpThreadAttributes: #null *SECURITY_ATTRIBUTES, bInheritHandles: BOOL, dwCreationFlags: DWORD, lpEnvironment: LPVOID, lpCurrentDirectory: LPCSTR, lpStartupInfo: *STARTUPINFOA, lpProcessInformation: *PROCESS_INFORMATION)->BOOL
         func CreateProcessW(lpApplicationName: LPCWSTR, lpCommandLine: LPCWSTR, lpProcessAttributes: #null *SECURITY_ATTRIBUTES, lpThreadAttributes: #null *SECURITY_ATTRIBUTES, bInheritHandles: BOOL, dwCreationFlags: DWORD, lpEnvironment: LPVOID, lpCurrentDirectory: LPCWSTR, lpStartupInfo: *STARTUPINFOW, lpProcessInformation: *PROCESS_INFORMATION)->BOOL
+        func GetExitCodeProcess(hProcess: HANDLE, lpExitCode: LPDWORD)->BOOL
+        func TerminateProcess(hProcess: HANDLE, uExitCode: UINT)->BOOL
+        func CreatePipe(hReadPipe: *HANDLE, hWritePipe: *HANDLE, lpPipeAttributes: #null const *SECURITY_ATTRIBUTES, nSize: DWORD)->BOOL
+        func SetHandleInformation(hObject: HANDLE, dwMask: DWORD, dwFlags: DWORD)->BOOL
         func CreateEventA(lpEventAttributes: #null *SECURITY_ATTRIBUTES, bManualReset: BOOL, bInitialState: BOOL, lpName: LPCSTR)->HANDLE
         func CreateEventW(lpEventAttributes: #null *SECURITY_ATTRIBUTES, bManualReset: BOOL, bInitialState: BOOL, lpName: LPCWSTR)->HANDLE
         func CreateMutexA(lpMutexAttributes: #null *SECURITY_ATTRIBUTES, bInitialOwner: BOOL, lpName: LPCSTR)->HANDLE
@@ -638,6 +654,30 @@ internal namespace Win32Priv
     func CreateProcessW(lpApplicationName: LPCWSTR, lpCommandLine: LPCWSTR, lpProcessAttributes: #null *SECURITY_ATTRIBUTES, lpThreadAttributes: #null *SECURITY_ATTRIBUTES, bInheritHandles: BOOL, dwCreationFlags: DWORD, lpEnvironment: LPVOID, lpCurrentDirectory: LPCWSTR, lpStartupInfo: *STARTUPINFOW, lpProcessInformation: *PROCESS_INFORMATION) fail
     {
         if !Win32Priv.CreateProcessW(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation) do
+            failWinError(GetLastError())
+    }
+
+    func GetExitCodeProcess(hProcess: HANDLE, lpExitCode: LPDWORD) fail
+    {
+        if !Win32Priv.GetExitCodeProcess(hProcess, lpExitCode) do
+            failWinError(GetLastError())
+    }
+
+    func TerminateProcess(hProcess: HANDLE, uExitCode: UINT) fail
+    {
+        if !Win32Priv.TerminateProcess(hProcess, uExitCode) do
+            failWinError(GetLastError())
+    }
+
+    func CreatePipe(hReadPipe: *HANDLE, hWritePipe: *HANDLE, lpPipeAttributes: #null const *SECURITY_ATTRIBUTES, nSize: DWORD) fail
+    {
+        if !Win32Priv.CreatePipe(hReadPipe, hWritePipe, lpPipeAttributes, nSize) do
+            failWinError(GetLastError())
+    }
+
+    func SetHandleInformation(hObject: HANDLE, dwMask: DWORD, dwFlags: DWORD) fail
+    {
+        if !Win32Priv.SetHandleInformation(hObject, dwMask, dwFlags) do
             failWinError(GetLastError())
     }
 

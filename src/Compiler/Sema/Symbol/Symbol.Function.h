@@ -93,6 +93,18 @@ public:
             freesParamsMask_ |= 1ULL << paramIndex;
     }
 
+    // Bit i set = the returned value is a view INTO the heap payload parameter #i owns,
+    // not merely a value that can reach that parameter. 'String.toString' sets it;
+    // 'Wnd.addTimer', which hands back a fresh object holding a pointer to its receiver,
+    // does not. The RETURN mask cannot tell the two apart, and only this one says whether
+    // reallocating the payload leaves the result pointing at freed bytes.
+    uint64_t returnsPayloadParamsMask() const noexcept;
+    void     addReturnsPayloadParam(size_t paramIndex) noexcept
+    {
+        if (paramIndex < 64)
+            returnsPayloadParamsMask_ |= 1ULL << paramIndex;
+    }
+
     // Bit i set = the call may MOVE OR RELEASE the heap payload that parameter #i owns
     // (it reaches an 'IAllocator.free/realloc' with that payload as the request
     // address). Legitimate in itself - that is what 'append', 'reserve' and 'clear' are
@@ -138,7 +150,7 @@ public:
     SymbolStruct*                       ownerStruct();
     const SymbolStruct*                 ownerStruct() const;
     // The nearest enclosing function in the lexical chain, for a local or nested function.
-    const SymbolFunction*               parentLexicalFunction() const;
+    const SymbolFunction* parentLexicalFunction() const;
 
     void             setExtraFlags(EnumFlags<AstFunctionFlagsE> parserFlags);
     bool             isClosure() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Closure); }
@@ -254,22 +266,23 @@ private:
     std::unordered_set<const SymbolVariable*> localVariableSet_;
     std::vector<SymbolFunction*>              callDependencies_;
     std::unordered_set<SymbolFunction*>       callDependencySet_;
-    uint32_t                                  numComputedLocals_       = 0;
-    uint32_t                                  localStackOffset_        = 0;
-    uint64_t                                  returnBorrowsParamsMask_ = 0;
-    uint64_t                                  storesParamsMask_        = 0;
-    uint64_t                                  storesIntoParamPairs_    = 0;
-    uint64_t                                  freesParamsMask_         = 0;
-    uint64_t                                  reallocatesParamsMask_   = 0;
-    TypeRef                                   returnType_              = TypeRef::invalid();
-    uint8_t                                   rtAttributeBitIndex_     = K_INVALID_RT_ATTRIBUTE_BIT_INDEX;
-    SpecOpKind                                specOpKind_              = SpecOpKind::None;
-    CallConvKind                              callConvKind_            = CallConvKind::Swag;
-    AstNodeRef                                declNodeRef_             = AstNodeRef::invalid();
-    const NodePayload*                        declNodePayloadCtx_      = nullptr;
-    uint32_t                                  interfaceMethodSlot_     = K_INVALID_INTERFACE_METHOD_SLOT;
-    uint32_t                                  debugStackFrameSize_     = 0;
-    MicroReg                                  debugStackBaseReg_       = MicroReg::invalid();
+    uint32_t                                  numComputedLocals_        = 0;
+    uint32_t                                  localStackOffset_         = 0;
+    uint64_t                                  returnBorrowsParamsMask_  = 0;
+    uint64_t                                  storesParamsMask_         = 0;
+    uint64_t                                  storesIntoParamPairs_     = 0;
+    uint64_t                                  freesParamsMask_          = 0;
+    uint64_t                                  reallocatesParamsMask_    = 0;
+    uint64_t                                  returnsPayloadParamsMask_ = 0;
+    TypeRef                                   returnType_               = TypeRef::invalid();
+    uint8_t                                   rtAttributeBitIndex_      = K_INVALID_RT_ATTRIBUTE_BIT_INDEX;
+    SpecOpKind                                specOpKind_               = SpecOpKind::None;
+    CallConvKind                              callConvKind_             = CallConvKind::Swag;
+    AstNodeRef                                declNodeRef_              = AstNodeRef::invalid();
+    const NodePayload*                        declNodePayloadCtx_       = nullptr;
+    uint32_t                                  interfaceMethodSlot_      = K_INVALID_INTERFACE_METHOD_SLOT;
+    uint32_t                                  debugStackFrameSize_      = 0;
+    MicroReg                                  debugStackBaseReg_        = MicroReg::invalid();
 
     MicroBuilder                         microInstrBuilder_;
     MachineCode                          loweredMicroCode_;

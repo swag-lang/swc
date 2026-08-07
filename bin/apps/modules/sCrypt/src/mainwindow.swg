@@ -216,7 +216,10 @@ struct MainWindow
 // output for whoever reads a report. A kind that means nothing to a reader — a metadata
 // record declaring an implausible entry count — reads as the generic damaged-container
 // wording, because the detail is for a report and not for someone trying to mount a drive.
-internal func caughtMessage(err: #null any)->string
+// Returns an owned string, not a view: one kind formats its sentence, and a view into
+// that temporary would dangle as soon as the statement building it ends. The constant
+// sentences are copied out of the string table for the same contract.
+internal func caughtMessage(err: #null any)->String
 {
     let s = appStrings()
 
@@ -230,7 +233,7 @@ internal func caughtMessage(err: #null any)->string
             return s.msg_PasswordRequired
 
         case .SizeTooSmall:
-            return Format.toString(s.msg_SizeMinimum, (MinimumSize + 1024 * 1024 - 1) / (1024 * 1024)).toString()
+            return Format.toString(s.msg_SizeMinimum, (MinimumSize + 1024 * 1024 - 1) / (1024 * 1024))
 
         case .PasswordOrDamaged:
             return s.msg_ErrPasswordOrDamaged

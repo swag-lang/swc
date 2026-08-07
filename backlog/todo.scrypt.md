@@ -4,11 +4,13 @@ This file is the product roadmap for sCrypt: what the application must gain to s
 mature disk-encryption tool. It is scoped to this module and to the `bin/std` primitives sCrypt
 depends on.
 
-It is not the repository's discovery backlog. Platform leads and defects belong in
-[FINDINGS.md](../../../../FINDINGS.md), which already carries the sCrypt working-set entry;
-compiler and language intent belongs in the root [TODO.md](../../../../TODO.md). Keep them
-separate: this file holds intent about the product, `FINDINGS.md` holds evidence about the
-platform.
+It is not the repository's discovery backlog. Platform leads and defects belong in the `findings.*`
+files — [findings.gui.md](findings.gui.md) for the surface,
+[findings.optimization.md](findings.optimization.md) for the crypto throughput; compiler and
+language intent belongs in [todo.compiler.md](todo.compiler.md) and
+[todo.language.md](todo.language.md). Keep them separate: this file holds intent about the product,
+the `findings.*` files hold evidence about the platform. [README.md](README.md) has the whole
+layout.
 
 Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
 ships; history lives in git, not here.
@@ -30,8 +32,8 @@ locally.
 - Fix: a bounded LRU cache of decrypted blocks, held in locked memory and wiped at unmount;
   coalescing of physically contiguous blocks into single I/O operations; and batched block
   decryption parallelized with `Jobs`. This is where the five-to-tenfold throughput factor is.
-- Related: the working-set entry in `FINDINGS.md`. A bounded cache is also the natural place to
-  put an explicit memory budget, which that investigation will need.
+- Related: a bounded cache is also the natural place to put an explicit memory budget, which any
+  later working-set investigation will need.
 
 ### 2. The crypto primitives are scalar
 
@@ -42,14 +44,14 @@ locally.
   (release build, m=256 MiB, t=3, p=4), and rejecting a wrong password costs that four times
   over, because every key slot is probed whether or not it holds a password.
 - Done so far: the backend's SSE2 auto-vectorizer (release builds, `cpuVectorize`) compiles the
-  ChaCha20 double-round loop to packed code (~90 instructions instead of ~500 scalar ones), and
-  the key-stream application and 32-bit marshalling work a word at a time instead of a byte at a
-  time. Measured throughput did not move yet: the packed state still round-trips through the
-  frame on every round iteration, which is the store-forwarding chain F-029 in `FINDINGS.md`
-  documents, with the re-measurement protocol to use once that lands.
-- Fix: keep the four state rows register-resident across the ten rounds (backend work, F-029),
-  then revisit `poly1305` and the Argon2 permutation. Argon2's lanes are also independent within
-  a slice, so `Jobs` can run `parallelism` of them at once.
+  ChaCha20 double-round loop to packed code (~90 instructions instead of ~500 scalar ones), the
+  key-stream application and 32-bit marshalling work a word at a time instead of a byte at a time,
+  and the packed state now stays register-resident across the ten rounds instead of round-tripping
+  through the frame — end-to-end `chacha20Xor` +21%, with the numbers and the measurement protocol
+  in [F-029](findings.optimization.md#f-029--chacha20-throughput-is-bounded-by-memory-round-trips-not-by-round-arithmetic).
+- Fix: process several blocks per loop iteration, which is where the rest of the ChaCha SIMD win
+  is (F-029 again), then revisit `poly1305` and the Argon2 permutation. Argon2's lanes are also
+  independent within a slice, so `Jobs` can run `parallelism` of them at once.
 - Why it matters: the mount latency a user actually feels is almost entirely this, and every
   block read and written pays the key-stream rate.
 

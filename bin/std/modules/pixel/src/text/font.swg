@@ -78,7 +78,17 @@ const RefEmSpread: u32 = 8
 //
 // Below this size, an `Auto` font rasterizes a crisp bitmap at the exact pixel size.
 // At or above it, the size-independent MSDF atlas scales and zooms cleanly.
-const AutoMsdfMinPx: f32 = 20.0
+//
+// The threshold sits well above the size where the two techniques become hard to tell apart
+// because they are not equally cheap. The MSDF atlas is size independent, so vertical
+// hinting and stem darkening cannot apply to it, and text stays visibly softer and lighter
+// than a bitmap until roughly thirty pixels; above that the two are indistinguishable. A
+// first MSDF glyph also costs an order of magnitude more to produce than a bitmap glyph at
+// the exact device size, and a page of text meeting a cold atlas pays that on the frame that
+// draws it. So everything the eye cannot separate is rasterized, and MSDF is kept for text
+// large enough to be scaled or zoomed. Thirty-two device pixels covers ordinary interface
+// text at every common display scale: a sixteen-pixel body size only reaches it at 200%.
+const AutoMsdfMinPx: f32 = 32.0
 
 // Stores glyphs shared by compatible [[Pixel.Font]] views.
 //

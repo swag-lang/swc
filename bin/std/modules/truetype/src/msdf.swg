@@ -23,11 +23,35 @@ const MSDF_MAGENTA = 5'u8
 const MSDF_CYAN    = 6'u8
 const MSDF_WHITE   = 7'u8
 
+// One flattened outline segment, with everything the distance evaluation would otherwise
+// recompute at every sample point. A glyph holds a few hundred of these and is measured at
+// a few thousand points, so the derived quantities are worth their storage.
 struct MsdfSeg
 {
-    x0, y0: f64
-    x1, y1: f64
-    color:  u8
+    minX, minY: f64     // Bounding box, tested first to reject a segment before any square root.
+    maxX, maxY: f64
+    x0, y0:     f64     // Segment start.
+    abx, aby:   f64     // Start-to-end vector; the end point is the start plus this.
+    ab2:        f64     // Squared length of that vector.
+
+    // The length and its reciprocal are both kept because the distance evaluation divides by
+    // one and multiplies by the other, and the two do not round alike. Deriving either from
+    // the other would move the field by a unit in the last place, which is enough to swing a
+    // tie between two segments and move a pixel of a corner.
+    len:    f64     // Length of the start-to-end vector.
+    invLen: f64     // Its reciprocal, zero for a degenerate segment.
+
+    color: u8     // Channel subset this segment carries.
+}
+
+// One outline crossing of a sample row.
+//
+// Inside/outside is a property of a whole row, so the crossings are gathered once per row
+// and swept across it, instead of winding the entire outline at every pixel.
+struct MsdfCrossing
+{
+    x:   f64     // Where the segment crosses the row.
+    dir: s32     // Plus one when the segment runs upwards through the row, minus one downwards.
 }
 
 struct MsdfElement
@@ -58,10 +82,19 @@ func msdfAddSeg(segs: *Array'MsdfSeg, x0, y0, x1, y1: f64)
         return
 
     var seg: MsdfSeg
-    seg.x0 = x0
-    seg.y0 = y0
-    seg.x1 = x1
-    seg.y1 = y1
+    seg.x0  = x0
+    seg.y0  = y0
+    seg.abx = x1 - x0
+    seg.aby = y1 - y0
+    seg.ab2 = seg.abx * seg.abx + seg.aby * seg.aby
+    seg.len = Math.sqrt(seg.ab2)
+    if seg.ab2 > 0 do
+        seg.invLen = 1.0 / seg.len
+
+    seg.minX = Math.min(x0, x1)
+    seg.maxX = Math.max(x0, x1)
+    seg.minY = Math.min(y0, y1)
+    seg.maxY = Math.max(y0, y1)
     segs.add(seg)
 }
 
@@ -291,22 +324,19 @@ func buildMsdfSegments(outline: const *Outline, segs: *Array'MsdfSeg)
 // Signed distance from a point to a directed segment (msdfgen LinearEdge::signedDistance).
 func msdfSegSignedDistance(s: const *MsdfSeg, px, py: f64)->{ sd: f64, dt: f64, param: f64 }
 {
-    let abx = s.x1 - s.x0
-    let aby = s.y1 - s.y0
     let aqx = px - s.x0
     let aqy = py - s.y0
-    let ab2 = abx * abx + aby * aby
 
     var param: f64 = 0
-    if ab2 > 0 do
-        param = (aqx * abx + aqy * aby) / ab2
+    if s.ab2 > 0 do
+        param = (aqx * s.abx + aqy * s.aby) / s.ab2
 
     var epx = s.x0
     var epy = s.y0
     if param > 0.5
     {
-        epx = s.x1
-        epy = s.y1
+        epx += s.abx
+        epy += s.aby
     }
 
     let eqx          = epx - px
@@ -315,19 +345,17 @@ func msdfSegSignedDistance(s: const *MsdfSeg, px, py: f64)->{ sd: f64, dt: f64, 
 
     if param > 0 and param < 1
     {
-        let invLen = ab2 > 0 ? 1.0 / Math.sqrt(ab2) : 0.0
-        let ortho  = (aby * aqx - abx * aqy) * invLen
+        let ortho = (s.aby * aqx - s.abx * aqy) * s.invLen
         if Math.abs(ortho) < endpointDist do
             return {ortho, 0.0, param}
     }
 
-    let crs = aqx * aby - aqy * abx
+    let crs = aqx * s.aby - aqy * s.abx
     let sgn = crs > 0 ? 1.0 : -1.0
 
     var dt: f64 = 0
-    let ablen   = Math.sqrt(ab2)
-    if ablen > 0 and endpointDist > 0 do
-        dt = Math.abs((abx * eqx + aby * eqy) / (ablen * endpointDist))
+    if s.len > 0 and endpointDist > 0 do
+        dt = Math.abs((s.abx * eqx + s.aby * eqy) / (s.len * endpointDist))
 
     return {sgn * endpointDist, dt, param}
 }
@@ -336,14 +364,11 @@ func msdfSegSignedDistance(s: const *MsdfSeg, px, py: f64)->{ sd: f64, dt: f64, 
 // field stays linear beyond the segment (this is what keeps corners sharp).
 func msdfSegPseudoDistance(s: const *MsdfSeg, px, py, param, curSigned: f64)->f64
 {
-    let abx   = s.x1 - s.x0
-    let aby   = s.y1 - s.y0
-    let ablen = Math.sqrt(abx * abx + aby * aby)
-    if ablen <= 0 do
+    if s.len <= 0 do
         return curSigned
 
-    let dx = abx / ablen
-    let dy = aby / ablen
+    let dx = s.abx / s.len
+    let dy = s.aby / s.len
 
     if param < 0
     {
@@ -359,8 +384,8 @@ func msdfSegPseudoDistance(s: const *MsdfSeg, px, py, param, curSigned: f64)->f6
     }
     elif param > 1
     {
-        let bqx = px - s.x1
-        let bqy = py - s.y1
+        let bqx = px - s.x0 - s.abx
+        let bqy = py - s.y0 - s.aby
         let ts  = bqx * dx + bqy * dy
         if ts > 0
         {
@@ -373,50 +398,176 @@ func msdfSegPseudoDistance(s: const *MsdfSeg, px, py, param, curSigned: f64)->f6
     return curSigned
 }
 
-// Signed pseudo-distance for the three MSDF channels at one sample point, in a
-// single pass over the segments. Each segment's true distance is computed once and
-// folded into every channel it carries (a segment is often coloured WHITE and would
-// otherwise be measured three times by three separate per-channel scans).
-func msdfChannelDistances(segs: const [..] MsdfSeg, px, py: f64)->{ r, g, b: f64 }
-{
-    var bestAbs:    [3] f64 = [Swag.F64.Max, Swag.F64.Max, Swag.F64.Max]
-    var bestSigned: [3] f64 = [-Swag.F64.Max, -Swag.F64.Max, -Swag.F64.Max]
-    var bestDot:    [3] f64 = [Swag.F64.Max, Swag.F64.Max, Swag.F64.Max]
-    var bestIdx:    [3] s32 = [-1, -1, -1]
-    var bestParam:  [3] f64
+// How much slack the squared rejection reach carries.
+//
+// The reach is a distance that came out of a square root, and squaring it back lands a
+// couple of units in the last place below the exact sum of squares it has to compare equal
+// to — which is precisely the case of a segment tying with the current winner and beating it
+// on perpendicularity. The slack is far above that rounding and far below anything the
+// quantized field can tell apart, so it costs nothing and keeps the search exact.
+const MsdfReachSlack: f64 = 1.000001
 
-    for &s, [i] in segs
+// The nearest segments found at one sample point.
+//
+// One search keeps four winners: one per MSDF channel, plus the nearest segment of all,
+// which is the unsigned distance the MTSDF alpha channel carries. Folding them together
+// means a segment is measured once instead of once per channel it belongs to.
+struct MsdfBest
+{
+    abs:    [3] f64     // Distance to the winner of each channel.
+    signed: [3] f64     // Its signed distance.
+    dot:    [3] f64     // How perpendicular the contact is; it breaks ties between equal distances.
+    param:  [3] f64     // Where the contact falls along the winner.
+    idx:    [3] s32     // The winner itself, or -1 when the channel has no candidate yet.
+
+    allAbs: f64     // Distance to the nearest segment of all, whatever channel it carries.
+    allIdx: s32     // That segment, or -1.
+
+    // Squared reach a segment has to come within to be worth measuring, indexed by the
+    // channel subset it carries. A segment only competes on the channels it belongs to, so
+    // the reach is the widest distance standing on those — held per subset rather than
+    // recomputed per segment, because the rejection test runs far more often than a win.
+    reach2: [8] f64
+}
+
+// The winning segments of the previous sample, carried over to the next one.
+//
+// Neighbouring samples resolve to the same segments nearly always, so measuring the
+// previous winners first opens a search with a tight bound instead of infinity — which is
+// what makes the rejection below reject anything at all on the first segments it sees.
+struct MsdfSeed
+{
+    channel: [3] s32     // Previous winner per channel, or -1.
+    nearest: s32         // Previous nearest segment of all, or -1.
+}
+
+impl MsdfSeed
+{
+    // Forgets the previous winners, at the start of a row.
+    mtd clear()
+    {
+        .channel[0], .channel[1], .channel[2], .nearest = -1
+    }
+}
+
+impl MsdfBest
+{
+    mtd start()
+    {
+        .abs[0], .abs[1], .abs[2], .allAbs = Swag.F64.Max
+        .signed[0], .signed[1], .signed[2] = -Swag.F64.Max
+        .dot[0], .dot[1], .dot[2]          = Swag.F64.Max
+        .idx[0], .idx[1], .idx[2], .allIdx = -1
+        for [i] in 8 do
+            .reach2[i] = Swag.F64.Max
+    }
+
+    // Refreshes the rejection reaches after a win changed one of the distances.
+    private mtd updateReach()
+    {
+        var reach: [8] f64
+        reach[0] = .allAbs
+        reach[1] = .abs[0]
+        reach[2] = .abs[1]
+        reach[3] = Math.max(.abs[0], .abs[1])
+        reach[4] = .abs[2]
+        reach[5] = Math.max(.abs[0], .abs[2])
+        reach[6] = Math.max(.abs[1], .abs[2])
+        reach[7] = Math.max(reach[3], .abs[2])
+
+        for [i] in 8 do
+            .reach2[i] = reach[i] * reach[i] * MsdfReachSlack
+    }
+
+    // Measures one segment and keeps it wherever it wins.
+    mtd fold(s: const *MsdfSeg, index: s32, px, py: f64)
     {
         let {sd, dt, param} = msdfSegSignedDistance(s, px, py)
         let a               = Math.abs(sd)
+
+        var won = false
+        if a < .allAbs or (a == .allAbs and index < .allIdx)
+        {
+            .allAbs = a
+            .allIdx = index
+            won     = true
+        }
 
         for [ch] in 3
         {
             if !(s.color & cast(u8) (1 << ch)) do
                 continue
-            if a < bestAbs[ch] or (a == bestAbs[ch] and dt < bestDot[ch])
+
+            // An exact tie goes to the more perpendicular contact, which is what keeps a
+            // corner from picking whichever of its two edges happens to come first. Two
+            // contacts as perpendicular as each other go to the earlier segment, so that
+            // the field does not depend on the order the search happened to visit them —
+            // the search starts from the previous sample's winners, not from the top.
+            if a < .abs[ch] or (a == .abs[ch] and (dt < .dot[ch] or (dt == .dot[ch] and index < .idx[ch])))
             {
-                bestAbs[ch]    = a
-                bestSigned[ch] = sd
-                bestDot[ch]    = dt
-                bestIdx[ch]    = cast(s32) i
-                bestParam[ch]  = param
+                .abs[ch]    = a
+                .signed[ch] = sd
+                .dot[ch]    = dt
+                .param[ch]  = param
+                .idx[ch]    = index
+                won         = true
             }
         }
+
+        // Most measured segments win nothing; only a win can tighten the reaches.
+        if won do
+            .updateReach()
     }
+}
+
+// Signed pseudo-distance for the three MSDF channels at one sample point, plus the true
+// unsigned distance to the nearest segment.
+//
+// `seed` carries the previous sample's winners in and this sample's winners out.
+func msdfChannelDistances(segs: const [..] MsdfSeg, px, py: f64, seed: *MsdfSeed)->{ r, g, b, trueDist: f64 }
+{
+    var best: MsdfBest
+    best.start()
+
+    for [k] in 4
+    {
+        let index = k < 3 ? seed.channel[k] : seed.nearest
+        if index >= 0 do
+            best.fold(&segs[index], index, px, py)
+    }
+
+    for &s, [i] in segs
+    {
+        // The distance to the segment's bounding box bounds its real distance from below,
+        // for a handful of comparisons and no square root. A segment that cannot reach the
+        // widest winner cannot win anything. Ties still go through, because it is the exact
+        // distance that decides them.
+        let bx = Math.max(Math.max(s.minX - px, px - s.maxX), 0.0'f64)
+        let by = Math.max(Math.max(s.minY - py, py - s.maxY), 0.0'f64)
+        if bx * bx + by * by > best.reach2[s.color] do
+            continue
+
+        best.fold(s, cast(s32) i, px, py)
+    }
+
+    seed.channel[0] = best.idx[0]
+    seed.channel[1] = best.idx[1]
+    seed.channel[2] = best.idx[2]
+    seed.nearest    = best.allIdx
 
     var d: [3] f64
     for [ch] in 3
     {
-        d[ch] = bestSigned[ch]
-        if bestIdx[ch] >= 0 do
-            d[ch] = msdfSegPseudoDistance(&segs[bestIdx[ch]], px, py, bestParam[ch], bestSigned[ch])
+        d[ch] = best.signed[ch]
+        if best.idx[ch] >= 0 do
+            d[ch] = msdfSegPseudoDistance(&segs[best.idx[ch]], px, py, best.param[ch], best.signed[ch])
     }
 
     var result: retval
-    result.r = d[0]
-    result.g = d[1]
-    result.b = d[2]
+    result.r        = d[0]
+    result.g        = d[1]
+    result.b        = d[2]
+    result.trueDist = best.allAbs
     return result
 }
 
@@ -427,35 +578,87 @@ func msdfMedian(a, b, c: f64)->f64
 
 struct MsdfRowCtx
 {
-    segs:     const *Array'MsdfSeg
-    edges:    const *Array'Edge
-    channels: [*] f32
-    rowVotes: [*] s64
-    width:    s32
-    left:     s32
-    top:      s32
+    segs:           const *Array'MsdfSeg
+    channels:       [*] f32
+    rowVotes:       [*] s64
+    crossings:      [*] MsdfCrossing     // Per-row scratch, one span of 'crossingStride' entries per row.
+    crossingStride: u64
+    width:          s32
+    left:           s32
+    top:            s32
+}
+
+// Collect the outline crossings of one sample row, sorted by ascending x.
+//
+// A segment crosses the row when the row falls in its half-open vertical span. A horizontal
+// segment spans nothing and therefore never crosses, which is what keeps the winding well
+// defined on a sample that lands exactly on a vertex.
+func msdfRowCrossings(segs: const [..] MsdfSeg, out: [*] MsdfCrossing, sampleY: f64)->u32
+{
+    var count = 0'u32
+    for &s in segs
+    {
+        if sampleY < s.minY or sampleY >= s.maxY do
+            continue
+
+        var crossing: MsdfCrossing
+        crossing.x   = s.x0 + s.abx * (sampleY - s.y0) / s.aby
+        crossing.dir = s.aby > 0 ? 1 : -1
+
+        // A row meets a handful of segments, and the sweep below needs them in order.
+        var i = count
+        while i > 0 and out[i - 1].x > crossing.x
+        {
+            out[i] = out[i - 1]
+            i      -= 1
+        }
+
+        out[i] = crossing
+        count  += 1
+    }
+
+    return count
 }
 
 // Fill one output row of the MSDF field and accumulate that row's sign vote.
 func msdfProcessRow(c: *MsdfRowCtx, py: u32)
 {
     let segsS   = c.segs.toSlice()
-    let edgesS  = c.edges.toSlice()
     let sampleY = cast(f64) c.top - (cast(f64) py + 0.5)
 
+    // Inside/outside is a ray cast to the right, so a pixel is inside when the crossings
+    // still ahead of it wind to something other than zero. That makes it a property of the
+    // row: gathering the crossings once and sweeping them costs one pass over the outline
+    // per row instead of one per pixel.
+    let crossings  = c.crossings + cast(u64) py * c.crossingStride
+    let crossCount = msdfRowCrossings(segsS, crossings, sampleY)
+
+    var winding = 0's32
+    for [i] in crossCount do
+        winding += crossings[i].dir
+
+    var seed: MsdfSeed
+    seed.clear()
+
+    var passed    = 0'u32
     var localVote = 0's64
     for [px] in c.width
     {
-        let sampleX   = cast(f64) c.left + cast(f64) px + 0.5
-        let {r, g, b} = msdfChannelDistances(segsS, sampleX, sampleY)
+        let sampleX = cast(f64) c.left + cast(f64) px + 0.5
+        while passed < crossCount and crossings[passed].x <= sampleX
+        {
+            winding -= crossings[passed].dir
+            passed  += 1
+        }
 
-        // True signed distance to the nearest contour, stored in a 4th channel
-        // (MTSDF). The RGB median keeps sharp corners for the glyph face, but its
-        // sub-edge field has corner-ray artifacts; the true SDF is smooth there, so
-        // outer effects (glow, outline outer edge, soft shadow) sample it instead.
-        let inside = isInside(edgesS, sampleX, sampleY)
-        let dist   = closestEdgeDistance(edgesS, sampleX, sampleY)
-        let trueSd = inside ? dist : -dist
+        let inside = winding != 0
+
+        // The 4th channel carries the true signed distance to the nearest contour (MTSDF).
+        // The RGB median keeps sharp corners for the glyph face, but its sub-edge field has
+        // corner-ray artifacts; the true SDF is smooth there, so outer effects (glow,
+        // outline outer edge, soft shadow) sample it instead.
+        let {r, g, b, trueDist} = msdfChannelDistances(segsS, sampleX, sampleY, &seed)
+        let trueSd              = inside ? trueDist : -trueDist
 
         let idx = (cast(u64) py * cast(u64) c.width + cast(u64) px) * 4
         c.channels[idx + 0] = cast(f32) r
@@ -463,8 +666,8 @@ func msdfProcessRow(c: *MsdfRowCtx, py: u32)
         c.channels[idx + 2] = cast(f32) b
         c.channels[idx + 3] = cast(f32) trueSd
 
-        // Sparse sign sampling (every other pixel on both axes): enough for a robust
-        // global majority while keeping the per-pixel winding test off the hot path.
+        // Sparse sign sampling (every other pixel on both axes) is enough for a robust
+        // global majority, and keeps the median off the hot path.
         if (px & 1) == 0 and (py & 1) == 0
         {
             let med = msdfMedian(r, g, b)
@@ -515,9 +718,6 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) fail
     if segs.isEmpty() do
         return
 
-    // Authoritative inside/outside test, used only to pick the global field sign.
-    let edges = buildEdges(&safeSlot.outline)
-
     var channels: Array'f32
     channels.resize(cast(u64) width * rows * 4)
 
@@ -525,18 +725,25 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) fail
 
     // Per-row sign votes, summed afterwards. The vote only decides the single global
     // sign of the field, so it is sampled on a sparse grid (every other pixel) — that
-    // is hundreds of authoritative inside/outside tests, plenty for a robust majority,
-    // while keeping the expensive per-pixel winding test off the hot path.
+    // is hundreds of authoritative inside/outside tests, plenty for a robust majority.
     var rowVotes: Array's64
     rowVotes.resize(cast(u64) rows)
+
+    // A row can meet each segment at most once, which bounds its crossing list. Every row
+    // owns its own span so that the rows below can run in parallel without sharing scratch.
+    let crossingStride = segs.count
+    var crossings: Array'MsdfCrossing
+    crossings.resize(cast(u64) rows * crossingStride)
+
     let channelsBuffer = channels.buffer!
     let rowVotesBuffer = rowVotes.buffer!
 
     var ctx = MsdfRowCtx{
         segs: &segs,
-        edges: &edges,
         channels: channelsBuffer,
         rowVotes: rowVotesBuffer,
+        crossings: crossings.buffer!,
+        crossingStride: crossingStride,
         width: width,
         left: left,
         top: top}

@@ -4,9 +4,11 @@ This file is the roadmap for `std/gui`, measured against the desktop toolkits it
 Qt, GTK4, Avalonia, Slint, Flutter, and — for the "we render every pixel ourselves" family —
 Dear ImGui and egui.
 
-It is not the repository's discovery backlog. Defects and leads about other subsystems belong in
-[FINDINGS.md](../../../../FINDINGS.md); compiler and language intent belongs in the root
-[TODO.md](../../../../TODO.md). This file holds intent about this module.
+It is not the repository's discovery backlog. Defects and leads about this module belong in
+[findings.gui.md](findings.gui.md), and leads about other subsystems in the neighbouring
+`findings.*` files; compiler and language intent belongs in
+[todo.compiler.md](todo.compiler.md) and [todo.language.md](todo.language.md). This file holds
+intent about `bin/std/modules/gui`. [README.md](README.md) has the whole layout.
 
 Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
 ships; history lives in git, not here.
@@ -191,7 +193,8 @@ printing through a raster path is a poor substitute.
 
 ## Out of scope
 
-**A declarative markup language.** Qt has QML, Slint and Flutter have their own. `FINDINGS.md`
+**A declarative markup language.** Qt has QML, Slint and Flutter have their own.
+[F-006](findings.gui.md#f-006--data-driven-ui-resource-for-stdgui)
 already records the investigation that killed `FormCtrl`: a data-described UI is only worth it when
 the caller never needs the controls back, and every consumer immediately recovered typed pointers
 by string identifier. Do not revisit this without solving the compile-time half first — that entry

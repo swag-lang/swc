@@ -5,9 +5,10 @@ with: Snagit, ShareX, and the Windows Snipping Tool that now ships with video an
 recognition. It is scoped to this module and to the `bin/std` facilities it depends on.
 
 It is not the repository's discovery backlog. Platform leads and defects belong in
-[FINDINGS.md](../../../../FINDINGS.md); compiler and language intent belongs in the root
-[TODO.md](../../../../TODO.md). Keep them separate: this file holds intent about the product,
-`FINDINGS.md` holds evidence about the platform.
+[findings.gui.md](findings.gui.md) and its neighbours; compiler and language intent belongs in
+[todo.compiler.md](todo.compiler.md) and [todo.language.md](todo.language.md). Keep them separate:
+this file holds intent about the product, the `findings.*` files hold evidence about the platform.
+[README.md](README.md) has the whole layout.
 
 Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
 ships; history lives in git, not here.

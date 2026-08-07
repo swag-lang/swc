@@ -1,6 +1,6 @@
 #global public
 // Iterator invalidation: structurally mutating a collection while an enclosing loop
-// iterates it. Force the lifecycle sanity so the checks fire in every build config.
+// iterates it. A language rule, so it fires in every build configuration on its own.
 #global #[Swag.Sanity(.Lifecycle, true)]
 using Swag
 

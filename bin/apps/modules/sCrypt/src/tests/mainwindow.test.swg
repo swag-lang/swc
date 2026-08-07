@@ -216,6 +216,7 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     }
 
     host.keyPress(Input.Key.Space)
+
     // A zero frame count means the browse action never opened the box; `forced` means the box
     // opened and Escape was not what closed it.
     @assert(frames != 0)
@@ -278,7 +279,7 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     defer host.shutdown()
     defer discard catch g_App.setLanguage(ReferenceLanguage)
 
-    func messageFor(kind: ErrorKind)->string
+    func messageFor(kind: ErrorKind)->String
     {
         catch failWith("an English diagnostic nobody reads", kind) as err
         return caughtMessage(err)

@@ -3,9 +3,10 @@
 This file is the roadmap for `std/audio`, measured against the embeddable audio libraries it
 competes with: miniaudio, SoLoud, OpenAL Soft, and the commercial tier of FMOD and Wwise.
 
-It is not the repository's discovery backlog. Cross-cutting leads and defects belong in
-[FINDINGS.md](../../../../FINDINGS.md); compiler and language intent belongs in the root
-[TODO.md](../../../../TODO.md). This file holds intent about this module.
+It is not the repository's discovery backlog. Cross-cutting leads and defects belong in the
+`findings.*` files, which hold evidence; compiler and language intent belongs in
+[todo.compiler.md](todo.compiler.md) and [todo.language.md](todo.language.md). This file holds
+intent about `bin/std/modules/audio`. [README.md](README.md) has the whole layout.
 
 Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
 ships; history lives in git, not here.
@@ -114,7 +115,7 @@ the rest of this list is not.
   `bin/examples/scripts/flappy.swgs`, `invaders.swgs` and `pacman.swgs`.
 - Re-measure before acting; then consider deferring device work off the calling thread so the
   application can draw its first frame while the engine comes up.
-- Related: `FINDINGS.md` has no entry for this. If measurement shows the cost is in XAudio2
+- Related: no `findings.*` file has an entry for this. If measurement shows the cost is in XAudio2
   rather than in this module, record it there instead.
 
 ### 8. Capture and recording

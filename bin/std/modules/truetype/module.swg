@@ -24,9 +24,15 @@ let bitmap = &face.glyph.bitmap
 // bitmap.buffer remains valid until this face loads or renders another glyph.
 ```
 
-The module covers TrueType `glyf` outlines, Unicode character maps, legacy
-kerning, grayscale rasterization, and single- or multi-channel signed-distance
-fields.
+The module covers TrueType `glyf` outlines, `ttcf` collections, Unicode character
+maps including variation sequences, kerning from `GPOS` and from the legacy
+`kern` table, grayscale rasterization, and single- or multi-channel
+signed-distance fields.
+
+It does not shape text. Ligatures, mark attachment and script-specific reordering
+need `GSUB` and the rest of `GPOS`, so Arabic, Indic and Thai are positioned
+incorrectly rather than imperfectly. OpenType files carrying CFF outlines
+(`OTTO`) and WOFF containers are reported as unsupported rather than read.
 */
 
 #import("core")

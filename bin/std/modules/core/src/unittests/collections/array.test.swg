@@ -556,3 +556,35 @@ func visitStructArrayReverse(values: &Array'ArrayVisitProbe)->s32
 
     @assert(ArrayDropCount == 5)
 }
+
+// Copying an array reallocates its buffer from null while its capacity still
+// describes the source block, so the allocator receives a request whose address is
+// null and whose old size is not. A scratch allocator is what reads that old size.
+#test
+{
+    var alloc:   Allocator
+    var scratch: ScratchAllocator
+    alloc.setup()
+    alloc.configure(false, false, false, false, false)
+
+    let backing: IAllocator = &alloc
+    scratch.setCapacity(64 * 1024, backing)
+    defer scratch.release()
+
+    let context                = @getcontext()
+    let originalAllocator      = context.allocator
+    let scratchItf: IAllocator = &scratch
+    context.allocator = scratchItf
+    defer context.allocator = originalAllocator
+
+    var source: Array'u16
+    defer source.free()
+    for [i] in 21 do
+        source.add(cast(u16) (i + 1))
+
+    var copy = source
+    defer copy.free()
+    @assert(copy.count == 21)
+    for [i] in 21 do
+        @assert(copy[i] == cast(u16) (i + 1))
+}

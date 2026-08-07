@@ -602,6 +602,31 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     scratch.release()
 }
 
+// Realloc from null ignores a stale old size instead of copying from address zero.
+// 'Array.opPostCopy' produces exactly this request: it clears the buffer of a copy
+// and reallocates it, leaving the old size describing a block that is not there.
+#test
+{
+    var alloc:   Allocator
+    var scratch: ScratchAllocator
+    let itf = makeScratchAllocator(&scratch, &alloc)
+
+    var req: AllocatorRequest
+    req.address = null
+    req.oldSize = 64
+    req.size    = 200
+    itf.realloc(&req)
+    @assert(req.address != null)
+
+    let ptr = cast([*] u8) req.address!
+    ptr[0]   = 1
+    ptr[199] = 2
+    @assert(ptr[0] == 1)
+    @assert(ptr[199] == 2)
+
+    scratch.release()
+}
+
 // Capacity and block are set correctly
 #test
 {

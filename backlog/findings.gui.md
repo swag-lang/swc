@@ -226,3 +226,47 @@ Entries are sorted by identifier, ascending; position carries no priority.
   honest but pays the cost on each of the twenty-odd setters that call it today. Do not add a third
   state. Pin whichever way it goes with a headless test that re-labels a control inside a docked
   band and asserts the band re-measured without anything being resized.
+
+### F-074 — A Windows call that fails without setting a last error is reported as success
+
+- Area: std/win32
+- Found while: asking GDI for the `ttcf` table of a font that is not part of a collection
+- Observation: every checked wrapper in `win32`, `gdi32`, `kernel32` and their siblings ends the
+  same way — test the documented failure value, then `failWinError(GetLastError())`. But
+  [win32.swg:6](../bin/std/modules/win32/src/win32.swg#L6) opens with
+  `if errorMessageID == 0 do return`. When Windows answers a failure value without setting a last
+  error, the wrapper raises nothing and hands the failure value back as a result. There are 126
+  call sites, in `core`, `gui`, `ogl` and `pixel` as well as in the bindings themselves.
+- Evidence, measured: `GetFontData(hdc, 'ttcf', 0, null, 0)` on Segoe UI and on Arial — neither is
+  in a collection — returns `GDI_ERROR`, sets no last error, and the wrapper reports no failure. The
+  caller receives `4294967295` as a byte count. `Array.resize` on it then failed four gigabytes
+  down, and the failure surfaced as an access violation in an unrelated destructor rather than as
+  the refusal it was. `TypeFace.readHfontData` now tests `GDI_ERROR` itself, which is correct at
+  that call site in any case, but the other 125 sites carry the same hole untested.
+- Why it is not simply a missing `else`: a zero last error after a failure value is normal on
+  Windows, not exceptional. `GetFontData`, `GetGlyphOutline` and the `Get*` family document a
+  sentinel and say nothing about `SetLastError`.
+- Next step: make `failWinError` raise for a zero code instead of returning — a generic
+  `Swag.SystemError` carrying zero still fails, which is what every one of its call sites already
+  means. Then sweep for the wrappers that call it *without* first testing a failure value, because
+  those depend on the current early return and would start failing on success. Validate with the
+  whole Windows-facing set: `core`, `gui`, `ogl`, `pixel` and the applications.
+
+### F-075 — A cached typeface keeps a second copy of the whole font file
+
+- Area: std/pixel
+- Found while: reordering `TypeFace.createFromHfont` so its failure path stops dropping an
+  unassigned face
+- Observation: `TypeFace.buffer` holds the bytes GDI returned, described as "kept alive for the
+  native face". `Face.load` does not borrow them: it copies the whole file into its own
+  `FaceImpl.fontData` and every slice it hands out points there. So each cached typeface holds the
+  font twice.
+- Evidence: `Face.loadAt` in `bin/std/modules/truetype/src/face.swg` resizes `faceData.fontData` to
+  `@countof(bytes)` and copies into it before parsing anything. For a collection the cost is the
+  whole collection: `msgothic.ttc` is 8.99 MB, so `MS Gothic`, `MS PGothic` and `MS UI Gothic`
+  cached together hold about 54 MB where 27 MB is reachable.
+- Next step: decide which of the two owns the bytes. Either drop `TypeFace.buffer` and let the face
+  own its copy, which is one line and costs nothing; or give `truetype` a borrowing entry point
+  that keeps the caller's slice and does not copy, which removes the duplicate on every path and
+  not just this one — but it makes the face's lifetime depend on the caller's buffer, which is a
+  contract change worth stating deliberately.

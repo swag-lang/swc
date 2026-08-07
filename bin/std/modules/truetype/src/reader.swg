@@ -34,6 +34,14 @@ func readS16(buffer: #null const [..] u8, offset: u64)->s16 fail
     return cast(s16) (cast(s32) value - 0x1_0000)
 }
 
+// Reads the 24-bit big-endian form the 'cmap' format-14 subtable stores code points in.
+func readU24(buffer: #null const [..] u8, offset: u64)->u32 fail
+{
+    assertRange(buffer, offset, 3)
+    let buf = buffer!
+    return cast(u32) buf[offset] << 16 | cast(u32) buf[offset + 1] << 8 | buf[offset + 2]
+}
+
 func readU32(buffer: #null const [..] u8, offset: u64)->u32 fail
 {
     assertRange(buffer, offset, 4)

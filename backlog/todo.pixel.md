@@ -139,6 +139,25 @@ Dashing exists. Missing: path trimming by arc length, arc-length measurement, an
 Boolean operations already exist in `poly/`; the question is whether they are reachable from a
 painter path or only from the polygon layer.
 
+### 10. A collection face is selected by name, and a localized Windows will miss
+
+`TypeFace.createFromHfont` now asks GDI for the `ttcf` table, and picks the face out of the
+collection by matching the family GDI enumerated against `Face.familyNameAt`. That match is between
+the name Windows reports for the current locale and the best-scoring `name` record in the face,
+which this module scores towards English. Where they disagree the match fails and face zero is
+taken, which is a wrong family rather than a refusal.
+
+Verified on a French Windows 11: all twelve collection-backed families — `MS Gothic`, `MS PGothic`,
+`MS UI Gothic`, `Cambria`, `Cambria Math`, `SimSun`, `NSimSun`, `Yu Gothic`, `Nirmala UI`,
+`Nirmala Text`, `Microsoft JhengHei`, `Microsoft YaHei` — resolve to their own face and render.
+A Japanese or Chinese Windows enumerates `ＭＳ ゴシック` and `宋体` instead, and has not been tried.
+
+The bounded fix is to match against every `name` record a face declares rather than only the
+best-scoring one, which needs `truetype` to answer "does this face call itself X" rather than
+"what is this face called". Weigh that against reading the face index out of the offset tables
+instead, which is locale-proof but needs the synthesized single-face file as well as the
+collection, and so reads the font twice.
+
 ---
 
 ## Out of scope

@@ -653,6 +653,17 @@ private impl Application
         if surface do
             .modalSurfaces.removeBack()
 
+        // A surface disabled on the way in can be destroyed while the loop runs: it has left
+        // `surfaces`, but this list still holds the raw pointer, and enabling or focusing it
+        // would touch freed windows. Keep only the survivors.
+        var index = disabledSurfaces.count
+        while index
+        {
+            index -= 1
+            if !.surfaces.contains(disabledSurfaces[index]) do
+                disabledSurfaces.removeAtOrdered(index)
+        }
+
         for s in disabledSurfaces do
             s.enable()
 

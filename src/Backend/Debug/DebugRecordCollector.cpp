@@ -94,6 +94,11 @@ namespace
         if (const SymbolModule* rootModule = compiler.symModule())
             collectGlobalDebugConstantsRec(out, ctx, *rootModule);
 
+        // Runtime and imported-API constants live under the import-root namespace, a sibling of
+        // the module namespace that the module walk above does not reach.
+        if (const SymbolNamespace* importRoot = compiler.importRootNamespace())
+            collectGlobalDebugConstantsRec(out, ctx, *importRoot);
+
         for (const SourceFile* file : compiler.files())
         {
             if (!file)

@@ -89,12 +89,16 @@ func message(err: #null any)->string
     let name = type.name orelse ""
 
     // Walk the leading embedded structs: the base of an error family sits at offset zero,
-    // however deep the derivation goes. The base is recognized by its shape — the leading
-    // 'message' string field of [[Swag.BaseError]] — rather than by type identity, because a
-    // runtime type has no cross-module identity yet (F-084): compared from another module,
-    // `type == Swag.BaseError` is false for the very value it describes.
+    // however deep the derivation goes.
     while Reflection.isStruct(type)
     {
+        if type == Swag.BaseError
+        {
+            let base = cast(const *Swag.BaseError) @dataof(err)!
+            let text = base.message orelse ""
+            return @countof(text) ? text : name
+        }
+
         let structType = cast(const *Swag.TypeInfoStruct) type
         let fields     = structType.fields
         if @countof(fields) == 0 or fields![0].offset != 0 do
@@ -103,13 +107,6 @@ func message(err: #null any)->string
         let fieldType = fields![0].pointedType
         if fieldType == null do
             break
-
-        if Reflection.isString(fieldType) and fields![0].name == "message"
-        {
-            let base = cast(const *Swag.BaseError) @dataof(err)!
-            let text = base.message orelse ""
-            return @countof(text) ? text : name
-        }
 
         type = fieldType
     }

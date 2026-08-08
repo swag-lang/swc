@@ -65,3 +65,22 @@ Entries are sorted by identifier, ascending; position carries no priority.
   boundary — a C++ test in `src/Unittest` that hands the sanitizer a micro-IR sequence sema cannot
   produce — rather than a `.swg` fixture that no longer compiles. If it does not, deleting it
   removes a check whose only remaining role is to duplicate a language rule.
+
+### F-085 — `@setcontext` of a stack-local copy installs a dangling context
+
+- Area: safety
+- Found while: adding the F-084 cross-DLL runtime-type test to the workspace suite; the first
+  `fail` raised after `verifyRuntimeContext` crashed with an access violation in `__dropErr`.
+- Observation: `@setcontext` installs a pointer to its argument. The test idiom
+  `var cxt = dref @getcontext(); cxt.user0 = 42; @setcontext(cxt)` therefore leaves the current
+  context pointing into the frame that just returned. Every later `@getcontext` reads recycled
+  stack: the error machinery (`__setErrRaw`) read a garbage `errors[N].value`, called
+  `type.opDrop` through a garbage typeinfo, and died with 0xC0000005 — far from the cause, and
+  only once something raised.
+- Evidence: `bin/unittests/workspace/modules/consumer_exe/src/main.swg` used exactly that idiom
+  in `verifyRuntimeContext` and `#drop` (both now route the patched copy through the module
+  global `gPatchedContext`); the crash reproduced deterministically in every build config the
+  moment a cross-DLL `fail` ran afterwards, and disappeared with the global.
+- Next step: make the borrow-escape analysis treat the argument of `@setcontext` as escaping to
+  static storage, so binding a stack local is diagnosed at compile time; alternatively make
+  `@setcontext` copy into runtime-owned storage and document the ownership.

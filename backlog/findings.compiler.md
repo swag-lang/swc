@@ -246,29 +246,3 @@ Entries are sorted by identifier, ascending; position carries no priority.
   *resolves* from: it very likely resolves through the importing module's namespace, so a sibling
   namespace of its own module is only reachable when the importer happens to have pulled it in.
   An imported API should resolve against its own module root first.
-
-### F-084 — Runtime `Swag.*` types have no cross-module identity: `==`, `case`, and `is` silently miss
-
-- Area: compiler
-- Found while: adding `Core.Errors.message`, which walks a caught error's typeinfo down to
-  `Swag.BaseError`; the comparison held inside core's own tests and failed the moment the error
-  crossed the core.dll boundary into a script.
-- Observation: runtime types are compiled into every module under that module's root namespace,
-  so their descriptor fullname is `Scratchpad.Swag.BaseError` in a script and `Core.Swag.BaseError`
-  inside core.dll. The typeinfo `crc` hashes that module-prefixed scoped name
-  (`canonicalScopedNameHash` in `src/Compiler/Sema/Type/TypeRuntimeHash.cpp`), so two modules never
-  agree on the identity of the same runtime type. Imported API symbols were canonicalized by the
-  cross-DLL interface fix; runtime files were not, because they are local sources in every module.
-- Evidence: a script that catches `Errors.SyntaxError` from core and walks
-  `fields[0].pointedType` reads fullname `Scratchpad.Swag.BaseError`, and `ft == Swag.BaseError`
-  is true script-side but false inside core.dll. Latent in the tree: `guardianErrorText` in
-  `bin/apps/modules/sCrypt/src/winfsp/guardian.win32.swg` does `case Swag.SystemError:` on errors
-  raised by core.dll, which can only fall through to its generic fallback text. `Core.String`
-  compares fine, which is what hides the gap: only `Swag.*` types are affected.
-- Next step: in `canonicalScopedNameHash` and in the descriptor fullname emission
-  (`TypeGen.Payload.cpp`), strip the owning module's namespace when the defining source file is
-  `isRuntime()`, so every module emits `Swag.BaseError` with one crc. Then simplify
-  `Core.Errors.message` to compare `type == Swag.BaseError` instead of matching the base shape
-  structurally, and add a cross-DLL `case Swag.SystemError` check to the workspace suite.
-- Related: the fixed cross-DLL interface identity work (canonical runtimeHash), which covered
-  imported API symbols only.

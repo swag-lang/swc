@@ -12,10 +12,12 @@
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Module.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeManager.h"
+#include "Main/CompilerInstance.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -45,6 +47,39 @@ namespace
 
         return TypeRef::invalid();
     }
+}
+
+const Symbol* SemaHelpers::findPredefinedRuntimeSymbol(const Sema& sema, IdentifierManager::PredefinedName name)
+{
+    const IdentifierRef swagIdRef   = sema.idMgr().predefined(IdentifierManager::PredefinedName::Swag);
+    const IdentifierRef targetIdRef = sema.idMgr().predefined(name);
+
+    // Runtime files root their top-level symbols under the shared import-root namespace (see
+    // topLevelCreationSymMap); without one they fall back to the module namespace.
+    const SymbolMap* roots[] = {sema.compiler().importRootNamespace(), &sema.moduleNamespace()};
+    for (const SymbolMap* root : roots)
+    {
+        if (!root)
+            continue;
+
+        std::vector<const Symbol*> rootSymbols;
+        root->getAllSymbols(rootSymbols);
+        for (const Symbol* rootSym : rootSymbols)
+        {
+            if (!rootSym || !rootSym->isNamespace() || rootSym->idRef() != swagIdRef)
+                continue;
+
+            std::vector<const Symbol*> namespaceSymbols;
+            rootSym->asSymMap()->getAllSymbols(namespaceSymbols);
+            for (const Symbol* candidate : namespaceSymbols)
+            {
+                if (candidate && candidate->idRef() == targetIdRef)
+                    return candidate;
+            }
+        }
+    }
+
+    return nullptr;
 }
 
 Result SemaHelpers::attachIndirectReturnRuntimeStorageIfNeeded(Sema& sema, AstNodeRef payloadNodeRef, const AstNode& storageNode, const SymbolFunction& calledFn, std::string_view privateName)

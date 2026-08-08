@@ -23,7 +23,6 @@ public:
     static bool                       isAnonymousAggregateSymbol(const Symbol& symbol);
     static bool                       hasCompilerGeneratedIdentifier(const TaskContext& ctx, const Symbol& symbol);
     static bool                       isInCompilerGeneratedScope(const TaskContext& ctx, const Symbol& symbol);
-    static Utf8                       documentationScopedName(TaskContext& ctx, const Symbol& symbol, bool runtime);
     static void                       appendNormalizedComment(std::vector<Utf8>& outLines, std::string_view text);
     static std::vector<Utf8>          symbolCommentLines(TaskContext& ctx, const Symbol& symbol, const SourceFile& file, AstNodeRef declRef, AstNodeRef rootRef);
     static void                       collectSymbolTree(std::vector<const Symbol*>& outSymbols, std::unordered_set<const Symbol*>& seen, const SymbolMap& symbolMap);

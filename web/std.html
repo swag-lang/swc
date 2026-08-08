@@ -29,7 +29,7 @@
 <p>Import a standard module from <span class="code-inline">module.swg</span> or a script setup section:</p>
 <div class="code-block"><span class="SCde"><span class="SCmp">#import</span>(<span class="SStr">"core"</span>, location: <span class="SStr">"swag@std"</span>)
 </span></div>
-<p>The <span class="code-inline">swag@std</span> location is resolved through <span class="code-inline">SWAG_PATH</span>, which must point to the compiler's <span class="code-inline">bin</span> directory.</p>
+<p><span class="code-inline">swag@std</span> is the standard library beside the compiler that runs the build. <span class="code-inline">SWAG_PATH</span> answers instead for a compiler installed without one, and points to that library's <span class="code-inline">bin</span> directory.</p>
 <h2 id="Application_libraries">Application libraries</h2>
 <table class="table-markdown">
 <thead>

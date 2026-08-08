@@ -36,16 +36,19 @@ swc hello.swgs
     <span class="SItr">@print</span>(<span class="SStr">"Hello, world!\n"</span>)
 }
 </span></div>
-<p>The <span class="code-inline">.swgs</span> extension selects script mode, so there is no separate <span class="code-inline">script</span> command. Pass normal <span class="code-inline">run</span> options after the path. Repeat <span class="code-inline">--run-arg</span> to append arguments exposed through <span class="code-inline">@args</span> and the Core environment helpers:</p>
-<div class="code-block"><span class="SCde">swc hello.swgs --run-arg first --run-arg second
+<p>The <span class="code-inline">.swgs</span> extension selects script mode, so there is no separate <span class="code-inline">script</span> command. The path splits the command line in two: what comes before it configures the compilation, and everything after it is the script's own command line, reaching it through <span class="code-inline">@args</span> and the Core environment helpers.</p>
+<div class="code-block"><span class="SCde">swc -bc release hello.swgs --colors 16 report.txt
 </span></div>
+<p><span class="code-inline">-bc release</span> is read by the compiler and <span class="code-inline">--colors 16 report.txt</span> by the script, whatever the words look like. A script therefore owns its own grammar, including options that spell like the compiler's own.</p>
+<p>The script is recognized wherever it sits, so <span class="code-inline">swc</span> may still be given ordinary <span class="code-inline">run</span> options as long as they precede the path. <span class="code-inline">--run-arg</span> remains the way a <i>module</i> receives arguments; a script has no use for it.</p>
+<p><span class="code-inline">setup</span> claims the <span class="code-inline">.swgs</span> extension for the current user, so a script also runs from a double-click, arguments and exit code included.</p>
 <h2 id="Import_compiled_dependencies">Import compiled dependencies</h2>
 <p>Put module setup directives at the top level of the script. This imports the standard <span class="code-inline">core</span> module:</p>
 <div class="code-block"><span class="SCde"><span class="SCmp">#import</span>(<span class="SStr">"core"</span>, location: <span class="SStr">"swag@std"</span>)
 
 <span class="SKwd">using</span> <span class="SCst">Core</span>
 </span></div>
-<p><span class="code-inline">SWAG_PATH</span> must point to the compiler's <span class="code-inline">bin</span> directory so <span class="code-inline">swag@std</span> can resolve <span class="code-inline">bin/std</span>. The compiler builds imported dependencies as native modules and reuses compatible output on later runs.</p>
+<p><span class="code-inline">swag@std</span> is the standard library beside the compiler that runs the script, and <span class="code-inline">SWAG_PATH</span> answers only for a compiler installed without one. A compiler and its library are one thing, so a second checkout on the same machine keeps its own rather than the one the environment happens to name. A module that library has but has not been built for this configuration is built there and then, rather than reported missing, so a script runs from a checkout that has never been registered or built. The compiler builds imported dependencies as native modules and reuses compatible output on later runs.</p>
 <p>Script dependency state is cached under the system temporary directory in <span class="code-inline">swag/scripts</span>. Its directory key is derived from the build configuration, target architecture, and resolved imports, so compatible scripts can reuse the same dependency output. Use <span class="code-inline">--show-config</span> to inspect resolved paths and tools.</p>
 <h2 id="Split_a_script_across_files">Split a script across files</h2>
 <p>Use top-level <span class="code-inline">#load</span> directives for companion source files:</p>
@@ -53,6 +56,7 @@ swc hello.swgs
 <span class="SCmp">#load</span>(<span class="SStr">"render/helpers.swg"</span>)
 </span></div>
 <p><span class="code-inline">#load</span> adds source to the current script module. It does not create a compiled module dependency; use <span class="code-inline">#import</span> for that boundary.</p>
+<p>A path is relative to the script, and <span class="code-inline">#load</span> does not nest: a loaded file cannot load another. A script spread over several sources therefore states the whole list in its entry file.</p>
 <h2 id="Configure_the_script">Configure the script</h2>
 <p>A top-level <span class="code-inline">#run</span> block can update the script's build configuration before the rest of the file is compiled:</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#run</span>

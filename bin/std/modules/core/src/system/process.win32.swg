@@ -343,12 +343,35 @@ func startProcess(info: StartInfo)->Process fail
         startup.hStdError  = cast(HANDLE) childError
     }
 
+    // Accounting and affinity both have to be in place before the first instruction runs: a job
+    // only counts what a process does after it joins, and a pinned run that starts anywhere else
+    // has already been measured on the wrong core. So the process is created suspended and
+    // resumed below, once it has been placed.
+    let placeBeforeStart = info.measureResources or info.affinityMask != 0
+    if placeBeforeStart do
+        creationFlags |= CREATE_SUSPENDED
+
     let commandLine16 = Utf16.toZeroTerminated(commandLine.toString())
     var information: PROCESS_INFORMATION
     try CreateProcessW(null, @dataof(commandLine16), null, null, anyRedirection ? TRUE : FALSE, creationFlags, environmentPtr, directoryPtr, &startup, &information)
 
-    CloseHandle(information.hThread)
     result.adoptStarted(information.hProcess, information.dwProcessId)
+
+    if placeBeforeStart
+    {
+        // A placement that fails must not leave a suspended process behind, so the thread is
+        // resumed on the way out whether the placement worked or not.
+        defer
+        {
+            discard catch ResumeThread(information.hThread)
+            CloseHandle(information.hThread)
+        }
+
+        try result.placeStartedProcess(info)
+        return result
+    }
+
+    CloseHandle(information.hThread)
     return result
 }
 
@@ -359,6 +382,23 @@ impl Process
     {
         .handle    = handle
         .processId = processId
+    }
+
+    // Puts a still-suspended process where `info` asks it to run, before it executes anything.
+    internal mtd placeStartedProcess(info: StartInfo) fail
+    {
+        if info.measureResources
+        {
+            let job = CreateJobObjectW(null, null)
+            if !job do
+                failWinError(GetLastError())
+
+            .jobHandle = cast(ProcessHandle) job
+            try AssignProcessToJobObject(job, cast(HANDLE) .handle)
+        }
+
+        if info.affinityMask != 0 do
+            try SetProcessAffinityMask(cast(HANDLE) .handle, info.affinityMask)
     }
 
     // Releases resources owned by this value.
@@ -374,9 +414,40 @@ impl Process
     mtd close()
     {
         releaseHandle(&.handle)
+        releaseHandle(&.jobHandle)
         releaseHandle(&.inputPipe)
         releaseHandle(&.outputPipe)
         releaseHandle(&.errorPipe)
+    }
+
+    // Returns what the process and everything it started consumed.
+    //
+    // Answers zero unless the process was started with `StartInfo.measureResources`. The figures
+    // stay readable while this value holds the accounting group, which is until
+    // [[Core.Env.Process.close]], so a caller reads them after waiting for the exit.
+    mtd const resources()->ProcessResources
+    {
+        var result: retval
+        if !.jobHandle do
+            return result
+
+        var accounting: JOBOBJECT_BASIC_ACCOUNTING_INFORMATION
+        if QueryInformationJobObject(cast(HANDLE) .jobHandle, JobObjectBasicAccountingInformation, cast(LPVOID) &accounting, #sizeof(accounting), null)
+        {
+            // A job reports its times in 100-nanosecond units.
+            result.userTime     = Time.Duration.fromSeconds(cast(f64) accounting.TotalUserTime / 10_000_000.0)
+            result.kernelTime   = Time.Duration.fromSeconds(cast(f64) accounting.TotalKernelTime / 10_000_000.0)
+            result.processCount = accounting.TotalProcesses
+        }
+
+        var limits: JOBOBJECT_EXTENDED_LIMIT_INFORMATION
+        if QueryInformationJobObject(cast(HANDLE) .jobHandle, JobObjectExtendedLimitInformation, cast(LPVOID) &limits, #sizeof(limits), null)
+        {
+            result.peakMemory        = limits.PeakJobMemoryUsed
+            result.peakProcessMemory = limits.PeakProcessMemoryUsed
+        }
+
+        return result
     }
 
     // Records the exit code the system reports for a process that has stopped.

@@ -1,0 +1,7 @@
+#import("core", location: "swag@std")
+
+#load("src/tool.swg")
+
+using Core
+
+#main { Env.exit(cast #bit (u32) Tool.launch("scripts")) }

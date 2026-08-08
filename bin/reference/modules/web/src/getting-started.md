@@ -13,12 +13,14 @@ named `swc`; `Swag` is the language name.
 1. Clone [swag-lang/swc](https://github.com/swag-lang/swc).
 2. Follow [Build Swag from source](how-to-build-swag.html). The project pins the
    Visual Studio `v145` C++ toolset and Windows SDK `10.0.26100.0`.
-3. From the repository root, run `tools\setup.bat`.
+3. From the repository root, run `bin\swc.exe tools\setup.swgs`.
 4. Open a new terminal and verify the installation with `swc help`.
 
 The registration script adds the repository's `bin` directory to the user
-`PATH` and sets `SWAG_PATH` to that directory. `PATH` locates `swc.exe`;
-`SWAG_PATH` lets the compiler find `bin/runtime` and `bin/std`.
+`PATH`, sets `SWAG_PATH` to that directory, and hands the `.swgs` extension to
+the compiler. `PATH` locates `swc.exe`, and the extension makes a script run
+from a double-click. `swc.exe` finds `bin/runtime` and `bin/std` beside itself,
+so `SWAG_PATH` matters only for a compiler installed away from its library.
 
 The compiler invokes the Microsoft x64 linker and Windows SDK tools when it
 produces native artifacts, so keep the Visual Studio C++ workload installed

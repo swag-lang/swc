@@ -373,6 +373,54 @@ struct PROCESS_INFORMATION
     dwThreadId:  DWORD
 }
 
+const JobObjectBasicAccountingInformation = 1'u32
+const JobObjectExtendedLimitInformation   = 9'u32
+
+struct IO_COUNTERS
+{
+    ReadOperationCount:  u64
+    WriteOperationCount: u64
+    OtherOperationCount: u64
+    ReadTransferCount:   u64
+    WriteTransferCount:  u64
+    OtherTransferCount:  u64
+}
+
+struct JOBOBJECT_BASIC_ACCOUNTING_INFORMATION
+{
+    TotalUserTime:             LARGE_INTEGER
+    TotalKernelTime:           LARGE_INTEGER
+    ThisPeriodTotalUserTime:   LARGE_INTEGER
+    ThisPeriodTotalKernelTime: LARGE_INTEGER
+    TotalPageFaultCount:       DWORD
+    TotalProcesses:            DWORD
+    ActiveProcesses:           DWORD
+    TotalTerminatedProcesses:  DWORD
+}
+
+struct JOBOBJECT_BASIC_LIMIT_INFORMATION
+{
+    PerProcessUserTimeLimit: LARGE_INTEGER
+    PerJobUserTimeLimit:     LARGE_INTEGER
+    LimitFlags:              DWORD
+    MinimumWorkingSetSize:   SIZE_T
+    MaximumWorkingSetSize:   SIZE_T
+    ActiveProcessLimit:      DWORD
+    Affinity:                ULONG_PTR
+    PriorityClass:           DWORD
+    SchedulingClass:         DWORD
+}
+
+struct JOBOBJECT_EXTENDED_LIMIT_INFORMATION
+{
+    BasicLimitInformation: JOBOBJECT_BASIC_LIMIT_INFORMATION
+    IoInfo:                IO_COUNTERS
+    ProcessMemoryLimit:    SIZE_T
+    JobMemoryLimit:        SIZE_T
+    PeakProcessMemoryUsed: SIZE_T
+    PeakJobMemoryUsed:     SIZE_T
+}
+
 enum FINDEX_INFO_LEVELS
 {
     FindExInfoStandard
@@ -486,6 +534,11 @@ internal namespace Win32Priv
         func ReleaseMutex(hMutex: HANDLE)->BOOL
         func ResetEvent(hEvent: HANDLE)->BOOL
         func SetEvent(hEvent: HANDLE)->BOOL
+
+        func CreateJobObjectW(lpJobAttributes: #null *SECURITY_ATTRIBUTES, lpName: #null LPCWSTR)->HANDLE
+        func AssignProcessToJobObject(hJob: HANDLE, hProcess: HANDLE)->BOOL
+        func QueryInformationJobObject(hJob: HANDLE, JobObjectInformationClass: DWORD, lpJobObjectInformation: LPVOID, cbJobObjectInformationLength: DWORD, lpReturnLength: #null *DWORD)->BOOL
+        func SetProcessAffinityMask(hProcess: HANDLE, dwProcessAffinityMask: ULONG_PTR)->BOOL
 
         func CreateProcessA(lpApplicationName: LPCSTR, lpCommandLine: LPCSTR, lpProcessAttributes: #null *SECURITY_ATTRIBUTES, lpThreadAttributes: #null *SECURITY_ATTRIBUTES, bInheritHandles: BOOL, dwCreationFlags: DWORD, lpEnvironment: LPVOID, lpCurrentDirectory: LPCSTR, lpStartupInfo: *STARTUPINFOA, lpProcessInformation: *PROCESS_INFORMATION)->BOOL
         func CreateProcessW(lpApplicationName: LPCWSTR, lpCommandLine: LPCWSTR, lpProcessAttributes: #null *SECURITY_ATTRIBUTES, lpThreadAttributes: #null *SECURITY_ATTRIBUTES, bInheritHandles: BOOL, dwCreationFlags: DWORD, lpEnvironment: LPVOID, lpCurrentDirectory: LPCWSTR, lpStartupInfo: *STARTUPINFOW, lpProcessInformation: *PROCESS_INFORMATION)->BOOL
@@ -660,6 +713,29 @@ internal namespace Win32Priv
     func CreateProcessW(lpApplicationName: LPCWSTR, lpCommandLine: LPCWSTR, lpProcessAttributes: #null *SECURITY_ATTRIBUTES, lpThreadAttributes: #null *SECURITY_ATTRIBUTES, bInheritHandles: BOOL, dwCreationFlags: DWORD, lpEnvironment: LPVOID, lpCurrentDirectory: LPCWSTR, lpStartupInfo: *STARTUPINFOW, lpProcessInformation: *PROCESS_INFORMATION) fail
     {
         if !Win32Priv.CreateProcessW(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation) do
+            failWinError(GetLastError())
+    }
+
+    func CreateJobObjectW(lpJobAttributes: #null *SECURITY_ATTRIBUTES, lpName: #null LPCWSTR)->HANDLE
+    {
+        return Win32Priv.CreateJobObjectW(lpJobAttributes, lpName)
+    }
+
+    func AssignProcessToJobObject(hJob: HANDLE, hProcess: HANDLE) fail
+    {
+        if !Win32Priv.AssignProcessToJobObject(hJob, hProcess) do
+            failWinError(GetLastError())
+    }
+
+    #[Discardable]
+    func QueryInformationJobObject(hJob: HANDLE, JobObjectInformationClass: DWORD, lpJobObjectInformation: LPVOID, cbJobObjectInformationLength: DWORD, lpReturnLength: #null *DWORD)->bool
+    {
+        return Win32Priv.QueryInformationJobObject(hJob, JobObjectInformationClass, lpJobObjectInformation, cbJobObjectInformationLength, lpReturnLength) != FALSE
+    }
+
+    func SetProcessAffinityMask(hProcess: HANDLE, dwProcessAffinityMask: ULONG_PTR) fail
+    {
+        if !Win32Priv.SetProcessAffinityMask(hProcess, dwProcessAffinityMask) do
             failWinError(GetLastError())
     }
 

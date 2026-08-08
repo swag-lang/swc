@@ -285,6 +285,70 @@ public func associateFileExtension(extension, appName, appPath: string)->bool
     return true
 }
 
+// Makes `appPath` the program the shell runs for `extension`, for the current user.
+//
+// This is the strong form of [[Env.associateFileExtension]]: that one offers the application in
+// the *Open with* list and leaves the default alone, which is what an application wants for a
+// format it merely reads. This one takes the extension over, so opening one of those files —
+// from a double-click, from `cmd`, from anywhere the shell resolves a document — runs `appPath`.
+// Reserve it for an extension the application defines.
+//
+// `progId` is the class name the extension points at, conventionally `Vendor.Kind`. It is what
+// distinguishes this claim from another program's, so keep it stable: registering the same
+// `progId` again updates the claim instead of adding a second one. `description` is the file
+// type as the shell shows it in a folder listing.
+//
+// The command it registers passes the opened file and then everything else the caller typed, so
+// an extension claimed this way carries its own arguments.
+//
+// Refused under a sandbox, which reports it as not claimed: this changes what the shell does on
+// the whole machine.
+#[Swag.Discardable]
+public func claimFileExtension(extension, progId, description, appPath: string)->bool
+{
+    if denySystemMutation(.FileAssociation) do
+        return false
+
+    var native = String.from(appPath)
+    native.replace("/", "\\")
+
+    if !writeUserClassString(Format.toString("Software\\Classes\\%", progId), "", description) do
+        return false
+    if !writeUserClassString(Format.toString("Software\\Classes\\%\\DefaultIcon", progId), "", Format.toString("%,0", native)) do
+        return false
+    if !writeUserClassString(Format.toString("Software\\Classes\\%\\shell\\open\\command", progId), "", Format.toString("\"%\" \"%%1\" %%*", native)) do
+        return false
+    if !writeUserClassString(Format.toString("Software\\Classes\\%", extension), "", progId) do
+        return false
+
+    SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, null, null)
+    return true
+}
+
+// Writes one string under `HKEY_CURRENT_USER\<keyPath>`, creating the key when it is missing.
+//
+// An empty `valueName` writes the key's default value, which is where the shell reads a class
+// name, an icon and a command line. The value is written as UTF-16, so a path that leaves the
+// ASCII range survives the round trip.
+private func writeUserClassString(keyPath: string, valueName: string, value: string)->bool
+{
+    let nativeKey = Utf16.toZeroTerminated(keyPath)
+
+    var hKey: HKEY
+    if RegCreateKeyExW(HKEY_CURRENT_USER, @dataof(nativeKey), 0, null, 0, KEY_SET_VALUE, null, &hKey, null) != ERROR_SUCCESS do
+        return false
+    defer RegCloseKey(hKey)
+
+    let nativeValue = Utf16.toZeroTerminated(value)
+    let bytes       = cast(u32) (@countof(nativeValue) * #sizeof(u16))
+
+    if @countof(valueName) == 0 do
+        return RegSetValueExW(hKey, null, 0, REG_SZ, cast(#null const *u8) @dataof(nativeValue), bytes) == ERROR_SUCCESS
+
+    let nativeName = Utf16.toZeroTerminated(valueName)
+    return RegSetValueExW(hKey, @dataof(nativeName), 0, REG_SZ, cast(#null const *u8) @dataof(nativeValue), bytes) == ERROR_SUCCESS
+}
+
 var g_StoreArgs: String
 
 func getNativeArgs()->string

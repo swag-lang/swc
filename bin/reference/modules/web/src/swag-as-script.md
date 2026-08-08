@@ -22,12 +22,24 @@ The generated file contains a `#main` hook:
 ```
 
 The `.swgs` extension selects script mode, so there is no separate `script`
-command. Pass normal `run` options after the path. Repeat `--run-arg` to append
-arguments exposed through `@args` and the Core environment helpers:
+command. The path splits the command line in two: what comes before it
+configures the compilation, and everything after it is the script's own command
+line, reaching it through `@args` and the Core environment helpers.
 
 ```text
-swc hello.swgs --run-arg first --run-arg second
+swc -bc release hello.swgs --colors 16 report.txt
 ```
+
+`-bc release` is read by the compiler and `--colors 16 report.txt` by the
+script, whatever the words look like. A script therefore owns its own grammar,
+including options that spell like the compiler's own.
+
+The script is recognized wherever it sits, so `swc` may still be given ordinary
+`run` options as long as they precede the path. `--run-arg` remains the way a
+*module* receives arguments; a script has no use for it.
+
+`setup` claims the `.swgs` extension for the current user, so a script also runs
+from a double-click, arguments and exit code included.
 
 ## Import compiled dependencies
 
@@ -40,8 +52,13 @@ standard `core` module:
 using Core
 ```
 
-`SWAG_PATH` must point to the compiler's `bin` directory so `swag@std` can
-resolve `bin/std`. The compiler builds imported dependencies as native modules
+`swag@std` is the standard library beside the compiler that runs the script, and
+`SWAG_PATH` answers only for a compiler installed without one. A compiler and its
+library are one thing, so a second checkout on the same machine keeps its own
+rather than the one the environment happens to name. A module that library has
+but has not been built for this configuration is built there and then, rather
+than reported missing, so a script runs from a checkout that has never been
+registered or built. The compiler builds imported dependencies as native modules
 and reuses compatible output on later runs.
 
 Script dependency state is cached under the system temporary directory in
@@ -60,6 +77,22 @@ Use top-level `#load` directives for companion source files:
 
 `#load` adds source to the current script module. It does not create a compiled
 module dependency; use `#import` for that boundary.
+
+`#load` nests, and every path is relative to the file that writes it, so a
+script spread over many sources names them once:
+
+```swag
+// main.swgs
+#load("src/all.swg")
+
+// src/all.swg loads its siblings by their own names
+#load("options.swg")
+#load("commands/build.swg")
+```
+
+A loaded file states module setup directives of its own — `#import` as well as
+`#load` — and a file already loaded is never loaded twice, so two files that
+load each other are fine.
 
 ## Configure the script
 

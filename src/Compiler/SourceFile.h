@@ -23,6 +23,10 @@ enum class FileFlagsE : uint32_t
     Runtime     = 1 << 3,
     SkipFmt     = 1 << 4,
     ImportedApi = 1 << 5,
+    // Reached by a '#load' from the module setup file. Such a file states module setup
+    // directives of its own, so the setup pass reads them and the regular pass skips them,
+    // exactly as it does for the setup file itself.
+    SetupLoaded = 1 << 6,
 };
 using FileFlags = EnumFlags<FileFlagsE>;
 

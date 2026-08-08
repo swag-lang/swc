@@ -93,8 +93,8 @@ Pick the task with the worst ratio that you have not already exhausted, then:
      or the encoder.
   4. Measure the task alone while iterating: cd bench && py driver.py --tasks <task> --quick.
      Partial sweeps are never recorded; they are for your inner loop only.
-  5. Validate correctness before believing any number: tools/tests.bat dm, then
-     tools/tests.bat dm --all-cfg. A checksum mismatch in bench means you measured nothing.
+  5. Validate correctness before believing any number: swc tools/tests.swgs dm, then
+     swc tools/tests.swgs dm --all-cfg. A checksum mismatch in bench means you measured nothing.
   6. Judge the change against clang-cl and MSVC's output, not against the clock. The clock on this
      machine drifts more than most single changes are worth (two campaigns of the SAME binary
      measured a geometric mean of 1.41x and 1.54x, and drift inside one sweep reached +37%), and
@@ -109,7 +109,7 @@ Pick the task with the worst ratio that you have not already exhausted, then:
      is flat, or even briefly negative, because it enables the next one. Say so, keep it, and name
      the follow-up.
   7. Record a full campaign only when you have a result worth keeping:
-     tools\bench.bat --label "what changed". That takes ~25 minutes; do not spend one per experiment.
+     swc tools\bench.swgs --label "what changed". That takes ~25 minutes; do not spend one per experiment.
 
 DO NOT STOP AT THE FIRST FAILURE
 
@@ -129,9 +129,9 @@ lost 2%, or one task resisted.
 
 RULES
 
-  - Correctness first, always. tools/tests.bat dm and --all-cfg must be green before any number is
+  - Correctness first, always. swc tools/tests.swgs dm and --all-cfg must be green before any number is
     believed, and the Release sequence before anything is recorded. A pass that miscompiles under
-    the JIT but passes unit tests is the known failure mode here - tools/scripts.bat dm is what
+    the JIT but passes unit tests is the known failure mode here - swc tools/scripts.swgs dm is what
     catches it (see F-036).
   - Generated-code quality outranks compile time in this campaign. A backend optimization that
     works is never reverted because it costs compile time: generating better code legitimately
@@ -217,20 +217,20 @@ For each check, in this order, and do not skip step 1:
      fields, a view rebound after the container grew, a container of views whose owner outlives
      them. A check with no negative tests is a check that will be turned off.
   2. Implement the smallest analysis that passes both halves.
-  3. Sweep the whole tree for false positives, and mean the whole tree: tools/build.bat,
-     tools/std.bat, tools/apps.bat, tools/examples.bat, tools/reference.bat. The baseline is zero
+  3. Sweep the whole tree for false positives, and mean the whole tree: swc tools/build.swgs,
+     swc tools/std.swgs, swc tools/apps.swgs, swc tools/examples.swgs, swc tools/reference.swgs. The baseline is zero
      hits. Every workspace being clean today proves nothing, because nothing fires - the sweep only
      becomes evidence once the check works.
      A 'build' sweep is HALF a sweep: it never compiles the '#test' bodies, and a quarter of the
      standard library's interesting code lives there (Array's self-append test is where the first
-     false positive of the invalidation check turned up, long after build.bat came back clean).
-     Sweep with 'test' as well, or just run tools/tests.bat dm and read its first failure.
+     false positive of the invalidation check turned up, long after build.swgs came back clean).
+     Sweep with 'test' as well, or just run swc tools/tests.swgs dm and read its first failure.
   4. Triage every hit, one at a time, into exactly one of two buckets: a real defect in bin/ (fix
      it, it is a genuine find) or a false positive (fix the analysis). There is no third bucket.
   5. Never silence a false positive by narrowing the check until it stops firing. That is how a
      check ends up complete and useless, firing on nothing. If a shape genuinely cannot be judged,
      say so as a finding and leave the check firing on what it can prove.
-  6. tools/tests.bat dm, then --all-cfg, then the Release sequence.
+  6. swc tools/tests.swgs dm, then --all-cfg, then the Release sequence.
 
 DO NOT STOP AT THE FIRST FAILURE
 
@@ -342,8 +342,8 @@ THE PROOF, EVERY ROUND
 
 A round is not done until all four hold:
 
-  1. tools/tests.bat dm, then tools/tests.bat dm --all-cfg, then Release build, then
-     tools/tests.bat. All green.
+  1. swc tools/tests.swgs dm, then swc tools/tests.swgs dm --all-cfg, then Release build, then
+     swc tools/tests.swgs. All green.
   2. bin/swc.exe size within +/-0.3% of where the round started.
   3. Compile time within noise: A/B the two swc.exe binaries on the same workload, CPU time,
      medians over at least eight order-alternated rounds, --num-cores 1.
@@ -418,7 +418,7 @@ Targets, all on this machine, all re-measured before you start:
   - Warm no-op build of the same: target under 100 ms.
   - Edit one file in core, rebuild: today this rebuilds all 291 files. Target under 300 ms.
   - Hello world, source to linked executable: 89 ms today. Target under 50 ms.
-  - tools/web.bat (the whole documentation site) and tools/format.bat (every Swag workspace):
+  - swc tools/web.swgs (the whole documentation site) and swc tools/format.swgs (every Swag workspace):
     unmeasured today. Measure them, then halve them.
 
 For context on where the bar already is, from campaign 20260806-174758: swc builds the bench tasks
@@ -451,7 +451,7 @@ THE LOOP
   3. Implement the smallest version of it.
   4. Measure against the prediction. A fix that lands far off its prediction means the model was
      wrong - go back to step 1 rather than keeping an accidental win.
-  5. tools/tests.bat dm, --all-cfg, Release sequence.
+  5. swc tools/tests.swgs dm, --all-cfg, Release sequence.
   6. Record it in the campaign.
 
 THE FOUR STRUCTURAL LEVERS, IN ORDER
@@ -574,7 +574,7 @@ THE LOOP
      "Do not build it" is usually the real answer and usually the one that gets skipped.
   4. Re-measure peak AND wall time. A memory win that costs speed is not a win here; the whole
      constraint of this campaign is that both hold.
-  5. tools/tests.bat dm, --all-cfg, Release sequence.
+  5. swc tools/tests.swgs dm, --all-cfg, Release sequence.
   6. Record both numbers in the campaign history.
 
 DO NOT STOP AT THE FIRST FAILURE

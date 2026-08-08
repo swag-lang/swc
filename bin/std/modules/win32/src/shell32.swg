@@ -335,7 +335,11 @@ internal namespace Shell32Priv
     func DragQueryFileW(hDrop: HDROP, iFile: UINT, lpszFile: #null LPWSTR, cch: UINT)->UINT
     func DragQueryPoint(hDrop: HDROP, ppt: *POINT)->BOOL
     func DragFinish(hDrop: HDROP)
+    func SHChangeNotify(wEventId: LONG, uFlags: UINT, dwItem1: #null const *void, dwItem2: #null const *void)
 }
+
+const SHCNE_ASSOCCHANGED = 0x08000000's32
+const SHCNF_IDLIST       = 0x0000'u32
 
 #[Inline]
 {

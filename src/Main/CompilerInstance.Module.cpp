@@ -193,17 +193,40 @@ namespace
         return Result::Error;
     }
 
-    Result resolveSwagStdOutputRoot(fs::path& outRoot, TaskContext& ctx)
+    // Answers where the standard library workspace lives.
+    //
+    // A standard library sitting beside the compiler wins, and `SWAG_PATH` answers only for a
+    // compiler installed without one. A compiler and its library are built together and are one
+    // thing: `collectFiles` already takes `runtime` from the compiler's own directory
+    // unconditionally, so taking `std` from anywhere else pairs one checkout's runtime with
+    // another checkout's library. That is what a second working tree hits — `SWAG_PATH` still
+    // names the first one — and it fails as an unknown symbol in a library that looks present.
+    //
+    // It is also what lets a fresh checkout run `bin\swc.exe tools\setup.swgs`, the script that
+    // sets `SWAG_PATH` in the first place, before anything has been configured.
+    Result resolveSwagStdWorkspaceRoot(fs::path& outRoot, TaskContext& ctx)
     {
-        outRoot.clear();
+        outRoot = (FileSystem::compilerResourceRoot(Os::getExeFullName()) / "std").lexically_normal();
 
+        std::error_code ec;
+        if (fs::is_directory(outRoot, ec))
+            return Result::Continue;
+
+        outRoot.clear();
         const std::optional<Utf8> installRoot = Os::readEnvironmentVariable("SWAG_PATH");
         if (!installRoot.has_value() || installRoot->empty())
-            return reportInvalidFolder(ctx, "SWAG_PATH", "environment variable is not defined");
+            return reportInvalidFolder(ctx, "SWAG_PATH", "environment variable is not defined, and no standard library sits beside the compiler");
 
         outRoot = fs::path(installRoot->c_str());
         SWC_RESULT(FileSystem::resolveFolder(ctx, outRoot));
-        outRoot = (outRoot / "std" / ".output").lexically_normal();
+        outRoot = (outRoot / "std").lexically_normal();
+        return Result::Continue;
+    }
+
+    Result resolveSwagStdOutputRoot(fs::path& outRoot, TaskContext& ctx)
+    {
+        SWC_RESULT(resolveSwagStdWorkspaceRoot(outRoot, ctx));
+        outRoot = (outRoot / ".output").lexically_normal();
         return Result::Continue;
     }
 
@@ -1181,6 +1204,7 @@ struct ModuleSetupInputApplier
     Result resolveExplicitDependencyRoot(fs::path& outRoot, const CompilerInstance::ModuleSetupImport& importRequest) const;
     Result resolveLinkAndSharedDirs(ResolvedModuleImportPaths& outPaths, const fs::path& dependencyRoot, const CompilerInstance::ModuleSetupImport& importRequest) const;
     Result mirrorWorkspaceDependencyDir(fs::path& ioDir, const fs::path& sourceDependencyRoot);
+    Result buildSwagStdModuleOnDemand(bool& outBuilt, const CompilerInstance::ModuleSetupImport& importRequest);
     Result resolveDependencyImportDir(ResolvedModuleImportPaths& outPaths, const CompilerInstance::ModuleSetupImport& importRequest, const fs::path* preferredDependencyRoot);
     Result captureDependencyImportSnapshot(const fs::path& depsFile, CompilerInstance::ModuleSetupSnapshot& outSnapshot) const;
     // Parsing+sema'ing a dependency's .dep metadata file is expensive and the same file is reached
@@ -1242,7 +1266,10 @@ Result ModuleSetupInputApplier::apply(const CompilerInstance::ModuleSetupSnapsho
         if (instance().hasResolvedFilePath(resolvedPath))
             continue;
 
-        instance().addResolvedFile(resolvedPath, FileFlagsE::ModuleSrc);
+        // 'SetupLoaded' is what tells the regular pass to skip the module setup directives this
+        // file states: the setup pass has already read them, and reading them again here would
+        // report them as directives outside a module setup file.
+        instance().addResolvedFile(resolvedPath, FileFlagsE::ModuleSrc | FileFlagsE::SetupLoaded);
     }
 
     return Result::Continue;
@@ -1329,6 +1356,73 @@ Result ModuleSetupInputApplier::mirrorWorkspaceDependencyDir(fs::path& ioDir, co
     return Result::Continue;
 }
 
+// Builds one standard-library module in place, so a script that imports it runs on a checkout
+// where the library has never been built for this configuration.
+//
+// This is what makes a script a substitute for a shell script: `swc script.swgs` has to work the
+// way `python script.py` does, with no install step in front of it. Only a script gets it. A
+// module or a workspace names its own inputs and is built by whoever asked for it, so an absent
+// dependency there is a mistake worth reporting instead of a build worth starting.
+//
+// `outBuilt` says whether a build actually ran, which is the caller's cue to look again. The
+// build is an ordinary workspace command on the standard library, narrowed to the wanted module
+// and its workspace dependencies, and it is not itself a script: nothing it imports can come back
+// here, so this cannot recurse.
+Result ModuleSetupInputApplier::buildSwagStdModuleOnDemand(bool& outBuilt, const CompilerInstance::ModuleSetupImport& importRequest)
+{
+    outBuilt = false;
+    if (!instance().cmdLine().scriptMode || importRequest.location != "swag@std")
+        return Result::Continue;
+
+    fs::path workspacePath;
+    SWC_RESULT(resolveSwagStdWorkspaceRoot(workspacePath, taskCtx()));
+
+    Utf8 because;
+    if (FileSystem::resolveExistingFolder(workspacePath, because) != Result::Continue)
+        return Result::Continue;
+
+    // A name the library does not have is not something a build can produce, so let the caller
+    // report the missing dependency rather than run a workspace command that would fail anyway.
+    fs::path moduleDir = workspaceModuleDirectory(workspacePath, importRequest.moduleName.view());
+    if (FileSystem::resolveExistingFolder(moduleDir, because) != Result::Continue)
+        return Result::Continue;
+
+    CommandLine stdCmdLine           = instance().cmdLine();
+    stdCmdLine.command               = CommandKind::Build;
+    stdCmdLine.commandExplicit       = true;
+    stdCmdLine.scriptMode            = false;
+    stdCmdLine.sourceDrivenTest      = false;
+    stdCmdLine.publish               = false;
+    stdCmdLine.workspacePath         = workspacePath;
+    stdCmdLine.workspaceModuleFilter = importRequest.moduleName;
+    stdCmdLine.moduleFilePath.clear();
+    stdCmdLine.modulePath.clear();
+    stdCmdLine.directories.clear();
+    stdCmdLine.files.clear();
+    stdCmdLine.importApiModules.clear();
+    stdCmdLine.importApiDirs.clear();
+    stdCmdLine.importApiFiles.clear();
+    stdCmdLine.exportApiDir.clear();
+    stdCmdLine.outDir.clear();
+    stdCmdLine.workDir.clear();
+    stdCmdLine.outDirStorage.clear();
+    stdCmdLine.workDirStorage.clear();
+    stdCmdLine.outDirExplicit  = false;
+    stdCmdLine.workDirExplicit = false;
+    stdCmdLine.name.clear();
+    stdCmdLine.artifactNameExplicit = false;
+    // The arguments after the script belong to the script, never to the library it needs.
+    stdCmdLine.runArgs.clear();
+    CommandLineParser::refreshBuildCfg(stdCmdLine);
+
+    CompilerInstance stdCompiler(instance().global(), stdCmdLine);
+    if (stdCompiler.runWorkspace() != ExitCode::Success)
+        return Result::Error;
+
+    outBuilt = true;
+    return Result::Continue;
+}
+
 Result ModuleSetupInputApplier::resolveDependencyImportDir(ResolvedModuleImportPaths& outPaths, const CompilerInstance::ModuleSetupImport& importRequest, const fs::path* preferredDependencyRoot)
 {
     outPaths = {};
@@ -1340,7 +1434,14 @@ Result ModuleSetupInputApplier::resolveDependencyImportDir(ResolvedModuleImportP
 
         Utf8 because;
         if (findDependencyConfigurationDirectory(outPaths.apiDir, because, dependencyRoot, importRequest.moduleName.view(), instance().cmdLine(), &outPaths.apiBackendKind) != Result::Continue)
-            return reportInvalidFolder(taskCtx(), dependencyModuleDirectory(dependencyRoot, importRequest.moduleName.view()), because);
+        {
+            bool built = false;
+            SWC_RESULT(buildSwagStdModuleOnDemand(built, importRequest));
+            if (!built ||
+                findDependencyConfigurationDirectory(outPaths.apiDir, because, dependencyRoot, importRequest.moduleName.view(), instance().cmdLine(), &outPaths.apiBackendKind) != Result::Continue)
+                return reportInvalidFolder(taskCtx(), dependencyModuleDirectory(dependencyRoot, importRequest.moduleName.view()), because);
+        }
+
         return resolveLinkAndSharedDirs(outPaths, dependencyRoot, importRequest);
     }
 
@@ -2233,6 +2334,53 @@ Result CompilerInstance::adoptModuleBuildCfg(TaskContext& ctx, const Runtime::Bu
     return Result::Continue;
 }
 
+// Adds the files a setup '#load' named and that have not been read yet, parses them, and returns
+// them ready for semantic analysis.
+//
+// They are flagged like the setup file itself, so their own '#import' and '#load' are directives
+// the setup pass acts on rather than statements it refuses.
+Result CompilerInstance::collectModuleSetupLoadedFiles(TaskContext& ctx, const std::set<fs::path>& alreadyRead, std::vector<SourceFile*>& outFiles)
+{
+    const Global&     global   = ctx.global();
+    JobManager&       jobMgr   = global.jobMgr();
+    const JobClientId clientId = jobClientId();
+
+    std::vector<SourceFile*> added;
+    for (const fs::path& filePath : moduleSetupLoadedFiles_)
+    {
+        const fs::path normalizedPath = FileSystem::normalizePath(filePath);
+        if (alreadyRead.contains(normalizedPath) || hasResolvedFilePath(normalizedPath))
+            continue;
+
+        SourceFile& file = addResolvedFile(normalizedPath, FileFlagsE::Module | FileFlagsE::SetupLoaded);
+        added.push_back(&file);
+    }
+
+    if (added.empty())
+        return Result::Continue;
+
+    const uint64_t errorsBefore = Stats::getNumErrors();
+    for (SourceFile* file : added)
+    {
+        auto* job = makeJob<ParserJob>(ctx, file);
+        jobMgr.enqueue(*job, JobPriority::Normal, clientId);
+    }
+
+    jobMgr.waitAll(clientId);
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+
+    for (SourceFile* file : added)
+    {
+        const SourceView& srcView = file->ast().srcView();
+        if (srcView.mustSkip() || !srcView.runsSema() || file->hasError())
+            continue;
+        outFiles.push_back(file);
+    }
+
+    return Result::Continue;
+}
+
 Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, const CommandLine& setupCmdLine, ModuleSetupSnapshot& outSnapshot) const
 {
     SWC_UNUSED(ctx);
@@ -2307,26 +2455,38 @@ Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, cons
     importRootNamespace->setOwnerSymMap(symModule);
     setupCompiler.setImportRootNamespace(importRootNamespace);
 
-    for (SourceFile* file : files)
+    // '#load' nests: a loaded file states its own imports and loads, and they are only known once
+    // that file has been read. So each round sema's what is known and then looks at what it
+    // discovered; a round that discovers nothing new ends the walk. A file is added once, which is
+    // what makes a cycle between two files that load each other terminate rather than spin.
+    std::set<fs::path> semaDone;
+    while (!files.empty())
     {
-        file->setModuleNamespace(*moduleNamespace);
-        auto* job = setupCompiler.makeJob<SemaJob>(setupCtx, file->nodePayloadContext(), true);
-        jobMgr.enqueue(*job, JobPriority::Normal, clientId);
+        for (SourceFile* file : files)
+        {
+            semaDone.insert(FileSystem::normalizePath(file->path()));
+            file->setModuleNamespace(*moduleNamespace);
+            auto* job = setupCompiler.makeJob<SemaJob>(setupCtx, file->nodePayloadContext(), true);
+            jobMgr.enqueue(*job, JobPriority::Normal, clientId);
+        }
+
+        jobMgr.waitAll(clientId);
+        if (Stats::getNumErrors() != errorsBefore)
+            return Result::Error;
+
+        for (SourceFile* file : files)
+        {
+            auto* job = setupCompiler.makeJob<SemaJob>(setupCtx, file->nodePayloadContext(), false);
+            jobMgr.enqueue(*job, JobPriority::Normal, clientId);
+        }
+
+        Sema::waitDone(setupCtx, clientId);
+        if (Stats::getNumErrors() != errorsBefore)
+            return Result::Error;
+
+        files.clear();
+        SWC_RESULT(setupCompiler.collectModuleSetupLoadedFiles(setupCtx, semaDone, files));
     }
-
-    jobMgr.waitAll(clientId);
-    if (Stats::getNumErrors() != errorsBefore)
-        return Result::Error;
-
-    for (SourceFile* file : files)
-    {
-        auto* job = setupCompiler.makeJob<SemaJob>(setupCtx, file->nodePayloadContext(), false);
-        jobMgr.enqueue(*job, JobPriority::Normal, clientId);
-    }
-
-    Sema::waitDone(setupCtx, clientId);
-    if (Stats::getNumErrors() != errorsBefore)
-        return Result::Error;
 
     outSnapshot.buildCfg           = setupCompiler.buildCfg();
     outSnapshot.imports            = setupCompiler.moduleSetupImports_;

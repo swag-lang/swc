@@ -9,7 +9,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
 ### F-018 — A sandbox root is never removed, and the process id does not make it private
 
 - Area: bin/std
-- Found while: validating a runtime allocator rewrite, where `tools/scripts.bat smoke` failed
+- Found while: validating a runtime allocator rewrite, where `swc tools/scripts.swgs smoke` failed
   intermittently; the fatal half of that failure is fixed, this half is not
 - Observation: nothing ever removes a sandbox root, and the root is named after the process id,
   which the operating system reuses. A run whose id matches a dead run's therefore adopts that
@@ -17,7 +17,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
   sandbox promises. `createDirectoryTree` accepts an existing directory silently, so nothing
   reports it.
 - Evidence: `%TEMP%/swag-sandbox` holds 4125 `run-<pid>` directories, 846 of them non-empty. Id
-  reuse is not theoretical at that density: one `tools/scripts.bat dm smoke` pass of 21 scripts
+  reuse is not theoretical at that density: one `swc tools/scripts.swgs dm smoke` pass of 21 scripts
   handed pid 29356 to two different script processes. A stale root can change behavior rather
   than just waste space, which is what
   [F-017](findings.scapture.md#f-017--scapture-keeps-a-dark-editor-matte-after-switching-to-the-light-theme)
@@ -79,14 +79,14 @@ Entries are sorted by identifier, ascending; position carries no priority.
   `build` and `smoke` reuse. The exclusion may now be vestigial: the comment just above it
   ([lines 1070-1071](../src/Main/CompilerInstance.Module.cpp#L1070-L1071)) records that build modes
   no longer share an artifact name, which was the reason a test artifact could not be trusted.
-- Evidence: on an unchanged tree, `tools/std.bat build` reports every module `up-to-date` in
-  1.4 s, while `tools/std.bat test` over the same sources costs more than two minutes. The
+- Evidence: on an unchanged tree, `swc tools/std.swgs build` reports every module `up-to-date` in
+  1.4 s, while `swc tools/std.swgs test` over the same sources costs more than two minutes. The
   campaign runs `test` for the source suites, the standard library, the applications and the
   reference, so this is most of its cost, repeated in each of the three configurations.
 - Next step: check whether dropping `CommandKind::Test` from that exclusion is now safe, keeping
   two things forced whatever the artifact's freshness — the tests must still *run*, and the
   source-driven `Verify` directives must still be evaluated. Reuse here means skipping the
-  compile, never skipping the execution. Measure a second `tools/tests.bat` pass on an untouched
+  compile, never skipping the execution. Measure a second `swc tools/tests.swgs` pass on an untouched
   tree before and after.
 - Related: [T-002](todo.compiler.md#t-002--incrementality-stops-at-the-module), which is the same problem one level
   down — the unit of reuse is the module, so even a reusing command rebuilds all of `core` for a
@@ -116,7 +116,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Area: tooling
 - Found while: validating a `bin/std` change made in a git worktree under `.claude/worktrees/`
 - Observation: the file discovery behind `swc format` drops any path holding a segment that starts
-  with a dot, and it drops it without a word. `tools/format.bat` run from such a checkout reports
+  with a dot, and it drops it without a word. `swc tools/format.swgs` run from such a checkout reports
   `formatted 0 files` then `clean`, which reads exactly like a conformant tree. Nothing was read.
 - Evidence, with the same `bin/.swc-format` and the same badly formatted source in both places:
   - `swc format -d <scratch>/fmt` reports `1 file • 1 rewritten file` and fixes the file.
@@ -130,5 +130,5 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Next step: separate two rules that are currently one. Traversal should keep skipping dot
   directories, because `.output`, `.tmp`, `.dep` and `.git` are exactly what it must not walk
   into. A path named explicitly through `-f` should never be filtered. And a run that ends with
-  zero inputs should say so: `format.bat` on an empty selection and `format.bat` on a conformant
+  zero inputs should say so: `format.swgs` on an empty selection and `format.swgs` on a conformant
   tree print the same thing today, which is what let this go unnoticed.

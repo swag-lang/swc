@@ -105,10 +105,10 @@ Entries are sorted by identifier, ascending; position carries no priority.
   11 to 5, and three-operand forms go 6 to 22 - and then every script crashes with 0xC0000005
   under the JIT, after compiling cleanly. The same rewrite is sound post-RA, where it has shipped
   for a while.
-- Evidence: `tools/scripts.bat dm` fails on every script, right after "tuned"; the failure is an
+- Evidence: `swc tools/scripts.swgs dm` fails on every script, right after "tuned"; the failure is an
   access violation in JIT-executed code, not a compiler error. Minimal float arithmetic through
   the JIT is fine, so the broken shape needs the surrounding std modules. Unit tests, the native
-  optimizer tests and the earlier phases of `tests.bat dm` all pass, which is what let it get as
+  optimizer tests and the earlier phases of `tests.swgs dm` all pass, which is what let it get as
   far as the scripts.
 - Ruled out by inspection, so the next attempt does not re-walk them: value numbering keys
   instructions through an explicit per-opcode shape table and simply declines the ones it does not
@@ -123,7 +123,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
   that should only cost a missed hoist, but the interaction is worth confirming rather than
   assuming. Otherwise it is the register allocator meeting a float destination that is write-only,
   where every float three-operand instruction it has seen so far arrived after allocation. Bisect
-  cheaply first: restrict the fold to `FloatAdd` alone and run `tools/scripts.bat dm` - a crash
+  cheaply first: restrict the fold to `FloatAdd` alone and run `swc tools/scripts.swgs dm` - a crash
   there means the shape, a pass means the operation.
 
 ### F-066 — Tracking frame addresses transitively through mem2reg does not pay on its own

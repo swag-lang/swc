@@ -57,36 +57,27 @@ An application follows the same rule as a module: it gets its own `findings.<app
 the file of the unit that will fix it. So sCrypt has no findings file today: everything it has
 surfaced so far will be fixed in `std/gui`, and an empty file would only be one more place to look.
 
-## Number Every Entry
+## Number Every Finding
 
-Every entry — finding or todo — carries a permanent identifier in its heading:
+Every finding carries a permanent identifier in its heading:
 
 ```
 ### F-023 — A menu bar does not follow a live language switch
-### T-054 — No vector output
 ```
 
-The identifier is how an entry is named everywhere else — in conversation, in a commit message, in
-another backlog entry, in a code comment. A title gets rewritten, a position moves, and an entry
-changes file; the identifier does not.
+The identifier is how a finding is named everywhere else — in conversation, in a commit message, in
+a `todo.*` entry, in a code comment. A title gets rewritten, a position moves, and an entry changes
+file; the identifier does not.
 
-Next identifier: F-080
-Next identifier: T-102
+Next identifier: F-079
 
-- Take the next identifier of the matching kind from the lines above, then advance that line. Each
-  is a counter, not an entry count: it keeps rising as entries are deleted. The `F` counter is
-  shared by every `findings.*` file, the `T` counter by every `todo.*` file.
+- Take the next identifier from the line above, then advance it. It is the counter, not the entry
+  count: it keeps rising as entries are deleted, and it is shared by every `findings.*` file.
 - Never renumber and never reuse. A deleted entry takes its identifier with it, so `F-012` in an
   old commit message still means what it meant.
-- In a `findings.*` file, keep entries sorted by identifier, ascending. A new entry always carries
-  the highest identifier of its file, so it goes at the end; a deleted one leaves a gap, and the
-  gap stays. Position is mechanical and carries no priority — it only makes an entry findable by
-  its number.
-- In a `todo.*` file, position IS priority: entries stay ordered by decreasing value, so a new
-  entry goes wherever its value puts it, and identifiers appear out of order. The number says what
-  an entry is called, never how much it matters.
-- A finding that graduates into a plan becomes a todo entry and takes a fresh `T` identifier; its
-  `F` identifier retires with it. Name the finding it came from in the new entry.
+- Keep each file sorted by identifier, ascending. A new entry always carries the highest identifier
+  of its file, so it goes at the end; a deleted one leaves a gap, and the gap stays. Position is
+  mechanical and carries no priority — it only makes an entry findable by its number.
 
 ## Write A Finding
 

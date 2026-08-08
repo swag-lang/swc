@@ -192,6 +192,31 @@ This entry is first in the tier because the three below cannot be judged without
 
 ---
 
+### 9. A script is not yet a full substitute for a shell script
+
+A `.swgs` should replace a `.bat`, a `.ps1` or a `.py` outright: as simple to run, and more
+capable. `tools/` is the proof either way — it is the repository's own scripting, and it is now
+written entirely in Swag. `swc tools\tests.swgs dm` is as short as `python campaign.py`, a script
+takes its own command line, the compiler recognizes it wherever it sits, `#load` nests so a
+multi-file script names its sources once, and a missing `swag@std` is built on demand instead of
+refusing to run. Two gaps are left, and neither is about the language.
+
+- **A tool's bare name is not a command.** `setup.swgs` claims `.swgs` for the current user, so a
+  double-click runs a script, arguments and exit code included. Typing `tools\tests.swgs dm` in a
+  shell still does not: `cmd` resolves an extension through the machine-wide association that
+  only an elevated `assoc`/`ftype` writes, and `PATHEXT` alone does not reach a per-user claim.
+  PowerShell 5.1 does nothing at all with such a file. Closing this means `setup.swgs` writes
+  `HKLM\Software\Classes` when it runs elevated and adds `.SWGS` to `PATHEXT`, and says plainly
+  what it could not do when it is not. Decide at the same time which compiler answers a
+  double-click: the association pins one absolute path, which is wrong for a checkout that moves.
+- **A script pays a fixed second before it does anything.** `swc tools/tests.swgs plan <file>`
+  takes 1 114 ms and `-h` takes 776 ms, against 46 ms for `python -c pass`, because every run
+  re-checks the same 45 files and 145 000 tokens. It does not matter in front of a two-minute
+  build; it is almost the whole cost of `plan`, whose reason to exist is being cheap enough to
+  ask before making a change. Nothing caches a script's compilation between runs, and the inputs
+  that would key such a cache are already computed — the module setup pass collects every loaded
+  file and every compiler input to decide whether a workspace artifact is up to date.
+
 ## Out of scope
 
 **Adopting LLVM.** The self-contained path to machine code — encoder, linker, debug info, JIT — is

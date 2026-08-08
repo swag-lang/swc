@@ -1,6 +1,6 @@
 """Run a complete perf campaign: rebuild, measure, report.
 
-Called by tools/bench.bat. A campaign always rebuilds the compiler first, so what gets
+Called by tools/bench.swgs. A campaign always rebuilds the compiler first, so what gets
 measured is the code currently in the tree rather than whatever binary happened to
 be lying around.
 

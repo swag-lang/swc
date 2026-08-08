@@ -1,15 +1,15 @@
 # Publication sources
 
-The source material specific to generated website assets lives here. Project-owned batch
-entry points are centralized in the repository-level `tools/` directory.
+The source material specific to generated website assets lives here. Project-owned entry
+points are centralized in the repository-level `tools/` directory.
 
 | Tool | Produces |
 | --- | --- |
-| `../../tools/web.bat` | Everything: it cuts the brand assets, then runs `swc doc` over the `bin/std` and `bin/reference` workspaces |
+| `../../tools/web.swgs` | Everything: it cuts the brand assets, then runs `swc doc` over the `bin/std` and `bin/reference` workspaces |
 | `brand.swgs` | The mark, the icons, and the favicons, cut from one geometric definition |
 | `syntax/` | The page captured into `imgs/syntax.png`, colored by the compiler itself |
 
-`web.bat` accepts the same `dm` first argument as the other compiler
+`web.swgs` accepts the same `dm` first argument as the other compiler
 tools.
 
 A tool here owns its subject and nothing else. `brand.swgs` owns the geometry of the mark;

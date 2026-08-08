@@ -393,6 +393,7 @@ private:
     void              registerImportedSharedModuleDir(const fs::path& path);
     void              adoptBuildCfg(const Runtime::BuildCfg& buildCfg);
     Result            adoptModuleBuildCfg(TaskContext& ctx, const Runtime::BuildCfg& buildCfg);
+    Result            collectModuleSetupLoadedFiles(TaskContext& ctx, const std::set<fs::path>& alreadyRead, std::vector<SourceFile*>& outFiles);
     Result            captureModuleSetupSnapshot(const TaskContext& ctx, const CommandLine& setupCmdLine, ModuleSetupSnapshot& outSnapshot) const;
     Result            applyModuleSetupInputs(TaskContext& ctx, const ModuleSetupSnapshot& setupSnapshot);
     static bool       isWorkspaceModuleActive(const WorkspaceModuleBuild& moduleBuild);

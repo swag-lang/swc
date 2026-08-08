@@ -177,3 +177,48 @@ func systemExecutablePath(name: string)->String
     @assert(!path.isEmpty())
     @assert(Env.variable("SWAG_NO_SUCH_VARIABLE_HERE").isEmpty())
 }
+
+#test
+{
+    // A measured run accounts the process and everything it starts. The shell is given work that
+    // takes a little time and a little memory, so none of the figures can be legitimately zero.
+    let shell = systemExecutablePath("cmd.exe")
+
+    var info = Env.StartInfo{
+        fileName: shell.toString(),
+        arguments: "/c for /L %i in (1,1,200000) do @set _x=%i",
+        standardOutput: .Discard,
+        standardError: .Discard,
+        measureResources: true}
+
+    let process = expect Env.runProcess(info)
+    @assert(process.exitCode() == 0)
+
+    let used = process.resources()
+    @assert(used.processCount >= 1)
+    @assert(used.peakMemory != 0)
+    @assert(used.peakProcessMemory != 0)
+    @assert(used.peakMemory >= used.peakProcessMemory)
+    @assert(used.userTime.seconds + used.kernelTime.seconds > 0)
+}
+
+#test
+{
+    // A run that was not measured answers zero rather than an accidental figure.
+    let shell = systemExecutablePath("cmd.exe")
+
+    let process = expect Env.runProcess(shell.toString(), "/c exit 0")
+    let used    = process.resources()
+    @assert(used.peakMemory == 0)
+    @assert(used.processCount == 0)
+}
+
+#test
+{
+    // Pinning a child to one processor must not change what it produces.
+    let shell = systemExecutablePath("cmd.exe")
+
+    var info    = Env.StartInfo{fileName: shell.toString(), arguments: "/c exit 3", affinityMask: 1}
+    let process = expect Env.runProcess(info)
+    @assert(process.exitCode() == 3)
+}

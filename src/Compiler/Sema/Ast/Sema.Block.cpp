@@ -43,6 +43,11 @@ namespace
         scope.addUsingSymMap(usingSymMap);
     }
 
+    // Reports whether this file is one the script states its module setup in.
+    //
+    // That is the script itself, and every file a setup '#load' reached from it: a loaded file
+    // may state '#import' and '#load' of its own, so it is read by the same two passes under the
+    // same rule.
     bool isScriptModuleFile(const Sema& sema)
     {
         const CommandLine& cmdLine = sema.ctx().cmdLine();
@@ -50,7 +55,11 @@ namespace
             return false;
 
         const SourceFile* file = sema.file();
-        return file != nullptr && FileSystem::pathEquals(file->path(), cmdLine.moduleFilePath);
+        if (!file)
+            return false;
+        if (file->hasFlag(FileFlagsE::SetupLoaded))
+            return true;
+        return FileSystem::pathEquals(file->path(), cmdLine.moduleFilePath);
     }
 
     bool isScriptModuleSetupChild(Sema& sema, const AstNodeRef childRef)

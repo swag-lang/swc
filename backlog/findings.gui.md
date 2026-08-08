@@ -44,7 +44,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
   exposes that id, the driver spins to `autoMaxFrames`, cancels the dialog, and leaves
   `autoHandled` false — so the test fails on an assertion far from the mistake, and the failure
   reads exactly like "the dialog never opened" even though it opened and was answered.
-- Evidence: `tools/apps.bat dm test sCapture` before the fix reported 2 of 126 not passing on
+- Evidence: `swc tools/apps.swgs dm test sCapture` before the fix reported 2 of 126 not passing on
   `@assert(autoHandled)`; the dialogs did open. `runAutoStage` returns false for both a missing
   modal surface and a missing button ([headless.swg:191](../bin/std/modules/gui/src/tests/framework/headless.swg#L191)),
   and only the frame ceiling distinguishes them, after the fact.

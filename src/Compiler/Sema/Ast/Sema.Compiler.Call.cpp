@@ -78,7 +78,7 @@ namespace
         const SourceFile* sourceFile = sema.file();
         return sema.compiler().isModuleSetupMode() &&
                sourceFile != nullptr &&
-               sourceFile->hasFlag(FileFlagsE::Module);
+               (sourceFile->hasFlag(FileFlagsE::Module) || sourceFile->hasFlag(FileFlagsE::SetupLoaded));
     }
 
     Result ensureModuleSetupDirectiveContext(Sema& sema, AstNodeRef nodeRef)

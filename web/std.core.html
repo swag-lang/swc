@@ -91,7 +91,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary>Types<span class="toc-count">140</span></summary>
+<summary>Types<span class="toc-count">142</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-types">All Types</a></li>
 <li><a href="#Core_Array">Core.Array</a></li>
@@ -176,6 +176,8 @@
 <li><a href="#Core_CommandLine_Result">CommandLine.Result</a></li>
 <li><a href="#Core_Env_Monitor">Env.Monitor</a></li>
 <li><a href="#Core_Env_Process">Env.Process</a></li>
+<li><a href="#Core_Env_ProcessEnvironment">Env.ProcessEnvironment</a></li>
+<li><a href="#Core_Env_ProcessResources">Env.ProcessResources</a></li>
 <li><a href="#Core_Env_StartInfo">Env.StartInfo</a></li>
 <li><a href="#Core_Env_Window">Env.Window</a></li>
 <li><a href="#Core_Env_WindowCallbacks">Env.WindowCallbacks</a></li>
@@ -237,7 +239,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary>Enumerations<span class="toc-count">30</span></summary>
+<summary>Enumerations<span class="toc-count">31</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-enumerations">All Enumerations</a></li>
 <li><a href="#Core_Compress_Deflate_CompressionFlags">Deflate.CompressionFlags</a></li>
@@ -262,6 +264,7 @@
 <li><a href="#Core_Serialization_Write_TagBinSignature">Write.TagBinSignature</a></li>
 <li><a href="#Core_Serialization_Write_TagBinValueFlags">Write.TagBinValueFlags</a></li>
 <li><a href="#Core_Env_SpecialDirectory">Env.SpecialDirectory</a></li>
+<li><a href="#Core_Env_StreamRedirection">Env.StreamRedirection</a></li>
 <li><a href="#Core_Env_SystemMetric">Env.SystemMetric</a></li>
 <li><a href="#Core_Env_SystemMutation">Env.SystemMutation</a></li>
 <li><a href="#Core_CharacterSet">Core.CharacterSet</a></li>
@@ -364,7 +367,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary>Functions<span class="toc-count">1241</span></summary>
+<summary>Functions<span class="toc-count">1265</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Core_Serialization_Alias">Serialization.Alias</a></li>
@@ -570,6 +573,7 @@
 <li><a href="#Core_File_duplicate">File.duplicate</a></li>
 <li><a href="#Core_File_exists">File.exists</a></li>
 <li><a href="#Core_File_info">File.info</a></li>
+<li><a href="#Core_File_move">File.move</a></li>
 <li><a href="#Core_File_open">File.open</a></li>
 <li><a href="#Core_File_openRead">File.openRead</a></li>
 <li><a href="#Core_File_openWrite">File.openWrite</a></li>
@@ -1235,11 +1239,26 @@
 <li><a href="#Core_CommandLine_parse">CommandLine.parse</a></li>
 <li><a href="#Core_CommandLine_splitArguments">CommandLine.splitArguments</a></li>
 <li><a href="#Core_Env_Process_close">Process.close</a></li>
+<li><a href="#Core_Env_Process_closeStandardInput">Process.closeStandardInput</a></li>
 <li><a href="#Core_Env_Process_currentExecutablePath">Process.currentExecutablePath</a></li>
 <li><a href="#Core_Env_Process_currentProcessId">Process.currentProcessId</a></li>
 <li><a href="#Core_Env_Process_currentThreadId">Process.currentThreadId</a></li>
+<li><a href="#Core_Env_Process_exitCode">Process.exitCode</a></li>
+<li><a href="#Core_Env_Process_isRunning">Process.isRunning</a></li>
+<li><a href="#Core_Env_Process_kill">Process.kill</a></li>
 <li><a href="#Core_Env_Process_opDrop">Process.opDrop</a></li>
+<li><a href="#Core_Env_Process_readAvailable">Process.readAvailable</a></li>
+<li><a href="#Core_Env_Process_resources">Process.resources</a></li>
+<li><a href="#Core_Env_Process_standardError">Process.standardError</a></li>
+<li><a href="#Core_Env_Process_standardOutput">Process.standardOutput</a></li>
+<li><a href="#Core_Env_Process_tryWaitForExit">Process.tryWaitForExit</a></li>
 <li><a href="#Core_Env_Process_waitForExit">Process.waitForExit</a></li>
+<li><a href="#Core_Env_Process_writeStandardInput">Process.writeStandardInput</a></li>
+<li><a href="#Core_Env_ProcessEnvironment_clear">ProcessEnvironment.clear</a></li>
+<li><a href="#Core_Env_ProcessEnvironment_count">ProcessEnvironment.count</a></li>
+<li><a href="#Core_Env_ProcessEnvironment_remove">ProcessEnvironment.remove</a></li>
+<li><a href="#Core_Env_ProcessEnvironment_set">ProcessEnvironment.set</a></li>
+<li><a href="#Core_Env_ProcessEnvironment_value">ProcessEnvironment.value</a></li>
 <li><a href="#Core_Env_Window_acquireDeviceContext">Window.acquireDeviceContext</a></li>
 <li><a href="#Core_Env_Window_close">Window.close</a></li>
 <li><a href="#Core_Env_Window_dpiScale">Window.dpiScale</a></li>
@@ -1251,9 +1270,11 @@
 <li><a href="#Core_Env_argument">Env.argument</a></li>
 <li><a href="#Core_Env_arguments">Env.arguments</a></li>
 <li><a href="#Core_Env_associateFileExtension">Env.associateFileExtension</a></li>
+<li><a href="#Core_Env_claimFileExtension">Env.claimFileExtension</a></li>
+<li><a href="#Core_Env_corpusRoot">Env.corpusRoot</a></li>
 <li><a href="#Core_Env_createWindow">Env.createWindow</a></li>
+<li><a href="#Core_Env_currentEnvironment">Env.currentEnvironment</a></li>
 <li><a href="#Core_Env_deniedSystemMutations">Env.deniedSystemMutations</a></li>
-<li><a href="#Core_Env_doSyncProcess">Env.doSyncProcess</a></li>
 <li><a href="#Core_Env_enableDpiAwareness">Env.enableDpiAwareness</a></li>
 <li><a href="#Core_Env_enterSandbox">Env.enterSandbox</a></li>
 <li><a href="#Core_Env_executablePath">Env.executablePath</a></li>
@@ -1262,22 +1283,28 @@
 <li><a href="#Core_Env_getMonitors">Env.getMonitors</a></li>
 <li><a href="#Core_Env_getSpecialDirectory">Env.getSpecialDirectory</a></li>
 <li><a href="#Core_Env_getSystemMetric">Env.getSystemMetric</a></li>
+<li><a href="#Core_Env_grantCorpus">Env.grantCorpus</a></li>
 <li><a href="#Core_Env_hasArgument">Env.hasArgument</a></li>
+<li><a href="#Core_Env_isInsideCorpus">Env.isInsideCorpus</a></li>
 <li><a href="#Core_Env_isInsideDirectory">Env.isInsideDirectory</a></li>
 <li><a href="#Core_Env_isInsideSandbox">Env.isInsideSandbox</a></li>
 <li><a href="#Core_Env_isSandboxed">Env.isSandboxed</a></li>
 <li><a href="#Core_Env_isSmokeRun">Env.isSmokeRun</a></li>
+<li><a href="#Core_Env_joinArguments">Env.joinArguments</a></li>
 <li><a href="#Core_Env_monitorForPoint">Env.monitorForPoint</a></li>
 <li><a href="#Core_Env_monitorForRectangle">Env.monitorForRectangle</a></li>
 <li><a href="#Core_Env_openUrl">Env.openUrl</a></li>
 <li><a href="#Core_Env_processWindowMessages">Env.processWindowMessages</a></li>
+<li><a href="#Core_Env_quoteArgument">Env.quoteArgument</a></li>
 <li><a href="#Core_Env_realSpecialDirectory">Env.realSpecialDirectory</a></li>
 <li><a href="#Core_Env_registerApplication">Env.registerApplication</a></li>
+<li><a href="#Core_Env_runProcess">Env.runProcess</a></li>
 <li><a href="#Core_Env_sandboxRoot">Env.sandboxRoot</a></li>
 <li><a href="#Core_Env_showInFileExplorer">Env.showInFileExplorer</a></li>
 <li><a href="#Core_Env_smokeFrames">Env.smokeFrames</a></li>
 <li><a href="#Core_Env_startProcess">Env.startProcess</a></li>
 <li><a href="#Core_Env_userLocaleName">Env.userLocaleName</a></li>
+<li><a href="#Core_Env_variable">Env.variable</a></li>
 <li><a href="#Core_Errors_mkString">Errors.mkString</a></li>
 <li><a href="#Core_Guid128_clear">Guid128.clear</a></li>
 <li><a href="#Core_Guid128_isNull">Guid128.isNull</a></li>
@@ -1973,9 +2000,13 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_Monitor">Env.Monitor</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Describes a physical monitor.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Env_Process">Env.Process</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Represents process.</p>
+<tr><td class="code-type"><a href="#Core_Env_Process">Env.Process</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Owns a started child process, its pipes, and everything captured from it.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Env_StartInfo">Env.StartInfo</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Represents start info.</p>
+<tr><td class="code-type"><a href="#Core_Env_ProcessEnvironment">Env.ProcessEnvironment</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Holds the environment variables a child process is started with.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_ProcessResources">Env.ProcessResources</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>What a measured process and everything it started consumed.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_StartInfo">Env.StartInfo</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Describes the process to start and how it is connected to the current one.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_Window">Env.Window</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Owns one native application window.</p>
 </td></tr>
@@ -2140,6 +2171,8 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 <tr><td class="code-type"><a href="#Core_Serialization_Write_TagBinValueFlags">Write.TagBinValueFlags</a></td><td><p>Additional signature for each value, stored after the value description (crcs)</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_SpecialDirectory">Env.SpecialDirectory</a></td><td><p>Identifies a well-known operating-system directory.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_StreamRedirection">Env.StreamRedirection</a></td><td><p>Selects how one standard stream of a child process is connected.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_SystemMetric">Env.SystemMetric</a></td><td><p>Identifies a virtual-desktop system metric.</p>
 </td></tr>
@@ -2744,6 +2777,8 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 <tr><td class="code-type"><a href="#Core_File_exists">File.exists</a></td><td><p>Returns true if the given file exists</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_File_info">File.info</a></td><td><p>Returns metadata for a file or directory.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_File_move">File.move</a></td><td><p>Moves <span class="code-inline">oldName</span> to <span class="code-inline">newName</span>, replacing whatever is already there.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_File_open">File.open</a></td><td><p>Open a new file stream</p>
 </td></tr>
@@ -4073,7 +4108,9 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 </td></tr>
 <tr><td class="code-type"><a href="#Core_CommandLine_splitArguments">CommandLine.splitArguments</a></td><td><p>Clean and split a list of arguments</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Env_Process_close">Process.close</a></td><td><p>Performs the close operation.</p>
+<tr><td class="code-type"><a href="#Core_Env_Process_close">Process.close</a></td><td><p>Releases every platform handle this value owns, without waiting for the process.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_Process_closeStandardInput">Process.closeStandardInput</a></td><td><p>Closes the standard-input pipe, which is how a child reading to the end of its input</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_Process_currentExecutablePath">Process.currentExecutablePath</a></td><td><p>Returns the absolute path of the executable image for the current process.</p>
 </td></tr>
@@ -4081,9 +4118,37 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_Process_currentThreadId">Process.currentThreadId</a></td><td><p>Returns the current operating-system thread identifier.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_Env_Process_exitCode">Process.exitCode</a></td><td><p>Returns the exit code reported by the process.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_Process_isRunning">Process.isRunning</a></td><td><p>Returns whether the process is still running as far as the last wait could tell.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_Process_kill">Process.kill</a></td><td><p>Requests the immediate termination of the process, which is then given <span class="code-inline">exitCode</span>.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_Env_Process_opDrop">Process.opDrop</a></td><td><p>Releases resources owned by this value.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Env_Process_waitForExit">Process.waitForExit</a></td><td><p>Wait for the process to be done</p>
+<tr><td class="code-type"><a href="#Core_Env_Process_readAvailable">Process.readAvailable</a></td><td><p>Reads whatever the redirected streams hold right now, without waiting for more.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_Process_resources">Process.resources</a></td><td><p>Returns what the process and everything it started consumed.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_Process_standardError">Process.standardError</a></td><td><p>Returns everything captured from standard error so far.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_Process_standardOutput">Process.standardOutput</a></td><td><p>Returns everything captured from standard output so far.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_Process_tryWaitForExit">Process.tryWaitForExit</a></td><td><p>Waits up to <span class="code-inline">timeout</span> for the process to exit, and returns whether it did.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_Process_waitForExit">Process.waitForExit</a></td><td><p>Waits for the process to exit and returns its exit code.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_Process_writeStandardInput">Process.writeStandardInput</a></td><td><p>Writes <span class="code-inline">data</span> to the standard input of the process.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_ProcessEnvironment_clear">ProcessEnvironment.clear</a></td><td><p>Removes every variable, leaving the environment empty.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_ProcessEnvironment_count">ProcessEnvironment.count</a></td><td><p>Returns how many variables the environment holds.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_ProcessEnvironment_remove">ProcessEnvironment.remove</a></td><td><p>Removes <span class="code-inline">name</span>. Removing a name the environment does not hold does nothing.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_ProcessEnvironment_set">ProcessEnvironment.set</a></td><td><p>Binds <span class="code-inline">name</span> to <span class="code-inline">value</span>, replacing any previous binding.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_ProcessEnvironment_value">ProcessEnvironment.value</a></td><td><p>Returns the value bound to <span class="code-inline">name</span>, or <span class="code-inline">null</span> when the environment does not hold it.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_Window_acquireDeviceContext">Window.acquireDeviceContext</a></td><td><p>Acquires the native device context for this window.</p>
 </td></tr>
@@ -4107,11 +4172,15 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_associateFileExtension">Env.associateFileExtension</a></td><td><p>Associate an extension to an executable</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_Env_claimFileExtension">Env.claimFileExtension</a></td><td><p>Makes <span class="code-inline">appPath</span> the program the shell runs for <span class="code-inline">extension</span>, for the current user.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_corpusRoot">Env.corpusRoot</a></td><td><p>Returns the corpus root, or an empty string when the run was granted none.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_Env_createWindow">Env.createWindow</a></td><td><p>Creates and owns a native application window.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Env_deniedSystemMutations">Env.deniedSystemMutations</a></td><td><p>Returns how many system mutations have been refused so far.</p>
+<tr><td class="code-type"><a href="#Core_Env_currentEnvironment">Env.currentEnvironment</a></td><td><p>Returns the environment variables of the current process.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Env_doSyncProcess">Env.doSyncProcess</a></td><td><p>Starts a new process with arguments, and wait for it to be done</p>
+<tr><td class="code-type"><a href="#Core_Env_deniedSystemMutations">Env.deniedSystemMutations</a></td><td><p>Returns how many system mutations have been refused so far.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_enableDpiAwareness">Env.enableDpiAwareness</a></td><td><p>Declares this process per-monitor DPI aware, so windows receive physical pixels.</p>
 </td></tr>
@@ -4129,7 +4198,11 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_getSystemMetric">Env.getSystemMetric</a></td><td><p>Returns one virtual-desktop metric in physical pixels.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_Env_grantCorpus">Env.grantCorpus</a></td><td><p>Grants <span class="code-inline">root</span> as the corpus: the one directory outside the sandbox a run may still write.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_Env_hasArgument">Env.hasArgument</a></td><td><p>Returns whether the command line contains <span class="code-inline">argument</span> exactly.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_isInsideCorpus">Env.isInsideCorpus</a></td><td><p>Reports whether <span class="code-inline">path</span> is inside the granted corpus. Answers false when there is none.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_isInsideDirectory">Env.isInsideDirectory</a></td><td><p>Reports whether <span class="code-inline">path</span> names <span class="code-inline">root</span> itself or something below it.</p>
 </td></tr>
@@ -4139,6 +4212,8 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_isSmokeRun">Env.isSmokeRun</a></td><td><p>Reports whether the process is a smoke run: the real program, bounded by its launcher.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_Env_joinArguments">Env.joinArguments</a></td><td><p>Returns <span class="code-inline">arguments</span> joined into the one command line the system parses back into them.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_Env_monitorForPoint">Env.monitorForPoint</a></td><td><p>Returns the monitor containing <span class="code-inline">point</span>, or the nearest monitor otherwise.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_monitorForRectangle">Env.monitorForRectangle</a></td><td><p>Returns the monitor with the largest intersection with <span class="code-inline">rectangle</span>.</p>
@@ -4147,9 +4222,13 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_processWindowMessages">Env.processWindowMessages</a></td><td><p>Processes all pending window messages. Returns false when the application should exit.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_Env_quoteArgument">Env.quoteArgument</a></td><td><p>Returns <span class="code-inline">value</span> spelled so the system parses it back as exactly one argument.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_Env_realSpecialDirectory">Env.realSpecialDirectory</a></td><td><p>Returns the normalized path of a well-known system directory on the machine itself,</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_registerApplication">Env.registerApplication</a></td><td><p>Register an application in the system</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_runProcess">Env.runProcess</a></td><td><p>Starts a process, waits for it to exit, and returns it with everything it produced.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_sandboxRoot">Env.sandboxRoot</a></td><td><p>Returns the sandbox root, or an empty string when the process is not sandboxed.</p>
 </td></tr>
@@ -4157,9 +4236,11 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_smokeFrames">Env.smokeFrames</a></td><td><p>Returns how many frames a smoke run renders before stopping, or zero outside one.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Env_startProcess">Env.startProcess</a></td><td><p>Starts a new process with arguments</p>
+<tr><td class="code-type"><a href="#Core_Env_startProcess">Env.startProcess</a></td><td><p>Starts a new process, returning as soon as it is running.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_userLocaleName">Env.userLocaleName</a></td><td><p>Returns the user's preferred locale name, such as <span class="code-inline">"fr-FR"</span>, or an empty string</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_variable">Env.variable</a></td><td><p>Returns the value of the environment variable <span class="code-inline">name</span> in the current process.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Errors_mkString">Errors.mkString</a></td><td><p>Make a string persistent for errors.</p>
 </td></tr>
@@ -5238,9 +5319,13 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 <tbody>
 <tr><td class="code-type"><a href="#Core_Env_Monitor">Env.Monitor</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Describes a physical monitor.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Env_Process">Env.Process</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Represents process.</p>
+<tr><td class="code-type"><a href="#Core_Env_Process">Env.Process</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Owns a started child process, its pipes, and everything captured from it.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Env_StartInfo">Env.StartInfo</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Represents start info.</p>
+<tr><td class="code-type"><a href="#Core_Env_ProcessEnvironment">Env.ProcessEnvironment</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Holds the environment variables a child process is started with.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_ProcessResources">Env.ProcessResources</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>What a measured process and everything it started consumed.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_StartInfo">Env.StartInfo</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Describes the process to start and how it is connected to the current one.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_Window">Env.Window</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Owns one native application window.</p>
 </td></tr>
@@ -5263,6 +5348,8 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 <thead><tr><th>Name</th><th>Description</th></tr></thead>
 <tbody>
 <tr><td class="code-type"><a href="#Core_Env_SpecialDirectory">Env.SpecialDirectory</a></td><td><p>Identifies a well-known operating-system directory.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_StreamRedirection">Env.StreamRedirection</a></td><td><p>Selects how one standard stream of a child process is connected.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_SystemMetric">Env.SystemMetric</a></td><td><p>Identifies a virtual-desktop system metric.</p>
 </td></tr>
@@ -5288,11 +5375,15 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_associateFileExtension">Env.associateFileExtension</a></td><td><p>Associate an extension to an executable</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_Env_claimFileExtension">Env.claimFileExtension</a></td><td><p>Makes <span class="code-inline">appPath</span> the program the shell runs for <span class="code-inline">extension</span>, for the current user.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_corpusRoot">Env.corpusRoot</a></td><td><p>Returns the corpus root, or an empty string when the run was granted none.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_Env_createWindow">Env.createWindow</a></td><td><p>Creates and owns a native application window.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Env_deniedSystemMutations">Env.deniedSystemMutations</a></td><td><p>Returns how many system mutations have been refused so far.</p>
+<tr><td class="code-type"><a href="#Core_Env_currentEnvironment">Env.currentEnvironment</a></td><td><p>Returns the environment variables of the current process.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Env_doSyncProcess">Env.doSyncProcess</a></td><td><p>Starts a new process with arguments, and wait for it to be done</p>
+<tr><td class="code-type"><a href="#Core_Env_deniedSystemMutations">Env.deniedSystemMutations</a></td><td><p>Returns how many system mutations have been refused so far.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_enableDpiAwareness">Env.enableDpiAwareness</a></td><td><p>Declares this process per-monitor DPI aware, so windows receive physical pixels.</p>
 </td></tr>
@@ -5310,7 +5401,11 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_getSystemMetric">Env.getSystemMetric</a></td><td><p>Returns one virtual-desktop metric in physical pixels.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_Env_grantCorpus">Env.grantCorpus</a></td><td><p>Grants <span class="code-inline">root</span> as the corpus: the one directory outside the sandbox a run may still write.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_Env_hasArgument">Env.hasArgument</a></td><td><p>Returns whether the command line contains <span class="code-inline">argument</span> exactly.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_isInsideCorpus">Env.isInsideCorpus</a></td><td><p>Reports whether <span class="code-inline">path</span> is inside the granted corpus. Answers false when there is none.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_isInsideDirectory">Env.isInsideDirectory</a></td><td><p>Reports whether <span class="code-inline">path</span> names <span class="code-inline">root</span> itself or something below it.</p>
 </td></tr>
@@ -5320,6 +5415,8 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_isSmokeRun">Env.isSmokeRun</a></td><td><p>Reports whether the process is a smoke run: the real program, bounded by its launcher.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_Env_joinArguments">Env.joinArguments</a></td><td><p>Returns <span class="code-inline">arguments</span> joined into the one command line the system parses back into them.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_Env_monitorForPoint">Env.monitorForPoint</a></td><td><p>Returns the monitor containing <span class="code-inline">point</span>, or the nearest monitor otherwise.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_monitorForRectangle">Env.monitorForRectangle</a></td><td><p>Returns the monitor with the largest intersection with <span class="code-inline">rectangle</span>.</p>
@@ -5328,9 +5425,13 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_processWindowMessages">Env.processWindowMessages</a></td><td><p>Processes all pending window messages. Returns false when the application should exit.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_Env_quoteArgument">Env.quoteArgument</a></td><td><p>Returns <span class="code-inline">value</span> spelled so the system parses it back as exactly one argument.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_Env_realSpecialDirectory">Env.realSpecialDirectory</a></td><td><p>Returns the normalized path of a well-known system directory on the machine itself,</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_registerApplication">Env.registerApplication</a></td><td><p>Register an application in the system</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_runProcess">Env.runProcess</a></td><td><p>Starts a process, waits for it to exit, and returns it with everything it produced.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_sandboxRoot">Env.sandboxRoot</a></td><td><p>Returns the sandbox root, or an empty string when the process is not sandboxed.</p>
 </td></tr>
@@ -5338,9 +5439,11 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_smokeFrames">Env.smokeFrames</a></td><td><p>Returns how many frames a smoke run renders before stopping, or zero outside one.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Env_startProcess">Env.startProcess</a></td><td><p>Starts a new process with arguments</p>
+<tr><td class="code-type"><a href="#Core_Env_startProcess">Env.startProcess</a></td><td><p>Starts a new process, returning as soon as it is running.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_userLocaleName">Env.userLocaleName</a></td><td><p>Returns the user's preferred locale name, such as <span class="code-inline">"fr-FR"</span>, or an empty string</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_variable">Env.variable</a></td><td><p>Returns the value of the environment variable <span class="code-inline">name</span> in the current process.</p>
 </td></tr>
 </tbody>
 </table>
@@ -5439,6 +5542,8 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 <tr><td class="code-type"><a href="#Core_File_exists">File.exists</a></td><td><p>Returns true if the given file exists</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_File_info">File.info</a></td><td><p>Returns metadata for a file or directory.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_File_move">File.move</a></td><td><p>Moves <span class="code-inline">oldName</span> to <span class="code-inline">newName</span>, replacing whatever is already there.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_File_open">File.open</a></td><td><p>Open a new file stream</p>
 </td></tr>
@@ -9458,16 +9563,32 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Core_Env_Process" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Env.Process</span> <a class="api-item-permalink" href="#Core_Env_Process" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.swg#L17">src</a></div>
-<p>Represents process.</p>
+<div class="api-item api-item-struct"><span id="Core_Env_Process" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Env.Process</span> <a class="api-item-permalink" href="#Core_Env_Process" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.swg#L138">src</a></div>
+<p>Owns a started child process, its pipes, and everything captured from it.</p>
+<p>Start one with <a href="#Core_Env_startProcess">Core.Env.startProcess</a> and drive it, or use <a href="#Core_Env_runProcess">Core.Env.runProcess</a> to start it and wait for it in one step. The value closes every handle it still owns when it leaves scope, so a process is never leaked by an early return.</p>
+<p>Text captured from a redirected stream accumulates inside the value and outlives <a href="#Core_Env_Process_close">Core.Env.Process.close</a>, which is what lets a run be inspected after the child is gone.</p>
+<div class="blockquote blockquote-attention">
+<div class="blockquote-title-block"><span class="blockquote-title">Attention</span></div>
+<p>A pipe holds a bounded amount of data, so a child that writes more than that blocks until this side reads it. Every wait on this type drains the redirected streams while it waits, which is what keeps the pair from deadlocking; a caller that waits on the platform handle by other means loses that guarantee.</p>
+</div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.NoCopy]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Env_Process">Process</a></span></span></div>
 </section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Core_Env_Process_processId" class="code-type">processId</td><td class="code-type">u64</td><td><p>Operating-system identifier of the started process.</p>
+</td></tr>
+</tbody>
+</table>
 <h3 id="Core_Env_Process_methods">Methods</h3>
 <table class="api-summary">
 <thead><tr><th>Name</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td class="code-type"><a href="#Core_Env_Process_close">close</a></td><td><p>Performs the close operation.</p>
+<tr><td class="code-type"><a href="#Core_Env_Process_close">close</a></td><td><p>Releases every platform handle this value owns, without waiting for the process.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_Process_closeStandardInput">closeStandardInput</a></td><td><p>Closes the standard-input pipe, which is how a child reading to the end of its input</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_Process_currentExecutablePath">currentExecutablePath</a></td><td><p>Returns the absolute path of the executable image for the current process.</p>
 </td></tr>
@@ -9475,29 +9596,114 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_Process_currentThreadId">currentThreadId</a></td><td><p>Returns the current operating-system thread identifier.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_Env_Process_exitCode">exitCode</a></td><td><p>Returns the exit code reported by the process.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_Process_isRunning">isRunning</a></td><td><p>Returns whether the process is still running as far as the last wait could tell.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_Process_kill">kill</a></td><td><p>Requests the immediate termination of the process, which is then given <span class="code-inline">exitCode</span>.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_Env_Process_opDrop">opDrop</a></td><td><p>Releases resources owned by this value.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Env_Process_waitForExit">waitForExit</a></td><td><p>Wait for the process to be done</p>
+<tr><td class="code-type"><a href="#Core_Env_Process_readAvailable">readAvailable</a></td><td><p>Reads whatever the redirected streams hold right now, without waiting for more.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_Process_resources">resources</a></td><td><p>Returns what the process and everything it started consumed.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_Process_standardError">standardError</a></td><td><p>Returns everything captured from standard error so far.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_Process_standardOutput">standardOutput</a></td><td><p>Returns everything captured from standard output so far.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_Process_tryWaitForExit">tryWaitForExit</a></td><td><p>Waits up to <span class="code-inline">timeout</span> for the process to exit, and returns whether it did.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_Process_waitForExit">waitForExit</a></td><td><p>Waits for the process to exit and returns its exit code.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_Process_writeStandardInput">writeStandardInput</a></td><td><p>Writes <span class="code-inline">data</span> to the standard input of the process.</p>
 </td></tr>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Core_Env_StartInfo" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Env.StartInfo</span> <a class="api-item-permalink" href="#Core_Env_StartInfo" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.swg#L9">src</a></div>
-<p>Represents start info.</p>
+<div class="api-item api-item-struct"><span id="Core_Env_ProcessEnvironment" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Env.ProcessEnvironment</span> <a class="api-item-permalink" href="#Core_Env_ProcessEnvironment" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.swg#L35">src</a></div>
+<p>Holds the environment variables a child process is started with.</p>
+<p>A <a href="#Core_Env_StartInfo">Core.Env.StartInfo</a> naming no environment lets the child inherit the one of the current process unchanged. Start from <a href="#Core_Env_currentEnvironment">Core.Env.currentEnvironment</a> to add or override a few variables, or from an empty value to give the child exactly what it lists and nothing else.</p>
+<p>Names follow the rule of the platform: Windows compares them without regard to case and stores them folded, so setting <span class="code-inline">path</span> there replaces the <span class="code-inline">Path</span> the system reported instead of adding a second variable beside it. A platform that distinguishes the case keeps a name as given.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">var</span> environment = <span class="SCst"><a href="#namespace_Core_Env">Env</a></span>.<span class="SFct">currentEnvironment</span>()
+environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>, <span class="SStr">"c:/swag/bin"</span>)
+
+<span class="SKwd">var</span> info = <span class="SCst"><a href="#namespace_Core_Env">Env</a></span>.<span class="SCst"><a href="#Core_Env_StartInfo">StartInfo</a></span>{fileName: <span class="SStr">"swc.exe"</span>, arguments: <span class="SStr">"test"</span>, environment: &amp;environment}
+<span class="SKwd">let</span> process = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Core_Env">Env</a></span>.<span class="SFct">runProcess</span>(info)
+</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Env_ProcessEnvironment">ProcessEnvironment</a></span></span></div>
+</section>
+<h3 id="Core_Env_ProcessEnvironment_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Core_Env_ProcessEnvironment_clear">clear</a></td><td><p>Removes every variable, leaving the environment empty.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_ProcessEnvironment_count">count</a></td><td><p>Returns how many variables the environment holds.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_ProcessEnvironment_remove">remove</a></td><td><p>Removes <span class="code-inline">name</span>. Removing a name the environment does not hold does nothing.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_ProcessEnvironment_set">set</a></td><td><p>Binds <span class="code-inline">name</span> to <span class="code-inline">value</span>, replacing any previous binding.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_ProcessEnvironment_value">value</a></td><td><p>Returns the value bound to <span class="code-inline">name</span>, or <span class="code-inline">null</span> when the environment does not hold it.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Core_Env_ProcessResources" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Env.ProcessResources</span> <a class="api-item-permalink" href="#Core_Env_ProcessResources" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.swg#L112">src</a></div>
+<p>What a measured process and everything it started consumed.</p>
+<p>Answered by <a href="#Core_Env_Process_resources">Core.Env.Process.resources</a> once the process was started with <span class="code-inline">StartInfo.measureResources</span>. The whole tree is accounted, not just the process that was named: a program that does its work in helpers it spawns would otherwise report almost nothing.</p>
+<p>The peaks are the highest each figure ever reached, so they stay meaningful after the processes that produced them are gone. Times are totals across the tree.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Env_ProcessResources">ProcessResources</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Core_Env_ProcessResources_kernelTime" class="code-type">kernelTime</td><td class="code-type"><a href="#Core_Time_Duration">Core.Time.Duration</a></td><td><p>Total time the system spent working on its behalf.</p>
+</td></tr>
+<tr><td id="Core_Env_ProcessResources_peakMemory" class="code-type">peakMemory</td><td class="code-type">u64</td><td><p>Highest committed memory the whole tree reached at once.</p>
+</td></tr>
+<tr><td id="Core_Env_ProcessResources_peakProcessMemory" class="code-type">peakProcessMemory</td><td class="code-type">u64</td><td><p>Highest committed memory any single process in it reached.</p>
+</td></tr>
+<tr><td id="Core_Env_ProcessResources_processCount" class="code-type">processCount</td><td class="code-type">u64</td><td><p>How many processes the tree contained, first and last included.</p>
+</td></tr>
+<tr><td id="Core_Env_ProcessResources_userTime" class="code-type">userTime</td><td class="code-type"><a href="#Core_Time_Duration">Core.Time.Duration</a></td><td><p>Total time the tree spent running its own code.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Core_Env_StartInfo" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Env.StartInfo</span> <a class="api-item-permalink" href="#Core_Env_StartInfo" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.swg#L89">src</a></div>
+<p>Describes the process to start and how it is connected to the current one.</p>
+<p>Only <span class="code-inline">fileName</span> is required. The executable is looked up the way the system resolves a command line, so a bare name is searched in the current directory and along the executable search path; pass a full path to remove the ambiguity.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Env_StartInfo">StartInfo</a></span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td id="Core_Env_StartInfo_arguments" class="code-type">arguments</td><td class="code-type">#null string</td><td><p>Arguments associated with this value.</p>
+<tr><td id="Core_Env_StartInfo_affinityMask" class="code-type">affinityMask</td><td class="code-type">u64</td><td><p>Logical processors the child may run on, one bit each. Zero inherits the current set.</p>
 </td></tr>
-<tr><td id="Core_Env_StartInfo_fileName" class="code-type">fileName</td><td class="code-type">string</td><td><p>File name associated with this value.</p>
+<tr><td id="Core_Env_StartInfo_arguments" class="code-type">arguments</td><td class="code-type">#null string</td><td><p>Command-line arguments, already quoted, or null for none.</p>
+</td></tr>
+<tr><td id="Core_Env_StartInfo_environment" class="code-type">environment</td><td class="code-type">#null const *<a href="#Core_Env_ProcessEnvironment">Core.Env.ProcessEnvironment</a></td><td><p>Environment the child starts with, or null to inherit the current one. Borrowed for the call only.</p>
+</td></tr>
+<tr><td id="Core_Env_StartInfo_fileName" class="code-type">fileName</td><td class="code-type">string</td><td><p>Executable to start, as a full path or a name to look up.</p>
+</td></tr>
+<tr><td id="Core_Env_StartInfo_measureResources" class="code-type">measureResources</td><td class="code-type">bool</td><td><p>Whether to account the child and everything it starts, which <a href="#Core_Env_Process_resources">Core.Env.Process.resources</a> answers.</p>
+</td></tr>
+<tr><td id="Core_Env_StartInfo_standardError" class="code-type">standardError</td><td class="code-type"><a href="#Core_Env_StreamRedirection">Core.Env.StreamRedirection</a></td><td><p>How the child writes standard error.</p>
+</td></tr>
+<tr><td id="Core_Env_StartInfo_standardInput" class="code-type">standardInput</td><td class="code-type"><a href="#Core_Env_StreamRedirection">Core.Env.StreamRedirection</a></td><td><p>How the child reads standard input.</p>
+</td></tr>
+<tr><td id="Core_Env_StartInfo_standardOutput" class="code-type">standardOutput</td><td class="code-type"><a href="#Core_Env_StreamRedirection">Core.Env.StreamRedirection</a></td><td><p>How the child writes standard output.</p>
+</td></tr>
+<tr><td id="Core_Env_StartInfo_workingDirectory" class="code-type">workingDirectory</td><td class="code-type">#null string</td><td><p>Directory the child starts in, or null to inherit the current one.</p>
 </td></tr>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Core_Env_Window" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Env.Window</span> <a class="api-item-permalink" href="#Core_Env_Window" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L367">src</a></div>
+<div class="api-item api-item-struct"><span id="Core_Env_Window" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Env.Window</span> <a class="api-item-permalink" href="#Core_Env_Window" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L431">src</a></div>
 <p>Owns one native application window.</p>
 <p>Create a window with <a href="#Core_Env_createWindow">Core.Env.createWindow</a>. The value closes any remaining native window when it leaves scope; call <a href="#Core_Env_Window_close">Core.Env.Window.close</a> to release it earlier.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.NoCopy]</span>
@@ -9534,7 +9740,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Core_Env_WindowCallbacks" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Env.WindowCallbacks</span> <a class="api-item-permalink" href="#Core_Env_WindowCallbacks" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L337">src</a></div>
+<div class="api-item api-item-struct"><span id="Core_Env_WindowCallbacks" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Env.WindowCallbacks</span> <a class="api-item-permalink" href="#Core_Env_WindowCallbacks" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L401">src</a></div>
 <p>Groups the optional callbacks dispatched by a <a href="#Core_Env_Window">Core.Env.Window</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Env_WindowCallbacks">WindowCallbacks</a></span></span></div>
 </section>
@@ -9549,7 +9755,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Core_Env_WindowLoop" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Env.WindowLoop</span> <a class="api-item-permalink" href="#Core_Env_WindowLoop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L384">src</a></div>
+<div class="api-item api-item-struct"><span id="Core_Env_WindowLoop" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Env.WindowLoop</span> <a class="api-item-permalink" href="#Core_Env_WindowLoop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L448">src</a></div>
 <p>Provides iterable native message processing. Pumps window messages until the window closes, or until a smoke run's frame budget is spent.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Env_WindowLoop">WindowLoop</a></span></span></div>
 </section>
@@ -9570,7 +9776,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Core_Env_WindowOptions" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Env.WindowOptions</span> <a class="api-item-permalink" href="#Core_Env_WindowOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L348">src</a></div>
+<div class="api-item api-item-struct"><span id="Core_Env_WindowOptions" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Env.WindowOptions</span> <a class="api-item-permalink" href="#Core_Env_WindowOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L412">src</a></div>
 <p>Configures native window creation.</p>
 <p><span class="code-inline">width</span> and <span class="code-inline">height</span> are logical units: the created window is proportionally larger, in physical pixels, on a scaled display. The client size reported to <a href="#Core_Env_WindowResizeCallback">Core.Env.WindowResizeCallback</a> is physical.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Env_WindowOptions">WindowOptions</a></span></span></div>
@@ -10759,17 +10965,17 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Core_Serialization_Read_Buffer">Buffer</a></span> = <span class="SFct">Array</span>'<span class="STpe">u8</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-alias"><span id="Core_Env_ProcessHandle" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Env.ProcessHandle</span> <a class="api-item-permalink" href="#Core_Env_ProcessHandle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.swg#L6">src</a></div>
+<div class="api-item api-item-alias"><span id="Core_Env_ProcessHandle" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Env.ProcessHandle</span> <a class="api-item-permalink" href="#Core_Env_ProcessHandle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.swg#L8">src</a></div>
 <p>Names the process handle type.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Core_Env_ProcessHandle">ProcessHandle</a></span> = <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="STpe">void</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-alias"><span id="Core_Env_WindowPaintCallback" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Env.WindowPaintCallback</span> <a class="api-item-permalink" href="#Core_Env_WindowPaintCallback" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L331">src</a></div>
+<div class="api-item api-item-alias"><span id="Core_Env_WindowPaintCallback" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Env.WindowPaintCallback</span> <a class="api-item-permalink" href="#Core_Env_WindowPaintCallback" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L395">src</a></div>
 <p>Handles a native window paint request.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Core_Env_WindowPaintCallback">WindowPaintCallback</a></span> = <span class="SKwd">func</span>||(*<span class="SCst"><a href="#Core_Env_Window">Window</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-alias"><span id="Core_Env_WindowResizeCallback" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Env.WindowResizeCallback</span> <a class="api-item-permalink" href="#Core_Env_WindowResizeCallback" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L334">src</a></div>
+<div class="api-item api-item-alias"><span id="Core_Env_WindowResizeCallback" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Env.WindowResizeCallback</span> <a class="api-item-permalink" href="#Core_Env_WindowResizeCallback" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L398">src</a></div>
 <p>Handles a native window resize and receives the new client size in physical pixels.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Core_Env_WindowResizeCallback">WindowResizeCallback</a></span> = <span class="SKwd">func</span>||(*<span class="SCst"><a href="#Core_Env_Window">Window</a></span>, <span class="STpe">s32</span>, <span class="STpe">s32</span>)</span></div>
 </section>
@@ -11697,6 +11903,23 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </tbody>
 </table>
 <section class="api-symbol">
+<div class="api-item api-item-enum"><span id="Core_Env_StreamRedirection" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Env.StreamRedirection</span> <a class="api-item-permalink" href="#Core_Env_StreamRedirection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.swg#L11">src</a></div>
+<p>Selects how one standard stream of a child process is connected.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Core_Env_StreamRedirection">StreamRedirection</a></span></span></div>
+</section>
+<h3>Cases</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Core_Env_StreamRedirection_Discard" class="code-type">Discard</td><td><p>Output is thrown away, and standard input reads the end of the stream at once.</p>
+</td></tr>
+<tr><td id="Core_Env_StreamRedirection_Inherit" class="code-type">Inherit</td><td><p>The child shares the corresponding stream of the current process.</p>
+</td></tr>
+<tr><td id="Core_Env_StreamRedirection_Pipe" class="code-type">Pipe</td><td><p>The stream is connected to a pipe owned by the started <a href="#Core_Env_Process">Core.Env.Process</a>.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
 <div class="api-item api-item-enum"><span id="Core_Env_SystemMetric" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Env.SystemMetric</span> <a class="api-item-permalink" href="#Core_Env_SystemMetric" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.swg#L132">src</a></div>
 <p>Identifies a virtual-desktop system metric.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Core_Env_SystemMetric">SystemMetric</a></span></span></div>
@@ -11716,7 +11939,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-enum"><span id="Core_Env_SystemMutation" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Env.SystemMutation</span> <a class="api-item-permalink" href="#Core_Env_SystemMutation" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L94">src</a></div>
+<div class="api-item api-item-enum"><span id="Core_Env_SystemMutation" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Env.SystemMutation</span> <a class="api-item-permalink" href="#Core_Env_SystemMutation" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L115">src</a></div>
 <p>Names a category of machine state an application mutates outside its own files.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Core_Env_SystemMutation">SystemMutation</a></span></span></div>
 </section>
@@ -13668,7 +13891,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">duplicate</span>(newName, oldName: <span class="STpe">string</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_File_exists" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">File.exists</span> <a class="api-item-permalink" href="#Core_File_exists" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/file.win32.swg#L37">src</a></div>
+<div class="api-item api-item-func"><span id="Core_File_exists" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">File.exists</span> <a class="api-item-permalink" href="#Core_File_exists" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/file.win32.swg#L52">src</a></div>
 <p>Returns true if the given file exists</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">exists</span>(fullName: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -13678,17 +13901,23 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">info</span>(fullname: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="#Core_File_FileInfo">FileInfo</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_File_open" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">File.open</span> <a class="api-item-permalink" href="#Core_File_open" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/file.win32.swg#L54">src</a></div>
+<div class="api-item api-item-func"><span id="Core_File_move" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">File.move</span> <a class="api-item-permalink" href="#Core_File_move" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/file.win32.swg#L23">src</a></div>
+<p>Moves <span class="code-inline">oldName</span> to <span class="code-inline">newName</span>, replacing whatever is already there.</p>
+<p>The move is atomic when both paths sit on one volume, and a copy followed by a delete when they do not, which is what makes it work across drives at the cost of that guarantee.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">move</span>(newName, oldName: <span class="STpe">string</span>) <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_File_open" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">File.open</span> <a class="api-item-permalink" href="#Core_File_open" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/file.win32.swg#L69">src</a></div>
 <p>Open a new file stream</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">open</span>(fullName: <span class="STpe">string</span>, mode: <span class="SCst"><a href="#Core_File_FileMode">FileMode</a></span>, access: <span class="SCst"><a href="#Core_File_FileAccess">FileAccess</a></span>, share: <span class="SCst"><a href="#Core_File_FileShare">FileShare</a></span>)-&gt;<span class="SCst"><a href="#Core_File_FileStream">FileStream</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_File_openRead" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">File.openRead</span> <a class="api-item-permalink" href="#Core_File_openRead" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/file.win32.swg#L112">src</a></div>
+<div class="api-item api-item-func"><span id="Core_File_openRead" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">File.openRead</span> <a class="api-item-permalink" href="#Core_File_openRead" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/file.win32.swg#L127">src</a></div>
 <p>Creates a new file stream for reading</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">openRead</span>(fullName: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="#Core_File_FileStream">FileStream</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_File_openWrite" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">File.openWrite</span> <a class="api-item-permalink" href="#Core_File_openWrite" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/file.win32.swg#L118">src</a></div>
+<div class="api-item api-item-func"><span id="Core_File_openWrite" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">File.openWrite</span> <a class="api-item-permalink" href="#Core_File_openWrite" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/file.win32.swg#L133">src</a></div>
 <p>Creates a new file stream for writing</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">openWrite</span>(fullName: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="#Core_File_FileStream">FileStream</a></span> <span class="SKwd">fail</span></span></div>
 </section>
@@ -13714,7 +13943,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <span class="SKwd">func</span> <span class="SFct">readEachLines</span>(fullname: <span class="STpe">string</span>, encoding = <span class="SCst"><a href="#Core_File_TextEncoding">TextEncoding</a></span>.<span class="SCst"><a href="#namespace_Core_Utf8">Utf8</a></span>, stmt: <span class="SItr">#code</span>(<span class="SKwd">var</span> line: &amp;<span class="SCst"><a href="#Core_String">String</a></span>)) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_File_touch" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">File.touch</span> <a class="api-item-permalink" href="#Core_File_touch" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/file.win32.swg#L20">src</a></div>
+<div class="api-item api-item-func"><span id="Core_File_touch" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">File.touch</span> <a class="api-item-permalink" href="#Core_File_touch" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/file.win32.swg#L35">src</a></div>
 <p>Change the file write date/time</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">touch</span>(fullName: <span class="STpe">string</span>) <span class="SKwd">fail</span></span></div>
 </section>
@@ -17383,77 +17612,164 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">splitArguments</span>(args: <span class="SKwd">const</span> [..] <span class="STpe">string</span>, options: <span class="SCst"><a href="#Core_CommandLine_ParseOptions">ParseOptions</a></span>)-&gt;<span class="SFct">Array</span>'(<span class="STpe">string</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Process_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Process.close</span> <a class="api-item-permalink" href="#Core_Env_Process_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.win32.swg#L57">src</a></div>
-<p>Performs the close operation.</p>
+<div class="api-item api-item-func"><span id="Core_Env_Process_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Process.close</span> <a class="api-item-permalink" href="#Core_Env_Process_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.win32.swg#L415">src</a></div>
+<p>Releases every platform handle this value owns, without waiting for the process.</p>
+<p>Whatever the streams already produced stays readable, so a run can still be inspected once its process is gone. Calling <span class="code-inline">close</span> repeatedly is safe.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">close</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Process_currentExecutablePath" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Process.currentExecutablePath</span> <a class="api-item-permalink" href="#Core_Env_Process_currentExecutablePath" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.win32.swg#L80">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Process_closeStandardInput" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Process.closeStandardInput</span> <a class="api-item-permalink" href="#Core_Env_Process_closeStandardInput" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.win32.swg#L603">src</a></div>
+<p>Closes the standard-input pipe, which is how a child reading to the end of its input learns that there is nothing more. Calling it repeatedly is safe.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">closeStandardInput</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Env_Process_currentExecutablePath" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Process.currentExecutablePath</span> <a class="api-item-permalink" href="#Core_Env_Process_currentExecutablePath" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.win32.swg#L614">src</a></div>
 <p>Returns the absolute path of the executable image for the current process.</p>
 <p>Fails when Windows cannot resolve the image path or the path exceeds the platform limit.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">currentExecutablePath</span>()-&gt;<span class="SCst"><a href="#Core_String">String</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Process_currentProcessId" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Process.currentProcessId</span> <a class="api-item-permalink" href="#Core_Env_Process_currentProcessId" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.win32.swg#L75">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Process_currentProcessId" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Process.currentProcessId</span> <a class="api-item-permalink" href="#Core_Env_Process_currentProcessId" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.win32.swg#L609">src</a></div>
 <p>Returns the current operating-system process identifier.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">currentProcessId</span>()-&gt;<span class="STpe">u64</span> =&gt; <span class="SCst"><a href="std.win32.html#Win32_GetCurrentProcessId">GetCurrentProcessId</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Process_currentThreadId" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Process.currentThreadId</span> <a class="api-item-permalink" href="#Core_Env_Process_currentThreadId" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.win32.swg#L92">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Process_currentThreadId" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Process.currentThreadId</span> <a class="api-item-permalink" href="#Core_Env_Process_currentThreadId" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.win32.swg#L626">src</a></div>
 <p>Returns the current operating-system thread identifier.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">currentThreadId</span>()-&gt;<span class="STpe">u64</span> =&gt; <span class="SCst"><a href="std.win32.html#Win32_GetCurrentThreadId">GetCurrentThreadId</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Process_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Process.opDrop</span> <a class="api-item-permalink" href="#Core_Env_Process_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.win32.swg#L51">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Process_exitCode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Process.exitCode</span> <a class="api-item-permalink" href="#Core_Env_Process_exitCode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.swg#L211">src</a></div>
+<p>Returns the exit code reported by the process.</p>
+<p>Only meaningful once the process has exited, which <a href="#Core_Env_Process_waitForExit">Core.Env.Process.waitForExit</a> or a successful <a href="#Core_Env_Process_tryWaitForExit">Core.Env.Process.tryWaitForExit</a> guarantees.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">exitCode</span>()-&gt;<span class="STpe">s32</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Env_Process_isRunning" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Process.isRunning</span> <a class="api-item-permalink" href="#Core_Env_Process_isRunning" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.swg#L205">src</a></div>
+<p>Returns whether the process is still running as far as the last wait could tell.</p>
+<p>This reports recorded state and never queries the system, so it stays true until a wait, a kill or a close observes the exit.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isRunning</span>()-&gt;<span class="STpe">bool</span> =&gt; .handle != <span class="SKwd">null</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Env_Process_kill" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Process.kill</span> <a class="api-item-permalink" href="#Core_Env_Process_kill" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.win32.swg#L572">src</a></div>
+<p>Requests the immediate termination of the process, which is then given <span class="code-inline">exitCode</span>.</p>
+<p>The request is asynchronous: the process is still there when this returns, so follow it with <a href="#Core_Env_Process_waitForExit">Core.Env.Process.waitForExit</a> to observe the exit and collect what the child left in the captured streams. Killing a process that already exited does nothing.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">kill</span>(exitCode: <span class="STpe">s32</span> = <span class="SNum">1</span>) <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Env_Process_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Process.opDrop</span> <a class="api-item-permalink" href="#Core_Env_Process_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.win32.swg#L406">src</a></div>
 <p>Releases resources owned by this value.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Process_waitForExit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Process.waitForExit</span> <a class="api-item-permalink" href="#Core_Env_Process_waitForExit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.win32.swg#L67">src</a></div>
-<p>Wait for the process to be done</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">waitForExit</span>()</span></div>
+<div class="api-item api-item-func"><span id="Core_Env_Process_readAvailable" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Process.readAvailable</span> <a class="api-item-permalink" href="#Core_Env_Process_readAvailable" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.win32.swg#L468">src</a></div>
+<p>Reads whatever the redirected streams hold right now, without waiting for more.</p>
+<p>Every wait already does this, so a caller only needs it to follow a long-running child while it works. Reaching the end of a stream is not a failure: the pipe is released and a later call simply has nothing to do.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">readAvailable</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_acquireDeviceContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.acquireDeviceContext</span> <a class="api-item-permalink" href="#Core_Env_Window_acquireDeviceContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L556">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Process_resources" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Process.resources</span> <a class="api-item-permalink" href="#Core_Env_Process_resources" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.win32.swg#L429">src</a></div>
+<p>Returns what the process and everything it started consumed.</p>
+<p>Answers zero unless the process was started with <span class="code-inline">StartInfo.measureResources</span>. The figures stay readable while this value holds the accounting group, which is until <a href="#Core_Env_Process_close">Core.Env.Process.close</a>, so a caller reads them after waiting for the exit.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">resources</span>()-&gt;<span class="SCst"><a href="#Core_Env_ProcessResources">ProcessResources</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Env_Process_standardError" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Process.standardError</span> <a class="api-item-permalink" href="#Core_Env_Process_standardError" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.swg#L227">src</a></div>
+<p>Returns everything captured from standard error so far.</p>
+<p>Empty unless the stream was redirected to <a href="#Core_Env_StreamRedirection_Pipe">Core.Env.StreamRedirection.Pipe</a>. The result is borrowed from this value and stays valid until the next read.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">standardError</span>()-&gt;<span class="STpe">string</span> =&gt; .error.toString</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Env_Process_standardOutput" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Process.standardOutput</span> <a class="api-item-permalink" href="#Core_Env_Process_standardOutput" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.swg#L221">src</a></div>
+<p>Returns everything captured from standard output so far.</p>
+<p>Empty unless the stream was redirected to <a href="#Core_Env_StreamRedirection_Pipe">Core.Env.StreamRedirection.Pipe</a>. The result is borrowed from this value and stays valid until the next read.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">standardOutput</span>()-&gt;<span class="STpe">string</span> =&gt; .output.toString</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Env_Process_tryWaitForExit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Process.tryWaitForExit</span> <a class="api-item-permalink" href="#Core_Env_Process_tryWaitForExit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.win32.swg#L537">src</a></div>
+<p>Waits up to <span class="code-inline">timeout</span> for the process to exit, and returns whether it did.</p>
+<p>Drains the redirected streams like <a href="#Core_Env_Process_waitForExit">Core.Env.Process.waitForExit</a> does. A zero timeout makes this a single poll, which is how a caller follows a child without blocking on it.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">tryWaitForExit</span>(timeout: <span class="SCst"><a href="#namespace_Core_Time">Time</a></span>.<span class="SCst"><a href="#Core_Time_Duration">Duration</a></span>)-&gt;<span class="STpe">bool</span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Env_Process_waitForExit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Process.waitForExit</span> <a class="api-item-permalink" href="#Core_Env_Process_waitForExit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.win32.swg#L513">src</a></div>
+<p>Waits for the process to exit and returns its exit code.</p>
+<p>The redirected streams are drained while waiting, so a child that produces more output than a pipe holds keeps running instead of blocking on a reader that never reads.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">waitForExit</span>()-&gt;<span class="STpe">s32</span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Env_Process_writeStandardInput" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Process.writeStandardInput</span> <a class="api-item-permalink" href="#Core_Env_Process_writeStandardInput" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.win32.swg#L584">src</a></div>
+<p>Writes <span class="code-inline">data</span> to the standard input of the process.</p>
+<p>Fails when standard input was not redirected to <a href="#Core_Env_StreamRedirection_Pipe">Core.Env.StreamRedirection.Pipe</a>, and when the child has closed its end. Call <a href="#Core_Env_Process_closeStandardInput">Core.Env.Process.closeStandardInput</a> after the last write: a child reading to the end of its input waits forever otherwise.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">writeStandardInput</span>(data: <span class="STpe">string</span>) <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Env_ProcessEnvironment_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ProcessEnvironment.clear</span> <a class="api-item-permalink" href="#Core_Env_ProcessEnvironment_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.swg#L78">src</a></div>
+<p>Removes every variable, leaving the environment empty.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Env_ProcessEnvironment_count" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ProcessEnvironment.count</span> <a class="api-item-permalink" href="#Core_Env_ProcessEnvironment_count" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.swg#L52">src</a></div>
+<p>Returns how many variables the environment holds.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">count</span>()-&gt;<span class="STpe">u64</span> =&gt; .variables</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Env_ProcessEnvironment_remove" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ProcessEnvironment.remove</span> <a class="api-item-permalink" href="#Core_Env_ProcessEnvironment_remove" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.swg#L72">src</a></div>
+<p>Removes <span class="code-inline">name</span>. Removing a name the environment does not hold does nothing.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">remove</span>(name: <span class="STpe">string</span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Env_ProcessEnvironment_set" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ProcessEnvironment.set</span> <a class="api-item-permalink" href="#Core_Env_ProcessEnvironment_set" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.swg#L66">src</a></div>
+<p>Binds <span class="code-inline">name</span> to <span class="code-inline">value</span>, replacing any previous binding.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">set</span>(name, value: <span class="STpe">string</span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Env_ProcessEnvironment_value" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ProcessEnvironment.value</span> <a class="api-item-permalink" href="#Core_Env_ProcessEnvironment_value" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.swg#L57">src</a></div>
+<p>Returns the value bound to <span class="code-inline">name</span>, or <span class="code-inline">null</span> when the environment does not hold it.</p>
+<p>The result is borrowed from this value and stays valid until the binding changes.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">value</span>(name: <span class="STpe">string</span>)-&gt;<span class="SItr">#null</span> <span class="STpe">string</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Env_Window_acquireDeviceContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.acquireDeviceContext</span> <a class="api-item-permalink" href="#Core_Env_Window_acquireDeviceContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L620">src</a></div>
 <p>Acquires the native device context for this window.</p>
 <p>Every successful call must be paired with <a href="#Core_Env_Window_releaseDeviceContext">Core.Env.Window.releaseDeviceContext</a> on the same window.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">acquireDeviceContext</span>()-&gt;<span class="SCst"><a href="std.win32.html#Win32_HDC">HDC</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.close</span> <a class="api-item-permalink" href="#Core_Env_Window_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L542">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.close</span> <a class="api-item-permalink" href="#Core_Env_Window_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L606">src</a></div>
 <p>Closes the native window if it is still open.</p>
 <p>Calling <span class="code-inline">close</span> repeatedly is safe. Failure leaves the native handle owned by this value, so a later call or scope cleanup can retry the release.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">close</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_dpiScale" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.dpiScale</span> <a class="api-item-permalink" href="#Core_Env_Window_dpiScale" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L574">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_dpiScale" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.dpiScale</span> <a class="api-item-permalink" href="#Core_Env_Window_dpiScale" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L638">src</a></div>
 <p>Returns the physical device pixels per logical unit on the window's monitor.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">dpiScale</span>()-&gt;<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_releaseDeviceContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.releaseDeviceContext</span> <a class="api-item-permalink" href="#Core_Env_Window_releaseDeviceContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L562">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_releaseDeviceContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.releaseDeviceContext</span> <a class="api-item-permalink" href="#Core_Env_Window_releaseDeviceContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L626">src</a></div>
 <p>Releases a device context returned by <a href="#Core_Env_Window_acquireDeviceContext">Core.Env.Window.acquireDeviceContext</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">releaseDeviceContext</span>(deviceContext: <span class="SCst"><a href="std.win32.html#Win32_HDC">HDC</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_requestPaint" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.requestPaint</span> <a class="api-item-permalink" href="#Core_Env_Window_requestPaint" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L568">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_requestPaint" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.requestPaint</span> <a class="api-item-permalink" href="#Core_Env_Window_requestPaint" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L632">src</a></div>
 <p>Queues a paint request for this window.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">requestPaint</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_setClientSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.setClientSize</span> <a class="api-item-permalink" href="#Core_Env_Window_setClientSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L586">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_setClientSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.setClientSize</span> <a class="api-item-permalink" href="#Core_Env_Window_setClientSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L650">src</a></div>
 <p>Resizes the client area to <span class="code-inline">width</span> by <span class="code-inline">height</span> logical units while preserving the current position.</p>
 <p>The realized client area is proportionally larger, in physical pixels, on a scaled display; <a href="#Core_Env_WindowResizeCallback">Core.Env.WindowResizeCallback</a> reports that physical size.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setClientSize</span>(width, height: <span class="STpe">s32</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_show" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.show</span> <a class="api-item-permalink" href="#Core_Env_Window_show" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L607">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_show" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.show</span> <a class="api-item-permalink" href="#Core_Env_Window_show" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L671">src</a></div>
 <p>Shows the window and updates its client area.</p>
 <p>The resize callback receives the initial physical client size before the window becomes visible, so a renderer never draws a frame at a stale size.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">show</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_WindowLoop_next" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">WindowLoop.next</span> <a class="api-item-permalink" href="#Core_Env_WindowLoop_next" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L627">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_WindowLoop_next" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">WindowLoop.next</span> <a class="api-item-permalink" href="#Core_Env_WindowLoop_next" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L691">src</a></div>
 <p>Processes pending messages and returns whether the application should continue.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">next</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -17476,30 +17792,46 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <span class="SKwd">func</span> <span class="SFct">associateFileExtension</span>(extension, appName, appPath: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_createWindow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.createWindow</span> <a class="api-item-permalink" href="#Core_Env_createWindow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L486">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_claimFileExtension" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.claimFileExtension</span> <a class="api-item-permalink" href="#Core_Env_claimFileExtension" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L308">src</a></div>
+<p>Makes <span class="code-inline">appPath</span> the program the shell runs for <span class="code-inline">extension</span>, for the current user.</p>
+<p>This is the strong form of <a href="#Core_Env_associateFileExtension">Env.associateFileExtension</a>: that one offers the application in the <i>Open with</i> list and leaves the default alone, which is what an application wants for a format it merely reads. This one takes the extension over, so opening one of those files — from a double-click, from <span class="code-inline">cmd</span>, from anywhere the shell resolves a document — runs <span class="code-inline">appPath</span>. Reserve it for an extension the application defines.</p>
+<p><span class="code-inline">progId</span> is the class name the extension points at, conventionally <span class="code-inline">Vendor.Kind</span>. It is what distinguishes this claim from another program's, so keep it stable: registering the same <span class="code-inline">progId</span> again updates the claim instead of adding a second one. <span class="code-inline">description</span> is the file type as the shell shows it in a folder listing.</p>
+<p>The command it registers passes the opened file and then everything else the caller typed, so an extension claimed this way carries its own arguments.</p>
+<p>Refused under a sandbox, which reports it as not claimed: this changes what the shell does on the whole machine.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Discardable]</span>
+<span class="SKwd">func</span> <span class="SFct">claimFileExtension</span>(extension, progId, description, appPath: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Env_corpusRoot" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.corpusRoot</span> <a class="api-item-permalink" href="#Core_Env_corpusRoot" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L226">src</a></div>
+<p>Returns the corpus root, or an empty string when the run was granted none.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">corpusRoot</span>()-&gt;<span class="STpe">string</span> =&gt; g_CorpusRoot.toString</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Env_createWindow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.createWindow</span> <a class="api-item-permalink" href="#Core_Env_createWindow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L550">src</a></div>
 <p>Creates and owns a native application window.</p>
 <p>The returned <a href="#Core_Env_Window">Core.Env.Window</a> keeps platform-specific state behind <a href="#Core_Env_Window_nativeHandle">Core.Env.Window.nativeHandle</a> and closes the native window when it leaves scope. The process becomes DPI aware, and the logical <span class="code-inline">options</span> size is realized in the physical pixels of the monitor the window appears on.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createWindow</span>(options: <span class="SCst"><a href="#Core_Env_WindowOptions">WindowOptions</a></span>)-&gt;<span class="SCst"><a href="#Core_Env_Window">Window</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_deniedSystemMutations" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.deniedSystemMutations</span> <a class="api-item-permalink" href="#Core_Env_deniedSystemMutations" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L176">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_currentEnvironment" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.currentEnvironment</span> <a class="api-item-permalink" href="#Core_Env_currentEnvironment" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.win32.swg#L27">src</a></div>
+<p>Returns the environment variables of the current process.</p>
+<p>This is a snapshot: changing the returned value does not change the environment of the current process, only what a child started with it inherits.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">currentEnvironment</span>()-&gt;<span class="SCst"><a href="#Core_Env_ProcessEnvironment">ProcessEnvironment</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Env_deniedSystemMutations" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.deniedSystemMutations</span> <a class="api-item-permalink" href="#Core_Env_deniedSystemMutations" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L232">src</a></div>
 <p>Returns how many system mutations have been refused so far.</p>
 <p>A smoke run reports this: an application that still reaches for the registry or the shell on startup is not yet isolated, even though nothing failed.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">deniedSystemMutations</span>()-&gt;<span class="STpe">u64</span> =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_doSyncProcess" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.doSyncProcess</span> <a class="api-item-permalink" href="#Core_Env_doSyncProcess" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.swg#L31">src</a></div>
-<p>Starts a new process with arguments, and wait for it to be done</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">doSyncProcess</span>(fileName: <span class="STpe">string</span>, arguments: <span class="SItr">#null</span> <span class="STpe">string</span> = <span class="SKwd">null</span>) <span class="SKwd">fail</span></span></div>
-</section>
-<section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_enableDpiAwareness" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.enableDpiAwareness</span> <a class="api-item-permalink" href="#Core_Env_enableDpiAwareness" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L322">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_enableDpiAwareness" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.enableDpiAwareness</span> <a class="api-item-permalink" href="#Core_Env_enableDpiAwareness" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L386">src</a></div>
 <p>Declares this process per-monitor DPI aware, so windows receive physical pixels.</p>
 <p>Every window-creation path calls this before its first native window exists; an application only needs it directly when it creates native windows on its own. Once enabled, monitor and cursor coordinates are physical desktop pixels and the system no longer stretches window content on scaled displays. Idempotent, and a failure (for example when the awareness was already set by other means) is ignored.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">enableDpiAwareness</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_enterSandbox" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.enterSandbox</span> <a class="api-item-permalink" href="#Core_Env_enterSandbox" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L107">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_enterSandbox" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.enterSandbox</span> <a class="api-item-permalink" href="#Core_Env_enterSandbox" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L128">src</a></div>
 <p>Arms the sandbox at <span class="code-inline">root</span>, which becomes the answer to every special-directory query.</p>
 <p><span class="code-inline">root</span> is created when missing. Arming twice with the same root is accepted; changing an armed root is not, because code may already hold paths derived from the previous one.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">enterSandbox</span>(root: <span class="STpe">string</span>) <span class="SKwd">fail</span></span></div>
@@ -17511,12 +17843,12 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">executablePath</span>()-&gt;<span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_exit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.exit</span> <a class="api-item-permalink" href="#Core_Env_exit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.win32.swg#L9">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_exit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.exit</span> <a class="api-item-permalink" href="#Core_Env_exit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.win32.swg#L21">src</a></div>
 <p>Exit the current process</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">exit</span>(exitCode: <span class="STpe">u32</span>) =&gt; <span class="SCst"><a href="std.win32.html#Win32_ExitProcess">ExitProcess</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_getDpiScale" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.getDpiScale</span> <a class="api-item-permalink" href="#Core_Env_getDpiScale" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L303">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_getDpiScale" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.getDpiScale</span> <a class="api-item-permalink" href="#Core_Env_getDpiScale" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L367">src</a></div>
 <p>Returns the current logical-to-physical desktop scale factor.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">getDpiScale</span>()-&gt;<span class="STpe">f32</span></span></div>
 </section>
@@ -17538,31 +17870,49 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">getSystemMetric</span>(what: <span class="SCst"><a href="#Core_Env_SystemMetric">SystemMetric</a></span>)-&gt;<span class="STpe">s32</span></span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Env_grantCorpus" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.grantCorpus</span> <a class="api-item-permalink" href="#Core_Env_grantCorpus" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L174">src</a></div>
+<p>Grants <span class="code-inline">root</span> as the corpus: the one directory outside the sandbox a run may still write.</p>
+<p>A test keeps its reference data next to its own source, so recording one — creating a snapshot that does not exist yet, or leaving the produced one beside the reference it diverged from — means writing into the sources under test. The sandbox refuses that, and it is right to: the escape belongs to whoever launched the run, not to the test asking for it. <span class="code-inline">swc test</span> grants the module or workspace it is testing, and nothing else; the machine stays out of reach.</p>
+<p><span class="code-inline">root</span> must already exist. Granting twice with the same root is accepted; changing a granted root is not, because code may already hold paths derived from the previous one.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">grantCorpus</span>(root: <span class="STpe">string</span>) <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Env_hasArgument" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.hasArgument</span> <a class="api-item-permalink" href="#Core_Env_hasArgument" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.swg#L22">src</a></div>
 <p>Returns whether the command line contains <span class="code-inline">argument</span> exactly.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">hasArgument</span>(argument: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_isInsideDirectory" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.isInsideDirectory</span> <a class="api-item-permalink" href="#Core_Env_isInsideDirectory" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L196">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_isInsideCorpus" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.isInsideCorpus</span> <a class="api-item-permalink" href="#Core_Env_isInsideCorpus" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L282">src</a></div>
+<p>Reports whether <span class="code-inline">path</span> is inside the granted corpus. Answers false when there is none.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isInsideCorpus</span>(path: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span> =&gt; isInsideDirectory</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Env_isInsideDirectory" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.isInsideDirectory</span> <a class="api-item-permalink" href="#Core_Env_isInsideDirectory" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L252">src</a></div>
 <p>Reports whether <span class="code-inline">path</span> names <span class="code-inline">root</span> itself or something below it.</p>
 <p>Both sides are resolved and normalized first, so a relative path, a mixed separator style or a difference in case cannot smuggle a location past the check.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isInsideDirectory</span>(root: <span class="STpe">string</span>, path: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_isInsideSandbox" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.isInsideSandbox</span> <a class="api-item-permalink" href="#Core_Env_isInsideSandbox" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L218">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_isInsideSandbox" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.isInsideSandbox</span> <a class="api-item-permalink" href="#Core_Env_isInsideSandbox" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L274">src</a></div>
 <p>Reports whether <span class="code-inline">path</span> is inside the sandbox. Answers true when nothing is armed.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isInsideSandbox</span>(path: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_isSandboxed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.isSandboxed</span> <a class="api-item-permalink" href="#Core_Env_isSandboxed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L144">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_isSandboxed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.isSandboxed</span> <a class="api-item-permalink" href="#Core_Env_isSandboxed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L197">src</a></div>
 <p>Reports whether the process is isolated from real machine state.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isSandboxed</span>()-&gt;<span class="STpe">bool</span> =&gt;</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_isSmokeRun" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.isSmokeRun</span> <a class="api-item-permalink" href="#Core_Env_isSmokeRun" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L151">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_isSmokeRun" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.isSmokeRun</span> <a class="api-item-permalink" href="#Core_Env_isSmokeRun" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L204">src</a></div>
 <p>Reports whether the process is a smoke run: the real program, bounded by its launcher.</p>
 <p>Code driving its own loop instead of <a href="std.gui.html#Gui_Application_run">Gui.Application.run</a> asks this to know when to stop. Nothing else should branch on it: a smoke run must exercise the same paths as a real one.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isSmokeRun</span>()-&gt;<span class="STpe">bool</span> =&gt; <span class="SFct">smokeFrames</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Env_joinArguments" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.joinArguments</span> <a class="api-item-permalink" href="#Core_Env_joinArguments" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.win32.swg#L98">src</a></div>
+<p>Returns <span class="code-inline">arguments</span> joined into the one command line the system parses back into them.</p>
+<p>This is what <a href="#Core_Env_StartInfo_arguments">Core.Env.StartInfo.arguments</a> expects when the values are not already a command line, so a caller never has to know the quoting rules of the platform.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">joinArguments</span>(arguments: <span class="SKwd">const</span> [..] <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Env_monitorForPoint" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.monitorForPoint</span> <a class="api-item-permalink" href="#Core_Env_monitorForPoint" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.swg#L70">src</a></div>
@@ -17582,9 +17932,15 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">openUrl</span>(url: <span class="STpe">string</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_processWindowMessages" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.processWindowMessages</span> <a class="api-item-permalink" href="#Core_Env_processWindowMessages" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L521">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_processWindowMessages" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.processWindowMessages</span> <a class="api-item-permalink" href="#Core_Env_processWindowMessages" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L585">src</a></div>
 <p>Processes all pending window messages. Returns false when the application should exit.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">processWindowMessages</span>()-&gt;<span class="STpe">bool</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Env_quoteArgument" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.quoteArgument</span> <a class="api-item-permalink" href="#Core_Env_quoteArgument" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.win32.swg#L87">src</a></div>
+<p>Returns <span class="code-inline">value</span> spelled so the system parses it back as exactly one argument.</p>
+<p>A value holding a space, a tab or a quote is wrapped, and the backslashes in front of a wrapping quote are doubled, which is what the command-line grammar needs to give the child the string that was passed here. Use it for any argument that comes from a path or from input rather than from a literal; <a href="#Core_Env_joinArguments">Core.Env.joinArguments</a> does it for a whole list.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">quoteArgument</span>(value: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Env_realSpecialDirectory" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.realSpecialDirectory</span> <a class="api-item-permalink" href="#Core_Env_realSpecialDirectory" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L29">src</a></div>
@@ -17599,7 +17955,21 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">registerApplication</span>(appName, appFriendly: <span class="STpe">string</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_sandboxRoot" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.sandboxRoot</span> <a class="api-item-permalink" href="#Core_Env_sandboxRoot" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L170">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_runProcess" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.runProcess</span> <a class="api-item-permalink" href="#Core_Env_runProcess" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.swg#L182">src</a></div>
+<p>Starts a process, waits for it to exit, and returns it with everything it produced.</p>
+<p>Standard output and standard error are captured, so the returned value answers <a href="#Core_Env_Process_standardOutput">Core.Env.Process.standardOutput</a> and <a href="#Core_Env_Process_standardError">Core.Env.Process.standardError</a> as well as <a href="#Core_Env_Process_exitCode">Core.Env.Process.exitCode</a>. Standard input is inherited.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">let</span> process = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Core_Env">Env</a></span>.<span class="SFct">runProcess</span>(<span class="SStr">"swc.exe"</span>, <span class="SStr">"--help"</span>)
+<span class="SLgc">if</span> process.<span class="SFct">exitCode</span>() != <span class="SNum">0</span> <span class="SLgc">do</span>
+    <span class="SKwd">fail</span> <span class="SCst"><a href="#namespace_Core_Errors">Errors</a></span>.<span class="SCst"><a href="#Core_Errors_BadParameterError">BadParameterError</a></span>{<span class="SStr">"the compiler refused to answer"</span>}
+<span class="SItr">@print</span>(process.<span class="SFct">standardOutput</span>())
+</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">runProcess</span>(fileName: <span class="STpe">string</span>, arguments: <span class="SItr">#null</span> <span class="STpe">string</span> = <span class="SKwd">null</span>)-&gt;<span class="SCst"><a href="#Core_Env_Process">Process</a></span> <span class="SKwd">fail</span></span></div>
+<p>Starts the process <span class="code-inline">info</span> describes, waits for it to exit, and returns it.</p>
+<p>Redirection follows <span class="code-inline">info</span>: a stream left to <a href="#Core_Env_StreamRedirection_Inherit">Core.Env.StreamRedirection.Inherit</a> is not captured, and the matching accessor stays empty.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">runProcess</span>(info: <span class="SCst"><a href="#Core_Env_StartInfo">StartInfo</a></span>)-&gt;<span class="SCst"><a href="#Core_Env_Process">Process</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Env_sandboxRoot" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.sandboxRoot</span> <a class="api-item-permalink" href="#Core_Env_sandboxRoot" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L223">src</a></div>
 <p>Returns the sandbox root, or an empty string when the process is not sandboxed.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sandboxRoot</span>()-&gt;<span class="STpe">string</span> =&gt; g_SandboxRoot.toString</span></div>
 </section>
@@ -17610,22 +17980,30 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <span class="SKwd">func</span> <span class="SFct">showInFileExplorer</span>(path: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_smokeFrames" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.smokeFrames</span> <a class="api-item-permalink" href="#Core_Env_smokeFrames" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L157">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_smokeFrames" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.smokeFrames</span> <a class="api-item-permalink" href="#Core_Env_smokeFrames" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/sandbox.swg#L210">src</a></div>
 <p>Returns how many frames a smoke run renders before stopping, or zero outside one.</p>
 <p>A smoke run proves the real program starts and keeps running; the bound belongs to whoever launched it, so an application never has to recognize that it is being exercised.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">smokeFrames</span>()-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_startProcess" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.startProcess</span> <a class="api-item-permalink" href="#Core_Env_startProcess" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.swg#L24">src</a></div>
-<p>Starts a new process with arguments</p>
+<div class="api-item api-item-func"><span id="Core_Env_startProcess" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.startProcess</span> <a class="api-item-permalink" href="#Core_Env_startProcess" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.swg#L164">src</a></div>
+<p>Starts a new process, returning as soon as it is running.</p>
+<p>The child inherits the standard streams, the working directory and the environment of the current process. Use <a href="#Core_Env_startProcess">Core.Env.startProcess</a> with a <a href="#Core_Env_StartInfo">Core.Env.StartInfo</a> to change any of that.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">startProcess</span>(fileName: <span class="STpe">string</span>, arguments: <span class="SItr">#null</span> <span class="STpe">string</span> = <span class="SKwd">null</span>)-&gt;<span class="SCst"><a href="#Core_Env_Process">Process</a></span> <span class="SKwd">fail</span></span></div>
-<p>Starts a new process with arguments</p>
+<p>Starts the process <span class="code-inline">info</span> describes, returning as soon as it is running.</p>
+<p>The executable is resolved from the command line, so a bare name is searched along the executable search path and a path containing spaces needs no quoting from the caller.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">startProcess</span>(info: <span class="SCst"><a href="#Core_Env_StartInfo">StartInfo</a></span>)-&gt;<span class="SCst"><a href="#Core_Env_Process">Process</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Env_userLocaleName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.userLocaleName</span> <a class="api-item-permalink" href="#Core_Env_userLocaleName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L168">src</a></div>
 <p>Returns the user's preferred locale name, such as <span class="code-inline">"fr-FR"</span>, or an empty string when the system cannot provide one. The part before <span class="code-inline">-</span> is the language tag an application can hand to its localization layer.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">userLocaleName</span>()-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Env_variable" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.variable</span> <a class="api-item-permalink" href="#Core_Env_variable" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/process.win32.swg#L64">src</a></div>
+<p>Returns the value of the environment variable <span class="code-inline">name</span> in the current process.</p>
+<p>Answers an empty string when the variable is unset, which a variable holding nothing is indistinguishable from. Read <a href="#Core_Env_currentEnvironment">Core.Env.currentEnvironment</a> instead when that difference matters, or when more than a couple of variables are wanted.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">variable</span>(name: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Errors_mkString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Errors.mkString</span> <a class="api-item-permalink" href="#Core_Errors_mkString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/errors.swg#L80">src</a></div>
@@ -19925,8 +20303,10 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "s|Core.CommandLine.ParseOptions|Core_CommandLine_ParseOptions|Represents parse options.",
 "s|Core.CommandLine.Result|Core_CommandLine_Result|Result of the parse function",
 "s|Core.Env.Monitor|Core_Env_Monitor|Describes a physical monitor.",
-"s|Core.Env.Process|Core_Env_Process|Represents process.",
-"s|Core.Env.StartInfo|Core_Env_StartInfo|Represents start info.",
+"s|Core.Env.Process|Core_Env_Process|Owns a started child process, its pipes, and everything captured from it.",
+"s|Core.Env.ProcessEnvironment|Core_Env_ProcessEnvironment|Holds the environment variables a child process is started with.",
+"s|Core.Env.ProcessResources|Core_Env_ProcessResources|What a measured process and everything it started consumed.",
+"s|Core.Env.StartInfo|Core_Env_StartInfo|Describes the process to start and how it is connected to the current one.",
 "s|Core.Env.Window|Core_Env_Window|Owns one native application window.",
 "s|Core.Env.WindowCallbacks|Core_Env_WindowCallbacks|Groups the optional callbacks dispatched by a Core.Env.Window.",
 "s|Core.Env.WindowLoop|Core_Env_WindowLoop|Provides iterable native message processing.",
@@ -19991,6 +20371,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "e|Core.Serialization.Write.TagBinSignature|Core_Serialization_Write_TagBinSignature|Signatures used to tag different sections and elements in the binary serialization format",
 "e|Core.Serialization.Write.TagBinValueFlags|Core_Serialization_Write_TagBinValueFlags|Additional signature for each value, stored after the value description (crcs)",
 "e|Core.Env.SpecialDirectory|Core_Env_SpecialDirectory|Identifies a well-known operating-system directory.",
+"e|Core.Env.StreamRedirection|Core_Env_StreamRedirection|Selects how one standard stream of a child process is connected.",
 "e|Core.Env.SystemMetric|Core_Env_SystemMetric|Identifies a virtual-desktop system metric.",
 "e|Core.Env.SystemMutation|Core_Env_SystemMutation|Names a category of machine state an application mutates outside its own files.",
 "e|Core.CharacterSet|Core_CharacterSet|Selects character set.",
@@ -20302,6 +20683,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "f|Core.File.duplicate|Core_File_duplicate|Creates a duplicate of an existing file",
 "f|Core.File.exists|Core_File_exists|Returns true if the given file exists",
 "f|Core.File.info|Core_File_info|Returns metadata for a file or directory.",
+"f|Core.File.move|Core_File_move|Moves oldName to newName, replacing whatever is already there.",
 "f|Core.File.open|Core_File_open|Open a new file stream",
 "f|Core.File.openRead|Core_File_openRead|Creates a new file stream for reading",
 "f|Core.File.openWrite|Core_File_openWrite|Creates a new file stream for writing",
@@ -20966,12 +21348,27 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "f|Core.CommandLine.isValue|Core_CommandLine_isValue|Returns whether value.",
 "f|Core.CommandLine.parse|Core_CommandLine_parse|Parse all the arguments and fill the result",
 "f|Core.CommandLine.splitArguments|Core_CommandLine_splitArguments|Clean and split a list of arguments",
-"f|Core.Env.Process.close|Core_Env_Process_close|Performs the close operation.",
+"f|Core.Env.Process.close|Core_Env_Process_close|Releases every platform handle this value owns, without waiting for the process.",
+"f|Core.Env.Process.closeStandardInput|Core_Env_Process_closeStandardInput|Closes the standard-input pipe, which is how a child reading to the end of its input",
 "f|Core.Env.Process.currentExecutablePath|Core_Env_Process_currentExecutablePath|Returns the absolute path of the executable image for the current process.",
 "f|Core.Env.Process.currentProcessId|Core_Env_Process_currentProcessId|Returns the current operating-system process identifier.",
 "f|Core.Env.Process.currentThreadId|Core_Env_Process_currentThreadId|Returns the current operating-system thread identifier.",
+"f|Core.Env.Process.exitCode|Core_Env_Process_exitCode|Returns the exit code reported by the process.",
+"f|Core.Env.Process.isRunning|Core_Env_Process_isRunning|Returns whether the process is still running as far as the last wait could tell.",
+"f|Core.Env.Process.kill|Core_Env_Process_kill|Requests the immediate termination of the process, which is then given exitCode.",
 "f|Core.Env.Process.opDrop|Core_Env_Process_opDrop|Releases resources owned by this value.",
-"f|Core.Env.Process.waitForExit|Core_Env_Process_waitForExit|Wait for the process to be done",
+"f|Core.Env.Process.readAvailable|Core_Env_Process_readAvailable|Reads whatever the redirected streams hold right now, without waiting for more.",
+"f|Core.Env.Process.resources|Core_Env_Process_resources|Returns what the process and everything it started consumed.",
+"f|Core.Env.Process.standardError|Core_Env_Process_standardError|Returns everything captured from standard error so far.",
+"f|Core.Env.Process.standardOutput|Core_Env_Process_standardOutput|Returns everything captured from standard output so far.",
+"f|Core.Env.Process.tryWaitForExit|Core_Env_Process_tryWaitForExit|Waits up to timeout for the process to exit, and returns whether it did.",
+"f|Core.Env.Process.waitForExit|Core_Env_Process_waitForExit|Waits for the process to exit and returns its exit code.",
+"f|Core.Env.Process.writeStandardInput|Core_Env_Process_writeStandardInput|Writes data to the standard input of the process.",
+"f|Core.Env.ProcessEnvironment.clear|Core_Env_ProcessEnvironment_clear|Removes every variable, leaving the environment empty.",
+"f|Core.Env.ProcessEnvironment.count|Core_Env_ProcessEnvironment_count|Returns how many variables the environment holds.",
+"f|Core.Env.ProcessEnvironment.remove|Core_Env_ProcessEnvironment_remove|Removes name. Removing a name the environment does not hold does nothing.",
+"f|Core.Env.ProcessEnvironment.set|Core_Env_ProcessEnvironment_set|Binds name to value, replacing any previous binding.",
+"f|Core.Env.ProcessEnvironment.value|Core_Env_ProcessEnvironment_value|Returns the value bound to name, or null when the environment does not hold it.",
 "f|Core.Env.Window.acquireDeviceContext|Core_Env_Window_acquireDeviceContext|Acquires the native device context for this window.",
 "f|Core.Env.Window.close|Core_Env_Window_close|Closes the native window if it is still open.",
 "f|Core.Env.Window.dpiScale|Core_Env_Window_dpiScale|Returns the physical device pixels per logical unit on the window's monitor.",
@@ -20983,9 +21380,11 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "f|Core.Env.argument|Core_Env_argument|Returns the command-line argument at index, or null when it is out of range.",
 "f|Core.Env.arguments|Core_Env_arguments|Returns the process command-line arguments.",
 "f|Core.Env.associateFileExtension|Core_Env_associateFileExtension|Associate an extension to an executable",
+"f|Core.Env.claimFileExtension|Core_Env_claimFileExtension|Makes appPath the program the shell runs for extension, for the current user.",
+"f|Core.Env.corpusRoot|Core_Env_corpusRoot|Returns the corpus root, or an empty string when the run was granted none.",
 "f|Core.Env.createWindow|Core_Env_createWindow|Creates and owns a native application window.",
+"f|Core.Env.currentEnvironment|Core_Env_currentEnvironment|Returns the environment variables of the current process.",
 "f|Core.Env.deniedSystemMutations|Core_Env_deniedSystemMutations|Returns how many system mutations have been refused so far.",
-"f|Core.Env.doSyncProcess|Core_Env_doSyncProcess|Starts a new process with arguments, and wait for it to be done",
 "f|Core.Env.enableDpiAwareness|Core_Env_enableDpiAwareness|Declares this process per-monitor DPI aware, so windows receive physical pixels.",
 "f|Core.Env.enterSandbox|Core_Env_enterSandbox|Arms the sandbox at root, which becomes the answer to every special-directory query.",
 "f|Core.Env.executablePath|Core_Env_executablePath|Returns the executable path reported as command-line argument zero.",
@@ -20994,22 +21393,28 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 "f|Core.Env.getMonitors|Core_Env_getMonitors|Returns snapshots of all active display monitors, ordered from left to right.",
 "f|Core.Env.getSpecialDirectory|Core_Env_getSpecialDirectory|Returns the normalized path of a well-known system directory.",
 "f|Core.Env.getSystemMetric|Core_Env_getSystemMetric|Returns one virtual-desktop metric in physical pixels.",
+"f|Core.Env.grantCorpus|Core_Env_grantCorpus|Grants root as the corpus: the one directory outside the sandbox a run may still write.",
 "f|Core.Env.hasArgument|Core_Env_hasArgument|Returns whether the command line contains argument exactly.",
+"f|Core.Env.isInsideCorpus|Core_Env_isInsideCorpus|Reports whether path is inside the granted corpus. Answers false when there is none.",
 "f|Core.Env.isInsideDirectory|Core_Env_isInsideDirectory|Reports whether path names root itself or something below it.",
 "f|Core.Env.isInsideSandbox|Core_Env_isInsideSandbox|Reports whether path is inside the sandbox. Answers true when nothing is armed.",
 "f|Core.Env.isSandboxed|Core_Env_isSandboxed|Reports whether the process is isolated from real machine state.",
 "f|Core.Env.isSmokeRun|Core_Env_isSmokeRun|Reports whether the process is a smoke run: the real program, bounded by its launcher.",
+"f|Core.Env.joinArguments|Core_Env_joinArguments|Returns arguments joined into the one command line the system parses back into them.",
 "f|Core.Env.monitorForPoint|Core_Env_monitorForPoint|Returns the monitor containing point, or the nearest monitor otherwise.",
 "f|Core.Env.monitorForRectangle|Core_Env_monitorForRectangle|Returns the monitor with the largest intersection with rectangle.",
 "f|Core.Env.openUrl|Core_Env_openUrl|Opens url with the system's default handler.",
 "f|Core.Env.processWindowMessages|Core_Env_processWindowMessages|Processes all pending window messages. Returns false when the application should exit.",
+"f|Core.Env.quoteArgument|Core_Env_quoteArgument|Returns value spelled so the system parses it back as exactly one argument.",
 "f|Core.Env.realSpecialDirectory|Core_Env_realSpecialDirectory|Returns the normalized path of a well-known system directory on the machine itself,",
 "f|Core.Env.registerApplication|Core_Env_registerApplication|Register an application in the system",
+"f|Core.Env.runProcess|Core_Env_runProcess|Starts a process, waits for it to exit, and returns it with everything it produced.",
 "f|Core.Env.sandboxRoot|Core_Env_sandboxRoot|Returns the sandbox root, or an empty string when the process is not sandboxed.",
 "f|Core.Env.showInFileExplorer|Core_Env_showInFileExplorer|Selects path in the platform file explorer.",
 "f|Core.Env.smokeFrames|Core_Env_smokeFrames|Returns how many frames a smoke run renders before stopping, or zero outside one.",
-"f|Core.Env.startProcess|Core_Env_startProcess|Starts a new process with arguments",
+"f|Core.Env.startProcess|Core_Env_startProcess|Starts a new process, returning as soon as it is running.",
 "f|Core.Env.userLocaleName|Core_Env_userLocaleName|Returns the user's preferred locale name, such as \"fr-FR\", or an empty string",
+"f|Core.Env.variable|Core_Env_variable|Returns the value of the environment variable name in the current process.",
 "f|Core.Errors.mkString|Core_Errors_mkString|Make a string persistent for errors.",
 "f|Core.Guid128.clear|Core_Guid128_clear|Resets the identifier to its null value.",
 "f|Core.Guid128.isNull|Core_Guid128_isNull|Returns whether all bits are zero.",

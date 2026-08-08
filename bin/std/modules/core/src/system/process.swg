@@ -94,6 +94,27 @@ struct StartInfo
     standardInput:    StreamRedirection = .Inherit        // How the child reads standard input.
     standardOutput:   StreamRedirection = .Inherit        // How the child writes standard output.
     standardError:    StreamRedirection = .Inherit        // How the child writes standard error.
+    affinityMask:     u64                                 // Logical processors the child may run on, one bit each. Zero inherits the current set.
+    measureResources: bool                                // Whether to account the child and everything it starts, which [[Core.Env.Process.resources]] answers.
+}
+
+/*
+What a measured process and everything it started consumed.
+
+Answered by [[Core.Env.Process.resources]] once the process was started with
+`StartInfo.measureResources`. The whole tree is accounted, not just the process that was named:
+a program that does its work in helpers it spawns would otherwise report almost nothing.
+
+The peaks are the highest each figure ever reached, so they stay meaningful after the processes
+that produced them are gone. Times are totals across the tree.
+*/
+struct ProcessResources
+{
+    peakMemory:        u64               // Highest committed memory the whole tree reached at once.
+    peakProcessMemory: u64               // Highest committed memory any single process in it reached.
+    userTime:          Time.Duration     // Total time the tree spent running its own code.
+    kernelTime:        Time.Duration     // Total time the system spent working on its behalf.
+    processCount:      u64               // How many processes the tree contained, first and last included.
 }
 
 /*
@@ -123,6 +144,7 @@ struct Process
     internal
     {
         handle:     ProcessHandle     // Platform handle of the spawned process, owned by this value.
+        jobHandle:  ProcessHandle     // Accounting group holding the process and its children, when measured.
         inputPipe:  ProcessHandle     // Writable end of the standard-input pipe, when redirected.
         outputPipe: ProcessHandle     // Readable end of the standard-output pipe, when redirected.
         errorPipe:  ProcessHandle     // Readable end of the standard-error pipe, when redirected.

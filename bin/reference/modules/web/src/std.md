@@ -11,8 +11,9 @@ Import a standard module from `module.swg` or a script setup section:
 #import("core", location: "swag@std")
 ```
 
-The `swag@std` location is resolved through `SWAG_PATH`, which must point to the
-compiler's `bin` directory.
+`swag@std` is the standard library beside the compiler that runs the build.
+`SWAG_PATH` answers instead for a compiler installed without one, and points to
+that library's `bin` directory.
 
 ## Application libraries
 

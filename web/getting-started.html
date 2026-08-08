@@ -34,10 +34,10 @@
 <ol>
 <li>Clone <a href="https://github.com/swag-lang/swc">swag-lang/swc</a>.</li>
 <li>Follow <a href="how-to-build-swag.html">Build Swag from source</a>. The project pins the Visual Studio <span class="code-inline">v145</span> C++ toolset and Windows SDK <span class="code-inline">10.0.26100.0</span>.</li>
-<li>From the repository root, run <span class="code-inline">tools\setup.bat</span>.</li>
+<li>From the repository root, run <span class="code-inline">bin\swc.exe tools\setup.swgs</span>.</li>
 <li>Open a new terminal and verify the installation with <span class="code-inline">swc help</span>.</li>
 </ol>
-<p>The registration script adds the repository's <span class="code-inline">bin</span> directory to the user <span class="code-inline">PATH</span> and sets <span class="code-inline">SWAG_PATH</span> to that directory. <span class="code-inline">PATH</span> locates <span class="code-inline">swc.exe</span>; <span class="code-inline">SWAG_PATH</span> lets the compiler find <span class="code-inline">bin/runtime</span> and <span class="code-inline">bin/std</span>.</p>
+<p>The registration script adds the repository's <span class="code-inline">bin</span> directory to the user <span class="code-inline">PATH</span>, sets <span class="code-inline">SWAG_PATH</span> to that directory, and hands the <span class="code-inline">.swgs</span> extension to the compiler. <span class="code-inline">PATH</span> locates <span class="code-inline">swc.exe</span>, and the extension makes a script run from a double-click. <span class="code-inline">swc.exe</span> finds <span class="code-inline">bin/runtime</span> and <span class="code-inline">bin/std</span> beside itself, so <span class="code-inline">SWAG_PATH</span> matters only for a compiler installed away from its library.</p>
 <p>The compiler invokes the Microsoft x64 linker and Windows SDK tools when it produces native artifacts, so keep the Visual Studio C++ workload installed after building <span class="code-inline">swc</span>.</p>
 <h2 id="Run_a_first_script">Run a first script</h2>
 <p>Create a standalone script and run it directly:</p>

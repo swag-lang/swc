@@ -260,7 +260,7 @@ Three things this gets wrong if they are not said:
   explanation. Use repository-relative commands and paths.
 - Add reusable build, package, and integration entry points under `tools/`; do not leave personal
   absolute paths or root-level app scripts behind.
-- Make `tools/apps.bat` build, test, run, or smoke the module through the
+- Make `tools/apps.swgs` build, test, run, or smoke the module through the
   shared workspace. Package runtime dependencies after a normal app build when the executable is
   not functional without them.
 
@@ -268,11 +268,11 @@ Three things this gets wrong if they are not said:
 
 For each changed app:
 
-1. Build it with `tools/apps.bat dm build sName`.
-2. Run its tests with `tools/apps.bat dm test sName`.
-3. Run its bounded startup with `tools/apps.bat dm smoke sName`.
+1. Build it with `swc tools/apps.swgs dm build sName`.
+2. Run its tests with `swc tools/apps.swgs dm test sName`.
+3. Run its bounded startup with `swc tools/apps.swgs dm smoke sName`.
 4. Run any dedicated integration script. Keep tests that need UAC, drivers, hardware, or visible
-   interaction in an explicit `tools/test-<name>-integration.bat`; do not surprise the ordinary
+   interaction in an explicit `tools/test-<name>-integration.swgs`; do not surprise the ordinary
    aggregate suite with a privilege prompt.
 5. Inspect packaged output for the executable, runtime dependencies, icon, licenses, and absence
    of installer or test debris.

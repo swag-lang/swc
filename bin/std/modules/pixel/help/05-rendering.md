@@ -116,7 +116,7 @@ Testing.assertImageGolden(&image, "toolbar.enabled")
 
 The first run creates `goldens/toolbar.enabled.png` and passes so the new file can
 be reviewed. A mismatch fails and writes `toolbar.enabled.actual.png`. After
-reviewing both images, `tools\goldens.bat` promotes pending snapshots.
+reviewing both images, `swc tools\goldens.swgs` promotes pending snapshots.
 
 Use [[Pixel.Testing.assertImagesNear]] when two backends render the same scene in
 one test. It writes both images on failure. The channel-delta limit absorbs small

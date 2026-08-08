@@ -170,8 +170,15 @@ public impl ByteStream
         var shift = 0'u32
         while true
         {
-            let b = .readNative'u8()
-            result |= cast(u64) (b & 0x7F) << shift
+            let b       = .readNative'u8()
+            let payload = cast(u64) (b & 0x7F)
+
+            // The tenth byte can only carry the top bit of a 64-bit value; anything
+            // wider is an over-long encoding.
+            if shift == 63 and payload > 1 do
+                fail OverflowError{"varint is too long"}
+
+            result |= payload << shift
             if b < 0x80 do
                 return result
             shift += 7

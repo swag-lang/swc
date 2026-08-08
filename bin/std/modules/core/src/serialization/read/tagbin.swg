@@ -1367,9 +1367,10 @@ impl TagBin
                 count = cast(u64) .stream.readNative'u32()
 
             // Validate before reserving, so a corrupt length cannot request an
-            // arbitrary allocation.
+            // arbitrary allocation. The error type stays fully qualified: this generic
+            // body is exported and re-checked without this file's 'using' context.
             if count > .stream.length() - .stream.seek do
-                fail SerializationError{"string runs past the end of the stream"}
+                fail Core.Errors.SerializationError{"string runs past the end of the stream"}
 
             result.reserve(count)
             .stream.readBytes(result.buffer, count)

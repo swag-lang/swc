@@ -171,7 +171,7 @@ impl Encoder
 
         if Reflection.isType(type)
         {
-            let typeType = dref cast(const **TypeInfo) data!
+            let typeType = dref cast(const *#null typeinfo) data!
             .serializer.writeNative(typeType ? .serializer.typeCrcOf(typeType) : 0'u32)
             return
         }

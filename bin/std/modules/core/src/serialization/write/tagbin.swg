@@ -607,14 +607,15 @@ impl TagBin
     // Writes a native value to the output buffer, with special handling for strings
     mtd(NT) writeNative(value: NT)
     {
+        let output = .output!
         #static if Reflection.isString(NT)
         {
             .writeVarint(@countof(value))
-            .output.addBytes(value)
+            output.addBytes(value)
         }
         else
         {
-            .output.addNative(value)
+            output.addNative(value)
         }
     }
 }

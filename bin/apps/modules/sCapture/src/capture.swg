@@ -429,7 +429,7 @@ impl Capture
         var res = File.readAllBytes(file)
 
         // Strip the container header when it is there; a headerless file predates it.
-        var payload = res.toSlice()
+        var payload: const [..] u8 = res.toSlice()
         var version = 0'u32
         if @countof(payload) >= 8
         {

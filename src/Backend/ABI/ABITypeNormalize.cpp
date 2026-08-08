@@ -85,7 +85,17 @@ ABITypeNormalize::NormalizedType ABITypeNormalize::normalize(TaskContext& ctx, c
         SWC_ASSERT(rawSize <= std::numeric_limits<uint32_t>::max());
         const auto size = static_cast<uint32_t>(rawSize);
 
-        const auto passingKind = usage == Usage::Argument ? conv.classifyStructArgPassing(size) : conv.classifyStructReturnPassing(size);
+        // An array parameter is a view of the caller's storage: writes through it are the
+        // language contract, and C decays an array parameter to a pointer rather than pass it
+        // by value. So only value-semantic aggregates ride the by-value rule for arguments.
+        const bool hasValueSemantics = ty.isStruct() || ty.isAggregateStruct();
+
+        auto passingKind = StructArgPassingKind::ByReference;
+        if (usage == Usage::Return)
+            passingKind = conv.classifyStructReturnPassing(size);
+        else if (hasValueSemantics)
+            passingKind = conv.classifyStructArgPassing(size);
+
         if (passingKind == StructArgPassingKind::ByValue)
         {
             // Current supported by-value aggregate widths match the platform ABI slots.

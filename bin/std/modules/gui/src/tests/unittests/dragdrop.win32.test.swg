@@ -17,12 +17,6 @@ using Swag, Core, Win32
 // pointer is the shell's drag image, not ours.
 // ---------------------------------------------------------------------------
 
-// The register image of a point, which is how a drop-target callback receives one.
-internal func packPoint(x, y: s32)->PACKEDPOINTL
-{
-    return cast(u64) cast #bit (u32) x | (cast(u64) cast #bit (u32) y << 32)
-}
-
 // Builds a source object over `data`, the way `startDrag` does.
 internal func testDragSource(session: *DragSession, data: *DragData)->*IDataObject
 {
@@ -37,7 +31,7 @@ internal func testRoundTrip(host: *Testing.HeadlessHost, source: *IDataObject)->
     let target = cast(*IDropTarget) &host.surface.dropTarget
 
     var effect = DROPEFFECT_COPY
-    @assert(target.lpVtbl.DragEnter(target, source, 0, packPoint(60, 60), &effect) == S_OK)
+    @assert(target.lpVtbl.DragEnter(target, source, 0, {60, 60}, &effect) == S_OK)
     return &host.surface.dropTarget.data
 }
 
@@ -89,11 +83,11 @@ impl IWnd for PlatformCatcher
     let target = cast(*IDropTarget) &host.surface.dropTarget
 
     var effect = DROPEFFECT_COPY
-    @assert(target.lpVtbl.DragEnter(target, source, 0, packPoint(60, 60), &effect) == S_OK)
+    @assert(target.lpVtbl.DragEnter(target, source, 0, {60, 60}, &effect) == S_OK)
     @assert(effect == DROPEFFECT_COPY)
 
     effect = DROPEFFECT_COPY
-    @assert(target.lpVtbl.Drop(target, source, 0, packPoint(60, 60), &effect) == S_OK)
+    @assert(target.lpVtbl.Drop(target, source, 0, {60, 60}, &effect) == S_OK)
     @assert(effect == DROPEFFECT_COPY)
 
     @assert(catcher.drops == 1)
@@ -336,7 +330,7 @@ impl IWnd for PlatformCatcher
     let target = cast(*IDropTarget) &host.surface.dropTarget
 
     var effect = DROPEFFECT_COPY
-    discard target.lpVtbl.DragEnter(target, source, 0, packPoint(60, 60), &effect)
+    discard target.lpVtbl.DragEnter(target, source, 0, {60, 60}, &effect)
     @assert(host.surface.dropTarget.data.singleFile() == "c:/tmp/only.txt")
 
     @assert(target.lpVtbl.DragLeave(target) == S_OK)

@@ -1105,6 +1105,10 @@ void CodeGen::registerImplicitDrop(const SymbolVariable& symVar)
     {
         if (CodeGenFunctionHelpers::isBorrowedIndirectParameter(*this, function(), symVar))
             return;
+        // A by-value aggregate parameter is a transport image of the caller's value: ownership
+        // stays with the caller, exactly as for a borrowed indirect parameter.
+        if (CodeGenFunctionHelpers::isByValueAggregateParameter(*this, function(), symVar))
+            return;
         if (!symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) &&
             !CodeGenFunctionHelpers::canUseIncomingIndirectParameterAsAddressableParameter(*this, function(), symVar))
             return;

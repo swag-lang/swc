@@ -211,7 +211,8 @@ namespace
         for (SymbolVariable* symVar : params)
         {
             SWC_ASSERT(symVar != nullptr);
-            if (!symVar->hasExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage))
+            if (!symVar->hasExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage) &&
+                !CodeGenFunctionHelpers::isByValueAggregateParameter(codeGen, codeGen.function(), *symVar))
                 continue;
             if (CodeGenFunctionHelpers::canUseIncomingIndirectParameterAsAddressableParameter(codeGen, codeGen.function(), *symVar))
                 continue;
@@ -418,11 +419,12 @@ namespace
     // so the incoming argument would never be read and the spill would copy the still
     // uninitialized slot onto itself. Register parameters avoid this because
     // 'materializeRegisterParameters' loads them before any of that.
-    bool stackParameterNeedsEagerLoad(const CodeGen& codeGen, const SymbolVariable& symVar)
+    bool stackParameterNeedsEagerLoad(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar)
     {
-        return symVar.hasExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage) &&
-               symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) &&
-               codeGen.localStackBaseReg().isValid();
+        if (!symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) || !codeGen.localStackBaseReg().isValid())
+            return false;
+        return symVar.hasExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage) ||
+               CodeGenFunctionHelpers::isByValueAggregateParameter(codeGen, symbolFunc, symVar);
     }
 
     void materializeStackParameters(CodeGen& codeGen, const SymbolFunction& symbolFunc, std::span<const CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos)
@@ -438,7 +440,7 @@ namespace
             if (paramInfo.isRegisterArg)
                 continue;
 
-            if (stackParameterNeedsEagerLoad(codeGen, *symVar))
+            if (stackParameterNeedsEagerLoad(codeGen, symbolFunc, *symVar))
             {
                 CodeGenNodePayload symbolPayload;
                 symbolPayload.reg     = paramInfo.isFloat ? codeGen.nextVirtualFloatRegister() : codeGen.nextVirtualIntRegister();
@@ -463,9 +465,10 @@ namespace
         for (const SymbolVariable* symVar : params)
         {
             SWC_ASSERT(symVar != nullptr);
-            if (!symVar->hasExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage))
-                continue;
             if (!symVar->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
+                continue;
+            if (!symVar->hasExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage) &&
+                !CodeGenFunctionHelpers::isByValueAggregateParameter(codeGen, symbolFunc, *symVar))
                 continue;
 
             const CodeGenNodePayload* symbolPayload = codeGen.variablePayload(*symVar);

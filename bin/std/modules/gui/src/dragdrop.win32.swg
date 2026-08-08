@@ -213,9 +213,8 @@ private func comRelease(itf: *IDropTarget)->ULONG
     return target.refCount
 }
 
-private func comDragEnter(itf: *IDropTarget, dataObj: #null *IDataObject, grfKeyState: DWORD, packedPt: PACKEDPOINTL, pdwEffect: *DWORD)->HRESULT
+private func comDragEnter(itf: *IDropTarget, dataObj: #null *IDataObject, grfKeyState: DWORD, pt: POINTL, pdwEffect: *DWORD)->HRESULT
 {
-    let pt     = pointFromPacked(packedPt)
     let target = dropTargetOf(itf)
     readDragData(dataObj, &target.data)
     target.allowed = toDropEffect(dref pdwEffect)
@@ -228,9 +227,8 @@ private func comDragEnter(itf: *IDropTarget, dataObj: #null *IDataObject, grfKey
     return S_OK
 }
 
-private func comDragOver(itf: *IDropTarget, grfKeyState: DWORD, packedPt: PACKEDPOINTL, pdwEffect: *DWORD)->HRESULT
+private func comDragOver(itf: *IDropTarget, grfKeyState: DWORD, pt: POINTL, pdwEffect: *DWORD)->HRESULT
 {
-    let pt     = pointFromPacked(packedPt)
     let target = dropTargetOf(itf)
     target.allowed = toDropEffect(dref pdwEffect)
 
@@ -248,9 +246,8 @@ private func comDragLeave(itf: *IDropTarget)->HRESULT
     return S_OK
 }
 
-private func comDrop(itf: *IDropTarget, dataObj: #null *IDataObject, grfKeyState: DWORD, packedPt: PACKEDPOINTL, pdwEffect: *DWORD)->HRESULT
+private func comDrop(itf: *IDropTarget, dataObj: #null *IDataObject, grfKeyState: DWORD, pt: POINTL, pdwEffect: *DWORD)->HRESULT
 {
-    let pt     = pointFromPacked(packedPt)
     let target = dropTargetOf(itf)
 
     // The object handed to Drop is the authoritative one: a source may publish more on release

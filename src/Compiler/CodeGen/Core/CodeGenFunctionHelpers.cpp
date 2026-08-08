@@ -390,6 +390,30 @@ bool CodeGenFunctionHelpers::isBorrowedIndirectParameter(CodeGen& codeGen, const
     return normalizedParam.isIndirect && !normalizedParam.needsIndirectCopy;
 }
 
+bool CodeGenFunctionHelpers::isByValueAggregateParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar)
+{
+    // An aggregate small enough for the ABI to pass in a register still needs a memory home in
+    // the callee: the body reads it through its address. The prologue gives such a parameter a
+    // local slot and spills the incoming register there.
+    if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
+        return false;
+
+    TaskContext&  ctx     = codeGen.ctx();
+    const TypeRef typeRef = symVar.typeRef();
+    if (!typeRef.isValid())
+        return false;
+
+    const TypeRef   expandedTypeRef = ctx.typeMgr().get(typeRef).unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+    const TypeRef   storageTypeRef  = expandedTypeRef.isValid() ? expandedTypeRef : typeRef;
+    const TypeInfo& storageType     = ctx.typeMgr().get(storageTypeRef);
+    if (!storageType.isStruct() && !storageType.isArray() && !storageType.isAggregate())
+        return false;
+
+    const CallConv&                        callConv        = CallConv::get(symbolFunc.callConvKind());
+    const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(ctx, callConv, typeRef, ABITypeNormalize::Usage::Argument);
+    return !normalizedParam.isIndirect;
+}
+
 void CodeGenFunctionHelpers::emitLocalStackFramePrologue(CodeGen& codeGen, CallConvKind callConvKind)
 {
     if (!codeGen.hasLocalStackFrame())
@@ -485,9 +509,9 @@ CodeGenNodePayload CodeGenFunctionHelpers::materializeFunctionParameter(CodeGen&
         return *symbolPayload;
     }
 
-    if (payloadSym.hasExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage) &&
-        payloadSym.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) &&
-        codeGen.localStackBaseReg().isValid())
+    if (payloadSym.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) &&
+        codeGen.localStackBaseReg().isValid() &&
+        (payloadSym.hasExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage) || isByValueAggregateParameter(codeGen, symbolFunc, payloadSym)))
     {
         const CodeGenNodePayload payload = codeGen.resolveLocalStackPayload(payloadSym);
         if (&payloadSym != &symVar)

@@ -101,10 +101,14 @@ TypeRef SemaHelpers::borrowedAggregateArgumentRuntimeStorageTypeRef(Sema& sema, 
 
     const CallConv&                        callConv       = CallConv::get(calledFn.callConvKind());
     const ABITypeNormalize::NormalizedType normalizedType = ABITypeNormalize::normalize(sema.ctx(), callConv, paramTypeRef, ABITypeNormalize::Usage::Argument);
-    if (normalizedType.isIndirect && !normalizedType.needsIndirectCopy)
-        return storageTypeRef;
 
-    return TypeRef::invalid();
+    // Borrowed indirect aggregates need a home whose address the call passes. Aggregates the
+    // ABI passes by value in a register still need one for the rvalue case: the literal
+    // materializes into it and the call site loads the register image out of it.
+    if (normalizedType.isIndirect && normalizedType.needsIndirectCopy)
+        return TypeRef::invalid();
+
+    return storageTypeRef;
 }
 
 Result SemaHelpers::attachBorrowedAggregateArgumentRuntimeStorageIfNeeded(Sema& sema, const SymbolFunction& calledFn, TypeRef paramTypeRef, AstNodeRef argRef)

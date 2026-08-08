@@ -132,32 +132,15 @@ struct IDropTarget
     lpVtbl: *IDropTargetVtbl
 }
 
-// `DragEnter`, `DragOver` and `Drop` take a `POINTL` by value. The MS x64 ABI passes an
-// eight-byte aggregate in a register, exactly like the integer of that width, so the point is
-// spelled as its register image here and unpacked with [[Win32.pointFromPacked]]. Declaring the
-// aggregate itself would be more faithful, and is what this binding did first: it faults on
-// entry, before the callback body runs, so the two spellings are not interchangeable for a
-// callback Swag defines. See `backlog/findings.compiler.md`.
-alias PACKEDPOINTL = u64
-
 struct IDropTargetVtbl
 {
     QueryInterface: func(*IDropTarget, const *GUID, *LPVOID)->HRESULT
     AddRef:         func(*IDropTarget)->ULONG
     Release:        func(*IDropTarget)->ULONG
-    DragEnter:      func(*IDropTarget, #null *IDataObject, DWORD, PACKEDPOINTL, *DWORD)->HRESULT
-    DragOver:       func(*IDropTarget, DWORD, PACKEDPOINTL, *DWORD)->HRESULT
+    DragEnter:      func(*IDropTarget, #null *IDataObject, DWORD, POINTL, *DWORD)->HRESULT
+    DragOver:       func(*IDropTarget, DWORD, POINTL, *DWORD)->HRESULT
     DragLeave:      func(*IDropTarget)->HRESULT
-    Drop:           func(*IDropTarget, #null *IDataObject, DWORD, PACKEDPOINTL, *DWORD)->HRESULT
-}
-
-// Unpacks the register image of a `POINTL` handed to a drop-target callback.
-func pointFromPacked(packed: PACKEDPOINTL)->POINTL
-{
-    var result: retval
-    result.x = cast #bit (s32) cast(u32) (packed & 0xFFFFFFFF)
-    result.y = cast #bit (s32) cast(u32) (packed >> 32)
-    return result
+    Drop:           func(*IDropTarget, #null *IDataObject, DWORD, POINTL, *DWORD)->HRESULT
 }
 
 struct IDropSource

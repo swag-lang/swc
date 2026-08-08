@@ -234,11 +234,12 @@ impl Application
     //
     // The platform layer calls this for both the first notification of a gesture and every later
     // move: entering and leaving are derived here, so a window is told exactly once when the
-    // pointer arrives and exactly once when it goes. `screenPos` is in physical screen pixels,
-    // like every other position crossing the platform boundary.
-    internal mtd dragUpdate(screenPos: Math.Point, data: *DragData, allowed: DropEffect, modifiers: Input.KeyModifiers)->DropEffect
+    // pointer arrives and exactly once when it goes. `surface` is the one whose drop target the
+    // platform called, and `screenPos` is in physical screen pixels, like every other position
+    // crossing the platform boundary.
+    internal mtd dragUpdate(surface: *Surface, screenPos: Math.Point, data: *DragData, allowed: DropEffect, modifiers: Input.KeyModifiers)->DropEffect
     {
-        return .dragUpdateTo(skipDisabled(.windowAt(screenPos)), screenPos, data, allowed, modifiers)
+        return .dragUpdateTo(skipDisabled(surface.windowAt(screenPos)), screenPos, data, allowed, modifiers)
     }
 
     // Same, for a target already resolved. A harness driving a gesture without a desktop under it
@@ -277,9 +278,9 @@ impl Application
     //
     // The window is told the gesture left it whatever it answers, so a drop highlight is cleared
     // by the same path as a cancelled drag.
-    internal mtd dragDrop(screenPos: Math.Point, data: *DragData, allowed: DropEffect, modifiers: Input.KeyModifiers)->DropEffect
+    internal mtd dragDrop(surface: *Surface, screenPos: Math.Point, data: *DragData, allowed: DropEffect, modifiers: Input.KeyModifiers)->DropEffect
     {
-        return .dragDropTo(skipDisabled(.windowAt(screenPos)), screenPos, data, allowed, modifiers)
+        return .dragDropTo(skipDisabled(surface.windowAt(screenPos)), screenPos, data, allowed, modifiers)
     }
 
     // Same, for a target already resolved. See [[Gui.Application.dragUpdateTo]].

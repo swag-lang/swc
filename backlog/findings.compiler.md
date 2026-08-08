@@ -190,3 +190,34 @@ Entries are sorted by identifier, ascending; position carries no priority.
   `typeinfo` of the reference rather than of the pointee, or the address of the reference slot
   rather than of the value. Decide then whether the fix is to strip the reference where the
   argument is boxed, or to have the conversion follow it.
+
+### F-078 — A Swag function used as a foreign callback faults on an eight-byte aggregate parameter
+
+- Area: compiler
+- Found while: implementing `IDropTarget` in `std/gui`, whose `DragEnter`, `DragOver` and `Drop`
+  all take a `POINTL` by value.
+- Observation: when a *native* caller invokes a Swag `func` through a function pointer and one
+  parameter is an eight-byte aggregate passed by value, the call faults on entry — before the
+  first statement of the callee runs. `ABITypeNormalize.cpp:82-95` classifies a struct of size 1,
+  2, 4 or 8 as `ByValue` and normalizes it to an integer of that width, which is the MS x64 rule
+  and is what makes the *outbound* direction correct. Something on the inbound side does not agree,
+  and the prologue reads the register as though it addressed the aggregate.
+- Evidence: with `DragEnter` declared as `func(*IDropTarget, #null *IDataObject, DWORD, POINTL, *DWORD)`,
+  dragging any file from Explorer over an `sCrypt` window produces, in the Windows application log:
+  `APPCRASH sCrypt.exe / gui.dll / c0000005 / offset 0x2218e`. A diagnostic written as the first
+  statement of the callback never reaches the file, so the fault precedes the body. Respelling the
+  same parameter as `u64` — the register image the ABI mandates for that aggregate — and unpacking
+  it by hand makes the whole path work: enter, hover and drop all arrive with correct coordinates.
+  That workaround is what `Win32.PACKEDPOINTL` and `Win32.pointFromPacked` are, and the comment on
+  `IDropTargetVtbl` points here.
+- Why the suites missed it: every case in `src/Unittest/ABI/Test.ABI.FFI.cpp` runs Swag → native,
+  including `ffiNativeStructPair32Sum`, which passes an eight-byte aggregate by value and is
+  correct. Nothing exercises native → Swag. The `gui` unit tests do drive the drop-target vtable,
+  but both sides of that call are Swag, so they agree in the error and pass.
+- Next step: add the inbound direction to `Test.ABI.FFI.cpp` — JIT a Swag callee whose signature is
+  `(u64, <8-byte struct>, u64) -> u64`, take its native address, and call it from C++ through a
+  matching function pointer. That reproduces it in seconds and is where the fix has to be proven.
+  Then compare the emitted prologue for a by-value aggregate parameter against the one emitted for
+  the integer of the same width: they should be identical, and the crash says they are not.
+- Related: [[reference_abi_prologue_framepointer]] territory — the fault is in the callee prologue,
+  not at the call site.

@@ -10,10 +10,18 @@ using Swag, Core, Win32
 // through the interface vtables, with real clipboard mediums in between.
 //
 // This is what proves the binding layout — FORMATETC, STGMEDIUM, POINTL passed by
-// value — and every format both sides claim to speak. A headless surface has no
-// desktop under it, so the hit test finds no window and the answered effect is
-// `None`; the routing above that has its own tests.
+// value — every format both sides claim to speak, and that a drop entering through
+// the platform reaches the window under it. The hit test asks the surface OLE called
+// rather than the desktop, so it works with no desktop under it, which is exactly why
+// a drag from Explorer used to answer `None` everywhere: the topmost window at the
+// pointer is the shell's drag image, not ours.
 // ---------------------------------------------------------------------------
+
+// The register image of a point, which is how a drop-target callback receives one.
+internal func packPoint(x, y: s32)->PACKEDPOINTL
+{
+    return cast(u64) cast #bit (u32) x | (cast(u64) cast #bit (u32) y << 32)
+}
 
 // Builds a source object over `data`, the way `startDrag` does.
 internal func testDragSource(session: *DragSession, data: *DragData)->*IDataObject
@@ -29,8 +37,68 @@ internal func testRoundTrip(host: *Testing.HeadlessHost, source: *IDataObject)->
     let target = cast(*IDropTarget) &host.surface.dropTarget
 
     var effect = DROPEFFECT_COPY
-    @assert(target.lpVtbl.DragEnter(target, source, 0, POINTL{60, 60}, &effect) == S_OK)
+    @assert(target.lpVtbl.DragEnter(target, source, 0, packPoint(60, 60), &effect) == S_OK)
     return &host.surface.dropTarget.data
+}
+
+// A window that takes everything, so a platform drop has somewhere to land.
+internal struct PlatformCatcher
+{
+    using wnd: Wnd
+    drops:     u32
+    files:     Array'String
+}
+
+impl IWnd for PlatformCatcher
+{
+    mtd impl onDragDropEvent(evt: *DragDropEvent)
+    {
+        if evt.kind == .Drop
+        {
+            .drops += 1
+            .files.clear()
+            for &f in evt.data.files do
+                .files.add(f)
+        }
+
+        evt.effect = pickDropEffect(evt.allowed, evt.modifiers)
+    }
+}
+
+// A drop arriving through the platform reaches the window under the pointer.
+//
+// This is the regression that shipped: the target was resolved with `WindowFromPoint`,
+// which during a real drag answers the shell's drag image rather than the window being
+// dragged over, so every position refused the drop.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(200, 200)
+    defer host.shutdown()
+
+    let catcher = Wnd.create'PlatformCatcher(&host.surfaceWnd, {0, 0, 200, 200})
+    host.surfaceWnd.view = catcher
+
+    var data: DragData
+    data.addFile("c:/tmp/dropped.txt")
+
+    var session: DragSession
+    let source = testDragSource(&session, &data)
+
+    host.surface.registerDropTarget()
+    let target = cast(*IDropTarget) &host.surface.dropTarget
+
+    var effect = DROPEFFECT_COPY
+    @assert(target.lpVtbl.DragEnter(target, source, 0, packPoint(60, 60), &effect) == S_OK)
+    @assert(effect == DROPEFFECT_COPY)
+
+    effect = DROPEFFECT_COPY
+    @assert(target.lpVtbl.Drop(target, source, 0, packPoint(60, 60), &effect) == S_OK)
+    @assert(effect == DROPEFFECT_COPY)
+
+    @assert(catcher.drops == 1)
+    @assert(catcher.files.count == 1)
+    @assert(catcher.files[0] == "c:/tmp/dropped.txt")
 }
 
 // A list of files survives the DROPFILES block, in order.
@@ -268,7 +336,7 @@ internal func testRoundTrip(host: *Testing.HeadlessHost, source: *IDataObject)->
     let target = cast(*IDropTarget) &host.surface.dropTarget
 
     var effect = DROPEFFECT_COPY
-    discard target.lpVtbl.DragEnter(target, source, 0, POINTL{60, 60}, &effect)
+    discard target.lpVtbl.DragEnter(target, source, 0, packPoint(60, 60), &effect)
     @assert(host.surface.dropTarget.data.singleFile() == "c:/tmp/only.txt")
 
     @assert(target.lpVtbl.DragLeave(target) == S_OK)

@@ -213,23 +213,29 @@ private func comRelease(itf: *IDropTarget)->ULONG
     return target.refCount
 }
 
-private func comDragEnter(itf: *IDropTarget, dataObj: #null *IDataObject, grfKeyState: DWORD, pt: POINTL, pdwEffect: *DWORD)->HRESULT
+private func comDragEnter(itf: *IDropTarget, dataObj: #null *IDataObject, grfKeyState: DWORD, packedPt: PACKEDPOINTL, pdwEffect: *DWORD)->HRESULT
 {
+    let pt     = pointFromPacked(packedPt)
     let target = dropTargetOf(itf)
     readDragData(dataObj, &target.data)
     target.allowed = toDropEffect(dref pdwEffect)
 
-    let effect = target.surface!.app.dragUpdate({pt.x, pt.y}, &target.data, target.allowed, toKeyModifiers(grfKeyState))
+    let surface = target.surface!
+    let hit     = surface.windowAt({pt.x, pt.y})
+
+    let effect = surface.app.dragUpdate(surface, {pt.x, pt.y}, &target.data, target.allowed, toKeyModifiers(grfKeyState))
     dref pdwEffect = fromDropEffect(effect)
     return S_OK
 }
 
-private func comDragOver(itf: *IDropTarget, grfKeyState: DWORD, pt: POINTL, pdwEffect: *DWORD)->HRESULT
+private func comDragOver(itf: *IDropTarget, grfKeyState: DWORD, packedPt: PACKEDPOINTL, pdwEffect: *DWORD)->HRESULT
 {
+    let pt     = pointFromPacked(packedPt)
     let target = dropTargetOf(itf)
     target.allowed = toDropEffect(dref pdwEffect)
 
-    let effect = target.surface!.app.dragUpdate({pt.x, pt.y}, &target.data, target.allowed, toKeyModifiers(grfKeyState))
+    let surface = target.surface!
+    let effect  = surface.app.dragUpdate(surface, {pt.x, pt.y}, &target.data, target.allowed, toKeyModifiers(grfKeyState))
     dref pdwEffect = fromDropEffect(effect)
     return S_OK
 }
@@ -242,8 +248,9 @@ private func comDragLeave(itf: *IDropTarget)->HRESULT
     return S_OK
 }
 
-private func comDrop(itf: *IDropTarget, dataObj: #null *IDataObject, grfKeyState: DWORD, pt: POINTL, pdwEffect: *DWORD)->HRESULT
+private func comDrop(itf: *IDropTarget, dataObj: #null *IDataObject, grfKeyState: DWORD, packedPt: PACKEDPOINTL, pdwEffect: *DWORD)->HRESULT
 {
+    let pt     = pointFromPacked(packedPt)
     let target = dropTargetOf(itf)
 
     // The object handed to Drop is the authoritative one: a source may publish more on release
@@ -251,7 +258,8 @@ private func comDrop(itf: *IDropTarget, dataObj: #null *IDataObject, grfKeyState
     readDragData(dataObj, &target.data)
     target.allowed = toDropEffect(dref pdwEffect)
 
-    let effect = target.surface!.app.dragDrop({pt.x, pt.y}, &target.data, target.allowed, toKeyModifiers(grfKeyState))
+    let surface = target.surface!
+    let effect  = surface.app.dragDrop(surface, {pt.x, pt.y}, &target.data, target.allowed, toKeyModifiers(grfKeyState))
     dref pdwEffect = fromDropEffect(effect)
     target.data.clear()
     return S_OK

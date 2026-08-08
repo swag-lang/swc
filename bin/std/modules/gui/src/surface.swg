@@ -85,7 +85,7 @@ struct Surface
     {
         focusRoot:  #null *Wnd     // Tree the traversal was walking, as [[Gui.FocusOrder.around]] sees it.
         focusWnd:   #null *Wnd     // Last window that held the keyboard on this surface.
-        focusIndex: s64    = -1    // Its rank in that tree's ring, for when it is gone.
+        focusIndex: s64 = -1       // Its rank in that tree's ring, for when it is gone.
     }
 
     using state: SurfaceState     // Serializable placement and maximized state.
@@ -114,6 +114,25 @@ impl Surface
     internal mtd bindPainterToRenderer(renderer: IRenderer)
     {
         .painter.setRenderer(renderer)
+    }
+
+    // Returns the deepest window of this surface under a physical screen position.
+    //
+    // The surface is the one asking, so nothing is asked of the desktop: a caller that already
+    // knows which surface a position belongs to must not go through
+    // [[Gui.Application.windowAt]], whose first job is to find that surface again. It finds it
+    // with `WindowFromPoint`, which answers about whatever window is topmost at that point — and
+    // during a drag the topmost window there is the shell's drag image, not this one.
+    //
+    // A position outside the surface answers the sizing border, or `null`, exactly as a pointer
+    // over the same spot would.
+    internal mtd windowAt(screenPos: Math.Point)->#null *Wnd
+    {
+        var surfacePos = screenPos
+        .screenToSurface(&surfacePos)
+        if !.isMaximized and .wnd.hitTestBorders(surfacePos) != SizingBorder.None do
+            return .wnd
+        return .wnd.windowAt(surfacePos.x, surfacePos.y)
     }
 
     // Returns the logical client size of the surface.
@@ -681,7 +700,7 @@ impl Surface
     // the application is currently sending keys to.
     internal mtd noteFocus(wnd: *Wnd)
     {
-        let root    = wnd.rootWnd()
+        let root = wnd.rootWnd()
         .focusRoot  = root
         .focusWnd   = wnd
         .focusIndex = FocusOrder.collect(root).indexOf(wnd)

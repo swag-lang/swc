@@ -1122,18 +1122,17 @@ impl Application
     internal mtd windowAtMouse()->#null *Wnd => .windowAt(.mouse.position())
 
     // Returns the deepest window under a physical screen position, or `null` when none is there.
+    //
+    // Which surface the position falls on is asked of the desktop, so this is for a caller that
+    // has only a position — the pointer. A caller that already knows the surface asks it
+    // directly through [[Gui.Surface.windowAt]]: the desktop's answer is about whatever window
+    // happens to be topmost there, which during a drag is the shell's own drag image.
     internal mtd windowAt(screenPos: Math.Point)->#null *Wnd
     {
         let targetSurface = .surfaceAt(screenPos.x, screenPos.y)
         if !targetSurface do
             return null
-
-        var surfacePos = screenPos
-        let surface    = targetSurface
-        surface.screenToSurface(&surfacePos)
-        if !surface.isMaximized and surface.wnd.hitTestBorders(surfacePos) != SizingBorder.None do
-            return surface.wnd
-        return surface.wnd.windowAt(surfacePos.x, surfacePos.y)
+        return targetSurface.windowAt(screenPos)
     }
 
     // Returns `wnd` or its closest enabled ancestor, or `null` when nothing there takes input.

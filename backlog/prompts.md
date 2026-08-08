@@ -23,8 +23,9 @@ Campaigns 3, 4 and 5 constrain each other on purpose: shrinking the sources must
 speed must not cost memory, and memory must not cost speed. Run them one at a time, and let each
 one re-measure the other two's numbers before claiming a win.
 
-Every one of them runs in its own worktree, never in the main checkout — each prompt says so, and
-it is not a formality. A campaign spans many rounds, keeps binaries and measurements around, and
+Campaigns 1 through 5 run in their own worktree, never in the main checkout. Campaign 6 runs
+directly on `master`; each prompt states its own rule. For the isolated campaigns, the worktree
+is not a formality. A campaign spans many rounds, keeps binaries and measurements around, and
 reverts whole rounds; a shared tree picks up foreign uncommitted edits from other sessions, and
 MSBuild's incremental build then links someone else's in-flight code into the binary being
 measured. The failures that produces look exactly like the bug the campaign was chasing.
@@ -624,14 +625,14 @@ it, add the regression protection it was missing, and rerun the affected campaig
 "unrelated", "flaky", and "outside the original scope" describe where a defect came from; none is
 a reason to leave it behind.
 
-WORK IN A SEPARATE WORKTREE
+WORK DIRECTLY ON MASTER
 
-Do not run this campaign in the main checkout. Start from the exact commit that is meant to become
-the new baseline and create an isolated worktree:
+Run this campaign in the main checkout on `master`, not in a separate worktree. Before changing
+anything, confirm that `master` is checked out and that the working tree contains no unexplained
+local change. Preserve any intentional pre-existing change and include it in the recorded starting
+state; never reset or overwrite it merely to make the campaign start clean.
 
-  git worktree add --detach ../swc-health HEAD
-
-Use that worktree's compiler explicitly for every repository tool, for example
+Use the main checkout's compiler explicitly for every repository tool, for example
 `bin\swc.exe tools\tests.swgs`; never use an unrelated `swc` found on PATH. Compiler builds and test
 runs are machine-wide exclusive resources across all worktrees. Follow the serialization rules in
 modify-swag-codebase before every build and every test campaign, and never terminate another
@@ -769,8 +770,8 @@ generated output rather than an intentional fixture.
 Remove only exact, reviewed targets. Do not use a broad destructive command against the repository,
 the workspace root, or a computed path that has not been resolved and checked. Recheck for files
 whose only difference is line endings, restore that noise in one batch, and retain every real
-content change. Before removing the isolated worktree, create a named branch pointing at its final
-commit so the repaired baseline remains reachable.
+content change. Keep every final campaign commit directly on `master` so the repaired baseline is
+immediately reachable from the branch it resets.
 
 THE CAMPAIGN MAY END ONLY WHEN
 
@@ -780,7 +781,7 @@ THE CAMPAIGN MAY END ONLY WHEN
   - The backlog and inline-marker audit has no unresolved inconsistency.
   - No concrete defect discovered during the campaign remains open or has merely been relabeled.
   - No unexpected temporary or generated material remains.
-  - All intended changes are committed and the final worktree is clean.
+  - All intended changes are committed on `master` and the final working tree is clean.
 
 The campaign does not end because the first full run was mostly green, because a problem predates
 the campaign, because it lives in an inconvenient subsystem, because fixing it expands the diff,

@@ -16,8 +16,9 @@ graduates into a plan moves to the matching `todo.*` file and disappears from th
 
 [prompts.md](prompts.md) is a third kind of file: one copy-pasteable prompt per long-running
 campaign — generated-code performance, safety, compiler code mass, compilation speed, compiler
-memory. A campaign spans many sessions and many failed attempts, so each prompt states the target,
-the numbers as they stand, and the condition under which the work is allowed to stop.
+memory, and repository health. A campaign spans many sessions and many failed attempts, so each
+prompt states the target, the numbers as they stand, and the condition under which the work is
+allowed to stop.
 
 ## Intent
 

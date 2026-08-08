@@ -172,5 +172,9 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
         return 1
     }
 
-    return 0
+    var script: Arguments
+    script.add(["--build-cfg", buildCfg])
+    options.appendExtra(&script)
+    script.add([Path.combine(workspace.toString(), "import_core_without_using.swgs").toString()])
+    return try context.runCompiler(script)
 }

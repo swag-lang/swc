@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
+#include "Compiler/SourceFile.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -200,6 +201,19 @@ namespace
         addPersistedUsingSymMaps(lookUpCxt, symMap, priority);
     }
 
+    const SymbolMap* importedApiModuleRoot(Sema& sema, const SymbolMap* importRoot)
+    {
+        const SourceFile* file = sema.file();
+        if (!file || !file->isImportedApi() || !importRoot)
+            return nullptr;
+
+        const auto nsPath = sema.frame().nsPath();
+        if (nsPath.empty())
+            return nullptr;
+
+        return followNamespacePath(importRoot, nsPath.first(1));
+    }
+
     Result addUsingMemberSymMaps(Sema& sema, MatchContext& lookUpCxt, const SymbolStruct& symStruct, std::unordered_set<const SymbolStruct*>& visited)
     {
         if (!visited.insert(&symStruct).second)
@@ -345,7 +359,15 @@ namespace
         if (importRoot)
             addNamespacePathSymMap(sema, lookUpCxt, importRoot, modulePathPriority);
 
-        const MatchPriority moduleRootPriority{.scopeDepth = static_cast<uint16_t>(scopeDepth + 2), .visibility = VisibilityTier::ModuleNamespace};
+        uint16_t moduleRootDepth = static_cast<uint16_t>(scopeDepth + 2);
+        if (const SymbolMap* importedModuleRoot = importedApiModuleRoot(sema, importRoot))
+        {
+            const MatchPriority importedModuleRootPriority{.scopeDepth = moduleRootDepth++, .visibility = VisibilityTier::ModuleNamespace};
+            addSymMap(lookUpCxt, importedModuleRoot, importedModuleRootPriority);
+            addPersistedUsingSymMaps(lookUpCxt, importedModuleRoot, importedModuleRootPriority);
+        }
+
+        const MatchPriority moduleRootPriority{.scopeDepth = moduleRootDepth, .visibility = VisibilityTier::ModuleNamespace};
         addSymMap(lookUpCxt, &sema.moduleNamespace(), moduleRootPriority);
         addPersistedUsingSymMaps(lookUpCxt, &sema.moduleNamespace(), moduleRootPriority);
 
@@ -356,7 +378,7 @@ namespace
         if (importRoot)
             addSymMap(lookUpCxt, importRoot, moduleRootPriority);
 
-        addCurrentModuleNamespaceSymbol(sema, lookUpCxt, static_cast<uint16_t>(scopeDepth + 3));
+        addCurrentModuleNamespaceSymbol(sema, lookUpCxt, static_cast<uint16_t>(moduleRootDepth + 1));
         return Result::Continue;
     }
 

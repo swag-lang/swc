@@ -1,0 +1,6 @@
+#import("core", location: "swag@std")
+
+#main
+{
+    @print("SWAG_IMPORTED_CORE_WITHOUT_USING_RAN\n")
+}

@@ -35,6 +35,14 @@ impl Json
         return true
     }
 
+    // Returns the identity written for a type value: the canonical runtime crc.
+    mtd typeCrcOf(type: #null typeinfo)->u32
+    {
+        if !type do
+            return 0
+        return type.crc
+    }
+
     internal mtd writeIndent()
     {
         if !.options.saveBlanks do

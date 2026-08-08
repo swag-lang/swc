@@ -2466,6 +2466,8 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     inlinePayload->resultVar           = resultVar;
     inlinePayload->returnTypeRef       = returnTypeRef;
     inlinePayload->aliasIdentifiers    = aliasIdentifiers;
+    for (const AstNodeRef materializedBindingRef : materializedBindings)
+        inlinePayload->materializedArgRefs.push_back(materializedBindingRef);
     if (isOrdinaryInline)
     {
         SmallVector<AstNodeRef> rootChildren;

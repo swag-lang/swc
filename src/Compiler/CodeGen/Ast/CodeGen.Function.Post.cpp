@@ -684,11 +684,19 @@ namespace
         // other lifecycle source is deep-copied so the store does not alias a live value.
         if (codeGen.typeMgr().get(inlinePayload.returnTypeRef).isReference())
             return Result::Continue;
-        const bool movesOwnership    = moveOutVar != nullptr || returnSourceIsOwnedTemporary(codeGen, exprRef, exprPayload);
+        const bool movesOwnership     = moveOutVar != nullptr || returnSourceIsOwnedTemporary(codeGen, exprRef, exprPayload);
         const auto storeLifecycleKind = movesOwnership ? CodeGen::LifecycleKind::PostMove : CodeGen::LifecycleKind::PostCopy;
-        if (!codeGen.hasLifecycle(inlinePayload.returnTypeRef, storeLifecycleKind))
-            return Result::Continue;
-        return codeGen.emitLifecycle(inlinePayload.returnTypeRef, storeLifecycleKind, resultAddr);
+        if (codeGen.hasLifecycle(inlinePayload.returnTypeRef, storeLifecycleKind))
+            SWC_RESULT(codeGen.emitLifecycle(inlinePayload.returnTypeRef, storeLifecycleKind, resultAddr));
+
+        if (movesOwnership)
+        {
+            const SymbolVariable* sourceStorage = codeGen.runtimeStorageSymbol(exprRef);
+            if (sourceStorage && codeGen.hasTemporaryDrop(*sourceStorage))
+                codeGen.cancelTemporaryDrop(*sourceStorage);
+        }
+
+        return Result::Continue;
     }
 
     Result emitInlineReturn(CodeGen& codeGen, const SemaInlinePayload& inlinePayload, AstNodeRef exprRef)
@@ -969,12 +977,14 @@ namespace
         // 'opPostMove' instead of 'opPostCopy', and the moved-out local is not dropped.
         // Compiler-run persisted returns keep the copy semantics their machinery expects,
         // and a reference return borrows the local rather than consuming it.
-        const SymbolVariable* moveOutVar = nullptr;
-        auto                  copyLifecycleKind = CodeGen::LifecycleKind::PostCopy;
+        const SymbolVariable* moveOutVar          = nullptr;
+        bool                  movesOwnedTemporary = false;
+        auto                  copyLifecycleKind   = CodeGen::LifecycleKind::PostCopy;
         if (!needsPersistentCompilerReturn && !codeGen.typeMgr().get(returnTypeRef).isReference())
         {
-            moveOutVar = returnMoveOutSource(codeGen, exprRef);
-            if (moveOutVar != nullptr || returnSourceIsOwnedTemporary(codeGen, exprRef, exprPayload))
+            moveOutVar          = returnMoveOutSource(codeGen, exprRef);
+            movesOwnedTemporary = returnSourceIsOwnedTemporary(codeGen, exprRef, exprPayload);
+            if (moveOutVar != nullptr || movesOwnedTemporary)
                 copyLifecycleKind = CodeGen::LifecycleKind::PostMove;
         }
 
@@ -1057,6 +1067,13 @@ namespace
                     builder.emitLoadRegReg(returnValueReg, exprPayload.reg, retBits);
             }
             ABICall::materializeValueToReturnRegs(builder, callConvKind, returnValueReg, false, normalizedRet);
+        }
+
+        if (movesOwnedTemporary)
+        {
+            const SymbolVariable* sourceStorage = codeGen.runtimeStorageSymbol(exprRef);
+            if (sourceStorage && codeGen.hasTemporaryDrop(*sourceStorage))
+                codeGen.cancelTemporaryDrop(*sourceStorage);
         }
 
         {

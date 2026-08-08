@@ -34,6 +34,13 @@ struct CodeGenGvtdEntry
     uint32_t              count    = 0;
 };
 
+struct CodeGenTemporaryDrop
+{
+    AstNodeRef            flushRootRef = AstNodeRef::invalid();
+    const SymbolVariable* storageSym   = nullptr;
+    TypeRef               typeRef      = TypeRef::invalid();
+};
+
 enum class CodeGenLifecycleKind : uint8_t
 {
     Drop,
@@ -413,6 +420,9 @@ public:
     Result                    emitLifecycle(TypeRef typeRef, LifecycleKind lifecycleKind, MicroReg addressReg);
     Result                    emitLifecycle(TypeRef typeRef, LifecycleKind lifecycleKind, MicroReg addressReg, uint32_t count);
     Result                    emitLifecycle(TypeRef typeRef, LifecycleKind lifecycleKind, MicroReg addressReg, MicroReg countReg);
+    void                      registerTemporaryDrop(AstNodeRef valueRef, TypeRef typeRef, const SymbolVariable& storage);
+    bool                      hasTemporaryDrop(const SymbolVariable& storage) const;
+    void                      cancelTemporaryDrop(const SymbolVariable& storage);
     void                      pushDeferScope(AstNodeRef scopeRef = AstNodeRef::invalid(), AstNodeRef breakOwnerRef = AstNodeRef::invalid(), AstNodeRef switchCaseRef = AstNodeRef::invalid());
     Result                    popDeferScope();
     void                      registerDefer(AstNodeRef deferStmtRef, AstNodeRef bodyRef, AstModifierFlags modifierFlags);
@@ -471,6 +481,7 @@ private:
     Result postNode(AstNode& node);
     Result preNodeChild(AstNode& node, AstNodeRef& childRef);
     Result postNodeChild(AstNode& node, AstNodeRef& childRef);
+    Result flushTemporaryDrops(AstNodeRef rootRef);
     Result emitConstant(AstNodeRef nodeRef);
     Result emitDeferredAction(const CodeGenDeferredAction& action);
     Result emitDeferredActionsInScope(size_t scopeIndex, size_t actionCount);
@@ -505,6 +516,7 @@ private:
     uint32_t                                                         gvtdScratchOffset_                = 0;
     uint32_t                                                         gvtdScratchSize_                  = 0;
     SmallVector<CodeGenGvtdEntry>                                    gvtdScratchEntries_;
+    SmallVector<CodeGenTemporaryDrop, 4>                             temporaryDrops_;
     AstNodeRef                                                       root_      = AstNodeRef::invalid();
     bool                                                             started_   = false;
     bool                                                             completed_ = false;

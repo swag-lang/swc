@@ -59,6 +59,72 @@ namespace
         return false;
     }
 
+    bool isTemporaryDropBlock(const AstNodeId id)
+    {
+        return id == AstNodeId::FunctionBody || id == AstNodeId::EmbeddedBlock || id == AstNodeId::TopLevelBlock || id == AstNodeId::SwitchCaseBody;
+    }
+
+    bool isLazyEvaluationNode(const AstNodeId id)
+    {
+        switch (id)
+        {
+            case AstNodeId::LogicalExpr:
+            case AstNodeId::ConditionalExpr:
+            case AstNodeId::NullCoalescingExpr:
+            case AstNodeId::OptionalChainExpr:
+            case AstNodeId::ErrorManagementExpr:
+            case AstNodeId::ErrorManagementStmt:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    bool isTemporaryDropEvaluationBoundary(const AstNode& parent, const AstNodeRef childRef)
+    {
+        switch (parent.id())
+        {
+            case AstNodeId::IfStmt:
+            {
+                const auto& stmt = parent.cast<AstIfStmt>();
+                return childRef == stmt.nodeConditionRef || childRef == stmt.nodeIfBlockRef || childRef == stmt.nodeElseBlockRef;
+            }
+            case AstNodeId::IfVarDecl:
+            {
+                const auto& stmt = parent.cast<AstIfVarDecl>();
+                return childRef == stmt.nodeVarRef || childRef == stmt.nodeWhereRef || childRef == stmt.nodeIfBlockRef || childRef == stmt.nodeElseBlockRef;
+            }
+            case AstNodeId::WhileStmt:
+            {
+                const auto& stmt = parent.cast<AstWhileStmt>();
+                return childRef == stmt.nodeExprRef || childRef == stmt.nodeBodyRef;
+            }
+            case AstNodeId::ForCStyleStmt:
+            {
+                const auto& stmt = parent.cast<AstForCStyleStmt>();
+                return childRef == stmt.nodeVarDeclRef || childRef == stmt.nodeExprRef || childRef == stmt.nodePostStmtRef || childRef == stmt.nodeBodyRef;
+            }
+            case AstNodeId::ForStmt:
+            {
+                const auto& stmt = parent.cast<AstForStmt>();
+                return childRef == stmt.nodeWhereRef || childRef == stmt.nodeBodyRef;
+            }
+            case AstNodeId::ForeachStmt:
+            {
+                const auto& stmt = parent.cast<AstForeachStmt>();
+                return childRef == stmt.nodeWhereRef || childRef == stmt.nodeBodyRef;
+            }
+            case AstNodeId::InfiniteLoopStmt:
+                return childRef == parent.cast<AstInfiniteLoopStmt>().nodeBodyRef;
+            case AstNodeId::WithStmt:
+                return childRef == parent.cast<AstWithStmt>().nodeBodyRef;
+            case AstNodeId::WithVarDecl:
+                return childRef == parent.cast<AstWithVarDecl>().nodeBodyRef;
+            default:
+                return false;
+        }
+    }
+
     bool isStackAddressPayload(const CodeGen& codeGen, const SymbolVariable& sym, const CodeGenNodePayload& payload)
     {
         if (!payload.isAddress())
@@ -468,6 +534,7 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         variablePayloads_.clear();
         moveElisionVars_.clear();
         elidedImplicitDrops_.clear();
+        temporaryDrops_.clear();
         returnMoveOutVar_    = nullptr;
         moveElisionAnalyzed_ = false;
         clearGvtdScratchLayout();
@@ -972,6 +1039,115 @@ Result CodeGen::emitLifecycleAction(const SymbolFunction& calledFunction, const 
 Result CodeGen::emitLifecycle(const TypeRef typeRef, const LifecycleKind lifecycleKind, const MicroReg addressReg)
 {
     return emitLifecycleRec(*this, typeRef, lifecycleKind, addressReg);
+}
+
+void CodeGen::registerTemporaryDrop(AstNodeRef valueRef, TypeRef typeRef, const SymbolVariable& storage)
+{
+    const auto isAncestorRef = [this](const AstNodeRef candidateRef) {
+        for (size_t up = 0;; ++up)
+        {
+            const AstNodeRef parentRef = visit_.parentNodeRef(up);
+            if (parentRef.isInvalid())
+                return false;
+            if (parentRef == candidateRef)
+                return true;
+        }
+    };
+
+    AstNodeRef callerInlineRootRef = AstNodeRef::invalid();
+    for (size_t i = frames_.size(); i != 0 && callerInlineRootRef.isInvalid(); --i)
+    {
+        const CodeGenFrame& candidateFrame = frames_[i - 1];
+        if (!candidateFrame.hasCurrentInlineContext())
+            continue;
+
+        const SemaInlinePayload* inlinePayload = candidateFrame.currentInlineContext().payload;
+        SWC_ASSERT(inlinePayload != nullptr);
+        for (const AstNodeRef materializedArgRef : inlinePayload->materializedArgRefs)
+        {
+            if (isAncestorRef(materializedArgRef))
+            {
+                callerInlineRootRef = inlinePayload->inlineRootRef;
+                break;
+            }
+        }
+    }
+
+    AstNodeRef flushRootRef = valueRef;
+    for (size_t up = 0;; ++up)
+    {
+        const AstNodeRef parentRef = visit_.parentNodeRef(up);
+        if (parentRef.isInvalid())
+            return;
+
+        const AstNode& parent = node(parentRef);
+        if (isLazyEvaluationNode(parent.id()))
+            return;
+
+        // Caller argument bindings are materialized inside the callee's inline clone. Their
+        // temporaries still belong to the caller expression, so cross the clone root before
+        // choosing the enclosing statement boundary.
+        if (callerInlineRootRef.isValid())
+        {
+            flushRootRef = parentRef;
+            if (parentRef == callerInlineRootRef)
+                callerInlineRootRef.setInvalid();
+            continue;
+        }
+
+        if (isTemporaryDropEvaluationBoundary(parent, flushRootRef))
+            break;
+
+        if (isTemporaryDropBlock(parent.id()))
+            break;
+
+        flushRootRef = parentRef;
+    }
+
+    for (const CodeGenTemporaryDrop& drop : temporaryDrops_)
+    {
+        if (drop.storageSym == &storage)
+            return;
+    }
+
+    temporaryDrops_.push_back({flushRootRef, &storage, typeRef});
+}
+
+bool CodeGen::hasTemporaryDrop(const SymbolVariable& storage) const
+{
+    for (const CodeGenTemporaryDrop& drop : temporaryDrops_)
+    {
+        if (drop.storageSym == &storage)
+            return true;
+    }
+
+    return false;
+}
+
+void CodeGen::cancelTemporaryDrop(const SymbolVariable& storage)
+{
+    for (CodeGenTemporaryDrop& drop : temporaryDrops_)
+    {
+        if (drop.storageSym == &storage)
+            drop.storageSym = nullptr;
+    }
+}
+
+Result CodeGen::flushTemporaryDrops(const AstNodeRef rootRef)
+{
+    for (size_t i = temporaryDrops_.size(); i != 0; --i)
+    {
+        CodeGenTemporaryDrop& drop = temporaryDrops_[i - 1];
+        if (drop.storageSym == nullptr || drop.flushRootRef != rootRef)
+            continue;
+
+        const SymbolVariable* storageSym        = drop.storageSym;
+        drop.storageSym                         = nullptr;
+        const CodeGenNodePayload storagePayload = resolveLocalStackPayload(*storageSym, false);
+        SWC_RESULT(emitLifecycle(drop.typeRef, LifecycleKind::Drop, storagePayload.reg));
+    }
+
+    return Result::Continue;
 }
 
 Result CodeGen::emitLifecycleAction(const SymbolFunction& calledFunction, const MicroReg addressReg, const uint32_t sizeOf, const uint32_t count)
@@ -1685,6 +1861,8 @@ Result CodeGen::postNode(AstNode& node)
 
         popFrame();
     }
+
+    SWC_RESULT(flushTemporaryDrops(curNodeRef()));
 
     return result;
 }

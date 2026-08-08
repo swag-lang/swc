@@ -874,6 +874,18 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
     const SemaNodeView initConstView = codeGen.viewTypeConstant(nodeInitRef);
     SWC_ASSERT(initView.type() && (initView.type()->isStruct() || initView.type()->isAggregateStruct()));
 
+    const SymbolVariable* initStorageSym      = codeGen.runtimeStorageSymbol(nodeInitRef);
+    const bool            movesInitTemporary = initStorageSym && codeGen.hasTemporaryDrop(*initStorageSym);
+    const auto emitFieldPostMove = [&codeGen, movesInitTemporary](const SymbolVariable& symVar) -> Result
+    {
+        if (!movesInitTemporary || !codeGen.hasLifecycle(symVar.typeRef(), CodeGen::LifecycleKind::PostMove))
+            return Result::Continue;
+
+        const CodeGenNodePayload symbolPayload = resolveIdentifierVariablePayload(codeGen, symVar);
+        SWC_ASSERT(symbolPayload.isAddress());
+        return codeGen.emitLifecycle(symVar.typeRef(), CodeGen::LifecycleKind::PostMove, symbolPayload.reg);
+    };
+
     SmallVector<TokenRef> tokNames;
     codeGen.ast().appendTokens(tokNames, spanNamesRef);
     SmallVector<TokenRef> fieldNames;
@@ -960,6 +972,7 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
                     SWC_RESULT(materializeSingleVarFromInit(codeGen, symVar, AstNodeRef::invalid()));
                 }
 
+                SWC_RESULT(emitFieldPostMove(symVar));
                 codeGen.registerImplicitDrop(symVar);
             }
         }
@@ -989,10 +1002,13 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
                 fieldPayload.reg = codeGen.offsetAddressReg(baseAddress, fieldLayout.offset);
 
                 materializeSingleVarFromPayload(codeGen, symVar, fieldPayload);
+                SWC_RESULT(emitFieldPostMove(symVar));
                 codeGen.registerImplicitDrop(symVar);
             }
         }
 
+        if (movesInitTemporary)
+            codeGen.cancelTemporaryDrop(*initStorageSym);
         return Result::Continue;
     }
 
@@ -1019,8 +1035,12 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
         fieldPayload.reg = codeGen.offsetAddressReg(baseAddress, fieldLayout.offset);
 
         materializeSingleVarFromPayload(codeGen, symVar, fieldPayload);
+        SWC_RESULT(emitFieldPostMove(symVar));
         codeGen.registerImplicitDrop(symVar);
     }
+
+    if (movesInitTemporary)
+        codeGen.cancelTemporaryDrop(*initStorageSym);
 
     return Result::Continue;
 }

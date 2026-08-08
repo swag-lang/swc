@@ -1,6 +1,6 @@
 ---
 name: modify-swag-codebase
-description: Modify, refactor, fix, test, and validate the Swag compiler repository. Use whenever changing C++ compiler sources, Swag language features, unit tests, examples, build scripts, or other code in this repository; it enforces root-cause fixes, project C++ rules, test placement, and scoped validation workflows.
+description: Modify, refactor, fix, test, and validate the Swag compiler repository. Use whenever changing C++ compiler sources, Swag language features, unit tests, examples, build scripts, or other code in this repository; it enforces root-cause fixes, project C++ rules, test placement, machine-wide build and test serialization, and scoped validation workflows.
 ---
 
 # Modify The Swag Codebase
@@ -11,6 +11,25 @@ The repository is written in English. Every comment, identifier, message, and
 documentation line — in the compiler sources, in `bin/`, and in every other file —
 is English; never leave French (or any other language) in the tree, whatever the
 language of the conversation.
+
+## Serialize Compiler Builds And Tests Across Worktrees
+
+All agents and worktrees share one machine. Compiler builds and test runs are machine-wide
+exclusive resources, not per-worktree resources. Coordinate with the other agents and inspect the
+running processes before taking either slot; a different worktree does not make parallel work safe.
+
+- Only one agent may compile a new `swc` or `swc_devmode` at a time. Before invoking MSBuild or any
+  other command that rebuilds either compiler, wait for any compiler build already in progress to
+  finish. Never overlap DevMode and Release builds owned by different agents.
+- Only one agent may run project tests at a time, whether the tests use `swc.exe` or
+  `swc_devmode.exe`. Before starting a test command, wait for the current test run to finish. This
+  includes focused tests as well as heavy aggregate campaigns, so a small run never piles onto an
+  already expensive one.
+- When a test run exposes a problem, stop the remaining tests and release the test slot immediately;
+  investigate or report the first problem before starting more validation. Stop only the processes
+  started by the current agent—never terminate another agent's build or tests to take the slot.
+- Waiting for an occupied slot is the required behavior. Do not bypass it by changing configuration,
+  executable, shell, output directory, or worktree.
 
 ## Improve The Platform Along The Way
 

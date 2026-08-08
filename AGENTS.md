@@ -5,6 +5,10 @@ All AI instructions for modifying this repository live in `.agents/skills/`.
 Before changing code, tests, examples, or build files, read and follow
 [modify-swag-codebase](.agents/skills/modify-swag-codebase/SKILL.md).
 
+Before compiling `swc` or `swc_devmode`, or running any project test, read and follow the
+machine-wide build and test serialization rules in that skill, including when working from a
+different worktree.
+
 Before adding or changing any Swag source (`.swg` or `.swgs`), including tests,
 examples, scripts, and documentation code samples, also read and follow
 [write-idiomatic-swag-code](.agents/skills/write-idiomatic-swag-code/SKILL.md).

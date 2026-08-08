@@ -23,7 +23,7 @@ Qt makes you build it yourself, and most toolkits never ship one.
 Underneath: a two-pass measure and arrange layout engine, per-monitor DPI awareness with a vector
 theme atlas rasterized per scale, list virtualization through `virtualCount` and
 `onFillVirtualLine`, an action and command system with automatic state updates, an undo manager,
-keyboard traversal of a whole surface in reading order, and a headless test host with forty-five
+keyboard traversal of a whole surface in reading order, and a headless test host with fifty-one
 test files and command-stream visual regression goldens.
 
 That is a real toolkit. The gaps below are not about widget count.
@@ -102,35 +102,12 @@ What is left is what makes it feel finished:
 
 ---
 
-## Tier B — Present elsewhere, not on master
+## Tier B — Platform gaps
 
-### T-040 — Localization
+### T-040 — Localization gaps
 
-- Landed with the `gui-resources` merge. Every application owns a `Resources.Bundle` in
-  `Application.resources` — embedded content is the guaranteed fallback, a disk folder overrides
-  by name — theme sheets drive `ThemePalette`/`ThemeColors`/`ThemeMetrics`/`ThemeImageRects` from
-  tweak text, and a sheet naming palette tokens re-derives the whole interface, so a user theme is
-  thirty lines rather than three hundred,
-  and visible strings live in tables of `string` fields whose declared values are the reference
-  English wording. `Application.setLanguage` retargets every registered table from
-  `lang/<tag>/<file>.tweak` resources, and embedded translations are validated when the module
-  compiles, so a mistyped key is a build error with its line number. `gui`, `sCapture` (language
-  option) and `sCrypt` (picker on the credit line) ship fully keyed, both starting in English,
-  with French as the proof language. See `help/07-resources-and-localization.md`.
-- A language is now a registered pair of tag and native name (`registerLanguage`, `languages`,
-  `systemLanguage`), `en` is always first and always the language an application starts in, and
-  following the account is a choice the user makes rather than a guess. Sizes follow the wording:
-  `IWnd.measureContent` lets an unsized axis be answered by the window itself, so a caption
-  widens its button, a wrapped paragraph grows taller and a band docked with no height is as
-  tall as what it holds. `Testing.assertContentFits` turns that into a check a test runs once
-  per shipped language.
-- A property attribute carries a compile-time literal, so `Properties.setTextResolver` is what
-  turns a declared `#[Name("Thickness")]` into a key: every generated label, description,
-  category segment, heading, note, unit and enumeration entry passes through the installed
-  resolver, then through the strings this module declares, then stands as declared. `sCapture`
-  resolves its whole panel and options dialog that way. A menu bar entry built from a
-  `MenuLabelResolver` re-reads its wording on every layout the way a command-driven item does,
-  so the bar follows a switch instead of keeping the language it was built in.
+- Problem: the resource, language-switching, translated-property and content-measurement systems
+  are shipped, but three surfaces still bypass that contract.
 - Remaining, in decreasing value:
   - a disk override of `theme/widgets.svg` or `theme/icons.svg` registers in the bundle but the
     vector pipeline rasterizes the process-wide parsed cache, so only the fonts, theme sheets

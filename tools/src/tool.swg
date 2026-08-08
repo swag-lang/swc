@@ -7,6 +7,7 @@
 #load("arguments.swg")
 #load("args.swg")
 #load("context.swg")
+#load("backlog.swg")
 #load("scope.swg")
 #load("suites.swg")
 #load("workspaces.swg")

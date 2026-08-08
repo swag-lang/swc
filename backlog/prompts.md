@@ -634,9 +634,10 @@ state; never reset or overwrite it merely to make the campaign start clean.
 
 Use the main checkout's compiler explicitly for every repository tool, for example
 `bin\swc.exe tools\tests.swgs`; never use an unrelated `swc` found on PATH. Compiler builds and test
-runs are machine-wide exclusive resources across all worktrees. Follow the serialization rules in
-modify-swag-codebase before every build and every test campaign, and never terminate another
-session's process to take the slot.
+runs launched by AI agents, including Codex and Claude, are exclusive with one another across all
+worktrees. Follow the agent-to-agent serialization rules in modify-swag-codebase before every build
+and every test campaign. IDE builds and manually launched user commands do not occupy the agent
+slot; never terminate or interfere with them.
 
 Record the starting commit, `git status --short --branch`, toolchain versions, and the available
 external prerequisites before changing anything. A starting failure is useful attribution, but it

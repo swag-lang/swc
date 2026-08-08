@@ -19,11 +19,11 @@ entry justified by a number nobody re-checked is a guess.
 
 ## Where the compiler already stands
 
-About 241 000 lines of C++ in 653 files, and almost none of it is borrowed.
+About 243 500 lines of project-owned C++ in 667 files, and almost none of it is borrowed.
 
 - **No LLVM, and no external toolchain on the hot path.** The backend owns its own SSA IR
-  (`Backend/Micro`, 27 300 lines, 20 passes), its own x64 encoder (`Backend/Encoder`, 4 550
-  lines), its own PE linker (`Backend/Linker`, 5 500 lines), its own CodeView/PDB emitter
+  (`Backend/Micro`, 31 746 lines, 23 passes), its own x64 encoder (`Backend/Encoder`, 4 614
+  lines), its own PE linker (`Backend/Linker`, 5 509 lines), its own CodeView/PDB emitter
   (`Backend/Debug`), and its own JIT (`Backend/JIT`). Nothing in this tier is a wrapper. Very few
   languages at this age own their whole path to machine code.
 - **The JIT is the same code generator as the native path**, which is why `#run` executes real
@@ -33,7 +33,7 @@ About 241 000 lines of C++ in 653 files, and almost none of it is borrowed.
   they need and are woken by the producer (`JobManager::wake`, with a lock-free presence filter
   over wait keys), rather than running as ordered phases. Ordering constraints that other
   compilers resolve with declaration order or forward declarations dissolve here.
-- **535 diagnostics** with source snippets, notes, and help lines, driven by a message table
+- **538 diagnostics** with source snippets, notes, and help lines, driven by a message table
   (`Support/Report/Msg`) rather than scattered string literals. Each one is named, and a warning's
   name is what the three policy layers address it by.
 - **A `format` command with 130 options** and a cascading `.swc-format`, and a `doc`
@@ -84,9 +84,9 @@ These three shape every other entry. Nothing below Tier A gets structurally easi
 - Measure before and after with T-007, on a real edit-one-file-in-`core` loop, not on a clean
   build.
 
-### T-003 — The semantic analyzer is 80 000 lines with one unit test
+### T-003 — The semantic analyzer is 81 000 lines with one unit test
 
-- Problem: `Compiler/Sema` is 80 812 lines across 150 files — a third of the compiler. Its entire
+- Problem: `Compiler/Sema` is 81 189 lines across 150 files — a third of the compiler. Its entire
   C++ test surface is `src/Unittest/Sema`, a single 116-line purity test. Everything else is
   covered end to end through the `.swg` suites.
 - Consequence: the suites prove that programs compile; they cannot address one decision procedure.
@@ -97,7 +97,7 @@ These three shape every other entry. Nothing below Tier A gets structurally easi
   refactoring sema feels dangerous, and "ultra-clean architecture" is not reachable through code
   nobody dares to move.
 - Fix: those three first, as table-driven C++ suites — a list of (inputs, expected ranking) rows,
-  not compiled programs. `src/Unittest/Format` (5 225 lines) and `src/Unittest/Micro` (4 874
+  not compiled programs. `src/Unittest/Format` (5 257 lines) and `src/Unittest/Micro` (5 487
   lines) already show the shape and already carry the subsystems that get refactored most freely.
 - This is the cheapest entry in Tier A and the one that makes the other two safe.
 
@@ -192,7 +192,7 @@ This entry is first in the tier because the three below cannot be judged without
 
 ---
 
-### 9. A script is not yet a full substitute for a shell script
+### T-102 — A script is not yet a full substitute for a shell script
 
 A `.swgs` should replace a `.bat`, a `.ps1` or a `.py` outright: as simple to run, and more
 capable. `tools/` is the proof either way — it is the repository's own scripting, and it is now
@@ -209,9 +209,9 @@ refusing to run. Two gaps are left, and neither is about the language.
   `HKLM\Software\Classes` when it runs elevated and adds `.SWGS` to `PATHEXT`, and says plainly
   what it could not do when it is not. Decide at the same time which compiler answers a
   double-click: the association pins one absolute path, which is wrong for a checkout that moves.
-- **A script pays a fixed second before it does anything.** `swc tools/tests.swgs plan <file>`
-  takes 1 114 ms and `-h` takes 776 ms, against 46 ms for `python -c pass`, because every run
-  re-checks the same 45 files and 145 000 tokens. It does not matter in front of a two-minute
+- **A script pays a fixed half-second before it does anything.** `swc tools/tests.swgs plan <file>`
+  and `-h` each take about 650 ms on a warm run, against 46 ms for `python -c pass`, because every
+  run re-checks the same 46 files and about 148 000 tokens. It does not matter in front of a two-minute
   build; it is almost the whole cost of `plan`, whose reason to exist is being cheap enough to
   ask before making a change. Nothing caches a script's compilation between runs, and the inputs
   that would key such a cache are already computed — the module setup pass collects every loaded

@@ -43,12 +43,9 @@ locally.
   Argon2id measures 403 ms at the Interactive profile and 2 396 ms at the Moderate default
   (release build, m=256 MiB, t=3, p=4), and rejecting a wrong password costs that four times
   over, because every key slot is probed whether or not it holds a password.
-- Done so far: the backend's SSE2 auto-vectorizer (release builds, `cpuVectorize`) compiles the
-  ChaCha20 double-round loop to packed code (~90 instructions instead of ~500 scalar ones), the
-  key-stream application and 32-bit marshalling work a word at a time instead of a byte at a time,
-  and the packed state now stays register-resident across the ten rounds instead of round-tripping
-  through the frame — end-to-end `chacha20Xor` +21%, with the numbers and the measurement protocol
-  in [F-029](findings.optimization.md#f-029--chacha20-throughput-is-bounded-by-memory-round-trips-not-by-round-arithmetic).
+- Evidence: ChaCha20's packed state remains one block-wide and its dependency chain still limits
+  throughput; the current measurements and protocol are in
+  [F-029](findings.optimization.md#f-029--chacha20-still-processes-one-block-per-packed-dependency-chain).
 - Fix: process several blocks per loop iteration, which is where the rest of the ChaCha SIMD win
   is (F-029 again), then revisit `poly1305` and the Argon2 permutation. Argon2's lanes are also
   independent within a slice, so `Jobs` can run `parallelism` of them at once.
@@ -82,12 +79,7 @@ locally.
 ### T-091 — Mount comfort and mount-time safety
 
 - Owner: sCrypt
-- Shipped: several volumes at once, each on its own letter, listed in the third card of the window;
-  a per-vault mark that mounts it again at the next start, with one password prompt per protected
-  vault; containers that open without a password at all; and a read-only mount, which opens the
-  file without write access at all, declares `ReadOnlyVolume` to WinFsp, and refuses every change
-  in the volume layer with `ErrorKind.WriteProtected`.
-- Missing: forced unmount when a handle keeps a volume busy, and automatic unmount on session lock,
+- Problem: forced unmount is missing when a handle keeps a volume busy, as is automatic unmount on session lock,
   on suspend, and on idle — both are a security feature rather than a convenience, and they are
   what remains of the *perceived* gap against VeraCrypt.
 - Note: the startup list is persisted with `needsPassword` beside each path, which is what keeps a
@@ -97,8 +89,6 @@ locally.
 ### T-092 — Additional passwords are not in the interface
 
 - Owner: sCrypt
-- Shipped: changing the password of a container, and removing it by leaving the new one empty,
-  through the `Password…` action of the open-vault card.
 - Problem: `Volume.addPassword` and `Volume.removePassword` still have no way in. A container can
   hold four passwords and the interface only ever writes the one a reader opened it with.
 - Fix: a key-slot list on that dialog — add a password, revoke one — plus a cost-profile selector
@@ -110,9 +100,6 @@ locally.
 ### T-093 — Shrinking a container
 
 - Owner: sCrypt
-- Shipped: growing, through `Volume.grow` and the `Capacity…` action. The file is extended, the
-  added region is randomized like a fresh container, and only then does a checkpoint publish the
-  new geometry, so an interruption leaves the container exactly as it was.
 - Problem: capacity can only go up.
 - Fix: evacuating every block above the new limit, then truncating. More work than growing, and far
   less value — a container that has to be rewritten to lose space is a poor trade. Ranked here

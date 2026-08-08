@@ -38,10 +38,8 @@ effects that makes a capture look produced, and output.
 - Fix: copy-as-file is the drag-out data object seen from the clipboard side — `DragData` already
   builds every medium it needs, so what is missing is `OleSetClipboard` over the same object.
   Printing is separate and depends on [T-054](todo.pixel.md#t-054--no-vector-output) for vector output.
-- Why first: the file half of this entry has shipped — both dialogs now offer every format the
-  pixel codec registry supports — and so has drag-out: a thumbnail dragged out of the recent strip
-  carries the capture as a PNG *and* as a bitmap, so a folder gets a file and a picture editor
-  gets the picture.
+- Why first: clipboard file transfer reuses the data object already exercised by drag-out; printing
+  is the only independent half.
 - Note: the PNG a drag offers is written to the temporary folder when the gesture starts, not when
   the target asks for it, so a cancelled drag leaves the file behind. Deferred rendering is
   [T-039](todo.gui.md#t-039--drag-and-drop-has-no-polish-layer).

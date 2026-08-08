@@ -170,7 +170,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
   `if errorMessageID == 0 do return`. When Windows answers a failure value without setting a last
   error, the wrapper raises nothing and hands the failure value back as a result. There are 126
   call sites, in `core`, `gui`, `ogl` and `pixel` as well as in the bindings themselves.
-- Evidence, measured: `GetFontData(hdc, 'ttcf', 0, null, 0)` on Segoe UI and on Arial — neither is
+- Evidence: measured with `GetFontData(hdc, 'ttcf', 0, null, 0)` on Segoe UI and on Arial — neither is
   in a collection — returns `GDI_ERROR`, sets no last error, and the wrapper reports no failure. The
   caller receives `4294967295` as a byte count. `Array.resize` on it then failed four gigabytes
   down, and the failure surfaced as an access violation in an unrelated destructor rather than as

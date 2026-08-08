@@ -12,12 +12,12 @@ ships; history lives in git, not here.
 
 ## Where the command already stands
 
-8 488 lines, 130 options covering whitespace, indentation, wrapping, braces, switch layout,
+8 442 lines, 130 options covering whitespace, indentation, wrapping, braces, switch layout,
 alignment (including two-column declaration grids and outlier exclusion), spacing, attributes,
 comments, `using` blocks and numeric literals; a cascading `.swc-format` resolved from the file's
 directory upward with parent inheritance
 ([FormatOptionsLoader.cpp](../src/Format/FormatOptionsLoader.cpp)); `swc-format off`/`on` regions;
-nine passes over a token-and-AST model; and 5 225 lines of C++ tests over 205 cases, the
+nine passes over a token-and-AST model; and 5 257 lines of C++ tests over 206 cases, the
 best-tested subsystem in the compiler. On option count it is already in clang-format's league.
 
 ---

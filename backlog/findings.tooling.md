@@ -118,7 +118,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Observation: the file discovery behind `swc format` drops any path holding a segment that starts
   with a dot, and it drops it without a word. `swc tools/format.swgs` run from such a checkout reports
   `formatted 0 files` then `clean`, which reads exactly like a conformant tree. Nothing was read.
-- Evidence, with the same `bin/.swc-format` and the same badly formatted source in both places:
+- Evidence: with the same `bin/.swc-format` and the same badly formatted source in both places:
   - `swc format -d <scratch>/fmt` reports `1 file • 1 rewritten file` and fixes the file.
   - `swc format -d <scratch>/.dotdir` reports `0 files`. Only the directory name differs.
   - From a worktree at `swc/.claude/worktrees/<name>`, `-d bin`, `-d bin/std`,

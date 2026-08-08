@@ -16,6 +16,10 @@ by regenerating their output, doc and format, are reported as steps to take.
 */
 public func runTests(context: *Context, options: *Options)->s32 fail
 {
+    let backlog = try auditBacklog(context)
+    if backlog != 0 do
+        return backlog
+
     if !options.module.isEmpty() and options.command.isEmpty()
     {
         Console.println("tests.swgs runs a whole set and takes no name. Use unittests, std, examples, apps,")

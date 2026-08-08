@@ -52,7 +52,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
   sCapture's is built as a child of the host root (`MainWnd.create(&gui.root)`), so the two paint
   through different parents. Build the probe in `-bc debug`: a use-after-free reads clean in
   fast-debug and release.
-- Why it matters beyond the crash: sCapture has 128 tests and none of them can see the window, so
+- Why it matters beyond the crash: sCapture has 133 tests and none of them can see the window, so
   no appearance regression in the one application that *is* a visual tool can ever fail a test.
   The same photograph is one test away for sCrypt and impossible here.
 

@@ -182,11 +182,12 @@ Entries are sorted by identifier, ascending; position carries no priority.
   choosing.
 ### F-082 — A script that imports `core` without `using Core` cannot compile the imported API
 
+- Area: compiler
 - Found while: probing nested `#load`, where a reduced script happened to leave `using Core` out.
 - Observation: the generated dependency API of `core` fails to compile in the importing script,
   reporting `unknown symbol 'Reflection'` inside `core.swg` itself. Whether a module's *own*
   generated source resolves its *own* namespaces must not depend on what the importer wrote.
-- Evidence, the whole reproduction, and it is the smallest script that imports anything:
+- Evidence: the whole reproduction is the smallest script that imports anything:
 
   ```swag
   #import("core", location: "swag@std")

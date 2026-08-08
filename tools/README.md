@@ -48,10 +48,13 @@ library beside itself over `SWAG_PATH`, so naming the right compiler is enough t
 
 | Tool | Purpose |
 | --- | --- |
-| `tests.swgs` | The complete test set: compiler, scripts, library, examples, applications, reference |
+| `tests.swgs` | The complete test set: backlog contract, compiler, scripts, library, examples, applications, reference |
 | `unittests.swgs` | The compiler suites: `cpp`, `lexer`, `parser`, `sema`, `jit`, `safety`, `sanity`, `native`, `workspace` |
 | `build.swgs` | Build every workspace |
 | `scrypt.swgs` | The privileged sCrypt/WinFsp end-to-end sandbox, kept out of `tests.swgs` |
+
+`tests.swgs` validates permanent backlog identifiers, counters, finding order, required evidence
+fields, and the README inventory before it selects or starts a test campaign.
 
 ## Workspaces
 

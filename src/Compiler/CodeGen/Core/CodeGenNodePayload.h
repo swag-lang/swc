@@ -1,7 +1,7 @@
 #pragma once
-#include "Support/Core/RefTypes.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
+#include "Support/Core/RefTypes.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -19,11 +19,11 @@ struct CodeGenNodePayload : CodeGenLoweringPayload
     StorageKind   storageKind                  = StorageKind::Value;
     bool          materializedPointerLikeValue = false;
     bool          runtimeStorageOverridden     = false;
-    bool          fallibleWrapperConsumed     = false;
-    MicroLabelRef fallibleFailLabel       = MicroLabelRef::invalid();
-    MicroLabelRef fallibleDoneLabel       = MicroLabelRef::invalid();
-    MicroLabelRef fallibleFunctionFailLabel = MicroLabelRef::invalid();
-    MicroLabelRef fallibleFunctionDoneLabel = MicroLabelRef::invalid();
+    bool          fallibleWrapperConsumed      = false;
+    MicroLabelRef fallibleFailLabel            = MicroLabelRef::invalid();
+    MicroLabelRef fallibleDoneLabel            = MicroLabelRef::invalid();
+    MicroLabelRef fallibleFunctionFailLabel    = MicroLabelRef::invalid();
+    MicroLabelRef fallibleFunctionDoneLabel    = MicroLabelRef::invalid();
 
     void setIsValue() { storageKind = StorageKind::Value; }
     bool isValue() const { return storageKind == StorageKind::Value; }
@@ -43,7 +43,7 @@ struct CodeGenNodePayload : CodeGenLoweringPayload
     bool hasMaterializedPointerLikeValue() const { return materializedPointerLikeValue; }
     void setRuntimeStorageSymbol(SymbolVariable* sym)
     {
-        runtimeStorageSym = sym;
+        runtimeStorageSym        = sym;
         runtimeStorageOverridden = true;
     }
 

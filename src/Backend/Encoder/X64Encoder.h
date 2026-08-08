@@ -31,7 +31,7 @@ public:
             return false;
         return reg == MicroReg::intReg(0) || reg == MicroReg::intReg(2) || reg == MicroReg::intReg(3);
     }
-    bool        queryConformanceIssue(MicroConformanceIssue& outIssue, const MicroInstr& inst, const MicroInstrOperand* ops) const override;
+    bool queryConformanceIssue(MicroConformanceIssue& outIssue, const MicroInstr& inst, const MicroInstrOperand* ops) const override;
 
 protected:
     uint64_t currentOffset() const override { return store_.size(); }

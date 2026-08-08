@@ -239,7 +239,7 @@ struct FormatOptions
     // Statements
     // -----------------------------------------------------------------------
     std::optional<bool> removeRedundantSemicolons;  // Drop `;` at end of line (same-line separators stay)
-    std::optional<bool> removeTrailingCommas;      // Drop a `,` sitting directly before its closing bracket
+    std::optional<bool> removeTrailingCommas;       // Drop a `,` sitting directly before its closing bracket
     std::optional<bool> removeConditionParentheses; // Drop `( ... )` wrapping a whole control condition
     std::optional<bool> oneStatementPerLine;        // Split independent statements separated by `;`
     std::optional<bool> oneEnumValuePerLine;        // Put every value of a multi-value enum on its own line
@@ -269,7 +269,7 @@ struct FormatOptions
     std::optional<bool> alignTrailingComments;                       // Align `//` trailing comments into a shared column
     uint32_t            trailingCommentMinSpaces = 5;                // Minimum spaces before a trailing `//`
     uint32_t            trailingCommentMaxColumn = 0;                // 0 = no limit on trailing comment column
-    uint32_t            alignOutlierGap = 0;                         // Column distance past which a line is an outlier its alignment group leaves alone; 0 = never
+    uint32_t            alignOutlierGap          = 0;                // Column distance past which a line is an outlier its alignment group leaves alone; 0 = never
     std::optional<bool> alignOperands;                               // Align operands of wrapped binary expressions
     std::optional<bool> alignAfterOpenBracket;                       // Align wrapped lines with the item the opening `(` / `[` / `{` carries on its own line
     std::optional<bool> alignArrayColumns;                           // Align the columns of multi-line array-of-struct literals

@@ -744,7 +744,7 @@ private impl ListView
                     {
                         // Centered in the column the row reserves for it, so the marker keeps the
                         // same air on both sides whatever size the theme gives the chevron.
-                        let expand = theme.icon(line.expanded ? .ChevronDown : .ChevronRight, metrics.chevron_Size)
+                        let expand  = theme.icon(line.expanded ? .ChevronDown : .ChevronRight, metrics.chevron_Size)
                         let expandX = labelPos.x + Math.max(metrics.list_ExpandSize - expand.sizeX, 0.0) * 0.5
                         expand.paint(painter, expandX, opticalTop(.font(), labelPos.vertCenter(), expand.sizeY), colorExpand)
                     }

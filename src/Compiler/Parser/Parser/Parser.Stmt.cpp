@@ -901,10 +901,6 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::KwdStruct:
             return parseStructDecl();
 
-        case TokenId::IntrinsicCVaStart:
-        case TokenId::IntrinsicCVaEnd:
-            return parseIntrinsicCall(1);
-
         case TokenId::IntrinsicBreakpoint:
             return parseIntrinsicCallExpr(0);
         case TokenId::IntrinsicFree:

@@ -1,6 +1,6 @@
 #pragma once
-#include "Compiler/ModuleApi/ModuleApi.h"
 #include "Compiler/ModuleApi/ModuleApi.Internal.h"
+#include "Compiler/ModuleApi/ModuleApi.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/SmallVector.h"
@@ -16,8 +16,8 @@ namespace ModuleApiExport
     using ModuleApi::extractPublicNamespacePath;
     using ModuleApi::findEnclosingImplRef;
     using ModuleApi::findExportDeclRoot;
-    using ModuleApi::isExportedPublicDeclScope;
     using ModuleApi::isCurrentModuleSourceFile;
+    using ModuleApi::isExportedPublicDeclScope;
     using ModuleApi::isModuleApiOpaqueType;
     using ModuleApi::moduleApiNodeSourceView;
     using ModuleApi::moduleApiSnippetStartTokRef;
@@ -88,11 +88,11 @@ namespace ModuleApiExport
     void sortGeneratedModuleApiRoots(TaskContext& ctx, std::vector<ModuleApiGeneratedRoot>& roots);
 
     // ModuleApiExport.Generate.cpp
-    Result     buildGeneratedRootSnippet(TaskContext& ctx, const ModuleApiGeneratedRoot& root, std::string_view eol, Utf8& outSnippet, ModuleApiValidationStack& validationStack);
-    bool       tryBuildImplPrefix(TaskContext& ctx, const SourceFile& file, AstNodeRef implRef, std::string_view eol, Utf8& outPrefix);
-    bool       tryFindSemanticImplRef(TaskContext& ctx, const ModuleApiGeneratedRoot& root, AstNodeRef& outImplRef, const SourceFile*& outImplFile);
-    void       appendGeneratedRootUnique(std::vector<ModuleApiGeneratedRoot>& outRoots, ModuleApiGeneratedRoot&& root);
-    void       appendGeneratedRootsForFile(TaskContext& ctx, const SourceFile& file, const ModuleApiFileEntry& fileEntry, std::vector<ModuleApiGeneratedRoot>& outRoots);
+    Result buildGeneratedRootSnippet(TaskContext& ctx, const ModuleApiGeneratedRoot& root, std::string_view eol, Utf8& outSnippet, ModuleApiValidationStack& validationStack);
+    bool   tryBuildImplPrefix(TaskContext& ctx, const SourceFile& file, AstNodeRef implRef, std::string_view eol, Utf8& outPrefix);
+    bool   tryFindSemanticImplRef(TaskContext& ctx, const ModuleApiGeneratedRoot& root, AstNodeRef& outImplRef, const SourceFile*& outImplFile);
+    void   appendGeneratedRootUnique(std::vector<ModuleApiGeneratedRoot>& outRoots, ModuleApiGeneratedRoot&& root);
+    void   appendGeneratedRootsForFile(TaskContext& ctx, const SourceFile& file, const ModuleApiFileEntry& fileEntry, std::vector<ModuleApiGeneratedRoot>& outRoots);
 
     // ModuleApiExport.Content.cpp
     Utf8   buildExportedModuleApiContent(const SourceFile& file, std::string_view moduleNamespace, bool hasModuleNamespace);

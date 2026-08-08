@@ -695,7 +695,7 @@ impl Surface
 
     // Records the window the keyboard just landed on, as the surface's own focus.
     //
-    // See [[Gui.Surface.focusWnd]]. Called by [[Gui.Wnd.setFocus]], which is the one way the
+    // See `Surface.focusWnd`. Called by [[Gui.Wnd.setFocus]], which is the one way the
     // focus moves, so a surface knows where its keyboard stands whether or not it is the one
     // the application is currently sending keys to.
     internal mtd noteFocus(wnd: *Wnd)

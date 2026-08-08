@@ -5,3 +5,6 @@ var a = @toto(6)                         // swc-expected-error {{parser_err_inva
 var b = @countoff(1)                     // swc-expected-error {{parser_err_invalid_intrinsic}}
 var c = @prnt(1)                         // swc-expected-error {{parser_err_invalid_intrinsic}}
 var d = @zzz()                           // swc-expected-error {{parser_err_invalid_intrinsic}}
+var e = @cvastart(1)                     // swc-expected-error {{parser_err_invalid_intrinsic}}
+var f = @cvaend(1)                       // swc-expected-error {{parser_err_invalid_intrinsic}}
+var g = @cvaarg(1, u32)                  // swc-expected-error {{parser_err_invalid_intrinsic}}

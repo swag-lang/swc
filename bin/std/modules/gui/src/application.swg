@@ -618,7 +618,7 @@ private impl Application
     // raised it. It is asked for its own focus rather than being handed a position captured here,
     // because a box that opens ready for the keyboard has already moved it onto itself by the
     // time this runs: what was read here was a rank inside the box, applied to the ring of the
-    // form underneath it. See [[Gui.Surface.focusWnd]].
+    // form underneath it. See `Surface.focusWnd`.
     public mtd doModalLoop(surface: #null *Surface, cb: #null func||(*Application) = null, restoreTo: #null *Surface = null)->WndId
     {
         .endModal     = false
@@ -1245,7 +1245,7 @@ impl Application
     // Registration was `internal` and had no caller, so `sendFrameEvents` walked an empty array
     // for the whole run and every deferral written against it silently never happened.
     //
-    // Register once and unregister before the window goes; [[Gui.Application.destroyWnd]] also
+    // Register once and unregister before the window goes; `Application.destroyWnd` also
     // drops a destroyed window from the list, so a normal teardown needs nothing.
     mtd registerFrameEvent(target: *Wnd)
     {

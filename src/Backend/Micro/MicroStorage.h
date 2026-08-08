@@ -101,14 +101,14 @@ public:
     // that erases a relocated load and inserts an instruction before its own
     // cleanup runs would otherwise see the new instruction inherit the old
     // relocation. MicroBuilder::pruneDeadRelocations is what calls this.
-    void                                  releaseErasedRefs();
-    MicroInstrRef                         findNextInstructionRef(MicroInstrRef afterRef) const noexcept;
-    MicroInstrRef                         findPreviousInstructionRef(MicroInstrRef beforeRef) const noexcept;
-    MicroInstrRef                         insertBefore(MicroInstrRef beforeRef, const MicroInstr& value);
-    MicroInstrRef                         insertDerivedBefore(MicroOperandStorage& operands, MicroInstrRef beforeRef, MicroInstrOpcode op, std::span<const MicroInstrOperand> opsData);
-    MicroInstrRef                         insertSyntheticBefore(MicroOperandStorage& operands, MicroInstrRef beforeRef, MicroInstrOpcode op, std::span<const MicroInstrOperand> opsData);
-    View                                  view() noexcept;
-    ConstView                             view() const noexcept;
+    void          releaseErasedRefs();
+    MicroInstrRef findNextInstructionRef(MicroInstrRef afterRef) const noexcept;
+    MicroInstrRef findPreviousInstructionRef(MicroInstrRef beforeRef) const noexcept;
+    MicroInstrRef insertBefore(MicroInstrRef beforeRef, const MicroInstr& value);
+    MicroInstrRef insertDerivedBefore(MicroOperandStorage& operands, MicroInstrRef beforeRef, MicroInstrOpcode op, std::span<const MicroInstrOperand> opsData);
+    MicroInstrRef insertSyntheticBefore(MicroOperandStorage& operands, MicroInstrRef beforeRef, MicroInstrOpcode op, std::span<const MicroInstrOperand> opsData);
+    View          view() noexcept;
+    ConstView     view() const noexcept;
 
 private:
     struct Node

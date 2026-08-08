@@ -146,13 +146,13 @@ namespace
         const uint64_t maxU   = (bits == 64) ? ~0ull : (1ull << bits) - 1;
 
         UnsignedDivisionMagic magic;
-        const uint64_t nc = maxU - (maxU - divisor + 1) % divisor;
-        uint32_t       p  = bits - 1;
-        uint64_t       q1 = twoNm1 / nc;
-        uint64_t       r1 = twoNm1 - q1 * nc;
-        uint64_t       q2 = (twoNm1 - 1) / divisor;
-        uint64_t       r2 = (twoNm1 - 1) - q2 * divisor;
-        uint64_t       delta;
+        const uint64_t        nc = maxU - (maxU - divisor + 1) % divisor;
+        uint32_t              p  = bits - 1;
+        uint64_t              q1 = twoNm1 / nc;
+        uint64_t              r1 = twoNm1 - q1 * nc;
+        uint64_t              q2 = (twoNm1 - 1) / divisor;
+        uint64_t              r2 = (twoNm1 - 1) - q2 * divisor;
+        uint64_t              delta;
 
         do
         {
@@ -280,8 +280,8 @@ namespace
         void emitOpRegImm(MicroReg reg, MicroOp op, uint64_t value) const
         {
             MicroInstrOperand ops[4];
-            ops[0].reg    = reg;
-            ops[1].opBits = opBits;
+            ops[0].reg     = reg;
+            ops[1].opBits  = opBits;
             ops[2].microOp = op;
             ops[3].setImmediateValue(ApInt(value, getNumBits(opBits)));
             storage.insertDerivedBefore(operands, beforeRef, MicroInstrOpcode::OpBinaryRegImm, ops);
@@ -290,9 +290,9 @@ namespace
         void emitOpRegReg(MicroReg dst, MicroReg src, MicroOp op) const
         {
             MicroInstrOperand ops[4];
-            ops[0].reg    = dst;
-            ops[1].reg    = src;
-            ops[2].opBits = opBits;
+            ops[0].reg     = dst;
+            ops[1].reg     = src;
+            ops[2].opBits  = opBits;
             ops[3].microOp = op;
             storage.insertDerivedBefore(operands, beforeRef, MicroInstrOpcode::OpBinaryRegReg, ops);
         }
@@ -344,9 +344,9 @@ namespace
         // q = t + (t >>u N-1). The dividend must be provided when M is negative.
         void emitSignedDivideMagic(MicroReg dst, MicroReg dividendReg, const SignedDivisionMagic& magic) const
         {
-            const uint32_t bits           = getNumBits(opBits);
-            const bool     negativeMagic  = (magic.multiplier >> (bits - 1)) & 1;
-            const MicroReg magicReg       = allocVirtualReg();
+            const uint32_t bits          = getNumBits(opBits);
+            const bool     negativeMagic = (magic.multiplier >> (bits - 1)) & 1;
+            const MicroReg magicReg      = allocVirtualReg();
             emitLoadImm(magicReg, magic.multiplier);
             emitOpRegReg(dst, magicReg, MicroOp::MultiplyHighSigned);
             if (negativeMagic)

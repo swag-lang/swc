@@ -113,7 +113,7 @@ requested.
 
 - Use `> NOTE:`, `> TIP:`, `> WARNING:`, `> ATTENTION:`, or `> EXAMPLE:` for callouts.
 - Use `<html>...</html>` only when the supported markup cannot express the required layout.
-- Keep generated pages static: link only to `.html` documentation pages and never add PHP or script elements.
+- Keep generated pages self-contained: link only to `.html` documentation pages, never add PHP, and do not author arbitrary scripts. The first-party search script emitted by the documentation generator is allowed.
 - In `.Examples` source files, place prose between `/**` and `*/`; keep executable Swag code outside those blocks.
 
 ## Validate
@@ -124,6 +124,6 @@ requested.
    - The audit reports enum values separately. Review that list, but do not add prose that merely repeats self-explanatory named constants such as color names.
 3. Confirm the `module.swg` overview, every intended `help/*.md` guide, the module and namespace summary tables, and owner-type content tables appear. Then confirm representative methods and nested declarations still have standalone, qualified entries at the root of the detailed reference.
 4. Check headings, code coloring, tables, callouts, internal links, cross-module type links, runtime links, and source links touched by the change.
-5. Confirm generated pages contain no unresolved `[[...]]` references, PHP, script elements, broken anchors, duplicate IDs, or compiler-generated identifiers and use the generated stylesheet.
+5. Confirm generated pages contain no unresolved `[[...]]` references, PHP, unexpected script elements, broken anchors, duplicate IDs, or compiler-generated identifiers and use the generated stylesheet. The first-party search script emitted by the documentation generator is expected.
 6. Confirm `#[Swag.NoDoc]` declarations are absent.
 7. Run `swc tools/web.swgs dm` when changing shared documentation rules, website configuration, or several documented modules.

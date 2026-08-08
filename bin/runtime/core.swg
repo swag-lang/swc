@@ -116,7 +116,7 @@ func @typecmp(typeA, typeB: typeinfo, cmpFlags: TypeCmpFlags)->bool
     if (type1.kind != type2.kind) or (type1.sizeof != type2.sizeof) do
         return false
 
-    // HACK for now : do not take care of nullability migration flags
+    // Nullability and explicit initialization are source contracts, not runtime type identity.
     let nullableFlags = TypeInfoFlags.Nullable | TypeInfoFlags.RequiresExplicitInit
     let flags1        = type1.flags & ~nullableFlags
     let flags2        = type2.flags & ~nullableFlags

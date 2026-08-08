@@ -129,7 +129,7 @@ SWC_TEST_BEGIN(JobManager_ProgressiveWorkersDrainQueuedJobs)
     const TaskContext jobCtx(global, cmdLine);
     const auto        clientId = jobMgr.newClientId();
 
-    std::atomic<uint32_t>              count{0};
+    std::atomic<uint32_t>             count{0};
     std::vector<std::unique_ptr<Job>> jobs;
     for (uint32_t index = 0; index < 16; ++index)
     {

@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/Micro/MicroStorage.h"
-#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 
 // Forward a LoadRegImm into its consumer so the materializing register
@@ -636,7 +636,7 @@ namespace InstructionCombine
         MicroInstrOperand newOps[4];
         for (uint8_t i = 0; i < 4; ++i)
             newOps[i] = ops[i];
-        newOps[baseIdx].reg    = MicroReg::instructionPointer();
+        newOps[baseIdx].reg     = MicroReg::instructionPointer();
         newOps[offIdx].valueU64 = 0;
         ctx.emitRewrite(ref, inst.op, newOps);
         return true;

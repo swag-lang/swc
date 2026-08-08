@@ -116,7 +116,7 @@ impl FocusOrder
         if index < 0 do
             return .next(from, forward)
 
-        let parent = .stops[cast(u64) index].parent
+        let parent  = .stops[cast(u64) index].parent
         var group: Array'(*Wnd)
         var current = 0's64
         for stop in .stops where stop.parent == parent

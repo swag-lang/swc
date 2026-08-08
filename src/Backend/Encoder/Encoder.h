@@ -96,9 +96,9 @@ public:
     // Whether the target can compute `dst = src1 op src2` for floats without
     // writing into one of its inputs. Where it cannot, the post-RA peephole
     // leaves the copy-then-operate pair alone.
-    virtual bool                                supportsNonDestructiveFloatBinary() const { return false; }
-    void                                        setBackendBuildCfg(const Runtime::BuildCfgBackend& value) { backendBuildCfg_ = value; }
-    const Runtime::BuildCfgBackend&             backendBuildCfg() const { return backendBuildCfg_; }
+    virtual bool                    supportsNonDestructiveFloatBinary() const { return false; }
+    void                            setBackendBuildCfg(const Runtime::BuildCfgBackend& value) { backendBuildCfg_ = value; }
+    const Runtime::BuildCfgBackend& backendBuildCfg() const { return backendBuildCfg_; }
 
     virtual void        buildUnwindInfo(ByteArray& outUnwindInfo) const {}
     virtual std::string formatRegisterName(MicroReg reg) const;

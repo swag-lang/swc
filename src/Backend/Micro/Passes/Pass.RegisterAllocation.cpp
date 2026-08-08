@@ -1171,9 +1171,9 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
 
         std::vector<uint32_t>& reserved           = isFloat ? reservedFloat : reservedInt;
         std::vector<uint32_t>& reservedPersistent = isFloat ? reservedFloatPersistent : reservedIntPersistent;
-        const size_t   total           = isFloat ? freeFloatTransient_.size() : totalInt;
-        const size_t   totalPersistent = isFloat ? totalFloatPersit : totalIntPersist;
-        const uint32_t minFreeClass    = isFloat ? K_MIN_FREE_FLOAT_CLASS : K_MIN_FREE_INT_CLASS;
+        const size_t           total              = isFloat ? freeFloatTransient_.size() : totalInt;
+        const size_t           totalPersistent    = isFloat ? totalFloatPersit : totalIntPersist;
+        const uint32_t         minFreeClass       = isFloat ? K_MIN_FREE_FLOAT_CLASS : K_MIN_FREE_INT_CLASS;
 
         // A hull crossing a call that actually runs prefers a callee-saved
         // register; one whose calls are all guard-shadowed prefers a
@@ -1258,8 +1258,8 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
             // guard fires, while a prologue save would run every entry).
             const bool preferPersistent = isFloat ? (needsPersistent || !crossesCall) : needsPersistent;
 
-            const SmallVector<MicroReg>& pool = preferPersistent == (pass == 0) ? persistentPool : transientPool;
-            const bool poolIsPersistent       = &pool == &persistentPool;
+            const SmallVector<MicroReg>& pool             = preferPersistent == (pass == 0) ? persistentPool : transientPool;
+            const bool                   poolIsPersistent = &pool == &persistentPool;
             if (isFloat && (poolIsPersistent ? !persistentHeadroom : !transientHeadroom))
                 continue;
             for (const MicroReg reg : pool)
@@ -2063,13 +2063,13 @@ void MicroRegisterAllocationPass::ensureSpillSlot(VRegState& regState, bool isFl
 
 void MicroRegisterAllocationPass::clearRematerialization(VRegState& regState)
 {
-    regState.rematerializable  = false;
-    regState.rematImmediate    = {};
-    regState.rematBits         = MicroOpBits::B64;
-    regState.rematDefInstRef   = MicroInstrRef::invalid();
-    regState.rematDefConsumed  = false;
-    regState.rematIsRelocated  = false;
-    regState.rematRelocation   = {};
+    regState.rematerializable = false;
+    regState.rematImmediate   = {};
+    regState.rematBits        = MicroOpBits::B64;
+    regState.rematDefInstRef  = MicroInstrRef::invalid();
+    regState.rematDefConsumed = false;
+    regState.rematIsRelocated = false;
+    regState.rematRelocation  = {};
 }
 
 void MicroRegisterAllocationPass::noteRematDefConsumed(VRegState& regState)

@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Backend/Micro/MicroReg.h"
 #include "Backend/Micro/MicroPassHelpers.h"
+#include "Backend/Micro/MicroReg.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 
 // Load into source-operand folding (register destination).

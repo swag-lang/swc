@@ -672,12 +672,6 @@ Result AstIntrinsicCall::semaPostNode(Sema& sema)
         case TokenId::IntrinsicTableOf:
             return semaIntrinsicTableOf(sema, *this, children);
 
-        case TokenId::IntrinsicCVaStart:
-        case TokenId::IntrinsicCVaEnd:
-        case TokenId::IntrinsicCVaArg:
-            // TODO
-            SWC_INTERNAL_ERROR();
-
         default:
             SWC_INTERNAL_ERROR();
     }

@@ -254,8 +254,8 @@ namespace ModuleApi
 {
     Result exportFiles(TaskContext& ctx)
     {
-        using ModuleApiExport::appendGeneratedRootUnique;
         using ModuleApiExport::appendGeneratedRootsForFile;
+        using ModuleApiExport::appendGeneratedRootUnique;
         using ModuleApiExport::buildExportedModuleApiContent;
         using ModuleApiExport::buildGeneratedModuleApiSingleFileContent;
         using ModuleApiExport::buildModuleNamespaceName;

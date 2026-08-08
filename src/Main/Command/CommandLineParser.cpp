@@ -711,8 +711,8 @@ const ArgInfo* CommandLineParser::findLongFormArgument(TaskContext& ctx, const U
 
 const ArgInfo* CommandLineParser::findNegatedArgument(TaskContext& ctx, const Utf8& arg, bool& invertBoolean)
 {
-    const Utf8 baseArg = Utf8(LONG_PREFIX) + arg.substr(LONG_NO_PREFIX_LEN);
-    const ArgInfo* info = nullptr;
+    const Utf8     baseArg = Utf8(LONG_PREFIX) + arg.substr(LONG_NO_PREFIX_LEN);
+    const ArgInfo* info    = nullptr;
     for (const ArgInfo& candidate : args_)
     {
         if (candidate.longForm == baseArg)

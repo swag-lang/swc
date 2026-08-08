@@ -751,7 +751,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <h3 id="Contextual_Source_and_Module_Names">Contextual Source and Module Names</h3>
 <p><span class="code-inline">export</span>, <span class="code-inline">generated</span>, <span class="code-inline">location</span>, <span class="code-inline">link</span>, and <span class="code-inline">version</span> are recognized in specific module-setup or generated-source positions. Outside those positions the lexer treats them as ordinary identifiers; they are not part of the reserved keyword set above.</p>
 <h3 id="Built-In_Types">Built-In Types</h3>
-<div class="code-block"><span class="SCde"><span class="STpe">any</span>  <span class="STpe">bool</span>  <span class="STpe">cstring</span>  <span class="STpe">cvarargs</span>  <span class="STpe">f32</span>  <span class="STpe">f64</span>  <span class="STpe">rune</span>
+<div class="code-block"><span class="SCde"><span class="STpe">any</span>  <span class="STpe">bool</span>  <span class="STpe">cstring</span>  <span class="STpe">f32</span>  <span class="STpe">f64</span>  <span class="STpe">rune</span>
 <span class="STpe">s8</span>  <span class="STpe">s16</span>  <span class="STpe">s32</span>  <span class="STpe">s64</span>  <span class="STpe">string</span>  <span class="STpe">typeinfo</span>
 <span class="STpe">u8</span>  <span class="STpe">u16</span>  <span class="STpe">u32</span>  <span class="STpe">u64</span>  <span class="STpe">void</span>
 </span></div>
@@ -801,7 +801,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 </span></div>
 <p>Memory, atomic, and C variadic intrinsics:</p>
 <div class="code-block"><span class="SCde"><span class="SItr">@alloc</span>  <span class="SItr">@atomadd</span>  <span class="SItr">@atomand</span>  <span class="SItr">@atomcmpxchg</span>  <span class="SItr">@atomor</span>  <span class="SItr">@atomxchg</span>
-<span class="SItr">@atomxor</span>  <span class="SItr">@cvaarg</span>  <span class="SItr">@cvaend</span>  <span class="SItr">@cvastart</span>  <span class="SItr">@free</span>  <span class="SItr">@memcmp</span>
+<span class="SItr">@atomxor</span>  <span class="SItr">@free</span>  <span class="SItr">@memcmp</span>
 <span class="SItr">@memcpy</span>  <span class="SItr">@memmove</span>  <span class="SItr">@memset</span>  <span class="SItr">@realloc</span>
 </span></div>
 <div class="blockquote blockquote-note">
@@ -10129,7 +10129,6 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <li>State who owns returned memory and which function releases it.</li>
 <li>Treat a returned pointer as borrowed unless the external API explicitly transfers ownership.</li>
 </ul>
-<p><span class="code-inline">cvarargs</span> and <span class="code-inline">@cvastart</span>/<span class="code-inline">@cvaarg</span>/<span class="code-inline">@cvaend</span> exist for implementing or forwarding C-style variadic boundaries. Prefer a typed Swag wrapper: C default argument promotions and format-string contracts are not checked by the foreign declaration.</p>
 </article>
 <footer class="site-footer">
 <div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1</div>

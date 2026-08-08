@@ -10,20 +10,20 @@ using Core, Gui
 // [[appStrings]]; never keep a copy across a language switch.
 struct AppStrings
 {
-    ui_WindowTitle:         string = "sCrypt — Private virtual drives"
-    ui_Badge:               string = "PORTABLE  |  PASSWORD-LOCKED  |  NO SETUP"
-    ui_Subtitle:            string = "Encrypted storage that looks and behaves like a regular Windows drive."
-    ui_CreateCardTitle:     string = "Create a new vault"
-    ui_CreateCardHelp:      string = "Choose a fixed capacity. The complete container is randomized before it is ready."
-    ui_MountCardTitle:      string = "Open an existing vault"
-    ui_MountCardHelp:       string = "Unlock a container and expose it on any available drive letter. Growing the vault and changing its password ask for that same password."
-    ui_MountedCardTitle:    string = "Mounted drives"
+    ui_WindowTitle:      string = "sCrypt — Private virtual drives"
+    ui_Badge:            string = "PORTABLE  |  PASSWORD-LOCKED  |  NO SETUP"
+    ui_Subtitle:         string = "Encrypted storage that looks and behaves like a regular Windows drive."
+    ui_CreateCardTitle:  string = "Create a new vault"
+    ui_CreateCardHelp:   string = "Choose a fixed capacity. The complete container is randomized before it is ready."
+    ui_MountCardTitle:   string = "Open an existing vault"
+    ui_MountCardHelp:    string = "Unlock a container and expose it on any available drive letter. Growing the vault and changing its password ask for that same password."
+    ui_MountedCardTitle: string = "Mounted drives"
 
     // One word per tab. The card under it says the whole sentence, so a tab that repeats it
     // spends the width of a heading to name what the heading already names.
-    ui_CreateTab:           string = "Create"
-    ui_OpenTab:             string = "Open"
-    ui_MountedTab:          string = "Mounted"
+    ui_CreateTab:  string = "Create"
+    ui_OpenTab:    string = "Open"
+    ui_MountedTab: string = "Mounted"
 
     ui_MountedCardHelp:     string = "Every drive sCrypt currently exposes. Check one to have it mounted again the next time sCrypt starts."
     ui_NoDriveMounted:      string = "No drive is mounted."

@@ -427,12 +427,12 @@ public:
     // Every local currently known to borrow something, for the checks that start from the
     // BORROWED storage instead of the borrowing variable.
     const std::unordered_map<const SymbolVariable*, SemaEscapeInfo>& variableEscapeInfos() const { return variableEscapeInfos_; }
-    void                  setVariableEscapeInfo(const SymbolVariable& symVar, const SemaEscapeInfo& info);
-    void                  clearVariableEscapeInfo(const SymbolVariable& symVar);
-    SemaEscapeInfo        variableEscapeInfoIncludingProjections(const SymbolVariable& symVar) const;
-    SemaEscapeInfo        projectionEscapeInfoIncludingWildcards(const SemaEscapeProjection& projection) const;
-    void                  setProjectionEscapeInfo(const SemaEscapeProjection& projection, const SemaEscapeInfo& info);
-    void                  clearProjectionEscapeInfo(const SemaEscapeProjection& projection);
+    void                                                             setVariableEscapeInfo(const SymbolVariable& symVar, const SemaEscapeInfo& info);
+    void                                                             clearVariableEscapeInfo(const SymbolVariable& symVar);
+    SemaEscapeInfo                                                   variableEscapeInfoIncludingProjections(const SymbolVariable& symVar) const;
+    SemaEscapeInfo                                                   projectionEscapeInfoIncludingWildcards(const SemaEscapeProjection& projection) const;
+    void                                                             setProjectionEscapeInfo(const SemaEscapeProjection& projection, const SemaEscapeInfo& info);
+    void                                                             clearProjectionEscapeInfo(const SemaEscapeProjection& projection);
 
     // Structural changes of storage a local view was reading, judged once the body they
     // sit in is fully resolved (SemaEscape::reportBorrowInvalidations).
@@ -513,21 +513,21 @@ public:
     void       deferPostNodeAction(AstNodeRef nodeRef, std::function<Result(Sema&, AstNodeRef)> callback);
     void       processCurrentPostNodePopsNow();
 
-    Result      waitIdentifier(IdentifierRef idRef, const SourceCodeRef& codeRef);
-    Result      waitAutoScopeMember(IdentifierRef idRef, TypeRef candidateTypeRef, const SourceCodeRef& codeRef);
-    Result      waitPredefined(IdentifierManager::PredefinedName name, TypeRef& typeRef, const SourceCodeRef& codeRef);
-    Result      waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind kind, SymbolFunction*& symbol, const SourceCodeRef& codeRef);
-    Result      waitCompilerDefined(IdentifierRef idRef, const SourceCodeRef& codeRef);
-    Result      waitImplRegistrations(IdentifierRef idRef, const SourceCodeRef& codeRef);
-    Result      completeLazyGenericFunction(SymbolFunction& calledFn);
-    Result      waitSemaCompletedNoLazy(const Symbol* symbol, const SourceCodeRef& codeRef);
-    Result      waitSemaCompleted(const Symbol* symbol, const SourceCodeRef& codeRef);
-    Result      waitCodeGenPreSolved(const Symbol* symbol, const SourceCodeRef& codeRef);
-    Result      waitCodeGenCompleted(const Symbol* symbol, const SourceCodeRef& codeRef);
-    Result      waitDeclared(const Symbol* symbol, const SourceCodeRef& codeRef);
-    Result      waitTyped(const Symbol* symbol, const SourceCodeRef& codeRef);
-    Result      waitSemaCompleted(const TypeInfo* type, AstNodeRef nodeRef);
-    Result      waitTypeInfoGeneration(AstNodeRef nodeRef, const SourceCodeRef& codeRef = SourceCodeRef::invalid());
+    Result waitIdentifier(IdentifierRef idRef, const SourceCodeRef& codeRef);
+    Result waitAutoScopeMember(IdentifierRef idRef, TypeRef candidateTypeRef, const SourceCodeRef& codeRef);
+    Result waitPredefined(IdentifierManager::PredefinedName name, TypeRef& typeRef, const SourceCodeRef& codeRef);
+    Result waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind kind, SymbolFunction*& symbol, const SourceCodeRef& codeRef);
+    Result waitCompilerDefined(IdentifierRef idRef, const SourceCodeRef& codeRef);
+    Result waitImplRegistrations(IdentifierRef idRef, const SourceCodeRef& codeRef);
+    Result completeLazyGenericFunction(SymbolFunction& calledFn);
+    Result waitSemaCompletedNoLazy(const Symbol* symbol, const SourceCodeRef& codeRef);
+    Result waitSemaCompleted(const Symbol* symbol, const SourceCodeRef& codeRef);
+    Result waitCodeGenPreSolved(const Symbol* symbol, const SourceCodeRef& codeRef);
+    Result waitCodeGenCompleted(const Symbol* symbol, const SourceCodeRef& codeRef);
+    Result waitDeclared(const Symbol* symbol, const SourceCodeRef& codeRef);
+    Result waitTyped(const Symbol* symbol, const SourceCodeRef& codeRef);
+    Result waitSemaCompleted(const TypeInfo* type, AstNodeRef nodeRef);
+    Result waitTypeInfoGeneration(AstNodeRef nodeRef, const SourceCodeRef& codeRef = SourceCodeRef::invalid());
     // Records why this job cannot go on and hands the worker back to the scheduler.
     Result      parkOnSymbol(TaskStateKind kind, const Symbol* blockingSymbol, AstNodeRef nodeRef, const SourceCodeRef& codeRef);
     Result      makeRuntimeTypeInfo(ConstantRef& outRef, TypeRef typeRef, AstNodeRef ownerNodeRef);

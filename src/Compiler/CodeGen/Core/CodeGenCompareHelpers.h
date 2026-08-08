@@ -1,8 +1,8 @@
 #pragma once
-#include "Support/Core/RefTypes.h"
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
+#include "Support/Core/RefTypes.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -37,7 +37,7 @@ namespace CodeGenCompareHelpers
 
     struct CompareCondition
     {
-        MicroCond          primaryCond       = MicroCond::Equal;
+        MicroCond          primaryCond        = MicroCond::Equal;
         FloatUnorderedMode floatUnorderedMode = FloatUnorderedMode::ExcludedByPrimary;
     };
 
@@ -48,13 +48,13 @@ namespace CodeGenCompareHelpers
 
     inline CompareCondition truthyCondition(const TypeInfo& compareType)
     {
-        return {.primaryCond = MicroCond::NotEqual,
+        return {.primaryCond        = MicroCond::NotEqual,
                 .floatUnorderedMode = compareType.isFloat() ? FloatUnorderedMode::AcceptUnordered : FloatUnorderedMode::ExcludedByPrimary};
     }
 
     inline CompareCondition falseyCondition(const TypeInfo& compareType)
     {
-        return {.primaryCond = MicroCond::Equal,
+        return {.primaryCond        = MicroCond::Equal,
                 .floatUnorderedMode = compareType.isFloat() ? FloatUnorderedMode::RequireOrdered : FloatUnorderedMode::ExcludedByPrimary};
     }
 
@@ -81,9 +81,9 @@ namespace CodeGenCompareHelpers
         if (!needsFloatUnorderedHandling(compareType, condition))
             return;
 
-        const MicroReg unorderedReg = codeGen.nextVirtualIntRegister();
+        const MicroReg  unorderedReg  = codeGen.nextVirtualIntRegister();
         const MicroCond unorderedCond = condition.floatUnorderedMode == FloatUnorderedMode::RequireOrdered ? MicroCond::NotParity : MicroCond::Parity;
-        const MicroOp combineOp = condition.floatUnorderedMode == FloatUnorderedMode::RequireOrdered ? MicroOp::And : MicroOp::Or;
+        const MicroOp   combineOp     = condition.floatUnorderedMode == FloatUnorderedMode::RequireOrdered ? MicroOp::And : MicroOp::Or;
 
         builder.emitSetCondReg(unorderedReg, unorderedCond);
         builder.emitLoadZeroExtendRegReg(unorderedReg, unorderedReg, MicroOpBits::B32, MicroOpBits::B8);
@@ -150,9 +150,9 @@ namespace CodeGenCompareHelpers
         if (typeRef.isValid() && payload.typeRef.isValid() && codeGen.typeMgr().get(typeRef).isBool())
             typeRef = payload.typeRef;
 
-        const TypeInfo&   typeInfo = codeGen.typeMgr().get(typeRef);
-        const MicroOpBits condBits = CodeGenTypeHelpers::compareBits(typeInfo, codeGen.ctx());
-        const MicroReg    condReg  = codeGen.nextVirtualRegisterForType(typeRef);
+        const TypeInfo&   typeInfo           = codeGen.typeMgr().get(typeRef);
+        const MicroOpBits condBits           = CodeGenTypeHelpers::compareBits(typeInfo, codeGen.ctx());
+        const MicroReg    condReg            = codeGen.nextVirtualRegisterForType(typeRef);
         const bool        addressBackedValue = !payload.isAddress() && typeInfo.sizeOf(codeGen.ctx()) > 8;
 
         MicroBuilder& builder = codeGen.builder();

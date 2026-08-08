@@ -3415,9 +3415,9 @@ void X64Encoder::encodeOpBinaryRegRegReg(MicroReg regDst, MicroReg regSrc1, Micr
 
     // Same mandatory prefix the two-operand form would carry: F2/F3 select the
     // scalar arithmetic shapes, 66/none the bitwise ones.
-    const bool    isBitwise        = op == MicroOp::FloatAnd || op == MicroOp::FloatXor;
-    const uint8_t mandatoryPrefix  = isBitwise ? (opBits == MicroOpBits::B64 ? 0x66 : 0x00)
-                                               : (opBits == MicroOpBits::B64 ? 0xF2 : 0xF3);
+    const bool    isBitwise       = op == MicroOp::FloatAnd || op == MicroOp::FloatXor;
+    const uint8_t mandatoryPrefix = isBitwise ? (opBits == MicroOpBits::B64 ? 0x66 : 0x00)
+                                              : (opBits == MicroOpBits::B64 ? 0xF2 : 0xF3);
 
     // No 0F byte: the VEX prefix already carries the escape.
     emitVex(store_, mandatoryPrefix, microRegToX64Reg(regDst), microRegToX64Reg(regSrc1), microRegToX64Reg(regSrc2));

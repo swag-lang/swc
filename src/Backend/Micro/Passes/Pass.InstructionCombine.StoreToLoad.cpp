@@ -125,7 +125,7 @@ namespace InstructionCombine
             {
                 if (!reloc.instructionRef.isValid())
                     continue;
-                const uint64_t key = (static_cast<uint64_t>(reloc.kind) << 56) ^ (reloc.targetAddress + 1);
+                const uint64_t key                        = (static_cast<uint64_t>(reloc.kind) << 56) ^ (reloc.targetAddress + 1);
                 relocKeyByRef[reloc.instructionRef.get()] = key;
             }
         }

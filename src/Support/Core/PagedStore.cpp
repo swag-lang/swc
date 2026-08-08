@@ -222,15 +222,23 @@ std::pair<SpanRef, uint32_t> PagedStore::writeChunkRaw(const uint8_t* src, uint3
     return {hdrRef, fit};
 }
 
+std::pair<std::span<std::byte>, Ref> PagedStore::reserveSpan(uint32_t size, uint32_t align)
+{
+    if (!size)
+        return {std::span<std::byte>{}, INVALID_REF};
+
+    auto [ref, dst] = allocate(size, align);
+    return {{static_cast<std::byte*>(dst), size}, ref};
+}
+
 std::pair<std::span<const std::byte>, Ref> PagedStore::pushCopySpan(std::span<const std::byte> payload, uint32_t align)
 {
+    const auto [dst, ref] = reserveSpan(static_cast<uint32_t>(payload.size()), align);
     if (payload.empty())
-        return {std::span<const std::byte>{}, INVALID_REF};
+        return {std::span<const std::byte>{}, ref};
 
-    auto [ref, dst] = allocate(static_cast<uint32_t>(payload.size()), align);
-    if (payload.data()) // TODO: define expectations for nullptr + nonzero size
-        std::memcpy(dst, payload.data(), payload.size());
-    return {{static_cast<const std::byte*>(dst), payload.size()}, ref};
+    std::memcpy(dst.data(), payload.data(), payload.size());
+    return {{dst.data(), dst.size()}, ref};
 }
 
 Ref PagedStore::reserveRange(uint32_t size, uint32_t align, bool zeroInit)

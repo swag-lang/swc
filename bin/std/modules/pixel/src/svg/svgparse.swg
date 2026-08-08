@@ -30,7 +30,7 @@ struct Shape
 
 // A parsed vector document, ready to paint at any scale.
 //
-// [[Svg.Drawing.parse]] reads the SVG subset the standard themes are authored in:
+// [[Pixel.Svg.Drawing.parse]] reads the SVG subset the standard themes are authored in:
 // `svg`, `g`, `path`, `rect`, `circle`, `ellipse`, `line`, `polygon` and `polyline`
 // elements; `translate`/`scale` transforms; solid fills and strokes with opacity.
 // Gradients, filters, text, and rotations are out of contract. Because nothing is

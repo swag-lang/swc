@@ -33,10 +33,10 @@ namespace
 {
     using NaturalLoop = MicroPassHelpers::NaturalLoop;
 
-    constexpr uint32_t K_INVALID                = std::numeric_limits<uint32_t>::max();
-    constexpr uint32_t K_CHUNK_BYTES            = 16;
-    constexpr uint32_t K_MAX_ROOT_CHAIN         = 32;
-    constexpr uint32_t K_MAX_PROMOTED_PER_LOOP  = 6;
+    constexpr uint32_t K_INVALID               = std::numeric_limits<uint32_t>::max();
+    constexpr uint32_t K_CHUNK_BYTES           = 16;
+    constexpr uint32_t K_MAX_ROOT_CHAIN        = 32;
+    constexpr uint32_t K_MAX_PROMOTED_PER_LOOP = 6;
 
     // How much is known about where a root register points; only the stack
     // pointer paired with one incoming parameter is ever assumed disjoint.
@@ -86,8 +86,8 @@ namespace
             // address the frame.
             if (def && def->defCount == 1 && def->defIndex < firstCallIndex)
             {
-                const MicroInstr* defInst = storage->ptr(def->defRef);
-                const MicroInstrOperand* defOps = defInst ? defInst->ops(*operands) : nullptr;
+                const MicroInstr*        defInst = storage->ptr(def->defRef);
+                const MicroInstrOperand* defOps  = defInst ? defInst->ops(*operands) : nullptr;
                 if (defInst && defOps && defInst->op == MicroInstrOpcode::LoadRegReg &&
                     defOps[2].opBits == MicroOpBits::B64 && defOps[1].reg.isInt())
                 {
@@ -158,12 +158,12 @@ namespace
             return !flags.has(MicroInstrFlagsE::WritesMemory) && !flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands);
         }
 
-        MicroReg baseReg = MicroReg::invalid();
-        uint64_t offset  = 0;
-        uint32_t size    = 0;
-        bool     isRead  = false;
-        bool     isWrite = false;
-        bool     vecLoad = false;
+        MicroReg baseReg  = MicroReg::invalid();
+        uint64_t offset   = 0;
+        uint32_t size     = 0;
+        bool     isRead   = false;
+        bool     isWrite  = false;
+        bool     vecLoad  = false;
         bool     vecStore = false;
 
         switch (inst.op)

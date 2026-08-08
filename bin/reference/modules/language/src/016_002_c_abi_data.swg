@@ -29,9 +29,4 @@ For other data:
 - State who owns returned memory and which function releases it.
 - Treat a returned pointer as borrowed unless the external API explicitly
   transfers ownership.
-
-'cvarargs' and '@cvastart'/'@cvaarg'/'@cvaend' exist for implementing or
-forwarding C-style variadic boundaries. Prefer a typed Swag wrapper: C default
-argument promotions and format-string contracts are not checked by the foreign
-declaration.
 */

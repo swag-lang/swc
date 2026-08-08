@@ -44,7 +44,7 @@ impl Tracked
     mtd opPostCopy()
     {
         PostCopyCount += 1
-        .value += 10
+        .value        += 10
     }
 
     mtd opPostMove()

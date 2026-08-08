@@ -2021,7 +2021,7 @@ namespace
                 // is expanded nowhere and the call is simply never made.
                 bound[0].forceMaterialize = !sema.viewConstant(ufcsRef).hasConstant() &&
                                             (!sema.isLValue(ufcsRef) || inlineBindingExprCalls(sema, ufcsRef));
-                nextParam                 = 1;
+                nextParam = 1;
             }
             else if (hasAnyVariadic)
             {
@@ -2442,8 +2442,8 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     // (re-resolving) behavior to avoid regressing intrinsic-argument and overload handling.
     cloneContext.preserveResolvedSymbols = isAutoSelected;
     const AstNodeRef inlineRootRef       = isMixin
-                                              ? bodyRefForInline<AstNodeId::FunctionBody>(sema, *decl, cloneContext, materializedBindings.span())
-                                              : bodyRefForInline<AstNodeId::EmbeddedBlock>(sema, *decl, cloneContext, materializedBindings.span());
+                                               ? bodyRefForInline<AstNodeId::FunctionBody>(sema, *decl, cloneContext, materializedBindings.span())
+                                               : bodyRefForInline<AstNodeId::EmbeddedBlock>(sema, *decl, cloneContext, materializedBindings.span());
     if (inlineRootRef.isInvalid())
         return Result::Continue;
     sema.node(inlineRootRef).setCodeRef(sema.node(callRef).codeRef());

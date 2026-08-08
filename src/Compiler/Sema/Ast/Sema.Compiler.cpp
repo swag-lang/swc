@@ -997,14 +997,11 @@ Result AstCompilerGlobal::semaPostNode(Sema& sema) const
     {
         case Mode::Generated:
         case Mode::AttributeList:
+        case Mode::Using:
             return Result::Continue;
 
         case Mode::CompilerIf:
             return semaCompilerGlobalIf(sema, *this);
-
-        case Mode::Using:
-            // TODO
-            return Result::SkipChildren;
 
         default:
             break;

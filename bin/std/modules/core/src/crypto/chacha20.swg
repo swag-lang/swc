@@ -116,10 +116,11 @@ func chacha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, initia
             dref cast(*u64) (dst + i) = (dref cast(const *u64) (src + i)) ^ (dref cast(const *u64) &block[i])
             i += 8
         }
+
         while i < count
         {
             dst[i] = src[i] ^ block[i]
-            i += 1
+            i      += 1
         }
 
         secureClear(block)

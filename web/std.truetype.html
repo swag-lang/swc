@@ -942,7 +942,7 @@
 <span class="SKwd">let</span> face  = (<span class="SKwd">try</span> <span class="SCst"><a href="#namespace_TrueType">TrueType</a></span>.<span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">load</span>(bytes.<span class="SFct">toSlice</span>()))!
 <span class="SLgc">defer</span> face.<span class="SFct">destroy</span>()
 </span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">load</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, allocator: <span class="SItr">#null</span> <span class="SCst">IAllocator</span> = <span class="SKwd">null</span>)-&gt;<span class="SItr">#null</span> *<span class="SCst"><a href="#TrueType_Face">Face</a></span> <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">load</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, allocator: <span class="SItr">#null</span> <span class="SCst"><a href="swag.runtime.html#Swag_IAllocator">IAllocator</a></span> = <span class="SKwd">null</span>)-&gt;<span class="SItr">#null</span> *<span class="SCst"><a href="#TrueType_Face">Face</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="TrueType_Face_loadAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.loadAt</span> <a class="api-item-permalink" href="#TrueType_Face_loadAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L150">src</a></div>
@@ -956,7 +956,7 @@
     <span class="SLgc">defer</span> face.<span class="SFct">destroy</span>()
 }
 </span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">loadAt</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, faceIndex: <span class="STpe">u32</span>, allocator: <span class="SItr">#null</span> <span class="SCst">IAllocator</span> = <span class="SKwd">null</span>)-&gt;<span class="SItr">#null</span> *<span class="SCst"><a href="#TrueType_Face">Face</a></span> <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">loadAt</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, faceIndex: <span class="STpe">u32</span>, allocator: <span class="SItr">#null</span> <span class="SCst"><a href="swag.runtime.html#Swag_IAllocator">IAllocator</a></span> = <span class="SKwd">null</span>)-&gt;<span class="SItr">#null</span> *<span class="SCst"><a href="#TrueType_Face">Face</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="TrueType_Face_loadChar" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.loadChar</span> <a class="api-item-permalink" href="#TrueType_Face_loadChar" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L344">src</a></div>

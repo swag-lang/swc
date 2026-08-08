@@ -544,11 +544,11 @@ namespace
         if (!Token::isOpAssign(tokId))
             return Result::Continue;
 
-        using Name                       = IdentifierManager::PredefinedName;
-        const bool          isSimple     = tokId == TokenId::SymEqual;
-        const Name          setName      = indexed ? Name::OpIndexSet : Name::OpSet;
-        const Name          assignName   = indexed ? Name::OpIndexAssign : Name::OpAssign;
-        const IdentifierRef opId         = sema.idMgr().predefined(isSimple ? setName : assignName);
+        using Name                     = IdentifierManager::PredefinedName;
+        const bool          isSimple   = tokId == TokenId::SymEqual;
+        const Name          setName    = indexed ? Name::OpIndexSet : Name::OpSet;
+        const Name          assignName = indexed ? Name::OpIndexAssign : Name::OpAssign;
+        const IdentifierRef opId       = sema.idMgr().predefined(isSimple ? setName : assignName);
 
         if (isSimple)
             return collectSpecOpCandidates(sema, ownerStruct, opId, std::span<const AstNodeRef>{}, outCandidates);

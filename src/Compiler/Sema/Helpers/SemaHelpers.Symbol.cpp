@@ -1462,7 +1462,7 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
     else
     {
         TypeRef typeRef = aliasEnumTypeRef(sema, nodeLeftView.typeRef());
-        typeInfo = &sema.typeMgr().get(typeRef);
+        typeInfo        = &sema.typeMgr().get(typeRef);
 
         // References are transparent, so every reference layer is peeled; a pointer is
         // dereferenced exactly once. Both peels are needed for a binding to a pointer slot

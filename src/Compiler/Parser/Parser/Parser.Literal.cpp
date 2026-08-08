@@ -185,7 +185,6 @@ AstNodeRef Parser::parseLiteralExpression()
 
         case TokenId::TypeAny:
         case TokenId::TypeCString:
-        case TokenId::TypeCVarArgs:
         case TokenId::TypeString:
         case TokenId::TypeTypeInfo:
         case TokenId::TypeVoid:

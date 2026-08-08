@@ -50,7 +50,7 @@ reserved keyword set above.
 # Built-In Types
 
 ```swag
-any  bool  cstring  cvarargs  f32  f64  rune
+any  bool  cstring  f32  f64  rune
 s8  s16  s32  s64  string  typeinfo
 u8  u16  u32  u64  void
 ```
@@ -133,7 +133,7 @@ Memory, atomic, and C variadic intrinsics:
 
 ```swag
 @alloc  @atomadd  @atomand  @atomcmpxchg  @atomor  @atomxchg
-@atomxor  @cvaarg  @cvaend  @cvastart  @free  @memcmp
+@atomxor  @free  @memcmp
 @memcpy  @memmove  @memset  @realloc
 ```
 

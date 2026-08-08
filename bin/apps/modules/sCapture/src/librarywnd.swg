@@ -11,8 +11,8 @@ const LibButtonWide = 104.0
 // The count column of the date list, and what the rows spend before their name: the expander lane
 // the tree reserves on every row, plus the padding of the list. The name column takes what those
 // two leave, so widening the bar widens the only column that carries wording.
-const LibCountWidth  = 56.0
-const LibRowIndent   = 28.0
+const LibCountWidth = 56.0
+const LibRowIndent  = 28.0
 
 enum PreviewSize
 {
@@ -449,6 +449,7 @@ impl LibraryWnd
             var nm = Path.fileName(fp) orelse ""
             if @countof(nm) == 0 do
                 nm = fp
+
             // At the row size of the chart, like every other glyph of this window. A breadcrumb
             // draws the icon it is handed at the size it is handed, and the theme default is the
             // 24 of a command bar — which next to a path reads as a button that lost its button.

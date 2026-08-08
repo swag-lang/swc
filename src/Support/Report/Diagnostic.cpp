@@ -64,7 +64,7 @@ namespace
     consteval bool validateDiagnosticMessageDefinitions()
     {
         std::array<bool, static_cast<size_t>(DiagnosticId::Count)> seen{};
-        const DiagnosticMessageDefinition* previous = nullptr;
+        const DiagnosticMessageDefinition*                         previous = nullptr;
         for (const DiagnosticMessageDefinition& definition : DIAGNOSTIC_MESSAGE_DEFINITIONS)
         {
             const size_t idIndex = static_cast<size_t>(definition.id);

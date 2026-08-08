@@ -268,7 +268,7 @@ void Sema::clearVariableEscapeInfo(const SymbolVariable& symVar)
 
 SemaEscapeInfo Sema::variableEscapeInfoIncludingProjections(const SymbolVariable& symVar) const
 {
-    SemaEscapeInfo            result;
+    SemaEscapeInfo        result;
     const SemaEscapeInfo* own = variableEscapeInfo(symVar);
     if (own)
         result = *own;

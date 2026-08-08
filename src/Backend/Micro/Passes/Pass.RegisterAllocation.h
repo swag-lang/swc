@@ -31,7 +31,7 @@ public:
         // instruction the emitter patches, so remaking it means remaking its
         // relocation too. Kept by value: the builder's relocation vector grows
         // as remade loads are inserted, which would move any pointer into it.
-        MicroRelocation rematRelocation = {};
+        MicroRelocation rematRelocation  = {};
         bool            rematIsRelocated = false;
         // Original instruction that defined a rematerializable value. If the value
         // is evicted or expires before any user reads its physical mapping, the
@@ -258,21 +258,21 @@ private:
     using BoundarySnapshot = SmallVector<std::pair<uint32_t, MicroReg>, 8>;
     std::unordered_map<uint32_t, BoundarySnapshot> boundarySnapshots_;
     bool                                           keepAcrossBoundaries_ = false;
-    std::vector<uint32_t>                 virtualSpanLo_;
-    std::vector<uint32_t>                 virtualSpanHi_;
-    std::vector<std::vector<uint32_t>>    concreteClaimPositionsByDenseIndex_;
-    MicroDenseRegIndex                    denseGlobalPhysRegs_;
-    std::vector<SmallVector<GlobalRange>> globalRangesByPhysDense_;
-    std::vector<uint8_t>                  reachableInstructions_;
-    std::vector<uint32_t>                 worklist_;
-    std::vector<uint8_t>                  inWorklist_;
-    std::vector<uint64_t>                 tempOutVirtual_;
-    std::vector<uint64_t>                 tempInVirtual_;
-    std::vector<uint64_t>                 tempOutConcrete_;
-    std::vector<uint64_t>                 tempInConcrete_;
-    std::vector<uint32_t>                 definitionCounts_;
-    std::vector<uint32_t>                 liveStampByDenseIndex_;
-    std::vector<uint8_t>                  vregsLiveAcrossCall_;
+    std::vector<uint32_t>                          virtualSpanLo_;
+    std::vector<uint32_t>                          virtualSpanHi_;
+    std::vector<std::vector<uint32_t>>             concreteClaimPositionsByDenseIndex_;
+    MicroDenseRegIndex                             denseGlobalPhysRegs_;
+    std::vector<SmallVector<GlobalRange>>          globalRangesByPhysDense_;
+    std::vector<uint8_t>                           reachableInstructions_;
+    std::vector<uint32_t>                          worklist_;
+    std::vector<uint8_t>                           inWorklist_;
+    std::vector<uint64_t>                          tempOutVirtual_;
+    std::vector<uint64_t>                          tempInVirtual_;
+    std::vector<uint64_t>                          tempOutConcrete_;
+    std::vector<uint64_t>                          tempInConcrete_;
+    std::vector<uint32_t>                          definitionCounts_;
+    std::vector<uint32_t>                          liveStampByDenseIndex_;
+    std::vector<uint8_t>                           vregsLiveAcrossCall_;
     // Calls sitting inside a forward-jumped-over region — a bounds-check panic
     // block, an error path — never execute on the straight-line path. A value
     // whose only calls are guarded is cheaper parked around them (the cost

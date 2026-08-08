@@ -10,7 +10,7 @@ SWC_BEGIN_NAMESPACE();
 
 SWC_TEST_BEGIN(Utf8_MoveOperationsTransferStorage)
 {
-    Utf8 source(256, 'a');
+    Utf8        source(256, 'a');
     const char* sourceData = source.data();
 
     Utf8 constructed(std::move(source));
@@ -19,9 +19,9 @@ SWC_TEST_BEGIN(Utf8_MoveOperationsTransferStorage)
     if (constructed.data() != sourceData || !source.empty())
         return Result::Error;
 
-    Utf8 assignedSource(512, 'b');
+    Utf8        assignedSource(512, 'b');
     const char* assignedSourceData = assignedSource.data();
-    Utf8       assigned(384, 'c');
+    Utf8        assigned(384, 'c');
 
     assigned = std::move(assignedSource);
     if (assigned.size() != 512 || assigned.front() != 'b')

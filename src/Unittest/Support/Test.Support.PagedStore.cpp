@@ -124,6 +124,33 @@ SWC_TEST_BEGIN(DataSegment_FindAllocationUsesPublishedAllocations)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PagedStore_ReserveSpanReturnsWritableContiguousStorage)
+{
+    PagedStore store(32);
+
+    const auto [firstSpan, firstRef] = store.reserveSpan(24);
+    firstSpan.front()                = std::byte{0x11};
+    firstSpan.back()                 = std::byte{0x22};
+
+    const auto [secondSpan, secondRef] = store.reserveSpan(16, 8);
+    secondSpan.front()                 = std::byte{0x33};
+    secondSpan.back()                  = std::byte{0x44};
+
+    if (firstRef != 0 || secondRef != 32)
+        return Result::Error;
+    if (firstSpan.size() != 24 || secondSpan.size() != 16)
+        return Result::Error;
+    if (store.ptr<std::byte>(firstRef) != firstSpan.data() || store.ptr<std::byte>(secondRef) != secondSpan.data())
+        return Result::Error;
+    if (store.at<std::byte>(firstRef) != std::byte{0x11} || store.at<std::byte>(firstRef + 23) != std::byte{0x22})
+        return Result::Error;
+    if (store.at<std::byte>(secondRef) != std::byte{0x33} || store.at<std::byte>(secondRef + 15) != std::byte{0x44})
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PagedStore_EmptyCopySpanDoesNotAllocateStorage)
 {
     PagedStore store(32);

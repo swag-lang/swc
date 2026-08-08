@@ -38,7 +38,10 @@ ID_RE = re.compile(r'\bid="([^"]+)"')
 LOCAL_HREF_RE = re.compile(r'\bhref="#([^"]+)"')
 PAGE_HREF_RE = re.compile(r'\bhref="([^"#?]+\.html)#([^"]+)"')
 RESERVED_IDENTIFIER_RE = re.compile(r"(?<![A-Za-z0-9_])__[A-Za-z0-9_]+")
-SCRIPT_RE = re.compile(r"<\s*script\b", re.IGNORECASE)
+SCRIPT_OPEN_RE = re.compile(r"<\s*script\b", re.IGNORECASE)
+SCRIPT_BLOCK_RE = re.compile(
+    r"<\s*script\b[^>]*>.*?</\s*script\s*>", re.IGNORECASE | re.DOTALL
+)
 PHP_RE = re.compile(r"<\?php", re.IGNORECASE)
 UNRESOLVED_REFERENCE_RE = re.compile(r"\[\[([^\]]+)\]\]")
 CODE_BLOCK_RE = re.compile(r'<div class="code-block">.*?</div>', re.DOTALL)
@@ -92,32 +95,51 @@ def has_unseparated_long_description(
 
 def audit(path: Path, source_root: Path | None = None) -> dict[str, object]:
     source = path.read_text(encoding="utf-8")
-    ids = ID_RE.findall(source)
+    script_blocks = SCRIPT_BLOCK_RE.findall(source)
+    generated_search_scripts = sum(
+        block.lstrip().startswith("<script>")
+        and all(
+            marker in block
+            for marker in (
+                '(function (rows) {',
+                'document.querySelector(".site-nav")',
+                'var KINDS = {',
+                'window.location.hash = "#" + hits[at].item.anchor',
+                "})\n([",
+            )
+        )
+        for block in script_blocks
+    )
+    script_count = len(SCRIPT_OPEN_RE.findall(source))
+    unexpected_scripts = script_count - generated_search_scripts
+    static_source = SCRIPT_BLOCK_RE.sub("", source)
+    ids = ID_RE.findall(static_source)
     id_counts = Counter(ids)
     duplicate_ids = sorted(name for name, count in id_counts.items() if count > 1)
-    broken_anchors = sorted(set(LOCAL_HREF_RE.findall(source)) - set(ids))
+    broken_anchors = sorted(set(LOCAL_HREF_RE.findall(static_source)) - set(ids))
     broken_page_anchors: list[str] = []
     page_ids: dict[Path, set[str]] = {}
-    for page_name, anchor in sorted(set(PAGE_HREF_RE.findall(source))):
+    for page_name, anchor in sorted(set(PAGE_HREF_RE.findall(static_source))):
         page_path = (path.parent / html.unescape(page_name)).resolve()
         if not page_path.is_file():
             broken_page_anchors.append(f"{page_name}#{anchor} (missing page)")
             continue
         if page_path not in page_ids:
+            page_source = page_path.read_text(encoding="utf-8")
             page_ids[page_path] = set(
-                ID_RE.findall(page_path.read_text(encoding="utf-8"))
+                ID_RE.findall(SCRIPT_BLOCK_RE.sub("", page_source))
             )
         if html.unescape(anchor) not in page_ids[page_path]:
             broken_page_anchors.append(f"{page_name}#{anchor}")
-    synthetic_names = sorted(set(RESERVED_IDENTIFIER_RE.findall(plain_text(source))))
-    prose_source = CODE_BLOCK_RE.sub("", source)
+    synthetic_names = sorted(set(RESERVED_IDENTIFIER_RE.findall(plain_text(static_source))))
+    prose_source = CODE_BLOCK_RE.sub("", static_source)
     prose_source = INLINE_CODE_RE.sub("", prose_source)
     unresolved_references = sorted(
         set(UNRESOLVED_REFERENCE_RE.findall(plain_text(prose_source)))
     )
     long_summaries: list[str] = []
     seen_summaries: set[tuple[str, str]] = set()
-    for table_match in SUMMARY_TABLE_RE.finditer(source):
+    for table_match in SUMMARY_TABLE_RE.finditer(static_source):
         for row_match in ROW_RE.finditer(table_match.group("body")):
             cells = CELL_RE.findall(row_match.group("body"))
             if len(cells) < 2:
@@ -146,7 +168,7 @@ def audit(path: Path, source_root: Path | None = None) -> dict[str, object]:
     total_values = 0
     unseparated_descriptions: list[str] = []
 
-    for match in API_ITEM_RE.finditer(source):
+    for match in API_ITEM_RE.finditer(static_source):
         name = plain_text(match.group("name"))
         kind = plain_text(match.group("kind"))
         body = match.group("body")
@@ -208,7 +230,7 @@ def audit(path: Path, source_root: Path | None = None) -> dict[str, object]:
 
     css_links = re.findall(
         r'<link\b[^>]*\brel="stylesheet"[^>]*\bhref="([^"]+)"',
-        source,
+        static_source,
         re.IGNORECASE,
     )
     missing_css: list[str] = []
@@ -238,11 +260,13 @@ def audit(path: Path, source_root: Path | None = None) -> dict[str, object]:
         "unresolved_references": unresolved_references,
         "long_summaries": long_summaries,
         "unseparated_descriptions": sorted(set(unseparated_descriptions)),
-        "nested_symbol_sections": len(NESTED_SYMBOL_SECTION_RE.findall(source)),
+        "nested_symbol_sections": len(NESTED_SYMBOL_SECTION_RE.findall(static_source)),
         "duplicate_ids": duplicate_ids,
         "broken_anchors": broken_anchors,
         "broken_page_anchors": broken_page_anchors,
-        "scripts": len(SCRIPT_RE.findall(source)),
+        "scripts": script_count,
+        "generated_search_scripts": generated_search_scripts,
+        "unexpected_scripts": unexpected_scripts,
         "php_blocks": len(PHP_RE.findall(source)),
         "stylesheets": css_links,
         "missing_stylesheets": missing_css,
@@ -290,7 +314,12 @@ def print_report(report: dict[str, object], limit: int) -> None:
     print_list("Broken local anchors", report["broken_anchors"], limit)
     print_list("Broken cross-page anchors", report["broken_page_anchors"], limit)
     print_list("Missing stylesheets", report["missing_stylesheets"], limit)
-    print(f"Forbidden elements: scripts={report['scripts']}, php={report['php_blocks']}")
+    print(
+        "Script elements: "
+        f"generated-search={report['generated_search_scripts']}, "
+        f"unexpected={report['unexpected_scripts']}"
+    )
+    print(f"PHP blocks: {report['php_blocks']}")
 
 
 def main() -> int:
@@ -343,7 +372,7 @@ def main() -> int:
         or report["broken_anchors"]
         or report["broken_page_anchors"]
         or report["missing_stylesheets"]
-        or report["scripts"]
+        or report["unexpected_scripts"]
         or report["php_blocks"]
     )
     incomplete = report["undocumented_items"] or report["undocumented_members"]

@@ -617,7 +617,7 @@ namespace Swag
         TypeListArray     // The typeinfo is a [[TypeInfoArray]]
         Variadic          // The typeinfo is a [[TypeInfoVariadic]]
         TypedVariadic     // The typeinfo is a [[TypeInfoVariadic]]
-        CVariadic         // The typeinfo is a [[TypeInfoVariadic]]
+        CVariadic         // Reserved ABI value; no Swag type currently produces this kind.
         Struct            // The typeinfo is a [[TypeInfoStruct]]
         Generic           // The typeinfo is a [[TypeInfoGeneric]]
         Alias             // The typeinfo is a [[TypeInfoAlias]]
@@ -1089,6 +1089,7 @@ namespace Swag
         colEnd:    u32              // End column
     }
 
+    // Legacy opaque storage retained for source compatibility. Swag has no C vararg intrinsics.
     struct CVaList
     {
         buf: [2048] u8

@@ -11,9 +11,9 @@ using Pixel
 struct ThemeColors
 {
     // The three slots rich text addresses with `<p1>`, `<p2>` and `<p3>`.
-    richColor1: Color
-    richColor2: Color
-    richColor3: Color
+    richColor1: Color     // First rich-text palette slot.
+    richColor2: Color     // Second rich-text palette slot.
+    richColor3: Color     // Third rich-text palette slot.
 
     // Tint a surface fades to while a modal box holds it. It multiplies the whole surface,
     // so it is a dimming factor rather than a color.
@@ -35,15 +35,15 @@ struct ThemeColors
     // such a block.
     focusRingOnAccent: Color
 
-    error:                Color     // Text and glyphs reporting an operation that stopped.
-    disabled:             Color     // Ink and rules of anything the reader cannot act on.
-    transparent:          Color     // Nothing drawn. Always zero; named so a sheet can point a part at it.
+    error:       Color     // Text and glyphs reporting an operation that stopped.
+    disabled:    Color     // Ink and rules of anything the reader cannot act on.
+    transparent: Color     // Nothing drawn. Always zero; named so a sheet can point a part at it.
 
     // The three strengths of the theme's translucent veil, drawn over whatever is behind
     // them. White over a dark ground, black over a light one.
-    veilSoft:   Color
-    veilMedium: Color
-    veilStrong: Color
+    veilSoft:   Color     // Lightest translucent veil.
+    veilMedium: Color     // Middle-strength translucent veil.
+    veilStrong: Color     // Strongest translucent veil.
 
     wnd_Bk:                      Color     // Ground of a window body.
     wnd_CaptionBk:               Color     // Caption band of the active window.
@@ -185,9 +185,9 @@ struct ThemeColors
     // A tool tip is the inverse of the surface it annotates. It is a transient note rather
     // than a part of the interface, and inverting it is what makes it unmistakable — and
     // legible whatever ground it happens to open over.
-    toolTip_Bk:     Color
-    toolTip_Border: Color
-    toolTip_Text:   Color
+    toolTip_Bk:     Color     // Ground of a tool tip.
+    toolTip_Border: Color     // Border of a tool tip.
+    toolTip_Text:   Color     // Text of a tool tip.
 
     url_Text:    Color     // A link at rest.
     url_HotText: Color     // A link under the pointer.

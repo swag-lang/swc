@@ -107,13 +107,13 @@ struct ThemeMetrics
     popupList_IconTextMargin:   f32 = 6     // Theme measurement used for popup list icon text margin.
     popupList_SeparatorPadding: f32 = 4     // Theme measurement used for popup list separator padding.
 
-    btnIcon_Padding:       f32 = 4      // Theme measurement used for btn icon padding.
-    btnIcon_MarginArrow:   f32 = 4      // Theme measurement used for btn icon margin arrow.
-    btnIcon_SpacingIcon:   f32 = 4      // Theme measurement used for btn icon spacing icon.
-    btnIcon_SpacingArrowH: f32 = 8      // Theme measurement used for btn icon spacing arrow h.
-    btnIcon_SpacingArrowV: f32 = 4      // Theme measurement used for btn icon spacing arrow v.
-    btnIcon_SpacingTextH:  f32 = 8      // Theme measurement used for btn icon spacing text h.
-    btnIcon_SpacingTextV:  f32 = 0      // Theme measurement used for btn icon spacing text v.
+    btnIcon_Padding:       f32 = 4     // Theme measurement used for btn icon padding.
+    btnIcon_MarginArrow:   f32 = 4     // Theme measurement used for btn icon margin arrow.
+    btnIcon_SpacingIcon:   f32 = 4     // Theme measurement used for btn icon spacing icon.
+    btnIcon_SpacingArrowH: f32 = 8     // Theme measurement used for btn icon spacing arrow h.
+    btnIcon_SpacingArrowV: f32 = 4     // Theme measurement used for btn icon spacing arrow v.
+    btnIcon_SpacingTextH:  f32 = 8     // Theme measurement used for btn icon spacing text h.
+    btnIcon_SpacingTextV:  f32 = 0     // Theme measurement used for btn icon spacing text v.
 
     frameWnd_SquarePadding:            f32          = 5                  // Theme measurement used for frame wnd square padding.
     frameWnd_RoundPadding:             f32          = 5                  // Theme measurement used for frame wnd round padding.

@@ -106,11 +106,11 @@ void JITMemoryManager::allocateWithCodeSize(JITMemory& outExecutableMemory, cons
     if (!dst)
         dst = allocateSlow(requestSizeAlign);
 
-    outExecutableMemory.ptr_              = dst;
-    outExecutableMemory.size_             = codeSize;
-    outExecutableMemory.allocationSize_   = requestSizeAlign;
-    outExecutableMemory.unwindInfoOffset_ = 0;
-    outExecutableMemory.unwindInfoSize_   = 0;
+    outExecutableMemory.ptr_                  = dst;
+    outExecutableMemory.size_                 = codeSize;
+    outExecutableMemory.allocationSize_       = requestSizeAlign;
+    outExecutableMemory.unwindInfoOffset_     = 0;
+    outExecutableMemory.unwindInfoSize_       = 0;
     outExecutableMemory.constantIslandOffset_ = 0;
     outExecutableMemory.constantIslandSize_   = 0;
 }

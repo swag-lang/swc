@@ -38,10 +38,10 @@ struct FloatPair
 
 var GSeed: u64 = 7
 
-func sum1(v: Only1)->u32 => cast(u32) v.a
-func sum2(v: Only2)->u32 => cast(u32) v.a * 100 + cast(u32) v.b
-func sum4(v: Only4)->u32 => cast(u32) v.a * 1000 + cast(u32) v.b
-func sumPair(v: Pair)->u32 => v.x * 1000 + v.y
+func sum1(v: Only1)->u32             => cast(u32) v.a
+func sum2(v: Only2)->u32             => cast(u32) v.a * 100 + cast(u32) v.b
+func sum4(v: Only4)->u32             => cast(u32) v.a * 1000 + cast(u32) v.b
+func sumPair(v: Pair)->u32           => v.x * 1000 + v.y
 func sumFloatPair(v: FloatPair)->f32 => v.x + v.y
 
 // The fifth argument lands in a stack slot rather than a register.

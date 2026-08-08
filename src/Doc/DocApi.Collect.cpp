@@ -449,7 +449,7 @@ void DocApi::collectDocItems(TaskContext& ctx, std::vector<DocItem>& outItems, c
     }
     else
     {
-        ModuleApiFileEntries fallbackPublicEntries;
+        ModuleApiFileEntries        fallbackPublicEntries;
         const ModuleApiFileEntries* publicEntries = compiler.moduleApiPublicEntries();
         if (!publicEntries)
         {
@@ -491,12 +491,12 @@ void DocApi::collectDocItems(TaskContext& ctx, std::vector<DocItem>& outItems, c
     struct DocItemCandidate
     {
         const SourceFile* file = nullptr;
-        DocItemKind      kind  = DocItemKind::Function;
-        Utf8             fullName;
-        Utf8             ownerName;
-        Utf8             namespaceName;
-        DocOverload      overload;
-        bool             valid = false;
+        DocItemKind       kind = DocItemKind::Function;
+        Utf8              fullName;
+        Utf8              ownerName;
+        Utf8              namespaceName;
+        DocOverload       overload;
+        bool              valid = false;
     };
 
     // Sema is complete, so every candidate can be derived independently. The indexed slots
@@ -572,12 +572,12 @@ void DocApi::collectDocItems(TaskContext& ctx, std::vector<DocItem>& outItems, c
             }
         }
 
-        DocItemCandidate& candidate = candidates[index];
-        candidate.file              = file;
-        candidate.kind              = *kind;
-        candidate.fullName          = std::move(fullName);
-        candidate.ownerName         = std::move(ownerName);
-        candidate.namespaceName     = documentationNamespace(workerCtx, *symbol, owner);
+        DocItemCandidate& candidate     = candidates[index];
+        candidate.file                  = file;
+        candidate.kind                  = *kind;
+        candidate.fullName              = std::move(fullName);
+        candidate.ownerName             = std::move(ownerName);
+        candidate.namespaceName         = documentationNamespace(workerCtx, *symbol, owner);
         candidate.overload.symbol       = symbol;
         candidate.overload.file         = file;
         candidate.overload.signature    = buildDisplaySignature(workerCtx, *file, declRef, rootRef);

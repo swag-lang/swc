@@ -97,8 +97,8 @@ namespace Os
     // reprotected by makeExecutableMemory. Returns null when the region is
     // exhausted - callers fall back to ordinary allocation and RIP-relative
     // patching range-checks the distance it can no longer guarantee.
-    void* allocProximityMemory(uint32_t size);
-    bool  isProximityMemory(const void* ptr);
+    void*    allocProximityMemory(uint32_t size);
+    bool     isProximityMemory(const void* ptr);
     bool     addHostJitFunctionTable(JITMemory& executableMemory);
     void     removeHostJitFunctionTable(JITMemory& executableMemory);
     void     registerExternalModuleSearchPath(const fs::path& path);

@@ -1107,9 +1107,9 @@ namespace Os
         // The deadline has to cover the output pumping, not just the wait that follows it.
         // Reading a pipe blocks until the child writes or exits, so a child that simply keeps
         // running would sit here forever and the timeout would never be reached.
-        const bool  hasDeadline = options && options->timeoutMs;
-        const auto  deadline    = std::chrono::steady_clock::now() + std::chrono::milliseconds(hasDeadline ? options->timeoutMs : 0);
-        bool        timedOut    = false;
+        const bool hasDeadline = options && options->timeoutMs;
+        const auto deadline    = std::chrono::steady_clock::now() + std::chrono::milliseconds(hasDeadline ? options->timeoutMs : 0);
+        bool       timedOut    = false;
 
         if (childOutputRead)
         {
@@ -1123,8 +1123,8 @@ namespace Os
 
                 if (available)
                 {
-                    DWORD bytesRead = 0;
-                    const DWORD want = std::min<DWORD>(sizeof(buffer), available);
+                    DWORD       bytesRead = 0;
+                    const DWORD want      = std::min<DWORD>(sizeof(buffer), available);
                     if (!ReadFile(childOutputRead, buffer, want, &bytesRead, nullptr) || !bytesRead)
                         break;
 

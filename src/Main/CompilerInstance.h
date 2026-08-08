@@ -197,7 +197,7 @@ public:
     void                                  setDeferredBuilder(std::unique_ptr<NativeBackendBuilder> builder);
     std::unique_ptr<NativeBackendBuilder> takeDeferredBuilder();
 
-    void                                registerNativeCodeFunction(SymbolFunction* symbol);
+    void registerNativeCodeFunction(SymbolFunction* symbol);
     // Registers a '#test'/'#init'/'#premain'/'#drop'/'#main' body in the native artifact, in the
     // bucket its own token names.
     void                                registerNativeCompilerFunction(TokenId funcTokenId, SymbolFunction* symbol);

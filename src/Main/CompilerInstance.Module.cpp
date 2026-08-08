@@ -21,8 +21,8 @@
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
-#include "Support/Math/Hash.h"
 #include "Support/Core/Utf8Helper.h"
+#include "Support/Math/Hash.h"
 #include "Support/Math/Sha256.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Assert.h"
@@ -2010,7 +2010,7 @@ ExitCode CompilerInstance::runWorkspace()
 
         // A documentation leaf renders directly from its in-memory symbols. Only modules with
         // active dependents need an API file for a later module to import.
-        const bool writeModuleApi = cmdLine().command != CommandKind::Doc || !dependents[moduleIndex].empty();
+        const bool                           writeModuleApi = cmdLine().command != CommandKind::Doc || !dependents[moduleIndex].empty();
         std::unique_ptr<WorkspaceModuleLink> modulePending;
         if (runWorkspaceModule(moduleBuild, buildIndex + 1, buildCount, writeModuleApi, modulePending) != Result::Continue)
             return ExitCode::CompileError;
@@ -2046,8 +2046,8 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
     moduleCmdLine.directories.clear();
     moduleCmdLine.directories.insert(moduleBuild.sourceDir);
     moduleCmdLine.files.clear();
-    moduleCmdLine.outDir          = workspaceModuleOutputDirectory(cmdLine().workspacePath, moduleBuild.name, moduleCmdLine, moduleBuild.setup.buildCfg.backendKind, false);
-    moduleCmdLine.workDir         = workspaceModuleOutputDirectory(cmdLine().workspacePath, moduleBuild.name, moduleCmdLine, moduleBuild.setup.buildCfg.backendKind, true);
+    moduleCmdLine.outDir  = workspaceModuleOutputDirectory(cmdLine().workspacePath, moduleBuild.name, moduleCmdLine, moduleBuild.setup.buildCfg.backendKind, false);
+    moduleCmdLine.workDir = workspaceModuleOutputDirectory(cmdLine().workspacePath, moduleBuild.name, moduleCmdLine, moduleBuild.setup.buildCfg.backendKind, true);
     if (writeModuleApi)
         moduleCmdLine.exportApiDir = moduleCmdLine.outDir;
     else

@@ -249,7 +249,6 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("opIndexAssign", State.FunctionSpecOp)
 
         .mapWords.add("me", State.Type)
-        .mapWords.add("cvarargs", State.Type)
 
         .mapWords.add("any", State.Type)
         .mapWords.add("void", State.Type)
@@ -285,9 +284,6 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("@bitcountlz", State.Builtin)
         .mapWords.add("@bitcounttz", State.Builtin)
         .mapWords.add("@byteswap", State.Builtin)
-        .mapWords.add("@cvaarg", State.Builtin)
-        .mapWords.add("@cvaend", State.Builtin)
-        .mapWords.add("@cvastart", State.Builtin)
         .mapWords.add("@ceil", State.Builtin)
         .mapWords.add("@cos", State.Builtin)
         .mapWords.add("@cosh", State.Builtin)

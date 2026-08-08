@@ -451,7 +451,7 @@ namespace
 
     Utf8 renderList(const DocRenderContext& renderCtx, std::span<const Utf8> lines, size_t& index, const uint32_t headingOffset)
     {
-        ListMarker firstMarker;
+        ListMarker                  firstMarker;
         [[maybe_unused]] const bool hasFirstMarker = tryReadListMarker(lines[index], firstMarker);
         SWC_ASSERT(hasFirstMarker);
 

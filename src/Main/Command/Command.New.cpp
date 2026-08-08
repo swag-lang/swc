@@ -100,7 +100,7 @@ namespace
     {
         using CommandPrint::addInfoEntry;
 
-        const Utf8 scriptArg = quoteCommandArgument(scriptPath);
+        const Utf8                      scriptArg = quoteCommandArgument(scriptPath);
         std::vector<Logger::FieldEntry> entries;
         addInfoEntry(entries, "Script", displayPath(scriptPath), LogColor::BrightGreen);
         addInfoEntry(entries, "Run", "swc " + scriptArg, LogColor::White, 0, CommandPrint::helpArgumentLabelColor());
@@ -114,7 +114,7 @@ namespace
     {
         using CommandPrint::addInfoEntry;
 
-        const Utf8 workspaceArg = quoteCommandArgument(workspacePath);
+        const Utf8                      workspaceArg = quoteCommandArgument(workspacePath);
         std::vector<Logger::FieldEntry> entries;
         addInfoEntry(entries, "Workspace", displayPath(workspacePath), LogColor::BrightGreen);
         addInfoEntry(entries, "Module", displayPath(modulePath), LogColor::BrightGreen);

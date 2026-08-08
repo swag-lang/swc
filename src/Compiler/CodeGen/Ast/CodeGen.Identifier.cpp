@@ -874,10 +874,9 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
     const SemaNodeView initConstView = codeGen.viewTypeConstant(nodeInitRef);
     SWC_ASSERT(initView.type() && (initView.type()->isStruct() || initView.type()->isAggregateStruct()));
 
-    const SymbolVariable* initStorageSym      = codeGen.runtimeStorageSymbol(nodeInitRef);
+    const SymbolVariable* initStorageSym     = codeGen.runtimeStorageSymbol(nodeInitRef);
     const bool            movesInitTemporary = initStorageSym && codeGen.hasTemporaryDrop(*initStorageSym);
-    const auto emitFieldPostMove = [&codeGen, movesInitTemporary](const SymbolVariable& symVar) -> Result
-    {
+    const auto            emitFieldPostMove  = [&codeGen, movesInitTemporary](const SymbolVariable& symVar) -> Result {
         if (!movesInitTemporary || !codeGen.hasLifecycle(symVar.typeRef(), CodeGen::LifecycleKind::PostMove))
             return Result::Continue;
 

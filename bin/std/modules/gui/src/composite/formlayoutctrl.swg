@@ -252,7 +252,7 @@ private impl FormLayoutCtrl
     {
         var client = .paddedClientRect()
         client.x, client.y = 0
-        client.width = width
+        client.width       = width
         return .walkRows(client, false)
     }
 

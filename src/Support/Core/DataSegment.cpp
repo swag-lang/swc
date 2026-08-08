@@ -409,11 +409,10 @@ std::pair<uint32_t, std::byte*> DataSegment::allocateStorageLocked(uint32_t size
         return {offset, ptr};
     }
 
-    const std::pair<std::span<const std::byte>, Ref> res = store_.pushCopySpan(std::span{static_cast<const std::byte*>(nullptr), size}, align);
-    std::byte* const                                 ptr = store_.ptr<std::byte>(res.second);
+    const auto [span, ref] = store_.reserveSpan(size, align);
     if (zeroInit)
-        std::memset(ptr, 0, size);
-    return {res.second, ptr};
+        std::memset(span.data(), 0, size);
+    return {ref, span.data()};
 }
 
 std::byte* DataSegment::findPtrLocked(const Ref ref, const uint32_t size) noexcept

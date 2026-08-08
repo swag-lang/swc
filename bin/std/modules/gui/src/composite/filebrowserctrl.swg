@@ -314,6 +314,7 @@ private impl FileBrowserCtrl
             .header.form = .Transparent
             .header.style.addStyleSheetColors("headerItem_Separator $veilSoft")
             .scrollWnd.style.addStyleSheetColors("scrollBar_Bk $view_Bk")
+
             // A key the browsing gesture claims is marked handled, so the list does not read it a
             // second time as a movement of its own: Enter opens what is selected instead of also
             // folding the row, and Alt and an arrow browse instead of also folding it.

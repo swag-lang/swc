@@ -365,7 +365,7 @@ namespace
     // Runs per build configuration, because the optimized pipelines rewrite the callee prologue.
     Result runSwagStructByValueInbound(const TaskContext& ctx, std::string_view buildCfg)
     {
-        static constexpr std::string_view SOURCE = R"(#global private
+        static constexpr std::string_view SOURCE     = R"(#global private
 
 struct Pair
 {

@@ -45,13 +45,13 @@ namespace SemaHelpers
         TypeRef               typeRef = TypeRef::invalid();
     };
 
-    bool    resolveAggregateChildSlot(Sema& sema, AggregateChildSlot& outSlot, const TypeInfo& targetType, std::span<const AstNodeRef> children, AstNodeRef childRef);
+    bool resolveAggregateChildSlot(Sema& sema, AggregateChildSlot& outSlot, const TypeInfo& targetType, std::span<const AstNodeRef> children, AstNodeRef childRef);
     // Intrinsics that hand back their numeric argument's own type, alias included, instead of
     // the underlying builtin one.
-    bool    isAliasPreservingNumericIntrinsic(TokenId tokenId);
+    bool isAliasPreservingNumericIntrinsic(TokenId tokenId);
     // Dividing by a literal zero is an error whether it is written '/' or '/='. Call it only
     // once the right operand is known to be constant.
-    Result  checkDivideByZeroConstant(Sema& sema, TokenId op, AstNodeRef nodeRef, const SemaNodeView& nodeRightView);
+    Result checkDivideByZeroConstant(Sema& sema, TokenId op, AstNodeRef nodeRef, const SemaNodeView& nodeRightView);
     // Whether '@init(what, args...)' spells out a struct's fields one by one, rather than
     // handing it a single value of its own type to copy.
     bool    intrinsicInitTreatsArgsAsStructTuple(Sema& sema, TypeRef fillTypeRef, const SmallVector<AstNodeRef>& args);
@@ -71,36 +71,36 @@ namespace SemaHelpers
         Declared,
     };
 
-    bool    stopsLocalFlow(Sema& sema, AstNodeRef nodeRef, LocalFlowStop stop = LocalFlowStop::Declared);
-    void    addNarrowFacts(SemaFrame& frame, std::span<const SemaNarrowFact> facts);
-    void    killNarrowFactsForLoopBody(Sema& sema, AstNodeRef bodyRef, SemaFrame& frame);
-    void    killNarrowPathAfterStatement(Sema& sema, AstNodeRef exprRef, bool nonNull);
+    bool stopsLocalFlow(Sema& sema, AstNodeRef nodeRef, LocalFlowStop stop = LocalFlowStop::Declared);
+    void addNarrowFacts(SemaFrame& frame, std::span<const SemaNarrowFact> facts);
+    void killNarrowFactsForLoopBody(Sema& sema, AstNodeRef bodyRef, SemaFrame& frame);
+    void killNarrowPathAfterStatement(Sema& sema, AstNodeRef exprRef, bool nonNull);
 
-    CodeGenLoweringPayload&  ensureCodeGenLoweringPayload(Sema& sema, AstNodeRef nodeRef);
-    Result                   declareGhostAndCompleteStorage(Sema& sema, SymbolVariable& symVar, TypeRef typeRef);
-    Result                   ensureRuntimeStorageDeclaredAndCompleted(Sema& sema, SymbolVariable& storageSym, TypeRef storageTypeRef);
-    Result                   completeRuntimeStorageSymbol(Sema& sema, SymbolVariable& symVar, TypeRef typeRef);
-    SymbolVariable&          registerUniqueRuntimeStorageSymbol(Sema& sema, const AstNode& node, std::string_view privateName);
-    SymbolVariable&          getOrCreateRuntimeStorageSymbol(Sema& sema, AstNodeRef payloadNodeRef, const AstNode& storageNode, std::string_view privateName);
-    Result                   attachRuntimeStorageIfNeeded(Sema& sema, const AstNode& node, TypeRef storageTypeRef, std::string_view privateName);
-    Result                   attachRuntimeStorageIfNeeded(Sema& sema, AstNodeRef payloadNodeRef, const AstNode& storageNode, TypeRef storageTypeRef, std::string_view privateName);
-    Result                   attachLiteralRuntimeStorageIfNeeded(Sema& sema, const AstNode& node, const SemaNodeView& literalView);
-    Result                   setupRuntimeSafetyPanic(Sema& sema, AstNodeRef nodeRef, Runtime::SafetyWhat safetyKind, const SourceCodeRef& codeRef);
-    void                     clearLateFieldReadGuard(Sema& sema, AstNodeRef nodeRef);
-    bool                     binaryOpNeedsOverflowSafety(TokenId canonicalOp, AstModifierFlags modifierFlags);
-    bool                     canUseContextualBinding(Sema& sema, AstNodeRef nodeRef);
-    bool                     isTransparentExprNode(const AstNode& node);
-    AstNodeRef               resolveTransparentExprSourceRef(Sema& sema, AstNodeRef nodeRef);
-    AstNodeRef               resolveTransparentConditionExprSourceRef(Sema& sema, AstNodeRef nodeRef);
-    void                     preferContextualAutoMemberBindingType(Sema& sema, AstNodeRef exprRef);
+    CodeGenLoweringPayload& ensureCodeGenLoweringPayload(Sema& sema, AstNodeRef nodeRef);
+    Result                  declareGhostAndCompleteStorage(Sema& sema, SymbolVariable& symVar, TypeRef typeRef);
+    Result                  ensureRuntimeStorageDeclaredAndCompleted(Sema& sema, SymbolVariable& storageSym, TypeRef storageTypeRef);
+    Result                  completeRuntimeStorageSymbol(Sema& sema, SymbolVariable& symVar, TypeRef typeRef);
+    SymbolVariable&         registerUniqueRuntimeStorageSymbol(Sema& sema, const AstNode& node, std::string_view privateName);
+    SymbolVariable&         getOrCreateRuntimeStorageSymbol(Sema& sema, AstNodeRef payloadNodeRef, const AstNode& storageNode, std::string_view privateName);
+    Result                  attachRuntimeStorageIfNeeded(Sema& sema, const AstNode& node, TypeRef storageTypeRef, std::string_view privateName);
+    Result                  attachRuntimeStorageIfNeeded(Sema& sema, AstNodeRef payloadNodeRef, const AstNode& storageNode, TypeRef storageTypeRef, std::string_view privateName);
+    Result                  attachLiteralRuntimeStorageIfNeeded(Sema& sema, const AstNode& node, const SemaNodeView& literalView);
+    Result                  setupRuntimeSafetyPanic(Sema& sema, AstNodeRef nodeRef, Runtime::SafetyWhat safetyKind, const SourceCodeRef& codeRef);
+    void                    clearLateFieldReadGuard(Sema& sema, AstNodeRef nodeRef);
+    bool                    binaryOpNeedsOverflowSafety(TokenId canonicalOp, AstModifierFlags modifierFlags);
+    bool                    canUseContextualBinding(Sema& sema, AstNodeRef nodeRef);
+    bool                    isTransparentExprNode(const AstNode& node);
+    AstNodeRef              resolveTransparentExprSourceRef(Sema& sema, AstNodeRef nodeRef);
+    AstNodeRef              resolveTransparentConditionExprSourceRef(Sema& sema, AstNodeRef nodeRef);
+    void                    preferContextualAutoMemberBindingType(Sema& sema, AstNodeRef exprRef);
     // The storage a binding ultimately exposes: aliases, enum wrappers and references
     // stripped, so later checks compare the carried payload and not the syntax that
     // happened to produce it.
-    TypeRef                  unwrapBindingType(TaskContext& ctx, TypeRef typeRef);
-    TypeRef                  ensureStructTypeRef(Sema& sema, SymbolStruct& symStruct);
-    TypeRef                  unwrapAliasRefType(TaskContext& ctx, TypeRef typeRef);
-    const SymbolFunction*    resolveLambdaBindingFunction(Sema& sema);
-    SymbolFunction*          callableTypeFunction(TaskContext& ctx, TypeRef typeRef);
+    TypeRef               unwrapBindingType(TaskContext& ctx, TypeRef typeRef);
+    TypeRef               ensureStructTypeRef(Sema& sema, SymbolStruct& symStruct);
+    TypeRef               unwrapAliasRefType(TaskContext& ctx, TypeRef typeRef);
+    const SymbolFunction* resolveLambdaBindingFunction(Sema& sema);
+    SymbolFunction*       callableTypeFunction(TaskContext& ctx, TypeRef typeRef);
     // The runtime `Swag.<name>` symbol of the current compilation, wherever runtime files rooted
     // it (the shared import-root namespace, or the module namespace without one).
     const Symbol*            findPredefinedRuntimeSymbol(const Sema& sema, IdentifierManager::PredefinedName name);

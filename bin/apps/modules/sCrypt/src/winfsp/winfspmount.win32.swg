@@ -7,12 +7,12 @@ namespace WinFsp
     // Bits of `FSP_FSCTL_VOLUME_PARAMS.Flags`, which WinFsp declares as a bitfield and therefore
     // gives no names an importer can use. The positions are the declaration order of that
     // bitfield; they are part of the driver ABI and move only with a new WinFsp version.
-    const VolumeCasePreservedNames   = 1'u32 << 1
-    const VolumeUnicodeOnDisk        = 1'u32 << 2
-    const VolumePersistentAcls       = 1'u32 << 3
-    const VolumeReadOnly             = 1'u32 << 9
-    const VolumePostCleanupModified  = 1'u32 << 10
-    const VolumePassDirectoryName    = 1'u32 << 13
+    const VolumeCasePreservedNames  = 1'u32 << 1
+    const VolumeUnicodeOnDisk       = 1'u32 << 2
+    const VolumePersistentAcls      = 1'u32 << 3
+    const VolumeReadOnly            = 1'u32 << 9
+    const VolumePostCleanupModified = 1'u32 << 10
+    const VolumePassDirectoryName   = 1'u32 << 13
 
     #[Swag.NoCopy]
     struct WinFspMount

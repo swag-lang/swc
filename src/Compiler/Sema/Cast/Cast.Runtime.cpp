@@ -682,7 +682,7 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         if ((srcType.isConst() || castRequest.flags.has(CastFlagsE::ConstSource)) && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
 
-        const auto& srcElemTypes = srcType.payloadAggregate().types;
+        const auto& srcElemTypes                = srcType.payloadAggregate().types;
         bool        anyElemBuiltThroughOperator = false;
         for (size_t i = 0; i < srcElemTypes.size(); ++i)
         {

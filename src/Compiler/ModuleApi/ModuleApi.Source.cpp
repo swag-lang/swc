@@ -1,7 +1,7 @@
 #include "pch.h"
+#include "Compiler/ModuleApi/ModuleApi.Source.h"
 #include "Compiler/Lexer/Lexer.h"
 #include "Compiler/ModuleApi/ModuleApi.Internal.h"
-#include "Compiler/ModuleApi/ModuleApi.Source.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/SourceFile.h"

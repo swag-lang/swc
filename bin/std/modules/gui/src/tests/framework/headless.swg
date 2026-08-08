@@ -471,7 +471,7 @@ impl HeadlessHost
     // a widget whose colours have just changed settles it first.
     //
     // `wnd` is the window to paint, defaulting to the root view the way
-    // [[Testing.HeadlessHost.render]] does. A [[Gui.BlendColor]] crosses in
+    // [[Gui.Testing.HeadlessHost.render]] does. A [[Gui.BlendColor]] crosses in
     // `1 / (deltaSeconds * speed)` paints, which is eight at the frame delta a host without a
     // clock reports, so the default leaves room for a slower one.
     mtd settleAnimations(wnd: #null *Wnd = null, steps: u32 = 16)
@@ -863,7 +863,7 @@ impl HeadlessHost
     // Releases a simulated drag carrying `files` on the centre of one window.
     //
     // The window is the target, rather than whatever a hit test finds there: this is the drop
-    // counterpart of [[Testing.HeadlessHost.clickWnd]], for a test that names the control it is
+    // counterpart of [[Gui.Testing.HeadlessHost.clickWnd]], for a test that names the control it is
     // aiming at. The event still bubbles from there, so a window that declines hands it to its
     // parent exactly as a real drop does.
     mtd dropFilesOnWnd(wnd: *Wnd, files: const [..] string, allowed = DropEffect.Copy, modifiers: Input.KeyModifiers = None)->DropEffect

@@ -98,12 +98,12 @@ namespace
 
     struct SlpValueTable
     {
-        std::vector<SlpValue>                      values;
+        std::vector<SlpValue>                               values;
         std::unordered_map<uint64_t, std::vector<uint32_t>> buckets;
 
         static uint64_t hashOf(const SlpValue& v)
         {
-            uint64_t h = 1469598103934665603ull;
+            uint64_t   h   = 1469598103934665603ull;
             const auto mix = [&h](uint64_t x) {
                 h ^= x;
                 h *= 1099511628211ull;
@@ -237,12 +237,12 @@ namespace
             Shuffle,
         };
 
-        Kind     kind = Kind::Copy;
-        uint32_t dst  = 0;
-        uint32_t src  = 0;
-        uint32_t src2 = 0;
-        MicroOp  op   = MicroOp::VecXor;
-        uint64_t imm  = 0;
+        Kind     kind       = Kind::Copy;
+        uint32_t dst        = 0;
+        uint32_t src        = 0;
+        uint32_t src2       = 0;
+        MicroOp  op         = MicroOp::VecXor;
+        uint64_t imm        = 0;
         uint32_t rootKey    = K_INVALID_ID;
         uint64_t baseOffset = 0;
     };
@@ -494,7 +494,10 @@ namespace
             case MicroOp::Xor:
                 if (opBits != MicroOpBits::B32 && opBits != MicroOpBits::B64)
                     return false;
-                outOp  = op == MicroOp::Add ? LaneOp::Add : op == MicroOp::Subtract ? LaneOp::Sub : op == MicroOp::And ? LaneOp::And : op == MicroOp::Or ? LaneOp::Or : LaneOp::Xor;
+                outOp  = op == MicroOp::Add ? LaneOp::Add : op == MicroOp::Subtract ? LaneOp::Sub
+                                                        : op == MicroOp::And        ? LaneOp::And
+                                                        : op == MicroOp::Or         ? LaneOp::Or
+                                                                                    : LaneOp::Xor;
                 outImm = imm & 0xFFFFFFFFull;
                 return true;
 
@@ -559,8 +562,8 @@ namespace
         std::vector<PlanInstr> ops;
         std::vector<PlanInstr> stores;
 
-        uint32_t nextPlanReg    = 0;
-        uint32_t arithmeticOps  = 0;
+        uint32_t nextPlanReg   = 0;
+        uint32_t arithmeticOps = 0;
 
         std::unordered_map<TupleKey, uint32_t, TupleKeyHash> tupleRegs;
         // Sorted-id key -> tuples already materialized, for permutation reuse.
@@ -769,7 +772,6 @@ namespace
         }
 
     private:
-
         uint32_t allocReg() { return plan_.nextPlanReg++; }
 
         // A shift by an immediate, in whichever form the target offers.
@@ -814,15 +816,15 @@ namespace
             for (uint32_t lane = 0; lane < K_LANE_COUNT; ++lane)
             {
                 SlpValue v;
-                v.kind        = SlpValueKind::Load;
-                v.loadRootKey = n0.loadRootKey;
-                v.loadOffset  = sorted[0] + lane * K_LANE_BYTES;
-                v.loadEpoch   = 0;
+                v.kind             = SlpValueKind::Load;
+                v.loadRootKey      = n0.loadRootKey;
+                v.loadOffset       = sorted[0] + lane * K_LANE_BYTES;
+                v.loadEpoch        = 0;
                 straight.ids[lane] = scan_.values.intern(v);
             }
 
-            uint32_t straightReg = K_INVALID_ID;
-            const auto straightIt = plan_.tupleRegs.find(straight);
+            uint32_t   straightReg = K_INVALID_ID;
+            const auto straightIt  = plan_.tupleRegs.find(straight);
             if (straightIt != plan_.tupleRegs.end())
             {
                 straightReg = straightIt->second;
@@ -1009,11 +1011,11 @@ namespace
             case MicroInstrOpcode::LoadSignedExtRegMem:
             case MicroInstrOpcode::LoadVecRegMem:
             {
-                const bool     isPlainLoad = inst.op == MicroInstrOpcode::LoadRegMem;
-                const bool     isZeroExt   = inst.op == MicroInstrOpcode::LoadZeroExtRegMem;
-                const MicroReg baseReg     = ops[1].reg;
-                const uint64_t offsetIndex = isPlainLoad || inst.op == MicroInstrOpcode::LoadVecRegMem ? 3 : 4;
-                const MicroOpBits sizeBits = isPlainLoad || inst.op == MicroInstrOpcode::LoadVecRegMem ? ops[2].opBits : ops[3].opBits;
+                const bool        isPlainLoad = inst.op == MicroInstrOpcode::LoadRegMem;
+                const bool        isZeroExt   = inst.op == MicroInstrOpcode::LoadZeroExtRegMem;
+                const MicroReg    baseReg     = ops[1].reg;
+                const uint64_t    offsetIndex = isPlainLoad || inst.op == MicroInstrOpcode::LoadVecRegMem ? 3 : 4;
+                const MicroOpBits sizeBits    = isPlainLoad || inst.op == MicroInstrOpcode::LoadVecRegMem ? ops[2].opBits : ops[3].opBits;
 
                 if (baseReg.isInstructionPointer())
                 {
@@ -1052,10 +1054,10 @@ namespace
                 }
 
                 SlpValue v;
-                v.kind        = SlpValueKind::Load;
-                v.loadRootKey = rootKey;
-                v.loadOffset  = offset;
-                v.loadEpoch   = loc.epoch;
+                v.kind            = SlpValueKind::Load;
+                v.loadRootKey     = rootKey;
+                v.loadOffset      = offset;
+                v.loadEpoch       = loc.epoch;
                 const uint32_t id = scan.values.intern(v);
                 loc.valueId       = id;
                 setValue(scan, ops[0].reg, id);
@@ -1066,10 +1068,10 @@ namespace
             case MicroInstrOpcode::LoadMemImm:
             case MicroInstrOpcode::StoreVecMemReg:
             {
-                const bool     isRegStore  = inst.op == MicroInstrOpcode::LoadMemReg || inst.op == MicroInstrOpcode::StoreVecMemReg;
-                const MicroReg baseReg     = ops[0].reg;
-                const uint64_t offsetIndex = inst.op == MicroInstrOpcode::LoadMemImm ? 2 : 3;
-                const MicroOpBits sizeBits = inst.op == MicroInstrOpcode::LoadMemImm ? ops[1].opBits : ops[2].opBits;
+                const bool        isRegStore  = inst.op == MicroInstrOpcode::LoadMemReg || inst.op == MicroInstrOpcode::StoreVecMemReg;
+                const MicroReg    baseReg     = ops[0].reg;
+                const uint64_t    offsetIndex = inst.op == MicroInstrOpcode::LoadMemImm ? 2 : 3;
+                const MicroOpBits sizeBits    = inst.op == MicroInstrOpcode::LoadMemImm ? ops[1].opBits : ops[2].opBits;
 
                 if (baseReg.isInstructionPointer())
                 {
@@ -1222,8 +1224,8 @@ namespace
             case MicroInstrOpcode::OpBinaryMemImm:
             case MicroInstrOpcode::OpUnaryMem:
             {
-                const MicroReg baseReg = ops[0].reg;
-                uint64_t       offset  = inst.op == MicroInstrOpcode::OpBinaryMemReg ? ops[4].valueU64 : ops[3].valueU64;
+                const MicroReg    baseReg  = ops[0].reg;
+                uint64_t          offset   = inst.op == MicroInstrOpcode::OpBinaryMemReg ? ops[4].valueU64 : ops[3].valueU64;
                 const MicroOpBits sizeBits = inst.op == MicroInstrOpcode::OpBinaryMemReg ? ops[2].opBits : ops[1].opBits;
 
                 uint32_t rootKey = K_INVALID_ID;
@@ -1686,8 +1688,8 @@ Result MicroSlpVectorizePass::run(MicroPassContext& context)
     fn.nextVirtualFloatRegIndex = MicroPassHelpers::computeNextVirtualFloatRegIndex(context);
 
     // Walk the straight-line blocks.
-    bool     changed = false;
-    position         = 0;
+    bool changed = false;
+    position     = 0;
     blockInstrs.clear();
 
     const auto flushBlock = [&]() {

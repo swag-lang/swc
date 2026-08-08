@@ -485,7 +485,7 @@ impl Painter
     // [[Pixel.Painter.drawString]]. Unlike [[Pixel.Painter.measureString]], it
     // matches on-screen glyph positions for carets, selections, and right-aligned
     // anchors. The default `atByte` measures the whole run. `deviceScale` must match
-    // the device scale the text is drawn with (see [[Gui.Wnd.deviceScale]]);
+    // the device scale the text is drawn with (see `Gui.Wnd.deviceScale`);
     // measuring with another scale snaps advances to a different pixel grid and the
     // measured position drifts from the drawn one.
     func measureStringSnapped(run: const *ShapedRun, atByte: u64 = Swag.U64.Max, deviceScale = 1.0'f32)->f32

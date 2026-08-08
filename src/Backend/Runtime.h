@@ -78,7 +78,7 @@ namespace Runtime
         TypeListArray,
         Variadic,
         TypedVariadic,
-        CVariadic,
+        CVariadic, // Reserved to keep the runtime TypeInfoKind values stable.
         Struct,
         Generic,
         Alias,

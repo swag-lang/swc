@@ -363,10 +363,10 @@ namespace
                 const std::string_view stored = context.taskContext->cstMgr().addPayloadBuffer(std::string_view{payload, sizeof(payload)}, &segmentRef);
 
                 std::array<MicroInstrOperand, 4> ripLoadOps;
-                ripLoadOps[0].reg      = dstReg;
-                ripLoadOps[1].reg      = MicroReg::instructionPointer();
-                ripLoadOps[2].opBits   = opBits;
-                ripLoadOps[3].valueU64 = 0;
+                ripLoadOps[0].reg              = dstReg;
+                ripLoadOps[1].reg              = MicroReg::instructionPointer();
+                ripLoadOps[2].opBits           = opBits;
+                ripLoadOps[3].valueU64         = 0;
                 const MicroInstrRef ripLoadRef = context.instructions->insertDerivedBefore(*context.operands, instRef, MicroInstrOpcode::LoadRegMem, ripLoadOps);
 
                 MicroRelocation relocation;

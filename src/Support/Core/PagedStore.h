@@ -32,7 +32,7 @@ public:
     // Route pages allocated from here on through the proximity arena (see
     // Os::allocProximityMemory). Each page remembers its own origin, so
     // enabling this on a store that already has pages is fine.
-    void enableProximityPages() noexcept { proximityPages_ = true; }
+    void     enableProximityPages() noexcept { proximityPages_ = true; }
     uint32_t size() const noexcept;
     uint32_t extentSize() const noexcept;
 #if SWC_HAS_STATS
@@ -54,6 +54,7 @@ public:
     uint8_t* pushS32(int32_t v) { return pushPod(v); }
     uint8_t* pushS64(int64_t v) { return pushPod(v); }
 
+    std::pair<std::span<std::byte>, Ref>       reserveSpan(uint32_t size, uint32_t align = alignof(std::byte));
     std::pair<std::span<const std::byte>, Ref> pushCopySpan(std::span<const std::byte> payload, uint32_t align = alignof(std::byte));
     Ref                                        reserveRange(uint32_t size, uint32_t align, bool zeroInit);
     SpanRef                                    pushSpanContiguousRaw(const void* data, uint32_t elemSize, uint32_t elemAlign, uint32_t count);
@@ -218,12 +219,12 @@ private:
     std::vector<std::unique_ptr<const std::vector<PageRange>>> publishedPageRangesStorage_;
     std::atomic<const std::vector<Page*>*>                     publishedPages_{nullptr};
     std::atomic<const std::vector<PageRange>*>                 publishedPageRanges_{nullptr};
-    uint64_t                                                   totalBytes_    = 0;
-    uint32_t                                                   pageSizeValue_ = K_DEFAULT_PAGE_SIZE;
+    uint64_t                                                   totalBytes_     = 0;
+    uint32_t                                                   pageSizeValue_  = K_DEFAULT_PAGE_SIZE;
     bool                                                       proximityPages_ = false;
-    Page*                                                      curPage_       = nullptr;
-    uint32_t                                                   curPageIndex_  = 0;
-    uint8_t*                                                   lastPtr_       = nullptr;
+    Page*                                                      curPage_        = nullptr;
+    uint32_t                                                   curPageIndex_   = 0;
+    uint8_t*                                                   lastPtr_        = nullptr;
 };
 
 class PagedStore::SpanView

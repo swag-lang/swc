@@ -819,14 +819,11 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicCountOf:
         case TokenId::IntrinsicDataOf:
         case TokenId::IntrinsicIsSet:
-        case TokenId::IntrinsicCVaStart:
-        case TokenId::IntrinsicCVaEnd:
             return parseIntrinsicCall(1);
 
         case TokenId::IntrinsicMakeAny:
         case TokenId::IntrinsicMakeSlice:
         case TokenId::IntrinsicMakeString:
-        case TokenId::IntrinsicCVaArg:
         case TokenId::IntrinsicIs:
         case TokenId::IntrinsicTableOf:
             return parseIntrinsicCall(2);
@@ -952,7 +949,6 @@ AstNodeRef Parser::parsePrimaryExpression()
 
         case TokenId::TypeAny:
         case TokenId::TypeCString:
-        case TokenId::TypeCVarArgs:
         case TokenId::TypeString:
         case TokenId::TypeTypeInfo:
         case TokenId::TypeVoid:

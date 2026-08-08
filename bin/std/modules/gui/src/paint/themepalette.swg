@@ -34,21 +34,21 @@ struct ThemePalette
     // selected. A palette built on a system accent washes them with it; a palette whose
     // accent is a brand color cannot — a row washed in Voltage is unreadable — and repeats
     // `hot` and `pressed` instead. Keeping the two pairs apart is what lets both work.
-    selectHot:     Color
-    selectPressed: Color
+    selectHot:     Color     // Ground of a row, entry, or tab under the pointer.
+    selectPressed: Color     // Ground of a selected row, entry, or tab.
 
     // Rules. `line` divides two blocks of one surface; `controlLine` draws the edge of a
     // control, and is therefore the stronger of the two: a control has to read as an object
     // the reader can act on, a divider only has to be found when looked for.
-    line:        Color
-    controlLine: Color
+    line:        Color     // Divider between two blocks of one surface.
+    controlLine: Color     // Stronger outline separating an interactive control.
 
     // Ink, by decreasing emphasis. `disabled` is the ink and the rule of everything the
     // reader cannot act on; it must stay legible, because it says unavailable, not absent.
-    text:      Color
-    softText:  Color
-    faintText: Color
-    disabled:  Color
+    text:      Color     // Primary ink.
+    softText:  Color     // Secondary ink.
+    faintText: Color     // Low-emphasis ink.
+    disabled:  Color     // Ink and rules of unavailable controls.
 
     // The one color the interface spends on what matters, in its two roles, and the ink drawn
     // on a fill of it. Every accented part of every widget comes from these three values.
@@ -61,9 +61,9 @@ struct ThemePalette
     // twice. A brand accent is where they part: Voltage fills beautifully under ink and
     // vanishes as a hairline on paper, so the light Swag palette points in ink and still fills
     // in Voltage. That is what keeps the two modes one identity rather than two.
-    accent:       Color
-    accentGround: Color
-    onAccent:     Color
+    accent:       Color     // Accent used for rails, rings, rules, and marks.
+    accentGround: Color     // Accent used as a filled ground.
+    onAccent:     Color     // Ink drawn on the accent ground.
 
     // Whether the theme marks the active item — a checked tool, the open menu, the selected
     // row — with a rule in the accent, or by filling the item instead. It is a decision, not
@@ -75,19 +75,19 @@ struct ThemePalette
     // Status. `error` is ink; the three notice grounds each carry the ink written on them.
     // They are tokens rather than derivations because a notice has to be recognized before
     // it is read, and that recognition is a hue, not a step of lightness.
-    error:        Color
-    criticalBk:   Color
-    criticalText: Color
-    infoBk:       Color
-    infoText:     Color
-    noticeBk:     Color
-    noticeText:   Color
+    error:        Color     // Error ink.
+    criticalBk:   Color     // Ground of a critical notice.
+    criticalText: Color     // Ink of a critical notice.
+    infoBk:       Color     // Ground of an informational notice.
+    infoText:     Color     // Ink of an informational notice.
+    noticeBk:     Color     // Ground of a general notice.
+    noticeText:   Color     // Ink of a general notice.
 
     // The three slots rich text addresses with `<p1>`, `<p2>` and `<p3>`, in labels and in
     // every other rich string the theme formats.
-    rich1: Color
-    rich2: Color
-    rich3: Color
+    rich1: Color     // First rich-text palette slot.
+    rich2: Color     // Second rich-text palette slot.
+    rich3: Color     // Third rich-text palette slot.
 
     // Ink a translucent veil is made of: white over a dark ground, black over a light one.
     // Every overlay of the theme is this color at one of three strengths, which is why a

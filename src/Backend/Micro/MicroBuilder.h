@@ -51,18 +51,18 @@ struct MicroRelocation
         Relative32,
     };
 
-    Kind          kind           = Kind::ConstantAddress;
-    Form          form           = Form::Absolute64;
-    uint32_t      codeOffset     = 0;
+    Kind     kind       = Kind::ConstantAddress;
+    Form     form       = Form::Absolute64;
+    uint32_t codeOffset = 0;
     // End of the instruction the displacement belongs to, which is where a
     // Relative32 distance is measured from. Unused by Absolute64.
     uint32_t      relativeEndOffset = 0;
-    MicroInstrRef instructionRef = MicroInstrRef::invalid();
-    uint64_t      targetAddress  = 0;
-    Symbol*       targetSymbol   = nullptr;
-    ConstantRef   constantRef    = ConstantRef::invalid();
-    uint32_t      constantShard  = INVALID_REF;
-    uint32_t      constantOffset = INVALID_REF;
+    MicroInstrRef instructionRef    = MicroInstrRef::invalid();
+    uint64_t      targetAddress     = 0;
+    Symbol*       targetSymbol      = nullptr;
+    ConstantRef   constantRef       = ConstantRef::invalid();
+    uint32_t      constantShard     = INVALID_REF;
+    uint32_t      constantOffset    = INVALID_REF;
 
     bool hasConstantSource() const noexcept { return constantShard != INVALID_REF && constantOffset != INVALID_REF; }
 };

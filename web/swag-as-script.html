@@ -56,7 +56,15 @@ swc hello.swgs
 <span class="SCmp">#load</span>(<span class="SStr">"render/helpers.swg"</span>)
 </span></div>
 <p><span class="code-inline">#load</span> adds source to the current script module. It does not create a compiled module dependency; use <span class="code-inline">#import</span> for that boundary.</p>
-<p>A path is relative to the script, and <span class="code-inline">#load</span> does not nest: a loaded file cannot load another. A script spread over several sources therefore states the whole list in its entry file.</p>
+<p><span class="code-inline">#load</span> nests, and every path is relative to the file that writes it, so a script spread over many sources names them once:</p>
+<div class="code-block"><span class="SCde"><span class="SCmt">// main.swgs</span>
+<span class="SCmp">#load</span>(<span class="SStr">"src/all.swg"</span>)
+
+<span class="SCmt">// src/all.swg loads its siblings by their own names</span>
+<span class="SCmp">#load</span>(<span class="SStr">"options.swg"</span>)
+<span class="SCmp">#load</span>(<span class="SStr">"commands/build.swg"</span>)
+</span></div>
+<p>A loaded file states module setup directives of its own — <span class="code-inline">#import</span> as well as <span class="code-inline">#load</span> — and a file already loaded is never loaded twice, so two files that load each other are fine.</p>
 <h2 id="Configure_the_script">Configure the script</h2>
 <p>A top-level <span class="code-inline">#run</span> block can update the script's build configuration before the rest of the file is compiled:</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#run</span>

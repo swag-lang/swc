@@ -137,10 +137,10 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_NewCommandCreatesAndExtendsWorkspace)
     for (const char* moduleName : {"app", "tools"})
     {
         CommandLine cmdLine;
-        cmdLine.command         = CommandKind::New;
-        cmdLine.newProjectKind  = NewProjectKind::Module;
-        cmdLine.newProjectName  = moduleName;
-        cmdLine.workspacePath   = workspacePath;
+        cmdLine.command        = CommandKind::New;
+        cmdLine.newProjectKind = NewProjectKind::Module;
+        cmdLine.newProjectName = moduleName;
+        cmdLine.workspacePath  = workspacePath;
 
         TaskContext commandCtx(ctx.global(), cmdLine);
         commandCtx.setMuteOutput(true);

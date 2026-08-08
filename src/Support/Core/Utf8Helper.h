@@ -43,16 +43,16 @@ namespace Utf8Helper
     size_t              levenshtein(std::string_view a, std::string_view b);
     std::optional<Utf8> bestMatch(std::string_view query, const std::vector<Utf8>& candidates);
 
-    std::string_view trimLeft(std::string_view s);
-    std::string_view trimRight(std::string_view s);
-    std::string_view trim(std::string_view s);
+    std::string_view  trimLeft(std::string_view s);
+    std::string_view  trimRight(std::string_view s);
+    std::string_view  trim(std::string_view s);
     std::vector<Utf8> splitLines(std::string_view text);
     uint32_t          countLineBreaks(std::string_view text);
     Utf8              escapeHtml(std::string_view text, bool attribute = false);
     Utf8              toTitle(std::string_view text);
-    Utf8             normalizePathForCompare(const fs::path& path);
-    bool             startsWith(std::string_view s, std::string_view pfx, bool matchCase = false);
-    Utf8             addArticleAAn(std::string_view s);
+    Utf8              normalizePathForCompare(const fs::path& path);
+    bool              startsWith(std::string_view s, std::string_view pfx, bool matchCase = false);
+    Utf8              addArticleAAn(std::string_view s);
 
     template<typename R, typename V>
     Utf8 join(const R& values, std::string_view separator, V valueFn)

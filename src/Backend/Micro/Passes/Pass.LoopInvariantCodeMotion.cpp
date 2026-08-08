@@ -370,7 +370,7 @@ namespace
         if (entry == K_INVALID || multiEntry)
             return false;
 
-        const MicroPassHelpers::MicroDomTree dom           = MicroPassHelpers::computeInstructionDominators(cfg, entry);
+        const MicroPassHelpers::MicroDomTree      dom           = MicroPassHelpers::computeInstructionDominators(cfg, entry);
         std::unordered_map<uint32_t, NaturalLoop> loopsByHeader = MicroPassHelpers::findNaturalLoops(cfg, dom);
         if (loopsByHeader.empty())
             return false;

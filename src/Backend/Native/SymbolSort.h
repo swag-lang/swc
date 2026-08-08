@@ -1,8 +1,8 @@
 #pragma once
-#include "Support/Core/Utf8.h"
-#include "Support/Report/Assert.h"
 #include "Compiler/SourceFile.h"
 #include "Main/CompilerInstance.h"
+#include "Support/Core/Utf8.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -13,7 +13,7 @@ namespace SymbolSort
     {
         Utf8 key;
         if (const SourceFile* file = compiler.srcView(symbol.srcViewRef()).file())
-        key += Utf8(file->path());
+            key += Utf8(file->path());
 
         key += "|";
         key += std::format("{:010}", symbol.tokRef().get());

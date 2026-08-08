@@ -94,11 +94,11 @@ private func arrowGlyph(position: IconButtonArrowPosition)->ThemeIcons
 {
     switch #complete position
     {
-    case .Left:                 return .ChevronLeft
-    case .Top, .RightUpward:    return .ChevronUp
-    case .Right:                return .ChevronRight
+    case .Left:                   return .ChevronLeft
+    case .Top, .RightUpward:      return .ChevronUp
+    case .Right:                  return .ChevronRight
     case .Bottom, .RightDownward: return .ChevronDown
-    case .None:                 return .ChevronDown
+    case .None:                   return .ChevronDown
     }
 }
 

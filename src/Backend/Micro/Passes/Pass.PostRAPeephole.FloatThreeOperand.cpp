@@ -152,11 +152,11 @@ namespace PostRaPeephole
             return false;
 
         MicroInstrOperand newOps[5] = {};
-        newOps[0].reg      = binOps[0].reg;
-        newOps[1].reg      = base;
-        newOps[2].opBits   = opBits;
-        newOps[3].microOp  = binOps[3].microOp;
-        newOps[4].valueU64 = loadOps[3].valueU64;
+        newOps[0].reg               = binOps[0].reg;
+        newOps[1].reg               = base;
+        newOps[2].opBits            = opBits;
+        newOps[3].microOp           = binOps[3].microOp;
+        newOps[4].valueU64          = loadOps[3].valueU64;
 
         ctx.emitRewrite(opRef, MicroInstrOpcode::OpBinaryRegMem, std::span{newOps, 5}, true);
         ctx.emitErase(loadRef);
@@ -232,10 +232,10 @@ namespace PostRaPeephole
             return false;
 
         MicroInstrOperand newOps[4] = {};
-        newOps[0].reg     = dst;
-        newOps[1].reg     = dst;
-        newOps[2].opBits  = opBits;
-        newOps[3].microOp = ops[3].microOp;
+        newOps[0].reg               = dst;
+        newOps[1].reg               = dst;
+        newOps[2].opBits            = opBits;
+        newOps[3].microOp           = ops[3].microOp;
 
         ctx.emitRewrite(opRef, MicroInstrOpcode::OpBinaryRegReg, std::span{newOps, 4});
         return true;
@@ -327,11 +327,11 @@ namespace PostRaPeephole
             return false;
 
         MicroInstrOperand newOps[5] = {};
-        newOps[0].reg      = dst;
-        newOps[1].reg      = src;
-        newOps[2].opBits   = MicroOpBits::B128;
-        newOps[3].microOp  = shiftOp;
-        newOps[4].valueU64 = shiftValue;
+        newOps[0].reg               = dst;
+        newOps[1].reg               = src;
+        newOps[2].opBits            = MicroOpBits::B128;
+        newOps[3].microOp           = shiftOp;
+        newOps[4].valueU64          = shiftValue;
 
         ctx.emitRewrite(opRef, MicroInstrOpcode::OpBinaryRegRegImm, std::span{newOps, 5}, true);
         ctx.emitErase(copyRef);
@@ -436,11 +436,11 @@ namespace PostRaPeephole
             return false;
 
         MicroInstrOperand newOps[5] = {};
-        newOps[0].reg     = dst;
-        newOps[1].reg     = src1;
-        newOps[2].reg     = src2;
-        newOps[3].opBits  = opBits;
-        newOps[4].microOp = binOps[3].microOp;
+        newOps[0].reg               = dst;
+        newOps[1].reg               = src1;
+        newOps[2].reg               = src2;
+        newOps[3].opBits            = opBits;
+        newOps[4].microOp           = binOps[3].microOp;
 
         // Five operands where the original had four, so the rewrite needs a
         // fresh operand block.

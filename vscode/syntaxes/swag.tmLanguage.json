@@ -159,7 +159,7 @@
       "patterns": [
         {
           "name": "entity.name.tag",
-          "match": "(@)(rol|ror|muladd|byteswap|bitcountnz|bitcounttz|bitcountlz|min|max|sqrt|sin|cos|tan|sinh|cosh|tanh|asin|acos|atan|atan2|log|log2|log10|floor|ceil|trunc|round|abs|exp|exp2|pow|alloc|realloc|free|memcpy|memmove|memset|memcmp|atomadd|atomand|atomor|atomxor|atomxchg|atomcmpxchg|cvastart|cvaend|cvaarg)\\b"
+          "match": "(@)(rol|ror|muladd|byteswap|bitcountnz|bitcounttz|bitcountlz|min|max|sqrt|sin|cos|tan|sinh|cosh|tanh|asin|acos|atan|atan2|log|log2|log10|floor|ceil|trunc|round|abs|exp|exp2|pow|alloc|realloc|free|memcpy|memmove|memset|memcmp|atomadd|atomand|atomor|atomxor|atomxchg|atomcmpxchg)\\b"
         }
       ]
     },
@@ -284,7 +284,7 @@
       "patterns": [
         {
           "name": "storage.type",
-          "match": "\\b(any|void|rune|f32|f64|s8|s16|s32|s64|u8|u16|u32|u64|bool|string|cstring|cvarargs|typeinfo)\\b"
+          "match": "\\b(any|void|rune|f32|f64|s8|s16|s32|s64|u8|u16|u32|u64|bool|string|cstring|typeinfo)\\b"
         }
       ]
     },

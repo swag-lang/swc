@@ -101,6 +101,9 @@ namespace SemaHelpers
     TypeRef                  unwrapAliasRefType(TaskContext& ctx, TypeRef typeRef);
     const SymbolFunction*    resolveLambdaBindingFunction(Sema& sema);
     SymbolFunction*          callableTypeFunction(TaskContext& ctx, TypeRef typeRef);
+    // The runtime `Swag.<name>` symbol of the current compilation, wherever runtime files rooted
+    // it (the shared import-root namespace, or the module namespace without one).
+    const Symbol*            findPredefinedRuntimeSymbol(const Sema& sema, IdentifierManager::PredefinedName name);
     Result                   attachRuntimeFunctionToNode(Sema& sema, AstNodeRef nodeRef, IdentifierManager::RuntimeFunctionKind kind, const SourceCodeRef& codeRef);
     Result                   attachRuntimeAsFunctionToNode(Sema& sema, AstNodeRef nodeRef, const SourceCodeRef& codeRef);
     Result                   attachRuntimeIsFunctionToNode(Sema& sema, AstNodeRef nodeRef, const SourceCodeRef& codeRef);

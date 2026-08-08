@@ -366,12 +366,17 @@ func verifyDllAbiCalls()
     @assert(calcPayload.a3 == 29'u64)
 }
 
+// `@setcontext` installs a POINTER to its argument, so the patched copy must outlive the frame
+// that builds it: a stack local would leave every later `@getcontext` — including the error
+// machinery behind `fail`/`catch` — reading a dead frame.
+var gPatchedContext: Swag.Context
+
 func verifyRuntimeContext()
 {
-    var cxt = dref @getcontext()
-    cxt.user0 = 42
-    cxt.user2 = cast(u64) @getcontext()
-    @setcontext(cxt)
+    gPatchedContext       = dref @getcontext()
+    gPatchedContext.user0 = 42
+    gPatchedContext.user2 = cast(u64) @getcontext()
+    @setcontext(gPatchedContext)
 
     let expectedContext = @getcontext().user2
     @assert(ctxBaseReadContext() == 42)
@@ -398,9 +403,11 @@ func verifyRuntimeContext()
 
 #drop
 {
-    var cxt = dref @getcontext()
-    cxt.user0 = 43
-    @setcontext(cxt)
+    // Same lifetime rule as `verifyRuntimeContext`: the DLL's `#drop` runs after this one and
+    // reads `user0` through the installed pointer, so the patched copy must not be a local.
+    gPatchedContext       = dref @getcontext()
+    gPatchedContext.user0 = 43
+    @setcontext(gPatchedContext)
 }
 
 var gEvtClassified: s32
@@ -447,6 +454,52 @@ func verifyCrossDllTypeIdentity()
     @assert(depTypeOfResizeEvt() != depTypeOfDestroyEvt())
 }
 
+func verifyRuntimeTypeCrossDllIdentity()
+{
+    // Runtime `Swag.*` types are compiled into every module; the DLL's descriptors and this
+    // executable's must still describe one type on both sides of the boundary (F-084).
+    @assert(ctxSharedTypeOfBaseError() == Swag.BaseError)
+    @assert(ctxSharedTypeOfSystemError() == Swag.SystemError)
+    @assert(ctxSharedTypeOfSystemError() != Swag.BaseError)
+    @assert(ctxSharedClassifyRuntimeError(#typeof(Swag.SystemError)) == 1)
+    @assert(ctxSharedClassifyRuntimeError(#typeof(Swag.BaseError)) == 2)
+    @assert(ctxSharedClassifyRuntimeError(#typeof(CtxAbiPair)) == 0)
+
+    var hit = 0
+    switch ctxSharedTypeOfSystemError()
+    {
+    case Swag.SystemError:
+        hit = 1
+    default:
+        hit = -1
+    }
+    @assert(hit == 1)
+
+    // A fallible import that succeeds must leave the capture null.
+    catch ctxSharedMayFailNothing() as none
+    @assert(none == null)
+
+    // An error raised in the DLL carries the DLL's descriptor; classifying, walking and casting
+    // it here uses this executable's.
+    catch ctxSharedRaiseSystemError() as raised
+    @assert(raised != null)
+    @assert(raised is Swag.SystemError)
+    @assert(raised is Swag.BaseError)
+
+    switch raised
+    {
+    case Swag.SystemError:
+        hit = 2
+    default:
+        hit = -2
+    }
+    @assert(hit == 2)
+
+    let sysErr = raised as Swag.SystemError
+    @assert(sysErr != null)
+    @assert(sysErr.message == "raised across the boundary")
+}
+
 #main
 {
     verifyImportedImplicitStructDefaults()
@@ -459,6 +512,7 @@ func verifyCrossDllTypeIdentity()
     verifyEmptyDerivedInterfaceIs()
     verifyImportedDiscardable()
     verifyCrossDllTypeIdentity()
+    verifyRuntimeTypeCrossDllIdentity()
     verifyImportedBorrowSummaries()
 
     // The workspace suite checks this marker after a test build to prove that run restored

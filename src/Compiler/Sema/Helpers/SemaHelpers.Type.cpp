@@ -175,23 +175,9 @@ namespace
         if (typeRef.isValid())
             return typeRef;
 
-        const IdentifierRef        swagIdRef   = sema.idMgr().predefined(IdentifierManager::PredefinedName::Swag);
-        const IdentifierRef        targetIdRef = sema.idMgr().predefined(name);
-        std::vector<const Symbol*> moduleSymbols;
-        sema.moduleNamespace().getAllSymbols(moduleSymbols);
-        for (const Symbol* moduleSym : moduleSymbols)
-        {
-            if (!moduleSym || !moduleSym->isNamespace() || moduleSym->idRef() != swagIdRef)
-                continue;
-
-            std::vector<const Symbol*> namespaceSymbols;
-            moduleSym->asSymMap()->getAllSymbols(namespaceSymbols);
-            for (const Symbol* candidate : namespaceSymbols)
-            {
-                if (candidate && candidate->idRef() == targetIdRef && candidate->typeRef().isValid())
-                    return candidate->typeRef();
-            }
-        }
+        const Symbol* candidate = SemaHelpers::findPredefinedRuntimeSymbol(sema, name);
+        if (candidate && candidate->typeRef().isValid())
+            return candidate->typeRef();
 
         return TypeRef::invalid();
     }

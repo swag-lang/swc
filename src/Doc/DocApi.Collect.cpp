@@ -122,24 +122,6 @@ bool DocApi::hasCompilerGeneratedIdentifier(const TaskContext& ctx, const Symbol
     return symbol.idRef().isValid() && symbol.name(ctx).starts_with("__");
 }
 
-// The runtime page is shared by every module, but a runtime symbol is scoped by the module
-// that happens to compile it. Dropping that prefix gives one stable anchor per runtime
-// symbol, so a link written from any module page reaches it.
-Utf8 DocApi::documentationScopedName(TaskContext& ctx, const Symbol& symbol, const bool runtime)
-{
-    Utf8 result = symbol.getFullScopedName(ctx);
-    if (!runtime)
-        return result;
-
-    Utf8 prefix = ctx.compiler().buildCfg().moduleNamespace;
-    if (prefix.empty())
-        return result;
-    prefix += ".";
-    if (result.starts_with(prefix.view()))
-        result.erase(0, prefix.size());
-    return result;
-}
-
 bool DocApi::isInCompilerGeneratedScope(const TaskContext& ctx, const Symbol& symbol)
 {
     // A declaration nested in a reserved scope is implementation state whatever its own
@@ -438,14 +420,14 @@ namespace
         return nullptr;
     }
 
-    Utf8 documentationNamespace(TaskContext& ctx, const Symbol& symbol, const Symbol* owner, const bool runtime)
+    Utf8 documentationNamespace(TaskContext& ctx, const Symbol& symbol, const Symbol* owner)
     {
         const Symbol*    scopedSymbol = owner ? owner : &symbol;
         const SymbolMap* scope        = scopedSymbol->ownerSymMap();
         while (scope)
         {
             if (scope->isNamespace())
-                return DocApi::documentationScopedName(ctx, *scope, runtime);
+                return scope->getFullScopedName(ctx);
             scope = scope->ownerSymMap();
         }
         return {};
@@ -565,7 +547,7 @@ void DocApi::collectDocItems(TaskContext& ctx, std::vector<DocItem>& outItems, c
         if (rootRef.isInvalid())
             return;
 
-        Utf8 fullName = documentationScopedName(workerCtx, *symbol, runtime);
+        Utf8 fullName = symbol->getFullScopedName(workerCtx);
         if (fullName.empty())
             return;
 
@@ -576,7 +558,7 @@ void DocApi::collectDocItems(TaskContext& ctx, std::vector<DocItem>& outItems, c
         Utf8          ownerName;
         if (owner)
         {
-            ownerName = documentationScopedName(workerCtx, *owner, runtime);
+            ownerName = owner->getFullScopedName(workerCtx);
             if (!ownerName.empty())
             {
                 Utf8 qualified = ownerName;
@@ -595,7 +577,7 @@ void DocApi::collectDocItems(TaskContext& ctx, std::vector<DocItem>& outItems, c
         candidate.kind              = *kind;
         candidate.fullName          = std::move(fullName);
         candidate.ownerName         = std::move(ownerName);
-        candidate.namespaceName     = documentationNamespace(workerCtx, *symbol, owner, runtime);
+        candidate.namespaceName     = documentationNamespace(workerCtx, *symbol, owner);
         candidate.overload.symbol       = symbol;
         candidate.overload.file         = file;
         candidate.overload.signature    = buildDisplaySignature(workerCtx, *file, declRef, rootRef);

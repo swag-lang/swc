@@ -307,7 +307,7 @@ namespace
                 if (!member || !canDocumentMember(ctx.compiler(), *member, runtime))
                     continue;
 
-                const Utf8 fullName = DocApi::documentationScopedName(ctx, *member, runtime);
+                const Utf8 fullName = member->getFullScopedName(ctx);
                 if (fullName.empty())
                     continue;
                 const Utf8 anchor = DocMarkdown::makeAnchor(fullName);
@@ -569,7 +569,7 @@ namespace
 
             MemberRow row;
             row.name         = Utf8(member->name(*renderCtx.ctx));
-            row.anchor       = DocMarkdown::makeAnchor(DocApi::documentationScopedName(*renderCtx.ctx, *member, runtime));
+            row.anchor       = DocMarkdown::makeAnchor(member->getFullScopedName(*renderCtx.ctx));
             row.commentLines = memberCommentLines(*renderCtx.ctx, *member);
             row.type         = documentationTypeName(renderCtx, *member);
 

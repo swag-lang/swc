@@ -96,14 +96,17 @@ namespace
         return setupDirective ? Result::SkipChildren : Result::Continue;
     }
 
-    // Top-level symbols of an imported-API file are created under the shared import-root namespace
-    // (not this module's namespace), so an imported module keeps its own namespace hierarchy
-    // (e.g. `Pixel.Color`) instead of being nested under the importer (`Importer.Pixel.Color`).
-    // Lookup still uses the module namespace (so builtins like `Swag` and sibling imports resolve).
+    // Top-level symbols of an imported-API or runtime file are created under the shared
+    // import-root namespace (not this module's namespace). An imported module keeps its own
+    // namespace hierarchy (e.g. `Pixel.Color`) instead of being nested under the importer
+    // (`Importer.Pixel.Color`); the runtime, compiled into every module, keeps one canonical
+    // scoped name (`Swag.BaseError`) so its types carry the same runtime identity (descriptor
+    // fullname and crc) in every module. Lookup still uses the module namespace (so builtins
+    // like `Swag` and sibling imports resolve).
     SymbolMap* topLevelCreationSymMap(Sema& sema)
     {
         const SourceFile* file = sema.file();
-        if (file && file->isImportedApi())
+        if (file && (file->isImportedApi() || file->isRuntime()))
         {
             if (SymbolNamespace* importRoot = sema.compiler().importRootNamespace())
                 return importRoot;
@@ -233,7 +236,21 @@ Result AstUsingDecl::semaPostNode(Sema& sema) const
 
         // Qualified lookups (for example `Enum.Value`) do not walk transient lexical scopes,
         // so persist `using` imports on the owning symbol map as well.
-        if (auto* ownerSymMap = SemaFrame::currentSymMap(sema))
+        SymbolMap* ownerSymMap = SemaFrame::currentSymMap(sema);
+
+        // A runtime file's top-level `using` (e.g. `using Swag` in the bootstrap) is the prelude
+        // of every module: it is what lets the whole module — including generated imported-API
+        // sources — spell `Swag` members unqualified (`#[Inline]`). Runtime symbols are created
+        // under the import root, whose persisted usings unqualified lookups deliberately skip, so
+        // persist these on the module namespace, where they have always been collected from.
+        if (ownerSymMap && ownerSymMap == sema.compiler().importRootNamespace())
+        {
+            const SourceFile* file = sema.file();
+            if (file && file->isRuntime())
+                ownerSymMap = &sema.moduleNamespace();
+        }
+
+        if (ownerSymMap)
             ownerSymMap->addUsingSymMap(usingSymMap);
     }
 

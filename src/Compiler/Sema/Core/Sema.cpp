@@ -9,6 +9,7 @@
 #include "Compiler/Sema/Helpers/SemaCycle.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaEscape.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
@@ -37,29 +38,6 @@ namespace
         const SourceCodeRange tokenRange = sema.tokenCodeRange(waitCodeRef);
         return (waitFile && waitFile->hasErrorLineInRange(tokenRange.line, tokenRange.line)) ||
                (ownerFile && ownerFile->hasErrorLineInRange(tokenRange.line, tokenRange.line));
-    }
-
-    const Symbol* findPredefinedRuntimeSymbol(const Sema& sema, IdentifierManager::PredefinedName name)
-    {
-        const IdentifierRef        swagIdRef   = sema.idMgr().predefined(IdentifierManager::PredefinedName::Swag);
-        const IdentifierRef        targetIdRef = sema.idMgr().predefined(name);
-        std::vector<const Symbol*> moduleSymbols;
-        sema.moduleNamespace().getAllSymbols(moduleSymbols);
-        for (const Symbol* moduleSym : moduleSymbols)
-        {
-            if (!moduleSym || !moduleSym->isNamespace() || moduleSym->idRef() != swagIdRef)
-                continue;
-
-            std::vector<const Symbol*> namespaceSymbols;
-            moduleSym->asSymMap()->getAllSymbols(namespaceSymbols);
-            for (const Symbol* candidate : namespaceSymbols)
-            {
-                if (candidate && candidate->idRef() == targetIdRef)
-                    return candidate;
-            }
-        }
-
-        return nullptr;
     }
 
     SemaScope* remapScopeFromParent(const std::vector<std::unique_ptr<SemaScope>>& parentScopes, const std::vector<std::unique_ptr<SemaScope>>& childScopes, const SemaScope* oldScope)
@@ -1002,7 +980,7 @@ Result Sema::waitPredefined(IdentifierManager::PredefinedName name, TypeRef& typ
     if (typeRef.isValid())
         return Result::Continue;
 
-    if (const Symbol* predefinedSym = findPredefinedRuntimeSymbol(*this, name))
+    if (const Symbol* predefinedSym = SemaHelpers::findPredefinedRuntimeSymbol(*this, name))
     {
         SWC_RESULT(waitSemaCompleted(predefinedSym, codeRef));
         typeRef = typeMgr().runtimeType(name);

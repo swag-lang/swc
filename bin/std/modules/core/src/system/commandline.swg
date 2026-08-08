@@ -7,7 +7,11 @@ using Core.Errors
 attr ArgParams(nameAlias: #null string = null)
 
 // Represents parse options.
-struct ParseOptions {}
+struct ParseOptions
+{
+    capturePositionals: bool     // Collect the leading non-option tokens instead of failing on them.
+    captureUnknown:     bool     // Collect the tokens that name no field, verbatim, instead of failing on them.
+}
 
 // The 'IsSet' generic struct is a mirror of the user input struct.
 //
@@ -31,7 +35,9 @@ struct(T) IsSet
 // Result of the [parse] function
 struct(T) Result
 {
-    isSet: IsSet'T     // Whether this value is set.
+    isSet:       IsSet'T          // Whether this value is set.
+    positionals: Array'String     // The leading non-option tokens, in order, when 'capturePositionals' is set.
+    unknown:     Array'String     // The tokens that named no field, verbatim and in order, when 'captureUnknown' is set.
 }
 
 // Returns true if 'oneArg' is a valid option (starting with a delimiter)
@@ -69,6 +75,7 @@ func isValue(oneArg: string, typeField: typeinfo, options: ParseOptions)->bool
 private struct SplitArgument
 {
     value:         string
+    raw:           string     // The token as given, before name/value splitting, so it can be reported or forwarded verbatim.
     attachedValue: bool
 }
 
@@ -86,7 +93,7 @@ private func splitArgumentsEx(args: const [..] string, options: ParseOptions)->A
 
         if !isOption(oneArg, options)
         {
-            allArgs.add(SplitArgument{value: oneArg})
+            allArgs.add(SplitArgument{value: oneArg, raw: oneArg})
             continue
         }
 
@@ -94,14 +101,14 @@ private func splitArgumentsEx(args: const [..] string, options: ParseOptions)->A
         if split.count == 2
         {
             let name = Latin1.trim(split[0])
-            allArgs.add(SplitArgument{value: name})
+            allArgs.add(SplitArgument{value: name, raw: oneArg})
             let other = Latin1.trim(split[1])
             if @countof(other) do
-                allArgs.add(SplitArgument{value: other, attachedValue: true})
+                allArgs.add(SplitArgument{value: other, raw: "", attachedValue: true})
         }
         else
         {
-            allArgs.add(SplitArgument{value: oneArg})
+            allArgs.add(SplitArgument{value: oneArg, raw: oneArg})
         }
     }
 
@@ -129,6 +136,34 @@ struct FieldResult
     index: u64 = Swag.U64.Max              // Index associated with this value.
 }
 
+// Returns whether the option name `name` designates the declared name `candidate`.
+//
+// The comparison ignores case and the '-' and '_' separators, so an option spelled
+// 'build-cfg' designates a field declared 'buildCfg'.
+func isSameName(candidate: string, name: string)->bool
+{
+    let countCandidate = @countof(candidate)
+    let countName      = @countof(name)
+
+    var atCandidate = 0'u64
+    var atName      = 0'u64
+    for
+    {
+        while atCandidate < countCandidate and (candidate[atCandidate] == '-'u8 or candidate[atCandidate] == '_'u8) do
+            atCandidate += 1
+        while atName < countName and (name[atName] == '-'u8 or name[atName] == '_'u8) do
+            atName += 1
+        if atCandidate == countCandidate or atName == countName do
+            break
+        if Latin1.toLower(candidate[atCandidate]) != Latin1.toLower(name[atName]) do
+            return false
+        atCandidate += 1
+        atName      += 1
+    }
+
+    return atCandidate == countCandidate and atName == countName
+}
+
 // Returns field.
 func getField(typeStruct: const *Swag.TypeInfoStruct, name: string)->FieldResult
 {
@@ -137,7 +172,7 @@ func getField(typeStruct: const *Swag.TypeInfoStruct, name: string)->FieldResult
     for &it in typeStruct.fields
     {
         // Test normal name (field)
-        if it.name == name
+        if isSameName(it.name orelse "", name)
         {
             result.field = it
             result.index = @index
@@ -146,7 +181,7 @@ func getField(typeStruct: const *Swag.TypeInfoStruct, name: string)->FieldResult
 
         // Test name alias
         let aliasName = Reflection.attributeValue(it, ArgParams, "nameAlias", cast(#null string) null)
-        if aliasName == name
+        if aliasName != null and isSameName(aliasName orelse "", name)
         {
             result.field = it
             result.index = @index
@@ -158,6 +193,13 @@ func getField(typeStruct: const *Swag.TypeInfoStruct, name: string)->FieldResult
 }
 
 // Parse all the arguments and fill the result
+//
+// An option is written `-name`, `--name`, `-name value`, or `-name:value` (`=` works like
+// `:`), and designates the field of `T` whose name or 'ArgParams' alias it matches, ignoring
+// case and the '-'/'_' separators. What matches nothing fails the parse, unless the options
+// ask for it to be captured: 'capturePositionals' collects the leading non-option tokens, and
+// 'captureUnknown' collects every unrecognized token verbatim, which is how a caller forwards
+// what it does not understand to another program.
 func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result fail
 {
     #[Swag.Mixin]
@@ -177,20 +219,51 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
     let allArgs = splitArgumentsEx(args, options)
 
     // Parse all
-    let typeof = #typeof(T)
-    let maxItp = @countof(allArgs)
+    let typeof     = #typeof(T)
+    let maxItp     = @countof(allArgs)
+    var seenOption = false
     for var itp = 0; itp < maxItp; itp += 1
     {
         var oneArg = allArgs[itp].value
-        if !isOption(oneArg, options) do
-            fail SyntaxError{Errors.mkString(Format.toString("invalid option [[%]]", oneArg))}
+        if !isOption(oneArg, options)
+        {
+            if options.capturePositionals and !seenOption
+            {
+                result.positionals.add(String.from(oneArg))
+                continue
+            }
 
+            if options.captureUnknown
+            {
+                result.unknown.add(String.from(allArgs[itp].raw))
+                continue
+            }
+
+            fail SyntaxError{Errors.mkString(Format.toString("invalid option [[%]]", oneArg))}
+        }
+
+        seenOption = true
+
+        // One leading dash or two spell the same option, so '--name' and '-name' both reach 'name'.
         oneArg = Tokenize.eatCount(oneArg, 1)
+        if @countof(oneArg) and oneArg[0] == '-' do
+            oneArg = Tokenize.eatCount(oneArg, 1)
 
         let fieldResult = getField(typeof, oneArg)
         let typeParam   = fieldResult.field
-        if !typeParam do
+        if !typeParam
+        {
+            if options.captureUnknown
+            {
+                // The raw spelling already carries an attached value, so its split half is dropped.
+                result.unknown.add(String.from(allArgs[itp].raw))
+                if itp + 1 < maxItp and allArgs[itp + 1].attachedValue do
+                    itp += 1
+                continue
+            }
+
             fail SyntaxError{Errors.mkString(Format.toString("unknown option [[%]]", oneArg))}
+        }
 
         let field     = typeParam
         let typeField = field.pointedType orelse #typeof(u8)

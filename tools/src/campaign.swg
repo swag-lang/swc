@@ -18,8 +18,8 @@ public func runTests(context: *Context, options: *Options)->s32 fail
 {
     if !options.module.isEmpty() and options.command.isEmpty()
     {
-        @print("tests.swgs runs a whole set and takes no name. Use unittests, std, examples, apps,\n")
-        @print("reference, or scripts to reach one suite, module, or script.\n")
+        Console.println("tests.swgs runs a whole set and takes no name. Use unittests, std, examples, apps,")
+        Console.println("reference, or scripts to reach one suite, module, or script.")
         return 1
     }
 
@@ -48,8 +48,8 @@ public func runBuild(context: *Context, options: *Options)->s32 fail
 {
     if !options.module.isEmpty()
     {
-        @print("build.swgs builds every workspace and takes no name. Use std, examples, apps, or\n")
-        @print("reference to build one workspace or one module.\n")
+        Console.println("build.swgs builds every workspace and takes no name. Use std, examples, apps, or")
+        Console.println("reference to build one workspace or one module.")
         return 1
     }
 
@@ -353,11 +353,11 @@ private func reportScope(context: *Context, options: *Options, scope: *Scope)
 {
     if scope.count == 0
     {
-        @print("Nothing changed against HEAD, so there is nothing to run.\n")
+        Console.println("Nothing changed against HEAD, so there is nothing to run.")
         return
     }
 
-    @print(scope.count, " changed file(s) select:\n")
+    Console.println(scope.count, " changed file(s) select:")
     var reported = false
 
     if scope.all
@@ -406,7 +406,7 @@ private func reportScope(context: *Context, options: *Options, scope: *Scope)
     if !reported do
         reportLine("nothing", "no surface this campaign covers is affected", &reported)
 
-    @print("\n")
+    Console.println()
 }
 
 // Naming a handful says more than counting them; naming twenty says less.
@@ -492,6 +492,6 @@ private func reportLine(label: string, value: string, reported: *bool)
     while padded.length < 10 do
         padded += " "
 
-    @print("  ", padded.toString(), " ", value, "\n")
+    Console.println("  ", padded.toString(), " ", value)
     dref reported = true
 }

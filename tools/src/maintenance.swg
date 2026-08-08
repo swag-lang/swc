@@ -44,15 +44,15 @@ public func runGoldens(context: *Context, _options: *Options)->s32 fail
             golden += extension
 
             try File.move(golden.toString(), full)
-            @print("accepted ", Path.fileName(full) orelse "", "\n")
+            Console.println("accepted ", Path.fileName(full) orelse "")
             accepted += 1
         }
     }
 
     if accepted == 0 do
-        @print("no pending snapshot to accept\n")
+        Console.println("no pending snapshot to accept")
     else do
-        @print(accepted, " golden(s) accepted - review them with git diff before committing\n")
+        Console.println(accepted, " golden(s) accepted - review them with git diff before committing")
     return 0
 }
 
@@ -133,11 +133,11 @@ public func runSetup(context: *Context, _options: *Options)->s32 fail
 
     if Utf8.indexOf(cast(const [..] u8) current, native.toString(), 0, .Latin1NoCase) != Swag.U64.Max
     {
-        @print("\"", native.toString(), "\" is already in PATH.\n")
+        Console.println("\"", native.toString(), "\" is already in PATH.")
     }
     else
     {
-        @print("Adding \"", native.toString(), "\" to user PATH...\n")
+        Console.println("Adding \"", native.toString(), "\" to user PATH...")
 
         var updated = String.from(current)
         if !updated.isEmpty() do
@@ -149,20 +149,20 @@ public func runSetup(context: *Context, _options: *Options)->s32 fail
             return code
     }
 
-    @print("Setting SWAG_PATH to \"", native.toString(), "\"...\n")
+    Console.println("Setting SWAG_PATH to \"", native.toString(), "\"...")
     let code = try context.runProgramTokens("setx.exe", ["SWAG_PATH", native.toString()])
     if code != 0 do
         return code
 
     let compiler = Path.combine(context.binDir.toString(), "swc.exe")
-    @print("Associating \".swgs\" with \"", compiler.toString(), "\"...\n")
+    Console.println("Associating \".swgs\" with \"", compiler.toString(), "\"...")
     if !Env.claimFileExtension(".swgs", "Swag.Script", "Swag script", compiler.toString())
     {
-        @print("error: the file association could not be written\n")
+        Console.println("error: the file association could not be written")
         return 1
     }
 
-    @print("Done. You may need to restart your terminal.\n")
+    Console.println("Done. You may need to restart your terminal.")
     return 0
 }
 
@@ -197,10 +197,10 @@ public func runScrypt(context: *Context, options: *Options)->s32 fail
     {
         let content = catch File.readAllText(report.toString()) as err
         if err == null do
-            @print(content.toString())
+            Console.print(content.toString())
     }
 
-    @print("\n")
+    Console.println()
 
     var restore = dref options
     restore.command  = String.from("build")
@@ -239,7 +239,7 @@ public func runBench(context: *Context, options: *Options)->s32 fail
     code = catch context.runProgram("py.exe", launched) as launcherError
     if launcherError != null
     {
-        @print("Python 3 is required to run the benchmark, and neither `py` nor `python` is on PATH.\n")
+        Console.println("Python 3 is required to run the benchmark, and neither `py` nor `python` is on PATH.")
         return 1
     }
 

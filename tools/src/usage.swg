@@ -8,7 +8,7 @@ public func printUsage(name: string)->s32
     switch name
     {
     case "tests":
-        @print(
+        Console.print(
 """
 Runs the repository test set, whole or scoped to what changed.
 
@@ -35,7 +35,7 @@ of coverage.
 """)
 
     case "unittests":
-        @print(
+        Console.print(
 """
 Runs the compiler test suites.
 
@@ -50,7 +50,7 @@ forwarded to the compiler, for instance --seed, --num-cores, or --randomize.
 """)
 
     case "std":
-        @print(
+        Console.print(
 """
 Builds or tests the standard library.
 
@@ -65,7 +65,7 @@ Testing always builds the workspace first. Modules without a unit test are skipp
 """)
 
     case "examples":
-        @print(
+        Console.print(
 """
 Builds, runs, tests, or smokes the examples workspace.
 
@@ -85,7 +85,7 @@ going for a bounded number of frames, isolated from the machine.
 """)
 
     case "apps":
-        @print(
+        Console.print(
 """
 Builds, runs, tests, or smokes the applications workspace.
 
@@ -106,7 +106,7 @@ and launches the packaged executable from its own directory.
 """)
 
     case "reference":
-        @print(
+        Console.print(
 """
 Builds or tests the executable language reference.
 
@@ -119,7 +119,7 @@ Builds or tests the executable language reference.
 """)
 
     case "scripts":
-        @print(
+        Console.print(
 """
 Runs one standalone example script, or smokes every one of them.
 
@@ -138,7 +138,7 @@ Naming a script runs it; naming none smokes them all, isolated from the machine.
 """)
 
     case "build":
-        @print(
+        Console.print(
 """
 Builds every repository workspace.
 
@@ -153,7 +153,7 @@ reference, and the multi-module workspace suite.
 """)
 
     case "format":
-        @print(
+        Console.print(
 """
 Formats every Swag source workspace in the repository, in place.
 
@@ -163,7 +163,7 @@ This rewrites tracked sources. It is a maintenance step, never a test.
 """)
 
     case "goldens":
-        @print(
+        Console.print(
 """
 Promotes the snapshots a failing test left behind into their goldens.
 
@@ -174,7 +174,7 @@ reference and fails. Once reviewed, this moves every actual over its golden.
 """)
 
     case "web":
-        @print(
+        Console.print(
 """
 Regenerates the brand assets and the complete website under web/.
 
@@ -185,7 +185,7 @@ bin/reference workspaces.
 """)
 
     case "scrypt":
-        @print(
+        Console.print(
 """
 Runs the privileged sCrypt/WinFsp end-to-end sandbox.
 
@@ -196,7 +196,7 @@ rebuilds a normal sCrypt. It mounts a real volume, so it stays out of tests.swgs
 """)
 
     case "vsix":
-        @print(
+        Console.print(
 """
 Packages the VSCode extension after refreshing its generated images.
 
@@ -206,7 +206,7 @@ Install Node.js, then 'npm install -g vsce', before using this.
 """)
 
     case "setup":
-        @print(
+        Console.print(
 """
 Registers bin/ in the current user's environment, and claims the .swgs extension.
 
@@ -217,7 +217,7 @@ current user, so a double-click runs a script.
 """)
 
     case "bench":
-        @print(
+        Console.print(
 """
 Runs or regenerates the cross-language performance campaign.
 
@@ -230,7 +230,7 @@ See bench/README.md before changing anything about how it measures.
 """)
 
     default:
-        @print("No usage is recorded for '", name, "'.\n")
+        Console.println("No usage is recorded for '", name, "'.")
         return 1
     }
 

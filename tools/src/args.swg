@@ -8,9 +8,10 @@ The argument grammar every repository tool shares.
     tool [dm] [<command>] [<name>] [options...]
 
 Positionals come first and options after, so an option value can never be mistaken for a name:
-the first token starting with `-` or `/` closes the positional part. Anything the grammar does
-not know is forwarded to the compiler untouched, which is what lets a caller pass `--seed` or
-`--num-cores` through any tool.
+the first token starting with `-` closes the positional part. The named options are parsed by
+Core's command-line system through [Grammar]; anything the grammar does not know is forwarded
+to the compiler untouched, which is what lets a caller pass `--seed` or `--num-cores` through
+any tool.
 */
 public struct Options
 {
@@ -21,8 +22,8 @@ public struct Options
     allConfigs:   bool                    // Whether to repeat an aggregate tool in all three.
     wantHelp:     bool                    // Whether the tool was asked to print its usage.
     targetArch:   String                  // The architecture every output path is keyed on.
-    workspace:    Arguments             // Flags only a run or a smoke understands.
-    extra:        Arguments             // Everything else, forwarded to the compiler.
+    workspace:    Arguments               // Flags only a run or a smoke understands.
+    extra:        Arguments               // Everything else, forwarded to the compiler.
     runArguments: Array'String            // The '--run-arg' values, without the flag.
 }
 
@@ -84,117 +85,115 @@ public impl Options
     }
 }
 
+// The named options of the shared grammar, one field per option a tool understands.
+//
+// Core's command-line system fills this by reflection: an option designates the field its name
+// matches, ignoring case and dashes, or the alias 'ArgParams' names, so '--build-cfg' and
+// '-bc' both land in 'buildCfg'. What designates no field is captured verbatim and forwarded.
+private struct Grammar
+{
+    #[CommandLine.ArgParams("h")]
+    help: bool                    // Print the tool's usage instead of running it.
+
+    #[CommandLine.ArgParams("bc")]
+    buildCfg: String              // The configuration to build and run in.
+
+    allCfg: bool                  // Repeat an aggregate tool in all three configurations.
+
+    #[CommandLine.ArgParams("m")]
+    workspaceModule: String       // The module, when named through an option rather than the positional.
+
+    targetArch: String            // The architecture every output path is keyed on, forwarded too.
+    frames:     String            // Bound a run or a smoke to that many frames.
+    runTimeout: String            // Fail a run or a smoke that outlives that many seconds.
+    runArg:     Array'String      // One argument for the launched program, repeatable.
+}
+
 // Parses the shared grammar, given the commands this tool accepts.
-public func parseOptions(acceptedCommands: const [..] string, tokens: const [..] String)->Options fail
+public func parseOptions(acceptedCommands: const [..] string, tokens: const [..] string)->Options fail
 {
     var result: retval
     result.buildCfg   = String.from("fast-debug")
     result.targetArch = String.from("x86_64")
 
-    var index = 0'u64
-    let count = @countof(tokens)
+    // `/?` asks for help in the one spelling Core's parser has no dash for.
+    for token in tokens
+    {
+        if token == "/?"
+        {
+            result.wantHelp = true
+            return result
+        }
+    }
 
-    if index < count and tokens[index].toString() == "dm"
+    var grammar: Grammar
+    let parsed = try CommandLine.parse(&grammar, tokens, CommandLine.ParseOptions{capturePositionals: true, captureUnknown: true})
+    if grammar.help
+    {
+        result.wantHelp = true
+        return result
+    }
+
+    // The positional part: [dm] [<command>] [<name>], anything further forwarded untouched.
+    var index = 0'u64
+    if index < parsed.positionals.count and parsed.positionals[index] == "dm"
     {
         result.devMode = true
         index += 1
     }
 
-    if index < count and !isOption(tokens[index].toString())
+    if index < parsed.positionals.count
     {
-        let token = tokens[index].toString()
         for accepted in acceptedCommands
         {
-            if Utf8.compare(cast(const [..] u8) token, cast(const [..] u8) accepted, .Latin1NoCase) == 0
+            if isCommand(parsed.positionals[index].toString(), accepted)
             {
-                result.command = token
+                result.command = parsed.positionals[index]
                 index += 1
                 break
             }
         }
     }
 
-    if index < count and !isOption(tokens[index].toString())
+    if index < parsed.positionals.count
     {
-        result.module = tokens[index]
+        result.module = parsed.positionals[index]
         index += 1
     }
 
-    while index < count
+    while index < parsed.positionals.count
     {
-        let token = tokens[index].toString()
+        result.extra.add([parsed.positionals[index].toString()])
         index += 1
-
-        if matches(token, "-h") or matches(token, "--help") or token == "/?"
-        {
-            result.wantHelp = true
-            return result
-        }
-
-        if matches(token, "--all-cfg")
-        {
-            result.allConfigs = true
-            continue
-        }
-
-        if matches(token, "-bc") or matches(token, "--build-cfg")
-        {
-            result.buildCfg = try takeValue(tokens, &index, token)
-            continue
-        }
-
-        if matches(token, "-m") or matches(token, "--workspace-module")
-        {
-            result.module = try takeValue(tokens, &index, token)
-            continue
-        }
-
-        if matches(token, "--target-arch")
-        {
-            result.targetArch = try takeValue(tokens, &index, token)
-            result.extra.add(["--target-arch", result.targetArch.toString()])
-            continue
-        }
-
-        if matches(token, "--frames") or matches(token, "--run-timeout")
-        {
-            let value = try takeValue(tokens, &index, token)
-            result.workspace.add([token, value.toString()])
-            continue
-        }
-
-        if matches(token, "--run-arg")
-        {
-            result.runArguments.add(try takeValue(tokens, &index, token))
-            continue
-        }
-
-        result.extra.add([token])
     }
+
+    // The named options, mapped onto what the tools act on.
+    if parsed.isSet.buildCfg do
+        result.buildCfg = grammar.buildCfg
+    if parsed.isSet.workspaceModule do
+        result.module = grammar.workspaceModule
+    result.allConfigs   = grammar.allCfg
+    result.runArguments = grammar.runArg
+
+    if parsed.isSet.targetArch
+    {
+        result.targetArch = grammar.targetArch
+        result.extra.add(["--target-arch", result.targetArch.toString()])
+    }
+
+    if parsed.isSet.frames do
+        result.workspace.add(["--frames", grammar.frames.toString()])
+    if parsed.isSet.runTimeout do
+        result.workspace.add(["--run-timeout", grammar.runTimeout.toString()])
+
+    for token in parsed.unknown do
+        result.extra.add([token.toString()])
 
     return result
 }
 
-// Reports whether `token` closes the positional part of the command line.
-private func isOption(token: string)->bool
+// Reports whether a positional spells the command `accepted`, whatever its case.
+private func isCommand(token: string, accepted: string)->bool
 {
-    if @countof(token) == 0 do
-        return false
-    return token[0] == '-' or token[0] == '/'
-}
-
-private func matches(token: string, name: string)->bool
-{
-    return Utf8.compare(cast(const [..] u8) token, cast(const [..] u8) name, .Latin1NoCase) == 0
-}
-
-// Consumes the value that follows an option, failing when it is missing.
-private func takeValue(tokens: const [..] String, index: *u64, option: string)->String fail
-{
-    if dref index >= @countof(tokens) do
-        fail Errors.BadParameterError{Errors.mkString(Format.toString("option '%' is missing its value", option))}
-
-    let value = tokens[dref index]
-    dref index += 1
-    return value
+    return Utf8.compare(cast(const [..] u8) token, cast(const [..] u8) accepted, .Latin1NoCase) == 0
 }

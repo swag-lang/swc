@@ -120,7 +120,7 @@ public func runApps(context: *Context, options: *Options)->s32 fail
 
     if command == "run" and options.module.isEmpty()
     {
-        @print("Running an application needs its name: swc tools/apps.swgs run <module>\n")
+        Console.println("Running an application needs its name: swc tools/apps.swgs run <module>")
         return 1
     }
 
@@ -192,7 +192,7 @@ private func launchApplication(context: *Context, options: *Options)->s32 fail
     let directory  = applicationDirectory(context, options, options.module.toString())
     let executable = Path.combine(directory.toString(), Format.toString("%.exe", options.module.toString()).toString())
 
-    @print("Launching ", options.module.toString(), "...\n")
+    Console.println("Launching ", options.module.toString(), "...")
 
     let applicationArguments = joinArguments(options.runArguments.toSlice())
 
@@ -218,7 +218,7 @@ private func packageApplication(context: *Context, options: *Options, name: stri
     let executable = Path.combine(appDir.toString(), Format.toString("%.exe", name).toString())
     if !File.exists(executable)
     {
-        @print("Application executable is missing: ", executable.toString(), "\n")
+        Console.println("Application executable is missing: ", executable.toString())
         return 1
     }
 
@@ -255,7 +255,7 @@ public func runReference(context: *Context, options: *Options)->s32 fail
 {
     if !options.module.isEmpty()
     {
-        @print("The language reference is one workspace and takes no module name.\n")
+        Console.println("The language reference is one workspace and takes no module name.")
         return 1
     }
 
@@ -300,9 +300,9 @@ public func runScripts(context: *Context, options: *Options)->s32 fail
             named += ".swgs"
         if !File.exists(named)
         {
-            @print("Unknown script \"", options.module.toString(), "\". Available scripts:\n")
+            Console.println("Unknown script \"", options.module.toString(), "\". Available scripts:")
             for script in scriptFiles(scriptsDir.toString()) do
-                @print("  ", Path.fileNameWithoutExtension(script.toString()) orelse "", "\n")
+                Console.println("  ", Path.fileNameWithoutExtension(script.toString()) orelse "")
             return 1
         }
     }

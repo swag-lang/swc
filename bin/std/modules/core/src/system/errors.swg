@@ -74,6 +74,49 @@ struct InvalidVersion
     foundVersion:  u32     // Found version associated with this value.
 }
 
+// Returns the text an error value carries, so a report can print what failed.
+//
+// `err` is the value a `catch` binds. The text is read from the [[Swag.BaseError]] a standard
+// error embeds as its first field; an error type without one, or with an empty message,
+// answers with its type name instead, so the result is always printable. A `null` error
+// answers with an empty string.
+func message(err: #null any)->string
+{
+    if err == null do
+        return ""
+
+    var type = Reflection.resolveAliases(@kindof(err))
+    let name = type.name orelse ""
+
+    // Walk the leading embedded structs: the base of an error family sits at offset zero,
+    // however deep the derivation goes. The base is recognized by its shape — the leading
+    // 'message' string field of [[Swag.BaseError]] — rather than by type identity, because a
+    // runtime type has no cross-module identity yet (F-084): compared from another module,
+    // `type == Swag.BaseError` is false for the very value it describes.
+    while Reflection.isStruct(type)
+    {
+        let structType = cast(const *Swag.TypeInfoStruct) type
+        let fields     = structType.fields
+        if @countof(fields) == 0 or fields![0].offset != 0 do
+            break
+
+        let fieldType = fields![0].pointedType
+        if fieldType == null do
+            break
+
+        if Reflection.isString(fieldType) and fields![0].name == "message"
+        {
+            let base = cast(const *Swag.BaseError) @dataof(err)!
+            let text = base.message orelse ""
+            return @countof(text) ? text : name
+        }
+
+        type = fieldType
+    }
+
+    return name
+}
+
 // Make a string persistent for errors.
 // That kind of string can be stored in an error struct.
 func mkString(str: #null string)->#null string

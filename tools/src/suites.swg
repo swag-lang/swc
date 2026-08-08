@@ -47,10 +47,10 @@ public func runUnittests(context: *Context, options: *Options)->s32 fail
             return try runSuite(context, options, suite, options.buildCfg.toString())
     }
 
-    @print("Unknown suite \"", options.module.toString(), "\". Available suites:")
+    Console.print("Unknown suite \"", options.module.toString(), "\". Available suites:")
     for suite in allSuites() do
-        @print(" ", suite)
-    @print("\n")
+        Console.print(" ", suite)
+    Console.println()
     return 1
 }
 
@@ -164,11 +164,11 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
     options.appendExtra(&ran)
 
     let output = try context.captureProgram(context.compiler.toString(), ran)
-    @print(output.toString())
+    Console.print(output.toString())
 
     if !output.contains("SWAG_WORKSPACE_MAIN_RAN")
     {
-        @print("Workspace run did not reach the normal entry point after a test build.\n")
+        Console.println("Workspace run did not reach the normal entry point after a test build.")
         return 1
     }
 

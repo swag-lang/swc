@@ -23,7 +23,7 @@ namespace Integration
         return @countof(args) >= 3 and args[1] == VisibilityProbeArgument
     }
 
-    func runVisibilityProbe()->u32
+    func runVisibilityProbe()->s32
     {
         let args = Env.arguments()
         if @countof(args) < 3 do

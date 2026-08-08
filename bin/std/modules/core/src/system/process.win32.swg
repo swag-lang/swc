@@ -16,8 +16,12 @@ private const PipePollInterval = 5'u32
 // Longest single wait issued to the system, so a very long timeout still fits a native call.
 private const MaxWaitStep = 0xFFFFFFFE'u64
 
-// Exit the current process
-func exit(exitCode: u32) => ExitProcess(exitCode)
+// Exit the current process, reporting `exitCode` to whoever waits on it.
+//
+// The code is signed like everywhere else exit codes travel — [[Core.Env.Process.waitForExit]],
+// [[Core.Env.Process.exitCode]], [[Core.Env.Process.kill]] — and is reinterpreted at the
+// system boundary.
+func exit(exitCode: s32) => ExitProcess(cast #bit (u32) exitCode)
 
 // Returns the environment variables of the current process.
 //

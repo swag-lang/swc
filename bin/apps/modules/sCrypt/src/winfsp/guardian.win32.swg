@@ -34,7 +34,7 @@ namespace WinFsp
         try writeGuardianStatus(statusPath, Format.toString("READY\n%", g_WinFsp.dllPath))
     }
 
-    func runPortableGuardian()->u32
+    func runPortableGuardian()->s32
     {
         let args = Env.arguments()
         if @countof(args) < 4 or args[1] != WinFspGuardianArgument or !isElevated() do

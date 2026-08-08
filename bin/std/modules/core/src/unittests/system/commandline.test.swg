@@ -219,7 +219,57 @@ func assertStringValues(values: const &Array'String, expected: const [..] string
     @assert(parseFailed(["-missing", "42"]))
     @assert(parseFailed(["-count"]))
     @assert(parseFailed(["-count", "nope"]))
+    @assert(parseFailed(["stray-positional"]))
     @assert(parseAdvancedFailed(["-labels"]))
     @assert(parseAdvancedFailed(["-values"]))
     @assert(parseAdvancedFailed(["-threshold", "-"]))
+}
+
+// A double dash, a different case, and the '-'/'_' separators all reach the same field.
+#test
+{
+    var options: BasicOptions
+    let result = expect CommandLine.parse(&options, ["--delta", "-7", "-Count", "-12", "--e-na_bled"])
+
+    @assert(options.delta == -7)
+    @assert(options.count == -12)
+    @assert(options.enabled)
+    @assert(result.isSet.delta and result.isSet.count and result.isSet.enabled)
+}
+
+// The leading non-option tokens become positionals when asked for, and parsing goes on.
+#test
+{
+    var options: BasicOptions
+    let result = expect CommandLine.parse(&options, ["run", "snake", "-count", "3"], CommandLine.ParseOptions{capturePositionals: true})
+
+    @assert(result.positionals.count == 2)
+    @assert(result.positionals[0] == "run")
+    @assert(result.positionals[1] == "snake")
+    @assert(options.count == 3)
+    @assert(result.unknown.isEmpty())
+}
+
+// What names no field is captured verbatim and in order, values included, so a caller can
+// forward it to another program.
+#test
+{
+    var options: BasicOptions
+    let result = expect CommandLine.parse(&options, ["--seed", "123", "-count", "3", "--rebuild", "--out:dir with space"], CommandLine.ParseOptions{captureUnknown: true})
+
+    @assert(options.count == 3)
+    @assert(result.unknown.count == 4)
+    @assert(result.unknown[0] == "--seed")
+    @assert(result.unknown[1] == "123")
+    @assert(result.unknown[2] == "--rebuild")
+    @assert(result.unknown[3] == "--out:dir with space")
+}
+
+// An array option appends at each occurrence instead of restarting.
+#test
+{
+    var options: ArrayOptions
+    let result = expect CommandLine.parse(&options, ["-labels", "Bob", "-labels", "Alice"])
+    @assert(assertStringValues(options.labels, ["Bob", "Alice"]))
+    @assert(result.isSet.labels)
 }

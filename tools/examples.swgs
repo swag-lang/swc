@@ -4,4 +4,4 @@
 
 using Core
 
-#main { Env.exit(cast #bit (u32) Tool.launch("examples")) }
+#main { Env.exit(Tool.launch("examples")) }

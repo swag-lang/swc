@@ -13,18 +13,17 @@ public func launch(name: string, loc = #callerlocation)->s32
     let script = loc.fileName orelse ""
     if @countof(script) == 0
     {
-        @print("error: the tool cannot locate itself\n")
+        Console.println("error: the tool cannot locate itself")
         return 1
     }
 
     let toolsDir = Path.directoryName(script) orelse ""
     let root     = Path.directoryName(toolsDir) orelse ""
 
-    let tokens = scriptArguments()
-    let code   = catch dispatch(name, root, tokens.toSlice()) as err
+    let code = catch dispatch(name, root, scriptArguments()) as err
     if err != null
     {
-        @print("error: ", err, "\n")
+        Console.println("error: ", Errors.message(err))
         return 1
     }
 
@@ -34,23 +33,17 @@ public func launch(name: string, loc = #callerlocation)->s32
 // Returns the arguments meant for the tool.
 //
 // Element zero is the compiler that ran the script, which is not part of what the tool was
-// asked to do.
-private func scriptArguments()->Array'String
+// asked to do. The slice is borrowed from the runtime and stays valid for the whole process.
+private func scriptArguments()->const [..] string
 {
-    var result: retval
-
     let args = Env.arguments()
-    for [index] in @countof(args)
-    {
-        if index != 0 do
-            result.add(String.from(args[index]))
-    }
-
-    return result
+    if @countof(args) == 0 do
+        return args
+    return args[1 until @countof(args)]
 }
 
 // Runs the tool `name` against `root` and returns the exit code it produced.
-private func dispatch(name: string, root: string, tokens: const [..] String)->s32 fail
+private func dispatch(name: string, root: string, tokens: const [..] string)->s32 fail
 {
     let accepted = acceptedCommands(name)
 
@@ -112,7 +105,7 @@ private func dispatch(name: string, root: string, tokens: const [..] String)->s3
         return try runBench(&context, &options)
     }
 
-    @print("error: '", name, "' is not a repository tool\n")
+    Console.println("error: '", name, "' is not a repository tool")
     return 1
 }
 

@@ -1,11 +1,27 @@
 import os
 import sys
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import campaign
 import driver
 import winproc
+
+
+class CampaignTests(unittest.TestCase):
+    def test_quick_campaign_does_not_rebuild_the_published_report(self):
+        with (
+            mock.patch.object(sys, "argv", ["campaign.py", "--quick"]),
+            mock.patch.object(campaign, "build"),
+            mock.patch.object(campaign, "run") as run,
+            mock.patch.object(campaign, "warn_if_dirty") as warn_if_dirty,
+        ):
+            self.assertEqual(campaign.main(), 0)
+
+        self.assertEqual(run.call_args_list, [mock.call("driver.py", ["--quick"])])
+        warn_if_dirty.assert_not_called()
 
 
 class SampleBudgetTests(unittest.TestCase):

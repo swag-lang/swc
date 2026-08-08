@@ -83,7 +83,7 @@ def main():
         run("mkpage.py", [])
         return 0
 
-    total = 2 if args.no_build else 3
+    total = 1 + int(not args.no_build) + int(not args.quick)
     n = 0
 
     if not args.no_build:
@@ -93,11 +93,16 @@ def main():
 
     n += 1
     step(n, total, "Measure")
-    warn_if_dirty()
+    if not args.quick:
+        warn_if_dirty()
     extra = ["--label", args.label] if args.label else []
     if args.quick:
         extra.append("--quick")
     run("driver.py", extra)
+
+    if args.quick:
+        print("\nQuick campaign complete. No history or report files were written.")
+        return 0
 
     n += 1
     step(n, total, "Report")

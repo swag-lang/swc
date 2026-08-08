@@ -171,8 +171,8 @@ impl Encoder
 
         if Reflection.isType(type)
         {
-            let typeType = dref cast(const **TypeInfo) data!
-            .serializer.writeNative(typeType ? typeType.crc : 0'u32)
+            let typeType = dref cast(const *#null typeinfo) data!
+            .serializer.writeNative(typeType ? .serializer.typeCrcOf(typeType) : 0'u32)
             return
         }
 
@@ -260,20 +260,15 @@ impl Encoder
             if treated do
                 return
 
-            // Generic structure save
-            for field in structType.fields
+            // Generic structure save, driven by the shared per-type plan: the field
+            // filter, the crcs and the compression policy are computed once per type
+            // instead of once per instance.
+            let plan = planFor(structType)
+            for &pf in plan.fields
             {
-                if Reflection.hasAttribute(field, NoSerialize) do
-                    continue
-                if Reflection.hasAttribute(field.pointedType, NoSerialize) do
-                    continue
-                if !field.pointedType do
-                    fail SerializationError{"missing field pointed type"}
-                let fieldType = field.pointedType
-
-                if !itf or !itf.writeElement(field, cast(#null const [*] u8) data + field.offset, cast(IEncoder) dref &me)
+                if !itf or !itf.writeElement(pf.value, cast(#null const [*] u8) data + pf.value.offset, cast(IEncoder) dref &me)
                 {
-                    .writeTypeValue(field, cast(#null const [*] u8) data + field.offset)
+                    .writeTypeValue(pf.value, cast(#null const [*] u8) data + pf.value.offset)
                 }
             }
 

@@ -14,6 +14,11 @@ var g_App: Application
     Reflection.registerType(#typeof(FormText))
     Reflection.registerType(#typeof(FormCallout))
 
+    // History: type crcs carried by captures saved under an older hash scheme. These
+    // numbers cannot be recomputed from any current name, so they stay as recorded
+    // constants. A rename made today does not extend this table: it declares a
+    // 'Serialization.Alias' with the old name on the renamed struct, and the registry
+    // resolves it from there.
     Reflection.registerTypeAlias(0x0A77C1A5, #typeof(FormPolygon))
     Reflection.registerTypeAlias(0x0B61E593, #typeof(FormLine))
     Reflection.registerTypeAlias(0xAA87EC6A, #typeof(FormDraw))

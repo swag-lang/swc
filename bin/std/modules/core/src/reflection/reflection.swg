@@ -197,8 +197,18 @@ private func typeValueCrc(val: Swag.TypeValue)->u32
 
 private func addCrcToTypeAlias(crc: u32, type: #null typeinfo)
 {
-    if !crc or !type or g_HashCrcToType.contains(crc) do
+    if !crc or !type do
         return
+
+    let existing = g_HashCrcToType.tryFind(crc)
+    if existing
+    {
+        // The same logical type registers again from another module; anything else is
+        // two types colliding on one crc, which would resolve unpredictably.
+        Debug.assert(existing.value.fullname == type.fullname, "type crc collision")
+        return
+    }
+
     g_HashCrcToType.add(crc, type)
 }
 
@@ -229,6 +239,19 @@ private func registerTypeNoLock(type: #null typeinfo)->bool
         addCrcToTypeAlias(Hash.Crc32.compute(type.fullname), type)
     if type.name != null and type.name != "" do
         addCrcToTypeAlias(Hash.Crc32.compute(type.name), type)
+
+    // A struct can declare the names it had in older streams; registering their crcs
+    // makes a stream written under an old name resolve to the renamed type.
+    if type.kind == .Struct
+    {
+        let aliases = attributes(type, Serialization.Alias)
+        for al in aliases
+        {
+            let value = attributeValue(al, "name")
+            if value != null do
+                addCrcToTypeAlias(Hash.Crc32.compute(cast(string) value!), type)
+        }
+    }
 
     return true
 }

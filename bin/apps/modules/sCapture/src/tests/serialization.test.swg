@@ -173,3 +173,47 @@ using Swag, Core
     @assert(loaded.title == "Preview Title")
     @assert((cast(*BaseForm) @dataof(loaded.forms[0])).capture == loaded)
 }
+
+// A capture file from before the container header still loads: a stream without the
+// magic word reads as container version 0.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    f.capture.width  = 24
+    f.capture.height = 12
+    f.capture.title  = "Headerless"
+
+    // Write exactly what an old save produced: the serialized capture, nothing in front.
+    var buf:     ConcatBuffer
+    var encoder: Serialization.Encoder'Serialization.Write.TagBin
+    expect encoder.writeAll(&buf, dref f.capture)
+
+    let path = testTempCapturePath()
+    defer discard catch File.delete(path)
+    expect File.writeAllBytes(path, buf)
+
+    let loaded = expect Capture.load(path)!
+    defer Memory.delete(loaded)
+    @assert(loaded.width == 24)
+    @assert(loaded.height == 12)
+    @assert(loaded.title == "Headerless")
+    @assert(loaded.loadIssues == 0)
+}
+
+// A capture claiming a newer container version is refused rather than half-read.
+#test
+{
+    var buf: ConcatBuffer
+    buf.addNative(CaptureFileMagic)
+    buf.addNative(CaptureFileVersion + 1)
+    buf.addNative(0'u32)
+
+    let path = testTempCapturePath()
+    defer discard catch File.delete(path)
+    expect File.writeAllBytes(path, buf)
+
+    discard catch Capture.load(path) as errnew
+    @assert(errnew != null)
+}

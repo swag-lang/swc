@@ -249,25 +249,21 @@ impl Decoder
                     return
             }
 
-            // Generic struct load
+            // Generic struct load, driven by the shared per-type plan.
             let structType = cast(const *TypeInfoStruct) type
             let treated    = .serializer.beginStruct(structType, data)
             defer #nofail .serializer.endStruct()
             if treated do
                 return
 
-            for field in structType.fields
+            let plan = planFor(structType)
+            for &pf in plan.fields
             {
-                if Reflection.hasAttribute(field, NoSerialize) or Reflection.hasAttribute(field.pointedType, NoSerialize) do
-                    continue
-                if !field.pointedType do
-                    fail SerializationError{"missing field pointed type"}
-                let fieldType = field.pointedType
-
-                if !itf or !itf.readElement(field, cast([*] u8) data + field.offset, idecoder)
+                let fieldType = pf.value.pointedType
+                if !itf or !itf.readElement(pf.value, cast([*] u8) data + pf.value.offset, idecoder)
                 {
-                    let fieldData = cast([*] u8) data + field.offset
-                    let doIt      = catch .serializer.beginElement(field) as beginErr
+                    let fieldData = cast([*] u8) data + pf.value.offset
+                    let doIt      = catch .serializer.beginElement(pf.value) as beginErr
 
                     // A failed 'beginElement' has already unwound itself, so there is
                     // no element left open to close. Only pair the two once it returned.
@@ -275,16 +271,20 @@ impl Decoder
                     {
                         if !(.flags & .IgnoreStructFieldError) do
                             fail beginErr
+                        #static if T == Read.TagBin do
+                            .serializer.diag.fieldErrors += 1
                         continue
                     }
 
-                    defer #nofail .serializer.endElement(field)
+                    defer #nofail .serializer.endElement(pf.value)
                     if !doIt do
                         continue
 
                     catch .readTypedContent(fieldData, fieldType) as readErr
                     if readErr != null and (.flags & .IgnoreStructFieldError)
                     {
+                        #static if T == Read.TagBin do
+                            .serializer.diag.fieldErrors += 1
                         Reflection.reset(fieldData, fieldType)
                         continue
                     }
@@ -336,6 +336,15 @@ impl Decoder
     mtd end() fail
     {
         .serializer.endRoot()
+
+        // Payload corruption is detected inside no-fail cleanup paths, so it surfaces
+        // here: a strict decode refuses the result, a tolerant one keeps it and reports
+        // through the diagnostics.
+        #static if T == Read.TagBin
+        {
+            if .serializer.diag.corruptPayloads and !(.flags & .IgnoreStructFieldError) do
+                fail SerializationError{"stream carried corrupt payloads"}
+        }
     }
 
     // Read a full struct

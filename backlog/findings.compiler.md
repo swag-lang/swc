@@ -180,35 +180,3 @@ Entries are sorted by identifier, ascending; position carries no priority.
   a callback declare itself native), or whether the Swag convention should adopt the caller-copy
   rule for large aggregates; measure the second option's cost on `gui`/`pixel` call sites before
   choosing.
-### F-082 — A script that imports `core` without `using Core` cannot compile the imported API
-
-- Area: compiler
-- Found while: probing nested `#load`, where a reduced script happened to leave `using Core` out.
-- Observation: the generated dependency API of `core` fails to compile in the importing script,
-  reporting `unknown symbol 'Reflection'` inside `core.swg` itself. Whether a module's *own*
-  generated source resolves its *own* namespaces must not depend on what the importer wrote.
-- Evidence: the whole reproduction is the smallest script that imports anything:
-
-  ```swag
-  #import("core", location: "swag@std")
-
-  #main
-  {
-      @print("hello\n")
-  }
-  ```
-
-  `error: unknown symbol 'Reflection'` at `<temp>/swag/scripts/<hash>/.dep/core/.../core.swg`,
-  first at line 4227 (`Reflection.attribute`) and again at 601 (`Reflection.isString`, while
-  checking `HashTable`). Adding `using Core` to the script makes all of it compile. Deterministic:
-  identical with `--num-cores 1`, and identical on an untouched master `swc.exe`, so it predates
-  the current branch and is not a race.
-- Consequence: the first thing anyone writes after `swc new script` is an import, and the failure
-  names a file the author never wrote and cannot fix. It also makes every documented script
-  example load-bearing on a `using` line that reads as a convenience.
-- Next step: the imported-API files are collected as `FileFlagsE::ImportedApi` and their top-level
-  symbols are created under the shared import-root namespace rather than the module namespace
-  (`topLevelCreationSymMap` in `Sema.Block.cpp`). Look at what scope an `ImportedApi` file
-  *resolves* from: it very likely resolves through the importing module's namespace, so a sibling
-  namespace of its own module is only reachable when the importer happens to have pulled it in.
-  An imported API should resolve against its own module root first.

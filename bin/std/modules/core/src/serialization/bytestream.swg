@@ -145,6 +145,48 @@ public impl ByteStream
         return Math.bigEndianToNative(.readNative'T())
     }
 
+    // Writes an unsigned value as a LEB128 varint.
+    //
+    // Seven value bits per byte, low bits first; the high bit of a byte marks a
+    // continuation. Values below 128 take a single byte.
+    mtd writeVarint(value: u64)
+    {
+        var v = value
+        while v >= 0x80
+        {
+            .writeNative(cast(u8) ((v & 0x7F) | 0x80))
+            v >>= 7
+        }
+
+        .writeNative(cast(u8) v)
+    }
+
+    // Reads an unsigned LEB128 varint written by [[writeVarint]].
+    //
+    // Fails when the stream ends inside the value or the encoding exceeds 64 bits.
+    mtd readVarint()->u64 fail
+    {
+        var result: u64
+        var shift = 0'u32
+        while true
+        {
+            let b       = .readNative'u8()
+            let payload = cast(u64) (b & 0x7F)
+
+            // The tenth byte can only carry the top bit of a 64-bit value; anything
+            // wider is an over-long encoding.
+            if shift == 63 and payload > 1 do
+                fail OverflowError{"varint is too long"}
+
+            result |= payload << shift
+            if b < 0x80 do
+                return result
+            shift += 7
+            if shift >= 64 do
+                fail OverflowError{"varint is too long"}
+        }
+    }
+
     // Writes a string as a little-endian `u32` byte count followed by its bytes.
     //
     // This is the framing [[readSizedString]] expects. The count is a byte count,

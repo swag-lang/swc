@@ -13,6 +13,13 @@ enum MouseMode
 
 const TextFormSuperSample = 3
 
+// The '.scapture' container: a magic word and a format version in front of the
+// serialized capture. The version is what a future load dispatches its migrations on;
+// a file without the header predates it and reads as version 0. The serialized layout
+// itself is pinned by 'serialization.schema.test.swg'.
+const CaptureFileMagic   = 0x53434150'u32
+const CaptureFileVersion = 1'u32
+
 struct Capture
 {
     const MinSize = 16
@@ -38,6 +45,11 @@ struct Capture
     // Dyn
     #[NoSerialize]
     {
+        // Anomalies the tolerant load had to swallow: reset fields, unknown types,
+        // corrupt payloads. Nonzero means the file did not fully match the current
+        // schema and a save would not preserve everything it held.
+        loadIssues: u32
+
         changed:   bool
         mouseMode: MouseMode = None
         editView:  #null *EditView
@@ -403,9 +415,11 @@ impl Capture
             return
         .changed = false
 
-        var buf:     ConcatBuffer
-        var encoder: Encoder'Write.TagBin
+        var buf: ConcatBuffer
+        buf.addNative(CaptureFileMagic)
+        buf.addNative(CaptureFileVersion)
 
+        var encoder: Encoder'Write.TagBin
         encoder.writeAll(&buf, dref &me)
         File.writeAllBytes(.file, buf)
     }
@@ -413,6 +427,26 @@ impl Capture
     func load(file: String, preview = false)->#null *Capture fail
     {
         var res = File.readAllBytes(file)
+
+        // Strip the container header when it is there; a headerless file predates it.
+        var payload: const [..] u8 = res.toSlice()
+        var version = 0'u32
+        if @countof(payload) >= 8
+        {
+            var header = ByteStream.openRead(payload)
+            let magic  = catch header.readNative'u32()
+            if magic == CaptureFileMagic
+            {
+                version = catch header.readNative'u32()
+                payload = header.remainingBytes()
+            }
+        }
+
+        // Migrations dispatch on the container version deliberately. Every version so
+        // far decodes through the same tolerant field-by-field path; a newer one is
+        // refused instead of half-read.
+        if version > CaptureFileVersion do
+            fail Core.Errors.InvalidVersion{wantedVersion: CaptureFileVersion, foundVersion: version}
 
         var decoder: Decoder'Read.TagBin
         decoder.flags |= .IgnoreStructFieldError
@@ -423,8 +457,12 @@ impl Capture
             decoder.serializer.ignoreElements.add(#nameof(Capture.backImgOriginal))
         }
 
-        let capture = decoder.readAll'Capture(res.toSlice())!
+        let capture = decoder.readAll'Capture(payload)!
         capture.file = file
+
+        // Keep what the tolerant decode had to swallow visible to the caller.
+        let diag = decoder.serializer.diag
+        capture.loadIssues = diag.fieldErrors + diag.unknownTypes + diag.corruptPayloads
 
         for itf in capture.forms do
             itf.setup(capture)

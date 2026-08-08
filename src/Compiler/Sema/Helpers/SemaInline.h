@@ -31,6 +31,7 @@ struct SemaInlinePayload
     SmallVector<SemaClone::ParamBinding, 6>          argMappings;
     SmallVector2<SymbolVariable*>                    callerBindingVars;
     SmallVector2<TypeRef>                            callerBindingTypes;
+    SmallVector2<AstNodeRef>                         materializedArgRefs;
     SmallVector2<SymbolVariable*>                    localVariables;
     std::array<IdentifierRef, 10>                    aliasIdentifiers = {};
     std::array<IdentifierRef, SemaScope::UNIQ_COUNT> uniqIdentifiers  = {};

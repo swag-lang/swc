@@ -416,7 +416,9 @@ namespace
         const bool                   isMove            = modifierFlags.hasAny({AstModifierFlagsE::Move, AstModifierFlagsE::Relocate});
         const bool                   isRelocate        = modifierFlags.has(AstModifierFlagsE::Relocate);
         const bool                   skipTargetDrop    = modifierFlags.has(AstModifierFlagsE::NoDrop) || modifierFlags.has(AstModifierFlagsE::UndefinedInit) || isRelocate;
-        const CodeGen::LifecycleKind postKind          = isMove ? CodeGen::LifecycleKind::PostMove : CodeGen::LifecycleKind::PostCopy;
+        const SymbolVariable*        sourceStorage     = codeGen.runtimeStorageSymbol(rightRef);
+        const bool                   movesTemporary    = sourceStorage && codeGen.hasTemporaryDrop(*sourceStorage);
+        const CodeGen::LifecycleKind postKind          = isMove || movesTemporary ? CodeGen::LifecycleKind::PostMove : CodeGen::LifecycleKind::PostCopy;
         const bool                   hasTargetDrop     = !skipTargetDrop && codeGen.hasLifecycle(encodeCtx.target.opTypeRef, CodeGen::LifecycleKind::Drop);
         const bool                   hasPostLifecycle  = codeGen.hasLifecycle(encodeCtx.target.opTypeRef, postKind);
         const bool                   canTouchSource    = isMove && originalRightPayload.isAddress() && canReinitializeMoveSource(codeGen, rightRef, originalRightTypeRef);
@@ -438,7 +440,12 @@ namespace
         const bool wantInvalidateSource = shouldInvalidateSource || (elideSource && CodeGenSafety::hasLifecycleInvalidate(codeGen));
 
         if (!hasTargetDrop && !hasPostLifecycle && !shouldResetSource && !shouldInvalidateSource)
-            return emitAssignEncoded(codeGen, encodeCtx, assignOp);
+        {
+            SWC_RESULT(emitAssignEncoded(codeGen, encodeCtx, assignOp));
+            if (movesTemporary)
+                codeGen.cancelTemporaryDrop(*sourceStorage);
+            return Result::Continue;
+        }
 
         AssignEncodeContext lifecycleCtx = encodeCtx;
         CodeGenNodePayload  stableRight  = originalRightPayload;
@@ -498,6 +505,11 @@ namespace
 
         if (wantInvalidateSource && invalidateAfterGuard)
             SWC_RESULT(CodeGenSafety::emitLifecycleInvalidate(codeGen, stableRight.reg, rightTypeRef, rightRef));
+
+        // A call-result temporary is an owned rvalue. Its bits now belong to the
+        // destination, after any post-move repair, so its statement cleanup stands down.
+        if (movesTemporary)
+            codeGen.cancelTemporaryDrop(*sourceStorage);
 
         return Result::Continue;
     }

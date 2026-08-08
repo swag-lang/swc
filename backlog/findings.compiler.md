@@ -8,54 +8,6 @@ are [findings.safety.md](findings.safety.md).
 Conventions, the identifier counter, and the rest of the backlog are in [README.md](README.md).
 Entries are sorted by identifier, ascending; position carries no priority.
 
-### F-004 — Droppable call-result temporaries are never dropped
-
-- Area: compiler
-- Found while: fixing the `String`-rvalue `+=` heap corruption (root cause was the return
-  path: `return local` bit-copied and still dropped the local — a use-after-free/double-free
-  for any `opDrop`-without-`opPostCopy` struct, and for every inlined `String` return; both
-  now move out, see `CodeGenMoveElision::canMoveOutAtReturn`)
-- Observation: a call result with a `Drop` lifecycle that lands in a compiler temporary is
-  never dropped. `discard makeThing()`, `takeView(makeThing())` through an implicit `opCast`,
-  and `acc += Format.toString(...)` all leak the temporary's buffer on every execution;
-  `Format.toString` itself leaks its inner `ConcatBuffer.toString` temporary per call.
-- Evidence: micro dump of `g_Str += Format.toString(...)` shows no drop call anywhere after
-  `String.opAssign`; a Tracer struct counting drops confirms zero drops for the `discard` and
-  argument-cast shapes while `var x = makeThing()` drops exactly once. An implementation of the
-  statement-end flush below was written, measured, and reverted: it took the `core` suite from
-  green to 36 crashing tests, then to 5 failing ones once the ownership transfers were found, and
-  the last 5 are the design question, not a defect in the mechanism.
-- Next step: settle the lifetime question FIRST, because the mechanism is straightforward and the
-  rule is not. Dropping at the end of the consuming statement is what a temporary means everywhere
-  else, but `bin/std` currently keeps views into temporaries alive past that point:
-  `splitArgumentsEx` stores `Latin1.trim(split[0])` — a `string` into the buffer of an `Array`
-  temporary — into the array it returns
-  ([commandline.swg:93-100](../bin/std/modules/core/src/system/commandline.swg#L93-L100)), and
-  `textreader`/`reflection`/`log` do the same shape. Either those sites are wrong and get fixed, or
-  a temporary lives to the end of its block, which needs its slot zeroed on entry so a path that
-  never produced a value still drops nothing.
-- Next step (mechanism, once the rule is settled): register `{flushRootRef, storageSym}` when a
-  call's result lands in a compiler temporary and flush in the generic `CodeGen::postNode`. Four
-  things the reverted attempt had to get right, each of which cost a debugging session:
-  (1) read the storage with `CodeGen::runtimeStorageSymbol`, the way the sret argument reads it —
-  the node payload's `runtimeStorageSym` is overwritten by a surrounding cast, so it names the
-  cast's slot and the drop lands on the wrong stack offset; (2) resolve the address UNCACHED
-  (`resolveLocalStackPayload(sym, false)`), since the call can sit in another block; (3) clear the
-  pending list per function in `CodeGen::start`, or an unflushed entry drops a slot belonging to
-  the next function's frame; (4) cancel the pending drop wherever a consumer takes over the bits
-  instead of copying them — a plain `=` store with no `opPostCopy` and no source reset
-  (`emitAssignLifecycle`), and a return that moves out (`returnSourceIsOwnedTemporary`, whose
-  comment already states that nothing drops the abandoned temporary). Registration must also stand
-  down inside a lazily-evaluated region (ternary, `and`/`or`, `orelse`, `?.`, `try`/`catch`), where
-  a skipped path leaves the slot unwritten.
-- Next step (flush root): the nearest ancestor that is a block child, EXCEPT that a statement
-  keeping the value it evaluates — a `for` range, a `switch` value, a `with` subject — must flush
-  after the whole statement, while a loop condition flushes per evaluation. `for` needs more than
-  that: it lowers through the `opVisit` macro, so the range expression is emitted inside an
-  expansion and the ancestor walk lands inside the macro body, dropping the container before the
-  first iteration (`for one in probeList()` then counts 0 elements). A flush point taken from the
-  visit stack cannot see through an expansion; the root has to come from the pre-expansion AST.
-
 ### F-015 — Calling through a reference to a function pointer never reaches a backend
 
 - Area: compiler

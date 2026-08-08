@@ -1675,6 +1675,14 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
     ABICall::materializeReturnToReg(builder, nodePayload.reg, callConvKind, normalizedRet);
     setPayloadStorageKind(nodePayload, normalizedRet.isIndirect);
 
+    const bool ownsTemporaryResult = normalizedRet.isIndirect && directVarInitStorageSym == nullptr && !usesCurrentFunctionReturnStorage;
+    if (ownsTemporaryResult && codeGen.hasLifecycle(calledFunction->returnTypeRef(), CodeGenLifecycleKind::Drop))
+    {
+        const SymbolVariable* storageSym = codeGen.runtimeStorageSymbol(codeGen.curNodeRef());
+        if (storageSym && storageSym->hasExtraFlag(SymbolVariableFlagsE::RuntimeStorage))
+            codeGen.registerTemporaryDrop(codeGen.curNodeRef(), calledFunction->returnTypeRef(), *storageSym);
+    }
+
     // Drop the '#move' argument temporaries: a no-op when the callee consumed them.
     for (const PostCallTemporaryDrop& drop : postCallDrops)
         SWC_RESULT(codeGen.emitLifecycle(drop.typeRef, CodeGenLifecycleKind::Drop, drop.addressReg));

@@ -84,21 +84,6 @@ effects that makes a capture look produced, and output.
 
 ## Tier B — Structure and evolution
 
-### T-078 — The `.scapture` format has no version and no explicit schema
-
-- Problem: `Capture.save` and `Capture.load` in `src/capture.swg` serialize the live struct
-  through `Encoder'Write.TagBin` with `IgnoreStructFieldError`. Compatibility is therefore a
-  property of the current field names, patched from two directions: the hardcoded CRC alias table
-  in `src/main.swg`, and dead fields kept alive on purpose — `BaseForm.quickModeOpaque` in
-  `src/forms/form.swg` documents itself as unused and unremovable.
-- Consequence: every rename is a compatibility event that must be discovered and hand-patched, and
-  the file format is defined by whatever the structs happen to look like today.
-- Fix: an explicit format version in the file, a documented schema, and a load path that maps
-  versions forward deliberately. The alias table then records history instead of carrying it.
-- Why here rather than Tier A: it is not blocking today, because additive changes are safe. It is
-  the thing that will make T-076 more expensive than it needs to be, since capture-level
-  effects add persisted fields.
-
 ### T-079 — Library tags and batch operations
 
 - Problem: the library filters by date and by text, sorts, and has a trash — see

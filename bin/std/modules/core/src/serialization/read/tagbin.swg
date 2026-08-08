@@ -77,6 +77,7 @@ struct TagBinDiagnostics
     droppedStreamFields: u32     // Stream fields the current types no longer request.
     unknownTypes:        u32     // Element type crcs that resolved to no registered type.
     recoveredFields:     u32     // Fields recovered through the fat after a positional mismatch.
+    corruptPayloads:     u32     // Raw payloads whose decoded length did not match the written one.
 }
 
 // One field entry of a section index: where the payload sits, and which shape entry
@@ -413,13 +414,11 @@ private impl TagBin
     // Opens a section of a version 2 stream.
     //
     // 'plan' names the reader's own layout of the struct when known; it selects the
-    // positional fast path when the stream shape is identical to it.
+    // positional fast path when the stream shape is identical to it. Every validation
+    // happens before the section is pushed: a failure after the push would leave an
+    // orphan section for the enclosing 'endSection' to pop.
     mtd beginSection2(kind: SectionKind, plan: #null const *Plan) fail
     {
-        let sec = .newSection()
-        sec.kind = kind
-        sec.plan = plan
-
         if kind == .Raw
         {
             // A raw section starts with its byte length, so the end of the decode can be
@@ -427,13 +426,22 @@ private impl TagBin
             let rawLen = .stream.readNative'u64()
             if rawLen > .remaining() do
                 fail SerializationError{"raw section runs past the end of the stream"}
+
+            let sec = .newSection()
+            sec.kind         = kind
+            sec.plan         = plan
             sec.payloadStart = .stream.position()
             sec.afterFatSeek = sec.payloadStart + rawLen
             return
         }
 
-        if kind != .Unordered do
+        if kind != .Unordered
+        {
+            let sec = .newSection()
+            sec.kind = kind
+            sec.plan = plan
             return
+        }
 
         let sig = .stream.readNative'u32()
         if sig != Write.TagBinSignature.Fat do
@@ -442,29 +450,49 @@ private impl TagBin
         let shapeId = .stream.readNative'u32()
         if shapeId == Write.TagBinAdHocShape
         {
-            sec.fatSeek  = .stream.readNative'u64()
-            sec.fatCount = .stream.readNative'u64()
+            let fatSeek  = .stream.readNative'u64()
+            let fatCount = .stream.readNative'u64()
 
-            sec.afterFatSeek = sec.fatSeek + #sizeof(u32) + sec.fatCount * (#sizeof(u32) + #sizeof(u64))
-            if sec.afterFatSeek > .stream.length() do
+            let afterFatSeek = fatSeek + #sizeof(u32) + fatCount * (#sizeof(u32) + #sizeof(u64))
+            if afterFatSeek > .stream.length() do
                 fail SerializationError{"fat table runs past the end of the stream"}
 
-            .loadSectionFat(sec)
+            let sec = .newSection()
+            sec.kind         = kind
+            sec.plan         = plan
+            sec.fatSeek      = fatSeek
+            sec.fatCount     = fatCount
+            sec.afterFatSeek = afterFatSeek
+
+            catch .loadSectionFat(sec) as err
+            if err != null
+            {
+                // The section is already live, so hand it back before reporting.
+                .releaseSection()
+                fail err
+            }
+
             return
         }
 
         if shapeId >= .shapes.count do
             fail SerializationError{"invalid shape identifier"}
         let shape = .shapes.buffer! + shapeId
-        sec.shape = shape
 
-        let fatSeek = .stream.readNative'u64()
+        let fatSeek      = .stream.readNative'u64()
+        let payloadStart = .stream.position()
+        let afterFatSeek = fatSeek + shape.fields.count * #sizeof(u32)
+        if fatSeek < payloadStart or afterFatSeek > .stream.length() do
+            fail SerializationError{"fat table runs past the end of the stream"}
+
+        let sec = .newSection()
+        sec.kind         = kind
+        sec.plan         = plan
+        sec.shape        = shape
         sec.fatSeek      = fatSeek
         sec.fatCount     = shape.fields.count
-        sec.payloadStart = .stream.position()
-        sec.afterFatSeek = fatSeek + shape.fields.count * #sizeof(u32)
-        if fatSeek < sec.payloadStart or sec.afterFatSeek > .stream.length() do
-            fail SerializationError{"fat table runs past the end of the stream"}
+        sec.payloadStart = payloadStart
+        sec.afterFatSeek = afterFatSeek
 
         // The shape matching the reader's own field list, in order, means every field
         // sits exactly where the decode expects it: read positionally and never touch
@@ -878,11 +906,14 @@ impl TagBin
         if sec.kind == .Raw
         {
             // A version 2 raw section knows its byte length: a decode that consumed a
-            // different amount read a layout that is not the one written.
+            // different amount read a layout that is not the one written. This runs
+            // inside no-fail cleanup paths, so the mismatch is recorded and the stream
+            // repositioned; [[Core.Serialization.Decoder.end]] turns it into an error
+            // for a strict decode.
             if .wire >= 2 and .stream.position() != sec.afterFatSeek
             {
-                .releaseSection()
-                fail SerializationError{"raw section length mismatch"}
+                .diag.corruptPayloads += 1
+                .stream.setPosition(sec.afterFatSeek)
             }
         }
         else
@@ -1018,6 +1049,10 @@ impl TagBin
                 return false
             }
 
+            // The offset comes from the stream, so it can name any position at all.
+            if ent.seek >= .stream.length() do
+                fail SerializationError{"field offset runs past the end of the stream", field: val}
+
             .stream.setPosition(ent.seek)
             let sf = sec.shape.fields.buffer! + ent.shapeIndex
 
@@ -1042,6 +1077,10 @@ impl TagBin
                 return false
             }
 
+            // The offset comes from the stream, so it can name any position at all.
+            if ent.seek >= .stream.length() do
+                fail SerializationError{"field offset runs past the end of the stream", field: val}
+
             // Otherwise we seek to the field in the stream
             .stream.setPosition(ent.seek)
         }
@@ -1064,6 +1103,9 @@ impl TagBin
                 .elemStack.add({false, null})
                 return false
             }
+
+            if ent.seek >= .stream.length() do
+                fail SerializationError{"field offset runs past the end of the stream", field: val}
 
             .stream.setPosition(ent.seek)
             crcName = .stream.readNative'u32()

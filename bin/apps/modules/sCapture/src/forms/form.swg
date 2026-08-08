@@ -79,16 +79,12 @@ struct BaseForm
     #[Name("Shadow"), BoolCombo("No Shadow", "Small")]
     paintShadow: bool = true
 
-    shadowOffsetX: f32       = 2
-    shadowOffsetY: f32       = 2
-    borderColor:   Color     = Argb.White
-    backColor:     Color     = Argb.Red
-    dashStyle:     DashStyle = None
-
-    // Unused, kept because it is serialized: removing it would fail the decoding of
-    // existing capture files and of the quick styles saved in the application config.
-    quickModeOpaque: bool
-    subKind:         FormSubKind = None
+    shadowOffsetX: f32         = 2
+    shadowOffsetY: f32         = 2
+    borderColor:   Color       = Argb.White
+    backColor:     Color       = Argb.Red
+    dashStyle:     DashStyle   = None
+    subKind:       FormSubKind = None
 
     // Group membership as a path of group ids, outermost first (empty = ungrouped).
     // Grouping prepends a fresh id shared by every member; ungrouping pops the front,

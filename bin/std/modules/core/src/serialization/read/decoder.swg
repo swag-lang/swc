@@ -336,6 +336,15 @@ impl Decoder
     mtd end() fail
     {
         .serializer.endRoot()
+
+        // Payload corruption is detected inside no-fail cleanup paths, so it surfaces
+        // here: a strict decode refuses the result, a tolerant one keeps it and reports
+        // through the diagnostics.
+        #static if T == Read.TagBin
+        {
+            if .serializer.diag.corruptPayloads and !(.flags & .IgnoreStructFieldError) do
+                fail SerializationError{"stream carried corrupt payloads"}
+        }
     }
 
     // Read a full struct

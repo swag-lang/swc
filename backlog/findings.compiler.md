@@ -18,7 +18,10 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Observation: a call result with a `Drop` lifecycle that lands in a compiler temporary is
   never dropped. `discard makeThing()`, `takeView(makeThing())` through an implicit `opCast`,
   and `acc += Format.toString(...)` all leak the temporary's buffer on every execution;
-  `Format.toString` itself leaks its inner `ConcatBuffer.toString` temporary per call.
+  `Format.toString` itself leaks its inner `ConcatBuffer.toString` temporary per call. A
+  conditional selecting a temporary arm (`cond ? makeThing() : existing`) is another shape:
+  since the F-080 fix the binding deep-copies whichever arm wins, so the selected temporary
+  is abandoned with its resources.
 - Evidence: micro dump of `g_Str += Format.toString(...)` shows no drop call anywhere after
   `String.opAssign`; a Tracer struct counting drops confirms zero drops for the `discard` and
   argument-cast shapes while `var x = makeThing()` drops exactly once. An implementation of the
@@ -212,67 +215,6 @@ Entries are sorted by identifier, ascending; position carries no priority.
   a callback declare itself native), or whether the Swag convention should adopt the caller-copy
   rule for large aggregates; measure the second option's cost on `gui`/`pixel` call sites before
   choosing.
-### F-080 — A conditional expression yielding an owning value copies it without its post-copy
-
-- Area: compiler
-- Found while: porting `tools/*.bat` to Swag, where a tool picked its command as
-  `options.command.isEmpty() ? String.from("build") : options.command`.
-- Observation: a conditional expression whose branches produce a struct that owns memory hands
-  the result over without running `opPostCopy`, so the result aliases the buffer of the branch it
-  took. Dropping it frees memory the original still points at. Nothing reports anything at the
-  point of the mistake: the program keeps running and dies later, in an unrelated teardown.
-- Evidence, reduced to one `#test`: `var source = String.from("value")`, then in an inner scope
-  `let picked = source.isEmpty() ? String.from("other") : source` followed by
-  `@assert(picked == "value")`. The assertion passes; leaving the inner scope frees the buffer,
-  and the next use of `source` crashes with `EXCEPTION_ACCESS_VIOLATION`. The unreduced case cost
-  a whole `apps test sCapture` run to surface: every test passed, and the process died in the
-  tool's `#main` epilogue afterwards.
-- Next step: compare what code generation emits for the two arms of a conditional against what a
-  plain assignment from the same expression emits, in `CodeGen.Conditional.cpp`. A plain
-  `let picked = source` runs the post-copy, so the question is whether the conditional path skips
-  the lifecycle call, or whether it materializes into a slot the caller then treats as already
-  constructed. Decide at the same time what a conditional mixing a temporary and a borrowed value
-  should mean: forcing a copy on both arms is the simple answer, moving the temporary and copying
-  the other is the fast one.
-- Related: [[reference_conditional_int_to_float_miscompile]] touched the same generator for a
-  different reason, so the two may share a root.
-
----
-
-### F-081 — An all-literal array passed as a slice of a converting struct type never reaches code generation
-
-- Found while: replacing 107 `arguments.add(String.from("..."))` calls in `tools/src` with slice
-  literals, which is what the same tool would be in Python.
-- Observation: `["a", "b"]` passed where `const [..] String` is expected is accepted by the type
-  checker and then fails in three different ways depending on the shape of the call. Every element
-  is a `string` literal, so the aggregate is marked constant; every element also needs `opAffect`
-  to become a `String`, so it is not one. Nothing reconciles those two facts. One non-constant
-  element in the same literal makes all of it work, which is why nobody has hit this.
-- Evidence, three reductions, all against a `String` slice:
-  - `var a: Array'String` then `a.add(["--publish"])` — code generation reports `internal compiler
-    error while lowering: cannot materialize an aggregate constant payload`.
-  - `func take(v: const [..] String)` then `take(["a", "b"])` — assertion, `ConstantLower.cpp:774`,
-    `SWC_UNREACHABLE` in `lowerConstantToBytes`: the destination is a struct and the constant is a
-    string, which that function has no case for.
-  - The same call inside `@print(...)` — `SemaJIT::tryRunConstCall` decides the call is constant,
-    and `buildConstCallArguments` asserts at `ConstantLower.cpp:439` lowering the argument.
-  - `a.add(["build", "--workspace", ws])` with `ws` a `String` variable compiles and runs.
-- Cause, as far as it was traced: `Cast::castToSlice` (`Cast.Runtime.cpp`, the `isAggregateArray`
-  branch) validates every element with `castAllowed` and then materializes a constant slice,
-  assuming each element cast folded. For a `String` element the cast is legal only through the set
-  operator that `Cast::castToStruct` resolves with `resolveStructSetCastCandidate`, and that
-  function returns `Result::Continue` without recording the chosen operator anywhere, so the slice
-  path cannot see that a call is involved and reuses the source `string` constant.
-- Next step: `Cast.Array.cpp::checkElemCast` already solves this for the array destination — it
-  asks `resolveStructSetCastCandidate` per element and, when an operator answers, rewrites the
-  element *node* through `castIfNeeded` so the value is built at run time. The slice branch of
-  `castToSlice` has no equivalent and never touches the element nodes. Give it the same treatment,
-  and clear the aggregate node's constant when it does, otherwise code generation still tries to
-  materialize the payload — suppressing the fold inside the cast alone was tried and only moves
-  the failure to the third form above. Suite: `bin/unittests/jit`, one case per reduction.
-
----
-
 ### F-082 — A script that imports `core` without `using Core` cannot compile the imported API
 
 - Found while: probing nested `#load`, where a reduced script happened to leave `using Core` out.

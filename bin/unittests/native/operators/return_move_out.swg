@@ -136,6 +136,15 @@ func makeSmallTracked()->SmallTracked
     return result
 }
 
+// 'NoInline' pins the sret path: this maker exists to observe the real return slot.
+#[Swag.NoInline]
+func makeTrackedRetval()->Tracked
+{
+    var result: retval
+    result.value = g_seed
+    return result
+}
+
 #[Swag.Inline]
 func makeTrackedInline()->Tracked
 {
@@ -238,6 +247,23 @@ func readTemplateInline()->Tracked
     }
     @assert(DropCount == 1)
     @assert(DropTrace == 21)
+}
+
+// A 'retval' local is built straight in the caller's slot: returning it runs no hook
+// at all — no copy, no move, and the only drop is the caller's. The return used to
+// copy the slot onto itself and run 'opPostCopy' on it, duplicating the ownership the
+// slot already held.
+#test
+{
+    resetHooks(27)
+    {
+        var x = makeTrackedRetval()
+        @assert(x.value == 27)
+    }
+    @assert(PostMoveCount == 0)
+    @assert(PostCopyCount == 0)
+    @assert(DropCount == 1)
+    @assert(DropTrace == 27)
 }
 
 // An inlined return moves the local out: 'opPostMove' runs into the result slot and

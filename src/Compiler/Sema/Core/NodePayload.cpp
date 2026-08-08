@@ -313,6 +313,15 @@ void NodePayload::setConstant(AstNodeRef nodeRef, ConstantRef ref)
     storePayload(node, newBits, ref.get());
 }
 
+void NodePayload::clearConstant(AstNodeRef nodeRef)
+{
+    SWC_ASSERT(nodeRef.isValid());
+    AstNode& node = ast().node(nodeRef);
+    if (payloadInfo(node).kind != NodePayloadKind::ConstantRef)
+        return;
+    storePayload(node, node.payloadBits(), ConstantRef::invalid().get());
+}
+
 bool NodePayload::hasSubstitute(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())

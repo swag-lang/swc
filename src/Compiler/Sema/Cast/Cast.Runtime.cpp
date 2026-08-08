@@ -119,6 +119,23 @@ namespace
         return nested;
     }
 
+    // The i-th value node of the array literal being cast, unwrapped from its
+    // initializer, or invalid when the cast carries no literal node to rewrite.
+    AstNodeRef aggregateElemValueNodeRef(const Sema& sema, AstNodeRef aggregateNodeRef, size_t elemIndex)
+    {
+        if (aggregateNodeRef.isInvalid())
+            return AstNodeRef::invalid();
+
+        const AstNode& node = sema.node(aggregateNodeRef);
+        if (node.isNot(AstNodeId::ArrayLiteral))
+            return AstNodeRef::invalid();
+
+        AstNodeRef nodeRef = sema.ast().nthNode(node.cast<AstArrayLiteral>().spanChildrenRef, elemIndex);
+        while (nodeRef.isValid() && sema.node(nodeRef).is(AstNodeId::InitializerExpr))
+            nodeRef = sema.node(nodeRef).cast<AstInitializerExpr>().nodeExprRef;
+        return nodeRef;
+    }
+
     Result constantFoldPointerLikeFromValue(Sema& sema, ConstantRef srcCstRef, TypeRef srcTypeRef, TypeRef dstTypeRef, ConstantRef& outCstRef)
     {
         const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
@@ -666,15 +683,48 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
 
         const auto& srcElemTypes = srcType.payloadAggregate().types;
-        for (const TypeRef srcElemTypeRef : srcElemTypes)
+        bool        anyElemBuiltThroughOperator = false;
+        for (size_t i = 0; i < srcElemTypes.size(); ++i)
         {
-            CastRequest  elemRequest = makeNestedCastRequest(castRequest);
-            const Result res         = castAllowed(sema, elemRequest, srcElemTypeRef, dstElemTypeRef);
+            const TypeRef srcElemTypeRef = srcElemTypes[i];
+            CastRequest   elemRequest    = makeNestedCastRequest(castRequest);
+            const Result  res            = castAllowed(sema, elemRequest, srcElemTypeRef, dstElemTypeRef);
             if (res != Result::Continue)
             {
                 castRequest.failure = elemRequest.failure;
                 return res;
             }
+
+            if (castRequest.probing)
+                continue;
+
+            // An element that only converts through a struct set or cast operator has no
+            // constant form, even when its source is a literal: rewrite its node so the
+            // value is built at run time, as 'checkElemCast' does for the array
+            // destination.
+            const AstNodeRef elemNodeRef = aggregateElemValueNodeRef(sema, castRequest.errorNodeRef, i);
+            if (elemNodeRef.isInvalid())
+                continue;
+
+            SymbolFunction* setFn       = nullptr;
+            TypeRef         setParamRef = TypeRef::invalid();
+            SWC_RESULT(resolveStructSetCastCandidate(sema, sema.node(elemNodeRef).codeRef(), srcElemTypeRef, dstElemTypeRef, castRequest.kind, setFn, setParamRef, elemNodeRef));
+            if (!setFn && !elemRequest.selectedStructOpCast)
+                continue;
+
+            SemaNodeView elemView(sema, elemNodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
+            SWC_RESULT(castIfNeeded(sema, elemView, dstElemTypeRef, castRequest.kind, castRequest.flags));
+            anyElemBuiltThroughOperator = true;
+        }
+
+        // Operator-built elements make the aggregate a runtime value: drop its folded
+        // constant so code generation walks the rewritten element nodes instead of
+        // materializing the stale payload.
+        if (anyElemBuiltThroughOperator)
+        {
+            sema.clearConstant(castRequest.errorNodeRef);
+            castRequest.setConstantFoldingSrc(ConstantRef::invalid());
+            return Result::Continue;
         }
 
         if (!castRequest.materializeConstantResult())

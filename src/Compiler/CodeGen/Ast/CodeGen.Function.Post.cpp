@@ -874,30 +874,45 @@ namespace
         return Result::Continue;
     }
 
+    // The 'retval' local named by the return expression, when there is one. The payload's
+    // storage symbol only tags compiler temporaries, so the named local is recovered from
+    // the expression's stored symbol.
+    const SymbolVariable* returnExprRetValVariable(CodeGen& codeGen, AstNodeRef exprRef)
+    {
+        if (exprRef.isInvalid())
+            return nullptr;
+
+        const SemaNodeView symbolView = codeGen.sema().viewStored(exprRef, SemaNodeViewPartE::Symbol);
+        if (!symbolView.sym() || !symbolView.sym()->isVariable())
+            return nullptr;
+
+        const auto& symVar = symbolView.sym()->cast<SymbolVariable>();
+        return symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal) ? &symVar : nullptr;
+    }
+
     bool shouldDelayReturnMaterializationForDeferredActions(CodeGen& codeGen, AstNodeRef exprRef, const CodeGenNodePayload& exprPayload)
     {
         if (exprPayload.runtimeStorageSym && exprPayload.runtimeStorageSym->hasExtraFlag(SymbolVariableFlagsE::RetVal))
             return true;
 
-        if (exprRef.isInvalid())
-            return false;
-
-        const SemaNodeView symbolView = codeGen.sema().viewStored(exprRef, SemaNodeViewPartE::Symbol);
-        if (symbolView.sym() && symbolView.sym()->isVariable() && symbolView.sym()->cast<SymbolVariable>().hasExtraFlag(SymbolVariableFlagsE::RetVal))
-            return true;
-
-        return false;
+        return returnExprRetValVariable(codeGen, exprRef) != nullptr;
     }
 
     // The value was built straight in the caller's return slot, so copying it there again
-    // would copy the slot onto itself. Register identity is not enough to detect this: the
-    // expression and the epilogue each materialize their own virtual register from the
-    // hidden return pointer, so the storage symbol is what actually proves they alias.
-    bool returnValueAlreadyInCallerStorage(CodeGen& codeGen, const CodeGenNodePayload& exprPayload)
+    // would copy the slot onto itself, and running the copy's lifecycle on it would
+    // duplicate ownership it already holds. Register identity is not enough to detect
+    // this: the expression and the epilogue each materialize their own virtual register
+    // from the hidden return pointer, so the storage symbol — or the named 'retval'
+    // local — is what actually proves they alias.
+    bool returnValueAlreadyInCallerStorage(CodeGen& codeGen, AstNodeRef exprRef, const CodeGenNodePayload& exprPayload)
     {
-        return exprPayload.isAddress() &&
-               exprPayload.runtimeStorageSym != nullptr &&
-               CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, *exprPayload.runtimeStorageSym);
+        if (!exprPayload.isAddress())
+            return false;
+        if (exprPayload.runtimeStorageSym != nullptr && CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, *exprPayload.runtimeStorageSym))
+            return true;
+
+        const SymbolVariable* retValVar = returnExprRetValVariable(codeGen, exprRef);
+        return retValVar != nullptr && CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, *retValVar);
     }
 
     void emitIndirectReturnValuePayload(CodeGen& codeGen, MicroReg outputStorageReg, MicroReg valueReg, uint32_t copySize)
@@ -948,7 +963,7 @@ namespace
 
         const CodeGenNodePayload& exprPayload                = codeGen.payload(exprRef);
         const bool                delayReturnMaterialization = shouldDelayReturnMaterializationForDeferredActions(codeGen, exprRef, exprPayload);
-        const bool                returnValueIsInPlace       = returnValueAlreadyInCallerStorage(codeGen, exprPayload);
+        const bool                returnValueIsInPlace       = returnValueAlreadyInCallerStorage(codeGen, exprRef, exprPayload);
 
         // Returning a dead local or an owned temporary transfers ownership: the copy runs
         // 'opPostMove' instead of 'opPostCopy', and the moved-out local is not dropped.

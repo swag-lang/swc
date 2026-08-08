@@ -499,8 +499,18 @@ namespace
     bool varInitNeedsPostCopy(CodeGen& codeGen, AstNodeRef initRef, const CodeGenNodePayload& initPayload)
     {
         const AstNodeRef resolvedInitRef = initRef.isValid() ? codeGen.viewZero(initRef).nodeRef() : AstNodeRef::invalid();
-        if (resolvedInitRef.isValid() && codeGen.sema().isLValue(resolvedInitRef))
-            return true;
+        if (resolvedInitRef.isValid())
+        {
+            if (codeGen.sema().isLValue(resolvedInitRef))
+                return true;
+
+            // An address-backed selection ('a ? b : c', 'a orelse b') forwards the storage
+            // of whichever operand won — possibly a named variable — so binding its result
+            // is a copy of live storage, never an adoption.
+            const AstNode& resolvedInit = codeGen.node(resolvedInitRef);
+            if (initPayload.isAddress() && (resolvedInit.is(AstNodeId::ConditionalExpr) || resolvedInit.is(AstNodeId::NullCoalescingExpr)))
+                return true;
+        }
         return initPayload.runtimeStorageSym != nullptr;
     }
 

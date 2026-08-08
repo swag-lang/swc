@@ -1740,9 +1740,14 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
                 sema.setType(view.nodeRef(), dstTypeRef);
             else
             {
-                const ConstantRef constRef   = view.cstRef();
+                // Storage decisions read the node's constant afresh: 'castAllowed' can
+                // drop a folded constant (an aggregate whose elements are built through
+                // a set operator), and the cast then needs the runtime storage a
+                // constant source would have skipped. The literal still needs its own
+                // storage created when the source started out constant.
+                const ConstantRef constRef   = sema.viewStored(view.nodeRef(), SemaNodeViewPartE::Constant).cstRef();
                 const AstNodeRef  srcNodeRef = view.nodeRef();
-                SWC_RESULT(Cast::retargetLiteralRuntimeStorageIfNeeded(sema, srcNodeRef, srcTypeRef, dstTypeRef, constRef.isValid()));
+                SWC_RESULT(Cast::retargetLiteralRuntimeStorageIfNeeded(sema, srcNodeRef, srcTypeRef, dstTypeRef, srcCstRef.isValid() || constRef.isValid()));
                 view.nodeRef() = createCast(sema, dstTypeRef, srcNodeRef);
                 SWC_RESULT(attachCastRuntimeStorageIfNeeded(sema, view.nodeRef(), srcTypeRef, dstTypeRef, constRef));
                 runtimeCastNodeRef = view.nodeRef();

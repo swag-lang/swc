@@ -319,6 +319,7 @@ public:
 
     void setType(AstNodeRef n, TypeRef ref) { nodePayloadContext().setType(n, ref); }
     void setConstant(AstNodeRef n, ConstantRef ref) { nodePayloadContext().setConstant(n, ref); }
+    void clearConstant(AstNodeRef n) { nodePayloadContext().clearConstant(n); }
     void setSymbol(AstNodeRef n, Symbol* symbol) { nodePayloadContext().setSymbol(n, symbol); }
     void setSymbol(AstNodeRef n, const Symbol* symbol) { nodePayloadContext().setSymbol(n, symbol); }
     bool hasSubstitute(AstNodeRef n) const { return nodePayloadContext().hasSubstitute(n); }

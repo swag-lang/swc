@@ -23,7 +23,7 @@ locally.
 
 ## Tier A — Throughput and credibility
 
-### 1. No block cache
+### T-087 — No block cache
 
 - Owner: sCrypt
 - Problem: `Volume.readPhysical` reads 4124 bytes, decrypts, and verifies the tag on every single
@@ -35,7 +35,7 @@ locally.
 - Related: a bounded cache is also the natural place to put an explicit memory budget, which any
   later working-set investigation will need.
 
-### 2. The crypto primitives are scalar
+### T-088 — The crypto primitives are scalar
 
 - Owner: `bin/std` (`bin/std/modules/core/src/crypto/`)
 - Problem: `poly1305.swg` and `argon2.swg` are straightforward scalar implementations, and
@@ -55,7 +55,7 @@ locally.
 - Why it matters: the mount latency a user actually feels is almost entirely this, and every
   block read and written pays the key-stream rate.
 
-### 3. Keys live in pageable memory
+### T-089 — Keys live in pageable memory
 
 - Owner: `bin/std` for the locked allocation, sCrypt for the policy
 - Problem: `Crypto.Keys` and the unwrapped master key are ordinary memory. The page file or a crash
@@ -63,7 +63,7 @@ locally.
 - Fix: `VirtualLock` on key pages, exclusion from Windows Error Reporting dumps, and key wipe on
   session lock and on system suspend. Small surface, large credibility return.
 
-### 4. The executable is not signed
+### T-090 — The executable is not signed
 
 - Owner: release process
 - Problem: the application requests UAC elevation to start the driver. Unsigned, the consent dialog
@@ -79,7 +79,7 @@ locally.
 
 ## Tier B — Perceived feature parity
 
-### 5. Mount comfort and mount-time safety
+### T-091 — Mount comfort and mount-time safety
 
 - Owner: sCrypt
 - Shipped: several volumes at once, each on its own letter, listed in the third card of the window;
@@ -94,7 +94,7 @@ locally.
   start quiet for an unprotected vault. It is not a hint an attacker could not obtain in one Argon2
   attempt, but it does mean the state file says which vaults have no password.
 
-### 6. Additional passwords are not in the interface
+### T-092 — Additional passwords are not in the interface
 
 - Owner: sCrypt
 - Shipped: changing the password of a container, and removing it by leaving the new one empty,
@@ -105,9 +105,9 @@ locally.
   backed by `Crypto.Argon2Profile`. Both need a way to show how many slots are in use without
   claiming which of them is which.
 - Note: `KeySlotCount` is 4. Raising it costs one constant and a wider `keySlotMask`, but it also
-  multiplies the cost of rejecting a wrong password; see entry 2.
+  multiplies the cost of rejecting a wrong password; see T-088.
 
-### 7. Shrinking a container
+### T-093 — Shrinking a container
 
 - Owner: sCrypt
 - Shipped: growing, through `Volume.grow` and the `Capacity…` action. The file is extended, the
@@ -118,7 +118,7 @@ locally.
   less value — a container that has to be rewritten to lose space is a poor trade. Ranked here
   because it is the other half of a capacity a reader can change, not because it is urgent.
 
-### 8. Header backup and restore
+### T-094 — Header backup and restore
 
 - Owner: sCrypt
 - Problem: the key slots and both header slots live in the same file, in its first megabytes. One
@@ -128,7 +128,7 @@ locally.
 - Document the trap VeraCrypt also documents: restoring a backed-up header reinstates the passwords
   that were current when the backup was taken.
 
-### 9. Keyfiles
+### T-095 — Keyfiles
 
 - Owner: sCrypt
 - Key slots exist, so this is now only mixing: the slot key derives from the password combined with
@@ -136,7 +136,7 @@ locally.
   secret and an associated-data input for exactly this. PKCS#11 tokens are a further step and can
   wait.
 
-### 10. Randomized block allocation
+### T-096 — Randomized block allocation
 
 - Owner: sCrypt
 - Problem: `BlockAllocator.allocate` always returns the lowest free block. An adversary comparing
@@ -146,21 +146,21 @@ locally.
 - Note: this now also applies to metadata pages, which are allocated the same way at every
   checkpoint.
 
-### 11. Concurrency
+### T-097 — Concurrency
 
 - Owner: sCrypt
 - Problem: WinFsp runs under the coarse guard strategy, so every callback is serialized and all
   encryption for a large copy sits on one thread.
 - Fix: finer granularity — a per-node lock plus a metadata lock — and block encryption parallelized
   through `Jobs`.
-- Sequencing: after entry 1, and only alongside a concurrent stress test. Getting this wrong is a
+- Sequencing: after T-087, and only alongside a concurrent stress test. Getting this wrong is a
   correctness failure, not a performance regression.
 
 ---
 
 ## Tier C — Long term
 
-### 12. Hidden volume
+### T-098 — Hidden volume
 
 - Owner: sCrypt
 - The format already permits it: the container is entirely random, carries no magic, and derives
@@ -172,7 +172,7 @@ locally.
 - Sequencing: last. A hidden volume that leaks is worse than no hidden volume, because it promises
   a protection it does not deliver.
 
-### 13. Format specification, test vectors, fuzzing
+### T-099 — Format specification, test vectors, fuzzing
 
 - Owner: sCrypt
 - An audit is not possible without a normative format document that is independent of the code,
@@ -185,7 +185,7 @@ locally.
     checkpoint rather than between them.
   - Add a scaling test at a hundred thousand files. The metadata paging test stops at 1 200.
 
-### 14. FUSE backend for Linux and macOS
+### T-100 — FUSE backend for Linux and macOS
 
 - Owner: sCrypt
 - The boundary is already where it needs to be: system backends for `Core.Crypto`, `Core.Time` and
@@ -193,10 +193,10 @@ locally.
   container format, the logical filesystem, the password widget — is platform-independent already.
   Real work, no design risk.
 
-### 15. External audit
+### T-101 — External audit
 
 - Owner: project
-- After entry 13. Until it happens, the format and the implementation have had no independent
+- After T-099. Until it happens, the format and the implementation have had no independent
   cryptographic review, and sCrypt is not a proven replacement for VeraCrypt on critical data — no
   matter what else on this list ships.
 

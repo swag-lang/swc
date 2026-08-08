@@ -37,7 +37,7 @@ The gaps are about coverage: which fonts load at all, and whether text is positi
 
 ## Tier A — Fonts that cannot load
 
-### 1. CFF and web-font containers are still rejected
+### T-068 — CFF and web-font containers are still rejected
 
 - `ttcf` collections now load, and `pixel` selects the right member of one. Two containers remain,
   and both are now reported by name rather than as an unknown format:
@@ -59,7 +59,7 @@ The gaps are about coverage: which fonts load at all, and whether text is positi
 
 ## Tier B — Text that is positioned wrongly
 
-### 2. No shaping
+### T-069 — No shaping
 
 - Problem: `GPOS` is read for pair adjustment only, and there is no `GSUB` processing at all. A
   character maps to a glyph through `cmap`, advances by `hmtx`, and is kerned. That is the whole
@@ -88,14 +88,14 @@ The gaps are about coverage: which fonts load at all, and whether text is positi
 
 ## Tier C — Font classes not covered
 
-### 3. Variable fonts
+### T-070 — Variable fonts
 
 - No `fvar`, `gvar`, `avar` or `HVAR`. A variable font loads only at its default instance, so a
   single file that should provide a whole weight and width range provides one static face.
 - Variable fonts are now the normal shipping form for large families, so this is a coverage gap
-  rather than an exotic feature. It depends on entry 1 for CFF2-based variable fonts.
+  rather than an exotic feature. It depends on T-068 for CFF2-based variable fonts.
 
-### 4. Color fonts and emoji
+### T-071 — Color fonts and emoji
 
 - No `COLR`/`CPAL` layered color, no `sbix` or `CBDT` bitmap strikes, no `SVG` table. Emoji do not
   render.
@@ -104,13 +104,13 @@ The gaps are about coverage: which fonts load at all, and whether text is positi
 - The `cmap` format-14 subtable is read, so `Face.glyphIndexVariant` already resolves the emoji and
   text presentation selectors. What is missing is a glyph to draw for the emoji one.
 
-### 5. Vertical writing
+### T-072 — Vertical writing
 
 - No `vhea` or `vmtx`. Vertical CJK layout has no metrics to work from.
 - Small and well-bounded: the two tables mirror `hhea` and `hmtx`, which `parseFace` and
   `buildGlyphMetrics` already read, run-length compression included.
 
-### 6. TrueType bytecode hinting
+### T-073 — TrueType bytecode hinting
 
 - `Face.hintVertical` is a vertical hinting heuristic, not the TrueType interpreter — `fpgm`,
   `prep` and `cvt ` are not executed.

@@ -13,7 +13,7 @@ masking the address down to its page. The header path serves larger blocks, over
 every allocation made while a diagnostic mode is on.
 
 Measured against the previous design on the same machine, alternating both binaries
-(`bench/` has no allocator workload yet — entry 1):
+(`bench/` has no allocator workload yet — T-019):
 
 | workload | before | after |
 | --- | --- | --- |
@@ -32,7 +32,7 @@ The remaining work below is what turns that into a measured allocator contract.
 
 ## Tier A - Prove and close the main gaps
 
-### 1. Add a reproducible allocator benchmark suite
+### T-019 — Add a reproducible allocator benchmark suite
 
 - The numbers above come from a throwaway probe. Nothing in the repository measures the allocator,
   so a regression in it is invisible until something else gets slower.
@@ -48,7 +48,7 @@ The remaining work below is what turns that into a measured allocator contract.
 - Define the parity gate before tuning: a geometric-mean throughput within 10% of mimalloc, no
   representative workload more than 25% slower, and no unbounded retained-memory case.
 
-### 2. Close the remaining distance to mimalloc on the hot path
+### T-020 — Close the remaining distance to mimalloc on the hot path
 
 - An allocate/free pair on a cached block costs about 77 ns. mimalloc is in the 10-20 ns range,
   so the structural work is done and what is left is the constant factor.
@@ -60,9 +60,9 @@ The remaining work below is what turns that into a measured allocator contract.
   per-thread copy, so the mechanism is there; what it still cannot hold is a value with a drop
   ([F-019](findings.compiler.md#f-019--a-thread-local-global-cannot-hold-a-droppable-type)).
   Sequence that decision before micro-tuning anything else here.
-- Measure with entry 1 before and after, not with a probe written for the occasion.
+- Measure with T-019 before and after, not with a probe written for the occasion.
 
-### 3. Return idle memory without being asked
+### T-021 — Return idle memory without being asked
 
 - `trim()` decommits every page with no live block and returns the segments left without one, but
   nothing calls it on its own. A program that allocates in bursts keeps the high-water mark of
@@ -76,16 +76,16 @@ The remaining work below is what turns that into a measured allocator contract.
 
 ## Tier B - Match mature concurrent allocators
 
-### 4. Make remote frees batched rather than one atomic each
+### T-022 — Make remote frees batched rather than one atomic each
 
 - A block freed by a thread that does not own its page costs one compare-exchange, and the owner
   drains the list only when the page runs dry. That is already far better than the previous design,
   but a producer/consumer pair still pays one atomic per block in each direction.
 - Measure whether a per-page batch handoff pays for itself against the current single push, using
-  the producer/consumer workload from entry 1. Bound the drain so one allocation cannot inherit an
+  the producer/consumer workload from T-019. Bound the drain so one allocation cannot inherit an
   arbitrarily long pause.
 
-### 5. Give the medium and huge paths the same treatment as the small one
+### T-023 — Give the medium and huge paths the same treatment as the small one
 
 - Requests above 64 KiB take the header path: one `VirtualAlloc` reservation each, released on
   free. That is correct and wastes almost nothing, but a buffer that doubles across the boundary
@@ -94,7 +94,7 @@ The remaining work below is what turns that into a measured allocator contract.
   the boundary is hot, the answer is a size-class tier above 64 KiB carved from whole segments, not
   a cache of arbitrary blocks.
 
-### 6. Tune size classes from traces rather than from the table
+### T-024 — Tune size classes from traces rather than from the table
 
 - Classes split each power of two into four above 128 bytes, which bounds the step at a fifth of
   the class it lands in. Eight-way splitting would halve that at the cost of doubling the class
@@ -104,7 +104,7 @@ The remaining work below is what turns that into a measured allocator contract.
 
 ## Tier C - Harden the implementation
 
-### 7. Expand race and failure testing
+### T-025 — Expand race and failure testing
 
 - `bin/unittests/native/runtime/` covers size classes, page recovery from an address, free-list
   obfuscation, interior-pointer rejection, abandoned-page adoption, foreign-thread retirement
@@ -117,7 +117,7 @@ The remaining work below is what turns that into a measured allocator contract.
 - Add an equivalent to `allocatorOsCommit`/`allocatorOsDecommit` and to the FLS destructor before
   enabling the page path on another target; the fallbacks compiled today are placeholders.
 
-### 8. Decide what the security properties are, and write them down
+### T-026 — Decide what the security properties are, and write them down
 
 - Shipped: free-list links are obfuscated with a per-page key and validated on pop; a free rejects
   any address that does not start a block of its page; an immediate double free of the most recently

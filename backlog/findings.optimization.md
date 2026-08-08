@@ -9,7 +9,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
 ### F-029 — ChaCha20 throughput is bounded by memory round-trips, not by round arithmetic
 
 - Area: std/core (crypto), compiler/backend
-- Found while: benchmarking the auto-vectorized ChaCha20 rounds (sCrypt entry 2)
+- Found while: benchmarking the auto-vectorized ChaCha20 rounds ([T-088](todo.scrypt.md#t-088--the-crypto-primitives-are-scalar))
 - Observation: with the rounds fully vectorized (the double-round loop compiles to ~90 packed
   instructions instead of ~500 scalar ones, `chacha20Block` overall 2794 -> 915), end-to-end
   `chacha20Xor` throughput did not move measurably (medians 34.4 vs 34.0 MiB/s vectorized vs

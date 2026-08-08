@@ -169,7 +169,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
   a member whose owner is a generic struct, or whether the members hang off an instantiated clone that
   `isCurrentModuleSourceFile` then rejects. The answer decides whether the fix belongs in collection or
   in the owner mapping.
-- Related: [todo.doc.md](todo.doc.md) entry 2, whose search index is missing the same symbols.
+- Related: [T-014](todo.doc.md#t-014--search-stops-at-the-page-it-is-printed-in), whose search index is missing the same symbols.
 
 ### F-076 — A struct reaching a variadic parameter through a reference formats as `?`
 

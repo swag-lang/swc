@@ -28,7 +28,7 @@ effects, no capture.
 
 ## Tier A — What blocks real use
 
-### 1. Only WAV, and only some of it
+### T-058 — Only WAV, and only some of it
 
 - Problem: `SoundFile.load` accepts WAV alone, and `src/file/wav.swg` accepts only `WAVE_FORMAT_PCM`
   (8, 16, 24 and 32 bit), `WAVE_FORMAT_IEEE_FLOAT`, and `WAVE_FORMAT_EXTENSIBLE` wrapping those two.
@@ -43,7 +43,7 @@ effects, no capture.
 - Why first: everything else on this list is a refinement of a library that plays audio. This is
   what decides whether it can be used at all.
 
-### 2. Volume changes are instantaneous, so they click
+### T-059 — Volume changes are instantaneous, so they click
 
 - Problem: `Voice.setVolumeDb` and `Bus.setVolume` write the gain straight to the backend. XAudio2
   applies it at the next processing pass without smoothing, so any gain change during playback is a
@@ -54,18 +54,18 @@ effects, no capture.
   interpolated over a frame count rather than applied at once.
 - Cost: low. This is the highest value-to-effort entry in the module.
 
-### 3. No seek
+### T-060 — No seek
 
 - Problem: `Voice.rewindData` restarts a source at the beginning. There is no way to start playback
   at an offset, or to move the play position of a running voice.
 - Consequence: no scrubbing, no resume, no jumping within a track, no sample-accurate loop points.
 - Fix: a seek on the codec interface with a byte-offset fallback for the constant-bitrate PCM case,
   plus a public `Voice.seek` in seconds or frames.
-- Note: this must be designed alongside entry 1. Seeking in MP3 and Vorbis is not a byte offset,
+- Note: this must be designed alongside T-058. Seeking in MP3 and Vorbis is not a byte offset,
   so the codec interface needs the right shape before three decoders are written against the
   wrong one.
 
-### 4. No device enumeration, selection, or loss handling
+### T-061 — No device enumeration, selection, or loss handling
 
 - Problem: `createEngine` opens the default device and that is the whole story. There is no way to
   list output devices, no way to choose one, and nothing handles the device disappearing —
@@ -83,7 +83,7 @@ effects, no capture.
 Two features are already paid for in the backend and simply not exposed. They are cheap in a way
 the rest of this list is not.
 
-### 5. Spatialization, with X3DAudio already initialized
+### T-062 — Spatialization, with X3DAudio already initialized
 
 - `src/driver/xaudio2.swg` calls `X3DAudioInitialize` and stores the handle in `x3DInstance`. That
   handle is never read again. The 3D engine is initialized on every engine creation and does
@@ -94,7 +94,7 @@ the rest of this list is not.
 - Also missing, and simpler: plain stereo panning. There is no pan control at all, which is the
   cheapest spatial cue there is and the one most applications actually want.
 
-### 6. Filters, with the voice flag already set
+### T-063 — Filters, with the voice flag already set
 
 - Submix voices are created with `XAUDIO2_VOICE_USEFILTER` in `src/driver/xaudio2.swg`. The
   capability is requested and no API exposes it.
@@ -107,7 +107,7 @@ the rest of this list is not.
 
 ## Tier C — Breadth
 
-### 7. Engine creation cost on the startup path
+### T-064 — Engine creation cost on the startup path
 
 - `DriverNative.createNative` does COM initialization, `XAudio2Create`, mastering-voice creation,
   channel-mask query and `X3DAudioInitialize`. Engine creation was previously measured in the 500
@@ -118,25 +118,26 @@ the rest of this list is not.
 - Related: no `findings.*` file has an entry for this. If measurement shows the cost is in XAudio2
   rather than in this module, record it there instead.
 
-### 8. Capture and recording
+### T-065 — Capture and recording
 
 - No input path at all: no capture device, no duplex, no loopback. miniaudio and PortAudio both
   treat capture as a peer of playback.
 - This is what a recorder, a voice-chat path, or a level meter would need. It is also a prerequisite
-  if `sCapture` ever records video with sound — see that module's roadmap.
+  if `sCapture` ever records video with sound —
+  [T-081](todo.scapture.md#t-081--video-and-animated-gif-recording).
 
-### 9. A second platform
+### T-066 — A second platform
 
 - `DriverKind` is `Default`, `NoSound`, `XAudio2`. Off Windows, `Default` resolves to silence.
 - The backend boundary in `src/driver/backend.swg` is clean and already has two implementations, so
   a third is additive rather than structural. CoreAudio and ALSA or PulseAudio are the obvious
   targets; WASAPI directly would also remove the XAudio2 dependency on Windows.
 
-### 10. Effects graph
+### T-067 — Effects graph
 
 - Buses route and scale gain. They do not process. FMOD, Wwise, SoLoud and miniaudio all expose a
   DSP or node graph where an effect can be inserted on a bus.
-- Sequence this after entry 6: a per-voice filter answers most of the need, and an effects graph is
+- Sequence this after T-063: a per-voice filter answers most of the need, and an effects graph is
   a much larger commitment. Do not build the graph to get the filter.
 
 ---
@@ -147,6 +148,6 @@ the rest of this list is not.
 runtimes — banks, events, parameters, adaptive music, and a designer-facing editor. That is a
 product, not a standard-library module.
 
-**Bundled codec licensing.** Any format added under entry 1 must be a clean-room or
+**Bundled codec licensing.** Any format added under T-058 must be a clean-room or
 permissively-licensed implementation. Do not vendor a decoder whose terms cannot be satisfied by a
 standard library shipped with a compiler.

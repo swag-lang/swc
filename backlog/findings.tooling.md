@@ -88,7 +88,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
   source-driven `Verify` directives must still be evaluated. Reuse here means skipping the
   compile, never skipping the execution. Measure a second `tools/tests.bat` pass on an untouched
   tree before and after.
-- Related: entry 2 of [todo.compiler.md](todo.compiler.md), which is the same problem one level
+- Related: [T-002](todo.compiler.md#t-002--incrementality-stops-at-the-module), which is the same problem one level
   down — the unit of reuse is the module, so even a reusing command rebuilds all of `core` for a
   one-line edit.
 

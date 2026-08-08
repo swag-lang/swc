@@ -18,7 +18,7 @@ ships; history lives in git, not here.
 
 ---
 
-### 1. Enum switches are silently non-exhaustive
+### T-009 — Enum switches are silently non-exhaustive
 
 - A `switch` over a three-value enum that handles two of them compiles with no error, no warning,
   and no `default`; the third value simply falls through to nothing. Exhaustiveness exists but is
@@ -32,7 +32,7 @@ ships; history lives in git, not here.
   rides on the warning policy layer that now exists (`#[Swag.Warning]`, `cfg.warnings`,
   `--warn-*`) — without one, the only two answers available are "error" and "silence".
 
-### 2. There is no tagged union
+### T-010 — There is no tagged union
 
 - `union` is C-style and untagged: all fields share offset 0 and reading a field that was not the
   one written is legal and meaningless
@@ -46,11 +46,11 @@ ships; history lives in git, not here.
   ([painter.swg:147-149](../bin/std/modules/pixel/src/painter/painter.swg#L147-L149)). Nothing
   checks that sentence. Rust, Swift, Zig and modern C# all consider the checked version table
   stakes; it is arguably the single largest expressiveness gap in the language.
-- It interacts with entry 1 (a tagged union is where exhaustive matching earns its keep) and with
+- It interacts with T-009 (a tagged union is where exhaustive matching earns its keep) and with
   the error-handling design already shipped (`fail`/`try`/`catch`), which chose a different axis
   and should not be re-litigated by the same feature.
 
-### 3. Generic constraints are predicates, and the instantiation chain omits the call site
+### T-011 — Generic constraints are predicates, and the instantiation chain omits the call site
 
 - `where` is a compile-time boolean over generic parameters
   ([009_003_where_constraints.swg](../bin/reference/modules/language/src/009_003_where_constraints.swg)).
@@ -64,14 +64,14 @@ ships; history lives in git, not here.
 - The larger question — named contracts versus predicates — should be answered after the call-site
   frame lands, since a good instantiation trace removes most of the pain that motivates contracts.
 
-### 4. The concurrency model is undecided
+### T-012 — The concurrency model is undecided
 
 - There is no future or task type, no channels, and no condition variable; `Jobs` provides parallel
-  fan-out and there is no asynchronous I/O. The library half of this is entry 11 of
-  [todo.core.md](todo.core.md); the language half is here, and it is the half that must be decided
+  fan-out and there is no asynchronous I/O. The library half of this is
+  [T-036](todo.core.md#t-036--concurrency-beyond-parallel-fan-out); the language half is here, and it is the half that must be decided
   first.
 - Go answered with goroutines and channels, Rust with `async` and a futures machinery that reaches
   into the type system, .NET with `Task`. Each answer changed the language, not just the library.
-- The forcing function is already scheduled: entry 1 of [todo.core.md](todo.core.md) puts
+- The forcing function is already scheduled: [T-027](todo.core.md#t-027--no-networking-of-any-kind) puts
   non-blocking sockets on the path, and deciding this *under* that pressure is how languages end up
   with two concurrency models. Decide it early and deliberately, and record the decision here.

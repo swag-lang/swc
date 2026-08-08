@@ -51,7 +51,7 @@ memory, and in everything an editor would want to ask it.
 
 These three shape every other entry. Nothing below Tier A gets structurally easier until they land.
 
-### 1. The module boundary is re-parsed Swag source
+### T-001 — The module boundary is re-parsed Swag source
 
 - Problem: a module's public API is emitted as generated Swag source and consumed as generated
   Swag source. `core` publishes **16 files and 12 328 lines** per configuration
@@ -59,16 +59,16 @@ These three shape every other entry. Nothing below Tier A gets structurally easi
   parses and re-analyzes all of it. There is no serialized module interface.
 - Consequence: the cost of depending on a module scales with the *text of its whole public
   surface*, not with what the consumer uses. It also means no symbol-level identity survives a
-  module boundary — no fingerprints, no per-symbol invalidation — which is precisely what entries
-  2, 6 and 8 need to exist.
+  module boundary — no fingerprints, no per-symbol invalidation — which is precisely what
+  T-002, T-006 and T-008 need to exist.
 - Fix: a binary module interface written at the end of a successful build — symbols, types,
   constants, attribute payloads, and the bodies that must stay inlinable — loaded lazily by name
   rather than parsed wholesale. Keep the generated `.swg` as a *product* (`--export-api-dir` is a
   real deliverable for interop and for reading), not as the internal channel.
 - Sequence it deliberately: the interface format is also what makes a language server affordable,
-  so design it with entry 8 in the room rather than retrofitting.
+  so design it with T-008 in the room rather than retrofitting.
 
-### 2. Incrementality stops at the module
+### T-002 — Incrementality stops at the module
 
 - Problem: up-to-date detection compares the module manifest's write time against its inputs
   ([CompilerInstance.Module.cpp:1060-1064](../src/Main/CompilerInstance.Module.cpp#L1060-L1064)). The unit of
@@ -80,11 +80,11 @@ These three shape every other entry. Nothing below Tier A gets structurally easi
 - Fix, staged: (1) cache the frontend per file, keyed on content hash plus the interface version
   of everything it imports; (2) cache codegen per function, keyed on the sema fingerprint of its
   body and of everything it reaches. Step 2 is where the win is, and it is unreachable without
-  entry 1.
-- Measure before and after with entry 7, on a real edit-one-file-in-`core` loop, not on a clean
+  T-001.
+- Measure before and after with T-007, on a real edit-one-file-in-`core` loop, not on a clean
   build.
 
-### 3. The semantic analyzer is 80 000 lines with one unit test
+### T-003 — The semantic analyzer is 80 000 lines with one unit test
 
 - Problem: `Compiler/Sema` is 80 812 lines across 150 files — a third of the compiler. Its entire
   C++ test surface is `src/Unittest/Sema`, a single 116-line purity test. Everything else is
@@ -105,7 +105,7 @@ These three shape every other entry. Nothing below Tier A gets structurally easi
 
 ## Tier B — Speed and memory
 
-### 4. Nothing tracks compile speed except one four-line program
+### T-004 — Nothing tracks compile speed except one four-line program
 
 This entry is first in the tier because the three below cannot be judged without it.
 
@@ -126,35 +126,35 @@ This entry is first in the tier because the three below cannot be judged without
   whether the per-stage counters should be available in the Release binary behind a flag, since a
   profile nobody can take on the shipping build is a profile nobody takes.
 
-### 5. Peak memory is 672 MB for one module
+### T-005 — Peak memory is 672 MB for one module
 
 - Problem: rebuilding `core` — 50 690 lines — peaks at **671.9 MB** of working set in fast-debug
   and about 490 MB in release. That is roughly 13 KB of resident memory per source line. Hello
   world peaks at **81.6 MB**.
-- Consequence: it bounds how many modules can ever be compiled concurrently (entry 7 multiplies
+- Consequence: it bounds how many modules can ever be compiled concurrently (T-007 multiplies
   this number), and it is felt directly on any machine that is not this one. A language that wants
   to be run as a script cannot ask for 80 MB to print one line.
 - Fix: measure first — there is no per-subsystem memory accounting today, only an OS peak, so the
   split between AST, types, symbols, constants and Micro is currently unknown. `MemoryProfile`
-  exists but is behind the same `SWC_HAS_STATS` gate as everything else in entry 4. Then attack
+  exists but is behind the same `SWC_HAS_STATS` gate as everything else in T-004. Then attack
   what the measurement shows. Two suspects worth checking early: nothing is released between
   stages, so post-codegen the whole AST and every Micro function are still resident; and
   per-function Micro state is retained for the whole module rather than freed as each function
   finishes.
 
-### 6. Every invocation re-analyzes the prelude
+### T-006 — Every invocation re-analyzes the prelude
 
 - Problem: before touching a single line of user code, a build analyzes **8 files, 19 494 tokens
   and 237 functions** — the runtime prelude. Measured on an empty module: `checked 8 files •
   19_494 tokens`, and on hello world the frontend alone is 28–39 ms of a ~90 ms run.
 - Consequence: that is the floor under every `swc` invocation, including every script run, every
-  editor save if entry 8 ever lands, and every one of the thousands of test compilations in the
+  editor save if T-008 ever lands, and every one of the thousands of test compilations in the
   suites.
-- Fix: this is entry 1 applied to the prelude — serialize the analyzed prelude once and map it in,
-  instead of re-deriving it. Do it after entry 1 rather than as a special case, or the compiler
+- Fix: this is T-001 applied to the prelude — serialize the analyzed prelude once and map it in,
+  instead of re-deriving it. Do it after T-001 rather than as a special case, or the compiler
   ends up with two module-loading mechanisms.
 
-### 7. Modules build one at a time
+### T-007 — Modules build one at a time
 
 - Problem: the job system parallelizes aggressively *within* a module — files, functions, jobs
   parked on symbol states — but the workspace scheduler runs modules serially. A `core` build
@@ -165,14 +165,14 @@ This entry is first in the tier because the three below cannot be judged without
   after another on a machine with 22 workers.
 - Fix: schedule modules on the dependency DAG instead of in sequence, sharing one job manager so
   the worker pool is not oversubscribed. The `compile-speed` branch already prototypes this;
-  finish it against entry 5's memory number, because N concurrent modules multiply peak memory
+  finish it against T-005's memory number, because N concurrent modules multiply peak memory
   by N.
 
 ---
 
 ## Tier C — What sits around the compiler
 
-### 8. There is no language server
+### T-008 — There is no language server
 
 - Problem: the VSCode extension contributes a TextMate grammar, themes, a task provider and a
   problem matcher — 90 lines of JavaScript. No completion, no go-to-definition, no hover, no
@@ -185,7 +185,7 @@ This entry is first in the tier because the three below cannot be judged without
   binary named `swag` with `-w:` and `-f:` argument syntax
   ([providers.js:23-25](../vscode/src/providers.js#L23-L25)); the binary is `swc` and the current
   parser rejects that syntax outright (`unknown command-line argument '-f:...'`).
-- Fix: LSP is a consumer of entries 1 and 2, not a parallel project. A server that must re-analyze
+- Fix: LSP is a consumer of T-001 and T-002, not a parallel project. A server that must re-analyze
   every dependency's 12 000 lines of generated source on each keystroke is not viable, and one
   with a serialized interface and per-file caching mostly falls out. Sequence it accordingly, and
   fix the extension's task commands now regardless.
@@ -201,7 +201,7 @@ give it up.
 
 **A package registry.** Dependency resolution is path-based today and that is a tooling question,
 not a compiler one. [todo.core.md](todo.core.md) already places the client side outside the
-standard library; the registry itself is a separate product, and it is gated on that file's entry 1
+standard library; the registry itself is a separate product, and it is gated on T-027
 anyway.
 
 **A second frontend.** The demand-driven job model in sema is the compiler's other structural

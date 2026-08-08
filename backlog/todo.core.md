@@ -41,7 +41,7 @@ The gaps are not about polish. Two of them are structural.
 These two entries are the difference between a standard library and a complete one. They are
 independent: neither blocks the other, and neither should be allowed to block everything else.
 
-### 1. No networking of any kind
+### T-027 — No networking of any kind
 
 - Problem: there are no sockets. No TCP, no UDP, no DNS resolution, no HTTP client or server, no
   TLS, no WebSocket. A Swag program cannot open a connection to anything.
@@ -53,13 +53,13 @@ independent: neither blocks the other, and neither should be allowed to block ev
   HTTP parser out of the module every program links. Staged:
   1. Sockets — TCP and UDP, blocking, with addresses and DNS resolution. Winsock on Windows, BSD
      sockets elsewhere. This is the layer everything else sits on.
-  2. Non-blocking and readiness notification. This is where the async design question in entry 10
+  2. Non-blocking and readiness notification. This is where the async design question in T-036
      becomes unavoidable, so decide that first rather than around it.
-  3. TLS. Depends on entry 5 for AES and the signature primitives. Consider binding the platform
+  3. TLS. Depends on T-031 for AES and the signature primitives. Consider binding the platform
      provider — Schannel, Secure Transport, OpenSSL — before writing one.
   4. HTTP/1.1 client, then server.
 
-### 2. The standard library is Windows-only
+### T-028 — The standard library is Windows-only
 
 - Problem: twenty-six `.win32.swg` files and zero POSIX, Linux or macOS implementations. Every
   `#os` check outside those files tests for Windows. `std/core` does not exist on another platform,
@@ -81,7 +81,7 @@ independent: neither blocks the other, and neither should be allowed to block ev
 
 ## Tier B — Present but too thin to use
 
-### 3. No JSON
+### T-029 — No JSON
 
 - Problem: `serialization` provides `ByteStream` and the reflection-driven `TagBin` binary format.
   There is no JSON, and no XML, TOML or YAML either.
@@ -93,7 +93,7 @@ independent: neither blocks the other, and neither should be allowed to block ev
   present — encoding a struct should need no schema and no annotations.
 - This is the highest value-to-effort entry in the module. Do it before anything in Tier C.
 
-### 4. Globalization is a stub that implies more than it delivers
+### T-030 — Globalization is a stub that implies more than it delivers
 
 - Problem: the whole area is twenty-nine lines. `CultureInfo` holds one `NumberFormatInfo`, which
   holds a negative sign, a positive sign and a decimal separator.
@@ -105,35 +105,35 @@ independent: neither blocks the other, and neither should be allowed to block ev
 - Related: `bin/apps` and `std/gui` now have localization work in flight on the `gui-resources`
   branch. Coordinate rather than building a second vocabulary.
 
-### 5. Cryptography has hashes but almost no ciphers
+### T-031 — Cryptography has hashes but almost no ciphers
 
 - Present: Adler-32, CRC-32, CRC-64, MD5, SHA-1, SHA-256, HMAC-SHA-256, PBKDF2, ChaCha20, and
   several non-cryptographic hashes.
 - Missing: AES — so no hardware-accelerated bulk encryption and no interoperability with the large
   amount of the world that speaks AES. Also missing: SHA-512, SHA-3, BLAKE2 and BLAKE3, Ed25519 and
   X25519 signatures and key agreement, and RSA.
-- Two entries elsewhere depend on this. Entry 1 needs AES and the signature primitives before TLS
+- Two entries elsewhere depend on this. T-027 needs AES and the signature primitives before TLS
   is possible. The sCrypt roadmap asks for Argon2id and a single-pass AEAD in this same folder —
-  see [todo.scrypt.md](todo.scrypt.md) entries 4 and 5. Do them as one campaign, not three.
+  see [T-088](todo.scrypt.md#t-088--the-crypto-primitives-are-scalar). Do them as one campaign, not three.
 
 ---
 
 ## Tier C — Coverage
 
-### 6. Archive formats
+### T-032 — Archive formats
 
 `compress` has raw deflate, inflate and a zlib wrapper, so the hard part is done. Missing: the
 gzip container, ZIP, and TAR. Reading a `.zip` is among the most common I/O tasks there is, and it
 is a thin layer over what already exists. Modern codecs — Zstandard, LZ4 — are a separate and
 lower-priority question.
 
-### 7. Time zones
+### T-033 — Time zones
 
 `time` handles UTC and local. There is no IANA zone database, no historical offsets, and no DST
 rules for an arbitrary zone. Any application that schedules or displays times across regions is
 stuck at the boundary.
 
-### 8. Missing collections
+### T-034 — Missing collections
 
 Present: `Array`, `ArrayPtr`, `BitArray`, `ConcatBuffer`, `HashSet`, `HashTable`, `List`,
 `StaticArray`. Missing, in order of how often they are wanted:
@@ -143,13 +143,13 @@ Present: `Array`, `ArrayPtr`, `BitArray`, `ConcatBuffer`, `HashSet`, `HashTable`
 - A deque or ring buffer.
 - A priority queue.
 
-### 9. Memory-mapped files and filesystem watching
+### T-035 — Memory-mapped files and filesystem watching
 
 Neither exists. Memory mapping matters for any large file read — the sCrypt container is one
 example already in the repository. Watching matters for any tool that reacts to edits, which
 includes anything this repository would want to build around the formatter or the compiler.
 
-### 10. Concurrency beyond parallel fan-out
+### T-036 — Concurrency beyond parallel fan-out
 
 `Jobs` gives parallel visiting and parallel loops, and there are atomics, mutexes, read-write locks
 and events. There is no future or task type, no channels, and no condition variable. There is no
@@ -157,11 +157,11 @@ asynchronous I/O.
 
 This is as much a language question as a library one — Go answered it with goroutines and channels,
 Rust with `async` and a futures machinery that reaches into the type system, .NET with `Task`. It
-should be decided deliberately and early, because entry 1 will force the question the moment
+should be decided deliberately and early, because T-027 will force the question the moment
 non-blocking sockets arrive, and answering it under that pressure is how libraries end up with two
 concurrency models.
 
-The language-design half is entry 4 of [todo.language.md](todo.language.md). Record decisions
+The language-design half is [T-012](todo.language.md#t-012--the-concurrency-model-is-undecided). Record decisions
 there, not here.
 
 ---
@@ -169,8 +169,8 @@ there, not here.
 ## Out of scope
 
 **A package registry client.** That belongs to the tooling around the compiler, not to the standard
-library, even after entry 1 makes it possible.
+library, even after T-027 makes it possible.
 
-**Bundling ICU.** Entry 4 should grow toward what applications need from the platform's own locale
+**Bundling ICU.** T-030 should grow toward what applications need from the platform's own locale
 data. Vendoring a multi-megabyte dependency into the module every program links is the wrong shape
 for that need.

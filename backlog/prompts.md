@@ -281,7 +281,7 @@ could read.
 ```
 You are running a code-quality campaign on the swc C++ sources. Read AGENTS.md and the skills it
 points to first - especially .agents/skills/modify-swag-codebase/references/cpp-coding-rules.md -
-then backlog/findings.tooling.md (F-037) and backlog/todo.compiler.md entry 3.
+then backlog/findings.tooling.md (F-037) and backlog/todo.compiler.md T-003.
 
 WORK IN A SEPARATE WORKTREE
 
@@ -364,7 +364,7 @@ Sema is 124 900 lines with essentially one C++ unit test, which is exactly why i
 to touch and exactly why it is where the mass is. Do not refactor sema blind: when a decision
 procedure is table-shaped and pure - overload ranking in Match.Func.cpp, cast legality, generic
 deduction in SemaGeneric.Deduce.cpp - write the table-driven C++ test FIRST in src/Unittest, then
-cut. That test is worth more than the lines it lets you remove, and it is entry 3 of
+cut. That test is worth more than the lines it lets you remove, and it is T-003 in
 backlog/todo.compiler.md.
 
 DO NOT STOP AT THE FIRST FAILURE
@@ -388,7 +388,7 @@ delta. Cumulative total at the top, so the number is one line at any moment.
 
 ```
 You are running a compile-speed campaign on swc. Read AGENTS.md and the skills it points to first,
-then backlog/todo.compiler.md entries 1, 2, 4, 6 and 7.
+then backlog/todo.compiler.md T-001, T-002, T-004, T-006 and T-007.
 
 WORK IN A SEPARATE WORKTREE
 
@@ -427,7 +427,7 @@ beating them. It is about the loop a person actually sits in.
 
 START BY BUILDING THE INSTRUMENT
 
-Do this before any optimization; nothing below can be judged without it, and it is entry 4 of
+Do this before any optimization; nothing below can be judged without it, and it is T-004 in
 backlog/todo.compiler.md.
 
 Today the only compiler-side numbers recorded anywhere are hello_build_ms and hello_build_peak_mb
@@ -460,7 +460,7 @@ They are not independent, and taking them out of order wastes the work:
 
   1. The module boundary is re-parsed Swag source. core publishes 16 files and 12 328 lines per
      configuration, and every dependent module lexes, parses and re-analyzes all of it. A binary
-     module interface, loaded lazily by name, is entry 1 and it unlocks 2, 6 and 8.
+     module interface, loaded lazily by name, is T-001 and it unlocks T-002, T-006 and T-008.
   2. Incrementality stops at the module. Editing one line rebuilds 291 files. Per-file frontend
      caching first, then per-function codegen caching - the second is where the win is and it is
      unreachable without lever 1.
@@ -505,7 +505,7 @@ and what it bought.
 
 ```
 You are running a memory campaign on swc. Read AGENTS.md and the skills it points to first, then
-backlog/todo.compiler.md entry 5.
+backlog/todo.compiler.md T-005.
 
 WORK IN A SEPARATE WORKTREE
 

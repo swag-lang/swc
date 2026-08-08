@@ -30,23 +30,23 @@ effects that makes a capture look produced, and output.
 
 ## Tier A — Table stakes
 
-### 1. Local output destinations
+### T-074 — Local output destinations
 
 - Problem: a capture leaves the application as a file, as a bitmap on the clipboard, or dragged
   out of the recent strip. Two ordinary destinations are still missing: copy-as-file rather than
   copy-as-bitmap, and printing.
 - Fix: copy-as-file is the drag-out data object seen from the clipboard side — `DragData` already
   builds every medium it needs, so what is missing is `OleSetClipboard` over the same object.
-  Printing is separate and depends on `pixel` roadmap entry 7 for vector output.
+  Printing is separate and depends on [T-054](todo.pixel.md#t-054--no-vector-output) for vector output.
 - Why first: the file half of this entry has shipped — both dialogs now offer every format the
   pixel codec registry supports — and so has drag-out: a thumbnail dragged out of the recent strip
   carries the capture as a PNG *and* as a bitmap, so a folder gets a file and a picture editor
   gets the picture.
 - Note: the PNG a drag offers is written to the temporary folder when the gesture starts, not when
-  the target asks for it, so a cancelled drag leaves the file behind. Deferred rendering is `gui`
-  roadmap entry 3.
+  the target asks for it, so a cancelled drag leaves the file behind. Deferred rendering is
+  [T-039](todo.gui.md#t-039--drag-and-drop-has-no-polish-layer).
 
-### 2. Grab Text
+### T-075 — Grab Text
 
 - Problem: no text recognition anywhere in the module. The Windows Snipping Tool has it, Snagit
   has it, ShareX has it. It has gone from a differentiator to an expectation.
@@ -56,7 +56,7 @@ effects that makes a capture look produced, and output.
 - Why this high: it is the most visible remaining reason to reach for the built-in tool instead of
   this one, and the platform does the hard part.
 
-### 3. Capture-level effects
+### T-076 — Capture-level effects
 
 - Problem: the style system is excellent per form, but the capture itself has no effects at all.
   `struct Capture` in `src/capture.swg` carries geometry, a background image, and a form list;
@@ -68,7 +68,7 @@ effects that makes a capture look produced, and output.
 - Why this high: this is Snagit's actual signature — not the annotations, the finish. It is also
   a natural fit for the existing architecture rather than a foreign subsystem.
 
-### 4. Configurable hotkeys and capture presets
+### T-077 — Configurable hotkeys and capture presets
 
 - Problem: `MainWnd.setupHotKeys` in `src/mainwnd.swg` registers four fixed combinations —
   PrintScreen, Ctrl+Shift+PrintScreen, Ctrl+PrintScreen, Alt+PrintScreen. There is no way to change
@@ -84,7 +84,7 @@ effects that makes a capture look produced, and output.
 
 ## Tier B — Structure and evolution
 
-### 5. The `.scapture` format has no version and no explicit schema
+### T-078 — The `.scapture` format has no version and no explicit schema
 
 - Problem: `Capture.save` and `Capture.load` in `src/capture.swg` serialize the live struct
   through `Encoder'Write.TagBin` with `IgnoreStructFieldError`. Compatibility is therefore a
@@ -96,10 +96,10 @@ effects that makes a capture look produced, and output.
 - Fix: an explicit format version in the file, a documented schema, and a load path that maps
   versions forward deliberately. The alias table then records history instead of carrying it.
 - Why here rather than Tier A: it is not blocking today, because additive changes are safe. It is
-  the thing that will make Tier A entry 3 more expensive than it needs to be, since capture-level
+  the thing that will make T-076 more expensive than it needs to be, since capture-level
   effects add persisted fields.
 
-### 6. Library tags and batch operations
+### T-079 — Library tags and batch operations
 
 - Problem: the library filters by date and by text, sorts, and has a trash — see
   `src/librarywnd.swg`. It has no tags, and no multi-select batch export or conversion.
@@ -113,7 +113,7 @@ effects that makes a capture look produced, and output.
 Both entries below are subsystems rather than features. They are what people actually buy Snagit
 for, and they are honestly expensive. Ship Tier A first.
 
-### 7. Scrolling capture
+### T-080 — Scrolling capture
 
 - Snagit's most-cited feature; ShareX has it too. Capture a window taller or wider than the screen
   by scrolling it and stitching the frames.
@@ -123,7 +123,7 @@ for, and they are honestly expensive. Ship Tier A first.
 - Sequence it after Tier A, and scope it to the common cases — a browser page, a document, a list
   view — rather than promising it works everywhere.
 
-### 8. Video and animated GIF recording
+### T-081 — Video and animated GIF recording
 
 - Snagit, ShareX and the Windows Snipping Tool all record video. sCapture does not.
 - Cost: the largest item on this list by a wide margin. It needs a frame capture loop, a hardware
@@ -136,23 +136,23 @@ for, and they are honestly expensive. Ship Tier A first.
 
 ## Tier D — Polish
 
-### 9. Templates and combined captures
+### T-082 — Templates and combined captures
 
 Snagit composes several captures into one laid-out image. The form model could express this
 already; what is missing is a layout description and the interface for it.
 
-### 10. Stamp library
+### T-083 — Stamp library
 
 A reusable graphics set placed as `FormImage` instances. Small, and it fits the existing model
 exactly. Must follow the identity rules in `design-swag-identity` rather than shipping generic
 clip art.
 
-### 11. Cross-platform capture backend
+### T-084 — Cross-platform capture backend
 
 `src/screenshot/screenshot.win32.swg` and the GDI dependency are the whole platform boundary on the
 capture side. The editor, the forms, the library, and the serialization are already portable.
 
-### 12. File naming convention drift
+### T-085 — File naming convention drift
 
 `build-swag-standard-apps` asks for dots between the named parts of a coherent file family, and
 warns against a prefix that repeats its own scope. `src/actions/actimage.swg` and its siblings
@@ -160,11 +160,11 @@ carry an `act` prefix that the `actions/` folder already provides; `action.image
 convention. Same question for `forms/formimage.swg`. Mechanical, low risk, and best done in one
 pass rather than drifting further.
 
-### 13. Module README
+### T-086 — Module README
 
 sCapture has none. The skill only requires one when setup, packaging, privileges, security, or
 third-party deployment need explanation, and today none of those apply — so this is a judgement
-call rather than a gap. It becomes required the moment entry 9 brings an encoder dependency in.
+call rather than a gap. It becomes required the moment T-081 brings an encoder dependency in.
 
 ---
 
@@ -173,7 +173,7 @@ call rather than a gap. It becomes required the moment entry 9 brings an encoder
 **Hosted share destinations.** Snagit lists more than twenty and ShareX more than eighty. Reaching
 them means embedding third-party OAuth credentials in a compiler repository and maintaining those
 integrations against other companies' API changes. Local outputs — clipboard, file, drag-out,
-print, `mailto` — cover the same need without shipping secrets. Entry 1 is deliberately scoped to
+print, `mailto` — cover the same need without shipping secrets. T-074 is deliberately scoped to
 those.
 
 **Machine-learning editing features.** Snagit's object detection and text replacement are model

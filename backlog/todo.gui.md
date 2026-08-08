@@ -36,7 +36,7 @@ The first three entries have the same shape: each one excludes a population of u
 each one is verifiable by looking at the window procedure. `src/surface.win32.swg` handles
 twenty-seven messages. What is absent from that list is this section.
 
-### 1. No accessibility
+### T-037 — No accessibility
 
 - Problem: `WM_GETOBJECT` is not handled anywhere in the module. That single message is how
   Windows asks an application to describe itself to assistive technology. Without it there is no
@@ -54,7 +54,7 @@ twenty-seven messages. What is absent from that list is this section.
   worth far more than none.
 - This is the single most important entry in any of the five module roadmaps.
 
-### 2. No input method support
+### T-038 — No input method support
 
 - Problem: no `WM_IME_STARTCOMPOSITION`, `WM_IME_COMPOSITION`, `WM_IME_ENDCOMPOSITION`,
   `WM_IME_SETCONTEXT` or `WM_IME_NOTIFY`. Text input is `WM_CHAR` and `WM_KEYDOWN` only.
@@ -66,7 +66,7 @@ twenty-seven messages. What is absent from that list is this section.
 - The caret geometry needed to position the candidate window is already computed — `EditBox`
   measures snapped caret positions today.
 
-### 3. Drag and drop has no polish layer
+### T-039 — Drag and drop has no polish layer
 
 Both directions ship. Every surface registers an `IDropTarget` as it is created, so nothing has to
 opt in: a `DragDropEvent` is routed to the window under the pointer and bubbles like any other
@@ -104,7 +104,7 @@ What is left is what makes it feel finished:
 
 ## Tier B — Present elsewhere, not on master
 
-### 4. Localization
+### T-040 — Localization
 
 - Landed with the `gui-resources` merge. Every application owns a `Resources.Bundle` in
   `Application.resources` — embedded content is the guaranteed fallback, a disk folder overrides
@@ -140,20 +140,21 @@ What is left is what makes it feel finished:
     resolver, and grids rebuilt on the notification already refresh themselves, and
     `sCrypt.MainWindow.retranslate` is the worked example of the manual half;
   - French is the only shipped translation, and `DateTime` month and day names stay English —
-    exactly the `Globalization` coordination this entry already pointed at (`core` roadmap
-    entry 5: number, date and name formats should live with the culture, and the language tag
+    exactly the `Globalization` coordination this entry already pointed at
+    ([T-030](todo.core.md#t-030--globalization-is-a-stub-that-implies-more-than-it-delivers):
+    number, date and name formats should live with the culture, and the language tag
     now flows through `Env.userLocaleName`).
 
-### 5. System integration events
+### T-041 — System integration events
 
 Three messages are not handled, and each one leaves the application stale in a way the user can see:
 
 - `WM_SETTINGCHANGE` — the system switched light and dark, or turned on high contrast, and the
   application does not notice. High contrast is also an accessibility requirement and belongs with
-  entry 1.
+  T-037.
 - `WM_DISPLAYCHANGE` — a monitor was added, removed or rearranged. `MainWnd`-style monitor lists
   built at startup go stale, and `sCapture` enumerates monitors for its per-screen capture.
-- `WM_INPUTLANGCHANGE` — the keyboard layout changed. Needed by entry 2.
+- `WM_INPUTLANGCHANGE` — the keyboard layout changed. Needed by T-038.
 
 Small, individually cheap, and each one is a visible defect rather than a missing feature.
 
@@ -161,7 +162,7 @@ Small, individually cheap, and each one is a visible defect rather than a missin
 
 ## Tier C — What a finished toolkit has
 
-### 6. The two halves of keyboard navigation that are still missing
+### T-042 — The two halves of keyboard navigation that are still missing
 
 Traversal itself landed: `FocusPolicy` says what takes the focus and what stops the keyboard,
 `FocusOrder` walks a surface in reading order, Tab and Shift+Tab move through the whole ring while
@@ -184,34 +185,34 @@ same story are not there yet.
   `Alt` is held, the way Windows does it. The menu bar is the other consumer, and it needs the same
   key to open at all.
 
-### 7. Animation
+### T-043 — Animation
 
 No easing, no transitions, no timeline, no property animator. Every toolkit in the comparison has
 one, and it is most of the difference between a UI that works and a UI that feels finished. It also
-needs a reduced-motion setting from the moment it exists, for the same reason as entry 1.
+needs a reduced-motion setting from the moment it exists, for the same reason as T-037.
 
-### 8. Touch, pen and gesture
+### T-044 — Touch, pen and gesture
 
 No `WM_POINTER`, `WM_TOUCH` or `WM_GESTURE`. Mouse and keyboard only. Most Windows laptops sold
 today have a touchscreen, and pen input matters directly for an annotation application like
 `sCapture`.
 
-### 9. A second platform
+### T-045 — A second platform
 
-Inherited from `core` roadmap entry 2, and gated by it: `surface.win32.swg`,
+Inherited from [T-028](todo.core.md#t-028--the-standard-library-is-windows-only), and gated by it: `surface.win32.swg`,
 `application.win32.swg`, `clipboard.win32.swg` and `cursor.win32.swg` are the platform surface
-here, and the boundary is already drawn. Note that entries 1, 2 and 3 each need a per-platform
+here, and the boundary is already drawn. Note that T-037, T-038 and T-039 each need a per-platform
 implementation, so sequencing matters — building them Windows-first and porting is cheaper than
 designing all three abstractly.
 
-### 10. Docking and multi-document layouts
+### T-046 — Docking and multi-document layouts
 
 No dockable panels, no tab-based document host, no floating tool windows. This is what
 tool-shaped applications want, and both applications in `bin/apps` are tool-shaped.
 
-### 11. Printing
+### T-047 — Printing
 
-No print path and no print preview. Depends on `pixel` roadmap entry 7 for vector output, since
+No print path and no print preview. Depends on [T-054](todo.pixel.md#t-054--no-vector-output) for vector output, since
 printing through a raster path is a poor substitute.
 
 ---

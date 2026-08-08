@@ -34,27 +34,32 @@ local workaround merely because the original request exposed it indirectly.
 The discovery backlog is not a promise that every item will be implemented, and not a substitute
 for fixing a root cause that is already safe and in scope.
 
-## Number Every Finding
+## Number Every Entry
 
-Every finding carries a permanent identifier in its heading:
+Every backlog entry — finding or todo — carries a permanent identifier in its heading:
 
 ```
 ### F-023 — A menu bar does not follow a live language switch
+### T-054 — No vector output
 ```
 
-The identifier is how a finding is named everywhere else — in conversation, in a commit message, in
-a `backlog/todo.*` entry, in a code comment. A title gets rewritten, a position moves, and an entry
+The identifier is how an entry is named everywhere else — in conversation, in a commit message, in
+another backlog entry, in a code comment. A title gets rewritten, a position moves, and an entry
 changes file; the identifier does not.
 
-- Take the next identifier from the `Next identifier` line in
-  [backlog/README.md](../../../backlog/README.md), then advance that line. It is the counter, not
-  the entry count: it keeps rising as entries are deleted, and it is shared by every
-  `findings.*` file.
+- Take the next identifier of the matching kind from the `Next identifier` lines in
+  [backlog/README.md](../../../backlog/README.md), then advance that line. Each is a counter, not
+  an entry count: it keeps rising as entries are deleted. The `F` counter is shared by every
+  `findings.*` file, the `T` counter by every `todo.*` file.
 - Never renumber and never reuse. A deleted entry takes its identifier with it, so `F-012` in an
   old commit message still means what it meant.
-- Keep each file sorted by identifier, ascending. A new entry always carries the highest identifier
-  of its file, so it goes at the end; a deleted one leaves a gap, and the gap stays. Position is
-  mechanical and carries no priority — it only makes an entry findable by its number.
+- Keep each `findings.*` file sorted by identifier, ascending. A new entry always carries the
+  highest identifier of its file, so it goes at the end; a deleted one leaves a gap, and the gap
+  stays. Position is mechanical and carries no priority — it only makes an entry findable by its
+  number. In a `todo.*` file, position IS priority: entries stay ordered by decreasing value, and
+  identifiers appear out of order.
+- A finding that graduates into a plan becomes a todo entry and takes a fresh `T` identifier; its
+  `F` identifier retires with it. Name the finding it came from in the new entry.
 
 ## Keep Findings And Roadmaps Apart
 

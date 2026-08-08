@@ -22,7 +22,7 @@ best-tested subsystem in the compiler. On option count it is already in clang-fo
 
 ---
 
-### 1. It cannot be used in CI, and cannot be used by an editor
+### T-016 — It cannot be used in CI, and cannot be used by an editor
 
 Three missing modes, all small, all blocking real use.
 
@@ -41,7 +41,7 @@ Three missing modes, all small, all blocking real use.
 - **No range formatting.** clang-format has `--lines` and `--offset/--length`; rustfmt and
   prettier have equivalents. Format-selection is the interaction people actually use.
 
-### 2. There is no canonical Swag style
+### T-017 — There is no canonical Swag style
 
 - Every option defaults to `Preserve`. Out of the box the formatter normalizes almost nothing;
   the repository's own style lives in `bin/.swc-format`.
@@ -52,7 +52,7 @@ Three missing modes, all small, all blocking real use.
   current `Preserve`-everything behavior kept as an explicit opt-out). This is a policy decision
   first and a small code change second, and it should be made before the option count grows again.
 
-### 3. Wrapping is greedy, and files that do not parse are skipped
+### T-018 — Wrapping is greedy, and files that do not parse are skipped
 
 - There is no penalty model or layout solver anywhere in `src/Format` — `Pass.Wrap.cpp` decides
   per construct, locally. clang-format solves a penalty function over the whole unwrapped line and

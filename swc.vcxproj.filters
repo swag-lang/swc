@@ -441,6 +441,9 @@
     <ClCompile Include="src\Backend\\Micro\Passes\Pass.PostRALoopHoist.cpp">
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.PostRALoopRotate.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
     <ClCompile Include="src\Backend\\Micro\Passes\Pass.PreRAPeephole.cpp">
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClCompile>
@@ -1260,6 +1263,9 @@
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\\Micro\Passes\Pass.PostRALoopHoist.h">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\\Micro\Passes\Pass.PostRALoopRotate.h">
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\\Micro\Passes\Pass.Peephole.Core.h">

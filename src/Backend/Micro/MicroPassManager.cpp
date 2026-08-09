@@ -17,6 +17,7 @@
 #include "Backend/Micro/Passes/Pass.MemToReg.h"
 #include "Backend/Micro/Passes/Pass.PostRADeadCodeElim.h"
 #include "Backend/Micro/Passes/Pass.PostRALoopHoist.h"
+#include "Backend/Micro/Passes/Pass.PostRALoopRotate.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.h"
 #include "Backend/Micro/Passes/Pass.PreRAPeephole.h"
 #include "Backend/Micro/Passes/Pass.PrologEpilog.h"
@@ -443,6 +444,7 @@ MicroPassManager::MicroPassManager()
     // Post-RA optimization passes
     postRaPeepholePass_     = std::make_unique<MicroPostRaPeepholePass>();
     postRaDeadCodeElimPass_ = std::make_unique<MicroPostRaDeadCodeElimPass>();
+    postRaLoopRotatePass_   = std::make_unique<MicroPostRaLoopRotatePass>();
     postRaLoopHoistPass_    = std::make_unique<MicroPostRaLoopHoistPass>();
 }
 
@@ -542,6 +544,14 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
         // the ones that survive, and inside the sweep loop so the dead-code pass
         // of the next iteration collects anything it strands.
         addPostRaOptimPass(*postRaLoopHoistPass_);
+        // Turns a `while`'s unconditional back edge into the test itself, which
+        // is what clang-cl and MSVC emit and one instruction per iteration
+        // cheaper. It runs here rather than pre-RA on purpose: the same rewrite
+        // before allocation also moves where the loop header sits, and the
+        // allocator reads that - it cost csvagg's digit loops the register
+        // holding their accumulator. After allocation there is no register left
+        // to lose.
+        addPostRaOptimPass(*postRaLoopRotatePass_);
     }
     addFinalPass(*prologEpilogSanitizePass_);
     addFinalPass(*emitPass_);

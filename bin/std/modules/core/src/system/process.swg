@@ -41,10 +41,7 @@ impl ProcessEnvironment
     // Returns the spelling under which the platform stores `name`.
     private func storedName(name: string)->String
     {
-        #static if WINDOWS do
-            return String.toUpper(name)
-        else do
-            return String.from(name)
+        return processEnvironmentStoredName(name)
     }
 
     // Returns how many variables the environment holds.

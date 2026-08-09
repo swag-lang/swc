@@ -107,9 +107,6 @@ struct AllocatorThreadHeap
 // the runtime never started, which is what lets an OS-owned callback thread give its pages back.
 private var g_AllocatorThreadHeapFlsId = AllocatorInvalidFlsId
 
-#[Swag.Tls]
-private var g_AllocatorThreadHeapFallback: #null *AllocatorThreadHeap
-
 struct Allocator
 {
     // Guards the diagnostic quarantine and the tracked-allocation list.
@@ -163,50 +160,36 @@ private func retireAllocatorThreadHeap(value: #null *void)
 
 private func allocatorThreadHeapFlsId()->u64
 {
-    #static if #os == Swag.TargetOs.Windows
+    let id = atomicGet(&g_AllocatorThreadHeapFlsId)
+    if id != AllocatorInvalidFlsId do
+        return id
+
+    let candidate = __hostThreadStorageAlloc(&retireAllocatorThreadHeap)
+    @assert(candidate != 0)
+
+    let previous = @atomcmpxchg(&g_AllocatorThreadHeapFlsId, AllocatorInvalidFlsId, candidate)
+    if previous != AllocatorInvalidFlsId
     {
-        let id = atomicGet(&g_AllocatorThreadHeapFlsId)
-        if id != AllocatorInvalidFlsId do
-            return id
-
-        let candidate = cast(u64) __Win32RT.FlsAlloc(&retireAllocatorThreadHeap)
-        @assert(candidate != AllocatorInvalidFlsId)
-
-        let previous = @atomcmpxchg(&g_AllocatorThreadHeapFlsId, AllocatorInvalidFlsId, candidate)
-        if previous != AllocatorInvalidFlsId
-        {
-            discard __Win32RT.FlsFree(cast(u32) candidate)
-            return previous
-        }
-
-        return candidate
+        __hostThreadStorageFree(candidate)
+        return previous
     }
-    else do
-        return 0
+
+    return candidate
 }
 
 func currentAllocatorThreadHeap()->#null *AllocatorThreadHeap
 {
-    #static if #os == Swag.TargetOs.Windows do
-        return cast(#null *AllocatorThreadHeap) __Win32RT.FlsGetValue(cast(u32) allocatorThreadHeapFlsId())
-    else do
-        return g_AllocatorThreadHeapFallback
+    return cast(#null *AllocatorThreadHeap) __hostThreadStorageGet(allocatorThreadHeapFlsId())
 }
 
 private func setCurrentAllocatorThreadHeap(heap: #null *AllocatorThreadHeap)
 {
-    #static if #os == Swag.TargetOs.Windows do
-        @assert(__Win32RT.FlsSetValue(cast(u32) allocatorThreadHeapFlsId(), heap) != 0)
-    else do
-        g_AllocatorThreadHeapFallback = heap
+    @assert(__hostThreadStorageSet(allocatorThreadHeapFlsId(), heap))
 }
 
 private func currentThreadId()->u64
 {
-    #static if #os == Swag.TargetOs.Windows do
-        return __Win32RT.GetCurrentThreadId()
-    else do
-        return 1
+    return __hostCurrentThreadId()
 }
 
 impl Allocator
@@ -323,18 +306,13 @@ impl Allocator
     mtd osAlloc(size: u64)->#null [*] u8
     {
         let rounded = memAlign(size, cast(u32) AllocatorCommitGranularity)
-
-        #static if #os == Swag.TargetOs.Windows
+        let address = __hostPageReserve(rounded)
+        if !address do
+            return null
+        if !__hostPageCommit(address, rounded)
         {
-            let address = cast(#null [*] u8) __Win32RT.VirtualAlloc(null, rounded, __Win32RT.MEM_RESERVE | __Win32RT.MEM_COMMIT, __Win32RT.PAGE_READWRITE)
-            if !address do
-                return null
-        }
-        else
-        {
-            let address = cast(#null [*] u8) @alloc(rounded)
-            if !address do
-                return null
+            __hostPageRelease(address, rounded)
+            return null
         }
 
         atomicAddU64(&g_AllocatorCommittedBytes, rounded)
@@ -347,22 +325,14 @@ impl Allocator
     // writes it rather than at the next consistency check.
     mtd osAllocGuarded(commitBytes: u64)->#null [*] u8
     {
-        #static if #os == Swag.TargetOs.Windows
+        let reservedBytes = commitBytes + AllocatorCommitGranularity
+        let address       = __hostPageReserve(reservedBytes)
+        if !address do
+            return null
+        if !__hostPageCommit(address, commitBytes)
         {
-            let address = cast(#null [*] u8) __Win32RT.VirtualAlloc(null, commitBytes + AllocatorCommitGranularity, __Win32RT.MEM_RESERVE, __Win32RT.PAGE_READWRITE)
-            if !address do
-                return null
-            if !__Win32RT.VirtualAlloc(address, commitBytes, __Win32RT.MEM_COMMIT, __Win32RT.PAGE_READWRITE)
-            {
-                discard __Win32RT.VirtualFree(address, 0, __Win32RT.MEM_RELEASE)
-                return null
-            }
-        }
-        else
-        {
-            let address = cast(#null [*] u8) @alloc(commitBytes)
-            if !address do
-                return null
+            __hostPageRelease(address, reservedBytes)
+            return null
         }
 
         atomicAddU64(&g_AllocatorCommittedBytes, commitBytes)
@@ -375,10 +345,7 @@ impl Allocator
         if !address do
             return
 
-        #static if #os == Swag.TargetOs.Windows do
-            discard __Win32RT.VirtualFree(address, 0, __Win32RT.MEM_RELEASE)
-        else do
-            @free(cast(#null [*] void) address)
+        __hostPageRelease(address, size)
 
         atomicSubU64(&g_AllocatorCommittedBytes, size)
         atomicAddU64(&g_AllocatorOsDecommitCount, 1)

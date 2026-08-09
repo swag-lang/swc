@@ -53,7 +53,7 @@ namespace __Win32RT
         func DebugBreak()
         func LoadLibraryA(name: const *u8)->#null *void
         func TlsAlloc()->u32
-        func TlsSetValue(dwTlsIndex: u32, lpTlsValue: #null *void)
+        func TlsSetValue(dwTlsIndex: u32, lpTlsValue: #null *void)->BOOL
         func TlsGetValue(dwTlsIndex: u32)->#null *void
         func FlsAlloc(lpCallback: #null PFLS_CALLBACK_FUNCTION)->u32
         func FlsFree(dwFlsIndex: u32)->BOOL
@@ -69,6 +69,57 @@ namespace __Win32RT
     {
         func MessageBoxA(hWnd: #null const *void, lpText: const *void, lpCaption: const *void, uType: u32)->s32
     }
+}
+
+// Windows implementation of the host primitives used by common allocator and TLS policy.
+const AllocatorHostCommitGranularity = 4096'u64
+
+func __hostTlsAlloc()->u64                           => __Win32RT.TlsAlloc()
+func __hostTlsGet(id: u64)->#null *void              => __Win32RT.TlsGetValue(cast(u32) id)
+func __hostTlsSet(id: u64, value: #null *void)->bool => __Win32RT.TlsSetValue(cast(u32) id, value) != 0
+
+func __hostThreadStorageAlloc(cleanup: #null func(#null *void))->u64
+{
+    let slot = __Win32RT.FlsAlloc(cleanup)
+    return slot == 0xFFFF_FFFF ? 0 : cast(u64) slot + 1
+}
+
+func __hostThreadStorageFree(id: u64)
+{
+    if id do
+        discard __Win32RT.FlsFree(cast(u32) (id - 1))
+}
+
+func __hostThreadStorageGet(id: u64)->#null *void
+{
+    return id ? __Win32RT.FlsGetValue(cast(u32) (id - 1)) : null
+}
+
+func __hostThreadStorageSet(id: u64, value: #null *void)->bool
+{
+    return id != 0 and __Win32RT.FlsSetValue(cast(u32) (id - 1), value) != 0
+}
+
+func __hostCurrentThreadId()->u64 => __Win32RT.GetCurrentThreadId()
+
+func __hostPageReserve(size: u64)->#null [*] u8
+{
+    return cast(#null [*] u8) __Win32RT.VirtualAlloc(null, size, __Win32RT.MEM_RESERVE, __Win32RT.PAGE_READWRITE)
+}
+
+func __hostPageCommit(address: #null *void, size: u64)->bool
+{
+    return __Win32RT.VirtualAlloc(address, size, __Win32RT.MEM_COMMIT, __Win32RT.PAGE_READWRITE) != null
+}
+
+func __hostPageDecommit(address: #null *void, size: u64)
+{
+    discard __Win32RT.VirtualFree(address, size, __Win32RT.MEM_DECOMMIT)
+}
+
+func __hostPageRelease(address: #null *void, _size: u64)
+{
+    discard __Win32RT.VirtualFree(address, 0, __Win32RT.MEM_RELEASE)
 }
 
 ////////////////////////////////////////////////////////////
@@ -308,89 +359,6 @@ func __exit()
     __Win32RT.ExitProcess(0)
 }
 
-func __tlsAlloc() => cast(u64) __Win32RT.TlsAlloc()
-func __tlsSetValue(id: u64, value: *void) => __Win32RT.TlsSetValue(cast(u32) id, value)
-func __tlsGetValue(id: u64)->#null *void  => __Win32RT.TlsGetValue(cast(u32) id)
-
-////////////////////////////////////////////////////////////
-// Returns the current thread's runtime context, lazily creating it on a thread
-// the runtime has never seen (an OS-owned callback thread, e.g. xaudio2).
-func __tlsGetPtr(id: u64, size: u64, init: const *void)->#null *void
-{
-    using __Win32RT
-    var ptr = TlsGetValue(cast(u32) id)
-    if ptr do
-        return ptr
-    ptr = @alloc(size)
-    @memcpy(ptr, init, size)
-    TlsSetValue(cast(u32) id, ptr)
-
-    // The lazily-created context starts zeroed, which is unusable: the first
-    // allocation on such a thread would call through a null allocator interface,
-    // and one that "succeeds" through a mismatched allocator corrupts the heap.
-    // Install the default runtime allocator (the TLS slot is set above first, so
-    // the @getcontext() inside __runtimeAllocator resolves to this context).
-    discard __runtimeAllocator()
-
-    return ptr
-}
-
-////////////////////////////////////////////////////////////
-// Releases the copy a thread made of a thread-local global.
-private func __releaseTlsVar(value: #null *void)
-{
-    if value do
-        @free(cast(#null [*] void) value)
-}
-
-// Returns the calling thread's copy of a thread-local global, creating it on first access.
-//
-// 'idSlot' is module storage holding the storage index for that one global, claimed on first use;
-// 'init' is the module's copy of its declared initial value, which every thread starts from. The
-// copy comes from the C allocator rather than the Swag one, because the Swag allocator itself
-// reaches this path and would otherwise recurse. Fiber-local storage is used rather than the plain
-// thread slot so that the copy is released when the thread ends, including on a thread the runtime
-// never started.
-func __tlsVarPtr(idSlot: *u64, size: u64, init: const *void)->#null *void
-{
-    using __Win32RT
-
-    var id = @atomcmpxchg(idSlot, 0, 0)
-    if id == 0
-    {
-        // Windows guarantees only 128 fiber-local indices, which is one per thread-local global.
-        // Running out has to be said out loud: carrying on would hand every thread the same copy,
-        // which is exactly the bug this attribute exists to prevent.
-        let slot = FlsAlloc(&__releaseTlsVar)
-        if slot == 0xFFFF_FFFF do
-            @panic("too many thread-local globals for the platform", #curlocation)
-
-        // The index is stored biased by one so that zero keeps meaning "not claimed yet".
-        let claimed  = cast(u64) slot + 1
-        let previous = @atomcmpxchg(idSlot, 0, claimed)
-        if previous == 0 do
-            id = claimed
-        else
-        {
-            discard FlsFree(cast(u32) (claimed - 1))
-            id = previous
-        }
-    }
-
-    let index = cast(u32) (id - 1)
-    let known = FlsGetValue(index)
-    if known do
-        return known
-
-    let created = @alloc(size)
-    if !created do
-        return null
-
-    @memcpy(created, init, size)
-    discard FlsSetValue(index, created)
-    return created
-}
-
 ////////////////////////////////////////////////////////////
 func __exitError()
 {
@@ -398,116 +366,53 @@ func __exitError()
 }
 
 ////////////////////////////////////////////////////////////
-// Native #test runner. In test mode the startup thunk calls every #test through
-// __runTest so a failing test (assert/panic) is reported and counted without
-// stopping the remaining tests, then __testsDone prints the tally on a marker line
-// the compiler parses back. A failing test is abandoned by restoring the CPU
-// context captured before the call (no unwinding), which matches the
-// abort-the-process semantics a test panic had before: no destructor runs in the
-// abandoned frames.
+// Windows context recovery for the common native #test runner. A failed test is abandoned without
+// unwinding, matching the process-abort semantics a native panic had before tests could continue.
+private var g_TestContextBuf: [1360] u8
 
-var g_TestContextBuf: [1360] u8
-var g_TestFailed:     bool
-var g_TestRunning:    bool
-var g_TestThreadId:   __Win32RT.DWORD
-var g_TestsExecuted:  u32
-var g_TestsFailedCnt: u32
-
-func __testResumeContext()->*void
+private func __hostTestResumeContext()->*void
 {
     // RtlCaptureContext/RtlRestoreContext require a 16-byte aligned CONTEXT.
     let addr = cast(u64) &g_TestContextBuf[0]
     return cast(*void) ((addr + 15) & 0xFFFF_FFFF_FFFF_FFF0)
 }
 
-func __testPanicHandler(message: #null string, loc: Swag.SourceCodeLocation)
+func __hostTestResume()
 {
-    // Drop the hook first so a panic raised while printing takes the default path.
-    @getcontext().panic = null
-    __printPanicReport(message, loc)
-    g_TestFailed = true
-    __Win32RT.RtlRestoreContext(__testResumeContext(), null)
+    __Win32RT.RtlRestoreContext(__hostTestResumeContext(), null)
 }
 
-// Last-chance rescue for hardware faults (access violation, division by zero...)
-// raised by the running test on the test thread. Anything else (worker threads,
-// faults outside a test) keeps the default fatal behavior.
-func __testUnhandledFilter(exceptionPointers: *void)->s32
+// Keeps the captured frame alive while a test runs. A panic or hardware fault restores this
+// context, then returns through this function to the common runner.
+#[Swag.Optimize(false)]
+func __hostTestCall(fn: *void)
 {
-    if !g_TestRunning or __Win32RT.GetCurrentThreadId() != g_TestThreadId do
+    __Win32RT.RtlCaptureContext(__hostTestResumeContext())
+    if g_TestFailed do
+        return
+
+    let call = cast(func()) fn
+    call()
+}
+
+private func __hostTestUnhandledFilter(exceptionPointers: *void)->s32
+{
+    if !g_TestRunning or __hostCurrentThreadId() != g_TestThreadId do
         return 0     // EXCEPTION_CONTINUE_SEARCH
 
     let record = dref cast(*const *u32) exceptionPointers
-    @print("\n#test stops on hardware exception ", cast(s64) dref record, "\n")
-    g_TestFailed = true
-    __Win32RT.RtlRestoreContext(__testResumeContext(), null)
+    __testHardwareException(dref record)
     return 0
 }
 
-// A test executable launched without the 'swag.test' run-arg (started by hand rather
-// than by the compiler's test command, which always passes it) behaves like the plain
-// application: the startup thunk still calls the runner, but every #test is skipped
-// and #main runs on a state no test has touched.
-func __isTestRun()->bool
+func __hostTestInstallHardwareFilter()->#null *void
 {
-    for arg in @args
-    {
-        if @stringcmp(arg, "swag.test") do
-            return true
-    }
-
-    return false
+    return __Win32RT.SetUnhandledExceptionFilter(cast() &__hostTestUnhandledFilter)
 }
 
-// Optimizations stay off: after a panic resume, execution re-enters the middle of
-// this function with the registers captured before the test ran, so every local
-// must live on the stack, not in a register the test call could have recycled.
-#[Swag.Optimize(false)]
-func __runTest(fn: *void)
+func __hostTestRestoreHardwareFilter(previous: #null *void)
 {
-    if !__isTestRun() do
-        return
-
-    g_TestsExecuted += 1
-    g_TestFailed    = false
-    g_TestThreadId  = __Win32RT.GetCurrentThreadId()
-
-    let cxt            = @getcontext()
-    let previousPanic  = cxt.panic
-    let previousFilter = __Win32RT.SetUnhandledExceptionFilter(cast() &__testUnhandledFilter)
-    cxt.panic = cast() &__testPanicHandler
-
-    __Win32RT.RtlCaptureContext(__testResumeContext())
-
-    // A failing test lands here a second time through the panic handler or the
-    // unhandled-exception filter.
-    if g_TestFailed
-    {
-        g_TestsFailedCnt += 1
-        g_TestRunning    = false
-        cxt.panic        = previousPanic
-        discard __Win32RT.SetUnhandledExceptionFilter(previousFilter)
-        return
-    }
-
-    g_TestRunning = true
-    let call = cast(func()) fn
-    call()
-    g_TestRunning = false
-
-    cxt.panic = previousPanic
-    discard __Win32RT.SetUnhandledExceptionFilter(previousFilter)
-}
-
-func __testsDone()
-{
-    if !__isTestRun() do
-        return
-
-    // Marker parsed by the compiler's test command to report the native tally.
-    @print("[swag.test] executed=", cast(s64) g_TestsExecuted, " failed=", cast(s64) g_TestsFailedCnt, "\n")
-    if g_TestsFailedCnt do
-        __exitError()
+    discard __Win32RT.SetUnhandledExceptionFilter(previous)
 }
 
 func __captureStack(skip: u32, wh: [..] *void)->u32
@@ -517,178 +422,45 @@ func __captureStack(skip: u32, wh: [..] *void)->u32
     return nb
 }
 
-// Self-symbolization. The linker embeds a `.swagdbg` section in every image (a per-function table of
-// name + source file/line keyed by image-relative address); the runtime reads it directly, so stack
-// traces need neither a PDB nor dbghelp. A one-entry cache avoids re-parsing the PE for consecutive
-// frames in the same module.
-struct __SwagSym
+// Returns the image that owns an address without changing its loader reference count.
+func __hostImageBaseForAddress(address: *void)->#null *void
 {
-    found:   bool   = false
-    hasLine: bool   = false
-    name:    string = ""
-    file:    string = ""
-    line:    u32    = 0
+    var result: #null *void
+    if __Win32RT.GetModuleHandleExA(6, cast(const *u8) address, &result) == 0 do
+        return null
+    return result
 }
 
-var __dbgCacheBase:    #null *void  = null
-var __dbgCacheSection: #null [*] u8 = null
-var __dbgCacheCount:   u32          = 0
-var __dbgCacheValid:   bool         = false
+private func __peU16(p: [*] u8, off: u64)->u16 => dref cast(*u16) &p[off]
+private func __peU32(p: [*] u8, off: u64)->u32 => dref cast(*u32) &p[off]
 
-func __peU16(p: [*] u8, off: u64)->u16 => dref cast(*u16) &p[off]
-func __peU32(p: [*] u8, off: u64)->u32 => dref cast(*u32) &p[off]
-
-func __dbgFindSection(base: #null *void)
+// Locates the linker-owned `.swagdbg` payload in one Windows PE image.
+func __hostDebugSection(base: *void)->#null [*] u8
 {
-    __dbgCacheBase    = base
-    __dbgCacheValid   = false
-    __dbgCacheSection = null
-    __dbgCacheCount   = 0
-    if base == null do
-        return
+    let image   = cast([*] u8) base
+    let ntOff   = cast(u64) __peU32(image, 0x3C)
+    let count   = __peU16(image, ntOff + 6)
+    let optSize = __peU16(image, ntOff + 20)
+    var section = ntOff + 24 + cast(u64) optSize
 
-    let b      = cast([*] u8) base
-    let ntOff  = cast(u64) __peU32(b, 0x3C)
-    let nSec   = __peU16(b, ntOff + 6)
-    let optSz  = __peU16(b, ntOff + 20)
-    var secOff = ntOff + 24 + cast(u64) optSz
-
-    let want = ".swagdbg"
-    for [s] in nSec
+    let wanted = ".swagdbg"
+    for [index] in count
     {
-        var match = true
-        for [k] in 8
+        var matches = true
+        for [byte] in 8 where image[section + cast(u64) byte] != cast(u8) wanted[byte]
         {
-            if b[secOff + cast(u64) k] != cast(u8) want[k]
-            {
-                match = false
-                break
-            }
+            matches = false
+            break
         }
 
-        if match
+        if matches
         {
-            let rva    = __peU32(b, secOff + 12)
-            let secPtr = cast([*] u8) &b[cast(u64) rva]
-            __dbgCacheSection = secPtr
-            __dbgCacheCount   = __peU32(secPtr, 8)
-            __dbgCacheValid   = true
-            return
+            let rva = __peU32(image, section + 12)
+            return cast([*] u8) &image[cast(u64) rva]
         }
 
-        secOff += 40
-    }
-}
-
-func __dbgStr(off: u32)->string
-{
-    if off == 0 do
-        return ""
-
-    // Callers only symbolize once '__dbgCacheValid' guarantees the section pointer.
-    let sec = __dbgCacheSection!
-    let p   = cast([*] u8) &sec[cast(u64) off]
-    return @mkstring(p, @countof(cast(cstring) p))
-}
-
-func __symbolize(addr: *void)->__SwagSym
-{
-    using __Win32RT
-    var r: __SwagSym
-
-    // GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS(4) | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT(2)
-    var h: #null *void = null
-    if GetModuleHandleExA(6, cast(const *u8) addr, &h) == 0 do
-        return r
-    if h != __dbgCacheBase do
-        __dbgFindSection(h)
-    if !__dbgCacheValid do
-        return r
-
-    let rva = cast(u32) (cast(u64) addr - cast(u64) h)
-
-    // '__dbgCacheValid' guarantees the section pointer.
-    let sec = __dbgCacheSection!
-    for [i] in __dbgCacheCount
-    {
-        let e     = 16 + cast(u64) i * 20
-        let erva  = __peU32(sec, e)
-        let esize = __peU32(sec, e + 4)
-        if rva >= erva and rva < erva + esize
-        {
-            r.found = true
-            r.name  = __dbgStr(__peU32(sec, e + 8))
-            let fileOff = __peU32(sec, e + 12)
-            if fileOff != 0
-            {
-                r.hasLine = true
-                r.file    = __dbgStr(fileOff)
-                r.line    = __peU32(sec, e + 16)
-            }
-
-            return r
-        }
+        section += 40
     }
 
-    return r
-}
-
-func __logStackTrace(wh: [..] *void, startAfter: #null *Swag.SourceCodeLocation = null, printNoLine = true)
-{
-    var hasStarted = false
-
-    for [i] in @countof(wh)
-    {
-        let info = __symbolize(wh[i])
-        if !info.hasLine and !printNoLine do
-            continue
-
-        // Do not print the call until a given location has been reached.
-        if !hasStarted and startAfter
-        {
-            if !info.hasLine do
-                continue
-            if startAfter.lineStart != info.line do
-                continue
-            let afterName = startAfter.fileName
-            if @countof(info.file) != @countof(afterName) do
-                continue
-
-            // The counts match, so a null 'afterName' means both paths are empty
-            // and the comparison loop has nothing to do.
-            var samePath = true
-            if afterName != null
-            {
-                for [it] in @countof(info.file)
-                {
-                    if info.file[it] == afterName[it] do
-                        continue
-                    if info.file[it] == '\\' and afterName[it] == '/' do
-                        continue
-                    if info.file[it] == '/' and afterName[it] == '\\' do
-                        continue
-                    samePath = false
-                    break
-                }
-            }
-
-            if !samePath do
-                continue
-            hasStarted = true
-            continue
-        }
-
-        hasStarted = true
-
-        if info.found do
-            @print(info.name)
-
-        if info.hasLine
-        {
-            @print(" --> ")
-            @print(info.file, ":", info.line)
-        }
-
-        @print("\n")
-    }
+    return null
 }

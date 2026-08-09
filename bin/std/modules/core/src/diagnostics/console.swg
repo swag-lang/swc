@@ -42,6 +42,22 @@ func silent(value: bool)
     g_SilentMode += value ? 1 : -1
 }
 
+// Writes a formatted message unless console output is silent.
+func printf(message: #null string, params: ...)
+{
+    if g_SilentMode or message == null do
+        return
+
+    let safeMessage = message orelse ""
+    if @countof(params)
+    {
+        let rendered = Format.toString(safeMessage, params)
+        writeNative(rendered)
+    }
+    else do
+        writeNative(safeMessage)
+}
+
 // Write a bunch of parameters to the console
 func print(params: ...)
 {

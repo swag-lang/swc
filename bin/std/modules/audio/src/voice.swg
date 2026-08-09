@@ -1,4 +1,4 @@
-using Core, Core.Errors, Win32
+using Core, Core.Errors
 
 // Selects optional backend capabilities for a new voice.
 #[Swag.EnumFlags]

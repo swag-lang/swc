@@ -62,9 +62,9 @@ var g_App: Application
     if !Env.hasArgument("--hide") do
         surface.show()
 
-    // Show the app icon in the notification area (system tray). Right-clicking it
-    // is delivered to MainWnd.onSysUserEvent as a WM_USER event; the icon is removed
-    // automatically when the surface is destroyed.
+    // Show the app icon in the notification area (system tray). Portable tray actions
+    // are delivered to MainWnd.onSysUserEvent; the icon is removed automatically when
+    // the surface is destroyed.
     surface.setTrayIcon(appIcon, "sCapture")
 
     with Env

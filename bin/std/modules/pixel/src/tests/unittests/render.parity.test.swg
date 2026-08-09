@@ -1,6 +1,6 @@
 #global if #command == Swag.CompilerCommand.Test
 
-using Swag, Core, Win32
+using Swag, Core
 
 private const RenderParityWidth = 192
 private const RenderParityHeight = 128
@@ -33,11 +33,11 @@ private func renderCpu(scene: RenderParityScene)->Image
 
 private func renderOgl(className, title: string, width, height: s32, scene: RenderParityScene)->Image fail
 {
-    var window = try Env.createWindow({className: className, title: title, width: width, height: height})
+    var window = try Env.createWindow({identifier: className, title: title, width: width, height: height})
 
     var ogl:      RenderOgl
     let renderer: IRenderer = &ogl
-    var context             = try renderer.createContext(cast(#null const *void) window.nativeHandle, width, height)
+    var context             = try renderer.createContext(window.nativeRenderHandle(), width, height)
     defer renderer.deleteContext(&context)
 
     renderer.setCurrentContext(context)

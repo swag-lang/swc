@@ -78,11 +78,11 @@ using Swag, Core
     @assert(file.channelCount == 2)
     @assert(file.bitsPerSample == 24)
     @assert(file.validBitsPerSample == 20)
-    @assert(file.channelMask == 3)
+    @assert(file.waveSpeakerMask == 3)
     @assert(file.frameCount == 2)
     @assert(file.dataSize == 12)
     @assert(file.availableFields.has(.ValidBitsPerSample))
-    @assert(file.availableFields.has(.ChannelMask))
+    @assert(file.availableFields.has(.SpeakerMask))
     @assert(audioAssertBytes(file.data.toSlice(), [0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x7F, 0x34, 0x12, 0x00]))
 }
 
@@ -96,11 +96,11 @@ using Swag, Core
     @assert(file.channelCount == 1)
     @assert(file.bitsPerSample == 32)
     @assert(file.validBitsPerSample == 32)
-    @assert(file.channelMask == 4)
+    @assert(file.waveSpeakerMask == 4)
     @assert(file.frameCount == 2)
     @assert(file.dataSize == 8)
     @assert(file.availableFields.has(.ValidBitsPerSample))
-    @assert(file.availableFields.has(.ChannelMask))
+    @assert(file.availableFields.has(.SpeakerMask))
 }
 
 #test

@@ -25,9 +25,8 @@ const AllocatorMediumUnitShift = 3'u32
 const AllocatorArenaSize = 1'u64 << 30
 const AllocatorMaxArenas = 16'u32
 
-// Windows commits at 4 KiB granularity even though it reserves at 64 KiB, so a page's units are
-// committed and decommitted at the finer grain and the header keeps its own prefix.
-const AllocatorCommitGranularity = 4096'u64
+// The host commit unit determines the segment-header prefix and every commit/decommit boundary.
+const AllocatorCommitGranularity = AllocatorHostCommitGranularity
 
 private const AllocatorSegmentMagic = 0x5347_4D45_4E54_0001'u64
 
@@ -153,10 +152,7 @@ func atomicAddU64(addr: *u64, delta: u64)
 // segment-aligned window always fits inside it, because a reservation cannot be released in parts.
 private func osReserve(size: u64)->#null [*] u8
 {
-    #static if #os == Swag.TargetOs.Windows do
-        return cast(#null [*] u8) __Win32RT.VirtualAlloc(null, size, __Win32RT.MEM_RESERVE, __Win32RT.PAGE_READWRITE)
-    else do
-        return cast(#null [*] u8) @alloc(size)
+    return __hostPageReserve(size)
 }
 
 func allocatorOsCommit(address: u64, size: u64)->bool
@@ -164,11 +160,8 @@ func allocatorOsCommit(address: u64, size: u64)->bool
     if size == 0 do
         return true
 
-    #static if #os == Swag.TargetOs.Windows
-    {
-        if !__Win32RT.VirtualAlloc(cast(*void) address, size, __Win32RT.MEM_COMMIT, __Win32RT.PAGE_READWRITE) do
-            return false
-    }
+    if !__hostPageCommit(cast(*void) address, size) do
+        return false
 
     atomicAddU64(&g_AllocatorCommittedBytes, size)
     atomicAddU64(&g_AllocatorOsCommitCount, 1)
@@ -180,8 +173,7 @@ func allocatorOsDecommit(address: u64, size: u64)
     if size == 0 do
         return
 
-    #static if #os == Swag.TargetOs.Windows do
-        discard __Win32RT.VirtualFree(cast(*void) address, size, __Win32RT.MEM_DECOMMIT)
+    __hostPageDecommit(cast(*void) address, size)
 
     atomicSubU64(&g_AllocatorCommittedBytes, size)
     atomicAddU64(&g_AllocatorOsDecommitCount, 1)

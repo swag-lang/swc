@@ -93,7 +93,7 @@ func createShader()
 
 #main
 {
-    g_Window  = try Env.createWindow({className: "OPENGL2_CLASS_NAME", title: "OpenGL example", width: 512, height: 512})
+    g_Window  = try Env.createWindow({identifier: "opengl2", title: "OpenGL example", width: 512, height: 512})
     g_Context = try Ogl.Platform.Win32.createContext(&g_Window)
     defer g_Context.destroy()
     glInitExtensions()

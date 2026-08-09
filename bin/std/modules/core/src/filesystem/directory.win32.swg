@@ -4,46 +4,15 @@
 
 using Win32
 
-// Performs the create operation.
-func create(dirname: string) fail
+func createNative(dirname: string) fail
 {
-    try Env.guardWrite(dirname)
     let winPath = Utf16.toZeroTerminated(dirname)
     catch CreateDirectoryW(@dataof(winPath), null) as err
     Errors.transformWinErrors(err, dirname)
 }
 
-// Deletes the directory 'dirName'.
-//
-// The directory must be empty unless 'recurse' is set, in which case its files and
-// subdirectories are deleted first. Deletion is not atomic: when a nested entry
-// cannot be removed, the entries already deleted stay deleted.
-func delete(dirName: string, recurse = false) fail
+func deleteEmptyNative(dirName: string) fail
 {
-    try Env.guardWrite(dirName)
-
-    if recurse
-    {
-        var options: EnumerationOptions
-        options.wantFiles       = true
-        options.wantDirectories = true
-        let entries = try enumerate(dirName, options)
-        for entry in entries
-        {
-            // Both branches are braced on purpose: after `if ... do try X()`, a
-            // trailing `else` would bind to the `try` as its failure handler, not
-            // to the `if`.
-            if entry.isDirectory()
-            {
-                try delete(entry.fullname.toString(), recurse: true)
-            }
-            else
-            {
-                try File.delete(entry.fullname.toString())
-            }
-        }
-    }
-
     let winPath = Utf16.toZeroTerminated(dirName)
     catch RemoveDirectoryW(@dataof(winPath)) as err
     Errors.transformWinErrors(err, dirName)
@@ -65,97 +34,44 @@ func exists(dirName: string)->bool
     return true
 }
 
-// Enumerate a directory
-func enumerate(dirName: #null string, options: EnumerationOptions)->Array'(File.FileInfo) fail
+// Enumerates exactly one directory and returns normalized metadata for every native entry.
+func enumerateOneNative(dirName: string)->Array'(File.FileInfo) fail
 {
     using File
-    var result: retval
-    if dirName == null do
-        return result
-
-    var findfile:  WIN32_FIND_DATAW
-    var fi:        FileInfo
-    var fileTime:  SYSTEMTIME
-    var stackPath: Array'String
-
+    var result:   retval
+    var findfile: WIN32_FIND_DATAW
+    var fileTime: SYSTEMTIME
     let dataof = cast(const [*] u16) @dataof(findfile.cFileName)
+    var toScan = String.from(dirName)
+    if toScan.back() == Path.VolumeSeparator do
+        toScan += Path.DirectorySeparator
+    let searchPath = Path.combine(toScan.toString(), "*")
 
-    stackPath.add(String.from(dirName))
-    while !stackPath.isEmpty()
+    let winPath = Utf16.toZeroTerminated(searchPath)
+    let handle  = try FindFirstFileExW(@dataof(winPath), .FindExInfoBasic, &findfile, .FindExSearchNameMatch, null, FIND_FIRST_EX_LARGE_FETCH)
+    if handle == INVALID_HANDLE_VALUE do
+        return result
+    defer expect FindClose(handle)
+
+    for
     {
-        var toScan = stackPath.popBack()
-        if toScan.back() == Path.VolumeSeparator do
-            toScan += Path.DirectorySeparator
-        let searchPath = Path.combine(toScan.toString(), "*")
+        let fileName = Utf8.fromUtf16(@mkslice(dataof, Utf16.lengthZeroTerminated(dataof)))
+        var info: FileInfo
+        info.fullname   = Path.combine(toScan.toString(), fileName.toString())
+        info.attributes = FileAttributes.fromDWORD(findfile.dwFileAttributes)
+        info.size       = findfile.nFileSizeLow + (cast(u64) findfile.nFileSizeHigh << 32)
 
-        let winPath = Utf16.toZeroTerminated(searchPath)
-        let h       = try FindFirstFileExW(@dataof(winPath), .FindExInfoBasic, &findfile, .FindExSearchNameMatch, null, FIND_FIRST_EX_LARGE_FETCH)
-        if h == INVALID_HANDLE_VALUE do
-            continue
+        catch FileTimeToSystemTime(&findfile.ftCreationTime, &fileTime)
+        info.creationTime.setWallClock(Time.wallClockFields(fileTime))
+        catch FileTimeToSystemTime(&findfile.ftLastAccessTime, &fileTime)
+        info.lastAccessTime.setWallClock(Time.wallClockFields(fileTime))
+        catch FileTimeToSystemTime(&findfile.ftLastWriteTime, &fileTime)
+        info.lastWriteTime.setWallClock(Time.wallClockFields(fileTime))
+        result.add(#move info)
 
-        for
-        {
-            let filename = Utf8.fromUtf16(@mkslice(dataof, Utf16.lengthZeroTerminated(dataof)))
-
-            // Filter by file/folder
-            var mustAdd = false
-            if findfile.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY
-            {
-                if filename != "." and filename != ".."
-                {
-                    mustAdd = options.wantDirectories
-                    if options.recurse
-                    {
-                        var newPath = Path.combine(toScan.toString(), filename.toString())
-                        stackPath.add(#move newPath)
-                    }
-                }
-                else do
-                    mustAdd = options.wantSpecialDirectories
-            }
-            else do
-                mustAdd = options.wantFiles
-
-            // Add file/folder to the result
-            if mustAdd
-            {
-                fi.attributes = FileAttributes.fromDWORD(findfile.dwFileAttributes)
-                if !(fi.attributes & options.skipAttributes)
-                {
-                    fi.fullname = Path.combine(toScan, filename.toString())
-
-                    fi.size = findfile.nFileSizeLow + (cast(u64) findfile.nFileSizeHigh << 32)
-                    catch FileTimeToSystemTime(&findfile.ftCreationTime, &fileTime)
-                    fi.creationTime.setSystemTime(fileTime)
-                    catch FileTimeToSystemTime(&findfile.ftLastAccessTime, &fileTime)
-                    fi.lastAccessTime.setSystemTime(fileTime)
-                    catch FileTimeToSystemTime(&findfile.ftLastWriteTime, &fileTime)
-                    fi.lastWriteTime.setSystemTime(fileTime)
-
-                    mustAdd = false
-                    if options.matchExtension and Path.hasExtension(fi.fullname, options.matchExtension orelse "") do
-                        mustAdd = true
-                    elif options.matchFileName and filename == options.matchFileName do
-                        mustAdd = true
-                    elif !options.matchExtension and !options.matchFileName do
-                        mustAdd = true
-
-                    if mustAdd
-                    {
-                        if !options.filterLambda or options.filterLambda(fi)
-                        {
-                            result.add(#move fi)
-                        }
-                    }
-                }
-            }
-
-            let next = catch FindNextFileW(h, &findfile)
-            if !next do
-                break
-        }
-
-        expect FindClose(h)
+        let next = catch FindNextFileW(handle, &findfile)
+        if !next do
+            break
     }
 
     return result

@@ -10,7 +10,7 @@ enum SoundFileFields
     Format                 // The source encoding is known.
     SampleRate             // The sample rate is known.
     ChannelCount           // The number of interleaved channels is known.
-    ChannelMask            // The speaker-position mask is known.
+    SpeakerMask            // The WAVE speaker-position mask is known.
     BitsPerSample          // The storage width of one channel sample is known.
     Duration               // The duration in seconds is known.
     FrameCount             // The number of sample frames is known.
@@ -51,7 +51,7 @@ struct SoundFile
         availableFields:    SoundFileFields     // Properties validated by the loader.
         sampleRate:         u32                 // Sample frames per second, in hertz.
         channelCount:       u32                 // Number of interleaved channels.
-        channelMask:        u32                 // Windows speaker-position bit mask, when present.
+        waveSpeakerMask:    u32                 // WAVE speaker-position bit mask, when present.
         bitsPerSample:      u32                 // Storage width of one channel sample, in bits.
         durationSeconds:    f32                 // Playback duration in seconds.
         validBitsPerSample: u16                 // Significant bits per sample, at most `bitsPerSample`.
@@ -88,7 +88,7 @@ impl SoundFile
     mtd const numChannels()->u32 => .channelCount
 
     // Returns the speaker-position mask, or zero when the source omits it.
-    mtd const speakerChannelMask()->u32 => .channelMask
+    mtd const speakerChannelMask()->u32 => .waveSpeakerMask
 
     // Returns the storage width of one channel sample, in bits.
     mtd const sampleStorageBits()->u32 => .bitsPerSample

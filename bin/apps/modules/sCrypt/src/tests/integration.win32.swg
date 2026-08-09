@@ -83,7 +83,7 @@ namespace Integration
 
     func findFreeMountPoint()->String fail
     {
-        let available = File.availableDriveLetters()
+        let available = WinFsp.availableDriveLetters()
         for [offset] in 23
         {
             let index = 25'u32 - cast(u32) offset

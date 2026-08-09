@@ -1,4 +1,4 @@
-using Core, Win32, Gdi32, Pixel
+using Core, Pixel
 
 // Ease-out one component of the auto-selection rectangle toward its target. Advancing
 // a fraction of the remaining distance each frame makes long jumps (e.g. moving from

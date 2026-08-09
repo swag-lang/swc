@@ -195,24 +195,21 @@ impl IWnd for MainWnd
 
     mtd impl onSysUserEvent(evt: *SysUserEvent)
     {
-        #static if #os == Swag.TargetOs.Windows
+        switch evt.kind
         {
-            switch evt.message
+        case .TrayIcon:
+            if evt.trayAction == .Activate
             {
-            case Win32.WM_USER:
-                if evt.param1 == Win32.WM_LBUTTONDBLCLK
-                {
-                    let srf = .surface!
-                    srf.show()
-                    srf.bringToFront()
-                }
-                elif evt.param1 == Win32.WM_RBUTTONDOWN do
-                    .popupBar()
-
-            case Win32.WM_USER + 1:
-                if Clipboard.hasString() do
-                    .loadExternalImage(Clipboard.getString())
+                let srf = .surface!
+                srf.show()
+                srf.bringToFront()
             }
+            elif evt.trayAction == .ContextMenu do
+                .popupBar()
+
+        case .CustomMessage:
+            if evt.messageId == 1 and Clipboard.hasString() do
+                .loadExternalImage(Clipboard.getString())
         }
     }
 

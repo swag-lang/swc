@@ -1,4 +1,4 @@
-using Core, Gdiplus, Pixel, Win32
+using Core, Gdiplus, Pixel
 
 const W                   = 1260
 const H                   = 940
@@ -9,8 +9,6 @@ const OutlineFontSize     = 48'u32
 const OutlineBorder       = 5.5
 const OutlineShadowMargin = 14
 const OutlineSuperSample  = 3
-
-const FixedWindowStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_CLIPSIBLINGS | WS_CLIPCHILDREN
 
 enum OutlineMode
 {
@@ -505,11 +503,11 @@ func onResize(window: *Env.Window, width, height: s32)
 
 #main
 {
-    g_Window = try Env.createWindow({className: "PIXEL6_CLASS_NAME", title: "Pixel example - text outline quality", width: W, height: H, style: FixedWindowStyle})
+    g_Window = try Env.createWindow({identifier: "pixel6", title: "Pixel example - text outline quality", width: W, height: H, flags: .Minimizable})
     try g_Window.setClientSize(W, H)
     g_Render  = &g_Renderer
     g_Painter = Pixel.Painter.create(g_Render)
-    g_RC      = try g_Render.createContext(cast(#null const *void) g_Window.nativeHandle, W, H)
+    g_RC      = try g_Render.createContext(g_Window.nativeRenderHandle(), W, H)
     defer g_Render.deleteContext(&g_RC)
     g_Render.setCurrentContext(g_RC)
     g_Render.init()

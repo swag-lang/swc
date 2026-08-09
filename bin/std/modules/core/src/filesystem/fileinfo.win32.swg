@@ -19,11 +19,11 @@ func info(fullname: string)->FileInfo fail
 
     var fileTime: SYSTEMTIME
     catch FileTimeToSystemTime(&attrDatas.ftCreationTime, &fileTime)
-    result.creationTime.setSystemTime(fileTime)
+    result.creationTime.setWallClock(Time.wallClockFields(fileTime))
     catch FileTimeToSystemTime(&attrDatas.ftLastAccessTime, &fileTime)
-    result.lastAccessTime.setSystemTime(fileTime)
+    result.lastAccessTime.setWallClock(Time.wallClockFields(fileTime))
     catch FileTimeToSystemTime(&attrDatas.ftLastWriteTime, &fileTime)
-    result.lastWriteTime.setSystemTime(fileTime)
+    result.lastWriteTime.setWallClock(Time.wallClockFields(fileTime))
 
     return result
 }

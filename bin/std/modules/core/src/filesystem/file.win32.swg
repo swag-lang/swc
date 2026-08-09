@@ -4,36 +4,23 @@
 
 using Win32
 
-// Delete the specified file
-//
-// The deletion is permanent: it does not go through the recycle bin.
-func delete(fullName: string) fail
+func deleteNative(fullName: string) fail
 {
-    try Env.guardWrite(fullName)
     let winPath = Utf16.toZeroTerminated(fullName)
     catch DeleteFileW(@dataof(winPath)) as err
     Errors.transformWinErrors(err, fullName)
 }
 
-// Moves `oldName` to `newName`, replacing whatever is already there.
-//
-// The move is atomic when both paths sit on one volume, and a copy followed by a delete when
-// they do not, which is what makes it work across drives at the cost of that guarantee.
-func move(newName, oldName: string) fail
+func moveNative(newName, oldName: string) fail
 {
-    try Env.guardWrite(oldName)
-    try Env.guardWrite(newName)
-
     let winOld = Utf16.toZeroTerminated(oldName)
     let winNew = Utf16.toZeroTerminated(newName)
     catch MoveFileExW(@dataof(winOld), @dataof(winNew), MOVEFILE_REPLACE_EXISTING | MOVEFILE_COPY_ALLOWED) as err
     Errors.transformWinErrors(err, oldName)
 }
 
-// Change the file write date/time
-func touch(fullName: string) fail
+func touchNative(fullName: string) fail
 {
-    try Env.guardWrite(fullName)
     let winPath = Utf16.toZeroTerminated(fullName)
 
     let hFile = catch CreateFileW(@dataof(winPath), FILE_WRITE_ATTRIBUTES, 0, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null) as err
@@ -64,17 +51,8 @@ func exists(fullName: string)->bool
     return true
 }
 
-// Open a new file stream
-func open(fullName: string, mode: FileMode, access: FileAccess, share: FileShare)->FileStream fail
+func openNative(fullName: string, mode: FileMode, access: FileAccess, share: FileShare)->FileHandle fail
 {
-    // A write access is the only way a stream can alter the file system, so the sandbox is
-    // checked here rather than on every subsequent write.
-    if access & FileAccess.Write do
-        try Env.guardWrite(fullName)
-
-    var result: retval
-
-    // Open mode
     var wMode: DWORD
     switch mode
     {
@@ -86,19 +64,15 @@ func open(fullName: string, mode: FileMode, access: FileAccess, share: FileShare
     case .Truncate:     wMode = TRUNCATE_EXISTING
     }
 
-    // Read/Write mode
-    var wAccess:           DWORD
-    var canRead, canWrite: bool
+    var wAccess: DWORD
     if access & FileAccess.Read
     {
-        canRead = true
         wAccess |= GENERIC_READ
     }
 
     if access & FileAccess.Write
     {
-        canWrite = true
-        wAccess  |= GENERIC_WRITE
+        wAccess |= GENERIC_WRITE
     }
 
     // Share mode
@@ -110,26 +84,17 @@ func open(fullName: string, mode: FileMode, access: FileAccess, share: FileShare
     if share & FileShare.Delete do
         wShare |= FILE_SHARE_DELETE
 
+    var security:    SECURITY_ATTRIBUTES
+    var securityPtr: #null *SECURITY_ATTRIBUTES
+    if share.has(.Inheritable)
+    {
+        security.nLength        = #sizeof(SECURITY_ATTRIBUTES)
+        security.bInheritHandle = TRUE
+        securityPtr             = &security
+    }
+
     let winPath = Utf16.toZeroTerminated(fullName)
-    let hFile   = catch CreateFileW(@dataof(winPath), wAccess, wShare, null, wMode, FILE_ATTRIBUTE_NORMAL, null) as err
+    let hFile   = catch CreateFileW(@dataof(winPath), wAccess, wShare, securityPtr, wMode, FILE_ATTRIBUTE_NORMAL, null) as err
     Errors.transformWinErrors(err, fullName)
-
-    result.open(fullName, cast(FileHandle) hFile, canRead, canWrite, true)
-
-    if mode == FileMode.Append do
-        result.seek(.End, 0)
-
-    return result
-}
-
-// Creates a new file stream for reading
-func openRead(fullName: string)->FileStream fail
-{
-    return open(fullName, FileMode.Open, FileAccess.Read, FileShare.Read)
-}
-
-// Creates a new file stream for writing
-func openWrite(fullName: string)->FileStream fail
-{
-    return open(fullName, FileMode.Create, FileAccess.Write, FileShare.Zero)
+    return cast(FileHandle) hFile
 }

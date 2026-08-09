@@ -699,6 +699,35 @@ private impl Application
     }
 }
 
+internal impl Application
+{
+    mtd dispatchHotKey(modifiers: Input.KeyModifiers, key: Input.Key)
+    {
+        let {id, target} = .hotKeyShortcut(modifiers, key)
+        if id and target do
+            target.sendCommandEvent(id)
+    }
+
+    // Finds the visible surface at a screen position.
+    mtd surfaceAt(x, y: f32)->#null *Surface
+    {
+        if .renderer.needsNativeWindow() do
+            return .surfaceAtNative(x, y)
+
+        for surface in .surfaces
+        {
+            if surface.isHidden do
+                continue
+            if .modalSurfaces.count and surface != .modalSurfaces.back() do
+                continue
+            if surface.position.contains(Math.Point{x, y}) do
+                return surface
+        }
+
+        return null
+    }
+}
+
 impl Application
 {
     // Releases resources owned by this value.

@@ -3,49 +3,25 @@
 
 using Win32
 
-impl DateTime
+internal func wallClockFields(systemTime: SYSTEMTIME)->WallClockFields
 {
-    mtd setSystemTime(systemTime: SYSTEMTIME)
-    {
-        .day         = systemTime.wDay
-        .month       = systemTime.wMonth
-        .year        = systemTime.wYear
-        .hour        = systemTime.wHour
-        .minute      = systemTime.wMinute
-        .second      = systemTime.wSecond
-        .millisecond = systemTime.wMilliseconds
-    }
+    return {systemTime.wYear,
+            systemTime.wMonth,
+            systemTime.wDay,
+            systemTime.wHour,
+            systemTime.wMinute,
+            systemTime.wSecond,
+            systemTime.wMilliseconds}
 }
 
-public impl DateTime
+internal func readWallClock(kind: WallClockKind)->WallClockFields
 {
-    // Returns the current UTC date and time.
-    func utcNow()->DateTime
+    var systemTime: SYSTEMTIME
+    switch kind
     {
-        var systemTime: SYSTEMTIME = undefined
-        GetSystemTime(&systemTime)
-
-        var result: retval = undefined
-        result.setSystemTime(systemTime)
-        return result
+    case .Utc:   GetSystemTime(&systemTime)
+    case .Local: GetLocalTime(&systemTime)
     }
 
-    // Returns a DateTime containing the current date and time
-    func now()->DateTime
-    {
-        var systemTime: SYSTEMTIME = undefined
-        GetLocalTime(&systemTime)
-
-        var result: retval = undefined
-        result.setSystemTime(systemTime)
-        return result
-    }
-
-    // Initialize the structure with the current local date and time
-    mtd setNow()
-    {
-        var systemTime: SYSTEMTIME = undefined
-        GetLocalTime(&systemTime)
-        .setSystemTime(systemTime)
-    }
+    return wallClockFields(systemTime)
 }

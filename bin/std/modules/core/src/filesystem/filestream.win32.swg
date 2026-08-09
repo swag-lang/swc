@@ -6,127 +6,57 @@ using Win32
 
 impl FileStream
 {
-    // Releases resources owned by this value.
-    mtd opDrop()
+    mtd readNative(buffer: *void, length: u32)->u32 fail
     {
-        .close()
+        var read: DWORD
+        if !ReadFile(.handle, buffer, length, &read, null) do
+            failWinError(GetLastError())
+        return read
     }
 
-    // Reads at most `length` bytes and returns the number of bytes read.
-    mtd read(buffer: #null *void, length: u64)->u64 fail
+    mtd writeNative(buffer: const *void, length: u32)->u32 fail
     {
-        Debug.assert(.isOpen())
-        Debug.assert(.canRead)
-
-        if !length do
-            return 0
-
-        var total = 0'u64
-        let bytes = cast([*] u8) buffer!
-        while total < length
-        {
-            let chunk = cast(u32) Math.min(length - total, cast(u64) Swag.U32.Max)
-            var read: DWORD
-            if !ReadFile(.handle, bytes + total, chunk, &read, null) do
-                failWinError(GetLastError())
-            total += read
-            if read < chunk do
-                break
-        }
-
-        return total
+        var written: DWORD
+        discard catch WriteFile(.handle, buffer, length, &written, null) as err
+        Errors.transformWinErrors(err)
+        return written
     }
 
-    // Writes `length` bytes and returns the number of bytes written.
-    mtd write(buffer: #null const *void, length: u64)->u64 fail
+    mtd closeNative()
     {
-        Debug.assert(.isOpen())
-        Debug.assert(.canWrite)
-
-        if !length do
-            return 0
-
-        var total = 0'u64
-        let bytes = cast(const [*] u8) buffer!
-        while total < length
-        {
-            let chunk = cast(u32) Math.min(length - total, cast(u64) Swag.U32.Max)
-            var written: DWORD
-            discard catch WriteFile(.handle, bytes + total, chunk, &written, null) as err
-            Errors.transformWinErrors(err)
-            total += written
-            if !written do
-                break
-        }
-
-        return total
+        CloseHandle(.handle)
     }
 
-    // Close the given file stream
-    mtd close()
+    mtd sizeNative()->u64 fail
     {
-        if .handle
-        {
-            CloseHandle(.handle)
-            .handle = null
-        }
-    }
-
-    // Returns the current file length in bytes.
-    mtd size()->u64 fail
-    {
-        Debug.assert(.isOpen())
-        Debug.assert(.canSeek)
-
         var result: LARGE_INTEGER
         catch GetFileSizeEx(cast(HANDLE) .handle, &result) as err
         Errors.transformWinErrors(err, .name)
         return cast(u64) result
     }
 
-    // Changes the file length while preserving the current position when it remains in range.
-    // Shrinking past the current position leaves the position at the new end of the file.
-    mtd resize(newSize: u64) fail
+    mtd resizeNative() fail
     {
-        Debug.assert(.isOpen())
-        Debug.assert(.canSeek)
-        Debug.assert(.canWrite)
-
-        let oldPosition = .position()
-        .seek(.Begin, newSize)
         catch SetEndOfFile(cast(HANDLE) .handle) as err
         Errors.transformWinErrors(err, .name)
-        .seek(.Begin, Math.min(oldPosition, newSize))
     }
 
-    // Commits buffered file data and metadata to the underlying device.
-    mtd flush() fail
+    mtd flushNative() fail
     {
-        Debug.assert(.isOpen())
-        Debug.assert(.canWrite)
-
         catch FlushFileBuffers(cast(HANDLE) .handle) as err
         Errors.transformWinErrors(err, .name)
     }
 
-    // Returns the current absolute byte position.
-    mtd position()->u64 fail
+    mtd positionNative()->u64 fail
     {
-        Debug.assert(.isOpen())
-        Debug.assert(.canSeek)
-
         var result: LARGE_INTEGER
         catch SetFilePointerEx(cast(HANDLE) .handle, 0, &result, FILE_CURRENT) as err
         Errors.transformWinErrors(err, .name)
         return cast(u64) result
     }
 
-    // Moves to `offset` bytes from `origin`.
-    mtd seek(origin: SeekOrigin, offset: u64) fail
+    mtd seekNative(origin: SeekOrigin, offset: u64) fail
     {
-        Debug.assert(.isOpen())
-        Debug.assert(.canSeek)
-
         var seekMode: DWORD
         switch origin
         {
@@ -140,11 +70,5 @@ impl FileStream
         // cannot be addressed through it at all.
         catch SetFilePointerEx(cast(HANDLE) .handle, cast(LARGE_INTEGER) offset, null, seekMode) as err
         Errors.transformWinErrors(err, .name)
-    }
-
-    // Advances by `count` bytes from the current position.
-    mtd skip(count: u64) fail
-    {
-        .seek(.Current, count)
     }
 }

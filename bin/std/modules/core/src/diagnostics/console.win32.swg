@@ -76,26 +76,10 @@ public func resetColor()
     catch SetConsoleTextAttribute(g_StdOutputHandle, g_StdOutputInitAttr)
 }
 
-// Write a formatted message to the console
-public func printf(message: #null string, params: ...)
+internal func writeNative(message: string)
 {
-    if g_SilentMode do
-        return
-    if message == null do
-        return
-
-    let safeMessage = message orelse ""
-    if @countof(params)
-    {
-        let str = Format.toString(safeMessage, params)
-        let len = cast(u32) @countof(str)
-        catch WriteFile(g_StdOutputHandle, @dataof(str), len, null, null)
-    }
-    else
-    {
-        let len = cast(u32) @countof(safeMessage)
-        catch WriteFile(g_StdOutputHandle, @dataof(safeMessage), len, null, null)
-    }
+    let length = cast(u32) @countof(message)
+    catch WriteFile(g_StdOutputHandle, @dataof(message), length, null, null)
 }
 
 // Wait for using input, and returns the corresponding string

@@ -6,12 +6,12 @@ impl IRenderer for RenderCpu
 {
     mtd const impl needsNativeWindow()->bool => false
 
-    mtd impl createContext(nativeWindow: #null const *void, width, height: s32, shared: #null *RenderContext = null)->RenderContext fail
+    mtd impl createContext(renderHandle: #null const *void, width, height: s32, shared: #null *RenderContext = null)->RenderContext fail
     {
-        Debug.assert(nativeWindow == null, "CPU renderer contexts do not use a native window")
+        Debug.assert(renderHandle == null, "CPU renderer contexts do not use a platform drawable")
         Debug.assert(width > 0 and height > 0, "renderer context dimensions must be positive")
         discard shared
-        return {nativeWindow, null, width, height}
+        return {renderHandle, null, width, height}
     }
 
     mtd impl deleteContext(context: *RenderContext)

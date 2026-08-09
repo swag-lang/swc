@@ -1,142 +1,64 @@
 #global if WINDOWS
-#global public
 #global namespace Threading
 
 using Win32
 
-private func threadEntry(param: #null *void)->DWORD
+const MaxThreadWaitCount = MAXIMUM_WAIT_OBJECTS
+
+func sleepNative(milliseconds: u32)
 {
-    let safeParam = param!
-    let th        = cast(*Thread) safeParam
-    @setcontext(th.context)
-    let lambda = th.userLambda
-    if !lambda do
-        return 0
-    let safeLambda = lambda orelse func(th: Thread) {}
-    safeLambda(dref th)
-    th.context.tempAllocator.release()
-    Swag.releaseAllocatorThreadCache()
-    return 0
+    Sleep(milliseconds)
 }
 
-// Wait multiple threads
-func wait(threads: *Thread...)
+func yieldNative()
 {
-    var handles: [MAXIMUM_WAIT_OBJECTS] HANDLE
-
-    var startIndex: u64 = 0
-    var total           = @countof(threads)
-    while total > 0
-    {
-        let toTreat = Math.min(MAXIMUM_WAIT_OBJECTS, cast(u32) total)
-        for [i] in toTreat
-        {
-            let threadIndex = startIndex + cast(u64) i
-            Debug.assert(threads[threadIndex].isValid())
-            handles[i] = threads[threadIndex].handle
-        }
-
-        expect WaitForMultipleObjects(toTreat, &handles[0], TRUE, INFINITE)
-        startIndex += cast(u64) toTreat
-        total      -= toTreat
-    }
-
-    // Close all
-    for th in threads
-    {
-        CloseHandle(th.handle)
-        th.handle = null
-    }
+    SwitchToThread()
 }
 
-impl Thread
+func createSuspendedNative(entry: func(#null *void)->u32, param: *void, id: *u64)->ThreadHandle fail
 {
-    // Suspends the current thread for at least `duration`.
-    func sleep(duration: Time.Duration)
-    {
-        var remaining = duration.milliseconds()
-        while remaining > Swag.U32.Max - 1
-        {
-            Sleep(Swag.U32.Max - 1)
-            remaining -= Swag.U32.Max - 1
-        }
+    var nativeId: DWORD
+    let handle = try CreateThread(null, 0, entry, param, CREATE_SUSPENDED, &nativeId)
+    dref id = nativeId
+    return cast(ThreadHandle) handle
+}
 
-        Sleep(cast(u32) remaining)
+func startNative(handle: ThreadHandle) fail
+{
+    try ResumeThread(handle)
+}
+
+func setPriorityNative(handle: ThreadHandle, priority: ThreadPriority) fail
+{
+    var nativePriority = 0
+    switch #complete priority
+    {
+    case .Lowest:      nativePriority = THREAD_PRIORITY_LOWEST
+    case .BelowNormal: nativePriority = THREAD_PRIORITY_BELOW_NORMAL
+    case .Normal:      nativePriority = THREAD_PRIORITY_NORMAL
+    case .AboveNormal: nativePriority = THREAD_PRIORITY_ABOVE_NORMAL
+    case .Highest:     nativePriority = THREAD_PRIORITY_HIGHEST
     }
 
-    // Yields the remainder of the current thread's time slice.
-    func yield()
-    {
-        SwitchToThread()
-    }
+    try SetThreadPriority(handle, nativePriority)
+}
 
-    // Initialize a thread in pause state
-    mtd init(lambda: func||(Thread), userParam: #null *void = null, priority = ThreadPriority.Normal, tempAllocSize: s32 = -1) fail
-    {
-        Debug.assert(!.isValid(), "thread already created")
+func waitOneNative(handle: ThreadHandle)
+{
+    expect WaitForSingleObject(handle, INFINITE)
+}
 
-        // Get a copy of current context, and initialize a temporary allocator for that thread
-        .context = dref @getcontext()
-        @init(&.context.tempAllocator, 1)
-        let alloc = .context.allocator!
-        if tempAllocSize < 0 do
-            .context.tempAllocator.setCapacity(.context.tempAllocator.capacity, alloc)
-        elif tempAllocSize != 0 do
-            .context.tempAllocator.setCapacity(cast(u64) tempAllocSize, alloc)
+func waitManyNative(handles: const [..] ThreadHandle)
+{
+    expect WaitForMultipleObjects(cast(u32) @countof(handles), cast(const *HANDLE) @dataof(handles), TRUE, INFINITE)
+}
 
-        .handle     = try CreateThread(null, 0, &threadEntry, me, CREATE_SUSPENDED, &.id)
-        .userLambda = lambda
-        .requestEnd = false
+func isDoneNative(handle: ThreadHandle)->bool
+{
+    return expect WaitForSingleObject(handle, 0) != WAIT_TIMEOUT
+}
 
-        .userParam = userParam
-        try .setPriority(priority)
-    }
-
-    // Resume the given thread, if it was paused
-    mtd start() fail
-    {
-        Debug.assert(.isValid())
-        try ResumeThread(.handle)
-    }
-
-    // Set the thread priority
-    mtd setPriority(priority: ThreadPriority) fail
-    {
-        Debug.assert(.isValid())
-
-        let newPrio = priority
-        if .priority == newPrio do
-            return
-        .priority = newPrio
-
-        var wprio = 0
-        switch #complete newPrio
-        {
-        case .Lowest:      wprio = THREAD_PRIORITY_LOWEST
-        case .BelowNormal: wprio = THREAD_PRIORITY_BELOW_NORMAL
-        case .Normal:      wprio = THREAD_PRIORITY_NORMAL
-        case .AboveNormal: wprio = THREAD_PRIORITY_ABOVE_NORMAL
-        case .Highest:     wprio = THREAD_PRIORITY_HIGHEST
-        }
-
-        try SetThreadPriority(.handle, wprio)
-    }
-
-    // Wait for the given thread to be done, and close it
-    // After that call, isValid() will return false
-    mtd wait()
-    {
-        Debug.assert(.isValid())
-        expect WaitForSingleObject(.handle, INFINITE)
-        CloseHandle(.handle)
-        .handle = null
-    }
-
-    // Returns true if the thread has finished
-    mtd isDone()->bool
-    {
-        Debug.assert(.isValid())
-        let res = expect WaitForSingleObject(.handle, 0)
-        return res != WAIT_TIMEOUT
-    }
+func closeNative(handle: ThreadHandle)
+{
+    CloseHandle(handle)
 }

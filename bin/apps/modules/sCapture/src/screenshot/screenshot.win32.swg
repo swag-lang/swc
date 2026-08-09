@@ -20,6 +20,27 @@ namespace CaptureNative
     }
 }
 
+// Restores the caller's DPI-awareness context when a capture operation ends.
+#[Swag.NoCopy]
+struct CapturePlatformScope
+{
+    previous: DPI_AWARENESS_CONTEXT
+}
+
+impl CapturePlatformScope
+{
+    mtd opDrop()
+    {
+        discard SetThreadDpiAwarenessContext(.previous)
+    }
+}
+
+// Enters the native coordinate context required by the Windows capture backend.
+func beginCapturePlatformScope()->CapturePlatformScope
+{
+    return {SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)}
+}
+
 internal
 {
     var g_HitTest: POINT

@@ -4,17 +4,9 @@
 
 using Win32
 
-// Fills `buffer` with bytes from the operating system cryptographic random-number generator.
-func randomBytes(buffer: [..] u8) fail
+internal func randomFillNative(buffer: *u8, size: u32)->bool
 {
-    var done = 0'u64
-    while done < @countof(buffer)
-    {
-        let chunk = cast(u32) Math.min(@countof(buffer) - done, cast(u64) Swag.U32.Max)
-        if !RtlGenRandom(@dataof(buffer) + done, chunk) do
-            fail Swag.SystemError{"the operating system cryptographic random-number generator failed"}
-        done += chunk
-    }
+    return RtlGenRandom(buffer, size) != 0
 }
 
 // Overwrites every byte occupied by `buffer` before returning.

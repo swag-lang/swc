@@ -390,76 +390,6 @@ public func enableDpiAwareness()
     discard SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)
 }
 
-// Handles a native window paint request.
-public alias WindowPaintCallback = func||(*Window)
-
-// Handles a native window resize and receives the new client size in physical pixels.
-public alias WindowResizeCallback = func||(*Window, s32, s32)
-
-// Groups the optional callbacks dispatched by a [[Core.Env.Window]].
-public struct WindowCallbacks
-{
-    onPaint:  #null WindowPaintCallback      // Invoked for a paint request.
-    onResize: #null WindowResizeCallback     // Invoked after the logical client size changes.
-}
-
-// Configures native window creation.
-//
-// `width` and `height` are logical units: the created window is proportionally
-// larger, in physical pixels, on a scaled display. The client size reported to
-// [[Core.Env.WindowResizeCallback]] is physical.
-public struct WindowOptions
-{
-    className:   string                                                            // Unique native window-class name.
-    title:       string                                                            // Initial window title.
-    width:       s32                                                               // Width in logical units.
-    height:      s32                                                               // Height in logical units.
-    x:           s32 = CW_USEDEFAULT                                               // Initial horizontal position in physical desktop pixels.
-    y:           s32 = CW_USEDEFAULT                                               // Initial vertical position in physical desktop pixels.
-    style:       u32 = WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN     // Native window style flags.
-    exStyle:     u32                                                               // Native extended window style flags.
-    classStyle:  u32 = CS_OWNDC                                                    // Native window-class style flags.
-    showCommand: s32 = SW_SHOW                                                     // Native command used by [[Core.Env.Window.show]].
-}
-
-// Owns one native application window.
-//
-// Create a window with [[Core.Env.createWindow]]. The value closes any remaining native window
-// when it leaves scope; call [[Core.Env.Window.close]] to release it earlier.
-#[Swag.NoCopy]
-public struct Window
-{
-    readonly
-    {
-        nativeHandle: HWND     // Borrowed native handle, or null before creation.
-    }
-
-    callbacks: WindowCallbacks     // Callbacks dispatched by the native window procedure.
-
-    internal
-    {
-        showCommand: s32 = SW_SHOW
-    }
-}
-
-// Provides iterable native message processing.
-// Pumps window messages until the window closes, or until a smoke run's frame budget is spent.
-public struct WindowLoop
-{
-    // Frames a smoke run should render for this program, or zero to take the launcher's budget.
-    //
-    // A program that cycles through pages knows how many frames it takes to show them all,
-    // and that count is a property of its content rather than of whoever launched it. It has
-    // no effect on a normal run, which ends only when the window closes.
-    smokeFrames: u32
-
-    internal
-    {
-        frameBudget: u32     // Frames this run may render; zero outside a smoke run.
-        framesRun:   u32     // Frames rendered so far.
-    }
-}
-
 private func getWindowFromHandle(hWnd: HWND)->#null *Window
 {
     return cast(#null *Window) cast #bit (u64) GetWindowLongPtrA(hWnd, GWLP_USERDATA)
@@ -523,61 +453,42 @@ impl Window
 {
     internal mtd setNativeHandle(nativeHandle: HWND)
     {
-        .nativeHandle = nativeHandle
+        .nativeHandle = cast(#null const *void) nativeHandle
     }
 
-    // Rebinds the native callback state when an owning window value moves.
-    mtd opPostMove()
-    {
-        if .nativeHandle do
-            SetWindowLongPtrA(.nativeHandle, GWLP_USERDATA, cast #bit (LONG_PTR) cast(u64) &me)
-    }
+    private mtd const win32Handle()->HWND => cast(HWND) .nativeHandle
 
-    // Closes any remaining native window when this value leaves scope.
-    mtd opDrop()
+    internal mtd rebindNative()
     {
-        catch .close()
+        SetWindowLongPtrA(.win32Handle(), GWLP_USERDATA, cast #bit (LONG_PTR) cast(u64) &me)
     }
 }
 
-// Creates and owns a native application window.
-//
-// The returned [[Core.Env.Window]] keeps platform-specific state behind
-// [[Core.Env.Window.nativeHandle]] and closes the native window when it leaves scope.
-// The process becomes DPI aware, and the logical `options` size is realized in the
-// physical pixels of the monitor the window appears on.
-public func createWindow(options: WindowOptions)->Window fail
+internal func createWindowNative(result: *Window, options: WindowOptions) fail
 {
     // The first native window of the process decides its DPI awareness.
     enableDpiAwareness()
 
-    var result: retval
-    result.showCommand = options.showCommand
-
     var wc: WNDCLASSA
-    wc.style         = options.classStyle
+    wc.style         = CS_OWNDC
     wc.lpfnWndProc   = cast() &envWindowProc
     wc.hInstance     = GetModuleHandleA(null)
-    wc.lpszClassName = @dataof(options.className)
+    wc.lpszClassName = @dataof(options.identifier)
     try RegisterClassA(wc)
 
-    let hWnd = CreateWindowExA(options.exStyle, @dataof(options.className), @dataof(options.title), options.style, options.x, options.y, options.width, options.height, null, null, wc.hInstance, &result)
+    var style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_CLIPSIBLINGS | WS_CLIPCHILDREN
+    if options.flags.has(.Resizable) do
+        style |= WS_THICKFRAME
+    if options.flags.has(.Minimizable) do
+        style |= WS_MINIMIZEBOX
+    if options.flags.has(.Maximizable) do
+        style |= WS_MAXIMIZEBOX
+
+    let hWnd = CreateWindowExA(0, @dataof(options.identifier), @dataof(options.title), style, CW_USEDEFAULT, CW_USEDEFAULT, options.width, options.height, null, null, wc.hInstance, result)
     if !hWnd do
         failWinError(GetLastError())
 
     result.setNativeHandle(hWnd)
-
-    // The window now knows its monitor: resize it from logical units to physical
-    // pixels while it is still hidden.
-    let scale = result.dpiScale()
-    if scale != 1
-    {
-        let physWidth  = cast(s32) Math.round(options.width * scale)
-        let physHeight = cast(s32) Math.round(options.height * scale)
-        catch SetWindowPos(hWnd, null, 0, 0, physWidth, physHeight, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE)
-    }
-
-    return result
 }
 
 // Processes all pending window messages. Returns false when the application should exit.
@@ -598,39 +509,30 @@ public func processWindowMessages()->bool
 
 public impl Window
 {
-    // Closes the native window if it is still open.
+    // Acquires the Windows device context used by an explicit Windows rendering adapter.
     //
-    // Calling `close` repeatedly is safe. Failure leaves the native handle owned by this value,
-    // so a later call or scope cleanup can retry the release.
-    mtd close() fail
+    // Every successful call must be paired with [[Core.Env.Window.releaseWin32DeviceContext]]
+    // on the same window.
+    mtd acquireWin32DeviceContext()->HDC
     {
-        let handle = .nativeHandle
-        if !handle do
-            return
+        return GetDC(.win32Handle())
+    }
 
+    // Releases a device context returned by [[Core.Env.Window.acquireWin32DeviceContext]].
+    mtd releaseWin32DeviceContext(deviceContext: HDC)
+    {
+        ReleaseDC(.win32Handle(), deviceContext)
+    }
+
+    internal mtd closeNative() fail
+    {
+        let handle = .win32Handle()
         try DestroyWindow(handle)
-        .nativeHandle = null
     }
 
-    // Acquires the native device context for this window.
-    //
-    // Every successful call must be paired with
-    // [[Core.Env.Window.releaseDeviceContext]] on the same window.
-    mtd acquireDeviceContext()->HDC
+    internal mtd requestPaintNative()
     {
-        return GetDC(.nativeHandle)
-    }
-
-    // Releases a device context returned by [[Core.Env.Window.acquireDeviceContext]].
-    mtd releaseDeviceContext(deviceContext: HDC)
-    {
-        ReleaseDC(.nativeHandle, deviceContext)
-    }
-
-    // Queues a paint request for this window.
-    mtd requestPaint()
-    {
-        expect PostMessageA(.nativeHandle, WM_PAINT, 0, 0)
+        expect PostMessageA(.win32Handle(), WM_PAINT, 0, 0)
     }
 
     // Returns the physical device pixels per logical unit on the window's monitor.
@@ -638,75 +540,34 @@ public impl Window
     {
         if !.nativeHandle do
             return 1
-        return cast(f32) GetDpiForWindow(.nativeHandle) / cast(f32) USER_DEFAULT_SCREEN_DPI
+        return cast(f32) GetDpiForWindow(.win32Handle()) / cast(f32) USER_DEFAULT_SCREEN_DPI
     }
 
-    // Resizes the client area to `width` by `height` logical units while preserving
-    // the current position.
-    //
-    // The realized client area is proportionally larger, in physical pixels, on a
-    // scaled display; [[Core.Env.WindowResizeCallback]] reports that physical size.
-    mtd setClientSize(width, height: s32) fail
+    internal mtd setClientSizeNative(width, height: s32) fail
     {
         var windowRect: RECT
         var clientRect: RECT
-        if !GetWindowRect(.nativeHandle, &windowRect) do
+        if !GetWindowRect(.win32Handle(), &windowRect) do
             failWinError(GetLastError())
-        if !GetClientRect(.nativeHandle, &clientRect) do
+        if !GetClientRect(.win32Handle(), &clientRect) do
             failWinError(GetLastError())
 
-        let scale       = .dpiScale()
-        let physWidth   = cast(s32) Math.round(width * scale)
-        let physHeight  = cast(s32) Math.round(height * scale)
         let frameWidth  = (windowRect.right - windowRect.left) - (clientRect.right - clientRect.left)
         let frameHeight = (windowRect.bottom - windowRect.top) - (clientRect.bottom - clientRect.top)
-        try MoveWindow(.nativeHandle, windowRect.left, windowRect.top, physWidth + frameWidth, physHeight + frameHeight, FALSE)
+        try MoveWindow(.win32Handle(), windowRect.left, windowRect.top, width + frameWidth, height + frameHeight, FALSE)
     }
 
-    // Shows the window and updates its client area.
-    //
-    // The resize callback receives the initial physical client size before the
-    // window becomes visible, so a renderer never draws a frame at a stale size.
-    mtd show() fail
+    internal mtd clientSizeNative()->{width, height: s32} fail
     {
-        if .callbacks.onResize
-        {
-            var clientRect: RECT
-            if GetClientRect(.nativeHandle, &clientRect)
-            {
-                let onResize = .callbacks.onResize!
-                onResize(&me, clientRect.right - clientRect.left, clientRect.bottom - clientRect.top)
-            }
-        }
-
-        ShowWindow(.nativeHandle, .showCommand)
-        try UpdateWindow(.nativeHandle)
+        var clientRect: RECT
+        if !GetClientRect(.win32Handle(), &clientRect) do
+            failWinError(GetLastError())
+        return {clientRect.right - clientRect.left, clientRect.bottom - clientRect.top}
     }
-}
 
-public impl WindowLoop
-{
-    // Processes pending messages and returns whether the application should continue.
-    mtd next()->bool
+    internal mtd showNative() fail
     {
-        // A smoke run is bounded by whoever launched it, so a program driving its own loop
-        // stops on its own without recognizing that it is being exercised.
-        if .frameBudget == 0
-        {
-            .frameBudget = Env.smokeFrames()
-            if .frameBudget and .smokeFrames do
-                .frameBudget = .smokeFrames
-        }
-
-        if .frameBudget and .framesRun >= .frameBudget do
-            return false
-
-        if !processWindowMessages() do
-            return false
-
-        if .frameBudget do
-            .framesRun += 1
-
-        return true
+        ShowWindow(.win32Handle(), SW_SHOW)
+        try UpdateWindow(.win32Handle())
     }
 }

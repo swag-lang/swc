@@ -100,9 +100,7 @@ impl Application
             modifiers |= .Shift
         let key = Keyboard.virtualKeyToKey(cast() (msg.lParam >> 16))
 
-        let {id, target} = .hotKeyShortcut(modifiers, key)
-        if id and target do
-            target.sendCommandEvent(id)
+        .dispatchHotKey(modifiers, key)
     }
 
     internal mtd sendSystemEvents()
@@ -123,23 +121,8 @@ impl Application
         }
     }
 
-    internal mtd surfaceAt(x, y: f32)->#null *Surface
+    internal mtd surfaceAtNative(x, y: f32)->#null *Surface
     {
-        if !.renderer.needsNativeWindow()
-        {
-            for s in .surfaces
-            {
-                if s.isHidden do
-                    continue
-                if .modalSurfaces.count and s != .modalSurfaces.back() do
-                    continue
-                if s.position.contains(Math.Point{x, y}) do
-                    return s
-            }
-
-            return null
-        }
-
         let pt   = POINT{cast(s32) x, cast(s32) y}
         let hWnd = WindowFromPoint(pt)
         if hWnd == null do

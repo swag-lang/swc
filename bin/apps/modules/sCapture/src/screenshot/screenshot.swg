@@ -1,4 +1,4 @@
-using Core, Win32, Gdi32, Pixel
+using Core, Pixel
 
 enum CaptureMode
 {
@@ -196,8 +196,7 @@ func setGrabBounds(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64)-
 // Runs one capture in `captureMode`, `monitorIndex` naming the monitor of `.Monitor`.
 func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0) fail
 {
-    let awareness = SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)
-    defer discard SetThreadDpiAwarenessContext(awareness)
+    let platformScope = beginCapturePlatformScope()
 
     // Hide editor before capture
     let surface   = main.surface!

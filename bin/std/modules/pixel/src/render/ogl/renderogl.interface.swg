@@ -1,34 +1,51 @@
 #global public
 
-using Core, Core.Math, Win32
+using Core, Core.Math
+
+// Platform context operations. Each backend supplies the implementation used by RenderOgl.
+#[Swag.Opaque, Swag.NoDoc]
+struct NativeRenderOgl {}
+
+// Describes a platform rendering context and drawable.
+#[Swag.Opaque, Swag.NoDoc]
+struct OglContext
+{
+    hDC:    #null const *void     // Platform device context.
+    hRC:    #null const *void     // OpenGL rendering context.
+    hWnd:   #null const *void     // Associated drawable, or `null` for an externally supplied context.
+    width:  s32                   // Drawable width, in pixels.
+    height: s32                   // Drawable height, in pixels.
+    ownsDC: bool                  // Whether dropping the context must release `hDC`.
+    ownsRC: bool                  // Whether dropping the context must delete `hRC`.
+}
 
 impl IRenderer for RenderOgl
 {
     mtd const impl needsNativeWindow()->bool => true
 
-    mtd impl createContext(nativeWindow: #null const *void, width, height: s32, shared: #null *RenderContext = null)->RenderContext fail
+    mtd impl createContext(renderHandle: #null const *void, width, height: s32, shared: #null *RenderContext = null)->RenderContext fail
     {
-        Debug.assert(nativeWindow != null, "OpenGL renderer contexts need a native window")
+        Debug.assert(renderHandle != null, "OpenGL renderer contexts need a platform drawable")
         Debug.assert(width > 0 and height > 0, "renderer context dimensions must be positive")
 
         if shared
         {
             let sharedOgl = oglContext(dref shared)
-            Debug.assert(.nativeContext == cast(#null const *void) sharedOgl.hRC, "shared context belongs to another renderer")
+            Debug.assert(.nativeContext == sharedOgl.hRC, "shared context belongs to another renderer")
         }
 
-        let sharedRC = cast(HGLRC) .nativeContext
-        var ogl      = try .native.createWindowContext(cast(HWND) nativeWindow, width, height, sharedRC)
+        let sharedRC = .nativeContext
+        var ogl      = try .native.createWindowContext(renderHandle, width, height, sharedRC)
         if !.nativeContext
         {
-            .nativeContext = cast(#null const *void) ogl.hRC
+            .nativeContext = ogl.hRC
             ogl.ownsRC     = false
         }
 
         let storage = Memory.new'OglContext()
         dref storage  = ogl
         .contextCount += 1
-        return {nativeWindow, storage, width, height}
+        return {renderHandle, storage, width, height}
     }
 
     mtd impl deleteContext(context: *RenderContext)
@@ -53,7 +70,7 @@ impl IRenderer for RenderOgl
 
         if !.contextCount
         {
-            .native.deleteContextHandle(cast(HGLRC) .nativeContext)
+            .native.deleteContextHandle(.nativeContext)
             .nativeContext = null
         }
 

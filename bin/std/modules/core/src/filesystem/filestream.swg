@@ -24,6 +24,12 @@ struct FileStream
 
 impl FileStream
 {
+    // Releases the native file handle still owned by this value.
+    mtd opDrop()
+    {
+        .close()
+    }
+
     // Establishes what an opened stream is and what it can do.
     //
     // The platform opener calls this once, with the access the caller asked for. Everything it
@@ -41,6 +47,110 @@ impl FileStream
     func isOpen(const me)->bool
     {
         return .handle != null
+    }
+
+    // Reads at most `length` bytes, completing host-sized chunks until the stream ends.
+    mtd read(buffer: #null *void, length: u64)->u64 fail
+    {
+        Debug.assert(.isOpen())
+        Debug.assert(.canRead)
+        if !length do
+            return 0
+
+        var total = 0'u64
+        let bytes = cast([*] u8) buffer!
+        while total < length
+        {
+            let chunk = cast(u32) Math.min(length - total, cast(u64) Swag.U32.Max)
+            let read  = .readNative(bytes + total, chunk)
+            total += read
+            if read < chunk do
+                break
+        }
+
+        return total
+    }
+
+    // Writes at most `length` bytes, completing host-sized chunks while progress is made.
+    mtd write(buffer: #null const *void, length: u64)->u64 fail
+    {
+        Debug.assert(.isOpen())
+        Debug.assert(.canWrite)
+        if !length do
+            return 0
+
+        var total = 0'u64
+        let bytes = cast(const [*] u8) buffer!
+        while total < length
+        {
+            let chunk   = cast(u32) Math.min(length - total, cast(u64) Swag.U32.Max)
+            let written = .writeNative(bytes + total, chunk)
+            total += written
+            if !written do
+                break
+        }
+
+        return total
+    }
+
+    // Closes the stream. Repeated calls do nothing.
+    mtd close()
+    {
+        if !.handle do
+            return
+        .closeNative()
+        .handle = null
+    }
+
+    // Returns the current file length in bytes.
+    mtd size()->u64 fail
+    {
+        Debug.assert(.isOpen())
+        Debug.assert(.canSeek)
+        return .sizeNative()
+    }
+
+    // Changes the file length and preserves the current position while it remains in range.
+    mtd resize(newSize: u64) fail
+    {
+        Debug.assert(.isOpen())
+        Debug.assert(.canSeek)
+        Debug.assert(.canWrite)
+
+        let oldPosition = .position()
+        .seek(.Begin, newSize)
+        .resizeNative()
+        .seek(.Begin, Math.min(oldPosition, newSize))
+    }
+
+    // Commits buffered file data and metadata to the underlying device.
+    mtd flush() fail
+    {
+        Debug.assert(.isOpen())
+        Debug.assert(.canWrite)
+        .flushNative()
+    }
+
+    // Returns the current absolute byte position.
+    mtd position()->u64 fail
+    {
+        Debug.assert(.isOpen())
+        Debug.assert(.canSeek)
+        return .positionNative()
+    }
+
+    // Moves to `offset` bytes from `origin`.
+    mtd seek(origin: SeekOrigin, offset: u64) fail
+    {
+        Debug.assert(.isOpen())
+        Debug.assert(.canSeek)
+        .seekNative(origin, offset)
+    }
+
+    // Advances by `count` bytes from the current position.
+    mtd skip(count: u64) fail
+    {
+        .seek(.Current, count)
     }
 
     // Reads one native value and returns whether all of its bytes were available.

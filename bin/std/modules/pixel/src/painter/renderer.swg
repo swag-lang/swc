@@ -5,11 +5,11 @@ using Core, Core.Math
 // Describes one drawable owned by an [[Pixel.IRenderer]].
 //
 // The renderer creates and invalidates this value. `data` is opaque backend
-// state; callers preserve it unchanged and only read the dimensions and native
-// window handle.
+// state; callers preserve it unchanged and only read the dimensions and opaque
+// render handle.
 struct RenderContext
 {
-    nativeWindow: #null const *void     // Platform window handle, or `null` for an off-screen context.
+    renderHandle: #null const *void     // Platform drawable handle, or `null` for an off-screen context.
     data:         #null *void           // Opaque renderer-owned state.
     width:        s32                   // Drawable width, in pixels.
     height:       s32                   // Drawable height, in pixels.
@@ -24,14 +24,14 @@ struct RenderContext
 // textures and render targets created through it.
 interface IRenderer
 {
-    // Reports whether contexts created by this backend need a native window.
+    // Reports whether contexts created by this backend need a platform drawable.
     mtd const needsNativeWindow()->bool
 
-    // Creates a drawable context for a native window or an off-screen surface.
+    // Creates a context for an opaque platform drawable or an off-screen surface.
     //
     // `shared` is borrowed during the call and belongs to this same renderer.
     // The returned context remains owned by the caller until [[deleteContext]].
-    mtd createContext(nativeWindow: #null const *void, width, height: s32, shared: #null *RenderContext = null)->RenderContext fail
+    mtd createContext(renderHandle: #null const *void, width, height: s32, shared: #null *RenderContext = null)->RenderContext fail
 
     // Releases renderer state held by `context` and invalidates the descriptor.
     mtd deleteContext(context: *RenderContext)
@@ -47,9 +47,9 @@ interface IRenderer
     // OpenGL requires a current context; software backends may do nothing.
     mtd init()
 
-    // Selects the native rendering context used by following operations.
+    // Selects the rendering context used by following operations.
     //
-    // A backend that does not use a native context may use only its dimensions.
+    // A backend that does not use a platform context may use only its dimensions.
     mtd setCurrentContext(rc: RenderContext)
 
     // Starts a frame for `rc` and resets the renderer transform.

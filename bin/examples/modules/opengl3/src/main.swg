@@ -285,7 +285,7 @@ func onResize(_window: *Env.Window, width, height: s32)
 
 #main
 {
-    g_Window  = try Env.createWindow({className: "OPENGL3_CLASS_NAME", title: "OpenGL example - lit spinning cube", width: g_Width, height: g_Height})
+    g_Window  = try Env.createWindow({identifier: "opengl3", title: "OpenGL example - lit spinning cube", width: g_Width, height: g_Height})
     g_Context = try Ogl.Platform.Win32.createContext(&g_Window)
     defer g_Context.destroy()
     glInitExtensions()

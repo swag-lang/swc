@@ -1,4 +1,4 @@
-using Core, Pixel, Win32
+using Core, Pixel
 
 const W                 = 1260
 const H                 = 860
@@ -19,8 +19,6 @@ const PageGif  = 4
 const PageTiff = 5
 const PageIco  = 6
 const PageWebp = 7
-
-const FixedWindowStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_CLIPSIBLINGS | WS_CLIPCHILDREN
 
 struct SceneLayout
 {
@@ -343,11 +341,11 @@ func updateTestMode()
 
 #main
 {
-    g_Window = try Env.createWindow({className: "PIXEL7_CLASS_NAME", title: "Pixel image codec showcase", width: W, height: H, style: FixedWindowStyle})
+    g_Window = try Env.createWindow({identifier: "pixel7", title: "Pixel image codec showcase", width: W, height: H, flags: .Minimizable})
     try g_Window.setClientSize(W, H)
     g_Render  = &g_Renderer
     g_Painter = Pixel.Painter.create(g_Render)
-    g_RC      = try g_Render.createContext(cast(#null const *void) g_Window.nativeHandle, W, H)
+    g_RC      = try g_Render.createContext(g_Window.nativeRenderHandle(), W, H)
     defer g_Render.deleteContext(&g_RC)
     g_Render.setCurrentContext(g_RC)
     g_Render.init()

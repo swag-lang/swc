@@ -41,9 +41,6 @@ defer Crypto.secureClear(key)
 
 Cryptographic randomness and guaranteed clearing use the target operating
 system behind the portable [[Core.Crypto]] API.
-
-On Windows, [[Core.File.availableDriveLetters]] reports letters that are safe
-to offer for a new logical-drive mount point.
 */
 #static if #os == Swag.TargetOs.Windows
 {

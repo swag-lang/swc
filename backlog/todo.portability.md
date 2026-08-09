@@ -42,9 +42,8 @@ new platform implements capabilities rather than copies policy.
 
 ### T-103 — Portability boundary violations have no source check
 
-Inventory native imports, `#os` branches, native types in public declarations, and direct calls
-  from unsuffixed files. The first known exceptions are the Windows blocks in
-  `runtime/allocator*.swg`, Audio's unused `Win32` imports, and sCapture's raw message and DPI calls.
+- Inventory native imports, `#os` branches, native types in public declarations, and direct calls
+  from unsuffixed files.
 - Add a lightweight source check that rejects new native imports and native message/type leakage
   outside approved backend and interoperability paths. Keep an allowlist explicit; matching
   `.win32.swg` alone is not proof that the boundary is good.
@@ -80,35 +79,6 @@ thread storage, context/address capture, image/debug-section access, byte output
 and process termination; keep only those irreducible operations in the Windows leaf.
 
 - Related: T-268, T-269, T-270, T-271
-
-### T-268 — Runtime TLS value policy remains in the Windows leaf
-
-Move TLS object initialization and copying into common Swag. Native hooks only allocate and get
-thread storage.
-
-- Related: T-104, T-327, T-328
-
-### T-327 — Runtime test orchestration remains in the Windows leaf
-
-Move test-run bookkeeping, recovery policy, and reporting into common Swag over the context and
-termination primitives from T-104.
-
-- Related: T-104, T-268
-
-### T-328 — Stack-symbol presentation remains in the Windows leaf
-
-Move stack-frame formatting, `.swagdbg` parsing, and symbol-table search into common Swag. Leave
-only address capture and image/debug-section access native.
-
-- Related: T-104, T-140
-
-### T-269 — Allocator policy still contains Windows branches
-
-Move every `__Win32RT` branch out of `allocator.swg` and `allocator.pages.swg`. Define page
-  reserve, commit, decommit, release, current-thread identity, and thread-exit cleanup primitives;
-  keep segment, page, size-class, remote-free, guard-placement, and accounting policy common.
-
-- Related: T-104, T-165, T-270
 
 ### T-270 — Linux page-allocation primitives do not exist
 
@@ -199,14 +169,6 @@ Move the portable parts of `process.win32.swg` out of the backend: stream-redire
 
 - Related: T-028, T-106, T-280
 
-### T-278 — Process environment construction embeds Windows policy
-
-Replace the `#static if WINDOWS` environment-name fold in `ProcessEnvironment` with a target
-  policy supplied by the backend. Build the Windows UTF-16 environment block and Unix `envp` only
-  at their respective leaves.
-
-- Related: T-106, T-135
-
 ### T-279 — Early argument lookup reparses the Windows command line
 
 Make `Env.findRunArgument` search the runtime argument vector even during early initialization.
@@ -222,63 +184,6 @@ Preserve the stronger resource contract deliberately. Windows Job Objects accoun
   the capability is unavailable rather than silently measuring only the first child.
 
 - Related: T-028, T-277
-
-### T-107 — Give paths a target policy
-
-- The unsuffixed `path.swg` currently embeds Windows semantics: both slash kinds are separators,
-  colon denotes a volume, and equality and extension matching ignore case. Linux paths are
-  byte-sensitive, case-sensitive, use `/`, and allow backslash and colon in names. Define a
-  compile-time path policy for separators, roots, equality, validity, and normalization, then keep
-  the lexical algorithms in common Swag.
-
-### T-281 — Portable path algorithms remain in the Windows file
-
-Move the string-only portions of `path.win32.swg` behind T-107's target policy. Only resolving against the
-  current directory, links, mounts, and actual filesystem state belongs in the native leaf.
-
-- Related: T-107
-
-### T-282 — Directory recursion remains in the native backend
-
-Move depth-first traversal and `.`/`..` handling into common Swag.
-
-- Related: T-132, T-107, T-377, T-378, T-379
-
-### T-377 — Directory filtering remains in the native backend
-
-Move extension/name filters, `skipAttributes`, and lambda filtering into common traversal policy.
-
-- Related: T-282
-
-### T-378 — Recursive deletion order remains in the native backend
-
-Build recursive removal order in common Swag over one-entry enumeration and one native removal
-primitive.
-
-- Related: T-282, T-283
-
-### T-379 — Native directory backends do not expose one-entry enumeration
-
-Define one native operation that enumerates exactly one directory and returns normalized metadata;
-keep result construction in common Swag.
-
-- Related: T-132, T-282
-
-### T-283 — File orchestration remains in the native backend
-
-Keep `File.openRead`/`openWrite`, sandbox write guards, append positioning, large-transfer
-  chunking, full-read/write loops, and stream ownership in common Swag. Native code should map open
-  flags and implement one read, write, seek, resize, flush, metadata query, rename, and removal.
-
-- Related: T-132, T-107
-
-### T-284 — Drive-letter enumeration lives in portable filesystem services
-
-Treat drive letters and Windows file attributes as optional capabilities, not universal
-  filesystem concepts. In particular, move `File.availableDriveLetters`, whose product caller is
-  sCrypt's WinFsp mount path, into that platform integration.
-
-- Related: T-307
 
 ### T-285 — Filesystems have no cross-host conformance suite
 
@@ -297,22 +202,6 @@ without touching the filesystem.
 ---
 
 ## Tier B — Pull reusable desktop behavior above the native leaves
-
-### T-108 — Replace native types in the render-host window contract
-
-- `Core.Env.WindowOptions` exposes Windows style constants and `Window` exposes `HWND` and `HDC`.
-  Move this minimal render-host window API out of general environment services, give it portable
-  flags, callbacks, scale and opaque storage, and keep native handles/device contexts in an
-  explicitly named Windows adapter. OpenGL may consume that adapter without making it the common
-  contract.
-
-### T-286 — `WindowLoop` policy remains in the Windows backend
-
-Move `WindowLoop` smoke-frame budgeting, move/drop ownership, initial resize dispatch, and
-  logical-to-physical size policy into common Swag. Creation, event pumping, native painting,
-  monitor DPI queries, and handle lifetime remain backend operations.
-
-- Related: T-108
 
 ### T-287 — Optional Windows interop is mixed into portable types
 
@@ -367,19 +256,13 @@ A first Linux backend may provide conventional directories. Fontconfig can be ad
 
 - Related: T-289
 
-### T-110 — Normalize native GUI messages into typed events
+### T-333 — Application-message payloads have no ownership contract
 
-`SysUserEvent` currently carries raw native message numbers. Add typed tray-icon events. A backend
-translates `WM_*`, X11, or Wayland data once; application code never switches on it.
+Application-message identifiers are platform-neutral, but the event still carries one borrowed
+integer parameter. Give messages an owned payload and document its dispatch lifetime independently
+of tray interaction.
 
-- Related: T-333, T-306
-
-### T-333 — Application messages expose native event numbers
-
-Add a platform-neutral application-message event with an owned payload and documented dispatch
-lifetime, independent of tray interaction.
-
-- Related: T-110, T-292, T-306
+- Related: T-292
 
 ### T-292 — Application-to-application messaging has no portable contract
 
@@ -396,20 +279,6 @@ Split `Application`'s system-icon code into a native operation that obtains one 
   each cache consumer without making unrelated shell behavior part of this entry.
 
 - Related: T-294, T-295
-
-### T-294 — Generic offscreen `surfaceAt` behavior remains platform-specific
-
-Move the generic offscreen branch of `surfaceAt` into common GUI code; leave only desktop hit
-testing in the backend.
-
-- Related: T-293, T-297
-
-### T-295 — Hot-key command dispatch remains platform-specific
-
-Keep hot-key registration and key-code translation native, but move command lookup and dispatch
-into common code.
-
-- Related: T-110
 
 ### T-296 — Clipboard image conversion can grow backend-specific codecs
 
@@ -433,24 +302,6 @@ Keep `Surface` position clamping, headless fallbacks, state updates, and command
 
 - Related: T-045, T-110, T-294
 
-### T-111 — Audio's common types import Windows declarations
-
-Delete the unused `Win32` imports from `bus.swg` and `voice.swg`.
-
-- Related: T-331, T-332
-
-### T-331 — WAVE extensible formats use `Win32.GUID`
-
-Represent WAVE extensible GUIDs with a portable packed UUID value.
-
-- Related: T-111, T-332
-
-### T-332 — Audio's WAVE channel mask is named as a native handle
-
-Name and type the field as the WAVE speaker mask it represents, independently of the GUID cleanup.
-
-- Related: T-111, T-331
-
 ### T-298 — Audio backend selection is repeated compile-time dispatch
 
 Replace the repeated `#os == Windows` dispatch in `driver/backend.swg` with a backend interface or
@@ -467,23 +318,6 @@ Keep the no-sound backend available on every target and add the Linux backend un
 
 - Related: T-066, T-298
 
-### T-112 — Gamepad normalization remains in the native backend
-
-Make a native backend return one raw portable snapshot, then normalize stick/trigger
-  ranges, map buttons, apply hysteresis thresholds, and derive directional pseudo-buttons in common
-  Swag. XInput vibration and connection errors remain native.
-
-- Related: T-141
-
-### T-300 — Thread lifecycle orchestration remains in the native backend
-
-Keep context cloning, temporary-allocator setup/release, user-lambda dispatch,
-  cooperative-stop state, handle ownership, and wait-many orchestration common. Backends create,
-  start, join, yield, sleep, identify, and set priority. Account for the current create-suspended
-  contract explicitly because POSIX does not provide it directly.
-
-- Related: T-133
-
 ### T-301 — Timer scheduling policy remains in the native backend
 
 Implement lifecycle, periodic rescheduling, callback/context dispatch, and cancellation
@@ -492,53 +326,11 @@ Implement lifecycle, periodic rescheduling, callback/context dispatch, and cance
 
 - Related: T-134
 
-### T-302 — Portable time conversion remains in the native backend
-
-Keep `Timestamp.utcNow = Timestamp.fromDateTime(DateTime.utcNow())` and native-structure to
-  `DateTime` field assignment common; backends provide wall-clock fields and monotonic ticks.
-
-- Related: T-134
-
-### T-303 — Console formatting remains in the native backend
-
-Keep null/silent handling and variadic formatting in common Swag, then send bytes through
-  a native stdout writer. Color selection, terminal capability, prompting and encoding remain host
-  concerns.
-
-- Related: T-139
-
-### T-304 — Cryptographic-random fill policy remains in the native backend
-
-Keep request chunking and fill-completely/retry policy common over one
-  OS random-fill primitive. Secure clearing stays governed by T-105.
-
-- Related: T-105, T-273
-
-### T-113 — Unsuffixed sCapture files carry unused native imports
-
-Remove the unused Win32/GDI imports from sCapture's unsuffixed `capturerectwnd.swg` and
-`inplaceeditwnd.swg`.
-
-- Related: T-305, T-306, T-308
-
-### T-305 — sCapture's DPI-awareness scope is outside its native backend
-
-Move the DPI-awareness scope in unsuffixed `screenshot.swg` into the Windows capture backend.
-
-- Related: T-084, T-113
-
-### T-306 — sCapture switches on native window messages
-
-Replace sCapture's `WM_USER`, `WM_LBUTTONDBLCLK`, and `WM_RBUTTONDOWN` branches with the tray and
-application-message events from T-110. Keep capture/editor policy common.
-
-- Related: T-084, T-110
-
 ### T-307 — sCrypt exposes a Windows drive-letter mount destination
 
-Move sCrypt's available-drive-letter query and every WinFsp/registry/guardian concern under its
-Windows mount backend. The application chooses an abstract mount destination and consumes mount
-status; Linux and macOS backends map it to their native mount points.
+The available-drive-letter query now belongs to the WinFsp backend, but the application still
+chooses a drive letter directly. Give it an abstract mount destination and mount-status contract;
+Linux and macOS backends map that contract to their native mount points.
 
 - Related: T-100, T-265, T-284
 

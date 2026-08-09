@@ -1,6 +1,6 @@
 #global namespace Wav
 
-using Core, Core.Errors, Win32
+using Core, Core.Errors
 
 struct ChunkHeader
 {
@@ -68,9 +68,26 @@ const WAVE_FORMAT_ADPCM      = 0x0002     /* Microsoft Corporation */
 const WAVE_FORMAT_IEEE_FLOAT = 0x0003     /* Microsoft Corporation */
 const WAVE_FORMAT_EXTENSIBLE = 0xFFFE     /* Microsoft */
 
-const GUID_PCM        = GUID{0x00000001, 0x0000, 0x0010, [0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71]}
-const GUID_ADPCM      = GUID{0x00000002, 0x0000, 0x0010, [0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71]}
-const GUID_IEEE_FLOAT = GUID{0x00000003, 0x0000, 0x0010, [0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71]}
+// Packed UUID representation used by the WAVE extensible header.
+#[Swag.Pack(1)]
+struct SubformatUuid
+{
+    data1: u32
+    data2: u16
+    data3: u16
+    data4: [8] u8
+}
+
+#assert(#sizeof(SubformatUuid) == 16)
+
+const SubformatPcm       = SubformatUuid{0x00000001, 0x0000, 0x0010, [0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71]}
+const SubformatAdpcm     = SubformatUuid{0x00000002, 0x0000, 0x0010, [0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71]}
+const SubformatIeeeFloat = SubformatUuid{0x00000003, 0x0000, 0x0010, [0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71]}
+
+func copySubformat(destination: *void, source: SubformatUuid)
+{
+    Memory.copy(destination, &source, #sizeof(source))
+}
 
 #[Swag.Pack(1)]
 struct WAVEFORMAT
@@ -108,8 +125,8 @@ struct WAVEFORMATEXTENSIBLE
         wReserved:           u16     // If wBitsPerSample=0 (but rarely used). Zero if neither case above applies.
     }
 
-    dwChannelMask: u32      // Positions of the audio nChannels
-    subFormat:     GUID     // Format identifier GUID
+    speakerMask: u32               // WAVE speaker-position bit mask.
+    subFormat:   SubformatUuid     // Encoding UUID.
 }
 
 func setEncodingFormat(file: *SoundFile, formatTag: u16) fail
@@ -193,25 +210,25 @@ func readChunkFmt(file: *SoundFile, stream: *File.FileStream, chunkSize: u32) fa
             {
                 var wfex: WAVEFORMATEXTENSIBLE
                 wfex.fmtex           = wfx
-                file.availableFields |= .ChannelMask
+                file.availableFields |= .SpeakerMask
                 file.availableFields |= .ValidBitsPerSample
 
                 if !stream.readValue(&wfex.samples) do
                     fail InvalidFormatError{"invalid wav"}
-                if !stream.readValue(&wfex.dwChannelMask) do
+                if !stream.readValue(&wfex.speakerMask) do
                     fail InvalidFormatError{"invalid wav"}
                 if !stream.readValue(&wfex.subFormat) do
                     fail InvalidFormatError{"invalid wav"}
 
                 file.validBitsPerSample = wfex.samples.wValidBitsPerSample
-                file.channelMask        = wfex.dwChannelMask
+                file.waveSpeakerMask    = wfex.speakerMask
 
                 if wf.wFormatTag == WAVE_FORMAT_EXTENSIBLE
                 {
                     switch
                     {
-                    case Memory.bytesEqual(&wfex.subFormat, GUID_PCM):        file.setEncodingFormat(WAVE_FORMAT_PCM)
-                    case Memory.bytesEqual(&wfex.subFormat, GUID_IEEE_FLOAT): file.setEncodingFormat(WAVE_FORMAT_IEEE_FLOAT)
+                    case Memory.bytesEqual(&wfex.subFormat, SubformatPcm):       file.setEncodingFormat(WAVE_FORMAT_PCM)
+                    case Memory.bytesEqual(&wfex.subFormat, SubformatIeeeFloat): file.setEncodingFormat(WAVE_FORMAT_IEEE_FLOAT)
                     default: fail UnsupportedFormatError{"unsupported wav format"}
                     }
                 }

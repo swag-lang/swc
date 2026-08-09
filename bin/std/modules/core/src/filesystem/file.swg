@@ -43,6 +43,57 @@ enum FileShare
     ReadWrite = Read | Write     // Allows shared read and write access
 }
 
+// Deletes `fullName` permanently after enforcing the process sandbox.
+func delete(fullName: string) fail
+{
+    try Env.guardWrite(fullName)
+    deleteNative(fullName)
+}
+
+// Moves `oldName` to `newName`, replacing the destination when it exists.
+func move(newName, oldName: string) fail
+{
+    try Env.guardWrite(oldName)
+    try Env.guardWrite(newName)
+    moveNative(newName, oldName)
+}
+
+// Updates a file's write time after enforcing the process sandbox.
+func touch(fullName: string) fail
+{
+    try Env.guardWrite(fullName)
+    touchNative(fullName)
+}
+
+// Opens a file with the requested creation, access, and sharing policy.
+func open(fullName: string, mode: FileMode, access: FileAccess, share: FileShare)->FileStream fail
+{
+    if access & .Write do
+        try Env.guardWrite(fullName)
+
+    let canRead  = access.has(.Read)
+    let canWrite = access.has(.Write)
+    let handle   = openNative(fullName, mode, access, share)
+
+    var result: retval
+    result.open(fullName, handle, canRead, canWrite, true)
+    if mode == .Append do
+        result.seek(.End, 0)
+    return result
+}
+
+// Opens an existing file for shared reading.
+func openRead(fullName: string)->FileStream fail
+{
+    return open(fullName, .Open, .Read, .Read)
+}
+
+// Creates or replaces a file for exclusive writing.
+func openWrite(fullName: string)->FileStream fail
+{
+    return open(fullName, .Create, .Write, .Zero)
+}
+
 // Reads the entire content of a file into a UTF-8 string
 func readAllText(fullname: string, encoding = TextEncoding.Utf8, normalizeEol = false)->String fail
 {

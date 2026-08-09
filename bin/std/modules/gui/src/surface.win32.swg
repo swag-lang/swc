@@ -129,12 +129,26 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
     let surface = cast(#null *Surface) cast #bit (u64) GetWindowLongPtrW(hWnd, GWLP_USERDATA)
     if surface
     {
-        if msg >= WM_USER
+        if msg == WM_USER
         {
             var evt = SysUserEvent{}
-            evt.message = msg
-            evt.param0  = wParam
-            evt.param1  = lParam
+            evt.kind = .TrayIcon
+            switch lParam
+            {
+            case WM_LBUTTONDBLCLK: evt.trayAction = .Activate
+            case WM_RBUTTONDOWN:   evt.trayAction = .ContextMenu
+            }
+
+            surface.wnd.view.sendEvent(&evt)
+            return TRUE
+        }
+
+        if msg >= WM_APP
+        {
+            var evt = SysUserEvent{}
+            evt.kind      = .CustomMessage
+            evt.messageId = msg - WM_APP
+            evt.param     = lParam
             surface.wnd.view.sendEvent(&evt)
             return TRUE
         }
@@ -467,10 +481,9 @@ impl Surface
     }
 
     // Show 'icon' for this surface in the notification area (system tray), with an
-    // optional tooltip. Mouse interactions are delivered to the surface as WM_USER
-    // SysUserEvents whose 'param1' holds the raw mouse message (e.g. WM_RBUTTONDOWN
-    // for a right-click); handle them in the surface view's onSysUserEvent. The icon
-    // is removed automatically when the surface is destroyed.
+    // optional tooltip. Portable [[Gui.SysUserEvent.TrayAction]] values report icon
+    // activation and context-menu requests. The icon is removed automatically when
+    // the surface is destroyed.
     //
     // This uses the legacy (version 0) NOTIFYICON behaviour on purpose: the callback
     // carries the mouse message directly in 'lParam', which is what the window proc
@@ -602,7 +615,7 @@ impl Surface
         let hwnd = Win32.FindWindowA(@dataof("Swag.Gui.Surface"), @dataof(surfaceId))
         if !hwnd do
             return false
-        discard SendMessageA(hwnd, WM_USER + id, 0, param)
+        discard SendMessageA(hwnd, WM_APP + id, 0, param)
         return true
     }
 

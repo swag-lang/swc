@@ -36,6 +36,23 @@ enum DateTimeFormat
     DateTimeIsoHm     // 'YYYY-MM-DD HH:MM'
 }
 
+internal enum WallClockKind
+{
+    Utc
+    Local
+}
+
+internal struct WallClockFields
+{
+    year:        u16
+    month:       u16
+    day:         u16
+    hour:        u16
+    minute:      u16
+    second:      u16
+    millisecond: u16
+}
+
 // Represents an instant in time, typically expressed as a date and time of day
 #[Swag.Operators(opEquals, opCompare), Serialization.Final]
 struct DateTime
@@ -51,6 +68,39 @@ struct DateTime
 
 impl DateTime
 {
+    internal mtd setWallClock(fields: WallClockFields)
+    {
+        .year        = fields.year
+        .month       = fields.month
+        .day         = fields.day
+        .hour        = fields.hour
+        .minute      = fields.minute
+        .second      = fields.second
+        .millisecond = fields.millisecond
+    }
+
+    // Returns the current UTC date and time.
+    func utcNow()->DateTime
+    {
+        var result: retval
+        result.setWallClock(readWallClock(.Utc))
+        return result
+    }
+
+    // Returns the current local date and time.
+    func now()->DateTime
+    {
+        var result: retval
+        result.setWallClock(readWallClock(.Local))
+        return result
+    }
+
+    // Replaces this value with the current local date and time.
+    mtd setNow()
+    {
+        .setWallClock(readWallClock(.Local))
+    }
+
     // Returns true if this is a valid DateTime
     mtd const isValid()->bool
     {

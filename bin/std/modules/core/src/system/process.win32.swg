@@ -4,6 +4,9 @@
 
 using Win32, StrConv, Core.Errors
 
+// Windows environment names compare without regard to case.
+func processEnvironmentStoredName(name: string)->String => String.toUpper(name)
+
 // Bytes taken from a captured pipe in one read.
 private const PipeReadChunk = 4096'u32
 

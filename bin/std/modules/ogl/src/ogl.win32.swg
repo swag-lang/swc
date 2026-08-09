@@ -80,7 +80,7 @@ namespace Platform.Win32
     {
         var result: retval
         result.window = &window
-        result.hDC    = window.acquireDeviceContext()
+        result.hDC    = window.acquireWin32DeviceContext()
         defer #fail result.destroy()
 
         var pfd: PIXELFORMATDESCRIPTOR
@@ -144,7 +144,7 @@ namespace Platform.Win32
             }
 
             if .window and .hDC do
-                .window.releaseDeviceContext(.hDC)
+                .window.releaseWin32DeviceContext(.hDC)
 
             @init(me, 1)
         }

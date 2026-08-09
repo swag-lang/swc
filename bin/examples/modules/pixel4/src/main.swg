@@ -1,12 +1,10 @@
-using Core, Pixel, Win32
+using Core, Pixel
 
 const W                 = 980
 const H                 = 720
 const MaxPages          = 11
 const TestFramesPerPage = 30
 const PanelHeaderHeight = 76.0
-
-const FixedWindowStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_CLIPSIBLINGS | WS_CLIPCHILDREN
 
 var g_Window:   Env.Window
 var g_Renderer: Pixel.RenderOgl
@@ -369,11 +367,11 @@ func updateTestMode()
 
 #main
 {
-    g_Window = try Env.createWindow({className: "PIXEL4_CLASS_NAME", title: "Pixel path and brush drawing showcase", width: W, height: H, style: FixedWindowStyle})
+    g_Window = try Env.createWindow({identifier: "pixel4", title: "Pixel path and brush drawing showcase", width: W, height: H, flags: .Minimizable})
     try g_Window.setClientSize(W, H)
     g_Render  = &g_Renderer
     g_Painter = Pixel.Painter.create(g_Render)
-    g_RC      = try g_Render.createContext(cast(#null const *void) g_Window.nativeHandle, W, H)
+    g_RC      = try g_Render.createContext(g_Window.nativeRenderHandle(), W, H)
     defer g_Render.deleteContext(&g_RC)
     g_Render.setCurrentContext(g_RC)
     g_Render.init()

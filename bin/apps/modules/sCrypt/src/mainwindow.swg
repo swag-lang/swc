@@ -1073,7 +1073,7 @@ impl MainWindow
 
         // Windows keeps A and B for floppies and C for the system disk, so the letters a
         // user expects come first and the unusual ones stay available further down.
-        let available = File.availableDriveLetters()
+        let available = WinFsp.availableDriveLetters()
         for letter in available where letter >= 'D' do
             .drive.addItem(Format.toString("%:", letter))
         for letter in available where letter < 'D' do

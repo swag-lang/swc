@@ -259,13 +259,29 @@ struct FocusEvent
 
 impl IEvent for FocusEvent {}
 
-// Carries an application-defined message received from the host window system.
+// Carries a portable application or notification-area event received from the host window system.
 struct SysUserEvent
 {
-    using base: Event     // Embedded base state.
-    message:    u64       // Application-defined message identifier.
-    param0:     u64       // First message parameter.
-    param1:     u64       // Second message parameter.
+    // Identifies the portable source of a system user event.
+    enum Kind
+    {
+        CustomMessage     // An application-defined message sent through [[Gui.Surface.sendCustomMessage]].
+        TrayIcon          // An interaction with the surface's notification-area icon.
+    }
+
+    // Identifies an interaction with a notification-area icon.
+    enum TrayAction
+    {
+        None            // The host interaction has no portable mapping.
+        Activate        // The user activated the icon.
+        ContextMenu     // The user requested the icon's context menu.
+    }
+
+    using base: Event          // Embedded base state.
+    kind:       Kind           // Portable event source.
+    messageId:  u32            // Application-defined identifier when `kind` is `CustomMessage`.
+    param:      u64            // Application-defined parameter when `kind` is `CustomMessage`.
+    trayAction: TrayAction     // Notification-area interaction when `kind` is `TrayIcon`.
 }
 
 impl IEvent for SysUserEvent {}

@@ -96,12 +96,16 @@ using Swag, Core
     @assert(key.modifiers == Input.KeyModifiers.Alt)
 
     var sysUser: SysUserEvent
-    sysUser.message = 42
-    sysUser.param0  = 11
-    sysUser.param1  = 22
-    @assert(sysUser.message == 42)
-    @assert(sysUser.param0 == 11)
-    @assert(sysUser.param1 == 22)
+    sysUser.kind      = .CustomMessage
+    sysUser.messageId = 42
+    sysUser.param     = 22
+    @assert(sysUser.kind == SysUserEvent.Kind.CustomMessage)
+    @assert(sysUser.messageId == 42)
+    @assert(sysUser.param == 22)
+
+    sysUser.kind       = .TrayIcon
+    sysUser.trayAction = .ContextMenu
+    @assert(sysUser.trayAction == SysUserEvent.TrayAction.ContextMenu)
 
     var sysCommand: SysCommandEvent
     sysCommand.kind = .Restore

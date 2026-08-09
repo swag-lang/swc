@@ -1,4 +1,4 @@
-using Core, Win32, Gdi32, Pixel
+using Core, Pixel
 
 enum InPlaceEditMode
 {

@@ -1,4 +1,4 @@
-using Core, Pixel, Win32
+using Core, Pixel
 
 const W = 1080
 const H = 560
@@ -130,11 +130,11 @@ func onResize(window: *Env.Window, width, height: s32)
 
 #main
 {
-    g_Window = try Env.createWindow({className: "PIXEL3_CLASS_NAME", title: "Pixel font rendering: Bitmap vs MSDF vs Auto", width: W, height: H})
+    g_Window = try Env.createWindow({identifier: "pixel3", title: "Pixel font rendering: Bitmap vs MSDF vs Auto", width: W, height: H})
     try g_Window.setClientSize(W, H)
     g_Render  = &g_Renderer
     g_Painter = Pixel.Painter.create(g_Render)
-    g_RC      = try g_Render.createContext(cast(#null const *void) g_Window.nativeHandle, W, H)
+    g_RC      = try g_Render.createContext(g_Window.nativeRenderHandle(), W, H)
     defer g_Render.deleteContext(&g_RC)
     g_Render.setCurrentContext(g_RC)
     g_Render.init()

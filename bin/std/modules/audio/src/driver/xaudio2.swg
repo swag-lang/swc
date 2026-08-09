@@ -9,7 +9,7 @@ struct XAudio2DriverNative
     xAudio2:        #null *IXAudio2
     masteringVoice: #null *IXAudio2MasteringVoice
     hasInitCOM:     bool
-    channelMask:    DWORD
+    speakerMask:    u32
     x3DInstance:    X3DAUDIO_HANDLE
 }
 
@@ -53,11 +53,11 @@ impl XAudio2DriverNative
         setDebugConfiguration(safeXAudio2, &debug, null)
 
         let getChannelMask = safeMasteringVoice.vtbl.getChannelMask
-        result = getChannelMask(safeMasteringVoice, &.channelMask)
+        result = getChannelMask(safeMasteringVoice, &.speakerMask)
         if result != S_OK do
             fail SystemError{"cannot get xaudio2 channel mask", errorID: hresultErrorId(result)}
 
-        X3DAudioInitialize(.channelMask, X3DAUDIO_SPEED_OF_SOUND, .x3DInstance)
+        X3DAudioInitialize(.speakerMask, X3DAUDIO_SPEED_OF_SOUND, .x3DInstance)
 
         // Context for xaudio2 threads
         let cxt = @getcontext()
@@ -197,20 +197,20 @@ impl Voice
         wfx.format.wBitsPerSample = cast(u16) file.bitsPerSample
         wfx.format.wFormatTag     = FORMAT_EXTENSIBLE
         wfx.format.cbSize         = #sizeof(WAVEFORMATEXTENSIBLE) - #sizeof(WAVEFORMATEX)
-        wfx.dwChannelMask         = file.channelMask
+        wfx.dwChannelMask         = file.waveSpeakerMask
 
         switch file.encoding
         {
         case .Pcm8, .Pcm16, .Pcm24, .Pcm32:
-            wfx.subFormat           = Wav.GUID_PCM
+            Wav.copySubformat(&wfx.subFormat, Wav.SubformatPcm)
             voice.requestedEncoding = file.encoding
 
         case .Float32:
-            wfx.subFormat           = Wav.GUID_IEEE_FLOAT
+            Wav.copySubformat(&wfx.subFormat, Wav.SubformatIeeeFloat)
             voice.requestedEncoding = file.encoding
 
         default:
-            wfx.subFormat             = Wav.GUID_PCM
+            Wav.copySubformat(&wfx.subFormat, Wav.SubformatPcm)
             wfx.format.wBitsPerSample = 16
             voice.requestedEncoding   = .Pcm16
         }

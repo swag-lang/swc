@@ -301,7 +301,116 @@ private impl RenderCpu
         }
     }
 
-    func blendChannel(src, dst, srcAlpha: f32, mode: BlendingMode)->f32
+    func blendSeparable(src, dst: f32, mode: BlendingMode)->f32
+    {
+        switch mode
+        {
+        case .Multiply:
+            return src * dst
+
+        case .Screen:
+            return src + dst - src * dst
+
+        case .Overlay:
+            return dst <= 0.5 ? 2.0 * src * dst : 1.0 - 2.0 * (1.0 - src) * (1.0 - dst)
+
+        case .Darken:
+            return Math.min(src, dst)
+
+        case .Lighten:
+            return Math.max(src, dst)
+
+        case .ColorDodge:
+            return dst == 0 ? 0 : (src == 1 ? 1 : Math.min(1.0, dst / (1.0 - src)))
+
+        case .ColorBurn:
+            return dst == 1 ? 1 : (src == 0 ? 0 : 1.0 - Math.min(1.0, (1.0 - dst) / src))
+
+        case .HardLight:
+            return src <= 0.5 ? 2.0 * src * dst : 1.0 - 2.0 * (1.0 - src) * (1.0 - dst)
+
+        case .SoftLight:
+            if src <= 0.5 do
+                return dst - (1.0 - 2.0 * src) * dst * (1.0 - dst)
+            let d = dst <= 0.25 ? ((16.0 * dst - 12.0) * dst + 4.0) * dst : Math.sqrt(dst)
+            return dst + (2.0 * src - 1.0) * (d - dst)
+
+        case .Difference:
+            return Math.abs(dst - src)
+
+        case .Exclusion:
+            return dst + src - 2.0 * dst * src
+
+        default:
+            return src
+        }
+    }
+
+    func blendLuminosity(color: Math.Vector3)->f32 => 0.3 * color.x + 0.59 * color.y + 0.11 * color.z
+
+    func blendSaturation(color: Math.Vector3)->f32 => Math.max(color.x, Math.max(color.y, color.z)) - Math.min(color.x, Math.min(color.y, color.z))
+
+    func clipBlendColor(color: Math.Vector3)->Math.Vector3
+    {
+        let luminosity = blendLuminosity(color)
+        let minValue   = Math.min(color.x, Math.min(color.y, color.z))
+        let maxValue   = Math.max(color.x, Math.max(color.y, color.z))
+        var result     = color
+
+        if minValue < 0 do
+            result = luminosity + (result - luminosity) * luminosity / (luminosity - minValue)
+        if maxValue > 1 do
+            result = luminosity + (result - luminosity) * (1.0 - luminosity) / (maxValue - luminosity)
+        return result
+    }
+
+    func setBlendLuminosity(color: Math.Vector3, luminosity: f32)->Math.Vector3
+    {
+        return clipBlendColor(color + luminosity - blendLuminosity(color))
+    }
+
+    func setBlendSaturation(color: Math.Vector3, saturation: f32)->Math.Vector3
+    {
+        let currentSaturation = blendSaturation(color)
+        if currentSaturation == 0 do
+            return Math.Vector3.Zero
+
+        let minValue = Math.min(color.x, Math.min(color.y, color.z))
+        return (color - minValue) * saturation / currentSaturation
+    }
+
+    func blendNonSeparable(src, dst: Math.Vector3, mode: BlendingMode)->Math.Vector3
+    {
+        switch mode
+        {
+        case .Hue:        return setBlendLuminosity(setBlendSaturation(src, blendSaturation(dst)), blendLuminosity(dst))
+        case .Saturation: return setBlendLuminosity(setBlendSaturation(dst, blendSaturation(src)), blendLuminosity(dst))
+        case .Color:      return setBlendLuminosity(src, blendLuminosity(dst))
+        case .Luminosity: return setBlendLuminosity(dst, blendLuminosity(src))
+        default:          return src
+        }
+    }
+
+    func blendAdvanced(src, dst: Math.Vector3, srcAlpha, dstAlpha: f32, mode: BlendingMode)->Math.Vector3
+    {
+        // Render targets accumulate premultiplied color under source-over blending. Recover the
+        // backdrop color for the blend function, then combine the overlap, source-only, and
+        // backdrop-only coverage exactly as the advanced OpenGL equations do.
+        let backdrop = dstAlpha > 0 ? Math.Vector3{Math.clamp(dst.x / dstAlpha, 0.0, 1.0),
+                                                   Math.clamp(dst.y / dstAlpha, 0.0, 1.0),
+                                                   Math.clamp(dst.z / dstAlpha, 0.0, 1.0)} : Math.Vector3.Zero
+        var blended = blendNonSeparable(src, backdrop, mode)
+        if mode.isSeparable()
+        {
+            blended.x = blendSeparable(src.x, backdrop.x, mode)
+            blended.y = blendSeparable(src.y, backdrop.y, mode)
+            blended.z = blendSeparable(src.z, backdrop.z, mode)
+        }
+
+        return blended * srcAlpha * dstAlpha + src * srcAlpha * (1.0 - dstAlpha) + dst * (1.0 - srcAlpha)
+    }
+
+    func blendChannel(src, dst, srcAlpha, dstAlpha: f32, mode: BlendingMode)->f32
     {
         switch #complete mode
         {
@@ -313,6 +422,7 @@ private impl RenderCpu
         case .Min:    return Math.min(src, dst)
         case .Max:    return Math.max(src, dst)
         case .DstIn:  return dst * srcAlpha
+        case .Multiply, .Screen, .Overlay, .Darken, .Lighten, .ColorDodge, .ColorBurn, .HardLight, .SoftLight, .Difference, .Exclusion, .Hue, .Saturation, .Color, .Luminosity: return src
         }
 
         return src
@@ -370,14 +480,19 @@ private impl RenderCpu
         // colour channels use: weighting it by itself accumulates coverage as a square, so a stack
         // of faint layers reaches almost no opacity at all. This matches the separate blend
         // function the OpenGL renderer sets, so a CPU render and a GPU render cover the same.
-        var outA = blendChannel(sa, da, sa, .blendingMode)
-        if .blendingMode == .Alpha do
+        var outA = blendChannel(sa, da, sa, da, .blendingMode)
+        if .blendingMode == .Alpha or .blendingMode.usesAdvancedBlending() do
             outA = sa + da * (1.0 - sa)
 
-        var out = Color.fromArgbF32(outA,
-                                    blendChannel(cast(f32) src.r / 255.0, cast(f32) dst.r / 255.0, sa, .blendingMode),
-                                    blendChannel(cast(f32) src.g / 255.0, cast(f32) dst.g / 255.0, sa, .blendingMode),
-                                    blendChannel(cast(f32) src.b / 255.0, cast(f32) dst.b / 255.0, sa, .blendingMode))
+        let srcColor = Math.Vector3{cast(f32) src.r / 255.0, cast(f32) src.g / 255.0, cast(f32) src.b / 255.0}
+        let dstColor = Math.Vector3{cast(f32) dst.r / 255.0, cast(f32) dst.g / 255.0, cast(f32) dst.b / 255.0}
+        var outColor = Math.Vector3{blendChannel(srcColor.x, dstColor.x, sa, da, .blendingMode),
+                                    blendChannel(srcColor.y, dstColor.y, sa, da, .blendingMode),
+                                    blendChannel(srcColor.z, dstColor.z, sa, da, .blendingMode)}
+        if .blendingMode.usesAdvancedBlending() do
+            outColor = blendAdvanced(srcColor, dstColor, sa, da, .blendingMode)
+
+        var out = Color.fromArgbF32(outA, outColor.x, outColor.y, outColor.z)
 
         if !.colorMask.r do
             out.r = dst.r
@@ -965,9 +1080,10 @@ private impl RenderCpu
         let fontUvDy = Vector2{(v0.uv.x * (p2.x - p1.x) + v1.uv.x * (p0.x - p2.x) + v2.uv.x * (p1.x - p0.x)) * invArea,
                                (v0.uv.y * (p2.x - p1.x) + v1.uv.y * (p0.x - p2.x) + v2.uv.y * (p1.x - p0.x)) * invArea}
 
-        let c0 = Color.fromArgb(v0.color)
-        let c1 = Color.fromArgb(v1.color)
-        let c2 = Color.fromArgb(v2.color)
+        let c0            = Color.fromArgb(v0.color)
+        let c1            = Color.fromArgb(v1.color)
+        let c2            = Color.fromArgb(v2.color)
+        let constantColor = c0 == c1 and c1 == c2
 
         let stencil = .currentStencil()
         for var y = minY; y <= maxY; y += 1
@@ -1001,10 +1117,10 @@ private impl RenderCpu
                 let w2          = e2 * invArea
                 let paintPos    = v0.pos * w0 + v1.pos * w1 + v2.pos * w2
                 let fontUv      = v0.uv * w0 + v1.uv * w1 + v2.uv * w2
-                let vertexColor = Color.fromArgbF32((c0.a * w0 + c1.a * w1 + c2.a * w2) / 255.0,
-                                                    (c0.r * w0 + c1.r * w1 + c2.r * w2) / 255.0,
-                                                    (c0.g * w0 + c1.g * w1 + c2.g * w2) / 255.0,
-                                                    (c0.b * w0 + c1.b * w1 + c2.b * w2) / 255.0)
+                let vertexColor = constantColor ? c0 : Color.fromArgbF32((c0.a * w0 + c1.a * w1 + c2.a * w2) / 255.0,
+                                                                         (c0.r * w0 + c1.r * w1 + c2.r * w2) / 255.0,
+                                                                         (c0.g * w0 + c1.g * w1 + c2.g * w2) / 255.0,
+                                                                         (c0.b * w0 + c1.b * w1 + c2.b * w2) / 255.0)
                 let cov = Math.saturate(((v0.cov * w0 + v1.cov * w1 + v2.cov * w2) - 0.5) / covWidth + 0.5)
                 .blendPixel(image, x, y, .shade(paintPos, fontUv, fontUvDx, fontUvDy, vertexColor, cov))
             }

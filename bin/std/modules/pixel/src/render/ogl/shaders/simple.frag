@@ -10,4 +10,5 @@ out vec4 color;
 void main()
 {
     color = vcolor * samplePaint(vpaintPos, vuv0);
+    applyBlendingMode(color);
 }

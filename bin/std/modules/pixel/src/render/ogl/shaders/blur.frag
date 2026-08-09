@@ -42,4 +42,5 @@ void main()
     }
 
     color *= vcolor;
+    applyBlendingMode(color);
 }

@@ -30,4 +30,5 @@ void main()
     color.w *= texture(inTexture1, vuv1).r;
     if(color.w == 0 && !copyMode)
         discard;
+    applyBlendingMode(color);
 }

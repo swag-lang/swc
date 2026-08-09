@@ -30,6 +30,40 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     assertPixel(image, 10, 8, Argb.Zero)
 }
 
+// Constant vertex colors produce a uniform blend across both triangles of a filled rectangle.
+#test
+{
+    const Dst = Color.fromArgb(255'u8, 64'u8, 128'u8, 192'u8)
+    const Src = Color.fromArgb(128'u8, 192'u8, 64'u8, 128'u8)
+
+    var cpu:      RenderCpu
+    let renderer: IRenderer = &cpu
+    renderer.init()
+    var target = renderer.createRenderTarget(72, 12)
+    defer renderer.deleteRenderTarget(&target)
+
+    var painter = Painter.create(renderer)
+    painter.begin()
+    painter.bindRenderTarget(&target)
+    painter.setColorMaskFull()
+    painter.clear(Color.fromArgb(Argb.Zero))
+    painter.setBlendingMode(.Copy)
+    painter.fillRect({60, 0, 12, 12}, Dst)
+    painter.setBlendingMode(.ColorDodge)
+    painter.fillRect({60, 0, 12, 12}, Src)
+    painter.unbindRenderTarget()
+    painter.end()
+    renderer.draw(&painter)
+
+    let image    = renderer.readRenderTarget(&target, 0, 0, 72, 12)
+    let expected = image.pixelColor(60, 0)
+    for var y = 0; y < 12; y += 1
+    {
+        for var x = 60; x < 72; x += 1 do
+            assertPixel(image, x, y, expected)
+    }
+}
+
 // The half-open triangle rule draws a rectangle's shared diagonal exactly once.
 #test
 {
@@ -45,6 +79,77 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     let regular  = image.pixelColor(5, 4)
     @assert(diagonal == regular)
     @assert(diagonal.r >= 127 and diagonal.r <= 129)
+}
+
+// The separable modes follow the standard per-channel blend functions, then apply source-over
+// coverage. The source is translucent so this distinguishes them from raw component equations.
+#test
+{
+    const modes:    [11] BlendingMode = [.Multiply, .Screen, .Overlay, .Darken, .Lighten, .ColorDodge, .ColorBurn, .HardLight, .SoftLight, .Difference, .Exclusion]
+    const expected: [11] Color        = [Color.fromArgb(255'u8, 56'u8, 79'u8, 144'u8),
+                                         Color.fromArgb(255'u8, 136'u8, 143'u8, 207'u8),
+                                         Color.fromArgb(255'u8, 80'u8, 96'u8, 192'u8),
+                                         Color.fromArgb(255'u8, 64'u8, 95'u8, 159'u8),
+                                         Color.fromArgb(255'u8, 128'u8, 128'u8, 192'u8),
+                                         Color.fromArgb(255'u8, 159'u8, 149'u8, 223'u8),
+                                         Color.fromArgb(255'u8, 32'u8, 63'u8, 160'u8),
+                                         Color.fromArgb(255'u8, 112'u8, 96'u8, 192'u8),
+                                         Color.fromArgb(255'u8, 80'u8, 112'u8, 192'u8),
+                                         Color.fromArgb(255'u8, 96'u8, 95'u8, 127'u8),
+                                         Color.fromArgb(255'u8, 111'u8, 127'u8, 159'u8)]
+
+    const Dst = Color.fromArgb(255'u8, 64'u8, 128'u8, 192'u8)
+    const Src = Color.fromArgb(128'u8, 192'u8, 64'u8, 128'u8)
+
+    var painter: Painter
+    painter.begin()
+    painter.setColorMaskFull()
+    for mode, [idx] in modes
+    {
+        let x = cast(f32) idx * 2.0
+        painter.setBlendingMode(.Copy)
+        painter.fillRect(x, 0, 2, 2, Dst)
+        painter.setBlendingMode(mode)
+        painter.fillRect(x, 0, 2, 2, Src)
+    }
+
+    painter.end()
+
+    let image = renderCpu(22, 2, &painter)
+    for value, [idx] in expected do
+        assertPixel(image, cast(s32) idx * 2, 0, value)
+}
+
+// The non-separable modes transfer hue, saturation, or luminosity across the complete color,
+// then use the same source-over coverage as the separable modes.
+#test
+{
+    const modes:    [4] BlendingMode = [.Hue, .Saturation, .Color, .Luminosity]
+    const expected: [4] Color        = [Color.fromArgb(255'u8, 148'u8, 74'u8, 119'u8),
+                                        Color.fromArgb(255'u8, 37'u8, 117'u8, 189'u8),
+                                        Color.fromArgb(255'u8, 135'u8, 80'u8, 123'u8),
+                                        Color.fromArgb(255'u8, 44'u8, 134'u8, 214'u8)]
+
+    const Dst = Color.fromArgb(255'u8, 30'u8, 120'u8, 200'u8)
+    const Src = Color.fromArgb(160'u8, 220'u8, 80'u8, 100'u8)
+
+    var painter: Painter
+    painter.begin()
+    painter.setColorMaskFull()
+    for mode, [idx] in modes
+    {
+        let x = cast(f32) idx * 2.0
+        painter.setBlendingMode(.Copy)
+        painter.fillRect(x, 0, 2, 2, Dst)
+        painter.setBlendingMode(mode)
+        painter.fillRect(x, 0, 2, 2, Src)
+    }
+
+    painter.end()
+
+    let image = renderCpu(8, 2, &painter)
+    for value, [idx] in expected do
+        assertPixel(image, cast(s32) idx * 2, 0, value)
 }
 
 // Nearest-neighbor texture sampling preserves the source quadrants.

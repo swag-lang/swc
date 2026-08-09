@@ -37,20 +37,6 @@ The gaps are in composition fidelity, color, and the GPU backend.
 
 ## Tier A — Composition fidelity
 
-### T-048 — Seven blend modes, and the useful ones are missing
-
-- Problem: `BlendingMode` in `src/painter/painter.swg` is `Copy`, `Alpha`, `Add`, `Sub`, `SubDst`,
-  `Min` and `Max`. The separable blend modes that PDF, SVG, CSS, Skia and every design tool define
-  are absent — Multiply, Screen, Overlay, Darken, Lighten, ColorDodge, ColorBurn, HardLight,
-  SoftLight, Difference and Exclusion — as are the non-separable Hue, Saturation, Color and
-  Luminosity.
-- Consequence: Multiply and Screen alone account for most real compositing work. Without them,
-  shadow, tint, highlight and any layered design effect cannot be expressed. It is also what
-  blocks [T-076](todo.scapture.md#t-076--capture-level-effects), which asks for capture-level effects.
-- Fix: the separable set first — they are a per-channel function and cheap in both backends. The
-  four non-separable modes need the full colour computation and can follow.
-- This is the highest value-to-effort entry in the module.
-
 ### T-049 — No image filter graph
 
 - Problem: blur exists only as a painter shader (`setBlurShader`), applied to what is being drawn.
@@ -60,8 +46,8 @@ The gaps are in composition fidelity, color, and the GPU backend.
   over arbitrary content is unavailable. `image/filter/` operates on an `Image` in memory, which is
   not the same tool.
 - Fix: an effect graph over render targets, with `SkImageFilter` as the model — a small set of
-  primitives (blur, offset, colour matrix, blend, merge) that compose. Depends on T-048 for the
-  blend node.
+  primitives (blur, offset, colour matrix, blend, merge) that compose. The blend node can use the
+  painter's artistic blend modes.
 - Downstream: this is what `sCapture` needs for border, drop shadow, torn edge and perspective.
 
 ### T-050 — Gradients cap at eight stops, and SVG cannot read them at all

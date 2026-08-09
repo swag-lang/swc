@@ -48,12 +48,12 @@ func drawBlendSample(painter: *Pixel.Painter, rect: Math.Rectangle, mode: Blendi
 
 func drawBlendCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 {
-    let body      = drawPanel(painter, rect, "Blending modes", "Add and Max stay visible side by side so the page still tests alternate compositing paths.")
+    let body      = drawPanel(painter, rect, "Blending modes", "Multiply shades overlapping colors while Screen lifts them toward a shared highlight.")
     let sampleGap = 18.0
     let sampleW   = (body.width - sampleGap) * 0.5
 
-    drawBlendSample(painter, {body.x, body.y + 18, sampleW, body.height - 18}, .Add, "Add")
-    drawBlendSample(painter, {body.x + sampleW + sampleGap, body.y + 18, sampleW, body.height - 18}, .Max, "Max")
+    drawBlendSample(painter, {body.x, body.y + 18, sampleW, body.height - 18}, .Multiply, "Multiply")
+    drawBlendSample(painter, {body.x + sampleW + sampleGap, body.y + 18, sampleW, body.height - 18}, .Screen, "Screen")
 }
 
 func buildPathModeList(x, y: f32)->LinePathList

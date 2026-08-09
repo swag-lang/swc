@@ -16,6 +16,13 @@ uniform vec2  gradientAngles;
 uniform int   gradientCount;
 uniform float gradientOffsets[8];
 uniform vec4  gradientColors[8];
+uniform bool  premultiplyBlendSource;
+
+void applyBlendingMode(inout vec4 value)
+{
+    if(premultiplyBlendSource)
+        value.rgb *= value.a;
+}
 
 float applyGradientSpread(float t)
 {

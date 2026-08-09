@@ -19,6 +19,12 @@ private
     const VertexShaderFont    = #include("shaders/font.vert")
     const PixelShaderFont     = #include("shaders/font.frag")
     const PixelShaderFontMsdf = #include("shaders/font_msdf.frag")
+
+    const KhrAdvancedBlendShaderHeader = "#extension GL_KHR_blend_equation_advanced : require\nlayout(blend_support_all_equations) out;\n"
+
+    const AdvancedBlendingNone: u8 = 0
+    const AdvancedBlendingKhr:  u8 = 1
+    const AdvancedBlendingNv:   u8 = 2
 }
 
 // Sets the glyph-coverage exponent used by the font shaders.
@@ -50,6 +56,9 @@ const InvalidRenderTargetSurfaceHandle: RenderTargetSurfaceHandle = cast() 0    
 // A renderer is non-copyable and owns its shaders, textures, buffers, and queued
 // render targets. Create it as an [[Pixel.IRenderer]], create a
 // [[Pixel.RenderContext]], call `init`, then bracket frames with `begin` and `end`.
+// The artistic blend modes use coherent advanced blend equations; call
+// [[Pixel.RenderOgl.supportsAdvancedBlending]] after `init` before selecting one on
+// a context whose driver capabilities are not known.
 #[Swag.NoCopy]
 struct RenderOgl
 {
@@ -82,14 +91,15 @@ struct RenderOgl
         colorMask:      ColorMask    = {true, true, true, false}     // Painter-requested channel mask.
         curRC:          RenderContext                                // Active drawable and viewport.
 
-        stackReleasedRT: Array'#null *RenderTarget     // Targets queued for deferred release.
-        stackRT:         Array'#null *RenderTarget     // Nested bound render targets.
-        curRT:           #null *RenderTarget           // Active off-screen target, if any.
-        curShader:       #null *ShaderBase             // Active shader, or the default shader.
-        overlapMode:     bool                          // Whether overlap-safe alpha drawing is active.
-        contentScale:    f32 = 1                       // Device pixels per unit of the painter stream being drawn.
-        nativeContext:   #null const *void             // Shared native OpenGL context owned by interface-created drawables.
-        contextCount:    u32                           // Number of live interface-created drawables.
+        stackReleasedRT:  Array'#null *RenderTarget     // Targets queued for deferred release.
+        stackRT:          Array'#null *RenderTarget     // Nested bound render targets.
+        curRT:            #null *RenderTarget           // Active off-screen target, if any.
+        curShader:        #null *ShaderBase             // Active shader, or the default shader.
+        overlapMode:      bool                          // Whether overlap-safe alpha drawing is active.
+        contentScale:     f32 = 1                       // Device pixels per unit of the painter stream being drawn.
+        nativeContext:    #null const *void             // Shared native OpenGL context owned by interface-created drawables.
+        contextCount:     u32                           // Number of live interface-created drawables.
+        advancedBlending: u8                            // Advanced blend-equation family supplied by the current context.
     }
 }
 
@@ -99,6 +109,43 @@ private impl RenderOgl
     {
         Debug.assert(rc.data != null, "OpenGL render context has no backend state")
         return cast(*OglContext) rc.data!
+    }
+
+    func hasExtension(name: string)->bool
+    {
+        var count: GLint
+        glGetIntegerv(GL_NUM_EXTENSIONS, &count)
+        for [idx] in count
+        {
+            let value = glGetStringi(GL_EXTENSIONS, cast(GLuint) idx)
+            if value and cast(string) (cast(const cstring) value!) == name do
+                return true
+        }
+
+        return false
+    }
+
+    func advancedBlendEquation(mode: BlendingMode)->GLenum
+    {
+        switch mode
+        {
+        case .Multiply:   return GL_MULTIPLY_KHR
+        case .Screen:     return GL_SCREEN_KHR
+        case .Overlay:    return GL_OVERLAY_KHR
+        case .Darken:     return GL_DARKEN_KHR
+        case .Lighten:    return GL_LIGHTEN_KHR
+        case .ColorDodge: return GL_COLORDODGE_KHR
+        case .ColorBurn:  return GL_COLORBURN_KHR
+        case .HardLight:  return GL_HARDLIGHT_KHR
+        case .SoftLight:  return GL_SOFTLIGHT_KHR
+        case .Difference: return GL_DIFFERENCE_KHR
+        case .Exclusion:  return GL_EXCLUSION_KHR
+        case .Hue:        return GL_HSL_HUE_KHR
+        case .Saturation: return GL_HSL_SATURATION_KHR
+        case .Color:      return GL_HSL_COLOR_KHR
+        case .Luminosity: return GL_HSL_LUMINOSITY_KHR
+        default:          return GL_FUNC_ADD
+        }
     }
 
     func setShaderCompileError(shaderID: GLuint) fail
@@ -122,14 +169,14 @@ private impl RenderOgl
     mtd createShaders()
     {
         {
-            expect createShader(&.shaderSimple, VertexShaderSimple, PixelShaderSimple)
+            expect .createShader(&.shaderSimple, VertexShaderSimple, PixelShaderSimple)
             let text0 = glGetUniformLocation(cast(GLuint) .shaderSimple.handle, @dataof("inTexture0"))
             glUseProgram(cast(GLuint) .shaderSimple.handle)
             glUniform1i(text0, 0)
         }
 
         {
-            expect createShader(&.shaderAA, VertexShaderAA, PixelShaderAA)
+            expect .createShader(&.shaderAA, VertexShaderAA, PixelShaderAA)
             let text0 = glGetUniformLocation(cast(GLuint) .shaderAA.handle, @dataof("inTexture0"))
             let text1 = glGetUniformLocation(cast(GLuint) .shaderAA.handle, @dataof("inTexture1"))
             glUseProgram(cast(GLuint) .shaderAA.handle)
@@ -138,7 +185,7 @@ private impl RenderOgl
         }
 
         {
-            expect createShader(&.shaderFont, VertexShaderFont, PixelShaderFont)
+            expect .createShader(&.shaderFont, VertexShaderFont, PixelShaderFont)
             let text0 = glGetUniformLocation(cast(GLuint) .shaderFont.handle, @dataof("inTexture0"))
             let text1 = glGetUniformLocation(cast(GLuint) .shaderFont.handle, @dataof("inTexture1"))
             let gamma = glGetUniformLocation(cast(GLuint) .shaderFont.handle, @dataof("fontGamma"))
@@ -149,7 +196,7 @@ private impl RenderOgl
         }
 
         {
-            expect createShader(&.shaderFontMsdf, VertexShaderFont, PixelShaderFontMsdf)
+            expect .createShader(&.shaderFontMsdf, VertexShaderFont, PixelShaderFontMsdf)
             let text0 = glGetUniformLocation(cast(GLuint) .shaderFontMsdf.handle, @dataof("inTexture0"))
             let text1 = glGetUniformLocation(cast(GLuint) .shaderFontMsdf.handle, @dataof("inTexture1"))
             let gamma = glGetUniformLocation(cast(GLuint) .shaderFontMsdf.handle, @dataof("fontGamma"))
@@ -175,7 +222,7 @@ private impl RenderOgl
         }
 
         {
-            expect createShader(&.shaderBlur, VertexShaderSimple, PixelShaderBlur)
+            expect .createShader(&.shaderBlur, VertexShaderSimple, PixelShaderBlur)
             let text0 = glGetUniformLocation(cast(GLuint) .shaderBlur.handle, @dataof("inTexture0"))
             glUseProgram(cast(GLuint) .shaderBlur.handle)
             glUniform1i(text0, 0)
@@ -184,7 +231,7 @@ private impl RenderOgl
         }
 
         {
-            expect createShader(&.shaderResolve, VertexShaderSimple, PixelShaderResolve)
+            expect .createShader(&.shaderResolve, VertexShaderSimple, PixelShaderResolve)
             let text0 = glGetUniformLocation(cast(GLuint) .shaderResolve.handle, @dataof("inTexture0"))
             glUseProgram(cast(GLuint) .shaderResolve.handle)
             glUniform1i(text0, 0)
@@ -271,8 +318,11 @@ private impl RenderOgl
         // 'Copy', where a transparent source is the erase operation. The uniform lives per
         // program, so it is refreshed here and on every program switch, never only when a
         // texture brush happens to be bound.
-        if .curShader do
+        if .curShader
+        {
             glUniform1i(cast(GLint) .curShader.copyMode, cast(GLint) (bm == .Copy))
+            glUniform1i(cast(GLint) .curShader.premultiplyBlendSource, cast(GLint) (.advancedBlending == AdvancedBlendingKhr and bm.usesAdvancedBlending()))
+        }
 
         switch #complete bm
         {
@@ -319,6 +369,19 @@ private impl RenderOgl
             glEnable(GL_BLEND)
             glBlendFuncSeparate(GL_ZERO, GL_SRC_ALPHA, GL_ZERO, GL_SRC_ALPHA)
             glBlendEquation(GL_FUNC_ADD)
+
+        case .Multiply, .Screen, .Overlay, .Darken, .Lighten, .ColorDodge, .ColorBurn, .HardLight, .SoftLight, .Difference, .Exclusion, .Hue, .Saturation, .Color, .Luminosity:
+            Debug.assert(.advancedBlending != AdvancedBlendingNone, "OpenGL renderer does not support advanced blending modes on this context")
+            if .advancedBlending == AdvancedBlendingNone
+            {
+                glEnable(GL_BLEND)
+                glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA)
+                glBlendEquation(GL_FUNC_ADD)
+                return
+            }
+
+            glEnable(GL_BLEND)
+            glBlendEquation(advancedBlendEquation(bm))
         }
     }
 
@@ -334,6 +397,13 @@ private impl RenderOgl
 
 impl RenderOgl
 {
+    // Reports whether the current context provides coherent advanced blend equations.
+    //
+    // Call this after [[Pixel.IRenderer.init]]. A `false` result means
+    // [[Pixel.RenderCpu]] remains available for the artistic blend modes, while
+    // this OpenGL context can use the traditional modes only.
+    mtd const supportsAdvancedBlending()->bool => .advancedBlending != AdvancedBlendingNone
+
     // Releases queued and currently bound render-target descriptors, and the glyph atlases.
     mtd opDrop()
     {
@@ -441,6 +511,17 @@ impl RenderOgl
     internal mtd initImpl()
     {
         glInitExtensions()
+
+        if hasExtension("GL_KHR_blend_equation_advanced_coherent")
+        {
+            .advancedBlending = AdvancedBlendingKhr
+        }
+        elif hasExtension("GL_NV_blend_equation_advanced_coherent")
+        {
+            .advancedBlending = AdvancedBlendingNv
+            glBlendParameteriNV(GL_BLEND_PREMULTIPLIED_SRC_NV, cast(GLint) GL_FALSE)
+        }
+
         .createShaders()
 
         // glEnable(GL_DEBUG_OUTPUT);
@@ -1184,6 +1265,7 @@ impl RenderOgl
         // Uniforms are per program: the incoming program's copyMode may be stale from an
         // earlier frame, so realign it with the current blending mode; see setBlendingMode.
         glUniform1i(cast(GLint) .curShader.copyMode, cast(GLint) (.blendingMode == .Copy))
+        glUniform1i(cast(GLint) .curShader.premultiplyBlendSource, cast(GLint) (.advancedBlending == AdvancedBlendingKhr and .blendingMode.usesAdvancedBlending()))
     }
 
     // Acquires a pooled render target at least as large as the requested size.
@@ -1229,7 +1311,7 @@ impl RenderOgl
     }
 
     // Create the given shader
-    internal func createShader(base: *ShaderBase, vertex, pixel: const [..] u8) fail
+    internal mtd createShader(base: *ShaderBase, vertex, pixel: const [..] u8) fail
     {
         var buf: String = @mkstring(@dataof(vertex), @countof(vertex))
         buf.replace("#include base", @mkstring(@dataof(BaseVertexShader), @countof(BaseVertexShader)))
@@ -1242,7 +1324,12 @@ impl RenderOgl
         try setShaderCompileError(vertexShaderID)
 
         buf = @mkstring(@dataof(pixel), @countof(pixel))
-        buf.replace("#include base", @mkstring(@dataof(BasePixelShader), @countof(BasePixelShader)))
+        var baseBuilder: StringBuilder
+        if .advancedBlending == AdvancedBlendingKhr do
+            baseBuilder.appendString(KhrAdvancedBlendShaderHeader)
+        baseBuilder.appendString(@mkstring(@dataof(BasePixelShader), @countof(BasePixelShader)))
+        let baseSource = baseBuilder.moveToString()
+        buf.replace("#include base", baseSource)
 
         let fragmentShaderID   = glCreateShader(GL_FRAGMENT_SHADER)
         var pixelSourcePointer = buf.buffer
@@ -1263,23 +1350,24 @@ impl RenderOgl
 
         base.handle = cast(ShaderHandle) progID
 
-        base.mvp               = cast() glGetUniformLocation(progID, @dataof("mvp"))
-        base.mdl               = cast() glGetUniformLocation(progID, @dataof("mdl"))
-        base.boundRect         = cast() glGetUniformLocation(progID, @dataof("boundRect"))
-        base.textureRect       = cast() glGetUniformLocation(progID, @dataof("textureRect"))
-        base.uvMode            = cast() glGetUniformLocation(progID, @dataof("uvMode"))
-        base.interpolationMode = cast() glGetUniformLocation(progID, @dataof("interpolationMode"))
-        base.copyMode          = cast() glGetUniformLocation(progID, @dataof("copyMode"))
-        base.textureW          = cast() glGetUniformLocation(progID, @dataof("textureW"))
-        base.textureH          = cast() glGetUniformLocation(progID, @dataof("textureH"))
-        base.paintType         = cast() glGetUniformLocation(progID, @dataof("paintType"))
-        base.gradientSpread    = cast() glGetUniformLocation(progID, @dataof("gradientSpread"))
-        base.gradientStart     = cast() glGetUniformLocation(progID, @dataof("gradientStart"))
-        base.gradientEnd       = cast() glGetUniformLocation(progID, @dataof("gradientEnd"))
-        base.gradientRadius    = cast() glGetUniformLocation(progID, @dataof("gradientRadius"))
-        base.gradientAngles    = cast() glGetUniformLocation(progID, @dataof("gradientAngles"))
-        base.gradientCount     = cast() glGetUniformLocation(progID, @dataof("gradientCount"))
-        base.gradientOffsets   = cast() glGetUniformLocation(progID, @dataof("gradientOffsets[0]"))
-        base.gradientColors    = cast() glGetUniformLocation(progID, @dataof("gradientColors[0]"))
+        base.mvp                    = cast() glGetUniformLocation(progID, @dataof("mvp"))
+        base.mdl                    = cast() glGetUniformLocation(progID, @dataof("mdl"))
+        base.boundRect              = cast() glGetUniformLocation(progID, @dataof("boundRect"))
+        base.textureRect            = cast() glGetUniformLocation(progID, @dataof("textureRect"))
+        base.uvMode                 = cast() glGetUniformLocation(progID, @dataof("uvMode"))
+        base.interpolationMode      = cast() glGetUniformLocation(progID, @dataof("interpolationMode"))
+        base.copyMode               = cast() glGetUniformLocation(progID, @dataof("copyMode"))
+        base.textureW               = cast() glGetUniformLocation(progID, @dataof("textureW"))
+        base.textureH               = cast() glGetUniformLocation(progID, @dataof("textureH"))
+        base.paintType              = cast() glGetUniformLocation(progID, @dataof("paintType"))
+        base.gradientSpread         = cast() glGetUniformLocation(progID, @dataof("gradientSpread"))
+        base.gradientStart          = cast() glGetUniformLocation(progID, @dataof("gradientStart"))
+        base.gradientEnd            = cast() glGetUniformLocation(progID, @dataof("gradientEnd"))
+        base.gradientRadius         = cast() glGetUniformLocation(progID, @dataof("gradientRadius"))
+        base.gradientAngles         = cast() glGetUniformLocation(progID, @dataof("gradientAngles"))
+        base.gradientCount          = cast() glGetUniformLocation(progID, @dataof("gradientCount"))
+        base.gradientOffsets        = cast() glGetUniformLocation(progID, @dataof("gradientOffsets[0]"))
+        base.gradientColors         = cast() glGetUniformLocation(progID, @dataof("gradientColors[0]"))
+        base.premultiplyBlendSource = cast() glGetUniformLocation(progID, @dataof("premultiplyBlendSource"))
     }
 }

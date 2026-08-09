@@ -139,6 +139,12 @@ Small, individually cheap, and each one is a visible defect rather than a missin
 
 ## Tier C — What a finished toolkit has
 
+These are not six independent checkboxes. Animation is infrastructure for touch inertia and
+docking feedback; docking relies on drag-and-drop polish; a second platform has to reproduce the
+accessibility, input and system-event contracts above rather than merely open a window. Each entry
+therefore names the smallest coherent version that can ship and the existing controls or
+applications that would prove it.
+
 ### T-042 — The two halves of keyboard navigation that are still missing
 
 Traversal itself landed: `FocusPolicy` says what takes the focus and what stops the keyboard,
@@ -162,35 +168,196 @@ same story are not there yet.
   `Alt` is held, the way Windows does it. The menu bar is the other consumer, and it needs the same
   key to open at all.
 
-### T-043 — Animation
+### T-043 — A motion system, not more one-off animations
 
-No easing, no transitions, no timeline, no property animator. Every toolkit in the comparison has
-one, and it is most of the difference between a UI that works and a UI that feels finished. It also
-needs a reduced-motion setting from the moment it exists, for the same reason as T-037.
+This is not a blank slate. `Application` already supplies frame timing and opt-in `FrameEvent`
+delivery; `BlendColor` softens state changes in buttons, fields, tabs, scroll bars and the property
+grid; `ScrollWnd` has a private smooth-scroll loop; disabled surfaces fade; and `Spinner`, the
+indeterminate `ProgressBar` and `Movie` advance from the same delta time. The problem is that each
+consumer owns a different partial mechanism. There is no finite animation with a duration, no
+easing vocabulary, no delay or completion, no cancellation or retargeting contract, no way to run
+tracks together, and no common reduced-motion policy. A caller that wants a panel to move or a
+page to cross-fade has to write its own frame state, invalidation and teardown.
+
+A useful first version should be deliberately smaller than a general timeline editor:
+
+- **One scheduler and one clock.** An `Animator` owned by `Application` advances only active
+  animations from `FrameTiming`, requests only the affected repaint or layout, and stops asking for
+  frames when the last track ends. A track has delay, duration, direction, easing, completion and
+  an explicit result when it finishes or is cancelled. Starting a new track for the same target
+  and channel retargets from the value currently on screen instead of jumping back to the previous
+  endpoint.
+- **A small typed value layer.** Start with `f32`, `Color`, `Math.Point`, `Math.Vector4` and
+  `Math.Rectangle`, plus linear, ease-in, ease-out and ease-in-out curves. Do not begin with a
+  reflection-based "animate any field" API: changing an arbitrary field cannot say whether it
+  needs paint, measure, arrange or new hit-test geometry, and it can silently outlive its owner.
+  Typed tracks with an update callback make those costs and that lifetime visible. Parallel and
+  sequence groups are enough composition initially; springs, keyframes and cubic-bezier authoring
+  can wait for a real consumer.
+- **Presentation properties on `Wnd`.** Opacity, a paint offset and clipping reveal/hide most of
+  the useful interface transitions without changing the target layout rectangle every frame.
+  Layout-affecting size animation should be a separate adapter that invalidates the nearest layout
+  root, used sparingly for an expanding pane. Hit testing and keyboard focus must follow the final
+  logical state, not chase a decorative transform frame by frame.
+- **Lifetime and interruption rules.** Destroying or hiding a target cancels its tracks; changing
+  theme or DPI keeps the normalized progress but resolves new endpoints; direct manipulation
+  always wins over an animation; and an interrupted transition can reverse or retarget without a
+  discontinuity. Registration needs a window-owned cancellation token, or a new generation-checked
+  handle if animations may outlive one dispatch; `WndId` is a command/persistence name, not a
+  lifetime handle, and a borrowed pointer must not survive deferred destruction.
+- **Motion policy from day one.** Read the Windows client-area-animation preference, refresh it on
+  `WM_SETTINGCHANGE` with T-041, and expose one application policy that tests and applications can
+  override. With reduced motion, decorative finite transitions complete immediately; essential
+  busy feedback remains visible but avoids large translation and scale. Durations and distances
+  belong to semantic theme tokens — quick state feedback, page transition, panel transition — not
+  as unrelated constants embedded in controls.
+
+The first consumers should prove the layers in order: migrate `BlendColor` without changing the
+resting pixels; move smooth scrolling to the scheduler; add a short selection-indicator transition
+to tabs and lists; then add one page transition and one expanding-pane transition. Popup menus,
+tooltips and modal dialogs can use opacity plus a few pixels of offset after those primitives are
+stable. Direct drags, typing, selection rectangles and slider thumbs must stay immediate — motion
+should explain a state change, never make input feel viscous.
+
+What this buys the two current applications is concrete:
+
+- **sCapture:** the editor/library switch in `ActionGlobal` currently hides four editor regions
+  and reveals `LibraryWnd` in one frame; a short cross-fade makes the change legible. The recent
+  strip jumps between 80, 128 and 224 logical pixels; animating that layout channel preserves the
+  user's place while the canvas resizes. Moving the selected mark between recent thumbnails and
+  easing programmatic zoom-to-fit give a visible connection between the command and its result.
+  Drawing, dragging forms, resizing the capture rectangle and wheel zoom remain unanimated because
+  they are already direct manipulation.
+- **sCrypt:** the Create, Open and Mounted cards are pages of one tab strip and currently replace
+  one another instantly; a restrained page transition preserves where the user moved. The status
+  band swaps its glyph for a spinner while create, mount, grow or unmount work runs; a cross-fade
+  and a smoothly updated determinate percentage make the start and completion of that work read as
+  one operation. A newly mounted drive can enter the list with a brief highlight and an unmounted
+  one can leave without the table snapping. No security state waits for the animation: controls,
+  focus and command availability change immediately, and motion only presents the result.
+
+Completion is testable without sleeping. The headless host needs a controllable clock and helpers
+to sample a track at 0, 50 and 100 percent, finish all tracks, and force reduced motion. Unit tests
+cover easing endpoints, retargeting, cancellation on destruction, grouping and DPI/theme changes;
+command-stream or image goldens cover the few standard transitions. A finished animation must
+leave neither a registered frame callback nor a permanently dirty surface behind.
 
 ### T-044 — Touch, pen and gesture
 
-No `WM_POINTER`, `WM_TOUCH` or `WM_GESTURE`. Mouse and keyboard only. Most Windows laptops sold
-today have a touchscreen, and pen input matters directly for an annotation application like
-`sCapture`.
+No `WM_POINTER`, `WM_TOUCH` or `WM_GESTURE` is handled. `MouseEvent` describes one mouse position,
+one button and one global capture owner; it has no pointer identifier, device kind, contact area,
+pressure or tilt. Treating touch as synthesized mouse input permits one finger to click, but loses
+multiple contacts, produces duplicate mouse/pointer gestures and cannot distinguish a pen stroke
+from a pan.
+
+The smallest coherent input layer is:
+
+- a `PointerEvent` carrying a stable pointer id, mouse/touch/pen kind, primary/contact state,
+  surface position, buttons, pressure, tilt and contact rectangle, routed and bubbled like the
+  existing events;
+- capture per pointer rather than one application-wide mouse capture, with cancellation when the
+  OS takes a contact away and an explicit rule for suppressing compatibility mouse events;
+- recognizers above raw input for tap, double tap, long press, pan, pinch and rotate, with an arena
+  or claim rule so a child button and its scrolling parent do not both execute the same gesture;
+- a touch theme/input profile whose hit targets are larger even when the painted glyph is not —
+  the 12-pixel slider thumb and the small scroll-bar profile are not finger targets — plus kinetic
+  scrolling driven by T-043 and scroll chaining at nested boundaries.
+
+Ship raw pointer routing and single-contact capture first, then pen pressure, then pan/pinch and
+multi-touch arbitration. `sCapture` is the proving application: pressure-sensitive freehand,
+pinch-to-zoom about the contact centroid, two-finger canvas pan, touchable gizmo handles and palm
+rejection during a pen stroke. sCrypt mainly proves that ordinary forms, tabs and lists remain
+comfortable by touch and that no command fires twice. The headless host must inject several
+pointer ids so routing, capture loss, gesture competition and DPI conversion are tested without
+touch hardware.
 
 ### T-045 — A second platform
 
-Inherited from [T-028](todo.core.md#t-028--the-standard-library-is-windows-only), and gated by it: `surface.win32.swg`,
-`application.win32.swg`, `clipboard.win32.swg` and `cursor.win32.swg` are the platform surface
-here, and the boundary is already drawn. Note that T-037, T-038 and T-039 each need a per-platform
-implementation, so sequencing matters — building them Windows-first and porting is cheaper than
-designing all three abstractly.
+Inherited from [T-028](todo.core.md#t-028--the-standard-library-is-windows-only), and gated by it.
+The filenames already expose most of the seam: `surface.win32.swg`, `application.win32.swg`,
+`clipboard.win32.swg`, `dragdrop.win32.swg` and `cursor.win32.swg`. The retained tree, layouts,
+themes, controls and the toolkit-owned file dialog are platform-neutral. That is a good boundary,
+but five replacement files are not yet a porting plan.
+
+Choose one platform and deliver a vertical slice instead of first generalizing every Win32 detail:
+
+1. application loop, surface creation/destruction, native resize/move/minimize, renderer
+   presentation and cursor;
+2. monitor enumeration, per-monitor scale, keyboard/text/pointer routing, clipboard and system
+   theme notifications;
+3. packaging, fonts and the custom file dialog on the target filesystem;
+4. accessibility, IME and drag/drop mapped to the contracts established by T-037, T-038 and T-039.
+
+Platform-neutral events must not expose native message numbers, and the Win32 backend should keep
+passing its existing tests throughout the extraction. The headless backend remains the contract
+test; backend integration tests then prove native focus, DPI, clipboard and input on each system.
+The entry is complete when the same non-trivial GUI sample runs unchanged on both platforms, not
+when an empty surface opens.
+
+This only removes the interface blocker for the applications. sCapture still needs its separate
+capture backend in [T-084](todo.scapture.md#t-084--cross-platform-capture-backend); sCrypt still
+needs the FUSE backend in [T-100](todo.scrypt.md#t-100--fuse-backend-for-linux-and-macos), plus the
+Core and Pixel platform work under T-028. Keeping those dependencies explicit prevents a GUI port
+from being mistaken for two ported products.
 
 ### T-046 — Docking and multi-document layouts
 
-No dockable panels, no tab-based document host, no floating tool windows. This is what
-tool-shaped applications want, and both applications in `bin/apps` are tool-shaped.
+The ingredients are present but not the model. `Tab` can select a page, `SplitterCtrl` can size
+known panes, a `Surface` can own a floating window, and drag/drop can carry a gesture. There is no
+tree saying that a workspace is a horizontal or vertical split of tab stacks, no stable pane or
+document identity, no drop targets and preview, no way to tear a tab into a tool window, and no
+serialization that can rebuild the arrangement on the next run.
+
+Build this as two layers rather than a collection of special-case widgets:
+
+- `DockHost` owns a split tree whose leaves are tab stacks. It supports tab reorder, docking to an
+  edge or into a stack, floating and redocking, close/hide, minimum sizes and an overlay that shows
+  the exact landing rectangle. A move must transfer logical ownership, command routing and focus
+  without destroying the pane. Layout state serializes stable pane ids, split orientation/ratio,
+  active tabs and floating surface rectangles; restore constrains missing-monitor rectangles and
+  ignores panes an application version no longer registers.
+- `DocumentHost` adds document semantics over a tab stack: active document, dirty marker, close
+  veto/save flow, close-others, reorder and command routing to the active view. It must virtualize
+  or lazily create pages when a workspace holds many documents; a tab is not permission to keep an
+  arbitrarily heavy editor tree alive forever.
+
+Start docked-only with serialization, then internal drag preview and tab reorder, then floating
+surfaces. Outgoing desktop OLE drag is not the mechanism for moving a live `Wnd`, but T-039's
+insertion feedback and drag-image work should supply the same visual vocabulary. Tests must cover
+round-trip layout state, unknown panes, close veto, focus after reparenting, DPI changes and loss
+of the monitor that held a floating pane.
+
+sCapture is the immediate beneficiary: Quick Styles and Properties can become optional docked
+panes, and open captures can be real document tabs rather than only entries in the recent strip,
+allowing comparison and reordering without replacing the editor. sCrypt is not by itself a reason
+to build a docking system — its Create, Open and Mounted pages fit one fixed window — but a
+document host would become useful if it grows simultaneous container-management or key-slot
+views. The toolkit should not force docking into that application merely to demonstrate it.
 
 ### T-047 — Printing
 
-No print path and no print preview. Depends on [T-054](todo.pixel.md#t-054--no-vector-output) for vector output, since
-printing through a raster path is a poor substitute.
+There is no printer discovery, page setup, print job, pagination contract, preview or cancellation.
+This is more than sending the current surface bitmap to a device: controls are screen layout, while
+a printable document needs physical page size, imageable margins, orientation, resolution,
+multiple pages and a failure result for every stage of the spool operation.
+
+The shared contract should let a document answer page count and paint page `n` into a page-sized
+`Pixel.Painter` using physical units. A platform backend supplies printers and capabilities, opens
+and cancels the native job, and converts that painter output to the spool format. Page setup owns
+paper, orientation, margins, scale/fit and copies. Print preview renders through exactly the same
+page callback into an on-screen zoomable view; it must not grow a second pagination path that can
+disagree with paper.
+
+Depends on [T-054](todo.pixel.md#t-054--no-vector-output): text and paths should remain vector on
+paper or PDF, while embedded captures remain at their source resolution. A raster-only first pass
+would be acceptable only as an explicitly temporary backend, not as the public abstraction.
+sCapture is the first consumer and needs actual-size, fit-to-page and centered modes with a clear
+warning when actual size is clipped. sCrypt has no compelling printable document today and should
+not print sensitive state merely to exercise the API.
+
+A fake print backend should record page size and painter commands so pagination, margins,
+cancellation and errors run in CI without a printer. One optional Windows integration test can
+target a virtual PDF printer; correctness must not depend on a particular driver being installed.
 
 ---
 

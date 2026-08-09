@@ -10,6 +10,7 @@ enum LabelFlags
     WordWrap          // Wraps text to the available width.
     SecondaryText     // Uses the theme's lower-emphasis text color.
     AutoHeight        // Fits the window height to laid-out text.
+    Ellipsis          // Ends an overflowing line with an ellipsis instead of clipping its tail.
 }
 
 // Displays rich text and an optional icon, and reports activated links.
@@ -193,6 +194,8 @@ impl Label
         sf.flags |= .Clip
         if .flags.has(.WordWrap) do
             sf.flags.add(.WordWrap)
+        if .flags.has(.Ellipsis) do
+            sf.flags.add(.Ellipsis)
         sf.font          = .font()
         sf.horzAlignment = .textHorizontalAlignment
         sf.vertAlignment = .textVerticalAlignment

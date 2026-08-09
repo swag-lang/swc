@@ -185,6 +185,7 @@ impl RadioButton
         let result = Wnd.create'RadioButton(parent, name, pos, id)
         result.flags       = flags
         result.focusPolicy = .Tab
+        result.wndFlags    |= .ActivatesOnKey
 
         // The ring is drawn by the paint, around the box and its wording rather than around the
         // cell, so the generic one is turned off.

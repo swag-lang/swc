@@ -206,7 +206,7 @@ interface IWnd
     mtd measureContent(available: Math.Point)->Math.Point
 }
 
-// Configures window state, clipping, paint order, and sibling ordering.
+// Configures window state, clipping, paint order, sibling ordering, and keyboard role.
 #[Swag.EnumFlags]
 enum WndFlags
 {
@@ -219,6 +219,13 @@ enum WndFlags
     AfterChildrenPaint      // Enables the after-children overlay paint phase.
     TopMost                 // Keeps the window after normal siblings in paint order.
     NoFocusRing             // Suppresses the keyboard-focus ring, for a control that shows the focus its own way.
+
+    // Acts on the keyboard activation key rather than merely holding the focus.
+    //
+    // Every button says so: it presses, it toggles, it selects. A box never opens the keyboard on
+    // such a control, because the first key its reader pressed would act instead of answering the
+    // question; see [[Gui.Dialog.keyboardEntry]].
+    ActivatesOnKey
 }
 
 // Forms one node in a retained GUI tree and provides layout, event, and painting services.

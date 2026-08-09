@@ -43,7 +43,10 @@ public impl MessageDlg
         with dlg.label = Label.create(srf.view(), message, {})
         {
             .dockStyle = .Center
-            .updateFlags(.WordWrap)
+
+            // Ellipsis backs the wrap up: a run that wrapping cannot break — a path, a URL —
+            // is cut at the box's maximum width instead of forcing the box as wide as itself.
+            .updateFlags(.WordWrap | .Ellipsis)
             .setTextAlignment(options.textHorizontalAlignment, options.textVerticalAlignment)
             .setAllPaddings(metrics.dialog_Padding)
         }
@@ -83,10 +86,12 @@ public impl MessageDlg
         // Measured at the density the glyphs are really drawn at. Laid out at a scale of one
         // and drawn at another, a run comes out a touch wider than the width reserved for it,
         // and a message that was measured on one line wraps onto two the box has no room for.
+        // Ellipsis mirrors the label's own paint, and is what keeps the measurement bounded:
+        // a run that wrapping cannot break is cut at the maximum width instead of widening the box.
         let deviceScale = .deviceScale()
         var rsf: RichStringFormat
         rsf.font          = .font()
-        rsf.flags         |= .WordWrap
+        rsf.flags         |= .WordWrap | .Ellipsis
         rsf.horzAlignment = .label.textHorizontalAlignment
 
         .label.name.compute()

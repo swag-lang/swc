@@ -114,6 +114,10 @@ public impl TextEffect
 
 const DefaultTextTabSize: u32 = 4     // Default tab-stop width measured in space advances.
 
+// Mark ending a line cut by [[Pixel.StringFormatFlags.Ellipsis]]. A typeface carrying no glyph
+// for it falls back to three periods, which every text face has.
+private const EllipsisRune = '\u2026'rune
+
 // Controls wrapping and clipping during text layout.
 #[Swag.EnumFlags]
 enum StringFormatFlags
@@ -121,6 +125,7 @@ enum StringFormatFlags
     Default      // Use single-line, unclipped layout defaults.
     WordWrap     // Wrap at word boundaries within the layout width.
     Clip         // Clip drawing to the layout rectangle.
+    Ellipsis     // Cut a line that overflows the layout width and end it with an ellipsis. Ignored by justified text.
 }
 
 // Reports the logical dimensions of laid-out text.
@@ -521,6 +526,36 @@ impl Painter
         return measureStringSnapped(&shaped, atByte, deviceScale)
     }
 
+    // Returns the byte length of the longest prefix of `run` that fits `maxWidth`, or
+    // `Swag.U64.Max` when the whole run fits.
+    //
+    // The walk mirrors [[Pixel.Painter.measureStringSnapped]]: the prefix is measured with the
+    // resolved draw font and device-snapped advances, so the cut point agrees with the width
+    // the run is drawn at rather than with its nominal advances.
+    private func fitShapedPrefix(run: const *ShapedRun, maxWidth: f32, deviceScale: f32)->u64
+    {
+        let info = computeTextDrawInfo(run.font, 1.0, deviceScale)
+
+        var drawShape: ShapedRun
+        var toWalk:    const *ShapedRun = run
+        if run.font != info.drawFont
+        {
+            drawShape = shapeRunForFont(run, info.drawFont)
+            toWalk    = &drawShape
+        }
+
+        var x = 0.0'f32
+        for glyph, [idx] in toWalk.glyphs
+        {
+            let step = advanceTextX(x, glyph.offsetX, glyph.advanceX, info, idx == 0)
+            if step.rightX > maxWidth do
+                return glyph.cluster
+            x = step.rightX
+        }
+
+        return Swag.U64.Max
+    }
+
     // Returns the bounding rectangle of a given text, scaled to the font draw size
     func measureString(text: Array'(const *GlyphDesc), font: *Font)->StringMetrics
     {
@@ -794,6 +829,15 @@ impl Painter
             ms.width    = measureStringSnapped(&c.shaped, deviceScale: deviceScale)
             c.boundRect = {0, 0, ms.width, ms.height}
 
+            // Whether the chunk before this one was whitespace, which is what decides if a line
+            // closed here ends on a space it should drop. Read into a local and advanced now,
+            // because both branches below leave the iteration early: left to the bottom of the
+            // loop, the flag still described the chunk before last, and a run too wide to break
+            // was mistaken for that trailing space and cut off the line it had just opened —
+            // which made a path or a URL between two spaces vanish from the layout entirely.
+            let previousWasSpace = lastWasSpace
+            lastWasSpace = c.isSpace
+
             // User eol
             if c.isEol
             {
@@ -831,7 +875,7 @@ impl Painter
                         line.end   = cast(s32) idx
 
                         // We: not want the current line to end with a space
-                        if lastWasSpace and idx
+                        if previousWasSpace and idx
                         {
                             line.countSpaces -= 1
                             if format.horzAlignment != .Justify do
@@ -872,7 +916,6 @@ impl Painter
                 }
             }
 
-            lastWasSpace = c.isSpace
             if c.isSpace
             {
                 line.countSpaces += 1
@@ -906,6 +949,74 @@ impl Painter
         {
             lines.resize(cast(u64) format.maxLines)
             lines[lines.count - 1].hasEol = false
+        }
+
+        // Ellipsis
+        //
+        // A line the rectangle cannot hold is cut where the room runs out and finished with an
+        // ellipsis, so an unbreakable run — a path, a URL — reports that it was shortened
+        // instead of silently losing its tail to the edge. Justified text is left alone: its
+        // spacing math owns the line width.
+        if format.flags & .Ellipsis and format.horzAlignment != .Justify and pos.width > 0
+        {
+            for &l in lines
+            {
+                if l.measure.width <= pos.width do
+                    continue
+
+                // The chunk the overflow lands in, and the width of everything before it.
+                var accum: f32
+                var cut = -1's32
+                for [idx] in l.start until l.end
+                {
+                    let w = text.chunks[idx].boundRect.width
+                    if accum + w > pos.width
+                    {
+                        cut = idx
+                        break
+                    }
+
+                    accum += w
+                }
+
+                if cut < 0 do
+                    continue
+
+                // Back off while what is left cannot even hold the mark, so a cut landing just
+                // short of the edge does not push the ellipsis past it. The mark inherits the cut
+                // chunk's style; a typeface without the ellipsis glyph falls back to three dots.
+                var mark = ""
+                var room = 0'f32
+                while true
+                {
+                    let scan = &text.chunks[cut]
+                    mark = scan.font.glyphIndex(EllipsisRune) ? "\u2026" : "..."
+                    room = pos.width - accum - measureStringSnapped(mark, scan.font, deviceScale: deviceScale)
+                    if room >= 0 or cut == l.start
+                    {
+                        room = Math.max(room, 0)
+                        break
+                    }
+
+                    cut   -= 1
+                    accum -= text.chunks[cut].boundRect.width
+                }
+
+                let c        = &text.chunks[cut]
+                let fitBytes = fitShapedPrefix(&c.shaped, room, deviceScale)
+
+                var trimmed = String.from(fitBytes == Swag.U64.Max ? c.slice : @mkstring(@dataof(c.slice), fitBytes))
+                trimmed += mark
+
+                // A shaped run copies the glyphs it needs and borrows nothing from its source
+                // text, so shaping a temporary is safe; the next layout re-shapes the chunk from
+                // its own slice, which this pass leaves intact.
+                c.shaped          = shapeRun(trimmed.toString(), c.font, format.tabSize, format.letterSpacing)
+                c.boundRect.width = measureStringSnapped(&c.shaped, deviceScale: deviceScale)
+
+                l.end           = cut + 1
+                l.measure.width = accum + c.boundRect.width
+            }
         }
 
         let x = text.layoutRect.x

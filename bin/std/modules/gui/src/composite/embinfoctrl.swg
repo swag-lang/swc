@@ -76,6 +76,13 @@ private const IconSize = 20.0
 private const IconLeft = 14.0
 private const TextLeft = IconLeft + IconSize + 12.0
 
+// The dismiss cross sits inside the label, docked to its right edge, so the text stops before
+// the band the button occupies; a message longer than that room is cut with an ellipsis rather
+// than run under the glyph.
+private const CloseSize = 32.0
+private const CloseMargin = 5.0
+private const TextRight = CloseSize + 2 * CloseMargin
+
 private impl InfoBar
 {
     mtd applyTheme()
@@ -138,16 +145,17 @@ impl InfoBar
 
         with bar.label
         {
+            .updateFlags(add: .Ellipsis)
             .setTextHorizontalAlignment(.Left)
             .setIconHorizontalAlignment(.Left)
             .setIconPadding({IconLeft, 0, 0, 0})
-            .setTextPadding({TextLeft, 0, 0, 0})
+            .setTextPadding({TextLeft, 0, TextRight, 0})
             .dockStyle = .Center
         }
 
-        with bar.closeButton = IconButton.create(bar.label, theme.icon(.WndClose, 18), {0, 0, 32, 32})
+        with bar.closeButton = IconButton.create(bar.label, theme.icon(.WndClose, 18), {0, 0, CloseSize, CloseSize})
         {
-            .margin     = 5
+            .margin     = CloseMargin
             .dockStyle  = .Right
             .sigPressed += func|bar|(btn) { bar.dismiss(); }
         }

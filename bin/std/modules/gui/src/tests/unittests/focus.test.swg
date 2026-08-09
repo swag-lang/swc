@@ -491,6 +491,52 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     @assert(checked)
 }
 
+// A control the reader would act on is passed over, and the box opens on its named default.
+//
+// A confirmation carrying a `Do not ask again` checkbox reads first, so the box opened with the
+// ring on the checkbox: the reader was pointed at a preference instead of at the question, and
+// the first Space toggled it rather than answering. The rule is the flag, not the widget, so a
+// toggle beside the checkbox is passed over for the same reason and without naming its type.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 240)
+    defer host.shutdown()
+
+    let dlg    = Dialog.create(&host.surface, 260, 170, title: "Confirm")
+    let again  = CheckButton.create(dlg.view(), "Do not ask again", {20, 20, 180, 26})
+    let toggle = ToggleButton.create(dlg.view(), {20, 56, 56, 26})
+    dlg.addButton("Yes", Dialog.BtnYes)
+    let no = dlg.addButton("No", Dialog.BtnNo, true)
+    dlg.applyLayout()
+
+    // Both read before the action bar, so either is what the box would have opened on.
+    @assert(FocusOrder.collect(dlg.surface!.wnd).first() == cast(*Wnd) again)
+    @assert(again.wndFlags.has(.ActivatesOnKey) and toggle.wndFlags.has(.ActivatesOnKey))
+
+    var checked: bool
+    host.app.sigFrame += func|host = &host, again, toggle, no, checked = &checked|(app)
+    {
+        discard app
+        if dref checked do
+            return
+        dref checked = true
+
+        @assert(no.hasFocus())
+        @assert(!again.hasFocus() and !toggle.hasFocus())
+
+        // Passed over is not left out: the ring still wraps onto the options.
+        host.keyPress(Input.Key.Tab)
+        @assert(again.hasFocus())
+
+        no.setFocus()
+        @assert(host.clickModalButton(Dialog.BtnNo))
+    }
+
+    @assert(dlg.doModal() == Dialog.BtnNo)
+    @assert(checked)
+}
+
 // What the ring looks like on a control that has nothing else to show for the focus.
 //
 // The image is the contract: a rule inside the button, one accent, and nothing on the same button

@@ -47,18 +47,21 @@ impl Dialog
     // Returns the control the box opens the keyboard on, or null to take the reading order.
     //
     // A box with something to fill in opens on that, and its default action still answers Enter,
-    // because a field hands the key on rather than consuming it. A box that is only a question has
-    // no such control: the first key the reader presses is the answer, and a focused button answers
-    // Enter itself, so the box opens on the action it names as its default instead of on whichever
-    // button reads first — which is how a confirmation defaulting to `No` would have answered `Yes`.
+    // because a field hands the key on rather than consuming it. Anything the reader would *act*
+    // on with a key is passed over, whatever it is and wherever it reads: a push button presses,
+    // a check box or a toggle flips a preference, a radio button selects. Those all say so with
+    // [[Gui.WndFlags.ActivatesOnKey]], so nothing here has to know one kind of button from another.
+    //
+    // A box made only of them is a question, and it opens on the action it names as its default
+    // rather than on whichever control reads first — which is how a confirmation defaulting to
+    // `No` would have answered `Yes`, and how one carrying a `Do not ask again` option opened on
+    // the option instead of on the question. Tab still reaches everything; this is only where the
+    // keyboard starts.
     mtd keyboardEntry()->#null *Wnd
     {
-        let first = FocusOrder.collect(.surface!.wnd).first()
-        if !first do
-            return null
-        for btn in .buttons where cast(*Wnd) btn == first do
-            return .surface!.defaultButton
-        return null
+        for stop in FocusOrder.collect(.surface!.wnd).stops where !stop.wndFlags.has(.ActivatesOnKey) do
+            return stop
+        return .surface!.defaultButton
     }
 
     // Returns the button Escape and the close cross stand for, or null when the box offers

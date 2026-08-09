@@ -149,3 +149,84 @@ func makeShapingTestFont(cache: *FontCache)->*Font
     let hotChunk = styledUrl.getUrlChunkAt({styledUrl.chunks[1].pos.x + styledUrl.chunks[1].boundRect.width * 0.5, styledUrl.chunks[1].pos.y + styledUrl.chunks[1].boundRect.height * 0.5})
     @assert(hotChunk != null)
 }
+
+// A run too wide to break keeps the line it opens, instead of being taken for a trailing space.
+//
+// Closing a line drops the space it would have ended on, and the flag saying so was only advanced
+// on the chunks that reached the bottom of the loop. A chunk that wrapped left it describing the
+// chunk before last, so the next wrap read a stale `true` and cut the run off the line it had just
+// been given: a path or a URL standing between two spaces disappeared from the layout entirely.
+#test
+{
+    var cache: FontCache
+    let font = makeShapingTestFont(&cache)
+
+    var format: RichStringFormat
+    format.font.regular  = font
+    format.horzAlignment = .Left
+    format.flags         |= .WordWrap
+
+    var text: RichString = "over abcdefghijklmnopqrstuvwxyz0123456789 now"
+    text.compute()
+
+    // Narrow enough that the middle run has to take a line of its own, and too narrow for it.
+    Painter.computeLayout({0, 0, 120, 400}, &text, format)
+
+    var longChunk: #null *RichChunk
+    for &c in text.chunks where @countof(c.slice) > 20 do
+        longChunk = c
+
+    @assert(longChunk != null)
+    @assert(longChunk.visible)
+
+    // Every word survives the wrap, not only the one that could not break.
+    var visibleWords = 0
+    for &c in text.chunks where c.visible and !c.isSpace and !c.isEol do
+        visibleWords += 1
+    @assert(visibleWords == 3)
+}
+
+// A line wider than its rectangle is cut and finished with an ellipsis.
+//
+// Wrapping cannot break a run carrying no space — a path, a URL — so that run decided the width
+// of everything measured against it, and a box sized from the measurement grew as wide as the
+// text was long.
+#test
+{
+    var cache: FontCache
+    let font = makeShapingTestFont(&cache)
+
+    var format: RichStringFormat
+    format.font.regular  = font
+    format.horzAlignment = .Left
+    format.flags         |= .Ellipsis
+
+    // One unbreakable run, laid out in a rectangle a fraction of its own width.
+    let long = "abcdefghijklmnopqrstuvwxyz0123456789"
+    let full = Painter.measureStringSnapped(long, font)
+
+    var text: RichString = long
+    text.compute()
+    @assert(text.chunks.count == 1)
+
+    let room = full * 0.4
+    Painter.computeLayout({0, 0, room, 200}, &text, format)
+    @assert(text.boundRect.width <= room)
+    @assert(text.chunks[0].shaped.glyphs.count < @countof(long))
+
+    // The mark is the last thing drawn, and the text it was cut from is left intact so the next
+    // layout starts from the whole run again.
+    let glyphs = text.chunks[0].shaped.glyphs
+    @assert(glyphs.back().glyphIndex == font.glyphIndex('\u2026'rune))
+    @assert(text.chunks[0].slice == long)
+
+    // The same run in a rectangle that holds it keeps every glyph and gains no mark.
+    Painter.computeLayout({0, 0, full + 10, 200}, &text, format)
+    @assert(text.chunks[0].shaped.glyphs.count == @countof(long))
+
+    // Without the flag the line still overflows, which is what the flag exists to change.
+    var plainFormat = format
+    plainFormat.flags.remove(.Ellipsis)
+    Painter.computeLayout({0, 0, room, 200}, &text, plainFormat)
+    @assert(text.boundRect.width > room)
+}

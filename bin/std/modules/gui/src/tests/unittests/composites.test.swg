@@ -187,6 +187,25 @@ func compositeColorChanged(picker: *ColorPickerCtrl)
     @assert(CompositeInfoDismissedCount == 1)
 }
 
+// The information bar keeps its message clear of the dismiss button.
+//
+// The button is docked inside the label, so nothing but the text inset holds the two apart: a
+// message longer than the band ran under the cross and off the right edge of the bar.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 120)
+    defer host.shutdown()
+
+    let bar = InfoBar.create(&host.root, "A message far longer than the bar it is ever shown in", .Information)
+    host.root.applyLayout()
+    discard host.render()
+
+    @assert(bar.label.flags.has(.Ellipsis))
+    @assert(bar.label.name.boundRect.width > 0)
+    @assert(bar.label.name.boundRect.right() <= bar.closeButton.position.x)
+}
+
 // ColorPickerCtrl exposes stable state and emits at most one signal per programmatic change.
 #test
 {

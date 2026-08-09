@@ -132,6 +132,7 @@ impl ToggleButton
             pos.width = parent.themeMetrics().btnToggle_Width
         let result = Wnd.create'ToggleButton(parent, null, pos, id)
         result.focusPolicy = .Tab
+        result.wndFlags    |= .ActivatesOnKey
         return result
     }
 

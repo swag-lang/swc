@@ -800,6 +800,7 @@ impl IconButton
             pos.width = parent.themeMetrics().btnPush_Width
         let res = Wnd.create'IconButton(parent, null, pos, id)
         res.focusPolicy = .Tab
+        res.wndFlags    |= .ActivatesOnKey
         res.setIcon(icon)
         res.padding = res.themeMetrics().btnIcon_Padding
         res.updateFlags(flags)

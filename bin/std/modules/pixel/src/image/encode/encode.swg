@@ -94,6 +94,21 @@ public impl Image
         return result
     }
 
+    // Encodes the image to one contiguous owned block.
+    //
+    // Selection works exactly as in [[Pixel.Image.encode]]. This is what a caller handing the
+    // bytes to something that wants a single slice asks for — a clipboard medium, a drag payload,
+    // a request body — rather than flattening the segmented buffer itself every time.
+    mtd const encodeToBytes(fileName: string, options: #null any = null)->Array'u8 fail
+    {
+        var buffer = try .encode(fileName, options)
+        buffer.makeLinear()
+
+        var result: retval
+        result.add(buffer.toSlice()!)
+        return result
+    }
+
     // Encodes the image and writes it to `fileName`.
     mtd const save(fileName: string, options: #null any = null) fail
     {

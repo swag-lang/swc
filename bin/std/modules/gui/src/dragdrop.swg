@@ -17,25 +17,98 @@ enum DropEffect
     Link         // Records a reference to the payload rather than its content.
 }
 
+// One file a payload carries by content instead of by a path on disk.
+//
+// A mail attachment is the shape this exists for: it has a name and it has bytes, and no file on
+// any disk holds it. A source offers one so a picture reaches a folder or a message without being
+// written to the temporary folder first, and a target reads one so an attachment dragged out of a
+// client arrives with its content rather than as nothing at all.
+//
+// The bytes are produced when a target finally asks for them. A gesture announces what it carries
+// long before anything is dropped, and most gestures end over something that never asks.
+struct DragContent
+{
+    // File name the target creates, with no folder part.
+    readonly
+    name: String
+
+    internal
+    {
+        bytes:    Array'u8                     // Content, once it exists.
+        producer: #null func||()->Array'u8     // Produces the content on the first read.
+        produced: bool                         // Whether the producer already ran.
+    }
+}
+
+impl DragContent
+{
+    // Builds one offered file whose content is already in hand.
+    internal func from(name: String, bytes: const [..] u8)->DragContent
+    {
+        var result: retval
+        result.name     = name
+        result.produced = true
+        result.bytes.add(bytes)
+        return result
+    }
+
+    // Builds one offered file whose content is produced the first time it is read.
+    internal func from(name: String, producer: func||()->Array'u8)->DragContent
+    {
+        var result: retval
+        result.name     = name
+        result.producer = producer
+        return result
+    }
+
+    // Returns the content of the file, producing it on the first call.
+    //
+    // Every later call answers the same bytes. A producer that cannot make them answers an empty
+    // slice from then on, which is what a target reads as a file it was offered and cannot have.
+    mtd data()->const [..] u8
+    {
+        if !.produced
+        {
+            .produced = true
+            if .producer do
+                .bytes = .producer()
+        }
+
+        return .bytes.toSlice()
+    }
+
+    // Reports whether the content is already in hand, without producing it.
+    mtd const isReady()->bool => .produced or !.producer
+}
+
 // Payload of one drag gesture, in both directions.
 //
 // A target reads it: the value belongs to the framework and is borrowed for the duration of one
 // [[Gui.DragDropEvent]] callback and no longer, so a window that wants to keep a path, a text or
 // an image copies it out. Every accessor is safe on a drag that carries nothing of that kind.
 //
-// A source fills it: [[Gui.DragData.addFile]], [[Gui.DragData.setText]] and
-// [[Gui.DragData.setImage]] say what the gesture offers, and [[Gui.Wnd.startDrag]] carries it to
-// whatever the pointer is released on. Offering both a file and an image is the useful case
-// rather than a redundant one — a folder takes the file, a picture editor takes the bitmap.
+// A source fills it: [[Gui.DragData.addFile]], [[Gui.DragData.addContent]],
+// [[Gui.DragData.setText]] and [[Gui.DragData.setImage]] say what the gesture offers, and
+// [[Gui.Wnd.startDrag]] carries it to whatever the pointer is released on. Offering both a file
+// and an image is the useful case rather than a redundant one — a folder takes the file, a picture
+// editor takes the bitmap.
 //
-// The image is decoded lazily, because a drag hovering a window announces its formats long before
-// anything is dropped: [[Gui.DragData.hasImage]] answers from the raw bytes and
-// [[Gui.DragData.image]] is what pays for the decode.
+// Nothing is produced before a target asks for it, because a drag hovering a window announces its
+// formats long before anything is dropped. [[Gui.DragData.hasImage]] answers without decoding or
+// encoding anything and [[Gui.DragData.image]] is what pays for the decode; a content file is the
+// same rule spelled out in [[Gui.DragContent]].
 struct DragData
 {
     // Absolute paths offered by the source, in the order it listed them, empty when it offers none.
     readonly
     files: Array'String
+
+    // Files offered by content rather than by path, in the order the source listed them.
+    //
+    // A gesture hovering a window carries their names and not their bytes, so a target decides
+    // what it will take from the names alone and reads the content from the `Drop` phase on.
+    readonly
+    contents: Array'DragContent
 
     // Plain UTF-8 text offered by the source, empty when it offers none.
     readonly
@@ -43,10 +116,11 @@ struct DragData
 
     internal
     {
-        imageBytes:   Array'u8        // Encoded image bytes as offered, before any decode.
+        imageBytes:   Array'u8        // Encoded image bytes, as offered or as encoded on demand.
         imageName:    String          // File name whose extension selects the decoder.
-        imageValue:   Pixel.Image     // Result of the one decode, kept for further reads.
+        imageValue:   Pixel.Image     // Picture handed in, or the result of the one decode.
         imageDecoded: bool            // Whether the decode was already attempted.
+        imageEncoded: bool            // Whether the encode was already attempted.
     }
 }
 
@@ -55,11 +129,14 @@ impl DragData
     // Reports whether the source offers at least one file path.
     mtd const hasFiles()->bool => .files.count != 0
 
+    // Reports whether the source offers at least one file by content.
+    mtd const hasContents()->bool => .contents.count != 0
+
     // Reports whether the source offers text.
     mtd const hasText()->bool => !.text.isEmpty()
 
-    // Reports whether the source offers an image, without decoding it.
-    mtd const hasImage()->bool => .imageBytes.count != 0
+    // Reports whether the source offers an image, without decoding or encoding anything.
+    mtd const hasImage()->bool => .imageBytes.count != 0 or .imageValue.isValid()
 
     // Returns the only path offered by the source, or `null` unless it offers exactly one.
     //
@@ -106,6 +183,27 @@ impl DragData
         .files.add(path)
     }
 
+    // Appends one file the payload carries itself, with the content already in hand.
+    mtd addContent(name: String, bytes: const [..] u8)
+    {
+        .contents.add(DragContent.from(name, bytes))
+    }
+
+    // Appends one file the payload carries itself, with the content produced on demand.
+    //
+    // This is what keeps a cancelled gesture from costing anything: `producer` runs when a target
+    // asks for the bytes and never otherwise, so a drag released over nothing writes, encodes and
+    // allocates nothing. It has to stay valid for the whole gesture, which a closure over the
+    // frame that calls [[Gui.Wnd.startDrag]] does by construction, since that call blocks until
+    // the gesture ends.
+    mtd addContent(name: String, producer: func||()->Array'u8)
+    {
+        .contents.add(DragContent.from(name, producer))
+    }
+
+    // Returns the content of the offered file at `index`, producing it if that has not happened.
+    mtd contentData(index: u64)->const [..] u8 => .contents[index].data()
+
     // Replaces the text of the payload.
     mtd setText(value: String)
     {
@@ -122,29 +220,40 @@ impl DragData
         .imageBytes.add(bytes)
         .imageName    = name
         .imageDecoded = false
+        .imageEncoded = true
         .imageValue   = {}
     }
 
-    // Replaces the image of the payload with a picture to encode.
+    // Replaces the image of the payload with a picture, encoded when a target asks for it.
     //
-    // The bytes are produced now, because a source is asked for them at unpredictable moments
-    // once the gesture is running. PNG is what is stored: it is lossless, every application
-    // reads it, and the platform layer derives the bitmap forms it also has to offer from the
-    // picture itself rather than from these bytes.
-    mtd setImage(image: Pixel.Image) fail
+    // Nothing is compressed here: a gesture that ends over a folder never asks for the encoded
+    // form, and one that ends over nothing asks for nothing at all. The picture itself is what
+    // the platform layer derives the bitmap forms from, so those cost nothing either.
+    mtd setImage(image: Pixel.Image)
     {
-        var opt: Pixel.Png.EncodeOptions
-        opt.compressionLevel = .BestSpeed
-
-        var img    = image
-        var buffer = try img.encode("drag.png", opt)
-        buffer.makeLinear()
-
         .imageBytes.clear()
-        .imageBytes.add(buffer.toSlice()!)
         .imageName    = "drag.png"
         .imageDecoded = true
+        .imageEncoded = false
         .imageValue   = image
+    }
+
+    // Returns the payload image in its encoded form, compressing it on the first call.
+    //
+    // This is what a source hands a target that asked for the picture as a file rather than as a
+    // bitmap. A picture that fails to encode answers an empty slice from then on.
+    internal mtd encodedImage()->const [..] u8
+    {
+        if !.imageEncoded
+        {
+            .imageEncoded = true
+
+            var opt: Pixel.Png.EncodeOptions
+            opt.compressionLevel = .BestSpeed
+            .imageBytes          = catch .imageValue.encodeToBytes(.imageName.toString(), opt)
+        }
+
+        return .imageBytes.toSlice()
     }
 }
 

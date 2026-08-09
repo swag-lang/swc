@@ -157,8 +157,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(f.main.recentWnd.recentView.selected == 0)
 }
 
-// Dragging a capture out exports it as a PNG named after it, which is what lands in the folder
-// it is dropped on.
+// Dragging a capture out offers it as a PNG named after it, encoded only when a target asks.
 #test
 {
     var f: HeadlessFixture
@@ -172,22 +171,32 @@ func testPrepareRecentLibrary(main: *MainWnd)
     f.capture.backImg = Gui.Testing.indexedImage(18, 11)
     f.capture.file    = testTempCapturePath()
 
-    var img      = f.capture.toImage()
-    let exported = expect f.main.exportForDrag(f.capture, &img)
-    defer discard catch File.delete(exported)
+    var img = f.capture.toImage()
 
-    @assert(File.exists(exported))
-    @assert(Path.lowercaseExtension(exported) == ".png")
-    @assert(Path.fileNameWithoutExtension(exported) == Path.fileNameWithoutExtension(f.capture.file))
+    var data: Gui.DragData
+    f.main.fillDragData(&data, f.capture, &img)
 
-    // What was written is the capture, readable by anything that reads a PNG.
-    let readBack = expect Image.load(exported)
+    // The gesture announces a file named after the capture, and has encoded nothing to do it.
+    @assert(data.hasImage())
+    @assert(data.contents.count == 1)
+    @assert(Path.lowercaseExtension(data.contents[0].name) == ".png")
+    @assert(Path.fileNameWithoutExtension(data.contents[0].name) == Path.fileNameWithoutExtension(f.capture.file))
+    @assert(!data.contents[0].isReady())
+
+    // Asking for the file is what produces it, and what it holds is the capture, readable by
+    // anything that reads a PNG.
+    let bytes = data.contentData(0)
+    @assert(@countof(bytes) != 0)
+
+    let readBack = expect Image.decode("drag.png", bytes, {})
     @assert(readBack.width == 18)
     @assert(readBack.height == 11)
 }
 
-// The whole drag-out path runs with no desktop under it: nothing is carried, and the file the
-// gesture would have handed over is still produced.
+// The whole drag-out path runs with no desktop under it, and leaves nothing behind.
+//
+// This is the point of producing the file on demand: no target ever asks, so the PNG is never
+// encoded and never written, where exporting it up front left one file per abandoned gesture.
 #test
 {
     var f: HeadlessFixture
@@ -207,8 +216,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     var expected = String.from(Path.fileNameWithoutExtension(f.capture.file) orelse "capture")
     expected += ".png"
     let exported = Path.combine(Path.combine(temp.toString(), "sCapture").toString(), expected.toString())
-    defer discard catch File.delete(exported)
-    @assert(File.exists(exported))
+    @assert(!File.exists(exported))
 }
 
 // A picture dropped on the editor opens it, exactly as the Open command does.

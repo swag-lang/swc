@@ -393,3 +393,35 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Next step: no rewrite is proposed. The narrow, useful step is to find out what `#ast` is actually
   used for across `bin/` — if it is overwhelmingly "one field per reflected field", that shape
   deserves a declarative spelling, and the string escape hatch can stay for everything else.
+
+### F-086 — `==` on two slices compares the view, not the content
+
+- Area: language
+- Found while: T-039, writing a test that a dragged payload carries the bytes a producer made
+- Observation: `==` between two slices of the same element type compiles and answers whether they
+  are the *same view*, not whether they hold the same bytes. Two slices with identical content over
+  different storage compare `false`, silently. The neighbouring spellings all behave differently:
+  `slice == "literal"` compares content and is what
+  [004_002_slice.swg:98](../bin/reference/modules/language/src/004_002_slice.swg#L98) teaches, while
+  `[..] u8 == string` is rejected outright with "cannot compare". So the same operator means
+  content, identity, or nothing at all depending on which of three closely related types each side
+  has, and only the middle one is silent.
+- Evidence: an isolated probe, `swc test -d <dir>` on one standalone file:
+
+  ```swag
+  let src = cast(const [..] u8) "produced"       // 8 bytes, no terminator
+  var buf: [8] u8
+  for [i] in 8 do
+      buf[i] = src[i]
+  let copy: const [..] u8 = buf[0 to 7]
+  @assert(copy == src)                          // fails
+  ```
+
+  The cost in practice was a passing-looking test that asserted the wrong thing; the fix was
+  `Gui.Testing.bytesAre`, which spells the content comparison with `Memory.compare`.
+- Next step: decide which of the three the operator should mean, then make the other two say so.
+  Content equality is the reading a reader brings from `slice == "literal"`, so the candidates are
+  making `[..] T == [..] T` compare content for a comparable `T`, or rejecting it the way
+  `[..] u8 == string` already is and offering a named `Slice.contentEquals`. Either beats a silent
+  identity test. Search `bin/` for `== ` between two slice-typed operands first: any existing site
+  is either already relying on identity or is a latent defect of this shape.

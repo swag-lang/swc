@@ -386,32 +386,44 @@ impl MainWnd
             .newCapture(dref img)
     }
 
-    // Writes `img` as a PNG beside the temporary files and returns its path.
+    // Returns the file name the capture travels under when it leaves the application.
     //
-    // A library file is a capture, which nothing outside this application reads; what a folder,
-    // a mail client or a document editor is handed has to be a picture. The name is the
-    // capture's, so the file that lands where it is dropped is recognizable rather than a
-    // generated identifier.
-    mtd exportForDrag(capture: *Capture, img: *Image)->String fail
+    // A library file is a capture, which nothing outside this application reads; what a folder, a
+    // mail client or a document editor is handed has to be a picture. The name is the capture's,
+    // so the file that lands where it is dropped is recognizable rather than a generated
+    // identifier.
+    mtd dragFileName(capture: *Capture)->String
     {
-        let temp   = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
-        let folder = Path.combine(temp.toString(), "sCapture")
-        if !Directory.exists(folder) do
-            try Directory.create(folder)
+        var result = String.from(Path.fileNameWithoutExtension(capture.file) orelse "capture")
+        result += ".png"
+        return result
+    }
 
-        var name = String.from(Path.fileNameWithoutExtension(capture.file) orelse "capture")
-        name += ".png"
-
-        let path = Path.combine(folder.toString(), name.toString())
-        try img.save(path)
-        return path
+    // Fills `data` with what a drag of `capture` carries: the picture, and the same picture as a
+    // file named after the capture.
+    //
+    // Both are offered because the two useful destinations want different things — a folder or a
+    // mail draft takes the file, a picture editor pastes the bitmap — and neither costs anything
+    // until a target asks for it. The file has no path: it is a name and the bytes behind it, and
+    // those bytes are encoded on that first request.
+    //
+    // `img` is borrowed by the producer, so it has to outlive the gesture the payload is used for.
+    mtd fillDragData(data: *DragData, capture: *Capture, img: *Image)
+    {
+        data.setImage(dref img)
+        data.addContent(.dragFileName(capture), func|img|()
+        {
+            var opt: Png.EncodeOptions
+            opt.compressionLevel = .BestSpeed
+            return catch img.encodeToBytes("drag.png", opt)
+        })
     }
 
     // Hands the current capture to another application, as a file and as a picture.
     //
-    // Both are offered because the two useful destinations want different things: a folder or a
-    // mail draft takes the file, a picture editor pastes the bitmap. `from` is the window the
-    // gesture started on, which is what the desktop anchors it to.
+    // `from` is the window the gesture started on, which is what the desktop anchors it to. A drag
+    // released over nothing costs nothing and leaves nothing behind, where writing the PNG to the
+    // temporary folder up front left one file per abandoned gesture.
     //
     // This blocks until the drop, so the caller must have forgotten its own press first: the
     // button comes back up inside the loop the desktop runs and no release event follows.
@@ -425,12 +437,7 @@ impl MainWnd
         var img = capture.toImage()
 
         var data: DragData
-        discard catch data.setImage(img)
-
-        let exported = catch .exportForDrag(capture, &img) as err
-        if err == null do
-            data.addFile(exported)
-
+        .fillDragData(&data, capture, &img)
         discard from.startDrag(&data, .Copy)
     }
 

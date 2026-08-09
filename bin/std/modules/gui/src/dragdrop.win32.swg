@@ -1,7 +1,7 @@
 #global public
 #global if #os == Swag.TargetOs.Windows
 
-using Core, Win32, Pixel
+using Core, Win32, Pixel, Gdi32
 
 // OLE drop target of one surface.
 //
@@ -32,12 +32,70 @@ private var g_OleStarted: bool
 // The "PNG" clipboard format, which is what a browser drags an image out as.
 private var g_PngDragFormat: UINT
 
+// The two registered formats a file with no path travels through: the group descriptor names
+// them, and one `FileContents` medium per index carries the bytes.
+private var g_FileDescriptorFormat: UINT
+private var g_FileContentsFormat: UINT
+
 private func startOle()
 {
     if g_OleStarted do
         return
     g_OleStarted = true
     discard OleInitialize(null)
+}
+
+// The shell object that draws the picture being dragged, seen from both sides of a gesture.
+//
+// It is created on the first drag and both of its interfaces are held for the life of the process:
+// creating it is a COM activation, so a process that never drags never pays for one, and a target
+// asks for its half on every pointer move of every gesture. A machine where it cannot be created
+// simply drags with no picture, which is what happened before it existed.
+private var g_DropTargetHelper: #null *IDropTargetHelper
+private var g_DragSourceHelper: #null *IDragSourceHelper
+private var g_DragHelperTried: bool
+
+private func loadDragHelper()
+{
+    if g_DragHelperTried do
+        return
+
+    g_DragHelperTried = true
+    startOle()
+
+    var raw: LPVOID
+    var clsid = CLSID_DragDropHelper
+    var iid   = IID_IDropTargetHelper
+    if CoCreateInstance(&clsid, null, CLSCTX_INPROC_SERVER, &iid, &raw) != S_OK do
+        return
+
+    g_DropTargetHelper = cast(*IDropTargetHelper) raw!
+
+    let target = g_DropTargetHelper!
+    var srcRaw: LPVOID
+    var srcIid = IID_IDragSourceHelper
+    if target.lpVtbl.QueryInterface(target, &srcIid, &srcRaw) == S_OK do
+        g_DragSourceHelper = cast(*IDragSourceHelper) srcRaw!
+}
+
+// The half of the drag helper that draws the picture over a window being dragged over.
+//
+// Answers `null` when no native window backs the surface, which is what a headless test is: the
+// helper paints on the desktop, and there is no desktop under it.
+private func dropTargetHelper(surface: *Surface)->#null *IDropTargetHelper
+{
+    if !surface.hWnd do
+        return null
+
+    loadDragHelper()
+    return g_DropTargetHelper
+}
+
+// The half of the drag helper that gives the gesture its picture in the first place.
+private func dragSourceHelper()->#null *IDragSourceHelper
+{
+    loadDragHelper()
+    return g_DragSourceHelper
 }
 
 // Converts the key state OLE reports into the modifiers a GUI event carries.
@@ -78,30 +136,64 @@ private func fromDropEffect(value: DropEffect)->DWORD
     return result
 }
 
-// Asks the source for one clipboard format as a memory block, and reports whether it produced it.
+// Asks the source for one clipboard format through `tymed`, and reports whether it produced it.
 //
-// The caller owns the medium from here and has to release it. Only `TYMED_HGLOBAL` is asked for,
-// so a source offering the same format solely as a stream reads as offering nothing.
-private func requestGlobalMedium(dataObj: *IDataObject, format: u32, med: *STGMEDIUM)->bool
+// The caller owns the medium from here and has to release it. `index` selects one item inside a
+// format that carries several, and is `-1` for every format that carries one thing.
+private func requestMedium(dataObj: *IDataObject, format: u32, tymed: u32, index: s32, med: *STGMEDIUM)->bool
 {
     var fmt: FORMATETC
     fmt.cfFormat = cast(CLIPFORMAT) format
     fmt.dwAspect = DVASPECT_CONTENT
-    fmt.lindex   = -1
-    fmt.tymed    = TYMED_HGLOBAL
+    fmt.lindex   = index
+    fmt.tymed    = tymed
 
     return dataObj.lpVtbl.GetData(dataObj, &fmt, med) == S_OK
 }
 
+// Reads a stream from its start to its end into `dest`.
+//
+// The position a source hands the stream at is not part of the contract, so it is rewound first;
+// a stream that refuses to seek is read from wherever it stands, which is the best that can be
+// done with it.
+private func readStream(stream: *IStream, dest: *Array'u8)
+{
+    discard stream.lpVtbl.Seek(stream, 0, STREAM_SEEK_SET, null)
+
+    var chunk: [16384] u8
+    for
+    {
+        var read: ULONG
+        let hr = stream.lpVtbl.Read(stream, cast([*] void) &chunk[0], @countof(chunk), &read)
+        if hr != S_OK and hr != S_FALSE do
+            return
+        if !read do
+            return
+
+        dest.add(@mkslice(cast(const [*] u8) &chunk[0], cast(u64) read))
+    }
+}
+
 // Returns the payload of `format` as raw bytes, or an empty array when the source offers none.
-private func readGlobalFormat(dataObj: *IDataObject, format: u32)->Array'u8
+//
+// Both mediums are asked for at once, because a format published solely as a stream — which is
+// how some browsers hand over a large image, and how every source of a file with no path hands
+// over its content — would otherwise read as nothing on offer.
+private func readFormat(dataObj: *IDataObject, format: u32, index: s32 = -1)->Array'u8
 {
     var result: retval
 
     var med: STGMEDIUM
-    if !requestGlobalMedium(dataObj, format, &med) do
+    if !requestMedium(dataObj, format, TYMED_HGLOBAL | TYMED_ISTREAM, index, &med) do
         return result
     defer ReleaseStgMedium(&med)
+
+    if med.tymed == TYMED_ISTREAM
+    {
+        if med.pstm do
+            readStream(med.pstm!, &result)
+        return result
+    }
 
     let size = GlobalSize(med.hGlobal)
     if !size do
@@ -116,8 +208,42 @@ private func readGlobalFormat(dataObj: *IDataObject, format: u32)->Array'u8
     return result
 }
 
+// Reads the files a source carries by content rather than by path.
+//
+// `withContents` says whether to ask for the bytes as well as the names. A gesture merely hovering
+// a window asks for the names alone: making a mail client produce an attachment on every mouse
+// move is exactly what deferred rendering exists to avoid, on both sides of the gesture.
+private func readFileContents(obj: *IDataObject, data: *DragData, withContents: bool)
+{
+    if !g_FileDescriptorFormat or !g_FileContentsFormat do
+        return
+
+    let block = readFormat(obj, g_FileDescriptorFormat)
+    if block.count < #sizeof(UINT) do
+        return
+
+    let count = cast(u64) dref cast(const *UINT) block.buffer!
+    if !count or #sizeof(UINT) + count * #sizeof(FILEDESCRIPTORW) > block.count do
+        return
+
+    let descriptors = cast(const [*] FILEDESCRIPTORW) (block.buffer! + #sizeof(UINT))
+    for [i] in count
+    {
+        let name = cast(const [*] u16) &descriptors[i].cFileName[0]
+
+        var bytes: Array'u8
+        if withContents do
+            bytes = readFormat(obj, g_FileContentsFormat, cast(s32) i)
+
+        data.addContent(Utf8.fromUtf16(@mkslice(name, Utf16.lengthZeroTerminated(name))), bytes.toSlice())
+    }
+}
+
 // Reads every format the GUI understands out of a native drag, once per gesture.
-private func readDragData(dataObj: #null *IDataObject, data: *DragData)
+//
+// `withContents` is what separates a gesture hovering a window from one released on it: only the
+// second asks a source to produce the content of a file it holds in memory.
+private func readDragData(dataObj: #null *IDataObject, data: *DragData, withContents: bool)
 {
     data.clear()
     if !dataObj do
@@ -129,7 +255,7 @@ private func readDragData(dataObj: #null *IDataObject, data: *DragData)
     #scope
     {
         var med: STGMEDIUM
-        if !requestGlobalMedium(obj, CF_HDROP, &med) do
+        if !requestMedium(obj, CF_HDROP, TYMED_HGLOBAL, -1, &med) do
             break
         defer ReleaseStgMedium(&med)
 
@@ -148,10 +274,14 @@ private func readDragData(dataObj: #null *IDataObject, data: *DragData)
         }
     }
 
+    // Files the source holds in memory, which is what an attachment dragged out of a mail client
+    // is: it has a name and it has bytes, and nothing on disk holds it.
+    readFileContents(obj, data, withContents)
+
     // Text, preferring the Unicode form the way the clipboard does.
     #scope
     {
-        let utf16 = readGlobalFormat(obj, CF_UNICODETEXT)
+        let utf16 = readFormat(obj, CF_UNICODETEXT)
         if utf16.count >= 2
         {
             let pz = cast(const [*] u16) utf16.buffer!
@@ -159,7 +289,7 @@ private func readDragData(dataObj: #null *IDataObject, data: *DragData)
             break
         }
 
-        let ansi = readGlobalFormat(obj, CF_TEXT)
+        let ansi = readFormat(obj, CF_TEXT)
         if ansi.count do
             data.setText(@mkstring(ansi.buffer!, @countof(cast(cstring) ansi.buffer!)))
     }
@@ -169,7 +299,7 @@ private func readDragData(dataObj: #null *IDataObject, data: *DragData)
     {
         if g_PngDragFormat
         {
-            let png = readGlobalFormat(obj, g_PngDragFormat)
+            let png = readFormat(obj, g_PngDragFormat)
             if png.count
             {
                 data.setImage("drag.png", png.toSlice())
@@ -177,7 +307,7 @@ private func readDragData(dataObj: #null *IDataObject, data: *DragData)
             }
         }
 
-        let dib = readGlobalFormat(obj, CF_DIB)
+        let dib = readFormat(obj, CF_DIB)
         if dib.count do
             data.setImage("drag.bmp", dib.toSlice())
     }
@@ -216,14 +346,20 @@ private func comRelease(itf: *IDropTarget)->ULONG
 private func comDragEnter(itf: *IDropTarget, dataObj: #null *IDataObject, grfKeyState: DWORD, pt: POINTL, pdwEffect: *DWORD)->HRESULT
 {
     let target = dropTargetOf(itf)
-    readDragData(dataObj, &target.data)
+    readDragData(dataObj, &target.data, false)
     target.allowed = toDropEffect(dref pdwEffect)
 
     let surface = target.surface!
-    let hit     = surface.windowAt({pt.x, pt.y})
-
-    let effect = surface.app.dragUpdate(surface, {pt.x, pt.y}, &target.data, target.allowed, toKeyModifiers(grfKeyState))
+    let effect  = surface.app.dragUpdate(surface, {pt.x, pt.y}, &target.data, target.allowed, toKeyModifiers(grfKeyState))
     dref pdwEffect = fromDropEffect(effect)
+
+    let helper = dropTargetHelper(surface)
+    if helper
+    {
+        var cursor = POINT{pt.x, pt.y}
+        discard helper.lpVtbl.DragEnter(helper, surface.hWnd, dataObj, &cursor, dref pdwEffect)
+    }
+
     return S_OK
 }
 
@@ -235,14 +371,28 @@ private func comDragOver(itf: *IDropTarget, grfKeyState: DWORD, pt: POINTL, pdwE
     let surface = target.surface!
     let effect  = surface.app.dragUpdate(surface, {pt.x, pt.y}, &target.data, target.allowed, toKeyModifiers(grfKeyState))
     dref pdwEffect = fromDropEffect(effect)
+
+    let helper = dropTargetHelper(surface)
+    if helper
+    {
+        var cursor = POINT{pt.x, pt.y}
+        discard helper.lpVtbl.DragOver(helper, &cursor, dref pdwEffect)
+    }
+
     return S_OK
 }
 
 private func comDragLeave(itf: *IDropTarget)->HRESULT
 {
-    let target = dropTargetOf(itf)
-    target.surface!.app.dragLeave(&target.data)
+    let target  = dropTargetOf(itf)
+    let surface = target.surface!
+    surface.app.dragLeave(&target.data)
     target.data.clear()
+
+    let helper = dropTargetHelper(surface)
+    if helper do
+        discard helper.lpVtbl.DragLeave(helper)
+
     return S_OK
 }
 
@@ -251,14 +401,22 @@ private func comDrop(itf: *IDropTarget, dataObj: #null *IDataObject, grfKeyState
     let target = dropTargetOf(itf)
 
     // The object handed to Drop is the authoritative one: a source may publish more on release
-    // than it announced while hovering, and a delayed-rendering source only produces here.
-    readDragData(dataObj, &target.data)
+    // than it announced while hovering, and a source that produces on demand only produces here.
+    readDragData(dataObj, &target.data, true)
     target.allowed = toDropEffect(dref pdwEffect)
 
     let surface = target.surface!
     let effect  = surface.app.dragDrop(surface, {pt.x, pt.y}, &target.data, target.allowed, toKeyModifiers(grfKeyState))
     dref pdwEffect = fromDropEffect(effect)
     target.data.clear()
+
+    let helper = dropTargetHelper(surface)
+    if helper
+    {
+        var cursor = POINT{pt.x, pt.y}
+        discard helper.lpVtbl.Drop(helper, dataObj, &cursor, dref pdwEffect)
+    }
+
     return S_OK
 }
 
@@ -268,22 +426,42 @@ private func comDrop(itf: *IDropTarget, dataObj: #null *IDataObject, grfKeyState
 
 // Formats the payload can produce, most specific first, because a target picks the first
 // one it understands out of the enumeration.
-private func offeredFormats(data: *DragData)->Array'CLIPFORMAT
+private func offeredFormat(format: u32, tymed: u32, index: s32 = -1)->FORMATETC
+{
+    var result: retval
+    result.cfFormat = cast(CLIPFORMAT) format
+    result.dwAspect = DVASPECT_CONTENT
+    result.lindex   = index
+    result.tymed    = tymed
+    return result
+}
+
+private func offeredFormats(data: *DragData)->Array'FORMATETC
 {
     var result: retval
     if data.hasFiles() do
-        result.add(cast(CLIPFORMAT) CF_HDROP)
+        result.add(offeredFormat(CF_HDROP, TYMED_HGLOBAL))
+
+    // A file the payload carries itself: one descriptor block naming them all, then one content
+    // medium per index. The shell reads the content as a stream, so that is what is offered first.
+    if data.hasContents() and g_FileDescriptorFormat and g_FileContentsFormat
+    {
+        result.add(offeredFormat(g_FileDescriptorFormat, TYMED_HGLOBAL))
+        for [i] in data.contents.count do
+            result.add(offeredFormat(g_FileContentsFormat, TYMED_ISTREAM | TYMED_HGLOBAL, cast(s32) i))
+    }
+
     if data.hasImage()
     {
         if g_PngDragFormat do
-            result.add(cast(CLIPFORMAT) g_PngDragFormat)
-        result.add(cast(CLIPFORMAT) CF_DIB)
+            result.add(offeredFormat(g_PngDragFormat, TYMED_HGLOBAL))
+        result.add(offeredFormat(CF_DIB, TYMED_HGLOBAL))
     }
 
     if data.hasText()
     {
-        result.add(cast(CLIPFORMAT) CF_UNICODETEXT)
-        result.add(cast(CLIPFORMAT) CF_TEXT)
+        result.add(offeredFormat(CF_UNICODETEXT, TYMED_HGLOBAL))
+        result.add(offeredFormat(CF_TEXT, TYMED_HGLOBAL))
     }
 
     return result
@@ -384,6 +562,52 @@ private func buildDib(data: *DragData)->HGLOBAL
     return hglob
 }
 
+// Builds the block naming every file the payload carries itself: a count, then one fixed-size
+// descriptor per file.
+//
+// A size is declared only for a file whose content is already in hand. Asking a producer for its
+// bytes here would defeat the whole point of deferring them, and a descriptor with no declared
+// size is what every source of a generated file publishes.
+private func buildFileGroupDescriptor(data: *DragData)->HGLOBAL
+{
+    let count = data.contents.count
+    let size  = cast(u64) #sizeof(UINT) + count * #sizeof(FILEDESCRIPTORW)
+    let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, size)
+    if !hglob do
+        return null
+
+    let base = cast(#null [*] u8) GlobalLock(hglob)
+    if !base
+    {
+        discard GlobalFree(hglob)
+        return null
+    }
+
+    dref cast(*UINT) base! = cast(UINT) count
+
+    let descriptors = cast([*] FILEDESCRIPTORW) (base! + #sizeof(UINT))
+    for [i] in count
+    {
+        let item = &data.contents[i]
+        let wide = Utf16.fromUtf8(item.name.toString())
+        let kept = Math.min(wide.count, cast(u64) MAX_PATH - 1)
+
+        let entry = &descriptors[i]
+        entry.dwFlags = FD_UNICODE | FD_PROGRESSUI
+        Memory.copy(&entry.cFileName[0], wide.buffer, kept * 2)
+
+        if item.isReady()
+        {
+            entry.dwFlags       |= FD_FILESIZE
+            entry.nFileSizeLow  = cast() (item.bytes.count & 0xFFFFFFFF)
+            entry.nFileSizeHigh = cast() (item.bytes.count >> 32)
+        }
+    }
+
+    discard GlobalUnlock(base)
+    return hglob
+}
+
 private func buildUnicodeText(data: *DragData)->HGLOBAL
 {
     let wide  = Utf16.fromUtf8(data.text.toString())
@@ -404,6 +628,16 @@ private func buildUnicodeText(data: *DragData)->HGLOBAL
     return hglob
 }
 
+// One format a caller handed the data object rather than read out of it.
+//
+// The drag-image helper is the reason this exists: it publishes the picture it is going to draw
+// by calling `SetData` on the source object, and refuses to initialize when that fails.
+internal struct DragStoredFormat
+{
+    format: FORMATETC     // What was set, including the medium it was set through.
+    medium: STGMEDIUM     // The value, owned by this object until it is released.
+}
+
 // The data object of one outgoing drag. Its payload is borrowed from the caller of
 // [[Gui.Wnd.startDrag]], which blocks for the whole gesture.
 #[Swag.NoCopy]
@@ -412,7 +646,21 @@ internal struct DragDataObject
     lpVtbl:   #null *IDataObjectVtbl     // Interface header OLE calls through; must stay first.
     refCount: ULONG = 1                  // Reference count; the session owns the storage.
     data:     #null *DragData            // Payload the formats below are produced from.
-    formats:  Array'CLIPFORMAT           // Clipboard formats this object can produce.
+    formats:  Array'FORMATETC            // What this object can produce, and through which medium.
+    stored:   Array'DragStoredFormat     // What was handed to it through `SetData`.
+}
+
+internal impl DragDataObject
+{
+    // Releases every medium handed over through `SetData`.
+    //
+    // Nothing else owns them: `SetData` is called with `fRelease` set, which transfers the medium
+    // to this object, and the gesture is over by the time this runs.
+    mtd opDrop()
+    {
+        for &s in .stored do
+            ReleaseStgMedium(&s.medium)
+    }
 }
 
 // The format enumeration a target walks to find out what is on offer.
@@ -424,16 +672,18 @@ internal struct DragFormatEnum
 {
     lpVtbl:   #null *IEnumFORMATETCVtbl     // Interface header OLE calls through; must stay first.
     refCount: ULONG = 1                     // Reference count; reaching zero releases the object.
-    formats:  Array'CLIPFORMAT              // Snapshot of what the data object offers.
+    formats:  Array'FORMATETC               // Snapshot of what the data object offers.
     index:    u64                           // Next entry the enumeration returns.
 }
 
-// The source side of the gesture: what tells OLE to keep going, drop, or give up.
+// The source side of the gesture: what tells OLE to keep going, drop, or give up, and what keeps
+// the application drawing while the desktop owns the loop.
 #[Swag.NoCopy]
 internal struct DragDropSource
 {
     lpVtbl:   #null *IDropSourceVtbl     // Interface header OLE calls through; must stay first.
     refCount: ULONG = 1                  // Reference count; the session owns the storage.
+    app:      #null *Application         // Application to keep painting for the length of the gesture.
 }
 
 // One outgoing drag, alive for exactly the call that runs it.
@@ -486,25 +736,87 @@ private func srcRelease(itf: *IDataObject)->ULONG
     return obj.refCount
 }
 
-// Whether this object can answer `fmt`, which is also the whole of `QueryGetData`.
-private func srcOffers(obj: *DragDataObject, fmt: const *FORMATETC)->bool
+// Which of the object's own entries answers `fmt`, or `-1` when none does.
+//
+// An entry that carries one thing is matched whatever index the caller asked for, because `-1`
+// means "the whole of it" and a target is free to spell that as an index. An entry that is one
+// item inside a multi-item format has to be named exactly, or a request for the second file
+// would answer the first.
+private func srcOfferedIndex(obj: *DragDataObject, fmt: const *FORMATETC)->s64
 {
-    if !(fmt.tymed & TYMED_HGLOBAL) or fmt.dwAspect != DVASPECT_CONTENT do
-        return false
-    for f in obj.formats where f == fmt.cfFormat do
-        return true
-    return false
+    if fmt.dwAspect != DVASPECT_CONTENT do
+        return -1
+
+    for &f, [i] in obj.formats
+    {
+        if f.cfFormat != fmt.cfFormat or !(fmt.tymed & f.tymed) do
+            continue
+        if f.lindex != -1 and f.lindex != fmt.lindex do
+            continue
+        return cast(s64) i
+    }
+
+    return -1
+}
+
+// Which of the formats handed over through `SetData` answers `fmt`, or `-1` when none does.
+private func srcStoredIndex(obj: *DragDataObject, fmt: const *FORMATETC)->s64
+{
+    for &s, [i] in obj.stored
+    {
+        if s.format.cfFormat != fmt.cfFormat or s.format.lindex != fmt.lindex do
+            continue
+        if s.format.dwAspect != fmt.dwAspect or !(fmt.tymed & s.medium.tymed) do
+            continue
+        return cast(s64) i
+    }
+
+    return -1
 }
 
 private func srcQueryGetData(itf: *IDataObject, fmt: const *FORMATETC)->HRESULT
 {
-    return srcOffers(dataObjectOf(itf), fmt) ? S_OK : DV_E_FORMATETC
+    let obj = dataObjectOf(itf)
+    if srcOfferedIndex(obj, fmt) < 0 and srcStoredIndex(obj, fmt) < 0 do
+        return DV_E_FORMATETC
+    return S_OK
+}
+
+// Hands out a copy of a format that was set on this object rather than produced by it.
+//
+// Only a memory block is duplicated. Everything the drag-image helper stores is one, and a
+// medium of any other shape would need its own ownership rule to be handed out safely.
+private func srcGetStored(obj: *DragDataObject, entry: s64, med: *STGMEDIUM)->HRESULT
+{
+    let source = &obj.stored[cast(u64) entry].medium
+    if source.tymed != TYMED_HGLOBAL do
+        return DV_E_TYMED
+
+    let size = GlobalSize(source.hGlobal)
+    let buf  = cast(#null [*] u8) GlobalLock(source.hGlobal)
+    if !buf do
+        return E_OUTOFMEMORY
+    defer discard GlobalUnlock(buf)
+
+    let hglob = toGlobalBlock(@mkslice(cast(const [*] u8) buf!, size))
+    if !hglob do
+        return E_OUTOFMEMORY
+
+    med.tymed          = TYMED_HGLOBAL
+    med.hGlobal        = hglob
+    med.pUnkForRelease = null
+    return S_OK
 }
 
 private func srcGetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIUM)->HRESULT
 {
-    let obj = dataObjectOf(itf)
-    if !srcOffers(obj, fmt) do
+    let obj    = dataObjectOf(itf)
+    let stored = srcStoredIndex(obj, fmt)
+    if stored >= 0 do
+        return srcGetStored(obj, stored, med)
+
+    let entry = srcOfferedIndex(obj, fmt)
+    if entry < 0 do
         return DV_E_FORMATETC
 
     let data   = obj.data!
@@ -520,10 +832,31 @@ private func srcGetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIU
     elif format == CF_TEXT do
         hglob = toGlobalBlock(@mkslice(cast(const [*] u8) @dataof(data.text.toString()), cast(u64) @countof(data.text) + 1))
     elif g_PngDragFormat and format == g_PngDragFormat do
-        hglob = toGlobalBlock(data.imageBytes.toSlice())
+        hglob = toGlobalBlock(data.encodedImage())
+    elif g_FileDescriptorFormat and format == g_FileDescriptorFormat do
+        hglob = buildFileGroupDescriptor(data)
+    elif g_FileContentsFormat and format == g_FileContentsFormat do
+        hglob = toGlobalBlock(data.contentData(cast(u64) fmt.lindex))
 
     if !hglob do
         return E_OUTOFMEMORY
+
+    // A stream is what the shell reads a file with no path through, and the block becomes the
+    // stream's: releasing the medium frees both.
+    if (fmt.tymed & TYMED_ISTREAM) and (obj.formats[cast(u64) entry].tymed & TYMED_ISTREAM)
+    {
+        var raw: LPVOID
+        if CreateStreamOnHGlobal(hglob, TRUE, &raw) != S_OK
+        {
+            discard GlobalFree(hglob)
+            return E_OUTOFMEMORY
+        }
+
+        med.tymed          = TYMED_ISTREAM
+        med.pstm           = cast(*IStream) raw!
+        med.pUnkForRelease = null
+        return S_OK
+    }
 
     med.tymed          = TYMED_HGLOBAL
     med.hGlobal        = hglob
@@ -547,13 +880,30 @@ private func srcGetCanonicalFormatEtc(itf: *IDataObject, fmtIn: const *FORMATETC
     return DATA_S_SAMEFORMATETC
 }
 
+// Takes a format a caller wants this object to carry alongside what it produces itself.
+//
+// The drag-image helper is the only caller in practice, and it hands the medium over rather than
+// lending it, which is the `fRelease` case. Lending would mean copying a medium of any shape, so
+// that case is refused instead of half-supported.
 private func srcSetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIUM, release: BOOL)->HRESULT
 {
-    discard itf
-    discard fmt
-    discard med
-    discard release
-    return E_NOTIMPL
+    if !release do
+        return E_NOTIMPL
+
+    let obj = dataObjectOf(itf)
+
+    // Setting a format twice replaces it, so the helper can change its mind about the picture.
+    let already = srcStoredIndex(obj, fmt)
+    if already >= 0
+    {
+        let slot = &obj.stored[cast(u64) already]
+        ReleaseStgMedium(&slot.medium)
+        slot.medium = dref med
+        return S_OK
+    }
+
+    obj.stored.add({format: dref fmt, medium: dref med})
+    return S_OK
 }
 
 private func srcEnumFormatEtc(itf: *IDataObject, direction: DWORD, ppenum: *LPVOID)->HRESULT
@@ -562,10 +912,15 @@ private func srcEnumFormatEtc(itf: *IDataObject, direction: DWORD, ppenum: *LPVO
     if direction != DATADIR_GET do
         return E_NOTIMPL
 
+    // What was set on the object is part of what it offers: a target walking the enumeration has
+    // to find the drag picture there too, not only through a request that names it.
     let obj = dataObjectOf(itf)
     let res = Memory.new'DragFormatEnum()
     res.lpVtbl  = &g_FormatEnumVtbl
     res.formats = obj.formats
+    for &s in obj.stored do
+        res.formats.add(s.format)
+
     dref ppenum = cast([*] void) res
     return S_OK
 }
@@ -630,12 +985,8 @@ private func enumNext(itf: *IEnumFORMATETC, count: ULONG, entries: *FORMATETC, f
     var done = 0'u64
     while done < count and obj.index < obj.formats.count
     {
-        let entry = &dest[done]
-        entry.cfFormat = obj.formats[obj.index]
-        entry.ptd      = null
-        entry.dwAspect = DVASPECT_CONTENT
-        entry.lindex   = -1
-        entry.tymed    = TYMED_HGLOBAL
+        dest[done]     = obj.formats[obj.index]
+        dest[done].ptd = null
         obj.index      += 1
         done           += 1
     }
@@ -708,18 +1059,121 @@ private func dropSrcQueryContinueDrag(itf: *IDropSource, escapePressed: BOOL, gr
     return S_OK
 }
 
-// The desktop draws the copy, move and refuse pointers; there is nothing better to say.
+// The desktop draws the copy, move and refuse pointers; there is nothing better to say about the
+// cursor. What this callback is really used for is the frame.
+//
+// `DoDragDrop` runs a modal loop of its own, so the application never reaches its own for the
+// length of the gesture, and a source window that stops painting the moment a drag leaves it is
+// what the user sees. This is the one place inside that loop where a frame can be drawn, and it
+// fires on every move.
+//
+// Painting is all that happens here, and deliberately so. Running a whole frame would dispatch
+// input inside a loop that already owns the mouse and the keyboard, and would destroy windows the
+// gesture is standing on. The tree itself stays current without any of that: OLE delivers the
+// drop-target callbacks from inside this same loop, so a highlight turning on still turns on.
 private func dropSrcGiveFeedback(itf: *IDropSource, effect: DWORD)->HRESULT
 {
-    discard itf
     discard effect
+
+    let app = dropSourceOf(itf).app
+    if app do
+        app.paintSurfaces()
+
     return DRAGDROP_S_USEDEFAULTCURSORS
+}
+
+// Longest side, in physical pixels, of the picture the desktop drags under the pointer.
+//
+// The gesture carries a thumbnail whatever the payload is: a full-resolution capture next to the
+// cursor would hide what it is being dropped on, which is the one thing the user is looking at.
+private const DragImageMaxSide = 160's32
+
+// Builds the picture the desktop drags under the pointer out of `image`.
+//
+// The section is 32-bit and top-down, with alpha already multiplied in, because the helper blends
+// it against the desktop the way a layered window is blended. Ownership goes to the helper the
+// moment `InitializeFromBitmap` succeeds, so nothing here deletes it on that path.
+private func buildDragBitmap(image: const *Image)->{ bmp: HBITMAP, width, height: s32 }
+{
+    var result: retval
+
+    var img = dref image
+    if !img.isValid() do
+        return result
+
+    if img.width >= img.height and img.width > DragImageMaxSide do
+        img.resize(DragImageMaxSide, 0, .CatmullRom)
+    elif img.height > img.width and img.height > DragImageMaxSide do
+        img.resize(0, DragImageMaxSide, .CatmullRom)
+
+    with var info: BITMAPINFO
+    {
+        .bmiHeader.biSize        = #sizeof(BITMAPINFOHEADER)
+        .bmiHeader.biWidth       = img.width
+        .bmiHeader.biHeight      = -img.height
+        .bmiHeader.biPlanes      = 1
+        .bmiHeader.biBitCount    = 32
+        .bmiHeader.biCompression = BI_RGB
+    }
+
+    var raw: #null *void
+    let bmp = catch CreateDIBSection(null, &info, DIB_RGB_COLORS, &raw, null, 0) as err
+    if err != null or !bmp or !raw do
+        return result
+
+    let dest = cast([*] u8) raw!
+    for [y] in img.height
+    {
+        for [x] in img.width
+        {
+            let col = img.pixelColor(x, y)
+            let at  = cast(u64) (y * img.width + x) * 4
+            dest[at + 0] = cast() (cast(u32) col.b * cast(u32) col.a / 255)
+            dest[at + 1] = cast() (cast(u32) col.g * cast(u32) col.a / 255)
+            dest[at + 2] = cast() (cast(u32) col.r * cast(u32) col.a / 255)
+            dest[at + 3] = col.a
+        }
+    }
+
+    result.bmp    = bmp
+    result.width  = img.width
+    result.height = img.height
+    return result
+}
+
+// Gives the gesture the picture the desktop drags under the pointer.
+//
+// The helper publishes what it is going to draw by calling `SetData` on the data object, which is
+// why that object takes formats it did not produce. A machine or a payload that cannot provide a
+// picture simply drags with an arrow, the way it did before this existed.
+private func attachDragImage(dataObj: *IDataObject, image: const *Image)
+{
+    let found = dragSourceHelper()
+    if !found do
+        return
+
+    let helper  = found!
+    let picture = buildDragBitmap(image)
+    if !picture.bmp do
+        return
+
+    with var shape: SHDRAGIMAGE
+    {
+        .hbmpDragImage = picture.bmp
+        .crColorKey    = CLR_NONE
+        .sizeDragImage = {picture.width, picture.height}
+        .ptOffset      = {picture.width / 2, picture.height / 2}
+    }
+
+    // The bitmap is the helper's from here, and only on the path where it took it.
+    if helper.lpVtbl.InitializeFromBitmap(helper, &shape, dataObj) != S_OK do
+        catch DeleteObject(cast(HGDIOBJ) picture.bmp)
 }
 
 internal impl DragSession
 {
     // Wires both interfaces onto `data`, which has to outlive the gesture.
-    internal mtd setup(data: *DragData)
+    internal mtd setup(data: *DragData, app: #null *Application = null)
     {
         .dataObj.lpVtbl   = &g_DataObjectVtbl
         .dataObj.refCount = 1
@@ -728,6 +1182,7 @@ internal impl DragSession
 
         .dropSrc.lpVtbl   = &g_DropSourceVtbl
         .dropSrc.refCount = 1
+        .dropSrc.app      = app
     }
 }
 
@@ -741,18 +1196,23 @@ impl Wnd
     // target may choose from; the answer is the single effect it settled on, or `None` when the
     // drag was cancelled or refused.
     //
-    // Two things follow from the desktop running the loop. The window stops painting until the
-    // gesture ends, the way every application that drags does. And the button that started the
-    // drag comes back up inside that loop, so a control tracking a press has to forget it here
-    // rather than waiting for a release event that has already been consumed.
+    // `picture` is what the desktop draws under the pointer for the length of the gesture, and
+    // defaults to the picture the payload already carries. A drag with nothing under the cursor
+    // but an arrow reads as a lesser gesture than the same drag out of a file manager, so a
+    // source that carries no image of its own is worth handing one.
+    //
+    // One thing follows from the desktop running the loop: the button that started the drag comes
+    // back up inside it, so a control tracking a press has to forget it here rather than waiting
+    // for a release event that has already been consumed. The application keeps drawing, from the
+    // feedback callback the same loop makes.
     //
     // Answers `None` immediately with no native window, which is what a headless test gets.
-    mtd startDrag(data: *DragData, allowed = DropEffect.Copy)->DropEffect
+    mtd startDrag(data: *DragData, allowed = DropEffect.Copy, picture: #null const *Pixel.Image = null)->DropEffect
     {
         let surface = .surface
         if !surface or !surface.app.renderer.needsNativeWindow() do
             return .None
-        if !data.hasFiles() and !data.hasText() and !data.hasImage() do
+        if !data.hasFiles() and !data.hasContents() and !data.hasText() and !data.hasImage() do
             return .None
 
         // The desktop takes the pointer for the duration; a capture still held here would
@@ -763,10 +1223,15 @@ impl Wnd
         startOle()
 
         var session: DragSession
-        session.setup(data)
+        session.setup(data, surface.app)
+
+        let dataObj = cast(*IDataObject) &session.dataObj
+        let shown: #null const *Pixel.Image = picture orelse data.image()
+        if shown do
+            attachDragImage(dataObj, shown!)
 
         var effect = DROPEFFECT_NONE
-        let result = DoDragDrop(cast(*IDataObject) &session.dataObj, cast(*IDropSource) &session.dropSrc, fromDropEffect(allowed), &effect)
+        let result = DoDragDrop(dataObj, cast(*IDropSource) &session.dropSrc, fromDropEffect(allowed), &effect)
         if result != DRAGDROP_S_DROP do
             return .None
 
@@ -868,5 +1333,7 @@ internal impl Surface
     g_DropSourceVtbl.QueryContinueDrag = &dropSrcQueryContinueDrag
     g_DropSourceVtbl.GiveFeedback      = &dropSrcGiveFeedback
 
-    g_PngDragFormat = catch RegisterClipboardFormatA(@dataof("PNG"))
+    g_PngDragFormat        = catch RegisterClipboardFormatA(@dataof("PNG"))
+    g_FileDescriptorFormat = catch RegisterClipboardFormatA(@dataof(CFSTR_FILEDESCRIPTORW))
+    g_FileContentsFormat   = catch RegisterClipboardFormatA(@dataof(CFSTR_FILECONTENTS))
 }

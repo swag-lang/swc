@@ -580,6 +580,19 @@ private impl Application
         .toDelete.clear()
     }
 
+    // Repaints every surface that has something to repaint, and does nothing else.
+    //
+    // This is what a modal loop belonging to someone else calls to keep the application drawing:
+    // the desktop's own drag loop is the case that exists, and it runs for as long as the gesture
+    // does. Nothing else of [[runFrame]] is safe from inside such a loop, since the owner is
+    // already dispatching input and a window destroyed there would be the ground the loop stands
+    // on.
+    internal mtd paintSurfaces()
+    {
+        for s in .surfaces do
+            s.paint()
+    }
+
     // Processes one complete input, event, paint, and frame-callback cycle.
     public mtd runFrame()
     {
@@ -594,10 +607,7 @@ private impl Application
         .sendMouseEvents()
         .sendPostedEvents()
         .sendDestroyEvents()
-
-        for s in .surfaces do
-            s.paint()
-
+        .paintSurfaces()
         .deletePointers()
 
         .sigFrame.call(me)

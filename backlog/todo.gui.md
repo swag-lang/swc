@@ -32,9 +32,9 @@ That is a real toolkit. The gaps below are not about widget count.
 
 ## Tier A — Who cannot use an application built with this
 
-The first three entries have the same shape: each one excludes a population of users entirely, and
-each one is verifiable by looking at the window procedure. `src/surface.win32.swg` handles
-twenty-seven messages. What is absent from that list is this section.
+Both entries have the same shape: each one excludes a population of users entirely, and each one
+is verifiable by looking at the window procedure. `src/surface.win32.swg` handles twenty-seven
+messages. What is absent from that list is this section.
 
 ### T-037 — No accessibility
 
@@ -65,40 +65,6 @@ twenty-seven messages. What is absent from that list is this section.
   already tracks, and render the composition string with its clause underlines in place.
 - The caret geometry needed to position the candidate window is already computed — `EditBox`
   measures snapped caret positions today.
-
-### T-039 — Drag and drop has no polish layer
-
-Both directions ship. Every surface registers an `IDropTarget` as it is created, so nothing has to
-opt in: a `DragDropEvent` is routed to the window under the pointer and bubbles like any other
-input event, `DragData` is the payload in both directions — files, text, and a bitmap decoded only
-when a target asks for it — and `DropEffect` is the one vocabulary both sides speak, with
-`pickDropEffect` answering the desktop convention for the modifiers held. `Wnd.startDrag` runs the
-outgoing gesture through a Swag `IDataObject`, `IEnumFORMATETC` and `IDropSource`, and
-`Wnd.exceedsDragThreshold` says when a press has become one. An `EditBox` takes dropped text at the
-character under the pointer and, with `EditBoxFlags.AcceptFileDrop`, a path; `Properties.FilePath`
-marks the grid field that wants one. `sCrypt` opens a container dropped anywhere on its window,
-`sCapture` opens pictures dropped on its editor and drags a capture out of its recent strip as a
-file and a bitmap at once. The unit tests drive the source object into the target object through
-the interface vtables, so both halves check each other with no desktop involved.
-
-What is left is what makes it feel finished:
-
-- The source window stops painting for the length of the gesture, because `DoDragDrop` runs the
-  desktop's own modal loop. Pumping a frame from `GiveFeedback` is the obvious answer and the
-  reason it is not done yet: that callback fires from inside the loop, and running the application
-  frame there re-enters everything the frame touches.
-- No drag image follows the pointer. `IDropTargetHelper` and `IDragSourceHelper` are what draw the
-  picture being dragged, and a drag with nothing under the cursor but an arrow reads as a lesser
-  gesture than the same drag out of Explorer.
-- A target cannot say *where* a drop will land. A list has no insertion feedback of its own, so a
-  control that wants to show the gap between two rows paints it itself.
-- `readGlobalFormat` asks for `TYMED_HGLOBAL` only, so a source publishing a format solely as an
-  `IStream` — which is how some browsers hand over a large image — reads as offering nothing.
-- `CFSTR_FILEDESCRIPTORW` is neither read nor offered, so a mail attachment dragged out of a client
-  carries no file, and a capture cannot be dragged into one without touching the disk first.
-- Deferred rendering is not available to a source: `sCapture` writes its PNG to the temporary
-  folder before the gesture starts rather than when the target asks, so a cancelled drag still
-  leaves the file behind.
 
 ---
 
@@ -178,9 +144,9 @@ today have a touchscreen, and pen input matters directly for an annotation appli
 
 Inherited from [T-028](todo.core.md#t-028--the-standard-library-is-windows-only), and gated by it: `surface.win32.swg`,
 `application.win32.swg`, `clipboard.win32.swg` and `cursor.win32.swg` are the platform surface
-here, and the boundary is already drawn. Note that T-037, T-038 and T-039 each need a per-platform
-implementation, so sequencing matters — building them Windows-first and porting is cheaper than
-designing all three abstractly.
+here, and the boundary is already drawn. Note that T-037 and T-038 each need a per-platform
+implementation, and so does the drag and drop layer that already ships, so sequencing matters —
+building them Windows-first and porting is cheaper than designing them abstractly.
 
 ### T-046 — Docking and multi-document layouts
 

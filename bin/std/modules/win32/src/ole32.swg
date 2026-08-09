@@ -51,7 +51,24 @@ const MK_CONTROL = 0x0008'u32
 const MK_MBUTTON = 0x0010'u32
 const MK_ALT     = 0x0020'u32
 
+const CLSCTX_INPROC_SERVER  = 0x1'u32
+const CLSCTX_INPROC_HANDLER = 0x2'u32
+const CLSCTX_LOCAL_SERVER   = 0x4'u32
+
+const STREAM_SEEK_SET = 0'u32
+const STREAM_SEEK_CUR = 1'u32
+const STREAM_SEEK_END = 2'u32
+
+const STGTY_STORAGE   = 1'u32
+const STGTY_STREAM    = 2'u32
+const STGTY_LOCKBYTES = 3'u32
+const STGTY_PROPERTY  = 4'u32
+
+const STATFLAG_DEFAULT = 0'u32
+const STATFLAG_NONAME  = 1'u32
+
 const IID_IUnknown       = GUID{0x00000000, 0x0000, 0x0000, [0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46]}
+const IID_IStream        = GUID{0x0000000C, 0x0000, 0x0000, [0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46]}
 const IID_IDataObject    = GUID{0x0000010E, 0x0000, 0x0000, [0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46]}
 const IID_IDropSource    = GUID{0x00000121, 0x0000, 0x0000, [0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46]}
 const IID_IDropTarget    = GUID{0x00000122, 0x0000, 0x0000, [0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46]}
@@ -82,17 +99,38 @@ struct FORMATETC
     tymed:    DWORD
 }
 
-// The medium union is spelled as its widest member; every handle-shaped case aliases it.
+// Every case of the medium union is one pointer wide; the two the drag and clipboard paths use
+// are named, and any other case reads through `hGlobal`.
 struct STGMEDIUM
 {
-    tymed:          DWORD
-    hGlobal:        HANDLE
+    tymed:                DWORD
+    using DUMMYUNIONNAME: union
+    {
+        hGlobal: HANDLE             // Memory block, for `TYMED_HGLOBAL`.
+        pstm:    #null *IStream     // Stream, for `TYMED_ISTREAM`.
+    }
     pUnkForRelease: #null *void
+}
+
+struct STATSTG
+{
+    pwcsName:          #null LPWSTR
+    type:              DWORD
+    cbSize:            ULARGE_INTEGER
+    mtime:             FILETIME
+    ctime:             FILETIME
+    atime:             FILETIME
+    grfMode:           DWORD
+    grfLocksSupported: DWORD
+    clsid:             GUID
+    grfStateBits:      DWORD
+    reserved:          DWORD
 }
 
 #assert(#sizeof(FORMATETC) == 32)
 #assert(#sizeof(STGMEDIUM) == 24)
 #assert(#sizeof(POINTL) == 8)
+#assert(#sizeof(STATSTG) == 80)
 
 struct IUnknown
 {
@@ -125,6 +163,31 @@ struct IDataObjectVtbl
     DAdvise:               func(*IDataObject, const *FORMATETC, DWORD, #null *void, *DWORD)->HRESULT
     DUnadvise:             func(*IDataObject, DWORD)->HRESULT
     EnumDAdvise:           func(*IDataObject, *LPVOID)->HRESULT
+}
+
+struct IStream
+{
+    lpVtbl: *IStreamVtbl
+}
+
+// The two `ISequentialStream` methods are spelled inline, because the vtable of a derived
+// interface is the base one followed by its own entries and nothing here needs the base name.
+struct IStreamVtbl
+{
+    QueryInterface: func(*IStream, const *GUID, *LPVOID)->HRESULT
+    AddRef:         func(*IStream)->ULONG
+    Release:        func(*IStream)->ULONG
+    Read:           func(*IStream, LPVOID, ULONG, #null *ULONG)->HRESULT
+    Write:          func(*IStream, LPCVOID, ULONG, #null *ULONG)->HRESULT
+    Seek:           func(*IStream, LARGE_INTEGER, DWORD, #null *ULARGE_INTEGER)->HRESULT
+    SetSize:        func(*IStream, ULARGE_INTEGER)->HRESULT
+    CopyTo:         func(*IStream, *IStream, ULARGE_INTEGER, #null *ULARGE_INTEGER, #null *ULARGE_INTEGER)->HRESULT
+    Commit:         func(*IStream, DWORD)->HRESULT
+    Revert:         func(*IStream)->HRESULT
+    LockRegion:     func(*IStream, ULARGE_INTEGER, ULARGE_INTEGER, DWORD)->HRESULT
+    UnlockRegion:   func(*IStream, ULARGE_INTEGER, ULARGE_INTEGER, DWORD)->HRESULT
+    Stat:           func(*IStream, *STATSTG, DWORD)->HRESULT
+    Clone:          func(*IStream, *LPVOID)->HRESULT
 }
 
 struct IDropTarget
@@ -177,6 +240,9 @@ struct IEnumFORMATETCVtbl
 {
     func CoInitializeEx(pvReserved: #null *void, dwCoInit: DWORD)->HRESULT
     func CoUninitialize()
+    func CoCreateInstance(rclsid: const *GUID, pUnkOuter: #null *void, dwClsContext: DWORD, riid: const *GUID, ppv: *LPVOID)->HRESULT
+    func CreateStreamOnHGlobal(hGlobal: HGLOBAL, fDeleteOnRelease: BOOL, ppstm: *LPVOID)->HRESULT
+    func GetHGlobalFromStream(pstm: *IStream, phglobal: *HGLOBAL)->HRESULT
     func CoTaskMemAlloc(cb: SIZE_T)->#null [*] void
     func CoTaskMemFree(pv: #null *void)
     func OleInitialize(pvReserved: #null *void)->HRESULT

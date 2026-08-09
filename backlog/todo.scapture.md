@@ -40,9 +40,8 @@ effects that makes a capture look produced, and output.
   Printing is separate and depends on [T-054](todo.pixel.md#t-054--no-vector-output) for vector output.
 - Why first: clipboard file transfer reuses the data object already exercised by drag-out; printing
   is the only independent half.
-- Note: the PNG a drag offers is written to the temporary folder when the gesture starts, not when
-  the target asks for it, so a cancelled drag leaves the file behind. Deferred rendering is
-  [T-039](todo.gui.md#t-039--drag-and-drop-has-no-polish-layer).
+- Note: drag-out already carries its PNG as a file with no path, encoded when a target asks for it,
+  so `DragData.addContent` is what copy-as-file publishes too.
 
 ### T-075 — Grab Text
 

@@ -33,6 +33,7 @@ alias INT                    = s32
 alias SHORT                  = s16
 alias USHORT                 = u16
 alias LARGE_INTEGER          = s64
+alias ULARGE_INTEGER         = u64
 alias DWORD64                = u64
 alias ULONG64                = u64
 alias PLONG                  = #null *LONG

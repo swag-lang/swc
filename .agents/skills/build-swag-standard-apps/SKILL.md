@@ -102,7 +102,10 @@ glyph, another app's icon, or a letter tile.
   swatch grid, a preview tile — at the corner the theme already gives a raised cell
   (`ThemeImageRects.btnIcon_RoundSquareBk.radius`). Read the radius from the theme rather than
   naming a number; the chrome between those cells does not follow either of them.
-- Avoid card soup, repeated shadows, gradients, and ornamental illustrations.
+- Avoid card soup, repeated shadows, and ornamental illustrations. The one gradient the chart
+  admits is the wash the title bar carries to say the window has the focus, and the toolkit draws
+  it — an application that adds a second one has decorated a surface rather than informed it. See
+  the gradient clause in [design-swag-identity](../design-swag-identity/SKILL.md).
 - Keep one dominant action per task area. Give destructive actions distance and explicit wording.
   Show progress where work is not immediate, preserve keyboard focus, and keep failure text beside
   the operation that stopped.

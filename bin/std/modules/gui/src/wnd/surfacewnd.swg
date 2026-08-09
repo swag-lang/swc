@@ -207,9 +207,8 @@ impl IWnd for SurfaceWnd
         if srfn.flags.has(.SmallCaption) do
             posCaption.height = srfn.wnd.padding.y
 
-        let captionColor = srfn.app.isActivated ? colors.wnd_CaptionBk : colors.wnd_CaptionBkNotActived
         if srfn.flags.has(.LargeCaption | .SmallCaption) do
-            .paintCaptionBand(bc.painter, posCaption, radius, captionColor)
+            .paintCaptionBand(bc.painter, posCaption, radius, .captionBrush(posCaption))
 
         if srfn.flags.has(.LargeCaption | .SmallCaption)
         {
@@ -252,6 +251,41 @@ impl IWnd for SurfaceWnd
 
 impl SurfaceWnd
 {
+    // Where the band settles back onto its own color, and where it starts falling away, along
+    // the axis. The plateau is what keeps a caption a caption: with the two ends meeting in the
+    // middle instead, no two points of the band are the same color and the reader is looking at
+    // a ramp rather than at a lit edge.
+    private const CaptionPlateauStart = 0.40'f32
+    private const CaptionPlateauEnd = 0.68'f32
+
+    // The brush the caption band is filled with.
+    //
+    // An active window lights its band from the mark and lets it fall away toward the caption
+    // buttons; an inactive one is flat. The amplitude is what says which, because the two caption
+    // grounds sit ten levels apart and no reader ever told them apart across a desktop.
+    //
+    // The axis is the one angle the identity knows. It ends where the diagonal of the band
+    // projects onto forty-five degrees — half the sum of the two sides — so the leading corner
+    // that carries the mark is one extreme of the ramp and the trailing corner that carries the
+    // buttons is the other, whatever the window is resized to. Ending it at the far corner
+    // instead leaves the ramp half unused and the trailing end never reached.
+    private mtd captionBrush(band: Math.Rectangle)->Brush
+    {
+        let colors = .themeColors()
+        if !.surface!.app.isActivated do
+            return Brush.createSolid(colors.wnd_CaptionBkNotActived)
+
+        let ground = colors.wnd_CaptionBk
+        if colors.wnd_CaptionBkLead == ground and colors.wnd_CaptionBkTrail == ground do
+            return Brush.createSolid(ground)
+
+        let span  = (band.width + band.height) * 0.5
+        var brush = Brush.createLinearGradient(band.x, band.y, band.x + span, band.y + span, colors.wnd_CaptionBkLead, colors.wnd_CaptionBkTrail)
+        brush.addGradientStop(CaptionPlateauStart, ground)
+        brush.addGradientStop(CaptionPlateauEnd, ground)
+        return brush
+    }
+
     // Fills the caption band, following the corner of the surface at its top.
     //
     // A square band on a rounded surface lays opaque ink past the corner, where the surface is
@@ -259,11 +293,14 @@ impl SurfaceWnd
     // top corners came out as bright wedges. The band is drawn one radius taller than it needs to
     // be and clipped back, so only its top corners are rounded and it still meets the ground
     // squarely along its bottom edge.
-    private mtd paintCaptionBand(painter: *Painter, band: Math.Rectangle, radius: f32, color: Color)
+    //
+    // The brush is built from the band the reader sees, not from the taller shape that is
+    // clipped, so growing the fill downward does not move the axis with it.
+    private mtd paintCaptionBand(painter: *Painter, band: Math.Rectangle, radius: f32, brush: Brush)
     {
         if radius <= 0
         {
-            painter.fillRect(band, color)
+            painter.fillRect(band, brush)
             return
         }
 
@@ -272,7 +309,7 @@ impl SurfaceWnd
 
         painter.pushClippingRect(band)
         defer painter.popClippingRect()
-        painter.fillRoundRect(rounded, radius, radius, color)
+        painter.fillRoundRect(rounded, radius, radius, brush)
     }
 
     mtd hitTestCaptionButton(surfacePos: Math.Point)->bool

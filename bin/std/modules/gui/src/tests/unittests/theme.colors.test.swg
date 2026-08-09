@@ -22,6 +22,8 @@ using Swag, Core
     @assert(colors.view_Bk == 0xFF15151A)
     @assert(colors.wnd_Bk == 0xFF202026)
     @assert(colors.wnd_CaptionBk == 0xFF2A2A32)
+    @assert(colors.wnd_CaptionBkLead == 0xFF46462B)
+    @assert(colors.wnd_CaptionBkTrail == 0xFF212127)
     @assert(colors.wnd_Border == 0xFF4A4A57)
     @assert(colors.btnPush_Bk == 0xFF2A2A32)
     @assert(colors.edit_Border == 0xFF6B6B77)
@@ -66,6 +68,38 @@ using Swag, Core
     @assert(colors.hilightLightContrast == 0xFF0B0B0D)
     @assert(colors.btnToggle_OnBk == 0xFFF7F900)
     @assert(colors.progressBar_Mark == 0xFFF7F900)
+
+    // And the caption band is washed in Voltage rather than in ink, for the same reason: the
+    // accent that fills is the one a light surface carries the identity with.
+    @assert(colors.wnd_CaptionBkLead == 0xFFFDFEDB)
+    @assert(colors.wnd_CaptionBkTrail == 0xFFFBFBFC)
+}
+
+// The caption band is the one surface of a window with no content to carry, so it carries the
+// focus instead: an active window is lit from its mark and falls away toward its buttons, and an
+// inactive one is flat. Two ends that resolved to the band itself would report nothing, which is
+// exactly what the two caption grounds — ten levels apart — already failed to report.
+#test
+{
+    for palette in [ThemeColors.swagDarkPalette(), ThemeColors.swagLightPalette()]
+    {
+        var colors: ThemeColors
+        colors.apply(palette)
+        @assert(colors.wnd_CaptionBkLead != colors.wnd_CaptionBk)
+        @assert(colors.wnd_CaptionBkTrail != colors.wnd_CaptionBk)
+        @assert(colors.wnd_CaptionBkLead != colors.wnd_CaptionBkTrail)
+    }
+
+    // A theme that asks for no glow keeps a flat band. The painter compares the two ends against
+    // the band to skip the gradient entirely, so a ramp of nothing here would cost every neutral
+    // window a brush it cannot see.
+    for palette in [ThemeColors.darkPalette(), ThemeColors.lightPalette()]
+    {
+        var colors: ThemeColors
+        colors.apply(palette)
+        @assert(colors.wnd_CaptionBkLead == colors.wnd_CaptionBk)
+        @assert(colors.wnd_CaptionBkTrail == colors.wnd_CaptionBk)
+    }
 }
 
 // A surface outline is one stroke crossing two grounds: the caption ground down to the caption

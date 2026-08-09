@@ -58,6 +58,11 @@ of lightness. The veil strengths are not: they are one ink at three alphas.
 When a token is a decision rather than a color, make it one. `railed` is a `bool`, because a
 rail drawn in anything but the accent marks the active item in a language the rest of the
 interface does not speak — and because changing the accent then moves the rail with it.
+`captionGlow` is an `f32` for the same reason: whether the chrome of a window is washed in the
+brand is a decision no other token predicts, and the two ends of the band are derived from it —
+`wnd_CaptionBkLead` toward `accentGround`, because a wash is a fill and the accent that *points*
+is ink on paper. Set it to zero and the two ends collapse onto the band, which is how a theme
+that follows the desktop keeps a flat bar.
 
 ### Keep the accent scarce, and never read on it
 

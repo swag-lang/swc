@@ -51,6 +51,12 @@ struct ThemeColors
     wnd_CaptionText:             Color     // Title of the active window.
     wnd_CaptionNotActivatedText: Color     // Title of a window without the focus.
 
+    // The two ends of the caption band of an active window, on the diagonal running from the
+    // mark to the caption buttons. Both collapse onto `wnd_CaptionBk` in a theme that asks for
+    // no glow, so a flat band stays one color rather than becoming a ramp of nothing.
+    wnd_CaptionBkLead:  Color     // Caption band at the leading edge, which carries the mark.
+    wnd_CaptionBkTrail: Color     // Caption band at the trailing edge, which carries the buttons.
+
     // Outline of a whole surface. It must be opaque: the same stroke runs past the caption
     // ground and the body ground, so a translucent value takes both of them on and the outline
     // visibly changes tone at the caption seam instead of reading as one line.
@@ -429,6 +435,16 @@ impl ThemeColors
     private const DimDark = 0xFFBBBBBB
     private const DimLight = 0xFFEEEEEE
 
+    // How far the caption band falls toward the ground at the buttons, as a multiple of how far
+    // it rises toward the accent at the mark. One decision produces both ends: a band that falls
+    // as it rises reads as lit from one side, where two independent amounts read as two effects.
+    private const CaptionFadeRatio = 2.0'f32
+
+    // The glow of the two Swag palettes, which is the shipped title bar of every standard
+    // application. Written once so the two modes cannot drift apart, the way the delta-based
+    // palettes used to.
+    private const SwagCaptionGlow = 0.14'f32
+
     // Moves a fill by `amount` in whichever direction is visible on it.
     //
     // A light fill darkens and a dark one lightens. Always lightening looks obvious until
@@ -499,6 +515,14 @@ impl ThemeColors
         .wnd_CaptionBkNotActived     = p.captionInactive
         .wnd_CaptionText             = p.text
         .wnd_CaptionNotActivatedText = p.softText
+
+        // The band lights from the mark and falls away toward the buttons, so an active window
+        // is told from an inactive one by a variation instead of by ten levels of grey. The warm
+        // end comes from `accentGround` and not from `accent`: this is a wash, and the accent
+        // that points is ink on paper — a caption washed in it would be a grey band exactly
+        // where the chart asks for the one block of Voltage a light surface is carried by.
+        .wnd_CaptionBkLead  = Color.lerpRgb(p.caption, p.accentGround, p.captionGlow)
+        .wnd_CaptionBkTrail = Color.lerpRgb(p.caption, p.ground, p.captionGlow * CaptionFadeRatio)
         .wnd_Border                  = p.windowBorder
         .wnd_BtnCloseBk              = CloseRed
         .wnd_BtnCloseHotBk           = CloseHotRed
@@ -937,6 +961,9 @@ impl ThemeColors
         result.captionInactive = 0xFF262626
         result.windowBorder    = 0xFF505050
 
+        // A neutral theme follows the desktop it sits on, and the desktop draws a flat bar.
+        result.captionGlow = 0
+
         return result
     }
 
@@ -987,6 +1014,9 @@ impl ThemeColors
         result.caption         = 0xFFF6F6F6
         result.captionInactive = 0xFFEDEDED
         result.windowBorder    = 0xFFCCCCCC
+
+        // A neutral theme follows the desktop it sits on, and the desktop draws a flat bar.
+        result.captionGlow = 0
 
         return result
     }
@@ -1045,6 +1075,7 @@ impl ThemeColors
 
         result.caption         = 0xFF2A2A32
         result.captionInactive = 0xFF202026
+        result.captionGlow     = SwagCaptionGlow
 
         // The outline is what tells a window from the desktop, and a modal box from the
         // application under it, both cut from the same ink. It has to be found, not noticed:
@@ -1114,8 +1145,13 @@ impl ThemeColors
         result.veil   = 0xFF000000
         result.shadow = 0x3C000000
 
+        // The glow is worth most here. A white band on paper parts from the ground it sits on by
+        // three levels, so the bar barely exists — and a wash of Voltage under it is the block
+        // the chart says a light surface carries the identity with, in the one place a window
+        // has room for it.
         result.caption         = 0xFFFFFFFF
         result.captionInactive = 0xFFF2F2F7
+        result.captionGlow     = SwagCaptionGlow
 
         // A white window on a white desktop has nothing but this line to stand on, so the
         // light outline carries more weight than the dark one rather than less.

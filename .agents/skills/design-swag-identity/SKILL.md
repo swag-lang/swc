@@ -42,6 +42,34 @@ that same half weight; drawn at the cell's radius it crosses the cell's edge at 
 the focus-ring rule in [design-swag-themes](../design-swag-themes/SKILL.md), which is the same
 rule for the same reason.
 
+**Flat is the default, not a law.** The same argument that won a corner wins a gradient: what the
+identity refuses is decoration, not gradation. A wash is admissible when it is **subtle** — low
+enough that neither of its ends can be named as a color — and **non-invasive** — it moves nothing
+the reader acts on, adds no edge, and leaves no hole when it is taken away. Elegance that stays
+out of the way is permitted. Elegance that announces itself is what this chart has always called
+decoration, and it is still refused.
+
+One form has argued for it and won, and it is the pattern rather than the exception:
+
+- **The band of a title bar.** It is the one surface of a window with no content to carry, which
+  is what lets it carry the focus instead: it lights from the mark on its leading edge, falls away
+  toward the caption buttons, and goes flat when the window loses the focus — where the two
+  caption grounds, ten levels apart, reported nothing across a desktop. Its axis is the 45 degrees
+  the identity already cuts at. Its amplitude is a palette token, `ThemePalette.captionGlow`: 0.14
+  in the two Swag palettes, and zero in the neutral ones, which follow the desktop they sit on.
+
+Four bounds hold it, and together they are the whole clause:
+
+1. **A gradient that can be described by its color has already failed.** The test is subtraction,
+   not addition: take it away and something must be missing; look at it and nothing must have
+   been added.
+2. **It carries a state, or it does not exist.** A wash that is the same in every state is paint.
+3. **One per surface, and never behind content.** Panels, cards, buttons, rows, rules, icons and
+   the mark stay flat. A gradient under something that has to be read costs legibility and buys
+   nothing.
+4. **The same gradient in every application.** One hue per app is the end of the family, however
+   good each one looks alone — see the voice section below, which is the same rule for text.
+
 ## Hold The Three Constants
 
 1. **The cut.** Every corner the identity opens is cut at 45 degrees. The cut is a

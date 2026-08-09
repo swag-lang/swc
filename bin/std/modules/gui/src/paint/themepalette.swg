@@ -104,4 +104,16 @@ struct ThemePalette
     caption:         Color     // Caption band of the active window.
     captionInactive: Color     // Caption band of a window that does not have the focus.
     windowBorder:    Color     // Outline separating the whole surface from the desktop.
+
+    // How much of the accent the caption band takes at the edge that carries the mark, from
+    // zero for a flat band.
+    //
+    // It is a decision rather than a color, and nothing else predicts it: `railed` says how the
+    // active item is marked, not whether the chrome is tinted. A theme that follows the desktop
+    // keeps its caption flat; a theme that carries a brand lights the band from its own mark.
+    //
+    // The band is the one surface of a window with no content to carry, which is what lets it
+    // carry the focus instead: an active window glows and an inactive one is flat, where two
+    // grounds ten levels apart reported nothing across a desktop.
+    captionGlow: f32
 }

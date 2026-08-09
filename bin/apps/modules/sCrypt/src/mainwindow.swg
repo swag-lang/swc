@@ -102,6 +102,18 @@ struct StartupVault
     readOnly:      bool       // Whether it was mounted read only, which the next start repeats.
 }
 
+// Settings of the last mount that completed successfully.
+//
+// These are the three choices needed to prepare the open-vault form at the next start. A
+// credential is deliberately absent: a password lives only in its edit box and the operation
+// that consumes it, both of which wipe their bytes when they are done.
+struct MountSettings
+{
+    path:     String     // Container file that was mounted.
+    drive:    String     // Drive letter it was mounted on.
+    readOnly: bool       // Whether the mount was for reading alone.
+}
+
 // Long operation running outside the UI thread. Only one runs at a time, and the window
 // polls `job` with `timer` until the result is ready to be reported.
 struct VaultOperation
@@ -201,6 +213,9 @@ struct MainWindow
     startupVaults: Array'StartupVault
     startupQueue:  Array'StartupVault
     startupTimer:  #null *Timer
+
+    // Last successful choices restored into the open-vault form. Passwords are never settings.
+    mountSettings: MountSettings
 
     // What the status line says, plus the two values its wording interpolates: the drive
     // letter of the mounted message and the percentage of the randomizing one.
@@ -821,6 +836,7 @@ impl MainWindow
         let all = Gui.languages()
         .language = index != 0 and index <= cast(u32) @countof(all) ? all[index - 1].tag : String.from("")
         .applyLanguage()
+        catch g_App.saveState()
     }
 
     // Applies the persisted language, or the language of the account when none was picked.
@@ -1066,13 +1082,32 @@ impl MainWindow
         if !.drive.items.count do
             return
 
-        for item, [index] in .drive.items where item!.name.raw == previous
-        {
-            .drive.setSelectedIndex(cast(u32) index, notify: false)
+        if .selectMountPoint(previous) do
             return
-        }
 
         .drive.setSelectedIndex(0, notify: false)
+    }
+
+    // Selects `mountPoint` when that letter is still available.
+    mtd selectMountPoint(mountPoint: string)->bool
+    {
+        for item, [index] in .drive.items where item!.name.raw == mountPoint
+        {
+            .drive.setSelectedIndex(cast(u32) index, notify: false)
+            return true
+        }
+
+        return false
+    }
+
+    // Restores the non-secret choices of the last successful mount into the form.
+    mtd restoreMountSettings()
+    {
+        if !.mountSettings.path.isEmpty() do
+            .mountPath.setText(.mountSettings.path)
+        if !.mountSettings.drive.isEmpty() do
+            discard .selectMountPoint(.mountSettings.drive.toString())
+        .readOnly.setState(.mountSettings.readOnly ? .Checked : .Unchecked)
     }
 
     mtd showError(message: string, err: #null any = null)
@@ -1650,6 +1685,10 @@ impl MainWindow
     {
         let known = .startupIndex(.operation.path.toString())
 
+        .mountSettings.path     = .operation.path
+        .mountSettings.drive    = .operation.mount
+        .mountSettings.readOnly = .operation.readOnly
+
         with var entry: MountedDrive
         {
             .volume        = me.operation.volume
@@ -1670,14 +1709,18 @@ impl MainWindow
 
         .mountedDrives.drives.add(#move entry)
         .mountedDrives.refresh()
+        catch g_App.saveState()
     }
 
     // Keeps the startup list truthful after a password change.
     mtd rememberPasswordChange()
     {
         let index = .startupIndex(.operation.path.toString())
-        if index != Swag.U64.Max do
+        if index != Swag.U64.Max
+        {
             .startupVaults[index].needsPassword = !.operation.removesPassword
+            catch g_App.saveState()
+        }
     }
 
     // Returns the startup entry for `path`, or `Swag.U64.Max` when there is none.
@@ -1713,6 +1756,8 @@ impl MainWindow
                 .startupVaults.removeAtOrdered(known)
             .startupVaults.add({one.path, one.drive, one.needsPassword, one.readOnly})
         }
+
+        catch g_App.saveState()
     }
 
     // Mounts the next container marked for startup, asking for its password when it has one.
@@ -1895,15 +1940,21 @@ impl IWnd for MainWindow
         catch evt.serializer.serialize("MainWindow.fileDlgState", &me.fileDlgState)
         catch evt.serializer.serialize("MainWindow.language", &me.language)
 
-        // Paths and drive letters only: a password is never written anywhere.
+        // Paths, drive letters and the read-only choice only: a password is never written
+        // anywhere. `mountSettings` prepares the form; `startupVaults` additionally says what
+        // sCrypt should mount on its own.
+        catch evt.serializer.serialize("MainWindow.mountSettings", &me.mountSettings)
         catch evt.serializer.serialize("MainWindow.startupVaults", &me.startupVaults)
 
         // The window reopens on the page it was left on, so a reader who only ever mounts an
         // existing vault does not walk past the creation form at every start.
         var selectedTab = .tabs.selectedIndex
         catch evt.serializer.serialize("MainWindow.selectedTab", &selectedTab)
-        if evt.serializer.isReading() do
+        if evt.serializer.isReading()
+        {
+            .restoreMountSettings()
             .showTab(Math.min(selectedTab, cast(u32) .tabs.items.count - 1))
+        }
     }
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)

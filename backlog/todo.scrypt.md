@@ -123,16 +123,6 @@ locally.
   secret and an associated-data input for exactly this. PKCS#11 tokens are a further step and can
   wait.
 
-### T-096 — Randomized block allocation
-
-- Owner: sCrypt
-- Problem: `BlockAllocator.allocate` always returns the lowest free block. An adversary comparing
-  two snapshots of a container learns exactly which blocks changed and in what order, and therefore
-  the sizes and sequence of writes.
-- Fix: pick randomly within the free list. A few lines, and it blurs the signal considerably.
-- Note: this now also applies to metadata pages, which are allocated the same way at every
-  checkpoint.
-
 ### T-097 — Concurrency
 
 - Owner: sCrypt

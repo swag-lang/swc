@@ -102,6 +102,11 @@ struct Volume
     scalarsDirty:  bool          // Whether a scalar such as the label or the next identifier changed.
     dirty:         bool          // Whether anything at all is not yet in a checkpoint.
 
+    #static if #command == Swag.CompilerCommand.Test
+    {
+        journalRecordsRead: u64     // Number of journal slots the latest restore inspected.
+    }
+
     // Whether this volume refuses every change. See [[Volume.open]]: the file itself is opened
     // without write access, so the refusal is the operating system's and not a promise this
     // layer makes to itself.
@@ -620,6 +625,8 @@ impl Volume
 
         .sequence     = reader.readLittleEndian'u64()
         .checkpointAt = .sequence
+        if .sequence == Swag.U64.Max do
+            failWith("The container sequence can no longer advance.", .Corrupted)
         let storedSize = reader.readLittleEndian'u64()
         .blockCount   = reader.readLittleEndian'u64()
         .nextNodeId   = reader.readLittleEndian'u64()
@@ -984,39 +991,33 @@ impl Volume
         .clearPending()
     }
 
-    // Applies every journal record written after the checkpoint that was just
-    // loaded.
+    // Applies the consecutive journal records written after the checkpoint that was just loaded.
     //
-    // A slot holds a live record when it authenticates and its sequence is above
-    // the checkpoint. Replay stops at the first missing sequence, because a
-    // torn write means that operation never completed.
+    // A sequence owns `sequence % JournalCapacity`, so replay starts at the one slot that can
+    // follow the checkpoint and stops at the first missing, damaged, stale, or misplaced record.
+    // Besides rejecting a record in the wrong slot, this keeps a clean mount from decrypting all
+    // 256 stale records left behind by earlier checkpoints.
     mtd replayJournal() fail
     {
-        var pending: Array'JournalRecord
-        for [slot] in JournalCapacity
-        {
-            let plain = try .readFramedRecord(JournalAreaOffset + slot * JournalRecordSize, JournalRecordSize, JournalLocatorKind, JournalKind, slot, JournalPlainSize)
-            if !plain.count do
-                continue
-
-            var record = catch JournalRecord.decode(plain.toSlice(), .blockCount) as decodeError
-            if decodeError != null do
-                continue
-            if record.sequence <= .checkpointAt do
-                continue
-            pending.add(#move record)
-        }
-
-        if !pending.count do
-            return
-
-        pending.sort(func(left, right) => left.sequence < right.sequence ? -1 : left.sequence > right.sequence ? 1 : 0)
+        #static if #command == Swag.CompilerCommand.Test do
+            .journalRecordsRead = 0
 
         var expected = .checkpointAt + 1
-        for record in pending
+        for JournalCapacity
         {
-            if record.sequence != expected do
+            let slot = expected % JournalCapacity
+            #static if #command == Swag.CompilerCommand.Test do
+                .journalRecordsRead += 1
+
+            let plain = try .readFramedRecord(JournalAreaOffset + slot * JournalRecordSize, JournalRecordSize, JournalLocatorKind, JournalKind, slot, JournalPlainSize)
+            if !plain.count do
                 break
+
+            var record = catch JournalRecord.decode(plain.toSlice(), .blockCount) as decodeError
+            if decodeError != null or record.sequence != expected do
+                break
+            if record.sequence == Swag.U64.Max do
+                failWith("The container sequence can no longer advance.", .Corrupted)
             try .applyJournal(record)
             .sequence = record.sequence
             expected  += 1

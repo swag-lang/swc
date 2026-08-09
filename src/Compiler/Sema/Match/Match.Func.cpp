@@ -216,15 +216,7 @@ namespace
         return storageTypeRef.isValid() && storageTypeRef == paramTypeRef;
     }
 
-    enum class ConvRank
-    {
-        Exact,       // same type (or identical canonical type)
-        Standard,    // safe numeric, pointer decay, etc.
-        CopyToMove,  // plain value bound to a '#move' parameter via a temporary copy
-        MoveToValue, // explicit '#move' argument consumed into a by-value parameter
-        Ellipsis,    // varargs fallback (if you support it)
-        Bad,
-    };
+    using ConvRank = Match::FunctionConversionRank;
 
     enum class MatchFailKind
     {
@@ -1943,29 +1935,9 @@ namespace
     // values win; later tie-breakers prefer fewer defaults and non-generic overloads.
     int compareCandidates(const Candidate& a, const Candidate& b)
     {
-        const auto     na = static_cast<uint32_t>(a.perArg.size());
-        const auto     nb = static_cast<uint32_t>(b.perArg.size());
-        const uint32_t n  = std::min(na, nb);
-
-        for (uint32_t i = 0; i < n; ++i)
-        {
-            if (a.perArg[i] != b.perArg[i])
-                return (a.perArg[i] < b.perArg[i]) ? -1 : 1;
-        }
-
-        if (na != nb)
-            return (na < nb) ? -1 : 1;
-
-        // Tie-breaker: prefer fewer defaults used
-        if (a.usedDefaults != b.usedDefaults)
-            return (a.usedDefaults < b.usedDefaults) ? -1 : 1;
-
-        const bool aGenericInstance = candidateUsesGenericInstance(a);
-        const bool bGenericInstance = candidateUsesGenericInstance(b);
-        if (aGenericInstance != bGenericInstance)
-            return aGenericInstance ? 1 : -1;
-
-        return 0;
+        const Match::FunctionCandidateRanking aRanking = {a.perArg.span(), a.usedDefaults, candidateUsesGenericInstance(a)};
+        const Match::FunctionCandidateRanking bRanking = {b.perArg.span(), b.usedDefaults, candidateUsesGenericInstance(b)};
+        return Match::compareFunctionCandidateRankings(aRanking, bRanking);
     }
 
     int compareCandidatesIgnoringReceiver(const Candidate& a, const Candidate& b)
@@ -1976,28 +1948,9 @@ namespace
         const auto     nb            = static_cast<uint32_t>(b.perArg.size());
         const uint32_t aExplicitArgs = na > aStart ? na - aStart : 0;
         const uint32_t bExplicitArgs = nb > bStart ? nb - bStart : 0;
-        const uint32_t n             = std::min(aExplicitArgs, bExplicitArgs);
-
-        for (uint32_t i = 0; i < n; ++i)
-        {
-            const ConvRank aRank = a.perArg[aStart + i];
-            const ConvRank bRank = b.perArg[bStart + i];
-            if (aRank != bRank)
-                return (aRank < bRank) ? -1 : 1;
-        }
-
-        if (aExplicitArgs != bExplicitArgs)
-            return (aExplicitArgs < bExplicitArgs) ? -1 : 1;
-
-        if (a.usedDefaults != b.usedDefaults)
-            return (a.usedDefaults < b.usedDefaults) ? -1 : 1;
-
-        const bool aGenericInstance = candidateUsesGenericInstance(a);
-        const bool bGenericInstance = candidateUsesGenericInstance(b);
-        if (aGenericInstance != bGenericInstance)
-            return aGenericInstance ? 1 : -1;
-
-        return 0;
+        const Match::FunctionCandidateRanking aRanking = {a.perArg.span().subspan(aStart, aExplicitArgs), a.usedDefaults, candidateUsesGenericInstance(a)};
+        const Match::FunctionCandidateRanking bRanking = {b.perArg.span().subspan(bStart, bExplicitArgs), b.usedDefaults, candidateUsesGenericInstance(b)};
+        return Match::compareFunctionCandidateRankings(aRanking, bRanking);
     }
 
     enum class ReceiverConstness
@@ -2389,7 +2342,7 @@ namespace
         outProbe.perArgRanks.clear();
         outProbe.perArgRanks.reserve(selectedAttempt.candidate.perArg.size());
         for (const ConvRank rank : selectedAttempt.candidate.perArg)
-            outProbe.perArgRanks.push_back(static_cast<uint8_t>(rank));
+            outProbe.perArgRanks.push_back(rank);
 
         outProbe.fn              = selectedAttempt.candidate.fn;
         outProbe.usedDefaults    = selectedAttempt.candidate.usedDefaults;
@@ -2939,7 +2892,7 @@ void Match::resolveCallArgumentValues(Sema& sema, SmallVector<AstNodeRef>& outAr
         outArgs.push_back(resolveCallArgumentValueRef(sema, argRef));
 }
 
-int Match::compareFunctionCandidateProbes(const FunctionCandidateProbe& a, const FunctionCandidateProbe& b)
+int Match::compareFunctionCandidateRankings(const FunctionCandidateRanking& a, const FunctionCandidateRanking& b)
 {
     const auto     na = static_cast<uint32_t>(a.perArgRanks.size());
     const auto     nb = static_cast<uint32_t>(b.perArgRanks.size());
@@ -2961,6 +2914,11 @@ int Match::compareFunctionCandidateProbes(const FunctionCandidateProbe& a, const
         return a.genericInstance ? 1 : -1;
 
     return 0;
+}
+
+int Match::compareFunctionCandidateProbes(const FunctionCandidateProbe& a, const FunctionCandidateProbe& b)
+{
+    return compareFunctionCandidateRankings({a.perArgRanks.span(), a.usedDefaults, a.genericInstance}, {b.perArgRanks.span(), b.usedDefaults, b.genericInstance});
 }
 
 Result Match::probeFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee, std::span<Symbol* const> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg, FunctionCandidateProbe& outProbe, bool allowNoMatch, ResolveCallMode mode)

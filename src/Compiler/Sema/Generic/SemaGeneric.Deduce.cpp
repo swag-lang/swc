@@ -17,16 +17,9 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     using SemaGeneric::Internal::genericStructDeclNode;
+    using DeductionMode = SemaGeneric::Internal::GenericDeductionMode;
 
     constexpr std::string_view K_ARG_PREV_INDEX = "{prev-index}";
-
-    enum class DeductionMode
-    {
-        // Normal reports conflicts between independent deductions; MissingOnly is used
-        // when defaults are allowed to fill holes without re-litigating already fixed args.
-        Normal,
-        MissingOnly,
-    };
 
     Sema* tryCreateSemaForFunctionDecl(Sema& sema, const SymbolFunction& fn, std::unique_ptr<Sema>& ownedSema)
     {
@@ -332,7 +325,7 @@ namespace
         return Cast::castAllowed(sema, castRequest, argTypeRef, deducedTypeRef) == Result::Continue;
     }
 
-    bool tryBindGenericTypeParam(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> params, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs, IdentifierRef idRef, AstNodeRef exprRef, uint32_t callArgIndex, TypeRef typeRef, CastFailure* outFailure, DeductionMode mode)
+    bool bindGenericTypeParamImpl(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> params, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs, IdentifierRef idRef, AstNodeRef exprRef, uint32_t callArgIndex, TypeRef typeRef, CastFailure* outFailure, DeductionMode mode)
     {
         for (size_t i = 0; i < params.size(); ++i)
         {
@@ -377,7 +370,7 @@ namespace
         return true;
     }
 
-    bool tryBindGenericValueParam(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> params, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs, IdentifierRef idRef, AstNodeRef exprRef, uint32_t callArgIndex, ConstantRef cstRef, TypeRef typeRef, CastFailure* outFailure, DeductionMode mode)
+    bool bindGenericValueParamImpl(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> params, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs, IdentifierRef idRef, AstNodeRef exprRef, uint32_t callArgIndex, ConstantRef cstRef, TypeRef typeRef, CastFailure* outFailure, DeductionMode mode)
     {
         for (size_t i = 0; i < params.size(); ++i)
         {
@@ -501,7 +494,7 @@ namespace
         if (const auto* ident = patternNode.safeCast<AstIdentifier>())
         {
             const IdentifierRef idRef = SemaHelpers::resolveIdentifier(sema, ident->codeRef());
-            if (!tryBindGenericValueParam(sema, params, resolvedArgs, idRef, argExprRef, callArgIndex, cstRef, typeRef, outFailure, mode))
+            if (!bindGenericValueParamImpl(sema, params, resolvedArgs, idRef, argExprRef, callArgIndex, cstRef, typeRef, outFailure, mode))
                 return Result::Error;
             return Result::Continue;
         }
@@ -887,7 +880,7 @@ namespace
         if (const auto* ident = dimNode.safeCast<AstIdentifier>())
         {
             const IdentifierRef idRef = SemaHelpers::resolveIdentifier(sema, ident->codeRef());
-            return tryBindGenericValueParam(sema, params, resolvedArgs, idRef, argExprRef, callArgIndex, actualSizeRef, sema.cstMgr().get(actualSizeRef).typeRef(), outFailure, mode);
+            return bindGenericValueParamImpl(sema, params, resolvedArgs, idRef, argExprRef, callArgIndex, actualSizeRef, sema.cstMgr().get(actualSizeRef).typeRef(), outFailure, mode);
         }
 
         const SemaNodeView dimView = sema.viewNodeTypeConstant(dimRef);
@@ -966,7 +959,7 @@ namespace
         if (const auto* ident = patternNode.safeCast<AstIdentifier>())
         {
             const IdentifierRef idRef = SemaHelpers::resolveIdentifier(sema, ident->codeRef());
-            if (!tryBindGenericTypeParam(sema, params, resolvedArgs, idRef, argExprRef, callArgIndex, rawArgTypeRef, outFailure, mode))
+            if (!bindGenericTypeParamImpl(sema, params, resolvedArgs, idRef, argExprRef, callArgIndex, rawArgTypeRef, outFailure, mode))
                 return Result::Error;
 
             return Result::Continue;
@@ -979,7 +972,7 @@ namespace
             if (const auto* ident = identNode.safeCast<AstIdentifier>())
             {
                 const IdentifierRef idRef = SemaHelpers::resolveIdentifier(sema, ident->codeRef());
-                if (!tryBindGenericTypeParam(sema, params, resolvedArgs, idRef, argExprRef, callArgIndex, rawArgTypeRef, outFailure, mode))
+                if (!bindGenericTypeParamImpl(sema, params, resolvedArgs, idRef, argExprRef, callArgIndex, rawArgTypeRef, outFailure, mode))
                     return Result::Error;
 
                 return Result::Continue;
@@ -1033,7 +1026,7 @@ namespace
                     {
                         const IdentifierRef idRef  = SemaHelpers::resolveIdentifier(sema, ident->codeRef());
                         const ConstantRef   cstRef = sema.cstMgr().addInt(ctx, actualDims[i]);
-                        if (!tryBindGenericValueParam(sema, params, resolvedArgs, idRef, argExprRef, callArgIndex, cstRef, sema.cstMgr().get(cstRef).typeRef(), outFailure, mode))
+                        if (!bindGenericValueParamImpl(sema, params, resolvedArgs, idRef, argExprRef, callArgIndex, cstRef, sema.cstMgr().get(cstRef).typeRef(), outFailure, mode))
                             return Result::Error;
                     }
                 }
@@ -1052,7 +1045,7 @@ namespace
                 {
                     const IdentifierRef idRef  = SemaHelpers::resolveIdentifier(sema, ident->codeRef());
                     const ConstantRef   cstRef = sema.cstMgr().addInt(ctx, argDims[i]);
-                    if (!tryBindGenericValueParam(sema, params, resolvedArgs, idRef, argExprRef, callArgIndex, cstRef, sema.cstMgr().get(cstRef).typeRef(), outFailure, mode))
+                    if (!bindGenericValueParamImpl(sema, params, resolvedArgs, idRef, argExprRef, callArgIndex, cstRef, sema.cstMgr().get(cstRef).typeRef(), outFailure, mode))
                         return Result::Error;
                 }
             }
@@ -1417,6 +1410,19 @@ namespace
         symFunc->setTyped(ctx);
         symFunc->setSemaCompleted(ctx);
         return Result::Continue;
+    }
+}
+
+namespace SemaGeneric::Internal
+{
+    bool bindGenericTypeParam(Sema& sema, std::span<const GenericParamDesc> params, std::span<GenericResolvedArg> resolvedArgs, IdentifierRef idRef, AstNodeRef exprRef, uint32_t callArgIndex, TypeRef typeRef, CastFailure* outFailure, GenericDeductionMode mode)
+    {
+        return bindGenericTypeParamImpl(sema, params, resolvedArgs, idRef, exprRef, callArgIndex, typeRef, outFailure, mode);
+    }
+
+    bool bindGenericValueParam(Sema& sema, std::span<const GenericParamDesc> params, std::span<GenericResolvedArg> resolvedArgs, IdentifierRef idRef, AstNodeRef exprRef, uint32_t callArgIndex, ConstantRef cstRef, TypeRef typeRef, CastFailure* outFailure, GenericDeductionMode mode)
+    {
+        return bindGenericValueParamImpl(sema, params, resolvedArgs, idRef, exprRef, callArgIndex, cstRef, typeRef, outFailure, mode);
     }
 }
 

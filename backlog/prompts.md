@@ -283,7 +283,8 @@ could read.
 ```
 You are running a code-quality campaign on the swc C++ sources. Read AGENTS.md and the skills it
 points to first - especially .agents/skills/modify-swag-codebase/references/cpp-coding-rules.md -
-then backlog/findings.tooling.md (F-037) and backlog/todo.compiler.md T-003.
+then backlog/findings.tooling.md (F-037) and the focused Sema tests in
+src/Unittest/Sema/Test.Sema.DecisionProcedures.cpp.
 
 WORK IN A SEPARATE WORKTREE
 
@@ -312,11 +313,12 @@ Where it stands, reproducible from src/:
   find . \( -name "*.cpp" -o -name "*.h" -o -name "*.inc" \) \
        -not -path "./Support/Memory/mimalloc/*" -not -path "./Unittest/*" -exec cat {} + | wc -l
 
-  221 172 lines across 611 files, excluding vendored mimalloc and the C++ unit tests.
-  Compiler 124 900 · Backend 52 893 · Support 25 824 · Main 13 147 · Format 8 442 · Doc 4 585.
-  The largest single files: Pass.RegisterAllocation.cpp 3748, X64Encoder.cpp 3702,
-  SemaEscape.cpp 3542, Match.Func.cpp 3074, SemaInline.cpp 2589, CompilerInstance.Module.cpp 2562,
-  SemaClone.cpp 2520.
+  As of 2026-08-09: 224 337 lines across 615 files, excluding vendored mimalloc and the C++ unit
+  tests. Compiler 125 908 · Backend 54 082 · Support 17 018 · Main 13 430 · Format 8 442 ·
+  Doc 5 261. Recompute this baseline before starting a campaign.
+  The largest single files: SemaEscape.cpp 3989, Pass.RegisterAllocation.cpp 3748,
+  X64Encoder.cpp 3702, Match.Func.cpp 3032, CompilerInstance.Module.cpp 2801,
+  SemaInline.cpp 2591, SemaClone.cpp 2520.
 
 THE ONLY KIND OF CHANGE ALLOWED
 
@@ -362,12 +364,11 @@ THE LOOP
   4. Run the four-part proof.
   5. Commit the round on its own so it can be reverted alone.
 
-Sema is 124 900 lines with essentially one C++ unit test, which is exactly why it feels dangerous
-to touch and exactly why it is where the mass is. Do not refactor sema blind: when a decision
-procedure is table-shaped and pure - overload ranking in Match.Func.cpp, cast legality, generic
-deduction in SemaGeneric.Deduce.cpp - write the table-driven C++ test FIRST in src/Unittest, then
-cut. That test is worth more than the lines it lets you remove, and it is T-003 in
-backlog/todo.compiler.md.
+Sema is 81 570 physical lines across 150 files and has two focused C++ test units totaling only
+374 physical lines. It remains dangerous to refactor blind. The table-driven tests for overload
+ranking, cast legality, and generic deduction live in
+src/Unittest/Sema/Test.Sema.DecisionProcedures.cpp; extend them before changing those decision
+procedures, and add an equally focused seam before refactoring another semantic subsystem.
 
 DO NOT STOP AT THE FIRST FAILURE
 

@@ -1,279 +1,265 @@
 # Compiler Roadmap
 
-This file is the roadmap for `swc` itself — the frontend, the backend, and what sits around them —
-measured against what it competes with: rustc and cargo, the Go toolchain, Zig, Clang, D, and the
-self-hosted tier of Jai and Odin. The two commands the compiler also ships have their own files,
-[todo.doc.md](todo.doc.md) and [todo.format.md](todo.format.md), and the language itself is
-[todo.language.md](todo.language.md).
-
-It is not the repository's discovery backlog. Defects, suspicious behavior, and leads found while
-doing something else belong in the `findings.*` files, which hold evidence; this file holds intent.
-[README.md](README.md) has the whole layout.
-
-Entries are ordered by decreasing value, not by decreasing effort. An entry disappears when it
-ships; history lives in git, not here.
-
-Every number below was measured on the current tree with the Release `swc.exe`, on a 22-worker
-machine, and is reproducible with the command quoted next to it. Re-measure before acting: an
-entry justified by a number nobody re-checked is a guess.
-
-## Where the compiler already stands
-
-About 243 500 lines of project-owned C++ in 667 files, and almost none of it is borrowed.
-
-- **No LLVM, and no external toolchain on the hot path.** The backend owns its own SSA IR
-  (`Backend/Micro`, 31 746 lines, 23 passes), its own x64 encoder (`Backend/Encoder`, 4 614
-  lines), its own PE linker (`Backend/Linker`, 5 509 lines), its own CodeView/PDB emitter
-  (`Backend/Debug`), and its own JIT (`Backend/JIT`). Nothing in this tier is a wrapper. Very few
-  languages at this age own their whole path to machine code.
-- **The JIT is the same code generator as the native path**, which is why `#run` executes real
-  compiled code and why compile-time execution is not a second, weaker interpreter. This is the
-  single largest structural advantage the compiler has, and the language is built on it.
-- **The frontend is demand-driven and concurrent.** Semantic jobs park on the exact symbol state
-  they need and are woken by the producer (`JobManager::wake`, with a lock-free presence filter
-  over wait keys), rather than running as ordered phases. Ordering constraints that other
-  compilers resolve with declaration order or forward declarations dissolve here.
-- **538 diagnostics** with source snippets, notes, and help lines, driven by a message table
-  (`Support/Report/Msg`) rather than scattered string literals. Each one is named, and a warning's
-  name is what the three policy layers address it by.
-- **A `format` command with 130 options** and a cascading `.swc-format`, and a `doc`
-  command that renders a full documentation site with no script and no server.
-- Throughput today: `std/core` — 291 files, 50 690 lines — rebuilds in **2.1 s** in fast-debug
-  (`swc build --workspace bin/std --workspace-module core --rebuild --stats`). A hello-world
-  script runs end to end in **~90 ms**.
-
-The gaps are not in capability. They are in the module boundary, in what the compiler keeps in
-memory, and in everything an editor would want to ask it.
-
----
-
-## Tier A — Architecture
-
-These three shape every other entry. Nothing below Tier A gets structurally easier until they land.
-
-### T-001 — The module boundary is re-parsed Swag source
-
-- Problem: a module's public API is emitted as generated Swag source and consumed as generated
-  Swag source. `core` publishes **16 files and 12 328 lines** per configuration
-  (`bin/std/.output/core/shared-library/release/x86_64/*.swg`), and every dependent module lexes,
-  parses and re-analyzes all of it. There is no serialized module interface.
-- Consequence: the cost of depending on a module scales with the *text of its whole public
-  surface*, not with what the consumer uses. It also means no symbol-level identity survives a
-  module boundary — no fingerprints, no per-symbol invalidation — which is precisely what
-  T-002, T-006 and T-008 need to exist.
-- Fix: a binary module interface written at the end of a successful build — symbols, types,
-  constants, attribute payloads, and the bodies that must stay inlinable — loaded lazily by name
-  rather than parsed wholesale. Keep the generated `.swg` as a *product* (`--export-api-dir` is a
-  real deliverable for interop and for reading), not as the internal channel.
-- Sequence it deliberately: the interface format is also what makes a language server affordable,
-  so design it with T-008 in the room rather than retrofitting.
-
-### T-002 — Frontend incrementality stops at the module
-
-- Problem: up-to-date detection compares the module manifest's write time against its inputs
-  ([CompilerInstance.Module.cpp:1060-1064](../src/Main/CompilerInstance.Module.cpp#L1060-L1064)). The unit of
-  work is the module. Editing one line of one file rebuilds all 291 files of `core`.
-- Consequence: the inner loop of anyone working in `bin/std` or `bin/apps` is a full module
-  rebuild — 2.1 s for `core`, more for `gui` — for a one-character change. rustc caches at query
-  granularity, Zig is incremental at function granularity, and even C++ is incremental per
-  translation unit. Swag is the coarsest of the four.
-- Fix the frontend boundary first: cache analysis per file, keyed on content hash plus the
-  interface version of everything it imports.
-- Measure before and after with T-007, on a real edit-one-file-in-`core` loop, not on a clean
-  build.
-- Related: T-001, T-122
-
-### T-122 — Code generation is not incremental per function
-
-Cache code generation per function, keyed on the semantic fingerprint of its body and everything
-it reaches. This is independently measurable after T-001 and T-002 establish persistent symbol and
-frontend identities.
-
-- Related: T-001, T-002, T-004
-
-### T-003 — Overload ranking has no focused unit tests
-
-- Problem: `Compiler/Sema` is 81 189 lines across 150 files — a third of the compiler. Its entire
-  C++ test surface is `src/Unittest/Sema`, a single 116-line purity test. Everything else is
-  covered end to end through the `.swg` suites.
-- Consequence: the suites prove that programs compile; they cannot address one decision procedure.
-  Overload ranking ([Match.Func.cpp](../src/Compiler/Sema/Match/Match.Func.cpp), 3 232 lines) is a
-  deterministic, table-shaped function with no focused unit tests.
-- Add table-driven C++ rows for inputs and expected ranking, following the focused suite shape in
-  `src/Unittest/Format` and `src/Unittest/Micro`.
-- This is the cheapest entry in Tier A and the one that makes the other two safe.
-- Related: T-335, T-336
-
-### T-335 — Cast legality has no focused unit tests
-
-Add table-driven C++ coverage around `Sema/Cast` so conversion rules can be changed without relying
-only on compiled source suites.
-
-- Related: T-003, T-336
-
-### T-336 — Generic deduction has no focused unit tests
-
-Add table-driven C++ coverage for
-[SemaGeneric.Deduce.cpp](../src/Compiler/Sema/Generic/SemaGeneric.Deduce.cpp), independently of
-overload-ranking and cast tests.
+This roadmap covers the compiler front end, back end, workspace build engine, and editor-facing compiler services. Documentation, formatting, and language-design work have their own roadmap files. Only unfinished intent belongs here; completed investigations and implementations remain discoverable through Git history and the related findings files.
 
-- Related: T-003, T-335
-
----
+Items are ordered by decreasing expected value inside each tier. Every completion condition is intended to be testable. Measurements below are a dated baseline, not permanent product claims.
 
-## Tier B — Speed and memory
+As of 2026-08-09, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 240,616 physical lines in 652 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 81,570 lines in 150 files. The compiler diagnostic catalog contains 539 `SWC_DIAG_DEF` entries, and the formatter configuration schema exposes 123 options. Recompute these figures when using them to prioritize work.
 
-### T-004 — Nothing tracks compile speed except one four-line program
+## Tier A — Persisted compiler state
 
-This entry is first in the tier because the three below cannot be judged without it.
+### T-001 — Dependencies cross the module boundary as regenerated source
 
-- Problem: `bench/` measures the *generated code* against fourteen runtimes, thoroughly. The only
-  compiler-side numbers in `bench/history.json` are `hello_build_ms` and `hello_build_peak_mb` —
-  one four-line program. Nothing measures a real module, a warm rebuild, or the edit-one-file loop.
-- Consequence: across eleven campaigns since 2026-07-31, hello-world build time reads 92, 61, 74,
-  68, 74, 64, 66, 85, 81, 95, 67 ms and peak memory sits flat at 96–98 MB. That is noise around a
-  flat line, on a workload too small to contain what actually costs. A campaign cannot currently
-  tell whether the compiler got faster.
-- Fix: add compiler-side workloads to the campaign — a full `core` rebuild, a warm no-op build, and
-  a one-file-touched rebuild — recording wall time and peak working set for each. Then decide
-  explicit regression gates from those stable workloads.
-- Related: T-123
+**Intent.** Replace generated dependency API source with a versioned binary module interface. The interface must preserve exported symbols, types, constants, attributes, ABI information, and any bodies or metadata required by downstream optimization, while allowing lazy lookup by symbol.
 
-### T-123 — Release builds hide per-stage compiler profiling
+**Complete when.**
 
-`Stats` already carries lexer, parser, sema, codegen and Micro timings plus AST, type, symbol and
-instruction counts ([Stats.h:20-59](../src/Main/Stats.h#L20-L59)), but `SWC_HAS_STATS` restricts them
-to the separate `Stats` configuration ([pch.h:77-81](../src/pch.h#L77-L81)). Make the useful
-counters available on demand in the shipped binary with measured disabled-mode overhead.
+- Workspace imports no longer add generated API `.swg` files to the lexer and parser.
+- `--export-api-dir` still emits a human-readable `.swg` representation for inspection and tooling.
+- Cache invalidation covers compiler version, build configuration, public declarations, exported constants, ABI-relevant attributes, and serialized inlinable bodies.
+- Workspace tests prove that fresh and reused interfaces produce identical diagnostics and artifacts.
 
-- Related: T-004, T-005
+**Related:** T-002, T-006, T-008, T-338.
 
-### T-005 — Peak memory is 672 MB for one module
+### T-002 — Front-end invalidation is module-wide
 
-- Problem: rebuilding `core` — 50 690 lines — peaks at **671.9 MB** of working set in fast-debug
-  and about 490 MB in release. That is roughly 13 KB of resident memory per source line. Hello
-  world peaks at **81.6 MB**.
-- Consequence: it bounds how many modules can ever be compiled concurrently (T-007 multiplies
-  this number), and it is felt directly on any machine that is not this one. A language that wants
-  to be run as a script cannot ask for 80 MB to print one line.
-- Fix: measure first — there is no per-subsystem memory accounting today, only an OS peak, so the
-  split between AST, types, symbols, constants and Micro is currently unknown. `MemoryProfile`
-  exists but is behind the same `SWC_HAS_STATS` gate as everything else in T-004. Then attack
-  what the measurement shows. Two suspects worth checking early: nothing is released between
-  stages, so post-codegen the whole AST and every Micro function are still resident; and
-  per-function Micro state is retained for the whole module rather than freed as each function
-  finishes.
+**Intent.** Persist lexical, parsed, and semantic state per source file. Cache keys must include the source content, relevant build configuration, and fingerprints of imported public symbols actually observed by the file.
 
-### T-006 — Every invocation re-analyzes the prelude
+**Complete when.**
 
-- Problem: before touching a single line of user code, a build analyzes **8 files, 19 494 tokens
-  and 237 functions** — the runtime prelude. Measured on an empty module: `checked 8 files •
-  19_494 tokens`, and on hello world the frontend alone is 28–39 ms of a ~90 ms run.
-- Consequence: that is the floor under every `swc` invocation, including every script run, every
-  editor save if T-008 ever lands, and every one of the thousands of test compilations in the
-  suites.
-- Fix: this is T-001 applied to the prelude — serialize the analyzed prelude once and map it in,
-  instead of re-deriving it. Do it after T-001 rather than as a special case, or the compiler
-  ends up with two module-loading mechanisms.
+- Editing a private body reanalyzes only the changed file and its semantic dependents.
+- Changing a public signature invalidates every consumer that observed it.
+- Adding, removing, or renaming a file, changing relevant configuration, and changing compiler versions invalidate the correct state.
+- Statistics from T-004 report reused and rebuilt files, tokens, and semantic work.
+- Clean and incremental workspace builds are covered by equivalent-result tests.
 
-### T-007 — Modules build one at a time
+**Related:** T-001, T-004, T-122, T-125.
 
-- Problem: the job system parallelizes aggressively *within* a module — files, functions, jobs
-  parked on symbol states — but the workspace scheduler runs modules serially. A `core` build
-  prints `win32 139 ms`, `xinput 76 ms`, `core 2 s 075 ms` inside a 2 s 539 ms workspace build:
-  the three module times run back to back and account for nearly all of it.
-- Consequence: in a real workspace the independent modules are the big ones — `pixel`, `gui`,
-  `audio` and `truetype` all depend on `core` and on nothing else — and they are compiled one
-  after another on a machine with 22 workers.
-- Fix: schedule modules on the dependency DAG instead of in sequence, sharing one job manager so
-  the worker pool is not oversubscribed. The `compile-speed` branch already prototypes this;
-  finish it against T-005's memory number, because N concurrent modules multiply peak memory
-  by N.
+### T-122 — Code-generation invalidation is module-wide
 
----
+**Intent.** Cache code generation at function granularity. A reusable artifact must be keyed by the function's semantic fingerprint plus the reachable ABI and inlinable-body dependencies that can affect its generated code.
 
-## Tier C — What sits around the compiler
+**Complete when.**
 
-### T-008 — There is no language server
+- A body-only edit regenerates the changed function and any function whose generated code depends on it, while unrelated functions are reused.
+- Reuse works for JIT and native builds, including debug and unwind metadata.
+- A deterministic test compares clean and warm native images, manifests, and observable behavior.
+- Cache entries reject compiler, target, configuration, ABI, and relevant optimization changes.
 
-- Problem: the VSCode extension contributes a TextMate grammar, themes, a task provider and a
-  problem matcher, but no persistent protocol server or diagnostics while typing.
-- Consequence: the compiler already computes everything an editor wants — types, symbols,
-  overload resolution, source ranges — and throws it away at process exit. The gap is not
-  knowledge, it is that nothing can ask.
-- Fix: LSP is a consumer of T-001 and T-002, not a parallel project. A server that must re-analyze
-  every dependency's 12 000 lines of generated source on each keystroke is not viable, and one
-  with a serialized interface and per-file caching mostly falls out. Sequence it accordingly, and
-  keep the protocol surface independent of the VSCode client.
-- Related: T-001, T-002, T-124, T-337, T-338, T-339, T-340
+**Related:** T-001, T-002, T-004.
 
-### T-337 — No editor completion service
+## Tier B — Measured speed and memory
 
-Expose scope- and type-aware completion through the language server after T-008 establishes the
-persistent analysis session.
+### T-004 — The benchmark campaign measures only hello world
 
-- Related: T-008
+**Evidence.** `bench/history.json` currently uses protocol 2 and contains three records, all dated 2026-08-07. They cover only `hello_build_ms` (99.5432–112.6252 ms) and `hello_build_peak_mb` (105.28125–107.4375 MiB). They do not establish full-core, warm no-op, or touched-file baselines.
 
-### T-338 — No go-to-definition service
+**Intent.** Extend the reproducible benchmark campaign with a full core rebuild, a warm no-op rebuild, and a single-file incremental edit. Measure Release and the supported fast-debug configuration where their behavior differs.
 
-Resolve an identifier at a source position to its declaration across files and serialized module
-interfaces.
+**Complete when.**
 
-- Related: T-001, T-008
+- Each history record contains wall time, peak memory, processed and reused files, and processed and reused tokens for every workload.
+- Results include a normalized control, clean-worktree provenance, compiler revision, host description, and configuration.
+- At least five clean baseline campaigns establish stable thresholds before regressions are enforced.
+- The campaign and CI report threshold violations without silently rewriting the baseline.
 
-### T-339 — No editor hover service
+**Related:** T-002, T-005, T-007, T-123.
 
-Return the resolved symbol's type, signature, and documentation without making hover part of
-completion.
+### T-123 — Detailed compiler profiling is compiled out of shipped builds
 
-- Related: T-008, T-015
+**Evidence.** `src/Main/Stats.h` is enabled through `SWC_HAS_STATS`, while `src/pch.h` defines that capability only under `SWC_FORCE_STATS`. Release builds therefore cannot expose the detailed phase and allocation data needed to explain regressions.
 
-### T-340 — No semantic rename service
+**Intent.** Make detailed counters and timings available in the shipped compiler through `--stats` and `--stats-mem`, with negligible cost when disabled.
 
-Compute and validate workspace edits for one symbol identity, respecting scopes, generated code,
-and cross-module references.
+**Complete when.**
 
-- Related: T-001, T-008
+- A Release compiler can report lexer, parser, semantic, code-generation, and Micro phase timings plus material AST, type, symbol, and instruction counts.
+- `--stats-mem` attributes retained and peak memory to actionable compiler subsystems.
+- Disabled-vs-enabled A/B runs use the T-004 campaign and document an accepted overhead budget.
+- The dedicated Stats configuration remains a validation mode rather than the only observable build.
 
-### T-124 — The VSCode task provider invokes a nonexistent compiler interface
+**Related:** T-004, T-005.
 
-The extension shells out to `swag` with `-w:` and `-f:` arguments
-([providers.js:23-25](../vscode/src/providers.js#L23-L25)); the binary is `swc` and its parser rejects
-that syntax. Update the task provider to the current command-line contract independently of any
-language-server work.
+### T-005 — Compiler memory has no attributed, enforced budget
 
-- Related: T-008
+**Intent.** Use T-123 attribution and T-004 workloads to reduce retained AST, semantic, Micro, and temporary state, then turn the agreed memory targets into regression checks.
 
----
+**Complete when.**
 
-### T-102 — A script's bare name is not a shell command
+- A full core fast-debug build peaks below 250 MiB and a hello-world build below 40 MiB on the campaign host.
+- Every campaign workload stays within twice the best comparable compiled-language implementation measured by the same harness, or records a reviewed exception.
+- Thresholds, host normalization, and variance policy are stored with the campaign.
+- The remaining peak is attributed well enough that a regression report names the responsible subsystem.
 
-`setup.swgs` claims `.swgs` for the current user, so double-click works, but
-`tools\tests.swgs dm` is not directly executable from `cmd` or PowerShell 5.1. Define a reliable
-installation and relocation contract for the association, including elevated machine-wide setup,
-`PATHEXT`, and a clear report when the shell integration cannot be installed.
+**Related:** T-004, T-007, T-123.
 
-- Related: T-125
+### T-006 — Every process rebuilds the prelude state
 
-### T-125 — Every script invocation recompiles unchanged inputs
+**Intent.** Serialize and reuse the prelude through the same module-interface mechanism as ordinary dependencies, rather than maintaining a special prelude cache.
 
-`swc tools/tests.swgs plan <file>` and `-h` each take about 650 ms warm because every run rechecks
-the same 46 files and roughly 148,000 tokens. Cache a script compilation from the complete loaded
-input set that module setup already collects, and invalidate it by content and compiler inputs.
+**Complete when.**
 
-- Related: T-002, T-006, T-102
+- A warm hello-world build and a warm script launch load the prelude interface without lexing, parsing, or semantically rebuilding the prelude.
+- Prelude source, compiler version, target, and relevant configuration changes invalidate the interface.
+- Fresh and reused prelude paths produce identical diagnostics and artifacts.
+- The T-004 campaign demonstrates the reduced fixed startup floor.
 
-## Out of scope
+**Related:** T-001, T-004, T-125.
 
-**Adopting LLVM.** The self-contained path to machine code — encoder, linker, debug info, JIT — is
-what makes `#run` execute real compiled code and what keeps the compiler a single binary with no
-toolchain to install. Every entry above is compatible with keeping it; none of them is a reason to
-give it up.
+### T-007 — Workspace front ends and code generation run serially
 
-**A package registry.** Dependency resolution is path-based today and that is a tooling question,
-not a compiler one. [todo.core.md](todo.core.md) already places the client side outside the
-standard library; the registry itself is a separate product, and it is gated on T-027
-anyway.
+**Evidence.** The workspace computes dependency order, but module front-end and code-generation work is still consumed serially. The current depth-one pipeline can overlap one background link with compilation of the next module; it does not schedule independent ready modules concurrently.
 
-**A second frontend.** The demand-driven job model in sema is the compiler's other structural
-advantage, and it is not compatible with a conventional phase-ordered rewrite. Improve it in place.
+**Intent.** Schedule ready modules concurrently on the dependency DAG through a shared worker pool with explicit memory and CPU limits.
+
+**Complete when.**
+
+- Independent sibling modules overlap front-end and code-generation work, while consumers wait for the required interface or link artifact.
+- Compiler and linker work share a bounded concurrency policy and do not oversubscribe the host.
+- Logs, manifests, diagnostics, and emitted artifacts remain deterministic.
+- The concurrency cap accounts for the memory measurements and budget from T-005.
+- Workspace tests cover a diamond graph, concurrent failures, cancellation, and deterministic repeated builds.
+
+**Related:** T-004, T-005.
+
+## Tier C — Editor and command-line tooling
+
+### T-008 — There is no persistent language-server process
+
+**Intent.** Add a compiler-hosted LSP transport and session layer: initialization and shutdown, workspace discovery, document open/change/close notifications, versioned snapshots, request cancellation, and orderly teardown. Requests must call compiler-library services instead of launching a compiler process per operation.
+
+**Complete when.**
+
+- A standard LSP client can open a workspace, edit unsaved buffers, cancel obsolete requests, and shut down cleanly.
+- Responses are computed from the requested document version and stale work cannot publish newer state.
+- The session reuses persisted compiler state from T-001 and T-002 when available.
+- Protocol integration tests run independently of the VSCode extension.
+
+**Related:** T-001, T-002, T-337, T-338, T-339, T-340, T-381, T-382.
+
+### T-381 — Open documents have no incremental diagnostics
+
+**Intent.** Publish parser and semantic diagnostics for the accepted version of every open document, including affected dependents, without requiring a workspace build.
+
+**Complete when.**
+
+- Opening a file with an error publishes diagnostics, correcting it clears them, and closing it restores the on-disk view.
+- A stale analysis job never overwrites diagnostics for a newer document version.
+- Diagnostic identifiers, severity, primary and related locations, source snippets, and normalized paths survive the protocol conversion.
+- A multi-file protocol test covers an edit that introduces and then repairs a dependent-file error.
+
+**Related:** T-002, T-008.
+
+### T-337 — The editor has no semantic completion service
+
+**Intent.** Provide completion candidates from the semantic snapshot at a source position, including local scope, members, visible imports, generic parameters, and applicable language constructs.
+
+**Complete when.**
+
+- Completion operates on unsaved, syntactically incomplete buffers and honors shadowing and visibility.
+- Items include stable kind, insertion text, signature/detail, and documentation fields where available.
+- Results are deterministic and cancellable, and a stale request cannot populate a newer buffer.
+- Protocol tests cover local, member, import, generic, incomplete-expression, and inaccessible-symbol cases.
+
+**Related:** T-008, T-338, T-339.
+
+### T-338 — The editor cannot navigate to definitions
+
+**Intent.** Resolve the symbol referenced at a source position and return its canonical declaration location, including declarations in dependencies represented by persisted interfaces.
+
+**Complete when.**
+
+- Navigation covers locals, parameters, members, overloads after resolution, generics, aliases, generated declarations with an available source origin, and imported symbols.
+- Ambiguous or unresolved positions return no misleading location.
+- Paths and ranges are valid for open snapshots and on-disk dependency sources.
+- Protocol tests cover same-file, cross-file, cross-module, overload, and no-result cases.
+
+**Related:** T-001, T-008, T-382.
+
+### T-382 — The editor cannot find semantic references
+
+**Intent.** Enumerate references to the resolved declaration at a source position across the workspace, distinguishing declarations from uses and excluding textually identical but semantically different symbols.
+
+**Complete when.**
+
+- Results cover locals, members, overloads, generics, aliases, and cross-module references.
+- The request supports including or excluding the declaration and uses versioned open-document snapshots.
+- Shadowed names, comments, strings, and unrelated overloads do not appear.
+- Results are deterministic, deduplicated, cancellable, and covered by same-file and cross-module protocol tests.
+
+**Related:** T-008, T-338, T-340.
+
+### T-339 — The editor has no semantic hover service
+
+**Intent.** Render concise semantic information for the resolved entity at a source position: declaration signature, inferred type or constant value, ownership and relevant attributes, and public documentation.
+
+**Complete when.**
+
+- Hover covers values, types, functions and selected overloads, generic parameters, fields, aliases, and literals with inferred types.
+- Output uses stable Markdown escaping and does not expose internal compiler-only names.
+- Unknown or ambiguous positions return no misleading result.
+- Protocol tests cover imported documentation, inferred values, overload resolution, and no-result cases.
+
+**Related:** T-008, T-337, T-338.
+
+### T-340 — The editor cannot rename a symbol semantically
+
+**Intent.** Validate a requested identifier at a resolved declaration, reuse the semantic reference set, and produce a versioned workspace edit without changing unrelated text.
+
+**Complete when.**
+
+- Prepare-rename rejects keywords, compiler-generated or immutable declarations, ambiguous positions, and names that would create a known collision.
+- Rename covers declarations and references across open and on-disk workspace files while preserving comments and strings.
+- Edits are sorted, non-overlapping, versioned where required, and rejected when snapshots become stale.
+- Protocol tests cover shadowing, members, overloads, aliases, cross-module use, collision, and cancellation.
+
+**Related:** T-008, T-382.
+
+### T-124 — The VSCode task provider emits obsolete command lines
+
+**Evidence.** `vscode/src/providers.js` currently constructs `swag build -w:${workspaceFolder}` and `swag format -f:${file}` as command strings. These spellings do not match the current long-form CLI and string concatenation makes paths with spaces shell-dependent. The module-level task array can also accumulate duplicates across repeated provider calls.
+
+**Intent.** Build tasks from the current compiler argument contract and pass executable plus argument vector through VSCode's task API.
+
+**Complete when.**
+
+- Build, rebuild, and format tasks invoke the intended compiler command with the correct current arguments.
+- Workspace and file paths containing spaces or shell metacharacters reach the compiler as one argument.
+- Repeated task discovery returns a stable set without duplicates.
+- An automated extension test, or an injectable command-builder test, asserts the exact executable and argument vector.
+
+**Related:** T-008.
+
+### T-102 — Bare `.swgs` execution has no supported shell contract
+
+**Evidence.** `tools/setup.swgs` installs the current-user file association used by double-click launch, but its own guidance still requires elevated `assoc`/`ftype` configuration for bare script execution in a shell.
+
+**Intent.** Define and implement the supported Windows behavior for double-click and bare command-line execution, with machine-wide mutation remaining explicit and opt-in.
+
+**Complete when.**
+
+- Setup reports whether bare execution is supported for the current shell and either configures it safely or prints the exact remaining elevated step.
+- A fresh `cmd.exe` and Windows PowerShell 5.1 session execute a representative bare `.swgs` script according to that contract.
+- Existing double-click behavior remains intact.
+- Moving the checkout and rerunning setup refreshes stale interpreter paths, and removal instructions undo installed associations.
+
+**Related:** T-125.
+
+### T-125 — Tool scripts recompile on every invocation
+
+**Intent.** Persist compiled script artifacts using a dependency-complete key over loaded source files, imported public interfaces, compiler version, target, and relevant build configuration.
+
+**Complete when.**
+
+- A second unchanged invocation skips script lexing, parsing, semantic analysis, and code generation before launching the cached artifact.
+- Changes in the main script, `#load` inputs, imported public APIs, compiler version, target, or relevant configuration invalidate the artifact.
+- Cached and fresh paths preserve diagnostics, forwarded arguments, environment handling, output, and exit code.
+- Tests cover direct source changes, transitive loads, imports, configuration changes, corrupt entries, and concurrent cache population.
+
+**Related:** T-001, T-002, T-006, T-102.
+
+## Deliberately out of scope
+
+- **An LLVM back end.** The native and Micro back ends are the supported architecture. Reconsider only if a concrete platform or optimization requirement cannot be met within them.
+- **A second language front end.** The compiler architecture is optimized for Swag; a second parser and semantic model would dilute the persisted-state and tooling work above.
+- **A package registry inside the compiler roadmap.** Path and workspace dependencies remain compiler responsibilities. Registry identity, trust, lockfiles, acquisition, and publishing need a separate product roadmap once their scope and owner are defined.

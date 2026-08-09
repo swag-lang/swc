@@ -14,6 +14,9 @@ The platform implementations themselves remain owned by
 across those units: move policy, orchestration, parsing, normalization, and data conversion into
 ordinary Swag now, leaving each operating-system backend as a narrow set of mechanisms.
 
+The checked dependency layers and their path ownership are defined in
+[bin/PORTABILITY.md](../bin/PORTABILITY.md).
+
 Raw interoperability modules such as `win32`, `gdi32`, `gdiplus`, `xinput`, and `xaudio2` are not
 port targets. Explicit adapters such as `Image.from(HBITMAP)` may remain Windows-only. They become
 portability debt only when a portable module or application has to mention their types, constants,
@@ -40,29 +43,10 @@ new platform implements capabilities rather than copies policy.
 
 ## Tier A — Establish the boundary before adding Linux
 
-### T-103 — Portability boundary violations have no source check
-
-- Inventory native imports, `#os` branches, native types in public declarations, and direct calls
-  from unsuffixed files.
-- Add a lightweight source check that rejects new native imports and native message/type leakage
-  outside approved backend and interoperability paths. Keep an allowlist explicit; matching
-  `.win32.swg` alone is not proof that the boundary is good.
-- Related: T-334, T-266, T-267
-
-### T-334 — The portability dependency layers are not defined
-
-Define three layers: platform-neutral Swag, narrow host primitives, and optional native
-interoperability. A dependency may point down that list, never back up it. State which paths own
-each layer before T-103 turns the rule into a source check.
-
-- Related: T-103
-
 ### T-266 — No build-only non-Windows portability configuration
 
 Prove the boundary with a build-only non-Windows configuration as early as possible. It may use
   no-sound and headless implementations at first, but it must compile every platform-neutral file.
-
-- Related: T-103
 
 ### T-267 — Portability progress has no capability inventory
 
@@ -70,7 +54,7 @@ Track both native source lines and, more importantly, native capabilities a new 
   implement. Moving 200 lines of orchestration to common Swag is valuable; compressing 200 required
   system calls into a clever wrapper is not.
 
-- Related: T-103, T-266
+- Related: T-266
 
 ### T-104 — Define a minimal runtime host ABI
 
@@ -339,7 +323,7 @@ Linux and macOS backends map that contract to their native mount points.
 Reject raw OS imports and native-constant comparisons outside named application backends and
 platform integration tests.
 
-- Related: T-103, T-113, T-306, T-307
+- Related: T-113, T-306, T-307
 
 ---
 

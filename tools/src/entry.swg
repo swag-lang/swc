@@ -80,6 +80,9 @@ private func dispatch(name: string, root: string, tokens: const [..] string)->s3
     case "tests":
         return try runTests(&context, &options)
 
+    case "portability":
+        return try runPortability(&context, &options)
+
     case "build":
         return try runBuild(&context, &options)
 

@@ -49,6 +49,18 @@ Without a suite every suite runs, in the order above. Any other option is
 forwarded to the compiler, for instance --seed, --num-cores, or --randomize.
 """)
 
+    case "portability":
+        Console.print(
+"""
+Checks the dependency boundary between portable bin code and native host code.
+
+  swc tools/portability.swgs
+
+The audit reads sources only. It rejects native imports, '#os' branches, foreign
+declarations, native identifiers, and native public signatures outside the exact
+host, interoperability, dispatch, and adapter paths recorded by the policy.
+""")
+
     case "std":
         Console.print(
 """

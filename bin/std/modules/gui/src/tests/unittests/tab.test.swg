@@ -59,6 +59,32 @@ var TabHeadlessSelChangedCount: u32
     @assert(!viewB.wndFlags.has(.Hidden))
 }
 
+// Opt-in page transitions preserve final visibility and logical geometry while presentation moves.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 200)
+    defer host.shutdown()
+    host.setReducedMotion(false)
+    let tab   = Tab.create(&host.root, {10, 10, 300, 180})
+    let viewA = Wnd.create'Wnd(tab)
+    let viewB = Wnd.create'Wnd(tab)
+    tab.setPageTransitions(true)
+    tab.addItem("A", view: viewA)
+    tab.addItem("B", view: viewB)
+    tab.setSelectedIndex(1)
+    @assert(viewA.wndFlags.has(.Hidden) and !viewB.wndFlags.has(.Hidden))
+    @assert(viewB.presentationOpacity == 0)
+    @assert(viewB.presentationOffset.x == tab.themeMetrics().motion_PageOffset)
+    let logicalPosition = viewB.position
+
+    host.advanceAnimations(tab.themeMetrics().motion_PageSeconds * 0.5)
+    @assert(viewB.presentationOpacity > 0 and viewB.presentationOpacity < 1)
+    @assert(viewB.position == logicalPosition)
+    host.finishAnimations()
+    @assert(viewB.presentationOpacity == 1 and viewB.presentationOffset == Math.Point{})
+}
+
 // Removing tabs destroys owned pages, preserves the selected item identity, and clears safely.
 #test
 {

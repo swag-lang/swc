@@ -7,6 +7,12 @@ struct ThemeMetrics
 {
     defaultFontSize:      u32 = 13     // Theme measurement used for default font size.
     defaultFixedFontSize: u32 = 14     // Theme measurement used for default fixed font size.
+
+    motion_QuickSeconds: f32 = 0.12     // Duration of hover, selection, and other immediate state feedback.
+    motion_PageSeconds:  f32 = 0.18     // Duration of a page change.
+    motion_PanelSeconds: f32 = 0.22     // Duration of a layout-affecting panel change.
+    motion_PageOffset:   f32 = 16       // Travel distance of a page change, in logical pixels.
+
     // Transparent margin the drop shadow is cast into. It has to hold the spread plus the offset,
     // or the shadow is cut off by the edge of the window instead of fading out into it.
     surfaceWnd_ShadowSize:    f32 = 18

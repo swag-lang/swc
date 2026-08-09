@@ -496,6 +496,7 @@ impl MainWindow
             .dockStyle = .Center
             .margin    = {32, 16, 32, 16}
             .setForm(.Button)
+            .setPageTransitions(true)
             .addItem(appStrings().ui_CreateTab, view: result.createNewVaultCard(tabs))
             .addItem(appStrings().ui_OpenTab, view: result.createOpenVaultCard(tabs))
             .addItem(appStrings().ui_MountedTab, view: result.createMountedDrivesCard(tabs))

@@ -191,6 +191,10 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             surface.app.setActivated(wParam ? true : false)
             return 0
 
+        case WM_SETTINGCHANGE:
+            surface.app.refreshSystemMotionPreference()
+            return 0
+
         case WM_ERASEBKGND:
             return 0
 

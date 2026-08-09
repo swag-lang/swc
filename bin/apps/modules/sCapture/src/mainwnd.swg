@@ -329,7 +329,7 @@ impl IWnd for MainWnd
             .setTheme()
             .setLanguage()
             .quickStyleBar.sendResizeEvent()
-            .setBottomSize(.bottomSize)
+            .setBottomSize(.bottomSize, animated: false)
             .setToolRailWidth()
             .updateState()
         }
@@ -1110,7 +1110,7 @@ impl MainWnd
             .registerShortcuts()
             .updateZoomDisplay()
             .updateSizeDisplay()
-            .setBottomSize(.Medium)
+            .setBottomSize(.Medium, animated: false)
             .setToolRailWidth()
             .updateState()
             .libWnd = LibraryWnd.create(res)

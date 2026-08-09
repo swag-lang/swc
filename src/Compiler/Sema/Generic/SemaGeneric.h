@@ -90,6 +90,12 @@ namespace SemaGeneric
 
     namespace Internal
     {
+        enum class GenericDeductionMode : uint8_t
+        {
+            Normal,      // Report conflicts between independent deductions.
+            MissingOnly, // Let defaults fill holes without changing already fixed arguments.
+        };
+
         struct ResolvedGenericBindingSource
         {
             std::span<const GenericParamDesc>   params;
@@ -133,6 +139,9 @@ namespace SemaGeneric
         Result evalGenericConstraintNode(Sema& sema, const Symbol& root, AstNodeRef constraintRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef& outEvalRef);
         Result evalGenericClonedNode(Sema& sema, const Symbol& root, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, GenericEvalReadyKind readyKind, AstNodeRef& outClonedRef);
         Result instantiateGenericStructImpls(Sema& sema, const SymbolStruct& root, SymbolStruct& instance, std::span<const GenericParamDesc> params, std::span<const GenericResolvedArg> resolvedArgs);
+
+        bool bindGenericTypeParam(Sema& sema, std::span<const GenericParamDesc> params, std::span<GenericResolvedArg> resolvedArgs, IdentifierRef idRef, AstNodeRef exprRef, uint32_t callArgIndex, TypeRef typeRef, CastFailure* outFailure, GenericDeductionMode mode);
+        bool bindGenericValueParam(Sema& sema, std::span<const GenericParamDesc> params, std::span<GenericResolvedArg> resolvedArgs, IdentifierRef idRef, AstNodeRef exprRef, uint32_t callArgIndex, ConstantRef cstRef, TypeRef typeRef, CastFailure* outFailure, GenericDeductionMode mode);
 
         Result checkFunctionWhereConstraints(Sema& sema, bool& outSatisfied, const SymbolFunction& function, std::span<const SemaClone::ParamBinding> bindings, const Utf8& bindingText, CastFailure* outFailure, AstNodeRef errorNodeRef);
         Result validateGenericStructWhereConstraints(Sema& sema, const SymbolStruct& root, std::span<const GenericParamDesc> params, std::span<const GenericResolvedArg> resolvedArgs, AstNodeRef errorNodeRef);

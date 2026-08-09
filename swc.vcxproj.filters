@@ -240,6 +240,9 @@
     <ClCompile Include="src\Unittest\Test.Native.NativeArtifact.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>
+    <ClCompile Include="src\Unittest\Sema\Test.Sema.DecisionProcedures.cpp">
+      <Filter>src\Unittest</Filter>
+    </ClCompile>
     <ClCompile Include="src\Unittest\Test.Sema.Purity.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>

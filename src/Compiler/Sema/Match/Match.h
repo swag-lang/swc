@@ -16,6 +16,23 @@ class SymbolMap;
 
 namespace Match
 {
+    enum class FunctionConversionRank : uint8_t
+    {
+        Exact,
+        Standard,
+        CopyToMove,
+        MoveToValue,
+        Ellipsis,
+        Bad,
+    };
+
+    struct FunctionCandidateRanking
+    {
+        std::span<const FunctionConversionRank> perArgRanks;
+        uint32_t                                usedDefaults    = 0;
+        bool                                    genericInstance = false;
+    };
+
     enum class ResolveCallMode : uint8_t
     {
         Normal,
@@ -25,11 +42,11 @@ namespace Match
 
     struct FunctionCandidateProbe
     {
-        SmallVector<uint8_t> perArgRanks;
-        SymbolFunction*      fn              = nullptr;
-        uint32_t             usedDefaults    = 0;
-        bool                 genericInstance = false;
-        bool                 matched         = false;
+        SmallVector<FunctionConversionRank> perArgRanks;
+        SymbolFunction*                    fn              = nullptr;
+        uint32_t                           usedDefaults    = 0;
+        bool                               genericInstance = false;
+        bool                               matched         = false;
     };
 
     Result match(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef);
@@ -45,6 +62,7 @@ namespace Match
     // variable whose type happens to be a move reference.
     bool isExplicitMoveArgument(Sema& sema, AstNodeRef argRef);
 
+    int    compareFunctionCandidateRankings(const FunctionCandidateRanking& a, const FunctionCandidateRanking& b);
     int    compareFunctionCandidateProbes(const FunctionCandidateProbe& a, const FunctionCandidateProbe& b);
     Result probeFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee, std::span<Symbol* const> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg, FunctionCandidateProbe& outProbe, bool allowNoMatch = false, ResolveCallMode mode = ResolveCallMode::Normal);
     Result resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee, std::span<Symbol* const> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg = AstNodeRef::invalid(), SmallVector<ResolvedCallArgument>* outResolvedArgs = nullptr, ResolveCallMode mode = ResolveCallMode::Normal);

@@ -37,26 +37,6 @@ The gaps are in composition fidelity, color, and the GPU backend.
 
 ## Tier A — Composition fidelity
 
-### T-048 — No separable blend modes
-
-- Problem: `BlendingMode` lacks the separable modes defined by PDF, SVG, CSS, Skia, and design
-  tools: Multiply, Screen, Overlay, Darken, Lighten, ColorDodge, ColorBurn, HardLight, SoftLight,
-  Difference, and Exclusion.
-- Consequence: Multiply and Screen alone account for most real compositing work. Without them,
-  shadow, tint, highlight and any layered design effect cannot be expressed. It is also what
-  blocks [T-076](todo.scapture.md#t-076--no-capture-level-effect-pipeline), which asks for
-  capture-level effects.
-- Fix the separable set in both backends as one compatible family.
-- This is the highest value-to-effort entry in the module.
-- Related: T-185
-
-### T-185 — No non-separable blend modes
-
-Add Hue, Saturation, Color, and Luminosity with one stated color-space contract after the separable
-modes land.
-
-- Related: T-048, T-052
-
 ### T-049 — No image filter graph
 
 - Problem: blur exists only as a painter shader (`setBlurShader`), applied to what is being drawn.
@@ -91,9 +71,9 @@ T-052.
 
 ### T-374 — No composable blend effect node
 
-Blend two graph inputs using T-048's modes and T-052's color-space contract.
+Blend two graph inputs using the painter's artistic blend modes and T-052's color-space contract.
 
-- Related: T-048, T-049, T-052
+- Related: T-049, T-052
 
 ### T-375 — No composable merge effect node
 
@@ -223,7 +203,7 @@ conversion boundary.
   standard cause of gradients and antialiased edges reading darker than they should — so this is a
   fidelity question, not a checkbox. Skia and Direct2D both take a position on it; this module
   takes none, which means the caller cannot take one either.
-- Related: T-185, T-195, T-198, T-199, T-200
+- Related: T-195, T-198, T-199, T-200
 
 ### T-198 — No ICC profile handling
 

@@ -44,4 +44,5 @@ void main()
     float a     = acc.a / count;
     vec3 rgb    = acc.a > 0.00001 ? acc.rgb / acc.a : vec3(0.0);
     color       = vcolor * vec4(rgb, a);
+    applyBlendingMode(color);
 }

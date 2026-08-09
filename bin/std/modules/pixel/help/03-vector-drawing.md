@@ -47,6 +47,29 @@ painter.end()
 radial, or sweep gradients. [[Pixel.Pen]] adds stroke width, joins, end caps, and
 dash behavior around a brush.
 
+## Blend modes
+
+[[Pixel.Painter.setBlendingMode]] controls how later drawing combines with the
+current target. Besides direct framebuffer operations, [[Pixel.BlendingMode]]
+provides the standard separable modes such as `Multiply`, `Screen`, `Overlay`,
+and `SoftLight`, plus the non-separable `Hue`, `Saturation`, `Color`, and
+`Luminosity` modes. They blend straight source and backdrop colors, then apply
+source-over coverage.
+
+```swag
+painter.pushState()
+painter.setBlendingMode(.Multiply)
+painter.fillCircle(96, 72, 48, Color.fromArgb(180, Argb.RoyalBlue))
+painter.setBlendingMode(.Screen)
+painter.fillCircle(132, 72, 48, Color.fromArgb(180, Argb.Tomato))
+painter.popState()
+```
+
+[[Pixel.RenderCpu]] supports every mode. Before using an artistic mode with an
+unknown OpenGL context, query [[Pixel.RenderOgl.supportsAdvancedBlending]] after
+renderer initialization. `Min` and `Max` remain raw component equations; use
+`Darken` and `Lighten` for source-over artistic blending with partial alpha.
+
 Use [[Pixel.Painter.pushState]] and [[Pixel.Painter.popState]] around local changes
 to transforms, clipping, blending, interpolation, or quality. This keeps a
 component's drawing code independent from its caller.

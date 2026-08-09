@@ -16,3 +16,35 @@ SetBlendingMode Min
 DrawTriangles n=6 bbox=(0,0)-(10,10) colors=[FFFF0000] cov=solid
 SetBlendingMode Max
 DrawTriangles n=6 bbox=(0,0)-(10,10) colors=[FFFF0000] cov=solid
+SetBlendingMode DstIn
+DrawTriangles n=6 bbox=(0,0)-(10,10) colors=[FFFF0000] cov=solid
+SetBlendingMode Multiply
+DrawTriangles n=6 bbox=(0,0)-(10,10) colors=[FFFF0000] cov=solid
+SetBlendingMode Screen
+DrawTriangles n=6 bbox=(0,0)-(10,10) colors=[FFFF0000] cov=solid
+SetBlendingMode Overlay
+DrawTriangles n=6 bbox=(0,0)-(10,10) colors=[FFFF0000] cov=solid
+SetBlendingMode Darken
+DrawTriangles n=6 bbox=(0,0)-(10,10) colors=[FFFF0000] cov=solid
+SetBlendingMode Lighten
+DrawTriangles n=6 bbox=(0,0)-(10,10) colors=[FFFF0000] cov=solid
+SetBlendingMode ColorDodge
+DrawTriangles n=6 bbox=(0,0)-(10,10) colors=[FFFF0000] cov=solid
+SetBlendingMode ColorBurn
+DrawTriangles n=6 bbox=(0,0)-(10,10) colors=[FFFF0000] cov=solid
+SetBlendingMode HardLight
+DrawTriangles n=6 bbox=(0,0)-(10,10) colors=[FFFF0000] cov=solid
+SetBlendingMode SoftLight
+DrawTriangles n=6 bbox=(0,0)-(10,10) colors=[FFFF0000] cov=solid
+SetBlendingMode Difference
+DrawTriangles n=6 bbox=(0,0)-(10,10) colors=[FFFF0000] cov=solid
+SetBlendingMode Exclusion
+DrawTriangles n=6 bbox=(0,0)-(10,10) colors=[FFFF0000] cov=solid
+SetBlendingMode Hue
+DrawTriangles n=6 bbox=(0,0)-(10,10) colors=[FFFF0000] cov=solid
+SetBlendingMode Saturation
+DrawTriangles n=6 bbox=(0,0)-(10,10) colors=[FFFF0000] cov=solid
+SetBlendingMode Color
+DrawTriangles n=6 bbox=(0,0)-(10,10) colors=[FFFF0000] cov=solid
+SetBlendingMode Luminosity
+DrawTriangles n=6 bbox=(0,0)-(10,10) colors=[FFFF0000] cov=solid

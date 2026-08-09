@@ -74,6 +74,7 @@ void main()
 
         color    = face;
         color.w *= pow(a, fontGamma);
+        applyBlendingMode(color);
         return;
     }
 
@@ -139,4 +140,5 @@ void main()
         outRgb = (shapeRgb * shapeA + fxGlowColor.rgb * glowA * (1.0 - shapeA)) / outA;
 
     color = vec4(outRgb, outA);
+    applyBlendingMode(color);
 }

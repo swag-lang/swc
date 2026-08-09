@@ -19,4 +19,5 @@ void main()
     float cov = texture(inTexture1, vuv1).r;
     color = vcolor * samplePaint(vpaintPos, vuv0);
     color.w *= pow(cov, fontGamma);
+    applyBlendingMode(color);
 }

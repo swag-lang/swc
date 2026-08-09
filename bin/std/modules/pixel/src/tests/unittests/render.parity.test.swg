@@ -11,6 +11,10 @@ private const RenderLayerHeight = 104
 private const RenderSvgWidth = 96
 private const RenderSvgHeight = 64
 private const RenderSvgSupersample = 4'u8
+private const RenderBlendWidth = 180
+private const RenderBlendHeight = 24
+
+private const ArtisticBlendModes: [15] BlendingMode = [.Multiply, .Screen, .Overlay, .Darken, .Lighten, .ColorDodge, .ColorBurn, .HardLight, .SoftLight, .Difference, .Exclusion, .Hue, .Saturation, .Color, .Luminosity]
 
 // Opaque fill, translucent overlap, a stroke-only path and a hole: everything the
 // alpha-preserving replay and the supersampling resolve have to agree on.
@@ -31,7 +35,7 @@ private func renderCpu(scene: RenderParityScene)->Image
     return scene(renderer)
 }
 
-private func renderOgl(className, title: string, width, height: s32, scene: RenderParityScene)->Image fail
+private func renderOgl(className, title: string, width, height: s32, scene: RenderParityScene, needsAdvancedBlending = false)->Image fail
 {
     var window = try Env.createWindow({className: className, title: title, width: width, height: height})
 
@@ -42,9 +46,52 @@ private func renderOgl(className, title: string, width, height: s32, scene: Rend
 
     renderer.setCurrentContext(context)
     renderer.init()
+    if needsAdvancedBlending and !ogl.supportsAdvancedBlending() do
+        return {}
     renderer.begin(context)
     defer renderer.end()
     return scene(renderer)
+}
+
+// Exercises every artistic mode over opaque and partially covered backdrops. The latter row
+// proves the premultiplied overlap/source-only/backdrop-only terms, not only the color formula.
+private func renderBlendParityScene(renderer: IRenderer)->Image
+{
+    var target = renderer.createRenderTarget(RenderBlendWidth, RenderBlendHeight)
+    defer renderer.deleteRenderTarget(&target)
+
+    const OpaqueDst = Color.fromArgb(255'u8, 64'u8, 128'u8, 192'u8)
+    const FaintDst  = Color.fromArgb(128'u8, 64'u8, 128'u8, 192'u8)
+    const Src       = Color.fromArgb(128'u8, 192'u8, 64'u8, 128'u8)
+
+    var painter = Painter.create(renderer)
+    painter.begin()
+    painter.bindRenderTarget(&target)
+    painter.setColorMaskFull()
+    painter.setBlendingMode(.Copy)
+    painter.clear(Color.fromArgb(Argb.Zero))
+
+    for mode, [idx] in ArtisticBlendModes
+    {
+        let x = cast(f32) idx * 12.0
+
+        painter.setBlendingMode(.Copy)
+        painter.fillRect(x, 0, 12, 12, OpaqueDst)
+        painter.setBlendingMode(mode)
+        painter.fillRect(x, 0, 12, 12, Src)
+
+        painter.setBlendingMode(.Copy)
+        painter.fillRect(x, 12, 12, 12, Color.fromArgb(Argb.Zero))
+        painter.setBlendingMode(.Alpha)
+        painter.fillRect(x, 12, 12, 12, FaintDst)
+        painter.setBlendingMode(mode)
+        painter.fillRect(x, 12, 12, 12, Src)
+    }
+
+    painter.unbindRenderTarget()
+    painter.end()
+    renderer.draw(&painter)
+    return renderer.readRenderTarget(&target, 0, 0, RenderBlendWidth, RenderBlendHeight)
 }
 
 private func makeRenderParityTexture(renderer: IRenderer)->Texture
@@ -321,6 +368,16 @@ private func assertSvgPixel(image: const *Image, x, y: s32, expected: Color)
 {
     let image = renderCpu(&renderParityScene)
     Testing.assertImageGolden(&image, "render.parity.portable")
+}
+
+// A capable OpenGL context implements the same artistic equations as the CPU, including partial
+// backdrop coverage. Unsupported contexts expose that limitation through the capability query.
+#test
+{
+    let expected = renderCpu(&renderBlendParityScene)
+    let image    = expect renderOgl("SWAG_PIXEL_BLEND_PARITY", "Pixel blend parity", RenderBlendWidth, RenderBlendHeight, &renderBlendParityScene, true)
+    if image.isValid() do
+        Testing.assertImagesNear(&expected, &image, "render.parity.blend.cpu-ogl", {maxChannelDelta: 2})
 }
 
 // OpenGL must stay visually equivalent to the CPU reference. Raster-edge differences are

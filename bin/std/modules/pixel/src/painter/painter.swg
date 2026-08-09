@@ -87,14 +87,50 @@ enum ClippingMode
 // Selects how source and destination colors are combined.
 enum BlendingMode
 {
-    Copy       // Replace the destination with the source.
-    Alpha      // Composite using source alpha.
-    Add        // Add source and destination components.
-    Sub        // Subtract destination components from the source.
-    SubDst     // Subtract source components from the destination.
-    Min        // Keep the minimum source/destination component.
-    Max        // Keep the maximum source/destination component.
-    DstIn      // Multiply the destination by the source alpha, ignoring the source color.
+    Copy           // Replace the destination with the source.
+    Alpha          // Composite using source alpha.
+    Add            // Add source and destination components.
+    Sub            // Subtract destination components from the source.
+    SubDst         // Subtract source components from the destination.
+    Min            // Keep the minimum raw source/destination component.
+    Max            // Keep the maximum raw source/destination component.
+    DstIn          // Multiply the destination by the source alpha, ignoring the source color.
+    Multiply       // Multiply source and backdrop colors, producing a darker result.
+    Screen         // Multiply inverted colors, producing a lighter result.
+    Overlay        // Multiply or screen according to the backdrop color.
+    Darken         // Select the darker source/backdrop color before compositing.
+    Lighten        // Select the lighter source/backdrop color before compositing.
+    ColorDodge     // Brighten the backdrop to reflect the source color.
+    ColorBurn      // Darken the backdrop to reflect the source color.
+    HardLight      // Multiply or screen according to the source color.
+    SoftLight      // Apply a soft source-controlled highlight or shadow.
+    Difference     // Use the absolute difference between source and backdrop colors.
+    Exclusion      // Apply a lower-contrast difference between source and backdrop colors.
+    Hue            // Use the source hue with backdrop saturation and luminosity.
+    Saturation     // Use the source saturation with backdrop hue and luminosity.
+    Color          // Use the source hue and saturation with backdrop luminosity.
+    Luminosity     // Use the source luminosity with backdrop hue and saturation.
+}
+
+impl BlendingMode
+{
+    internal mtd usesAdvancedBlending()->bool
+    {
+        switch me
+        {
+        case .Multiply, .Screen, .Overlay, .Darken, .Lighten, .ColorDodge, .ColorBurn, .HardLight, .SoftLight, .Difference, .Exclusion, .Hue, .Saturation, .Color, .Luminosity: return true
+        default: return false
+        }
+    }
+
+    internal mtd isSeparable()->bool
+    {
+        switch me
+        {
+        case .Multiply, .Screen, .Overlay, .Darken, .Lighten, .ColorDodge, .ColorBurn, .HardLight, .SoftLight, .Difference, .Exclusion: return true
+        default: return false
+        }
+    }
 }
 
 // Captures the complete mutable drawing state of a [[Pixel.Painter]].
@@ -1120,7 +1156,12 @@ impl Painter
         discard .newCommand(.ResetClippingRegion, true)
     }
 
-    // Set the current blending mode
+    // Sets the color blend operation used by subsequent drawing commands.
+    //
+    // The artistic modes blend non-premultiplied source and backdrop colors, then composite
+    // the result with source-over coverage. [[Pixel.BlendingMode.Min]] and
+    // [[Pixel.BlendingMode.Max]] remain raw component equations and therefore differ from
+    // [[Pixel.BlendingMode.Darken]] and [[Pixel.BlendingMode.Lighten]] when alpha is partial.
     mtd setBlendingMode(mode: BlendingMode)
     {
         let cmd = .newCommand(.SetBlendingMode, true)

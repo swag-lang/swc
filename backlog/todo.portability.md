@@ -422,7 +422,7 @@ for image conversion rather than growing a decoder in each backend.
 
 Route drag/drop image conversion through Pixel independently of clipboard ownership and formats.
 
-- Related: T-039, T-287, T-296
+- Related: T-287, T-296
 
 ### T-297 — Portable surface policy remains in native leaves
 

@@ -186,7 +186,7 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher
     data.addFile("c:/tmp/one.png")
     data.setText("beside it")
     var source = Testing.indexedImage(5, 3)
-    expect data.setImage(source)
+    data.setImage(source)
 
     @assert(data.singleFile() == "c:/tmp/one.png")
     @assert(data.text == "beside it")
@@ -199,6 +199,72 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher
     data.clear()
     @assert(!data.hasFiles() and !data.hasText() and !data.hasImage())
     @assert(data.image() == null)
+}
+
+// A file the payload carries itself is produced when it is read, and only then.
+#test
+{
+    var runs = 0'u32
+
+    var data: DragData
+    data.addContent("late.txt", func|&runs|()
+    {
+        runs += 1
+        return Testing.textBytes("produced")
+    })
+
+    // Announcing the gesture costs nothing: the name is there and the bytes are not.
+    @assert(data.hasContents())
+    @assert(data.contents.count == 1)
+    @assert(data.contents[0].name == "late.txt")
+    @assert(!data.contents[0].isReady())
+    @assert(runs == 0)
+
+    // The first read pays for it, and every later one is free.
+    @assert(Testing.bytesAre(data.contentData(0), "produced"))
+    @assert(runs == 1)
+    @assert(Testing.bytesAre(data.contentData(0), "produced"))
+    @assert(runs == 1)
+    @assert(data.contents[0].isReady())
+
+    data.clear()
+    @assert(!data.hasContents())
+}
+
+// A file whose content is already in hand needs no producer, and reads as ready straight away.
+#test
+{
+    var data: DragData
+    data.addContent("now.bin", [1'u8, 2, 3])
+
+    @assert(data.contents.count == 1)
+    @assert(data.contents[0].isReady())
+
+    let bytes = data.contentData(0)
+    @assert(@countof(bytes) == 3)
+    @assert(bytes[0] == 1 and bytes[1] == 2 and bytes[2] == 3)
+}
+
+// A picture handed to a payload is not encoded until something asks for the encoded form.
+#test
+{
+    var data: DragData
+    data.setImage(Testing.indexedImage(6, 4))
+
+    // The payload knows it carries a picture without touching the encoder.
+    @assert(data.hasImage())
+    @assert(data.imageBytes.count == 0)
+
+    let held = data.image()!
+    @assert(held.width == 6 and held.height == 4)
+    @assert(data.imageBytes.count == 0)
+
+    // Asking for the bytes is what pays, and it pays once.
+    @assert(@countof(data.encodedImage()) != 0)
+    @assert(data.imageEncoded)
+
+    let size = data.imageBytes.count
+    @assert(@countof(data.encodedImage()) == size)
 }
 
 // A drag started with no desktop under it, or with nothing to carry, goes nowhere.
@@ -216,6 +282,12 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher
     var data: DragData
     data.setText("nowhere to go")
     @assert(catcher.startDrag(&data) == DropEffect.None)
+
+    // A payload carrying nothing but a file of its own is still something to drag, so this one
+    // is refused for the missing desktop rather than for an empty payload.
+    var carried: DragData
+    carried.addContent("only.txt", Testing.textBytes("content").toSlice())
+    @assert(catcher.startDrag(&carried) == DropEffect.None)
 }
 
 // A drop on nothing is refused without reaching any window.

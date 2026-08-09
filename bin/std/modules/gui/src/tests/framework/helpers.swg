@@ -72,6 +72,25 @@ func tempFilePath(prefix, extension: string)->String
     return Path.combine(folder.toString(), fileName.toString())
 }
 
+// The bytes of 'text', with no terminator, which is what a payload carries.
+func textBytes(text: string)->Array'u8
+{
+    var result: retval
+    result.add(@mkslice(cast(const [*] u8) @dataof(text), cast(u64) @countof(text)))
+    return result
+}
+
+// Whether a byte payload holds exactly the bytes of 'text'.
+//
+// Two slices compare as the views they are rather than as their content, so a test that means
+// "these bytes say this" has to ask for it.
+func bytesAre(bytes: const [..] u8, text: string)->bool
+{
+    if @countof(bytes) != cast(u64) @countof(text) do
+        return false
+    return Memory.compare(@dataof(bytes), @dataof(text), @countof(bytes)) == 0
+}
+
 // Deterministic BGRA test image: every pixel derives from its coordinates, so a
 // save/load round-trip can be verified byte-for-byte.
 func indexedImage(w, h: s32)->Image

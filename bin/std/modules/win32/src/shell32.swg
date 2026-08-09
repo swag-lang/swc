@@ -250,6 +250,109 @@ struct GUID
     Data4: [8] u8
 }
 
+// Names of the two registered formats that carry a file the source holds in memory rather than
+// on disk: the group descriptor lists what is offered, and one `FileContents` medium per index
+// carries the bytes. This is how a mail client hands over an attachment.
+const CFSTR_FILEDESCRIPTORW = "FileGroupDescriptorW"
+const CFSTR_FILECONTENTS    = "FileContents"
+
+// Which fields of a [[Win32.FILEDESCRIPTORW]] the source actually filled in.
+const FD_CLSID      = 0x00000001'u32
+const FD_SIZEPOINT  = 0x00000002'u32
+const FD_ATTRIBUTES = 0x00000004'u32
+const FD_CREATETIME = 0x00000008'u32
+const FD_ACCESSTIME = 0x00000010'u32
+const FD_WRITESTIME = 0x00000020'u32
+const FD_FILESIZE   = 0x00000040'u32
+const FD_PROGRESSUI = 0x00004000'u32
+const FD_LINKUI     = 0x00008000'u32
+const FD_UNICODE    = 0x80000000'u32
+
+struct SIZEL
+{
+    cx: LONG
+    cy: LONG
+}
+
+struct FILEDESCRIPTORW
+{
+    dwFlags:          DWORD
+    clsid:            GUID
+    sizel:            SIZEL
+    pointl:           POINTL
+    dwFileAttributes: DWORD
+    ftCreationTime:   FILETIME
+    ftLastAccessTime: FILETIME
+    ftLastWriteTime:  FILETIME
+    nFileSizeHigh:    DWORD
+    nFileSizeLow:     DWORD
+    cFileName:        [MAX_PATH] WCHAR
+}
+
+// The descriptor block is this header followed by `cItems` descriptors, so the declared array
+// is the first of them rather than the whole list.
+struct FILEGROUPDESCRIPTORW
+{
+    cItems: UINT
+    fgd:    [1] FILEDESCRIPTORW
+}
+
+#assert(#sizeof(FILEDESCRIPTORW) == 592)
+#assert(#sizeof(FILEGROUPDESCRIPTORW) == 596)
+
+// The shell object that draws the picture under the pointer for both sides of a drag.
+const CLSID_DragDropHelper  = GUID{0x4657278A, 0x411B, 0x11D2, [0x83, 0x9A, 0x00, 0xC0, 0x4F, 0xD9, 0x18, 0xD0]}
+const IID_IDropTargetHelper = GUID{0x4657278B, 0x411B, 0x11D2, [0x83, 0x9A, 0x00, 0xC0, 0x4F, 0xD9, 0x18, 0xD0]}
+const IID_IDragSourceHelper = GUID{0xDE5BF786, 0x477A, 0x11D2, [0x83, 0x9D, 0x00, 0xC0, 0x4F, 0xD9, 0x18, 0xD0]}
+
+// The color key value meaning "this picture names no transparent color", which is what a bitmap
+// carrying its own alpha uses.
+const CLR_NONE = 0xFFFFFFFF'u32
+
+// The picture a source hands the drag helper, and where the pointer sits inside it.
+//
+// The bitmap becomes the helper's once `InitializeFromBitmap` succeeds, so the caller neither
+// deletes it nor uses it again.
+struct SHDRAGIMAGE
+{
+    sizeDragImage: SIZEL
+    ptOffset:      POINT
+    hbmpDragImage: HBITMAP
+    crColorKey:    COLORREF
+}
+
+#assert(#sizeof(SHDRAGIMAGE) == 32)
+
+struct IDropTargetHelper
+{
+    lpVtbl: *IDropTargetHelperVtbl
+}
+
+struct IDropTargetHelperVtbl
+{
+    QueryInterface: func(*IDropTargetHelper, const *GUID, *LPVOID)->HRESULT
+    AddRef:         func(*IDropTargetHelper)->ULONG
+    Release:        func(*IDropTargetHelper)->ULONG
+    DragEnter:      func(*IDropTargetHelper, HWND, #null *IDataObject, *POINT, DWORD)->HRESULT
+    DragLeave:      func(*IDropTargetHelper)->HRESULT
+    DragOver:       func(*IDropTargetHelper, *POINT, DWORD)->HRESULT
+    Drop:           func(*IDropTargetHelper, #null *IDataObject, *POINT, DWORD)->HRESULT
+}
+
+struct IDragSourceHelper
+{
+    lpVtbl: *IDragSourceHelperVtbl
+}
+
+struct IDragSourceHelperVtbl
+{
+    QueryInterface:       func(*IDragSourceHelper, const *GUID, *LPVOID)->HRESULT
+    AddRef:               func(*IDragSourceHelper)->ULONG
+    Release:              func(*IDragSourceHelper)->ULONG
+    InitializeFromBitmap: func(*IDragSourceHelper, *SHDRAGIMAGE, *IDataObject)->HRESULT
+    InitializeFromWindow: func(*IDragSourceHelper, HWND, *POINT, *IDataObject)->HRESULT
+}
+
 const NIM_ADD        = 0x00000000
 const NIM_MODIFY     = 0x00000001
 const NIM_DELETE     = 0x00000002

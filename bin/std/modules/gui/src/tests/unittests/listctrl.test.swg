@@ -315,3 +315,89 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     @assert(list.isLineSelected(0))
     @assert(!list.isLineSelected(1))
 }
+
+// A list says where a drop would land, and shows it.
+//
+// The outer quarter of a row is the gap next to it and the middle half is the row itself, which
+// is what makes an insertion and a drop onto a row distinguishable while the pointer moves.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(220, 320)
+    defer host.shutdown()
+    let list = ListCtrl.createSimple(&host.root, {0, 0, 200, 300})
+    list.createLine("a")
+    list.createLine("b")
+    list.createLine("c")
+
+    let lh = list.lineHeight()
+    let vs = list.listView.surfaceRect()
+
+    let top = list.dropMarkAt({vs.x + 30, vs.y + lh * 0.05})
+    @assert(top.index == 0 and top.mark == ListDropMark.Before)
+
+    let middle = list.dropMarkAt({vs.x + 30, vs.y + lh * 0.5})
+    @assert(middle.index == 0 and middle.mark == ListDropMark.On)
+
+    let bottom = list.dropMarkAt({vs.x + 30, vs.y + lh * 0.95})
+    @assert(bottom.index == 0 and bottom.mark == ListDropMark.After)
+
+    let second = list.dropMarkAt({vs.x + 30, vs.y + lh * 1.5})
+    @assert(second.index == 1 and second.mark == ListDropMark.On)
+
+    // Past the last row is the gap after it, so a list is appended to by aiming at its empty part.
+    let past = list.dropMarkAt({vs.x + 30, vs.y + lh * 10})
+    @assert(past.index == 2 and past.mark == ListDropMark.After)
+
+    // Outside the rows entirely is no answer at all.
+    @assert(list.dropMarkAt({vs.x - 20, vs.y + lh * 0.5}).mark == ListDropMark.None)
+}
+
+// Showing the mark is what a window does with that answer, and clearing it is what every leave
+// and every drop has to do.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(220, 320)
+    defer host.shutdown()
+    let list = ListCtrl.createSimple(&host.root, {0, 0, 200, 300})
+    list.createLine("a")
+    list.createLine("b")
+
+    @assert(list.dropMark == ListDropMark.None)
+    @assert(list.dropMarkIndex == Swag.U32.Max)
+
+    list.setDropMark(1, .Before)
+    @assert(list.dropMark == ListDropMark.Before)
+    @assert(list.dropMarkIndex == 1)
+
+    list.clearDropMark()
+    @assert(list.dropMark == ListDropMark.None)
+    @assert(list.dropMarkIndex == Swag.U32.Max)
+
+    // A mark of `None` keeps no row, whatever index it was given.
+    list.setDropMark(1, .None)
+    @assert(list.dropMarkIndex == Swag.U32.Max)
+}
+
+// An empty list answers the gap before a row that is not there, so a drop still has somewhere
+// to say it will land.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(220, 320)
+    defer host.shutdown()
+    let list = ListCtrl.createSimple(&host.root, {0, 0, 200, 300})
+
+    let vs   = list.listView.surfaceRect()
+    let mark = list.dropMarkAt({vs.x + 30, vs.y + 10})
+    @assert(mark.index == 0 and mark.mark == ListDropMark.Before)
+
+    // Outside it is still no answer at all, so the two cases stay apart.
+    @assert(list.dropMarkAt({vs.x - 20, vs.y + 10}).mark == ListDropMark.None)
+
+    // And the mark it is asked to show is drawn against a row that is not there.
+    list.setDropMark(mark.index, mark.mark)
+    host.pump()
+    @assert(list.dropMark == ListDropMark.Before)
+}

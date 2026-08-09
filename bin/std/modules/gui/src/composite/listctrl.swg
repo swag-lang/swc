@@ -24,6 +24,25 @@ enum ListFlags
     HotTrack                          // Highlights the row under the pointer.
 }
 
+// Says where a drop hovering a list would land.
+//
+// A drop between two rows and a drop onto one row are different answers, and a list showing the
+// gesture has to be able to draw both: an insertion is a rule in the gap, and a drop the row
+// itself takes is the row outlined. See [[Gui.ListCtrl.dropMarkAt]].
+enum ListDropMark
+{
+    None       // Nothing is being dragged over the list.
+    Before     // The gap above the row, where an insertion would go.
+    After      // The gap below the row.
+    On         // The row itself, for a payload the row takes.
+}
+
+// Weight of the rule and of the outline a drop mark is drawn with, in logical units.
+private const DropMarkThickness = 2.0'f32
+
+// How far the cap at each end of an insertion rule reaches above and below it.
+private const DropMarkCapReach = 3.0'f32
+
 // Stores one cell in a [[Gui.ListLine]].
 struct ListItem
 {
@@ -110,6 +129,14 @@ struct ListCtrl
     {
         focusIndex = Swag.U32.Max     // Row the keyboard focus is on.
         hotIndex   = Swag.U32.Max     // Row under the mouse.
+    }
+
+    // Where a drop hovering the list would land. The list never sets these itself: a window
+    // showing a drag decides what it accepts, and says so with 'setDropMark'.
+    readonly
+    {
+        dropMarkIndex = Swag.U32.Max          // Row the mark is drawn against.
+        dropMark      = ListDropMark.None     // What the mark says about that row.
     }
 }
 
@@ -545,10 +572,13 @@ impl IWnd for ListView
 
     mtd impl onPaint(evt: *PaintEvent)
     {
-        if .list.lineCount() == 0 do
-            return
+        if .list.lineCount() != 0 do
+            .paintRows(evt.paintContext)
+        .paintDropMark(evt.paintContext)
+    }
 
-        let bc      = evt.paintContext
+    mtd paintRows(bc: PaintContext)
+    {
         let painter = bc.painter
         let colors  = .themeColors()
         let metrics = .themeMetrics()
@@ -621,6 +651,44 @@ impl IWnd for ListView
 
 private impl ListView
 {
+    // Draws where a drop hovering the list would land.
+    //
+    // An insertion is a rule in the gap with a cap at each end, the way a file manager draws one,
+    // and a drop the row itself takes is that row outlined. Both are the accent, because the mark
+    // has to read over a selected row and over an alternating ground alike.
+    mtd paintDropMark(bc: PaintContext)
+    {
+        if .list.dropMark == .None do
+            return
+
+        let painter = bc.painter
+        let color   = .themeColors().hilight
+        let height  = .list.lineHeight()
+        let width   = .displayWidth()
+
+        var y = cast(f64) .list.dropMarkIndex * height
+        y -= .scrollPos.y
+        if .list.dropMark == .After do
+            y += height
+
+        // An empty list has no row to sit against, so the mark goes to the top of the viewport.
+        if .list.lineCount() == 0 do
+            y = 0
+
+        if .list.dropMark == .On
+        {
+            painter.drawRect(0, cast(f32) y, width, height, color, DropMarkThickness)
+            return
+        }
+
+        // The rule is centred on the gap rather than drawn below it, so the same edge reads the
+        // same whether it was reached from the row above or the row below.
+        let line = cast(f32) y - DropMarkThickness * 0.5
+        painter.drawLine(0, line, width, line, color, DropMarkThickness)
+        painter.fillRect(0, line - DropMarkCapReach, DropMarkThickness, DropMarkCapReach * 2 + DropMarkThickness, color)
+        painter.fillRect(width - DropMarkThickness, line - DropMarkCapReach, DropMarkThickness, DropMarkCapReach * 2 + DropMarkThickness, color)
+    }
+
     mtd columnPosition(column: u32)->f32
     {
         var x = .list.header.itemPositionForColumn(column)
@@ -866,6 +934,80 @@ impl ListCtrl
             .invalidate()
             .sigSelectionChanged.call(me)
         }
+    }
+
+    // Says where a drop released at `surfacePos` would land.
+    //
+    // The outer quarter of a row reads as the gap next to it and the middle half reads as the row
+    // itself, which is the convention a file manager trains every reader on. A position past the
+    // last row answers the gap after it, so a list is appended to by aiming at its empty part, and
+    // an empty list answers `Before` on row zero.
+    //
+    // This is only the geometry. What a drop means is the window's decision, so a list that
+    // inserts and a list that drops onto a row both call this and then keep the answer they want.
+    mtd dropMarkAt(surfacePos: Math.Point)->{ index: u32, mark: ListDropMark }
+    {
+        var result: retval
+
+        var local = .listView.surfaceToLocal(surfacePos)
+        if local.x < 0 or local.y < 0
+        {
+            result.index = Swag.U32.Max
+            return result
+        }
+
+        // An empty list is a place a first row can be dropped into, so it answers the gap before
+        // the row that is not there rather than refusing the gesture.
+        let count = .lineCount()
+        if !count
+        {
+            result.mark = .Before
+            return result
+        }
+
+        local.y += .listView.scrollPos.y
+
+        let height = .lineHeight()
+        let row    = cast(u32) (local.y / height)
+        if row >= count
+        {
+            result.index = count - 1
+            result.mark  = .After
+            return result
+        }
+
+        result.index = row
+
+        let inside = local.y - cast(f32) row * height
+        if inside < height * 0.25 do
+            result.mark = .Before
+        elif inside > height * 0.75 do
+            result.mark = .After
+        else do
+            result.mark = .On
+
+        return result
+    }
+
+    // Shows where a drop would land, repainting only when the answer changed.
+    //
+    // A window showing a drag calls this from its `Over` phase with whatever
+    // [[Gui.ListCtrl.dropMarkAt]] answered, or with a mark of its own when it only ever inserts.
+    mtd setDropMark(index: u32, mark: ListDropMark)
+    {
+        let shown = mark != .None ? index : Swag.U32.Max
+        if .dropMarkIndex == shown and .dropMark == mark do
+            return
+
+        .dropMarkIndex = shown
+        .dropMark      = mark
+        .listView.invalidate()
+    }
+
+    // Stops showing where a drop would land, which every `Leave` and `Drop` phase has to do.
+    mtd clearDropMark()
+    {
+        .setDropMark(Swag.U32.Max, .None)
     }
 
     // Adds and removes presentation or pointer options, then repaints the list.

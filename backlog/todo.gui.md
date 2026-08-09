@@ -32,9 +32,9 @@ That is a real toolkit. The gaps below are not about widget count.
 
 ## Tier A — Who cannot use an application built with this
 
-The first three entries have the same shape: each one excludes a population of users entirely, and
-each one is verifiable by looking at the window procedure. `src/surface.win32.swg` handles
-twenty-seven messages. What is absent from that list is this section.
+Both entries have the same shape: each one excludes a population of users entirely, and each one
+is verifiable by looking at the window procedure. `src/surface.win32.swg` handles twenty-seven
+messages. What is absent from that list is this section.
 
 ### T-037 — No accessibility
 
@@ -66,72 +66,16 @@ twenty-seven messages. What is absent from that list is this section.
 - The caret geometry needed to position the candidate window is already computed — `EditBox`
   measures snapped caret positions today.
 
-### T-039 — An outgoing drag freezes source-window painting
+---
 
-Both directions ship. Every surface registers an `IDropTarget` as it is created, so nothing has to
-opt in: a `DragDropEvent` is routed to the window under the pointer and bubbles like any other
-input event, `DragData` is the payload in both directions — files, text, and a bitmap decoded only
-when a target asks for it — and `DropEffect` is the one vocabulary both sides speak, with
-`pickDropEffect` answering the desktop convention for the modifiers held. `Wnd.startDrag` runs the
-outgoing gesture through a Swag `IDataObject`, `IEnumFORMATETC` and `IDropSource`, and
-`Wnd.exceedsDragThreshold` says when a press has become one. An `EditBox` takes dropped text at the
-character under the pointer and, with `EditBoxFlags.AcceptFileDrop`, a path; `Properties.FilePath`
-marks the grid field that wants one. `sCrypt` opens a container dropped anywhere on its window,
-`sCapture` opens pictures dropped on its editor and drags a capture out of its recent strip as a
-file and a bitmap at once. The unit tests drive the source object into the target object through
-the interface vtables, so both halves check each other with no desktop involved.
-
-The source window stops painting while `DoDragDrop` runs the desktop modal loop. Define a safe,
-non-reentrant frame-pump path from `GiveFeedback` so animation and invalidation continue during the
-gesture.
-
-- Related: T-212, T-213, T-214, T-215, T-216
-
-### T-212 — No drag image follows the pointer
-
-Integrate `IDropTargetHelper` and `IDragSourceHelper` so an outgoing gesture presents a drag image
-with the same lifetime and effect state as its data object.
-
-- Related: T-039
-
-### T-213 — Drop targets have no insertion-feedback contract
-
-Add a routed insertion/location feedback model that lists and trees can render without each target
-inventing its own drag state.
-
-- Related: T-039, T-046
-
-### T-214 — Drag data cannot be read from `IStream`
-
-Allow `readGlobalFormat` to consume stream-backed media with bounded reads and ownership rules,
-instead of accepting only `TYMED_HGLOBAL`.
-
-- Related: T-039
-
-### T-215 — Drag data cannot represent virtual files
-
-Support `CFSTR_FILEDESCRIPTORW` and its contents in outgoing and incoming drag operations so mail
-attachments and other virtual files do not require a pre-existing disk path.
-
-- Related: T-039, T-216, T-316
+## Tier B — Platform gaps
 
 ### T-316 — Clipboard data cannot represent virtual files
 
 Expose the same virtual-file descriptor and deferred contents through clipboard ownership without
 making clipboard completion depend on drag interaction.
 
-- Related: T-074, T-215, T-216
-
-### T-216 — Drag sources cannot render data on demand
-
-Add deferred rendering to the source data object so cancelled gestures do not create temporary
-files and expensive formats are produced only when requested.
-
-- Related: T-039, T-074, T-215
-
----
-
-## Tier B — Platform gaps
+- Related: T-074
 
 ### T-040 — Vector resource overrides bypass the parsed cache
 
@@ -514,9 +458,10 @@ T-038.
 
 ### T-325 — Drag and drop has no second-platform integration
 
-Map the platform's data-transfer and gesture service to the drag/drop contract from T-039.
+Map the platform's data-transfer and gesture service to the drag and drop contract the Win32
+backend already implements.
 
-- Related: T-039, T-045
+- Related: T-045
 
 Platform-neutral events must not expose native message numbers, and the Win32 backend should keep
 passing its existing tests throughout the extraction. The headless backend remains the contract
@@ -548,7 +493,7 @@ identity; drag interaction, floating surfaces, and persistence have their own id
 Add internal tab reorder and edge/stack docking with an overlay that shows the exact landing
 rectangle. Moving a pane transfers logical ownership, commands, and focus without destroying it.
 
-- Related: T-039, T-213, T-046
+- Related: T-046
 
 ### T-369 — Docked panes cannot float and redock
 

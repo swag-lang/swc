@@ -35,10 +35,9 @@ effects that makes a capture look produced, and output.
 - A capture leaves as a file, bitmap clipboard data, or an outgoing drag, but cannot be copied as a
   file object. Reuse `DragData` through `OleSetClipboard` so paste targets receive the same file and
   bitmap media as drag targets.
-- Note: the PNG a drag offers is written to the temporary folder when the gesture starts, not when
-  the target asks for it, so a cancelled drag leaves the file behind. Deferred rendering is
-  T-216.
-- Related: T-216, T-238
+- Note: drag-out already carries its PNG as a file with no path, produced when a target asks for
+  it, so `DragData.addContent` is what copy-as-file publishes too.
+- Related: T-238, T-316
 
 ### T-238 — Print the current capture
 

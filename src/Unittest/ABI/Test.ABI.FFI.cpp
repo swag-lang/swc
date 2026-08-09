@@ -126,7 +126,8 @@ namespace
 
     uint64_t ffiNativeStructTriple64Mutate(FFIStructTriple64 value)
     {
-        value.a += 5;
+        volatile uint64_t* valueA = &value.a;
+        *valueA = *valueA + 5;
         return value.a + value.b + value.c;
     }
 
@@ -359,11 +360,10 @@ namespace
         int32_t y;
     };
 
-    // The inbound direction of F-078: a native (MSVC-compiled) caller invoking a compiled Swag
-    // callee through a raw function pointer, with an eight-byte aggregate parameter passed by
-    // value in a register or on the stack, exactly the way OLE drives a drop-target vtable.
-    // Runs per build configuration, because the optimized pipelines rewrite the callee prologue.
-    Result runSwagStructByValueInbound(const TaskContext& ctx, std::string_view buildCfg)
+    // Cover both interop directions through raw function pointers. F-078 exercises a native caller
+    // entering Swag with small register aggregates; F-079 exercises Swag calling a native target
+    // that mutates the indirect copy of a large by-value aggregate.
+    Result runSwagStructByValueInterop(const TaskContext& ctx, std::string_view buildCfg)
     {
         static constexpr std::string_view SOURCE     = R"(#global private
 
@@ -383,6 +383,13 @@ struct PtL
 {
     x: s32
     y: s32
+}
+
+struct Triple
+{
+    a: u64
+    b: u64
+    c: u64
 }
 
 func probePairReg(a: u64, p: Pair, b: u64)->u64
@@ -408,18 +415,27 @@ func probeDragEnter(itf: u64, dataObj: u64, keyState: u32, pt: PtL, effect: *u32
     return cast(s32) (itf + dataObj) + pt.x * 1000 + pt.y
 }
 
+func probeLargeOutbound(target: func(Triple)->u64)->u64
+{
+    var value: Triple = {a: 10, b: 20, c: 30}
+    let original = &value
+    let result = target(value)
+    return result * 100 + original.a
+}
+
 var GProbePairReg: func(u64, Pair, u64)->u64 = &probePairReg
 var GProbePairStack: func(u64, u64, u64, u64, Pair)->u64 = &probePairStack
 var GProbeTinyReg: func(u64, Tiny)->u64 = &probeTinyReg
 var GProbeDragEnter: func(u64, u64, u32, PtL, *u32)->s32 = &probeDragEnter
+var GProbeLargeOutbound: func(func(Triple)->u64)->u64 = &probeLargeOutbound
 )";
-        const fs::path                    sourcePath = Unittest::makeTestSourcePath("ABI", std::format("CallSwagStructByValueInbound_{}", buildCfg));
+        const fs::path                    sourcePath = Unittest::makeTestSourcePath("ABI", std::format("CallSwagStructByValueInterop_{}", buildCfg));
 
         CommandLine cmdLine;
         cmdLine.command     = CommandKind::Test;
         cmdLine.buildCfg    = Utf8(buildCfg);
         cmdLine.backendKind = Runtime::BuildCfgBackendKind::Executable;
-        cmdLine.name        = std::format("abi_struct_by_value_inbound_{}", buildCfg);
+        cmdLine.name        = std::format("abi_struct_by_value_interop_{}", buildCfg);
         cmdLine.files.insert(sourcePath);
         CommandLineParser::refreshBuildCfg(cmdLine);
 
@@ -429,14 +445,14 @@ var GProbeDragEnter: func(u64, u64, u32, PtL, *u32)->s32 = &probeDragEnter
         Command::sema(compiler);
         if (Stats::getNumErrors() != errorsBefore)
         {
-            std::println(stderr, "FFI inbound [{}]: errors after sema", buildCfg);
+            std::println(stderr, "FFI interop [{}]: errors after sema", buildCfg);
             return Result::Error;
         }
 
         NativeBackendBuilder nativeBuilder(compiler, false);
         if (nativeBuilder.prepare() != Result::Continue || Stats::getNumErrors() != errorsBefore)
         {
-            std::println(stderr, "FFI inbound [{}]: native builder cannot prepare", buildCfg);
+            std::println(stderr, "FFI interop [{}]: native builder cannot prepare", buildCfg);
             return Result::Error;
         }
 
@@ -444,7 +460,7 @@ var GProbeDragEnter: func(u64, u64, u32, PtL, *u32)->s32 = &probeDragEnter
 
         const auto                   initTargets = compiler.nativeGlobalFunctionInitTargetsSnapshot();
         SmallVector<SymbolFunction*> probes;
-        for (const std::string_view name : {"probePairReg", "probePairStack", "probeTinyReg", "probeDragEnter"})
+        for (const std::string_view name : {"probePairReg", "probePairStack", "probeTinyReg", "probeDragEnter", "probeLargeOutbound"})
         {
             SymbolFunction* probe = nullptr;
             for (SymbolFunction* function : initTargets)
@@ -458,7 +474,7 @@ var GProbeDragEnter: func(u64, u64, u32, PtL, *u32)->s32 = &probeDragEnter
 
             if (!probe)
             {
-                std::println(stderr, "FFI inbound [{}]: probe '{}' not found in {} init targets", buildCfg, name, initTargets.size());
+                std::println(stderr, "FFI interop [{}]: probe '{}' not found in {} init targets", buildCfg, name, initTargets.size());
                 return Result::Error;
             }
             probes.push_back(probe);
@@ -471,14 +487,14 @@ var GProbeDragEnter: func(u64, u64, u32, PtL, *u32)->s32 = &probeDragEnter
                 break;
             if (jitBatchResult == Result::Error)
             {
-                std::println(stderr, "FFI inbound [{}]: jitBatch returned error", buildCfg);
+                std::println(stderr, "FFI interop [{}]: jitBatch returned error", buildCfg);
                 return Result::Error;
             }
 
             Sema::waitDone(compilerCtx, compilerCtx.compiler().jobClientId());
             if (Stats::hasError() || compilerCtx.state().jitEmissionError)
             {
-                std::println(stderr, "FFI inbound [{}]: jitBatch wait reported an error", buildCfg);
+                std::println(stderr, "FFI interop [{}]: jitBatch wait reported an error", buildCfg);
                 return Result::Error;
             }
         }
@@ -486,50 +502,62 @@ var GProbeDragEnter: func(u64, u64, u32, PtL, *u32)->s32 = &probeDragEnter
         const auto pairReg = reinterpret_cast<uint64_t (*)(uint64_t, FFIStructPair32, uint64_t)>(probes[0]->jitEntryAddress());
         if (!pairReg)
         {
-            std::println(stderr, "FFI inbound [{}]: probePairReg has no jit entry", buildCfg);
+            std::println(stderr, "FFI interop [{}]: probePairReg has no jit entry", buildCfg);
             return Result::Error;
         }
         if (const uint64_t got = pairReg(7, {.a = 18, .b = 24}, 3); got != 7018027ULL)
         {
-            std::println(stderr, "FFI inbound [{}]: probePairReg answered {}", buildCfg, got);
+            std::println(stderr, "FFI interop [{}]: probePairReg answered {}", buildCfg, got);
             return Result::Error;
         }
 
         const auto pairStack = reinterpret_cast<uint64_t (*)(uint64_t, uint64_t, uint64_t, uint64_t, FFIStructPair32)>(probes[1]->jitEntryAddress());
         if (!pairStack)
         {
-            std::println(stderr, "FFI inbound [{}]: probePairStack has no jit entry", buildCfg);
+            std::println(stderr, "FFI interop [{}]: probePairStack has no jit entry", buildCfg);
             return Result::Error;
         }
         if (const uint64_t got = pairStack(1, 2, 3, 4, {.a = 10, .b = 20}); got != 60ULL)
         {
-            std::println(stderr, "FFI inbound [{}]: probePairStack answered {}", buildCfg, got);
+            std::println(stderr, "FFI interop [{}]: probePairStack answered {}", buildCfg, got);
             return Result::Error;
         }
 
         const auto tinyReg = reinterpret_cast<uint64_t (*)(uint64_t, FFITinyPair8)>(probes[2]->jitEntryAddress());
         if (!tinyReg)
         {
-            std::println(stderr, "FFI inbound [{}]: probeTinyReg has no jit entry", buildCfg);
+            std::println(stderr, "FFI interop [{}]: probeTinyReg has no jit entry", buildCfg);
             return Result::Error;
         }
         if (const uint64_t got = tinyReg(5, {.a = 2, .b = 9}); got != 214ULL)
         {
-            std::println(stderr, "FFI inbound [{}]: probeTinyReg answered {}", buildCfg, got);
+            std::println(stderr, "FFI interop [{}]: probeTinyReg answered {}", buildCfg, got);
             return Result::Error;
         }
 
         const auto dragEnter = reinterpret_cast<int32_t (*)(uint64_t, uint64_t, uint32_t, FFIPointL, uint32_t*)>(probes[3]->jitEntryAddress());
         if (!dragEnter)
         {
-            std::println(stderr, "FFI inbound [{}]: probeDragEnter has no jit entry", buildCfg);
+            std::println(stderr, "FFI interop [{}]: probeDragEnter has no jit entry", buildCfg);
             return Result::Error;
         }
 
         uint32_t effect = 0;
         if (const int32_t got = dragEnter(1, 2, 5, {.x = 30, .y = 12}, &effect); got != 30015 || effect != 47)
         {
-            std::println(stderr, "FFI inbound [{}]: probeDragEnter answered {} with effect {}", buildCfg, got, effect);
+            std::println(stderr, "FFI interop [{}]: probeDragEnter answered {} with effect {}", buildCfg, got, effect);
+            return Result::Error;
+        }
+
+        const auto largeOutbound = reinterpret_cast<uint64_t (*)(uint64_t (*)(FFIStructTriple64))>(probes[4]->jitEntryAddress());
+        if (!largeOutbound)
+        {
+            std::println(stderr, "FFI interop [{}]: probeLargeOutbound has no jit entry", buildCfg);
+            return Result::Error;
+        }
+        if (const uint64_t got = largeOutbound(&ffiNativeStructTriple64Mutate); got != 6510)
+        {
+            std::println(stderr, "FFI interop [{}]: probeLargeOutbound answered {}", buildCfg, got);
             return Result::Error;
         }
 
@@ -537,21 +565,21 @@ var GProbeDragEnter: func(u64, u64, u32, PtL, *u32)->s32 = &probeDragEnter
     }
 }
 
-SWC_TEST_BEGIN(FFI_CallSwagStructByValueInboundDebug)
+SWC_TEST_BEGIN(FFI_CallSwagStructByValueInteropDebug)
 {
-    SWC_RESULT(runSwagStructByValueInbound(ctx, "debug"));
+    SWC_RESULT(runSwagStructByValueInterop(ctx, "debug"));
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(FFI_CallSwagStructByValueInboundFastDebug)
+SWC_TEST_BEGIN(FFI_CallSwagStructByValueInteropFastDebug)
 {
-    SWC_RESULT(runSwagStructByValueInbound(ctx, "fast-debug"));
+    SWC_RESULT(runSwagStructByValueInterop(ctx, "fast-debug"));
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(FFI_CallSwagStructByValueInboundRelease)
+SWC_TEST_BEGIN(FFI_CallSwagStructByValueInteropRelease)
 {
-    SWC_RESULT(runSwagStructByValueInbound(ctx, "release"));
+    SWC_RESULT(runSwagStructByValueInterop(ctx, "release"));
 }
 SWC_TEST_END()
 

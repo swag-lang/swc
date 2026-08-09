@@ -220,12 +220,9 @@ void CallConv::setup()
     c                                   = g_CallConvs[static_cast<size_t>(nativeTargetCallConvKind)];
     swag.name                           = "swag";
     c.name                              = "c";
-    // Swag reuses the native register/stack contract, including the native by-value rule for
-    // small aggregates: a Swag function pointer stored into a native callback slot (a COM
-    // vtable, a Win32 callback) is called with the native convention, so any divergence on an
-    // observable signature shape faults at the boundary. Larger aggregates stay indirect on
-    // both sides; Swag merely skips the caller-side defensive copy, which a callee that
-    // treats its parameter as const never observes.
+    // Swag reuses the native register/stack contract. Direct Swag calls may borrow a large
+    // value-semantic aggregate because the callee cannot mutate the parameter; calls through
+    // runtime function values add a defensive copy because their target may instead be native.
     swag.structArgPassing.passByReferenceNeedsCopy = false;
 }
 

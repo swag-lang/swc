@@ -12,6 +12,11 @@ func assertFormatString(value: const &String, expected: string)->bool
            Memory.compare(@dataof(text), @dataof(expected), @countof(expected)) == 0
 }
 
+func formatReferencedString(value: const &String)->String
+{
+    return Format.toString("%", value)
+}
+
 #test
 {
     @assert(Format.countPercent("") == 0)
@@ -56,6 +61,12 @@ func assertFormatString(value: const &String, expected: string)->bool
     StrConv.convertAny(&direct, cast(rune) 'A', fmt, null)
 
     @assert(assertFormatString(direct.toString(), "literal variable true A"))
+}
+
+#test
+{
+    let value = String.from("referenced")
+    @assert(assertFormatString(formatReferencedString(value), "referenced"))
 }
 
 // '%{#n}' targets an explicit 0-based argument, so translations can reorder arguments.

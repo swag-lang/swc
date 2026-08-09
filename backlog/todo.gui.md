@@ -66,7 +66,7 @@ twenty-seven messages. What is absent from that list is this section.
 - The caret geometry needed to position the candidate window is already computed — `EditBox`
   measures snapped caret positions today.
 
-### T-039 — Drag and drop has no polish layer
+### T-039 — An outgoing drag freezes source-window painting
 
 Both directions ship. Every surface registers an `IDropTarget` as it is created, so nothing has to
 opt in: a `DragDropEvent` is routed to the window under the pointer and bubbles like any other
@@ -81,59 +81,108 @@ marks the grid field that wants one. `sCrypt` opens a container dropped anywhere
 file and a bitmap at once. The unit tests drive the source object into the target object through
 the interface vtables, so both halves check each other with no desktop involved.
 
-What is left is what makes it feel finished:
+The source window stops painting while `DoDragDrop` runs the desktop modal loop. Define a safe,
+non-reentrant frame-pump path from `GiveFeedback` so animation and invalidation continue during the
+gesture.
 
-- The source window stops painting for the length of the gesture, because `DoDragDrop` runs the
-  desktop's own modal loop. Pumping a frame from `GiveFeedback` is the obvious answer and the
-  reason it is not done yet: that callback fires from inside the loop, and running the application
-  frame there re-enters everything the frame touches.
-- No drag image follows the pointer. `IDropTargetHelper` and `IDragSourceHelper` are what draw the
-  picture being dragged, and a drag with nothing under the cursor but an arrow reads as a lesser
-  gesture than the same drag out of Explorer.
-- A target cannot say *where* a drop will land. A list has no insertion feedback of its own, so a
-  control that wants to show the gap between two rows paints it itself.
-- `readGlobalFormat` asks for `TYMED_HGLOBAL` only, so a source publishing a format solely as an
-  `IStream` — which is how some browsers hand over a large image — reads as offering nothing.
-- `CFSTR_FILEDESCRIPTORW` is neither read nor offered, so a mail attachment dragged out of a client
-  carries no file, and a capture cannot be dragged into one without touching the disk first.
-- Deferred rendering is not available to a source: `sCapture` writes its PNG to the temporary
-  folder before the gesture starts rather than when the target asks, so a cancelled drag still
-  leaves the file behind.
+- Related: T-212, T-213, T-214, T-215, T-216
+
+### T-212 — No drag image follows the pointer
+
+Integrate `IDropTargetHelper` and `IDragSourceHelper` so an outgoing gesture presents a drag image
+with the same lifetime and effect state as its data object.
+
+- Related: T-039
+
+### T-213 — Drop targets have no insertion-feedback contract
+
+Add a routed insertion/location feedback model that lists and trees can render without each target
+inventing its own drag state.
+
+- Related: T-039, T-046
+
+### T-214 — Drag data cannot be read from `IStream`
+
+Allow `readGlobalFormat` to consume stream-backed media with bounded reads and ownership rules,
+instead of accepting only `TYMED_HGLOBAL`.
+
+- Related: T-039
+
+### T-215 — Drag data cannot represent virtual files
+
+Support `CFSTR_FILEDESCRIPTORW` and its contents in outgoing and incoming drag operations so mail
+attachments and other virtual files do not require a pre-existing disk path.
+
+- Related: T-039, T-216, T-316
+
+### T-316 — Clipboard data cannot represent virtual files
+
+Expose the same virtual-file descriptor and deferred contents through clipboard ownership without
+making clipboard completion depend on drag interaction.
+
+- Related: T-074, T-215, T-216
+
+### T-216 — Drag sources cannot render data on demand
+
+Add deferred rendering to the source data object so cancelled gestures do not create temporary
+files and expensive formats are produced only when requested.
+
+- Related: T-039, T-074, T-215
 
 ---
 
 ## Tier B — Platform gaps
 
-### T-040 — Localization gaps
+### T-040 — Vector resource overrides bypass the parsed cache
 
-- Problem: the resource, language-switching, translated-property and content-measurement systems
-  are shipped, but three surfaces still bypass that contract.
-- Remaining, in decreasing value:
-  - a disk override of `theme/widgets.svg` or `theme/icons.svg` registers in the bundle but the
-    vector pipeline rasterizes the process-wide parsed cache, so only the fonts, theme sheets
-    and language files honor overrides today;
-  - text set once at construction only follows a live language switch when its window listens
-    for the `LanguageChanged` notification; command-driven surfaces, menu bars built from a
-    resolver, and grids rebuilt on the notification already refresh themselves, and
-    `sCrypt.MainWindow.retranslate` is the worked example of the manual half;
-  - French is the only shipped translation, and `DateTime` month and day names stay English —
-    exactly the `Globalization` coordination this entry already pointed at
-    ([T-030](todo.core.md#t-030--globalization-is-a-stub-that-implies-more-than-it-delivers):
-    number, date and name formats should live with the culture, and the language tag
-    now flows through `Env.userLocaleName`).
+The resource and language systems ship, but a disk override of `theme/widgets.svg` or
+`theme/icons.svg` registers in the bundle while rasterization still uses the process-wide parsed
+cache. Make vector overrides invalidate and replace that cache like fonts, theme sheets, and
+language files already do.
 
-### T-041 — System integration events
+- Related: T-217, T-218
 
-Three messages are not handled, and each one leaves the application stale in a way the user can see:
+### T-217 — Construction-time text does not automatically retranslate
 
-- `WM_SETTINGCHANGE` — the system switched light and dark, or turned on high contrast, and the
-  application does not notice. High contrast is also an accessibility requirement and belongs with
-  T-037.
-- `WM_DISPLAYCHANGE` — a monitor was added, removed or rearranged. `MainWnd`-style monitor lists
-  built at startup go stale, and `sCapture` enumerates monitors for its per-screen capture.
-- `WM_INPUTLANGCHANGE` — the keyboard layout changed. Needed by T-038.
+Define an automatic binding or required notification contract for text that was resolved once at
+construction. Command-driven surfaces and explicitly rebuilt grids already refresh; static text
+must not depend on each application remembering a manual handler.
 
-Small, individually cheap, and each one is a visible defect rather than a missing feature.
+- Related: T-040, T-218
+
+### T-218 — French is the only shipped GUI translation
+
+Add each additional shipped language as an independently reviewable resource contribution, with
+coverage checks that prevent untranslated keys. Locale date/name data belongs to T-142.
+
+- Related: T-040, T-142, T-144, T-217
+
+### T-041 — System theme changes are ignored
+
+Handle the platform settings-change notification and update live light/dark policy without
+restarting the application.
+
+- Related: T-219, T-224
+
+### T-219 — System high-contrast changes are ignored
+
+Refresh high-contrast policy on the platform settings notification and ensure it overrides visual
+theme choices as required for accessibility.
+
+- Related: T-037, T-041, T-224
+
+### T-220 — Display-topology changes are ignored
+
+Refresh monitor enumeration, placement constraints, and dependent application state when a monitor
+is added, removed, or rearranged.
+
+- Related: T-084, T-230
+
+### T-221 — Input-language changes are ignored
+
+Handle the platform input-language notification and update keyboard-layout-dependent state.
+
+- Related: T-038
 
 ---
 
@@ -145,30 +194,22 @@ accessibility, input and system-event contracts above rather than merely open a 
 therefore names the smallest coherent version that can ship and the existing controls or
 applications that would prove it.
 
-### T-042 — The two halves of keyboard navigation that are still missing
+### T-042 — Focused controls are not scrolled into view
 
-Traversal itself landed: `FocusPolicy` says what takes the focus and what stops the keyboard,
-`FocusOrder` walks a surface in reading order, Tab and Shift+Tab move through the whole ring while
-the four arrows move inside one group, Enter and Escape stand for `Surface.defaultButton` and
-`Surface.cancelButton` from anywhere including a field, a modal opens on the control it means to be
-answered from, and a ring says where the keyboard is — over an accent fill too. Two pieces of the
-same story are not there yet.
+Tab can focus a descendant of `ScrollWnd` without revealing it. Add `Wnd.ensureVisible`, walking
+every scroll ancestor and shifting only the amount missing from each viewport; test nested scrolls
+and the module's paint/hit-test offset convention.
 
-- **Nothing scrolls into view.** Tab onto a control inside a `ScrollWnd` moves the focus without
-  scrolling, so the keyboard can land somewhere the eye cannot follow. `ListCtrl` and the property
-  grid are safe — each is one stop and scrolls its own rows — but a plain scrolling form is not.
-  Fix: a `Wnd.ensureVisible` that walks up to every `ScrollWnd` ancestor and shifts each one by
-  what the window's surface rectangle is missing from that scroll viewport, called from
-  `Wnd.setFocus`. Needs a test with a form taller than its viewport; the geometry is the whole
-  risk, since scroll offsets are applied to descendants at paint and hit-test time rather than to
-  their rectangles.
-- **No access keys.** `Alt` opens nothing and no caption carries an underlined letter, so reaching
-  a control still means walking to it. Fix: a mnemonic in the caption markup, an `Alt` handler on
-  the surface next to the traversal in `Surface.navigateKey`, and the underline drawn only while
-  `Alt` is held, the way Windows does it. The menu bar is the other consumer, and it needs the same
-  key to open at all.
+- Related: T-222
 
-### T-043 — A motion system, not more one-off animations
+### T-222 — No keyboard access keys
+
+Add caption mnemonics, surface-level `Alt` handling, menu activation, and underline visibility as
+one keyboard access-key contract.
+
+- Related: T-042, T-037
+
+### T-043 — No shared animation scheduler
 
 This is not a blank slate. `Application` already supplies frame timing and opt-in `FrameEvent`
 delivery; `BlendColor` softens state changes in buttons, fields, tabs, scroll bars and the property
@@ -194,23 +235,42 @@ A useful first version should be deliberately smaller than a general timeline ed
   Typed tracks with an update callback make those costs and that lifetime visible. Parallel and
   sequence groups are enough composition initially; springs, keyframes and cubic-bezier authoring
   can wait for a real consumer.
-- **Presentation properties on `Wnd`.** Opacity, a paint offset and clipping reveal/hide most of
+### T-223 — `Wnd` has no presentation-only animation properties
+
+Opacity, a paint offset and clipping reveal/hide most of
   the useful interface transitions without changing the target layout rectangle every frame.
   Layout-affecting size animation should be a separate adapter that invalidates the nearest layout
   root, used sparingly for an expanding pane. Hit testing and keyboard focus must follow the final
   logical state, not chase a decorative transform frame by frame.
-- **Lifetime and interruption rules.** Destroying or hiding a target cancels its tracks; changing
-  theme or DPI keeps the normalized progress but resolves new endpoints; direct manipulation
-  always wins over an animation; and an interrupted transition can reverse or retarget without a
-  discontinuity. Registration needs a window-owned cancellation token, or a new generation-checked
+
+- Related: T-043, T-225, T-309
+### T-225 — Animation lifetime has no shared contract
+
+Destroying or hiding a target cancels its tracks; changing
+  theme or DPI must not leave stale registrations. Registration needs a window-owned cancellation token, or a new generation-checked
   handle if animations may outlive one dispatch; `WndId` is a command/persistence name, not a
   lifetime handle, and a borrowed pointer must not survive deferred destruction.
-- **Motion policy from day one.** Read the Windows client-area-animation preference, refresh it on
+
+- Related: T-043, T-223, T-317
+
+### T-317 — Animation interruption and retargeting have no shared contract
+
+Changing theme or DPI keeps normalized progress while resolving new endpoints; direct manipulation
+wins; an interrupted transition reverses or retargets from the on-screen value without a jump.
+
+- Related: T-043, T-225
+### T-224 — No application-wide reduced-motion policy
+
+Read the Windows client-area-animation preference, refresh it on
   `WM_SETTINGCHANGE` with T-041, and expose one application policy that tests and applications can
   override. With reduced motion, decorative finite transitions complete immediately; essential
   busy feedback remains visible but avoids large translation and scale. Durations and distances
   belong to semantic theme tokens — quick state feedback, page transition, panel transition — not
   as unrelated constants embedded in controls.
+
+- Related: T-041, T-043, T-309
+
+### T-309 — Existing one-off animations do not use the shared motion system
 
 The first consumers should prove the layers in order: migrate `BlendColor` without changing the
 resting pixels; move smooth scrolling to the scheduler; add a short selection-indicator transition
@@ -242,7 +302,9 @@ cover easing endpoints, retargeting, cancellation on destruction, grouping and D
 command-stream or image goldens cover the few standard transitions. A finished animation must
 leave neither a registered frame callback nor a permanently dirty surface behind.
 
-### T-044 — Touch, pen and gesture
+- Related: T-043, T-223, T-224, T-225
+
+### T-044 — No pointer-event model
 
 No `WM_POINTER`, `WM_TOUCH` or `WM_GESTURE` is handled. `MouseEvent` describes one mouse position,
 one button and one global capture owner; it has no pointer identifier, device kind, contact area,
@@ -252,26 +314,47 @@ from a pan.
 
 The smallest coherent input layer is:
 
-- a `PointerEvent` carrying a stable pointer id, mouse/touch/pen kind, primary/contact state,
+- Add a `PointerEvent` carrying a stable pointer id, mouse/touch/pen kind, primary/contact state,
   surface position, buttons, pressure, tilt and contact rectangle, routed and bubbled like the
   existing events;
-- capture per pointer rather than one application-wide mouse capture, with cancellation when the
+- Related: T-226, T-227, T-228, T-229
+
+### T-226 — Pointer capture is application-wide rather than per pointer
+
+Add capture per pointer rather than one application-wide mouse capture, with cancellation when the
   OS takes a contact away and an explicit rule for suppressing compatibility mouse events;
-- recognizers above raw input for tap, double tap, long press, pan, pinch and rotate, with an arena
+- Related: T-044, T-227
+
+### T-227 — No gesture-recognition arbitration
+
+Add recognizers above raw input for tap, double tap, long press, pan, pinch and rotate, with an arena
   or claim rule so a child button and its scrolling parent do not both execute the same gesture;
-- a touch theme/input profile whose hit targets are larger even when the painted glyph is not —
+- Related: T-043, T-044, T-226
+
+### T-228 — No touch-sized input profile
+
+Add a touch theme/input profile whose hit targets are larger even when the painted glyph is not —
   the 12-pixel slider thumb and the small scroll-bar profile are not finger targets — plus kinetic
   scrolling driven by T-043 and scroll chaining at nested boundaries.
 
-Ship raw pointer routing and single-contact capture first, then pen pressure, then pan/pinch and
-multi-touch arbitration. `sCapture` is the proving application: pressure-sensitive freehand,
-pinch-to-zoom about the contact centroid, two-finger canvas pan, touchable gizmo handles and palm
-rejection during a pen stroke. sCrypt mainly proves that ordinary forms, tabs and lists remain
-comfortable by touch and that no command fires twice. The headless host must inject several
-pointer ids so routing, capture loss, gesture competition and DPI conversion are tested without
-touch hardware.
+- Related: T-043, T-227
 
-### T-045 — A second platform
+### T-229 — Pen pressure is not modeled end to end
+
+Carry pressure and pen identity from native input through drawing tools. `sCapture` is the proving
+application, and the headless host must inject pen events so the behavior is testable without
+hardware.
+
+- Related: T-044, T-318
+
+### T-318 — No palm rejection during a pen stroke
+
+Suppress competing touch contacts according to an explicit rule while a pen owns the drawing
+gesture, with headless mixed-device tests.
+
+- Related: T-226, T-227, T-229
+
+### T-045 — No second-platform surface and presentation backend
 
 Inherited from [T-028](todo.core.md#t-028--the-standard-library-is-windows-only), and gated by it.
 The filenames already expose most of the seam: `surface.win32.swg`, `application.win32.swg`,
@@ -279,20 +362,93 @@ The filenames already expose most of the seam: `surface.win32.swg`, `application
 themes, controls and the toolkit-owned file dialog are platform-neutral. That is a good boundary,
 but five replacement files are not yet a porting plan.
 
-Choose one platform and deliver a vertical slice instead of first generalizing every Win32 detail:
+Choose one platform and implement the application loop, surface creation/destruction, native
+resize/move/minimize, renderer presentation, and cursor as the first independently testable slice.
 
-1. application loop, surface creation/destruction, native resize/move/minimize, renderer
-   presentation and cursor;
-2. monitor enumeration, per-monitor scale, keyboard/text/pointer routing, clipboard and system
-   theme notifications;
-3. packaging, fonts and the custom file dialog on the target filesystem;
-4. accessibility, IME and drag/drop mapped to the contracts established by T-037, T-038 and T-039.
+- Related: T-230, T-231, T-232
+
+### T-230 — No second-platform monitor and DPI integration
+
+Implement monitor enumeration and per-monitor scale for the platform whose surface exists under
+T-045.
+
+- Related: T-045, T-220, T-319, T-320, T-321
+
+### T-319 — No second-platform keyboard routing
+
+Translate native key identity, modifier, repeat, and layout state into the portable keyboard
+events.
+
+- Related: T-045, T-221, T-343, T-344
+
+### T-343 — No second-platform text-input routing
+
+Translate committed native text input into the portable text event independently of IME
+composition.
+
+- Related: T-038, T-319, T-324
+
+### T-344 — No second-platform pointer routing
+
+Translate mouse, touch, and pen input into the portable pointer contract.
+
+- Related: T-044, T-319
+
+### T-320 — No second-platform clipboard integration
+
+Implement clipboard ownership and platform-format conversion behind the portable typed-value
+contract.
+
+- Related: T-045, T-296
+
+### T-321 — No second-platform system-theme notifications
+
+Translate the platform's live theme and high-contrast changes into the portable settings event.
+
+- Related: T-041, T-045, T-219
+
+### T-231 — No second-platform GUI packaging
+
+Package the GUI runtime and native dependencies for the chosen second platform.
+
+- Related: T-045, T-322, T-323
+
+### T-322 — No second-platform GUI font integration
+
+Connect GUI font selection and fallback to the installed-font catalog for the chosen platform.
+
+- Related: T-109, T-231
+
+### T-323 — No second-platform file-dialog integration
+
+Connect the toolkit-owned file dialog to the target filesystem and native path expectations.
+
+- Related: T-132, T-231
+
+### T-232 — Accessibility has no second-platform integration
+
+Map the platform's native assistive-technology service to the accessibility contract from T-037.
+
+- Related: T-037, T-045, T-324, T-325
+
+### T-324 — IME has no second-platform integration
+
+Map the platform's composition and candidate-window service to the input-method contract from
+T-038.
+
+- Related: T-038, T-045
+
+### T-325 — Drag and drop has no second-platform integration
+
+Map the platform's data-transfer and gesture service to the drag/drop contract from T-039.
+
+- Related: T-039, T-045
 
 Platform-neutral events must not expose native message numbers, and the Win32 backend should keep
 passing its existing tests throughout the extraction. The headless backend remains the contract
 test; backend integration tests then prove native focus, DPI, clipboard and input on each system.
-The entry is complete when the same non-trivial GUI sample runs unchanged on both platforms, not
-when an empty surface opens.
+T-045 is complete when a non-trivial GUI sample opens, lays out, paints, resizes, and closes on the
+second platform. The higher integrations retain their own completion identifiers.
 
 This only removes the interface blocker for the applications. sCapture still needs its separate
 capture backend in [T-084](todo.scapture.md#t-084--cross-platform-capture-backend); sCrypt still
@@ -300,7 +456,7 @@ needs the FUSE backend in [T-100](todo.scrypt.md#t-100--fuse-backend-for-linux-a
 Core and Pixel platform work under T-028. Keeping those dependencies explicit prevents a GUI port
 from being mistaken for two ported products.
 
-### T-046 — Docking and multi-document layouts
+### T-046 — No docking layout host
 
 The ingredients are present but not the model. `Tab` can select a page, `SplitterCtrl` can size
 known panes, a `Surface` can own a floating window, and drag/drop can carry a gesture. There is no
@@ -308,56 +464,60 @@ tree saying that a workspace is a horizontal or vertical split of tab stacks, no
 document identity, no drop targets and preview, no way to tear a tab into a tool window, and no
 serialization that can rebuild the arrangement on the next run.
 
-Build this as two layers rather than a collection of special-case widgets:
+`DockHost` owns a split tree whose leaves are tab stacks. It supports tab reorder, docking to an
+edge or stack, floating and redocking, close/hide, minimum sizes, and an exact landing preview.
+Layout state serializes stable pane identifiers, splits, active tabs, and floating rectangles;
+restore constrains missing-monitor rectangles and ignores unregistered panes. Start docked-only,
+then add internal drag preview and floating surfaces. Tests cover round-trip state, unknown panes,
+focus after reparenting, DPI changes, and monitor loss.
 
-- `DockHost` owns a split tree whose leaves are tab stacks. It supports tab reorder, docking to an
-  edge or into a stack, floating and redocking, close/hide, minimum sizes and an overlay that shows
-  the exact landing rectangle. A move must transfer logical ownership, command routing and focus
-  without destroying the pane. Layout state serializes stable pane ids, split orientation/ratio,
-  active tabs and floating surface rectangles; restore constrains missing-monitor rectangles and
-  ignores panes an application version no longer registers.
-- `DocumentHost` adds document semantics over a tab stack: active document, dirty marker, close
-  veto/save flow, close-others, reorder and command routing to the active view. It must virtualize
-  or lazily create pages when a workspace holds many documents; a tab is not permission to keep an
-  arbitrarily heavy editor tree alive forever.
+- Related: T-039, T-213, T-233
 
-Start docked-only with serialization, then internal drag preview and tab reorder, then floating
-surfaces. Outgoing desktop OLE drag is not the mechanism for moving a live `Wnd`, but T-039's
-insertion feedback and drag-image work should supply the same visual vocabulary. Tests must cover
-round-trip layout state, unknown panes, close veto, focus after reparenting, DPI changes and loss
-of the monitor that held a floating pane.
+### T-233 — No multi-document host
 
-sCapture is the immediate beneficiary: Quick Styles and Properties can become optional docked
-panes, and open captures can be real document tabs rather than only entries in the recent strip,
-allowing comparison and reordering without replacing the editor. sCrypt is not by itself a reason
-to build a docking system — its Create, Open and Mounted pages fit one fixed window — but a
-document host would become useful if it grows simultaneous container-management or key-slot
-views. The toolkit should not force docking into that application merely to demonstrate it.
+Add `DocumentHost` over a tab stack: active document, dirty marker, close veto/save flow,
+close-others, reorder, and command routing to the active view. Lazily create or virtualize heavy
+pages, and test close veto and focus independently of docking. sCapture's open captures are the
+first consumer; sCrypt does not need this merely as a demonstration.
 
-### T-047 — Printing
+- Related: T-046
 
-There is no printer discovery, page setup, print job, pagination contract, preview or cancellation.
-This is more than sending the current surface bitmap to a device: controls are screen layout, while
-a printable document needs physical page size, imageable margins, orientation, resolution,
-multiple pages and a failure result for every stage of the spool operation.
+### T-047 — No printable-document pagination contract
 
-The shared contract should let a document answer page count and paint page `n` into a page-sized
-`Pixel.Painter` using physical units. A platform backend supplies printers and capabilities, opens
-and cancels the native job, and converts that painter output to the spool format. Page setup owns
-paper, orientation, margins, scale/fit and copies. Print preview renders through exactly the same
-page callback into an on-screen zoomable view; it must not grow a second pagination path that can
-disagree with paper.
+Let a document answer page count and paint page `n` into a page-sized `Pixel.Painter` using
+physical units. Define imageable bounds, multi-page failures, and vector-versus-raster behavior
+without coupling the document to one printer backend. A fake backend records commands for CI.
 
-Depends on [T-054](todo.pixel.md#t-054--no-vector-output): text and paths should remain vector on
-paper or PDF, while embedded captures remain at their source resolution. A raster-only first pass
-would be acceptable only as an explicitly temporary backend, not as the public abstraction.
-sCapture is the first consumer and needs actual-size, fit-to-page and centered modes with a clear
-warning when actual size is clipped. sCrypt has no compelling printable document today and should
-not print sensitive state merely to exercise the API.
+- Related: T-054, T-234, T-235, T-236
 
-A fake print backend should record page size and painter commands so pagination, margins,
-cancellation and errors run in CI without a printer. One optional Windows integration test can
-target a virtual PDF printer; correctness must not depend on a particular driver being installed.
+### T-234 — No printer discovery or native print-job backend
+
+Enumerate printers and capabilities, open a native job, spool every page from T-047, and report
+failure at each stage. Keep one optional virtual-PDF integration test; correctness must
+not depend on an installed driver.
+
+- Related: T-047, T-235, T-237
+
+### T-237 — Print jobs cannot be cancelled
+
+Propagate cancellation from the GUI through pagination and the platform spooler, with a distinct
+cancelled result and cleanup tests in the fake backend.
+
+- Related: T-047, T-234
+
+### T-235 — No page-setup model
+
+Model paper, orientation, margins, scale/fit, and copies independently of printer discovery and
+preview. Validate requested settings against the capabilities supplied by T-234.
+
+- Related: T-047, T-234, T-236
+
+### T-236 — No print preview
+
+Render through exactly T-047's page callback into a zoomable on-screen view; do not create a second
+pagination path that can disagree with paper.
+
+- Related: T-047, T-235, T-238
 
 ---
 

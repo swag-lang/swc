@@ -22,24 +22,28 @@ best-tested subsystem in the compiler. On option count it is already in clang-fo
 
 ---
 
-### T-016 — It cannot be used in CI, and cannot be used by an editor
+### T-016 — Add a CI check mode
 
-Three missing modes, all small, all blocking real use.
+`--dry-run` suppresses writes and counts what *would* be rewritten, but there is no check-mode
+exit-code contract, no list of differing files, and no optional diff. Add those as one CI-facing
+contract. The file list must also expose end-of-line-only rewrites that `git diff` can hide.
 
-- **No check mode.** `--dry-run` suppresses the write and the stats block counts what *would* be
-  rewritten, but there is no `--check`, no `--list-different`, no diff output, and no exit-code
-  contract for "this file was not formatted". clang-format has `--dry-run -Werror`, rustfmt
-  `--check`, gofmt `-l` and `-d`, prettier `--check`. Without it, formatting cannot be enforced on
-  a branch — which is exactly what a canonical style needs. It also leaves an author unable to
-  answer "which file did that run touch, and why": a rewrite whose only effect is the configured
-  end-of-line style is invisible to `git diff` and to an IDE diff, so a run that reports N
-  rewritten files can look like it changed nothing at all. `--list-different` naming the files is
-  the smallest fix for both.
-- **No stdin/stdout.** The command reads paths and writes files back in place. Every editor
-  integration wants to format a buffer that may not be on disk, and to receive the result rather
-  than have the file rewritten under it.
-- **No range formatting.** clang-format has `--lines` and `--offset/--length`; rustfmt and
-  prettier have equivalents. Format-selection is the interaction people actually use.
+- Related: T-017
+
+### T-115 — Format stdin to stdout
+
+The command only reads paths and writes files in place. Accept a buffer on standard input and
+return the formatted result on standard output so an editor can format unsaved content without a
+filesystem round trip.
+
+- Related: T-116, T-124
+
+### T-116 — Format a selected source range
+
+Add a line- or offset-based range contract for editor format-selection. Define how the requested
+range expands to syntactic boundaries and which returned edits may fall outside it.
+
+- Related: T-115, T-117
 
 ### T-017 — There is no canonical Swag style
 
@@ -52,7 +56,7 @@ Three missing modes, all small, all blocking real use.
   current `Preserve`-everything behavior kept as an explicit opt-out). This is a policy decision
   first and a small code change second, and it should be made before the option count grows again.
 
-### T-018 — Wrapping is greedy, and files that do not parse are skipped
+### T-018 — Replace or explicitly retain greedy wrapping
 
 - There is no penalty model or layout solver anywhere in `src/Format` — `Pass.Wrap.cpp` decides
   per construct, locally. clang-format solves a penalty function over the whole unwrapped line and
@@ -64,9 +68,14 @@ Three missing modes, all small, all blocking real use.
   across the screen. Both are right, both are local, and neither generalizes — the next such shape
   will need a twelfth option. That is the argument for the solver, and it should be weighed before
   the option count grows again.
-- Separately, a file that fails to parse is counted and skipped
-  ([FormatJob.cpp:40](../src/Format/FormatJob.cpp#L40)). clang-format formats broken files because it
-  works on tokens — which is what makes format-on-type possible.
-- Neither is necessarily worth matching. Both should be a stated position rather than an
-  unexamined limit: decide whether the formatter's contract is "valid files, locally good layout"
-  and write that down, or invest in the solver.
+- Decide whether the formatter's contract deliberately remains "locally good layout" or gains a
+  penalty/document solver. Record and test that decision before adding more shape-specific
+  wrapping options.
+
+### T-117 — Format source that is temporarily invalid
+
+A file that fails to parse is counted and skipped
+([FormatJob.cpp:40](../src/Format/FormatJob.cpp#L40)). Define and implement the token-level recovery
+contract needed for format-on-type, without making successful parsing a prerequisite.
+
+- Related: T-115, T-116, T-018

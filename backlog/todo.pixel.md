@@ -37,19 +37,24 @@ The gaps are in composition fidelity, color, and the GPU backend.
 
 ## Tier A — Composition fidelity
 
-### T-048 — Seven blend modes, and the useful ones are missing
+### T-048 — No separable blend modes
 
-- Problem: `BlendingMode` in `src/painter/painter.swg` is `Copy`, `Alpha`, `Add`, `Sub`, `SubDst`,
-  `Min` and `Max`. The separable blend modes that PDF, SVG, CSS, Skia and every design tool define
-  are absent — Multiply, Screen, Overlay, Darken, Lighten, ColorDodge, ColorBurn, HardLight,
-  SoftLight, Difference and Exclusion — as are the non-separable Hue, Saturation, Color and
-  Luminosity.
+- Problem: `BlendingMode` lacks the separable modes defined by PDF, SVG, CSS, Skia, and design
+  tools: Multiply, Screen, Overlay, Darken, Lighten, ColorDodge, ColorBurn, HardLight, SoftLight,
+  Difference, and Exclusion.
 - Consequence: Multiply and Screen alone account for most real compositing work. Without them,
   shadow, tint, highlight and any layered design effect cannot be expressed. It is also what
   blocks [T-076](todo.scapture.md#t-076--capture-level-effects), which asks for capture-level effects.
-- Fix: the separable set first — they are a per-channel function and cheap in both backends. The
-  four non-separable modes need the full colour computation and can follow.
+- Fix the separable set in both backends as one compatible family.
 - This is the highest value-to-effort entry in the module.
+- Related: T-185
+
+### T-185 — No non-separable blend modes
+
+Add Hue, Saturation, Color, and Luminosity with one stated color-space contract after the separable
+modes land.
+
+- Related: T-048, T-052
 
 ### T-049 — No image filter graph
 
@@ -64,48 +69,148 @@ The gaps are in composition fidelity, color, and the GPU backend.
   blend node.
 - Downstream: this is what `sCapture` needs for border, drop shadow, torn edge and perspective.
 
-### T-050 — Gradients cap at eight stops, and SVG cannot read them at all
-
-Two separate problems in the same feature.
+### T-050 — Gradients cap at eight stops
 
 - `MaxGradientStops = 8` in `src/types/brush.swg`. Design tools and SVG routinely produce more, and
   a gradient silently loses its later stops.
+- Remove the silent limit or return an explicit failure when the selected backend cannot represent
+  the input.
+- Related: T-186
+
+### T-186 — SVG gradients are not parsed
+
 - `src/svg/svgparse.swg` parses `svg`, `g`, `defs`, `use`, `path`, `rect`, `circle`, `ellipse`,
   `line`, `polygon`, `polyline` and `style`. It does not parse `linearGradient`, `radialGradient`
   or `stop` — so **an SVG with a gradient renders flat**, even though `Brush` supports linear,
   radial and sweep gradients natively. The capability exists on both sides and nothing connects
   them.
-- Also unparsed: `text`, `tspan`, `image`, `clipPath`, `mask`, `pattern`, `marker`, `symbol`,
-  `filter`, and the `stroke-dasharray` attribute. `fill-opacity`, `stroke-opacity` and `opacity`
-  ARE parsed (`applyStyleProperty` in `svgparse.swg`), which is what the drop-shadow tile of the
-  theme atlas is built out of.
 - This constrains the repository directly: the GUI theme is vector — `gui/src/theme/widgets.svg`
   and `icons.svg` — so the parser's coverage is the theme's design vocabulary.
+- Related: T-050, T-187, T-188, T-189, T-190, T-191, T-192, T-193, T-194
+
+### T-187 — SVG text elements are not parsed
+
+Implement `text` and `tspan` layout with an explicit supported subset of SVG text semantics.
+
+- Related: T-069, T-186
+
+### T-188 — SVG image elements are not parsed
+
+Load bounded embedded or referenced raster images through Pixel's codec registry, with a clear
+external-resource policy.
+
+- Related: T-186
+
+### T-189 — SVG clipping paths are not parsed
+
+Implement `clipPath` over the existing painter clipping facilities.
+
+- Related: T-049, T-186, T-326
+
+### T-326 — SVG masks are not parsed
+
+Implement `mask` as a compositing operation over render targets independently of clipping paths.
+
+- Related: T-049, T-186, T-189
+
+### T-190 — SVG patterns are not parsed
+
+Implement `pattern` paint servers independently of gradients and masks.
+
+- Related: T-186
+
+### T-191 — SVG markers are not parsed
+
+Implement start, mid, and end markers with correct path tangent orientation.
+
+- Related: T-186, T-209
+
+### T-192 — SVG symbols are not parsed
+
+Implement `symbol` instancing and viewport behavior independently of ordinary `use` references.
+
+- Related: T-186
+
+### T-193 — SVG filters are not parsed
+
+Map a declared subset of SVG filter primitives onto the effect graph from T-049.
+
+- Related: T-049, T-186
+
+### T-194 — SVG stroke dashes are not parsed
+
+Parse `stroke-dasharray` and `stroke-dashoffset` into the painter's existing dash support.
+
+- Related: T-186
 
 ---
 
 ## Tier B — Colour and precision
 
-### T-051 — Eight bits per channel, and nothing else
+### T-051 — No 16-bit integer pixel formats
 
-- `PixelFormat` is `BGR8`, `BGRA8`, `RGB8`, `RGBA8`. There is no 16-bit format, no half or full
-  float, no single-channel grayscale, and no declared premultiplied variant.
+- `PixelFormat` is `BGR8`, `BGRA8`, `RGB8`, `RGBA8`. Add 16-bit integer RGB/RGBA formats with codec,
+  filter, conversion, and render-target behavior stated.
 - Consequence: no HDR imaging, no high-precision intermediate for a filter chain, and no headroom
   in the render targets that T-049 would introduce. A multi-stage effect graph quantising to
   eight bits at every step is where banding comes from.
-- A single-channel format is also the natural storage for masks and distance fields, both of which
-  the module already produces.
+- Related: T-195, T-196, T-197
+
+### T-195 — No half-float pixel formats
+
+Add half-float formats with defined NaN, infinity, conversion, and render-target semantics.
+
+- Related: T-051, T-052, T-200, T-207, T-353
+
+### T-353 — No full-float pixel formats
+
+Add full-float formats independently of half precision, preserving the same conversion and
+render-target contract.
+
+- Related: T-195, T-207
+
+### T-196 — No single-channel pixel format
+
+Add grayscale/mask storage suitable for distance fields and effect masks without expanding each
+sample to RGB.
+
+- Related: T-051, T-189
+
+### T-197 — Premultiplication is not represented in pixel formats
+
+Make straight versus premultiplied alpha explicit in the type or format contract and test every
+conversion boundary.
+
+- Related: T-051, T-052
 
 ### T-052 — No colour management
 
-- Nothing in the API distinguishes sRGB from linear, there is no ICC profile handling, no wide
-  gamut such as Display P3, and no HDR output path.
+- Nothing in the API distinguishes sRGB from linear. Declare the working space and transfer
+  behavior in images, brushes, blending, filters, and surfaces.
 - The consequence is not only missing features. Compositing non-linear sRGB values directly is the
   standard cause of gradients and antialiased edges reading darker than they should — so this is a
   fidelity question, not a checkbox. Skia and Direct2D both take a position on it; this module
   takes none, which means the caller cannot take one either.
-- Fix: decide the working space explicitly and say so in the API, then let a surface declare its
-  own. Depends on T-051 for anywhere the working space needs more than eight bits.
+- Related: T-185, T-195, T-198, T-199, T-200
+
+### T-198 — No ICC profile handling
+
+Read, preserve, and convert embedded ICC profiles independently of choosing the default working
+space.
+
+- Related: T-052
+
+### T-199 — No wide-gamut surface contract
+
+Let images and surfaces declare a wide-gamut space such as Display P3 and convert to it correctly.
+
+- Related: T-052, T-198, T-200
+
+### T-200 — No HDR output path
+
+Define HDR surface formats, transfer functions, luminance metadata, and tone-mapping boundaries.
+
+- Related: T-195, T-199
 
 ---
 
@@ -122,22 +227,92 @@ Two separate problems in the same feature.
 
 ### T-054 — No vector output
 
-No PDF, no SVG export, no PostScript. Cairo and Skia both write PDF, and it is the format anything
-document-shaped or printable needs. [T-074](todo.scapture.md#t-074--local-output-destinations) asks for PDF export, and this is
-where it would land.
+Add PDF output that preserves text and paths as vectors and embeds raster content at source
+resolution. This is the vector target needed by printing.
+
+- Related: T-201, T-202, T-238, T-047
+
+### T-201 — No SVG output
+
+Serialize supported painter content to SVG with explicit fallback behavior for effects and raster
+operations that have no direct representation.
+
+- Related: T-054, T-186
+
+### T-202 — No PostScript output
+
+Add PostScript only as a separately justified output backend; it must not be hidden inside PDF
+completion.
+
+- Related: T-054
 
 ### T-055 — Codec coverage
 
-The current set already beats stb. The gaps worth considering, in order: QOI, which is trivial and
-useful; AVIF and JPEG XL for modern web images; DDS and KTX2 as GPU texture containers, which
-matter as soon as anything wants compressed textures; EXR for high dynamic range, which depends on
-T-051; and PSD for import.
+Add QOI encoding and decoding as the smallest remaining general-purpose codec.
+
+- Related: T-203, T-204, T-205, T-206, T-207, T-208
+
+### T-203 — No AVIF codec
+
+Add AVIF decoding and encoding as its own dependency and color-management decision.
+
+- Related: T-052, T-055
+
+### T-204 — No JPEG XL codec
+
+Add JPEG XL decoding and encoding independently of AVIF.
+
+- Related: T-055
+
+### T-205 — No DDS texture container
+
+Read and write DDS metadata and supported block-compressed payloads without coupling it to KTX2.
+
+- Related: T-053, T-206
+
+### T-206 — No KTX2 texture container
+
+Read and write KTX2 and define which GPU-compressed formats can remain compressed through upload.
+
+- Related: T-053, T-205
+
+### T-207 — No EXR codec
+
+Add OpenEXR-compatible high-dynamic-range image I/O after floating-point formats exist.
+
+- Related: T-195
+
+### T-208 — No PSD importer
+
+Import a documented PSD subset, including how layers, masks, color modes, and unsupported effects
+map into Pixel structures.
+
+- Related: T-049, T-055
 
 ### T-056 — Path effects
 
-Dashing exists. Missing: path trimming by arc length, arc-length measurement, and corner effects.
-Boolean operations already exist in `poly/`; the question is whether they are reachable from a
-painter path or only from the polygon layer.
+Dashing exists. Add path trimming by normalized or absolute arc-length ranges.
+
+- Related: T-209, T-210, T-211
+
+### T-209 — No public path arc-length measurement
+
+Expose total length and point/tangent sampling with stated flattening tolerance.
+
+- Related: T-056, T-191
+
+### T-210 — No corner path effect
+
+Add a corner-rounding effect independently of trimming and measurement.
+
+- Related: T-056
+
+### T-211 — Painter paths cannot use polygon boolean operations
+
+Define the conversion and tolerance contract that makes `poly/` boolean operations available to a
+painter path.
+
+- Related: T-056
 
 ### T-057 — A collection face is selected by name, and a localized Windows will miss
 

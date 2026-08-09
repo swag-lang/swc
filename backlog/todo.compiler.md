@@ -77,29 +77,47 @@ These three shape every other entry. Nothing below Tier A gets structurally easi
   rebuild — 2.1 s for `core`, more for `gui` — for a one-character change. rustc caches at query
   granularity, Zig is incremental at function granularity, and even C++ is incremental per
   translation unit. Swag is the coarsest of the four.
-- Fix, staged: (1) cache the frontend per file, keyed on content hash plus the interface version
-  of everything it imports; (2) cache codegen per function, keyed on the sema fingerprint of its
-  body and of everything it reaches. Step 2 is where the win is, and it is unreachable without
-  T-001.
+- Fix the frontend boundary first: cache analysis per file, keyed on content hash plus the
+  interface version of everything it imports.
 - Measure before and after with T-007, on a real edit-one-file-in-`core` loop, not on a clean
   build.
+- Related: T-001, T-122
 
-### T-003 — The semantic analyzer is 81 000 lines with one unit test
+### T-122 — Code generation is not incremental per function
+
+Cache code generation per function, keyed on the semantic fingerprint of its body and everything
+it reaches. This is independently measurable after T-001 and T-002 establish persistent symbol and
+frontend identities.
+
+- Related: T-001, T-002, T-004
+
+### T-003 — Overload ranking has no focused unit tests
 
 - Problem: `Compiler/Sema` is 81 189 lines across 150 files — a third of the compiler. Its entire
   C++ test surface is `src/Unittest/Sema`, a single 116-line purity test. Everything else is
   covered end to end through the `.swg` suites.
 - Consequence: the suites prove that programs compile; they cannot address one decision procedure.
-  Overload ranking ([Match.Func.cpp](../src/Compiler/Sema/Match/Match.Func.cpp), 3 232 lines), cast
-  legality (`Sema/Cast`), and generic deduction
-  ([SemaGeneric.Deduce.cpp](../src/Compiler/Sema/Generic/SemaGeneric.Deduce.cpp), 1 778 lines) are
-  pure, deterministic, table-shaped functions with no unit tests at all. That is the reason
-  refactoring sema feels dangerous, and "ultra-clean architecture" is not reachable through code
-  nobody dares to move.
-- Fix: those three first, as table-driven C++ suites — a list of (inputs, expected ranking) rows,
-  not compiled programs. `src/Unittest/Format` (5 257 lines) and `src/Unittest/Micro` (5 487
-  lines) already show the shape and already carry the subsystems that get refactored most freely.
+  Overload ranking ([Match.Func.cpp](../src/Compiler/Sema/Match/Match.Func.cpp), 3 232 lines) is a
+  deterministic, table-shaped function with no focused unit tests.
+- Add table-driven C++ rows for inputs and expected ranking, following the focused suite shape in
+  `src/Unittest/Format` and `src/Unittest/Micro`.
 - This is the cheapest entry in Tier A and the one that makes the other two safe.
+- Related: T-335, T-336
+
+### T-335 — Cast legality has no focused unit tests
+
+Add table-driven C++ coverage around `Sema/Cast` so conversion rules can be changed without relying
+only on compiled source suites.
+
+- Related: T-003, T-336
+
+### T-336 — Generic deduction has no focused unit tests
+
+Add table-driven C++ coverage for
+[SemaGeneric.Deduce.cpp](../src/Compiler/Sema/Generic/SemaGeneric.Deduce.cpp), independently of
+overload-ranking and cast tests.
+
+- Related: T-003, T-335
 
 ---
 
@@ -116,15 +134,19 @@ This entry is first in the tier because the three below cannot be judged without
   68, 74, 64, 66, 85, 81, 95, 67 ms and peak memory sits flat at 96–98 MB. That is noise around a
   flat line, on a workload too small to contain what actually costs. A campaign cannot currently
   tell whether the compiler got faster.
-- Also: the per-stage instrumentation exists but is compiled out. `Stats` carries lexer, parser,
-  sema, codegen and Micro timings plus AST, type, symbol and instruction counts
-  ([Stats.h:20-59](../src/Main/Stats.h#L20-L59)), all behind `SWC_HAS_STATS`, which only the separate
-  `Stats` build configuration defines ([pch.h:77-81](../src/pch.h#L77-L81)). In the shipped binary
-  `--stats` prints four lines: workers, total time, peak memory.
 - Fix: add compiler-side workloads to the campaign — a full `core` rebuild, a warm no-op build, and
   a one-file-touched rebuild — recording wall time and peak working set for each. Then decide
-  whether the per-stage counters should be available in the Release binary behind a flag, since a
-  profile nobody can take on the shipping build is a profile nobody takes.
+  explicit regression gates from those stable workloads.
+- Related: T-123
+
+### T-123 — Release builds hide per-stage compiler profiling
+
+`Stats` already carries lexer, parser, sema, codegen and Micro timings plus AST, type, symbol and
+instruction counts ([Stats.h:20-59](../src/Main/Stats.h#L20-L59)), but `SWC_HAS_STATS` restricts them
+to the separate `Stats` configuration ([pch.h:77-81](../src/pch.h#L77-L81)). Make the useful
+counters available on demand in the shipped binary with measured disabled-mode overhead.
+
+- Related: T-004, T-005
 
 ### T-005 — Peak memory is 672 MB for one module
 
@@ -175,47 +197,71 @@ This entry is first in the tier because the three below cannot be judged without
 ### T-008 — There is no language server
 
 - Problem: the VSCode extension contributes a TextMate grammar, themes, a task provider and a
-  problem matcher — 90 lines of JavaScript. No completion, no go-to-definition, no hover, no
-  rename, no diagnostics while typing. Every other language in the comparison set has one
-  (rust-analyzer, gopls, ZLS, clangd).
+  problem matcher, but no persistent protocol server or diagnostics while typing.
 - Consequence: the compiler already computes everything an editor wants — types, symbols,
   overload resolution, source ranges — and throws it away at process exit. The gap is not
   knowledge, it is that nothing can ask.
-- Evidence that the editor path is currently unowned: the extension's own tasks shell out to a
-  binary named `swag` with `-w:` and `-f:` argument syntax
-  ([providers.js:23-25](../vscode/src/providers.js#L23-L25)); the binary is `swc` and the current
-  parser rejects that syntax outright (`unknown command-line argument '-f:...'`).
 - Fix: LSP is a consumer of T-001 and T-002, not a parallel project. A server that must re-analyze
   every dependency's 12 000 lines of generated source on each keystroke is not viable, and one
   with a serialized interface and per-file caching mostly falls out. Sequence it accordingly, and
-  fix the extension's task commands now regardless.
+  keep the protocol surface independent of the VSCode client.
+- Related: T-001, T-002, T-124, T-337, T-338, T-339, T-340
+
+### T-337 — No editor completion service
+
+Expose scope- and type-aware completion through the language server after T-008 establishes the
+persistent analysis session.
+
+- Related: T-008
+
+### T-338 — No go-to-definition service
+
+Resolve an identifier at a source position to its declaration across files and serialized module
+interfaces.
+
+- Related: T-001, T-008
+
+### T-339 — No editor hover service
+
+Return the resolved symbol's type, signature, and documentation without making hover part of
+completion.
+
+- Related: T-008, T-015
+
+### T-340 — No semantic rename service
+
+Compute and validate workspace edits for one symbol identity, respecting scopes, generated code,
+and cross-module references.
+
+- Related: T-001, T-008
+
+### T-124 — The VSCode task provider invokes a nonexistent compiler interface
+
+The extension shells out to `swag` with `-w:` and `-f:` arguments
+([providers.js:23-25](../vscode/src/providers.js#L23-L25)); the binary is `swc` and its parser rejects
+that syntax. Update the task provider to the current command-line contract independently of any
+language-server work.
+
+- Related: T-008
 
 ---
 
-### T-102 — A script is not yet a full substitute for a shell script
+### T-102 — A script's bare name is not a shell command
 
-A `.swgs` should replace a `.bat`, a `.ps1` or a `.py` outright: as simple to run, and more
-capable. `tools/` is the proof either way — it is the repository's own scripting, and it is now
-written entirely in Swag. `swc tools\tests.swgs dm` is as short as `python campaign.py`, a script
-takes its own command line, the compiler recognizes it wherever it sits, `#load` nests so a
-multi-file script names its sources once, and a missing `swag@std` is built on demand instead of
-refusing to run. Two gaps are left, and neither is about the language.
+`setup.swgs` claims `.swgs` for the current user, so double-click works, but
+`tools\tests.swgs dm` is not directly executable from `cmd` or PowerShell 5.1. Define a reliable
+installation and relocation contract for the association, including elevated machine-wide setup,
+`PATHEXT`, and a clear report when the shell integration cannot be installed.
 
-- **A tool's bare name is not a command.** `setup.swgs` claims `.swgs` for the current user, so a
-  double-click runs a script, arguments and exit code included. Typing `tools\tests.swgs dm` in a
-  shell still does not: `cmd` resolves an extension through the machine-wide association that
-  only an elevated `assoc`/`ftype` writes, and `PATHEXT` alone does not reach a per-user claim.
-  PowerShell 5.1 does nothing at all with such a file. Closing this means `setup.swgs` writes
-  `HKLM\Software\Classes` when it runs elevated and adds `.SWGS` to `PATHEXT`, and says plainly
-  what it could not do when it is not. Decide at the same time which compiler answers a
-  double-click: the association pins one absolute path, which is wrong for a checkout that moves.
-- **A script pays a fixed half-second before it does anything.** `swc tools/tests.swgs plan <file>`
-  and `-h` each take about 650 ms on a warm run, against 46 ms for `python -c pass`, because every
-  run re-checks the same 46 files and about 148 000 tokens. It does not matter in front of a two-minute
-  build; it is almost the whole cost of `plan`, whose reason to exist is being cheap enough to
-  ask before making a change. Nothing caches a script's compilation between runs, and the inputs
-  that would key such a cache are already computed — the module setup pass collects every loaded
-  file and every compiler input to decide whether a workspace artifact is up to date.
+- Related: T-125
+
+### T-125 — Every script invocation recompiles unchanged inputs
+
+`swc tools/tests.swgs plan <file>` and `-h` each take about 650 ms warm because every run rechecks
+the same 46 files and roughly 148,000 tokens. Cache a script compilation from the complete loaded
+input set that module setup already collects, and invalidate it by content and compiler inputs.
+
+- Related: T-002, T-006, T-102
 
 ## Out of scope
 

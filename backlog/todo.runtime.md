@@ -85,7 +85,7 @@ The remaining work below is what turns that into a measured allocator contract.
   the producer/consumer workload from T-019. Bound the drain so one allocation cannot inherit an
   arbitrarily long pause.
 
-### T-023 — Give the medium and huge paths the same treatment as the small one
+### T-023 — Add a medium-allocation tier above 64 KiB
 
 - Requests above 64 KiB take the header path: one `VirtualAlloc` reservation each, released on
   free. That is correct and wastes almost nothing, but a buffer that doubles across the boundary
@@ -93,6 +93,15 @@ The remaining work below is what turns that into a measured allocator contract.
 - Measure the real distribution first, on compiler, standard-library, GUI, and sCrypt traces. If
   the boundary is hot, the answer is a size-class tier above 64 KiB carved from whole segments, not
   a cache of arbitrary blocks.
+
+- Related: T-163
+
+### T-163 — Huge allocations have no separately measured policy
+
+Define the threshold and reserve/commit/release behavior for genuinely huge allocations after the
+medium tier is separated. Benchmark large growth and release independently of size-class caching.
+
+- Related: T-019, T-023
 
 ### T-024 — Tune size classes from traces rather than from the table
 
@@ -104,7 +113,7 @@ The remaining work below is what turns that into a measured allocator contract.
 
 ## Tier C - Harden the implementation
 
-### T-025 — Expand race and failure testing
+### T-025 — Add allocator OS-failure injection
 
 - `bin/unittests/native/runtime/` covers size classes, page recovery from an address, free-list
   obfuscation, interior-pointer rejection, abandoned-page adoption, foreign-thread retirement
@@ -113,9 +122,22 @@ The remaining work below is what turns that into a measured allocator contract.
 - Inject reserve and commit failures at every transition and verify that page masks, segment lists,
   and the abandoned list stay consistent and that the allocation returns null rather than a
   half-built page.
-- Run the stress tests under Windows Application Verifier and page heap.
-- Add an equivalent to `allocatorOsCommit`/`allocatorOsDecommit` and to the FLS destructor before
-  enabling the page path on another target; the fallbacks compiled today are placeholders.
+- Related: T-164, T-165
+
+### T-164 — Allocator stress is not run under Windows heap instrumentation
+
+Run the allocator stress suite under Windows Application Verifier and page heap, and make the
+invocation reproducible without folding it into failure injection.
+
+- Related: T-019, T-025
+
+### T-165 — The page allocator has no real second-platform OS primitives
+
+Implement equivalents of `allocatorOsCommit`, `allocatorOsDecommit`, page protection, release, and
+thread-exit cleanup before enabling the page path on another target. The compiled fallbacks are
+placeholders, not an implementation.
+
+- Related: T-025, T-269, T-270
 
 ### T-026 — Decide what the security properties are, and write them down
 

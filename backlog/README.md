@@ -73,7 +73,7 @@ another backlog entry, in a code comment. A title gets rewritten, a position mov
 changes file; the identifier does not.
 
 Next identifier: F-086
-Next identifier: T-115
+Next identifier: T-309
 
 - Take the next identifier of the matching kind from the lines above, then advance that line. Each
   is a counter, not an entry count: it keeps rising as entries are deleted. The `F` counter is
@@ -89,6 +89,32 @@ Next identifier: T-115
   an entry is called, never how much it matters.
 - A finding that graduates into a plan becomes a todo entry and takes a fresh `T` identifier; its
   `F` identifier retires with it. Name the finding it came from in the new entry.
+
+## Write A Todo
+
+One todo names one independently finishable outcome. A contributor must be able to take its
+identifier, complete that outcome, and remove that entry without also having to complete another
+missing capability hidden under the same heading.
+
+- Keep together only the implementation steps and acceptance conditions required to make that one
+  outcome correct.
+- Give separate identifiers to capabilities that can ship, be tested, or be prioritized
+  independently, even when they touch the same subsystem.
+- State dependencies and useful coordination through a `Related:` line naming the other todo
+  identifiers. A relationship never makes several outcomes one entry.
+- Do not use one heading as a campaign umbrella over numbered work. Put shared context in the file
+  introduction or tier introduction, then keep each entry independently actionable.
+
+Use this compact shape; explanatory paragraphs and evidence may follow when they materially help
+someone execute the item.
+
+```
+### T-000 — Short outcome
+
+- Intent: the one missing result this entry delivers
+- Complete when: observable acceptance condition
+- Related: T-001, T-002 (when applicable)
+```
 
 ## Write A Finding
 

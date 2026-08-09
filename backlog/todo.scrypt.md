@@ -29,36 +29,87 @@ locally.
 - Problem: `Volume.readPhysical` reads 4124 bytes, decrypts, and verifies the tag on every single
   call, with no memory between calls. An unaligned write costs a read, a decrypt, an encrypt and a
   write. A sequential 1 MiB read is 256 separate 4 KiB I/O operations that are never coalesced.
-- Fix: a bounded LRU cache of decrypted blocks, held in locked memory and wiped at unmount;
-  coalescing of physically contiguous blocks into single I/O operations; and batched block
-  decryption parallelized with `Jobs`. This is where the five-to-tenfold throughput factor is.
+- Fix: a bounded LRU cache of decrypted blocks, held in locked memory and wiped at unmount.
 - Related: a bounded cache is also the natural place to put an explicit memory budget, which any
-  later working-set investigation will need.
+  later working-set investigation will need. See T-248 and T-249 for the independent throughput
+  work around it.
 
-### T-088 — The crypto primitives are scalar
+### T-248 — Physical block I/O is never coalesced
+
+- Owner: sCrypt
+- Coalesce physically contiguous encrypted blocks into bounded reads and writes without requiring
+  them to be resident in T-087's cache.
+- Related: T-087, T-249
+
+### T-249 — Block decryption is not batched
+
+- Owner: sCrypt
+- Decrypt independent blocks in bounded `Jobs` batches while preserving request ordering and
+  cancellation.
+- Related: T-087, T-248, T-260
+
+### T-088 — ChaCha20 processes one block per dependency chain
 
 - Owner: `bin/std` (`bin/std/modules/core/src/crypto/`)
-- Problem: `poly1305.swg` and `argon2.swg` are straightforward scalar implementations, and
-  `chacha20.swg`, although its rounds now auto-vectorize, is still bounded by memory traffic.
-  Argon2id measures 403 ms at the Interactive profile and 2 396 ms at the Moderate default
-  (release build, m=256 MiB, t=3, p=4), and rejecting a wrong password costs that four times
-  over, because every key slot is probed whether or not it holds a password.
+- Problem: `chacha20.swg`, although its rounds auto-vectorize, remains one block wide and bounded
+  by its dependency chain and memory traffic.
 - Evidence: ChaCha20's packed state remains one block-wide and its dependency chain still limits
   throughput; the current measurements and protocol are in
   [F-029](findings.optimization.md#f-029--chacha20-still-processes-one-block-per-packed-dependency-chain).
-- Fix: process several blocks per loop iteration, which is where the rest of the ChaCha SIMD win
-  is (F-029 again), then revisit `poly1305` and the Argon2 permutation. Argon2's lanes are also
-  independent within a slice, so `Jobs` can run `parallelism` of them at once.
+- Fix: process several blocks per loop iteration, which is where the remaining ChaCha SIMD win is.
 - Why it matters: the mount latency a user actually feels is almost entirely this, and every
   block read and written pays the key-stream rate.
+- Related: T-250, T-251, T-252
+
+### T-250 — Poly1305 remains scalar
+
+- Owner: `bin/std` (`bin/std/modules/core/src/crypto/`)
+- Optimize Poly1305 independently of ChaCha20 and retain differential vectors for every block-tail
+  length.
+- Related: T-088
+
+### T-251 — The Argon2 permutation remains scalar
+
+- Owner: `bin/std` (`bin/std/modules/core/src/crypto/`)
+- Vectorize the Argon2 compression/permutation with profile benchmarks and unchanged published
+  vectors.
+- Related: T-252
+
+### T-252 — Independent Argon2 lanes run serially
+
+- Owner: `bin/std` (`bin/std/modules/core/src/crypto/`)
+- Run lanes within each legal slice through `Jobs`, respecting Argon2's synchronization points and
+  measuring the configured `parallelism` contract.
+- Related: T-251
 
 ### T-089 — Keys live in pageable memory
 
 - Owner: `bin/std` for the locked allocation, sCrypt for the policy
 - Problem: `Crypto.Keys` and the unwrapped master key are ordinary memory. The page file or a crash
   minidump can capture the master key. VeraCrypt locks its key pages.
-- Fix: `VirtualLock` on key pages, exclusion from Windows Error Reporting dumps, and key wipe on
-  session lock and on system suspend. Small surface, large credibility return.
+- Fix: provide a locked-memory allocation in `bin/std` and require sCrypt's unwrapped keys to use
+  it. Keep dump exclusion and lifecycle wiping independently testable.
+- Related: T-253, T-254, T-255
+
+### T-253 — Key pages are not excluded from Windows crash dumps
+
+- Owner: sCrypt
+- Register key regions for exclusion from Windows Error Reporting dumps and verify the configured
+  dump policy.
+- Related: T-089
+
+### T-254 — Session lock does not wipe mounted keys
+
+- Owner: sCrypt
+- On workstation/session lock, unmount or wipe every live key according to an explicit failure
+  policy.
+- Related: T-089, T-256
+
+### T-255 — System suspend does not wipe mounted keys
+
+- Owner: sCrypt
+- Handle suspend independently of session lock and wipe or unmount before sleep completes.
+- Related: T-089, T-257
 
 ### T-090 — The executable is not signed
 
@@ -76,26 +127,51 @@ locally.
 
 ## Tier B — Perceived feature parity
 
-### T-091 — Mount comfort and mount-time safety
+### T-091 — A busy volume cannot be forcibly unmounted
 
 - Owner: sCrypt
-- Problem: forced unmount is missing when a handle keeps a volume busy, as is automatic unmount on session lock,
-  on suspend, and on idle — both are a security feature rather than a convenience, and they are
-  what remains of the *perceived* gap against VeraCrypt.
+- Add an explicit forced-unmount flow when an open handle keeps a volume busy, including user
+  confirmation, outstanding-I/O cancellation, and a truthful result.
 - Note: the startup list is persisted with `needsPassword` beside each path, which is what keeps a
   start quiet for an unprotected vault. It is not a hint an attacker could not obtain in one Argon2
   attempt, but it does mean the state file says which vaults have no password.
+- Related: T-256, T-257, T-258
 
-### T-092 — Additional passwords are not in the interface
+### T-256 — No automatic unmount on session lock
+
+- Owner: sCrypt
+- Unmount protected volumes on session lock, independently of key-memory wiping.
+- Related: T-091, T-254
+
+### T-257 — No automatic unmount on system suspend
+
+- Owner: sCrypt
+- Unmount protected volumes on suspend with a defined response when a volume is busy.
+- Related: T-091, T-255
+
+### T-258 — No automatic unmount after idle
+
+- Owner: sCrypt
+- Add an opt-in idle timeout based on appropriate user activity and reset semantics.
+- Related: T-091
+
+### T-092 — Additional password slots are not in the interface
 
 - Owner: sCrypt
 - Problem: `Volume.addPassword` and `Volume.removePassword` still have no way in. A container can
   hold four passwords and the interface only ever writes the one a reader opened it with.
-- Fix: a key-slot list on that dialog — add a password, revoke one — plus a cost-profile selector
-  backed by `Crypto.Argon2Profile`. Both need a way to show how many slots are in use without
-  claiming which of them is which.
+- Fix: a key-slot list that can add and revoke passwords and show how many slots are occupied
+  without claiming which password maps to which slot.
 - Note: `KeySlotCount` is 4. Raising it costs one constant and a wider `keySlotMask`, but it also
   multiplies the cost of rejecting a wrong password; see T-088.
+- Related: T-259
+
+### T-259 — No key-derivation cost-profile selector
+
+- Owner: sCrypt
+- Expose `Crypto.Argon2Profile` independently of password-slot management, with clear latency and
+  memory guidance.
+- Related: T-092, T-251, T-252
 
 ### T-093 — Shrinking a container
 
@@ -128,10 +204,17 @@ locally.
 - Owner: sCrypt
 - Problem: WinFsp runs under the coarse guard strategy, so every callback is serialized and all
   encryption for a large copy sits on one thread.
-- Fix: finer granularity — a per-node lock plus a metadata lock — and block encryption parallelized
-  through `Jobs`.
+- Fix: replace the coarse guard with per-node locks plus a metadata lock.
 - Sequencing: after T-087, and only alongside a concurrent stress test. Getting this wrong is a
   correctness failure, not a performance regression.
+- Related: T-260
+
+### T-260 — Large sCrypt operations do not parallelize block encryption
+
+- Owner: sCrypt
+- Parallelize independent block encryption through bounded `Jobs` batches after the locking model
+  is safe, with cancellation and deterministic error propagation.
+- Related: T-097, T-249
 
 ---
 
@@ -149,26 +232,55 @@ locally.
 - Sequencing: last. A hidden volume that leaks is worse than no hidden volume, because it promises
   a protection it does not deliver.
 
-### T-099 — Format specification, test vectors, fuzzing
+### T-099 — No normative container-format specification
 
 - Owner: sCrypt
-- An audit is not possible without a normative format document that is independent of the code,
-  plus published test vectors. Then:
-  - Fuzz `Volume.restore`, `Volume.loadNodes`, `Node.deserialize` and `JournalRecord.decode`. Their
-    comments record that the plaintext is attacker-controlled once the password is known, so a
-    maliciously crafted shared container is a real attack surface.
-  - Extend the crash-consistency tests. The current ones copy the container between operations and
-    replay it; what is still missing is a torn write *inside* a record and a kill during a
-    checkpoint rather than between them.
-  - Add a scaling test at a hundred thousand files. The metadata paging test stops at 1 200.
+- Write a normative format document independent of the implementation, covering layout, key
+  derivation, record framing, validation order, versioning, and failure indistinguishability.
+- Related: T-261, T-262, T-263, T-264, T-101
 
-### T-100 — FUSE backend for Linux and macOS
+### T-261 — No published sCrypt format test vectors
+
+- Owner: sCrypt
+- Publish deterministic vectors for key derivation, headers, records, locators, and full minimal
+  containers so independent implementations can be compared.
+- Related: T-099, T-101
+
+### T-262 — Attacker-controlled container decoders are not fuzzed
+
+- Owner: sCrypt
+- Fuzz `Volume.restore`, `Volume.loadNodes`, `Node.deserialize`, and `JournalRecord.decode` with
+  reproducible corpora and sanitizer coverage.
+- Related: T-099, T-101
+
+### T-263 — Crash tests do not cover torn records or checkpoint kills
+
+- Owner: sCrypt
+- Extend crash consistency beyond between-operation snapshots to torn writes inside a record and
+  process termination during checkpointing.
+- Related: T-099
+
+### T-264 — Metadata scaling stops at 1,200 files
+
+- Owner: sCrypt
+- Add a bounded performance and correctness test at one hundred thousand files.
+- Related: T-087, T-099
+
+### T-100 — No Linux FUSE backend
 
 - Owner: sCrypt
 - The boundary is already where it needs to be: system backends for `Core.Crypto`, `Core.Time` and
   `Core.File`, plus the WinFsp layer and the mount-point selector. Everything above them — the
   container format, the logical filesystem, the password widget — is platform-independent already.
   Real work, no design risk.
+- Related: T-265, T-307
+
+### T-265 — No macOS filesystem backend
+
+- Owner: sCrypt
+- Add the macOS mount backend and packaging independently of Linux, choosing the supported FUSE or
+  native filesystem mechanism explicitly.
+- Related: T-100, T-307
 
 ### T-101 — External audit
 

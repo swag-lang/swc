@@ -50,19 +50,24 @@ ships; history lives in git, not here.
   the error-handling design already shipped (`fail`/`try`/`catch`), which chose a different axis
   and should not be re-litigated by the same feature.
 
-### T-011 — Generic constraints are predicates, and the instantiation chain omits the call site
+### T-011 — The generic instantiation chain omits the call site
 
-- `where` is a compile-time boolean over generic parameters
-  ([009_003_where_constraints.swg](../bin/reference/modules/language/src/009_003_where_constraints.swg)).
-  There is no way to state "T must provide `scaled`", so a body that uses a missing member fails
-  at instantiation, C++-template style, rather than at the declaration that violates a contract.
 - The diagnostic is already better than most: it reports the error inside the generic *and*
   attaches a note naming the specialization (`while checking generic function 'doubleIt' with
   T = Point`). What it does not do is name the call site that caused the instantiation — the one
   line the user has to change. Adding that frame to the instantiation chain is a small, immediate
-  win, and it should be done before any decision on named constraints.
-- The larger question — named contracts versus predicates — should be answered after the call-site
-  frame lands, since a good instantiation trace removes most of the pain that motivates contracts.
+  win.
+- Related: T-121
+
+### T-121 — Generic constraints cannot name a required interface
+
+`where` is a compile-time boolean over generic parameters
+([009_003_where_constraints.swg](../bin/reference/modules/language/src/009_003_where_constraints.swg)).
+There is no declaration-site way to state that `T` must provide a member or satisfy a named
+contract, so a missing operation fails only inside an instantiation. Decide named contracts versus
+predicates after T-011 makes the current model's diagnostics complete.
+
+- Related: T-011
 
 ### T-012 — The concurrency model is undecided
 

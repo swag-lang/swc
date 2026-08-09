@@ -28,7 +28,7 @@ effects, no capture.
 
 ## Tier A — What blocks real use
 
-### T-058 — Only WAV, and only some of it
+### T-058 — No MP3 decoder
 
 - Problem: `SoundFile.load` accepts WAV alone, and `src/file/wav.swg` accepts only `WAVE_FORMAT_PCM`
   (8, 16, 24 and 32 bit), `WAVE_FORMAT_IEEE_FLOAT`, and `WAVE_FORMAT_EXTENSIBLE` wrapping those two.
@@ -37,11 +37,38 @@ effects, no capture.
 - Consequence: no music. A three-minute track as 16-bit stereo WAV is about 30 MiB, so any
   application with a soundtrack is pushed off this module immediately. miniaudio ships WAV, FLAC
   and MP3 in the box; SoLoud adds Vorbis.
-- Fix: MP3, Ogg Vorbis and FLAC decoders behind the existing `ICodec` registry. The extension point
-  is already designed and already used once, so this is decoder work rather than architecture work.
-  Opus is a reasonable fourth.
+- Add a clean-room or permissively licensed MP3 decoder behind the existing `ICodec` registry.
+  The extension point is already designed and used, so this is decoder work rather than
+  architecture work.
 - Why first: everything else on this list is a refinement of a library that plays audio. This is
   what decides whether it can be used at all.
+- Related: T-166, T-167, T-168, T-169, T-060
+
+### T-166 — No Ogg Vorbis decoder
+
+Add Ogg framing and Vorbis decoding behind `ICodec`, including streaming and seek-table behavior.
+
+- Related: T-058, T-060
+
+### T-167 — No FLAC decoder
+
+Add native FLAC decoding with streaming, metadata bounds, and exact PCM output tests.
+
+- Related: T-058, T-060
+
+### T-168 — No Opus decoder
+
+Add Ogg Opus decoding only as its own optional codec; do not make it part of MP3, Vorbis, or FLAC
+completion.
+
+- Related: T-166
+
+### T-169 — WAV ADPCM is declared but rejected
+
+Implement the declared `WAVE_FORMAT_ADPCM` path independently of adding compressed music
+containers.
+
+- Related: T-058
 
 ### T-059 — Volume changes are instantaneous, so they click
 
@@ -65,16 +92,25 @@ effects, no capture.
   so the codec interface needs the right shape before three decoders are written against the
   wrong one.
 
-### T-061 — No device enumeration, selection, or loss handling
+### T-061 — No output-device enumeration
 
-- Problem: `createEngine` opens the default device and that is the whole story. There is no way to
-  list output devices, no way to choose one, and nothing handles the device disappearing —
-  unplugged headphones, a disconnected USB interface, a default-device switch. XAudio2 signals
-  this; the module does not listen.
-- Consequence: the engine goes silent and stays silent, with no error and no recovery.
-- Fix: device enumeration, an explicit device in `createEngine`, and a critical-error callback that
-  rebuilds the engine on the new default device.
-- Every competing library treats this as baseline, because on a desktop it happens weekly.
+- Enumerate output devices with stable session identifiers and enough capabilities for a caller to
+  present a choice.
+- Related: T-170, T-171
+
+### T-170 — The engine cannot select an output device
+
+Allow `createEngine` or a dedicated switch operation to target one identifier returned by T-061,
+with a defined fallback when that device is unavailable.
+
+- Related: T-061, T-171
+
+### T-171 — Output-device loss is not reported or recovered
+
+Handle the backend's critical-error signal, report the loss, and rebuild or fail over according to
+an explicit policy when headphones, USB audio, or the default device changes.
+
+- Related: T-061, T-170
 
 ---
 
@@ -91,17 +127,35 @@ the rest of this list is not.
 - Missing above it: a listener, a per-voice position, distance attenuation, and a matrix apply on
   the source voice. X3DAudio computes the output matrix; the module has to feed it and apply the
   result.
-- Also missing, and simpler: plain stereo panning. There is no pan control at all, which is the
-  cheapest spatial cue there is and the one most applications actually want.
+- Related: T-172
+
+### T-172 — No stereo pan control
+
+Add backend-neutral stereo panning to `Voice` without requiring the listener and distance model of
+T-062.
+
+- Related: T-062
 
 ### T-063 — Filters, with the voice flag already set
 
 - Submix voices are created with `XAUDIO2_VOICE_USEFILTER` in `src/driver/xaudio2.swg`. The
   capability is requested and no API exposes it.
-- XAudio2 gives a per-voice low-pass, high-pass, band-pass and notch filter for free once that flag
-  is set. Beyond it, XAPO provides reverb and echo.
+- XAudio2 gives a per-voice low-pass, high-pass, band-pass and notch filter once that flag is set.
 - A cutoff and resonance on `Voice` and `Bus` is a small surface over a capability that is already
   being paid for on every submix.
+- Related: T-173, T-174, T-067
+
+### T-173 — No reverb effect
+
+Expose a reverb effect independently of the basic voice filters and of a general effects graph.
+
+- Related: T-063, T-067
+
+### T-174 — No echo effect
+
+Expose an echo/delay effect independently of reverb and the general effects graph.
+
+- Related: T-063, T-067
 
 ---
 
@@ -118,13 +172,26 @@ the rest of this list is not.
 - Related: no `findings.*` file has an entry for this. If measurement shows the cost is in XAudio2
   rather than in this module, record it there instead.
 
-### T-065 — Capture and recording
+### T-065 — No audio capture input
 
-- No input path at all: no capture device, no duplex, no loopback. miniaudio and PortAudio both
-  treat capture as a peer of playback.
+- Add capture-device enumeration and a recording stream as a peer of playback.
 - This is what a recorder, a voice-chat path, or a level meter would need. It is also a prerequisite
   if `sCapture` ever records video with sound —
   [T-081](todo.scapture.md#t-081--video-and-animated-gif-recording).
+- Related: T-175, T-176, T-245
+
+### T-175 — No full-duplex audio session
+
+Allow synchronized input and output in one engine session for voice communication and live
+processing.
+
+- Related: T-065
+
+### T-176 — No system-output loopback capture
+
+Expose desktop/output loopback as a distinct capture source when the backend supports it.
+
+- Related: T-065, T-245
 
 ### T-066 — A second platform
 

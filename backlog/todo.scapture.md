@@ -30,19 +30,23 @@ effects that makes a capture look produced, and output.
 
 ## Tier A — Table stakes
 
-### T-074 — Local output destinations
+### T-074 — Copy a capture as a clipboard file
 
-- Problem: a capture leaves the application as a file, as a bitmap on the clipboard, or dragged
-  out of the recent strip. Two ordinary destinations are still missing: copy-as-file rather than
-  copy-as-bitmap, and printing.
-- Fix: copy-as-file is the drag-out data object seen from the clipboard side — `DragData` already
-  builds every medium it needs, so what is missing is `OleSetClipboard` over the same object.
-  Printing is separate and depends on [T-054](todo.pixel.md#t-054--no-vector-output) for vector output.
-- Why first: clipboard file transfer reuses the data object already exercised by drag-out; printing
-  is the only independent half.
+- A capture leaves as a file, bitmap clipboard data, or an outgoing drag, but cannot be copied as a
+  file object. Reuse `DragData` through `OleSetClipboard` so paste targets receive the same file and
+  bitmap media as drag targets.
 - Note: the PNG a drag offers is written to the temporary folder when the gesture starts, not when
   the target asks for it, so a cancelled drag leaves the file behind. Deferred rendering is
-  [T-039](todo.gui.md#t-039--drag-and-drop-has-no-polish-layer).
+  T-216.
+- Related: T-216, T-238
+
+### T-238 — Print the current capture
+
+Add actual-size, fit-to-page, and centered printing with a clear clipping warning. Consume the GUI
+pagination/preview contract and Pixel vector output rather than creating an application-only print
+path.
+
+- Related: T-047, T-054, T-236
 
 ### T-075 — Grab Text
 
@@ -54,29 +58,65 @@ effects that makes a capture look produced, and output.
 - Why this high: it is the most visible remaining reason to reach for the built-in tool instead of
   this one, and the platform does the hard part.
 
-### T-076 — Capture-level effects
+### T-076 — No capture-level effect pipeline
 
-- Problem: the style system is excellent per form, but the capture itself has no effects at all.
-  `struct Capture` in `src/capture.swg` carries geometry, a background image, and a form list;
-  there is nowhere for a border, a drop shadow, a torn or faded edge, a perspective transform, or
-  a watermark to live.
-- Fix: an effect list on `Capture`, applied in the flatten and export path, with the property panel
-  generated the same reflective way the form panel already is. The renderer already does
-  everything required.
+- `Capture` has geometry, a background image, and forms, but nowhere to store and order effects.
+  Add an effect list applied identically by preview, flatten, and export, with the property panel
+  generated through the existing reflective editor system.
 - Why this high: this is Snagit's actual signature — not the annotations, the finish. It is also
   a natural fit for the existing architecture rather than a foreign subsystem.
+- Related: T-239, T-240, T-241, T-242, T-049
 
-### T-077 — Configurable hotkeys and capture presets
+### T-239 — No capture border effect
 
-- Problem: `MainWnd.setupHotKeys` in `src/mainwnd.swg` registers four fixed combinations —
-  PrintScreen, Ctrl+Shift+PrintScreen, Ctrl+PrintScreen, Alt+PrintScreen. There is no way to change
-  them, and no way to bind a hotkey to a configured capture (mode, delay, cursor, destination) as a
-  single named preset.
-- Fix: persist hotkey bindings in the existing options, add a capture-preset record combining a
-  capture mode with the `CaptureOptions` fields, and bind hotkeys to presets rather than to raw
-  commands.
+Add border width, color, placement, and corner interaction as the first effect using T-076.
+
+- Related: T-076, T-310
+
+### T-310 — No capture drop-shadow effect
+
+Add a drop shadow with offset, blur, spread, and color through Pixel's effect graph.
+
+- Related: T-049, T-076, T-239
+
+### T-240 — No torn-edge capture effect
+
+Add deterministic torn-edge mask generation with scale-independent parameters.
+
+- Related: T-076, T-311
+
+### T-311 — No faded-edge capture effect
+
+Add a faded-edge mask independently of torn-edge generation.
+
+- Related: T-076, T-240
+
+### T-241 — No capture perspective effect
+
+Add perspective transformation with explicit output bounds and resampling behavior.
+
+- Related: T-076
+
+### T-242 — No capture watermark effect
+
+Add reusable image/text watermarks with placement, opacity, scale, and export persistence.
+
+- Related: T-076
+
+### T-077 — Capture hotkeys are fixed
+
+- `MainWnd.setupHotKeys` registers four fixed combinations. Persist user-rebindable hotkeys in the
+  existing options, handle conflicts, and report registration failures.
 - Note: PrintScreen is contested on Windows 11, which now binds it to the Snipping Tool by default.
   A tool that cannot rebind its own hotkey is stuck behind that.
+- Related: T-243
+
+### T-243 — No named capture presets
+
+Persist named combinations of capture mode, delay, cursor policy, and destination, then allow T-077
+to bind a hotkey to a preset rather than a raw command.
+
+- Related: T-077
 
 ---
 
@@ -95,23 +135,50 @@ for, and they are honestly expensive. Ship Tier A first.
 - Sequence it after Tier A, and scope it to the common cases — a browser page, a document, a list
   view — rather than promising it works everywhere.
 
-### T-081 — Video and animated GIF recording
+### T-081 — No video recording
 
-- Snagit, ShareX and the Windows Snipping Tool all record video. sCapture does not.
-- Cost: the largest item on this list by a wide margin. It needs a frame capture loop, a hardware
-  encoder, audio capture and muxing, and then trim and export in the editor. That is a subsystem
-  with its own tests and its own failure modes, not an addition to the current one.
+- Add a timed frame-capture loop and hardware video encoder with bounded buffering and observable
+  dropped-frame behavior.
 - Recommendation: treat it as a deliberate decision rather than an assumed goal. A still-capture
   tool with an outstanding editor is a coherent product. A half-finished recorder is not.
+- Related: T-244, T-245, T-246
+
+### T-244 — No animated GIF recording
+
+Record and export an animated GIF independently of the video codec pipeline, with a stated frame
+rate, palette, dithering, and size contract.
+
+- Related: T-081
+
+### T-245 — Recordings cannot include audio
+
+Capture microphone or loopback audio and mux it into video without making audio a prerequisite for
+silent recording.
+
+- Related: T-065, T-176, T-081
+
+### T-246 — Recordings cannot be trimmed in the editor
+
+Add non-destructive in/out trimming and export for captured recordings after the base recorder can
+produce a playable artifact.
+
+- Related: T-081, T-244
 
 ---
 
 ## Tier D — Polish
 
-### T-082 — Templates and combined captures
+### T-082 — Captures cannot be combined on one canvas
 
-Snagit composes several captures into one laid-out image. The form model could express this
-already; what is missing is a layout description and the interface for it.
+Compose several captures into one editable, laid-out image using the existing form model.
+
+- Related: T-247
+
+### T-247 — No reusable capture layout templates
+
+Persist and apply named layout descriptions independently of combining captures manually.
+
+- Related: T-082
 
 ### T-083 — Stamp library
 
@@ -131,12 +198,6 @@ warns against a prefix that repeats its own scope. `src/actions/actimage.swg` an
 carry an `act` prefix that the `actions/` folder already provides; `action.image.swg` is the
 convention. Same question for `forms/formimage.swg`. Mechanical, low risk, and best done in one
 pass rather than drifting further.
-
-### T-086 — Module README
-
-sCapture has none. The skill only requires one when setup, packaging, privileges, security, or
-third-party deployment need explanation, and today none of those apply — so this is a judgement
-call rather than a gap. It becomes required the moment T-081 brings an encoder dependency in.
 
 ---
 

@@ -41,41 +41,169 @@ The gaps are not about polish. Two of them are structural.
 These two entries are the difference between a standard library and a complete one. They are
 independent: neither blocks the other, and neither should be allowed to block everything else.
 
-### T-027 — No networking of any kind
+### T-027 — No blocking TCP sockets
 
-- Problem: there are no sockets. No TCP, no UDP, no DNS resolution, no HTTP client or server, no
-  TLS, no WebSocket. A Swag program cannot open a connection to anything.
+- Problem: there are no TCP sockets. A Swag program cannot open even a blocking connection.
 - Consequence: this rules out servers, clients, tooling that talks to a registry or an API, package
   management, telemetry, and every application whose value involves a network. It is the single
   largest capability gap in the language, larger than anything in the compiler.
-- Fix, and a boundary recommendation: **do not put this in `core`.** A `net` module importing
-  `core` matches how `audio`, `pixel` and `gui` are already separated, and keeps a TLS stack and an
-  HTTP parser out of the module every program links. Staged:
-  1. Sockets — TCP and UDP, blocking, with addresses and DNS resolution. Winsock on Windows, BSD
-     sockets elsewhere. This is the layer everything else sits on.
-  2. Non-blocking and readiness notification. This is where the async design question in T-036
-     becomes unavoidable, so decide that first rather than around it.
-  3. TLS. Depends on T-031 for AES and the signature primitives. Consider binding the platform
-     provider — Schannel, Secure Transport, OpenSSL — before writing one.
-  4. HTTP/1.1 client, then server.
+- Put the blocking TCP and address foundation in a `net` module importing `core`; do not put a
+  network stack in the module every program links. Implement Winsock and BSD-socket leaves behind
+  the same contract.
+- Related: T-126, T-127, T-128, T-129, T-130, T-131, T-341
 
-### T-028 — The standard library is Windows-only
+### T-341 — No UDP sockets
 
-- Problem: twenty-six `.win32.swg` files and zero POSIX, Linux or macOS implementations. Every
-  `#os` check outside those files tests for Windows. `std/core` does not exist on another platform,
-  and therefore neither does anything above it.
-- What needs a peer implementation: process, filesystem (directory, file, stream, info, attributes,
-  path, drives), threading (thread, mutex, rwlock, event), time (datetime, time, timer, timestamp),
-  environment, errors, sandbox, hardware, console, debugger, and the input devices.
-- The good news: the boundary already exists and is applied consistently. The `.win32.` suffix
-  convention means the split points are already chosen and visible, so this is implementation work
-  rather than a redesign. That is not a small distinction — most libraries in this position have to
-  invent the abstraction first.
-- The honest news: it is still the largest single body of work on this list, and it is a marathon.
-  Sequence it so it does not gate the rest — a Linux port that lands one area at a time is worth
-  more than one that lands all at once in a year.
-- Pick the second platform deliberately. Linux is the larger audience; macOS shares more of its
-  shape with what already exists through BSD sockets and Mach.
+Add datagram sockets, endpoints, size/error behavior, and broadcast/multicast decisions
+independently of TCP connection semantics.
+
+- Related: T-027, T-126, T-127
+
+### T-126 — No DNS resolver
+
+Add host/service resolution to the `net` module over the platform resolver, with explicit address
+ordering, cancellation, and failure semantics.
+
+- Related: T-027
+
+### T-127 — No non-blocking socket readiness API
+
+Add non-blocking sockets and readiness notification after the concurrency decision in T-012. Keep
+the readiness mechanism separate from the blocking socket foundation.
+
+- Related: T-027, T-012, T-162
+
+### T-128 — No TLS transport
+
+Provide client and server TLS over the socket contract. Decide explicitly whether each platform
+binds its native provider or the project owns a portable implementation.
+
+- Related: T-027, T-031, T-151, T-152
+
+### T-129 — No HTTP client
+
+Implement an HTTP/1.1 client over T-027 and T-128, with streaming bodies, redirects, cancellation,
+and bounded parsing as its own public contract.
+
+- Related: T-027, T-128
+
+### T-130 — No HTTP server
+
+Implement HTTP/1.1 server parsing, response streaming, connection lifetime, and limits independently
+of the client API.
+
+- Related: T-027, T-127, T-128, T-129
+
+### T-131 — No WebSocket protocol
+
+Add WebSocket handshake and frame processing above HTTP without making it part of the HTTP client's
+completion criteria.
+
+- Related: T-129, T-130
+
+### T-028 — Process services have no second-platform backend
+
+Add process creation, waiting, termination, pipes, exit status, and resource semantics for the
+chosen second platform. The common-policy extraction is tracked separately in T-106 and T-277.
+
+- Related: T-103, T-106, T-277, T-280
+
+### T-132 — Filesystem services have no second-platform backend
+
+Implement directory, file, stream, metadata, path-state, and mutation primitives for the chosen
+second platform behind the contract prepared by T-107, T-282, and T-283.
+
+- Related: T-107, T-282, T-283
+
+### T-133 — Threads have no second-platform backend
+
+Implement thread creation, start, join, yield, sleep, identity, and priority for the chosen second
+platform without copying common lifecycle policy into the native leaf.
+
+- Related: T-300, T-312
+
+### T-312 — Synchronization primitives have no second-platform backend
+
+Implement mutexes, read-write locks, and events for the chosen second platform behind the existing
+portable contracts.
+
+- Related: T-133, T-161
+
+### T-134 — Clocks have no second-platform backend
+
+Implement wall-clock fields and monotonic ticks for the chosen second platform.
+
+- Related: T-302, T-313
+
+### T-313 — Timers have no second-platform backend
+
+Implement native timer wait/wake mechanisms for the chosen second platform behind the common
+scheduler in T-301.
+
+- Related: T-134, T-301
+
+### T-135 — Environment services have no second-platform backend
+
+Implement environment variables, arguments, locale, special directories, and generic desktop
+actions for the chosen second platform.
+
+- Related: T-271, T-278, T-279, T-288
+
+### T-136 — Native errors have no second-platform mapping
+
+Map the second platform's error domain into the portable `core` failure contract, preserving native
+detail without leaking native codes into portable callers.
+
+- Related: T-103
+
+### T-137 — The sandbox has no second-platform backend
+
+Implement the sandbox's platform enforcement and early-startup behavior for the chosen second
+platform independently of general environment services.
+
+- Related: T-135, T-279
+
+### T-138 — Hardware discovery has no second-platform backend
+
+Implement the portable CPU, memory, display-adjacent, and machine capability queries currently
+provided only by Windows.
+
+- Related: T-103
+
+### T-139 — Console I/O has no second-platform backend
+
+Implement terminal encoding, capability, color, prompt, and byte output for the chosen second
+platform behind the common formatting work in T-303.
+
+- Related: T-303
+
+### T-140 — Stack capture has no second-platform backend
+
+Provide address capture and current-image discovery for the chosen second platform behind the
+runtime host boundary.
+
+- Related: T-104, T-314, T-342
+
+### T-342 — Debug-symbol access has no second-platform backend
+
+Locate and read the target's debug information for captured addresses, leaving parsing and
+presentation common under T-328.
+
+- Related: T-140, T-328
+
+### T-314 — Debugger integration has no second-platform backend
+
+Implement debugger detection, break/attach behavior, and any debugger-facing host operations
+independently of stack-symbol presentation.
+
+- Related: T-104, T-140
+
+### T-141 — Input devices have no second-platform backend
+
+Implement keyboard and gamepad acquisition for the chosen second platform while keeping normalized
+state and policy in common code.
+
+- Related: T-112
 
 ---
 
@@ -97,24 +225,111 @@ independent: neither blocks the other, and neither should be allowed to block ev
 
 - Problem: the whole area is twenty-nine lines. `CultureInfo` holds one `NumberFormatInfo`, which
   holds a negative sign, a positive sign and a decimal separator.
-- Missing: thousands separators and grouping, currency formatting, per-culture date and time
-  patterns, collation and locale-aware comparison, plural rules, and locale-aware case mapping.
-- The concern is not the absence but the shape. A type named `CultureInfo` with a
+- The concern is the shape. A type named `CultureInfo` with a
   `currentCulture()` accessor promises a localization system and delivers three characters. Either
-  grow it toward what .NET and ICU provide, or narrow the names to what it actually does.
+  complete numeric grouping or narrow the names to the numeric contract it
+  actually implements.
 - Related: `bin/apps` and `std/gui` now have localization work in flight on the `gui-resources`
-  branch. Coordinate rather than building a second vocabulary.
+  branch. Coordinate rather than building a second vocabulary. See T-142 through T-145 for the
+  other independent globalization capabilities.
 
-### T-031 — Cryptography has hashes but almost no ciphers
+### T-146 — No per-culture currency formatting
+
+Add currency symbols, placement, grouping, decimal rules, and negative patterns independently of
+general number formatting.
+
+- Related: T-030
+
+### T-142 — No per-culture date patterns
+
+Add localized date patterns plus month and day names to `core` so applications and GUI resources
+do not maintain their own culture tables.
+
+- Related: T-030, T-218, T-315
+
+### T-315 — No per-culture time patterns
+
+Add localized clock patterns, separators, and 12/24-hour conventions independently of date
+formatting.
+
+- Related: T-030, T-142
+
+### T-143 — No locale-aware collation
+
+Provide locale-aware comparison and sort keys independently of Unicode normalization and ordinal
+string comparison.
+
+- Related: T-030
+
+### T-144 — No plural-rule evaluation
+
+Expose cardinal and ordinal plural categories for a locale so resource selection can represent
+more than singular versus plural.
+
+- Related: T-030, T-218
+
+### T-145 — No locale-aware case mapping
+
+Add culture-sensitive upper, lower, and case-fold operations without changing the existing ordinal
+and Unicode-default operations.
+
+- Related: T-030
+
+### T-031 — No AES implementation
 
 - Present: Adler-32, CRC-32, CRC-64, MD5, SHA-1, SHA-256, HMAC-SHA-256, PBKDF2, ChaCha20, and
   several non-cryptographic hashes.
-- Missing: AES — so no hardware-accelerated bulk encryption and no interoperability with the large
-  amount of the world that speaks AES. Also missing: SHA-512, SHA-3, BLAKE2 and BLAKE3, Ed25519 and
-  X25519 signatures and key agreement, and RSA.
-- Two entries elsewhere depend on this. T-027 needs AES and the signature primitives before TLS
-  is possible. The sCrypt roadmap asks for Argon2id and a single-pass AEAD in this same folder —
-  see [T-088](todo.scrypt.md#t-088--the-crypto-primitives-are-scalar). Do them as one campaign, not three.
+- Add AES with hardware acceleration where available and constant-time fallback behavior, then add
+  separately numbered modes only when their contracts are chosen.
+- Related: T-128, T-147, T-148, T-149, T-150, T-151, T-152, T-153
+
+### T-147 — No SHA-512 family
+
+Implement SHA-384/SHA-512 and HMAC variants with standard vectors and streaming parity with the
+existing SHA-256 API.
+
+- Related: T-031
+
+### T-148 — No SHA-3 family
+
+Implement the SHA-3 digest family and SHAKE extendable-output functions as a distinct sponge-based
+API.
+
+- Related: T-031
+
+### T-149 — No BLAKE2 implementation
+
+Add BLAKE2 variants with keyed and unkeyed modes independently of BLAKE3.
+
+- Related: T-150
+
+### T-150 — No BLAKE3 implementation
+
+Add BLAKE3 hashing, keyed hashing, key derivation, and parallel tree processing as one algorithm
+contract.
+
+- Related: T-149
+
+### T-151 — No Ed25519 signatures
+
+Add key generation, signing, verification, strict input validation, and published vectors for
+Ed25519.
+
+- Related: T-128, T-152
+
+### T-152 — No X25519 key agreement
+
+Add X25519 key generation and shared-secret derivation with low-order input handling stated and
+tested.
+
+- Related: T-128, T-151
+
+### T-153 — No RSA interoperability
+
+Provide only the RSA operations and padding schemes justified by external interoperability, with
+unsafe legacy modes excluded from the default surface.
+
+- Related: T-128
 
 ---
 
@@ -122,10 +337,22 @@ independent: neither blocks the other, and neither should be allowed to block ev
 
 ### T-032 — Archive formats
 
-`compress` has raw deflate, inflate and a zlib wrapper, so the hard part is done. Missing: the
-gzip container, ZIP, and TAR. Reading a `.zip` is among the most common I/O tasks there is, and it
-is a thin layer over what already exists. Modern codecs — Zstandard, LZ4 — are a separate and
-lower-priority question.
+Add the gzip container over the existing deflate/inflate and zlib support, including headers,
+trailers, checksums, and concatenated members.
+
+- Related: T-154, T-155
+
+### T-154 — No ZIP container support
+
+Add bounded ZIP reading and writing with central-directory validation and explicit support limits.
+
+- Related: T-032
+
+### T-155 — No TAR container support
+
+Add streaming TAR reading and writing, with the supported metadata and extension variants stated.
+
+- Related: T-032
 
 ### T-033 — Time zones
 
@@ -136,24 +363,48 @@ stuck at the boundary.
 ### T-034 — Missing collections
 
 Present: `Array`, `ArrayPtr`, `BitArray`, `ConcatBuffer`, `HashSet`, `HashTable`, `List`,
-`StaticArray`. Missing, in order of how often they are wanted:
+`StaticArray`. Add an ordered map so iteration is sorted and range queries are possible; a hash
+table cannot substitute.
 
-- An ordered map and set, so iteration is sorted and range queries are possible. Rust has
-  `BTreeMap`, C++ has `std::map`; a hash table cannot substitute.
-- A deque or ring buffer.
-- A priority queue.
+- Related: T-156, T-157, T-158
 
-### T-035 — Memory-mapped files and filesystem watching
+### T-156 — No ordered set
 
-Neither exists. Memory mapping matters for any large file read — the sCrypt container is one
-example already in the repository. Watching matters for any tool that reacts to edits, which
-includes anything this repository would want to build around the formatter or the compiler.
+Add an ordered set with the same ordering, lookup, range, ownership, and iterator conventions as
+T-034's ordered map.
 
-### T-036 — Concurrency beyond parallel fan-out
+- Related: T-034
 
-`Jobs` gives parallel visiting and parallel loops, and there are atomics, mutexes, read-write locks
-and events. There is no future or task type, no channels, and no condition variable. There is no
-asynchronous I/O.
+### T-157 — No deque
+
+Add a double-ended queue or ring-buffer collection with bounded amortized operations at both ends.
+
+- Related: T-158
+
+### T-158 — No priority queue
+
+Add a heap-backed priority queue with explicit comparator and ownership behavior.
+
+- Related: T-157
+
+### T-035 — No memory-mapped files
+
+Add portable mapped-file and mapped-region APIs with flush, resize interaction, lifetime, and
+failure contracts suitable for large files such as an sCrypt container.
+
+- Related: T-159
+
+### T-159 — No filesystem watching
+
+Add a filesystem change stream for tools that react to edits, with overflow, rename pairing,
+recursive scope, and cancellation behavior stated per platform.
+
+- Related: T-035, T-008
+
+### T-036 — No future or task abstraction
+
+`Jobs` gives parallel visiting and loops, but no value-bearing or failing asynchronous task that a
+caller can await, combine, cancel, or observe.
 
 This is as much a language question as a library one — Go answered it with goroutines and channels,
 Rust with `async` and a futures machinery that reaches into the type system, .NET with `Task`. It
@@ -161,8 +412,31 @@ should be decided deliberately and early, because T-027 will force the question 
 non-blocking sockets arrive, and answering it under that pressure is how libraries end up with two
 concurrency models.
 
-The language-design half is [T-012](todo.language.md#t-012--the-concurrency-model-is-undecided). Record decisions
-there, not here.
+The language-design half is [T-012](todo.language.md#t-012--the-concurrency-model-is-undecided).
+Record decisions there, not here.
+
+- Related: T-012, T-160, T-161, T-162
+
+### T-160 — No channel abstraction
+
+Add typed communication channels only after T-012 decides whether they are a language-level
+coordination primitive or an ordinary library type.
+
+- Related: T-012, T-036
+
+### T-161 — No condition variable
+
+Add condition variables with a predicate-loop usage contract and clear interaction with mutex
+ownership and cancellation.
+
+- Related: T-036
+
+### T-162 — No asynchronous I/O contract
+
+Define asynchronous I/O completion, cancellation, buffer lifetime, and scheduler integration
+without coupling it to the first non-blocking socket backend.
+
+- Related: T-012, T-036, T-127
 
 ---
 

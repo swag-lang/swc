@@ -29,6 +29,7 @@ allowed to stop.
 | [todo.doc.md](todo.doc.md) | The `doc` command |
 | [todo.format.md](todo.format.md) | The `format` command |
 | [todo.runtime.md](todo.runtime.md) | `bin/runtime`, and the allocator in particular |
+| [todo.portability.md](todo.portability.md) | Cross-platform boundaries in `bin/`, the runtime host ABI, and preparation for Linux |
 | [todo.core.md](todo.core.md) | `std/core` |
 | [todo.gui.md](todo.gui.md) | `std/gui` |
 | [todo.pixel.md](todo.pixel.md) | `std/pixel` |
@@ -72,7 +73,7 @@ another backlog entry, in a code comment. A title gets rewritten, a position mov
 changes file; the identifier does not.
 
 Next identifier: F-086
-Next identifier: T-103
+Next identifier: T-115
 
 - Take the next identifier of the matching kind from the lines above, then advance that line. Each
   is a counter, not an entry count: it keeps rising as entries are deleted. The `F` counter is

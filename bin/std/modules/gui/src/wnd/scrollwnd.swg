@@ -35,9 +35,7 @@ public struct ScrollWnd
     {
         oldMouseCapture: #null *Wnd     // Old mouse capture associated with this value.
 
-        scrollSmoothPos:  Math.Point     // Scroll smooth pos associated with this value.
         scrollRequestPos: Math.Point     // Scroll request pos associated with this value.
-        smoothScroll:     bool           // Smooth scroll associated with this value.
 
         showBarV:   bool     // Show bar v associated with this value.
         needV:      bool     // Need v associated with this value.
@@ -109,9 +107,21 @@ public impl IWnd for ScrollWnd
                 let move   = evt.surfacePos - .grabbingPos
                 let scroll = .scrollRequestPos - move
                 .scrollRequestPos = .scrollPositionPrivate(scroll.x, scroll.y)
-                .smoothScroll     = true
                 .grabbingPos      = evt.surfacePos
-                .invalidate()
+
+                var options: AnimationOptions
+                options.duration = Time.Duration.fromSeconds(.themeMetrics().motion_PanelSeconds)
+                options.easing   = .EaseOut
+                discard .app().animator.animatePoint(me,
+                                                     AnimationChannel.from("Gui.Scroll.Position"),
+                                                     .view.scrollPos,
+                                                     .scrollRequestPos,
+                                                     func|scrollWnd=me|(animationWnd, value)
+                                                     {
+                                                         discard animationWnd
+                                                         discard scrollWnd.setScrollPosPrivate(value.x, value.y)
+                                                     },
+                                                     options)
                 break
             }
 
@@ -141,7 +151,6 @@ public impl IWnd for ScrollWnd
         case .Pressed:
             if evt.button == .Middle
             {
-                .scrollSmoothPos = .view.scrollPos
                 .isGrabbing      = true
                 .grabbingPos     = evt.surfacePos
                 .oldMouseCapture = .mouseCapture()
@@ -207,21 +216,6 @@ public impl IWnd for ScrollWnd
 
     mtd impl onPaint(evt: *PaintEvent)
     {
-        if .smoothScroll
-        {
-            let dt = .app().deltaSeconds()
-            if !Math.isEqualEpsilon(.scrollRequestPos.x, .view.scrollPos.x) or
-               !Math.isEqualEpsilon(.scrollRequestPos.y, .view.scrollPos.y)
-            {
-                .scrollSmoothPos.x = Math.lerp(.scrollSmoothPos.x, .scrollRequestPos.x, 10 * dt)
-                .scrollSmoothPos.y = Math.lerp(.scrollSmoothPos.y, .scrollRequestPos.y, 10 * dt)
-                discard .setScrollPosPrivate(.scrollSmoothPos.x, .scrollSmoothPos.y)
-                .invalidate()
-            }
-            else do
-                .smoothScroll = false
-        }
-
         let bc      = evt.paintContext
         let theme   = .theme()
         let metrics = .themeMetrics()
@@ -520,9 +514,9 @@ public impl ScrollWnd
 
     mtd setScrollPos(x, y: f32)
     {
+        .app().animator.cancel(me, AnimationChannel.from("Gui.Scroll.Position"))
         let newSP = .setScrollPosPrivate(x, y)
         .scrollRequestPos = newSP
-        .smoothScroll     = false
     }
 
     // Sets the non-negative virtual content size and clamps the current position.

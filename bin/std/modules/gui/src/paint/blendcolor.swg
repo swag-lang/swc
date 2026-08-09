@@ -5,70 +5,109 @@ using Pixel
 // Used to animate the blending of a color.
 struct BlendColor
 {
-    speed: f32 = 8     // Speed of the interpolation, in units per second.
+    speed: f32 = 8     // Positive interpolation speed in units per second; non-positive values complete immediately.
 
-    // Interpolation state, advanced one step per frame. Set a target with 'setColor' and read
-    // the current value with 'color'; the endpoints and the cursor between them are derived.
+    // Interpolation state owned by the application animator. Set a target with `apply` and read
+    // the current value with `cur`.
     internal
     {
         curVec4:   Math.Vector4           // Color of the current frame.
-        startVec4: Math.Vector4           // Color the interpolation started from.
         destVec4:  Math.Vector4           // Color the interpolation runs to.
-        factor:    f32                    // Cursor between the endpoints, from 0 to 1.
         themeCrc:  u32 = Swag.U32.Max     // Theme the endpoints were resolved against.
+        targetWnd: #null *Wnd             // Window borrowing this blend while a track is active.
     }
 }
 
 impl BlendColor
 {
-    // Apply the color lerp to reach 'target'
+    // Retargets this blend toward `target` on the supplied window's animation clock.
     mtd apply(wnd: *Wnd, target: Color)
     {
+        let previousWnd = .targetWnd
+        if previousWnd and previousWnd != wnd
+        {
+            .targetWnd = null
+            if previousWnd.surface do
+                previousWnd.app().animator.cancel(previousWnd, AnimationChannel.fromPointer(me))
+        }
+
         if wnd.app().dirtyTheme != .themeCrc
         {
+            let firstResolution = .themeCrc == Swag.U32.Max
             .themeCrc = wnd.app().dirtyTheme
-            .curVec4, .startVec4, .destVec4 = target.toVector4()
-            .factor   = 1.0
-            return
+            if firstResolution
+            {
+                .curVec4, .destVec4 = target.toVector4()
+                return
+            }
         }
 
         let vec4 = target.toVector4()
-        if .destVec4 != vec4
-        {
-            .startVec4 = .curVec4
-            .destVec4  = vec4
-            .factor    = 0
-        }
-        elif .factor >= 1.0
-        {
-            .curVec4, .startVec4, .destVec4 = target.toVector4()
+        if .destVec4 == vec4 do
             return
-        }
+        .destVec4 = vec4
 
-        var startV = .startVec4
-        var destV  = .destVec4
-        if startV.w == 0
+        var source      = .curVec4
+        var destination = vec4
+        if source.w == 0
         {
-            startV.x = .destVec4.x
-            startV.y = .destVec4.y
-            startV.z = .destVec4.z
+            source.x = destination.x
+            source.y = destination.y
+            source.z = destination.z
         }
 
-        if destV.w == 0
+        if destination.w == 0
         {
-            destV.x = .startVec4.x
-            destV.y = .startVec4.y
-            destV.z = .startVec4.z
+            destination.x = source.x
+            destination.y = source.y
+            destination.z = source.z
         }
 
-        .curVec4 = Math.Vector4.lerp(startV, destV, .factor)
-        .factor  += wnd.app().deltaSeconds() * .speed
-        wnd.invalidate()
+        var options: AnimationOptions
+        if .speed > 0 do
+            options.duration = Time.Duration.fromSeconds(1.0 / .speed)
+        else do
+            options.duration = {}
+        options.easing           = .Linear
+        options.preserveProgress = true
+        .targetWnd               = null
+        let handle = wnd.app().animator.animateVector4(wnd,
+                                                       AnimationChannel.fromPointer(me),
+                                                       source,
+                                                       destination,
+                                                       func|blend=me|(animationWnd, value)
+                                                       {
+                                                           discard animationWnd
+                                                           blend.curVec4 = value
+                                                       },
+                                                       options,
+                                                       func|blend=me, vec4, wnd|(result)
+                                                       {
+                                                           if blend.targetWnd != wnd do
+                                                               return
+                                                           if result == .Completed do
+                                                               blend.curVec4 = vec4
+                                                           else do
+                                                               blend.destVec4 = blend.curVec4
+                                                           blend.targetWnd = null
+                                                       })
+        if wnd.app().animator.isActive(handle) do
+            .targetWnd = wnd
+        else
+        {
+            .curVec4   = vec4
+            .targetWnd = null
+        }
     }
 
     // Reset the blend
     mtd reset()
     {
+        let wnd = .targetWnd
+        .targetWnd = null
+        .destVec4  = .curVec4
+        if wnd and wnd.surface do
+            wnd.app().animator.cancel(wnd, AnimationChannel.fromPointer(me))
         .themeCrc = Swag.U32.Max
     }
 

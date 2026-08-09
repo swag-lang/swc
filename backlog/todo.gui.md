@@ -106,14 +106,14 @@ coverage checks that prevent untranslated keys. Locale date/name data belongs to
 Handle the platform settings-change notification and update live light/dark policy without
 restarting the application.
 
-- Related: T-219, T-224
+- Related: T-219
 
 ### T-219 — System high-contrast changes are ignored
 
 Refresh high-contrast policy on the platform settings notification and ensure it overrides visual
 theme choices as required for accessibility.
 
-- Related: T-037, T-041, T-224
+- Related: T-037, T-041
 
 ### T-220 — Display-topology changes are ignored
 
@@ -152,125 +152,6 @@ Add caption mnemonics, surface-level `Alt` handling, menu activation, and underl
 one keyboard access-key contract.
 
 - Related: T-042, T-037
-
-### T-043 — No shared animation scheduler
-
-This is not a blank slate. `Application` already supplies frame timing and opt-in `FrameEvent`
-delivery; `BlendColor` softens state changes in buttons, fields, tabs, scroll bars and the property
-grid; `ScrollWnd` has a private smooth-scroll loop; disabled surfaces fade; and `Spinner`, the
-indeterminate `ProgressBar` and `Movie` advance from the same delta time. The problem is that each
-consumer owns a different partial mechanism. There is no finite animation with a duration, no
-easing vocabulary, and no delay or completion contract. T-225, T-317, T-355, and T-224 separately
-own lifetime, retargeting, grouping, and reduced motion. A caller that wants a panel to move or a
-page to cross-fade currently writes its own frame state, invalidation and teardown.
-
-A useful first version should be deliberately smaller than a general timeline editor:
-
-- **One scheduler and one clock.** An `Animator` owned by `Application` advances only active
-  animations from `FrameTiming`, requests only the affected repaint or layout, and stops asking for
-  frames when the last track ends. A track has delay, duration, direction, easing, completion and
-  an explicit result when it finishes or is cancelled. Starting a new track for the same target
-  and channel retargets from the value currently on screen instead of jumping back to the previous
-  endpoint.
-
-- Related: T-225, T-317, T-354, T-355, T-224
-
-### T-354 — Animation tracks have no typed value layer
-
-Start with `f32`, `Color`, `Math.Point`, `Math.Vector4` and
-  `Math.Rectangle`, plus linear, ease-in, ease-out and ease-in-out curves. Do not begin with a
-  reflection-based "animate any field" API: changing an arbitrary field cannot say whether it
-  needs paint, measure, arrange or new hit-test geometry, and it can silently outlive its owner.
-  Typed tracks with an update callback make those costs and that lifetime visible.
-
-- Related: T-043, T-223, T-355
-
-### T-355 — Animation tracks cannot be grouped
-
-Add parallel and sequence groups over T-043's tracks. Springs, keyframes, and authoring remain out
-of scope until a concrete consumer needs them.
-
-- Related: T-043, T-354
-
-### T-223 — `Wnd` has no presentation-only animation properties
-
-Opacity, a paint offset and clipping reveal/hide most of
-  the useful interface transitions without changing the target layout rectangle every frame.
-  Layout-affecting size animation should be a separate adapter that invalidates the nearest layout
-  root, used sparingly for an expanding pane. Hit testing and keyboard focus must follow the final
-  logical state, not chase a decorative transform frame by frame.
-
-- Related: T-043, T-225, T-309, T-358, T-359
-
-### T-225 — Animation lifetime has no shared contract
-
-Destroying or hiding a target cancels its tracks; changing theme or DPI must not leave stale
-  registrations. Registration needs a window-owned cancellation token, or a new
-  generation-checked
-  handle if animations may outlive one dispatch; `WndId` is a command/persistence name, not a
-  lifetime handle, and a borrowed pointer must not survive deferred destruction.
-
-- Related: T-043, T-223, T-317
-
-### T-317 — Animation retargeting has no shared contract
-
-Changing theme or DPI keeps normalized progress while resolving new endpoints, and a replacement
-track starts from the on-screen value without a jump. Direct manipulation wins over retargeting.
-
-- Related: T-043, T-225
-
-### T-224 — No application-wide reduced-motion policy
-
-Read the Windows client-area-animation preference, refresh it on
-  `WM_SETTINGCHANGE` with T-041, and expose one application policy that tests and applications can
-  override. With reduced motion, decorative finite transitions complete immediately; essential
-  busy feedback remains visible but avoids large translation and scale. Durations and distances
-  belong to semantic theme tokens — quick state feedback, page transition, panel transition — not
-  as unrelated constants embedded in controls.
-
-- Related: T-041, T-043, T-309
-
-### T-309 — Existing one-off animations do not use the shared motion system
-
-Migrate `BlendColor` to the shared scheduler without changing any resting pixels.
-
-- Related: T-043, T-354, T-356, T-357, T-358, T-359
-
-### T-356 — Smooth scrolling uses a private animation loop
-
-Move `ScrollWnd` smooth scrolling to the shared scheduler with unchanged scroll geometry.
-
-- Related: T-043, T-309, T-366
-
-### T-357 — Selection indicators have no shared transition
-
-Add a short scheduler-driven selection-indicator transition to tabs and lists.
-
-- Related: T-043, T-309
-
-### T-358 — Page changes have no shared transition
-
-Add one restrained page transition over T-223's presentation properties. sCapture's editor/library
-switch and sCrypt's Create/Open/Mounted cards are the proving consumers.
-
-- Related: T-043, T-223, T-309
-
-### T-359 — Expanding panes have no shared layout transition
-
-Add a layout-affecting size adapter that invalidates the nearest layout root. sCapture's recent
-strip is the proving consumer.
-
-- Related: T-043, T-223, T-309
-
-### T-360 — Headless animation tests have no controllable clock
-
-The headless host needs a controllable clock and helpers
-to sample a track at 0, 50 and 100 percent, finish all tracks, and force reduced motion. Unit tests
-cover easing endpoints, retargeting, cancellation on destruction, grouping and DPI/theme changes;
-command-stream or image goldens cover the few standard transitions. A finished animation must
-leave neither a registered frame callback nor a permanently dirty surface behind.
-
-- Related: T-043, T-223, T-224, T-225, T-309
 
 ### T-044 — No pointer-event model
 
@@ -346,10 +227,10 @@ Add a touch theme/input profile whose hit targets are larger even when the paint
 
 ### T-366 — Touch scrolling has no inertia
 
-Drive kinetic scrolling from T-043 using the velocity reported by T-363, with deterministic
-deceleration and reduced-motion behavior.
+Drive kinetic scrolling from the shared animation scheduler using the velocity reported by T-363,
+with deterministic deceleration and reduced-motion behavior.
 
-- Related: T-043, T-224, T-356, T-363
+- Related: T-363
 
 ### T-367 — Nested scroll views do not chain touch motion
 

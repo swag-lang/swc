@@ -57,10 +57,13 @@ struct Application
 
     // Frame and input bookkeeping. Reading it tells what the application is doing this frame;
     // writing it from outside would desynchronize the loop from the window tree.
+    animator: Animator     // Shared finite-animation scheduler.
+
     readonly
     {
-        timing:      Time.FrameTiming     // Timing of the frame being run.
-        isActivated: bool                 // Whether the application owns the active native window.
+        timing:           Time.FrameTiming               // Timing of the frame being run.
+        motionPreference: MotionPreference = .System     // Application override of the platform motion preference.
+        isActivated:      bool                           // Whether the application owns a native window.
     }
 
     // Focus tracking, moved by the windows themselves as events are dispatched.
@@ -94,22 +97,23 @@ struct Application
     // Run-loop state. It only means something to the loop that owns it.
     internal
     {
-        postedEvents:      Array'(IEvent)                                             // Events queued from any thread, drained each frame.
-        postDestroy:       Array'(*Wnd)                                               // Windows to destroy once the frame is over.
-        hookOnEvent:       Array'(*Wnd)                                               // Windows watching every event of the application.
-        endModalExit:      #null WndId                                                // Result the innermost modal loop exits with.
-        inModalLoop:       u32                                                        // Depth of the modal loop nesting.
-        quitCode:          s32                                                        // Exit code the run loop returns.
-        mustQuit:          bool                                                       // Whether the run loop stops at the end of the frame.
-        endModal:          bool                                                       // Whether the innermost modal loop stops.
-        mutexPostedEvents: Sync.Mutex                                                 // Guards 'postedEvents' against other threads.
-        duringTimerEvents: bool                                                       // Whether timer callbacks are running, so lists defer.
-        timers:            Array'(*Timer)                                             // Active timers.
-        timersToAdd:       Array'(*Timer)                                             // Timers added while callbacks were running.
-        timersToDelete:    Array'(*Timer)                                             // Timers removed while callbacks were running.
-        frameEvents:       Array'(*Wnd)                                               // Windows asking for a per-frame event.
-        modalSurfaces:     Array'(*Surface)                                           // Surface stack of the nested modal loops.
-        toDelete:          Array'{ ptr: #null *void, type: const *Swag.TypeInfo }     // Deferred deletions.
+        postedEvents:        Array'(IEvent)                                             // Events queued from any thread, drained each frame.
+        postDestroy:         Array'(*Wnd)                                               // Windows to destroy once the frame is over.
+        hookOnEvent:         Array'(*Wnd)                                               // Windows watching every event of the application.
+        endModalExit:        #null WndId                                                // Result the innermost modal loop exits with.
+        inModalLoop:         u32                                                        // Depth of the modal loop nesting.
+        quitCode:            s32                                                        // Exit code the run loop returns.
+        mustQuit:            bool                                                       // Whether the run loop stops at the end of the frame.
+        endModal:            bool                                                       // Whether the innermost modal loop stops.
+        mutexPostedEvents:   Sync.Mutex                                                 // Guards 'postedEvents' against other threads.
+        duringTimerEvents:   bool                                                       // Whether timer callbacks are running, so lists defer.
+        timers:              Array'(*Timer)                                             // Active timers.
+        timersToAdd:         Array'(*Timer)                                             // Timers added while callbacks were running.
+        timersToDelete:      Array'(*Timer)                                             // Timers removed while callbacks were running.
+        frameEvents:         Array'(*Wnd)                                               // Windows asking for a per-frame event.
+        modalSurfaces:       Array'(*Surface)                                           // Surface stack of the nested modal loops.
+        toDelete:            Array'{ ptr: #null *void, type: const *Swag.TypeInfo }     // Deferred deletions.
+        systemReducedMotion: bool                                                       // Platform client-area-animation preference.
     }
 
     // Stops the run loop after this many frames, or never when zero. A test or a scripted
@@ -469,6 +473,8 @@ private impl Application
 
     mtd unregisterWnd(wnd: *Wnd)
     {
+        .animator.cancelTarget(wnd)
+
         if wnd == .mouseEnterWnd or wnd.isOwnerOf(.mouseEnterWnd) do
             .mouseEnterWnd = null
         if wnd == .mouseCaptureWnd or wnd.isOwnerOf(.mouseCaptureWnd) do
@@ -599,6 +605,7 @@ private impl Application
         .timing.update()
         Memory.releaseTemporaryAllocations()
 
+        .animator.advance(.timing.deltaSeconds)
         ToolTip.update(.deltaSeconds())
         .sendFrameEvents()
         .sendTimerEvents()
@@ -743,6 +750,7 @@ impl Application
     // Releases resources owned by this value.
     mtd opDrop()
     {
+        .animator.cancelAll()
         .setGlobalHotKeysEnabled(false)
 
         for it in .surfaces do
@@ -882,6 +890,7 @@ impl Application
 
         if !.mainSurface
         {
+            .refreshSystemMotionPreference()
             if !@isset(.renderer) do
                 .setRenderer(&.rendererOgl)
             if !@isset(.theme) do
@@ -1032,6 +1041,26 @@ impl Application
 
     // Returns the active language tag, `"en"` by default.
     func language()->string => activeLanguage()
+
+    // Overrides or restores the platform reduced-motion preference.
+    mtd setMotionPreference(preference: MotionPreference)
+    {
+        let wasReduced = .isReducedMotion()
+        .motionPreference = preference
+        if !wasReduced and .isReducedMotion() do
+            .animator.finishDecorative()
+    }
+
+    // Reports whether decorative finite transitions complete immediately.
+    mtd const isReducedMotion()->bool
+    {
+        switch #complete .motionPreference
+        {
+        case .System:  return .systemReducedMotion
+        case .Full:    return false
+        case .Reduced: return true
+        }
+    }
 
     // Emits a language-change notification throughout every surface tree.
     //

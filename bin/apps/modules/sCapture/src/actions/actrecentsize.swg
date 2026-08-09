@@ -88,16 +88,23 @@ impl IActionUI for ActionRecentSize
 
 impl MainWnd
 {
-    mtd setBottomSize(bottomSize: BottomSize)
+    mtd setBottomSize(bottomSize: BottomSize, animated = true)
     {
         .bottomSize = bottomSize
+        var height: f32
         switch .bottomSize
         {
-        case .Small:  .recentBar.resize(0, 80)
-        case .Medium: .recentBar.resize(0, 128)
-        case .Big:    .recentBar.resize(0, 224)
+        case .Small:  height = 80
+        case .Medium: height = 128
+        case .Big:    height = 224
         }
 
-        .applyLayout({.position.width, .position.height})
+        if animated do
+            discard .app().animator.animateLayoutHeight(.recentBar, height)
+        else
+        {
+            .recentBar.resize(0, height)
+            .applyLayout({.position.width, .position.height})
+        }
     }
 }

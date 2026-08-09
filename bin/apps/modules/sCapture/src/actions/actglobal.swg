@@ -80,16 +80,17 @@ impl MainWnd
 
         // The tool rail and the tool column belong to the editor: in library mode there is
         // no form to draw and no form to style, so both leave instead of standing empty.
-        .editWnd.show(!.libraryMode)
         .rightBar.show(!.libraryMode)
         .recentBar.show(!.libraryMode)
         .toolRail.show(!.libraryMode)
         .commandReadouts.show(!.libraryMode)
 
-        .libWnd.show(.libraryMode)
-
         if .libraryMode do
             .libWnd.fill()
+
+        let outgoing = .libraryMode ? cast(*Wnd) .editWnd : cast(*Wnd) .libWnd
+        let incoming = .libraryMode ? cast(*Wnd) .libWnd : cast(*Wnd) .editWnd
+        discard .app().animator.transitionPage(outgoing, incoming, .libraryMode ? 1 : -1)
 
         .applyLayout()
         if .libraryMode do

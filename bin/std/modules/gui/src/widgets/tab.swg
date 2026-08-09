@@ -84,6 +84,7 @@ struct Tab
         minimumItemWidth: f32         = 25               // Minimum effective width for every tab.
         items:            ArrayPtr'TabItem               // Tabs in display order.
         selectedIndex                 = Swag.U32.Max     // Selected tab index, or U32.Max when empty.
+        pageTransitions:  bool                           // Whether owned page changes use the standard transition.
     }
 
     // Bar layout and overflow state, recomputed by the layout pass.
@@ -95,6 +96,8 @@ struct Tab
         hotIndex:          u32 = Swag.U32.Max       // Tab under the mouse.
         barHeight:         f32                      // Height the bar measured for itself.
         mostRightPos:      f32                      // Right edge of the last laid out tab.
+        selectionRail:     Math.Rectangle           // Animated active-rail position.
+        hasSelectionRail:  bool                     // Whether the rail has been laid out once.
     }
 }
 
@@ -233,14 +236,6 @@ impl IWnd for Tab
             theme.drawSubRect(painter, labelPos, subRect, v.aniImg.cur())
         if subRectBorder do
             theme.drawSubRect(painter, labelPos, subRectBorder, v.aniBorder.cur(), false)
-        if railed and idx == .selectedIndex
-        {
-            let size = metrics.activeRail_Size
-            var rail = Math.Rectangle{labelPos.x, labelPos.bottom() - size, labelPos.width, size}
-            rail.inflate(-Math.min(metrics.activeRail_Margin, rail.width / 3), 0)
-            painter.fillRect(rail, colors.activeRail)
-        }
-
         var format: RichStringFormat
         v.aniText.apply(me, colorText)
         theme.setTextColors(&format, v.aniText.cur())
@@ -323,6 +318,10 @@ impl IWnd for Tab
 
             // Paint selected item
             .paintItem(painter, .items[.selectedIndex]!, .selectedIndex)
+
+            let railed = colors.activeRail.a != 0 and (.itemForm == .Flat or .itemForm == .Transparent)
+            if railed and .hasSelectionRail do
+                painter.fillRect(.selectionRail, colors.activeRail)
         }
     }
 
@@ -333,6 +332,13 @@ impl IWnd for Tab
 
         .computeTabLayout()
         .ensureVisible(.selectedIndex)
+
+        let railChannel = AnimationChannel.from("Gui.Tab.SelectionRail")
+        if !.app().animator.isActive(me, railChannel)
+        {
+            .selectionRail    = .selectionRailRect(.selectedIndex)
+            .hasSelectionRail = true
+        }
 
         let curView = .items[.selectedIndex]!.view
         if curView
@@ -446,6 +452,16 @@ private impl Tab
         if .buttonPopup do
             rect.setRight(.buttonPopup.position.x - .themeMetrics().tabBar_PopupButtonMargin)
         return rect
+    }
+
+    mtd selectionRailRect(index: u32)->Math.Rectangle
+    {
+        let item    = .items[index]!
+        let metrics = .themeMetrics()
+        let size    = metrics.activeRail_Size
+        var rail    = Math.Rectangle{item.pos, .barHeight - size, item.width, size}
+        rail.inflate(-Math.min(metrics.activeRail_Margin, rail.width / 3), 0)
+        return rail
     }
 
     mtd hitTest(surfacePos: Math.Point)->u32
@@ -687,6 +703,21 @@ impl Tab
         .invalidate()
     }
 
+    // Enables or disables the standard fade-and-arrival transition between owned pages.
+    mtd setPageTransitions(enabled: bool)
+    {
+        .pageTransitions = enabled
+        if !enabled and .selectedIndex < .items.count
+        {
+            let view = .items[.selectedIndex]!.view
+            if view
+            {
+                .app().animator.cancel(view!, AnimationChannel.from("Gui.Page.Opacity"))
+                view.resetPresentation()
+            }
+        }
+    }
+
     // Appends a tab and transfers ownership of its optional page view to this control.
     #[Swag.Discardable]
     mtd addItem(name: string, icon: Icon = {}, view: #null *Wnd = null)->*TabItem
@@ -733,6 +764,7 @@ impl Tab
     {
         Debug.assert(index < .items.count)
         .closePopups()
+        .app().animator.cancel(me, AnimationChannel.from("Gui.Tab.SelectionRail"))
 
         let wasSelected = .selectedIndex == index
         let view        = .items[index]!.view
@@ -776,6 +808,8 @@ impl Tab
         .items.clear()
         .selectedIndex     = Swag.U32.Max
         .firstVisibleIndex = 0
+        .hasSelectionRail  = false
+        .app().animator.cancel(me, AnimationChannel.from("Gui.Tab.SelectionRail"))
         .sendResizeEvent()
         .invalidate()
     }
@@ -787,17 +821,47 @@ impl Tab
         if .selectedIndex == index do
             return
 
-        if .selectedIndex < .items.count
-        {
-            let oldView = .items[.selectedIndex]!.view
-            if oldView do
-                oldView.wndFlags |= .Hidden
-        }
+        let oldIndex = .selectedIndex
+        var oldView: #null *Wnd
+        if oldIndex < .items.count do
+            oldView = .items[oldIndex]!.view
 
         .selectedIndex = index
         let newView = .items[.selectedIndex]!.view
-        if newView do
-            newView.wndFlags &= ~.Hidden
+        if .pageTransitions and newView
+        {
+            let direction = oldIndex < index ? 1'f32 : -1'f32
+            discard .app().animator.transitionPage(oldView, newView!, direction)
+        }
+        else
+        {
+            if oldView do
+                oldView.hide()
+            if newView do
+                newView.show()
+        }
+
+        .ensureVisible(index)
+        let destination = .selectionRailRect(index)
+        if !.hasSelectionRail
+        {
+            .selectionRail    = oldIndex < .items.count ? .selectionRailRect(oldIndex) : destination
+            .hasSelectionRail = true
+        }
+
+        var options: AnimationOptions
+        options.duration = Time.Duration.fromSeconds(.themeMetrics().motion_QuickSeconds)
+        options.easing   = .EaseOut
+        discard .app().animator.animateRectangle(me,
+                                                 AnimationChannel.from("Gui.Tab.SelectionRail"),
+                                                 .selectionRail,
+                                                 destination,
+                                                 func|tab=me|(animationWnd, value)
+                                                 {
+                                                     discard animationWnd
+                                                     tab.selectionRail = value
+                                                 },
+                                                 options)
 
         .sigSelectionChanged.call(me)
 

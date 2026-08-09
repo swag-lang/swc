@@ -73,6 +73,7 @@ impl HeadlessHost
         discard catch Clipboard.resetFake()
 
         .app.setRenderer(&.renderer)
+        .app.setMotionPreference(.Reduced)
 
         .surface.rc = expect .app.renderer.createContext(null, cast(s32) (width * dpiScale), cast(s32) (height * dpiScale))
         .surface.bindPainterToRenderer(.app.renderer)
@@ -440,9 +441,31 @@ impl HeadlessHost
     {
         for count
         {
+            .app.animator.advance(1.0 / 60.0)
             .app.sendFrameEvents()
             .pump()
         }
+    }
+
+    // Advances the finite-animation clock by an exact interval and drains resulting work.
+    mtd advanceAnimations(deltaSeconds: f32)
+    {
+        Debug.assert(deltaSeconds >= 0)
+        .app.animator.advance(deltaSeconds)
+        .pump()
+    }
+
+    // Completes every finite track at its endpoint and drains resulting work.
+    mtd finishAnimations()
+    {
+        .app.animator.finishAll()
+        .pump()
+    }
+
+    // Selects deterministic full or reduced motion for this host.
+    mtd setReducedMotion(reduced: bool)
+    {
+        .app.setMotionPreference(reduced ? .Reduced : .Full)
     }
 
     // Paints the complete hosted tree with the software renderer and returns owned BGRA pixels.
@@ -463,26 +486,20 @@ impl HeadlessHost
         return .app.renderer.readRenderTarget(&.surface.rt, 0, 0, .surface.rc.width, .surface.rc.height)
     }
 
-    // Repaints the hosted tree until its colour animations have reached their targets.
+    // Primes paint-requested tracks, completes all finite animations, and repaints final state.
     //
-    // A blended colour advances one step per paint, so an image captured right after a state
-    // change shows the state the widget is leaving rather than the one it is entering — a bar whose
-    // dominant action has just moved still shows it on the button it left. A test that photographs
-    // a widget whose colours have just changed settles it first.
-    //
-    // `wnd` is the window to paint, defaulting to the root view the way
-    // [[Gui.Testing.HeadlessHost.render]] does. A [[Gui.BlendColor]] crosses in
-    // `1 / (deltaSeconds * speed)` paints, which is eight at the frame delta a host without a
-    // clock reports, so the default leaves room for a slower one.
+    // `wnd` defaults to the root. `steps` remains for source compatibility and is ignored because
+    // [[Gui.Animator.finishAll]] supplies an exact endpoint instead of paint-count settling.
     mtd settleAnimations(wnd: #null *Wnd = null, steps: u32 = 16)
     {
+        discard steps
         let target = wnd orelse &.root
-        for steps
-        {
-            .pump()
-            .surface.invalidate()
-            .surface.paintWnd(target)
-        }
+        .pump()
+        .surface.invalidate()
+        .surface.paintWnd(target)
+        .app.animator.finishAll()
+        .surface.invalidate()
+        .surface.paintWnd(target)
     }
 
     // Fires one active timer immediately and drains resulting queues.

@@ -2,6 +2,15 @@
 
 using Win32, Core, Pixel, Gdi32
 
+#foreignlib("user32")
+
+private const SPI_GETCLIENTAREAANIMATION = 0x1042'u32
+
+private #[Swag.Foreign("user32")]
+{
+    func SystemParametersInfoW(uiAction, uiParam: UINT, pvParam: LPVOID, fWinIni: UINT)->BOOL
+}
+
 // Dependency-visible Windows storage embedded by [[Application]].
 #[Swag.Opaque, Swag.NoDoc]
 public struct ApplicationNative
@@ -19,6 +28,18 @@ public struct ApplicationNative
 
 impl Application
 {
+    internal mtd refreshSystemMotionPreference()
+    {
+        var animationsEnabled = TRUE
+        if !SystemParametersInfoW(SPI_GETCLIENTAREAANIMATION, 0, &animationsEnabled, 0) do
+            return
+
+        let wasReduced = .isReducedMotion()
+        .systemReducedMotion = !animationsEnabled
+        if !wasReduced and .isReducedMotion() do
+            .animator.finishDecorative()
+    }
+
     // Samples the desktop pixel currently under the mouse cursor.
     func pickColorAtMouse()->Color
     {

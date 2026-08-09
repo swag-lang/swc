@@ -187,3 +187,29 @@ private func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = 
     discard PushButton.create(view, "Out", {5, 200, 60, 20})
     assertPaintGolden(&host, "widget.clipchildren")
 }
+
+// The standard page transition records the incoming subtree into an opacity layer and composites
+// it at its presentation offset. Sampling halfway protects that paint-only contract.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 200)
+    defer host.shutdown()
+    host.setReducedMotion(false)
+
+    let tab   = Tab.create(&host.root, {10, 10, 300, 180})
+    let first = Wnd.create'Wnd(tab)
+    let next  = Wnd.create'Wnd(tab)
+    first.backgroundStyle = .View
+    next.backgroundStyle  = .View
+    discard Label.create(first, "First", {20, 20, 120, 30})
+    discard Label.create(next, "Next", {20, 20, 120, 30})
+    tab.setPageTransitions(true)
+    tab.addItem("One", view: first)
+    tab.addItem("Two", view: next)
+    tab.setSelectedIndex(1)
+    host.advanceAnimations(tab.themeMetrics().motion_PageSeconds * 0.5)
+
+    let image = host.render()
+    Pixel.Testing.assertImageGolden(&image, "animation.tab.page.half")
+}

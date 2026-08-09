@@ -248,6 +248,15 @@ struct Wnd
 
     invalidatePadding: Math.Vector4     // Extra repaint extent around the logical rectangle.
 
+    // Presentation-only state changes painting without moving layout, hit testing, or focus.
+    readonly
+    {
+        presentationOpacity: f32 = 1            // Opacity of this window and its descendants, from zero through one.
+        presentationOffset:  Math.Point         // Paint-only displacement in logical pixels.
+        presentationClip:    Math.Rectangle     // Local reveal rectangle when presentation clipping is enabled.
+        hasPresentationClip: bool               // Whether `presentationClip` limits painting.
+    }
+
     parent: #null *Wnd     // Structural parent responsible for position, layout, and lifetime.
     owner:  #null *Wnd     // Logical owner used by popup and command routing when distinct from `parent`.
 
@@ -602,9 +611,9 @@ impl Wnd
         // so where it stood is still known — otherwise the focus is simply dropped when the window
         // is finally unregistered, and the next Tab restarts at the top of the surface.
         .releaseFocus()
-
         .wndFlags.add(.Hidden)
         .isPendingDestroy = true
+        srfn.app.animator.cancelTarget(me)
         for c in .children do
             c.destroy()
         srfn.app.postDestroy.add(me)
@@ -808,6 +817,70 @@ impl Wnd
     // Paints this window and its visible descendants into `bc` in z-order.
     mtd paint(bc: *PaintContext)
     {
+        let opacity = Math.saturate(.presentationOpacity)
+        if opacity <= 0 do
+            return
+
+        if opacity >= 1 and .presentationOffset == {} and !.hasPresentationClip
+        {
+            .paintContent(bc)
+            return
+        }
+
+        let painter = bc.painter
+        if opacity < 1 and .position.width > 0 and .position.height > 0
+        {
+            var layer: Layer
+            layer.begin(painter, {
+                width: cast(s32) Math.ceil(.position.width),
+                height: cast(s32) Math.ceil(.position.height)})
+
+            // `paintContent` is authored in parent coordinates. Move that parent origin so the
+            // target's logical rectangle records at the layer origin.
+            painter.translateTransform(-.position.x, -.position.y)
+            .paintContent(bc)
+            layer.end()
+
+            var destination = .position
+            destination.offset(.presentationOffset)
+
+            painter.pushState()
+            if .hasPresentationClip
+            {
+                var clip = .presentationClip
+                clip.offset(destination.x, destination.y)
+                painter.pushClippingRect(clip)
+            }
+
+            layer.draw({
+                dstRect: destination,
+                color: Color.fromArgb(Argb.White).withAlphaF32(opacity),
+                writeAlpha: false})
+
+            if .hasPresentationClip do
+                painter.popClippingRect()
+            painter.popState()
+            return
+        }
+
+        painter.pushState()
+        painter.translateTransform(.presentationOffset.x, .presentationOffset.y)
+        if .hasPresentationClip
+        {
+            var clip = .presentationClip
+            clip.offset(.position.x, .position.y)
+            painter.pushClippingRect(clip)
+        }
+
+        .paintContent(bc)
+
+        if .hasPresentationClip do
+            painter.popClippingRect()
+        painter.popState()
+    }
+
+    private mtd paintContent(bc: *PaintContext)
+    {
         let painter = bc.painter
         if painter.isEmptyClippingRect() do
             return
@@ -924,6 +997,71 @@ impl Wnd
         let srf = .surface
         if srf do
             srf.invalidateRect(.localToSurface(rect))
+    }
+
+    private mtd invalidatePresentation()
+    {
+        var rect = .surfaceRect()
+        rect.offset(.presentationOffset)
+        rect.applyPadding(.invalidatePadding)
+        rect.applyPadding({-32, -32, -32, -32})
+        let srf = .surface
+        if srf do
+            srf.invalidateRect(rect)
+    }
+
+    // Changes paint-only opacity without changing layout, hit testing, or focus.
+    mtd setPresentationOpacity(opacity: f32)
+    {
+        let value = Math.saturate(opacity)
+        if .presentationOpacity == value do
+            return
+        .invalidatePresentation()
+        .presentationOpacity = value
+        .invalidatePresentation()
+    }
+
+    // Changes paint-only displacement without changing the logical window rectangle.
+    mtd setPresentationOffset(offset: Math.Point)
+    {
+        if .presentationOffset == offset do
+            return
+        .invalidatePresentation()
+        .presentationOffset = offset
+        .invalidatePresentation()
+    }
+
+    // Limits painting to `clip`, expressed in local logical coordinates.
+    mtd setPresentationClip(clip: Math.Rectangle)
+    {
+        if .hasPresentationClip and .presentationClip == clip do
+            return
+        .invalidatePresentation()
+        .presentationClip    = clip
+        .hasPresentationClip = true
+        .invalidatePresentation()
+    }
+
+    // Removes the paint-only reveal rectangle.
+    mtd clearPresentationClip()
+    {
+        if !.hasPresentationClip do
+            return
+        .invalidatePresentation()
+        .hasPresentationClip = false
+        .invalidatePresentation()
+    }
+
+    // Restores opaque, undisplaced, unclipped presentation.
+    mtd resetPresentation()
+    {
+        if .presentationOpacity == 1 and .presentationOffset == {} and !.hasPresentationClip do
+            return
+        .invalidatePresentation()
+        .presentationOpacity = 1
+        .presentationOffset  = {}
+        .hasPresentationClip = false
+        .invalidatePresentation()
     }
 
     //////////////////////////////////////////////

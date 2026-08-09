@@ -30,6 +30,11 @@ var app: Application
 
 Coordinates and sizes are logical pixels. Windows are owned by their application;
 use [[Gui.Wnd.destroy]] for deferred destruction during event dispatch.
+
+Finite transitions use the application-owned [[Gui.Animator]]. Typed tracks can be
+retargeted by [[Gui.AnimationChannel]], grouped in parallel or sequence, and are
+cancelled automatically when their target is hidden or destroyed. See
+`help/08-animation.md` for the motion and presentation contract.
 */
 
 #import("pixel")

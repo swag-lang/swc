@@ -49,12 +49,14 @@ library beside itself over `SWAG_PATH`, so naming the right compiler is enough t
 | Tool | Purpose |
 | --- | --- |
 | `tests.swgs` | The complete test set: backlog contract, compiler, scripts, library, examples, applications, reference |
+| `portability.swgs` | The source-only dependency check between portable bin code and native host code |
 | `unittests.swgs` | The compiler suites: `cpp`, `lexer`, `parser`, `sema`, `jit`, `safety`, `sanity`, `native`, `workspace` |
 | `build.swgs` | Build every workspace |
 | `scrypt.swgs` | The privileged sCrypt/WinFsp end-to-end sandbox, kept out of `tests.swgs` |
 
-`tests.swgs` validates permanent backlog identifiers, counters, finding order, required evidence
-fields, and the README inventory before it selects or starts a test campaign.
+`tests.swgs` validates the bin portability boundary, permanent backlog identifiers, counters,
+finding order, required evidence fields, and the README inventory before it selects or starts a
+test campaign.
 
 ## Workspaces
 

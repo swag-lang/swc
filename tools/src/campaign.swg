@@ -16,6 +16,10 @@ by regenerating their output, doc and format, are reported as steps to take.
 */
 public func runTests(context: *Context, options: *Options)->s32 fail
 {
+    let portability = try auditPortability(context)
+    if portability != 0 do
+        return portability
+
     let backlog = try auditBacklog(context)
     if backlog != 0 do
         return backlog

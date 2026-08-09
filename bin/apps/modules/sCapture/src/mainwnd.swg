@@ -104,8 +104,8 @@ struct MainWnd
         recentWnd:                   *RecentWnd
         quickStyleBar:               *SplitterCtrl
         toolTitle:                   *Label
-        zoomBtn:                     *IconButton
-        captureBtn, libraryBtn:      *PushButton
+        libraryBtn, zoomBtn:         *IconButton
+        captureBtn:                  *PushButton
     }
 
     sizeBtn:       #null *IconButton
@@ -897,11 +897,13 @@ impl MainWnd
         }
 
         // Capture is the primary Voltage action. Library is the equally explicit secondary
-        // destination: it gets the same named push-button shape without claiming the accent.
+        // destination: its labeled toggle marks library mode with the active rule.
         .captureBtn = PushButton.create(verbs, "", {0, 0, 104, RailCellSize - 8}, ActionCapture.DoIt, .Strong)
 
-        .libraryBtn = PushButton.create(verbs, appStrings().act_Library, {0, 0, 148, RailCellSize - 8}, ActionGlobal.ShowLibrary)
-        .libraryBtn.setIcon(.icon(.Library, RailGlyphSize))
+        .libraryBtn = IconButton.create(verbs, .icon(.Library, RailGlyphSize), {0, 0, 148, RailCellSize - 8}, ActionGlobal.ShowLibrary, .Toggle | .CenterContent)
+        .libraryBtn.setText(appStrings().act_Library)
+        .libraryBtn.setTextPosition(.Right)
+        .libraryBtn.setCheckIndicator(.Bottom)
 
         with .commandReadouts = StackLayoutCtrl.create(me .topBar!, .Right, {0, 0, ReadoutsWidth, CommandRowHeight})
         {

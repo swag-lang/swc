@@ -1186,6 +1186,13 @@ namespace
 
     Result setupIntrinsicSetContextRuntimeCall(Sema& sema, const AstIntrinsicCallExpr& node)
     {
+        // The installed context outlives the statement, so a frame-local one is only sound
+        // while the frame lives.
+        SmallVector<AstNodeRef> children;
+        sema.ast().appendNodes(children, node.spanChildrenRef);
+        if (!children.empty())
+            SWC_RESULT(SemaEscape::checkSetContext(sema, sema.curNodeRef(), children.front()));
+
         if (sema.isNativeBuild())
             SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::TlsAlloc, node.codeRef()));
 

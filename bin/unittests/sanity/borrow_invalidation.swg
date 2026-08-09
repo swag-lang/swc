@@ -191,6 +191,56 @@ func borrowInvThroughFreeHelper()->u8
 }
 
 // ---------------------------------------------------------------------------
+// The same rule when the storage is a GLOBAL. A global outlives every frame, so a view
+// of one can never dangle by outliving its owner - that is why the ESCAPE rules leave
+// globals alone. Invalidation is a different fault: growing a global container moves
+// the very bytes a view was reading, exactly like growing a local one.
+// ---------------------------------------------------------------------------
+var borrowInvGlobalBuf:   BorrowInvBuffer
+var borrowInvGlobalOther: BorrowInvBuffer
+var borrowInvGlobalBox:   BorrowInvChained
+
+func borrowInvGlobalDirectMember()->u8
+{
+    borrowInvGlobalBuf.reserve(4)
+    let view = borrowInvGlobalBuf.data!
+    borrowInvGlobalBuf.reserve(64)     // swc-expected-error {{sanity_err_borrow_invalidated}}
+    return view[0]
+}
+
+func borrowInvGlobalThroughAccessor()->u8
+{
+    borrowInvGlobalBuf.reserve(4)
+    let view = borrowInvGlobalBuf.view()
+    borrowInvGlobalBuf.reserve(64)     // swc-expected-error {{sanity_err_borrow_invalidated}}
+    return view[0]
+}
+
+func borrowInvGlobalThroughInlineAccessor()->u8
+{
+    borrowInvGlobalBuf.reserve(4)
+    let view = borrowInvGlobalBuf.inlineView()
+    borrowInvGlobalBuf.reserve(64)     // swc-expected-error {{sanity_err_borrow_invalidated}}
+    return view[0]
+}
+
+func borrowInvGlobalRelease()->u8
+{
+    borrowInvGlobalBuf.reserve(4)
+    let view = borrowInvGlobalBuf.view()
+    borrowInvGlobalBuf.release()     // swc-expected-error {{sanity_err_borrow_invalidated}}
+    return view[0]
+}
+
+// The helper-chained owner, so the global route is judged through a summary too.
+func borrowInvGlobalThroughFreeHelper()->u8
+{
+    let view = borrowInvGlobalBox.view()
+    borrowInvGlobalBox.reset()     // swc-expected-error {{sanity_err_borrow_invalidated}}
+    return view[0]
+}
+
+// ---------------------------------------------------------------------------
 // Shapes that must stay silent.
 // ---------------------------------------------------------------------------
 
@@ -300,6 +350,180 @@ func borrowInvInterfaceToValue()
     let sink: IBorrowInvSink = &buf
     buf.reserve(64)
     sink.feed(1)
+}
+
+// The global half of every negative above. Widening the rule to global owners must not
+// cost any of the precision the local half already has.
+
+// Reading the view only BEFORE the change is safe.
+func borrowInvGlobalReadBefore()->u8
+{
+    borrowInvGlobalBuf.reserve(4)
+    let view  = borrowInvGlobalBuf.view()
+    let first = view[0]
+    borrowInvGlobalBuf.reserve(64)
+    return first
+}
+
+// Taking the view again after the change is the fix.
+func borrowInvGlobalRebound()->u8
+{
+    borrowInvGlobalBuf.reserve(4)
+    var view = borrowInvGlobalBuf.view()
+    borrowInvGlobalBuf.reserve(64)
+    view = borrowInvGlobalBuf.view()
+    return view[0]
+}
+
+// A method that only assigns fields moves nothing.
+func borrowInvGlobalFieldOnlyMethod()->u8
+{
+    borrowInvGlobalBuf.reserve(4)
+    let view = borrowInvGlobalBuf.view()
+    borrowInvGlobalBuf.setLength(2)
+    return view[0]
+}
+
+// A 'const' method cannot change the storage.
+func borrowInvGlobalConstMethod()->u8
+{
+    borrowInvGlobalBuf.reserve(4)
+    let view  = borrowInvGlobalBuf.view()
+    let total = borrowInvGlobalBuf.count()
+    return view[total]
+}
+
+// A pointer to the VALUE addresses the global itself, not its payload.
+func borrowInvGlobalPointerToValue()->u64
+{
+    borrowInvGlobalBuf.reserve(4)
+    let p = &borrowInvGlobalBuf
+    borrowInvGlobalBuf.reserve(64)
+    return p.length
+}
+
+// Mutating a different global leaves this view alone.
+func borrowInvGlobalOtherOwner()->u8
+{
+    borrowInvGlobalBuf.reserve(4)
+    let view = borrowInvGlobalBuf.view()
+    borrowInvGlobalOther.reserve(64)
+    return view[0]
+}
+
+// Mutating a LOCAL leaves a view of the global alone, and the other way round.
+func borrowInvGlobalAndLocalAreDistinct()->u8
+{
+    var buf: BorrowInvBuffer
+    buf.reserve(4)
+    borrowInvGlobalBuf.reserve(4)
+    let globalView = borrowInvGlobalBuf.view()
+    let localView  = buf.view()
+    let first      = localView[0]
+    buf.reserve(64)
+    return globalView[0] + first
+}
+
+// The arguments run before the callee: a view named inside the mutating call is read
+// before the change, not after it.
+func borrowInvGlobalViewAsArgument()->u64
+{
+    borrowInvGlobalBuf.reserve(8)
+    let view = borrowInvGlobalBuf.view()
+    borrowInvGlobalBuf.append(view)
+    return borrowInvGlobalBuf.length
+}
+
+// ---------------------------------------------------------------------------
+// Control flow, not source order. A read that follows the change in the TEXT is only a
+// read of moved storage when a path actually reaches it from there.
+// ---------------------------------------------------------------------------
+
+// The change and the read sit in sibling arms: whichever one runs, the other did not.
+func borrowInvExclusiveBranches(grow: bool)->u8
+{
+    var buf: BorrowInvBuffer
+    buf.reserve(4)
+    let view = buf.view()
+    if grow
+    {
+        buf.reserve(64)
+    }
+    else
+    {
+        return view[0]
+    }
+
+    return 0
+}
+
+// The same, spelled as a switch: two cases never both run either.
+func borrowInvExclusiveCases(kind: s32)->u8
+{
+    var buf: BorrowInvBuffer
+    buf.reserve(4)
+    let view = buf.view()
+    switch kind
+    {
+    case 0:
+        buf.reserve(64)
+    case 1:
+        return view[0]
+    }
+
+    return 0
+}
+
+// The change inside a branch and the read after it: the path that grew reaches the read.
+func borrowInvBranchThenRead(grow: bool)->u8
+{
+    var buf: BorrowInvBuffer
+    buf.reserve(4)
+    let view = buf.view()
+    if grow
+    {
+        buf.reserve(64)     // swc-expected-error {{sanity_err_borrow_invalidated}}
+    }
+
+    return view[0]
+}
+
+// Both in the same arm, in order.
+func borrowInvSameBranch(grow: bool)->u8
+{
+    var buf: BorrowInvBuffer
+    buf.reserve(4)
+    let view = buf.view()
+    if grow
+    {
+        buf.reserve(64)     // swc-expected-error {{sanity_err_borrow_invalidated}}
+        return view[0]
+    }
+
+    return 0
+}
+
+// Sibling arms of a loop are not exclusive at all: growing on one pass and reading on the
+// next reads storage the growth moved.
+func borrowInvExclusiveBranchesInLoop(grow: bool)->u8
+{
+    var buf: BorrowInvBuffer
+    buf.reserve(4)
+    let view  = buf.view()
+    var total: u8
+    for 4
+    {
+        if grow
+        {
+            buf.reserve(64)     // swc-expected-error {{sanity_err_borrow_invalidated}}
+        }
+        else
+        {
+            total += view[0]
+        }
+    }
+
+    return total
 }
 
 // Invalidation is a language rule like the escape rules: an attribute that turns the

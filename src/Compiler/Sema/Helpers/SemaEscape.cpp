@@ -1597,6 +1597,23 @@ namespace
                 continue;
             }
 
+            // A GLOBAL argument makes nothing escape: it outlives every frame, which is
+            // why the escape rules ignore it. The ROUTE still has to be recorded, because
+            // invalidation is a different fault - a result read out of what the global
+            // owns goes stale when that payload moves - and the check has no other way to
+            // learn that this call result came from this global. Never judged
+            // (commitDeferredCallBorrows drops it), so it costs no diagnostic.
+            if (info.kind == SemaEscapeKind::Static && info.sourceVar)
+            {
+                SemaEscapeDeferredCheck check;
+                check.callee       = fn;
+                check.paramIndex   = static_cast<uint32_t>(thisParam);
+                check.borrowedVar  = info.sourceVar;
+                check.staticSource = true;
+                outCapture.checks.push_back(std::move(check));
+                continue;
+            }
+
             if (!info.isLocalBorrow() && !info.isTemporaryBorrow() && !info.isMaterializedBorrow())
                 continue;
 
@@ -1675,6 +1692,11 @@ namespace
 
         for (const SemaEscapeDeferredCheck& checkTemplate : capture.checks)
         {
+            // A route back to a global is not an escape route: it is only ever read by
+            // the invalidation check, straight off the snapshot.
+            if (checkTemplate.staticSource)
+                continue;
+
             SemaEscapeDeferredCheck check = checkTemplate;
             check.judgeStores             = judgeStores;
             check.what                    = what;
@@ -2611,6 +2633,20 @@ namespace
         return pointeeTypeRef.isValid() && pointeeTypeRef == sourceTypeRef;
     }
 
+    // Whose payload this body can judge a structural change of. A frame local, and a
+    // global: the escape rules exclude globals because a global outlives every frame and
+    // a view of one can never dangle by outliving its owner, but growing a global
+    // container moves its payload exactly like growing a local one.
+    //
+    // A PARAMETER stays out. Its storage is caller-owned, the caller may hold views of it
+    // this body cannot see, and the mutation it performs is part of what the callee was
+    // called for - judging it here would report the ordinary "grow, then re-read" body of
+    // every collection method.
+    bool isInvalidationJudgeableOwner(Sema& sema, const SymbolVariable& symVar)
+    {
+        return isLocalVariableStorage(sema, symVar) || symVar.hasExtraFlag(SymbolVariableFlagsE::GlobalStorage);
+    }
+
     // The variable whose storage a method call may change: the root of its receiver.
     const SymbolVariable* mutatedReceiverRoot(Sema& sema, AstNodeRef callRef)
     {
@@ -2636,21 +2672,188 @@ namespace
         return storageRootVariable(sema, projectedRef, false, whole);
     }
 
+    bool isLoopStatement(const AstNode& node)
+    {
+        return node.is(AstNodeId::WhileStmt) ||
+               node.is(AstNodeId::ForStmt) ||
+               node.is(AstNodeId::ForCStyleStmt) ||
+               node.is(AstNodeId::ForeachStmt) ||
+               node.is(AstNodeId::InfiniteLoopStmt);
+    }
+
+    // Which alternative of one branch statement holds this position. Arms exclude each
+    // other by construction, so at most one can contain it.
+    size_t armContaining(std::span<const SourceCodeRange> arms, const SourceCodeRange& site)
+    {
+        for (size_t i = 0; i < arms.size(); ++i)
+        {
+            if (arms[i].srcView == site.srcView && site.offset >= arms[i].offset && site.offset < arms[i].offset + arms[i].len)
+                return i;
+        }
+
+        return arms.size();
+    }
+
+    // The whole source extent of a subtree. 'codeRangeWithChildren' cannot answer this:
+    // it never leaves the node's own line, because it exists to underline one expression
+    // in a diagnostic. Where a block ENDS is a different question, and the only source of
+    // truth for it is the furthest token any descendant carries.
+    SourceCodeRange subtreeRange(Sema& sema, AstNodeRef nodeRef)
+    {
+        SourceCodeRange result = sema.node(nodeRef).codeRange(sema.ctx());
+        if (!result.srcView)
+            return result;
+
+        uint32_t first = result.offset;
+        uint32_t last  = result.offset + result.len;
+
+        SmallVector<AstNodeRef> worklist;
+        SmallVector<AstNodeRef> children;
+        worklist.push_back(nodeRef);
+
+        uint32_t budget = 8192;
+        while (!worklist.empty() && budget != 0)
+        {
+            budget--;
+            const AstNodeRef currentRef = worklist.back();
+            worklist.pop_back();
+            if (currentRef.isInvalid())
+                continue;
+
+            const AstNode&        node  = sema.node(currentRef);
+            const SourceCodeRange range = node.codeRange(sema.ctx());
+            if (range.srcView == result.srcView)
+            {
+                first = std::min(first, range.offset);
+                last  = std::max(last, range.offset + range.len);
+            }
+
+            children.clear();
+            node.collectChildrenFromAst(children, sema.ast());
+            for (const AstNodeRef childRef : children)
+            {
+                if (childRef.isValid())
+                    worklist.push_back(childRef);
+            }
+        }
+
+        result.offset = first;
+        result.len    = last > first ? last - first : result.len;
+        return result;
+    }
+
+    // Collects the alternatives of a branch statement: the two blocks of an 'if', the
+    // cases of a 'switch'. The condition is NOT one of them - a position inside it runs
+    // before every arm.
+    void collectBranchArms(Sema& sema, AstNodeRef nodeRef, SmallVector<SourceCodeRange>& outArms)
+    {
+        outArms.clear();
+
+        const AstNode& node = sema.node(nodeRef);
+        auto           addArm = [&](AstNodeRef armRef) {
+            if (armRef.isValid())
+                outArms.push_back(subtreeRange(sema, armRef));
+        };
+
+        if (node.is(AstNodeId::IfStmt))
+        {
+            const auto& stmt = node.cast<AstIfStmt>();
+            addArm(stmt.nodeIfBlockRef);
+            addArm(stmt.nodeElseBlockRef);
+            return;
+        }
+
+        if (node.is(AstNodeId::IfVarDecl))
+        {
+            const auto& stmt = node.cast<AstIfVarDecl>();
+            addArm(stmt.nodeIfBlockRef);
+            addArm(stmt.nodeElseBlockRef);
+            return;
+        }
+
+        if (node.is(AstNodeId::SwitchStmt))
+        {
+            SmallVector<AstNodeRef> children;
+            node.collectChildrenFromAst(children, sema.ast());
+            for (const AstNodeRef childRef : children)
+            {
+                if (childRef.isValid() && sema.node(childRef).is(AstNodeId::SwitchCaseStmt))
+                    addArm(childRef);
+            }
+        }
+    }
+
+    // Do these two positions sit on paths that exclude each other? The arms of one 'if'
+    // and the cases of one 'switch' never both run, so a read standing in one of them is
+    // not a read of storage the other one moved - however the source orders the two.
+    //
+    // A branch INSIDE a loop is deliberately not exempted: there, one iteration takes one
+    // arm and the next takes the other, so the read really does follow the change.
+    bool positionsExcludeEachOther(Sema& sema, AstNodeRef bodyRef, const SourceCodeRange& mutationRange, const SourceCodeRange& readRange)
+    {
+        struct Pending
+        {
+            AstNodeRef nodeRef;
+            bool       insideLoop = false;
+        };
+
+        SmallVector<Pending> worklist;
+        worklist.push_back({bodyRef, false});
+
+        uint32_t                     budget = 8192;
+        SmallVector<AstNodeRef>      children;
+        SmallVector<SourceCodeRange> arms;
+        while (!worklist.empty() && budget != 0)
+        {
+            budget--;
+            const Pending pending = worklist.back();
+            worklist.pop_back();
+            if (pending.nodeRef.isInvalid())
+                continue;
+
+            const AstNode& node = sema.node(pending.nodeRef);
+            if (!pending.insideLoop)
+            {
+                collectBranchArms(sema, pending.nodeRef, arms);
+                if (arms.size() > 1)
+                {
+                    const size_t mutationArm = armContaining(arms.span(), mutationRange);
+                    const size_t readArm     = armContaining(arms.span(), readRange);
+                    if (mutationArm != arms.size() && readArm != arms.size() && mutationArm != readArm)
+                        return true;
+                }
+            }
+
+            const bool insideLoop = pending.insideLoop || isLoopStatement(node);
+            children.clear();
+            node.collectChildrenFromAst(children, sema.ast());
+            for (const AstNodeRef childRef : children)
+            {
+                if (childRef.isValid())
+                    worklist.push_back({childRef, insideLoop});
+            }
+        }
+
+        return false;
+    }
+
     // The first READ of 'symVar' written at or after 'afterOffset', or invalid when the
     // next thing that happens to it is a write - reassigning a view refreshes it, so what
     // follows reads the new one. 'afterRange' only names the file; the offset is separate
     // because the mutation's own arguments run before it and must not count.
     //
-    // Source order, not control flow: a view read on a path that also refreshes it is
-    // rare enough that the simpler rule is worth its precision, and erring toward
-    // silence keeps the check out of the way of correct programs.
+    // Source order stands in for execution order, with one exception it cannot fake: an
+    // occurrence standing in a sibling arm of the change is skipped outright, because no
+    // path reaches it from there. Everything else - a view read on a path that also
+    // refreshes it - stays on the simpler rule, erring toward silence.
     AstNodeRef firstReadAfter(Sema& sema, AstNodeRef bodyRef, const SourceCodeRange& afterRange, uint32_t afterOffset, const SymbolVariable& symVar)
     {
         struct Occurrence
         {
-            AstNodeRef nodeRef;
-            uint32_t   offset  = 0;
-            bool       isWrite = false;
+            AstNodeRef      nodeRef;
+            uint32_t        offset  = 0;
+            bool            isWrite = false;
+            SourceCodeRange range;
         };
 
         SmallVector<Occurrence>                        found;
@@ -2685,7 +2888,7 @@ namespace
                             isWrite = true;
                     }
 
-                    found.push_back({nodeRef, range.offset, isWrite});
+                    found.push_back({nodeRef, range.offset, isWrite, range});
                 }
             }
 
@@ -2702,7 +2905,17 @@ namespace
             return AstNodeRef::invalid();
 
         std::ranges::sort(found, [](const Occurrence& a, const Occurrence& b) { return a.offset < b.offset; });
-        return found.front().isWrite ? AstNodeRef::invalid() : found.front().nodeRef;
+
+        // An occurrence no path reaches from the change decides nothing - neither that the
+        // view is read stale, nor that it was refreshed first.
+        for (const Occurrence& occurrence : found)
+        {
+            if (positionsExcludeEachOther(sema, bodyRef, afterRange, occurrence.range))
+                continue;
+            return occurrence.isWrite ? AstNodeRef::invalid() : occurrence.nodeRef;
+        }
+
+        return AstNodeRef::invalid();
     }
 
     // Is this local a view INTO what 'root' owns, and under what condition? A view taken
@@ -2719,7 +2932,9 @@ namespace
     // DeferredCall, never as a plain local borrow.
     bool viewRoutesToStorage(const SemaEscapeInfo& info, const SymbolVariable& root, SmallVector4<SemaEscapeDeferredGuard>& outGuards)
     {
-        if (info.isLocalBorrow())
+        // A local and a global owner are the same fault here: what moves is the payload,
+        // and the view is stale from that moment whatever outlives what.
+        if (info.kind == SemaEscapeKind::Local || info.kind == SemaEscapeKind::Static)
             return info.sourceVar == &root;
 
         if (!info.isDeferredCallBorrow())
@@ -2743,6 +2958,85 @@ namespace
                     outGuards.push_back({guard.callee, guard.paramIndex, true});
                 outGuards.push_back({check.callee, check.paramIndex, true});
                 return true;
+            }
+        }
+
+        return false;
+    }
+
+    // Would this '@setcontext' argument install storage belonging to THIS frame? The
+    // intrinsic takes a pointer, so the answer is decided by the spelling. A context VALUE
+    // is handed over by an implicit address-of, which makes the frame slot the installed
+    // address. A POINTER hands over what it already points at, and the pointer local
+    // 'let prev = @getcontext()' points at storage the runtime owns - rooting the
+    // judgement at the variable instead of at what it addresses would report the restore
+    // in every scoped use.
+    bool setContextInstallsFrameStorage(Sema& sema, AstNodeRef argRef)
+    {
+        if (argRef.isInvalid())
+            return false;
+
+        bool                  whole = false;
+        const SymbolVariable* root  = storageRootVariable(sema, argRef, false, whole);
+        if (!root || !isLocalVariableStorage(sema, *root))
+            return false;
+
+        const TypeRef rootTypeRef = unwrapAliasEnum(sema, root->typeRef());
+        if (!rootTypeRef.isValid())
+            return false;
+
+        const TypeInfo& rootType = sema.typeMgr().get(rootTypeRef);
+        return !rootType.isAnyPointer() && !rootType.isReference();
+    }
+
+    AstNodeRef intrinsicFirstArgument(Sema& sema, AstNodeRef intrinsicRef)
+    {
+        SmallVector<AstNodeRef> children;
+        sema.node(intrinsicRef).collectChildrenFromAst(children, sema.ast());
+        return children.empty() ? AstNodeRef::invalid() : children.front();
+    }
+
+    // Does this body put another context back? The scoped idiom spells that as a 'defer'
+    // ('Core.withAllocator' is built on exactly that) and the compiler suites spell it as
+    // a plain call at the end of the block; both restore something that outlives the
+    // frame, and both are correct.
+    //
+    // The test is deliberately structural rather than a proof that the RIGHT context is
+    // restored on every path. What is left to report is the shape that has no answer at
+    // all: a body that installs its own stack and then walks away from it. Insisting on
+    // more would reject every correct spelling that exists today, and a check that rejects
+    // the standard idiom is a check that gets turned off.
+    bool functionRestoresContext(Sema& sema, AstNodeRef declRef, AstNodeRef exceptRef)
+    {
+        if (declRef.isInvalid())
+            return false;
+
+        SmallVector<AstNodeRef> worklist;
+        worklist.push_back(declRef);
+
+        uint32_t                budget = 8192;
+        SmallVector<AstNodeRef> children;
+        while (!worklist.empty() && budget != 0)
+        {
+            budget--;
+            const AstNodeRef nodeRef = worklist.back();
+            worklist.pop_back();
+            if (nodeRef.isInvalid())
+                continue;
+
+            const AstNode& node = sema.node(nodeRef);
+            if (nodeRef != exceptRef &&
+                node.is(AstNodeId::IntrinsicCallExpr) &&
+                sema.token(node.codeRef()).id == TokenId::IntrinsicSetContext &&
+                !setContextInstallsFrameStorage(sema, intrinsicFirstArgument(sema, nodeRef)))
+                return true;
+
+            children.clear();
+            node.collectChildrenFromAst(children, sema.ast());
+            for (const AstNodeRef childRef : children)
+            {
+                if (childRef.isValid())
+                    worklist.push_back(childRef);
             }
         }
 
@@ -2888,6 +3182,28 @@ namespace SemaEscape
         return Result::Continue;
     }
 
+    // Does a deferred-call binding carry anything that can reach this frame? A snapshot
+    // holding nothing but routes back to globals does not: it was captured so the
+    // invalidation check can follow the payload, and reading it as "derives from local
+    // storage" would silence real escapes through a global's buffer.
+    bool deferredCallCarriesFrameBorrow(const SemaEscapeInfo& info)
+    {
+        for (const auto& snapshot : info.deferredCalls)
+        {
+            if (!snapshot)
+                continue;
+            if (!snapshot->edges.empty())
+                return true;
+            for (const SemaEscapeDeferredCheck& check : snapshot->checks)
+            {
+                if (!check.staticSource)
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
     // Whether the base pointer of an assignment destination provably derives from
     // frame-local storage: a local pointer that borrows a local, or an opaque pointer
     // handed out by a call on local storage ('root.pool.newPtr()'). Storing a frame-local's
@@ -2919,7 +3235,11 @@ namespace SemaEscape
             return false;
 
         const SemaEscapeInfo* info = sema.variableEscapeInfo(*baseVar);
-        return info && (info->isDeferredCallBorrow() || info->isLocalBorrow());
+        if (!info)
+            return false;
+        if (info->isLocalBorrow())
+            return true;
+        return info->isDeferredCallBorrow() && deferredCallCarriesFrameBorrow(*info);
     }
 
     Result applyAssignment(Sema& sema, AstNodeRef leftRef, AstNodeRef rightRef)
@@ -3156,7 +3476,7 @@ namespace SemaEscape
         {
             if (!viewVar || viewVar == root)
                 continue;
-            if (!isLocalVariableStorage(sema, *viewVar) || !isLocalVariableStorage(sema, *root))
+            if (!isLocalVariableStorage(sema, *viewVar) || !isInvalidationJudgeableOwner(sema, *root))
                 continue;
             if (viewAliasesVariableItself(sema, *viewVar, *root))
                 continue;
@@ -3387,6 +3707,36 @@ namespace SemaEscape
     void noteCallArguments(Sema& sema, AstNodeRef callRef)
     {
         recordDeferredCallBorrow(sema, callRef, callRef, "a stored call argument", DeferredCallUse::Argument, false);
+    }
+
+    Result checkSetContext(Sema& sema, AstNodeRef intrinsicRef, AstNodeRef argRef)
+    {
+        if (!setContextInstallsFrameStorage(sema, argRef))
+            return Result::Continue;
+
+        // A macro or an inline expansion is re-analyzed at every call site, and the body
+        // that holds the restore is the CALLEE's - not reliably reachable from the
+        // function this expansion landed in. 'Core.withAllocator' is exactly that shape,
+        // and judging it from the caller reported the correct idiom at a third of its call
+        // sites and not at the others. The rule is judged where it is written.
+        if (SemaHelpers::effectiveInlinePayload(sema))
+            return Result::Continue;
+
+        if (functionRestoresContext(sema, currentFunctionDeclRef(sema), intrinsicRef))
+            return Result::Continue;
+
+        bool                  whole = false;
+        const SymbolVariable* root  = storageRootVariable(sema, argRef, false, whole);
+        if (!root)
+            return Result::Continue;
+
+        auto diag = SemaError::report(sema, DiagnosticId::sanity_err_context_escape, intrinsicRef);
+        diag.addArgument(Diagnostic::ARG_SYM, root->name(sema.ctx()));
+        diag.addNote(DiagnosticId::sema_note_borrow_source_declared_here);
+        diag.last().addArgument(Diagnostic::ARG_SYM, root->name(sema.ctx()));
+        diag.last().addSpan(root->codeRange(sema.ctx()));
+        diag.report(sema.ctx());
+        return Result::Error;
     }
 
     void reportDeferredChecks(TaskContext& ctx)

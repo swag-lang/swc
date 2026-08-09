@@ -8,46 +8,27 @@ runtime fault are tooling under `#[Swag.Sanity]`. The reference states the line
 Conventions, the identifier counter, and the rest of the backlog are in [README.md](README.md).
 Entries are sorted by identifier, ascending; position carries no priority.
 
-### F-041 — A view is judged by source order, not by control flow
+### F-041 — A read reached only by a loop's back edge is missed
 
 - Area: compiler
 - Found while: making the borrow-invalidation check fire (a view read after the storage it views
   was moved), which is the first check to need "does a read come AFTER this call"
-- Observation: `firstReadAfter` picks the first occurrence of the view whose source offset is at or
-  past the end of the mutating call, and takes it as a read on a path that follows the mutation.
-  Source order is not execution order in two directions. A read placed after the mutation in the
-  text but in a mutually exclusive branch (`if c do container.add(x) else do use(view)`) would be
-  reported although it never runs after the change; a read placed before the mutation in the text
-  but executed after it on the next iteration of a loop is missed. Only the loop case has a
-  mitigation today (`mutationFollowedByLoopExit`, for the find-then-remove-then-exit shape).
-- Evidence: the one false positive this produced in the tree was the argument case —
-  `values.add(values.toSlice())` in `array.test.swg`, where the view is named inside the mutating
-  call and therefore read before it runs — and that is fixed: the search now starts past the whole
-  call expression rather than past its name. The branch case has no instance in `std`, `examples`,
-  `apps`, `reference` or the workspace suite, so it remains a latent precision limit rather than an
-  observed defect.
-- Next step: build the sibling-branch shape as a negative test first and confirm it fires; then
-  decide between a cheap structural filter (walk to the nearest common ancestor of the mutation and
-  the read, and skip when it is an `if`/`switch` with the two in different arms) and threading the
-  real flow state, which the check does not have at judgement time because it runs after the body
-  is resolved.
-
-### F-042 — Views into a global owner's payload are never judged
-
-- Area: compiler
-- Found while: the same work
-- Observation: `noteBorrowInvalidation` requires the mutated receiver to root at
-  `isLocalVariableStorage`, so a view into what a GLOBAL owner holds is not a candidate. The
-  reasoning that excluded globals is about *escape* — a global outlives every frame, so a view of
-  it can never dangle by outliving its owner — but invalidation is a different fault: growing a
-  global container moves its payload exactly like a local one, and a view taken before the growth
-  is stale afterwards.
-- Evidence: `var g: String` at file scope, `let v = g.toString()`, `g.append("x")`, then reading
-  `v` compiles silently, while the identical body with a local `g` is rejected.
-- Next step: drop the `isLocalVariableStorage` condition on the RECEIVER for the invalidation check
-  only (the escape checks still need it), keep it on the view, and sweep. The risk is the shape
-  where a global container is mutated by one function and viewed by another, which the per-body
-  analysis cannot see and must keep ignoring.
+- Observation: `firstReadAfter` still decides by source offset. The half of this that produced
+  false positives is fixed — an occurrence standing in a sibling arm of the change is now skipped,
+  and a branch inside a loop is deliberately not treated as exclusive — but the opposite direction
+  remains: a read written BEFORE the mutation in the text and executed after it on the next
+  iteration is not seen at all. `mutationFollowedByLoopExit` only covers the reverse case, the
+  find-then-remove-then-exit shape it exists to spare.
+- Evidence: a loop body reading `view[0]` and then calling `buf.reserve(...)` compiles silently,
+  while the same two statements swapped are rejected. The suite covers the branch half
+  (`borrowInvExclusiveBranches`, `borrowInvExclusiveCases`, `borrowInvExclusiveBranchesInLoop` in
+  `bin/unittests/sanity/borrow_invalidation.swg`); this shape has no test because it would not
+  fail today.
+- Next step: write the loop shape as a positive test and watch it stay silent, then decide where
+  the fact belongs. Judging it in `firstReadAfter` means treating every occurrence inside the same
+  enclosing loop as reachable from the mutation, whatever the offsets — cheap, and it needs the
+  same enclosing-loop walk `positionsExcludeEachOther` already does. The risk is the view declared
+  INSIDE the loop, which is rebound on every turn and must stay silent.
 
 ### F-043 — The backend stack-escape check is now unreachable from source
 
@@ -61,26 +42,54 @@ Entries are sorted by identifier, ascending; position carries no priority.
 - Evidence: the two positives in that file now report `sanity_err_borrow_escape` from sema instead
   of `sanity_err_return_local_address` from the sanitizer, and no source-level test of the backend
   check remains.
-- Next step: decide whether the check still earns its place. If it does, it needs a test at its real
-  boundary — a C++ test in `src/Unittest` that hands the sanitizer a micro-IR sequence sema cannot
-  produce — rather than a `.swg` fixture that no longer compiles. If it does not, deleting it
-  removes a check whose only remaining role is to duplicate a language rule.
+- Decided: the check is KEPT. It does not duplicate the language rule, it covers the rule's silence.
+  The borrow rule is a proof obligation on syntax and per-function summaries, and it says nothing
+  the moment provenance is opaque; `Check.StackEscape` asks a different question at a different
+  level — whether the value actually in the return register is a stack address — and that residue is
+  exactly what the rule declines to judge. Deleting a 41-line pass that can only fire where sema
+  gave up would trade a real guarantee for a line count.
+- Next step: give it the test its boundary needs. There is no sanitizer harness in `src/Unittest`
+  today (`grep -rl Sanitizer src/Unittest` is empty), so this starts by building one: a
+  `MicroPassContext` with a `callConvKind` and a `sanitizerFunction` whose return type is a pointer,
+  a hand-built instruction sequence ending in `Ret` with the return register holding a stack
+  address, and the assertion that `sanity_err_return_local_address` is reported. The fifteen
+  `src/Unittest/Micro/Test.Micro.*.cpp` files are the model for building a micro function by hand;
+  none of them constructs a `Sanitizer`, which is the piece to add.
 
-### F-085 — `@setcontext` of a stack-local copy installs a dangling context
+### F-088 — A view into what a PARAMETER owns is never judged for invalidation
 
-- Area: safety
-- Found while: adding the F-084 cross-DLL runtime-type test to the workspace suite; the first
-  `fail` raised after `verifyRuntimeContext` crashed with an access violation in `__dropErr`.
-- Observation: `@setcontext` installs a pointer to its argument. The test idiom
-  `var cxt = dref @getcontext(); cxt.user0 = 42; @setcontext(cxt)` therefore leaves the current
-  context pointing into the frame that just returned. Every later `@getcontext` reads recycled
-  stack: the error machinery (`__setErrRaw`) read a garbage `errors[N].value`, called
-  `type.opDrop` through a garbage typeinfo, and died with 0xC0000005 — far from the cause, and
-  only once something raised.
-- Evidence: `bin/unittests/workspace/modules/consumer_exe/src/main.swg` used exactly that idiom
-  in `verifyRuntimeContext` and `#drop` (both now route the patched copy through the module
-  global `gPatchedContext`); the crash reproduced deterministically in every build config the
-  moment a cross-DLL `fail` ran afterwards, and disappeared with the global.
-- Next step: make the borrow-escape analysis treat the argument of `@setcontext` as escaping to
-  static storage, so binding a stack local is diagnosed at compile time; alternatively make
-  `@setcontext` copy into runtime-owned storage and document the ownership.
+- Area: compiler
+- Found while: widening the invalidation check to global owners (the finding that was F-042)
+- Observation: `noteBorrowInvalidation` now accepts a local or a global as the mutated owner, and
+  deliberately still refuses a parameter. Inside a method, `me` is a parameter, so the body of every
+  collection method is unjudged: take a view of what `me` owns, call something that reallocates it,
+  read the view again, and nothing is reported — which is the same fault the check rejects one call
+  level higher.
+- Evidence: `isInvalidationJudgeableOwner` in
+  [SemaEscape.cpp](../src/Compiler/Sema/Helpers/SemaEscape.cpp) tests `isLocalVariableStorage` or
+  `GlobalStorage`. The equivalent local body is rejected by
+  `bin/unittests/sanity/borrow_invalidation.swg:borrowInvDirectMember`.
+- Next step: write the positive AND the "grow, then re-read the payload member" negative first — the
+  latter is the ordinary body of `reserve`/`append` and is what makes this risky — then drop the
+  condition on the receiver only when the negative stays silent. The open question is whether the
+  caller's views must be considered at all: the callee cannot see them, so the judgement may belong
+  entirely at the call site, where it already works.
+- Related: [F-041](#f-041--a-view-is-judged-by-source-order-not-by-control-flow)
+
+### F-089 — A borrow rule judged per body is silent inside a macro or an inline expansion
+
+- Area: compiler
+- Found while: making `@setcontext` of a frame-local context an error (the finding that was F-085)
+- Observation: two checks now bail out when `SemaHelpers::effectiveInlinePayload` is set —
+  `noteBorrowInvalidation` and `checkSetContext`. Both need to read the body AROUND the node they
+  judge, and inside an expansion that body is the callee's while the analysis walks the caller's.
+  Measured, not assumed: judging `Core.withAllocator` from the caller reported its correct `defer`
+  restore at two of its five expansion sites and not at the other three, purely by how far the
+  caller's tree had been built.
+- Evidence: `bin/unittests/jit/compiler/push_allocator_local_interface.swg` is the reproduction —
+  remove the `effectiveInlinePayload` guard in `checkSetContext` and two of its expansions report
+  `sanity_err_context_escape` on a correct macro. A leaking macro is missed for the same reason.
+- Next step: give the two checks the enclosing body of the node they judge instead of the current
+  function's decl. The visit stack (`AstVisit::parentNodeRef`) has the real ancestors at judgement
+  time; the question to settle first is which ancestor to stop at, because stopping at the file
+  would let a correct restore in one function silence a fault in another.

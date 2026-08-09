@@ -49,6 +49,13 @@ var borrowGlobalValue:  s32
 /**
 A temporary is the same story with a shorter life: it dies at the end of the statement
 that built it, so binding a view of one is already too late. Name the owner first.
+
+Storage the RUNTIME keeps counts too. '@setcontext' installs a pointer to what it is
+given, so handing it a frame-local context and leaving without putting the previous one
+back is rejected: every later '@getcontext' would read recycled stack. The scoped spelling
+is what makes a local context legal — take the current one, install the changed copy,
+restore the original before the scope ends — and it is what 'Core.withAllocator' is built
+on.
 */
 
 /**
@@ -181,6 +188,19 @@ invalidates. And a value that merely *reaches* the container is not a view into 
 factory method handing back a fresh object that holds a back-reference to its receiver
 survives any reallocation of what that receiver owns. Only a result read OUT of the
 payload goes stale, and the summaries record that as a separate fact.
+
+Which paths reach the read is part of the question. A read standing in a sibling arm of the
+change — the other half of an 'if', another case of a 'switch' — reads nothing the change
+moved, because no path leads from one arm to the other. Inside a loop those same two arms
+are not exclusive at all: one turn takes one and the next turn takes the other, so there
+the change is judged.
+
+Who owns the storage makes no difference here. A global outlives every frame, so a view of
+one can never dangle by outliving its owner — that is why the rules about ESCAPING leave
+globals alone — but growing a global container moves the very bytes a view was reading,
+exactly like growing a local one, and both are rejected. What is judged is one function
+body at a time: a global changed by some other function, while a view taken here is still
+live, is beyond what the compiler can see, and it stays silent rather than guess.
 */
 
 /**

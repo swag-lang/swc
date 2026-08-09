@@ -49,6 +49,11 @@ struct SemaEscapeDeferredCheck
     // No summary condition at all: the fault is certain from the callee's identity
     // (a frame borrow handed to 'IAllocator.free' as the request address).
     bool judgeAlways = false;
+    // The borrowed argument roots at a GLOBAL. Nothing can escape through it - a global
+    // outlives every frame - so this record is never judged as an escape. It exists only
+    // to carry the route back to the owner, which is what tells the invalidation check
+    // that a call result reads what that global owns.
+    bool staticSource = false;
     // The borrowed source is an owner (its payload lives on the heap): freeing it is
     // legitimate, so a FREES-only match must stay silent.
     bool ownerSource = false;
@@ -174,6 +179,12 @@ namespace SemaEscape
     // deferred checks for borrowed arguments, and the stores-propagation edges for
     // caller-parameter arguments.
     void noteCallArguments(Sema& sema, AstNodeRef callRef);
+
+    // '@setcontext' stores a POINTER to its argument in runtime-owned storage that
+    // outlives the frame, so installing a frame local and returning leaves every later
+    // '@getcontext' reading recycled stack. Silent when the body restores a previous
+    // context with a 'defer', which is what makes the scoped idiom sound.
+    Result checkSetContext(Sema& sema, AstNodeRef intrinsicRef, AstNodeRef argRef);
 
     // Judges the deferred call-site records against the (now final) per-function borrow
     // summaries. Runs once the module has no pending sema job (Sema::waitDone).

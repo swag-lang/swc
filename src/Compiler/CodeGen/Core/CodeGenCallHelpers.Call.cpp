@@ -479,7 +479,7 @@ namespace
     {
         SmallVector<ABICall::PreparedArg>  args;
         SmallVector<PostCallTemporaryDrop> postCallDrops;
-        uint32_t                           transientStackSize           = 0;
+        uint32_t                           transientStackSize          = 0;
         bool                               copyIndirectValueAggregates = false;
     };
 
@@ -1131,7 +1131,7 @@ namespace
         if (calleeRef.isInvalid())
             return false;
 
-        const SemaNodeView calleeTypeView = codeGen.viewType(calleeRef);
+        const SemaNodeView calleeTypeView  = codeGen.viewType(calleeRef);
         const TypeRef      callableTypeRef = resolveCallableValueTypeRef(codeGen, calleeTypeView.typeRef());
         return callableTypeRef.isValid() && codeGen.typeMgr().get(callableTypeRef).isFunction();
     }
@@ -1352,8 +1352,8 @@ namespace
                 continue;
 
             CodeGenNodePayload argPayload     = codeGen.payload(resolvedArg.argRef);
-            const TypeRef       wrapperTypeRef = codeGen.viewType(resolvedArg.argRef).typeRef();
-            TypeRef             argTypeRef     = resolveUntypedVariadicArgTypeRef(codeGen, argPayload, resolvedArg.argRef);
+            const TypeRef      wrapperTypeRef = codeGen.viewType(resolvedArg.argRef).typeRef();
+            TypeRef            argTypeRef     = resolveUntypedVariadicArgTypeRef(codeGen, argPayload, resolvedArg.argRef);
             dereferenceConstUntypedVariadicArgument(codeGen, argPayload, argTypeRef, resolvedArg.argRef);
             argTypeRef = concretizeUntypedVariadicRuntimeTypeRef(codeGen, argTypeRef);
             SWC_ASSERT(argTypeRef.isValid());
@@ -1693,8 +1693,8 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
     if (calleePayload)
     {
         const ScopedDebugSource debugSource(builder, calleePayload->sourceCodeRef);
-        CodeGenNodePayload       callablePayload = *calleePayload;
-        TypeRef                  callableTypeRef = callablePayload.effectiveTypeRef(codeGen.viewType(calleeRef).typeRef());
+        CodeGenNodePayload      callablePayload = *calleePayload;
+        TypeRef                 callableTypeRef = callablePayload.effectiveTypeRef(codeGen.viewType(calleeRef).typeRef());
         CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, callablePayload, callableTypeRef);
         SWC_ASSERT(callableTypeRef.isValid() && codeGen.typeMgr().get(callableTypeRef).isFunction());
         callTargetReg = materializeCallTargetReg(codeGen, callablePayload, *calledFunction, callConv, closureContextReg);

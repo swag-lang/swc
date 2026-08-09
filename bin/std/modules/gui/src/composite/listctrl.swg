@@ -760,8 +760,8 @@ private impl ListView
                                            {
                                                discard animationWnd
                                                view.selectionRailY = value
-                                            },
-                                            options)
+                                           },
+                                           options)
     }
 
     mtd columnPosition(column: u32)->f32

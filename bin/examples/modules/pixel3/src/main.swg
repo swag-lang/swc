@@ -75,7 +75,9 @@ func computeSceneLayout(width, height: s32)->SceneLayout
 
 func drawScene(painter: *Pixel.Painter, layout: SceneLayout)
 {
+    painter.setColorMaskFull()
     painter.clear(Argb.White)
+    painter.setColorMaskColor()
     painter.setParams(.Antialiased)
 
     painter.pushClippingSurfaceRect(layout.rect)

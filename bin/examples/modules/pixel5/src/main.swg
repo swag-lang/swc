@@ -267,7 +267,9 @@ func drawCard(painter: *Pixel.Painter, rect: Math.Rectangle, card: const &Textur
 
 func drawScene(painter: *Pixel.Painter)
 {
+    painter.setColorMaskFull()
     painter.clear(Color.fromArgb(255, 245, 246, 249))
+    painter.setColorMaskColor()
     painter.setParams(.Antialiased)
 
     switch g_Page

@@ -394,7 +394,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
   used for across `bin/` — if it is overwhelmingly "one field per reflected field", that shape
   deserves a declarative spelling, and the string escape hatch can stay for everything else.
 
-### F-086 — `==` on two slices compares the view, not the content
+### F-087 — `==` on two slices compares the view, not the content
 
 - Area: language
 - Found while: T-039, writing a test that a dragged payload carries the bytes a producer made

@@ -63,26 +63,28 @@ func drawRenderTargetBrushCard(painter: *Pixel.Painter, rect: Math.Rectangle, te
 
         painter.fillRoundRect(leftRect, 22, 22, fillBrush)
         painter.drawRoundRect(leftRect, 22, 22, pen)
-        drawWrappedText(painter, {leftRect.x + 16, leftRect.bottom() - 36, leftRect.width - 32, 28}, "Brush.createTexture(target.colorBuffer)", g_HelpFont!, Argb.White)
+        let labelRect = Math.Rectangle{leftRect.x + 12, leftRect.bottom() - 34, leftRect.width - 24, 25}
+        painter.fillRoundRect(labelRect, 7, 7, Color.fromArgb(205, Argb.MidnightBlue))
+        drawWrappedText(painter, insetRect(labelRect, 8, 3, 8, 2), "Brush.createTexture(target.colorBuffer)", g_HelpFont!, Argb.White)
     }
 
     {
         let rightRect = Math.Rectangle{body.x + body.width * 0.52, body.y + 18, body.width * 0.42, body.height - 36}
-        let center    = Math.Vector2{rightRect.horzCenter(), rightRect.vertCenter() - 6}
-        let flower    = makeStarPolygon(center.x, center.y, 72, 30, 6)
+        let center    = Math.Vector2{rightRect.horzCenter(), rightRect.vertCenter() - 12}
+        let flower    = makeStarPolygon(center.x, center.y, 42, 18, 6)
         var pen       = Pen.createSolid(Argb.White, 10)
         pen.brush     = Brush.createTexture(texture)
         pen.joinStyle = .Round
 
         painter.fillPolygon(flower[to], Brush.createTiled(g_TileTexture))
         drawClosedOutline(painter, flower[to], pen)
-        drawWrappedText(painter, {rightRect.x + 10, rightRect.bottom() - 36, rightRect.width - 20, 28}, "Textured outline from the same target", g_HelpFont!, Argb.DarkSlateGray)
+        drawWrappedText(painter, {rightRect.x + 10, rightRect.bottom() - 24, rightRect.width - 20, 22}, "Textured outline from the same target", g_HelpFont!, Argb.DarkSlateGray)
     }
 }
 
 func drawRenderTargetPage(painter: *Pixel.Painter)
 {
-    drawPageHeader(painter, "Pixel render targets", "Page 9 : offscreen drawing, texture reuse, source-rect sampling and brush reuse from a live render target.")
+    drawPageHeader(painter, "Pixel render targets", "Page 11 : offscreen drawing, texture reuse, source-rect sampling and brush reuse from a live render target.")
 
     // The target stores device texels while the offscreen pass draws in logical
     // units: allocate it at the painter's content scale so the drawing is as dense

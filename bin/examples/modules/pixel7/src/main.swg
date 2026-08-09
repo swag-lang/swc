@@ -271,7 +271,9 @@ func drawCard(painter: *Pixel.Painter, rect: Math.Rectangle, card: const &Decode
 
 func drawScene(painter: *Pixel.Painter)
 {
+    painter.setColorMaskFull()
     painter.clear(Color.fromArgb(255, 245, 246, 249))
+    painter.setColorMaskColor()
     painter.setParams(.Antialiased)
     painter.drawString(28, 22, pageTitle(g_Page), g_TitleFont!, Argb.MidnightBlue)
     drawWrappedText(painter, {30, 64, W - 60, 42}, pageDescription(g_Page), g_HelpFont!, Argb.DimGray)

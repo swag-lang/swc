@@ -225,6 +225,7 @@ func testPrimeCaptureGizmo(capture: *Capture)
 
 func testRegisterHeadlessActions(main: *MainWnd)
 {
+    main.registerAction'ActionGlobal()
     main.registerAction'ActionSelection()
     main.registerAction'ActionMoveSel()
     main.registerAction'ActionAlign()

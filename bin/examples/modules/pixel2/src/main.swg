@@ -53,7 +53,9 @@ func dropFonts()
 
 func drawScene(painter: *Pixel.Painter)
 {
+    painter.setColorMaskFull()
     painter.clear(Argb.WhiteSmoke)
+    painter.setColorMaskColor()
     painter.setParams(.Antialiased)
 
     var panelColor: Color = Argb.MidnightBlue

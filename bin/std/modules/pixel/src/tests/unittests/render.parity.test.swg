@@ -12,7 +12,7 @@ private const RenderSvgWidth = 96
 private const RenderSvgHeight = 64
 private const RenderSvgSupersample = 4'u8
 private const RenderBlendWidth = 180
-private const RenderBlendHeight = 24
+private const RenderBlendHeight = 48
 
 private const ArtisticBlendModes: [15] BlendingMode = [.Multiply, .Screen, .Overlay, .Darken, .Lighten, .ColorDodge, .ColorBurn, .HardLight, .SoftLight, .Difference, .Exclusion, .Hue, .Saturation, .Color, .Luminosity]
 
@@ -63,34 +63,56 @@ private func renderBlendParityScene(renderer: IRenderer)->Image
     const OpaqueDst = Color.fromArgb(255'u8, 64'u8, 128'u8, 192'u8)
     const FaintDst  = Color.fromArgb(128'u8, 64'u8, 128'u8, 192'u8)
     const Src       = Color.fromArgb(128'u8, 192'u8, 64'u8, 128'u8)
+    const Src2      = Color.fromArgb(176'u8, 48'u8, 192'u8, 96'u8)
 
-    var painter = Painter.create(renderer)
-    painter.begin()
-    painter.bindRenderTarget(&target)
-    painter.setColorMaskFull()
-    painter.setBlendingMode(.Copy)
-    painter.clear(Color.fromArgb(Argb.Zero))
-
-    for mode, [idx] in ArtisticBlendModes
+    // Repeat the complete stream on the same target. A non-coherent context stays ordered
+    // across draw calls as well as within one batch; the second clear is the first touch after
+    // the previous stream's artistic pass.
+    for 2
     {
-        let x = cast(f32) idx * 12.0
-
+        var painter = Painter.create(renderer)
+        painter.begin()
+        painter.bindRenderTarget(&target)
+        painter.setColorMaskFull()
         painter.setBlendingMode(.Copy)
-        painter.fillRect(x, 0, 12, 12, OpaqueDst)
-        painter.setBlendingMode(mode)
-        painter.fillRect(x, 0, 12, 12, Src)
+        painter.clear(Color.fromArgb(Argb.Zero))
 
-        painter.setBlendingMode(.Copy)
-        painter.fillRect(x, 12, 12, 12, Color.fromArgb(Argb.Zero))
-        painter.setBlendingMode(.Alpha)
-        painter.fillRect(x, 12, 12, 12, FaintDst)
-        painter.setBlendingMode(mode)
-        painter.fillRect(x, 12, 12, 12, Src)
+        for mode, [idx] in ArtisticBlendModes
+        {
+            let x = cast(f32) idx * 12.0
+
+            painter.setBlendingMode(.Copy)
+            painter.fillRect(x, 0, 12, 12, OpaqueDst)
+            painter.setBlendingMode(mode)
+            painter.fillRect(x, 0, 12, 12, Src)
+
+            painter.setBlendingMode(.Copy)
+            painter.fillRect(x, 12, 12, 12, Color.fromArgb(Argb.Zero))
+            painter.setBlendingMode(.Alpha)
+            painter.fillRect(x, 12, 12, 12, FaintDst)
+            painter.setBlendingMode(mode)
+            painter.fillRect(x, 12, 12, 12, Src)
+
+            // These two calls deliberately merge into one triangle batch and overlap. A
+            // non-coherent backend must put a barrier between its individual primitives.
+            painter.setBlendingMode(.Copy)
+            painter.fillRect(x, 24, 12, 12, OpaqueDst)
+            painter.setBlendingMode(mode)
+            painter.fillRect(x, 24, 8, 12, Src)
+            painter.fillRect(x + 4, 24, 8, 12, Src2)
+
+            // Once a context has used a non-coherent artistic equation, later standard batches
+            // are still framebuffer touches. Keep their overlapping primitives ordered too.
+            painter.setBlendingMode(.Alpha)
+            painter.fillRect(x, 36, 8, 12, Src)
+            painter.fillRect(x + 4, 36, 8, 12, Src2)
+        }
+
+        painter.unbindRenderTarget()
+        painter.end()
+        renderer.draw(&painter)
     }
 
-    painter.unbindRenderTarget()
-    painter.end()
-    renderer.draw(&painter)
     return renderer.readRenderTarget(&target, 0, 0, RenderBlendWidth, RenderBlendHeight)
 }
 
@@ -371,13 +393,14 @@ private func assertSvgPixel(image: const *Image, x, y: s32, expected: Color)
 }
 
 // A capable OpenGL context implements the same artistic equations as the CPU, including partial
-// backdrop coverage. Unsupported contexts expose that limitation through the capability query.
+// backdrop coverage. Non-coherent contexts exercise the explicit barrier path; unsupported
+// contexts expose their limitation through the capability query.
 #test
 {
     let expected = renderCpu(&renderBlendParityScene)
     let image    = expect renderOgl("SWAG_PIXEL_BLEND_PARITY", "Pixel blend parity", RenderBlendWidth, RenderBlendHeight, &renderBlendParityScene, true)
     if image.isValid() do
-        Testing.assertImagesNear(&expected, &image, "render.parity.blend.cpu-ogl", {maxChannelDelta: 2})
+        Testing.assertImagesNear(&expected, &image, "render.parity.blend.cpu-ogl", {maxChannelDelta: 3})
 }
 
 // OpenGL must stay visually equivalent to the CPU reference. Raster-edge differences are

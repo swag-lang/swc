@@ -127,7 +127,7 @@ namespace
     uint64_t ffiNativeStructTriple64Mutate(FFIStructTriple64 value)
     {
         volatile uint64_t* valueA = &value.a;
-        *valueA = *valueA + 5;
+        *valueA                   = *valueA + 5;
         return value.a + value.b + value.c;
     }
 

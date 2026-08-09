@@ -24,12 +24,12 @@ public struct PlanField
 public struct Plan
 {
     structType: #null const *Swag.TypeInfoStruct     // The type this plan describes.
-    version:    u32                            // Value of the 'Serialization.Version' attribute, 0 when absent.
-    hasVersion: bool                           // Whether the type carries a 'Serialization.Version' attribute.
-    podFinal:   bool                           // Whether the type serializes as raw bytes (see [[Core.Serialization.isPodFinal]]).
-    hasCustom:  bool                           // Whether the type implements 'ISerialize' and drives its own fields.
-    fields:     Array'PlanField                // The serializable fields, in declaration order.
-    crcToIndex: HashTable'(u32, u64)           // Maps a field name crc to its index in 'fields'.
+    version:    u32                                  // Value of the 'Serialization.Version' attribute, 0 when absent.
+    hasVersion: bool                                 // Whether the type carries a 'Serialization.Version' attribute.
+    podFinal:   bool                                 // Whether the type serializes as raw bytes (see [[Core.Serialization.isPodFinal]]).
+    hasCustom:  bool                                 // Whether the type implements 'ISerialize' and drives its own fields.
+    fields:     Array'PlanField                      // The serializable fields, in declaration order.
+    crcToIndex: HashTable'(u32, u64)                 // Maps a field name crc to its index in 'fields'.
 }
 
 public impl Plan

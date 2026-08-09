@@ -108,7 +108,9 @@ func drawCard(painter: *Pixel.Painter, rect: Math.Rectangle, index: u64)
 
 func drawScene(painter: *Pixel.Painter)
 {
+    painter.setColorMaskFull()
     painter.clear(Color.fromArgb(255, 241, 244, 249))
+    painter.setColorMaskColor()
     painter.setParams(.Antialiased)
 
     painter.drawString(Margin, 24, "Pixel mathematical typesetting", g_TitleFont!, Argb.MidnightBlue)

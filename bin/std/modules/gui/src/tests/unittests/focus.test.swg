@@ -162,6 +162,34 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     @assert(card.submit.hasFocus())
 }
 
+// A Lost callback can dismantle the old focused subtree without recursively losing focus again.
+// The new owner is published before that callback runs, so releaseFocus sees that the keyboard
+// has already left the subtree being destroyed.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(400, 200)
+    defer host.shutdown()
+
+    let panel = Wnd.create'Wnd(&host.root, {10, 10, 180, 60})
+    let first = EditBox.create(panel, "", {0, 0, 160, 24})
+    let next  = EditBox.create(&host.root, "", {220, 10, 160, 24})
+
+    var lostCount: u32
+    first.sigFocusLost += func|panel, lostCount = &lostCount|(ed)
+    {
+        discard ed
+        dref lostCount += 1
+        panel.destroy()
+    }
+
+    first.setFocus()
+    next.setFocus()
+
+    @assert(lostCount == 1)
+    @assert(next.hasFocus())
+}
+
 // A composite is one stop, and the focus lands on the part of it that reads the keys.
 #test
 {

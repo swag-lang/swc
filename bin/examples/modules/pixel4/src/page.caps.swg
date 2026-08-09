@@ -27,14 +27,14 @@ func makeCapPath(left, right, y: f32)->LinePath
 
 func drawCapRow(painter: *Pixel.Painter, rect: Math.Rectangle, row: CapRow)
 {
-    let baselineY = Math.round(rect.vertCenter())
+    let baselineY = Math.round(rect.y + rect.height * 0.62)
     let startX    = rect.x + 250
-    let endX      = rect.right() - 32
+    let endX      = rect.right() - 38
 
     painter.fillRect(rect.x, rect.y + rect.height - 1, rect.width, 1, Color.fromArgb(30, Argb.SlateGray))
-    drawWrappedText(painter, {rect.x + 8, rect.y + 12, 220, 34}, row.label, g_LabelFont!, Argb.DarkSlateGray)
-    painter.drawString(startX - 44, rect.y + 18, "start", g_HelpFont!, Argb.LightSlateGray)
-    painter.drawString(endX - 16, rect.y + 18, "end", g_HelpFont!, Argb.LightSlateGray)
+    drawWrappedText(painter, {rect.x + 8, rect.y + 10, 190, rect.height - 14}, row.label, g_LabelFont!, Argb.DarkSlateGray)
+    painter.drawString(startX - 44, rect.y + 6, "start", g_HelpFont!, Argb.LightSlateGray)
+    painter.drawString(endX - 16, rect.y + 6, "end", g_HelpFont!, Argb.LightSlateGray)
 
     painter.drawLine(startX, baselineY, endX, baselineY, Color.fromArgb(44, Argb.Black), 2)
     painter.fillCircle(startX, baselineY, 3, Argb.DarkSlateGray)

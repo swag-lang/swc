@@ -33,29 +33,6 @@ func drawClipRegionCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     painter.drawCircle(maskRect.horzCenter(), maskRect.vertCenter(), 44, Color.fromArgb(90, Argb.Crimson), 2)
 }
 
-func drawBlendSample(painter: *Pixel.Painter, rect: Math.Rectangle, mode: BlendingMode, label: string)
-{
-    painter.fillRoundRect(rect, 14, 14, Color.fromArgb(255, 245, 247, 250))
-    painter.drawRoundRect(rect, 14, 14, Color.fromArgb(34, Argb.SlateGray), 1)
-    painter.drawString(rect.x + 14, rect.y + 10, label, g_HelpFont!, Argb.DarkSlateGray)
-
-    painter.setBlendingMode(mode)
-    painter.fillRoundRect(rect.x + 24, rect.y + 42, 78, 78, 18, 18, Color.fromArgb(150, Argb.RoyalBlue))
-    painter.fillRoundRect(rect.x + 72, rect.y + 64, 78, 78, 18, 18, Color.fromArgb(150, Argb.Tomato))
-    painter.fillCircle(rect.x + 112, rect.y + 88, 36, Color.fromArgb(150, Argb.Goldenrod))
-    painter.setBlendingMode(.Alpha)
-}
-
-func drawBlendCard(painter: *Pixel.Painter, rect: Math.Rectangle)
-{
-    let body      = drawPanel(painter, rect, "Blending modes", "Multiply shades overlapping colors while Screen lifts them toward a shared highlight.")
-    let sampleGap = 18.0
-    let sampleW   = (body.width - sampleGap) * 0.5
-
-    drawBlendSample(painter, {body.x, body.y + 18, sampleW, body.height - 18}, .Multiply, "Multiply")
-    drawBlendSample(painter, {body.x + sampleW + sampleGap, body.y + 18, sampleW, body.height - 18}, .Screen, "Screen")
-}
-
 func buildPathModeList(x, y: f32)->LinePathList
 {
     var list: retval
@@ -100,9 +77,8 @@ func drawPathModeCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 
 func drawCompositingPage(painter: *Pixel.Painter)
 {
-    drawPageHeader(painter, "Pixel compositing", "Page 8 : clipping rectangles, clipping regions, alternate blending modes and path-list composition.")
-    drawClipRectCard(painter, {28, 104, 294, 262})
-    drawClipRegionCard(painter, {343, 104, 294, 262})
-    drawBlendCard(painter, {658, 104, 294, 262})
+    drawPageHeader(painter, "Pixel clipping and composition", "Page 8 : rectangular and stencil clipping, followed by separate and merged path-list rendering.")
+    drawClipRectCard(painter, {28, 104, 452, 262})
+    drawClipRegionCard(painter, {500, 104, 452, 262})
     drawPathModeCard(painter, {28, 392, 924, 272})
 }

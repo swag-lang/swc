@@ -117,7 +117,7 @@ impl PropWnd
         return capture.getSelectedFormType()!
     }
 
-    mtd pushTypedValue(val: u32, type: typeinfo, name: String, first: bool, common = false)
+    mtd pushTypedValue(val: u32, type: typeinfo, name: string, first: bool, common = false)
     {
         let capture = .main.getCapture()
 
@@ -192,7 +192,7 @@ impl PropWnd
     // Shared by the shape and step buttons: 'type' is the concrete form type and
     // 'fieldName' its FormShapeKind field, read back through reflection so both
     // forms go through the same popup.
-    mtd createPopupShapeKind(btn: *IconButton, type: typeinfo, fieldName: String)
+    mtd createPopupShapeKind(btn: *IconButton, type: typeinfo, fieldName: string)
     {
         let cells  = cast(f32) @countof(FormShapeKind)
         let frame  = btn.createAnchorPopup(popupExtent(cells, PopupCellSize), popupExtent(1, PopupCellSize))
@@ -201,7 +201,7 @@ impl PropWnd
         layout.spacing = PopupSpacing
         layout.padding = PopupPadding
 
-        func selectedKind(prop: *PropWnd, type: typeinfo, fieldName: String)->FormShapeKind
+        func selectedKind(prop: *PropWnd, type: typeinfo, fieldName: string)->FormShapeKind
         {
             var val: u32
             let field = Reflection.findField(type, fieldName)!
@@ -209,7 +209,7 @@ impl PropWnd
             return cast(FormShapeKind) val
         }
 
-        func updateBtnState(prop: *PropWnd, layout: *Wnd, type: typeinfo, fieldName: String)
+        func updateBtnState(prop: *PropWnd, layout: *Wnd, type: typeinfo, fieldName: string)
         {
             let cur = selectedKind(prop, type, fieldName)
             for c in layout.children
@@ -239,7 +239,7 @@ impl PropWnd
                 drawShapeGlyph(bc.painter, enumFromUserData'FormShapeKind(btn.userData), pos, color)
             }
 
-            btn0.sigPressed += func|prop = me, layout, type, &fieldName|(btn)
+            btn0.sigPressed += func|prop = me, layout, type, fieldName|(btn)
             {
                 let kind = enumFromUserData'u64(btn.userData)
                 prop.pushTypedValue(cast() kind, type, fieldName, true)
@@ -709,7 +709,7 @@ impl PropWnd
             return
         let curSel = .getSelectedBaseForm()
 
-        func addBox(prop: *PropWnd, parent: *Wnd, label: String, name: String, value: s32, signed: bool)
+        func addBox(prop: *PropWnd, parent: *Wnd, label: String, name: string, value: s32, signed: bool)
         {
             let edit = EditCtrl.create(parent, label, Format.toString("%", value), flags: .ReleaseFocusOnEnterOrEscape)
             edit.setLayoutMetrics(15, 0)
@@ -723,7 +723,7 @@ impl PropWnd
                 edit.edit.setSignedIntegerRange()
             else do
                 edit.edit.setUnsignedIntegerRange(1, 10000)
-            edit.edit.sigFocusLost += func|prop, &name|(ed)
+            edit.edit.sigFocusLost += func|prop, name|(ed)
             {
                 let {v, ?, ?} = catch StrConv.parseS32(ed.text())
                 prop.pushTypedValue(v, BaseForm, name, true, true)

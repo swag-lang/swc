@@ -85,7 +85,7 @@ func drawBaselineCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     let sample = insetRect(body, 20, 14, 20, 18)
     drawTextCardSurface(painter, sample, Color.fromArgb(255, 248, 249, 251))
 
-    let baseline = sample.y + sample.height * 0.58
+    let baseline = sample.y + sample.height * 0.42
     painter.drawLine(sample.x + 16, baseline, sample.right() - 16, baseline, Color.fromArgb(140, Argb.Crimson), 1)
 
     let big      = "Ag"
@@ -112,7 +112,7 @@ func drawBaselineCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     fmt.minLineHeight = 18
     fmt.maxLines      = 2
     fmt.letterSpacing = 0.3
-    painter.drawRichString({sample.x + 24, sample.bottom() - 64, sample.width - 48, 52}, &paragraph, fmt)
+    painter.drawRichString({sample.x + 24, sample.bottom() - 54, sample.width - 48, 46}, &paragraph, fmt)
 }
 
 func drawOutlineTextCard(painter: *Pixel.Painter, rect: Math.Rectangle)

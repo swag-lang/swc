@@ -22,9 +22,11 @@ private
 
     const KhrAdvancedBlendShaderHeader = "#extension GL_KHR_blend_equation_advanced : require\nlayout(blend_support_all_equations) out;\n"
 
-    const AdvancedBlendingNone: u8 = 0
-    const AdvancedBlendingKhr:  u8 = 1
-    const AdvancedBlendingNv:   u8 = 2
+    const AdvancedBlendingNone:        u8 = 0
+    const AdvancedBlendingKhrCoherent: u8 = 1
+    const AdvancedBlendingNvCoherent:  u8 = 2
+    const AdvancedBlendingKhrBarrier:  u8 = 3
+    const AdvancedBlendingNvBarrier:   u8 = 4
 }
 
 // Sets the glyph-coverage exponent used by the font shaders.
@@ -56,7 +58,8 @@ const InvalidRenderTargetSurfaceHandle: RenderTargetSurfaceHandle = cast() 0    
 // A renderer is non-copyable and owns its shaders, textures, buffers, and queued
 // render targets. Create it as an [[Pixel.IRenderer]], create a
 // [[Pixel.RenderContext]], call `init`, then bracket frames with `begin` and `end`.
-// The artistic blend modes use coherent advanced blend equations; call
+// The artistic blend modes use advanced blend equations, with explicit barriers when the
+// context does not provide coherent ordering; call
 // [[Pixel.RenderOgl.supportsAdvancedBlending]] after `init` before selecting one on
 // a context whose driver capabilities are not known.
 #[Swag.NoCopy]
@@ -91,15 +94,16 @@ struct RenderOgl
         colorMask:      ColorMask    = {true, true, true, false}     // Painter-requested channel mask.
         curRC:          RenderContext                                // Active drawable and viewport.
 
-        stackReleasedRT:  Array'#null *RenderTarget     // Targets queued for deferred release.
-        stackRT:          Array'#null *RenderTarget     // Nested bound render targets.
-        curRT:            #null *RenderTarget           // Active off-screen target, if any.
-        curShader:        #null *ShaderBase             // Active shader, or the default shader.
-        overlapMode:      bool                          // Whether overlap-safe alpha drawing is active.
-        contentScale:     f32 = 1                       // Device pixels per unit of the painter stream being drawn.
-        nativeContext:    #null const *void             // Shared native OpenGL context owned by interface-created drawables.
-        contextCount:     u32                           // Number of live interface-created drawables.
-        advancedBlending: u8                            // Advanced blend-equation family supplied by the current context.
+        stackReleasedRT:       Array'#null *RenderTarget     // Targets queued for deferred release.
+        stackRT:               Array'#null *RenderTarget     // Nested bound render targets.
+        curRT:                 #null *RenderTarget           // Active off-screen target, if any.
+        curShader:             #null *ShaderBase             // Active shader, or the default shader.
+        overlapMode:           bool                          // Whether overlap-safe alpha drawing is active.
+        contentScale:          f32 = 1                       // Device pixels per unit of the painter stream being drawn.
+        nativeContext:         #null const *void             // Shared native OpenGL context owned by interface-created drawables.
+        contextCount:          u32                           // Number of live interface-created drawables.
+        advancedBlending:      u8                            // Advanced blend-equation family supplied by the current context.
+        advancedBarrierActive: bool                          // Whether this context must keep later framebuffer touches in separate passes.
     }
 }
 
@@ -146,6 +150,39 @@ private impl RenderOgl
         case .Luminosity: return GL_HSL_LUMINOSITY_KHR
         default:          return GL_FUNC_ADD
         }
+    }
+
+    mtd const usesKhrAdvancedBlending()->bool
+    {
+        return .advancedBlending == AdvancedBlendingKhrCoherent or .advancedBlending == AdvancedBlendingKhrBarrier
+    }
+
+    mtd const requiresAdvancedBlendBarrier()->bool
+    {
+        return .advancedBlending == AdvancedBlendingKhrBarrier or .advancedBlending == AdvancedBlendingNvBarrier
+    }
+
+    // Starts a new framebuffer-touching pass on contexts whose advanced equations are not
+    // coherent. Once a command stream selects an artistic mode, every later touch is isolated:
+    // standard draws and clears also count as touches in the extension contract.
+    mtd prepareFramebufferTouch()
+    {
+        if !.advancedBarrierActive do
+            return
+
+        switch .advancedBlending
+        {
+        case AdvancedBlendingKhrBarrier: glBlendBarrierKHR()
+        case AdvancedBlendingNvBarrier:  glBlendBarrierNV()
+        }
+    }
+
+    mtd finishAdvancedBlendPass()
+    {
+        // Keep the barrier state latched across draw calls. Swapping or ending a command stream
+        // does not end the extension's framebuffer-touch ordering contract; the first clear or
+        // draw of the next stream must still start behind a barrier.
+        .prepareFramebufferTouch()
     }
 
     func setShaderCompileError(shaderID: GLuint) fail
@@ -312,6 +349,8 @@ private impl RenderOgl
     mtd setBlendingMode(bm: BlendingMode)
     {
         .blendingMode = bm
+        if bm.usesAdvancedBlending() and .requiresAdvancedBlendBarrier() do
+            .advancedBarrierActive = true
 
         // The fragment shader must know when a zero-alpha fragment is meaningful: its
         // zero-coverage discard is an optimization under alpha compositing and a bug under
@@ -321,7 +360,7 @@ private impl RenderOgl
         if .curShader
         {
             glUniform1i(cast(GLint) .curShader.copyMode, cast(GLint) (bm == .Copy))
-            glUniform1i(cast(GLint) .curShader.premultiplyBlendSource, cast(GLint) (.advancedBlending == AdvancedBlendingKhr and bm.usesAdvancedBlending()))
+            glUniform1i(cast(GLint) .curShader.premultiplyBlendSource, cast(GLint) (.usesKhrAdvancedBlending() and bm.usesAdvancedBlending()))
         }
 
         switch #complete bm
@@ -397,7 +436,7 @@ private impl RenderOgl
 
 impl RenderOgl
 {
-    // Reports whether the current context provides coherent advanced blend equations.
+    // Reports whether the current context provides advanced blend equations.
     //
     // Call this after [[Pixel.IRenderer.init]]. A `false` result means
     // [[Pixel.RenderCpu]] remains available for the artistic blend modes, while
@@ -514,11 +553,20 @@ impl RenderOgl
 
         if hasExtension("GL_KHR_blend_equation_advanced_coherent")
         {
-            .advancedBlending = AdvancedBlendingKhr
+            .advancedBlending = AdvancedBlendingKhrCoherent
         }
         elif hasExtension("GL_NV_blend_equation_advanced_coherent")
         {
-            .advancedBlending = AdvancedBlendingNv
+            .advancedBlending = AdvancedBlendingNvCoherent
+            glBlendParameteriNV(GL_BLEND_PREMULTIPLIED_SRC_NV, cast(GLint) GL_FALSE)
+        }
+        elif hasExtension("GL_KHR_blend_equation_advanced")
+        {
+            .advancedBlending = AdvancedBlendingKhrBarrier
+        }
+        elif hasExtension("GL_NV_blend_equation_advanced")
+        {
+            .advancedBlending = AdvancedBlendingNvBarrier
             glBlendParameteriNV(GL_BLEND_PREMULTIPLIED_SRC_NV, cast(GLint) GL_FALSE)
         }
 
@@ -855,6 +903,7 @@ impl RenderOgl
         case .Clear:
             let params       = &cmd.clear
             let {a, r, g, b} = params.color.toArgbF32()
+            .prepareFramebufferTouch()
             glClearColor(r, g, b, a)
             glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT)
 
@@ -913,10 +962,27 @@ impl RenderOgl
             let params = &cmd.drawTriangles
             if !.overlapMode
             {
-                glDrawArrays(GL_TRIANGLES, cast(GLint) params.start, cast(GLsizei) params.count)
+                if .advancedBarrierActive
+                {
+                    // A non-coherent pass may touch each sample only once, including through
+                    // standard blending. Painter batches can contain overlapping geometry, so
+                    // isolate every primitive rather than only every recorded draw command.
+                    for var start = params.start; start < params.start + params.count; start += 3
+                    {
+                        .prepareFramebufferTouch()
+                        glDrawArrays(GL_TRIANGLES, cast(GLint) start, 3)
+                    }
+                }
+                else
+                {
+                    .prepareFramebufferTouch()
+                    glDrawArrays(GL_TRIANGLES, cast(GLint) params.start, cast(GLsizei) params.count)
+                }
             }
             else
             {
+                .prepareFramebufferTouch()
+
                 // Fresh start on alpha. Clear all
                 glDisable(GL_BLEND)
                 glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE)
@@ -1124,6 +1190,7 @@ impl RenderOgl
                 glEnable(GL_BLEND)
                 glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE)
                 glClearColor(0, 0, 0, 0)
+                .prepareFramebufferTouch()
                 glClear(GL_COLOR_BUFFER_BIT)
                 glBlendFunc(GL_SRC_ALPHA, GL_ZERO)
                 glBlendEquation(GL_MAX)
@@ -1252,6 +1319,7 @@ impl RenderOgl
             .executeCommand(dc, cmd, cmdIdx, width, height)
         for [i] in 4 do
             glDisableVertexAttribArray(cast(GLuint) i)
+        .finishAdvancedBlendPass()
     }
 
     // Set the current shader
@@ -1265,7 +1333,7 @@ impl RenderOgl
         // Uniforms are per program: the incoming program's copyMode may be stale from an
         // earlier frame, so realign it with the current blending mode; see setBlendingMode.
         glUniform1i(cast(GLint) .curShader.copyMode, cast(GLint) (.blendingMode == .Copy))
-        glUniform1i(cast(GLint) .curShader.premultiplyBlendSource, cast(GLint) (.advancedBlending == AdvancedBlendingKhr and .blendingMode.usesAdvancedBlending()))
+        glUniform1i(cast(GLint) .curShader.premultiplyBlendSource, cast(GLint) (.usesKhrAdvancedBlending() and .blendingMode.usesAdvancedBlending()))
     }
 
     // Acquires a pooled render target at least as large as the requested size.
@@ -1325,7 +1393,7 @@ impl RenderOgl
 
         buf = @mkstring(@dataof(pixel), @countof(pixel))
         var baseBuilder: StringBuilder
-        if .advancedBlending == AdvancedBlendingKhr do
+        if .usesKhrAdvancedBlending() do
             baseBuilder.appendString(KhrAdvancedBlendShaderHeader)
         baseBuilder.appendString(@mkstring(@dataof(BasePixelShader), @countof(BasePixelShader)))
         let baseSource = baseBuilder.moveToString()

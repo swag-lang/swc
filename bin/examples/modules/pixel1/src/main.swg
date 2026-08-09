@@ -80,7 +80,9 @@ func drawClosedOutline(painter: *Pixel.Painter, points: [..] Math.Vector2, pen: 
 
 func drawScene(painter: *Pixel.Painter)
 {
+    painter.setColorMaskFull()
     painter.clear(Argb.WhiteSmoke)
+    painter.setColorMaskColor()
 
     // Left column: antialiased. Right column: aliased.
     drawFigures(painter, 0, true)

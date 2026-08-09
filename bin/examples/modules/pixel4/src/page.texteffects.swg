@@ -82,7 +82,7 @@ func drawShadowEffectCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 
 func drawTextEffectsPage(painter: *Pixel.Painter)
 {
-    drawPageHeader(painter, "MSDF text effects", "Page 10 : outline, glow, bevel and soft drop shadow, derived from the glyph distance field (TextMeshPro-style).")
+    drawPageHeader(painter, "MSDF text effects", "Page 12 : outline, glow, bevel and soft drop shadow, derived from the glyph distance field (TextMeshPro-style).")
     drawOutlineEffectCard(painter, {28, 104, 452, 280})
     drawGlowEffectCard(painter, {500, 104, 452, 280})
     drawBevelEffectCard(painter, {28, 406, 452, 258})

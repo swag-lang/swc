@@ -833,7 +833,10 @@ impl Painter
         .drawingBegin = false
     }
 
-    // Records a clear of the complete active rendering surface.
+    // Records a clear of the active rendering surface.
+    //
+    // The current clipping rectangle and color mask apply. Enable alpha writes before clearing
+    // when later blend equations need the cleared color to be an opaque backdrop.
     mtd clear(color: Color)
     {
         let cmd = .newCommand(.Clear)

@@ -120,30 +120,36 @@ func testItemIndex(prop: *PropWnd, name: string)->u64
     prop.selectionHasChanged()
     f.gui.pump()
 
-    let posItem = testFindItem(prop, appStrings().ui_PropPosition)!
-
     // Scroll all the way down (content is taller than the prop pane)
     prop.grid.scrollWnd.setScrollPos(0, 10000)
     let sc = prop.grid.scrollWnd.scrollPosition()
     @assert(sc.y > 0)
 
-    let stack = posItem.line.children[0]
-    f.gui.clickWnd(((cast(*EditCtrl) stack.children[0]).edit)!)
+    let posItemX = testFindItem(prop, appStrings().ui_PropPosition)!
+    let stackX   = posItemX.line.children[0]
+    f.gui.clickWnd(((cast(*EditCtrl) stackX.children[0]).edit)!)
     f.gui.pump()
     @assert(prop.grid.scrollWnd.scrollPosition().y == sc.y)
 
-    f.gui.clickWnd(((cast(*EditCtrl) stack.children[1]).edit)!)
+    // Focusing an editor may rebuild property-row widgets. Resolve them again after
+    // every pump instead of retaining pointers into the previous window tree.
+    let posItemY = testFindItem(prop, appStrings().ui_PropPosition)!
+    let stackY   = posItemY.line.children[0]
+    let editY    = ((cast(*EditCtrl) stackY.children[1]).edit)!
+    f.gui.clickWnd(editY)
     f.gui.pump()
     @assert(prop.grid.scrollWnd.scrollPosition().y == sc.y)
 
-    f.gui.clickWnd(posItem.line!)
+    let posItemLine = testFindItem(prop, appStrings().ui_PropPosition)!
+    f.gui.clickWnd(posItemLine.line!)
     f.gui.pump()
     @assert(prop.grid.scrollWnd.scrollPosition().y == sc.y)
 
     // Dead zone just above the row (inside the separator margin)
-    var pt = posItem.line.surfaceRect().center()
-    pt.y = posItem.line.surfaceRect().y - 8
-    let lineSrf = posItem.line.surface!
+    let posItemDead = testFindItem(prop, appStrings().ui_PropPosition)!
+    var pt          = posItemDead.line.surfaceRect().center()
+    pt.y = posItemDead.line.surfaceRect().y - 8
+    let lineSrf = posItemDead.line.surface!
     lineSrf.surfaceToScreen(&pt)
     f.gui.click(pt)
     f.gui.pump()

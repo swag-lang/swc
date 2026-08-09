@@ -702,7 +702,7 @@ private impl TagBin
         if !ent.value.consumed
         {
             ent.value.consumed = true
-            sec.consumedCount += 1
+            sec.consumedCount  += 1
         }
 
         return {true, ent.value.seek, ent.value.shapeIndex}
@@ -1034,7 +1034,7 @@ impl TagBin
             // written anyway, so demote the section to the indexed path and let every
             // remaining field seek its own position.
             .loadShapedFat(sec)
-            sec.positional = false
+            sec.positional        = false
             .diag.recoveredFields += 1
             fail err
         }
@@ -1094,7 +1094,7 @@ impl TagBin
         if crcName != reqCrcName and sec.skipFat
         {
             .loadSectionFat(sec)
-            sec.skipFat = false
+            sec.skipFat           = false
             .diag.recoveredFields += 1
 
             let ent = .findFieldRef(sec, val)
@@ -1360,7 +1360,7 @@ impl TagBin
         #static if NT == Core.String
         {
             var result: retval
-            var count: u64
+            var count:  u64
             if .wire >= 2 do
                 count = .stream.readVarint()
             else do

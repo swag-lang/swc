@@ -56,7 +56,16 @@ and `SoftLight`, plus the non-separable `Hue`, `Saturation`, `Color`, and
 `Luminosity` modes. They blend straight source and backdrop colors, then apply
 source-over coverage.
 
+The artistic equations use destination alpha as backdrop coverage. Because a
+new painter writes RGB but preserves alpha by default, initialize an opaque
+surface with a full channel mask before selecting these modes. `clear` obeys
+the current color mask.
+
 ```swag
+painter.setColorMaskFull()
+painter.clear(Color.fromRgb(24, 30, 42))
+painter.setColorMaskColor()
+
 painter.pushState()
 painter.setBlendingMode(.Multiply)
 painter.fillCircle(96, 72, 48, Color.fromArgb(180, Argb.RoyalBlue))

@@ -509,7 +509,7 @@ func borrowInvExclusiveBranchesInLoop(grow: bool)->u8
 {
     var buf: BorrowInvBuffer
     buf.reserve(4)
-    let view  = buf.view()
+    let view = buf.view()
     var total: u8
     for 4
     {

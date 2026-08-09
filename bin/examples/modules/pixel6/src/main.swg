@@ -473,7 +473,9 @@ func drawGdiGrid(painter: *Pixel.Painter, rowRect: Math.Rectangle)
 
 func drawScene(painter: *Pixel.Painter)
 {
+    painter.setColorMaskFull()
     painter.clear(Color.fromArgb(255, 242, 244, 248))
+    painter.setColorMaskColor()
     painter.setParams(.Antialiased)
     drawHeader(painter)
 

@@ -2749,7 +2749,7 @@ namespace
     {
         outArms.clear();
 
-        const AstNode& node = sema.node(nodeRef);
+        const AstNode& node   = sema.node(nodeRef);
         auto           addArm = [&](AstNodeRef armRef) {
             if (armRef.isValid())
                 outArms.push_back(subtreeRange(sema, armRef));

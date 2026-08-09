@@ -1854,27 +1854,35 @@ impl Wnd
                 return
         }
 
-        if last
-        {
-            var evt = FocusEvent{kind: FocusEvent.Kind.Lost, other: me}
-            last.sendEvent(&evt)
-            last.invalidate()
-
-            last.ownerNotifyEvent(.ChildFocusChanged)
-        }
-
+        // Publish the new owner before Lost callbacks run. A callback can destroy the old
+        // focused subtree; its releaseFocus must then see that the keyboard has already left it,
+        // instead of recursively starting a second transition through a tree being dismantled.
+        let lastSurface = last ? last.surface : null
         srfn.setFocus()
-
-        var evt = FocusEvent{kind: FocusEvent.Kind.Gained, other: last}
         srfn.app.keyboardFocusWnd = me
         srfn.noteFocus(me)
+
+        if last
+        {
+            last.invalidate()
+            last.ownerNotifyEvent(.ChildFocusChanged)
+
+            var evt = FocusEvent{kind: FocusEvent.Kind.Lost, other: me}
+            last.sendEvent(&evt)
+        }
+
+        // The Lost callback is allowed to destroy the incoming control or deliberately move the
+        // focus elsewhere. In either case that nested operation owns the resulting state.
+        if .isPendingDestroy or srfn.app.keyboardFocusWnd != me do
+            return
+
+        var evt = FocusEvent{kind: FocusEvent.Kind.Gained, other: last}
         .sendEvent(&evt)
         .invalidate()
 
         // The dominant action of a surface is drawn on whichever action the keyboard would run,
         // so the button that carries it when the keyboard is elsewhere repaints on every move.
         // Both surfaces are told: the focus can cross from one to the other.
-        let lastSurface = last ? last.surface : null
         if lastSurface do
             lastSurface.defaultButton?.invalidate()
         srfn.defaultButton?.invalidate()

@@ -49,9 +49,28 @@ from other sessions, and MSBuild's incremental build then links that in-flight c
 swc.exe you are timing - so a number moves and it is not yours. It also lets you abandon a whole
 round with one checkout instead of unpicking it, which you will do often here.
 
-Before the first change, build and run the full test sequence AT BASELINE in the new worktree, and
-record a baseline bench campaign there. Any failure or number at that point is pre-existing, not
-yours. Attributing a baseline failure to your own change costs a session every time it happens.
+START OPTIMIZING IN THE FIRST HALF HOUR
+
+Build the compiler in the worktree and go straight to THE LOOP. Nothing comes before your first
+change. The entry point of this campaign is one comparison - what clang-cl and MSVC emit for a hot
+loop against what we emit for the same loop - and that comparison needs a compiler and two dumps,
+not a validated tree.
+
+Do NOT open with a baseline test ladder or a baseline bench campaign. Both are hours of machine
+time spent answering a question you do not have yet, and the emitted code answers the question you
+do have for free. Before your first change specifically:
+
+  - Do not run tests.swgs, in any configuration.
+  - Do not record a bench campaign.
+  - Do not build measurement harnesses, per-configuration sweeps, or sentinels for failures you
+    have not seen.
+
+Validation is triggered by having something to validate; RULES says what to run then. The clock is
+needed later than it looks, because step 6 judges on emitted code - so record the baseline campaign
+in the same session as the campaign it is compared with, not before the work starts.
+
+If a rung is already red when you do run it, name it in a sentence and move on: it is pre-existing
+and it is not yours.
 
 GOAL
 
@@ -77,26 +96,42 @@ Where it stands, campaign 20260806-174758 (run ms, lower is better):
   wordfreq  65.72    47.55    52.83     1.38x
   geometric mean                        1.49x
 
-Re-measure before you act. That table is one campaign on one machine; if your first full campaign
-disagrees with it, yours is the truth and the table is history.
+That table is one campaign on one machine, so read it as a starting order and nothing more: it says
+which task to open, and your own campaign overrides it the moment you record one. Do not re-measure
+it first. Every task in it sits between 1.38x and 1.60x, so whichever one you open has a real gap
+waiting, and that gap is visible in the emitted code - two dumps, not twenty-five minutes.
 
 THE LOOP
 
 Pick the task with the worst ratio that you have not already exhausted, then:
 
-  1. Read the assembly clang-cl produces for that task before you read ours. It is the answer
-     sheet: it tells you what the win actually is, and it has repeatedly turned out to be
+  1. Read the assembly clang-cl AND MSVC produce for that task before you read ours. It is the
+     answer sheet: it tells you what the win actually is, and it has repeatedly turned out to be
      something other than the transformation that looked obvious from our side (it does not
-     vectorize the ChaCha rounds at all - it keeps sixteen words in sixteen registers).
+     vectorize the ChaCha rounds at all - it keeps sixteen words in sixteen registers). Read both:
+     clang is not the best on every task, and where the two agree there is nothing left to decide.
+
+       clang-cl /nologo /O2 /EHsc /std:c++20 /FA /c bench\src\cpp\<task>.cpp
+       cl       /nologo /O2 /EHsc /std:c++20 /FA /c bench\src\cpp\<task>.cpp   (from vcvars64)
+
   2. Dump our micro code for the same function and find the specific difference: instruction
      count, memory operations in the loop, spills, dependency chain length. Name the mechanism
-     before you touch a pass.
+     before you touch a pass. Copy the task's swagnat source, add `#global #[Swag.PrintMicro]`,
+     build it with the configuration the bench uses, and strip the ANSI colour before reading.
+     Two traps in that dump, both of which invent loops that do not exist: instruction references
+     RESTART at every function, so the map from a jump target back to an instruction has to be
+     rebuilt per function; and a jump's target is the LAST number on its line, because the operand
+     text also carries the width (`b32`), and 32 is a live reference often enough to matter.
   3. Implement the smallest change that addresses that mechanism, in src/Backend/Micro/Passes
      or the encoder.
-  4. Measure the task alone while iterating: cd bench && py driver.py --tasks <task> --quick.
-     Partial sweeps are never recorded; they are for your inner loop only.
-  5. Validate correctness before believing any number: swc tools/tests.swgs dm, then
-     swc tools/tests.swgs dm --all-cfg. A checksum mismatch in bench means you measured nothing.
+  4. Re-dump and re-count the same loops. This is the inner loop of the campaign and it costs
+     seconds - one build, one count. Iterate here, not on the clock. Compare per loop and never on
+     a total: an outer loop's span contains its inner loops, so a saving inside one shows up as a
+     loss outside it.
+  5. Validate correctness once the counts say the change is real, not before. swc tools/tests.swgs
+     dm, then swc tools/tests.swgs dm --all-cfg. Running these before there is a change to validate
+     is the most reliable way this campaign wastes a session. A checksum mismatch in bench means
+     you measured nothing.
   6. Judge the change against clang-cl and MSVC's output, not against the clock. The clock on this
      machine drifts more than most single changes are worth (two campaigns of the SAME binary
      measured a geometric mean of 1.41x and 1.54x, and drift inside one sweep reached +37%), and
@@ -110,8 +145,13 @@ Pick the task with the worst ratio that you have not already exhausted, then:
      One consequence worth planning around: a change can be a necessary step whose own measurement
      is flat, or even briefly negative, because it enables the next one. Say so, keep it, and name
      the follow-up.
-  7. Record a full campaign only when you have a result worth keeping:
-     swc tools\bench.swgs --label "what changed". That takes ~25 minutes; do not spend one per experiment.
+  7. Reach for the clock only once the emitted code says the change is real and you want its size:
+     cd bench && py driver.py --tasks <task> --quick. Partial sweeps are never recorded; they are
+     for your inner loop only.
+  8. Record a full campaign only when you have a result worth keeping:
+     swc tools\bench.swgs --label "what changed". That takes ~25 minutes; do not spend one per
+     experiment, and record the baseline it is compared against in the same session - a baseline
+     measured hours earlier is a different machine.
 
 DO NOT STOP AT THE FIRST FAILURE
 

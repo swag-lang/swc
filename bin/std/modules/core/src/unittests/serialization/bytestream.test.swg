@@ -63,7 +63,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
 #test
 {
     var buffer: Array'u8
-    var writer = ByteStream.openWrite(&buffer)
+    var writer          = ByteStream.openWrite(&buffer)
     let values: [7] u64 = [0, 1, 127, 128, 300, 0xFFFFFFFF, Swag.U64.Max]
     for v in values do
         writer.writeVarint(v)
@@ -75,19 +75,19 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
 
     // A single-byte value encodes as itself.
     var small: Array'u8
-    var sw    = ByteStream.openWrite(&small)
+    var sw = ByteStream.openWrite(&small)
     sw.writeVarint(0x45)
     @assert(assertBytes(small.toSlice(), [0x45]))
 
     // Truncated in the middle of a continuation.
     let cut: [1] u8 = [0x80]
-    var truncated = ByteStream.openRead(cut)
+    var truncated   = ByteStream.openRead(cut)
     discard catch truncated.readVarint() as errcut
     @assert(errcut != null)
 
     // More than 64 bits of payload is refused.
     let long: [11] u8 = [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01]
-    var overlong = ByteStream.openRead(long)
+    var overlong      = ByteStream.openRead(long)
     discard catch overlong.readVarint() as errlong
     @assert(errlong != null)
 }

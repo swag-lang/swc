@@ -32,6 +32,7 @@ func testSetupGlobalMain(main: *MainWnd)
     g_Library.loaded = true
     g_Library.files.clear()
     discard main.libWnd.listCtrl.createLine("Seed")
+    main.libWnd.filledRevision = g_Library.revision
 }
 
 // Global window actions toggle the real sCapture panes and surface visibility in a

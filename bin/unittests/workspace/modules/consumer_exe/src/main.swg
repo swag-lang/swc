@@ -519,3 +519,8 @@ func verifyRuntimeTypeCrossDllIdentity()
     // the normal executable instead of reusing the test artifact.
     @print("SWAG_WORKSPACE_MAIN_RAN\n")
 }
+
+#test
+{
+    @print("SWAG_WORKSPACE_TEST_RAN\n")
+}

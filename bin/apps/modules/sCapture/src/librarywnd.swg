@@ -3,10 +3,10 @@ using Threading, Time
 // The date column. It is wider than the editor's tool column on purpose: the tool column carries
 // one word per row and this one carries a sentence — "All Items" is two words in English and
 // three in French, and a column sized to the English clipped the French in the very first row.
-const SideBarWidth  = 280.0
-const LibBarHeight  = 32.0
-const LibGlyphSize  = 16.0
-const LibButtonWide = 104.0
+const SideBarWidth = 280.0
+const LibBarHeight = 32.0
+const LibGlyphSize = 16.0
+const LibButtonGap = 12.0
 
 // The count column of the date list, and what the rows spend before their name: the expander lane
 // the tree reserves on every row, plus the padding of the list. The name column takes what those
@@ -42,6 +42,20 @@ enum LibraryContentFilter
     Images
 }
 
+enum LibrarySidebarFilter
+{
+    Date
+    Application
+    Tag
+}
+
+struct LibraryNamedFilter
+{
+    name:       String
+    executable: String
+    count:      u64
+}
+
 struct LibraryWnd
 {
     using wnd: Wnd
@@ -56,7 +70,6 @@ struct LibraryWnd
         previewSizeBtn: *IconButton
         sortBtn:        *IconButton
         filterBtn:      *IconButton
-        trashBtn:       *IconButton
         folderBtn:      *IconButton
         searchEdit:     *EditBox
         breadcrumb:     *BreadcrumbCtrl
@@ -72,6 +85,10 @@ struct LibraryWnd
     // keep the id as a non-owning slice, so the strings must outlive the popup's modal loop.
     menuPaths:  Array'String
     menuValues: Array'String
+
+    sidebarApplications: Array'LibraryNamedFilter
+    sidebarTags:         Array'LibraryNamedFilter
+    updatingSidebar:     bool
 
     invertSort:               bool
     sortMethod:               SortMethod
@@ -110,9 +127,10 @@ impl LibraryWnd
         .previewSizeBtn.setText(appStrings().ui_BarSize)
         .sortBtn.setText(appStrings().ui_BarSort)
         .filterBtn.setText(appStrings().ui_BarFilter)
-        .trashBtn.setText(appStrings().ui_BarTrash)
+        .folderBtn.setText(appStrings().ui_BarFolders)
         .folderBtn.toolTip = appStrings().tip_LibraryFolders
         .searchEdit.setPlaceholder(appStrings().ui_Search)
+        .commandBar.computeLayout()
     }
 
     mtd setPreviewSize(size: PreviewSize)
@@ -281,51 +299,163 @@ impl LibraryWnd
         .view.scrollToFocus()
     }
 
-    mtd fill()
+    mtd collectNamedFilters(applications: bool)->Array'LibraryNamedFilter
     {
-        if !g_Library.loaded do
-            g_Library.fill()
-
-        if .listCtrl.lineCount() and .filledRevision == g_Library.revision do
-            return
-
-        if .listCtrl.lineCount() do
-            .listCtrl.clear()
-
-        if !.deleteObserverRegistered
+        var result: retval
+        for item in .view.allItems
         {
-            g_Library.onDeleteFile += func|libWnd = me|(file)
+            .view.mutexLoaded.lock()
+            let capture = item!.capture
+            .view.mutexLoaded.unlock()
+            if !capture do
+                continue
+
+            if applications
             {
-                // The loader owns a temporary pointer list. Join it before deleting the
-                // corresponding ArrayPtr element, then resume any pending previews.
-                libWnd.view.stopLoading()
+                if capture.sourceApplication.isEmpty() do
+                    continue
 
-                for item, [i] in libWnd.view.items
+                var found = false
+                for &entry in result where Utf8.compare(entry.name.toSlice(), capture.sourceApplication, .Latin1NoCase) == 0
                 {
-                    if item.fi.fullname == file
-                    {
-                        libWnd.view.selModel.unselect(cast() i)
-                        libWnd.view.items.removeAtOrdered(i)
-                        break
-                    }
+                    entry.count += 1
+                    if entry.executable.isEmpty() and !capture.sourceExecutable.isEmpty() do
+                        entry.executable = capture.sourceExecutable
+                    found = true
                 }
 
-                for item, [i] in libWnd.view.allItems
-                {
-                    if item!.fi.fullname != file do
-                        continue
-                    libWnd.view.app().renderer.removeTexture(&item!.texture)
-                    libWnd.view.allItems.deleteAt(i)
-                    break
-                }
-
-                libWnd.filledRevision = g_Library.revision
-                libWnd.view.filter()
-                catch libWnd.view.startLoading()
+                if !found do
+                    result.add({capture.sourceApplication, capture.sourceExecutable, 1})
+                continue
             }
 
-            .deleteObserverRegistered = true
+            for tag in capture.tags
+            {
+                var found = false
+                for &entry in result where Utf8.compare(entry.name.toSlice(), tag, .Latin1NoCase) == 0
+                {
+                    entry.count += 1
+                    found       = true
+                }
+
+                if !found do
+                    result.add({tag, "", 1})
+            }
         }
+
+        result.sort(func(a, b) { return Utf8.compare(a.name.toSlice(), b.name.toSlice(), .Latin1NoCase) })
+        return result
+    }
+
+    mtd const namedFiltersEqual(a, b: const *Array'LibraryNamedFilter)->bool
+    {
+        let valuesA = dref a
+        let valuesB = dref b
+        if valuesA.count != valuesB.count do
+            return false
+        for value, [i] in valuesA
+        {
+            if value.count != valuesB[i].count or
+               Utf8.compare(value.name.toSlice(), valuesB[i].name.toSlice(), .Latin1NoCase) != 0 or
+               value.executable != valuesB[i].executable
+            {
+                return false
+            }
+        }
+
+        return true
+    }
+
+    mtd addNamedFilterGroup(name: string, kind: LibrarySidebarFilter, values: &Array'LibraryNamedFilter)
+    {
+        if values.isEmpty() do
+            return
+
+        let root = .listCtrl.createLine(name, .theme().icon(.Filter, LibGlyphSize))
+        root.userData0 = cast() Swag.U64.Max
+        root.userData3 = cast() cast(u64) kind
+        let rootCount = root.setItem(1, Format.toString("% ", values.count))
+        rootCount.horzAlign = .Right
+
+        for value, [i] in values
+        {
+            var icon: Icon
+            if kind == .Application and !value.executable.isEmpty()
+            {
+                icon       = .app().fileIcon(value.executable)
+                icon.color = Argb.White
+            }
+
+            let line = .listCtrl.createLine(value.name, icon, parentLine: root)
+            line.userData0 = cast() i
+            line.userData3 = cast() cast(u64) kind
+            let count = line.setItem(1, Format.toString("% ", value.count))
+            count.horzAlign = .Right
+        }
+
+        .listCtrl.expand(root)
+    }
+
+    // Gives the wording column exactly the horizontal room left by the fixed count column,
+    // header separators and compact vertical bar. Deriving that room from the laid-out view is
+    // what prevents a fixed-width rail from manufacturing a horizontal scroll bar.
+    mtd layoutSidebarColumns()
+    {
+        if !@isset(.listCtrl) do
+            return
+        let available = .listCtrl.listView.paddedClientRect().width
+        if available <= 0 do
+            return
+
+        let nameColumn = 0'u32
+        let others     = .listCtrl.header.contentWidth() - .listCtrl.header.itemWidthForColumn(nameColumn)
+        .listCtrl.setColumnWidth(nameColumn, Math.max(80, available - others))
+        .listCtrl.computeLayout()
+    }
+
+    mtd selectActiveSidebarLine()
+    {
+        var wantedKind = LibrarySidebarFilter.Date
+        if !.applicationFilter.isEmpty() do
+            wantedKind = .Application
+        elif !.tagFilter.isEmpty() do
+            wantedKind = .Tag
+
+        for [i] in .listCtrl.lineCount()
+        {
+            let line = .listCtrl.lineAt(cast(u32) i)!
+            let kind = cast(LibrarySidebarFilter) cast(u64) line.userData3
+            if kind != wantedKind do
+                continue
+
+            var matches = false
+            switch kind
+            {
+            case .Date:
+                matches = cast(u64) line.userData0 == .view.filterYear and cast(u64) line.userData1 == .view.filterMonth and cast(u64) line.userData2 == .view.filterDay
+
+            case .Application:
+                let idx = cast(u64) line.userData0
+                matches = idx < .sidebarApplications.count and Utf8.compare(.sidebarApplications[idx].name.toSlice(), .applicationFilter, .Latin1NoCase) == 0
+
+            case .Tag:
+                let idx = cast(u64) line.userData0
+                matches = idx < .sidebarTags.count and Utf8.compare(.sidebarTags[idx].name.toSlice(), .tagFilter, .Latin1NoCase) == 0
+            }
+
+            if matches
+            {
+                .listCtrl.selectLine(cast(u32) i)
+                return
+            }
+        }
+    }
+
+    mtd rebuildSidebar()
+    {
+        .updatingSidebar = true
+        defer .updatingSidebar = false
+        .listCtrl.clear()
 
         let line = .listCtrl.createLine(appStrings().ui_AllCaptures, .main.icon(.Archive, LibGlyphSize))
         var item = line.setItem(1, Format.toString("% ", g_Library.files.count))
@@ -341,7 +471,6 @@ impl LibraryWnd
         var lastLineDay:     #null *ListLine
 
         let icon1 = .main.icon(.Calendar, LibGlyphSize)
-
         var cptYear, cptMonth, cptDay = 0
 
         #[Swag.Mixin]
@@ -379,7 +508,7 @@ impl LibraryWnd
 
         for fi in g_Library.files
         {
-            if !hasLastDateTime or (fi.lastWriteTime.year != lastDateTime.year)
+            if !hasLastDateTime or fi.lastWriteTime.year != lastDateTime.year
             {
                 fillLastYear()
                 lastLine           = .listCtrl.createLine(Format.toString("%", fi.lastWriteTime.year), icon1)
@@ -387,7 +516,7 @@ impl LibraryWnd
                 lastLineYear       = lastLine
             }
 
-            if !hasLastDateTime or (fi.lastWriteTime.month != lastDateTime.month)
+            if !hasLastDateTime or fi.lastWriteTime.month != lastDateTime.month
             {
                 fillLastMonth()
                 lastLine           = .listCtrl.createLine(Format.toString("%", DateTime.monthName(fi.lastWriteTime.month)), icon1, lastLineYear)
@@ -396,7 +525,7 @@ impl LibraryWnd
                 lastLineMonth      = lastLine
             }
 
-            if !hasLastDateTime or (fi.lastWriteTime.day != lastDateTime.day)
+            if !hasLastDateTime or fi.lastWriteTime.day != lastDateTime.day
             {
                 fillLastDay()
                 lastLine           = .listCtrl.createLine(Format.toString("%, %", DateTime.dayOfWeekName(fi.lastWriteTime.dayOfWeek()), fi.lastWriteTime.day), icon1, lastLineMonth)
@@ -415,7 +544,74 @@ impl LibraryWnd
         fillLastMonth()
         fillLastDay()
 
-        .listCtrl.computeLayout()
+        .addNamedFilterGroup(appStrings().act_Application, .Application, &.sidebarApplications)
+        .addNamedFilterGroup(appStrings().act_Tags, .Tag, &.sidebarTags)
+        .selectActiveSidebarLine()
+        .layoutSidebarColumns()
+    }
+
+    mtd refreshAutomaticFilters(force = false)
+    {
+        if !@isset(.listCtrl) do
+            return
+
+        let applications = .collectNamedFilters(true)
+        let tags         = .collectNamedFilters(false)
+        if !force and .namedFiltersEqual(&.sidebarApplications, &applications) and .namedFiltersEqual(&.sidebarTags, &tags) do
+            return
+
+        .sidebarApplications = applications
+        .sidebarTags         = tags
+        .rebuildSidebar()
+    }
+
+    mtd fill()
+    {
+        if !g_Library.loaded do
+            g_Library.fill()
+
+        if .listCtrl.lineCount() and .filledRevision == g_Library.revision do
+            return
+
+        if !.deleteObserverRegistered
+        {
+            g_Library.onDeleteFile += func|libWnd = me|(file)
+            {
+                // The loader owns a temporary pointer list. Join it before deleting the
+                // corresponding ArrayPtr element, then resume any pending previews.
+                libWnd.view.stopLoading()
+
+                for item, [i] in libWnd.view.items
+                {
+                    if item.fi.fullname == file
+                    {
+                        libWnd.view.selModel.unselect(cast() i)
+                        libWnd.view.items.removeAtOrdered(i)
+                        break
+                    }
+                }
+
+                for item, [i] in libWnd.view.allItems
+                {
+                    if item!.fi.fullname != file do
+                        continue
+                    libWnd.view.app().renderer.removeTexture(&item!.texture)
+                    libWnd.view.allItems.deleteAt(i)
+                    break
+                }
+
+                libWnd.filledRevision = g_Library.revision
+                libWnd.view.filter()
+                libWnd.refreshAutomaticFilters(force: true)
+                catch libWnd.view.startLoading()
+            }
+
+            .deleteObserverRegistered = true
+        }
+
+        .sidebarApplications.clear()
+        .sidebarTags.clear()
+        .rebuildSidebar()
         catch .view.fill()
         .filledRevision = g_Library.revision
     }
@@ -446,6 +642,37 @@ impl LibraryWnd
         .invalidate()
     }
 
+    mtd applySidebarFilter(line: *ListLine)
+    {
+        if .updatingSidebar do
+            return
+
+        .view.filterYear, .view.filterMonth, .view.filterDay = 0
+        .applicationFilter.clear()
+        .tagFilter.clear()
+
+        let kind = cast(LibrarySidebarFilter) cast(u64) line.userData3
+        switch kind
+        {
+        case .Date:
+            .view.filterYear  = cast(u64) line.userData0
+            .view.filterMonth = cast(u64) line.userData1
+            .view.filterDay   = cast(u64) line.userData2
+
+        case .Application:
+            let idx = cast(u64) line.userData0
+            if idx < .sidebarApplications.count do
+                .applicationFilter = .sidebarApplications[idx].name
+
+        case .Tag:
+            let idx = cast(u64) line.userData0
+            if idx < .sidebarTags.count do
+                .tagFilter = .sidebarTags[idx].name
+        }
+
+        .view.filter()
+    }
+
     mtd updateFolderMode()
     {
         if !@isset(.sideBar) do
@@ -454,7 +681,8 @@ impl LibraryWnd
             .sideBar.show()
         else do
             .sideBar.hide()
-        .sendResizeEvent()
+        .applyLayout()
+        .layoutSidebarColumns()
     }
 
     // Opens an ordinary folder for browsing, or makes it the persistent root where new
@@ -527,6 +755,9 @@ impl LibraryWnd
             .addItem(appStrings().act_BrowseFolder, "sCapture.library.browse")
             .addItem(appStrings().act_ChooseLibraryFolder, "sCapture.library.choose")
             .addItem(appStrings().act_UseDefaultLibrary, "sCapture.library.default")
+            .addSeparator()
+            .addItem(ActionLibTrash.Toggle)
+            .addItem(ActionLibTrash.Empty)
         }
 
         let result = menu.doModal({pos.horzCenter(), pos.bottom()}, .AnchorTopCenter, autoDestroy: true)
@@ -544,38 +775,8 @@ impl LibraryWnd
     mtd uniqueFilterValues(applications: bool)->Array'String
     {
         var result: retval
-        for item in .view.allItems
-        {
-            .view.mutexLoaded.lock()
-            let capture = item!.capture
-            .view.mutexLoaded.unlock()
-            if !capture do
-                continue
-
-            if applications
-            {
-                if capture.sourceApplication.isEmpty() do
-                    continue
-                var found = false
-                for own in result where Utf8.compare(own.toSlice(), capture.sourceApplication, .Latin1NoCase) == 0 do
-                    found = true
-                if !found do
-                    result.add(capture.sourceApplication)
-            }
-            else
-            {
-                for tag in capture.tags
-                {
-                    var found = false
-                    for own in result where Utf8.compare(own.toSlice(), tag, .Latin1NoCase) == 0 do
-                        found = true
-                    if !found do
-                        result.add(tag)
-                }
-            }
-        }
-
-        result.sort(func(a, b) { return Utf8.compare(a.toSlice(), b.toSlice(), .Latin1NoCase) })
+        for value in .collectNamedFilters(applications) do
+            result.add(value.name)
         return result
     }
 
@@ -979,15 +1180,12 @@ impl LibraryWnd
             .backgroundStyle = .Window
             .updateFlags(.ReserveExpandMargin)
             .dockStyle           = .Center
-            .sigSelectionChanged += func|view|(list)
+            .sigSelectionChanged += func|res|(list)
             {
-                var sel = list.selectedLine()
+                let sel = list.selectedLine()
                 if !sel do
                     return
-                view.filterYear  = cast(u64) sel.userData0
-                view.filterMonth = cast(u64) sel.userData1
-                view.filterDay   = cast(u64) sel.userData2
-                catch view.fill()
+                res.applySidebarFilter(sel)
             }
         }
 
@@ -1008,14 +1206,15 @@ impl LibraryWnd
         with res.commandBar = StackLayoutCtrl.create(res, .Left, {0, 0, 0, LibBarHeight})
         {
             .dockStyle       = .Top
-            .spacing         = 4
+            .spacing         = LibButtonGap
             .padding         = {8, 4, 8, 4}
             .backgroundStyle = .Window
         }
 
         // Image Size
-        with res.previewSizeBtn = IconButton.create(res.commandBar, res.theme().icon(.Search, LibGlyphSize), {0, 0, LibButtonWide, LibBarHeight})
+        with res.previewSizeBtn = IconButton.create(res.commandBar, res.theme().icon(.Search, LibGlyphSize), {0, 0, 0, LibBarHeight})
         {
+            .preferredSize.x = 0
             .setText(appStrings().ui_BarSize)
             .updateFlags(.CenterContent)
             .setTextPosition(.Right)
@@ -1036,8 +1235,9 @@ impl LibraryWnd
         }
 
         // Sort
-        with res.sortBtn = IconButton.create(res.commandBar, res.theme().icon(.Sort, LibGlyphSize), {0, 0, LibButtonWide, LibBarHeight})
+        with res.sortBtn = IconButton.create(res.commandBar, res.theme().icon(.Sort, LibGlyphSize), {0, 0, 0, LibBarHeight})
         {
+            .preferredSize.x = 0
             .setText(appStrings().ui_BarSort)
             .updateFlags(.CenterContent)
             .setTextPosition(.Right)
@@ -1065,8 +1265,9 @@ impl LibraryWnd
         }
 
         // Filter
-        with res.filterBtn = IconButton.create(res.commandBar, res.theme().icon(.Filter, LibGlyphSize), {0, 0, LibButtonWide, LibBarHeight})
+        with res.filterBtn = IconButton.create(res.commandBar, res.theme().icon(.Filter, LibGlyphSize), {0, 0, 0, LibBarHeight})
         {
+            .preferredSize.x = 0
             .setText(appStrings().ui_BarFilter)
             .updateFlags(.CenterContent)
             .setTextPosition(.Right)
@@ -1077,37 +1278,26 @@ impl LibraryWnd
             }
         }
 
-        // Library roots and ordinary image folders are explicit choices. This remains
-        // icon-only because it is occasional configuration and the tooltip carries its name.
-        with res.folderBtn = IconButton.create(res.commandBar, res.theme().icon(.OpenFile, LibGlyphSize), {0, 0, LibBarHeight, LibBarHeight})
+        // Library roots and ordinary image folders are explicit choices, named like every
+        // neighbouring command instead of leaving one unexplained glyph in the sentence.
+        with res.folderBtn = IconButton.create(res.commandBar, res.theme().icon(.OpenFile, LibGlyphSize), {0, 0, 0, LibBarHeight})
         {
-            .updateFlags(.IconOnly)
-            .setForm(.Rectangle)
+            .preferredSize.x = 0
+            .setText(appStrings().ui_BarFolders)
+            .updateFlags(.CenterContent)
+            .setTextPosition(.Right)
+            .setArrowPosition(.RightDownward)
             .toolTip    = appStrings().tip_LibraryFolders
             .sigPressed += func|res|(btn) { res.showFolderMenu(btn) }
         }
 
-        // Recycle bin
-        with res.trashBtn = IconButton.create(res.commandBar, res.theme().icon(.Remove, LibGlyphSize), {0, 0, LibButtonWide, LibBarHeight})
-        {
-            .setText(appStrings().ui_BarTrash)
-            .updateFlags(.CenterContent)
-            .setTextPosition(.Right)
-            .setArrowPosition(.RightDownward)
-            .sigPressed += func|res|(btn)
-            {
-                var pos = btn.surfaceRect()
-                with var menu = MenuCtrl.createPopup(res)
-                {
-                    menu.updateFlags(.HideShortcuts)
-                    .addItem(ActionLibTrash.Toggle)
-                    .addSeparator()
-                    .addItem(ActionLibTrash.Empty)
-                }
+        // Loading state stays with the commands it updates, before the flexible gap, so it
+        // appears without moving the search field away from the right edge.
+        view.imgSpin = Spinner.create(res.commandBar, {0, 0, LibGlyphSize, LibGlyphSize})
+        view.imgSpin.hide()
 
-                discard menu.doModal({pos.horzCenter(), pos.bottom()}, .AnchorTopCenter, autoDestroy: true)
-            }
-        }
+        let spacer = Wnd.create'Wnd(res.commandBar)
+        spacer.layoutSpec.policyX = .Expand
 
         // Live search
         with res.searchEdit = EditBox.create(res.commandBar, "", {0, 0, 220, LibBarHeight}, flags: .ClearButton | .ReleaseFocusOnEnterOrEscape)
@@ -1116,14 +1306,6 @@ impl LibraryWnd
             .setPlaceholder(appStrings().ui_Search)
             .sigTextChanged += func|res|(ed) { res.setSearch(ed.text()) }
         }
-
-        // Reading the library is what this reports, and the command bar is where the state of the
-        // window is said. Standing in the grid instead — which is where it stood, at 8,8 of the
-        // scroll window — put it exactly on the first capture cell, which already carries its own
-        // hour glass while its picture loads, so the two placeholders landed on one thumbnail. The
-        // bar stacks its visible children, so hiding the spinner closes the gap it stood in.
-        view.imgSpin = Spinner.create(res.commandBar, {0, 0, LibGlyphSize, LibGlyphSize})
-        view.imgSpin.hide()
 
         res.setPreviewSize(.Small)
         res.setSortMethod(res.sortMethod)

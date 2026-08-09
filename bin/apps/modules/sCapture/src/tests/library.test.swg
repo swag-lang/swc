@@ -99,6 +99,13 @@ using Swag, Core, File
     let big   = testAddLibraryItem(view, "big-linked.scapture", 30, 3, "big.png")
     let dirty = testAddLibraryItem(view, "dirty-linked.scapture", 20, 2, "dirty.png", linkedUpToDate: false)
 
+    view.filterDay = 2
+    view.filter()
+    @assert(view.items.count == 1)
+    @assert(view.items[0] == dirty)
+    view.filterDay = 0
+    view.filter()
+
     lib.sortMethod = .FileSize
     lib.invertSort = false
     view.sort()
@@ -541,4 +548,91 @@ using Swag, Core, File
     let generatedDirectory = Path.directoryName(generatedFile)
     @assert(generatedDirectory != null)
     @assert(Path.equals(generatedDirectory!, root))
+}
+
+// The library chrome keeps its two fixed edges under every mode transition: the date/filter
+// rail returns after leaving the recycle bin, the search field stays against the right edge,
+// and the fixed-width rail never creates horizontal scrolling.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(width: 1100, height: 700)
+    defer f.shutdown()
+
+    g_Library.loaded = true
+    g_Library.files.clear()
+    f.main.libWnd = LibraryWnd.create(f.main)
+    let lib = f.main.libWnd!
+    lib.setPosition({0, 0, 1100, 700})
+    lib.applyLayout()
+    lib.layoutSidebarColumns()
+    lib.listCtrl.computeLayout()
+    lib.commandBar.computeLayout()
+
+    @assert(@countof(lib.folderBtn.text()) != 0)
+    @assert(lib.searchEdit.position.right() == lib.commandBar.paddedClientRect().right())
+    @assert(lib.listCtrl.scrollWnd.scrollSize.x <= lib.listCtrl.listView.paddedClientRect().width)
+    @assert(lib.commandBar.children.count == 7)
+    @assert(lib.sortBtn.position.x - lib.previewSizeBtn.position.right() == LibButtonGap)
+    @assert(lib.filterBtn.position.x - lib.sortBtn.position.right() == LibButtonGap)
+    @assert(lib.folderBtn.position.x - lib.filterBtn.position.right() == LibButtonGap)
+
+    @assert(lib.sideBar.isLocallyVisible())
+    @assert(lib.view.scrollWnd.position.x == SideBarWidth)
+
+    lib.setTrashMode(true)
+    @assert(!lib.sideBar.isLocallyVisible())
+    @assert(lib.view.scrollWnd.position.x == 0)
+
+    lib.setTrashMode(false)
+    @assert(lib.sideBar.isLocallyVisible())
+    @assert(lib.view.scrollWnd.position.x == SideBarWidth)
+
+    let chrome = testAddLibraryItem(lib.view, "chrome.scapture", 10, 1)
+    chrome.capture!.sourceApplication = "Chrome"
+    chrome.capture!.sourceExecutable  = Env.executablePath()
+    chrome.capture!.tags.add("docs")
+    let slack = testAddLibraryItem(lib.view, "slack.scapture", 10, 2)
+    slack.capture!.sourceApplication = "Slack"
+    slack.capture!.tags.add("work")
+    lib.refreshAutomaticFilters()
+
+    @assert(lib.sidebarApplications.count == 2)
+    @assert(lib.sidebarApplications[0].name == "Chrome")
+    @assert(lib.sidebarApplications[0].executable == Env.executablePath())
+    @assert(lib.sidebarApplications[0].count == 1)
+    @assert(lib.sidebarTags.count == 2)
+
+    for [i] in lib.listCtrl.lineCount()
+    {
+        let line = lib.listCtrl.lineAt(cast(u32) i)!
+        if cast(LibrarySidebarFilter) cast(u64) line.userData3 != .Application do
+            continue
+        let idx = cast(u64) line.userData0
+        if idx < lib.sidebarApplications.count and lib.sidebarApplications[idx].name == "Chrome"
+        {
+            @assert(line.itemAt(0).icon.isValid())
+            @assert(line.itemAt(0).icon.color == Argb.White)
+            lib.listCtrl.selectLine(cast(u32) i)
+        }
+    }
+
+    @assert(lib.applicationFilter == "Chrome")
+    @assert(lib.view.items.count == 1)
+    @assert(lib.view.items[0] == chrome)
+
+    for [i] in lib.listCtrl.lineCount()
+    {
+        let line = lib.listCtrl.lineAt(cast(u32) i)!
+        if cast(LibrarySidebarFilter) cast(u64) line.userData3 != .Tag do
+            continue
+        let idx = cast(u64) line.userData0
+        if idx < lib.sidebarTags.count and lib.sidebarTags[idx].name == "work" do
+            lib.listCtrl.selectLine(cast(u32) i)
+    }
+
+    @assert(lib.applicationFilter.isEmpty())
+    @assert(lib.tagFilter == "work")
+    @assert(lib.view.items.count == 1)
+    @assert(lib.view.items[0] == slack)
 }

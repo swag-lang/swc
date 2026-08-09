@@ -25,9 +25,8 @@ impl IActionUI for ActionGlobal
             evt.name          = appStrings().act_ShowEditor
 
         case .ShowLibrary:
-            evt.updatedFields |= .Name | .ToolTip | .Checked
+            evt.updatedFields |= .Name | .Checked
             evt.name          = appStrings().act_Library
-            evt.toolTip       = appStrings().tip_ShowLibrary
             evt.checked       = main.libraryMode
 
         case .Exit:
@@ -85,6 +84,7 @@ impl MainWnd
         .rightBar.show(!.libraryMode)
         .recentBar.show(!.libraryMode)
         .toolRail.show(!.libraryMode)
+        .commandReadouts.show(!.libraryMode)
 
         .libWnd.show(.libraryMode)
 
@@ -92,5 +92,7 @@ impl MainWnd
             .libWnd.fill()
 
         .applyLayout()
+        if .libraryMode do
+            .libWnd.layoutSidebarColumns()
     }
 }

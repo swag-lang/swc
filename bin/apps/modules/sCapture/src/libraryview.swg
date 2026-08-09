@@ -213,6 +213,7 @@ impl IWnd for LibraryView
             g_DirtyList = false
             .filter()
             .sort()
+            .libWnd.refreshAutomaticFilters()
         }
 
         let spos = .scrollWnd.scrollPosition()
@@ -476,6 +477,14 @@ impl LibraryView
             let itemLoaded = itn.loaded
             .mutexLoaded.unlock()
 
+            if .libWnd.currentFolder() == Library.getFolder() and
+               ((.filterYear != 0 and itn.fi.lastWriteTime.year != .filterYear) or
+                (.filterMonth != 0 and itn.fi.lastWriteTime.month != .filterMonth) or
+                (.filterDay != 0 and itn.fi.lastWriteTime.day != .filterDay))
+            {
+                continue
+            }
+
             if (.libWnd.contentFilter == .Captures or .libWnd.contentFilter == .ScreenCaptures or .libWnd.contentFilter == .ImportedCaptures) and itn.kind != .Capture do
                 continue
             if .libWnd.contentFilter == .Images and itn.kind != .Image do
@@ -628,8 +637,8 @@ impl LibraryView
                 .postInvalidateEvent()
         }
 
-        .postInvalidateEvent()
         g_UpdatingLib = false
+        .postInvalidateEvent()
     }
 
     mtd sortSimilar()
@@ -742,7 +751,6 @@ impl LibraryView
                 focusedFile = item.fi.fullname
         }
 
-        Cursor.activateWait()
         .mutexLoaded.lock()
         defer .mutexLoaded.unlock()
 
@@ -776,15 +784,8 @@ impl LibraryView
         let cf = .libWnd.currentFolder()
         if Library.getFolder() == cf
         {
-            for fi in g_Library.files
-            {
-                if (.filterYear == 0 or fi.lastWriteTime.year == .filterYear) and
-                   (.filterMonth == 0 or fi.lastWriteTime.month == .filterMonth) and
-                   (.filterDay == 0 or fi.lastWriteTime.day == .filterDay)
-                {
-                    res.add(fi)
-                }
-            }
+            for fi in g_Library.files do
+                res.add(fi)
         }
         else
         {

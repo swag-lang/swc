@@ -7,6 +7,9 @@ func testSetupGlobalMain(main: *MainWnd)
 {
     main.editWnd.dockStyle = .Center
 
+    main.topBar = Wnd.create'Wnd(main, {0, 0, 900, CommandRowHeight})
+    main.createCommandRow()
+
     with main.recentBar = Wnd.create'Wnd(main, {0, 0, 0, 128})
     {
         .dockStyle = .Bottom
@@ -68,11 +71,16 @@ func testSetupGlobalMain(main: *MainWnd)
     @assert(Gui.Testing.actionUpdate'ActionGlobal(f.main, ActionGlobal.ShowLibrary, &evt))
     @assert(!evt.name.isEmpty())
     @assert(!evt.checked)
+    @assert(@countof(f.main.libraryBtn.text()) != 0)
+    @assert(f.main.libraryBtn.icon.isValid())
+    @assert(f.main.libraryBtn.form == .Normal)
+    @assert(f.main.commandReadouts.isLocallyVisible())
 
     @assert(Gui.Testing.actionExecute'ActionGlobal(f.main, ActionGlobal.ShowLibrary))
     @assert(f.main.libraryMode)
     @assert(!f.main.editWnd.isLocallyVisible())
     @assert(f.main.libWnd.isLocallyVisible())
+    @assert(!f.main.commandReadouts.isLocallyVisible())
 
     evt = Gui.Testing.commandState(ActionGlobal.ShowLibrary)
     @assert(Gui.Testing.actionUpdate'ActionGlobal(f.main, ActionGlobal.ShowLibrary, &evt))
@@ -82,6 +90,7 @@ func testSetupGlobalMain(main: *MainWnd)
     @assert(!f.main.libraryMode)
     @assert(f.main.editWnd.isLocallyVisible())
     @assert(!f.main.libWnd.isLocallyVisible())
+    @assert(f.main.commandReadouts.isLocallyVisible())
 
     let surface = f.main.surface!
     surface.show()

@@ -276,6 +276,7 @@
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PostRAPeephole.Trivial.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PostRADeadCodeElim.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PostRALoopHoist.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.PostRALoopRotate.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PreRAPeephole.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PreRAPeephole.AddressForward.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PreRAPeephole.Common.cpp"/>
@@ -612,6 +613,7 @@
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.PostRAPeephole.Internal.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.PostRADeadCodeElim.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.PostRALoopHoist.h"/>
+        <ClInclude Include="src\Backend\\Micro\Passes\Pass.PostRALoopRotate.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.PrologEpilog.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.MemToReg.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.LoopInvariantCodeMotion.h"/>

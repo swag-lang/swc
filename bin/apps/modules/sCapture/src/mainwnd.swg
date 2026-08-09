@@ -15,7 +15,7 @@ const RailCellPadding  = 8.0       // Air a rail cell keeps on each side of what
 const RailLabelWidth   = 128.0     // Content width of a rail cell when the labels option puts a word beside the glyph.
 const CommandRowHeight = 36.0      // The single command row under the accent rail.
 const ReadoutWidth     = 88.0      // One machine readout of the command row.
-const VerbsWidth       = 156.0     // The command group: the primary action and the library.
+const VerbsWidth       = 272.0     // The command group: two named application actions.
 const ReadoutsWidth    = 224.0     // The readout group: the capture size and the zoom.
 const RightBarWidth    = 288.0     // The tool column on the right.
 
@@ -96,7 +96,7 @@ struct MainWnd
     #[Swag.Late]
     {
         topBar, recentBar, rightBar: *Wnd
-        toolRail:                    *StackLayoutCtrl
+        toolRail, commandReadouts:   *StackLayoutCtrl
         editWnd:                     *EditWnd
         quickWnd:                    *QuickWnd
         propWnd:                     *PropWnd
@@ -104,8 +104,8 @@ struct MainWnd
         recentWnd:                   *RecentWnd
         quickStyleBar:               *SplitterCtrl
         toolTitle:                   *Label
-        libraryBtn, zoomBtn:         *IconButton
-        captureBtn:                  *PushButton
+        zoomBtn:                     *IconButton
+        captureBtn, libraryBtn:      *PushButton
     }
 
     sizeBtn:       #null *IconButton
@@ -896,14 +896,14 @@ impl MainWnd
             .padding   = {8, 4, 8, 4}
         }
 
-        // The one Voltage-filled control of the window. Everything else that acts is flat.
+        // Capture is the primary Voltage action. Library is the equally explicit secondary
+        // destination: it gets the same named push-button shape without claiming the accent.
         .captureBtn = PushButton.create(verbs, "", {0, 0, 104, RailCellSize - 8}, ActionCapture.DoIt, .Strong)
 
-        .libraryBtn = IconButton.create(verbs, .icon(.Library, RailGlyphSize), {0, 0, RailCellSize - 8, RailCellSize - 8}, id: ActionGlobal.ShowLibrary)
-        .libraryBtn.updateFlags(.IconOnly)
-        .libraryBtn.setForm(.Rectangle)
+        .libraryBtn = PushButton.create(verbs, appStrings().act_Library, {0, 0, 148, RailCellSize - 8}, ActionGlobal.ShowLibrary)
+        .libraryBtn.setIcon(.icon(.Library, RailGlyphSize))
 
-        with let readouts = StackLayoutCtrl.create(me .topBar!, .Right, {0, 0, ReadoutsWidth, CommandRowHeight})
+        with .commandReadouts = StackLayoutCtrl.create(me .topBar!, .Right, {0, 0, ReadoutsWidth, CommandRowHeight})
         {
             .dockStyle = .Right
             .spacing   = 4
@@ -912,7 +912,7 @@ impl MainWnd
 
         // Zoom keeps its menu, so it stays a button; size is a pure readout and is not
         // one. Both carry the fixed-width family, so neither jumps as its value changes.
-        with .zoomBtn = IconButton.create(readouts, {}, {0, 0, ReadoutWidth, RailCellSize - 8})
+        with .zoomBtn = IconButton.create(.commandReadouts, {}, {0, 0, ReadoutWidth, RailCellSize - 8})
         {
             .updateFlags(.CenterContent)
             .setArrowPosition(.RightDownward)
@@ -929,7 +929,7 @@ impl MainWnd
             }
         }
 
-        with .sizeBtn = IconButton.create(readouts, {}, {0, 0, ReadoutWidth + 24, RailCellSize - 8})
+        with .sizeBtn = IconButton.create(.commandReadouts, {}, {0, 0, ReadoutWidth + 24, RailCellSize - 8})
         {
             .updateFlags(.CenterContent | .Flat)
             .style.setFont(me.theme().res.fontDefaultFs)

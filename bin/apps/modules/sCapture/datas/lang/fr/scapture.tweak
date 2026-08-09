@@ -15,7 +15,7 @@ ui_Search              Rechercher
 ui_BarSize             Taille
 ui_BarSort             Tri
 ui_BarFilter           Filtre
-ui_BarTrash            Corbeille
+ui_BarFolders          Dossiers
 ui_RemoveQuickStyle    Supprimer le style rapide
 ui_SectionEditor       Éditeur
 ui_SectionApplication  Application
@@ -228,7 +228,6 @@ act_AlignRight         Droite
 act_AlignTop           Haut
 act_AlignMiddle        Milieu
 act_AlignBottom        Bas
-tip_ShowLibrary        Afficher la bibliothèque de captures
 tip_LibraryFolders     Parcourir un dossier ou choisir où sCapture stocke les captures
 tip_SmallRecent        Petites vignettes récentes
 tip_MediumRecent       Vignettes récentes moyennes

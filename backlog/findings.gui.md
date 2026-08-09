@@ -230,3 +230,23 @@ Entries are sorted by identifier, ascending; position carries no priority.
   the offset of its face; that is the whole cost, and it is why the change stopped at the two
   widgets that draw a frame. Pin the decision with a headless test that puts one field of each
   family side by side and asserts their capitals share a center.
+
+### F-086 — A tooltip is presented as an editable field inside another frame
+
+- Area: std/gui
+- Found while: visually testing the sCapture library view at 150% display scale in the French
+  Swag dark theme
+- Observation: hovering the icon-only Library command showed its explanatory text inside a second
+  edit-style frame, with a trailing control-shaped end cap that read like an unrelated button.
+  The tooltip therefore looked interactive and assembled from nested widgets instead of reading
+  as one passive annotation attached to its owner.
+- Evidence: [`tooltip.swg`](../bin/std/modules/gui/src/tooltip.swg) builds a square `FrameWnd`, then
+  puts a word-wrapped `RichEditCtrl` in it and explicitly gives that control `.Edit` form. Its
+  two-pixel padding, raw 12-pixel pointer offset, editable-field chrome and auto-sized rich-edit
+  viewport are combined without a tooltip-specific content/layout contract. Reproduce by hovering
+  any action tooltip in sCapture; the former Library glyph made the nested trailing element
+  especially visible beside the French text “Afficher la bibliothèque de captures”.
+- Next step: render tooltip content with a passive text view, then define its padding, maximum
+  width, corner, pointer offset and screen-edge placement as one themed tooltip contract. Add a
+  visual/headless case with long translated text at 100%, 150% and 200% scale, and verify that no
+  edit border, scrollbar or focusable child is present.

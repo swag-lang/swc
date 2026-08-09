@@ -51,12 +51,55 @@ Use [[Gui.AnimationGroup.sequence]] for a short ordered disclosure. Springs, key
 reflection-based field mutation are deliberately outside this API: each track remains bounded,
 typed, and explicit about its invalidation cost.
 
+## Choose a curve
+
+[[Gui.AnimationEasing]] carries nine shapes. The first four stay inside the zero-to-one interval
+and suit any value, including opacity and color. The five others anticipate or overshoot on
+purpose, which reads as weight on a position or a scale and as nothing at all on a value the
+compositor clamps:
+
+- `EaseInBack`, `EaseOutBack` and `EaseInOutBack` pull back before leaving and pass their endpoint
+  before settling on it.
+- `EaseOutElastic` springs well past the endpoint and oscillates onto it.
+- `EaseOutBounce` lands and rebounds, each rebound shorter than the last.
+
+[[Gui.AnimationEasing.evaluate]] answers the same function the scheduler applies, so a preview
+plots exactly what a track will do.
+
+## Repeat a track
+
+[[Gui.AnimationOptions.repeatCount]] plays a track several times in a row, and zero repeats it
+until something cancels it. [[Gui.AnimationOptions.autoReverse]] runs every second play backwards,
+which turns a pair of plays into a ping-pong that ends where it started.
+
+```swag
+var options: AnimationOptions
+options.duration    = 900'ms
+options.easing      = .EaseInOut
+options.repeatCount = 0
+options.autoReverse = true
+options.motion      = .Essential
+
+discard app.animator.animateF32(dot, AnimationChannel.from("Example.Pulse"), 1, 0.4,
+                                func(wnd, value) { wnd.setPresentationOpacity(value); }, options)
+```
+
+An endless track never gives its turn back, so keep one in a parallel group rather than in the
+middle of a sequence. Reduced motion collapses an endless *decorative* loop to the state it keeps
+returning to instead of leaving it running behind a preference that asked for none.
+
 ## Keep geometry logical
 
-[[Gui.Wnd.presentationOpacity]], [[Gui.Wnd.presentationOffset]], and
-[[Gui.Wnd.presentationClip]] affect painting for the complete window subtree. They do not change
-layout, hit testing, or keyboard focus. This is the normal choice for decorative movement; call
-[[Gui.Wnd.resetPresentation]] from completion when a custom transition has finished.
+[[Gui.Wnd.presentationOpacity]], [[Gui.Wnd.presentationOffset]], [[Gui.Wnd.presentationScale]],
+and [[Gui.Wnd.presentationClip]] affect painting for the complete window subtree. They do not
+change layout, hit testing, or keyboard focus. This is the normal choice for decorative movement;
+call [[Gui.Wnd.resetPresentation]] from completion when a custom transition has finished, so a
+settled window costs the painter nothing.
+
+A scale turns around [[Gui.Wnd.presentationPivot]], normalized inside the logical rectangle, and
+[[Gui.Wnd.presentationRect]] reports where the window is actually seen. A scaled or faded subtree
+composites through one off-screen layer, so a factor far above one softens text: scale is for
+arrival, emphasis, and press feedback, not for zooming a view.
 
 For a size that must participate in layout, use an `.Layout` track or
 [[Gui.Animator.animateLayoutHeight]]. Layout animation is intentionally separate because it can
@@ -64,7 +107,8 @@ remeasure and arrange a larger tree on every frame.
 
 [[Gui.Animator.transitionPage]] implements the standard restrained page arrival. A
 [[Gui.Tab]] can opt into it with [[Gui.Tab.setPageTransitions]]. `gui11` is the executable example
-for page transitions, parallel and sequence groups, retargeting, and reduced motion.
+for the curve gallery, staggered groups, retargeting under interruption, endless loops, layout
+animation, and reduced motion.
 
 ## Respect reduced motion
 

@@ -892,7 +892,7 @@ impl RenderOgl
         glUniformMatrix4fv(cast(GLint) mdl, 1, GL_FALSE, &.modelMatrix.m[0, 0])
     }
 
-    private mtd executeCommand(dc: *Painter, cmd: Pixel.Command, cmdIdx: u64, width, height: s32)
+    private mtd executeCommand(dc: *Painter, cmd: Pixel.Command, cmdIdx: u64)
     {
         switch cmd.id
         {
@@ -940,13 +940,19 @@ impl RenderOgl
 
             // Painter clip rectangles are logical; the scissor works in framebuffer
             // pixels. Round the scaled edges so neighbouring clips stay watertight.
-            let k  = .contentScale
-            let x0 = Math.round(params.rect.x * k)
-            let y0 = Math.round(params.rect.y * k)
-            let x1 = Math.round(params.rect.right() * k)
-            let y1 = Math.round(params.rect.bottom() * k)
+            //
+            // The vertical flip reads the height of the target bound right now, not the one the
+            // submission started on: a stream that binds a layer part-way through keeps clipping,
+            // and a layer is almost always shorter than the surface, so a stale height puts the
+            // scissor entirely outside the framebuffer and drops every fragment of the layer.
+            let k         = .contentScale
+            let {?, curH} = .targetSizeImpl()
+            let x0        = Math.round(params.rect.x * k)
+            let y0        = Math.round(params.rect.y * k)
+            let x1        = Math.round(params.rect.right() * k)
+            let y1        = Math.round(params.rect.bottom() * k)
             glEnable(GL_SCISSOR_TEST)
-            glScissor(cast(GLint) x0, cast(GLint) (height - y1), cast(GLint) (x1 - x0), cast(GLint) (y1 - y0))
+            glScissor(cast(GLint) x0, cast(GLint) (cast(f32) curH - y1), cast(GLint) (x1 - x0), cast(GLint) (y1 - y0))
 
         case .ResetClippingRect:
             glDisable(GL_SCISSOR_TEST)
@@ -1200,7 +1206,7 @@ impl RenderOgl
                     let cmd1 = dc.commandBuffer[i]
                     switch cmd1.id
                     {
-                    case .Transform, .StartFont, .StartMsdfFont, .EndFont, .ResetTexture0, .BindTexture0, .ResetTextureFont, .BindTextureFont, .SetFontEffect, .DrawTriangles: .executeCommand(dc, cmd1, cast(u64) i, width, height)
+                    case .Transform, .StartFont, .StartMsdfFont, .EndFont, .ResetTexture0, .BindTexture0, .ResetTextureFont, .BindTextureFont, .SetFontEffect, .DrawTriangles: .executeCommand(dc, cmd1, cast(u64) i)
                     }
                 }
 
@@ -1316,7 +1322,7 @@ impl RenderOgl
         for [i] in 4 do
             glEnableVertexAttribArray(cast(GLuint) i)
         for cmd, [cmdIdx] in dc.commandBuffer do
-            .executeCommand(dc, cmd, cmdIdx, width, height)
+            .executeCommand(dc, cmd, cmdIdx)
         for [i] in 4 do
             glDisableVertexAttribArray(cast(GLuint) i)
         .finishAdvancedBlendPass()

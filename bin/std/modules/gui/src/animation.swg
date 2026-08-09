@@ -10,12 +10,106 @@ enum AnimationResult
 }
 
 // Selects the interpolation curve applied to normalized animation progress.
+//
+// The last five curves leave the zero-to-one interval on purpose: an anticipating or overshooting
+// track passes beyond its endpoints before settling on them. Use them for position, scale, and
+// other geometry that can travel past its target, and keep the first four for opacity and color,
+// where an out-of-range value is clamped rather than seen.
 enum AnimationEasing
 {
-    Linear        // Keeps progress proportional to elapsed time.
-    EaseIn        // Accelerates from rest.
-    EaseOut       // Decelerates toward rest.
-    EaseInOut     // Accelerates, then decelerates symmetrically.
+    Linear             // Keeps progress proportional to elapsed time.
+    EaseIn             // Accelerates from rest.
+    EaseOut            // Decelerates toward rest.
+    EaseInOut          // Accelerates, then decelerates symmetrically.
+    EaseInBack         // Draws back behind the start value, then accelerates.
+    EaseOutBack        // Overshoots the end value, then settles onto it.
+    EaseInOutBack      // Draws back, accelerates, overshoots, then settles.
+    EaseOutElastic     // Springs past the end value and oscillates onto it.
+    EaseOutBounce      // Lands on the end value and rebounds with decreasing height.
+}
+
+impl AnimationEasing
+{
+    // Returns the eased factor of this curve at normalized `progress`.
+    //
+    // `progress` is clamped to the zero-to-one interval; the result leaves it for the
+    // anticipating and overshooting curves. The scheduler evaluates tracks through this exact
+    // function, so a curve preview plots what a track will really do.
+    //
+    // The method reads the curve and changes nothing. It is not declared `const` because a `const`
+    // receiver over an enum currently compiles at neither end; see `F-090`. It keeps every constant
+    // and every branch in its own body because a method declared over an enum is published to other
+    // modules with its source rather than as an import; see `F-091`.
+    mtd evaluate(progress: f32)->f32
+    {
+        // The classic 1.70158 makes `EaseOutBack` peak about ten percent past its end value, which
+        // reads as weight rather than as a mistake. The in-out form widens it to stay symmetric.
+        const Back      = 1.70158'f32
+        const BackInOut = Back * 1.525
+
+        // Four segments of decreasing height, the standard bounce.
+        const BounceSteepness = 7.5625'f32
+        const BounceSegment   = 1 / 2.75'f32
+
+        let p = Math.saturate(progress)
+        switch #complete me
+        {
+        case .Linear:
+            return p
+
+        case .EaseIn:
+            return p * p * p
+
+        case .EaseOut:
+            let q = 1 - p
+            return 1 - q * q * q
+
+        case .EaseInOut:
+            return p * p * (3 - 2 * p)
+
+        case .EaseInBack:
+            return p * p * ((Back + 1) * p - Back)
+
+        case .EaseOutBack:
+            let q = p - 1
+            return 1 + q * q * ((Back + 1) * q + Back)
+
+        case .EaseInOutBack:
+            if p < 0.5
+            {
+                let q = 2 * p
+                return q * q * ((BackInOut + 1) * q - BackInOut) * 0.5
+            }
+
+            let q = 2 * p - 2
+            return (q * q * ((BackInOut + 1) * q + BackInOut) + 2) * 0.5
+
+        case .EaseOutElastic:
+            if p <= 0 or p >= 1 do
+                return p
+            return Math.pow(2'f32, -10 * p) * Math.sin((10 * p - 0.75) * Math.ConstF32.TwoPi / 3) + 1
+
+        case .EaseOutBounce:
+            if p < BounceSegment do
+                return BounceSteepness * p * p
+            if p < 2 * BounceSegment
+            {
+                let q = p - 1.5 * BounceSegment
+                return BounceSteepness * q * q + 0.75
+            }
+
+            if p < 2.5 * BounceSegment
+            {
+                let q = p - 2.25 * BounceSegment
+                return BounceSteepness * q * q + 0.9375
+            }
+
+            let q = p - 2.625 * BounceSegment
+            return BounceSteepness * q * q + 0.984375
+        }
+
+        unreachable
+    }
 }
 
 // Selects which endpoint an animation starts from.
@@ -75,9 +169,11 @@ impl AnimationChannel
 struct AnimationOptions
 {
     delay:            Time.Duration                        // Non-negative time kept at the start value before progress begins.
-    duration:         Time.Duration      = 150'ms          // Non-negative time between the start and end values.
+    duration:         Time.Duration      = 150'ms          // Non-negative time of one play, between the start and end values.
     easing:           AnimationEasing    = .EaseInOut      // Curve applied to normalized progress.
     direction:        AnimationDirection = .Forward        // Endpoint from which the track starts.
+    repeatCount:      u32                = 1               // Number of successive plays; zero repeats until the track is cancelled.
+    autoReverse:      bool                                 // Whether every second play runs back toward the value it started from.
     impact:           AnimationImpact    = .Paint          // Work invalidated by each update.
     motion:           AnimationMotion    = .Decorative     // Reduced-motion classification.
     preserveProgress: bool                                 // Whether retargeting keeps normalized progress.
@@ -189,6 +285,9 @@ impl AnimationGroup
     }
 
     // Creates a group whose tracks advance in insertion order.
+    //
+    // A track that repeats forever never releases its turn, so keep an endless track in a
+    // parallel group or make it the last step.
     func sequence()->AnimationGroup
     {
         var result: retval
@@ -277,30 +376,34 @@ struct Animator
 
 private impl Animator
 {
-    func easingFactor(easing: AnimationEasing, progress: f32)->f32
-    {
-        let p = Math.saturate(progress)
-        switch #complete easing
-        {
-        case .Linear:
-            return p
-
-        case .EaseIn:
-            return p * p * p
-
-        case .EaseOut:
-            let q = 1 - p
-            return 1 - q * q * q
-
-        case .EaseInOut:
-            return p * p * (3 - 2 * p)
-        }
-    }
-
     func directedFactor(track: *AnimationTrack, progress: f32)->f32
     {
         let directed = track.options.direction == .Forward ? progress : 1 - progress
-        return easingFactor(track.options.easing, directed)
+        return track.options.easing.evaluate(directed)
+    }
+
+    // Returns the normalized progress a track holds once every play is over.
+    //
+    // A ping-pong track ends where it started whenever it plays an even number of times, and an
+    // endless one is treated as even because that is the value it keeps returning to.
+    func restProgress(track: *AnimationTrack)->f32
+    {
+        if !track.options.autoReverse do
+            return 1
+        return track.options.repeatCount & 1 ? 1 : 0
+    }
+
+    // Returns the elapsed time at which a track stops advancing, or an unreachable time while it repeats forever.
+    func totalSeconds(track: *AnimationTrack)->f64
+    {
+        if !track.options.repeatCount do
+            return Swag.F64.Max
+        return track.options.delay.seconds + track.options.duration.seconds * cast(f64) track.options.repeatCount
+    }
+
+    func isElapsed(track: *AnimationTrack)->bool
+    {
+        return track.options.repeatCount != 0 and track.elapsedSeconds >= totalSeconds(track)
     }
 
     func progress(track: *AnimationTrack)->f32
@@ -310,8 +413,18 @@ private impl Animator
             return 0
         let duration = track.options.duration.seconds
         if duration <= 0 do
-            return 1
-        return Math.saturate(cast(f32) ((track.elapsedSeconds - delay) / duration))
+            return restProgress(track)
+
+        // The last play holds its final frame instead of wrapping to the beginning again.
+        let plays = (track.elapsedSeconds - delay) / duration
+        var index = Math.floor(plays)
+        if track.options.repeatCount and index > cast(f64) (track.options.repeatCount - 1) do
+            index = cast(f64) (track.options.repeatCount - 1)
+
+        let local = Math.saturate(cast(f32) (plays - index))
+        if track.options.autoReverse and cast(u64) index & 1 do
+            return 1 - local
+        return local
     }
 
     func lerpPoint(source, destination: Math.Point, factor: f32)->Math.Point
@@ -656,12 +769,10 @@ private impl Animator
                     continue
                 hasStep              = true
                 track.elapsedSeconds += stepDelta
-                let raw = progress(track)
-                .applyTrack(track, raw)
-                if raw >= 1
+                .applyTrack(track, progress(track))
+                if isElapsed(track)
                 {
-                    let trackEnd = track.options.delay.seconds + track.options.duration.seconds
-                    stepRemainder = Math.min(stepRemainder, Math.max(track.elapsedSeconds - trackEnd, 0))
+                    stepRemainder = Math.min(stepRemainder, Math.max(track.elapsedSeconds - totalSeconds(track), 0))
                     .completeTrack(track, .Completed)
                 }
                 else do
@@ -740,12 +851,16 @@ impl Animator
         let reduced = .app!.isReducedMotion()
         if reduced
         {
-            for track in run.tracks
+            for trackIt in run.tracks
             {
-                if track!.options.motion == .Decorative
-                {
-                    track!.elapsedSeconds = track!.options.delay.seconds + track!.options.duration.seconds
-                }
+                let track = trackIt!
+                if track.options.motion != .Decorative do
+                    continue
+
+                // Reduced motion wants the state a loop settles on, not one of its plays, so a
+                // ping-pong track is collapsed to the pair that returns it to where it began.
+                track.options.repeatCount = track.options.autoReverse ? 2 : 1
+                track.elapsedSeconds      = totalSeconds(track)
             }
         }
 
@@ -867,7 +982,7 @@ impl Animator
                 let value = track!
                 if value.finished do
                     continue
-                .applyTrack(value, 1)
+                .applyTrack(value, restProgress(value))
                 .completeTrack(value, .Completed)
             }
 
@@ -924,7 +1039,7 @@ impl Animator
                 let value = track!
                 if value.finished or value.options.motion == .Essential do
                     continue
-                .applyTrack(value, 1)
+                .applyTrack(value, restProgress(value))
                 .completeTrack(value, .Completed)
             }
 

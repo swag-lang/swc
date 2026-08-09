@@ -268,3 +268,175 @@ func linearSecond()->AnimationOptions
     host.advanceAnimations(0.7)
     @assert(AnimationTestPoint == Math.Point{100, 50})
 }
+
+// Every curve starts at zero and lands on one; only the named ones leave the interval.
+#test
+{
+    for curve in [AnimationEasing.Linear, .EaseIn, .EaseOut, .EaseInOut, .EaseInBack, .EaseOutBack, .EaseInOutBack, .EaseOutElastic, .EaseOutBounce]
+    {
+        var easing = curve
+        @assert(Math.isEqualEpsilon(easing.evaluate(0), 0, 0.001))
+        @assert(Math.isEqualEpsilon(easing.evaluate(1), 1, 0.001))
+
+        // Progress outside the interval is clamped, never extrapolated.
+        @assert(easing.evaluate(-3) == easing.evaluate(0))
+        @assert(easing.evaluate(4) == easing.evaluate(1))
+    }
+
+    var linear = AnimationEasing.Linear
+    @assert(Math.isEqualEpsilon(linear.evaluate(0.25), 0.25, 0.001))
+
+    // An overshooting curve is chosen for exactly that: it leaves the interval and comes back.
+    var back = AnimationEasing.EaseOutBack
+    @assert(back.evaluate(0.7) > 1)
+
+    var anticipate = AnimationEasing.EaseInBack
+    @assert(anticipate.evaluate(0.3) < 0)
+
+    // A bounce lands and rebounds without ever passing its endpoint.
+    var bounce = AnimationEasing.EaseOutBounce
+    for [step] in 21
+    {
+        let value = bounce.evaluate(cast(f32) step / 20)
+        @assert(value >= 0 and value <= 1.001)
+    }
+}
+
+// A repeating track replays its curve and holds the endpoint of its last play.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(200, 120)
+    defer host.shutdown()
+    host.setReducedMotion(false)
+
+    let target  = Wnd.create'Wnd(&host.root)
+    var options = linearSecond()
+    options.repeatCount    = 3
+    AnimationTestCompleted = 0
+    let handle = host.app.animator.animateF32(target, AnimationChannel.from("test.repeat"), 0, 10, &animationSetF32, options, &animationCompleted)
+
+    host.advanceAnimations(0.5)
+    @assert(AnimationTestF32 == 5)
+
+    // Each play restarts the curve instead of continuing past its end value.
+    host.advanceAnimations(1)
+    @assert(AnimationTestF32 == 5 and host.app.animator.isActive(handle))
+    host.advanceAnimations(1)
+    @assert(AnimationTestF32 == 5)
+
+    host.advanceAnimations(0.5)
+    @assert(AnimationTestF32 == 10)
+    @assert(!host.app.animator.isActive(handle))
+    @assert(AnimationTestCompleted == 1 and AnimationTestResult == .Completed)
+}
+
+// A ping-pong track runs its odd plays backwards and settles where it started.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(200, 120)
+    defer host.shutdown()
+    host.setReducedMotion(false)
+
+    let target  = Wnd.create'Wnd(&host.root)
+    var options = linearSecond()
+    options.repeatCount = 2
+    options.autoReverse = true
+    let handle = host.app.animator.animateF32(target, AnimationChannel.from("test.pingpong"), 0, 10, &animationSetF32, options)
+
+    host.advanceAnimations(0.75)
+    @assert(Math.isEqualEpsilon(AnimationTestF32, 7.5, 0.001))
+    host.advanceAnimations(0.5)
+    @assert(Math.isEqualEpsilon(AnimationTestF32, 7.5, 0.001))
+    host.advanceAnimations(0.5)
+    @assert(Math.isEqualEpsilon(AnimationTestF32, 2.5, 0.001))
+
+    host.advanceAnimations(0.25)
+    @assert(AnimationTestF32 == 0 and !host.app.animator.isActive(handle))
+}
+
+// An endless track never completes on its own, and finishes on its resting value.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(200, 120)
+    defer host.shutdown()
+    host.setReducedMotion(false)
+
+    let target  = Wnd.create'Wnd(&host.root)
+    var options = linearSecond()
+    options.repeatCount = 0
+    let forward = host.app.animator.animateF32(target, AnimationChannel.from("test.endless"), 0, 10, &animationSetF32, options)
+
+    host.advanceAnimations(6.5)
+    @assert(AnimationTestF32 == 5 and host.app.animator.isActive(forward))
+    host.finishAnimations()
+    @assert(AnimationTestF32 == 10 and !host.app.animator.isActive(forward))
+
+    // A ping-pong loop rests at the value it keeps returning to, which is where it began.
+    options.autoReverse = true
+    discard host.app.animator.animateF32(target, AnimationChannel.from("test.endless.pingpong"), 2, 8, &animationSetF32, options)
+    host.advanceAnimations(3.5)
+    @assert(AnimationTestF32 == 5)
+    host.finishAnimations()
+    @assert(AnimationTestF32 == 2)
+}
+
+// Reduced motion collapses a decorative loop instead of leaving it running forever.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(200, 120)
+    defer host.shutdown()
+
+    let target  = Wnd.create'Wnd(&host.root)
+    var options = linearSecond()
+    options.repeatCount = 0
+    options.autoReverse = true
+    discard host.app.animator.animateF32(target, AnimationChannel.from("test.reduced.loop"), 3, 9, &animationSetF32, options)
+    @assert(AnimationTestF32 == 3 and host.app.animator.activeCount() == 0)
+
+    // An essential loop still reports, because reduced motion is about decoration.
+    options.motion = .Essential
+    let handle = host.app.animator.animateF32(target, AnimationChannel.from("test.reduced.essential"), 3, 9, &animationSetF32, options)
+    host.advanceAnimations(0.5)
+    @assert(AnimationTestF32 == 6 and host.app.animator.isActive(handle))
+    host.finishAnimations()
+}
+
+// Presentation scale moves the painted rectangle around its pivot and leaves layout alone.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 200)
+    defer host.shutdown()
+    host.setReducedMotion(false)
+
+    let target = Wnd.create'Wnd(&host.root, {40, 20, 100, 50})
+    @assert(target.presentationRect() == Math.Rectangle{40, 20, 100, 50})
+
+    target.setPresentationScale({0.5, 0.5})
+    @assert(target.presentationRect() == Math.Rectangle{65, 32.5, 50, 25})
+    @assert(target.position == Math.Rectangle{40, 20, 100, 50})
+
+    // A corner pivot keeps that corner still.
+    target.setPresentationPivot({})
+    @assert(target.presentationRect() == Math.Rectangle{40, 20, 50, 25})
+
+    target.setPresentationOffset({10, -4})
+    @assert(target.presentationRect() == Math.Rectangle{50, 16, 50, 25})
+
+    target.resetPresentation()
+    @assert(target.presentationRect() == Math.Rectangle{40, 20, 100, 50})
+    @assert(target.presentationScale == Math.Point{1, 1} and target.presentationPivot == Math.Point{0.5, 0.5})
+
+    // The same state, driven through the scheduler.
+    discard host.app.animator.animateF32(target, AnimationChannel.from("test.scale"), 1, 2, func(wnd, value) { wnd.setPresentationScale({value, value}); }, linearSecond())
+    host.advanceAnimations(0.5)
+    @assert(target.presentationScale == Math.Point{1.5, 1.5})
+    @assert(target.presentationRect() == Math.Rectangle{15, 7.5, 150, 75})
+    host.finishAnimations()
+    @assert(target.presentationScale == Math.Point{2, 2})
+    discard host.render()
+}

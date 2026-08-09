@@ -99,3 +99,99 @@ Entries are sorted by identifier, ascending; position carries no priority.
   `isCurrentModuleSourceFile` then rejects. The answer decides whether the fix belongs in collection or
   in the owner mapping.
 - Related: [T-014](todo.doc.md#t-014--search-stops-at-the-page-it-is-printed-in), whose search index is missing the same symbols.
+
+### F-090 — `mtd const` on an enum cannot be called and cannot pass `me` on
+
+- Area: compiler
+- Found while: giving `Gui.AnimationEasing` an `evaluate` method so a curve preview can plot the
+  exact function the animation scheduler applies.
+- Observation: a `const` method declared in an `impl` block over an *enum* is rejected at both ends.
+  Passing `me` to a by-value parameter of the enum type fails with `argument 1 for call to 'takeEnum'
+  has type 'const Color', but parameter 'value' needs 'Color'`, and calling the method on an ordinary
+  enum value fails the other way with `argument 1 for call to 'viaConstMethod' has type 'Color', but
+  parameter 'c' needs 'const Color'`. The same `mtd const` over a struct compiles and runs, and a
+  non-const `mtd` over the enum compiles and runs even on a `let` binding or an enum literal. So the
+  const receiver, not the enum `impl`, is what breaks: a `const T` receiver of a value type neither
+  decays to `T` for a by-value argument nor accepts a `T` at the call site.
+- Evidence: standalone, no imports beyond `Swag`:
+
+  ```swag
+  enum Color { Red, Green }
+  func takeEnum(value: Color)->s32 => value == Color.Red ? 1 : 2
+  impl Color { mtd const viaConstMethod()->s32 => takeEnum(me) }
+  #test { let c = Color.Red; @assert(c.viaConstMethod() == 1) }
+  ```
+
+  Replacing `mtd const` with `mtd` compiles and passes; replacing `enum Color` with a struct and
+  keeping `mtd const` compiles and passes.
+- Next step: find where a method receiver is typed and where an argument is matched for a value
+  parameter, and check what makes the struct path accept `const T` -> `T` while the enum path does
+  not. The suspicion is that the enum receiver is typed as `const` *value* rather than as a const
+  reference to a value, so the usual const-to-value copy never applies. Decide from that whether the
+  fix is at the receiver typing or in the by-value argument match, and add the case to the `sema`
+  suite either way.
+- Workaround in the tree: [animation.swg](../bin/std/modules/gui/src/animation.swg) declares
+  `AnimationEasing.evaluate` as a plain `mtd`, which reads as mutable and is not.
+
+### F-091 — A method declared over an enum is published with its body, not as an import
+
+- Area: compiler
+- Found while: adding `Gui.AnimationEasing.evaluate`, whose first implementation delegated to a
+  private helper of the same file.
+- Observation: the generated public interface of a shared-library module turns each method into a
+  `#[Swag.Foreign(...)]` declaration with no body — `AnimationHandle.isValid` is emitted as
+  `#[Swag.Foreign(module: "gui", function: "animation_handle__is_valid", ...)] mtd const isValid()->bool`.
+  A method declared in an `impl` block over an *enum* is not: its source body is copied into the
+  interface verbatim. A consumer then compiles that body itself, so every symbol it names has to be
+  public too, and anything private to the defining file breaks the consumer rather than the module.
+- Evidence: `impl AnimationEasing { mtd evaluate(progress: f32)->f32 => Animator.easingFactor(me, progress) }`
+  builds `gui.dll` cleanly and then fails in `gui11` with `unknown symbol 'easingFactor'`, pointed at
+  `bin/examples/.dep/gui/shared-library/fast-debug/x86_64/gui.swg`, where the `=>` body is reproduced
+  as written. Rewriting the same method with a block body changes nothing: the body is still copied,
+  so the trigger is the enum `impl`, not the body form.
+- Next step: find where the interface writer decides between emitting a foreign import and emitting
+  a definition, and check what it keys that decision on — most likely a lookup that only recognizes
+  a struct owner, leaving an enum-owned method on the "inline it" path. Confirm against a second
+  enum method with a distinct signature before changing anything, since copying is the correct
+  answer for a genuinely constant-evaluable declaration and the fix must not remove that case.
+- Related: [F-090](#f-090--mtd-const-on-an-enum-cannot-be-called-and-cannot-pass-me-on), the other
+  half of incomplete `impl`-over-enum support.
+
+### F-092 — A `const` cannot be the bound of a `for ... in a..b` range
+
+- Area: compiler
+- Found while: plotting an easing curve in `gui11`, sampling it with `for i in 1..CurveSamples`.
+- Observation: naming a `const` as either bound of a range in a `for` header fails with
+  `unknown symbol`, pointed at the constant. The same constant resolves everywhere else in the same
+  function — as an initializer, inside arithmetic, and as the count of a counted `for` — and a `let`
+  binding holding its value is accepted as a range bound. So the constant is visible; only the range
+  bound refuses to look it up. It holds for a module-level `const` and for a `const` declared in the
+  function itself, at file scope and inside a method.
+- Evidence: standalone, no imports beyond `Swag`:
+
+  ```swag
+  const Samples = 8
+
+  func broken()->s32
+  {
+      var total = Samples          // fine
+      for i in 1..Samples do       // error: unknown symbol 'Samples'
+          total += i
+      return total
+  }
+
+  func works()->s32
+  {
+      let bound = Samples          // same value, now a binding
+      var total = 0's32
+      for i in 1..bound do         // accepted
+          total += i
+      return total
+  }
+  ```
+
+- Next step: find where the `for` header parses its range and how it resolves each bound, and check
+  whether the bound is looked up in a restricted scope or resolved in a pass that runs before
+  constants are published. Compare with the counted form `for [i] in Samples`, which resolves the
+  same symbol correctly from the same header — the difference between those two paths is where the
+  answer is. Add the case to the `parser` or `sema` suite depending on which side it lands on.

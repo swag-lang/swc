@@ -313,6 +313,40 @@ private func renderLayerParityScene(renderer: IRenderer)->Image
     return result
 }
 
+// A clip pushed while a layer is bound has to clip against the layer.
+//
+// The scissor works in framebuffer pixels and flips vertically around the height of the bound
+// target. Reading that height once per submission, from the surface, puts every clip of a shorter
+// layer outside its framebuffer: the layer then records nothing at all, and a GUI window fading or
+// scaling through a layer composites as an empty silhouette.
+private func renderLayerClipParityScene(renderer: IRenderer)->Image
+{
+    var target = renderer.createRenderTarget(RenderLayerWidth, RenderLayerHeight)
+    defer renderer.deleteRenderTarget(&target)
+    var painter = Painter.create(renderer)
+    var layer: Layer
+
+    painter.begin()
+    painter.bindRenderTarget(&target)
+    painter.setColorMaskFull()
+    painter.setBlendingMode(.Copy)
+    painter.clear(Color.fromArgb(255'u8, 24'u8, 30'u8, 42'u8))
+
+    layer.begin(&painter, {width: 96, height: 56})
+    painter.pushClippingRect({8, 10, 74, 34})
+    painter.fillRect({0, 0, 96, 56}, Color.fromArgb(Argb.DodgerBlue))
+    painter.fillCircle(48, 28, 20, Color.fromArgb(Argb.Gold))
+    painter.popClippingRect()
+    layer.end()
+    layer.draw({dstRect: {32, 24, 96, 56}})
+
+    painter.unbindRenderTarget()
+    painter.end()
+    renderer.draw(&painter)
+
+    return renderer.readRenderTarget(&target, 0, 0, RenderLayerWidth, RenderLayerHeight)
+}
+
 // Rasterizing a vector document is a complete renderer round trip: an alpha-preserving
 // supersampled pass, its resolve, and a readback. Whichever backend owns it, the image
 // handed back has to be the same one.
@@ -440,4 +474,12 @@ private func assertSvgPixel(image: const *Image, x, y: s32, expected: Color)
     let expected = renderCpu(&renderLayerParityScene)
     let image    = expect renderOgl("SWAG_PIXEL_LAYER_PARITY", "Pixel layer parity", RenderLayerWidth, RenderLayerHeight, &renderLayerParityScene)
     Testing.assertImagesNear(&expected, &image, "render.parity.layer.cpu-ogl", {maxChannelDelta: 6, maxDifferentPixels: 1500})
+}
+
+// A clipping rectangle pushed inside a layer clips the layer, on both backends.
+#test
+{
+    let expected = renderCpu(&renderLayerClipParityScene)
+    let image    = expect renderOgl("SWAG_PIXEL_LAYER_CLIP_PARITY", "Pixel layer clip parity", RenderLayerWidth, RenderLayerHeight, &renderLayerClipParityScene)
+    Testing.assertImagesNear(&expected, &image, "render.parity.layer.clip.cpu-ogl", {maxChannelDelta: 6, maxDifferentPixels: 1500})
 }

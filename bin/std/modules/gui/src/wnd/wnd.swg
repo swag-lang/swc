@@ -251,10 +251,12 @@ struct Wnd
     // Presentation-only state changes painting without moving layout, hit testing, or focus.
     readonly
     {
-        presentationOpacity: f32 = 1            // Opacity of this window and its descendants, from zero through one.
-        presentationOffset:  Math.Point         // Paint-only displacement in logical pixels.
-        presentationClip:    Math.Rectangle     // Local reveal rectangle when presentation clipping is enabled.
-        hasPresentationClip: bool               // Whether `presentationClip` limits painting.
+        presentationOpacity: f32        = 1              // Opacity of this window and its descendants, from zero through one.
+        presentationOffset:  Math.Point                  // Paint-only displacement in logical pixels.
+        presentationScale:   Math.Point = {1, 1}         // Paint-only horizontal and vertical scale factors, both positive.
+        presentationPivot:   Math.Point = {0.5, 0.5}     // Fixed point of the scale, normalized inside the logical rectangle.
+        presentationClip:    Math.Rectangle              // Local reveal rectangle when presentation clipping is enabled.
+        hasPresentationClip: bool                        // Whether `presentationClip` limits painting.
     }
 
     parent: #null *Wnd     // Structural parent responsible for position, layout, and lifetime.
@@ -821,14 +823,18 @@ impl Wnd
         if opacity <= 0 do
             return
 
-        if opacity >= 1 and .presentationOffset == {} and !.hasPresentationClip
+        let scaled = .presentationScale != Math.Point{1, 1}
+        if opacity >= 1 and .presentationOffset == {} and !.hasPresentationClip and !scaled
         {
             .paintContent(bc)
             return
         }
 
+        // A scale composites through a layer like a fading subtree does: descendants push their
+        // clipping rectangles in unscaled parent space, so the transform has to apply once, to
+        // the finished image, rather than to every recorded command.
         let painter = bc.painter
-        if opacity < 1 and .position.width > 0 and .position.height > 0
+        if (opacity < 1 or scaled) and .position.width > 0 and .position.height > 0
         {
             var layer: Layer
             layer.begin(painter, {
@@ -841,13 +847,14 @@ impl Wnd
             .paintContent(bc)
             layer.end()
 
-            var destination = .position
-            destination.offset(.presentationOffset)
+            let destination = .presentationRect()
 
             painter.pushState()
             if .hasPresentationClip
             {
                 var clip = .presentationClip
+                clip.x, clip.width  *= .presentationScale.x
+                clip.y, clip.height *= .presentationScale.y
                 clip.offset(destination.x, destination.y)
                 painter.pushClippingRect(clip)
             }
@@ -999,10 +1006,29 @@ impl Wnd
             srf.invalidateRect(.localToSurface(rect))
     }
 
+    // Returns the rectangle this window paints into, in parent coordinates.
+    //
+    // Presentation state moves and scales the painted image without moving [position], so this is
+    // where the window is seen while [presentationOffset] or [presentationScale] is not at rest.
+    // Layout, hit testing, and focus keep using [position].
+    mtd const presentationRect()->Math.Rectangle
+    {
+        var result: retval = .position
+        let pivotX         = result.x + result.width * .presentationPivot.x
+        let pivotY         = result.y + result.height * .presentationPivot.y
+        result.x      = pivotX + (result.x - pivotX) * .presentationScale.x
+        result.y      = pivotY + (result.y - pivotY) * .presentationScale.y
+        result.width  *= .presentationScale.x
+        result.height *= .presentationScale.y
+        result.offset(.presentationOffset)
+        return result
+    }
+
     private mtd invalidatePresentation()
     {
-        var rect = .surfaceRect()
-        rect.offset(.presentationOffset)
+        let anchor = .surfaceRect()
+        var rect   = .presentationRect()
+        rect.offset(anchor.x - .position.x, anchor.y - .position.y)
         rect.applyPadding(.invalidatePadding)
         rect.applyPadding({-32, -32, -32, -32})
         let srf = .surface
@@ -1031,6 +1057,34 @@ impl Wnd
         .invalidatePresentation()
     }
 
+    // Changes the paint-only scale applied around [presentationPivot].
+    //
+    // Both factors must be positive. The subtree is composited once and then resampled, so a
+    // factor far above one softens text; scale is meant for arrival, emphasis, and press
+    // feedback rather than for zooming a view.
+    mtd setPresentationScale(scale: Math.Point)
+    {
+        Debug.assert(scale.x > 0 and scale.y > 0)
+        if .presentationScale == scale do
+            return
+        .invalidatePresentation()
+        .presentationScale = scale
+        .invalidatePresentation()
+    }
+
+    // Changes the fixed point of [presentationScale], normalized inside the logical rectangle.
+    //
+    // `{0.5, 0.5}` scales about the center, `{0, 0}` about the top-left corner. Values outside
+    // the unit square are accepted and place the fixed point beyond the window.
+    mtd setPresentationPivot(pivot: Math.Point)
+    {
+        if .presentationPivot == pivot do
+            return
+        .invalidatePresentation()
+        .presentationPivot = pivot
+        .invalidatePresentation()
+    }
+
     // Limits painting to `clip`, expressed in local logical coordinates.
     mtd setPresentationClip(clip: Math.Rectangle)
     {
@@ -1052,14 +1106,16 @@ impl Wnd
         .invalidatePresentation()
     }
 
-    // Restores opaque, undisplaced, unclipped presentation.
+    // Restores opaque, undisplaced, unscaled, unclipped presentation.
     mtd resetPresentation()
     {
-        if .presentationOpacity == 1 and .presentationOffset == {} and !.hasPresentationClip do
+        if .presentationOpacity == 1 and .presentationOffset == {} and .presentationScale == Math.Point{1, 1} and !.hasPresentationClip do
             return
         .invalidatePresentation()
         .presentationOpacity = 1
         .presentationOffset  = {}
+        .presentationScale   = {1, 1}
+        .presentationPivot   = {0.5, 0.5}
         .hasPresentationClip = false
         .invalidatePresentation()
     }

@@ -61,6 +61,19 @@ using Swag, Core, File
     libWnd.sendCommandEvent(ActionLibFilter.LinkedImage)
     @assert(!f.main.libWnd.showLinkedImage)
 
+    f.main.libWnd.contentFilter     = .Images
+    f.main.libWnd.favoritesOnly     = true
+    f.main.libWnd.minimumRating     = 4
+    f.main.libWnd.applicationFilter = "chrome"
+    f.main.libWnd.tagFilter         = "docs"
+    libWnd.sendCommandEvent(ActionLibFilter.Reset)
+    @assert(f.main.libWnd.contentFilter == .All)
+    @assert(!f.main.libWnd.favoritesOnly)
+    @assert(f.main.libWnd.minimumRating == 0)
+    @assert(f.main.libWnd.applicationFilter.isEmpty())
+    @assert(f.main.libWnd.tagFilter.isEmpty())
+    @assert(f.main.libWnd.showLinkedImage)
+
     evt = Gui.Testing.commandState(ActionLibSel.Right)
     @assert(Gui.Testing.actionUpdate'ActionLibSel(libWnd, ActionLibSel.Right, &evt))
     @assert(evt.disabled)
@@ -332,7 +345,7 @@ using Swag, Core, File
     @assert(libWnd.listCtrl.lineCount() == 0)
     libWnd.fill()
 
-    // Root lines only: "All Captures" + the 2024 and 2023 year groups (months and
+    // Root lines only: "All Items" + the 2024 and 2023 year groups (months and
     // days are children of their year/month lines).
     @assert(libWnd.listCtrl.lineCount() == 3)
     @assert(libWnd.view.items.count == 3)
@@ -343,4 +356,189 @@ using Swag, Core, File
 
     libWnd.view.thread.safeForceEnd()
     libWnd.view.thread.wait()
+}
+
+// Source metadata, tags, favorites and ratings are first-class filters, and the sort
+// families use the same metadata rather than falling back to file-system accidents.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    let lib  = f.setupLibraryWnd()
+    let view = lib.view
+
+    let chrome = testAddLibraryItem(view, "chrome.scapture", 30, 2, title: "Documentation")
+    chrome.capture!.sourceKind        = .Screen
+    chrome.capture!.sourceApplication = "chrome"
+    chrome.capture!.sourceWindowTitle = "Swag language reference"
+    chrome.capture!.tags.add("docs")
+    chrome.capture!.favorite = true
+    chrome.capture!.rating   = 5
+    chrome.width             = 1920
+    chrome.height            = 1080
+
+    let slack = testAddLibraryItem(view, "slack.scapture", 20, 3, title: "Team")
+    slack.capture!.sourceKind        = .Screen
+    slack.capture!.sourceApplication = "slack"
+    slack.capture!.sourceWindowTitle = "Engineering"
+    slack.capture!.tags.add("work")
+    slack.capture!.rating = 2
+    slack.width           = 800
+    slack.height          = 600
+
+    let imported = testAddLibraryItem(view, "imported.scapture", 10, 1, "photo.png", title: "Photo")
+    imported.capture!.sourceKind = .ImageFile
+    imported.width               = 400
+    imported.height              = 300
+
+    let image = view.allItems.addNew()
+    image.fi.fullname = "wallpaper.png"
+    image.kind        = .Image
+    image.loaded      = true
+    image.width       = 2560
+    image.height      = 1440
+    view.items.add(image)
+
+    lib.contentFilter = .ScreenCaptures
+    view.filter()
+    @assert(view.items.count == 2)
+    @assert(view.items.contains(chrome))
+    @assert(view.items.contains(slack))
+
+    lib.contentFilter = .Images
+    view.filter()
+    @assert(view.items.count == 1)
+    @assert(view.items[0] == image)
+
+    lib.contentFilter     = .All
+    lib.applicationFilter = "CHROME"
+    view.filter()
+    @assert(view.items.count == 1)
+    @assert(view.items[0] == chrome)
+
+    lib.applicationFilter.clear()
+    lib.tagFilter = "DOCS"
+    view.filter()
+    @assert(view.items.count == 1)
+    @assert(view.items[0] == chrome)
+
+    lib.tagFilter.clear()
+    lib.favoritesOnly = true
+    view.filter()
+    @assert(view.items.count == 1)
+    @assert(view.items[0] == chrome)
+
+    lib.favoritesOnly = false
+    lib.minimumRating = 3
+    view.filter()
+    @assert(view.items.count == 1)
+    @assert(view.items[0] == chrome)
+
+    lib.minimumRating = 0
+    lib.setSearch("language reference")
+    @assert(view.items.count == 1)
+    @assert(view.items[0] == chrome)
+    lib.setSearch("")
+
+    lib.sortMethod = .Application
+    view.sort()
+    @assert(view.items.back() == slack)
+
+    lib.sortMethod = .Dimensions
+    view.sort()
+    @assert(view.items[0] == image)
+
+    lib.sortMethod = .Name
+    view.sort()
+    @assert(view.items[0] == chrome)
+
+    for item, [i] in view.items where item == slack do
+        view.setFocusItem(cast(u32) i)
+    lib.sortMethod = .Dimensions
+    view.sort()
+    @assert(view.focusItem < view.items.count)
+    @assert(view.items[view.focusItem] == slack)
+    @assert(view.selModel.isSelected(view.focusItem))
+}
+
+// A regular image file is decoded into its own preview item. It never masquerades as a
+// Capture until the user opens it in the editor.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    let lib  = f.setupLibraryWnd()
+    let view = lib.view
+
+    let path = Gui.Testing.tempFilePath("scapture-library-image-", ".png")
+    defer discard catch File.delete(path)
+    var source = Gui.Testing.indexedImage(48, 32)
+    expect source.save(path)
+
+    let item = view.allItems.addNew()
+    item.fi.fullname = path
+    item.kind        = .Image
+    view.items.add(item)
+    view.loadOne(item)
+
+    @assert(item.loaded)
+    @assert(!item.capture)
+    @assert(item.image.isValid())
+    @assert(item.width == 48)
+    @assert(item.height == 32)
+    @assert(item.haar.size != 0)
+
+    f.main.libraryMode = true
+    view.focusItem     = 0
+    var deleteState = Gui.Testing.commandState(ActionFile.DeleteCapture)
+    @assert(Gui.Testing.actionUpdate'ActionFile(f.main, ActionFile.DeleteCapture, &deleteState))
+    @assert(deleteState.disabled)
+}
+
+// The root is configurable, indexes captures and ordinary images together, and remains
+// the destination used for newly created capture files.
+#test
+{
+    testUseScratchLibrary()
+    let root = Gui.Testing.tempFilePath("scapture-library-root-", "")
+    expect Directory.create(root)
+
+    let capturePath = Path.combine(root, "sample.scapture")
+    let imagePath   = Path.combine(root, "sample.png")
+    defer
+    {
+        discard catch File.delete(capturePath)
+        discard catch File.delete(imagePath)
+        discard catch Directory.delete(Path.combine(root, ".trash"))
+        discard catch Directory.delete(root)
+        discard catch g_Library.setFolder("")
+    }
+
+    let capture = Memory.new'Capture()
+    capture.width, capture.widthOrg   = 8
+    capture.height, capture.heightOrg = 6
+    capture.backImg                   = Gui.Testing.indexedImage(8, 6)
+    capture.file                      = capturePath
+    capture.changed                   = true
+    expect capture.save()
+    Memory.delete(capture)
+
+    var image = Gui.Testing.indexedImage(10, 7)
+    expect image.save(imagePath)
+
+    let previousRoot = Library.getFolder()
+    discard catch g_Library.setFolder(capturePath) as invalidRootError
+    @assert(invalidRootError != null)
+    @assert(Library.getFolder() == previousRoot)
+
+    expect g_Library.setFolder(root)
+    g_Library.fill()
+    @assert(Library.getFolder() == root)
+    @assert(g_Library.files.count == 2)
+    let generatedFile      = Library.newFileName()
+    let generatedDirectory = Path.directoryName(generatedFile)
+    @assert(generatedDirectory != null)
+    @assert(Path.equals(generatedDirectory!, root))
 }

@@ -4,14 +4,26 @@ internal var g_UpdatingLib: bool
 internal var g_DirtyList: bool = true
 internal const ItemMargin = 8.0
 
+enum LibraryItemKind
+{
+    Capture
+    Image
+}
+
 struct LibraryItem
 {
     fi:       File.FileInfo
+    kind:     LibraryItemKind
     capture:  #null *Capture
+    image:    Image
+    width:    s32
+    height:   s32
+    haar:     ImageStatistics.HaarFeatures
     texture:  Texture
     rect:     Math.Rectangle
     visible:  bool
     filtered: bool
+    loaded:   bool
 }
 
 impl LibraryItem
@@ -106,22 +118,19 @@ impl IWnd for LibraryView
             if .libWnd.trashMode do
                 return
 
-            let item = .items[.focusItem]
-            .mutexLoaded.lock()
-            let capture = item.capture
-            .mutexLoaded.unlock()
-            if !capture do
-                return
-
-            catch File.touch(item.fi.fullname)
-            .mainWnd.recentWnd.addRecent(item.fi.fullname, capture.preview, front: true, sel: true, linked: capture.linkedImage)
-            .mainWnd.recentWnd.setScrollPos(0, 0)
-            .mainWnd.swapLibraryMode()
-            .mainWnd.updateState()
+            .openItem(.items[.focusItem])
         }
 
-        if evt.kind == .Pressed and evt.button == .Right and .focusItem < .items.count
+        if evt.kind == .Pressed and evt.button == .Right and (.hotItem < .items.count or .focusItem < .items.count)
         {
+            if .hotItem < .items.count and !.selModel.isSelected(.hotItem)
+            {
+                .setFocusItem(.hotItem)
+                .focusItem = .hotItem
+            }
+
+            let focused        = .items[.focusItem]
+            let focusedCapture = focused.capture
             with let menu = MenuCtrl.createPopup(me)
             {
                 if me.libWnd.trashMode
@@ -130,10 +139,33 @@ impl IWnd for LibraryView
                     .addSeparator()
                     .addItem(ActionLibTrash.DeleteForever)
                 }
+                elif focused.kind == .Image
+                {
+                    .addItem(appStrings().act_OpenSelected, "sCapture.library.open")
+                    .addSeparator()
+                    .addItem(appStrings().act_LocateImage, "sCapture.library.reveal")
+                }
                 else
                 {
+                    .addItem(appStrings().act_OpenSelected, "sCapture.library.open")
+                    .addSeparator()
                     .addItem(ActionFile.CopyImage)
+                    .addItem(appStrings().act_ExportSelected, "sCapture.library.export")
                     .addItem(ActionFile.RenameCapture)
+                    .addItem(appStrings().act_EditTags, "sCapture.library.tags")
+                    .addItem(appStrings().act_FavoriteCapture, "sCapture.library.favorite", checked: focusedCapture and focusedCapture.favorite)
+
+                    with let rating = MenuCtrl.createPopup(menu, owner: me)
+                    {
+                        .addItem(appStrings().act_NoRating, "sCapture.library.rating.0", checked: focusedCapture and focusedCapture.rating == 0)
+                        .addItem(appStrings().act_Rating1, "sCapture.library.rating.1", checked: focusedCapture and focusedCapture.rating == 1)
+                        .addItem(appStrings().act_Rating2, "sCapture.library.rating.2", checked: focusedCapture and focusedCapture.rating == 2)
+                        .addItem(appStrings().act_Rating3, "sCapture.library.rating.3", checked: focusedCapture and focusedCapture.rating == 3)
+                        .addItem(appStrings().act_Rating4, "sCapture.library.rating.4", checked: focusedCapture and focusedCapture.rating == 4)
+                        .addItem(appStrings().act_Rating5, "sCapture.library.rating.5", checked: focusedCapture and focusedCapture.rating == 5)
+                        menu.addPopup(appStrings().act_Rating, rating)
+                    }
+
                     .addSeparator()
                     .addItem(ActionFile.DeleteCapture)
                     .addSeparator()
@@ -144,7 +176,23 @@ impl IWnd for LibraryView
                 }
             }
 
-            discard menu.doModal(evt.surfacePos, autoDestroy: true)
+            let result = menu.doModal(evt.surfacePos, autoDestroy: true)
+            if !result do
+                return
+            switch result!
+            {
+            case "sCapture.library.open":     .openItem(focused)
+            case "sCapture.library.reveal":   discard Env.showInFileExplorer(focused.fi.fullname)
+            case "sCapture.library.tags":     .libWnd.editSelectedTags()
+            case "sCapture.library.export":   .libWnd.exportSelected()
+            case "sCapture.library.favorite": .libWnd.toggleSelectedFavorite()
+            case "sCapture.library.rating.0": .libWnd.rateSelected(0)
+            case "sCapture.library.rating.1": .libWnd.rateSelected(1)
+            case "sCapture.library.rating.2": .libWnd.rateSelected(2)
+            case "sCapture.library.rating.3": .libWnd.rateSelected(3)
+            case "sCapture.library.rating.4": .libWnd.rateSelected(4)
+            case "sCapture.library.rating.5": .libWnd.rateSelected(5)
+            }
         }
     }
 
@@ -164,6 +212,7 @@ impl IWnd for LibraryView
         {
             g_DirtyList = false
             .filter()
+            .sort()
         }
 
         let spos = .scrollWnd.scrollPosition()
@@ -177,7 +226,9 @@ impl IWnd for LibraryView
 
             // Retrieve the loaded capture if it exists
             .mutexLoaded.lock()
-            let capture = it.capture
+            let capture    = it.capture
+            let image      = it.image
+            let itemLoaded = it.loaded
             .mutexLoaded.unlock()
 
             // We have a capture but not yet a texture. Create it (only when the capture
@@ -185,6 +236,8 @@ impl IWnd for LibraryView
             // hour-glass placeholder below).
             if capture and !it.texture.isValid() and capture.preview.isValid() do
                 it.texture = evt.paintContext.renderer.addImage(capture.preview)
+            elif it.kind == .Image and !it.texture.isValid() and image.isValid() do
+                it.texture = evt.paintContext.renderer.addImage(image)
 
             it.rect = Math.Rectangle{x, y, w, h}
             let selected = .selModel.isSelected(cast() i)
@@ -205,20 +258,53 @@ impl IWnd for LibraryView
 
             // User-given name, drawn along the bottom of the thumbnail with a soft
             // shadow so it stays readable over any background.
-            if capture and !capture.title.isEmpty()
+            var label = ""
+            if capture and !capture.title.isEmpty() do
+                label = capture.title
+            elif capture and !capture.sourceApplication.isEmpty() do
+                label = capture.sourceApplication
+            elif it.kind == .Image do
+                label = Path.fileName(it.fi.fullname) orelse ""
+
+            if @countof(label)
             {
-                let font  = me .font().regular!
-                let title = capture.title.toString()
-                let cx    = it.rect.horzCenter()
-                let by    = it.rect.bottom() - 8
-                painter.drawStringCenter(cx + 1, by + 1, title, font, Color.fromArgb(0xC0, Argb.Black))
-                painter.drawStringCenter(cx, by, title, font, Argb.White)
+                let font = me .font().regular!
+                let cx   = it.rect.horzCenter()
+                let by   = it.rect.bottom() - 8
+                painter.drawStringCenter(cx + 1, by + 1, label, font, Color.fromArgb(0xC0, Argb.Black))
+                painter.drawStringCenter(cx, by, label, font, Argb.White)
             }
 
-            // Waiting for texture
+            if it.kind == .Image
+            {
+                let font = me .theme().res.fontDefaultFs.regular!
+                let text = appStrings().ui_ImageBadge
+                let ms   = Painter.measureString(text, font)
+                let rc   = Math.Rectangle{it.rect.x + 8, it.rect.y + 8, ms.width + 12, font.height + 4}
+                painter.fillRect(rc, .themeColors().wnd_Bk)
+                painter.drawString(rc.x + 6, rc.y + 2, text, font, .themeColors().label_TextLight)
+            }
+
+            if capture and (capture.favorite or capture.rating)
+            {
+                let font = me .theme().res.fontDefaultFs.regular!
+                var text: String
+                if capture.favorite do
+                    text = "★"
+                if capture.rating do
+                    text = Format.toString("% %/5", text, capture.rating)
+                let ms = Painter.measureString(text, font)
+                painter.drawString(it.rect.right() - ms.width - 8, it.rect.y + 8, text, font, .themeColors().hilight)
+            }
+
+            // Loading, a legacy preview-less capture, or an image the decoder rejected.
             if !it.texture.isValid()
             {
-                let icon  = .theme().icon(.HourGlass, 48)
+                var icon = .theme().icon(.HourGlass, 48)
+                if itemLoaded and it.kind == .Capture do
+                    icon = .mainWnd.icon(.Archive, 48)
+                elif itemLoaded do
+                    icon = .theme().icon(.Warning, 48)
                 let color = Color.fromArgb(50, Argb.White)
                 icon.paint(painter, it.rect.horzCenter() - icon.sizeX * 0.5, it.rect.vertCenter() - icon.sizeY * 0.5, color)
             }
@@ -238,6 +324,57 @@ impl IWnd for LibraryView
 
 impl LibraryView
 {
+    mtd stopLoading()
+    {
+        if !.thread.isValid() do
+            return
+        .thread.safeForceEnd()
+        .thread.wait()
+    }
+
+    mtd startLoading() fail
+    {
+        var hasPending: bool
+        for it in .allItems where !it!.loaded do
+            hasPending = true
+
+        if !hasPending
+        {
+            g_UpdatingLib = false
+            return
+        }
+
+        g_UpdatingLib = true
+        if @isset(.imgSpin) do
+            .imgSpin.show()
+        try
+        {
+            .thread.init(func|view = me|(th: Thread) { view.loadFiles(th); })
+            .thread.start()
+        }
+    }
+
+    mtd openItem(item: *LibraryItem)
+    {
+        if item.kind == .Image
+        {
+            .mainWnd.loadExternalImage(item.fi.fullname)
+            return
+        }
+
+        .mutexLoaded.lock()
+        let capture = item.capture
+        .mutexLoaded.unlock()
+        if !capture do
+            return
+
+        catch File.touch(item.fi.fullname)
+        .mainWnd.recentWnd.addRecent(item.fi.fullname, capture.preview, front: true, sel: true, linked: capture.linkedImage)
+        .mainWnd.recentWnd.setScrollPos(0, 0)
+        .mainWnd.swapLibraryMode()
+        .mainWnd.updateState()
+    }
+
     mtd const numImagesPerLine()->u32
     {
         let {w, ?}     = .getPreviewSize()
@@ -288,14 +425,28 @@ impl LibraryView
     // Case-insensitive substring test used by the library search box. Matches the
     // capture title, the linked image path and the capture file name so the user can
     // find a capture by any of the names it is known under.
-    mtd const matchSearch(it: *LibraryItem, capture: *Capture, search: String)->bool
+    mtd const matchSearch(it: *LibraryItem, capture: #null *Capture, search: String)->bool
     {
         if search.isEmpty() do
             return true
-        if Utf8.indexOf(capture.title.toSlice(), search, 0, .Latin1NoCase) != Swag.U64.Max do
-            return true
-        if Utf8.indexOf(capture.linkedImage.toSlice(), search, 0, .Latin1NoCase) != Swag.U64.Max do
-            return true
+        if capture
+        {
+            if Utf8.indexOf(capture.title.toSlice(), search, 0, .Latin1NoCase) != Swag.U64.Max do
+                return true
+            if Utf8.indexOf(capture.linkedImage.toSlice(), search, 0, .Latin1NoCase) != Swag.U64.Max do
+                return true
+            if Utf8.indexOf(capture.sourceApplication.toSlice(), search, 0, .Latin1NoCase) != Swag.U64.Max do
+                return true
+            if Utf8.indexOf(capture.sourceExecutable.toSlice(), search, 0, .Latin1NoCase) != Swag.U64.Max do
+                return true
+            if Utf8.indexOf(capture.sourceWindowTitle.toSlice(), search, 0, .Latin1NoCase) != Swag.U64.Max do
+                return true
+            if Utf8.indexOf(capture.sourceWindowClass.toSlice(), search, 0, .Latin1NoCase) != Swag.U64.Max do
+                return true
+            for tag in capture.tags where Utf8.indexOf(tag.toSlice(), search, 0, .Latin1NoCase) != Swag.U64.Max do
+                return true
+        }
+
         if Utf8.indexOf(it.fi.fullname.toSlice(), search, 0, .Latin1NoCase) != Swag.U64.Max do
             return true
         return false
@@ -303,6 +454,16 @@ impl LibraryView
 
     mtd filter()
     {
+        var selectedFiles: Array'String
+        var focusedFile:   String
+        for item, [i] in .items
+        {
+            if .selModel.isSelected(cast() i) do
+                selectedFiles.add(item.fi.fullname)
+            if i == .focusItem do
+                focusedFile = item.fi.fullname
+        }
+
         .items.clear()
         let search = .libWnd.searchText.toString()
         for it in .allItems
@@ -311,15 +472,38 @@ impl LibraryView
             itn.filtered = true
 
             .mutexLoaded.lock()
-            let capture = itn.capture
+            let capture    = itn.capture
+            let itemLoaded = itn.loaded
             .mutexLoaded.unlock()
 
-            if !capture
+            if (.libWnd.contentFilter == .Captures or .libWnd.contentFilter == .ScreenCaptures or .libWnd.contentFilter == .ImportedCaptures) and itn.kind != .Capture do
+                continue
+            if .libWnd.contentFilter == .Images and itn.kind != .Image do
+                continue
+
+            if !itemLoaded
             {
                 // Nothing is known about an item until its preview loads. While a search
                 // is active hide it (it re-appears once loaded if it matches) so results
                 // are not padded with unloaded, possibly non-matching, captures.
-                if @countof(search) != 0 do
+                if @countof(search) != 0 or .libWnd.contentFilter == .ScreenCaptures or .libWnd.contentFilter == .ImportedCaptures or .libWnd.favoritesOnly or .libWnd.minimumRating or !.libWnd.applicationFilter.isEmpty() or !.libWnd.tagFilter.isEmpty() do
+                    continue
+                itn.filtered = false
+                .items.add(itn)
+                continue
+            }
+
+            switch .libWnd.contentFilter
+            {
+            case .ScreenCaptures where !capture or capture.sourceKind != .Screen: continue
+            case .ImportedCaptures where !capture or (capture.sourceKind != .ImageFile and capture.sourceKind != .Clipboard): continue
+            }
+
+            if itn.kind == .Image
+            {
+                if .libWnd.favoritesOnly or .libWnd.minimumRating or !.libWnd.applicationFilter.isEmpty() or !.libWnd.tagFilter.isEmpty() do
+                    continue
+                if !.matchSearch(itn, null, search) do
                     continue
                 itn.filtered = false
                 .items.add(itn)
@@ -327,6 +511,8 @@ impl LibraryView
             }
 
             let loaded = capture
+            if !loaded do
+                continue
             if !loaded.linkedImage.isEmpty() and !.libWnd.showLinkedImage do
                 continue
             if loaded.linkedImage.isEmpty() and !.libWnd.showUnLinkedImage do
@@ -335,6 +521,14 @@ impl LibraryView
                 continue
             if !loaded.linkedUpToDate and !loaded.linkedImage.isEmpty() and !.libWnd.showUnSavedLinkedImage do
                 continue
+            if .libWnd.favoritesOnly and !loaded.favorite do
+                continue
+            if loaded.rating < .libWnd.minimumRating do
+                continue
+            if !.libWnd.applicationFilter.isEmpty() and Utf8.compare(loaded.sourceApplication.toSlice(), .libWnd.applicationFilter, .Latin1NoCase) != 0 do
+                continue
+            if !.libWnd.tagFilter.isEmpty() and !loaded.hasTag(.libWnd.tagFilter) do
+                continue
             if !.matchSearch(itn, loaded, search) do
                 continue
 
@@ -342,25 +536,66 @@ impl LibraryView
             .items.add(itn)
         }
 
+        .selModel.clear()
+        .focusItem = Swag.U32.Max
+        for item, [i] in .items
+        {
+            if selectedFiles.contains(item.fi.fullname) do
+                .selModel.select(cast() i)
+            if item.fi.fullname == focusedFile do
+                .focusItem = cast(u32) i
+        }
+
         .invalidate()
     }
 
     mtd loadOne(it: *LibraryItem)
     {
-        let capture: #null *Capture = catch Capture.load(it.fi.fullname, preview: true)
-        if !capture do
-            return
+        if it.kind == .Capture
+        {
+            let capture:       #null *Capture = catch Capture.load(it.fi.fullname, preview: true)
+            var haar:          ImageStatistics.HaarFeatures
+            var width, height: s32
+            if capture
+            {
+                if capture.preview.isValid() do
+                    haar = ImageStatistics.quickExtractHaarFeatures(capture.preview, 32)
+                width  = capture.width
+                height = capture.height
+            }
 
-        // Some captures carry no preview (older files, or ones never saved with one).
-        // quickExtractHaarFeatures faults on a zero-sized image, so only feature captures
-        // that actually have a preview; the rest simply don't take part in similarity sort.
-        if capture.preview.isValid() do
-            capture.haar = ImageStatistics.quickExtractHaarFeatures(capture.preview, 32)
+            .mutexLoaded.lock()
+            it.capture = capture
+            it.haar    = haar
+            it.width   = width
+            it.height  = height
+            it.loaded  = true
+            .mutexLoaded.unlock()
+        }
+        else
+        {
+            var image = catch Image.load(it.fi.fullname)
+            var haar:          ImageStatistics.HaarFeatures
+            var width, height: s32
+            if image.isValid()
+            {
+                width  = image.width
+                height = image.height
+                haar   = ImageStatistics.quickExtractHaarFeatures(image, 32)
+                if image.width > 512 or image.height > 512 do
+                    image.resize(image.width >= image.height ? 512 : 0, image.height > image.width ? 512 : 0, .Bicubic)
+            }
+
+            .mutexLoaded.lock()
+            it.image  = image
+            it.haar   = haar
+            it.width  = width
+            it.height = height
+            it.loaded = true
+            .mutexLoaded.unlock()
+        }
+
         g_DirtyList = true
-
-        .mutexLoaded.lock()
-        it.capture = capture
-        .mutexLoaded.unlock()
     }
 
     mtd loadFiles(th: Thread)
@@ -374,7 +609,7 @@ impl LibraryView
         {
             if th.requestEnd do
                 break
-            if it.capture or !it.visible do
+            if it.loaded or !it.visible do
                 continue
 
             .loadOne(it)
@@ -385,7 +620,7 @@ impl LibraryView
         {
             if th.requestEnd do
                 break
-            if it.capture do
+            if it.loaded do
                 continue
 
             .loadOne(it)
@@ -415,7 +650,7 @@ impl LibraryView
         {
             // A capture with no Haar features (no preview) can't anchor a similarity
             // comparison; pass it straight through so it never reaches the compare below.
-            if !toCompare or !toCompare.capture or toCompare.filtered or toCompare.capture.haar.size == 0
+            if !toCompare or toCompare.filtered or toCompare.haar.size == 0
             {
                 toCompare = remaining.front()
                 remaining.removeAt(0)
@@ -426,9 +661,9 @@ impl LibraryView
             var best:  f32
             var bestI: u64
             var foundMatch = false
-            for it in remaining where it.capture and toCompare.capture.haar.size == it.capture.haar.size
+            for it in remaining where toCompare.haar.size == it.haar.size
             {
-                let similarity = ImageStatistics.quickCompareHaarCoefficients(toCompare.capture.haar, it.capture.haar)
+                let similarity = ImageStatistics.quickCompareHaarCoefficients(toCompare.haar, it.haar)
                 if similarity > best
                 {
                     best       = similarity
@@ -451,10 +686,8 @@ impl LibraryView
             }
         }
 
-        .mutexLoaded.lock()
         for it, [i] in nitems do
             .items[i] = it
-        .mutexLoaded.unlock()
     }
 
     mtd sortFiles()
@@ -463,11 +696,30 @@ impl LibraryView
         {
             var value: s32
 
+            let captureA     = a.capture
+            let captureB     = b.capture
+            let nameA        = captureA and !captureA.title.isEmpty() ? captureA.title.toString() : (Path.fileName(a.fi.fullname) orelse "")
+            let nameB        = captureB and !captureB.title.isEmpty() ? captureB.title.toString() : (Path.fileName(b.fi.fullname) orelse "")
+            let applicationA = captureA ? captureA.sourceApplication.toString() : ""
+            let applicationB = captureB ? captureB.sourceApplication.toString() : ""
+            let windowA      = captureA ? captureA.sourceWindowTitle.toString() : ""
+            let windowB      = captureB ? captureB.sourceWindowTitle.toString() : ""
+            let capturedA    = captureA and captureA.capturedAt.isValid() ? captureA.capturedAt : a.fi.lastWriteTime
+            let capturedB    = captureB and captureB.capturedAt.isValid() ? captureB.capturedAt : b.fi.lastWriteTime
+
             switch libWnd.sortMethod
             {
-            case .Recent:   value = b.fi.lastWriteTime <=> a.fi.lastWriteTime
-            case .FileSize: value = b.fi.size <=> a.fi.size
+            case .Recent:      value = capturedB <=> capturedA
+            case .Modified:    value = b.fi.lastWriteTime <=> a.fi.lastWriteTime
+            case .Name:        value = Utf8.compare(nameA, nameB, .Latin1NoCase)
+            case .Application: value = Utf8.compare(applicationA, applicationB, .Latin1NoCase)
+            case .WindowTitle: value = Utf8.compare(windowA, windowB, .Latin1NoCase)
+            case .Dimensions:  value = cast(u64) b.width * cast(u64) b.height <=> cast(u64) a.width * cast(u64) a.height
+            case .FileSize:    value = b.fi.size <=> a.fi.size
             }
+
+            if !value do
+                value = Utf8.compare(a.fi.fullname.toSlice(), b.fi.fullname.toSlice(), .Latin1NoCase)
 
             if libWnd.invertSort do
                 return -value
@@ -480,23 +732,41 @@ impl LibraryView
         if .items.isEmpty() do
             return
 
+        var selectedFiles: Array'String
+        var focusedFile:   String
+        for item, [i] in .items
+        {
+            if .selModel.isSelected(cast() i) do
+                selectedFiles.add(item.fi.fullname)
+            if i == .focusItem do
+                focusedFile = item.fi.fullname
+        }
+
         Cursor.activateWait()
+        .mutexLoaded.lock()
+        defer .mutexLoaded.unlock()
 
         if .libWnd.sortMethod == .Similar do
             .sortSimilar()
         else do
             .sortFiles()
 
+        .selModel.clear()
+        .focusItem = Swag.U32.Max
+        for item, [i] in .items
+        {
+            if selectedFiles.contains(item.fi.fullname) do
+                .selModel.select(cast() i)
+            if item.fi.fullname == focusedFile do
+                .focusItem = cast(u32) i
+        }
+
         .invalidate()
     }
 
     mtd fill() fail
     {
-        if .thread.isValid()
-        {
-            .thread.safeForceEnd()
-            .thread.wait()
-        }
+        .stopLoading()
 
         // Items come from the folder the breadcrumb currently points at. The sCapture home
         // folder uses the in-memory index (so the date sidebar and delete handlers stay in
@@ -518,7 +788,7 @@ impl LibraryView
         }
         else
         {
-            res = catch Directory.enumerateFiles(cf, ".scapture")
+            res = catch Library.enumerateSupportedFiles(cf)
         }
 
         let renderer = .app().renderer
@@ -535,7 +805,8 @@ impl LibraryView
         for fi in res
         {
             let ptr = .allItems.addNew()
-            ptr.fi = fi
+            ptr.fi   = fi
+            ptr.kind = Path.lowercaseExtension(fi.fullname) == ".scapture" ? .Capture : .Image
         }
 
         .filter()
@@ -544,15 +815,8 @@ impl LibraryView
         .hotItem = Swag.U32.Max
         .clearSelection()
 
-        g_UpdatingLib = true
-        .imgSpin.show()
-
         // Launch thread to read all captures
-        try
-        {
-            .thread.init(func|view = me|(th: Thread) { view.loadFiles(th); })
-            .thread.start()
-        }
+        try .startLoading()
 
         .invalidate()
     }

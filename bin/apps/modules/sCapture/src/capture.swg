@@ -18,7 +18,18 @@ const TextFormSuperSample = 3
 // a file without the header predates it and reads as version 0. The serialized layout
 // itself is pinned by 'serialization.schema.test.swg'.
 const CaptureFileMagic   = 0x53434150'u32
-const CaptureFileVersion = 1'u32
+const CaptureFileVersion = 2'u32
+
+// Where the pixels of a capture came from. Stored with the capture so the library can
+// distinguish a screen grab from a picture opened for annotation or a blank canvas.
+enum CaptureSourceKind
+{
+    Unknown         // Capture saved before source metadata was recorded.
+    Screen          // Pixels captured from the desktop or an application window.
+    ImageFile       // Image file opened or dropped into sCapture.
+    Clipboard       // Bitmap pasted or dragged without a source file.
+    BlankCanvas     // Empty image created in sCapture.
+}
 
 struct Capture
 {
@@ -41,6 +52,18 @@ struct Capture
 
     // User-defined name shown in the library (empty = fall back to the file name).
     title: String
+
+    // Library metadata. Window fields stay empty when the platform cannot identify a
+    // window, or when the selected rectangle spans several applications.
+    sourceKind:        CaptureSourceKind
+    capturedAt:        Time.DateTime
+    sourceApplication: String
+    sourceExecutable:  String
+    sourceWindowTitle: String
+    sourceWindowClass: String
+    tags:              Array'String
+    favorite:          bool
+    rating:            u8
 
     // Dyn
     #[NoSerialize]
@@ -272,6 +295,26 @@ impl CaptureClipboardForms
 
 impl Capture
 {
+    // Records the source of a screen capture. The native backend supplies as much window
+    // identity as Windows allows; empty values deliberately mean "not available".
+    mtd setScreenSource(application, executable, windowTitle, windowClass: String)
+    {
+        .sourceKind        = .Screen
+        .capturedAt        = Time.DateTime.now()
+        .sourceApplication = application
+        .sourceExecutable  = executable
+        .sourceWindowTitle = windowTitle
+        .sourceWindowClass = windowClass
+    }
+
+    // Returns whether this capture owns `tag`, without making tag spelling case-sensitive.
+    mtd const hasTag(tag: String)->bool
+    {
+        for own in .tags where Utf8.compare(own.toSlice(), tag, .Latin1NoCase) == 0 do
+            return true
+        return false
+    }
+
     func freeForms(forms: Array'IForm)
     {
         for it in forms
@@ -430,7 +473,7 @@ impl Capture
 
         // Strip the container header when it is there; a headerless file predates it.
         var payload: const [..] u8 = res.toSlice()
-        var version = 0'u32
+        var version                = 0'u32
         if @countof(payload) >= 8
         {
             var header = ByteStream.openRead(payload)

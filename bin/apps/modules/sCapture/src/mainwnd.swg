@@ -121,6 +121,9 @@ struct MainWnd
     inPlaceEdit, snap, freezeSel, libraryMode: bool
     firstShow = true
     fileDlgState, fileDlgStateInPlace:         FileDlgState
+    libraryFolderDlgState:                     FileDlgState
+    exportFolderDlgState:                      FileDlgState
+    libraryFolder:                             String
     captureOptions:                            CaptureOptions
     editorOptions:                             EditorOptions
 
@@ -293,6 +296,21 @@ impl IWnd for MainWnd
                 .serialize("MainWnd.bottomSize", &me.bottomSize)
                 .serialize("MainWnd.fileDlgState", &me.fileDlgState)
                 .serialize("MainWnd.fileDlgStateInPlace", &me.fileDlgStateInPlace)
+                .serialize("MainWnd.libraryFolderDlgState", &me.libraryFolderDlgState)
+                .serialize("MainWnd.exportFolderDlgState", &me.exportFolderDlgState)
+                .serialize("MainWnd.libraryFolder", &me.libraryFolder)
+                .serialize("MainWnd.librarySortMethod", &me.libWnd.sortMethod)
+                .serialize("MainWnd.libraryInvertSort", &me.libWnd.invertSort)
+                .serialize("MainWnd.libraryPreviewSize", &me.libWnd.previewSize)
+                .serialize("MainWnd.libraryContentFilter", &me.libWnd.contentFilter)
+                .serialize("MainWnd.libraryFavoritesOnly", &me.libWnd.favoritesOnly)
+                .serialize("MainWnd.libraryMinimumRating", &me.libWnd.minimumRating)
+                .serialize("MainWnd.libraryApplicationFilter", &me.libWnd.applicationFilter)
+                .serialize("MainWnd.libraryTagFilter", &me.libWnd.tagFilter)
+                .serialize("MainWnd.libraryShowLinked", &me.libWnd.showLinkedImage)
+                .serialize("MainWnd.libraryShowUnlinked", &me.libWnd.showUnLinkedImage)
+                .serialize("MainWnd.libraryShowCurrentLinked", &me.libWnd.showUpToDateLinkedImage)
+                .serialize("MainWnd.libraryShowChangedLinked", &me.libWnd.showUnSavedLinkedImage)
                 .serialize("MainWnd.RightBar.Pane0", &me .quickStyleBar.items[0]!.size)
                 .serialize("MainWnd.RightBar.Pane1", &me .quickStyleBar.items[1]!.size)
                 .serialize("MainWnd.captureOptions", &me.captureOptions)
@@ -302,6 +320,12 @@ impl IWnd for MainWnd
 
         if evt.serializer.isReading()
         {
+            // Migrate the only legacy matte value: it used to be the default, before
+            // transparent came to mean "follow the active palette".
+            .migrateStoredOptions()
+
+            if !.libraryFolder.isEmpty() do
+                discard catch g_Library.setFolder(.libraryFolder)
             .setTheme()
             .setLanguage()
             .quickStyleBar.sendResizeEvent()
@@ -321,6 +345,14 @@ impl IWnd for MainWnd
 // Main implementation
 impl MainWnd
 {
+    // Migrates values whose historical default would otherwise pin an old visual choice
+    // forever. User-picked colors are left untouched.
+    mtd migrateStoredOptions()
+    {
+        if .editorOptions.editBackColor == 0xFF2E2E2E'u32 do
+            .editorOptions.editBackColor = 0
+    }
+
     mtd saveAppState()
     {
         if !.firstShow do

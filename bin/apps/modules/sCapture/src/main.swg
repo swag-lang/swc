@@ -45,7 +45,9 @@ var g_App: Application
     try Jobs.initialize()
     try Library.init()
 
-    let path = Path.combine(Library.getFolder(), "sCapture.cfg")
+    // The state file stays in the default folder: it contains the configured library
+    // root, so placing it inside that root would make the choice impossible to find.
+    let path = Path.combine(Library.getDefaultFolder(), "sCapture.cfg")
     g_App.setStatePath(path)
 
     let appIcon = expect Image.decode(".png", AppIcon)

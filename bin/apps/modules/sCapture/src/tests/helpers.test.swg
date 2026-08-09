@@ -90,9 +90,11 @@ impl HeadlessFixture
 func testUseScratchLibrary()
 {
     @assert(Env.isSandboxed())
+    g_Library.rootFolder.clear()
     discard catch Library.init()
 
     g_Library.files.clear()
+    g_Library.onDeleteFile.clear()
     g_Library.loaded = false
 }
 
@@ -298,6 +300,9 @@ func testAddLibraryItem(view: *LibraryView, name: String, size: u64, day: u16, l
     it.fi.size          = size
     it.fi.lastWriteTime = testDate(day)
     it.visible          = true
+    it.loaded           = true
+    it.width            = 100
+    it.height           = 100
     it.rect             = {cast(f32) view.items.count * 60, 0, 50, 50}
 
     let capture = Memory.new'Capture()

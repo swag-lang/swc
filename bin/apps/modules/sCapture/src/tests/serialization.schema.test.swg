@@ -40,7 +40,7 @@ func testAssertSchema(type: typeinfo, expected: string) fail
 
 #test
 {
-    expect testAssertSchema(#typeof(Capture), "width:s32,height:s32,backImg:Image,widthOrg:s32,heightOrg:s32,backImgOriginal:Image,backImagePos:Point,preview:Image,file:String,forms:Array'(IForm),nextStepIndex:u32,nextGroupId:u64,linkedImage:String,linkedUpToDate:bool,title:String")
+    expect testAssertSchema(#typeof(Capture), "width:s32,height:s32,backImg:Image,widthOrg:s32,heightOrg:s32,backImgOriginal:Image,backImagePos:Point,preview:Image,file:String,forms:Array'(IForm),nextStepIndex:u32,nextGroupId:u64,linkedImage:String,linkedUpToDate:bool,title:String,sourceKind:CaptureSourceKind,capturedAt:DateTime,sourceApplication:String,sourceExecutable:String,sourceWindowTitle:String,sourceWindowClass:String,tags:Array'(String),favorite:bool,rating:u8")
     expect testAssertSchema(#typeof(BaseForm), "x:s32,y:s32,w:s32,h:s32,borderSize:f32,joinStyle:JoinStyle,bezier:bool,scale:f32,rotate:f32,alpha:u8,paintShadow:bool,shadowOffsetX:f32,shadowOffsetY:f32,borderColor:Color,backColor:Color,dashStyle:DashStyle,subKind:FormSubKind,groups:Array'(u64)")
     expect testAssertSchema(#typeof(QuickStyle), "forms:Array'(IForm)")
 }

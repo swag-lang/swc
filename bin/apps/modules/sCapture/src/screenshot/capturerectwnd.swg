@@ -83,14 +83,16 @@ impl IWnd for CaptureRectWnd
 {
     mtd testAutoGrab()
     {
-        let pt = Input.mousePosition()
-        let r  = screenToDesktopRect(getWndRectAtPos(.surface!, pt.x, pt.y))
+        let pt     = Input.mousePosition()
+        let window = getCaptureWindowAtPos(.surface!, pt.x, pt.y)
+        let r      = screenToDesktopRect(window.rect)
         if !r.isEmpty()
         {
-            g_StartGrabX = r.x
-            g_StartGrabY = r.y
-            g_EndGrabX   = r.right()
-            g_EndGrabY   = r.bottom()
+            g_StartGrabX    = r.x
+            g_StartGrabY    = r.y
+            g_EndGrabX      = r.right()
+            g_EndGrabY      = r.bottom()
+            g_CaptureWindow = window.info
         }
     }
 
@@ -140,8 +142,11 @@ impl IWnd for CaptureRectWnd
             elif .startGrab
             {
                 // Manual rectangle selection completed
-                g_GrabDone = true
-                g_Exit     = true
+                let rect       = getGrabRect()
+                let screenRect = Math.Rectangle{g_DesktopX + rect.x, g_DesktopY + rect.y, rect.width, rect.height}
+                g_CaptureWindow = getCaptureWindowForRect(.surface!, screenRect)
+                g_GrabDone      = true
+                g_Exit          = true
             }
 
         case .Move where .tryStartGrab:

@@ -9,6 +9,15 @@ enum CaptureMode
     ActiveWindow     // The window that was in the foreground before the capture.
 }
 
+// Best-effort identity of the window represented by a capture rectangle.
+struct CaptureWindowInfo
+{
+    application: String
+    executable:  String
+    title:       String
+    className:   String
+}
+
 var g_StartGrabX:     f32
 var g_StartGrabY:     f32
 var g_EndGrabX:       f32
@@ -20,6 +29,7 @@ var g_ScreenHeight:   s32
 var g_Exit:           bool
 var g_GrabDone:       bool
 var g_DesktopTexture: Texture
+var g_CaptureWindow:  CaptureWindowInfo
 
 func getGrabRect()->Math.Rectangle
 {
@@ -52,6 +62,8 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: #null *Surface } fa
 {
     g_App.setGlobalHotKeysEnabled(false)
     defer g_App.setGlobalHotKeysEnabled()
+
+    g_CaptureWindow = {}
 
     var result: retval = undefined
     result.img       = getDesktopImage(main.captureOptions.captureCursor)
@@ -99,6 +111,7 @@ func performInPlaceEdit(img: Image, surface: *Surface, main: *MainWnd)->#null *C
         .backImagePos.x = -grabRect.x
         .backImagePos.y = -grabRect.y
         .inPlaceEdit    = true
+        .setScreenSource(g_CaptureWindow.application, g_CaptureWindow.executable, g_CaptureWindow.title, g_CaptureWindow.className)
     }
 
     if !main.captureOptions.inPlaceEdit
@@ -147,13 +160,15 @@ func setGrabBounds(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64)-
         g_EndGrabY                 = g_ScreenHeight
 
     case .ActiveWindow:
-        let r = screenToDesktopRect(getBackgroundWndRect())
+        let window = getBackgroundWindow()
+        let r      = screenToDesktopRect(window.rect)
         if r.isEmpty() do
             return false
-        g_StartGrabX = r.x
-        g_StartGrabY = r.y
-        g_EndGrabX   = r.right()
-        g_EndGrabY   = r.bottom()
+        g_CaptureWindow = window.info
+        g_StartGrabX    = r.x
+        g_StartGrabY    = r.y
+        g_EndGrabX      = r.right()
+        g_EndGrabY      = r.bottom()
 
     case .Monitor:
         if monitorIndex >= main.monitors.count do
@@ -167,6 +182,9 @@ func setGrabBounds(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64)-
     case .LastArea:
         if g_EndGrabX == g_StartGrabX or g_EndGrabY == g_StartGrabY do
             return false
+        let rect       = getGrabRect()
+        let screenRect = Math.Rectangle{g_DesktopX + rect.x, g_DesktopY + rect.y, rect.width, rect.height}
+        g_CaptureWindow = getCaptureWindowForRect(main.surface!, screenRect)
 
     case .Area:
         return false
@@ -191,10 +209,11 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0)
     if main.captureOptions.delay do
         Threading.Thread.sleep(Time.Duration.fromSeconds(main.captureOptions.delay))
 
-    g_DesktopX     = Env.getSystemMetric(.DesktopX)
-    g_DesktopY     = Env.getSystemMetric(.DesktopY)
-    g_ScreenWidth  = Env.getSystemMetric(.DesktopWidth)
-    g_ScreenHeight = Env.getSystemMetric(.DesktopHeight)
+    g_DesktopX      = Env.getSystemMetric(.DesktopX)
+    g_DesktopY      = Env.getSystemMetric(.DesktopY)
+    g_ScreenWidth   = Env.getSystemMetric(.DesktopWidth)
+    g_ScreenHeight  = Env.getSystemMetric(.DesktopHeight)
+    g_CaptureWindow = {}
 
     // Capture
     var capture: #null *Capture
@@ -219,6 +238,7 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0)
             .width, .widthOrg   = img.width
             .height, .heightOrg = img.height
             .backImg            = img
+            .setScreenSource(g_CaptureWindow.application, g_CaptureWindow.executable, g_CaptureWindow.title, g_CaptureWindow.className)
         }
 
         if main.captureOptions.sendToClipboard do

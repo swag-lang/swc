@@ -221,14 +221,12 @@ state and policy in common code.
   present — encoding a struct should need no schema and no annotations.
 - This is the highest value-to-effort entry in the module. Do it before anything in Tier C.
 
-### T-030 — Globalization is a stub that implies more than it delivers
+### T-030 — Number formatting has no grouping rules
 
 - Problem: the whole area is twenty-nine lines. `CultureInfo` holds one `NumberFormatInfo`, which
   holds a negative sign, a positive sign and a decimal separator.
-- The concern is the shape. A type named `CultureInfo` with a
-  `currentCulture()` accessor promises a localization system and delivers three characters. Either
-  complete numeric grouping or narrow the names to the numeric contract it
-  actually implements.
+- Add per-culture group separators, group sizes, and grouped numeric formatting to the existing
+  sign and decimal-separator data.
 - Related: `bin/apps` and `std/gui` now have localization work in flight on the `gui-resources`
   branch. Coordinate rather than building a second vocabulary. See T-142 through T-145 for the
   other independent globalization capabilities.
@@ -335,7 +333,7 @@ unsafe legacy modes excluded from the default surface.
 
 ## Tier C — Coverage
 
-### T-032 — Archive formats
+### T-032 — No gzip container support
 
 Add the gzip container over the existing deflate/inflate and zlib support, including headers,
 trailers, checksums, and concatenated members.
@@ -360,7 +358,7 @@ Add streaming TAR reading and writing, with the supported metadata and extension
 rules for an arbitrary zone. Any application that schedules or displays times across regions is
 stuck at the boundary.
 
-### T-034 — Missing collections
+### T-034 — No ordered map
 
 Present: `Array`, `ArrayPtr`, `BitArray`, `ConcatBuffer`, `HashSet`, `HashTable`, `List`,
 `StaticArray`. Add an ordered map so iteration is sorted and range queries are possible; a hash

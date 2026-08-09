@@ -216,9 +216,9 @@ delivery; `BlendColor` softens state changes in buttons, fields, tabs, scroll ba
 grid; `ScrollWnd` has a private smooth-scroll loop; disabled surfaces fade; and `Spinner`, the
 indeterminate `ProgressBar` and `Movie` advance from the same delta time. The problem is that each
 consumer owns a different partial mechanism. There is no finite animation with a duration, no
-easing vocabulary, no delay or completion, no cancellation or retargeting contract, no way to run
-tracks together, and no common reduced-motion policy. A caller that wants a panel to move or a
-page to cross-fade has to write its own frame state, invalidation and teardown.
+easing vocabulary, and no delay or completion contract. T-225, T-317, T-355, and T-224 separately
+own lifetime, retargeting, grouping, and reduced motion. A caller that wants a panel to move or a
+page to cross-fade currently writes its own frame state, invalidation and teardown.
 
 A useful first version should be deliberately smaller than a general timeline editor:
 
@@ -228,13 +228,26 @@ A useful first version should be deliberately smaller than a general timeline ed
   an explicit result when it finishes or is cancelled. Starting a new track for the same target
   and channel retargets from the value currently on screen instead of jumping back to the previous
   endpoint.
-- **A small typed value layer.** Start with `f32`, `Color`, `Math.Point`, `Math.Vector4` and
+
+- Related: T-225, T-317, T-354, T-355, T-224
+
+### T-354 — Animation tracks have no typed value layer
+
+Start with `f32`, `Color`, `Math.Point`, `Math.Vector4` and
   `Math.Rectangle`, plus linear, ease-in, ease-out and ease-in-out curves. Do not begin with a
   reflection-based "animate any field" API: changing an arbitrary field cannot say whether it
   needs paint, measure, arrange or new hit-test geometry, and it can silently outlive its owner.
-  Typed tracks with an update callback make those costs and that lifetime visible. Parallel and
-  sequence groups are enough composition initially; springs, keyframes and cubic-bezier authoring
-  can wait for a real consumer.
+  Typed tracks with an update callback make those costs and that lifetime visible.
+
+- Related: T-043, T-223, T-355
+
+### T-355 — Animation tracks cannot be grouped
+
+Add parallel and sequence groups over T-043's tracks. Springs, keyframes, and authoring remain out
+of scope until a concrete consumer needs them.
+
+- Related: T-043, T-354
+
 ### T-223 — `Wnd` has no presentation-only animation properties
 
 Opacity, a paint offset and clipping reveal/hide most of
@@ -243,22 +256,25 @@ Opacity, a paint offset and clipping reveal/hide most of
   root, used sparingly for an expanding pane. Hit testing and keyboard focus must follow the final
   logical state, not chase a decorative transform frame by frame.
 
-- Related: T-043, T-225, T-309
+- Related: T-043, T-225, T-309, T-358, T-359
+
 ### T-225 — Animation lifetime has no shared contract
 
-Destroying or hiding a target cancels its tracks; changing
-  theme or DPI must not leave stale registrations. Registration needs a window-owned cancellation token, or a new generation-checked
+Destroying or hiding a target cancels its tracks; changing theme or DPI must not leave stale
+  registrations. Registration needs a window-owned cancellation token, or a new
+  generation-checked
   handle if animations may outlive one dispatch; `WndId` is a command/persistence name, not a
   lifetime handle, and a borrowed pointer must not survive deferred destruction.
 
 - Related: T-043, T-223, T-317
 
-### T-317 — Animation interruption and retargeting have no shared contract
+### T-317 — Animation retargeting has no shared contract
 
-Changing theme or DPI keeps normalized progress while resolving new endpoints; direct manipulation
-wins; an interrupted transition reverses or retargets from the on-screen value without a jump.
+Changing theme or DPI keeps normalized progress while resolving new endpoints, and a replacement
+track starts from the on-screen value without a jump. Direct manipulation wins over retargeting.
 
 - Related: T-043, T-225
+
 ### T-224 — No application-wide reduced-motion policy
 
 Read the Windows client-area-animation preference, refresh it on
@@ -272,37 +288,45 @@ Read the Windows client-area-animation preference, refresh it on
 
 ### T-309 — Existing one-off animations do not use the shared motion system
 
-The first consumers should prove the layers in order: migrate `BlendColor` without changing the
-resting pixels; move smooth scrolling to the scheduler; add a short selection-indicator transition
-to tabs and lists; then add one page transition and one expanding-pane transition. Popup menus,
-tooltips and modal dialogs can use opacity plus a few pixels of offset after those primitives are
-stable. Direct drags, typing, selection rectangles and slider thumbs must stay immediate — motion
-should explain a state change, never make input feel viscous.
+Migrate `BlendColor` to the shared scheduler without changing any resting pixels.
 
-What this buys the two current applications is concrete:
+- Related: T-043, T-354, T-356, T-357, T-358, T-359
 
-- **sCapture:** the editor/library switch in `ActionGlobal` currently hides four editor regions
-  and reveals `LibraryWnd` in one frame; a short cross-fade makes the change legible. The recent
-  strip jumps between 80, 128 and 224 logical pixels; animating that layout channel preserves the
-  user's place while the canvas resizes. Moving the selected mark between recent thumbnails and
-  easing programmatic zoom-to-fit give a visible connection between the command and its result.
-  Drawing, dragging forms, resizing the capture rectangle and wheel zoom remain unanimated because
-  they are already direct manipulation.
-- **sCrypt:** the Create, Open and Mounted cards are pages of one tab strip and currently replace
-  one another instantly; a restrained page transition preserves where the user moved. The status
-  band swaps its glyph for a spinner while create, mount, grow or unmount work runs; a cross-fade
-  and a smoothly updated determinate percentage make the start and completion of that work read as
-  one operation. A newly mounted drive can enter the list with a brief highlight and an unmounted
-  one can leave without the table snapping. No security state waits for the animation: controls,
-  focus and command availability change immediately, and motion only presents the result.
+### T-356 — Smooth scrolling uses a private animation loop
 
-Completion is testable without sleeping. The headless host needs a controllable clock and helpers
+Move `ScrollWnd` smooth scrolling to the shared scheduler with unchanged scroll geometry.
+
+- Related: T-043, T-309, T-366
+
+### T-357 — Selection indicators have no shared transition
+
+Add a short scheduler-driven selection-indicator transition to tabs and lists.
+
+- Related: T-043, T-309
+
+### T-358 — Page changes have no shared transition
+
+Add one restrained page transition over T-223's presentation properties. sCapture's editor/library
+switch and sCrypt's Create/Open/Mounted cards are the proving consumers.
+
+- Related: T-043, T-223, T-309
+
+### T-359 — Expanding panes have no shared layout transition
+
+Add a layout-affecting size adapter that invalidates the nearest layout root. sCapture's recent
+strip is the proving consumer.
+
+- Related: T-043, T-223, T-309
+
+### T-360 — Headless animation tests have no controllable clock
+
+The headless host needs a controllable clock and helpers
 to sample a track at 0, 50 and 100 percent, finish all tracks, and force reduced motion. Unit tests
 cover easing endpoints, retargeting, cancellation on destruction, grouping and DPI/theme changes;
 command-stream or image goldens cover the few standard transitions. A finished animation must
 leave neither a registered frame callback nor a permanently dirty surface behind.
 
-- Related: T-043, T-223, T-224, T-225
+- Related: T-043, T-223, T-224, T-225, T-309
 
 ### T-044 — No pointer-event model
 
@@ -325,19 +349,69 @@ Add capture per pointer rather than one application-wide mouse capture, with can
   OS takes a contact away and an explicit rule for suppressing compatibility mouse events;
 - Related: T-044, T-227
 
-### T-227 — No gesture-recognition arbitration
+### T-227 — Gesture recognizers have no claim arbitration
 
-Add recognizers above raw input for tap, double tap, long press, pan, pinch and rotate, with an arena
-  or claim rule so a child button and its scrolling parent do not both execute the same gesture;
-- Related: T-043, T-044, T-226
+Add an arena or claim rule so a child control and its scrolling parent cannot both execute one raw
+pointer sequence.
+
+- Related: T-044, T-226, T-361, T-362, T-363, T-364, T-365
+
+### T-361 — No tap recognizer
+
+Recognize a tap with platform-appropriate distance and timing thresholds.
+
+- Related: T-227, T-376
+
+### T-376 — No double-tap recognizer
+
+Recognize double tap as a composition of successful taps without delaying the single-tap contract
+unless a control explicitly requests it.
+
+- Related: T-227, T-361
+
+### T-362 — No long-press recognizer
+
+Recognize long press with movement cancellation and an explicit interaction with context menus.
+
+- Related: T-227
+
+### T-363 — No pan recognizer
+
+Recognize single- and multi-pointer pan with capture transfer and velocity reporting.
+
+- Related: T-227, T-366
+
+### T-364 — No pinch recognizer
+
+Report scale around the contact centroid without combining pinch completion with rotation.
+
+- Related: T-227, T-365
+
+### T-365 — No rotate recognizer
+
+Report rotation independently of pinch scale while sharing T-227's arbitration.
+
+- Related: T-227, T-364
 
 ### T-228 — No touch-sized input profile
 
 Add a touch theme/input profile whose hit targets are larger even when the painted glyph is not —
-  the 12-pixel slider thumb and the small scroll-bar profile are not finger targets — plus kinetic
-  scrolling driven by T-043 and scroll chaining at nested boundaries.
+  the 12-pixel slider thumb and the small scroll-bar profile are not finger targets.
 
-- Related: T-043, T-227
+- Related: T-227, T-366, T-367
+
+### T-366 — Touch scrolling has no inertia
+
+Drive kinetic scrolling from T-043 using the velocity reported by T-363, with deterministic
+deceleration and reduced-motion behavior.
+
+- Related: T-043, T-224, T-356, T-363
+
+### T-367 — Nested scroll views do not chain touch motion
+
+Transfer unconsumed pan motion to the next scrollable ancestor at a boundary.
+
+- Related: T-227, T-363, T-366
 
 ### T-229 — Pen pressure is not modeled end to end
 
@@ -356,7 +430,7 @@ gesture, with headless mixed-device tests.
 
 ### T-045 — No second-platform surface and presentation backend
 
-Inherited from [T-028](todo.core.md#t-028--the-standard-library-is-windows-only), and gated by it.
+Inherited from [T-028](todo.core.md#t-028--process-services-have-no-second-platform-backend), and gated by it.
 The filenames already expose most of the seam: `surface.win32.swg`, `application.win32.swg`,
 `clipboard.win32.swg`, `dragdrop.win32.swg` and `cursor.win32.swg`. The retained tree, layouts,
 themes, controls and the toolkit-owned file dialog are platform-neutral. That is a good boundary,
@@ -452,26 +526,43 @@ second platform. The higher integrations retain their own completion identifiers
 
 This only removes the interface blocker for the applications. sCapture still needs its separate
 capture backend in [T-084](todo.scapture.md#t-084--cross-platform-capture-backend); sCrypt still
-needs the FUSE backend in [T-100](todo.scrypt.md#t-100--fuse-backend-for-linux-and-macos), plus the
+needs the FUSE backend in [T-100](todo.scrypt.md#t-100--no-linux-fuse-backend), plus the
 Core and Pixel platform work under T-028. Keeping those dependencies explicit prevents a GUI port
 from being mistaken for two ported products.
 
 ### T-046 — No docking layout host
 
 The ingredients are present but not the model. `Tab` can select a page, `SplitterCtrl` can size
-known panes, a `Surface` can own a floating window, and drag/drop can carry a gesture. There is no
-tree saying that a workspace is a horizontal or vertical split of tab stacks, no stable pane or
-document identity, no drop targets and preview, no way to tear a tab into a tool window, and no
-serialization that can rebuild the arrangement on the next run.
+known panes, and a `Surface` can own a window. Add the split-tree model whose leaves are tab stacks
+and whose panes have stable identity. Interaction, floating, persistence, and document semantics
+are T-368, T-369, T-370, and T-233 respectively.
 
 `DockHost` owns a split tree whose leaves are tab stacks. It supports tab reorder, docking to an
-edge or stack, floating and redocking, close/hide, minimum sizes, and an exact landing preview.
-Layout state serializes stable pane identifiers, splits, active tabs, and floating rectangles;
-restore constrains missing-monitor rectangles and ignores unregistered panes. Start docked-only,
-then add internal drag preview and floating surfaces. Tests cover round-trip state, unknown panes,
-focus after reparenting, DPI changes, and monitor loss.
+edge or stack, close/hide, and minimum sizes. Start with programmatic docked layout and stable pane
+identity; drag interaction, floating surfaces, and persistence have their own identifiers.
 
-- Related: T-039, T-213, T-233
+- Related: T-233, T-368, T-369, T-370
+
+### T-368 — Docking has no tab-reorder or landing-preview interaction
+
+Add internal tab reorder and edge/stack docking with an overlay that shows the exact landing
+rectangle. Moving a pane transfers logical ownership, commands, and focus without destroying it.
+
+- Related: T-039, T-213, T-046
+
+### T-369 — Docked panes cannot float and redock
+
+Move a pane into a floating surface and redock it while preserving identity, focus, and DPI-correct
+geometry.
+
+- Related: T-046, T-368, T-370
+
+### T-370 — Docking layouts cannot be persisted
+
+Serialize stable pane identifiers, splits, active tabs, and floating rectangles. Restore constrains
+missing-monitor rectangles and ignores panes the application no longer registers.
+
+- Related: T-046, T-220, T-369
 
 ### T-233 — No multi-document host
 

@@ -44,7 +44,8 @@ The gaps are in composition fidelity, color, and the GPU backend.
   Difference, and Exclusion.
 - Consequence: Multiply and Screen alone account for most real compositing work. Without them,
   shadow, tint, highlight and any layered design effect cannot be expressed. It is also what
-  blocks [T-076](todo.scapture.md#t-076--capture-level-effects), which asks for capture-level effects.
+  blocks [T-076](todo.scapture.md#t-076--no-capture-level-effect-pipeline), which asks for
+  capture-level effects.
 - Fix the separable set in both backends as one compatible family.
 - This is the highest value-to-effort entry in the module.
 - Related: T-185
@@ -59,15 +60,46 @@ modes land.
 ### T-049 — No image filter graph
 
 - Problem: blur exists only as a painter shader (`setBlurShader`), applied to what is being drawn.
-  There is no composable effect applied to a rendered result: no drop shadow, no colour matrix, no
-  blur-as-an-effect, no chained filters.
+  There is no graph that applies a composable effect to a rendered result or chains effect output
+  into another effect.
 - Consequence: the standard way to build a shadow, a glow, a duotone, or a saturation adjustment
   over arbitrary content is unavailable. `image/filter/` operates on an `Image` in memory, which is
   not the same tool.
-- Fix: an effect graph over render targets, with `SkImageFilter` as the model — a small set of
-  primitives (blur, offset, colour matrix, blend, merge) that compose. Depends on T-048 for the
-  blend node.
-- Downstream: this is what `sCapture` needs for border, drop shadow, torn edge and perspective.
+- Fix the graph evaluation, render-target lifetime, bounds propagation, caching, and composition
+  contract independently of its concrete effect nodes.
+- Related: T-371, T-372, T-373, T-374, T-375
+
+### T-371 — No composable blur effect node
+
+Apply blur to a rendered input inside T-049's graph, independently of the painter's draw-time blur
+shader.
+
+- Related: T-049, T-310
+
+### T-372 — No composable offset effect node
+
+Translate an effect input while correctly expanding and propagating its bounds.
+
+- Related: T-049, T-310
+
+### T-373 — No composable color-matrix effect node
+
+Apply a declared color matrix inside the graph with the working-space behavior coordinated with
+T-052.
+
+- Related: T-049, T-052
+
+### T-374 — No composable blend effect node
+
+Blend two graph inputs using T-048's modes and T-052's color-space contract.
+
+- Related: T-048, T-049, T-052
+
+### T-375 — No composable merge effect node
+
+Merge an ordered set of graph inputs without requiring them to be blended pairwise by callers.
+
+- Related: T-049
 
 ### T-050 — Gradients cap at eight stops
 
@@ -221,7 +253,9 @@ Define HDR surface formats, transfer functions, luminance metadata, and tone-map
 - `render/` has `cpu` and `ogl`. There is no Vulkan, Direct3D, Metal or WebGPU path.
 - On Windows this is the weakest choice available: OpenGL driver quality varies widely, and some
   ARM devices have no usable implementation at all. Skia ships GL, Vulkan, Metal and D3D.
-- This also intersects [T-028](todo.core.md#t-028--the-standard-library-is-windows-only). A second platform needs a second backend regardless,
+- This also intersects
+  [T-028](todo.core.md#t-028--process-services-have-no-second-platform-backend). A second platform
+  needs a second backend regardless,
   so choose the target with that in mind rather than twice.
 - The backend boundary is already two implementations deep, so a third is additive.
 
@@ -246,7 +280,7 @@ completion.
 
 - Related: T-054
 
-### T-055 — Codec coverage
+### T-055 — No QOI codec
 
 Add QOI encoding and decoding as the smallest remaining general-purpose codec.
 

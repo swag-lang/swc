@@ -71,12 +71,11 @@ predicates after T-011 makes the current model's diagnostics complete.
 
 ### T-012 — The concurrency model is undecided
 
-- There is no future or task type, no channels, and no condition variable; `Jobs` provides parallel
-  fan-out and there is no asynchronous I/O. The library half of this is
-  [T-036](todo.core.md#t-036--concurrency-beyond-parallel-fan-out); the language half is here, and it is the half that must be decided
-  first.
+- The library omissions are split into T-036 (tasks), T-160 (channels), T-161 (condition
+  variables), and T-162 (asynchronous I/O). This entry owns only the language-level concurrency
+  decision that must precede those API choices.
 - Go answered with goroutines and channels, Rust with `async` and a futures machinery that reaches
   into the type system, .NET with `Task`. Each answer changed the language, not just the library.
-- The forcing function is already scheduled: [T-027](todo.core.md#t-027--no-networking-of-any-kind) puts
+- The forcing function is already scheduled: [T-027](todo.core.md#t-027--no-blocking-tcp-sockets) puts
   non-blocking sockets on the path, and deciding this *under* that pressure is how languages end up
   with two concurrency models. Decide it early and deliberately, and record the decision here.

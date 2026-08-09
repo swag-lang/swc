@@ -199,7 +199,7 @@ locally.
   secret and an associated-data input for exactly this. PKCS#11 tokens are a further step and can
   wait.
 
-### T-097 — Concurrency
+### T-097 — Filesystem callbacks use one coarse lock
 
 - Owner: sCrypt
 - Problem: WinFsp runs under the coarse guard strategy, so every callback is serialized and all

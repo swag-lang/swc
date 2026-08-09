@@ -9,7 +9,7 @@ Entries are sorted by identifier, ascending; position carries no priority.
 ### F-029 — ChaCha20 still processes one block per packed dependency chain
 
 - Area: std/core (crypto), compiler/backend
-- Found while: benchmarking the auto-vectorized ChaCha20 rounds ([T-088](todo.scrypt.md#t-088--the-crypto-primitives-are-scalar))
+- Found while: benchmarking the auto-vectorized ChaCha20 rounds ([T-088](todo.scrypt.md#t-088--chacha20-processes-one-block-per-dependency-chain))
 - Observation: the rounds are vectorized and remain in registers, but one invocation still carries
   one block state through one packed dependency chain. Four independent blocks would expose the
   parallelism a single state cannot provide; the counter is the only lane-varying input.

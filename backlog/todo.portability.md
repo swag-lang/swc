@@ -6,11 +6,11 @@ deliberately excluded. Compiler work is excluded too, except where an intrinsic 
 made independent of the host runtime without changing its lowering.
 
 The platform implementations themselves remain owned by
-[T-028](todo.core.md#t-028--the-standard-library-is-windows-only),
-[T-045](todo.gui.md#t-045--a-second-platform),
+[T-028](todo.core.md#t-028--process-services-have-no-second-platform-backend),
+[T-045](todo.gui.md#t-045--no-second-platform-surface-and-presentation-backend),
 [T-066](todo.audio.md#t-066--a-second-platform),
 [T-084](todo.scapture.md#t-084--cross-platform-capture-backend), and
-[T-100](todo.scrypt.md#t-100--fuse-backend-for-linux-and-macos). This file owns the preparation
+[T-100](todo.scrypt.md#t-100--no-linux-fuse-backend). This file owns the preparation
 across those units: move policy, orchestration, parsing, normalization, and data conversion into
 ordinary Swag now, leaving each operating-system backend as a narrow set of mechanisms.
 
@@ -40,7 +40,7 @@ new platform implements capabilities rather than copies policy.
 
 ## Tier A — Establish the boundary before adding Linux
 
-### T-103 — Make portability a checked property rather than a file-name convention
+### T-103 — Portability boundary violations have no source check
 
 Inventory native imports, `#os` branches, native types in public declarations, and direct calls
   from unsuffixed files. The first known exceptions are the Windows blocks in
@@ -57,6 +57,7 @@ interoperability. A dependency may point down that list, never back up it. State
 each layer before T-103 turns the rule into a source check.
 
 - Related: T-103
+
 ### T-266 — No build-only non-Windows portability configuration
 
 Prove the boundary with a build-only non-Windows configuration as early as possible. It may use
@@ -126,7 +127,7 @@ Give startup a host ABI that can accept an argument vector directly. Windows may
 
 - Related: T-104, T-106, T-279
 
-### T-105 — Reduce the CRT dependency where Swag already owns the semantics
+### T-105 — Basic math intrinsics retain redundant UCRT wrappers
 
 The Windows runtime explicitly links `ucrt` and `vcruntime`. Its declared UCRT surface is limited
 to `malloc`/`realloc`/`free`, the four memory block operations, and the scalar `f32`/`f64` math
@@ -188,6 +189,7 @@ Record a target matrix for hosted builds: Windows UCRT, Linux libc plus libm whe
   public contract. Make an argument slice the normal API. Windows alone serializes it with the
   backslash-before-quote rules; Unix passes the vector unchanged. Keep a clearly named raw native
   command-line escape hatch only if an actual caller needs it.
+
 ### T-277 — Process orchestration remains in the Windows backend
 
 Move the portable parts of `process.win32.swg` out of the backend: stream-redirection policy,
@@ -228,6 +230,7 @@ Preserve the stronger resource contract deliberately. Windows Job Objects accoun
   byte-sensitive, case-sensitive, use `/`, and allow backslash and colon in names. Define a
   compile-time path policy for separators, roots, equality, validity, and normalization, then keep
   the lexical algorithms in common Swag.
+
 ### T-281 — Portable path algorithms remain in the Windows file
 
 Move the string-only portions of `path.win32.swg` behind T-107's target policy. Only resolving against the
@@ -235,14 +238,31 @@ Move the string-only portions of `path.win32.swg` behind T-107's target policy. 
 
 - Related: T-107
 
-### T-282 — Directory recursion and filtering remain in the native backend
+### T-282 — Directory recursion remains in the native backend
 
-Make the native directory primitive enumerate exactly one directory and return normalized
-  metadata. Keep depth-first recursion, `.`/`..` handling, extension/name filters,
-  `skipAttributes`, lambda filtering, recursive deletion order, and result construction in common
-  Swag.
+Move depth-first traversal and `.`/`..` handling into common Swag.
 
-- Related: T-132, T-107
+- Related: T-132, T-107, T-377, T-378, T-379
+
+### T-377 — Directory filtering remains in the native backend
+
+Move extension/name filters, `skipAttributes`, and lambda filtering into common traversal policy.
+
+- Related: T-282
+
+### T-378 — Recursive deletion order remains in the native backend
+
+Build recursive removal order in common Swag over one-entry enumeration and one native removal
+primitive.
+
+- Related: T-282, T-283
+
+### T-379 — Native directory backends do not expose one-entry enumeration
+
+Define one native operation that enumerates exactly one directory and returns normalized metadata;
+keep result construction in common Swag.
+
+- Related: T-132, T-282
 
 ### T-283 — File orchestration remains in the native backend
 
@@ -285,6 +305,7 @@ without touching the filesystem.
   flags, callbacks, scale and opaque storage, and keep native handles/device contexts in an
   explicitly named Windows adapter. OpenGL may consume that adapter without making it the common
   contract.
+
 ### T-286 — `WindowLoop` policy remains in the Windows backend
 
 Move `WindowLoop` smoke-frame budgeting, move/drop ownership, initial resize dispatch, and
@@ -316,13 +337,20 @@ Separate generic desktop actions (`openUrl`, reveal a path, enumerate monitors, 
   descriptor. Replace it with family/subfamily names, normalized style properties, file path, and
   face index. The platform hook should enumerate font files or configured font directories, not
   manufacture a native font handle.
-### T-289 — Installed-font scanning and grouping are not common Swag
+
+### T-289 — Installed-font scanning is not common Swag
 
 Use the existing TrueType/OpenType readers (`Face.countFaces`, `familyNameAt`, style/name tables,
-  and `Face.loadAt`) to scan files, collections, group faces into families, select regular/bold/
-  italic fallbacks, sort, and cache in ordinary Swag.
+  and `Face.loadAt`) to scan configured files and collections into portable face descriptors.
 
-- Related: T-109, T-290, T-291
+- Related: T-109, T-290, T-291, T-380
+
+### T-380 — Installed-font family grouping is not common Swag
+
+Group scanned descriptors into families, select regular/bold/italic fallbacks, sort, and cache the
+catalog independently of platform enumeration.
+
+- Related: T-109, T-289
 
 ### T-290 — A system face cannot load directly from file and face index
 
@@ -338,8 +366,6 @@ A first Linux backend may provide conventional directories. Fontconfig can be ad
   on it.
 
 - Related: T-289
-- Coordinate with [T-057](todo.pixel.md#t-057--a-collection-face-is-selected-by-name-and-a-localized-windows-will-miss): selecting by face index also removes the localized-GDI-name
-  ambiguity.
 
 ### T-110 — Normalize native GUI messages into typed events
 
@@ -354,6 +380,7 @@ Add a platform-neutral application-message event with an owned payload and docum
 lifetime, independent of tray interaction.
 
 - Related: T-110, T-292, T-306
+
 ### T-292 — Application-to-application messaging has no portable contract
 
 Give single-instance/application messaging a portable contract. The Windows backend may keep
@@ -423,6 +450,7 @@ Represent WAVE extensible GUIDs with a portable packed UUID value.
 Name and type the field as the WAVE speaker mask it represents, independently of the GUID cleanup.
 
 - Related: T-111, T-331
+
 ### T-298 — Audio backend selection is repeated compile-time dispatch
 
 Replace the repeated `#os == Windows` dispatch in `driver/backend.swg` with a backend interface or

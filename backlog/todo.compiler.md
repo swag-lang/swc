@@ -68,7 +68,7 @@ These three shape every other entry. Nothing below Tier A gets structurally easi
 - Sequence it deliberately: the interface format is also what makes a language server affordable,
   so design it with T-008 in the room rather than retrofitting.
 
-### T-002 — Incrementality stops at the module
+### T-002 — Frontend incrementality stops at the module
 
 - Problem: up-to-date detection compares the module manifest's write time against its inputs
   ([CompilerInstance.Module.cpp:1060-1064](../src/Main/CompilerInstance.Module.cpp#L1060-L1064)). The unit of

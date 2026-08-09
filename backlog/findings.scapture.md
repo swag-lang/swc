@@ -9,21 +9,6 @@ A lead that sCapture exposed but that will be fixed in `std/gui` belongs in
 Conventions, the identifier counter, and the rest of the backlog are in [README.md](README.md).
 Entries are sorted by identifier, ascending; position carries no priority.
 
-### F-017 — sCapture keeps a dark editor matte after switching to the light theme
-
-- Area: apps/sCapture
-- Found while: comparing sCapture in both Swag palettes through the gui10 theme inspector
-- Observation: the matte around the capture is `EditorOptions.editBackColor`, whose default was a
-  fixed `0xFF2E2E2E`. It now defaults to transparent, meaning "follow the theme", and `EditView`
-  resolves it to `view_Bk` — but an existing installation has the old opaque value persisted, so
-  it keeps a near-black matte under a white interface.
-- Evidence: [editview.swg](../bin/apps/modules/sCapture/src/editview.swg),
-  [options.swg](../bin/apps/modules/sCapture/src/options.swg). A fresh profile picks up the theme; a
-  profile written before this change does not.
-- Next step: decide whether the options loader should migrate the one legacy value to transparent,
-  or whether an application is expected to version its settings. The same question applies to any
-  future option whose default becomes theme-derived.
-
 ### F-039 — The sCapture main window cannot be painted headlessly
 
 - Area: apps/sCapture

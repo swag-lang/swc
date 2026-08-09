@@ -156,7 +156,7 @@ impl IActionUI for ActionCapture
 
 impl MainWnd
 {
-    mtd newCapture(img: Image, linked: string = "", from: #null *Capture = null)
+    mtd newCapture(img: Image, linked: string = "", from: #null *Capture = null, sourceKind = CaptureSourceKind.Unknown)
     {
         if !img.isValid() do
             return
@@ -169,6 +169,8 @@ impl MainWnd
                 .width, .widthOrg   = img.width
                 .height, .heightOrg = img.height
                 .backImg            = img
+                .sourceKind         = sourceKind == .Unknown ? (@countof(linked) == 0 ? .Clipboard : .ImageFile) : sourceKind
+                .capturedAt         = Time.DateTime.now()
             }
         }
 

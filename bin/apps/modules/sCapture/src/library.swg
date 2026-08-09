@@ -4,31 +4,59 @@ struct Library
 {
     files:        Array'File.FileInfo
     onDeleteFile: SigArray'func||(String)
+    rootFolder:   String
+    revision:     u64
     loaded:       bool
 }
 
 impl Library
 {
-    func init() fail
+    func ensureFolder(folder: String) fail
     {
-        let str = getFolder()
-        if !Directory.exists(str) do
-            Directory.create(str)
+        if !Directory.exists(folder) do
+            Directory.create(folder)
 
-        let trash = getTrashFolder()
+        let trash = Path.combine(folder, ".trash")
         if !Directory.exists(trash) do
             Directory.create(trash)
     }
 
-    // Returns the folder holding the captures.
+    func init() fail
+    {
+        try ensureFolder(getFolder())
+    }
+
+    // Returns the stable default folder. Application state stays here even when the user
+    // points the capture library somewhere else, so that choice can be found next launch.
+    func getDefaultFolder()->String
+    {
+        let str = Env.getSpecialDirectory(.UserDocuments)
+        Debug.assert(!str.isEmpty())
+        return Path.combine(str, "sCapture")
+    }
+
+    // Returns the configured folder holding captures and browsable images.
     //
     // Nothing here knows about testing: a sandboxed run answers the documents folder inside
     // its own root, so a test naturally gets an empty library of its own.
     func getFolder()->String
     {
-        let str = Env.getSpecialDirectory(.UserDocuments)
-        Debug.assert(!str.isEmpty())
-        return Path.combine(str, "sCapture")
+        if !g_Library.rootFolder.isEmpty() do
+            return g_Library.rootFolder
+        return getDefaultFolder()
+    }
+
+    // Changes the root used for new captures and indexing, creating its private recycle
+    // folder and invalidating the in-memory index.
+    mtd setFolder(folder: String) fail
+    {
+        let target = folder.isEmpty() ? getDefaultFolder() : folder
+        try ensureFolder(target)
+
+        .rootFolder = folder
+        .files.clear()
+        .loaded   = false
+        .revision += 1
     }
 
     // Deleted captures are moved here instead of being erased, so a mistaken delete can
@@ -42,6 +70,22 @@ impl Library
     func enumerateTrash()->Array'File.FileInfo fail
     {
         return try Directory.enumerateFiles(getTrashFolder(), ".scapture")
+    }
+
+    // Lists every item the library understands without pretending an ordinary image is a
+    // capture. Sub-folders remain explicit navigation levels in the breadcrumb.
+    func enumerateSupportedFiles(folder: String)->Array'File.FileInfo fail
+    {
+        var result: retval
+        let files = try Directory.enumerateFiles(folder)
+        for fi in files
+        {
+            let ext = Path.lowercaseExtension(fi.fullname)
+            if ext == ".scapture" or Image.canLoad(fi.fullname) do
+                result.add(fi)
+        }
+
+        return result
     }
 
     // Pick a destination inside 'folder' for 'name' that does not collide with an
@@ -108,8 +152,9 @@ impl Library
 
     mtd fill()
     {
-        .files  = catch Directory.enumerateFiles(getFolder(), ".scapture")
-        .loaded = true
+        .files    = catch enumerateSupportedFiles(getFolder())
+        .loaded   = true
+        .revision += 1
     }
 
     // Soft-delete: move the capture to the recycle bin rather than erasing it. The
@@ -117,6 +162,9 @@ impl Library
     // onDeleteFile; it can be brought back from the trash view.
     mtd removeFile(name: String)
     {
+        if Path.lowercaseExtension(name) != ".scapture" do
+            return
+
         for fi, [idx] in .files
         {
             if fi.fullname == name
@@ -125,6 +173,7 @@ impl Library
                 if !trashed.isEmpty()
                 {
                     .files.removeAtOrdered(idx)
+                    .revision += 1
                     .onDeleteFile.call(name)
                 }
 
@@ -139,5 +188,6 @@ impl Library
         if err != null do
             return
         .files.add(file)
+        .revision += 1
     }
 }

@@ -2,6 +2,24 @@
 
 using Core, Win32, Gdi32
 
+namespace CaptureNative
+{
+    const ProcessQueryLimitedInformation = 0x1000'u32
+    const AncestorRoot = 2'u32
+
+    #[Swag.Foreign("user32")]
+    {
+        func GetWindowThreadProcessId(hWnd: HWND, processId: *u32)->u32
+        func GetAncestor(hWnd: HWND, flags: u32)->HWND
+    }
+
+    #[Swag.Foreign("kernel32")]
+    {
+        func OpenProcess(access: u32, inheritHandle: s32, processId: u32)->HANDLE
+        func QueryFullProcessImageNameW(process: HANDLE, flags: u32, fileName: [*] u16, size: *u32)->s32
+    }
+}
+
 internal
 {
     var g_HitTest: POINT
@@ -45,7 +63,51 @@ internal
     }
 }
 
-func getWndRectAtPos(srf: *Surface, x, y: f32)->Math.Rectangle
+// Reads the stable, top-level identity of a window. Access to another process can be
+// refused; the title and class still make the capture searchable in that case.
+func captureWindowInfo(hWnd: HWND)->CaptureWindowInfo
+{
+    var result: retval
+    if !hWnd do
+        return result
+
+    var window = hWnd
+    let root   = CaptureNative.GetAncestor(window, CaptureNative.AncestorRoot)
+    if root do
+        window = root
+
+    var title: [1024] u16
+    let titleLength = GetWindowTextW(window, &title[0], cast(s32) @countof(title))
+    if titleLength > 0 do
+        result.title = Utf8.fromUtf16(@mkslice(&title[0], cast(u64) titleLength))
+
+    var className: [256] u16
+    let classLength = GetClassNameW(window, &className[0], cast(s32) @countof(className))
+    if classLength > 0 do
+        result.className = Utf8.fromUtf16(@mkslice(&className[0], cast(u64) classLength))
+
+    var processId: u32
+    discard CaptureNative.GetWindowThreadProcessId(window, &processId)
+    if !processId do
+        return result
+
+    let process = CaptureNative.OpenProcess(CaptureNative.ProcessQueryLimitedInformation, 0, processId)
+    if !process do
+        return result
+    defer CloseHandle(process)
+
+    var path: Array'u16
+    path.resize(32768)
+    var pathLength = cast(u32) path.count
+    if !CaptureNative.QueryFullProcessImageNameW(process, 0, @dataof(path.toSlice()), &pathLength) do
+        return result
+
+    result.executable  = Utf8.fromUtf16(@mkslice(@dataof(path.toSlice()), cast(u64) pathLength))
+    result.application = Path.fileNameWithoutExtension(result.executable) orelse ""
+    return result
+}
+
+func findWndAtPos(srf: *Surface, x, y: f32)->HWND
 {
     let awareness = SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)
     defer discard SetThreadDpiAwarenessContext(awareness)
@@ -57,7 +119,7 @@ func getWndRectAtPos(srf: *Surface, x, y: f32)->Math.Rectangle
     g_Ignore = srf.win32Handle()
     EnumWindows(cast() &enumProc, 0)
     if !g_Hit do
-        return {}
+        return null
 
     for
     {
@@ -72,25 +134,60 @@ func getWndRectAtPos(srf: *Surface, x, y: f32)->Math.Rectangle
     }
 
     if !g_Hit do
-        return {}
+        return null
 
-    var r: RECT
-    GetWindowRect(g_Hit, &r)
-    return Math.Rectangle{r.left, r.top, r.right - r.left, r.bottom - r.top}
+    return g_Hit
 }
 
-func getBackgroundWndRect()->Math.Rectangle
+func getCaptureWindowAtPos(srf: *Surface, x, y: f32)->{ rect: Math.Rectangle, info: CaptureWindowInfo }
 {
-    let hit = GetForegroundWindow()
+    var result: retval
+    let hit = findWndAtPos(srf, x, y)
+    if !hit do
+        return result
+
+    var r: RECT
+    GetWindowRect(hit, &r)
+    result.rect = {r.left, r.top, r.right - r.left, r.bottom - r.top}
+    result.info = captureWindowInfo(hit)
+    return result
+}
+
+// A hand-drawn area belongs to an application only when the whole selection lies inside
+// that application's top-level window. A rectangle spanning windows stays unclassified.
+func getCaptureWindowForRect(srf: *Surface, captureRect: Math.Rectangle)->CaptureWindowInfo
+{
+    let hit = findWndAtPos(srf, captureRect.horzCenter(), captureRect.vertCenter())
     if !hit do
         return {}
+
+    var window = CaptureNative.GetAncestor(hit, CaptureNative.AncestorRoot)
+    if !window do
+        window = hit
+
+    var r: RECT
+    GetWindowRect(window, &r)
+    if captureRect.x < r.left or captureRect.y < r.top or captureRect.right() > r.right or captureRect.bottom() > r.bottom do
+        return {}
+
+    return captureWindowInfo(window)
+}
+
+func getBackgroundWindow()->{ rect: Math.Rectangle, info: CaptureWindowInfo }
+{
+    var result: retval
+    let hit = GetForegroundWindow()
+    if !hit do
+        return result
 
     let awareness = SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)
     defer discard SetThreadDpiAwarenessContext(awareness)
 
     var r: RECT
     GetWindowRect(hit, &r)
-    return Math.Rectangle{r.left, r.top, r.right - r.left, r.bottom - r.top}
+    result.rect = {r.left, r.top, r.right - r.left, r.bottom - r.top}
+    result.info = captureWindowInfo(hit)
+    return result
 }
 
 // Draw the current mouse cursor into the device context, accounting for the

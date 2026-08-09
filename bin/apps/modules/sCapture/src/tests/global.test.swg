@@ -97,3 +97,20 @@ func testSetupGlobalMain(main: *MainWnd)
     @assert(Gui.Testing.actionUpdate'ActionGlobal(f.main, ActionGlobal.Exit, &evt))
     @assert(!evt.name.isEmpty())
 }
+
+// The fixed dark matte was once the persisted default. It now migrates to the
+// theme-derived transparent value without changing a color the user actually chose.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+
+    f.main.editorOptions.editBackColor = 0xFF2E2E2E'u32
+    f.main.migrateStoredOptions()
+    @assert(f.main.editorOptions.editBackColor == 0)
+
+    f.main.editorOptions.editBackColor = 0xFF123456'u32
+    f.main.migrateStoredOptions()
+    @assert(f.main.editorOptions.editBackColor == 0xFF123456'u32)
+}

@@ -1,8 +1,8 @@
 using Threading, Time
 
 // The date column. It is wider than the editor's tool column on purpose: the tool column carries
-// one word per row and this one carries a sentence — "All Captures" is two words in English and
-// four in French, and a column sized to the English clipped the French in the very first row.
+// one word per row and this one carries a sentence — "All Items" is two words in English and
+// three in French, and a column sized to the English clipped the French in the very first row.
 const SideBarWidth  = 280.0
 const LibBarHeight  = 32.0
 const LibGlyphSize  = 16.0
@@ -24,8 +24,22 @@ enum PreviewSize
 enum SortMethod
 {
     Recent
+    Modified
+    Name
+    Application
+    WindowTitle
+    Dimensions
     FileSize
     Similar
+}
+
+enum LibraryContentFilter
+{
+    All
+    Captures
+    ScreenCaptures
+    ImportedCaptures
+    Images
 }
 
 struct LibraryWnd
@@ -36,12 +50,14 @@ struct LibraryWnd
     {
         main:           *MainWnd
         view:           *LibraryView
+        sideBar:        *Wnd
         listCtrl:       *ListCtrl
         commandBar:     *StackLayoutCtrl
         previewSizeBtn: *IconButton
         sortBtn:        *IconButton
         filterBtn:      *IconButton
         trashBtn:       *IconButton
+        folderBtn:      *IconButton
         searchEdit:     *EditBox
         breadcrumb:     *BreadcrumbCtrl
     }
@@ -54,14 +70,22 @@ struct LibraryWnd
 
     // Backing storage for the breadcrumb drop-down entry ids (folder paths). Menu items
     // keep the id as a non-owning slice, so the strings must outlive the popup's modal loop.
-    menuPaths: Array'String
+    menuPaths:  Array'String
+    menuValues: Array'String
 
-    invertSort:              bool
-    sortMethod:              SortMethod
-    showUpToDateLinkedImage: bool = true
-    showLinkedImage:         bool = true
-    showUnSavedLinkedImage:  bool = true
-    showUnLinkedImage:       bool = true
+    invertSort:               bool
+    sortMethod:               SortMethod
+    contentFilter:            LibraryContentFilter
+    favoritesOnly:            bool
+    minimumRating:            u8
+    applicationFilter:        String
+    tagFilter:                String
+    filledRevision:           u64
+    deleteObserverRegistered: bool
+    showUpToDateLinkedImage:  bool = true
+    showLinkedImage:          bool = true
+    showUnSavedLinkedImage:   bool = true
+    showUnLinkedImage:        bool = true
 }
 
 impl IWnd for LibraryWnd
@@ -87,6 +111,7 @@ impl LibraryWnd
         .sortBtn.setText(appStrings().ui_BarSort)
         .filterBtn.setText(appStrings().ui_BarFilter)
         .trashBtn.setText(appStrings().ui_BarTrash)
+        .folderBtn.toolTip = appStrings().tip_LibraryFolders
         .searchEdit.setPlaceholder(appStrings().ui_Search)
     }
 
@@ -261,19 +286,45 @@ impl LibraryWnd
         if !g_Library.loaded do
             g_Library.fill()
 
-        if .listCtrl.lineCount() do
+        if .listCtrl.lineCount() and .filledRevision == g_Library.revision do
             return
-        g_Library.onDeleteFile += func|libWnd = me|(file)
+
+        if .listCtrl.lineCount() do
+            .listCtrl.clear()
+
+        if !.deleteObserverRegistered
         {
-            for it, [i] in libWnd.view.items
+            g_Library.onDeleteFile += func|libWnd = me|(file)
             {
-                if it.fi.fullname == file
+                // The loader owns a temporary pointer list. Join it before deleting the
+                // corresponding ArrayPtr element, then resume any pending previews.
+                libWnd.view.stopLoading()
+
+                for item, [i] in libWnd.view.items
                 {
-                    libWnd.view.selModel.unselect(cast() i)
-                    libWnd.view.items.removeAtOrdered(i)
+                    if item.fi.fullname == file
+                    {
+                        libWnd.view.selModel.unselect(cast() i)
+                        libWnd.view.items.removeAtOrdered(i)
+                        break
+                    }
+                }
+
+                for item, [i] in libWnd.view.allItems
+                {
+                    if item!.fi.fullname != file do
+                        continue
+                    libWnd.view.app().renderer.removeTexture(&item!.texture)
+                    libWnd.view.allItems.deleteAt(i)
                     break
                 }
+
+                libWnd.filledRevision = g_Library.revision
+                libWnd.view.filter()
+                catch libWnd.view.startLoading()
             }
+
+            .deleteObserverRegistered = true
         }
 
         let line = .listCtrl.createLine(appStrings().ui_AllCaptures, .main.icon(.Archive, LibGlyphSize))
@@ -366,6 +417,7 @@ impl LibraryWnd
 
         .listCtrl.computeLayout()
         catch .view.fill()
+        .filledRevision = g_Library.revision
     }
 
     mtd registerActions()
@@ -392,6 +444,380 @@ impl LibraryWnd
         .searchText = text
         .view.filter()
         .invalidate()
+    }
+
+    mtd updateFolderMode()
+    {
+        if !@isset(.sideBar) do
+            return
+        if .currentFolder() == Library.getFolder() do
+            .sideBar.show()
+        else do
+            .sideBar.hide()
+        .sendResizeEvent()
+    }
+
+    // Opens an ordinary folder for browsing, or makes it the persistent root where new
+    // captures are stored. Images already present are indexed as read-only image items.
+    mtd chooseFolder(makeLibrary: bool)
+    {
+        let initialFolder = makeLibrary ? Library.getFolder() : .currentFolder()
+        var options: FileDlgOptions
+        options.mode          = .SelectFolder
+        options.state         = &.main.libraryFolderDlgState
+        options.initialFolder = initialFolder
+        options.title         = makeLibrary ? appStrings().dlg_TitleChooseLibrary : appStrings().dlg_TitleBrowseFolder
+
+        let dialog = FileDlg.create(.main.surface!, options)
+        if dialog.doModal() != Dialog.BtnOk do
+            return
+
+        let folder = dialog.selectedPath()
+        if makeLibrary
+        {
+            discard catch g_Library.setFolder(folder) as err
+            if err != null
+            {
+                MessageDlg.error(.main.surface!, appStrings().msg_FailedOpenLibrary, err)
+                return
+            }
+
+            .main.libraryFolder = folder
+            .curFolder.clear()
+            .trashMode = false
+            .view.filterYear, .view.filterMonth, .view.filterDay = 0
+            .listCtrl.clear()
+            .fill()
+            .updateFolderMode()
+            .updateBreadcrumb()
+            .main.saveAppState()
+            return
+        }
+
+        .navigateFolder(folder)
+    }
+
+    mtd useDefaultFolder()
+    {
+        discard catch g_Library.setFolder("") as err
+        if err != null
+        {
+            MessageDlg.error(.main.surface!, appStrings().msg_FailedOpenLibrary, err)
+            return
+        }
+
+        .main.libraryFolder.clear()
+        .curFolder.clear()
+        .trashMode = false
+        .view.filterYear, .view.filterMonth, .view.filterDay = 0
+        .listCtrl.clear()
+        .fill()
+        .updateFolderMode()
+        .updateBreadcrumb()
+        .main.saveAppState()
+    }
+
+    mtd showFolderMenu(btn: *Button)
+    {
+        var pos = btn.surfaceRect()
+        with let menu = MenuCtrl.createPopup(me, owner: me)
+        {
+            .addItem(appStrings().act_OpenLibraryFolder, "sCapture.library.root")
+            .addSeparator()
+            .addItem(appStrings().act_BrowseFolder, "sCapture.library.browse")
+            .addItem(appStrings().act_ChooseLibraryFolder, "sCapture.library.choose")
+            .addItem(appStrings().act_UseDefaultLibrary, "sCapture.library.default")
+        }
+
+        let result = menu.doModal({pos.horzCenter(), pos.bottom()}, .AnchorTopCenter, autoDestroy: true)
+        if !result do
+            return
+        switch result!
+        {
+        case "sCapture.library.root":    .navigateFolder(Library.getFolder())
+        case "sCapture.library.browse":  .chooseFolder(false)
+        case "sCapture.library.choose":  .chooseFolder(true)
+        case "sCapture.library.default": .useDefaultFolder()
+        }
+    }
+
+    mtd uniqueFilterValues(applications: bool)->Array'String
+    {
+        var result: retval
+        for item in .view.allItems
+        {
+            .view.mutexLoaded.lock()
+            let capture = item!.capture
+            .view.mutexLoaded.unlock()
+            if !capture do
+                continue
+
+            if applications
+            {
+                if capture.sourceApplication.isEmpty() do
+                    continue
+                var found = false
+                for own in result where Utf8.compare(own.toSlice(), capture.sourceApplication, .Latin1NoCase) == 0 do
+                    found = true
+                if !found do
+                    result.add(capture.sourceApplication)
+            }
+            else
+            {
+                for tag in capture.tags
+                {
+                    var found = false
+                    for own in result where Utf8.compare(own.toSlice(), tag, .Latin1NoCase) == 0 do
+                        found = true
+                    if !found do
+                        result.add(tag)
+                }
+            }
+        }
+
+        result.sort(func(a, b) { return Utf8.compare(a.toSlice(), b.toSlice(), .Latin1NoCase) })
+        return result
+    }
+
+    mtd applyDynamicFilter(result: #null WndId)
+    {
+        if !result do
+            return
+        let id = result!
+        if Utf8.startsWith(id, "sCapture.library.app:")
+        {
+            .applicationFilter = String.from(id[@countof("sCapture.library.app:") until @countof(id)])
+            .view.filter()
+        }
+        elif Utf8.startsWith(id, "sCapture.library.tag:")
+        {
+            .tagFilter = String.from(id[@countof("sCapture.library.tag:") until @countof(id)])
+            .view.filter()
+        }
+    }
+
+    mtd showFilterMenu(btn: *Button)
+    {
+        let applications = .uniqueFilterValues(true)
+        let tags         = .uniqueFilterValues(false)
+
+        .menuValues.clear()
+        .menuValues.reserve(2 * (applications.count + tags.count) + 2)
+
+        var pos = btn.surfaceRect()
+        with let menu = MenuCtrl.createPopup(me, owner: me)
+        {
+            .addItem(ActionLibFilter.Reset)
+            .addSeparator()
+            .addItems([ActionLibFilter.AllItems, ActionLibFilter.Captures, ActionLibFilter.ScreenCaptures, ActionLibFilter.ImportedCaptures, ActionLibFilter.Images])
+            .addSeparator()
+            .addItem(ActionLibFilter.FavoritesOnly)
+
+            with let rating = MenuCtrl.createPopup(menu, owner: me)
+            {
+                .addItems([ActionLibFilter.RatingAny, ActionLibFilter.Rating1, ActionLibFilter.Rating2, ActionLibFilter.Rating3, ActionLibFilter.Rating4, ActionLibFilter.Rating5])
+                menu.addPopup(appStrings().act_Rating, rating)
+            }
+
+            with let apps = MenuCtrl.createPopup(menu, owner: me)
+            {
+                me.menuValues.add("sCapture.library.app:")
+                .addItem(appStrings().act_AllApplications, me.menuValues.back(), checked: me.applicationFilter.isEmpty())
+                for application in applications
+                {
+                    me.menuValues.add(Format.toString("sCapture.library.app:%", application))
+                    .addItem(application, me.menuValues.back(), checked: Utf8.compare(application.toSlice(), me.applicationFilter, .Latin1NoCase) == 0)
+                }
+
+                menu.addPopup(appStrings().act_Application, apps)
+            }
+
+            with let tagMenu = MenuCtrl.createPopup(menu, owner: me)
+            {
+                me.menuValues.add("sCapture.library.tag:")
+                .addItem(appStrings().act_AllTags, me.menuValues.back(), checked: me.tagFilter.isEmpty())
+                for tag in tags
+                {
+                    me.menuValues.add(Format.toString("sCapture.library.tag:%", tag))
+                    .addItem(tag, me.menuValues.back(), checked: Utf8.compare(tag.toSlice(), me.tagFilter, .Latin1NoCase) == 0)
+                }
+
+                menu.addPopup(appStrings().act_Tags, tagMenu)
+            }
+
+            .addSeparator()
+            .addItem(ActionLibFilter.UpToDateLinkedImage)
+            .addItem(ActionLibFilter.UnSavedLinkedImage)
+            .addItem(ActionLibFilter.LinkedImage)
+            .addItem(ActionLibFilter.UnLinkedImage)
+        }
+
+        .applyDynamicFilter(menu.doModal({pos.horzCenter(), pos.bottom()}, .AnchorTopCenter, autoDestroy: true))
+    }
+
+    mtd selectedCaptureFiles()->Array'String
+    {
+        var result: retval
+        for item, [i] in .view.items where item.kind == .Capture and .view.selModel.isSelected(cast() i) do
+            result.add(item.fi.fullname)
+        return result
+    }
+
+    mtd refreshPreviewMetadata(file: String, capture: *Capture)
+    {
+        .view.mutexLoaded.lock()
+        defer .view.mutexLoaded.unlock()
+        for item in .view.allItems where item!.capture and item!.fi.fullname == file
+        {
+            item!.capture!.tags     = capture.tags
+            item!.capture!.favorite = capture.favorite
+            item!.capture!.rating   = capture.rating
+        }
+
+        g_DirtyList = true
+        .view.invalidate()
+    }
+
+    mtd updateMetadata(file: String, tags: #null const *Array'String = null, favorite: #null const *bool = null, rating: #null const *u8 = null)
+    {
+        let loaded: #null *Capture = catch Capture.load(file) as err
+        if err != null
+        {
+            MessageDlg.error(.main.surface!, appStrings().msg_FailedSaveMetadata, err)
+            return
+        }
+
+        let capture = loaded!
+        defer Memory.delete(capture)
+        if tags do
+            capture.tags = dref tags
+        if favorite do
+            capture.favorite = dref favorite
+        if rating do
+            capture.rating = dref rating
+        capture.changed = true
+        discard catch capture.save() as saveErr
+        if saveErr != null
+        {
+            MessageDlg.error(.main.surface!, appStrings().msg_FailedSaveMetadata, saveErr)
+            return
+        }
+
+        .refreshPreviewMetadata(file, capture)
+    }
+
+    mtd editSelectedTags()
+    {
+        let files = .selectedCaptureFiles()
+        if files.isEmpty() do
+            return
+
+        var text: String
+        if files.count == 1
+        {
+            for item in .view.items where item.capture and item.fi.fullname == files[0]
+            {
+                for tag in item.capture!.tags
+                {
+                    if !text.isEmpty() do
+                        text += ", "
+                    text += tag
+                }
+            }
+        }
+
+        var options: EditDlgOptions
+        options.title   = appStrings().dlg_TitleEditTags
+        options.message = appStrings().ui_CommaSeparatedTags
+        options.text    = text
+        let dialog = EditDlg.createSingleLine(.main.surface!, options)
+        if dialog.doModal() != Dialog.BtnOk do
+            return
+
+        var tags: Array'String
+        for part in Tokenize.split(dialog.text(), ','u8, removeEmpty: true)
+        {
+            var tag = String.from(part)
+            tag.trim()
+            if tag.isEmpty() do
+                continue
+            var exists = false
+            for own in tags where Utf8.compare(own.toSlice(), tag, .Latin1NoCase) == 0 do
+                exists = true
+            if !exists do
+                tags.add(#move tag)
+        }
+
+        for file in files do
+            .updateMetadata(file, tags: &tags)
+    }
+
+    mtd toggleSelectedFavorite()
+    {
+        let files    = .selectedCaptureFiles()
+        var favorite = false
+        for item, [i] in .view.items
+        {
+            if item.capture and .view.selModel.isSelected(cast() i) and !item.capture!.favorite do
+                favorite = true
+        }
+
+        for file in files do
+            .updateMetadata(file, favorite: &favorite)
+    }
+
+    mtd rateSelected(value: u8)
+    {
+        let files = .selectedCaptureFiles()
+        for file in files do
+            .updateMetadata(file, rating: &value)
+    }
+
+    mtd exportCapture(file: String, folder: String) fail
+    {
+        let capture = (try Capture.load(file))!
+        defer
+        {
+            if capture.backTexture.isValid() do
+                .main.editWnd.editView.app().renderer.removeTexture(&capture.backTexture)
+            Memory.delete(capture)
+        }
+
+        capture.editView = .main.editWnd.editView
+        var image = capture.toImage()
+        var name  = String.from(Path.fileNameWithoutExtension(file) orelse "capture")
+        name += ".png"
+        let destination = Library.uniqueName(folder, name)
+        try image.save(destination)
+    }
+
+    mtd exportSelected()
+    {
+        let files = .selectedCaptureFiles()
+        if files.isEmpty() do
+            return
+
+        let initialFolder = .currentFolder()
+        var options: FileDlgOptions
+        options.mode              = .SelectFolder
+        options.state             = &.main.exportFolderDlgState
+        options.initialFolder     = initialFolder
+        options.title             = appStrings().dlg_TitleExportCaptures
+        options.confirmButtonText = appStrings().dlg_BtnExport
+        let dialog = FileDlg.create(.main.surface!, options)
+        if dialog.doModal() != Dialog.BtnOk do
+            return
+
+        Cursor.activateWait()
+        for file in files
+        {
+            discard catch .exportCapture(file, dialog.selectedPath()) as err
+            if err != null
+            {
+                MessageDlg.error(.main.surface!, appStrings().msg_FailedExportCaptures, err)
+                return
+            }
+        }
     }
 
     // Switch between the normal library and the recycle bin: both are just folders, so
@@ -491,7 +917,7 @@ impl LibraryWnd
 
     // Navigate the library to a folder chosen from the breadcrumb (its body or a chevron
     // entry). The sCapture folder keeps its full features (date sidebar, delete-to-trash);
-    // the recycle bin and any other folder are simply browsed by listing their captures.
+    // the recycle bin and any other folder are simply browsed by listing supported items.
     mtd navigateFolder(path: String)
     {
         if .currentFolder() == path do
@@ -500,6 +926,7 @@ impl LibraryWnd
         .curFolder = path
         .trashMode = Library.getTrashFolder() == path
         catch .view.fill()
+        .updateFolderMode()
         .invalidate()
         .updateBreadcrumb()
     }
@@ -519,7 +946,7 @@ impl LibraryWnd
         // the selected form on the right; the library puts its dates on the left and the
         // captures themselves fill the rest. The date list used to sit on the right, so
         // switching modes swapped the meaning of the same edge.
-        with let sideBar = Wnd.create'Wnd(res, {0, 0, SideBarWidth, 0})
+        with res.sideBar = Wnd.create'Wnd(res, {0, 0, SideBarWidth, 0})
         {
             .dockStyle = .Left
         }
@@ -540,7 +967,7 @@ impl LibraryWnd
         scrollWnd.setView(view)
         res.view = view
 
-        with let list = ListCtrl.createMultiColumns(sideBar)
+        with let list = ListCtrl.createMultiColumns(res.sideBar)
         {
             .addColumn("name", SideBarWidth - LibCountWidth - LibRowIndent)
             .addColumn("count", LibCountWidth)
@@ -622,6 +1049,11 @@ impl LibraryWnd
                 {
                     menu.updateFlags(.HideShortcuts)
                     .addItem(ActionLibSort.Recent)
+                    .addItem(ActionLibSort.Modified)
+                    .addItem(ActionLibSort.Name)
+                    .addItem(ActionLibSort.Application)
+                    .addItem(ActionLibSort.WindowTitle)
+                    .addItem(ActionLibSort.Dimensions)
                     .addItem(ActionLibSort.FileSize)
                     .addItem(ActionLibSort.Similar)
                     .addSeparator()
@@ -641,19 +1073,18 @@ impl LibraryWnd
             .setArrowPosition(.RightDownward)
             .sigPressed += func|res|(btn)
             {
-                var pos = btn.surfaceRect()
-                with var menu = MenuCtrl.createPopup(res)
-                {
-                    menu.updateFlags(.HideShortcuts)
-                    .addItem(ActionLibFilter.UpToDateLinkedImage)
-                    .addItem(ActionLibFilter.UnSavedLinkedImage)
-                    .addSeparator()
-                    .addItem(ActionLibFilter.LinkedImage)
-                    .addItem(ActionLibFilter.UnLinkedImage)
-                }
-
-                discard menu.doModal({pos.horzCenter(), pos.bottom()}, .AnchorTopCenter, autoDestroy: true)
+                res.showFilterMenu(btn)
             }
+        }
+
+        // Library roots and ordinary image folders are explicit choices. This remains
+        // icon-only because it is occasional configuration and the tooltip carries its name.
+        with res.folderBtn = IconButton.create(res.commandBar, res.theme().icon(.OpenFile, LibGlyphSize), {0, 0, LibBarHeight, LibBarHeight})
+        {
+            .updateFlags(.IconOnly)
+            .setForm(.Rectangle)
+            .toolTip    = appStrings().tip_LibraryFolders
+            .sigPressed += func|res|(btn) { res.showFolderMenu(btn) }
         }
 
         // Recycle bin

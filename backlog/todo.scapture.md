@@ -80,17 +80,6 @@ effects that makes a capture look produced, and output.
 
 ---
 
-## Tier B — Structure and evolution
-
-### T-079 — Library tags and batch operations
-
-- Problem: the library filters by date and by text, sorts, and has a trash — see
-  `src/librarywnd.swg`. It has no tags, and no multi-select batch export or conversion.
-- Fix: a tag field on `Capture`, tag chips in the library filter bar, and a batch export over the
-  library selection. The date filter and search plumbing already exist to hang this on.
-
----
-
 ## Tier C — The large capture modes
 
 Both entries below are subsystems rather than features. They are what people actually buy Snagit

@@ -71,11 +71,8 @@ impl IActionUI for ActionFile
         case .DeleteCapture:
             evt.updatedFields |= .Name | .Disabled | .Icon
             evt.name          = appStrings().act_Delete
-            if main.libraryMode do
-                evt.disabled = !main.libWnd.hasSelected()
-            else do
-                evt.disabled = !capture
-            evt.icon = main.theme().icon(.Remove)
+            evt.disabled      = !capture
+            evt.icon          = main.theme().icon(.Remove)
 
         case .DupCapture:
             evt.updatedFields |= .Name | .Disabled | .Icon
@@ -109,10 +106,7 @@ impl IActionUI for ActionFile
         case .FileDetails:
             evt.updatedFields |= .Name | .Disabled
             evt.name          = appStrings().act_FileDetails
-            if main.libraryMode do
-                evt.disabled = !main.libWnd.hasSelected()
-            else do
-                evt.disabled = !capture
+            evt.disabled      = !capture
         }
 
         return true
@@ -278,7 +272,32 @@ impl IActionUI for ActionFile
             if capture.linkedImage != null do
                 addLine(lt, appStrings().ui_DetailLinkedImage, Format.toString("%", capture.linkedImage))
             addLine(lt, appStrings().ui_DetailImageSize, Format.toString("%x%", capture.width, capture.height))
-            addLine(lt, "<b>File Size</b>", StrConv.toDisplaySize(catch File.info(capture.file).size))
+            if capture.capturedAt.isValid() do
+                addLine(lt, appStrings().ui_DetailCapturedAt, Format.toString("%", capture.capturedAt))
+            if !capture.sourceApplication.isEmpty() do
+                addLine(lt, appStrings().ui_DetailApplication, capture.sourceApplication)
+            if !capture.sourceWindowTitle.isEmpty() do
+                addLine(lt, appStrings().ui_DetailWindowTitle, capture.sourceWindowTitle)
+            if !capture.sourceExecutable.isEmpty() do
+                addLine(lt, appStrings().ui_DetailExecutable, capture.sourceExecutable)
+            if !capture.sourceWindowClass.isEmpty() do
+                addLine(lt, appStrings().ui_DetailWindowClass, capture.sourceWindowClass)
+            if !capture.tags.isEmpty()
+            {
+                var tags: String
+                for tag in capture.tags
+                {
+                    if !tags.isEmpty() do
+                        tags += ", "
+                    tags += tag
+                }
+
+                addLine(lt, appStrings().ui_DetailTags, tags)
+            }
+
+            if capture.rating do
+                addLine(lt, appStrings().ui_DetailRating, Format.toString("%/5", capture.rating))
+            addLine(lt, appStrings().ui_DetailFileSize, StrConv.toDisplaySize(catch File.info(capture.file).size))
             lt.computeLayout()
             discard dlg.doModal()
         }
@@ -529,6 +548,6 @@ impl MainWnd
         let {h, ?, ?} = catch StrConv.parseS32(edit1.edit.text())
         var img       = Image.create(w != 0 ? w : 512, h != 0 ? h : 512, .RGB8)
         img.fill(Argb.White)
-        .newCapture(img)
+        .newCapture(img, sourceKind: .BlankCanvas)
     }
 }

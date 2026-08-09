@@ -71,7 +71,17 @@ using Swag, Core
     callout.alignHorz = .LeftTop
     callout.alignVert = .RightBottom
 
-    f.capture.title = "My Capture Name"
+    f.capture.title             = "My Capture Name"
+    f.capture.sourceKind        = .Screen
+    f.capture.capturedAt        = {year: 2026, month: 8, day: 8, hour: 14, minute: 30}
+    f.capture.sourceApplication = "chrome"
+    f.capture.sourceExecutable  = "C:\\Program Files\\Google\\Chrome\\chrome.exe"
+    f.capture.sourceWindowTitle = "Swag - Chromium"
+    f.capture.sourceWindowClass = "Chrome_WidgetWin_1"
+    f.capture.tags.add("documentation")
+    f.capture.tags.add("browser")
+    f.capture.favorite = true
+    f.capture.rating   = 5
 
     let path = testTempCapturePath()
     defer discard catch File.delete(path)
@@ -86,6 +96,16 @@ using Swag, Core
     @assert(loaded.forms.count == 9)
     @assert(loaded.backImg.isValid())
     @assert(loaded.title == "My Capture Name")
+    @assert(loaded.sourceKind == .Screen)
+    @assert(loaded.capturedAt == f.capture.capturedAt)
+    @assert(loaded.sourceApplication == "chrome")
+    @assert(loaded.sourceExecutable == "C:\\Program Files\\Google\\Chrome\\chrome.exe")
+    @assert(loaded.sourceWindowTitle == "Swag - Chromium")
+    @assert(loaded.sourceWindowClass == "Chrome_WidgetWin_1")
+    @assert(loaded.tags.count == 2)
+    @assert(loaded.hasTag("BROWSER"))
+    @assert(loaded.favorite)
+    @assert(loaded.rating == 5)
 
     let lShape = cast(*FormShape) @dataof(loaded.forms[0])
     @assert(lShape.capture == loaded)

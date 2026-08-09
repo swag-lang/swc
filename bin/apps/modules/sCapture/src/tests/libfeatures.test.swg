@@ -208,3 +208,39 @@ using Swag, Core
     @assert(!itCapture.preview.isValid())
     @assert(itCapture.haar.size == 0)
 }
+
+// Batch export uses the full capture, not the lightweight library preview, and writes a
+// regular PNG that another application can open.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    let lib = f.setupLibraryWnd()
+
+    let capture = Memory.new'Capture()
+    capture.width, capture.widthOrg   = 24
+    capture.height, capture.heightOrg = 16
+    capture.backImg                   = Gui.Testing.indexedImage(24, 16)
+    let source = testTempCapturePath()
+    capture.file    = source
+    capture.changed = true
+    expect capture.save()
+    Memory.delete(capture)
+
+    let folder = Path.combine(Library.getFolder(), Format.toString("export-%", Guid64.random().toString()))
+    expect Directory.create(folder)
+    let exported = Path.combine(folder, Format.toString("%.png", Path.fileNameWithoutExtension(source) orelse "capture"))
+    defer
+    {
+        discard catch File.delete(source)
+        discard catch File.delete(exported)
+        discard catch Directory.delete(folder)
+    }
+
+    expect lib.exportCapture(source, folder)
+    @assert(File.exists(exported))
+    let image = expect Image.load(exported)
+    @assert(image.width == 24)
+    @assert(image.height == 16)
+}

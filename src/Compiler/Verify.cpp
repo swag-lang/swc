@@ -241,6 +241,12 @@ bool Verify::hasUntouchedErrorDirectiveInLineRange(const uint32_t lineStart, con
     return false;
 }
 
+bool Verify::hasExpectedDirectives() const
+{
+    const std::scoped_lock lk(directivesMutex_);
+    return !directives_.empty();
+}
+
 void Verify::verifyUntouchedExpected(TaskContext& ctx, const SourceView& srcView) const
 {
     std::vector<SourceCodeRange> missingRanges;

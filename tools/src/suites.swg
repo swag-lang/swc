@@ -124,14 +124,14 @@ private func runSourceSuite(context: *Context, options: *Options, relative: stri
     return try context.runCompiler(arguments)
 }
 
-// Names the workspace suite's one module for `verb`.
+// Names one workspace suite module for `verb`.
 //
 // The three commands the suite runs differ by their verb alone, so they are named in one place
 // rather than written out three times.
-private func consumerCommand(verb: string, workspace: string, buildCfg: string)->Arguments
+private func workspaceModuleCommand(verb: string, workspace: string, module: string, buildCfg: string)->Arguments
 {
     var result: retval
-    result.add([verb, "--workspace", workspace, "--workspace-module", "consumer_exe"])
+    result.add([verb, "--workspace", workspace, "--workspace-module", module])
     result.add(["--build-cfg", buildCfg])
     return result
 }
@@ -145,14 +145,14 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
 {
     let workspace = Path.combine(context.binDir.toString(), "unittests", "workspace")
 
-    var built = consumerCommand("build", workspace.toString(), buildCfg)
+    var built = workspaceModuleCommand("build", workspace.toString(), "consumer_exe", buildCfg)
     options.appendExtra(&built)
 
     let buildCode = try context.runCompiler(built)
     if buildCode != 0 do
         return buildCode
 
-    var tested = consumerCommand("test", workspace.toString(), buildCfg)
+    var tested = workspaceModuleCommand("test", workspace.toString(), "consumer_exe", buildCfg)
     tested.add(["--no-test-jit"])
     options.appendExtra(&tested)
 
@@ -160,7 +160,37 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
     if testCode != 0 do
         return testCode
 
-    var ran = consumerCommand("run", workspace.toString(), buildCfg)
+    // An unchanged native-only test must reuse its compiled artifact but still execute it.
+    let reusedOutput = try context.captureProgram(context.compiler.toString(), tested)
+    Console.print(reusedOutput.toString())
+    if !reusedOutput.contains("up-to-date • consumer_exe.test.exe")
+    {
+        Console.println("Workspace test recompiled its unchanged test artifact.")
+        return 1
+    }
+    if !reusedOutput.contains("SWAG_WORKSPACE_TEST_RAN")
+    {
+        Console.println("Workspace test did not execute its reused #test function.")
+        return 1
+    }
+
+    var verified = workspaceModuleCommand("test", workspace.toString(), "verify_expectations", buildCfg)
+    verified.add(["--no-test-jit"])
+    options.appendExtra(&verified)
+
+    let verifyCode = try context.runCompiler(verified)
+    if verifyCode != 0 do
+        return verifyCode
+
+    let verifiedAgain = try context.captureProgram(context.compiler.toString(), verified)
+    Console.print(verifiedAgain.toString())
+    if verifiedAgain.contains("up-to-date")
+    {
+        Console.println("Workspace test reused a module with source-driven Verify directives.")
+        return 1
+    }
+
+    var ran = workspaceModuleCommand("run", workspace.toString(), "consumer_exe", buildCfg)
     options.appendExtra(&ran)
 
     let output = try context.captureProgram(context.compiler.toString(), ran)

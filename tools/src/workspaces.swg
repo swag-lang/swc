@@ -78,6 +78,11 @@ private func testStdModule(context: *Context, options: *Options, name: string, m
     arguments.add(["--build-cfg", options.buildCfg.toString()])
     arguments.add(["--import-api-dir", context.workspaceOutput("std").toString()])
 
+    // Native execution covers the library contract in every configuration. Release also keeps
+    // the JIT pass as a cross-backend check where inlining is most aggressive.
+    if options.buildCfg != "release" do
+        arguments.add(["--no-test-jit"])
+
     options.appendExtra(&arguments)
     options.appendRunArguments(&arguments)
     return try context.runCompiler(arguments)
@@ -268,8 +273,12 @@ public func runReference(context: *Context, options: *Options)->s32 fail
     arguments.add(["--build-cfg", options.buildCfg.toString()])
     arguments.add(["--import-api-dir", context.workspaceOutput("std").toString()])
 
+    // The language suites compare JIT and native behavior; the reference checks the documented
+    // programs once in their shipped native form.
     if options.command == "build" do
         arguments.add(["--no-test-jit", "--no-output"])
+    else do
+        arguments.add(["--no-test-jit"])
 
     options.appendExtra(&arguments)
     return try context.runCompiler(arguments)

@@ -14,6 +14,7 @@
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/SourceFile.h"
+#include "Compiler/Verify.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/ExternalModuleManager.h"
@@ -1003,6 +1004,16 @@ namespace
             content += '\n';
         }
 
+        std::error_code ec;
+        fs::create_directories(manifestPath.parent_path(), ec);
+        if (ec)
+        {
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_api_file_write_failed);
+            FileSystem::setDiagnosticPathAndBecause(diag, &ctx, manifestPath, FileSystem::normalizeSystemMessage(ec));
+            diag.report(ctx);
+            return Result::Error;
+        }
+
         FileSystem::IoErrorInfo ioError;
         if (FileSystem::writeBinaryFile(manifestPath, content.data(), content.size(), ioError) == Result::Continue)
             return Result::Continue;
@@ -1011,6 +1022,18 @@ namespace
         FileSystem::setDiagnosticPathAndBecause(diag, &ctx, manifestPath, FileSystem::describeIoFailure(ioError));
         diag.report(ctx);
         return Result::Error;
+    }
+
+    bool workspaceManifestContainsArtifact(const WorkspaceArtifactManifest& manifest, const fs::path& outDir, const fs::path& artifactPath)
+    {
+        const fs::path normalizedArtifactPath = FileSystem::normalizePath(artifactPath);
+        for (const fs::path& relativePath : manifest.artifacts)
+        {
+            if (FileSystem::pathEquals(FileSystem::normalizePath(outDir / relativePath), normalizedArtifactPath))
+                return true;
+        }
+
+        return false;
     }
 
     bool workspaceArtifactsAreUpToDate(const WorkspaceArtifactManifest& manifest, const fs::path& outDir, const fs::path& manifestPath, const fs::path& compilerPath, const std::span<const fs::path> currentInputs, const std::span<const fs::path> currentDependencyDirs, const std::span<const fs::path> requiredArtifacts)
@@ -1111,7 +1134,34 @@ namespace
         if (cmdLine.rebuild || cmdLine.dryRun || cmdLine.showConfig)
             return false;
 
-        return cmdLine.command != CommandKind::Test && cmdLine.command != CommandKind::Doc;
+        if (cmdLine.command == CommandKind::Test)
+            return !cmdLine.testJit && cmdLine.testNative && cmdLine.output;
+
+        return cmdLine.command != CommandKind::Doc;
+    }
+
+    bool hasWorkspaceVerifyDirectives(const CompilerInstance& compiler)
+    {
+        for (const SourceFile* file : compiler.files())
+        {
+            if (file && file->unitTest().hasExpectedDirectives())
+                return true;
+        }
+
+        return false;
+    }
+
+    bool shouldWriteWorkspaceArtifactManifest(const CompilerInstance& compiler)
+    {
+        const CommandLine& cmdLine = compiler.cmdLine();
+        if (cmdLine.dryRun || cmdLine.showConfig || cmdLine.command == CommandKind::Doc)
+            return false;
+        if (cmdLine.command != CommandKind::Test)
+            return true;
+
+        // A cached test has no AST against which source-driven expectations can be checked.
+        // Keep compiling those inputs so every Verify directive is evaluated on every run.
+        return cmdLine.testNative && cmdLine.output && !hasWorkspaceVerifyDirectives(compiler);
     }
 
     Utf8 formatWorkspaceReuseStat(const TaskContext& ctx, const CompilerInstance& compiler)
@@ -2078,19 +2128,29 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
             return Result::Error;
 
         std::vector<fs::path> requiredArtifacts;
-        if ((moduleCmdLine.command == CommandKind::Build || isRunLikeCommand(moduleCmdLine.command)) &&
+        fs::path              testArtifactPath;
+        const bool            needsRequiredArtifact  = moduleCmdLine.command == CommandKind::Build || isRunLikeCommand(moduleCmdLine.command);
+        const bool            needsTestArtifactProbe = moduleCmdLine.command == CommandKind::Test && probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable;
+        if ((needsRequiredArtifact || needsTestArtifactProbe) &&
             Runtime::backendKindProducesNativeArtifact(probeCompiler.buildCfg().backendKind))
         {
             NativeBackendBuilder        nativeProbeBuilder(probeCompiler, false);
             const NativeArtifactBuilder artifactProbeBuilder(nativeProbeBuilder);
             NativeArtifactPaths         artifactPaths;
             artifactProbeBuilder.queryPaths(artifactPaths);
-            requiredArtifacts.push_back(artifactPaths.artifactPath);
-            // Note: we deliberately do not require artifactPaths.pdbPath here. Debug info is embedded
-            // directly into the PE image by the linker (see PELinker / DebugInfo::buildObject); no
-            // standalone .pdb file is ever produced, even for debug build configs. Requiring one would
-            // make every native module appear permanently stale and force a full rebuild every time.
-            probeCompiler.setLastArtifactLabel(artifactPaths.artifactPath.filename().empty() ? Utf8(artifactPaths.artifactPath) : Utf8(artifactPaths.artifactPath.filename()));
+            if (needsRequiredArtifact)
+            {
+                requiredArtifacts.push_back(artifactPaths.artifactPath);
+                // Note: we deliberately do not require artifactPaths.pdbPath here. Debug info is embedded
+                // directly into the PE image by the linker (see PELinker / DebugInfo::buildObject); no
+                // standalone .pdb file is ever produced, even for debug build configs. Requiring one would
+                // make every native module appear permanently stale and force a full rebuild every time.
+                probeCompiler.setLastArtifactLabel(artifactPaths.artifactPath.filename().empty() ? Utf8(artifactPaths.artifactPath) : Utf8(artifactPaths.artifactPath.filename()));
+            }
+            else
+            {
+                testArtifactPath = artifactPaths.artifactPath;
+            }
         }
 
         std::vector<fs::path> currentDependencyDirs;
@@ -2102,11 +2162,14 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
         if (readWorkspaceArtifactManifest(manifest, manifestPath) &&
             workspaceArtifactsAreUpToDate(manifest, moduleCmdLine.outDir, manifestPath, exeFullName_, currentInputs, currentDependencyDirs, requiredArtifacts))
         {
+            const bool     runReusedTestArtifact = !testArtifactPath.empty() && workspaceManifestContainsArtifact(manifest, moduleCmdLine.outDir, testArtifactPath);
             ScopedTimedLog moduleStage(probeCtx, ScopedTimedLog::Stage::Module);
+            bool           moduleSetupApplied = false;
             if (moduleCmdLine.publish && probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable)
             {
                 if (probeCompiler.applyModuleSetupInputs(probeCtx, moduleBuild.setup) != Result::Continue)
                     return Result::Error;
+                moduleSetupApplied = true;
 
                 NativeBackendBuilder publishBuilder(probeCompiler, false);
                 if (publishBuilder.publishExistingArtifact() != Result::Continue)
@@ -2124,6 +2187,22 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
                     if (runBuilder.runExistingArtifact() != Result::Continue)
                         return Result::Error;
                 }
+            }
+
+            if (runReusedTestArtifact)
+            {
+                if (!moduleSetupApplied && probeCompiler.applyModuleSetupInputs(probeCtx, moduleBuild.setup) != Result::Continue)
+                    return Result::Error;
+
+                NativeBackendBuilder testBuilder(probeCompiler, true);
+                const Result         testResult = testBuilder.runExistingArtifact();
+
+                // The successful compile that wrote the manifest already checked the static
+                // test count. The reused artifact's fresh tally proves that it ran again.
+                Stats::get().numTests.fetch_add(testBuilder.nativeTestsExecuted, std::memory_order_relaxed);
+                Stats::get().numTestsFailed.fetch_add(testBuilder.nativeTestsFailed, std::memory_order_relaxed);
+                if (testResult != Result::Continue)
+                    return Result::Error;
             }
 
             moduleStage.markUpToDate();
@@ -2160,7 +2239,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
         {
             // No deferred link to finalize (non-native backend, or a test run): finalize synchronously,
             // exactly as before. The artifacts, if any, were already produced by processCommand.
-            if (moduleCmdLine.command != CommandKind::Test && moduleCmdLine.command != CommandKind::Doc)
+            if (shouldWriteWorkspaceArtifactManifest(*moduleCompiler))
             {
                 WorkspaceArtifactManifest manifest;
                 collectWorkspaceModuleInputs(manifest.inputs, moduleCmdLine, moduleBuild.moduleFile, moduleBuild.sourceDir, moduleBuild.setup.loadedFiles, moduleBuild.setup.compilerInputFiles, moduleCompiler->compilerInputFiles_);
@@ -2180,7 +2259,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
         link->moduleName    = moduleBuild.name;
         link->outDir        = moduleCmdLine.outDir;
         link->manifestPath  = workspaceArtifactManifestPath(moduleCmdLine.outDir, moduleCmdLine);
-        link->writeManifest = moduleCmdLine.command != CommandKind::Test && moduleCmdLine.command != CommandKind::Doc;
+        link->writeManifest = shouldWriteWorkspaceArtifactManifest(*moduleCompiler);
         if (link->writeManifest)
         {
             collectWorkspaceModuleInputs(link->manifest.inputs, moduleCmdLine, moduleBuild.moduleFile, moduleBuild.sourceDir, moduleBuild.setup.loadedFiles, moduleBuild.setup.compilerInputFiles, moduleCompiler->compilerInputFiles_);

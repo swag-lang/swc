@@ -33,6 +33,44 @@ func testSetupMainWindow(host: *Testing.HeadlessHost)->*MainWindow
     return result
 }
 
+// Writes and reads the state event at the same boundary the application state file uses.
+func saveMainWindowState(window: *MainWindow)->String
+{
+    var result:     ConcatBuffer
+    var encoder:    Serialization.Encoder'Serialization.Write.TagBin
+    var serializer: Serialization.Serializer
+    expect serializer.startWrite(&encoder, &result)
+    expect serializer.beginSection(.Unordered)
+    expect window.serializeState(&serializer)
+    expect serializer.endSection()
+    expect serializer.end()
+    return result.toString()
+}
+
+func loadMainWindowState(window: *MainWindow, bytes: const [..] u8)
+{
+    var decoder:    Serialization.Decoder'Serialization.Read.TagBin
+    var serializer: Serialization.Serializer
+    expect serializer.startRead(&decoder, bytes)
+    expect serializer.beginSection(.Unordered)
+    expect window.serializeState(&serializer)
+    expect serializer.endSection()
+    expect serializer.end()
+}
+
+func containsStateBytes(bytes, needle: const [..] u8)->bool
+{
+    if !@countof(needle) or @countof(needle) > @countof(bytes) do
+        return false
+    for [offset] in @countof(bytes) - @countof(needle) + 1
+    {
+        if @memcmp(@dataof(bytes) + offset, @dataof(needle), @countof(needle)) == 0 do
+            return true
+    }
+
+    return false
+}
+
 // The window is built in the reference language, whatever the language of the account.
 #test
 {
@@ -143,6 +181,42 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     window.chooseLanguage(0)
     @assert(window.language.isEmpty())
     @assert(activeLanguage() == systemLanguage())
+}
+
+// The last successful mount prepares the next open-vault form without retaining a credential.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    defer host.shutdown()
+
+    let drive = window.selectedMountPoint()
+    @assert(!drive.isEmpty())
+
+    window.operation.path     = String.from("C:\\vaults\\remembered.scrypt")
+    window.operation.mount    = drive
+    window.operation.readOnly = true
+    window.rememberMountedDrive()
+
+    // Put unmistakable bytes in the password storage. Persistent state must never observe them.
+    let secret = "not a setting"
+    @memcpy(&window.mountPassword.storage[0], @dataof(secret), @countof(secret))
+    window.mountPassword.byteCount = @countof(secret)
+
+    var state       = saveMainWindowState(window)
+    let secretBytes = @mkslice(cast(const [*] u8) @dataof(secret), @countof(secret))
+    @assert(!containsStateBytes(state.toSlice(), secretBytes))
+
+    window.mountSettings = {}
+    window.mountPath.setText("")
+    window.readOnly.setState(.Unchecked)
+    window.mountPassword.clear()
+    loadMainWindowState(window, state.toSlice())
+
+    @assert(window.mountPath.text() == "C:\\vaults\\remembered.scrypt")
+    @assert(window.selectedMountPoint() == drive)
+    @assert(window.readOnly.isChecked())
+    @assert(window.mountPassword.isEmpty())
 }
 
 // The page on show is reachable from the keyboard, in the order it reads, and it is the only

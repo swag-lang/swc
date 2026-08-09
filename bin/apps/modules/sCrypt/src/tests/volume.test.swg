@@ -381,6 +381,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
 
     // Closing consolidated everything, so nothing is left to replay.
     @assert(reopened.sequence == reopened.checkpointAt)
+    @assert(reopened.journalRecordsRead == 1)
     reopened.close()
 }
 
@@ -419,6 +420,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     @assert(expect recovered.readNode(node.id, 0, readBack) == #sizeof(readBack))
     @assert(sameTestBytes(payload, readBack))
     @assert(recovered.resolve("\\also_here") != null)
+    @assert(recovered.journalRecordsRead == recovered.sequence - recovered.checkpointAt + 1)
     recovered.close()
 
     // The salvaged container is now consolidated and still opens normally.
@@ -451,7 +453,48 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     var recovered = expect Volume.open(salvaged, testPassword())
     @assert(recovered.resolve("\\first") == null)
     @assert(recovered.resolve("\\second") == null)
+    @assert(recovered.journalRecordsRead == 1)
     recovered.close()
+}
+
+#test
+{
+    // A journal sequence belongs to exactly one circular slot. Even an authentic record in a
+    // different slot is not the next durable operation and must not be searched for elsewhere.
+    let path = testContainerPath("misplaced_journal")
+    defer discard catch File.delete(path)
+
+    var volume    = expect Volume.create(path, testPassword(), MinimumSize)
+    let expected  = volume.checkpointAt + 1
+    let wrongSlot = (expected + 1) % JournalCapacity
+    var removed:  Array'u64
+    var upserted: Array'(*Node)
+    let plain     = JournalRecord.encode(expected, volume.nextNodeId, volume.label, removed.toSlice(), upserted.toSlice())
+    expect volume.writeFramedRecord(JournalAreaOffset + wrongSlot * JournalRecordSize, JournalRecordSize, JournalLocatorKind, JournalKind, wrongSlot, plain.toSlice())
+    volume.close()
+
+    var reopened = expect Volume.open(path, testPassword())
+    @assert(reopened.sequence == reopened.checkpointAt)
+    @assert(reopened.journalRecordsRead == 1)
+    reopened.close()
+}
+
+#test
+{
+    // Advancing a sequence is part of every durable change. A header at the integer limit cannot
+    // wrap back to zero and make a later record look older than the container.
+    let path = testContainerPath("maximum_sequence")
+    defer discard catch File.delete(path)
+
+    var volume = expect Volume.create(path, testPassword(), MinimumSize)
+    volume.sequence     = Swag.U64.Max
+    volume.checkpointAt = Swag.U64.Max
+    var plain = expect volume.serializeHeader()
+    expect volume.writeFramedRecord(HeaderAreaOffset + cast(u64) volume.activeSlot * HeaderSlotSize, HeaderSlotSize, HeaderLocatorKind, HeaderKind, volume.activeSlot, plain.toSlice())
+    volume.dirty = false
+    volume.close()
+
+    @assert(rejectsPassword(path, testPassword()))
 }
 
 #test

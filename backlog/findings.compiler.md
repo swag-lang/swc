@@ -130,8 +130,9 @@ Entries are sorted by identifier, ascending; position carries no priority.
   reference to a value, so the usual const-to-value copy never applies. Decide from that whether the
   fix is at the receiver typing or in the by-value argument match, and add the case to the `sema`
   suite either way.
-- Workaround in the tree: [animation.swg](../bin/std/modules/gui/src/animation.swg) declares
-  `AnimationEasing.evaluate` as a plain `mtd`, which reads as mutable and is not.
+- Workaround in the tree: [curve.swg](../bin/std/modules/core/src/math/curve.swg) declares
+  `Math.CurvePreset.evaluate` as a plain `mtd`, which reads as mutable and is not. `Gui.AnimationEasing`
+  is now an alias of that enum, so the workaround travels with it.
 
 ### F-091 — A method declared over an enum is published with its body, not as an import
 
@@ -154,6 +155,9 @@ Entries are sorted by identifier, ascending; position carries no priority.
   a struct owner, leaving an enum-owned method on the "inline it" path. Confirm against a second
   enum method with a distinct signature before changing anything, since copying is the correct
   answer for a genuinely constant-evaluable declaration and the fix must not remove that case.
+- Workaround in the tree: [curve.swg](../bin/std/modules/core/src/math/curve.swg) writes the body of
+  `Math.CurvePreset.evaluate` with every symbol fully qualified, because that body is what the
+  consumer compiles.
 - Related: [F-090](#f-090--mtd-const-on-an-enum-cannot-be-called-and-cannot-pass-me-on), the other
   half of incomplete `impl`-over-enum support.
 

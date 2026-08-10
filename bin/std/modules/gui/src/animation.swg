@@ -11,106 +11,15 @@ enum AnimationResult
 
 // Selects the interpolation curve applied to normalized animation progress.
 //
+// The toolkit does not own its curves: a named easing is one shape of [[Core.Math.Curve]], and the
+// scheduler evaluates it through that type like any curve an application authors itself. Set
+// [[Gui.AnimationOptions.curve]] instead to drive a track with a shape that has no name here.
+//
 // The last five curves leave the zero-to-one interval on purpose: an anticipating or overshooting
 // track passes beyond its endpoints before settling on them. Use them for position, scale, and
 // other geometry that can travel past its target, and keep the first four for opacity and color,
 // where an out-of-range value is clamped rather than seen.
-enum AnimationEasing
-{
-    Linear             // Keeps progress proportional to elapsed time.
-    EaseIn             // Accelerates from rest.
-    EaseOut            // Decelerates toward rest.
-    EaseInOut          // Accelerates, then decelerates symmetrically.
-    EaseInBack         // Draws back behind the start value, then accelerates.
-    EaseOutBack        // Overshoots the end value, then settles onto it.
-    EaseInOutBack      // Draws back, accelerates, overshoots, then settles.
-    EaseOutElastic     // Springs past the end value and oscillates onto it.
-    EaseOutBounce      // Lands on the end value and rebounds with decreasing height.
-}
-
-impl AnimationEasing
-{
-    // Returns the eased factor of this curve at normalized `progress`.
-    //
-    // `progress` is clamped to the zero-to-one interval; the result leaves it for the
-    // anticipating and overshooting curves. The scheduler evaluates tracks through this exact
-    // function, so a curve preview plots what a track will really do.
-    //
-    // The method reads the curve and changes nothing. It is not declared `const` because a `const`
-    // receiver over an enum currently compiles at neither end; see `F-090`. It keeps every constant
-    // and every branch in its own body because a method declared over an enum is published to other
-    // modules with its source rather than as an import; see `F-091`.
-    mtd evaluate(progress: f32)->f32
-    {
-        // The classic 1.70158 makes `EaseOutBack` peak about ten percent past its end value, which
-        // reads as weight rather than as a mistake. The in-out form widens it to stay symmetric.
-        const Back      = 1.70158'f32
-        const BackInOut = Back * 1.525
-
-        // Four segments of decreasing height, the standard bounce.
-        const BounceSteepness = 7.5625'f32
-        const BounceSegment   = 1 / 2.75'f32
-
-        let p = Math.saturate(progress)
-        switch #complete me
-        {
-        case .Linear:
-            return p
-
-        case .EaseIn:
-            return p * p * p
-
-        case .EaseOut:
-            let q = 1 - p
-            return 1 - q * q * q
-
-        case .EaseInOut:
-            return p * p * (3 - 2 * p)
-
-        case .EaseInBack:
-            return p * p * ((Back + 1) * p - Back)
-
-        case .EaseOutBack:
-            let q = p - 1
-            return 1 + q * q * ((Back + 1) * q + Back)
-
-        case .EaseInOutBack:
-            if p < 0.5
-            {
-                let q = 2 * p
-                return q * q * ((BackInOut + 1) * q - BackInOut) * 0.5
-            }
-
-            let q = 2 * p - 2
-            return (q * q * ((BackInOut + 1) * q + BackInOut) + 2) * 0.5
-
-        case .EaseOutElastic:
-            if p <= 0 or p >= 1 do
-                return p
-            return Math.pow(2'f32, -10 * p) * Math.sin((10 * p - 0.75) * Math.ConstF32.TwoPi / 3) + 1
-
-        case .EaseOutBounce:
-            if p < BounceSegment do
-                return BounceSteepness * p * p
-            if p < 2 * BounceSegment
-            {
-                let q = p - 1.5 * BounceSegment
-                return BounceSteepness * q * q + 0.75
-            }
-
-            if p < 2.5 * BounceSegment
-            {
-                let q = p - 2.25 * BounceSegment
-                return BounceSteepness * q * q + 0.9375
-            }
-
-            let q = p - 2.625 * BounceSegment
-            return BounceSteepness * q * q + 0.984375
-        }
-
-        unreachable
-    }
-}
+alias AnimationEasing = Math.CurvePreset
 
 // Selects which endpoint an animation starts from.
 enum AnimationDirection
@@ -170,13 +79,20 @@ struct AnimationOptions
 {
     delay:            Time.Duration                        // Non-negative time kept at the start value before progress begins.
     duration:         Time.Duration      = 150'ms          // Non-negative time of one play, between the start and end values.
-    easing:           AnimationEasing    = .EaseInOut      // Curve applied to normalized progress.
+    easing:           AnimationEasing    = .EaseInOut      // Named curve applied to normalized progress; ignored once 'curve' is set.
     direction:        AnimationDirection = .Forward        // Endpoint from which the track starts.
     repeatCount:      u32                = 1               // Number of successive plays; zero repeats until the track is cancelled.
     autoReverse:      bool                                 // Whether every second play runs back toward the value it started from.
     impact:           AnimationImpact    = .Paint          // Work invalidated by each update.
     motion:           AnimationMotion    = .Decorative     // Reduced-motion classification.
     preserveProgress: bool                                 // Whether retargeting keeps normalized progress.
+
+    // Authored curve applied to normalized progress instead of `easing`.
+    //
+    // The scheduler borrows it rather than copying it, so it has to outlive every track it was
+    // given to — a curve owned by the animated window, by its theme, or by the application all
+    // qualify, and a temporary declared next to the call does not. Leave it null to use `easing`.
+    curve: #null const *Math.Curve
 }
 
 // Identifies one scheduler-owned animation without retaining its target.
@@ -376,10 +292,16 @@ struct Animator
 
 private impl Animator
 {
+    // Returns the value the track holds at normalized `progress`.
+    //
+    // An authored curve wins over the named one, and both are read through [[Core.Math.Curve]], so a
+    // preview that plots either shape plots what the track will really do.
     func directedFactor(track: *AnimationTrack, progress: f32)->f32
     {
         let directed = track.options.direction == .Forward ? progress : 1 - progress
-        return track.options.easing.evaluate(directed)
+        if track.options.curve do
+            return track.options.curve.evaluateNormalized(directed)
+        return Math.Curve.shared(track.options.easing).evaluateNormalized(directed)
     }
 
     // Returns the normalized progress a track holds once every play is over.

@@ -632,7 +632,7 @@ namespace
         if (!owner.isSymMap() || (owner.isStruct() && ModuleApi::isModuleApiOpaqueType(owner)))
             return;
 
-        std::unordered_set<Utf8> seenNames;
+        std::unordered_set<Utf8>   seenNames;
         std::vector<const Symbol*> members;
         owner.asSymMap()->getAllSymbols(members);
         for (const Symbol* member : members)
@@ -730,7 +730,7 @@ namespace
         return nullptr;
     }
 
-    Utf8 documentationNamespace(TaskContext& ctx, const Symbol& symbol, const Symbol* owner)
+    Utf8 documentationNamespace(const TaskContext& ctx, const Symbol& symbol, const Symbol* owner)
     {
         const Symbol*    scopedSymbol = owner ? owner : &symbol;
         const SymbolMap* scope        = scopedSymbol->ownerSymMap();

@@ -4,7 +4,6 @@
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
-#include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Support/Memory/MemoryProfile.h"
@@ -47,8 +46,8 @@ namespace
         if (!ops)
             return false;
 
-        MicroOpBits bits   = MicroOpBits::Zero;
-        uint64_t    offset = 0;
+        auto     bits   = MicroOpBits::Zero;
+        uint64_t offset = 0;
         switch (inst.op)
         {
             case MicroInstrOpcode::LoadMemReg:
@@ -138,7 +137,7 @@ namespace
     bool redirectUsesToHoistedRegister(MicroStorage&                                 storage,
                                        MicroOperandStorage&                          operands,
                                        const MicroControlFlowGraph&                  cfg,
-                                       const MicroPassHelpers::MicroPhysLiveness&    liveness,
+                                       const MicroPhysLiveness&                      liveness,
                                        const std::vector<uint8_t>&                   inBody,
                                        const std::unordered_map<uint32_t, uint32_t>& refToIndex,
                                        const uint32_t                                loadIndex,
@@ -196,8 +195,8 @@ namespace
             {
                 if (!info.flags.has(MicroInstrFlagsE::ConditionalJump))
                     return false;
-                const uint32_t deadBit = MicroPassHelpers::MicroPhysLiveness::bitOf(dead);
-                if (deadBit >= MicroPassHelpers::MicroPhysLiveness::K_INVALID_BIT)
+                const uint32_t deadBit = MicroPhysLiveness::bitOf(dead);
+                if (deadBit >= MicroPhysLiveness::K_INVALID_BIT)
                     return false;
                 for (const uint32_t succ : cfg.successors(k))
                 {
@@ -214,8 +213,8 @@ namespace
         // register in place of the dead one.
         for (const uint32_t k : useSites)
         {
-            MicroInstr*        inst = storage.ptr(instrRefs[k]);
-            MicroInstrOperand* ops  = inst ? inst->ops(operands) : nullptr;
+            const MicroInstr*        inst = storage.ptr(instrRefs[k]);
+            const MicroInstrOperand* ops  = inst ? inst->ops(operands) : nullptr;
             if (!ops)
                 return false;
 
@@ -243,8 +242,8 @@ namespace
 
         for (const uint32_t k : useSites)
         {
-            MicroInstr*        inst = storage.ptr(instrRefs[k]);
-            MicroInstrOperand* ops  = inst ? inst->ops(operands) : nullptr;
+            const MicroInstr*        inst = storage.ptr(instrRefs[k]);
+            const MicroInstrOperand* ops  = inst ? inst->ops(operands) : nullptr;
             if (!ops)
                 continue;
             SmallVector<MicroInstrRegOperandRef> refs;
@@ -274,15 +273,15 @@ namespace
     //   - every way out of the loop lands on one instruction that nothing
     //     outside the loop jumps to, so a single write-back covers them all;
     //   - the register is dead where the seeding load and the write-back land.
-    void promoteCarriedSlots(MicroStorage&                              storage,
-                             MicroOperandStorage&                       operands,
-                             const MicroControlFlowGraph&               cfg,
-                             const MicroPassHelpers::MicroPhysLiveness& liveness,
-                             const NaturalLoop&                         loop,
-                             const MicroInstrRef                        headerRef,
-                             const uint32_t                             preheaderIndex,
-                             const CallConv&                            conv,
-                             std::vector<Carried>&                      out)
+    void promoteCarriedSlots(MicroStorage&                storage,
+                             MicroOperandStorage&         operands,
+                             const MicroControlFlowGraph& cfg,
+                             const MicroPhysLiveness&     liveness,
+                             const NaturalLoop&           loop,
+                             const MicroInstrRef          headerRef,
+                             const uint32_t               preheaderIndex,
+                             const CallConv&              conv,
+                             std::vector<Carried>&        out)
     {
         const auto     instrRefs = cfg.instructionRefs();
         const uint32_t n         = cfg.instructionCount();

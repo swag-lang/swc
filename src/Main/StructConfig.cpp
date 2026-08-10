@@ -74,7 +74,7 @@ Utf8 StructConfigEntry::valueText() const
     }
 
     if (const auto* value = std::get_if<fs::path*>(&target))
-        return Utf8((*value)->string());
+        return (*value)->string();
 
     if (const auto* value = std::get_if<std::optional<bool>*>(&target))
     {
@@ -139,7 +139,7 @@ std::optional<Utf8> StructConfigSchema::suggest(const std::string_view query) co
     std::vector<Utf8> candidates;
     candidates.reserve(entries_.size());
     for (const StructConfigEntry& entry : entries_)
-        candidates.push_back(entry.name);
+        candidates.emplace_back(entry.name);
 
     return Utf8Helper::bestMatch(query, candidates);
 }

@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.PostRALoopRotate.h"
 #include "Backend/Micro/MicroBuilder.h"
-#include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Support/Core/SmallVector.h"
@@ -223,7 +222,7 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
 
         storage.insertDerivedBefore(operands, rotation.backRef, cmpOp, {cmpCopy.data(), cmpCopy.size()});
 
-        MicroInstr* backInst = storage.ptr(rotation.backRef);
+        const MicroInstr* backInst = storage.ptr(rotation.backRef);
         if (!backInst || backInst->numOperands < 3)
             continue;
         MicroInstrOperand* backOps = backInst->ops(operands);

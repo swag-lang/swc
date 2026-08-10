@@ -1332,7 +1332,7 @@ namespace
     // buffer for the duration of one operation" is an ordinary design (a codec keeping
     // its input and output spans in its state), and the pair still propagates to this
     // function's own summary, to be judged where the container's real lifetime is known.
-    bool intoArgumentOutlivesStored(Sema& sema, const SemaEscapeInfo& intoInfo, const SemaEscapeInfo& storedInfo)
+    bool intoArgumentOutlivesStored(const Sema& sema, const SemaEscapeInfo& intoInfo, const SemaEscapeInfo& storedInfo)
     {
         if (intoInfo.kind == SemaEscapeKind::Static)
             return true;
@@ -1825,7 +1825,7 @@ namespace
     // return summary holds, so record an edge for the fixpoint instead of deciding here.
     void recordAccessorStoreIntoParamPair(Sema& sema, AstNodeRef leftRef, const SemaEscapeInfo& info)
     {
-        SymbolFunction* currentFn = sema.currentFunction();
+        const SymbolFunction* currentFn = sema.currentFunction();
         if (!currentFn)
             return;
 
@@ -3186,7 +3186,7 @@ namespace SemaEscape
     // holding nothing but routes back to globals does not: it was captured so the
     // invalidation check can follow the payload, and reading it as "derives from local
     // storage" would silence real escapes through a global's buffer.
-    bool deferredCallCarriesFrameBorrow(const SemaEscapeInfo& info)
+    static bool deferredCallCarriesFrameBorrow(const SemaEscapeInfo& info)
     {
         for (const auto& snapshot : info.deferredCalls)
         {

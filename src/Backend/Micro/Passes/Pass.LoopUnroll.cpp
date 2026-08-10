@@ -2,11 +2,9 @@
 #include "Backend/Micro/Passes/Pass.LoopUnroll.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstr.h"
-#include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroStorage.h"
-#include "Support/Math/ApsInt.h"
 
 // Full unrolling of small counted loops, pre-RA.
 //
@@ -91,7 +89,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             if (inst.op == MicroInstrOpcode::Label)
                 labelOrdinal[ops[0].valueU64] = ord;
             else if (inst.op == MicroInstrOpcode::JumpCond && inst.numOperands >= 3)
-                jumps.push_back({ord, ops[2].valueU64});
+                jumps.emplace_back(ord, ops[2].valueU64);
         }
 
         // Labels a relocation points at are pinned; relocations by owning slot
@@ -134,7 +132,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
 
             // The back-edge must be the header's only way in besides fall-through.
             uint32_t headerJumpCount = 0;
-            for (const auto& [o, t] : jumps)
+            for (const auto& t : jumps | std::views::values)
             {
                 if (t == headerId)
                     ++headerJumpCount;

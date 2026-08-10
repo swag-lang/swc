@@ -74,8 +74,6 @@ namespace
         std::unordered_map<uint32_t, RegDefInfo> regDefs;
         uint32_t                                 firstCallIndex = K_INVALID;
 
-        std::unordered_map<uint32_t, RootKind> rootKinds;
-
         RootKind classifyRoot(MicroReg reg, const RegDefInfo* def) const
         {
             if (reg == stackPointer)
@@ -286,7 +284,7 @@ namespace
     }
 
     // Attempts the promotion on one loop. Returns true when the IR changed.
-    bool promoteLoop(MicroPassContext& context, FunctionModel& fn, const MicroControlFlowGraph& cfg, const NaturalLoop& loop, std::span<const MicroInstrRef> instrRefs)
+    bool promoteLoop(const MicroPassContext& context, FunctionModel& fn, const MicroControlFlowGraph& cfg, const NaturalLoop& loop, std::span<const MicroInstrRef> instrRefs)
     {
         MicroStorage&        storage  = *fn.storage;
         MicroOperandStorage& operands = *fn.operands;

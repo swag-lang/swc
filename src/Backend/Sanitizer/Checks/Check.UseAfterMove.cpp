@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Backend/Sanitizer/Checks/Check.UseAfterMove.h"
-#include "Backend/Micro/MicroInstr.h"
 #include "Backend/Sanitizer/Sanitizer.h"
 #include "Support/Report/Diagnostic.h"
 

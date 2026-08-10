@@ -2,7 +2,6 @@
 #include "Backend/Micro/Passes/Pass.SlpVectorize.h"
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
-#include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
@@ -380,7 +379,7 @@ namespace
             // register taken before the function's first call is an incoming
             // argument: the caller formed it before this frame existed, which
             // is what makes it provably disjoint from the frame.
-            RootKind kind = RootKind::Unknown;
+            auto kind = RootKind::Unknown;
             if (defInst->op == MicroInstrOpcode::LoadRegReg && defOps && defOps[2].opBits == MicroOpBits::B64 &&
                 defOps[1].reg.isInt() && defIt->second.defPos < fn.firstCallPos)
             {
@@ -553,7 +552,7 @@ namespace
 
     struct TupleKeyHash
     {
-        size_t operator()(const TupleKey& k) const { return static_cast<size_t>(k.hash()); }
+        size_t operator()(const TupleKey& k) const { return k.hash(); }
     };
 
     struct VectorPlan
@@ -575,7 +574,7 @@ namespace
     TupleKey sortedKeyOf(const TupleKey& key)
     {
         TupleKey sorted = key;
-        std::sort(sorted.ids.begin(), sorted.ids.end());
+        std::ranges::sort(sorted.ids);
         return sorted;
     }
 
@@ -669,7 +668,7 @@ namespace
                     if (rhsReg == K_INVALID_ID)
                         return K_INVALID_ID;
 
-                    MicroOp vecOp = MicroOp::VecXor;
+                    auto vecOp = MicroOp::VecXor;
                     switch (n0.op)
                     {
                         case LaneOp::Add:
@@ -772,10 +771,10 @@ namespace
         }
 
     private:
-        uint32_t allocReg() { return plan_.nextPlanReg++; }
+        uint32_t allocReg() const { return plan_.nextPlanReg++; }
 
         // A shift by an immediate, in whichever form the target offers.
-        void emitShift(uint32_t dstReg, uint32_t srcReg, MicroOp shiftOp, uint64_t imm)
+        void emitShift(uint32_t dstReg, uint32_t srcReg, MicroOp shiftOp, uint64_t imm) const
         {
             if (nonDestructive_)
             {
@@ -786,13 +785,13 @@ namespace
             plan_.ops.push_back(PlanInstr{.kind = PlanInstr::Kind::BinaryRegImm, .dst = dstReg, .op = shiftOp, .imm = imm});
         }
 
-        void remember(const TupleKey& tuple, uint32_t reg)
+        void remember(const TupleKey& tuple, uint32_t reg) const
         {
             plan_.tupleRegs.emplace(tuple, reg);
             plan_.tuplesBySortedKey[sortedKeyOf(tuple)].push_back(tuple);
         }
 
-        uint32_t buildLoad(const TupleKey& tuple, const SlpValue& n0, const SlpValue& n1, const SlpValue& n2, const SlpValue& n3)
+        uint32_t buildLoad(const TupleKey& tuple, const SlpValue& n0, const SlpValue& n1, const SlpValue& n2, const SlpValue& n3) const
         {
             // Four loads of block-entry memory covering one contiguous chunk,
             // in any lane order.
@@ -801,9 +800,9 @@ namespace
             if (n0.loadRootKey != n1.loadRootKey || n0.loadRootKey != n2.loadRootKey || n0.loadRootKey != n3.loadRootKey)
                 return K_INVALID_ID;
 
-            std::array<uint64_t, K_LANE_COUNT> offsets = {n0.loadOffset, n1.loadOffset, n2.loadOffset, n3.loadOffset};
+            const std::array                   offsets = {n0.loadOffset, n1.loadOffset, n2.loadOffset, n3.loadOffset};
             std::array<uint64_t, K_LANE_COUNT> sorted  = offsets;
-            std::sort(sorted.begin(), sorted.end());
+            std::ranges::sort(sorted);
             for (uint32_t lane = 1; lane < K_LANE_COUNT; ++lane)
             {
                 if (sorted[lane] != sorted[0] + lane * K_LANE_BYTES)
@@ -1263,7 +1262,6 @@ namespace
 
             default:
                 setDefsOpaque(fn, scan, inst);
-                return;
         }
     }
 
@@ -1380,7 +1378,7 @@ namespace
 
         for (auto& [rootKey, candidates] : candidatesByRoot)
         {
-            std::sort(candidates.begin(), candidates.end(), [](const Candidate& a, const Candidate& b) { return a.offset < b.offset; });
+            std::ranges::sort(candidates, [](const Candidate& a, const Candidate& b) { return a.offset < b.offset; });
 
             size_t index = 0;
             while (index + K_LANE_COUNT <= candidates.size())

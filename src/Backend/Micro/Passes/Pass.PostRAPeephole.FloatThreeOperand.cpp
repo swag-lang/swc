@@ -84,11 +84,11 @@ namespace PostRaPeephole
         if (opBits != MicroOpBits::B32 && opBits != MicroOpBits::B64)
             return false;
 
-        constexpr uint32_t K_MAX_SCAN = 12;
+        constexpr uint32_t kMaxScan = 12;
 
         MicroInstrRef     opRef  = ctx.nextRef(loadRef);
         const MicroInstr* opInst = nullptr;
-        for (uint32_t step = 0; step < K_MAX_SCAN; ++step)
+        for (uint32_t step = 0; step < kMaxScan; ++step)
         {
             const MicroInstr* candidate = ctx.instruction(opRef);
             if (!candidate)
@@ -190,10 +190,10 @@ namespace PostRaPeephole
 
         // Walk back to whatever last wrote the destination. Only a load of this
         // very address means the register already holds the memory operand.
-        constexpr uint32_t K_MAX_SCAN = 12;
+        constexpr uint32_t kMaxScan = 12;
 
         MicroInstrRef cursor = ctx.previousRef(opRef);
-        for (uint32_t step = 0; step < K_MAX_SCAN; ++step)
+        for (uint32_t step = 0; step < kMaxScan; ++step)
         {
             const MicroInstr* candidate = ctx.instruction(cursor);
             if (!candidate)
@@ -264,11 +264,11 @@ namespace PostRaPeephole
         if (!dst.isFloat() || !src.isFloat() || dst == src)
             return false;
 
-        constexpr uint32_t K_MAX_SCAN = 12;
+        constexpr uint32_t kMaxScan = 12;
 
         MicroInstrRef     opRef  = ctx.nextRef(copyRef);
         const MicroInstr* opInst = nullptr;
-        for (uint32_t step = 0; step < K_MAX_SCAN; ++step)
+        for (uint32_t step = 0; step < kMaxScan; ++step)
         {
             const MicroInstr* candidate = ctx.instruction(opRef);
             if (!candidate)
@@ -360,11 +360,11 @@ namespace PostRaPeephole
         // control flow can enter from elsewhere - reaching the operation
         // without having run the copy would find a destination that never
         // received src1.
-        constexpr uint32_t K_MAX_SCAN = 12;
+        constexpr uint32_t kMaxScan = 12;
 
         MicroInstrRef     opRef  = ctx.nextRef(copyRef);
         const MicroInstr* opInst = nullptr;
-        for (uint32_t step = 0; step < K_MAX_SCAN; ++step)
+        for (uint32_t step = 0; step < kMaxScan; ++step)
         {
             const MicroInstr* candidate = ctx.instruction(opRef);
             if (!candidate)

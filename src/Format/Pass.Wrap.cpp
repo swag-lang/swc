@@ -21,6 +21,8 @@
 // it picks the break highest in the expression tree that still fits, one break
 // at a time. Revisit this choice — and only then reach for a solver — when a
 // wrapping shape has to be added that cannot be stated as one such local rule.
+#include <ranges>
+
 #include "pch.h"
 #include "Compiler/Lexer/Token.h"
 #include "Format/FormatPassUtil.h"
@@ -313,7 +315,7 @@ namespace
         void collectItems(ListState& state) const
         {
             const FormatPiece& open = model_->piece(state.openPiece);
-            uint32_t           item = model_->nextPiece(state.openPiece);
+            const uint32_t     item = model_->nextPiece(state.openPiece);
             if (item == INVALID_PIECE || item == state.closePiece)
                 return;
             state.items.push_back(item);
@@ -331,7 +333,7 @@ namespace
             }
         }
 
-        bool isItemStart(const ListState& state, const uint32_t pieceIndex) const
+        static bool isItemStart(const ListState& state, const uint32_t pieceIndex)
         {
             return std::ranges::find(state.items, pieceIndex) != state.items.end();
         }
@@ -514,7 +516,7 @@ namespace
             return FormatPassUtil::lineWidth(*model_, lineStart) <= options_->columnLimit;
         }
 
-        void chooseLineMode(ListState& state)
+        void chooseLineMode(ListState& state) const
         {
             if (!state.editable)
                 return;
@@ -564,7 +566,7 @@ namespace
             state.lineMode = ListLineMode::MultiLine;
         }
 
-        bool isLogicalBoundaryGap(const LogicalState& state, const uint32_t pieceIndex) const
+        static bool isLogicalBoundaryGap(const LogicalState& state, const uint32_t pieceIndex)
         {
             if (std::ranges::find(state.operators, pieceIndex) != state.operators.end())
                 return true;
@@ -653,7 +655,7 @@ namespace
             return FormatPassUtil::lineWidth(*model_, lineStart) <= options_->columnLimit;
         }
 
-        void chooseLogicalLineMode(LogicalState& state)
+        void chooseLogicalLineMode(LogicalState& state) const
         {
             if (!state.editable)
                 return;
@@ -764,7 +766,7 @@ namespace
                 for (const uint32_t item : state.items)
                 {
                     if (model_->gapHasNewline(item))
-                        return Utf8(model_->lineIndentOf(item));
+                        return model_->lineIndentOf(item);
                 }
             }
 
@@ -847,7 +849,7 @@ namespace
             }
         }
 
-        void prepareLists()
+        void prepareLists() const
         {
             for (const ListState& state : lists_)
             {
@@ -921,9 +923,9 @@ namespace
                 for (size_t i = 0; i < state.operators.size(); ++i)
                 {
                     if (model_->gapHasNewline(state.operators[i]))
-                        return Utf8(model_->lineIndentOf(state.operators[i]));
+                        return model_->lineIndentOf(state.operators[i]);
                     if (model_->gapHasNewline(state.operands[i + 1]))
-                        return Utf8(model_->lineIndentOf(state.operands[i + 1]));
+                        return model_->lineIndentOf(state.operands[i + 1]);
                 }
             }
 
@@ -1036,9 +1038,8 @@ namespace
 
         bool commaBelongsToSingleLineList(const uint32_t commaPiece) const
         {
-            for (auto it = lists_.rbegin(); it != lists_.rend(); ++it)
+            for (const auto& state : std::views::reverse(lists_))
             {
-                const ListState& state = *it;
                 if (state.lineMode != ListLineMode::SingleLine || commaPiece <= state.openPiece || commaPiece >= state.closePiece)
                     continue;
                 if (model_->piece(commaPiece).depth == model_->piece(state.openPiece).depth + 1)
@@ -1089,10 +1090,10 @@ namespace
 
         const ListState* listContaining(const uint32_t pieceIndex) const
         {
-            for (auto it = lists_.rbegin(); it != lists_.rend(); ++it)
+            for (const auto& list : std::views::reverse(lists_))
             {
-                if (pieceIndex > it->openPiece && pieceIndex < it->closePiece)
-                    return &*it;
+                if (pieceIndex > list.openPiece && pieceIndex < list.closePiece)
+                    return &list;
             }
             return nullptr;
         }
@@ -1107,7 +1108,7 @@ namespace
             bool     continuation = false;
         };
 
-        void wrapLongLines()
+        void wrapLongLines() const
         {
             if (options_->columnLimit == 0)
                 return;
@@ -1244,8 +1245,8 @@ namespace
                 // *after* a token puts that token on it, so its end column is
                 // what the limit applies to, not where it starts.
                 const uint32_t end = candidate == columns[c].piece
-                                               ? columns[c].column
-                                               : columns[c].column + FormatModel::textColumns(piece.text, tabWidth, columns[c].column);
+                                         ? columns[c].column
+                                         : columns[c].column + FormatModel::textColumns(piece.text, tabWidth, columns[c].column);
                 if (end <= limit)
                     best = candidate;
             }
@@ -1338,7 +1339,7 @@ namespace
                    piece.is(TokenId::CompilerCode);
         }
 
-        bool isStructuralItemLine(const FormatPiece& piece, const bool bracketItem, const uint32_t itemDepth) const
+        static bool isStructuralItemLine(const FormatPiece& piece, const bool bracketItem, const uint32_t itemDepth)
         {
             if (bracketItem && piece.depth == itemDepth + 1)
                 return true;

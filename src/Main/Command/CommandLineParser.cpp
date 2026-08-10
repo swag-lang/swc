@@ -756,7 +756,7 @@ std::optional<Utf8> CommandLineParser::suggestArgument(const Utf8& query) const
     {
         if (!a.longForm.empty())
         {
-            candidates.push_back(a.longForm);
+            candidates.emplace_back(a.longForm);
             if (a.isBoolLike())
             {
                 Utf8 negated = LONG_NO_PREFIX;
@@ -765,7 +765,7 @@ std::optional<Utf8> CommandLineParser::suggestArgument(const Utf8& query) const
             }
         }
         if (!a.shortForm.empty())
-            candidates.push_back(a.shortForm);
+            candidates.emplace_back(a.shortForm);
     }
     return Utf8Helper::bestMatch(query, candidates);
 }

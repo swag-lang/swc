@@ -379,7 +379,7 @@ namespace
         // Remembers a continuation line that was measured from another piece,
         // so the alignment pass can move it along when it shifts the line that
         // piece belongs to.
-        void recordHangingLine(const uint32_t lineStart, const ContinuationAnchor& anchor)
+        void recordHangingLine(const uint32_t lineStart, const ContinuationAnchor& anchor) const
         {
             if (anchor.piece == FormatPiece::INVALID_INDEX || anchor.columns < anchor.pieceColumn)
                 return;

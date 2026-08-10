@@ -227,7 +227,7 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, Sema& sema, const Typ
                     if (!method)
                         continue;
 
-                    const TypeRef methodTypeRef = TypeGen::reflectedMethodTypeRef(ctx, *method);
+                    const TypeRef methodTypeRef = reflectedMethodTypeRef(ctx, *method);
                     if (methodTypeRef.isValid())
                         deps.push_back(methodTypeRef);
                     appendAttributeDeps(deps, sema, method->attributes());

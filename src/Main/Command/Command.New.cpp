@@ -78,7 +78,7 @@ namespace
         if (ec)
             return path;
 
-        const fs::path relative = fs::relative(path, currentDir, ec);
+        fs::path relative = fs::relative(path, currentDir, ec);
         if (ec || relative.empty())
             return path;
         return relative;
@@ -106,7 +106,7 @@ namespace
         addInfoEntry(entries, "Run", "swc " + scriptArg, LogColor::White, 0, CommandPrint::helpArgumentLabelColor());
         addInfoEntry(entries, "Learn", "swc help", LogColor::White, 0, CommandPrint::helpArgumentLabelColor());
 
-        Logger::FieldGroupStyle style = CommandPrint::infoGroupStyle(true, 18);
+        const Logger::FieldGroupStyle style = CommandPrint::infoGroupStyle(true, 18);
         Logger::printFieldGroup(ctx, "Created", entries, style);
     }
 
@@ -121,7 +121,7 @@ namespace
         addInfoEntry(entries, "Run", "swc run --workspace " + workspaceArg + " --workspace-module " + moduleName, LogColor::White, 0, CommandPrint::helpArgumentLabelColor());
         addInfoEntry(entries, "Learn", "swc help", LogColor::White, 0, CommandPrint::helpArgumentLabelColor());
 
-        Logger::FieldGroupStyle style = CommandPrint::infoGroupStyle(true, 18);
+        const Logger::FieldGroupStyle style = CommandPrint::infoGroupStyle(true, 18);
         Logger::printFieldGroup(ctx, "Created", entries, style);
     }
 

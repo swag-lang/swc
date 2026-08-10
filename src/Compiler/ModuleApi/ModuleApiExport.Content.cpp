@@ -720,7 +720,7 @@ namespace ModuleApiExport
         // Build each group's content in parallel. Snippet bytes are only read for the
         // preamble above, then moved into their final ordered entries by one group.
         std::vector<Utf8> groupContents(groups.size());
-        std::fill(groupResults.begin(), groupResults.end(), Result::Continue);
+        std::ranges::fill(groupResults, Result::Continue);
         jobMgr.parallelForIndexed(ctx, static_cast<uint32_t>(groups.size()), JobKind::ModuleApiExport, ctx.compiler().jobClientId(), [&](TaskContext& workerCtx, uint32_t g) {
             groupResults[g] = buildGeneratedModuleApiContent(workerCtx, roots.subspan(groups[g].start, groups[g].count), std::span{rootSnippets}.subspan(groups[g].start, groups[g].count), moduleNamespace, eol, groupContents[g]);
         });

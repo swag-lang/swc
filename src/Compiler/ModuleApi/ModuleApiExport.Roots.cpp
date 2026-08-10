@@ -4,7 +4,6 @@
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
-#include "Compiler/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
 

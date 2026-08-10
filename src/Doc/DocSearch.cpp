@@ -372,7 +372,7 @@ Utf8 DocSearch::summarize(const std::string_view markdown)
 // final: nothing else has to agree with the renderer about how one is spelled.
 void DocSearch::collectHeadings(std::vector<DocSearchEntry>& outEntries, const std::string_view html)
 {
-    constexpr std::string_view ID_ATTRIBUTE = " id=\"";
+    constexpr std::string_view idAttribute = " id=\"";
 
     size_t index = 0;
     while ((index = html.find("<h", index)) != std::string_view::npos)
@@ -382,10 +382,10 @@ void DocSearch::collectHeadings(std::vector<DocSearchEntry>& outEntries, const s
             continue;
 
         const char level = html[index++];
-        if (html.compare(index, ID_ATTRIBUTE.size(), ID_ATTRIBUTE) != 0)
+        if (html.compare(index, idAttribute.size(), idAttribute) != 0)
             continue;
 
-        index += ID_ATTRIBUTE.size();
+        index += idAttribute.size();
         const size_t anchorEnd = html.find('"', index);
         if (anchorEnd == std::string_view::npos)
             break;
@@ -428,12 +428,12 @@ Utf8 DocSearch::script(const DocPageOptions& options, const std::span<const DocS
 {
     // A landing page is read whole, so a box searching its six headings costs the reader a
     // control and saves them nothing. The script only appears where scrolling stops working.
-    constexpr size_t MIN_ENTRIES = 8;
+    constexpr size_t minEntries = 8;
 
-    if (!options.hasSearch || entries.size() < MIN_ENTRIES)
+    if (!options.hasSearch || entries.size() < minEntries)
         return {};
 
-    Utf8 result = "<script>\n";
+    Utf8   result   = "<script>\n";
     size_t capacity = SEARCH_SCRIPT.size() + 32;
     for (const DocSearchEntry& entry : entries)
         capacity += entry.name.size() + entry.anchor.size() + entry.detail.size() + 8;

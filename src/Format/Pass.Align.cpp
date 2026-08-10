@@ -1,3 +1,5 @@
+#include <numeric>
+
 #include "pch.h"
 #include "Format/FormatPassUtil.h"
 #include "Format/FormatPasses.h"
@@ -33,7 +35,7 @@ namespace
             model.collectLineStarts(lineStarts_);
         }
 
-        void run()
+        void run() const
         {
             runDeclarationFamily(AlignCategory::Declarations, options_->alignConsecutiveDeclarations, options_->alignDeclarationInitializers.value_or(false));
             runDeclarationFamily(AlignCategory::StructFields, options_->alignStructFields, options_->alignStructFieldInitializers.value_or(false));
@@ -438,11 +440,11 @@ namespace
             // and drop an end while it is separated from the rest by a gap wider
             // than the option allows. A dropped line keeps the single space it
             // would have on its own.
-            std::vector<bool> aligned(group.size(), true);
+            std::vector aligned(group.size(), true);
             if (options_->alignOutlierGap > 0 && group.size() >= 2)
             {
                 std::vector<size_t> order(group.size());
-                std::iota(order.begin(), order.end(), size_t{0});
+                std::ranges::iota(order, size_t{0});
                 std::ranges::sort(order, [&](const size_t lhs, const size_t rhs) { return naturalCols[lhs] < naturalCols[rhs]; });
 
                 size_t first = 0;

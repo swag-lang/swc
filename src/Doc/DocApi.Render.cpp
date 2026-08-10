@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Doc/DocApi.h"
 #include "Compiler/Lexer/SourceView.h"
-#include "Compiler/ModuleApi/ModuleApi.Source.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -536,7 +535,7 @@ namespace
             const Utf8 anchor = DocMarkdown::makeAnchor(member.fullName);
             content.append(std::format(R"(<section class="api-member-detail"><h4 id="{}"><span class="api-member-name">{}</span><a class="api-member-permalink" href="#{}" aria-label="Permalink">#</a></h4>)", anchor, Utf8Helper::escapeHtml(member.name), anchor));
             content += "\n";
-            DocRenderContext memberRenderCtx = renderCtx;
+            DocRenderContext memberRenderCtx    = renderCtx;
             memberRenderCtx.headingAnchorPrefix = anchor;
             content += DocMarkdown::renderLines(memberRenderCtx, member.commentLines);
             content += "</section>\n";

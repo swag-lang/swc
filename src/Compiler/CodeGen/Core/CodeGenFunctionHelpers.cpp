@@ -500,7 +500,7 @@ void CodeGenFunctionHelpers::emitLoadFunctionParameterToReg(CodeGen& codeGen, co
 
 CodeGenNodePayload CodeGenFunctionHelpers::materializeFunctionParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, const FunctionParameterInfo& paramInfo)
 {
-    const SymbolVariable* canonicalParam = CodeGenFunctionHelpers::resolveCanonicalParameter(symbolFunc, symVar);
+    const SymbolVariable* canonicalParam = resolveCanonicalParameter(symbolFunc, symVar);
     const SymbolVariable& payloadSym     = canonicalParam ? *canonicalParam : symVar;
     if (const CodeGenNodePayload* symbolPayload = codeGen.variablePayload(payloadSym))
     {

@@ -199,13 +199,13 @@ namespace
             return false;
 
         const SourceFile* sourceFile = ctx.compiler().sourceViewFile(symbolFunction);
-        if (!sourceFile || !ModuleApi::isCurrentModuleSourceFile(*sourceFile))
+        if (!sourceFile || !isCurrentModuleSourceFile(*sourceFile))
             return false;
 
         AstNodeRef declRef;
-        if (!ModuleApi::tryFindReachableNodeRef(sourceFile->ast(), symbolFunction.decl(), declRef))
+        if (!tryFindReachableNodeRef(sourceFile->ast(), symbolFunction.decl(), declRef))
             return false;
-        return ModuleApi::isExportedPublicDeclScope(*sourceFile, declRef, symbolFunction);
+        return isExportedPublicDeclScope(*sourceFile, declRef, symbolFunction);
     }
 
     bool hasGeneratedModuleApiSourceMethod(TaskContext& ctx, const SymbolStruct& symbolStruct)
@@ -567,7 +567,7 @@ namespace
             return false;
 
         AstNodeRef implRef;
-        if (!ModuleApi::tryFindReachableNodeRef(root.file->ast(), symImpl->decl(), implRef))
+        if (!tryFindReachableNodeRef(root.file->ast(), symImpl->decl(), implRef))
             return false;
 
         Utf8 implPrefix;
@@ -645,16 +645,16 @@ namespace
                 continue;
 
             AstNodeRef declRef;
-            if (!ModuleApi::tryFindReachableNodeRef(astFile->ast(), method->decl(), declRef))
+            if (!tryFindReachableNodeRef(astFile->ast(), method->decl(), declRef))
                 continue;
 
             ModuleApiGeneratedRoot methodRoot;
             methodRoot.file    = astFile;
-            methodRoot.nodeRef = ModuleApi::findExportDeclRoot(*astFile, declRef);
+            methodRoot.nodeRef = findExportDeclRoot(*astFile, declRef);
             methodRoot.symbol  = method;
             if (methodRoot.nodeRef.isInvalid())
                 continue;
-            if (!ModuleApi::extractPublicNamespacePath(ctx, *astFile, declRef, *method, methodRoot.namespacePath))
+            if (!extractPublicNamespacePath(ctx, *astFile, declRef, *method, methodRoot.namespacePath))
                 continue;
 
             appendGeneratedRootUnique(outRoots, std::move(methodRoot));
@@ -785,7 +785,7 @@ namespace ModuleApiExport
             return false;
 
         AstNodeRef implRef;
-        if (!ModuleApi::tryFindReachableNodeRef(implFile->ast(), symImpl->decl(), implRef))
+        if (!tryFindReachableNodeRef(implFile->ast(), symImpl->decl(), implRef))
             return false;
 
         outImplRef  = implRef;

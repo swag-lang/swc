@@ -266,7 +266,7 @@ namespace
     // would answer 'true'.
     Result emitSliceCompareBool(CodeGen& codeGen, TokenId tokId, const CodeGenNodePayload& leftPayload, const CodeGenNodePayload& rightPayload, TypeRef sliceTypeRef)
     {
-        SymbolFunction* sliceCmpSymbol = preparedRuntimeCompareFunction(codeGen, IdentifierManager::PredefinedName::RuntimeSliceCmp);
+        const SymbolFunction* sliceCmpSymbol = preparedRuntimeCompareFunction(codeGen, IdentifierManager::PredefinedName::RuntimeSliceCmp);
         SWC_ASSERT(sliceCmpSymbol != nullptr);
         if (!sliceCmpSymbol)
             return Result::Error;

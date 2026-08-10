@@ -212,7 +212,7 @@ namespace
         if (sourceRef.isInvalid())
             return false;
 
-        Symbol* symbol = codeGen.viewSymbol(sourceRef).sym();
+        const Symbol* symbol = codeGen.viewSymbol(sourceRef).sym();
         if (!symbol)
             symbol = codeGen.sema().viewStored(sourceRef, SemaNodeViewPartE::Symbol).sym();
         return symbol && symbol->idRef() == codeGen.sema().idMgr().predefined(IdentifierManager::PredefinedName::Me);

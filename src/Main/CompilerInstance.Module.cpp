@@ -1254,7 +1254,7 @@ struct ModuleSetupInputApplier
     Result resolveExplicitDependencyRoot(fs::path& outRoot, const CompilerInstance::ModuleSetupImport& importRequest) const;
     Result resolveLinkAndSharedDirs(ResolvedModuleImportPaths& outPaths, const fs::path& dependencyRoot, const CompilerInstance::ModuleSetupImport& importRequest) const;
     Result mirrorWorkspaceDependencyDir(fs::path& ioDir, const fs::path& sourceDependencyRoot);
-    Result buildSwagStdModuleOnDemand(bool& outBuilt, const CompilerInstance::ModuleSetupImport& importRequest);
+    Result buildSwagStdModuleOnDemand(bool& outBuilt, const CompilerInstance::ModuleSetupImport& importRequest) const;
     Result resolveDependencyImportDir(ResolvedModuleImportPaths& outPaths, const CompilerInstance::ModuleSetupImport& importRequest, const fs::path* preferredDependencyRoot);
     Result captureDependencyImportSnapshot(const fs::path& depsFile, CompilerInstance::ModuleSetupSnapshot& outSnapshot) const;
     // Parsing+sema'ing a dependency's .dep metadata file is expensive and the same file is reached
@@ -1418,7 +1418,7 @@ Result ModuleSetupInputApplier::mirrorWorkspaceDependencyDir(fs::path& ioDir, co
 // build is an ordinary workspace command on the standard library, narrowed to the wanted module
 // and its workspace dependencies, and it is not itself a script: nothing it imports can come back
 // here, so this cannot recurse.
-Result ModuleSetupInputApplier::buildSwagStdModuleOnDemand(bool& outBuilt, const CompilerInstance::ModuleSetupImport& importRequest)
+Result ModuleSetupInputApplier::buildSwagStdModuleOnDemand(bool& outBuilt, const CompilerInstance::ModuleSetupImport& importRequest) const
 {
     outBuilt = false;
     if (!instance().cmdLine().scriptMode || importRequest.location != "swag@std")

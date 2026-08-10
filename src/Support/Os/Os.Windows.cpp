@@ -867,60 +867,9 @@ namespace Os
         outExceptionAddress = record->ExceptionAddress;
     }
 
-    // Temporary SEH-dispatch tracer for the float-persistent investigation:
-    // on the first-chance 666 exception, replays the unwinder's walk frame by
-    // frame and prints each step, so a frame whose unwind data derails the
-    // dispatch shows up as the last sane line.
-    LONG WINAPI sehTraceHandler(EXCEPTION_POINTERS* pointers)
-    {
-        if (!pointers || !pointers->ExceptionRecord || pointers->ExceptionRecord->ExceptionCode != 666)
-            return EXCEPTION_CONTINUE_SEARCH;
-
-        CONTEXT walkContext = *pointers->ContextRecord;
-        fprintf(stderr, "[seh] --- walk from rip=%016llX rsp=%016llX ---\n", walkContext.Rip, walkContext.Rsp);
-        for (int frame = 0; frame < 48 && walkContext.Rip; ++frame)
-        {
-            DWORD64                 imageBase     = 0;
-            const PRUNTIME_FUNCTION functionEntry = RtlLookupFunctionEntry(walkContext.Rip, &imageBase, nullptr);
-            if (!functionEntry)
-            {
-                const DWORD64 returnAddress = *reinterpret_cast<const DWORD64*>(walkContext.Rsp);
-                fprintf(stderr, "[seh] %02d rip=%016llX rsp=%016llX LEAF -> ret=%016llX\n", frame, walkContext.Rip, walkContext.Rsp, returnAddress);
-                walkContext.Rip = returnAddress;
-                walkContext.Rsp += 8;
-                continue;
-            }
-
-            const auto* unwindBytes = reinterpret_cast<const uint8_t*>(imageBase + functionEntry->UnwindData);
-            fprintf(stderr, "[seh] %02d rip=%016llX rsp=%016llX base=%016llX fn=[%08X..%08X) unw=%02X %02X %02X %02X",
-                    frame, walkContext.Rip, walkContext.Rsp, imageBase, functionEntry->BeginAddress, functionEntry->EndAddress,
-                    unwindBytes[0], unwindBytes[1], unwindBytes[2], unwindBytes[3]);
-            for (uint32_t slot = 0; slot < unwindBytes[2] && slot < 12; ++slot)
-                fprintf(stderr, " %02X%02X", unwindBytes[4 + slot * 2 + 1], unwindBytes[4 + slot * 2]);
-            fprintf(stderr, "\n");
-
-            void*   handlerData      = nullptr;
-            DWORD64 establisherFrame = 0;
-            RtlVirtualUnwind(UNW_FLAG_NHANDLER, imageBase, walkContext.Rip, functionEntry, &walkContext, &handlerData, &establisherFrame, nullptr);
-        }
-
-        fprintf(stderr, "[seh] --- walk end rip=%016llX ---\n", walkContext.Rip);
-        fflush(stderr);
-        return EXCEPTION_CONTINUE_SEARCH;
-    }
-
     void initialize()
     {
         ensureTerminalSupportInitialized();
-
-        char*  sehTraceEnv    = nullptr;
-        size_t sehTraceEnvLen = 0;
-        if (_dupenv_s(&sehTraceEnv, &sehTraceEnvLen, "SWC_SEH_TRACE") == 0 && sehTraceEnv)
-        {
-            if (sehTraceEnv[0] == '1')
-                AddVectoredExceptionHandler(1, sehTraceHandler);
-            std::free(sehTraceEnv);
-        }
     }
 
     bool stdoutSupportsAnsi()

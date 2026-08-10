@@ -706,7 +706,7 @@ Result AstAccessModifier::semaPreDecl(Sema& sema) const
 {
     const Token& tok      = sema.token(codeRef());
     const bool   isMember = hasFlag(AstAccessModifierFlagsE::Member);
-    SymbolMap*   symMap   = isMember ? SemaFrame::currentSymMap(sema) : nullptr;
+    const SymbolMap*   symMap   = isMember ? SemaFrame::currentSymMap(sema) : nullptr;
 
     // A bare 'readonly' names no level, so it rides on the one already in effect: the enclosing
     // access block, or the language default when there is none.

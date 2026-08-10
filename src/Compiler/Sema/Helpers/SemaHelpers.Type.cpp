@@ -11,7 +11,6 @@
 #include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
-#include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Support/Report/Assert.h"
 
@@ -1215,7 +1214,7 @@ TypeRef SemaHelpers::structuralTypeRefFromTypeNode(Sema& sema, AstNodeRef typeNo
 Result SemaHelpers::resolveStructLikeChildBindingType(Sema& sema, std::span<const AstNodeRef> children, AstNodeRef childRef, TypeRef targetTypeRef, TypeRef& outTypeRef)
 {
     outTypeRef              = TypeRef::invalid();
-    const TypeRef targetRef = SemaHelpers::unwrapBindingType(sema.ctx(), targetTypeRef);
+    const TypeRef targetRef = unwrapBindingType(sema.ctx(), targetTypeRef);
     if (!targetRef.isValid())
         return Result::Continue;
 
@@ -1232,7 +1231,7 @@ Result SemaHelpers::resolveStructLikeChildBindingType(Sema& sema, std::span<cons
 Result SemaHelpers::resolveArrayLikeChildBindingType(Sema& sema, std::span<const AstNodeRef> children, AstNodeRef childRef, TypeRef targetTypeRef, TypeRef& outTypeRef)
 {
     outTypeRef              = TypeRef::invalid();
-    const TypeRef targetRef = SemaHelpers::unwrapBindingType(sema.ctx(), targetTypeRef);
+    const TypeRef targetRef = unwrapBindingType(sema.ctx(), targetTypeRef);
     if (!targetRef.isValid())
         return Result::Continue;
 

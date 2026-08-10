@@ -14,6 +14,8 @@ Compiler defects are in [findings.compiler.md](findings.compiler.md).
 Conventions, the identifier counter, and the rest of the backlog are in [README.md](README.md).
 Entries are sorted by identifier, ascending; position carries no priority.
 
+## Binding, defaults, and local control flow
+
 ### F-045 — Positional destructuring binds by position even when every name matches a field
 
 - Area: language
@@ -70,6 +72,8 @@ Entries are sorted by identifier, ascending; position carries no priority.
   *named* scope and rejecting a bare `break` whose nearest enclosing structure is an unnamed
   `#scope` that sits inside a loop — the ambiguous case is exactly that one. Check first how many
   `#scope` uses in `bin/` rely on the current reading.
+
+## Value and conversion semantics
 
 ### F-048 — Mixing a signed and an unsigned operand of the same width converts the signed one
 
@@ -130,6 +134,8 @@ Entries are sorted by identifier, ascending; position carries no priority.
   a read-only capture read-only, and makes the name-shadowing visible at the capture list rather
   than at the assignment.
 
+## Failure handling
+
 ### F-051 — Error propagation has three spellings, one of them invisible and one context-dependent
 
 - Area: language
@@ -166,6 +172,8 @@ Entries are sorted by identifier, ascending; position carries no priority.
   f()`, or requiring the `as err` capture and letting an unread `err` be the thing the warning layer
   reports — so that "I looked at the error and chose to ignore it" and "I did not look" stop reading
   the same.
+
+## Overloaded syntax and declaration rules
 
 ### F-053 — The apostrophe carries three unrelated roles
 
@@ -281,6 +289,8 @@ Entries are sorted by identifier, ascending; position carries no priority.
   simply, requiring an explicit `= 0` first member on a flags enum, which documents the "none" case
   and makes the renumbering visible in the source.
 
+## Strings, mixins, and macros
+
 ### F-059 — `++` is compile-time only, and there is no runtime string concatenation at all
 
 - Area: language
@@ -335,6 +345,8 @@ Entries are sorted by identifier, ascending; position carries no priority.
   missing is disclosure: consider requiring the block literal to acknowledge it
   (`#code(break, continue) { ... }`, the same shape the call site already uses to rename block
   parameters), so a reader of the call site knows the keywords are not the ones they look like.
+
+## Cross-feature semantic consistency
 
 ### F-062 — Struct parameters are always const references, and there is no by-value form
 

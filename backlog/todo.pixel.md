@@ -35,7 +35,7 @@ The gaps are in composition fidelity, color, and the GPU backend.
 
 ---
 
-## Tier A — Composition fidelity
+## Tier A — Composable image effects
 
 ### T-049 — No image filter graph
 
@@ -80,6 +80,8 @@ Blend two graph inputs using the painter's artistic blend modes and T-052's colo
 Merge an ordered set of graph inputs without requiring them to be blended pairwise by callers.
 
 - Related: T-049
+
+## Tier A — SVG input fidelity
 
 ### T-186 — SVG gradient geometry is incomplete
 
@@ -141,7 +143,7 @@ Map a declared subset of SVG filter primitives onto the effect graph from T-049.
 
 ---
 
-## Tier B — Colour and precision
+## Tier B — Pixel precision and representation
 
 ### T-051 — No 16-bit integer pixel formats
 
@@ -179,6 +181,8 @@ conversion boundary.
 
 - Related: T-051, T-052
 
+## Tier B — Colour management and display range
+
 ### T-052 — No colour management
 
 - Nothing in the API distinguishes sRGB from linear. Declare the working space and transfer
@@ -210,7 +214,7 @@ Define HDR surface formats, transfer functions, luminance metadata, and tone-map
 
 ---
 
-## Tier C — Reach
+## Tier C — Rendering backends and vector output
 
 ### T-053 — OpenGL is the only GPU backend
 
@@ -243,6 +247,8 @@ Add PostScript only as a separately justified output backend; it must not be hid
 completion.
 
 - Related: T-054
+
+## Tier C — Image and texture codecs
 
 ### T-055 — No QOI codec
 
@@ -286,6 +292,8 @@ Import a documented PSD subset, including how layers, masks, color modes, and un
 map into Pixel structures.
 
 - Related: T-049, T-055
+
+## Tier C — Geometry and font resources
 
 ### T-056 — Path effects
 

@@ -48,7 +48,7 @@ As of 2026-08-09, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 
 **Related:** T-001, T-002, T-004.
 
-## Tier B — Measured speed and memory
+## Tier B — Measurement and budgets
 
 ### T-004 — The benchmark campaign measures only hello world
 
@@ -93,6 +93,8 @@ As of 2026-08-09, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 
 **Related:** T-004, T-007, T-123.
 
+## Tier B — Reused and parallel compiler work
+
 ### T-006 — Every process rebuilds the prelude state
 
 **Intent.** Serialize and reuse the prelude through the same module-interface mechanism as ordinary dependencies, rather than maintaining a special prelude cache.
@@ -122,7 +124,7 @@ As of 2026-08-09, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 
 **Related:** T-004, T-005.
 
-## Tier C — Editor and command-line tooling
+## Tier C — Language-server capabilities
 
 ### T-008 — There is no persistent language-server process
 
@@ -214,6 +216,8 @@ As of 2026-08-09, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 - Protocol tests cover shadowing, members, overloads, aliases, cross-module use, collision, and cancellation.
 
 **Related:** T-008, T-382.
+
+## Tier C — Command-line and script workflows
 
 ### T-124 — The VSCode task provider emits obsolete command lines
 

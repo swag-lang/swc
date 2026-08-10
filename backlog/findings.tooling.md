@@ -6,6 +6,8 @@ being compiled by it.
 Conventions, the identifier counter, and the rest of the backlog are in [README.md](README.md).
 Entries are sorted by identifier, ascending; position carries no priority.
 
+## Tool execution boundaries
+
 ### F-018 — A sandbox root is never removed, and the process id does not make it private
 
 - Area: bin/std

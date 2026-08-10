@@ -8,6 +8,8 @@ are [findings.safety.md](findings.safety.md).
 Conventions, the identifier counter, and the rest of the backlog are in [README.md](README.md).
 Entries are sorted by identifier, ascending; position carries no priority.
 
+## Global initialization and storage
+
 ### F-019 — A thread-local global cannot hold a droppable type
 
 - Area: compiler
@@ -52,6 +54,8 @@ Entries are sorted by identifier, ascending; position carries no priority.
   `DataSegmentRelocation` at the written offset, which nothing does today because the write comes
   from JIT-executed code rather than from a sema-built initializer. Either instrument those stores
   or reject a `#run` write to a global that no initializer placed in the initialized segment.
+
+## Published symbols, imports, and name resolution
 
 ### F-025 — An ambiguous `.member` still reads "not published yet" as "not there"
 

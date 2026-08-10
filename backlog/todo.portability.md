@@ -41,7 +41,7 @@ new platform implements capabilities rather than copies policy.
 
 ---
 
-## Tier A — Establish the boundary before adding Linux
+## Tier A — Portability inventory and build configuration
 
 ### T-266 — No build-only non-Windows portability configuration
 
@@ -55,6 +55,8 @@ Track both native source lines and, more importantly, native capabilities a new 
   system calls into a clever wrapper is not.
 
 - Related: T-266
+
+## Tier A — Runtime host and memory boundary
 
 ### T-104 — Define a minimal runtime host ABI
 
@@ -137,6 +139,8 @@ Record a target matrix for hosted builds: Windows UCRT, Linux libc plus libm whe
 
 - Related: T-105, T-114
 
+## Tier A — Process launch and orchestration
+
 ### T-106 — Make process launch argv-first
 
 - `StartInfo.arguments` is one already-quoted string, which makes Windows command-line quoting the
@@ -169,6 +173,8 @@ Preserve the stronger resource contract deliberately. Windows Job Objects accoun
 
 - Related: T-028, T-277
 
+## Tier A — Filesystem and path conformance
+
 ### T-285 — Filesystems have no cross-host conformance suite
 
 Add filesystem conformance tests on each host for Unicode names, links, permissions, partial I/O,
@@ -185,7 +191,7 @@ without touching the filesystem.
 
 ---
 
-## Tier B — Pull reusable desktop behavior above the native leaves
+## Tier B — Portable desktop service boundaries
 
 ### T-287 — Optional Windows interop is mixed into portable types
 
@@ -203,6 +209,8 @@ Separate generic desktop actions (`openUrl`, reveal a path, enumerate monitors, 
   capability/failure contract, not in the portable core environment namespace.
 
 - Related: T-108, T-135
+
+## Tier B — Installed-font discovery
 
 ### T-109 — Replace the native installed-font descriptor
 
@@ -240,6 +248,8 @@ A first Linux backend may provide conventional directories. Fontconfig can be ad
 
 - Related: T-289
 
+## Tier B — Application messaging
+
 ### T-333 — Application-message payloads have no ownership contract
 
 Application-message identifiers are platform-neutral, but the event still carries one borrowed
@@ -255,6 +265,8 @@ Give single-instance/application messaging a portable contract. The Windows back
   payload, delivery, timeout, and failure semantics must be the same.
 
 - Related: T-110
+
+## Tier B — Portable image and surface policy
 
 ### T-293 — System-icon retrieval and caching are coupled in native GUI code
 
@@ -286,6 +298,8 @@ Keep `Surface` position clamping, headless fallbacks, state updates, and command
 
 - Related: T-045, T-110, T-294
 
+## Tier B — Backend selection and scheduling
+
 ### T-298 — Audio backend selection is repeated compile-time dispatch
 
 Replace the repeated `#os == Windows` dispatch in `driver/backend.swg` with a backend interface or
@@ -309,6 +323,8 @@ Implement lifecycle, periodic rescheduling, callback/context dispatch, and cance
   Windows timer-queue policy into every backend.
 
 - Related: T-134
+
+## Tier B — Application portability enforcement
 
 ### T-307 — sCrypt exposes a Windows drive-letter mount destination
 

@@ -74,7 +74,7 @@ The remaining work below is what turns that into a measured allocator contract.
 - An abandoned page whose class nobody allocates again is only collected by `trim()`. Bound that
   too, or state that a thread exiting mid-workload can retain its pages until the next trim.
 
-## Tier B - Match mature concurrent allocators
+## Tier B - Concurrent paths and allocation classes
 
 ### T-022 — Make remote frees batched rather than one atomic each
 
@@ -111,7 +111,7 @@ medium tier is separated. Benchmark large growth and release independently of si
 - Decide it from measured fragmentation on real traces, and consider cache-line placement and false
   sharing in the page table as part of the same measurement.
 
-## Tier C - Harden the implementation
+## Tier C - Failure, platform, and security hardening
 
 ### T-025 — Add allocator OS-failure injection
 

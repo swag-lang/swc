@@ -35,7 +35,7 @@ The gaps are about coverage: which fonts load at all, and whether text is positi
 
 ---
 
-## Tier A — Fonts that cannot load
+## Tier A — Font containers and outlines
 
 ### T-068 — OpenType CFF outlines are rejected
 
@@ -63,7 +63,7 @@ Add WOFF2 reconstruction and Brotli decompression as a separate format implement
 
 ---
 
-## Tier B — Text that is positioned wrongly
+## Tier B — Glyph substitution
 
 ### T-069 — No GSUB single-substitution processing
 
@@ -107,6 +107,8 @@ the ownership and dependency rule before the shaping API expands.
 
 - Related: T-069, T-179, T-180
 
+## Tier B — Mark positioning
+
 ### T-179 — Combining marks ignore GPOS attachment
 
 Implement mark-to-base positioning so combining accents use the base glyph's anchors.
@@ -124,6 +126,8 @@ Position marks against the selected component anchors of a ligature glyph.
 Position one combining mark relative to another independently of base and ligature attachment.
 
 - Related: T-179
+
+## Tier B — Script shaping
 
 ### T-180 — Arabic text is not shaped
 
@@ -147,7 +151,7 @@ Implement Thai mark ordering and positioning independently of Arabic and Indic s
 
 ---
 
-## Tier C — Font classes not covered
+## Tier C — Variable and color fonts
 
 ### T-070 — Variable fonts
 
@@ -182,6 +186,8 @@ Parse and render the OpenType SVG table through Pixel's SVG support, with explic
 resource limits.
 
 - Related: T-071, T-186
+
+## Tier C — Writing direction and hinting
 
 ### T-072 — Vertical writing
 

@@ -36,7 +36,7 @@ The gaps are not about polish. Two of them are structural.
 
 ---
 
-## Tier A — Structural
+## Tier A — Network stack
 
 These two entries are the difference between a standard library and a complete one. They are
 independent: neither blocks the other, and neither should be allowed to block everything else.
@@ -100,6 +100,8 @@ Add WebSocket handshake and frame processing above HTTP without making it part o
 completion criteria.
 
 - Related: T-129, T-130
+
+## Tier A — Second-platform system services
 
 ### T-028 — Process services have no second-platform backend
 
@@ -207,7 +209,7 @@ state and policy in common code.
 
 ---
 
-## Tier B — Present but too thin to use
+## Tier B — Data interchange and internationalization
 
 ### T-029 — No JSON
 
@@ -273,6 +275,8 @@ and Unicode-default operations.
 
 - Related: T-030
 
+## Tier B — Cryptography
+
 ### T-031 — No AES implementation
 
 - Present: Adler-32, CRC-32, CRC-64, MD5, SHA-1, SHA-256, HMAC-SHA-256, PBKDF2, ChaCha20, and
@@ -331,7 +335,7 @@ unsafe legacy modes excluded from the default surface.
 
 ---
 
-## Tier C — Coverage
+## Tier C — Archives, calendars, and time zones
 
 ### T-032 — No gzip container support
 
@@ -357,6 +361,8 @@ Add streaming TAR reading and writing, with the supported metadata and extension
 `time` handles UTC and local. There is no IANA zone database, no historical offsets, and no DST
 rules for an arbitrary zone. Any application that schedules or displays times across regions is
 stuck at the boundary.
+
+## Tier C — Collections
 
 ### T-034 — No ordered map
 
@@ -385,6 +391,8 @@ Add a heap-backed priority queue with explicit comparator and ownership behavior
 
 - Related: T-157
 
+## Tier C — Filesystem integration
+
 ### T-035 — No memory-mapped files
 
 Add portable mapped-file and mapped-region APIs with flush, resize interaction, lifetime, and
@@ -398,6 +406,8 @@ Add a filesystem change stream for tools that react to edits, with overflow, ren
 recursive scope, and cancellation behavior stated per platform.
 
 - Related: T-035, T-008
+
+## Tier C — Concurrency and asynchronous I/O
 
 ### T-036 — No future or task abstraction
 

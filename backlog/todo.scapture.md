@@ -28,7 +28,7 @@ effects that makes a capture look produced, and output.
 
 ---
 
-## Tier A — Table stakes
+## Tier A — Output and text extraction
 
 ### T-074 — Copy a capture as a clipboard file
 
@@ -56,6 +56,8 @@ path.
   selection, and put the result on the clipboard.
 - Why this high: it is the most visible remaining reason to reach for the built-in tool instead of
   this one, and the platform does the hard part.
+
+## Tier A — Capture effects
 
 ### T-076 — No capture-level effect pipeline
 
@@ -102,6 +104,8 @@ Add reusable image/text watermarks with placement, opacity, scale, and export pe
 
 - Related: T-076
 
+## Tier A — Capture workflows
+
 ### T-077 — Capture hotkeys are fixed
 
 - `MainWnd.setupHotKeys` registers four fixed combinations. Persist user-rebindable hotkeys in the
@@ -119,7 +123,7 @@ to bind a hotkey to a preset rather than a raw command.
 
 ---
 
-## Tier C — The large capture modes
+## Tier C — Scrolling and recorded capture
 
 Both entries below are subsystems rather than features. They are what people actually buy Snagit
 for, and they are honestly expensive. Ship Tier A first.
@@ -165,7 +169,7 @@ produce a playable artifact.
 
 ---
 
-## Tier D — Polish
+## Tier D — Canvas composition and reusable annotations
 
 ### T-082 — Captures cannot be combined on one canvas
 
@@ -184,6 +188,8 @@ Persist and apply named layout descriptions independently of combining captures 
 A reusable graphics set placed as `FormImage` instances. Small, and it fits the existing model
 exactly. Must follow the identity rules in `design-swag-identity` rather than shipping generic
 clip art.
+
+## Tier D — Portability and output conventions
 
 ### T-084 — Cross-platform capture backend
 

@@ -22,6 +22,8 @@ best-tested subsystem in the compiler. On option count it is already in clang-fo
 
 ---
 
+## Automation and editor workflows
+
 ### T-016 — Add a CI check mode
 
 `--dry-run` suppresses writes and counts what *would* be rewritten, but there is no check-mode
@@ -44,6 +46,8 @@ Add a line- or offset-based range contract for editor format-selection. Define h
 range expands to syntactic boundaries and which returned edits may fall outside it.
 
 - Related: T-115, T-117
+
+## Canonical and resilient formatting
 
 ### T-017 — There is no canonical Swag style
 

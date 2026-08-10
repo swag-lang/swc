@@ -9,6 +9,8 @@ A lead that sCapture exposed but that will be fixed in `std/gui` belongs in
 Conventions, the identifier counter, and the rest of the backlog are in [README.md](README.md).
 Entries are sorted by identifier, ascending; position carries no priority.
 
+## Window automation and lifecycle
+
 ### F-039 — The sCapture main window cannot be painted headlessly
 
 - Area: apps/sCapture

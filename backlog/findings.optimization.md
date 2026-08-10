@@ -6,6 +6,8 @@ Frontend and lowering defects are [findings.compiler.md](findings.compiler.md).
 Conventions, the identifier counter, and the rest of the backlog are in [README.md](README.md).
 Entries are sorted by identifier, ascending; position carries no priority.
 
+## Loop vectorization
+
 ### F-029 — ChaCha20 still processes one block per packed dependency chain
 
 - Area: std/core (crypto), compiler/backend
@@ -47,6 +49,8 @@ Entries are sorted by identifier, ascending; position carries no priority.
   `[base + K]`, which is what turns the Amc form into the constant-offset form the vectorizer
   reads. Check whether instruction-combine already does this and is simply not re-run after the
   unroll, or whether it has no rule for Amc-with-constant-index at all.
+
+## Register allocation and frame-slot promotion
 
 ### F-036 — Folding copy-then-operate before register allocation miscompiles
 

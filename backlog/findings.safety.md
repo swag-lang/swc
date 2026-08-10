@@ -8,6 +8,8 @@ runtime fault are tooling under `#[Swag.Sanity]`. The reference states the line
 Conventions, the identifier counter, and the rest of the backlog are in [README.md](README.md).
 Entries are sorted by identifier, ascending; position carries no priority.
 
+## Control-flow and lifetime analysis
+
 ### F-041 — A read reached only by a loop's back edge is missed
 
 - Area: compiler

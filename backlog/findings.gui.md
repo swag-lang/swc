@@ -10,6 +10,8 @@ as [findings.scapture.md](findings.scapture.md).
 Conventions, the identifier counter, and the rest of the backlog are in [README.md](README.md).
 Entries are sorted by identifier, ascending; position carries no priority.
 
+## Declarative UI and headless automation
+
 ### F-006 — Data-driven UI resource for `std/gui`
 
 - Area: bin/std
@@ -53,6 +55,8 @@ Entries are sorted by identifier, ascending; position carries no priority.
   a modal that never appeared, or a modal that appeared without the requested button (naming the
   ids it did offer). A `Debug.assert` on the second case turns a silent 60-frame spin into a
   message that names the mistake.
+
+## Keyboard interaction and focus
 
 ### F-026 — Escape in the property grid commits the edit it is supposed to cancel
 
@@ -111,6 +115,8 @@ Entries are sorted by identifier, ascending; position carries no priority.
   Escape is not obviously so while the surface names a cancel action. Mark only what was used, the
   way `EditBox.keyPressed` already does ([editbox.swg:372](../bin/std/modules/gui/src/widgets/editbox.swg#L372)).
 
+## Layout invalidation and alignment
+
 ### F-038 — A check box does not line up with the fields of the form it stands in
 
 - Area: std/gui
@@ -160,6 +166,8 @@ Entries are sorted by identifier, ascending; position carries no priority.
   state. Pin whichever way it goes with a headless test that re-labels a control inside a docked
   band and asserts the band re-measured without anything being resized.
 
+## Native resources and error reporting
+
 ### F-074 — A Windows call that fails without setting a last error is reported as success
 
 - Area: std/win32
@@ -203,6 +211,8 @@ Entries are sorted by identifier, ascending; position carries no priority.
   that keeps the caller's slice and does not copy, which removes the duplicate on every path and
   not just this one — but it makes the face's lifetime depend on the caller's buffer, which is a
   contract change worth stating deliberately.
+
+## Text presentation and semantics
 
 ### F-083 — Text outside a framed field is still centered on its line box, so its height follows the face
 

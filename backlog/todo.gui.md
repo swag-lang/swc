@@ -30,7 +30,7 @@ That is a real toolkit. The gaps below are not about widget count.
 
 ---
 
-## Tier A — Who cannot use an application built with this
+## Tier A — Accessibility and text input
 
 Both entries have the same shape: each one excludes a population of users entirely, and each one
 is verifiable by looking at the window procedure. `src/surface.win32.swg` handles twenty-seven
@@ -68,7 +68,7 @@ messages. What is absent from that list is this section.
 
 ---
 
-## Tier B — Platform gaps
+## Tier B — Clipboard and resource overrides
 
 ### T-316 — Clipboard data cannot represent virtual files
 
@@ -86,6 +86,8 @@ language files already do.
 
 - Related: T-217, T-218
 
+## Tier B — Localization
+
 ### T-217 — Construction-time text does not automatically retranslate
 
 Define an automatic binding or required notification contract for text that was resolved once at
@@ -100,6 +102,8 @@ Add each additional shipped language as an independently reviewable resource con
 coverage checks that prevent untranslated keys. Locale date/name data belongs to T-142.
 
 - Related: T-040, T-142, T-144, T-217
+
+## Tier B — Live system changes
 
 ### T-041 — System theme changes are ignored
 
@@ -130,7 +134,7 @@ Handle the platform input-language notification and update keyboard-layout-depen
 
 ---
 
-## Tier C — What a finished toolkit has
+## Tier C — Keyboard navigation
 
 These are not six independent checkboxes. Animation is infrastructure for touch inertia and
 docking feedback; docking relies on drag-and-drop polish; a second platform has to reproduce the
@@ -152,6 +156,8 @@ Add caption mnemonics, surface-level `Alt` handling, menu activation, and underl
 one keyboard access-key contract.
 
 - Related: T-042, T-037
+
+## Tier C — Pointer, gesture, touch, and pen input
 
 ### T-044 — No pointer-event model
 
@@ -252,6 +258,8 @@ Suppress competing touch contacts according to an explicit rule while a pen owns
 gesture, with headless mixed-device tests.
 
 - Related: T-226, T-227, T-229
+
+## Tier C — Second-platform GUI integration
 
 ### T-045 — No second-platform surface and presentation backend
 
@@ -356,6 +364,8 @@ needs the FUSE backend in [T-100](todo.scrypt.md#t-100--no-linux-fuse-backend), 
 Core and Pixel platform work under T-028. Keeping those dependencies explicit prevents a GUI port
 from being mistaken for two ported products.
 
+## Tier C — Docking and document hosts
+
 ### T-046 — No docking layout host
 
 The ingredients are present but not the model. `Tab` can select a page, `SplitterCtrl` can size
@@ -398,6 +408,8 @@ pages, and test close veto and focus independently of docking. sCapture's open c
 first consumer; sCrypt does not need this merely as a demonstration.
 
 - Related: T-046
+
+## Tier C — Printing
 
 ### T-047 — No printable-document pagination contract
 

@@ -21,7 +21,7 @@ locally.
 
 ---
 
-## Tier A — Throughput and credibility
+## Tier A — Block I/O throughput
 
 ### T-087 — No block cache
 
@@ -47,6 +47,8 @@ locally.
 - Decrypt independent blocks in bounded `Jobs` batches while preserving request ordering and
   cancellation.
 - Related: T-087, T-248, T-260
+
+## Tier A — Cryptographic throughput
 
 ### T-088 — ChaCha20 processes one block per dependency chain
 
@@ -81,6 +83,8 @@ locally.
 - Run lanes within each legal slice through `Jobs`, respecting Argon2's synchronization points and
   measuring the configured `parallelism` contract.
 - Related: T-251
+
+## Tier A — Key and release security
 
 ### T-089 — Keys live in pageable memory
 
@@ -125,7 +129,7 @@ locally.
 
 ---
 
-## Tier B — Perceived feature parity
+## Tier B — Automatic and forced unmounting
 
 ### T-091 — A busy volume cannot be forcibly unmounted
 
@@ -155,6 +159,8 @@ locally.
 - Add an opt-in idle timeout based on appropriate user activity and reset semantics.
 - Related: T-091
 
+## Tier B — Credentials and derivation profiles
+
 ### T-092 — Additional password slots are not in the interface
 
 - Owner: sCrypt
@@ -172,6 +178,8 @@ locally.
 - Expose `Crypto.Argon2Profile` independently of password-slot management, with clear latency and
   memory guidance.
 - Related: T-092, T-251, T-252
+
+## Tier B — Container maintenance
 
 ### T-093 — Shrinking a container
 
@@ -199,6 +207,8 @@ locally.
   secret and an associated-data input for exactly this. PKCS#11 tokens are a further step and can
   wait.
 
+## Tier B — Filesystem concurrency
+
 ### T-097 — Filesystem callbacks use one coarse lock
 
 - Owner: sCrypt
@@ -218,7 +228,7 @@ locally.
 
 ---
 
-## Tier C — Long term
+## Tier C — Format design and resilience
 
 ### T-098 — Hidden volume
 
@@ -259,6 +269,8 @@ locally.
 - Extend crash consistency beyond between-operation snapshots to torn writes inside a record and
   process termination during checkpointing.
 - Related: T-099
+
+## Tier C — Scale, platform reach, and independent assurance
 
 ### T-264 — Metadata scaling stops at 1,200 files
 

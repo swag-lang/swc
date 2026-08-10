@@ -26,7 +26,7 @@ effects, no capture.
 
 ---
 
-## Tier A — What blocks real use
+## Tier A — Compressed audio formats
 
 ### T-058 — No MP3 decoder
 
@@ -70,6 +70,8 @@ containers.
 
 - Related: T-058
 
+## Tier A — Playback control
+
 ### T-059 — Volume changes are instantaneous, so they click
 
 - Problem: `Voice.setVolumeDb` and `Bus.setVolume` write the gain straight to the backend. XAudio2
@@ -91,6 +93,8 @@ containers.
 - Note: this must be designed alongside T-058. Seeking in MP3 and Vorbis is not a byte offset,
   so the codec interface needs the right shape before three decoders are written against the
   wrong one.
+
+## Tier A — Output-device lifecycle
 
 ### T-061 — No output-device enumeration
 
@@ -114,7 +118,7 @@ an explicit policy when headphones, USB audio, or the default device changes.
 
 ---
 
-## Tier B — Capability already half-present
+## Tier B — Spatialization and channel control
 
 Two features are already paid for in the backend and simply not exposed. They are cheap in a way
 the rest of this list is not.
@@ -135,6 +139,8 @@ Add backend-neutral stereo panning to `Voice` without requiring the listener and
 T-062.
 
 - Related: T-062
+
+## Tier B — Voice effects
 
 ### T-063 — Filters, with the voice flag already set
 
@@ -159,7 +165,7 @@ Expose an echo/delay effect independently of reverb and the general effects grap
 
 ---
 
-## Tier C — Breadth
+## Tier C — Startup and capture workflows
 
 ### T-064 — Engine creation cost on the startup path
 
@@ -192,6 +198,8 @@ processing.
 Expose desktop/output loopback as a distinct capture source when the backend supports it.
 
 - Related: T-065, T-245
+
+## Tier C — Backend and graph architecture
 
 ### T-066 — A second platform
 

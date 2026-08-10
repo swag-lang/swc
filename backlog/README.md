@@ -87,6 +87,9 @@ Next identifier: T-383
 - In a `todo.*` file, position IS priority: entries stay ordered by decreasing value, so a new
   entry goes wherever its value puts it, and identifiers appear out of order. The number says what
   an entry is called, never how much it matters.
+- Use `##` sections to group contiguous entries that pursue the same capability. Section order
+  preserves todo priority and global finding-identifier order; a section is navigation, not a
+  campaign umbrella, and does not change the independence of the entries beneath it.
 - A finding that graduates into a plan becomes a todo entry and takes a fresh `T` identifier; its
   `F` identifier retires with it. Name the finding it came from in the new entry.
 

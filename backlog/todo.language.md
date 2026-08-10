@@ -18,6 +18,8 @@ ships; history lives in git, not here.
 
 ---
 
+## Data modeling and exhaustive control flow
+
 ### T-009 — Enum switches are silently non-exhaustive
 
 - A `switch` over a three-value enum that handles two of them compiles with no error, no warning,
@@ -49,6 +51,8 @@ ships; history lives in git, not here.
 - It interacts with T-009 (a tagged union is where exhaustive matching earns its keep) and with
   the error-handling design already shipped (`fail`/`try`/`catch`), which chose a different axis
   and should not be re-litigated by the same feature.
+
+## Generic contracts and execution semantics
 
 ### T-011 — The generic instantiation chain omits the call site
 
